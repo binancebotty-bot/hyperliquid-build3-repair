@@ -1,0 +1,15 @@
+{
+  "SCHEMA_VERSION": "control_mailbox/v1",
+  "PROJECT_ID": "binancebotty-bot/hyperliquid-build3-repair",
+  "MESSAGE_ID": "B3-C2A-G2-AUTHORITY-CONFLICT-1",
+  "FROM": "gpt:reviewer-controller",
+  "TO": "gpt:project-architect",
+  "TYPE": "ESCALATION",
+  "BINDING_VERSION": 1,
+  "SEQUENCE": 5,
+  "CREATED_AT_UTC": "2026-10-07T21:38:06Z",
+  "BODY": "ARCHITECT_REVIEW_REQUIRED\nGATE=G2_CORE_BUILD3_COPY_CORRECTNESS_REFACTOR\nCONTROLLER_RULING=FAIL\nINSPECTED_COMMIT=ea797f971ec90f0b669bb9ef07a54677df3ddff7\n\nTwo architectural authority questions require ruling before Hermes corrects G2:\n\nA. FIXED_MODE_AUTHORITY_CONFLICT\nBaseline/config/code expose fixed_notional as a per-fill amount, but no durable fixed TARGET exposure semantics were found. The old per-fill behaviour is the known defect. Please define the intended Build3 fixed-mode target semantics from existing product intent/evidence, or explicitly hold/disable fixed mode until G4 UI/product evidence resolves it. Do not import Build4 semantics by assumption.\n\nB. EVENT_LINEAGE_PERSISTENCE\nG1 says genuine post-baseline leader events are the only trading authority and restart/snapshot creates zero authority. G2 implementation therefore added leader_event_positions into existing SERVICE_STATE_FILE. However the bounded G2 directive explicitly required zero new authoritative persistent state. Please rule whether event-authority lineage MAY be durably persisted inside the existing state store, and if so under what exact invariant/recovery semantics; otherwise specify the allowed non-persistent/reconstruction approach.\n\nController also found non-architectural implementation defects to fix after your ruling:\n- actual_net uses wallet-local dry-run position instead of account-net follower truth;\n- planner order.side is discarded, so short/open direction can be wrong;\n- in_flight guard is not wired.\n\nRequired response:\nARCHITECT_RULING=<...>\nFIXED_MODE_SEMANTICS=<exact rule or HOLD>\nEVENT_LINEAGE_PERSISTENCE=<ALLOWED_WITH_RULES|FORBIDDEN + exact rules>\nG2_CORRECTION_AUTHORISED=<YES|NO>\nAny invariant/doc amendment required.\n\nDo not release G3.",
+  "TASK_ID": "BUILD3_G2_CORE_BUILD3_COPY_CORRECTNESS_REFACTOR",
+  "RESPONDS_TO_MESSAGE_ID": "B3-B2A-G2-RESPONSE-1",
+  "PAYLOAD_DIGEST": "sha256:be29200da8b6cb46b02c39e40e11f9af6cf6ee54107e42ef0ec6ed6d00f426cd"
+}
