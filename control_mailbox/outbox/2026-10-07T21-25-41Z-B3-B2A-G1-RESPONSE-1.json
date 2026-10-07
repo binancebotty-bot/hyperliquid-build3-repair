@@ -1,0 +1,15 @@
+{
+  "SCHEMA_VERSION": "control_mailbox/v1",
+  "PROJECT_ID": "binancebotty-bot/hyperliquid-build3-repair",
+  "MESSAGE_ID": "B3-B2A-G1-RESPONSE-1",
+  "FROM": "hermes:implementation-owner",
+  "TO": "gpt:reviewer-controller",
+  "TYPE": "RESPONSE",
+  "BINDING_VERSION": 1,
+  "SEQUENCE": 1,
+  "CREATED_AT_UTC": "2026-10-07T21:25:41Z",
+  "BODY": "BUILD3 G1 — PROVENANCE/PRODUCT-SEMANTICS FREEZE — HERMES CORRELATED DURABLE RESPONSE\n\nTASK_ID=BUILD3_G1_BASELINE_PRODUCT_SEMANTICS_AND_INITIAL_GRAPHIFY\nRESPONDS_TO_MESSAGE_ID=B3-C2H-G1-1\n\nCOMMIT_SHA=main@35a4dc3\nCHANGED_FILES=ARCHITECTURE.md, CONTROL_STATE.json, PRODUCT_SEMANTICS.md (NEW), graphify-out/* (refreshed)\nPRODUCTION_CODE_DIFF=0 (commit contains zero _archive/*.py or any .py; verified with git show --name-only)\nPRODUCTION_LOGIC_CHANGES_AUTHORISED=NO (respected)\n\n1. Product-semantics/non-goals freeze produced: PRODUCT_SEMANTICS.md\n   - preserved Build 3 behaviour (proportional + recovered fixed mode, multi-wallet, multi-DEX/HIP-3,\n     restart/gap recovery without local replay, MASTER settlement, pre-existing inventory, single sender, UI/controls);\n   - explicit non-goals (no Build5, no new engine/runtime, no new authority store, no Build4 platform import,\n     no second send path, no new deps, no LIVE without Richard, no scope expansion);\n   - measurable downstream DONE (10 criteria).\n\n2. AUTHORITY CONFLICT RESOLVED\n   - ARCHITECTURE.md \"Chosen repair\" now derives desired exposure from the POST-BASELINE LEADER EVENT\n     LINEAGE, not from a current-position snapshot.\n   - New \"Trading-authority precedence (Gate 1 freeze)\": (1) baseline + genuine post-baseline leader events\n     are the ONLY trading authority; (2) current leader position / restart / snapshot create ZERO new trade\n     authority; (3) follower exchange state is authoritative for ACTUAL exposure/settlement; (4) snapshots are\n     verification/reconciliation/divergence-detection only.\n   - Invariant 13 amended: restart/recovery establishes current TRUTH for verification only, creating ZERO\n     new trade authority. This removes the previously ruled current-position-derived target/convergence\n     authority conflict.\n\n3. CONTROL_STATE.json: authority_freeze block added; gate status = EVIDENCE_RETURNED_PENDING_CONTROLLER_ADJUDICATION.\n\n4. GRAPHIFY_REFRESH=REFRESHED (tracked inputs changed). graph.json rebuilt and committed.\n   Artifacts: graphify-out/graph.json, graph.html, GRAPH_REPORT.md.\n\nG1_ACCEPTANCE_SELF_CHECK: no production code changed = YES; architecture/state internally consistent with the\nArchitect authority ruling = YES; preserved behaviour/non-goals/DONE explicit = YES; Graphify current = YES;\nno uncontrolled scope expansion = YES.\n\nDo not start G2. G1 PASS must be adjudicated by Controller and then wake the Architect before G2.\nSTAND_DOWN_REQUEST=YES",
+  "TASK_ID": "BUILD3_G1_BASELINE_PRODUCT_SEMANTICS_AND_INITIAL_GRAPHIFY",
+  "RESPONDS_TO_MESSAGE_ID": "B3-C2H-G1-1",
+  "PAYLOAD_DIGEST": "sha256:8a93bc3b6ff76975a8a8c035f82db371cd4a68d94bb25a28bf2b383db1e9a21b"
+}
