@@ -131,6 +131,12 @@ LIVE_MAX_MANUAL_ORDER_NOTIONAL_USD = float(os.getenv("HL_LIVE_MAX_MANUAL_ORDER_N
 FIXED_NOTIONAL_ROUNDING_BUFFER_PCT = 0.002
 FIXED_NOTIONAL_ROUNDING_BUFFER_USD = 0.02
 LIVE_MAX_CLOSE_ADVERSE_DIFF_PCT = float(os.getenv("HL_LIVE_MAX_CLOSE_ADVERSE_DIFF_PCT", "0.25"))
+# G2 (Gate 2): reuse the existing, sealed account-net convergence planner (pure; sends no orders).
+try:
+    from convergence_shadow import compute_convergence_order  # type: ignore
+except Exception:  # pragma: no cover - fail closed if the sibling planner is unavailable
+    compute_convergence_order = None
+
 LIVE_ORDER_ENDPOINT = os.getenv("HL_LIVE_ORDER_ENDPOINT", "https://api.hyperliquid.xyz/exchange")
 LIVE_AUTO_SEND_ENABLED = os.getenv("HL_LIVE_AUTO_SEND_ENABLED", "0") == "1"
 LIVE_AUTO_SEND_WALLET = os.getenv("HL_LIVE_AUTO_SEND_WALLET", "").lower().strip()
@@ -687,6 +693,74 @@ def prepare_hl_order_numbers(coin: str, size: Any, limit_px: Any, max_notional: 
 def fixed_notional_buffered_cap(fixed_notional: float, cap_ceiling: float) -> float:
     buffer = max(FIXED_NOTIONAL_ROUNDING_BUFFER_USD, abs(fixed_notional) * FIXED_NOTIONAL_ROUNDING_BUFFER_PCT)
     return fixed_notional + buffer
+
+
+# ----------------------------------------------------------------------------------------------
+# G2 CORE COPY CORRECTNESS  (Gate 2; authority B3-A2C-G1-PASS-G2-1)
+#
+# TRADING-AUTHORITY PRECEDENCE (frozen in PRODUCT_SEMANTICS.md):
+#   1. the frozen baseline plus genuine post-baseline leader EVENTS are the ONLY trading authority;
+#   2. current leader position / restart / snapshot create ZERO new trade authority;
+#   3. follower exchange state is authoritative for ACTUAL exposure/settlement;
+#   4. snapshots are verification/reconciliation only.
+#
+# These helpers are pure and order-free. They replace the removed blind fixed-notional-per-fill
+# authority: desired exposure is derived from the event-lineage position and the order size is the
+# convergence DELTA toward it, so once actual == desired a repeated event mints nothing.
+# ----------------------------------------------------------------------------------------------
+
+class FixedModeAuthorityConflict(Exception):
+    """The intended fixed-mode target exposure cannot be proven from durable evidence."""
+
+    def __init__(self, detail: str):
+        super().__init__(detail)
+        self.detail = detail
+
+
+def proportional_sleeve_scale(cfg: "LiveWalletConfig") -> float:
+    """Proportional sleeve scale: leader position x scale = copied exposure."""
+    base = fnum(getattr(cfg, "leader_equity_base", 0.0))
+    return fnum(getattr(cfg, "norm_base", 0.0)) / base if base else 0.0
+
+
+def sleeve_from_leader_event_position(cfg: "LiveWalletConfig", leader_signed_position: float) -> float:
+    """Map an event-authorised leader signed position to this wallet's copied sleeve.
+
+    Proportional mode is unambiguous. FIXED mode is intentionally NOT guessed: durable evidence
+    only exposes a per-fill ``fixed_notional`` (exactly the blind per-fill authority G2 removes);
+    it does not define a fixed TARGET exposure. We refuse rather than invent semantics.
+    """
+    mode = str(getattr(cfg, "copy_mode", "") or "").lower().strip()
+    if mode == "proportional":
+        return fnum(leader_signed_position) * proportional_sleeve_scale(cfg)
+    raise FixedModeAuthorityConflict(
+        "fixed-mode target exposure semantics ambiguous for wallet={!r}: config defines only a "
+        "per-fill fixed_notional, not a target exposure".format(getattr(cfg, "wallet", ""))
+    )
+
+
+def event_authorised_desired_net(
+    coin: str,
+    leader_signed_by_wallet: Dict[str, float],
+    configs: Dict[str, "LiveWalletConfig"],
+) -> Dict[str, Any]:
+    """Aggregate same-coin wallet sleeves into ONE signed account-net desired value."""
+    sleeves: Dict[str, float] = {}
+    for wallet, leader_signed in leader_signed_by_wallet.items():
+        cfg = configs.get(wallet)
+        if cfg is None:
+            continue
+        try:
+            sleeves[wallet] = sleeve_from_leader_event_position(cfg, leader_signed)
+        except FixedModeAuthorityConflict as exc:
+            return {"ok": False, "status": "AUTHORITY_CONFLICT", "coin": str(coin).upper(), "detail": exc.detail}
+    return {
+        "ok": True,
+        "status": "OK",
+        "coin": str(coin).upper(),
+        "desired_net": float(sum(sleeves.values())),
+        "sleeves": sleeves,
+    }
 
 
 def _is_reduce_only_full_close_bypass(
@@ -1879,6 +1953,9 @@ class DryRunLiveCopyService:
         self.state.setdefault("processed_leader_fill_ids", [])
         self.state.setdefault("accumulators", {})
         self.state.setdefault("counters", {})
+        # G2: genuine post-baseline leader EVENT lineage (signed leader position per wallet::coin).
+        # Only genuine leader events mutate this; a snapshot/restart/current position never seeds it.
+        self.state.setdefault("leader_event_positions", {})
         self.processed_id_order: List[str] = []
         seen_processed = set()
         for item in self.state.get("processed_leader_fill_ids", []):
@@ -2020,6 +2097,77 @@ class DryRunLiveCopyService:
         if cfg.copy_mode == "fixed":
             return cfg.fixed_notional
         return fill.notional * (cfg.norm_base / cfg.leader_equity_base)
+
+    # --- G2: event-authorised desired exposure (replaces blind per-fill sizing) ---
+    def apply_leader_event(self, cfg: LiveWalletConfig, fill: LeaderFill) -> float:
+        """Mutate the genuine post-baseline leader EVENT lineage for (wallet, coin).
+
+        The ONLY writer of desired-exposure authority. Called once per genuine post-baseline
+        leader fill; never seeded from a snapshot, restart or observed current position.
+        """
+        store = self.state.setdefault("leader_event_positions", {})
+        if not isinstance(store, dict):
+            store = {}
+            self.state["leader_event_positions"] = store
+        key = self.position_key(cfg.wallet, fill.coin)
+        new_signed = fnum(store.get(key)) + fnum(fill.signed_size_delta)
+        if abs(new_signed) < 1e-12:
+            new_signed = 0.0
+        store[key] = new_signed
+        return new_signed
+
+    def leader_signed_by_wallet(self, coin: str, configs: Dict[str, LiveWalletConfig]) -> Dict[str, float]:
+        store = self.state.get("leader_event_positions", {})
+        if not isinstance(store, dict):
+            return {}
+        out: Dict[str, float] = {}
+        for wallet in configs:
+            key = self.position_key(wallet, coin)
+            if key in store:
+                out[wallet] = fnum(store.get(key))
+        return out
+
+    def convergence_order_for_coin(
+        self, cfg: LiveWalletConfig, fill: LeaderFill, configs: Dict[str, LiveWalletConfig], actual_net: float
+    ) -> Dict[str, Any]:
+        """Desired (event-authorised) vs actual -> the single safe next order. Zero authority from state."""
+        if compute_convergence_order is None:
+            return {"ok": False, "status": "PLANNER_UNAVAILABLE"}
+        desired = event_authorised_desired_net(
+            fill.coin, self.leader_signed_by_wallet(fill.coin, configs), configs
+        )
+        if not desired.get("ok"):
+            return desired
+        order = compute_convergence_order(
+            fill.coin,
+            desired.get("desired_net"),
+            actual_net,
+            mark_px=fill.price,
+            min_notional=MIN_ORDER_NOTIONAL,
+        )
+        return {"ok": True, "status": "OK", "desired": desired, "order": order, "actual_net": actual_net}
+
+    def convergence_notional_for_fill(self, cfg: LiveWalletConfig, fill: LeaderFill) -> Dict[str, Any]:
+        """Event-authorised order notional for a genuine leader fill.
+
+        Applies the leader EVENT to the lineage (the only authority), then returns the
+        convergence DELTA notional toward the aggregated account-net desired exposure.
+        Returns {'ok': False, 'status': 'AUTHORITY_CONFLICT'|...} to hold, or
+        {'ok': True, 'notional': 0.0} when already converged (nothing to do).
+        """
+        config = self.load_config()
+        self.apply_leader_event(cfg, fill)
+        actual_net = fnum(self.get_position(cfg.wallet, fill.coin).get("signed_size"))
+        sizing = self.convergence_order_for_coin(cfg, fill, config, actual_net)
+        if not sizing.get("ok"):
+            return sizing
+        order = sizing["order"]
+        if order.action == "NONE":
+            return {"ok": True, "status": "OK", "notional": 0.0, "action": "NONE",
+                    "reduce_only": False, "desired_net": sizing["desired"].get("desired_net"), "actual_net": actual_net}
+        return {"ok": True, "status": "OK", "notional": float(order.size) * fill.price,
+                "action": str(order.action), "reduce_only": bool(order.reduce_only),
+                "desired_net": sizing["desired"].get("desired_net"), "actual_net": actual_net}
 
     def accumulator_key(self, cfg: LiveWalletConfig, fill: LeaderFill) -> str:
         return f"{cfg.wallet}::{fill.coin}::{fill.side}"
@@ -2191,9 +2339,12 @@ class DryRunLiveCopyService:
         })
 
     def apply_dry_run_fill_to_position(self, cfg: LiveWalletConfig, fill: LeaderFill, copy_notional: float) -> Tuple[Dict[str, Any], float, float]:
+        signed_delta = trade_delta_from_side(fill.side, copy_notional / fill.price if fill.price > 0 else 0.0)
+        return self.apply_signed_delta_to_position(cfg, fill, signed_delta)
+
+    def apply_signed_delta_to_position(self, cfg: LiveWalletConfig, fill: LeaderFill, incoming_delta: float) -> Tuple[Dict[str, Any], float, float]:
         pos = self.get_position(cfg.wallet, fill.coin)
         before = fnum(pos.get("signed_size"))
-        incoming_delta = trade_delta_from_side(fill.side, copy_notional / fill.price if fill.price > 0 else 0.0)
         realized_pnl = 0.0
         old_entry = fnum(pos.get("avg_entry_price"))
         new_signed = before + incoming_delta
@@ -2247,7 +2398,22 @@ class DryRunLiveCopyService:
             self.bump("fills_skipped_clo_entry")
             return
 
-        intent_type = "EXIT" if reducing else "ENTRY"
+        # --- G2: order size is the event-authorised convergence DELTA (not a per-fill notional) ---
+        auth = self.convergence_notional_for_fill(cfg, fill)
+        if not auth.get("ok"):
+            status = str(auth.get("status") or "SIZING_BLOCKED")
+            self.append_reconciliation(cfg, fill, status, status, "BLOCKED_" + status, before_signed, before_signed, 0.0, str(auth.get("detail") or status))
+            self.processed_ids.add(fill.fill_id)
+            self.bump("fills_blocked_" + status.lower())
+            return
+        copy_notional_raw = fnum(auth.get("notional"))
+        intent_type = "EXIT" if (auth.get("reduce_only") or reducing) else "ENTRY"
+        if copy_notional_raw <= 0:
+            self.append_reconciliation(cfg, fill, "CONVERGED", str(auth.get("action") or "NONE"), "NO_ORDER", before_signed, before_signed, 0.0, "event-authorised desired met; zero orders")
+            self.processed_ids.add(fill.fill_id)
+            self.bump("fills_converged_no_order")
+            return
+
         policy = "DIRECT_EXECUTABLE"
         linked_ids = [fill.fill_id]
         copy_notional = copy_notional_raw
@@ -2289,7 +2455,8 @@ class DryRunLiveCopyService:
             self.processed_ids.add(fill.fill_id)
             self.bump("late_copy_manual_review")
             return
-        updated_pos, before, realized_pnl = self.apply_dry_run_fill_to_position(cfg, fill, copy_notional)
+        signed_delta = copy_size if intent_type == "ENTRY" else -copy_size
+        updated_pos, before, realized_pnl = self.apply_signed_delta_to_position(cfg, fill, signed_delta)
         after = fnum(updated_pos.get("signed_size"))
         self.append_live_fill(cfg, fill, intent_id, "DRY_RUN_FILLED", copy_notional, copy_size, updated_pos, realized_pnl, audit_notes)
         recon_action = "MANUAL_REVIEW" if decision.get("status") in {"DO_NOT_MARKET_COPY", "MANUAL_REVIEW"} else "DRY_RUN_FILL"

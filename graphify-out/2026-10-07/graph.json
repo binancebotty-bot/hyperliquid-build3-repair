@@ -10,7 +10,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service",
-      "community": 6,
+      "community": 1,
       "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "hl_live_copy_service.py"
     },
@@ -22,7 +22,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_load_local_env_file",
       "community": 1,
-      "community_name": "self_test",
+      "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "load_local_env_file()"
     },
     {
@@ -33,7 +33,7 @@
       "_origin": "ast",
       "id": "path",
       "community": 1,
-      "community_name": "self_test",
+      "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "path"
     },
     {
@@ -44,7 +44,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_configure_paths",
       "community": 1,
-      "community_name": "self_test",
+      "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "configure_paths()"
     },
     {
@@ -98,8 +98,8 @@
       "source_location": "L227",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_inum",
-      "community": 11,
-      "community_name": "inum",
+      "community": 3,
+      "community_name": "Any",
       "norm_label": "inum()"
     },
     {
@@ -110,7 +110,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_ensure_dirs",
       "community": 1,
-      "community_name": "self_test",
+      "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "ensure_dirs()"
     },
     {
@@ -121,7 +121,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_load_json",
       "community": 1,
-      "community_name": "self_test",
+      "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "load_json()"
     },
     {
@@ -131,8 +131,8 @@
       "source_location": "L250",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_get_wallet_live_config",
-      "community": 8,
-      "community_name": "manual_send_one_intent",
+      "community": 3,
+      "community_name": "Any",
       "norm_label": "get_wallet_live_config()"
     },
     {
@@ -143,7 +143,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_atomic_write_json",
       "community": 1,
-      "community_name": "self_test",
+      "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "atomic_write_json()"
     },
     {
@@ -154,7 +154,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_safe_atomic_write_json",
       "community": 1,
-      "community_name": "self_test",
+      "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "safe_atomic_write_json()"
     },
     {
@@ -165,7 +165,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_ensure_csv_header",
       "community": 1,
-      "community_name": "self_test",
+      "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "ensure_csv_header()"
     },
     {
@@ -176,7 +176,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_ensure_csv_schema",
       "community": 1,
-      "community_name": "self_test",
+      "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "ensure_csv_schema()"
     },
     {
@@ -198,7 +198,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_load_csv_ids",
       "community": 1,
-      "community_name": "self_test",
+      "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "load_csv_ids()"
     },
     {
@@ -209,7 +209,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_load_auto_send_attempt_ids",
       "community": 1,
-      "community_name": "self_test",
+      "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "load_auto_send_attempt_ids()"
     },
     {
@@ -230,8 +230,8 @@
       "source_location": "L366",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_load_would_send_order",
-      "community": 8,
-      "community_name": "manual_send_one_intent",
+      "community": 3,
+      "community_name": "Any",
       "norm_label": "load_would_send_order()"
     },
     {
@@ -241,8 +241,8 @@
       "source_location": "L380",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_truthy_csv",
-      "community": 8,
-      "community_name": "manual_send_one_intent",
+      "community": 3,
+      "community_name": "Any",
       "norm_label": "truthy_csv()"
     },
     {
@@ -252,8 +252,8 @@
       "source_location": "L384",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_append_send_attempt",
-      "community": 0,
-      "community_name": "DryRunLiveCopyService",
+      "community": 3,
+      "community_name": "Any",
       "norm_label": "append_send_attempt()"
     },
     {
@@ -263,8 +263,8 @@
       "source_location": "L404",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_load_manual_live_positions",
-      "community": 8,
-      "community_name": "manual_send_one_intent",
+      "community": 1,
+      "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "load_manual_live_positions()"
     },
     {
@@ -275,7 +275,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_save_manual_live_positions",
       "community": 1,
-      "community_name": "self_test",
+      "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "save_manual_live_positions()"
     },
     {
@@ -285,8 +285,8 @@
       "source_location": "L413",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_update_manual_live_position_from_fill",
-      "community": 8,
-      "community_name": "manual_send_one_intent",
+      "community": 1,
+      "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "update_manual_live_position_from_fill()"
     },
     {
@@ -296,7 +296,7 @@
       "source_location": "L433",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_wire_safe_float",
-      "community": 6,
+      "community": 1,
       "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "wire_safe_float()"
     },
@@ -307,8 +307,8 @@
       "source_location": "L459",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_get_hl_perp_meta_by_coin",
-      "community": 11,
-      "community_name": "inum",
+      "community": 3,
+      "community_name": "Any",
       "norm_label": "get_hl_perp_meta_by_coin()"
     },
     {
@@ -318,8 +318,8 @@
       "source_location": "L487",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_force_fetch_hl_perp_meta",
-      "community": 11,
-      "community_name": "inum",
+      "community": 3,
+      "community_name": "Any",
       "norm_label": "force_fetch_hl_perp_meta()"
     },
     {
@@ -329,8 +329,8 @@
       "source_location": "L493",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_resolve_hl_perp_symbol",
-      "community": 11,
-      "community_name": "inum",
+      "community": 3,
+      "community_name": "Any",
       "norm_label": "resolve_hl_perp_symbol()"
     },
     {
@@ -340,8 +340,8 @@
       "source_location": "L539",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_floor_decimal_to_places",
-      "community": 9,
-      "community_name": "prepare_hl_order_numbers",
+      "community": 3,
+      "community_name": "Any",
       "norm_label": "floor_decimal_to_places()"
     },
     {
@@ -351,8 +351,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "decimal",
-      "community": 9,
-      "community_name": "prepare_hl_order_numbers",
+      "community": 3,
+      "community_name": "Any",
       "norm_label": "decimal"
     },
     {
@@ -362,8 +362,8 @@
       "source_location": "L544",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_size_increment_for_places",
-      "community": 9,
-      "community_name": "prepare_hl_order_numbers",
+      "community": 3,
+      "community_name": "Any",
       "norm_label": "size_increment_for_places()"
     },
     {
@@ -373,8 +373,8 @@
       "source_location": "L548",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_round_size_hl_perp",
-      "community": 9,
-      "community_name": "prepare_hl_order_numbers",
+      "community": 3,
+      "community_name": "Any",
       "norm_label": "round_size_hl_perp()"
     },
     {
@@ -384,8 +384,8 @@
       "source_location": "L561",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_round_price_hl_perp",
-      "community": 9,
-      "community_name": "prepare_hl_order_numbers",
+      "community": 3,
+      "community_name": "Any",
       "norm_label": "round_price_hl_perp()"
     },
     {
@@ -395,8 +395,8 @@
       "source_location": "L571",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_response_has_order_error",
-      "community": 12,
-      "community_name": "send_hyperliquid_order",
+      "community": 3,
+      "community_name": "Any",
       "norm_label": "response_has_order_error()"
     },
     {
@@ -406,8 +406,8 @@
       "source_location": "L575",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_parse_hl_order_status",
-      "community": 12,
-      "community_name": "send_hyperliquid_order",
+      "community": 3,
+      "community_name": "Any",
       "norm_label": "parse_hl_order_status()"
     },
     {
@@ -417,8 +417,8 @@
       "source_location": "L602",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_prepare_hl_order_numbers",
-      "community": 9,
-      "community_name": "prepare_hl_order_numbers",
+      "community": 3,
+      "community_name": "Any",
       "norm_label": "prepare_hl_order_numbers()"
     },
     {
@@ -428,8 +428,8 @@
       "source_location": "L687",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_fixed_notional_buffered_cap",
-      "community": 8,
-      "community_name": "manual_send_one_intent",
+      "community": 3,
+      "community_name": "Any",
       "norm_label": "fixed_notional_buffered_cap()"
     },
     {
@@ -439,8 +439,8 @@
       "source_location": "L692",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_is_reduce_only_full_close_bypass",
-      "community": 12,
-      "community_name": "send_hyperliquid_order",
+      "community": 3,
+      "community_name": "Any",
       "norm_label": "_is_reduce_only_full_close_bypass()"
     },
     {
@@ -450,8 +450,8 @@
       "source_location": "L735",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_send_hyperliquid_order",
-      "community": 12,
-      "community_name": "send_hyperliquid_order",
+      "community": 3,
+      "community_name": "Any",
       "norm_label": "send_hyperliquid_order()"
     },
     {
@@ -461,8 +461,8 @@
       "source_location": "L923",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_manual_send_one_intent",
-      "community": 8,
-      "community_name": "manual_send_one_intent",
+      "community": 3,
+      "community_name": "Any",
       "norm_label": "manual_send_one_intent()"
     },
     {
@@ -483,8 +483,8 @@
       "source_location": "L1211",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_trade_delta_from_side",
-      "community": 0,
-      "community_name": "DryRunLiveCopyService",
+      "community": 1,
+      "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "trade_delta_from_side()"
     },
     {
@@ -494,7 +494,7 @@
       "source_location": "L1215",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_is_reducing_position",
-      "community": 6,
+      "community": 1,
       "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "is_reducing_position()"
     },
@@ -505,7 +505,7 @@
       "source_location": "L1219",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_weighted_entry_price",
-      "community": 6,
+      "community": 1,
       "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "weighted_entry_price()"
     },
@@ -571,7 +571,7 @@
       "source_location": "L1305",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_parse_raw_json",
-      "community": 6,
+      "community": 1,
       "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "parse_raw_json()"
     },
@@ -604,7 +604,7 @@
       "source_location": "L1333",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_parse_leader_fill_row",
-      "community": 6,
+      "community": 1,
       "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "parse_leader_fill_row()"
     },
@@ -626,8 +626,8 @@
       "source_location": "L1393",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_extract_ws_fills_with_meta",
-      "community": 3,
-      "community_name": "Any",
+      "community": 1,
+      "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "extract_ws_fills_with_meta()"
     },
     {
@@ -637,8 +637,8 @@
       "source_location": "L1420",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_extract_ws_fills",
-      "community": 3,
-      "community_name": "Any",
+      "community": 1,
+      "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "extract_ws_fills()"
     },
     {
@@ -649,7 +649,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_classify_ignored_ws_message",
       "community": 1,
-      "community_name": "self_test",
+      "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "classify_ignored_ws_message()"
     },
     {
@@ -670,7 +670,7 @@
       "source_location": "L1453",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_is_ws_abnf_frame",
-      "community": 6,
+      "community": 1,
       "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "is_ws_abnf_frame()"
     },
@@ -681,8 +681,8 @@
       "source_location": "L1466",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_ws_abnf_details",
-      "community": 3,
-      "community_name": "Any",
+      "community": 1,
+      "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "ws_abnf_details()"
     },
     {
@@ -692,7 +692,7 @@
       "source_location": "L1493",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_is_benign_ws_error",
-      "community": 6,
+      "community": 1,
       "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "is_benign_ws_error()"
     },
@@ -703,8 +703,8 @@
       "source_location": "L1497",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_parse_ws_leader_fill",
-      "community": 3,
-      "community_name": "Any",
+      "community": 1,
+      "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "parse_ws_leader_fill()"
     },
     {
@@ -714,8 +714,8 @@
       "source_location": "L1517",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_parse_ws_snapshot_leader_fill",
-      "community": 3,
-      "community_name": "Any",
+      "community": 1,
+      "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "parse_ws_snapshot_leader_fill()"
     },
     {
@@ -725,8 +725,8 @@
       "source_location": "L1537",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_should_recover_ws_snapshot_fill",
-      "community": 11,
-      "community_name": "inum",
+      "community": 3,
+      "community_name": "Any",
       "norm_label": "should_recover_ws_snapshot_fill()"
     },
     {
@@ -748,7 +748,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_audit_notes_for_fill",
       "community": 1,
-      "community_name": "self_test",
+      "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "audit_notes_for_fill()"
     },
     {
@@ -792,7 +792,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_ws_coverage_for_fill",
       "community": 1,
-      "community_name": "self_test",
+      "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "ws_coverage_for_fill()"
     },
     {
@@ -802,7 +802,7 @@
       "source_location": "L1715",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_load_leader_fills",
-      "community": 6,
+      "community": 1,
       "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "load_leader_fills()"
     },
@@ -869,7 +869,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_init",
       "community": 1,
-      "community_name": "self_test",
+      "community_name": "HL_Live_Copy_Service.py",
       "norm_label": ".__init__()"
     },
     {
@@ -1055,8 +1055,8 @@
       "source_location": "L2128",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_maybe_auto_send_would_send",
-      "community": 8,
-      "community_name": "manual_send_one_intent",
+      "community": 3,
+      "community_name": "Any",
       "norm_label": ".maybe_auto_send_would_send()"
     },
     {
@@ -1143,8 +1143,8 @@
       "source_location": "L2674",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_write_ws_health_initial",
-      "community": 1,
-      "community_name": "self_test",
+      "community": 2,
+      "community_name": "DedicatedLiveWSManager",
       "norm_label": "write_ws_health_initial()"
     },
     {
@@ -1198,8 +1198,8 @@
       "source_location": "L2822",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_dedicatedlivewsmanager_record_session_close",
-      "community": 2,
-      "community_name": "DedicatedLiveWSManager",
+      "community": 3,
+      "community_name": "Any",
       "norm_label": ".record_session_close()"
     },
     {
@@ -1298,7 +1298,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_write_self_test_fills",
       "community": 1,
-      "community_name": "self_test",
+      "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "write_self_test_fills()"
     },
     {
@@ -1309,7 +1309,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_count_csv_data_rows",
       "community": 1,
-      "community_name": "self_test",
+      "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "count_csv_data_rows()"
     },
     {
@@ -1320,7 +1320,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_last_csv_row",
       "community": 1,
-      "community_name": "self_test",
+      "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "last_csv_row()"
     },
     {
@@ -1331,7 +1331,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_self_test",
       "community": 1,
-      "community_name": "self_test",
+      "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "self_test()"
     },
     {
@@ -1352,7 +1352,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_rationale_1",
-      "community": 6,
+      "community": 1,
       "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "hl_live_copy_service.py phase 2 dry-run live copy service for the hyperliquid..."
     },
@@ -1364,7 +1364,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_rationale_74",
       "community": 1,
-      "community_name": "self_test",
+      "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "load key=value pairs from a local .env file into os.environ. skips blank lines,..."
     },
     {
@@ -1374,8 +1374,8 @@
       "source_location": "L695",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_rationale_695",
-      "community": 12,
-      "community_name": "send_hyperliquid_order",
+      "community": 3,
+      "community_name": "Any",
       "norm_label": "return true iff the $10 min-notional preflight should be bypassed. hyperliquid..."
     },
     {
@@ -1385,8 +1385,8 @@
       "source_location": "L2675",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_rationale_2675",
-      "community": 1,
-      "community_name": "self_test",
+      "community": 2,
+      "community_name": "DedicatedLiveWSManager",
       "norm_label": "write health file before sockets open so every subscribed wallet has an entry."
     },
     {
@@ -1555,10 +1555,21 @@
       "norm_label": "chosen repair"
     },
     {
+      "label": "Trading-authority precedence (Gate 1 freeze \u2014 Architect ruling `B3-A2C-GATE0-PASS-G1-1`)",
+      "file_type": "document",
+      "source_file": "ARCHITECTURE.md",
+      "source_location": "L31",
+      "_origin": "ast",
+      "id": "architecture_trading_authority_precedence_gate_1_freeze_architect_ruling_b3_a2c_gate0_pass_g1_1",
+      "community": 4,
+      "community_name": "Architecture Contract \u2014 Hyperliquid Build 3 Repair",
+      "norm_label": "trading-authority precedence (gate 1 freeze \u2014 architect ruling `b3-a2c-gate0-pass-g1-1`)"
+    },
+    {
       "label": "Non-negotiable invariants",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L28",
+      "source_location": "L45",
       "_origin": "ast",
       "id": "architecture_non_negotiable_invariants",
       "community": 4,
@@ -1569,7 +1580,7 @@
       "label": "Scope budget",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L44",
+      "source_location": "L61",
       "_origin": "ast",
       "id": "architecture_scope_budget",
       "community": 4,
@@ -1580,7 +1591,7 @@
       "label": "Automatic Architect escalation",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L55",
+      "source_location": "L72",
       "_origin": "ast",
       "id": "architecture_automatic_architect_escalation",
       "community": 4,
@@ -1591,7 +1602,7 @@
       "label": "Completion definition",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L70",
+      "source_location": "L87",
       "_origin": "ast",
       "id": "architecture_completion_definition",
       "community": 4,
@@ -1602,7 +1613,7 @@
       "label": "Architect's job",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L84",
+      "source_location": "L101",
       "_origin": "ast",
       "id": "architecture_architect_s_job",
       "community": 4,
@@ -1613,7 +1624,7 @@
       "label": "Full project acceptance scope",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L88",
+      "source_location": "L105",
       "_origin": "ast",
       "id": "architecture_full_project_acceptance_scope",
       "community": 4,
@@ -1624,7 +1635,7 @@
       "label": "Build 4 requirements source set",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L145",
+      "source_location": "L162",
       "_origin": "ast",
       "id": "architecture_build_4_requirements_source_set",
       "community": 4,
@@ -1635,7 +1646,7 @@
       "label": "Conflict rule",
       "file_type": "document",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L162",
+      "source_location": "L179",
       "_origin": "ast",
       "id": "architecture_conflict_rule",
       "community": 4,
@@ -1828,6 +1839,83 @@
       "community": 5,
       "community_name": "Operating Protocol",
       "norm_label": "evidence discipline"
+    },
+    {
+      "label": "PRODUCT_SEMANTICS.md",
+      "file_type": "document",
+      "source_file": "PRODUCT_SEMANTICS.md",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "product_semantics",
+      "community": 6,
+      "community_name": "Build 3 \u2014 Product Semantics, Non-Goals and Measurable DONE (Gate 1 freeze)",
+      "norm_label": "product_semantics.md"
+    },
+    {
+      "label": "Build 3 \u2014 Product Semantics, Non-Goals and Measurable DONE (Gate 1 freeze)",
+      "file_type": "document",
+      "source_file": "PRODUCT_SEMANTICS.md",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "product_semantics_build_3_product_semantics_non_goals_and_measurable_done_gate_1_freeze",
+      "community": 6,
+      "community_name": "Build 3 \u2014 Product Semantics, Non-Goals and Measurable DONE (Gate 1 freeze)",
+      "norm_label": "build 3 \u2014 product semantics, non-goals and measurable done (gate 1 freeze)"
+    },
+    {
+      "label": "1. Preserved product behaviour (must survive the repair)",
+      "file_type": "document",
+      "source_file": "PRODUCT_SEMANTICS.md",
+      "source_location": "L7",
+      "_origin": "ast",
+      "id": "product_semantics_1_preserved_product_behaviour_must_survive_the_repair",
+      "community": 6,
+      "community_name": "Build 3 \u2014 Product Semantics, Non-Goals and Measurable DONE (Gate 1 freeze)",
+      "norm_label": "1. preserved product behaviour (must survive the repair)"
+    },
+    {
+      "label": "2. Trading-authority model (the frozen semantics)",
+      "file_type": "document",
+      "source_file": "PRODUCT_SEMANTICS.md",
+      "source_location": "L22",
+      "_origin": "ast",
+      "id": "product_semantics_2_trading_authority_model_the_frozen_semantics",
+      "community": 6,
+      "community_name": "Build 3 \u2014 Product Semantics, Non-Goals and Measurable DONE (Gate 1 freeze)",
+      "norm_label": "2. trading-authority model (the frozen semantics)"
+    },
+    {
+      "label": "3. Explicit non-goals",
+      "file_type": "document",
+      "source_file": "PRODUCT_SEMANTICS.md",
+      "source_location": "L34",
+      "_origin": "ast",
+      "id": "product_semantics_3_explicit_non_goals",
+      "community": 6,
+      "community_name": "Build 3 \u2014 Product Semantics, Non-Goals and Measurable DONE (Gate 1 freeze)",
+      "norm_label": "3. explicit non-goals"
+    },
+    {
+      "label": "4. Measurable downstream DONE (project completion)",
+      "file_type": "document",
+      "source_file": "PRODUCT_SEMANTICS.md",
+      "source_location": "L46",
+      "_origin": "ast",
+      "id": "product_semantics_4_measurable_downstream_done_project_completion",
+      "community": 6,
+      "community_name": "Build 3 \u2014 Product Semantics, Non-Goals and Measurable DONE (Gate 1 freeze)",
+      "norm_label": "4. measurable downstream done (project completion)"
+    },
+    {
+      "label": "5. Open items this freeze does NOT resolve (carried forward, not silently merged)",
+      "file_type": "document",
+      "source_file": "PRODUCT_SEMANTICS.md",
+      "source_location": "L60",
+      "_origin": "ast",
+      "id": "product_semantics_5_open_items_this_freeze_does_not_resolve_carried_forward_not_silently_merged",
+      "community": 6,
+      "community_name": "Build 3 \u2014 Product Semantics, Non-Goals and Measurable DONE (Gate 1 freeze)",
+      "norm_label": "5. open items this freeze does not resolve (carried forward, not silently merged)"
     },
     {
       "label": "README.md",
@@ -7869,7 +7957,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L84",
+      "source_location": "L101",
       "weight": 1.0,
       "_origin": "ast",
       "source": "architecture_architecture_contract_hyperliquid_build_3_repair",
@@ -7880,7 +7968,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L55",
+      "source_location": "L72",
       "weight": 1.0,
       "_origin": "ast",
       "source": "architecture_architecture_contract_hyperliquid_build_3_repair",
@@ -7891,7 +7979,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L145",
+      "source_location": "L162",
       "weight": 1.0,
       "_origin": "ast",
       "source": "architecture_architecture_contract_hyperliquid_build_3_repair",
@@ -7913,7 +8001,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L70",
+      "source_location": "L87",
       "weight": 1.0,
       "_origin": "ast",
       "source": "architecture_architecture_contract_hyperliquid_build_3_repair",
@@ -7924,7 +8012,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L88",
+      "source_location": "L105",
       "weight": 1.0,
       "_origin": "ast",
       "source": "architecture_architecture_contract_hyperliquid_build_3_repair",
@@ -7946,7 +8034,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L28",
+      "source_location": "L45",
       "weight": 1.0,
       "_origin": "ast",
       "source": "architecture_architecture_contract_hyperliquid_build_3_repair",
@@ -7979,7 +8067,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L44",
+      "source_location": "L61",
       "weight": 1.0,
       "_origin": "ast",
       "source": "architecture_architecture_contract_hyperliquid_build_3_repair",
@@ -7990,7 +8078,18 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "ARCHITECTURE.md",
-      "source_location": "L162",
+      "source_location": "L31",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "architecture_chosen_repair",
+      "target": "architecture_trading_authority_precedence_gate_1_freeze_architect_ruling_b3_a2c_gate0_pass_g1_1",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "ARCHITECTURE.md",
+      "source_location": "L179",
       "weight": 1.0,
       "_origin": "ast",
       "source": "architecture_build_4_requirements_source_set",
@@ -8165,6 +8264,72 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
+      "source_file": "PRODUCT_SEMANTICS.md",
+      "source_location": "L1",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "product_semantics",
+      "target": "product_semantics_build_3_product_semantics_non_goals_and_measurable_done_gate_1_freeze",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "PRODUCT_SEMANTICS.md",
+      "source_location": "L7",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "product_semantics_build_3_product_semantics_non_goals_and_measurable_done_gate_1_freeze",
+      "target": "product_semantics_1_preserved_product_behaviour_must_survive_the_repair",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "PRODUCT_SEMANTICS.md",
+      "source_location": "L22",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "product_semantics_build_3_product_semantics_non_goals_and_measurable_done_gate_1_freeze",
+      "target": "product_semantics_2_trading_authority_model_the_frozen_semantics",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "PRODUCT_SEMANTICS.md",
+      "source_location": "L34",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "product_semantics_build_3_product_semantics_non_goals_and_measurable_done_gate_1_freeze",
+      "target": "product_semantics_3_explicit_non_goals",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "PRODUCT_SEMANTICS.md",
+      "source_location": "L46",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "product_semantics_build_3_product_semantics_non_goals_and_measurable_done_gate_1_freeze",
+      "target": "product_semantics_4_measurable_downstream_done_project_completion",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "PRODUCT_SEMANTICS.md",
+      "source_location": "L60",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "product_semantics_build_3_product_semantics_non_goals_and_measurable_done_gate_1_freeze",
+      "target": "product_semantics_5_open_items_this_freeze_does_not_resolve_carried_forward_not_silently_merged",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
       "source_file": "README.md",
       "source_location": "L1",
       "weight": 1.0,
@@ -8208,5 +8373,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "b3bfb7dfc2da8e2e538255126842f49d197070e0"
+  "built_at_commit": "2d8f111c5510e6b2e7ffeb9e6ba665354593461c"
 }

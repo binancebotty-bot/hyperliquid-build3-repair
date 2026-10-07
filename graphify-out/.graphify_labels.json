@@ -7,6 +7,9 @@
   "5": "Operating Protocol",
   "6": "Build 3 — Product Semantics, Non-Goals and Measurable DONE (Gate 1 freeze)",
   "7": "convergence_shadow.py",
+  "8": "sleeve_from_leader_event_position",
+  "9": "parse_leader_fill_row",
   "10": "Bootstrap",
+  "11": "main",
   "13": "Hyperliquid Build 3 Repair"
 }
