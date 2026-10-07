@@ -1,7 +1,7 @@
 {
   "schema": "wigmore_project_control_state_v1",
   "project": "hyperliquid-build3-repair",
-  "updated_utc": "2026-10-07T17:26:00Z",
+  "updated_utc": "2026-10-07T17:52:00Z",
   "operator": "richard:operator",
   "architect": {
     "role": "project-architect",
@@ -19,16 +19,22 @@
   },
   "architecture_decision": "REPAIR_BUILD3",
   "current_gate": {
-    "task_id": "BUILD3_SOURCE_BASELINE_IMPORT_1",
+    "task_id": "CONTROL_LOOP_CERT_HERMES_1",
     "status": "READY",
-    "purpose": "Import the exact terminal Build 3 runtime and convergence planner unchanged into this repository and prove provenance before any repair.",
+    "purpose": "Prove one complete harmless Hermes -> commit/evidence -> Controller review round-trip before production repair begins.",
     "writes_authorized": true,
-    "production_logic_changes_authorized": false
+    "production_logic_changes_authorized": false,
+    "instructions": [
+      "Run convergence_shadow.py self-test from the tracked baseline.",
+      "Create only proofs/control_loop/hermes_roundtrip_1.json containing task_id, baseline_commit, command, exit_code, RESULT markers, source hashes, and stand_down_request=true.",
+      "Do not modify production source or control-contract files.",
+      "Commit and push the proof artifact, then report exact COMMIT_SHA and STAND_DOWN_REQUEST=YES and stop."
+    ]
   },
   "source_of_truth": {
     "terminal_runtime_local_path": "_archive/hl_stage2/HL_Live_Copy_Service.py",
     "planner_local_path": "_archive/hl_stage2/convergence_shadow.py",
-    "source_tracking_status": "LOCAL_UNTRACKED_SOURCE_REQUIRES_BASELINE_IMPORT"
+    "source_tracking_status": "TRACKED_BASELINE_VERIFIED"
   },
   "scope_budget": {
     "max_new_production_loc_before_architect_review": 260,
@@ -47,6 +53,12 @@
     "MASTER account state must be distinguished from API signer state."
   ],
   "current_blocker": null,
-  "next_action": "Hermes performs BUILD3_SOURCE_BASELINE_IMPORT_1 only.",
-  "live_authorized": false
+  "next_action": "Hermes performs CONTROL_LOOP_CERT_HERMES_1 only. On Controller PASS, arm a synthetic Architect tripwire certification before production repair.",
+  "live_authorized": false,
+  "last_controller_ruling": {
+    "task_id": "BUILD3_SOURCE_BASELINE_IMPORT_1",
+    "verdict": "PASS",
+    "commit_sha": "cea4beb77af17a387f6c5aea9ca0c4057a8eb750",
+    "evidence": "Exactly one commit ahead of d55d90f; only HL_Live_Copy_Service.py (4261 lines) and convergence_shadow.py (250 lines) added. User-reported before/after SHA-256 identical."
+  }
 }
