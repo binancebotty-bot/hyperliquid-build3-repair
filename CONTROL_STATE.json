@@ -1,0 +1,52 @@
+{
+  "schema": "wigmore_project_control_state_v1",
+  "project": "hyperliquid-build3-repair",
+  "updated_utc": "2026-10-07T17:30:00Z",
+  "operator": "richard:operator",
+  "architect": {
+    "role": "project-architect",
+    "status": "READY",
+    "wake_mode": "EVENT_DRIVEN_ONLY"
+  },
+  "controller": {
+    "role": "gpt:reviewer-controller",
+    "status": "ACTIVE",
+    "surface": "current ChatGPT controller thread"
+  },
+  "implementation_owner": {
+    "role": "hermes:implementation-owner",
+    "status": "AWAITING_GATE"
+  },
+  "architecture_decision": "REPAIR_BUILD3",
+  "current_gate": {
+    "task_id": "BUILD3_SOURCE_BASELINE_IMPORT_1",
+    "status": "READY",
+    "purpose": "Import the exact terminal Build 3 runtime and convergence planner unchanged into this repository and prove provenance before any repair.",
+    "writes_authorized": true,
+    "production_logic_changes_authorized": false
+  },
+  "source_of_truth": {
+    "terminal_runtime_local_path": "_archive/hl_stage2/HL_Live_Copy_Service.py",
+    "planner_local_path": "_archive/hl_stage2/convergence_shadow.py",
+    "source_tracking_status": "LOCAL_UNTRACKED_SOURCE_REQUIRES_BASELINE_IMPORT"
+  },
+  "scope_budget": {
+    "max_new_production_loc_before_architect_review": 260,
+    "max_production_files_before_architect_review": 2,
+    "process_count": 1,
+    "new_dependencies": 0,
+    "new_authoritative_persistent_state": 0,
+    "physical_order_call_sites": 1
+  },
+  "known_current_facts": [
+    "Build 3 fixed-notional-per-fill sizing is the proven exposure defect.",
+    "Build 3 has one physical production .order() call site.",
+    "Convergence planner already exists and outputs signed coin delta.",
+    "Default clearinghouseState omits HIP-3/builder DEX positions.",
+    "Direct leader WS path is fast but incomplete; snapshot truth is required on recovery boundaries.",
+    "MASTER account state must be distinguished from API signer state."
+  ],
+  "current_blocker": null,
+  "next_action": "Hermes performs BUILD3_SOURCE_BASELINE_IMPORT_1 only.",
+  "live_authorized": false
+}
