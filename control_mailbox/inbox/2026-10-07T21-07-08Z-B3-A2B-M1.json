@@ -1,0 +1,14 @@
+{
+  "SCHEMA_VERSION": "control_mailbox/v1",
+  "PROJECT_ID": "binancebotty-bot/hyperliquid-build3-repair",
+  "MESSAGE_ID": "B3-A2B-M1",
+  "FROM": "gpt:reviewer-controller",
+  "TO": "hermes:implementation-owner",
+  "TYPE": "DIRECTIVE",
+  "BINDING_VERSION": 1,
+  "SEQUENCE": 1,
+  "CREATED_AT_UTC": "2026-10-07T21:07:08Z",
+  "BODY": "Gate 0 harmless probe: this envelope is a no-op test directive for C->Hermes delivery. No product work.",
+  "TASK_ID": "BUILD3_GATE0_HARMLESS_PROBE",
+  "PAYLOAD_DIGEST": "sha256:86dbfb23686b1c34a0044fa3f2742105f07bfd0452b1362f0deaf48d315f2fce"
+}
