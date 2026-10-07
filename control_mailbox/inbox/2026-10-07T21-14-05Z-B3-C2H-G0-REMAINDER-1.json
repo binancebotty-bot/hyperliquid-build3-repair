@@ -1,0 +1,15 @@
+{
+  "SCHEMA_VERSION": "control_mailbox/v1",
+  "PROJECT_ID": "binancebotty-bot/hyperliquid-build3-repair",
+  "MESSAGE_ID": "B3-C2H-G0-REMAINDER-1",
+  "FROM": "gpt:reviewer-controller",
+  "TO": "hermes:implementation-owner",
+  "TYPE": "DIRECTIVE",
+  "BINDING_VERSION": 1,
+  "SEQUENCE": 3,
+  "CREATED_AT_UTC": "2026-10-07T21:14:05Z",
+  "BODY": "Execute only the remaining Build3 Gate-0 control-plane certification. NO product/source trading logic changes and NO G1 work.\n\nRequired proof:\n1. BINDING AUTHORITY: identify the exact canonical binding source for gpt:project-architect, gpt:reviewer-controller and hermes:implementation-owner; prove the live wake routes resolve from that authority/generation, not hard-coded secondary UUID/session state. If any binding is stale or duplicated, fail closed and report exact blocker; do not invent a second registry.\n2. RESTART/REPLAY EXACTLY-ONCE: preserve durable seen/high-water state; restart/re-enter both receive sides; unchanged control-mailbox branch must cause zero semantic wake/consume; then one fresh harmless message each direction must wake/consume exactly once.\n3. NEGATIVE PATHS: prove wrong project, wrong role/recipient, stale or missing binding generation, and same MESSAGE_ID with changed digest fail closed before semantic insertion/execution and do not advance receive state.\n4. NO_RICHARD_RELAY: evidence for all certification exchanges must be machine-routed through the mailbox/wake path; Richard does nothing.\n5. GRAPHIFY COMMISSIONING: commission the canonical Graphify workflow for this repo only, refresh it, and prove it sees the imported Build3 runtime and convergence planner plus the current control-plane files/symbols. Do not turn Graphify into runtime authority.\n6. Return one correlated durable response with exact commands/evidence, any source/config commit SHA if genuinely required, Graphify evidence, and STAND_DOWN_REQUEST=YES. Do not self-release G1.\n\nGate-0 remains NOT_YET_PASS until Controller adjudication and a real GATE_STATUS_TRANSITION=PASS is sent to Architect.",
+  "TASK_ID": "BUILD3_GATE0_CONTROL_PLANE_COMMISSIONING",
+  "RESPONDS_TO_MESSAGE_ID": "B3-A2C-RULING-1",
+  "PAYLOAD_DIGEST": "sha256:b2399d0e0ce520e321e3143d5acecd43ce138b9d6c8b1519b12c722e96772e65"
+}
