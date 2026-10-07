@@ -1,11 +1,11 @@
 {
   "schema": "wigmore_project_control_state_v1",
   "project": "hyperliquid-build3-repair",
-  "updated_utc": "2026-10-07T21:27:00Z",
+  "updated_utc": "2026-10-07T21:27:30Z",
   "operator": "richard:operator",
   "architect": {
     "role": "project-architect",
-    "status": "G1_RELEASED",
+    "status": "G1_PASS_TRANSITION_SENT_AWAITING_ARCHITECT",
     "wake_mode": "EVENT_DRIVEN_ONLY"
   },
   "controller": {
@@ -15,7 +15,7 @@
   },
   "implementation_owner": {
     "role": "hermes:implementation-owner",
-    "status": "G1_EVIDENCE_RETURNED"
+    "status": "AWAITING_ARCHITECT_G2_RULING"
   },
   "bindings": {
     "authority": "C:/Users/wigmore/.hermes/state/projects/hyperliquid-build3-repair/CONTROL_CONTRACT.json target_role_bindings",
@@ -45,7 +45,7 @@
   },
   "current_gate": {
     "task_id": "BUILD3_G1_BASELINE_PRODUCT_SEMANTICS_AND_INITIAL_GRAPHIFY",
-    "status": "EVIDENCE_RETURNED_PENDING_CONTROLLER_ADJUDICATION",
+    "status": "CONTROLLER_PASS_AWAITING_ARCHITECT",
     "purpose": "Freeze intended Build 3 product semantics and non-goals against the provenance-verified baseline and current Graphify; remove authority ambiguity before structural repair.",
     "writes_authorized": true,
     "production_logic_changes_authorized": false,
@@ -67,6 +67,22 @@
       "Downstream DONE criteria measurable.",
       "Graphify remains current.",
       "No uncontrolled scope expansion."
+    ],
+    "controller_adjudication": {
+      "verdict": "PASS",
+      "inspected_commit": "35a4dc31fd38e46b137e69f8c5007146e6ffdab7",
+      "production_code_diff_files": 0,
+      "production_logic_changed": false,
+      "architecture_consistency": "PASS",
+      "product_semantics_freeze": "PASS",
+      "non_goals_explicit": "PASS",
+      "downstream_done_measurable": "PASS",
+      "graphify_current_content": "PASS",
+      "graphify_summary": "179 nodes, 547 edges, 10 communities; PRODUCT_SEMANTICS.md and amended ARCHITECTURE.md present",
+      "scope_expansion": "NONE"
+    },
+    "remaining": [
+      "Architect adjudication/release of G2."
     ]
   },
   "source_of_truth": {
@@ -90,8 +106,8 @@
     "Direct leader WS path is fast but incomplete; snapshot truth is required on recovery boundaries.",
     "MASTER account state must be distinguished from API signer state."
   ],
-  "current_blocker": null,
-  "next_action": "Hermes executes BUILD3_G1_BASELINE_PRODUCT_SEMANTICS_AND_INITIAL_GRAPHIFY only and returns exact committed evidence.",
+  "current_blocker": "G1 passed Controller adjudication; G2 remains blocked pending Architect ruling.",
+  "next_action": "Architect consumes B3-C2A-G1-PASS-1 and either releases G2 or returns the exact blocker.",
   "live_authorized": false,
   "last_controller_ruling": {
     "task_id": "BUILD3_SOURCE_BASELINE_IMPORT_1",
