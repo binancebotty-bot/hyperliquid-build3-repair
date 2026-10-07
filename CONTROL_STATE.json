@@ -1,7 +1,7 @@
 {
   "schema": "wigmore_project_control_state_v1",
   "project": "hyperliquid-build3-repair",
-  "updated_utc": "2026-10-07T18:05:00Z",
+  "updated_utc": "2026-10-07T18:55:00Z",
   "operator": "richard:operator",
   "architect": {
     "role": "project-architect",
@@ -77,13 +77,41 @@
     "Direct leader WS path is fast but incomplete; snapshot truth is required on recovery boundaries.",
     "MASTER account state must be distinguished from API signer state."
   ],
-  "current_blocker": "Project transport is not yet commissioned/proven for this repository and these exact role endpoints.",
-  "next_action": "Commission and execute PROJECT_TWO_WAY_TRANSPORT_CERT_1. Do not resume Build 3 implementation or architectural adjudication until all four directed legs pass without Richard relay.",
+  "current_blocker": "Architect authority ruling is outstanding; automated two-way project transport is not yet certified.",
+  "next_action": "Complete Architect ruling and certify project role transport before production repair resumes.",
   "live_authorized": false,
   "last_controller_ruling": {
     "task_id": "BUILD3_SOURCE_BASELINE_IMPORT_1",
     "verdict": "PASS",
     "commit_sha": "cea4beb77af17a387f6c5aea9ca0c4057a8eb750",
     "evidence": "Exactly one commit ahead of d55d90f; only HL_Live_Copy_Service.py (4261 lines) and convergence_shadow.py (250 lines) added. User-reported before/after SHA-256 identical."
+  },
+  "control_topology": {
+    "global_md_channel": "binancebotty-bot/richard-mission-control-template#50",
+    "project_architect_channel": "binancebotty-bot/hyperliquid-build3-repair#1",
+    "project_reviewer_channel": "binancebotty-bot/hyperliquid-build3-repair#2",
+    "project_hermes_channel": "binancebotty-bot/hyperliquid-build3-repair#3",
+    "parallel_project_control_surfaces_forbidden": true
+  },
+  "transport_certification": {
+    "required_before_normal_implementation_loop": true,
+    "target": "LOW_LATENCY_TWO_WAY_CONTROL",
+    "richard_manual_relay_allowed_as_normal_path": false,
+    "current_status": "NOT_YET_PROVEN_FOR_THIS_PROJECT",
+    "template_reference": "richard-mission-control-template#38",
+    "required_proof": [
+      "Controller/Architect -> Hermes semantic wake and consume",
+      "Hermes -> Controller semantic wake and consume",
+      "Controller -> Architect semantic wake and consume on escalation",
+      "Architect -> Controller correlated ruling",
+      "unchanged branch causes zero duplicate",
+      "restart preserves zero duplicate",
+      "REST_API_CALLS=0 for transport"
+    ]
+  },
+  "graphify": {
+    "policy": "REQUIRED_FOR_IMPLEMENTATION_HANDOFFS_ONCE_COMMISSIONED",
+    "status": "NOT_YET_COMMISSIONED_IN_THIS_REPO",
+    "next_requirement": "Commission canonical Graphify workflow before first production-logic repair handoff."
   }
 }
