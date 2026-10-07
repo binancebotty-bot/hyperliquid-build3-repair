@@ -1,7 +1,7 @@
 {
   "schema": "wigmore_project_control_state_v1",
   "project": "hyperliquid-build3-repair",
-  "updated_utc": "2026-10-07T21:24:00Z",
+  "updated_utc": "2026-10-07T21:27:00Z",
   "operator": "richard:operator",
   "architect": {
     "role": "project-architect",
@@ -15,7 +15,7 @@
   },
   "implementation_owner": {
     "role": "hermes:implementation-owner",
-    "status": "G1_AUTHORISED_AWAITING_EXECUTION"
+    "status": "G1_EVIDENCE_RETURNED"
   },
   "bindings": {
     "authority": "C:/Users/wigmore/.hermes/state/projects/hyperliquid-build3-repair/CONTROL_CONTRACT.json target_role_bindings",
@@ -36,9 +36,16 @@
     }
   },
   "architecture_decision": "REPAIR_BUILD3",
+  "authority_freeze": {
+    "doc": "PRODUCT_SEMANTICS.md",
+    "architect_ruling": "B3-A2C-GATE0-PASS-G1-1",
+    "conflict_resolved": "current-position/restart/snapshot no longer derives target/convergence authority",
+    "rule": "genuine post-baseline leader events are the ONLY trading authority; snapshots are verification/reconciliation only",
+    "architecture_amendment": "ARCHITECTURE.md 'Trading-authority precedence' + invariant 13"
+  },
   "current_gate": {
     "task_id": "BUILD3_G1_BASELINE_PRODUCT_SEMANTICS_AND_INITIAL_GRAPHIFY",
-    "status": "READY",
+    "status": "EVIDENCE_RETURNED_PENDING_CONTROLLER_ADJUDICATION",
     "purpose": "Freeze intended Build 3 product semantics and non-goals against the provenance-verified baseline and current Graphify; remove authority ambiguity before structural repair.",
     "writes_authorized": true,
     "production_logic_changes_authorized": false,

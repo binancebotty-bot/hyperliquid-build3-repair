@@ -23,7 +23,24 @@ This is a **repair of Build 3**, not a new engine.
 Build 3 copied a fixed follower notional for each qualifying leader entry fill. Repeated leader ADD fills therefore created repeated follower ADDs without account-level desired-vs-actual convergence.
 
 ## Chosen repair
-Maintain authoritative current leader position by `(wallet, coin)`, derive each follower sleeve from leader position × copy scale, sum sleeves to desired account-net per coin, compare against follower actual/in-flight, and reuse the existing convergence planner and single sender.
+Maintain the authoritative post-baseline leader position lineage by `(wallet, coin)` from genuine leader
+events since the frozen baseline, derive each follower sleeve from leader position × copy scale, sum
+sleeves to desired account-net per coin, compare against follower actual/in-flight, and reuse the
+existing convergence planner and single sender.
+
+### Trading-authority precedence (Gate 1 freeze — Architect ruling `B3-A2C-GATE0-PASS-G1-1`)
+1. The frozen baseline plus **genuine post-baseline leader events are the ONLY source of trading
+   authority**. Desired exposure is derived from that event lineage.
+2. **Current leader position, restart and snapshot create ZERO new trade authority.** A snapshot, a
+   restart, or an observed current position must never, by itself, mint a new desired target or new orders.
+3. **Follower exchange state is authoritative for ACTUAL exposure and settlement measurement**
+   (invariants 9, 10, 11).
+4. A snapshot/current position may be used to **verify, reconcile and detect divergence** at recovery
+   boundaries; where the event lineage and the snapshot disagree, the divergence is surfaced for
+   adjudication — it is not converted into a fresh trading decision.
+
+This resolves the previously ruled current-position-derived target/convergence authority conflict.
+Product semantics, explicit non-goals and measurable downstream DONE are frozen in `PRODUCT_SEMANTICS.md`.
 
 ## Non-negotiable invariants
 1. **One process.**
@@ -38,7 +55,7 @@ Maintain authoritative current leader position by `(wallet, coin)`, derive each 
 10. API acknowledgement is not settlement. Physical sends require independent MASTER-account fill/position verification.
 11. MASTER/trading account and API signer are distinct identities. Balance/fills/positions are verified on MASTER.
 12. Convergence orders move actual toward desired; they must not blindly flatten unrelated pre-existing inventory.
-13. Restart/recovery establishes current authority from fresh external snapshots, current cohort and current scales.
+13. Restart/recovery establishes current TRUTH from fresh external snapshots, current cohort and current scales — for verification/reconciliation only. Per the trading-authority precedence (Gate 1 freeze) it creates ZERO new trade authority.
 14. No mainnet/LIVE activation without explicit Richard approval.
 
 ## Scope budget

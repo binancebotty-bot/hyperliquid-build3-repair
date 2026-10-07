@@ -1,7 +1,7 @@
 {
   "CONTROL_STATE.json": {
-    "mtime": 1791408320.1120396,
-    "ast_hash": "d61b5a26057f8baa87d13c540954c0d0",
+    "mtime": 1791407818.3573565,
+    "ast_hash": "7b01c1f83a670987ba29f1efbaf7802e",
     "semantic_hash": ""
   },
   "_archive/hl_stage2/HL_Live_Copy_Service.py": {
@@ -15,8 +15,8 @@
     "semantic_hash": ""
   },
   "ARCHITECTURE.md": {
-    "mtime": 1791408301.073177,
-    "ast_hash": "a132a061127023536f5743b6ec5e241f",
+    "mtime": 1791407765.665198,
+    "ast_hash": "406fc636f1faeb8588fd77db624a6762",
     "semantic_hash": ""
   },
   "BOOTSTRAP.md": {
@@ -32,11 +32,6 @@
   "README.md": {
     "mtime": 1791407765.666698,
     "ast_hash": "6ee6d2d975119db1a2f916992a7862e8",
-    "semantic_hash": ""
-  },
-  "PRODUCT_SEMANTICS.md": {
-    "mtime": 1791408310.9327674,
-    "ast_hash": "714cb8c0c53d1c3f94b7599543189b53",
     "semantic_hash": ""
   }
 }
