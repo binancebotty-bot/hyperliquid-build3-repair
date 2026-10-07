@@ -1,11 +1,11 @@
 {
   "schema": "wigmore_project_control_state_v1",
   "project": "hyperliquid-build3-repair",
-  "updated_utc": "2026-10-07T17:52:00Z",
+  "updated_utc": "2026-10-07T17:55:00Z",
   "operator": "richard:operator",
   "architect": {
     "role": "project-architect",
-    "status": "READY",
+    "status": "REVIEW_REQUIRED",
     "wake_mode": "EVENT_DRIVEN_ONLY"
   },
   "controller": {
@@ -15,20 +15,27 @@
   },
   "implementation_owner": {
     "role": "hermes:implementation-owner",
-    "status": "AWAITING_GATE"
+    "status": "BLOCKED_AWAITING_ARCHITECT"
   },
   "architecture_decision": "REPAIR_BUILD3",
   "current_gate": {
-    "task_id": "CONTROL_LOOP_CERT_HERMES_1",
+    "task_id": "ARCHITECT_REVIEW_BUILD4_AUTHORITY_CONFLICT_1",
     "status": "READY",
-    "purpose": "Prove one complete harmless Hermes -> commit/evidence -> Controller review round-trip before production repair begins.",
-    "writes_authorized": true,
+    "purpose": "Resolve the real semantic conflict between the current Build 3 repair architecture and the pinned Build 4 authority contracts before implementation.",
+    "writes_authorized": false,
     "production_logic_changes_authorized": false,
-    "instructions": [
-      "Run convergence_shadow.py self-test from the tracked baseline.",
-      "Create only proofs/control_loop/hermes_roundtrip_1.json containing task_id, baseline_commit, command, exit_code, RESULT markers, source hashes, and stand_down_request=true.",
-      "Do not modify production source or control-contract files.",
-      "Commit and push the proof artifact, then report exact COMMIT_SHA and STAND_DOWN_REQUEST=YES and stop."
+    "conflict": [
+      "Current ARCHITECTURE.md selects leader_position -> desired_account_net -> convergence.",
+      "Build4 GUT_CONTRACT I01/I02 says current leader positions do not authorize trading and startup/restart/current position create zero trade authority.",
+      "BUILD4_FINAL_AUTHORITY_MAP says genuine fill events authorize copying and states there is no desired target/convergence.",
+      "FAILURES.md contains older desired-vs-actual language, so document precedence/supersession must be resolved explicitly."
+    ],
+    "architect_output_required": [
+      "Identify exact binding semantics and document precedence.",
+      "State whether Build 3 repair must be event-authorised, position-target convergence, or a precisely defined hybrid.",
+      "State which current ARCHITECTURE.md clauses must change, if any.",
+      "Preserve product-preservation presumption and smallest-repair objective.",
+      "Return PASS_TO_CONTROLLER or ARCHITECTURE_CHANGE_REQUIRED with concise rationale."
     ]
   },
   "source_of_truth": {
@@ -52,8 +59,8 @@
     "Direct leader WS path is fast but incomplete; snapshot truth is required on recovery boundaries.",
     "MASTER account state must be distinguished from API signer state."
   ],
-  "current_blocker": null,
-  "next_action": "Hermes performs CONTROL_LOOP_CERT_HERMES_1 only. On Controller PASS, arm a synthetic Architect tripwire certification before production repair.",
+  "current_blocker": "Binding target-authority semantics conflict across current repair contract and inherited Build 4 requirement documents.",
+  "next_action": "Architect performs ARCHITECT_REVIEW_BUILD4_AUTHORITY_CONFLICT_1. Hermes remains stopped. Controller reviews Architect ruling, then resumes control-loop certification.",
   "live_authorized": false,
   "last_controller_ruling": {
     "task_id": "BUILD3_SOURCE_BASELINE_IMPORT_1",
