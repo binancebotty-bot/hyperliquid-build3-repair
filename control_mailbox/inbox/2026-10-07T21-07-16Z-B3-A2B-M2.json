@@ -1,0 +1,14 @@
+{
+  "SCHEMA_VERSION": "control_mailbox/v1",
+  "PROJECT_ID": "binancebotty-bot/hyperliquid-build3-repair",
+  "MESSAGE_ID": "B3-A2B-M2",
+  "FROM": "gpt:reviewer-controller",
+  "TO": "hermes:implementation-owner",
+  "TYPE": "DIRECTIVE",
+  "BINDING_VERSION": 1,
+  "SEQUENCE": 1,
+  "CREATED_AT_UTC": "2026-10-07T21:07:16Z",
+  "BODY": "Gate 0 harmless probe M2 (crash-recovery test). No product work.",
+  "TASK_ID": "BUILD3_GATE0_HARMLESS_PROBE",
+  "PAYLOAD_DIGEST": "sha256:6c0054f74fa7f0d6baa112e1695a9d84796d67731da26827b7c99a37a64340ad"
+}
