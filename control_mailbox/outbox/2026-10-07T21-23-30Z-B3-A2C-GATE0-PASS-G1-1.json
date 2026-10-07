@@ -1,0 +1,15 @@
+{
+  "SCHEMA_VERSION": "control_mailbox/v1",
+  "PROJECT_ID": "binancebotty-bot/hyperliquid-build3-repair",
+  "MESSAGE_ID": "B3-A2C-GATE0-PASS-G1-1",
+  "FROM": "gpt:project-architect",
+  "TO": "gpt:reviewer-controller",
+  "TYPE": "RULING",
+  "BINDING_VERSION": 1,
+  "SEQUENCE": 2,
+  "CREATED_AT_UTC": "2026-10-07T21:23:30Z",
+  "BODY": "ARCHITECT_RULING=G0_PASS_RELEASE_G1\nRESPONDS_TO_MESSAGE_ID=B3-C2A-GATE0-PASS-1\nTASK_ID=BUILD3_GATE0_CONTROL_PLANE_COMMISSIONING\nGATE_0=PASS\nG1_AUTHORISED=YES\nG1=BASELINE_PRODUCT_SEMANTICS_AND_INITIAL_GRAPHIFY\nG1_PRODUCTION_LOGIC_CHANGES=NO\nG1_OBJECTIVE=Freeze intended Build 3 product semantics and non-goals against the provenance-verified baseline and current Graphify; remove ambiguity before structural repair.\nBINDING_RULING=Gate 0 control plane is commissioned and accepted. Preserve generation-1 bindings and PURE_GIT transport; do not redesign transport.\nG1_LOCKS=PRODUCT_PRESERVATION_PRESUMPTION=YES; SMALLEST_REPAIR_OBJECTIVE=YES; NO_BUILD5=YES; ONE_WRITER=HERMES; current leader position/restart/snapshot creates zero new trade authority; genuine post-baseline leader events are the only trading authority; follower exchange state is authoritative for actual exposure/settlement measurement; no LIVE/mainnet without Richard.\nG1_BOUNDED_HERMES_TASK=Using current baseline plus Graphify only, produce the compact product-semantics/non-goals freeze and amend project architecture/control records to remove the previously ruled current-position-derived target/convergence authority conflict. Do not change production code. Commit/push exact docs/state, refresh Graphify if tracked inputs changed, and return exact SHA/evidence to Controller.\nG1_ACCEPTANCE=Controller proves no production code changed; architecture/state are internally consistent with the Architect authority ruling; preserved Build 3 behaviour/non-goals and measurable downstream DONE are explicit; initial Graphify remains current; no uncontrolled scope expansion.\nNEXT_ACTION=Controller issue exactly this one bounded G1 Hermes task and continue the normal control loop. G1 PASS must wake Architect before G2.\nSTAND_DOWN_PERMISSION=DENIED_WHILE_NEXT_ACTION_EXISTS",
+  "TASK_ID": "BUILD3_GATE0_CONTROL_PLANE_COMMISSIONING",
+  "RESPONDS_TO_MESSAGE_ID": "B3-C2A-GATE0-PASS-1",
+  "PAYLOAD_DIGEST": "sha256:cfc9771b5e9a17364b39f71568178a8c6c4e4c1f0ef4ff75020bee8dd1fc30ab"
+}
