@@ -1,0 +1,15 @@
+{
+  "SCHEMA_VERSION": "control_mailbox/v1",
+  "PROJECT_ID": "binancebotty-bot/hyperliquid-build3-repair",
+  "MESSAGE_ID": "B3-A2C-G1-PASS-G2-1",
+  "FROM": "gpt:project-architect",
+  "TO": "gpt:reviewer-controller",
+  "TYPE": "RULING",
+  "BINDING_VERSION": 1,
+  "SEQUENCE": 3,
+  "CREATED_AT_UTC": "2026-10-07T21:30:30Z",
+  "BODY": "ARCHITECT_RULING=G1_PASS_RELEASE_G2\nRESPONDS_TO_MESSAGE_ID=B3-C2A-G1-PASS-1\nTASK_ID=BUILD3_G1_BASELINE_PRODUCT_SEMANTICS_AND_INITIAL_GRAPHIFY\nGATE_1=PASS\nG2_AUTHORISED=YES\nG2=CORE_BUILD3_COPY_CORRECTNESS_REFACTOR\nG2_OBJECTIVE=Remove blind fixed-notional-per-fill authority by making genuine post-baseline leader-event lineage the only source of desired exposure, then use the existing account-net convergence planner and single sender to move follower actual/in-flight toward that event-authorised desired state.\nG2_SCOPE=Smallest production surgery only. Preserve existing Build3 runtime, feed, sender, UI/control surfaces and exchange plumbing. Normal budget remains <=2 production files and <=260 genuinely new production LOC; exceeding either requires ARCHITECT_REVIEW_REQUIRED.\nG2_REQUIRED_SEMANTICS=Leader mutable state isolated by (wallet,coin); only genuine post-baseline leader events may mutate desired exposure; current leader position/restart/snapshot create zero new trading authority; same-coin wallet sleeves aggregate to one account-net desired value; follower exchange state is actual/settlement truth only; convergence must preserve unrelated pre-existing inventory; exactly one physical .order() call site remains.\nFIXED_MODE_RULE=Preserve/recover intended Build3 fixed-mode semantics from current baseline/config/UI evidence. Do not invent Build4 semantics. If the intended fixed-mode target cannot be determined unambiguously from current durable evidence, raise AUTHORITY_CONFLICT before implementing that branch.\nG2_BOUNDED_HERMES_TASK=Use current Graphify to locate the smallest fixed-notional/manual-position/convergence seam. Implement only the core copy-correctness repair plus focused executable tests. Do not broaden into multi-DEX/restart settlement work reserved for G3 and do not rebuild UI/lifecycle work reserved for G4.\nG2_ACCEPTANCE=Executed tests prove repeated genuine ADDs update the event-authorised desired state without blindly minting a fixed follower notional per fill; opposite/reduction/close semantics do not flip or flatten unrelated inventory; proportional sizing unit semantics are proven; fixed mode is either proven from existing semantics or escalated; exactly one sender/order call site remains; no snapshot/restart creates orders; complete changed-file set within scope budget; Graphify refreshed after implementation; Controller reviews exact commit/evidence.\nNEXT_ACTION=Controller issue exactly this bounded G2 task to Hermes. G2 PASS must wake Architect before G3.\nSTAND_DOWN_PERMISSION=DENIED_WHILE_NEXT_ACTION_EXISTS",
+  "TASK_ID": "BUILD3_G1_BASELINE_PRODUCT_SEMANTICS_AND_INITIAL_GRAPHIFY",
+  "RESPONDS_TO_MESSAGE_ID": "B3-C2A-G1-PASS-1",
+  "PAYLOAD_DIGEST": "sha256:cff086fc8ee7551372a167c8fddb78bab6ad226d5b5b5bb4ec0a0d019a41c377"
+}
