@@ -1,5 +1,19 @@
 # Architecture Contract — Hyperliquid Build 3 Repair
 
+## Product-preservation presumption
+
+Build 3 is not treated as a failed prototype. It was an almost-complete operating product that ran for roughly two months before the material defect was identified, and it produced profitable live operation during that period.
+
+Therefore the default engineering presumption is **preserve unless disproved**:
+
+- retain existing working behaviour, UI, controls, launch paths and operational ergonomics wherever they can be proven safe;
+- repair specific proven defects rather than redesigning unrelated subsystems;
+- require evidence before replacing an existing Build 3 component;
+- treat any proposed rewrite of previously working product functionality as an architectural escalation;
+- certification must prove that repaired Build 3 still delivers the full product behaviour the operator previously relied on, not merely that the core sender works.
+
+Historical success does not waive safety proof, but it materially raises the burden of proof for replacement or redesign.
+
 ## Objective
 Restore the actual Build 3 Hyperliquid copy engine to correct target-vs-actual convergence while preserving its proven runtime and exchange plumbing.
 
