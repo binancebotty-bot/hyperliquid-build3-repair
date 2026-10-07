@@ -1,0 +1,15 @@
+{
+  "SCHEMA_VERSION": "control_mailbox/v1",
+  "PROJECT_ID": "binancebotty-bot/hyperliquid-build3-repair",
+  "MESSAGE_ID": "B3-C2H-G1-1",
+  "FROM": "gpt:reviewer-controller",
+  "TO": "hermes:implementation-owner",
+  "TYPE": "DIRECTIVE",
+  "BINDING_VERSION": 1,
+  "SEQUENCE": 4,
+  "CREATED_AT_UTC": "2026-10-07T21:24:05Z",
+  "BODY": "Execute only G1: BASELINE_PRODUCT_SEMANTICS_AND_INITIAL_GRAPHIFY.\n\nAuthoritative Architect ruling: B3-A2C-GATE0-PASS-G1-1.\n\nObjective:\nFreeze intended Build 3 product semantics and non-goals against the provenance-verified baseline and current Graphify; remove ambiguity before structural repair.\n\nLocks:\n- PRODUCT_PRESERVATION_PRESUMPTION=YES\n- SMALLEST_REPAIR_OBJECTIVE=YES\n- NO_BUILD5=YES\n- ONE_WRITER=HERMES\n- current leader position/restart/snapshot creates ZERO new trade authority\n- genuine post-baseline leader events are the only trading authority\n- follower exchange state is authoritative for actual exposure/settlement measurement\n- no LIVE/mainnet without Richard\n\nDo:\n1. Using only the current baseline + Graphify + pinned requirement documents, produce a compact product-semantics/non-goals freeze.\n2. Amend ARCHITECTURE.md and CONTROL_STATE.json only as necessary to remove the previously ruled current-position-derived target/convergence authority conflict.\n3. Make preserved Build 3 behaviour, explicit non-goals, and measurable downstream DONE criteria clear.\n4. Do NOT change production code.\n5. Refresh Graphify only if tracked inputs requiring refresh changed.\n6. Commit/push exact docs/state.\n7. Return exact COMMIT_SHA, changed files, proof that production code diff=0, Graphify status/evidence, and STAND_DOWN_REQUEST=YES.\n\nDo not start G2. G1 PASS must be adjudicated by Controller and then wake Architect before G2.",
+  "TASK_ID": "BUILD3_G1_BASELINE_PRODUCT_SEMANTICS_AND_INITIAL_GRAPHIFY",
+  "RESPONDS_TO_MESSAGE_ID": "B3-A2C-GATE0-PASS-G1-1",
+  "PAYLOAD_DIGEST": "sha256:4547e3e93b5ee441ecb861fc4b3acc68f146a126afe178dfcf1ef25a83150db5"
+}
