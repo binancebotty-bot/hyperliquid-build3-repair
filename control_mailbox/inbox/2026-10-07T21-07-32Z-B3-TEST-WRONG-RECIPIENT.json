@@ -1,0 +1,13 @@
+{
+  "SCHEMA_VERSION": "control_mailbox/v1",
+  "PROJECT_ID": "binancebotty-bot/hyperliquid-build3-repair",
+  "MESSAGE_ID": "B3-TEST-WRONG-RECIPIENT",
+  "FROM": "gpt:reviewer-controller",
+  "TO": "gpt:project-architect",
+  "TYPE": "DIRECTIVE",
+  "BINDING_VERSION": 1,
+  "SEQUENCE": 1,
+  "CREATED_AT_UTC": "2026-10-07T21:07:32Z",
+  "BODY": "negative test: addressed to architect, on the Hermes inbox path",
+  "PAYLOAD_DIGEST": "sha256:038754d29fcf8db8c0adf29537600428f5aefee331afb30687ccaf7389dc67aa"
+}
