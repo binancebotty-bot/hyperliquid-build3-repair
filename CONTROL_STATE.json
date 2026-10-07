@@ -1,11 +1,11 @@
 {
   "schema": "wigmore_project_control_state_v1",
   "project": "hyperliquid-build3-repair",
-  "updated_utc": "2026-10-07T17:55:00Z",
+  "updated_utc": "2026-10-07T18:05:00Z",
   "operator": "richard:operator",
   "architect": {
     "role": "project-architect",
-    "status": "REVIEW_REQUIRED",
+    "status": "AWAITING_TRANSPORT_COMMISSIONING",
     "wake_mode": "EVENT_DRIVEN_ONLY"
   },
   "controller": {
@@ -15,28 +15,46 @@
   },
   "implementation_owner": {
     "role": "hermes:implementation-owner",
-    "status": "BLOCKED_AWAITING_ARCHITECT"
+    "status": "AWAITING_TRANSPORT_COMMISSIONING"
   },
   "architecture_decision": "REPAIR_BUILD3",
   "current_gate": {
-    "task_id": "ARCHITECT_REVIEW_BUILD4_AUTHORITY_CONFLICT_1",
+    "task_id": "PROJECT_TWO_WAY_TRANSPORT_CERT_1",
     "status": "READY",
-    "purpose": "Resolve the real semantic conflict between the current Build 3 repair architecture and the pinned Build 4 authority contracts before implementation.",
+    "purpose": "Prove autonomous two-way GitHub control-file communication between Controller<->Hermes and Controller<->Architect before any production repair resumes.",
     "writes_authorized": false,
     "production_logic_changes_authorized": false,
-    "conflict": [
-      "Current ARCHITECTURE.md selects leader_position -> desired_account_net -> convergence.",
-      "Build4 GUT_CONTRACT I01/I02 says current leader positions do not authorize trading and startup/restart/current position create zero trade authority.",
-      "BUILD4_FINAL_AUTHORITY_MAP says genuine fill events authorize copying and states there is no desired target/convergence.",
-      "FAILURES.md contains older desired-vs-actual language, so document precedence/supersession must be resolved explicitly."
+    "required_proofs": [
+      {
+        "leg": "CONTROLLER_TO_HERMES",
+        "requirement": "Controller-authored committed control envelope wakes exact active Hermes implementation-owner; Hermes semantically consumes one harmless explicit task exactly once."
+      },
+      {
+        "leg": "HERMES_TO_CONTROLLER",
+        "requirement": "Hermes emits a correlated durable response control envelope; its push wakes this exact Controller lane; Controller semantically consumes it without Richard relay."
+      },
+      {
+        "leg": "CONTROLLER_TO_ARCHITECT",
+        "requirement": "Controller-authored committed control envelope wakes exact Architect lane; Architect semantically consumes one bounded architectural prompt exactly once."
+      },
+      {
+        "leg": "ARCHITECT_TO_CONTROLLER",
+        "requirement": "Architect emits a correlated durable response control envelope; its push wakes this exact Controller lane; Controller semantically consumes it without Richard relay."
+      }
     ],
-    "architect_output_required": [
-      "Identify exact binding semantics and document precedence.",
-      "State whether Build 3 repair must be event-authorised, position-target convergence, or a precisely defined hybrid.",
-      "State which current ARCHITECTURE.md clauses must change, if any.",
-      "Preserve product-preservation presumption and smallest-repair objective.",
-      "Return PASS_TO_CONTROLLER or ARCHITECTURE_CHANGE_REQUIRED with concise rationale."
-    ]
+    "acceptance": [
+      "CONTROLLER_TO_HERMES=PASS",
+      "HERMES_TO_CONTROLLER=PASS",
+      "CONTROLLER_TO_ARCHITECT=PASS",
+      "ARCHITECT_TO_CONTROLLER=PASS",
+      "SEMANTIC_CONSUMPTION=PASS",
+      "CORRELATED_DURABLE_RESPONSE=PASS",
+      "EXACT_TARGET_BINDING=PASS",
+      "REPLAY_EXACTLY_ONCE=PASS",
+      "WRONG_TARGET_FAIL_CLOSED=PASS",
+      "NO_RICHARD_RELAY=PASS"
+    ],
+    "transport_contract": "Reuse the company Issue #38 file-push transport: control-mailbox branch, control_mailbox/ immutable envelopes, canonical role/binding validation. Do not invent a new authority system."
   },
   "source_of_truth": {
     "terminal_runtime_local_path": "_archive/hl_stage2/HL_Live_Copy_Service.py",
@@ -59,8 +77,8 @@
     "Direct leader WS path is fast but incomplete; snapshot truth is required on recovery boundaries.",
     "MASTER account state must be distinguished from API signer state."
   ],
-  "current_blocker": "Binding target-authority semantics conflict across current repair contract and inherited Build 4 requirement documents.",
-  "next_action": "Architect performs ARCHITECT_REVIEW_BUILD4_AUTHORITY_CONFLICT_1. Hermes remains stopped. Controller reviews Architect ruling, then resumes control-loop certification.",
+  "current_blocker": "Project transport is not yet commissioned/proven for this repository and these exact role endpoints.",
+  "next_action": "Commission and execute PROJECT_TWO_WAY_TRANSPORT_CERT_1. Do not resume Build 3 implementation or architectural adjudication until all four directed legs pass without Richard relay.",
   "live_authorized": false,
   "last_controller_ruling": {
     "task_id": "BUILD3_SOURCE_BASELINE_IMPORT_1",
