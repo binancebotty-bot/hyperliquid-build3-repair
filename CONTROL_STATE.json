@@ -1,11 +1,11 @@
 {
   "schema": "wigmore_project_control_state_v1",
   "project": "hyperliquid-build3-repair",
-  "updated_utc": "2026-10-07T21:20:00Z",
+  "updated_utc": "2026-10-07T21:24:00Z",
   "operator": "richard:operator",
   "architect": {
     "role": "project-architect",
-    "status": "GATE0_PASS_TRANSITION_SENT_AWAITING_ARCHITECT",
+    "status": "G1_RELEASED",
     "wake_mode": "EVENT_DRIVEN_ONLY"
   },
   "controller": {
@@ -15,7 +15,7 @@
   },
   "implementation_owner": {
     "role": "hermes:implementation-owner",
-    "status": "AWAITING_ARCHITECT_G1_RULING"
+    "status": "G1_AUTHORISED_AWAITING_EXECUTION"
   },
   "bindings": {
     "authority": "C:/Users/wigmore/.hermes/state/projects/hyperliquid-build3-repair/CONTROL_CONTRACT.json target_role_bindings",
@@ -37,40 +37,30 @@
   },
   "architecture_decision": "REPAIR_BUILD3",
   "current_gate": {
-    "task_id": "BUILD3_GATE0_CONTROL_PLANE_COMMISSIONING",
-    "status": "CONTROLLER_PASS_AWAITING_ARCHITECT",
-    "purpose": "Complete and adjudicate the real project control-plane commissioning before G1.",
+    "task_id": "BUILD3_G1_BASELINE_PRODUCT_SEMANTICS_AND_INITIAL_GRAPHIFY",
+    "status": "READY",
+    "purpose": "Freeze intended Build 3 product semantics and non-goals against the provenance-verified baseline and current Graphify; remove authority ambiguity before structural repair.",
     "writes_authorized": true,
     "production_logic_changes_authorized": false,
-    "proven": [
-      "CONTROLLER_TO_HERMES harmless directive delivered and semantically consumed exactly once (B3-A2B-M1 -> B3-B2A-PROBE-1).",
-      "HERMES_TO_CONTROLLER correlated durable response delivered and semantically consumed.",
-      "CONTROLLER_TO_ARCHITECT simulated gate-status wake delivered and semantically consumed (B3-ARCH-GATEPASS-1).",
-      "ARCHITECT_TO_CONTROLLER correlated ruling B3-A2C-RULING-1 delivered, verified and semantically consumed."
+    "architect_ruling_message": "B3-A2C-GATE0-PASS-G1-1",
+    "locks": [
+      "PRODUCT_PRESERVATION_PRESUMPTION=YES",
+      "SMALLEST_REPAIR_OBJECTIVE=YES",
+      "NO_BUILD5=YES",
+      "ONE_WRITER=HERMES",
+      "current leader position/restart/snapshot creates zero new trade authority",
+      "genuine post-baseline leader events are the only trading authority",
+      "follower exchange state is authoritative for actual exposure/settlement measurement",
+      "no LIVE/mainnet without Richard"
     ],
-    "certification_returned_by_hermes": [
-      "BINDING_AUTHORITY=PASS (live wake routes resolve UUIDs from CONTROL_CONTRACT.json target_role_bindings; retired UUIDs refused).",
-      "RESTART_REPLAY_EXACTLY_ONCE=PASS (durable MESSAGE_ID/sha state; unchanged branch=0 duplicate; restart re-presents only unconfirmed).",
-      "NEGATIVE_PATHS_FAIL_CLOSED=PASS (wrong project, wrong recipient, stale binding, missing binding, changed-digest conflict).",
-      "NO_RICHARD_RELAY=PASS (all exchanges machine-routed via control-mailbox + guarded CDP wake; zero REST for transport).",
-      "GRAPHIFY_COMMISSIONED=YES (171 nodes, 540 edges, 14 communities)."
-    ],
-    "remaining": [
-      "Architect adjudication/release of G1."
-    ],
-    "controller_adjudication": {
-      "verdict": "PASS",
-      "inspected_main_commit": "b3bfb7dfc2da8e2e538255126842f49d197070e0",
-      "hermes_evidence_message": "B3-B2A-GATE0-RESPONSE-1",
-      "binding_authority": "PASS",
-      "restart_replay_exactly_once": "PASS",
-      "wrong_target_fail_closed": "PASS",
-      "changed_digest_conflict_fail_closed": "PASS",
-      "no_richard_relay": "PASS",
-      "graphify_commissioned": "PASS",
-      "rest_api_calls_for_transport": 0,
-      "product_logic_changed": false
-    }
+    "acceptance": [
+      "No production code changed.",
+      "ARCHITECTURE.md and CONTROL_STATE.json internally consistent with Architect ruling.",
+      "Preserved Build 3 behaviour/non-goals explicit.",
+      "Downstream DONE criteria measurable.",
+      "Graphify remains current.",
+      "No uncontrolled scope expansion."
+    ]
   },
   "source_of_truth": {
     "terminal_runtime_local_path": "_archive/hl_stage2/HL_Live_Copy_Service.py",
@@ -93,8 +83,8 @@
     "Direct leader WS path is fast but incomplete; snapshot truth is required on recovery boundaries.",
     "MASTER account state must be distinguished from API signer state."
   ],
-  "current_blocker": "Gate 0 passed Controller adjudication; G1 remains blocked pending Architect ruling.",
-  "next_action": "Architect consumes B3-C2A-GATE0-PASS-1 and either releases G1 or returns the exact blocker.",
+  "current_blocker": null,
+  "next_action": "Hermes executes BUILD3_G1_BASELINE_PRODUCT_SEMANTICS_AND_INITIAL_GRAPHIFY only and returns exact committed evidence.",
   "live_authorized": false,
   "last_controller_ruling": {
     "task_id": "BUILD3_SOURCE_BASELINE_IMPORT_1",
@@ -113,7 +103,7 @@
     "required_before_normal_implementation_loop": true,
     "target": "LOW_LATENCY_TWO_WAY_CONTROL",
     "richard_manual_relay_allowed_as_normal_path": false,
-    "current_status": "PASS_PENDING_ARCHITECT_GATE_RELEASE",
+    "current_status": "PASS",
     "rest_api_calls_for_transport": 0,
     "template_reference": "richard-mission-control-template#38",
     "required_proof": [
