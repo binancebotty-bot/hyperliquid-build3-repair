@@ -1,11 +1,11 @@
 {
   "schema": "wigmore_project_control_state_v1",
   "project": "hyperliquid-build3-repair",
-  "updated_utc": "2026-10-07T18:55:00Z",
+  "updated_utc": "2026-10-07T21:14:10Z",
   "operator": "richard:operator",
   "architect": {
     "role": "project-architect",
-    "status": "AWAITING_TRANSPORT_COMMISSIONING",
+    "status": "G0_CONTINUE_AWAITING_REAL_GATE_PASS",
     "wake_mode": "EVENT_DRIVEN_ONLY"
   },
   "controller": {
@@ -15,46 +15,30 @@
   },
   "implementation_owner": {
     "role": "hermes:implementation-owner",
-    "status": "AWAITING_TRANSPORT_COMMISSIONING"
+    "status": "EXECUTING_GATE0_CERT_REMAINDER"
   },
   "architecture_decision": "REPAIR_BUILD3",
   "current_gate": {
-    "task_id": "PROJECT_TWO_WAY_TRANSPORT_CERT_1",
-    "status": "READY",
-    "purpose": "Prove autonomous two-way GitHub control-file communication between Controller<->Hermes and Controller<->Architect before any production repair resumes.",
-    "writes_authorized": false,
+    "task_id": "BUILD3_GATE0_CONTROL_PLANE_COMMISSIONING",
+    "status": "IN_PROGRESS",
+    "purpose": "Complete and adjudicate the real project control-plane commissioning before G1.",
+    "writes_authorized": true,
     "production_logic_changes_authorized": false,
-    "required_proofs": [
-      {
-        "leg": "CONTROLLER_TO_HERMES",
-        "requirement": "Controller-authored committed control envelope wakes exact active Hermes implementation-owner; Hermes semantically consumes one harmless explicit task exactly once."
-      },
-      {
-        "leg": "HERMES_TO_CONTROLLER",
-        "requirement": "Hermes emits a correlated durable response control envelope; its push wakes this exact Controller lane; Controller semantically consumes it without Richard relay."
-      },
-      {
-        "leg": "CONTROLLER_TO_ARCHITECT",
-        "requirement": "Controller-authored committed control envelope wakes exact Architect lane; Architect semantically consumes one bounded architectural prompt exactly once."
-      },
-      {
-        "leg": "ARCHITECT_TO_CONTROLLER",
-        "requirement": "Architect emits a correlated durable response control envelope; its push wakes this exact Controller lane; Controller semantically consumes it without Richard relay."
-      }
+    "proven": [
+      "CONTROLLER_TO_HERMES harmless directive delivered and semantically consumed exactly once (B3-A2B-M1 -> B3-B2A-PROBE-1).",
+      "HERMES_TO_CONTROLLER correlated durable response delivered and semantically consumed.",
+      "CONTROLLER_TO_ARCHITECT simulated gate-status wake delivered and semantically consumed (B3-ARCH-GATEPASS-1).",
+      "ARCHITECT_TO_CONTROLLER correlated ruling B3-A2C-RULING-1 delivered, verified and semantically consumed."
     ],
-    "acceptance": [
-      "CONTROLLER_TO_HERMES=PASS",
-      "HERMES_TO_CONTROLLER=PASS",
-      "CONTROLLER_TO_ARCHITECT=PASS",
-      "ARCHITECT_TO_CONTROLLER=PASS",
-      "SEMANTIC_CONSUMPTION=PASS",
-      "CORRELATED_DURABLE_RESPONSE=PASS",
-      "EXACT_TARGET_BINDING=PASS",
-      "REPLAY_EXACTLY_ONCE=PASS",
-      "WRONG_TARGET_FAIL_CLOSED=PASS",
-      "NO_RICHARD_RELAY=PASS"
-    ],
-    "transport_contract": "Reuse the company Issue #38 file-push transport: control-mailbox branch, control_mailbox/ immutable envelopes, canonical role/binding validation. Do not invent a new authority system."
+    "remaining": [
+      "Exact canonical binding authority adjudication.",
+      "Restart/replay exactly-once proof.",
+      "Wrong project/role and stale/missing-generation fail-closed proof.",
+      "Same MESSAGE_ID changed-digest conflict fail-closed proof.",
+      "NO_RICHARD_RELAY certification evidence.",
+      "Canonical Graphify commissioning and freshness proof.",
+      "Real GATE_STATUS_TRANSITION=PASS to Architect after Controller adjudication."
+    ]
   },
   "source_of_truth": {
     "terminal_runtime_local_path": "_archive/hl_stage2/HL_Live_Copy_Service.py",
@@ -77,8 +61,8 @@
     "Direct leader WS path is fast but incomplete; snapshot truth is required on recovery boundaries.",
     "MASTER account state must be distinguished from API signer state."
   ],
-  "current_blocker": "Architect authority ruling is outstanding; automated two-way project transport is not yet certified.",
-  "next_action": "Complete Architect ruling and certify project role transport before production repair resumes.",
+  "current_blocker": "Gate 0 remaining certification evidence incomplete; G1 not authorised.",
+  "next_action": "Hermes executes B3-C2H-G0-REMAINDER-1 and returns correlated evidence. Controller adjudicates; only then send real Gate-0 PASS to Architect.",
   "live_authorized": false,
   "last_controller_ruling": {
     "task_id": "BUILD3_SOURCE_BASELINE_IMPORT_1",
@@ -97,7 +81,7 @@
     "required_before_normal_implementation_loop": true,
     "target": "LOW_LATENCY_TWO_WAY_CONTROL",
     "richard_manual_relay_allowed_as_normal_path": false,
-    "current_status": "NOT_YET_PROVEN_FOR_THIS_PROJECT",
+    "current_status": "PARTIAL_PASS_G0_IN_PROGRESS",
     "template_reference": "richard-mission-control-template#38",
     "required_proof": [
       "Controller/Architect -> Hermes semantic wake and consume",
@@ -107,11 +91,17 @@
       "unchanged branch causes zero duplicate",
       "restart preserves zero duplicate",
       "REST_API_CALLS=0 for transport"
-    ]
+    ],
+    "last_architect_ruling": {
+      "message_id": "B3-A2C-RULING-1",
+      "verdict": "G0_CONTINUE",
+      "architect_wake": "PASS",
+      "g1_authorised": false
+    }
   },
   "graphify": {
     "policy": "REQUIRED_FOR_IMPLEMENTATION_HANDOFFS_ONCE_COMMISSIONED",
-    "status": "NOT_YET_COMMISSIONED_IN_THIS_REPO",
+    "status": "COMMISSIONING_REQUIRED_IN_CURRENT_GATE",
     "next_requirement": "Commission canonical Graphify workflow before first production-logic repair handoff."
   }
 }
