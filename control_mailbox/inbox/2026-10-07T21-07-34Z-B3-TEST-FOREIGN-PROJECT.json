@@ -1,0 +1,13 @@
+{
+  "SCHEMA_VERSION": "control_mailbox/v1",
+  "PROJECT_ID": "binancebotty-bot/richard-mission-control-template",
+  "MESSAGE_ID": "B3-TEST-FOREIGN-PROJECT",
+  "FROM": "gpt:reviewer-controller",
+  "TO": "hermes:implementation-owner",
+  "TYPE": "DIRECTIVE",
+  "BINDING_VERSION": 1,
+  "SEQUENCE": 1,
+  "CREATED_AT_UTC": "2026-10-07T21:07:34Z",
+  "BODY": "negative test: foreign project id",
+  "PAYLOAD_DIGEST": "sha256:db9c197e725b1ca9c8e47c171e315c1636597277625d1fe38253b7222418f6bf"
+}
