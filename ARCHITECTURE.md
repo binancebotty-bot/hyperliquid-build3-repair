@@ -69,3 +69,67 @@ The project is complete only when:
 
 ## Architect's job
 Protect these invariants and the project boundary. Do not micromanage implementation, reread history hourly, or invent improvements not required to complete the objective.
+
+
+## Full project acceptance scope
+
+The source-baseline import and target-delta repair are only the first gates. They do **not** define project completion.
+
+After the control loop is proven, the Controller must continue gate-by-gate until Build 3 is re-proven against the applicable project invariants and acceptance requirements preserved in the Build 4 project material. Build 4 is a **requirements/evidence source**, not permission to import its platform/control-plane architecture wholesale.
+
+Completion scope includes all of the following:
+
+1. **Engine correctness**
+   - accurate low-latency copying;
+   - deterministic, auditable leader→target→order→settlement evidence;
+   - proportional mode proven end-to-end;
+   - fixed mode proven end-to-end using recovered intended semantics, never the old blind fixed-notional-per-fill defect;
+   - multi-wallet aggregation, multi-DEX/HIP-3 truth, restart/gap recovery, settlement verification and pre-existing-inventory safety.
+
+2. **Build 3 user interface recovery**
+   - locate the correct historical Build 3 UI rather than rebuilding it by default;
+   - restore/reuse it with the repaired engine where technically sound;
+   - prove every displayed cell, status, value and control against authoritative engine/exchange truth;
+   - no cosmetic "green" state may outrank actual engine truth.
+
+3. **Wallet controls**
+   - add wallet;
+   - remove wallet;
+   - enable/disable wallet;
+   - fixed/proportional configuration;
+   - copy-scale / sizing controls;
+   - wallet status and current position/target representation;
+   - persistence and restart behaviour;
+   - failure/invalid-input handling.
+
+4. **Global controls and risk**
+   - global enable/disable / safe stop;
+   - live/paper/testnet mode boundaries;
+   - risk limits and exposure controls;
+   - order minimums/rounding;
+   - stale/uncertain-state containment;
+   - emergency stop/close behaviour only where explicitly intended;
+   - no control may silently bypass convergence or the single send authority.
+
+5. **Lifecycle operations**
+   - simple launch/start/stop;
+   - clean restart;
+   - version identification;
+   - new-version cutover;
+   - rollback/recovery path;
+   - configuration migration/compatibility where required;
+   - proof that switching versions cannot create duplicate send authority or stale replay.
+
+6. **UI/control exhaustive certification**
+   Every user-facing control, configuration field, status indicator, table/cell and launch/cutover function must be exercised and tied to an explicit acceptance test. Anything that has caused prior incidents or ambiguity receives a regression test.
+
+7. **Final mainnet readiness**
+   The engine is not complete merely because the core copy loop works. It is complete only when the full engine + UI + wallet controls + global risk controls + lifecycle/cutover behaviour have passed the applicable invariant/test matrix and the Controller has reviewed the exact evidence.
+
+Mainnet/LIVE cutover remains an explicit Richard decision after final certification.
+
+## Requirements recovery rule
+
+Before certifying each subsystem, recover the relevant invariant/test requirements from the Build 4 project folder using bounded, targeted reads. Do not bulk-ingest the Build 4 repository and do not inherit implementation complexity merely because Build 4 contains it.
+
+If Build 4 requirements conflict with this Architecture Contract or with newer operator rulings, stop and escalate the specific conflict rather than silently choosing one.
