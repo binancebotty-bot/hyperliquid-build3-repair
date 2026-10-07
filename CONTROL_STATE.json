@@ -1,11 +1,11 @@
 {
   "schema": "wigmore_project_control_state_v1",
   "project": "hyperliquid-build3-repair",
-  "updated_utc": "2026-10-07T21:31:00Z",
+  "updated_utc": "2026-10-07T21:38:00Z",
   "operator": "richard:operator",
   "architect": {
     "role": "project-architect",
-    "status": "G2_RELEASED",
+    "status": "ARCHITECT_REVIEW_REQUIRED_G2",
     "wake_mode": "EVENT_DRIVEN_ONLY"
   },
   "controller": {
@@ -15,7 +15,7 @@
   },
   "implementation_owner": {
     "role": "hermes:implementation-owner",
-    "status": "G2_AUTHORISED_AWAITING_EXECUTION"
+    "status": "G2_FAILED_AWAITING_ARCHITECT_RULING"
   },
   "bindings": {
     "authority": "C:/Users/wigmore/.hermes/state/projects/hyperliquid-build3-repair/CONTROL_CONTRACT.json target_role_bindings",
@@ -45,7 +45,7 @@
   },
   "current_gate": {
     "task_id": "BUILD3_G2_CORE_BUILD3_COPY_CORRECTNESS_REFACTOR",
-    "status": "READY",
+    "status": "CONTROLLER_FAIL_ARCHITECT_REVIEW_REQUIRED",
     "purpose": "Remove blind fixed-notional-per-fill authority and implement event-authorised desired exposure feeding the existing convergence planner and single sender.",
     "writes_authorized": true,
     "production_logic_changes_authorized": true,
@@ -73,7 +73,22 @@
       "G4 UI/lifecycle rebuild or redesign.",
       "Build4 implementation semantics.",
       "LIVE/mainnet activation."
-    ]
+    ],
+    "controller_adjudication": {
+      "verdict": "FAIL",
+      "inspected_commit": "ea797f971ec90f0b669bb9ef07a54677df3ddff7",
+      "production_files_changed": 1,
+      "new_production_loc_reported": "+170/-3",
+      "focused_tests_reported": "15/15 PASS",
+      "convergence_self_test_reported": "14/14 PASS",
+      "blocking_defects": [
+        "actual_net is read from self.get_position(cfg.wallet, coin), a wallet-local dry-run position, not account-net follower exchange truth; account-net aggregation/unrelated inventory preservation are therefore not proven.",
+        "compute_convergence_order returns absolute size plus explicit BUY/SELL side, but convergence_notional_for_fill drops order.side; process_fill reconstructs sign from ENTRY/EXIT and append_order_intent keeps fill.side. A short OPEN from flat can be represented/applied with the wrong sign, and live side can diverge from planner side.",
+        "compute_convergence_order is called without in_flight, so the required in-flight duplicate/burst guard is not wired.",
+        "leader_event_positions is persisted through SERVICE_STATE_FILE, creating new authoritative persistent trading state despite the G2 directive requiring zero new authoritative persistent state.",
+        "fixed-mode target semantics remain unresolved AUTHORITY_CONFLICT and the legacy fixed-mode self-test is failing."
+      ]
+    }
   },
   "source_of_truth": {
     "terminal_runtime_local_path": "_archive/hl_stage2/HL_Live_Copy_Service.py",
@@ -96,8 +111,8 @@
     "Direct leader WS path is fast but incomplete; snapshot truth is required on recovery boundaries.",
     "MASTER account state must be distinguished from API signer state."
   ],
-  "current_blocker": null,
-  "next_action": "Hermes executes BUILD3_G2_CORE_BUILD3_COPY_CORRECTNESS_REFACTOR only and returns exact committed evidence.",
+  "current_blocker": "G2 core correctness defects plus Architect ruling required on fixed-mode target semantics and persisted event-lineage authority.",
+  "next_action": "Architect adjudicates B3-C2A-G2-AUTHORITY-CONFLICT-1. Hermes must not modify G2 further until the correlated Architect ruling is consumed.",
   "live_authorized": false,
   "last_controller_ruling": {
     "task_id": "BUILD3_SOURCE_BASELINE_IMPORT_1",
