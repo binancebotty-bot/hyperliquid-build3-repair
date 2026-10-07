@@ -128,8 +128,31 @@ Completion scope includes all of the following:
 
 Mainnet/LIVE cutover remains an explicit Richard decision after final certification.
 
-## Requirements recovery rule
+## Build 4 requirements source set
 
-Before certifying each subsystem, recover the relevant invariant/test requirements from the Build 4 project folder using bounded, targeted reads. Do not bulk-ingest the Build 4 repository and do not inherit implementation complexity merely because Build 4 contains it.
+Do **not** trawl the Build 4 codebase to rediscover requirements.
 
-If Build 4 requirements conflict with this Architecture Contract or with newer operator rulings, stop and escalate the specific conflict rather than silently choosing one.
+Use these named root documents as the bounded requirements/evidence source:
+
+1. `GUT_CONTRACT.md` — frozen behavioural invariants and historical-regression catalogue.
+2. `FAILURES.md` — anti-regression contract and canonical historical failure taxonomy.
+3. `ACCEPTANCE.md` — exact executable acceptance/certification gates.
+4. `BUILD4_FINAL_AUTHORITY_MAP.md` — final responsibility/authority map, operator controls, modes, wallet/config authority and lifecycle responsibilities.
+5. `OPERATIONS.md` — supported launch/start/restart/stop/status/UI operational contract.
+6. `AGENT_START_HERE.md` — concise product/source/operations orientation when needed.
+
+Supporting documents such as `NO_SEND_GATE.md` or `PROOF_MODE_ARCHITECTURE.md` are read only when a named invariant/gate above explicitly points to them or when a specific unresolved requirement requires provenance.
+
+Implementation source is inspected only to prove or implement a specific requirement already identified from these documents. It is **not** the requirements-discovery mechanism.
+
+### Conflict rule
+
+The Build 4 documents span several design phases and may contain superseded statements. Do not silently merge contradictory semantics.
+
+For any material conflict:
+1. identify the exact documents/clauses;
+2. determine whether a later/final document explicitly supersedes the earlier clause;
+3. if precedence is not explicit, raise `ARCHITECT_REVIEW_REQUIRED`;
+4. Richard's later operator ruling outranks inherited Build 4 requirements.
+
+The goal is to inherit the proven product requirements and regression protections, **not** Build 4's implementation sprawl.
