@@ -1,7 +1,7 @@
 {
   "schema": "wigmore_project_control_state_v1",
   "project": "hyperliquid-build3-repair",
-  "updated_utc": "2026-10-07T17:30:00Z",
+  "updated_utc": "2026-10-07T17:26:00Z",
   "operator": "richard:operator",
   "architect": {
     "role": "project-architect",
