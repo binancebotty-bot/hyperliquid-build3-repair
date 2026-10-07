@@ -1,11 +1,11 @@
 {
   "schema": "wigmore_project_control_state_v1",
   "project": "hyperliquid-build3-repair",
-  "updated_utc": "2026-10-07T21:27:30Z",
+  "updated_utc": "2026-10-07T21:31:00Z",
   "operator": "richard:operator",
   "architect": {
     "role": "project-architect",
-    "status": "G1_PASS_TRANSITION_SENT_AWAITING_ARCHITECT",
+    "status": "G2_RELEASED",
     "wake_mode": "EVENT_DRIVEN_ONLY"
   },
   "controller": {
@@ -15,7 +15,7 @@
   },
   "implementation_owner": {
     "role": "hermes:implementation-owner",
-    "status": "AWAITING_ARCHITECT_G2_RULING"
+    "status": "G2_AUTHORISED_AWAITING_EXECUTION"
   },
   "bindings": {
     "authority": "C:/Users/wigmore/.hermes/state/projects/hyperliquid-build3-repair/CONTROL_CONTRACT.json target_role_bindings",
@@ -44,45 +44,35 @@
     "architecture_amendment": "ARCHITECTURE.md 'Trading-authority precedence' + invariant 13"
   },
   "current_gate": {
-    "task_id": "BUILD3_G1_BASELINE_PRODUCT_SEMANTICS_AND_INITIAL_GRAPHIFY",
-    "status": "CONTROLLER_PASS_AWAITING_ARCHITECT",
-    "purpose": "Freeze intended Build 3 product semantics and non-goals against the provenance-verified baseline and current Graphify; remove authority ambiguity before structural repair.",
+    "task_id": "BUILD3_G2_CORE_BUILD3_COPY_CORRECTNESS_REFACTOR",
+    "status": "READY",
+    "purpose": "Remove blind fixed-notional-per-fill authority and implement event-authorised desired exposure feeding the existing convergence planner and single sender.",
     "writes_authorized": true,
-    "production_logic_changes_authorized": false,
-    "architect_ruling_message": "B3-A2C-GATE0-PASS-G1-1",
-    "locks": [
-      "PRODUCT_PRESERVATION_PRESUMPTION=YES",
-      "SMALLEST_REPAIR_OBJECTIVE=YES",
-      "NO_BUILD5=YES",
-      "ONE_WRITER=HERMES",
-      "current leader position/restart/snapshot creates zero new trade authority",
-      "genuine post-baseline leader events are the only trading authority",
-      "follower exchange state is authoritative for actual exposure/settlement measurement",
-      "no LIVE/mainnet without Richard"
-    ],
-    "acceptance": [
-      "No production code changed.",
-      "ARCHITECTURE.md and CONTROL_STATE.json internally consistent with Architect ruling.",
-      "Preserved Build 3 behaviour/non-goals explicit.",
-      "Downstream DONE criteria measurable.",
-      "Graphify remains current.",
-      "No uncontrolled scope expansion."
-    ],
-    "controller_adjudication": {
-      "verdict": "PASS",
-      "inspected_commit": "35a4dc31fd38e46b137e69f8c5007146e6ffdab7",
-      "production_code_diff_files": 0,
-      "production_logic_changed": false,
-      "architecture_consistency": "PASS",
-      "product_semantics_freeze": "PASS",
-      "non_goals_explicit": "PASS",
-      "downstream_done_measurable": "PASS",
-      "graphify_current_content": "PASS",
-      "graphify_summary": "179 nodes, 547 edges, 10 communities; PRODUCT_SEMANTICS.md and amended ARCHITECTURE.md present",
-      "scope_expansion": "NONE"
+    "production_logic_changes_authorized": true,
+    "architect_ruling_message": "B3-A2C-G1-PASS-G2-1",
+    "scope_budget": {
+      "production_files_max": 2,
+      "genuinely_new_production_loc_max": 260,
+      "order_call_sites_max": 1,
+      "processes_max": 1,
+      "new_dependencies_max": 0,
+      "new_authoritative_persistent_state_max": 0
     },
-    "remaining": [
-      "Architect adjudication/release of G2."
+    "required_semantics": [
+      "Leader mutable state isolated by (wallet,coin).",
+      "Only genuine post-baseline leader events may mutate desired exposure.",
+      "Current leader position/restart/snapshot create zero new trading authority.",
+      "Same-coin wallet sleeves aggregate to one account-net desired value.",
+      "Follower exchange state is actual/settlement truth only.",
+      "Convergence preserves unrelated pre-existing inventory.",
+      "Exactly one physical .order() call site remains."
+    ],
+    "fixed_mode_rule": "Recover intended Build3 fixed-mode semantics from current baseline/config/UI evidence only; if ambiguous, raise AUTHORITY_CONFLICT before implementing fixed mode.",
+    "excluded_scope": [
+      "G3 multi-DEX/restart settlement implementation beyond what is required to keep G2 seams compilable/testable.",
+      "G4 UI/lifecycle rebuild or redesign.",
+      "Build4 implementation semantics.",
+      "LIVE/mainnet activation."
     ]
   },
   "source_of_truth": {
@@ -106,8 +96,8 @@
     "Direct leader WS path is fast but incomplete; snapshot truth is required on recovery boundaries.",
     "MASTER account state must be distinguished from API signer state."
   ],
-  "current_blocker": "G1 passed Controller adjudication; G2 remains blocked pending Architect ruling.",
-  "next_action": "Architect consumes B3-C2A-G1-PASS-1 and either releases G2 or returns the exact blocker.",
+  "current_blocker": null,
+  "next_action": "Hermes executes BUILD3_G2_CORE_BUILD3_COPY_CORRECTNESS_REFACTOR only and returns exact committed evidence.",
   "live_authorized": false,
   "last_controller_ruling": {
     "task_id": "BUILD3_SOURCE_BASELINE_IMPORT_1",
