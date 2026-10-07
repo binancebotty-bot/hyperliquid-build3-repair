@@ -1,11 +1,11 @@
 {
   "schema": "wigmore_project_control_state_v1",
   "project": "hyperliquid-build3-repair",
-  "updated_utc": "2026-10-07T21:22:00Z",
+  "updated_utc": "2026-10-07T21:20:00Z",
   "operator": "richard:operator",
   "architect": {
     "role": "project-architect",
-    "status": "G0_CONTINUE_AWAITING_REAL_GATE_PASS",
+    "status": "GATE0_PASS_TRANSITION_SENT_AWAITING_ARCHITECT",
     "wake_mode": "EVENT_DRIVEN_ONLY"
   },
   "controller": {
@@ -15,19 +15,30 @@
   },
   "implementation_owner": {
     "role": "hermes:implementation-owner",
-    "status": "GATE0_CERT_EVIDENCE_RETURNED"
+    "status": "AWAITING_ARCHITECT_G1_RULING"
   },
   "bindings": {
     "authority": "C:/Users/wigmore/.hermes/state/projects/hyperliquid-build3-repair/CONTROL_CONTRACT.json target_role_bindings",
     "generation": 1,
-    "gpt:project-architect": {"uuid": "6ac680c7-6d84-83eb-8c7d-d3706cea33fc", "status": "ACTIVE", "reachability": "PROVEN"},
-    "gpt:reviewer-controller": {"uuid": "6ac6427b-8df0-83eb-beb8-3b6e8796d1e1", "status": "ACTIVE", "reachability": "PROVEN"},
-    "hermes:implementation-owner": {"session": "20261007_214500_b3hermes", "status": "ACTIVE"}
+    "gpt:project-architect": {
+      "uuid": "6ac680c7-6d84-83eb-8c7d-d3706cea33fc",
+      "status": "ACTIVE",
+      "reachability": "PROVEN"
+    },
+    "gpt:reviewer-controller": {
+      "uuid": "6ac6427b-8df0-83eb-beb8-3b6e8796d1e1",
+      "status": "ACTIVE",
+      "reachability": "PROVEN"
+    },
+    "hermes:implementation-owner": {
+      "session": "20261007_214500_b3hermes",
+      "status": "ACTIVE"
+    }
   },
   "architecture_decision": "REPAIR_BUILD3",
   "current_gate": {
     "task_id": "BUILD3_GATE0_CONTROL_PLANE_COMMISSIONING",
-    "status": "EVIDENCE_RETURNED_PENDING_CONTROLLER_ADJUDICATION",
+    "status": "CONTROLLER_PASS_AWAITING_ARCHITECT",
     "purpose": "Complete and adjudicate the real project control-plane commissioning before G1.",
     "writes_authorized": true,
     "production_logic_changes_authorized": false,
@@ -45,8 +56,21 @@
       "GRAPHIFY_COMMISSIONED=YES (171 nodes, 540 edges, 14 communities)."
     ],
     "remaining": [
-      "Controller adjudication, then a REAL GATE_STATUS_TRANSITION=PASS to Architect."
-    ]
+      "Architect adjudication/release of G1."
+    ],
+    "controller_adjudication": {
+      "verdict": "PASS",
+      "inspected_main_commit": "b3bfb7dfc2da8e2e538255126842f49d197070e0",
+      "hermes_evidence_message": "B3-B2A-GATE0-RESPONSE-1",
+      "binding_authority": "PASS",
+      "restart_replay_exactly_once": "PASS",
+      "wrong_target_fail_closed": "PASS",
+      "changed_digest_conflict_fail_closed": "PASS",
+      "no_richard_relay": "PASS",
+      "graphify_commissioned": "PASS",
+      "rest_api_calls_for_transport": 0,
+      "product_logic_changed": false
+    }
   },
   "source_of_truth": {
     "terminal_runtime_local_path": "_archive/hl_stage2/HL_Live_Copy_Service.py",
@@ -69,8 +93,8 @@
     "Direct leader WS path is fast but incomplete; snapshot truth is required on recovery boundaries.",
     "MASTER account state must be distinguished from API signer state."
   ],
-  "current_blocker": "Gate 0 remaining certification evidence incomplete; G1 not authorised.",
-  "next_action": "Hermes executes B3-C2H-G0-REMAINDER-1 and returns correlated evidence. Controller adjudicates; only then send real Gate-0 PASS to Architect.",
+  "current_blocker": "Gate 0 passed Controller adjudication; G1 remains blocked pending Architect ruling.",
+  "next_action": "Architect consumes B3-C2A-GATE0-PASS-1 and either releases G1 or returns the exact blocker.",
   "live_authorized": false,
   "last_controller_ruling": {
     "task_id": "BUILD3_SOURCE_BASELINE_IMPORT_1",
@@ -89,7 +113,7 @@
     "required_before_normal_implementation_loop": true,
     "target": "LOW_LATENCY_TWO_WAY_CONTROL",
     "richard_manual_relay_allowed_as_normal_path": false,
-    "current_status": "COMMISSIONED_AND_PROVEN",
+    "current_status": "PASS_PENDING_ARCHITECT_GATE_RELEASE",
     "rest_api_calls_for_transport": 0,
     "template_reference": "richard-mission-control-template#38",
     "required_proof": [
