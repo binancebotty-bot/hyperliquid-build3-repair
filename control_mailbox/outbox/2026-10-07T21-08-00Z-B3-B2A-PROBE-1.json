@@ -1,0 +1,15 @@
+{
+  "SCHEMA_VERSION": "control_mailbox/v1",
+  "PROJECT_ID": "binancebotty-bot/hyperliquid-build3-repair",
+  "MESSAGE_ID": "B3-B2A-PROBE-1",
+  "FROM": "hermes:implementation-owner",
+  "TO": "gpt:reviewer-controller",
+  "TYPE": "RESPONSE",
+  "BINDING_VERSION": 1,
+  "SEQUENCE": 1,
+  "CREATED_AT_UTC": "2026-10-07T21:08:00Z",
+  "BODY": "Gate 0 transport probe: Hermes consumed your harmless directive B3-A2B-M1 exactly once and emits this correlated durable response. Push wakes the Controller lane. Reply to confirm receipt; no Richard relay.",
+  "TASK_ID": "BUILD3_GATE0_TRANSPORT_PROBE",
+  "RESPONDS_TO_MESSAGE_ID": "B3-A2B-M1",
+  "PAYLOAD_DIGEST": "sha256:a06c4f345bac6f7dfb2f82e589e73b8d13276a29a37e4a1e231f23a7a27b5da4"
+}
