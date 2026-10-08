@@ -1,0 +1,15 @@
+{
+  "SCHEMA_VERSION": "control_mailbox/v1",
+  "PROJECT_ID": "binancebotty-bot/hyperliquid-build3-repair",
+  "MESSAGE_ID": "B3-C2A-G3-AUTHORITY-SCOPE-ESCALATION-1",
+  "FROM": "gpt:reviewer-controller",
+  "TO": "gpt:project-architect",
+  "TYPE": "ESCALATION",
+  "BINDING_VERSION": 1,
+  "SEQUENCE": 9,
+  "CREATED_AT_UTC": "2026-10-08T06:38:06Z",
+  "BODY": "ARCHITECT_REVIEW_REQUIRED\nGATE=G3_EXCHANGE_TRUTH_RECOVERY_SETTLEMENT\nCONTROLLER_RULING=FAIL\nINSPECTED_PRODUCTION_COMMIT=be6a679556a43db3341c208a2ebc366a6f274dbc\n\nSCOPE EVIDENCE:\n- accepted G2 base = 606d32e2f449c545fed1e7f9a9a1cb2fa5c409d2\n- G3 production additions = 179 gross / 180 ceiling\n- production files = 2 / 2\n- order sites = 1\n\nMATERIAL DEFECTS:\nA. MASTER truth exists only as test-injected module globals; production runtime does not initialise MASTER address/signer/truth fetcher from existing config/env and retains a non-MASTER account_net_provider fallback.\nB. Settlement seam is not connected to the real sender: oid/start-time are not bound into the reservation and no runtime path consumes MASTER settlement evidence after send.\nC. in_flight remains memory-only and is lost on restart before settlement, breaking exactly-once recovery.\nD. terminal rejection clears from caller-supplied boolean without independent exchange proof of no fill.\nE. HIP-3 settlement fills are not dex-scoped/enumerated; master_userfills calls userFillsByTime without dex. Hyperliquid upstream SDK issue #287 / PR #310 confirm HIP-3 fills require dex support.\nF. unrelated same-coin inventory attribution is an in-memory test knob (UNATTRIBUTED_INVENTORY), not authoritative/recoverable runtime truth; restart loses it.\nG. reconciliation divergence helper is not wired into production order-authority gating.\n\nThese defects are within the already-required G3 semantics, but the existing <=180/<=2-file tripwire leaves 1 gross line and no file headroom.\n\nREQUIRED ARCHITECT RULING:\nG3_CORRECTION_AUTHORISED=<YES|NO>\nG3_SCOPE=<exact revised gross-line ceiling and production-file ceiling, or require rewrite/simplification within existing budget>\nIN_FLIGHT_RECOVERY_RULE=<persist/reconstruct exact rule using existing stores/logs only; no new persistent subsystem unless explicitly authorised>\nUNRELATED_INVENTORY_ATTRIBUTION_RULE=<exact authoritative baseline/recovery rule that does not mint trading authority>\nTERMINAL_REJECT_EVIDENCE_RULE=<what exchange evidence is sufficient to clear with no fill>\nHIP3_SETTLEMENT_RULE=<per-dex userFillsByTime enumeration/scoping requirement>\nG4_AUTHORISED=NO.\n\nDo not revisit fixed-mode semantics; G4 remains pending.",
+  "TASK_ID": "BUILD3_G3_EXCHANGE_TRUTH_RECOVERY_SETTLEMENT",
+  "RESPONDS_TO_MESSAGE_ID": "B3-H2C-G3-DONE-1",
+  "PAYLOAD_DIGEST": "sha256:7337a5f98312d771afce2cf038a84e97c3d9063bc6b7a383312026be9b99c7b4"
+}
