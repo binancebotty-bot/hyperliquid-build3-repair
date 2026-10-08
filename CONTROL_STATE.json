@@ -1,11 +1,11 @@
 {
   "schema": "wigmore_project_control_state_v1",
   "project": "hyperliquid-build3-repair",
-  "updated_utc": "2026-10-08T06:18:00Z",
+  "updated_utc": "2026-10-08T06:22:00Z",
   "operator": "richard:operator",
   "architect": {
     "role": "project-architect",
-    "status": "G2_CODE_CANDIDATE_ACCEPTABLE_EVIDENCE_INCOMPLETE",
+    "status": "G2_PASS_TRANSITION_SENT_AWAITING_ARCHITECT",
     "wake_mode": "EVENT_DRIVEN_ONLY"
   },
   "controller": {
@@ -15,7 +15,7 @@
   },
   "implementation_owner": {
     "role": "hermes:implementation-owner",
-    "status": "G2_EVIDENCE_CORRECTION_REQUIRED_NO_PRODUCTION_CHANGE"
+    "status": "AWAITING_ARCHITECT_G3_RULING"
   },
   "bindings": {
     "authority": "C:/Users/wigmore/.hermes/state/projects/hyperliquid-build3-repair/CONTROL_CONTRACT.json target_role_bindings",
@@ -45,7 +45,7 @@
   },
   "current_gate": {
     "task_id": "BUILD3_G2_CORE_BUILD3_COPY_CORRECTNESS_REFACTOR",
-    "status": "CONTROLLER_HOLD_EVIDENCE_CORRECTION",
+    "status": "CONTROLLER_PASS_AWAITING_ARCHITECT",
     "purpose": "Remove blind fixed-notional-per-fill authority and implement event-authorised desired exposure feeding the existing convergence planner and single sender.",
     "writes_authorized": true,
     "production_logic_changes_authorized": true,
@@ -74,18 +74,35 @@
       "LIVE/mainnet activation."
     ],
     "controller_adjudication": {
-      "verdict": "HOLD_NOT_PASS",
-      "inspected_commit": "606d32e2f449c545fed1e7f9a9a1cb2fa5c409d2",
-      "production_code_assessment": "PASS",
+      "verdict": "PASS",
+      "production_candidate": "606d32e2f449c545fed1e7f9a9a1cb2fa5c409d2",
+      "evidence_commit": "fa3a86c30159784c0ffeadcabf2d7df317a98193",
+      "production_code_review": "PASS",
+      "frozen_baseline": "cea4beb77af17a387f6c5aea9ca0c4057a8eb750",
+      "production_numstat": "+336/-39",
       "gross_production_additions": 336,
-      "gross_limit": 340,
+      "gross_ceiling": 340,
       "production_files": 1,
       "order_call_sites": 1,
-      "durable_csv_audit_fixes": "PASS_BY_DIRECT_DIFF",
-      "blocking_evidence_defects": [
-        "RESULT envelope is mis-correlated: RESPONDS_TO_MESSAGE_ID and DIRECTIVE_ID point to B3-C2H-G2-FINAL-FAIL-3 instead of B3-C2H-G2-FINAL-AUDIT-CORRECTION-3.",
-        "Committed graphify-out/GRAPH_REPORT.md is stale and explicitly says Built from commit 35a4dc31, not candidate 606d32e2; Graphify refresh is therefore not durably proven."
-      ]
+      "focused_tests": "40/40 PASS",
+      "legacy_self_test": "PASS",
+      "durable_order_intent_reduce_only": "PASS",
+      "durable_live_fill_planner_side": "PASS",
+      "planner_side_reduce_only_send_path": "PASS",
+      "in_flight_pre_send": "PASS",
+      "clo_planner_semantics": "PASS",
+      "fixed_mode_hold": "PASS",
+      "event_lineage_checkpoint": "PASS",
+      "account_net_fail_closed": "PASS",
+      "graphify": {
+        "status": "PASS",
+        "built_from": "606d32e2",
+        "nodes": 208,
+        "edges": 618,
+        "communities": 16
+      },
+      "correlation": "PASS via B3-H2C-G2-EVIDENCE-CORRECTION-DONE-4 -> B3-C2H-G2-EVIDENCE-CORRECTION-4",
+      "g3_authorised": false
     },
     "architect_ruling": {
       "message_id": "B3-A2C-G2-AUTHORITY-RULING-1",
@@ -162,8 +179,8 @@
     "Direct leader WS path is fast but incomplete; snapshot truth is required on recovery boundaries.",
     "MASTER account state must be distinguished from API signer state."
   ],
-  "current_blocker": "Production candidate appears acceptable, but G2 evidence/control correlation is incomplete and Graphify is durably stale.",
-  "next_action": "Hermes makes NO production code changes; refresh/commit Graphify against the exact current candidate and emit one correctly correlated RESULT responding to B3-C2H-G2-FINAL-AUDIT-CORRECTION-3.",
+  "current_blocker": "G2 passed Controller adjudication; G3 remains blocked pending Architect ruling.",
+  "next_action": "Architect consumes B3-C2A-G2-PASS-1 and either releases G3 or returns the exact blocker. Hermes performs no G3 work until that ruling is consumed.",
   "live_authorized": false,
   "last_controller_ruling": {
     "task_id": "BUILD3_SOURCE_BASELINE_IMPORT_1",
