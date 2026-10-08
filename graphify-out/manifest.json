@@ -5,8 +5,8 @@
     "semantic_hash": ""
   },
   "_archive/hl_stage2/HL_Live_Copy_Service.py": {
-    "mtime": 1791488420.9256997,
-    "ast_hash": "62a78a5349270182d7bb396f1ef3fc9a",
+    "mtime": 1791492246.4211524,
+    "ast_hash": "d77a051f4f432207e063ecab364bc299",
     "semantic_hash": ""
   },
   "_archive/hl_stage2/convergence_shadow.py": {
@@ -25,8 +25,8 @@
     "semantic_hash": ""
   },
   "OPERATING_PROTOCOL.md": {
-    "mtime": 1791407765.666698,
-    "ast_hash": "6cfac8c32d53e3a3eef25c78a1fda155",
+    "mtime": 1791489537.2844243,
+    "ast_hash": "b23d6bf20ac6738e828332377f5fb46d",
     "semantic_hash": ""
   },
   "README.md": {
@@ -40,8 +40,8 @@
     "semantic_hash": ""
   },
   "_archive/hl_stage2/test_g2_copy_correctness.py": {
-    "mtime": 1791486952.1622994,
-    "ast_hash": "d9cfe1f7c8bccbe026cba51aaf783629",
+    "mtime": 1791489585.2424364,
+    "ast_hash": "28eef1d2ca9757980b055d21a8abb174",
     "semantic_hash": ""
   },
   "_archive/hl_stage2/exchange_truth.py": {
@@ -65,17 +65,17 @@
     "semantic_hash": ""
   },
   "_archive/hl_stage2/hl_copy_output/app_model_state.json": {
-    "mtime": 1791488434.495388,
-    "ast_hash": "c521f87e287766d970870916f15107f8",
+    "mtime": 1791492268.8727126,
+    "ast_hash": "fba46c840984cc95b9570ed1667a5e84",
     "semantic_hash": ""
   },
   "_archive/hl_stage2/hl_copy_output/equity_history.json": {
-    "mtime": 1791488434.502886,
+    "mtime": 1791492268.8812208,
     "ast_hash": "58cc6b86f1e088c2f5fe5ec14c6f5615",
     "semantic_hash": ""
   },
   "_archive/hl_stage2/hl_copy_output/portfolio_history.json": {
-    "mtime": 1791488434.4993863,
+    "mtime": 1791492268.8762128,
     "ast_hash": "a8434eb282c97ed9ba57443faa3b81a3",
     "semantic_hash": ""
   },
@@ -102,6 +102,21 @@
   "_archive/hl_stage2/test_g4_ui_controls.py": {
     "mtime": 1791488410.1821475,
     "ast_hash": "cc03dc2f1dc7e789c1892fdd7e7caf45",
+    "semantic_hash": ""
+  },
+  "_archive/hl_stage2/hl_copy_output/snapshots/2026-10-08_20-59-52_app_model_state.json": {
+    "mtime": 1791489592.5399277,
+    "ast_hash": "1e9f02af294c71c9b096ee8fea1a08e2",
+    "semantic_hash": ""
+  },
+  "_archive/hl_stage2/hl_copy_output/snapshots/2026-10-08_21-44-20_app_model_state.json": {
+    "mtime": 1791492260.783389,
+    "ast_hash": "c28b049fff697870b7d28e3ebe6b9da6",
+    "semantic_hash": ""
+  },
+  "_archive/hl_stage2/test_g4_order_cap.py": {
+    "mtime": 1791492252.734687,
+    "ast_hash": "113968ddbc256e158a11a0d65dbfd7ab",
     "semantic_hash": ""
   }
 }

@@ -5,8 +5,8 @@
     "semantic_hash": ""
   },
   "_archive/hl_stage2/HL_Live_Copy_Service.py": {
-    "mtime": 1791486912.0253153,
-    "ast_hash": "7aa79ca38d6d16b25e993c980d6185d9",
+    "mtime": 1791488420.9256997,
+    "ast_hash": "62a78a5349270182d7bb396f1ef3fc9a",
     "semantic_hash": ""
   },
   "_archive/hl_stage2/convergence_shadow.py": {
@@ -65,18 +65,43 @@
     "semantic_hash": ""
   },
   "_archive/hl_stage2/hl_copy_output/app_model_state.json": {
-    "mtime": 1791486820.633723,
-    "ast_hash": "aa97e230d0fccd62fb54856171944a2e",
+    "mtime": 1791488434.495388,
+    "ast_hash": "c521f87e287766d970870916f15107f8",
     "semantic_hash": ""
   },
   "_archive/hl_stage2/hl_copy_output/equity_history.json": {
-    "mtime": 1791486820.6417613,
+    "mtime": 1791488434.502886,
     "ast_hash": "58cc6b86f1e088c2f5fe5ec14c6f5615",
     "semantic_hash": ""
   },
   "_archive/hl_stage2/hl_copy_output/portfolio_history.json": {
-    "mtime": 1791486820.6372318,
+    "mtime": 1791488434.4993863,
     "ast_hash": "a8434eb282c97ed9ba57443faa3b81a3",
+    "semantic_hash": ""
+  },
+  "_archive/hl_stage2/hl_copy_output/snapshots/2026-10-08_20-40-13_app_model_state.json": {
+    "mtime": 1791488413.9623895,
+    "ast_hash": "002d2d0660565a57abaea324fafc01b8",
+    "semantic_hash": ""
+  },
+  "_archive/hl_stage2/hl_copy_output/snapshots/2026-10-08_20-40-26_app_model_state.json": {
+    "mtime": 1791488426.0289729,
+    "ast_hash": "2f61de074328e2feed6f293f80a1ab33",
+    "semantic_hash": ""
+  },
+  "_archive/hl_stage2/hl_copy_output/snapshots/2026-10-08_20-40-33_app_model_state.json": {
+    "mtime": 1791488433.9616244,
+    "ast_hash": "8d2ca7cdae5ee7a1c7dc7a636c523335",
+    "semantic_hash": ""
+  },
+  "_archive/hl_stage2/test_g4_intake_sleeves.py": {
+    "mtime": 1791488331.978413,
+    "ast_hash": "9bf3d90b52d80282dbb7b9cf59f0e83a",
+    "semantic_hash": ""
+  },
+  "_archive/hl_stage2/test_g4_ui_controls.py": {
+    "mtime": 1791488410.1821475,
+    "ast_hash": "cc03dc2f1dc7e789c1892fdd7e7caf45",
     "semantic_hash": ""
   }
 }
