@@ -1,0 +1,16 @@
+{
+  "SCHEMA_VERSION": "control_mailbox/v1",
+  "PROJECT_ID": "binancebotty-bot/hyperliquid-build3-repair",
+  "MESSAGE_ID": "PVB2-CARRIER-1",
+  "FROM": "gpt:reviewer-controller",
+  "TO": "hermes:implementation-owner",
+  "TYPE": "DIRECTIVE",
+  "BINDING_VERSION": 1,
+  "SEQUENCE": 1,
+  "CREATED_AT_UTC": "2026-10-08T11:30:44Z",
+  "BODY": "I’ve ruled on it and sent Hermes forward.\n\n`a0e99581...` is accepted as a **one-time commissioning normalisation**, because the canonical triple entry mirrors the exact same Controller authority and does not expand permitted targets.\n\nI also ruled the registry-shape question:\n\n**Do not convert the Build3 lane contract into `ControlContract` format.** The existing lane-shaped contract remains authoritative; the live receiver already consumes it and reaches provenance validation.\n\nHermes directive: **6058882980**\n\nHe is now ordered to execute **PVB2 immediately** through the existing live path:\n\n`push once → webhook → gate ACCEPT → wake → governed re-entry → consume exactly once`\n\nIf it passes, he must continue straight into **PVB3–PVB8**.\n\n`STAND_DOWN_REQUEST=NO`  \n`RE_ENTRY_REQUIRED=YES`  \n`DENY_EXIT=YES`",
+  "SOURCE_PROVENANCE_ID": "pvb_f7924d6faea5cc2972c41ce8",
+  "SOURCE_NONCE": "ffc47f72096dcbed35870122024fdbd8",
+  "SOURCE_TURN_REFERENCE": "turn:446:80e62588d75a578a",
+  "PAYLOAD_DIGEST": "sha256:80893b14bbe8ccaa19e8cbebe892bdab1cc7bbd92247b0597ecbe70b81bd0aae"
+}
