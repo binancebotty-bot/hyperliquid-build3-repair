@@ -1,11 +1,11 @@
 {
   "schema": "wigmore_project_control_state_v1",
   "project": "hyperliquid-build3-repair",
-  "updated_utc": "2026-10-08T06:08:00Z",
+  "updated_utc": "2026-10-08T06:12:30Z",
   "operator": "richard:operator",
   "architect": {
     "role": "project-architect",
-    "status": "ARCHITECT_REVIEW_REQUIRED_G2_FINAL_AUDIT_LEAK",
+    "status": "G2_FINAL_AUDIT_CORRECTION_AUTHORISED",
     "wake_mode": "EVENT_DRIVEN_ONLY"
   },
   "controller": {
@@ -15,7 +15,7 @@
   },
   "implementation_owner": {
     "role": "hermes:implementation-owner",
-    "status": "G2_FINAL_CANDIDATE_FAILED_AWAITING_ARCHITECT"
+    "status": "G2_FINAL_AUDIT_CORRECTION_AWAITING_EXECUTION"
   },
   "bindings": {
     "authority": "C:/Users/wigmore/.hermes/state/projects/hyperliquid-build3-repair/CONTROL_CONTRACT.json target_role_bindings",
@@ -45,7 +45,7 @@
   },
   "current_gate": {
     "task_id": "BUILD3_G2_CORE_BUILD3_COPY_CORRECTNESS_REFACTOR",
-    "status": "CONTROLLER_FAIL_ARCHITECT_REVIEW_REQUIRED",
+    "status": "FINAL_AUDIT_CORRECTION_REQUIRED",
     "purpose": "Remove blind fixed-notional-per-fill authority and implement event-authorised desired exposure feeding the existing convergence planner and single sender.",
     "writes_authorized": true,
     "production_logic_changes_authorized": true,
@@ -128,6 +128,17 @@
       "new_persistent_stores_max": 0,
       "physical_order_call_sites_max": 1,
       "normal_budget_after_g2": "REVERTS_TO_ARCHITECTURE_CONTRACT"
+    },
+    "final_audit_ruling": {
+      "message_id": "B3-A2C-G2-FINAL-AUDIT-RULING-3",
+      "correction_authorised": true,
+      "gross_production_additions_ceiling": 340,
+      "production_changes_only": [
+        "Persist planner reduce_only in ORDER_INTENT_FIELDS/order_intents.csv.",
+        "Persist planner-authorised follower side in live_fills.csv via minimal existing signature/call wiring."
+      ],
+      "focused_regression_required": true,
+      "g3_authorised": false
     }
   },
   "source_of_truth": {
@@ -151,8 +162,8 @@
     "Direct leader WS path is fast but incomplete; snapshot truth is required on recovery boundaries.",
     "MASTER account state must be distinguished from API signer state."
   ],
-  "current_blocker": "G2 final candidate remains materially incorrect at durable audit surfaces despite passing focused tests.",
-  "next_action": "Architect adjudicates B3-C2A-G2-FINAL-AUDIT-ESCALATION-3. Hermes makes no patch until correlated ruling.",
+  "current_blocker": null,
+  "next_action": "Hermes executes only the final G2 durable-audit correction under B3-A2C-G2-FINAL-AUDIT-RULING-3; G3 remains blocked.",
   "live_authorized": false,
   "last_controller_ruling": {
     "task_id": "BUILD3_SOURCE_BASELINE_IMPORT_1",
