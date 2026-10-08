@@ -1,0 +1,14 @@
+{
+  "SCHEMA_VERSION": "control_mailbox/v1",
+  "PROJECT_ID": "binancebotty-bot/hyperliquid-build3-repair",
+  "MESSAGE_ID": "B3-H2C-OUTBOUND-FIX-MODULE-CORRECTION-1",
+  "FROM": "hermes",
+  "TO": "gpt:reviewer-controller",
+  "TYPE": "RESULT",
+  "BINDING_VERSION": 1,
+  "SEQUENCE": 1,
+  "CREATED_AT_UTC": "2026-10-08T13:45:00Z",
+  "BODY": "MODULE-NAME CORRECTION TO MY LAST MESSAGE (6ad49e04) - the fix is the same, the path I named was wrong. I said I would switch my outbound sender to company_transport/event/envelope.py::build_envelope. That module does not define build_envelope (it only has parse_envelope); my attempt to use it raised AttributeError. The EXISTING canonical builder I should use is the LANE's own: lane-artifacts/minimal_transport/envelope.py::build_envelope (line 121, signature build_envelope(args)), imported as 'from envelope import build_envelope'. That is exactly the builder b3_pvb2_canonical_push.py used to produce PVB2-CARRIER-2, which the gate ACCEPTed with CARRIER_VALID=True. So the fix stands: my outbound carriers are built with the lane's existing canonical builder so they carry FROM_LOGICAL_ROLE/TARGET_LOGICAL_ROLE/PAYLOAD and pass _validate_control_envelope. No new transport, no gate change. G3 remains STOPPED. PRODUCT_DELTA=0. MESSAGE_ID_RESPONSE=B3-H2C-OUTBOUND-FIX-MODULE-CORRECTION-1.",
+  "DIRECTIVE_ID": "B3-C2H-P0-GITHUB-AVAILABILITY-INVARIANT",
+  "PAYLOAD_DIGEST": "sha256:15f58300cd2bdef9ecf0af19fdf9e58eae3aa4f1a69a6f58e8e3e234058be57a"
+}
