@@ -2682,6 +2682,50 @@ class DryRunLiveCopyService:
             "action": action, "notes": notes,
         })
 
+    def global_order_cap(self) -> float:
+        """Operator global control max_order_notional_usd, read from the EXISTING live_config.json
+        (APP_CONFIG_FILE) that the restored UI already writes under global_controls.
+
+        Returns a finite positive float, else 0.0. The UI's off/unset meaning is 0; zero, negative,
+        NaN, infinite or non-numeric values are NOT authority and are treated as 0. No new store and
+        no second writer - this is a read of the same file the UI maintains.
+        """
+        try:
+            cfg = load_json(APP_CONFIG_FILE, {}) or {}
+            gc = cfg.get("global_controls")
+            if not isinstance(gc, dict):
+                return 0.0
+            raw = gc.get("max_order_notional_usd")
+            if raw is None or raw == "":
+                return 0.0
+            cap = float(raw)
+            if cap != cap or cap in (float("inf"), float("-inf")) or cap <= 0:
+                return 0.0
+            return cap
+        except Exception:
+            return 0.0
+
+    def global_order_cap_block(self, intent_type: str, copy_notional: float, reduce_only: Optional[bool],
+                               decision: Optional[Dict[str, Any]]) -> str:
+        """Explicit fail-closed status when a NEW ENTRY exceeds the operator cap, else "".
+
+        Reduce/close paths are NEVER blocked by an entry-size cap, so a safe exit is always allowed.
+        """
+        cap = self.global_order_cap()
+        if cap <= 0:
+            return ""
+        if str(intent_type or "").upper() != "ENTRY":
+            return ""
+        ro = reduce_only
+        if ro is None:
+            ro = str((decision or {}).get("execution_decision") or "") == "WOULD_REDUCE_OR_EXIT"
+        if bool(ro):
+            return ""
+        if fnum(copy_notional) > cap + 1e-12:
+            self.bump("entries_blocked_global_max_order_notional")
+            return "BLOCKED_GLOBAL_MAX_ORDER_NOTIONAL"
+        return ""
+
     def append_order_intent(self, cfg: LiveWalletConfig, fill: LeaderFill, intent_id: str, linked_ids: List[str], intent_type: str, reason: str, status: str, copy_notional: float, copy_size: float, policy: str, notes: str = "", target_price: Optional[float] = None, diff_pct: Any = 0.0, decision: Optional[Dict[str, Any]] = None, side_override: Optional[str] = None, reduce_only: Optional[bool] = None) -> None:
         decision = decision or {}
         row = {
@@ -2706,6 +2750,19 @@ class DryRunLiveCopyService:
             "market_data_source": decision.get("market_data_source", ""),
             "market_data_error": decision.get("market_data_error", ""),
         }
+        # G4-C1: the operator global control max_order_notional_usd caps NEW entry notional and must
+        # FAIL CLOSED with an explicit status and ZERO executable/sent intent (should_write_would_send
+        # fires only for WOULD_PLACE_IOC_LIMIT / WOULD_LATE_COPY / WOULD_REDUCE_OR_EXIT). Reduce/close
+        # paths are never blocked by an entry-size cap, so a safe exit always remains available.
+        cap_status = self.global_order_cap_block(intent_type, copy_notional, reduce_only, decision)
+        if cap_status:
+            row["status"] = cap_status
+            row["execution_decision"] = cap_status
+            row["decision_reason"] = "GLOBAL_MAX_ORDER_NOTIONAL_EXCEEDED"
+            row["suggested_order_type"] = ""
+            row["suggested_limit_price"] = ""
+            decision = dict(decision or {})
+            decision["execution_decision"] = cap_status
         append_csv(ORDER_INTENTS_CSV, ORDER_INTENT_FIELDS, row)
         if should_write_would_send(decision, row):
             wrote_would_send = self.append_would_send_order(row, reduce_only=reduce_only)
@@ -2923,6 +2980,36 @@ class DryRunLiveCopyService:
             self.processed_ids.add(fill.fill_id)
             self.bump("fills_skipped_off")
             return
+
+        # --- G4-C1: operator global control max_order_notional_usd caps NEW entry notional and FAILS
+        # CLOSED for the whole fill: explicit status + reconciliation row, NO position change, NO
+        # intent, NO executable/sent order. A "new entry" is an event that increases the leader's
+        # exposure magnitude; reduce/close events are NEVER blocked by an entry-size cap so a safe
+        # exit always remains available. Zero/unset/invalid cap -> unchanged behaviour.
+        _cap = self.global_order_cap()
+        if _cap > 0:
+            _led = self.state.get("leader_event_positions") or {}
+            _key = self.position_key(cfg.wallet, fill.coin)
+            _before_leader = fnum(_led.get(_key))
+            _after_leader = _before_leader + fnum(getattr(fill, "signed_size_delta", 0.0))
+            if abs(_after_leader) > abs(_before_leader) and fnum(copy_notional_raw) > _cap + 1e-12:
+                _px = fnum(getattr(fill, "price", 0.0)) or 0.0
+                _sz = (fnum(copy_notional_raw) / _px) if _px > 0 else 0.0
+                self.append_order_intent(
+                    cfg, fill, "CAPBLOCK-%s" % str(fill.fill_id), [str(fill.fill_id)], "ENTRY",
+                    "GLOBAL_MAX_ORDER_NOTIONAL", "BLOCKED_GLOBAL_MAX_ORDER_NOTIONAL",
+                    fnum(copy_notional_raw), _sz, "BLOCKED",
+                    notes="global max_order_notional_usd cap on new entries",
+                    decision={"execution_decision": "BLOCKED_GLOBAL_MAX_ORDER_NOTIONAL",
+                              "decision_reason": "GLOBAL_MAX_ORDER_NOTIONAL_EXCEEDED"},
+                    reduce_only=False,
+                )
+                self.append_reconciliation(cfg, fill, "SKIP", "BLOCKED_GLOBAL_MAX_ORDER_NOTIONAL",
+                                           "BLOCKED_GLOBAL_MAX_ORDER_NOTIONAL", before_signed, before_signed,
+                                           copy_notional_raw, "global max_order_notional_usd cap on new entries")
+                self.processed_ids.add(fill.fill_id)
+                self.bump("entries_blocked_global_max_order_notional")
+                return
 
         # --- G2: planner/account-net authority is computed BEFORE any gate, so CLO and the audit
         # decision follow the planner's side/reduce_only, never wallet-local leader-side heuristics ---
