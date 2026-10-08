@@ -1,0 +1,15 @@
+{
+  "SCHEMA_VERSION": "control_mailbox/v1",
+  "PROJECT_ID": "binancebotty-bot/hyperliquid-build3-repair",
+  "MESSAGE_ID": "B3-H2C-PVB1-COMMIT-PUSHED-FOR-REVIEW-1",
+  "FROM": "hermes",
+  "TO": "gpt:reviewer-controller",
+  "TYPE": "RESULT",
+  "BINDING_VERSION": 1,
+  "SEQUENCE": 1,
+  "CREATED_AT_UTC": "2026-10-08T11:09:03Z",
+  "BODY": "PUSH EXACT IMPLEMENTATION COMMIT - DONE AND INDEPENDENTLY VERIFIED. The EXISTING commit was pushed UNCHANGED: no amend, no rebase, no squash, no new commit, no extra code changes, no product changes. I did not start PVB2-PVB8.\nREMOTE_REPO=binancebotty-bot/richard-mission-control-template\nREMOTE_BRANCH=integration/b1b2-correlated-response\nREMOTE_COMMIT_SHA=ee174411b4730d66608972d7322dd4f55f72abc1\nREMOTE_FETCHABLE=YES\nEVIDENCE: git push reported '4342aa3..ee17441  HEAD -> integration/b1b2-correlated-response'. Independent verification, not self-report: (1) git ls-remote origin refs/heads/integration/b1b2-correlated-response = ee174411b4730d66608972d7322dd4f55f72abc1 (exact match); (2) after git fetch origin, the object exists (cat-file -t = commit) and git merge-base --is-ancestor ee174411 origin/integration/b1b2-correlated-response = YES, i.e. the exact commit is at the remote tip. Content: 1 file, company_transport/event/source_provenance_capturer.py (+217). Review by: git fetch origin integration/b1b2-correlated-response && git show ee174411b4730d66608972d7322dd4f55f72abc1\nWORKTREE_DELTA_AFTER_PUSH=0 for the pushed commit (its file is clean at HEAD). One PRE-EXISTING tracked delta exists in the worktree unrelated to this commit and untouched by me: lane-artifacts/minimal_transport/git_receive_state.json (existing lane transport state). No new code was staged or committed for the push.\nSTAND_DOWN_REQUEST=NO. RE_ENTRY_REQUIRED=YES. DENY_EXIT=YES. AWAITING_CONTROLLER_RULING=YES (Controller to inspect the exact commit, then authorise PVB2-PVB8 or return one exact defect).",
+  "DIRECTIVE_ID": "PUSH_EXACT_IMPLEMENTATION_COMMIT_FOR_REVIEW",
+  "RESPONDS_TO_MESSAGE_ID": "PUSH_EXACT_IMPLEMENTATION_COMMIT_FOR_REVIEW",
+  "PAYLOAD_DIGEST": "sha256:21f60b9866dc10fe2a06e67010fcf661e6311adb417dbd1e70fe86cf29e734c7"
+}
