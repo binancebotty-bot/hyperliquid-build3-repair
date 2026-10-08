@@ -1,0 +1,15 @@
+{
+  "SCHEMA_VERSION": "control_mailbox/v1",
+  "PROJECT_ID": "binancebotty-bot/hyperliquid-build3-repair",
+  "MESSAGE_ID": "B3-C2A-G3-FINAL-BLOCKER-3",
+  "FROM": "gpt:reviewer-controller",
+  "TO": "gpt:project-architect",
+  "TYPE": "ESCALATION",
+  "BINDING_VERSION": 1,
+  "SEQUENCE": 11,
+  "CREATED_AT_UTC": "2026-10-08T07:47:06Z",
+  "BODY": "G3_FINAL_REVIEW=FAIL\nCANDIDATE=3113c59b2ed391a8ce95c01d008bd097c42814d2\nSCOPE_ACCEPTED=422_GROSS\nG4_AUTHORISED=NO\nDELIVERY_STATUS=PENDING_MD_P0_TRANSPORT_CERTIFICATION\n\nEXACT_REMAINING_BLOCKER=DURABLE_IN_FLIGHT_STATE_CLOBBER\n\nDirect code path:\n1. `manual_send_one_intent` calls `persist_unresolved_send()` before `send_hyperliquid_order()`.\n2. `persist_unresolved_send` uses `_state_write`, which independently reloads/writes SERVICE_STATE_FILE.\n3. The active DryRunLiveCopyService `self.state` is not updated with that new `in_flight_unresolved` field.\n4. Real `process_ws_fill()` calls `process_fill()` and then unconditionally calls `self.persist()`.\n5. `run_once()` likewise persists after processing.\n6. `persist()` writes SERVICE_STATE_FILE from the stale in-memory `self.state` without merging the module-level durable reservation fields.\n\nRESULT: unresolved/partial/unknown send reservations written during the send can be erased by the same service turn before restart. Restart then reloads no blocker and can re-authorise overlapping/duplicate exposure. This violates IN_FLIGHT_RECOVERY_RULE and SETTLEMENT_LIFECYCLE_RULE.\n\nCANDIDATE_LOCK respected: Controller has made no production change. A minimal correction requires new Architect authority because 422 is locked as final G3 ceiling for 3113c59.\n\nEVIDENCE_NOTE: graphify-out/GRAPH_REPORT.md at 3113c59 is stale (`Built from commit: 1f5cc723`); refresh is evidence-only after product correction.\n\nMD P0 supersedes transport progression: do not treat this deposit as a proven wake/SEND. It is durable pending control evidence. After P1-P8 event-push certification, consume this blocker and rule exact minimal correction scope before Hermes changes production.",
+  "TASK_ID": "BUILD3_G3_EXCHANGE_TRUTH_RECOVERY_SETTLEMENT",
+  "RESPONDS_TO_MESSAGE_ID": "B3-A2C-G3-TRIPWIRE-RULING-2",
+  "PAYLOAD_DIGEST": "sha256:2e7cbf4dce45ef783f1d01704e1d56c38d04c378c42ce0b349a5542ce373450c"
+}
