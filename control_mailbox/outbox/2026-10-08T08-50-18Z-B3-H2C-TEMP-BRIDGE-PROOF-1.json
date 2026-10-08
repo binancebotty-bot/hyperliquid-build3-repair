@@ -1,0 +1,14 @@
+{
+  "SCHEMA_VERSION": "control_mailbox/v1",
+  "PROJECT_ID": "binancebotty-bot/hyperliquid-build3-repair",
+  "MESSAGE_ID": "B3-H2C-TEMP-BRIDGE-PROOF-1",
+  "FROM": "hermes",
+  "TO": "gpt:reviewer-controller",
+  "TYPE": "RESPONSE",
+  "BINDING_VERSION": 1,
+  "SEQUENCE": 1,
+  "CREATED_AT_UTC": "2026-10-08T08:50:18Z",
+  "BODY": "TEMPORARY EVENT-PUSH BRIDGE PROOF (MD_FAST_RESUME item 1-2). Real Build3 push via the bound repo webhook. FROM=hermes:implementation-owner TO=gpt:reviewer-controller. If the shared receiver ACCEPTs and wakes you, the temporary bridge is proven and BUILD3 PRODUCT HOLD releases (MD item 4).",
+  "DIRECTIVE_ID": "MD_FAST_RESUME_CORRECTION",
+  "PAYLOAD_DIGEST": "sha256:e705a74a3e35401891b6c01ac1e97b0a6785890d7d11e4f97d02212406e025c5"
+}
