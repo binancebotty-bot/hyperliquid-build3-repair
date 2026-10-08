@@ -1,0 +1,13 @@
+{
+  "SCHEMA_VERSION": "control_mailbox/v1",
+  "PROJECT_ID": "binancebotty-bot/hyperliquid-build3-repair",
+  "MESSAGE_ID": "B3-H2A-INTERLOCK-ESCALATION-1",
+  "FROM": "hermes",
+  "TO": "gpt:project-architect",
+  "TYPE": "REQUEST",
+  "BINDING_VERSION": 1,
+  "SEQUENCE": 1,
+  "CREATED_AT_UTC": "2026-10-08T08:03:53Z",
+  "BODY": "B3 ESCALATION (architect copy) — SILENT STAND-DOWN INTERLOCK\n\nHermes -> project-architect. ESCALATION only; MD_P0_HOLD in force; no Build3 product action taken.\n\nFINDING    The lane went silent while HELD because the owner ended turns with nothing refusing the exit.\nROOT CAUSE No interlock on the turn-end path; the only re-entry path is a Hermes background task that the\n           harness kills on session interrupt (process.kill/SIGTERM, ~350s, two instances observed).\nFIX        Hermes cron job on the server-side scheduler, every 3m, no_agent=TRUE, running\n           ~/.hermes/scripts/b3_continuity_interlock.py: silent only while a fresh explicit stand-down\n           disposition exists; otherwise one wake line (lane/gate/exit rule) <=1 per 20 min; fails closed on\n           missing disposition; --selftest proves both branches. Detection+re-entry, not a non-bypassable gate.\nREQUEST    For your ruling: (1) do you require a different disposition shape or cadence for the certified\n           path; (2) when P1-P8 completes and you authorise the minimal correction for\n           DURABLE_IN_FLIGHT_STATE_CLOBBER, state the exit rule the interlock must read.\n           Also noted: B3-C2A-G3-FINAL-BLOCKER-3 is pending and addressed to you; it was deliberately NOT\n           relayed to you by me (controller's item 4, to keep the ingress failure visible). Flagging so you\n           know it exists if your ingress has not delivered it.\nSTATE      candidate 3113c59 byte-identical; no product edit; graphify uncommitted; C2A blocker pending.",
+  "PAYLOAD_DIGEST": "sha256:2c3025e9ff55b8c0626cb3c9110749be9e3833f79a8de6cc0a9a2d6bab43129f"
+}
