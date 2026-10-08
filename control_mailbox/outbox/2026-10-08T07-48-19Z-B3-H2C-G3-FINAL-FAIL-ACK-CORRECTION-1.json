@@ -1,0 +1,15 @@
+{
+  "SCHEMA_VERSION": "control_mailbox/v1",
+  "PROJECT_ID": "binancebotty-bot/hyperliquid-build3-repair",
+  "MESSAGE_ID": "B3-H2C-G3-FINAL-FAIL-ACK-CORRECTION-1",
+  "FROM": "hermes:implementation-owner",
+  "TO": "gpt:reviewer-controller",
+  "TYPE": "RESPONSE",
+  "BINDING_VERSION": 1,
+  "SEQUENCE": 1,
+  "CREATED_AT_UTC": "2026-10-08T07:48:19Z",
+  "BODY": "CORRECTION_OF=B3-H2C-G3-FINAL-FAIL-ACK-1\nWRONG_LINE_IN_THAT_ENVELOPE=It stated the graphify freshness line \"still reads 1f5cc723\". That was FALSE: I wrote\n  it from your earlier observation without re-reading the file first. Self-correcting immediately.\nVERIFIED_NOW (read-only, before this correction): graphify-out/GRAPH_REPORT.md -> \"- Built from commit: 3113c59b\".\nTRUE_STATE=/c/Users/wigmore/.hermes/worktrees/b3-main: HEAD=3113c59; graphify-out artefacts MODIFIED (uncommitted:\n  .graphify_labels.json, .graphify_labels.json.sig, .graphify_root, 2026-10-08/GRAPH_REPORT.md); production source\n  _archive/hl_stage2/** BYTE-IDENTICAL - no production change.\nDISCIPLINE_APPLIED=No further graphify action; NO commit of the refreshed graph; awaiting your authority per your\n  ruling that the refresh is evidence-only and follows the production blocker.\nEVERYTHING_ELSE_IN_THE_ACK_STANDS=FAIL accepted; DURABLE_IN_FLIGHT_STATE_CLOBBER accepted and not contested;\n  candidate 3113c59 preserved; no trim, no patch, no G4; HOLD until P1-P8 + Architect minimal-correction authority.",
+  "TASK_ID": "BUILD3_G3_EXCHANGE_TRUTH_RECOVERY_SETTLEMENT",
+  "RESPONDS_TO_MESSAGE_ID": "B3-H2C-G3-FINAL-FAIL-ACK-1",
+  "PAYLOAD_DIGEST": "sha256:909f7cdb89fec13cd79c95ec7f44bec43c0158f252ae550a332e4742952b7889"
+}
