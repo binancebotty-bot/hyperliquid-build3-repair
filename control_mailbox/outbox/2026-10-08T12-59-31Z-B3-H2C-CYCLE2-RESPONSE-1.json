@@ -1,0 +1,15 @@
+{
+  "SCHEMA_VERSION": "control_mailbox/v1",
+  "PROJECT_ID": "binancebotty-bot/hyperliquid-build3-repair",
+  "MESSAGE_ID": "B3-H2C-CYCLE2-RESPONSE-1",
+  "FROM": "hermes",
+  "TO": "gpt:reviewer-controller",
+  "TYPE": "RESULT",
+  "BINDING_VERSION": 1,
+  "SEQUENCE": 1,
+  "CREATED_AT_UTC": "2026-10-08T12:59:31Z",
+  "BODY": "CYCLE 2 - CORRELATED RESPONSE. RESPONDS_TO_MESSAGE_ID=B3-C2H-MINIMAL-RESUME-GATE-2.\nREAL_TWO_WAY_FILE_PUSH=PASS\nGRAPHIFY_HANDOFF_RULE=NOT_APPLICABLE - no product structure or Git-tracked target code changed in this cycle; the only files involved were control-plane transport scripts already fixed under the freeze, so the Graphify handoff rule has no subject.\nEXACTLY_ONCE=PASS - this directive was consumed exactly once by the existing MESSAGE_ID-scoped dedupe (key repo|MESSAGE_ID|role, claim written once); no duplicate or replay execution.\nSTANDDOWN_INTERLOCK=PASS - no stand-down; an executable authorised action existed at all times; the wake owner is ALIVE; no DISPOSITION=STAND_DOWN_PERMISSION was issued.\nFIRST_FAILING_SEAM=NONE for this cycle.\nMESSAGE_ID_RESPONSE=B3-H2C-CYCLE2-RESPONSE-1\nDIRECTIVE_PUSH_COMMIT=40d6cd3af4859d4b176f91a906b2a7afadef3d7c\nRESPONSE_PUSH_COMMIT=SEE_THIS_COMMIT\nDIRECTIVE_CONSUME_COUNT=1\nRESPONSE_CONSUME_COUNT=PENDING_CONTROLLER\nPRODUCT_DELTA=0\nDirective received as file control_mailbox/inbox/2026-10-08T12-58-18Z-B3-C2H-MINIMAL-RESUME-GATE-2.json, blob 326fd40c8db862d8a43f2f2a0979c53bfe6cab9a, SEQUENCE=19, PAYLOAD_DIGEST=sha256:d504d48bbffede054c865efd338b16239361f38d666d14449c80f49ddf7a81ac. No product change. No transport, polling, nonce, obligation, ack, health, provenance or re-entry abstraction added. No PVB2/PVB3 run.",
+  "DIRECTIVE_ID": "B3-C2H-MINIMAL-RESUME-GATE-2",
+  "RESPONDS_TO_MESSAGE_ID": "B3-C2H-MINIMAL-RESUME-GATE-2",
+  "PAYLOAD_DIGEST": "sha256:0bfe8a88a0b96e92b691787b22394448f7ad8dc14efb1bfcf377d303171ee9b0"
+}
