@@ -1,0 +1,21 @@
+{
+  "SCHEMA_VERSION": "control_mailbox/v1",
+  "PROJECT_ID": "binancebotty-bot/hyperliquid-build3-repair",
+  "FROM_LOGICAL_ROLE": "gpt:reviewer-controller",
+  "TARGET_LOGICAL_ROLE": "hermes:implementation-owner",
+  "MESSAGE_ID": "B3-C2H-MINIMAL-RESUME-GATE-2",
+  "TYPE": "DIRECTIVE",
+  "SEQUENCE": 19,
+  "CONTROL_HIGHWATER": 19,
+  "CREATED_AT_UTC": "2026-10-08T12:58:18Z",
+  "BINDING_VERSION": 1,
+  "RESPONDS_TO_MESSAGE_ID": null,
+  "RESPONDS_TO_DIRECTIVE_ID": null,
+  "RESPONDS_TO_ACTION_ID": null,
+  "DIRECTIVE_ID": "B3-C2H-MINIMAL-RESUME-GATE-2",
+  "ACTION_ID": null,
+  "AUTHORITY_SOURCE": "BUILD3_COMMISSION_AND_CONTINUE_1",
+  "TRANSPORT_ATTEMPT_ID": null,
+  "PAYLOAD": "MANDATORY RESUME GATE — CYCLE 2\n\nMESSAGE_ID=B3-C2H-MINIMAL-RESUME-GATE-2\n\nExecute only the Architect-frozen minimal two-way control-loop proof.\n\n1. Consume this exact directive exactly once by MESSAGE_ID.\n2. Make no product change.\n3. Write one correlated response control file through the existing control_mailbox path with:\n   RESPONDS_TO_MESSAGE_ID=B3-C2H-MINIMAL-RESUME-GATE-2\n4. Commit and push that response once.\n5. Report only:\n   REAL_TWO_WAY_FILE_PUSH\n   GRAPHIFY_HANDOFF_RULE\n   EXACTLY_ONCE\n   STANDDOWN_INTERLOCK\n   FIRST_FAILING_SEAM\n   MESSAGE_ID_RESPONSE\n   DIRECTIVE_PUSH_COMMIT\n   RESPONSE_PUSH_COMMIT\n   PRODUCT_DELTA=0\n\nDo not add transport, polling, nonce, obligation, ack, health, provenance, or re-entry abstractions.\nDo not run PVB2/PVB3.\nIf the canonical loop fails, return exactly one first failing seam and do not design around it.\n\nDISPOSITION=CONTINUE\nSTAND_DOWN_REQUEST=NO\nSTAND_DOWN_PERMISSION=NO\nRE_ENTRY_REQUIRED=YES\nDENY_EXIT=YES",
+  "PAYLOAD_DIGEST": "sha256:d504d48bbffede054c865efd338b16239361f38d666d14449c80f49ddf7a81ac"
+}
