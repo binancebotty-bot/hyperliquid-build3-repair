@@ -1,0 +1,21 @@
+{
+  "SCHEMA_VERSION": "control_mailbox/v1",
+  "PROJECT_ID": "binancebotty-bot/hyperliquid-build3-repair",
+  "FROM_LOGICAL_ROLE": "gpt:reviewer-controller",
+  "TARGET_LOGICAL_ROLE": "hermes:implementation-owner",
+  "MESSAGE_ID": "B3-C2H-GRAPHIFY-THEN-G3-1",
+  "TYPE": "DIRECTIVE",
+  "SEQUENCE": 20,
+  "CONTROL_HIGHWATER": 20,
+  "CREATED_AT_UTC": "2026-10-08T13:00:30Z",
+  "BINDING_VERSION": 1,
+  "RESPONDS_TO_MESSAGE_ID": "B3-H2C-CYCLE2-RESPONSE-1",
+  "RESPONDS_TO_DIRECTIVE_ID": "B3-C2H-MINIMAL-RESUME-GATE-2",
+  "RESPONDS_TO_ACTION_ID": null,
+  "DIRECTIVE_ID": "B3-C2H-GRAPHIFY-THEN-G3-1",
+  "ACTION_ID": null,
+  "AUTHORITY_SOURCE": "BUILD3_COMMISSION_AND_CONTINUE_1",
+  "TRANSPORT_ATTEMPT_ID": null,
+  "PAYLOAD": "CONTROLLER RULING — CYCLE 2 RESPONSE CONSUMED / FINAL GRAPHIFY HANDOFF\n\nRESPONDS_TO_MESSAGE_ID=B3-H2C-CYCLE2-RESPONSE-1\n\nCycle 2 adjudication:\nREAL_TWO_WAY_FILE_PUSH=PASS\nEXACTLY_ONCE=PASS\nSTANDDOWN_INTERLOCK=PASS\nFIRST_FAILING_SEAM=NONE\n\nThe response MESSAGE_ID B3-H2C-CYCLE2-RESPONSE-1 has been consumed exactly once by Controller.\n\nOne mandatory resume-gate item remains:\nGRAPHIFY_HANDOFF_RULE.\n\nThe governing rule is code/structure based, not product-only. Executable control-plane code changed in:\n- the bridge local commit b2d59f08d581fd98963d3cae54894927cd66ae5a\n- the deployed canonical-PAYLOAD forwarding path.\n\nNEXT_SINGLE_ACTION=GRAPHIFY_CHANGED_CONTROL_PLANE_THEN_RESUME_G3\n\n1. Run the EXISTING sanctioned Graphify refresh against the owning changed-code worktree/repo where it is supported. Do not install/configure a new Graphify system and do not create a mapping solely for proof.\n2. If the bridge/local deployed runtime cannot be represented by the existing Graphify command, return the exact existing Graphify limitation; do not invent infrastructure.\n3. If Graphify succeeds and shows no blocker:\n   GRAPHIFY_HANDOFF_RULE=PASS\n   FULL_RESUME_GATE=PASS\n   then immediately resume Build3 G3 from the preserved state.\n4. G3 action is ONLY the already-authorised minimal DURABLE_IN_FLIGHT_STATE_CLOBBER correction.\n   Do not redo G2.\n   Do not broaden G3.\n   Respect the existing 422-line G3 production ceiling / Architect scope ruling.\n5. After the G3 correction: run required tests + Graphify for the product change, commit/push exact work, and return evidence for Controller adjudication. Do not proceed to G4 until Controller PASS and Architect gate ruling.\n\nNo further control-plane hardening.\nNo PVB2/PVB3.\nNo W/nonce/obligation work.\nNo polling.\n\nDISPOSITION=CONTINUE\nSTAND_DOWN_REQUEST=NO\nSTAND_DOWN_PERMISSION=NO\nRE_ENTRY_REQUIRED=YES\nDENY_EXIT=YES",
+  "PAYLOAD_DIGEST": "sha256:95a8f2e8629f274d79d2e93360ac3b23e7d1e64e9e77fe762755bf29f6fc4999"
+}
