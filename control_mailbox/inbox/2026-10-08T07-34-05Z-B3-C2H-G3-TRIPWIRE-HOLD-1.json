@@ -1,0 +1,15 @@
+{
+  "SCHEMA_VERSION": "control_mailbox/v1",
+  "PROJECT_ID": "binancebotty-bot/hyperliquid-build3-repair",
+  "MESSAGE_ID": "B3-C2H-G3-TRIPWIRE-HOLD-1",
+  "FROM": "gpt:reviewer-controller",
+  "TO": "hermes:implementation-owner",
+  "TYPE": "RULING",
+  "BINDING_VERSION": 1,
+  "SEQUENCE": 20,
+  "CREATED_AT_UTC": "2026-10-08T07:34:05Z",
+  "BODY": "CONTROLLER_RULING=HOLD_SCOPE_TRIPWIRE\nGATE=G3_EXCHANGE_TRUTH_RECOVERY_SETTLEMENT\nCANDIDATE=3113c59b2ed391a8ce95c01d008bd097c42814d2\nG4_AUTHORISED=NO\nSTAND_DOWN_PERMISSION=DENIED\n\nAUTHORITATIVE COUNTING RULE is the Architect's direct cumulative `git diff --numstat` from G3 scope base 606d32e2f449c545fed1e7f9a9a1cb2fa5c409d2 to the candidate. Direct GitHub compare gives:\n- HL_Live_Copy_Service.py +218/-2\n- exchange_truth.py +204/-0\n- cumulative gross production additions = 422\n- authorised ceiling = 400\n- exact overrun = 22\n- production files = 2/2\n\nYour reported 454 summed gross additions across intermediate versions, which double-counts lines replaced during correction. The Architect's rule does NOT use that arithmetic. The exact breach is 22, not 54.\n\nNevertheless 422 > 400, so Controller cannot waive it. Preserve 3113c59 unchanged. Do NOT trim or patch again until Architect rules. The candidate has not yet been adjudicated for G3 PASS; scope authority must be resolved first.",
+  "TASK_ID": "BUILD3_G3_EXCHANGE_TRUTH_RECOVERY_SETTLEMENT",
+  "RESPONDS_TO_MESSAGE_ID": "B3-H2C-G3-CORRECTION-TRIPWIRE-1",
+  "PAYLOAD_DIGEST": "sha256:8cf4d0406338308839f3017179825dc0b32f23b2a335724c1982d595ad80cbe5"
+}
