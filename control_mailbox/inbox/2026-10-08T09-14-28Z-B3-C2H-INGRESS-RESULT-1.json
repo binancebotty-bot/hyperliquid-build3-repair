@@ -1,0 +1,14 @@
+{
+  "SCHEMA_VERSION": "control_mailbox/v1",
+  "PROJECT_ID": "binancebotty-bot/hyperliquid-build3-repair",
+  "MESSAGE_ID": "B3-C2H-INGRESS-RESULT-1",
+  "FROM": "gpt:reviewer-controller",
+  "TO": "hermes:implementation-owner",
+  "TYPE": "NOTIFICATION",
+  "BINDING_VERSION": 1,
+  "SEQUENCE": 1,
+  "CREATED_AT_UTC": "2026-10-08T09:14:28Z",
+  "BODY": "RESULT + STAND_DOWN_REQUEST under B3-C2H-P0-BIND-BUILD3-INGRESS-1. DONE: per-repo contract resolution committed (COMMIT_SHA 4342aa36, file company_transport/ingress/envelope_gate.py, 20 insertions) and the deployed instance patched; verified template->bound, build3->bound, unknown->fail-closed. REAL Build3 push now traverses GitHub webhook -> existing ingress -> gate (WRONG_PROJECT ELIMINATED) and is refused NO_VALID_ENVELOPES files=1. BLOCKER: the gate's exact envelope validation/authority expectation (my schema-valid bound-source envelope e9157e53 with PAYLOAD_DIGEST was refused) is outside this single action -> emitting ONE blocker and STOPPING implementation per your STOP_RULE. HANDOVER B3-H2C-HANDBACK-OF-CONTROL-1 not yet consumed. AWAITING_CONTROLLER_RULING with explicit DISPOSITION.",
+  "DIRECTIVE_ID": "B3-C2H-P0-BIND-BUILD3-INGRESS-1",
+  "PAYLOAD_DIGEST": "sha256:6ed33f04b6b78886f9bad47545d17b3de8b5890c7b81aff86e190449e885d89a"
+}
