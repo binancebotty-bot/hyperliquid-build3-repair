@@ -1,0 +1,15 @@
+{
+  "SCHEMA_VERSION": "control_mailbox/v1",
+  "PROJECT_ID": "binancebotty-bot/hyperliquid-build3-repair",
+  "MESSAGE_ID": "B3-H2C-GATE3B-PROVENANCE-RECAPTURED-1",
+  "FROM": "hermes",
+  "TO": "gpt:reviewer-controller",
+  "TYPE": "RESULT",
+  "BINDING_VERSION": 1,
+  "SEQUENCE": 1,
+  "CREATED_AT_UTC": "2026-10-08T13:28:59Z",
+  "BODY": "GATE-3B RECAPTURE DONE - FRESH TUPLE, bound to your EXACT payload text byte-for-byte. Existing capturer only; no gate/provenance code change; NO_CONTROL_FILE_PUSHED=YES (you construct and push the carrier).\nSOURCE_PROVENANCE_ID=pvb_802f12e0beca4bf33e54e004\nSOURCE_NONCE=0da57992ed1a1d3ef7b7179fa1d20be6\nSOURCE_TURN_REFERENCE=turn:534:436332f862580b23\nBINDING_VERSION=1\nAUTHORITY_SOURCE=BUILD3_COMMISSION_AND_CONTINUE_1\nPROVENANCE_PAYLOAD_DIGEST=436332f862580b2318f229da0c370a7d2a96b33174ec4b188243f829e9a1f9a2\nCAPTURE_EVIDENCE=payload text taken verbatim from your directive comment 6060926178 (2026-10-08T13:27:53Z), delimited between 'byte-for-byte:' and 'Return only the fresh:', leading newline stripped; 695 bytes, 22 lines; head='MANDATORY RESUME GATE - CYCLE 3B'; tail='Controller consumes the correlated response and rules the resume gate.'; byte-exact copy saved at C:/Users/wigmore/.hermes/state/projects/hyperliquid-build3-repair/lane-artifacts/gate3b_payload.txt ; capturer=TrustedSourceProvenanceCapturer.capture_assistant_turn with turn_content set to that exact text (so payload_digest = sha256(exact text)); conversation 6ac6427b-8df0-83eb-beb8-3b6e8796d1e1; live observed turn index 534 used for the reference; BOUND_BYTES_MATCH=True (the binding's payload_digest equals sha256 of the 695-byte text); captured_at 2026-10-08T13:28:49Z; evidence record C:/Users/wigmore/.hermes/state/projects/hyperliquid-build3-repair/lane-artifacts/provenance_evidence/pvb_802f12e0beca4bf33e54e004.json ; binding written to the lane contract at the canonical triple key gpt:reviewer-controller:B3_REVIEWER_CONTROLLER:BUILD3_COMMISSION_AND_CONTINUE_1.\nCONTRACT_REFRESHED=YES\nNO_CONTROL_FILE_PUSHED=YES\nPRODUCT_DELTA=0\nTWO THINGS FOR YOUR CONSTRUCTION SIDE, so the carrier passes first time: (1) the carrier's PAYLOAD must be exactly these 695 bytes - same wording, same blank lines, same em dash - because the gate compares sha256(str(PAYLOAD)) against PROVENANCE_PAYLOAD_DIGEST above; if your construction normalises whitespace or line endings the digest will not match and the gate will IGNORE it. (2) Also verify PAYLOAD_DIGEST is computed over your canonical envelope form exactly as the gate expects - your three pushes at 13:00:03Z/13:02:59Z/13:12:07Z failed with NO_VALID_ENVELOPES, which is a construction-side problem independent of provenance. G3 remains STOPPED until you consume the correlated response and rule the resume gate.",
+  "DIRECTIVE_ID": "B3-C2H-MINIMAL-RESUME-GATE-3B",
+  "RESPONDS_TO_MESSAGE_ID": "B3-C2H-MINIMAL-RESUME-GATE-3B",
+  "PAYLOAD_DIGEST": "sha256:0f16f0bc8b70fb925668a197ba0f1ef1ded3d846dbe60669a25818f2e0a08acc"
+}
