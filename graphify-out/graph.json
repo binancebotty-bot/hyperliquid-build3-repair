@@ -10,7 +10,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service",
-      "community": 9,
+      "community": 0,
       "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "hl_live_copy_service.py"
     },
@@ -21,7 +21,7 @@
       "source_location": "L73",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_load_local_env_file",
-      "community": 1,
+      "community": 4,
       "community_name": "Path",
       "norm_label": "load_local_env_file()"
     },
@@ -32,7 +32,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "path",
-      "community": 1,
+      "community": 4,
       "community_name": "Path",
       "norm_label": "path"
     },
@@ -43,7 +43,7 @@
       "source_location": "L193",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_configure_paths",
-      "community": 1,
+      "community": 4,
       "community_name": "Path",
       "norm_label": "configure_paths()"
     },
@@ -76,7 +76,7 @@
       "source_location": "L223",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_fnum",
-      "community": 0,
+      "community": 1,
       "community_name": "DryRunLiveCopyService",
       "norm_label": "fnum()"
     },
@@ -87,7 +87,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "any",
-      "community": 9,
+      "community": 0,
       "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "any"
     },
@@ -98,7 +98,7 @@
       "source_location": "L233",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_inum",
-      "community": 9,
+      "community": 0,
       "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "inum()"
     },
@@ -109,7 +109,7 @@
       "source_location": "L242",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_ensure_dirs",
-      "community": 1,
+      "community": 4,
       "community_name": "Path",
       "norm_label": "ensure_dirs()"
     },
@@ -120,7 +120,7 @@
       "source_location": "L247",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_load_json",
-      "community": 9,
+      "community": 0,
       "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "load_json()"
     },
@@ -131,7 +131,7 @@
       "source_location": "L256",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_get_wallet_live_config",
-      "community": 9,
+      "community": 0,
       "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "get_wallet_live_config()"
     },
@@ -142,7 +142,7 @@
       "source_location": "L270",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_atomic_write_json",
-      "community": 1,
+      "community": 4,
       "community_name": "Path",
       "norm_label": "atomic_write_json()"
     },
@@ -153,7 +153,7 @@
       "source_location": "L277",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_safe_atomic_write_json",
-      "community": 1,
+      "community": 4,
       "community_name": "Path",
       "norm_label": "safe_atomic_write_json()"
     },
@@ -164,7 +164,7 @@
       "source_location": "L293",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_ensure_csv_header",
-      "community": 1,
+      "community": 4,
       "community_name": "Path",
       "norm_label": "ensure_csv_header()"
     },
@@ -175,7 +175,7 @@
       "source_location": "L301",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_ensure_csv_schema",
-      "community": 1,
+      "community": 4,
       "community_name": "Path",
       "norm_label": "ensure_csv_schema()"
     },
@@ -186,7 +186,7 @@
       "source_location": "L337",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_append_csv",
-      "community": 0,
+      "community": 1,
       "community_name": "DryRunLiveCopyService",
       "norm_label": "append_csv()"
     },
@@ -197,7 +197,7 @@
       "source_location": "L343",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_load_csv_ids",
-      "community": 1,
+      "community": 4,
       "community_name": "Path",
       "norm_label": "load_csv_ids()"
     },
@@ -208,7 +208,7 @@
       "source_location": "L353",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_load_auto_send_attempt_ids",
-      "community": 1,
+      "community": 4,
       "community_name": "Path",
       "norm_label": "load_auto_send_attempt_ids()"
     },
@@ -219,7 +219,7 @@
       "source_location": "L367",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_should_write_would_send",
-      "community": 0,
+      "community": 1,
       "community_name": "DryRunLiveCopyService",
       "norm_label": "should_write_would_send()"
     },
@@ -230,7 +230,7 @@
       "source_location": "L372",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_load_would_send_order",
-      "community": 9,
+      "community": 0,
       "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "load_would_send_order()"
     },
@@ -241,7 +241,7 @@
       "source_location": "L386",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_truthy_csv",
-      "community": 9,
+      "community": 0,
       "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "truthy_csv()"
     },
@@ -252,7 +252,7 @@
       "source_location": "L390",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_append_send_attempt",
-      "community": 9,
+      "community": 0,
       "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "append_send_attempt()"
     },
@@ -263,7 +263,7 @@
       "source_location": "L410",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_load_manual_live_positions",
-      "community": 9,
+      "community": 0,
       "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "load_manual_live_positions()"
     },
@@ -274,7 +274,7 @@
       "source_location": "L415",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_save_manual_live_positions",
-      "community": 9,
+      "community": 0,
       "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "save_manual_live_positions()"
     },
@@ -285,7 +285,7 @@
       "source_location": "L419",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_update_manual_live_position_from_fill",
-      "community": 9,
+      "community": 0,
       "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "update_manual_live_position_from_fill()"
     },
@@ -296,7 +296,7 @@
       "source_location": "L439",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_wire_safe_float",
-      "community": 9,
+      "community": 0,
       "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "wire_safe_float()"
     },
@@ -307,7 +307,7 @@
       "source_location": "L465",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_get_hl_perp_meta_by_coin",
-      "community": 9,
+      "community": 0,
       "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "get_hl_perp_meta_by_coin()"
     },
@@ -318,7 +318,7 @@
       "source_location": "L493",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_force_fetch_hl_perp_meta",
-      "community": 9,
+      "community": 0,
       "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "force_fetch_hl_perp_meta()"
     },
@@ -329,7 +329,7 @@
       "source_location": "L499",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_resolve_hl_perp_symbol",
-      "community": 9,
+      "community": 0,
       "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "resolve_hl_perp_symbol()"
     },
@@ -340,7 +340,7 @@
       "source_location": "L545",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_floor_decimal_to_places",
-      "community": 9,
+      "community": 0,
       "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "floor_decimal_to_places()"
     },
@@ -351,7 +351,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "decimal",
-      "community": 9,
+      "community": 0,
       "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "decimal"
     },
@@ -362,7 +362,7 @@
       "source_location": "L550",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_size_increment_for_places",
-      "community": 9,
+      "community": 0,
       "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "size_increment_for_places()"
     },
@@ -373,7 +373,7 @@
       "source_location": "L554",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_round_size_hl_perp",
-      "community": 9,
+      "community": 0,
       "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "round_size_hl_perp()"
     },
@@ -384,7 +384,7 @@
       "source_location": "L567",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_round_price_hl_perp",
-      "community": 9,
+      "community": 0,
       "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "round_price_hl_perp()"
     },
@@ -395,7 +395,7 @@
       "source_location": "L577",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_response_has_order_error",
-      "community": 9,
+      "community": 0,
       "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "response_has_order_error()"
     },
@@ -406,7 +406,7 @@
       "source_location": "L581",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_parse_hl_order_status",
-      "community": 9,
+      "community": 0,
       "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "parse_hl_order_status()"
     },
@@ -417,7 +417,7 @@
       "source_location": "L608",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_prepare_hl_order_numbers",
-      "community": 9,
+      "community": 0,
       "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "prepare_hl_order_numbers()"
     },
@@ -428,7 +428,7 @@
       "source_location": "L693",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_fixed_notional_buffered_cap",
-      "community": 9,
+      "community": 0,
       "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "fixed_notional_buffered_cap()"
     },
@@ -439,7 +439,7 @@
       "source_location": "L712",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_fixedmodeauthorityconflict",
-      "community": 8,
+      "community": 12,
       "community_name": "FixedModeAuthorityConflict",
       "norm_label": "fixedmodeauthorityconflict"
     },
@@ -450,7 +450,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "exception",
-      "community": 8,
+      "community": 12,
       "community_name": "FixedModeAuthorityConflict",
       "norm_label": "exception"
     },
@@ -461,7 +461,7 @@
       "source_location": "L715",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_fixedmodeauthorityconflict_init",
-      "community": 8,
+      "community": 12,
       "community_name": "FixedModeAuthorityConflict",
       "norm_label": ".__init__()"
     },
@@ -472,7 +472,7 @@
       "source_location": "L735",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_proportional_sleeve_scale",
-      "community": 0,
+      "community": 1,
       "community_name": "DryRunLiveCopyService",
       "norm_label": "proportional_sleeve_scale()"
     },
@@ -483,7 +483,7 @@
       "source_location": "L741",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_sleeve_from_leader_event_position",
-      "community": 0,
+      "community": 1,
       "community_name": "DryRunLiveCopyService",
       "norm_label": "sleeve_from_leader_event_position()"
     },
@@ -494,7 +494,7 @@
       "source_location": "L757",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_event_authorised_desired_net",
-      "community": 0,
+      "community": 1,
       "community_name": "DryRunLiveCopyService",
       "norm_label": "event_authorised_desired_net()"
     },
@@ -505,7 +505,7 @@
       "source_location": "L781",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_is_reduce_only_full_close_bypass",
-      "community": 9,
+      "community": 0,
       "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "_is_reduce_only_full_close_bypass()"
     },
@@ -516,7 +516,7 @@
       "source_location": "L824",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_send_hyperliquid_order",
-      "community": 9,
+      "community": 0,
       "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "send_hyperliquid_order()"
     },
@@ -527,7 +527,7 @@
       "source_location": "L1012",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_manual_send_one_intent",
-      "community": 9,
+      "community": 0,
       "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "manual_send_one_intent()"
     },
@@ -538,7 +538,7 @@
       "source_location": "L1308",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_side_from_signed",
-      "community": 0,
+      "community": 1,
       "community_name": "DryRunLiveCopyService",
       "norm_label": "side_from_signed()"
     },
@@ -549,7 +549,7 @@
       "source_location": "L1316",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_trade_delta_from_side",
-      "community": 9,
+      "community": 0,
       "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "trade_delta_from_side()"
     },
@@ -560,7 +560,7 @@
       "source_location": "L1320",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_is_reducing_position",
-      "community": 9,
+      "community": 0,
       "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "is_reducing_position()"
     },
@@ -571,7 +571,7 @@
       "source_location": "L1324",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_weighted_entry_price",
-      "community": 0,
+      "community": 1,
       "community_name": "DryRunLiveCopyService",
       "norm_label": "weighted_entry_price()"
     },
@@ -582,7 +582,7 @@
       "source_location": "L1332",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_normalize_live_wallet_config",
-      "community": 0,
+      "community": 1,
       "community_name": "DryRunLiveCopyService",
       "norm_label": "normalize_live_wallet_config()"
     },
@@ -593,7 +593,7 @@
       "source_location": "L1358",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_livewalletconfig",
-      "community": 0,
+      "community": 1,
       "community_name": "DryRunLiveCopyService",
       "norm_label": "livewalletconfig"
     },
@@ -604,7 +604,7 @@
       "source_location": "L1370",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_livewalletconfig_from_raw",
-      "community": 0,
+      "community": 1,
       "community_name": "DryRunLiveCopyService",
       "norm_label": ".from_raw()"
     },
@@ -615,7 +615,7 @@
       "source_location": "L1391",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_leaderfill",
-      "community": 0,
+      "community": 1,
       "community_name": "DryRunLiveCopyService",
       "norm_label": "leaderfill"
     },
@@ -626,7 +626,7 @@
       "source_location": "L1406",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_leaderfill_notional",
-      "community": 0,
+      "community": 1,
       "community_name": "DryRunLiveCopyService",
       "norm_label": ".notional()"
     },
@@ -637,7 +637,7 @@
       "source_location": "L1410",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_parse_raw_json",
-      "community": 9,
+      "community": 0,
       "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "parse_raw_json()"
     },
@@ -648,7 +648,7 @@
       "source_location": "L1418",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_raw_get",
-      "community": 9,
+      "community": 0,
       "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "raw_get()"
     },
@@ -659,7 +659,7 @@
       "source_location": "L1425",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_normalise_side",
-      "community": 9,
+      "community": 0,
       "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "normalise_side()"
     },
@@ -670,7 +670,7 @@
       "source_location": "L1438",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_parse_leader_fill_row",
-      "community": 9,
+      "community": 0,
       "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "parse_leader_fill_row()"
     },
@@ -681,7 +681,7 @@
       "source_location": "L1464",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_parse_api_leader_fill",
-      "community": 9,
+      "community": 0,
       "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "parse_api_leader_fill()"
     },
@@ -692,7 +692,7 @@
       "source_location": "L1498",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_extract_ws_fills_with_meta",
-      "community": 9,
+      "community": 0,
       "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "extract_ws_fills_with_meta()"
     },
@@ -703,7 +703,7 @@
       "source_location": "L1525",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_extract_ws_fills",
-      "community": 9,
+      "community": 0,
       "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "extract_ws_fills()"
     },
@@ -714,7 +714,7 @@
       "source_location": "L1529",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_classify_ignored_ws_message",
-      "community": 9,
+      "community": 0,
       "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "classify_ignored_ws_message()"
     },
@@ -725,7 +725,7 @@
       "source_location": "L1551",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_ws_message_preview",
-      "community": 9,
+      "community": 0,
       "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "ws_message_preview()"
     },
@@ -736,7 +736,7 @@
       "source_location": "L1558",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_is_ws_abnf_frame",
-      "community": 9,
+      "community": 0,
       "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "is_ws_abnf_frame()"
     },
@@ -747,7 +747,7 @@
       "source_location": "L1571",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_ws_abnf_details",
-      "community": 9,
+      "community": 0,
       "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "ws_abnf_details()"
     },
@@ -758,7 +758,7 @@
       "source_location": "L1598",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_is_benign_ws_error",
-      "community": 9,
+      "community": 0,
       "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "is_benign_ws_error()"
     },
@@ -769,7 +769,7 @@
       "source_location": "L1602",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_parse_ws_leader_fill",
-      "community": 9,
+      "community": 0,
       "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "parse_ws_leader_fill()"
     },
@@ -780,7 +780,7 @@
       "source_location": "L1622",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_parse_ws_snapshot_leader_fill",
-      "community": 9,
+      "community": 0,
       "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "parse_ws_snapshot_leader_fill()"
     },
@@ -791,7 +791,7 @@
       "source_location": "L1642",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_should_recover_ws_snapshot_fill",
-      "community": 9,
+      "community": 0,
       "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "should_recover_ws_snapshot_fill()"
     },
@@ -802,7 +802,7 @@
       "source_location": "L1658",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_audit_reason_for_fill",
-      "community": 0,
+      "community": 1,
       "community_name": "DryRunLiveCopyService",
       "norm_label": "audit_reason_for_fill()"
     },
@@ -813,7 +813,7 @@
       "source_location": "L1671",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_audit_notes_for_fill",
-      "community": 0,
+      "community": 1,
       "community_name": "DryRunLiveCopyService",
       "norm_label": "audit_notes_for_fill()"
     },
@@ -824,7 +824,7 @@
       "source_location": "L1684",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_executable_price_from_fill_payload",
-      "community": 0,
+      "community": 1,
       "community_name": "DryRunLiveCopyService",
       "norm_label": "executable_price_from_fill_payload()"
     },
@@ -835,7 +835,7 @@
       "source_location": "L1691",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_adverse_diff_pct",
-      "community": 0,
+      "community": 1,
       "community_name": "DryRunLiveCopyService",
       "norm_label": "adverse_diff_pct()"
     },
@@ -846,7 +846,7 @@
       "source_location": "L1699",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_dry_run_intent_audit_decision",
-      "community": 0,
+      "community": 1,
       "community_name": "DryRunLiveCopyService",
       "norm_label": "dry_run_intent_audit_decision()"
     },
@@ -857,7 +857,7 @@
       "source_location": "L1805",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_ws_coverage_for_fill",
-      "community": 0,
+      "community": 1,
       "community_name": "DryRunLiveCopyService",
       "norm_label": "ws_coverage_for_fill()"
     },
@@ -868,7 +868,7 @@
       "source_location": "L1824",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_load_leader_fills",
-      "community": 9,
+      "community": 0,
       "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "load_leader_fills()"
     },
@@ -879,7 +879,7 @@
       "source_location": "L1842",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_fetch_live_fills_range",
-      "community": 9,
+      "community": 0,
       "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "fetch_live_fills_range()"
     },
@@ -890,7 +890,7 @@
       "source_location": "L1884",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_fetch_live_fills_since",
-      "community": 9,
+      "community": 0,
       "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "fetch_live_fills_since()"
     },
@@ -901,7 +901,7 @@
       "source_location": "L1922",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_parse_l2_level_price",
-      "community": 9,
+      "community": 0,
       "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "parse_l2_level_price()"
     },
@@ -912,7 +912,7 @@
       "source_location": "L1930",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_fetch_public_executable_quote",
-      "community": 9,
+      "community": 0,
       "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "fetch_public_executable_quote()"
     },
@@ -923,7 +923,7 @@
       "source_location": "L1972",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice",
-      "community": 0,
+      "community": 1,
       "community_name": "DryRunLiveCopyService",
       "norm_label": "dryrunlivecopyservice"
     },
@@ -934,7 +934,7 @@
       "source_location": "L1973",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_init",
-      "community": 1,
+      "community": 4,
       "community_name": "Path",
       "norm_label": ".__init__()"
     },
@@ -945,7 +945,7 @@
       "source_location": "L2028",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_bump",
-      "community": 0,
+      "community": 1,
       "community_name": "DryRunLiveCopyService",
       "norm_label": ".bump()"
     },
@@ -956,7 +956,7 @@
       "source_location": "L2032",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_get_public_quote",
-      "community": 9,
+      "community": 0,
       "community_name": "HL_Live_Copy_Service.py",
       "norm_label": ".get_public_quote()"
     },
@@ -967,7 +967,7 @@
       "source_location": "L2044",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_load_config",
-      "community": 0,
+      "community": 1,
       "community_name": "DryRunLiveCopyService",
       "norm_label": ".load_config()"
     },
@@ -989,7 +989,7 @@
       "source_location": "L2093",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_log_error",
-      "community": 0,
+      "community": 1,
       "community_name": "DryRunLiveCopyService",
       "norm_label": ".log_error()"
     },
@@ -1000,7 +1000,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "baseexception",
-      "community": 0,
+      "community": 1,
       "community_name": "DryRunLiveCopyService",
       "norm_label": "baseexception"
     },
@@ -1011,7 +1011,7 @@
       "source_location": "L2103",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_position_key",
-      "community": 0,
+      "community": 1,
       "community_name": "DryRunLiveCopyService",
       "norm_label": ".position_key()"
     },
@@ -1022,7 +1022,7 @@
       "source_location": "L2106",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_get_position",
-      "community": 0,
+      "community": 1,
       "community_name": "DryRunLiveCopyService",
       "norm_label": ".get_position()"
     },
@@ -1033,7 +1033,7 @@
       "source_location": "L2115",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_update_equity",
-      "community": 0,
+      "community": 1,
       "community_name": "DryRunLiveCopyService",
       "norm_label": ".update_equity()"
     },
@@ -1044,7 +1044,7 @@
       "source_location": "L2139",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_model_copy_notional",
-      "community": 0,
+      "community": 1,
       "community_name": "DryRunLiveCopyService",
       "norm_label": ".model_copy_notional()"
     },
@@ -1055,7 +1055,7 @@
       "source_location": "L2145",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_apply_leader_event",
-      "community": 0,
+      "community": 1,
       "community_name": "DryRunLiveCopyService",
       "norm_label": ".apply_leader_event()"
     },
@@ -1066,7 +1066,7 @@
       "source_location": "L2167",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_leader_signed_by_wallet",
-      "community": 0,
+      "community": 1,
       "community_name": "DryRunLiveCopyService",
       "norm_label": ".leader_signed_by_wallet()"
     },
@@ -1077,7 +1077,7 @@
       "source_location": "L2178",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_lineage_checkpoint_valid",
-      "community": 1,
+      "community": 4,
       "community_name": "Path",
       "norm_label": "._lineage_checkpoint_valid()"
     },
@@ -1088,7 +1088,7 @@
       "source_location": "L2194",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_account_net_actual",
-      "community": 0,
+      "community": 1,
       "community_name": "DryRunLiveCopyService",
       "norm_label": ".account_net_actual()"
     },
@@ -1099,7 +1099,7 @@
       "source_location": "L2221",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_mark_in_flight",
-      "community": 0,
+      "community": 1,
       "community_name": "DryRunLiveCopyService",
       "norm_label": ".mark_in_flight()"
     },
@@ -1110,7 +1110,7 @@
       "source_location": "L2224",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_clear_in_flight",
-      "community": 0,
+      "community": 1,
       "community_name": "DryRunLiveCopyService",
       "norm_label": ".clear_in_flight()"
     },
@@ -1121,7 +1121,7 @@
       "source_location": "L2227",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_settle_in_flight",
-      "community": 0,
+      "community": 1,
       "community_name": "DryRunLiveCopyService",
       "norm_label": ".settle_in_flight()"
     },
@@ -1132,7 +1132,7 @@
       "source_location": "L2239",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_settle_from_master_evidence",
-      "community": 0,
+      "community": 1,
       "community_name": "DryRunLiveCopyService",
       "norm_label": ".settle_from_master_evidence()"
     },
@@ -1143,7 +1143,7 @@
       "source_location": "L2272",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_convergence_order_for_coin",
-      "community": 0,
+      "community": 1,
       "community_name": "DryRunLiveCopyService",
       "norm_label": ".convergence_order_for_coin()"
     },
@@ -1154,7 +1154,7 @@
       "source_location": "L2295",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_convergence_notional_for_fill",
-      "community": 0,
+      "community": 1,
       "community_name": "DryRunLiveCopyService",
       "norm_label": ".convergence_notional_for_fill()"
     },
@@ -1165,7 +1165,7 @@
       "source_location": "L2325",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_accumulator_key",
-      "community": 0,
+      "community": 1,
       "community_name": "DryRunLiveCopyService",
       "norm_label": ".accumulator_key()"
     },
@@ -1176,7 +1176,7 @@
       "source_location": "L2328",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_handle_min_notional_for_entry",
-      "community": 0,
+      "community": 1,
       "community_name": "DryRunLiveCopyService",
       "norm_label": ".handle_min_notional_for_entry()"
     },
@@ -1187,7 +1187,7 @@
       "source_location": "L2348",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_append_reconciliation",
-      "community": 0,
+      "community": 1,
       "community_name": "DryRunLiveCopyService",
       "norm_label": ".append_reconciliation()"
     },
@@ -1198,7 +1198,7 @@
       "source_location": "L2358",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_append_order_intent",
-      "community": 0,
+      "community": 1,
       "community_name": "DryRunLiveCopyService",
       "norm_label": ".append_order_intent()"
     },
@@ -1209,7 +1209,7 @@
       "source_location": "L2388",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_append_would_send_order",
-      "community": 0,
+      "community": 1,
       "community_name": "DryRunLiveCopyService",
       "norm_label": ".append_would_send_order()"
     },
@@ -1220,7 +1220,7 @@
       "source_location": "L2419",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_auto_send_summary",
-      "community": 9,
+      "community": 0,
       "community_name": "HL_Live_Copy_Service.py",
       "norm_label": ".auto_send_summary()"
     },
@@ -1231,7 +1231,7 @@
       "source_location": "L2430",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_maybe_auto_send_would_send",
-      "community": 9,
+      "community": 0,
       "community_name": "HL_Live_Copy_Service.py",
       "norm_label": ".maybe_auto_send_would_send()"
     },
@@ -1242,7 +1242,7 @@
       "source_location": "L2485",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_append_live_fill",
-      "community": 0,
+      "community": 1,
       "community_name": "DryRunLiveCopyService",
       "norm_label": ".append_live_fill()"
     },
@@ -1253,7 +1253,7 @@
       "source_location": "L2497",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_apply_dry_run_fill_to_position",
-      "community": 0,
+      "community": 1,
       "community_name": "DryRunLiveCopyService",
       "norm_label": ".apply_dry_run_fill_to_position()"
     },
@@ -1264,7 +1264,7 @@
       "source_location": "L2501",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_apply_signed_delta_to_position",
-      "community": 0,
+      "community": 1,
       "community_name": "DryRunLiveCopyService",
       "norm_label": ".apply_signed_delta_to_position()"
     },
@@ -1275,7 +1275,7 @@
       "source_location": "L2536",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_process_fill",
-      "community": 0,
+      "community": 1,
       "community_name": "DryRunLiveCopyService",
       "norm_label": ".process_fill()"
     },
@@ -1297,7 +1297,7 @@
       "source_location": "L2675",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_run_once",
-      "community": 9,
+      "community": 0,
       "community_name": "HL_Live_Copy_Service.py",
       "norm_label": ".run_once()"
     },
@@ -1484,7 +1484,7 @@
       "source_location": "L3543",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_write_self_test_fills",
-      "community": 1,
+      "community": 4,
       "community_name": "Path",
       "norm_label": "write_self_test_fills()"
     },
@@ -1495,7 +1495,7 @@
       "source_location": "L3556",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_count_csv_data_rows",
-      "community": 1,
+      "community": 4,
       "community_name": "Path",
       "norm_label": "count_csv_data_rows()"
     },
@@ -1506,7 +1506,7 @@
       "source_location": "L3563",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_last_csv_row",
-      "community": 1,
+      "community": 4,
       "community_name": "Path",
       "norm_label": "last_csv_row()"
     },
@@ -1517,7 +1517,7 @@
       "source_location": "L3571",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_self_test",
-      "community": 9,
+      "community": 0,
       "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "self_test()"
     },
@@ -1539,7 +1539,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_rationale_1",
-      "community": 9,
+      "community": 0,
       "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "hl_live_copy_service.py phase 2 dry-run live copy service for the hyperliquid..."
     },
@@ -1550,7 +1550,7 @@
       "source_location": "L74",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_rationale_74",
-      "community": 1,
+      "community": 4,
       "community_name": "Path",
       "norm_label": "load key=value pairs from a local .env file into os.environ. skips blank lines,..."
     },
@@ -1561,7 +1561,7 @@
       "source_location": "L713",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_rationale_713",
-      "community": 8,
+      "community": 12,
       "community_name": "FixedModeAuthorityConflict",
       "norm_label": "the intended fixed-mode target exposure cannot be proven from durable evidence."
     },
@@ -1572,7 +1572,7 @@
       "source_location": "L736",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_rationale_736",
-      "community": 0,
+      "community": 1,
       "community_name": "DryRunLiveCopyService",
       "norm_label": "proportional sleeve scale: leader position x scale = copied exposure."
     },
@@ -1583,7 +1583,7 @@
       "source_location": "L742",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_rationale_742",
-      "community": 0,
+      "community": 1,
       "community_name": "DryRunLiveCopyService",
       "norm_label": "map an event-authorised leader signed position to this wallet's copied sleeve...."
     },
@@ -1594,7 +1594,7 @@
       "source_location": "L762",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_rationale_762",
-      "community": 0,
+      "community": 1,
       "community_name": "DryRunLiveCopyService",
       "norm_label": "aggregate same-coin wallet sleeves into one signed account-net desired value."
     },
@@ -1605,7 +1605,7 @@
       "source_location": "L784",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_rationale_784",
-      "community": 9,
+      "community": 0,
       "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "return true iff the $10 min-notional preflight should be bypassed. hyperliquid..."
     },
@@ -1616,7 +1616,7 @@
       "source_location": "L2146",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_rationale_2146",
-      "community": 0,
+      "community": 1,
       "community_name": "DryRunLiveCopyService",
       "norm_label": "mutate the genuine post-baseline leader event lineage for (wallet, coin). the..."
     },
@@ -1627,7 +1627,7 @@
       "source_location": "L2179",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_rationale_2179",
-      "community": 1,
+      "community": 4,
       "community_name": "Path",
       "norm_label": "a persisted lineage checkpoint is valid only if durably coupled to the..."
     },
@@ -1638,7 +1638,7 @@
       "source_location": "L2195",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_rationale_2195",
-      "community": 0,
+      "community": 1,
       "community_name": "DryRunLiveCopyService",
       "norm_label": "authoritative account-net follower exposure (signed). g2 has no live plumbing..."
     },
@@ -1649,7 +1649,7 @@
       "source_location": "L2228",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_rationale_2228",
-      "community": 0,
+      "community": 1,
       "community_name": "DryRunLiveCopyService",
       "norm_label": "release the in-flight reservation only for its own intent and only on a..."
     },
@@ -1660,7 +1660,7 @@
       "source_location": "L2241",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_rationale_2241",
-      "community": 0,
+      "community": 1,
       "community_name": "DryRunLiveCopyService",
       "norm_label": "clear an in-flight reservation only from independent master evidence (semantics..."
     },
@@ -1671,7 +1671,7 @@
       "source_location": "L2276",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_rationale_2276",
-      "community": 0,
+      "community": 1,
       "community_name": "DryRunLiveCopyService",
       "norm_label": "desired (event-authorised) vs account-net actual -> the single safe next order."
     },
@@ -1682,7 +1682,7 @@
       "source_location": "L2296",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_rationale_2296",
-      "community": 0,
+      "community": 1,
       "community_name": "DryRunLiveCopyService",
       "norm_label": "event-authorised order notional for a genuine leader fill: apply the leader..."
     },
@@ -1704,7 +1704,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "archive_hl_stage2_convergence_shadow",
-      "community": 7,
+      "community": 8,
       "community_name": "convergence_shadow.py",
       "norm_label": "convergence_shadow.py"
     },
@@ -1715,7 +1715,7 @@
       "source_location": "L34",
       "_origin": "ast",
       "id": "archive_hl_stage2_convergence_shadow_convergenceorder",
-      "community": 7,
+      "community": 8,
       "community_name": "convergence_shadow.py",
       "norm_label": "convergenceorder"
     },
@@ -1726,7 +1726,7 @@
       "source_location": "L44",
       "_origin": "ast",
       "id": "archive_hl_stage2_convergence_shadow_convergenceorder_short",
-      "community": 7,
+      "community": 8,
       "community_name": "convergence_shadow.py",
       "norm_label": ".short()"
     },
@@ -1737,7 +1737,7 @@
       "source_location": "L54",
       "_origin": "ast",
       "id": "archive_hl_stage2_convergence_shadow_none",
-      "community": 7,
+      "community": 8,
       "community_name": "convergence_shadow.py",
       "norm_label": "_none()"
     },
@@ -1748,7 +1748,7 @@
       "source_location": "L58",
       "_origin": "ast",
       "id": "archive_hl_stage2_convergence_shadow_compute_convergence_order",
-      "community": 7,
+      "community": 8,
       "community_name": "convergence_shadow.py",
       "norm_label": "compute_convergence_order()"
     },
@@ -1759,7 +1759,7 @@
       "source_location": "L128",
       "_origin": "ast",
       "id": "archive_hl_stage2_convergence_shadow_check",
-      "community": 7,
+      "community": 8,
       "community_name": "convergence_shadow.py",
       "norm_label": "_check()"
     },
@@ -1770,7 +1770,7 @@
       "source_location": "L138",
       "_origin": "ast",
       "id": "archive_hl_stage2_convergence_shadow_expect",
-      "community": 7,
+      "community": 8,
       "community_name": "convergence_shadow.py",
       "norm_label": "_expect()"
     },
@@ -1781,7 +1781,7 @@
       "source_location": "L150",
       "_origin": "ast",
       "id": "archive_hl_stage2_convergence_shadow_run_self_test",
-      "community": 7,
+      "community": 8,
       "community_name": "convergence_shadow.py",
       "norm_label": "run_self_test()"
     },
@@ -1792,7 +1792,7 @@
       "source_location": "L69",
       "_origin": "ast",
       "id": "archive_hl_stage2_convergence_shadow_rationale_69",
-      "community": 7,
+      "community": 8,
       "community_name": "convergence_shadow.py",
       "norm_label": "return the single safe next order to move actual_net toward desired_net. hard..."
     },
@@ -2001,7 +2001,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "archive_hl_stage2_test_g2_copy_correctness",
-      "community": 11,
+      "community": 6,
       "community_name": "test_g3_exchange_truth.py",
       "norm_label": "test_g2_copy_correctness.py"
     },
@@ -2012,7 +2012,7 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "archive_hl_stage2_test_g2_copy_correctness_check",
-      "community": 11,
+      "community": 6,
       "community_name": "test_g3_exchange_truth.py",
       "norm_label": "check()"
     },
@@ -2023,7 +2023,7 @@
       "source_location": "L37",
       "_origin": "ast",
       "id": "archive_hl_stage2_test_g2_copy_correctness_main",
-      "community": 11,
+      "community": 6,
       "community_name": "test_g3_exchange_truth.py",
       "norm_label": "main()"
     },
@@ -2034,7 +2034,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "archive_hl_stage2_test_g3_exchange_truth",
-      "community": 11,
+      "community": 6,
       "community_name": "test_g3_exchange_truth.py",
       "norm_label": "test_g3_exchange_truth.py"
     },
@@ -2045,7 +2045,7 @@
       "source_location": "L20",
       "_origin": "ast",
       "id": "archive_hl_stage2_test_g3_exchange_truth_check",
-      "community": 11,
+      "community": 6,
       "community_name": "test_g3_exchange_truth.py",
       "norm_label": "check()"
     },
@@ -2056,7 +2056,7 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "archive_hl_stage2_test_g3_exchange_truth_fixture",
-      "community": 11,
+      "community": 6,
       "community_name": "test_g3_exchange_truth.py",
       "norm_label": "fixture"
     },
@@ -2067,7 +2067,7 @@
       "source_location": "L33",
       "_origin": "ast",
       "id": "archive_hl_stage2_test_g3_exchange_truth_fixture_init",
-      "community": 11,
+      "community": 6,
       "community_name": "test_g3_exchange_truth.py",
       "norm_label": ".__init__()"
     },
@@ -2078,7 +2078,7 @@
       "source_location": "L38",
       "_origin": "ast",
       "id": "archive_hl_stage2_test_g3_exchange_truth_fixture_call",
-      "community": 11,
+      "community": 6,
       "community_name": "test_g3_exchange_truth.py",
       "norm_label": ".__call__()"
     },
@@ -2089,7 +2089,7 @@
       "source_location": "L57",
       "_origin": "ast",
       "id": "archive_hl_stage2_test_g3_exchange_truth_fresh",
-      "community": 11,
+      "community": 6,
       "community_name": "test_g3_exchange_truth.py",
       "norm_label": "fresh()"
     },
@@ -2100,7 +2100,7 @@
       "source_location": "L70",
       "_origin": "ast",
       "id": "archive_hl_stage2_test_g3_exchange_truth_with_master",
-      "community": 11,
+      "community": 6,
       "community_name": "test_g3_exchange_truth.py",
       "norm_label": "with_master()"
     },
@@ -2111,7 +2111,7 @@
       "source_location": "L75",
       "_origin": "ast",
       "id": "archive_hl_stage2_test_g3_exchange_truth_reset_master",
-      "community": 11,
+      "community": 6,
       "community_name": "test_g3_exchange_truth.py",
       "norm_label": "reset_master()"
     },
@@ -2122,7 +2122,7 @@
       "source_location": "L81",
       "_origin": "ast",
       "id": "archive_hl_stage2_test_g3_exchange_truth_main",
-      "community": 11,
+      "community": 6,
       "community_name": "test_g3_exchange_truth.py",
       "norm_label": "main()"
     },
@@ -2133,7 +2133,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "archive_hl_stage2_test_g3_exchange_truth_rationale_1",
-      "community": 11,
+      "community": 6,
       "community_name": "test_g3_exchange_truth.py",
       "norm_label": "g3 acceptance evidence: exchange_truth_recovery_settlement (ruling..."
     },
@@ -2144,7 +2144,7 @@
       "source_location": "L31",
       "_origin": "ast",
       "id": "archive_hl_stage2_test_g3_exchange_truth_rationale_31",
-      "community": 11,
+      "community": 6,
       "community_name": "test_g3_exchange_truth.py",
       "norm_label": "offline /info double: perpdexs + per-dex clearinghousestate + userfillsbytime."
     },
@@ -2155,7 +2155,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "architecture",
-      "community": 4,
+      "community": 5,
       "community_name": "Architecture Contract \u2014 Hyperliquid Build 3 Repair",
       "norm_label": "architecture.md"
     },
@@ -2166,7 +2166,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "architecture_architecture_contract_hyperliquid_build_3_repair",
-      "community": 4,
+      "community": 5,
       "community_name": "Architecture Contract \u2014 Hyperliquid Build 3 Repair",
       "norm_label": "architecture contract \u2014 hyperliquid build 3 repair"
     },
@@ -2177,7 +2177,7 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "architecture_product_preservation_presumption",
-      "community": 4,
+      "community": 5,
       "community_name": "Architecture Contract \u2014 Hyperliquid Build 3 Repair",
       "norm_label": "product-preservation presumption"
     },
@@ -2188,7 +2188,7 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "architecture_objective",
-      "community": 4,
+      "community": 5,
       "community_name": "Architecture Contract \u2014 Hyperliquid Build 3 Repair",
       "norm_label": "objective"
     },
@@ -2199,7 +2199,7 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "architecture_known_failure",
-      "community": 4,
+      "community": 5,
       "community_name": "Architecture Contract \u2014 Hyperliquid Build 3 Repair",
       "norm_label": "known failure"
     },
@@ -2210,7 +2210,7 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "architecture_chosen_repair",
-      "community": 4,
+      "community": 5,
       "community_name": "Architecture Contract \u2014 Hyperliquid Build 3 Repair",
       "norm_label": "chosen repair"
     },
@@ -2221,7 +2221,7 @@
       "source_location": "L31",
       "_origin": "ast",
       "id": "architecture_trading_authority_precedence_gate_1_freeze_architect_ruling_b3_a2c_gate0_pass_g1_1",
-      "community": 4,
+      "community": 5,
       "community_name": "Architecture Contract \u2014 Hyperliquid Build 3 Repair",
       "norm_label": "trading-authority precedence (gate 1 freeze \u2014 architect ruling `b3-a2c-gate0-pass-g1-1`)"
     },
@@ -2232,7 +2232,7 @@
       "source_location": "L45",
       "_origin": "ast",
       "id": "architecture_non_negotiable_invariants",
-      "community": 4,
+      "community": 5,
       "community_name": "Architecture Contract \u2014 Hyperliquid Build 3 Repair",
       "norm_label": "non-negotiable invariants"
     },
@@ -2243,7 +2243,7 @@
       "source_location": "L61",
       "_origin": "ast",
       "id": "architecture_scope_budget",
-      "community": 4,
+      "community": 5,
       "community_name": "Architecture Contract \u2014 Hyperliquid Build 3 Repair",
       "norm_label": "scope budget"
     },
@@ -2254,7 +2254,7 @@
       "source_location": "L72",
       "_origin": "ast",
       "id": "architecture_automatic_architect_escalation",
-      "community": 4,
+      "community": 5,
       "community_name": "Architecture Contract \u2014 Hyperliquid Build 3 Repair",
       "norm_label": "automatic architect escalation"
     },
@@ -2265,7 +2265,7 @@
       "source_location": "L87",
       "_origin": "ast",
       "id": "architecture_completion_definition",
-      "community": 4,
+      "community": 5,
       "community_name": "Architecture Contract \u2014 Hyperliquid Build 3 Repair",
       "norm_label": "completion definition"
     },
@@ -2276,7 +2276,7 @@
       "source_location": "L101",
       "_origin": "ast",
       "id": "architecture_architect_s_job",
-      "community": 4,
+      "community": 5,
       "community_name": "Architecture Contract \u2014 Hyperliquid Build 3 Repair",
       "norm_label": "architect's job"
     },
@@ -2287,7 +2287,7 @@
       "source_location": "L105",
       "_origin": "ast",
       "id": "architecture_full_project_acceptance_scope",
-      "community": 4,
+      "community": 5,
       "community_name": "Architecture Contract \u2014 Hyperliquid Build 3 Repair",
       "norm_label": "full project acceptance scope"
     },
@@ -2298,7 +2298,7 @@
       "source_location": "L162",
       "_origin": "ast",
       "id": "architecture_build_4_requirements_source_set",
-      "community": 4,
+      "community": 5,
       "community_name": "Architecture Contract \u2014 Hyperliquid Build 3 Repair",
       "norm_label": "build 4 requirements source set"
     },
@@ -2309,7 +2309,7 @@
       "source_location": "L179",
       "_origin": "ast",
       "id": "architecture_conflict_rule",
-      "community": 4,
+      "community": 5,
       "community_name": "Architecture Contract \u2014 Hyperliquid Build 3 Repair",
       "norm_label": "conflict rule"
     },
@@ -2386,7 +2386,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "operating_protocol",
-      "community": 5,
+      "community": 7,
       "community_name": "Operating Protocol",
       "norm_label": "operating_protocol.md"
     },
@@ -2397,7 +2397,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "operating_protocol_operating_protocol",
-      "community": 5,
+      "community": 7,
       "community_name": "Operating Protocol",
       "norm_label": "operating protocol"
     },
@@ -2408,7 +2408,7 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "operating_protocol_control_model",
-      "community": 5,
+      "community": 7,
       "community_name": "Operating Protocol",
       "norm_label": "control model"
     },
@@ -2419,7 +2419,7 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "operating_protocol_operator",
-      "community": 5,
+      "community": 7,
       "community_name": "Operating Protocol",
       "norm_label": "operator"
     },
@@ -2430,7 +2430,7 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "operating_protocol_architect",
-      "community": 5,
+      "community": 7,
       "community_name": "Operating Protocol",
       "norm_label": "architect"
     },
@@ -2441,7 +2441,7 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "operating_protocol_controller",
-      "community": 5,
+      "community": 7,
       "community_name": "Operating Protocol",
       "norm_label": "controller"
     },
@@ -2452,7 +2452,7 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "operating_protocol_hermes",
-      "community": 5,
+      "community": 7,
       "community_name": "Operating Protocol",
       "norm_label": "hermes"
     },
@@ -2463,7 +2463,7 @@
       "source_location": "L41",
       "_origin": "ast",
       "id": "operating_protocol_architectural_interrupt",
-      "community": 5,
+      "community": 7,
       "community_name": "Operating Protocol",
       "norm_label": "architectural interrupt"
     },
@@ -2474,7 +2474,7 @@
       "source_location": "L53",
       "_origin": "ast",
       "id": "operating_protocol_high_water_discipline",
-      "community": 5,
+      "community": 7,
       "community_name": "Operating Protocol",
       "norm_label": "high-water discipline"
     },
@@ -2485,7 +2485,7 @@
       "source_location": "L58",
       "_origin": "ast",
       "id": "operating_protocol_github_discipline",
-      "community": 5,
+      "community": 7,
       "community_name": "Operating Protocol",
       "norm_label": "github discipline"
     },
@@ -2496,7 +2496,7 @@
       "source_location": "L63",
       "_origin": "ast",
       "id": "operating_protocol_evidence_discipline",
-      "community": 5,
+      "community": 7,
       "community_name": "Operating Protocol",
       "norm_label": "evidence discipline"
     },
@@ -2507,7 +2507,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "product_semantics",
-      "community": 6,
+      "community": 9,
       "community_name": "Build 3 \u2014 Product Semantics, Non-Goals and Measurable DONE (Gate 1 freeze)",
       "norm_label": "product_semantics.md"
     },
@@ -2518,7 +2518,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "product_semantics_build_3_product_semantics_non_goals_and_measurable_done_gate_1_freeze",
-      "community": 6,
+      "community": 9,
       "community_name": "Build 3 \u2014 Product Semantics, Non-Goals and Measurable DONE (Gate 1 freeze)",
       "norm_label": "build 3 \u2014 product semantics, non-goals and measurable done (gate 1 freeze)"
     },
@@ -2529,7 +2529,7 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "product_semantics_1_preserved_product_behaviour_must_survive_the_repair",
-      "community": 6,
+      "community": 9,
       "community_name": "Build 3 \u2014 Product Semantics, Non-Goals and Measurable DONE (Gate 1 freeze)",
       "norm_label": "1. preserved product behaviour (must survive the repair)"
     },
@@ -2540,7 +2540,7 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "product_semantics_2_trading_authority_model_the_frozen_semantics",
-      "community": 6,
+      "community": 9,
       "community_name": "Build 3 \u2014 Product Semantics, Non-Goals and Measurable DONE (Gate 1 freeze)",
       "norm_label": "2. trading-authority model (the frozen semantics)"
     },
@@ -2551,7 +2551,7 @@
       "source_location": "L34",
       "_origin": "ast",
       "id": "product_semantics_3_explicit_non_goals",
-      "community": 6,
+      "community": 9,
       "community_name": "Build 3 \u2014 Product Semantics, Non-Goals and Measurable DONE (Gate 1 freeze)",
       "norm_label": "3. explicit non-goals"
     },
@@ -2562,7 +2562,7 @@
       "source_location": "L46",
       "_origin": "ast",
       "id": "product_semantics_4_measurable_downstream_done_project_completion",
-      "community": 6,
+      "community": 9,
       "community_name": "Build 3 \u2014 Product Semantics, Non-Goals and Measurable DONE (Gate 1 freeze)",
       "norm_label": "4. measurable downstream done (project completion)"
     },
@@ -2573,7 +2573,7 @@
       "source_location": "L60",
       "_origin": "ast",
       "id": "product_semantics_5_open_items_this_freeze_does_not_resolve_carried_forward_not_silently_merged",
-      "community": 6,
+      "community": 9,
       "community_name": "Build 3 \u2014 Product Semantics, Non-Goals and Measurable DONE (Gate 1 freeze)",
       "norm_label": "5. open items this freeze does not resolve (carried forward, not silently merged)"
     },
@@ -2584,7 +2584,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "readme",
-      "community": 13,
+      "community": 11,
       "community_name": "Hyperliquid Build 3 Repair",
       "norm_label": "readme.md"
     },
@@ -2595,7 +2595,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "readme_hyperliquid_build_3_repair",
-      "community": 13,
+      "community": 11,
       "community_name": "Hyperliquid Build 3 Repair",
       "norm_label": "hyperliquid build 3 repair"
     },
@@ -2606,7 +2606,7 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "readme_roles",
-      "community": 13,
+      "community": 11,
       "community_name": "Hyperliquid Build 3 Repair",
       "norm_label": "roles"
     },
@@ -2617,7 +2617,7 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "readme_read_order",
-      "community": 13,
+      "community": 11,
       "community_name": "Hyperliquid Build 3 Repair",
       "norm_label": "read order"
     },
@@ -2628,7 +2628,7 @@
       "source_location": "L19",
       "_origin": "ast",
       "id": "readme_immediate_state",
-      "community": 13,
+      "community": 11,
       "community_name": "Hyperliquid Build 3 Repair",
       "norm_label": "immediate state"
     }
@@ -10452,5 +10452,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "0b730c53e12c946a3f6d05ef55751e4d388e4ed9"
+  "built_at_commit": "1f5cc72301db4a3bf13b0438fb1b88f26634b72e"
 }

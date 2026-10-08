@@ -1,15 +1,15 @@
 {
-  "0": "DryRunLiveCopyService",
-  "1": "Path",
+  "0": "HL_Live_Copy_Service.py",
+  "1": "DryRunLiveCopyService",
   "2": "utc_now_iso",
   "3": "exchange_truth.py",
-  "4": "Architecture Contract — Hyperliquid Build 3 Repair",
-  "5": "Operating Protocol",
-  "6": "Build 3 — Product Semantics, Non-Goals and Measurable DONE (Gate 1 freeze)",
-  "7": "convergence_shadow.py",
-  "8": "FixedModeAuthorityConflict",
-  "9": "HL_Live_Copy_Service.py",
+  "4": "Path",
+  "5": "Architecture Contract — Hyperliquid Build 3 Repair",
+  "6": "test_g3_exchange_truth.py",
+  "7": "Operating Protocol",
+  "8": "convergence_shadow.py",
+  "9": "Build 3 — Product Semantics, Non-Goals and Measurable DONE (Gate 1 freeze)",
   "10": "Bootstrap",
-  "11": "test_g3_exchange_truth.py",
-  "13": "Hyperliquid Build 3 Repair"
+  "11": "Hyperliquid Build 3 Repair",
+  "12": "FixedModeAuthorityConflict"
 }
