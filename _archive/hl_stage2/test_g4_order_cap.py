@@ -214,45 +214,52 @@ def main() -> None:
           f"seeded={seeded_long} flip_pos={flip_pos} sleeve={sleeve} counter="
           f"{e6.state['counters'].get('entries_blocked_global_max_order_notional')}")
 
-    # ---------- 10) FINAL PLANNER ORDER NOTIONAL enforcement ----------
-    # Controller B3-C2H-G4-C1-PLANNER-CAP-CORRECTION-1: the cap must bind the FINAL planner order
-    # notional (what auth.get("notional") returns), not just the per-event estimate, and must do so
-    # before mark_in_flight / append_would_send / send / simulated position mutation.
-    # NOTE: the aggregate-lag scenario from the directive is NOT reproducible in this offline harness -
-    # the account-net provider is derived from the simulated position, and a lagging actual trips the
-    # reconciliation gate (RECONCILIATION_DIVERGENCE), so the planner never emits an aggregate order
-    # above the cap here. Reported to Controller as a fixture gap; the enforcement below is the
-    # mandated minimal fix and is exercised with a planned over-cap ENTRY.
+    # ---------- 10) END-TO-END: per-event BELOW cap, FINAL planner aggregate ABOVE cap ----------
+    # Controller B3-C2H-G4-C1-AGGREGATE-CAP-PROOF-1: this must exercise the LATE (final planner
+    # notional) branch, not the per-event early gate. A) per-event 300 <= cap 500 so the early gate
+    # does NOT block; B) the authoritative planner converges aggregated desired (600) vs account-net
+    # actual (0, the leg lags) => plan 600 > cap; C) late branch emits BLOCKED_GLOBAL_MAX_ORDER_NOTIONAL
+    # with no in-flight reservation, no would-send and no simulated follower mutation.
     FIXED_SMALL = dataclasses.replace(FIX, fixed_notional=300.0)
-    client.post("/api/global-controls", json={"max_order_notional_usd": 250.0})   # cap BELOW planned 300
-    e7 = engine()
-    e7.process_fill(fill("p1", "0xfixed", "BTC", "BUY", PX, 3.0, 300), FIXED_SMALL)
-    pos1 = float(e7.get_position("0xfixed", "BTC").get("signed_size") or 0.0)
-    rows10 = intents()
-    check("C1_PLANNER_ORDER_NOTIONAL_CAP_BLOCKS_ENTRY_ZERO_MUTATION",
-          abs(pos1) < 1e-12                                   # ZERO simulated position mutation
-          and str(rows10[0].get("status")) == "BLOCKED_GLOBAL_MAX_ORDER_NOTIONAL"
-          and "BLOCKED" in str(rows10[0].get("execution_decision")),
-          f"pos={pos1} status={rows10[0].get('status') if rows10 else None}")
+    client.post("/api/global-controls", json={"max_order_notional_usd": 500.0})
+    e9 = engine()
+    e9.account_net_provider = lambda coin: 0.0     # exchange/account-net leg lags; no baseline frozen
+    e9.process_fill(fill("q1", "0xfixed", "BTC", "BUY", PX, 3.0, 300), FIXED_SMALL)   # A: 300 <= 500
+    pos_a = float(e9.get_position("0xfixed", "BTC").get("signed_size") or 0.0)
+    rows_a = intents()
+    ws_before = len(would_sends())
+    e9.process_fill(fill("q2", "0xfixed", "BTC", "BUY", PX, 3.0, 600), FIXED_SMALL)   # B+C: plan 600 > 500
+    pos_b = float(e9.get_position("0xfixed", "BTC").get("signed_size") or 0.0)
+    rows_b = intents()
+    ws_after = len(would_sends())
+    check("C1_E2E_AGGREGATE_PLANNER_NOTIONAL_CAP_BLOCKS_ENTRY",
+          abs(pos_a - 3.0) < 1e-9                                    # A: early cap did NOT block
+          and str(rows_a[0].get("status")) == "DRY_RUN_FILLED"
+          and str(rows_b[0].get("status")) == "BLOCKED_GLOBAL_MAX_ORDER_NOTIONAL"    # C: late branch ran
+          and "BLOCKED" in str(rows_b[0].get("execution_decision"))
+          and abs(float(rows_b[0].get("copy_notional") or 0.0) - 600.0) < 1e-6       # B: aggregate plan > cap
+          and abs(pos_b - pos_a) < 1e-9                                              # C: no mutation
+          and ws_after == ws_before and not (e9.in_flight or {}),                    # C: no ws/in-flight
+          f"posA={pos_a} posB={pos_b} s1={rows_a[0].get('status') if rows_a else None} "
+          f"s2={rows_b[0].get('status') if rows_b else None} "
+          f"n2={rows_b[0].get('copy_notional') if rows_b else None} ws_delta={ws_after-ws_before}")
 
-    # genuine reduce/close remains permitted while the cap blocks entries
-    client.post("/api/global-controls", json={"max_order_notional_usd": 0.0})
-    e7b = engine()
-    e7b.process_fill(fill("r1", "0xfixed", "BTC", "BUY", PX, 3.0, 400), FIXED_SMALL)   # seed long 3
-    client.post("/api/global-controls", json={"max_order_notional_usd": 250.0})        # cap on
-    e7b.process_fill(fill("r2", "0xfixed", "BTC", "SELL", PX, 3.0, 400, delta=-3.0), FIXED_SMALL)
-    pos_r = float(e7b.get_position("0xfixed", "BTC").get("signed_size") or 0.0)
-    rows_r = intents()
-    check("C1_PLANNER_CAP_NEVER_BLOCKS_REDUCE",
-          abs(pos_r) < 1e-9 and str(rows_r[0].get("status")) != "BLOCKED_GLOBAL_MAX_ORDER_NOTIONAL",
-          f"pos={pos_r} status={rows_r[0].get('status') if rows_r else None}")
+    # D: replay of that exact leader fill adds zero trading authority
+    e9.process_fill(fill("q2", "0xfixed", "BTC", "BUY", PX, 3.0, 600), FIXED_SMALL)
+    pos_rep = float(e9.get_position("0xfixed", "BTC").get("signed_size") or 0.0)
+    check("C1_E2E_AGGREGATE_CAP_REPLAY_ADDS_NO_AUTHORITY", abs(pos_rep - pos_a) < 1e-9, f"pos={pos_rep}")
 
-    # replay of the same blocked fill adds no authority
-    e8 = engine()
-    e8.process_fill(fill("p1", "0xfixed", "BTC", "BUY", PX, 3.0, 300), FIXED_SMALL)
-    e8.process_fill(fill("p1", "0xfixed", "BTC", "BUY", PX, 3.0, 300), FIXED_SMALL)   # REPLAY same id
-    pos_rep = float(e8.get_position("0xfixed", "BTC").get("signed_size") or 0.0)
-    check("C1_PLANNER_CAP_REPLAY_ADDS_NO_AUTHORITY", abs(pos_rep) < 1e-12, f"replayed_pos={pos_rep}")
+    # D: genuine reduce-only close is not blocked by the entry cap (fresh engine, full close)
+    client.post("/api/global-controls", json={"max_order_notional_usd": 0.0})     # cap off: seed a long
+    e10 = engine()
+    e10.process_fill(fill("s1", "0xfixed", "BTC", "BUY", PX, 3.0, 300), FIXED_SMALL)   # leader +3
+    client.post("/api/global-controls", json={"max_order_notional_usd": 500.0})        # cap ON
+    e10.process_fill(fill("s2", "0xfixed", "BTC", "SELL", PX, 3.0, 300, delta=-3.0), FIXED_SMALL)  # close
+    pos_cl = float(e10.get_position("0xfixed", "BTC").get("signed_size") or 0.0)
+    rows_cl = intents()
+    check("C1_E2E_AGGREGATE_CAP_REDUCE_ONLY_NOT_BLOCKED",
+          abs(pos_cl) < 1e-9 and str(rows_cl[0].get("status")) != "BLOCKED_GLOBAL_MAX_ORDER_NOTIONAL",
+          f"pos={pos_cl} status={rows_cl[0].get('status') if rows_cl else None}")
 
     failed = [n for n, ok in RESULTS if not ok]
     print("TOTAL=%d FAILED=%d" % (len(RESULTS), len(failed)))
