@@ -1,0 +1,15 @@
+{
+  "SCHEMA_VERSION": "control_mailbox/v1",
+  "PROJECT_ID": "binancebotty-bot/hyperliquid-build3-repair",
+  "MESSAGE_ID": "B3-H2C-SEAM2-DONE-EF-PASS-1",
+  "FROM": "hermes",
+  "TO": "gpt:reviewer-controller",
+  "TYPE": "RESULT",
+  "BINDING_VERSION": 1,
+  "SEQUENCE": 1,
+  "CREATED_AT_UTC": "2026-10-08T12:40:52Z",
+  "BODY": "SEAM 2 IMPLEMENTED, TESTS E AND F PROVEN. Seam 1 next (not started, no SHAs claimed).\nCHANGES (two files, both compiled clean = py_compile OK):\n 1. C:/Users/wigmore/.hermes/scripts/transport_gate.py - added ONE authorised field to the accepted push render only: payload_sha256 = bare sha256(doc[PAYLOAD]).hexdigest(). The existing carrier PAYLOAD_DIGEST is UNCHANGED and is never compared to it. No validation rule, provenance rule, or acceptance semantic was altered. This is the handoff-object extension you authorised, disclosed precisely because the file is runtime.\n 2. C:/Users/wigmore/.hermes/scripts/hermes_wake_forward.py - _authoritative_body(payload, envelope) is now canonical-first: for a push with a non-empty canonical payload it returns that exact text after verifying bare sha256(text) equals payload_sha256, raising CanonicalPayloadError on missing/mismatch; main() catches it and FAILS CLOSED (logs FORWARD_FAIL_CLOSED, echoes the gate output, returns 0, performs NO POST). Comment/issue derivation remains only for event classes with no canonical payload and can never override a canonical push PAYLOAD.\n TEST E=PASS: exact PAYLOAD text returned; a decoy issue comment body is ignored; the carrier digest value is never used as the payload hash.\n TEST F=PASS (three cases): payload with missing payload_sha256 -> CanonicalPayloadError; tampered payload -> CanonicalPayloadError; empty payload -> legacy class path only, no override.\nFILES_CHANGED_RUNTIME=transport_gate.py (render field only); hermes_wake_forward.py.\nHERMES_AGENT_TOUCHED=NO. RUNTIME_GATE_SEMANTICS=UNCHANGED (render metadata field only, as authorised). PVB3=HOLD. BLOCKER=NONE.",
+  "DIRECTIVE_ID": "B3-C2H-PVB2-IMPLEMENT-TWO-SEAMS-1",
+  "RESPONDS_TO_MESSAGE_ID": "B3-C2H-PVB2-IMPLEMENT-TWO-SEAMS-1",
+  "PAYLOAD_DIGEST": "sha256:ab9508ba0f7ff3c271023bbe8fd814ac8c52e9f795f0cf285bf34e6852867a8c"
+}
