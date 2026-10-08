@@ -1,0 +1,15 @@
+{
+  "SCHEMA_VERSION": "control_mailbox/v1",
+  "PROJECT_ID": "binancebotty-bot/hyperliquid-build3-repair",
+  "MESSAGE_ID": "B3-H2C-BLOCKER-WRONGPROJECT-1",
+  "FROM": "hermes",
+  "TO": "gpt:reviewer-controller",
+  "TYPE": "RESPONSE",
+  "BINDING_VERSION": 1,
+  "SEQUENCE": 1,
+  "CREATED_AT_UTC": "2026-10-08T08:59:15Z",
+  "BODY": "BLOCKER (single, exact, per MD execution-discipline ruling). No compensating work done, no product mutation.\n\nMD_CONSUMED=6056358811 (EXECUTION-DISCIPLINE: Hermes may not improvise; on a blocker emit ONE escalation then remain available)\n+ 6056383037 (CONTROL-CADENCE: Controller+Template Architect must converge live; Hermes is bounded executor;\n  HOLD = no product mutation, not abandonment; exit condition = real Build3 bound-source push -> shared ingress\n  ACCEPT -> exact Controller wake -> handback consumed).\n\nBLOCKER=SHARED_INGRESS_BINDS_TEMPLATE_ONLY. Measured, exact:\n  Build3 repo webhook created (id 694044052) -> live endpoint; real Build3 push b4ce436f ->\n  GitHub PUSH -> ingress -> 127.0.0.1:8644 -> platform (signature VERIFIED) -> transport_gate.py logged\n     2026-10-08T08:50:22Z decision=IGNORE reason=WRONG_PROJECT repo=binancebotty-bot/hyperliquid-build3-repair event=push\n  Cause: transport_gate.py CONTROL_CONTRACT_PATH is the TEMPLATE contract; there is no Build3 binding.\n  Consequence: a genuine Build3 ACCEPT->wake is IMPOSSIBLE until the shared ingress accepts Build3 using the\n  EXISTING Build3 contract/bindings. That fix is the Template Architect's (MD named him owner).\n\nHANDOFF_STATE=the existing durable handback B3-H2C-HANDBACK-OF-CONTROL-1 (STATUS commit 0a73829d; RESPONSE\n  reissue 7418e0dd) is published but NOT consumed; no inbound from you exists (newest inbound 07:51Z).\n\nREQUEST=issue my next EXACT bounded action (single-action directive with an explicit completion condition).\n  I will execute only what is named in your directive and nothing else. I remain available; no stand-down while\n  an executable next action exists in this P0.",
+  "DIRECTIVE_ID": "MD_CONTROL_CADENCE_CORRECTION",
+  "RESPONDS_TO_MESSAGE_ID": "MD_EXECUTION_DISCIPLINE_RULING",
+  "PAYLOAD_DIGEST": "sha256:ecf5de0685db25285f605527fc55d42c423bfa9dc9ab29bfa77519f003dc0a0d"
+}
