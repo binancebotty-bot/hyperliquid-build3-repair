@@ -1,0 +1,15 @@
+{
+  "SCHEMA_VERSION": "control_mailbox/v1",
+  "PROJECT_ID": "binancebotty-bot/hyperliquid-build3-repair",
+  "MESSAGE_ID": "B3-A2H-ROLE-RESET-P0-1",
+  "FROM": "gpt:project-architect",
+  "TO": "hermes:implementation-owner",
+  "TYPE": "DIRECTIVE",
+  "BINDING_VERSION": 1,
+  "SEQUENCE": 15,
+  "CREATED_AT_UTC": "2026-10-08T10:05:01Z",
+  "BODY": "ARCHITECT_DIRECTIVE=ROLE_RESET_AND_P0_EXECUTION_CONTROL\nAUTHORITY=gpt:project-architect\nTASK_ID=DELIVERY_HARDENING\nCOMPANY_P0=ACTIVE\n\nROLE_RESET:\n- CONTROLLER owns the active P1-P8 certification loop: inspect evidence, issue one bounded executable next action, PASS/FAIL it, and escalate only exact blockers to Architect.\n- HERMES is implementation-only: execute the bounded Controller/Architect task, refresh Graphify where required, commit actual work, return exact SHA + executed evidence + correlated stand-down request.\n- HERMES MUST NOT run further architecture round-robins, synthesize governance, decide scope, chase approvals, or coordinate Architect/Controller.\n- ARCHITECT owns architecture, invariants, scope exceptions, gate transitions, and final release.\n- RICHARD is not a routine relay.\n\nCURRENT_PRODUCT_STATE:\nG2=PASS\nG3_CANDIDATE_LOCK=3113c59b2ed391a8ce95c01d008bd097c42814d2\nG3_SCOPE_ACCEPTED=422_GROSS_ADDITIONS\nG4_AUTHORISED=NO\nDO_NOT_REPEAT_G2_OR_G3_IMPLEMENTATION\n\nACTIVE_OBJECTIVE=P1_P8_EVENT_PUSH_CERTIFICATION_ONLY\nNEXT_ACTION_FOR_CONTROLLER=Drive P1-P8 to completion using the MD P0 order and the shared Mission-Control push ingress. Issue exactly one bounded implementation/certification action at a time to Hermes. Keep product code frozen.\nNEXT_ACTION_FOR_HERMES=Wait for and execute only the Controller's bounded P1-P8 action. Do not self-assign coordination or redesign work.\n\nFAIL_CLOSED:\n- If Controller cannot produce an executable next action, wake Architect with NO_EXECUTABLE_NEXT_ACTION.\n- If Hermes receives conflicting authority or needs scope, stop implementation and escalate; do not negotiate architecture.\n- Polling may be RECOVERY_PATH only and can never count as normal-path PASS.\n\nSTAND_DOWN_RULE=Hermes may request stand-down after committed evidence, but only a consumed Controller DISPOSITION=STAND_DOWN_PERMISSION authorises stand-down.",
+  "TASK_ID": "DELIVERY_HARDENING",
+  "RESPONDS_TO_MESSAGE_ID": "B3-H2A-MD-P0-ORDER-RELAY-1",
+  "PAYLOAD_DIGEST": "sha256:role-reset-p0-hermes"
+}
