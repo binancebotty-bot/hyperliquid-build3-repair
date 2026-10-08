@@ -29,7 +29,7 @@ import tempfile
 import threading
 import time
 import traceback
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, asdict, replace
 from datetime import datetime, timezone
 from decimal import Decimal, ROUND_DOWN, ROUND_HALF_UP
 from pathlib import Path
@@ -1002,7 +1002,7 @@ def send_hyperliquid_order(payload: Dict[str, Any], marketable_bps: float = 0.0,
         }
 
 
-def manual_send_one_intent(intent_id: str, confirm_send: bool, marketable_bps: float = 0.0, close_position: bool = False, use_current_quote: bool = False, auto_live: bool = False, auto_send_wallet: str = "") -> Dict[str, Any]:
+def manual_send_one_intent(intent_id: str, confirm_send: bool, marketable_bps: float = 0.0, close_position: bool = False, use_current_quote: bool = False, auto_live: bool = False, auto_send_wallet: str = "", planner_side: str = "") -> Dict[str, Any]:
     ensure_csv_schema(SEND_ATTEMPTS_CSV, SEND_ATTEMPT_FIELDS)
     row = load_would_send_order(intent_id)
     if row is None:
@@ -1123,10 +1123,26 @@ def manual_send_one_intent(intent_id: str, confirm_send: bool, marketable_bps: f
             if auto_live:
                 out.update({"auto_live": True, "auto_send_wallet": auto_send_wallet})
             return out
-        payload["side"] = "SELL" if position_before > 0 else "BUY"
-        payload["copy_size"] = abs(position_before)
-        payload["reduce_only"] = True
-        size_source = "manual_position_close"
+        planner_side = str(planner_side or "").upper()
+        if planner_side in {"BUY", "SELL"}:
+            # planner-authored direction is authoritative: local manual position may CAP size, never
+            # reverse the side. A contradiction FAILS CLOSED rather than rewriting direction.
+            expected_side = "SELL" if position_before > 0 else "BUY"
+            if planner_side != expected_side:
+                append_send_attempt(row, "PLANNER_LOCAL_DIRECTION_CONFLICT", confirmed=confirm_send, error="planner side contradicts local manual position")
+                out = {"ok": False, "status": "PLANNER_LOCAL_DIRECTION_CONFLICT", "intent_id": intent_id, "planner_side": planner_side, "position_before": position_before}
+                if auto_live:
+                    out.update({"auto_live": True, "auto_send_wallet": auto_send_wallet})
+                return out
+            payload["side"] = planner_side
+            payload["copy_size"] = min(fnum(payload.get("copy_size"), abs(position_before)) or abs(position_before), abs(position_before))
+            payload["reduce_only"] = True
+            size_source = "planner_reduce_local_cap"
+        else:
+            payload["side"] = "SELL" if position_before > 0 else "BUY"
+            payload["copy_size"] = abs(position_before)
+            payload["reduce_only"] = True
+            size_source = "manual_position_close"
         if use_current_quote:
             quote = fetch_public_executable_quote(str(payload.get("coin", "")), str(payload.get("side", "")))
             if not quote.get("ok") or fnum(quote.get("executable_price")) <= 0:
@@ -1673,7 +1689,11 @@ def adverse_diff_pct(fill: LeaderFill, executable_price: float) -> float:
     return max(0.0, (fill.price - executable_price) / fill.price * 100.0)
 
 
-def dry_run_intent_audit_decision(cfg: LiveWalletConfig, fill: LeaderFill, intent_type: str, reducing: bool, replay_history: bool = False, quote_getter: Optional[Any] = None) -> Dict[str, Any]:
+def dry_run_intent_audit_decision(cfg: LiveWalletConfig, fill: LeaderFill, intent_type: str, reducing: bool, replay_history: bool = False, quote_getter: Optional[Any] = None, side: str = "") -> Dict[str, Any]:
+    # planner side is authoritative: quote/adverse direction is evaluated for the AUTHORISED order,
+    # never for the leader's fill.side.
+    if str(side or "").upper() in {"BUY", "SELL"} and str(side).upper() != str(getattr(fill, "side", "")).upper():
+        fill = replace(fill, side=str(side).upper())
     source = str(getattr(fill, "source", "") or "").lower()
     target_price = fill.price
     executable_price: Any = fill.price
@@ -2188,6 +2208,18 @@ class DryRunLiveCopyService:
     def clear_in_flight(self, coin: str) -> None:
         self.in_flight.pop(str(coin).upper().strip(), None)
 
+    def settle_in_flight(self, coin: str, intent_id: str, terminal_status: str) -> None:
+        """Release the in-flight reservation ONLY for its own intent and ONLY on a terminal ack.
+
+        A dry-run/local position mutation is not by itself a settlement: the reservation is cleared
+        only when THIS intent reaches a terminal acknowledgement in the existing G2 semantics.
+        """
+        key = str(coin).upper().strip()
+        rec = self.in_flight.get(key)
+        if isinstance(rec, dict) and str(rec.get("intent_id")) == str(intent_id):
+            self.in_flight.pop(key, None)
+            self.state.setdefault("in_flight_terminals", {})[key] = str(terminal_status)
+
     def convergence_order_for_coin(
         self, cfg: LiveWalletConfig, fill: LeaderFill, configs: Dict[str, LiveWalletConfig],
         actual_net: float, in_flight: bool = False,
@@ -2274,7 +2306,7 @@ class DryRunLiveCopyService:
             "action": action, "notes": notes,
         })
 
-    def append_order_intent(self, cfg: LiveWalletConfig, fill: LeaderFill, intent_id: str, linked_ids: List[str], intent_type: str, reason: str, status: str, copy_notional: float, copy_size: float, policy: str, notes: str = "", target_price: Optional[float] = None, diff_pct: Any = 0.0, decision: Optional[Dict[str, Any]] = None, side_override: Optional[str] = None) -> None:
+    def append_order_intent(self, cfg: LiveWalletConfig, fill: LeaderFill, intent_id: str, linked_ids: List[str], intent_type: str, reason: str, status: str, copy_notional: float, copy_size: float, policy: str, notes: str = "", target_price: Optional[float] = None, diff_pct: Any = 0.0, decision: Optional[Dict[str, Any]] = None, side_override: Optional[str] = None, reduce_only: Optional[bool] = None) -> None:
         decision = decision or {}
         row = {
             "created_at": utc_now_iso(), "intent_id": intent_id, "dry_run": True,
@@ -2282,6 +2314,7 @@ class DryRunLiveCopyService:
             "linked_leader_fill_ids": "|".join(linked_ids), "mode": cfg.mode,
             "copy_mode": cfg.copy_mode, "coin": fill.coin, "side": (side_override or fill.side),
             "intent_type": intent_type, "reason": reason, "status": status,
+            "reduce_only": bool(reduce_only) if reduce_only is not None else (decision.get("execution_decision") == "WOULD_REDUCE_OR_EXIT"),
             "leader_price": round(fill.price, 8), "target_price": round(fnum(target_price, fill.price), 8),
             "leader_size": round(fill.size, 12), "leader_notional": round(fill.notional, 8),
             "copy_notional": round(copy_notional, 8), "copy_size": round(copy_size, 12),
@@ -2299,11 +2332,11 @@ class DryRunLiveCopyService:
         }
         append_csv(ORDER_INTENTS_CSV, ORDER_INTENT_FIELDS, row)
         if should_write_would_send(decision, row):
-            wrote_would_send = self.append_would_send_order(row)
+            wrote_would_send = self.append_would_send_order(row, reduce_only=reduce_only)
             if wrote_would_send:
                 self.maybe_auto_send_would_send(cfg, row)
 
-    def append_would_send_order(self, intent_row: Dict[str, Any]) -> bool:
+    def append_would_send_order(self, intent_row: Dict[str, Any], reduce_only: Optional[bool] = None) -> bool:
         if not should_write_would_send(intent_row, intent_row):
             return False
         intent_id = str(intent_row.get("intent_id", "")).strip()
@@ -2325,7 +2358,7 @@ class DryRunLiveCopyService:
             "copy_notional": intent_row.get("copy_notional", ""),
             "order_type": intent_row.get("suggested_order_type") or "IOC_LIMIT",
             "limit_price": intent_row.get("suggested_limit_price") or intent_row.get("target_price", ""),
-            "reduce_only": execution_decision == "WOULD_REDUCE_OR_EXIT",
+            "reduce_only": bool(reduce_only) if reduce_only is not None else execution_decision == "WOULD_REDUCE_OR_EXIT",
             "manual_reconcile_required": intent_row.get("manual_reconcile_required", ""),
             "status": "WOULD_SEND_DRY_RUN",
             "notes": "dry-run would-send payload only; no order placed",
@@ -2376,8 +2409,8 @@ class DryRunLiveCopyService:
             return skip("CREDENTIALS_MISSING")
         if cfg.wallet != wallet or not cfg.enabled or cfg.mode not in {"LIVE", "CLO"}:
             return skip("WALLET_NOT_ACTIVE")
-        if cfg.mode == "CLO" and execution_decision == "WOULD_PLACE_IOC_LIMIT":
-            return skip("CLO_BLOCKS_ENTRY")
+        if cfg.mode == "CLO" and not truthy_csv(intent_row.get("reduce_only")):
+            return skip("CLO_BLOCKS_ENTRY")   # CLO executes planner-authorised reductions only
 
         close_position = execution_decision == "WOULD_REDUCE_OR_EXIT"
         result = manual_send_one_intent(
@@ -2388,6 +2421,7 @@ class DryRunLiveCopyService:
             use_current_quote=bool(close_position and LIVE_AUTO_CLOSE_WITH_CURRENT_QUOTE),
             auto_live=True,
             auto_send_wallet=wallet,
+            planner_side=str(intent_row.get("side") or "").upper(),
         )
         self.auto_send_attempted += 1
         self.auto_send_intent_ids.add(intent_id)
@@ -2396,6 +2430,7 @@ class DryRunLiveCopyService:
             self.auto_send_filled += 1
         else:
             self.auto_send_rejected += 1
+        self.last_real_send = {"intent_id": intent_id, "ok": bool(result.get("ok")), "status": status}
         return {"auto_sent": bool(result.get("ok")), "status": status, "intent_id": intent_id, "result": result}
 
     def append_live_fill(self, cfg: LiveWalletConfig, fill: LeaderFill, intent_id: str, status: str, copy_notional: float, copy_size: float, pos: Dict[str, Any], realized_pnl: float, notes: str = "") -> None:
@@ -2455,8 +2490,6 @@ class DryRunLiveCopyService:
             return
         pos = self.get_position(cfg.wallet, fill.coin)
         before_signed = fnum(pos.get("signed_size"))
-        incoming_delta_sign = trade_delta_from_side(fill.side, 1.0)
-        reducing = is_reducing_position(before_signed, incoming_delta_sign)
         copy_notional_raw = self.model_copy_notional(cfg, fill)
 
         if cfg.mode == "OFF" or not cfg.enabled:
@@ -2464,13 +2497,9 @@ class DryRunLiveCopyService:
             self.processed_ids.add(fill.fill_id)
             self.bump("fills_skipped_off")
             return
-        if cfg.mode == "CLO" and not reducing:
-            self.append_reconciliation(cfg, fill, "SKIP", "CLO_ENTRY_BLOCKED", "BLOCKED_CLO_ENTRY", before_signed, before_signed, copy_notional_raw, "CLO allows exits/reductions only")
-            self.processed_ids.add(fill.fill_id)
-            self.bump("fills_skipped_clo_entry")
-            return
 
-        # --- G2: order size is the event-authorised convergence DELTA (not a per-fill notional) ---
+        # --- G2: planner/account-net authority is computed BEFORE any gate, so CLO and the audit
+        # decision follow the planner's side/reduce_only, never wallet-local leader-side heuristics ---
         auth = self.convergence_notional_for_fill(cfg, fill)
         if not auth.get("ok"):
             status = str(auth.get("status") or "SIZING_BLOCKED")
@@ -2478,9 +2507,15 @@ class DryRunLiveCopyService:
             self.processed_ids.add(fill.fill_id)
             self.bump("fills_blocked_" + status.lower())
             return
+        planner_reduce_only = bool(auth.get("reduce_only"))
+        if cfg.mode == "CLO" and not planner_reduce_only:
+            self.append_reconciliation(cfg, fill, "SKIP", "CLO_ENTRY_BLOCKED", "BLOCKED_CLO_ENTRY", before_signed, before_signed, copy_notional_raw, "CLO allows planner-authorised reductions/flattening only")
+            self.processed_ids.add(fill.fill_id)
+            self.bump("fills_skipped_clo_entry")
+            return
         copy_notional_raw = fnum(auth.get("notional"))
         order_side = str(auth.get("side") or "").upper()   # planner side is authoritative for direction
-        intent_type = "EXIT" if auth.get("reduce_only") else "ENTRY"
+        intent_type = "EXIT" if planner_reduce_only else "ENTRY"
         if copy_notional_raw <= 0:
             self.append_reconciliation(cfg, fill, "CONVERGED", str(auth.get("action") or "NONE"), "NO_ORDER", before_signed, before_signed, 0.0, "event-authorised desired met; zero orders")
             self.processed_ids.add(fill.fill_id)
@@ -2511,9 +2546,11 @@ class DryRunLiveCopyService:
 
         copy_size = copy_notional / fill.price if fill.price > 0 else 0.0
         intent_id = f"DRYRUN-{utc_now_ms()}-{len(self.processed_ids)+1}"
-        decision = dry_run_intent_audit_decision(cfg, fill, intent_type, reducing, replay_history=replay_history, quote_getter=self.get_public_quote)
+        decision = dry_run_intent_audit_decision(cfg, fill, intent_type, planner_reduce_only, replay_history=replay_history, quote_getter=self.get_public_quote, side=order_side)
         policy = decision.get("policy") or policy
         audit_notes = audit_notes_for_fill(fill, replay_history=replay_history) + str(decision.get("extra_note") or "")
+        # in-flight reservation is established BEFORE any call path can reach the exchange order call
+        self.mark_in_flight(fill.coin, {"intent_id": intent_id, "side": order_side, "size": copy_size, "reduce_only": planner_reduce_only, "action": str(auth.get("action"))})
         self.append_order_intent(
             cfg, fill, intent_id, linked_ids, intent_type,
             str(decision.get("reason") or audit_reason_for_fill(fill, replay_history=replay_history)),
@@ -2523,17 +2560,20 @@ class DryRunLiveCopyService:
             diff_pct=decision.get("diff_pct", ""),
             decision=decision,
             side_override=order_side,
+            reduce_only=planner_reduce_only,
         )
         if decision.get("status") in {"DO_NOT_MARKET_COPY", "MANUAL_REVIEW"}:
             self.append_reconciliation(cfg, fill, "REVIEW", str(decision.get("reason") or "MANUAL_REVIEW"), "MANUAL_REVIEW", before_signed, before_signed, copy_notional, "manual reconcile required" + str(decision.get("extra_note") or ""))
             self.processed_ids.add(fill.fill_id)
             self.bump("late_copy_manual_review")
             return
-        # in-flight window: marked before the send, cleared on settlement (no overlapping sends)
-        self.mark_in_flight(fill.coin, {"intent_id": intent_id, "side": order_side, "size": copy_size, "action": str(auth.get("action"))})
         signed_delta = copy_size if order_side == "BUY" else -copy_size
         updated_pos, before, realized_pnl = self.apply_signed_delta_to_position(cfg, fill, signed_delta)
-        self.clear_in_flight(fill.coin)
+        # a REAL send is settled only by its own exchange ack (G3), never by the local dry-run
+        # mutation; a pure dry-run order reaches its terminal state here.
+        _last = getattr(self, "last_real_send", None)
+        if not (isinstance(_last, dict) and str(_last.get("intent_id")) == str(intent_id)):
+            self.settle_in_flight(fill.coin, intent_id, "DRY_RUN_FILLED")
         after = fnum(updated_pos.get("signed_size"))
         self.append_live_fill(cfg, fill, intent_id, "DRY_RUN_FILLED", copy_notional, copy_size, updated_pos, realized_pnl, audit_notes)
         recon_action = "MANUAL_REVIEW" if decision.get("status") in {"DO_NOT_MARKET_COPY", "MANUAL_REVIEW"} else "DRY_RUN_FILL"
@@ -4161,6 +4201,7 @@ def self_test() -> bool:
                     "leader_wallet": wallet_id, "leader_fill_id": intent_id,
                     "linked_leader_fill_ids": intent_id, "mode": "LIVE", "copy_mode": "fixed",
                     "coin": coin, "side": side, "intent_type": "ENTRY", "reason": reason,
+                    "reduce_only": decision == "WOULD_REDUCE_OR_EXIT",
                     "status": "DRY_RUN_FILLED", "leader_price": 1000.0, "target_price": 1000.0,
                     "leader_size": 0.01, "leader_notional": 10.0, "copy_notional": 10.0,
                     "copy_size": 0.01, "min_notional_policy": "DIRECT_EXECUTABLE",
