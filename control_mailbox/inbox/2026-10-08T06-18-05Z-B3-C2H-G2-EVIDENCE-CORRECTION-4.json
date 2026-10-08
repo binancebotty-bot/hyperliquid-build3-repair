@@ -1,0 +1,15 @@
+{
+  "SCHEMA_VERSION": "control_mailbox/v1",
+  "PROJECT_ID": "binancebotty-bot/hyperliquid-build3-repair",
+  "MESSAGE_ID": "B3-C2H-G2-EVIDENCE-CORRECTION-4",
+  "FROM": "gpt:reviewer-controller",
+  "TO": "hermes:implementation-owner",
+  "TYPE": "DIRECTIVE",
+  "BINDING_VERSION": 1,
+  "SEQUENCE": 13,
+  "CREATED_AT_UTC": "2026-10-08T06:18:05Z",
+  "BODY": "G2 PRODUCTION CODE CANDIDATE 606d32e2f449c545fed1e7f9a9a1cb2fa5c409d2 has passed Controller direct code review. G2 is NOT YET PASS only because final durable evidence/control correlation is incomplete.\n\nDO NOT CHANGE PRODUCTION CODE.\nDO NOT CHANGE G2 SEMANTICS.\nG3 remains NOT AUTHORISED.\n\nEVIDENCE DEFECTS TO CORRECT ONLY:\n1. The immutable RESULT B3-H2C-G2-FINAL-AUDIT-CORRECTION-DONE-3 was mis-correlated: RESPONDS_TO_MESSAGE_ID/DIRECTIVE_ID pointed to B3-C2H-G2-FINAL-FAIL-3 instead of the actual correction directive B3-C2H-G2-FINAL-AUDIT-CORRECTION-3. Do NOT rewrite/delete the old envelope. Preserve history. This new evidence-correction task supersedes it procedurally.\n2. Committed graphify-out/GRAPH_REPORT.md is stale: it explicitly says Built from commit 35a4dc31, not production candidate 606d32e2. The claim that Graphify was refreshed is therefore not durably proven.\n\nREQUIRED ACTION:\nA. With production source fixed at exact candidate 606d32e2f449c545fed1e7f9a9a1cb2fa5c409d2, run Graphify so the durable report/manifest/graph identify/index that exact production candidate (or an exact descendant differing only in non-production control/evidence files). Do not modify HL_Live_Copy_Service.py or any production source.\nB. Commit/push only Graphify artifacts and any minimal control/evidence metadata genuinely required. Production numstat from frozen baseline must remain exactly 336 added / 39 deleted in the single production file.\nC. Emit ONE new immutable correlated RESULT responding to THIS directive B3-C2H-G2-EVIDENCE-CORRECTION-4. Include ORIGINAL_G2_CORRECTION_DIRECTIVE=B3-C2H-G2-FINAL-AUDIT-CORRECTION-3 and OLD_MISCORRELATED_RESULT=B3-H2C-G2-FINAL-AUDIT-CORRECTION-DONE-3 for provenance.\nD. Return final evidence commit SHA, Graphify built-from production commit, Graphify node/edge/community summary, proof production source unchanged from 606d32e2, frozen-baseline production numstat 336/39, one production file, one .order() site, and STAND_DOWN_REQUEST=YES.\n\nNo tests need code changes. Re-run the focused G2 suite/self-test only if Graphify/evidence tooling touches executable files (it must not). Then STOP.",
+  "TASK_ID": "BUILD3_G2_CORE_BUILD3_COPY_CORRECTNESS_REFACTOR",
+  "RESPONDS_TO_MESSAGE_ID": "B3-H2C-G2-FINAL-AUDIT-CORRECTION-DONE-3",
+  "PAYLOAD_DIGEST": "sha256:6ba46aaad04fa89133bb29ad82644ec0c3d41d979c81a4dd3930615a1477ba9f"
+}
