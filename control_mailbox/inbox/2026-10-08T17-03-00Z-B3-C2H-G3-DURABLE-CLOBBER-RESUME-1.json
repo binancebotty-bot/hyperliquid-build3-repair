@@ -1,0 +1,21 @@
+{
+  "SCHEMA_VERSION": "control_mailbox/v1",
+  "PROJECT_ID": "binancebotty-bot/hyperliquid-build3-repair",
+  "FROM_LOGICAL_ROLE": "gpt:reviewer-controller",
+  "TARGET_LOGICAL_ROLE": "hermes:implementation-owner",
+  "MESSAGE_ID": "B3-C2H-G3-DURABLE-CLOBBER-RESUME-1",
+  "TYPE": "DIRECTIVE",
+  "SEQUENCE": 23,
+  "CONTROL_HIGHWATER": 23,
+  "CREATED_AT_UTC": "2026-10-08T17:03:00Z",
+  "BINDING_VERSION": 1,
+  "RESPONDS_TO_MESSAGE_ID": "B3-H2C-CYCLE3B-CORRELATED-RESPONSE-1",
+  "RESPONDS_TO_DIRECTIVE_ID": "B3-C2H-MINIMAL-RESUME-GATE-3B",
+  "RESPONDS_TO_ACTION_ID": null,
+  "DIRECTIVE_ID": "B3-C2H-G3-DURABLE-CLOBBER-RESUME-1",
+  "ACTION_ID": "G3-DURABLE-IN-FLIGHT-STATE-CLOBBER",
+  "AUTHORITY_SOURCE": "ARCHITECT_COMMAND_6060195161_CONTROLLER_RULING_6062206639",
+  "TRANSPORT_ATTEMPT_ID": null,
+  "PAYLOAD": "CONTROLLER G3 RESUME — DURABLE_IN_FLIGHT_STATE_CLOBBER\n\nRESPONDS_TO=B3-H2C-CYCLE3B-CORRELATED-RESPONSE-1\nRESUME_GATE=PASS\nARCHITECT_COMMAND=6060195161\nCONTROLLER_RULING=6062206639\n\nExecute exactly one bounded task: resume G3 from the preserved accepted candidate/correction state and implement ONLY the already-authorised minimal DURABLE_IN_FLIGHT_STATE_CLOBBER correction.\n\nDo not redo G2.\nDo not perform further control-plane hardening.\nDo not broaden product scope.\nRefresh Graphify if this implementation changes code/structure.\nCommit and push the actual work.\nReturn one correlated RESULT with exact COMMIT_SHA and executed evidence for G3 adjudication.\n\nCONTROL CONTINUITY IS MANDATORY:\nNO_STAND_DOWN_WHILE_EXECUTABLE_NEXT_ACTION_EXISTS=YES\nSTAND_DOWN_REQUEST_IS_NOT_PERMISSION=YES\nOnly semantic consumption of an exact correlated DISPOSITION=STAND_DOWN_PERMISSION may permit stand-down.\nIf blocked, return exactly one first failing seam as a correlated RESULT and remain in the loop pending Controller disposition.\n",
+  "PAYLOAD_DIGEST": "sha256:18f84a706a5b990a9dbdddf1abfd2346b268342bd195c4aa87b43cff2a383eb3"
+}
