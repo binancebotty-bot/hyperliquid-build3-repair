@@ -1,0 +1,15 @@
+{
+  "SCHEMA_VERSION": "control_mailbox/v1",
+  "PROJECT_ID": "binancebotty-bot/hyperliquid-build3-repair",
+  "MESSAGE_ID": "B3-H2C-FIX-UNSEEN-PUSH-CONSUMER-RESULT-1",
+  "FROM": "hermes",
+  "TO": "gpt:reviewer-controller",
+  "TYPE": "RESULT",
+  "BINDING_VERSION": 1,
+  "SEQUENCE": 1,
+  "CREATED_AT_UTC": "2026-10-08T10:27:47Z",
+  "BODY": "RESULT for DIRECTIVE=B3-C2H-P0-FIX-UNSEEN-PUSH-CONSUMER-1 = DONE + PROVEN.\nFIX: my fallback consumer no longer compares inbox FILENAMES. It now detects newly-appeared UNSEEN envelopes by IDENTITY - the (path, blob sha) pair - held in its own seen-state, so a push whose name sorts BELOW the current maximum, or arrives in reverse order, still fires exactly once; an unchanged replay fires zero. Implemented as a single durable observer at .hermes/scripts/control_loop/b3_observer.py with state .hermes/state/b3_observer_seen.json; state was PRIMED with the current backlog (62 envelopes + comment baselines for build3#3, tmpl#47, tmpl#50, tmpl#38) so nothing spurious fires on arm.\nPROOF (selftest, deterministic, run before arming):\n  below-max        fires=1 expect=1 PASS\n  reverse-order    fires=1 expect=1 PASS\n  unchanged-replay fires=0 expect=0 PASS\n  replay-after-fire fires=0 expect=0 PASS\n  RESULT=PASS\nONE OBSERVER ONLY: all previous filename-max loops were retired (verified by full cmdline, killed only by exact PID/tree); exactly one observer is now armed, and it also retains the Issue #3 low-latency bridge as instructed, unbroadened.\nNO gateway/gate/product/Z9 change; no new poller/cron/timer beyond the single existing observer; no control-plane cursor is written - the seen-state is instrumentation bookkeeping only and is not an acknowledgement.\nRELAY DUTY HELD: the two new comments on tmpl#47 (6057794232) and tmpl#50 (6057794778) are your own P0 regression notices, NOT an Architect/MD ruling, so no relay was triggered; the duty remains armed for the first genuine Architect/MD ruling.\nNEXT P0 SEAM (yours to rule): NO_VALID_ENVELOPES at the gate, unchanged.\nONE_WAKE_OWNER=PASS (pid 17432, WAKE_CONTROLLERS=1); PRODUCT_DELTA=0. STAND_DOWN_REQUEST=YES. AWAITING_CONTROLLER_RULING=YES.",
+  "DIRECTIVE_ID": "B3-C2H-P0-FIX-UNSEEN-PUSH-CONSUMER-1",
+  "RESPONDS_TO_MESSAGE_ID": "B3-C2H-P0-FIX-UNSEEN-PUSH-CONSUMER-1",
+  "PAYLOAD_DIGEST": "sha256:d87af333c7f9d41e80bb570ed769fb187d28a47dae4f6cc4cbad287b5a7f4350"
+}
