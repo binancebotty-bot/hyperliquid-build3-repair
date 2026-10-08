@@ -1,9 +1,8 @@
 {
   "0": "HL_Live_Copy_Service.py",
-  "1": "fnum",
-  "2": "DedicatedLiveWSManager",
+  "1": "DryRunLiveCopyService",
+  "2": "FixedModeAuthorityConflict",
   "3": "exchange_truth.py",
-  "4": "DryRunLiveCopyService",
   "5": "Architecture Contract — Hyperliquid Build 3 Repair",
   "6": "get",
   "7": "Operating Protocol",
@@ -12,12 +11,8 @@
   "10": "Bootstrap",
   "11": "Hyperliquid Build 3 Repair",
   "12": "load_json",
-  "13": "append_csv",
-  "14": "parse_leader_fill_row",
   "15": "HL_Copy_App_SSOT.py",
   "16": "test_g4_order_cap.py",
-  "17": "self_test",
-  "22": ".convergence_notional_for_fill",
   "23": "test_g4_fixed_slices.py",
   "25": "test_g4_ui_controls.py"
 }
