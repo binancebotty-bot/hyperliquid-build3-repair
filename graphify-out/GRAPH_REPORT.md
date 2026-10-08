@@ -1,25 +1,24 @@
 # Graph Report - b3-main  (2026-10-08)
 
 ## Corpus Check
-- 24 files · ~65,163 words
+- 25 files · ~66,116 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 513 nodes · 1736 edges · 21 communities (17 shown, 4 thin omitted)
+- 513 nodes · 1738 edges · 16 communities (13 shown, 3 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 2 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `1bb7a406`
+- Built from commit: `7bc1f172`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
 - HL_Live_Copy_Service.py
-- fnum
-- DedicatedLiveWSManager
-- exchange_truth.py
 - DryRunLiveCopyService
+- FixedModeAuthorityConflict
+- exchange_truth.py
 - Architecture Contract — Hyperliquid Build 3 Repair
 - get
 - Operating Protocol
@@ -28,12 +27,8 @@
 - Bootstrap
 - Hyperliquid Build 3 Repair
 - load_json
-- append_csv
-- parse_leader_fill_row
 - HL_Copy_App_SSOT.py
 - test_g4_order_cap.py
-- self_test
-- .convergence_notional_for_fill
 - test_g4_fixed_slices.py
 - test_g4_ui_controls.py
 
@@ -64,27 +59,23 @@
 ## Import Cycles
 - None detected.
 
-## Communities (21 total, 4 thin omitted)
+## Communities (16 total, 3 thin omitted)
 
 ### Community 0 - "HL_Live_Copy_Service.py"
-Cohesion: 0.10
-Nodes (53): append_send_attempt(), attach_send_result(), clear_unresolved_send(), extract_ws_fills(), extract_ws_fills_with_meta(), fetch_live_fills_range(), fetch_live_fills_since(), fetch_public_executable_quote() (+45 more)
+Cohesion: 0.06
+Nodes (87): append_csv(), append_send_attempt(), atomic_write_json(), attach_send_result(), audit_notes_for_fill(), build_ws_health_snapshot(), classify_ignored_ws_message(), clear_unresolved_send() (+79 more)
 
-### Community 1 - "fnum"
-Cohesion: 0.20
-Nodes (12): adverse_diff_pct(), audit_reason_for_fill(), dry_run_intent_audit_decision(), executable_price_from_fill_payload(), fnum(), LeaderFill, LiveWalletConfig, Mutate the genuine post-baseline leader EVENT lineage for (wallet, coin). The… (+4 more)
+### Community 1 - "DryRunLiveCopyService"
+Cohesion: 0.06
+Nodes (38): adverse_diff_pct(), audit_reason_for_fill(), dry_run_intent_audit_decision(), DryRunLiveCopyService, event_authorised_desired_net(), executable_price_from_fill_payload(), fnum(), LeaderFill (+30 more)
 
-### Community 2 - "DedicatedLiveWSManager"
-Cohesion: 0.18
-Nodes (10): build_ws_health_snapshot(), DedicatedLiveWSManager, FixedModeAuthorityConflict, main(), Write health file before sockets open so every subscribed wallet has an entry., The intended fixed-mode target exposure cannot be proven from durable evidence., utc_now_ms(), write_ws_health() (+2 more)
+### Community 2 - "FixedModeAuthorityConflict"
+Cohesion: 0.50
+Nodes (3): FixedModeAuthorityConflict, The intended fixed-mode target exposure cannot be proven from durable evidence., Exception
 
 ### Community 3 - "exchange_truth.py"
 Cohesion: 0.07
 Nodes (35): _fill_key(), identity_ok(), list_perp_dexes(), master_account_net(), master_userfills(), master_userfills_all_dexes(), _match(), G3 EXCHANGE_TRUTH / SETTLEMENT seam (ruling B3-A2C-G2-PASS-G3-1). Read-only… (+27 more)
-
-### Community 4 - "DryRunLiveCopyService"
-Cohesion: 0.11
-Nodes (11): DryRunLiveCopyService, Release the in-flight reservation ONLY for its own intent and ONLY on a…, Clear an in-flight reservation ONLY from independent MASTER evidence (semantics…, NO-SEND recovery/baseline boundary: freeze UNATTRIBUTED_BASELINE[coin] =…, Semantics 6: before convergence may authorise a send, MASTER truth must…, Operator global control max_order_notional_usd, read from the EXISTING…, Explicit fail-closed status when a NEW ENTRY exceeds the operator cap, else "".…, READ-ONLY UI compatibility bridge (restored Build3 UI -> repaired engine). The… (+3 more)
 
 ### Community 5 - "Architecture Contract — Hyperliquid Build 3 Repair"
 Cohesion: 0.13
@@ -118,41 +109,29 @@ Nodes (4): Hyperliquid Build 3 Repair, Immediate state, Read order, Roles
 Cohesion: 0.14
 Nodes (31): _account_reconciliation_baseline_timestamp(), _archive_manual_reconciliation_ledger_row(), atomic_write_csv(), atomic_write_json(), backup_purge_files(), _build_account_reconciliation(), _earliest_real_order_filled_ms(), _fetch_exchange_account_snapshot() (+23 more)
 
-### Community 14 - "parse_leader_fill_row"
-Cohesion: 0.50
-Nodes (4): load_leader_fills(), parse_leader_fill_row(), parse_raw_json(), trade_delta_from_side()
-
 ### Community 15 - "HL_Copy_App_SSOT.py"
 Cohesion: 0.05
 Nodes (123): active_wallet(), active_wallet_row(), alignment_status_for_key(), _append_exchange_history(), _apply_price_model(), avg(), block(), block_num() (+115 more)
 
-### Community 17 - "self_test"
-Cohesion: 0.13
-Nodes (23): atomic_write_json(), audit_notes_for_fill(), classify_ignored_ws_message(), configure_paths(), count_csv_data_rows(), ensure_csv_header(), ensure_csv_schema(), ensure_dirs() (+15 more)
-
-### Community 22 - ".convergence_notional_for_fill"
-Cohesion: 0.11
-Nodes (13): event_authorised_desired_net(), proportional_sleeve_scale(), Persisted attributed fixed-sleeve magnitude for (wallet, coin) - EXISTING state…, A ledger entry is AUTHORITATIVE only when well formed AND side-consistent. -…, ONLY wallets with a VALID attributed sleeve ledger are released from the hold.…, Authoritative ACCOUNT-NET follower exposure (signed). G2 has no live plumbing…, Frozen unattributed (unowned) same-coin inventory. Attribution only - never…, Desired (event-authorised) vs ACCOUNT-NET actual -> the single safe next order. (+5 more)
-
 ## Knowledge Gaps
 - **31 isolated node(s):** `Product-preservation presumption`, `Objective`, `Known failure`, `Trading-authority precedence (Gate 1 freeze — Architect ruling `B3-A2C-GATE0-PASS-G1-1`)`, `Non-negotiable invariants` (+26 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **4 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **3 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `_post()` connect `get` to `exchange_truth.py`, `load_json`?**
   _High betweenness centrality (0.402) - this node is a cross-community bridge._
-- **Why does `DryRunLiveCopyService` connect `DryRunLiveCopyService` to `HL_Live_Copy_Service.py`, `fnum`, `DedicatedLiveWSManager`, `append_csv`, `self_test`, `.convergence_notional_for_fill`?**
+- **Why does `DryRunLiveCopyService` connect `DryRunLiveCopyService` to `HL_Live_Copy_Service.py`?**
   _High betweenness centrality (0.091) - this node is a cross-community bridge._
 - **Why does `_archive_manual_reconciliation_ledger_row()` connect `load_json` to `get`, `HL_Copy_App_SSOT.py`?**
   _High betweenness centrality (0.046) - this node is a cross-community bridge._
 - **What connects `Product-preservation presumption`, `Objective`, `Known failure` to the rest of the system?**
   _31 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `HL_Live_Copy_Service.py` be split into smaller, more focused modules?**
-  _Cohesion score 0.09935064935064936 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.061239731142643763 - nodes in this community are weakly interconnected._
+- **Should `DryRunLiveCopyService` be split into smaller, more focused modules?**
+  _Cohesion score 0.06383619391749473 - nodes in this community are weakly interconnected._
 - **Should `exchange_truth.py` be split into smaller, more focused modules?**
   _Cohesion score 0.06829268292682927 - nodes in this community are weakly interconnected._
-- **Should `DryRunLiveCopyService` be split into smaller, more focused modules?**
-  _Cohesion score 0.11083743842364532 - nodes in this community are weakly interconnected._

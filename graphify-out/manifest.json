@@ -5,8 +5,8 @@
     "semantic_hash": ""
   },
   "_archive/hl_stage2/HL_Live_Copy_Service.py": {
-    "mtime": 1791492246.4211524,
-    "ast_hash": "d77a051f4f432207e063ecab364bc299",
+    "mtime": 1791492798.2001462,
+    "ast_hash": "5aeb4e7879383d53b289d6d1ed8766b0",
     "semantic_hash": ""
   },
   "_archive/hl_stage2/convergence_shadow.py": {
@@ -65,17 +65,17 @@
     "semantic_hash": ""
   },
   "_archive/hl_stage2/hl_copy_output/app_model_state.json": {
-    "mtime": 1791492268.8727126,
-    "ast_hash": "fba46c840984cc95b9570ed1667a5e84",
+    "mtime": 1791494328.46676,
+    "ast_hash": "f951d096a5f7a4e1352439e65b8458c0",
     "semantic_hash": ""
   },
   "_archive/hl_stage2/hl_copy_output/equity_history.json": {
-    "mtime": 1791492268.8812208,
+    "mtime": 1791494328.4732969,
     "ast_hash": "58cc6b86f1e088c2f5fe5ec14c6f5615",
     "semantic_hash": ""
   },
   "_archive/hl_stage2/hl_copy_output/portfolio_history.json": {
-    "mtime": 1791492268.8762128,
+    "mtime": 1791494328.47026,
     "ast_hash": "a8434eb282c97ed9ba57443faa3b81a3",
     "semantic_hash": ""
   },
@@ -115,8 +115,13 @@
     "semantic_hash": ""
   },
   "_archive/hl_stage2/test_g4_order_cap.py": {
-    "mtime": 1791492252.734687,
-    "ast_hash": "113968ddbc256e158a11a0d65dbfd7ab",
+    "mtime": 1791492806.7643507,
+    "ast_hash": "d5b321d111c8454de4320080bbed805b",
+    "semantic_hash": ""
+  },
+  "_archive/hl_stage2/hl_copy_output/snapshots/2026-10-08_22-18-41_app_model_state.json": {
+    "mtime": 1791494321.9942026,
+    "ast_hash": "b3e9d3cdf563ebd8ed011f9700bbcf6e",
     "semantic_hash": ""
   }
 }
