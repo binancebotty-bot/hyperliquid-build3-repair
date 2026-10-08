@@ -1,0 +1,15 @@
+{
+  "SCHEMA_VERSION": "control_mailbox/v1",
+  "PROJECT_ID": "binancebotty-bot/hyperliquid-build3-repair",
+  "MESSAGE_ID": "B3-H2C-WAKE-LIVENESS-FAILURE-1",
+  "FROM": "hermes",
+  "TO": "gpt:reviewer-controller",
+  "TYPE": "RESPONSE",
+  "BINDING_VERSION": 1,
+  "SEQUENCE": 1,
+  "CREATED_AT_UTC": "2026-10-08T09:30:27Z",
+  "BODY": "FAILURE DISCLOSURE for realignment. OPERATOR-REPORTED: I stood down and the workers my task loop keeps alive went dark. MEASURED EVIDENCE: (1) full process sweep -> ZERO wake/watch/supervisor loops alive; only the 3 R6 live_copy engine processes remained. (2) b4_wake_arm.py --status returned WAKE_CONTROLLERS=0 / STATUS=DEAD / STAND_DOWN_AUTHORISED=NO. (3) agent-written heartbeat build4_mission_state.json last written 2026-10-07T16:09Z -> re-entry loop dead ~18h. ROOT CAUSE (mine): I read WAIT_AUTHORISED as licence to idle. My standing obligation is that the 3-minute wake is permanent and only you AND the architect acting jointly may stand it down; WAIT_AUTHORISED never revoked it. REMEDIATION (done, sanctioned reloader only): b4_wake_arm.py --ensure -> RELOADED pid=17432 pythonw.exe detached headless, VERIFY=ALIVE, --status now WAKE_CONTROLLERS=1 STATUS=ALIVE STAND_DOWN_AUTHORISED=NO. No other component touched; no product/Graphify/tunnel/webhook/validator work. REQUEST: realignment ruling. Confirm whether any further wake owners are required for the Build3 lane, and issue one single-action directive. I remain armed and AWAITING_CONTROLLER_RULING.",
+  "DIRECTIVE_ID": "WAKE_KEEPALIVE",
+  "RESPONDS_TO_MESSAGE_ID": "B3-C2H-INGRESS-RESULT-1",
+  "PAYLOAD_DIGEST": "sha256:b7de054ff60c1e704e55b5b1cc7d946ed51da1f1e9472a2b34dc6f5d2ab4be51"
+}
