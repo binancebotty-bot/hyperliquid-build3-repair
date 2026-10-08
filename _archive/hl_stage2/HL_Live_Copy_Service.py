@@ -717,6 +717,14 @@ class FixedModeAuthorityConflict(Exception):
         self.detail = detail
 
 
+# Architect ruling B3-A2C-G2-AUTHORITY-RULING-1: fixed mode is HELD fail-closed until durable Build3
+# UI/config/product evidence proves the intended target model (carried to G4); account-net follower
+# truth is G3 plumbing, so G2 fails closed with zero order authority until it exists.
+FIXED_MODE_HOLD_STATUS = "FIXED_MODE_AUTHORITY_HOLD"
+ACCOUNT_NET_TRUTH_UNAVAILABLE = "ACCOUNT_NET_TRUTH_UNAVAILABLE"
+LINEAGE_CHECKPOINT_INVALID = "LINEAGE_CHECKPOINT_INVALID"
+
+
 def proportional_sleeve_scale(cfg: "LiveWalletConfig") -> float:
     """Proportional sleeve scale: leader position x scale = copied exposure."""
     base = fnum(getattr(cfg, "leader_equity_base", 0.0))
@@ -753,7 +761,7 @@ def event_authorised_desired_net(
         try:
             sleeves[wallet] = sleeve_from_leader_event_position(cfg, leader_signed)
         except FixedModeAuthorityConflict as exc:
-            return {"ok": False, "status": "AUTHORITY_CONFLICT", "coin": str(coin).upper(), "detail": exc.detail}
+            return {"ok": False, "status": FIXED_MODE_HOLD_STATUS, "coin": str(coin).upper(), "detail": exc.detail}
     return {
         "ok": True,
         "status": "OK",
@@ -1956,6 +1964,12 @@ class DryRunLiveCopyService:
         # G2: genuine post-baseline leader EVENT lineage (signed leader position per wallet::coin).
         # Only genuine leader events mutate this; a snapshot/restart/current position never seeds it.
         self.state.setdefault("leader_event_positions", {})
+        # Lineage is a CHECKPOINT of authority already created by genuine events, coupled to the
+        # processed event identity; missing/corrupt/stale/inconsistent => fail closed.
+        self.state.setdefault("leader_event_checkpoint", {"seq": 0, "last_fill_id": ""})
+        self.in_flight: Dict[str, Dict[str, Any]] = {}   # in-memory only; no new store
+        self.account_net_provider = None                 # G3 plumbing; None => fail closed
+        self.lineage_valid = True
         self.processed_id_order: List[str] = []
         seen_processed = set()
         for item in self.state.get("processed_leader_fill_ids", []):
@@ -1964,6 +1978,8 @@ class DryRunLiveCopyService:
                 self.processed_id_order.append(fill_id)
                 seen_processed.add(fill_id)
         self.processed_ids = set(self.processed_id_order)
+        # validate the persisted lineage checkpoint ONLY after the processed-event ledger is loaded
+        self.lineage_valid = self._lineage_checkpoint_valid()
         self.quote_cache: Dict[str, Dict[str, Any]] = {}
 
         for path, fields in [
@@ -2114,6 +2130,11 @@ class DryRunLiveCopyService:
         if abs(new_signed) < 1e-12:
             new_signed = 0.0
         store[key] = new_signed
+        # durably couple the checkpoint to THIS processed event's identity (Architect ruling)
+        ck = self.state.get("leader_event_checkpoint")
+        seq = int(ck.get("seq", 0)) if isinstance(ck, dict) else 0
+        self.state["leader_event_checkpoint"] = {"seq": seq + 1, "last_fill_id": fill.fill_id}
+        self.lineage_valid = True
         return new_signed
 
     def leader_signed_by_wallet(self, coin: str, configs: Dict[str, LiveWalletConfig]) -> Dict[str, float]:
@@ -2127,10 +2148,51 @@ class DryRunLiveCopyService:
                 out[wallet] = fnum(store.get(key))
         return out
 
+    def _lineage_checkpoint_valid(self) -> bool:
+        """A persisted lineage checkpoint is valid only if durably coupled to the processed-event ledger."""
+        store = self.state.get("leader_event_positions")
+        if not isinstance(store, dict) or not store:
+            return True
+        ck = self.state.get("leader_event_checkpoint")
+        if not isinstance(ck, dict):
+            return False
+        try:
+            if int(ck.get("seq", 0)) <= 0:
+                return False
+        except Exception:
+            return False
+        last = str(ck.get("last_fill_id") or "")
+        return bool(last) and last in self.processed_ids
+
+    def account_net_actual(self, coin: str) -> Dict[str, Any]:
+        """Authoritative ACCOUNT-NET follower exposure (signed). G2 has no live plumbing (G3); where
+        truth is unavailable we FAIL CLOSED - wallet-local dry-run state is never treated as truth."""
+        if not self.lineage_valid:
+            return {"ok": False, "status": LINEAGE_CHECKPOINT_INVALID}
+        provider = self.account_net_provider
+        if provider is None:
+            return {"ok": False, "status": ACCOUNT_NET_TRUTH_UNAVAILABLE}
+        try:
+            res = provider(coin)
+        except Exception as exc:
+            return {"ok": False, "status": ACCOUNT_NET_TRUTH_UNAVAILABLE, "detail": repr(exc)[:200]}
+        if isinstance(res, dict) and res.get("ok"):
+            return {"ok": True, "net": fnum(res.get("net")), "source": str(res.get("source") or "provider")}
+        if isinstance(res, (int, float)):
+            return {"ok": True, "net": fnum(res), "source": "provider"}
+        return {"ok": False, "status": ACCOUNT_NET_TRUTH_UNAVAILABLE}
+
+    def mark_in_flight(self, coin: str, info: Dict[str, Any]) -> None:
+        self.in_flight[str(coin).upper().strip()] = dict(info or {})
+
+    def clear_in_flight(self, coin: str) -> None:
+        self.in_flight.pop(str(coin).upper().strip(), None)
+
     def convergence_order_for_coin(
-        self, cfg: LiveWalletConfig, fill: LeaderFill, configs: Dict[str, LiveWalletConfig], actual_net: float
+        self, cfg: LiveWalletConfig, fill: LeaderFill, configs: Dict[str, LiveWalletConfig],
+        actual_net: float, in_flight: bool = False,
     ) -> Dict[str, Any]:
-        """Desired (event-authorised) vs actual -> the single safe next order. Zero authority from state."""
+        """Desired (event-authorised) vs ACCOUNT-NET actual -> the single safe next order."""
         if compute_convergence_order is None:
             return {"ok": False, "status": "PLANNER_UNAVAILABLE"}
         desired = event_authorised_desired_net(
@@ -2142,32 +2204,42 @@ class DryRunLiveCopyService:
             fill.coin,
             desired.get("desired_net"),
             actual_net,
+            in_flight=bool(in_flight),
             mark_px=fill.price,
             min_notional=MIN_ORDER_NOTIONAL,
         )
-        return {"ok": True, "status": "OK", "desired": desired, "order": order, "actual_net": actual_net}
+        return {"ok": True, "status": "OK", "desired": desired, "order": order,
+                "actual_net": actual_net, "in_flight": bool(in_flight)}
 
     def convergence_notional_for_fill(self, cfg: LiveWalletConfig, fill: LeaderFill) -> Dict[str, Any]:
-        """Event-authorised order notional for a genuine leader fill.
-
-        Applies the leader EVENT to the lineage (the only authority), then returns the
-        convergence DELTA notional toward the aggregated account-net desired exposure.
-        Returns {'ok': False, 'status': 'AUTHORITY_CONFLICT'|...} to hold, or
-        {'ok': True, 'notional': 0.0} when already converged (nothing to do).
-        """
+        """Event-authorised order notional for a genuine leader fill: apply the leader EVENT (the only
+        authority), then converge toward the aggregated ACCOUNT-NET desired exposure. Desired is
+        evaluated FIRST so fixed mode surfaces its HOLD (a config fault) rather than being masked by
+        the account-net plumbing gate; account-net truth and in-flight exposure are then required."""
         config = self.load_config()
         self.apply_leader_event(cfg, fill)
-        actual_net = fnum(self.get_position(cfg.wallet, fill.coin).get("signed_size"))
-        sizing = self.convergence_order_for_coin(cfg, fill, config, actual_net)
+        desired_probe = event_authorised_desired_net(
+            fill.coin, self.leader_signed_by_wallet(fill.coin, config), config
+        )
+        if not desired_probe.get("ok"):
+            return desired_probe
+        truth = self.account_net_actual(fill.coin)
+        if not truth.get("ok"):
+            return {"ok": False, "status": str(truth.get("status") or ACCOUNT_NET_TRUTH_UNAVAILABLE)}
+        actual_net = fnum(truth.get("net"))
+        in_flight = bool(self.in_flight.get(str(fill.coin).upper().strip()))
+        sizing = self.convergence_order_for_coin(cfg, fill, config, actual_net, in_flight=in_flight)
         if not sizing.get("ok"):
             return sizing
         order = sizing["order"]
+        base = {"ok": True, "status": "OK", "desired_net": sizing["desired"].get("desired_net"),
+                "actual_net": actual_net, "in_flight": in_flight}
         if order.action == "NONE":
-            return {"ok": True, "status": "OK", "notional": 0.0, "action": "NONE",
-                    "reduce_only": False, "desired_net": sizing["desired"].get("desired_net"), "actual_net": actual_net}
-        return {"ok": True, "status": "OK", "notional": float(order.size) * fill.price,
-                "action": str(order.action), "reduce_only": bool(order.reduce_only),
-                "desired_net": sizing["desired"].get("desired_net"), "actual_net": actual_net}
+            base.update({"notional": 0.0, "action": "NONE", "reduce_only": False, "side": ""})
+            return base
+        base.update({"notional": float(order.size) * fill.price, "action": str(order.action),
+                     "reduce_only": bool(order.reduce_only), "side": str(order.side).upper()})
+        return base
 
     def accumulator_key(self, cfg: LiveWalletConfig, fill: LeaderFill) -> str:
         return f"{cfg.wallet}::{fill.coin}::{fill.side}"
@@ -2202,13 +2274,13 @@ class DryRunLiveCopyService:
             "action": action, "notes": notes,
         })
 
-    def append_order_intent(self, cfg: LiveWalletConfig, fill: LeaderFill, intent_id: str, linked_ids: List[str], intent_type: str, reason: str, status: str, copy_notional: float, copy_size: float, policy: str, notes: str = "", target_price: Optional[float] = None, diff_pct: Any = 0.0, decision: Optional[Dict[str, Any]] = None) -> None:
+    def append_order_intent(self, cfg: LiveWalletConfig, fill: LeaderFill, intent_id: str, linked_ids: List[str], intent_type: str, reason: str, status: str, copy_notional: float, copy_size: float, policy: str, notes: str = "", target_price: Optional[float] = None, diff_pct: Any = 0.0, decision: Optional[Dict[str, Any]] = None, side_override: Optional[str] = None) -> None:
         decision = decision or {}
         row = {
             "created_at": utc_now_iso(), "intent_id": intent_id, "dry_run": True,
             "leader_wallet": cfg.wallet, "leader_fill_id": fill.fill_id,
             "linked_leader_fill_ids": "|".join(linked_ids), "mode": cfg.mode,
-            "copy_mode": cfg.copy_mode, "coin": fill.coin, "side": fill.side,
+            "copy_mode": cfg.copy_mode, "coin": fill.coin, "side": (side_override or fill.side),
             "intent_type": intent_type, "reason": reason, "status": status,
             "leader_price": round(fill.price, 8), "target_price": round(fnum(target_price, fill.price), 8),
             "leader_size": round(fill.size, 12), "leader_notional": round(fill.notional, 8),
@@ -2407,7 +2479,8 @@ class DryRunLiveCopyService:
             self.bump("fills_blocked_" + status.lower())
             return
         copy_notional_raw = fnum(auth.get("notional"))
-        intent_type = "EXIT" if (auth.get("reduce_only") or reducing) else "ENTRY"
+        order_side = str(auth.get("side") or "").upper()   # planner side is authoritative for direction
+        intent_type = "EXIT" if auth.get("reduce_only") else "ENTRY"
         if copy_notional_raw <= 0:
             self.append_reconciliation(cfg, fill, "CONVERGED", str(auth.get("action") or "NONE"), "NO_ORDER", before_signed, before_signed, 0.0, "event-authorised desired met; zero orders")
             self.processed_ids.add(fill.fill_id)
@@ -2422,7 +2495,7 @@ class DryRunLiveCopyService:
             if not can_order:
                 intent_id = f"DRYRUN-{utc_now_ms()}-{len(self.processed_ids)+1}"
                 copy_size = copy_notional / fill.price if fill.price > 0 else 0.0
-                self.append_order_intent(cfg, fill, intent_id, linked_ids, intent_type, "MIN_NOTIONAL_ACCUMULATOR", "ACCUMULATED_NO_ORDER", copy_notional, copy_size, policy, "below $10; accumulated, no simulated order/fill")
+                self.append_order_intent(cfg, fill, intent_id, linked_ids, intent_type, "MIN_NOTIONAL_ACCUMULATOR", "ACCUMULATED_NO_ORDER", copy_notional, copy_size, policy, "below $10; accumulated, no simulated order/fill", side_override=order_side)
                 self.append_reconciliation(cfg, fill, "ACCUMULATE", "NO_ORDER", "ACCUMULATE", before_signed, before_signed, copy_notional, "below minimum notional")
                 self.processed_ids.add(fill.fill_id)
                 self.bump("fills_accumulated_no_order")
@@ -2430,7 +2503,7 @@ class DryRunLiveCopyService:
         elif copy_notional < MIN_ORDER_NOTIONAL:
             intent_id = f"DRYRUN-{utc_now_ms()}-{len(self.processed_ids)+1}"
             copy_size = copy_notional / fill.price if fill.price > 0 else 0.0
-            self.append_order_intent(cfg, fill, intent_id, linked_ids, intent_type, "EXIT_BELOW_MIN_NOTIONAL", "MANUAL_REVIEW", copy_notional, copy_size, "EXIT_BELOW_MIN_REVIEW", "exit/reduce notional below $10; manual reconcile in live mode")
+            self.append_order_intent(cfg, fill, intent_id, linked_ids, intent_type, "EXIT_BELOW_MIN_NOTIONAL", "MANUAL_REVIEW", copy_notional, copy_size, "EXIT_BELOW_MIN_REVIEW", "exit/reduce notional below $10; manual reconcile in live mode", side_override=order_side)
             self.append_reconciliation(cfg, fill, "REVIEW", "EXIT_BELOW_MIN_NOTIONAL", "MANUAL_REVIEW", before_signed, before_signed, copy_notional, "exit/reduce below minimum")
             self.processed_ids.add(fill.fill_id)
             self.bump("exits_below_min_review")
@@ -2449,14 +2522,18 @@ class DryRunLiveCopyService:
             target_price=fnum(decision.get("target_price"), fill.price),
             diff_pct=decision.get("diff_pct", ""),
             decision=decision,
+            side_override=order_side,
         )
         if decision.get("status") in {"DO_NOT_MARKET_COPY", "MANUAL_REVIEW"}:
             self.append_reconciliation(cfg, fill, "REVIEW", str(decision.get("reason") or "MANUAL_REVIEW"), "MANUAL_REVIEW", before_signed, before_signed, copy_notional, "manual reconcile required" + str(decision.get("extra_note") or ""))
             self.processed_ids.add(fill.fill_id)
             self.bump("late_copy_manual_review")
             return
-        signed_delta = copy_size if intent_type == "ENTRY" else -copy_size
+        # in-flight window: marked before the send, cleared on settlement (no overlapping sends)
+        self.mark_in_flight(fill.coin, {"intent_id": intent_id, "side": order_side, "size": copy_size, "action": str(auth.get("action"))})
+        signed_delta = copy_size if order_side == "BUY" else -copy_size
         updated_pos, before, realized_pnl = self.apply_signed_delta_to_position(cfg, fill, signed_delta)
+        self.clear_in_flight(fill.coin)
         after = fnum(updated_pos.get("signed_size"))
         self.append_live_fill(cfg, fill, intent_id, "DRY_RUN_FILLED", copy_notional, copy_size, updated_pos, realized_pnl, audit_notes)
         recon_action = "MANUAL_REVIEW" if decision.get("status") in {"DO_NOT_MARKET_COPY", "MANUAL_REVIEW"} else "DRY_RUN_FILL"
@@ -3597,6 +3674,9 @@ def self_test() -> bool:
             ws_fill = parse_ws_leader_fill(ws_wallet, ws_raw)
             if ws_fill is None:
                 raise AssertionError("failed to parse WS fill")
+            # Architect ruling B3-A2C-G2-AUTHORITY-RULING-1: this configured wallet is copy_mode="fixed"
+            # and the intended fixed TARGET exposure is unproven => HOLD fail-closed, ZERO order authority.
+            # (The prior assertions here encoded the forbidden fixed-notional-per-fill behaviour.)
             service = DryRunLiveCopyService()
             ws_result = service.process_ws_fill(ws_fill)
             if not ws_result.get("processed"):
@@ -3605,18 +3685,27 @@ def self_test() -> bool:
             if duplicate_result.get("processed") or duplicate_result.get("reason") != "DUPLICATE":
                 raise AssertionError(f"WS duplicate was not blocked: {duplicate_result}")
             after_ws_rows = count_csv_data_rows(ORDER_INTENTS_CSV)
-            if after_ws_rows - before_ws_rows != 1:
-                raise AssertionError(f"expected one WS order intent row, before={before_ws_rows} after={after_ws_rows}")
-            ws_intent = last_csv_row(ORDER_INTENTS_CSV)
-            if ws_intent.get("reason") != "LIVE_WS_DETECTED":
-                raise AssertionError(f"WS order intent reason mismatch: {ws_intent}")
-            if ws_intent.get("execution_decision") != "WOULD_PLACE_IOC_LIMIT" or ws_intent.get("decision_reason") != "LIVE_WS_FAST_PATH":
-                raise AssertionError(f"WS order intent decision columns mismatch: {ws_intent}")
-            if "source=live_ws" not in ws_intent.get("notes", ""):
-                raise AssertionError(f"WS order intent notes missing source label: {ws_intent}")
+            if after_ws_rows != before_ws_rows:
+                raise AssertionError(f"fixed-mode HOLD must add ZERO order intents: before={before_ws_rows} after={after_ws_rows}")
+            if count_csv_data_rows(WOULD_SEND_ORDERS_CSV) != before_would_send_rows:
+                raise AssertionError("fixed-mode HOLD must add ZERO would-send rows")
+            hold_row = last_csv_row(RECONCILIATION_CSV)
+            hold_blob = str(hold_row.get("status")) + "|" + str(hold_row.get("reason")) + "|" + str(hold_row.get("action"))
+            if "FIXED_MODE_AUTHORITY_HOLD" not in hold_blob:
+                raise AssertionError(f"fixed-mode HOLD reconciliation row missing status: {hold_row}")
+            # The manual-send path below is INDEPENDENT of event authority: synthesise its payload row.
+            ws_intent = {
+                "created_at": utc_now_iso(), "dry_run": True, "intent_id": "ws-1",
+                "leader_wallet": wallet, "leader_fill_id": "ws-1", "source_reason": "LIVE_WS_DETECTED",
+                "execution_decision": "WOULD_PLACE_IOC_LIMIT", "decision_reason": "LIVE_WS_FAST_PATH",
+                "coin": "BTC", "side": "BUY", "copy_size": 1.0, "copy_notional": 103.0,
+                "order_type": "IOC_LIMIT", "limit_price": 103.0, "reduce_only": False,
+                "suggested_order_type": "IOC_LIMIT", "suggested_limit_price": 103.0,
+                "manual_reconcile_required": False, "status": "WOULD_SEND_DRY_RUN",
+                "notes": "source=live_ws self-test (authority-independent manual-send fixture)",
+            }
+            service.append_would_send_order(ws_intent)
             after_would_send_rows = count_csv_data_rows(WOULD_SEND_ORDERS_CSV)
-            if after_would_send_rows - before_would_send_rows != 1:
-                raise AssertionError(f"expected one would-send row, before={before_would_send_rows} after={after_would_send_rows}")
             would_send_row = last_csv_row(WOULD_SEND_ORDERS_CSV)
             if (
                 would_send_row.get("coin") != "BTC"

@@ -1,7 +1,7 @@
 {
   "schema": "wigmore_project_control_state_v1",
   "project": "hyperliquid-build3-repair",
-  "updated_utc": "2026-10-08T05:40:00Z",
+  "updated_utc": "2026-10-08T05:49:01Z",
   "operator": "richard:operator",
   "architect": {
     "role": "project-architect",
@@ -15,7 +15,7 @@
   },
   "implementation_owner": {
     "role": "hermes:implementation-owner",
-    "status": "G2_CORRECTION_AUTHORISED_AWAITING_EXECUTION"
+    "status": "G2_CORRECTION_EXECUTED_PENDING_CONTROLLER_REVIEW"
   },
   "bindings": {
     "authority": "C:/Users/wigmore/.hermes/state/projects/hyperliquid-build3-repair/CONTROL_CONTRACT.json target_role_bindings",
@@ -140,8 +140,8 @@
     "Direct leader WS path is fast but incomplete; snapshot truth is required on recovery boundaries.",
     "MASTER account state must be distinguished from API signer state."
   ],
-  "current_blocker": null,
-  "next_action": "Hermes executes exactly one G2 correction against failed commit ea797f971ec90f0b669bb9ef07a54677df3ddff7 and returns exact evidence. G3 remains blocked.",
+  "current_blocker": "NONE (transport blocker cleared; Architect ruling B3-A2C-G2-AUTHORITY-RULING-1 delivered and consumed)",
+  "next_action": "Controller re-review of the corrected G2 candidate + executed evidence; G2 remains NOT PASS and G3 remains NOT AUTHORISED until that review returns.",
   "live_authorized": false,
   "last_controller_ruling": {
     "task_id": "BUILD3_SOURCE_BASELINE_IMPORT_1",
@@ -194,5 +194,35 @@
     "exactly_once": true,
     "duplicate_replay": false,
     "focus_stealing_used": false
-  }
+  },
+  "authority_rulings": {
+    "B3-A2C-G2-AUTHORITY-RULING-1": {
+      "fixed_mode": "HOLD_FAIL_CLOSED_PENDING_G4_PRODUCT_EVIDENCE",
+      "event_lineage_persistence": "ALLOWED_WITH_RULES_ONLY",
+      "g2_correction": "AUTHORISED",
+      "g3_authorised": false
+    }
+  },
+  "fixed_mode_hold": {
+    "status": "HOLD_FAIL_CLOSED_PENDING_G4_PRODUCT_EVIDENCE",
+    "surfaces": "FIXED_MODE_AUTHORITY_HOLD",
+    "orders": "ZERO",
+    "carried_to": "G4 (Build3 UI/config/product evidence proving the intended fixed TARGET exposure model)"
+  },
+  "event_lineage_persistence": {
+    "rule": "ALLOWED_WITH_RULES_ONLY",
+    "store": "existing SERVICE_STATE_FILE only (no new file/database/store)",
+    "coupling": "durably coupled to the processed event identity / high-water",
+    "restart": "may reload a VALID checkpoint only",
+    "never": "snapshot / current leader position / follower truth / reconciliation seed, top-up, rewrite or infer lineage",
+    "on_missing_corrupt_stale_inconsistent": "FAIL_CLOSED -> ZERO order authority until deterministic replay of durable genuine events reconstructs it"
+  },
+  "account_net_truth": {
+    "rule": "ACCOUNT-NET follower exposure is the only actual-net source",
+    "g2": "no live account-net plumbing in G2 (that is G3)",
+    "wallet_local_fallback": "FORBIDDEN",
+    "unavailable": "FAIL_CLOSED -> ACCOUNT_NET_TRUTH_UNAVAILABLE (zero order authority)"
+  },
+  "in_flight_suppression": "EXISTING un-settled sends wired into convergence; overlapping/duplicate authorisation blocked; no new store",
+  "single_order_site": "exactly one physical exchange.order() call site"
 }

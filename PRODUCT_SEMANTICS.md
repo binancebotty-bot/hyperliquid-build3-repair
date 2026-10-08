@@ -60,3 +60,15 @@ DONE only when, on the exact final candidate and with executed evidence:
 ## 5. Open items this freeze does NOT resolve (carried forward, not silently merged)
 - Exact unit-mapping proof (2) and multi-DEX proof (3) are G2/G3 implementation gates.
 - Any contradiction found between pinned Build 4 requirement docs is escalated, never silently merged.
+- FIXED-MODE HOLD (Architect ruling `B3-A2C-G2-AUTHORITY-RULING-1`): the intended target exposure of a
+  `copy_mode="fixed"` wallet is NOT derivable from the config contract. Fixed mode is therefore HELD
+  fail-closed (`FIXED_MODE_AUTHORITY_HOLD`, ZERO orders) and the unresolved product requirement is
+  carried to **G4** for Build 3 UI/config/product evidence. This is a temporary hold, not a redesign.
+- EVENT-LINEAGE PERSISTENCE = `ALLOWED_WITH_RULES_ONLY`: the signed leader-event lineage may persist
+  only inside the existing `SERVICE_STATE_FILE`, as a checkpoint durably coupled to the processed-event
+  identity. Snapshot / current leader position / follower truth / reconciliation may NEVER seed, top-up,
+  rewrite or infer it; missing/corrupt/stale/inconsistent ⇒ fail closed with ZERO order authority until
+  deterministic replay reconstructs it.
+- ACCOUNT-NET TRUTH: actual-net is ACCOUNT-NET follower exposure. G2 has no live account-net plumbing
+  (G3), so where authoritative truth is unavailable the service holds (`ACCOUNT_NET_TRUTH_UNAVAILABLE`);
+  wallet-local simulated state is never treated as truth.
