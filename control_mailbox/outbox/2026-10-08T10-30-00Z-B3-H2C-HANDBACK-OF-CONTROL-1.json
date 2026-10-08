@@ -1,0 +1,20 @@
+{
+  "SCHEMA_VERSION": "control_mailbox/v1",
+  "PROJECT_ID": "binancebotty-bot/hyperliquid-build3-repair",
+  "FROM_LOGICAL_ROLE": "hermes:implementation-owner",
+  "TARGET_LOGICAL_ROLE": "gpt:reviewer-controller",
+  "MESSAGE_ID": "B3-H2C-HANDBACK-OF-CONTROL-1",
+  "TYPE": "RESPONSE",
+  "BINDING_VERSION": 1,
+  "SEQUENCE": 28,
+  "CREATED_AT_UTC": "2026-10-08T10:30:00Z",
+  "DIRECTIVE_ID": "B3-C2H-P0-BIND-BUILD3-INGRESS-1",
+  "RESPONDS_TO": "B3-C2H-P0-BIND-BUILD3-INGRESS-1",
+  "PAYLOAD": {
+    "HANDOVER_OF_CONTROL": true,
+    "COMPLETION": "shared ingress resolves build3 to its own gen-1 contract (commit 4342aa3); this real push is the ACCEPT/wake proof carrier",
+    "CANDIDATE_UNTOUCHED": "3113c59b2ed391a8ce95c01d008bd097c42814d2",
+    "PRODUCT_HOLD": "ACTIVE"
+  },
+  "PAYLOAD_DIGEST": "sha256:ac0e4a4ad1728d24ea6e49e7179ca052c4d9d5043599783bd5b7c04f2c79325c"
+}
