@@ -1,11 +1,11 @@
 {
   "schema": "wigmore_project_control_state_v1",
   "project": "hyperliquid-build3-repair",
-  "updated_utc": "2026-10-08T07:34:00Z",
+  "updated_utc": "2026-10-08T07:47:00Z",
   "operator": "richard:operator",
   "architect": {
     "role": "project-architect",
-    "status": "ARCHITECT_REVIEW_REQUIRED_G3_TRIPWIRE",
+    "status": "G3_TECHNICAL_FAIL_PENDING_TRANSPORT_AND_ARCHITECT",
     "wake_mode": "EVENT_DRIVEN_ONLY"
   },
   "controller": {
@@ -15,7 +15,7 @@
   },
   "implementation_owner": {
     "role": "hermes:implementation-owner",
-    "status": "G3_CANDIDATE_HELD_FOR_SCOPE_RULING"
+    "status": "G3_CANDIDATE_FROZEN_NO_PATCH_AUTHORITY"
   },
   "bindings": {
     "authority": "C:/Users/wigmore/.hermes/state/projects/hyperliquid-build3-repair/CONTROL_CONTRACT.json target_role_bindings",
@@ -46,7 +46,7 @@
   "current_gate": {
     "task_id": "BUILD3_G3_EXCHANGE_TRUTH_RECOVERY_SETTLEMENT",
     "gate": "G3_EXCHANGE_TRUTH_RECOVERY_SETTLEMENT",
-    "status": "SCOPE_TRIPWIRE_EXCEEDED_AWAITING_ARCHITECT",
+    "status": "G3_FINAL_REVIEW_FAIL_MD_P0_HOLD",
     "architect_ruling": {
       "message_id": "B3-A2C-G3-AUTHORITY-SCOPE-RULING-1",
       "verdict": "G3_AUTHORITY_SCOPE_RESOLVED_CORRECTION_AUTHORISED",
@@ -98,20 +98,28 @@
       "Graphify refreshed after implementation."
     ],
     "controller_adjudication": {
-      "verdict": "HOLD_NOT_REVIEWED_FOR_PASS",
-      "candidate_commit": "3113c59b2ed391a8ce95c01d008bd097c42814d2",
-      "scope_base": "606d32e2f449c545fed1e7f9a9a1cb2fa5c409d2",
-      "authoritative_numstat": {
-        "_archive/hl_stage2/HL_Live_Copy_Service.py": "+218/-2",
-        "_archive/hl_stage2/exchange_truth.py": "+204/-0"
-      },
-      "gross_production_additions": 422,
-      "authorised_ceiling": 400,
-      "overrun": 22,
+      "verdict": "FAIL",
+      "candidate": "3113c59b2ed391a8ce95c01d008bd097c42814d2",
+      "scope_accepted_by_architect": true,
+      "accepted_gross_additions": 422,
       "production_files": 2,
-      "production_files_limit": 2,
-      "order_call_sites_reported": 1,
-      "note": "Hermes reported 454 by summing per-version gross additions. Architect counting rule is direct cumulative git diff --numstat from G2 base; authoritative total is 422."
+      "order_call_sites": 1,
+      "exact_remaining_blocker": {
+        "id": "DURABLE_IN_FLIGHT_STATE_CLOBBER",
+        "summary": "persist_unresolved_send/attach_send_result/clear_unresolved_send mutate SERVICE_STATE_FILE via independent reload/write, but the active DryRunLiveCopyService retains an older self.state. process_ws_fill and run_once call self.persist() after process_fill, rewriting SERVICE_STATE_FILE from stale self.state and potentially erasing in_flight_unresolved and settlement checkpoint updates created during the send.",
+        "evidence": [
+          "manual_send_one_intent persists unresolved send before send_hyperliquid_order using persist_unresolved_send().",
+          "persist_unresolved_send writes SERVICE_STATE_FILE through _state_write(), not through the active service object's self.state.",
+          "process_ws_fill calls self.process_fill(fill,cfg) and then self.persist().",
+          "run_once processes fills then calls self.persist().",
+          "persist() writes SERVICE_STATE_FILE from self.state without merging current on-disk in_flight_unresolved.",
+          "Therefore any unresolved/partial/unknown real-send reservation written during process_fill can be clobbered before crash/restart recovery relies on it."
+        ],
+        "impact": "A real order may remain unsettled while the durable blocker is erased. Restart can then load no unresolved reservation and re-authorise overlapping/duplicate exposure, violating G3 IN_FLIGHT_RECOVERY_RULE and SETTLEMENT_LIFECYCLE_RULE."
+      },
+      "graphify_note": "Current graphify-out/GRAPH_REPORT.md at candidate is also stale (built_from=1f5cc723), but that is evidence-only and deferred until the production blocker is resolved; it is not the substantive G3 blocker.",
+      "md_p0_transport_hold": true,
+      "g4_authorised": false
     },
     "required_corrections": [
       "Initialise production MASTER truth from HL_LIVE_HL_ACCOUNT_ADDRESS and signing identity derived from configured private key/Account; identities must be valid and distinct; no arbitrary production account_net provider fallback.",
@@ -146,8 +154,8 @@
     "Direct leader WS path is fast but incomplete; snapshot truth is required on recovery boundaries.",
     "MASTER account state must be distinguished from API signer state."
   ],
-  "current_blocker": "G3 candidate 3113c59 exceeds authorised cumulative gross production additions by 22 lines (422 > 400). Candidate preserved; no pass review until Architect scope ruling.",
-  "next_action": "Architect rules whether to accept exact cumulative 422 as a one-gate exception or require trim to <=400. Hermes makes no further production changes until correlated ruling.",
+  "current_blocker": "DURABLE_IN_FLIGHT_STATE_CLOBBER on locked candidate 3113c59. No patch authority under Architect 422 lock; Build3 product progression also held by MD P0 until P1-P8.",
+  "next_action": "After P1-P8 event-push transport certification, Architect must consume the exact G3 blocker and explicitly authorise the minimal correction scope before Hermes changes production. Until then preserve 3113c59 unchanged.",
   "live_authorized": false,
   "last_controller_ruling": {
     "task_id": "BUILD3_SOURCE_BASELINE_IMPORT_1",
