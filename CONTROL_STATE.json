@@ -1,11 +1,11 @@
 {
   "schema": "wigmore_project_control_state_v1",
   "project": "hyperliquid-build3-repair",
-  "updated_utc": "2026-10-08T05:55:00Z",
+  "updated_utc": "2026-10-08T06:01:00Z",
   "operator": "richard:operator",
   "architect": {
     "role": "project-architect",
-    "status": "ARCHITECT_REVIEW_REQUIRED_G2_SCOPE",
+    "status": "G2_FINAL_CORRECTION_AUTHORISED",
     "wake_mode": "EVENT_DRIVEN_ONLY"
   },
   "controller": {
@@ -15,7 +15,7 @@
   },
   "implementation_owner": {
     "role": "hermes:implementation-owner",
-    "status": "G2_FAILED_AWAITING_SCOPE_RULING"
+    "status": "G2_FINAL_CORRECTION_AUTHORISED_AWAITING_EXECUTION"
   },
   "bindings": {
     "authority": "C:/Users/wigmore/.hermes/state/projects/hyperliquid-build3-repair/CONTROL_CONTRACT.json target_role_bindings",
@@ -45,7 +45,7 @@
   },
   "current_gate": {
     "task_id": "BUILD3_G2_CORE_BUILD3_COPY_CORRECTNESS_REFACTOR",
-    "status": "CONTROLLER_FAIL_ARCHITECT_REVIEW_REQUIRED",
+    "status": "FINAL_CORRECTION_REQUIRED",
     "purpose": "Remove blind fixed-notional-per-fill authority and implement event-authorised desired exposure feeding the existing convergence planner and single sender.",
     "writes_authorized": true,
     "production_logic_changes_authorized": true,
@@ -97,12 +97,11 @@
       "g3_authorised": false
     },
     "required_corrections": [
-      "Use account-net follower exposure semantics; where authoritative live account-net truth is unavailable in G2, fail closed rather than use wallet-local state.",
-      "Preserve planner order.side exactly through intent, dry-run state and live-send path; never derive send direction from leader event side.",
-      "Wire existing in-flight exposure into convergence/effective-actual so duplicate/overlapping sends cannot be authorised.",
-      "Keep exactly one physical .order() call site.",
-      "Fixed mode must fail closed as FIXED_MODE_AUTHORITY_HOLD with zero order.",
-      "Persist event lineage only under the Architect checkpoint rules inside existing SERVICE_STATE_FILE."
+      "Planner-derived side and reduce_only must remain authoritative through audit, would-send, manual/auto-send and CLO gating.",
+      "Planner/account-net action must outrank leader fill.side and wallet-local reducing heuristics.",
+      "manual_send_one_intent must not overwrite planner direction from local manual position.",
+      "In-flight must be established before any exchange.order authority can execute and must not be cleared merely because dry-run/local mutation completed.",
+      "CLO must decide from planner/account-net reduction semantics, not wallet-local/leader-side heuristics."
     ],
     "acceptance": [
       "Proportional repeated ADD/reduce/close/opposite-direction behaviour passes.",
@@ -115,7 +114,20 @@
       "Exactly one physical order call site remains.",
       "Cumulative production scope remains within <=2 files and <=260 genuinely new LOC from frozen baseline.",
       "Graphify refreshed after correction."
-    ]
+    ],
+    "scope_exception": {
+      "ruling_message": "B3-A2C-G2-SCOPE-RULING-2",
+      "one_gate_exception": true,
+      "frozen_baseline": "cea4beb77af17a387f6c5aea9ca0c4057a8eb750",
+      "counting_rule": "cumulative gross added production-source lines by git diff --numstat; deletions do not offset additions; tests/docs/Graphify/control excluded",
+      "gross_production_additions_max": 340,
+      "production_files_max": 1,
+      "new_dependencies_max": 0,
+      "new_processes_max": 0,
+      "new_persistent_stores_max": 0,
+      "physical_order_call_sites_max": 1,
+      "normal_budget_after_g2": "REVERTS_TO_ARCHITECTURE_CONTRACT"
+    }
   },
   "source_of_truth": {
     "terminal_runtime_local_path": "_archive/hl_stage2/HL_Live_Copy_Service.py",
@@ -138,8 +150,8 @@
     "Direct leader WS path is fast but incomplete; snapshot truth is required on recovery boundaries.",
     "MASTER account state must be distinguished from API signer state."
   ],
-  "current_blocker": "G2 implementation defects remain and production additions exceed the authorised <=260 cumulative tripwire by 14 lines.",
-  "next_action": "Architect rules on G2 scope tripwire. Hermes makes no further patch until Controller consumes that ruling; any correction must also fix the live-send/in-flight/CLO planner-authority defects.",
+  "current_blocker": null,
+  "next_action": "Hermes executes exactly one final G2 correction under B3-A2C-G2-SCOPE-RULING-2, staying <=340 gross production additions from frozen baseline and one production file. G3 remains blocked.",
   "live_authorized": false,
   "last_controller_ruling": {
     "task_id": "BUILD3_SOURCE_BASELINE_IMPORT_1",
