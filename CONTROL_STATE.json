@@ -1,11 +1,11 @@
 {
   "schema": "wigmore_project_control_state_v1",
   "project": "hyperliquid-build3-repair",
-  "updated_utc": "2026-10-08T06:44:00Z",
+  "updated_utc": "2026-10-08T07:34:00Z",
   "operator": "richard:operator",
   "architect": {
     "role": "project-architect",
-    "status": "G3_CORRECTION_AUTHORISED",
+    "status": "ARCHITECT_REVIEW_REQUIRED_G3_TRIPWIRE",
     "wake_mode": "EVENT_DRIVEN_ONLY"
   },
   "controller": {
@@ -15,7 +15,7 @@
   },
   "implementation_owner": {
     "role": "hermes:implementation-owner",
-    "status": "G3_CORRECTION_AUTHORISED_AWAITING_EXECUTION"
+    "status": "G3_CANDIDATE_HELD_FOR_SCOPE_RULING"
   },
   "bindings": {
     "authority": "C:/Users/wigmore/.hermes/state/projects/hyperliquid-build3-repair/CONTROL_CONTRACT.json target_role_bindings",
@@ -46,7 +46,7 @@
   "current_gate": {
     "task_id": "BUILD3_G3_EXCHANGE_TRUTH_RECOVERY_SETTLEMENT",
     "gate": "G3_EXCHANGE_TRUTH_RECOVERY_SETTLEMENT",
-    "status": "CORRECTION_REQUIRED",
+    "status": "SCOPE_TRIPWIRE_EXCEEDED_AWAITING_ARCHITECT",
     "architect_ruling": {
       "message_id": "B3-A2C-G3-AUTHORITY-SCOPE-RULING-1",
       "verdict": "G3_AUTHORITY_SCOPE_RESOLVED_CORRECTION_AUTHORISED",
@@ -98,29 +98,20 @@
       "Graphify refreshed after implementation."
     ],
     "controller_adjudication": {
-      "verdict": "FAIL",
-      "inspected_production_commit": "be6a679556a43db3341c208a2ebc366a6f274dbc",
-      "inspected_final_commit": "4b9fd2711303299a3fd4dbd7f4fa6d3f8e5e908b",
-      "focused_tests_reported": "27/27 PASS",
-      "g2_regressions_reported": "40/40 PASS",
-      "legacy_self_test_reported": "PASS",
-      "scope": {
-        "gross_added_production_lines": 179,
-        "ceiling": 180,
-        "production_files": 2,
-        "production_files_limit": 2,
-        "order_call_sites": 1
+      "verdict": "HOLD_NOT_REVIEWED_FOR_PASS",
+      "candidate_commit": "3113c59b2ed391a8ce95c01d008bd097c42814d2",
+      "scope_base": "606d32e2f449c545fed1e7f9a9a1cb2fa5c409d2",
+      "authoritative_numstat": {
+        "_archive/hl_stage2/HL_Live_Copy_Service.py": "+218/-2",
+        "_archive/hl_stage2/exchange_truth.py": "+204/-0"
       },
-      "blocking_defects": [
-        "MASTER truth is not wired into the production runtime: MASTER_TRUTH_ADDRESS/SIGNER/FETCHER/DEXES are module globals defaulting empty/None and are only populated by test fixtures. account_net_actual therefore cannot become executable MASTER truth in normal runtime from existing config/env.",
-        "account_net_actual still accepts the old arbitrary account_net_provider whenever MASTER_TRUTH_ADDRESS is unset. That is a non-MASTER fallback and contradicts G3 MASTER-only ACTUAL semantics.",
-        "Settlement verification is not wired into the real send lifecycle: maybe_auto_send_would_send records only last_real_send and does not attach exchange oid/start time to the in-flight reservation or invoke settle_from_master_evidence. The new settlement method is exercised directly only by tests.",
-        "In-flight reservations remain memory-only. Restart after ACK but before independent MASTER settlement evidence drops the blocker and can permit duplicate/overlapping authority, violating G3 restart/recovery semantics.",
-        "terminal_reject is a caller-supplied boolean. settle_from_master_evidence skips independent fill/position reads on that path and clears the reservation without exchange-derived proof of terminal rejection/no fill.",
-        "HIP-3 settlement fill truth is incomplete: master_userfills calls userFillsByTime without a dex parameter and does not enumerate per-DEX fills. Upstream Hyperliquid SDK issue #287/PR #310 document that HIP-3 fill history requires dex-scoped userFills/userFillsByTime queries.",
-        "Unrelated inventory preservation is not operationally established: UNATTRIBUTED_INVENTORY is a mutable in-memory global defaulting empty and set only by tests; no authoritative baseline/recovery derivation or persisted attribution exists, so production cannot prove same-coin unrelated inventory will be preserved.",
-        "reconcile_sleeve() is a standalone helper used by tests but is not wired as a production convergence blocker before order authorisation."
-      ]
+      "gross_production_additions": 422,
+      "authorised_ceiling": 400,
+      "overrun": 22,
+      "production_files": 2,
+      "production_files_limit": 2,
+      "order_call_sites_reported": 1,
+      "note": "Hermes reported 454 by summing per-version gross additions. Architect counting rule is direct cumulative git diff --numstat from G2 base; authoritative total is 422."
     },
     "required_corrections": [
       "Initialise production MASTER truth from HL_LIVE_HL_ACCOUNT_ADDRESS and signing identity derived from configured private key/Account; identities must be valid and distinct; no arbitrary production account_net provider fallback.",
@@ -155,8 +146,8 @@
     "Direct leader WS path is fast but incomplete; snapshot truth is required on recovery boundaries.",
     "MASTER account state must be distinguished from API signer state."
   ],
-  "current_blocker": null,
-  "next_action": "Hermes executes one bounded G3 correction under B3-A2C-G3-AUTHORITY-SCOPE-RULING-1. No G4 or mainnet/live activation.",
+  "current_blocker": "G3 candidate 3113c59 exceeds authorised cumulative gross production additions by 22 lines (422 > 400). Candidate preserved; no pass review until Architect scope ruling.",
+  "next_action": "Architect rules whether to accept exact cumulative 422 as a one-gate exception or require trim to <=400. Hermes makes no further production changes until correlated ruling.",
   "live_authorized": false,
   "last_controller_ruling": {
     "task_id": "BUILD3_SOURCE_BASELINE_IMPORT_1",
