@@ -1,11 +1,11 @@
 {
   "schema": "wigmore_project_control_state_v1",
   "project": "hyperliquid-build3-repair",
-  "updated_utc": "2026-10-08T05:34:00Z",
+  "updated_utc": "2026-10-08T05:38:00Z",
   "operator": "richard:operator",
   "architect": {
     "role": "project-architect",
-    "status": "TRANSPORT_BLOCKED_STUCK_PAGE",
+    "status": "G2_ESCALATION_DELIVERED_AWAITING_RULING",
     "wake_mode": "EVENT_DRIVEN_ONLY"
   },
   "controller": {
@@ -15,7 +15,7 @@
   },
   "implementation_owner": {
     "role": "hermes:implementation-owner",
-    "status": "HELD_NO_PATCH_AWAITING_ARCHITECT"
+    "status": "HELD_IN_LOOP_AWAITING_ARCHITECT"
   },
   "bindings": {
     "authority": "C:/Users/wigmore/.hermes/state/projects/hyperliquid-build3-repair/CONTROL_CONTRACT.json target_role_bindings",
@@ -45,7 +45,7 @@
   },
   "current_gate": {
     "task_id": "BUILD3_G2_CORE_BUILD3_COPY_CORRECTNESS_REFACTOR",
-    "status": "BLOCKED_AWAITING_ARCHITECT_DELIVERY",
+    "status": "BLOCKED_AWAITING_ARCHITECT_RULING",
     "purpose": "Remove blind fixed-notional-per-fill authority and implement event-authorised desired exposure feeding the existing convergence planner and single sender.",
     "writes_authorized": true,
     "production_logic_changes_authorized": true,
@@ -111,8 +111,8 @@
     "Direct leader WS path is fast but incomplete; snapshot truth is required on recovery boundaries.",
     "MASTER account state must be distinguished from API signer state."
   ],
-  "current_blocker": "Bound Architect ChatGPT lane is stuck generating=true; automatic wake correctly refuses insertion. G2 authority escalation has not been semantically consumed.",
-  "next_action": "No G2 patch. Preserve one pending Architect escalation. If Architect lane becomes free, deliver exactly once. Otherwise operator must unstick/rebind the Architect lane; do not bypass role separation.",
+  "current_blocker": "G2 authority escalation delivered exactly once to Architect; ruling not yet returned.",
+  "next_action": "Architect returns ruling on fixed-mode semantics and event-lineage persistence. Hermes makes no G2 patch until Controller consumes that ruling and issues one bounded correction task.",
   "live_authorized": false,
   "last_controller_ruling": {
     "task_id": "BUILD3_SOURCE_BASELINE_IMPORT_1",
@@ -158,11 +158,12 @@
   },
   "transport_blocker": {
     "message_id": "B3-B2A-G2-TRANSPORT-BLOCKER-1",
+    "status": "CLEARED",
+    "cleared_by": "B3-B2A-G2-ESCALATION-DELIVERED-1",
     "architect_delivery_message": "B3-C2A-G2-AUTHORITY-CONFLICT-1",
-    "automatic_wake_sent": false,
-    "reason": "STUCK_PAGE_GENERATING_TRUE",
-    "focus_stealing_authorised": false,
-    "fallback_record": "project Architect channel issue #1 comment 6053084241",
-    "fallback_is_semantic_delivery": false
+    "automatic_wake_sent": true,
+    "exactly_once": true,
+    "duplicate_replay": false,
+    "focus_stealing_used": false
   }
 }
