@@ -1,11 +1,11 @@
 {
   "schema": "wigmore_project_control_state_v1",
   "project": "hyperliquid-build3-repair",
-  "updated_utc": "2026-10-08T06:29:00Z",
+  "updated_utc": "2026-10-08T06:38:00Z",
   "operator": "richard:operator",
   "architect": {
     "role": "project-architect",
-    "status": "G3_RELEASED",
+    "status": "ARCHITECT_REVIEW_REQUIRED_G3",
     "wake_mode": "EVENT_DRIVEN_ONLY"
   },
   "controller": {
@@ -15,7 +15,7 @@
   },
   "implementation_owner": {
     "role": "hermes:implementation-owner",
-    "status": "G3_AUTHORISED_AWAITING_EXECUTION"
+    "status": "G3_FAILED_AWAITING_ARCHITECT_RULING"
   },
   "bindings": {
     "authority": "C:/Users/wigmore/.hermes/state/projects/hyperliquid-build3-repair/CONTROL_CONTRACT.json target_role_bindings",
@@ -46,7 +46,7 @@
   "current_gate": {
     "task_id": "BUILD3_G3_EXCHANGE_TRUTH_RECOVERY_SETTLEMENT",
     "gate": "G3_EXCHANGE_TRUTH_RECOVERY_SETTLEMENT",
-    "status": "READY",
+    "status": "CONTROLLER_FAIL_ARCHITECT_REVIEW_REQUIRED",
     "architect_ruling": "B3-A2C-G2-PASS-G3-1",
     "production_logic_changes_authorised": true,
     "accepted_g2_candidate": "606d32e2f449c545fed1e7f9a9a1cb2fa5c409d2",
@@ -90,7 +90,32 @@
       "Exactly one physical order site remains.",
       "Legacy and G2 regressions pass.",
       "Graphify refreshed after implementation."
-    ]
+    ],
+    "controller_adjudication": {
+      "verdict": "FAIL",
+      "inspected_production_commit": "be6a679556a43db3341c208a2ebc366a6f274dbc",
+      "inspected_final_commit": "4b9fd2711303299a3fd4dbd7f4fa6d3f8e5e908b",
+      "focused_tests_reported": "27/27 PASS",
+      "g2_regressions_reported": "40/40 PASS",
+      "legacy_self_test_reported": "PASS",
+      "scope": {
+        "gross_added_production_lines": 179,
+        "ceiling": 180,
+        "production_files": 2,
+        "production_files_limit": 2,
+        "order_call_sites": 1
+      },
+      "blocking_defects": [
+        "MASTER truth is not wired into the production runtime: MASTER_TRUTH_ADDRESS/SIGNER/FETCHER/DEXES are module globals defaulting empty/None and are only populated by test fixtures. account_net_actual therefore cannot become executable MASTER truth in normal runtime from existing config/env.",
+        "account_net_actual still accepts the old arbitrary account_net_provider whenever MASTER_TRUTH_ADDRESS is unset. That is a non-MASTER fallback and contradicts G3 MASTER-only ACTUAL semantics.",
+        "Settlement verification is not wired into the real send lifecycle: maybe_auto_send_would_send records only last_real_send and does not attach exchange oid/start time to the in-flight reservation or invoke settle_from_master_evidence. The new settlement method is exercised directly only by tests.",
+        "In-flight reservations remain memory-only. Restart after ACK but before independent MASTER settlement evidence drops the blocker and can permit duplicate/overlapping authority, violating G3 restart/recovery semantics.",
+        "terminal_reject is a caller-supplied boolean. settle_from_master_evidence skips independent fill/position reads on that path and clears the reservation without exchange-derived proof of terminal rejection/no fill.",
+        "HIP-3 settlement fill truth is incomplete: master_userfills calls userFillsByTime without a dex parameter and does not enumerate per-DEX fills. Upstream Hyperliquid SDK issue #287/PR #310 document that HIP-3 fill history requires dex-scoped userFills/userFillsByTime queries.",
+        "Unrelated inventory preservation is not operationally established: UNATTRIBUTED_INVENTORY is a mutable in-memory global defaulting empty and set only by tests; no authoritative baseline/recovery derivation or persisted attribution exists, so production cannot prove same-coin unrelated inventory will be preserved.",
+        "reconcile_sleeve() is a standalone helper used by tests but is not wired as a production convergence blocker before order authorisation."
+      ]
+    }
   },
   "source_of_truth": {
     "terminal_runtime_local_path": "_archive/hl_stage2/HL_Live_Copy_Service.py",
@@ -113,8 +138,8 @@
     "Direct leader WS path is fast but incomplete; snapshot truth is required on recovery boundaries.",
     "MASTER account state must be distinguished from API signer state."
   ],
-  "current_blocker": null,
-  "next_action": "Hermes executes exactly one bounded G3 exchange-truth/recovery/settlement task under B3-A2C-G2-PASS-G3-1 and returns exact commit/evidence. G4 remains blocked.",
+  "current_blocker": "G3 material runtime/recovery defects remain; production scope is already 179/180 gross additions and 2/2 production files.",
+  "next_action": "Architect adjudicates B3-C2A-G3-AUTHORITY-SCOPE-ESCALATION-1. Hermes must not patch G3 until correlated ruling defines correction authority/scope.",
   "live_authorized": false,
   "last_controller_ruling": {
     "task_id": "BUILD3_SOURCE_BASELINE_IMPORT_1",
