@@ -1,11 +1,11 @@
 {
   "schema": "wigmore_project_control_state_v1",
   "project": "hyperliquid-build3-repair",
-  "updated_utc": "2026-10-08T05:49:01Z",
+  "updated_utc": "2026-10-08T05:55:00Z",
   "operator": "richard:operator",
   "architect": {
     "role": "project-architect",
-    "status": "G2_CORRECTION_AUTHORISED",
+    "status": "ARCHITECT_REVIEW_REQUIRED_G2_SCOPE",
     "wake_mode": "EVENT_DRIVEN_ONLY"
   },
   "controller": {
@@ -15,7 +15,7 @@
   },
   "implementation_owner": {
     "role": "hermes:implementation-owner",
-    "status": "G2_CORRECTION_EXECUTED_PENDING_CONTROLLER_REVIEW"
+    "status": "G2_FAILED_AWAITING_SCOPE_RULING"
   },
   "bindings": {
     "authority": "C:/Users/wigmore/.hermes/state/projects/hyperliquid-build3-repair/CONTROL_CONTRACT.json target_role_bindings",
@@ -45,7 +45,7 @@
   },
   "current_gate": {
     "task_id": "BUILD3_G2_CORE_BUILD3_COPY_CORRECTNESS_REFACTOR",
-    "status": "CORRECTION_REQUIRED",
+    "status": "CONTROLLER_FAIL_ARCHITECT_REVIEW_REQUIRED",
     "purpose": "Remove blind fixed-notional-per-fill authority and implement event-authorised desired exposure feeding the existing convergence planner and single sender.",
     "writes_authorized": true,
     "production_logic_changes_authorized": true,
@@ -75,17 +75,15 @@
     ],
     "controller_adjudication": {
       "verdict": "FAIL",
-      "inspected_commit": "ea797f971ec90f0b669bb9ef07a54677df3ddff7",
-      "production_files_changed": 1,
-      "new_production_loc_reported": "+170/-3",
-      "focused_tests_reported": "15/15 PASS",
-      "convergence_self_test_reported": "14/14 PASS",
+      "inspected_commit": "53b70d3327f88ea2d4ad8bc67f0b1e1f39ed10e4",
+      "focused_tests_reported": "29/29 PASS",
+      "legacy_self_test_reported": "PASS",
       "blocking_defects": [
-        "actual_net is read from self.get_position(cfg.wallet, coin), a wallet-local dry-run position, not account-net follower exchange truth; account-net aggregation/unrelated inventory preservation are therefore not proven.",
-        "compute_convergence_order returns absolute size plus explicit BUY/SELL side, but convergence_notional_for_fill drops order.side; process_fill reconstructs sign from ENTRY/EXIT and append_order_intent keeps fill.side. A short OPEN from flat can be represented/applied with the wrong sign, and live side can diverge from planner side.",
-        "compute_convergence_order is called without in_flight, so the required in-flight duplicate/burst guard is not wired.",
-        "leader_event_positions is persisted through SERVICE_STATE_FILE, creating new authoritative persistent trading state despite the G2 directive requiring zero new authoritative persistent state.",
-        "fixed-mode target semantics remain unresolved AUTHORITY_CONFLICT and the legacy fixed-mode self-test is failing."
+        "Live send semantics are not planner-authoritative end-to-end: dry_run_intent_audit_decision still receives reducing derived from wallet-local state/leader side, and uses fill.side for quote/adverse-direction logic; append_would_send derives reduce_only from that decision rather than planner reduce_only.",
+        "manual_send_one_intent(close_position=True) can overwrite payload.side from the local manual position, violating the G2 requirement that planner order.side be preserved exactly through the live-send payload.",
+        "in-flight lifecycle is ordered incorrectly for auto-send: append_order_intent() can call maybe_auto_send_would_send() and reach exchange.order() before process_fill marks self.in_flight; the mark is then immediately cleared after dry-run mutation. This does not prove suppression of an overlapping real send.",
+        "CLO entry/reduction gate still runs before planner sizing using wallet-local before_signed plus leader-event side, not account-net planner action.",
+        "Frozen-baseline production diff is +274/-18 in HL_Live_Copy_Service.py. The authorised tripwire was <=260 genuinely new production LOC cumulative from frozen baseline; Controller will not reinterpret this as net 256 without Architect authority."
       ]
     },
     "architect_ruling": {
@@ -140,8 +138,8 @@
     "Direct leader WS path is fast but incomplete; snapshot truth is required on recovery boundaries.",
     "MASTER account state must be distinguished from API signer state."
   ],
-  "current_blocker": "NONE (transport blocker cleared; Architect ruling B3-A2C-G2-AUTHORITY-RULING-1 delivered and consumed)",
-  "next_action": "Controller re-review of the corrected G2 candidate + executed evidence; G2 remains NOT PASS and G3 remains NOT AUTHORISED until that review returns.",
+  "current_blocker": "G2 implementation defects remain and production additions exceed the authorised <=260 cumulative tripwire by 14 lines.",
+  "next_action": "Architect rules on G2 scope tripwire. Hermes makes no further patch until Controller consumes that ruling; any correction must also fix the live-send/in-flight/CLO planner-authority defects.",
   "live_authorized": false,
   "last_controller_ruling": {
     "task_id": "BUILD3_SOURCE_BASELINE_IMPORT_1",
