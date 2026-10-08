@@ -829,16 +829,30 @@ def proportional_sleeve_scale(cfg: "LiveWalletConfig") -> float:
     return fnum(getattr(cfg, "norm_base", 0.0)) / base if base else 0.0
 
 
-def sleeve_from_leader_event_position(cfg: "LiveWalletConfig", leader_signed_position: float) -> float:
+def sleeve_from_leader_event_position(
+    cfg: "LiveWalletConfig", leader_signed_position: float, fixed_sleeve_units: float = None
+) -> float:
     """Map an event-authorised leader signed position to this wallet's copied sleeve.
 
-    Proportional mode is unambiguous. FIXED mode is intentionally NOT guessed: durable evidence
-    only exposes a per-fill ``fixed_notional`` (exactly the blind per-fill authority G2 removes);
-    it does not define a fixed TARGET exposure. We refuse rather than invent semantics.
+    Proportional mode is unambiguous. FIXED mode is the Architect-ruled (b35be5e9) 8014
+    event-sliced attributed-sleeve model: the sleeve magnitude is the persisted sum of the
+    follower's attributed fixed slices for (wallet, coin), maintained ONLY in
+    apply_leader_event from genuine events and stored in the EXISTING SERVICE_STATE_FILE.
+    Without that ledger we still refuse rather than invent semantics (hold preserved).
     """
     mode = str(getattr(cfg, "copy_mode", "") or "").lower().strip()
     if mode == "proportional":
         return fnum(leader_signed_position) * proportional_sleeve_scale(cfg)
+    if mode == "fixed":
+        if fixed_sleeve_units is None:
+            raise FixedModeAuthorityConflict(
+                "fixed-mode target exposure semantics ambiguous for wallet={!r}: no attributed "
+                "sleeve ledger available".format(getattr(cfg, "wallet", ""))
+            )
+        lp = fnum(leader_signed_position)
+        if abs(lp) < 1e-12:
+            return 0.0  # F6/F7: leader flat -> attributed sleeve contributes zero desired exposure
+        return (1.0 if lp > 0 else -1.0) * fnum(fixed_sleeve_units)
     raise FixedModeAuthorityConflict(
         "fixed-mode target exposure semantics ambiguous for wallet={!r}: config defines only a "
         "per-fill fixed_notional, not a target exposure".format(getattr(cfg, "wallet", ""))
@@ -849,15 +863,22 @@ def event_authorised_desired_net(
     coin: str,
     leader_signed_by_wallet: Dict[str, float],
     configs: Dict[str, "LiveWalletConfig"],
+    fixed_sleeve_units_by_wallet: Dict[str, float] = None,
 ) -> Dict[str, Any]:
-    """Aggregate same-coin wallet sleeves into ONE signed account-net desired value."""
+    """Aggregate same-coin wallet sleeves into ONE signed account-net desired value.
+
+    fixed_sleeve_units_by_wallet carries each wallet's persisted attributed fixed-sleeve
+    magnitude (G4/b35be5e9). Absent -> fixed mode still holds fail-closed.
+    """
     sleeves: Dict[str, float] = {}
     for wallet, leader_signed in leader_signed_by_wallet.items():
         cfg = configs.get(wallet)
         if cfg is None:
             continue
         try:
-            sleeves[wallet] = sleeve_from_leader_event_position(cfg, leader_signed)
+            sleeves[wallet] = sleeve_from_leader_event_position(
+                cfg, leader_signed, (fixed_sleeve_units_by_wallet or {}).get(wallet)
+            )
         except FixedModeAuthorityConflict as exc:
             return {"ok": False, "status": FIXED_MODE_HOLD_STATUS, "coin": str(coin).upper(), "detail": exc.detail}
     return {
@@ -2284,7 +2305,85 @@ class DryRunLiveCopyService:
         seq = int(ck.get("seq", 0)) if isinstance(ck, dict) else 0
         self.state["leader_event_checkpoint"] = {"seq": seq + 1, "last_fill_id": fill.fill_id}
         self.lineage_valid = True
+        # G4 (Architect ruling b35be5e9): 8014 event-sliced attributed-sleeve authority for FIXED mode.
+        # THIS is the only mint site and it is reached once per genuine deduplicated post-baseline
+        # event: duplicate WS fragments, replay rows, recovery snapshots, startup positions and
+        # rebaseline/current-position observations never reach apply_leader_event, so by construction
+        # they mint ZERO slice authority.
+        self.apply_fixed_sleeve_event(cfg, fill, new_signed)
         return new_signed
+
+    def fixed_sleeve_units(self, wallet: str, coin: str) -> float:
+        """Persisted attributed fixed-sleeve magnitude for (wallet, coin) - EXISTING state file only."""
+        led = self.state.get("fixed_sleeves")
+        if not isinstance(led, dict):
+            return 0.0
+        per = led.get(str(wallet))
+        if not isinstance(per, dict):
+            return 0.0
+        sleeve = per.get(str(coin).upper())
+        if not isinstance(sleeve, dict):
+            return 0.0
+        return float(sum(fnum(u) for u in (sleeve.get("slices") or [])))
+
+    def fixed_sleeve_units_by_wallet(self, coin: str, configs: Dict[str, LiveWalletConfig]) -> Dict[str, float]:
+        return {w: self.fixed_sleeve_units(w, coin) for w in configs}
+
+    def apply_fixed_sleeve_event(self, cfg: LiveWalletConfig, fill: LeaderFill, leader_signed_after: float) -> None:
+        """F1-F9: 8014 event-sliced attributed-sleeve transitions for a fixed-mode wallet.
+
+        F1 first OPEN -> exactly one slice; F2 distinct INCREASE -> exactly one more slice; F3 slice
+        size = fixed_notional / mark_price; F4/F5 REDUCE -> the same fraction of the CURRENT
+        attributed sleeve as the leader reduction is of its start position; F6 CLOSE -> zero;
+        F7 FLIP -> zero then exactly one new opposite slice; F8 other sleeves/inventory untouched;
+        F9 leader-event magnitude never scales a slice. Writes only self.state (no new store).
+        """
+        if str(getattr(cfg, "copy_mode", "") or "").lower().strip() != "fixed":
+            return
+        wallet = str(getattr(cfg, "wallet", ""))
+        coin = str(getattr(fill, "coin", "")).upper()
+        fixed_notional = fnum(getattr(cfg, "fixed_notional", 0.0))
+        mark = (
+            fnum(getattr(fill, "mark_price", None))
+            or fnum(getattr(fill, "limit_price", None))
+            or fnum(getattr(fill, "price", None))
+        )
+        if not wallet or not coin or fixed_notional <= 0 or mark <= 0:
+            return  # no authority without wallet/coin/notional/price (missing mark -> zero authority)
+        led = self.state.setdefault("fixed_sleeves", {})
+        if not isinstance(led, dict):
+            led = {}
+            self.state["fixed_sleeves"] = led
+        per = led.setdefault(wallet, {})
+        if not isinstance(per, dict):
+            per = {}
+            led[wallet] = per
+        sleeve = per.get(coin)
+        if not isinstance(sleeve, dict):
+            sleeve = {"side": 0, "slices": []}
+
+        after = fnum(leader_signed_after)
+        before = after - fnum(getattr(fill, "signed_size_delta", 0.0))
+        sb = 1 if before > 0 else (-1 if before < 0 else 0)
+        sa = 1 if after > 0 else (-1 if after < 0 else 0)
+        lb = abs(before)
+        la = abs(after)
+        slice_units = fixed_notional / mark
+
+        if sa == 0:                      # F6 CLOSE -> attributed sleeve zero
+            per[coin] = {"side": 0, "slices": []}
+        elif sb != sa:                   # F1 open from flat / F7 FLIP -> exactly one new slice
+            per[coin] = {"side": sa, "slices": [slice_units]}
+        elif la > lb:                    # F2/F9 INCREASE -> exactly one more slice, magnitude-agnostic
+            sl = [fnum(u) for u in (sleeve.get("slices") or [])]
+            sl.append(slice_units)
+            per[coin] = {"side": sa, "slices": sl}
+        else:                            # F4/F5 REDUCE -> same fraction of CURRENT attributed sleeve
+            frac = ((lb - la) / lb) if lb > 0 else 0.0
+            sl = [fnum(u) * (1.0 - frac) for u in (sleeve.get("slices") or [])]
+            sl = [u for u in sl if u > 0]
+            per[coin] = {"side": sa, "slices": sl}
+        self.state["fixed_sleeves"] = led
 
     def leader_signed_by_wallet(self, coin: str, configs: Dict[str, LiveWalletConfig]) -> Dict[str, float]:
         store = self.state.get("leader_event_positions", {})
