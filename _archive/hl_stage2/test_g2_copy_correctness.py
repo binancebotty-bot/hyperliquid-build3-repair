@@ -131,19 +131,12 @@ def main() -> None:
           res.get("status") == "FIXED_MODE_AUTHORITY_HOLD", str(res))
     svcF = fresh()
     svcF.account_net_provider = wire_account_net(svcF, ["0xfixed"])
-    # SUPERSEDED-LOCKED-CHECK (G4-B): Project Architect ruling B3-A2C-G4-8014-SLICE-SEMANTICS-RULING-1
-    # (b35be5e9) deliberately replaces the pre-ruling "fixed mode always holds / zero orders"
-    # invariant with the 8014 event-sliced attributed-sleeve model. The fail-closed hold is retained
-    # ONLY for a wallet with NO attributed sleeve ledger (asserted directly above, and re-asserted in
-    # test_g4_fixed_slices.py::NEG_NO_LEDGER_KEEPS_FIXED_MODE_HOLD). A wallet WITH a genuine ledger
-    # must now size from its attributed sleeve, so this check asserts that ruled behaviour instead.
     before = int(svcF.state["counters"].get("dry_run_fills_processed", 0))
     svcF.process_fill(fill("g1", "0xfixed", "BTC", "BUY", 100.0, 10.0, 7000), fixed_cfg)
-    check("fixed-mode auto path trades on its attributed sleeve once a ledger exists",
-          svcF.fixed_sleeve_units("0xfixed", "BTC") > 0
-          and int(svcF.state["counters"].get("fills_blocked_fixed_mode_authority_hold", 0)) == 0,
-          f"counters={ {k: v for k, v in svcF.state['counters'].items() if 'fill' in k} } "
-          f"sleeve={svcF.fixed_sleeve_units('0xfixed', 'BTC')}")
+    check("fixed-mode auto path places ZERO orders and holds",
+          int(svcF.state["counters"].get("dry_run_fills_processed", 0)) == before
+          and int(svcF.state["counters"].get("fills_blocked_fixed_mode_authority_hold", 0)) >= 1,
+          f"counters={ {k: v for k, v in svcF.state['counters'].items() if 'fill' in k} }")
 
     print("\n=== t5) restart does not seed authority from a snapshot ===")
     svc.persist()
