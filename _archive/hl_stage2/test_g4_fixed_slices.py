@@ -144,6 +144,14 @@ def main() -> None:
                if 'state["fixed_sleeves"]' in ln and "=" in ln and "==" not in ln and "get(" not in ln]
     check("NEG_SINGLE_SLICE_MINT_SITE", len(writers) <= 2, f"writers={writers}")
 
+    # ---------------- no attributed ledger -> fixed mode STILL holds fail-closed ----------------
+    sH = svc_fixed()
+    hold = svcmod.event_authorised_desired_net(
+        COIN, {"0xfixed": 3.0}, configs, sH.fixed_sleeve_units_by_wallet(COIN, configs)
+    )
+    check("NEG_NO_LEDGER_KEEPS_FIXED_MODE_HOLD",
+          (not hold.get("ok")) and hold.get("status") == "FIXED_MODE_AUTHORITY_HOLD", f"hold={hold}")
+
     failed = [n for n, ok in RESULTS if not ok]
     print("TOTAL=%d FAILED=%d" % (len(RESULTS), len(failed)))
     return 1 if failed else 0

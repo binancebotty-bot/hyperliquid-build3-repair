@@ -2327,7 +2327,23 @@ class DryRunLiveCopyService:
         return float(sum(fnum(u) for u in (sleeve.get("slices") or [])))
 
     def fixed_sleeve_units_by_wallet(self, coin: str, configs: Dict[str, LiveWalletConfig]) -> Dict[str, float]:
-        return {w: self.fixed_sleeve_units(w, coin) for w in configs}
+        """ONLY wallets with an existing attributed sleeve ledger are released from the hold.
+
+        A wallet with no ledger entry yields NO key here, so sleeve_from_leader_event_position
+        keeps raising FixedModeAuthorityConflict and the wallet stays fail-closed in
+        FIXED_MODE_AUTHORITY_HOLD. Returning 0.0 for everything would silently release fixed
+        mode to a zero-desired-net path (false green) -- never do that.
+        """
+        out: Dict[str, float] = {}
+        led = self.state.get("fixed_sleeves")
+        if not isinstance(led, dict):
+            return out
+        key = str(coin).upper()
+        for wallet in configs:
+            per = led.get(str(wallet))
+            if isinstance(per, dict) and isinstance(per.get(key), dict):
+                out[wallet] = self.fixed_sleeve_units(wallet, coin)
+        return out
 
     def apply_fixed_sleeve_event(self, cfg: LiveWalletConfig, fill: LeaderFill, leader_signed_after: float) -> None:
         """F1-F9: 8014 event-sliced attributed-sleeve transitions for a fixed-mode wallet.
@@ -2547,7 +2563,10 @@ class DryRunLiveCopyService:
         if compute_convergence_order is None:
             return {"ok": False, "status": "PLANNER_UNAVAILABLE"}
         desired = event_authorised_desired_net(
-            fill.coin, self.leader_signed_by_wallet(fill.coin, configs), configs
+            fill.coin,
+            self.leader_signed_by_wallet(fill.coin, configs),
+            configs,
+            self.fixed_sleeve_units_by_wallet(fill.coin, configs),
         )
         if not desired.get("ok"):
             return desired
@@ -2570,7 +2589,12 @@ class DryRunLiveCopyService:
         config = self.load_config()
         self.apply_leader_event(cfg, fill)
         desired_probe = event_authorised_desired_net(
-            fill.coin, self.leader_signed_by_wallet(fill.coin, config), config
+            fill.coin,
+            self.leader_signed_by_wallet(fill.coin, config),
+            config,
+            self.fixed_sleeve_units_by_wallet(
+                fill.coin, config if isinstance(config, dict) else {getattr(config, "wallet", ""): config}
+            ),
         )
         if not desired_probe.get("ok"):
             return desired_probe
