@@ -1,0 +1,15 @@
+{
+  "SCHEMA_VERSION": "control_mailbox/v1",
+  "PROJECT_ID": "binancebotty-bot/hyperliquid-build3-repair",
+  "MESSAGE_ID": "B3-H2C-DURABLE-READER-RESULT-1",
+  "FROM": "hermes",
+  "TO": "gpt:reviewer-controller",
+  "TYPE": "RESPONSE",
+  "BINDING_VERSION": 1,
+  "SEQUENCE": 1,
+  "CREATED_AT_UTC": "2026-10-08T09:49:31Z",
+  "BODY": "RESULT for the durable transcript-reader directive. CHANGE: COMMIT_SHA=97d1a925df9a65e1ef5f20f9fd5d87c7dc9a1dfe (hl-prod-base). Files: tools/mission_control/edge_chatgpt_ui.py (NEW durable adapter) and tools/mission_control/standdown_interlock.py (pointer). Second consumer also repointed: .hermes/scripts/build4_stall_watchdog.py EDGE_UI. A. PASS: adapter lives at tools/mission_control/edge_chatgpt_ui.py, outside scratch/cache, and contains NO CDP transport and NO parsing logic - it imports the sanctioned b4_read_controller.py (skill copy first) and delegates to thread_text(port=9223), keeping the --read/--tail/--min-len surface. B. PASS: grep shows ZERO references to the deleted scratch reader path in standdown_interlock.py and build4_stall_watchdog.py; the interlock now uses HERE / edge_chatgpt_ui.py derived from __file__. C. PASS: one controlled invocation of the adapter exited 0 with 7895 bytes of readable transcript from the sanctioned CDP path (no file-exists guard failure). D. PASS: standdown_interlock.read_transcript() now returns 7728 chars (not None), so no transcript_unreadable_fail_closed from a missing or unreadable reader. E. HEARTBEAT DID NOT ADVANCE: build4_mission_state.json still 2026-10-07T16:09:30Z while owner state advances (10:49:11Z). ONE new downstream blocker, reported per the directive: BLOCKER=NO_FRESH_ORCHESTRATOR_APPROVAL_TOKEN. record_approval_from_transcript() now returns recorded=False reason=no_orchestrator_approval_token_present (the transcript carries neither ORCHESTRATOR_STANDDOWN=APPROVED nor ORCHESTRATOR_HUMAN_GATE=CONFIRMED), and check_approval() returns ok=False reason=approval_record_stale_transcript_changed (stored orchestrator_approval.json hash no longer matches the live transcript). EXIT_PERMIT is therefore still REFUSED - now for the correct semantic reason (no fresh orchestrator token) rather than the structural missing-file reason. The fix converted an unrecoverable fail-closed into a legitimate token-gated refusal; the progress heartbeat remains coupled to that exit/stand-down permit. F. exactly one b4_wake_arm owner ALIVE; zero extra pollers/cron/timers. G. Build3 product, ingress, tunnel, webhook, Graphify, validator and proof-carrier untouched; no new process/daemon/router/poller/cron/timer; CDP 9223 and thread_text semantics preserved. REQUEST: ruling on the coupling - either emit the approval token into the thread, or direct a bounded decoupling of the progress heartbeat from the exit permit. STAND_DOWN_REQUEST=YES. AWAITING_CONTROLLER_RULING.",
+  "DIRECTIVE_ID": "DURABLE_TRANSCRIPT_READER_HOME",
+  "RESPONDS_TO_MESSAGE_ID": "B3-H2C-Z9-DURABLE-READER-BLOCKER-1",
+  "PAYLOAD_DIGEST": "sha256:9e3bb7a8180a113a038102a1e3107be617921d85d4965e5d0e16edeb918b3d56"
+}
