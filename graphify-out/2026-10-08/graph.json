@@ -10,7 +10,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot",
-      "community": 15,
+      "community": 4,
       "community_name": "HL_Copy_App_SSOT.py",
       "norm_label": "hl_copy_app_ssot.py"
     },
@@ -22,7 +22,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_load_local_env_file",
       "community": 12,
-      "community_name": "load_json",
+      "community_name": "atomic_write_json",
       "norm_label": "load_local_env_file()"
     },
     {
@@ -33,7 +33,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_py_path",
       "community": 12,
-      "community_name": "load_json",
+      "community_name": "atomic_write_json",
       "norm_label": "path"
     },
     {
@@ -43,8 +43,8 @@
       "source_location": "L127",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_utc_now_iso",
-      "community": 12,
-      "community_name": "load_json",
+      "community": 13,
+      "community_name": "get",
       "norm_label": "utc_now_iso()"
     },
     {
@@ -55,7 +55,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_fnum",
       "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community_name": "fnum",
       "norm_label": "fnum()"
     },
     {
@@ -65,8 +65,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_py_any",
-      "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community": 19,
+      "community_name": "Any",
       "norm_label": "any"
     },
     {
@@ -76,8 +76,8 @@
       "source_location": "L141",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_money2",
-      "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community": 19,
+      "community_name": "Any",
       "norm_label": "money2()"
     },
     {
@@ -87,8 +87,8 @@
       "source_location": "L145",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_contract_money_equal",
-      "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community": 19,
+      "community_name": "Any",
       "norm_label": "contract_money_equal()"
     },
     {
@@ -98,8 +98,8 @@
       "source_location": "L149",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_inum",
-      "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community": 13,
+      "community_name": "get",
       "norm_label": "inum()"
     },
     {
@@ -110,7 +110,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_unique_tmp_path",
       "community": 12,
-      "community_name": "load_json",
+      "community_name": "atomic_write_json",
       "norm_label": "_unique_tmp_path()"
     },
     {
@@ -121,7 +121,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_replace_with_retries",
       "community": 12,
-      "community_name": "load_json",
+      "community_name": "atomic_write_json",
       "norm_label": "_replace_with_retries()"
     },
     {
@@ -132,7 +132,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_atomic_write_json",
       "community": 12,
-      "community_name": "load_json",
+      "community_name": "atomic_write_json",
       "norm_label": "atomic_write_json()"
     },
     {
@@ -143,7 +143,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_atomic_write_csv",
       "community": 12,
-      "community_name": "load_json",
+      "community_name": "atomic_write_json",
       "norm_label": "atomic_write_csv()"
     },
     {
@@ -154,7 +154,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_normalise_wallet_for_purge",
       "community": 12,
-      "community_name": "load_json",
+      "community_name": "atomic_write_json",
       "norm_label": "normalise_wallet_for_purge()"
     },
     {
@@ -165,7 +165,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_load_purged_wallets",
       "community": 12,
-      "community_name": "load_json",
+      "community_name": "atomic_write_json",
       "norm_label": "load_purged_wallets()"
     },
     {
@@ -176,7 +176,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_save_purged_wallets",
       "community": 12,
-      "community_name": "load_json",
+      "community_name": "atomic_write_json",
       "norm_label": "save_purged_wallets()"
     },
     {
@@ -187,7 +187,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_backup_purge_files",
       "community": 12,
-      "community_name": "load_json",
+      "community_name": "atomic_write_json",
       "norm_label": "backup_purge_files()"
     },
     {
@@ -198,7 +198,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_remove_wallet_from_text_file",
       "community": 12,
-      "community_name": "load_json",
+      "community_name": "atomic_write_json",
       "norm_label": "remove_wallet_from_text_file()"
     },
     {
@@ -209,7 +209,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_remove_wallet_rows_from_csv",
       "community": 12,
-      "community_name": "load_json",
+      "community_name": "atomic_write_json",
       "norm_label": "remove_wallet_rows_from_csv()"
     },
     {
@@ -220,7 +220,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_remove_wallet_from_json_obj",
       "community": 12,
-      "community_name": "load_json",
+      "community_name": "atomic_write_json",
       "norm_label": "_remove_wallet_from_json_obj()"
     },
     {
@@ -231,7 +231,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_remove_wallet_from_json",
       "community": 12,
-      "community_name": "load_json",
+      "community_name": "atomic_write_json",
       "norm_label": "remove_wallet_from_json()"
     },
     {
@@ -242,7 +242,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_purge_wallet_everywhere",
       "community": 12,
-      "community_name": "load_json",
+      "community_name": "atomic_write_json",
       "norm_label": "purge_wallet_everywhere()"
     },
     {
@@ -252,7 +252,7 @@
       "source_location": "L412",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_rawfill",
-      "community": 15,
+      "community": 4,
       "community_name": "HL_Copy_App_SSOT.py",
       "norm_label": "rawfill"
     },
@@ -263,7 +263,7 @@
       "source_location": "L442",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_modelposition",
-      "community": 15,
+      "community": 4,
       "community_name": "HL_Copy_App_SSOT.py",
       "norm_label": "modelposition"
     },
@@ -274,7 +274,7 @@
       "source_location": "L466",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_walletmodel",
-      "community": 15,
+      "community": 4,
       "community_name": "HL_Copy_App_SSOT.py",
       "norm_label": "walletmodel"
     },
@@ -285,7 +285,7 @@
       "source_location": "L511",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_walletmodel_sync_equity",
-      "community": 15,
+      "community": 4,
       "community_name": "HL_Copy_App_SSOT.py",
       "norm_label": ".sync_equity()"
     },
@@ -296,8 +296,8 @@
       "source_location": "L520",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_load_json",
-      "community": 12,
-      "community_name": "load_json",
+      "community": 13,
+      "community_name": "get",
       "norm_label": "load_json()"
     },
     {
@@ -308,7 +308,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_load_engine_truth",
       "community": 12,
-      "community_name": "load_json",
+      "community_name": "atomic_write_json",
       "norm_label": "load_engine_truth()"
     },
     {
@@ -319,7 +319,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_clean_wallet_config",
       "community": 6,
-      "community_name": "get",
+      "community_name": "JSONResponse",
       "norm_label": "_clean_wallet_config()"
     },
     {
@@ -330,7 +330,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_clean_wallet_include",
       "community": 6,
-      "community_name": "get",
+      "community_name": "JSONResponse",
       "norm_label": "_clean_wallet_include()"
     },
     {
@@ -340,8 +340,8 @@
       "source_location": "L588",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_sanitize_wallet_meta",
-      "community": 6,
-      "community_name": "get",
+      "community": 19,
+      "community_name": "Any",
       "norm_label": "sanitize_wallet_meta()"
     },
     {
@@ -351,8 +351,8 @@
       "source_location": "L607",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_get_wallet_meta",
-      "community": 6,
-      "community_name": "get",
+      "community": 19,
+      "community_name": "Any",
       "norm_label": "get_wallet_meta()"
     },
     {
@@ -362,8 +362,8 @@
       "source_location": "L615",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_set_wallet_meta",
-      "community": 6,
-      "community_name": "get",
+      "community": 19,
+      "community_name": "Any",
       "norm_label": "set_wallet_meta()"
     },
     {
@@ -374,7 +374,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_wallet_included",
       "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community_name": "fnum",
       "norm_label": "wallet_included()"
     },
     {
@@ -385,7 +385,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_load_ui_state",
       "community": 6,
-      "community_name": "get",
+      "community_name": "JSONResponse",
       "norm_label": "load_ui_state()"
     },
     {
@@ -396,7 +396,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_save_ui_state",
       "community": 6,
-      "community_name": "get",
+      "community_name": "JSONResponse",
       "norm_label": "save_ui_state()"
     },
     {
@@ -407,7 +407,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_load_wallet_gate",
       "community": 6,
-      "community_name": "get",
+      "community_name": "JSONResponse",
       "norm_label": "load_wallet_gate()"
     },
     {
@@ -417,8 +417,8 @@
       "source_location": "L702",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_normalise_global_controls",
-      "community": 6,
-      "community_name": "get",
+      "community": 15,
+      "community_name": "fnum",
       "norm_label": "_normalise_global_controls()"
     },
     {
@@ -428,8 +428,8 @@
       "source_location": "L718",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_global_controls_for_ui",
-      "community": 6,
-      "community_name": "get",
+      "community": 15,
+      "community_name": "fnum",
       "norm_label": "_global_controls_for_ui()"
     },
     {
@@ -440,7 +440,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_load_live_copy_config",
       "community": 6,
-      "community_name": "get",
+      "community_name": "JSONResponse",
       "norm_label": "_load_live_copy_config()"
     },
     {
@@ -451,7 +451,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_save_live_copy_config",
       "community": 6,
-      "community_name": "get",
+      "community_name": "JSONResponse",
       "norm_label": "_save_live_copy_config()"
     },
     {
@@ -462,7 +462,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_normalise_wallet_address",
       "community": 6,
-      "community_name": "get",
+      "community_name": "JSONResponse",
       "norm_label": "_normalise_wallet_address()"
     },
     {
@@ -473,7 +473,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_normalize_live_wallet_config",
       "community": 6,
-      "community_name": "get",
+      "community_name": "JSONResponse",
       "norm_label": "normalize_live_wallet_config()"
     },
     {
@@ -484,7 +484,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_repair_live_config_consistency",
       "community": 6,
-      "community_name": "get",
+      "community_name": "JSONResponse",
       "norm_label": "repair_live_config_consistency()"
     },
     {
@@ -495,7 +495,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_normalise_live_wallet_payload",
       "community": 6,
-      "community_name": "get",
+      "community_name": "JSONResponse",
       "norm_label": "_normalise_live_wallet_payload()"
     },
     {
@@ -506,7 +506,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_active_live_copy_wallet_count",
       "community": 6,
-      "community_name": "get",
+      "community_name": "JSONResponse",
       "norm_label": "_active_live_copy_wallet_count()"
     },
     {
@@ -517,7 +517,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_live_copy_config_response",
       "community": 6,
-      "community_name": "get",
+      "community_name": "JSONResponse",
       "norm_label": "_live_copy_config_response()"
     },
     {
@@ -528,7 +528,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_live_config_error",
       "community": 6,
-      "community_name": "get",
+      "community_name": "JSONResponse",
       "norm_label": "_live_config_error()"
     },
     {
@@ -539,7 +539,7 @@
       "_origin": "ast",
       "id": "jsonresponse",
       "community": 6,
-      "community_name": "get",
+      "community_name": "JSONResponse",
       "norm_label": "jsonresponse"
     },
     {
@@ -550,7 +550,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_enforce_live_copy_cap",
       "community": 6,
-      "community_name": "get",
+      "community_name": "JSONResponse",
       "norm_label": "_enforce_live_copy_cap()"
     },
     {
@@ -560,8 +560,8 @@
       "source_location": "L858",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_load_live_ws_health",
-      "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community": 13,
+      "community_name": "get",
       "norm_label": "_load_live_ws_health()"
     },
     {
@@ -571,8 +571,8 @@
       "source_location": "L869",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_load_clean_core_status",
-      "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community": 13,
+      "community_name": "get",
       "norm_label": "_load_clean_core_status()"
     },
     {
@@ -582,8 +582,8 @@
       "source_location": "L885",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_live_order_intents_path",
-      "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community": 12,
+      "community_name": "atomic_write_json",
       "norm_label": "_live_order_intents_path()"
     },
     {
@@ -593,8 +593,8 @@
       "source_location": "L891",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_live_audit_summary",
-      "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community": 13,
+      "community_name": "get",
       "norm_label": "_live_audit_summary()"
     },
     {
@@ -604,8 +604,8 @@
       "source_location": "L1036",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_load_manual_live_positions",
-      "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community": 13,
+      "community_name": "get",
       "norm_label": "_load_manual_live_positions()"
     },
     {
@@ -615,8 +615,8 @@
       "source_location": "L1046",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_iter_manual_wallet_positions",
-      "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community": 13,
+      "community_name": "get",
       "norm_label": "iter_manual_wallet_positions()"
     },
     {
@@ -626,8 +626,8 @@
       "source_location": "L1070",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_manual_position_sleeves",
-      "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community": 13,
+      "community_name": "get",
       "norm_label": "_manual_position_sleeves()"
     },
     {
@@ -637,8 +637,8 @@
       "source_location": "L1081",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_shared_manual_coin_nets",
-      "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community": 13,
+      "community_name": "get",
       "norm_label": "_shared_manual_coin_nets()"
     },
     {
@@ -648,8 +648,8 @@
       "source_location": "L1093",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_load_recent_send_attempts",
-      "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community": 13,
+      "community_name": "get",
       "norm_label": "_load_recent_send_attempts()"
     },
     {
@@ -659,8 +659,8 @@
       "source_location": "L1155",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_load_recent_live_fills",
-      "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community": 13,
+      "community_name": "get",
       "norm_label": "_load_recent_live_fills()"
     },
     {
@@ -670,8 +670,8 @@
       "source_location": "L1168",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_local_env_value",
-      "community": 12,
-      "community_name": "load_json",
+      "community": 4,
+      "community_name": "HL_Copy_App_SSOT.py",
       "norm_label": "_local_env_value()"
     },
     {
@@ -681,8 +681,8 @@
       "source_location": "L1187",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_execution_guards_info",
-      "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community": 19,
+      "community_name": "Any",
       "norm_label": "_execution_guards_info()"
     },
     {
@@ -692,8 +692,8 @@
       "source_location": "L1200",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_public_account_address",
-      "community": 12,
-      "community_name": "load_json",
+      "community": 4,
+      "community_name": "HL_Copy_App_SSOT.py",
       "norm_label": "_public_account_address()"
     },
     {
@@ -703,8 +703,8 @@
       "source_location": "L1208",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_iso_to_ms",
-      "community": 12,
-      "community_name": "load_json",
+      "community": 4,
+      "community_name": "HL_Copy_App_SSOT.py",
       "norm_label": "_iso_to_ms()"
     },
     {
@@ -714,8 +714,8 @@
       "source_location": "L1223",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_account_reconciliation_baseline_timestamp",
-      "community": 12,
-      "community_name": "load_json",
+      "community": 4,
+      "community_name": "HL_Copy_App_SSOT.py",
       "norm_label": "_account_reconciliation_baseline_timestamp()"
     },
     {
@@ -725,7 +725,7 @@
       "source_location": "L1236",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_fetch_user_fills_by_time",
-      "community": 15,
+      "community": 4,
       "community_name": "HL_Copy_App_SSOT.py",
       "norm_label": "_fetch_user_fills_by_time()"
     },
@@ -736,8 +736,8 @@
       "source_location": "L1258",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_today_start_ms",
-      "community": 12,
-      "community_name": "load_json",
+      "community": 4,
+      "community_name": "HL_Copy_App_SSOT.py",
       "norm_label": "_today_start_ms()"
     },
     {
@@ -747,8 +747,8 @@
       "source_location": "L1268",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_earliest_real_order_filled_ms",
-      "community": 12,
-      "community_name": "load_json",
+      "community": 4,
+      "community_name": "HL_Copy_App_SSOT.py",
       "norm_label": "_earliest_real_order_filled_ms()"
     },
     {
@@ -758,7 +758,7 @@
       "source_location": "L1285",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_summarize_exchange_closed_pnl_rows",
-      "community": 15,
+      "community": 4,
       "community_name": "HL_Copy_App_SSOT.py",
       "norm_label": "_summarize_exchange_closed_pnl_rows()"
     },
@@ -769,8 +769,8 @@
       "source_location": "L1308",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_fetch_user_realized_pnl_snapshot",
-      "community": 12,
-      "community_name": "load_json",
+      "community": 4,
+      "community_name": "HL_Copy_App_SSOT.py",
       "norm_label": "_fetch_user_realized_pnl_snapshot()"
     },
     {
@@ -780,8 +780,8 @@
       "source_location": "L1448",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_append_exchange_history",
-      "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community": 13,
+      "community_name": "get",
       "norm_label": "_append_exchange_history()"
     },
     {
@@ -791,8 +791,8 @@
       "source_location": "L1477",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_fetch_exchange_account_snapshot",
-      "community": 12,
-      "community_name": "load_json",
+      "community": 13,
+      "community_name": "get",
       "norm_label": "_fetch_exchange_account_snapshot()"
     },
     {
@@ -802,8 +802,8 @@
       "source_location": "L1691",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_build_account_reconciliation",
-      "community": 12,
-      "community_name": "load_json",
+      "community": 13,
+      "community_name": "get",
       "norm_label": "_build_account_reconciliation()"
     },
     {
@@ -813,8 +813,8 @@
       "source_location": "L1780",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_manual_live_summary",
-      "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community": 13,
+      "community_name": "get",
       "norm_label": "_manual_live_summary()"
     },
     {
@@ -824,8 +824,8 @@
       "source_location": "L1833",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_build_manual_reconciliation_rows",
-      "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community": 13,
+      "community_name": "get",
       "norm_label": "_build_manual_reconciliation_rows()"
     },
     {
@@ -835,8 +835,8 @@
       "source_location": "L1949",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_build_recent_send_warning_groups",
-      "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community": 13,
+      "community_name": "get",
       "norm_label": "_build_recent_send_warning_groups()"
     },
     {
@@ -846,8 +846,8 @@
       "source_location": "L1989",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_archive_manual_reconciliation_ledger_row",
-      "community": 12,
-      "community_name": "load_json",
+      "community": 13,
+      "community_name": "get",
       "norm_label": "_archive_manual_reconciliation_ledger_row()"
     },
     {
@@ -857,8 +857,8 @@
       "source_location": "L2053",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_build_live_wallet_derived",
-      "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community": 13,
+      "community_name": "get",
       "norm_label": "_build_live_wallet_derived()"
     },
     {
@@ -868,8 +868,8 @@
       "source_location": "L2118",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_build_live_wallet_rows",
-      "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community": 13,
+      "community_name": "get",
       "norm_label": "_build_live_wallet_rows()"
     },
     {
@@ -879,8 +879,8 @@
       "source_location": "L2309",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_build_real_copy_positions",
-      "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community": 13,
+      "community_name": "get",
       "norm_label": "_build_real_copy_positions()"
     },
     {
@@ -890,8 +890,8 @@
       "source_location": "L2417",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_build_execution_quality_rows",
-      "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community": 13,
+      "community_name": "get",
       "norm_label": "_build_execution_quality_rows()"
     },
     {
@@ -901,8 +901,8 @@
       "source_location": "L2492",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_is_dry_run_live_fill",
-      "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community": 13,
+      "community_name": "get",
       "norm_label": "_is_dry_run_live_fill()"
     },
     {
@@ -912,7 +912,7 @@
       "source_location": "L2496",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_send_attempt_time_ms",
-      "community": 15,
+      "community": 4,
       "community_name": "HL_Copy_App_SSOT.py",
       "norm_label": "_send_attempt_time_ms()"
     },
@@ -923,8 +923,8 @@
       "source_location": "L2500",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_exchange_fill_side",
-      "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community": 19,
+      "community_name": "Any",
       "norm_label": "_exchange_fill_side()"
     },
     {
@@ -934,8 +934,8 @@
       "source_location": "L2509",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_exchange_fill_match_id",
-      "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community": 19,
+      "community_name": "Any",
       "norm_label": "_exchange_fill_match_id()"
     },
     {
@@ -945,8 +945,8 @@
       "source_location": "L2513",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_row_client_id",
-      "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community": 19,
+      "community_name": "Any",
       "norm_label": "_row_client_id()"
     },
     {
@@ -956,8 +956,8 @@
       "source_location": "L2524",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_match_exchange_fill_to_attempt",
-      "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community": 19,
+      "community_name": "Any",
       "norm_label": "_match_exchange_fill_to_attempt()"
     },
     {
@@ -967,8 +967,8 @@
       "source_location": "L2544",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_build_live_leader_performance",
-      "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community": 13,
+      "community_name": "get",
       "norm_label": "_build_live_leader_performance()"
     },
     {
@@ -978,8 +978,8 @@
       "source_location": "L2911",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_build_execution_quality_summary",
-      "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community": 13,
+      "community_name": "get",
       "norm_label": "_build_execution_quality_summary()"
     },
     {
@@ -989,8 +989,8 @@
       "source_location": "L2934",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_load_send_attempt_counts",
-      "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community": 13,
+      "community_name": "get",
       "norm_label": "_load_send_attempt_counts()"
     },
     {
@@ -1000,7 +1000,7 @@
       "source_location": "L2948",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_load_live_config",
-      "community": 15,
+      "community": 4,
       "community_name": "HL_Copy_App_SSOT.py",
       "norm_label": "load_live_config()"
     },
@@ -1011,8 +1011,8 @@
       "source_location": "L2952",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_save_live_config",
-      "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community": 19,
+      "community_name": "Any",
       "norm_label": "save_live_config()"
     },
     {
@@ -1022,8 +1022,8 @@
       "source_location": "L2956",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_enforce_live_wallet_limit",
-      "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community": 19,
+      "community_name": "Any",
       "norm_label": "enforce_live_wallet_limit()"
     },
     {
@@ -1034,7 +1034,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_save_wallet_gate",
       "community": 6,
-      "community_name": "get",
+      "community_name": "JSONResponse",
       "norm_label": "save_wallet_gate()"
     },
     {
@@ -1045,7 +1045,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_parse_bool",
       "community": 6,
-      "community_name": "get",
+      "community_name": "JSONResponse",
       "norm_label": "parse_bool()"
     },
     {
@@ -1055,8 +1055,8 @@
       "source_location": "L2978",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_load_raw_json",
-      "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community": 19,
+      "community_name": "Any",
       "norm_label": "load_raw_json()"
     },
     {
@@ -1066,8 +1066,8 @@
       "source_location": "L2986",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_normalise_recording_method",
-      "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community": 19,
+      "community_name": "Any",
       "norm_label": "normalise_recording_method()"
     },
     {
@@ -1077,8 +1077,8 @@
       "source_location": "L2993",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_expected_copy_price_from_row",
-      "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community": 19,
+      "community_name": "Any",
       "norm_label": "expected_copy_price_from_row()"
     },
     {
@@ -1088,7 +1088,7 @@
       "source_location": "L3011",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_disadvantage_bps",
-      "community": 15,
+      "community": 4,
       "community_name": "HL_Copy_App_SSOT.py",
       "norm_label": "disadvantage_bps()"
     },
@@ -1099,7 +1099,7 @@
       "source_location": "L3018",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_fill_can_measure_execution_delta",
-      "community": 15,
+      "community": 4,
       "community_name": "HL_Copy_App_SSOT.py",
       "norm_label": "fill_can_measure_execution_delta()"
     },
@@ -1110,7 +1110,7 @@
       "source_location": "L3027",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_copy_price_for_fill",
-      "community": 15,
+      "community": 4,
       "community_name": "HL_Copy_App_SSOT.py",
       "norm_label": "copy_price_for_fill()"
     },
@@ -1121,8 +1121,8 @@
       "source_location": "L3031",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_parse_raw_fill_row",
-      "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community": 19,
+      "community_name": "Any",
       "norm_label": "parse_raw_fill_row()"
     },
     {
@@ -1132,7 +1132,7 @@
       "source_location": "L3086",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_load_raw_fills",
-      "community": 15,
+      "community": 4,
       "community_name": "HL_Copy_App_SSOT.py",
       "norm_label": "load_raw_fills()"
     },
@@ -1143,7 +1143,7 @@
       "source_location": "L3103",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_sign_from_side",
-      "community": 15,
+      "community": 4,
       "community_name": "HL_Copy_App_SSOT.py",
       "norm_label": "sign_from_side()"
     },
@@ -1154,7 +1154,7 @@
       "source_location": "L3107",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_bps_fee",
-      "community": 15,
+      "community": 4,
       "community_name": "HL_Copy_App_SSOT.py",
       "norm_label": "bps_fee()"
     },
@@ -1165,7 +1165,7 @@
       "source_location": "L3111",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_calc_unrealized",
-      "community": 15,
+      "community": 4,
       "community_name": "HL_Copy_App_SSOT.py",
       "norm_label": "calc_unrealized()"
     },
@@ -1176,7 +1176,7 @@
       "source_location": "L3118",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_close_positions_fifo",
-      "community": 15,
+      "community": 4,
       "community_name": "HL_Copy_App_SSOT.py",
       "norm_label": "close_positions_fifo()"
     },
@@ -1187,7 +1187,7 @@
       "source_location": "L3154",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_effective_wallet_ui",
-      "community": 15,
+      "community": 4,
       "community_name": "HL_Copy_App_SSOT.py",
       "norm_label": "effective_wallet_ui()"
     },
@@ -1198,7 +1198,7 @@
       "source_location": "L3169",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_wallet_alloc",
-      "community": 15,
+      "community": 4,
       "community_name": "HL_Copy_App_SSOT.py",
       "norm_label": "wallet_alloc()"
     },
@@ -1209,7 +1209,7 @@
       "source_location": "L3173",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_model_copy_notional",
-      "community": 15,
+      "community": 4,
       "community_name": "HL_Copy_App_SSOT.py",
       "norm_label": "model_copy_notional()"
     },
@@ -1220,7 +1220,7 @@
       "source_location": "L3181",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_model_copy_notional_for_size",
-      "community": 15,
+      "community": 4,
       "community_name": "HL_Copy_App_SSOT.py",
       "norm_label": "model_copy_notional_for_size()"
     },
@@ -1231,7 +1231,7 @@
       "source_location": "L3191",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_signed_position_from_model_positions",
-      "community": 15,
+      "community": 4,
       "community_name": "HL_Copy_App_SSOT.py",
       "norm_label": "signed_position_from_model_positions()"
     },
@@ -1242,7 +1242,7 @@
       "source_location": "L3199",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_side_label_from_signed",
-      "community": 15,
+      "community": 4,
       "community_name": "HL_Copy_App_SSOT.py",
       "norm_label": "side_label_from_signed()"
     },
@@ -1253,7 +1253,7 @@
       "source_location": "L3207",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_alignment_status_for_key",
-      "community": 15,
+      "community": 4,
       "community_name": "HL_Copy_App_SSOT.py",
       "norm_label": "alignment_status_for_key()"
     },
@@ -1264,7 +1264,7 @@
       "source_location": "L3230",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_apply_price_model",
-      "community": 15,
+      "community": 4,
       "community_name": "HL_Copy_App_SSOT.py",
       "norm_label": "_apply_price_model()"
     },
@@ -1275,7 +1275,7 @@
       "source_location": "L3236",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_lead_cost_bps",
-      "community": 15,
+      "community": 4,
       "community_name": "HL_Copy_App_SSOT.py",
       "norm_label": "_lead_cost_bps()"
     },
@@ -1286,7 +1286,7 @@
       "source_location": "L3243",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_copy_friction_bps",
-      "community": 15,
+      "community": 4,
       "community_name": "HL_Copy_App_SSOT.py",
       "norm_label": "_copy_friction_bps()"
     },
@@ -1297,7 +1297,7 @@
       "source_location": "L3249",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_copy_cost_bps",
-      "community": 15,
+      "community": 4,
       "community_name": "HL_Copy_App_SSOT.py",
       "norm_label": "_copy_cost_bps()"
     },
@@ -1308,7 +1308,7 @@
       "source_location": "L3253",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_copyable_model_fill",
-      "community": 15,
+      "community": 4,
       "community_name": "HL_Copy_App_SSOT.py",
       "norm_label": "_copyable_model_fill()"
     },
@@ -1319,7 +1319,7 @@
       "source_location": "L3310",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_build_model_state",
-      "community": 15,
+      "community": 4,
       "community_name": "HL_Copy_App_SSOT.py",
       "norm_label": "build_model_state()"
     },
@@ -1330,7 +1330,7 @@
       "source_location": "L3938",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_block",
-      "community": 15,
+      "community": 4,
       "community_name": "HL_Copy_App_SSOT.py",
       "norm_label": "block()"
     },
@@ -1342,7 +1342,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_selected_aggregate",
       "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community_name": "fnum",
       "norm_label": "selected_aggregate()"
     },
     {
@@ -1353,7 +1353,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_selected_combined_curve_stats",
       "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community_name": "fnum",
       "norm_label": "selected_combined_curve_stats()"
     },
     {
@@ -1363,8 +1363,8 @@
       "source_location": "L4058",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_build_portfolio_history",
-      "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community": 19,
+      "community_name": "Any",
       "norm_label": "build_portfolio_history()"
     },
     {
@@ -1374,8 +1374,8 @@
       "source_location": "L4125",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_compact_history",
-      "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community": 19,
+      "community_name": "Any",
       "norm_label": "compact_history()"
     },
     {
@@ -1386,7 +1386,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_persist_model_state",
       "community": 12,
-      "community_name": "load_json",
+      "community_name": "atomic_write_json",
       "norm_label": "persist_model_state()"
     },
     {
@@ -1397,7 +1397,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_invalidate_model_cache",
       "community": 12,
-      "community_name": "load_json",
+      "community_name": "atomic_write_json",
       "norm_label": "invalidate_model_cache()"
     },
     {
@@ -1408,7 +1408,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_get_model_state_cached",
       "community": 6,
-      "community_name": "get",
+      "community_name": "JSONResponse",
       "norm_label": "get_model_state_cached()"
     },
     {
@@ -1419,7 +1419,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_health_status_label",
       "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community_name": "fnum",
       "norm_label": "health_status_label()"
     },
     {
@@ -1429,7 +1429,7 @@
       "source_location": "L4225",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_format_duration",
-      "community": 15,
+      "community": 4,
       "community_name": "HL_Copy_App_SSOT.py",
       "norm_label": "format_duration()"
     },
@@ -1441,7 +1441,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_money",
       "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community_name": "fnum",
       "norm_label": "money()"
     },
     {
@@ -1452,7 +1452,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_pct",
       "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community_name": "fnum",
       "norm_label": "pct()"
     },
     {
@@ -1463,7 +1463,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_dual",
       "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community_name": "fnum",
       "norm_label": "dual()"
     },
     {
@@ -1474,7 +1474,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_has_num",
       "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community_name": "fnum",
       "norm_label": "has_num()"
     },
     {
@@ -1485,7 +1485,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_money_or_dash",
       "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community_name": "fnum",
       "norm_label": "money_or_dash()"
     },
     {
@@ -1496,7 +1496,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_pct_or_dash",
       "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community_name": "fnum",
       "norm_label": "pct_or_dash()"
     },
     {
@@ -1507,7 +1507,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_dual_or_dash",
       "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community_name": "fnum",
       "norm_label": "dual_or_dash()"
     },
     {
@@ -1518,7 +1518,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_x_or_dash",
       "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community_name": "fnum",
       "norm_label": "x_or_dash()"
     },
     {
@@ -1529,7 +1529,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_is_present_num",
       "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community_name": "fnum",
       "norm_label": "is_present_num()"
     },
     {
@@ -1540,7 +1540,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_fmt_money_or_dash",
       "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community_name": "fnum",
       "norm_label": "fmt_money_or_dash()"
     },
     {
@@ -1551,7 +1551,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_fmt_pct_or_dash",
       "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community_name": "fnum",
       "norm_label": "fmt_pct_or_dash()"
     },
     {
@@ -1562,7 +1562,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_fmt_dual_or_dash",
       "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community_name": "fnum",
       "norm_label": "fmt_dual_or_dash()"
     },
     {
@@ -1573,7 +1573,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_fmt_x_or_dash",
       "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community_name": "fnum",
       "norm_label": "fmt_x_or_dash()"
     },
     {
@@ -1584,7 +1584,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_td_num",
       "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community_name": "fnum",
       "norm_label": "td_num()"
     },
     {
@@ -1594,8 +1594,8 @@
       "source_location": "L4300",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_active_wallet_row",
-      "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community": 13,
+      "community_name": "get",
       "norm_label": "active_wallet_row()"
     },
     {
@@ -1606,7 +1606,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_active_wallet",
       "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community_name": "fnum",
       "norm_label": "active_wallet()"
     },
     {
@@ -1617,7 +1617,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_core_missing",
       "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community_name": "fnum",
       "norm_label": "core_missing()"
     },
     {
@@ -1628,7 +1628,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_required_num_or_wire_err",
       "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community_name": "fnum",
       "norm_label": "required_num_or_wire_err()"
     },
     {
@@ -1639,7 +1639,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_core_td",
       "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community_name": "fnum",
       "norm_label": "core_td()"
     },
     {
@@ -1650,7 +1650,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_dash_td",
       "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community_name": "fnum",
       "norm_label": "dash_td()"
     },
     {
@@ -1661,7 +1661,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_money_cell_core",
       "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community_name": "fnum",
       "norm_label": "money_cell_core()"
     },
     {
@@ -1672,7 +1672,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_pct_cell_core",
       "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community_name": "fnum",
       "norm_label": "pct_cell_core()"
     },
     {
@@ -1683,7 +1683,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_dual_cell_core",
       "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community_name": "fnum",
       "norm_label": "dual_cell_core()"
     },
     {
@@ -1694,7 +1694,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_css_class",
       "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community_name": "fnum",
       "norm_label": "css_class()"
     },
     {
@@ -1704,8 +1704,8 @@
       "source_location": "L4361",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_block_num",
-      "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community": 20,
+      "community_name": "block_num",
       "norm_label": "block_num()"
     },
     {
@@ -1715,8 +1715,8 @@
       "source_location": "L4371",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_latest_history_block_dd",
-      "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community": 20,
+      "community_name": "block_num",
       "norm_label": "latest_history_block_dd()"
     },
     {
@@ -1726,8 +1726,8 @@
       "source_location": "L4395",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_max_history_block_dd",
-      "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community": 20,
+      "community_name": "block_num",
       "norm_label": "max_history_block_dd()"
     },
     {
@@ -1737,8 +1737,8 @@
       "source_location": "L4408",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_dd_current",
-      "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community": 20,
+      "community_name": "block_num",
       "norm_label": "dd_current()"
     },
     {
@@ -1748,8 +1748,8 @@
       "source_location": "L4421",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_dd_max",
-      "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community": 20,
+      "community_name": "block_num",
       "norm_label": "dd_max()"
     },
     {
@@ -1760,7 +1760,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_get_current_dd",
       "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community_name": "fnum",
       "norm_label": "get_current_dd()"
     },
     {
@@ -1770,8 +1770,8 @@
       "source_location": "L4433",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_get_max_dd",
-      "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community": 20,
+      "community_name": "block_num",
       "norm_label": "get_max_dd()"
     },
     {
@@ -1782,7 +1782,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_format_dd",
       "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community_name": "fnum",
       "norm_label": "format_dd()"
     },
     {
@@ -1793,7 +1793,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_validate_render_contract",
       "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community_name": "fnum",
       "norm_label": "validate_render_contract()"
     },
     {
@@ -1804,7 +1804,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_render_chart",
       "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community_name": "fnum",
       "norm_label": "render_chart()"
     },
     {
@@ -1815,7 +1815,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_sorted_rows",
       "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community_name": "fnum",
       "norm_label": "sorted_rows()"
     },
     {
@@ -1826,7 +1826,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_render_home",
       "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community_name": "fnum",
       "norm_label": "render_home()"
     },
     {
@@ -1836,7 +1836,7 @@
       "source_location": "L5049",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_extract_num",
-      "community": 15,
+      "community": 4,
       "community_name": "HL_Copy_App_SSOT.py",
       "norm_label": "extract_num()"
     },
@@ -1848,7 +1848,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_avg",
       "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community_name": "fnum",
       "norm_label": "avg()"
     },
     {
@@ -1859,7 +1859,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_wallet_lead_copy_counts",
       "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community_name": "fnum",
       "norm_label": "wallet_lead_copy_counts()"
     },
     {
@@ -1870,7 +1870,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_lc_cell",
       "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community_name": "fnum",
       "norm_label": "lc_cell()"
     },
     {
@@ -1881,7 +1881,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_render_row",
       "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community_name": "fnum",
       "norm_label": "render_row()"
     },
     {
@@ -1892,7 +1892,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_wants_json_response",
       "community": 6,
-      "community_name": "get",
+      "community_name": "JSONResponse",
       "norm_label": "wants_json_response()"
     },
     {
@@ -1903,7 +1903,7 @@
       "_origin": "ast",
       "id": "request",
       "community": 6,
-      "community_name": "get",
+      "community_name": "JSONResponse",
       "norm_label": "request"
     },
     {
@@ -1913,7 +1913,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "get",
-      "community": 6,
+      "community": 13,
       "community_name": "get",
       "norm_label": "get"
     },
@@ -1925,7 +1925,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_home",
       "community": 6,
-      "community_name": "get",
+      "community_name": "JSONResponse",
       "norm_label": "home()"
     },
     {
@@ -1936,7 +1936,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_api_state",
       "community": 6,
-      "community_name": "get",
+      "community_name": "JSONResponse",
       "norm_label": "api_state()"
     },
     {
@@ -1947,7 +1947,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_api_metrics",
       "community": 6,
-      "community_name": "get",
+      "community_name": "JSONResponse",
       "norm_label": "api_metrics()"
     },
     {
@@ -1958,7 +1958,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_api_trades",
       "community": 6,
-      "community_name": "get",
+      "community_name": "JSONResponse",
       "norm_label": "api_trades()"
     },
     {
@@ -1969,7 +1969,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_api_equity",
       "community": 6,
-      "community_name": "get",
+      "community_name": "JSONResponse",
       "norm_label": "api_equity()"
     },
     {
@@ -1980,7 +1980,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_set_wallet_include",
       "community": 6,
-      "community_name": "get",
+      "community_name": "JSONResponse",
       "norm_label": "set_wallet_include()"
     },
     {
@@ -1991,7 +1991,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_set_wallet_config",
       "community": 6,
-      "community_name": "get",
+      "community_name": "JSONResponse",
       "norm_label": "set_wallet_config()"
     },
     {
@@ -2001,7 +2001,7 @@
       "source_location": "L5343",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_render_wallet_meta_page",
-      "community": 6,
+      "community": 13,
       "community_name": "get",
       "norm_label": "render_wallet_meta_page()"
     },
@@ -2012,7 +2012,7 @@
       "source_location": "L5381",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_wallet_meta_page",
-      "community": 6,
+      "community": 13,
       "community_name": "get",
       "norm_label": "wallet_meta_page()"
     },
@@ -2024,7 +2024,7 @@
       "_origin": "ast",
       "id": "htmlresponse",
       "community": 6,
-      "community_name": "get",
+      "community_name": "JSONResponse",
       "norm_label": "htmlresponse"
     },
     {
@@ -2035,7 +2035,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_api_wallet_meta",
       "community": 6,
-      "community_name": "get",
+      "community_name": "JSONResponse",
       "norm_label": "api_wallet_meta()"
     },
     {
@@ -2046,7 +2046,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_admin_purge_wallet",
       "community": 6,
-      "community_name": "get",
+      "community_name": "JSONResponse",
       "norm_label": "admin_purge_wallet()"
     },
     {
@@ -2057,7 +2057,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_render_live_copy_control_panel",
       "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community_name": "fnum",
       "norm_label": "render_live_copy_control_panel()"
     },
     {
@@ -2068,7 +2068,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_wallet_detail",
       "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community_name": "fnum",
       "norm_label": "wallet_detail()"
     },
     {
@@ -2079,7 +2079,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_api_get_ui_state",
       "community": 6,
-      "community_name": "get",
+      "community_name": "JSONResponse",
       "norm_label": "api_get_ui_state()"
     },
     {
@@ -2090,7 +2090,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_api_set_ui_state",
       "community": 6,
-      "community_name": "get",
+      "community_name": "JSONResponse",
       "norm_label": "api_set_ui_state()"
     },
     {
@@ -2101,7 +2101,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_api_norm",
       "community": 6,
-      "community_name": "get",
+      "community_name": "JSONResponse",
       "norm_label": "api_norm()"
     },
     {
@@ -2112,7 +2112,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_set_wallet_mode",
       "community": 6,
-      "community_name": "get",
+      "community_name": "JSONResponse",
       "norm_label": "set_wallet_mode()"
     },
     {
@@ -2123,7 +2123,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_set_all_modes",
       "community": 6,
-      "community_name": "get",
+      "community_name": "JSONResponse",
       "norm_label": "set_all_modes()"
     },
     {
@@ -2134,7 +2134,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_reset_app_history",
       "community": 6,
-      "community_name": "get",
+      "community_name": "JSONResponse",
       "norm_label": "reset_app_history()"
     },
     {
@@ -2145,7 +2145,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_snapshot",
       "community": 6,
-      "community_name": "get",
+      "community_name": "JSONResponse",
       "norm_label": "snapshot()"
     },
     {
@@ -2156,7 +2156,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_sort_column",
       "community": 6,
-      "community_name": "get",
+      "community_name": "JSONResponse",
       "norm_label": "sort_column()"
     },
     {
@@ -2167,7 +2167,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_get_live_config",
       "community": 6,
-      "community_name": "get",
+      "community_name": "JSONResponse",
       "norm_label": "get_live_config()"
     },
     {
@@ -2178,7 +2178,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_get_global_controls",
       "community": 6,
-      "community_name": "get",
+      "community_name": "JSONResponse",
       "norm_label": "get_global_controls()"
     },
     {
@@ -2189,7 +2189,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_set_global_controls",
       "community": 6,
-      "community_name": "get",
+      "community_name": "JSONResponse",
       "norm_label": "set_global_controls()"
     },
     {
@@ -2199,7 +2199,7 @@
       "source_location": "L6218",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_get_live_ws_health",
-      "community": 6,
+      "community": 13,
       "community_name": "get",
       "norm_label": "get_live_ws_health()"
     },
@@ -2210,7 +2210,7 @@
       "source_location": "L6223",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_get_live_audit_summary",
-      "community": 6,
+      "community": 13,
       "community_name": "get",
       "norm_label": "get_live_audit_summary()"
     },
@@ -2222,7 +2222,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_add_live_config_wallet",
       "community": 6,
-      "community_name": "get",
+      "community_name": "JSONResponse",
       "norm_label": "add_live_config_wallet()"
     },
     {
@@ -2233,7 +2233,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_set_live_config_wallet",
       "community": 6,
-      "community_name": "get",
+      "community_name": "JSONResponse",
       "norm_label": "set_live_config_wallet()"
     },
     {
@@ -2244,7 +2244,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_remove_live_config_wallet",
       "community": 6,
-      "community_name": "get",
+      "community_name": "JSONResponse",
       "norm_label": "remove_live_config_wallet()"
     },
     {
@@ -2255,7 +2255,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_set_live_config_mode",
       "community": 6,
-      "community_name": "get",
+      "community_name": "JSONResponse",
       "norm_label": "set_live_config_mode()"
     },
     {
@@ -2265,7 +2265,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_rationale_1",
-      "community": 15,
+      "community": 4,
       "community_name": "HL_Copy_App_SSOT.py",
       "norm_label": "hl_copy_app_ssot.py pure app/model/presentation layer for the hyperliquid copy-..."
     },
@@ -2277,7 +2277,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_rationale_332",
       "community": 12,
-      "community_name": "load_json",
+      "community_name": "atomic_write_json",
       "norm_label": "admin maintenance only: purge a wallet from active app/engine-loaded files."
     },
     {
@@ -2288,7 +2288,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_rationale_542",
       "community": 6,
-      "community_name": "get",
+      "community_name": "JSONResponse",
       "norm_label": "sanitise optional per-wallet model overrides. empty/missing wallet config..."
     },
     {
@@ -2299,7 +2299,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_rationale_568",
       "community": 6,
-      "community_name": "get",
+      "community_name": "JSONResponse",
       "norm_label": "sanitise display-only portfolio include/exclude map. missing wallets default to..."
     },
     {
@@ -2309,7 +2309,7 @@
       "source_location": "L3155",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_rationale_3155",
-      "community": 15,
+      "community": 4,
       "community_name": "HL_Copy_App_SSOT.py",
       "norm_label": "return copy sizing settings for one wallet, with global header fallback."
     },
@@ -2320,7 +2320,7 @@
       "source_location": "L3254",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_rationale_3254",
-      "community": 15,
+      "community": 4,
       "community_name": "HL_Copy_App_SSOT.py",
       "norm_label": "return only the portion of a ledger fill that should be modelled as copied...."
     },
@@ -2332,7 +2332,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_rationale_3958",
       "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community_name": "fnum",
       "norm_label": "one canonical aggregate of all selected (included, non-user) wallets. header..."
     },
     {
@@ -2342,8 +2342,8 @@
       "source_location": "L4362",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_rationale_4362",
-      "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community": 20,
+      "community_name": "block_num",
       "norm_label": "read numeric metric fields with legacy alias fallback."
     },
     {
@@ -2353,8 +2353,8 @@
       "source_location": "L4372",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_rationale_4372",
-      "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community": 20,
+      "community_name": "block_num",
       "norm_label": "return latest combined curve dd when the rendered block lacks it. used only as..."
     },
     {
@@ -2365,7 +2365,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_rationale_4479",
       "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community_name": "fnum",
       "norm_label": "validate dashboard cell contract. returns list of error strings; never throws."
     },
     {
@@ -2376,7 +2376,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_rationale_4741",
       "community": 15,
-      "community_name": "HL_Copy_App_SSOT.py",
+      "community_name": "fnum",
       "norm_label": "render copy pnl, realised pnl and drawdown against real elapsed time."
     },
     {
@@ -2387,7 +2387,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_copy_app_ssot_rationale_5405",
       "community": 6,
-      "community_name": "get",
+      "community_name": "JSONResponse",
       "norm_label": "admin maintenance only: purge a wallet from active dashboard data files."
     },
     {
@@ -2441,8 +2441,8 @@
       "source_location": "L215",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_utc_now_iso",
-      "community": 1,
-      "community_name": "DryRunLiveCopyService",
+      "community": 14,
+      "community_name": "LeaderFill",
       "norm_label": "utc_now_iso()"
     },
     {
@@ -2452,8 +2452,8 @@
       "source_location": "L219",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_utc_now_ms",
-      "community": 0,
-      "community_name": "HL_Live_Copy_Service.py",
+      "community": 17,
+      "community_name": "Any",
       "norm_label": "utc_now_ms()"
     },
     {
@@ -2474,8 +2474,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_py_any",
-      "community": 0,
-      "community_name": "HL_Live_Copy_Service.py",
+      "community": 17,
+      "community_name": "Any",
       "norm_label": "any"
     },
     {
@@ -2485,8 +2485,8 @@
       "source_location": "L233",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_inum",
-      "community": 0,
-      "community_name": "HL_Live_Copy_Service.py",
+      "community": 17,
+      "community_name": "Any",
       "norm_label": "inum()"
     },
     {
@@ -2518,8 +2518,8 @@
       "source_location": "L256",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_get_wallet_live_config",
-      "community": 0,
-      "community_name": "HL_Live_Copy_Service.py",
+      "community": 18,
+      "community_name": "manual_send_one_intent",
       "norm_label": "get_wallet_live_config()"
     },
     {
@@ -2573,8 +2573,8 @@
       "source_location": "L337",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_append_csv",
-      "community": 0,
-      "community_name": "HL_Live_Copy_Service.py",
+      "community": 14,
+      "community_name": "LeaderFill",
       "norm_label": "append_csv()"
     },
     {
@@ -2606,8 +2606,8 @@
       "source_location": "L367",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_should_write_would_send",
-      "community": 1,
-      "community_name": "DryRunLiveCopyService",
+      "community": 14,
+      "community_name": "LeaderFill",
       "norm_label": "should_write_would_send()"
     },
     {
@@ -2617,8 +2617,8 @@
       "source_location": "L372",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_load_would_send_order",
-      "community": 0,
-      "community_name": "HL_Live_Copy_Service.py",
+      "community": 18,
+      "community_name": "manual_send_one_intent",
       "norm_label": "load_would_send_order()"
     },
     {
@@ -2628,8 +2628,8 @@
       "source_location": "L386",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_truthy_csv",
-      "community": 0,
-      "community_name": "HL_Live_Copy_Service.py",
+      "community": 18,
+      "community_name": "manual_send_one_intent",
       "norm_label": "truthy_csv()"
     },
     {
@@ -2650,8 +2650,8 @@
       "source_location": "L397",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_state_write",
-      "community": 0,
-      "community_name": "HL_Live_Copy_Service.py",
+      "community": 18,
+      "community_name": "manual_send_one_intent",
       "norm_label": "_state_write()"
     },
     {
@@ -2661,8 +2661,8 @@
       "source_location": "L405",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_persist_unresolved_send",
-      "community": 0,
-      "community_name": "HL_Live_Copy_Service.py",
+      "community": 18,
+      "community_name": "manual_send_one_intent",
       "norm_label": "persist_unresolved_send()"
     },
     {
@@ -2672,8 +2672,8 @@
       "source_location": "L414",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_attach_send_result",
-      "community": 0,
-      "community_name": "HL_Live_Copy_Service.py",
+      "community": 18,
+      "community_name": "manual_send_one_intent",
       "norm_label": "attach_send_result()"
     },
     {
@@ -2683,8 +2683,8 @@
       "source_location": "L425",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_clear_unresolved_send",
-      "community": 0,
-      "community_name": "HL_Live_Copy_Service.py",
+      "community": 18,
+      "community_name": "manual_send_one_intent",
       "norm_label": "clear_unresolved_send()"
     },
     {
@@ -2694,8 +2694,8 @@
       "source_location": "L436",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_reconcile_unresolved_send",
-      "community": 0,
-      "community_name": "HL_Live_Copy_Service.py",
+      "community": 18,
+      "community_name": "manual_send_one_intent",
       "norm_label": "reconcile_unresolved_send()"
     },
     {
@@ -2705,8 +2705,8 @@
       "source_location": "L471",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_master_net_snapshot",
-      "community": 0,
-      "community_name": "HL_Live_Copy_Service.py",
+      "community": 18,
+      "community_name": "manual_send_one_intent",
       "norm_label": "master_net_snapshot()"
     },
     {
@@ -2716,8 +2716,8 @@
       "source_location": "L479",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_append_send_attempt",
-      "community": 0,
-      "community_name": "HL_Live_Copy_Service.py",
+      "community": 18,
+      "community_name": "manual_send_one_intent",
       "norm_label": "append_send_attempt()"
     },
     {
@@ -2727,8 +2727,8 @@
       "source_location": "L499",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_load_manual_live_positions",
-      "community": 0,
-      "community_name": "HL_Live_Copy_Service.py",
+      "community": 18,
+      "community_name": "manual_send_one_intent",
       "norm_label": "load_manual_live_positions()"
     },
     {
@@ -2738,8 +2738,8 @@
       "source_location": "L504",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_save_manual_live_positions",
-      "community": 0,
-      "community_name": "HL_Live_Copy_Service.py",
+      "community": 18,
+      "community_name": "manual_send_one_intent",
       "norm_label": "save_manual_live_positions()"
     },
     {
@@ -2749,8 +2749,8 @@
       "source_location": "L508",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_update_manual_live_position_from_fill",
-      "community": 0,
-      "community_name": "HL_Live_Copy_Service.py",
+      "community": 18,
+      "community_name": "manual_send_one_intent",
       "norm_label": "update_manual_live_position_from_fill()"
     },
     {
@@ -2771,8 +2771,8 @@
       "source_location": "L554",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_get_hl_perp_meta_by_coin",
-      "community": 0,
-      "community_name": "HL_Live_Copy_Service.py",
+      "community": 17,
+      "community_name": "Any",
       "norm_label": "get_hl_perp_meta_by_coin()"
     },
     {
@@ -2782,8 +2782,8 @@
       "source_location": "L582",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_force_fetch_hl_perp_meta",
-      "community": 0,
-      "community_name": "HL_Live_Copy_Service.py",
+      "community": 17,
+      "community_name": "Any",
       "norm_label": "force_fetch_hl_perp_meta()"
     },
     {
@@ -2793,8 +2793,8 @@
       "source_location": "L588",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_resolve_hl_perp_symbol",
-      "community": 0,
-      "community_name": "HL_Live_Copy_Service.py",
+      "community": 17,
+      "community_name": "Any",
       "norm_label": "resolve_hl_perp_symbol()"
     },
     {
@@ -2804,8 +2804,8 @@
       "source_location": "L634",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_floor_decimal_to_places",
-      "community": 0,
-      "community_name": "HL_Live_Copy_Service.py",
+      "community": 21,
+      "community_name": "prepare_hl_order_numbers",
       "norm_label": "floor_decimal_to_places()"
     },
     {
@@ -2815,8 +2815,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "decimal",
-      "community": 0,
-      "community_name": "HL_Live_Copy_Service.py",
+      "community": 21,
+      "community_name": "prepare_hl_order_numbers",
       "norm_label": "decimal"
     },
     {
@@ -2826,8 +2826,8 @@
       "source_location": "L639",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_size_increment_for_places",
-      "community": 0,
-      "community_name": "HL_Live_Copy_Service.py",
+      "community": 21,
+      "community_name": "prepare_hl_order_numbers",
       "norm_label": "size_increment_for_places()"
     },
     {
@@ -2837,8 +2837,8 @@
       "source_location": "L643",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_round_size_hl_perp",
-      "community": 0,
-      "community_name": "HL_Live_Copy_Service.py",
+      "community": 21,
+      "community_name": "prepare_hl_order_numbers",
       "norm_label": "round_size_hl_perp()"
     },
     {
@@ -2848,8 +2848,8 @@
       "source_location": "L656",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_round_price_hl_perp",
-      "community": 0,
-      "community_name": "HL_Live_Copy_Service.py",
+      "community": 21,
+      "community_name": "prepare_hl_order_numbers",
       "norm_label": "round_price_hl_perp()"
     },
     {
@@ -2881,8 +2881,8 @@
       "source_location": "L697",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_prepare_hl_order_numbers",
-      "community": 0,
-      "community_name": "HL_Live_Copy_Service.py",
+      "community": 21,
+      "community_name": "prepare_hl_order_numbers",
       "norm_label": "prepare_hl_order_numbers()"
     },
     {
@@ -2892,8 +2892,8 @@
       "source_location": "L782",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_fixed_notional_buffered_cap",
-      "community": 0,
-      "community_name": "HL_Live_Copy_Service.py",
+      "community": 18,
+      "community_name": "manual_send_one_intent",
       "norm_label": "fixed_notional_buffered_cap()"
     },
     {
@@ -2904,7 +2904,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_fixedmodeauthorityconflict",
       "community": 2,
-      "community_name": "FixedModeAuthorityConflict",
+      "community_name": "DedicatedLiveWSManager",
       "norm_label": "fixedmodeauthorityconflict"
     },
     {
@@ -2915,7 +2915,7 @@
       "_origin": "ast",
       "id": "exception",
       "community": 2,
-      "community_name": "FixedModeAuthorityConflict",
+      "community_name": "DedicatedLiveWSManager",
       "norm_label": "exception"
     },
     {
@@ -2926,7 +2926,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_fixedmodeauthorityconflict_init",
       "community": 2,
-      "community_name": "FixedModeAuthorityConflict",
+      "community_name": "DedicatedLiveWSManager",
       "norm_label": ".__init__()"
     },
     {
@@ -2991,8 +2991,8 @@
       "source_location": "L1124",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_manual_send_one_intent",
-      "community": 0,
-      "community_name": "HL_Live_Copy_Service.py",
+      "community": 18,
+      "community_name": "manual_send_one_intent",
       "norm_label": "manual_send_one_intent()"
     },
     {
@@ -3002,8 +3002,8 @@
       "source_location": "L1434",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_side_from_signed",
-      "community": 1,
-      "community_name": "DryRunLiveCopyService",
+      "community": 14,
+      "community_name": "LeaderFill",
       "norm_label": "side_from_signed()"
     },
     {
@@ -3035,8 +3035,8 @@
       "source_location": "L1450",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_weighted_entry_price",
-      "community": 1,
-      "community_name": "DryRunLiveCopyService",
+      "community": 0,
+      "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "weighted_entry_price()"
     },
     {
@@ -3057,8 +3057,8 @@
       "source_location": "L1484",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_livewalletconfig",
-      "community": 1,
-      "community_name": "DryRunLiveCopyService",
+      "community": 14,
+      "community_name": "LeaderFill",
       "norm_label": "livewalletconfig"
     },
     {
@@ -3079,8 +3079,8 @@
       "source_location": "L1517",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_leaderfill",
-      "community": 1,
-      "community_name": "DryRunLiveCopyService",
+      "community": 14,
+      "community_name": "LeaderFill",
       "norm_label": "leaderfill"
     },
     {
@@ -3090,8 +3090,8 @@
       "source_location": "L1532",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_leaderfill_notional",
-      "community": 1,
-      "community_name": "DryRunLiveCopyService",
+      "community": 14,
+      "community_name": "LeaderFill",
       "norm_label": ".notional()"
     },
     {
@@ -3112,8 +3112,8 @@
       "source_location": "L1544",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_raw_get",
-      "community": 0,
-      "community_name": "HL_Live_Copy_Service.py",
+      "community": 17,
+      "community_name": "Any",
       "norm_label": "raw_get()"
     },
     {
@@ -3123,8 +3123,8 @@
       "source_location": "L1551",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_normalise_side",
-      "community": 0,
-      "community_name": "HL_Live_Copy_Service.py",
+      "community": 17,
+      "community_name": "Any",
       "norm_label": "normalise_side()"
     },
     {
@@ -3145,8 +3145,8 @@
       "source_location": "L1590",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_parse_api_leader_fill",
-      "community": 0,
-      "community_name": "HL_Live_Copy_Service.py",
+      "community": 17,
+      "community_name": "Any",
       "norm_label": "parse_api_leader_fill()"
     },
     {
@@ -3233,8 +3233,8 @@
       "source_location": "L1728",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_parse_ws_leader_fill",
-      "community": 0,
-      "community_name": "HL_Live_Copy_Service.py",
+      "community": 17,
+      "community_name": "Any",
       "norm_label": "parse_ws_leader_fill()"
     },
     {
@@ -3244,8 +3244,8 @@
       "source_location": "L1748",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_parse_ws_snapshot_leader_fill",
-      "community": 0,
-      "community_name": "HL_Live_Copy_Service.py",
+      "community": 17,
+      "community_name": "Any",
       "norm_label": "parse_ws_snapshot_leader_fill()"
     },
     {
@@ -3255,8 +3255,8 @@
       "source_location": "L1768",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_should_recover_ws_snapshot_fill",
-      "community": 0,
-      "community_name": "HL_Live_Copy_Service.py",
+      "community": 17,
+      "community_name": "Any",
       "norm_label": "should_recover_ws_snapshot_fill()"
     },
     {
@@ -3266,8 +3266,8 @@
       "source_location": "L1784",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_audit_reason_for_fill",
-      "community": 1,
-      "community_name": "DryRunLiveCopyService",
+      "community": 14,
+      "community_name": "LeaderFill",
       "norm_label": "audit_reason_for_fill()"
     },
     {
@@ -3277,8 +3277,8 @@
       "source_location": "L1797",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_audit_notes_for_fill",
-      "community": 0,
-      "community_name": "HL_Live_Copy_Service.py",
+      "community": 14,
+      "community_name": "LeaderFill",
       "norm_label": "audit_notes_for_fill()"
     },
     {
@@ -3288,8 +3288,8 @@
       "source_location": "L1810",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_executable_price_from_fill_payload",
-      "community": 1,
-      "community_name": "DryRunLiveCopyService",
+      "community": 14,
+      "community_name": "LeaderFill",
       "norm_label": "executable_price_from_fill_payload()"
     },
     {
@@ -3299,8 +3299,8 @@
       "source_location": "L1817",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_adverse_diff_pct",
-      "community": 1,
-      "community_name": "DryRunLiveCopyService",
+      "community": 14,
+      "community_name": "LeaderFill",
       "norm_label": "adverse_diff_pct()"
     },
     {
@@ -3310,8 +3310,8 @@
       "source_location": "L1825",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_dry_run_intent_audit_decision",
-      "community": 1,
-      "community_name": "DryRunLiveCopyService",
+      "community": 14,
+      "community_name": "LeaderFill",
       "norm_label": "dry_run_intent_audit_decision()"
     },
     {
@@ -3321,8 +3321,8 @@
       "source_location": "L1931",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_ws_coverage_for_fill",
-      "community": 0,
-      "community_name": "HL_Live_Copy_Service.py",
+      "community": 14,
+      "community_name": "LeaderFill",
       "norm_label": "ws_coverage_for_fill()"
     },
     {
@@ -3343,8 +3343,8 @@
       "source_location": "L1968",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_fetch_live_fills_range",
-      "community": 0,
-      "community_name": "HL_Live_Copy_Service.py",
+      "community": 17,
+      "community_name": "Any",
       "norm_label": "fetch_live_fills_range()"
     },
     {
@@ -3354,8 +3354,8 @@
       "source_location": "L2010",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_fetch_live_fills_since",
-      "community": 0,
-      "community_name": "HL_Live_Copy_Service.py",
+      "community": 17,
+      "community_name": "Any",
       "norm_label": "fetch_live_fills_since()"
     },
     {
@@ -3365,8 +3365,8 @@
       "source_location": "L2048",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_parse_l2_level_price",
-      "community": 0,
-      "community_name": "HL_Live_Copy_Service.py",
+      "community": 17,
+      "community_name": "Any",
       "norm_label": "parse_l2_level_price()"
     },
     {
@@ -3376,8 +3376,8 @@
       "source_location": "L2056",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_fetch_public_executable_quote",
-      "community": 0,
-      "community_name": "HL_Live_Copy_Service.py",
+      "community": 17,
+      "community_name": "Any",
       "norm_label": "fetch_public_executable_quote()"
     },
     {
@@ -3420,8 +3420,8 @@
       "source_location": "L2168",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_get_public_quote",
-      "community": 0,
-      "community_name": "HL_Live_Copy_Service.py",
+      "community": 17,
+      "community_name": "Any",
       "norm_label": ".get_public_quote()"
     },
     {
@@ -3453,8 +3453,8 @@
       "source_location": "L2236",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_log_error",
-      "community": 1,
-      "community_name": "DryRunLiveCopyService",
+      "community": 14,
+      "community_name": "LeaderFill",
       "norm_label": ".log_error()"
     },
     {
@@ -3464,8 +3464,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "baseexception",
-      "community": 1,
-      "community_name": "DryRunLiveCopyService",
+      "community": 14,
+      "community_name": "LeaderFill",
       "norm_label": "baseexception"
     },
     {
@@ -3486,8 +3486,8 @@
       "source_location": "L2249",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_get_position",
-      "community": 1,
-      "community_name": "DryRunLiveCopyService",
+      "community": 14,
+      "community_name": "LeaderFill",
       "norm_label": ".get_position()"
     },
     {
@@ -3497,8 +3497,8 @@
       "source_location": "L2258",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_update_equity",
-      "community": 1,
-      "community_name": "DryRunLiveCopyService",
+      "community": 14,
+      "community_name": "LeaderFill",
       "norm_label": ".update_equity()"
     },
     {
@@ -3508,8 +3508,8 @@
       "source_location": "L2282",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_model_copy_notional",
-      "community": 1,
-      "community_name": "DryRunLiveCopyService",
+      "community": 14,
+      "community_name": "LeaderFill",
       "norm_label": ".model_copy_notional()"
     },
     {
@@ -3585,8 +3585,8 @@
       "source_location": "L2456",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_lineage_checkpoint_valid",
-      "community": 1,
-      "community_name": "DryRunLiveCopyService",
+      "community": 0,
+      "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "._lineage_checkpoint_valid()"
     },
     {
@@ -3607,8 +3607,8 @@
       "source_location": "L2509",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_mark_in_flight",
-      "community": 1,
-      "community_name": "DryRunLiveCopyService",
+      "community": 17,
+      "community_name": "Any",
       "norm_label": ".mark_in_flight()"
     },
     {
@@ -3629,8 +3629,8 @@
       "source_location": "L2515",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_settle_in_flight",
-      "community": 1,
-      "community_name": "DryRunLiveCopyService",
+      "community": 17,
+      "community_name": "Any",
       "norm_label": ".settle_in_flight()"
     },
     {
@@ -3640,8 +3640,8 @@
       "source_location": "L2527",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_settle_from_master_evidence",
-      "community": 1,
-      "community_name": "DryRunLiveCopyService",
+      "community": 17,
+      "community_name": "Any",
       "norm_label": ".settle_from_master_evidence()"
     },
     {
@@ -3706,8 +3706,8 @@
       "source_location": "L2663",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_accumulator_key",
-      "community": 1,
-      "community_name": "DryRunLiveCopyService",
+      "community": 14,
+      "community_name": "LeaderFill",
       "norm_label": ".accumulator_key()"
     },
     {
@@ -3717,8 +3717,8 @@
       "source_location": "L2666",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_handle_min_notional_for_entry",
-      "community": 1,
-      "community_name": "DryRunLiveCopyService",
+      "community": 14,
+      "community_name": "LeaderFill",
       "norm_label": ".handle_min_notional_for_entry()"
     },
     {
@@ -3728,8 +3728,8 @@
       "source_location": "L2686",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_append_reconciliation",
-      "community": 1,
-      "community_name": "DryRunLiveCopyService",
+      "community": 14,
+      "community_name": "LeaderFill",
       "norm_label": ".append_reconciliation()"
     },
     {
@@ -3761,8 +3761,8 @@
       "source_location": "L2740",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_append_order_intent",
-      "community": 1,
-      "community_name": "DryRunLiveCopyService",
+      "community": 14,
+      "community_name": "LeaderFill",
       "norm_label": ".append_order_intent()"
     },
     {
@@ -3772,8 +3772,8 @@
       "source_location": "L2783",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_append_would_send_order",
-      "community": 1,
-      "community_name": "DryRunLiveCopyService",
+      "community": 14,
+      "community_name": "LeaderFill",
       "norm_label": ".append_would_send_order()"
     },
     {
@@ -3783,8 +3783,8 @@
       "source_location": "L2814",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_auto_send_summary",
-      "community": 1,
-      "community_name": "DryRunLiveCopyService",
+      "community": 17,
+      "community_name": "Any",
       "norm_label": ".auto_send_summary()"
     },
     {
@@ -3794,8 +3794,8 @@
       "source_location": "L2825",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_maybe_auto_send_would_send",
-      "community": 0,
-      "community_name": "HL_Live_Copy_Service.py",
+      "community": 18,
+      "community_name": "manual_send_one_intent",
       "norm_label": ".maybe_auto_send_would_send()"
     },
     {
@@ -3805,8 +3805,8 @@
       "source_location": "L2880",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_append_live_fill",
-      "community": 1,
-      "community_name": "DryRunLiveCopyService",
+      "community": 14,
+      "community_name": "LeaderFill",
       "norm_label": ".append_live_fill()"
     },
     {
@@ -3816,8 +3816,8 @@
       "source_location": "L2892",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_apply_dry_run_fill_to_position",
-      "community": 1,
-      "community_name": "DryRunLiveCopyService",
+      "community": 14,
+      "community_name": "LeaderFill",
       "norm_label": ".apply_dry_run_fill_to_position()"
     },
     {
@@ -3827,8 +3827,8 @@
       "source_location": "L2896",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_apply_signed_delta_to_position",
-      "community": 1,
-      "community_name": "DryRunLiveCopyService",
+      "community": 14,
+      "community_name": "LeaderFill",
       "norm_label": ".apply_signed_delta_to_position()"
     },
     {
@@ -3871,59 +3871,59 @@
       "source_location": "L2980",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_process_fill",
-      "community": 1,
-      "community_name": "DryRunLiveCopyService",
+      "community": 14,
+      "community_name": "LeaderFill",
       "norm_label": ".process_fill()"
     },
     {
       "label": ".process_ws_fill()",
       "file_type": "code",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3110",
+      "source_location": "L3137",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_process_ws_fill",
-      "community": 1,
-      "community_name": "DryRunLiveCopyService",
+      "community": 14,
+      "community_name": "LeaderFill",
       "norm_label": ".process_ws_fill()"
     },
     {
       "label": ".run_once()",
       "file_type": "code",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3150",
+      "source_location": "L3177",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_run_once",
-      "community": 1,
-      "community_name": "DryRunLiveCopyService",
+      "community": 17,
+      "community_name": "Any",
       "norm_label": ".run_once()"
     },
     {
       "label": "build_ws_health_snapshot()",
       "file_type": "code",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3288",
+      "source_location": "L3315",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_build_ws_health_snapshot",
-      "community": 0,
-      "community_name": "HL_Live_Copy_Service.py",
+      "community": 17,
+      "community_name": "Any",
       "norm_label": "build_ws_health_snapshot()"
     },
     {
       "label": "write_ws_health()",
       "file_type": "code",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3467",
+      "source_location": "L3494",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_write_ws_health",
-      "community": 0,
-      "community_name": "HL_Live_Copy_Service.py",
+      "community": 2,
+      "community_name": "DedicatedLiveWSManager",
       "norm_label": "write_ws_health()"
     },
     {
       "label": "write_ws_health_initial()",
       "file_type": "code",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3482",
+      "source_location": "L3509",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_write_ws_health_initial",
       "community": 0,
@@ -3934,150 +3934,150 @@
       "label": "DedicatedLiveWSManager",
       "file_type": "code",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3525",
+      "source_location": "L3552",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_dedicatedlivewsmanager",
-      "community": 0,
-      "community_name": "HL_Live_Copy_Service.py",
+      "community": 2,
+      "community_name": "DedicatedLiveWSManager",
       "norm_label": "dedicatedlivewsmanager"
     },
     {
       "label": ".__init__()",
       "file_type": "code",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3526",
+      "source_location": "L3553",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_dedicatedlivewsmanager_init",
-      "community": 0,
-      "community_name": "HL_Live_Copy_Service.py",
+      "community": 2,
+      "community_name": "DedicatedLiveWSManager",
       "norm_label": ".__init__()"
     },
     {
       "label": ".update_status()",
       "file_type": "code",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3613",
+      "source_location": "L3640",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_dedicatedlivewsmanager_update_status",
-      "community": 0,
-      "community_name": "HL_Live_Copy_Service.py",
+      "community": 2,
+      "community_name": "DedicatedLiveWSManager",
       "norm_label": ".update_status()"
     },
     {
       "label": ".record_session_open()",
       "file_type": "code",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3619",
+      "source_location": "L3646",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_dedicatedlivewsmanager_record_session_open",
-      "community": 0,
-      "community_name": "HL_Live_Copy_Service.py",
+      "community": 2,
+      "community_name": "DedicatedLiveWSManager",
       "norm_label": ".record_session_open()"
     },
     {
       "label": ".record_session_close()",
       "file_type": "code",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3630",
+      "source_location": "L3657",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_dedicatedlivewsmanager_record_session_close",
-      "community": 0,
-      "community_name": "HL_Live_Copy_Service.py",
+      "community": 2,
+      "community_name": "DedicatedLiveWSManager",
       "norm_label": ".record_session_close()"
     },
     {
       "label": ".health_loop()",
       "file_type": "code",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3644",
+      "source_location": "L3671",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_dedicatedlivewsmanager_health_loop",
-      "community": 0,
-      "community_name": "HL_Live_Copy_Service.py",
+      "community": 2,
+      "community_name": "DedicatedLiveWSManager",
       "norm_label": ".health_loop()"
     },
     {
       "label": ".start_wallet_thread()",
       "file_type": "code",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3650",
+      "source_location": "L3677",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_dedicatedlivewsmanager_start_wallet_thread",
-      "community": 0,
-      "community_name": "HL_Live_Copy_Service.py",
+      "community": 2,
+      "community_name": "DedicatedLiveWSManager",
       "norm_label": ".start_wallet_thread()"
     },
     {
       "label": ".watchdog_loop()",
       "file_type": "code",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3660",
+      "source_location": "L3687",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_dedicatedlivewsmanager_watchdog_loop",
-      "community": 0,
-      "community_name": "HL_Live_Copy_Service.py",
+      "community": 2,
+      "community_name": "DedicatedLiveWSManager",
       "norm_label": ".watchdog_loop()"
     },
     {
       "label": ".start()",
       "file_type": "code",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3687",
+      "source_location": "L3714",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_dedicatedlivewsmanager_start",
-      "community": 0,
-      "community_name": "HL_Live_Copy_Service.py",
+      "community": 2,
+      "community_name": "DedicatedLiveWSManager",
       "norm_label": ".start()"
     },
     {
       "label": ".stop()",
       "file_type": "code",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3698",
+      "source_location": "L3725",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_dedicatedlivewsmanager_stop",
-      "community": 0,
-      "community_name": "HL_Live_Copy_Service.py",
+      "community": 2,
+      "community_name": "DedicatedLiveWSManager",
       "norm_label": ".stop()"
     },
     {
       "label": ".wait()",
       "file_type": "code",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3707",
+      "source_location": "L3734",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_dedicatedlivewsmanager_wait",
-      "community": 0,
-      "community_name": "HL_Live_Copy_Service.py",
+      "community": 2,
+      "community_name": "DedicatedLiveWSManager",
       "norm_label": ".wait()"
     },
     {
       "label": ".wallet_loop()",
       "file_type": "code",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3720",
+      "source_location": "L3747",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_dedicatedlivewsmanager_wallet_loop",
-      "community": 0,
-      "community_name": "HL_Live_Copy_Service.py",
+      "community": 2,
+      "community_name": "DedicatedLiveWSManager",
       "norm_label": ".wallet_loop()"
     },
     {
       "label": ".wallet_loop_body()",
       "file_type": "code",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3751",
+      "source_location": "L3778",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_dedicatedlivewsmanager_wallet_loop_body",
-      "community": 0,
-      "community_name": "HL_Live_Copy_Service.py",
+      "community": 2,
+      "community_name": "DedicatedLiveWSManager",
       "norm_label": ".wallet_loop_body()"
     },
     {
       "label": "write_self_test_fills()",
       "file_type": "code",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L4018",
+      "source_location": "L4045",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_write_self_test_fills",
       "community": 0,
@@ -4088,7 +4088,7 @@
       "label": "count_csv_data_rows()",
       "file_type": "code",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L4031",
+      "source_location": "L4058",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_count_csv_data_rows",
       "community": 0,
@@ -4099,7 +4099,7 @@
       "label": "last_csv_row()",
       "file_type": "code",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L4038",
+      "source_location": "L4065",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_last_csv_row",
       "community": 0,
@@ -4110,7 +4110,7 @@
       "label": "self_test()",
       "file_type": "code",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L4046",
+      "source_location": "L4073",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_self_test",
       "community": 0,
@@ -4121,7 +4121,7 @@
       "label": "main()",
       "file_type": "code",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L5013",
+      "source_location": "L5040",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_main",
       "community": 0,
@@ -4168,8 +4168,8 @@
       "source_location": "L406",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_rationale_406",
-      "community": 0,
-      "community_name": "HL_Live_Copy_Service.py",
+      "community": 18,
+      "community_name": "manual_send_one_intent",
       "norm_label": "durably record an unresolved reservation before exchange.order authority is..."
     },
     {
@@ -4179,8 +4179,8 @@
       "source_location": "L415",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_rationale_415",
-      "community": 0,
-      "community_name": "HL_Live_Copy_Service.py",
+      "community": 18,
+      "community_name": "manual_send_one_intent",
       "norm_label": "durably attach oid/exchange status. an ack never clears the reservation."
     },
     {
@@ -4190,8 +4190,8 @@
       "source_location": "L437",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_rationale_437",
-      "community": 0,
-      "community_name": "HL_Live_Copy_Service.py",
+      "community": 18,
+      "community_name": "manual_send_one_intent",
       "norm_label": "bounded settlement reconciliation from independent master evidence (per-dex..."
     },
     {
@@ -4201,8 +4201,8 @@
       "source_location": "L472",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_rationale_472",
-      "community": 0,
-      "community_name": "HL_Live_Copy_Service.py",
+      "community": 18,
+      "community_name": "manual_send_one_intent",
       "norm_label": "read-only master net at reservation time (reconciliation evidence, never order..."
     },
     {
@@ -4213,7 +4213,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_rationale_802",
       "community": 2,
-      "community_name": "FixedModeAuthorityConflict",
+      "community_name": "DedicatedLiveWSManager",
       "norm_label": "the intended fixed-mode target exposure cannot be proven from durable evidence."
     },
     {
@@ -4322,8 +4322,8 @@
       "source_location": "L2457",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_rationale_2457",
-      "community": 1,
-      "community_name": "DryRunLiveCopyService",
+      "community": 0,
+      "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "a persisted lineage checkpoint is valid only if durably coupled to the..."
     },
     {
@@ -4344,8 +4344,8 @@
       "source_location": "L2516",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_rationale_2516",
-      "community": 1,
-      "community_name": "DryRunLiveCopyService",
+      "community": 17,
+      "community_name": "Any",
       "norm_label": "release the in-flight reservation only for its own intent and only on a..."
     },
     {
@@ -4355,8 +4355,8 @@
       "source_location": "L2529",
       "_origin": "ast",
       "id": "archive_hl_stage2_hl_live_copy_service_rationale_2529",
-      "community": 1,
-      "community_name": "DryRunLiveCopyService",
+      "community": 17,
+      "community_name": "Any",
       "norm_label": "clear an in-flight reservation only from independent master evidence (semantics..."
     },
     {
@@ -4473,9 +4473,9 @@
       "label": "Write health file before sockets open so every subscribed wallet has an entry.",
       "file_type": "rationale",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3483",
+      "source_location": "L3510",
       "_origin": "ast",
-      "id": "archive_hl_stage2_hl_live_copy_service_rationale_3483",
+      "id": "archive_hl_stage2_hl_live_copy_service_rationale_3510",
       "community": 0,
       "community_name": "HL_Live_Copy_Service.py",
       "norm_label": "write health file before sockets open so every subscribed wallet has an entry."
@@ -4620,7 +4620,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_exchange_truth_post",
       "community": 6,
-      "community_name": "get",
+      "community_name": "JSONResponse",
       "norm_label": "_post()"
     },
     {
@@ -4763,7 +4763,7 @@
       "_origin": "ast",
       "id": "archive_hl_stage2_exchange_truth_rationale_26",
       "community": 6,
-      "community_name": "get",
+      "community_name": "JSONResponse",
       "norm_label": "read-only post to /info; `fetcher` is injected so tests use offline fixtures."
     },
     {
@@ -5100,7 +5100,7 @@
       "label": "check()",
       "file_type": "code",
       "source_file": "_archive/hl_stage2/test_g4_order_cap.py",
-      "source_location": "L32",
+      "source_location": "L33",
       "_origin": "ast",
       "id": "archive_hl_stage2_test_g4_order_cap_check",
       "community": 16,
@@ -5111,12 +5111,23 @@
       "label": "main()",
       "file_type": "code",
       "source_file": "_archive/hl_stage2/test_g4_order_cap.py",
-      "source_location": "L37",
+      "source_location": "L38",
       "_origin": "ast",
       "id": "archive_hl_stage2_test_g4_order_cap_main",
       "community": 16,
       "community_name": "test_g4_order_cap.py",
       "norm_label": "main()"
+    },
+    {
+      "label": "# NOTE: the aggregate-lag scenario from the directive is NOT reproducible in\u2026",
+      "file_type": "rationale",
+      "source_file": "_archive/hl_stage2/test_g4_order_cap.py",
+      "source_location": "L221",
+      "_origin": "ast",
+      "id": "archive_hl_stage2_test_g4_order_cap_rationale_221",
+      "community": 16,
+      "community_name": "test_g4_order_cap.py",
+      "norm_label": "# note: the aggregate-lag scenario from the directive is not reproducible in..."
     },
     {
       "label": "test_g4_ui_controls.py",
@@ -16895,7 +16906,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3288",
+      "source_location": "L3315",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service",
@@ -16939,7 +16950,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L4031",
+      "source_location": "L4058",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service",
@@ -16950,7 +16961,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3525",
+      "source_location": "L3552",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service",
@@ -17225,7 +17236,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L4038",
+      "source_location": "L4065",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service",
@@ -17346,7 +17357,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L5013",
+      "source_location": "L5040",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service",
@@ -17599,7 +17610,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L4046",
+      "source_location": "L4073",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service",
@@ -17764,7 +17775,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L4018",
+      "source_location": "L4045",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service",
@@ -17775,7 +17786,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3467",
+      "source_location": "L3494",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service",
@@ -17786,7 +17797,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3482",
+      "source_location": "L3509",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service",
@@ -17913,7 +17924,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L4093",
+      "source_location": "L4120",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_self_test",
@@ -17961,7 +17972,7 @@
       "context": "parameter_type",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L4031",
+      "source_location": "L4058",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_count_csv_data_rows",
@@ -18009,7 +18020,7 @@
       "context": "parameter_type",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L4038",
+      "source_location": "L4065",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_last_csv_row",
@@ -18069,7 +18080,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L4090",
+      "source_location": "L4117",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_self_test",
@@ -18081,7 +18092,7 @@
       "context": "parameter_type",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L4018",
+      "source_location": "L4045",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_write_self_test_fills",
@@ -18093,7 +18104,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L5036",
+      "source_location": "L5063",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_main",
@@ -18105,7 +18116,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L4110",
+      "source_location": "L4137",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_self_test",
@@ -18129,7 +18140,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3451",
+      "source_location": "L3478",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_build_ws_health_snapshot",
@@ -18141,7 +18152,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3736",
+      "source_location": "L3763",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_dedicatedlivewsmanager_wallet_loop",
@@ -18153,7 +18164,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3753",
+      "source_location": "L3780",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_dedicatedlivewsmanager_wallet_loop_body",
@@ -18285,7 +18296,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3127",
+      "source_location": "L3154",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_process_ws_fill",
@@ -18297,7 +18308,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3185",
+      "source_location": "L3212",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_run_once",
@@ -18345,7 +18356,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L4163",
+      "source_location": "L4190",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_self_test",
@@ -18369,7 +18380,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3477",
+      "source_location": "L3504",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_write_ws_health",
@@ -18381,7 +18392,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3513",
+      "source_location": "L3540",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_write_ws_health_initial",
@@ -18393,7 +18404,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3289",
+      "source_location": "L3316",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_build_ws_health_snapshot",
@@ -18405,7 +18416,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3539",
+      "source_location": "L3566",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_dedicatedlivewsmanager_init",
@@ -18417,7 +18428,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3726",
+      "source_location": "L3753",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_dedicatedlivewsmanager_wallet_loop",
@@ -18429,7 +18440,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3764",
+      "source_location": "L3791",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_dedicatedlivewsmanager_wallet_loop_body",
@@ -18441,7 +18452,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3662",
+      "source_location": "L3689",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_dedicatedlivewsmanager_watchdog_loop",
@@ -18465,7 +18476,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3055",
+      "source_location": "L3082",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_process_fill",
@@ -18477,7 +18488,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3199",
+      "source_location": "L3226",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_run_once",
@@ -18513,7 +18524,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L4899",
+      "source_location": "L4926",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_self_test",
@@ -18525,7 +18536,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3484",
+      "source_location": "L3511",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_write_ws_health_initial",
@@ -18885,7 +18896,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L4430",
+      "source_location": "L4457",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_self_test",
@@ -18981,7 +18992,7 @@
       "context": "generic_arg",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3288",
+      "source_location": "L3315",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_build_ws_health_snapshot",
@@ -18993,7 +19004,7 @@
       "context": "parameter_type",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3613",
+      "source_location": "L3640",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_dedicatedlivewsmanager_update_status",
@@ -19209,7 +19220,7 @@
       "context": "generic_arg",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3110",
+      "source_location": "L3137",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_process_ws_fill",
@@ -19233,7 +19244,7 @@
       "context": "generic_arg",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3150",
+      "source_location": "L3177",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_run_once",
@@ -19437,7 +19448,7 @@
       "context": "generic_arg",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L4038",
+      "source_location": "L4065",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_last_csv_row",
@@ -19821,7 +19832,7 @@
       "context": "generic_arg",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L4018",
+      "source_location": "L4045",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_write_self_test_fills",
@@ -19833,7 +19844,7 @@
       "context": "parameter_type",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3467",
+      "source_location": "L3494",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_write_ws_health",
@@ -19869,7 +19880,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3639",
+      "source_location": "L3666",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_dedicatedlivewsmanager_record_session_close",
@@ -19893,7 +19904,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3107",
+      "source_location": "L3134",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_process_fill",
@@ -19905,7 +19916,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3136",
+      "source_location": "L3163",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_process_ws_fill",
@@ -19917,7 +19928,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3194",
+      "source_location": "L3221",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_run_once",
@@ -20145,7 +20156,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L4114",
+      "source_location": "L4141",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_self_test",
@@ -20169,7 +20180,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3485",
+      "source_location": "L3512",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_write_ws_health_initial",
@@ -20241,7 +20252,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L4112",
+      "source_location": "L4139",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_self_test",
@@ -20265,7 +20276,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3470",
+      "source_location": "L3497",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_write_ws_health",
@@ -20277,7 +20288,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3522",
+      "source_location": "L3549",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_write_ws_health_initial",
@@ -20337,7 +20348,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L4122",
+      "source_location": "L4149",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_self_test",
@@ -20445,7 +20456,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L4301",
+      "source_location": "L4328",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_self_test",
@@ -20764,7 +20775,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L4403",
+      "source_location": "L4430",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_self_test",
@@ -20800,7 +20811,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L4337",
+      "source_location": "L4364",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_self_test",
@@ -20860,7 +20871,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L4368",
+      "source_location": "L4395",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_self_test",
@@ -21016,7 +21027,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L4394",
+      "source_location": "L4421",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_self_test",
@@ -21028,7 +21039,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L4396",
+      "source_location": "L4423",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_self_test",
@@ -21064,7 +21075,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L4345",
+      "source_location": "L4372",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_self_test",
@@ -21249,7 +21260,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L4613",
+      "source_location": "L4640",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_self_test",
@@ -21285,7 +21296,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L4834",
+      "source_location": "L4861",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_self_test",
@@ -21309,7 +21320,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L5039",
+      "source_location": "L5066",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_main",
@@ -21333,7 +21344,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L4292",
+      "source_location": "L4319",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_self_test",
@@ -21669,7 +21680,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L4162",
+      "source_location": "L4189",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_self_test",
@@ -21897,7 +21908,7 @@
       "context": "parameter_type",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3110",
+      "source_location": "L3137",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_process_ws_fill",
@@ -22004,7 +22015,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L4163",
+      "source_location": "L4190",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_self_test",
@@ -22124,7 +22135,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3217",
+      "source_location": "L3244",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_run_once",
@@ -22160,7 +22171,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L4875",
+      "source_location": "L4902",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_self_test",
@@ -22172,7 +22183,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L4234",
+      "source_location": "L4261",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_self_test",
@@ -22184,7 +22195,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L4854",
+      "source_location": "L4881",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_self_test",
@@ -22208,7 +22219,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L4849",
+      "source_location": "L4876",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_self_test",
@@ -22220,7 +22231,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L4851",
+      "source_location": "L4878",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_self_test",
@@ -22232,7 +22243,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L4849",
+      "source_location": "L4876",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_self_test",
@@ -22256,7 +22267,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L4238",
+      "source_location": "L4265",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_self_test",
@@ -22268,7 +22279,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L4878",
+      "source_location": "L4905",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_self_test",
@@ -22280,7 +22291,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L4889",
+      "source_location": "L4916",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_self_test",
@@ -22304,7 +22315,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3080",
+      "source_location": "L3107",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_process_fill",
@@ -22316,7 +22327,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L4881",
+      "source_location": "L4908",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_self_test",
@@ -22340,7 +22351,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3075",
+      "source_location": "L3102",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_process_fill",
@@ -22352,7 +22363,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L4883",
+      "source_location": "L4910",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_self_test",
@@ -22388,7 +22399,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3073",
+      "source_location": "L3100",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_process_fill",
@@ -22400,7 +22411,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L4175",
+      "source_location": "L4202",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_self_test",
@@ -22412,7 +22423,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L4942",
+      "source_location": "L4969",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_self_test",
@@ -22424,7 +22435,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3152",
+      "source_location": "L3179",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_run_once",
@@ -22448,7 +22459,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3201",
+      "source_location": "L3228",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_run_once",
@@ -22484,7 +22495,7 @@
       "context": "parameter_type",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3526",
+      "source_location": "L3553",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_dedicatedlivewsmanager_init",
@@ -22891,7 +22902,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3110",
+      "source_location": "L3137",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice",
@@ -22913,7 +22924,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3150",
+      "source_location": "L3177",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice",
@@ -22991,7 +23002,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L5037",
+      "source_location": "L5064",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_main",
@@ -23003,7 +23014,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L4195",
+      "source_location": "L4222",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_self_test",
@@ -23111,7 +23122,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L4196",
+      "source_location": "L4223",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_self_test",
@@ -23135,7 +23146,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3111",
+      "source_location": "L3138",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_process_ws_fill",
@@ -23147,7 +23158,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3151",
+      "source_location": "L3178",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_run_once",
@@ -23159,7 +23170,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L5042",
+      "source_location": "L5069",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_main",
@@ -23183,7 +23194,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3133",
+      "source_location": "L3160",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_process_ws_fill",
@@ -23195,7 +23206,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3268",
+      "source_location": "L3295",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_run_once",
@@ -23207,7 +23218,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L5071",
+      "source_location": "L5098",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_main",
@@ -23231,7 +23242,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3256",
+      "source_location": "L3283",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_run_once",
@@ -23315,7 +23326,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3105",
+      "source_location": "L3132",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_process_fill",
@@ -23548,7 +23559,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3077",
+      "source_location": "L3104",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_process_fill",
@@ -23572,7 +23583,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3100",
+      "source_location": "L3127",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_process_fill",
@@ -23745,7 +23756,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3053",
+      "source_location": "L3080",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_process_fill",
@@ -23863,7 +23874,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L4271",
+      "source_location": "L4298",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_self_test",
@@ -23875,7 +23886,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3284",
+      "source_location": "L3311",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_run_once",
@@ -23887,7 +23898,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L4760",
+      "source_location": "L4787",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_self_test",
@@ -23899,7 +23910,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L4758",
+      "source_location": "L4785",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_self_test",
@@ -23911,7 +23922,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3102",
+      "source_location": "L3129",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_process_fill",
@@ -23935,7 +23946,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3095",
+      "source_location": "L3122",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_process_fill",
@@ -24016,7 +24027,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3142",
+      "source_location": "L3169",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_process_ws_fill",
@@ -24028,7 +24039,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3248",
+      "source_location": "L3275",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_dryrunlivecopyservice_run_once",
@@ -24040,7 +24051,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L4245",
+      "source_location": "L4272",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_self_test",
@@ -24052,7 +24063,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L5048",
+      "source_location": "L5075",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_main",
@@ -24064,7 +24075,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L4201",
+      "source_location": "L4228",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_self_test",
@@ -24076,7 +24087,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L4920",
+      "source_location": "L4947",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_self_test",
@@ -24088,7 +24099,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3469",
+      "source_location": "L3496",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_write_ws_health",
@@ -24100,7 +24111,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3645",
+      "source_location": "L3672",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_dedicatedlivewsmanager_health_loop",
@@ -24112,7 +24123,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3688",
+      "source_location": "L3715",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_dedicatedlivewsmanager_start",
@@ -24124,7 +24135,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3705",
+      "source_location": "L3732",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_dedicatedlivewsmanager_stop",
@@ -24136,7 +24147,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3740",
+      "source_location": "L3767",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_dedicatedlivewsmanager_wallet_loop",
@@ -24148,7 +24159,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3754",
+      "source_location": "L3781",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_dedicatedlivewsmanager_wallet_loop_body",
@@ -24160,7 +24171,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3685",
+      "source_location": "L3712",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_dedicatedlivewsmanager_watchdog_loop",
@@ -24172,7 +24183,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L4973",
+      "source_location": "L5000",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_self_test",
@@ -24184,7 +24195,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L5047",
+      "source_location": "L5074",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_main",
@@ -24195,10 +24206,10 @@
       "relation": "rationale_for",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3483",
+      "source_location": "L3510",
       "weight": 1.0,
       "_origin": "ast",
-      "source": "archive_hl_stage2_hl_live_copy_service_rationale_3483",
+      "source": "archive_hl_stage2_hl_live_copy_service_rationale_3510",
       "target": "archive_hl_stage2_hl_live_copy_service_write_ws_health_initial",
       "confidence_score": 1.0
     },
@@ -24206,7 +24217,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3644",
+      "source_location": "L3671",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_dedicatedlivewsmanager",
@@ -24217,7 +24228,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3526",
+      "source_location": "L3553",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_dedicatedlivewsmanager",
@@ -24228,7 +24239,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3630",
+      "source_location": "L3657",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_dedicatedlivewsmanager",
@@ -24239,7 +24250,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3619",
+      "source_location": "L3646",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_dedicatedlivewsmanager",
@@ -24250,7 +24261,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3687",
+      "source_location": "L3714",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_dedicatedlivewsmanager",
@@ -24261,7 +24272,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3650",
+      "source_location": "L3677",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_dedicatedlivewsmanager",
@@ -24272,7 +24283,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3698",
+      "source_location": "L3725",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_dedicatedlivewsmanager",
@@ -24283,7 +24294,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3613",
+      "source_location": "L3640",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_dedicatedlivewsmanager",
@@ -24294,7 +24305,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3707",
+      "source_location": "L3734",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_dedicatedlivewsmanager",
@@ -24305,7 +24316,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3720",
+      "source_location": "L3747",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_dedicatedlivewsmanager",
@@ -24316,7 +24327,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3751",
+      "source_location": "L3778",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_dedicatedlivewsmanager",
@@ -24327,7 +24338,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3660",
+      "source_location": "L3687",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_dedicatedlivewsmanager",
@@ -24339,7 +24350,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L5049",
+      "source_location": "L5076",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_main",
@@ -24351,7 +24362,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L4902",
+      "source_location": "L4929",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_self_test",
@@ -24363,7 +24374,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3722",
+      "source_location": "L3749",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_dedicatedlivewsmanager_wallet_loop",
@@ -24375,7 +24386,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3753",
+      "source_location": "L3780",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_dedicatedlivewsmanager_wallet_loop_body",
@@ -24387,7 +24398,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L4903",
+      "source_location": "L4930",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_self_test",
@@ -24399,7 +24410,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3984",
+      "source_location": "L4011",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_dedicatedlivewsmanager_wallet_loop_body",
@@ -24411,7 +24422,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3646",
+      "source_location": "L3673",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_dedicatedlivewsmanager_health_loop",
@@ -24423,7 +24434,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3696",
+      "source_location": "L3723",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_dedicatedlivewsmanager_start",
@@ -24435,7 +24446,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3684",
+      "source_location": "L3711",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_dedicatedlivewsmanager_watchdog_loop",
@@ -24447,7 +24458,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3661",
+      "source_location": "L3688",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_dedicatedlivewsmanager_watchdog_loop",
@@ -24459,7 +24470,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L5066",
+      "source_location": "L5093",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_main",
@@ -24471,7 +24482,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3715",
+      "source_location": "L3742",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_dedicatedlivewsmanager_wait",
@@ -24483,7 +24494,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L5070",
+      "source_location": "L5097",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_main",
@@ -24495,7 +24506,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L4013",
+      "source_location": "L4040",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_dedicatedlivewsmanager_wallet_loop_body",
@@ -24507,7 +24518,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L5068",
+      "source_location": "L5095",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_main",
@@ -24519,7 +24530,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L3729",
+      "source_location": "L3756",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_dedicatedlivewsmanager_wallet_loop",
@@ -24531,7 +24542,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L4143",
+      "source_location": "L4170",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_self_test",
@@ -24543,7 +24554,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L4217",
+      "source_location": "L4244",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_self_test",
@@ -24555,7 +24566,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L4256",
+      "source_location": "L4283",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_self_test",
@@ -24567,7 +24578,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
-      "source_location": "L5028",
+      "source_location": "L5055",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_hl_live_copy_service_main",
@@ -25513,7 +25524,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/test_g4_order_cap.py",
-      "source_location": "L32",
+      "source_location": "L33",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_test_g4_order_cap",
@@ -25524,7 +25535,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/test_g4_order_cap.py",
-      "source_location": "L37",
+      "source_location": "L38",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_test_g4_order_cap",
@@ -25532,11 +25543,22 @@
       "confidence_score": 1.0
     },
     {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "_archive/hl_stage2/test_g4_order_cap.py",
+      "source_location": "L221",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "archive_hl_stage2_test_g4_order_cap_rationale_221",
+      "target": "archive_hl_stage2_test_g4_order_cap",
+      "confidence_score": 1.0
+    },
+    {
       "relation": "calls",
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "_archive/hl_stage2/test_g4_order_cap.py",
-      "source_location": "L107",
+      "source_location": "L108",
       "weight": 1.0,
       "_origin": "ast",
       "source": "archive_hl_stage2_test_g4_order_cap_main",
@@ -26019,5 +26041,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "7bc1f172f58ece26c3de1393d1efaf07d99462ed"
+  "built_at_commit": "bf088e6ed71959acc4b56be3db3549e40587956f"
 }

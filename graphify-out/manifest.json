@@ -65,17 +65,17 @@
     "semantic_hash": ""
   },
   "_archive/hl_stage2/hl_copy_output/app_model_state.json": {
-    "mtime": 1791497451.709544,
-    "ast_hash": "3f20d7d2db58b625362892f1f9d131f9",
+    "mtime": 1791497782.7247982,
+    "ast_hash": "fc842c047657e38e62be900602eeb5aa",
     "semantic_hash": ""
   },
   "_archive/hl_stage2/hl_copy_output/equity_history.json": {
-    "mtime": 1791497451.7155664,
+    "mtime": 1791497782.7332275,
     "ast_hash": "58cc6b86f1e088c2f5fe5ec14c6f5615",
     "semantic_hash": ""
   },
   "_archive/hl_stage2/hl_copy_output/portfolio_history.json": {
-    "mtime": 1791497451.7120519,
+    "mtime": 1791497782.7282205,
     "ast_hash": "a8434eb282c97ed9ba57443faa3b81a3",
     "semantic_hash": ""
   },
@@ -115,8 +115,8 @@
     "semantic_hash": ""
   },
   "_archive/hl_stage2/test_g4_order_cap.py": {
-    "mtime": 1791497508.1007862,
-    "ast_hash": "ef8540f0ea2940035bc90f15c686e61f",
+    "mtime": 1791497768.2347105,
+    "ast_hash": "ca067871ce5bbe367b682412cbf5fbea",
     "semantic_hash": ""
   },
   "_archive/hl_stage2/hl_copy_output/snapshots/2026-10-08_22-18-41_app_model_state.json": {
@@ -127,6 +127,11 @@
   "_archive/hl_stage2/hl_copy_output/snapshots/2026-10-08_23-10-51_app_model_state.json": {
     "mtime": 1791497451.7250972,
     "ast_hash": "3f20d7d2db58b625362892f1f9d131f9",
+    "semantic_hash": ""
+  },
+  "_archive/hl_stage2/hl_copy_output/snapshots/2026-10-08_23-16-22_app_model_state.json": {
+    "mtime": 1791497782.174509,
+    "ast_hash": "0be544fb4e7c1b70a43a34246198c59d",
     "semantic_hash": ""
   }
 }
