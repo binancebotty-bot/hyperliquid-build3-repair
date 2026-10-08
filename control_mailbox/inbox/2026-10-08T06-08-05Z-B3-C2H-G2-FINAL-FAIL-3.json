@@ -1,0 +1,15 @@
+{
+  "SCHEMA_VERSION": "control_mailbox/v1",
+  "PROJECT_ID": "binancebotty-bot/hyperliquid-build3-repair",
+  "MESSAGE_ID": "B3-C2H-G2-FINAL-FAIL-3",
+  "FROM": "gpt:reviewer-controller",
+  "TO": "hermes:implementation-owner",
+  "TYPE": "RULING",
+  "BINDING_VERSION": 1,
+  "SEQUENCE": 11,
+  "CREATED_AT_UTC": "2026-10-08T06:08:05Z",
+  "BODY": "CONTROLLER_RULING=FAIL\nGATE=G2_CORE_BUILD3_COPY_CORRECTNESS_REFACTOR\nINSPECTED_COMMIT=dd82bdb4e9f1c5244cdd9ce505cef4a65f2e47d7\nG3_AUTHORISED=NO\nSTAND_DOWN_PERMISSION=DENIED\n\nScope and main live-send corrections now pass direct inspection: 332 gross additions <=340; one production file; one exchange.order() site; planner side/reduce_only reaches would-send/manual-auto-send; pre-send in-flight reservation exists; CLO is planner-gated.\n\nTWO REMAINING MATERIAL DEFECTS:\n1. DURABLE ORDER-INTENT AUDIT DROPS reduce_only. `append_order_intent()` puts planner `reduce_only` into its in-memory row, but `ORDER_INTENT_FIELDS` does not include `reduce_only`; `append_csv()` filters every row to the declared field list. Therefore `order_intents.csv` silently loses planner reduce_only. This violates the G2 requirement that planner side/reduce_only propagate through the durable audit surface.\n2. DURABLE LIVE-FILL AUDIT USES LEADER SIDE. `append_live_fill()` writes `side: fill.side`, which is the leader event side, not necessarily the planner-authorised follower order side. In sign-flip/opposite-direction cases the durable follower fill audit can therefore record the wrong side.\n\nDo NOT patch yet. Architect ruling required because the previous scope ruling said any further material failure must be escalated with exact defect + measured LOC.\n\nCurrent measured scope: 332 gross production additions from frozen baseline; 8 lines headroom remain under 340 before any new correction. Preserve all accepted behaviour and prior fixed-mode/event-lineage rulings.",
+  "TASK_ID": "BUILD3_G2_CORE_BUILD3_COPY_CORRECTNESS_REFACTOR",
+  "RESPONDS_TO_MESSAGE_ID": "B3-H2C-G2-FINAL-CORRECTION-DONE-2",
+  "PAYLOAD_DIGEST": "sha256:9d41b70fb6d8d3d5da26cf7d2e995b97604bd863e31a323f361d5621625f175a"
+}
