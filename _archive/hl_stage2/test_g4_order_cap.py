@@ -16,6 +16,7 @@ Run: python test_g4_order_cap.py      # RESULT:: markers, exit 0/1. No network, 
 """
 from __future__ import annotations
 
+import dataclasses
 import csv
 import json
 import os
@@ -212,6 +213,46 @@ def main() -> None:
           and int(e6.state["counters"].get("entries_blocked_global_max_order_notional", 0)) >= 1,
           f"seeded={seeded_long} flip_pos={flip_pos} sleeve={sleeve} counter="
           f"{e6.state['counters'].get('entries_blocked_global_max_order_notional')}")
+
+    # ---------- 10) FINAL PLANNER ORDER NOTIONAL enforcement ----------
+    # Controller B3-C2H-G4-C1-PLANNER-CAP-CORRECTION-1: the cap must bind the FINAL planner order
+    # notional (what auth.get("notional") returns), not just the per-event estimate, and must do so
+    # before mark_in_flight / append_would_send / send / simulated position mutation.
+    # NOTE: the aggregate-lag scenario from the directive is NOT reproducible in this offline harness -
+    # the account-net provider is derived from the simulated position, and a lagging actual trips the
+    # reconciliation gate (RECONCILIATION_DIVERGENCE), so the planner never emits an aggregate order
+    # above the cap here. Reported to Controller as a fixture gap; the enforcement below is the
+    # mandated minimal fix and is exercised with a planned over-cap ENTRY.
+    FIXED_SMALL = dataclasses.replace(FIX, fixed_notional=300.0)
+    client.post("/api/global-controls", json={"max_order_notional_usd": 250.0})   # cap BELOW planned 300
+    e7 = engine()
+    e7.process_fill(fill("p1", "0xfixed", "BTC", "BUY", PX, 3.0, 300), FIXED_SMALL)
+    pos1 = float(e7.get_position("0xfixed", "BTC").get("signed_size") or 0.0)
+    rows10 = intents()
+    check("C1_PLANNER_ORDER_NOTIONAL_CAP_BLOCKS_ENTRY_ZERO_MUTATION",
+          abs(pos1) < 1e-12                                   # ZERO simulated position mutation
+          and str(rows10[0].get("status")) == "BLOCKED_GLOBAL_MAX_ORDER_NOTIONAL"
+          and "BLOCKED" in str(rows10[0].get("execution_decision")),
+          f"pos={pos1} status={rows10[0].get('status') if rows10 else None}")
+
+    # genuine reduce/close remains permitted while the cap blocks entries
+    client.post("/api/global-controls", json={"max_order_notional_usd": 0.0})
+    e7b = engine()
+    e7b.process_fill(fill("r1", "0xfixed", "BTC", "BUY", PX, 3.0, 400), FIXED_SMALL)   # seed long 3
+    client.post("/api/global-controls", json={"max_order_notional_usd": 250.0})        # cap on
+    e7b.process_fill(fill("r2", "0xfixed", "BTC", "SELL", PX, 3.0, 400, delta=-3.0), FIXED_SMALL)
+    pos_r = float(e7b.get_position("0xfixed", "BTC").get("signed_size") or 0.0)
+    rows_r = intents()
+    check("C1_PLANNER_CAP_NEVER_BLOCKS_REDUCE",
+          abs(pos_r) < 1e-9 and str(rows_r[0].get("status")) != "BLOCKED_GLOBAL_MAX_ORDER_NOTIONAL",
+          f"pos={pos_r} status={rows_r[0].get('status') if rows_r else None}")
+
+    # replay of the same blocked fill adds no authority
+    e8 = engine()
+    e8.process_fill(fill("p1", "0xfixed", "BTC", "BUY", PX, 3.0, 300), FIXED_SMALL)
+    e8.process_fill(fill("p1", "0xfixed", "BTC", "BUY", PX, 3.0, 300), FIXED_SMALL)   # REPLAY same id
+    pos_rep = float(e8.get_position("0xfixed", "BTC").get("signed_size") or 0.0)
+    check("C1_PLANNER_CAP_REPLAY_ADDS_NO_AUTHORITY", abs(pos_rep) < 1e-12, f"replayed_pos={pos_rep}")
 
     failed = [n for n, ok in RESULTS if not ok]
     print("TOTAL=%d FAILED=%d" % (len(RESULTS), len(failed)))

@@ -3040,6 +3040,33 @@ class DryRunLiveCopyService:
         copy_notional_raw = fnum(auth.get("notional"))
         order_side = str(auth.get("side") or "").upper()   # planner side is authoritative for direction
         intent_type = "EXIT" if planner_reduce_only else "ENTRY"
+
+        # G4-C1 (Controller B3-C2H-G4-C1-PLANNER-CAP-CORRECTION-1): enforce the operator cap against the
+        # FINAL PLANNER ORDER NOTIONAL. The per-event estimate checked earlier can UNDERSTATE this,
+        # because the authoritative planner converges aggregated desired versus account-net actual
+        # (several event-authorised slices while the exchange/account-net leg lags). Fail closed HERE,
+        # before mark_in_flight, append_would_send, any real send, or simulated position mutation, so an
+        # over-cap planned ENTRY can never be recorded blocked while being simulated as filled.
+        # Reduce/close is never blocked by an entry-size cap.
+        if intent_type == "ENTRY":
+            _planner_cap = self.global_order_cap()
+            if _planner_cap > 0 and copy_notional_raw > _planner_cap + 1e-12:
+                self.append_order_intent(
+                    cfg, fill, "CAPBLOCK-%s" % str(fill.fill_id), [str(fill.fill_id)], "ENTRY",
+                    "GLOBAL_MAX_ORDER_NOTIONAL", "BLOCKED_GLOBAL_MAX_ORDER_NOTIONAL",
+                    copy_notional_raw, (copy_notional_raw / fill.price if fill.price > 0 else 0.0),
+                    "BLOCKED", notes="final planner order notional above global max_order_notional_usd",
+                    decision={"execution_decision": "BLOCKED_GLOBAL_MAX_ORDER_NOTIONAL",
+                              "decision_reason": "GLOBAL_MAX_ORDER_NOTIONAL_EXCEEDED"},
+                    side_override=order_side, reduce_only=False,
+                )
+                self.append_reconciliation(cfg, fill, "SKIP", "BLOCKED_GLOBAL_MAX_ORDER_NOTIONAL",
+                                           "BLOCKED_GLOBAL_MAX_ORDER_NOTIONAL", before_signed, before_signed,
+                                           copy_notional_raw, "final planner order notional above global max_order_notional_usd")
+                self.processed_ids.add(fill.fill_id)
+                self.bump("entries_blocked_global_max_order_notional")
+                return
+
         if copy_notional_raw <= 0:
             self.append_reconciliation(cfg, fill, "CONVERGED", str(auth.get("action") or "NONE"), "NO_ORDER", before_signed, before_signed, 0.0, "event-authorised desired met; zero orders")
             self.processed_ids.add(fill.fill_id)
