@@ -2326,13 +2326,43 @@ class DryRunLiveCopyService:
             return 0.0
         return float(sum(fnum(u) for u in (sleeve.get("slices") or [])))
 
-    def fixed_sleeve_units_by_wallet(self, coin: str, configs: Dict[str, LiveWalletConfig]) -> Dict[str, float]:
-        """ONLY wallets with an existing attributed sleeve ledger are released from the hold.
+    @staticmethod
+    def fixed_sleeve_entry_valid(entry: Any) -> bool:
+        """A ledger entry is AUTHORITATIVE only when well formed AND side-consistent.
 
-        A wallet with no ledger entry yields NO key here, so sleeve_from_leader_event_position
-        keeps raising FixedModeAuthorityConflict and the wallet stays fail-closed in
-        FIXED_MODE_AUTHORITY_HOLD. Returning 0.0 for everything would silently release fixed
-        mode to a zero-desired-net path (false green) -- never do that.
+        - non-empty slices: every slice finite and > 0, and side in (+1, -1)
+        - empty slices: side MUST be 0 (a legitimately flat/closed sleeve -> desired 0)
+        - anything else (empty slices with a non-zero side, non-empty slices with side 0,
+          negative/NaN/non-numeric slices, wrong types) is NOT authority: the wallet keeps
+          raising and stays fail-closed in FIXED_MODE_AUTHORITY_HOLD. A corrupt ledger is
+          never silently reset to zero.
+        """
+        if not isinstance(entry, dict):
+            return False
+        side = entry.get("side")
+        slices = entry.get("slices")
+        if not isinstance(slices, list):
+            return False
+        if not slices:
+            return side == 0
+        if side not in (1, -1):
+            return False
+        for unit in slices:
+            try:
+                value = float(unit)
+            except (TypeError, ValueError):
+                return False
+            if value != value or value in (float("inf"), float("-inf")) or value <= 0:
+                return False
+        return True
+
+    def fixed_sleeve_units_by_wallet(self, coin: str, configs: Dict[str, LiveWalletConfig]) -> Dict[str, float]:
+        """ONLY wallets with a VALID attributed sleeve ledger are released from the hold.
+
+        A wallet with no entry, or with a malformed/side-inconsistent entry, yields NO key here,
+        so sleeve_from_leader_event_position keeps raising FixedModeAuthorityConflict and the
+        wallet stays fail-closed in FIXED_MODE_AUTHORITY_HOLD. Returning 0.0 for everything would
+        silently release fixed mode to a zero-desired-net path (false green) -- never do that.
         """
         out: Dict[str, float] = {}
         led = self.state.get("fixed_sleeves")
@@ -2341,7 +2371,7 @@ class DryRunLiveCopyService:
         key = str(coin).upper()
         for wallet in configs:
             per = led.get(str(wallet))
-            if isinstance(per, dict) and isinstance(per.get(key), dict):
+            if isinstance(per, dict) and self.fixed_sleeve_entry_valid(per.get(key)):
                 out[wallet] = self.fixed_sleeve_units(wallet, coin)
         return out
 
@@ -2830,10 +2860,60 @@ class DryRunLiveCopyService:
         })
         return pos, before, realized_pnl
 
+    def wallet_gate(self) -> Dict[str, Any]:
+        """READ-ONLY UI compatibility bridge (restored Build3 UI -> repaired engine).
+
+        The UI writes wallet_gate.json beside its own script; this engine reads
+        HL_LIVE_WALLET_GATE_FILE when set, else AUDIT_DIR/wallet_gate.json. The gate can only
+        REDUCE engine authority (OFF / CLOSE_ONLY), never grant it. Absent, unreadable or
+        malformed gate returns {} => no change.
+        """
+        try:
+            path = Path(os.getenv("HL_LIVE_WALLET_GATE_FILE") or (AUDIT_DIR / "wallet_gate.json"))
+            if not path.exists():
+                return {}
+            data = json.loads(path.read_text(encoding="utf-8"))
+            return data if isinstance(data, dict) else {}
+        except Exception:
+            return {}
+
+    def wallet_gate_mode(self, wallet: str) -> str:
+        """Effective UI-gate mode for a wallet: ON | OFF | CLOSE_ONLY, or '' (no gate)."""
+        try:
+            entry = self.wallet_gate().get(str(wallet).lower()) or {}
+        except Exception:
+            return ""
+        if not isinstance(entry, dict):
+            return ""
+        mode = str(entry.get("mode") or "").upper().strip()
+        return mode if mode in {"ON", "OFF", "CLOSE_ONLY"} else ""
+
+    def apply_wallet_gate(self, cfg: LiveWalletConfig) -> LiveWalletConfig:
+        """Fold the UI gate into cfg's mode. Only ever REDUCES authority; any failure is a no-op."""
+        try:
+            gate_mode = self.wallet_gate_mode(getattr(cfg, "wallet", ""))
+            if not gate_mode or gate_mode == "ON":
+                return cfg
+            target = "OFF" if gate_mode == "OFF" else "CLO"
+            if str(getattr(cfg, "mode", "")).upper() == target:
+                return cfg
+            import copy as _copy
+            try:
+                from dataclasses import replace as _dc_replace
+                gated = _dc_replace(cfg, mode=target)
+            except Exception:
+                gated = _copy.copy(cfg)
+                object.__setattr__(gated, "mode", target)   # honours frozen dataclasses too
+            self.bump("ui_wallet_gate_applied_" + gate_mode.lower())
+            return gated
+        except Exception:
+            return cfg
+
     def process_fill(self, fill: LeaderFill, cfg: LiveWalletConfig, replay_history: bool = False) -> None:
         if fill.fill_id in self.processed_ids:
             self.bump("fills_already_processed")
             return
+        cfg = self.apply_wallet_gate(cfg)
         pos = self.get_position(cfg.wallet, fill.coin)
         before_signed = fnum(pos.get("signed_size"))
         copy_notional_raw = self.model_copy_notional(cfg, fill)
