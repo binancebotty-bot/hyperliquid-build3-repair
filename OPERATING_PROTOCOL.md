@@ -42,20 +42,16 @@ A sent notification is not evidence the response has been read.
 A stand-down request is not self-approval.
 A scheduled wake, armed loop or ended chat turn is not stand-down permission.
 
-## Hermes communication boundary — direct human authority, October 2026
+## Hermes reporting convention — Richard instruction, October 2026
 
-Richard is the CEO/human authority, **not** the normal Hermes reporting or escalation destination.
+Richard is the CEO/human authority, not the normal worker reporting destination.
 
-- Hermes MUST NOT initiate or send direct progress, result, ACK, blocker, review or stand-down messages to Richard's ChatGPT/Telegram/other personal channels. Deliver exclusively to the canonical `gpt:reviewer-controller` control mailbox, with exact commit and correlation evidence.
-- **Only exception:** Richard has directly addressed Hermes in the current interaction or has explicitly authorised that specific direct message. This does not authorise subsequent unsolicited messages.
-- A product blocker goes to Controller first; architectural/semantic rulings go Controller -> Project Architect; coordination/transport failures go Controller -> MD. Those roles own any subsequent human escalation. Hermes must never recruit Richard as a human courier.
-- After every outward RESULT, ACK or blocker, Hermes's **last control action before its turn ends** is a fresh read of the latest inbound Controller mailbox state on the actual `control-mailbox` branch, **not** a local worktree glob or cached issue comment. Match `RESPONDS_TO_MESSAGE_ID`/`MESSAGE_ID`, inspect the payload and persist consumed/unconsumed disposition. If the response is already present, execute it; if absent, leave the receive/wake owner running for the pending correlation.
-- This final-receive invariant applies **on every turn**, including retries, transport recovery, tool failures and apparently completed tasks. Never end after saying "loop armed", "next step", or "awaiting adjudication" without performing the fresh final read.
-- No repeated ACKs from a replication race. Check the remote control branch and previously published logical message IDs before any retry. No duplicate task execution.
-- The Controller may return `CHANGES_REQUIRED`, `PASS_AND_NEXT_ACTION`, `ESCALATE_ARCHITECT`, `AWAIT`, or `STAND_DOWN_PERMISSION`; only a **correlated, explicitly granted** stand-down permission allows Hermes to declare stand-down. Human-addressed questions do not override product trading-safety boundaries.
-- If the host requires a human-visible completion message, do not use it to report project progress or request decisions from Richard; use only the shortest neutral transport acknowledgement available, without substantive payload. The canonical response remains the mailbox RESULT. A platform-mandated reply cannot be disabled by a repository instruction.
-
-This boundary is an explicit Richard instruction and overrides older worker-communication wording; it does not create any additional control surface, watcher, process or transport mechanism.
+- Hermes sends routine progress, test results, ACKs, blocker details, and stand-down requests to `gpt:reviewer-controller` using the existing deterministic control mailbox. Do not address Richard with these routine updates.
+- When Richard directly speaks to Hermes, Hermes may answer normally. No blocking, interception, recipient guards, filtering code, new watcher, new transport, or restrictions on Richard initiating communication are required or authorised.
+- After publishing a RESULT, verify it was published/woke Controller and **read the correlated Controller reply from the actual remote `origin/control-mailbox` branch as the final control operation of every turn**. Consume it if available. If still pending, preserve the correlation and existing event-driven receiver; do not send the waiting/status explanation to Richard.
+- Project/product semantics and blockers go to Controller and, where required, the Project Architect; company control/routing matters go to Controller and MD. Richard need not relay any of these.
+- Only Controller can authorise Hermes stand-down after the correlated ruling; no stand-down is inferred from a sent report, armed loop, or ending chat turn.
+- This is a simple **reporting convention**, not a software feature or a new implementation task. It supersedes the earlier request for an outbound recipient guard.
 
 ## Architectural interrupt
 If an `ARCHITECTURE.md` tripwire is crossed, Hermes stops before expansion and returns:
