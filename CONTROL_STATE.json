@@ -1,11 +1,11 @@
 {
   "schema": "wigmore_project_control_state_v1",
   "project": "hyperliquid-build3-repair",
-  "updated_utc": "2026-10-08T06:12:30Z",
+  "updated_utc": "2026-10-08T06:18:00Z",
   "operator": "richard:operator",
   "architect": {
     "role": "project-architect",
-    "status": "G2_FINAL_AUDIT_CORRECTION_AUTHORISED",
+    "status": "G2_CODE_CANDIDATE_ACCEPTABLE_EVIDENCE_INCOMPLETE",
     "wake_mode": "EVENT_DRIVEN_ONLY"
   },
   "controller": {
@@ -15,7 +15,7 @@
   },
   "implementation_owner": {
     "role": "hermes:implementation-owner",
-    "status": "G2_FINAL_AUDIT_CORRECTION_AWAITING_EXECUTION"
+    "status": "G2_EVIDENCE_CORRECTION_REQUIRED_NO_PRODUCTION_CHANGE"
   },
   "bindings": {
     "authority": "C:/Users/wigmore/.hermes/state/projects/hyperliquid-build3-repair/CONTROL_CONTRACT.json target_role_bindings",
@@ -45,7 +45,7 @@
   },
   "current_gate": {
     "task_id": "BUILD3_G2_CORE_BUILD3_COPY_CORRECTNESS_REFACTOR",
-    "status": "FINAL_AUDIT_CORRECTION_REQUIRED",
+    "status": "CONTROLLER_HOLD_EVIDENCE_CORRECTION",
     "purpose": "Remove blind fixed-notional-per-fill authority and implement event-authorised desired exposure feeding the existing convergence planner and single sender.",
     "writes_authorized": true,
     "production_logic_changes_authorized": true,
@@ -74,17 +74,17 @@
       "LIVE/mainnet activation."
     ],
     "controller_adjudication": {
-      "verdict": "FAIL",
-      "inspected_commit": "dd82bdb4e9f1c5244cdd9ce505cef4a65f2e47d7",
-      "gross_production_additions": 332,
+      "verdict": "HOLD_NOT_PASS",
+      "inspected_commit": "606d32e2f449c545fed1e7f9a9a1cb2fa5c409d2",
+      "production_code_assessment": "PASS",
+      "gross_production_additions": 336,
       "gross_limit": 340,
       "production_files": 1,
       "order_call_sites": 1,
-      "focused_tests_reported": "38/38 PASS",
-      "legacy_self_test_reported": "PASS",
-      "remaining_defects": [
-        "ORDER_INTENT_FIELDS does not contain reduce_only. append_order_intent adds planner reduce_only to the in-memory row, but append_csv filters to ORDER_INTENT_FIELDS, so durable order_intents.csv silently drops planner reduce_only. This violates the required durable audit propagation.",
-        "append_live_fill writes side=fill.side (leader event side), not planner-authorised follower order side. On sign-flip/opposite-direction cases durable live_fills audit can therefore report a side different from the authorised follower action."
+      "durable_csv_audit_fixes": "PASS_BY_DIRECT_DIFF",
+      "blocking_evidence_defects": [
+        "RESULT envelope is mis-correlated: RESPONDS_TO_MESSAGE_ID and DIRECTIVE_ID point to B3-C2H-G2-FINAL-FAIL-3 instead of B3-C2H-G2-FINAL-AUDIT-CORRECTION-3.",
+        "Committed graphify-out/GRAPH_REPORT.md is stale and explicitly says Built from commit 35a4dc31, not candidate 606d32e2; Graphify refresh is therefore not durably proven."
       ]
     },
     "architect_ruling": {
@@ -162,8 +162,8 @@
     "Direct leader WS path is fast but incomplete; snapshot truth is required on recovery boundaries.",
     "MASTER account state must be distinguished from API signer state."
   ],
-  "current_blocker": null,
-  "next_action": "Hermes executes only the final G2 durable-audit correction under B3-A2C-G2-FINAL-AUDIT-RULING-3; G3 remains blocked.",
+  "current_blocker": "Production candidate appears acceptable, but G2 evidence/control correlation is incomplete and Graphify is durably stale.",
+  "next_action": "Hermes makes NO production code changes; refresh/commit Graphify against the exact current candidate and emit one correctly correlated RESULT responding to B3-C2H-G2-FINAL-AUDIT-CORRECTION-3.",
   "live_authorized": false,
   "last_controller_ruling": {
     "task_id": "BUILD3_SOURCE_BASELINE_IMPORT_1",
