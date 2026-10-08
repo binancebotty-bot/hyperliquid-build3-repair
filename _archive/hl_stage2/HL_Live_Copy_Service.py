@@ -721,6 +721,13 @@ class FixedModeAuthorityConflict(Exception):
 # UI/config/product evidence proves the intended target model (carried to G4); account-net follower
 # truth is G3 plumbing, so G2 fails closed with zero order authority until it exists.
 FIXED_MODE_HOLD_STATUS = "FIXED_MODE_AUTHORITY_HOLD"
+try:
+    import exchange_truth as XTRUTH  # G3 exchange-truth/settlement seam (ruling B3-A2C-G2-PASS-G3-1)
+except Exception:  # pragma: no cover - module absent is fail-closed, never a silent fallback
+    XTRUTH = None
+# G3: MASTER truth only; signer may sign only; UNATTRIBUTED_INVENTORY is unowned follower inventory.
+MASTER_TRUTH_ADDRESS, MASTER_TRUTH_SIGNER, MASTER_TRUTH_FETCHER, MASTER_TRUTH_DEXES = "", "", None, None
+UNATTRIBUTED_INVENTORY: Dict[str, float] = {}
 ACCOUNT_NET_TRUTH_UNAVAILABLE = "ACCOUNT_NET_TRUTH_UNAVAILABLE"
 LINEAGE_CHECKPOINT_INVALID = "LINEAGE_CHECKPOINT_INVALID"
 
@@ -2189,6 +2196,15 @@ class DryRunLiveCopyService:
         truth is unavailable we FAIL CLOSED - wallet-local dry-run state is never treated as truth."""
         if not self.lineage_valid:
             return {"ok": False, "status": LINEAGE_CHECKPOINT_INVALID}
+        if XTRUTH is not None and MASTER_TRUTH_ADDRESS:
+            if not XTRUTH.identity_ok(MASTER_TRUTH_SIGNER, MASTER_TRUTH_ADDRESS):
+                return {"ok": False, "status": XTRUTH.IDENTITY_INVALID}
+            truth = XTRUTH.master_account_net(MASTER_TRUTH_ADDRESS, coin, fetcher=MASTER_TRUTH_FETCHER, dexes=MASTER_TRUTH_DEXES)
+            if not truth.get("ok"):
+                return {"ok": False, "status": str(truth.get("status") or ACCOUNT_NET_TRUTH_UNAVAILABLE)}
+            unattributed = fnum(UNATTRIBUTED_INVENTORY.get(str(coin).upper().strip(), 0.0))
+            return {"ok": True, "net": fnum(truth.get("net")) - unattributed, "unattributed": unattributed,
+                    "source": "MASTER_EXCHANGE_TRUTH", "scopes": truth.get("scopes", [])}
         provider = self.account_net_provider
         if provider is None:
             return {"ok": False, "status": ACCOUNT_NET_TRUTH_UNAVAILABLE}
@@ -2219,6 +2235,39 @@ class DryRunLiveCopyService:
         if isinstance(rec, dict) and str(rec.get("intent_id")) == str(intent_id):
             self.in_flight.pop(key, None)
             self.state.setdefault("in_flight_terminals", {})[key] = str(terminal_status)
+
+    def settle_from_master_evidence(self, intent_id: str, coin: str, side: str, size: float, oid: Any = "",
+                                    terminal_reject: bool = False, start_ms: int = 0) -> Dict[str, Any]:
+        """Clear an in-flight reservation ONLY from independent MASTER evidence (semantics 6-9): an ack
+        never settles, a partial keeps the remainder blocking, unknown keeps blocking, a terminal
+        rejection clears with no phantom fill."""
+        if XTRUTH is None or not MASTER_TRUTH_ADDRESS:
+            return {"ok": False, "status": ACCOUNT_NET_TRUTH_UNAVAILABLE}
+        key = str(coin).upper().strip()
+        rec = self.in_flight.get(key) or {}
+        if str(rec.get("intent_id") or "") != str(intent_id):
+            return {"ok": False, "status": "IN_FLIGHT_NOT_OWNED", "detail": "another intent holds the reservation"}
+        fills = master_net = None
+        if not terminal_reject:
+            uf = XTRUTH.master_userfills(MASTER_TRUTH_ADDRESS, start_ms or inum(rec.get("started_ms")), fetcher=MASTER_TRUTH_FETCHER)
+            if not uf.get("ok"):
+                return {"ok": False, "status": str(uf.get("status") or ACCOUNT_NET_TRUTH_UNAVAILABLE)}
+            fills = uf["fills"]
+            pos = XTRUTH.master_account_net(MASTER_TRUTH_ADDRESS, coin, fetcher=MASTER_TRUTH_FETCHER, dexes=MASTER_TRUTH_DEXES)
+            if not pos.get("ok"):
+                return {"ok": False, "status": str(pos.get("status") or ACCOUNT_NET_TRUTH_UNAVAILABLE)}
+            master_net = fnum(pos.get("net"))
+        verdict = XTRUTH.resolve_settlement(
+            {"coin": coin, "side": side, "size": size, "oid": oid}, fills, master_net, terminal_reject=terminal_reject
+        )
+        if verdict.get("settled"):
+            self.settle_in_flight(coin, intent_id, str(verdict.get("status")))
+        elif rec:
+            rec["settle_status"] = str(verdict.get("status"))
+            if verdict.get("remaining") is not None:
+                rec["remaining"] = float(verdict.get("remaining"))
+            self.mark_in_flight(coin, rec)
+        return {"ok": True, **verdict}
 
     def convergence_order_for_coin(
         self, cfg: LiveWalletConfig, fill: LeaderFill, configs: Dict[str, LiveWalletConfig],
