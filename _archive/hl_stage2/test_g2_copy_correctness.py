@@ -52,6 +52,7 @@ def main() -> None:
     }), encoding="utf-8")
 
     import HL_Live_Copy_Service as svcmod
+    svcmod.TEST_INJECTION_ENABLED = True  # test-only seam: injected providers/durability bypass
 
     def fill(fid, wallet, coin, side, price, size, ts, delta=None, source="test"):
         d = delta if delta is not None else (size if side.upper() == "BUY" else -size)

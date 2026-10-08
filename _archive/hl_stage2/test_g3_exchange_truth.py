@@ -11,6 +11,7 @@ from pathlib import Path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import exchange_truth as X  # noqa: E402
 import HL_Live_Copy_Service as svcmod  # noqa: E402
+svcmod.TEST_INJECTION_ENABLED = True  # test-only seam: injected providers/durability bypass
 
 MASTER = "0x" + "a" * 40
 SIGNER = "0x" + "b" * 40
@@ -163,12 +164,19 @@ def main():
     check("H) unreadable MASTER fill truth fails closed and keeps in-flight",
           amb.get("ok") is False and bool(s2.in_flight.get("BTC")), str(amb))
     with_master(Fixture(dexes=("",), states={"": {"BTC": 1.5}}, fills=[]))
-    rej = s2.settle_from_master_evidence("I2", "BTC", "BUY", 2.0, oid="78", start_ms=1000, terminal_reject=True)
-    check("I) terminal rejection clears with NO phantom fill (position_after None)",
+    rej = s2.settle_from_master_evidence("I2", "BTC", "BUY", 2.0, oid="78", start_ms=1000,
+                                         reject_evidence=X.terminal_reject_evidence("ORDER_REJECTED", oid_accepted=False, no_fill_proved=True))
+    check("I) terminal exchange rejection + all-DEX no-fill proof clears with NO phantom fill",
           rej.get("settled") is True and rej.get("status") == X.SETTLE_REJECTED and rej.get("position_after") is None
           and s2.in_flight.get("BTC") is None, str(rej))
+    s2.mark_in_flight("BTC", {"intent_id": "I4", "started_ms": 1000, "size": 2.0, "side": "BUY", "oid": "79"})
+    weak = s2.settle_from_master_evidence("I4", "BTC", "BUY", 2.0, oid="79", start_ms=1000,
+                                          reject_evidence={"terminal_reject": True, "no_fill_proved": False, "oid_accepted": True})
+    check("I) a caller boolean / unproven no-fill can NEVER clear a reservation",
+          weak.get("settled") is False and bool(s2.in_flight.get("BTC")), str(weak))
     s2.mark_in_flight("BTC", {"intent_id": "I3", "started_ms": 1000})
-    notowner = s2.settle_from_master_evidence("WHO-ELSE", "BTC", "BUY", 1.0, terminal_reject=True)
+    notowner = s2.settle_from_master_evidence("WHO-ELSE", "BTC", "BUY", 1.0,
+                                              reject_evidence=X.terminal_reject_evidence("ORDER_REJECTED", False, True))
     check("I) only the owning intent can clear a reservation", notowner.get("ok") is False and bool(s2.in_flight.get("BTC")), str(notowner))
 
     print("\n=== J/K) divergence surfaces; unrelated inventory preserved ===")
@@ -196,6 +204,101 @@ def main():
     print("\n=== L) single physical order site ===")
     src = (Path(__file__).parent / "HL_Live_Copy_Service.py").read_text(encoding="utf-8", errors="replace")
     check("exactly one exchange.order() call site", src.count("exchange.order(") == 1, str(src.count("exchange.order(")))
+
+    print("\n=== A2) production has NO account-net fallback; runtime identity separation ===")
+    reset_master()
+    svcmod.TEST_INJECTION_ENABLED = False
+    svc_no_master = fresh(tmp, provider=lambda coin: {"ok": True, "net": 42.0, "source": "WALLET_LOCAL"})
+    locked = svc_no_master.account_net_actual("BTC")
+    check("A2) production with no MASTER identity FAILS CLOSED (no provider fallback)",
+          not locked.get("ok") and locked.get("status") in {X.IDENTITY_INVALID, svcmod.ACCOUNT_NET_TRUTH_UNAVAILABLE}, str(locked))
+    import os as _os
+    ident = X.runtime_master_identity({"HL_LIVE_HL_ACCOUNT_ADDRESS": MASTER, "HL_LIVE_HL_SIGNER_ADDRESS": SIGNER})
+    check("A2) runtime identity accepts distinct MASTER + signer", ident.get("ok") is True, str(ident))
+    same = X.runtime_master_identity({"HL_LIVE_HL_ACCOUNT_ADDRESS": MASTER, "HL_LIVE_HL_SIGNER_ADDRESS": MASTER})
+    check("A2) runtime identity rejects signer == MASTER", same.get("ok") is False, str(same))
+    missing = X.runtime_master_identity({})
+    check("A2) runtime identity rejects missing identity", missing.get("ok") is False, str(missing))
+    svcmod.TEST_INJECTION_ENABLED = True
+
+    print("\n=== B2/C2/D2) durable pre-send reservation + restart recovery ===")
+    with_master(Fixture(dexes=("",), states={"": {"BTC": 0.0}}, fills=[]))
+    fresh(tmp)   # ensure a clean state file
+    ok_p = svcmod.persist_unresolved_send("BTC", {"intent_id": "R1", "coin": "BTC", "side": "BUY", "size": 2.0,
+                                                  "reduce_only": False, "started_ms": 1000, "pre_send_master_net": 0.0, "oid": ""})
+    on_disk = svcmod.load_unresolved_sends()
+    check("B2) reservation is DURABLE on disk before any sender boundary", ok_p and "BTC" in on_disk, str(on_disk))
+    restarted = svcmod.DryRunLiveCopyService()
+    check("B2) restart reloads the unresolved reservation as blocking (no second authorisation)",
+          bool(restarted.in_flight.get("BTC")) and restarted.in_flight["BTC"].get("intent_id") == "R1", str(restarted.in_flight))
+    svcmod.attach_send_result("BTC", {"oid": "4242", "exchange_status": "ORDER_FILLED"})
+    still = svcmod.load_unresolved_sends().get("BTC") or {}
+    check("D2) an ack/oid is attached but NEVER clears the reservation",
+          still.get("oid") == "4242" and still.get("intent_id") == "R1", str(still))
+    with_master(Fixture(dexes=("",), states={"": {"BTC": 2.0}}, fills=[{"coin": "BTC", "side": "B", "oid": "4242", "sz": "2.0", "time": 1005}]))
+    res_res = svcmod.reconcile_unresolved_send("BTC")
+    check("C2) crash-before/after-oid resolves from per-DEX MASTER evidence WITHOUT any resend",
+          res_res.get("settled") is True and "BTC" not in svcmod.load_unresolved_sends(), str(res_res))
+
+    print("\n=== E2) HIP-3 / multi-DEX settlement scoping + deterministic dedupe ===")
+    calls = []
+
+    def dex_fetcher(payload):
+        calls.append(payload)
+        if payload.get("type") == "perpDexs":
+            return [{"name": "builder-hip3"}]
+        if payload.get("type") == "clearinghouseState":
+            return {"assetPositions": [{"position": {"coin": "BTC", "szi": "1.0"}}]}
+        if payload.get("type") == "userFillsByTime":
+            return [{"coin": "BTC", "side": "B", "oid": "9", "sz": "1.0", "time": 2000}]   # same fill in both scopes
+        raise RuntimeError(payload)
+    with_master(dex_fetcher, dexes=None)
+    allf = X.master_userfills_all_dexes(MASTER, 1500, ["", "builder-hip3"], fetcher=dex_fetcher)
+    # default perp DEX has no name => unqualified query; HIP-3 scope carries its explicit dex field
+    sent_dex = [c.get("dex") for c in calls if c.get("type") == "userFillsByTime"]
+    check("E2) userFillsByTime is queried once per scope (unqualified default + explicit HIP-3 dex)",
+          allf.get("ok") and sent_dex == [None, "builder-hip3"], str(sent_dex))
+    check("E2) each scope's fills are attributed to the scope they were read from",
+          [s.get("dex") for s in allf.get("scopes", [])] == ["(default)", "builder-hip3"],
+          str(allf.get("scopes")))
+    check("E2) duplicate fills across scopes are deduplicated deterministically",
+          allf.get("deduped") == 1 and len(allf.get("fills")) == 1, str(allf.get("deduped")))
+    bad_fills = Fixture(dexes=("", "builder-hip3"), states={"": {"BTC": 1.0}}, fills=[], fail_fills=True)
+    with_master(bad_fills, dexes=None)
+    svcmod.persist_unresolved_send("BTC", {"intent_id": "E2", "coin": "BTC", "side": "BUY", "size": 1.0, "started_ms": 1000})
+    unk = svcmod.reconcile_unresolved_send("BTC")
+    check("E2) an unreadable required scope keeps the reservation BLOCKING",
+          unk.get("ok") is False and "BTC" in svcmod.load_unresolved_sends(), str(unk))
+    svcmod.clear_unresolved_send("BTC", "TEST_CLEANUP")
+
+    print("\n=== H2/I2/J2) ownership baseline persists; divergence blocks before send ===")
+    with_master(Fixture(dexes=("",), states={"": {"BTC": 9.0}}, fills=[]))
+    base_svc = fresh(tmp)
+    frozen = base_svc.freeze_unattributed_baseline("BTC", 9.0)
+    check("H2) NO-SEND boundary freezes UNATTRIBUTED_BASELINE in the existing state file",
+          frozen.get("ok") and base_svc.state["unattributed_baseline"]["BTC"] == 9.0, str(frozen))
+    revived = svcmod.DryRunLiveCopyService()
+    check("H2) restart preserves the frozen baseline (attribution, not authority)",
+          revived.unattributed_baseline("BTC") == 9.0, str(revived.state.get("unattributed_baseline")))
+    gate_ok = revived.reconcile_gate("BTC", 9.0)
+    check("H2) matching MASTER truth passes the reconciliation gate", gate_ok.get("ok") is True, str(gate_ok))
+    with_master(Fixture(dexes=("",), states={"": {"BTC": 12.0}}, fills=[]))
+    gate_bad = revived.reconcile_gate("BTC", 12.0)
+    check("I2) external/manual same-coin change produces RECONCILIATION_DIVERGENCE", gate_bad.get("ok") is False
+          and gate_bad.get("status") == "RECONCILIATION_DIVERGENCE", str(gate_bad))
+    gate_blocked = revived.convergence_notional_for_fill(
+        cfg, svcmod.LeaderFill(fill_id="gate1", wallet="0xw1", coin="BTC", side="BUY", price=100.0, size=1.0,
+                              signed_size_delta=1.0, timestamp_ms=1, timestamp_iso="t", source="test",
+                              recording_method="t", raw={}))
+    check("I2) divergence blocks the PRODUCTION order-authority path before any send",
+          gate_blocked.get("ok") is False and gate_blocked.get("status") == "RECONCILIATION_DIVERGENCE", str(gate_blocked))
+    check("J2) unrelated inventory is preserved (baseline excluded from sleeve ACTUAL)",
+          abs(float(revived.account_net_actual("BTC").get("net")) - 3.0) < 1e-9,
+          str(revived.account_net_actual("BTC")))
+
+    print("\n=== L2) order-site invariant after the correction ===")
+    src2 = (Path(__file__).parent / "HL_Live_Copy_Service.py").read_text(encoding="utf-8", errors="replace")
+    check("L2) exactly one physical exchange.order() site still", src2.count("exchange.order(") == 1, str(src2.count("exchange.order(")))
 
     print(f"\n  checks: {_p} passed, {_f} failed")
     if _f == 0:

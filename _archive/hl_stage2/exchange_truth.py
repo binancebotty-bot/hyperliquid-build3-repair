@@ -76,15 +76,76 @@ def master_account_net(master_address, coin, fetcher=None, info_url=HL_INFO_URL,
         total += signed
     return {"ok": True, "status": TRUTH_OK, "net": total, "scopes": scopes, "dex_count": len(dexes)}
 
-def master_userfills(master_address, start_ms, fetcher=None, info_url=HL_INFO_URL, timeout=8.0):
-    """MASTER settlement evidence: genuine fills at/after start_ms (read-only)."""
+def master_userfills(master_address, start_ms, dex="", fetcher=None, info_url=HL_INFO_URL, timeout=8.0):
+    """MASTER settlement evidence: genuine fills at/after start_ms, scoped to one perp DEX ('' = default)."""
     if not valid_address(master_address):
         return {"ok": False, "status": IDENTITY_INVALID}
-    res = _post(fetcher, {"type": "userFillsByTime", "user": master_address, "startTime": int(start_ms)}, info_url, timeout)
+    payload = {"type": "userFillsByTime", "user": master_address, "startTime": int(start_ms)}
+    if dex:
+        payload["dex"] = dex
+    res = _post(fetcher, payload, info_url, timeout)
     rows = res.get("data") if res.get("ok") else None
     if not isinstance(rows, list):
-        return {"ok": False, "status": TRUTH_UNAVAILABLE, "detail": res.get("detail", "userFillsByTime not a list")}
-    return {"ok": True, "status": TRUTH_OK, "fills": [r for r in rows if isinstance(r, dict)]}
+        return {"ok": False, "status": TRUTH_UNAVAILABLE, "dex": dex, "detail": res.get("detail", "userFillsByTime not a list")}
+    return {"ok": True, "status": TRUTH_OK, "dex": dex, "fills": [r for r in rows if isinstance(r, dict)]}
+
+
+def _fill_key(fill):
+    """Deterministic dedupe identity for a MASTER fill across DEX scopes."""
+    return "|".join(str((fill or {}).get(k) or "") for k in ("oid", "tid", "time", "coin", "sz", "px", "side"))
+
+
+def master_userfills_all_dexes(master_address, start_ms, dexes, fetcher=None, info_url=HL_INFO_URL, timeout=8.0):
+    """Per-scope MASTER userFillsByTime for the default DEX and every HIP-3/builder scope.
+
+    Any required scope unavailable/unreadable => settlement truth unavailable (caller keeps blocking).
+    Fills are deduplicated deterministically across scopes.
+    """
+    if not valid_address(master_address):
+        return {"ok": False, "status": IDENTITY_INVALID}
+    merged, seen, scopes, raw = [], set(), [], 0
+    for dex in (dexes if dexes is not None else [""]):
+        res = master_userfills(master_address, start_ms, dex, fetcher=fetcher, info_url=info_url, timeout=timeout)
+        if not res.get("ok"):
+            return {"ok": False, "status": TRUTH_UNAVAILABLE, "dex": dex, "detail": res.get("detail", "scope fill read failed")}
+        for fill in res.get("fills", []):
+            key = _fill_key(fill)
+            if key in seen:
+                continue
+            seen.add(key)
+            merged.append(fill)
+        scopes.append({"dex": dex or "(default)", "count": len(res.get("fills", []))})
+        raw += len(res.get("fills", []))
+    merged.sort(key=_fill_key)
+    return {"ok": True, "status": TRUTH_OK, "fills": merged, "scopes": scopes,
+            "deduped": raw - len(merged), "count": len(merged)}
+
+
+def terminal_reject_evidence(exchange_status, oid_accepted, no_fill_proved):
+    """Evidence record for a terminal no-fill clear. A bare caller boolean can never satisfy this:
+    it requires an exchange-derived terminal rejection AND an all-DEX post-attempt no-fill proof."""
+    return {"terminal_reject": str(exchange_status or "").strip().upper() in
+            {"ORDER_REJECTED", "REJECTED", "REFUSED", "CLIENT_ORDER_REJECT", "TERMINAL_REJECT"},
+            "exchange_status": str(exchange_status or ""), "oid_accepted": bool(oid_accepted),
+            "no_fill_proved": bool(no_fill_proved)}
+
+
+def runtime_master_identity(env=None):
+    """Production identity wiring: MASTER from HL_LIVE_HL_ACCOUNT_ADDRESS, signer derived from the
+    configured private key. Signer and MASTER must both be valid and DISTINCT; else fail closed."""
+    env = env if env is not None else __import__("os").environ
+    master = str(env.get("HL_LIVE_HL_ACCOUNT_ADDRESS", "") or "").strip()
+    signer = str(env.get("HL_LIVE_HL_SIGNER_ADDRESS", "") or "").strip()
+    key = str(env.get("HL_LIVE_HL_PRIVATE_KEY", "") or "").strip()
+    if not signer and key:
+        try:  # derive the signing identity with the same plumbing the sender uses
+            from eth_account import Account  # type: ignore
+            signer = str(Account.from_key(key).address or "").strip()
+        except Exception as exc:
+            return {"ok": False, "status": IDENTITY_INVALID, "detail": f"signer derivation failed: {exc!r}"}
+    if not valid_address(master) or not valid_address(signer) or signer.lower() == master.lower():
+        return {"ok": False, "status": IDENTITY_INVALID, "detail": "invalid or non-distinct MASTER/signer identity"}
+    return {"ok": True, "status": TRUTH_OK, "master": master, "signer": signer}
 
 def _match(fill, coin, side, oid) -> bool:
     if str((fill or {}).get("coin") or "").upper().strip() != str(coin or "").upper().strip():
@@ -97,12 +158,25 @@ def _match(fill, coin, side, oid) -> bool:
         return str(fill.get("oid")) == str(oid)
     return True
 
-def resolve_settlement(intent, fills, master_net, terminal_reject=False):
-    """Clear an in-flight reservation ONLY from independent MASTER evidence for this intent."""
+def resolve_settlement(intent, fills, master_net, reject_evidence=None):
+    """Clear an in-flight reservation ONLY from independent MASTER evidence for this intent.
+
+    A caller boolean is never sufficient: a no-fill terminal clear needs the evidence record from
+    terminal_reject_evidence() (exchange-derived rejection + all-DEX no-fill proof) AND no matching
+    fill AND no accepted oid whose absence is unproven.
+    """
     size = abs(float(intent.get("size") or 0.0))
     coin, side, oid = intent.get("coin"), intent.get("side"), intent.get("oid")
-    if terminal_reject:
-        if [f for f in (fills or []) if _match(f, coin, side, oid)]:
+    if reject_evidence:
+        ev = reject_evidence if isinstance(reject_evidence, dict) else {}
+        matched = [f for f in (fills or []) if _match(f, coin, side, oid)]
+        if not (ev.get("terminal_reject") and ev.get("no_fill_proved")):
+            return {"settled": False, "status": SETTLE_UNKNOWN, "detail": "insufficient terminal-reject evidence"}
+        if oid and ev.get("oid_accepted"):
+            return {"settled": False, "status": SETTLE_UNKNOWN, "detail": "accepted oid; absence not proven"}
+        if fills is None:
+            return {"settled": False, "status": SETTLE_UNKNOWN, "detail": "no post-attempt MASTER proof"}
+        if matched:
             return {"settled": False, "status": SETTLE_UNKNOWN, "detail": "reject conflicts with matching fill"}
         return {"settled": True, "status": SETTLE_REJECTED, "filled": 0.0, "remaining": 0.0, "position_after": None}
     if fills is None or master_net is None:

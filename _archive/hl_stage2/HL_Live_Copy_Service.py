@@ -387,6 +387,95 @@ def truthy_csv(value: Any) -> bool:
     return str(value).strip().lower() in {"1", "true", "yes", "y", "on"}
 
 
+def load_unresolved_sends() -> Dict[str, Any]:
+    """Unresolved send reservations from the EXISTING service-state file (durable crash recovery)."""
+    state = load_json(SERVICE_STATE_FILE, {})
+    rows = state.get("in_flight_unresolved") if isinstance(state, dict) else None
+    return rows if isinstance(rows, dict) else {}
+
+
+def _state_write(mutate, context: str) -> bool:
+    state = load_json(SERVICE_STATE_FILE, {})
+    if not isinstance(state, dict):
+        state = {}
+    mutate(state)
+    return safe_atomic_write_json(SERVICE_STATE_FILE, state, context)
+
+
+def persist_unresolved_send(coin: str, rec: Dict[str, Any]) -> bool:
+    """Durably record an unresolved reservation BEFORE exchange.order authority is ever invoked."""
+    key = str(coin).upper().strip()
+
+    def _mut(state):
+        state.setdefault("in_flight_unresolved", {})[key] = dict(rec or {})
+    return _state_write(_mut, "IN_FLIGHT_UNRESERVED_WRITE")
+
+
+def attach_send_result(coin: str, updates: Dict[str, Any]) -> bool:
+    """Durably attach oid/exchange status. An ack NEVER clears the reservation."""
+    key = str(coin).upper().strip()
+
+    def _mut(state):
+        rows = state.get("in_flight_unresolved")
+        if isinstance(rows, dict) and key in rows:
+            rows[key].update(dict(updates or {}))
+    return _state_write(_mut, "IN_FLIGHT_RESULT_WRITE")
+
+
+def clear_unresolved_send(coin: str, terminal_status: str) -> bool:
+    key = str(coin).upper().strip()
+
+    def _mut(state):
+        rows = state.get("in_flight_unresolved")
+        if isinstance(rows, dict):
+            rows.pop(key, None)
+        state.setdefault("in_flight_terminals", {})[key] = str(terminal_status)
+    return _state_write(_mut, "IN_FLIGHT_CLEAR_WRITE")
+
+
+def reconcile_unresolved_send(coin: str, reject_evidence: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    """Bounded settlement reconciliation from independent MASTER evidence (per-DEX fills + position).
+
+    Runs immediately after a send and again on restart/loop iterations until resolved. It never
+    resends: while evidence is unavailable/ambiguous the reservation simply stays blocking.
+    """
+    key = str(coin).upper().strip()
+    rec = load_unresolved_sends().get(key)
+    if not isinstance(rec, dict):
+        return {"ok": True, "status": "NO_RESERVATION"}
+    if XTRUTH is None or not MASTER_TRUTH_ADDRESS:
+        return {"ok": False, "status": ACCOUNT_NET_TRUTH_UNAVAILABLE, "detail": "no MASTER truth configured"}
+    enum = XTRUTH.list_perp_dexes(fetcher=MASTER_TRUTH_FETCHER)
+    dexes = MASTER_TRUTH_DEXES if MASTER_TRUTH_DEXES is not None else (enum.get("dexes") if enum.get("ok") else None)
+    if dexes is None:
+        return {"ok": False, "status": XTRUTH.DEX_ENUM_UNAVAILABLE}
+    fills_res = XTRUTH.master_userfills_all_dexes(MASTER_TRUTH_ADDRESS, inum(rec.get("started_ms")),
+                                                 dexes, fetcher=MASTER_TRUTH_FETCHER)
+    if not fills_res.get("ok"):
+        return {"ok": False, "status": "IN_FLIGHT_UNKNOWN", "detail": fills_res.get("detail", "fill truth unavailable")}
+    pos = XTRUTH.master_account_net(MASTER_TRUTH_ADDRESS, key, fetcher=MASTER_TRUTH_FETCHER, dexes=dexes)
+    if not pos.get("ok"):
+        return {"ok": False, "status": "IN_FLIGHT_UNKNOWN", "detail": pos.get("detail", "position truth unavailable")}
+    verdict = XTRUTH.resolve_settlement(
+        {"coin": key, "side": rec.get("side"), "size": rec.get("size"), "oid": rec.get("oid")},
+        fills_res.get("fills"), fnum(pos.get("net")), reject_evidence=reject_evidence,
+    )
+    if verdict.get("settled"):
+        clear_unresolved_send(key, str(verdict.get("status")))
+    else:
+        attach_send_result(key, {"settle_status": str(verdict.get("status")),
+                                 "remaining": fnum(verdict.get("remaining"), fnum(rec.get("size")))})
+    return {"ok": True, **verdict}
+
+
+def master_net_snapshot(coin: str) -> float:
+    """Read-only MASTER net at reservation time (reconciliation evidence, never order authority)."""
+    if XTRUTH is None or not MASTER_TRUTH_ADDRESS:
+        return 0.0
+    res = XTRUTH.master_account_net(MASTER_TRUTH_ADDRESS, coin, fetcher=MASTER_TRUTH_FETCHER, dexes=MASTER_TRUTH_DEXES)
+    return fnum(res.get("net")) if res.get("ok") else 0.0
+
+
 def append_send_attempt(intent_row: Dict[str, Any], status: str, confirmed: bool = False, response: Any = "", error: str = "", notes: str = "") -> None:
     append_csv(SEND_ATTEMPTS_CSV, SEND_ATTEMPT_FIELDS, {
         "created_at": utc_now_iso(),
@@ -728,6 +817,8 @@ except Exception:  # pragma: no cover - module absent is fail-closed, never a si
 # G3: MASTER truth only; signer may sign only; UNATTRIBUTED_INVENTORY is unowned follower inventory.
 MASTER_TRUTH_ADDRESS, MASTER_TRUTH_SIGNER, MASTER_TRUTH_FETCHER, MASTER_TRUTH_DEXES = "", "", None, None
 UNATTRIBUTED_INVENTORY: Dict[str, float] = {}
+# TEST-ONLY seam: production must never reach the injected account_net_provider or skip durability.
+TEST_INJECTION_ENABLED = False
 ACCOUNT_NET_TRUTH_UNAVAILABLE = "ACCOUNT_NET_TRUTH_UNAVAILABLE"
 LINEAGE_CHECKPOINT_INVALID = "LINEAGE_CHECKPOINT_INVALID"
 
@@ -1263,6 +1354,15 @@ def manual_send_one_intent(intent_id: str, confirm_send: bool, marketable_bps: f
         append_send_attempt(row, "CONFIRM_REQUIRED", confirmed=False, response={"payload": payload}, notes="pass --confirm-send to reach disabled sender placeholder")
         return {"ok": False, "status": "CONFIRM_REQUIRED", "intent_id": intent_id, "payload": payload}
 
+    _res_coin = str(payload.get("coin", "")).upper().strip()
+    if not TEST_INJECTION_ENABLED:
+        # G3 semantics 2/7: the unresolved reservation is DURABLE before order authority is invoked.
+        persist_unresolved_send(_res_coin, {
+            "intent_id": str(row.get("intent_id") or intent_id), "coin": _res_coin,
+            "side": str(payload.get("side", "")).upper(), "size": fnum(payload.get("copy_size")),
+            "reduce_only": bool(payload.get("reduce_only")), "started_ms": utc_now_ms(),
+            "pre_send_master_net": master_net_snapshot(_res_coin), "oid": "",
+        })
     result = send_hyperliquid_order(
         payload,
         marketable_bps=marketable_bps,
@@ -1270,6 +1370,11 @@ def manual_send_one_intent(intent_id: str, confirm_send: bool, marketable_bps: f
         max_notional=1e12 if is_close_guard_path else max_notional_for_send,
     )
     status = str(result.get("status") or "ORDER_SENDER_NOT_IMPLEMENTED")
+    if not TEST_INJECTION_ENABLED:
+        # the ack/oid is durably attached but NEVER clears the reservation
+        attach_send_result(_res_coin, {"oid": str(result.get("oid") or ""), "exchange_status": status,
+                                       "responded_ms": utc_now_ms()})
+        reconcile_unresolved_send(_res_coin)
     position_after = position_before
     if status == "ORDER_FILLED":
         updated = update_manual_live_position_from_fill(
@@ -1994,8 +2099,18 @@ class DryRunLiveCopyService:
         # Lineage is a CHECKPOINT of authority already created by genuine events, coupled to the
         # processed event identity; missing/corrupt/stale/inconsistent => fail closed.
         self.state.setdefault("leader_event_checkpoint", {"seq": 0, "last_fill_id": ""})
-        self.in_flight: Dict[str, Dict[str, Any]] = {}   # in-memory only; no new store
-        self.account_net_provider = None                 # G3 plumbing; None => fail closed
+        self.in_flight: Dict[str, Dict[str, Any]] = {}
+        # G3 crash recovery: unresolved send reservations are RELOADED from the existing service-state
+        # file BEFORE any new order authority exists, so a restart cannot authorise a duplicate or
+        # overlapping send while settlement evidence is still outstanding.
+        for _coin, _rec in load_unresolved_sends().items():
+            if isinstance(_rec, dict):
+                self.in_flight[str(_coin).upper().strip()] = dict(_rec)
+        self.account_net_provider = None                 # TEST-ONLY seam; production uses MASTER truth
+        # G3 ownership partition (same EXISTING state file): frozen unattributed inventory baseline
+        # (attribution only, never order authority) + confirmed engine-owned actual.
+        self.state.setdefault("unattributed_baseline", {})
+        self.state.setdefault("copy_owned_actual", {})
         self.lineage_valid = True
         self.processed_id_order: List[str] = []
         seen_processed = set()
@@ -2196,15 +2311,25 @@ class DryRunLiveCopyService:
         truth is unavailable we FAIL CLOSED - wallet-local dry-run state is never treated as truth."""
         if not self.lineage_valid:
             return {"ok": False, "status": LINEAGE_CHECKPOINT_INVALID}
-        if XTRUTH is not None and MASTER_TRUTH_ADDRESS:
-            if not XTRUTH.identity_ok(MASTER_TRUTH_SIGNER, MASTER_TRUTH_ADDRESS):
-                return {"ok": False, "status": XTRUTH.IDENTITY_INVALID}
-            truth = XTRUTH.master_account_net(MASTER_TRUTH_ADDRESS, coin, fetcher=MASTER_TRUTH_FETCHER, dexes=MASTER_TRUTH_DEXES)
-            if not truth.get("ok"):
-                return {"ok": False, "status": str(truth.get("status") or ACCOUNT_NET_TRUTH_UNAVAILABLE)}
-            unattributed = fnum(UNATTRIBUTED_INVENTORY.get(str(coin).upper().strip(), 0.0))
-            return {"ok": True, "net": fnum(truth.get("net")) - unattributed, "unattributed": unattributed,
-                    "source": "MASTER_EXCHANGE_TRUTH", "scopes": truth.get("scopes", [])}
+        if XTRUTH is not None:
+            ident = ({"ok": True, "master": MASTER_TRUTH_ADDRESS, "signer": MASTER_TRUTH_SIGNER}
+                     if MASTER_TRUTH_ADDRESS else XTRUTH.runtime_master_identity())
+            if ident.get("ok"):
+                if not XTRUTH.identity_ok(ident.get("signer"), ident.get("master")):
+                    return {"ok": False, "status": XTRUTH.IDENTITY_INVALID}
+                truth = XTRUTH.master_account_net(ident["master"], coin, fetcher=MASTER_TRUTH_FETCHER, dexes=MASTER_TRUTH_DEXES)
+                if not truth.get("ok"):
+                    return {"ok": False, "status": str(truth.get("status") or ACCOUNT_NET_TRUTH_UNAVAILABLE)}
+                unattributed = self.unattributed_baseline(coin)
+                return {"ok": True, "net": fnum(truth.get("net")) - unattributed, "unattributed": unattributed,
+                        "source": "MASTER_EXCHANGE_TRUTH", "scopes": truth.get("scopes", [])}
+            if not TEST_INJECTION_ENABLED:
+                # PRODUCTION: no MASTER identity and no MASTER truth => fail closed, never a fallback.
+                return {"ok": False, "status": str(ident.get("status") or XTRUTH.IDENTITY_INVALID),
+                        "detail": str(ident.get("detail") or "")}
+        if not TEST_INJECTION_ENABLED:
+            return {"ok": False, "status": ACCOUNT_NET_TRUTH_UNAVAILABLE}
+        unattributed = self.unattributed_baseline(coin)
         provider = self.account_net_provider
         if provider is None:
             return {"ok": False, "status": ACCOUNT_NET_TRUTH_UNAVAILABLE}
@@ -2237,28 +2362,30 @@ class DryRunLiveCopyService:
             self.state.setdefault("in_flight_terminals", {})[key] = str(terminal_status)
 
     def settle_from_master_evidence(self, intent_id: str, coin: str, side: str, size: float, oid: Any = "",
-                                    terminal_reject: bool = False, start_ms: int = 0) -> Dict[str, Any]:
+                                    reject_evidence: Optional[Dict[str, Any]] = None, start_ms: int = 0) -> Dict[str, Any]:
         """Clear an in-flight reservation ONLY from independent MASTER evidence (semantics 6-9): an ack
-        never settles, a partial keeps the remainder blocking, unknown keeps blocking, a terminal
-        rejection clears with no phantom fill."""
+        never settles, a partial keeps the remainder blocking, unknown keeps blocking, and a no-fill
+        terminal clear needs the exchange-derived evidence record PLUS all-DEX MASTER no-fill proof."""
         if XTRUTH is None or not MASTER_TRUTH_ADDRESS:
             return {"ok": False, "status": ACCOUNT_NET_TRUTH_UNAVAILABLE}
         key = str(coin).upper().strip()
         rec = self.in_flight.get(key) or {}
         if str(rec.get("intent_id") or "") != str(intent_id):
             return {"ok": False, "status": "IN_FLIGHT_NOT_OWNED", "detail": "another intent holds the reservation"}
-        fills = master_net = None
-        if not terminal_reject:
-            uf = XTRUTH.master_userfills(MASTER_TRUTH_ADDRESS, start_ms or inum(rec.get("started_ms")), fetcher=MASTER_TRUTH_FETCHER)
-            if not uf.get("ok"):
-                return {"ok": False, "status": str(uf.get("status") or ACCOUNT_NET_TRUTH_UNAVAILABLE)}
-            fills = uf["fills"]
-            pos = XTRUTH.master_account_net(MASTER_TRUTH_ADDRESS, coin, fetcher=MASTER_TRUTH_FETCHER, dexes=MASTER_TRUTH_DEXES)
-            if not pos.get("ok"):
-                return {"ok": False, "status": str(pos.get("status") or ACCOUNT_NET_TRUTH_UNAVAILABLE)}
-            master_net = fnum(pos.get("net"))
+        enum = XTRUTH.list_perp_dexes(fetcher=MASTER_TRUTH_FETCHER)
+        dexes = MASTER_TRUTH_DEXES if MASTER_TRUTH_DEXES is not None else (enum.get("dexes") if enum.get("ok") else None)
+        if dexes is None:
+            return {"ok": False, "status": XTRUTH.DEX_ENUM_UNAVAILABLE}
+        uf = XTRUTH.master_userfills_all_dexes(MASTER_TRUTH_ADDRESS, start_ms or inum(rec.get("started_ms")),
+                                               dexes, fetcher=MASTER_TRUTH_FETCHER)
+        if not uf.get("ok"):
+            return {"ok": False, "status": str(uf.get("status") or ACCOUNT_NET_TRUTH_UNAVAILABLE)}
+        pos = XTRUTH.master_account_net(MASTER_TRUTH_ADDRESS, coin, fetcher=MASTER_TRUTH_FETCHER, dexes=dexes)
+        if not pos.get("ok"):
+            return {"ok": False, "status": str(pos.get("status") or ACCOUNT_NET_TRUTH_UNAVAILABLE)}
         verdict = XTRUTH.resolve_settlement(
-            {"coin": coin, "side": side, "size": size, "oid": oid}, fills, master_net, terminal_reject=terminal_reject
+            {"coin": coin, "side": side, "size": size, "oid": oid}, uf.get("fills"), fnum(pos.get("net")),
+            reject_evidence=reject_evidence,
         )
         if verdict.get("settled"):
             self.settle_in_flight(coin, intent_id, str(verdict.get("status")))
@@ -2268,6 +2395,43 @@ class DryRunLiveCopyService:
                 rec["remaining"] = float(verdict.get("remaining"))
             self.mark_in_flight(coin, rec)
         return {"ok": True, **verdict}
+
+    def unattributed_baseline(self, coin: str) -> float:
+        """Frozen unattributed (unowned) same-coin inventory. Attribution only - never order authority."""
+        key = str(coin).upper().strip()
+        base = self.state.get("unattributed_baseline")
+        base = base if isinstance(base, dict) else {}
+        return fnum(base.get(key, 0.0)) + fnum(UNATTRIBUTED_INVENTORY.get(key, 0.0))
+
+    def freeze_unattributed_baseline(self, coin: str, master_net: float) -> Dict[str, Any]:
+        """NO-SEND recovery/baseline boundary: freeze UNATTRIBUTED_BASELINE[coin] =
+        authoritative MASTER net - confirmed engine-owned net. Creates ZERO trading authority."""
+        key = str(coin).upper().strip()
+        owned = fnum((self.state.get("copy_owned_actual") or {}).get(key, 0.0))
+        baseline = fnum(master_net) - owned
+        self.state.setdefault("unattributed_baseline", {})[key] = baseline
+        self.persist()
+        return {"ok": True, "coin": key, "unattributed_baseline": baseline, "copy_owned_actual": owned}
+
+    def reconcile_gate(self, coin: str, raw_master_net: float) -> Dict[str, Any]:
+        """Semantics 6: before convergence may authorise a send, MASTER truth must reconcile to the
+        frozen attribution + confirmed engine-owned actual +/- currently reserved exposure. Never
+        rewrites event lineage. No baseline frozen yet => nothing to reconcile against."""
+        key = str(coin).upper().strip()
+        base = self.state.get("unattributed_baseline")
+        base = base if isinstance(base, dict) else {}
+        if key not in base:
+            return {"ok": True, "status": "NO_BASELINE_YET"}
+        owned = fnum((self.state.get("copy_owned_actual") or {}).get(key, 0.0))
+        expected = fnum(base.get(key, 0.0)) + owned
+        rec = self.in_flight.get(key) or {}
+        reserved = abs(fnum(rec.get("remaining", rec.get("size", 0.0))))
+        tolerance = max(1e-9, abs(expected) * 1e-6) + reserved
+        if abs(fnum(raw_master_net) - expected) > tolerance:
+            self.bump("reconciliation_divergence_block")
+            return {"ok": False, "status": "RECONCILIATION_DIVERGENCE", "expected": expected,
+                    "master_net": fnum(raw_master_net), "tolerance": tolerance}
+        return {"ok": True, "status": "OK", "expected": expected}
 
     def convergence_order_for_coin(
         self, cfg: LiveWalletConfig, fill: LeaderFill, configs: Dict[str, LiveWalletConfig],
@@ -2308,6 +2472,9 @@ class DryRunLiveCopyService:
         if not truth.get("ok"):
             return {"ok": False, "status": str(truth.get("status") or ACCOUNT_NET_TRUTH_UNAVAILABLE)}
         actual_net = fnum(truth.get("net"))
+        gate = self.reconcile_gate(fill.coin, actual_net + self.unattributed_baseline(fill.coin))
+        if not gate.get("ok"):
+            return {"ok": False, "status": str(gate.get("status") or "RECONCILIATION_DIVERGENCE"), "gate": gate}
         in_flight = bool(self.in_flight.get(str(fill.coin).upper().strip()))
         sizing = self.convergence_order_for_coin(cfg, fill, config, actual_net, in_flight=in_flight)
         if not sizing.get("ok"):
