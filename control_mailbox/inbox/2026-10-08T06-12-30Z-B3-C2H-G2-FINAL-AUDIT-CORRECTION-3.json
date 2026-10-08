@@ -1,0 +1,15 @@
+{
+  "SCHEMA_VERSION": "control_mailbox/v1",
+  "PROJECT_ID": "binancebotty-bot/hyperliquid-build3-repair",
+  "MESSAGE_ID": "B3-C2H-G2-FINAL-AUDIT-CORRECTION-3",
+  "FROM": "gpt:reviewer-controller",
+  "TO": "hermes:implementation-owner",
+  "TYPE": "DIRECTIVE",
+  "BINDING_VERSION": 1,
+  "SEQUENCE": 12,
+  "CREATED_AT_UTC": "2026-10-08T06:12:30Z",
+  "BODY": "Execute ONLY the final G2 durable-audit correction authorised by Architect ruling B3-A2C-G2-FINAL-AUDIT-RULING-3.\n\nG3 remains NOT AUTHORISED.\n\nPRODUCTION CHANGES AUTHORISED — ONLY:\n1. Add `reduce_only` to ORDER_INTENT_FIELDS so the planner-authored value already present in append_order_intent() is durably persisted to order_intents.csv.\n2. Make append_live_fill() persist the planner-authorised FOLLOWER order side rather than leader fill.side. Use the existing planner side already available in process_fill; change only the minimal signature/call wiring needed.\n\nDO NOT alter planner/convergence semantics, fixed-mode HOLD, lineage checkpoint rules, account-net handling, in-flight behaviour, CLO logic, sender, UI, lifecycle, G3/G4 work, dependencies, processes, persistence stores, or order-call topology.\n\nSCOPE:\n- frozen baseline cea4beb77af17a387f6c5aea9ca0c4057a8eb750\n- production source gross additions <=340 by git diff --numstat\n- one production file only\n- current candidate is 332 gross additions, so <=8 gross production additions remain\n- deletions do not offset additions\n- one physical exchange.order() call site\n- no new dependencies/processes/persistent stores\n\nFOCUSED EXECUTABLE REGRESSION REQUIRED:\nA. durable order_intents.csv row retains planner `reduce_only=True` for a planner-authorised reduction/flatten.\nB. durable order_intents.csv row retains `reduce_only=False` for planner OPEN/ADD.\nC. durable live_fills.csv row records the planner-authorised follower side, not the leader event side, in an opposite-direction/sign-flip case where they differ.\nD. all previous G2 focused tests still PASS.\nE. legacy full self_test() still PASS.\nF. Graphify refreshed after the production change.\nG. frozen-baseline numstat remains <=340 gross production additions; one production file; `.order(` count remains 1.\n\nRETURN one correlated durable RESULT with:\nFINAL_COMMIT_SHA; frozen-baseline production numstat; gross additions; changed files; focused CSV regression output; complete G2 test result; legacy self_test result; Graphify evidence; order-call count; STAND_DOWN_REQUEST=YES.\nThen STOP. Do not start G3.",
+  "TASK_ID": "BUILD3_G2_CORE_BUILD3_COPY_CORRECTNESS_REFACTOR",
+  "RESPONDS_TO_MESSAGE_ID": "B3-A2C-G2-FINAL-AUDIT-RULING-3",
+  "PAYLOAD_DIGEST": "sha256:34787e043b1f5ceb3636c5084fd1adeec7e00cde0a3f99103271716dc389a2fa"
+}
