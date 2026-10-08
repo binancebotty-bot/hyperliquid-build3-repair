@@ -1,11 +1,11 @@
 {
   "schema": "wigmore_project_control_state_v1",
   "project": "hyperliquid-build3-repair",
-  "updated_utc": "2026-10-08T06:01:00Z",
+  "updated_utc": "2026-10-08T06:08:00Z",
   "operator": "richard:operator",
   "architect": {
     "role": "project-architect",
-    "status": "G2_FINAL_CORRECTION_AUTHORISED",
+    "status": "ARCHITECT_REVIEW_REQUIRED_G2_FINAL_AUDIT_LEAK",
     "wake_mode": "EVENT_DRIVEN_ONLY"
   },
   "controller": {
@@ -15,7 +15,7 @@
   },
   "implementation_owner": {
     "role": "hermes:implementation-owner",
-    "status": "G2_FINAL_CORRECTION_AUTHORISED_AWAITING_EXECUTION"
+    "status": "G2_FINAL_CANDIDATE_FAILED_AWAITING_ARCHITECT"
   },
   "bindings": {
     "authority": "C:/Users/wigmore/.hermes/state/projects/hyperliquid-build3-repair/CONTROL_CONTRACT.json target_role_bindings",
@@ -45,7 +45,7 @@
   },
   "current_gate": {
     "task_id": "BUILD3_G2_CORE_BUILD3_COPY_CORRECTNESS_REFACTOR",
-    "status": "FINAL_CORRECTION_REQUIRED",
+    "status": "CONTROLLER_FAIL_ARCHITECT_REVIEW_REQUIRED",
     "purpose": "Remove blind fixed-notional-per-fill authority and implement event-authorised desired exposure feeding the existing convergence planner and single sender.",
     "writes_authorized": true,
     "production_logic_changes_authorized": true,
@@ -75,15 +75,16 @@
     ],
     "controller_adjudication": {
       "verdict": "FAIL",
-      "inspected_commit": "53b70d3327f88ea2d4ad8bc67f0b1e1f39ed10e4",
-      "focused_tests_reported": "29/29 PASS",
+      "inspected_commit": "dd82bdb4e9f1c5244cdd9ce505cef4a65f2e47d7",
+      "gross_production_additions": 332,
+      "gross_limit": 340,
+      "production_files": 1,
+      "order_call_sites": 1,
+      "focused_tests_reported": "38/38 PASS",
       "legacy_self_test_reported": "PASS",
-      "blocking_defects": [
-        "Live send semantics are not planner-authoritative end-to-end: dry_run_intent_audit_decision still receives reducing derived from wallet-local state/leader side, and uses fill.side for quote/adverse-direction logic; append_would_send derives reduce_only from that decision rather than planner reduce_only.",
-        "manual_send_one_intent(close_position=True) can overwrite payload.side from the local manual position, violating the G2 requirement that planner order.side be preserved exactly through the live-send payload.",
-        "in-flight lifecycle is ordered incorrectly for auto-send: append_order_intent() can call maybe_auto_send_would_send() and reach exchange.order() before process_fill marks self.in_flight; the mark is then immediately cleared after dry-run mutation. This does not prove suppression of an overlapping real send.",
-        "CLO entry/reduction gate still runs before planner sizing using wallet-local before_signed plus leader-event side, not account-net planner action.",
-        "Frozen-baseline production diff is +274/-18 in HL_Live_Copy_Service.py. The authorised tripwire was <=260 genuinely new production LOC cumulative from frozen baseline; Controller will not reinterpret this as net 256 without Architect authority."
+      "remaining_defects": [
+        "ORDER_INTENT_FIELDS does not contain reduce_only. append_order_intent adds planner reduce_only to the in-memory row, but append_csv filters to ORDER_INTENT_FIELDS, so durable order_intents.csv silently drops planner reduce_only. This violates the required durable audit propagation.",
+        "append_live_fill writes side=fill.side (leader event side), not planner-authorised follower order side. On sign-flip/opposite-direction cases durable live_fills audit can therefore report a side different from the authorised follower action."
       ]
     },
     "architect_ruling": {
@@ -150,8 +151,8 @@
     "Direct leader WS path is fast but incomplete; snapshot truth is required on recovery boundaries.",
     "MASTER account state must be distinguished from API signer state."
   ],
-  "current_blocker": null,
-  "next_action": "Hermes executes exactly one final G2 correction under B3-A2C-G2-SCOPE-RULING-2, staying <=340 gross production additions from frozen baseline and one production file. G3 remains blocked.",
+  "current_blocker": "G2 final candidate remains materially incorrect at durable audit surfaces despite passing focused tests.",
+  "next_action": "Architect adjudicates B3-C2A-G2-FINAL-AUDIT-ESCALATION-3. Hermes makes no patch until correlated ruling.",
   "live_authorized": false,
   "last_controller_ruling": {
     "task_id": "BUILD3_SOURCE_BASELINE_IMPORT_1",
