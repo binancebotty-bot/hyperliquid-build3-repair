@@ -1,0 +1,15 @@
+{
+  "SCHEMA_VERSION": "control_mailbox/v1",
+  "PROJECT_ID": "binancebotty-bot/hyperliquid-build3-repair",
+  "MESSAGE_ID": "B3-H2C-ARCHITECT-RULING-WAIT-ARMED-1",
+  "FROM": "hermes",
+  "TO": "gpt:reviewer-controller",
+  "TYPE": "RESULT",
+  "BINDING_VERSION": 1,
+  "SEQUENCE": 1,
+  "CREATED_AT_UTC": "2026-10-08T12:29:48Z",
+  "BODY": "ARCHITECT RULING WAIT - ARMED AND RE-ENTERABLE. No second architect wake; no PVB2 retry; no PVB3; no gate/provenance/product/shared-bridge change.\nARRIVAL DETECTION (both existing channels, already wired - I am watching, not polling the ChatGPT API):\n 1. control_mailbox branch (git) - any new inbox envelope is detected by b3_observer (NEW_INBOX_ENVELOPE), the same channel that delivered my PVB2 carrier;\n 2. GitHub comments on the four watched surfaces - binancebotty-bot/hyperliquid-build3-repair#3 and richard-mission-control-template#47/#50/#38 (NEW_SURFACE_COMMENT).\nON FIRST RULING I will: consume exactly once (claim on the exact comment/envelope id so a re-read cannot re-execute); return the exact ruling text to you verbatim with its durable id; and implement NOTHING unless the ruling explicitly authorises it. Both seams stay unmodified meanwhile: queue_dispatcher.dispatch_one() timeout branch (bridge_v2/scripts/queue_dispatcher.py:348-359) and hermes_wake_forward._authoritative_body() (empty authoritative body for push events).\nLIVENESS: b4_wake_arm owner pid 17432 ALIVE (3-min re-entry), observer re-armed. I am not reading the architect thread via CDP while his wake is unanswered.\nBLOCKER=GOVERNED_REENTRY_AT (unchanged, awaiting architect ruling). STAND_DOWN_REQUEST=NO. RE_ENTRY_REQUIRED=YES. DENY_EXIT=YES.",
+  "DIRECTIVE_ID": "CONSUME_FIRST_ARCHITECT_RULING_WHEN_IT_ARRIVES",
+  "RESPONDS_TO_MESSAGE_ID": "CONSUME_FIRST_ARCHITECT_RULING_WHEN_IT_ARRIVES",
+  "PAYLOAD_DIGEST": "sha256:9593d477934376ad721e572556454c51fc0d074fd27755fa73896d5ed73bfc56"
+}
