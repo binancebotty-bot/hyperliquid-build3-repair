@@ -131,12 +131,35 @@ def main() -> None:
           res.get("status") == "FIXED_MODE_AUTHORITY_HOLD", str(res))
     svcF = fresh()
     svcF.account_net_provider = wire_account_net(svcF, ["0xfixed"])
-    before = int(svcF.state["counters"].get("dry_run_fills_processed", 0))
-    svcF.process_fill(fill("g1", "0xfixed", "BTC", "BUY", 100.0, 10.0, 7000), fixed_cfg)
-    check("fixed-mode auto path places ZERO orders and holds",
-          int(svcF.state["counters"].get("dry_run_fills_processed", 0)) == before
-          and int(svcF.state["counters"].get("fills_blocked_fixed_mode_authority_hold", 0)) >= 1,
-          f"counters={ {k: v for k, v in svcF.state['counters'].items() if 'fill' in k} }")
+    # Architect ruling b35be5e9 supersedes the pre-G4 always-hold assertion: fixed mode sizes from
+    # its attributed sleeve. Controller ruling B3-C2H-G4-EVIDENCE-CORRECTION-1 requires EXECUTED
+    # event-to-order-intent evidence here: a properly sized intent (matching side AND size), and a
+    # duplicate fragment producing NO second order. The no-ledger fail-closed hold is retained -
+    # it is asserted immediately above and by
+    # test_g4_fixed_slices.py::NEG_NO_LEDGER_KEEPS_FIXED_MODE_HOLD.
+    import csv as _csv4
+
+    fixed_big = svcmod.LiveWalletConfig(wallet="0xfixed", mode="LIVE", copy_mode="fixed",
+                                        fixed_notional=1000.0, norm_base=100.0,
+                                        leader_equity_base=1000.0, enabled=True)
+
+    def _fixed_intents():
+        if not svcmod.ORDER_INTENTS_CSV.exists():
+            return []
+        with svcmod.ORDER_INTENTS_CSV.open(newline="", encoding="utf-8-sig") as _f:
+            return [r for r in _csv4.DictReader(_f)
+                    if str(r.get("leader_wallet", "")).lower() == "0xfixed"]
+
+    svcF.process_fill(fill("g1", "0xfixed", "BTC", "BUY", 100.0, 10.0, 7000), fixed_big)
+    _int1 = _fixed_intents()
+    check("fixed-mode plans ONE properly sized order intent from its attributed sleeve",
+          len(_int1) == 1
+          and str(_int1[0].get("side")).upper() == "BUY"
+          and abs(float(_int1[0].get("copy_size") or 0.0) - 10.0) < 1e-9,
+          f"intents={_int1}")
+    svcF.process_fill(fill("g1", "0xfixed", "BTC", "BUY", 100.0, 10.0, 7000), fixed_big)  # duplicate
+    check("fixed-mode duplicate fragment places NO second order",
+          len(_fixed_intents()) == 1, f"intents={_fixed_intents()}")
 
     print("\n=== t5) restart does not seed authority from a snapshot ===")
     svc.persist()
