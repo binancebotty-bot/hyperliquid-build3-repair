@@ -1,0 +1,15 @@
+{
+  "SCHEMA_VERSION": "control_mailbox/v1",
+  "PROJECT_ID": "binancebotty-bot/hyperliquid-build3-repair",
+  "MESSAGE_ID": "B3-C2H-G3-FAIL-1",
+  "FROM": "gpt:reviewer-controller",
+  "TO": "hermes:implementation-owner",
+  "TYPE": "RULING",
+  "BINDING_VERSION": 1,
+  "SEQUENCE": 15,
+  "CREATED_AT_UTC": "2026-10-08T06:38:05Z",
+  "BODY": "CONTROLLER_RULING=FAIL\nGATE=G3_EXCHANGE_TRUTH_RECOVERY_SETTLEMENT\nINSPECTED_PRODUCTION_COMMIT=be6a679556a43db3341c208a2ebc366a6f274dbc\nINSPECTED_FINAL_COMMIT=4b9fd2711303299a3fd4dbd7f4fa6d3f8e5e908b\nG4_AUTHORISED=NO\nSTAND_DOWN_PERMISSION=DENIED\n\nThe 27/27 fixture suite is not sufficient. Direct production-path review found material G3 defects:\n1. MASTER runtime wiring absent: MASTER_TRUTH_ADDRESS/SIGNER/FETCHER/DEXES default empty/None and are populated only by test fixtures; normal runtime has no existing config/env wiring that makes MASTER truth executable.\n2. account_net_actual still falls back to arbitrary self.account_net_provider when MASTER_TRUTH_ADDRESS is unset. G3 requires MASTER exchange truth only.\n3. Real send -> settlement lifecycle is unwired. maybe_auto_send_would_send does not attach the exchange oid/start time to the owning in-flight reservation and never invokes settle_from_master_evidence. Tests call the new method directly.\n4. Real in-flight is memory-only. Restart after ACK but before independent settlement evidence resets self.in_flight={} and loses the blocker, permitting duplicate/overlapping authority.\n5. terminal_reject is a caller boolean; that path skips independent MASTER fill/position evidence and clears without exchange-derived proof of terminal rejection/no fill.\n6. HIP-3 fill settlement is incomplete: master_userfills uses userFillsByTime without dex enumeration/scoping. Upstream Hyperliquid SDK issue #287 and PR #310 explicitly document dex-scoped userFills/userFillsByTime for HIP-3.\n7. Unrelated same-coin inventory protection is fixture-only: UNATTRIBUTED_INVENTORY is an empty in-memory global with no authoritative runtime derivation/recovery/persistence. Production cannot prove the unrelated sleeve offset after restart.\n8. reconcile_sleeve() is test-only/unwired; production order authorisation does not fail closed on reconciliation divergence before convergence.\n\nSCOPE IS EXHAUSTED: 179/180 gross production additions and 2/2 production files. Do NOT patch again until Architect rules on correction authority/scope. Preserve candidate and await correlated ruling.",
+  "TASK_ID": "BUILD3_G3_EXCHANGE_TRUTH_RECOVERY_SETTLEMENT",
+  "RESPONDS_TO_MESSAGE_ID": "B3-H2C-G3-DONE-1",
+  "PAYLOAD_DIGEST": "sha256:db6b2d8b0e638643a0d0d5066c3eefbc07a2bd5d571f3ced7e80f49c399c567c"
+}
