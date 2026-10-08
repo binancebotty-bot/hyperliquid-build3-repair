@@ -300,6 +300,18 @@ def main():
     src2 = (Path(__file__).parent / "HL_Live_Copy_Service.py").read_text(encoding="utf-8", errors="replace")
     check("L2) exactly one physical exchange.order() site still", src2.count("exchange.order(") == 1, str(src2.count("exchange.order(")))
 
+    print("\n=== CL) durable in-flight checkpoint is never clobbered by persist() ===")
+    tmpc = Path(tempfile.mkdtemp(prefix="g3_clob_"))
+    svcmod.configure_paths(tmpc, tmpc / "raw_live_fills.csv")
+    svc_c = svcmod.DryRunLiveCopyService()  # constructed BEFORE the send -> stale self.state
+    svcmod.persist_unresolved_send("BTC", {"intent_id": "CL1", "coin": "BTC", "side": "BUY",
+                                           "size": 1.5, "started_ms": 4242, "pre_send_master_net": 0.0})
+    _before = svcmod.load_unresolved_sends().get("BTC") or {}
+    svc_c.persist()                        # a routine persist must NOT erase the durable blocker
+    _after = svcmod.load_unresolved_sends().get("BTC") or {}
+    check("CL) durable in-flight reservation survives persist() (no clobber)",
+          _before.get("intent_id") == "CL1" and _after.get("intent_id") == "CL1",
+          "before=%s after=%s" % (_before, _after))
     print(f"\n  checks: {_p} passed, {_f} failed")
     if _f == 0:
         for tag in ("G3_MASTER_TRUTH_ACTUAL_PASS", "G3_SIGNER_NOT_TRUTH_PASS", "G3_MULTIDEX_HIP3_AGGREGATE_PASS",
@@ -308,7 +320,7 @@ def main():
                     "G3_FULL_SETTLEMENT_CLEARS_OWN_INTENT_PASS", "G3_PARTIAL_KEEPS_BLOCKING_PASS",
                     "G3_UNKNOWN_KEEPS_BLOCKING_PASS", "G3_TERMINAL_REJECT_NO_PHANTOM_PASS",
                     "G3_DIVERGENCE_BLOCKER_PASS", "G3_UNRELATED_INVENTORY_PRESERVED_PASS",
-                    "G3_SINGLE_ORDER_SITE_PASS"):
+                    "G3_SINGLE_ORDER_SITE_PASS", "G3_DURABLE_IN_FLIGHT_NOT_CLOBBERED_PASS"):
             print(f"RESULT::{tag}")
     else:
         print("RESULT::G3_EXCHANGE_TRUTH_TESTS_FAIL")

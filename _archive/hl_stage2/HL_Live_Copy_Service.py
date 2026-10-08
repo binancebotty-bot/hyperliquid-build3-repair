@@ -2185,6 +2185,13 @@ class DryRunLiveCopyService:
         self.processed_ids = set(self.processed_id_order)
         self.state["processed_leader_fill_ids"] = list(self.processed_id_order)
         self.state["audit_dir"] = str(AUDIT_DIR)
+        # DURABLE_IN_FLIGHT_STATE_CLOBBER: durable in-flight checkpoints are authored on disk at the
+        # send boundary; a routine persist() must never rewrite them from a stale self.state.
+        _durable = load_json(SERVICE_STATE_FILE, {})
+        if isinstance(_durable, dict):
+            for _k in ('in_flight_unresolved', 'in_flight_terminals'):
+                if _k in _durable:
+                    self.state[_k] = _durable[_k]
         failures = []
         if not safe_atomic_write_json(SERVICE_STATE_FILE, self.state, "SERVICE_STATE_WRITE"):
             failures.append(str(SERVICE_STATE_FILE))
