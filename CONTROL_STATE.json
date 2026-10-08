@@ -1,11 +1,11 @@
 {
   "schema": "wigmore_project_control_state_v1",
   "project": "hyperliquid-build3-repair",
-  "updated_utc": "2026-10-08T05:38:00Z",
+  "updated_utc": "2026-10-08T05:40:00Z",
   "operator": "richard:operator",
   "architect": {
     "role": "project-architect",
-    "status": "G2_ESCALATION_DELIVERED_AWAITING_RULING",
+    "status": "G2_CORRECTION_AUTHORISED",
     "wake_mode": "EVENT_DRIVEN_ONLY"
   },
   "controller": {
@@ -15,7 +15,7 @@
   },
   "implementation_owner": {
     "role": "hermes:implementation-owner",
-    "status": "HELD_IN_LOOP_AWAITING_ARCHITECT"
+    "status": "G2_CORRECTION_AUTHORISED_AWAITING_EXECUTION"
   },
   "bindings": {
     "authority": "C:/Users/wigmore/.hermes/state/projects/hyperliquid-build3-repair/CONTROL_CONTRACT.json target_role_bindings",
@@ -45,18 +45,17 @@
   },
   "current_gate": {
     "task_id": "BUILD3_G2_CORE_BUILD3_COPY_CORRECTNESS_REFACTOR",
-    "status": "BLOCKED_AWAITING_ARCHITECT_RULING",
+    "status": "CORRECTION_REQUIRED",
     "purpose": "Remove blind fixed-notional-per-fill authority and implement event-authorised desired exposure feeding the existing convergence planner and single sender.",
     "writes_authorized": true,
     "production_logic_changes_authorized": true,
     "architect_ruling_message": "B3-A2C-G1-PASS-G2-1",
     "scope_budget": {
       "production_files_max": 2,
-      "genuinely_new_production_loc_max": 260,
+      "cumulative_genuinely_new_production_loc_from_frozen_baseline_max": 260,
       "order_call_sites_max": 1,
-      "processes_max": 1,
-      "new_dependencies_max": 0,
-      "new_authoritative_persistent_state_max": 0
+      "new_runtime_dependencies_max": 0,
+      "new_persistent_stores_max": 0
     },
     "required_semantics": [
       "Leader mutable state isolated by (wallet,coin).",
@@ -88,7 +87,37 @@
         "leader_event_positions is persisted through SERVICE_STATE_FILE, creating new authoritative persistent trading state despite the G2 directive requiring zero new authoritative persistent state.",
         "fixed-mode target semantics remain unresolved AUTHORITY_CONFLICT and the legacy fixed-mode self-test is failing."
       ]
-    }
+    },
+    "architect_ruling": {
+      "message_id": "B3-A2C-G2-AUTHORITY-RULING-1",
+      "verdict": "G2_AUTHORITY_CONFLICT_RESOLVED_CORRECTION_AUTHORISED",
+      "fixed_mode_semantics": "HOLD_FAIL_CLOSED_PENDING_G4_PRODUCT_EVIDENCE",
+      "fixed_mode_rule": "Fixed-mode wallets produce zero orders and surface FIXED_MODE_AUTHORITY_HOLD until durable Build3 product/UI/config evidence resolves target semantics in G4.",
+      "event_lineage_persistence": "ALLOWED_WITH_RULES",
+      "event_lineage_rule": "leader_event_positions may persist only inside existing SERVICE_STATE_FILE as a checkpoint of authority already created by eligible deduplicated genuine post-baseline leader events; it must be coupled to processed-event identity/high-water and may never be seeded/inferred from restart/snapshot/current leader position/follower truth/reconciliation. Missing/corrupt/stale/inconsistent checkpoint => zero order authority until deterministic replay of durable genuine events reconstructs it.",
+      "g2_correction_authorised": true,
+      "g3_authorised": false
+    },
+    "required_corrections": [
+      "Use account-net follower exposure semantics; where authoritative live account-net truth is unavailable in G2, fail closed rather than use wallet-local state.",
+      "Preserve planner order.side exactly through intent, dry-run state and live-send path; never derive send direction from leader event side.",
+      "Wire existing in-flight exposure into convergence/effective-actual so duplicate/overlapping sends cannot be authorised.",
+      "Keep exactly one physical .order() call site.",
+      "Fixed mode must fail closed as FIXED_MODE_AUTHORITY_HOLD with zero order.",
+      "Persist event lineage only under the Architect checkpoint rules inside existing SERVICE_STATE_FILE."
+    ],
+    "acceptance": [
+      "Proportional repeated ADD/reduce/close/opposite-direction behaviour passes.",
+      "Account-net convergence semantics pass or G2 fails closed where authoritative live account truth is unavailable.",
+      "Planner side preservation passes for long, short, reduction, close and sign-flip first leg.",
+      "In-flight suppression passes.",
+      "Duplicate-event exactly-once passes.",
+      "Restart checkpoint rehydrates only prior event-created authority; snapshot creates none.",
+      "Fixed-mode fail-closed HOLD passes.",
+      "Exactly one physical order call site remains.",
+      "Cumulative production scope remains within <=2 files and <=260 genuinely new LOC from frozen baseline.",
+      "Graphify refreshed after correction."
+    ]
   },
   "source_of_truth": {
     "terminal_runtime_local_path": "_archive/hl_stage2/HL_Live_Copy_Service.py",
@@ -111,8 +140,8 @@
     "Direct leader WS path is fast but incomplete; snapshot truth is required on recovery boundaries.",
     "MASTER account state must be distinguished from API signer state."
   ],
-  "current_blocker": "G2 authority escalation delivered exactly once to Architect; ruling not yet returned.",
-  "next_action": "Architect returns ruling on fixed-mode semantics and event-lineage persistence. Hermes makes no G2 patch until Controller consumes that ruling and issues one bounded correction task.",
+  "current_blocker": null,
+  "next_action": "Hermes executes exactly one G2 correction against failed commit ea797f971ec90f0b669bb9ef07a54677df3ddff7 and returns exact evidence. G3 remains blocked.",
   "live_authorized": false,
   "last_controller_ruling": {
     "task_id": "BUILD3_SOURCE_BASELINE_IMPORT_1",
