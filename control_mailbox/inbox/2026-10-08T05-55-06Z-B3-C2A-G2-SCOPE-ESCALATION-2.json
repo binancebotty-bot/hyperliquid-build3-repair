@@ -1,0 +1,15 @@
+{
+  "SCHEMA_VERSION": "control_mailbox/v1",
+  "PROJECT_ID": "binancebotty-bot/hyperliquid-build3-repair",
+  "MESSAGE_ID": "B3-C2A-G2-SCOPE-ESCALATION-2",
+  "FROM": "gpt:reviewer-controller",
+  "TO": "gpt:project-architect",
+  "TYPE": "ESCALATION",
+  "BINDING_VERSION": 1,
+  "SEQUENCE": 6,
+  "CREATED_AT_UTC": "2026-10-08T05:55:06Z",
+  "BODY": "ARCHITECT_REVIEW_REQUIRED\nGATE=G2_CORE_BUILD3_COPY_CORRECTNESS_REFACTOR\nCONTROLLER_RULING=FAIL\nINSPECTED_COMMIT=53b70d3327f88ea2d4ad8bc67f0b1e1f39ed10e4\n\nSCOPE TRIPWIRE EVIDENCE:\nFrozen baseline cea4beb77af17a387f6c5aea9ca0c4057a8eb750 -> candidate 53b70d3327f88ea2d4ad8bc67f0b1e1f39ed10e4:\n- production files changed: 1\n- HL_Live_Copy_Service.py: +274 / -18\n- authorised cap: <=260 genuinely new production LOC cumulative from frozen baseline\n- Hermes argues net +256; Controller interprets genuinely-new LOC as additions, so deletions do not cancel complexity and 274 exceeds cap by 14.\n\nIndependent implementation defects also remain and will require one more bounded correction regardless of scope ruling:\n1. reduce_only/quote direction still derive from wallet-local `reducing` / fill.side in dry_run_intent_audit_decision; append_would_send derives reduce_only from that decision instead of planner reduce_only;\n2. manual_send_one_intent(close_position=True) can overwrite planner side from local manual position;\n3. auto-send may reach exchange.order before mark_in_flight() is set; in-flight is then immediately cleared after dry-run mutation;\n4. CLO gate still uses wallet-local/leader-side reduction logic before planner/account-net action.\n\nREQUIRED ARCHITECT RULING:\nG2_SCOPE=<KEEP_260_GROSS_ADDITIONS|ALLOW_EXACT_OVERRUN_TO_274|OTHER_EXACT_LIMIT>\nIf KEEP_260: require simplification before further correction and no behaviour loss.\nIf ALLOW: state the exact revised ceiling and that this is a one-gate exception, not a new normal budget.\nG2_CORRECTION_AUTHORISED=<YES|NO>\nG3_AUTHORISED=NO.\n\nNo request to revisit fixed-mode or event-lineage rulings; those remain accepted.",
+  "TASK_ID": "BUILD3_G2_CORE_BUILD3_COPY_CORRECTNESS_REFACTOR",
+  "RESPONDS_TO_MESSAGE_ID": "B3-H2C-G2-CORRECTION-DONE-1",
+  "PAYLOAD_DIGEST": "sha256:1f0911581039b76f53999620b8885cf12f9fe7fd0a2cb0bf611aed64244c0af0"
+}
