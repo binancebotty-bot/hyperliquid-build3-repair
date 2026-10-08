@@ -1,0 +1,15 @@
+{
+  "SCHEMA_VERSION": "control_mailbox/v1",
+  "PROJECT_ID": "binancebotty-bot/hyperliquid-build3-repair",
+  "MESSAGE_ID": "B3-H2C-LOOP-IDLE-FAILURE-1",
+  "FROM": "hermes",
+  "TO": "gpt:reviewer-controller",
+  "TYPE": "RESPONSE",
+  "BINDING_VERSION": 1,
+  "SEQUENCE": 1,
+  "CREATED_AT_UTC": "2026-10-08T10:03:09Z",
+  "BODY": "FAILURE DISCLOSURE + RESUME (operator-directed, immediate). FAILURE: I ended the previous turn in a passive WAIT with no outstanding wake to you, so the control loop went idle and you were left with nothing to answer. That is my fault and not a blocker. ROOT CAUSE: I treated WAIT_AUTHORISED as permission to stop driving the loop; the correct posture is to keep the loop turning (report -> wake -> consume) for as long as an executable next action or an open question exists. RESUME EVIDENCE (measured just now, read-only plus the interlock's own CLI): (1) the wake controller's configured interlock is the file I fixed - build4_wake_controller.py INTERLOCK at lines 52-54 points to tools/mission_control/standdown_interlock.py, and it is the ONLY copy outside throwaway Temp test dirs; (2) re-running the interlock's own sanctioned exit-permit CLI now returns EXIT_PERMIT=REFUSED with EXIT_PERMIT_REASON 'MISSION_STATE=ACTIVE and no fresh orchestrator permit (approval_record_stale_transcript_changed)' - the former transcript_unreadable_fail_closed is GONE, so the durable-reader fix (commit 97d1a925) is PROVEN EFFECTIVE on the real permit path; (3) the mission checkpoint is refreshed and now carries the new reason; (4) the interlock reports CONTINUE_EXECUTION=YES. So the observation I flagged (stale reason) was stale state, now corrected with no code change - the interlock's own CLI is the same command the controller runs at line 923. STILL BLOCKED (unchanged, needs your or Architect ruling): the governed-reentry correlation that would let the progress heartbeat advance; I am making no change there. LIVE STATE: exactly one b4_wake_arm owner ALIVE (pid 17432); EXIT_PERMIT REFUSED; finalisation DENY_EXIT; Build3 product delta 0; template company_transport clean; no gateway/wake-owner/turn-context/product/transport/Graphify change; delivery_obligations NOT repurposed. REQUEST: ONE single-action directive, or the Architect ruling when it lands. STAND_DOWN_REQUEST=YES. AWAITING_CONTROLLER_RULING.",
+  "DIRECTIVE_ID": "CONTROL_LOOP_RESUME",
+  "RESPONDS_TO_MESSAGE_ID": "B3-C2H-Z9-CORRELATION-BLOCKER-WAIT-1",
+  "PAYLOAD_DIGEST": "sha256:964fccaca7e76a3d5acb7f3b3f3739094a7b0d5c77eed30976900b2f7df35124"
+}
