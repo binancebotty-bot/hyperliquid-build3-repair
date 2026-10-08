@@ -158,7 +158,7 @@ ORDER_INTENT_FIELDS = [
     "min_notional_policy", "diff_pct", "max_diff_pct", "daily_loss_limit", "notes",
     "execution_decision", "decision_reason", "executable_price", "adverse_diff_pct",
     "suggested_order_type", "suggested_limit_price", "manual_reconcile_required",
-    "market_data_source", "market_data_error",
+    "market_data_source", "market_data_error", "reduce_only",
 ]
 
 WOULD_SEND_ORDER_FIELDS = [
@@ -2433,11 +2433,11 @@ class DryRunLiveCopyService:
         self.last_real_send = {"intent_id": intent_id, "ok": bool(result.get("ok")), "status": status}
         return {"auto_sent": bool(result.get("ok")), "status": status, "intent_id": intent_id, "result": result}
 
-    def append_live_fill(self, cfg: LiveWalletConfig, fill: LeaderFill, intent_id: str, status: str, copy_notional: float, copy_size: float, pos: Dict[str, Any], realized_pnl: float, notes: str = "") -> None:
+    def append_live_fill(self, cfg: LiveWalletConfig, fill: LeaderFill, intent_id: str, status: str, copy_notional: float, copy_size: float, pos: Dict[str, Any], realized_pnl: float, notes: str = "", side: str = "") -> None:
         append_csv(LIVE_FILLS_CSV, LIVE_FILL_FIELDS, {
             "created_at": utc_now_iso(), "dry_run": True, "intent_id": intent_id,
             "leader_wallet": cfg.wallet, "leader_fill_id": fill.fill_id, "coin": fill.coin,
-            "side": fill.side, "fill_status": status, "fill_price": round(fill.price, 8),
+            "side": (side or fill.side), "fill_status": status, "fill_price": round(fill.price, 8),
             "fill_size": round(copy_size, 12), "fill_notional": round(copy_notional, 8),
             "fee": 0.0, "fee_policy": "DRY_RUN_NO_EXCHANGE_FEE", "realized_pnl": round(realized_pnl, 8),
             "unrealized_after": round(fnum(pos.get("unrealized_pnl")), 8),
@@ -2575,7 +2575,7 @@ class DryRunLiveCopyService:
         if not (isinstance(_last, dict) and str(_last.get("intent_id")) == str(intent_id)):
             self.settle_in_flight(fill.coin, intent_id, "DRY_RUN_FILLED")
         after = fnum(updated_pos.get("signed_size"))
-        self.append_live_fill(cfg, fill, intent_id, "DRY_RUN_FILLED", copy_notional, copy_size, updated_pos, realized_pnl, audit_notes)
+        self.append_live_fill(cfg, fill, intent_id, "DRY_RUN_FILLED", copy_notional, copy_size, updated_pos, realized_pnl, audit_notes, side=order_side)
         recon_action = "MANUAL_REVIEW" if decision.get("status") in {"DO_NOT_MARKET_COPY", "MANUAL_REVIEW"} else "DRY_RUN_FILL"
         self.append_reconciliation(cfg, fill, "DRY_RUN_FILL", str(decision.get("status") or "MATCHED_SIMULATED"), recon_action, before, after, copy_notional, "dry-run position updated" + str(decision.get("extra_note") or ""))
         self.update_equity(cfg, fill)

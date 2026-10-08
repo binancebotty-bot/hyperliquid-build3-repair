@@ -343,6 +343,30 @@ def main() -> None:
         _cfgpath.write_text(_orig_cfg, encoding="utf-8")
         svcmod.configure_paths(tmp, tmp / "raw_live_fills.csv")
 
+    print("\n=== t17) DURABLE AUDIT SURFACES retain planner reduce_only and planner follower side ===")
+    import csv as _csv17
+
+    def _durable_row(path, intent_id):
+        with open(path, newline="", encoding="utf-8-sig") as _f:
+            for _r in _csv17.DictReader(_f):
+                if str(_r.get("intent_id", "")).strip() == str(intent_id).strip():
+                    return _r
+        return None
+
+    svc17 = fresh()
+    # over-sized follower: locally LONG 5.0 while the leader's BUY only implies +2.0 -> the planner
+    # must REDUCE (SELL) even though the leader fill side is BUY (opposite-direction durable audit case)
+    svc17.apply_signed_delta_to_position(configs["0xw1"], fill("seed17", "0xw1", "BTC", "BUY", 100.0, 5.0, 100), 5.0)
+    svc17.process_fill(fill("o1", "0xw1", "BTC", "BUY", 100.0, 20.0, 1000), configs["0xw1"])
+    _iid = str(svcmod.last_csv_row(svcmod.ORDER_INTENTS_CSV).get("intent_id") or "")
+    _duro = _durable_row(svcmod.ORDER_INTENTS_CSV, _iid)
+    _durf = _durable_row(svcmod.LIVE_FILLS_CSV, _iid)
+    check("durable order_intents.csv retains planner reduce_only (read back from disk)",
+          _duro is not None and svcmod.truthy_csv(_duro.get("reduce_only")), str(_duro))
+    check("durable live_fills.csv records the PLANNER follower side, not the leader fill side",
+          _durf is not None and str(_durf.get("side")).upper() == "SELL",
+          f"leader_fill_side=BUY durable_live_fill_side={(_durf or {}).get('side')}")
+
     print("\n=== Result ===")
     print(f"  checks: {_passes} passed, {_fails} failed")
     if _fails == 0:
@@ -354,6 +378,7 @@ def main() -> None:
             "G2_LINEAGE_CHECKPOINT_COUPLED_PASS", "G2_FIXED_MODE_AUTHORITY_HOLD_PASS",
             "G2_LIVE_SEND_SEAM_SIDE_REDUCE_ONLY_PASS", "G2_IN_FLIGHT_BEFORE_SENDER_PASS",
             "G2_MANUAL_SIDE_NOT_OVERWRITTEN_PASS", "G2_CLO_PLANNER_REDUCTION_ONLY_PASS",
+            "G2_DURABLE_ORDER_INTENT_REDUCE_ONLY_PASS", "G2_DURABLE_LIVE_FILL_PLANNER_SIDE_PASS",
             "G2_SINGLE_ORDER_CALL_SITE_PASS",
         ):
             print(f"RESULT::{tag}")
