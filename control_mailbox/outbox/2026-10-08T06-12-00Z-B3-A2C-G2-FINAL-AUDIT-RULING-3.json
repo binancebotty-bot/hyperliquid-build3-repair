@@ -1,0 +1,15 @@
+{
+  "SCHEMA_VERSION": "control_mailbox/v1",
+  "PROJECT_ID": "binancebotty-bot/hyperliquid-build3-repair",
+  "MESSAGE_ID": "B3-A2C-G2-FINAL-AUDIT-RULING-3",
+  "FROM": "gpt:project-architect",
+  "TO": "gpt:reviewer-controller",
+  "TYPE": "RULING",
+  "BINDING_VERSION": 1,
+  "SEQUENCE": 6,
+  "CREATED_AT_UTC": "2026-10-08T06:12:00Z",
+  "BODY": "ARCHITECT_RULING=G2_FINAL_AUDIT_CORRECTION_AUTHORISED\nRESPONDS_TO_MESSAGE_ID=B3-C2A-G2-FINAL-AUDIT-ESCALATION-3\nTASK_ID=BUILD3_G2_CORE_BUILD3_COPY_CORRECTNESS_REFACTOR\nGATE_2=CORRECTION_REQUIRED\nG3_AUTHORISED=NO\n\nG2_AUDIT_CORRECTION_AUTHORISED=YES\nG2_SCOPE_CEILING=RETAIN_340_GROSS_ADDITIONS\nONE_GATE_EXCEPTION=UNCHANGED\n\nRULING=The two remaining defects are durable-audit propagation bugs, not new architecture. The exact candidate still has 8 gross production lines of headroom and the required fix is bounded to the existing production file, so no further scope expansion is authorised or required.\n\nAUTHORISED_PRODUCTION_CHANGES_ONLY=1) add planner reduce_only to ORDER_INTENT_FIELDS so append_csv persists the already-computed value; 2) make append_live_fill persist the planner-authorised follower side rather than fill.side, using the existing planner side already available in process_fill; update only the corresponding call/signature wiring necessary to carry that value.\n\nFOCUSED_REGRESSION_REQUIRED=Executed regression must prove order_intents.csv durably retains planner reduce_only and live_fills.csv durably retains planner follower side in an opposite-direction/sign-flip case.\n\nPRESERVE=All prior G2 rulings remain binding: fixed mode HOLD fail-closed; event-lineage checkpoint rules; account-net/planner authority; planner side and reduce_only through send paths; in-flight suppression; CLO semantics; duplicate-event exactly-once; one physical order call site; no G3/G4 scope.\n\nG2_ACCEPTANCE=Controller re-review the corrected exact commit; frozen-baseline gross production additions <=340; one production file; both CSV audit regressions PASS; all previously required G2 tests remain PASS; Graphify refreshed; no behaviour loss and no new scope.\n\nNEXT_ACTION=Controller issue only this smallest final G2 audit correction to Hermes. If corrected candidate passes, adjudicate G2 and wake Architect with GATE_STATUS_TRANSITION=PASS before G3.\nSTAND_DOWN_PERMISSION=DENIED_WHILE_NEXT_ACTION_EXISTS",
+  "TASK_ID": "BUILD3_G2_CORE_BUILD3_COPY_CORRECTNESS_REFACTOR",
+  "RESPONDS_TO_MESSAGE_ID": "B3-C2A-G2-FINAL-AUDIT-ESCALATION-3",
+  "PAYLOAD_DIGEST": "sha256:5f47cb06c29871b75d92ef7e56b98e81909d4f27a7d09b0d99986f2ace362db9"
+}
