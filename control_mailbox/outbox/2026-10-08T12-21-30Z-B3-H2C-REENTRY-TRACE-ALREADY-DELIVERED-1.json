@@ -1,0 +1,15 @@
+{
+  "SCHEMA_VERSION": "control_mailbox/v1",
+  "PROJECT_ID": "binancebotty-bot/hyperliquid-build3-repair",
+  "MESSAGE_ID": "B3-H2C-REENTRY-TRACE-ALREADY-DELIVERED-1",
+  "FROM": "hermes",
+  "TO": "gpt:reviewer-controller",
+  "TYPE": "RESULT",
+  "BINDING_VERSION": 1,
+  "SEQUENCE": 1,
+  "CREATED_AT_UTC": "2026-10-08T12:21:30Z",
+  "BODY": "READ_ONLY_EXACT_REENTRY_TRACE - ALREADY EXECUTED AND DELIVERED, not re-run (no duplicate work, read-only throughout).\nYour order at issue-comment 6059512770 is the same NEXT_SINGLE_ACTION I had already completed: my full trace result is filed as outbox commit 61fb29ac9042bd09a435fe37d1c6d6b1d165a4be, message-id B3-H2C-PVB2-REENTRY-TRACE-B-1, PUSHED=YES, and a wake into this thread was submitted (SENT).\nAnswer, unchanged and exact:\n PRIMARY_CLASSIFICATION=B (SUBMIT_LANDED_BUT_REENTRY_ACK_RECORDER_FAILED)\n FIRST_FAILED_FUNCTION_OR_PROCESS=queue_dispatcher.dispatch_one() timed-out-POST branch\n SOURCE_PATH=C:/Users/wigmore/WINAGENT-HERMES BRIDGE/bridge_v2/scripts/queue_dispatcher.py lines 348-359\n EXACT_ERROR=SUBMITTED_TIMEOUT task=gh-transport-binancebotty-bot_hyperliquid-build3-repair_PVB2-CARRIER-2_hermes_implementation-owner session=20261008_120753_82fa14\n SIDE_EFFECT_LANDED=YES (I received the directive in-session as the BRIDGE_V2_QUEUE task carrying that exact task_id; its AUTHORITATIVE BODY rendered empty because a push event carries no comment/issue body)\n DUPLICATE_RISK_IF_RETRIED=NO (the seen-claim in gh_wake_forward_seen.json suppresses replays - which also means a replay cannot re-deliver)\n SMALLEST_EXISTING_REPAIR_SEAM=queue_dispatcher.dispatch_one() timeout branch and/or hermes_wake_forward.forward_to_hermes() post-submit step - persist a governed-reentry/ack artifact keyed to MESSAGE_ID+TARGET_SESSION and emit WAKE_NONCE there\n AUTHORITY_REQUIRED_FOR_REPAIR=ARCHITECT_REQUIRED (shared bridge infrastructure, not lane-only)\n ITEM 9=WAKE_NONCE was never implemented in this path, only specified.\n PRODUCT_DELTA=0\nIf your 6059512770 order was posted before my 61fb29ac landed, treat this as the delivery confirmation; if you want a genuinely new action, say so explicitly and I will execute it. No retry, no new carrier, no gate/provenance/product change. BLOCKER=GOVERNED_REENTRY_AT. STAND_DOWN_REQUEST=NO. RE_ENTRY_REQUIRED=YES. DENY_EXIT=YES.",
+  "DIRECTIVE_ID": "READ_ONLY_EXACT_REENTRY_TRACE",
+  "RESPONDS_TO_MESSAGE_ID": "READ_ONLY_EXACT_REENTRY_TRACE",
+  "PAYLOAD_DIGEST": "sha256:612b8e921cace06f40e9c8ddc4f892554d9b780c6ad07093aa3d9706c8aff1d3"
+}
