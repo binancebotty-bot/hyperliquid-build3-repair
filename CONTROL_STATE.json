@@ -1,11 +1,11 @@
 {
   "schema": "wigmore_project_control_state_v1",
   "project": "hyperliquid-build3-repair",
-  "updated_utc": "2026-10-08T06:38:00Z",
+  "updated_utc": "2026-10-08T06:44:00Z",
   "operator": "richard:operator",
   "architect": {
     "role": "project-architect",
-    "status": "ARCHITECT_REVIEW_REQUIRED_G3",
+    "status": "G3_CORRECTION_AUTHORISED",
     "wake_mode": "EVENT_DRIVEN_ONLY"
   },
   "controller": {
@@ -15,7 +15,7 @@
   },
   "implementation_owner": {
     "role": "hermes:implementation-owner",
-    "status": "G3_FAILED_AWAITING_ARCHITECT_RULING"
+    "status": "G3_CORRECTION_AUTHORISED_AWAITING_EXECUTION"
   },
   "bindings": {
     "authority": "C:/Users/wigmore/.hermes/state/projects/hyperliquid-build3-repair/CONTROL_CONTRACT.json target_role_bindings",
@@ -46,18 +46,24 @@
   "current_gate": {
     "task_id": "BUILD3_G3_EXCHANGE_TRUTH_RECOVERY_SETTLEMENT",
     "gate": "G3_EXCHANGE_TRUTH_RECOVERY_SETTLEMENT",
-    "status": "CONTROLLER_FAIL_ARCHITECT_REVIEW_REQUIRED",
-    "architect_ruling": "B3-A2C-G2-PASS-G3-1",
+    "status": "CORRECTION_REQUIRED",
+    "architect_ruling": {
+      "message_id": "B3-A2C-G3-AUTHORITY-SCOPE-RULING-1",
+      "verdict": "G3_AUTHORITY_SCOPE_RESOLVED_CORRECTION_AUTHORISED",
+      "g4_authorised": false
+    },
     "production_logic_changes_authorised": true,
     "accepted_g2_candidate": "606d32e2f449c545fed1e7f9a9a1cb2fa5c409d2",
     "g2_evidence_commit": "fa3a86c30159784c0ffeadcabf2d7df317a98193",
     "scope_budget": {
-      "production_gross_additions_max_beyond_g2_candidate": 180,
+      "base": "606d32e2f449c545fed1e7f9a9a1cb2fa5c409d2",
+      "gross_production_additions_max": 400,
       "production_files_max": 2,
       "processes_max": 1,
       "new_dependencies_max": 0,
       "new_persistent_stores_max": 0,
-      "physical_order_call_sites_max": 1
+      "physical_order_call_sites_max": 1,
+      "one_gate_exception": true
     },
     "required_semantics": [
       "Follower account-net ACTUAL comes only from authoritative MASTER/trading-account exchange truth; no wallet-local dry-run/manual fallback.",
@@ -115,7 +121,18 @@
         "Unrelated inventory preservation is not operationally established: UNATTRIBUTED_INVENTORY is a mutable in-memory global defaulting empty and set only by tests; no authoritative baseline/recovery derivation or persisted attribution exists, so production cannot prove same-coin unrelated inventory will be preserved.",
         "reconcile_sleeve() is a standalone helper used by tests but is not wired as a production convergence blocker before order authorisation."
       ]
-    }
+    },
+    "required_corrections": [
+      "Initialise production MASTER truth from HL_LIVE_HL_ACCOUNT_ADDRESS and signing identity derived from configured private key/Account; identities must be valid and distinct; no arbitrary production account_net provider fallback.",
+      "Persist unresolved pre-send reservation in existing SERVICE_STATE_FILE before exchange.order authority, including intent, coin/dex if known, planner side, authorised size, reduce_only, started_ms and pre-send MASTER truth; attach oid/status durably after exchange response without clearing on ACK.",
+      "Reload unresolved reservations before any new order authority; crash-before-oid reconciles from start_ms+intent attributes and remains blocking if ambiguous; partial persists remaining.",
+      "Enumerate all perp DEX scopes and query MASTER userFillsByTime per scope with dex, including default and HIP-3/builder; fail closed on missing scope and deduplicate deterministically.",
+      "Terminal reject/no-fill clear requires exchange-derived terminal rejection/refusal plus independent post-attempt MASTER no-fill truth across all required DEX scopes; caller boolean alone is forbidden.",
+      "Maintain frozen UNATTRIBUTED_BASELINE and confirmed copy-owned actual in existing SERVICE_STATE_FILE; establish only at explicit no-send baseline/recovery boundary; snapshots/restarts verify but never silently rewrite it; external/manual divergence blocks.",
+      "Wire reconciliation gate before convergence/order authority using authoritative MASTER net = unattributed baseline + confirmed engine-owned actual +/- unresolved reserved exposure within tolerance.",
+      "Wire real sender result into reservation/settlement lifecycle; immediate and restart/subsequent-loop reconciliation may resolve only from independent MASTER evidence."
+    ],
+    "persistence_rule": "Only safety/ownership checkpoints in existing SERVICE_STATE_FILE are authorised: unresolved sends, confirmed engine-owned actual, frozen unrelated-inventory attribution. They never create desired trading authority."
   },
   "source_of_truth": {
     "terminal_runtime_local_path": "_archive/hl_stage2/HL_Live_Copy_Service.py",
@@ -138,8 +155,8 @@
     "Direct leader WS path is fast but incomplete; snapshot truth is required on recovery boundaries.",
     "MASTER account state must be distinguished from API signer state."
   ],
-  "current_blocker": "G3 material runtime/recovery defects remain; production scope is already 179/180 gross additions and 2/2 production files.",
-  "next_action": "Architect adjudicates B3-C2A-G3-AUTHORITY-SCOPE-ESCALATION-1. Hermes must not patch G3 until correlated ruling defines correction authority/scope.",
+  "current_blocker": null,
+  "next_action": "Hermes executes one bounded G3 correction under B3-A2C-G3-AUTHORITY-SCOPE-RULING-1. No G4 or mainnet/live activation.",
   "live_authorized": false,
   "last_controller_ruling": {
     "task_id": "BUILD3_SOURCE_BASELINE_IMPORT_1",
