@@ -1,11 +1,11 @@
 {
   "schema": "wigmore_project_control_state_v1",
   "project": "hyperliquid-build3-repair",
-  "updated_utc": "2026-10-07T21:38:00Z",
+  "updated_utc": "2026-10-08T05:34:00Z",
   "operator": "richard:operator",
   "architect": {
     "role": "project-architect",
-    "status": "ARCHITECT_REVIEW_REQUIRED_G2",
+    "status": "TRANSPORT_BLOCKED_STUCK_PAGE",
     "wake_mode": "EVENT_DRIVEN_ONLY"
   },
   "controller": {
@@ -15,7 +15,7 @@
   },
   "implementation_owner": {
     "role": "hermes:implementation-owner",
-    "status": "G2_FAILED_AWAITING_ARCHITECT_RULING"
+    "status": "HELD_NO_PATCH_AWAITING_ARCHITECT"
   },
   "bindings": {
     "authority": "C:/Users/wigmore/.hermes/state/projects/hyperliquid-build3-repair/CONTROL_CONTRACT.json target_role_bindings",
@@ -45,7 +45,7 @@
   },
   "current_gate": {
     "task_id": "BUILD3_G2_CORE_BUILD3_COPY_CORRECTNESS_REFACTOR",
-    "status": "CONTROLLER_FAIL_ARCHITECT_REVIEW_REQUIRED",
+    "status": "BLOCKED_AWAITING_ARCHITECT_DELIVERY",
     "purpose": "Remove blind fixed-notional-per-fill authority and implement event-authorised desired exposure feeding the existing convergence planner and single sender.",
     "writes_authorized": true,
     "production_logic_changes_authorized": true,
@@ -111,8 +111,8 @@
     "Direct leader WS path is fast but incomplete; snapshot truth is required on recovery boundaries.",
     "MASTER account state must be distinguished from API signer state."
   ],
-  "current_blocker": "G2 core correctness defects plus Architect ruling required on fixed-mode target semantics and persisted event-lineage authority.",
-  "next_action": "Architect adjudicates B3-C2A-G2-AUTHORITY-CONFLICT-1. Hermes must not modify G2 further until the correlated Architect ruling is consumed.",
+  "current_blocker": "Bound Architect ChatGPT lane is stuck generating=true; automatic wake correctly refuses insertion. G2 authority escalation has not been semantically consumed.",
+  "next_action": "No G2 patch. Preserve one pending Architect escalation. If Architect lane becomes free, deliver exactly once. Otherwise operator must unstick/rebind the Architect lane; do not bypass role separation.",
   "live_authorized": false,
   "last_controller_ruling": {
     "task_id": "BUILD3_SOURCE_BASELINE_IMPORT_1",
@@ -155,5 +155,14 @@
     "status": "COMMISSIONED_IN_THIS_REPO",
     "result": "171 nodes, 540 edges, 14 communities (graphify-out/graph.json, GRAPH_REPORT.md)",
     "command": "python -m graphify update <repo> --force (Python311)"
+  },
+  "transport_blocker": {
+    "message_id": "B3-B2A-G2-TRANSPORT-BLOCKER-1",
+    "architect_delivery_message": "B3-C2A-G2-AUTHORITY-CONFLICT-1",
+    "automatic_wake_sent": false,
+    "reason": "STUCK_PAGE_GENERATING_TRUE",
+    "focus_stealing_authorised": false,
+    "fallback_record": "project Architect channel issue #1 comment 6053084241",
+    "fallback_is_semantic_delivery": false
   }
 }
