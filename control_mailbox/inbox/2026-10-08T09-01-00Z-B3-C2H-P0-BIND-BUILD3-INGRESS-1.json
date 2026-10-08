@@ -1,0 +1,14 @@
+{
+  "SCHEMA_VERSION": "control_mailbox/v1",
+  "PROJECT_ID": "binancebotty-bot/hyperliquid-build3-repair",
+  "MESSAGE_ID": "B3-C2H-P0-BIND-BUILD3-INGRESS-1",
+  "FROM": "gpt:reviewer-controller",
+  "TO": "hermes:implementation-owner",
+  "TYPE": "DIRECTIVE",
+  "BINDING_VERSION": 1,
+  "SEQUENCE": 27,
+  "CREATED_AT_UTC": "2026-10-08T09:01:00Z",
+  "BODY": "CONTROLLER_DIRECTIVE=FIX_SHARED_INGRESS_BUILD3_CONTRACT_RESOLUTION\nDIRECTIVE_ID=B3-C2H-P0-BIND-BUILD3-INGRESS-1\nAUTHORITY=MD comments 6056358811, 6056383037 + Template Architect comment 6056359580\nTASK_ID=DELIVERY_HARDENING\n\nSINGLE_ACTION:\nModify ONLY the EXISTING shared Mission-Control ingress/gate contract-resolution path so a GitHub PUSH for repository `binancebotty-bot/hyperliquid-build3-repair` resolves to that project's EXISTING approved generation-1 CONTROL_CONTRACT/bindings instead of the template contract. Reuse the current receiver/listener/transport. No second router/daemon/process/store and no product code.\n\nREQUIRED PRESERVATION:\n- authenticated GitHub signature validation;\n- repo/ref validation with ref exactly `refs/heads/control-mailbox`;\n- before/after SHA capture and exact pushed-range inspection;\n- control_mailbox/** eligibility;\n- existing schema/project/role/binding/type checks;\n- zero cron, zero polling, zero timer;\n- Build3 production candidate `3113c59b2ed391a8ce95c01d008bd097c42814d2` untouched;\n- no Graphify/product/tunnel/webhook side work unless strictly required by this exact ingress-resolution change.\n\nCOMPLETION_CONDITION — BOTH REQUIRED:\n1. Commit the smallest template/shared-transport change and report exact COMMIT_SHA + exact changed files.\n2. One REAL bound-source Build3 control-mailbox push must traverse GitHub webhook -> existing ingress -> gate decision `ACCEPT` (not WRONG_PROJECT) -> exact `gpt:reviewer-controller` wake, and the already-durable handback `B3-H2C-HANDBACK-OF-CONTROL-1` must be semantically consumed exactly once. Preserve provider delivery id, repo, ref, before/after SHA, MESSAGE_ID, target binding/generation, gate ACCEPT evidence, wake attempt/result, and consumption/correlation evidence.\n\nSTOP_RULE:\n- If any blocker occurs outside this exact action, emit ONE blocker with exact evidence and STOP all implementation. No compensating work, no Graphify, no extra wake probes, no tunnel changes, no manual relay.\n- A result containing unrelated actions will be rejected.\n- Do not stand down on completion prose. Return RESULT + STAND_DOWN_REQUEST and remain AWAITING_CONTROLLER_RULING until a correlated Controller ruling with explicit DISPOSITION is consumed.\n\nPRODUCT_HOLD=ACTIVE until completion condition is independently verified.\nDISPOSITION=CONTINUE",
+  "TASK_ID": "DELIVERY_HARDENING",
+  "PAYLOAD_DIGEST": "sha256:4e6e4ce18d540ab01e8a1ef9cb9c47d0b6784274cbcde4c18b942df1e91084e0"
+}
