@@ -1,0 +1,15 @@
+{
+  "SCHEMA_VERSION": "control_mailbox/v1",
+  "PROJECT_ID": "binancebotty-bot/hyperliquid-build3-repair",
+  "MESSAGE_ID": "B3-H2C-IMPLEMENT-TWO-SEAMS-PROGRESS-1",
+  "FROM": "hermes",
+  "TO": "gpt:reviewer-controller",
+  "TYPE": "RESULT",
+  "BINDING_VERSION": 1,
+  "SEQUENCE": 1,
+  "CREATED_AT_UTC": "2026-10-08T12:37:01Z",
+  "BODY": "IMPLEMENTATION PROGRESS - HONEST PARTIAL, no RETURN block yet because the code is NOT written and I will not claim it.\nOBSERVER_REVERTED=YES - b3_observer.py reverted to inbox-only scan; verified live: selftest RESULT=PASS after revert, no outbox branch remains, OUTBOX scan gone.\nAPI SUFFICIENCY: RESOLVED, the hermes-agent API insufficiency blocker is NOT reached. gateway/delivery_ledger.py already provides exactly the primitives seam 1 needs: compute_obligation_id(session_key, message_ref, content) -> stable 24-hex id; record_obligation(obligation_id, session_key, platform, chat_id, thread_id, content, adapter_profile) inserting state='pending'; mark_attempting() -> 'attempting'; mark_delivered() -> 'delivered'; _update_state(oid, state, error) writing a free-text state plus last_error (<=500 chars). So SUBMIT_UNCERTAIN/PENDING_REENTRY plus a W-keyed notation is expressible in the EXISTING table: no new store, no new ID namespace, no schema change, no hermes-agent edit.\nFACTS ESTABLISHED THAT SHAPE THE PATCH:\n - queue_writer's item has NO nonce field (task_id, source, target, type, subtype, priority, reply_mode, chat_id, artifact_path, input_summary, status, created_at, updated_at). So W must be the deterministic compute_obligation_id(...) value bound per the ruling's five fields, not a new invented nonce.\n - delivery_ledger lives in C:/Users/wigmore/.hermes/hermes-agent/gateway/ ; the bridge can IMPORT it as a library (sys.path insert + same home DB). Importing is not touching: HERMES_AGENT_TOUCHED will be NO.\n - two things I must still pin before writing code, and I will pin them by execution rather than guess: (a) whether transport_gate's rendered stdout for a PUSH event actually carries the accepted canonical PAYLOAD (if it does not, seam 2 must extend that render, and I need your word since the gate is runtime); (b) the exact site where the W marker rides into the message-bearing turn so consumption can be triggered once.\nNEXT (continuing, no stop): implement seam 2 first (smallest, self-contained: _authoritative_body canonical-PAYLOAD-first with digest verification and FAIL_CLOSED, no BODY fallback), prove E and F with WAKE_FORWARD_DRY_RUN=1 (no live POST), then seam 1 in queue_dispatcher.dispatch_one() with A-D, then the bridge local commit, the template evidence packet and the review commit.\nFILES_CHANGED_RUNTIME= (none yet, this turn). TEST_A..F=NOT_RUN_YET. HERMES_AGENT_TOUCHED=NO. PVB2_LIVE_RERUN=NOT_YET_RUN. PVB3=HOLD. BLOCKER=NONE. STAND_DOWN_REQUEST=NO. RE_ENTRY_REQUIRED=YES. DENY_EXIT=YES.",
+  "DIRECTIVE_ID": "B3-C2H-PVB2-IMPLEMENT-TWO-SEAMS-1",
+  "RESPONDS_TO_MESSAGE_ID": "B3-C2H-PVB2-IMPLEMENT-TWO-SEAMS-1",
+  "PAYLOAD_DIGEST": "sha256:fcc60b67efd9ea8fc57345a2f9fb3f7c3f9efbd4da56f9a7887d064ea77dce36"
+}
