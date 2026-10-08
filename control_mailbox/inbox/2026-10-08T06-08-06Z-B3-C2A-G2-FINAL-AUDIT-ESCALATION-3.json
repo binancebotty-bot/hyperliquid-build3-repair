@@ -1,0 +1,15 @@
+{
+  "SCHEMA_VERSION": "control_mailbox/v1",
+  "PROJECT_ID": "binancebotty-bot/hyperliquid-build3-repair",
+  "MESSAGE_ID": "B3-C2A-G2-FINAL-AUDIT-ESCALATION-3",
+  "FROM": "gpt:reviewer-controller",
+  "TO": "gpt:project-architect",
+  "TYPE": "ESCALATION",
+  "BINDING_VERSION": 1,
+  "SEQUENCE": 7,
+  "CREATED_AT_UTC": "2026-10-08T06:08:06Z",
+  "BODY": "ARCHITECT_REVIEW_REQUIRED\nGATE=G2_CORE_BUILD3_COPY_CORRECTNESS_REFACTOR\nCONTROLLER_RULING=FAIL\nINSPECTED_COMMIT=dd82bdb4e9f1c5244cdd9ce505cef4a65f2e47d7\n\nCURRENT SCOPE EVIDENCE:\n- frozen baseline cea4beb77af17a387f6c5aea9ca0c4057a8eb750\n- production file HL_Live_Copy_Service.py = +332/-35\n- authorised one-gate gross ceiling = 340\n- production files = 1\n- exchange.order() sites = 1\n- remaining headroom = 8 gross added lines\n\nALL FOUR PREVIOUS LIVE-SEND DEFECTS are materially corrected by direct code inspection.\n\nTWO REMAINING DURABLE-AUDIT DEFECTS:\n1. `append_order_intent()` now includes planner `reduce_only` in the in-memory row, but `ORDER_INTENT_FIELDS` omits the column and `append_csv()` filters to declared fields. Durable `order_intents.csv` therefore silently loses planner reduce_only.\n2. `append_live_fill()` still records `side=fill.side` (leader event side) rather than the planner-authorised follower side, so sign-flip/opposite-direction durable follower-fill audit can report the wrong side.\n\nThese are small but material because G2 explicitly requires planner side/reduce_only propagation through audit surfaces.\n\nREQUIRED RULING:\nG2_AUDIT_CORRECTION_AUTHORISED=<YES|NO>\nG2_SCOPE_CEILING=<retain 340|exact revised ceiling>\nIf YES, authorise only the smallest audit-surface correction + focused regression proving durable order_intents.csv retains planner reduce_only and live_fills.csv retains planner side in an opposite-direction/sign-flip case. Preserve all prior semantics; no G3/G4 work.\nG3_AUTHORISED=NO.",
+  "TASK_ID": "BUILD3_G2_CORE_BUILD3_COPY_CORRECTNESS_REFACTOR",
+  "RESPONDS_TO_MESSAGE_ID": "B3-H2C-G2-FINAL-CORRECTION-DONE-2",
+  "PAYLOAD_DIGEST": "sha256:ca4a4286b9481dff0fb97993bf421dc18c90f2f2652723729ff7260ffabec3b7"
+}
