@@ -1,12 +1,12 @@
 {
   "CONTROL_STATE.json": {
-    "mtime": 1791440053.7057734,
-    "ast_hash": "7f321a860055ccaab8082dfeb2b204bb",
+    "mtime": 1791440377.39077,
+    "ast_hash": "aeefc06ab254908195abe64510f4a895",
     "semantic_hash": ""
   },
   "_archive/hl_stage2/HL_Live_Copy_Service.py": {
-    "mtime": 1791440053.7303119,
-    "ast_hash": "9c1359c439ecc9ff54980f9c82e99247",
+    "mtime": 1791441067.8142114,
+    "ast_hash": "402c498de3fe6aec42960b7b4a587ee2",
     "semantic_hash": ""
   },
   "_archive/hl_stage2/convergence_shadow.py": {
@@ -42,6 +42,16 @@
   "_archive/hl_stage2/test_g2_copy_correctness.py": {
     "mtime": 1791440053.7313135,
     "ast_hash": "e86cea6ad5303ffcf4f560c794773b8b",
+    "semantic_hash": ""
+  },
+  "_archive/hl_stage2/exchange_truth.py": {
+    "mtime": 1791441116.4365394,
+    "ast_hash": "3b1e4b0cee0bfe2546cdd94873b9e24e",
+    "semantic_hash": ""
+  },
+  "_archive/hl_stage2/test_g3_exchange_truth.py": {
+    "mtime": 1791441130.6035118,
+    "ast_hash": "485d22fd1e3b2d2944c20ab9a0117890",
     "semantic_hash": ""
   }
 }
