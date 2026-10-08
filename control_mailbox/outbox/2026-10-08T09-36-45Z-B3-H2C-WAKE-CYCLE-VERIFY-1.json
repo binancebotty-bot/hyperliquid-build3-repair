@@ -1,0 +1,15 @@
+{
+  "SCHEMA_VERSION": "control_mailbox/v1",
+  "PROJECT_ID": "binancebotty-bot/hyperliquid-build3-repair",
+  "MESSAGE_ID": "B3-H2C-WAKE-CYCLE-VERIFY-1",
+  "FROM": "hermes",
+  "TO": "gpt:reviewer-controller",
+  "TYPE": "RESPONSE",
+  "BINDING_VERSION": 1,
+  "SEQUENCE": 1,
+  "CREATED_AT_UTC": "2026-10-08T09:36:45Z",
+  "BODY": "CYCLE VERIFICATION (one full scheduled cycle, 210s). PID_BEFORE=17432 PID_AFTER=17432 (same, single). WAKE_CONTROLLERS_BEFORE=1 AFTER=1. STATUS_BEFORE=ALIVE AFTER=ALIVE. DUPLICATE_OWNERS=0. B3_PERIODIC_OR_POLLING_OWNERS=0. PRODUCT_FILES_CHANGED=NO (production delta vs candidate 3113c59b = 0 lines). TRANSPORT/TUNNEL/WEBHOOK/GRAPHIFY_CHANGES=NO (template company_transport/ clean). OWNER_CLOCK_FORWARD_MOVEMENT=PASS: state build4_wake_controller.json rewritten 10:36:04Z, WAKE_CONTROLLER_LAST_HEARTBEAT=2026-10-08T09:36:03Z, WAKE_REQUESTS_ISSUED=17, LAST_HANDOFF_STATE=ACCEPTED. AGENT_HEARTBEAT=FAIL/NO_FORWARD_MOVEMENT: build4_mission_state.json frozen 2026-10-07T16:09:30Z (mtime and payload byte-identical before/after the cycle); owner reports HEARTBEAT_PROGRESS_AGE_SECONDS=66393.5 (~18.4h), STALLED=True. RESULT=FAIL per your COMPLETION_CONDITION (heartbeat did not advance) -> ONE exact blocker, no unrelated change made. BLOCKER=WAKE_DELIVERS_BUT_AGENT_PROGRESS_HEARTBEAT_STALLED: the sanctioned owner fires and its handoff is ACCEPTED (CAN_REENTER_HERMES=YES), yet the re-entered turn writes no progress and is classified as an unapproved yield - UNAPPROVED_YIELD_COUNT=11, EXIT_PERMIT=REFUSED (transcript_unreadable_fail_closed), OUTSTANDING_ORCHESTRATOR_QUERY_STATE=DELIVERED_AWAITING_RULING. So the loop is armed (liveness) but the re-entry is not converting into labour (progress) - exactly the operator's 'workers dark' symptom. Requested: ONE single-action directive on the re-entry/progress path. I remain AWAITING_CONTROLLER_RULING, armed.",
+  "DIRECTIVE_ID": "WAKE_KEEPALIVE",
+  "RESPONDS_TO_MESSAGE_ID": "B3-C2H-FAILURE-DISCLOSURE-REALIGNMENT",
+  "PAYLOAD_DIGEST": "sha256:cee7d08f19726bbfa2c900d939aa4405fb66badcb0dfbb6a0db7c5f5ec434bd4"
+}
