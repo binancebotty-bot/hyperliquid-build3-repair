@@ -190,6 +190,29 @@ def main() -> None:
     sites = [ln for ln in src.splitlines() if ".order(" in ln and "exchange" in ln.lower()]
     check("C1_SINGLE_EXCHANGE_ORDER_SITE", len(sites) == 1, f"sites={len(sites)}")
 
+    # ---------- 9) GENUINE FLIP under a positive cap below fixed_notional ----------
+    # Controller B3-C2H-G4-C1-FLIP-CAP-CORRECTION-1: a flip reduces absolute leader magnitude but
+    # opens a fresh opposite fixed sleeve (F7), so it IS a new entry for the cap. The old-side close
+    # must remain permitted; the opposite over-cap entry must never get executable authority.
+    client.post("/api/global-controls", json={"max_order_notional_usd": 0.0})   # cap off: seed a long
+    e6 = engine()
+    e6.process_fill(fill("f1", "0xfixed", "BTC", "BUY", PX, 10.0, 1000), FIX)          # +10 shares
+    e6.process_fill(fill("f2", "0xfixed", "BTC", "BUY", PX, 10.0, 1100), FIX)          # +20 leader
+    seeded_long = float(e6.get_position("0xfixed", "BTC").get("signed_size") or 0.0)
+    client.post("/api/global-controls", json={"max_order_notional_usd": 500.0})        # cap < fixed_notional 1000
+    e6.process_fill(fill("f3", "0xfixed", "BTC", "SELL", PX, 22.0, 2000, delta=-22.0), FIX)  # +20 -> -2 FLIP
+    flip_pos = float(e6.get_position("0xfixed", "BTC").get("signed_size") or 0.0)
+    sleeve = (e6.state.get("fixed_sleeves") or {}).get("0xfixed", {}).get("BTC") or {}
+    flip_rows = intents()
+    check("C1_FLIP_CLOSES_OLD_SIDE_AND_DENIES_OVER_CAP_OPPOSITE_ENTRY",
+          abs(seeded_long - 20.0) < 1e-9
+          and abs(flip_pos) < 1e-12                      # old long fully closed, no short opened
+          and (sleeve.get("side") == 0 and not (sleeve.get("slices") or []))
+          and "BLOCKED" not in str(flip_rows[0].get("execution_decision") if flip_rows else "")
+          and int(e6.state["counters"].get("entries_blocked_global_max_order_notional", 0)) >= 1,
+          f"seeded={seeded_long} flip_pos={flip_pos} sleeve={sleeve} counter="
+          f"{e6.state['counters'].get('entries_blocked_global_max_order_notional')}")
+
     failed = [n for n, ok in RESULTS if not ok]
     print("TOTAL=%d FAILED=%d" % (len(RESULTS), len(failed)))
     return 1 if failed else 0

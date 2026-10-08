@@ -2419,7 +2419,18 @@ class DryRunLiveCopyService:
         if sa == 0:                      # F6 CLOSE -> attributed sleeve zero
             per[coin] = {"side": 0, "slices": []}
         elif sb != sa:                   # F1 open from flat / F7 FLIP -> exactly one new slice
-            per[coin] = {"side": sa, "slices": [slice_units]}
+            # G4-C1 correction (Controller B3-C2H-G4-C1-FLIP-CAP-CORRECTION-1): a FLIP reduces the
+            # absolute leader magnitude but OPENS a fresh opposite-side fixed sleeve under F7, so it
+            # is a NEW ENTRY for the cap. When that opposite entry's fixed notional exceeds the
+            # operator max_order_notional_usd it gets ZERO authority: the old side still closes (the
+            # flip's exit leg is preserved) but the new opposite slice is never minted, so desired
+            # collapses to 0 and no executable opposite entry can be planned.
+            _cap = self.global_order_cap()
+            if sb != 0 and _cap > 0 and fnum(fixed_notional) > _cap + 1e-12:
+                self.bump("entries_blocked_global_max_order_notional")
+                per[coin] = {"side": 0, "slices": []}
+            else:
+                per[coin] = {"side": sa, "slices": [slice_units]}
         elif la > lb:                    # F2/F9 INCREASE -> exactly one more slice, magnitude-agnostic
             sl = [fnum(u) for u in (sleeve.get("slices") or [])]
             sl.append(slice_units)
