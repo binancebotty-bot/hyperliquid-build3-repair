@@ -395,6 +395,107 @@ def main() -> None:
     check("S3_STALE_CUTOFF_ON_GLOBAL_CONTROLS", 'id="gcStaleSec"' in ui and "stale_entry_sec:g('gcStaleSec')" in ui
           and '"stale_entry_sec": 30.0' in ui)
 
+    # ---- G: guards after the 17:34 mainnet scare (false alarm) ----------------------------------------------------
+    import json
+    import subprocess
+    import exchange_truth as X
+
+    def run_engine(extra_env, *flags):
+        d = Path(tempfile.mkdtemp(prefix="guard_"))
+        env = {k: v for k, v in os.environ.items() if not k.startswith(("HL_", "PYTHON"))}
+        env.update({"HL_LIVE_AUDIT_DIR": str(d), "HL_LIVE_ENV_FILE": str(d / "none.env"), "HL_LEADER_NETWORK": "mainnet",
+                    "HL_FOLLOWER_NETWORK": "testnet", "HL_LIVE_SCOPE_SWEEP_THREAD": "0", **extra_env})
+        r = subprocess.run([sys.executable, str(HERE / "HL_Live_Copy_Service_Core.py"), "--once", *flags], env=env,
+                           capture_output=True, text=True, timeout=120)
+        return r, d
+    r, d = run_engine({"HL_FOLLOWER_NETWORK": "mainnet"})
+    check("G1_MAINNET_FOLLOWER_REFUSED_WITHOUT_THE_FLAG", r.returncode != 0 and "MAINNET_FOLLOWER_NOT_CONFIRMED" in r.stderr
+          and not (d / "network.json").exists(), r.stderr[-300:])
+    envf = Path(tempfile.mkdtemp(prefix="guardenv_")) / "x.env"
+    envf.write_text("HL_FOLLOWER_NETWORK=mainnet\nCONFIRM_MAINNET_FOLLOWER=1\nHL_LIVE_CONFIRM_MAINNET_FOLLOWER=1\n", encoding="utf-8")
+    r, d = run_engine({"HL_LIVE_ENV_FILE": str(envf), "HL_FOLLOWER_NETWORK": ""})
+    check("G1_NO_ENV_FILE_CAN_CONFIRM_MAINNET", r.returncode != 0 and "MAINNET_FOLLOWER_NOT_CONFIRMED" in r.stderr, r.stderr[-300:])
+    saved_net, saved_ok = c.FOLLOWER_NETWORK, c.MAINNET_ORDERS_CONFIRMED
+    c.FOLLOWER_NETWORK, c.MAINNET_ORDERS_CONFIRMED = "mainnet", False
+    fake = FakeExchange()
+    try:
+        gateway(fake)._place_order(fake, "BTC", True, 1.0, 100.0, "Ioc", False)
+        refused = False
+    except RuntimeError as exc:
+        refused = "MAINNET_FOLLOWER_NOT_CONFIRMED" in str(exc)
+    c.FOLLOWER_NETWORK, c.MAINNET_ORDERS_CONFIRMED = saved_net, saved_ok
+    check("G1_ORDER_CALL_ITSELF_REFUSES_UNCONFIRMED_MAINNET", refused and not fake.calls, str(fake.calls))
+
+    nets_t = X.resolve_networks({"HL_FOLLOWER_NETWORK": "testnet"})
+    nets_m = X.resolve_networks({"HL_FOLLOWER_NETWORK": "mainnet"})
+
+    def state_dir(with_position):
+        d = Path(tempfile.mkdtemp(prefix="stamp_"))
+        if with_position:
+            (d / "manual_live_positions.json").write_text(json.dumps({"by_wallet": {A: {"BTC": {"signed_size": 3.0}}}}))
+        return d
+    d = state_dir(True)
+    X.claim_network_stamp(d, nets_t)
+    check("G2_OLD_LEDGER_FOUND_AT_STAMPING_IS_REFUSED", X.stamp_state_refusal(d).startswith("STATE_PREDATES_NETWORK_STAMP"),
+          X.stamp_state_refusal(d))
+    d = state_dir(False)
+    X.claim_network_stamp(d, nets_t)
+    (d / "manual_live_positions.json").write_text(json.dumps({"by_wallet": {A: {"BTC": {"signed_size": 3.0}}}}))
+    check("G2_OWN_STATE_AFTER_STAMPING_IS_FINE", X.stamp_state_refusal(d) == "", X.stamp_state_refusal(d))
+    d = state_dir(True)
+    (d / "network.json").write_text(json.dumps({"leader": "mainnet", "follower": "mainnet"}))
+    check("G2_OLD_MAINNET_STAMP_WITHOUT_RECORD_AND_STATE_REFUSED", X.stamp_state_refusal(d).startswith("STATE_PREDATES"))
+    d = state_dir(True)
+    (d / "network.json").write_text(json.dumps({"leader": "mainnet", "follower": "testnet"}))
+    check("G2_OLD_TESTNET_STAMP_KEEPS_RUNNING", X.stamp_state_refusal(d) == "")
+    d = state_dir(False)
+    (d / "append_only").mkdir()
+    (d / "append_only" / "send_attempts.csv").write_text("h\nrow\n")
+    X.claim_network_stamp(d, nets_m)
+    check("G2_OLD_SEND_HISTORY_COUNTS_TOO", "send_attempts" in X.stamp_state_refusal(d), X.stamp_state_refusal(d))
+    old = state_dir(True)
+    r, _ = run_engine({"HL_LIVE_AUDIT_DIR": str(old)})
+    check("G2_ENGINE_REFUSES_TO_START_ON_OLD_STATE", r.returncode != 0 and "STATE_PREDATES_NETWORK_STAMP" in r.stderr, r.stderr[-300:])
+
+    # G3: never close into a position the engine's own sleeves don't explain
+    os.environ["HL_LIVE_UNEXPLAINED_WAIT_SEC"] = "0"
+    led = ledger(a=1.0)
+    g = gateway(FakeExchange(), led)
+    it = exit_intent(led, A, "SELL", 1.0)
+    snapshot(1.5)   # 0.5 that no sleeve explains (e.g. the mainnet leftovers)
+    ok, block = g._pre_send_ownership_gate(it)
+    check("G3_CLOSE_BLOCKED_WHEN_EXCHANGE_HOLDS_MORE", not ok and block.get("status") == "OWNERSHIP_GATE_UNEXPLAINED_EXCHANGE_POSITION"
+          and "MANUAL_REVIEW" in block.get("operator_action", ""), str(block.get("status")))
+    snapshot(1.0)
+    check("G3_CLOSE_ALLOWED_WHEN_SLEEVES_EXPLAIN_IT", g._pre_send_ownership_gate(it)[0])
+    snapshot(0.5)   # the exchange holds less (our own close/fill not seen yet): a reduce-only close can't touch others
+    check("G3_CLOSE_ALLOWED_WHEN_EXCHANGE_HOLDS_LESS", g._pre_send_ownership_gate(it)[0])
+    led2 = ledger(a=1.0, b=-1.0)
+    snapshot(0.7)
+    g2 = gateway(FakeExchange(), led2)
+    check("G3_NETTED_LEADERS_WITH_A_RESIDUAL_BLOCKED", not g2._pre_send_ownership_gate(exit_intent(led2, A, "SELL", 1.0))[0])
+    entry_it = c.IntentBuilder(c.ConfigManager(), led).build(fill("BUY", wallet=B))
+    snapshot(1.5)
+    check("G3_ENTRIES_UNAFFECTED", c.classify_send_lifecycle(entry_it) == "ENTRY" and g._pre_send_ownership_gate(entry_it)[0])
+    # lag: the exchange shows our fill before the ledger does; the close waits for the records instead of failing
+    c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": True, "global_controls": {}, "wallets": {
+        A: {"enabled": True, "mode": "ON", "copy_mode": "fixed", "fixed_notional": 1000}}})
+    os.environ.update({"HL_LIVE_UNEXPLAINED_WAIT_SEC": "4", "HL_LIVE_MOCK_SEND": "1"})
+    led = ledger(a=1.0)
+    snapshot(2.0)
+    g = gateway(FakeExchange(), led)
+    it = exit_intent(led, A, "SELL", 1.0)
+    it.decision = "EXIT_ALLOWED"
+
+    def ledger_catches_up():
+        time.sleep(0.6)
+        led.sleeve(A, "BTC")["signed_size"] = 2.0
+        led._recompute_net(led.data)
+    threading.Thread(target=ledger_catches_up).start()
+    ok, status = g.send_if_allowed(it)
+    check("G3_LAGGING_RECORDS_WAITED_FOR_NOT_BLOCKED", ok and status == "MOCK_ORDER_SENT", status)
+    os.environ.pop("HL_LIVE_MOCK_SEND", None)
+
     failed = [n for n, ok in RESULTS if not ok]
     print(f"TOTAL={len(RESULTS)} FAILED={len(failed)}")
     os._exit(1 if failed else 0)

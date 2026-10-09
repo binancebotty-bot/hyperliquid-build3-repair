@@ -8,6 +8,7 @@ surfaces; unattributed inventory is excluded from sleeve convergence.
 import json
 import os
 import re
+import time
 from urllib.parse import urlparse
 
 # Network selection. The leader feed and the follower account are chosen independently, so an
@@ -68,9 +69,42 @@ def env_with_file(path):
     return merged
 
 
+STAMPED_STATE_FILES = ("manual_live_positions.json", os.path.join("append_only", "send_attempts.csv"),
+                       "resting_entry_orders.json")
+
+
+def state_present(state_dir):
+    """Engine state already in a folder: a ledger holding any position, any send history, any resting limit."""
+    found = []
+    for rel in STAMPED_STATE_FILES:
+        path = os.path.join(str(state_dir), rel)
+        try:
+            if not os.path.exists(path) or os.path.getsize(path) <= 0:
+                continue
+            if rel.endswith(".csv"):
+                with open(path, encoding="utf-8-sig") as fh:
+                    if sum(1 for _ in fh) > 1:
+                        found.append(rel)
+                continue
+            with open(path, encoding="utf-8-sig") as fh:
+                data = json.load(fh)
+            if rel == "manual_live_positions.json":
+                sleeves = [s for m in (data.get("by_wallet") or {}).values() if isinstance(m, dict)
+                           for s in m.values() if isinstance(s, dict)]
+                if any(abs(float(s.get("signed_size") or 0.0)) > 1e-12 for s in sleeves):
+                    found.append(rel)
+            elif data:
+                found.append(rel)
+        except Exception:
+            found.append(rel)  # unreadable state counts as present (fail closed)
+    return found
+
+
 def claim_network_stamp(state_dir, networks):
     """Bind a state directory to one leader/follower network pair. A directory already stamped for
-    a different pair raises, so a testnet instance can never resume mainnet state or vice versa."""
+    a different pair raises, so a testnet instance can never resume mainnet state or vice versa.
+    A new stamp records which engine state was already in the folder ("prior_state"): state that
+    predates the stamp has no proven owner, and the engine refuses to run on it."""
     want = {"leader": networks["leader"]["network"], "follower": networks["follower"]["network"]}
     path = os.path.join(str(state_dir), NETWORK_STAMP_FILE)
     if os.path.exists(path):
@@ -84,8 +118,29 @@ def claim_network_stamp(state_dir, networks):
         return want
     os.makedirs(str(state_dir), exist_ok=True)
     with open(path, "w", encoding="utf-8") as fh:
-        json.dump(want, fh)
+        json.dump({**want, "claimed_at_ms": int(time.time() * 1000), "prior_state": state_present(state_dir)}, fh)
     return want
+
+
+def stamp_state_refusal(state_dir):
+    """Why this folder's engine state may not be used, or "" if it may. State that was already there when
+    the folder was stamped (or, for a mainnet folder stamped before stamps recorded it, any state at all)
+    was not opened by this engine on this network: running on it would adopt and close positions it
+    never opened."""
+    path = os.path.join(str(state_dir), NETWORK_STAMP_FILE)
+    try:
+        with open(path, encoding="utf-8") as fh:
+            have = json.load(fh)
+    except Exception as exc:
+        return f"STATE_STAMP_UNREADABLE:{path}:{exc!r}"
+    prior = have.get("prior_state") if isinstance(have, dict) else None
+    if prior:
+        return f"STATE_PREDATES_NETWORK_STAMP:{state_dir} already held {prior} when it was stamped"
+    if prior is None and isinstance(have, dict) and have.get("follower") == "mainnet":
+        now = state_present(state_dir)
+        if now:
+            return f"STATE_PREDATES_NETWORK_STAMP:{state_dir} (mainnet, stamp without a state record) holds {now}"
+    return ""
 
 
 try:

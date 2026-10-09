@@ -24,6 +24,7 @@ import atexit
 import concurrent.futures
 import csv
 import hashlib
+import io
 import json
 import math
 import os
@@ -148,6 +149,9 @@ HL_INFO_URL = NETWORKS["follower"]["info"]          # follower: meta, mids, copy
 HL_LEADER_INFO_URL = NETWORKS["leader"]["info"]     # leader fill polling only
 HL_WS_URL = os.getenv("HL_LIVE_WS_URL") or NETWORKS["leader"]["ws"]
 HL_EXCHANGE_URL = os.getenv("HL_LIVE_ORDER_ENDPOINT") or NETWORKS["follower"]["exchange"]
+# Real mainnet orders need the --confirm-mainnet-follower command-line flag (set only by main()); the order call
+# itself refuses otherwise, whoever imports this module.
+MAINNET_ORDERS_CONFIRMED = False
 EXPOSURE_FETCHER = None  # test seam for follower exposure reads; production uses HTTP
 LEADER_FETCHER = None  # test seam for leader equity reads; production uses HTTP
 MIDS_FETCHER = None  # test seam for follower mid reads; production uses HTTP
@@ -927,6 +931,38 @@ def read_csv_rows(path: Path) -> List[Dict[str, str]]:
     with FILE_LOCK:
         with path.open("r", newline="", encoding="utf-8-sig") as f:
             return list(csv.DictReader(f))
+
+
+_SEND_ROWS_CACHE: Dict[str, Any] = {"path": None, "ino": None, "size": 0, "rows": [], "fields": None}
+
+
+def send_attempt_rows() -> List[Dict[str, str]]:
+    """SEND_ATTEMPTS_CSV rows, read incrementally (append-only file): the copy matcher looks up order ids for every
+    copy fill, and re-reading the whole growing file each time held up the loop (run 3). Treat rows as read-only."""
+    path = SEND_ATTEMPTS_CSV
+    with FILE_LOCK:
+        st = path.stat() if path.exists() else None
+        size, ino = (st.st_size, (st.st_dev, st.st_ino)) if st else (0, None)
+        cache = _SEND_ROWS_CACHE
+        # a different file, a rewritten one (header migration replaces it) or a shorter one: read it all again
+        if cache["path"] != str(path) or cache["ino"] != ino or size < cache["size"] or cache["fields"] is None:
+            cache.update(path=str(path), ino=ino, size=0, rows=[], fields=None)
+        if size and size != cache["size"]:
+            with path.open("rb") as fh:
+                fh.seek(cache["size"])
+                chunk = fh.read(size - cache["size"])
+            text = chunk.decode("utf-8")
+            if cache["fields"] is None:
+                text = text.lstrip("\ufeff")
+                reader = csv.DictReader(io.StringIO(text, newline=""))
+                cache["rows"] = list(reader)
+                cache["fields"] = list(reader.fieldnames or [])
+                if not cache["fields"]:
+                    cache["fields"] = None
+            else:
+                cache["rows"].extend(csv.DictReader(io.StringIO(text, newline=""), fieldnames=cache["fields"]))
+            cache["size"] = size
+        return list(cache["rows"])
 
 
 _CANONICAL_SYMBOL_OVERRIDES = {
@@ -2886,6 +2922,8 @@ class SenderGateway:
         exit recovery) is serialised and paced here."""
         # Only the time slot is serialised (pacing, and a distinct signing nonce per order): the exchange calls of
         # different workers overlap (run 3: one ~3.5 s call at a time capped the engine near one order per 3.5 s).
+        if FOLLOWER_NETWORK == "mainnet" and not MAINNET_ORDERS_CONFIRMED:
+            raise RuntimeError("MAINNET_FOLLOWER_NOT_CONFIRMED: mainnet order refused without --confirm-mainnet-follower")
         with self._exchange_order_lock:
             self._wait_exchange_order_slot()
         if timing is not None and started_key:
@@ -3200,6 +3238,21 @@ class SenderGateway:
                 "manual ledger and exchange account net have opposite signs",
                 manual_net, exchange_net,
             )
+        if lifecycle in {"REDUCE", "EXIT"} or intent.reduce_only_intended:
+            # never close into a position the engine's own sleeves don't explain (another bot's or a person's,
+            # e.g. the mainnet leftovers): the exchange holding MORE than the sleeves' sum, or the other way
+            tol = max(POSITION_EPSILON, 1e-9 * max(abs(manual_net), abs(exchange_net)))
+            unexplained = (abs(exchange_net) > abs(manual_net) + tol
+                           or (abs(exchange_net) > tol and manual_net * exchange_net < 0))
+            if unexplained:
+                block = self._ownership_gate_block(
+                    intent, "OWNERSHIP_GATE_UNEXPLAINED_EXCHANGE_POSITION",
+                    f"exchange holds {exchange_net} but the engine's own sleeves explain {manual_net}; not closing into "
+                    "a position the engine did not open; reconcile on the exchange",
+                    manual_net, exchange_net,
+                )
+                block["operator_action"] = "MANUAL_REVIEW_UNEXPLAINED_EXCHANGE_POSITION"
+                return False, block
         if len(live_sleeves) > 1:
             # For EXIT/REDUCE: ownership is unambiguous — the leader_wallet identifies the
             # sleeve to close. Fall through to the wallet-sleeve existence check below.
@@ -3653,6 +3706,13 @@ class SenderGateway:
             return False, "SEND_BLOCKED_LEADER_ALREADY_REDUCED"
         timing = self._base_timing(intent)
         gate_ok, gate_block = self._pre_send_ownership_gate(intent)
+        if not gate_ok and gate_block.get("status") == "OWNERSHIP_GATE_UNEXPLAINED_EXCHANGE_POSITION":
+            # often only the copy poll / exchange snapshot lagging our own fill by a few seconds: wait for them
+            deadline = time.monotonic() + max(0.0, fnum(os.getenv("HL_LIVE_UNEXPLAINED_WAIT_SEC"), 6.0))
+            while (not gate_ok and gate_block.get("status") == "OWNERSHIP_GATE_UNEXPLAINED_EXCHANGE_POSITION"
+                   and time.monotonic() < deadline):
+                time.sleep(0.5)
+                gate_ok, gate_block = self._pre_send_ownership_gate(intent)
         if not gate_ok:
             gate_block["timing"] = timing
             self._append_local_block_reconciliation(intent, str(gate_block.get("status") or "OWNERSHIP_GATE_BLOCKED"), gate_block)
@@ -5685,7 +5745,7 @@ class CopyFillMatcher:
         return out
 
     def _fresh_sent_row_for_oid(self, norm_oid: str) -> Optional[Dict[str, str]]:
-        for row in read_csv_rows(SEND_ATTEMPTS_CSV):
+        for row in send_attempt_rows():
             if str(row.get("status") or "").upper() not in {"ORDER_FILLED", "ORDER_RESTING"}:
                 continue
             oid = CopyFillMatcher._normalize_oid(str(row.get("exchange_order_id") or ""))
@@ -5842,7 +5902,7 @@ class CopyFillMatcher:
         size = abs(fnum(copy_fill.get("size", copy_fill.get("sz")), 0.0))
         window_ms = int(os.getenv("HL_LIVE_COPY_MATCH_WINDOW_MS", "600000"))
         out: List[Dict[str, str]] = []
-        for row in read_csv_rows(SEND_ATTEMPTS_CSV):
+        for row in send_attempt_rows():
             intent_id = str(row.get("intent_id") or "").strip()
             if not intent_id or intent_id in self.matched_intent_ids:
                 continue
@@ -8687,6 +8747,9 @@ def main() -> None:
     parser.add_argument("--reconcile-exchange", action="store_true", help="Fetch clearinghouseState and compare manual ledger")
     parser.add_argument("--ws", action="store_true", help="Start WS manager before running cycles; requires HL_LIVE_WS_ENABLED=1")
     parser.add_argument("--loop", action="store_true", help="Run repeatedly")
+    parser.add_argument("--confirm-mainnet-follower", action="store_true",
+                        help="Required to send REAL MAINNET orders (follower network mainnet). Only this command-line "
+                             "flag can allow it; no env file or setting can.")
     parser.add_argument("--interval", type=float, default=5.0)
     parser.add_argument("--copy-poll-interval", type=float, default=float(os.getenv("HL_LIVE_COPY_POLL_INTERVAL_SEC", "2")), help="Copy-account poll cadence in seconds when --poll-copy is enabled")
     args = parser.parse_args()
@@ -8702,10 +8765,18 @@ def main() -> None:
         print(json.dumps(result, indent=2, sort_keys=True))
         return
     if args.once or args.loop:
+        global MAINNET_ORDERS_CONFIRMED
+        if FOLLOWER_NETWORK == "mainnet" and not args.confirm_mainnet_follower:
+            raise SystemExit("MAINNET_FOLLOWER_NOT_CONFIRMED: the follower network is mainnet (real money). Start with "
+                             "--confirm-mainnet-follower to allow it; nothing else can.")
+        MAINNET_ORDERS_CONFIRMED = bool(args.confirm_mainnet_follower)
         try:  # this state folder belongs to one leader/follower network pair, and to one running engine
             _XNET.claim_network_stamp(AUDIT_DIR, NETWORKS)
         except _XNET.NetworkConfigError as exc:
             raise SystemExit(f"HL network configuration refused: {exc}")
+        _refusal = _XNET.stamp_state_refusal(AUDIT_DIR)
+        if _refusal:  # never adopt a ledger or send history this engine did not create on this network
+            raise SystemExit(f"{_refusal}. Use a fresh state folder (HL_LIVE_AUDIT_DIR); never resume another run's state.")
         acquire_instance_lock(AUDIT_DIR)
         _key = sender_key_check()
         if _key["ok"] is False:
