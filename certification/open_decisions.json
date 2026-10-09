@@ -4,33 +4,11 @@
  "decisions": [
   {
    "id": "OD-01",
-   "decision": "Authoritative mark price for OPEN/INCREASE/FLIP and its age bound. Options as inventoried: (1) leader `fill.price` (no age proof); (2) payload ask/bid (no age proof); (3) cached public quote under `HL_LIVE_QUOTE_CACHE_TTL_MS` (age proof, not currently consulted on these paths)",
+   "decision": "~~Authoritative mark price for OPEN/INCREASE/FLIP and its age bound.~~ Decided 2026-10-09 (§5): a fresh follower-market mid, at most 5 s old; no fresh mid means no order. Original question: Options as inventoried: (1) leader `fill.price` (no age proof); (2) payload ask/bid (no age proof); (3) cached public quote under `HL_LIVE_QUOTE_CACHE_TTL_MS` (age proof, not currently consulted on these paths)",
    "evidence": "CONTROL_STATE `current_blocker`; escalation `B3-C2A-G4-F3-MARK-AUTHORITY-RULING-1` (raised 2026-10-08T22:22Z, **unanswered**); G4_C2A_MARK_SOURCE_INVENTORY.md",
    "owner": "Architect",
    "records_affected": "19 (PRICE-*, B4-I20/I21, UI-LCC-EXQ)",
-   "matrix_records": [
-    "PRICE-001",
-    "PRICE-003",
-    "PRICE-004",
-    "PRICE-006",
-    "UI-LCC-EXQ-01",
-    "UI-LCC-EXQ-02",
-    "UI-LCC-EXQ-03",
-    "UI-LCC-EXQ-04",
-    "UI-LCC-EXQ-05",
-    "UI-LCC-EXQ-06",
-    "UI-LCC-EXQ-07",
-    "UI-LCC-EXQ-08",
-    "UI-LCC-EXQ-09",
-    "UI-LCC-EXQ-10",
-    "UI-LCC-EXQ-11",
-    "UI-LCC-EXQ-12",
-    "UI-LCC-EXQ-13",
-    "B4-I20",
-    "B4-I21",
-    "TN-F16",
-    "INC-08"
-   ]
+   "matrix_records": []
   },
   {
    "id": "OD-02",
@@ -187,16 +165,14 @@
   },
   {
    "id": "OD-10",
-   "decision": "Entry price bound and slippage parameters. Build 4 I20 sets 0% adverse entry movement by default, enforced in the order itself. Build 3 has per-wallet `max_diff_pct` (default 0.1), marketable offset `HL_LIVE_AUTO_SEND_MARKETABLE_BPS` 5, close adverse diff 0.25%, and UI global overrides. Depends on OD-01",
+   "decision": "Entry price bound and slippage parameters. *Partly decided 2026-10-09 (§5): unset marketable slippage defaults to 0.2%. Still open: the entry price bound (Build 4 I20's 0% default vs Build 3 `max_diff_pct`) and the close adverse diff value.* Build 4 I20 sets 0% adverse entry movement by default, enforced in the order itself. Build 3 has per-wallet `max_diff_pct` (default 0.1), marketable offset `HL_LIVE_AUTO_SEND_MARKETABLE_BPS` 5, close adverse diff 0.25%, and UI global overrides. Depends on OD-01",
    "evidence": "GUT I20/I21; service constants L133, L144",
    "owner": "Architect",
    "records_affected": "PRICE-003/4/7/8, RISK-005/006/010",
    "matrix_records": [
     "PRICE-003",
     "PRICE-004",
-    "PRICE-007",
     "PRICE-008",
-    "RISK-005",
     "RISK-006",
     "RISK-010",
     "UI-LCC-ADD-01",

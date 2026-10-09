@@ -563,6 +563,23 @@ for r in R:
     elif legacy:
         r["notes"] = (r["notes"] + " Source refs are to the legacy file; re-derive against " + CORE + ".").strip()
 
+# Rulings recorded after drafting (Boss, 2026-10-09T13:26Z, implemented in PR #6). A ruled OD is removed from
+# open_decisions; a record whose only blocker was a ruled OD becomes APPLIES. Values go in the record notes.
+RULED_OD01 = "OD-01 ruled (Boss, 2026-10-09): OPEN/INCREASE/FLIP are priced from a fresh follower-market mid at most 5 s old; with no fresh mid no order is sent."
+RULED_SLIP = "Slippage ruled (Boss, 2026-10-09): unset marketable slippage defaults to 0.2%."
+for r in R:
+    if "OD-01" in r["open_decisions"]:
+        r["open_decisions"].remove("OD-01")
+        r["notes"] = (r["notes"] + " " + RULED_OD01).strip()
+    if r["id"] in ("PRICE-007", "RISK-005"):
+        if "OD-10" in r["open_decisions"]:
+            r["open_decisions"].remove("OD-10")
+        r["notes"] = (r["notes"] + " " + RULED_SLIP).strip()
+    if r["applicability"] == "OPEN_DECISION" and not r["open_decisions"]:
+        r["applicability"] = "APPLIES"
+    if r["id"] in ("PRICE-001", "PRICE-006", "PRICE-007", "RISK-005"):
+        r["sources"].append("Boss decision, Network switch thread 2026-10-09T13:26Z")
+
 # ---------------------------------------------------------------------------
 ids = [r["id"] for r in R]
 dups = {i for i in ids if ids.count(i) > 1}

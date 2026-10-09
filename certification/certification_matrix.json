@@ -1470,12 +1470,11 @@
    "expected_behaviour": "One ruled mark source with a proven age bound is used on every OPEN/INCREASE/FLIP path. Currently BLOCKED: no validated-freshness mark reaches apply_fixed_sleeve_event(); fill.price is used with no age check.",
    "sources": [
     "CONTROL_STATE current_blocker",
-    "hyperliquid-build3-repair/G4_C2A_MARK_SOURCE_INVENTORY.md"
+    "hyperliquid-build3-repair/G4_C2A_MARK_SOURCE_INVENTORY.md",
+    "Boss decision, Network switch thread 2026-10-09T13:26Z"
    ],
-   "applicability": "OPEN_DECISION",
-   "open_decisions": [
-    "OD-01"
-   ],
+   "applicability": "APPLIES",
+   "open_decisions": [],
    "execution_proof": "Leader event -> price source actually consulted (logged with timestamp/age) -> order limit price on the wire -> fill price",
    "independent_oracle": "Independent l2Book / allMids snapshot captured at decision time plus the exchange fill record",
    "negative_tests": [
@@ -1488,7 +1487,7 @@
    "evidence_ref": "",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": ""
+   "notes": "OD-01 ruled (Boss, 2026-10-09): OPEN/INCREASE/FLIP are priced from a fresh follower-market mid at most 5 s old; with no fresh mid no order is sent."
   },
   {
    "id": "PRICE-002",
@@ -1526,7 +1525,6 @@
    ],
    "applicability": "OPEN_DECISION",
    "open_decisions": [
-    "OD-01",
     "OD-10"
    ],
    "execution_proof": "Leader event -> price source actually consulted (logged with timestamp/age) -> order limit price on the wire -> fill price",
@@ -1541,7 +1539,7 @@
    "evidence_ref": "",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": ""
+   "notes": "OD-01 ruled (Boss, 2026-10-09): OPEN/INCREASE/FLIP are priced from a fresh follower-market mid at most 5 s old; with no fresh mid no order is sent."
   },
   {
    "id": "PRICE-004",
@@ -1553,7 +1551,6 @@
    ],
    "applicability": "OPEN_DECISION",
    "open_decisions": [
-    "OD-01",
     "OD-10"
    ],
    "execution_proof": "Leader event -> price source actually consulted (logged with timestamp/age) -> order limit price on the wire -> fill price",
@@ -1568,7 +1565,7 @@
    "evidence_ref": "",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": ""
+   "notes": "OD-01 ruled (Boss, 2026-10-09): OPEN/INCREASE/FLIP are priced from a fresh follower-market mid at most 5 s old; with no fresh mid no order is sent."
   },
   {
    "id": "PRICE-005",
@@ -1601,12 +1598,11 @@
    "feature": "Adverse-diff measure is meaningful",
    "expected_behaviour": "adverse_diff_pct is computed against an independent executable price, not against the fill price itself (structural zero).",
    "sources": [
-    "G4_C2A_MARK_SOURCE_INVENTORY Consequences"
+    "G4_C2A_MARK_SOURCE_INVENTORY Consequences",
+    "Boss decision, Network switch thread 2026-10-09T13:26Z"
    ],
-   "applicability": "OPEN_DECISION",
-   "open_decisions": [
-    "OD-01"
-   ],
+   "applicability": "APPLIES",
+   "open_decisions": [],
    "execution_proof": "Leader event -> price source actually consulted (logged with timestamp/age) -> order limit price on the wire -> fill price",
    "independent_oracle": "Independent l2Book / allMids snapshot captured at decision time plus the exchange fill record",
    "negative_tests": [
@@ -1619,7 +1615,7 @@
    "evidence_ref": "",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": ""
+   "notes": "OD-01 ruled (Boss, 2026-10-09): OPEN/INCREASE/FLIP are priced from a fresh follower-market mid at most 5 s old; with no fresh mid no order is sent."
   },
   {
    "id": "PRICE-007",
@@ -1628,12 +1624,11 @@
    "expected_behaviour": "Marketable limit offset (HL_LIVE_AUTO_SEND_MARKETABLE_BPS default 5; UI global 'Marketable slippage %') is applied as configured and shown truthfully.",
    "sources": [
     "legacy HL_Live_Copy_Service.py LIVE_AUTO_SEND_MARKETABLE_BPS",
-    "HL_Copy_App_SSOT.py gcMktPct"
+    "HL_Copy_App_SSOT.py gcMktPct",
+    "Boss decision, Network switch thread 2026-10-09T13:26Z"
    ],
-   "applicability": "OPEN_DECISION",
-   "open_decisions": [
-    "OD-10"
-   ],
+   "applicability": "APPLIES",
+   "open_decisions": [],
    "execution_proof": "Leader event -> price source actually consulted (logged with timestamp/age) -> order limit price on the wire -> fill price",
    "independent_oracle": "Independent l2Book / allMids snapshot captured at decision time plus the exchange fill record",
    "negative_tests": [
@@ -1646,7 +1641,7 @@
    "evidence_ref": "",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": "Source refs are to the legacy file; re-derive against HL_Live_Copy_Service_Core.py (7,705-line, sha256 5bda57be)."
+   "notes": "Source refs are to the legacy file; re-derive against HL_Live_Copy_Service_Core.py (7,705-line, sha256 5bda57be). Slippage ruled (Boss, 2026-10-09): unset marketable slippage defaults to 0.2%."
   },
   {
    "id": "PRICE-008",
@@ -2236,12 +2231,12 @@
     "ARCH Full scope 4",
     "ARCH Full scope 6",
     "Boss decision, project chat 2026-10-09T12:21Z",
-    "HL_Live_Copy_Service_Core.py (7,705-line, sha256 5bda57be)"
+    "HL_Live_Copy_Service_Core.py (7,705-line, sha256 5bda57be)",
+    "Boss decision, Network switch thread 2026-10-09T13:26Z"
    ],
    "applicability": "APPLIES",
    "open_decisions": [
-    "OD-06",
-    "OD-10"
+    "OD-06"
    ],
    "execution_proof": "UI/config value -> live_config.json -> engine read at decision time -> block/allow recorded in order_intents with reason -> exchange shows (no) order",
    "independent_oracle": "Exchange orders/fills (absence or presence) plus independent recomputation of the limit from config",
@@ -2258,7 +2253,7 @@
    "evidence_ref": "",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": "Core: marketable_bps read at L1939 (default env HL_LIVE_MARKETABLE_BPS = 25) and used for pricing at L3210. Code-read, unconfirmed by run. Earlier note (legacy file, superseded base): The engine reads global_controls only in global_order_cap (L2696-2716). Auto-send uses env HL_LIVE_AUTO_SEND_MARKETABLE_BPS (L2863), not this saved value. Inferred from source search; must be confirmed by execution."
+   "notes": "Core: marketable_bps read at L1939 (default env HL_LIVE_MARKETABLE_BPS = 25) and used for pricing at L3210. Code-read, unconfirmed by run. Earlier note (legacy file, superseded base): The engine reads global_controls only in global_order_cap (L2696-2716). Auto-send uses env HL_LIVE_AUTO_SEND_MARKETABLE_BPS (L2863), not this saved value. Inferred from source search; must be confirmed by execution. Slippage ruled (Boss, 2026-10-09): unset marketable slippage defaults to 0.2%."
   },
   {
    "id": "RISK-006",
@@ -4904,9 +4899,7 @@
     "FAILURES UI-001..003"
    ],
    "applicability": "APPLIES",
-   "open_decisions": [
-    "OD-01"
-   ],
+   "open_decisions": [],
    "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
    "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
    "negative_tests": [
@@ -4919,7 +4912,7 @@
    "evidence_ref": "",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": ""
+   "notes": "OD-01 ruled (Boss, 2026-10-09): OPEN/INCREASE/FLIP are priced from a fresh follower-market mid at most 5 s old; with no fresh mid no order is sent."
   },
   {
    "id": "UI-LCC-EXQ-02",
@@ -4933,9 +4926,7 @@
     "FAILURES UI-001..003"
    ],
    "applicability": "APPLIES",
-   "open_decisions": [
-    "OD-01"
-   ],
+   "open_decisions": [],
    "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
    "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
    "negative_tests": [
@@ -4948,7 +4939,7 @@
    "evidence_ref": "",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": ""
+   "notes": "OD-01 ruled (Boss, 2026-10-09): OPEN/INCREASE/FLIP are priced from a fresh follower-market mid at most 5 s old; with no fresh mid no order is sent."
   },
   {
    "id": "UI-LCC-EXQ-03",
@@ -4962,9 +4953,7 @@
     "FAILURES UI-001..003"
    ],
    "applicability": "APPLIES",
-   "open_decisions": [
-    "OD-01"
-   ],
+   "open_decisions": [],
    "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
    "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
    "negative_tests": [
@@ -4977,7 +4966,7 @@
    "evidence_ref": "",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": ""
+   "notes": "OD-01 ruled (Boss, 2026-10-09): OPEN/INCREASE/FLIP are priced from a fresh follower-market mid at most 5 s old; with no fresh mid no order is sent."
   },
   {
    "id": "UI-LCC-EXQ-04",
@@ -4991,9 +4980,7 @@
     "FAILURES UI-001..003"
    ],
    "applicability": "APPLIES",
-   "open_decisions": [
-    "OD-01"
-   ],
+   "open_decisions": [],
    "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
    "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
    "negative_tests": [
@@ -5006,7 +4993,7 @@
    "evidence_ref": "",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": ""
+   "notes": "OD-01 ruled (Boss, 2026-10-09): OPEN/INCREASE/FLIP are priced from a fresh follower-market mid at most 5 s old; with no fresh mid no order is sent."
   },
   {
    "id": "UI-LCC-EXQ-05",
@@ -5020,9 +5007,7 @@
     "FAILURES UI-001..003"
    ],
    "applicability": "APPLIES",
-   "open_decisions": [
-    "OD-01"
-   ],
+   "open_decisions": [],
    "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
    "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
    "negative_tests": [
@@ -5035,7 +5020,7 @@
    "evidence_ref": "",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": ""
+   "notes": "OD-01 ruled (Boss, 2026-10-09): OPEN/INCREASE/FLIP are priced from a fresh follower-market mid at most 5 s old; with no fresh mid no order is sent."
   },
   {
    "id": "UI-LCC-EXQ-06",
@@ -5049,9 +5034,7 @@
     "FAILURES UI-001..003"
    ],
    "applicability": "APPLIES",
-   "open_decisions": [
-    "OD-01"
-   ],
+   "open_decisions": [],
    "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
    "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
    "negative_tests": [
@@ -5064,7 +5047,7 @@
    "evidence_ref": "",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": ""
+   "notes": "OD-01 ruled (Boss, 2026-10-09): OPEN/INCREASE/FLIP are priced from a fresh follower-market mid at most 5 s old; with no fresh mid no order is sent."
   },
   {
    "id": "UI-LCC-EXQ-07",
@@ -5078,9 +5061,7 @@
     "FAILURES UI-001..003"
    ],
    "applicability": "APPLIES",
-   "open_decisions": [
-    "OD-01"
-   ],
+   "open_decisions": [],
    "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
    "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
    "negative_tests": [
@@ -5093,7 +5074,7 @@
    "evidence_ref": "",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": ""
+   "notes": "OD-01 ruled (Boss, 2026-10-09): OPEN/INCREASE/FLIP are priced from a fresh follower-market mid at most 5 s old; with no fresh mid no order is sent."
   },
   {
    "id": "UI-LCC-EXQ-08",
@@ -5107,9 +5088,7 @@
     "FAILURES UI-001..003"
    ],
    "applicability": "APPLIES",
-   "open_decisions": [
-    "OD-01"
-   ],
+   "open_decisions": [],
    "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
    "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
    "negative_tests": [
@@ -5122,7 +5101,7 @@
    "evidence_ref": "",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": ""
+   "notes": "OD-01 ruled (Boss, 2026-10-09): OPEN/INCREASE/FLIP are priced from a fresh follower-market mid at most 5 s old; with no fresh mid no order is sent."
   },
   {
    "id": "UI-LCC-EXQ-09",
@@ -5136,9 +5115,7 @@
     "FAILURES UI-001..003"
    ],
    "applicability": "APPLIES",
-   "open_decisions": [
-    "OD-01"
-   ],
+   "open_decisions": [],
    "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
    "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
    "negative_tests": [
@@ -5151,7 +5128,7 @@
    "evidence_ref": "",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": ""
+   "notes": "OD-01 ruled (Boss, 2026-10-09): OPEN/INCREASE/FLIP are priced from a fresh follower-market mid at most 5 s old; with no fresh mid no order is sent."
   },
   {
    "id": "UI-LCC-EXQ-10",
@@ -5165,9 +5142,7 @@
     "FAILURES UI-001..003"
    ],
    "applicability": "APPLIES",
-   "open_decisions": [
-    "OD-01"
-   ],
+   "open_decisions": [],
    "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
    "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
    "negative_tests": [
@@ -5180,7 +5155,7 @@
    "evidence_ref": "",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": ""
+   "notes": "OD-01 ruled (Boss, 2026-10-09): OPEN/INCREASE/FLIP are priced from a fresh follower-market mid at most 5 s old; with no fresh mid no order is sent."
   },
   {
    "id": "UI-LCC-EXQ-11",
@@ -5194,9 +5169,7 @@
     "FAILURES UI-001..003"
    ],
    "applicability": "APPLIES",
-   "open_decisions": [
-    "OD-01"
-   ],
+   "open_decisions": [],
    "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
    "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
    "negative_tests": [
@@ -5209,7 +5182,7 @@
    "evidence_ref": "",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": ""
+   "notes": "OD-01 ruled (Boss, 2026-10-09): OPEN/INCREASE/FLIP are priced from a fresh follower-market mid at most 5 s old; with no fresh mid no order is sent."
   },
   {
    "id": "UI-LCC-EXQ-12",
@@ -5223,9 +5196,7 @@
     "FAILURES UI-001..003"
    ],
    "applicability": "APPLIES",
-   "open_decisions": [
-    "OD-01"
-   ],
+   "open_decisions": [],
    "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
    "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
    "negative_tests": [
@@ -5238,7 +5209,7 @@
    "evidence_ref": "",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": ""
+   "notes": "OD-01 ruled (Boss, 2026-10-09): OPEN/INCREASE/FLIP are priced from a fresh follower-market mid at most 5 s old; with no fresh mid no order is sent."
   },
   {
    "id": "UI-LCC-EXQ-13",
@@ -5252,9 +5223,7 @@
     "FAILURES UI-001..003"
    ],
    "applicability": "APPLIES",
-   "open_decisions": [
-    "OD-01"
-   ],
+   "open_decisions": [],
    "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
    "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
    "negative_tests": [
@@ -5267,7 +5236,7 @@
    "evidence_ref": "",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": ""
+   "notes": "OD-01 ruled (Boss, 2026-10-09): OPEN/INCREASE/FLIP are priced from a fresh follower-market mid at most 5 s old; with no fresh mid no order is sent."
   },
   {
    "id": "UI-LCC-AUD-01",
@@ -10313,7 +10282,6 @@
    ],
    "applicability": "OPEN_DECISION",
    "open_decisions": [
-    "OD-01",
     "OD-10"
    ],
    "execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
@@ -10326,7 +10294,7 @@
    "evidence_ref": "",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": "Prevents: R21."
+   "notes": "Prevents: R21. OD-01 ruled (Boss, 2026-10-09): OPEN/INCREASE/FLIP are priced from a fresh follower-market mid at most 5 s old; with no fresh mid no order is sent."
   },
   {
    "id": "B4-I21",
@@ -10338,7 +10306,6 @@
    ],
    "applicability": "OPEN_DECISION",
    "open_decisions": [
-    "OD-01",
     "OD-10"
    ],
    "execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
@@ -10351,7 +10318,7 @@
    "evidence_ref": "",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": "Prevents: R21 + event loss under price rejection (R17)."
+   "notes": "Prevents: R21 + event loss under price rejection (R17). OD-01 ruled (Boss, 2026-10-09): OPEN/INCREASE/FLIP are priced from a fresh follower-market mid at most 5 s old; with no fresh mid no order is sent."
   },
   {
    "id": "B4-I22",
@@ -14094,9 +14061,7 @@
     "local-trading/hl-build4-final-closeout/proofs/build4_completion/MILESTONE_01_TRADE_BOUNDARY_FRESHNESS_FROZEN.md"
    ],
    "applicability": "APPLIES_PROPOSED",
-   "open_decisions": [
-    "OD-01"
-   ],
+   "open_decisions": [],
    "execution_proof": "Predeclared Phase 6T-style scenario on testnet through the production engine path only (no direct exchange.order); evidence per class with exchange parity",
    "independent_oracle": "Exchange orders/fills (absence or presence) plus independent recomputation of the limit from config",
    "negative_tests": [
@@ -14112,7 +14077,7 @@
    "evidence_ref": "",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": ""
+   "notes": "OD-01 ruled (Boss, 2026-10-09): OPEN/INCREASE/FLIP are priced from a fresh follower-market mid at most 5 s old; with no fresh mid no order is sent."
   },
   {
    "id": "TN-F17",
@@ -15793,9 +15758,7 @@
     "local-trading/Hyperliquid scanner/_archive/hl_stage2/hl_live_copy_audit/BRENTOIL_MISMATCH_PROBE.txt"
    ],
    "applicability": "APPLIES_PROPOSED",
-   "open_decisions": [
-    "OD-01"
-   ],
+   "open_decisions": [],
    "execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
    "independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
    "negative_tests": [
@@ -15806,7 +15769,7 @@
    "evidence_ref": "",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": ""
+   "notes": "OD-01 ruled (Boss, 2026-10-09): OPEN/INCREASE/FLIP are priced from a fresh follower-market mid at most 5 s old; with no fresh mid no order is sent."
   },
   {
    "id": "INC-09",
