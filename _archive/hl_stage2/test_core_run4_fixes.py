@@ -2,12 +2,14 @@
 """Testnet run 4 fixes (2026-10-09): the send queue keeps up, every order's fills are owned, closes go flat, resting
 limits stay few and inside the caps, and switching sending off stops at once.
 
-Q  queue: a fill already waiting is not queued again; a leader's consecutive same-direction fills in a coin go out as
-   ONE copy (fixed sizing: pieces of one leader order; proportional: any run); closes of held positions go first.
-   Reproduces run 4's backlog (one busy leader order arriving as hundreds of fills, re-queued by every poll).
+Q  queue: a fill already waiting is not queued again; with proportional sizing a leader's consecutive same-direction
+   fills in a coin go out as ONE copy, never larger than the max order size (fixed sizing stays one copy per leader
+   fill); closes of held positions go first; merged fills stay handled after a restart. Reproduces run 4's backlog
+   (one busy leader order arriving as hundreds of fills, re-queued by every poll).
 R  standing recovery closes are written to send_attempts with their order id, so their fills match the ledger
    (run 4: 190+ recovery orders' fills went unmatched and the ledger kept ~24 coins the exchange had closed).
-P  a close that part-fills leaves the rest as a standing reduce-only close (run 4: dust left open).
+P  a close that part-fills leaves the rest as a standing reduce-only close (run 4: dust left open); the sleeve's next
+   close withdraws it first, so the two never both fill (the surplus would close another leader's position).
 U  a close held by the pending-exit guard is not also written as BLOCKED_SEND_UNCLASSIFIED (run 4: 1,661 rows).
 C  resting entry limits count toward the total, per-asset and per-wallet caps (run 4: $2,256 resting outside caps).
 O  at most one resting entry limit per leader, coin and side (run 4: 3,885 missed-entry limits).
@@ -92,6 +94,7 @@ def main() -> None:
                 "sdk_order_compatible": True, "min_order_value_usd": 1.0, "min_size": 0.0, "status": "OK"}
 
     def gateway(fake, ledger=None):
+        c.atomic_write_json(c.STANDING_CLOSES_FILE, {})   # sleeve ids repeat across scenarios: start each one clean
         g = c.SenderGateway(c.ConfigManager(), c.AuditLogWriter(), ledger)
         g._resolve_coin = lambda coin: dict(resolved)
         g._get_exchange_client = lambda *a, **k: fake
@@ -127,9 +130,7 @@ def main() -> None:
 
     # ---- Q: the send queue --------------------------------------------------------------------------------------
     f1, f2 = fill(oid="77", d="Open Long"), fill(oid="77", d="Open Long")
-    check("Q1_PIECES_OF_ONE_LEADER_ORDER_MERGE_IN_FIXED_MODE", c.mergeable_fills(f1, f2, proportional=False))
-    check("Q1_FIXED_MODE_DIFFERENT_LEADER_ORDERS_STAY_SEPARATE",
-          not c.mergeable_fills(fill(oid="77", d="Open Long"), fill(oid="78", d="Open Long"), proportional=False))
+    check("Q1_FIXED_SIZING_NEVER_MERGES_ONE_COPY_PER_LEADER_FILL", not c.mergeable_fills(f1, f2, proportional=False))
     check("Q1_PROPORTIONAL_MERGES_ANY_RUN", c.mergeable_fills(fill(oid="77", d="Open Long"), fill(oid="78", d="Open Long"), True))
     check("Q1_NEVER_ACROSS_SIDE_DIRECTION_WALLET_OR_COIN",
           not c.mergeable_fills(fill(d="Open Long"), fill(side="SELL", d="Close Long"), True)
@@ -143,6 +144,7 @@ def main() -> None:
           and m.timestamp_ms == parts[1].timestamp_ms and m.raw.get("merged_fill_ids") == [parts[1].leader_fill_id],
           f"{m.size} {m.price} {m.raw}")
 
+    config(copy_mode="proportional")
     core = c.LiveCopyCore(source_csv=tmp / "none.csv")
     core._hot_queues = [queue.Queue() for _ in range(core.hot_send_workers)]   # not drained: look at what is queued
     burst = [fill(price=100.0 + i * 0.01, size=0.1, oid="555", d="Open Long", ts=c.utc_now_ms() - 600000 + i)
@@ -174,6 +176,44 @@ def main() -> None:
     check("Q2_MERGED_FILLS_ARE_HANDLED_NOT_SENT_AGAIN", core._plan_batch(again) == [], str(len(core._plan_batch(again))))
     with core._queued_lock:
         core._queued_keys.clear()
+    core.stop()
+    core = c.LiveCopyCore(source_csv=tmp / "none.csv")
+    check("Q2_MERGED_FILLS_STAY_HANDLED_AFTER_A_RESTART", all(f.leader_fill_id in core._idem_accepted for f in burst[1:]))
+    core.stop()
+
+    # a merged copy never grows past the max order size (caps block whole orders; they do not clamp)
+    config(copy_mode="proportional", max_order_notional_usd=50)
+    core = c.LiveCopyCore(source_csv=tmp / "none.csv")
+    core.intent_builder._copy_notional = lambda w, f: 10.0   # each leader fill copies as $10
+    run = [fill(size=0.1, oid="556", d="Open Long", ts=c.utc_now_ms() - 500000 + i) for i in range(12)]
+    sizes = [p.raw.get("merged_fill_count", 1) for p in core._plan_batch(run)]
+    check("Q4_MERGED_RUN_SPLIT_UNDER_THE_MAX_ORDER_SIZE", sum(sizes) == 12 and max(sizes) * 10.0 <= 50 and len(sizes) == 3,
+          str(sizes))
+    core.stop()
+    config(copy_mode="fixed")
+    core = c.LiveCopyCore(source_csv=tmp / "none.csv")
+    core._hot_queues = [queue.Queue() for _ in range(core.hot_send_workers)]
+    fixed_run = [fill(oid="557", d="Open Long", ts=c.utc_now_ms() - 400000 + i) for i in range(5)]
+    check("Q4_FIXED_SIZING_KEEPS_ONE_COPY_PER_LEADER_FILL", len(core._plan_batch(fixed_run)) == 5)
+    boom = core._plan_batch
+    core._plan_batch = lambda b: (_ for _ in ()).throw(RuntimeError("plan failed"))
+    got = []
+    core._process_leader_fill = lambda f, s=None, b="": got.append(f.leader_fill_id) or (False, "T", None)
+    core._hot_stop_event.clear()
+    import threading as _t
+    q0 = core._hot_queues[0]
+    for f in fixed_run:
+        q0.put(f)
+    th = _t.Thread(target=core._hot_send_loop, args=(0,), daemon=True)
+    th.start()
+    deadline = time.time() + 5
+    while len(got) < 5 and time.time() < deadline:
+        time.sleep(0.02)
+    core._hot_stop_event.set()
+    check("Q5_A_PLANNING_FAILURE_NEVER_DROPS_THE_BATCH", got == [f.leader_fill_id for f in fixed_run], str(got))
+    core._plan_batch = boom
+    core.stop()
+    core = c.LiveCopyCore(source_csv=tmp / "none.csv")
 
     core.ledger.sleeve(A, "ETH")["signed_size"] = 5.0
     core.ledger._recompute_net(core.ledger.data)
@@ -189,7 +229,7 @@ def main() -> None:
     core.stop()
 
     # ---- R/P: recovery closes are recorded; a part-filled close leaves the rest standing -----------------------
-    config(marketable_bps=20)
+    config(send=True, marketable_bps=20)   # sending on: a standing close is never placed while it is off
     led = ledger("r1", a_btc=2.0)
     snapshot(2.0)
     fake = FakeExchange([NO_MATCH])
@@ -233,6 +273,77 @@ def main() -> None:
     ok, status, res = send_real(g, c.IntentBuilder(c.ConfigManager(), led).build(fill("SELL", size=2.0, d="Close Long")))
     check("P2_FULLY_FILLED_CLOSE_PLACES_NOTHING_MORE", ok and len(fake.calls) == 1, str(fake.calls))
 
+    class CancelExchange(FakeExchange):
+        def __init__(self, replies=None, cancel_reply=None):
+            super().__init__(replies)
+            self.cancels, self.cancel_reply = [], cancel_reply
+
+        def cancel(self, coin, oid):
+            self.cancels.append(oid)
+            if isinstance(self.cancel_reply, Exception):
+                raise self.cancel_reply
+            return self.cancel_reply
+
+    ok_cancel = {"status": "ok", "response": {"type": "cancel", "data": {"statuses": ["success"]}}}
+    gone_cancel = {"status": "ok", "response": {"type": "cancel", "data": {"statuses": [
+        {"error": "Order was never placed, already canceled, or filled."}]}}}
+    led = ledger("p3", a_btc=2.0)
+    snapshot(2.0)
+    fake = CancelExchange([part], ok_cancel)
+    g = gateway(fake, led)
+    first = c.IntentBuilder(c.ConfigManager(), led).build(fill("SELL", size=2.0, d="Close Long"))
+    send_real(g, first)
+    standing = c.load_json(c.STANDING_CLOSES_FILE, {})
+    check("P3_STANDING_CLOSE_REMEMBERED_BY_SLEEVE", first.sleeve_id in standing and standing[first.sleeve_id]["size"] == 1.5,
+          str(standing))
+    led.sleeve(A, "BTC")["signed_size"] = 1.5   # the copy poll owned the 0.5 part fill
+    led._recompute_net(led.data)
+    snapshot(1.5)
+    fake.calls.clear()
+    nxt = c.IntentBuilder(c.ConfigManager(), led).build(fill("SELL", size=1.5, d="Close Long"))
+    ok, status, res = send_real(g, nxt)
+    check("P3_NEXT_CLOSE_WITHDRAWS_THE_STANDING_ONE_FIRST",
+          fake.cancels == [int(standing[first.sleeve_id]["oid"])] and fake.calls and fake.calls[0]["tif"] == "Ioc"
+          and abs(fake.calls[0]["size"] - 1.5) < 1e-9 and not c.load_json(c.STANDING_CLOSES_FILE, {}), f"{fake.cancels} {fake.calls}")
+    # the standing close filled before the next close: the ledger (brought up to date) decides what is left
+    led = ledger("p4", a_btc=2.0)
+    snapshot(2.0)
+    fake = CancelExchange([part], gone_cancel)
+    g = gateway(fake, led)
+    send_real(g, c.IntentBuilder(c.ConfigManager(), led).build(fill("SELL", size=2.0, d="Close Long")))
+    nxt = c.IntentBuilder(c.ConfigManager(), led).build(fill("SELL", size=2.0, d="Close Long"))
+
+    def owned_both():
+        led.sleeve(A, "BTC")["signed_size"] = 0.0
+        led._recompute_net(led.data)
+    g.truth_refresh = owned_both
+    fake.calls.clear()
+    ok, status, res = send_real(g, nxt)
+    check("P4_STANDING_CLOSE_ALREADY_FILLED_NOTHING_MORE_SENT", not fake.calls
+          and status == "SEND_NOT_ATTEMPTED_STANDING_CLOSE_FILLED", f"{status} {fake.calls}")
+    led = ledger("p5", a_btc=2.0)
+    snapshot(2.0)
+    fake = CancelExchange([part], RuntimeError("timeout"))
+    g = gateway(fake, led)
+    send_real(g, c.IntentBuilder(c.ConfigManager(), led).build(fill("SELL", size=2.0, d="Close Long")))
+    fake.calls.clear()
+    ok, status, res = send_real(g, c.IntentBuilder(c.ConfigManager(), led).build(fill("SELL", size=2.0, d="Close Long")))
+    check("P5_CANCEL_FAILED_STANDING_CLOSE_KEEPS_WORKING_NO_SECOND_CLOSE",
+          not fake.calls and status == "SEND_NOT_ATTEMPTED_STANDING_CLOSE_IN_PLACE"
+          and res.get("terminal_state") == "PENDING_EXIT_GUARD_ACTIVE", f"{status} {fake.calls}")
+    c.OPEN_ORDERS_FETCHER = lambda payload: []
+    for row in g._standing_closes.values():
+        row["placed_ms"] = 1
+    check("P6_FILLED_STANDING_CLOSES_FORGOTTEN_EACH_CYCLE", g.prune_standing_closes() == 0 and not g._standing_closes)
+    c.atomic_write_json(c.STANDING_CLOSES_FILE, {})
+    led = ledger("p7", a_btc=2.0)
+    fake = FakeExchange([NO_MATCH])
+    g = gateway(fake, led)
+    time.sleep(0.02)
+    config(send=False, marketable_bps=20)   # switched off while the close was being sent
+    send_real(g, c.IntentBuilder(c.ConfigManager(), led).build(fill("SELL", size=2.0, d="Close Long")))
+    check("P7_NO_STANDING_CLOSE_PLACED_AFTER_SENDING_IS_SWITCHED_OFF", [x["tif"] for x in fake.calls] == ["Ioc"], str(fake.calls))
+
     # ---- U: pending-exit guard is not "unclassified" ------------------------------------------------------------
     core = c.LiveCopyCore(source_csv=tmp / "none.csv")
     core.ledger.sleeve(A, "BTC")["signed_size"] = 2.0
@@ -274,7 +385,9 @@ def main() -> None:
     check("C3_RESTING_LIMITS_COUNT_TOWARD_THE_WALLET_CAP", d == "SEND_BLOCKED_RISK" and why == "max wallet exposure exceeded", f"{d} {why}")
     b.resting_exposure = lambda: (_ for _ in ()).throw(RuntimeError("boom"))
     b._exposure_pending = []
-    check("C4_UNREADABLE_RESTING_LIST_FAILS_CLOSED", "max total exposure" in b._exposure_cap_block(fill(), 12.0, 100.0))
+    check("C4_UNREADABLE_RESTING_LIST_FAILS_CLOSED", "unreadable" in b._exposure_cap_block(fill(), 12.0, 100.0))
+    d, why = b._decision(A, fill(), "ENTRY", 12.0, 0.0)
+    check("C4_UNREADABLE_RESTING_LIST_BLOCKS_THE_WALLET_CAP_TOO", d == "SEND_BLOCKED_RISK" and "unreadable" in why, f"{d} {why}")
 
     g = gateway(FakeExchange())
     g._resting_entries = {

@@ -97,6 +97,7 @@ def main() -> None:
     intent = c.IntentBuilder(c.ConfigManager(), gw.ledger).build(fill("SELL"))
     fake = FakeExchange()
     os.environ["HL_LIVE_MIN_EXCHANGE_ORDER_GAP_MS"] = "0"
+    gw.cfg.master_switch_now = lambda: True   # sending on: a standing close is never placed while it is off (run 4)
     gw._queue_exit_recovery_if_needed(fake, "BTC", intent, 99.0, 2.0, {}, "could not immediately match")
     check("O2_EXIT_RECOVERY_GOES_THROUGH_THE_ONE_SITE",
           used == ["Gtc"] and fake.calls == [{"size": 2.0, "px": 99.0, "tif": "Gtc", "reduce_only": True}], f"{used} {fake.calls}")
