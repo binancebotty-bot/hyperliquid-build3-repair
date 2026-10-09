@@ -5991,7 +5991,8 @@ class CopyFillMatcher:
         # Pre-patch live_fills stored copy_fill_id == exchange_hash (no :tid suffix).
         # Track raw exchange hashes separately so that on restart, a re-polled fill whose
         # copy_fill_id is now "hash:tid" still matches the old ledgered entry.
-        self.matched_exchange_hashes = {str(r.get("exchange_hash") or "") for r in live_rows if r.get("exchange_hash")}
+        self.matched_exchange_hashes = {str(r.get("exchange_hash") or "") for r in live_rows if r.get("exchange_hash")
+                                        and str(r.get("copy_fill_id") or "") == str(r.get("exchange_hash"))}
         self.sent_oid_index = self._load_sent_oid_index()  # norm_oid â†' full ORDER_FILLED send_attempt row
         self.sent_oid_by_intent_id = {
             str(row.get("intent_id") or ""): oid
@@ -9239,6 +9240,165 @@ def repair_recovery_copy_fills(start_ms: Optional[int] = None, end_ms: Optional[
     }
 
 
+COPY_FILLS_FETCHER = None  # test seam for the ledger-catch-up repair's full fill read; production uses HTTP
+
+
+def _read_all_copy_fills(start_ms: int, end_ms: int, max_pages: int = 200) -> Tuple[List[Dict[str, Any]], str]:
+    """Every follower fill in [start, end]: userFillsByTime pages of up to 2000, each next page restarting AT the
+    last fill's millisecond (several fills share one; repeats are dropped by hash:tid). Read-only."""
+    seen: Dict[str, Dict[str, Any]] = {}
+    start = int(start_ms)
+    for _ in range(max_pages):
+        payload = {"type": "userFillsByTime", "user": USER_WALLET, "startTime": start, "endTime": int(end_ms),
+                   "aggregateByTime": False}
+        try:
+            data = COPY_FILLS_FETCHER(payload) if COPY_FILLS_FETCHER is not None else \
+                requests.post(HL_INFO_URL, json=payload, timeout=HTTP_TIMEOUT_SEC).json()
+        except Exception as exc:
+            return list(seen.values()), f"FILLS_UNREADABLE: {exc!r}"[:200]
+        if not isinstance(data, list):
+            return list(seen.values()), "FILLS_UNREADABLE: non-list reply"
+        new = 0
+        for raw in data:
+            if isinstance(raw, dict):
+                cid = CopyAccountIngestor.copy_fill_id(raw)
+                if cid not in seen:
+                    seen[cid], new = dict(raw), new + 1
+        if len(data) < 2000:
+            return sorted(seen.values(), key=lambda r: int(fnum(r.get("time"), 0))), "FILLS_COMPLETE"
+        last = max(int(fnum(r.get("time"), 0)) for r in data if isinstance(r, dict))
+        if new == 0:  # a whole page inside one millisecond: cannot page past it safely
+            return list(seen.values()), "FILLS_INCOMPLETE: more than 2000 fills in one millisecond"
+        start = last
+    return list(seen.values()), "FILLS_INCOMPLETE: page limit reached"
+
+
+def repair_ledger_catch_up(start_ms: Optional[int] = None, dry_run: bool = True) -> Dict[str, Any]:
+    """Run 4 repair: the ledger missed fills of the engine's own orders (standing recovery closes were not in
+    send_attempts, so the copy poll left their fills unmatched), so it shows positions the exchange closed.
+
+    Ledger and audit files only: places NO order, cancels nothing, writes nothing to the exchange (reads only).
+    For each coin where the ledger's net differs from the exchange's net: take the follower's fills of that
+    coin that the ledger has not owned. The coin is repaired ONLY if every one of them is a fill of an order
+    this engine placed (order id in its send history or recovery list), none was already claimed, and
+    replaying them through the engine's normal fill path makes the ledger's net equal the exchange's net
+    exactly. Otherwise the coin is refused and reported. Every applied fill is written to live_fills.csv and
+    reconciliation.csv (LEDGER_CATCH_UP_REPAIR). Also reports, for every exchange position, whether the engine's
+    own order ids explain it."""
+    ensure_dirs()
+    ledger = ManualLedger()
+    audit = AuditLogWriter()
+    matcher = CopyFillMatcher(ledger, audit)
+    if start_ms is None:
+        times = [int(fnum(r.get("created_at_ms"), 0)) for r in read_csv_rows(SEND_ATTEMPTS_CSV)]
+        times = [t for t in times if t > 0]
+        start_ms = (min(times) - 60_000) if times else utc_now_ms() - 7 * 86_400_000
+    end_ms = utc_now_ms()
+    ledger_coins = {canonical_coin_key(c) for wm in (ledger.data.get("by_wallet") or {}).values()
+                    if isinstance(wm, dict) for c in wm}
+    dexes = sorted(set(follower_dex_scope()) | {c.split(":", 1)[0].lower() for c in ledger_coins if ":" in c})
+    exp = _XNET.master_exposure(normalise_wallet(USER_WALLET), dexes, fetcher=EXPOSURE_FETCHER,
+                                info_url=HL_INFO_URL, timeout=HTTP_TIMEOUT_SEC)
+    if not exp.get("ok"):
+        return {"status": "REFUSED", "reason": f"exchange positions unreadable ({exp.get('status')} {exp.get('dex', '')})"}
+    fills, fills_status = _read_all_copy_fills(int(start_ms), end_ms)
+    if fills_status != "FILLS_COMPLETE":
+        return {"status": "REFUSED", "reason": fills_status, "fills_read": len(fills)}
+    ex_net: Dict[str, float] = {}
+    for k, v in (exp.get("by_coin") or {}).items():
+        ex_net[canonical_coin_key(k)] = ex_net.get(canonical_coin_key(k), 0.0) + fnum(v.get("net"))
+
+    def sent_row_for(oid: str) -> Optional[Dict[str, str]]:
+        return (matcher._fresh_sent_row_for_oid(oid) or matcher.sent_oid_index.get(oid)
+                or matcher.recovery_oid_index.get(oid))
+
+    claims_dir = AUDIT_DIR / "copy_fill_claims"
+    by_coin_fills: Dict[str, List[Dict[str, Any]]] = {}
+    for raw in fills:
+        by_coin_fills.setdefault(canonical_coin_key(raw.get("coin")), []).append(raw)
+    coins = sorted(ledger_coins | set(ex_net) | set(by_coin_fills))
+    tol = lambda a, b: abs(a - b) <= max(POSITION_EPSILON, 1e-9 * max(abs(a), abs(b), 1.0))
+    repairs, refused, positions = [], [], []
+    for coin in coins:
+        led_net, x_net = ledger.coin_net(coin), ex_net.get(coin, 0.0)
+        coin_fills = by_coin_fills.get(coin, [])
+        engine_sum = foreign_sum = 0.0
+        unowned: List[Tuple[Dict[str, Any], str, Optional[Dict[str, str]]]] = []
+        for raw in coin_fills:
+            oid = CopyFillMatcher._normalize_oid(CopyFillMatcher._copy_fill_oid(raw))
+            row = sent_row_for(oid) if oid else None
+            delta = ManualLedger.signed_delta(normalise_copy_fill_side(raw.get("side") or raw.get("dir") or ""),
+                                              abs(fnum(raw.get("sz", raw.get("size")))))
+            if row is not None:
+                engine_sum += delta
+            else:
+                foreign_sum += delta
+            cid = CopyAccountIngestor.copy_fill_id(raw)
+            # owned: by hash:tid, or by bare hash for rows written before hash:tid keys
+            if cid not in matcher.matched_copy_fill_ids and str(raw.get("hash") or "") not in matcher.matched_exchange_hashes:
+                unowned.append((raw, oid, row))
+        if abs(x_net) > POSITION_EPSILON:
+            positions.append({"coin": coin, "exchange_net": x_net, "ledger_net": led_net,
+                              "engine_fill_net_in_window": round(engine_sum, 10),
+                              "other_fill_net_in_window": round(foreign_sum, 10),
+                              "held_before_window": round(x_net - engine_sum - foreign_sum, 10),
+                              "explained_by_engine_orders": tol(engine_sum, x_net) and abs(foreign_sum) <= POSITION_EPSILON,
+                              "ledger_matches_exchange": tol(led_net, x_net)})
+        if tol(led_net, x_net):
+            continue
+        why = ""
+        if not unowned:
+            why = "no unowned fills explain the difference"
+        elif any(row is None for _r, _o, row in unowned):
+            why = "an unowned fill is not from an order this engine placed"
+        elif any((claims_dir / (_safe_marker_name(CopyAccountIngestor.copy_fill_id(r)) + ".claim")).exists()
+                 for r, _o, _row in unowned):
+            why = "an unowned fill was already claimed by a process"
+        sim: Dict[str, float] = {}
+        if not why:
+            for raw, _oid, row in unowned:
+                w = normalise_wallet(str(row.get("leader_wallet") or ""))
+                sim.setdefault(w, ledger.wallet_coin_position(w, coin))
+                sim[w] += ManualLedger.signed_delta(normalise_copy_fill_side(raw.get("side") or raw.get("dir") or ""),
+                                                    abs(fnum(raw.get("sz", raw.get("size")))))
+            after = led_net + sum(sim[w] - ledger.wallet_coin_position(w, coin) for w in sim)
+            if not tol(after, x_net):
+                why = f"replaying the unowned engine fills gives ledger net {round(after, 10)}, exchange holds {x_net}"
+        entry = {"coin": coin, "ledger_net": led_net, "exchange_net": x_net, "unowned_fills": len(unowned),
+                 "sleeves_after": {w: round(v, 10) for w, v in sim.items()}}
+        if why:
+            refused.append({**entry, "reason": why})
+            continue
+        entry["fills"] = [{"copy_fill_id": CopyAccountIngestor.copy_fill_id(r), "oid": o, "side": r.get("side"),
+                           "sz": r.get("sz"), "time": r.get("time"), "intent_id": row.get("intent_id")}
+                          for r, o, row in unowned]
+        if not dry_run:
+            for raw, oid, row in sorted(unowned, key=lambda u: int(fnum(u[0].get("time"), 0))):
+                item = dict(raw)
+                item["source"] = "ledger_catch_up_repair"
+                if not matcher._apply_oid_matched_copy_fill(item, row, oid, CopyAccountIngestor.copy_fill_id(raw)):
+                    entry.setdefault("not_applied", []).append(CopyAccountIngestor.copy_fill_id(raw))
+            entry["ledger_net_after"] = ledger.coin_net(coin)
+            entry["verified"] = tol(entry["ledger_net_after"], x_net)
+            audit.append_reconciliation(
+                "LEDGER_REPAIR", "LEDGER_CATCH_UP_REPAIR" if entry["verified"] else "LEDGER_CATCH_UP_REPAIR_INCOMPLETE",
+                coin=coin, manual_net=led_net, exchange_net=x_net, action="LEDGER_FILLS_ADOPTED",
+                terminal_state="LEDGER_REPAIR_PROVEN_BY_ENGINE_ORDER_FILLS" if entry["verified"] else "MANUAL_REVIEW_LEDGER_REPAIR",
+                engine_can_send="False",
+                notes=(f"run 4 ledger catch-up: {len(unowned)} unowned fill(s) of this engine's own orders replayed through "
+                       f"the normal fill path; ledger net {led_net} -> {entry['ledger_net_after']}; exchange net {x_net}; "
+                       "ledger only, no exchange order placed or cancelled"))
+        repairs.append(entry)
+    if not dry_run and repairs:
+        write_live_integrity_status()
+    return {"status": "DRY_RUN" if dry_run else "APPLIED", "network": FOLLOWER_NETWORK, "account": USER_WALLET,
+            "window_start_ms": int(start_ms), "window_end_ms": end_ms, "fills_read": len(fills),
+            "repairs": repairs, "refused": refused, "exchange_positions": positions,
+            "exchange_positions_count": len(positions),
+            "exchange_positions_all_explained": all(p["explained_by_engine_orders"] for p in positions),
+            "exchange_positions_ledger_matches": all(p["ledger_matches_exchange"] for p in positions)}
+
+
 _INSTANCE_LOCK = None
 
 
@@ -9270,6 +9430,10 @@ def main() -> None:
     parser.add_argument("--repair-recovery-start-ms", type=int, default=None, help="Start timestamp for --repair-recovery-copy-fills")
     parser.add_argument("--repair-recovery-end-ms", type=int, default=None, help="End timestamp for --repair-recovery-copy-fills")
     parser.add_argument("--dry-run", action="store_true", help="For repair commands: report eligible rows without mutating the Core ledger")
+    parser.add_argument("--repair-ledger-catch-up", action="store_true",
+                        help="Run 4 repair, ledger only: adopt unowned fills of this engine's own orders where that makes the "
+                             "ledger equal the exchange; refuses any other coin. Use --dry-run first. Engine must be stopped.")
+    parser.add_argument("--repair-start-ms", type=int, default=None, help="Fill window start for --repair-ledger-catch-up")
     parser.add_argument("--once", action="store_true")
     parser.add_argument("--source-file", default="", help="Leader fills CSV for forensic replay (default: WS-only, no CSV)")
     parser.add_argument("--poll-live", action="store_true", help="Use read-only userFillsByTime polling for leaders")
@@ -9289,6 +9453,12 @@ def main() -> None:
     if args.repair_flat_ledger_only:
         result = repair_flat_ledger_only_positions(args.repair_coin)
         print(json.dumps(result, indent=2, sort_keys=True))
+        return
+    if args.repair_ledger_catch_up:
+        if not args.dry_run:
+            acquire_instance_lock(AUDIT_DIR)  # refuses while the engine runs on this state folder
+        result = repair_ledger_catch_up(args.repair_start_ms, dry_run=args.dry_run)
+        print(json.dumps(result, indent=2, sort_keys=True, default=str))
         return
     if args.repair_recovery_copy_fills:
         result = repair_recovery_copy_fills(args.repair_recovery_start_ms, args.repair_recovery_end_ms, args.dry_run)
