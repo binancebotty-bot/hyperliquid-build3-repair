@@ -279,6 +279,44 @@ def already_closed_late_entries(fills: List["LeaderFill"], now_ms: int) -> Dict[
     return out
 
 
+SIGNER_ROLE_FETCHER = None  # test seam for the follower-network userRole read; production uses HTTP
+
+
+def _short(addr: str) -> str:
+    a = str(addr or "")
+    return f"{a[:6]}...{a[-4:]}" if len(a) > 12 else a
+
+
+def sender_key_check() -> Dict[str, Any]:
+    """Is the configured signing key usable on the FOLLOWER network for the follower account? The key's
+    public address (never the key) is looked up with userRole on the follower network: valid when it is
+    the account itself ("user") or an agent approved by that account. ok=True / False / None (unreadable)."""
+    key = os.getenv("HL_LIVE_HL_PRIVATE_KEY", "").strip()
+    if not key:
+        return {"ok": True, "detail": "no signing key configured (no real orders possible)"}
+    if HLAccount is None:
+        return {"ok": None, "detail": "eth_account unavailable: signing key not checked"}
+    try:
+        signer = normalise_wallet(HLAccount.from_key(key).address)
+    except Exception:
+        return {"ok": False, "detail": "HL_LIVE_HL_PRIVATE_KEY is not a valid private key"}
+    account = normalise_wallet(os.getenv("HL_LIVE_HL_ACCOUNT_ADDRESS", "").strip() or signer)
+    res = _XNET.post_many(SIGNER_ROLE_FETCHER, [{"type": "userRole", "user": signer}], HL_INFO_URL, HTTP_TIMEOUT_SEC)[0]
+    data = res.get("data") if res.get("ok") else None
+    if not isinstance(data, dict) or not data.get("role"):
+        return {"ok": None, "detail": f"userRole unreadable on {FOLLOWER_NETWORK}: signing key not checked"}
+    role = str(data.get("role")).lower()
+    owner = normalise_wallet((data.get("data") or {}).get("user", "")) if isinstance(data.get("data"), dict) else ""
+    ok = (role == "user" and signer == account) or (role == "agent" and owner == account)
+    where = f"on {FOLLOWER_NETWORK}"
+    detail = (f"signing wallet {_short(signer)} is {role!r} {where}"
+              + (f" for {_short(owner)}" if owner else "") + f"; follower account {_short(account)}")
+    if not ok:
+        detail += (f": this key cannot place orders for that account {where} (key from another network, or the "
+                   f"agent is not approved by this account). Fix the key in the {FOLLOWER_NETWORK} env file")
+    return {"ok": ok, "detail": detail, "role": role}
+
+
 DEFAULT_FIXED_NOTIONAL = float(os.getenv("HL_LIVE_DEFAULT_FIXED_NOTIONAL", "10"))
 DEFAULT_MIN_NOTIONAL = float(os.getenv("HL_LIVE_MIN_NOTIONAL", "10"))
 DEFAULT_MARKETABLE_BPS = float(os.getenv("HL_LIVE_MARKETABLE_BPS", "25"))
@@ -385,6 +423,8 @@ def _response_text(exchange_response: Any) -> str:
 
 def classify_reject_category(error_text: str = "", exchange_response: Any = None) -> str:
     msg = f"{error_text or ''} {_response_text(exchange_response)}".lower()
+    if ("does not exist" in msg and ("wallet" in msg or "user" in msg)) or "must deposit before performing actions" in msg:
+        return "SENDER_KEY_NOT_VALID"  # the follower exchange does not know the signing key: wrong network / not approved
     if "could not immediately match" in msg:
         return "IOC_NO_IMMEDIATE_MATCH"
     if "resting orders" in msg and ("ioc" in msg or "immediate" in msg or "no fill" in msg or "match" in msg):
@@ -442,6 +482,8 @@ def classify_terminal_state(status: str, reject_category: str = "", lifecycle: s
     lifecycle = str(lifecycle or "UNKNOWN_LIFECYCLE").upper()
     if status == "ORDER_FILLED":
         return "FILLED_AWAITING_COPY_POLL"
+    if category == "SENDER_KEY_NOT_VALID" or status == "SEND_BLOCKED_SENDER_KEY_NOT_VALID":
+        return "SENDER_KEY_NOT_VALID_ON_FOLLOWER_NETWORK"
     if not exchange_called:
         if status == "SPOT_MARKET_SKIPPED" or category == "SPOT_MARKET_SKIPPED":
             return "SPOT_MARKET_SKIPPED"
@@ -474,6 +516,8 @@ def classify_terminal_state(status: str, reject_category: str = "", lifecycle: s
             "SEND_NOT_ATTEMPTED_PRICE_SANITY": "PRICE_SANITY_REJECTED",
         }
         return pre.get(category or status, "SEND_OUTCOME_REVIEW_REQUIRED")
+    if category == "SENDER_KEY_NOT_VALID" or status == "SEND_BLOCKED_SENDER_KEY_NOT_VALID":
+        return "SENDER_KEY_NOT_VALID_ON_FOLLOWER_NETWORK"
     if status == "EXCHANGE_ERROR":
         return "EXCHANGE_CALL_ERROR_REVIEW_REQUIRED"
     if status == "ORDER_REJECTED":
@@ -522,6 +566,8 @@ def classify_operator_action(status: str, reject_category: str = "", lifecycle: 
         return "NO_SEND_UNSUPPORTED_SYMBOL"
     if terminal_state == "FILLED_AWAITING_COPY_POLL":
         return "WAIT_FOR_COPY_POLL"
+    if terminal_state == "SENDER_KEY_NOT_VALID_ON_FOLLOWER_NETWORK":
+        return "MANUAL_REVIEW_FIX_SENDER_KEY_SENDING_STOPPED"
     if terminal_state.startswith("MISSED_ENTRY"):
         return "MISSED_ENTRY"
     if terminal_state.startswith("MISSED_ADD"):
@@ -1953,6 +1999,8 @@ class Intent:
 @dataclass
 class CycleSummary:
     ok: bool = True
+    entry_sends_blocked_reason: str = ""  # cycle entry gate result, shown on the live screen
+    sender_key_invalid: str = ""  # follower exchange rejected the signing key: all sending stopped
     cycle: str = "run_cycle"
     auto_send_enabled: bool = False
     master_real_orders_enabled: bool = False
@@ -2769,6 +2817,7 @@ class SenderGateway:
         self._asset_snapshot_loaded: bool = False
         self._suppress_unknown_asset_persist: bool = False
         self._exchange_order_lock = threading.Lock()
+        self.sender_key_invalid: str = ""  # set by a definite exchange rejection of the signing key; stops all sending
         self._resting_entries: Dict[str, Dict[str, Any]] = load_json(RESTING_ENTRY_ORDERS_FILE, {}) or {}
         self._last_exchange_order_ms: int = 0
         self._exchange_rate_limit_cooldown_until_ms: int = 0
@@ -2788,7 +2837,28 @@ class SenderGateway:
             self._wait_exchange_order_slot()
             if timing is not None and started_key:
                 timing[started_key] = utc_now_ms()
-            return exchange.order(sdk_coin, is_buy, size, limit_px, {"limit": {"tif": tif}}, reduce_only=reduce_only)
+            response = exchange.order(sdk_coin, is_buy, size, limit_px, {"limit": {"tif": tif}}, reduce_only=reduce_only)
+        self._note_sender_key_rejection(response)
+        return response
+
+    def _note_sender_key_rejection(self, response: Any) -> None:
+        """A definite "this signer does not exist" reply means no order can work: stop ALL sending at once
+        (entries and exits) with a red diff, until the engine is restarted with a valid key."""
+        if self.sender_key_invalid or not isinstance(response, dict):
+            return
+        ok, _status, _oid, error = self._parse_hl_response(response)
+        if ok or classify_reject_category(error, response) != "SENDER_KEY_NOT_VALID":
+            return
+        self.sender_key_invalid = error or "signing wallet unknown to the follower exchange"
+        log_error("sender_key_not_valid", RuntimeError(self.sender_key_invalid))
+        self.audit.append_reconciliation(
+            "SEND_TERMINAL", "SENDER_KEY_NOT_VALID_ON_FOLLOWER_NETWORK",
+            action="MANUAL_REVIEW_FIX_SENDER_KEY_SENDING_STOPPED", reject_category="SENDER_KEY_NOT_VALID",
+            terminal_state="SENDER_KEY_NOT_VALID_ON_FOLLOWER_NETWORK", engine_can_send="False", engine_can_close="False",
+            notes=(f"the {FOLLOWER_NETWORK} exchange rejected the signing key ({self.sender_key_invalid}); the key belongs "
+                   "to another network or is not approved for the follower account. ALL sending is stopped; fix the key "
+                   "and restart the engine"),
+        )
 
     def _cancel_order(self, exchange: Any, sdk_coin: str, oid: str) -> Any:
         """The ONE physical exchange cancel call: missed-entry limits the leader no longer supports."""
@@ -3427,6 +3497,8 @@ class SenderGateway:
             return False, stale_reason
         if not self.cfg.auto_send_enabled:
             return False, "MASTER_REAL_ORDERS_OFF"
+        if self.sender_key_invalid:
+            return False, "SEND_BLOCKED_SENDER_KEY_NOT_VALID"
         if entry_block_reason:
             lifecycle = classify_send_lifecycle(intent)
             if lifecycle in {"ENTRY", "ADD"}:
@@ -4748,6 +4820,8 @@ class SenderGateway:
     @staticmethod
     def _parse_hl_response(response: Any) -> Tuple[bool, str, str, str]:
         try:
+            if isinstance(response, dict) and str(response.get("status") or "").lower() == "err":
+                return False, "ORDER_REJECTED", "", str(response.get("response") or "exchange returned status=err")[:500]
             statuses = response.get("response", {}).get("data", {}).get("statuses", [])
             if statuses:
                 s = statuses[0]
@@ -6123,6 +6197,8 @@ class ServiceStateWriter:
             "budget_exceeded_note": "cycle_timing_only — not a financial cap; applies no order blocks",
             "effective_global_controls": _eff_gc,
             "networks": {"leader": LEADER_NETWORK, "follower": FOLLOWER_NETWORK},
+            "entry_sends_blocked_reason": summary.entry_sends_blocked_reason,
+            "sender_key_invalid": summary.sender_key_invalid,
             "ws_status": ws.get("ws_status") or ("WS_DEGRADED" if fnum(ws.get("stale_count"), 0) > 0 else "WS_OK"),
             "ws_wallet_count": ws.get("wallet_count", 0),
             "ws_open_count": ws.get("open_count", 0),
@@ -6258,6 +6334,17 @@ class LiveCopyCore:
                     pass
 
     def _append_send_terminal(self, fill: LeaderFill, intent: Intent, send_status: str) -> None:
+        if send_status == "SEND_BLOCKED_SENDER_KEY_NOT_VALID":
+            self.audit.append_reconciliation(
+                "SEND_TERMINAL", "SENDER_KEY_NOT_VALID_ON_FOLLOWER_NETWORK",
+                leader_wallet=fill.leader_wallet, leader_fill_id=fill.leader_fill_id, intent_id=intent.intent_id,
+                coin=fill.coin, action="MANUAL_REVIEW_FIX_SENDER_KEY_SENDING_STOPPED",
+                reject_category="SENDER_KEY_NOT_VALID", terminal_state="SENDER_KEY_NOT_VALID_ON_FOLLOWER_NETWORK",
+                engine_can_send="False",
+                notes=(f"not sent ({classify_send_lifecycle(intent)} {intent.copy_side} {intent.copy_size} {fill.coin}): "
+                       f"sending stopped after the exchange rejected the signing key: {self.sender.sender_key_invalid}"),
+            )
+            return
         if send_status == "REAL_SENDER_NOT_CONFIGURED" and intent.send_allowed and self.cfg.auto_send_enabled:
             lifecycle = classify_send_lifecycle(intent)
             if lifecycle in {"EXIT", "REDUCE"}:
@@ -6584,8 +6671,11 @@ class LiveCopyCore:
             self.sender.refresh_asset_universe()
             ws_health = self.ws.write_health()
             # --- Cycle-level entry safety gates ---
+            # Gate 0: the follower exchange rejected the signing key (sticky until restart with a valid key)
+            if self.sender.sender_key_invalid:
+                _block = "SENDER_KEY_NOT_VALID"
             # Gate 1: WS feed stale (only blocks when WS is enabled and DEGRADED)
-            if ((bval(os.getenv("HL_LIVE_WS_ENABLED"), False) or self.ws.enabled)
+            if (not _block and (bval(os.getenv("HL_LIVE_WS_ENABLED"), False) or self.ws.enabled)
                     and ws_health.get("ws_summary", {}).get("worst_health_grade") == "DEGRADED"):
                 _block = "WS_FEED_STALE"
             # Gate 2: copy poll stale — only fires after at least one successful poll
@@ -6611,6 +6701,8 @@ class LiveCopyCore:
             if not _block:
                 _block = self._scope_sweep_block()
             self._entry_sends_blocked_reason = _block
+            summary.entry_sends_blocked_reason = _block
+            summary.sender_key_invalid = self.sender.sender_key_invalid
             # --- end entry safety gates ---
             fills: List[LeaderFill] = []
             fills.extend(self.ws.drain())
@@ -8256,6 +8348,11 @@ def main() -> None:
         except _XNET.NetworkConfigError as exc:
             raise SystemExit(f"HL network configuration refused: {exc}")
         acquire_instance_lock(AUDIT_DIR)
+        _key = sender_key_check()
+        if _key["ok"] is False:
+            raise SystemExit(f"SENDER_KEY_NOT_VALID_ON_FOLLOWER_NETWORK: {_key['detail']}")
+        if _key["ok"] is None:
+            print(f"WARNING: {_key['detail']}; a rejection on the first order will stop all sending", file=sys.stderr)
         _active = ConfigManager().active_wallets()
         if len(_active) > MAX_WALLETS:
             raise SystemExit(f"TOO_MANY_ACTIVE_WALLETS: {len(_active)} wallets are LIVE/CLO but the leader stream "
