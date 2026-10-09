@@ -581,7 +581,7 @@ for r in R:
         r["sources"].append("Boss decision, Network switch thread 2026-10-09T13:26Z")
 
 # OD-21 decided (Boss, 2026-10-09T15:07Z): the certified UI is the 13 May "Live Copy Command Centre" file
-# (source sha256 fad19d22..., 7,243 lines; repo branch claude/restore-live-screen-0513 @ 91e9980). The previously
+# (source sha256 fad19d22..., 7,243 lines; repo branch claude/restore-live-screen-0513 @ 38776e0, byte-exact). The previously
 # tracked HL_Copy_App_SSOT.py (sha256 c0f9e508...) had the Command Centre markup but no /live-copy route; it was the
 # walletproof modelling screen. Records derived from it are re-checked against the 13 May file: an element still
 # present is re-pointed; an element absent is SUPERSEDED. Evidence gathered against the old file is void.
