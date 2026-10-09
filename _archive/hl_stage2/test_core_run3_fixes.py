@@ -180,6 +180,32 @@ def main() -> None:
     check("K7_CAPPED_COPY_READ_RESUMES_AFTER_ITS_NEWEST_FILL", last == 1002 + c.POLL_OVERLAP_MS, str(last))
     core.stop()
 
+    # ---- K8: send workers and the copy poll never touch the shared records at the same time --------------------
+    # (review: worker intent builds vs the copy matcher walking intents_by_id / the ledger's dicts raised
+    # "dictionary changed size during iteration" and lost a copy fill)
+    config()
+    core = c.LiveCopyCore(source_csv=tmp / "none.csv")
+    core.dedupe.copy_account_baseline_set = True
+    core.reconciler.fetch_snapshot = lambda: ({}, "SNAPSHOT_UNAVAILABLE")
+    core.copy_ingestor.poll_copy_account_fills = lambda w, s0, s1, **k: ([{"coin": "BTC", "oid": 9, "side": "B", "sz": "1",
+        "px": "1", "hash": "k8", "tid": 1, "time": c.utc_now_ms(), "timestamp_ms": c.utc_now_ms(), "copy_fill_id": "k8"}],
+        "COPY_ACCOUNT_POLLED")
+    held = []
+    core.matcher.match_and_apply = lambda raw, intents: held.append(core._send_lock.locked()) or True
+    core.run_cycle(use_source_csv=False, poll_copy=True)
+    check("K8_COPY_POLL_HOLDS_THE_SEND_LOCK_WORKERS_BUILD_UNDER", held == [True], str(held))
+    led = c.ManualLedger(path=tmp / "k8.json")
+    led._lock.acquire()
+    got = []
+    t = threading.Thread(target=lambda: got.append(led.sleeve(A, "BTC")))
+    t.start()
+    t.join(0.3)
+    blocked = t.is_alive()
+    led._lock.release()
+    t.join(2)
+    check("K8_LEDGER_READS_AND_WRITES_SERIALISED", blocked and got, f"blocked={blocked} got={bool(got)}")
+    core.stop()
+
     # ---- S1: exchange calls overlap, the pacing slot does not ---------------------------------------------
     os.environ["HL_LIVE_MIN_EXCHANGE_ORDER_GAP_MS"] = "50"
     gw = c.SenderGateway(c.ConfigManager(), c.AuditLogWriter())
@@ -347,7 +373,7 @@ def main() -> None:
         led._recompute_net(led.data)
         snapshot(0.0)
     threading.Thread(target=catch_up).start()
-    os.environ["HL_LIVE_NETTING_RETRY_WAIT_SEC"] = "5"
+    os.environ["HL_LIVE_NETTING_RETRY_WAIT_SEC"] = "3"
     set_mid(100.0)
     ok, status, res = send_real(g, it)
     check("N9_REDUCE_ONLY_REJECT_RESENT_AFTER_CATCH_UP", ok and [x["reduce_only"] for x in fake.calls] == [True, False]
@@ -364,7 +390,7 @@ def main() -> None:
 
     # ---- N10: the screen shows each coin's net and which leader holds what --------------------------------------
     ui = (HERE / "HL_Copy_App_SSOT.py").read_text(encoding="utf-8-sig")
-    check("N10_SCREEN_NET_BY_COIN_WITH_LEADERS", 'id="lcNetByCoinRows"' in ui and "function netByCoin(owned)" in ui
+    check("N10_SCREEN_NET_BY_COIN_WITH_LEADERS", 'id="lcNetByCoinRows"' in ui and "function netByCoin(owned,orphan)" in ui
           and "Which leader holds what" in ui)
     check("S3_STALE_CUTOFF_ON_GLOBAL_CONTROLS", 'id="gcStaleSec"' in ui and "stale_entry_sec:g('gcStaleSec')" in ui
           and '"stale_entry_sec": 30.0' in ui)

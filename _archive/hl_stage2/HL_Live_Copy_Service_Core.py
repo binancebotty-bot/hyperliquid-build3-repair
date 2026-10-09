@@ -2277,6 +2277,7 @@ class DedupeStore:
 
 class ManualLedger:
     def __init__(self, path: Optional[Path] = None):
+        self._lock = threading.RLock()  # send workers read sleeves while the copy poll writes them (run 3 fixes)
         self.path = path or MANUAL_LIVE_POSITIONS_FILE
         self._last_seen_disk_mtime_ns = 0
         self.data = self._load()
@@ -2512,6 +2513,23 @@ class ManualLedger:
             self._last_seen_disk_mtime_ns = self.path.stat().st_mtime_ns if self.path.exists() else self._last_seen_disk_mtime_ns
         except Exception:
             pass
+
+
+def _ledger_locked(fn: Any) -> Any:
+    def locked(self: "ManualLedger", *a: Any, **k: Any) -> Any:
+        lock = self.__dict__.get("_lock")
+        if lock is None:
+            return fn(self, *a, **k)
+        with lock:
+            return fn(self, *a, **k)
+    locked.__name__, locked.__doc__ = fn.__name__, fn.__doc__
+    return locked
+
+
+for _ledger_method in ("sleeve", "wallet_coin_position", "coin_net", "total_abs_exposure_usd", "wallet_abs_exposure_usd",
+                       "classify_leader_side_for_wallet", "apply_copy_fill", "close_sleeve_as_exchange_flat",
+                       "_recompute_net", "save"):
+    setattr(ManualLedger, _ledger_method, _ledger_locked(getattr(ManualLedger, _ledger_method)))
 
 
 class AuditLogWriter:
@@ -3296,7 +3314,7 @@ class SenderGateway:
         )
         try:
             recovery_response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", close_size,
-                                                  limit_px, "Gtc", self._reduce_only_on_wire(intent, close_size))
+                                                  limit_px, "Gtc", True)  # rests with no expiry: never over-closes
             ok, status, oid, error = self._parse_hl_response(recovery_response)
             self.audit.append_reconciliation(
                 "EXIT_RECOVERY", "EXIT_RECOVERY_QUEUED" if ok else "EXIT_RECOVERY_QUEUE_FAILED",
@@ -4087,7 +4105,7 @@ class SenderGateway:
                 # netting (F3): another leader's opposite fill moved the account before the records caught up. Wait
                 # for the ledger and exchange views to catch up (same coin = same worker, so nothing else of this
                 # coin is sent meanwhile) and resend once without reduce-only if they now agree.
-                deadline = time.monotonic() + max(0.0, fnum(os.getenv("HL_LIVE_NETTING_RETRY_WAIT_SEC"), 8.0))
+                deadline = time.monotonic() + max(0.0, fnum(os.getenv("HL_LIVE_NETTING_RETRY_WAIT_SEC"), 3.0))
                 while True:
                     if not self._reduce_only_on_wire(intent, wire_size):
                         first_error = parsed_error
@@ -7136,7 +7154,7 @@ class LiveCopyCore:
                     summary.copy_account_status = "COPY_ACCOUNT_BASELINED"
                     self.audit.append_reconciliation("COPY_ACCOUNT_BASELINE", "COPY_ACCOUNT_BASELINED", notes=f"baseline historical copy fills count={summary.copy_fills_baselined}; no ledger mutation")
                 else:
-                  with self._copy_ingest_lock:
+                  with self._send_lock, self._copy_ingest_lock:  # send workers build intents from the same ledger
                     for raw_copy in copy_fills:
                         copy_id = CopyAccountIngestor.copy_fill_id(raw_copy)
                         recovery_oid = CopyFillMatcher._normalize_oid(CopyFillMatcher._copy_fill_oid(raw_copy))

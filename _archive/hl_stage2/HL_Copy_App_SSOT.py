@@ -6708,8 +6708,13 @@ function walletDetailHtml(wallet){
  out+='</div>';
  return out;
 }
-function netByCoin(owned){
+function netByCoin(owned,orphan){
  const by={};
+ for(const r of (orphan||[])){  // the exchange holds a position no leader explains: shown as a mismatch
+  const c=String(r.coin||'—');const ex=(r.exchange_signed_size==null||r.exchange_signed_size==='')?NaN:Number(r.exchange_signed_size);
+  if(!by[c]) by[c]={coin:c,net:0,ex:null,legs:[]};
+  if(!isNaN(ex)) by[c].ex=ex;
+ }
  for(const r of owned){
   const c=String(r.coin||'—');const s=Number(r.signed_size||0);
   if(!by[c]) by[c]={coin:c,net:0,ex:null,legs:[]};
@@ -6724,7 +6729,7 @@ function renderPositions(){
  const owned=lcAudit.owned_copy_positions||[];
  const orphan=lcAudit.orphan_exchange_positions||[];
  const netBox=root.querySelector('#lcNetByCoinRows');
- if(netBox) netBox.innerHTML=netByCoin(owned).map(x=>{
+ if(netBox) netBox.innerHTML=netByCoin(owned,orphan).map(x=>{
   const net=Math.abs(x.net)<1e-12?0:x.net;
   const tol=Math.max(1e-9,Math.abs(net)*1e-6);
   const st=x.ex==null?'EXCHANGE_UNAVAILABLE':(Math.abs(net-x.ex)<=tol?'MATCH':'MISMATCH');
