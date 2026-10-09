@@ -1,21 +1,21 @@
 {
   "schema": "wigmore_project_control_state_v1",
   "project": "hyperliquid-build3-repair",
-  "updated_utc": "2026-10-09T09:53:08Z",
+  "updated_utc": "2026-10-09T13:59:02.780724Z",
   "operator": "richard:operator",
   "architect": {
     "role": "project-architect",
-    "status": "G4_F3_MARK_AUTHORITY_RULING_PENDING",
+    "status": "G4_F3_RULING_CONSUMED_REPORT_BEFORE_CODE",
     "wake_mode": "EVENT_DRIVEN_ONLY",
     "pending_escalation": {
       "message_id": "B3-C2A-G4-F3-MARK-AUTHORITY-RULING-1",
       "raised_by": "gpt:reviewer-controller",
       "sequence": 59,
       "created_at_utc": "2026-10-08T22:22:35Z",
-      "answered": false,
+      "answered": true,
       "carrier": "1e7abfc997e8b1fc10810d70763245f1022aa009",
       "answer_bucket": "control_mailbox/outbox (gpt:* targets route to outbox)",
-      "note": "As of this refresh the newest gpt:project-architect envelope in the outbox is B3-A2C-G4-8014-SLICE-SEMANTICS-RULING-1 (18:43Z), which PRECEDES this 22:22Z escalation. The F3 ruling has NOT landed."
+      "note": "Answered by B3-A2C-G4-F3-MARK-AUTHORITY-RULING-1, sequence62, commit7aecdd2830e6c9949e4009be29ac9d634b55328f; semantic validity confirmed by Architect sequence63 and consumed by Controller sequence64. Historical delivery envelope preserved unchanged."
     }
   },
   "controller": {
@@ -33,7 +33,7 @@
   },
   "implementation_owner": {
     "role": "hermes:implementation-owner",
-    "status": "WAIT_AUTHORISED_PENDING_ARCHITECT_F3",
+    "status": "RULING_CONSUMED_REPORT_BEFORE_CODE",
     "session": "20261007_214500_b3hermes",
     "production_changes_authorised": false
   },
@@ -80,7 +80,7 @@
   "current_gate": {
     "task_id": "G4-F3-AUTHORITATIVE-CURRENT-MARK-SEMANTICS",
     "gate": "G4_FIXED_SLEEVE_MARK_AUTHORITY",
-    "status": "G3_PASS__G4_F3_BLOCKED_PENDING_ARCHITECT_RULING",
+    "status": "G3_PASS__G4_OPEN__F3_RULING_RECEIVED_IMPLEMENTATION_UNPROVEN",
     "architect_ruling": {
       "message_id": "B3-A2C-G3-AUTHORITY-SCOPE-RULING-1",
       "verdict": "G3_AUTHORITY_SCOPE_RESOLVED_CORRECTION_AUTHORISED",
@@ -203,8 +203,8 @@
     "Direct leader WS path is fast but incomplete; snapshot truth is required on recovery boundaries.",
     "MASTER account state must be distinguished from API signer state."
   ],
-  "current_blocker": "G4-F3 AUTHORITATIVE MARK PRICE SOURCE. No validated-freshness mark price reaches apply_fixed_sleeve_event(); existing fill.mark_price -> limit_price -> fill.price has no age check, and get_public_quote yields an executable bid/ask rather than proved mark authority. Escalated to Architect as B3-C2A-G4-F3-MARK-AUTHORITY-RULING-1; ruling NOT yet received. DURABLE_IN_FLIGHT_STATE_CLOBBER is no longer the blocker (corrected in 4a41f33, G3 PASS).",
-  "next_action": "WAIT_AUTHORISED. Execute nothing. Hold for the correlated Architect ruling answering B3-C2A-G4-F3-MARK-AUTHORITY-RULING-1; consume it exactly once from the control_mailbox/outbox bucket, then report before acting on it. Prohibited meanwhile: independently choosing a price source, adding market-data plumbing, any production code change, G4-C2B, G5, LIVE/mainnet, and self-setting stand_down_authorised.",
+  "current_blocker": "F3 mark-source authority resolved by Architect ruling sequence62; minimal G4-C2B implementation and Controller PASS remain unproven. G1-G3 locked; G4 remains OPEN. Bootstrap sequence64 authorises read-only binding audit only; Richard now directs ruling consumption/state refresh and report BEFORE any code.",
+  "next_action": "REPORT_BEFORE_CODE under Richard direct instruction: F3 ruling B3-A2C-G4-F3-MARK-AUTHORITY-RULING-1 is consumed and recorded exactly once. Report that it authorises G4-C2B ONLY: minimal Hyperliquid metaAndAssetCtxs markPx adapter with exact DEX/environment, bounded monotonic freshness, fail-closed and exactly-once protections. Do not write production code before this report. Controller alone adjudicates implementation PASS/FAIL; after PASS report and wait for the next explicit gate. No G5, live/mainnet, UI/lifecycle work, scope expansion or stand-down permission. Permission booleans remain unchanged.",
   "live_authorized": false,
   "stand_down_authorised": false,
   "last_controller_ruling": {
@@ -260,6 +260,21 @@
     "focus_stealing_used": false
   },
   "authority_rulings": {
+    "B3-A2C-G4-F3-MARK-AUTHORITY-RULING-1": {
+      "message_id": "B3-A2C-G4-F3-MARK-AUTHORITY-RULING-1",
+      "responds_to": "B3-C2A-G4-F3-MARK-AUTHORITY-RULING-1",
+      "sequence": 62,
+      "source_commit": "7aecdd2830e6c9949e4009be29ac9d634b55328f",
+      "payload_digest": "sha256:97dfa2012eabbdb35d86959bf22118b3c0229dc17d1d7ac31df3636846518059",
+      "consumed_at_utc": "2026-10-09T13:59:02.780724Z",
+      "consumption_status": "CONSUMED_ONCE_RECORDED_NO_PRODUCT_EXECUTION",
+      "authorised_gate": "G4-C2B_ONLY",
+      "authority_confirmation": "B3-A2C-BOOT-85392E-1 (sequence63, binding_version2, commit2244d2262b04e0dc003e52483aba3413133abc16)",
+      "controller_consumption": "B3-C2H-BOOT-85392E-ALIGNMENT-DISPOSITION-1 (sequence64, commit65443ee3c7c8a475a324116ff48911b083f74e11)",
+      "binding_version_note": "Original v1 provenance retained unchanged; current Architect v2 ACK confirms semantic validity.",
+      "product_pass": false,
+      "scope": "Minimal synchronous Hyperliquid /info metaAndAssetCtxs markPx adapter only; exact DEX/environment mapping; <=1000ms HTTP/roundtrip/receipt-to-consume; monotonic admission-before-request-before-mint; fail closed; no fill/limit/bid/ask fallback; REDUCE/CLOSE and FLIP exactly-once protections; deterministic injected tests and G2/G3/G4-C1 regressions; no G5/live/UI/lifecycle."
+    },
     "B3-A2C-G2-AUTHORITY-RULING-1": {
       "fixed_mode": "HOLD_FAIL_CLOSED_PENDING_G4_PRODUCT_EVIDENCE",
       "event_lineage_persistence": "ALLOWED_WITH_RULES_ONLY",
