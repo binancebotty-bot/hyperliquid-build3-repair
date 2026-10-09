@@ -457,8 +457,8 @@ def main() -> None:
         core7._append_send_terminal(early_buy, intent, status)
         rows = recon("MISSED_ENTRY_LEADER_ALREADY_REDUCED")
         check("R7_REFUSED_ENTRY_IS_A_DIFF_ON_SCREEN", rows and "MANUAL_REVIEW" in rows[-1]["action"], str(rows[-1:])[:200])
-        check("R7_SAME_MILLISECOND_CLOSE_COUNTS_AS_REDUCED", gw7.leader_reduced_since(fill("BUY", ts=late_sell.timestamp_ms)) > 0
-              and not gw7.leader_reduced_since(fill("BUY", ts=late_sell.timestamp_ms + 1)))
+        check("R7_SAME_MILLISECOND_ADD_STILL_COPIED", not gw7.leader_reduced_since(fill("BUY", ts=late_sell.timestamp_ms))
+              and gw7.leader_reduced_since(fill("BUY", ts=late_sell.timestamp_ms - 1)) > 0)
 
         # A2 the leader's close is handled by another thread while our entry is in flight and then fills
         class RacingExchange(FakeExchange):
@@ -500,6 +500,17 @@ def main() -> None:
     check("R7_LIMIT_WITHDRAWN_AT_REGISTRATION_HAS_ITS_FILL_OWNED", owned == [600] and not core.sender.take_withdrawn_late(), str(owned))
     check("R7_AND_SHOWN_AS_CRITICAL", rows and "MANUAL_REVIEW" in rows[-1]["action"] and rows[-1]["exchange_order_id"] == "600",
           str(rows[-1:])[:200])
+    # the regular copy poll took that fill first, or the API does not show it yet: still a Critical diff
+    for oid, poll in (("610", [{"coin": "BTC", "oid": 610, "side": "B", "sz": "1", "px": "100", "time": c.utc_now_ms(),
+                                "hash": "h610", "tid": 61}]), ("611", [])):
+        sell = fill("SELL")
+        core.sender.cancel_resting_entries_against(sell)
+        core.sender._register_resting_entry(core.intent_builder.build(fill("BUY", ts=sell.timestamp_ms - 1000)), "BTC", oid, 100.0, 1.0, "t")
+        core.copy_ingestor.poll_copy_account_fills = lambda w, s0, s1, _p=poll, **k: (_p, "COPY_ACCOUNT_POLLED")
+        core.dedupe.accept_copy = lambda cid, allow_retry=False: False   # already owned by the regular poll
+        core.run_cycle(use_source_csv=False)
+        check(f"R7_DIFF_EVEN_WHEN_FILL_{'ALREADY_OWNED' if poll else 'NOT_YET_VISIBLE'}",
+              recon("RESTING_ENTRY_FILLED_AFTER_LEADER_REDUCED", oid), oid)
 
     # C the early read starts where the regular copy poll stopped; a capped read is not taken as complete
     last = c.utc_now_ms() - 60000
@@ -527,6 +538,19 @@ def main() -> None:
     core.run_cycle(use_source_csv=False, poll_live=True)
     cur = c.load_json(c.CORE_RUNTIME_STATE_FILE, {}).get("last_leader_poll_cursor_ms", {}).get(LEADER)
     check("R7_KEY_STOP_HOLDS_LEADER_CURSOR_FOR_REPLAY", cur == before, f"{cur} {before}")
+    core.sender.sender_key_invalid = ""
+    core.run_cycle(use_source_csv=False, poll_live=True)
+    cur = c.load_json(c.CORE_RUNTIME_STATE_FILE, {}).get("last_leader_poll_cursor_ms", {}).get(LEADER)
+    starts_b = []
+    core.ingestor.poll_hyperliquid_fills = lambda w, s, t=None: starts_b.append(s) or ([], "POLL_OK")
+    core.sender.sender_key_invalid = "User or API Wallet does not exist"
+    core._held_read_cursor.clear()
+    st = c.load_json(c.CORE_RUNTIME_STATE_FILE, {})
+    st["last_leader_poll_cursor_ms"] = {LEADER: before}
+    c.atomic_write_json(c.CORE_RUNTIME_STATE_FILE, st)
+    core.run_cycle(use_source_csv=False, poll_live=True)
+    core.run_cycle(use_source_csv=False, poll_live=True)
+    check("R7_HELD_CURSOR_DOES_NOT_GROW_THE_READ_WINDOW", len(starts_b) == 2 and starts_b[1] > starts_b[0] + 1000000, str(starts_b))
     core.sender.sender_key_invalid = ""
     core.run_cycle(use_source_csv=False, poll_live=True)
     cur = c.load_json(c.CORE_RUNTIME_STATE_FILE, {}).get("last_leader_poll_cursor_ms", {}).get(LEADER)

@@ -2900,12 +2900,13 @@ class SenderGateway:
         return rows
 
     def leader_reduced_since(self, fill: LeaderFill) -> int:
-        """Newest leader fill on the OTHER side in this wallet and coin at or after this fill (another thread
+        """Newest leader fill on the OTHER side in this wallet and coin after this fill (another thread
         already handled the leader's reduce/close), or 0. Such an entry must not be copied."""
         wallet, key = normalise_wallet(fill.leader_wallet), canonical_coin_key(fill.coin)
         with self._resting_lock:
             opposite_ms = self._leader_side_seen_ms.get((wallet, key, "SELL" if fill.side == "BUY" else "BUY"), 0)
-        return opposite_ms if opposite_ms > 0 and opposite_ms >= int(fnum(fill.timestamp_ms, 0)) else 0
+        # strictly later: a same-millisecond reduce and add have no reliable order, so the add is still copied
+        return opposite_ms if opposite_ms > int(fnum(fill.timestamp_ms, 0)) else 0
 
     def resting_entries(self) -> List[Dict[str, Any]]:
         with self._resting_lock:
@@ -2955,7 +2956,7 @@ class SenderGateway:
             with self._resting_lock:
                 if outcome != "RESTING_ENTRY_CANCEL_FAILED":
                     self._resting_entries.pop(oid, None)
-                    withdrawn.append(row)
+                    withdrawn.append({**row, "withdraw_outcome": outcome})
                 elif oid in self._resting_entries:
                     self._resting_entries[oid]["withdraw_pending"] = why
                 atomic_write_json(RESTING_ENTRY_ORDERS_FILE, dict(self._resting_entries))
@@ -6417,6 +6418,7 @@ class LiveCopyCore:
         self.source_csv = source_csv or RAW_LEADER_FILLS_CSV
         self.intents_by_id: Dict[str, Intent] = {}
         self._entry_sends_blocked_reason: str = ""
+        self._held_read_cursor: Dict[str, int] = {}  # leader read position while the saved cursor is held (key stop)
         self._copy_ingest_lock = threading.RLock()  # copy-fill ownership from the cycle and from limit withdrawals
         self._hot_threads: List[threading.Thread] = []
         for idx in range(self.hot_send_workers):
@@ -6707,7 +6709,7 @@ class LiveCopyCore:
             self._append_send_terminal(fill, intent, send_status)
         return sent, send_status, intent
 
-    def _own_fills_of_withdrawn_limits(self, rows: List[Dict[str, Any]]) -> int:
+    def _own_fills_of_withdrawn_limits(self, rows: List[Dict[str, Any]], seen_oids: Optional[set] = None) -> int:
         """Read the follower's fills since the withdrawn limits were placed and give the ones with their order ids
         to the ledger now (the regular copy poll would be seconds late). Unreadable = a Critical diff."""
         oids = {CopyFillMatcher._normalize_oid(str(r.get("oid"))) for r in rows}
@@ -6727,6 +6729,8 @@ class LiveCopyCore:
             for raw in fills:
                 if CopyFillMatcher._normalize_oid(CopyFillMatcher._copy_fill_oid(raw)) not in oids:
                     continue
+                if seen_oids is not None:
+                    seen_oids.add(CopyFillMatcher._normalize_oid(CopyFillMatcher._copy_fill_oid(raw)))
                 if self.dedupe.accept_copy(CopyAccountIngestor.copy_fill_id(raw)) and self.matcher.match_and_apply(raw, self.intents_by_id):
                     owned += 1
         return owned
@@ -6874,14 +6878,19 @@ class LiveCopyCore:
             late = self.sender.take_withdrawn_late()
             if late:
                 with self._send_lock:
-                    if self._own_fills_of_withdrawn_limits(late) > 0:
+                    seen_late: set = set()
+                    self._own_fills_of_withdrawn_limits(late, seen_late)
+                    # any fill of these limits (owned now or earlier by the copy poll), or a cancel answered
+                    # "already filled/gone" whose fill the API may not show yet, leaves a position with no leader
+                    if seen_late or any(r.get("withdraw_outcome") == "RESTING_ENTRY_ALREADY_GONE" for r in late):
                         self.audit.append_reconciliation(
                             "SEND_TERMINAL", "RESTING_ENTRY_FILLED_AFTER_LEADER_REDUCED", coin=late[0].get("coin", ""),
                             leader_wallet=late[0].get("leader_wallet", ""), terminal_state="RESTING_ENTRY_FILLED_AFTER_LEADER_REDUCED",
                             action="MANUAL_REVIEW_RECONCILE_ENTRY_LEADER_ALREADY_REDUCED",
                             exchange_order_id=",".join(str(r.get("oid")) for r in late),
                             notes=("a missed-entry limit filled before it could be withdrawn, after the leader had already "
-                                   "reduced; the follower may hold a position the leader no longer has; reconcile on the exchange"))
+                                   "reduced (or the exchange said it was already filled/gone); the follower may hold a "
+                                   "position the leader no longer has; reconcile on the exchange"))
             fills: List[LeaderFill] = []
             fills.extend(self.ws.drain())
             if use_source_csv:
@@ -6895,7 +6904,7 @@ class LiveCopyCore:
                     # Skip wallets that are turned off — no fills to copy, avoids wasteful network calls.
                     if self.cfg.wallet_mode(w) == "OFF":
                         continue
-                    _cursor = _leader_poll_cursors.get(w, 0)
+                    _cursor = max(_leader_poll_cursors.get(w, 0), self._held_read_cursor.get(w, 0))
                     # On first poll (no cursor): backfill full window. On subsequent polls: fetch only
                     # since last successful poll minus overlap, capped at POLL_WINDOW_MS lookback.
                     # backstop to the live feed: catches up from the last good poll, however long ago
@@ -6912,13 +6921,16 @@ class LiveCopyCore:
                     wallet_fills, status = self.ingestor.poll_hyperliquid_fills(w, _start, now)
                     fills.extend(wallet_fills)
                     # while sending is stopped for a bad key the cursor stays put, so a restart replays these exits
+                    # (reading moves on in memory, so the window does not grow every cycle)
                     _hold = bool(self.sender.sender_key_invalid)
-                    if status == "POLL_OK":
-                        if not _hold:
-                            _cursor_updates[w] = now
-                    elif status == "POLL_PARTIAL" and wallet_fills:  # more pages left: resume from here next cycle
-                        if not _hold:
-                            _cursor_updates[w] = max(f.timestamp_ms for f in wallet_fills) + POLL_OVERLAP_MS
+                    _next = (now if status == "POLL_OK" else max(f.timestamp_ms for f in wallet_fills) + POLL_OVERLAP_MS
+                             if status == "POLL_PARTIAL" and wallet_fills else 0)
+                    if _next:
+                        if _hold:
+                            self._held_read_cursor[w] = _next
+                        else:
+                            _cursor_updates[w] = _next
+                            self._held_read_cursor.pop(w, None)
                     else:
                         poll_status = status
                         summary.network_errors += 1
