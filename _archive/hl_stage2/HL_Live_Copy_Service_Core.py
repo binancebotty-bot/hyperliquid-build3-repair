@@ -3651,16 +3651,22 @@ class SenderGateway:
             "EXIT_RECOVERY", outcome, leader_wallet=intent.fill.leader_wallet, leader_fill_id=intent.fill.leader_fill_id,
             intent_id=str(row.get("intent_id") or ""), coin=intent.fill.coin, exchange_order_id=oid,
             action="NO_ACTION_STANDING_CLOSE_REPLACED", terminal_state=outcome, notes=note)
-        if outcome == "STANDING_CLOSE_ALREADY_GONE" and self.ledger is not None:
-            # it may have filled: bring the ledger up to date and never close more than the sleeve still holds
+        filled = self._standing_filled_size(oid, fnum(row.get("size")))
+        if filled > 0 and self.ledger is not None:
+            # it (part-)filled: never close more than the sleeve holds once that fill is counted, whether or not the
+            # ledger has seen it yet (a surplus would close another leader's position on the shared account)
             try:
                 if self.truth_refresh is not None:
-                    self.truth_refresh()
+                    try:
+                        self.truth_refresh(force=True)
+                    except TypeError:
+                        self.truth_refresh()
                 left = abs(fnum(self.ledger.sleeve(intent.fill.leader_wallet, intent.fill.coin).get("signed_size"), 0.0))
+                left -= max(0.0, filled - self._owned_fill_size(oid))
             except Exception as exc:
                 log_error("standing_close_refresh", exc)
-                left = max(0.0, wire_size - fnum(row.get("size")))
-            wire_size = self._floor_wire_size(round(min(wire_size, left), 10), sz_dec)
+                left = wire_size - filled
+            wire_size = self._floor_wire_size(round(max(0.0, min(wire_size, left)), 10), sz_dec)
             if wire_size <= 0:
                 detail = f"{note}: it already filled; nothing left for this close"
                 return 0.0, (False, "SEND_NOT_ATTEMPTED_STANDING_CLOSE_FILLED", {
@@ -3669,6 +3675,26 @@ class SenderGateway:
                     "terminal_state": "PENDING_EXIT_GUARD_ACTIVE", "operator_action": "NO_SEND_PENDING_EXIT_IN_FLIGHT",
                     "timing": timing})
         return wire_size, None
+
+    def _standing_filled_size(self, oid: str, size: float) -> float:
+        """How much of a standing close filled, from the exchange's order status (original minus remaining size).
+        Unreadable: all of it may have filled (the safe assumption for sizing the next close)."""
+        try:
+            res = _XNET.post_many(OPEN_ORDERS_FETCHER, [{"type": "orderStatus", "user": USER_WALLET, "oid": int(oid)}],
+                                  HL_INFO_URL, HTTP_TIMEOUT_SEC)[0]
+            order = ((res.get("data") or {}).get("order") or {}).get("order") if res.get("ok") else None
+            if isinstance(order, dict) and order.get("origSz") is not None:
+                return max(0.0, fnum(order.get("origSz")) - fnum(order.get("sz")))
+        except Exception as exc:
+            log_error("standing_close_status", exc)
+        return size
+
+    @staticmethod
+    def _owned_fill_size(oid: str) -> float:
+        """Size of this order's fills the ledger already owns (live_fills rows carrying its order id)."""
+        norm = CopyFillMatcher._normalize_oid(oid)
+        return sum(abs(fnum(r.get("fill_size"))) for r in read_csv_rows(LIVE_FILLS_CSV)
+                   if CopyFillMatcher._normalize_oid(str(r.get("exchange_order_id") or "")) == norm)
 
     @staticmethod
     def _filled_size(response: Any) -> float:
@@ -7372,12 +7398,12 @@ class LiveCopyCore:
                     owned += 1
         return owned
 
-    def _refresh_truth_for_gate(self) -> None:
+    def _refresh_truth_for_gate(self, force: bool = False) -> None:
         """The ownership gate saw the exchange and the ledger disagree: own the follower's newest fills (as the
         cycle's copy poll would) and re-read the exchange positions, so it compares fresh records with fresh truth.
         One refresh at a time for all workers, at most one a second; the reads are made outside the send lock."""
         with self._truth_refresh_lock:
-            if time.monotonic() - self._last_truth_refresh < 1.0:
+            if not force and time.monotonic() - self._last_truth_refresh < 1.0:
                 return
             fills: List[Dict[str, Any]] = []
             if self.dedupe.copy_account_baseline_set:

@@ -273,10 +273,19 @@ def main() -> None:
     ok, status, res = send_real(g, c.IntentBuilder(c.ConfigManager(), led).build(fill("SELL", size=2.0, d="Close Long")))
     check("P2_FULLY_FILLED_CLOSE_PLACES_NOTHING_MORE", ok and len(fake.calls) == 1, str(fake.calls))
 
+    next_oid = [9000]
+
     class CancelExchange(FakeExchange):
         def __init__(self, replies=None, cancel_reply=None):
             super().__init__(replies)
             self.cancels, self.cancel_reply = [], cancel_reply
+
+        def order(self, coin, is_buy, size, px, tif, reduce_only=False):
+            if tif["limit"]["tif"] == "Gtc" and not self.replies:   # a fresh order id per standing close
+                self.calls.append({"px": px, "tif": "Gtc", "buy": is_buy, "size": size, "reduce_only": reduce_only})
+                next_oid[0] += 1
+                return {"status": "ok", "response": {"type": "order", "data": {"statuses": [{"resting": {"oid": next_oid[0]}}]}}}
+            return super().order(coin, is_buy, size, px, tif, reduce_only)
 
         def cancel(self, coin, oid):
             self.cancels.append(oid)
@@ -287,6 +296,14 @@ def main() -> None:
     ok_cancel = {"status": "ok", "response": {"type": "cancel", "data": {"statuses": ["success"]}}}
     gone_cancel = {"status": "ok", "response": {"type": "cancel", "data": {"statuses": [
         {"error": "Order was never placed, already canceled, or filled."}]}}}
+    status_of = {"orig": 1.5, "left": 1.5}
+
+    def order_status(payload):
+        if payload.get("type") != "orderStatus":
+            return []
+        return {"status": "order", "order": {"status": "canceled", "order": {
+            "oid": payload["oid"], "origSz": str(status_of["orig"]), "sz": str(status_of["left"])}}}
+    c.OPEN_ORDERS_FETCHER = order_status
     led = ledger("p3", a_btc=2.0)
     snapshot(2.0)
     fake = CancelExchange([part], ok_cancel)
@@ -305,6 +322,27 @@ def main() -> None:
     check("P3_NEXT_CLOSE_WITHDRAWS_THE_STANDING_ONE_FIRST",
           fake.cancels == [int(standing[first.sleeve_id]["oid"])] and fake.calls and fake.calls[0]["tif"] == "Ioc"
           and abs(fake.calls[0]["size"] - 1.5) < 1e-9 and not c.load_json(c.STANDING_CLOSES_FILE, {}), f"{fake.cancels} {fake.calls}")
+    # cancelled after it part-filled 0.5, a fill the ledger has not seen yet: the next close is 0.5 smaller
+    led = ledger("p3b", a_btc=1.5)
+    fake = CancelExchange([part], ok_cancel)
+    g = gateway(fake, led)
+    send_real(g, c.IntentBuilder(c.ConfigManager(), led).build(fill("SELL", size=1.5, d="Close Long")))
+    status_of.update(orig=1.125, left=0.625)
+    fake.calls.clear()
+    send_real(g, c.IntentBuilder(c.ConfigManager(), led).build(fill("SELL", size=1.5, d="Close Long")))
+    check("P3_PART_FILLED_STANDING_CLOSE_NOT_CLOSED_TWICE", fake.calls and abs(fake.calls[0]["size"] - 1.0) < 1e-9,
+          str(fake.calls))
+    c.OPEN_ORDERS_FETCHER = lambda payload: (_ for _ in ()).throw(RuntimeError("status unreadable"))
+    led = ledger("p3c", a_btc=2.0)
+    fake = CancelExchange([part], ok_cancel)
+    g = gateway(fake, led)
+    send_real(g, c.IntentBuilder(c.ConfigManager(), led).build(fill("SELL", size=2.0, d="Close Long")))
+    fake.calls.clear()
+    send_real(g, c.IntentBuilder(c.ConfigManager(), led).build(fill("SELL", size=2.0, d="Close Long")))
+    check("P3_UNREADABLE_STATUS_ASSUMES_THE_STANDING_CLOSE_FILLED", fake.calls and abs(fake.calls[0]["size"] - 0.5) < 1e-9,
+          str(fake.calls))
+    c.OPEN_ORDERS_FETCHER = order_status
+    status_of.update(orig=1.5, left=0.0)
     # the standing close filled before the next close: the ledger (brought up to date) decides what is left
     led = ledger("p4", a_btc=2.0)
     snapshot(2.0)
