@@ -28,7 +28,8 @@
       "verdict": "C2A=PASS_READONLY_INVENTORY; G4_F3=BLOCKED_PENDING_ARCHITECT_MARK_AUTHORITY",
       "worker_disposition": "WAIT_AUTHORISED_PENDING_ARCHITECT_RULING",
       "explicitly_not": "STAND_DOWN_PERMISSION"
-    }
+    },
+    "chatgpt_conversation_uuid": "6ac8e179-932c-83ed-b9ca-1bdc5c976d5d"
   },
   "implementation_owner": {
     "role": "hermes:implementation-owner",
