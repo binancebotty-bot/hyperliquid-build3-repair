@@ -13,7 +13,7 @@ OUT = Path(os.environ.get("HL_CERT_OUT", Path(__file__).resolve().parent))
 B3, B4, MC = "hyperliquid-build3-repair", "hyperliquid-build4", "richard-mission-control-template"
 
 FIELDS = ["id", "area", "feature", "expected_behaviour", "sources", "applicability",
-          "open_decisions", "execution_proof", "independent_oracle", "negative_tests",
+          "proof_network", "open_decisions", "execution_proof", "independent_oracle", "negative_tests",
           "prior_evidence", "result", "evidence_ref", "tested_commit", "tested_at_utc", "notes"]
 
 R = []
@@ -693,6 +693,40 @@ for i, (m, path) in enumerate(routes, 1):
         neg=["malformed body", "missing config file", "engine not running", "concurrent write"])
 
 # ---------------------------------------------------------------------------
+# Where a requirement can be proven (Boss 2026-10-09 18:07Z: most testnet markets are illiquid, so testnet
+# proves latency and accounting; slippage and price quality are a non-entity there). MAINNET records may carry
+# testnet evidence for the mechanism, but they reach PASS only from a mainnet-follower run.
+MAINNET_PROOF = {
+    "PRICE-001": "fresh-mid freshness is testable on testnet; whether the mid is a fair executable price needs a liquid book",
+    "PRICE-003": "entry bound versus leader price needs real book depth",
+    "PRICE-004": "PRICE_WAIT can be forced on testnet; realistic unacceptable-price cases need a liquid book",
+    "PRICE-006": "adverse diff against an executable price is meaningless on an illiquid book",
+    "PRICE-007": "slippage default 0.2% can be applied on testnet; its effect on fills needs a liquid book",
+    "PRICE-008": "close adverse diff needs a liquid book",
+    "RISK-005": "control enforcement is testable on testnet; slippage outcome needs a liquid book",
+    "RISK-006": "control enforcement is testable on testnet; adverse-diff outcome needs a liquid book",
+    "RISK-010": "per-wallet price bound needs a liquid book",
+    "ENG-017": "missed-entry mechanism (diff + resting limit) is testable on testnet; the same/better/within-tolerance price decision needs a liquid book",
+    "B4-I20": "entry price bound needs a liquid book",
+    "B4-I21": "PRICE_WAIT realism needs a liquid book",
+    "UI-LCC-EXQ-10": "fill-vs-limit % is not meaningful on illiquid testnet books",
+    "UI-LCC-EXQ-11": "leader-vs-user % is not meaningful on illiquid testnet books",
+    "UI-LCC-EXQ-12": "market slip % is not meaningful on illiquid testnet books",
+    "TN-F09": "XYZ/HIP-3 markets the leaders trade are absent on testnet",
+    "INC-07": "XYZ/HIP-3 markets the leaders trade are absent on testnet",
+    "INC-08": "XYZ/HIP-3 markets the leaders trade are absent on testnet",
+    "TN-CAMP-09": "the testnet coverage gaps are by definition proven on mainnet",
+    "NET-005": "the certified SHA must be the one running on mainnet",
+}
+_ids = {r["id"] for r in R}
+assert set(MAINNET_PROOF) <= _ids, set(MAINNET_PROOF) - _ids
+for r in R:
+    why = MAINNET_PROOF.get(r["id"])
+    r["proof_network"] = "MAINNET" if why else "TESTNET"
+    if why:
+        r["notes"] = (r.get("notes") or "") + (" " if r.get("notes") else "") + f"Mainnet proof required: {why}."
+
+# ---------------------------------------------------------------------------
 ids = [r["id"] for r in R]
 dups = {i for i in ids if ids.count(i) > 1}
 assert not dups, dups
@@ -708,6 +742,8 @@ doc = {"schema": "hl_certification_matrix_v1", "generated_by": "certification/ge
                                 "ADAPTED_PROPOSED": "intent applies, Build 4 mechanism does not; Controller confirms",
                                 "SUPERSEDED": "explicitly superseded by a cited later document",
                                 "OPEN_DECISION": "the requirement itself depends on an unruled decision; cannot be certified until ruled"},
+       "proof_network_values": {"TESTNET": "provable on the testnet follower (latency, accounting, wiring, controls)",
+                                "MAINNET": "price quality, slippage or markets absent on testnet; PASS only from a mainnet-follower run (testnet evidence covers the mechanism only)"},
        "open_decisions_field": "decisions that affect the record; on an APPLIES record they constrain how it is tested, not whether it applies",
        "source_sha256": srcs, "records": R}
 (OUT / "certification_matrix.json").write_text(json.dumps(doc, indent=1, ensure_ascii=False) + "\n")

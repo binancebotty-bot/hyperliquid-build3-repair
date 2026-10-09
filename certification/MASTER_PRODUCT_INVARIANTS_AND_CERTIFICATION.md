@@ -1,7 +1,7 @@
 # Master Product Invariants and Certification Contract
 
 **Product:** Hyperliquid Copy Engine (Build 3 Repair)
-**Status:** DRAFT v0.4 (adds the certified 13 May UI, the missed-entry rule and a route census of the live UI). It grants no authority, closes no gate and authorises no code change.
+**Status:** DRAFT v0.5 (v0.4 added the certified 13 May UI, the missed-entry rule and a route census of the live UI; v0.5 marks which requirements only mainnet can prove). It grants no authority, closes no gate and authorises no code change.
 **Companion files:** `certification_matrix.json` (machine-readable, 832 records), `certification_matrix.csv` (same records, spreadsheet form), `open_decisions.json` (§6 in machine-readable form), `gen_matrix.py` (regenerates all three from the source documents). Start at `README.md` in this folder.
 
 ## 1. Purpose
@@ -43,6 +43,7 @@ Build 4 working-tree copies at `C:\Users\wigmore\b4-verify-clean` match `e67abeb
 | `expected_behaviour` | The requirement, quoted or closely paraphrased from the source |
 | `sources` | Exact document and clause, in the precedence order of §4 |
 | `applicability` | `APPLIES`, `APPLIES_PROPOSED`, `ADAPTED_PROPOSED`, `SUPERSEDED` or `OPEN_DECISION` (defined in §4.2) |
+| `proof_network` | `TESTNET` (provable on the testnet follower) or `MAINNET` (price quality, slippage, or markets absent on testnet; PASS only from a mainnet-follower run, see §5) |
 | `open_decisions` | OD-xx items (§6) that affect the record |
 | `execution_proof` | The chain that must be shown end to end, e.g. *UI action → config → running engine → testnet behaviour* |
 | `independent_oracle` | Evidence produced without engine code, e.g. *exchange positions, orders and fills* |
@@ -75,7 +76,7 @@ Boss's worked example appears in the matrix exactly as given:
 
 ### 3.3 What "certified for mainnet" means
 
-Every record with applicability `APPLIES`, `APPLIES_PROPOSED` (once confirmed) or `ADAPTED_PROPOSED` (once confirmed) shows `PASS` on one certified commit. No record is `FAIL` or `BLOCKED`. Every OD-xx is ruled, and the Controller has reviewed the exact evidence (DONE-09). Mainnet activation then remains Richard's explicit decision (ARCH inv14, DONE-10). The engine must not need a code change between certification and mainnet, only configuration and credentials (NET-001, NET-005).
+Every record with applicability `APPLIES`, `APPLIES_PROPOSED` (once confirmed) or `ADAPTED_PROPOSED` (once confirmed) shows `PASS` on one certified commit. For `proof_network = MAINNET` records, that PASS comes from a mainnet-follower run on the same commit. No record is `FAIL` or `BLOCKED`. Every OD-xx is ruled, and the Controller has reviewed the exact evidence (DONE-09). Mainnet activation then remains Richard's explicit decision (ARCH inv14, DONE-10). The engine must not need a code change between certification and mainnet, only configuration and credentials (NET-001, NET-005).
 
 ## 4. Precedence and applicability
 
@@ -123,6 +124,7 @@ Boss's note said every inherited requirement needs an explicit applicability dec
 | Certified UI (owner decision) | The UI under certification is the 13 May "Live Copy Command Centre" (`/live-copy`) version of `HL_Copy_App_SSOT.py`: source `_archive\_CLEANUP_QUARANTINE_\tier4_deadcode\…\HL_Copy_App_SSOT.py`, SHA-256 `fad19d220d7af13d48a3eec664c56a32b31624d671b00e2f80ec2dc9062a29b0`, 7,243 lines, restored on branch `claude/restore-live-screen-0513` (`38776e0`, byte-for-byte; `91e9980` had line endings normalised). The previously tracked file (SHA-256 `c0f9e508…`) is the walletproof modelling screen. Resolves OD-21 | Boss, project chat 2026-10-09T15:07Z |
 | Missed entries (owner decision) | A missed leader entry is taken if the follower's price is the same, better or within tolerance. Otherwise a diff is reported in the UI and a limit order at the desired price is placed meanwhile (ENG-017). This replaces Build 4 F13's "send nothing outside tolerance" | Boss, project chat 2026-10-09T15:07Z |
 | Opposite-direction leaders (owner decision) | When leaders trade opposite ways in one coin, the shared account nets as the exchange does. The engine's ledger follows the exchange's net, per-leader attribution is kept and shown on screen, and opposite entries are not skipped (ENG-018) | Boss, decision card 2026-10-09T15:46Z; testnet run 3 finding F3 |
+| What testnet can prove (owner decision) | Most testnet markets are illiquid, so testnet runs prove latency, accounting, wiring and controls only. Slippage and price quality cannot be judged there. The 20 records about price quality, slippage, or XYZ/HIP-3 markets absent on testnet are marked `proof_network = MAINNET`. They reach PASS only from a run whose follower is on mainnet. A testnet run may prove their mechanism, but the status table shows that as NEEDS_MAINNET, never PASS | Boss, project chat 2026-10-09T18:07Z; `RUN_STATUS.md` |
 | Diff handling in the UI (owner decision) | The UI must report every diff (UI-DIFF-01) but need not offer a way to fix it; Boss reconciles on the exchange | Boss, project chat 2026-10-09T15:07Z |
 | PROCESS-002 "rebuild if foundation unsuitable" | Superseded for this project by the product-preservation presumption | ARCHITECTURE.md |
 
