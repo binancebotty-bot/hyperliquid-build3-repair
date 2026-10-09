@@ -30,6 +30,7 @@ import html
 import shutil
 import time
 import threading
+import traceback
 import urllib.request
 from dataclasses import asdict, dataclass, field, replace
 from datetime import datetime, timezone
@@ -43,7 +44,7 @@ except Exception:  # pragma: no cover
     uvicorn = None
 
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "hl_copy_output"
@@ -79,18 +80,22 @@ LIVE_COPY_CONFIG_FILE = LIVE_COPY_AUDIT_DIR / "live_config.json"
 LIVE_COPY_WS_HEALTH_FILE = LIVE_COPY_AUDIT_DIR / "live_ws_health.json"
 LIVE_COPY_SERVICE_STATE_FILE = LIVE_COPY_AUDIT_DIR / "live_service_state.json"
 LIVE_COPY_CORE_STATE_FILE = LIVE_COPY_AUDIT_DIR / "clean_core_runtime_state.json"
+LIVE_COPY_INTEGRITY_STATUS_FILE = LIVE_COPY_AUDIT_DIR / "live_integrity_status.json"
 LIVE_COPY_RECONCILIATION_CSV = LIVE_COPY_AUDIT_DIR / "append_only" / "reconciliation.csv"
 LIVE_COPY_ORDER_INTENTS_CSV = LIVE_COPY_AUDIT_DIR / "append_only" / "order_intents.csv"
 MANUAL_POSITIONS_FILE = LIVE_COPY_AUDIT_DIR / "manual_live_positions.json"
 SEND_ATTEMPTS_CSV = LIVE_COPY_AUDIT_DIR / "append_only" / "send_attempts.csv"
 WOULD_SEND_ORDERS_CSV = LIVE_COPY_AUDIT_DIR / "append_only" / "would_send_orders.csv"
-EXCHANGE_ACCOUNT_SNAPSHOT_FILE = LIVE_COPY_AUDIT_DIR / "exchange_account_snapshot.json"
+# The engine owns exchange_account_snapshot.json (its pre-send ownership gate reads it); the screen
+# writes its own copy, the "_app" file the engine already reads for recent fills.
+EXCHANGE_ACCOUNT_SNAPSHOT_FILE = LIVE_COPY_AUDIT_DIR / "exchange_account_snapshot_app.json"
 EXCHANGE_ACCOUNT_HISTORY_FILE = LIVE_COPY_AUDIT_DIR / "exchange_account_history.json"
+ACCOUNT_ORPHAN_POSITIONS_FILE = LIVE_COPY_AUDIT_DIR / "account_orphan_positions.json"
 LIVE_FILLS_CSV = LIVE_COPY_AUDIT_DIR / "append_only" / "live_fills.csv"
-MANUAL_RECON_BACKUP_DIR = LIVE_COPY_AUDIT_DIR / "reconciliation_backups"
-MANUAL_RECON_ACTIONS_FILE = LIVE_COPY_AUDIT_DIR / "manual_reconciliation_actions.json"
 LIVE_CONFIG_DIR = LIVE_COPY_AUDIT_DIR
 LIVE_CONFIG_FILE = LIVE_CONFIG_DIR / "live_config.json"
+APP_CACHE_DIR = LIVE_COPY_AUDIT_DIR / "app_cache"
+MODEL_DASHBOARD_LAST_GOOD_HTML_FILE = APP_CACHE_DIR / "model_dashboard_last_good.html"
 SNAP_DIR = DATA_DIR / "snapshots"
 
 USER_WALLET = (os.getenv("HL_USER_WALLET") or "0x7ae3b08bb4e7b085c6db5d635b96bec9715e9205").lower()
@@ -171,6 +176,24 @@ def inum(value: Any, default: int = 0) -> int:
 _FILE_WRITE_LOCK = threading.RLock()
 _MODEL_BUILD_LOCK = threading.RLock()
 _MODEL_CACHE: Dict[str, Any] = {"state": None, "built_at": 0.0}
+_MODEL_REFRESH_LOCK = threading.Lock()
+_MODEL_REFRESH_IN_PROGRESS = False
+_MODEL_REFRESH_STATUS: Dict[str, Any] = {
+    "in_progress": False,
+    "started_at": "",
+    "finished_at": "",
+    "ok": False,
+    "error": "",
+    "traceback": "",
+    "state_present": False,
+    "html_present": False,
+    "last_marker": "",
+}
+_MODEL_DASHBOARD_HTML_CACHE: Dict[str, Any] = {"html": None, "built_at": 0.0, "state_built_at": 0.0}
+_MODEL_DASHBOARD_HTML_CACHE_LOCK = threading.Lock()
+_AUDIT_SUMMARY_CACHE: Dict[str, Any] = {"data": None, "built_at": 0.0}
+_AUDIT_SUMMARY_CACHE_LOCK = threading.Lock()
+_AUDIT_SUMMARY_TTL = 2.0  # seconds
 APP_HEALTH: Dict[str, Any] = {
     "last_build_started_at": "",
     "last_build_finished_at": "",
@@ -899,6 +922,89 @@ def _load_clean_core_status() -> Dict[str, Any]:
     }
 
 
+def _load_live_integrity_status() -> Dict[str, Any]:
+    data = load_json(LIVE_COPY_INTEGRITY_STATUS_FILE, None)
+    if isinstance(data, dict) and data:
+        status = str(data.get("status") or "UNKNOWN").upper()
+        return {**data, "status": status, "available": True}
+    return {
+        "status": "UNKNOWN",
+        "available": False,
+        "reasons": ["RUN INTEGRITY GATE"],
+        "counts": {},
+        "notes": "live_integrity_status.json missing",
+    }
+
+
+def _load_recent_reconciliation_rows(limit: int = 500) -> List[Dict[str, Any]]:
+    out: List[Dict[str, Any]] = []
+    if not LIVE_COPY_RECONCILIATION_CSV.exists():
+        return out
+    try:
+        with LIVE_COPY_RECONCILIATION_CSV.open("r", newline="", encoding="utf-8-sig") as f:
+            for row in csv.DictReader(f):
+                out.append(dict(row))
+        return out[-limit:]
+    except Exception:
+        return out[-limit:] if len(out) >= limit else out
+
+
+def _latest_row(rows: List[Dict[str, Any]], predicate) -> Dict[str, Any]:
+    for row in reversed(rows):
+        try:
+            if predicate(row):
+                return row
+        except Exception:
+            continue
+    return {}
+
+
+def _build_live_top_status(
+    live_config: Dict[str, Any],
+    ws_health: Dict[str, Any],
+    service_state: Dict[str, Any],
+    integrity_status: Dict[str, Any],
+    send_attempts: List[Dict[str, Any]],
+    live_fills: List[Dict[str, Any]],
+    reconciliation_rows: List[Dict[str, Any]],
+) -> Dict[str, Any]:
+    wallets = live_config.get("wallets", {}) if isinstance(live_config.get("wallets"), dict) else {}
+    ws_summary = ws_health.get("ws_summary", {}) if isinstance(ws_health.get("ws_summary"), dict) else {}
+    ws_raw = str(ws_summary.get("ws_status") or ws_health.get("overall") or "DOWN").upper()
+    ws_status = "WS_OK" if ws_raw == "WS_OK" and bool(ws_summary.get("socket_open", True)) and bool(ws_summary.get("thread_alive", True)) else "DOWN"
+    copy_poll = str(service_state.get("copy_account_status") or service_state.get("last_copy_account_status") or service_state.get("copy_status") or "DOWN").upper()
+    if not copy_poll or copy_poll in {"", "NONE", "UNKNOWN"}:
+        copy_poll = "DOWN"
+    master = bool(service_state.get("master_real_orders_enabled")) if "master_real_orders_enabled" in service_state else parse_bool(live_config.get("auto_send_enabled"))
+    effective = bool(service_state.get("effective_real_orders_enabled")) if "effective_real_orders_enabled" in service_state else master
+    send_block_reason = str(service_state.get("send_block_reason") or ("" if effective else "MASTER_REAL_ORDERS_OFF"))
+    active_wallets = sum(1 for _, cfg in wallets.items() if isinstance(cfg, dict) and str(cfg.get("mode", "")).upper() in {"LIVE", "CLO"} and bool(cfg.get("enabled", True)))
+    subscribed_wallets = inum(ws_summary.get("wallet_count") or ws_summary.get("subscribed_wallet_count") or len(ws_health.get("wallets", {}) if isinstance(ws_health.get("wallets"), dict) else {}))
+    last_send = send_attempts[-1] if send_attempts else {}
+    last_fill = live_fills[-1] if live_fills else {}
+    last_reject = _latest_row(send_attempts, lambda r: str(r.get("status") or "").upper() == "ORDER_REJECTED")
+    last_latency = _latest_row(reconciliation_rows, lambda r: str(r.get("event") or "") == "SEND_LATENCY_WARN")
+    return {
+        "integrity_status": str(integrity_status.get("status") or "UNKNOWN").upper(),
+        "integrity_available": bool(integrity_status.get("available")),
+        "integrity_reasons": integrity_status.get("reasons") if isinstance(integrity_status.get("reasons"), list) else [],
+        "ws_status": ws_status,
+        "copy_poll_status": copy_poll,
+        "auto_send": "ON" if effective else "OFF",
+        "master_real_orders": "ON" if master else "OFF",
+        "master_real_orders_enabled": master,
+        "effective_real_orders_enabled": effective,
+        "send_block_reason": send_block_reason,
+        "wallet_modes_active": service_state.get("wallet_modes_active") if isinstance(service_state.get("wallet_modes_active"), dict) else {},
+        "active_wallets": active_wallets,
+        "subscribed_wallets": subscribed_wallets,
+        "last_send": last_send,
+        "last_fill": last_fill,
+        "last_reject": last_reject,
+        "last_latency_warning": last_latency,
+    }
+
+
 def _live_order_intents_path() -> Path:
     if LIVE_COPY_ORDER_INTENTS_CSV.exists():
         return LIVE_COPY_ORDER_INTENTS_CSV
@@ -958,9 +1064,11 @@ def _live_audit_summary() -> Dict[str, Any]:
     _append_exchange_history(exchange_snapshot, manual_live_summary)
     ws_health = _load_live_ws_health()
     clean_core_status = _load_clean_core_status()
+    integrity_status = _load_live_integrity_status()
+    reconciliation_rows = _load_recent_reconciliation_rows(500)
 
     live_config = _load_live_copy_config()
-    _auto_send_enabled = os.getenv("HL_LIVE_AUTO_SEND_ENABLED", "0") == "1"
+    _auto_send_enabled = parse_bool(live_config.get("auto_send_enabled"))
     _auto_send_filter = os.getenv("HL_LIVE_AUTO_SEND_WALLET", "").lower().strip()
     _cfg_wallets = live_config.get("wallets", {})
     _auto_live_eligible: List[str] = [
@@ -990,6 +1098,16 @@ def _live_audit_summary() -> Dict[str, Any]:
     execution_quality_summary = _build_execution_quality_summary(execution_quality_rows)
     manual_reconciliation_rows = _build_manual_reconciliation_rows(manual_positions, exchange_snapshot, recent_send_attempts)
     recent_send_warning_groups = _build_recent_send_warning_groups(recent_send_attempts)
+    live_top_status = _build_live_top_status(live_config, ws_health, clean_core_status.get("service_state", {}), integrity_status, recent_send_attempts, _live_fills_data, reconciliation_rows)
+    owned_copy_positions = [r for r in real_copy_positions if r.get("row_type") == "OWNED_COPY"]
+    orphan_exchange_positions = [r for r in real_copy_positions if r.get("row_type") == "ACCOUNT_LEVEL_ONLY"]
+    account_orphan_registry = _build_account_orphan_registry(orphan_exchange_positions)
+    send_terminal_rows = [r for r in reconciliation_rows if r.get("event") in {"SEND_TERMINAL", "SEND_REJECTED"}]
+    legacy_terminal_rows = [
+        r for r in recent_send_attempts
+        if str(r.get("status") or "").upper() == "ORDER_REJECTED"
+        and not (r.get("terminal_state") and r.get("operator_action") and r.get("reject_category"))
+    ]
 
     portfolio_history: List[Dict[str, Any]] = []
     exchange_history = load_json(EXCHANGE_ACCOUNT_HISTORY_FILE, [])
@@ -1021,6 +1139,9 @@ def _live_audit_summary() -> Dict[str, Any]:
         "send_attempt_counts": send_attempt_counts,
         "manual_live_summary": manual_live_summary,
         "manual_reconciliation_rows": manual_reconciliation_rows,
+        "reconciliation_rows": reconciliation_rows,
+        "send_terminal_rows": send_terminal_rows[-100:],
+        "legacy_terminal_rows": legacy_terminal_rows,
         "recent_send_warning_groups": recent_send_warning_groups,
         "recent_send_warning_group_count": len(recent_send_warning_groups),
         "exchange_account_snapshot": exchange_snapshot,
@@ -1040,6 +1161,9 @@ def _live_audit_summary() -> Dict[str, Any]:
         "live_wallet_rows": live_wallet_rows,
         "live_leader_performance": live_leader_performance,
         "real_copy_positions": real_copy_positions,
+        "owned_copy_positions": owned_copy_positions,
+        "orphan_exchange_positions": orphan_exchange_positions,
+        "account_orphan_registry": account_orphan_registry,
         "execution_quality_rows": execution_quality_rows,
         "execution_quality_summary": execution_quality_summary,
         "auto_live_eligible_wallets": _auto_live_eligible,
@@ -1047,6 +1171,13 @@ def _live_audit_summary() -> Dict[str, Any]:
         "auto_live_wallet_count": len(_auto_live_eligible),
         "clean_core_status": clean_core_status,
         "core_service_state": clean_core_status.get("service_state", {}),
+        "master_real_orders_enabled": live_top_status.get("master_real_orders_enabled"),
+        "follower_account": _follower_account_value_safe(),
+        "follower_network": FOLLOWER_NETWORK,
+        "effective_real_orders_enabled": live_top_status.get("effective_real_orders_enabled"),
+        "send_block_reason": live_top_status.get("send_block_reason"),
+        "live_integrity_status": integrity_status,
+        "live_top_status": live_top_status,
     }
 
 
@@ -1105,6 +1236,56 @@ def _shared_manual_coin_nets(sleeves: List[Tuple[str, str, Dict[str, Any]]]) -> 
     for coin, wallets in wallets_by_coin.items():
         counts[coin] = len(wallets)
     return counts, nets
+
+
+def _classify_owned_exchange_net(owned_net: float, exchange_net: float, exchange_available: bool, eps: float = 1e-8) -> Dict[str, Any]:
+    residual = exchange_net - owned_net if exchange_available else 0.0
+    unsupported = 0.0
+    if not exchange_available:
+        status = "EXCHANGE_UNAVAILABLE"
+    elif abs(owned_net) <= eps and abs(exchange_net) <= eps:
+        status = "FLAT"
+    elif abs(owned_net) <= eps and abs(exchange_net) > eps:
+        status = "ORPHAN_EXCHANGE"
+    elif abs(exchange_net) <= eps and abs(owned_net) > eps:
+        status = "EXTERNAL_FLAT_PENDING_RECONCILIATION"
+        unsupported = owned_net
+    elif owned_net * exchange_net < 0:
+        status = "SIGN_CONFLICT_PENDING_RECONCILIATION"
+        unsupported = owned_net
+    elif abs(exchange_net - owned_net) <= eps:
+        status = "OWNED_FULLY_SUPPORTED"
+    elif abs(exchange_net) > abs(owned_net):
+        status = "OWNED_PLUS_ACCOUNT_RESIDUAL"
+    else:
+        status = "OWNED_LEDGER_UNSUPPORTED_BY_EXCHANGE"
+        unsupported = owned_net - exchange_net
+    return {
+        "status": status,
+        "owned_net": owned_net,
+        "exchange_net": exchange_net if exchange_available else None,
+        "residual_size": residual if exchange_available and abs(residual) > eps else 0.0,
+        "unsupported_size": unsupported if abs(unsupported) > eps else 0.0,
+    }
+
+
+def _exchange_field(ex: Any, key: str) -> float:
+    if not isinstance(ex, dict):
+        return fnum(ex) if key in {"signed_size", "szi", "size", "net", "signed_net"} else 0.0
+    for candidate in (key, "signed_size", "szi", "size", "net", "signed_net") if key == "signed_size" else (key,):
+        if candidate in ex:
+            return fnum(ex.get(candidate))
+    return 0.0
+
+
+def _exchange_signed_size(ex: Any) -> float:
+    return _exchange_field(ex, "signed_size")
+
+
+def _owned_sleeve_unrealized(signed: float, avg_entry_px: float, mark_px: float) -> Optional[float]:
+    if abs(signed) <= 1e-12 or avg_entry_px <= 0 or mark_px <= 0:
+        return None
+    return round((mark_px - avg_entry_px) * signed, 8)
 
 
 def _load_recent_send_attempts(limit: int = 20) -> List[Dict[str, Any]]:
@@ -1180,6 +1361,71 @@ def _load_recent_live_fills(limit: int = 500) -> List[Dict[str, Any]]:
         return out[-limit:]
     except Exception:
         return out[-limit:] if len(out) >= limit else out
+
+
+def _row_exchange_order_id(row: Dict[str, Any]) -> str:
+    for key in ("exchange_order_id", "oid", "order_id", "orderId"):
+        value = str(row.get(key) or "").strip()
+        if value:
+            return value
+    notes = str(row.get("notes") or "")
+    marker = "exchange_order_id="
+    if marker in notes:
+        tail = notes.split(marker, 1)[1]
+        return tail.split(";", 1)[0].split()[0].strip()
+    return ""
+
+
+def _signed_from_side_size(side: Any, size: Any) -> float:
+    side_u = str(side or "").upper()
+    qty = abs(fnum(size))
+    if side_u in {"BUY", "B", "LONG"}:
+        return qty
+    if side_u in {"SELL", "S", "SHORT"}:
+        return -qty
+    return 0.0
+
+
+def _service_position_evidence_by_coin(
+    send_attempts: Optional[List[Dict[str, Any]]] = None,
+    live_fills: Optional[List[Dict[str, Any]]] = None,
+) -> Dict[str, Dict[str, Any]]:
+    send_attempts = send_attempts if send_attempts is not None else _load_recent_send_attempts(250000)
+    live_fills = live_fills if live_fills is not None else _load_recent_live_fills(250000)
+    live_intents = {str(row.get("intent_id") or "") for row in live_fills if row.get("intent_id")}
+    live_oids = {_row_exchange_order_id(row) for row in live_fills if _row_exchange_order_id(row)}
+    evidence: Dict[str, Dict[str, Any]] = {}
+    for row in live_fills:
+        coin = str(row.get("coin") or "").upper()
+        if not coin:
+            continue
+        info = evidence.setdefault(coin, {"filled_oids": set(), "live_oids": set(), "missing_filled_oids": [], "live_net": 0.0, "live_fill_count": 0, "filled_send_count": 0})
+        oid = _row_exchange_order_id(row)
+        if oid:
+            info["live_oids"].add(oid)
+        info["live_net"] = fnum(info.get("live_net")) + _signed_from_side_size(row.get("side"), row.get("fill_size") or row.get("copy_size"))
+        info["live_fill_count"] = int(info.get("live_fill_count") or 0) + 1
+    for row in send_attempts:
+        if str(row.get("status") or "").upper() != "ORDER_FILLED":
+            continue
+        coin = str(row.get("coin") or "").upper()
+        if not coin:
+            continue
+        info = evidence.setdefault(coin, {"filled_oids": set(), "live_oids": set(), "missing_filled_oids": [], "live_net": 0.0, "live_fill_count": 0, "filled_send_count": 0})
+        info["filled_send_count"] = int(info.get("filled_send_count") or 0) + 1
+        oid = _row_exchange_order_id(row)
+        if oid:
+            info["filled_oids"].add(oid)
+        intent_id = str(row.get("intent_id") or "")
+        if (oid and oid in live_oids) or (intent_id and intent_id in live_intents):
+            continue
+        if oid:
+            info["missing_filled_oids"].append(oid)
+    for info in evidence.values():
+        info["filled_oids"] = sorted(info.get("filled_oids") or [])
+        info["live_oids"] = sorted(info.get("live_oids") or [])
+        info["missing_filled_oids"] = sorted(set(info.get("missing_filled_oids") or []))
+    return evidence
 
 
 def _local_env_value(key: str) -> str:
@@ -1843,6 +2089,11 @@ def _build_manual_reconciliation_rows(manual_positions: Dict[str, Any], exchange
     sleeves = _manual_position_sleeves(manual_positions)
     coin_counts, coin_nets = _shared_manual_coin_nets(sleeves)
     shared_coins = {coin for coin, count in coin_counts.items() if count > 1}
+    classifications: Dict[str, Dict[str, Any]] = {}
+    for coin_upper, owned_net in coin_nets.items():
+        ex = exchange_positions.get(coin_upper, {}) if isinstance(exchange_positions, dict) else {}
+        exchange_net = fnum(ex.get("signed_size")) if isinstance(ex, dict) else 0.0
+        classifications[coin_upper] = _classify_owned_exchange_net(owned_net, exchange_net, exchange_available)
     for wallet, coin_upper, pos in sorted(sleeves, key=lambda item: (item[1], item[0])):
         signed = fnum(pos.get("signed_size"))
         if abs(signed) <= 1e-12:
@@ -1869,16 +2120,16 @@ def _build_manual_reconciliation_rows(manual_positions: Dict[str, Any], exchange
             })
             continue
         if exchange_available:
-            diff = signed - exchange_signed
-            if abs(diff) <= 1e-8:
+            cls = classifications.get(coin_upper, _classify_owned_exchange_net(signed, exchange_signed, exchange_available))
+            issue = str(cls.get("status") or "EXCHANGE_UNAVAILABLE")
+            if issue == "OWNED_FULLY_SUPPORTED":
                 severity = "OK"
-                issue = "MATCH"
-            elif exchange_signed == 0:
+            elif issue in {"OWNED_LEDGER_UNSUPPORTED_BY_EXCHANGE", "EXTERNAL_FLAT_PENDING_RECONCILIATION", "SIGN_CONFLICT_PENDING_RECONCILIATION"}:
                 severity = "CRITICAL"
-                issue = "MISSING_EXCHANGE"
+            elif issue == "OWNED_PLUS_ACCOUNT_RESIDUAL":
+                severity = "INFO"
             else:
-                severity = "CRITICAL"
-                issue = f"SIZE_DIFF: {diff:+.6f}"
+                severity = "INFO"
             exchange_label = exchange_signed
         else:
             severity = "INFO"
@@ -1892,13 +2143,18 @@ def _build_manual_reconciliation_rows(manual_positions: Dict[str, Any], exchange
             "issue": issue,
             "manual_signed_size": signed,
             "exchange_signed_size": exchange_label,
+            "residual_size": (classifications.get(coin_upper) or {}).get("residual_size", 0.0),
+            "unsupported_size": (classifications.get(coin_upper) or {}).get("unsupported_size", 0.0),
             "last_intent_id": pos.get("last_intent_id", ""),
             "last_oid": pos.get("last_oid", ""),
             "last_updated_at": pos.get("last_updated_at", ""),
+            "latest_error": "residual account exposure; not wallet owned" if issue == "OWNED_PLUS_ACCOUNT_RESIDUAL" else (
+                "ledger sleeve not fully supported by exchange; external reconciliation required" if severity == "CRITICAL" else ""
+            ),
             "count": 1,
-            "action_available": bool(issue == "MISSING_EXCHANGE" and abs(exchange_signed) <= 1e-12),
-            "action_label": "Archive ledger row" if issue == "MISSING_EXCHANGE" and abs(exchange_signed) <= 1e-12 else "",
-            "action_note": "Ledger cleanup only; does not place an exchange order." if issue == "MISSING_EXCHANGE" and abs(exchange_signed) <= 1e-12 else "",
+            "action_available": False,
+            "action_label": "",
+            "action_note": "",
         })
     if exchange_available:
         for coin_upper in sorted(shared_coins):
@@ -1989,70 +2245,6 @@ def _build_recent_send_warning_groups(recent_send_attempts: List[Dict[str, Any]]
         key=lambda r: str(r.get("last_updated_at", "")),
         reverse=True,
     )[:limit]
-
-
-def _archive_manual_reconciliation_ledger_row(payload: Dict[str, Any]) -> Dict[str, Any]:
-    coin_req = str(payload.get("coin", "")).upper().strip()
-    issue_req = str(payload.get("issue", "")).upper().strip()
-    wallet_req = str(payload.get("wallet", "")).lower().strip()
-    manual_req_raw = payload.get("manual_signed_size")
-    if not coin_req or issue_req != "MISSING_EXCHANGE" or not is_present_num(manual_req_raw):
-        return {"ok": False, "error": "BAD_REQUEST"}
-
-    manual_positions = _load_manual_live_positions()
-    matched_key = next((k for k in manual_positions.keys() if str(k).upper() == coin_req), None)
-    if matched_key is None:
-        return {"ok": False, "error": "MANUAL_LEDGER_ROW_NOT_FOUND"}
-    old_row = manual_positions.get(matched_key)
-    if not isinstance(old_row, dict):
-        return {"ok": False, "error": "BAD_MANUAL_LEDGER_ROW"}
-
-    old_signed = fnum(old_row.get("signed_size"))
-    if abs(old_signed - fnum(manual_req_raw)) > 1e-12:
-        return {"ok": False, "error": "MANUAL_SIGNED_SIZE_MISMATCH"}
-    old_wallet = str(old_row.get("leader_wallet") or old_row.get("wallet") or "").lower().strip()
-    if wallet_req and old_wallet and wallet_req != old_wallet:
-        return {"ok": False, "error": "WALLET_MISMATCH"}
-    if abs(old_signed) <= 1e-12:
-        return {"ok": False, "error": "MANUAL_LEDGER_ROW_ALREADY_ZERO"}
-
-    # Force a live fetch so archive decisions are never based on stale cached state.
-    cached_snapshot = _fetch_exchange_account_snapshot(max_age_sec=0)
-    if not isinstance(cached_snapshot, dict) or not cached_snapshot.get("ok") or not cached_snapshot.get("available"):
-        return {"ok": False, "error": "EXCHANGE_SNAPSHOT_UNAVAILABLE",
-                "status": cached_snapshot.get("status", "UNAVAILABLE") if isinstance(cached_snapshot, dict) else "UNAVAILABLE"}
-    exchange_positions = cached_snapshot.get("positions_by_coin", {}) if isinstance(cached_snapshot.get("positions_by_coin"), dict) else {}
-    ex = exchange_positions.get(coin_req, {})
-    exchange_signed = fnum(ex.get("signed_size")) if isinstance(ex, dict) else 0.0
-    if abs(exchange_signed) > 1e-12:
-        return {"ok": False, "error": "EXCHANGE_SIZE_NOT_ZERO", "exchange_signed_size": exchange_signed}
-
-    if not MANUAL_POSITIONS_FILE.exists():
-        return {"ok": False, "error": "MANUAL_POSITIONS_FILE_MISSING"}
-    MANUAL_RECON_BACKUP_DIR.mkdir(parents=True, exist_ok=True)
-    backup_path = MANUAL_RECON_BACKUP_DIR / f"manual_live_positions_{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%fZ')}.json"
-    shutil.copy2(MANUAL_POSITIONS_FILE, backup_path)
-
-    removed = manual_positions.pop(matched_key)
-    atomic_write_json(MANUAL_POSITIONS_FILE, manual_positions)
-
-    actions = load_json(MANUAL_RECON_ACTIONS_FILE, [])
-    if not isinstance(actions, list):
-        actions = []
-    action_record = {
-        "timestamp": utc_now_iso(),
-        "action": "ARCHIVE_MANUAL_LEDGER_ROW",
-        "coin": coin_req,
-        "wallet": old_wallet or wallet_req,
-        "old_row": removed,
-        "issue": "MISSING_EXCHANGE",
-        "manual_signed_size": old_signed,
-        "exchange_signed_size": exchange_signed,
-        "backup_path": str(backup_path),
-    }
-    actions.append(action_record)
-    atomic_write_json(MANUAL_RECON_ACTIONS_FILE, actions)
-    return {"ok": True, "archived": action_record}
 
 
 def _build_live_wallet_derived(model_state: Dict[str, Any], live_config: Dict[str, Any], last_rows: List[Dict[str, Any]], recent_send_attempts: List[Dict[str, Any]], manual_positions: Dict[str, Any], manual_summary: Dict[str, Any]) -> Dict[str, Any]:
@@ -2160,10 +2352,19 @@ def _build_live_wallet_rows(
                 _last_lf_by_wallet[_lfw] = _lf
     # Pre-count ORDER_FILLED send_attempts per wallet
     _filled_cnt_by_wallet: Dict[str, int] = {}
+    _reject_cnt_by_wallet: Dict[str, int] = {}
+    _last_send_by_wallet: Dict[str, Dict[str, Any]] = {}
+    _last_terminal_by_wallet: Dict[str, str] = {}
     for _sa in recent_send_attempts:
         _saw = str(_sa.get("leader_wallet") or _sa.get("auto_send_wallet") or "").lower()
         if _saw and str(_sa.get("status", "")) == "ORDER_FILLED":
             _filled_cnt_by_wallet[_saw] = _filled_cnt_by_wallet.get(_saw, 0) + 1
+        if _saw:
+            _last_send_by_wallet[_saw] = _sa
+            if str(_sa.get("status", "")).upper() == "ORDER_REJECTED":
+                _reject_cnt_by_wallet[_saw] = _reject_cnt_by_wallet.get(_saw, 0) + 1
+            if _sa.get("terminal_state"):
+                _last_terminal_by_wallet[_saw] = str(_sa.get("terminal_state"))
     rows: List[Dict[str, Any]] = []
     for wallet, cfg in sorted(wallets.items()):
         if not isinstance(cfg, dict):
@@ -2215,6 +2416,7 @@ def _build_live_wallet_rows(
             eligibility = "CLOSE ONLY"
         else:
             eligibility = "DISABLED"
+        effective_wallet_action = "COPYING" if mode == "LIVE" and service_eligible else ("CLOSE_ONLY" if mode == "CLO" and service_eligible else "WALLET_OFF")
 
         # Connection: OFF wallets get "copy disabled"; LIVE/CLO use real ws health.
         if mode == "OFF" or not service_eligible:
@@ -2230,17 +2432,31 @@ def _build_live_wallet_rows(
                 conn_detail = "service not reporting this wallet"
         else:
             raw_status = str(wh.get("current_status") or wh.get("effective_status") or wh.get("status") or "UNKNOWN").upper()
-            conn_status = "OFFLINE" if raw_status in {"OFFLINE", "DISCONNECTED", "CLOSED"} else raw_status
-            conn_detail = wh.get("current_health_grade") or wh.get("health_grade") or wh.get("last_error") or "n/a"
+            if _shared_ws_ok and mode in {"LIVE", "CLO"} and raw_status in {"UNKNOWN", ""}:
+                conn_status = "SHARED_WS_OK"
+                conn_detail = "HOT10 shared socket active"
+            elif raw_status in {"OFFLINE", "DISCONNECTED", "CLOSED"}:
+                conn_status = "OFFLINE"
+                conn_detail = wh.get("current_health_grade") or wh.get("health_grade") or wh.get("last_error") or "n/a"
+            else:
+                conn_status = raw_status
+                conn_detail = wh.get("current_health_grade") or wh.get("health_grade") or wh.get("last_error") or "n/a"
 
         open_positions = perf.get("current_open_positions", [])
         open_exposure = perf.get("current_exposure", 0.0)
+        if fnum(open_exposure) > 0:
+            _w_exposure = fnum(open_exposure)
         last_fill_d = perf.get("last_actual_fill", {})
+        _account_only = (
+            str(perf.get("pnl_status", "")).upper() in {"ACCOUNT_LEVEL_ONLY", "AMBIGUOUS_COIN_SHARED"}
+            or str(perf.get("attribution_quality", "")).upper() == "WALLET_REALIZED_REQUIRES_EXACT_EXCHANGE_FILL_ID"
+        )
 
         rows.append({
             "wallet": wallet,
             "mode": mode,
             "eligibility": eligibility,
+            "effective_wallet_action": effective_wallet_action,
             "enabled": bool(normal.get("enabled")),
             "service_eligible": service_eligible,
             "service_eligibility_reason": service_reason,
@@ -2258,6 +2474,10 @@ def _build_live_wallet_rows(
             "last_intent_side": last_intent_side,
             "last_intent_coin_side": f"{last_intent_coin} {last_intent_side}".strip(),
             "filled_count": _w_filled_count if _w_filled_count else perf.get("filled_count", 0),
+            "rejected_count": _reject_cnt_by_wallet.get(w, perf.get("exchange_rejected_count", 0)),
+            "last_send": _last_send_by_wallet.get(w, {}),
+            "last_terminal_state": _last_terminal_by_wallet.get(w, ""),
+            "ws_subscription": "SUBSCRIBED" if (in_health_file or (_shared_ws_ok and mode in {"LIVE", "CLO"})) else "NOT_SUBSCRIBED",
             "exits_count": perf.get("exits_count", 0),
             "exchange_rejected_count": perf.get("exchange_rejected_count", 0),
             "local_blocked_count": perf.get("local_blocked_count", 0),
@@ -2268,17 +2488,17 @@ def _build_live_wallet_rows(
             "avg_fill_bps": perf.get("avg_fill_vs_limit_bps"),
             "worst_fill_bps": perf.get("worst_fill_vs_limit_bps"),
             "avg_leader_bps": perf.get("avg_leader_vs_user_bps"),
-            "realized_pnl": perf.get("realized_pnl_estimate"),
-            "unrealized_pnl": perf.get("unrealized_pnl_estimate"),
-            "net_pnl": perf.get("net_pnl_estimate"),
-            "live_realized_pnl": perf.get("live_realized_pnl"),
-            "confirmed_realized_pnl": perf.get("confirmed_realized_pnl"),
+            "realized_pnl": None if _account_only else perf.get("realized_pnl_estimate"),
+            "unrealized_pnl": None if _account_only else perf.get("unrealized_pnl_estimate"),
+            "net_pnl": None if _account_only else perf.get("net_pnl_estimate"),
+            "live_realized_pnl": None if _account_only else perf.get("live_realized_pnl"),
+            "confirmed_realized_pnl": None if _account_only else perf.get("confirmed_realized_pnl"),
             "realized_match_status": perf.get("realized_match_status", "N/A"),
             "matched_exchange_fill_count": perf.get("matched_exchange_fill_count", 0),
             "matched_closed_pnl_fill_count": perf.get("matched_closed_pnl_fill_count", 0),
-            "live_unrealized_pnl": perf.get("live_unrealized_pnl"),
-            "live_net_pnl": perf.get("live_net_pnl"),
-            "live_equity_effect": perf.get("live_equity_effect"),
+            "live_unrealized_pnl": None if _account_only else perf.get("live_unrealized_pnl"),
+            "live_net_pnl": None if _account_only else perf.get("live_net_pnl"),
+            "live_equity_effect": None if _account_only else perf.get("live_equity_effect"),
             "pnl_status": perf.get("pnl_status", "N/A"),
             "pnl_status_label": perf.get("pnl_status_label", "No live PnL"),
             "attribution_quality": perf.get("attribution_quality", "N/A"),
@@ -2294,15 +2514,15 @@ def _build_live_wallet_rows(
             "worst_diff_bps": perf.get("worst_diff_bps"),
             "fill_vs_limit_avg_bps": perf.get("avg_fill_vs_limit_bps"),
             "fill_vs_limit_worst_bps": perf.get("worst_fill_vs_limit_bps"),
-            "open_position_count": len(_w_open_coins) if _w_open_coins else len(open_positions),
-            "open_positions": _w_open_coins if _w_open_coins else open_positions,
-            "open_coins": _w_open_coins if _w_open_coins else perf.get("open_coins", []),
-            "open_exposure": _w_exposure if _w_exposure > 0 else open_exposure,
-            "current_exposure": _w_exposure if _w_exposure > 0 else open_exposure,
+            "open_position_count": len(_w_open_coins),
+            "open_positions": _w_open_coins,
+            "open_coins": _w_open_coins,
+            "open_exposure": _w_exposure,
+            "current_exposure": _w_exposure,
             "max_exposure": perf.get("max_exposure"),
-            "drawdown": perf.get("drawdown"),
-            "live_dd": perf.get("drawdown"),
-            "max_drawdown": perf.get("max_drawdown"),
+            "drawdown": None if _account_only else perf.get("drawdown"),
+            "live_dd": None if _account_only else perf.get("drawdown"),
+            "max_drawdown": None if _account_only else perf.get("max_drawdown"),
             "last_fill": _w_last_fill if _w_last_fill else last_fill_d,
         })
     return rows
@@ -2315,34 +2535,54 @@ def _build_real_copy_positions(
     rows: List[Dict[str, Any]] = []
     exchange_positions = exchange_snapshot.get("positions_by_coin", {}) if isinstance(exchange_snapshot.get("positions_by_coin"), dict) else {}
     exchange_available = bool(exchange_snapshot.get("available"))
+    service_evidence = _service_position_evidence_by_coin()
     seen: set = set()
     sleeves = _manual_position_sleeves(manual_positions)
     coin_counts, coin_nets = _shared_manual_coin_nets(sleeves)
     shared_coins = {coin for coin, count in coin_counts.items() if count > 1}
+    classifications: Dict[str, Dict[str, Any]] = {}
+    all_classification_coins = {str(c).upper() for c in coin_nets}
+    all_classification_coins.update(str(c).upper() for c in exchange_positions if isinstance(exchange_positions, dict))
+    for coin_upper in sorted(all_classification_coins):
+        owned_net = fnum(coin_nets.get(coin_upper))
+        ex = exchange_positions.get(coin_upper, {}) if isinstance(exchange_positions, dict) else {}
+        exchange_net = _exchange_signed_size(ex)
+        base = _classify_owned_exchange_net(owned_net, exchange_net, exchange_available)
+        evidence = service_evidence.get(coin_upper, {})
+        missing_oids = list(evidence.get("missing_filled_oids") or [])
+        live_net = fnum(evidence.get("live_net"))
+        if exchange_available and abs(exchange_net) > 1e-12 and abs(owned_net) <= 1e-12:
+            if missing_oids or abs(live_net) > 1e-12:
+                base.update({
+                    "status": "SERVICE_CREATED_UNLEDGERED",
+                    "service_live_net": live_net,
+                    "missing_filled_oids": missing_oids,
+                })
+            else:
+                base.update({"status": "EXTERNAL_ORPHAN_UNOWNED"})
+        elif exchange_available and abs(owned_net) > 1e-12 and base.get("status") == "OWNED_PLUS_ACCOUNT_RESIDUAL":
+            base.update({"status": "RESIDUAL_ACCOUNT_LEVEL", "service_live_net": live_net})
+        classifications[coin_upper] = base
     for wallet, coin_upper, pos in sorted(sleeves, key=lambda item: (item[1], item[0])):
         signed = fnum(pos.get("signed_size"))
         if abs(signed) <= 1e-12:
             continue
         seen.add(coin_upper)
         ex: Dict[str, Any] = exchange_positions.get(coin_upper, {}) if isinstance(exchange_positions, dict) else {}
-        ex_signed = fnum(ex.get("signed_size")) if isinstance(ex, dict) else 0.0
-        ex_mark = fnum(ex.get("mark_px")) if isinstance(ex, dict) else 0.0
-        ex_entry = fnum(ex.get("entry_px")) if isinstance(ex, dict) else 0.0
-        ex_upnl = fnum(ex.get("unrealized_pnl")) if isinstance(ex, dict) else 0.0
-        ex_pos_value = fnum(ex.get("position_value")) if isinstance(ex, dict) else 0.0
+        ex_signed = _exchange_signed_size(ex)
+        ex_mark = _exchange_field(ex, "mark_px")
+        ex_entry = _exchange_field(ex, "entry_px")
+        avg_entry = fnum(pos.get("avg_entry_px")) or ex_entry
+        owned_position_value = abs(signed) * ex_mark if ex_mark > 0 else None
+        owned_unrealized = _owned_sleeve_unrealized(signed, avg_entry, ex_mark)
         is_shared = coin_upper in shared_coins
         if is_shared and exchange_available:
             status = "SHARED_SYMBOL_SLEEVE_TRACKED"
         elif exchange_available:
-            diff = signed - ex_signed
-            if abs(diff) <= 1e-8:
-                status = "MATCH"
-            elif ex_signed == 0.0:
-                status = "MISSING_EXCHANGE"
-            else:
-                status = f"SIZE_DIFF {diff:+.6f}"
+            status = str((classifications.get(coin_upper) or {}).get("status") or "EXCHANGE_UNAVAILABLE")
         else:
             status = "EXCHANGE_UNAVAILABLE"
+        unsafe_external_status = status in {"OWNED_LEDGER_UNSUPPORTED_BY_EXCHANGE", "EXTERNAL_FLAT_PENDING_RECONCILIATION", "SIGN_CONFLICT_PENDING_RECONCILIATION"}
         rows.append({
             "row_type": "OWNED_COPY",
             "coin": coin_upper,
@@ -2356,21 +2596,60 @@ def _build_real_copy_positions(
             "last_oid": pos.get("last_oid", ""),
             "last_updated_at": pos.get("last_updated_at", ""),
             "exchange_signed_size": ex_signed if exchange_available else None,
-            "entry_px": ex_entry if ex_entry > 0 else None,
+            "entry_px": avg_entry if avg_entry > 0 else None,
             "mark_px": ex_mark if ex_mark > 0 else None,
-            "position_value": None if is_shared else (ex_pos_value if ex_pos_value > 0 else None),
-            "unrealized_pnl": None if is_shared else (ex_upnl if exchange_available else None),
+            "position_value": None if is_shared else (round(owned_position_value, 8) if owned_position_value is not None else None),
+            "unrealized_pnl": None if is_shared or unsafe_external_status else owned_unrealized,
             "ledger_vs_exchange": status,
-            "reconciliation_note": "shared symbol: sleeve tracked; exchange is netted at account level" if is_shared else "",
+            "residual_size": (classifications.get(coin_upper) or {}).get("residual_size", 0.0),
+            "unsupported_size": (classifications.get(coin_upper) or {}).get("unsupported_size", 0.0),
+            "reconciliation_note": "shared symbol: sleeve tracked; exchange is netted at account level" if is_shared else (
+                "wallet owns manual sleeve only; exchange residual is account-level context" if status in {"OWNED_PLUS_ACCOUNT_RESIDUAL", "RESIDUAL_ACCOUNT_LEVEL"}
+                else "ledger sleeve not fully supported by exchange; external reconciliation required" if status in {"OWNED_LEDGER_UNSUPPORTED_BY_EXCHANGE", "EXTERNAL_FLAT_PENDING_RECONCILIATION", "SIGN_CONFLICT_PENDING_RECONCILIATION"}
+                else ""
+            ),
         })
+    if exchange_available:
+        for coin_upper, info in sorted(classifications.items()):
+            residual = fnum(info.get("residual_size"))
+            status = str(info.get("status") or "")
+            if status not in {"OWNED_PLUS_ACCOUNT_RESIDUAL", "RESIDUAL_ACCOUNT_LEVEL"} or abs(residual) <= 1e-8:
+                continue
+            ex = exchange_positions.get(coin_upper, {}) if isinstance(exchange_positions, dict) else {}
+            ex_mark = _exchange_field(ex, "mark_px")
+            rows.append({
+                "row_type": "ACCOUNT_LEVEL_ONLY",
+                "coin": coin_upper,
+                "signed_size": None,
+                "side": "LONG" if residual > 0 else "SHORT",
+                "leader_wallet": "—",
+                "avg_entry_px": None,
+                "last_copy_fill_id": "",
+                "last_updated_ms": None,
+                "last_intent_id": "—",
+                "last_oid": "—",
+                "last_updated_at": "—",
+                "exchange_signed_size": residual,
+                "entry_px": _exchange_field(ex, "entry_px") or None,
+                "mark_px": ex_mark if ex_mark > 0 else None,
+                "position_value": round(abs(residual) * ex_mark, 8) if ex_mark > 0 else None,
+                "unrealized_pnl": None,
+                "ledger_vs_exchange": "ACCOUNT_RESIDUAL",
+                "orphan_classification": "RESIDUAL_ACCOUNT_LEVEL",
+                "residual_size": residual,
+                "unsupported_size": 0.0,
+                "reconciliation_note": "residual account exposure; not wallet owned",
+            })
     if exchange_available:
         for coin_upper in sorted(shared_coins):
             ledger_net = coin_nets.get(coin_upper, 0.0)
             ex: Dict[str, Any] = exchange_positions.get(coin_upper, {}) if isinstance(exchange_positions, dict) else {}
-            ex_signed = fnum(ex.get("signed_size")) if isinstance(ex, dict) else 0.0
+            ex_signed = _exchange_signed_size(ex)
             diff = ledger_net - ex_signed
-            status = "SHARED_SYMBOL_NET_MATCH" if abs(diff) <= 1e-8 else f"SHARED_SYMBOL_NET_DIFF {diff:+.6f}"
+            status = "ACCOUNT_LEVEL_ONLY / SHARED_SYMBOL_NET_MATCH" if abs(diff) <= 1e-8 else f"ACCOUNT_LEVEL_ONLY / SHARED_SYMBOL_RESIDUAL {diff:+.6f}"
             rows.append({
+                "row_type": "ACCOUNT_LEVEL_ONLY",
+                "provenance": "ACCOUNT_LEVEL_ONLY",
                 "coin": coin_upper,
                 "signed_size": round(ledger_net, 12),
                 "side": "NET LONG" if ledger_net > 0 else "NET SHORT" if ledger_net < 0 else "NET FLAT",
@@ -2379,23 +2658,31 @@ def _build_real_copy_positions(
                 "last_oid": "aggregate",
                 "last_updated_at": "—",
                 "exchange_signed_size": ex_signed,
-                "entry_px": fnum(ex.get("entry_px")) or None,
-                "mark_px": fnum(ex.get("mark_px")) or None,
-                "position_value": fnum(ex.get("position_value")) or None,
-                "unrealized_pnl": fnum(ex.get("unrealized_pnl")) if isinstance(ex, dict) else None,
+                "entry_px": _exchange_field(ex, "entry_px") or None,
+                "mark_px": _exchange_field(ex, "mark_px") or None,
+                "position_value": _exchange_field(ex, "position_value") or None,
+                "unrealized_pnl": None,
                 "ledger_vs_exchange": status,
-                "reconciliation_note": "aggregate net matches exchange" if abs(diff) <= 1e-8 else "aggregate ledger net differs from exchange net",
+                "orphan_classification": "SHARED_SYMBOL_RESIDUAL" if abs(diff) > 1e-8 else "SHARED_SYMBOL_NET_MATCH",
+                "residual_size": diff,
+                "unsupported_size": 0.0,
+                "reconciliation_note": "aggregate shared-symbol net; account-level only, never wallet-owned" if abs(diff) <= 1e-8 else "aggregate shared-symbol residual; account-level only, never wallet-owned",
             })
     if exchange_available:
         for coin, ex in sorted(exchange_positions.items()):
-            if coin in seen:
+            coin_upper = str(coin).upper()
+            if coin_upper in seen:
                 continue
-            ex_signed = fnum(ex.get("signed_size")) if isinstance(ex, dict) else 0.0
+            ex_signed = _exchange_signed_size(ex)
             if abs(ex_signed) <= 1e-12:
                 continue
+            classification = classifications.get(coin_upper, {})
+            orphan_status = str(classification.get("status") or "EXTERNAL_ORPHAN_UNOWNED")
+            if orphan_status not in {"SERVICE_CREATED_UNLEDGERED", "EXTERNAL_ORPHAN_UNOWNED"}:
+                orphan_status = "EXTERNAL_ORPHAN_UNOWNED"
             rows.append({
                 "row_type": "ACCOUNT_LEVEL_ONLY",
-                "coin": coin.upper(),
+                "coin": coin_upper,
                 "signed_size": None,
                 "side": "LONG" if ex_signed > 0 else "SHORT",
                 "leader_wallet": "—",
@@ -2406,14 +2693,108 @@ def _build_real_copy_positions(
                 "last_oid": "—",
                 "last_updated_at": "—",
                 "exchange_signed_size": ex_signed,
-                "entry_px": fnum(ex.get("entry_px")) or None,
-                "mark_px": fnum(ex.get("mark_px")) or None,
-                "position_value": fnum(ex.get("position_value")) or None,
-                "unrealized_pnl": fnum(ex.get("unrealized_pnl")) or None,
-                "ledger_vs_exchange": "ORPHAN_EXCHANGE",
-                "reconciliation_note": "pre-existing or non-copied exchange position; not adopted into ledger",
+                "entry_px": _exchange_field(ex, "entry_px") or None,
+                "mark_px": _exchange_field(ex, "mark_px") or None,
+                "position_value": _exchange_field(ex, "position_value") or None,
+                "unrealized_pnl": _exchange_field(ex, "unrealized_pnl") or None,
+                "ledger_vs_exchange": "SERVICE_CREATED_UNLEDGERED" if orphan_status == "SERVICE_CREATED_UNLEDGERED" else "ORPHAN_EXCHANGE",
+                "orphan_classification": orphan_status,
+                "service_live_net": classification.get("service_live_net", 0.0),
+                "missing_filled_oids": classification.get("missing_filled_oids", []),
+                "reconciliation_note": "service-created exchange position is not represented in manual ledger" if orphan_status == "SERVICE_CREATED_UNLEDGERED" else "NO SERVICE ORDER EVIDENCE; not adopted into ledger",
             })
     return rows
+
+
+def _orphan_registry_key(row: Dict[str, Any]) -> str:
+    coin = str(row.get("coin") or "").upper().strip()
+    classification = str(row.get("orphan_classification") or row.get("ledger_vs_exchange") or "ACCOUNT_LEVEL_ONLY").upper()
+    return f"{classification}::{coin}"
+
+
+def _account_orphan_signed_size(row: Dict[str, Any]) -> float:
+    classification = str(row.get("orphan_classification") or "")
+    if classification == "SHARED_SYMBOL_RESIDUAL":
+        return -fnum(row.get("residual_size"))
+    return fnum(row.get("exchange_signed_size"))
+
+
+def _build_account_orphan_registry(
+    account_rows: List[Dict[str, Any]],
+    registry_path: Optional[Path] = None,
+) -> Dict[str, Any]:
+    """Persist account-level exchange exposure as user-managed context only."""
+    registry_path = registry_path or ACCOUNT_ORPHAN_POSITIONS_FILE
+    now = utc_now_iso()
+    prior = load_json(registry_path, {})
+    prior_positions = prior.get("positions") if isinstance(prior, dict) and isinstance(prior.get("positions"), dict) else {}
+    positions: Dict[str, Dict[str, Any]] = {str(k): dict(v) for k, v in prior_positions.items() if isinstance(v, dict)}
+    active_keys: set[str] = set()
+
+    for row in account_rows:
+        if row.get("row_type") != "ACCOUNT_LEVEL_ONLY":
+            continue
+        coin = str(row.get("coin") or "").upper().strip()
+        if not coin:
+            continue
+        signed = _account_orphan_signed_size(row)
+        if abs(signed) <= 1e-12:
+            continue
+        key = _orphan_registry_key(row)
+        active_keys.add(key)
+        existing = positions.get(key, {})
+        mark_px = fnum(row.get("mark_px"))
+        entry_px = fnum(row.get("entry_px"))
+        notional = fnum(row.get("position_value"))
+        if notional <= 0 and mark_px > 0:
+            notional = abs(signed) * mark_px
+        raw_class = str(row.get("orphan_classification") or row.get("ledger_vs_exchange") or "ACCOUNT_RESIDUAL")
+        classification = "ACCOUNT_LEVEL_ONLY / EXTERNAL_ORPHAN_UNOWNED" if raw_class == "EXTERNAL_ORPHAN_UNOWNED" else f"ACCOUNT_LEVEL_ONLY / {raw_class}"
+        positions[key] = {
+            "coin": coin,
+            "signed_size": signed,
+            "side": "LONG" if signed > 0 else "SHORT",
+            "entry_px": entry_px if entry_px > 0 else None,
+            "mark_px": mark_px if mark_px > 0 else None,
+            "unrealized_pnl": row.get("unrealized_pnl"),
+            "notional": round(notional, 8) if notional else None,
+            "exposure": round(abs(notional), 8) if notional else None,
+            "first_seen_at": existing.get("first_seen_at") or now,
+            "last_seen_at": now,
+            "source": "exchange_account_snapshot",
+            "classification": classification,
+            "user_owner_status": "USER_MANAGED",
+            "engine_can_close": False,
+            "engine_can_use_as_sleeve": False,
+            "status": "ACTIVE",
+            "resolved_at": None,
+            "notes": row.get("reconciliation_note") or "account-level exchange exposure; not engine owned",
+        }
+
+    for key, entry in list(positions.items()):
+        if key in active_keys:
+            continue
+        if str(entry.get("status") or "ACTIVE") == "ACTIVE":
+            entry["status"] = "RESOLVED / NO_LONGER_ON_EXCHANGE"
+            entry["resolved_at"] = now
+            entry["last_seen_at"] = entry.get("last_seen_at") or now
+            entry["engine_can_close"] = False
+            entry["engine_can_use_as_sleeve"] = False
+            positions[key] = entry
+
+    payload = {
+        "schema": "account_orphan_positions.v1",
+        "updated_at": now,
+        "source": "exchange_account_snapshot",
+        "positions": positions,
+        "active_count": sum(1 for p in positions.values() if str(p.get("status") or "") == "ACTIVE"),
+        "resolved_count": sum(1 for p in positions.values() if str(p.get("status") or "").startswith("RESOLVED")),
+    }
+    try:
+        atomic_write_json(registry_path, payload)
+    except Exception:
+        pass
+    return payload
 
 
 def _build_execution_quality_rows(
@@ -2439,12 +2820,43 @@ def _build_execution_quality_rows(
         if _lfid and _lfid not in _lf_by_leader_fill:
             _lf_by_leader_fill[_lfid] = _lf
     rows: List[Dict[str, Any]] = []
+    now_ms = int(time.time() * 1000)
+    active_window_ms = 60 * 60 * 1000
     for attempt in reversed(recent_send_attempts):
         intent_id = str(attempt.get("intent_id", "")).strip()
         leader_fill_id = str(attempt.get("leader_fill_id", "")).strip()
         intent = intent_by_id.get(intent_id, {})
         # Resolve live_fill: intent_id first, then leader_fill_id
         live_fill = _lf_by_intent.get(intent_id) or _lf_by_leader_fill.get(leader_fill_id) or {}
+        has_live_fill = bool(live_fill)
+        status = str(attempt.get("status", "") or "")
+        terminal_state = str(attempt.get("terminal_state", "") or "")
+        operator_action = str(attempt.get("operator_action", "") or "")
+        reject_category = str(attempt.get("reject_category", "") or "")
+        created_ms = fnum(attempt.get("created_at_ms")) or _iso_to_ms(attempt.get("created_at"))
+        age_ms = max(0, now_ms - int(created_ms)) if created_ms else 0
+        is_fresh = bool(created_ms and age_ms <= active_window_ms)
+        display_terminal_state = terminal_state
+        display_operator_action = operator_action
+        truth_state = "HISTORICAL"
+        truth_severity = "INFO"
+        if status == "ORDER_FILLED" and has_live_fill:
+            display_terminal_state = "ADOPTED_RECONCILED"
+            display_operator_action = "COPY_POLL_ADOPTED"
+            truth_state = "ADOPTED_RECONCILED"
+            truth_severity = "GREEN"
+        elif status == "ORDER_FILLED":
+            truth_state = "ACTIVE_AWAITING_COPY_POLL" if is_fresh else "HISTORICAL_UNADOPTED_REVIEW"
+            truth_severity = "AMBER" if is_fresh else "RED"
+        elif status == "ORDER_REJECTED":
+            truth_state = "ACTIVE_EXCHANGE_REJECT" if is_fresh else "HISTORICAL_EXCHANGE_REJECT"
+            truth_severity = "RED" if is_fresh else "HISTORICAL"
+        elif status == "CONFIRM_REQUIRED":
+            truth_state = "QUEUED_PREVIEW"
+            truth_severity = "INFO"
+        elif status:
+            truth_state = "ACTIVE_LOCAL_BLOCK" if is_fresh else "HISTORICAL_LOCAL_BLOCK"
+            truth_severity = "AMBER" if is_fresh else "HISTORICAL"
         # fill_avg_px: parsed from exchange_response, else live_fill fill_price
         fill_px = fnum(attempt.get("fill_avg_px"))
         if fill_px == 0 and live_fill:
@@ -2455,6 +2867,12 @@ def _build_execution_quality_rows(
             fill_size_val = live_fill.get("fill_size")
         # oid: exchange_order_id column (already mapped to oid in _load_recent_send_attempts)
         oid_val = attempt.get("oid") or attempt.get("exchange_order_id")
+        wallet_position_before = live_fill.get("wallet_position_before") if live_fill else None
+        if wallet_position_before in (None, ""):
+            wallet_position_before = attempt.get("wallet_position_before")
+        wallet_position_after = live_fill.get("wallet_position_after") if live_fill else None
+        if wallet_position_after in (None, ""):
+            wallet_position_after = attempt.get("wallet_position_after_expected")
         limit_px = fnum(attempt.get("limit_price") or attempt.get("limit_px") or 0)
         if limit_px == 0 and intent:
             limit_px = fnum(intent.get("suggested_limit_price") or intent.get("target_price") or 0)
@@ -2473,11 +2891,26 @@ def _build_execution_quality_rows(
             "leader_wallet": str(attempt.get("leader_wallet") or attempt.get("auto_send_wallet") or ""),
             "coin": attempt.get("coin", ""),
             "side": side,
-            "status": attempt.get("status", ""),
+            "status": status,
+            "reject_category": reject_category,
+            "terminal_state": display_terminal_state,
+            "raw_terminal_state": terminal_state,
+            "operator_action": display_operator_action,
             "limit_px": limit_px if limit_px > 0 else None,
             "fill_avg_px": fill_px if fill_px > 0 else None,
             "fill_size": fill_size_val,
             "oid": oid_val,
+            "wallet_position_before": wallet_position_before,
+            "wallet_position_after": wallet_position_after,
+            "leader_to_send_attempt_ms": attempt.get("leader_to_send_attempt_ms", ""),
+            "send_total_ms": attempt.get("send_total_ms", ""),
+            "symbol_resolve_ms": attempt.get("symbol_resolve_ms", ""),
+            "sdk_client_ms": attempt.get("sdk_client_ms", ""),
+            "exchange_call_ms": attempt.get("exchange_call_ms", ""),
+            "has_live_fill": has_live_fill,
+            "truth_state": truth_state,
+            "truth_severity": truth_severity,
+            "is_active": is_fresh and truth_severity in {"RED", "AMBER"},
             "fill_bps": fill_bps,
             "leader_bps": leader_bps,
             "marketable_bps": fnum(attempt.get("marketable_bps")) or None,
@@ -2575,6 +3008,13 @@ def _build_live_leader_performance(
             continue
         if pw:
             coin_wallets.setdefault(str(coin).upper(), set()).add(pw)
+    sleeves_for_net = _manual_position_sleeves(manual_positions)
+    _coin_counts, coin_nets = _shared_manual_coin_nets(sleeves_for_net)
+    ownership_by_coin: Dict[str, Dict[str, Any]] = {}
+    for coin, owned_net in coin_nets.items():
+        ex = exchange_positions.get(coin, {}) if isinstance(exchange_positions, dict) else {}
+        exchange_net = fnum(ex.get("signed_size")) if isinstance(ex, dict) else 0.0
+        ownership_by_coin[coin] = _classify_owned_exchange_net(owned_net, exchange_net, exchange_available)
 
     live_fills_by_wallet: Dict[str, List[Dict[str, Any]]] = {}
     if LIVE_FILLS_CSV.exists():
@@ -2759,19 +3199,22 @@ def _build_live_leader_performance(
             coin_shared = len(coin_wallets.get(coin_upper, set())) > 1
             ex: Dict[str, Any] = exchange_positions.get(coin_upper, {}) if isinstance(exchange_positions, dict) else {}
             mark = fnum(ex.get("mark_px")) if isinstance(ex, dict) else 0.0
-            entry = fnum(ex.get("entry_px")) if isinstance(ex, dict) else 0.0
-            ex_upnl = fnum(ex.get("unrealized_pnl")) if isinstance(ex, dict) else 0.0
-            pos_value = fnum(ex.get("position_value")) if isinstance(ex, dict) else 0.0
-            exp_est = abs(signed) * mark if mark > 0 else (pos_value if pos_value > 0 else 0.0)
+            entry = fnum(pos.get("avg_entry_px")) or (fnum(ex.get("entry_px")) if isinstance(ex, dict) else 0.0)
+            exp_est = abs(signed) * mark if mark > 0 else (abs(signed) * entry if entry > 0 else 0.0)
             current_exposure += exp_est
+            ownership = ownership_by_coin.get(coin_upper, _classify_owned_exchange_net(signed, fnum(ex.get("signed_size")) if isinstance(ex, dict) else 0.0, exchange_available))
+            ownership_status = str(ownership.get("status") or "EXCHANGE_UNAVAILABLE")
+            owned_upnl = _owned_sleeve_unrealized(signed, entry, mark)
             if coin_shared:
                 match = "AMBIGUOUS_COIN_SHARED"
                 has_ambiguous_coin = True
             elif exchange_available and isinstance(ex, dict) and ex:
-                ex_signed = fnum(ex.get("signed_size"))
-                match = "MATCH" if abs(ex_signed - signed) <= 1e-8 else "MISMATCH"
-                total_unrealized += ex_upnl
-                has_unrealized = True
+                match = ownership_status
+                if owned_upnl is not None and ownership_status not in {"SIGN_CONFLICT_PENDING_RECONCILIATION", "EXTERNAL_FLAT_PENDING_RECONCILIATION", "OWNED_LEDGER_UNSUPPORTED_BY_EXCHANGE"}:
+                    total_unrealized += owned_upnl
+                    has_unrealized = True
+                if ownership_status in {"OWNED_LEDGER_UNSUPPORTED_BY_EXCHANGE", "EXTERNAL_FLAT_PENDING_RECONCILIATION", "SIGN_CONFLICT_PENDING_RECONCILIATION"}:
+                    data_quality_notes.append(f"{coin_upper} {ownership_status}")
             else:
                 match = "EXCHANGE_UNAVAILABLE"
             open_positions.append({
@@ -2780,9 +3223,12 @@ def _build_live_leader_performance(
                 "side": "LONG" if signed > 0 else "SHORT",
                 "entry_px": entry if entry > 0 else None,
                 "mark_px": mark if mark > 0 else None,
-                "unrealized_pnl": ex_upnl if exchange_available and not coin_shared else None,
+                "unrealized_pnl": owned_upnl if exchange_available and not coin_shared and ownership_status not in {"SIGN_CONFLICT_PENDING_RECONCILIATION", "EXTERNAL_FLAT_PENDING_RECONCILIATION", "OWNED_LEDGER_UNSUPPORTED_BY_EXCHANGE"} else None,
                 "exposure": round(exp_est, 4) if exp_est > 0 else None,
                 "exchange_match": match,
+                "ownership_status": ownership_status,
+                "residual_size": ownership.get("residual_size", 0.0),
+                "unsupported_size": ownership.get("unsupported_size", 0.0),
             })
 
         unrealized_pnl: Optional[float] = round(total_unrealized, 4) if has_unrealized else None
@@ -2914,6 +3360,10 @@ def _build_execution_quality_summary(execution_quality_rows: List[Dict[str, Any]
     filled = [r for r in execution_quality_rows if r.get("status") == "ORDER_FILLED"]
     exch_rej = [r for r in execution_quality_rows if r.get("status") == "ORDER_REJECTED"]
     local_blk = [r for r in execution_quality_rows if r.get("status") and r.get("status") not in _TERMINAL_IGNORE]
+    active_red = [r for r in execution_quality_rows if r.get("is_active") and r.get("truth_severity") == "RED"]
+    active_amber = [r for r in execution_quality_rows if r.get("is_active") and r.get("truth_severity") == "AMBER"]
+    historical = [r for r in execution_quality_rows if str(r.get("truth_state") or "").startswith("HISTORICAL")]
+    adopted = [r for r in execution_quality_rows if r.get("truth_state") == "ADOPTED_RECONCILED"]
     previews = [r for r in execution_quality_rows if r.get("status") == "CONFIRM_REQUIRED"]
     bps_vals = [r["fill_bps"] for r in filled if r.get("fill_bps") is not None]
     lbps_vals = [r["leader_bps"] for r in filled if r.get("leader_bps") is not None]
@@ -2925,6 +3375,10 @@ def _build_execution_quality_summary(execution_quality_rows: List[Dict[str, Any]
         "filled_count": len(filled),
         "exchange_rejected_count": len(exch_rej),
         "local_blocked_count": len(local_blk),
+        "active_red_count": len(active_red),
+        "active_amber_count": len(active_amber),
+        "historical_count": len(historical),
+        "adopted_reconciled_count": len(adopted),
         "preview_count": len(previews),
         "avg_fill_vs_limit_bps": avg_bps,
         "worst_fill_vs_limit_bps": worst_bps,
@@ -4175,6 +4629,10 @@ def invalidate_model_cache() -> None:
     with _MODEL_BUILD_LOCK:
         _MODEL_CACHE["state"] = None
         _MODEL_CACHE["built_at"] = 0.0
+    with _MODEL_DASHBOARD_HTML_CACHE_LOCK:
+        _MODEL_DASHBOARD_HTML_CACHE["html"] = None
+        _MODEL_DASHBOARD_HTML_CACHE["built_at"] = 0.0
+        _MODEL_DASHBOARD_HTML_CACHE["state_built_at"] = 0.0
 
 
 def get_model_state_cached(max_age_sec: float = 5.0, force: bool = False) -> Dict[str, Any]:
@@ -4212,6 +4670,143 @@ def get_model_state_cached(max_age_sec: float = 5.0, force: bool = False) -> Dic
                 stale["app_health_stale"] = True
                 return stale
             raise
+
+
+def _model_cache_snapshot_nonblocking() -> Tuple[Any, float]:
+    if _MODEL_BUILD_LOCK.acquire(blocking=False):
+        try:
+            return _MODEL_CACHE.get("state"), fnum(_MODEL_CACHE.get("built_at"))
+        finally:
+            _MODEL_BUILD_LOCK.release()
+    return _MODEL_CACHE.get("state"), fnum(_MODEL_CACHE.get("built_at"))
+
+
+def _model_dashboard_html_cache_get(state_built_at: float) -> Optional[str]:
+    with _MODEL_DASHBOARD_HTML_CACHE_LOCK:
+        html_doc = _MODEL_DASHBOARD_HTML_CACHE.get("html")
+        cached_state_built_at = fnum(_MODEL_DASHBOARD_HTML_CACHE.get("state_built_at"))
+        if isinstance(html_doc, str) and html_doc and cached_state_built_at == state_built_at:
+            return html_doc
+    return None
+
+
+def _model_dashboard_html_cache_latest_get() -> Optional[str]:
+    with _MODEL_DASHBOARD_HTML_CACHE_LOCK:
+        html_doc = _MODEL_DASHBOARD_HTML_CACHE.get("html")
+        if isinstance(html_doc, str) and html_doc:
+            return html_doc
+    return None
+
+
+def _model_dashboard_last_good_html_disk_get() -> Optional[str]:
+    try:
+        if not MODEL_DASHBOARD_LAST_GOOD_HTML_FILE.exists():
+            return None
+        html_doc = MODEL_DASHBOARD_LAST_GOOD_HTML_FILE.read_text(encoding="utf-8")
+        if html_doc:
+            with _MODEL_DASHBOARD_HTML_CACHE_LOCK:
+                _MODEL_DASHBOARD_HTML_CACHE["html"] = html_doc
+                _MODEL_DASHBOARD_HTML_CACHE["built_at"] = time.time()
+                _MODEL_DASHBOARD_HTML_CACHE["state_built_at"] = 0.0
+            return html_doc
+    except Exception as exc:
+        APP_HEALTH["last_error"] = f"{type(exc).__name__}: {exc}"
+    return None
+
+
+def _model_dashboard_last_good_html_disk_store(html_doc: str) -> None:
+    APP_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    tmp = _unique_tmp_path(MODEL_DASHBOARD_LAST_GOOD_HTML_FILE)
+    with _FILE_WRITE_LOCK:
+        tmp.write_text(html_doc, encoding="utf-8")
+        _replace_with_retries(tmp, MODEL_DASHBOARD_LAST_GOOD_HTML_FILE)
+
+
+def _model_dashboard_html_cache_store(html_doc: str, state_built_at: float) -> None:
+    _model_dashboard_last_good_html_disk_store(html_doc)
+    with _MODEL_DASHBOARD_HTML_CACHE_LOCK:
+        _MODEL_DASHBOARD_HTML_CACHE["html"] = html_doc
+        _MODEL_DASHBOARD_HTML_CACHE["built_at"] = time.time()
+        _MODEL_DASHBOARD_HTML_CACHE["state_built_at"] = state_built_at
+
+
+def _render_model_dashboard_html_cached(state: Dict[str, Any], state_built_at: float) -> str:
+    cached_html = _model_dashboard_html_cache_get(state_built_at)
+    if cached_html is not None:
+        print("MODEL_DASHBOARD_HTML_CACHE_HIT", flush=True)
+        return cached_html
+    html_doc = render_home(dict(state))
+    _model_dashboard_html_cache_store(html_doc, state_built_at)
+    print("MODEL_DASHBOARD_HTML_CACHE_MISS_RENDERED", flush=True)
+    return html_doc
+
+
+def _kick_model_cache_refresh_background() -> bool:
+    global _MODEL_REFRESH_IN_PROGRESS
+    with _MODEL_REFRESH_LOCK:
+        if _MODEL_REFRESH_IN_PROGRESS:
+            return False
+        _MODEL_REFRESH_IN_PROGRESS = True
+        _MODEL_REFRESH_STATUS["last_marker"] = "MODEL_DASHBOARD_BACKGROUND_QUEUED"
+
+    def _refresh() -> None:
+        global _MODEL_REFRESH_IN_PROGRESS
+        started = time.time()
+        with _MODEL_REFRESH_LOCK:
+            _MODEL_REFRESH_STATUS.update({
+                "in_progress": True,
+                "started_at": utc_now_iso(),
+                "finished_at": "",
+                "ok": False,
+                "error": "",
+                "traceback": "",
+                "state_present": bool(_MODEL_CACHE.get("state")),
+                "html_present": bool(_MODEL_DASHBOARD_HTML_CACHE.get("html")),
+                "last_marker": "MODEL_DASHBOARD_BACKGROUND_REBUILD_STARTED",
+            })
+        try:
+            APP_HEALTH["last_build_started_at"] = utc_now_iso()
+            refreshed = build_model_state()
+            refreshed_built_at = time.time()
+            with _MODEL_BUILD_LOCK:
+                _MODEL_CACHE["state"] = refreshed
+                _MODEL_CACHE["built_at"] = refreshed_built_at
+            APP_HEALTH["last_build_finished_at"] = utc_now_iso()
+            APP_HEALTH["last_build_seconds"] = round(time.time() - started, 4)
+            APP_HEALTH["last_error"] = ""
+            APP_HEALTH["build_count"] = int(APP_HEALTH.get("build_count", 0)) + 1
+            _render_model_dashboard_html_cached(refreshed, refreshed_built_at)
+            with _MODEL_REFRESH_LOCK:
+                _MODEL_REFRESH_STATUS.update({
+                    "ok": True,
+                    "state_present": True,
+                    "html_present": bool(_MODEL_DASHBOARD_HTML_CACHE.get("html")),
+                    "last_marker": "MODEL_DASHBOARD_HTML_BACKGROUND_PRERENDER_DONE",
+                })
+            print("MODEL_DASHBOARD_HTML_BACKGROUND_PRERENDER_DONE", flush=True)
+            print("MODEL_DASHBOARD_BACKGROUND_REBUILD_DONE", flush=True)
+        except Exception as exc:
+            err = f"{type(exc).__name__}: {exc}"
+            tb = traceback.format_exc()
+            APP_HEALTH["last_error"] = err
+            APP_HEALTH["last_build_seconds"] = round(time.time() - started, 4)
+            with _MODEL_REFRESH_LOCK:
+                _MODEL_REFRESH_STATUS.update({
+                    "ok": False,
+                    "error": err,
+                    "traceback": tb,
+                    "state_present": bool(_MODEL_CACHE.get("state")),
+                    "html_present": bool(_MODEL_DASHBOARD_HTML_CACHE.get("html")),
+                    "last_marker": "MODEL_DASHBOARD_BACKGROUND_REBUILD_FAILED",
+                })
+        finally:
+            with _MODEL_REFRESH_LOCK:
+                _MODEL_REFRESH_IN_PROGRESS = False
+                _MODEL_REFRESH_STATUS["in_progress"] = False
+                _MODEL_REFRESH_STATUS["finished_at"] = utc_now_iso()
+
+    threading.Thread(target=_refresh, name="hl-model-cache-refresh", daemon=True).start()
+    return True
 
 
 def health_status_label() -> Tuple[str, str]:
@@ -5003,6 +5598,13 @@ def _follower_account_value() -> Dict[str, Any]:
     return out
 
 
+def _follower_account_value_safe() -> Dict[str, Any]:
+    try:
+        return _follower_account_value()
+    except Exception as exc:  # the screen must still render
+        return {"ok": False, "reason": type(exc).__name__}
+
+
 def _account_card_lines() -> List[str]:
     """Real follower account value from the follower exchange, never the model's normalised base."""
     try:
@@ -5325,15 +5927,146 @@ def wants_json_response(request: Request) -> bool:
 
 
 @app.get("/", response_class=HTMLResponse)
-def home() -> str:
-    return render_home(get_model_state_cached(max_age_sec=5.0))
+def home():
+    """The live screen is the operator's home; the wallet modelling page stays at /model."""
+    return RedirectResponse("/live-copy", status_code=307)
+
+
+@app.get("/model", response_class=HTMLResponse)
+@app.get("/legacy-model", response_class=HTMLResponse)
+def model_dashboard() -> HTMLResponse:
+    """Legacy SSOT model dashboard, always accessible at /model or /legacy-model."""
+    return _model_dashboard_response()
+
+
+def _model_dashboard_response() -> HTMLResponse:
+    """Build the model cache dashboard HTML, or a cold-cache fallback."""
+    cached_html = _model_dashboard_html_cache_latest_get()
+    if cached_html is None:
+        cached_html = _model_dashboard_last_good_html_disk_get()
+    cached, built_at = _model_cache_snapshot_nonblocking()
+    if cached_html is not None:
+        if cached is None or (time.time() - built_at) > 300.0:
+            if _kick_model_cache_refresh_background():
+                print("MODEL_DASHBOARD_CACHE_HIT_STALE_SERVED", flush=True)
+        print("MODEL_DASHBOARD_HTML_CACHE_HIT", flush=True)
+        return HTMLResponse(cached_html)
+    if cached is not None:
+        if (time.time() - built_at) > 300.0:
+            if _kick_model_cache_refresh_background():
+                print("MODEL_DASHBOARD_CACHE_HIT_STALE_SERVED", flush=True)
+        return HTMLResponse(_render_model_dashboard_html_cached(dict(cached), built_at))
+    if _kick_model_cache_refresh_background():
+        print("MODEL_DASHBOARD_CACHE_COLD_BACKGROUND_STARTED", flush=True)
+    live_config = _load_live_copy_config()
+    auto_send = parse_bool(live_config.get("auto_send_enabled"))
+    gate = load_json(WALLET_GATE_FILE, {})
+    on_count = 0
+    if isinstance(gate, dict):
+        on_count = sum(1 for v in gate.values() if isinstance(v, dict) and str(v.get("mode") or "").upper() == "ON")
+    html_doc = "<html><head><title>HL Copy Engine Status</title><meta http-equiv=refresh content=5></head><body>"
+    html_doc += "<h2>HL Copy Engine Dashboard</h2>"
+    html_doc += "<p>Model dashboard cache is warming. This loading shell is deliberately non-blocking.</p>"
+    html_doc += "<p>auto_send_enabled: " + str(auto_send) + "</p>"
+    html_doc += "<p>wallet_gate_on_count: " + str(on_count) + "</p>"
+    html_doc += "<p>updated_at: " + str(utc_now_iso()) + "</p>"
+    with _MODEL_REFRESH_LOCK:
+        refresh_status = dict(_MODEL_REFRESH_STATUS)
+    status_bits = [
+        f"in_progress={bool(refresh_status.get('in_progress'))}",
+        f"ok={bool(refresh_status.get('ok'))}",
+    ]
+    marker = str(refresh_status.get("last_marker") or "")
+    if marker:
+        status_bits.append(f"marker={marker}")
+    error = str(refresh_status.get("error") or "")
+    if error:
+        status_bits.append(f"error={error}")
+    html_doc += "<p>cache_status: " + html.escape(" | ".join(status_bits)) + "</p>"
+    html_doc += "<p><a href=/live-copy>/live-copy</a></p>"
+    html_doc += "<p><a href=/api/state>/api/state</a></p>"
+    html_doc += "<p><a href=/api/live-audit-summary>/api/live-audit-summary</a></p>"
+    html_doc += "</body></html>"
+    return HTMLResponse(html_doc)
+
+
+@app.get("/api/model-cache-status")
+def api_model_cache_status() -> JSONResponse:
+    with _MODEL_REFRESH_LOCK:
+        refresh_status = dict(_MODEL_REFRESH_STATUS)
+    with _MODEL_BUILD_LOCK:
+        model_state_present = bool(_MODEL_CACHE.get("state"))
+    with _MODEL_DASHBOARD_HTML_CACHE_LOCK:
+        memory_html_present = bool(_MODEL_DASHBOARD_HTML_CACHE.get("html"))
+        html_built_at = fnum(_MODEL_DASHBOARD_HTML_CACHE.get("built_at"))
+        html_state_built_at = fnum(_MODEL_DASHBOARD_HTML_CACHE.get("state_built_at"))
+    try:
+        disk_html_present = MODEL_DASHBOARD_LAST_GOOD_HTML_FILE.exists()
+        disk_html_mtime = (
+            datetime.fromtimestamp(MODEL_DASHBOARD_LAST_GOOD_HTML_FILE.stat().st_mtime, timezone.utc).isoformat()
+            if disk_html_present else ""
+        )
+    except Exception:
+        disk_html_present = False
+        disk_html_mtime = ""
+    return JSONResponse({
+        "ok": True,
+        "current_time": utc_now_iso(),
+        "refresh_status": refresh_status,
+        "model_state_present": model_state_present,
+        "dashboard_html_present": memory_html_present,
+        "memory_html_present": memory_html_present,
+        "disk_html_present": disk_html_present,
+        "disk_html_mtime": disk_html_mtime,
+        "serving_last_good_possible": bool(memory_html_present or disk_html_present),
+        "dashboard_html_cache": {
+            "built_at": html_built_at,
+            "state_built_at": html_state_built_at,
+        },
+    })
 
 
 @app.get("/api/state")
 def api_state() -> JSONResponse:
-    return JSONResponse(get_model_state_cached(max_age_sec=2.0))
+    """True lightweight status endpoint.
 
-
+    This endpoint is for heartbeat/status/proof tooling. It must not call
+    get_model_state_cached() and must not scan large CSVs. It returns file
+    metadata instead of row counts so it remains fast as datasets grow.
+    """
+    live_config = _load_live_copy_config()
+    wallet_gate = load_json(WALLET_GATE_FILE, {})
+    gate_on = []
+    if isinstance(wallet_gate, dict):
+        for wallet, cfg in wallet_gate.items():
+            if isinstance(cfg, dict) and str(cfg.get("mode") or "").upper() == "ON":
+                gate_on.append(str(wallet).lower())
+    def _file_meta(path: Path) -> Dict[str, Any]:
+        try:
+            if not path.exists():
+                return {"exists": False, "bytes": 0, "mtime": ""}
+            st = path.stat()
+            return {"exists": True, "bytes": int(st.st_size), "mtime": datetime.fromtimestamp(st.st_mtime, timezone.utc).isoformat()}
+        except Exception as exc:
+            return {"exists": False, "bytes": -1, "mtime": "", "error": type(exc).__name__}
+    return JSONResponse({
+        "ok": True,
+        "updated_at": utc_now_iso(),
+        "auto_send_enabled": parse_bool(live_config.get("auto_send_enabled")),
+        "wallet_gate_on_count": len(gate_on),
+        "wallet_gate_on": gate_on,
+        "global_controls": _global_controls_for_ui(live_config.get("global_controls", _GLOBAL_CONTROLS_DEFAULTS)),
+        "files": {
+            "raw_live_fills": _file_meta(RAW_FILLS_CSV),
+            "copy_trades": _file_meta(COPY_TRADES_CSV),
+            "order_intents": _file_meta(LIVE_COPY_ORDER_INTENTS_CSV),
+            "send_attempts": _file_meta(SEND_ATTEMPTS_CSV),
+            "live_fills": _file_meta(LIVE_COPY_AUDIT_DIR / "append_only" / "live_fills.csv"),
+            "reconciliation": _file_meta(LIVE_COPY_AUDIT_DIR / "append_only" / "reconciliation.csv"),
+        },
+        "app_health": APP_HEALTH,
+        "note": "lightweight status only; no model rebuild and no CSV scan",
+    })
 @app.get("/api/metrics")
 def api_metrics() -> JSONResponse:
     state = get_model_state_cached(max_age_sec=2.0)
@@ -5517,8 +6250,14 @@ def render_live_copy_control_panel() -> str:
   </header>
   <div class="lc-safety-strip">
     <span class="lc-pill lc-red" id="lcRealOrders">REAL ORDERS: n/a</span>
+    <span class="lc-muted">restart required for WS subscription changes</span>
     <span id="lcStatus" class="lc-status"></span>
   </div>
+
+  <section class="lc-panel lc-top-status">
+    <h3>Live Copy Status</h3>
+    <div class="lc-stat-strip" id="lcTruthStatus" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr))"></div>
+  </section>
 
   <section class="lc-panel">
     <h3>Real Account</h3>
@@ -5586,7 +6325,10 @@ def render_live_copy_control_panel() -> str:
         <h3>Real User Copy Positions</h3>
         <p>Manual ledger vs real exchange account. All sizes signed (positive = long, negative = short). Exchange data requires HL_LIVE_HL_ACCOUNT_ADDRESS configured.</p>
         <div class="lc-table-wrap">
-          <table style="min-width:1200px"><thead><tr><th>Coin</th><th>Side</th><th>Ledger size</th><th>Exchange size</th><th>Entry px</th><th>Mark px</th><th>Pos value</th><th>Unrealized PnL</th><th>Leader wallet</th><th>Status</th><th>Last OID</th><th>Last updated</th></tr></thead><tbody id="lcPositionRows"><tr><td colspan="12">Loading...</td></tr></tbody></table>
+          <h4>OWNED COPY POSITIONS</h4>
+          <table style="min-width:1200px"><thead><tr><th>Wallet</th><th>Coin</th><th>Side</th><th>Signed size</th><th>Avg entry</th><th>Ledger/exchange</th><th>Exchange size</th><th>Last copy fill</th><th>Last updated</th></tr></thead><tbody id="lcOwnedPositionRows"><tr><td colspan="9">Loading...</td></tr></tbody></table>
+          <h4>ACCOUNT-LEVEL / ORPHAN EXCHANGE — USER-MANAGED</h4>
+          <table style="min-width:1500px"><thead><tr><th>Coin</th><th>Exchange size</th><th>Entry px</th><th>Mark px</th><th>Unrealized PnL</th><th>Status</th><th>User owner</th><th>Engine close?</th><th>Engine sleeve?</th><th>Context</th></tr></thead><tbody id="lcOrphanPositionRows"><tr><td colspan="10">Loading...</td></tr></tbody></table>
         </div>
       </section>
     </div>
@@ -5596,7 +6338,7 @@ def render_live_copy_control_panel() -> str:
         <p>Real fill quality from send_attempts.csv joined to order_intents.csv. Leader-vs-user bps requires reference price from intent.</p>
         <div class="lc-source-strip" id="lcExecQualChips"></div>
         <div class="lc-table-wrap">
-          <table style="min-width:1440px"><thead><tr><th>Time</th><th>Wallet</th><th>Coin</th><th>Side</th><th>Status</th><th>Limit px</th><th>Fill avg px</th><th>Size</th><th>OID</th><th>Fill-vs-limit %</th><th>Leader-vs-user %</th><th>Market slip %</th><th>Error</th></tr></thead><tbody id="lcExecQualRows"><tr><td colspan="13">Loading...</td></tr></tbody></table>
+          <table style="min-width:2080px"><thead><tr><th>Time</th><th>Wallet</th><th>Coin</th><th>Side</th><th>Status</th><th>Terminal state</th><th>Operator action</th><th>Reject category</th><th>OID</th><th>Fill avg px</th><th>Size</th><th>Pos before -> after</th><th>Leader→send ms</th><th>Total ms</th><th>Symbol ms</th><th>SDK ms</th><th>Exchange ms</th><th>Error</th></tr></thead><tbody id="lcExecQualRows"><tr><td colspan="18">Loading...</td></tr></tbody></table>
         </div>
       </section>
     </div>
@@ -5613,7 +6355,10 @@ def render_live_copy_control_panel() -> str:
       <section class="lc-panel">
         <h3>Ledger vs Exchange</h3>
         <div class="lc-table-wrap">
-          <table><thead><tr><th>Severity</th><th>Wallet</th><th>Coin</th><th>Issue</th><th>Count</th><th>Manual ledger</th><th>Exchange</th><th>Last intent</th><th>Last oid</th><th>Last updated</th><th>Action</th></tr></thead><tbody id="lcReconRows"></tbody></table>
+          <h4>Actionable Critical Items</h4><table><thead><tr><th>Event</th><th>Status</th><th>Action</th><th>Reject category</th><th>Terminal state</th><th>Coin</th><th>Wallet</th><th>Intent</th><th>Notes</th></tr></thead><tbody id="lcReconCriticalRows"></tbody></table>
+          <h4>Warnings</h4><table><thead><tr><th>Event</th><th>Status</th><th>Action</th><th>Reject category</th><th>Terminal state</th><th>Coin</th><th>Wallet</th><th>Intent</th><th>Notes</th></tr></thead><tbody id="lcReconWarningRows"></tbody></table>
+          <h4>Historical / Legacy Items</h4><table><thead><tr><th>Status</th><th>Wallet</th><th>Coin</th><th>Intent</th><th>Issue</th></tr></thead><tbody id="lcReconLegacyRows"></tbody></table>
+          <h4>Account-Level Orphan Context</h4><table><thead><tr><th>Severity</th><th>Wallet</th><th>Coin</th><th>Issue</th><th>Manual ledger</th><th>Exchange</th><th>Action</th></tr></thead><tbody id="lcReconRows"></tbody></table>
         </div>
       </section>
     </div>
@@ -5663,6 +6408,9 @@ function first(row,keys){for(const k of keys){if(row&&row[k]!=null&&row[k]!=='')
 function shortWallet(w){return String(w||'').length>18?String(w).slice(0,10)+'...'+String(w).slice(-6):String(w||'');}
 function pill(text,kind){const t=String(text||'n/a');const token=String(kind||t).split(' ')[0].toUpperCase();const cls=['OPEN','LIVE','OK','GOOD','DRY_RUN_FILLED','ALLOWED','ACTIVE'].includes(token)?'lc-green':['STALE','DEGRADED','WARN','CLO','WATCH','QUEUED','CONNECTING','RECONNECTING','PENDING'].includes(token)?'lc-amber':['OFF','OFFLINE','CLOSED','MISSING','DISABLED','ERROR','RECONNECT_OVERDUE'].includes(token)?'lc-red':'';
  return `<span class="lc-pill ${cls}">${h(t)}</span>`;}
+function terminalCls(v){const s=String(v||'').toUpperCase();if(s.startsWith('CLOSE_')||s.includes('RED')||s.includes('ERROR'))return 'lc-red';if(s.startsWith('MISSED_ENTRY')||s.startsWith('MISSED_ADD')||s==='FILLED_AWAITING_COPY_POLL')return 'lc-amber';if(s==='ORDER_FILLED'||s==='FILLED_CONFIRMED'||s==='MATCH')return 'lc-green';return '';}
+function truthCls(v){const s=String(v||'').toUpperCase();if(s.includes('ACTIVE')&&s.includes('RED'))return 'lc-red';if(s.startsWith('ACTIVE_EXCHANGE_REJECT'))return 'lc-red';if(s.startsWith('ACTIVE_'))return 'lc-amber';if(s.startsWith('HISTORICAL'))return 'lc-blue';if(s.includes('ADOPTED')||s.includes('RECONCILED'))return 'lc-green';return '';}
+function statusCard(label,value,kind,sub){return `<div class="lc-stat"><div class="label">${h(label)}</div><div class="value ${kind||''}" style="font-size:13px;word-break:break-word">${h(value||'—')}</div>${sub?`<div class="lc-muted" style="font-size:10px;margin-top:4px">${h(sub)}</div>`:''}</div>`;}
 function decisionPill(text){const t=String(text||'—');const u=t.toUpperCase();const cls=['WOULD_PLACE_IOC_LIMIT','WOULD_LATE_COPY','WOULD_REDUCE_OR_EXIT','WOULD_EXIT','WOULD_REDUCE'].includes(u)?'lc-green':u==='DO_NOT_MARKET_COPY'?'lc-red':u==='MANUAL_REVIEW'?'lc-amber':'';return `<span class="lc-pill ${cls}">${h(t)}</span>`;}
 function tiny(v,n){const s=String(v==null?'':v);return h(s.length>n?s.slice(0,n-1)+'…':s);}
 function pair(a,b,cls){return `<div class="lc-pair"><span>${h(a)}</span><b class="${cls||''}">${h(b||'—')}</b></div>`;}
@@ -5730,7 +6478,7 @@ function renderGraph(){
   label=lcGraphMode==='wallet_pnl'?'Selected wallet live PnL':'Selected wallet exposure';
   points=src.map(p=>({timestamp:p.timestamp||p.updated_at||'', timestamp_ms:tsOf(p), value:num(p.value,0)}));
   if(!lcSelectedWallet || !points.length){
-   clearGraphText(lcGraphMode==='wallet_pnl'?'wallet PnL history unavailable; click a wallet with live_fills history':'wallet exposure history unavailable; click a wallet with open live exposure',label);
+   clearGraphText(lcGraphMode==='wallet_pnl'?'UNKNOWN/NOT_PROVEN: no wallet pnl_series available':'UNKNOWN/NOT_PROVEN: no wallet exposure_series available',label);
    return;
   }
  }
@@ -5766,7 +6514,8 @@ function renderGraph(){
 function renderCards(){
  const snap=lcAudit.exchange_account_snapshot||{}, manual=lcAudit.manual_live_summary||{};
  const lf=manual.last_filled_manual_order||{}, lr=manual.last_rejected_manual_order||{};
- const unified=snap.available&&snap.unified_portfolio_value!=null?('$'+Number(snap.unified_portfolio_value||0).toLocaleString(undefined,{maximumFractionDigits:2})):'Unavailable';
+ const fa=lcAudit.follower_account||{};  // whole-account value (spot + perps) from the follower exchange, as the engine uses
+ const unified=fa.ok?('$'+Number(fa.value||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})):('Unavailable'+(fa.reason?' <span class="lc-muted">'+h(fa.reason)+'</span>':''));
  const upnl=snap.available&&snap.unrealized_pnl!=null?('$'+Number(snap.unrealized_pnl).toLocaleString(undefined,{maximumFractionDigits:2})):'n/a';
  const rpnl=snap.realized_pnl_selected!=null?('$'+Number(snap.realized_pnl_selected||0).toLocaleString(undefined,{maximumFractionDigits:2})+' '+h(snap.realized_pnl_selected_label||'')):'Unavailable';
  const upnlCls=signCls(snap.unrealized_pnl);
@@ -5781,11 +6530,36 @@ function renderCards(){
  const lrStatusLabel={'SYMBOL_UNAVAILABLE':'symbol not found after fresh universe refresh','META_UNAVAILABLE':'could not fetch Hyperliquid universe','SDK_SYMBOL_MAP_UNAVAILABLE':'symbol in meta but SDK map unavailable'}[lrStatusRaw]||lrStatusRaw;
  const lrStr=lr.coin?(h(lr.coin)+' '+h(lr.actual_side||lr.side||'?')+' '+h(lrStatusLabel)+(lrErr?'<br><span class="lc-muted" title="'+h(lrErr)+'">'+tiny(lrErr,90)+'</span>':'')):'none';
  const lrCls=lr.coin?'lc-neg':'';
- const cards=[['Portfolio Value',unified,''],['Unrealized PnL',upnl,upnlCls],['Realized PnL',rpnl,rpnlCls],['Open Positions',exPos,''],['Live Exposure',exp,expCls],['Last Fill',lfStr,''],['Last Reject',lrStr,lrCls]];
+ const cards=[['Portfolio Value ('+String(lcAudit.follower_network||'').toUpperCase()+')',unified,''],['Unrealized PnL',upnl,upnlCls],['Realized PnL',rpnl,rpnlCls],['Open Positions',exPos,''],['Live Exposure',exp,expCls],['Last Fill',lfStr,''],['Last Reject',lrStr,lrCls]];
  root.querySelector('#lcRealCards').innerHTML=cards.map(([l,v,cls])=>`<div class="lc-stat"><div class="label">${h(l)}</div><div class="value ${cls||''}" style="font-size:12px;word-break:break-all">${v}</div></div>`).join('');
  renderGraph();
 }
+function renderTopStatus(){
+ const st=lcAudit.live_top_status||{};
+ const integ=String(st.integrity_status||'UNKNOWN').toUpperCase();
+ const integCls=integ==='GREEN'?'lc-green':integ==='AMBER'?'lc-amber':integ==='RED'?'lc-red':'lc-amber';
+ const ws=String(st.ws_status||'DOWN').toUpperCase();
+ const wsCls=ws==='WS_OK'?'lc-green':'lc-red';
+ const poll=String(st.copy_poll_status||'DOWN').toUpperCase();
+ const pollCls=poll==='COPY_ACCOUNT_POLLED'?'lc-green':poll==='DOWN'?'lc-red':'lc-amber';
+ const lastSend=st.last_send||{}, lastFill=st.last_fill||{}, lastReject=st.last_reject||{}, lastLat=st.last_latency_warning||{};
+ const reasons=(st.integrity_reasons||[]).join('; ') || (st.integrity_available?'':'RUN INTEGRITY GATE');
+ const cards=[
+  statusCard('LIVE INTEGRITY',integ,integCls,reasons),
+  statusCard('WS',ws,wsCls,'shared HOT10 status'),
+  statusCard('Copy Poll',poll,pollCls,'copy-account polling'),
+  statusCard('MASTER REAL ORDERS',st.master_real_orders||st.auto_send||'OFF',st.master_real_orders==='ON'?'lc-green':'lc-red',st.send_block_reason||'global real-order switch'),
+  statusCard('Wallets',`${st.active_wallets||0} active / ${st.subscribed_wallets||0} subscribed`,'','LIVE/CLO vs WS'),
+  statusCard('Last send',lastSend.created_at?`${lastSend.coin||''} ${lastSend.status||''}`:'—',terminalCls(lastSend.terminal_state||lastSend.status),lastSend.terminal_state||''),
+  statusCard('Last fill',lastFill.created_at?`${lastFill.coin||''} ${lastFill.side||''} ${lastFill.fill_size||''}`:'—','lc-green',lastFill.created_at||''),
+  statusCard('Last reject',lastReject.created_at?`${lastReject.coin||''} ${lastReject.reject_category||lastReject.status||''}`:'—',terminalCls(lastReject.terminal_state||lastReject.status),lastReject.terminal_state||''),
+  statusCard('Last latency warning',lastLat.created_at?String(lastLat.notes||lastLat.status||'SEND_LATENCY_WARN'):'—',lastLat.created_at?'lc-amber':'',lastLat.created_at||''),
+ ];
+ const box=root.querySelector('#lcTruthStatus'); if(box) box.innerHTML=cards.join('');
+}
 function moneyFmt(v){return v!=null?('$'+Number(v).toLocaleString(undefined,{maximumFractionDigits:2})):null;}
+function notProven(){return '<span class="lc-pill lc-amber">UNKNOWN/NOT_PROVEN</span>';}
+function provenMoneyOrUnknown(v){return v!=null?moneyFmt(v):notProven();}
 function signCls(v){return v!=null?(v>0?'lc-pos':v<0?'lc-neg':''):''}
 function pnlLabel(st,label){const m={'EXACT':'lc-green','ESTIMATED_FROM_REAL_ORDER_FILLS':'lc-amber','OPEN_ONLY':'lc-blue','ACCOUNT_LEVEL_ONLY':'lc-amber','AMBIGUOUS_COIN_SHARED':'lc-red','N/A':''}; const text=label||({'OPEN_ONLY':'Open PnL','ESTIMATED_FROM_REAL_ORDER_FILLS':'Real fills','ACCOUNT_LEVEL_ONLY':'Account-level only','AMBIGUOUS_COIN_SHARED':'Shared coin','N/A':'No PnL yet','EXACT':'Exact closed PnL'}[st]||st||'No PnL yet'); return `<span class="lc-pill ${m[st]||''}">${h(text)}</span>`;}
 function renderWallets(){
@@ -5806,7 +6580,7 @@ function renderWallets(){
   const wbpsCls=d.worst_fill_bps!=null&&d.worst_fill_bps>15?'lc-neg':'';
   const diffHtml=`<div class="lc-cell-stack"><span class="${signCls(d.total_diff_usd)}">Total: ${moneyFmt(d.total_diff_usd)||'n/a'}</span><span>Avg: ${moneyFmt(d.avg_diff_usd)||'n/a'}</span><span class="${bpsCls}">Avg bps: ${d.avg_diff_bps!=null?h(d.avg_diff_bps):'n/a'}</span><span class="${wbpsCls}">Worst bps: ${d.worst_diff_bps!=null?h(d.worst_diff_bps):'n/a'}</span></div>`;
   const execHtml=`<div class="lc-cell-stack"><span class="lc-pos">${h(d.filled_count)} filled / ${h(d.exits_count||0)} exits</span><span class="${(d.recent_reject_count||0)>0?'lc-neg':'lc-muted'}">${h(d.recent_reject_count||0)} recent rejects</span><span class="${(d.recent_block_count||0)>0?'lc-amber':'lc-muted'}">${h(d.recent_block_count||0)} recent blocks</span></div>`;
-  const riskHtml=`<div class="lc-cell-stack"><span>Exposure: <b>${expStr}</b></span><span>Open pos: <b>${h(d.open_position_count||0)}</b></span><span>DD: ${moneyFmt(d.drawdown)||'n/a'}</span><span>MaxDD: ${moneyFmt(d.max_drawdown)||'n/a'}</span></div>`;
+  const riskHtml=`<div class="lc-cell-stack"><span>Exposure: <b>${expStr}</b></span><span>Open pos: <b>${h(d.open_position_count||0)}</b></span><span>DD: ${provenMoneyOrUnknown(d.drawdown)}</span><span>MaxDD: ${provenMoneyOrUnknown(d.max_drawdown)}</span></div>`;
   const lf=d.last_fill||{};
   const lfStr=lf.coin?`${h(lf.coin)} ${h(lf.side)} ${h(lf.size)} @ ${h(lf.avg_px)}<br><span class="lc-muted" style="font-size:10px">${tiny(lf.time||'',22)}</span>`:'<span class="lc-muted">none yet</span>';
   return `<tr class="lc-wallet-row lc-row-${h(mode)}" data-wallet="${h(d.wallet)}">
@@ -5844,8 +6618,8 @@ function walletDetailHtml(wallet){
  out+=`<span>Unrealized: <b class="${signCls(perf.live_unrealized_pnl)}">${moneyFmt(perf.live_unrealized_pnl)||'n/a'}</b></span>`;
  out+=`<span>Net: <b class="${signCls(perf.live_net_pnl)}">${moneyFmt(perf.live_net_pnl)||'n/a'}</b></span>`;
  out+=`<span>Exposure: <b>${moneyFmt(perf.current_exposure)||'n/a'}</b></span>`;
- out+=`<span>DD: <b>${moneyFmt(perf.drawdown)||'n/a'}</b></span>`;
- out+=`<span>MaxDD: <b>${moneyFmt(perf.max_drawdown)||'n/a'}</b></span>`;
+ out+=`<span>DD: <b>${provenMoneyOrUnknown(perf.drawdown)}</b></span>`;
+ out+=`<span>MaxDD: <b>${provenMoneyOrUnknown(perf.max_drawdown)}</b></span>`;
  out+=`<span>PnL status: ${pnlLabel(perf.pnl_status||'N/A',perf.pnl_status_label)}</span>`;
  out+=`<span>Attribution: <b>${h(perf.attribution_quality||'N/A')}</b></span>`;
  out+=`<span>Confirmed realized match: <b class="${signCls(perf.confirmed_realized_pnl)}">${moneyFmt(perf.confirmed_realized_pnl)||'n/a'}</b> (${h(perf.realized_match_status||'N/A')})</span>`;
@@ -5917,17 +6691,24 @@ function walletDetailHtml(wallet){
  return out;
 }
 function renderPositions(){
- const rows=lcAudit.real_copy_positions||[];
- root.querySelector('#lcPositionRows').innerHTML=rows.map(r=>{
-  const szCls=r.signed_size!=null?(r.signed_size>0?'lc-pos':'lc-neg'):'';
-  const exCls=r.exchange_signed_size!=null?(r.exchange_signed_size>0?'lc-pos':'lc-neg'):'';
-  const stRaw=r.ledger_vs_exchange||'—';
-  const stCls=(stRaw==='MATCH'||String(stRaw).startsWith('SHARED_SYMBOL_NET_MATCH')||String(stRaw).startsWith('SHARED_SYMBOL_SLEEVE_TRACKED'))?'lc-green':stRaw==='EXCHANGE_UNAVAILABLE'?'':'lc-red';
-  const upnlCls=r.unrealized_pnl!=null?(r.unrealized_pnl>0?'lc-pos':r.unrealized_pnl<0?'lc-neg':''):'';
-  const pv=r.position_value!=null?('$'+Number(r.position_value).toLocaleString(undefined,{maximumFractionDigits:2})):'n/a';
-  const upnlStr=r.unrealized_pnl!=null?('$'+Number(r.unrealized_pnl).toLocaleString(undefined,{maximumFractionDigits:2})):'n/a';
-  return `<tr><td><b>${h(r.coin||'—')}</b></td><td>${pill(r.side||'—',r.side||'')}</td><td class="${szCls}">${r.signed_size!=null?h(r.signed_size):'n/a'}</td><td class="${exCls}">${r.exchange_signed_size!=null?h(r.exchange_signed_size):'n/a'}</td><td>${r.entry_px!=null?h(r.entry_px):'n/a'}</td><td>${r.mark_px!=null?h(r.mark_px):'n/a'}</td><td>${pv}</td><td class="${upnlCls}">${upnlStr}</td><td class="lc-wallet">${h(r.leader_wallet?shortWallet(r.leader_wallet):'—')}</td><td title="${h(r.reconciliation_note||'')}"><span class="lc-pill ${stCls}">${h(stRaw)}</span></td><td class="lc-wallet">${tiny(String(r.last_oid||'—'),24)}</td><td>${tiny(r.last_updated_at||'—',22)}</td></tr>`;
- }).join('')||'<tr><td colspan="12">No real copy positions tracked. Positions appear here after the copy service places live orders.</td></tr>';
+ const owned=lcAudit.owned_copy_positions||[];
+ const orphan=lcAudit.orphan_exchange_positions||[];
+ const ownedBox=root.querySelector('#lcOwnedPositionRows');
+ const orphanBox=root.querySelector('#lcOrphanPositionRows');
+ if(ownedBox) ownedBox.innerHTML=owned.map(r=>{
+  const szCls=r.signed_size!=null?(Number(r.signed_size)>0?'lc-pos':'lc-neg'):'';
+  const stRaw=r.ledger_vs_exchange||'OWNED_COPY';
+  const stCls=(stRaw==='MATCH'||String(stRaw).startsWith('SHARED_SYMBOL_NET_MATCH')||String(stRaw).startsWith('SHARED_SYMBOL_SLEEVE_TRACKED'))?'lc-green':stRaw==='EXCHANGE_UNAVAILABLE'?'lc-amber':'lc-red';
+  return `<tr><td class="lc-wallet">${h(r.leader_wallet?shortWallet(r.leader_wallet):'—')}</td><td><b>${h(r.coin||'—')}</b></td><td>${pill(r.side||'—',r.side||'')}</td><td class="${szCls}">${r.signed_size!=null?h(r.signed_size):'—'}</td><td>${r.avg_entry_px!=null?h(r.avg_entry_px):'—'}</td><td title="${h(r.reconciliation_note||'')}"><div class="lc-cell-stack"><span class="lc-pill lc-green">OWNED_COPY</span><span class="lc-pill ${stCls}">${h(stRaw)}</span></div></td><td>${r.exchange_signed_size!=null?h(r.exchange_signed_size):'—'}</td><td class="lc-wallet">${tiny(String(r.last_copy_fill_id||r.last_oid||'—'),24)}</td><td>${tiny(r.last_updated_at||'—',22)}</td></tr>`;
+ }).join('')||'<tr><td colspan="9">No owned copy sleeves in manual_live_positions.json.</td></tr>';
+ if(orphanBox) orphanBox.innerHTML=orphan.map(r=>{
+  const exCls=r.exchange_signed_size!=null?(Number(r.exchange_signed_size)>0?'lc-pos':'lc-neg'):'';
+  const upnlCls=r.unrealized_pnl!=null?(Number(r.unrealized_pnl)>0?'lc-pos':Number(r.unrealized_pnl)<0?'lc-neg':''):'';
+ const upnlStr=r.unrealized_pnl!=null?('$'+Number(r.unrealized_pnl).toLocaleString(undefined,{maximumFractionDigits:2})):'—';
+  const st=r.ledger_vs_exchange||'ORPHAN_EXCHANGE';
+  const prov=r.provenance||'ACCOUNT_LEVEL_ONLY';
+  return `<tr><td><b>${h(r.coin||'—')}</b></td><td class="${exCls}">${r.exchange_signed_size!=null?h(r.exchange_signed_size):'—'}</td><td>${r.entry_px!=null?h(r.entry_px):'—'}</td><td>${r.mark_px!=null?h(r.mark_px):'—'}</td><td class="${upnlCls}">${upnlStr}</td><td><span class="lc-pill lc-amber">${h(prov)} / ${h(st)}</span></td><td><span class="lc-pill lc-blue">USER_MANAGED</span> <span class="lc-pill lc-amber">NOT ENGINE OWNED</span></td><td><span class="lc-pill lc-red">engine_can_close=false</span></td><td><span class="lc-pill lc-red">engine_can_use_as_sleeve=false</span></td><td title="${h(r.reconciliation_note||'')}">NO OWNED SLEEVE</td></tr>`;
+ }).join('')||'<tr><td colspan="10">No account-level orphan exchange positions.</td></tr>';
 }
 function renderExecQuality(){
  const rows=lcAudit.execution_quality_rows||[];
@@ -5936,11 +6717,19 @@ function renderExecQuality(){
  const exchRej=rows.filter(r=>r.status==='ORDER_REJECTED');
  const localBlk=rows.filter(r=>r.status&&r.status!=='ORDER_FILLED'&&r.status!=='ORDER_REJECTED'&&r.status!=='CONFIRM_REQUIRED');
  const previews=rows.filter(r=>r.status==='CONFIRM_REQUIRED');
+ const activeRed=rows.filter(r=>r.is_active&&r.truth_severity==='RED');
+ const activeAmber=rows.filter(r=>r.is_active&&r.truth_severity==='AMBER');
+ const historical=rows.filter(r=>String(r.truth_state||'').startsWith('HISTORICAL'));
+ const adopted=rows.filter(r=>r.truth_state==='ADOPTED_RECONCILED');
  const bpsVals=filled.map(r=>r.fill_bps).filter(v=>v!=null);
  const avgBps=bpsVals.length?Math.round(bpsVals.reduce((a,b)=>a+b,0)/bpsVals.length*10)/10:null;
  const worstBps=bpsVals.length?Math.round(Math.max(...bpsVals)*10)/10:null;
  const lastFill=filled[0]||null;
  root.querySelector('#lcExecQualChips').innerHTML=[
+  ['Active red',activeRed.length,activeRed.length?'lc-red':'lc-green'],
+  ['Active amber',activeAmber.length,activeAmber.length?'lc-amber':'lc-green'],
+  ['Adopted / reconciled',adopted.length,'lc-green'],
+  ['Historical separated',historical.length,'lc-blue'],
   ['Filled',filled.length,'lc-green'],
   ['Exchange rejected',exchRej.length,exchRej.length?'lc-red':''],
   ['Local blocked',localBlk.length,localBlk.length?'lc-amber':''],
@@ -5951,13 +6740,14 @@ function renderExecQuality(){
  ].map(([k,v,cls])=>`<span class="lc-pill ${cls}">${h(k)}: <b>${h(v)}</b></span>`).join('');
  root.querySelector('#lcExecQualRows').innerHTML=rows.map(r=>{
   const st=String(r.status||'—');
-  const stCls=st==='ORDER_FILLED'?'lc-green':st==='ORDER_REJECTED'?'lc-red':st==='CONFIRM_REQUIRED'?'lc-blue':st?'lc-amber':'';
-  const bCls=r.fill_bps!=null?(r.fill_bps>10?'lc-neg':r.fill_bps<=0?'lc-pos':''):'';
-  const lbCls=r.leader_bps!=null?(r.leader_bps>10?'lc-neg':r.leader_bps<=0?'lc-pos':''):'';
-  const pct=v=>v!=null?(Number(v)/100).toFixed(4)+'%':'n/a';
-  const mkt=r.marketable_bps!=null?(Number(r.marketable_bps)<=0?'OFF':(Number(r.marketable_bps)/100).toFixed(2)+'%'):'n/a';
-  return `<tr><td>${tiny(r.time||'—',22)}</td><td class="lc-wallet">${h(r.leader_wallet?shortWallet(r.leader_wallet):'—')}</td><td>${h(r.coin||'—')}</td><td>${h(r.side||'—')}</td><td><span class="lc-pill ${stCls}">${h(st)}</span></td><td>${r.limit_px!=null?h(r.limit_px):'n/a'}</td><td>${r.fill_avg_px!=null?h(r.fill_avg_px):'n/a'}</td><td>${r.fill_size!=null?h(r.fill_size):'n/a'}</td><td class="lc-wallet">${r.oid?tiny(String(r.oid),18):'n/a'}</td><td class="${bCls}">${pct(r.fill_bps)}</td><td class="${lbCls}">${pct(r.leader_bps)}</td><td>${mkt}</td><td title="${h(r.error||'')}">${tiny(r.error||'',28)}</td></tr>`;
- }).join('')||'<tr><td colspan="13">No execution data. Real fills appear here after send_attempts.csv is populated.</td></tr>';
+  const term=String(r.terminal_state||'');
+  const stCls=terminalCls(term||st);
+  const truth=String(r.truth_state||'');
+  const rawTerm=String(r.raw_terminal_state||'');
+  const pos=(r.wallet_position_before!=null&&r.wallet_position_before!==''&&r.wallet_position_after!=null&&r.wallet_position_after!=='')?`${h(r.wallet_position_before)} -> ${h(r.wallet_position_after)}`:'—';
+  const ms=v=>v!=null&&v!==''?h(v):'—';
+  return `<tr><td>${tiny(r.time||'—',22)}</td><td class="lc-wallet">${h(r.leader_wallet?shortWallet(r.leader_wallet):'—')}</td><td>${h(r.coin||'—')}</td><td>${h(r.side||'—')}</td><td><span class="lc-pill ${truthCls(truth)}">${h(truth||'—')}</span></td><td><span class="lc-pill ${stCls}">${h(st)}</span></td><td><span class="lc-pill ${terminalCls(term)}" title="${h(rawTerm?('raw: '+rawTerm):'')}">${h(term||'—')}</span></td><td>${h(r.operator_action||'—')}</td><td>${h(r.reject_category||'—')}</td><td class="lc-wallet">${r.oid?tiny(String(r.oid),18):'—'}</td><td>${r.fill_avg_px!=null?h(r.fill_avg_px):'—'}</td><td>${r.fill_size!=null?h(r.fill_size):'—'}</td><td>${pos}</td><td>${ms(r.leader_to_send_attempt_ms)}</td><td>${ms(r.send_total_ms)}</td><td>${ms(r.symbol_resolve_ms)}</td><td>${ms(r.sdk_client_ms)}</td><td>${ms(r.exchange_call_ms)}</td><td title="${h(r.error||'')}">${tiny(r.error||'',28)}</td></tr>`;
+ }).join('')||'<tr><td colspan="18">No execution data. Real fills appear here after send_attempts.csv is populated.</td></tr>';
 }
 function renderAudit(){
  const rows=(lcAudit.last_rows||[]).slice(-10).reverse();
@@ -5973,8 +6763,17 @@ function renderAudit(){
  ].map(([k,v,cls])=>`<span class="lc-pill ${cls}">${h(k)}: <b>${h(v)}</b></span>`).join('');
  const sendByIntent={};for(const a of(lcAudit.recent_send_attempts||[])){const iid=String(a.intent_id||'');if(iid)sendByIntent[iid]=a;}
  root.querySelector('#lcAuditRows').innerHTML=rows.map(r=>{const iid=String(r.intent_id||'');const attempt=iid?sendByIntent[iid]:null;const execDec=String(r.execution_decision||'');let realRes='NO_SEND_ATTEMPT';if(attempt){const st=String(attempt.status||'');realRes=st==='ORDER_FILLED'?'REAL_ORDER_FILLED':st==='ORDER_REJECTED'?'EXCHANGE_REJECTED':st||'NO_SEND_ATTEMPT';}else if(execDec==='WOULD_PLACE_IOC_LIMIT'){realRes='WOULD_SEND_ONLY';}const rawNote=first(r,['notes','message']);const displayNote=rawNote&&rawNote.indexOf('dry-run simulated fill')!==-1?'legacy intent note: leader WS fill detected; check real order result':rawNote;const rrCls=realRes==='REAL_ORDER_FILLED'?'lc-green':realRes==='EXCHANGE_REJECTED'?'lc-red':realRes==='WOULD_SEND_ONLY'?'lc-amber':'lc-muted';return `<tr><td>${h(first(r,['created_at','timestamp_iso','time']))}</td><td class="lc-wallet">${h(shortWallet(first(r,['leader_wallet','wallet'])))}</td><td>${h(first(r,['coin','asset']))}</td><td>${h(first(r,['side']))}</td><td><div class="lc-cell-stack"><span>${h(sourceOf(r))}</span><span class="lc-muted">${tiny(first(r,['reason']),32)}</span></div></td><td>${pill(first(r,['status'])||'—')}</td><td>${decisionPill(first(r,['execution_decision'])||'—')}</td><td>${tiny(first(r,['decision_reason']),34)}</td><td>${h(first(r,['suggested_limit_price','target_price']))}</td><td>${h(first(r,['adverse_diff_pct','diff_pct','real_diff_pct','price_diff_pct']))}</td><td>${h(first(r,['manual_reconcile_required']))}</td><td title="${h(displayNote)}">${tiny(displayNote,60)}</td><td><span class="lc-pill ${rrCls}">${h(realRes)}</span></td></tr>`;}).join('')||'<tr><td colspan="13">No audit rows found.</td></tr>';
+ const terminalRows=lcAudit.send_terminal_rows||[];
+ const legacyRows=lcAudit.legacy_terminal_rows||[];
+ const terminalRow=r=>`<tr><td>${h(r.event||'SEND_TERMINAL')}</td><td><span class="lc-pill ${terminalCls(r.status||r.terminal_state)}">${h(r.status||'—')}</span></td><td>${h(r.action||r.operator_action||'—')}</td><td>${h(r.reject_category||'—')}</td><td><span class="lc-pill ${terminalCls(r.terminal_state)}">${h(r.terminal_state||'—')}</span></td><td>${h(r.coin||'—')}</td><td class="lc-wallet">${h(r.leader_wallet?shortWallet(r.leader_wallet):'—')}</td><td class="lc-wallet">${tiny(String(r.intent_id||'—'),28)}</td><td title="${h(r.notes||r.error||'')}">${tiny(r.notes||r.error||'',80)}</td></tr>`;
+ const critical=terminalRows.filter(r=>String(r.terminal_state||r.status||'').startsWith('CLOSE_')||String(r.action||r.operator_action||'').indexOf('RECOVERY')>=0||String(r.action||r.operator_action||'').indexOf('MANUAL_REVIEW')>=0);
+ const warnings=terminalRows.filter(r=>!critical.includes(r));
+ const cbox=root.querySelector('#lcReconCriticalRows'), wbox=root.querySelector('#lcReconWarningRows'), lbox=root.querySelector('#lcReconLegacyRows');
+ if(cbox) cbox.innerHTML=critical.map(terminalRow).join('')||'<tr><td colspan="9">No actionable critical terminal items.</td></tr>';
+ if(wbox) wbox.innerHTML=warnings.map(terminalRow).join('')||'<tr><td colspan="9">No terminal warnings.</td></tr>';
+ if(lbox) lbox.innerHTML=legacyRows.map(r=>`<tr><td>SEND_REJECTED</td><td><span class="lc-pill lc-red">LEGACY_MISSING_TERMINAL_FIELDS</span></td><td>REVIEW_REQUIRED</td><td>—</td><td>LEGACY_MISSING_TERMINAL_FIELDS</td><td>${h(r.coin||'—')}</td><td class="lc-wallet">${h(r.leader_wallet?shortWallet(r.leader_wallet):'—')}</td><td class="lc-wallet">${tiny(String(r.intent_id||'—'),28)}</td><td title="${h(r.error||'')}">${tiny(r.error||'',80)}</td></tr>`).join('')||'<tr><td colspan="9">No legacy terminal-state gaps.</td></tr>';
  const recon=lcAudit.manual_reconciliation_rows||[];
- root.querySelector('#lcReconRows').innerHTML=recon.map(r=>{const sideCls=r.side==='LONG'?'lc-pos':r.side==='SHORT'?'lc-neg':'';const cnt=Number(r.count||1);const action=r.action_available?`<button type="button" data-recon-act="archive-ledger-row" data-wallet="${h(r.wallet||'')}" data-coin="${h(r.coin||'')}" data-issue="${h(r.issue||'')}" data-manual-size="${h(r.manual_signed_size??'')}">Archive ledger row</button><div class="lc-muted">Ledger cleanup only. No exchange order.</div>`:'';return `<tr><td>${pill(r.severity||'INFO',r.severity||'INFO')}</td><td class="lc-wallet" title="${h(r.wallet||'unknown')}">${h(r.wallet?shortWallet(r.wallet):'unknown')}</td><td>${h(r.coin||'—')}</td><td title="${h(r.latest_error||r.error||'')}">${h(r.issue||'n/a')}</td><td>${h(cnt>1?cnt:1)}</td><td class="${sideCls}">${h(r.side||'')} ${h(r.manual_signed_size??'n/a')}</td><td>${h(r.exchange_signed_size??'n/a')}</td><td class="lc-wallet">${tiny(String(r.last_intent_id||'—'),36)}</td><td class="lc-wallet">${tiny(String(r.last_oid||'—'),24)}</td><td>${h(r.last_updated_at||'—')}</td><td>${action}</td></tr>`;}).join('')||'<tr><td colspan="11">No reconciliation issues.</td></tr>';
+ root.querySelector('#lcReconRows').innerHTML=recon.map(r=>{const sideCls=r.side==='LONG'?'lc-pos':r.side==='SHORT'?'lc-neg':'';const cnt=Number(r.count||1);return `<tr><td>${pill(r.severity||'INFO',r.severity||'INFO')}</td><td>${h(r.coin||'—')}</td><td title="${h(r.wallet||'unknown')}">${h(r.wallet?shortWallet(r.wallet):'ACCOUNT_LEVEL_ONLY')}</td><td title="${h(r.latest_error||r.error||'')}">${h(r.issue||'n/a')}</td><td class="${sideCls}">${h(r.side||'')} ${h(r.manual_signed_size??'—')}</td><td>${h(r.exchange_signed_size??'—')}</td><td>${h(cnt>1?cnt:1)}</td></tr>`;}).join('')||'<tr><td colspan="7">No account-level orphan context.</td></tr>';
 }
 function renderHealth(){
  const rows=Object.entries(lcHealth.wallets||{}).sort().map(([wallet,wh])=>{const current=String(wh.current_status||wh.effective_status||wh.status||'OFFLINE');const effective=String(wh.effective_status||wh.status||current);const grade=String(wh.current_health_grade||wh.health_grade||'—');const alive=!!wh.thread_alive||!!wh.worker_thread_alive;const fatal=Number(wh.fatal_error_count||0);const label=(current==='STALE'&&alive&&fatal===0)?'STALE / current idle':current;const lastErr=wh.last_error_repr||wh.last_error||wh.last_close_msg||'';const recentErr=Number(wh.recent_error_count||0);const lifeErr=Number(wh.lifetime_error_count??wh.error_count??0);return `<tr><td class="lc-wallet">${h(shortWallet(wallet))}</td><td title="effective: ${h(effective)}">${pill(label,current)}</td><td>${pill(grade,grade)}</td><td>${h(alive?'alive':'down')}</td><td>${Number(wh.reconnects_per_min||0).toFixed(2)}</td><td>${h(wh.processed_count??0)}</td><td>${h(wh.raw_message_count??0)}</td><td>${h(wh.parsed_fill_message_count??0)}</td><td>${h(wh.snapshot_fill_seen_count??0)}</td><td>${h(wh.snapshot_fill_recovered_count??0)}</td><td>${h(wh.ignored_snapshot_count??0)}</td><td>${h(recentErr)}</td><td>${h(lifeErr)}</td><td>${h(wh.transport_stale_ms??wh.stale_ms??'')}</td><td>${pill(wh.data_status||'—',wh.data_status||'')}</td><td title="${h(lastErr)}">${tiny(lastErr,70)}</td></tr>`;}).join('');
@@ -5995,8 +6794,8 @@ function render(){
  const wsOverall=String(lcHealth.overall||'OFFLINE').toUpperCase();
  root.querySelector('#lcWsOverall').textContent=(['CLOSED','DEGRADED','DISABLED','OFFLINE'].includes(wsOverall))?'OFFLINE':wsOverall;
  const ro=root.querySelector('#lcRealOrders');
- if(ro){const hasRealFills=(lcAudit.execution_quality_rows||[]).some(r=>r.status==='ORDER_FILLED');ro.className='lc-pill '+(hasRealFills?'lc-green':'lc-red');ro.textContent=hasRealFills?'REAL ORDERS: SERVICE ACTIVE':'REAL ORDERS: APP DISABLED';}
- renderCards(); renderWallets(); renderAudit(); renderHealth(); renderPositions(); renderExecQuality();
+ if(ro){const armed=lcAudit.master_real_orders_enabled===true;ro.className='lc-pill '+(armed?'lc-green':'lc-red');ro.textContent=armed?'REAL ORDERS: ON':'REAL ORDERS: OFF';}
+ renderTopStatus(); renderCards(); renderWallets(); renderAudit(); renderHealth(); renderPositions(); renderExecQuality();
 }
 async function refresh(quiet){try{if(!quiet)msg('Loading...');const [cfg,health,audit,gcr]=await Promise.all([jget('/api/live-config'),jget('/api/live-ws-health'),jget('/api/live-audit-summary'),jget('/api/global-controls')]);lcConfig=cfg.config||{wallets:{}};lcHealth=health.health||{};lcAudit=audit||{};render();loadGcForm(gcr.global_controls||{});const nw=root.querySelector('#gcNetworks');if(nw&&gcr.networks)nw.textContent='Leader feed: '+gcr.networks.leader+' | Follower account: '+gcr.networks.follower+' | Markets: every market the leaders trade'+((gcr.networks.follower_dexes||[]).length>1?' (always read: '+gcr.networks.follower_dexes.join(', ')+')':'')+' | State folder: '+(gcr.networks.state_dir||'');if(!quiet)msg('Loaded');}catch(e){msg(e.message||String(e),true);}}
 function loadGcForm(gc){
@@ -6034,7 +6833,7 @@ if(applyRange) applyRange.addEventListener('click',()=>{const s=root.querySelect
 const resetRange=root.querySelector('#lcGraphResetRange');
 if(resetRange) resetRange.addEventListener('click',()=>{lcGraphScale='all';lcGraphStartMs=0;lcGraphEndMs=0;const s=root.querySelector('#lcGraphStart'),e=root.querySelector('#lcGraphEnd');if(s)s.value='';if(e)e.value='';root.querySelectorAll('[data-lc-graph-scale]').forEach(b=>b.classList.toggle('active',b.dataset.lcGraphScale==='all'));renderGraph();});
 root.querySelector('#lcAddForm').addEventListener('submit',async e=>{e.preventDefault();const fd=new FormData(e.currentTarget);const payload=Object.fromEntries(fd.entries());try{msg('Updating...');await jpost('/api/live-config/add-wallet',payload);e.currentTarget.reset();const m=e.currentTarget.closest('.lc-modal-backdrop');if(m)m.classList.remove('active');await refresh(true);msg('Updated: '+shortWallet(payload.wallet)+' -> SAVED');}catch(err){msg(err.message,true);}});
-root.querySelector('#lcReconRows').addEventListener('click',async e=>{const btn=e.target.closest('button[data-recon-act="archive-ledger-row"]');if(!btn)return;const payload={wallet:btn.dataset.wallet||'',coin:btn.dataset.coin||'',issue:btn.dataset.issue||'',manual_signed_size:btn.dataset.manualSize||''};if(!window.confirm('Archive this stale app ledger row only? This will not place an exchange order.'))return;try{msg('Archiving ledger row...');await jpost('/api/manual-reconciliation/archive-ledger-row',payload);await refresh(true);msg('Archived ledger row for '+payload.coin+'. No exchange order was placed.');}catch(err){msg(err.message||String(err),true);}});
+
 root.querySelector('#lcWalletRows').addEventListener('click',async e=>{
  const btn=e.target.closest('button[data-act]');
  if(btn){const tr=btn.closest('tr');const wallet=tr.dataset.wallet;const short=shortWallet(wallet);try{if(btn.dataset.act==='archive'&&!window.confirm('Archive removes from config only. Audit/history preserved.')){msg('Cancelled');return;}msg('Updating...');if(btn.dataset.act==='save'){await jpost('/api/live-config/set-wallet',rowPayload(tr));await refresh(true);msg('Updated: '+short+' -> SAVED');}if(btn.dataset.act==='clo'){await jpost('/api/live-config/set-mode',{wallet,mode:'CLO'});await refresh(true);msg('Updated: '+short+' -> CLO');}if(btn.dataset.act==='off'){await jpost('/api/live-config/set-mode',{wallet,mode:'OFF'});await refresh(true);msg('Updated: '+short+' -> OFF');}if(btn.dataset.act==='archive'){await jpost('/api/live-config/remove-wallet',{wallet,archive:true});await refresh(true);msg('Updated: '+short+' -> ARCHIVED');}}catch(err){msg(err.message,true);}return;}
@@ -6255,6 +7054,31 @@ def get_live_config():
     return JSONResponse(_live_copy_config_response(_load_live_copy_config()))
 
 
+@app.get("/live-copy", response_class=HTMLResponse)
+def live_copy_dashboard():
+    """Lightweight live-copy page: audit files only, no heavy SSOT rebuild."""
+    return HTMLResponse(f"""<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Live Copy Dashboard</title>
+</head>
+<body>
+{render_live_copy_control_panel()}
+</body>
+</html>""")
+
+
+@app.get("/live-copy.json")
+def live_copy_dashboard_json():
+    return JSONResponse(_live_audit_summary())
+
+
+@app.get("/api/live-copy-summary")
+def get_live_copy_summary():
+    return JSONResponse(_live_audit_summary())
+
+
 @app.get("/api/global-controls")
 def get_global_controls():
     cfg = _load_live_copy_config()
@@ -6285,7 +7109,33 @@ def get_live_ws_health():
 
 @app.get("/api/live-audit-summary")
 def get_live_audit_summary():
-    return JSONResponse(_live_audit_summary())
+    """Return live audit summary with a 2-second in-process read-only cache."""
+    now = time.time()
+    with _AUDIT_SUMMARY_CACHE_LOCK:
+        cached_data = _AUDIT_SUMMARY_CACHE.get("data")
+        built_at = float(_AUDIT_SUMMARY_CACHE.get("built_at") or 0.0)
+        if cached_data is not None and (now - built_at) <= _AUDIT_SUMMARY_TTL:
+            return JSONResponse({**cached_data, "cache_hit": True})
+    started = time.time()
+    try:
+        result = _live_audit_summary()
+        build_secs = round(time.time() - started, 3)
+        snapshot = result.get("exchange_account_snapshot") or {}
+        result["build_seconds"] = build_secs
+        result["exchange_snapshot_status"] = str(
+            snapshot.get("status") or ("OK" if snapshot.get("ok") else "UNAVAILABLE")
+        )
+        result["cache_hit"] = False
+        with _AUDIT_SUMMARY_CACHE_LOCK:
+            _AUDIT_SUMMARY_CACHE["data"] = result
+            _AUDIT_SUMMARY_CACHE["built_at"] = time.time()
+        return JSONResponse(result)
+    except Exception as exc:
+        with _AUDIT_SUMMARY_CACHE_LOCK:
+            stale = _AUDIT_SUMMARY_CACHE.get("data")
+        if stale is not None:
+            return JSONResponse({**stale, "cache_hit": True, "stale": True, "error": str(exc)})
+        return JSONResponse({"ok": False, "error": str(exc)}, status_code=500)
 
 
 @app.post("/api/live-config/add-wallet")
@@ -6385,16 +7235,6 @@ async def set_live_config_mode(req: Request):
         return _live_config_error(str(exc))
     except Exception as exc:
         return _live_config_error(type(exc).__name__)
-
-
-@app.post("/api/manual-reconciliation/archive-ledger-row")
-async def archive_manual_reconciliation_ledger_row(req: Request):
-    try:
-        body = await req.json()
-        result = _archive_manual_reconciliation_ledger_row(body if isinstance(body, dict) else {})
-        return JSONResponse(result, status_code=200 if result.get("ok") else 400)
-    except Exception as exc:
-        return JSONResponse({"ok": False, "error": type(exc).__name__}, status_code=400)
 
 
 if __name__ == "__main__":
