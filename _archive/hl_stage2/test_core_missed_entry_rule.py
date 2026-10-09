@@ -289,7 +289,7 @@ def main() -> None:
     c.atomic_write_json(c.CORE_RUNTIME_STATE_FILE, state)
     core.run_cycle(use_source_csv=False, poll_live=True)
     check("M7_THREE_DAY_GAP_CAUGHT_UP_FROM_LAST_GOOD_POLL",
-          starts and abs(starts[-1] - (now - 3 * 86400000 - c.POLL_OVERLAP_MS)) < 60000, f"{starts} now={now}")
+          starts and abs(starts[-1] - (now - 3 * 86400000 - c.LEADER_POLL_OVERLAP_MS)) < 60000, f"{starts} now={now}")
     state = c.load_json(c.CORE_RUNTIME_STATE_FILE, {})
     state["last_leader_poll_cursor_ms"] = {LEADER: c.utc_now_ms() - 9 * 86400000}
     c.atomic_write_json(c.CORE_RUNTIME_STATE_FILE, state)
@@ -321,7 +321,7 @@ def main() -> None:
     core._process_leader_fill = lambda f, summary=None, block="": (False, "T", None)
     core.run_cycle(use_source_csv=False, poll_live=True)
     cur = c.load_json(c.CORE_RUNTIME_STATE_FILE, {}).get("last_leader_poll_cursor_ms", {}).get(LEADER, 0)
-    check("M7_PARTIAL_POLL_RESUMES_FROM_LAST_FILL_READ", cur - c.POLL_OVERLAP_MS == partial_fills[0].timestamp_ms, f"{cur}")
+    check("M7_PARTIAL_POLL_RESUMES_FROM_LAST_FILL_READ", cur - c.LEADER_POLL_OVERLAP_MS == partial_fills[0].timestamp_ms, f"{cur}")
 
     src = (HERE / "HL_Live_Copy_Service_Core.py").read_text(encoding="utf-8-sig")
     check("M7_FEED_HEALTH_GATE_UNCHANGED_FILL_SILENCE_NEVER_BLOCKS_ALL_ENTRIES",
