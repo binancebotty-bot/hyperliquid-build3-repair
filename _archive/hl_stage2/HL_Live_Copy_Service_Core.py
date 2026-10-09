@@ -6615,6 +6615,8 @@ class LiveCopyCore:
         self.matcher = CopyFillMatcher(self.ledger, self.audit)
         self.reconciler = ExchangeReconciler(self.ledger, self.audit)
         self.sender.truth_refresh = self._refresh_truth_for_gate
+        self._truth_refresh_lock = threading.Lock()
+        self._last_truth_refresh = 0.0
         self.state_writer = ServiceStateWriter()
         self.source_csv = source_csv or RAW_LEADER_FILLS_CSV
         self.intents_by_id: Dict[str, Intent] = {}
@@ -6955,22 +6957,36 @@ class LiveCopyCore:
 
     def _refresh_truth_for_gate(self) -> None:
         """The ownership gate saw the exchange and the ledger disagree: own the follower's newest fills (as the
-        cycle's copy poll would) and re-read the exchange positions, so it compares fresh records with fresh truth."""
-        with self._send_lock, self._copy_ingest_lock:
+        cycle's copy poll would) and re-read the exchange positions, so it compares fresh records with fresh truth.
+        One refresh at a time for all workers, at most one a second; the reads are made outside the send lock."""
+        with self._truth_refresh_lock:
+            if time.monotonic() - self._last_truth_refresh < 1.0:
+                return
+            fills: List[Dict[str, Any]] = []
             if self.dedupe.copy_account_baseline_set:
                 _rt = load_json(CORE_RUNTIME_STATE_FILE, {})
                 last = int(fnum(_rt.get("last_copy_poll_ms"), 0)) if isinstance(_rt, dict) else 0
                 start = max(0, (last or utc_now_ms()) - POLL_OVERLAP_MS)
                 fills, status = self.copy_ingestor.poll_copy_account_fills(USER_WALLET, start, utc_now_ms(), report_partial=True)
-                if status in {"COPY_ACCOUNT_POLLED", "COPY_ACCOUNT_POLL_PARTIAL"}:
+                if status not in {"COPY_ACCOUNT_POLLED", "COPY_ACCOUNT_POLL_PARTIAL"}:
+                    fills = []
+            if fills:
+                with self._send_lock, self._copy_ingest_lock:
                     for raw_copy in fills:
+                        # only fills of orders already in the send history: anything else is left to the cycle's
+                        # poll (taking it here, before its send row exists, could consume it unmatched)
+                        oid = CopyFillMatcher._normalize_oid(CopyFillMatcher._copy_fill_oid(raw_copy))
+                        known = bool(oid) and (oid in self.matcher.sent_oid_index or oid in self.matcher.recovery_oid_index
+                                               or self.matcher._fresh_sent_row_for_oid(oid) is not None)
+                        if not known:
+                            continue
                         copy_id = CopyAccountIngestor.copy_fill_id(raw_copy)
-                        recovery_oid = CopyFillMatcher._normalize_oid(CopyFillMatcher._copy_fill_oid(raw_copy))
-                        allow_recovery_retry = (bool(recovery_oid) and recovery_oid in self.matcher.recovery_oid_index
+                        allow_recovery_retry = (oid in self.matcher.recovery_oid_index
                                                 and copy_id not in self.matcher.matched_copy_fill_ids)
                         if self.dedupe.accept_copy(copy_id, allow_retry=allow_recovery_retry):
                             self.matcher.match_and_apply(raw_copy, self.intents_by_id)
-        self.reconciler.fetch_snapshot()  # outside the send lock: other coins' workers keep building intents
+            self.reconciler.fetch_snapshot()
+            self._last_truth_refresh = time.monotonic()
 
     def _leader_poll_due(self) -> bool:
         """The live feed is the hot path; the poll is the missed-fill backstop. While the feed's socket is open the

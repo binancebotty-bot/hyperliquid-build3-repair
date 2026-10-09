@@ -559,6 +559,28 @@ def main() -> None:
     check("G3_BLOCK_RECORDED_FOR_THE_SCREEN", bool(rows))
     os.environ.pop("HL_LIVE_MOCK_SEND", None)
 
+    # the real refresh: own fills of known orders only, reads outside the send lock, one at a time
+    core = c.LiveCopyCore(source_csv=tmp / "none.csv")
+    core.dedupe.copy_account_baseline_set = True
+    known = {"coin": "BTC", "side": "B", "sz": "1", "px": "100", "oid": 555, "tid": 1, "time": c.utc_now_ms()}
+    unknown = {"coin": "BTC", "side": "B", "sz": "1", "px": "100", "oid": 556, "tid": 2, "time": c.utc_now_ms()}
+    core.matcher.sent_oid_index[c.CopyFillMatcher._normalize_oid("555")] = {"intent_id": "x"}
+    applied, lock_free = [], []
+
+    def poll(*a, **k):
+        lock_free.append(core._send_lock.acquire(blocking=False) and (core._send_lock.release() or True))
+        return [known, unknown], "COPY_ACCOUNT_POLLED"
+    core.copy_ingestor.poll_copy_account_fills = poll
+    core.matcher.match_and_apply = lambda raw, idx: applied.append(raw["oid"]) or True
+    snaps = []
+    core.reconciler.fetch_snapshot = lambda: snaps.append(1) or ({}, "SNAPSHOT_OK")
+    core._refresh_truth_for_gate()
+    core._refresh_truth_for_gate()   # within a second of the last: shared, not repeated
+    unknown_id = c.CopyAccountIngestor.copy_fill_id(unknown)
+    check("G3_REAL_REFRESH_OWNS_ONLY_KNOWN_ORDER_FILLS", applied == [555] and core.dedupe.accept_copy(unknown_id)
+          and lock_free == [True] and len(snaps) == 1, f"{applied} {lock_free} {len(snaps)}")
+    core.stop()
+
     # send history reader: appends, a row half-written, rewrites in place
     p = c.SEND_ATTEMPTS_CSV
     p.parent.mkdir(parents=True, exist_ok=True)
