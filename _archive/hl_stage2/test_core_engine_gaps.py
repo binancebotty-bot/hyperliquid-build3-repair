@@ -74,7 +74,8 @@ def main() -> None:
     calls = re.findall(r"exchange\.order\((?!\))", src)
     body = src.split("def _place_order(", 1)[1].split("\n    def ", 1)[0]
     check("O1_EXACTLY_ONE_EXCHANGE_ORDER_CALL", len(calls) == 1 and "exchange.order(" in body, str(len(calls)))
-    check("O1_ALL_FIVE_ORDER_SITES_USE_IT", src.count("self._place_order(") == 5, str(src.count("self._place_order(")))
+    # six sites: IOC/GTC, entry IOC retry, missed-entry limit, netting close resend, exit recovery, rate-limit recovery
+    check("O1_ALL_SIX_ORDER_SITES_USE_IT", src.count("self._place_order(") == 6, str(src.count("self._place_order(")))
     cancel_body = src.split("def _cancel_order(", 1)[1].split("\n    def ", 1)[0]
     check("O1_EXACTLY_ONE_EXCHANGE_CANCEL_CALL", len(re.findall(r"exchange\.cancel\(", src)) == 1
           and "exchange.cancel(" in cancel_body and "_exchange_order_lock" in cancel_body)
