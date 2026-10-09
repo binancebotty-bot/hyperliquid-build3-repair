@@ -1,0 +1,320 @@
+#!/usr/bin/env python3
+"""Boss's missed-entry rule (2026-10-09) and the polling backstop that catches missed trades of any age.
+
+"If we have the same price or better we take the entry that we missed, or in tolerance; otherwise a diff is
+produced so that I can reconcile it, and a limit order at the desired price is placed in the meantime."
+"The web socket should be the primary low-latency path; a separate polling mechanism detects missed entries,
+whether missed a few seconds or a few days ago."
+
+M1 the rule itself: same / better / within tolerance (Global Controls slippage) = take; beyond = rest.
+M2 one network: within tolerance the copy never pays beyond leader price + tolerance; beyond it, no chase:
+   one resting limit at the leader's price, shown on the screen's Critical diffs, recorded for withdrawal.
+M3 an order that finds no match retries no further than leader price + tolerance, then rests at the leader's price.
+M4 leader on mainnet, follower on testnet: the leader's market move is measured on the leader's network and
+   the limit rests at the same relative distance on the follower's market; no leader price = no order.
+M5 a resting limit is withdrawn only when the leader reduces/closes/flips that coin (no clock expiry);
+   failed withdrawals stay and show as a diff; the list survives a restart.
+M6 catch-up: a late entry the leader already closed again is reported, not traded; exits always run.
+M7 the polling backstop resumes from the last good poll however old (up to 7 days), says when it could not
+   read everything, and reports a gap older than that; the live feed's health gate follows --ws.
+
+Run: python test_core_missed_entry_rule.py   # RESULT:: markers, exit 0/1. No network, no orders.
+"""
+from __future__ import annotations
+
+import os
+import sys
+import tempfile
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE))
+RESULTS = []
+FOLLOWER = "0x" + "c" * 40
+LEADER = "0x" + "d" * 40
+OTHER = "0x" + "e" * 40
+NO_MATCH = {"status": "ok", "response": {"type": "order", "data": {"statuses": [
+    {"error": "Order could not immediately match against any resting orders. asset=0"}]}}}
+
+
+def check(name: str, cond: bool, detail: str = "") -> None:
+    RESULTS.append((name, bool(cond)))
+    print("RESULT::%s_%s%s" % (name, "PASS" if cond else "FAIL", (" | " + detail) if (detail and not cond) else ""))
+
+
+def main() -> None:
+    tmp = Path(tempfile.mkdtemp(prefix="missedentry_"))
+    os.environ.update({"HL_LIVE_AUDIT_DIR": str(tmp), "HL_LEADER_NETWORK": "mainnet", "HL_FOLLOWER_NETWORK": "testnet",
+                       "HL_LIVE_ENV_FILE": str(tmp / "none.env"), "HL_LIVE_SCOPE_SWEEP_THREAD": "0",
+                       "HL_LIVE_MIN_EXCHANGE_ORDER_GAP_MS": "0"})
+    import requests
+    import HL_Live_Copy_Service_Core as c
+
+    def offline(*a, **k):
+        raise RuntimeError("offline test: no network")
+    requests.post = offline
+    c.requests.post = offline
+    c.USER_WALLET = FOLLOWER
+    mids = {"follower": 100.0, "leader": 100.0}
+    c.MIDS_FETCHER = lambda p: [] if p.get("type") == "perpDexs" else ({"BTC": str(mids["follower"])} if mids["follower"] else {})
+    c.LEADER_MIDS_FETCHER = lambda p: [] if p.get("type") == "perpDexs" else ({"BTC": str(mids["leader"])} if mids["leader"] else {})
+
+    def set_mids(follower=None, leader=None):
+        if follower is not None:
+            mids["follower"] = follower
+        if leader is not None:
+            mids["leader"] = leader
+        c._FOLLOWER_MIDS.update(px={}, ms=0)
+        c._LEADER_MIDS.update(px={}, ms=0)
+
+    def config(**gc):
+        c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": False, "global_controls": gc, "wallets": {
+            LEADER: {"enabled": True, "mode": "ON", "copy_mode": "fixed", "fixed_notional": 1000}}})
+
+    seq = [0]
+
+    def fill(side="BUY", price=100.0, size=1.0, wallet=LEADER, coin="BTC", ts=None, start=None):
+        seq[0] += 1
+        raw = {} if start is None else {"startPosition": str(start)}
+        return c.LeaderFill(f"m{seq[0]}", wallet, coin, side, price, size, ts or c.utc_now_ms(), "TEST", 0, raw)
+
+    # ---- M1: the rule --------------------------------------------------------------------------------
+    d = c.missed_entry_decision
+    check("M1_SAME_PRICE_TAKEN", d("BUY", 100, 100, 100, 20)["take"])
+    check("M1_BETTER_PRICE_TAKEN", d("BUY", 100, 99, 99, 20)["take"] and d("SELL", 100, 101, 101, 20)["take"])
+    r = d("BUY", 100, 100.2, 100.2, 20)
+    check("M1_WITHIN_TOLERANCE_TAKEN_CAPPED_AT_LEADER_PLUS_TOL", r["take"] and abs(r["cap_px"] - 100.2) < 1e-9, str(r))
+    check("M1_BEYOND_TOLERANCE_RESTS", not d("BUY", 100, 100.3, 100.3, 20)["take"] and not d("SELL", 100, 99.7, 99.7, 20)["take"])
+    check("M1_ZERO_TOLERANCE_ONLY_SAME_OR_BETTER", d("BUY", 100, 100, 100, 0)["take"] and not d("BUY", 100, 100.01, 100.01, 0)["take"])
+    r = d("BUY", 100, 101, 93, 20)
+    check("M1_CROSS_NETWORK_SAME_RELATIVE_DISTANCE", abs(r["desired_px"] - 93 * 100 / 101) < 1e-9 and not r["take"], str(r))
+    check("M1_NO_PRICE_NO_DECISION", not d("BUY", 100, 0, 100, 20)["ok"] and not d("BUY", 0, 100, 100, 20)["ok"])
+
+    # ---- wire harness (fake exchange, no network) ---------------------------------------------------
+    class FakeExchange:
+        def __init__(self, replies=None):
+            self.calls, self.cancels, self.replies = [], [], list(replies or [])
+
+        def order(self, coin, is_buy, size, px, tif, reduce_only=False):
+            self.calls.append({"px": px, "tif": tif["limit"]["tif"], "buy": is_buy, "size": size, "reduce_only": reduce_only})
+            if self.replies:
+                return self.replies.pop(0)
+            if tif["limit"]["tif"] == "Gtc":
+                return {"status": "ok", "response": {"type": "order", "data": {"statuses": [{"resting": {"oid": 4242}}]}}}
+            return {"status": "ok", "response": {"type": "order", "data": {"statuses": [
+                {"filled": {"totalSz": str(size), "avgPx": str(px), "oid": 1}}]}}}
+
+        def cancel(self, coin, oid):
+            self.cancels.append((coin, oid))
+            return self.cancel_reply
+
+    resolved = {"ok": True, "sdk_coin": "BTC", "sz_decimals": 3, "price_max_decimals": 2, "perp_dexs": [""],
+                "sdk_order_compatible": True, "min_order_value_usd": 1.0, "min_size": 0.0, "status": "OK"}
+
+    def gateway(fake):
+        gw = c.SenderGateway(c.ConfigManager(), c.AuditLogWriter())
+        gw._resolve_coin = lambda coin: dict(resolved)
+        gw._get_exchange_client = lambda *a, **k: fake
+        gw._exchange_client_has_symbol = lambda *a, **k: True
+        gw._validate_final_wire_order = lambda *a, **k: (True, {})
+        gw._pre_exchange_asset_safety = lambda *a, **k: (True, {})
+        gw._exchange_client_for_coin = lambda coin: (fake, "BTC")
+        return gw
+
+    def send(gc, side="BUY", follower=100.0, leader=None, replies=None, f=None, sleeve=0.0):
+        config(**gc)
+        led = c.ManualLedger(path=tmp / f"l{seq[0]}.json")
+        if sleeve:
+            led.sleeve(LEADER, "BTC")["signed_size"] = sleeve
+        intent = c.IntentBuilder(c.ConfigManager(), led).build(f or fill(side))
+        fake = FakeExchange(replies)
+        gw = gateway(fake)
+        set_mids(follower, leader)
+        os.environ["HL_LIVE_HL_PRIVATE_KEY"] = "0x" + "1" * 64   # placeholder; the fake exchange never signs
+        saved = c.HLAccount, c.HLExchange
+        c.HLAccount, c.HLExchange = object, object
+        try:
+            ok, status, res = gw._send_real(intent)
+        finally:
+            c.HLAccount, c.HLExchange = saved
+            os.environ.pop("HL_LIVE_HL_PRIVATE_KEY", None)
+        return ok, status, res, fake, gw, intent
+
+    # ---- M2: one network ---------------------------------------------------------------------------
+    saved_leader = c.LEADER_NETWORK
+    c.LEADER_NETWORK = c.FOLLOWER_NETWORK
+    try:
+        ok, status, res, fake, gw, _ = send({"marketable_bps": 20}, follower=100.1)
+        check("M2_WITHIN_TOLERANCE_IOC_NEVER_BEYOND_LEADER_PLUS_TOL",
+              ok and len(fake.calls) == 1 and fake.calls[0]["tif"] == "Ioc" and fake.calls[0]["px"] <= 100.2 + 1e-9, str(fake.calls))
+        ok, status, res, fake, gw, intent = send({"marketable_bps": 20}, follower=101.0)
+        check("M2_BEYOND_TOLERANCE_NO_CHASE_ONE_LIMIT_AT_LEADER_PRICE",
+              ok and status == "ORDER_RESTING" and fake.calls == [{"px": 100.0, "tif": "Gtc", "buy": True,
+                                                                   "size": intent.copy_size, "reduce_only": False}], str(fake.calls))
+        check("M2_DIFF_REPORTED_AS_CRITICAL_ON_SCREEN",
+              res.get("terminal_state") == "ENTRY_LIMIT_RESTING_PRICE_MOVED"
+              and "RECOVERY" in res.get("operator_action", "") and "leader_price=100.0" in res.get("notes", ""), str(res)[:300])
+        gw._append_real_attempt(intent, status, res)
+        rows = [r for r in c.read_csv_rows(c.RECONCILIATION_CSV) if r.get("terminal_state") == "ENTRY_LIMIT_RESTING_PRICE_MOVED"]
+        check("M2_DIFF_ROW_WRITTEN_FOR_THE_SCREEN", rows and rows[-1]["event"] == "SEND_TERMINAL", str(rows[-1:])[:300])
+        sends = [r for r in c.read_csv_rows(c.SEND_ATTEMPTS_CSV) if r.get("exchange_order_id") == "4242"]
+        check("M2_RESTING_ORDER_ID_KEPT_SO_ITS_FILL_IS_OWNED", sends and sends[-1]["status"] == "ORDER_RESTING", str(sends[-1:])[:200])
+        reg = c.load_json(c.RESTING_ENTRY_ORDERS_FILE, {})
+        check("M2_RESTING_LIMIT_RECORDED_FOR_WITHDRAWAL", "4242" in reg and reg["4242"]["leader_wallet"] == LEADER
+              and reg["4242"]["side"] == "BUY", str(reg))
+        ok, status, res, fake, gw, _ = send({"marketable_bps": 20}, side="SELL", follower=99.0)
+        check("M2_SELL_SIDE_MIRRORED", status == "ORDER_RESTING" and fake.calls[0]["px"] == 100.0 and fake.calls[0]["tif"] == "Gtc",
+              str(fake.calls))
+        os.environ["HL_LIVE_MISSED_ENTRY_RULE"] = "0"
+        ok, status, res, fake, gw, _ = send({"marketable_bps": 20}, follower=101.0)
+        check("M2_RULE_SWITCH_OFF_RESTORES_OLD_BEHAVIOUR", fake.calls[0]["tif"] == "Ioc", str(fake.calls))
+        os.environ.pop("HL_LIVE_MISSED_ENTRY_RULE", None)
+
+        # ---- M3: no match while sending ---------------------------------------------------------------
+        ok, status, res, fake, gw, _ = send({"marketable_bps": 20}, follower=99.9, replies=[NO_MATCH, NO_MATCH])
+        pxs = [(x["tif"], x["px"]) for x in fake.calls]
+        check("M3_RETRY_CAPPED_AT_LEADER_PLUS_TOLERANCE_NOT_1PCT",
+              len(fake.calls) == 3 and fake.calls[1]["tif"] == "Ioc" and fake.calls[1]["px"] <= 100.2 + 1e-9
+              and max(x["px"] for x in fake.calls) <= 100.2 + 1e-9, str(pxs))
+        check("M3_THEN_LIMIT_RESTS_AT_LEADER_PRICE_WITH_DIFF",
+              pxs[-1] == ("Gtc", 100.0) and status == "ORDER_RESTING" and res.get("terminal_state") == "ENTRY_LIMIT_RESTING_PRICE_MOVED",
+              f"{status} {pxs}")
+        ok, status, res, fake, gw, _ = send({"marketable_bps": 20}, follower=100.2, replies=[NO_MATCH, NO_MATCH])
+        check("M3_NO_RETRY_WHEN_ALREADY_AT_THE_CAP", [x["tif"] for x in fake.calls] == ["Ioc", "Gtc"], str(fake.calls))
+        ok, status, res, fake, gw, _ = send({"marketable_bps": 20}, side="SELL", follower=100.0, replies=[NO_MATCH], sleeve=10.0)
+        check("M3_EXITS_UNCHANGED_NO_ENTRY_LIMIT", fake.calls and all(x["reduce_only"] for x in fake.calls), str(fake.calls))
+    finally:
+        c.LEADER_NETWORK = saved_leader
+
+    # ---- M4: leader mainnet, follower testnet ---------------------------------------------------------
+    ok, status, res, fake, gw, _ = send({"marketable_bps": 20}, follower=93.0, leader=100.1)
+    check("M4_CROSS_NETWORK_WITHIN_TOLERANCE_TAKEN_ON_FOLLOWER_MARKET",
+          ok and fake.calls[0]["tif"] == "Ioc" and fake.calls[0]["px"] <= 93 * 100 / 100.1 * 1.002 + 0.01, str(fake.calls))
+    ok, status, res, fake, gw, _ = send({"marketable_bps": 20}, follower=93.0, leader=101.0)
+    check("M4_CROSS_NETWORK_MOVED_TOO_FAR_RESTS_AT_SAME_RELATIVE_DISTANCE",
+          status == "ORDER_RESTING" and fake.calls[0]["tif"] == "Gtc" and abs(fake.calls[0]["px"] - 92.08) < 0.011, str(fake.calls))
+    ok, status, res, fake, gw, _ = send({"marketable_bps": 20}, follower=93.0, leader=0)
+    check("M4_NO_LEADER_PRICE_NO_ORDER_AND_A_DIFF",
+          not ok and not fake.calls and status == "SEND_NOT_ATTEMPTED_LEADER_PRICE_UNAVAILABLE"
+          and res.get("terminal_state") == "MISSED_ENTRY_LEADER_PRICE_UNAVAILABLE", status)
+    set_mids(100.0, 100.0)
+
+    # ---- M5: withdrawal tied to the leader's position, not a clock --------------------------------------
+    fake = FakeExchange()
+    fake.cancel_reply = {"status": "ok", "response": {"type": "cancel", "data": {"statuses": ["success"]}}}
+    gw = gateway(fake)
+    check("M5_LIST_SURVIVES_RESTART", "4242" in {r["oid"] for r in gw.resting_entries()}, str(gw.resting_entries()))
+    gw._resting_entries["4242"]["placed_ms"] = c.utc_now_ms() - 5 * 86400000   # five days old: still kept
+    check("M5_LEADER_ADDING_KEEPS_IT", gw.cancel_resting_entries_against(fill("BUY")) == 0 and not fake.cancels)
+    check("M5_OTHER_WALLET_OR_COIN_KEEPS_IT", gw.cancel_resting_entries_against(fill("SELL", wallet=OTHER)) == 0
+          and gw.cancel_resting_entries_against(fill("SELL", coin="ETH")) == 0 and not fake.cancels)
+    check("M5_LEADER_REDUCING_WITHDRAWS_IT", gw.cancel_resting_entries_against(fill("SELL")) == 1
+          and fake.cancels == [("BTC", 4242)] and "4242" not in c.load_json(c.RESTING_ENTRY_ORDERS_FILE, {}), str(fake.cancels))
+    rows = [r for r in c.read_csv_rows(c.RECONCILIATION_CSV) if r.get("exchange_order_id") == "4242"]
+    check("M5_WITHDRAWAL_SHOWN", rows and rows[-1]["status"] == "RESTING_ENTRY_CANCELLED_LEADER_REDUCED"
+          and rows[-1]["event"] == "SEND_TERMINAL", str(rows[-1:])[:300])
+    intent = c.IntentBuilder(c.ConfigManager(), c.ManualLedger(path=tmp / "m5.json")).build(fill("BUY"))
+    gw._register_resting_entry(intent, "BTC", "77", 100.0, 1.0, "test")
+    fake.cancel_reply = {"status": "ok", "response": {"type": "cancel", "data": {"statuses": [
+        {"error": "Order was never placed, already canceled, or filled. asset=0"}]}}}
+    check("M5_ALREADY_FILLED_OR_GONE_IS_CLEARED", gw.cancel_resting_entries_against(fill("SELL")) == 1 and not gw.resting_entries())
+    gw._register_resting_entry(intent, "BTC", "78", 100.0, 1.0, "test")
+    fake.cancel_reply = {"status": "err", "response": "rate limited"}
+    check("M5_FAILED_WITHDRAWAL_KEPT_AND_FLAGGED", gw.cancel_resting_entries_against(fill("SELL")) == 0
+          and [r["oid"] for r in gw.resting_entries()] == ["78"])
+    rows = [r for r in c.read_csv_rows(c.RECONCILIATION_CSV) if r.get("exchange_order_id") == "78"]
+    check("M5_FAILED_WITHDRAWAL_IS_CRITICAL_ON_SCREEN", rows and "MANUAL_REVIEW" in rows[-1]["action"], str(rows[-1:])[:300])
+
+    # the running engine withdraws before it handles the leader's reduce
+    c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": False, "global_controls": {}, "wallets": {
+        LEADER: {"enabled": True, "mode": "LIVE", "copy_mode": "fixed", "fixed_notional": 1000}}})
+    core = c.LiveCopyCore(source_csv=tmp / "none.csv")
+    fake.cancel_reply = {"status": "ok", "response": {"type": "cancel", "data": {"statuses": ["success"]}}}
+    core.sender._exchange_client_for_coin = lambda coin: (fake, "BTC")
+    order = []
+    core.sender.cancel_resting_entries_against = (lambda real: lambda f: order.append("cancel") or real(f))(
+        core.sender.cancel_resting_entries_against)
+    core.sender.send_if_allowed = lambda intent, block="": order.append("send") or (False, "TEST_NO_SEND")
+    core._append_send_terminal = lambda *a, **k: None
+    check("M5_ENGINE_LOADED_THE_LIST", [r["oid"] for r in core.sender.resting_entries()] == ["78"])
+    core._process_leader_fill(fill("SELL"))
+    check("M5_ENGINE_WITHDRAWS_BEFORE_HANDLING_THE_REDUCE", order == ["cancel", "send"] and not core.sender.resting_entries(),
+          f"{order} {core.sender.resting_entries()}")
+
+    # ---- M6: catch-up of an old gap -------------------------------------------------------------------
+    now = c.utc_now_ms()
+    old = now - 3 * 86400000   # three days ago
+    a = fill("BUY", ts=old, start=0)          # opened
+    b = fill("SELL", ts=old + 1, start=1)     # closed again
+    e = fill("BUY", ts=old + 2, start=0, size=2)   # opened again, still open
+    skip = c.already_closed_late_entries([a, b, e], now)
+    check("M6_ENTRY_ALREADY_CLOSED_IS_REPORTED_NOT_TRADED", a.leader_fill_id in skip, str(skip))
+    check("M6_EXITS_AND_STILL_OPEN_ENTRIES_RUN", b.leader_fill_id not in skip and e.leader_fill_id not in skip, str(skip))
+    live = [fill("BUY", start=0), fill("SELL", start=1)]
+    check("M6_LIVE_FILLS_NEVER_NETTED", not c.already_closed_late_entries(live, now))
+    check("M6_NO_START_POSITION_NOTHING_SKIPPED", not c.already_closed_late_entries([fill("BUY", ts=old), fill("SELL", ts=old + 1)], now))
+    flip = [fill("SELL", ts=old, start=1, size=2), fill("BUY", ts=old + 1, start=-1)]
+    check("M6_FLIP_COUNTS_AS_AN_ENTRY", flip[0].leader_fill_id in c.already_closed_late_entries(flip, now))
+
+    core = c.LiveCopyCore(source_csv=tmp / "none.csv")
+    handled = []
+    core._process_leader_fill = lambda f, summary=None, block="": handled.append(f.leader_fill_id) or (False, "T", None)
+    a2, b2, e2 = fill("BUY", ts=old, start=0), fill("SELL", ts=old + 1, start=1), fill("BUY", ts=old + 2, start=0)
+    core.ingestor.poll_hyperliquid_fills = lambda w, s, t=None: ([a2, b2, e2] if w == LEADER else [], "POLL_OK")
+    core.run_cycle(use_source_csv=False, poll_live=True)
+    rows = [r for r in c.read_csv_rows(c.RECONCILIATION_CSV) if r.get("leader_fill_id") == a2.leader_fill_id]
+    check("M6_CYCLE_SKIPS_CLOSED_ENTRY_WITH_A_DIFF", handled == [b2.leader_fill_id, e2.leader_fill_id]
+          and rows and rows[-1]["status"] == "MISSED_ENTRY_LEADER_ALREADY_CLOSED", f"{handled} {rows[-1:]}")
+
+    # ---- M7: polling backstop ---------------------------------------------------------------------------
+    starts = []
+    core.ingestor.poll_hyperliquid_fills = lambda w, s, t=None: starts.append(s) or ([], "POLL_OK")
+    state = c.load_json(c.CORE_RUNTIME_STATE_FILE, {})
+    state["last_leader_poll_cursor_ms"] = {LEADER: now - 3 * 86400000}
+    c.atomic_write_json(c.CORE_RUNTIME_STATE_FILE, state)
+    core.run_cycle(use_source_csv=False, poll_live=True)
+    check("M7_THREE_DAY_GAP_CAUGHT_UP_FROM_LAST_GOOD_POLL",
+          starts and abs(starts[-1] - (now - 3 * 86400000 - c.POLL_OVERLAP_MS)) < 60000, f"{starts} now={now}")
+    state = c.load_json(c.CORE_RUNTIME_STATE_FILE, {})
+    state["last_leader_poll_cursor_ms"] = {LEADER: c.utc_now_ms() - 9 * 86400000}
+    c.atomic_write_json(c.CORE_RUNTIME_STATE_FILE, state)
+    core.run_cycle(use_source_csv=False, poll_live=True)
+    rows = [r for r in c.read_csv_rows(c.RECONCILIATION_CSV) if r.get("status") == "LEADER_HISTORY_GAP"]
+    check("M7_GAP_BEYOND_7_DAYS_REPORTED", rows and rows[-1]["event"] == "SEND_TERMINAL"
+          and "MANUAL_REVIEW" in rows[-1]["action"], str(rows[-1:])[:200])
+
+    pages = {"n": 0}
+
+    def page_post(url, json=None, timeout=None):
+        pages["n"] += 1
+        t0 = json["startTime"]
+        n = 2000 if pages["mode"] == "full" else 3
+        return type("R", (), {"json": lambda self: [{"coin": "BTC", "side": "B", "px": "100", "sz": "1", "time": t0 + i,
+                                                     "hash": f"h{pages['n']}_{i}", "startPosition": "0"} for i in range(n)]})()
+    c.requests.post = page_post
+    pages["mode"] = "full"
+    got, status = c.LeaderFillIngestor().poll_hyperliquid_fills(LEADER, now - 1000, now)
+    check("M7_PAGES_RAN_OUT_SAYS_PARTIAL", status == "POLL_PARTIAL" and len(got) == 2000 * c.POLL_MAX_PAGES_PER_WALLET,
+          f"{status} {len(got)}")
+    pages["mode"] = "short"
+    got, status = c.LeaderFillIngestor().poll_hyperliquid_fills(LEADER, now - 1000, now)
+    check("M7_WHOLE_WINDOW_READ_SAYS_OK", status == "POLL_OK" and len(got) == 3, f"{status} {len(got)}")
+    c.requests.post = offline
+
+    partial_fills = [fill("BUY", ts=now - 5000)]
+    core.ingestor.poll_hyperliquid_fills = lambda w, s, t=None: (partial_fills if w == LEADER else [], "POLL_PARTIAL")
+    core._process_leader_fill = lambda f, summary=None, block="": (False, "T", None)
+    core.run_cycle(use_source_csv=False, poll_live=True)
+    cur = c.load_json(c.CORE_RUNTIME_STATE_FILE, {}).get("last_leader_poll_cursor_ms", {}).get(LEADER, 0)
+    check("M7_PARTIAL_POLL_RESUMES_FROM_LAST_FILL_READ", cur - c.POLL_OVERLAP_MS == partial_fills[0].timestamp_ms, f"{cur}")
+
+    src = (HERE / "HL_Live_Copy_Service_Core.py").read_text(encoding="utf-8-sig")
+    check("M7_FEED_HEALTH_GATE_FOLLOWS_WS_FLAG", 'bval(os.getenv("HL_LIVE_WS_ENABLED"), False) or self.ws.enabled' in src)
+
+    failed = [n for n, ok in RESULTS if not ok]
+    print(f"TOTAL={len(RESULTS)} FAILED={len(failed)}")
+    raise SystemExit(1 if failed else 0)
+
+
+if __name__ == "__main__":
+    main()

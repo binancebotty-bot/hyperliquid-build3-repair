@@ -166,6 +166,7 @@ def global_controls_tests() -> None:
             return []
         return {k: str(v) for k, v in mids.items()}
     c.MIDS_FETCHER = mids_fetcher
+    c.LEADER_MIDS_FETCHER = lambda payload: [] if payload.get("type") == "perpDexs" else {"BTC": "100"}  # leader market now
 
     def set_mid(px):
         mids.clear()
@@ -374,10 +375,13 @@ def global_controls_tests() -> None:
     saved_leader = c.LEADER_NETWORK
     c.LEADER_NETWORK = c.FOLLOWER_NETWORK
     try:
-        status, calls, intent = send({"marketable_bps": 20}, mid=120.0)           # leader printed at 100
+        status, calls, intent = send({"marketable_bps": 20}, mid=99.0)            # leader printed at 100
         check("F1_SAME_NETWORK_ENTRY_PRICED_FROM_FRESH_MID_NOT_LEADER_PRICE",
-              len(calls) == 1 and abs(calls[0]["px"] - 120.24) < 1e-9 and abs(calls[0]["size"] - intent.copy_size) < 1e-9,
+              len(calls) == 1 and abs(calls[0]["px"] - 99.19) < 1e-9 and abs(calls[0]["size"] - intent.copy_size) < 1e-9,
               f"{status} {calls}")
+        # Boss's missed-entry rule: 20 % away from the leader's price is far beyond 0.2 % -> no chase (see test_core_missed_entry_rule)
+        status, calls, _ = send({"marketable_bps": 20}, mid=120.0)
+        check("F1_PRICE_MOVED_TOO_FAR_IS_NOT_CHASED", len(calls) == 1 and abs(calls[0]["px"] - 100.0) < 1e-9, f"{status} {calls}")
         status, calls, _ = send({"marketable_bps": 20}, mid=0.0)
         check("F2_SAME_NETWORK_ENTRY_WITHOUT_FRESH_MID_NOT_SENT",
               status == "SEND_NOT_ATTEMPTED_FOLLOWER_PRICE_UNAVAILABLE" and not calls, status)

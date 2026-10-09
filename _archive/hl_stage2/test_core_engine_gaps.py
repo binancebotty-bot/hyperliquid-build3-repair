@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Core engine gaps: one order site, daily loss limit, real leader equity, wallet stream limit.
 
-O: every order (IOC, IOC retry, rate-limit recovery, exit recovery) goes through one physical
-   exchange.order() call in SenderGateway._place_order.
+O: every order (IOC or missed-entry limit, IOC retry, missed-entry limit after no match, rate-limit
+   recovery, exit recovery) goes through one physical exchange.order() call in SenderGateway._place_order,
+   and every cancel through one exchange.cancel() call in SenderGateway._cancel_order.
 D: Global Controls max_daily_loss_usd stops entries once the follower account lost that much over
    the exchange's rolling 24 h window; 0 = off; unreadable PnL fails closed; exits keep flowing.
 E: proportional copies scale by the leader's REAL account value on the leader network (every perp
@@ -73,7 +74,10 @@ def main() -> None:
     calls = re.findall(r"exchange\.order\((?!\))", src)
     body = src.split("def _place_order(", 1)[1].split("\n    def ", 1)[0]
     check("O1_EXACTLY_ONE_EXCHANGE_ORDER_CALL", len(calls) == 1 and "exchange.order(" in body, str(len(calls)))
-    check("O1_ALL_FOUR_ORDER_KINDS_USE_IT", src.count("self._place_order(") == 4, str(src.count("self._place_order(")))
+    check("O1_ALL_FIVE_ORDER_SITES_USE_IT", src.count("self._place_order(") == 5, str(src.count("self._place_order(")))
+    cancel_body = src.split("def _cancel_order(", 1)[1].split("\n    def ", 1)[0]
+    check("O1_EXACTLY_ONE_EXCHANGE_CANCEL_CALL", len(re.findall(r"exchange\.cancel\(", src)) == 1
+          and "exchange.cancel(" in cancel_body and "_exchange_order_lock" in cancel_body)
 
     class FakeExchange:
         def __init__(self):
