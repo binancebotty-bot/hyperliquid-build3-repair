@@ -3035,7 +3035,15 @@ class SenderGateway:
             rows = [dict(r) for r in self._resting_entries.values() if r.get("withdraw_pending")]
         return self._withdraw_rows(rows, "retry of a failed withdrawal", "") if rows else []
 
-    def _withdraw_rows(self, rows: List[Dict[str, Any]], why: str, leader_fill_id: str) -> List[Dict[str, Any]]:
+    def withdraw_resting_entries_sending_off(self) -> List[Dict[str, Any]]:
+        """Sending switched off: withdraw every missed-entry limit this engine placed (its own order ids, from its
+        own registry; never any other order, and resting exit limits are not in it and stay). Run 4 finding."""
+        with self._resting_lock:
+            rows = [dict(r) for r in self._resting_entries.values() if not r.get("withdraw_pending")]
+        return self._withdraw_rows(rows, "sending was switched off", "", "RESTING_ENTRY_CANCELLED_SENDING_OFF") if rows else []
+
+    def _withdraw_rows(self, rows: List[Dict[str, Any]], why: str, leader_fill_id: str,
+                       cancelled: str = "RESTING_ENTRY_CANCELLED_LEADER_REDUCED") -> List[Dict[str, Any]]:
         withdrawn: List[Dict[str, Any]] = []
         for row in rows:
             oid, response, error = str(row.get("oid")), {}, ""
@@ -3045,7 +3053,7 @@ class SenderGateway:
                 statuses = (response or {}).get("response", {}).get("data", {}).get("statuses", []) if isinstance(response, dict) else []
                 first = statuses[0] if statuses else None
                 if first == "success":
-                    outcome = "RESTING_ENTRY_CANCELLED_LEADER_REDUCED"
+                    outcome = cancelled
                 elif isinstance(first, dict) and re.search(r"already canceled|filled|never placed", str(first.get("error", "")), re.I):
                     outcome = "RESTING_ENTRY_ALREADY_GONE"
                 else:
@@ -7136,7 +7144,10 @@ class LiveCopyCore:
             summary.sender_key_invalid = self.sender.sender_key_invalid
             # --- end entry safety gates ---
             if self.sender.resting_entries():
+                # sending off: no order of the engine's may keep working on the exchange (run 4: limits kept filling)
                 retried = self.sender.retry_pending_withdrawals()
+                if not master_enabled:
+                    retried += self.sender.withdraw_resting_entries_sending_off()
                 if retried:
                     with self._send_lock:
                         self._own_fills_of_withdrawn_limits(retried)
