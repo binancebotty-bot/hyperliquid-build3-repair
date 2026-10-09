@@ -731,7 +731,6 @@ _GLOBAL_CONTROLS_DEFAULTS: Dict[str, Any] = {
     "max_order_notional_usd": 0.0,
     "marketable_bps": 20.0,  # Boss's default slippage, 0.2 % (2026-10-09)
     "max_close_adverse_diff_pct": 0.0,
-    "stale_entry_sec": 30.0,  # an entry older than this rests a limit at the leader's price + a diff; 0 = off
     "symbol_allowlist": [],
     "symbol_blocklist": [],
 }
@@ -6250,7 +6249,6 @@ def render_live_copy_control_panel() -> str:
           <label>Max daily loss ($, last 24 h) <input id="gcMaxDailyLoss" type="number" min="0" step="1" placeholder="0 = disabled"></label>
           <label>Max per-wallet exposure ($) <input id="gcMaxWallet" type="number" min="0" step="1" placeholder="0 = disabled"></label>
           <label>Max per-order notional ($) <input id="gcMaxOrder" type="number" min="0" step="0.01" placeholder="0 = disabled"></label>
-          <label>Stale entry cutoff (s) <input id="gcStaleSec" type="number" min="0" step="1" placeholder="0 = off"></label>
           <label>Marketable slippage % <input id="gcMktPct" type="number" min="0" max="0.50" step="0.01" placeholder="0 = no slippage allowed"><span id="gcMktPctState" class="lc-muted"></span></label>
           <label>Adverse close diff % <input id="gcCloseAdv" type="number" min="0" step="0.01" placeholder="0 = OFF"><span id="gcCloseAdvState" class="lc-muted"></span></label>
           <label class="wide">Symbol allowlist (empty = all allowed) <input id="gcAllowlist" type="text" placeholder="BTC,ETH"></label>
@@ -6845,7 +6843,7 @@ async function refresh(quiet){try{if(!quiet)msg('Loading...');const [cfg,health,
 function loadGcForm(gc){
   const f=(id,v)=>{const el=root.querySelector('#'+id);if(el&&v!=null)el.value=v;};
   const st=(id,v)=>{const el=root.querySelector('#'+id);if(el)el.textContent=Number(v||0)<=0?'OFF':'';};
-  f('gcMaxTotal',gc.max_total_live_exposure_usd||0);f('gcMaxDir',gc.max_asset_directional_exposure_usd||0);f('gcMaxDailyLoss',gc.max_daily_loss_usd||0);f('gcStaleSec',gc.stale_entry_sec!=null?gc.stale_entry_sec:30);
+  f('gcMaxTotal',gc.max_total_live_exposure_usd||0);f('gcMaxDir',gc.max_asset_directional_exposure_usd||0);f('gcMaxDailyLoss',gc.max_daily_loss_usd||0);
   f('gcMaxWallet',gc.max_wallet_exposure_usd||0);f('gcMaxOrder',gc.max_order_notional_usd||0);
   const mktPct=gc.marketable_slippage_pct!=null?gc.marketable_slippage_pct:(Number(gc.marketable_bps||0)/100);
   const closePct=gc.max_close_adverse_diff_pct!=null?gc.max_close_adverse_diff_pct:0;
@@ -6864,7 +6862,7 @@ root.querySelector('#lcGcSave').addEventListener('click',async()=>{
   const g=id=>parseFloat(root.querySelector('#'+id).value)||0;
   const gl=id=>(root.querySelector('#'+id).value||'').split(',').map(s=>s.trim().toUpperCase()).filter(Boolean);
   try{gs.textContent='Saving...';gs.className='lc-status';
-    await jpost('/api/global-controls',{max_total_live_exposure_usd:g('gcMaxTotal'),max_asset_directional_exposure_usd:g('gcMaxDir'),max_daily_loss_usd:g('gcMaxDailyLoss'),max_wallet_exposure_usd:g('gcMaxWallet'),max_order_notional_usd:g('gcMaxOrder'),marketable_slippage_pct:g('gcMktPct'),max_close_adverse_diff_pct:g('gcCloseAdv'),stale_entry_sec:g('gcStaleSec'),symbol_allowlist:gl('gcAllowlist'),symbol_blocklist:gl('gcBlocklist')});
+    await jpost('/api/global-controls',{max_total_live_exposure_usd:g('gcMaxTotal'),max_asset_directional_exposure_usd:g('gcMaxDir'),max_daily_loss_usd:g('gcMaxDailyLoss'),max_wallet_exposure_usd:g('gcMaxWallet'),max_order_notional_usd:g('gcMaxOrder'),marketable_slippage_pct:g('gcMktPct'),max_close_adverse_diff_pct:g('gcCloseAdv'),symbol_allowlist:gl('gcAllowlist'),symbol_blocklist:gl('gcBlocklist')});
     gs.textContent='Saved';gs.className='lc-status lc-ok';}catch(e){gs.textContent=e.message||String(e);gs.className='lc-status lc-bad';}
 });
 root.querySelectorAll('[data-lc-modal]').forEach(btn=>btn.addEventListener('click',()=>{const m=root.querySelector('#'+btn.dataset.lcModal);if(m){m.classList.add('active');m.setAttribute('aria-hidden','false');}}));

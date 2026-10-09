@@ -6,8 +6,8 @@ K  the loop keeps up: repeat leader fills are dropped before any processing, the
    workers in loop mode, the leader poll is a 30 s backstop while the live feed is up, a capped copy read
    resumes where it stopped.
 S  sends: exchange calls of different workers overlap (only the pacing slot is serialised), 4 workers by
-   default, one coin always on one worker (in order); an entry older than the stale cutoff (Global Controls,
-   default 30 s) is not taken within tolerance: it rests at the leader's price with a diff.
+   default, one coin always on one worker (in order); an entry within tolerance executes at once however late
+   (Boss; the 30 s stale cutoff was withdrawn in run 4), beyond tolerance it rests at the leader's price.
 N  Boss's F3 ruling "Let them net": leaders trading opposite ways net on the one account like the exchange; a
    close goes reduce-only only when it fits in the account's net, otherwise (ledger = exchange) without it, so
    the ledger's sum of leaders always equals the exchange; opposite entries are never skipped; the screen
@@ -273,27 +273,20 @@ def main() -> None:
     fake = FakeExchange()
     send_real(gateway(fake), fresh)
     check("S2_FRESH_ENTRY_INSIDE_TOLERANCE_TAKEN", fake.calls and fake.calls[0]["tif"] == "Ioc", str(fake.calls))
-    stale = c.IntentBuilder(c.ConfigManager(), led).build(fill("BUY", ts=c.utc_now_ms() - 45000))
+    # Boss: within tolerance (or better) executes at once however late; only beyond tolerance rests a limit
+    for age_s in (45, 3600):
+        late = c.IntentBuilder(c.ConfigManager(), led).build(fill("BUY", ts=c.utc_now_ms() - age_s * 1000))
+        fake = FakeExchange()
+        ok, status, res = send_real(gateway(fake), late)
+        check(f"S2_LATE_ENTRY_{age_s}S_WITHIN_TOLERANCE_EXECUTES_AT_ONCE", fake.calls and fake.calls[0]["tif"] == "Ioc"
+              and status == "ORDER_FILLED", f"{status} {fake.calls}")
+    set_mid(100.5)   # 50 bps worse: beyond tolerance, rests at the leader's price
     fake = FakeExchange()
-    ok, status, res = send_real(gateway(fake), stale)
-    check("S2_STALE_ENTRY_RESTS_AT_THE_LEADER_PRICE", fake.calls and fake.calls[0]["tif"] == "Gtc"
-          and fake.calls[0]["px"] == 100.0 and status == "ORDER_RESTING", f"{status} {fake.calls}")
-    check("S2_STALE_ENTRY_DIFF_SAYS_WHY", "stale cutoff" in res.get("notes", "")
-          and res.get("terminal_state") == "ENTRY_LIMIT_RESTING_PRICE_MOVED", res.get("notes", "")[:200])
-    set_mid(99.9)    # better than the leader: the limit at the leader's price fills at once
-    fake = FakeExchange([{"status": "ok", "response": {"type": "order", "data": {"statuses": [
-        {"filled": {"totalSz": "10", "avgPx": "99.9", "oid": 7}}]}}}])
     ok, status, res = send_real(gateway(fake), c.IntentBuilder(c.ConfigManager(), led).build(fill("BUY", ts=c.utc_now_ms() - 45000)))
-    check("S2_STALE_ENTRY_SAME_OR_BETTER_STILL_TAKEN", ok and status == "ORDER_FILLED" and fake.calls[0]["px"] == 100.0, f"{status} {fake.calls}")
-    config(marketable_bps=20, stale_entry_sec=0)
-    set_mid(100.1)
-    fake = FakeExchange()
-    send_real(gateway(fake), c.IntentBuilder(c.ConfigManager(), led).build(fill("BUY", ts=c.utc_now_ms() - 45000)))
-    check("S2_CUTOFF_ZERO_IS_OFF", fake.calls and fake.calls[0]["tif"] == "Ioc", str(fake.calls))
-    config(stale_entry_sec=45)
-    check("S2_CUTOFF_FROM_GLOBAL_CONTROLS", c.ConfigManager().stale_entry_sec() == 45.0)
+    check("S2_BEYOND_TOLERANCE_RESTS_AT_LEADER_PRICE", fake.calls and fake.calls[0]["tif"] == "Gtc"
+          and fake.calls[0]["px"] == 100.0 and status == "ORDER_RESTING", f"{status} {fake.calls}")
+    check("S2_NO_STALE_CUTOFF_SETTING", not hasattr(c.ConfigManager, "stale_entry_sec"))
     config()
-    check("S2_CUTOFF_DEFAULT_30_S", c.ConfigManager().stale_entry_sec() == 30.0)
     set_mid(100.0)
 
     # ---- N: leaders net like the exchange ---------------------------------------------------------------------
@@ -392,8 +385,7 @@ def main() -> None:
     ui = (HERE / "HL_Copy_App_SSOT.py").read_text(encoding="utf-8-sig")
     check("N10_SCREEN_NET_BY_COIN_WITH_LEADERS", 'id="lcNetByCoinRows"' in ui and "function netByCoin(owned,orphan)" in ui
           and "Which leader holds what" in ui)
-    check("S3_STALE_CUTOFF_ON_GLOBAL_CONTROLS", 'id="gcStaleSec"' in ui and "stale_entry_sec:g('gcStaleSec')" in ui
-          and '"stale_entry_sec": 30.0' in ui)
+    check("S3_NO_STALE_CUTOFF_ON_GLOBAL_CONTROLS", 'gcStaleSec' not in ui and 'stale_entry_sec' not in ui)
 
     # ---- G: guards after the 17:34 mainnet scare (false alarm) ----------------------------------------------------
     import json
