@@ -154,30 +154,41 @@ _FOLLOWER_MIDS: Dict[str, Any] = {"px": {}, "ms": 0}
 _SELF_TEST_MIDS: Optional[Dict[str, Any]] = None  # self-test only: leader prints double as follower mids
 
 
+_LEARNED_DEXES: set = set()  # HIP-3 DEXes seen in leader fills or held by the follower
+
+
+def learn_follower_dex(coin: str) -> None:
+    """A HIP-3 coin ("xyz:GOLD") adds its DEX to the follower DEX scope, so every market a leader trades
+    is priced and traded, and every DEX the follower holds a position on is priced and capped."""
+    text = str(coin or "").strip()
+    if ":" in text and text.split(":", 1)[0].strip():
+        _LEARNED_DEXES.add(text.split(":", 1)[0].strip().lower())
+
+
 def follower_dex_scope() -> List[str]:
-    """Perp DEXes the follower trades: the default DEX ("") plus the HIP-3 DEXes named in
-    HL_FOLLOWER_DEXES (comma separated). Prices, symbol meta and exposure are read for these only;
-    testnet lists hundreds of DEXes and reading each one every few seconds cannot keep prices fresh.
-    Inventory on any other DEX is caught by the slow full sweep, which then blocks entries."""
+    """Perp DEXes the follower reads prices, symbol meta and exposure for: the default DEX (""), every
+    HIP-3 DEX a leader has traded or the follower holds (learned), plus any named in HL_FOLLOWER_DEXES.
+    Testnet lists hundreds of DEXes; reading all of them every few seconds cannot keep prices fresh,
+    so the rest are covered by the slow full sweep, which adds any DEX the follower holds."""
     names = {n.strip().lower() for n in str(os.getenv("HL_FOLLOWER_DEXES") or "").split(",") if n.strip()}
-    return [""] + sorted(names)
+    return [""] + sorted(names | _LEARNED_DEXES)
 
 
 def follower_mid(coin: str) -> float:
     """Fresh follower-network mid for `coin` over the follower DEX scope (allMids per DEX, read
     concurrently). Cached HL_LIVE_MIDS_CACHE_TTL_SEC (2 s); a refresh is timed from its start, and
     older than HL_LIVE_MIDS_MAX_AGE_SEC (5 s) counts as none."""
-    now, m = utc_now_ms(), _FOLLOWER_MIDS
-    if not m["px"] or now - m["ms"] > int(fnum(os.getenv("HL_LIVE_MIDS_CACHE_TTL_SEC"), 2.0) * 1000):
+    now, m, dexes = utc_now_ms(), _FOLLOWER_MIDS, follower_dex_scope()
+    if (not m["px"] or m.get("scope") != dexes   # a newly learned DEX is priced at once
+            or now - m["ms"] > int(fnum(os.getenv("HL_LIVE_MIDS_CACHE_TTL_SEC"), 2.0) * 1000)):
         out: Dict[str, float] = {}
-        dexes = follower_dex_scope()
         payloads = [{"type": "allMids", **({"dex": dex} if dex else {})} for dex in dexes]
         for res in _XNET.post_many(MIDS_FETCHER, payloads, HL_INFO_URL, HTTP_TIMEOUT_SEC):
             for key, value in (res.get("data") if res.get("ok") and isinstance(res.get("data"), dict) else {}).items():
                 if fnum(value, 0.0) > 0 and math.isfinite(fnum(value, 0.0)):
                     out[str(key).upper()] = fnum(value, 0.0)
         if out:
-            m["px"], m["ms"] = out, now
+            m["px"], m["ms"], m["scope"] = out, now, dexes
             m["refresh_ms"] = utc_now_ms() - now
     if not m["ms"] or now - m["ms"] > int(fnum(os.getenv("HL_LIVE_MIDS_MAX_AGE_SEC"), 5.0) * 1000):
         return 0.0
@@ -1830,6 +1841,7 @@ class LeaderFill:
     raw: Dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
+        learn_follower_dex(self.coin)  # every market a leader trades joins the follower DEX scope
         if _SELF_TEST_MIDS is not None and fnum(self.price) > 0:  # self-test only (None in production)
             _SELF_TEST_MIDS[str(self.coin).upper()] = fnum(self.price)
 
@@ -3965,14 +3977,14 @@ class SenderGateway:
             pass
 
     def _fetch_meta(self) -> None:
-        if self._meta_fetched and self._builder_meta_fetched.get("*"):
+        scope = [d for d in follower_dex_scope() if d]  # grows as leaders trade new markets
+        if self._meta_fetched and self._builder_meta_fetched.get("*") and all(self._builder_meta_fetched.get(d) for d in scope):
             return
         self._fetch_core_meta()
         if requests is None:
             return
-        for dex_name in follower_dex_scope():  # the follower DEX scope only
-            if dex_name:
-                self._fetch_builder_meta(dex_name)
+        for dex_name in scope:  # the follower DEX scope only; already-loaded DEXes are skipped
+            self._fetch_builder_meta(dex_name)
         self._builder_meta_fetched["*"] = True
 
     def _fetch_core_meta(self) -> None:
@@ -4467,6 +4479,11 @@ class SenderGateway:
             return {"ok": False, "raw_coin": raw, "status": reason,
                     "error": msg, "exchange_called": False}
         item = self._meta_cache.get(key)
+        dex = key.split(":", 1)[0].lower() if ":" in key else ""
+        if item is None and dex and dex in follower_dex_scope() and not self._builder_meta_fetched.get(dex):
+            # a market a leader has just started trading: load its symbol data once, so the copy is not missed
+            self._fetch_builder_meta(dex)
+            item = self._meta_cache.get(key)
         if item is None:
             status = "SYMBOL_CACHE_MISS_NEEDS_REFRESH" if ":" in key or key.startswith(("@", "#")) else ("SYMBOL_UNRESOLVED" if self._meta_fetched or self._core_meta_fetched else "META_UNAVAILABLE")
             reason = "symbol absent from local asset universe cache; run build_hl_asset_universe_cache.py outside hot path" if status == "SYMBOL_CACHE_MISS_NEEDS_REFRESH" else f"{key} not in local meta cache"
@@ -6293,6 +6310,8 @@ class LiveCopyCore:
                 res = {"ok": False, "status": str(exp.get("status") or "SCOPE_UNAVAILABLE"), "dex": exp.get("dex", ""), "ms": started}
             else:
                 held = sorted(k for k, v in (exp.get("by_coin") or {}).items() if abs(fnum(v.get("net"))) > POSITION_EPSILON)
+                for coin in held:   # now read like every scoped DEX: exposure caps and ENG-016 see it
+                    learn_follower_dex(coin)
                 res = {"ok": True, "held": held, "dex_count": len(enum["dexes"]), "outside_count": len(outside),
                        "ms": started, "duration_ms": utc_now_ms() - started}
         self._scope_sweep_last = res
@@ -6309,9 +6328,10 @@ class LiveCopyCore:
             self._hot_stop_event.wait(max(30.0, fnum(os.getenv("HL_LIVE_SCOPE_SWEEP_SEC"), 300.0)))
 
     def _scope_sweep_block(self) -> str:
-        """Entries stop while the follower holds anything on a DEX outside the follower DEX scope, or
-        while no full sweep has succeeded within HL_LIVE_SCOPE_SWEEP_MAX_AGE_SEC (unknown fails closed).
-        Checked whenever real orders are armed; the sweep runs on its own thread so cycles stay fast."""
+        """Entries stop until a full sweep has succeeded within HL_LIVE_SCOPE_SWEEP_MAX_AGE_SEC (unknown
+        fails closed): only then is every follower holding known to sit inside the DEX scope (the sweep
+        adds any DEX it finds held), so exposure caps and ENG-016 see the whole account. Checked
+        whenever real orders are armed; the sweep runs on its own thread so cycles stay fast."""
         if not (self.cfg.auto_send_enabled and not bval(os.getenv("HL_LIVE_MOCK_SEND"), False)):
             return ""
         if getattr(self, "_scope_sweeper", None) is None and bval(os.getenv("HL_LIVE_SCOPE_SWEEP_THREAD"), True):
@@ -6321,8 +6341,6 @@ class LiveCopyCore:
         if not ok or utc_now_ms() - ok["ms"] > int(fnum(os.getenv("HL_LIVE_SCOPE_SWEEP_MAX_AGE_SEC"), 900.0) * 1000):
             last = getattr(self, "_scope_sweep_last", None) or {}
             return "SCOPE_SWEEP_PENDING" + (f": {last.get('status')}" if last and not last.get("ok") else "")
-        if ok["held"]:
-            return "OUT_OF_SCOPE_INVENTORY: " + ",".join(ok["held"][:5])
         return ""
 
     def run_cycle(self, use_source_csv: bool = True, poll_live: bool = False, poll_copy: bool = False, reconcile_exchange: bool = False) -> CycleSummary:
@@ -6384,7 +6402,7 @@ class LiveCopyCore:
             # Gate 5: Global Controls daily loss limit (rolling 24 h follower PnL; unreadable fails closed)
             if not _block:
                 _block = self._daily_loss_block()
-            # Gate 6: inventory on a DEX outside the follower DEX scope (slow full sweep; unknown fails closed)
+            # Gate 6: the full-DEX sweep must have covered the whole follower account recently (fails closed)
             if not _block:
                 _block = self._scope_sweep_block()
             self._entry_sends_blocked_reason = _block

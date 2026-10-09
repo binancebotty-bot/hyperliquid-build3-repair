@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Follower DEX scope (testnet run 1, blocker B1) and truthful front page (findings U1-U5).
 
-S: follower prices, symbol meta and exposure are read only for the follower DEX scope (the default
-   DEX plus HL_FOLLOWER_DEXES), concurrently, so a price refresh fits the 5 s age budget even with
-   testnet's hundreds of DEXes or all 10 mainnet DEXes named. A slow full sweep reads every other DEX
-   and blocks entries while anything is held there, or while no sweep has succeeded recently.
+S: follower prices, symbol meta and exposure are read only for the follower DEX scope: the default
+   DEX, every HIP-3 DEX a leader trades or the follower holds (learned), and HL_FOLLOWER_DEXES; reads
+   run concurrently, so a refresh fits the 5 s age budget even with all 10 mainnet DEXes in scope,
+   and testnet's hundreds of unused DEXes are never read on the price path. A slow full sweep reads
+   every other DEX, adds any the follower holds, and entries wait until a sweep has succeeded.
 U: the front page shows the real follower account value (U1), the wallets the engine follows (U2)
    and the engine's sizing (U3); the UI reads the account address from the engine's env file (U4);
    per-wallet settings the engine never reads are not offered or saved (U5).
@@ -76,10 +77,21 @@ def main() -> None:
     ok = c.follower_mid("BTC") == 100.0 and c.follower_mid("xyz:GOLD") == 2500.0
     check("S2_MIDS_READ_ONLY_FOR_SCOPE", ok and sorted(p.get("dex", "") for p in seen) == ["", "xyz"], str(seen))
     check("S2_NO_DEX_ENUMERATION_ON_PRICE_PATH", not any(p.get("type") == "perpDexs" for p in seen))
-    check("S2_COIN_OUTSIDE_SCOPE_HAS_NO_PRICE", c.follower_mid("dex200:FOO") == 0.0)
+    check("S2_UNTRADED_DEX_NOT_READ", c.follower_mid("dex200:FOO") == 0.0 and not any(p.get("dex") == "dex200" for p in seen))
+    os.environ.pop("HL_FOLLOWER_DEXES")
+    c._LEARNED_DEXES.clear()
+    c._FOLLOWER_MIDS.update(px={}, ms=0)
+    seen.clear()
+    check("S2_NOTHING_NAMED_NO_HIP3_READ", c.follower_mid("BTC") == 100.0 and [p.get("dex", "") for p in seen] == [""], str(seen))
+    seen.clear()
+    c.LeaderFill("lf1", LEADER, "xyz:GOLD", "BUY", 2400.0, 1.0, c.utc_now_ms(), "TEST")
+    check("S2_LEADER_TRADE_ADDS_ITS_MARKET", c.follower_dex_scope() == ["", "xyz"], str(c.follower_dex_scope()))
+    check("S2_NEW_MARKET_PRICED_AT_ONCE_NOT_AFTER_TTL", c.follower_mid("xyz:GOLD") == 2500.0
+          and sorted(p.get("dex", "") for p in seen) == ["", "xyz"], str(seen))
+    c._LEARNED_DEXES.clear()
 
     # ---- S3: 5 s price-age budget, mainnet case (all 10 mainnet DEXes named, 0.5 s per read) ----
-    os.environ["HL_FOLLOWER_DEXES"] = ",".join(f"m{i}" for i in range(9))   # default + 9 = 10 DEXes
+    os.environ["HL_FOLLOWER_DEXES"] = ",".join(f"m{i}" for i in range(9))   # default + 9 = all 10 mainnet DEXes
 
     def slow_mids(payload):
         time.sleep(0.5)
@@ -141,6 +153,14 @@ def main() -> None:
     sender._fetch_meta()
     check("S5_META_ONLY_FOR_SCOPE", {(m.get("type"), m.get("dex", "")) for m in metas} == {("meta", ""), ("meta", "xyz")}, str(metas)[:300])
     check("S5_SCOPE_COIN_RESOLVES", "XYZ:GOLD" in sender._meta_cache, str(list(sender._meta_cache)[:5]))
+    metas.clear()
+    c.LeaderFill("lf2", LEADER, "abc:GOLD", "BUY", 10.0, 1.0, c.utc_now_ms(), "TEST")   # leader opens a new market
+    r = sender._resolve_coin("abc:GOLD")
+    check("S5_NEW_LEADER_MARKET_RESOLVES_ON_FIRST_TRADE", r.get("ok") and metas == [{"type": "meta", "dex": "abc"}], f"{r} {metas}")
+    metas.clear()
+    r2 = sender._resolve_coin("qqq:GOLD")
+    check("S5_UNTRADED_MARKET_NOT_FETCHED_ON_SEND_PATH", not r2.get("ok") and metas == [], f"{r2} {metas}")
+    c._LEARNED_DEXES.clear()
     c.requests.post = offline
 
     # ---- S6: the slow full sweep and its entry gate ----------------------------------------------
@@ -174,11 +194,15 @@ def main() -> None:
         check("S6_CLEAN_SWEEP_ALLOWS_ENTRIES", core._scope_sweep_block() == "", core._scope_sweep_block())
         book["held"] = {"dex200": {"coin": "dex200:FOO", "szi": "3", "positionValue": "30"}}
         core.run_scope_sweep()
-        check("S6_INVENTORY_OUTSIDE_SCOPE_BLOCKS_ENTRIES", core._scope_sweep_block() == "OUT_OF_SCOPE_INVENTORY: DEX200:FOO",
-              core._scope_sweep_block())
-        book["held"] = {"xyz": {"coin": "xyz:GOLD", "szi": "1", "positionValue": "2500"}}
+        check("S6_HELD_DEX_JOINS_SCOPE", "dex200" in c.follower_dex_scope(), str(c.follower_dex_scope()))
+        core.intent_builder._exposure = None
+        sweep_reads.clear()
+        exp = core.intent_builder.follower_exposure()
+        check("S6_HELD_DEX_NOW_IN_EXPOSURE_CAPS", exp.get("ok") and "DEX200:FOO" in exp.get("by_coin", {})
+              and "dex200" in sweep_reads, str(exp)[:200])
+        sweep_reads.clear()
         core.run_scope_sweep()
-        check("S6_INVENTORY_INSIDE_SCOPE_LEFT_TO_EXPOSURE_GATES", core._scope_sweep_block() == "", core._scope_sweep_block())
+        check("S6_NEXT_SWEEP_SKIPS_IT", "dex200" not in sweep_reads and core._scope_sweep_block() == "")
         book["enum_down"] = True
         core._scope_sweep_ok = None
         core.run_scope_sweep()
@@ -188,12 +212,12 @@ def main() -> None:
         core.run_scope_sweep()
         core._scope_sweep_ok["ms"] -= 901_000
         check("S6_STALE_SWEEP_FAILS_CLOSED", core._scope_sweep_block().startswith("SCOPE_SWEEP_PENDING"), core._scope_sweep_block())
-        core.run_scope_sweep()
-        book["held"] = {"dex007": {"coin": "dex007:BAR", "szi": "-1", "positionValue": "10"}}
+        core.run_cycle(use_source_csv=False)
+        check("S7_CYCLE_PUBLISHES_SCOPE_BLOCK", core._entry_sends_blocked_reason.startswith("SCOPE_SWEEP_PENDING"),
+              core._entry_sends_blocked_reason)
         core.run_scope_sweep()
         core.run_cycle(use_source_csv=False)
-        check("S7_CYCLE_PUBLISHES_SCOPE_BLOCK", core._entry_sends_blocked_reason == "OUT_OF_SCOPE_INVENTORY: DEX007:BAR",
-              core._entry_sends_blocked_reason)
+        check("S7_CYCLE_CLEARS_AFTER_SWEEP", core._entry_sends_blocked_reason == "", core._entry_sends_blocked_reason)
         os.environ["HL_LIVE_MOCK_SEND"] = "1"
         check("S6_NOT_ARMED_NOT_GATED", core._scope_sweep_block() == "")
         os.environ.pop("HL_LIVE_MOCK_SEND")
