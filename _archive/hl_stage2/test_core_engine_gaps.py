@@ -55,6 +55,7 @@ def main() -> None:
         raise RuntimeError("offline test: no network")
     requests.post = offline
     c.requests.post = offline
+    c.MIDS_FETCHER = lambda payload: [] if payload.get("type") == "perpDexs" else {"BTC": "100"}   # follower mids
 
     def config(gc=None, wallet_cfg=None, all_wallets=None, auto=False):
         c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": auto, "global_controls": gc or {},
@@ -124,6 +125,7 @@ def main() -> None:
     check("D3_ONLY_THE_DAY_WINDOW_COUNTS", gate({"max_daily_loss_usd": 500}, [[0, "0"], [1, "20"]]) == "")
     check("D4_UNREADABLE_PNL_FAILS_CLOSED", gate({"max_daily_loss_usd": 50}, None) == "DAILY_LOSS_UNREADABLE")
     config({"max_daily_loss_usd": 50}, auto=True)
+    pnl["rows"] = [[0, "0"]]
     sgw = c.SenderGateway(c.ConfigManager(), c.AuditLogWriter())
     entry = c.IntentBuilder(c.ConfigManager(), c.ManualLedger(path=tmp / "d5.json")).build(fill())
     sent, status = sgw.send_if_allowed(entry, "DAILY_LOSS_LIMIT_REACHED")
@@ -137,7 +139,7 @@ def main() -> None:
     check("D6_UI_HAS_DAILY_LOSS_FIELD", 'id="gcMaxDailyLoss"' in page and "max_daily_loss_usd:g('gcMaxDailyLoss')" in page)
 
     # ---- E: real leader equity ------------------------------------------------------------
-    leader_book = {"down": False, "urls": []}
+    leader_book = {"down": False, "urls": [], "whole": "45000"}
 
     class Resp:
         def __init__(self, body):
@@ -152,6 +154,8 @@ def main() -> None:
             raise RuntimeError("leader read failed")
         if json.get("type") == "perpDexs":
             return Resp([{"name": "xyz"}])
+        if json.get("type") == "portfolio":   # whole-account value (unified: spot collateral included)
+            return Resp([["day", {"accountValueHistory": [[0, "40000"], [1, leader_book["whole"]]], "pnlHistory": [[0, "0"]]}]])
         acct = {"": "30000", "xyz": "20000"}[json.get("dex", "")]
         return Resp({"assetPositions": [], "marginSummary": {"accountValue": acct}})
     requests.post = leader_post
@@ -162,6 +166,13 @@ def main() -> None:
     check("E1_SIZES_FROM_REAL_LEADER_EQUITY_ALL_DEXES", abs(i.copy_notional - 200.0) < 1e-6 and i.decision == "ENTRY_ALLOWED",
           f"{i.copy_notional} {i.decision} {i.reason}")
     check("E1_EQUITY_READ_FROM_LEADER_NETWORK", leader_book["urls"] and set(leader_book["urls"]) == {M_INFO}, str(leader_book["urls"]))
+    leader_book["whole"] = "100000"     # unified account: most collateral in spot -> whole value wins
+    i = c.IntentBuilder(c.ConfigManager(), c.ManualLedger(path=tmp / "e1u.json")).build(fill(price=100.0, size=1000.0))
+    check("E1_UNIFIED_ACCOUNT_SPOT_COLLATERAL_COUNTED", abs(i.copy_notional - 100.0) < 1e-6, str(i.copy_notional))
+    leader_book["whole"] = None
+    i = c.IntentBuilder(c.ConfigManager(), c.ManualLedger(path=tmp / "e1n.json")).build(fill(price=100.0, size=1000.0))
+    check("E1_NO_WHOLE_ACCOUNT_VALUE_NO_SIZE", i.copy_notional == 0.0 and "leader equity unavailable" in i.reason, i.reason)
+    leader_book["whole"] = "45000"
     n = len(leader_book["urls"])
     b.build(fill(price=100.0, size=1000.0))
     check("E1_EQUITY_CACHED_BETWEEN_FILLS", len(leader_book["urls"]) == n)

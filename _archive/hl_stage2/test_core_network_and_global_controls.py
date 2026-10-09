@@ -159,6 +159,19 @@ def global_controls_tests() -> None:
             raise RuntimeError("scope unavailable")
         return {"assetPositions": [{"position": p} for p in book["positions"] if p.get("dex", "") == payload.get("dex", "")]}
     c.EXPOSURE_FETCHER = fetcher
+    mids = {"BTC": 100.0, "ETH": 400.0}   # follower-network mids (the leader fills below also print at 100)
+
+    def mids_fetcher(payload):
+        if payload.get("type") == "perpDexs":
+            return []
+        return {k: str(v) for k, v in mids.items()}
+    c.MIDS_FETCHER = mids_fetcher
+
+    def set_mid(px):
+        mids.clear()
+        if px:
+            mids["BTC"] = px
+        c._FOLLOWER_MIDS.update(px={}, ms=0)
 
     def config(**gc):
         c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": False, "global_controls": gc, "wallets": {
@@ -255,8 +268,7 @@ def global_controls_tests() -> None:
         gw._exchange_client_has_symbol = lambda *a, **k: True
         gw._validate_final_wire_order = lambda *a, **k: (True, {})
         gw._pre_exchange_asset_safety = lambda *a, **k: (True, {})
-        gw._fetch_all_mids = lambda: {"BTC": mid} if mid else {}
-        gw._mids_cache = {"BTC": mid} if mid else {}
+        set_mid(mid)
         os.environ["HL_LIVE_HL_PRIVATE_KEY"] = "0x" + "1" * 64   # placeholder; the fake exchange never signs
         saved = c.HLAccount, c.HLExchange
         c.HLAccount, c.HLExchange = object, object
@@ -280,6 +292,90 @@ def global_controls_tests() -> None:
     check("G13_CLOSE_WITHIN_DIFF_SENT_REDUCE_ONLY", len(calls) == 1 and calls[0]["reduce_only"] is True, f"{status} {calls}")
     status, calls, _ = send({"marketable_bps": 50}, side="SELL", mid=100.0, sleeve=10.0)
     check("G13_ZERO_CLOSE_DIFF_IS_OFF", len(calls) == 1, f"{status} {calls}")
+
+    # ---- review fixes (PR #4 independent review) --------------------------------------------
+    # R1: limits are checked at the follower price the order fills at, not the leader price
+    set_mid(300.0)                      # testnet book 3x mainnet: $1000 of leader-priced units is $3000 here
+    d = decide({"max_order_notional_usd": 2000})
+    check("R1_CROSS_NETWORK_MAX_ORDER_AT_FOLLOWER_PRICE", d == ("SEND_BLOCKED_RISK", "max order notional exceeded"), str(d))
+    d = decide({"max_total_live_exposure_usd": 2500})
+    check("R1_CROSS_NETWORK_TOTAL_CAP_AT_FOLLOWER_PRICE", d == ("SEND_BLOCKED_RISK", "max total exposure exceeded"), str(d))
+    d = decide({"max_asset_directional_exposure_usd": 2500})
+    check("R1_CROSS_NETWORK_ASSET_CAP_AT_FOLLOWER_PRICE", d[1] == "max asset directional exposure exceeded", str(d))
+    d = decide({"max_order_notional_usd": 1000, "marketable_bps": 50}) if set_mid(100.0) is None else None
+    check("R1_SLIPPAGE_COUNTS_TOWARD_ORDER_VALUE", d == ("SEND_BLOCKED_RISK", "max order notional exceeded"), str(d))
+    set_mid(0.0)
+    d = decide({})
+    check("R1_NO_FOLLOWER_PRICE_NO_ENTRY", d[0] == "SEND_BLOCKED_RISK" and "no fresh follower" in d[1], str(d))
+    set_mid(100.0)
+    status, calls, _ = send({"max_order_notional_usd": 1005}, mid=110.0)   # price moved between decision and wire
+    check("R1_FINAL_WIRE_NOTIONAL_RECHECKED", status == "SEND_NOT_ATTEMPTED_MAX_ORDER_NOTIONAL" and not calls, f"{status} {calls}")
+
+    # R2 (ENG-016): never net into inventory the engine does not own
+    def armed(**gc):
+        c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": True, "global_controls": gc, "wallets": {
+            LEADER: {"enabled": True, "mode": "LIVE", "copy_mode": "fixed", "fixed_notional": 1000}}})
+    set_mid(100.0)
+    armed()
+    book["positions"] = [{"coin": "BTC", "szi": "-0.4", "positionValue": "40"}]     # Build 4 leftover short
+    i = c.IntentBuilder(c.ConfigManager(), c.ManualLedger(path=tmp / "r2a.json")).build(fill())
+    check("R2_ENTRY_ON_COIN_WITH_FOREIGN_INVENTORY_BLOCKED", i.decision == "SEND_BLOCKED_RISK" and "UNOWNED_INVENTORY" in i.reason, i.reason)
+    book["positions"] = [{"coin": "ETH", "szi": "-0.4", "positionValue": "40"}]
+    i = c.IntentBuilder(c.ConfigManager(), c.ManualLedger(path=tmp / "r2b.json")).build(fill())
+    check("R2_OTHER_COINS_UNAFFECTED", i.decision == "ENTRY_ALLOWED", i.reason)
+    book["down"] = True
+    i = c.IntentBuilder(c.ConfigManager(), c.ManualLedger(path=tmp / "r2c.json")).build(fill())
+    check("R2_UNREADABLE_POSITIONS_FAIL_CLOSED", i.decision == "SEND_BLOCKED_RISK" and "UNOWNED_INVENTORY" in i.reason, i.reason)
+    led = c.ManualLedger(path=tmp / "r2d.json")
+    led.sleeve(LEADER, "BTC")["signed_size"] = 10.0
+    i = c.IntentBuilder(c.ConfigManager(), led).build(fill("SELL"))
+    check("R2_EXITS_NOT_GATED", i.decision == "EXIT_ALLOWED", i.reason)
+    book["down"] = False
+    book["positions"] = []
+    b = c.IntentBuilder(c.ConfigManager(), c.ManualLedger(path=tmp / "r2e.json"))
+    first = b.build(fill())
+    book["positions"] = [{"coin": "BTC", "szi": "10", "positionValue": "1000"}]     # our own fill, ledger not yet updated
+    second = b.build(fill())
+    check("R2_OWN_FILL_INSIDE_SETTLE_WINDOW_NOT_MISREAD", first.decision == "ENTRY_ALLOWED" and second.decision == "ENTRY_ALLOWED",
+          f"{first.reason} | {second.reason}")
+    book["positions"] = []
+
+    # R3: exits are not trapped by a missing or stale follower mid
+    calls_seen = []
+
+    def dex_mids(payload):
+        calls_seen.append(payload)
+        if payload.get("type") == "perpDexs":
+            return [{"name": "xyz"}]
+        return {"xyz:GOLD": "2500"} if payload.get("dex") == "xyz" else {"BTC": "100"}
+    c.MIDS_FETCHER = dex_mids
+    c._FOLLOWER_MIDS.update(px={}, ms=0, dexes=None)
+    check("R3_HIP3_MIDS_FETCHED_PER_DEX", c.follower_mid("xyz:GOLD") == 2500.0 and c.follower_mid("BTC") == 100.0,
+          str(calls_seen))
+    c._FOLLOWER_MIDS["ms"] = c.utc_now_ms() - 60_000
+    c.MIDS_FETCHER = lambda payload: (_ for _ in ()).throw(RuntimeError("mids down"))
+    check("R3_STALE_MIDS_COUNT_AS_NONE", c.follower_mid("BTC") == 0.0)
+    book["positions"] = [{"coin": "BTC", "szi": "10", "positionValue": "990"}]
+    status, calls, _ = send({"marketable_bps": 10}, side="SELL", mid=0.0, sleeve=10.0)
+    check("R3_EXIT_PRICED_FROM_OWN_POSITION_WHEN_NO_MID",
+          len(calls) == 1 and calls[0]["reduce_only"] is True and abs(calls[0]["px"] - 98.9) < 0.01, f"{status} {calls}")
+    book["positions"] = []
+    gw = c.SenderGateway(c.ConfigManager(), c.AuditLogWriter())
+    status, calls, _ = send({}, side="SELL", mid=0.0, sleeve=10.0)
+    check("R3_EXIT_WITH_NO_PRICE_AT_ALL_GOES_RED", status == "SEND_NOT_ATTEMPTED_FOLLOWER_PRICE_UNAVAILABLE" and not calls
+          and c.classify_integrity_severity("MANUAL_EXIT_RECOVERY_REQUIRED") == "RED", status)
+    c.MIDS_FETCHER = mids_fetcher
+
+    # R4 / R5: the UI tells the truth about slippage 0 and reads the engine's env file
+    panel = ui.render_live_copy_control_panel()
+    check("R4_UI_SAYS_ZERO_SLIPPAGE_MAY_NOT_FILL", "0 = NO slippage allowed" in panel and "0 = no slippage allowed" in panel)
+    env_dir = Path(tempfile.mkdtemp(prefix="envf_"))
+    (env_dir / "alt.env").write_text("HL_FOLLOWER_NETWORK=mainnet\nHL_LIVE_AUDIT_DIR=" + str(env_dir / "main_state") + "\n")
+    probe = ("import HL_Copy_App_SSOT as u, json; print(json.dumps([u.FOLLOWER_NETWORK, u.LIVE_COPY_AUDIT_DIR.name]))")
+    r = subprocess.run([sys.executable, "-c", probe], cwd=str(HERE), capture_output=True, text=True, timeout=180,
+                       env={**{k: v for k, v in os.environ.items() if not k.startswith("HL_")}, "HL_LIVE_ENV_FILE": str(env_dir / "alt.env")})
+    got = last_json(r)
+    check("R5_UI_READS_THE_ENGINES_ENV_FILE", got == ["mainnet", "main_state"], str(got))
 
     src = (HERE / "HL_Live_Copy_Service_Core.py").read_text(encoding="utf-8-sig")
     sites = len(re.findall(r"exchange\.order\((?!\))", src))

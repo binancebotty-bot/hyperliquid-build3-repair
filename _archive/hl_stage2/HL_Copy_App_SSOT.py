@@ -62,7 +62,7 @@ WALLET_GATE_FILE = BASE_DIR / "wallet_gate.json"
 MANUAL_WALLETS_FILE = BASE_DIR / "manual_wallets.txt"
 PURGED_WALLETS_FILE = BASE_DIR / "purged_wallets.txt"
 import exchange_truth as _XNET  # noqa: E402  same network selection and state folder as the engine
-_NET_ENV = _XNET.env_with_file(BASE_DIR.parent / "hl_stage2.env")
+_NET_ENV = _XNET.env_with_file(Path(os.environ.get("HL_LIVE_ENV_FILE") or BASE_DIR.parent / "hl_stage2.env"))  # as the engine
 try:
     NETWORKS = _XNET.resolve_networks(_NET_ENV)
 except _XNET.NetworkConfigError as _net_exc:
@@ -5460,7 +5460,7 @@ def render_live_copy_control_panel() -> str:
           <label>Max daily loss ($, last 24 h) <input id="gcMaxDailyLoss" type="number" min="0" step="1" placeholder="0 = disabled"></label>
           <label>Max per-wallet exposure ($) <input id="gcMaxWallet" type="number" min="0" step="1" placeholder="0 = disabled"></label>
           <label>Max per-order notional ($) <input id="gcMaxOrder" type="number" min="0" step="0.01" placeholder="0 = disabled"></label>
-          <label>Marketable slippage % <input id="gcMktPct" type="number" min="0" max="0.50" step="0.01" placeholder="0 = OFF"><span id="gcMktPctState" class="lc-muted"></span></label>
+          <label>Marketable slippage % <input id="gcMktPct" type="number" min="0" max="0.50" step="0.01" placeholder="0 = no slippage allowed"><span id="gcMktPctState" class="lc-muted"></span></label>
           <label>Adverse close diff % <input id="gcCloseAdv" type="number" min="0" step="0.01" placeholder="0 = OFF"><span id="gcCloseAdvState" class="lc-muted"></span></label>
           <label class="wide">Symbol allowlist (empty = all allowed) <input id="gcAllowlist" type="text" placeholder="BTC,ETH"></label>
           <label class="wide">Symbol blocklist <input id="gcBlocklist" type="text" placeholder="DOGE,SHIB"></label>
@@ -5958,7 +5958,7 @@ function render(){
  if(ro){const hasRealFills=(lcAudit.execution_quality_rows||[]).some(r=>r.status==='ORDER_FILLED');ro.className='lc-pill '+(hasRealFills?'lc-green':'lc-red');ro.textContent=hasRealFills?'REAL ORDERS: SERVICE ACTIVE':'REAL ORDERS: APP DISABLED';}
  renderCards(); renderWallets(); renderAudit(); renderHealth(); renderPositions(); renderExecQuality();
 }
-async function refresh(quiet){try{if(!quiet)msg('Loading...');const [cfg,health,audit,gcr]=await Promise.all([jget('/api/live-config'),jget('/api/live-ws-health'),jget('/api/live-audit-summary'),jget('/api/global-controls')]);lcConfig=cfg.config||{wallets:{}};lcHealth=health.health||{};lcAudit=audit||{};render();loadGcForm(gcr.global_controls||{});const nw=root.querySelector('#gcNetworks');if(nw&&gcr.networks)nw.textContent='Leader feed: '+gcr.networks.leader+' | Follower account: '+gcr.networks.follower;if(!quiet)msg('Loaded');}catch(e){msg(e.message||String(e),true);}}
+async function refresh(quiet){try{if(!quiet)msg('Loading...');const [cfg,health,audit,gcr]=await Promise.all([jget('/api/live-config'),jget('/api/live-ws-health'),jget('/api/live-audit-summary'),jget('/api/global-controls')]);lcConfig=cfg.config||{wallets:{}};lcHealth=health.health||{};lcAudit=audit||{};render();loadGcForm(gcr.global_controls||{});const nw=root.querySelector('#gcNetworks');if(nw&&gcr.networks)nw.textContent='Leader feed: '+gcr.networks.leader+' | Follower account: '+gcr.networks.follower+' | State folder: '+(gcr.networks.state_dir||'');if(!quiet)msg('Loaded');}catch(e){msg(e.message||String(e),true);}}
 function loadGcForm(gc){
   const f=(id,v)=>{const el=root.querySelector('#'+id);if(el&&v!=null)el.value=v;};
   const st=(id,v)=>{const el=root.querySelector('#'+id);if(el)el.textContent=Number(v||0)<=0?'OFF':'';};
@@ -5966,7 +5966,8 @@ function loadGcForm(gc){
   f('gcMaxWallet',gc.max_wallet_exposure_usd||0);f('gcMaxOrder',gc.max_order_notional_usd||0);
   const mktPct=gc.marketable_slippage_pct!=null?gc.marketable_slippage_pct:(Number(gc.marketable_bps||0)/100);
   const closePct=gc.max_close_adverse_diff_pct!=null?gc.max_close_adverse_diff_pct:0;
-  f('gcMktPct',mktPct);f('gcCloseAdv',closePct);st('gcMktPctState',mktPct);st('gcCloseAdvState',closePct);
+  f('gcMktPct',mktPct);f('gcCloseAdv',closePct);st('gcCloseAdvState',closePct);
+  {const el=root.querySelector('#gcMktPctState');if(el)el.textContent=Number(mktPct||0)<=0?'0 = NO slippage allowed: orders are priced exactly at the reference price and may not fill':'';}
   f('gcAllowlist',(gc.symbol_allowlist||[]).join(','));f('gcBlocklist',(gc.symbol_blocklist||[]).join(','));
 }
 root.querySelector('#lcRefresh').addEventListener('click',()=>refresh());
@@ -6218,7 +6219,8 @@ def get_live_config():
 def get_global_controls():
     cfg = _load_live_copy_config()
     return JSONResponse({"ok": True, "global_controls": _global_controls_for_ui(cfg.get("global_controls", _GLOBAL_CONTROLS_DEFAULTS)),
-                         "networks": {"leader": NETWORKS["leader"]["network"], "follower": FOLLOWER_NETWORK}})
+                         "networks": {"leader": NETWORKS["leader"]["network"], "follower": FOLLOWER_NETWORK,
+                                      "state_dir": str(LIVE_COPY_AUDIT_DIR)}})
 
 
 @app.post("/api/global-controls")

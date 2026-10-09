@@ -194,7 +194,8 @@ def master_exposure(master_address, dexes, fetcher=None, info_url=HL_INFO_URL, t
 
 def rolling_day_pnl(address, fetcher=None, info_url=HL_INFO_URL, timeout=8.0):
     """Account PnL over the exchange's rolling 24 h window (portfolio "day" pnlHistory, which
-    excludes deposits and withdrawals). Anything unreadable returns ok=False."""
+    excludes deposits and withdrawals), plus the latest whole-account value (spot + perps, so a
+    unified-margin account is not understated). Anything unreadable returns ok=False."""
     if not valid_address(address):
         return {"ok": False, "status": IDENTITY_INVALID}
     res = _post(fetcher, {"type": "portfolio", "user": address}, info_url, timeout)
@@ -202,9 +203,11 @@ def rolling_day_pnl(address, fetcher=None, info_url=HL_INFO_URL, timeout=8.0):
     for item in (rows if isinstance(rows, list) else []):
         if isinstance(item, list) and len(item) >= 2 and item[0] == "day" and isinstance(item[1], dict):
             hist = [p for p in (item[1].get("pnlHistory") or []) if isinstance(p, list) and len(p) >= 2]
+            vals = [p for p in (item[1].get("accountValueHistory") or []) if isinstance(p, list) and len(p) >= 2]
             if hist:
                 try:
-                    return {"ok": True, "status": TRUTH_OK, "pnl_usd": float(hist[-1][1]) - float(hist[0][1])}
+                    return {"ok": True, "status": TRUTH_OK, "pnl_usd": float(hist[-1][1]) - float(hist[0][1]),
+                            "account_value_usd": float(vals[-1][1]) if vals else None}
                 except (TypeError, ValueError):
                     break
     return {"ok": False, "status": TRUTH_UNAVAILABLE, "detail": res.get("detail", "no day pnlHistory")}

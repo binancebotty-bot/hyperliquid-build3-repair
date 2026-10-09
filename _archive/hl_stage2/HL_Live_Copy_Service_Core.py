@@ -148,7 +148,43 @@ HL_WS_URL = os.getenv("HL_LIVE_WS_URL") or NETWORKS["leader"]["ws"]
 HL_EXCHANGE_URL = os.getenv("HL_LIVE_ORDER_ENDPOINT") or NETWORKS["follower"]["exchange"]
 EXPOSURE_FETCHER = None  # test seam for follower exposure reads; production uses HTTP
 LEADER_FETCHER = None  # test seam for leader equity reads; production uses HTTP
+MIDS_FETCHER = None  # test seam for follower mid reads; production uses HTTP
 USER_WALLET = os.getenv("HL_USER_WALLET", "").strip().lower()
+_FOLLOWER_MIDS: Dict[str, Any] = {"px": {}, "ms": 0, "dexes": None, "dexes_ms": 0}
+
+
+def follower_mid(coin: str) -> float:
+    """Fresh follower-network mid for `coin`, default DEX and every HIP-3 DEX (allMids per DEX).
+    Cached HL_LIVE_MIDS_CACHE_TTL_SEC (2 s); older than HL_LIVE_MIDS_MAX_AGE_SEC (5 s) counts as none."""
+    now, m = utc_now_ms(), _FOLLOWER_MIDS
+    if not m["px"] or now - m["ms"] > int(fnum(os.getenv("HL_LIVE_MIDS_CACHE_TTL_SEC"), 2.0) * 1000):
+        if m["dexes"] is None or now - m["dexes_ms"] > 600_000:
+            enum = _XNET.list_perp_dexes(fetcher=MIDS_FETCHER, info_url=HL_INFO_URL, timeout=HTTP_TIMEOUT_SEC)
+            if enum.get("ok"):
+                m["dexes"], m["dexes_ms"] = list(enum["dexes"]), now
+        out: Dict[str, float] = {}
+        for dex in (m["dexes"] or [""]):
+            res = _XNET._post(MIDS_FETCHER, {"type": "allMids", **({"dex": dex} if dex else {})}, HL_INFO_URL, HTTP_TIMEOUT_SEC)
+            for key, value in (res.get("data") if res.get("ok") and isinstance(res.get("data"), dict) else {}).items():
+                if fnum(value, 0.0) > 0 and math.isfinite(fnum(value, 0.0)):
+                    out[str(key).upper()] = fnum(value, 0.0)
+        if out:
+            m["px"], m["ms"] = out, now
+    if not m["ms"] or now - m["ms"] > int(fnum(os.getenv("HL_LIVE_MIDS_MAX_AGE_SEC"), 5.0) * 1000):
+        return 0.0
+    return fnum(m["px"].get(str(coin or "").upper()), 0.0)
+
+
+def follower_position_mark(coin: str) -> float:
+    """Follower-network mark of an open follower position (|positionValue| / |szi|), read fresh. Used to
+    price a close when no fresh mid exists: a close always has a position to price from."""
+    dexes = _FOLLOWER_MIDS["dexes"] or [""]
+    exp = _XNET.master_exposure(normalise_wallet(USER_WALLET), dexes, fetcher=EXPOSURE_FETCHER,
+                                info_url=HL_INFO_URL, timeout=HTTP_TIMEOUT_SEC)
+    want = canonical_coin_key(coin)
+    rows = [v for k, v in (exp.get("by_coin") or {}).items() if canonical_coin_key(k) == want] if exp.get("ok") else []
+    net, value = sum(abs(fnum(r.get("net"))) for r in rows), sum(fnum(r.get("value")) for r in rows)
+    return value / net if net > 0 and value > 0 else 0.0
 
 DEFAULT_FIXED_NOTIONAL = float(os.getenv("HL_LIVE_DEFAULT_FIXED_NOTIONAL", "10"))
 DEFAULT_MIN_NOTIONAL = float(os.getenv("HL_LIVE_MIN_NOTIONAL", "10"))
@@ -2387,9 +2423,13 @@ class IntentBuilder:
         self._leader_dexes_ms = 0
         self._leader_equity: Dict[str, Tuple[float, int]] = {}
         self._sizing_block: Dict[str, str] = {}
+        self._coin_activity: Dict[str, int] = {}  # last allowed send per coin (ENG-016 settle window)
+        self._coin_clean: Dict[str, bool] = {}
 
     def leader_equity(self, wallet: str) -> Optional[float]:
-        """Leader account value on the LEADER network over every perp DEX scope, cached for
+        """Leader account value on the LEADER network: the whole-account value from portfolio (required;
+        a unified-margin account keeps collateral in spot, which the perp figure leaves out), or the perp
+        accountValue summed over every DEX if larger (the larger value never oversizes a copy). Cached for
         HL_LIVE_LEADER_EQUITY_TTL_SEC (default 60 s). None when unreadable: the caller must not size."""
         now = utc_now_ms()
         ttl_ms = int(max(0.0, fnum(os.getenv("HL_LIVE_LEADER_EQUITY_TTL_SEC"), 60.0)) * 1000)
@@ -2398,16 +2438,42 @@ class IntentBuilder:
             return cached[0]
         if self._leader_dexes is None or now - self._leader_dexes_ms > 600_000:
             enum = _XNET.list_perp_dexes(fetcher=LEADER_FETCHER, info_url=HL_LEADER_INFO_URL, timeout=HTTP_TIMEOUT_SEC)
-            if not enum.get("ok"):
-                return None
-            self._leader_dexes, self._leader_dexes_ms = list(enum["dexes"]), now
-        exp = _XNET.master_exposure(wallet, self._leader_dexes, fetcher=LEADER_FETCHER,
-                                    info_url=HL_LEADER_INFO_URL, timeout=HTTP_TIMEOUT_SEC)
-        equity = exp.get("equity_usd") if exp.get("ok") else None
-        if equity is None or fnum(equity) <= 0:
+            if enum.get("ok"):
+                self._leader_dexes, self._leader_dexes_ms = list(enum["dexes"]), now
+        exp = _XNET.master_exposure(wallet, self._leader_dexes, fetcher=LEADER_FETCHER, info_url=HL_LEADER_INFO_URL,
+                                    timeout=HTTP_TIMEOUT_SEC) if self._leader_dexes is not None else {}
+        whole = _XNET.rolling_day_pnl(wallet, fetcher=LEADER_FETCHER, info_url=HL_LEADER_INFO_URL, timeout=HTTP_TIMEOUT_SEC)
+        values = [fnum(v) for v in (exp.get("equity_usd") if exp.get("ok") else None,
+                                    whole.get("account_value_usd") if whole.get("ok") else None) if v is not None]
+        # the whole-account value is required: a perp-only figure can understate a unified account
+        equity = max(values) if whole.get("ok") and whole.get("account_value_usd") is not None else None
+        if equity is None or equity <= 0:
             return None
         self._leader_equity[wallet] = (fnum(equity), now)
         return fnum(equity)
+
+    def _order_value_px(self, fill: LeaderFill) -> float:
+        """Worst-case price the order can fill at, on the FOLLOWER network: the price the limit is built
+        from plus the marketable slippage. Every notional limit is checked at this price."""
+        ref = fill.price if LEADER_NETWORK == FOLLOWER_NETWORK else follower_mid(fill.coin)
+        return ref * (1.0 + self.cfg.marketable_bps() / 10000.0) if ref > 0 else 0.0
+
+    def _unowned_inventory_block(self, fill: LeaderFill) -> str:
+        """ENG-016: the account holds one net position per coin, so an entry on a coin carrying inventory
+        this engine does not own (Build 4 leftovers, manual trades) would net into it. Entries/adds are
+        refused while exchange net != engine ledger net. Inside the settle window after our own send the
+        two legitimately differ, so the last settled verdict is used. Unreadable truth fails closed."""
+        coin, now = canonical_coin_key(fill.coin), utc_now_ms()
+        if now - self._coin_activity.get(coin, 0) <= int(fnum(os.getenv("HL_LIVE_UNOWNED_SETTLE_SEC"), 10.0) * 1000):
+            return "" if self._coin_clean.get(coin) else f"UNOWNED_INVENTORY: {coin} not yet verified clean"
+        exp = self.follower_exposure()
+        if not exp.get("ok"):
+            return f"UNOWNED_INVENTORY: follower positions unavailable ({exp.get('status')}); entries fail closed"
+        ex_net = sum(fnum(v.get("net")) for k, v in (exp.get("by_coin") or {}).items() if canonical_coin_key(k) == coin)
+        own = self.ledger.coin_net(fill.coin)
+        self._coin_clean[coin] = abs(ex_net - own) <= max(POSITION_EPSILON, 1e-6 * max(abs(ex_net), abs(own)))
+        return "" if self._coin_clean[coin] else (
+            f"UNOWNED_INVENTORY: {coin} exchange net {ex_net} != engine-owned net {own}; entries blocked")
 
     def follower_exposure(self) -> Dict[str, Any]:
         """Follower account exposure from the FOLLOWER exchange over every perp DEX scope (HIP-3
@@ -2432,7 +2498,7 @@ class IntentBuilder:
         self._exposure, self._exposure_ms, self._exposure_pending = exp, now, []
         return exp
 
-    def _exposure_cap_block(self, fill: LeaderFill, copy_notional: float) -> str:
+    def _exposure_cap_block(self, fill: LeaderFill, copy_notional: float, value_px: float = 0.0) -> str:
         """Total and per-asset directional caps against follower exchange truth; "" when allowed."""
         cap_total, cap_asset = self.cfg.max_total_exposure(), self.cfg.max_asset_directional_exposure()
         if cap_total <= 0 and cap_asset <= 0:
@@ -2443,16 +2509,17 @@ class IntentBuilder:
         if not exp.get("ok"):
             return f"follower exposure unavailable ({exp.get('status')}); entries fail closed while a cap is set"
         coin = canonical_coin_key(fill.coin)
-        units = (copy_notional / fill.price) * (1.0 if fill.side == "BUY" else -1.0)
+        value_px = value_px if value_px > 0 else fill.price
+        units = (copy_notional / value_px) * (1.0 if fill.side == "BUY" else -1.0)
         pending_total = sum(abs(u) * px for _c, u, px in self._exposure_pending)
         pending_coin = sum(u for c, u, _px in self._exposure_pending if c == coin)
         if cap_total > 0 and fnum(exp.get("total_usd")) + pending_total + copy_notional > cap_total + 1e-9:
             return "max total exposure exceeded"
         if cap_asset > 0:
             net = sum(fnum(v.get("net")) for k, v in (exp.get("by_coin") or {}).items() if canonical_coin_key(k) == coin)
-            if abs(net + pending_coin + units) * fill.price > cap_asset + 1e-9:
+            if abs(net + pending_coin + units) * value_px > cap_asset + 1e-9:
                 return "max asset directional exposure exceeded"
-        self._exposure_pending.append((coin, units, fill.price))
+        self._exposure_pending.append((coin, units, value_px))
         return ""
 
     def build(self, fill: LeaderFill) -> Intent:
@@ -2481,6 +2548,8 @@ class IntentBuilder:
             position_id = str(existing.get("position_id") or self.ledger.position_id(wallet, coin, direction_before, str(existing.get("opened_by_intent_id") or intent_id)))
         coin_net_before = self.ledger.coin_net(coin)
         decision, reason = self._decision(wallet, fill, lifecycle, copy_notional, before)
+        if decision in {"ENTRY_ALLOWED", "EXIT_ALLOWED"}:
+            self._coin_activity[canonical_coin_key(coin)] = utc_now_ms()
         reduce_only_intended = bool(is_reduce)
         reduce_only_sent_planned = False
         return Intent(
@@ -2554,20 +2623,31 @@ class IntentBuilder:
             return "MANUAL_REVIEW", self._sizing_block.get(wallet) or "copy notional is zero"
         if copy_notional < self.cfg.min_notional() and lifecycle in {"ENTRY", "ADD"}:
             return "BELOW_MIN_NOTIONAL", "entry/add notional below minimum"
+        if lifecycle not in {"ENTRY", "ADD"}:
+            return ("EXIT_ALLOWED" if lifecycle == "EXIT" else "ENTRY_ALLOWED"), lifecycle
+        # every notional limit is checked at the worst-case FOLLOWER price the order can fill at:
+        # units are sized from the leader, so cross-network the USD value can differ from copy_notional
+        value_px = self._order_value_px(fill)
+        if value_px <= 0:
+            return "SEND_BLOCKED_RISK", f"no fresh follower-network ({FOLLOWER_NETWORK}) price to value the order"
+        order_notional = copy_notional / fill.price * value_px if fill.price > 0 else 0.0
         max_order = self.cfg.max_order_notional()
-        if max_order > 0 and lifecycle in {"ENTRY", "ADD"} and copy_notional > max_order:
+        if max_order > 0 and order_notional > max_order:
             return "SEND_BLOCKED_RISK", "max order notional exceeded"
         max_wallet = self.cfg.max_wallet_exposure(wallet)
-        if max_wallet > 0 and lifecycle in {"ENTRY", "ADD"}:
-            # Use fill price as mark for this coin.
-            current = self.ledger.wallet_abs_exposure_usd(wallet, {fill.coin: fill.price})
-            if current + copy_notional > max_wallet:
+        if max_wallet > 0:
+            current = self.ledger.wallet_abs_exposure_usd(wallet, {fill.coin: value_px})
+            if current + order_notional > max_wallet:
                 return "SEND_BLOCKED_RISK", "max wallet exposure exceeded"
-        if lifecycle in {"ENTRY", "ADD"}:
-            # total / per-asset caps use follower EXCHANGE truth (all DEX scopes), not the local ledger
-            exposure_block = self._exposure_cap_block(fill, copy_notional)
-            if exposure_block:
-                return "SEND_BLOCKED_RISK", exposure_block
+        if self.cfg.auto_send_enabled and not bval(os.getenv("HL_LIVE_MOCK_SEND"), False):
+            # ENG-016: never net into inventory this engine does not own (checked whenever real orders are armed)
+            unowned = self._unowned_inventory_block(fill)
+            if unowned:
+                return "SEND_BLOCKED_RISK", unowned
+        # total / per-asset caps use follower EXCHANGE truth (all DEX scopes), not the local ledger
+        exposure_block = self._exposure_cap_block(fill, order_notional, value_px)
+        if exposure_block:
+            return "SEND_BLOCKED_RISK", exposure_block
         return ("EXIT_ALLOWED" if lifecycle == "EXIT" else "ENTRY_ALLOWED"), lifecycle
 
 
@@ -3324,31 +3404,36 @@ class SenderGateway:
         mult = (1.0 + bps / 10000.0) if intent.copy_side == "BUY" else (1.0 - bps / 10000.0)
         base_px = intent.fill.price
         close_adv_limit = self.cfg.max_close_adverse_diff_pct() if lifecycle == "EXIT" else 0.0
-        follower_mid = 0.0
+        follower_px = 0.0
         if LEADER_NETWORK != FOLLOWER_NETWORK or close_adv_limit > 0:
-            self._fetch_all_mids()
-            follower_mid = self._reference_price(sdk_coin)
+            # fresh follower mid (age-bounded, every DEX); a close falls back to its own position's mark
+            follower_px = follower_mid(sdk_coin)
+            if follower_px <= 0 and lifecycle in {"EXIT", "REDUCE"}:
+                follower_px = follower_position_mark(sdk_coin)
         if LEADER_NETWORK != FOLLOWER_NETWORK:
             # a leader-network price is not a follower-network price: units stay as sized, the limit is
-            # re-based on the follower's own mid; no follower price -> no order
-            if follower_mid <= 0:
-                detail = (f"no follower-network ({FOLLOWER_NETWORK}) mid for {sdk_coin}; leader on {LEADER_NETWORK}; "
+            # re-based on the follower's own price; no follower price -> no order (a close goes RED)
+            if follower_px <= 0:
+                closing = lifecycle in {"EXIT", "REDUCE"}
+                detail = (f"no fresh follower-network ({FOLLOWER_NETWORK}) price for {sdk_coin}; leader on {LEADER_NETWORK}; "
                           f"intent_id={intent.intent_id}")
                 return False, "SEND_NOT_ATTEMPTED_FOLLOWER_PRICE_UNAVAILABLE", {
                     "status": "FOLLOWER_PRICE_UNAVAILABLE", "error": detail, "exchange_response": {}, "oid": "",
                     "exchange_called": False, "write_send_attempt": True, "notes": detail,
-                    "reject_category": "PRICE_OR_TICK_REJECTED", "terminal_state": "FOLLOWER_PRICE_UNAVAILABLE",
-                    "operator_action": "NO_SEND_FOLLOWER_PRICE_UNAVAILABLE", "timing": timing,
+                    "reject_category": "PRICE_OR_TICK_REJECTED",
+                    "terminal_state": "MANUAL_EXIT_RECOVERY_REQUIRED" if closing else "FOLLOWER_PRICE_UNAVAILABLE",
+                    "operator_action": "CLOSE_MANUALLY_NO_FOLLOWER_PRICE" if closing else "NO_SEND_FOLLOWER_PRICE_UNAVAILABLE",
+                    "timing": timing,
                 }
-            base_px = follower_mid
+            base_px = follower_px
         raw_px = base_px * mult
         limit_px = self._format_limit_px(raw_px, price_max_dec)
         if close_adv_limit > 0:
             # UI "Adverse close diff %": a close limit may not sit further than this through the follower mid
-            adverse = (((follower_mid - limit_px) if intent.copy_side == "SELL" else (limit_px - follower_mid))
-                       / follower_mid * 100.0) if follower_mid > 0 else float("inf")
+            adverse = (((follower_px - limit_px) if intent.copy_side == "SELL" else (limit_px - follower_px))
+                       / follower_px * 100.0) if follower_px > 0 else float("inf")
             if adverse > close_adv_limit + 1e-12:
-                detail = (f"close limit {limit_px} vs follower mid {follower_mid} is {adverse:.4f}% adverse > "
+                detail = (f"close limit {limit_px} vs follower price {follower_px} is {adverse:.4f}% adverse > "
                           f"{close_adv_limit}%; intent_id={intent.intent_id}")
                 return False, "SEND_NOT_ATTEMPTED_CLOSE_ADVERSE_DIFF", {
                     "status": "CLOSE_ADVERSE_DIFF_TOO_LARGE", "error": detail, "exchange_response": {}, "oid": "",
@@ -3478,6 +3563,16 @@ class SenderGateway:
         # Runs after exchange client creation so sdk_coin/wire_size/limit_px are
         # all final. Catches: raw numbered assets that slipped through resolution,
         # and EXIT closes whose notional dusted below the exchange minimum.
+        _max_order = self.cfg.max_order_notional()
+        if lifecycle in {"ENTRY", "ADD"} and _max_order > 0 and abs(wire_size * limit_px) > _max_order + 1e-9:
+            detail = (f"final wire notional {abs(wire_size * limit_px):.6f} > max order {_max_order}; "
+                      f"sdk_coin={sdk_coin}; intent_id={intent.intent_id}")
+            return False, "SEND_NOT_ATTEMPTED_MAX_ORDER_NOTIONAL", {
+                "status": "MAX_ORDER_NOTIONAL_EXCEEDED_AT_WIRE", "error": detail, "exchange_response": {}, "oid": "",
+                "exchange_called": False, "write_send_attempt": True, "notes": detail,
+                "reject_category": "RISK_LIMIT", "terminal_state": "SEND_NOT_ATTEMPTED_MAX_ORDER_NOTIONAL",
+                "operator_action": "NO_SEND_MAX_ORDER_NOTIONAL", "timing": timing,
+            }
         _gate_ok, _gate_block = self._validate_final_wire_order(
             intent, resolved, sdk_coin, wire_size, limit_px, timing
         )
@@ -6421,8 +6516,18 @@ def run_self_test() -> None:
     global LIVE_INTEGRITY_STATUS_FILE
 
     old_env = dict(os.environ)
-    global LEADER_NETWORK
+    global LEADER_NETWORK, EXPOSURE_FETCHER, USER_WALLET
     old_leader_network, LEADER_NETWORK = LEADER_NETWORK, FOLLOWER_NETWORK  # fixtures price on one network
+
+    def _clean_account_fixture(payload: Dict[str, Any]) -> Any:
+        # follower exchange == this engine's ledger: a clean account with no foreign inventory
+        if payload.get("type") == "perpDexs":
+            return []
+        nets = (ManualLedger().data.get("by_coin_net") or {})
+        return {"assetPositions": [{"position": {"coin": k, "szi": str(fnum((v or {}).get("signed_size"))), "positionValue": "0"}}
+                                   for k, v in nets.items()], "marginSummary": {"accountValue": "0"}}
+    old_fetcher, EXPOSURE_FETCHER = EXPOSURE_FETCHER, _clean_account_fixture
+    old_user_wallet, USER_WALLET = USER_WALLET, (USER_WALLET if is_valid_wallet(USER_WALLET) else "0x" + "e" * 40)
     # Isolate self-test from live env vars that affect WS/send behaviour.
     # Tests that need specific env vars set them explicitly.
     for _k in ("HL_LIVE_WS_ENABLED", "HL_LIVE_AUTO_SEND_ENABLED", "HL_LIVE_MOCK_SEND",
@@ -7617,7 +7722,7 @@ def run_self_test() -> None:
 
     os.environ.clear()
     os.environ.update(old_env)
-    LEADER_NETWORK = old_leader_network
+    LEADER_NETWORK, EXPOSURE_FETCHER, USER_WALLET = old_leader_network, old_fetcher, old_user_wallet
     print("RESULT::CLEAN_LIVE_COPY_CORE_SELF_TEST_PASS")
     print("RESULT::EXCHANGE_SHAPE_ACCEPTANCE_HARNESS_PASS")
 
