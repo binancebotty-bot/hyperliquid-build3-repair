@@ -123,6 +123,27 @@ def _post(fetcher, payload, info_url, timeout):
         return {"ok": False, "status": TRUTH_UNAVAILABLE, "detail": "non-JSON payload"}
     return {"ok": True, "data": raw}
 
+def post_many(fetcher, payloads, info_url=HL_INFO_URL, timeout=8.0, workers=None):
+    """_post for each payload, run concurrently (HL_LIVE_READ_CONCURRENCY, default 8); results keep the
+    payloads' order. Testnet lists hundreds of perp DEXes: one-by-one reads took minutes per sweep."""
+    payloads = list(payloads)
+    if workers is None:
+        try:
+            workers = int(float(os.getenv("HL_LIVE_READ_CONCURRENCY") or 8))
+        except ValueError:
+            workers = 8
+    workers = max(1, min(int(workers), 32, len(payloads) or 1))
+    if workers == 1 or len(payloads) <= 1:
+        return [_post(fetcher, p, info_url, timeout) for p in payloads]
+    from concurrent.futures import ThreadPoolExecutor
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        return list(pool.map(lambda p: _post(fetcher, p, info_url, timeout), payloads))
+
+
+def _state_payloads(address, dexes):
+    return [{"type": "clearinghouseState", "user": address, **({"dex": d} if d else {})} for d in dexes]
+
+
 def list_perp_dexes(fetcher=None, info_url=HL_INFO_URL, timeout=8.0):
     """Every perp DEX scope: the default scope plus HIP-3/builder DEXes."""
     res = _post(fetcher, {"type": "perpDexs"}, info_url, timeout)
@@ -145,11 +166,7 @@ def master_account_net(master_address, coin, fetcher=None, info_url=HL_INFO_URL,
             return {"ok": False, "status": DEX_ENUM_UNAVAILABLE, "detail": enum.get("detail", "")}
         dexes = enum["dexes"]
     want, total, scopes = str(coin or "").upper().strip(), 0.0, []
-    for dex in dexes:
-        payload = {"type": "clearinghouseState", "user": master_address}
-        if dex:
-            payload["dex"] = dex
-        res = _post(fetcher, payload, info_url, timeout)
+    for dex, res in zip(dexes, post_many(fetcher, _state_payloads(master_address, dexes), info_url, timeout)):
         state = res.get("data") if res.get("ok") else None
         if not isinstance(state, dict) or not isinstance(state.get("assetPositions"), list):
             return {"ok": False, "status": SCOPE_UNAVAILABLE, "dex": dex, "detail": res.get("detail", "no assetPositions")}
@@ -170,11 +187,8 @@ def master_exposure(master_address, dexes, fetcher=None, info_url=HL_INFO_URL, t
     if not valid_address(master_address):
         return {"ok": False, "status": IDENTITY_INVALID}
     total, by_coin, equity = 0.0, {}, 0.0
-    for dex in (dexes if dexes is not None else [""]):
-        payload = {"type": "clearinghouseState", "user": master_address}
-        if dex:
-            payload["dex"] = dex
-        res = _post(fetcher, payload, info_url, timeout)
+    dexes = list(dexes) if dexes is not None else [""]
+    for dex, res in zip(dexes, post_many(fetcher, _state_payloads(master_address, dexes), info_url, timeout)):
         state = res.get("data") if res.get("ok") else None
         if not isinstance(state, dict) or not isinstance(state.get("assetPositions"), list):
             return {"ok": False, "status": SCOPE_UNAVAILABLE, "dex": dex, "detail": res.get("detail", "no assetPositions")}
