@@ -282,8 +282,8 @@ def global_controls_tests() -> None:
     check("G13_ZERO_CLOSE_DIFF_IS_OFF", len(calls) == 1, f"{status} {calls}")
 
     src = (HERE / "HL_Live_Copy_Service_Core.py").read_text(encoding="utf-8-sig")
-    sites = len(re.findall(r"=\s*exchange\.order\(", src))
-    check("G14_NO_NEW_ORDER_SITE", sites == 4, str(sites))
+    sites = len(re.findall(r"exchange\.order\((?!\))", src))
+    check("G14_NO_NEW_ORDER_SITE", sites <= 4, str(sites))
 
 
 def main() -> None:

@@ -147,6 +147,7 @@ HL_LEADER_INFO_URL = NETWORKS["leader"]["info"]     # leader fill polling only
 HL_WS_URL = os.getenv("HL_LIVE_WS_URL") or NETWORKS["leader"]["ws"]
 HL_EXCHANGE_URL = os.getenv("HL_LIVE_ORDER_ENDPOINT") or NETWORKS["follower"]["exchange"]
 EXPOSURE_FETCHER = None  # test seam for follower exposure reads; production uses HTTP
+LEADER_FETCHER = None  # test seam for leader equity reads; production uses HTTP
 USER_WALLET = os.getenv("HL_USER_WALLET", "").strip().lower()
 
 DEFAULT_FIXED_NOTIONAL = float(os.getenv("HL_LIVE_DEFAULT_FIXED_NOTIONAL", "10"))
@@ -1946,6 +1947,18 @@ class ConfigManager:
     def max_asset_directional_exposure(self) -> float:
         return max(0.0, fnum(self.global_controls.get("max_asset_directional_exposure_usd"), 0.0))
 
+    def max_daily_loss(self) -> float:
+        return max(0.0, fnum(self.global_controls.get("max_daily_loss_usd"), 0.0))
+
+    def active_wallets(self) -> List[str]:
+        return [w for w in self.wallets() if self.wallet_enabled(w) and self.wallet_mode(w) != "OFF"]
+
+    def stream_wallets(self) -> List[str]:
+        """Wallets the leader stream follows: active ones first, so an OFF wallet never takes the
+        slot of a live one. More active wallets than slots is refused, never silently dropped."""
+        active = self.active_wallets()
+        return (active + [w for w in self.wallets() if w not in active])[:MAX_WALLETS]
+
     def max_wallet_exposure(self, wallet: str) -> float:
         wc = self.wallet_cfg(wallet)
         return max(0.0, fnum(wc.get("max_wallet_exposure_usd", self.global_controls.get("max_wallet_exposure_usd")), 0.0))
@@ -2370,6 +2383,31 @@ class IntentBuilder:
         self._exposure_pending: List[Tuple[str, float, float]] = []  # entries approved since the snapshot
         self._dexes: Optional[List[str]] = None
         self._dexes_ms = 0
+        self._leader_dexes: Optional[List[str]] = None
+        self._leader_dexes_ms = 0
+        self._leader_equity: Dict[str, Tuple[float, int]] = {}
+        self._sizing_block: Dict[str, str] = {}
+
+    def leader_equity(self, wallet: str) -> Optional[float]:
+        """Leader account value on the LEADER network over every perp DEX scope, cached for
+        HL_LIVE_LEADER_EQUITY_TTL_SEC (default 60 s). None when unreadable: the caller must not size."""
+        now = utc_now_ms()
+        ttl_ms = int(max(0.0, fnum(os.getenv("HL_LIVE_LEADER_EQUITY_TTL_SEC"), 60.0)) * 1000)
+        cached = self._leader_equity.get(wallet)
+        if cached and now - cached[1] <= ttl_ms:
+            return cached[0]
+        if self._leader_dexes is None or now - self._leader_dexes_ms > 600_000:
+            enum = _XNET.list_perp_dexes(fetcher=LEADER_FETCHER, info_url=HL_LEADER_INFO_URL, timeout=HTTP_TIMEOUT_SEC)
+            if not enum.get("ok"):
+                return None
+            self._leader_dexes, self._leader_dexes_ms = list(enum["dexes"]), now
+        exp = _XNET.master_exposure(wallet, self._leader_dexes, fetcher=LEADER_FETCHER,
+                                    info_url=HL_LEADER_INFO_URL, timeout=HTTP_TIMEOUT_SEC)
+        equity = exp.get("equity_usd") if exp.get("ok") else None
+        if equity is None or fnum(equity) <= 0:
+            return None
+        self._leader_equity[wallet] = (fnum(equity), now)
+        return fnum(equity)
 
     def follower_exposure(self) -> Dict[str, Any]:
         """Follower account exposure from the FOLLOWER exchange over every perp DEX scope (HIP-3
@@ -2485,10 +2523,15 @@ class IntentBuilder:
         mode = self.cfg.copy_mode(wallet)
         if mode == "fixed":
             return self.cfg.fixed_notional(wallet)
-        # Minimal proportional fallback: live_config may provide norm_base and leader_equity_base.
+        # Proportional: scale by the leader's REAL account value on the leader network. The old
+        # leader_equity_base setting (UI default 10,000) is never used; no equity means no size.
         wc = self.cfg.wallet_cfg(wallet)
         norm_base = max(0.0, fnum(wc.get("norm_base"), self.cfg.fixed_notional(wallet)))
-        leader_equity = max(1.0, fnum(wc.get("leader_equity_base"), 10000.0))
+        leader_equity = self.leader_equity(wallet)
+        if leader_equity is None:
+            self._sizing_block[wallet] = "leader equity unavailable; proportional copy not sized"
+            return 0.0
+        self._sizing_block.pop(wallet, None)
         return max(0.0, fill.notional * (norm_base / leader_equity))
 
     def _decision(self, wallet: str, fill: LeaderFill, lifecycle: str, copy_notional: float, before: float) -> Tuple[str, str]:
@@ -2508,7 +2551,7 @@ class IntentBuilder:
         if lifecycle == "ENTRY" and abs(before) <= POSITION_EPSILON and self._is_leader_close_fill(fill):
             return "SEND_NOT_ATTEMPTED_NO_MANUAL_POSITION", "no owned sleeve; leader close fill cannot open reverse position"
         if copy_notional <= 0:
-            return "MANUAL_REVIEW", "copy notional is zero"
+            return "MANUAL_REVIEW", self._sizing_block.get(wallet) or "copy notional is zero"
         if copy_notional < self.cfg.min_notional() and lifecycle in {"ENTRY", "ADD"}:
             return "BELOW_MIN_NOTIONAL", "entry/add notional below minimum"
         max_order = self.cfg.max_order_notional()
@@ -2557,6 +2600,16 @@ class SenderGateway:
         self._pending_exit_guard: Dict[str, Dict[str, Any]] = {}
         self._pending_exit_lock = threading.Lock()
         self._load_asset_universe_snapshot()
+
+    def _place_order(self, exchange: Any, sdk_coin: str, is_buy: bool, size: float, limit_px: float,
+                     tif: str, reduce_only: bool, timing: Optional[Dict[str, Any]] = None, started_key: str = "") -> Any:
+        """The ONE physical exchange order call. Every order (IOC, IOC retry, rate-limit recovery,
+        exit recovery) is serialised and paced here."""
+        with self._exchange_order_lock:
+            self._wait_exchange_order_slot()
+            if timing is not None and started_key:
+                timing[started_key] = utc_now_ms()
+            return exchange.order(sdk_coin, is_buy, size, limit_px, {"limit": {"tif": tif}}, reduce_only=reduce_only)
 
     def _wait_exchange_order_slot(self) -> None:
         min_gap_ms = max(0, int(fnum(os.getenv("HL_LIVE_MIN_EXCHANGE_ORDER_GAP_MS"), 900)))
@@ -2796,14 +2849,8 @@ class SenderGateway:
             f"wallet_position_before={wallet_pos}; ioc_error={parsed_error}"
         )
         try:
-            recovery_response = exchange.order(
-                sdk_coin,
-                intent.copy_side == "BUY",
-                close_size,
-                limit_px,
-                {"limit": {"tif": "Gtc"}},
-                reduce_only=True,
-            )
+            recovery_response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", close_size,
+                                                  limit_px, "Gtc", True)
             ok, status, oid, error = self._parse_hl_response(recovery_response)
             self.audit.append_reconciliation(
                 "EXIT_RECOVERY", "EXIT_RECOVERY_QUEUED" if ok else "EXIT_RECOVERY_QUEUE_FAILED",
@@ -2912,17 +2959,8 @@ class SenderGateway:
             ),
         )
         try:
-            with self._exchange_order_lock:
-                self._wait_exchange_order_slot()
-                timing["entry_add_rate_limit_recovery_started_ms"] = utc_now_ms()
-                recovery_response = exchange.order(
-                    sdk_coin,
-                    intent.copy_side == "BUY",
-                    wire_size,
-                    leader_px,
-                    {"limit": {"tif": tif}},
-                    reduce_only=False,
-                )
+            recovery_response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", wire_size, leader_px,
+                                                  tif, False, timing, "entry_add_rate_limit_recovery_started_ms")
             timing["entry_add_rate_limit_recovery_finished_ms"] = utc_now_ms()
             ok, status, oid, parsed_error = self._parse_hl_response(recovery_response)
             reject_category = classify_reject_category(parsed_error, recovery_response) if not ok else ""
@@ -3451,17 +3489,8 @@ class SenderGateway:
         # so the exchange can never flip the position through flat. ENTRY/ADD = False.
         use_reduce_only = self._reduce_only_for_intent(intent)
         try:
-            with self._exchange_order_lock:
-                self._wait_exchange_order_slot()
-                timing["exchange_call_started_ms"] = utc_now_ms()
-                response = exchange.order(
-                    sdk_coin,
-                    intent.copy_side == "BUY",
-                    wire_size,
-                    limit_px,
-                    {"limit": {"tif": "Ioc"}},
-                    reduce_only=use_reduce_only,
-                )
+            response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", wire_size, limit_px,
+                                         "Ioc", use_reduce_only, timing, "exchange_call_started_ms")
             timing["exchange_call_finished_ms"] = utc_now_ms()
             ok, status, oid, parsed_error = self._parse_hl_response(response)
             reject_category = classify_reject_category(parsed_error, response) if status == "ORDER_REJECTED" else ""
@@ -3481,16 +3510,8 @@ class SenderGateway:
                     retry_safe, retry_unsafe = self._pre_exchange_asset_safety(intent, resolved, retry_px, wire_size)
                     if retry_safe and retry_notional <= max(wire_notional * 1.5, wire_notional + 5.0):
                         timing["entry_ioc_retry_started_ms"] = utc_now_ms()
-                        with self._exchange_order_lock:
-                            self._wait_exchange_order_slot()
-                            retry_response = exchange.order(
-                                sdk_coin,
-                                intent.copy_side == "BUY",
-                                wire_size,
-                                retry_px,
-                                {"limit": {"tif": "Ioc"}},
-                                reduce_only=False,
-                            )
+                        retry_response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", wire_size,
+                                                           retry_px, "Ioc", False)
                         timing["entry_ioc_retry_finished_ms"] = utc_now_ms()
                         retry_ok, retry_status, retry_oid, retry_error = self._parse_hl_response(retry_response)
                         if retry_ok:
@@ -5777,6 +5798,7 @@ class ServiceStateWriter:
             _eff_gc = {
                 "max_total_live_exposure_usd": cfg.max_total_exposure(),
                 "max_asset_directional_exposure_usd": cfg.max_asset_directional_exposure(),
+                "max_daily_loss_usd": cfg.max_daily_loss(),
                 "max_wallet_exposure_usd": max(0.0, fnum(cfg.global_controls.get("max_wallet_exposure_usd"), 0.0)),
                 "max_order_notional_usd": cfg.max_order_notional(),
                 "marketable_bps": cfg.marketable_bps(),
@@ -5864,7 +5886,7 @@ class LiveCopyCore:
         self.dedupe = DedupeStore(merged_state)
         if not self.dedupe.live_start_ms:
             self.dedupe.live_start_ms = utc_now_ms()
-        self.wallets = list(self.cfg.wallets().keys())[:MAX_WALLETS]
+        self.wallets = self.cfg.stream_wallets()
         self._send_lock = threading.Lock()
         # PRE-SEND IDEMPOTENCY GUARD â€" plain Lock (not RLock), so re-entrancy from the
         # same thread is also blocked.  Seeded from SEND_ATTEMPTS_CSV on startup so
@@ -6155,11 +6177,27 @@ class LiveCopyCore:
             self._append_send_terminal(fill, intent, send_status)
         return sent, send_status, intent
 
+    def _daily_loss_block(self) -> str:
+        """Entries stop once the follower account has lost max_daily_loss_usd over the last 24 h."""
+        limit = self.cfg.max_daily_loss()
+        if limit <= 0:
+            return ""
+        now = utc_now_ms()
+        cached = getattr(self, "_daily_pnl", None)
+        if not cached or now - cached[1] > int(max(0.0, fnum(os.getenv("HL_LIVE_DAILY_PNL_TTL_SEC"), 30.0)) * 1000):
+            res = _XNET.rolling_day_pnl(normalise_wallet(USER_WALLET), fetcher=EXPOSURE_FETCHER,
+                                        info_url=HL_INFO_URL, timeout=HTTP_TIMEOUT_SEC)
+            cached = (fnum(res.get("pnl_usd")) if res.get("ok") else None, now)
+            self._daily_pnl = cached
+        if cached[0] is None:
+            return "DAILY_LOSS_UNREADABLE"
+        return "DAILY_LOSS_LIMIT_REACHED" if -cached[0] >= limit else ""
+
     def run_cycle(self, use_source_csv: bool = True, poll_live: bool = False, poll_copy: bool = False, reconcile_exchange: bool = False) -> CycleSummary:
         # HOT_CONFIG_RELOAD_WINAGENT: reload live_config/wallet_gate each cycle so UI/control changes affect a running core.
         try:
             self.cfg = ConfigManager()
-            self.wallets = list(self.cfg.wallets().keys())[:MAX_WALLETS]
+            self.wallets = self.cfg.stream_wallets()
             self.intent_builder.cfg = self.cfg
             self.sender.cfg = self.cfg
         except Exception as exc:
@@ -6185,7 +6223,7 @@ class LiveCopyCore:
             _raw_cursor = state_for_age.get("last_leader_poll_cursor_ms")
             if isinstance(_raw_cursor, dict):
                 _leader_poll_cursors = {str(k): int(fnum(v, 0)) for k, v in _raw_cursor.items()}
-        self._entry_sends_blocked_reason = ""  # reset every cycle before any fill is processed
+        _block = ""  # evaluated in full, then published once: the hot path never sees a half-run gate set
         started = time.monotonic()
         try:
             self.sender.refresh_asset_universe()
@@ -6194,20 +6232,27 @@ class LiveCopyCore:
             # Gate 1: WS feed stale (only blocks when WS is enabled and DEGRADED)
             if (bval(os.getenv("HL_LIVE_WS_ENABLED"), False)
                     and ws_health.get("ws_summary", {}).get("worst_health_grade") == "DEGRADED"):
-                self._entry_sends_blocked_reason = "WS_FEED_STALE"
+                _block = "WS_FEED_STALE"
             # Gate 2: copy poll stale — only fires after at least one successful poll
-            if not self._entry_sends_blocked_reason:
+            if not _block:
                 _copy_block_ms = int(os.getenv("HL_LIVE_COPY_POLL_ENTRY_BLOCK_MS", "300000"))
                 if last_copy_poll_ms > 0 and summary.last_copy_poll_age_ms > _copy_block_ms:
-                    self._entry_sends_blocked_reason = "COPY_POLL_STALE"
+                    _block = "COPY_POLL_STALE"
             # Gate 3: previous-cycle integrity shows stale unreconciled filled sends
-            if (not self._entry_sends_blocked_reason
+            if (not _block
                     and bval(os.getenv("HL_LIVE_BLOCK_ENTRIES_ON_UNRECONCILED_FILLS", "1"), True)):
                 _prev_integrity = load_json(LIVE_INTEGRITY_STATUS_FILE, {})
                 if isinstance(_prev_integrity, dict):
                     _prev_counts = _prev_integrity.get("counts") or {}
                     if int(fnum(_prev_counts.get("filled_without_live_fill_beyond_grace"), 0)) > 0:
-                        self._entry_sends_blocked_reason = "UNRECONCILED_FILLED_SENDS"
+                        _block = "UNRECONCILED_FILLED_SENDS"
+            # Gate 4: more active wallets than the leader stream can follow (refused, never dropped)
+            if not _block and len(self.cfg.active_wallets()) > MAX_WALLETS:
+                _block = "TOO_MANY_ACTIVE_WALLETS"
+            # Gate 5: Global Controls daily loss limit (rolling 24 h follower PnL; unreadable fails closed)
+            if not _block:
+                _block = self._daily_loss_block()
+            self._entry_sends_blocked_reason = _block
             # --- end entry safety gates ---
             fills: List[LeaderFill] = []
             fills.extend(self.ws.drain())
@@ -7804,6 +7849,10 @@ def main() -> None:
         except _XNET.NetworkConfigError as exc:
             raise SystemExit(f"HL network configuration refused: {exc}")
         acquire_instance_lock(AUDIT_DIR)
+        _active = ConfigManager().active_wallets()
+        if len(_active) > MAX_WALLETS:
+            raise SystemExit(f"TOO_MANY_ACTIVE_WALLETS: {len(_active)} wallets are LIVE/CLO but the leader stream "
+                             f"follows at most {MAX_WALLETS}; set the extra wallets to OFF")
         source_path = Path(args.source_file) if args.source_file else None
         core = LiveCopyCore(source_csv=source_path or RAW_LEADER_FILLS_CSV)
         copy_poll_interval = max(0.5, float(args.copy_poll_interval))

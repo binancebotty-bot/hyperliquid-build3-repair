@@ -164,11 +164,12 @@ def master_account_net(master_address, coin, fetcher=None, info_url=HL_INFO_URL,
     return {"ok": True, "status": TRUTH_OK, "net": total, "scopes": scopes, "dex_count": len(dexes)}
 
 def master_exposure(master_address, dexes, fetcher=None, info_url=HL_INFO_URL, timeout=8.0):
-    """MASTER exposure across every perp DEX scope: total |positionValue| plus per-coin signed size
-    and |value|. Used by the global exposure caps; any unreadable scope fails closed."""
+    """Account exposure across every perp DEX scope: total |positionValue| plus per-coin signed size
+    and |value|, and equity_usd (sum of accountValue; None if any scope omits it). Used by the
+    global exposure caps and leader equity sizing; any unreadable scope fails closed."""
     if not valid_address(master_address):
         return {"ok": False, "status": IDENTITY_INVALID}
-    total, by_coin = 0.0, {}
+    total, by_coin, equity = 0.0, {}, 0.0
     for dex in (dexes if dexes is not None else [""]):
         payload = {"type": "clearinghouseState", "user": master_address}
         if dex:
@@ -177,6 +178,8 @@ def master_exposure(master_address, dexes, fetcher=None, info_url=HL_INFO_URL, t
         state = res.get("data") if res.get("ok") else None
         if not isinstance(state, dict) or not isinstance(state.get("assetPositions"), list):
             return {"ok": False, "status": SCOPE_UNAVAILABLE, "dex": dex, "detail": res.get("detail", "no assetPositions")}
+        acct = (state.get("marginSummary") or {}).get("accountValue") if isinstance(state.get("marginSummary"), dict) else None
+        equity = None if equity is None or acct is None else equity + float(acct)
         for item in state["assetPositions"]:
             pos = (item or {}).get("position") if isinstance(item, dict) else None
             if not isinstance(pos, dict):
@@ -186,7 +189,25 @@ def master_exposure(master_address, dexes, fetcher=None, info_url=HL_INFO_URL, t
             row["net"] += float(pos.get("szi") or 0.0)
             row["value"] += value
             total += value
-    return {"ok": True, "status": TRUTH_OK, "total_usd": total, "by_coin": by_coin}
+    return {"ok": True, "status": TRUTH_OK, "total_usd": total, "by_coin": by_coin, "equity_usd": equity}
+
+
+def rolling_day_pnl(address, fetcher=None, info_url=HL_INFO_URL, timeout=8.0):
+    """Account PnL over the exchange's rolling 24 h window (portfolio "day" pnlHistory, which
+    excludes deposits and withdrawals). Anything unreadable returns ok=False."""
+    if not valid_address(address):
+        return {"ok": False, "status": IDENTITY_INVALID}
+    res = _post(fetcher, {"type": "portfolio", "user": address}, info_url, timeout)
+    rows = res.get("data") if res.get("ok") else None
+    for item in (rows if isinstance(rows, list) else []):
+        if isinstance(item, list) and len(item) >= 2 and item[0] == "day" and isinstance(item[1], dict):
+            hist = [p for p in (item[1].get("pnlHistory") or []) if isinstance(p, list) and len(p) >= 2]
+            if hist:
+                try:
+                    return {"ok": True, "status": TRUTH_OK, "pnl_usd": float(hist[-1][1]) - float(hist[0][1])}
+                except (TypeError, ValueError):
+                    break
+    return {"ok": False, "status": TRUTH_UNAVAILABLE, "detail": res.get("detail", "no day pnlHistory")}
 
 def master_userfills(master_address, start_ms, dex="", fetcher=None, info_url=HL_INFO_URL, timeout=8.0):
     """MASTER settlement evidence: genuine fills at/after start_ms, scoped to one perp DEX ('' = default)."""
