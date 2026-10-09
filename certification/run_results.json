@@ -1,0 +1,52 @@
+{
+ "schema": "hl_run_results_v1",
+ "rules": "One entry per testnet run. A result applies to the commit the run used. Only what the run observed against the exchange or the live UI is recorded; code-read findings are not results. Later runs supersede earlier ones for the same requirement. Results: PASS, FAIL, BLOCKED.",
+ "runs": [
+  {
+   "run": "run1",
+   "date": "2026-10-09",
+   "commit": "9eb2d40",
+   "network": "leaders mainnet, follower testnet",
+   "report": "RUN1_FINDINGS.md",
+   "summary": "Read-only start; no order sent. Engine could not finish one cycle on testnet (268 perp DEXes read one by one).",
+   "results": [
+    {"id": "ENG-006", "result": "FAIL", "evidence": "B1: per-DEX sequential reads (~0.52 s each across 268 DEXes); one --once cycle did not finish in 120 s (once_fh.txt)."},
+    {"id": "PRICE-001", "result": "FAIL", "evidence": "B1: allMids refresh across all DEXes took ~140 s, so every mid was older than the 5 s bound and every entry unpriceable."},
+    {"id": "UI-ROUTE-27", "result": "PASS", "evidence": "GET /api/global-controls showed the exact configured limits and networks leader mainnet / follower testnet."},
+    {"id": "UI-ROUTE-30", "result": "FAIL", "evidence": "U4: /api/live-audit-summary exchange snapshot = ACCOUNT_ADDRESS_UNAVAILABLE; UI could not show the follower account."},
+    {"id": "UI-TRUTH-001", "result": "FAIL", "evidence": "U1-U3: front page showed USER equity +$100.00 (account $1,450.12), TRACKED WALLETS (0) with 4 leaders LIVE, and Current: PROPORTIONAL with all wallets fixed."}
+   ]
+  },
+  {
+   "run": "run3a",
+   "date": "2026-10-09",
+   "commit": "ab7f2b0",
+   "network": "leaders mainnet, follower testnet",
+   "report": "RUN3_FINDINGS.md",
+   "summary": "Started with the mainnet agent key; the first testnet order was refused because that signer does not exist on testnet. Stopped after 17 s.",
+   "results": [
+    {"id": "NET-003", "result": "PASS", "evidence": "15:30:10 first order (MANTA BUY $12.02) went to TESTNET; leaders read from mainnet. Network separation held."},
+    {"id": "ORD-009", "result": "FAIL", "evidence": "F4/F5: no start-up check that the signer is approved on the follower network; the definite rejection 'User or API Wallet ... does not exist' was recorded as ORDER_UNKNOWN / SEND_OUTCOME_REVIEW_REQUIRED instead of a terminal reject."}
+   ]
+  },
+  {
+   "run": "run3b",
+   "date": "2026-10-09",
+   "commit": "ab7f2b0",
+   "network": "leaders mainnet (10 most active), follower testnet",
+   "report": "RUN3_FINDINGS.md",
+   "summary": "25 orders sent and filled on testnet in ~1.5 min, then stopped on an unexplained ledger/exchange mismatch.",
+   "results": [
+    {"id": "NET-003", "result": "PASS", "evidence": "All 25 orders on testnet with mainnet leaders."},
+    {"id": "NET-004", "result": "PASS", "evidence": "Mainnet untouched; the 6 Build 4 leftover mainnet orders unchanged."},
+    {"id": "ORD-001", "result": "PASS", "evidence": "Every exchange order id matches an engine send attempt; no unknown orders."},
+    {"id": "ORD-005", "result": "PASS", "evidence": "No duplicate sends; 2,908 duplicate leader fills blocked before send."},
+    {"id": "RISK-004", "result": "PASS", "evidence": "No order over the $50 max-order cap; the cap fired once."},
+    {"id": "SET-009", "result": "FAIL", "evidence": "F1: 25 fills on the exchange, 4 in live_fills.csv; 20 positions the engine thought flat."},
+    {"id": "ENG-019", "result": "FAIL", "evidence": "F1: main loop ran 4 cycles in ~3 min, each budget_exceeded, re-processing thousands of duplicate leader fills; copy-account poll starved."},
+    {"id": "ORD-010", "result": "FAIL", "evidence": "F2: one send worker at ~3.5 s per order; leader-to-send delay rose from 7 s to 81 s (SLOW_QUEUE_WAIT CRITICAL); no stale-entry cutoff."},
+    {"id": "ENG-018", "result": "FAIL", "evidence": "F3: 0x7019's short SELL 447 STABLE flattened 0x7717's long on the exchange while the ledger still showed long 447 (before Boss's netting ruling)."}
+   ]
+  }
+ ]
+}

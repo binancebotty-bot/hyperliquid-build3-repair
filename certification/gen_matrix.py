@@ -160,6 +160,14 @@ od = [
 ]
 for id, f, t, s, *rest in od:
     rec(id, "ORDER", f, t, s, *(rest or []))
+rec("ORD-009", "ORDER", "Signing key valid on follower network",
+    "Before any order, the engine confirms via userRole on the follower network that its signing key is the follower account or an agent that account approved, and refuses to start otherwise. A definite exchange rejection of the signer ('User or API Wallet ... does not exist') is terminal (SENDER_KEY_NOT_VALID_ON_FOLLOWER_NETWORK), never ORDER_UNKNOWN: it stops all sending until restart, shows a red engine alert, and records a Critical diff for each trade it could not send. Key values are never printed or logged.",
+    ["Testnet run 3, 2026-10-09 (mainnet agent key rejected on testnet)", "PR #10 (engine thread)", "ARCH inv11 (signer vs MASTER)"],
+    "APPLIES", [],
+    proof="Start the engine against the follower network -> userRole read for the signer -> start allowed/refused; inject a signer rejection on send -> terminal state, sending stopped, UI alert and Critical diffs",
+    oracle="userRole for the signer and MASTER read independently on the follower network's info API; exchange order history shows no order after the rejection",
+    neg=["mainnet agent key on testnet", "agent approved by a different account", "userRole unreadable (timeout/error) -> refuse to start", "malformed key", "rejection mid-run -> no retries, no ORDER_UNKNOWN", "logs and UI contain no key material"],
+    prior="test_core_sender_key.py K1-K5 (unit, PR #10) - not testnet-certified")
 
 # 6. Settlement
 st = [
@@ -559,7 +567,7 @@ for r in R:
         r["notes"] = r["notes"].replace("HL_Live_Copy_Service.py", "legacy HL_Live_Copy_Service.py")
     if r["id"] in CORE_NOTES:
         r["sources"].append(CORE)
-        r["notes"] = (CORE_NOTES[r["id"]] + " Code-read, unconfirmed by run." + (" Earlier note (legacy file, superseded base): " + r["notes"] if r["notes"] else "")).strip()
+        r["notes"] = (CORE_NOTES[r["id"]] + " Code-read of the 2 Jun backup, unconfirmed by run; PRs #4/#6/#7 (merged at main 114e8b4) changed this code, so re-check there." + (" Earlier note (legacy file, superseded base): " + r["notes"] if r["notes"] else "")).strip()
     elif legacy:
         r["notes"] = (r["notes"] + " Source refs are to the legacy file; re-derive against " + CORE + ".").strip()
 
@@ -579,6 +587,110 @@ for r in R:
         r["applicability"] = "APPLIES"
     if r["id"] in ("PRICE-001", "PRICE-006", "PRICE-007", "RISK-005"):
         r["sources"].append("Boss decision, Network switch thread 2026-10-09T13:26Z")
+
+# Testnet run 3 (2026-10-09, main @ ab7f2b0) findings and Boss's netting ruling (card, 2026-10-09T15:46Z).
+RUN3 = "RUN3_FINDINGS.md (testnet run 3, 2026-10-09, project files)"
+BOSS_NET = "Boss decision card 2026-10-09T15:46Z (opposite-direction leaders)"
+rec("ENG-018", "ENGINE", "Leaders trading opposite ways in one coin",
+    "The follower account holds one net position per coin, as the exchange does. When leaders trade opposite ways in the same coin, opposite entries are copied (not skipped) and net on the account; the engine's ledger follows the exchange's net position, while per-leader attribution is kept and shown on screen so each leader's sleeve and PnL stay visible.",
+    [BOSS_NET, RUN3 + " F3 (0x7717 STABLE long flattened by 0x7019 short)"], "APPLIES", [],
+    proof="Two real mainnet leaders take opposite entries in one coin during a testnet run; capture both sends, the exchange net position, the ledger net and the per-leader sleeves shown in the UI",
+    oracle="Testnet clearinghouseState net size per coin vs the sum of the engine's per-leader sleeves; leader fills from the mainnet info API",
+    neg=["opposite entries of equal size -> account flat, both sleeves shown", "one leader exits after netting -> exit sized from its own sleeve, account net correct",
+         "restart while netted -> attribution restored, no new orders", "ledger net vs exchange net differs -> diff shown and sending stops (SET-009)"],
+    notes="Replaces the run 3 question 'block opposite entries or net'. Interplay with leftover inventory: ENG-016.")
+rec("ENG-019", "ENGINE", "Main loop keeps up with 10 very busy leaders",
+    "With the 10 most active leaders followed, every engine cycle finishes within its budget: duplicate leader fills are de-duplicated before re-processing, and the copy-account poll runs every cycle and is never starved by leader polling.",
+    [RUN3 + " F1 (4 cycles in ~3 min, each budget_exceeded; 2,908 duplicate leader fills)"], "APPLIES", [],
+    proof="Run against the 10 most active mainnet leaders for at least 30 minutes on testnet; log cycle durations, poll timestamps and duplicate-fill counts",
+    oracle="Cycle and poll timestamps from the engine log compared with wall clock; follower fills from the testnet info API vs ledger rows",
+    neg=["burst of thousands of historical fills on start-up", "one leader with very high fill rate", "slow info API responses", "429 rate limiting"])
+rec("ORD-010", "ORDER", "Leader-to-send delay measured; stale entries take the missed-entry path",
+    "For every copy order the delay from the leader's trade to our send is measured and recorded. An ENTRY/ADD whose leader trade is more than 30 s old when it reaches the sender is not sent as a normal copy; it goes through the missed-entry rule (ENG-017). Exits are never dropped for age.",
+    [RUN3 + " F2 (one send worker, ~3.5 s per order; delay grew from 7 s to 81 s)"], "APPLIES", ["OD-10"],
+    proof="Testnet run with busy leaders: per-order leader time, send time and decision captured; an artificially delayed queue shows entries older than 30 s routed to ENG-017",
+    oracle="Leader fill timestamps from the mainnet info API vs testnet order timestamps",
+    neg=["entry at 29 s -> normal copy", "entry at 31 s -> missed-entry rule", "exit at 120 s -> still sent", "queue backlog of 50 orders -> delays stay recorded, no unbounded growth"],
+    notes="The 30 s threshold came from the engine thread's run 3 follow-up; confirm it with Boss alongside the OD-10 tolerance.")
+rec("SET-009", "SETTLE", "Ledger never diverges from the exchange",
+    "Every follower fill on the exchange reaches the engine ledger; the ledger's net position per coin always matches the exchange. Any unexplained difference stops new sends and is shown as a Critical diff until resolved.",
+    [RUN3 + " F1 (25 fills on exchange, 4 in live_fills.csv; 20 positions the engine thought flat)"], "APPLIES", [],
+    proof="After each testnet run, compare exchange fills/positions with ledger rows and net positions; induce a missed copy-account poll and confirm sending stops",
+    oracle="Testnet userFillsByTime and clearinghouseState (all DEX scopes) read without engine code",
+    neg=["copy-account poll delayed", "fill arrives after restart", "partial fills", "exit refused because ledger thought flat (run 3) must not recur"])
+
+# OD-21 decided (Boss, 2026-10-09T15:07Z): the certified UI is the 13 May "Live Copy Command Centre" file
+# (source sha256 fad19d22..., 7,243 lines; repo branch claude/restore-live-screen-0513 @ 38776e0, byte-exact). The previously
+# tracked HL_Copy_App_SSOT.py (sha256 c0f9e508...) had the Command Centre markup but no /live-copy route; it was the
+# walletproof modelling screen. Records derived from it are re-checked against the 13 May file: an element still
+# present is re-pointed; an element absent is SUPERSEDED. Evidence gathered against the old file is void.
+UI0513_NAME = "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22)"
+UI0513 = Path(SRC, B3, "HL_Copy_App_SSOT_20260513.py").read_text(encoding="utf-8", errors="replace")
+for r in R:
+    old = [x for x in r["sources"] if x.startswith("HL_Copy_App_SSOT.py") or x.startswith("SSOT ")]
+    if not old:
+        continue
+    syms = set()
+    for x in old:
+        for tok in re.findall(r"[A-Za-z_][A-Za-z0-9_]{3,}", x.replace("HL_Copy_App_SSOT.py", "")):
+            syms.add(tok)
+    code_syms = {t for t in syms if ("_" in t or any(c.isupper() for c in t[1:])) and t not in ("Add-wallet",)}
+    present = [t for t in code_syms if t in UI0513]
+    r["sources"] = [x.replace("HL_Copy_App_SSOT.py", UI0513_NAME) if x in old else x for x in r["sources"]]
+    if code_syms and not present:
+        r["applicability"] = "SUPERSEDED"
+        r["notes"] = (r["notes"] + f" OD-21 decided: element(s) {sorted(code_syms)} not found in the certified 13 May UI; requirement void.").strip()
+        if r["id"].startswith("UI-LCC-POS"):
+            r["notes"] += " The 13 May positions tab splits OWNED COPY and ACCOUNT-LEVEL rows; its fields are certified by the UI-FP 'Real User Copy Positions' records."
+        if r["id"].startswith("UI-SSOT-"):
+            r["notes"] += " The 13 May modelling page is render_home (route /, /model); its labelling is OD-18."
+    else:
+        r["notes"] = (r["notes"] + " OD-21 decided: re-pointed to the certified 13 May UI.").strip()
+    if "OD-21" in r["open_decisions"]:
+        r["open_decisions"].remove("OD-21")
+    if r["prior_evidence"] and "test_g4" in r["prior_evidence"]:
+        r["notes"] = (r["notes"] + " Prior evidence void: '" + r["prior_evidence"] + "' ran against the superseded UI file.").strip()
+        r["prior_evidence"] = ""
+for r in R:
+    if r["id"].startswith("UI-FP-"):
+        if "OD-21" in r["open_decisions"]:
+            r["open_decisions"].remove("OD-21")
+        loc = r["feature"].split(":")[0]
+        r["notes"] = (r["notes"] + " OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.").strip()
+# Fixing diffs from the UI is not required (Boss, 2026-10-09T15:07Z); diffs must be reported.
+for r in R:
+    if r["id"] == "UI-LCC-REC-11":
+        r["applicability"] = "SUPERSEDED"
+        r["notes"] = (r["notes"] + " Not required: Boss reconciles diffs on the exchange; the UI must report them (UI-DIFF-01). If the button stays it must work or be labelled inactive.").strip()
+    if r["id"] == "TN-F13":
+        r["applicability"] = "ADAPTED_PROPOSED"
+        r["notes"] = (r["notes"] + " Boss's missed-entry rule (ENG-017) replaces 'outside tolerance sends nothing' with: report a diff and rest a limit order at the desired price.").strip()
+BOSS_MISSED = "Boss, project chat 2026-10-09T15:07Z (missed-entry methodology)"
+rec("ENG-017", "ENGINE", "Missed leader entry or add",
+    "When a genuine leader ENTRY/ADD was missed (connection gap, rejected or unfilled order) and is recovered from the leader's fills: if the follower can enter now at the leader's price or better, or within tolerance, the engine takes the entry; otherwise it records a diff that is shown in the UI and places a resting limit order at the desired price until it fills or the leader's lineage makes it obsolete.",
+    [BOSS_MISSED, "HL_Live_Copy_Service_Core.py MISSED_ENTRY/MISSED_ADD states and ENTRY_ADD_RECOVERY_RESTING", "PRODUCT_SEMANTICS B1 (recovered genuine fills keep authority)"],
+    "APPLIES", ["OD-10"],
+    proof="Induce a gap on testnet (stop WS/poll) across a real mainnet leader entry; resume; capture recovered fill -> decision (take/diff) -> order payload -> exchange",
+    oracle="Leader fill price and time (mainnet info API) vs follower mid at resume and the follower's orders/fills (testnet info API), read without engine code",
+    neg=["price same as leader -> entry taken", "price better -> entry taken", "price worse but within tolerance -> entry taken",
+         "price worse beyond tolerance -> diff shown + limit at desired price, no marketable order",
+         "resting limit later fills -> diff clears, position owned exactly once",
+         "leader reduces/closes before the limit fills -> limit cancelled or resized, no orphan exposure",
+         "restart while the limit rests -> no duplicate limit, diff still shown",
+         "missed ADD (not just ENTRY) follows the same rule",
+         "no fresh mid -> no order (OD-01 ruling)",
+         "leftover inventory in the same coin is never touched (ENG-016)"],
+    notes="Tolerance value and the exact 'desired price' (taken here as the leader's entry price) need confirming; the bound is part of OD-10. This rule replaces Build 4 F13's 'send nothing outside tolerance' for this product.")
+rec("UI-DIFF-01", "UI", "Diffs are reported in the live UI",
+    "Every diff (missed entry outside tolerance, position mismatch, resting recovery limit, ledger vs exchange difference) is visible in the Live Copy Command Centre with wallet, coin, size, desired vs current price and age, until it clears. Fixing it from the UI is not required.",
+    [BOSS_MISSED, UI0513_NAME + " /live-copy Reconciliation tab"], "APPLIES", [],
+    neg=["diff created while UI open -> appears on next refresh", "diff clears -> disappears", "restart -> diff still shown", "multi-DEX coin -> namespaced correctly"])
+routes = re.findall(r'@app\.(get|post)\("([^"]+)"', UI0513)
+for i, (m, path) in enumerate(routes, 1):
+    rec(f"UI-ROUTE-{i:02d}", "UI", f"Endpoint {m.upper()} {path}",
+        "Responds as its page/control expects; a write persists to the file the running engine reads and the engine applies it without restart; a read returns engine/exchange truth or an explicit unavailable state. An endpoint with no caller in the live UI is listed and either removed or proven harmless.",
+        [UI0513_NAME + f" route {path}"], "APPLIES", [],
+        neg=["malformed body", "missing config file", "engine not running", "concurrent write"])
 
 # ---------------------------------------------------------------------------
 ids = [r["id"] for r in R]
