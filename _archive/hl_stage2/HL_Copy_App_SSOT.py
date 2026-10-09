@@ -1011,6 +1011,18 @@ def _live_order_intents_path() -> Path:
     return LIVE_COPY_AUDIT_DIR / "order_intents.csv"
 
 
+def _engine_alert() -> str:
+    """Plain-words red banner from the engine's own state: sending stopped, or new entries paused."""
+    st = load_json(LIVE_COPY_SERVICE_STATE_FILE, {})
+    st = st if isinstance(st, dict) else {}
+    if st.get("sender_key_invalid"):
+        return (f"SENDING STOPPED: the {FOLLOWER_NETWORK} exchange rejected the engine's signing key "
+                f"({st.get('sender_key_invalid')}). Fix the key in the {FOLLOWER_NETWORK} settings and restart the engine.")
+    if st.get("entry_sends_blocked_reason"):
+        return f"NEW ENTRIES PAUSED: {st.get('entry_sends_blocked_reason')} (exits still run)"
+    return ""
+
+
 def _live_audit_summary() -> Dict[str, Any]:
     path = _live_order_intents_path()
     reason_counts: Dict[str, int] = {}
@@ -1173,6 +1185,7 @@ def _live_audit_summary() -> Dict[str, Any]:
         "core_service_state": clean_core_status.get("service_state", {}),
         "master_real_orders_enabled": live_top_status.get("master_real_orders_enabled"),
         "follower_account": _follower_account_value_safe(),
+        "engine_alert": _engine_alert(),
         "follower_network": FOLLOWER_NETWORK,
         "effective_real_orders_enabled": live_top_status.get("effective_real_orders_enabled"),
         "send_block_reason": live_top_status.get("send_block_reason"),
@@ -6545,6 +6558,7 @@ function renderTopStatus(){
  const lastSend=st.last_send||{}, lastFill=st.last_fill||{}, lastReject=st.last_reject||{}, lastLat=st.last_latency_warning||{};
  const reasons=(st.integrity_reasons||[]).join('; ') || (st.integrity_available?'':'RUN INTEGRITY GATE');
  const cards=[
+  ...(lcAudit.engine_alert?[statusCard('ENGINE ALERT',String(lcAudit.engine_alert).split(':')[0],'lc-red',lcAudit.engine_alert)]:[]),
   statusCard('LIVE INTEGRITY',integ,integCls,reasons),
   statusCard('WS',ws,wsCls,'shared HOT10 status'),
   statusCard('Copy Poll',poll,pollCls,'copy-account polling'),
