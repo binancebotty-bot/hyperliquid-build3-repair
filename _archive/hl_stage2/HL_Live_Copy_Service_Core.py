@@ -151,6 +151,7 @@ LEADER_FETCHER = None  # test seam for leader equity reads; production uses HTTP
 MIDS_FETCHER = None  # test seam for follower mid reads; production uses HTTP
 USER_WALLET = os.getenv("HL_USER_WALLET", "").strip().lower()
 _FOLLOWER_MIDS: Dict[str, Any] = {"px": {}, "ms": 0, "dexes": None, "dexes_ms": 0}
+_SELF_TEST_MIDS: Optional[Dict[str, Any]] = None  # self-test only: leader prints double as follower mids
 
 
 def follower_mid(coin: str) -> float:
@@ -189,6 +190,7 @@ def follower_position_mark(coin: str) -> float:
 DEFAULT_FIXED_NOTIONAL = float(os.getenv("HL_LIVE_DEFAULT_FIXED_NOTIONAL", "10"))
 DEFAULT_MIN_NOTIONAL = float(os.getenv("HL_LIVE_MIN_NOTIONAL", "10"))
 DEFAULT_MARKETABLE_BPS = float(os.getenv("HL_LIVE_MARKETABLE_BPS", "25"))
+DEFAULT_SLIPPAGE_BPS = 20.0  # Global Controls slippage when unset: Boss's 0.2 % (2026-10-09)
 DEFAULT_MAX_CLOSE_ADVERSE_DIFF_PCT = float(os.getenv("HL_LIVE_MAX_CLOSE_ADVERSE_DIFF_PCT", "0.25"))
 HTTP_TIMEOUT_SEC = float(os.getenv("HL_LIVE_HTTP_TIMEOUT_SEC", "3"))
 POLL_OVERLAP_MS = int(os.getenv("HL_LIVE_POLL_OVERLAP_MS", "300000"))
@@ -1820,6 +1822,10 @@ class LeaderFill:
     ws_received_ms: int = 0
     raw: Dict[str, Any] = field(default_factory=dict)
 
+    def __post_init__(self) -> None:
+        if _SELF_TEST_MIDS is not None and fnum(self.price) > 0:  # self-test only (None in production)
+            _SELF_TEST_MIDS[str(self.coin).upper()] = fnum(self.price)
+
     @property
     def notional(self) -> float:
         return abs(self.price * self.size)
@@ -2003,9 +2009,14 @@ class ConfigManager:
         return max(0.0, fnum(self.global_controls.get("max_order_notional_usd"), 0.0))
 
     def marketable_bps(self) -> float:
-        # The UI shows a missing value as 0 = OFF, so a missing value IS 0 here (no hidden env default).
+        # Missing = Boss's default of 0.2 % (20 bps, 2026-10-09), the same default the UI shows; 0 = none.
         gc = self.global_controls
-        raw = gc.get("marketable_bps") if "marketable_bps" in gc else fnum(gc.get("marketable_slippage_pct"), 0.0) * 100.0
+        if "marketable_bps" in gc:
+            raw = gc.get("marketable_bps")
+        elif "marketable_slippage_pct" in gc:
+            raw = fnum(gc.get("marketable_slippage_pct"), 0.0) * 100.0
+        else:
+            raw = DEFAULT_SLIPPAGE_BPS
         return max(0.0, min(100.0, fnum(raw, 0.0)))
 
     def max_close_adverse_diff_pct(self) -> float:
@@ -2453,9 +2464,9 @@ class IntentBuilder:
         return fnum(equity)
 
     def _order_value_px(self, fill: LeaderFill) -> float:
-        """Worst-case price the order can fill at, on the FOLLOWER network: the price the limit is built
+        """Worst-case price the order can fill at, on the FOLLOWER network: the fresh mid the limit is built
         from plus the marketable slippage. Every notional limit is checked at this price."""
-        ref = fill.price if LEADER_NETWORK == FOLLOWER_NETWORK else follower_mid(fill.coin)
+        ref = follower_mid(fill.coin)   # OD-01: entries are priced from a fresh follower-market mid
         return ref * (1.0 + self.cfg.marketable_bps() / 10000.0) if ref > 0 else 0.0
 
     def _unowned_inventory_block(self, fill: LeaderFill) -> str:
@@ -3405,14 +3416,17 @@ class SenderGateway:
         base_px = intent.fill.price
         close_adv_limit = self.cfg.max_close_adverse_diff_pct() if lifecycle == "EXIT" else 0.0
         follower_px = 0.0
-        if LEADER_NETWORK != FOLLOWER_NETWORK or close_adv_limit > 0:
+        # OD-01 (Boss ruling 2026-10-09): an entry/add is priced from a FRESH follower-market mid, never the
+        # leader's fill price; a stale or missing mid means no order. Cross-network, every order is.
+        fresh_required = LEADER_NETWORK != FOLLOWER_NETWORK or lifecycle in {"ENTRY", "ADD"}
+        if fresh_required or close_adv_limit > 0:
             # fresh follower mid (age-bounded, every DEX); a close falls back to its own position's mark
             follower_px = follower_mid(sdk_coin)
             if follower_px <= 0 and lifecycle in {"EXIT", "REDUCE"}:
                 follower_px = follower_position_mark(sdk_coin)
-        if LEADER_NETWORK != FOLLOWER_NETWORK:
-            # a leader-network price is not a follower-network price: units stay as sized, the limit is
-            # re-based on the follower's own price; no follower price -> no order (a close goes RED)
+        if fresh_required:
+            # a leader fill price is not our market's price: units stay as sized, the limit is
+            # based on the follower's own fresh price; no follower price -> no order (a close goes RED)
             if follower_px <= 0:
                 closing = lifecycle in {"EXIT", "REDUCE"}
                 detail = (f"no fresh follower-network ({FOLLOWER_NETWORK}) price for {sdk_coin}; leader on {LEADER_NETWORK}; "
@@ -6516,7 +6530,7 @@ def run_self_test() -> None:
     global LIVE_INTEGRITY_STATUS_FILE
 
     old_env = dict(os.environ)
-    global LEADER_NETWORK, EXPOSURE_FETCHER, USER_WALLET
+    global LEADER_NETWORK, EXPOSURE_FETCHER, USER_WALLET, MIDS_FETCHER, _SELF_TEST_MIDS
     old_leader_network, LEADER_NETWORK = LEADER_NETWORK, FOLLOWER_NETWORK  # fixtures price on one network
 
     def _clean_account_fixture(payload: Dict[str, Any]) -> Any:
@@ -6527,6 +6541,18 @@ def run_self_test() -> None:
         return {"assetPositions": [{"position": {"coin": k, "szi": str(fnum((v or {}).get("signed_size"))), "positionValue": "0"}}
                                    for k, v in nets.items()], "marginSummary": {"accountValue": "0"}}
     old_fetcher, EXPOSURE_FETCHER = EXPOSURE_FETCHER, _clean_account_fixture
+
+    def _market_fixture(payload: Dict[str, Any]) -> Any:
+        # follower market mid == the leader's print for that coin (fixtures price on one network);
+        # fills built in code register their price via LeaderFill, CSV fills are read here
+        if payload.get("type") == "perpDexs":
+            return []
+        mids = {str(r.get("coin") or "").upper(): r.get("price") for r in read_csv_rows(RAW_LEADER_FILLS_CSV) if r.get("price")}
+        return {**mids, **_SELF_TEST_MIDS}
+    old_mids_fetcher, MIDS_FETCHER = MIDS_FETCHER, _market_fixture
+    old_mids_ttl = os.environ.get("HL_LIVE_MIDS_CACHE_TTL_SEC")
+    os.environ["HL_LIVE_MIDS_CACHE_TTL_SEC"] = "-1"   # every read sees the current fixture
+    _SELF_TEST_MIDS = {}
     old_user_wallet, USER_WALLET = USER_WALLET, (USER_WALLET if is_valid_wallet(USER_WALLET) else "0x" + "e" * 40)
     # Isolate self-test from live env vars that affect WS/send behaviour.
     # Tests that need specific env vars set them explicitly.
@@ -7723,6 +7749,11 @@ def run_self_test() -> None:
     os.environ.clear()
     os.environ.update(old_env)
     LEADER_NETWORK, EXPOSURE_FETCHER, USER_WALLET = old_leader_network, old_fetcher, old_user_wallet
+    MIDS_FETCHER, _SELF_TEST_MIDS = old_mids_fetcher, None
+    if old_mids_ttl is None:
+        os.environ.pop("HL_LIVE_MIDS_CACHE_TTL_SEC", None)
+    else:
+        os.environ["HL_LIVE_MIDS_CACHE_TTL_SEC"] = old_mids_ttl
     print("RESULT::CLEAN_LIVE_COPY_CORE_SELF_TEST_PASS")
     print("RESULT::EXCHANGE_SHAPE_ACCEPTANCE_HARNESS_PASS")
 

@@ -706,7 +706,7 @@ _GLOBAL_CONTROLS_DEFAULTS: Dict[str, Any] = {
     "max_daily_loss_usd": 0.0,
     "max_wallet_exposure_usd": 0.0,
     "max_order_notional_usd": 0.0,
-    "marketable_bps": 0.0,
+    "marketable_bps": 20.0,  # Boss's default slippage, 0.2 % (2026-10-09)
     "max_close_adverse_diff_pct": 0.0,
     "symbol_allowlist": [],
     "symbol_blocklist": [],
