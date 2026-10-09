@@ -62,7 +62,20 @@ UI_STATE_FILE = BASE_DIR / "ui_state.json"
 WALLET_GATE_FILE = BASE_DIR / "wallet_gate.json"
 MANUAL_WALLETS_FILE = BASE_DIR / "manual_wallets.txt"
 PURGED_WALLETS_FILE = BASE_DIR / "purged_wallets.txt"
-LIVE_COPY_AUDIT_DIR = BASE_DIR / "hl_live_copy_audit"
+import exchange_truth as _XNET  # noqa: E402  same network selection and state folder as the engine
+_NET_ENV = _XNET.env_with_file(Path(os.environ.get("HL_LIVE_ENV_FILE") or BASE_DIR.parent / "hl_stage2.env"))  # as the engine
+try:
+    NETWORKS = _XNET.resolve_networks(_NET_ENV)
+except _XNET.NetworkConfigError as _net_exc:
+    raise SystemExit(f"HL network configuration refused: {_net_exc}")
+FOLLOWER_NETWORK, FOLLOWER_INFO_URL = NETWORKS["follower"]["network"], NETWORKS["follower"]["info"]
+LIVE_COPY_AUDIT_DIR = Path(_NET_ENV.get("HL_LIVE_AUDIT_DIR") or (
+    BASE_DIR / ("hl_live_copy_audit" if FOLLOWER_NETWORK == "mainnet" else f"hl_live_copy_audit_{FOLLOWER_NETWORK}")))
+try:  # the UI writes this folder's live_config.json, so it is bound to the same network pair
+    _XNET.claim_network_stamp(LIVE_COPY_AUDIT_DIR, NETWORKS)
+except _XNET.NetworkConfigError as _net_exc:
+    raise SystemExit(f"HL network configuration refused: {_net_exc}")
+APP_PORT = int(_NET_ENV.get("HL_APP_PORT") or 8000)
 LIVE_COPY_CONFIG_FILE = LIVE_COPY_AUDIT_DIR / "live_config.json"
 LIVE_COPY_WS_HEALTH_FILE = LIVE_COPY_AUDIT_DIR / "live_ws_health.json"
 LIVE_COPY_SERVICE_STATE_FILE = LIVE_COPY_AUDIT_DIR / "live_service_state.json"
@@ -73,13 +86,13 @@ LIVE_COPY_ORDER_INTENTS_CSV = LIVE_COPY_AUDIT_DIR / "append_only" / "order_inten
 MANUAL_POSITIONS_FILE = LIVE_COPY_AUDIT_DIR / "manual_live_positions.json"
 SEND_ATTEMPTS_CSV = LIVE_COPY_AUDIT_DIR / "append_only" / "send_attempts.csv"
 WOULD_SEND_ORDERS_CSV = LIVE_COPY_AUDIT_DIR / "append_only" / "would_send_orders.csv"
-EXCHANGE_ACCOUNT_SNAPSHOT_FILE = LIVE_COPY_AUDIT_DIR / "exchange_account_snapshot.json"
+# The engine owns exchange_account_snapshot.json (its pre-send ownership gate reads it); the screen
+# writes its own copy, the "_app" file the engine already reads for recent fills.
+EXCHANGE_ACCOUNT_SNAPSHOT_FILE = LIVE_COPY_AUDIT_DIR / "exchange_account_snapshot_app.json"
 EXCHANGE_ACCOUNT_HISTORY_FILE = LIVE_COPY_AUDIT_DIR / "exchange_account_history.json"
 ACCOUNT_ORPHAN_POSITIONS_FILE = LIVE_COPY_AUDIT_DIR / "account_orphan_positions.json"
 LIVE_FILLS_CSV = LIVE_COPY_AUDIT_DIR / "append_only" / "live_fills.csv"
-MANUAL_RECON_BACKUP_DIR = LIVE_COPY_AUDIT_DIR / "reconciliation_backups"
-MANUAL_RECON_ACTIONS_FILE = LIVE_COPY_AUDIT_DIR / "manual_reconciliation_actions.json"
-LIVE_CONFIG_DIR = BASE_DIR / "hl_live_copy_audit"
+LIVE_CONFIG_DIR = LIVE_COPY_AUDIT_DIR
 LIVE_CONFIG_FILE = LIVE_CONFIG_DIR / "live_config.json"
 APP_CACHE_DIR = LIVE_COPY_AUDIT_DIR / "app_cache"
 MODEL_DASHBOARD_LAST_GOOD_HTML_FILE = APP_CACHE_DIR / "model_dashboard_last_good.html"
@@ -713,9 +726,10 @@ def load_wallet_gate() -> Dict[str, Any]:
 _GLOBAL_CONTROLS_DEFAULTS: Dict[str, Any] = {
     "max_total_live_exposure_usd": 0.0,
     "max_asset_directional_exposure_usd": 0.0,
+    "max_daily_loss_usd": 0.0,
     "max_wallet_exposure_usd": 0.0,
     "max_order_notional_usd": 0.0,
-    "marketable_bps": 0.0,
+    "marketable_bps": 20.0,  # Boss's default slippage, 0.2 % (2026-10-09)
     "max_close_adverse_diff_pct": 0.0,
     "symbol_allowlist": [],
     "symbol_blocklist": [],
@@ -824,13 +838,19 @@ def repair_live_config_consistency(config: Dict[str, Any]) -> bool:
     return changed
 
 
+# Per-wallet settings the Core engine never reads (it sizes from real leader equity and applies the
+# daily loss limit and slippage from Global Controls). Not offered in the panel and dropped on save,
+# so no control looks live while doing nothing.
+ENGINE_IGNORED_WALLET_KEYS = ("leader_equity_base", "max_diff_pct", "daily_loss_limit")
+
+
 def _normalise_live_wallet_payload(payload: Dict[str, Any], existing: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     base = dict(existing or {})
     mode_default = base.get("mode", "OFF") if existing is not None else "OFF"
     mode = str(payload.get("mode", mode_default)).upper()
     if mode not in {"LIVE", "CLO", "OFF"}:
         raise ValueError("BAD_MODE")
-    copy_mode = str(payload.get("copy_mode", base.get("copy_mode", "proportional"))).lower()
+    copy_mode = str(payload.get("copy_mode", base.get("copy_mode", "fixed"))).lower()  # engine default
     if copy_mode not in {"proportional", "fixed"}:
         raise ValueError("BAD_COPY_MODE")
     enabled = normalize_live_wallet_config("", {"mode": mode}, repair=True)["enabled"]
@@ -839,13 +859,10 @@ def _normalise_live_wallet_payload(payload: Dict[str, Any], existing: Optional[D
         "copy_mode": copy_mode,
         "norm_base": max(1.0, fnum(payload.get("norm_base", base.get("norm_base", 100)), 100)),
         "fixed_notional": max(0.01, fnum(payload.get("fixed_notional", base.get("fixed_notional", 10)), 10)),
-        "leader_equity_base": max(1.0, fnum(payload.get("leader_equity_base", base.get("leader_equity_base", 10000)), 10000)),
-        "max_diff_pct": max(0.0, fnum(payload.get("max_diff_pct", base.get("max_diff_pct", 0.1)), 0.1)),
-        "daily_loss_limit": max(0.0, fnum(payload.get("daily_loss_limit", base.get("daily_loss_limit", 0)), 0)),
         "enabled": enabled,
     }
     for key, value in base.items():
-        if key not in out:
+        if key not in out and key not in ENGINE_IGNORED_WALLET_KEYS:
             out[key] = value
     return out
 
@@ -1155,6 +1172,8 @@ def _live_audit_summary() -> Dict[str, Any]:
         "clean_core_status": clean_core_status,
         "core_service_state": clean_core_status.get("service_state", {}),
         "master_real_orders_enabled": live_top_status.get("master_real_orders_enabled"),
+        "follower_account": _follower_account_value_safe(),
+        "follower_network": FOLLOWER_NETWORK,
         "effective_real_orders_enabled": live_top_status.get("effective_real_orders_enabled"),
         "send_block_reason": live_top_status.get("send_block_reason"),
         "live_integrity_status": integrity_status,
@@ -1410,22 +1429,8 @@ def _service_position_evidence_by_coin(
 
 
 def _local_env_value(key: str) -> str:
-    value = os.getenv(key, "").strip()
-    if value:
-        return value
-    env_file = BASE_DIR.parent / "hl_stage2.env"
-    try:
-        if env_file.exists():
-            for line in env_file.read_text(encoding="utf-8").splitlines():
-                line = line.strip()
-                if not line or line.startswith("#") or "=" not in line:
-                    continue
-                k, _, v = line.partition("=")
-                if k.strip() == key:
-                    return v.strip()
-    except Exception:
-        pass
-    return ""
+    # os.environ, else the env file the engine reads (HL_LIVE_ENV_FILE, default hl_stage2.env)
+    return os.getenv(key, "").strip() or str(_NET_ENV.get(key) or "").strip()
 
 
 def _execution_guards_info() -> Dict[str, Any]:
@@ -1435,8 +1440,10 @@ def _execution_guards_info() -> Dict[str, Any]:
         "auto_send_enabled": ev("HL_LIVE_AUTO_SEND_ENABLED", "0") == "1",
         "auto_send_wallet": ev("HL_LIVE_AUTO_SEND_WALLET", ""),
         "max_per_run": ev("HL_LIVE_AUTO_SEND_MAX_PER_RUN", "1"),
-        "marketable_bps": ev("HL_LIVE_AUTO_SEND_MARKETABLE_BPS", "5"),
-        "close_adverse_diff_pct": ev("HL_LIVE_MAX_CLOSE_ADVERSE_DIFF_PCT", "0.25"),
+        # effective values the Core engine uses: the saved Global Controls (0 = OFF), not env defaults
+        "marketable_bps": _normalise_global_controls(_load_live_copy_config().get("global_controls"))["marketable_bps"],
+        "close_adverse_diff_pct": _normalise_global_controls(_load_live_copy_config().get("global_controls"))["max_close_adverse_diff_pct"] or "OFF",
+        "networks": {"leader": NETWORKS["leader"]["network"], "follower": FOLLOWER_NETWORK},
         "legacy_notional_cap": ev("HL_LIVE_MAX_MANUAL_ORDER_NOTIONAL_USD", "25"),
     }
 
@@ -1487,7 +1494,7 @@ def _fetch_user_fills_by_time(account: str, start_ms: int, end_ms: int, timeout:
     }
     try:
         req = urllib.request.Request(
-            "https://api.hyperliquid.xyz/info",
+            FOLLOWER_INFO_URL,
             data=json.dumps(payload).encode("utf-8"),
             headers={"Content-Type": "application/json"},
             method="POST",
@@ -1746,7 +1753,7 @@ def _fetch_exchange_account_snapshot(max_age_sec: float = 15.0) -> Dict[str, Any
     try:
         payload = json.dumps({"type": "clearinghouseState", "user": account}).encode("utf-8")
         req = urllib.request.Request(
-            "https://api.hyperliquid.xyz/info",
+            FOLLOWER_INFO_URL,
             data=payload,
             headers={"Content-Type": "application/json"},
             method="POST",
@@ -1758,7 +1765,7 @@ def _fetch_exchange_account_snapshot(max_age_sec: float = 15.0) -> Dict[str, Any
         try:
             spot_payload = json.dumps({"type": "spotClearinghouseState", "user": account}).encode("utf-8")
             spot_req = urllib.request.Request(
-                "https://api.hyperliquid.xyz/info",
+                FOLLOWER_INFO_URL,
                 data=spot_payload,
                 headers={"Content-Type": "application/json"},
                 method="POST",
@@ -2240,70 +2247,6 @@ def _build_recent_send_warning_groups(recent_send_attempts: List[Dict[str, Any]]
     )[:limit]
 
 
-def _archive_manual_reconciliation_ledger_row(payload: Dict[str, Any]) -> Dict[str, Any]:
-    coin_req = str(payload.get("coin", "")).upper().strip()
-    issue_req = str(payload.get("issue", "")).upper().strip()
-    wallet_req = str(payload.get("wallet", "")).lower().strip()
-    manual_req_raw = payload.get("manual_signed_size")
-    if not coin_req or issue_req != "MISSING_EXCHANGE" or not is_present_num(manual_req_raw):
-        return {"ok": False, "error": "BAD_REQUEST"}
-
-    manual_positions = _load_manual_live_positions()
-    matched_key = next((k for k in manual_positions.keys() if str(k).upper() == coin_req), None)
-    if matched_key is None:
-        return {"ok": False, "error": "MANUAL_LEDGER_ROW_NOT_FOUND"}
-    old_row = manual_positions.get(matched_key)
-    if not isinstance(old_row, dict):
-        return {"ok": False, "error": "BAD_MANUAL_LEDGER_ROW"}
-
-    old_signed = fnum(old_row.get("signed_size"))
-    if abs(old_signed - fnum(manual_req_raw)) > 1e-12:
-        return {"ok": False, "error": "MANUAL_SIGNED_SIZE_MISMATCH"}
-    old_wallet = str(old_row.get("leader_wallet") or old_row.get("wallet") or "").lower().strip()
-    if wallet_req and old_wallet and wallet_req != old_wallet:
-        return {"ok": False, "error": "WALLET_MISMATCH"}
-    if abs(old_signed) <= 1e-12:
-        return {"ok": False, "error": "MANUAL_LEDGER_ROW_ALREADY_ZERO"}
-
-    # Force a live fetch so archive decisions are never based on stale cached state.
-    cached_snapshot = _fetch_exchange_account_snapshot(max_age_sec=0)
-    if not isinstance(cached_snapshot, dict) or not cached_snapshot.get("ok") or not cached_snapshot.get("available"):
-        return {"ok": False, "error": "EXCHANGE_SNAPSHOT_UNAVAILABLE",
-                "status": cached_snapshot.get("status", "UNAVAILABLE") if isinstance(cached_snapshot, dict) else "UNAVAILABLE"}
-    exchange_positions = cached_snapshot.get("positions_by_coin", {}) if isinstance(cached_snapshot.get("positions_by_coin"), dict) else {}
-    ex = exchange_positions.get(coin_req, {})
-    exchange_signed = fnum(ex.get("signed_size")) if isinstance(ex, dict) else 0.0
-    if abs(exchange_signed) > 1e-12:
-        return {"ok": False, "error": "EXCHANGE_SIZE_NOT_ZERO", "exchange_signed_size": exchange_signed}
-
-    if not MANUAL_POSITIONS_FILE.exists():
-        return {"ok": False, "error": "MANUAL_POSITIONS_FILE_MISSING"}
-    MANUAL_RECON_BACKUP_DIR.mkdir(parents=True, exist_ok=True)
-    backup_path = MANUAL_RECON_BACKUP_DIR / f"manual_live_positions_{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%fZ')}.json"
-    shutil.copy2(MANUAL_POSITIONS_FILE, backup_path)
-
-    removed = manual_positions.pop(matched_key)
-    atomic_write_json(MANUAL_POSITIONS_FILE, manual_positions)
-
-    actions = load_json(MANUAL_RECON_ACTIONS_FILE, [])
-    if not isinstance(actions, list):
-        actions = []
-    action_record = {
-        "timestamp": utc_now_iso(),
-        "action": "ARCHIVE_MANUAL_LEDGER_ROW",
-        "coin": coin_req,
-        "wallet": old_wallet or wallet_req,
-        "old_row": removed,
-        "issue": "MISSING_EXCHANGE",
-        "manual_signed_size": old_signed,
-        "exchange_signed_size": exchange_signed,
-        "backup_path": str(backup_path),
-    }
-    actions.append(action_record)
-    atomic_write_json(MANUAL_RECON_ACTIONS_FILE, actions)
-    return {"ok": True, "archived": action_record}
-
-
 def _build_live_wallet_derived(model_state: Dict[str, Any], live_config: Dict[str, Any], last_rows: List[Dict[str, Any]], recent_send_attempts: List[Dict[str, Any]], manual_positions: Dict[str, Any], manual_summary: Dict[str, Any]) -> Dict[str, Any]:
     model_rows = {
         str(row.get("wallet", "")).lower(): row
@@ -2517,12 +2460,9 @@ def _build_live_wallet_rows(
             "enabled": bool(normal.get("enabled")),
             "service_eligible": service_eligible,
             "service_eligibility_reason": service_reason,
-            "copy_mode": str(cfg.get("copy_mode", "proportional")),
+            "copy_mode": str(cfg.get("copy_mode", "fixed")),  # as the engine: unset = fixed
             "fixed_notional": cfg.get("fixed_notional"),
             "norm_base": cfg.get("norm_base"),
-            "leader_equity_base": cfg.get("leader_equity_base"),
-            "max_diff_pct": cfg.get("max_diff_pct"),
-            "daily_loss_limit": cfg.get("daily_loss_limit"),
             "conn_status": conn_status,
             "conn_detail": conn_detail,
             "ws_state": conn_status,
@@ -5619,6 +5559,67 @@ def sorted_rows(state: Dict[str, Any]) -> List[Dict[str, Any]]:
     return user_rows + included_rows + other_rows
 
 
+def _engine_wallet_summary() -> Tuple[int, int, str]:
+    """(LIVE count, close-only count, sizing) of the wallets the engine follows, from live_config.json:
+    the engine's own settings, not the analysis model's. Unset copy_mode is fixed, as in the engine."""
+    wallets = _load_live_copy_config().get("wallets", {})
+    live = clo = 0
+    modes: Dict[str, int] = {}
+    for w, cfg in (wallets.items() if isinstance(wallets, dict) else []):
+        normal = normalize_live_wallet_config(w, cfg)
+        if not normal.get("service_eligible"):
+            continue
+        live += normal["mode"] == "LIVE"
+        clo += normal["mode"] == "CLO"
+        m = "proportional" if str(cfg.get("copy_mode", "fixed")).lower().strip() == "proportional" else "fixed"
+        modes[m] = modes.get(m, 0) + 1
+    sizing = ", ".join(f"{n} {m}" for m, n in sorted(modes.items())) or "no active wallets"
+    return live, clo, sizing.upper()
+
+
+_ACCOUNT_VALUE_CACHE: Dict[str, Any] = {}
+ACCOUNT_VALUE_FETCHER = None  # test seam; production reads the follower /info
+
+
+def _follower_account_value() -> Dict[str, Any]:
+    """Whole-account value of the follower (portfolio, spot + perps, so a unified account is not shown
+    as its perp margin only): the same figure the engine uses for equity. Cached 15 s."""
+    addr = _public_account_address()
+    if not addr:
+        return {"ok": False, "reason": "ACCOUNT_ADDRESS_UNAVAILABLE"}
+    hit = _ACCOUNT_VALUE_CACHE.get(addr)
+    if hit and time.time() - hit[1] <= 15:
+        return hit[0]
+    res = _XNET.rolling_day_pnl(addr, fetcher=ACCOUNT_VALUE_FETCHER, info_url=FOLLOWER_INFO_URL, timeout=5)
+    out = ({"ok": True, "value": fnum(res["account_value_usd"]), "address": addr}
+           if res.get("ok") and res.get("account_value_usd") is not None
+           else {"ok": False, "reason": str(res.get("status") or "PORTFOLIO_UNAVAILABLE"), "address": addr})
+    _ACCOUNT_VALUE_CACHE[addr] = (out, time.time())
+    return out
+
+
+def _follower_account_value_safe() -> Dict[str, Any]:
+    try:
+        return _follower_account_value()
+    except Exception as exc:  # the screen must still render
+        return {"ok": False, "reason": type(exc).__name__}
+
+
+def _account_card_lines() -> List[str]:
+    """Real follower account value from the follower exchange, never the model's normalised base."""
+    try:
+        acct = _follower_account_value()
+    except Exception as exc:  # the page must still render
+        acct = {"ok": False, "reason": type(exc).__name__}
+    net = html.escape(FOLLOWER_NETWORK.upper())
+    if not acct.get("ok"):
+        return [f'<div class="metric-line"><span>{net}</span><b class="neg">UNAVAILABLE</b></div>',
+                f'<div class="metric-line"><span>WHY</span><b>{html.escape(str(acct.get("reason") or "?"))}</b></div>']
+    value, addr = acct["value"], str(acct.get("address") or "")
+    return [f'<div class="metric-line"><span>EQUITY</span><b>{money(value)}</b></div>',
+            f'<div class="metric-line"><span>{net}</span><b title="{html.escape(addr)}">{html.escape(addr[:6] + "…" + addr[-4:])}</b></div>']
+
+
 def render_home(state: Dict[str, Any]) -> str:
     state = dict(state)
     ui = load_ui_state()
@@ -5660,6 +5661,7 @@ def render_home(state: Dict[str, Any]) -> str:
     def group_card(title: str, lines: List[str], extra_cls: str = "") -> str:
         return f'<div class="card group-card {extra_cls}"><div class="label">{title}</div>' + "".join(lines) + '</div>'
     cards = "".join([
+        group_card("ACCOUNT (EXCHANGE)", _account_card_lines()),
         group_card("PNL", [small_metric("LEAD", dual(lead_total, user_base), lead_total), small_metric("COPY", dual(copy_total, user_base), copy_total), small_metric("Δ", dual(delta_total, user_base), delta_total)]),
         group_card("REALISED", [small_metric("LEAD", dual(fnum(lead.get("realized")), user_base), fnum(lead.get("realized"))), small_metric("COPY", dual(fnum(copy.get("realized")), user_base), fnum(copy.get("realized")))]),
         group_card("UNREALISED", [small_metric("LEAD", dual(fnum(lead.get("unrealized")), user_base), fnum(lead.get("unrealized"))), small_metric("COPY", dual(fnum(copy.get("unrealized")), user_base), fnum(copy.get("unrealized")))]),
@@ -5700,7 +5702,9 @@ def render_home(state: Dict[str, Any]) -> str:
     if contract_errs:
         msgs = " | ".join(html.escape(e) for e in contract_errs[:10])
         banner = f'<div style="background:#3d1515;border:1px solid #f44;color:#f88;padding:8px 14px;font-size:11px;position:sticky;top:48px;z-index:3"><b>&#9888; CONTRACT WARNING ({len(contract_errs)} errors):</b> {msgs}</div>'
-    return banner + HTML_TEMPLATE.format(updated=state.get("updated_at", ""), norm=base, mode=str(ui.get("copy_mode", "proportional")).upper(), fixed=fnum(ui.get("fixed_notional"), DEFAULT_FIXED_NOTIONAL), fee=fnum(ui.get("fee_bps"), DEFAULT_FEE_BPS), friction=fnum(ui.get("copy_friction_bps"), DEFAULT_COPY_FRICTION_BPS), cards=cards, chart=render_chart(state.get("portfolio_history", [])), wallet_count=len(metric_rows), table_head=table_head, table_rows=body_rows, raw_boundary=state.get("engine_truth_boundary", ""))
+    live_n, clo_n, engine_sizing = _engine_wallet_summary()
+    wallet_count = f"{live_n + clo_n} followed: {live_n} LIVE, {clo_n} close-only; {len(metric_rows)} with copy history"
+    return banner + HTML_TEMPLATE.format(updated=state.get("updated_at", ""), norm=base, mode=html.escape(engine_sizing), fixed=fnum(ui.get("fixed_notional"), DEFAULT_FIXED_NOTIONAL), fee=fnum(ui.get("fee_bps"), DEFAULT_FEE_BPS), friction=fnum(ui.get("copy_friction_bps"), DEFAULT_COPY_FRICTION_BPS), cards=cards, chart=render_chart(state.get("portfolio_history", [])), wallet_count=wallet_count, table_head=table_head, table_rows=body_rows, raw_boundary=state.get("engine_truth_boundary", ""))
 
 
 def extract_num(s: str) -> float:
@@ -5745,7 +5749,7 @@ def lc_cell(row: Dict[str, Any], pair: Tuple[int, int], cls: str = "") -> str:
 def render_row(r: Dict[str, Any], base: float, ui: Dict[str, Any], state: Optional[Dict[str, Any]] = None) -> str:
     state = state or {}
     lead = r.get("lead", {}); copy = r.get("copy", {}); delta = r.get("delta", {})
-    wallet = str(r.get("wallet", "")); badge = " <span class='badge'>USER</span>" if r.get("is_user_wallet") else ""
+    wallet = str(r.get("wallet", "")); badge = " <span class='badge' title='analysis model, normalised to the aggregate base; the real account value is in the ACCOUNT card'>USER (MODEL)</span>" if r.get("is_user_wallet") else ""
     alloc = fnum(r.get('alloc'), base)
     lead_pnl = fnum(lead.get('realized')) + fnum(lead.get('unrealized'))
     copy_pnl = fnum(copy.get('realized')) + fnum(copy.get('unrealized'))
@@ -5815,11 +5819,11 @@ HTML_TEMPLATE = """
 <!doctype html><html><head><meta charset="utf-8"><title>HL Copy Engine SSOT</title>
 <style>
 body{{margin:0;background:#0d1117;color:#c9d1d9;font:12px Arial,Helvetica,sans-serif}} a{{color:#58a6ff;text-decoration:none}} .top{{display:flex;align-items:center;gap:12px;padding:8px 14px;border-bottom:1px solid #222;background:#090d12;position:sticky;top:0;z-index:4;box-shadow:0 2px 8px rgba(0,0,0,.25)}} .live{{background:#003d1f;color:#2ea043;border:1px solid #2ea043;border-radius:12px;padding:2px 8px;font-size:10px}} .muted{{color:#8b949e}} input,select,button{{background:#161b22;color:#c9d1d9;border:1px solid #30363d;border-radius:4px;padding:3px 8px}} button{{cursor:pointer}}
-.cards{{display:grid;grid-template-columns:repeat(9,minmax(130px,1fr));gap:8px;padding:10px 14px}} .card{{background:#161b22;border:1px solid #21262d;border-radius:8px;padding:9px;min-height:72px}} .group-card .label{{font-size:10px;color:#8b949e;margin-bottom:6px;border-bottom:1px solid #21262d;padding-bottom:4px}} .metric-line{{display:flex;justify-content:space-between;gap:8px;line-height:1.55}} .metric-line span{{color:#8b949e}} .metric-line b{{font-weight:700}} .pos{{color:#2ea043}} .neg{{color:#ff4d4f}} .zero{{color:#c9d1d9}}
+.cards{{display:grid;grid-template-columns:repeat(10,minmax(120px,1fr));gap:8px;padding:10px 14px}} .card{{background:#161b22;border:1px solid #21262d;border-radius:8px;padding:9px;min-height:72px}} .group-card .label{{font-size:10px;color:#8b949e;margin-bottom:6px;border-bottom:1px solid #21262d;padding-bottom:4px}} .metric-line{{display:flex;justify-content:space-between;gap:8px;line-height:1.55}} .metric-line span{{color:#8b949e}} .metric-line b{{font-weight:700}} .pos{{color:#2ea043}} .neg{{color:#ff4d4f}} .zero{{color:#c9d1d9}}
 .section{{padding:0 14px 10px}} .panel{{background:#161b22;border:1px solid #21262d;border-radius:6px;padding:10px;margin-bottom:12px}} .chart-wrap{{position:relative;cursor:zoom-in}} .chart-wrap.expanded{{position:relative;z-index:20}} .chart-wrap.expanded .chart{{height:76vh}} .chart{{width:100%;height:260px;background:#151a21}} .chart *{{vector-effect:non-scaling-stroke}} .pnl-line{{fill:none;stroke:#2ea043;stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round}} .realized-line{{fill:none;stroke:#58a6ff;stroke-width:1.4;stroke-linejoin:round;stroke-linecap:round}} .dd-line{{fill:none;stroke:#ff4d4f;stroke-width:1.4;stroke-linejoin:round;stroke-linecap:round}} .zero-line{{stroke:#8b949e;stroke-width:1}} .grid-line,.grid-vert{{stroke:#21262d;stroke-width:1}} .axis-label{{fill:#8b949e;font-size:10px}} .hit{{fill:transparent;stroke:none;pointer-events:all}} .crosshair{{stroke:#8b949e;stroke-width:1;stroke-dasharray:3 3;pointer-events:none}} .chart-dot{{fill:#c9d1d9;stroke:#0d1117;stroke-width:1.2;pointer-events:none}} .chart-tip{{position:absolute;left:10px;top:10px;background:#0d1117;border:1px solid #30363d;border-radius:4px;padding:5px 7px;color:#c9d1d9;font-size:11px;pointer-events:none;box-shadow:0 4px 12px rgba(0,0,0,.35)}} .chart-legend{{display:flex;gap:10px;align-items:center;margin-top:6px}} .legend-pnl{{color:#2ea043}} .legend-realized{{color:#58a6ff}} .legend-dd{{color:#ff4d4f}}
 .table-wrap{{border:1px solid #21262d;border-radius:6px;background:#0d1117}} table{{width:100%;border-collapse:separate;border-spacing:0;font-size:11px}} th{{position:sticky;top:0;background:#21262d;color:#8b949e;text-align:right;padding:7px;border-bottom:1px solid #30363d;z-index:2}} th:first-child,td:first-child{{text-align:left}} th.sort-active{{background:#303a49;color:#fff;box-shadow:inset 0 -2px 0 #58a6ff}} th.sort-active a{{color:#fff}} th a{{display:block;color:#8b949e}} td{{padding:6px;border-bottom:1px solid #21262d;text-align:right;white-space:nowrap}} tr:nth-child(even){{background:#111820}} tr.user{{background:#071527}} tr:hover{{background:#1b2330}} tr.excluded-row{{}}
 .sticky-wallet{{position:sticky;left:0;z-index:3;background:inherit;min-width:132px;border-right:1px solid #30363d}} th.sticky-wallet{{z-index:4;background:#21262d}} .sticky-wallet.wallet-color-blue{{background:linear-gradient(90deg,rgba(88,166,255,.34),rgba(13,17,23,.96))!important;border-left:4px solid #58a6ff}} .sticky-wallet.wallet-color-green{{background:linear-gradient(90deg,rgba(46,160,67,.34),rgba(13,17,23,.96))!important;border-left:4px solid #2ea043}} .sticky-wallet.wallet-color-yellow{{background:linear-gradient(90deg,rgba(210,153,34,.36),rgba(13,17,23,.96))!important;border-left:4px solid #d29922}} .sticky-wallet.wallet-color-red{{background:linear-gradient(90deg,rgba(255,77,79,.34),rgba(13,17,23,.96))!important;border-left:4px solid #ff4d4f}} .sticky-wallet.wallet-color-purple{{background:linear-gradient(90deg,rgba(163,113,247,.34),rgba(13,17,23,.96))!important;border-left:4px solid #a371f7}} .pair-lead{{background:rgba(88,166,255,.045)}} .pair-copy{{background:rgba(46,160,67,.045)}} .ops-group{{background:rgba(210,153,34,.05)}} .group-divider{{border-right:2px solid #30363d!important}} .badge{{background:#0d419d;color:#fff;border-radius:3px;padding:1px 4px;font-size:9px}} .wallet-tag{{background:#30363d;color:#c9d1d9;border-radius:3px;padding:1px 4px;font-size:9px}} .mode{{background:#063d1f;color:#2ea043;border-radius:3px;padding:2px 6px}} .wallet-cfg{{display:inline-flex;gap:3px;margin-left:4px;align-items:center}} .wallet-cfg input{{width:48px;padding:1px 3px}} .wallet-cfg select{{width:70px;padding:1px 3px}} .wallet-cfg button{{padding:1px 4px}} .inc-form{{display:inline-flex;align-items:center;gap:2px;margin-right:6px}} .inc-form input{{padding:0;width:14px;height:14px}} .purge-form{{display:inline-flex;margin-left:4px;align-items:center}} .purge-btn{{border-color:#8b1d1d;background:#3a1111;color:#ff7b72;padding:1px 5px;font-size:10px}} .inc-off{{opacity:1}} .controls-cell{{min-width:315px;text-align:left}} .small{{font-size:11px;color:#8b949e}} .missing{{color:#6e7681!important}} .selected-divider td{{background:#0d1117;border-top:2px solid #58a6ff;border-bottom:1px solid #30363d;color:#8b949e;text-align:left;font-size:10px;letter-spacing:.04em;text-transform:uppercase;padding:6px 8px}} .saving{{opacity:.65}} .saved-flash{{color:#2ea043}} .chart-empty{{height:230px;display:flex;align-items:center;justify-content:center;color:#8b949e}} @media(max-width:1300px){{.cards{{grid-template-columns:repeat(3,minmax(150px,1fr))}}}}
-</style></head><body><div class="top"><b>⚡ HL Copy Engine</b><span class="live">POLL</span><span class="muted">Updated: {updated}</span><form action="/api/ui-state" method="post" class="ajax-form" style="display:flex;gap:6px;align-items:center;margin:0"><span class="muted">Normalisation Base:</span><input name="norm_base" value="{norm}" size="8"><span class="muted">Mode:</span><select name="copy_mode"><option>proportional</option><option>fixed</option></select><span class="muted">Fixed $:</span><input name="fixed_notional" value="{fixed}" size="6"><span class="muted">Fee bps:</span><input name="fee_bps" value="{fee}" size="5"><span class="muted">Copy friction bps:</span><input name="copy_friction_bps" value="{friction}" size="5"><button>Set</button></form><span class="muted">Current: {mode}</span><span id="save-status" class="muted"></span><span style="margin-left:auto" class="muted">Auto refresh off</span></div><div class="cards">{cards}</div><div class="section"><b>COMBINED PORTFOLIO — NON-USER WALLETS</b><div class="panel">{chart}</div><div class="small">TRACKED WALLETS ({wallet_count}) — model derived in app from engine SSOT only. {raw_boundary}</div><div class="table-wrap"><table><thead>{table_head}</thead><tbody>{table_rows}</tbody></table></div></div>
+</style></head><body><div class="top"><b>⚡ HL Copy Engine</b><span class="live">POLL</span><span class="muted">Updated: {updated}</span><form action="/api/ui-state" method="post" class="ajax-form" style="display:flex;gap:6px;align-items:center;margin:0"><span class="muted">Normalisation Base:</span><input name="norm_base" value="{norm}" size="8"><span class="muted">Model mode:</span><select name="copy_mode"><option>proportional</option><option>fixed</option></select><span class="muted">Fixed $:</span><input name="fixed_notional" value="{fixed}" size="6"><span class="muted">Fee bps:</span><input name="fee_bps" value="{fee}" size="5"><span class="muted">Copy friction bps:</span><input name="copy_friction_bps" value="{friction}" size="5"><button>Set</button></form><span class="muted" title="what the engine actually uses for LIVE / close-only wallets">Engine sizing: {mode}</span><span id="save-status" class="muted"></span><span style="margin-left:auto" class="muted">Auto refresh off</span></div><div class="cards">{cards}</div><div class="section"><b>COMBINED PORTFOLIO — NON-USER WALLETS</b><div class="panel">{chart}</div><div class="small">TRACKED WALLETS ({wallet_count}) — model derived in app from engine SSOT only. {raw_boundary}</div><div class="table-wrap"><table><thead>{table_head}</thead><tbody>{table_rows}</tbody></table></div></div>
 <script>(function(){{
 let busyUntil=0;
 const status=document.getElementById('save-status');
@@ -5923,9 +5927,9 @@ def wants_json_response(request: Request) -> bool:
 
 
 @app.get("/", response_class=HTMLResponse)
-def home() -> HTMLResponse:
-    """Dashboard home route with non-blocking fallback."""
-    return _model_dashboard_response()
+def home():
+    """The live screen is the operator's home; the wallet modelling page stays at /model."""
+    return RedirectResponse("/live-copy", status_code=307)
 
 
 @app.get("/model", response_class=HTMLResponse)
@@ -6225,12 +6229,14 @@ def render_live_copy_control_panel() -> str:
           <button type="button" id="lcGcClose">close</button>
         </div>
         <p>These override all wallet settings. 0/blank = OFF. Slippage is shown as %. Internally converted where needed.</p>
+        <p id="gcNetworks" class="lc-muted"></p>
         <div class="lc-form-grid" id="lcGcForm">
           <label>Max total live exposure ($) <input id="gcMaxTotal" type="number" min="0" step="1" placeholder="0 = disabled"></label>
           <label>Max per-asset directional exposure ($) <input id="gcMaxDir" type="number" min="0" step="1" placeholder="0 = disabled"></label>
+          <label>Max daily loss ($, last 24 h) <input id="gcMaxDailyLoss" type="number" min="0" step="1" placeholder="0 = disabled"></label>
           <label>Max per-wallet exposure ($) <input id="gcMaxWallet" type="number" min="0" step="1" placeholder="0 = disabled"></label>
           <label>Max per-order notional ($) <input id="gcMaxOrder" type="number" min="0" step="0.01" placeholder="0 = disabled"></label>
-          <label>Marketable slippage % <input id="gcMktPct" type="number" min="0" max="0.50" step="0.01" placeholder="0 = OFF"><span id="gcMktPctState" class="lc-muted"></span></label>
+          <label>Marketable slippage % <input id="gcMktPct" type="number" min="0" max="0.50" step="0.01" placeholder="0 = no slippage allowed"><span id="gcMktPctState" class="lc-muted"></span></label>
           <label>Adverse close diff % <input id="gcCloseAdv" type="number" min="0" step="0.01" placeholder="0 = OFF"><span id="gcCloseAdvState" class="lc-muted"></span></label>
           <label class="wide">Symbol allowlist (empty = all allowed) <input id="gcAllowlist" type="text" placeholder="BTC,ETH"></label>
           <label class="wide">Symbol blocklist <input id="gcBlocklist" type="text" placeholder="DOGE,SHIB"></label>
@@ -6372,12 +6378,9 @@ def render_live_copy_control_panel() -> str:
       <div class="lc-form-grid">
         <label class="wide">Wallet address<input name="wallet" placeholder="0x wallet address" autocomplete="off"></label>
         <label>Initial mode<select name="mode"><option>LIVE</option><option>CLO</option><option>OFF</option></select></label>
-        <label>Copy model<select name="copy_mode"><option value="proportional">proportional</option><option value="fixed">fixed</option></select></label>
+        <label>Copy model<select name="copy_mode"><option value="fixed">fixed</option><option value="proportional">proportional</option></select></label>
         <label>Norm base<input name="norm_base" value="100"></label>
         <label>Fixed notional<input name="fixed_notional" value="10"></label>
-        <label>Leader equity base<input name="leader_equity_base" value="10000"></label>
-        <label>Max diff %<input name="max_diff_pct" value="0.1"></label>
-        <label>Daily loss<input name="daily_loss_limit" value="0"></label>
       </div>
       <div class="lc-modal-actions"><button type="button" data-lc-close>Cancel</button><button type="submit">Add wallet</button></div>
     </form>
@@ -6414,7 +6417,7 @@ function pair(a,b,cls){return `<div class="lc-pair"><span>${h(a)}</span><b class
 function signed(v){const s=String(v||'—');return s.trim().startsWith('-')?'lc-neg':(s.trim().startsWith('+')?'lc-pos':'');}
 function count(obj,key){return Number((obj||{})[key]||0);}
 function sourceOf(r){return first(r,['source','fill_source'])||String(first(r,['reason'])).replace('LIVE_','').replace('_DETECTED','')||'—';}
-function rowPayload(tr){return {wallet:tr.dataset.wallet,mode:tr.querySelector('[name=mode]').value,copy_mode:tr.querySelector('[name=copy_mode]').value,norm_base:num(tr.querySelector('[name=norm_base]').value,100),fixed_notional:num(tr.querySelector('[name=fixed_notional]').value,10),leader_equity_base:num(tr.querySelector('[name=leader_equity_base]').value,10000),max_diff_pct:num(tr.querySelector('[name=max_diff_pct]').value,0.1),daily_loss_limit:num(tr.querySelector('[name=daily_loss_limit]').value,0)};}
+function rowPayload(tr){return {wallet:tr.dataset.wallet,mode:tr.querySelector('[name=mode]').value,copy_mode:tr.querySelector('[name=copy_mode]').value,norm_base:num(tr.querySelector('[name=norm_base]').value,100),fixed_notional:num(tr.querySelector('[name=fixed_notional]').value,10)};}
 function age(ms){const n=Number(ms||0);if(!n)return '—';const d=Math.max(0,Date.now()-n);return d<60000?Math.round(d/1000)+'s':Math.round(d/60000)+'m';}
 function time(ms){const n=Number(ms||0);return n?new Date(n).toLocaleTimeString():'—';}
 function tsOf(p){const raw=p.fetched_at_ms||p.timestamp_ms||p.ts||p.time_ms; if(Number(raw)>0)return Number(raw); const s=p.timestamp||p.updated_at||p.created_at||p.time||''; const t=Date.parse(s); return Number.isFinite(t)?t:0;}
@@ -6511,7 +6514,8 @@ function renderGraph(){
 function renderCards(){
  const snap=lcAudit.exchange_account_snapshot||{}, manual=lcAudit.manual_live_summary||{};
  const lf=manual.last_filled_manual_order||{}, lr=manual.last_rejected_manual_order||{};
- const unified=snap.available&&snap.unified_portfolio_value!=null?('$'+Number(snap.unified_portfolio_value||0).toLocaleString(undefined,{maximumFractionDigits:2})):'Unavailable';
+ const fa=lcAudit.follower_account||{};  // whole-account value (spot + perps) from the follower exchange, as the engine uses
+ const unified=fa.ok?('$'+Number(fa.value||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})):('Unavailable'+(fa.reason?' <span class="lc-muted">'+h(fa.reason)+'</span>':''));
  const upnl=snap.available&&snap.unrealized_pnl!=null?('$'+Number(snap.unrealized_pnl).toLocaleString(undefined,{maximumFractionDigits:2})):'n/a';
  const rpnl=snap.realized_pnl_selected!=null?('$'+Number(snap.realized_pnl_selected||0).toLocaleString(undefined,{maximumFractionDigits:2})+' '+h(snap.realized_pnl_selected_label||'')):'Unavailable';
  const upnlCls=signCls(snap.unrealized_pnl);
@@ -6526,7 +6530,7 @@ function renderCards(){
  const lrStatusLabel={'SYMBOL_UNAVAILABLE':'symbol not found after fresh universe refresh','META_UNAVAILABLE':'could not fetch Hyperliquid universe','SDK_SYMBOL_MAP_UNAVAILABLE':'symbol in meta but SDK map unavailable'}[lrStatusRaw]||lrStatusRaw;
  const lrStr=lr.coin?(h(lr.coin)+' '+h(lr.actual_side||lr.side||'?')+' '+h(lrStatusLabel)+(lrErr?'<br><span class="lc-muted" title="'+h(lrErr)+'">'+tiny(lrErr,90)+'</span>':'')):'none';
  const lrCls=lr.coin?'lc-neg':'';
- const cards=[['Portfolio Value',unified,''],['Unrealized PnL',upnl,upnlCls],['Realized PnL',rpnl,rpnlCls],['Open Positions',exPos,''],['Live Exposure',exp,expCls],['Last Fill',lfStr,''],['Last Reject',lrStr,lrCls]];
+ const cards=[['Portfolio Value ('+String(lcAudit.follower_network||'').toUpperCase()+')',unified,''],['Unrealized PnL',upnl,upnlCls],['Realized PnL',rpnl,rpnlCls],['Open Positions',exPos,''],['Live Exposure',exp,expCls],['Last Fill',lfStr,''],['Last Reject',lrStr,lrCls]];
  root.querySelector('#lcRealCards').innerHTML=cards.map(([l,v,cls])=>`<div class="lc-stat"><div class="label">${h(l)}</div><div class="value ${cls||''}" style="font-size:12px;word-break:break-all">${v}</div></div>`).join('');
  renderGraph();
 }
@@ -6587,7 +6591,7 @@ function renderWallets(){
     <td>${execHtml}</td>
     <td>${riskHtml}</td>
     <td style="font-size:11px">${lfStr}</td>
-    <td><div class="lc-cell-stack"><div class="lc-inline-controls"><select name="mode"><option ${mode==='LIVE'?'selected':''}>LIVE</option><option ${mode==='CLO'?'selected':''}>CLO</option><option ${mode==='OFF'?'selected':''}>OFF</option></select><select name="copy_mode"><option value="proportional" ${model!=='fixed'?'selected':''}>prop</option><option value="fixed" ${model==='fixed'?'selected':''}>fixed</option></select></div><div class="lc-inline-controls"><span class="lc-muted">F</span><input name="fixed_notional" value="${h(d.fixed_notional??10)}" style="width:58px"><span class="lc-muted">N</span><input name="norm_base" value="${h(d.norm_base??100)}" style="width:52px"><span class="lc-muted">B</span><input name="leader_equity_base" value="${h(d.leader_equity_base??10000)}" style="width:70px"><input name="max_diff_pct" type="hidden" value="${h(d.max_diff_pct??0.1)}"><input name="daily_loss_limit" type="hidden" value="${h(d.daily_loss_limit??0)}"></div><div class="lc-mini-actions"><button data-act="save" type="button">Save</button><button data-act="clo" type="button">CLO</button><button data-act="off" type="button">OFF</button><button data-act="archive" class="lc-danger" type="button">Archive</button></div></div></td>
+    <td><div class="lc-cell-stack"><div class="lc-inline-controls"><select name="mode"><option ${mode==='LIVE'?'selected':''}>LIVE</option><option ${mode==='CLO'?'selected':''}>CLO</option><option ${mode==='OFF'?'selected':''}>OFF</option></select><select name="copy_mode"><option value="proportional" ${model!=='fixed'?'selected':''}>prop</option><option value="fixed" ${model==='fixed'?'selected':''}>fixed</option></select></div><div class="lc-inline-controls"><span class="lc-muted">F</span><input name="fixed_notional" value="${h(d.fixed_notional??10)}" style="width:58px"><span class="lc-muted">N</span><input name="norm_base" value="${h(d.norm_base??100)}" style="width:52px"></div><div class="lc-mini-actions"><button data-act="save" type="button">Save</button><button data-act="clo" type="button">CLO</button><button data-act="off" type="button">OFF</button><button data-act="archive" class="lc-danger" type="button">Archive</button></div></div></td>
   </tr>`;
  }).join('');
  root.querySelector('#lcWalletRows').innerHTML=rows||'<tr><td colspan="8">No live-copy wallets configured.</td></tr>';
@@ -6790,18 +6794,19 @@ function render(){
  const wsOverall=String(lcHealth.overall||'OFFLINE').toUpperCase();
  root.querySelector('#lcWsOverall').textContent=(['CLOSED','DEGRADED','DISABLED','OFFLINE'].includes(wsOverall))?'OFFLINE':wsOverall;
  const ro=root.querySelector('#lcRealOrders');
- if(ro){const hasRealFills=(lcAudit.execution_quality_rows||[]).some(r=>r.status==='ORDER_FILLED');ro.className='lc-pill '+(hasRealFills?'lc-green':'lc-red');ro.textContent=hasRealFills?'REAL ORDERS: SERVICE ACTIVE':'REAL ORDERS: APP DISABLED';}
+ if(ro){const armed=lcAudit.master_real_orders_enabled===true;ro.className='lc-pill '+(armed?'lc-green':'lc-red');ro.textContent=armed?'REAL ORDERS: ON':'REAL ORDERS: OFF';}
  renderTopStatus(); renderCards(); renderWallets(); renderAudit(); renderHealth(); renderPositions(); renderExecQuality();
 }
-async function refresh(quiet){try{if(!quiet)msg('Loading...');const [cfg,health,audit,gcr]=await Promise.all([jget('/api/live-config'),jget('/api/live-ws-health'),jget('/api/live-audit-summary'),jget('/api/global-controls')]);lcConfig=cfg.config||{wallets:{}};lcHealth=health.health||{};lcAudit=audit||{};render();loadGcForm(gcr.global_controls||{});if(!quiet)msg('Loaded');}catch(e){msg(e.message||String(e),true);}}
+async function refresh(quiet){try{if(!quiet)msg('Loading...');const [cfg,health,audit,gcr]=await Promise.all([jget('/api/live-config'),jget('/api/live-ws-health'),jget('/api/live-audit-summary'),jget('/api/global-controls')]);lcConfig=cfg.config||{wallets:{}};lcHealth=health.health||{};lcAudit=audit||{};render();loadGcForm(gcr.global_controls||{});const nw=root.querySelector('#gcNetworks');if(nw&&gcr.networks)nw.textContent='Leader feed: '+gcr.networks.leader+' | Follower account: '+gcr.networks.follower+' | Markets: every market the leaders trade'+((gcr.networks.follower_dexes||[]).length>1?' (always read: '+gcr.networks.follower_dexes.join(', ')+')':'')+' | State folder: '+(gcr.networks.state_dir||'');if(!quiet)msg('Loaded');}catch(e){msg(e.message||String(e),true);}}
 function loadGcForm(gc){
   const f=(id,v)=>{const el=root.querySelector('#'+id);if(el&&v!=null)el.value=v;};
   const st=(id,v)=>{const el=root.querySelector('#'+id);if(el)el.textContent=Number(v||0)<=0?'OFF':'';};
-  f('gcMaxTotal',gc.max_total_live_exposure_usd||0);f('gcMaxDir',gc.max_asset_directional_exposure_usd||0);
+  f('gcMaxTotal',gc.max_total_live_exposure_usd||0);f('gcMaxDir',gc.max_asset_directional_exposure_usd||0);f('gcMaxDailyLoss',gc.max_daily_loss_usd||0);
   f('gcMaxWallet',gc.max_wallet_exposure_usd||0);f('gcMaxOrder',gc.max_order_notional_usd||0);
   const mktPct=gc.marketable_slippage_pct!=null?gc.marketable_slippage_pct:(Number(gc.marketable_bps||0)/100);
   const closePct=gc.max_close_adverse_diff_pct!=null?gc.max_close_adverse_diff_pct:0;
-  f('gcMktPct',mktPct);f('gcCloseAdv',closePct);st('gcMktPctState',mktPct);st('gcCloseAdvState',closePct);
+  f('gcMktPct',mktPct);f('gcCloseAdv',closePct);st('gcCloseAdvState',closePct);
+  {const el=root.querySelector('#gcMktPctState');if(el)el.textContent=Number(mktPct||0)<=0?'0 = NO slippage allowed: orders are priced exactly at the reference price and may not fill':'';}
   f('gcAllowlist',(gc.symbol_allowlist||[]).join(','));f('gcBlocklist',(gc.symbol_blocklist||[]).join(','));
 }
 root.querySelector('#lcRefresh').addEventListener('click',()=>refresh());
@@ -6815,7 +6820,7 @@ root.querySelector('#lcGcSave').addEventListener('click',async()=>{
   const g=id=>parseFloat(root.querySelector('#'+id).value)||0;
   const gl=id=>(root.querySelector('#'+id).value||'').split(',').map(s=>s.trim().toUpperCase()).filter(Boolean);
   try{gs.textContent='Saving...';gs.className='lc-status';
-    await jpost('/api/global-controls',{max_total_live_exposure_usd:g('gcMaxTotal'),max_asset_directional_exposure_usd:g('gcMaxDir'),max_wallet_exposure_usd:g('gcMaxWallet'),max_order_notional_usd:g('gcMaxOrder'),marketable_slippage_pct:g('gcMktPct'),max_close_adverse_diff_pct:g('gcCloseAdv'),symbol_allowlist:gl('gcAllowlist'),symbol_blocklist:gl('gcBlocklist')});
+    await jpost('/api/global-controls',{max_total_live_exposure_usd:g('gcMaxTotal'),max_asset_directional_exposure_usd:g('gcMaxDir'),max_daily_loss_usd:g('gcMaxDailyLoss'),max_wallet_exposure_usd:g('gcMaxWallet'),max_order_notional_usd:g('gcMaxOrder'),marketable_slippage_pct:g('gcMktPct'),max_close_adverse_diff_pct:g('gcCloseAdv'),symbol_allowlist:gl('gcAllowlist'),symbol_blocklist:gl('gcBlocklist')});
     gs.textContent='Saved';gs.className='lc-status lc-ok';}catch(e){gs.textContent=e.message||String(e);gs.className='lc-status lc-bad';}
 });
 root.querySelectorAll('[data-lc-modal]').forEach(btn=>btn.addEventListener('click',()=>{const m=root.querySelector('#'+btn.dataset.lcModal);if(m){m.classList.add('active');m.setAttribute('aria-hidden','false');}}));
@@ -6828,7 +6833,7 @@ if(applyRange) applyRange.addEventListener('click',()=>{const s=root.querySelect
 const resetRange=root.querySelector('#lcGraphResetRange');
 if(resetRange) resetRange.addEventListener('click',()=>{lcGraphScale='all';lcGraphStartMs=0;lcGraphEndMs=0;const s=root.querySelector('#lcGraphStart'),e=root.querySelector('#lcGraphEnd');if(s)s.value='';if(e)e.value='';root.querySelectorAll('[data-lc-graph-scale]').forEach(b=>b.classList.toggle('active',b.dataset.lcGraphScale==='all'));renderGraph();});
 root.querySelector('#lcAddForm').addEventListener('submit',async e=>{e.preventDefault();const fd=new FormData(e.currentTarget);const payload=Object.fromEntries(fd.entries());try{msg('Updating...');await jpost('/api/live-config/add-wallet',payload);e.currentTarget.reset();const m=e.currentTarget.closest('.lc-modal-backdrop');if(m)m.classList.remove('active');await refresh(true);msg('Updated: '+shortWallet(payload.wallet)+' -> SAVED');}catch(err){msg(err.message,true);}});
-root.querySelector('#lcReconRows').addEventListener('click',async e=>{const btn=e.target.closest('button[data-recon-act="archive-ledger-row"]');if(!btn)return;const payload={wallet:btn.dataset.wallet||'',coin:btn.dataset.coin||'',issue:btn.dataset.issue||'',manual_signed_size:btn.dataset.manualSize||''};if(!window.confirm('Archive this stale app ledger row only? This will not place an exchange order.'))return;try{msg('Archiving ledger row...');await jpost('/api/manual-reconciliation/archive-ledger-row',payload);await refresh(true);msg('Archived ledger row for '+payload.coin+'. No exchange order was placed.');}catch(err){msg(err.message||String(err),true);}});
+
 root.querySelector('#lcWalletRows').addEventListener('click',async e=>{
  const btn=e.target.closest('button[data-act]');
  if(btn){const tr=btn.closest('tr');const wallet=tr.dataset.wallet;const short=shortWallet(wallet);try{if(btn.dataset.act==='archive'&&!window.confirm('Archive removes from config only. Audit/history preserved.')){msg('Cancelled');return;}msg('Updating...');if(btn.dataset.act==='save'){await jpost('/api/live-config/set-wallet',rowPayload(tr));await refresh(true);msg('Updated: '+short+' -> SAVED');}if(btn.dataset.act==='clo'){await jpost('/api/live-config/set-mode',{wallet,mode:'CLO'});await refresh(true);msg('Updated: '+short+' -> CLO');}if(btn.dataset.act==='off'){await jpost('/api/live-config/set-mode',{wallet,mode:'OFF'});await refresh(true);msg('Updated: '+short+' -> OFF');}if(btn.dataset.act==='archive'){await jpost('/api/live-config/remove-wallet',{wallet,archive:true});await refresh(true);msg('Updated: '+short+' -> ARCHIVED');}}catch(err){msg(err.message,true);}return;}
@@ -7077,7 +7082,12 @@ def get_live_copy_summary():
 @app.get("/api/global-controls")
 def get_global_controls():
     cfg = _load_live_copy_config()
-    return JSONResponse({"ok": True, "global_controls": _global_controls_for_ui(cfg.get("global_controls", _GLOBAL_CONTROLS_DEFAULTS))})
+    return JSONResponse({"ok": True, "global_controls": _global_controls_for_ui(cfg.get("global_controls", _GLOBAL_CONTROLS_DEFAULTS)),
+                         "networks": {"leader": NETWORKS["leader"]["network"], "follower": FOLLOWER_NETWORK,
+                                      "state_dir": str(LIVE_COPY_AUDIT_DIR),
+                                      # HIP-3 markets read even before any leader trades them; the engine also
+                                      # follows every market a leader trades and every one the follower holds
+                                      "follower_dexes": ["default"] + sorted({d.strip().lower() for d in str(_NET_ENV.get("HL_FOLLOWER_DEXES") or "").split(",") if d.strip()})}})
 
 
 @app.post("/api/global-controls")
@@ -7227,17 +7237,7 @@ async def set_live_config_mode(req: Request):
         return _live_config_error(type(exc).__name__)
 
 
-@app.post("/api/manual-reconciliation/archive-ledger-row")
-async def archive_manual_reconciliation_ledger_row(req: Request):
-    try:
-        body = await req.json()
-        result = _archive_manual_reconciliation_ledger_row(body if isinstance(body, dict) else {})
-        return JSONResponse(result, status_code=200 if result.get("ok") else 400)
-    except Exception as exc:
-        return JSONResponse({"ok": False, "error": type(exc).__name__}, status_code=400)
-
-
 if __name__ == "__main__":
     if uvicorn is None:
         raise SystemExit("Missing uvicorn. Install with: pip install uvicorn fastapi")
-    uvicorn.run("HL_Copy_App_SSOT:app", host="127.0.0.1", port=8000, reload=False)
+    uvicorn.run("HL_Copy_App_SSOT:app", host="127.0.0.1", port=APP_PORT, reload=False)
