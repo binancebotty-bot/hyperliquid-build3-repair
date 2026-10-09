@@ -120,6 +120,7 @@ LIVE_WS_HEALTH_FILE = AUDIT_DIR / "live_ws_health.json"
 MANUAL_LIVE_POSITIONS_FILE = AUDIT_DIR / "manual_live_positions.json"
 EXCHANGE_ACCOUNT_SNAPSHOT_FILE = AUDIT_DIR / "exchange_account_snapshot.json"
 RESTING_ENTRY_ORDERS_FILE = AUDIT_DIR / "resting_entry_orders.json"  # missed-entry limits resting at the leader's price
+STANDING_CLOSES_FILE = AUDIT_DIR / "standing_recovery_closes.json"  # reduce-only recovery closes resting, by sleeve
 EXCHANGE_ACCOUNT_SNAPSHOT_APP_FILE = AUDIT_DIR / "exchange_account_snapshot_app.json"
 LIVE_INTEGRITY_STATUS_FILE = AUDIT_DIR / "live_integrity_status.json"
 ASSET_UNIVERSE_SNAPSHOT_FILE = AUDIT_DIR / "asset_universe_snapshot.json"
@@ -2043,18 +2044,15 @@ def _fill_dir(fill: "LeaderFill") -> str:
     return str((fill.raw or {}).get("dir") or "").strip().lower()
 
 
-def _fill_oid(fill: "LeaderFill") -> str:
-    return str((fill.raw or {}).get("oid") or "").strip()
-
-
 def mergeable_fills(a: "LeaderFill", b: "LeaderFill", proportional: bool) -> bool:
     """Two consecutive fills of one leader in one coin copy as ONE order when they are the same side and the same
-    direction ("Open Long", "Close Short", ...): always for proportional sizing (the size is the sum either way);
-    for fixed sizing only when they are pieces of the same leader order, so fixed means one copy per leader order."""
-    if (a.leader_wallet != b.leader_wallet or canonical_coin_key(a.coin) != canonical_coin_key(b.coin)
+    direction ("Open Long", "Close Short", ...) and sizing is proportional (the size is the sum either way). Fixed
+    sizing never merges: it is one fixed copy per leader fill, and merging would make the count depend on how far
+    behind the queue happens to be."""
+    if (not proportional or a.leader_wallet != b.leader_wallet or canonical_coin_key(a.coin) != canonical_coin_key(b.coin)
             or a.side != b.side or _fill_dir(a) != _fill_dir(b)):
         return False
-    return proportional or (bool(_fill_oid(a)) and _fill_oid(a) == _fill_oid(b))
+    return True
 
 
 def merge_leader_fills(fills: List["LeaderFill"]) -> "LeaderFill":
@@ -2734,7 +2732,7 @@ class IntentBuilder:
             return self.resting_exposure() or {}
         except Exception as exc:
             log_error("resting_exposure", exc)
-            return {"total_usd": 1e18}  # unreadable: fail closed (blocks every entry while a total cap is set)
+            return {"unreadable": True, "total_usd": 0.0}  # every cap fails closed on this
 
     def leader_equity(self, wallet: str) -> Optional[float]:
         """Leader account value on the LEADER network: the whole-account value from portfolio (required;
@@ -2821,6 +2819,8 @@ class IntentBuilder:
         pending_coin = sum(u for c, u, _px in self._exposure_pending if c == coin)
         # resting entry limits count as if they all fill (run 4: $2,256 resting was outside the caps)
         resting = self._resting()
+        if resting.get("unreadable"):
+            return "resting limits unreadable; entries fail closed while a cap is set"
         resting_total = fnum(resting.get("total_usd"), 0.0)
         if cap_total > 0 and fnum(exp.get("total_usd")) + pending_total + resting_total + copy_notional > cap_total + 1e-9:
             return "max total exposure exceeded (positions + resting limits)" if resting_total > 0 else "max total exposure exceeded"
@@ -2951,7 +2951,10 @@ class IntentBuilder:
         max_wallet = self.cfg.max_wallet_exposure(wallet)
         if max_wallet > 0:
             current = self.ledger.wallet_abs_exposure_usd(wallet, {fill.coin: value_px})
-            current += fnum((self._resting().get("by_wallet_usd") or {}).get(normalise_wallet(wallet)), 0.0)
+            resting = self._resting()
+            if resting.get("unreadable"):
+                return "SEND_BLOCKED_RISK", "resting limits unreadable; entries fail closed while a cap is set"
+            current += fnum((resting.get("by_wallet_usd") or {}).get(normalise_wallet(wallet)), 0.0)
             if current + order_notional > max_wallet:
                 return "SEND_BLOCKED_RISK", "max wallet exposure exceeded"
         if self.cfg.auto_send_enabled and not bval(os.getenv("HL_LIVE_MOCK_SEND"), False):
@@ -2993,6 +2996,7 @@ class SenderGateway:
             if isinstance(_row, dict):
                 _row.pop("withdrawing", None)  # an in-memory claim; a stop mid-withdrawal must not leave it set
         self._resting_lock = threading.RLock()  # WS hot-path and cycle threads both touch the resting list
+        self._standing_closes: Dict[str, Dict[str, Any]] = load_json(STANDING_CLOSES_FILE, {}) or {}
         self._leader_side_seen_ms: Dict[Tuple[str, str, str], int] = {}  # newest leader fill per wallet/coin/side
         self._withdrawn_late: List[Dict[str, Any]] = []  # withdrawn at registration: the core must own their fills
         self._last_exchange_order_ms: int = 0
@@ -3100,7 +3104,7 @@ class SenderGateway:
         working (0 once filled or gone). Caps count only what can still fill. An unreadable DEX keeps the last
         figure. Returns the number of the engine's limits still open."""
         with self._resting_lock:
-            rows = [dict(r) for r in self._resting_entries.values()]
+            rows = [dict(r) for r in self._resting_entries.values() if self._row_open_size(r) > 0]
         if not rows:
             return 0
         dexes = sorted({str(r.get("coin") or "").split(":", 1)[0].strip().lower() if ":" in str(r.get("coin") or "") else ""
@@ -3130,6 +3134,34 @@ class SenderGateway:
             still_open = sum(1 for r in self._resting_entries.values() if self._row_open_size(r) > 0)
             atomic_write_json(RESTING_ENTRY_ORDERS_FILE, dict(self._resting_entries))
         return still_open
+
+    def prune_standing_closes(self) -> int:
+        """Each cycle: forget standing recovery closes no longer open on the exchange (filled or cancelled; their
+        fills are owned through send_attempts). Returns how many are still working."""
+        with self._resting_lock:
+            rows = {k: dict(v) for k, v in self._standing_closes.items()}
+        if not rows:
+            return 0
+        dexes = sorted({str(r.get("coin") or "").split(":", 1)[0].strip().lower() if ":" in str(r.get("coin") or "") else ""
+                        for r in rows.values()})
+        started = utc_now_ms()
+        res = _XNET.post_many(OPEN_ORDERS_FETCHER, [{"type": "openOrders", "user": USER_WALLET, **({"dex": d} if d else {})}
+                                                    for d in dexes], HL_INFO_URL, HTTP_TIMEOUT_SEC)
+        read_ok, open_oids = set(), set()
+        for dex, r in zip(dexes, res):
+            if r.get("ok") and isinstance(r.get("data"), list):
+                read_ok.add(dex)
+                open_oids |= {str(o.get("oid", "")) for o in r["data"] if isinstance(o, dict)}
+        with self._resting_lock:
+            for sleeve_id, row in rows.items():
+                text = str(row.get("coin") or "")
+                dex = text.split(":", 1)[0].strip().lower() if ":" in text else ""
+                live = self._standing_closes.get(sleeve_id)
+                if (dex in read_ok and live is not None and str(live.get("oid")) == str(row.get("oid"))
+                        and str(row.get("oid")) not in open_oids and int(fnum(row.get("placed_ms"), 0)) < started - 1000):
+                    self._standing_closes.pop(sleeve_id, None)
+            atomic_write_json(STANDING_CLOSES_FILE, dict(self._standing_closes))
+            return len(self._standing_closes)
 
     def resting_entry_exposure(self) -> Dict[str, Any]:
         """What the engine's resting entry limits would add if they all filled, at their limit prices: total USD,
@@ -3581,6 +3613,89 @@ class SenderGateway:
             "latency_classification": "", "notes": notes,
         })
 
+    def _withdraw_standing_close(self, exchange: Any, intent: Intent, wire_size: float, sz_dec: int,
+                                 timing: Dict[str, Any]) -> Tuple[float, Optional[Tuple[bool, str, Dict[str, Any]]]]:
+        """Before a sleeve's next close: withdraw its standing recovery close, so the two never both fill (the
+        surplus would close another leader's position on the shared account). If it already filled, this close
+        is smaller by its size. If the cancel fails, the standing close keeps working and this one is not sent."""
+        with self._resting_lock:
+            row = dict(self._standing_closes.get(intent.sleeve_id) or {})
+        if not row:
+            return wire_size, None
+        oid, outcome, error = str(row.get("oid")), "", ""
+        try:
+            response = self._cancel_order(exchange, str(row.get("sdk_coin") or ""), oid)
+            statuses = (response or {}).get("response", {}).get("data", {}).get("statuses", []) if isinstance(response, dict) else []
+            first = statuses[0] if statuses else None
+            if first == "success":
+                outcome = "STANDING_CLOSE_WITHDRAWN"
+            elif isinstance(first, dict) and re.search(r"already canceled|filled|never placed", str(first.get("error", "")), re.I):
+                outcome = "STANDING_CLOSE_ALREADY_GONE"
+            else:
+                error = json.dumps(response, default=str)[:300]
+        except Exception as exc:
+            error = repr(exc)
+        note = (f"standing recovery close {row.get('side')} {row.get('size')} (order {oid}) for sleeve {intent.sleeve_id}; "
+                f"next close intent_id={intent.intent_id}")
+        if not outcome:
+            detail = f"{note}: cancel failed ({error}); it keeps working, this close is not sent"
+            return wire_size, (False, "SEND_NOT_ATTEMPTED_STANDING_CLOSE_IN_PLACE", {
+                "status": "STANDING_CLOSE_IN_PLACE", "error": error, "exchange_response": {}, "oid": "",
+                "exchange_called": False, "write_send_attempt": True, "notes": detail, "reject_category": "",
+                "terminal_state": "PENDING_EXIT_GUARD_ACTIVE", "operator_action": "NO_SEND_PENDING_EXIT_IN_FLIGHT",
+                "timing": timing})
+        with self._resting_lock:
+            self._standing_closes.pop(intent.sleeve_id, None)
+            atomic_write_json(STANDING_CLOSES_FILE, dict(self._standing_closes))
+        self.audit.append_reconciliation(
+            "EXIT_RECOVERY", outcome, leader_wallet=intent.fill.leader_wallet, leader_fill_id=intent.fill.leader_fill_id,
+            intent_id=str(row.get("intent_id") or ""), coin=intent.fill.coin, exchange_order_id=oid,
+            action="NO_ACTION_STANDING_CLOSE_REPLACED", terminal_state=outcome, notes=note)
+        filled = self._standing_filled_size(oid, fnum(row.get("size")))
+        if filled > 0 and self.ledger is not None:
+            # it (part-)filled: never close more than the sleeve holds once that fill is counted, whether or not the
+            # ledger has seen it yet (a surplus would close another leader's position on the shared account)
+            try:
+                if self.truth_refresh is not None:
+                    try:
+                        self.truth_refresh(force=True)
+                    except TypeError:
+                        self.truth_refresh()
+                left = abs(fnum(self.ledger.sleeve(intent.fill.leader_wallet, intent.fill.coin).get("signed_size"), 0.0))
+                left -= max(0.0, filled - self._owned_fill_size(oid))
+            except Exception as exc:
+                log_error("standing_close_refresh", exc)
+                left = wire_size - filled
+            wire_size = self._floor_wire_size(round(max(0.0, min(wire_size, left)), 10), sz_dec)
+            if wire_size <= 0:
+                detail = f"{note}: it already filled; nothing left for this close"
+                return 0.0, (False, "SEND_NOT_ATTEMPTED_STANDING_CLOSE_FILLED", {
+                    "status": "STANDING_CLOSE_FILLED", "error": "", "exchange_response": {}, "oid": "",
+                    "exchange_called": False, "write_send_attempt": True, "notes": detail, "reject_category": "",
+                    "terminal_state": "PENDING_EXIT_GUARD_ACTIVE", "operator_action": "NO_SEND_PENDING_EXIT_IN_FLIGHT",
+                    "timing": timing})
+        return wire_size, None
+
+    def _standing_filled_size(self, oid: str, size: float) -> float:
+        """How much of a standing close filled, from the exchange's order status (original minus remaining size).
+        Unreadable: all of it may have filled (the safe assumption for sizing the next close)."""
+        try:
+            res = _XNET.post_many(OPEN_ORDERS_FETCHER, [{"type": "orderStatus", "user": USER_WALLET, "oid": int(oid)}],
+                                  HL_INFO_URL, HTTP_TIMEOUT_SEC)[0]
+            order = ((res.get("data") or {}).get("order") or {}).get("order") if res.get("ok") else None
+            if isinstance(order, dict) and order.get("origSz") is not None:
+                return max(0.0, fnum(order.get("origSz")) - fnum(order.get("sz")))
+        except Exception as exc:
+            log_error("standing_close_status", exc)
+        return size
+
+    @staticmethod
+    def _owned_fill_size(oid: str) -> float:
+        """Size of this order's fills the ledger already owns (live_fills rows carrying its order id)."""
+        norm = CopyFillMatcher._normalize_oid(oid)
+        return sum(abs(fnum(r.get("fill_size"))) for r in read_csv_rows(LIVE_FILLS_CSV)
+                   if CopyFillMatcher._normalize_oid(str(r.get("exchange_order_id") or "")) == norm)
+
     @staticmethod
     def _filled_size(response: Any) -> float:
         try:
@@ -3615,11 +3730,19 @@ class SenderGateway:
             f"queued_close_size={close_size}; limit_price={limit_px}; leader_price={intent.fill.price}; "
             f"wallet_position_before={wallet_pos}; ioc_error={parsed_error}"
         )
+        if not self.cfg.master_switch_now():  # sending switched off meanwhile: no new standing order
+            return
         try:
             recovery_response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", close_size,
                                                   limit_px, "Gtc", True)  # rests with no expiry: never over-closes
             ok, status, oid, error = self._parse_hl_response(recovery_response)
             self._recovery_intent_ids.add(intent.intent_id)
+            if ok and oid and status == "ORDER_RESTING":
+                with self._resting_lock:
+                    self._standing_closes[intent.sleeve_id] = {
+                        "oid": str(oid), "coin": intent.fill.coin, "sdk_coin": sdk_coin, "size": close_size,
+                        "side": intent.copy_side, "intent_id": intent.intent_id, "placed_ms": utc_now_ms()}
+                    atomic_write_json(STANDING_CLOSES_FILE, dict(self._standing_closes))
             if ok and oid:
                 self._record_placed_order(intent, oid, close_size, limit_px, True, "REAL_GTC_RECOVERY_CLOSE",
                                           "EXIT_RECOVERY_ACTIVE", "REDUCE_ONLY_STANDING_LIMIT_CLOSE",
@@ -3730,6 +3853,10 @@ class SenderGateway:
                 f"initial_error={initial_error}"
             ),
         )
+        if tif == "Gtc":
+            already = self._already_resting_block(intent, timing)
+            if already is not None:
+                return already
         try:
             recovery_response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", wire_size, leader_px,
                                                   tif, False, timing, "entry_add_rate_limit_recovery_started_ms")
@@ -4363,6 +4490,10 @@ class SenderGateway:
         # Exchange call â€" exchange_called=True from this point.
         # EXIT/REDUCE closes (and any reduce_only_intended intent) MUST be reduce-only
         # so the exchange can never flip the position through flat. ENTRY/ADD = False.
+        if lifecycle in {"EXIT", "REDUCE"}:
+            wire_size, standing_block = self._withdraw_standing_close(exchange, intent, wire_size, sz_dec, timing)
+            if standing_block is not None:
+                return standing_block
         use_reduce_only = self._reduce_only_on_wire(intent, wire_size)
         netting_note = ""
         gtc_px = limit_px if rest_now else 0.0  # a resting limit is in flight: never re-send it after an exception
@@ -6837,6 +6968,11 @@ class LiveCopyCore:
             _fid = str(_irow.get("leader_fill_id") or "").strip()
             if _fid:
                 self._idem_accepted.add(_fid)
+        for _irow in read_csv_rows(ORDER_INTENTS_CSV):  # fills merged into one copy are handled by it (run 4)
+            _note = str(_irow.get("notes") or "")
+            if "merged_leader_fills=" in _note:
+                _ids = _note.split("merged_leader_fills=", 1)[1].split(";", 1)[0].split(":", 1)[-1]
+                self._idem_accepted.update(i for i in _ids.split(",") if i)
         self._hot_stop_event = threading.Event()
         # Run 3: one worker took ~3.5 s per order and lag grew to 81 s. Fills are spread over several workers by
         # coin: one coin always goes to the same worker, so its fills (every leader's, as they net on one
@@ -6913,13 +7049,21 @@ class LiveCopyCore:
         fresh = [f for f in batch if not self._already_handled(f)]
         fresh.sort(key=lambda f: (f.timestamp_ms, f.leader_fill_id))
         groups: Dict[Tuple[str, str], List[List[LeaderFill]]] = {}
+        run_notional: Dict[int, float] = {}
+        max_order = self.cfg.max_order_notional()
+        # room for the follower price and slippage, which the order cap is checked at
+        room = max_order / (1.0 + self.cfg.marketable_bps() / 10000.0) * 0.95 if max_order > 0 else 0.0
         for f in fresh:
             runs = groups.setdefault((f.leader_wallet, canonical_coin_key(f.coin)), [])
             proportional = self.cfg.copy_mode(f.leader_wallet) != "fixed"
-            if runs and mergeable_fills(runs[-1][-1], f, proportional):
+            add = self.intent_builder._copy_notional(f.leader_wallet, f) if proportional and room > 0 else 0.0
+            if (runs and mergeable_fills(runs[-1][-1], f, proportional)
+                    and (room <= 0 or run_notional.get(id(runs[-1]), 0.0) + add <= room)):
                 runs[-1].append(f)
+                run_notional[id(runs[-1])] = run_notional.get(id(runs[-1]), 0.0) + add
             else:
                 runs.append([f])
+                run_notional[id(runs[-1])] = add
         planned: List[Tuple[int, int, int, List[LeaderFill]]] = []
         for (wallet, coin), runs in groups.items():
             merged = [merge_leader_fills(r) for r in runs]
@@ -6948,13 +7092,16 @@ class LiveCopyCore:
                 except queue.Empty:
                     break
             try:
-                for fill in self._plan_batch(batch):
+                try:
+                    plan = self._plan_batch(batch)
+                except Exception as exc:  # never drop a batch: send the fills one by one, in arrival order
+                    log_error("ws_hot_plan", exc)
+                    plan = list(batch)
+                for fill in plan:
                     try:
                         self._process_leader_fill(fill, None, self._entry_sends_blocked_reason)
                     except Exception as exc:
                         log_error("ws_hot_send", exc)
-            except Exception as exc:
-                log_error("ws_hot_plan", exc)
             finally:
                 with self._queued_lock:
                     for f in batch:
@@ -7251,12 +7398,12 @@ class LiveCopyCore:
                     owned += 1
         return owned
 
-    def _refresh_truth_for_gate(self) -> None:
+    def _refresh_truth_for_gate(self, force: bool = False) -> None:
         """The ownership gate saw the exchange and the ledger disagree: own the follower's newest fills (as the
         cycle's copy poll would) and re-read the exchange positions, so it compares fresh records with fresh truth.
         One refresh at a time for all workers, at most one a second; the reads are made outside the send lock."""
         with self._truth_refresh_lock:
-            if time.monotonic() - self._last_truth_refresh < 1.0:
+            if not force and time.monotonic() - self._last_truth_refresh < 1.0:
                 return
             fills: List[Dict[str, Any]] = []
             if self.dedupe.copy_account_baseline_set:
@@ -7431,6 +7578,10 @@ class LiveCopyCore:
             summary.entry_sends_blocked_reason = _block
             summary.sender_key_invalid = self.sender.sender_key_invalid
             # --- end entry safety gates ---
+            try:
+                self.sender.prune_standing_closes()
+            except Exception as exc:
+                log_error("prune_standing_closes", exc)
             if self.sender.resting_entries():
                 try:
                     summary.resting_entry_limits = self.sender.refresh_resting_open_sizes()
@@ -7686,7 +7837,7 @@ def run_self_test() -> None:
     global LIVE_WS_HEALTH_FILE, MANUAL_LIVE_POSITIONS_FILE, EXCHANGE_ACCOUNT_SNAPSHOT_FILE, ORDER_INTENTS_CSV
     global SEND_ATTEMPTS_CSV, LIVE_FILLS_CSV, RECONCILIATION_CSV, ERRORS_CSV, RAW_LEADER_FILLS_CSV
     global MANUAL_WALLETS_FILE, WALLET_GATE_FILE, UI_STATE_FILE, FORBIDDEN_LIVE_POSITIONS_FILE, FORBIDDEN_WOULD_SEND_ORDERS_CSV
-    global LIVE_INTEGRITY_STATUS_FILE, RESTING_ENTRY_ORDERS_FILE
+    global LIVE_INTEGRITY_STATUS_FILE, RESTING_ENTRY_ORDERS_FILE, STANDING_CLOSES_FILE
 
     old_env = dict(os.environ)
     global LEADER_NETWORK, EXPOSURE_FETCHER, USER_WALLET, MIDS_FETCHER, _SELF_TEST_MIDS
@@ -7736,6 +7887,7 @@ def run_self_test() -> None:
         MANUAL_LIVE_POSITIONS_FILE = AUDIT_DIR / "manual_live_positions.json"
         EXCHANGE_ACCOUNT_SNAPSHOT_FILE = AUDIT_DIR / "exchange_account_snapshot.json"
         RESTING_ENTRY_ORDERS_FILE = AUDIT_DIR / "resting_entry_orders.json"
+        STANDING_CLOSES_FILE = AUDIT_DIR / "standing_recovery_closes.json"
         LIVE_INTEGRITY_STATUS_FILE = AUDIT_DIR / "live_integrity_status.json"
         ORDER_INTENTS_CSV = APPEND_ONLY_DIR / "order_intents.csv"
         SEND_ATTEMPTS_CSV = APPEND_ONLY_DIR / "send_attempts.csv"
