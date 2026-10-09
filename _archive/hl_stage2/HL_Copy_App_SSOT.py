@@ -815,13 +815,19 @@ def repair_live_config_consistency(config: Dict[str, Any]) -> bool:
     return changed
 
 
+# Per-wallet settings the Core engine never reads (it sizes from real leader equity and applies the
+# daily loss limit and slippage from Global Controls). Not offered in the panel and dropped on save,
+# so no control looks live while doing nothing.
+ENGINE_IGNORED_WALLET_KEYS = ("leader_equity_base", "max_diff_pct", "daily_loss_limit")
+
+
 def _normalise_live_wallet_payload(payload: Dict[str, Any], existing: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     base = dict(existing or {})
     mode_default = base.get("mode", "OFF") if existing is not None else "OFF"
     mode = str(payload.get("mode", mode_default)).upper()
     if mode not in {"LIVE", "CLO", "OFF"}:
         raise ValueError("BAD_MODE")
-    copy_mode = str(payload.get("copy_mode", base.get("copy_mode", "proportional"))).lower()
+    copy_mode = str(payload.get("copy_mode", base.get("copy_mode", "fixed"))).lower()  # engine default
     if copy_mode not in {"proportional", "fixed"}:
         raise ValueError("BAD_COPY_MODE")
     enabled = normalize_live_wallet_config("", {"mode": mode}, repair=True)["enabled"]
@@ -830,13 +836,10 @@ def _normalise_live_wallet_payload(payload: Dict[str, Any], existing: Optional[D
         "copy_mode": copy_mode,
         "norm_base": max(1.0, fnum(payload.get("norm_base", base.get("norm_base", 100)), 100)),
         "fixed_notional": max(0.01, fnum(payload.get("fixed_notional", base.get("fixed_notional", 10)), 10)),
-        "leader_equity_base": max(1.0, fnum(payload.get("leader_equity_base", base.get("leader_equity_base", 10000)), 10000)),
-        "max_diff_pct": max(0.0, fnum(payload.get("max_diff_pct", base.get("max_diff_pct", 0.1)), 0.1)),
-        "daily_loss_limit": max(0.0, fnum(payload.get("daily_loss_limit", base.get("daily_loss_limit", 0)), 0)),
         "enabled": enabled,
     }
     for key, value in base.items():
-        if key not in out:
+        if key not in out and key not in ENGINE_IGNORED_WALLET_KEYS:
             out[key] = value
     return out
 
@@ -1180,22 +1183,8 @@ def _load_recent_live_fills(limit: int = 500) -> List[Dict[str, Any]]:
 
 
 def _local_env_value(key: str) -> str:
-    value = os.getenv(key, "").strip()
-    if value:
-        return value
-    env_file = BASE_DIR.parent / "hl_stage2.env"
-    try:
-        if env_file.exists():
-            for line in env_file.read_text(encoding="utf-8").splitlines():
-                line = line.strip()
-                if not line or line.startswith("#") or "=" not in line:
-                    continue
-                k, _, v = line.partition("=")
-                if k.strip() == key:
-                    return v.strip()
-    except Exception:
-        pass
-    return ""
+    # os.environ, else the env file the engine reads (HL_LIVE_ENV_FILE, default hl_stage2.env)
+    return os.getenv(key, "").strip() or str(_NET_ENV.get(key) or "").strip()
 
 
 def _execution_guards_info() -> Dict[str, Any]:
@@ -2255,12 +2244,9 @@ def _build_live_wallet_rows(
             "enabled": bool(normal.get("enabled")),
             "service_eligible": service_eligible,
             "service_eligibility_reason": service_reason,
-            "copy_mode": str(cfg.get("copy_mode", "proportional")),
+            "copy_mode": str(cfg.get("copy_mode", "fixed")),  # as the engine: unset = fixed
             "fixed_notional": cfg.get("fixed_notional"),
             "norm_base": cfg.get("norm_base"),
-            "leader_equity_base": cfg.get("leader_equity_base"),
-            "max_diff_pct": cfg.get("max_diff_pct"),
-            "daily_loss_limit": cfg.get("daily_loss_limit"),
             "conn_status": conn_status,
             "conn_detail": conn_detail,
             "ws_state": conn_status,
@@ -4978,6 +4964,60 @@ def sorted_rows(state: Dict[str, Any]) -> List[Dict[str, Any]]:
     return user_rows + included_rows + other_rows
 
 
+def _engine_wallet_summary() -> Tuple[int, int, str]:
+    """(LIVE count, close-only count, sizing) of the wallets the engine follows, from live_config.json:
+    the engine's own settings, not the analysis model's. Unset copy_mode is fixed, as in the engine."""
+    wallets = _load_live_copy_config().get("wallets", {})
+    live = clo = 0
+    modes: Dict[str, int] = {}
+    for w, cfg in (wallets.items() if isinstance(wallets, dict) else []):
+        normal = normalize_live_wallet_config(w, cfg)
+        if not normal.get("service_eligible"):
+            continue
+        live += normal["mode"] == "LIVE"
+        clo += normal["mode"] == "CLO"
+        m = "proportional" if str(cfg.get("copy_mode", "fixed")).lower().strip() == "proportional" else "fixed"
+        modes[m] = modes.get(m, 0) + 1
+    sizing = ", ".join(f"{n} {m}" for m, n in sorted(modes.items())) or "no active wallets"
+    return live, clo, sizing.upper()
+
+
+_ACCOUNT_VALUE_CACHE: Dict[str, Any] = {}
+ACCOUNT_VALUE_FETCHER = None  # test seam; production reads the follower /info
+
+
+def _follower_account_value() -> Dict[str, Any]:
+    """Whole-account value of the follower (portfolio, spot + perps, so a unified account is not shown
+    as its perp margin only): the same figure the engine uses for equity. Cached 15 s."""
+    addr = _public_account_address()
+    if not addr:
+        return {"ok": False, "reason": "ACCOUNT_ADDRESS_UNAVAILABLE"}
+    hit = _ACCOUNT_VALUE_CACHE.get(addr)
+    if hit and time.time() - hit[1] <= 15:
+        return hit[0]
+    res = _XNET.rolling_day_pnl(addr, fetcher=ACCOUNT_VALUE_FETCHER, info_url=FOLLOWER_INFO_URL, timeout=5)
+    out = ({"ok": True, "value": fnum(res["account_value_usd"]), "address": addr}
+           if res.get("ok") and res.get("account_value_usd") is not None
+           else {"ok": False, "reason": str(res.get("status") or "PORTFOLIO_UNAVAILABLE"), "address": addr})
+    _ACCOUNT_VALUE_CACHE[addr] = (out, time.time())
+    return out
+
+
+def _account_card_lines() -> List[str]:
+    """Real follower account value from the follower exchange, never the model's normalised base."""
+    try:
+        acct = _follower_account_value()
+    except Exception as exc:  # the page must still render
+        acct = {"ok": False, "reason": type(exc).__name__}
+    net = html.escape(FOLLOWER_NETWORK.upper())
+    if not acct.get("ok"):
+        return [f'<div class="metric-line"><span>{net}</span><b class="neg">UNAVAILABLE</b></div>',
+                f'<div class="metric-line"><span>WHY</span><b>{html.escape(str(acct.get("reason") or "?"))}</b></div>']
+    value, addr = acct["value"], str(acct.get("address") or "")
+    return [f'<div class="metric-line"><span>EQUITY</span><b>{money(value)}</b></div>',
+            f'<div class="metric-line"><span>{net}</span><b title="{html.escape(addr)}">{html.escape(addr[:6] + "…" + addr[-4:])}</b></div>']
+
+
 def render_home(state: Dict[str, Any]) -> str:
     state = dict(state)
     ui = load_ui_state()
@@ -5019,6 +5059,7 @@ def render_home(state: Dict[str, Any]) -> str:
     def group_card(title: str, lines: List[str], extra_cls: str = "") -> str:
         return f'<div class="card group-card {extra_cls}"><div class="label">{title}</div>' + "".join(lines) + '</div>'
     cards = "".join([
+        group_card("ACCOUNT (EXCHANGE)", _account_card_lines()),
         group_card("PNL", [small_metric("LEAD", dual(lead_total, user_base), lead_total), small_metric("COPY", dual(copy_total, user_base), copy_total), small_metric("Δ", dual(delta_total, user_base), delta_total)]),
         group_card("REALISED", [small_metric("LEAD", dual(fnum(lead.get("realized")), user_base), fnum(lead.get("realized"))), small_metric("COPY", dual(fnum(copy.get("realized")), user_base), fnum(copy.get("realized")))]),
         group_card("UNREALISED", [small_metric("LEAD", dual(fnum(lead.get("unrealized")), user_base), fnum(lead.get("unrealized"))), small_metric("COPY", dual(fnum(copy.get("unrealized")), user_base), fnum(copy.get("unrealized")))]),
@@ -5059,7 +5100,9 @@ def render_home(state: Dict[str, Any]) -> str:
     if contract_errs:
         msgs = " | ".join(html.escape(e) for e in contract_errs[:10])
         banner = f'<div style="background:#3d1515;border:1px solid #f44;color:#f88;padding:8px 14px;font-size:11px;position:sticky;top:48px;z-index:3"><b>&#9888; CONTRACT WARNING ({len(contract_errs)} errors):</b> {msgs}</div>'
-    return banner + HTML_TEMPLATE.format(updated=state.get("updated_at", ""), norm=base, mode=str(ui.get("copy_mode", "proportional")).upper(), fixed=fnum(ui.get("fixed_notional"), DEFAULT_FIXED_NOTIONAL), fee=fnum(ui.get("fee_bps"), DEFAULT_FEE_BPS), friction=fnum(ui.get("copy_friction_bps"), DEFAULT_COPY_FRICTION_BPS), cards=cards, chart=render_chart(state.get("portfolio_history", [])), wallet_count=len(metric_rows), table_head=table_head, table_rows=body_rows, raw_boundary=state.get("engine_truth_boundary", ""))
+    live_n, clo_n, engine_sizing = _engine_wallet_summary()
+    wallet_count = f"{live_n + clo_n} followed: {live_n} LIVE, {clo_n} close-only; {len(metric_rows)} with copy history"
+    return banner + HTML_TEMPLATE.format(updated=state.get("updated_at", ""), norm=base, mode=html.escape(engine_sizing), fixed=fnum(ui.get("fixed_notional"), DEFAULT_FIXED_NOTIONAL), fee=fnum(ui.get("fee_bps"), DEFAULT_FEE_BPS), friction=fnum(ui.get("copy_friction_bps"), DEFAULT_COPY_FRICTION_BPS), cards=cards, chart=render_chart(state.get("portfolio_history", [])), wallet_count=wallet_count, table_head=table_head, table_rows=body_rows, raw_boundary=state.get("engine_truth_boundary", ""))
 
 
 def extract_num(s: str) -> float:
@@ -5104,7 +5147,7 @@ def lc_cell(row: Dict[str, Any], pair: Tuple[int, int], cls: str = "") -> str:
 def render_row(r: Dict[str, Any], base: float, ui: Dict[str, Any], state: Optional[Dict[str, Any]] = None) -> str:
     state = state or {}
     lead = r.get("lead", {}); copy = r.get("copy", {}); delta = r.get("delta", {})
-    wallet = str(r.get("wallet", "")); badge = " <span class='badge'>USER</span>" if r.get("is_user_wallet") else ""
+    wallet = str(r.get("wallet", "")); badge = " <span class='badge' title='analysis model, normalised to the aggregate base; the real account value is in the ACCOUNT card'>USER (MODEL)</span>" if r.get("is_user_wallet") else ""
     alloc = fnum(r.get('alloc'), base)
     lead_pnl = fnum(lead.get('realized')) + fnum(lead.get('unrealized'))
     copy_pnl = fnum(copy.get('realized')) + fnum(copy.get('unrealized'))
@@ -5174,11 +5217,11 @@ HTML_TEMPLATE = """
 <!doctype html><html><head><meta charset="utf-8"><title>HL Copy Engine SSOT</title>
 <style>
 body{{margin:0;background:#0d1117;color:#c9d1d9;font:12px Arial,Helvetica,sans-serif}} a{{color:#58a6ff;text-decoration:none}} .top{{display:flex;align-items:center;gap:12px;padding:8px 14px;border-bottom:1px solid #222;background:#090d12;position:sticky;top:0;z-index:4;box-shadow:0 2px 8px rgba(0,0,0,.25)}} .live{{background:#003d1f;color:#2ea043;border:1px solid #2ea043;border-radius:12px;padding:2px 8px;font-size:10px}} .muted{{color:#8b949e}} input,select,button{{background:#161b22;color:#c9d1d9;border:1px solid #30363d;border-radius:4px;padding:3px 8px}} button{{cursor:pointer}}
-.cards{{display:grid;grid-template-columns:repeat(9,minmax(130px,1fr));gap:8px;padding:10px 14px}} .card{{background:#161b22;border:1px solid #21262d;border-radius:8px;padding:9px;min-height:72px}} .group-card .label{{font-size:10px;color:#8b949e;margin-bottom:6px;border-bottom:1px solid #21262d;padding-bottom:4px}} .metric-line{{display:flex;justify-content:space-between;gap:8px;line-height:1.55}} .metric-line span{{color:#8b949e}} .metric-line b{{font-weight:700}} .pos{{color:#2ea043}} .neg{{color:#ff4d4f}} .zero{{color:#c9d1d9}}
+.cards{{display:grid;grid-template-columns:repeat(10,minmax(120px,1fr));gap:8px;padding:10px 14px}} .card{{background:#161b22;border:1px solid #21262d;border-radius:8px;padding:9px;min-height:72px}} .group-card .label{{font-size:10px;color:#8b949e;margin-bottom:6px;border-bottom:1px solid #21262d;padding-bottom:4px}} .metric-line{{display:flex;justify-content:space-between;gap:8px;line-height:1.55}} .metric-line span{{color:#8b949e}} .metric-line b{{font-weight:700}} .pos{{color:#2ea043}} .neg{{color:#ff4d4f}} .zero{{color:#c9d1d9}}
 .section{{padding:0 14px 10px}} .panel{{background:#161b22;border:1px solid #21262d;border-radius:6px;padding:10px;margin-bottom:12px}} .chart-wrap{{position:relative;cursor:zoom-in}} .chart-wrap.expanded{{position:relative;z-index:20}} .chart-wrap.expanded .chart{{height:76vh}} .chart{{width:100%;height:260px;background:#151a21}} .chart *{{vector-effect:non-scaling-stroke}} .pnl-line{{fill:none;stroke:#2ea043;stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round}} .realized-line{{fill:none;stroke:#58a6ff;stroke-width:1.4;stroke-linejoin:round;stroke-linecap:round}} .dd-line{{fill:none;stroke:#ff4d4f;stroke-width:1.4;stroke-linejoin:round;stroke-linecap:round}} .zero-line{{stroke:#8b949e;stroke-width:1}} .grid-line,.grid-vert{{stroke:#21262d;stroke-width:1}} .axis-label{{fill:#8b949e;font-size:10px}} .hit{{fill:transparent;stroke:none;pointer-events:all}} .crosshair{{stroke:#8b949e;stroke-width:1;stroke-dasharray:3 3;pointer-events:none}} .chart-dot{{fill:#c9d1d9;stroke:#0d1117;stroke-width:1.2;pointer-events:none}} .chart-tip{{position:absolute;left:10px;top:10px;background:#0d1117;border:1px solid #30363d;border-radius:4px;padding:5px 7px;color:#c9d1d9;font-size:11px;pointer-events:none;box-shadow:0 4px 12px rgba(0,0,0,.35)}} .chart-legend{{display:flex;gap:10px;align-items:center;margin-top:6px}} .legend-pnl{{color:#2ea043}} .legend-realized{{color:#58a6ff}} .legend-dd{{color:#ff4d4f}}
 .table-wrap{{border:1px solid #21262d;border-radius:6px;background:#0d1117}} table{{width:100%;border-collapse:separate;border-spacing:0;font-size:11px}} th{{position:sticky;top:0;background:#21262d;color:#8b949e;text-align:right;padding:7px;border-bottom:1px solid #30363d;z-index:2}} th:first-child,td:first-child{{text-align:left}} th.sort-active{{background:#303a49;color:#fff;box-shadow:inset 0 -2px 0 #58a6ff}} th.sort-active a{{color:#fff}} th a{{display:block;color:#8b949e}} td{{padding:6px;border-bottom:1px solid #21262d;text-align:right;white-space:nowrap}} tr:nth-child(even){{background:#111820}} tr.user{{background:#071527}} tr:hover{{background:#1b2330}} tr.excluded-row{{}}
 .sticky-wallet{{position:sticky;left:0;z-index:3;background:inherit;min-width:132px;border-right:1px solid #30363d}} th.sticky-wallet{{z-index:4;background:#21262d}} .sticky-wallet.wallet-color-blue{{background:linear-gradient(90deg,rgba(88,166,255,.34),rgba(13,17,23,.96))!important;border-left:4px solid #58a6ff}} .sticky-wallet.wallet-color-green{{background:linear-gradient(90deg,rgba(46,160,67,.34),rgba(13,17,23,.96))!important;border-left:4px solid #2ea043}} .sticky-wallet.wallet-color-yellow{{background:linear-gradient(90deg,rgba(210,153,34,.36),rgba(13,17,23,.96))!important;border-left:4px solid #d29922}} .sticky-wallet.wallet-color-red{{background:linear-gradient(90deg,rgba(255,77,79,.34),rgba(13,17,23,.96))!important;border-left:4px solid #ff4d4f}} .sticky-wallet.wallet-color-purple{{background:linear-gradient(90deg,rgba(163,113,247,.34),rgba(13,17,23,.96))!important;border-left:4px solid #a371f7}} .pair-lead{{background:rgba(88,166,255,.045)}} .pair-copy{{background:rgba(46,160,67,.045)}} .ops-group{{background:rgba(210,153,34,.05)}} .group-divider{{border-right:2px solid #30363d!important}} .badge{{background:#0d419d;color:#fff;border-radius:3px;padding:1px 4px;font-size:9px}} .wallet-tag{{background:#30363d;color:#c9d1d9;border-radius:3px;padding:1px 4px;font-size:9px}} .mode{{background:#063d1f;color:#2ea043;border-radius:3px;padding:2px 6px}} .wallet-cfg{{display:inline-flex;gap:3px;margin-left:4px;align-items:center}} .wallet-cfg input{{width:48px;padding:1px 3px}} .wallet-cfg select{{width:70px;padding:1px 3px}} .wallet-cfg button{{padding:1px 4px}} .inc-form{{display:inline-flex;align-items:center;gap:2px;margin-right:6px}} .inc-form input{{padding:0;width:14px;height:14px}} .purge-form{{display:inline-flex;margin-left:4px;align-items:center}} .purge-btn{{border-color:#8b1d1d;background:#3a1111;color:#ff7b72;padding:1px 5px;font-size:10px}} .inc-off{{opacity:1}} .controls-cell{{min-width:315px;text-align:left}} .small{{font-size:11px;color:#8b949e}} .missing{{color:#6e7681!important}} .selected-divider td{{background:#0d1117;border-top:2px solid #58a6ff;border-bottom:1px solid #30363d;color:#8b949e;text-align:left;font-size:10px;letter-spacing:.04em;text-transform:uppercase;padding:6px 8px}} .saving{{opacity:.65}} .saved-flash{{color:#2ea043}} .chart-empty{{height:230px;display:flex;align-items:center;justify-content:center;color:#8b949e}} @media(max-width:1300px){{.cards{{grid-template-columns:repeat(3,minmax(150px,1fr))}}}}
-</style></head><body><div class="top"><b>⚡ HL Copy Engine</b><span class="live">POLL</span><span class="muted">Updated: {updated}</span><form action="/api/ui-state" method="post" class="ajax-form" style="display:flex;gap:6px;align-items:center;margin:0"><span class="muted">Normalisation Base:</span><input name="norm_base" value="{norm}" size="8"><span class="muted">Mode:</span><select name="copy_mode"><option>proportional</option><option>fixed</option></select><span class="muted">Fixed $:</span><input name="fixed_notional" value="{fixed}" size="6"><span class="muted">Fee bps:</span><input name="fee_bps" value="{fee}" size="5"><span class="muted">Copy friction bps:</span><input name="copy_friction_bps" value="{friction}" size="5"><button>Set</button></form><span class="muted">Current: {mode}</span><span id="save-status" class="muted"></span><span style="margin-left:auto" class="muted">Auto refresh off</span></div><div class="cards">{cards}</div><div class="section"><b>COMBINED PORTFOLIO — NON-USER WALLETS</b><div class="panel">{chart}</div><div class="small">TRACKED WALLETS ({wallet_count}) — model derived in app from engine SSOT only. {raw_boundary}</div><div class="table-wrap"><table><thead>{table_head}</thead><tbody>{table_rows}</tbody></table></div></div>
+</style></head><body><div class="top"><b>⚡ HL Copy Engine</b><span class="live">POLL</span><span class="muted">Updated: {updated}</span><form action="/api/ui-state" method="post" class="ajax-form" style="display:flex;gap:6px;align-items:center;margin:0"><span class="muted">Normalisation Base:</span><input name="norm_base" value="{norm}" size="8"><span class="muted">Model mode:</span><select name="copy_mode"><option>proportional</option><option>fixed</option></select><span class="muted">Fixed $:</span><input name="fixed_notional" value="{fixed}" size="6"><span class="muted">Fee bps:</span><input name="fee_bps" value="{fee}" size="5"><span class="muted">Copy friction bps:</span><input name="copy_friction_bps" value="{friction}" size="5"><button>Set</button></form><span class="muted" title="what the engine actually uses for LIVE / close-only wallets">Engine sizing: {mode}</span><span id="save-status" class="muted"></span><span style="margin-left:auto" class="muted">Auto refresh off</span></div><div class="cards">{cards}</div><div class="section"><b>COMBINED PORTFOLIO — NON-USER WALLETS</b><div class="panel">{chart}</div><div class="small">TRACKED WALLETS ({wallet_count}) — model derived in app from engine SSOT only. {raw_boundary}</div><div class="table-wrap"><table><thead>{table_head}</thead><tbody>{table_rows}</tbody></table></div></div>
 <script>(function(){{
 let busyUntil=0;
 const status=document.getElementById('save-status');
@@ -5590,12 +5633,9 @@ def render_live_copy_control_panel() -> str:
       <div class="lc-form-grid">
         <label class="wide">Wallet address<input name="wallet" placeholder="0x wallet address" autocomplete="off"></label>
         <label>Initial mode<select name="mode"><option>LIVE</option><option>CLO</option><option>OFF</option></select></label>
-        <label>Copy model<select name="copy_mode"><option value="proportional">proportional</option><option value="fixed">fixed</option></select></label>
+        <label>Copy model<select name="copy_mode"><option value="fixed">fixed</option><option value="proportional">proportional</option></select></label>
         <label>Norm base<input name="norm_base" value="100"></label>
         <label>Fixed notional<input name="fixed_notional" value="10"></label>
-        <input name="leader_equity_base" type="hidden" value="10000">
-        <label>Max diff %<input name="max_diff_pct" value="0.1"></label>
-        <input name="daily_loss_limit" type="hidden" value="0">
       </div>
       <div class="lc-modal-actions"><button type="button" data-lc-close>Cancel</button><button type="submit">Add wallet</button></div>
     </form>
@@ -5629,7 +5669,7 @@ function pair(a,b,cls){return `<div class="lc-pair"><span>${h(a)}</span><b class
 function signed(v){const s=String(v||'—');return s.trim().startsWith('-')?'lc-neg':(s.trim().startsWith('+')?'lc-pos':'');}
 function count(obj,key){return Number((obj||{})[key]||0);}
 function sourceOf(r){return first(r,['source','fill_source'])||String(first(r,['reason'])).replace('LIVE_','').replace('_DETECTED','')||'—';}
-function rowPayload(tr){return {wallet:tr.dataset.wallet,mode:tr.querySelector('[name=mode]').value,copy_mode:tr.querySelector('[name=copy_mode]').value,norm_base:num(tr.querySelector('[name=norm_base]').value,100),fixed_notional:num(tr.querySelector('[name=fixed_notional]').value,10),leader_equity_base:num(tr.querySelector('[name=leader_equity_base]').value,10000),max_diff_pct:num(tr.querySelector('[name=max_diff_pct]').value,0.1),daily_loss_limit:num(tr.querySelector('[name=daily_loss_limit]').value,0)};}
+function rowPayload(tr){return {wallet:tr.dataset.wallet,mode:tr.querySelector('[name=mode]').value,copy_mode:tr.querySelector('[name=copy_mode]').value,norm_base:num(tr.querySelector('[name=norm_base]').value,100),fixed_notional:num(tr.querySelector('[name=fixed_notional]').value,10)};}
 function age(ms){const n=Number(ms||0);if(!n)return '—';const d=Math.max(0,Date.now()-n);return d<60000?Math.round(d/1000)+'s':Math.round(d/60000)+'m';}
 function time(ms){const n=Number(ms||0);return n?new Date(n).toLocaleTimeString():'—';}
 function tsOf(p){const raw=p.fetched_at_ms||p.timestamp_ms||p.ts||p.time_ms; if(Number(raw)>0)return Number(raw); const s=p.timestamp||p.updated_at||p.created_at||p.time||''; const t=Date.parse(s); return Number.isFinite(t)?t:0;}
@@ -5777,7 +5817,7 @@ function renderWallets(){
     <td>${execHtml}</td>
     <td>${riskHtml}</td>
     <td style="font-size:11px">${lfStr}</td>
-    <td><div class="lc-cell-stack"><div class="lc-inline-controls"><select name="mode"><option ${mode==='LIVE'?'selected':''}>LIVE</option><option ${mode==='CLO'?'selected':''}>CLO</option><option ${mode==='OFF'?'selected':''}>OFF</option></select><select name="copy_mode"><option value="proportional" ${model!=='fixed'?'selected':''}>prop</option><option value="fixed" ${model==='fixed'?'selected':''}>fixed</option></select></div><div class="lc-inline-controls"><span class="lc-muted">F</span><input name="fixed_notional" value="${h(d.fixed_notional??10)}" style="width:58px"><span class="lc-muted">N</span><input name="norm_base" value="${h(d.norm_base??100)}" style="width:52px"><input name="leader_equity_base" type="hidden" value="${h(d.leader_equity_base??10000)}"><input name="max_diff_pct" type="hidden" value="${h(d.max_diff_pct??0.1)}"><input name="daily_loss_limit" type="hidden" value="${h(d.daily_loss_limit??0)}"></div><div class="lc-mini-actions"><button data-act="save" type="button">Save</button><button data-act="clo" type="button">CLO</button><button data-act="off" type="button">OFF</button><button data-act="archive" class="lc-danger" type="button">Archive</button></div></div></td>
+    <td><div class="lc-cell-stack"><div class="lc-inline-controls"><select name="mode"><option ${mode==='LIVE'?'selected':''}>LIVE</option><option ${mode==='CLO'?'selected':''}>CLO</option><option ${mode==='OFF'?'selected':''}>OFF</option></select><select name="copy_mode"><option value="proportional" ${model!=='fixed'?'selected':''}>prop</option><option value="fixed" ${model==='fixed'?'selected':''}>fixed</option></select></div><div class="lc-inline-controls"><span class="lc-muted">F</span><input name="fixed_notional" value="${h(d.fixed_notional??10)}" style="width:58px"><span class="lc-muted">N</span><input name="norm_base" value="${h(d.norm_base??100)}" style="width:52px"></div><div class="lc-mini-actions"><button data-act="save" type="button">Save</button><button data-act="clo" type="button">CLO</button><button data-act="off" type="button">OFF</button><button data-act="archive" class="lc-danger" type="button">Archive</button></div></div></td>
   </tr>`;
  }).join('');
  root.querySelector('#lcWalletRows').innerHTML=rows||'<tr><td colspan="8">No live-copy wallets configured.</td></tr>';
@@ -5958,7 +5998,7 @@ function render(){
  if(ro){const hasRealFills=(lcAudit.execution_quality_rows||[]).some(r=>r.status==='ORDER_FILLED');ro.className='lc-pill '+(hasRealFills?'lc-green':'lc-red');ro.textContent=hasRealFills?'REAL ORDERS: SERVICE ACTIVE':'REAL ORDERS: APP DISABLED';}
  renderCards(); renderWallets(); renderAudit(); renderHealth(); renderPositions(); renderExecQuality();
 }
-async function refresh(quiet){try{if(!quiet)msg('Loading...');const [cfg,health,audit,gcr]=await Promise.all([jget('/api/live-config'),jget('/api/live-ws-health'),jget('/api/live-audit-summary'),jget('/api/global-controls')]);lcConfig=cfg.config||{wallets:{}};lcHealth=health.health||{};lcAudit=audit||{};render();loadGcForm(gcr.global_controls||{});const nw=root.querySelector('#gcNetworks');if(nw&&gcr.networks)nw.textContent='Leader feed: '+gcr.networks.leader+' | Follower account: '+gcr.networks.follower+' | State folder: '+(gcr.networks.state_dir||'');if(!quiet)msg('Loaded');}catch(e){msg(e.message||String(e),true);}}
+async function refresh(quiet){try{if(!quiet)msg('Loading...');const [cfg,health,audit,gcr]=await Promise.all([jget('/api/live-config'),jget('/api/live-ws-health'),jget('/api/live-audit-summary'),jget('/api/global-controls')]);lcConfig=cfg.config||{wallets:{}};lcHealth=health.health||{};lcAudit=audit||{};render();loadGcForm(gcr.global_controls||{});const nw=root.querySelector('#gcNetworks');if(nw&&gcr.networks)nw.textContent='Leader feed: '+gcr.networks.leader+' | Follower account: '+gcr.networks.follower+' | Markets: every market the leaders trade'+((gcr.networks.follower_dexes||[]).length>1?' (always read: '+gcr.networks.follower_dexes.join(', ')+')':'')+' | State folder: '+(gcr.networks.state_dir||'');if(!quiet)msg('Loaded');}catch(e){msg(e.message||String(e),true);}}
 function loadGcForm(gc){
   const f=(id,v)=>{const el=root.querySelector('#'+id);if(el&&v!=null)el.value=v;};
   const st=(id,v)=>{const el=root.querySelector('#'+id);if(el)el.textContent=Number(v||0)<=0?'OFF':'';};
@@ -6220,7 +6260,10 @@ def get_global_controls():
     cfg = _load_live_copy_config()
     return JSONResponse({"ok": True, "global_controls": _global_controls_for_ui(cfg.get("global_controls", _GLOBAL_CONTROLS_DEFAULTS)),
                          "networks": {"leader": NETWORKS["leader"]["network"], "follower": FOLLOWER_NETWORK,
-                                      "state_dir": str(LIVE_COPY_AUDIT_DIR)}})
+                                      "state_dir": str(LIVE_COPY_AUDIT_DIR),
+                                      # HIP-3 markets read even before any leader trades them; the engine also
+                                      # follows every market a leader trades and every one the follower holds
+                                      "follower_dexes": ["default"] + sorted({d.strip().lower() for d in str(_NET_ENV.get("HL_FOLLOWER_DEXES") or "").split(",") if d.strip()})}})
 
 
 @app.post("/api/global-controls")
