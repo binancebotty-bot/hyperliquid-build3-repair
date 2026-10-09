@@ -588,6 +588,37 @@ for r in R:
     if r["id"] in ("PRICE-001", "PRICE-006", "PRICE-007", "RISK-005"):
         r["sources"].append("Boss decision, Network switch thread 2026-10-09T13:26Z")
 
+# Testnet run 3 (2026-10-09, main @ ab7f2b0) findings and Boss's netting ruling (card, 2026-10-09T15:46Z).
+RUN3 = "RUN3_FINDINGS.md (testnet run 3, 2026-10-09, project files)"
+BOSS_NET = "Boss decision card 2026-10-09T15:46Z (opposite-direction leaders)"
+rec("ENG-018", "ENGINE", "Leaders trading opposite ways in one coin",
+    "The follower account holds one net position per coin, as the exchange does. When leaders trade opposite ways in the same coin, opposite entries are copied (not skipped) and net on the account; the engine's ledger follows the exchange's net position, while per-leader attribution is kept and shown on screen so each leader's sleeve and PnL stay visible.",
+    [BOSS_NET, RUN3 + " F3 (0x7717 STABLE long flattened by 0x7019 short)"], "APPLIES", [],
+    proof="Two real mainnet leaders take opposite entries in one coin during a testnet run; capture both sends, the exchange net position, the ledger net and the per-leader sleeves shown in the UI",
+    oracle="Testnet clearinghouseState net size per coin vs the sum of the engine's per-leader sleeves; leader fills from the mainnet info API",
+    neg=["opposite entries of equal size -> account flat, both sleeves shown", "one leader exits after netting -> exit sized from its own sleeve, account net correct",
+         "restart while netted -> attribution restored, no new orders", "ledger net vs exchange net differs -> diff shown and sending stops (SET-009)"],
+    notes="Replaces the run 3 question 'block opposite entries or net'. Interplay with leftover inventory: ENG-016.")
+rec("ENG-019", "ENGINE", "Main loop keeps up with 10 very busy leaders",
+    "With the 10 most active leaders followed, every engine cycle finishes within its budget: duplicate leader fills are de-duplicated before re-processing, and the copy-account poll runs every cycle and is never starved by leader polling.",
+    [RUN3 + " F1 (4 cycles in ~3 min, each budget_exceeded; 2,908 duplicate leader fills)"], "APPLIES", [],
+    proof="Run against the 10 most active mainnet leaders for at least 30 minutes on testnet; log cycle durations, poll timestamps and duplicate-fill counts",
+    oracle="Cycle and poll timestamps from the engine log compared with wall clock; follower fills from the testnet info API vs ledger rows",
+    neg=["burst of thousands of historical fills on start-up", "one leader with very high fill rate", "slow info API responses", "429 rate limiting"])
+rec("ORD-010", "ORDER", "Leader-to-send delay measured; stale entries take the missed-entry path",
+    "For every copy order the delay from the leader's trade to our send is measured and recorded. An ENTRY/ADD whose leader trade is more than 30 s old when it reaches the sender is not sent as a normal copy; it goes through the missed-entry rule (ENG-017). Exits are never dropped for age.",
+    [RUN3 + " F2 (one send worker, ~3.5 s per order; delay grew from 7 s to 81 s)"], "APPLIES", ["OD-10"],
+    proof="Testnet run with busy leaders: per-order leader time, send time and decision captured; an artificially delayed queue shows entries older than 30 s routed to ENG-017",
+    oracle="Leader fill timestamps from the mainnet info API vs testnet order timestamps",
+    neg=["entry at 29 s -> normal copy", "entry at 31 s -> missed-entry rule", "exit at 120 s -> still sent", "queue backlog of 50 orders -> delays stay recorded, no unbounded growth"],
+    notes="The 30 s threshold came from the engine thread's run 3 follow-up; confirm it with Boss alongside the OD-10 tolerance.")
+rec("SET-009", "SETTLE", "Ledger never diverges from the exchange",
+    "Every follower fill on the exchange reaches the engine ledger; the ledger's net position per coin always matches the exchange. Any unexplained difference stops new sends and is shown as a Critical diff until resolved.",
+    [RUN3 + " F1 (25 fills on exchange, 4 in live_fills.csv; 20 positions the engine thought flat)"], "APPLIES", [],
+    proof="After each testnet run, compare exchange fills/positions with ledger rows and net positions; induce a missed copy-account poll and confirm sending stops",
+    oracle="Testnet userFillsByTime and clearinghouseState (all DEX scopes) read without engine code",
+    neg=["copy-account poll delayed", "fill arrives after restart", "partial fills", "exit refused because ledger thought flat (run 3) must not recur"])
+
 # OD-21 decided (Boss, 2026-10-09T15:07Z): the certified UI is the 13 May "Live Copy Command Centre" file
 # (source sha256 fad19d22..., 7,243 lines; repo branch claude/restore-live-screen-0513 @ 38776e0, byte-exact). The previously
 # tracked HL_Copy_App_SSOT.py (sha256 c0f9e508...) had the Command Centre markup but no /live-copy route; it was the

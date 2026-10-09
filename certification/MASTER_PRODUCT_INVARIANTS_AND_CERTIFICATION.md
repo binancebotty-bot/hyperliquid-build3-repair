@@ -2,7 +2,7 @@
 
 **Product:** Hyperliquid Copy Engine (Build 3 Repair)
 **Status:** DRAFT v0.4 (adds the certified 13 May UI, the missed-entry rule and a route census of the live UI). It grants no authority, closes no gate and authorises no code change.
-**Companion files:** `certification_matrix.json` (machine-readable, 828 records), `certification_matrix.csv` (same records, spreadsheet form), `open_decisions.json` (§6 in machine-readable form), `gen_matrix.py` (regenerates all three from the source documents). Start at `README.md` in this folder.
+**Companion files:** `certification_matrix.json` (machine-readable, 832 records), `certification_matrix.csv` (same records, spreadsheet form), `open_decisions.json` (§6 in machine-readable form), `gen_matrix.py` (regenerates all three from the source documents). Start at `README.md` in this folder.
 
 ## 1. Purpose
 
@@ -93,7 +93,7 @@ Where precedence is not explicit, the rule is `ARCHITECT_REVIEW_REQUIRED` (ARCHI
 
 | Value | Meaning | Count |
 |---|---|---|
-| `APPLIES` | Binding: stated in Build 3 documents, or an exact Build 3 equivalent is cited | 572 |
+| `APPLIES` | Binding: stated in Build 3 documents, or an exact Build 3 equivalent is cited | 576 |
 | `APPLIES_PROPOSED` | Inherited from Build 4. No conflict with Build 3 was found, but no document explicitly adopts it. The Controller must confirm. | 171 |
 | `ADAPTED_PROPOSED` | The intent applies but the Build 4 mechanism does not (Build 3 forbids importing it). The Controller must confirm the Build 3 equivalent. | 24 |
 | `SUPERSEDED` | Explicitly superseded by a cited later document | 23 |
@@ -122,6 +122,7 @@ Boss's note said every inherited requirement needs an explicit applicability dec
 | Default slippage (owner decision) | Unset marketable slippage defaults to 0.2%. Resolves the slippage part of OD-10 | Boss, Network switch thread 2026-10-09T13:26Z ("0.2"); implemented in PR #6 |
 | Certified UI (owner decision) | The UI under certification is the 13 May "Live Copy Command Centre" (`/live-copy`) version of `HL_Copy_App_SSOT.py`: source `_archive\_CLEANUP_QUARANTINE_\tier4_deadcode\…\HL_Copy_App_SSOT.py`, SHA-256 `fad19d220d7af13d48a3eec664c56a32b31624d671b00e2f80ec2dc9062a29b0`, 7,243 lines, restored on branch `claude/restore-live-screen-0513` (`38776e0`, byte-for-byte; `91e9980` had line endings normalised). The previously tracked file (SHA-256 `c0f9e508…`) is the walletproof modelling screen. Resolves OD-21 | Boss, project chat 2026-10-09T15:07Z |
 | Missed entries (owner decision) | A missed leader entry is taken if the follower's price is the same, better or within tolerance. Otherwise a diff is reported in the UI and a limit order at the desired price is placed meanwhile (ENG-017). This replaces Build 4 F13's "send nothing outside tolerance" | Boss, project chat 2026-10-09T15:07Z |
+| Opposite-direction leaders (owner decision) | When leaders trade opposite ways in one coin, the shared account nets as the exchange does. The engine's ledger follows the exchange's net, per-leader attribution is kept and shown on screen, and opposite entries are not skipped (ENG-018) | Boss, decision card 2026-10-09T15:46Z; testnet run 3 finding F3 |
 | Diff handling in the UI (owner decision) | The UI must report every diff (UI-DIFF-01) but need not offer a way to fix it; Boss reconciles on the exchange | Boss, project chat 2026-10-09T15:07Z |
 | PROCESS-002 "rebuild if foundation unsuitable" | Superseded for this project by the product-preservation presumption | ARCHITECTURE.md |
 
@@ -164,10 +165,10 @@ Every record is in `certification_matrix.json`. This section maps the areas.
 
 | Area | Records | ID prefixes | What it covers | Main sources |
 |---|---|---|---|---|
-| ENGINE | 42 | ENG-INV-01..14, ENG-SEM-B1..B4, ENG-001..017, ENG-VAL-01..04, TN-F03/F04/F17 | Build 3's 14 invariants, frozen trading authority, repeated-ADD convergence, proportional/fixed, units, multi-wallet net, multi-DEX, restart at every lifecycle point, unrelated inventory, lineage, in-flight, latency, audit trail, event chaos, flips, Build 4 leftovers on the shared account (ENG-016), missed entries (ENG-017) | ARCHITECTURE, PRODUCT_SEMANTICS, CONTROL_STATE |
+| ENGINE | 44 | ENG-INV-01..14, ENG-SEM-B1..B4, ENG-001..019, ENG-VAL-01..04, TN-F03/F04/F17 | Build 3's 14 invariants, frozen trading authority, repeated-ADD convergence, proportional/fixed, units, multi-wallet net, multi-DEX, restart at every lifecycle point, unrelated inventory, lineage, in-flight, latency, audit trail, event chaos, flips, Build 4 leftovers on the shared account (ENG-016), missed entries (ENG-017), opposite-direction leaders (ENG-018), loop throughput with 10 busy leaders (ENG-019) | ARCHITECTURE, PRODUCT_SEMANTICS, CONTROL_STATE |
 | PRICING | 8 | PRICE-001..008 | Mark authority, quote TTL, entry bound, PRICE_WAIT, exits never trapped, adverse-diff meaningfulness, slippage, close diff | G4_C2A inventory, GUT I20–I22 |
-| ORDER | 10 | ORD-001..009, TN-F05 | Single sender, reduce_only, minimums, rounding, exactly-once, pre-send reservation, per-run limits, preflight, signing key valid on the follower network (ORD-009) | ARCH, GUT, FAILURES |
-| SETTLE | 14 | SET-001..008, TN-F09..F13, TN-F18 | ACK ≠ settlement, MASTER all-DEX fills, terminal reject, partial fill, crash before oid, reconciliation gate, the Build 4 ACCEPTANCE testnet entry and exit gates in full | CONTROL_STATE G3, Build 4 ACCEPTANCE |
+| ORDER | 11 | ORD-001..010, TN-F05 | Single sender, reduce_only, minimums, rounding, exactly-once, pre-send reservation, per-run limits, preflight, signing key valid on the follower network (ORD-009), leader-to-send delay and 30 s stale-entry cutoff (ORD-010) | ARCH, GUT, FAILURES |
+| SETTLE | 15 | SET-001..009, TN-F09..F13, TN-F18 | ACK ≠ settlement, MASTER all-DEX fills, terminal reject, partial fill, crash before oid, reconciliation gate, the Build 4 ACCEPTANCE testnet entry and exit gates in full | CONTROL_STATE G3, Build 4 ACCEPTANCE |
 | RISK | 26 | RISK-001..016, TN-F01/F02/F06/F07/F08/F16/F21/F26/F27, TN-PS1 | Each of the 8 global-control fields, daily loss, max diff, wallet cap, safe stop, mode boundaries, stale containment, emergency close, manual cap | HL_Copy_App_SSOT.py, ARCH Full scope 4 |
 | WALLET | 19 | UI-WALLET-001..019 | Add, remove/archive, enable, **disable (004)**, close-only, copy model, N/F/B fields, status, persistence, invalid input, USER wallet, two mode writers, purge, INC, meta, re-add, subscription coverage | ARCH Full scope 3, GUT I17–I19 |
 | UI | 436 | UI-LCC-*, UI-SSOT-*, UI-TRUTH-*, UI-FP-001..197, UI-ROUTE-01..35, UI-DIFF-01, TN-F14/F22/F23, INC-13..17 | **Every** header pill, button, card, graph control, table column, tab, modal field and endpoint in HL_Copy_App_SSOT.py, one record each, plus 5 cross-cutting truth rules | HL_Copy_App_SSOT.py (13 May certified version, §5), ARCH Full scope 2 and 6, FAILURES UI-001..003. UI-ROUTE covers every endpoint of the 13 May file |

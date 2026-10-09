@@ -16,6 +16,7 @@
  },
  "open_decisions_field": "decisions that affect the record; on an APPLIES record they constrain how it is tested, not whether it applies",
  "source_sha256": {
+  "RUN3_FINDINGS.md": "2f1f4e4612f55e5b52ffb94a765ffc56e840ba693763807a0fa4e45453fbe5af",
   "hyperliquid-build3-repair/ARCHITECTURE.md": "6f7f1fc736eeb31a7b22b498d544645d7bfe08282c0473c9799d76dc17b493e9",
   "hyperliquid-build3-repair/BOOTSTRAP.md": "8a0c3464ad04cef6ecb5ad4e39d5fba98de0317e2fbf064376f6a71d396431ed",
   "hyperliquid-build3-repair/CONTROL_STATE.json": "567a09901fc9d0f8bd0b54e3770bbd1e69312d5400f138084ce4f7fe071a14eb",
@@ -20778,6 +20779,109 @@
    "tested_commit": "",
    "tested_at_utc": "",
    "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id."
+  },
+  {
+   "id": "ENG-018",
+   "area": "ENGINE",
+   "feature": "Leaders trading opposite ways in one coin",
+   "expected_behaviour": "The follower account holds one net position per coin, as the exchange does. When leaders trade opposite ways in the same coin, opposite entries are copied (not skipped) and net on the account; the engine's ledger follows the exchange's net position, while per-leader attribution is kept and shown on screen so each leader's sleeve and PnL stay visible.",
+   "sources": [
+    "Boss decision card 2026-10-09T15:46Z (opposite-direction leaders)",
+    "RUN3_FINDINGS.md (testnet run 3, 2026-10-09, project files) F3 (0x7717 STABLE long flattened by 0x7019 short)"
+   ],
+   "applicability": "APPLIES",
+   "open_decisions": [],
+   "execution_proof": "Two real mainnet leaders take opposite entries in one coin during a testnet run; capture both sends, the exchange net position, the ledger net and the per-leader sleeves shown in the UI",
+   "independent_oracle": "Testnet clearinghouseState net size per coin vs the sum of the engine's per-leader sleeves; leader fills from the mainnet info API",
+   "negative_tests": [
+    "opposite entries of equal size -> account flat, both sleeves shown",
+    "one leader exits after netting -> exit sized from its own sleeve, account net correct",
+    "restart while netted -> attribution restored, no new orders",
+    "ledger net vs exchange net differs -> diff shown and sending stops (SET-009)"
+   ],
+   "prior_evidence": "",
+   "result": "NOT_TESTED",
+   "evidence_ref": "",
+   "tested_commit": "",
+   "tested_at_utc": "",
+   "notes": "Replaces the run 3 question 'block opposite entries or net'. Interplay with leftover inventory: ENG-016."
+  },
+  {
+   "id": "ENG-019",
+   "area": "ENGINE",
+   "feature": "Main loop keeps up with 10 very busy leaders",
+   "expected_behaviour": "With the 10 most active leaders followed, every engine cycle finishes within its budget: duplicate leader fills are de-duplicated before re-processing, and the copy-account poll runs every cycle and is never starved by leader polling.",
+   "sources": [
+    "RUN3_FINDINGS.md (testnet run 3, 2026-10-09, project files) F1 (4 cycles in ~3 min, each budget_exceeded; 2,908 duplicate leader fills)"
+   ],
+   "applicability": "APPLIES",
+   "open_decisions": [],
+   "execution_proof": "Run against the 10 most active mainnet leaders for at least 30 minutes on testnet; log cycle durations, poll timestamps and duplicate-fill counts",
+   "independent_oracle": "Cycle and poll timestamps from the engine log compared with wall clock; follower fills from the testnet info API vs ledger rows",
+   "negative_tests": [
+    "burst of thousands of historical fills on start-up",
+    "one leader with very high fill rate",
+    "slow info API responses",
+    "429 rate limiting"
+   ],
+   "prior_evidence": "",
+   "result": "NOT_TESTED",
+   "evidence_ref": "",
+   "tested_commit": "",
+   "tested_at_utc": "",
+   "notes": ""
+  },
+  {
+   "id": "ORD-010",
+   "area": "ORDER",
+   "feature": "Leader-to-send delay measured; stale entries take the missed-entry path",
+   "expected_behaviour": "For every copy order the delay from the leader's trade to our send is measured and recorded. An ENTRY/ADD whose leader trade is more than 30 s old when it reaches the sender is not sent as a normal copy; it goes through the missed-entry rule (ENG-017). Exits are never dropped for age.",
+   "sources": [
+    "RUN3_FINDINGS.md (testnet run 3, 2026-10-09, project files) F2 (one send worker, ~3.5 s per order; delay grew from 7 s to 81 s)"
+   ],
+   "applicability": "APPLIES",
+   "open_decisions": [
+    "OD-10"
+   ],
+   "execution_proof": "Testnet run with busy leaders: per-order leader time, send time and decision captured; an artificially delayed queue shows entries older than 30 s routed to ENG-017",
+   "independent_oracle": "Leader fill timestamps from the mainnet info API vs testnet order timestamps",
+   "negative_tests": [
+    "entry at 29 s -> normal copy",
+    "entry at 31 s -> missed-entry rule",
+    "exit at 120 s -> still sent",
+    "queue backlog of 50 orders -> delays stay recorded, no unbounded growth"
+   ],
+   "prior_evidence": "",
+   "result": "NOT_TESTED",
+   "evidence_ref": "",
+   "tested_commit": "",
+   "tested_at_utc": "",
+   "notes": "The 30 s threshold came from the engine thread's run 3 follow-up; confirm it with Boss alongside the OD-10 tolerance."
+  },
+  {
+   "id": "SET-009",
+   "area": "SETTLE",
+   "feature": "Ledger never diverges from the exchange",
+   "expected_behaviour": "Every follower fill on the exchange reaches the engine ledger; the ledger's net position per coin always matches the exchange. Any unexplained difference stops new sends and is shown as a Critical diff until resolved.",
+   "sources": [
+    "RUN3_FINDINGS.md (testnet run 3, 2026-10-09, project files) F1 (25 fills on exchange, 4 in live_fills.csv; 20 positions the engine thought flat)"
+   ],
+   "applicability": "APPLIES",
+   "open_decisions": [],
+   "execution_proof": "After each testnet run, compare exchange fills/positions with ledger rows and net positions; induce a missed copy-account poll and confirm sending stops",
+   "independent_oracle": "Testnet userFillsByTime and clearinghouseState (all DEX scopes) read without engine code",
+   "negative_tests": [
+    "copy-account poll delayed",
+    "fill arrives after restart",
+    "partial fills",
+    "exit refused because ledger thought flat (run 3) must not recur"
+   ],
+   "prior_evidence": "",
+   "result": "NOT_TESTED",
+   "evidence_ref": "",
+   "tested_commit": "",
+   "tested_at_utc": "",
+   "notes": ""
   },
   {
    "id": "ENG-017",
