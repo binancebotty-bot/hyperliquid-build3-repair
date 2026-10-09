@@ -2,7 +2,7 @@
 
 **Product:** Hyperliquid Copy Engine (Build 3 Repair)
 **Status:** DRAFT v0.4 (adds the certified 13 May UI, the missed-entry rule and a route census of the live UI). It grants no authority, closes no gate and authorises no code change.
-**Companion files:** `certification_matrix.json` (machine-readable, 827 records), `certification_matrix.csv` (same records, spreadsheet form), `open_decisions.json` (§6 in machine-readable form), `gen_matrix.py` (regenerates all three from the source documents). Start at `README.md` in this folder.
+**Companion files:** `certification_matrix.json` (machine-readable, 828 records), `certification_matrix.csv` (same records, spreadsheet form), `open_decisions.json` (§6 in machine-readable form), `gen_matrix.py` (regenerates all three from the source documents). Start at `README.md` in this folder.
 
 ## 1. Purpose
 
@@ -93,7 +93,7 @@ Where precedence is not explicit, the rule is `ARCHITECT_REVIEW_REQUIRED` (ARCHI
 
 | Value | Meaning | Count |
 |---|---|---|
-| `APPLIES` | Binding: stated in Build 3 documents, or an exact Build 3 equivalent is cited | 571 |
+| `APPLIES` | Binding: stated in Build 3 documents, or an exact Build 3 equivalent is cited | 572 |
 | `APPLIES_PROPOSED` | Inherited from Build 4. No conflict with Build 3 was found, but no document explicitly adopts it. The Controller must confirm. | 171 |
 | `ADAPTED_PROPOSED` | The intent applies but the Build 4 mechanism does not (Build 3 forbids importing it). The Controller must confirm the Build 3 equivalent. | 24 |
 | `SUPERSEDED` | Explicitly superseded by a cited later document | 23 |
@@ -166,7 +166,7 @@ Every record is in `certification_matrix.json`. This section maps the areas.
 |---|---|---|---|---|
 | ENGINE | 42 | ENG-INV-01..14, ENG-SEM-B1..B4, ENG-001..017, ENG-VAL-01..04, TN-F03/F04/F17 | Build 3's 14 invariants, frozen trading authority, repeated-ADD convergence, proportional/fixed, units, multi-wallet net, multi-DEX, restart at every lifecycle point, unrelated inventory, lineage, in-flight, latency, audit trail, event chaos, flips, Build 4 leftovers on the shared account (ENG-016), missed entries (ENG-017) | ARCHITECTURE, PRODUCT_SEMANTICS, CONTROL_STATE |
 | PRICING | 8 | PRICE-001..008 | Mark authority, quote TTL, entry bound, PRICE_WAIT, exits never trapped, adverse-diff meaningfulness, slippage, close diff | G4_C2A inventory, GUT I20–I22 |
-| ORDER | 9 | ORD-001..008, TN-F05 | Single sender, reduce_only, minimums, rounding, exactly-once, pre-send reservation, per-run limits, preflight | ARCH, GUT, FAILURES |
+| ORDER | 10 | ORD-001..009, TN-F05 | Single sender, reduce_only, minimums, rounding, exactly-once, pre-send reservation, per-run limits, preflight, signing key valid on the follower network (ORD-009) | ARCH, GUT, FAILURES |
 | SETTLE | 14 | SET-001..008, TN-F09..F13, TN-F18 | ACK ≠ settlement, MASTER all-DEX fills, terminal reject, partial fill, crash before oid, reconciliation gate, the Build 4 ACCEPTANCE testnet entry and exit gates in full | CONTROL_STATE G3, Build 4 ACCEPTANCE |
 | RISK | 26 | RISK-001..016, TN-F01/F02/F06/F07/F08/F16/F21/F26/F27, TN-PS1 | Each of the 8 global-control fields, daily loss, max diff, wallet cap, safe stop, mode boundaries, stale containment, emergency close, manual cap | HL_Copy_App_SSOT.py, ARCH Full scope 4 |
 | WALLET | 19 | UI-WALLET-001..019 | Add, remove/archive, enable, **disable (004)**, close-only, copy model, N/F/B fields, status, persistence, invalid input, USER wallet, two mode writers, purge, INC, meta, re-add, subscription coverage | ARCH Full scope 3, GUT I17–I19 |

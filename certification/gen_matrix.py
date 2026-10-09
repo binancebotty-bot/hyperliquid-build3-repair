@@ -160,6 +160,14 @@ od = [
 ]
 for id, f, t, s, *rest in od:
     rec(id, "ORDER", f, t, s, *(rest or []))
+rec("ORD-009", "ORDER", "Signing key valid on follower network",
+    "Before any order, the engine confirms via userRole on the follower network that its signing key is the follower account or an agent that account approved, and refuses to start otherwise. A definite exchange rejection of the signer ('User or API Wallet ... does not exist') is terminal (SENDER_KEY_NOT_VALID_ON_FOLLOWER_NETWORK), never ORDER_UNKNOWN: it stops all sending until restart, shows a red engine alert, and records a Critical diff for each trade it could not send. Key values are never printed or logged.",
+    ["Testnet run 3, 2026-10-09 (mainnet agent key rejected on testnet)", "PR #10 (engine thread)", "ARCH inv11 (signer vs MASTER)"],
+    "APPLIES", [],
+    proof="Start the engine against the follower network -> userRole read for the signer -> start allowed/refused; inject a signer rejection on send -> terminal state, sending stopped, UI alert and Critical diffs",
+    oracle="userRole for the signer and MASTER read independently on the follower network's info API; exchange order history shows no order after the rejection",
+    neg=["mainnet agent key on testnet", "agent approved by a different account", "userRole unreadable (timeout/error) -> refuse to start", "malformed key", "rejection mid-run -> no retries, no ORDER_UNKNOWN", "logs and UI contain no key material"],
+    prior="test_core_sender_key.py K1-K5 (unit, PR #10) - not testnet-certified")
 
 # 6. Settlement
 st = [
