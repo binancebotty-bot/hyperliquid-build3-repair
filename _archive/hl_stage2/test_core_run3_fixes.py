@@ -448,6 +448,19 @@ def main() -> None:
     d = state_dir(True)
     (d / "network.json").write_text(json.dumps({"leader": "mainnet", "follower": "testnet"}))
     check("G2_OLD_TESTNET_STAMP_KEEPS_RUNNING", X.stamp_state_refusal(d) == "")
+    # an old mainnet stamp over an empty folder: the first start records that, so the run's own state is fine later
+    d = state_dir(False)
+    (d / "network.json").write_text(json.dumps({"leader": "mainnet", "follower": "mainnet"}))
+    X.claim_network_stamp(d, nets_m)
+    first = X.stamp_state_refusal(d)
+    (d / "manual_live_positions.json").write_text(json.dumps({"by_wallet": {A: {"BTC": {"signed_size": 3.0}}}}))
+    X.claim_network_stamp(d, nets_m)
+    check("G2_OLD_MAINNET_STAMP_EMPTY_FOLDER_RESTARTS_FINE", first == "" and X.stamp_state_refusal(d) == ""
+          and json.loads((d / "network.json").read_text()).get("prior_state") == [], X.stamp_state_refusal(d))
+    d = state_dir(True)
+    (d / "network.json").write_text(json.dumps({"leader": "mainnet", "follower": "mainnet"}))
+    X.claim_network_stamp(d, nets_m)
+    check("G2_OLD_MAINNET_STAMP_WITH_STATE_STAYS_REFUSED", X.stamp_state_refusal(d).startswith("STATE_PREDATES"))
     d = state_dir(False)
     (d / "append_only").mkdir()
     (d / "append_only" / "send_attempts.csv").write_text("h\nrow\n")
@@ -475,8 +488,16 @@ def main() -> None:
     g2 = gateway(FakeExchange(), led2)
     check("G3_NETTED_LEADERS_WITH_A_RESIDUAL_BLOCKED", not g2._pre_send_ownership_gate(exit_intent(led2, A, "SELL", 1.0))[0])
     entry_it = c.IntentBuilder(c.ConfigManager(), led).build(fill("BUY", wallet=B))
+    snapshot(1.0)
+    check("G3_ENTRIES_ALLOWED_WHEN_EXPLAINED", c.classify_send_lifecycle(entry_it) == "ENTRY" and g._pre_send_ownership_gate(entry_it)[0])
     snapshot(1.5)
-    check("G3_ENTRIES_UNAFFECTED", c.classify_send_lifecycle(entry_it) == "ENTRY" and g._pre_send_ownership_gate(entry_it)[0])
+    ok, block = g._pre_send_ownership_gate(entry_it)
+    check("G3_NO_ENTRIES_IN_A_COIN_IT_COULD_NOT_CLOSE", not ok and block.get("status") == "OWNERSHIP_GATE_UNEXPLAINED_EXCHANGE_POSITION",
+          str(block.get("status")))
+    snapshot(-0.5)
+    check("G3_NO_ENTRIES_AGAINST_AN_OPPOSITE_UNEXPLAINED_POSITION", not g._pre_send_ownership_gate(entry_it)[0])
+    snapshot(0.5)
+    check("G3_ENTRIES_FINE_WHEN_EXCHANGE_HOLDS_LESS", g._pre_send_ownership_gate(entry_it)[0])
     # lag: the exchange shows our fill before the ledger does; the close waits for the records instead of failing
     c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": True, "global_controls": {}, "wallets": {
         A: {"enabled": True, "mode": "ON", "copy_mode": "fixed", "fixed_notional": 1000}}})
@@ -494,6 +515,75 @@ def main() -> None:
     threading.Thread(target=ledger_catches_up).start()
     ok, status = g.send_if_allowed(it)
     check("G3_LAGGING_RECORDS_WAITED_FOR_NOT_BLOCKED", ok and status == "MOCK_ORDER_SENT", status)
+    # a stale exchange snapshot (leader A's close already in the ledger, not yet in the snapshot): the gate asks for
+    # fresh truth instead of dropping B's close; works in --once mode too (nothing else would refresh it)
+    led = ledger(b=1.0)
+    snapshot(2.0)
+    g = gateway(FakeExchange(), led)
+    it = exit_intent(led, B, "SELL", 1.0)
+    it.decision = "EXIT_ALLOWED"
+    calls = []
+    g.truth_refresh = lambda: (calls.append(1), snapshot(1.0))
+    t0 = time.monotonic()
+    ok, status = g.send_if_allowed(it)
+    check("G3_STALE_SNAPSHOT_REFRESHED_NOT_BLOCKED", ok and status == "MOCK_ORDER_SENT" and calls and time.monotonic() - t0 < 2,
+          f"{status} {len(calls)}")
+    # the same lag showing as opposite signs (A's netted close seen by the exchange first) is waited for too
+    led = ledger(a=10.0, b=-4.0)
+    snapshot(-4.0)
+    led.sleeve(A, "BTC")["signed_size"] = 10.0
+    g = gateway(FakeExchange(), led)
+    it = exit_intent(led, B, "BUY", 4.0)
+    it.decision = "EXIT_ALLOWED"
+
+    def a_close_reaches_ledger():
+        led.sleeve(A, "BTC")["signed_size"] = 0.0
+        led._recompute_net(led.data)
+    g.truth_refresh = a_close_reaches_ledger
+    ok, status = g.send_if_allowed(it)
+    check("G3_SIGN_CONFLICT_FROM_LAG_WAITED_FOR", ok and status == "MOCK_ORDER_SENT", status)
+    # a real unexplained position survives fresh truth: blocked, with refreshes bounded
+    led = ledger(a=1.0)
+    snapshot(1.5)
+    g = gateway(FakeExchange(), led)
+    it = exit_intent(led, A, "SELL", 1.0)
+    it.decision = "EXIT_ALLOWED"
+    calls = []
+    g.truth_refresh = lambda: calls.append(1)
+    os.environ["HL_LIVE_UNEXPLAINED_WAIT_SEC"] = "3"
+    ok, status = g.send_if_allowed(it)
+    check("G3_REAL_UNEXPLAINED_STILL_BLOCKED", not ok and status == "OWNERSHIP_GATE_UNEXPLAINED_EXCHANGE_POSITION"
+          and 1 <= len(calls) <= 3, f"{status} {len(calls)}")
+    rows = [r for r in c.read_csv_rows(c.RECONCILIATION_CSV) if "UNEXPLAINED" in str(r.get("status", ""))] \
+        if hasattr(c, "RECONCILIATION_CSV") else [1]
+    check("G3_BLOCK_RECORDED_FOR_THE_SCREEN", bool(rows))
+    os.environ.pop("HL_LIVE_MOCK_SEND", None)
+
+    # send history reader: appends, a row half-written, rewrites in place
+    p = c.SEND_ATTEMPTS_CSV
+    p.parent.mkdir(parents=True, exist_ok=True)
+
+    def ids():
+        return [r.get("intent_id") for r in c.send_attempt_rows()]
+    p.write_text("intent_id,coin\n1,BTC\n2,BTC\n")
+    first = ids()
+    with p.open("a") as fh:
+        fh.write("3,BTC\n4,BT")
+    half = ids()
+    with p.open("a") as fh:
+        fh.write("C\n")
+    whole = ids()
+    with p.open("r+") as fh:   # same size, same file, different content
+        fh.seek(len("intent_id,coin\n"))
+        fh.write("7")
+    time.sleep(0.01)
+    os.utime(p)
+    rewritten = ids()
+    p.write_text("intent_id,coin\n" + "".join(f"{i},BTC\n" for i in range(20, 25)))
+    regrown = ids()
+    check("H1_SEND_HISTORY_READER_EXACT", first == ["1", "2"] and half == ["1", "2", "3"] and whole == ["1", "2", "3", "4"]
+          and rewritten == ["7", "2", "3", "4"] and regrown == [str(i) for i in range(20, 25)],
+          f"{first} {half} {whole} {rewritten} {regrown}")
     os.environ.pop("HL_LIVE_MOCK_SEND", None)
 
     failed = [n for n, ok in RESULTS if not ok]

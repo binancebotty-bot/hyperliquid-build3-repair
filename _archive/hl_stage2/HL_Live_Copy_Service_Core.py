@@ -39,7 +39,7 @@ from dataclasses import asdict, dataclass, field
 from decimal import Decimal, ROUND_FLOOR, ROUND_CEILING, InvalidOperation
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 
 try:
     import requests  # type: ignore
@@ -933,7 +933,7 @@ def read_csv_rows(path: Path) -> List[Dict[str, str]]:
             return list(csv.DictReader(f))
 
 
-_SEND_ROWS_CACHE: Dict[str, Any] = {"path": None, "ino": None, "size": 0, "rows": [], "fields": None}
+_SEND_ROWS_CACHE: Dict[str, Any] = {"path": None, "ino": None, "size": 0, "mtime": None, "tail": b"", "rows": [], "fields": None}
 
 
 def send_attempt_rows() -> List[Dict[str, str]]:
@@ -942,15 +942,26 @@ def send_attempt_rows() -> List[Dict[str, str]]:
     path = SEND_ATTEMPTS_CSV
     with FILE_LOCK:
         st = path.stat() if path.exists() else None
-        size, ino = (st.st_size, (st.st_dev, st.st_ino)) if st else (0, None)
+        size, ino, mtime = (st.st_size, (st.st_dev, st.st_ino), st.st_mtime_ns) if st else (0, None, None)
         cache = _SEND_ROWS_CACHE
-        # a different file, a rewritten one (header migration replaces it) or a shorter one: read it all again
-        if cache["path"] != str(path) or cache["ino"] != ino or size < cache["size"] or cache["fields"] is None:
-            cache.update(path=str(path), ino=ino, size=0, rows=[], fields=None)
+        # a different file, a rewritten one (header migration replaces it), a shorter one, one changed without
+        # growing, or one whose bytes before the old end are no longer the ones read: read it all again
+        stale = (cache["path"] != str(path) or cache["ino"] != ino or size < cache["size"] or cache["fields"] is None
+                 or (size == cache["size"] and mtime != cache["mtime"]))
+        if not stale and size > cache["size"] and cache["tail"]:
+            with path.open("rb") as fh:
+                fh.seek(cache["size"] - len(cache["tail"]))
+                stale = fh.read(len(cache["tail"])) != cache["tail"]
+        if stale:
+            cache.update(path=str(path), ino=ino, size=0, mtime=None, tail=b"", rows=[], fields=None)
         if size and size != cache["size"]:
             with path.open("rb") as fh:
                 fh.seek(cache["size"])
                 chunk = fh.read(size - cache["size"])
+            end = chunk.rfind(b"\n") + 1  # a row still being written is read next time
+            if end <= 0:
+                return list(cache["rows"])
+            chunk, size = chunk[:end], cache["size"] + end
             text = chunk.decode("utf-8")
             if cache["fields"] is None:
                 text = text.lstrip("\ufeff")
@@ -961,7 +972,8 @@ def send_attempt_rows() -> List[Dict[str, str]]:
                     cache["fields"] = None
             else:
                 cache["rows"].extend(csv.DictReader(io.StringIO(text, newline=""), fieldnames=cache["fields"]))
-            cache["size"] = size
+            cache["tail"] = (cache["tail"] + chunk)[-64:]
+            cache["size"], cache["mtime"] = size, mtime
         return list(cache["rows"])
 
 
@@ -1378,6 +1390,7 @@ def build_live_integrity_status() -> Dict[str, Any]:
             "OWNERSHIP_GATE_SIGN_CONFLICT",
             "OWNERSHIP_GATE_UNRESOLVED_SYMBOL",
             "OWNERSHIP_GATE_NO_MATCHING_WALLET_SLEEVE",
+            "OWNERSHIP_GATE_UNEXPLAINED_EXCHANGE_POSITION",
         }
         for proof in rows:
             ev = str(proof.get("event") or "").strip().upper()
@@ -2887,6 +2900,7 @@ class SenderGateway:
         self.cfg = cfg
         self.audit = audit
         self.ledger = ledger
+        self.truth_refresh: Optional[Callable[[], None]] = None  # the service: bring ledger + exchange snapshot up to date
         self._meta_cache: Dict[str, Dict[str, Any]] = {}
         self._index_cache: Dict[int, str] = {}
         self._meta_fetched: bool = False
@@ -3229,7 +3243,21 @@ class SenderGateway:
         # ownership problem, not an entry permission problem. Blocking entries
         # here caused valid copy-required leader entries to be missed whenever
         # another wallet already had the same coin open.
+        tol = max(POSITION_EPSILON, 1e-9 * max(abs(manual_net), abs(exchange_net)))
+        unexplained = (abs(exchange_net) > abs(manual_net) + tol
+                       or (abs(exchange_net) > tol and manual_net * exchange_net < 0))
         if lifecycle in {"ENTRY", "ADD"}:
+            if unexplained:
+                # the engine could open here but never close (closes into an unexplained position are refused
+                # below), so each round trip would leave another position it can't close: no entries either
+                block = self._ownership_gate_block(
+                    intent, "OWNERSHIP_GATE_UNEXPLAINED_EXCHANGE_POSITION",
+                    f"exchange holds {exchange_net} but the engine's own sleeves explain {manual_net}; no new entries "
+                    "in this coin until it is reconciled on the exchange",
+                    manual_net, exchange_net,
+                )
+                block["operator_action"] = "MANUAL_REVIEW_UNEXPLAINED_EXCHANGE_POSITION"
+                return False, block
             return True, {}
 
         if abs(manual_net) > POSITION_EPSILON and abs(exchange_net) > POSITION_EPSILON and manual_net * exchange_net < 0:
@@ -3241,9 +3269,6 @@ class SenderGateway:
         if lifecycle in {"REDUCE", "EXIT"} or intent.reduce_only_intended:
             # never close into a position the engine's own sleeves don't explain (another bot's or a person's,
             # e.g. the mainnet leftovers): the exchange holding MORE than the sleeves' sum, or the other way
-            tol = max(POSITION_EPSILON, 1e-9 * max(abs(manual_net), abs(exchange_net)))
-            unexplained = (abs(exchange_net) > abs(manual_net) + tol
-                           or (abs(exchange_net) > tol and manual_net * exchange_net < 0))
             if unexplained:
                 block = self._ownership_gate_block(
                     intent, "OWNERSHIP_GATE_UNEXPLAINED_EXCHANGE_POSITION",
@@ -3706,13 +3731,24 @@ class SenderGateway:
             return False, "SEND_BLOCKED_LEADER_ALREADY_REDUCED"
         timing = self._base_timing(intent)
         gate_ok, gate_block = self._pre_send_ownership_gate(intent)
-        if not gate_ok and gate_block.get("status") == "OWNERSHIP_GATE_UNEXPLAINED_EXCHANGE_POSITION":
-            # often only the copy poll / exchange snapshot lagging our own fill by a few seconds: wait for them
+        lag_statuses = {"OWNERSHIP_GATE_UNEXPLAINED_EXCHANGE_POSITION", "OWNERSHIP_GATE_SIGN_CONFLICT"}
+        if not gate_ok and gate_block.get("status") in lag_statuses:
+            # often only the ledger (copy poll) or the exchange snapshot lagging the other by a few seconds: bring
+            # both up to date and look again; only a mismatch that survives fresh records is a real one
             deadline = time.monotonic() + max(0.0, fnum(os.getenv("HL_LIVE_UNEXPLAINED_WAIT_SEC"), 6.0))
-            while (not gate_ok and gate_block.get("status") == "OWNERSHIP_GATE_UNEXPLAINED_EXCHANGE_POSITION"
-                   and time.monotonic() < deadline):
-                time.sleep(0.5)
+            refreshes = 0
+            while not gate_ok and gate_block.get("status") in lag_statuses and time.monotonic() < deadline:
+                if self.truth_refresh is not None and refreshes < 3:
+                    refreshes += 1
+                    try:
+                        self.truth_refresh()
+                    except Exception as exc:
+                        log_error("ownership_gate_truth_refresh", exc)
+                else:
+                    time.sleep(0.5)
                 gate_ok, gate_block = self._pre_send_ownership_gate(intent)
+                if not gate_ok and gate_block.get("status") in lag_statuses and time.monotonic() < deadline:
+                    time.sleep(0.5)
         if not gate_ok:
             gate_block["timing"] = timing
             self._append_local_block_reconciliation(intent, str(gate_block.get("status") or "OWNERSHIP_GATE_BLOCKED"), gate_block)
@@ -6578,6 +6614,7 @@ class LiveCopyCore:
         self.copy_ingestor = CopyAccountIngestor()
         self.matcher = CopyFillMatcher(self.ledger, self.audit)
         self.reconciler = ExchangeReconciler(self.ledger, self.audit)
+        self.sender.truth_refresh = self._refresh_truth_for_gate
         self.state_writer = ServiceStateWriter()
         self.source_csv = source_csv or RAW_LEADER_FILLS_CSV
         self.intents_by_id: Dict[str, Intent] = {}
@@ -6915,6 +6952,25 @@ class LiveCopyCore:
                 if self.dedupe.accept_copy(CopyAccountIngestor.copy_fill_id(raw)) and self.matcher.match_and_apply(raw, self.intents_by_id):
                     owned += 1
         return owned
+
+    def _refresh_truth_for_gate(self) -> None:
+        """The ownership gate saw the exchange and the ledger disagree: own the follower's newest fills (as the
+        cycle's copy poll would) and re-read the exchange positions, so it compares fresh records with fresh truth."""
+        with self._send_lock, self._copy_ingest_lock:
+            if self.dedupe.copy_account_baseline_set:
+                _rt = load_json(CORE_RUNTIME_STATE_FILE, {})
+                last = int(fnum(_rt.get("last_copy_poll_ms"), 0)) if isinstance(_rt, dict) else 0
+                start = max(0, (last or utc_now_ms()) - POLL_OVERLAP_MS)
+                fills, status = self.copy_ingestor.poll_copy_account_fills(USER_WALLET, start, utc_now_ms(), report_partial=True)
+                if status in {"COPY_ACCOUNT_POLLED", "COPY_ACCOUNT_POLL_PARTIAL"}:
+                    for raw_copy in fills:
+                        copy_id = CopyAccountIngestor.copy_fill_id(raw_copy)
+                        recovery_oid = CopyFillMatcher._normalize_oid(CopyFillMatcher._copy_fill_oid(raw_copy))
+                        allow_recovery_retry = (bool(recovery_oid) and recovery_oid in self.matcher.recovery_oid_index
+                                                and copy_id not in self.matcher.matched_copy_fill_ids)
+                        if self.dedupe.accept_copy(copy_id, allow_retry=allow_recovery_retry):
+                            self.matcher.match_and_apply(raw_copy, self.intents_by_id)
+        self.reconciler.fetch_snapshot()  # outside the send lock: other coins' workers keep building intents
 
     def _leader_poll_due(self) -> bool:
         """The live feed is the hot path; the poll is the missed-fill backstop. While the feed's socket is open the

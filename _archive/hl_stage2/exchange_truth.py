@@ -115,6 +115,14 @@ def claim_network_stamp(state_dir, networks):
             raise NetworkConfigError(f"NETWORK_STAMP_UNREADABLE:{path}:{exc!r}")
         if not isinstance(have, dict) or {k: have.get(k) for k in want} != want:
             raise NetworkConfigError(f"NETWORK_STAMP_MISMATCH:{path} is {have} but this instance is {want}")
+        if "prior_state" not in have:
+            # a stamp from before stamps recorded state: record it once, so the engine's own state from this run
+            # on doesn't count as old on the next restart (a mainnet folder's existing state still counts as old)
+            have["prior_state"] = state_present(state_dir) if want["follower"] == "mainnet" else []
+            tmp = f"{path}.tmp"
+            with open(tmp, "w", encoding="utf-8") as fh:
+                json.dump(have, fh)
+            os.replace(tmp, path)
         return want
     os.makedirs(str(state_dir), exist_ok=True)
     with open(path, "w", encoding="utf-8") as fh:
