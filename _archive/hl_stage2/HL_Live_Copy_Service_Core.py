@@ -92,10 +92,23 @@ def load_env_file(path: Path) -> None:
 
 
 load_env_file(ENV_FILE)
+
+# Leader feed and follower account networks are chosen independently (exchange_truth.resolve_networks):
+# HL_LEADER_NETWORK (default mainnet) serves leader fill polling and the leader WS; HL_FOLLOWER_NETWORK
+# (default testnet; mainnet must be named) serves every follower read and every order. Unknown names and
+# legacy URLs pointing at the other network refuse to start.
+sys.path.insert(0, str(BASE_DIR))
+import exchange_truth as _XNET  # noqa: E402
+try:
+    NETWORKS = _XNET.resolve_networks()
+except _XNET.NetworkConfigError as _net_exc:
+    raise SystemExit(f"HL network configuration refused: {_net_exc}")
+LEADER_NETWORK, FOLLOWER_NETWORK = NETWORKS["leader"]["network"], NETWORKS["follower"]["network"]
+_NETWORK_AUDIT_DIR = BASE_DIR / ("hl_live_copy_audit" if FOLLOWER_NETWORK == "mainnet" else f"hl_live_copy_audit_{FOLLOWER_NETWORK}")
 PROCESS_STARTED_AT = datetime.now(timezone.utc).isoformat()
 PROCESS_STARTED_AT_MS = int(time.time() * 1000)
 ENGINE_OUTPUT_DIR = BASE_DIR / "hl_copy_output"
-AUDIT_DIR = Path(os.getenv("HL_LIVE_AUDIT_DIR", str(BASE_DIR / "hl_live_copy_audit")))
+AUDIT_DIR = Path(os.getenv("HL_LIVE_AUDIT_DIR") or str(_NETWORK_AUDIT_DIR))
 APPEND_ONLY_DIR = AUDIT_DIR / "append_only"
 
 LIVE_CONFIG_FILE = AUDIT_DIR / "live_config.json"
@@ -129,9 +142,11 @@ UI_STATE_FILE = BASE_DIR / "ui_state.json"
 FORBIDDEN_LIVE_POSITIONS_FILE = AUDIT_DIR / "live_positions.json"
 FORBIDDEN_WOULD_SEND_ORDERS_CSV = APPEND_ONLY_DIR / "would_send_orders.csv"
 
-HL_INFO_URL = os.getenv("HL_INFO_URL", "https://api.hyperliquid.xyz/info")
-HL_WS_URL = os.getenv("HL_LIVE_WS_URL", "wss://api.hyperliquid.xyz/ws")
-HL_EXCHANGE_URL = os.getenv("HL_LIVE_ORDER_ENDPOINT", "https://api.hyperliquid.xyz/exchange")
+HL_INFO_URL = NETWORKS["follower"]["info"]          # follower: meta, mids, copy fills, clearinghouseState
+HL_LEADER_INFO_URL = NETWORKS["leader"]["info"]     # leader fill polling only
+HL_WS_URL = os.getenv("HL_LIVE_WS_URL") or NETWORKS["leader"]["ws"]
+HL_EXCHANGE_URL = os.getenv("HL_LIVE_ORDER_ENDPOINT") or NETWORKS["follower"]["exchange"]
+EXPOSURE_FETCHER = None  # test seam for follower exposure reads; production uses HTTP
 USER_WALLET = os.getenv("HL_USER_WALLET", "").strip().lower()
 
 DEFAULT_FIXED_NOTIONAL = float(os.getenv("HL_LIVE_DEFAULT_FIXED_NOTIONAL", "10"))
@@ -1928,6 +1943,9 @@ class ConfigManager:
     def max_total_exposure(self) -> float:
         return max(0.0, fnum(self.global_controls.get("max_total_live_exposure_usd"), 0.0))
 
+    def max_asset_directional_exposure(self) -> float:
+        return max(0.0, fnum(self.global_controls.get("max_asset_directional_exposure_usd"), 0.0))
+
     def max_wallet_exposure(self, wallet: str) -> float:
         wc = self.wallet_cfg(wallet)
         return max(0.0, fnum(wc.get("max_wallet_exposure_usd", self.global_controls.get("max_wallet_exposure_usd")), 0.0))
@@ -1936,10 +1954,13 @@ class ConfigManager:
         return max(0.0, fnum(self.global_controls.get("max_order_notional_usd"), 0.0))
 
     def marketable_bps(self) -> float:
-        return max(0.0, min(100.0, fnum(self.global_controls.get("marketable_bps"), DEFAULT_MARKETABLE_BPS)))
+        # The UI shows a missing value as 0 = OFF, so a missing value IS 0 here (no hidden env default).
+        gc = self.global_controls
+        raw = gc.get("marketable_bps") if "marketable_bps" in gc else fnum(gc.get("marketable_slippage_pct"), 0.0) * 100.0
+        return max(0.0, min(100.0, fnum(raw, 0.0)))
 
     def max_close_adverse_diff_pct(self) -> float:
-        return max(0.0, fnum(self.global_controls.get("max_close_adverse_diff_pct"), DEFAULT_MAX_CLOSE_ADVERSE_DIFF_PCT))
+        return max(0.0, fnum(self.global_controls.get("max_close_adverse_diff_pct"), 0.0))  # 0/missing = OFF
 
     def is_symbol_allowed(self, coin: str) -> Tuple[bool, str]:
         coin = str(coin or "").upper()
@@ -2344,6 +2365,57 @@ class IntentBuilder:
     def __init__(self, cfg: ConfigManager, ledger: ManualLedger):
         self.cfg = cfg
         self.ledger = ledger
+        self._exposure: Optional[Dict[str, Any]] = None
+        self._exposure_ms = 0
+        self._exposure_pending: List[Tuple[str, float, float]] = []  # entries approved since the snapshot
+        self._dexes: Optional[List[str]] = None
+        self._dexes_ms = 0
+
+    def follower_exposure(self) -> Dict[str, Any]:
+        """Follower account exposure from the FOLLOWER exchange over every perp DEX scope (HIP-3
+        included), for the total and per-asset caps. Cached for HL_LIVE_EXPOSURE_CACHE_TTL_SEC
+        (default 2 s); entries approved since the snapshot are added on top so a burst cannot slip
+        past a cap. Any unreadable scope returns ok=False and the caller fails closed."""
+        now = utc_now_ms()
+        ttl_ms = int(max(0.0, fnum(os.getenv("HL_LIVE_EXPOSURE_CACHE_TTL_SEC"), 2.0)) * 1000)
+        if self._exposure is not None and now - self._exposure_ms <= ttl_ms:
+            return self._exposure
+        if not is_valid_wallet(normalise_wallet(USER_WALLET)):
+            return {"ok": False, "status": "COPY_ACCOUNT_NOT_CONFIGURED"}
+        if self._dexes is None or now - self._dexes_ms > 600_000:
+            enum = _XNET.list_perp_dexes(fetcher=EXPOSURE_FETCHER, info_url=HL_INFO_URL, timeout=HTTP_TIMEOUT_SEC)
+            if not enum.get("ok"):
+                return {"ok": False, "status": str(enum.get("status") or "DEX_ENUM_UNAVAILABLE")}
+            self._dexes, self._dexes_ms = list(enum["dexes"]), now
+        exp = _XNET.master_exposure(normalise_wallet(USER_WALLET), self._dexes, fetcher=EXPOSURE_FETCHER,
+                                    info_url=HL_INFO_URL, timeout=HTTP_TIMEOUT_SEC)
+        if not exp.get("ok"):
+            return {"ok": False, "status": str(exp.get("status") or "SNAPSHOT_UNAVAILABLE"), "dex": exp.get("dex", "")}
+        self._exposure, self._exposure_ms, self._exposure_pending = exp, now, []
+        return exp
+
+    def _exposure_cap_block(self, fill: LeaderFill, copy_notional: float) -> str:
+        """Total and per-asset directional caps against follower exchange truth; "" when allowed."""
+        cap_total, cap_asset = self.cfg.max_total_exposure(), self.cfg.max_asset_directional_exposure()
+        if cap_total <= 0 and cap_asset <= 0:
+            return ""
+        if fill.price <= 0:
+            return "no price to value the entry"
+        exp = self.follower_exposure()
+        if not exp.get("ok"):
+            return f"follower exposure unavailable ({exp.get('status')}); entries fail closed while a cap is set"
+        coin = canonical_coin_key(fill.coin)
+        units = (copy_notional / fill.price) * (1.0 if fill.side == "BUY" else -1.0)
+        pending_total = sum(abs(u) * px for _c, u, px in self._exposure_pending)
+        pending_coin = sum(u for c, u, _px in self._exposure_pending if c == coin)
+        if cap_total > 0 and fnum(exp.get("total_usd")) + pending_total + copy_notional > cap_total + 1e-9:
+            return "max total exposure exceeded"
+        if cap_asset > 0:
+            net = sum(fnum(v.get("net")) for k, v in (exp.get("by_coin") or {}).items() if canonical_coin_key(k) == coin)
+            if abs(net + pending_coin + units) * fill.price > cap_asset + 1e-9:
+                return "max asset directional exposure exceeded"
+        self._exposure_pending.append((coin, units, fill.price))
+        return ""
 
     def build(self, fill: LeaderFill) -> Intent:
         wallet = fill.leader_wallet
@@ -2427,8 +2499,9 @@ class IntentBuilder:
             return "BLOCKED_OFF", "wallet mode OFF"
         if mode == "CLO" and lifecycle in {"ENTRY", "ADD"}:
             return "BLOCKED_CLO_ENTRY", "CLO blocks entries/adds"
+        # allow/block lists gate NEW exposure only: blocking a symbol must never trap an open sleeve
         allowed_symbol, reason = self.cfg.is_symbol_allowed(fill.coin)
-        if not allowed_symbol:
+        if not allowed_symbol and lifecycle in {"ENTRY", "ADD"}:
             return "SYMBOL_UNAVAILABLE", reason
         # Guard: flat wallet receiving a leader close/reduce fill must not open a reverse position.
         # Only fires when raw fill data positively identifies a close-side event.
@@ -2447,11 +2520,11 @@ class IntentBuilder:
             current = self.ledger.wallet_abs_exposure_usd(wallet, {fill.coin: fill.price})
             if current + copy_notional > max_wallet:
                 return "SEND_BLOCKED_RISK", "max wallet exposure exceeded"
-        max_total = self.cfg.max_total_exposure()
-        if max_total > 0 and lifecycle in {"ENTRY", "ADD"}:
-            current = self.ledger.total_abs_exposure_usd({fill.coin: fill.price})
-            if current + copy_notional > max_total:
-                return "SEND_BLOCKED_RISK", "max total exposure exceeded"
+        if lifecycle in {"ENTRY", "ADD"}:
+            # total / per-asset caps use follower EXCHANGE truth (all DEX scopes), not the local ledger
+            exposure_block = self._exposure_cap_block(fill, copy_notional)
+            if exposure_block:
+                return "SEND_BLOCKED_RISK", exposure_block
         return ("EXIT_ALLOWED" if lifecycle == "EXIT" else "ENTRY_ALLOWED"), lifecycle
 
 
@@ -2775,6 +2848,8 @@ class SenderGateway:
             return None
         if not bval(os.getenv("HL_LIVE_ENTRY_ADD_RATE_LIMIT_RECOVERY_ENABLED", "1"), True):
             return None
+        if LEADER_NETWORK != FOLLOWER_NETWORK:
+            return None  # this recovery rests an order at the LEADER's price, which is meaningless cross-network
         max_age_ms = max(0, int(fnum(os.getenv("HL_LIVE_ENTRY_ADD_RATE_LIMIT_RECOVERY_MAX_AGE_MS"), 180000)))
         age_ms = utc_now_ms() - int(fnum(intent.fill.timestamp_ms, 0))
         if max_age_ms and age_ms > max_age_ms:
@@ -3209,8 +3284,40 @@ class SenderGateway:
             }
         bps = self.cfg.marketable_bps()
         mult = (1.0 + bps / 10000.0) if intent.copy_side == "BUY" else (1.0 - bps / 10000.0)
-        raw_px = intent.fill.price * mult
+        base_px = intent.fill.price
+        close_adv_limit = self.cfg.max_close_adverse_diff_pct() if lifecycle == "EXIT" else 0.0
+        follower_mid = 0.0
+        if LEADER_NETWORK != FOLLOWER_NETWORK or close_adv_limit > 0:
+            self._fetch_all_mids()
+            follower_mid = self._reference_price(sdk_coin)
+        if LEADER_NETWORK != FOLLOWER_NETWORK:
+            # a leader-network price is not a follower-network price: units stay as sized, the limit is
+            # re-based on the follower's own mid; no follower price -> no order
+            if follower_mid <= 0:
+                detail = (f"no follower-network ({FOLLOWER_NETWORK}) mid for {sdk_coin}; leader on {LEADER_NETWORK}; "
+                          f"intent_id={intent.intent_id}")
+                return False, "SEND_NOT_ATTEMPTED_FOLLOWER_PRICE_UNAVAILABLE", {
+                    "status": "FOLLOWER_PRICE_UNAVAILABLE", "error": detail, "exchange_response": {}, "oid": "",
+                    "exchange_called": False, "write_send_attempt": True, "notes": detail,
+                    "reject_category": "PRICE_OR_TICK_REJECTED", "terminal_state": "FOLLOWER_PRICE_UNAVAILABLE",
+                    "operator_action": "NO_SEND_FOLLOWER_PRICE_UNAVAILABLE", "timing": timing,
+                }
+            base_px = follower_mid
+        raw_px = base_px * mult
         limit_px = self._format_limit_px(raw_px, price_max_dec)
+        if close_adv_limit > 0:
+            # UI "Adverse close diff %": a close limit may not sit further than this through the follower mid
+            adverse = (((follower_mid - limit_px) if intent.copy_side == "SELL" else (limit_px - follower_mid))
+                       / follower_mid * 100.0) if follower_mid > 0 else float("inf")
+            if adverse > close_adv_limit + 1e-12:
+                detail = (f"close limit {limit_px} vs follower mid {follower_mid} is {adverse:.4f}% adverse > "
+                          f"{close_adv_limit}%; intent_id={intent.intent_id}")
+                return False, "SEND_NOT_ATTEMPTED_CLOSE_ADVERSE_DIFF", {
+                    "status": "CLOSE_ADVERSE_DIFF_TOO_LARGE", "error": detail, "exchange_response": {}, "oid": "",
+                    "exchange_called": False, "write_send_attempt": True, "notes": detail,
+                    "reject_category": "PRICE_OR_TICK_REJECTED", "terminal_state": "CLOSE_ADVERSE_DIFF_TOO_LARGE",
+                    "operator_action": "REVIEW_CLOSE_ADVERSE_DIFF_CONTROL", "timing": timing,
+                }
         wire_size = self._floor_wire_size(intent.copy_size, sz_dec)
         wire_notional = abs(wire_size * limit_px)
         cfg_min_for_uplift = DEFAULT_MIN_NOTIONAL
@@ -3369,7 +3476,7 @@ class SenderGateway:
                 retry_bps = min(retry_bps, max_retry_bps)
                 if retry_bps > bps:
                     retry_mult = (1.0 + retry_bps / 10000.0) if intent.copy_side == "BUY" else (1.0 - retry_bps / 10000.0)
-                    retry_px = self._format_limit_px(intent.fill.price * retry_mult, price_max_dec)
+                    retry_px = self._format_limit_px(base_px * retry_mult, price_max_dec)
                     retry_notional = abs(wire_size * retry_px)
                     retry_safe, retry_unsafe = self._pre_exchange_asset_safety(intent, resolved, retry_px, wire_size)
                     if retry_safe and retry_notional <= max(wire_notional * 1.5, wire_notional + 5.0):
@@ -4502,7 +4609,7 @@ class LeaderFillIngestor:
         for _ in range(POLL_MAX_PAGES_PER_WALLET):
             payload = {"type": "userFillsByTime", "user": wallet, "startTime": start, "endTime": end, "aggregateByTime": False}
             try:
-                r = requests.post(HL_INFO_URL, json=payload, timeout=HTTP_TIMEOUT_SEC)
+                r = requests.post(HL_LEADER_INFO_URL, json=payload, timeout=HTTP_TIMEOUT_SEC)
                 data = r.json()
                 if not isinstance(data, list):
                     return fills, "POLL_NETWORK_ERROR"
@@ -5669,6 +5776,7 @@ class ServiceStateWriter:
             )
             _eff_gc = {
                 "max_total_live_exposure_usd": cfg.max_total_exposure(),
+                "max_asset_directional_exposure_usd": cfg.max_asset_directional_exposure(),
                 "max_wallet_exposure_usd": max(0.0, fnum(cfg.global_controls.get("max_wallet_exposure_usd"), 0.0)),
                 "max_order_notional_usd": cfg.max_order_notional(),
                 "marketable_bps": cfg.marketable_bps(),
@@ -5689,6 +5797,7 @@ class ServiceStateWriter:
             "cycle_time_budget_exceeded": summary.budget_exceeded,
             "budget_exceeded_note": "cycle_timing_only — not a financial cap; applies no order blocks",
             "effective_global_controls": _eff_gc,
+            "networks": {"leader": LEADER_NETWORK, "follower": FOLLOWER_NETWORK},
             "ws_status": ws.get("ws_status") or ("WS_DEGRADED" if fnum(ws.get("stale_count"), 0) > 0 else "WS_OK"),
             "ws_wallet_count": ws.get("wallet_count", 0),
             "ws_open_count": ws.get("open_count", 0),
@@ -5727,6 +5836,7 @@ class ServiceStateWriter:
             "last_leader_poll_status_ms": _last_leader_poll_status_ms,
             "last_leader_poll_cursor_ms": _last_leader_poll_cursor_ms,
             "effective_global_controls": _eff_gc,
+            "networks": {"leader": LEADER_NETWORK, "follower": FOLLOWER_NETWORK},
             **dedupe.export(),
         }
         atomic_write_json(CORE_RUNTIME_STATE_FILE, core_state)
@@ -6266,6 +6376,8 @@ def run_self_test() -> None:
     global LIVE_INTEGRITY_STATUS_FILE
 
     old_env = dict(os.environ)
+    global LEADER_NETWORK
+    old_leader_network, LEADER_NETWORK = LEADER_NETWORK, FOLLOWER_NETWORK  # fixtures price on one network
     # Isolate self-test from live env vars that affect WS/send behaviour.
     # Tests that need specific env vars set them explicitly.
     for _k in ("HL_LIVE_WS_ENABLED", "HL_LIVE_AUTO_SEND_ENABLED", "HL_LIVE_MOCK_SEND",
@@ -7460,6 +7572,7 @@ def run_self_test() -> None:
 
     os.environ.clear()
     os.environ.update(old_env)
+    LEADER_NETWORK = old_leader_network
     print("RESULT::CLEAN_LIVE_COPY_CORE_SELF_TEST_PASS")
     print("RESULT::EXCHANGE_SHAPE_ACCEPTANCE_HARNESS_PASS")
 
@@ -7633,6 +7746,28 @@ def repair_recovery_copy_fills(start_ms: Optional[int] = None, end_ms: Optional[
     }
 
 
+_INSTANCE_LOCK = None
+
+
+def acquire_instance_lock(state_dir: Path) -> None:
+    """One running engine per state folder; the OS lock dies with the process, so it never goes stale."""
+    global _INSTANCE_LOCK
+    Path(state_dir).mkdir(parents=True, exist_ok=True)
+    fh = open(Path(state_dir) / "instance.lock", "a+")
+    try:
+        if os.name == "nt":
+            import msvcrt
+            fh.seek(0)
+            msvcrt.locking(fh.fileno(), msvcrt.LK_NBLCK, 1)
+        else:
+            import fcntl
+            fcntl.flock(fh.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        fh.close()
+        raise SystemExit(f"INSTANCE_ALREADY_RUNNING: another engine holds {state_dir}")
+    _INSTANCE_LOCK = fh
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Clean Hyperliquid live copy core")
     parser.add_argument("--self-test", action="store_true")
@@ -7664,6 +7799,11 @@ def main() -> None:
         print(json.dumps(result, indent=2, sort_keys=True))
         return
     if args.once or args.loop:
+        try:  # this state folder belongs to one leader/follower network pair, and to one running engine
+            _XNET.claim_network_stamp(AUDIT_DIR, NETWORKS)
+        except _XNET.NetworkConfigError as exc:
+            raise SystemExit(f"HL network configuration refused: {exc}")
+        acquire_instance_lock(AUDIT_DIR)
         source_path = Path(args.source_file) if args.source_file else None
         core = LiveCopyCore(source_csv=source_path or RAW_LEADER_FILLS_CSV)
         copy_poll_interval = max(0.5, float(args.copy_poll_interval))

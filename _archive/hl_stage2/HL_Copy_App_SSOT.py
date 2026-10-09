@@ -61,7 +61,20 @@ UI_STATE_FILE = BASE_DIR / "ui_state.json"
 WALLET_GATE_FILE = BASE_DIR / "wallet_gate.json"
 MANUAL_WALLETS_FILE = BASE_DIR / "manual_wallets.txt"
 PURGED_WALLETS_FILE = BASE_DIR / "purged_wallets.txt"
-LIVE_COPY_AUDIT_DIR = BASE_DIR / "hl_live_copy_audit"
+import exchange_truth as _XNET  # noqa: E402  same network selection and state folder as the engine
+_NET_ENV = _XNET.env_with_file(BASE_DIR.parent / "hl_stage2.env")
+try:
+    NETWORKS = _XNET.resolve_networks(_NET_ENV)
+except _XNET.NetworkConfigError as _net_exc:
+    raise SystemExit(f"HL network configuration refused: {_net_exc}")
+FOLLOWER_NETWORK, FOLLOWER_INFO_URL = NETWORKS["follower"]["network"], NETWORKS["follower"]["info"]
+LIVE_COPY_AUDIT_DIR = Path(_NET_ENV.get("HL_LIVE_AUDIT_DIR") or (
+    BASE_DIR / ("hl_live_copy_audit" if FOLLOWER_NETWORK == "mainnet" else f"hl_live_copy_audit_{FOLLOWER_NETWORK}")))
+try:  # the UI writes this folder's live_config.json, so it is bound to the same network pair
+    _XNET.claim_network_stamp(LIVE_COPY_AUDIT_DIR, NETWORKS)
+except _XNET.NetworkConfigError as _net_exc:
+    raise SystemExit(f"HL network configuration refused: {_net_exc}")
+APP_PORT = int(_NET_ENV.get("HL_APP_PORT") or 8000)
 LIVE_COPY_CONFIG_FILE = LIVE_COPY_AUDIT_DIR / "live_config.json"
 LIVE_COPY_WS_HEALTH_FILE = LIVE_COPY_AUDIT_DIR / "live_ws_health.json"
 LIVE_COPY_SERVICE_STATE_FILE = LIVE_COPY_AUDIT_DIR / "live_service_state.json"
@@ -76,7 +89,7 @@ EXCHANGE_ACCOUNT_HISTORY_FILE = LIVE_COPY_AUDIT_DIR / "exchange_account_history.
 LIVE_FILLS_CSV = LIVE_COPY_AUDIT_DIR / "append_only" / "live_fills.csv"
 MANUAL_RECON_BACKUP_DIR = LIVE_COPY_AUDIT_DIR / "reconciliation_backups"
 MANUAL_RECON_ACTIONS_FILE = LIVE_COPY_AUDIT_DIR / "manual_reconciliation_actions.json"
-LIVE_CONFIG_DIR = BASE_DIR / "hl_live_copy_audit"
+LIVE_CONFIG_DIR = LIVE_COPY_AUDIT_DIR
 LIVE_CONFIG_FILE = LIVE_CONFIG_DIR / "live_config.json"
 SNAP_DIR = DATA_DIR / "snapshots"
 
@@ -1191,8 +1204,10 @@ def _execution_guards_info() -> Dict[str, Any]:
         "auto_send_enabled": ev("HL_LIVE_AUTO_SEND_ENABLED", "0") == "1",
         "auto_send_wallet": ev("HL_LIVE_AUTO_SEND_WALLET", ""),
         "max_per_run": ev("HL_LIVE_AUTO_SEND_MAX_PER_RUN", "1"),
-        "marketable_bps": ev("HL_LIVE_AUTO_SEND_MARKETABLE_BPS", "5"),
-        "close_adverse_diff_pct": ev("HL_LIVE_MAX_CLOSE_ADVERSE_DIFF_PCT", "0.25"),
+        # effective values the Core engine uses: the saved Global Controls (0 = OFF), not env defaults
+        "marketable_bps": _normalise_global_controls(_load_live_copy_config().get("global_controls"))["marketable_bps"],
+        "close_adverse_diff_pct": _normalise_global_controls(_load_live_copy_config().get("global_controls"))["max_close_adverse_diff_pct"] or "OFF",
+        "networks": {"leader": NETWORKS["leader"]["network"], "follower": FOLLOWER_NETWORK},
         "legacy_notional_cap": ev("HL_LIVE_MAX_MANUAL_ORDER_NOTIONAL_USD", "25"),
     }
 
@@ -1243,7 +1258,7 @@ def _fetch_user_fills_by_time(account: str, start_ms: int, end_ms: int, timeout:
     }
     try:
         req = urllib.request.Request(
-            "https://api.hyperliquid.xyz/info",
+            FOLLOWER_INFO_URL,
             data=json.dumps(payload).encode("utf-8"),
             headers={"Content-Type": "application/json"},
             method="POST",
@@ -1502,7 +1517,7 @@ def _fetch_exchange_account_snapshot(max_age_sec: float = 15.0) -> Dict[str, Any
     try:
         payload = json.dumps({"type": "clearinghouseState", "user": account}).encode("utf-8")
         req = urllib.request.Request(
-            "https://api.hyperliquid.xyz/info",
+            FOLLOWER_INFO_URL,
             data=payload,
             headers={"Content-Type": "application/json"},
             method="POST",
@@ -1514,7 +1529,7 @@ def _fetch_exchange_account_snapshot(max_age_sec: float = 15.0) -> Dict[str, Any
         try:
             spot_payload = json.dumps({"type": "spotClearinghouseState", "user": account}).encode("utf-8")
             spot_req = urllib.request.Request(
-                "https://api.hyperliquid.xyz/info",
+                FOLLOWER_INFO_URL,
                 data=spot_payload,
                 headers={"Content-Type": "application/json"},
                 method="POST",
@@ -5437,6 +5452,7 @@ def render_live_copy_control_panel() -> str:
           <button type="button" id="lcGcClose">close</button>
         </div>
         <p>These override all wallet settings. 0/blank = OFF. Slippage is shown as %. Internally converted where needed.</p>
+        <p id="gcNetworks" class="lc-muted"></p>
         <div class="lc-form-grid" id="lcGcForm">
           <label>Max total live exposure ($) <input id="gcMaxTotal" type="number" min="0" step="1" placeholder="0 = disabled"></label>
           <label>Max per-asset directional exposure ($) <input id="gcMaxDir" type="number" min="0" step="1" placeholder="0 = disabled"></label>
@@ -5940,7 +5956,7 @@ function render(){
  if(ro){const hasRealFills=(lcAudit.execution_quality_rows||[]).some(r=>r.status==='ORDER_FILLED');ro.className='lc-pill '+(hasRealFills?'lc-green':'lc-red');ro.textContent=hasRealFills?'REAL ORDERS: SERVICE ACTIVE':'REAL ORDERS: APP DISABLED';}
  renderCards(); renderWallets(); renderAudit(); renderHealth(); renderPositions(); renderExecQuality();
 }
-async function refresh(quiet){try{if(!quiet)msg('Loading...');const [cfg,health,audit,gcr]=await Promise.all([jget('/api/live-config'),jget('/api/live-ws-health'),jget('/api/live-audit-summary'),jget('/api/global-controls')]);lcConfig=cfg.config||{wallets:{}};lcHealth=health.health||{};lcAudit=audit||{};render();loadGcForm(gcr.global_controls||{});if(!quiet)msg('Loaded');}catch(e){msg(e.message||String(e),true);}}
+async function refresh(quiet){try{if(!quiet)msg('Loading...');const [cfg,health,audit,gcr]=await Promise.all([jget('/api/live-config'),jget('/api/live-ws-health'),jget('/api/live-audit-summary'),jget('/api/global-controls')]);lcConfig=cfg.config||{wallets:{}};lcHealth=health.health||{};lcAudit=audit||{};render();loadGcForm(gcr.global_controls||{});const nw=root.querySelector('#gcNetworks');if(nw&&gcr.networks)nw.textContent='Leader feed: '+gcr.networks.leader+' | Follower account: '+gcr.networks.follower;if(!quiet)msg('Loaded');}catch(e){msg(e.message||String(e),true);}}
 function loadGcForm(gc){
   const f=(id,v)=>{const el=root.querySelector('#'+id);if(el&&v!=null)el.value=v;};
   const st=(id,v)=>{const el=root.querySelector('#'+id);if(el)el.textContent=Number(v||0)<=0?'OFF':'';};
@@ -6199,7 +6215,8 @@ def get_live_config():
 @app.get("/api/global-controls")
 def get_global_controls():
     cfg = _load_live_copy_config()
-    return JSONResponse({"ok": True, "global_controls": _global_controls_for_ui(cfg.get("global_controls", _GLOBAL_CONTROLS_DEFAULTS))})
+    return JSONResponse({"ok": True, "global_controls": _global_controls_for_ui(cfg.get("global_controls", _GLOBAL_CONTROLS_DEFAULTS)),
+                         "networks": {"leader": NETWORKS["leader"]["network"], "follower": FOLLOWER_NETWORK}})
 
 
 @app.post("/api/global-controls")
@@ -6336,4 +6353,4 @@ async def archive_manual_reconciliation_ledger_row(req: Request):
 if __name__ == "__main__":
     if uvicorn is None:
         raise SystemExit("Missing uvicorn. Install with: pip install uvicorn fastapi")
-    uvicorn.run("HL_Copy_App_SSOT:app", host="127.0.0.1", port=8000, reload=False)
+    uvicorn.run("HL_Copy_App_SSOT:app", host="127.0.0.1", port=APP_PORT, reload=False)
