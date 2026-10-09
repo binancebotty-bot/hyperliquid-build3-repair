@@ -2917,6 +2917,9 @@ class SenderGateway:
         self._exchange_order_lock = threading.Lock()
         self.sender_key_invalid: str = ""  # set by a definite exchange rejection of the signing key; stops all sending
         self._resting_entries: Dict[str, Dict[str, Any]] = load_json(RESTING_ENTRY_ORDERS_FILE, {}) or {}
+        for _row in self._resting_entries.values():
+            if isinstance(_row, dict):
+                _row.pop("withdrawing", None)  # an in-memory claim; a stop mid-withdrawal must not leave it set
         self._resting_lock = threading.RLock()  # WS hot-path and cycle threads both touch the resting list
         self._leader_side_seen_ms: Dict[Tuple[str, str, str], int] = {}  # newest leader fill per wallet/coin/side
         self._withdrawn_late: List[Dict[str, Any]] = []  # withdrawn at registration: the core must own their fills
@@ -2987,7 +2990,10 @@ class SenderGateway:
             self._resting_entries[str(oid)] = row
             atomic_write_json(RESTING_ENTRY_ORDERS_FILE, dict(self._resting_entries))
             opposite_ms = self._leader_side_seen_ms.get((wallet, key, "SELL" if intent.copy_side == "BUY" else "BUY"), 0)
-        if opposite_ms > 0 and opposite_ms >= row["leader_fill_ms"]:
+            late = opposite_ms > 0 and opposite_ms >= row["leader_fill_ms"]
+            if late:
+                late = self._claim_rows([row]) == [row]
+        if late:
             gone = self._withdraw_rows([row], f"leader already reduced at {opposite_ms} while this limit was being placed", "")
             with self._resting_lock:
                 self._withdrawn_late.extend(gone)
@@ -3021,10 +3027,10 @@ class SenderGateway:
         with self._resting_lock:
             seen = (wallet, key, fill.side)
             self._leader_side_seen_ms[seen] = max(self._leader_side_seen_ms.get(seen, 0), ts)
-            rows = [dict(r) for r in self._resting_entries.values()
-                    if r.get("leader_wallet") == wallet and canonical_coin_key(r.get("coin")) == key
-                    and r.get("side") != fill.side
-                    and int(fnum(r.get("leader_fill_ms") or r.get("placed_ms"), 0)) <= ts]
+            rows = self._claim_rows([r for r in self._resting_entries.values()
+                                     if r.get("leader_wallet") == wallet and canonical_coin_key(r.get("coin")) == key
+                                     and r.get("side") != fill.side
+                                     and int(fnum(r.get("leader_fill_ms") or r.get("placed_ms"), 0)) <= ts])
         if not rows:
             return []
         return self._withdraw_rows(rows, f"leader {fill.side} {fill.size} @ {fill.price} reduces that position", fill.leader_fill_id)
@@ -3032,10 +3038,33 @@ class SenderGateway:
     def retry_pending_withdrawals(self) -> List[Dict[str, Any]]:
         """Each cycle: retry withdrawals that failed (the leader may never trade that coin again)."""
         with self._resting_lock:
-            rows = [dict(r) for r in self._resting_entries.values() if r.get("withdraw_pending")]
-        return self._withdraw_rows(rows, "retry of a failed withdrawal", "") if rows else []
+            rows = self._claim_rows([r for r in self._resting_entries.values() if r.get("withdraw_pending")])
+        withdrawn: List[Dict[str, Any]] = []
+        for label in sorted({str(r.get("withdraw_label") or "RESTING_ENTRY_CANCELLED_LEADER_REDUCED") for r in rows}):
+            same = [r for r in rows if str(r.get("withdraw_label") or "RESTING_ENTRY_CANCELLED_LEADER_REDUCED") == label]
+            withdrawn += self._withdraw_rows(same, f"retry of a failed withdrawal ({same[0].get('withdraw_pending')})", "", label)
+        return withdrawn
 
-    def _withdraw_rows(self, rows: List[Dict[str, Any]], why: str, leader_fill_id: str) -> List[Dict[str, Any]]:
+    def _claim_rows(self, rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Under _resting_lock: mark rows as being withdrawn so no other path cancels the same limit at the same
+        time (a second cancel answers "already canceled" and would read as a fill). Returns copies of the claimed."""
+        claimed = []
+        for r in rows:
+            live = self._resting_entries.get(str(r.get("oid")))
+            if live is not None and not live.get("withdrawing"):
+                live["withdrawing"] = True
+                claimed.append(dict(live))
+        return claimed
+
+    def withdraw_resting_entries_sending_off(self) -> List[Dict[str, Any]]:
+        """Sending switched off: withdraw every missed-entry limit this engine placed (its own order ids, from its
+        own registry; never any other order, and resting exit limits are not in it and stay). Run 4 finding."""
+        with self._resting_lock:
+            rows = self._claim_rows([r for r in self._resting_entries.values() if not r.get("withdraw_pending")])
+        return self._withdraw_rows(rows, "sending was switched off", "", "RESTING_ENTRY_CANCELLED_SENDING_OFF") if rows else []
+
+    def _withdraw_rows(self, rows: List[Dict[str, Any]], why: str, leader_fill_id: str,
+                       cancelled: str = "RESTING_ENTRY_CANCELLED_LEADER_REDUCED") -> List[Dict[str, Any]]:
         withdrawn: List[Dict[str, Any]] = []
         for row in rows:
             oid, response, error = str(row.get("oid")), {}, ""
@@ -3045,7 +3074,7 @@ class SenderGateway:
                 statuses = (response or {}).get("response", {}).get("data", {}).get("statuses", []) if isinstance(response, dict) else []
                 first = statuses[0] if statuses else None
                 if first == "success":
-                    outcome = "RESTING_ENTRY_CANCELLED_LEADER_REDUCED"
+                    outcome = cancelled
                 elif isinstance(first, dict) and re.search(r"already canceled|filled|never placed", str(first.get("error", "")), re.I):
                     outcome = "RESTING_ENTRY_ALREADY_GONE"
                 else:
@@ -3059,6 +3088,8 @@ class SenderGateway:
                     withdrawn.append({**row, "withdraw_outcome": outcome})
                 elif oid in self._resting_entries:
                     self._resting_entries[oid]["withdraw_pending"] = why
+                    self._resting_entries[oid]["withdraw_label"] = cancelled
+                    self._resting_entries[oid].pop("withdrawing", None)
                 atomic_write_json(RESTING_ENTRY_ORDERS_FILE, dict(self._resting_entries))
             if outcome == "RESTING_ENTRY_CANCEL_FAILED" and not first_failure:
                 continue  # already on screen as a Critical diff; retried quietly each cycle
@@ -7136,7 +7167,10 @@ class LiveCopyCore:
             summary.sender_key_invalid = self.sender.sender_key_invalid
             # --- end entry safety gates ---
             if self.sender.resting_entries():
+                # sending off: no order of the engine's may keep working on the exchange (run 4: limits kept filling)
                 retried = self.sender.retry_pending_withdrawals()
+                if not master_enabled:
+                    retried += self.sender.withdraw_resting_entries_sending_off()
                 if retried:
                     with self._send_lock:
                         self._own_fills_of_withdrawn_limits(retried)
