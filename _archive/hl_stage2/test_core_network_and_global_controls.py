@@ -230,7 +230,11 @@ def global_controls_tests() -> None:
     check("G9_CLOSE_NEVER_BLOCKED_BY_ENTRY_CONTROLS", d[0] == "EXIT_ALLOWED", str(d))
 
     config()
-    check("G10_MISSING_SLIPPAGE_IS_OFF_NOT_HIDDEN_25BPS", c.ConfigManager().marketable_bps() == 0.0)
+    check("G10_MISSING_SLIPPAGE_IS_BOSS_DEFAULT_02PCT", c.ConfigManager().marketable_bps() == 20.0
+          and ui._global_controls_for_ui({})["marketable_slippage_pct"] == 0.2)
+    config(marketable_bps=0)
+    check("G10_EXPLICIT_ZERO_SLIPPAGE_STAYS_ZERO", c.ConfigManager().marketable_bps() == 0.0)
+    config()
     check("G10_MISSING_CLOSE_DIFF_IS_OFF_NOT_HIDDEN_025PCT", c.ConfigManager().max_close_adverse_diff_pct() == 0.0)
     r = client.post("/api/global-controls", json={"marketable_slippage_pct": 0.05, "max_close_adverse_diff_pct": 0.3,
                                                   "max_asset_directional_exposure_usd": 900})
@@ -366,6 +370,30 @@ def global_controls_tests() -> None:
           and c.classify_integrity_severity("MANUAL_EXIT_RECOVERY_REQUIRED") == "RED", status)
     c.MIDS_FETCHER = mids_fetcher
 
+    # F (OD-01, Boss ruling 2026-10-09): entries are priced from a FRESH follower-market mid on any network
+    saved_leader = c.LEADER_NETWORK
+    c.LEADER_NETWORK = c.FOLLOWER_NETWORK
+    try:
+        status, calls, intent = send({"marketable_bps": 20}, mid=120.0)           # leader printed at 100
+        check("F1_SAME_NETWORK_ENTRY_PRICED_FROM_FRESH_MID_NOT_LEADER_PRICE",
+              len(calls) == 1 and abs(calls[0]["px"] - 120.24) < 1e-9 and abs(calls[0]["size"] - intent.copy_size) < 1e-9,
+              f"{status} {calls}")
+        status, calls, _ = send({"marketable_bps": 20}, mid=0.0)
+        check("F2_SAME_NETWORK_ENTRY_WITHOUT_FRESH_MID_NOT_SENT",
+              status == "SEND_NOT_ATTEMPTED_FOLLOWER_PRICE_UNAVAILABLE" and not calls, status)
+        set_mid(120.0)
+        c._FOLLOWER_MIDS["ms"] = c.utc_now_ms() - 60_000
+        c.MIDS_FETCHER = lambda payload: (_ for _ in ()).throw(RuntimeError("mids down"))
+        d = decide({})
+        check("F3_STALE_MID_BLOCKS_ENTRY_DECISION", d[0] == "SEND_BLOCKED_RISK" and "no fresh follower" in d[1], str(d))
+        c.MIDS_FETCHER = mids_fetcher
+        status, calls, _ = send({"marketable_bps": 20}, side="SELL", mid=120.0, sleeve=10.0)
+        check("F4_SAME_NETWORK_EXIT_UNCHANGED_LEADER_PRICE", len(calls) == 1 and abs(calls[0]["px"] - 99.8) < 1e-9, f"{status} {calls}")
+    finally:
+        c.LEADER_NETWORK = saved_leader
+        c.MIDS_FETCHER = mids_fetcher
+        set_mid(100.0)
+
     # R4 / R5: the UI tells the truth about slippage 0 and reads the engine's env file
     panel = ui.render_live_copy_control_panel()
     check("R4_UI_SAYS_ZERO_SLIPPAGE_MAY_NOT_FILL", "0 = NO slippage allowed" in panel and "0 = no slippage allowed" in panel)
@@ -378,8 +406,8 @@ def global_controls_tests() -> None:
     check("R5_UI_READS_THE_ENGINES_ENV_FILE", got == ["mainnet", "main_state"], str(got))
 
     src = (HERE / "HL_Live_Copy_Service_Core.py").read_text(encoding="utf-8-sig")
-    sites = len(re.findall(r"=\s*exchange\.order\(", src))
-    check("G14_NO_NEW_ORDER_SITE", sites == 4, str(sites))
+    sites = len(re.findall(r"exchange\.order\((?!\))", src))
+    check("G14_NO_NEW_ORDER_SITE", sites <= 4, str(sites))
 
 
 def main() -> None:

@@ -703,9 +703,10 @@ def load_wallet_gate() -> Dict[str, Any]:
 _GLOBAL_CONTROLS_DEFAULTS: Dict[str, Any] = {
     "max_total_live_exposure_usd": 0.0,
     "max_asset_directional_exposure_usd": 0.0,
+    "max_daily_loss_usd": 0.0,
     "max_wallet_exposure_usd": 0.0,
     "max_order_notional_usd": 0.0,
-    "marketable_bps": 0.0,
+    "marketable_bps": 20.0,  # Boss's default slippage, 0.2 % (2026-10-09)
     "max_close_adverse_diff_pct": 0.0,
     "symbol_allowlist": [],
     "symbol_blocklist": [],
@@ -5456,6 +5457,7 @@ def render_live_copy_control_panel() -> str:
         <div class="lc-form-grid" id="lcGcForm">
           <label>Max total live exposure ($) <input id="gcMaxTotal" type="number" min="0" step="1" placeholder="0 = disabled"></label>
           <label>Max per-asset directional exposure ($) <input id="gcMaxDir" type="number" min="0" step="1" placeholder="0 = disabled"></label>
+          <label>Max daily loss ($, last 24 h) <input id="gcMaxDailyLoss" type="number" min="0" step="1" placeholder="0 = disabled"></label>
           <label>Max per-wallet exposure ($) <input id="gcMaxWallet" type="number" min="0" step="1" placeholder="0 = disabled"></label>
           <label>Max per-order notional ($) <input id="gcMaxOrder" type="number" min="0" step="0.01" placeholder="0 = disabled"></label>
           <label>Marketable slippage % <input id="gcMktPct" type="number" min="0" max="0.50" step="0.01" placeholder="0 = no slippage allowed"><span id="gcMktPctState" class="lc-muted"></span></label>
@@ -5591,9 +5593,9 @@ def render_live_copy_control_panel() -> str:
         <label>Copy model<select name="copy_mode"><option value="proportional">proportional</option><option value="fixed">fixed</option></select></label>
         <label>Norm base<input name="norm_base" value="100"></label>
         <label>Fixed notional<input name="fixed_notional" value="10"></label>
-        <label>Leader equity base<input name="leader_equity_base" value="10000"></label>
+        <input name="leader_equity_base" type="hidden" value="10000">
         <label>Max diff %<input name="max_diff_pct" value="0.1"></label>
-        <label>Daily loss<input name="daily_loss_limit" value="0"></label>
+        <input name="daily_loss_limit" type="hidden" value="0">
       </div>
       <div class="lc-modal-actions"><button type="button" data-lc-close>Cancel</button><button type="submit">Add wallet</button></div>
     </form>
@@ -5775,7 +5777,7 @@ function renderWallets(){
     <td>${execHtml}</td>
     <td>${riskHtml}</td>
     <td style="font-size:11px">${lfStr}</td>
-    <td><div class="lc-cell-stack"><div class="lc-inline-controls"><select name="mode"><option ${mode==='LIVE'?'selected':''}>LIVE</option><option ${mode==='CLO'?'selected':''}>CLO</option><option ${mode==='OFF'?'selected':''}>OFF</option></select><select name="copy_mode"><option value="proportional" ${model!=='fixed'?'selected':''}>prop</option><option value="fixed" ${model==='fixed'?'selected':''}>fixed</option></select></div><div class="lc-inline-controls"><span class="lc-muted">F</span><input name="fixed_notional" value="${h(d.fixed_notional??10)}" style="width:58px"><span class="lc-muted">N</span><input name="norm_base" value="${h(d.norm_base??100)}" style="width:52px"><span class="lc-muted">B</span><input name="leader_equity_base" value="${h(d.leader_equity_base??10000)}" style="width:70px"><input name="max_diff_pct" type="hidden" value="${h(d.max_diff_pct??0.1)}"><input name="daily_loss_limit" type="hidden" value="${h(d.daily_loss_limit??0)}"></div><div class="lc-mini-actions"><button data-act="save" type="button">Save</button><button data-act="clo" type="button">CLO</button><button data-act="off" type="button">OFF</button><button data-act="archive" class="lc-danger" type="button">Archive</button></div></div></td>
+    <td><div class="lc-cell-stack"><div class="lc-inline-controls"><select name="mode"><option ${mode==='LIVE'?'selected':''}>LIVE</option><option ${mode==='CLO'?'selected':''}>CLO</option><option ${mode==='OFF'?'selected':''}>OFF</option></select><select name="copy_mode"><option value="proportional" ${model!=='fixed'?'selected':''}>prop</option><option value="fixed" ${model==='fixed'?'selected':''}>fixed</option></select></div><div class="lc-inline-controls"><span class="lc-muted">F</span><input name="fixed_notional" value="${h(d.fixed_notional??10)}" style="width:58px"><span class="lc-muted">N</span><input name="norm_base" value="${h(d.norm_base??100)}" style="width:52px"><input name="leader_equity_base" type="hidden" value="${h(d.leader_equity_base??10000)}"><input name="max_diff_pct" type="hidden" value="${h(d.max_diff_pct??0.1)}"><input name="daily_loss_limit" type="hidden" value="${h(d.daily_loss_limit??0)}"></div><div class="lc-mini-actions"><button data-act="save" type="button">Save</button><button data-act="clo" type="button">CLO</button><button data-act="off" type="button">OFF</button><button data-act="archive" class="lc-danger" type="button">Archive</button></div></div></td>
   </tr>`;
  }).join('');
  root.querySelector('#lcWalletRows').innerHTML=rows||'<tr><td colspan="8">No live-copy wallets configured.</td></tr>';
@@ -5960,7 +5962,7 @@ async function refresh(quiet){try{if(!quiet)msg('Loading...');const [cfg,health,
 function loadGcForm(gc){
   const f=(id,v)=>{const el=root.querySelector('#'+id);if(el&&v!=null)el.value=v;};
   const st=(id,v)=>{const el=root.querySelector('#'+id);if(el)el.textContent=Number(v||0)<=0?'OFF':'';};
-  f('gcMaxTotal',gc.max_total_live_exposure_usd||0);f('gcMaxDir',gc.max_asset_directional_exposure_usd||0);
+  f('gcMaxTotal',gc.max_total_live_exposure_usd||0);f('gcMaxDir',gc.max_asset_directional_exposure_usd||0);f('gcMaxDailyLoss',gc.max_daily_loss_usd||0);
   f('gcMaxWallet',gc.max_wallet_exposure_usd||0);f('gcMaxOrder',gc.max_order_notional_usd||0);
   const mktPct=gc.marketable_slippage_pct!=null?gc.marketable_slippage_pct:(Number(gc.marketable_bps||0)/100);
   const closePct=gc.max_close_adverse_diff_pct!=null?gc.max_close_adverse_diff_pct:0;
@@ -5979,7 +5981,7 @@ root.querySelector('#lcGcSave').addEventListener('click',async()=>{
   const g=id=>parseFloat(root.querySelector('#'+id).value)||0;
   const gl=id=>(root.querySelector('#'+id).value||'').split(',').map(s=>s.trim().toUpperCase()).filter(Boolean);
   try{gs.textContent='Saving...';gs.className='lc-status';
-    await jpost('/api/global-controls',{max_total_live_exposure_usd:g('gcMaxTotal'),max_asset_directional_exposure_usd:g('gcMaxDir'),max_wallet_exposure_usd:g('gcMaxWallet'),max_order_notional_usd:g('gcMaxOrder'),marketable_slippage_pct:g('gcMktPct'),max_close_adverse_diff_pct:g('gcCloseAdv'),symbol_allowlist:gl('gcAllowlist'),symbol_blocklist:gl('gcBlocklist')});
+    await jpost('/api/global-controls',{max_total_live_exposure_usd:g('gcMaxTotal'),max_asset_directional_exposure_usd:g('gcMaxDir'),max_daily_loss_usd:g('gcMaxDailyLoss'),max_wallet_exposure_usd:g('gcMaxWallet'),max_order_notional_usd:g('gcMaxOrder'),marketable_slippage_pct:g('gcMktPct'),max_close_adverse_diff_pct:g('gcCloseAdv'),symbol_allowlist:gl('gcAllowlist'),symbol_blocklist:gl('gcBlocklist')});
     gs.textContent='Saved';gs.className='lc-status lc-ok';}catch(e){gs.textContent=e.message||String(e);gs.className='lc-status lc-bad';}
 });
 root.querySelectorAll('[data-lc-modal]').forEach(btn=>btn.addEventListener('click',()=>{const m=root.querySelector('#'+btn.dataset.lcModal);if(m){m.classList.add('active');m.setAttribute('aria-hidden','false');}}));
