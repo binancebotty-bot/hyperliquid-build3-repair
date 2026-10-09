@@ -1,21 +1,40 @@
 {
   "schema": "wigmore_project_control_state_v1",
   "project": "hyperliquid-build3-repair",
-  "updated_utc": "2026-10-08T07:47:00Z",
+  "updated_utc": "2026-10-09T09:53:08Z",
   "operator": "richard:operator",
   "architect": {
     "role": "project-architect",
-    "status": "G3_TECHNICAL_FAIL_PENDING_TRANSPORT_AND_ARCHITECT",
-    "wake_mode": "EVENT_DRIVEN_ONLY"
+    "status": "G4_F3_MARK_AUTHORITY_RULING_PENDING",
+    "wake_mode": "EVENT_DRIVEN_ONLY",
+    "pending_escalation": {
+      "message_id": "B3-C2A-G4-F3-MARK-AUTHORITY-RULING-1",
+      "raised_by": "gpt:reviewer-controller",
+      "sequence": 59,
+      "created_at_utc": "2026-10-08T22:22:35Z",
+      "answered": false,
+      "carrier": "1e7abfc997e8b1fc10810d70763245f1022aa009",
+      "answer_bucket": "control_mailbox/outbox (gpt:* targets route to outbox)",
+      "note": "As of this refresh the newest gpt:project-architect envelope in the outbox is B3-A2C-G4-8014-SLICE-SEMANTICS-RULING-1 (18:43Z), which PRECEDES this 22:22Z escalation. The F3 ruling has NOT landed."
+    }
   },
   "controller": {
     "role": "gpt:reviewer-controller",
     "status": "ACTIVE",
-    "surface": "current ChatGPT controller thread"
+    "surface": "current ChatGPT controller thread",
+    "last_adjudication": {
+      "message_id": "B3-C2H-G4-C2A-PASS-AWAIT-ARCHITECT-1",
+      "sequence": 60,
+      "verdict": "C2A=PASS_READONLY_INVENTORY; G4_F3=BLOCKED_PENDING_ARCHITECT_MARK_AUTHORITY",
+      "worker_disposition": "WAIT_AUTHORISED_PENDING_ARCHITECT_RULING",
+      "explicitly_not": "STAND_DOWN_PERMISSION"
+    }
   },
   "implementation_owner": {
     "role": "hermes:implementation-owner",
-    "status": "G3_CANDIDATE_FROZEN_NO_PATCH_AUTHORITY"
+    "status": "WAIT_AUTHORISED_PENDING_ARCHITECT_F3",
+    "session": "20261007_214500_b3hermes",
+    "production_changes_authorised": false
   },
   "bindings": {
     "authority": "C:/Users/wigmore/.hermes/state/projects/hyperliquid-build3-repair/CONTROL_CONTRACT.json target_role_bindings",
@@ -33,7 +52,21 @@
     "hermes:implementation-owner": {
       "session": "20261007_214500_b3hermes",
       "status": "ACTIVE"
-    }
+    },
+    "controller_uuid_dispute": {
+      "state": "UNRESOLVED_REQUIRES_ADJUDICATION",
+      "control_state_says": "6ac6427b-8df0-83ed-beb8-3b6e8796d1e1",
+      "control_contract_says": "6ac7a51f-d400-83ed-b035-f520ef747394",
+      "declared_authority_source": "CONTROL_CONTRACT.json target_role_bindings (binding_version 1)",
+      "observed_evidence": "Wake-path envelope B3-H2C-TASK-DROPPED-FAILURE-1 (2026-10-08T22:06:34Z) reports BINDING ok=True uuid=6ac7a51f-d400-83ed-b035-f520ef747394 ver=1 status=ACTIVE, i.e. the CONTRACT uuid is the one that verifies in practice.",
+      "hypotheses_not_asserted": [
+        "Generation 1 -> 2 binding change that never propagated to CONTROL_STATE.json",
+        "stale copy of CONTROL_STATE written before the binding was re-issued"
+      ],
+      "action_taken_by_hermes": "NONE. Deliberately NOT rewritten: selecting a winning UUID is an authority decision reserved to Controller/Architect. Recorded as a dispute only.",
+      "raised_as": "B3-H2C-CONTROL-STATE-BINDING-DISPUTE-1"
+    },
+    "architect_uuid": "6ac680c7-6d84-83eb-8c7d-d3706cea33fc"
   },
   "architecture_decision": "REPAIR_BUILD3",
   "authority_freeze": {
@@ -44,15 +77,15 @@
     "architecture_amendment": "ARCHITECTURE.md 'Trading-authority precedence' + invariant 13"
   },
   "current_gate": {
-    "task_id": "BUILD3_G3_EXCHANGE_TRUTH_RECOVERY_SETTLEMENT",
-    "gate": "G3_EXCHANGE_TRUTH_RECOVERY_SETTLEMENT",
-    "status": "G3_FINAL_REVIEW_FAIL_MD_P0_HOLD",
+    "task_id": "G4-F3-AUTHORITATIVE-CURRENT-MARK-SEMANTICS",
+    "gate": "G4_FIXED_SLEEVE_MARK_AUTHORITY",
+    "status": "G3_PASS__G4_F3_BLOCKED_PENDING_ARCHITECT_RULING",
     "architect_ruling": {
       "message_id": "B3-A2C-G3-AUTHORITY-SCOPE-RULING-1",
       "verdict": "G3_AUTHORITY_SCOPE_RESOLVED_CORRECTION_AUTHORISED",
       "g4_authorised": false
     },
-    "production_logic_changes_authorised": true,
+    "production_logic_changes_authorised": false,
     "accepted_g2_candidate": "606d32e2f449c545fed1e7f9a9a1cb2fa5c409d2",
     "g2_evidence_commit": "fa3a86c30159784c0ffeadcabf2d7df317a98193",
     "scope_budget": {
@@ -131,7 +164,22 @@
       "Wire reconciliation gate before convergence/order authority using authoritative MASTER net = unattributed baseline + confirmed engine-owned actual +/- unresolved reserved exposure within tolerance.",
       "Wire real sender result into reservation/settlement lifecycle; immediate and restart/subsequent-loop reconciliation may resolve only from independent MASTER evidence."
     ],
-    "persistence_rule": "Only safety/ownership checkpoints in existing SERVICE_STATE_FILE are authorised: unresolved sends, confirmed engine-owned actual, frozen unrelated-inventory attribution. They never create desired trading authority."
+    "persistence_rule": "Only safety/ownership checkpoints in existing SERVICE_STATE_FILE are authorised: unresolved sends, confirmed engine-owned actual, frozen unrelated-inventory attribution. They never create desired trading authority.",
+    "g3_disposition": {
+      "verdict": "PASS",
+      "ruled_by": "gpt:reviewer-controller",
+      "message_id": "B3-C2A-G3-PASS-ARCHITECT-GATE-1",
+      "reentry_message_id": "B3-C2A-G3-PASS-ARCHITECT-GATE-1-REENTRY",
+      "sequence": "2026-10-08T17:12:00Z / 17:36:30Z",
+      "correction_commit": "4a41f337a41989f4f00487c988ca39533c53216c",
+      "candidate_at_time_of_ruling": "dc9960aab75449df8278aeeedcef8dc7a0a833f9",
+      "blocked_blocker": "DURABLE_IN_FLIGHT_STATE_CLOBBER",
+      "blocker_status": "RESOLVED_AND_CORRECTED",
+      "correction_shape": "+7 lines in _archive/hl_stage2/HL_Live_Copy_Service.py persist(): reload in_flight_unresolved/in_flight_terminals from disk immediately before SERVICE_STATE_FILE write, so stale self.state cannot erase a durable send reservation.",
+      "reported_evidence": "WITH_FIX 48/48 PASS; negative control 47/48 with the fix removed",
+      "note": "Recorded, not re-adjudicated. Hermes makes no gate verdict of its own."
+    },
+    "g4_authorised": false
   },
   "source_of_truth": {
     "terminal_runtime_local_path": "_archive/hl_stage2/HL_Live_Copy_Service.py",
@@ -154,9 +202,10 @@
     "Direct leader WS path is fast but incomplete; snapshot truth is required on recovery boundaries.",
     "MASTER account state must be distinguished from API signer state."
   ],
-  "current_blocker": "DURABLE_IN_FLIGHT_STATE_CLOBBER on locked candidate 3113c59. No patch authority under Architect 422 lock; Build3 product progression also held by MD P0 until P1-P8.",
-  "next_action": "After P1-P8 event-push transport certification, Architect must consume the exact G3 blocker and explicitly authorise the minimal correction scope before Hermes changes production. Until then preserve 3113c59 unchanged.",
+  "current_blocker": "G4-F3 AUTHORITATIVE MARK PRICE SOURCE. No validated-freshness mark price reaches apply_fixed_sleeve_event(); existing fill.mark_price -> limit_price -> fill.price has no age check, and get_public_quote yields an executable bid/ask rather than proved mark authority. Escalated to Architect as B3-C2A-G4-F3-MARK-AUTHORITY-RULING-1; ruling NOT yet received. DURABLE_IN_FLIGHT_STATE_CLOBBER is no longer the blocker (corrected in 4a41f33, G3 PASS).",
+  "next_action": "WAIT_AUTHORISED. Execute nothing. Hold for the correlated Architect ruling answering B3-C2A-G4-F3-MARK-AUTHORITY-RULING-1; consume it exactly once from the control_mailbox/outbox bucket, then report before acting on it. Prohibited meanwhile: independently choosing a price source, adding market-data plumbing, any production code change, G4-C2B, G5, LIVE/mainnet, and self-setting stand_down_authorised.",
   "live_authorized": false,
+  "stand_down_authorised": false,
   "last_controller_ruling": {
     "task_id": "BUILD3_SOURCE_BASELINE_IMPORT_1",
     "verdict": "PASS",
@@ -238,5 +287,109 @@
     "unavailable": "FAIL_CLOSED -> ACCOUNT_NET_TRUTH_UNAVAILABLE (zero order authority)"
   },
   "in_flight_suppression": "EXISTING un-settled sends wired into convergence; overlapping/duplicate authorisation blocked; no new store",
-  "single_order_site": "exactly one physical exchange.order() call site"
+  "single_order_site": "exactly one physical exchange.order() call site",
+  "adjudication_log": [
+    {
+      "ts_utc": "2026-10-09T09:06:35.989262+00:00",
+      "role": "controller",
+      "served_by": "openrouter/nvidia/nemotron-3-super-120b-a12b:free",
+      "used": "fallback",
+      "verdict": {
+        "next_action_correct": true,
+        "blocker_status": "LIVE",
+        "gate_closed_recommendation": false,
+        "confidence": "HIGH"
+      },
+      "text": "The gate remains in a failed state (G3_FINAL_REVIEW_FAIL_MD_P0_HOLD) with the controller adjudication marking the blocker DURABLE_IN_FLIGHT_STATE_CLOBBER as the exact remaining issue. No evidence shows this blocker has been resolved; the architect’s ruling only authorised a correction scope but did not yet apply it. Therefore the blocker is still LIVE, the prescribed next_action (awaiting P1‑P8 transport certification, then architect consumption and explicit authorisation of the minimal correction) remains appropriate, and the gate cannot be closed.\n\n```json\n{\"next_action_correct\": true, \"blocker_status\": \"LIVE\", \"gate_closed_recommendation\": false, \"confidence\": \"HIGH\"}\n```",
+      "INVALIDATED": true,
+      "invalidated_reason": "FALSE NEGATIVE. Verdict \"blocker LIVE / architect has not authorised\" was FACTUALLY WRONG. Architect authorisation (B3-C2H-G3-DURABLE-CLOBBER-RESUME-1, 17:03Z) and G3 PASS (B3-C2A-G3-PASS-ARCHITECT-GATE-1, 17:12Z) had both already landed when these were written.",
+      "root_cause": "Sourced from stale local CONTROL_STATE.json (updated_utc 2026-10-08T07:47Z) instead of origin/control-mailbox. Model: openrouter/nvidia/nemotron-3-super-120b-a12b:free (fallback).",
+      "status": "RETAINED_AS_DATED_RECORD_OF_DISCREPANCY_NOT_AUTHORITY"
+    },
+    {
+      "ts_utc": "2026-10-09T09:09:24.253758+00:00",
+      "role": "controller",
+      "served_by": "openrouter/nvidia/nemotron-3-super-120b-a12b:free",
+      "used": "fallback",
+      "verdict": {
+        "next_action_correct": true,
+        "blocker_status": "LIVE",
+        "gate_closed_recommendation": false,
+        "confidence": "HIGH"
+      },
+      "text": "The blocker remains unresolved and the gate is still in a failed hold state, so the prescribed next action (await P1‑P8 transport certification, then have the Architect consume the exact G3 blocker and authorise the minimal correction) is still appropriate. The gate should not be closed yet.\n\n```json\n{\"next_action_correct\": true, \"blocker_status\": \"LIVE\", \"gate_closed_recommendation\": false, \"confidence\": \"HIGH\"}\n```",
+      "INVALIDATED": true,
+      "invalidated_reason": "FALSE NEGATIVE. Verdict \"blocker LIVE / architect has not authorised\" was FACTUALLY WRONG. Architect authorisation (B3-C2H-G3-DURABLE-CLOBBER-RESUME-1, 17:03Z) and G3 PASS (B3-C2A-G3-PASS-ARCHITECT-GATE-1, 17:12Z) had both already landed when these were written.",
+      "root_cause": "Sourced from stale local CONTROL_STATE.json (updated_utc 2026-10-08T07:47Z) instead of origin/control-mailbox. Model: openrouter/nvidia/nemotron-3-super-120b-a12b:free (fallback).",
+      "status": "RETAINED_AS_DATED_RECORD_OF_DISCREPANCY_NOT_AUTHORITY"
+    },
+    {
+      "ts_utc": "2026-10-09T09:10:28.655013+00:00",
+      "role": "controller",
+      "served_by": "openrouter/nvidia/nemotron-3-super-120b-a12b:free",
+      "used": "fallback",
+      "verdict": {
+        "next_action_correct": true,
+        "blocker_status": "LIVE",
+        "gate_closed_recommendation": false,
+        "confidence": "HIGH"
+      },
+      "text": "The blocker DURABLE_IN_FLIGHT_STATE_CLOBBER remains unresolved; the controller’s adjudication still flags it as the exact remaining issue and the architect has not yet authorised the minimal correction. Therefore the prescribed next action—wait for P1‑P8 transport certification, then have the architect consume and authorise the blocker before any production change—is still appropriate. The gate cannot be closed until this blocker is addressed.\n\n```json\n{\"next_action_correct\": true, \"blocker_status\": \"LIVE\", \"gate_closed_recommendation\": false, \"confidence\": \"HIGH\"}\n```",
+      "INVALIDATED": true,
+      "invalidated_reason": "FALSE NEGATIVE. Verdict \"blocker LIVE / architect has not authorised\" was FACTUALLY WRONG. Architect authorisation (B3-C2H-G3-DURABLE-CLOBBER-RESUME-1, 17:03Z) and G3 PASS (B3-C2A-G3-PASS-ARCHITECT-GATE-1, 17:12Z) had both already landed when these were written.",
+      "root_cause": "Sourced from stale local CONTROL_STATE.json (updated_utc 2026-10-08T07:47Z) instead of origin/control-mailbox. Model: openrouter/nvidia/nemotron-3-super-120b-a12b:free (fallback).",
+      "status": "RETAINED_AS_DATED_RECORD_OF_DISCREPANCY_NOT_AUTHORITY"
+    },
+    {
+      "ts_utc": "2026-10-09T09:24:44.601881+00:00",
+      "role": "controller",
+      "served_by": "openrouter/nvidia/nemotron-3-super-120b-a12b:free",
+      "used": "fallback",
+      "verdict": {
+        "next_action_correct": true,
+        "blocker_status": "LIVE",
+        "gate_closed_recommendation": false,
+        "confidence": "HIGH"
+      },
+      "text": "The blocker remains unresolved and the gate is still under MD P0 hold, so the prescribed next action (await P1‑P8 transport certification then have the Architect authorise the minimal correction) is still appropriate. The gate cannot be closed until the blocker is addressed.\n\n```json\n{\"next_action_correct\": true, \"blocker_status\": \"LIVE\", \"gate_closed_recommendation\": false, \"confidence\": \"HIGH\"}\n```",
+      "INVALIDATED": true,
+      "invalidated_reason": "FALSE NEGATIVE. Verdict \"blocker LIVE / architect has not authorised\" was FACTUALLY WRONG. Architect authorisation (B3-C2H-G3-DURABLE-CLOBBER-RESUME-1, 17:03Z) and G3 PASS (B3-C2A-G3-PASS-ARCHITECT-GATE-1, 17:12Z) had both already landed when these were written.",
+      "root_cause": "Sourced from stale local CONTROL_STATE.json (updated_utc 2026-10-08T07:47Z) instead of origin/control-mailbox. Model: openrouter/nvidia/nemotron-3-super-120b-a12b:free (fallback).",
+      "status": "RETAINED_AS_DATED_RECORD_OF_DISCREPANCY_NOT_AUTHORITY"
+    },
+    {
+      "ts_utc": "2026-10-09T09:40:36.561752+00:00",
+      "role": "controller",
+      "served_by": "openrouter/nvidia/nemotron-3-super-120b-a12b:free",
+      "used": "fallback",
+      "verdict": {
+        "next_action_correct": true,
+        "blocker_status": "LIVE",
+        "gate_closed_recommendation": false,
+        "confidence": "HIGH"
+      },
+      "text": "The gate remains in a failed state (G3_FINAL_REVIEW_FAIL_MD_P0_HOLD) with the controller adjudication marking a FAIL and the blocker DURABLE_IN_FLIGHT_STATE_CLOBBER still described as unresolved. The architect’s ruling only authorised a correction scope but did not grant G4 authority, and no patch has been applied. Therefore the prescribed next action—awaiting P1‑P8 transport certification, then having the Architect consume the exact blocker and authorise the minimal correction before any production change—is still the appropriate step. The blocker is live, not stale or resolved, and the gate cannot be closed until the blocker is addressed.\n\n```json\n{\"next_action_correct\": true, \"blocker_status\": \"LIVE\", \"gate_closed_recommendation\": false, \"confidence\": \"HIGH\"}\n```",
+      "INVALIDATED": true,
+      "invalidated_reason": "FALSE NEGATIVE. Verdict \"blocker LIVE / architect has not authorised\" was FACTUALLY WRONG. Architect authorisation (B3-C2H-G3-DURABLE-CLOBBER-RESUME-1, 17:03Z) and G3 PASS (B3-C2A-G3-PASS-ARCHITECT-GATE-1, 17:12Z) had both already landed when these were written.",
+      "root_cause": "Sourced from stale local CONTROL_STATE.json (updated_utc 2026-10-08T07:47Z) instead of origin/control-mailbox. Model: openrouter/nvidia/nemotron-3-super-120b-a12b:free (fallback).",
+      "status": "RETAINED_AS_DATED_RECORD_OF_DISCREPANCY_NOT_AUTHORITY"
+    }
+  ],
+  "state_provenance": "Refreshed by hermes:implementation-owner under Richard direct instruction, 2026-10-09. Every fact below is traceable to a remote-verified origin/control-mailbox envelope; no field here grants authority, closes a gate, or authorises production change.",
+  "repo_head": {
+    "branch": "main",
+    "commit": "a940ad476cfd349dc3909f4b9dab16c5f6a6a400",
+    "subject": "G4-C2A: read-only mark source inventory (Architect F3)",
+    "frozen_candidate_3113c59": "PRESERVED_UNCHANGED (verified ancestor of HEAD)",
+    "commits_since_candidate": 26,
+    "note": "G4-C2A is the HEAD referenced by the pending Architect F3 escalation. The G3-PASS packet quoted dc9960a, which was correct when written at 17:12Z."
+  },
+  "adjudication_log_disposition": {
+    "policy": "Entries are retained verbatim as a dated record, per Richard, and are NOT authority.",
+    "recurring_cause_eliminated": true,
+    "recurring_cause_detail": "Scheduled task Build3WakeAndRearm, which appended these entries, was DELETED by Richard on 2026-10-09 (verified absent via Get-ScheduledTask; task name not found). Not paused - deleted.",
+    "residual_risk": "Any surviving component still deriving gate truth from local CONTROL_STATE.json rather than the mailbox will reproduce this false negative.",
+    "raised_as": "B3-H2C-ADJUDICATION-LOG-FALSE-NEGATIVE-1"
+  },
+  "highwater_note": "OPERATING_PROTOCOL.md states CONTROL_STATE.json holds only current state and is updated, not used as an append-only journal. adjudication_log is retained here solely under explicit Richard instruction as a dated discrepancy record, and is flagged INVALIDATED."
 }
