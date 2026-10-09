@@ -5,9 +5,96 @@ unavailable; signer != MASTER; snapshots mint zero authority; an ack is NOT sett
 clears only on independent MASTER userFills + position, or a terminal rejection); divergence
 surfaces; unattributed inventory is excluded from sleeve convergence.
 """
+import json
+import os
 import re
+from urllib.parse import urlparse
 
-HL_INFO_URL = "https://api.hyperliquid.xyz/info"
+# Network selection. The leader feed and the follower account are chosen independently, so an
+# instance can watch real mainnet leaders while trading and verifying a testnet follower. Every
+# follower read (positions, fills, settlement, meta/precision, quotes) and every order goes to the
+# FOLLOWER network; only leader fill intake uses the LEADER network. Unknown names fail closed.
+NETWORK_HOSTS = {"mainnet": "https://api.hyperliquid.xyz", "testnet": "https://api.hyperliquid-testnet.xyz"}
+DEFAULT_LEADER_NETWORK, DEFAULT_FOLLOWER_NETWORK = "mainnet", "testnet"
+NETWORK_STAMP_FILE = "network.json"
+
+
+class NetworkConfigError(ValueError):
+    pass
+
+
+def network_endpoints(name):
+    key = str(name or "").strip().lower()
+    if key not in NETWORK_HOSTS:
+        raise NetworkConfigError(f"UNKNOWN_NETWORK:{name!r} (expected one of {sorted(NETWORK_HOSTS)})")
+    base = NETWORK_HOSTS[key]
+    return {"network": key, "base": base, "info": base + "/info", "exchange": base + "/exchange",
+            "ws": "wss://" + urlparse(base).netloc + "/ws"}
+
+
+def resolve_networks(env=None):
+    """{'leader': endpoints, 'follower': endpoints} from HL_LEADER_NETWORK / HL_FOLLOWER_NETWORK.
+
+    The follower defaults to testnet: a mainnet follower must be named explicitly. Legacy URL
+    overrides (HL_LIVE_ORDER_ENDPOINT, HL_LIVE_WS_URL, HL_INFO_URL) must point at the selected host,
+    else NetworkConfigError - orders and truth can never silently land on different networks.
+    """
+    env = os.environ if env is None else env
+    leader = network_endpoints(env.get("HL_LEADER_NETWORK") or DEFAULT_LEADER_NETWORK)
+    follower = network_endpoints(env.get("HL_FOLLOWER_NETWORK") or DEFAULT_FOLLOWER_NETWORK)
+    # HL_INFO_URL (Core) once served leader AND follower reads, so it must match both networks
+    for var, net in (("HL_LIVE_ORDER_ENDPOINT", follower), ("HL_LIVE_WS_URL", leader),
+                     ("HL_INFO_URL", follower), ("HL_INFO_URL", leader)):
+        url = str(env.get(var) or "").strip()
+        if url and urlparse(url).netloc.lower() != urlparse(net["base"]).netloc:
+            raise NetworkConfigError(f"NETWORK_ENDPOINT_MISMATCH:{var}={url} but {net['network']} selected")
+    return {"leader": leader, "follower": follower}
+
+
+def env_with_file(path):
+    """os.environ over KEY=VALUE lines of a local env file (os.environ wins), for processes that read
+    hl_stage2.env without loading it into os.environ (the UI), so both sides pick the same networks."""
+    merged = {}
+    try:
+        with open(str(path), encoding="utf-8") as fh:
+            for line in fh:
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    k, _, v = line.partition("=")
+                    merged[k.strip()] = v.strip()
+    except OSError:
+        pass
+    merged.update(os.environ)
+    return merged
+
+
+def claim_network_stamp(state_dir, networks):
+    """Bind a state directory to one leader/follower network pair. A directory already stamped for
+    a different pair raises, so a testnet instance can never resume mainnet state or vice versa."""
+    want = {"leader": networks["leader"]["network"], "follower": networks["follower"]["network"]}
+    path = os.path.join(str(state_dir), NETWORK_STAMP_FILE)
+    if os.path.exists(path):
+        try:
+            with open(path, encoding="utf-8") as fh:
+                have = json.load(fh)
+        except Exception as exc:
+            raise NetworkConfigError(f"NETWORK_STAMP_UNREADABLE:{path}:{exc!r}")
+        if not isinstance(have, dict) or {k: have.get(k) for k in want} != want:
+            raise NetworkConfigError(f"NETWORK_STAMP_MISMATCH:{path} is {have} but this instance is {want}")
+        return want
+    os.makedirs(str(state_dir), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as fh:
+        json.dump(want, fh)
+    return want
+
+
+try:
+    NETWORKS = resolve_networks()
+    HL_INFO_URL = NETWORKS["follower"]["info"]
+except NetworkConfigError as _net_exc:  # follower truth reads fail closed; the service refuses to start
+    NETWORKS, HL_INFO_URL, NETWORK_ERROR = None, "", str(_net_exc)
+else:
+    NETWORK_ERROR = ""
 _ADDR = re.compile(r"^0x[0-9a-fA-F]{40}$")
 TRUTH_OK, IDENTITY_INVALID = "OK", "IDENTITY_INVALID"
 DEX_ENUM_UNAVAILABLE, SCOPE_UNAVAILABLE = "DEX_ENUM_UNAVAILABLE", "SCOPE_UNAVAILABLE"
@@ -75,6 +162,31 @@ def master_account_net(master_address, coin, fetcher=None, info_url=HL_INFO_URL,
         scopes.append({"dex": dex or "(default)", "signed": signed})
         total += signed
     return {"ok": True, "status": TRUTH_OK, "net": total, "scopes": scopes, "dex_count": len(dexes)}
+
+def master_exposure(master_address, dexes, fetcher=None, info_url=HL_INFO_URL, timeout=8.0):
+    """MASTER exposure across every perp DEX scope: total |positionValue| plus per-coin signed size
+    and |value|. Used by the global exposure caps; any unreadable scope fails closed."""
+    if not valid_address(master_address):
+        return {"ok": False, "status": IDENTITY_INVALID}
+    total, by_coin = 0.0, {}
+    for dex in (dexes if dexes is not None else [""]):
+        payload = {"type": "clearinghouseState", "user": master_address}
+        if dex:
+            payload["dex"] = dex
+        res = _post(fetcher, payload, info_url, timeout)
+        state = res.get("data") if res.get("ok") else None
+        if not isinstance(state, dict) or not isinstance(state.get("assetPositions"), list):
+            return {"ok": False, "status": SCOPE_UNAVAILABLE, "dex": dex, "detail": res.get("detail", "no assetPositions")}
+        for item in state["assetPositions"]:
+            pos = (item or {}).get("position") if isinstance(item, dict) else None
+            if not isinstance(pos, dict):
+                continue
+            coin, value = str(pos.get("coin") or "").upper().strip(), abs(float(pos.get("positionValue") or 0.0))
+            row = by_coin.setdefault(coin, {"net": 0.0, "value": 0.0})
+            row["net"] += float(pos.get("szi") or 0.0)
+            row["value"] += value
+            total += value
+    return {"ok": True, "status": TRUTH_OK, "total_usd": total, "by_coin": by_coin}
 
 def master_userfills(master_address, start_ms, dex="", fetcher=None, info_url=HL_INFO_URL, timeout=8.0):
     """MASTER settlement evidence: genuine fills at/after start_ms, scoped to one perp DEX ('' = default)."""
