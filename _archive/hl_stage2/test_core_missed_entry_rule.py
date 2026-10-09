@@ -127,6 +127,9 @@ def main() -> None:
         if sleeve:
             led.sleeve(LEADER, "BTC")["signed_size"] = sleeve
         intent = c.IntentBuilder(c.ConfigManager(), led).build(f or fill(side))
+        # earlier scenarios' limits count as filled: one resting entry per wallet/coin/side (run 4) is tested in M9
+        reg = c.load_json(c.RESTING_ENTRY_ORDERS_FILE, {}) or {}
+        c.atomic_write_json(c.RESTING_ENTRY_ORDERS_FILE, {k: {**v, "open_size": 0.0} for k, v in reg.items()})
         fake = FakeExchange(replies)
         gw = gateway(fake)
         set_mids(follower, leader)
@@ -449,6 +452,8 @@ def main() -> None:
                   and len(rf.calls) == 1 and "9001" in {r["oid"] for r in gw4.resting_entries()}, f"{status} {rf.calls} {res.get('oid')}")
             open_orders["rows"] = []
             rf.calls.clear()
+            for row in gw4._resting_entries.values():
+                row["open_size"] = 0.0   # the found limit has since filled
             intent = c.IntentBuilder(c.ConfigManager(), led).build(fill("BUY"))
             ok, status, res = gw4._send_real(intent)
             check("R4_NOT_FOUND_IS_CRITICAL_AND_NEVER_RESENT", not ok and len(rf.calls) == 1
