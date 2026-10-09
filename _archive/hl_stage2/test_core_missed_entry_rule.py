@@ -337,7 +337,7 @@ def main() -> None:
     buy = fill("BUY")
     core.sender._register_resting_entry(core.intent_builder.build(buy), "BTC", "555", 100.0, 1.0, "test")
     seen = []
-    core.copy_ingestor.poll_copy_account_fills = lambda w, s0, s1: ([{"coin": "BTC", "oid": 555, "side": "B", "sz": "1", "px": "100",
+    core.copy_ingestor.poll_copy_account_fills = lambda w, s0, s1, **k: ([{"coin": "BTC", "oid": 555, "side": "B", "sz": "1", "px": "100",
                                                                       "time": c.utc_now_ms(), "hash": "hx", "tid": 1}], "COPY_ACCOUNT_POLLED")
 
     def own(raw, intents):
@@ -351,7 +351,7 @@ def main() -> None:
     core._process_leader_fill(close)
     check("R2_FILLED_LIMIT_OWNED_BEFORE_THE_LEADER_CLOSE_IS_CLASSIFIED", seen == ["own", "EXIT"], str(seen))
     core.sender._register_resting_entry(core.intent_builder.build(fill("BUY")), "BTC", "556", 100.0, 1.0, "test")
-    core.copy_ingestor.poll_copy_account_fills = lambda w, s0, s1: ([], "COPY_ACCOUNT_POLL_ERROR")
+    core.copy_ingestor.poll_copy_account_fills = lambda w, s0, s1, **k: ([], "COPY_ACCOUNT_POLL_ERROR")
     core._process_leader_fill(fill("SELL"))
     rows = [r for r in c.read_csv_rows(c.RECONCILIATION_CSV) if r.get("status") == "RESTING_ENTRY_FILL_UNVERIFIED"]
     check("R2_UNREADABLE_FILLS_AFTER_WITHDRAWAL_IS_CRITICAL", rows and "MANUAL_REVIEW" in rows[-1]["action"], str(rows[-1:])[:200])
@@ -362,7 +362,7 @@ def main() -> None:
     core.sender.cancel_resting_entries_against(fill("SELL"))
     pending = [r["oid"] for r in core.sender.resting_entries() if r.get("withdraw_pending")]
     fake.cancel_reply = {"status": "ok", "response": {"type": "cancel", "data": {"statuses": ["success"]}}}
-    core.copy_ingestor.poll_copy_account_fills = lambda w, s0, s1: ([], "COPY_ACCOUNT_POLLED")
+    core.copy_ingestor.poll_copy_account_fills = lambda w, s0, s1, **k: ([], "COPY_ACCOUNT_POLLED")
     core.run_cycle(use_source_csv=False)
     check("R3_FAILED_WITHDRAWAL_RETRIED_BY_THE_CYCLE", pending == ["557"] and not core.sender.resting_entries(),
           f"{pending} {core.sender.resting_entries()}")
@@ -428,6 +428,135 @@ def main() -> None:
     c.LeaderFillIngestor().poll_hyperliquid_fills(LEADER, 1000, 9000)
     c.requests.post = offline
     check("R6_BOUNDARY_MILLISECOND_RE_READ", starts6 == [1000, 5001] or starts6[:2] == [1000, 5001], str(starts6))
+
+    # ---- R7: second independent review ------------------------------------------------------------------
+    def recon(status, oid=None):
+        return [r for r in c.read_csv_rows(c.RECONCILIATION_CSV)
+                if r.get("status") == status and (oid is None or r.get("exchange_order_id") == oid)]
+    c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": True, "global_controls": {"marketable_bps": 20}, "wallets": {
+        LEADER: {"enabled": True, "mode": "ON", "copy_mode": "fixed", "fixed_notional": 1000}}})
+    set_mids(100.0, 100.0)
+    saved_leader = c.LEADER_NETWORK
+    c.LEADER_NETWORK = c.FOLLOWER_NETWORK
+    os.environ["HL_LIVE_HL_PRIVATE_KEY"] = "0x" + "1" * 64   # placeholder; the fake exchange never signs
+    saved = c.HLAccount, c.HLExchange
+    c.HLAccount, c.HLExchange = object, object
+    try:
+        # A1 the leader's close was handled before its (late) entry arrived: the entry is not copied
+        fake7 = FakeExchange()
+        gw7 = gateway(fake7)
+        late_sell = fill("SELL")
+        gw7.cancel_resting_entries_against(late_sell)
+        early_buy = fill("BUY", ts=late_sell.timestamp_ms - 2000)
+        intent = c.IntentBuilder(c.ConfigManager(), c.ManualLedger(path=tmp / "r7a.json")).build(early_buy)
+        intent.decision = "ENTRY_ALLOWED"
+        ok, status = gw7.send_if_allowed(intent)
+        check("R7_ENTRY_REFUSED_WHEN_LEADER_ALREADY_REDUCED", not ok and status == "SEND_BLOCKED_LEADER_ALREADY_REDUCED"
+              and not fake7.calls, f"{status} {fake7.calls}")
+        core7 = c.LiveCopyCore(source_csv=tmp / "none.csv")
+        core7._append_send_terminal(early_buy, intent, status)
+        rows = recon("MISSED_ENTRY_LEADER_ALREADY_REDUCED")
+        check("R7_REFUSED_ENTRY_IS_A_DIFF_ON_SCREEN", rows and "MANUAL_REVIEW" in rows[-1]["action"], str(rows[-1:])[:200])
+        check("R7_SAME_MILLISECOND_CLOSE_COUNTS_AS_REDUCED", gw7.leader_reduced_since(fill("BUY", ts=late_sell.timestamp_ms)) > 0
+              and not gw7.leader_reduced_since(fill("BUY", ts=late_sell.timestamp_ms + 1)))
+
+        # A2 the leader's close is handled by another thread while our entry is in flight and then fills
+        class RacingExchange(FakeExchange):
+            def order(self, coin, is_buy, size, px, tif, reduce_only=False):
+                s = fill("SELL")   # what the other thread records when it handles the leader's close
+                gw8._leader_side_seen_ms[(c.normalise_wallet(LEADER), c.canonical_coin_key("BTC"), "SELL")] = s.timestamp_ms
+                return FakeExchange.order(self, coin, is_buy, size, px, tif, reduce_only)
+        fake8 = RacingExchange()
+        gw8 = gateway(fake8)
+        gw8._pre_send_ownership_gate = lambda intent: (True, {})   # exchange-proof gate is covered elsewhere
+        intent = c.IntentBuilder(c.ConfigManager(), c.ManualLedger(path=tmp / "r7b.json")).build(fill("BUY"))
+        intent.decision = "ENTRY_ALLOWED"
+        ok, status = gw8.send_if_allowed(intent)
+        rows = recon("ENTRY_FILLED_AFTER_LEADER_REDUCED")
+        check("R7_ENTRY_FILLED_WHILE_LEADER_REDUCED_IS_CRITICAL", status == "ORDER_FILLED" and rows
+              and "MANUAL_REVIEW" in rows[-1]["action"], f"{status} {str(rows[-1:])[:200]}")
+    finally:
+        c.HLAccount, c.HLExchange = saved
+        os.environ.pop("HL_LIVE_HL_PRIVATE_KEY", None)
+        c.LEADER_NETWORK = saved_leader
+
+    # A3 a limit withdrawn at registration (leader already reduced): the engine owns its fill and shows a diff
+    config(marketable_bps=20)
+    core = c.LiveCopyCore(source_csv=tmp / "none.csv")
+    fake = FakeExchange()
+    fake.cancel_reply = {"status": "ok", "response": {"type": "cancel", "data": {"statuses": [
+        {"error": "Order was never placed, already canceled, or filled. asset=0"}]}}}
+    core.sender._exchange_client_for_coin = lambda coin: (fake, "BTC")
+    sell = fill("SELL")
+    core.sender.cancel_resting_entries_against(sell)
+    core.sender._register_resting_entry(core.intent_builder.build(fill("BUY", ts=sell.timestamp_ms - 1000)), "BTC", "600", 100.0, 1.0, "t")
+    owned = []
+    core.copy_ingestor.poll_copy_account_fills = lambda w, s0, s1, **k: ([{"coin": "BTC", "oid": 600, "side": "B", "sz": "1",
+                                                                           "px": "100", "time": c.utc_now_ms(), "hash": "h600", "tid": 6}],
+                                                                         "COPY_ACCOUNT_POLLED")
+    core.matcher.match_and_apply = lambda raw, intents: owned.append(raw["oid"]) or True
+    core.run_cycle(use_source_csv=False)
+    rows = recon("RESTING_ENTRY_FILLED_AFTER_LEADER_REDUCED")
+    check("R7_LIMIT_WITHDRAWN_AT_REGISTRATION_HAS_ITS_FILL_OWNED", owned == [600] and not core.sender.take_withdrawn_late(), str(owned))
+    check("R7_AND_SHOWN_AS_CRITICAL", rows and "MANUAL_REVIEW" in rows[-1]["action"] and rows[-1]["exchange_order_id"] == "600",
+          str(rows[-1:])[:200])
+
+    # C the early read starts where the regular copy poll stopped; a capped read is not taken as complete
+    last = c.utc_now_ms() - 60000
+    st = c.load_json(c.CORE_RUNTIME_STATE_FILE, {})
+    st["last_copy_poll_ms"] = last
+    c.atomic_write_json(c.CORE_RUNTIME_STATE_FILE, st)
+    starts7 = []
+    core.copy_ingestor.poll_copy_account_fills = lambda w, s0, s1, **k: starts7.append(s0) or ([], "COPY_ACCOUNT_POLL_PARTIAL")
+    res = core._own_fills_of_withdrawn_limits([{"oid": "601", "coin": "BTC", "placed_ms": last - 5 * 86400000}])
+    check("R7_EARLY_READ_STARTS_AT_LAST_COPY_POLL_NOT_DAYS_BACK", starts7 == [last - c.POLL_OVERLAP_MS], f"{starts7} {last}")
+    check("R7_CAPPED_READ_IS_UNVERIFIED_CRITICAL", res == -1 and recon("RESTING_ENTRY_FILL_UNVERIFIED", "601"))
+    pages["mode"] = "full"
+    c.requests.post = page_post
+    got, status = c.CopyAccountIngestor().poll_copy_account_fills(FOLLOWER, 1000, 2000, report_partial=True)
+    c.requests.post = offline
+    check("R7_COPY_READ_PAGE_CAP_SAYS_PARTIAL", status == "COPY_ACCOUNT_POLL_PARTIAL", status)
+
+    # B while sending is stopped for a bad key the leader cursors stay put, so a restart replays the exits
+    st = c.load_json(c.CORE_RUNTIME_STATE_FILE, {})
+    st["last_leader_poll_cursor_ms"] = {LEADER: c.utc_now_ms() - 3600000}
+    c.atomic_write_json(c.CORE_RUNTIME_STATE_FILE, st)
+    before = st["last_leader_poll_cursor_ms"][LEADER]
+    core.ingestor.poll_hyperliquid_fills = lambda w, s, t=None: ([], "POLL_OK")
+    core.sender.sender_key_invalid = "User or API Wallet does not exist"
+    core.run_cycle(use_source_csv=False, poll_live=True)
+    cur = c.load_json(c.CORE_RUNTIME_STATE_FILE, {}).get("last_leader_poll_cursor_ms", {}).get(LEADER)
+    check("R7_KEY_STOP_HOLDS_LEADER_CURSOR_FOR_REPLAY", cur == before, f"{cur} {before}")
+    core.sender.sender_key_invalid = ""
+    core.run_cycle(use_source_csv=False, poll_live=True)
+    cur = c.load_json(c.CORE_RUNTIME_STATE_FILE, {}).get("last_leader_poll_cursor_ms", {}).get(LEADER)
+    check("R7_CURSOR_MOVES_AGAIN_WITH_A_GOOD_KEY", cur > before, f"{cur} {before}")
+
+    # lesser review points
+    fake = FakeExchange()
+    fake.cancel_reply = {"status": "err", "response": "rate limited"}
+    gw9 = gateway(fake)
+    gw9._register_resting_entry(c.IntentBuilder(c.ConfigManager(), c.ManualLedger(path=tmp / "r7c.json")).build(fill("BUY")),
+                                "BTC", "602", 100.0, 1.0, "t")
+    gw9.cancel_resting_entries_against(fill("SELL"))
+    gw9.retry_pending_withdrawals()
+    gw9.retry_pending_withdrawals()
+    check("R7_FAILED_CANCEL_SHOWN_ONCE_NOT_EVERY_CYCLE", len(recon("RESTING_ENTRY_CANCEL_FAILED", "602")) == 1
+          and len(fake.cancels) == 3, f"{len(recon('RESTING_ENTRY_CANCEL_FAILED', '602'))} {fake.cancels}")
+    fake.cancel_reply = {"status": "ok", "response": {"type": "cancel", "data": {"statuses": ["success"]}}}
+    gw9.retry_pending_withdrawals()
+    t0 = c.utc_now_ms() + 10 ** 6
+    gw9._register_resting_entry(c.IntentBuilder(c.ConfigManager(), c.ManualLedger(path=tmp / "r7d.json")).build(fill("BUY", ts=t0)),
+                                "BTC", "603", 100.0, 1.0, "t")
+    check("R7_SAME_MILLISECOND_CLOSE_WITHDRAWS_THE_LIMIT", len(gw9.cancel_resting_entries_against(fill("SELL", ts=t0))) == 1)
+    gw9._resting_entries["604"] = {"oid": "604", "leader_wallet": LEADER, "coin": "BTC", "side": "BUY", "placed_ms": c.utc_now_ms()}
+    check("R7_OLD_ROW_WITHOUT_FILL_TIME_KEPT_AGAINST_OLDER_FILLS",
+          not gw9.cancel_resting_entries_against(fill("SELL", ts=c.utc_now_ms() - 600000)) and "604" in gw9._resting_entries)
+    check("R7_NO_DEPOSIT_IS_NOT_A_KEY_PROBLEM",
+          c.classify_reject_category("Must deposit before performing actions. User: 0xabc") != "SENDER_KEY_NOT_VALID"
+          and c.classify_reject_category("User or API Wallet 0xabc does not exist.") == "SENDER_KEY_NOT_VALID")
+    open_orders["rows"] = [{"coin": "BTC", "side": "B", "limitPx": "100.0", "sz": "0.4", "origSz": "1.0", "oid": 605}]
+    check("R7_PART_FILLED_LIMIT_FOUND_BY_ORIGINAL_SIZE", gw9.find_open_entry_order("BTC", "BTC", "BUY", 100.0, 1.0) == "605")
 
     failed = [n for n, ok in RESULTS if not ok]
     print(f"TOTAL={len(RESULTS)} FAILED={len(failed)}")

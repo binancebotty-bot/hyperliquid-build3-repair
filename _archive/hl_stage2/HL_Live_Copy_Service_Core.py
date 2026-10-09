@@ -425,7 +425,7 @@ def _response_text(exchange_response: Any) -> str:
 
 def classify_reject_category(error_text: str = "", exchange_response: Any = None) -> str:
     msg = f"{error_text or ''} {_response_text(exchange_response)}".lower()
-    if ("does not exist" in msg and ("wallet" in msg or "user" in msg)) or "must deposit before performing actions" in msg:
+    if "does not exist" in msg and ("wallet" in msg or "user" in msg):
         return "SENDER_KEY_NOT_VALID"  # the follower exchange does not know the signing key: wrong network / not approved
     if "could not immediately match" in msg:
         return "IOC_NO_IMMEDIATE_MATCH"
@@ -2823,6 +2823,7 @@ class SenderGateway:
         self._resting_entries: Dict[str, Dict[str, Any]] = load_json(RESTING_ENTRY_ORDERS_FILE, {}) or {}
         self._resting_lock = threading.RLock()  # WS hot-path and cycle threads both touch the resting list
         self._leader_side_seen_ms: Dict[Tuple[str, str, str], int] = {}  # newest leader fill per wallet/coin/side
+        self._withdrawn_late: List[Dict[str, Any]] = []  # withdrawn at registration: the core must own their fills
         self._last_exchange_order_ms: int = 0
         self._exchange_rate_limit_cooldown_until_ms: int = 0
         # Pending-exit guard: prevents a burst of leader close fills from each
@@ -2886,8 +2887,25 @@ class SenderGateway:
             self._resting_entries[str(oid)] = row
             atomic_write_json(RESTING_ENTRY_ORDERS_FILE, dict(self._resting_entries))
             opposite_ms = self._leader_side_seen_ms.get((wallet, key, "SELL" if intent.copy_side == "BUY" else "BUY"), 0)
-        if opposite_ms > row["leader_fill_ms"]:
-            self._withdraw_rows([row], f"leader already reduced at {opposite_ms} while this limit was being placed", "")
+        if opposite_ms > 0 and opposite_ms >= row["leader_fill_ms"]:
+            gone = self._withdraw_rows([row], f"leader already reduced at {opposite_ms} while this limit was being placed", "")
+            with self._resting_lock:
+                self._withdrawn_late.extend(gone)
+
+    def take_withdrawn_late(self) -> List[Dict[str, Any]]:
+        """Limits withdrawn at registration (the leader's reduce was already handled): any fill they got is
+        owned by the core and shown as a Critical diff, because no leader close will follow it."""
+        with self._resting_lock:
+            rows, self._withdrawn_late = self._withdrawn_late, []
+        return rows
+
+    def leader_reduced_since(self, fill: LeaderFill) -> int:
+        """Newest leader fill on the OTHER side in this wallet and coin at or after this fill (another thread
+        already handled the leader's reduce/close), or 0. Such an entry must not be copied."""
+        wallet, key = normalise_wallet(fill.leader_wallet), canonical_coin_key(fill.coin)
+        with self._resting_lock:
+            opposite_ms = self._leader_side_seen_ms.get((wallet, key, "SELL" if fill.side == "BUY" else "BUY"), 0)
+        return opposite_ms if opposite_ms > 0 and opposite_ms >= int(fnum(fill.timestamp_ms, 0)) else 0
 
     def resting_entries(self) -> List[Dict[str, Any]]:
         with self._resting_lock:
@@ -2904,7 +2922,8 @@ class SenderGateway:
             self._leader_side_seen_ms[seen] = max(self._leader_side_seen_ms.get(seen, 0), ts)
             rows = [dict(r) for r in self._resting_entries.values()
                     if r.get("leader_wallet") == wallet and canonical_coin_key(r.get("coin")) == key
-                    and r.get("side") != fill.side and int(fnum(r.get("leader_fill_ms"), 0)) < ts]
+                    and r.get("side") != fill.side
+                    and int(fnum(r.get("leader_fill_ms") or r.get("placed_ms"), 0)) <= ts]
         if not rows:
             return []
         return self._withdraw_rows(rows, f"leader {fill.side} {fill.size} @ {fill.price} reduces that position", fill.leader_fill_id)
@@ -2932,6 +2951,7 @@ class SenderGateway:
                     outcome, error = "RESTING_ENTRY_CANCEL_FAILED", json.dumps(response, default=str)[:300]
             except Exception as exc:
                 outcome, error = "RESTING_ENTRY_CANCEL_FAILED", repr(exc)
+            first_failure = not row.get("withdraw_pending")
             with self._resting_lock:
                 if outcome != "RESTING_ENTRY_CANCEL_FAILED":
                     self._resting_entries.pop(oid, None)
@@ -2939,6 +2959,8 @@ class SenderGateway:
                 elif oid in self._resting_entries:
                     self._resting_entries[oid]["withdraw_pending"] = why
                 atomic_write_json(RESTING_ENTRY_ORDERS_FILE, dict(self._resting_entries))
+            if outcome == "RESTING_ENTRY_CANCEL_FAILED" and not first_failure:
+                continue  # already on screen as a Critical diff; retried quietly each cycle
             self.audit.append_reconciliation(
                 "SEND_TERMINAL", outcome,
                 leader_wallet=row.get("leader_wallet", ""), leader_fill_id=leader_fill_id, intent_id=row.get("intent_id", ""),
@@ -2960,7 +2982,7 @@ class SenderGateway:
         for o in (res.get("data") if res.get("ok") and isinstance(res.get("data"), list) else []):
             if (isinstance(o, dict) and str(o.get("coin", "")).upper() == str(sdk_coin).upper()
                     and str(o.get("side", "")).upper() == ("B" if side == "BUY" else "A")
-                    and abs(fnum(o.get("limitPx")) - px) <= 1e-9 * max(1.0, px) and abs(fnum(o.get("sz")) - size) <= 1e-9 * max(1.0, size)):
+                    and abs(fnum(o.get("limitPx")) - px) <= 1e-9 * max(1.0, px) and abs(fnum(o.get("origSz") or o.get("sz")) - size) <= 1e-9 * max(1.0, size)):
                 return str(o.get("oid", ""))
         return ""
 
@@ -3554,10 +3576,11 @@ class SenderGateway:
             return False, "MASTER_REAL_ORDERS_OFF"
         if self.sender_key_invalid:
             return False, "SEND_BLOCKED_SENDER_KEY_NOT_VALID"
-        if entry_block_reason:
-            lifecycle = classify_send_lifecycle(intent)
-            if lifecycle in {"ENTRY", "ADD"}:
-                return False, f"ENTRY_BLOCKED_{entry_block_reason}"
+        lifecycle = classify_send_lifecycle(intent)
+        if entry_block_reason and lifecycle in {"ENTRY", "ADD"}:
+            return False, f"ENTRY_BLOCKED_{entry_block_reason}"
+        if lifecycle in {"ENTRY", "ADD"} and self.leader_reduced_since(intent.fill):
+            return False, "SEND_BLOCKED_LEADER_ALREADY_REDUCED"
         timing = self._base_timing(intent)
         gate_ok, gate_block = self._pre_send_ownership_gate(intent)
         if not gate_ok:
@@ -3592,6 +3615,17 @@ class SenderGateway:
         ok, send_status, result = self._send_real(intent, timing)
         if result.get("exchange_called"):
             self._append_real_attempt(intent, send_status, result)
+            reduced_ms = self.leader_reduced_since(intent.fill) if lifecycle in {"ENTRY", "ADD"} else 0
+            if reduced_ms and send_status == "ORDER_FILLED":
+                self.audit.append_reconciliation(
+                    "SEND_TERMINAL", "ENTRY_FILLED_AFTER_LEADER_REDUCED",
+                    leader_wallet=intent.fill.leader_wallet, leader_fill_id=intent.fill.leader_fill_id,
+                    intent_id=intent.intent_id, coin=canonical_coin_key(intent.fill.coin), exchange_order_id=result.get("oid", ""),
+                    action="MANUAL_REVIEW_RECONCILE_ENTRY_LEADER_ALREADY_REDUCED", terminal_state="ENTRY_FILLED_AFTER_LEADER_REDUCED",
+                    engine_can_send="False",
+                    notes=(f"copy {intent.copy_side} {result.get('wire_size', intent.copy_size)} filled while the leader's "
+                           f"opposite fill at {reduced_ms} was already being handled; the follower may hold a position the "
+                           "leader no longer has; reconcile on the exchange"))
         else:
             # No real order placed — release any exit reservation so we never wrongly
             # block a genuine later close because of a non-exchange (symbol/cred) miss.
@@ -5340,7 +5374,8 @@ class CopyAccountIngestor:
             raw.get("sz", raw.get("size")), raw.get("time"), raw.get("intent_id"),
         ]))
 
-    def poll_copy_account_fills(self, user_wallet: str, start_ms: int, end_ms: Optional[int] = None) -> Tuple[List[Dict[str, Any]], str]:
+    def poll_copy_account_fills(self, user_wallet: str, start_ms: int, end_ms: Optional[int] = None,
+                                report_partial: bool = False) -> Tuple[List[Dict[str, Any]], str]:
         user_wallet = normalise_wallet(user_wallet)
         if not is_valid_wallet(user_wallet):
             return [], "COPY_ACCOUNT_NOT_CONFIGURED"
@@ -5349,6 +5384,7 @@ class CopyAccountIngestor:
         start = max(0, int(start_ms))
         end = int(end_ms or utc_now_ms())
         out: List[Dict[str, Any]] = []
+        complete = False
         for _ in range(POLL_MAX_PAGES_PER_WALLET):
             payload = {"type": "userFillsByTime", "user": user_wallet, "startTime": start, "endTime": end, "aggregateByTime": False}
             try:
@@ -5365,12 +5401,15 @@ class CopyAccountIngestor:
                         page.append(item)
                 out.extend(page)
                 if len(data) < 2000 or not page:
+                    complete = True
                     break
                 start = max(int(fnum(x.get("timestamp_ms"), start)) for x in page) + 1
             except Exception as exc:
                 log_error("poll_copy_account_fills", exc)
                 return out, "COPY_ACCOUNT_POLL_NETWORK_ERROR"
         out.sort(key=lambda r: (int(fnum(r.get("timestamp_ms"), 0)), str(r.get("copy_fill_id"))))
+        if report_partial and not complete:
+            return out, "COPY_ACCOUNT_POLL_PARTIAL"  # page cap reached: newer fills were not read
         return out, "COPY_ACCOUNT_POLLED"
 
 
@@ -6419,6 +6458,17 @@ class LiveCopyCore:
                     pass
 
     def _append_send_terminal(self, fill: LeaderFill, intent: Intent, send_status: str) -> None:
+        if send_status == "SEND_BLOCKED_LEADER_ALREADY_REDUCED":
+            self.audit.append_reconciliation(
+                "SEND_TERMINAL", "MISSED_ENTRY_LEADER_ALREADY_REDUCED",
+                leader_wallet=fill.leader_wallet, leader_fill_id=fill.leader_fill_id, intent_id=intent.intent_id,
+                coin=fill.coin, action="MANUAL_REVIEW_LEADER_REDUCED_BEFORE_COPY",
+                terminal_state="MISSED_ENTRY_LEADER_ALREADY_REDUCED", engine_can_send="False",
+                notes=(f"leader {fill.side} {fill.size} @ {fill.price} at {fill.timestamp_ms} arrived after the leader's "
+                       f"opposite fill at {self.sender.leader_reduced_since(fill)} was handled; not copied, so the follower "
+                       "never holds a position the leader has closed; reconcile if the leader still holds part of it"),
+            )
+            return
         if send_status == "SEND_BLOCKED_SENDER_KEY_NOT_VALID":
             self.audit.append_reconciliation(
                 "SEND_TERMINAL", "SENDER_KEY_NOT_VALID_ON_FOLLOWER_NETWORK",
@@ -6661,15 +6711,17 @@ class LiveCopyCore:
         """Read the follower's fills since the withdrawn limits were placed and give the ones with their order ids
         to the ledger now (the regular copy poll would be seconds late). Unreadable = a Critical diff."""
         oids = {CopyFillMatcher._normalize_oid(str(r.get("oid"))) for r in rows}
-        since = max(0, min(int(fnum(r.get("placed_ms"), 0)) for r in rows) - POLL_OVERLAP_MS)
-        fills, status = self.copy_ingestor.poll_copy_account_fills(USER_WALLET, since, utc_now_ms())
+        _rt = load_json(CORE_RUNTIME_STATE_FILE, {})
+        last_copy_poll_ms = int(fnum(_rt.get("last_copy_poll_ms"), 0)) if isinstance(_rt, dict) else 0
+        since = max(0, max(min(int(fnum(r.get("placed_ms"), 0)) for r in rows), last_copy_poll_ms) - POLL_OVERLAP_MS)
+        fills, status = self.copy_ingestor.poll_copy_account_fills(USER_WALLET, since, utc_now_ms(), report_partial=True)
         if status != "COPY_ACCOUNT_POLLED":
             self.audit.append_reconciliation(
                 "SEND_TERMINAL", "RESTING_ENTRY_FILL_UNVERIFIED", coin=rows[0].get("coin", ""),
                 leader_wallet=rows[0].get("leader_wallet", ""), action="MANUAL_REVIEW_CHECK_FILLS_OF_WITHDRAWN_LIMIT",
                 terminal_state="RESTING_ENTRY_FILL_UNVERIFIED", exchange_order_id=",".join(sorted(oids)),
                 notes=f"follower fills unreadable ({status}) right after withdrawing; the copy poll will own any fill later")
-            return 0
+            return -1
         owned = 0
         with self._copy_ingest_lock:
             for raw in fills:
@@ -6819,6 +6871,17 @@ class LiveCopyCore:
                 if retried:
                     with self._send_lock:
                         self._own_fills_of_withdrawn_limits(retried)
+            late = self.sender.take_withdrawn_late()
+            if late:
+                with self._send_lock:
+                    if self._own_fills_of_withdrawn_limits(late) > 0:
+                        self.audit.append_reconciliation(
+                            "SEND_TERMINAL", "RESTING_ENTRY_FILLED_AFTER_LEADER_REDUCED", coin=late[0].get("coin", ""),
+                            leader_wallet=late[0].get("leader_wallet", ""), terminal_state="RESTING_ENTRY_FILLED_AFTER_LEADER_REDUCED",
+                            action="MANUAL_REVIEW_RECONCILE_ENTRY_LEADER_ALREADY_REDUCED",
+                            exchange_order_id=",".join(str(r.get("oid")) for r in late),
+                            notes=("a missed-entry limit filled before it could be withdrawn, after the leader had already "
+                                   "reduced; the follower may hold a position the leader no longer has; reconcile on the exchange"))
             fills: List[LeaderFill] = []
             fills.extend(self.ws.drain())
             if use_source_csv:
@@ -6848,10 +6911,14 @@ class LiveCopyCore:
                                    f"({_catchup_ms} ms); fills before {now - _catchup_ms} are not replayed"))
                     wallet_fills, status = self.ingestor.poll_hyperliquid_fills(w, _start, now)
                     fills.extend(wallet_fills)
+                    # while sending is stopped for a bad key the cursor stays put, so a restart replays these exits
+                    _hold = bool(self.sender.sender_key_invalid)
                     if status == "POLL_OK":
-                        _cursor_updates[w] = now
+                        if not _hold:
+                            _cursor_updates[w] = now
                     elif status == "POLL_PARTIAL" and wallet_fills:  # more pages left: resume from here next cycle
-                        _cursor_updates[w] = max(f.timestamp_ms for f in wallet_fills) + POLL_OVERLAP_MS
+                        if not _hold:
+                            _cursor_updates[w] = max(f.timestamp_ms for f in wallet_fills) + POLL_OVERLAP_MS
                     else:
                         poll_status = status
                         summary.network_errors += 1
