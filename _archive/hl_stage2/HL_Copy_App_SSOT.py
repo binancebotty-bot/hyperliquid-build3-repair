@@ -27,6 +27,7 @@ import json
 import math
 import os
 import html
+import io
 import shutil
 import time
 import threading
@@ -198,6 +199,13 @@ _MODEL_DASHBOARD_HTML_CACHE_LOCK = threading.Lock()
 _AUDIT_SUMMARY_CACHE: Dict[str, Any] = {"data": None, "built_at": 0.0}
 _AUDIT_SUMMARY_CACHE_LOCK = threading.Lock()
 _AUDIT_SUMMARY_TTL = 2.0  # seconds
+
+# Incremental CSV reader cache: keyed by (path, inode, size) holding parsed rows read so far and byte offset.
+# Modelled on HL_Live_Copy_Service_Core.send_attempt_rows() but independent (no engine import).
+_CSV_READER_CACHE: Dict[str, Dict[str, Any]] = {}
+_CSV_READER_CACHE_LOCK = threading.Lock()
+_TAIL_READ_BYTES = 2 * 1024 * 1024  # 2 MB tail for reconciliation_rows and similar
+
 APP_HEALTH: Dict[str, Any] = {
     "last_build_started_at": "",
     "last_build_finished_at": "",
@@ -229,6 +237,123 @@ def _replace_with_retries(tmp: Path, path: Path, attempts: int = 30, delay: floa
     except Exception:
         pass
     raise last_err if last_err else PermissionError(f"Could not replace {path}")
+
+
+def _csv_cache_key(path: Path) -> Tuple[str, Tuple[int, int], int]:
+    """Return (path_str, (dev, ino), size) for cache keying."""
+    st = path.stat() if path.exists() else None
+    if st:
+        return (str(path), (st.st_dev, st.st_ino), st.st_size)
+    return (str(path), (0, 0), 0)
+
+
+def _read_csv_incremental(
+    path: Path,
+    limit: Optional[int] = None,
+    tail_bytes: int = 0,
+) -> Tuple[List[Dict[str, Any]], int]:
+    """
+    Read CSV incrementally using a cache keyed by (path, inode, size).
+    Returns (rows, total_row_count).
+
+    tail_bytes > 0: only the last tail_bytes are parsed (recent rows); the total row count is
+    maintained by counting complete lines from the byte offset, so a 150 MB+ file is never
+    fully parsed or held in memory.
+    tail_bytes == 0: every row is parsed and cached (callers that need whole-file counts).
+    """
+    key = _csv_cache_key(path)
+    cache_key = "%s|%d|%d" % (key[0], key[1][0], key[1][1])
+    mode = "tail" if tail_bytes else "full"
+    size = key[2]
+    mtime = path.stat().st_mtime_ns if path.exists() else None
+
+    with _CSV_READER_CACHE_LOCK:
+        cache = _CSV_READER_CACHE.get(cache_key)
+        stale = (
+            cache is None
+            or cache.get("path") != str(path)
+            or cache.get("ino") != key[1]
+            or cache.get("mode") != mode
+            or size < cache.get("size", 0)
+            or (size == cache.get("size", 0) and cache.get("mtime") != mtime)
+        )
+        if stale:
+            cache = {
+                "path": str(path),
+                "ino": key[1],
+                "mode": mode,
+                "size": 0,
+                "mtime": mtime,
+                "rows": [],
+                "fields": None,
+                "total_rows": 0,
+            }
+            _CSV_READER_CACHE[cache_key] = cache
+
+        if size > cache["size"]:
+            # Read only the bytes appended since the last call.
+            with path.open("rb") as fh:
+                fh.seek(cache["size"])
+                chunk = fh.read(size - cache["size"])
+            end = chunk.rfind(b"\n") + 1
+            if end > 0:
+                # `complete` ends on a line boundary, so a partial last line is never parsed.
+                complete = chunk[:end]
+                body = complete
+                if cache["fields"] is None:
+                    first_nl = complete.find(b"\n")
+                    header_text = complete[:first_nl].decode("utf-8-sig").lstrip("\ufeff").rstrip("\r")
+                    fields = next(csv.reader([header_text]), []) if header_text.strip() else []
+                    cache["fields"] = fields
+                    if not fields:
+                        return [], 0
+                    body = complete[first_nl + 1:]
+                if mode == "full":
+                    text = body.decode("utf-8-sig").lstrip("\ufeff")
+                    cache["rows"].extend(csv.DictReader(io.StringIO(text, newline=""), fieldnames=cache["fields"]))
+                cache["total_rows"] += body.count(b"\n")
+                cache["size"] = cache["size"] + end
+                cache["mtime"] = path.stat().st_mtime_ns if path.exists() else None
+
+        total = cache["total_rows"]
+        fields = cache["fields"]
+
+        if mode == "full":
+            rows = cache["rows"]
+            if limit:
+                rows = rows[-limit:]
+            return rows, total
+
+        # tail mode: parse only the last `tail_bytes`, keep the incremental total count.
+        if size <= tail_bytes:
+            tail_rows: List[Dict[str, Any]] = []
+            try:
+                with path.open("r", newline="", encoding="utf-8-sig") as fh:
+                    tail_rows = [dict(r) for r in csv.DictReader(fh)]
+            except Exception:
+                tail_rows = []
+            if limit:
+                tail_rows = tail_rows[-limit:]
+            return tail_rows, total
+        with path.open("rb") as fh:
+            fh.seek(max(0, size - tail_bytes))
+            tail_chunk = fh.read()
+        first_nl = tail_chunk.find(b"\n")
+        if first_nl < 0 or not fields:
+            return [], total
+        tail_text = tail_chunk[first_nl + 1:].decode("utf-8-sig").lstrip("\ufeff")
+        tail_rows = list(csv.DictReader(io.StringIO(tail_text, newline=""), fieldnames=fields))
+        if limit:
+            tail_rows = tail_rows[-limit:]
+        return tail_rows, total
+
+
+def _read_csv_tail(path: Path, tail_bytes: int = _TAIL_READ_BYTES) -> Tuple[List[Dict[str, Any]], int]:
+    """Read only the last tail_bytes of a CSV file, returning (rows, total_count)."""
+    if not path.exists():
+        return [], 0
+    # Use incremental reader to get total count, but return only tail rows
+    return _read_csv_incremental(path, limit=None, tail_bytes=tail_bytes)
 
 
 def atomic_write_json(path: Path, payload: Any) -> None:
@@ -940,17 +1065,16 @@ def _load_live_integrity_status() -> Dict[str, Any]:
     }
 
 
-def _load_recent_reconciliation_rows(limit: int = 500) -> List[Dict[str, Any]]:
-    out: List[Dict[str, Any]] = []
+def _load_recent_reconciliation_rows(limit: int = 500) -> Tuple[List[Dict[str, Any]], int]:
+    """Load recent reconciliation rows using incremental CSV reading with tail parsing.
+    Returns (rows, total_row_count)."""
     if not LIVE_COPY_RECONCILIATION_CSV.exists():
-        return out
+        return [], 0
     try:
-        with LIVE_COPY_RECONCILIATION_CSV.open("r", newline="", encoding="utf-8-sig") as f:
-            for row in csv.DictReader(f):
-                out.append(dict(row))
-        return out[-limit:]
+        rows, total = _read_csv_incremental(LIVE_COPY_RECONCILIATION_CSV, limit=limit, tail_bytes=_TAIL_READ_BYTES)
+        return rows, total
     except Exception:
-        return out[-limit:] if len(out) >= limit else out
+        return [], 0
 
 
 def _latest_row(rows: List[Dict[str, Any]], predicate) -> Dict[str, Any]:
@@ -1197,34 +1321,35 @@ def _live_audit_summary_full() -> Dict[str, Any]:
     rows = 0
     if path.exists():
         try:
-            with path.open("r", newline="", encoding="utf-8-sig") as f:
-                for row in csv.DictReader(f):
-                    rows += 1
-                    reason = str(row.get("reason", "") or "UNKNOWN")
-                    status = str(row.get("status", "") or "UNKNOWN")
-                    notes = str(row.get("notes", "") or "")
-                    source = str(row.get("source", "") or "")
-                    if not source and "source=" in notes:
-                        source = notes.split("source=", 1)[1].split(";", 1)[0].split()[0]
-                    execution_decision = str(row.get("execution_decision", "") or "UNKNOWN")
-                    decision_reason = str(row.get("decision_reason", "") or "UNKNOWN")
-                    manual_required = str(row.get("manual_reconcile_required", "") or "UNKNOWN")
-                    market_data_error = str(row.get("market_data_error", "") or "")
-                    reason_counts[reason] = reason_counts.get(reason, 0) + 1
-                    status_counts[status] = status_counts.get(status, 0) + 1
-                    execution_decision_counts[execution_decision] = execution_decision_counts.get(execution_decision, 0) + 1
-                    decision_reason_counts[decision_reason] = decision_reason_counts.get(decision_reason, 0) + 1
-                    manual_reconcile_required_counts[manual_required] = manual_reconcile_required_counts.get(manual_required, 0) + 1
-                    if market_data_error:
-                        market_data_error_counts[market_data_error] = market_data_error_counts.get(market_data_error, 0) + 1
-                    if source:
-                        source_counts[source] = source_counts.get(source, 0) + 1
-                    audit_rows.append(row)
-                    if len(audit_rows) > 5000:
-                        audit_rows.pop(0)
-                    last_rows.append(row)
-                    if len(last_rows) > 20:
-                        last_rows.pop(0)
+            # Use incremental CSV reader for order_intents.csv
+            intent_rows, total_rows = _read_csv_incremental(path, limit=None)
+            rows = total_rows
+            for row in intent_rows:
+                reason = str(row.get("reason", "") or "UNKNOWN")
+                status = str(row.get("status", "") or "UNKNOWN")
+                notes = str(row.get("notes", "") or "")
+                source = str(row.get("source", "") or "")
+                if not source and "source=" in notes:
+                    source = notes.split("source=", 1)[1].split(";", 1)[0].split()[0]
+                execution_decision = str(row.get("execution_decision", "") or "UNKNOWN")
+                decision_reason = str(row.get("decision_reason", "") or "UNKNOWN")
+                manual_required = str(row.get("manual_reconcile_required", "") or "UNKNOWN")
+                market_data_error = str(row.get("market_data_error", "") or "")
+                reason_counts[reason] = reason_counts.get(reason, 0) + 1
+                status_counts[status] = status_counts.get(status, 0) + 1
+                execution_decision_counts[execution_decision] = execution_decision_counts.get(execution_decision, 0) + 1
+                decision_reason_counts[decision_reason] = decision_reason_counts.get(decision_reason, 0) + 1
+                manual_reconcile_required_counts[manual_required] = manual_reconcile_required_counts.get(manual_required, 0) + 1
+                if market_data_error:
+                    market_data_error_counts[market_data_error] = market_data_error_counts.get(market_data_error, 0) + 1
+                if source:
+                    source_counts[source] = source_counts.get(source, 0) + 1
+                audit_rows.append(row)
+                if len(audit_rows) > 5000:
+                    audit_rows.pop(0)
+                last_rows.append(row)
+                if len(last_rows) > 20:
+                    last_rows.pop(0)
         except Exception:
             pass
     manual_positions = _load_manual_live_positions()
@@ -1239,7 +1364,7 @@ def _live_audit_summary_full() -> Dict[str, Any]:
     ws_health = _load_live_ws_health()
     clean_core_status = _load_clean_core_status()
     integrity_status = _load_live_integrity_status()
-    reconciliation_rows = _load_recent_reconciliation_rows(500)
+    reconciliation_rows, reconciliation_rows_total = _load_recent_reconciliation_rows(500)
 
     live_config = _load_live_copy_config()
     _auto_send_enabled = parse_bool(live_config.get("auto_send_enabled"))
@@ -1312,6 +1437,16 @@ def _live_audit_summary_full() -> Dict[str, Any]:
         rpnl_points.append({"ts": _ts, "pnl": fnum(_fill.get("closedPnl") or _fill.get("closed_pnl") or _fill.get("pnl") or 0)})
     rpnl_points.sort(key=lambda x: x["ts"])
 
+# Count manual positions for _total
+    manual_positions_count = 0
+    if isinstance(manual_positions, dict):
+        for wallet, coins in manual_positions.get("by_wallet", {}).items():
+            if isinstance(coins, dict):
+                manual_positions_count += len(coins)
+    
+    # Trim reconciliation_rows to what the page shows (500)
+    reconciliation_rows = reconciliation_rows[:500]
+
     return {
         "ok": True,
         "rows": rows,
@@ -1325,11 +1460,13 @@ def _live_audit_summary_full() -> Dict[str, Any]:
         "last_rows": last_rows,
         "audit_rows": audit_rows[-200:],
         "manual_positions": manual_positions,
+        "manual_positions_total": manual_positions_count,
         "recent_send_attempts": recent_send_attempts,
         "send_attempt_counts": send_attempt_counts,
         "manual_live_summary": manual_live_summary,
         "manual_reconciliation_rows": manual_reconciliation_rows,
         "reconciliation_rows": reconciliation_rows,
+        "reconciliation_rows_total": reconciliation_rows_total,
         "send_terminal_rows": send_terminal_rows[-100:],
         "legacy_terminal_rows": legacy_terminal_rows,
         "recent_send_warning_groups": recent_send_warning_groups,
@@ -1482,78 +1619,75 @@ def _owned_sleeve_unrealized(signed: float, avg_entry_px: float, mark_px: float)
 
 
 def _load_recent_send_attempts(limit: int = 20) -> List[Dict[str, Any]]:
-    out: List[Dict[str, Any]] = []
     if not SEND_ATTEMPTS_CSV.exists():
-        return out
+        return []
     try:
-        with SEND_ATTEMPTS_CSV.open("r", newline="", encoding="utf-8-sig") as f:
-            for row in csv.DictReader(f):
-                # Support both old "response" column and new-core "exchange_response" column
-                resp_text = str(row.get("exchange_response") or row.get("response") or "")
-                parsed: Dict[str, Any] = {}
-                if resp_text:
-                    try:
-                        resp = json.loads(resp_text)
-                        if not isinstance(resp, dict):
-                            resp = {}
-                    except Exception:
+        rows, _ = _read_csv_incremental(SEND_ATTEMPTS_CSV, limit=limit)
+        out: List[Dict[str, Any]] = []
+        for row in rows:
+            # Support both old "response" column and new-core "exchange_response" column
+            resp_text = str(row.get("exchange_response") or row.get("response") or "")
+            parsed: Dict[str, Any] = {}
+            if resp_text:
+                try:
+                    resp = json.loads(resp_text)
+                    if not isinstance(resp, dict):
                         resp = {}
-                    payload = resp.get("payload") or {}
-                    for key in (
-                        "fill_avg_px", "fill_size", "oid",
-                        "position_before", "position_after",
-                        "price_source", "size_source",
-                        "close_adverse_diff_pct", "close_adverse_diff_limit_pct",
-                        "notional_cap_reason", "error", "auto_live", "auto_send_wallet",
-                    ):
-                        val = resp.get(key)
-                        if val is None:
-                            val = payload.get(key)
-                        if val is not None:
-                            parsed[key] = val
-                    # New-core Hyperliquid exchange_response format:
-                    # {"status":"ok","response":{"type":"order","data":{"statuses":[{"filled":{"totalSz":"0.02","avgPx":"559.92","oid":415169026806}}]}}}
-                    if "fill_avg_px" not in parsed or "fill_size" not in parsed:
-                        order_r = resp.get("response") if isinstance(resp.get("response"), dict) else {}
-                        order_d = order_r.get("data") if isinstance(order_r, dict) else {}
-                        statuses = order_d.get("statuses") if isinstance(order_d, dict) else None
-                        if isinstance(statuses, list) and statuses:
-                            filled = statuses[0].get("filled") if isinstance(statuses[0], dict) else None
-                            if isinstance(filled, dict):
-                                if "fill_avg_px" not in parsed and filled.get("avgPx"):
-                                    try:
-                                        parsed["fill_avg_px"] = float(filled["avgPx"])
-                                    except Exception:
-                                        pass
-                                if "fill_size" not in parsed and filled.get("totalSz"):
-                                    try:
-                                        parsed["fill_size"] = float(filled["totalSz"])
-                                    except Exception:
-                                        pass
-                    # actual_side: prefer executed side from response/payload over CSV intent side
-                    actual_side = resp.get("side") or payload.get("side") or row.get("side")
-                    if actual_side:
-                        parsed["actual_side"] = actual_side
-                # exchange_order_id column (new-core) → oid fallback
-                if "oid" not in parsed and row.get("exchange_order_id"):
-                    parsed["oid"] = str(row["exchange_order_id"])
-                out.append({**row, **parsed})
-        return out[-limit:]
+                except Exception:
+                    resp = {}
+                payload = resp.get("payload") or {}
+                for key in (
+                    "fill_avg_px", "fill_size", "oid",
+                    "position_before", "position_after",
+                    "price_source", "size_source",
+                    "close_adverse_diff_pct", "close_adverse_diff_limit_pct",
+                    "notional_cap_reason", "error", "auto_live", "auto_send_wallet",
+                ):
+                    val = resp.get(key)
+                    if val is None:
+                        val = payload.get(key)
+                    if val is not None:
+                        parsed[key] = val
+                # New-core Hyperliquid exchange_response format:
+                # {"status":"ok","response":{"type":"order","data":{"statuses":[{"filled":{"totalSz":"0.02","avgPx":"559.92","oid":415169026806}}]}}}
+                if "fill_avg_px" not in parsed or "fill_size" not in parsed:
+                    order_r = resp.get("response") if isinstance(resp.get("response"), dict) else {}
+                    order_d = order_r.get("data") if isinstance(order_r, dict) else {}
+                    statuses = order_d.get("statuses") if isinstance(order_d, dict) else None
+                    if isinstance(statuses, list) and statuses:
+                        filled = statuses[0].get("filled") if isinstance(statuses[0], dict) else None
+                        if isinstance(filled, dict):
+                            if "fill_avg_px" not in parsed and filled.get("avgPx"):
+                                try:
+                                    parsed["fill_avg_px"] = float(filled["avgPx"])
+                                except Exception:
+                                    pass
+                            if "fill_size" not in parsed and filled.get("totalSz"):
+                                try:
+                                    parsed["fill_size"] = float(filled["totalSz"])
+                                except Exception:
+                                    pass
+                # actual_side: prefer executed side from response/payload over CSV intent side
+                actual_side = resp.get("side") or payload.get("side") or row.get("side")
+                if actual_side:
+                    parsed["actual_side"] = actual_side
+            # exchange_order_id column (new-core) → oid fallback
+            if "oid" not in parsed and row.get("exchange_order_id"):
+                parsed["oid"] = str(row["exchange_order_id"])
+            out.append({**row, **parsed})
+        return out
     except Exception:
-        return out[-limit:] if len(out) >= limit else out
+        return []
 
 
 def _load_recent_live_fills(limit: int = 500) -> List[Dict[str, Any]]:
-    out: List[Dict[str, Any]] = []
     if not LIVE_FILLS_CSV.exists():
-        return out
+        return []
     try:
-        with LIVE_FILLS_CSV.open("r", newline="", encoding="utf-8-sig") as f:
-            for row in csv.DictReader(f):
-                out.append(dict(row))
-        return out[-limit:]
+        rows, _ = _read_csv_incremental(LIVE_FILLS_CSV, limit=limit)
+        return rows
     except Exception:
-        return out[-limit:] if len(out) >= limit else out
+        return []
 
 
 def _row_exchange_order_id(row: Dict[str, Any]) -> str:
@@ -4012,10 +4146,10 @@ def _load_send_attempt_counts() -> Dict[str, int]:
     if not SEND_ATTEMPTS_CSV.exists():
         return counts
     try:
-        with SEND_ATTEMPTS_CSV.open("r", newline="", encoding="utf-8-sig") as f:
-            for row in csv.DictReader(f):
-                s = str(row.get("status") or "UNKNOWN")
-                counts[s] = counts.get(s, 0) + 1
+        rows, _ = _read_csv_incremental(SEND_ATTEMPTS_CSV, limit=None)
+        for row in rows:
+            s = str(row.get("status") or "UNKNOWN")
+            counts[s] = counts.get(s, 0) + 1
     except Exception:
         pass
     return counts
