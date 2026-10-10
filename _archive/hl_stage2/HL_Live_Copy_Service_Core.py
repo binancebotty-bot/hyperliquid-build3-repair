@@ -2159,10 +2159,10 @@ def _fill_dir(fill: "LeaderFill") -> str:
 
 def mergeable_fills(a: "LeaderFill", b: "LeaderFill", proportional: bool) -> bool:
     """Two consecutive fills of one leader in one coin copy as ONE order when they are the same side and the same
-    direction ("Open Long", "Close Short", ...) and sizing is proportional (the size is the sum either way). Fixed
-    sizing never merges: it is one fixed copy per leader fill, and merging would make the count depend on how far
-    behind the queue happens to be."""
-    if (not proportional or a.leader_wallet != b.leader_wallet or canonical_coin_key(a.coin) != canonical_coin_key(b.coin)
+    direction ("Open Long", "Close Short", ...). The amount is the same either way: proportional sizes the summed
+    fill, fixed sizing copies the fixed amount once per merged fill (run 5: one $12 exchange order per leader fill
+    offered ~6 orders a second, more than the engine can send)."""
+    if (a.leader_wallet != b.leader_wallet or canonical_coin_key(a.coin) != canonical_coin_key(b.coin)
             or a.side != b.side or _fill_dir(a) != _fill_dir(b)):
         return False
     return True
@@ -3072,8 +3072,8 @@ class IntentBuilder:
 
     def _copy_notional(self, wallet: str, fill: LeaderFill) -> float:
         mode = self.cfg.copy_mode(wallet)
-        if mode == "fixed":
-            return self.cfg.fixed_notional(wallet)
+        if mode == "fixed":  # once per leader fill, merged fills included
+            return self.cfg.fixed_notional(wallet) * max(1, int(fnum((fill.raw or {}).get("merged_fill_count"), 1)))
         # Proportional: scale by the leader's REAL account value on the leader network. The old
         # leader_equity_base setting (UI default 10,000) is never used; no equity means no size.
         wc = self.cfg.wallet_cfg(wallet)
@@ -5387,7 +5387,9 @@ class SenderGateway:
         Gate A: sdk_coin is canonical (not #N / @N / blank).
         Gate C: wire_size > 0 and finite.
         Gate D: limit_px > 0 and finite.
-        Gate B: wire_notional >= effective min notional for ALL lifecycle stages.
+        Gate B: wire_notional >= effective min notional, except a reduce-only close of an owned sleeve: that can
+        never add exposure, and blocking it left positions that fell under $10 open for good (run 5: 4-10 dust
+        positions); the exchange applies its own minimum. HL_LIVE_DUST_CLOSE_ATTEMPT=0 restores the old block.
         """
         raw_coin = str(resolved.get("raw_coin") or intent.fill.coin or "").strip()
 
@@ -5462,7 +5464,11 @@ class SenderGateway:
         # Gate B: min notional â€" applies to ENTRY, ADD, and EXIT
         wire_notional = abs(wire_size * limit_px)
         cfg_min = self._effective_symbol_min_notional(resolved)
-        if wire_notional < cfg_min:
+        dust_close = (bool(intent.reduce_only_intended) and "lifecycle=EXIT" in str(intent.notes or "")
+                      and bval(os.getenv("HL_LIVE_DUST_CLOSE_ATTEMPT"), True))
+        if wire_notional < cfg_min and dust_close:
+            timing["dust_close_below_min_notional"] = f"{wire_notional:.4f}<{cfg_min:.2f}"
+        if wire_notional < cfg_min and not dust_close:
             error = (
                 f"blocked before exchange: notional < min_notional; "
                 f"coin={sdk_coin}; raw_coin={raw_coin}; "
@@ -7195,6 +7201,10 @@ class LiveCopyCore:
         self._last_copy_sweep = 0.0
         self._copy_thread: Optional[threading.Thread] = None
         self._copy_last: Dict[str, Any] = {}
+        self._converge_thread: Optional[threading.Thread] = None
+        self._converge_seen: Dict[Tuple[str, str, str], int] = {}   # sleeve -> first read showing the leader left
+        self._converge_sent: Dict[Tuple[str, str, str], int] = {}   # sleeve -> last close queued
+        self._converge_last: Dict[str, Any] = {}
         self._hot_threads: List[threading.Thread] = []
         for idx in range(self.hot_send_workers):
             t = threading.Thread(target=self._hot_send_loop, args=(idx,), daemon=True, name=f"HLCoreWS-hot-send-{idx + 1}")
@@ -7251,7 +7261,7 @@ class LiveCopyCore:
         for f in fresh:
             runs = groups.setdefault((f.leader_wallet, canonical_coin_key(f.coin)), [])
             proportional = self.cfg.copy_mode(f.leader_wallet) != "fixed"
-            add = self.intent_builder._copy_notional(f.leader_wallet, f) if proportional and room > 0 else 0.0
+            add = self.intent_builder._copy_notional(f.leader_wallet, f) if room > 0 else 0.0
             if (runs and mergeable_fills(runs[-1][-1], f, proportional)
                     and (room <= 0 or run_notional.get(id(runs[-1]), 0.0) + add <= room)):
                 runs[-1].append(f)
@@ -7883,6 +7893,102 @@ class LiveCopyCore:
                     break
         self._copy_thread = threading.Thread(target=loop, daemon=True, name="HLCoreCopyPoll")
         self._copy_thread.start()
+
+    # ---- convergence: no leader exit is ever lost ------------------------------------------------------------------
+    def converge_once(self) -> Dict[str, Any]:
+        """Close every engine sleeve whose leader is now flat or on the other side (run 5: 2,523 leader exits were
+        dropped while sending was off and 20 sleeves sat on leaders that had already left). Only while armed; the
+        leader's CURRENT position on the leader network is the truth, read twice at least
+        HL_LIVE_CONVERGE_CONFIRM_SEC (20 s) apart before acting; an unreadable leader is never acted on. The close is
+        an ordinary leader-close copy through the send queue, so every gate (ownership, pending exit, reduce-only)
+        applies. One close per sleeve per HL_LIVE_CONVERGE_RETRY_SEC (120 s)."""
+        out: Dict[str, Any] = {"at_ms": utc_now_ms(), "checked": 0, "candidates": 0, "queued": 0, "unreadable": 0}
+        if not self.cfg.master_switch_now() or self.sender.sender_key_invalid:
+            out["status"] = "SENDING_OFF"
+            self._converge_last = out
+            return out
+        with self._send_lock:
+            sleeves = [(w, c, fnum(r.get("signed_size")), str(r.get("position_id") or ""))
+                       for w, m in (self.ledger.data.get("by_wallet") or {}).items() if isinstance(m, dict)
+                       for c, r in m.items() if isinstance(r, dict) and abs(fnum(r.get("signed_size"))) > POSITION_EPSILON]
+        by_wallet: Dict[str, List[Tuple[str, float, str]]] = {}
+        for w, c, size, pid in sleeves:
+            by_wallet.setdefault(w, []).append((c, size, pid))
+        now = utc_now_ms()
+        confirm_ms = int(max(0.0, fnum(os.getenv("HL_LIVE_CONVERGE_CONFIRM_SEC"), 20.0)) * 1000)
+        retry_ms = int(max(0.0, fnum(os.getenv("HL_LIVE_CONVERGE_RETRY_SEC"), 120.0)) * 1000)
+        seen_now: set = set()
+        for wallet, rows in by_wallet.items():
+            dexes = sorted({c.split(":", 1)[0].lower() if ":" in c else "" for c, _s, _p in rows})
+            exp = _XNET.master_exposure(wallet, dexes, fetcher=LEADER_FETCHER, info_url=HL_LEADER_INFO_URL,
+                                        timeout=HTTP_TIMEOUT_SEC)
+            if not exp.get("ok"):
+                out["unreadable"] += 1
+                continue
+            leader_net: Dict[str, float] = {}
+            for k, v in (exp.get("by_coin") or {}).items():
+                leader_net[canonical_coin_key(k)] = leader_net.get(canonical_coin_key(k), 0.0) + fnum((v or {}).get("net"))
+            for coin, size, pid in rows:
+                out["checked"] += 1
+                lead = leader_net.get(canonical_coin_key(coin), 0.0)
+                if abs(lead) > POSITION_EPSILON and lead * size > 0:
+                    continue  # the leader still holds this side
+                key = (wallet, canonical_coin_key(coin), pid)
+                seen_now.add(key)
+                out["candidates"] += 1
+                first = self._converge_seen.setdefault(key, now)
+                px = follower_mid(coin)
+                if px <= 0:
+                    continue
+                # dust (under the minimum order value) the exchange may refuse even reduce-only: retry it rarely
+                wait_ms = max(retry_ms, 1_800_000) if abs(size) * px < self.cfg.min_notional() else retry_ms
+                if now - first < confirm_ms or now - self._converge_sent.get(key, 0) < wait_ms:
+                    continue
+                reason = "LEADER_FLAT" if abs(lead) <= POSITION_EPSILON else "LEADER_OPPOSITE_SIDE"
+                close_side = "SELL" if size > 0 else "BUY"
+                fill = LeaderFill(f"converge:{wallet}:{canonical_coin_key(coin)}:{now}", wallet, coin, close_side, px,
+                                  abs(size), now, "CONVERGE", 0,
+                                  {"dir": "Close Long" if size > 0 else "Close Short", "converge_reason": reason,
+                                   "leader_net_now": lead})
+                self.audit.append_reconciliation(
+                    "CONVERGE_CLOSE", f"CONVERGE_{reason}", leader_wallet=wallet, coin=coin,
+                    action="CLOSE_ENGINE_SLEEVE_REDUCE_ONLY", leader_fill_id=fill.leader_fill_id,
+                    notes=(f"leader position now {lead}; engine sleeve {size} (position {pid}); confirmed over "
+                           f"{(now - first) / 1000:.0f}s; queued as a leader close (all exit gates apply)"))
+                self._converge_sent[key] = now
+                if self.async_dispatch:
+                    self._dispatch_fill(fill)
+                else:
+                    self._process_leader_fill(fill, None, self._entry_sends_blocked_reason)
+                out["queued"] += 1
+        for key in [k for k in self._converge_seen if k not in seen_now]:
+            self._converge_seen.pop(key, None)  # the leader is back on our side (or the sleeve closed): start over
+        out["status"] = "CONVERGE_CHECKED"
+        self._converge_last = out
+        return out
+
+    def start_convergence_thread(self, interval_sec: float) -> None:
+        if getattr(self, "_converge_thread", None) is not None:
+            return
+        interval = max(1.0, float(interval_sec))
+
+        def loop() -> None:
+            was_on = False
+            while not self._hot_stop_event.is_set():
+                on = False
+                try:
+                    on = self.cfg.master_switch_now()
+                    if on:
+                        self.converge_once()
+                except Exception as exc:
+                    log_error("converge_thread", exc)
+                # just armed: check again soon, so exits missed while off are confirmed and closed promptly
+                wait = min(interval, 5.0) if on and not was_on else interval
+                was_on = on
+                if self._hot_stop_event.wait(wait):
+                    break
+        self._converge_thread = threading.Thread(target=loop, daemon=True, name="HLCoreConverge")
+        self._converge_thread.start()
 
     def run_cycle(self, use_source_csv: bool = True, poll_live: bool = False, poll_copy: bool = False, reconcile_exchange: bool = False) -> CycleSummary:
         # HOT_CONFIG_RELOAD_WINAGENT: reload live_config/wallet_gate each cycle so UI/control changes affect a running core.
@@ -9374,8 +9480,12 @@ def run_self_test() -> None:
                len(_g_rows) - _g_send_before == 1, f"delta={len(_g_rows) - _g_send_before}")
         _check("recording: first close send_attempt row records reduce_only_sent=True",
                _g_rows[-1].get("reduce_only_sent") == "True", str(_g_rows[-1].get("reduce_only_sent")))
-        _check("guard: subsequent burst closes blocked PENDING_EXIT_GUARD_ACTIVE (>=2)",
-               _g_recon_after - _g_recon_before >= 2, f"delta={_g_recon_after - _g_recon_before}")
+        # run 5: a leader's run of closes in one coin is merged into that one close; otherwise the guard blocks them
+        _g_merged = any("merged_leader_fills=3:" in str(r.get("notes") or "") for r in read_csv_rows(ORDER_INTENTS_CSV)
+                        if r.get("coin") == "ZGUARD")
+        _check("guard: subsequent burst closes merged into the one close or blocked PENDING_EXIT_GUARD_ACTIVE (>=2)",
+               _g_merged or _g_recon_after - _g_recon_before >= 2,
+               f"merged={_g_merged} delta={_g_recon_after - _g_recon_before}")
         _check("safety: ledger short never flipped by sends (still -2598)",
                abs(_core_g.ledger.wallet_coin_position(wallet_a, "ZGUARD") - (-2598.0)) < 1e-6,
                str(_core_g.ledger.wallet_coin_position(wallet_a, "ZGUARD")))
@@ -9851,6 +9961,8 @@ def main() -> None:
         copy_thread = bool(args.loop and args.poll_copy and bval(os.getenv("HL_LIVE_COPY_POLL_THREAD", "1"), True))
         if copy_thread:
             core.start_copy_poll_thread(copy_poll_interval)
+        if args.loop and bval(os.getenv("HL_LIVE_CONVERGE_THREAD", "1"), True):
+            core.start_convergence_thread(fnum(os.getenv("HL_LIVE_CONVERGE_INTERVAL_SEC"), 30.0))
         try:
             next_main_at = 0.0
             next_copy_poll_at = 0.0

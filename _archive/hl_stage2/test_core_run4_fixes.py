@@ -130,7 +130,7 @@ def main() -> None:
 
     # ---- Q: the send queue --------------------------------------------------------------------------------------
     f1, f2 = fill(oid="77", d="Open Long"), fill(oid="77", d="Open Long")
-    check("Q1_FIXED_SIZING_NEVER_MERGES_ONE_COPY_PER_LEADER_FILL", not c.mergeable_fills(f1, f2, proportional=False))
+    check("Q1_FIXED_SIZING_MERGES_TOO_RUN5", c.mergeable_fills(f1, f2, proportional=False))
     check("Q1_PROPORTIONAL_MERGES_ANY_RUN", c.mergeable_fills(fill(oid="77", d="Open Long"), fill(oid="78", d="Open Long"), True))
     check("Q1_NEVER_ACROSS_SIDE_DIRECTION_WALLET_OR_COIN",
           not c.mergeable_fills(fill(d="Open Long"), fill(side="SELL", d="Close Long"), True)
@@ -194,7 +194,10 @@ def main() -> None:
     core = c.LiveCopyCore(source_csv=tmp / "none.csv")
     core._hot_queues = [queue.Queue() for _ in range(core.hot_send_workers)]
     fixed_run = [fill(oid="557", d="Open Long", ts=c.utc_now_ms() - 400000 + i) for i in range(5)]
-    check("Q4_FIXED_SIZING_KEEPS_ONE_COPY_PER_LEADER_FILL", len(core._plan_batch(fixed_run)) == 5)
+    fixed_plan = core._plan_batch(fixed_run)
+    fixed_amounts = [core.intent_builder._copy_notional(A, p) for p in fixed_plan]
+    check("Q4_FIXED_SIZING_STILL_COPIES_THE_FIXED_AMOUNT_PER_LEADER_FILL_IN_FEWER_ORDERS",
+          len(fixed_plan) < 5 and abs(sum(fixed_amounts) - 5 * 12.0) < 1e-9, f"{len(fixed_plan)} {fixed_amounts}")
     boom = core._plan_batch
     core._plan_batch = lambda b: (_ for _ in ()).throw(RuntimeError("plan failed"))
     got = []
@@ -219,7 +222,7 @@ def main() -> None:
     core.ledger._recompute_net(core.ledger.data)
     t0 = c.utc_now_ms() - 60000
     e1 = fill(coin="BTC", oid="1", d="Open Long", ts=t0)
-    e2 = fill(coin="BTC", oid="2", d="Open Long", ts=t0 + 1)
+    e2 = fill(coin="BTC", oid="2", d="Open Long", ts=t0 + 1, wallet=B)  # another leader: not merged with e1
     x1 = fill(side="SELL", coin="ETH", oid="3", d="Close Long", ts=t0 + 2)
     order = [f.leader_fill_id for f in core._plan_batch([e1, e2, x1])]
     check("Q3_CLOSES_GO_FIRST_THEN_OLDEST_FIRST", order == [x1.leader_fill_id, e1.leader_fill_id, e2.leader_fill_id], str(order))
