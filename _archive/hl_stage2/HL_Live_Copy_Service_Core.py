@@ -3551,6 +3551,24 @@ class SenderGateway:
                    f"by default; error={error}"))
         return outcome
 
+    def stop_cancel_resting_entries(self) -> List[Dict[str, Any]]:
+        """T1c: on stop/disarm, cancel the engine's resting entry limits FIRST via the existing withdraw path.
+        Cancelled ones are recorded; a cancel that fails stays in the registry with its cloid (withdraw_pending)
+        so the next startup's orphan check adopts it. Never raises: a stop must always complete."""
+        try:
+            with self._resting_lock:
+                rows = self._claim_rows([r for r in self._resting_entries.values() if not r.get("withdraw_pending")])
+            return (self._withdraw_rows(rows, "engine stop: resting entry limit cancelled before exit", "",
+                                        "RESTING_ENTRY_CANCELLED_ON_STOP") if rows else [])
+        except Exception as exc:
+            log_error("stop_cancel_resting_entries", exc)
+            self.audit.append_reconciliation(
+                "SEND_TERMINAL", "RESTING_ENTRY_CANCEL_FAILED",
+                action="MANUAL_REVIEW_CANCEL_RESTING_ENTRY_ON_STOP", terminal_state="RESTING_ENTRY_CANCEL_FAILED",
+                engine_can_send="False",
+                notes=(f"stop: cancelling resting entry limits raised {exc!r}; check open orders on the exchange"))
+            return []
+
     def _register_resting_entry(self, intent: Intent, sdk_coin: str, oid: str, px: float, size: float, why: str) -> None:
         """Record a resting missed-entry limit. If the leader already reduced that position after the fill this
         limit copies (seen by another thread while the limit was being placed), withdraw it at once."""
@@ -7722,6 +7740,10 @@ class LiveCopyCore:
             self._hot_threads.append(t)
 
     def stop(self) -> None:
+        try:  # T1c: cancel resting entry limits FIRST, before the process exits
+            self.sender.stop_cancel_resting_entries()
+        except Exception as exc:
+            log_error("stop_cancel_resting_entries", exc)
         self._hot_stop_event.set()
         self.ws.stop()
         ct = getattr(self, "_copy_thread", None)
