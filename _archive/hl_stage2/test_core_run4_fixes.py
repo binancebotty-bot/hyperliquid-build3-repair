@@ -257,7 +257,7 @@ def main() -> None:
     check("R3_ONE_STANDING_CLOSE_PER_CLOSE_EVEN_WITHOUT_RE_READING_THE_FILE", fake.calls == [], str(fake.calls))
     src = (HERE / "HL_Live_Copy_Service_Core.py").read_text(encoding="utf-8-sig")
     body = src.split("def _exit_recovery_exists", 1)[1].split("\n    def ", 1)[0]
-    check("R3_RECOVERY_CHECK_KEPT_IN_MEMORY", "_recovery_intent_ids" in body and body.count("read_csv_rows") == 1)
+    check("R3_RECOVERY_CHECK_KEPT_IN_MEMORY", "_recovery_intent_ids" in body and body.count("iter_audit_history") == 1 and "read_csv_rows" not in body)
 
     led = ledger("p1", a_btc=2.0)
     snapshot(2.0)

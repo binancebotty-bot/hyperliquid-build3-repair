@@ -38,9 +38,10 @@ import time
 import traceback
 from dataclasses import asdict, dataclass, field
 from decimal import Decimal, ROUND_FLOOR, ROUND_CEILING, InvalidOperation
+import collections
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Callable, Dict, Iterable, Iterator, List, Optional, Tuple
 
 try:
     import requests  # type: ignore
@@ -1054,6 +1055,60 @@ def ensure_csv_header(path: Path, fieldnames: List[str]) -> None:
             csv.DictWriter(f, fieldnames=fieldnames).writeheader()
 
 
+AUDIT_ROTATE_BYTES = int(os.getenv("HL_LIVE_AUDIT_ROTATE_BYTES", str(100 * 1024 * 1024)))  # 0 = never rotate
+AUDIT_ROTATE_KEEP = int(os.getenv("HL_LIVE_AUDIT_ROTATE_KEEP", "10"))
+AUDIT_ROTATING_NAMES = {"order_intents.csv", "reconciliation.csv"}  # the two that grew 0.1-0.2 GB/h under 10 leaders
+
+
+def rotated_audit_paths(path: Path) -> List[Path]:
+    """Rotated copies of an audit CSV (name.UTCdate.n.csv), oldest first."""
+    try:
+        found = [q for q in path.parent.glob(f"{path.stem}.*.csv") if re.fullmatch(r"\d{8}\.\d+", q.name[len(path.stem) + 1:-4])]
+    except OSError:
+        return []
+    return sorted(found, key=lambda q: (q.name[len(path.stem) + 1:-4].split(".")[0], int(q.name[len(path.stem) + 1:-4].split(".")[1])))
+
+
+def audit_history_paths(path: Path) -> List[Path]:
+    """Rotated copies then the current file: what a startup scan must read to see the whole history."""
+    return rotated_audit_paths(path) + ([path] if path.exists() else [])
+
+
+ROTATING_FIELDS: Dict[str, List[str]] = {"order_intents.csv": ORDER_INTENT_FIELDS, "reconciliation.csv": RECONCILIATION_FIELDS}
+
+
+def _rotate_audit_file(path: Path) -> None:
+    """Called under FILE_LOCK after an append: past the size limit the file is renamed away (a new one with its
+    header starts on the next append) and only the newest AUDIT_ROTATE_KEEP rotated copies are kept."""
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%d")
+    n = 1
+    for q in rotated_audit_paths(path):
+        date, num = q.name[len(path.stem) + 1:-4].split(".")
+        if date == stamp:
+            n = max(n, int(num) + 1)
+    os.replace(path, path.with_name(f"{path.stem}.{stamp}.{n}.csv"))
+    fields = ROTATING_FIELDS.get(path.name)
+    if fields:  # the fresh file exists with its header at once: status checks never see it missing, no append lands headerless
+        with path.open("w", newline="", encoding="utf-8") as fh:
+            csv.DictWriter(fh, fieldnames=fields).writeheader()
+    for old in rotated_audit_paths(path)[:-AUDIT_ROTATE_KEEP] if AUDIT_ROTATE_KEEP > 0 else []:
+        try:
+            old.unlink()
+        except OSError as exc:
+            log_error("audit_rotate_prune", exc)
+
+
+_OWNED_BY_OID: Dict[str, Any] = {"path": None, "sizes": {}}
+
+
+def _owned_note(row: Dict[str, Any]) -> None:
+    oid = str(row.get("exchange_order_id") or "").strip()
+    if oid:
+        norm = CopyFillMatcher._normalize_oid(oid)
+        sizes = _OWNED_BY_OID["sizes"]
+        sizes[norm] = sizes.get(norm, 0.0) + abs(fnum(row.get("fill_size")))
+
+
 def append_csv(path: Path, fieldnames: List[str], row: Dict[str, Any]) -> None:
     ensure_csv_header(path, fieldnames)
     buf = io.StringIO()
@@ -1061,21 +1116,31 @@ def append_csv(path: Path, fieldnames: List[str], row: Dict[str, Any]) -> None:
     with prof("file_lock_wait"):
         FILE_LOCK.acquire()
     try:
+        if not path.exists() or path.stat().st_size <= 0:  # rotated away since the header check above
+            ensure_csv_header(path, fieldnames)
         with prof(f"append:{path.name}"), path.open("a", newline="", encoding="utf-8") as f:
             f.write(buf.getvalue())
+        if path == LIVE_FILLS_CSV and _OWNED_BY_OID["path"] == str(path):
+            _owned_note(row)  # keeps the per-order owned-size totals current (never a whole-file scan)
+        if AUDIT_ROTATE_BYTES > 0 and path.name in AUDIT_ROTATING_NAMES:
+            try:
+                if path.stat().st_size >= AUDIT_ROTATE_BYTES:
+                    _rotate_audit_file(path)
+            except Exception as exc:
+                log_error("audit_rotate", exc)
     finally:
         FILE_LOCK.release()
 
 
-def update_send_attempt_row(attempt_id: str, updates: Dict[str, Any]) -> bool:
+def update_send_attempt_row(attempt_id: str, updates: Dict[str, Any], base_row: Optional[Dict[str, Any]] = None) -> bool:
     """T1a: record the result of a send attempt whose pending_send row (written before the exchange call) already
     exists. APPEND-ONLY: the file is never rewritten (a rewrite of the 0.2 GB audit file per order would stall the
     send path and could drop rows appended meanwhile). The newest row for an attempt_id is its current state; the
     earlier pending_send row stays as the crash record. Returns False if no row carries attempt_id."""
     if not attempt_id:
         return False
-    base = None
-    for row in reversed(send_attempt_rows()):
+    base = dict(base_row) if base_row else None  # a full row from the caller keeps every column
+    for row in ([] if base else reversed(send_attempt_rows())):
         if row.get("attempt_id") == attempt_id:
             base = dict(row)
             break
@@ -1084,6 +1149,73 @@ def update_send_attempt_row(attempt_id: str, updates: Dict[str, Any]) -> bool:
     base.update(updates)
     append_csv(SEND_ATTEMPTS_CSV, SEND_ATTEMPT_FIELDS, base)
     return True
+
+
+class _BoundedRaw(io.RawIOBase):
+    """Binary file limited to the size it had when the scan began (appends after that are not part of the scan)."""
+    def __init__(self, fh: Any, limit: int):
+        self._fh, self._left = fh, limit
+
+    def readable(self) -> bool:
+        return True
+
+    def readinto(self, buf: Any) -> int:
+        if self._left <= 0:
+            return 0
+        data = self._fh.read(min(len(buf), self._left))
+        buf[:len(data)] = data
+        self._left -= len(data)
+        return len(data)
+
+
+def iter_csv_rows(path: Path) -> Iterator[Dict[str, str]]:
+    """Rows of an audit CSV one at a time (no whole-file bytes, text or row list in memory). The size is taken
+    under the file lock, so a row being appended is either wholly in the scan or wholly out of it."""
+    if not path.exists():
+        return
+    with FILE_LOCK:
+        size = path.stat().st_size
+    if size <= 0:
+        return
+    with path.open("rb") as fh:
+        text = io.TextIOWrapper(io.BufferedReader(_BoundedRaw(fh, size)), encoding="utf-8-sig", newline="")
+        try:
+            for row in csv.DictReader(text):
+                yield row
+        finally:
+            text.detach()
+
+
+def iter_audit_history(path: Path) -> Iterator[Dict[str, str]]:
+    """Every row of an audit CSV including its rotated copies, oldest first, streaming."""
+    for q in audit_history_paths(path):
+        try:
+            yield from iter_csv_rows(q)
+        except FileNotFoundError:
+            continue  # rotated or pruned between the listing and the open
+
+
+def read_csv_tail_rows(path: Path, max_bytes: int) -> List[Dict[str, str]]:
+    """Rows in roughly the last max_bytes of an audit CSV (whole rows only, header from the file start), so a status
+    report over a multi-hundred-MB append-only file parses a bounded slice. max_bytes <= 0 reads the whole file."""
+    if not path.exists():
+        return []
+    with FILE_LOCK:
+        size = path.stat().st_size
+        if size <= 0:
+            return []
+        if max_bytes <= 0 or size <= max_bytes:
+            with path.open("rb") as fh:
+                data = fh.read(size)
+            return list(csv.DictReader(io.StringIO(data.decode("utf-8-sig", errors="replace"), newline="")))
+        with path.open("rb") as fh:
+            header = fh.readline()
+            fh.seek(size - max_bytes)
+            data = fh.read(max_bytes)
+    nl = data.find(b"\n")
+    data = data[nl + 1:] if nl >= 0 else b""
+    text = (header.decode("utf-8-sig", errors="replace").rstrip("\r\n") + "\n") + data.decode("utf-8", errors="replace")
+    return list(csv.DictReader(io.StringIO(text, newline="")))
 
 
 def read_csv_rows(path: Path) -> List[Dict[str, str]]:
@@ -1098,48 +1230,104 @@ def read_csv_rows(path: Path) -> List[Dict[str, str]]:
         return list(csv.DictReader(io.StringIO(data.decode("utf-8-sig"), newline="")))
 
 
-_SEND_ROWS_CACHE: Dict[str, Any] = {"path": None, "ino": None, "size": 0, "mtime": None, "tail": b"", "rows": [], "fields": None}
+_SEND_ROWS_CACHE: Dict[str, Any] = {"path": None, "ino": None, "size": 0, "mtime": None, "tail": b"", "rows": None, "fields": None,
+                                    "by_oid": None, "recovery": None}
+_SEND_ROW_KEYS = ("attempt_id", "intent_id", "leader_fill_id", "leader_wallet", "coin", "side", "order_type", "limit_price",
+                  "copy_size", "copy_notional", "reduce_only_sent", "sleeve_id", "position_id", "wallet_position_before",
+                  "coin_net_before", "status", "exchange_order_id", "terminal_state", "created_at_ms",
+                  "leader_fill_timestamp_ms", "cloid")  # everything any send_attempts reader looks at
+_SEND_ROWS_WINDOW = int(os.getenv("HL_LIVE_SEND_ROWS_WINDOW", "5000"))
+_SEND_OID_INDEX_MAX = int(os.getenv("HL_LIVE_SEND_OID_INDEX_MAX", "50000"))  # newest orders; a resting limit is also in its own registry
+_SEND_OID_STATUSES = {"ORDER_FILLED", "ORDER_RESTING", "PENDING_SEND"}
 
 
-def send_attempt_rows() -> List[Dict[str, str]]:
-    """SEND_ATTEMPTS_CSV rows, read incrementally (append-only file): the copy matcher looks up order ids for every
-    copy fill, and re-reading the whole growing file each time held up the loop (run 3). Treat rows as read-only."""
+def _slim_send_row(row: Dict[str, Any]) -> Dict[str, str]:
+    return {k: (row.get(k) or "") for k in _SEND_ROW_KEYS}
+
+
+def _send_cache_reset(cache: Dict[str, Any]) -> None:
+    cache.update(size=0, mtime=None, tail=b"", fields=None, rows=collections.deque(maxlen=_SEND_ROWS_WINDOW))
+    cache["recovery"] = collections.deque(maxlen=_SEND_ROWS_WINDOW)  # re-read from the start: no duplicate recovery rows
+    if cache.get("by_oid") is None:  # the indexes survive a rotation or rewrite: an order id stays valid
+        cache["by_oid"] = collections.OrderedDict()
+        cache["recovery"] = collections.deque(maxlen=_SEND_ROWS_WINDOW)
+
+
+def _send_cache_add(cache: Dict[str, Any], row: Dict[str, Any]) -> None:
+    slim = _slim_send_row(row)
+    cache["rows"].append(slim)
+    status = slim["status"].upper()
+    if status in _SEND_OID_STATUSES and slim["exchange_order_id"]:
+        norm = CopyFillMatcher._normalize_oid(slim["exchange_order_id"])
+        if norm:
+            by_oid = cache["by_oid"]
+            by_oid[norm] = slim
+            by_oid.move_to_end(norm)
+            while len(by_oid) > _SEND_OID_INDEX_MAX:
+                by_oid.popitem(last=False)
+    if slim["terminal_state"] == "EXIT_RECOVERY_REQUIRED":
+        cache["recovery"].append(slim)
+
+
+def _send_cache_refresh() -> Dict[str, Any]:
+    """Reads only the bytes appended to SEND_ATTEMPTS_CSV since the last call (append-only file). Memory is bounded:
+    a window of the newest rows, an order-id index capped at HL_LIVE_SEND_OID_INDEX_MAX and the recovery rows, all
+    slimmed to the fields readers use (before, every row of the whole file stayed in memory as a full dict)."""
     path = SEND_ATTEMPTS_CSV
+    cache = _SEND_ROWS_CACHE
     with FILE_LOCK:
         st = path.stat() if path.exists() else None
         size, ino, mtime = (st.st_size, (st.st_dev, st.st_ino), st.st_mtime_ns) if st else (0, None, None)
-        cache = _SEND_ROWS_CACHE
-        # a different file, a rewritten one (header migration replaces it), a shorter one, one changed without
-        # growing, or one whose bytes before the old end are no longer the ones read: read it all again
-        stale = (cache["path"] != str(path) or cache["ino"] != ino or size < cache["size"] or cache["fields"] is None
+        stale = (cache["path"] != str(path) or cache["ino"] != ino or size < cache["size"] or cache["rows"] is None
                  or (size == cache["size"] and mtime != cache["mtime"]))
         if not stale and size > cache["size"] and cache["tail"]:
             with path.open("rb") as fh:
                 fh.seek(cache["size"] - len(cache["tail"]))
                 stale = fh.read(len(cache["tail"])) != cache["tail"]
         if stale:
-            cache.update(path=str(path), ino=ino, size=0, mtime=None, tail=b"", rows=[], fields=None)
+            if cache["path"] != str(path):
+                cache.update(by_oid=None, recovery=None)
+            _send_cache_reset(cache)
+            cache.update(path=str(path), ino=ino)
         if size and size != cache["size"]:
             with path.open("rb") as fh:
                 fh.seek(cache["size"])
                 chunk = fh.read(size - cache["size"])
             end = chunk.rfind(b"\n") + 1  # a row still being written is read next time
             if end <= 0:
-                return list(cache["rows"])
+                return cache
             chunk, size = chunk[:end], cache["size"] + end
             text = chunk.decode("utf-8")
             if cache["fields"] is None:
                 text = text.lstrip("\ufeff")
                 reader = csv.DictReader(io.StringIO(text, newline=""))
-                cache["rows"] = list(reader)
+                for row in reader:
+                    _send_cache_add(cache, row)
                 cache["fields"] = list(reader.fieldnames or [])
                 if not cache["fields"]:
                     cache["fields"] = None
             else:
-                cache["rows"].extend(csv.DictReader(io.StringIO(text, newline=""), fieldnames=cache["fields"]))
+                for row in csv.DictReader(io.StringIO(text, newline=""), fieldnames=cache["fields"]):
+                    _send_cache_add(cache, row)
             cache["tail"] = (cache["tail"] + chunk)[-64:]
             cache["size"], cache["mtime"] = size, mtime
-        return list(cache["rows"])
+        return cache
+
+
+def send_attempt_rows() -> List[Dict[str, str]]:
+    """The newest send_attempts rows (a bounded window, slimmed to the fields readers use). Treat as read-only.
+    Order-id and recovery lookups use send_attempt_by_oid / send_attempt_recovery_rows, which see the whole run."""
+    return list(_send_cache_refresh()["rows"])
+
+
+def send_attempt_by_oid(norm_oid: str) -> Optional[Dict[str, str]]:
+    cache = _send_cache_refresh()
+    return cache["by_oid"].get(norm_oid) if cache["by_oid"] is not None else None
+
+
+def send_attempt_recovery_rows() -> List[Dict[str, str]]:
+    cache = _send_cache_refresh()
+    return list(cache["recovery"] or [])
 
 
 _CANONICAL_SYMBOL_OVERRIDES = {
@@ -1407,10 +1595,11 @@ def build_live_integrity_status() -> Dict[str, Any]:
     raw_index_price_domain_conflicts = {}
     if isinstance(asset_snapshot, dict) and isinstance(asset_snapshot.get("raw_index_price_domain_conflicts"), dict):
         raw_index_price_domain_conflicts = asset_snapshot.get("raw_index_price_domain_conflicts") or {}
-    intents = read_csv_rows(ORDER_INTENTS_CSV)
-    sends = read_csv_rows(SEND_ATTEMPTS_CSV)
-    fills = read_csv_rows(LIVE_FILLS_CSV)
-    recon = read_csv_rows(RECONCILIATION_CSV)
+    _tail = int(fnum(os.getenv("HL_LIVE_INTEGRITY_TAIL_BYTES"), 24 * 1024 * 1024))  # newest rows only (it ran every cycle on whole files)
+    intents = read_csv_tail_rows(ORDER_INTENTS_CSV, _tail)
+    sends = read_csv_tail_rows(SEND_ATTEMPTS_CSV, _tail)
+    fills = read_csv_tail_rows(LIVE_FILLS_CSV, _tail)
+    recon = read_csv_tail_rows(RECONCILIATION_CSV, _tail)
     audit_proof_missing = [
         p.name for p in (ORDER_INTENTS_CSV, SEND_ATTEMPTS_CSV, LIVE_FILLS_CSV, RECONCILIATION_CSV)
         if not p.exists() or p.stat().st_size <= 0
@@ -2137,8 +2326,16 @@ def build_live_integrity_status() -> Dict[str, Any]:
     }
 
 
-def write_live_integrity_status() -> Dict[str, Any]:
+_INTEGRITY_LAST: Dict[str, Any] = {"at": 0.0, "payload": None}
+
+
+def write_live_integrity_status(min_interval_sec: float = 0.0) -> Dict[str, Any]:
+    """min_interval_sec > 0: reuse the last payload if it was written that recently (the per-cycle caller)."""
+    now = time.monotonic()
+    if min_interval_sec > 0 and _INTEGRITY_LAST["payload"] is not None and now - _INTEGRITY_LAST["at"] < min_interval_sec:
+        return _INTEGRITY_LAST["payload"]
     payload = build_live_integrity_status()
+    _INTEGRITY_LAST.update(at=time.monotonic(), payload=payload)
     atomic_write_json(LIVE_INTEGRITY_STATUS_FILE, payload)
     return payload
 
@@ -3520,7 +3717,8 @@ class SenderGateway:
                 return update_send_attempt_row(str(row.get("attempt_id") or ""),
                                                {"status": "ORDER_RESTING", "exchange_order_id": oid,
                                                 "terminal_state": "ORDER_RESTING",
-                                                "notes": "adopted at startup by cloid; order still resting"})
+                                                "notes": "adopted at startup by cloid; order still resting"},
+                                               base_row=row)
         return False
 
     def _cancel_orphan_order(self, dex: str, o: Dict[str, Any]) -> str:
@@ -4106,7 +4304,7 @@ class SenderGateway:
         known = getattr(self, "_recovery_intent_ids", None)
         if known is None:
             known = set()
-            for row in read_csv_rows(RECONCILIATION_CSV):
+            for row in iter_audit_history(RECONCILIATION_CSV):
                 if str(row.get("status") or "").startswith("EXIT_RECOVERY") and row.get("intent_id"):
                     known.add(str(row.get("intent_id")))
             self._recovery_intent_ids = known
@@ -4213,8 +4411,12 @@ class SenderGateway:
     def _owned_fill_size(oid: str) -> float:
         """Size of this order's fills the ledger already owns (live_fills rows carrying its order id)."""
         norm = CopyFillMatcher._normalize_oid(oid)
-        return sum(abs(fnum(r.get("fill_size"))) for r in read_csv_rows(LIVE_FILLS_CSV)
-                   if CopyFillMatcher._normalize_oid(str(r.get("exchange_order_id") or "")) == norm)
+        with FILE_LOCK:
+            if _OWNED_BY_OID["path"] != str(LIVE_FILLS_CSV):  # first use: one streaming pass, then kept current by append_csv
+                _OWNED_BY_OID.update(path=str(LIVE_FILLS_CSV), sizes={})
+                for r in iter_csv_rows(LIVE_FILLS_CSV):
+                    _owned_note(r)
+            return float(_OWNED_BY_OID["sizes"].get(norm, 0.0))
 
     @staticmethod
     def _filled_size(response: Any) -> float:
@@ -6627,16 +6829,21 @@ class CopyFillMatcher:
     def __init__(self, ledger: ManualLedger, audit: AuditLogWriter):
         self.ledger = ledger
         self.audit = audit
-        live_rows = read_csv_rows(LIVE_FILLS_CSV)
-        self.matched_intent_ids = {str(r.get("intent_id") or "") for r in live_rows if r.get("intent_id")}
-        self.matched_copy_fill_ids = {str(r.get("copy_fill_id") or "") for r in live_rows if r.get("copy_fill_id")}
+        self.matched_intent_ids = set()
+        self.matched_copy_fill_ids = set()
+        self.matched_exchange_hashes = set()
+        for r in iter_csv_rows(LIVE_FILLS_CSV):  # streamed: only the ids are kept, never the rows
+            if r.get("intent_id"):
+                self.matched_intent_ids.add(str(r.get("intent_id") or ""))
+            if r.get("copy_fill_id"):
+                self.matched_copy_fill_ids.add(str(r.get("copy_fill_id") or ""))
+            if r.get("exchange_hash") and canonical_copy_fill_id(str(r.get("copy_fill_id") or "")) == str(r.get("exchange_hash")):
+                self.matched_exchange_hashes.add(str(r.get("exchange_hash") or ""))
         # rows written while the poll doubled the tid (hash:tid:tid) also own the canonical hash:tid
         self.matched_copy_fill_ids |= {canonical_copy_fill_id(c) for c in self.matched_copy_fill_ids}
         # Pre-patch live_fills stored copy_fill_id == exchange_hash (no :tid suffix).
         # Track raw exchange hashes separately so that on restart, a re-polled fill whose
         # copy_fill_id is now "hash:tid" still matches the old ledgered entry.
-        self.matched_exchange_hashes = {str(r.get("exchange_hash") or "") for r in live_rows if r.get("exchange_hash")
-                                        and canonical_copy_fill_id(str(r.get("copy_fill_id") or "")) == str(r.get("exchange_hash"))}
         self.sent_oid_index = self._load_sent_oid_index()  # norm_oid â†' full ORDER_FILLED send_attempt row
         self.sent_oid_by_intent_id = {
             str(row.get("intent_id") or ""): oid
@@ -6724,7 +6931,7 @@ class CopyFillMatcher:
 
     def _load_sent_oid_index(self) -> Dict[str, Dict[str, str]]:
         out: Dict[str, Dict[str, str]] = {}
-        for row in read_csv_rows(SEND_ATTEMPTS_CSV):
+        for row in iter_csv_rows(SEND_ATTEMPTS_CSV):
             if str(row.get("status") or "").upper() not in {"ORDER_FILLED", "ORDER_RESTING", "PENDING_SEND"}:
                 continue
             oid_raw = str(row.get("exchange_order_id") or "").strip()
@@ -6732,7 +6939,9 @@ class CopyFillMatcher:
                 continue
             oid = CopyFillMatcher._normalize_oid(oid_raw)
             if oid and oid not in out:
-                out[oid] = row
+                out[oid] = _slim_send_row(row)
+                if len(out) > _SEND_OID_INDEX_MAX:  # bounded: the newest orders (later lookups also go to the live index)
+                    out.pop(next(iter(out)))
         return out
 
     def _load_recovery_oid_index(self) -> Dict[str, Dict[str, str]]:
@@ -6744,13 +6953,13 @@ class CopyFillMatcher:
         original intent to keep OID matching and ledger adoption Core-owned.
         """
         exit_sends: Dict[str, Dict[str, str]] = {}
-        for row in read_csv_rows(SEND_ATTEMPTS_CSV):
+        for row in iter_csv_rows(SEND_ATTEMPTS_CSV):
             if str(row.get("terminal_state") or "").upper().startswith("EXIT_RECOVERY_REQUIRED"):
                 intent_id = str(row.get("intent_id") or "").strip()
                 if intent_id and intent_id not in exit_sends:
-                    exit_sends[intent_id] = row
+                    exit_sends[intent_id] = _slim_send_row(row)
         exit_intents: Dict[str, Dict[str, str]] = {}
-        for row in read_csv_rows(ORDER_INTENTS_CSV):
+        for row in iter_audit_history(ORDER_INTENTS_CSV):
             intent_id = str(row.get("intent_id") or "").strip()
             if not intent_id or intent_id in exit_sends or intent_id in exit_intents:
                 continue
@@ -6780,7 +6989,7 @@ class CopyFillMatcher:
         if not exit_sends and not exit_intents:
             return {}
         out: Dict[str, Dict[str, str]] = {}
-        for row in read_csv_rows(RECONCILIATION_CSV):
+        for row in iter_audit_history(RECONCILIATION_CSV):
             if (str(row.get("event") or "").upper() != "EXIT_RECOVERY"
                     or str(row.get("status") or "").upper() != "EXIT_RECOVERY_QUEUED"):
                 continue
@@ -6798,17 +7007,14 @@ class CopyFillMatcher:
         return out
 
     def _fresh_sent_row_for_oid(self, norm_oid: str) -> Optional[Dict[str, str]]:
-        for row in send_attempt_rows():
-            if str(row.get("status") or "").upper() not in {"ORDER_FILLED", "ORDER_RESTING", "PENDING_SEND"}:
-                continue
-            oid = CopyFillMatcher._normalize_oid(str(row.get("exchange_order_id") or ""))
-            if oid and oid == norm_oid:
-                self.sent_oid_index[norm_oid] = row
-                intent_id = str(row.get("intent_id") or "")
-                if intent_id:
-                    self.sent_oid_by_intent_id[intent_id] = norm_oid
-                return row
-        return None
+        row = send_attempt_by_oid(norm_oid)  # O(1): the old loop scanned every send_attempts row per copy fill
+        if row is None:
+            return None
+        self.sent_oid_index[norm_oid] = row
+        intent_id = str(row.get("intent_id") or "")
+        if intent_id:
+            self.sent_oid_by_intent_id[intent_id] = norm_oid
+        return row
 
     def _apply_oid_matched_copy_fill(self, copy_fill: Dict[str, Any], sent_row: Dict[str, str], norm_oid: str, copy_id: str) -> bool:
         synthetic_intent = self._intent_from_send_attempt(sent_row)
@@ -6869,7 +7075,7 @@ class CopyFillMatcher:
 
     def _load_intent_lifecycle_index(self) -> Dict[str, str]:
         out: Dict[str, str] = {}
-        for row in read_csv_rows(ORDER_INTENTS_CSV):
+        for row in iter_audit_history(ORDER_INTENTS_CSV):
             intent_id = str(row.get("intent_id") or "").strip()
             if not intent_id:
                 continue
@@ -6933,7 +7139,7 @@ class CopyFillMatcher:
         ts = int(fnum(copy_fill.get("timestamp_ms", copy_fill.get("time")), utc_now_ms()))
         window_ms = int(os.getenv("HL_LIVE_COPY_MATCH_WINDOW_MS", "600000"))
         lifecycles: List[str] = []
-        for intent in intents_by_id.values():
+        for intent in list(intents_by_id.values()):
             if intent.intent_id in self.matched_intent_ids:
                 continue
             if intent.fill.coin == coin and intent.copy_side == side and intent.fill.timestamp_ms <= ts + window_ms and abs(ts - intent.fill.timestamp_ms) <= window_ms:
@@ -6955,7 +7161,7 @@ class CopyFillMatcher:
         size = abs(fnum(copy_fill.get("size", copy_fill.get("sz")), 0.0))
         window_ms = int(os.getenv("HL_LIVE_COPY_MATCH_WINDOW_MS", "600000"))
         out: List[Dict[str, str]] = []
-        for row in send_attempt_rows():
+        for row in send_attempt_recovery_rows():
             intent_id = str(row.get("intent_id") or "").strip()
             if not intent_id or intent_id in self.matched_intent_ids:
                 continue
@@ -6991,7 +7197,7 @@ class CopyFillMatcher:
         ts = int(fnum(copy_fill.get("timestamp_ms", copy_fill.get("time")), utc_now_ms()))
         window_ms = int(os.getenv("HL_LIVE_COPY_MATCH_WINDOW_MS", "600000"))
         candidates: List[Intent] = []
-        for intent in intents_by_id.values():
+        for intent in list(intents_by_id.values()):
             if intent.intent_id in self.matched_intent_ids:
                 continue
             if intent.fill.coin != coin or intent.copy_side != side:
@@ -7018,7 +7224,7 @@ class CopyFillMatcher:
         ts = int(fnum(copy_fill.get("timestamp_ms", copy_fill.get("time")), utc_now_ms()))
         window_ms = int(os.getenv("HL_LIVE_COPY_MATCH_WINDOW_MS", "600000"))
         count = 0
-        for intent in intents_by_id.values():
+        for intent in list(intents_by_id.values()):
             if intent.intent_id in self.matched_intent_ids:
                 continue
             if intent.fill.coin == coin and intent.copy_side == side and intent.fill.timestamp_ms <= ts + window_ms and abs(ts - intent.fill.timestamp_ms) <= window_ms:
@@ -7479,10 +7685,9 @@ class ExchangeReconciler:
             if isinstance(v, dict)
         }
         evidence = service_position_evidence_by_coin()
-        existing = read_csv_rows(RECONCILIATION_CSV)
         already = {
             str(r.get("coin") or "").upper()
-            for r in existing
+            for r in iter_audit_history(RECONCILIATION_CSV)
             if r.get("event") == "SERVICE_CREATED_UNLEDGERED_POSITION"
         }
         emitted = 0
@@ -7707,11 +7912,11 @@ class LiveCopyCore:
         self._idem_lock = threading.Lock()
         self._idem_accepted: set[str] = set()
         self._idem_duplicate_audited: set[str] = set()
-        for _irow in read_csv_rows(SEND_ATTEMPTS_CSV):
+        for _irow in iter_csv_rows(SEND_ATTEMPTS_CSV):
             _fid = str(_irow.get("leader_fill_id") or "").strip()
             if _fid:
                 self._idem_accepted.add(_fid)
-        for _irow in read_csv_rows(ORDER_INTENTS_CSV):  # fills merged into one copy are handled by it (run 4)
+        for _irow in iter_audit_history(ORDER_INTENTS_CSV):  # fills merged into one copy are handled by it (run 4)
             _note = str(_irow.get("notes") or "")
             if "merged_leader_fills=" in _note:
                 _ids = _note.split("merged_leader_fills=", 1)[1].split(";", 1)[0].split(":", 1)[-1]
@@ -8314,6 +8519,11 @@ class LiveCopyCore:
             with prof("send_lock:intent_build"):
                 intent = self.intent_builder.build(fill)
             self.intents_by_id[intent.intent_id] = intent
+            self._intent_inserts = getattr(self, "_intent_inserts", 0) + 1
+            if self._intent_inserts % 500 == 0:  # bounded: copy-fill matching only looks back COPY_MATCH_WINDOW_MS; an older
+                cutoff = utc_now_ms() - int(fnum(os.getenv("HL_LIVE_INTENT_RETAIN_SEC"), 3600.0) * 1000)  # fill matches by order id
+                for _iid in [k for k, v in self.intents_by_id.items() if (v.created_at_ms or v.fill.timestamp_ms) < cutoff]:
+                    self.intents_by_id.pop(_iid, None)
             if summary is not None:
                 summary.leader_intents_written += 1
             is_pre_cutover = self.dedupe.live_start_ms > 0 and fill.timestamp_ms < self.dedupe.live_start_ms
@@ -9032,7 +9242,7 @@ class LiveCopyCore:
             if time.monotonic() - started > float(os.getenv("HL_LIVE_RECON_CYCLE_BUDGET_SEC", "5")):
                 summary.budget_exceeded = True
             try:
-                write_live_integrity_status()
+                write_live_integrity_status(fnum(os.getenv("HL_LIVE_INTEGRITY_MIN_INTERVAL_SEC"), 5.0))
             except Exception as exc:
                 log_error("live_integrity_status", exc)
             self.state_writer.write(summary, self.dedupe, self.cfg)
