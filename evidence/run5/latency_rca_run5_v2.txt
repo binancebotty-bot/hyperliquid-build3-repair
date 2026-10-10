@@ -1,0 +1,74 @@
+A. intents by source: {'WS_CAPTURED': 147313, 'WS_SNAPSHOT': 320, 'POLL': 3309, 'CONVERGE': 67}
+   detection ws_received - leader_fill: n=7519 p50=383 p90=629 p99=1052 ms
+
+B. send outcomes (worker_ms = time a send worker was busy on that row)
+   status                                                  rows worker_s_total   worker p50/p90      queue p50/p90   gate p50/p90   exch p50/p90        l2i p50/p90
+   ORDER_FILLED                                            5338      12940 (63%)        1934/4346     526261/1770566            3/6       974/1243     512176/1763437
+   ORDER_REJECTED                                          1261       4108 (20%)        2627/5656     484496/1774316            3/9       975/1212     472824/1770334
+   ORDER_RESTING                                           1139       3302 (16%)        2845/5527     816101/2172904            3/4       981/1605     813163/2172719
+   EXCHANGE_ERROR                                             9         83 ( 0%)      10312/14367     864151/1074961            3/5    10248/10707     864628/1075686
+
+C. per hour: intents (by source), orders, ownership-gate blocks, leader->send p50/p90 ms
+   10-10 00:00  intents=22069 (WS_CAPTURED=22069)  orders=0  gate_blocks=0  l2s=None/None
+   10-10 01:00  intents=21371 (WS_CAPTURED=21362,WS_SNAPSHOT=9)  orders=0  gate_blocks=0  l2s=None/None
+   10-10 02:00  intents=20323 (WS_CAPTURED=20323)  orders=0  gate_blocks=0  l2s=None/None
+   10-10 03:00  intents=17812 (POLL=1455,WS_CAPTURED=16357)  orders=678  gate_blocks=0  l2s=36380/133679
+   10-10 04:00  intents=16849 (POLL=254,WS_CAPTURED=16539,WS_SNAPSHOT=56)  orders=1883  gate_blocks=0  l2s=126458/502308
+   10-10 05:00  intents=10889 (POLL=502,WS_CAPTURED=10227,WS_SNAPSHOT=160)  orders=392  gate_blocks=0  l2s=775260/1158889
+   10-10 06:00  intents=15221 (WS_CAPTURED=15221)  orders=1457  gate_blocks=0  l2s=571653/1036762
+   10-10 07:00  intents=14234 (WS_CAPTURED=14234)  orders=2020  gate_blocks=0  l2s=1309754/2412988
+   10-10 08:00  intents=11063 (CONVERGE=33,POLL=841,WS_CAPTURED=10114,WS_SNAPSHOT=75)  orders=933  gate_blocks=0  l2s=1338466/3020003
+   10-10 09:00  intents=1178 (CONVERGE=34,POLL=257,WS_CAPTURED=867,WS_SNAPSHOT=20)  orders=375  gate_blocks=0  l2s=386377/614083
+
+D. top reconciliation rows (held = ms from intent written to this row, i.e. worker time spent on a block)
+      60274  SEND_TERMINAL:NO_MANUAL_POSITION_TO_CLOSE                               held_total_s=-23140 p50=3 p90=5
+      44379  SEND_TERMINAL:SEND_NOT_ATTEMPTED_AUTO_SEND_DISABLED                     held_total_s=-28998 p50=3 p90=4
+      35481  ENTRY_SAFETY_BLOCK:ENTRY_BLOCKED_RISK                                   held_total_s=-10499 p50=3 p90=5
+       7606  SEND_LATENCY_WARN:SLOW_SEND_PATH                                        held_total_s=22981 p50=2248 p90=5727
+       5633  COPY_FILL:MATCHED_BY_EXCHANGE_ORDER_ID                                  held_total_s=132606 p50=7475 p90=27058
+       2232  SEND_TERMINAL:PENDING_EXIT_GUARD_ACTIVE                                 held_total_s=467 p50=63 p90=185
+        998  SEND_TERMINAL:ENTRY_LIMIT_RESTING_PRICE_MOVED                           held_total_s=3523 p50=2959 p90=6100
+        734  SEND_TERMINAL:RESTING_ENTRY_CANCELLED_LEADER_REDUCED                    held_total_s=143299 p50=10313 p90=683517
+        507  STALE_SNAPSHOT_REPLAY_SKIPPED:STALE_WS_SNAPSHOT_IGNORED                 held_total_s=0 p50=None p90=None
+        462  SEND_TERMINAL:MISSED_ENTRY_ALREADY_RESTING                              held_total_s=466 p50=803 p90=1983
+        458  SEND_TERMINAL:EXIT_RECOVERY_REQUIRED                                    held_total_s=1943 p50=3142 p90=7713
+        360  SEND_TERMINAL:MISSED_ADD_IOC_NO_MATCH                                   held_total_s=1226 p50=2846 p90=5841
+        337  EXIT_RECOVERY:EXIT_RECOVERY_QUEUE_FAILED                                held_total_s=1182 p50=2745 p90=6238
+        204  SEND_TERMINAL:MISSED_ENTRY_EXCHANGE_REJECTED_UNKNOWN                    held_total_s=599 p50=2297 p90=4586
+        193  SEND_TERMINAL:DUST_BELOW_MIN_NOTIONAL                                   held_total_s=117 p50=102 p90=1505
+        174  ENTRY_SAFETY_BLOCK:ENTRY_BLOCKED_SCOPE_SWEEP_PENDING                    held_total_s=22 p50=3 p90=5
+        160  SEND_TERMINAL:RESTING_ENTRY_ALREADY_GONE                                held_total_s=161157 p50=679408 p90=2418354
+        141  EXIT_RECOVERY:EXIT_RECOVERY_QUEUED                                      held_total_s=661 p50=3641 p90=8574
+        115  CONVERGE_CLOSE:CONVERGE_LEADER_OPPOSITE_SIDE                            held_total_s=0 p50=None p90=None
+        102  SEND_TERMINAL:MISSED_ENTRY_LEADER_ALREADY_CLOSED                        held_total_s=0 p50=None p90=None
+        102  SEND_TERMINAL:MISSED_ENTRY_LIMIT_REJECTED                               held_total_s=296 p50=2316 p90=4576
+         91  SEND_TERMINAL:RESTING_ENTRY_CANCELLED_SENDING_OFF                       held_total_s=48821 p50=433289 p90=1000870
+         81  OWNERSHIP_GATE:OWNERSHIP_GATE_NO_MATCHING_WALLET_SLEEVE                 held_total_s=207 p50=1483 p90=6285
+         56  ENTRY_SAFETY_BLOCK:ENTRY_BLOCKED_DAILY_LOSS_UNREADABLE                  held_total_s=1 p50=3 p90=4
+         55  SERVICE_CREATED_UNLEDGERED_POSITION:SERVICE_CREATED_UNLEDGERED          held_total_s=0 p50=None p90=None
+         42  SEND_TERMINAL:MISSED_ENTRY_IOC_NO_MATCH                                 held_total_s=119 p50=2274 p90=4613
+         41  EXIT_RECOVERY:STANDING_CLOSE_WITHDRAWN                                  held_total_s=19687 p50=226641 p90=970686
+         34  SEND_TERMINAL:CLOSE_REJECTED_REDUCE_ONLY_REJECTED                       held_total_s=209 p50=5237 p90=9943
+         23  LEDGER_REPAIR:LEDGER_CATCH_UP_REPAIR                                    held_total_s=0 p50=None p90=None
+         23  SEND_TERMINAL:CLOSE_REJECTED_PRICE_OR_TICK_REJECTED                     held_total_s=37 p50=1336 p90=2581
+
+E. send-worker busy time by coin and by worker shard (4 workers; sha1(coin) % 4 as in the engine)
+   worker 1: busy 4897 s
+   worker 2: busy 5381 s
+   worker 3: busy 5278 s
+   worker 4: busy 4876 s
+   HYPE           sends=   465 busy=   1542 s
+   NEAR           sends=   285 busy=   1150 s
+   WLD            sends=   244 busy=    686 s
+   ZEC            sends=   260 busy=    644 s
+   SUI            sends=   207 busy=    540 s
+   PUMP           sends=   144 busy=    534 s
+   ETH            sends=   192 busy=    488 s
+   AAVE           sends=   165 busy=    460 s
+   VVV            sends=   151 busy=    408 s
+   BTC            sends=   146 busy=    394 s
+   ONDO           sends=   117 busy=    289 s
+   PONS           sends=    96 busy=    276 s
+   SOL            sends=    93 busy=    250 s
+   USELESS        sends=    92 busy=    243 s
+   ARB            sends=   100 busy=    239 s
