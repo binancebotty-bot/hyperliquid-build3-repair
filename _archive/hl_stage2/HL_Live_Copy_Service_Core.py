@@ -3536,6 +3536,21 @@ def project_liquidation_px(account_value: float, maintenance_used: float, coin_s
     return mark - side * avail / abs(coin_signed_after) / denom
 
 
+def project_isolated_liquidation_px(mark: float, is_long: bool, leverage: float, max_leverage: float) -> Optional[float]:
+    """Isolated-margin liquidation price of a position opened at `mark` with the position's OWN margin (notional / leverage):
+        liq = mark - side * mark * (1/leverage - l) / (1 - side * l),   l = 1 / (2 * maxLeverage)
+    (the same Hyperliquid maintenance rule as the cross formula, with margin_available = own margin - maintenance).
+    Account value and other positions play no part. None when the inputs are unusable."""
+    if mark <= 0 or leverage <= 0 or max_leverage <= 0:
+        return None
+    l = 1.0 / (2.0 * max_leverage)
+    side = 1.0 if is_long else -1.0
+    denom = 1.0 - side * l
+    if denom <= 0:
+        return None
+    return mark - side * mark * (1.0 / leverage - l) / denom
+
+
 class SenderGateway:
     def __init__(self, cfg: ConfigManager, audit: AuditLogWriter, ledger: Optional[ManualLedger] = None):
         self.cfg = cfg
@@ -3621,6 +3636,18 @@ class SenderGateway:
             self._wait_exchange_order_slot()
         return exchange.cancel(sdk_coin, int(oid))
 
+    def _is_isolated_only(self, coin: Any) -> bool:
+        """Builder-dex (HIP-3, e.g. xyz:) assets and any asset flagged onlyIsolated trade isolated margin only."""
+        if ":" in str(coin):
+            return True
+        return bval((self._meta_cache.get(str(coin).upper(), {}) or {}).get("onlyIsolated"), False)
+
+    def _copy_leverage(self, coin: Any) -> Tuple[int, float]:
+        """(leverage the follower uses on this asset, the asset's max leverage or 0 when unknown)."""
+        max_lev = fnum((self._meta_cache.get(str(coin).upper(), {}) or {}).get("maxLeverage"), 0.0)
+        lev = self.cfg.follower_leverage()
+        return (int(min(lev, max_lev)) if max_lev > 0 else lev), max_lev
+
     def _ensure_margin_mode(self, exchange: Any, sdk_coin: str, intent: Intent, lifecycle: str,
                             timing: Dict[str, Any]) -> Optional[Tuple[bool, str, Dict[str, Any]]]:
         """Cross margin at the follower leverage, set once per asset per run BEFORE the first order in it. A refused call
@@ -3628,20 +3655,13 @@ class SenderGateway:
         update_leverage are skipped."""
         done = self.__dict__.setdefault("_margin_mode_done", set())
         key = str(sdk_coin)
-        if lifecycle not in {"ENTRY", "ADD"} or ":" in str(intent.fill.coin) or key in done \
-                or not hasattr(exchange, "update_leverage"):
-            return None  # closes are never touched; builder-dex (HIP-3) assets are isolated-only: no cross call
-        meta = self._meta_cache.get(str(intent.fill.coin).upper(), {}) or {}
-        if bval(meta.get("onlyIsolated"), False):
-            done.add(key)
-            return None
-        max_lev = fnum(meta.get("maxLeverage"), 0.0)
-        lev = self.cfg.follower_leverage()
-        if max_lev > 0:
-            lev = int(min(lev, max_lev))
+        if lifecycle not in {"ENTRY", "ADD"} or key in done or not hasattr(exchange, "update_leverage"):
+            return None  # closes are never touched
+        lev, _max_lev = self._copy_leverage(intent.fill.coin)
+        is_cross = not self._is_isolated_only(intent.fill.coin)  # isolated-only assets: isolated margin at the capped leverage
         error = ""
         try:
-            resp = exchange.update_leverage(lev, sdk_coin, True)  # SDK: update_leverage(leverage, name, is_cross)
+            resp = exchange.update_leverage(lev, sdk_coin, is_cross)  # SDK: update_leverage(leverage, name, is_cross)
             if isinstance(resp, dict) and str(resp.get("status", "ok")).lower() != "ok":
                 error = json.dumps(resp, default=str)[:300]
         except Exception as exc:
@@ -3650,7 +3670,7 @@ class SenderGateway:
             "MARGIN_MODE_SET", "MARGIN_MODE_SET" if not error else "MARGIN_MODE_UNSET", coin=str(intent.fill.coin),
             action="NO_ACTION" if not error else "MANUAL_REVIEW_MARGIN_MODE",
             terminal_state="MARGIN_MODE_SET" if not error else "MARGIN_MODE_UNSET",
-            notes=f"cross margin, leverage {lev}x on {sdk_coin}; error={error}")
+            notes=f"{'cross' if is_cross else 'isolated'} margin, leverage {lev}x on {sdk_coin}; error={error}")
         if not error:
             done.add(key)
             return None
@@ -3662,13 +3682,13 @@ class SenderGateway:
                 "timing": timing}
         return None
 
-    def _leader_liq_distance(self, wallet: str, coin: str, mark: float) -> Tuple[Optional[float], str]:
+    def _leader_liq_distance(self, wallet: str, coin: str, mark: float, dex: str = "") -> Tuple[Optional[float], str]:
         """|mark - liquidationPx| / mark of the leader's position, from the LEADER network (cached ~10 s). (None, why) when
         unreadable; (floor, ...) when the leader has no liquidation price (fully collateralised: the stricter rule)."""
         floor = fnum(os.getenv("HL_LIVE_LIQ_PARITY_FLOOR"), 0.25)
         cache = self.__dict__.setdefault("_leader_liq_cache", collections.OrderedDict())
         lock = self.__dict__.setdefault("_leader_liq_lock", threading.Lock())
-        key = normalise_wallet(wallet)  # one entry per wallet (the response is the whole account), bounded
+        key = (normalise_wallet(wallet), dex)  # one entry per wallet and dex (the response is that dex's account), bounded
         with lock:  # one fetch per wallet per 10 s however many workers ask
             hit = cache.get(key)
             now = time.monotonic()
@@ -3676,7 +3696,10 @@ class SenderGateway:
                 state = hit[1]
             else:
                 try:
-                    r = requests.post(HL_LEADER_INFO_URL, json={"type": "clearinghouseState", "user": wallet}, timeout=HTTP_TIMEOUT_SEC)
+                    payload = {"type": "clearinghouseState", "user": wallet}
+                    if dex:
+                        payload["dex"] = dex
+                    r = requests.post(HL_LEADER_INFO_URL, json=payload, timeout=HTTP_TIMEOUT_SEC)
                     state = r.json()
                     if not isinstance(state, dict):
                         return None, "leader state unreadable"
@@ -3696,6 +3719,10 @@ class SenderGateway:
         return floor, "leader holds no position in the coin yet (floor rule)"
 
     def _follower_projected_liq_px(self, intent: Intent, mark: float) -> Tuple[Optional[float], str]:
+        if self._is_isolated_only(intent.fill.coin):  # the position's own margin at the capped leverage; no account state needed
+            lev, max_lev = self._copy_leverage(intent.fill.coin)
+            liq = project_isolated_liquidation_px(mark, intent.copy_side == "BUY", float(lev), max_lev or 10.0)
+            return liq, ("isolated projection at %dx" % lev) if liq is not None else "isolated projection unusable"
         snap = load_json(EXCHANGE_ACCOUNT_SNAPSHOT_FILE, {})
         if not isinstance(snap, dict):
             return None, "follower snapshot unreadable"
@@ -3724,13 +3751,14 @@ class SenderGateway:
         """ENTRY/ADD only: the follower's liquidation must be at least as far from the mark as the safest contributing
         leader's. Returns a block record, or None when allowed. Unknown or unprovable fails closed."""
         coin = canonical_coin_key(intent.fill.coin)
-        if ":" in str(intent.fill.coin):  # builder-dex (HIP-3) asset: isolated-only, not in the main-dex account state
-            self.audit.append_reconciliation(
-                "LIQ_PARITY", "LIQ_PARITY_SKIPPED_BUILDER_DEX", coin=str(intent.fill.coin), action="NO_ACTION",
-                terminal_state="LIQ_PARITY_SKIPPED_BUILDER_DEX",
-                notes="isolated-only builder-dex asset: the cross liquidation parity gate does not apply")
-            return None
+        dex = str(intent.fill.coin).split(":", 1)[0].lower() if ":" in str(intent.fill.coin) else ""
         mark = fnum(intent.fill.price, 0.0)
+        if self._is_isolated_only(intent.fill.coin) and classify_send_lifecycle(intent) == "ADD":
+            # EXTENSION POINT (isolated-only markets): the isolated projection below models a FRESH position at the mark. An add
+            # to an open isolated position needs its weighted entry and existing margin (the follower's own-dex
+            # clearinghouseState liquidationPx); until that is wired and sanity-checked at go-live, adds fail closed.
+            return {"status": "LIQ_PARITY_BLOCKED", "reject_category": "LIQ_PARITY_BLOCK", "operator_action": "NO_SEND_LIQ_PARITY",
+                    "notes": "isolated-only market ADD: parity of an add to an open isolated position is not provable yet (extension point)"}
         wallets = [intent.fill.leader_wallet]
         try:
             by_wallet = ((self.ledger.data.get("by_wallet") or {}) if self.ledger is not None else {})
@@ -3743,7 +3771,7 @@ class SenderGateway:
         leader_dist: Optional[float] = None
         why = ""
         for w in wallets:
-            d, reason = self._leader_liq_distance(w, coin, mark)
+            d, reason = self._leader_liq_distance(w, coin, mark, dex)
             if d is None:
                 return {"status": "LIQ_PARITY_BLOCKED", "reject_category": "LIQ_PARITY_BLOCK", "operator_action": "NO_SEND_LIQ_PARITY", "notes": f"liquidation parity unprovable: {reason} ({w})"}
             leader_dist = d if leader_dist is None else max(leader_dist, d)  # the SAFEST leader (farthest liquidation) is the bar
@@ -5701,6 +5729,8 @@ class SenderGateway:
                     "perp_dex": perp_dex,
                     "perp_dexs": perp_dexs,
                     "sz_decimals": sz_dec,
+                    "maxLeverage": fnum(item.get("maxLeverage"), 0.0),
+                    "onlyIsolated": bval(item.get("onlyIsolated"), False),
                     "price_max_decimals": price_max_dec,
                     "price_decimals": item.get("price_decimals", price_max_dec),
                     "max_decimals": item.get("max_decimals", price_max_dec),
@@ -5835,6 +5865,8 @@ class SenderGateway:
                     "szDecimals": int(asset.get("szDecimals", 4)),
                     "symbol_source": "core_meta",
                     "perp_dex": "",
+                    "maxLeverage": fnum(asset.get("maxLeverage"), 0.0),  # kept across refreshes: the margin mode and parity gate need them
+                    "onlyIsolated": bval(asset.get("onlyIsolated"), False),
                 }
                 new_index[idx] = name
             if new_meta:
@@ -5941,6 +5973,8 @@ class SenderGateway:
                     "canonical_coin": b_key,
                     "sdk_coin": sdk_coin,
                     "szDecimals": int(b_asset.get("szDecimals", 0)),
+                    "maxLeverage": fnum(b_asset.get("maxLeverage"), 0.0),
+                    "onlyIsolated": True,  # builder-dex (HIP-3) assets trade isolated margin only
                     "symbol_source": "builder_meta",
                     "perp_dex": dex,
                     "perp_dexs": ["", dex.lower()],
