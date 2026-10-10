@@ -439,7 +439,7 @@ class TimedLock:
 # leader re-read on each poll after the first: enough for the info API to index a fill (was the 5 min copy overlap)
 LEADER_POLL_OVERLAP_MS = int(os.getenv("HL_LIVE_LEADER_POLL_OVERLAP_MS", "30000"))
 POLL_WINDOW_MS = int(os.getenv("HL_LIVE_POLL_WINDOW_MS", str(24 * 60 * 60 * 1000)))
-POLL_MAX_PAGES_PER_WALLET = int(os.getenv("HL_LIVE_POLL_MAX_PAGES_PER_WALLET", "5"))
+POLL_MAX_PAGES_PER_WALLET = int(os.getenv("HL_LIVE_POLL_MAX_PAGES_PER_WALLET", "40"))
 MAX_WALLETS = int(os.getenv("HL_LIVE_WS_MAX_WALLETS", "10"))
 POSITION_EPSILON = float(os.getenv("HL_LIVE_POSITION_EPSILON", "1e-9"))
 STALE_REPLAY_GRACE_MS = int(os.getenv("HL_LIVE_STALE_REPLAY_GRACE_MS", "5000"))
@@ -7358,6 +7358,7 @@ class LiveCopyCore:
         self._prio_queues: List["queue.Queue[LeaderFill]"] = [queue.Queue(maxsize=50000) for _ in range(self.hot_send_workers)]
         self._converge_queued: set = set()  # sleeves with a convergence close still waiting on a worker
         self._queued_keys: set = set()  # guard keys of fills waiting on a worker
+        self._pending_ts: Dict[str, Tuple[str, int]] = {}  # guard key -> (leader wallet, fill time) while queued or in flight
         self._coin_lane: Dict[str, Tuple[int, int]] = {}  # coin -> (lane, count of queued+in-flight fills)
         self._queued_lock = threading.Lock()
         self.async_dispatch = False  # main() turns this on in loop mode: polled fills go to the workers too
@@ -7431,6 +7432,7 @@ class LiveCopyCore:
             if key in self._queued_keys:
                 return True
             self._queued_keys.add(key)
+            self._pending_ts[key] = (str(fill.leader_wallet).lower(), int(fnum(fill.timestamp_ms, 0)))
             # Dynamic per-coin lane assignment (P2a):
             # - If coin already has queued/in-flight fills, use its lane (order kept)
             # - For close fills (CONVERGE or leader exit) with no existing lane, use shard-based assignment
@@ -7463,6 +7465,7 @@ class LiveCopyCore:
         except queue.Full:
             with self._queued_lock:
                 self._queued_keys.discard(key)
+                self._pending_ts.pop(key, None)
                 # Decrement count on failure
                 if coin_key in self._coin_lane:
                     lane, count = self._coin_lane[coin_key]
@@ -7514,13 +7517,24 @@ class LiveCopyCore:
         planned.sort(key=lambda p: (p[0], p[1], p[2]))
         return [f for _p, _t, _i, merged in planned for f in merged]
 
+    def leader_cursor_next(self, wallet: str, proposed_ms: int) -> int:
+        """Where the saved leader-poll cursor may move to. Never past the oldest fill of this leader that is still
+        queued or in flight: those fills exist only in memory, so after a crash or restart the poll must re-read
+        them (they were once lost this way; the ledger/idempotency guard makes the re-read harmless)."""
+        w = str(wallet).lower()
+        with self._queued_lock:
+            floor = min((ts for (pw, ts) in self._pending_ts.values() if pw == w and ts > 0), default=0)
+        return min(int(proposed_ms), floor) if floor and proposed_ms else int(proposed_ms)
+
     def hot_backlog(self) -> int:
         return sum(q.qsize() for q in self._hot_queues) + sum(q.qsize() for q in getattr(self, "_prio_queues", []))
 
     def _release_queued(self, batch: List[LeaderFill], q: "queue.Queue[LeaderFill]") -> None:
         with self._queued_lock:
             for f in batch:
-                self._queued_keys.discard(self._guard_key(f))
+                _gk = self._guard_key(f)
+                self._queued_keys.discard(_gk)
+                self._pending_ts.pop(_gk, None)
                 if f.source == "CONVERGE":
                     raw = f.raw if isinstance(f.raw, dict) else {}
                     self._converge_queued.discard((f.leader_wallet, canonical_coin_key(f.coin), str(raw.get("position_id") or "")))
@@ -8512,6 +8526,7 @@ class LiveCopyCore:
                     _next = (now if status == "POLL_OK" else max(f.timestamp_ms for f in wallet_fills) + LEADER_POLL_OVERLAP_MS
                              if status == "POLL_PARTIAL" and wallet_fills else 0)
                     if _next:
+                        _next = self.leader_cursor_next(w, _next)  # never past a fill still waiting on a worker
                         if _hold:
                             self._held_read_cursor[w] = _next
                         else:
