@@ -59,7 +59,7 @@ def main() -> None:
     # ---- state as run 4 left it ----------------------------------------------------------------------------
     led = c.ManualLedger()
     for w, coin, size in ((A, "BTC", 2.0), (A, "AVAX", -5.0), (B, "ETH", 1.0), (A, "SOL", 1.0), (A, "DOGE", 3.0),
-                          (A, "TIA", 3.0), (A, "KAS", 2.0)):
+                          (A, "TIA", 3.0), (A, "KAS", 2.0), (A, "HYPE", 0.2), (B, "HYPE", -0.65)):
         s = led.sleeve(w, coin)
         s.update(signed_size=size, direction="LONG" if size > 0 else "SHORT", avg_entry_px=10.0, last_copy_fill_id="x")
     led._recompute_net(led.data)
@@ -131,6 +131,8 @@ def main() -> None:
         f("LINK", "B", 5.0, 998, "0xlink", 51, 50),
         f("TIA", "B", 3.0, 901, "0xtia", 61, 60), f("TIA", "A", 3.0, 902, "0xtiax", 62, 61),
         f("KAS", "A", 2.0, 911, "0xkas", 71, 70),
+        # run 5: the exchange liquidated the account's HYPE short (no engine order)
+        dict(f("HYPE", "B", 0.45, 1001, "0xhype", 81, 80), dir="Liquidated Isolated Short", startPosition="-0.45"),
     ]
     reads = []
 
@@ -154,7 +156,7 @@ def main() -> None:
     dry = c.repair_ledger_catch_up(dry_run=True)
     fixed = {r["coin"] for r in dry["repairs"]}
     refused = {r["coin"]: r["reason"] for r in dry["refused"]}
-    check("D1_DRY_RUN_FINDS_THE_EXPLAINED_COINS", fixed == {"BTC", "AVAX", "TIA"}, json.dumps(dry, default=str)[:500])
+    check("D1_DRY_RUN_FINDS_THE_EXPLAINED_COINS", fixed == {"BTC", "AVAX", "TIA", "HYPE"}, json.dumps(dry, default=str)[:500])
     check("D1_DRY_RUN_CHANGES_NOTHING", c.load_json(c.MANUAL_LIVE_POSITIONS_FILE, {}).get("by_wallet") == before.get("by_wallet")
           and len(c.read_csv_rows(c.LIVE_FILLS_CSV)) == live_before)
     check("F1_FILL_OF_AN_ORDER_THE_ENGINE_DID_NOT_PLACE_REFUSED", "not from an order this engine placed" in refused.get("SOL", ""),
@@ -181,12 +183,15 @@ def main() -> None:
     check("E4_EACH_ADOPTED_FILL_WRITTEN_TO_LIVE_FILLS", sorted(r["copy_fill_id"] for r in lf) == ["0xavax:21", "0xbtc:11", "0xbtc:12", "0xtiax:62"],
           str([r["copy_fill_id"] for r in lf]))
     rec = [r for r in c.read_csv_rows(c.RECONCILIATION_CSV) if r.get("status") == "LEDGER_CATCH_UP_REPAIR"]
-    check("E5_AUDIT_ROW_PER_REPAIRED_COIN_SAYS_NO_ORDER", sorted(r["coin"] for r in rec) == ["AVAX", "BTC", "TIA"]
+    check("E5_AUDIT_ROW_PER_REPAIRED_COIN_SAYS_NO_ORDER", sorted(r["coin"] for r in rec) == ["AVAX", "BTC", "HYPE", "TIA"]
           and all("no exchange order placed" in r["notes"] for r in rec))
     again = c.repair_ledger_catch_up(dry_run=True)
     check("D2_SECOND_RUN_FINDS_NOTHING_LEFT_TO_REPAIR", not again["repairs"] and {r["coin"] for r in again["refused"]} == {"SOL", "DOGE", "LINK", "KAS"},
           json.dumps(again["repairs"], default=str)[:300])
 
+    check("L5_REPAIR_ADOPTS_THE_EXCHANGE_LIQUIDATION", abs(led2.coin_net("HYPE")) < 1e-9
+          and abs(led2.wallet_coin_position(A, "HYPE") - 0.2) < 1e-9 and abs(led2.wallet_coin_position(B, "HYPE") + 0.2) < 1e-9,
+          f"{led2.wallet_coin_position(A, 'HYPE')} {led2.wallet_coin_position(B, 'HYPE')}")
     check("T4_TIA_FLAT_AND_KAS_UNTOUCHED", abs(led2.wallet_coin_position(A, "TIA")) < 1e-12 and led2.wallet_coin_position(A, "KAS") == 2.0)
     check("T5_REFUSED_COIN_CREATES_NO_EMPTY_SLEEVE",
           all("LINK" not in (wm or {}) for wm in (c.load_json(c.MANUAL_LIVE_POSITIONS_FILE, {}).get("by_wallet") or {}).values()))
