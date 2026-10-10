@@ -7735,7 +7735,7 @@ class LiveCopyCore:
                 ready.append((raw_copy, copy_id, oid, fill_ms))
             # one lock acquisition per batch of new fills (each would otherwise queue behind the send workers
             # again); batches stay small so a send waits at most a few ledger writes
-            batch = max(1, int(fnum(os.getenv("HL_LIVE_COPY_APPLY_BATCH"), 25)))
+            batch = max(1, int(fnum(os.getenv("HL_LIVE_COPY_APPLY_BATCH"), 10)))
             for i in range(0, len(ready), batch):
                 w0 = time.monotonic()
                 with self._send_lock, self._copy_ingest_lock:
