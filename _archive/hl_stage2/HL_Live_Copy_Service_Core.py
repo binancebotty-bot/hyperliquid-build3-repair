@@ -152,6 +152,11 @@ FORBIDDEN_WOULD_SEND_ORDERS_CSV = APPEND_ONLY_DIR / "would_send_orders.csv"
 HL_INFO_URL = NETWORKS["follower"]["info"]          # follower: meta, mids, copy fills, clearinghouseState
 HL_LEADER_INFO_URL = NETWORKS["leader"]["info"]     # leader fill polling only
 HL_WS_URL = os.getenv("HL_LIVE_WS_URL") or NETWORKS["leader"]["ws"]
+# Headroom monitor: counts this process's /info weight per host and writes alert events (alerts/headroom_events.jsonl).
+from headroom import HeadroomMonitor, CountingRequests  # noqa: E402
+HEADROOM = HeadroomMonitor(alerts_dir=AUDIT_DIR / "alerts")
+if requests is not None:
+    requests = CountingRequests(requests, HEADROOM, [HL_INFO_URL, HL_LEADER_INFO_URL])
 HL_EXCHANGE_URL = os.getenv("HL_LIVE_ORDER_ENDPOINT") or NETWORKS["follower"]["exchange"]
 # Real mainnet orders need the --confirm-mainnet-follower command-line flag (set only by main()); the order call
 # itself refuses otherwise, whoever imports this module.
@@ -6116,6 +6121,7 @@ class WSManager:
                 # every other process on this machine). Never silent: counted, kept verbatim, shown in the health.
                 _txt = str(payload.get("data"))[:300]
                 self._refusals += 1
+                HEADROOM.note_refusal("ws_users", str(payload.get("data"))[:300])
                 self._last_refusal, self._last_refusal_ms = _txt, utc_now_ms()
                 if _txt != self._logged_refusal:
                     self._logged_refusal = _txt
@@ -6242,6 +6248,7 @@ class WSManager:
             "last_refusal": self._last_refusal,
             "last_refusal_ms": self._last_refusal_ms,
             "wallets_without_feed": max(0, len(self.wallets) - len(self._subscribed)),
+            "headroom": dict(getattr(HEADROOM, "_last", {}) or {}),
             "last_subscribe_ms": self._last_subscribe_ms,
             "message_errors": self._message_errors,
             "thread_alive": thread_alive,
@@ -7429,6 +7436,8 @@ class LiveCopyCore:
         self.async_dispatch = False  # main() turns this on in loop mode: polled fills go to the workers too
         # R0: pass a live provider, not a snapshot, so a wallet enabled later (or after a restart) is subscribed.
         self.ws = WSManager(lambda: self.cfg.stream_wallets(), self.ingestor, self._enqueue_hot_ws_fill)
+        HEADROOM.ws_provider = lambda: {"acked": len(self.ws._subscribed), "wanted": len(self.ws.wallets),
+                                        "refused": bool(self.ws._refusals), "last_refusal": self.ws._last_refusal}
         self.intent_builder = IntentBuilder(self.cfg, self.ledger)
         self.sender = SenderGateway(self.cfg, self.audit, self.ledger)
         if self.cfg.auto_send_enabled and not bval(os.getenv("HL_LIVE_MOCK_SEND"), False) and bval(os.getenv("HL_LIVE_PREWARM_SYMBOL_META"), True):
@@ -8124,6 +8133,10 @@ class LiveCopyCore:
         leaders are polled every HL_LIVE_LEADER_POLL_INTERVAL_SEC (default 30 s, within the info rate limit for
         10 busy wallets); without the feed, every cycle."""
         now = utc_now_ms()
+        try:
+            HEADROOM.evaluate()
+        except Exception as exc:
+            log_error("headroom_evaluate", exc)
         interval = self.leader_poll_interval_sec()
         if interval and now - getattr(self, "_last_leader_poll_ms", 0) < interval * 1000:
             return False
