@@ -277,7 +277,17 @@ def _read_csv_incremental(
             or size < cache.get("size", 0)
             or (size == cache.get("size", 0) and cache.get("mtime") != mtime)
         )
+        if not stale and size > cache["size"] and cache.get("tail"):
+            # truncated in place and regrown past the old size (same inode): the bytes before the old end differ
+            try:
+                with path.open("rb") as fh:
+                    fh.seek(cache["size"] - len(cache["tail"]))
+                    stale = fh.read(len(cache["tail"])) != cache["tail"]
+            except OSError:
+                stale = True
         if stale:
+            for _k in [k for k, v in _CSV_READER_CACHE.items() if v.get("path") == str(path)]:
+                del _CSV_READER_CACHE[_k]  # a rotated or rewritten file leaves no old-inode entry behind
             cache = {
                 "path": str(path),
                 "ino": key[1],
@@ -287,6 +297,7 @@ def _read_csv_incremental(
                 "rows": [],
                 "fields": None,
                 "total_rows": 0,
+                "tail": b"",
             }
             _CSV_READER_CACHE[cache_key] = cache
 
@@ -304,14 +315,15 @@ def _read_csv_incremental(
                     first_nl = complete.find(b"\n")
                     header_text = complete[:first_nl].decode("utf-8-sig").lstrip("\ufeff").rstrip("\r")
                     fields = next(csv.reader([header_text]), []) if header_text.strip() else []
-                    cache["fields"] = fields
                     if not fields:
-                        return [], 0
+                        return [], 0  # leave fields unset: the next call reads the header again
+                    cache["fields"] = fields
                     body = complete[first_nl + 1:]
                 if mode == "full":
                     text = body.decode("utf-8-sig").lstrip("\ufeff")
                     cache["rows"].extend(csv.DictReader(io.StringIO(text, newline=""), fieldnames=cache["fields"]))
                 cache["total_rows"] += body.count(b"\n")
+                cache["tail"] = (cache["tail"] + complete)[-64:]
                 cache["size"] = cache["size"] + end
                 cache["mtime"] = path.stat().st_mtime_ns if path.exists() else None
 
@@ -320,29 +332,31 @@ def _read_csv_incremental(
 
         if mode == "full":
             rows = cache["rows"]
-            if limit:
-                rows = rows[-limit:]
+            rows = rows[-limit:] if limit else rows[:]  # a snapshot: the cached list is extended under the lock
             return rows, total
 
         # tail mode: parse only the last `tail_bytes`, keep the incremental total count.
-        if size <= tail_bytes:
-            tail_rows: List[Dict[str, Any]] = []
-            try:
-                with path.open("r", newline="", encoding="utf-8-sig") as fh:
-                    tail_rows = [dict(r) for r in csv.DictReader(fh)]
-            except Exception:
-                tail_rows = []
-            if limit:
-                tail_rows = tail_rows[-limit:]
-            return tail_rows, total
-        with path.open("rb") as fh:
-            fh.seek(max(0, size - tail_bytes))
-            tail_chunk = fh.read()
-        first_nl = tail_chunk.find(b"\n")
-        if first_nl < 0 or not fields:
+        # Only bytes up to the last complete line (cache["size"]) are read, so a row a writer is still appending is
+        # never shown and the rows always agree with the count.
+        done = cache["size"]
+        if not fields or done <= 0:
             return [], total
-        tail_text = tail_chunk[first_nl + 1:].decode("utf-8-sig").lstrip("\ufeff")
-        tail_rows = list(csv.DictReader(io.StringIO(tail_text, newline=""), fieldnames=fields))
+        start = max(0, done - tail_bytes)
+        try:
+            with path.open("rb") as fh:
+                fh.seek(start)
+                tail_chunk = fh.read(done - start)
+            if start > 0:
+                first_nl = tail_chunk.find(b"\n")
+                if first_nl < 0:
+                    return [], total
+                tail_text = tail_chunk[first_nl + 1:].decode("utf-8", errors="replace")
+                tail_rows = list(csv.DictReader(io.StringIO(tail_text, newline=""), fieldnames=fields))
+            else:
+                tail_text = tail_chunk.decode("utf-8-sig", errors="replace").lstrip("\ufeff")
+                tail_rows = list(csv.DictReader(io.StringIO(tail_text, newline="")))
+        except Exception:
+            tail_rows = []
         if limit:
             tail_rows = tail_rows[-limit:]
         return tail_rows, total
@@ -1445,7 +1459,7 @@ def _live_audit_summary_full() -> Dict[str, Any]:
                 manual_positions_count += len(coins)
     
     # Trim reconciliation_rows to what the page shows (500)
-    reconciliation_rows = reconciliation_rows[:500]
+    reconciliation_rows = reconciliation_rows[-500:]
 
     return {
         "ok": True,
