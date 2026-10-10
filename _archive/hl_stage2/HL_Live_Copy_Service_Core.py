@@ -2588,6 +2588,20 @@ class ConfigManager:
     def send_mode(self) -> str:
         return self._send_mode_of(self.config)
 
+    def follower_leverage(self) -> int:
+        """Leverage the follower account copies at (global_controls.follower_leverage, default 3, cross margin)."""
+        return max(1, int(fnum(self.global_controls.get("follower_leverage"), 3.0) or 3))
+
+    def liq_parity_enabled(self) -> bool:
+        """The liquidation parity gate. HL_LIVE_LIQ_PARITY=0/1 forces it; otherwise on for real sends and off for
+        mock sends (no exchange involved); global_controls.liq_parity=false turns it off."""
+        env = str(os.getenv("HL_LIVE_LIQ_PARITY", "")).strip()
+        if env in {"0", "1"}:
+            return env == "1"
+        if not bval(self.global_controls.get("liq_parity"), True):
+            return False
+        return not bval(os.getenv("HL_LIVE_MOCK_SEND"), False)
+
     def send_mode_now(self) -> str:
         """The three-state sending switch as it is on disk NOW (re-read only when the file changed). Run 4: turning
         sending off let 33 already-queued orders out over ~35 s, because each worker used the switch as read at the
@@ -3503,6 +3517,25 @@ class IntentBuilder:
 
 
 
+def project_liquidation_px(account_value: float, maintenance_used: float, coin_signed_now: float, coin_signed_after: float,
+                           mark: float, max_leverage: float) -> Optional[float]:
+    """Cross-margin liquidation price of one coin AFTER a trade (Hyperliquid's documented formula):
+        liq = mark - side * margin_available / |size| / (1 - side * l),   l = 1 / (2 * maxLeverage)
+    margin_available = account value - total maintenance margin, where this coin's maintenance contribution is
+    replaced by the post-trade one. Other positions are held at their current marks. None when flat afterwards or
+    when the inputs are unusable (the caller fails closed)."""
+    if mark <= 0 or max_leverage <= 0 or abs(coin_signed_after) <= POSITION_EPSILON:
+        return None
+    l = 1.0 / (2.0 * max_leverage)
+    maint_after = max(0.0, maintenance_used - abs(coin_signed_now) * mark * l + abs(coin_signed_after) * mark * l)
+    avail = account_value - maint_after
+    side = 1.0 if coin_signed_after > 0 else -1.0
+    denom = 1.0 - side * l
+    if denom <= 0:
+        return None
+    return mark - side * avail / abs(coin_signed_after) / denom
+
+
 class SenderGateway:
     def __init__(self, cfg: ConfigManager, audit: AuditLogWriter, ledger: Optional[ManualLedger] = None):
         self.cfg = cfg
@@ -3587,6 +3620,145 @@ class SenderGateway:
         with self._exchange_order_lock:
             self._wait_exchange_order_slot()
         return exchange.cancel(sdk_coin, int(oid))
+
+    def _ensure_margin_mode(self, exchange: Any, sdk_coin: str, intent: Intent, lifecycle: str,
+                            timing: Dict[str, Any]) -> Optional[Tuple[bool, str, Dict[str, Any]]]:
+        """Cross margin at the follower leverage, set once per asset per run BEFORE the first order in it. A refused call
+        blocks ENTRY/ADD (MARGIN_MODE_UNSET); closes are never blocked. Isolated-only assets and exchange objects without
+        update_leverage are skipped."""
+        done = self.__dict__.setdefault("_margin_mode_done", set())
+        key = str(sdk_coin)
+        if lifecycle not in {"ENTRY", "ADD"} or ":" in str(intent.fill.coin) or key in done \
+                or not hasattr(exchange, "update_leverage"):
+            return None  # closes are never touched; builder-dex (HIP-3) assets are isolated-only: no cross call
+        meta = self._meta_cache.get(str(intent.fill.coin).upper(), {}) or {}
+        if bval(meta.get("onlyIsolated"), False):
+            done.add(key)
+            return None
+        max_lev = fnum(meta.get("maxLeverage"), 0.0)
+        lev = self.cfg.follower_leverage()
+        if max_lev > 0:
+            lev = int(min(lev, max_lev))
+        error = ""
+        try:
+            resp = exchange.update_leverage(lev, sdk_coin, True)  # SDK: update_leverage(leverage, name, is_cross)
+            if isinstance(resp, dict) and str(resp.get("status", "ok")).lower() != "ok":
+                error = json.dumps(resp, default=str)[:300]
+        except Exception as exc:
+            error = repr(exc)
+        self.audit.append_reconciliation(
+            "MARGIN_MODE_SET", "MARGIN_MODE_SET" if not error else "MARGIN_MODE_UNSET", coin=str(intent.fill.coin),
+            action="NO_ACTION" if not error else "MANUAL_REVIEW_MARGIN_MODE",
+            terminal_state="MARGIN_MODE_SET" if not error else "MARGIN_MODE_UNSET",
+            notes=f"cross margin, leverage {lev}x on {sdk_coin}; error={error}")
+        if not error:
+            done.add(key)
+            return None
+        if lifecycle in {"ENTRY", "ADD"}:
+            return False, "MARGIN_MODE_UNSET", {
+                "status": "MARGIN_MODE_UNSET", "error": error, "exchange_response": {}, "oid": "", "exchange_called": False,
+                "write_reconciliation": True, "reject_category": "MARGIN_MODE_UNSET", "terminal_state": "MARGIN_MODE_UNSET",
+                "operator_action": "CHECK_MARGIN_MODE_ON_EXCHANGE", "notes": f"margin mode could not be set: {error}",
+                "timing": timing}
+        return None
+
+    def _leader_liq_distance(self, wallet: str, coin: str, mark: float) -> Tuple[Optional[float], str]:
+        """|mark - liquidationPx| / mark of the leader's position, from the LEADER network (cached ~10 s). (None, why) when
+        unreadable; (floor, ...) when the leader has no liquidation price (fully collateralised: the stricter rule)."""
+        floor = fnum(os.getenv("HL_LIVE_LIQ_PARITY_FLOOR"), 0.25)
+        cache = self.__dict__.setdefault("_leader_liq_cache", collections.OrderedDict())
+        lock = self.__dict__.setdefault("_leader_liq_lock", threading.Lock())
+        key = normalise_wallet(wallet)  # one entry per wallet (the response is the whole account), bounded
+        with lock:  # one fetch per wallet per 10 s however many workers ask
+            hit = cache.get(key)
+            now = time.monotonic()
+            if hit and now - hit[0] < 10.0:
+                state = hit[1]
+            else:
+                try:
+                    r = requests.post(HL_LEADER_INFO_URL, json={"type": "clearinghouseState", "user": wallet}, timeout=HTTP_TIMEOUT_SEC)
+                    state = r.json()
+                    if not isinstance(state, dict):
+                        return None, "leader state unreadable"
+                except Exception as exc:
+                    return None, f"leader state read failed: {exc!r}"
+                cache[key] = (now, state)
+                cache.move_to_end(key)
+                while len(cache) > 200:
+                    cache.popitem(last=False)
+        for ap in state.get("assetPositions") or []:
+            pos = ap.get("position") if isinstance(ap, dict) else None
+            if isinstance(pos, dict) and canonical_coin_key(pos.get("coin")) == canonical_coin_key(coin):
+                liq = fnum(pos.get("liquidationPx"), 0.0)
+                if liq <= 0 or mark <= 0:
+                    return floor, "leader has no liquidation price (floor rule)"
+                return abs(mark - liq) / mark, "ok"
+        return floor, "leader holds no position in the coin yet (floor rule)"
+
+    def _follower_projected_liq_px(self, intent: Intent, mark: float) -> Tuple[Optional[float], str]:
+        snap = load_json(EXCHANGE_ACCOUNT_SNAPSHOT_FILE, {})
+        if not isinstance(snap, dict):
+            return None, "follower snapshot unreadable"
+        coin = canonical_coin_key(intent.fill.coin)
+        reported = (snap.get("liquidation_px_by_coin") or {})
+        if isinstance(reported, dict) and coin in reported:
+            return fnum(reported.get(coin), 0.0) or None, "exchange-reported"
+        raw = snap.get("raw") if isinstance(snap.get("raw"), dict) else None
+        if raw is None:
+            return None, "no follower account state to project from"
+        summary = raw.get("crossMarginSummary") or raw.get("marginSummary") or {}
+        account_value = fnum(summary.get("accountValue"), 0.0)
+        maint = fnum(raw.get("crossMaintenanceMarginUsed"), 0.0)
+        now_signed = 0.0
+        for ap in raw.get("assetPositions") or []:
+            pos = ap.get("position") if isinstance(ap, dict) else None
+            if isinstance(pos, dict) and canonical_coin_key(pos.get("coin")) == coin:
+                now_signed = fnum(pos.get("szi"), 0.0)
+        delta = abs(intent.copy_size) * (1.0 if intent.copy_side == "BUY" else -1.0)
+        meta = self._meta_cache.get(str(intent.fill.coin).upper(), {}) or {}
+        max_lev = fnum(meta.get("maxLeverage"), 0.0) or 10.0  # unknown: a middling maintenance rate (l = 5%), not the copy leverage
+        liq = project_liquidation_px(account_value, maint, now_signed, now_signed + delta, mark, max_lev)
+        return liq, ("projected" if liq is not None else "projection unusable")
+
+    def liq_parity_block(self, intent: Intent) -> Optional[Dict[str, Any]]:
+        """ENTRY/ADD only: the follower's liquidation must be at least as far from the mark as the safest contributing
+        leader's. Returns a block record, or None when allowed. Unknown or unprovable fails closed."""
+        coin = canonical_coin_key(intent.fill.coin)
+        if ":" in str(intent.fill.coin):  # builder-dex (HIP-3) asset: isolated-only, not in the main-dex account state
+            self.audit.append_reconciliation(
+                "LIQ_PARITY", "LIQ_PARITY_SKIPPED_BUILDER_DEX", coin=str(intent.fill.coin), action="NO_ACTION",
+                terminal_state="LIQ_PARITY_SKIPPED_BUILDER_DEX",
+                notes="isolated-only builder-dex asset: the cross liquidation parity gate does not apply")
+            return None
+        mark = fnum(intent.fill.price, 0.0)
+        wallets = [intent.fill.leader_wallet]
+        try:
+            by_wallet = ((self.ledger.data.get("by_wallet") or {}) if self.ledger is not None else {})
+            for w, wmap in by_wallet.items():
+                sleeve = wmap.get(coin) if isinstance(wmap, dict) else None
+                if isinstance(sleeve, dict) and abs(fnum(sleeve.get("signed_size"), 0.0)) > POSITION_EPSILON and normalise_wallet(w) not in wallets:
+                    wallets.append(normalise_wallet(w))
+        except Exception as exc:
+            log_error("liq_parity_wallets", exc)
+        leader_dist: Optional[float] = None
+        why = ""
+        for w in wallets:
+            d, reason = self._leader_liq_distance(w, coin, mark)
+            if d is None:
+                return {"status": "LIQ_PARITY_BLOCKED", "reject_category": "LIQ_PARITY_BLOCK", "operator_action": "NO_SEND_LIQ_PARITY", "notes": f"liquidation parity unprovable: {reason} ({w})"}
+            leader_dist = d if leader_dist is None else max(leader_dist, d)  # the SAFEST leader (farthest liquidation) is the bar
+        liq, how = self._follower_projected_liq_px(intent, mark)
+        if liq is None:
+            return {"status": "LIQ_PARITY_BLOCKED", "reject_category": "LIQ_PARITY_BLOCK", "operator_action": "NO_SEND_LIQ_PARITY", "notes": f"follower liquidation price unprovable: {how}"}
+        if mark <= 0:
+            return {"status": "LIQ_PARITY_BLOCKED", "reject_category": "LIQ_PARITY_BLOCK", "operator_action": "NO_SEND_LIQ_PARITY", "notes": "no mark price"}
+        long_side = intent.copy_side == "BUY"
+        follower_dist = 1.0 if (long_side and liq <= 0) else abs(mark - liq) / mark
+        if follower_dist + 1e-9 < (leader_dist or 0.0):
+            return {"status": "LIQ_PARITY_BLOCKED", "reject_category": "LIQ_PARITY_BLOCK", "operator_action": "NO_SEND_LIQ_PARITY",
+                    "notes": (f"follower liquidation {liq:.6g} is {follower_dist:.2%} from the mark ({how}); the safest leader is "
+                              f"{leader_dist:.2%} away: entry refused")}
+        return None
 
     def _begin_pending_send(self, intent: Intent, tif: str, order_type: str, limit_px: float, wire_size: float,
                             cloid: str, timing: Dict[str, Any]) -> str:
@@ -4862,6 +5034,12 @@ class SenderGateway:
             return False, "MASTER_REAL_ORDERS_OFF"
         if lifecycle in {"ENTRY", "ADD"} and self.cfg.send_mode_now() == "CLOSE":  # or to close-only meanwhile
             return False, "ENTRY_BLOCKED_GLOBAL_CLOSE_ONLY"
+        if lifecycle in {"ENTRY", "ADD"} and self.cfg.liq_parity_enabled():
+            parity = self.liq_parity_block(intent)
+            if parity is not None:
+                parity["timing"] = timing
+                self._append_local_block_reconciliation(intent, "LIQ_PARITY_BLOCKED", parity)
+                return False, "LIQ_PARITY_BLOCKED"
         # Pending-exit guard: atomically block-or-reserve so a burst of close fills
         # cannot each submit a full-sleeve close before copy-poll catches up. A
         # reduce-only order already cannot flip the position; this also prevents the
@@ -5247,6 +5425,9 @@ class SenderGateway:
             wire_size, standing_block = self._withdraw_standing_close(exchange, intent, wire_size, sz_dec, timing)
             if standing_block is not None:
                 return standing_block
+        _margin_block = self._ensure_margin_mode(exchange, sdk_coin, intent, lifecycle, timing)
+        if _margin_block is not None:
+            return _margin_block
         use_reduce_only = self._reduce_only_on_wire(intent, wire_size)
         netting_note = ""
         gtc_px = limit_px if rest_now else 0.0  # a resting limit is in flight: never re-send it after an exception
@@ -5731,6 +5912,8 @@ class SenderGateway:
                     "szDecimals": int(asset.get("szDecimals", 4)),
                     "symbol_source": "core_meta",
                     "perp_dex": "",
+                    "maxLeverage": fnum(asset.get("maxLeverage"), 0.0),
+                    "onlyIsolated": bval(asset.get("onlyIsolated"), False),
                 }
                 self._index_cache[idx] = name
         except Exception:
