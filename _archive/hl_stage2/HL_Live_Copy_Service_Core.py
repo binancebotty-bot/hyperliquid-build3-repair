@@ -5465,7 +5465,8 @@ class SenderGateway:
         wire_notional = abs(wire_size * limit_px)
         cfg_min = self._effective_symbol_min_notional(resolved)
         dust_close = (bool(intent.reduce_only_intended) and "lifecycle=EXIT" in str(intent.notes or "")
-                      and bval(os.getenv("HL_LIVE_DUST_CLOSE_ATTEMPT"), True))
+                      and bval(os.getenv("HL_LIVE_DUST_CLOSE_ATTEMPT"), True)
+                      and self._reduce_only_on_wire(intent, wire_size))  # never a sub-minimum order that could open
         if wire_notional < cfg_min and dust_close:
             timing["dust_close_below_min_notional"] = f"{wire_notional:.4f}<{cfg_min:.2f}"
         if wire_notional < cfg_min and not dust_close:
@@ -7204,6 +7205,7 @@ class LiveCopyCore:
         self._converge_thread: Optional[threading.Thread] = None
         self._converge_seen: Dict[Tuple[str, str, str], int] = {}   # sleeve -> first read showing the leader left
         self._converge_sent: Dict[Tuple[str, str, str], int] = {}   # sleeve -> last close queued
+        self._converge_tries: Dict[Tuple[str, str, str], int] = {}  # sleeve -> closes queued so far
         self._converge_last: Dict[str, Any] = {}
         self._hot_threads: List[threading.Thread] = []
         for idx in range(self.hot_send_workers):
@@ -7541,7 +7543,10 @@ class LiveCopyCore:
         # A resting missed-entry limit the leader no longer supports is withdrawn, and any fill it got is owned by
         # the ledger, BEFORE this fill is classified: the leader's close must find that position. The cancel and the
         # fill read are network calls, so they are made before the send lock; only the ledger update is under it.
-        withdrawn = self.sender.cancel_resting_entries_against(fill)
+        converge = str(fill.source or "").upper() == "CONVERGE"
+        # a convergence close is not a leader fill: it must not stamp the leader's side with the local clock (that
+        # would refuse the leader's next real entry) nor withdraw limits
+        withdrawn = [] if converge else self.sender.cancel_resting_entries_against(fill)
         withdrawn_fills = self._read_fills_of_withdrawn_limits(withdrawn) if withdrawn else None
         self.intent_builder.prewarm(fill)
         with self._send_lock:
@@ -7554,6 +7559,17 @@ class LiveCopyCore:
                     fill.leader_wallet, fill.coin, fill.side)
             except Exception:
                 _lc = ""
+            if converge:
+                _sl = self.ledger.sleeve(fill.leader_wallet, fill.coin)
+                _want = (fill.raw or {})
+                if (_lc != "EXIT" or str(_sl.get("position_id") or "") != str(_want.get("position_id") or "")
+                        or fnum(_sl.get("signed_size")) * fnum(_want.get("sleeve_size")) <= 0):
+                    self.audit.append_reconciliation(
+                        "CONVERGE_CLOSE", "CONVERGE_CLOSE_DROPPED_SLEEVE_CHANGED", leader_wallet=fill.leader_wallet,
+                        coin=fill.coin, leader_fill_id=fill.leader_fill_id, action="NO_SEND",
+                        notes=(f"queued for position {_want.get('position_id')} size {_want.get('sleeve_size')}; now "
+                               f"{_sl.get('position_id')} size {_sl.get('signed_size')} ({_lc}): never opened or added to"))
+                    return False, "CONVERGE_CLOSE_DROPPED_SLEEVE_CHANGED", None
             _is_exit_or_reduce = _lc in {"EXIT", "REDUCE"}
             if _is_exit_or_reduce:
                 # Always re-attempt exits across session restarts. Track in processed so the
@@ -7942,6 +7958,9 @@ class LiveCopyCore:
                     continue
                 # dust (under the minimum order value) the exchange may refuse even reduce-only: retry it rarely
                 wait_ms = max(retry_ms, 1_800_000) if abs(size) * px < self.cfg.min_notional() else retry_ms
+                tries = self._converge_tries.get(key, 0)
+                if tries >= 3:  # three closes did not take: the exchange or a gate refuses it; every 30 min from now
+                    wait_ms = max(wait_ms, 1_800_000)
                 if now - first < confirm_ms or now - self._converge_sent.get(key, 0) < wait_ms:
                     continue
                 reason = "LEADER_FLAT" if abs(lead) <= POSITION_EPSILON else "LEADER_OPPOSITE_SIDE"
@@ -7949,13 +7968,14 @@ class LiveCopyCore:
                 fill = LeaderFill(f"converge:{wallet}:{canonical_coin_key(coin)}:{now}", wallet, coin, close_side, px,
                                   abs(size), now, "CONVERGE", 0,
                                   {"dir": "Close Long" if size > 0 else "Close Short", "converge_reason": reason,
-                                   "leader_net_now": lead})
+                                   "leader_net_now": lead, "position_id": pid, "sleeve_size": size})
                 self.audit.append_reconciliation(
                     "CONVERGE_CLOSE", f"CONVERGE_{reason}", leader_wallet=wallet, coin=coin,
                     action="CLOSE_ENGINE_SLEEVE_REDUCE_ONLY", leader_fill_id=fill.leader_fill_id,
                     notes=(f"leader position now {lead}; engine sleeve {size} (position {pid}); confirmed over "
                            f"{(now - first) / 1000:.0f}s; queued as a leader close (all exit gates apply)"))
                 self._converge_sent[key] = now
+                self._converge_tries[key] = self._converge_tries.get(key, 0) + 1
                 if self.async_dispatch:
                     self._dispatch_fill(fill)
                 else:
@@ -7963,6 +7983,7 @@ class LiveCopyCore:
                 out["queued"] += 1
         for key in [k for k in self._converge_seen if k not in seen_now]:
             self._converge_seen.pop(key, None)  # the leader is back on our side (or the sleeve closed): start over
+            self._converge_tries.pop(key, None)
         out["status"] = "CONVERGE_CHECKED"
         self._converge_last = out
         return out

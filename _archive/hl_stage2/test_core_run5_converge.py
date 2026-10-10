@@ -111,6 +111,23 @@ def main() -> None:
     core.converge_once()
     check("C8_LEADER_BACK_ON_OUR_SIDE_CLEARS_THE_CANDIDATE",
           not any(k[0] == B for k in core._converge_seen), str(core._converge_seen))
+    # C10: a queued close that no longer closes its sleeve (the leader closed and reopened the other way first) is
+    # dropped, never sent as an ADD; C11: it does not stamp the leader's side with the local clock
+    core.sender.send_if_allowed = lambda intent, block="": sent.append(intent) or (False, "TEST_NO_SEND")
+    stale = c.LeaderFill("converge:x", A, "ETH", "SELL", 100.0, 1.0, c.utc_now_ms(), "CONVERGE", 0,
+                         {"dir": "Close Long", "position_id": "old-position", "sleeve_size": 1.0})
+    core.ledger.sleeve(A, "ETH")["signed_size"] = -1.0   # now a short sleeve: a SELL would ADD to it
+    core.ledger.sleeve(A, "ETH")["position_id"] = "new-short"
+    core.ledger._recompute_net(core.ledger.data)
+    n2 = len(sent)
+    ok, status, _i = core._process_leader_fill(stale, None, "")
+    check("C10_STALE_CONVERGE_CLOSE_NEVER_ADDS", not ok and status == "CONVERGE_CLOSE_DROPPED_SLEEVE_CHANGED"
+          and len(sent) == n2, status)
+    check("C11_CONVERGE_CLOSE_DOES_NOT_STAMP_THE_LEADER_SIDE",
+          not any(k[0] == c.normalise_wallet(A) for k in core.sender._leader_side_seen_ms),
+          str(core.sender._leader_side_seen_ms))
+    tries_key = next(iter(core._converge_tries), None)
+    check("C12_REPEATED_FAILED_CLOSES_COUNTED", tries_key is not None and core._converge_tries[tries_key] >= 1)
     os.environ.pop("HL_LIVE_CONVERGE_CONFIRM_SEC", None)
     os.environ.pop("HL_LIVE_CONVERGE_RETRY_SEC", None)
     src = (HERE / "HL_Live_Copy_Service_Core.py").read_text(encoding="utf-8")
@@ -133,6 +150,10 @@ def main() -> None:
     ok_off, _ = g._validate_final_wire_order(intent("EXIT", True), resolved, "BTC", 0.05, 100.0, {})
     os.environ.pop("HL_LIVE_DUST_CLOSE_ATTEMPT", None)
     check("D2_SWITCH_RESTORES_THE_OLD_BLOCK", not ok_off)
+    # D3: a close the netting rule would send WITHOUT reduce-only is not exempt from the minimum
+    g._reduce_only_on_wire = lambda intent, size: False
+    ok_net, _ = g._validate_final_wire_order(intent("EXIT", True), resolved, "BTC", 0.05, 100.0, {})
+    check("D3_NON_REDUCE_ONLY_CLOSE_KEEPS_THE_MINIMUM", not ok_net)
 
     # F: fixed sizing merges a leader's run into fewer orders carrying the same amount
     config(send=False, max_order_notional_usd=50)
