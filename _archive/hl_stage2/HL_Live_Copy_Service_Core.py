@@ -2568,16 +2568,39 @@ class ConfigManager:
         """The master switch as it is on disk NOW (re-read only when the file changed). Run 4: turning sending
         off let 33 already-queued orders out over ~35 s, because each worker used the switch as read at the
         start of the cycle. OFF on disk stops the next order at once; arming still waits for the next cycle."""
-        if not self.master_real_orders_enabled:
-            return False
+        return self.send_mode_now() != "OFF"
+
+    @staticmethod
+    def _send_mode_of(cfg: Dict[str, Any]) -> str:
+        """OFF / CLOSE / ON. global_controls.send_mode wins when present; otherwise the legacy auto_send_enabled
+        (false -> OFF, true -> ON; absent -> the HL_LIVE_AUTO_SEND_ENABLED env)."""
+        gc = cfg.get("global_controls") if isinstance(cfg.get("global_controls"), dict) else {}
+        raw = str(gc.get("send_mode") or "").upper().strip().replace("_", " ").replace("-", " ")
+        if raw in {"OFF", "ON"}:
+            return raw
+        if raw in {"CLOSE", "CLOSE ONLY", "CLO"}:
+            return "CLOSE"
+        legacy = bval(cfg.get("auto_send_enabled"), False) if "auto_send_enabled" in cfg \
+            else bval(os.getenv("HL_LIVE_AUTO_SEND_ENABLED"), False)
+        return "ON" if legacy else "OFF"
+
+    @property
+    def send_mode(self) -> str:
+        return self._send_mode_of(self.config)
+
+    def send_mode_now(self) -> str:
+        """The three-state sending switch as it is on disk NOW (re-read only when the file changed). Run 4: turning
+        sending off let 33 already-queued orders out over ~35 s, because each worker used the switch as read at the
+        start of the cycle. OFF on disk stops the next order at once; arming (from OFF) still waits for the next cycle."""
+        if self.send_mode == "OFF":
+            return "OFF"
         mtime = self._mtime()
         if mtime and mtime != self._switch_mtime:
             fresh = load_json(self.config_path, None)
             if isinstance(fresh, dict):
                 self._switch_mtime = mtime
-                self._switch_on = (bval(fresh.get("auto_send_enabled"), False) if "auto_send_enabled" in fresh
-                                   else bval(os.getenv("HL_LIVE_AUTO_SEND_ENABLED"), False))
-        return self._switch_on
+                self._switch_mode = self._send_mode_of(fresh)
+        return getattr(self, "_switch_mode", None) or self.send_mode
 
     def _load(self) -> Dict[str, Any]:
         cfg = load_json(self.config_path, {})
@@ -2593,9 +2616,7 @@ class ConfigManager:
 
     @property
     def master_real_orders_enabled(self) -> bool:
-        if "auto_send_enabled" in self.config:
-            return bval(self.config.get("auto_send_enabled"), False)
-        return bval(os.getenv("HL_LIVE_AUTO_SEND_ENABLED"), False)
+        return self.send_mode != "OFF"
 
     @property
     def send_block_reason(self) -> str:
@@ -4807,6 +4828,8 @@ class SenderGateway:
         if self.sender_key_invalid:
             return False, "SEND_BLOCKED_SENDER_KEY_NOT_VALID"
         lifecycle = classify_send_lifecycle(intent)
+        if lifecycle in {"ENTRY", "ADD"} and self.cfg.send_mode_now() == "CLOSE":
+            return False, "ENTRY_BLOCKED_GLOBAL_CLOSE_ONLY"  # CLOSE: reductions only, no entry or top-up
         if entry_block_reason and lifecycle in {"ENTRY", "ADD"}:
             return False, f"ENTRY_BLOCKED_{entry_block_reason}"
         if lifecycle in {"ENTRY", "ADD"} and self.leader_reduced_since(intent.fill):
@@ -4837,6 +4860,8 @@ class SenderGateway:
             return False, str(gate_block.get("status") or "OWNERSHIP_GATE_BLOCKED")
         if not self.cfg.master_switch_now():  # switched off while the gate waited for fresh records
             return False, "MASTER_REAL_ORDERS_OFF"
+        if lifecycle in {"ENTRY", "ADD"} and self.cfg.send_mode_now() == "CLOSE":  # or to close-only meanwhile
+            return False, "ENTRY_BLOCKED_GLOBAL_CLOSE_ONLY"
         # Pending-exit guard: atomically block-or-reserve so a burst of close fills
         # cannot each submit a full-sleeve close before copy-poll catches up. A
         # reduce-only order already cannot flip the position; this also prevents the
@@ -9080,7 +9105,7 @@ class LiveCopyCore:
                     log_error("refresh_resting_open_sizes", exc)
                 # sending off: no order of the engine's may keep working on the exchange (run 4: limits kept filling)
                 retried = self.sender.retry_pending_withdrawals()
-                if not master_enabled:
+                if not master_enabled or self.cfg.send_mode == "CLOSE":  # CLOSE withdraws entry limits like OFF; close limits stay
                     retried += self.sender.withdraw_resting_entries_sending_off()
                 if retried:
                     read = self._read_fills_of_withdrawn_limits(retried)

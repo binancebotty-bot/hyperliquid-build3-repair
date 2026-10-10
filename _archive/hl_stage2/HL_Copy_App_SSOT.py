@@ -1101,11 +1101,22 @@ def _latest_row(rows: List[Dict[str, Any]], predicate) -> Dict[str, Any]:
     return {}
 
 
-def _master_switch_on(live_config: Dict[str, Any]) -> bool:
-    """Sending ON/OFF exactly as the engine reads it each cycle: live_config auto_send_enabled, else the env."""
+def _send_mode(live_config: Dict[str, Any]) -> str:
+    """OFF / CLOSE / ON exactly as the engine reads it: global_controls.send_mode wins, else auto_send_enabled, else the env."""
+    gc = live_config.get("global_controls") if isinstance(live_config, dict) else None
+    raw = str((gc or {}).get("send_mode") or "").upper().strip().replace("_", " ").replace("-", " ") if isinstance(gc, dict) else ""
+    if raw in {"OFF", "ON"}:
+        return raw
+    if raw in {"CLOSE", "CLOSE ONLY", "CLO"}:
+        return "CLOSE"
     if isinstance(live_config, dict) and "auto_send_enabled" in live_config:
-        return parse_bool(live_config.get("auto_send_enabled"))
-    return parse_bool(_local_env_value("HL_LIVE_AUTO_SEND_ENABLED") or "0")
+        return "ON" if parse_bool(live_config.get("auto_send_enabled")) else "OFF"
+    return "ON" if parse_bool(_local_env_value("HL_LIVE_AUTO_SEND_ENABLED") or "0") else "OFF"
+
+
+def _master_switch_on(live_config: Dict[str, Any]) -> bool:
+    """Sending armed (CLOSE ONLY counts: closes still go out), as the engine reads it each cycle."""
+    return _send_mode(live_config) != "OFF"
 
 
 def _engine_ws_enabled(ws_health: Dict[str, Any], service_state: Dict[str, Any]) -> bool:
@@ -1381,7 +1392,7 @@ def _live_audit_summary_full() -> Dict[str, Any]:
     reconciliation_rows, reconciliation_rows_total = _load_recent_reconciliation_rows(500)
 
     live_config = _load_live_copy_config()
-    _auto_send_enabled = parse_bool(live_config.get("auto_send_enabled"))
+    _auto_send_enabled = _master_switch_on(live_config)
     _auto_send_filter = os.getenv("HL_LIVE_AUTO_SEND_WALLET", "").lower().strip()
     _cfg_wallets = live_config.get("wallets", {})
     _auto_live_eligible: List[str] = [
@@ -6735,7 +6746,7 @@ def _model_dashboard_response() -> HTMLResponse:
     if _kick_model_cache_refresh_background():
         print("MODEL_DASHBOARD_CACHE_COLD_BACKGROUND_STARTED", flush=True)
     live_config = _load_live_copy_config()
-    auto_send = parse_bool(live_config.get("auto_send_enabled"))
+    auto_send = _master_switch_on(live_config)
     gate = load_json(WALLET_GATE_FILE, {})
     on_count = 0
     if isinstance(gate, dict):
@@ -6828,7 +6839,7 @@ def api_state() -> JSONResponse:
     return JSONResponse({
         "ok": True,
         "updated_at": utc_now_iso(),
-        "auto_send_enabled": parse_bool(live_config.get("auto_send_enabled")),
+        "auto_send_enabled": _master_switch_on(live_config), "send_mode": _send_mode(live_config),
         "wallet_gate_on_count": len(gate_on),
         "wallet_gate_on": gate_on,
         "global_controls": _global_controls_for_ui(live_config.get("global_controls", _GLOBAL_CONTROLS_DEFAULTS)),
