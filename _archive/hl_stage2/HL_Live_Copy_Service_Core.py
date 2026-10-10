@@ -6617,9 +6617,15 @@ class CopyFillMatcher:
 
     @staticmethod
     def _is_liquidation_fill(copy_fill: Dict[str, Any]) -> bool:
-        """The follower ITSELF was liquidated: dir "Liquidated ..." or liquidation.liquidatedUser is the follower. A
-        fill of one of our orders against someone else's liquidation also carries a liquidation field: never this."""
-        if str(copy_fill.get("dir") or "").strip().lower().startswith("liquidated"):
+        """The follower ITSELF was liquidated: dir "Liquidated ..." or liquidation.liquidatedUser is the follower.
+        An auto-deleveraging closure (dir "Auto-Deleveraging") reduces the follower's own position at the exchange
+        exactly like a liquidation and carries no liquidation object, so it is treated the same way (run 5: two
+        HYPE ADL fills left the ledger at -0.68 against an exchange 0). A fill of one of our orders against someone
+        else's liquidation also carries a liquidation field: never this."""
+        direction = str(copy_fill.get("dir") or "").strip().lower()
+        if direction.startswith("liquidated"):
+            return True
+        if direction.replace("-", " ").replace("_", " ").startswith("auto deleveraging"):
             return True
         liq = copy_fill.get("liquidation")
         return isinstance(liq, dict) and normalise_wallet(str(liq.get("liquidatedUser") or "")) == normalise_wallet(USER_WALLET)
