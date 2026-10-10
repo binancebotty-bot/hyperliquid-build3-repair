@@ -25,6 +25,7 @@ import concurrent.futures
 import csv
 import hashlib
 import io
+import inspect
 import json
 import math
 import os
@@ -475,7 +476,7 @@ SEND_ATTEMPT_FIELDS = [
     "sdk_client_started_ms", "sdk_client_finished_ms", "exchange_call_started_ms",
     "exchange_call_finished_ms", "send_attempt_written_ms", "queue_wait_ms", "leader_to_intent_ms",
     "intent_to_send_start_ms", "symbol_resolve_ms", "sdk_client_ms", "exchange_call_ms",
-    "send_total_ms", "leader_to_send_attempt_ms", "notes",
+    "send_total_ms", "leader_to_send_attempt_ms", "notes", "cloid",
     "enqueued_ms", "picked_up_ms", "process_started_ms", "prewarm_done_ms", "lock_acquired_ms", "intent_written_ms",
 ]
 
@@ -1064,6 +1065,25 @@ def append_csv(path: Path, fieldnames: List[str], row: Dict[str, Any]) -> None:
             f.write(buf.getvalue())
     finally:
         FILE_LOCK.release()
+
+
+def update_send_attempt_row(attempt_id: str, updates: Dict[str, Any]) -> bool:
+    """T1a: record the result of a send attempt whose pending_send row (written before the exchange call) already
+    exists. APPEND-ONLY: the file is never rewritten (a rewrite of the 0.2 GB audit file per order would stall the
+    send path and could drop rows appended meanwhile). The newest row for an attempt_id is its current state; the
+    earlier pending_send row stays as the crash record. Returns False if no row carries attempt_id."""
+    if not attempt_id:
+        return False
+    base = None
+    for row in reversed(send_attempt_rows()):
+        if row.get("attempt_id") == attempt_id:
+            base = dict(row)
+            break
+    if base is None:
+        return False
+    base.update(updates)
+    append_csv(SEND_ATTEMPTS_CSV, SEND_ATTEMPT_FIELDS, base)
+    return True
 
 
 def read_csv_rows(path: Path) -> List[Dict[str, str]]:
@@ -2146,6 +2166,58 @@ def is_valid_wallet(wallet: str) -> bool:
 def stable_hash(parts: Iterable[Any]) -> str:
     raw = "|".join(str(p) for p in parts)
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:32]
+
+
+def generate_cloid(intent_id: str) -> str:
+    """T1a: deterministic 128-bit hex client order id (0x + first 32 hex of sha256(intent_id)). It rides on the
+    one physical order call, so a crash after the exchange accepted the order still leaves this id on a send row
+    for startup to find."""
+    return "0x" + hashlib.sha256(str(intent_id).encode("utf-8")).hexdigest()[:32]
+
+
+def generate_attempt_id(intent_id: str) -> str:
+    """T1a: deterministic send_attempts row id for an intent; the pending_send row and its final update share it."""
+    return stable_hash(["attempt", intent_id])
+
+
+try:
+    from hyperliquid.utils.types import Cloid as _SDKCloid  # type: ignore
+except Exception:  # SDK absent (tests, dry environments): the raw hex string is passed through
+    _SDKCloid = None  # type: ignore
+
+
+def _sdk_cloid(raw: str) -> Any:
+    """Wrap the raw hex cloid for the SDK's cloid= keyword when the SDK is present; otherwise pass it through."""
+    if not raw:
+        return None
+    if _SDKCloid is None:
+        return raw
+    try:
+        return _SDKCloid.from_str(raw)
+    except Exception:
+        return raw
+
+
+_CLOID_SUPPORT_CACHE: Dict[Any, bool] = {}
+
+
+def _exchange_accepts_cloid(exchange: Any) -> bool:
+    """The real HL SDK Exchange.order takes a cloid= keyword; a minimal fake/adaptor may not. Cached per type, so
+    the hot path costs nothing after the first order. Unknown/unsignatured callables are treated as accepting it."""
+    key = type(exchange)
+    hit = _CLOID_SUPPORT_CACHE.get(key)
+    if hit is not None:
+        return hit
+    fn = getattr(exchange, "order", None)
+    ok = True
+    if fn is not None:
+        try:
+            params = inspect.signature(fn).parameters
+            ok = ("cloid" in params) or any(p.kind == inspect.Parameter.VAR_KEYWORD for p in params.values())
+        except (TypeError, ValueError):
+            ok = True
+    _CLOID_SUPPORT_CACHE[key] = ok
+    return ok
 
 
 def normalise_copy_fill_side(raw: Any) -> str:
@@ -3253,7 +3325,8 @@ class SenderGateway:
         self._load_asset_universe_snapshot()
 
     def _place_order(self, exchange: Any, sdk_coin: str, is_buy: bool, size: float, limit_px: float,
-                     tif: str, reduce_only: bool, timing: Optional[Dict[str, Any]] = None, started_key: str = "") -> Any:
+                     tif: str, reduce_only: bool, timing: Optional[Dict[str, Any]] = None, started_key: str = "",
+                     cloid: Optional[str] = None) -> Any:
         """The ONE physical exchange order call. Every order (IOC, IOC retry, rate-limit recovery,
         exit recovery) is serialised and paced here."""
         # Only the time slot is serialised (pacing, and a distinct signing nonce per order): the exchange calls of
@@ -3264,7 +3337,11 @@ class SenderGateway:
             self._wait_exchange_order_slot()
         if timing is not None and started_key:
             timing[started_key] = utc_now_ms()
-        response = exchange.order(sdk_coin, is_buy, size, limit_px, {"limit": {"tif": tif}}, reduce_only=reduce_only)
+        order_kwargs: Dict[str, Any] = {"reduce_only": reduce_only}
+        sdk_cloid = _sdk_cloid(cloid) if cloid else None  # T1a: SDK Cloid so the order is findable after a crash
+        if sdk_cloid is not None and _exchange_accepts_cloid(exchange):
+            order_kwargs["cloid"] = sdk_cloid
+        response = exchange.order(sdk_coin, is_buy, size, limit_px, {"limit": {"tif": tif}}, **order_kwargs)
         self._note_sender_key_rejection(response)
         return response
 
@@ -3293,6 +3370,205 @@ class SenderGateway:
             self._wait_exchange_order_slot()
         return exchange.cancel(sdk_coin, int(oid))
 
+    def _begin_pending_send(self, intent: Intent, tif: str, order_type: str, limit_px: float, wire_size: float,
+                            cloid: str, timing: Dict[str, Any]) -> str:
+        """T1a: write the send_attempts row (status pending_send, with the cloid) BEFORE the exchange call, so a
+        crash after the exchange accepted the order still leaves one row naming the order. Returns its attempt_id."""
+        attempt_id = str(timing.get("send_attempt_id") or generate_attempt_id(intent.intent_id))
+        timing["send_attempt_id"] = attempt_id
+        timing["send_cloid"] = cloid
+        now = utc_now_ms()
+        self.audit.append_send_attempt({
+            "created_at": utc_now_iso(),
+            "created_at_ms": now,
+            "attempt_id": attempt_id,
+            "intent_id": intent.intent_id,
+            "leader_fill_id": intent.fill.leader_fill_id,
+            "leader_wallet": intent.fill.leader_wallet,
+            "coin": intent.fill.coin,
+            "side": intent.copy_side,
+            "order_type": order_type,
+            "limit_price": limit_px,
+            "copy_size": wire_size,
+            "copy_notional": abs(wire_size * limit_px),
+            "reduce_only_sent": str(bool(intent.reduce_only_intended)),
+            "sleeve_id": intent.sleeve_id,
+            "position_id": intent.position_id,
+            "wallet_position_before": intent.wallet_position_before,
+            "wallet_position_after_expected": "",
+            "coin_net_before": intent.coin_net_before,
+            "coin_net_after_expected": "",
+            "status": "pending_send",
+            "exchange_response": "",
+            "exchange_order_id": "",
+            "error": "",
+            "reject_category": "",
+            "terminal_state": "PENDING_SEND",
+            "operator_action": "WAIT_FOR_SEND_REPLY",
+            "latency_classification": "",
+            **{k: timing.get(k, "") for k in SEND_TIMING_FIELDS},
+            "notes": f"pending_send written before the exchange call; tif={tif}",
+            "cloid": cloid,
+        })
+        return attempt_id
+
+    def _engine_owned_cloids_and_oids(self):
+        """Cloids and order ids this engine owns: every send_attempts row plus every resting entry."""
+        cloids, oids = set(), set()
+        for row in read_csv_rows(SEND_ATTEMPTS_CSV):
+            cl = str(row.get("cloid") or "").strip().lower()
+            if cl:
+                cloids.add(cl)
+            oid = str(row.get("exchange_order_id") or "").strip()
+            if oid:
+                oids.add(oid)
+        with self._resting_lock:
+            for oid, row in self._resting_entries.items():
+                oids.add(str(oid))
+                cl = str(row.get("cloid") or "").strip().lower()
+                if cl:
+                    cloids.add(cl)
+        return cloids, oids
+
+    def _read_open_orders(self):
+        """Read the follower's open orders on every dex the engine reads. Returns (ok, [(dex, order)], detail).
+        A failed or unreadable dex makes ok False (the caller fails closed)."""
+        dexes = follower_dex_scope()
+        try:
+            results = _XNET.post_many(
+                OPEN_ORDERS_FETCHER,
+                [{"type": "openOrders", "user": USER_WALLET, **({"dex": d} if d else {})} for d in dexes],
+                HL_INFO_URL, HTTP_TIMEOUT_SEC)
+        except Exception as exc:
+            return False, [], f"open-orders read raised {exc!r}"
+        out, read_dexes = [], 0
+        for dex, res in zip(dexes, results):
+            if not (isinstance(res, dict) and res.get("ok") and isinstance(res.get("data"), list)):
+                detail = res.get("detail") if isinstance(res, dict) else res
+                return False, out, f"open-orders read failed for dex {dex!r}: {detail}"
+            read_dexes += 1
+            for o in res["data"]:
+                if isinstance(o, dict):
+                    out.append((dex, o))
+        return True, out, f"read {read_dexes}/{len(dexes)} dexes"
+
+    def startup_orphan_order_check(self) -> Dict[str, Any]:
+        """T1b: before arming, read the follower's open orders on every dex the engine reads. Each order is
+        matched to an engine send row / resting entry (by cloid or order id): a match is adopted as a resting
+        engine order; no match is cancelled and audited as orphan_order_cancelled. A failed read fails closed
+        (refuses to arm). Never runs on a mainnet follower without --confirm-mainnet-follower (existing guard)."""
+        if FOLLOWER_NETWORK == "mainnet":  # never cancels a mainnet order the engine cannot prove it placed (Boss manages those)
+            return {"ok": True, "skipped": True, "adopted": [], "cancelled": [],
+                    "detail": "mainnet follower: open orders left untouched (cancel-unknown is testnet-only)"}
+        if not USER_WALLET or not self.cfg.auto_send_enabled or bval(os.getenv("HL_LIVE_MOCK_SEND"), False):
+            return {"ok": True, "skipped": True, "adopted": [], "cancelled": [],
+                    "detail": "no real sending configured (no follower wallet, auto-send off or mock send): not checked"}
+        cloids, oids = self._engine_owned_cloids_and_oids()
+        ok, orders, detail = self._read_open_orders()
+        if not ok:
+            return {"ok": False, "skipped": False, "adopted": [], "cancelled": [],
+                    "detail": f"{detail}; refusing to arm (fail closed, no order touched)"}
+        adopted, cancelled = [], []
+        for dex, o in orders:
+            oid = str(o.get("oid", "")).strip()
+            if not oid:
+                continue
+            cloid = str(o.get("cloid") or "").strip().lower()
+            if (cloid and cloid in cloids) or (oid in oids):
+                self._adopt_orphan_order(dex, o)
+                adopted.append({"oid": oid, "cloid": cloid})
+            else:
+                outcome = self._cancel_orphan_order(dex, o)
+                cancelled.append({"oid": oid, "cloid": cloid, "outcome": outcome})
+        return {"ok": True, "skipped": False, "adopted": adopted, "cancelled": cancelled,
+                "detail": f"{detail}; adopted={len(adopted)} cancelled={len(cancelled)}"}
+
+    def _adopt_orphan_order(self, dex: str, o: Dict[str, Any]) -> None:
+        """A startup open order the engine already owns (matched by cloid or order id): record it as resting."""
+        oid = str(o.get("oid", ""))
+        coin = str(o.get("coin") or "")
+        side = "BUY" if str(o.get("side", "")).upper() in {"B", "BUY"} else "SELL"
+        size = fnum(o.get("sz") or o.get("origSz"))
+        px = fnum(o.get("limitPx"))
+        cloid = str(o.get("cloid") or "").strip()
+        row = {"oid": oid, "leader_wallet": "", "coin": coin, "sdk_coin": coin, "side": side, "limit_px": px,
+               "size": size, "intent_id": "", "leader_fill_id": "", "leader_fill_ms": 0, "leader_price": px,
+               "placed_ms": utc_now_ms(), "cloid": cloid, "why": "startup_orphan_adopted", "open_size": size}
+        with self._resting_lock:
+            self._resting_entries[oid] = row
+            atomic_write_json(RESTING_ENTRY_ORDERS_FILE, dict(self._resting_entries))
+        promoted = self._promote_pending_row_to_resting(cloid, oid)
+        self.audit.append_reconciliation(
+            "STARTUP_ORPHAN", "ORPHAN_ORDER_ADOPTED", coin=coin, exchange_order_id=oid,
+            action="NO_ACTION_ORPHAN_ADOPTED", terminal_state="ORPHAN_ORDER_ADOPTED",
+            notes=(f"startup: open order {oid} ({side} {size} @ {px}) matches an engine record (cloid={cloid}); "
+                   f"adopted as a resting engine order; pending_row_promoted={promoted}"))
+
+    def _promote_pending_row_to_resting(self, cloid: str, oid: str) -> bool:
+        """A pending_send row owning this cloid becomes ORDER_RESTING with the order id, so the matcher treats
+        the order (and any fill it later gets) as engine-owned."""
+        cl = str(cloid or "").strip().lower()
+        if not cl:
+            return False
+        rows = read_csv_rows(SEND_ATTEMPTS_CSV)
+        latest = {}
+        for row in rows:
+            latest[str(row.get("attempt_id") or "")] = row  # append-only: the newest row per attempt is its state
+        for row in latest.values():
+            if (str(row.get("cloid") or "").strip().lower() == cl
+                    and str(row.get("status") or "").lower() == "pending_send"):
+                return update_send_attempt_row(str(row.get("attempt_id") or ""),
+                                               {"status": "ORDER_RESTING", "exchange_order_id": oid,
+                                                "terminal_state": "ORDER_RESTING",
+                                                "notes": "adopted at startup by cloid; order still resting"})
+        return False
+
+    def _cancel_orphan_order(self, dex: str, o: Dict[str, Any]) -> str:
+        """A startup open order matching nothing the engine placed: cancel it by default and audit it."""
+        oid = str(o.get("oid", ""))
+        coin = str(o.get("coin") or "")
+        raw_coin = (f"{dex}:{coin}" if dex else coin)
+        error, outcome = "", "ORPHAN_ORDER_CANCELLED"
+        try:
+            exchange, sdk_coin = self._exchange_client_for_coin(raw_coin)
+            response = self._cancel_order(exchange, sdk_coin or coin, oid)
+            statuses = (response or {}).get("response", {}).get("data", {}).get("statuses", []) if isinstance(response, dict) else []
+            first = statuses[0] if statuses else None
+            if first == "success":
+                outcome = "ORPHAN_ORDER_CANCELLED"
+            elif isinstance(first, dict) and re.search(r"already canceled|filled|never placed", str(first.get("error", "")), re.I):
+                outcome = "ORPHAN_ORDER_ALREADY_GONE"
+            else:
+                outcome, error = "ORPHAN_ORDER_CANCEL_FAILED", json.dumps(response, default=str)[:300]
+        except Exception as exc:
+            outcome, error = "ORPHAN_ORDER_CANCEL_FAILED", repr(exc)
+        self.audit.append_reconciliation(
+            "STARTUP_ORPHAN", "ORPHAN_ORDER_CANCELLED", coin=coin, exchange_order_id=oid,
+            action=("MANUAL_REVIEW_ORPHAN_CANCEL_FAILED" if outcome == "ORPHAN_ORDER_CANCEL_FAILED"
+                    else "NO_ACTION_ORPHAN_CANCELLED"),
+            terminal_state=outcome,
+            notes=(f"startup: open order {oid} ({coin}) matches no engine send row or resting entry; cancelled "
+                   f"by default; error={error}"))
+        return outcome
+
+    def stop_cancel_resting_entries(self) -> List[Dict[str, Any]]:
+        """T1c: on stop/disarm, cancel the engine's resting entry limits FIRST via the existing withdraw path.
+        Cancelled ones are recorded; a cancel that fails stays in the registry with its cloid (withdraw_pending)
+        so the next startup's orphan check adopts it. Never raises: a stop must always complete."""
+        try:
+            with self._resting_lock:
+                rows = self._claim_rows([r for r in self._resting_entries.values() if not r.get("withdraw_pending")])
+            return (self._withdraw_rows(rows, "engine stop: resting entry limit cancelled before exit", "",
+                                        "RESTING_ENTRY_CANCELLED_ON_STOP") if rows else [])
+        except Exception as exc:
+            log_error("stop_cancel_resting_entries", exc)
+            self.audit.append_reconciliation(
+                "SEND_TERMINAL", "RESTING_ENTRY_CANCEL_FAILED",
+                action="MANUAL_REVIEW_CANCEL_RESTING_ENTRY_ON_STOP", terminal_state="RESTING_ENTRY_CANCEL_FAILED",
+                engine_can_send="False",
+                notes=(f"stop: cancelling resting entry limits raised {exc!r}; check open orders on the exchange"))
+            return []
+
     def _register_resting_entry(self, intent: Intent, sdk_coin: str, oid: str, px: float, size: float, why: str) -> None:
         """Record a resting missed-entry limit. If the leader already reduced that position after the fill this
         limit copies (seen by another thread while the limit was being placed), withdraw it at once."""
@@ -3304,6 +3580,7 @@ class SenderGateway:
             "sdk_coin": sdk_coin, "side": intent.copy_side, "limit_px": px, "size": size, "intent_id": intent.intent_id,
             "leader_fill_id": intent.fill.leader_fill_id, "leader_fill_ms": int(fnum(intent.fill.timestamp_ms, 0)),
             "leader_price": intent.fill.price, "placed_ms": utc_now_ms(), "why": why,
+            "cloid": generate_cloid(intent.intent_id),
         }
         with self._resting_lock:
             self._resting_entries[str(oid)] = row
@@ -4409,6 +4686,9 @@ class SenderGateway:
     def _send_real(self, intent: Intent, timing: Optional[Dict[str, Any]] = None) -> Tuple[bool, str, Dict[str, Any]]:
         timing = timing if isinstance(timing, dict) else self._base_timing(intent)
         timing.setdefault("send_real_started_ms", utc_now_ms())
+        # T1a: one deterministic attempt_id + cloid for this send; the pending row and the final update share them
+        timing.setdefault("send_attempt_id", generate_attempt_id(intent.intent_id))
+        timing.setdefault("send_cloid", generate_cloid(intent.intent_id))
         timing["symbol_resolve_started_ms"] = utc_now_ms()
         resolved = self._resolve_coin(intent.fill.coin)
         timing["symbol_resolve_finished_ms"] = utc_now_ms()
@@ -4743,9 +5023,25 @@ class SenderGateway:
         use_reduce_only = self._reduce_only_on_wire(intent, wire_size)
         netting_note = ""
         gtc_px = limit_px if rest_now else 0.0  # a resting limit is in flight: never re-send it after an exception
+        # T1a: write the pending_send row (with the cloid) before the one physical call, then replace it below
+        cloid = str(timing.get("send_cloid") or generate_cloid(intent.intent_id))
+        timing["send_cloid"] = cloid
+        try:
+            self._begin_pending_send(intent, "Gtc" if rest_now else "Ioc", "REAL_GTC" if rest_now else "REAL_IOC",
+                                     limit_px, wire_size, cloid, timing)
+        except Exception as exc:  # fail closed: no crash record means no order (the caller releases any exit reservation)
+            log_error("begin_pending_send", exc)
+            return False, "SEND_NOT_ATTEMPTED_AUDIT_WRITE_FAILED", {
+                "status": "AUDIT_WRITE_FAILED", "error": repr(exc), "exchange_response": {}, "oid": "",
+                "exchange_called": False, "write_reconciliation": True,
+                "notes": f"pending_send row could not be written ({exc!r}); order not sent",
+                "reject_category": "AUDIT_WRITE_FAILED", "terminal_state": "AUDIT_WRITE_FAILED",
+                "operator_action": "CHECK_DISK_AND_AUDIT_FILES", "timing": timing,
+            }
         try:
             response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", wire_size, limit_px,
-                                         "Gtc" if rest_now else "Ioc", use_reduce_only, timing, "exchange_call_started_ms")
+                                         "Gtc" if rest_now else "Ioc", use_reduce_only, timing, "exchange_call_started_ms",
+                                         cloid=cloid)
             timing["exchange_call_finished_ms"] = utc_now_ms()
             if rest_now:
                 return self._resting_entry_result(
@@ -5802,10 +6098,13 @@ class SenderGateway:
         )
         terminal_state = result.get("terminal_state") or classify_terminal_state(status, reject_category, lifecycle, exchange_called)
         operator_action = result.get("operator_action") or classify_operator_action(status, reject_category, lifecycle, exchange_called)
-        self.audit.append_send_attempt({
+        raw_timing = result.get("timing") or {}
+        attempt_id = str(raw_timing.get("send_attempt_id") or "") or stable_hash(["attempt", intent.intent_id, written_ms])
+        cloid = str(raw_timing.get("send_cloid") or "")
+        row = {
             "created_at": utc_now_iso(),
             "created_at_ms": written_ms,
-            "attempt_id": stable_hash(["attempt", intent.intent_id, written_ms]),
+            "attempt_id": attempt_id,
             "intent_id": intent.intent_id,
             "leader_fill_id": intent.fill.leader_fill_id,
             "leader_wallet": intent.fill.leader_wallet,
@@ -5834,7 +6133,9 @@ class SenderGateway:
             "latency_classification": latency_classification,
             **{k: timing.get(k, "") for k in SEND_TIMING_FIELDS},
             "notes": result.get("notes") or "real exchange IOC attempt",
-        })
+            "cloid": cloid,
+        }
+        self.audit.append_send_attempt(row)  # same attempt_id as the pending_send row: the newest row is the state
         if status != "ORDER_FILLED":
             self.audit.append_reconciliation(
                 "SEND_TERMINAL", terminal_state,
@@ -6424,7 +6725,7 @@ class CopyFillMatcher:
     def _load_sent_oid_index(self) -> Dict[str, Dict[str, str]]:
         out: Dict[str, Dict[str, str]] = {}
         for row in read_csv_rows(SEND_ATTEMPTS_CSV):
-            if str(row.get("status") or "").upper() not in {"ORDER_FILLED", "ORDER_RESTING"}:
+            if str(row.get("status") or "").upper() not in {"ORDER_FILLED", "ORDER_RESTING", "PENDING_SEND"}:
                 continue
             oid_raw = str(row.get("exchange_order_id") or "").strip()
             if not oid_raw:
@@ -6498,7 +6799,7 @@ class CopyFillMatcher:
 
     def _fresh_sent_row_for_oid(self, norm_oid: str) -> Optional[Dict[str, str]]:
         for row in send_attempt_rows():
-            if str(row.get("status") or "").upper() not in {"ORDER_FILLED", "ORDER_RESTING"}:
+            if str(row.get("status") or "").upper() not in {"ORDER_FILLED", "ORDER_RESTING", "PENDING_SEND"}:
                 continue
             oid = CopyFillMatcher._normalize_oid(str(row.get("exchange_order_id") or ""))
             if oid and oid == norm_oid:
@@ -7474,6 +7775,10 @@ class LiveCopyCore:
             self._hot_threads.append(t)
 
     def stop(self) -> None:
+        try:  # T1c: cancel resting entry limits FIRST, before the process exits
+            self.sender.stop_cancel_resting_entries()
+        except Exception as exc:
+            log_error("stop_cancel_resting_entries", exc)
         self._hot_stop_event.set()
         self.ws.stop()
         ct = getattr(self, "_copy_thread", None)
@@ -10657,6 +10962,11 @@ def main() -> None:
         source_path = Path(args.source_file) if args.source_file else None
         core = LiveCopyCore(source_csv=source_path or RAW_LEADER_FILLS_CSV)
         core.async_dispatch = bool(args.loop)  # loop mode: sends never hold up the polls and the ledger
+        # T1b: reconcile orders left open by an earlier crash BEFORE arming (fail closed on an unreadable read)
+        _orphan = core.sender.startup_orphan_order_check()
+        print(f"startup orphan-order check: {_orphan.get('detail')}", file=sys.stderr)
+        if not _orphan.get("ok"):
+            raise SystemExit(f"STARTUP_ORPHAN_CHECK_FAILED: {_orphan.get('detail')}")
         copy_poll_interval = max(0.5, float(args.copy_poll_interval))
         core.copy_poll_interval_seconds = copy_poll_interval if args.poll_copy else 0.0
         if args.ws:
