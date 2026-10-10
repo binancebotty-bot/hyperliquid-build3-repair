@@ -152,6 +152,7 @@ FORBIDDEN_WOULD_SEND_ORDERS_CSV = APPEND_ONLY_DIR / "would_send_orders.csv"
 HL_INFO_URL = NETWORKS["follower"]["info"]          # follower: meta, mids, copy fills, clearinghouseState
 HL_LEADER_INFO_URL = NETWORKS["leader"]["info"]     # leader fill polling only
 HL_WS_URL = os.getenv("HL_LIVE_WS_URL") or NETWORKS["leader"]["ws"]
+HL_FOLLOWER_WS_URL = os.getenv("HL_LIVE_FOLLOWER_WS_URL") or NETWORKS["follower"]["ws"]
 HL_EXCHANGE_URL = os.getenv("HL_LIVE_ORDER_ENDPOINT") or NETWORKS["follower"]["exchange"]
 # Real mainnet orders need the --confirm-mainnet-follower command-line flag (set only by main()); the order call
 # itself refuses otherwise, whoever imports this module.
@@ -161,6 +162,9 @@ LEADER_FETCHER = None  # test seam for leader equity reads; production uses HTTP
 MIDS_FETCHER = None  # test seam for follower mid reads; production uses HTTP
 USER_WALLET = os.getenv("HL_USER_WALLET", "").strip().lower()
 _FOLLOWER_MIDS: Dict[str, Any] = {"px": {}, "ms": 0}
+# PR1: the live allMids socket on the follower network writes here, so the send path reads prices from memory.
+# dex_ms records the last message time per follower-scope DEX ("" = default), so a stale scope falls back to HTTP.
+_FOLLOWER_MIDS_WS: Dict[str, Any] = {"px": {}, "ms": 0, "dex_ms": {}}
 _FOLLOWER_MIDS_REFRESH_LOCK = threading.Lock()  # concurrent workers wait for one refresh instead of each fetching
 _SELF_TEST_MIDS: Optional[Dict[str, Any]] = None  # self-test only: leader prints double as follower mids
 
@@ -185,11 +189,31 @@ def follower_dex_scope() -> List[str]:
     return [""] + sorted(names | _LEARNED_DEXES)
 
 
+def _ws_follower_mid(coin: str, now_ms: int, dexes: List[str]) -> float:
+    """PR1: the live allMids socket's mid for `coin`, or 0.0 when the socket has nothing fresh enough for the
+    whole follower DEX scope (every scope DEX must have reported within HL_LIVE_MIDS_MAX_AGE_SEC, 5 s)."""
+    ws = _FOLLOWER_MIDS_WS
+    max_age_ms = int(fnum(os.getenv("HL_LIVE_MIDS_MAX_AGE_SEC"), 5.0) * 1000)
+    last = int(ws.get("ms") or 0)
+    px_map = ws.get("px") or {}
+    if not px_map or not last or now_ms - last > max_age_ms:
+        return 0.0
+    dex_ms = ws.get("dex_ms") or {}
+    for dex in dexes:  # a DEX the socket has not heard from yet keeps the HTTP path for this read
+        d_ms = int(dex_ms.get(dex) or 0)
+        if not d_ms or now_ms - d_ms > max_age_ms:
+            return 0.0
+    return fnum(px_map.get(str(coin or "").upper()), 0.0)
+
+
 def follower_mid(coin: str) -> float:
-    """Fresh follower-network mid for `coin` over the follower DEX scope (allMids per DEX, read
-    concurrently). Cached HL_LIVE_MIDS_CACHE_TTL_SEC (2 s); a refresh is timed from its start, and
-    older than HL_LIVE_MIDS_MAX_AGE_SEC (5 s) counts as none."""
+    """Fresh follower-network mid for `coin` over the follower DEX scope: PR1 serves it from the live
+    allMids websocket when that is fresh, and otherwise over HTTP (allMids per DEX, read concurrently).
+    The HTTP cache is HL_LIVE_MIDS_CACHE_TTL_SEC (2 s); older than HL_LIVE_MIDS_MAX_AGE_SEC (5 s) counts as none."""
     now, m, dexes = utc_now_ms(), _FOLLOWER_MIDS, follower_dex_scope()
+    ws_px = _ws_follower_mid(coin, now, dexes)
+    if ws_px > 0:
+        return ws_px
 
     def stale() -> bool:
         return (not m["px"] or m.get("scope") != dexes   # a newly learned DEX is priced at once
@@ -447,6 +471,8 @@ ORDER_INTENT_FIELDS = [
     "sleeve_id", "position_id", "position_direction_before", "wallet_position_before",
     "coin_net_before", "reduce_only_intended", "reduce_only_sent_planned",
     "marketable_bps", "max_close_adverse_diff_pct", "min_notional", "notes",
+    # PR1 stage stamps (appended so existing files migrate): the hot-path pipeline timestamps, in order.
+    "ws_received_ms", "enqueued_ms", "picked_up_ms", "prewarm_done_ms", "lock_acquired_ms", "intent_written_ms",
 ]
 
 SEND_ATTEMPT_FIELDS = [
@@ -461,6 +487,8 @@ SEND_ATTEMPT_FIELDS = [
     "exchange_call_finished_ms", "send_attempt_written_ms", "queue_wait_ms", "leader_to_intent_ms",
     "intent_to_send_start_ms", "symbol_resolve_ms", "sdk_client_ms", "exchange_call_ms",
     "send_total_ms", "leader_to_send_attempt_ms", "notes",
+    # PR1 stage stamps (appended so existing files migrate)
+    "enqueued_ms", "picked_up_ms", "prewarm_done_ms", "lock_acquired_ms", "intent_written_ms",
 ]
 
 SEND_TIMING_FIELDS = [
@@ -470,6 +498,8 @@ SEND_TIMING_FIELDS = [
     "exchange_call_finished_ms", "send_attempt_written_ms", "queue_wait_ms", "leader_to_intent_ms",
     "intent_to_send_start_ms", "symbol_resolve_ms", "sdk_client_ms", "exchange_call_ms",
     "send_total_ms", "leader_to_send_attempt_ms",
+    # PR1 stage stamps (mirrors the tail of SEND_ATTEMPT_FIELDS)
+    "enqueued_ms", "picked_up_ms", "prewarm_done_ms", "lock_acquired_ms", "intent_written_ms",
 ]
 
 LIVE_FILL_FIELDS = [
@@ -2207,6 +2237,14 @@ class Intent:
     reduce_only_sent_planned: bool
     created_at_ms: int = 0
     notes: str = ""
+    # PR1 hot-path stage stamps (ms). Set by the core as the fill moves through the pipeline; also copied onto
+    # the send-attempt row. They make every stage gap measurable (tools/latency_rca.py) and cost no network.
+    ws_received_ms: int = 0
+    enqueued_ms: int = 0
+    picked_up_ms: int = 0
+    prewarm_done_ms: int = 0
+    lock_acquired_ms: int = 0
+    intent_written_ms: int = 0
 
     @property
     def send_allowed(self) -> bool:
@@ -2794,6 +2832,14 @@ class AuditLogWriter:
             "max_close_adverse_diff_pct": "",
             "min_notional": "",
             "notes": intent.notes,
+            # PR1 stage stamps: written as the fill moves through the pipeline (ws -> enqueue -> pick up -> prewarm
+            # -> lock -> intent row). They make every stage gap measurable without any exchange read.
+            "ws_received_ms": int(getattr(intent, "ws_received_ms", 0) or getattr(intent.fill, "ws_received_ms", 0) or 0),
+            "enqueued_ms": int(getattr(intent, "enqueued_ms", 0) or 0),
+            "picked_up_ms": int(getattr(intent, "picked_up_ms", 0) or 0),
+            "prewarm_done_ms": int(getattr(intent, "prewarm_done_ms", 0) or 0),
+            "lock_acquired_ms": int(getattr(intent, "lock_acquired_ms", 0) or 0),
+            "intent_written_ms": int(getattr(intent, "intent_written_ms", 0) or 0),
         })
 
     def append_send_attempt(self, row: Dict[str, Any]) -> None:
@@ -2857,6 +2903,13 @@ class IntentBuilder:
         self._coin_activity: Dict[str, int] = {}  # last allowed send per coin (ENG-016 settle window)
         self._coin_clean: Dict[str, bool] = {}
         self.resting_exposure: Optional[Callable[[], Dict[str, Any]]] = None  # the sender's resting entry limits
+        # PR1: background readers. When active, the send path serves exposure/equity from memory and never
+        # fetches, failing closed once a snapshot is stale. Off by default so a directly-constructed builder
+        # (tests, one-shot tools) keeps its synchronous reads.
+        self._exposure_refresh_active = False
+        self._leader_equity_refresh_active = False
+        self._exposure_refresh_lock = threading.Lock()
+        self._leader_equity_lock = threading.Lock()
 
     def _resting(self) -> Dict[str, Any]:
         if self.resting_exposure is None:
@@ -2871,12 +2924,26 @@ class IntentBuilder:
         """Leader account value on the LEADER network: the whole-account value from portfolio (required;
         a unified-margin account keeps collateral in spot, which the perp figure leaves out), or the perp
         accountValue summed over every DEX if larger (the larger value never oversizes a copy). Cached for
-        HL_LIVE_LEADER_EQUITY_TTL_SEC (default 60 s). None when unreadable: the caller must not size."""
+        HL_LIVE_LEADER_EQUITY_TTL_SEC (default 60 s). None when unreadable: the caller must not size.
+        PR1: when the background refresher is active the send path never reads here - it returns the cached
+        value or None (fail closed), so sizing never touches the network between a fill and the order."""
         now = utc_now_ms()
         ttl_ms = int(max(0.0, fnum(os.getenv("HL_LIVE_LEADER_EQUITY_TTL_SEC"), 60.0)) * 1000)
         cached = self._leader_equity.get(wallet)
         if cached and now - cached[1] <= ttl_ms:
             return cached[0]
+        if self._leader_equity_refresh_active:
+            return None
+        equity = self._read_leader_equity(wallet)
+        if equity is None:
+            return None
+        with self._leader_equity_lock:
+            self._leader_equity[wallet] = (equity, now)
+        return equity
+
+    def _read_leader_equity(self, wallet: str) -> Optional[float]:
+        """The leader-network reads behind leader_equity (dex enumeration + portfolio + perp sums). No caching."""
+        now = utc_now_ms()
         if self._leader_dexes is None or now - self._leader_dexes_ms > 600_000:
             enum = _XNET.list_perp_dexes(fetcher=LEADER_FETCHER, info_url=HL_LEADER_INFO_URL, timeout=HTTP_TIMEOUT_SEC)
             if enum.get("ok"):
@@ -2890,8 +2957,17 @@ class IntentBuilder:
         equity = max(values) if whole.get("ok") and whole.get("account_value_usd") is not None else None
         if equity is None or equity <= 0:
             return None
-        self._leader_equity[wallet] = (fnum(equity), now)
         return fnum(equity)
+
+    def refresh_leader_equity(self, wallet: str) -> None:
+        """PR1: the background thread's read. Installs the value so leader_equity() never fetches on the path."""
+        try:
+            equity = self._read_leader_equity(wallet)
+            if equity is not None:
+                with self._leader_equity_lock:
+                    self._leader_equity[wallet] = (equity, utc_now_ms())
+        except Exception as exc:
+            log_error("refresh_leader_equity", exc)
 
     def _order_value_px(self, fill: LeaderFill) -> float:
         """Worst-case price the order can fill at, on the FOLLOWER network: the fresh mid the limit is built
@@ -2924,6 +3000,13 @@ class IntentBuilder:
         past a cap. Any unreadable scope returns ok=False and the caller fails closed."""
         now = utc_now_ms()
         ttl_ms = int(max(0.0, fnum(os.getenv("HL_LIVE_EXPOSURE_CACHE_TTL_SEC"), 2.0)) * 1000)
+        if self._exposure_refresh_active:
+            # PR1: the background refresher owns the exposure read; the send path never fetches. A snapshot
+            # older than HL_LIVE_EXPOSURE_MAX_AGE_SEC (5 s) fails closed, so entries stop rather than over-size.
+            max_age_ms = int(max(0.0, fnum(os.getenv("HL_LIVE_EXPOSURE_MAX_AGE_SEC"), 5.0)) * 1000)
+            if self._exposure is not None and now - self._exposure_ms <= max_age_ms:
+                return self._exposure
+            return {"ok": False, "status": "EXPOSURE_STALE"}
         if self._exposure is not None and now - self._exposure_ms <= ttl_ms:
             return self._exposure
         pre = self._exposure_prefetched
@@ -2944,6 +3027,20 @@ class IntentBuilder:
         self._exposure_gen += 1
         return exp
 
+    def refresh_follower_exposure(self) -> None:
+        """PR1: the background thread's read. Installs the exchange snapshot so follower_exposure() never fetches."""
+        if not is_valid_wallet(normalise_wallet(USER_WALLET)):
+            return
+        try:
+            exp = _XNET.master_exposure(normalise_wallet(USER_WALLET), follower_dex_scope(), fetcher=EXPOSURE_FETCHER,
+                                        info_url=HL_INFO_URL, timeout=HTTP_TIMEOUT_SEC)
+            if exp.get("ok"):
+                with self._exposure_refresh_lock:
+                    self._exposure, self._exposure_ms, self._exposure_pending = exp, utc_now_ms(), []
+                    self._exposure_gen += 1
+        except Exception as exc:
+            log_error("refresh_follower_exposure", exc)
+
     def prewarm(self, fill: "LeaderFill") -> None:
         """Outside the send lock: refresh the exchange reads build() needs (fresh follower mid, follower exposure,
         leader equity) so the send lock is held only for local work (run 5: holds up to 8 s while each worker
@@ -2952,6 +3049,8 @@ class IntentBuilder:
             follower_mid(fill.coin)
             if self.cfg.copy_mode(fill.leader_wallet) != "fixed":
                 self.leader_equity(fill.leader_wallet)
+            if self._exposure_refresh_active:
+                return  # PR1: the background refresher owns the exposure read
             ttl_ms = int(max(0.0, fnum(os.getenv("HL_LIVE_EXPOSURE_CACHE_TTL_SEC"), 2.0)) * 1000)
             if not is_valid_wallet(normalise_wallet(USER_WALLET)):
                 return
@@ -4088,6 +4187,11 @@ class SenderGateway:
         ws_received = int(fnum(getattr(intent.fill, "ws_received_ms", 0), 0))
         if ws_received > 0:
             timing["ws_received_ms"] = ws_received
+        # PR1 stage stamps carried from the intent so the send-attempt row can be analysed per stage.
+        for key in ("enqueued_ms", "picked_up_ms", "prewarm_done_ms", "lock_acquired_ms", "intent_written_ms"):
+            v = int(fnum(getattr(intent, key, 0), 0))
+            if v > 0:
+                timing[key] = v
         return timing
 
     @staticmethod
@@ -5041,7 +5145,7 @@ class SenderGateway:
         new_meta: Dict[str, Dict[str, Any]] = {}
         new_index: Dict[int, str] = {}
         try:
-            r = requests.post(HL_INFO_URL, json={"type": "meta"}, timeout=HTTP_TIMEOUT_SEC)
+            r = _XNET.info_post(HL_INFO_URL, {"type": "meta"}, HTTP_TIMEOUT_SEC)
             for idx, asset in enumerate(r.json().get("universe", [])):
                 if not isinstance(asset, dict):
                     continue
@@ -5118,7 +5222,7 @@ class SenderGateway:
         if requests is None:
             return
         try:
-            r = requests.post(HL_INFO_URL, json={"type": "meta"}, timeout=HTTP_TIMEOUT_SEC)
+            r = _XNET.info_post(HL_INFO_URL, {"type": "meta"}, HTTP_TIMEOUT_SEC)
             for idx, asset in enumerate(r.json().get("universe", [])):
                 if not isinstance(asset, dict):
                     continue
@@ -5143,7 +5247,7 @@ class SenderGateway:
         if requests is None:
             return
         try:
-            r3 = requests.post(HL_INFO_URL, json={"type": "meta", "dex": dex}, timeout=HTTP_TIMEOUT_SEC)
+            r3 = _XNET.info_post(HL_INFO_URL, {"type": "meta", "dex": dex}, HTTP_TIMEOUT_SEC)
             for b_asset in r3.json().get("universe", []):
                 if not isinstance(b_asset, dict):
                     continue
@@ -5172,7 +5276,7 @@ class SenderGateway:
         if requests is None:
             return self._mids_cache
         try:
-            r = requests.post(HL_INFO_URL, json={"type": "allMids"}, timeout=HTTP_TIMEOUT_SEC)
+            r = _XNET.info_post(HL_INFO_URL, {"type": "allMids"}, HTTP_TIMEOUT_SEC)
             data = r.json()
             if isinstance(data, dict):
                 out: Dict[str, float] = {}
@@ -5879,7 +5983,7 @@ class LeaderFillIngestor:
         for _ in range(POLL_MAX_PAGES_PER_WALLET):
             payload = {"type": "userFillsByTime", "user": wallet, "startTime": start, "endTime": end, "aggregateByTime": False}
             try:
-                r = requests.post(HL_LEADER_INFO_URL, json=payload, timeout=HTTP_TIMEOUT_SEC)
+                r = _XNET.info_post(HL_LEADER_INFO_URL, payload, HTTP_TIMEOUT_SEC)
                 data = r.json()
                 if not isinstance(data, list):
                     return fills, "POLL_NETWORK_ERROR"
@@ -5905,6 +6009,122 @@ class LeaderFillIngestor:
                 break
         fills.sort(key=lambda f: (f.timestamp_ms, f.leader_fill_id))
         return fills, status
+
+
+class FollowerMidsWS:
+    """PR1: a live allMids socket on the FOLLOWER network keeps follower prices in memory
+    (_FOLLOWER_MIDS_WS) so the send path never reads prices over HTTP. Off unless enabled, matching the
+    leader WS: HL_LIVE_FOLLOWER_MIDS_WS defaults to HL_LIVE_WS_ENABLED. Every follower-scope DEX is
+    subscribed; a newly learned DEX is picked up on the next heartbeat without dropping the socket. A read
+    only trusts the socket when every scope DEX reported within HL_LIVE_MIDS_MAX_AGE_SEC, else it falls
+    back to the HTTP path (so a cold or partial socket never prices a scope incorrectly)."""
+
+    def __init__(self, dexes_provider: "Callable[[], List[str]]"):
+        self._dexes_provider = dexes_provider
+        self.enabled = bval(os.getenv("HL_LIVE_FOLLOWER_MIDS_WS"), bval(os.getenv("HL_LIVE_WS_ENABLED"), False))
+        self.stop_event = threading.Event()
+        self._thread: Optional[threading.Thread] = None
+        self._hb_thread: Optional[threading.Thread] = None
+        self._app: Optional[Any] = None
+        self._socket_open: bool = False
+        self._subscribed: set = set()
+
+    def start(self) -> None:
+        if not self.enabled or websocket is None or self._thread is not None:
+            return
+        self._thread = threading.Thread(target=self._run, daemon=True, name="HLCoreWS-follower-mids")
+        self._thread.start()
+        self._hb_thread = threading.Thread(target=self._heartbeat_loop, daemon=True, name="HLCoreWS-follower-mids-hb")
+        self._hb_thread.start()
+
+    def stop(self) -> None:
+        self.stop_event.set()
+        app = self._app
+        if app is not None:
+            try:
+                app.close()
+            except Exception:
+                pass
+
+    def _subscribe_all(self, ws: Any) -> None:
+        for dex in self._dexes_provider():
+            if dex in self._subscribed:
+                continue
+            sub = {"type": "allMids"}
+            if dex:
+                sub["dex"] = dex
+            try:
+                ws.send(json.dumps({"method": "subscribe", "subscription": sub}))
+                self._subscribed.add(dex)
+            except Exception:
+                pass
+
+    def _heartbeat_loop(self) -> None:
+        interval = float(os.getenv("HL_LIVE_WS_HEARTBEAT_SEC", "25"))
+        while not self.stop_event.wait(interval):
+            app = self._app
+            if app is not None and self._socket_open:
+                try:
+                    app.send(json.dumps({"method": "ping"}))
+                except Exception:
+                    pass
+                self._subscribe_all(app)  # pick up a newly learned DEX
+
+    def _run(self) -> None:
+        backoff = 1.0
+        while not self.stop_event.is_set():
+            self._socket_open = False
+            self._subscribed = set()
+            try:
+                def on_open(ws):
+                    self._socket_open = True
+                    self._subscribe_all(ws)
+
+                def on_message(_ws, message):
+                    self._on_message(message)
+
+                def on_error(_ws, err):
+                    self._socket_open = False
+
+                def on_close(_ws, *_a):
+                    self._socket_open = False
+
+                app = websocket.WebSocketApp(
+                    HL_FOLLOWER_WS_URL, on_open=on_open, on_message=on_message,
+                    on_error=on_error, on_close=on_close,
+                )
+                self._app = app
+                app.run_forever(ping_interval=20, ping_timeout=10)
+            except Exception as exc:
+                log_error("ws_follower_mids_run", exc)
+                self._socket_open = False
+            if self.stop_event.wait(min(30.0, backoff)):
+                break
+            backoff = min(30.0, backoff * 1.5)
+
+    def _on_message(self, message: str) -> None:
+        try:
+            received_ms = utc_now_ms()
+            payload = json.loads(message)
+            if isinstance(payload, dict) and payload.get("channel") == "pong":
+                return
+            data = payload.get("data", payload) if isinstance(payload, dict) else payload
+            if not isinstance(data, dict):
+                return
+            mids = data.get("mids") if isinstance(data.get("mids"), dict) else None
+            if mids is None:  # some allMids shapes put the coin->price map directly in data
+                mids = {k: v for k, v in data.items() if not isinstance(v, (dict, list))}
+            dex = str(data.get("dex") or "").strip().lower()
+            m = _FOLLOWER_MIDS_WS
+            px_map = m["px"]
+            for key, value in mids.items():
+                px = fnum(value, 0.0)
+                if px > 0 and math.isfinite(px):
+                    px_map[str(key).upper()] = px
+            m["ms"] = received_ms
+            m["dex_ms"][dex] = received_ms
+        except Exception as exc:
+            log_error("ws_follower_mids_message", exc)
 
 
 class WSManager:
@@ -6149,7 +6369,7 @@ class CopyAccountIngestor:
         for _ in range(POLL_MAX_PAGES_PER_WALLET):
             payload = {"type": "userFillsByTime", "user": user_wallet, "startTime": start, "endTime": end, "aggregateByTime": False}
             try:
-                r = requests.post(HL_INFO_URL, json=payload, timeout=HTTP_TIMEOUT_SEC)
+                r = _XNET.info_post(HL_INFO_URL, payload, HTTP_TIMEOUT_SEC)
                 data = r.json()
                 if not isinstance(data, list):
                     return out, "COPY_ACCOUNT_POLL_NETWORK_ERROR"
@@ -6895,7 +7115,7 @@ class ExchangeReconciler:
         if not USER_WALLET or requests is None:
             return {}, "SNAPSHOT_UNAVAILABLE"
         try:
-            r = requests.post(HL_INFO_URL, json={"type": "clearinghouseState", "user": USER_WALLET}, timeout=HTTP_TIMEOUT_SEC)
+            r = _XNET.info_post(HL_INFO_URL, {"type": "clearinghouseState", "user": USER_WALLET}, HTTP_TIMEOUT_SEC)
             data = r.json()
             if isinstance(data, dict):
                 positions_by_coin = self._positions_from_snapshot(data)
@@ -9885,7 +10105,7 @@ def _read_all_copy_fills(start_ms: int, end_ms: int, max_pages: int = 200) -> Tu
                    "aggregateByTime": False}
         try:
             data = COPY_FILLS_FETCHER(payload) if COPY_FILLS_FETCHER is not None else \
-                requests.post(HL_INFO_URL, json=payload, timeout=HTTP_TIMEOUT_SEC).json()
+                _XNET.info_post(HL_INFO_URL, payload, HTTP_TIMEOUT_SEC).json()
         except Exception as exc:
             return list(seen.values()), f"FILLS_UNREADABLE: {exc!r}"[:200]
         if not isinstance(data, list):

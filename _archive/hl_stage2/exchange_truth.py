@@ -8,8 +8,51 @@ surfaces; unattributed inventory is excluded from sleeve convergence.
 import json
 import os
 import re
+import threading
 import time
 from urllib.parse import urlparse
+
+try:
+    import requests  # type: ignore
+    from requests.adapters import HTTPAdapter as _HTTPAdapter  # type: ignore
+except Exception:  # pragma: no cover
+    requests = None
+    _HTTPAdapter = None
+
+# PR1: every info read goes through ONE shared, pooled keep-alive session, so a hot send no longer pays a new
+# TCP+TLS handshake for each read. Tests monkeypatch requests.post / c.requests.post: when the module-level
+# requests.post attribute is not the original function, the patched callable is used instead of the session.
+_ORIGINAL_REQUESTS_POST = getattr(requests, "post", None) if requests is not None else None
+_INFO_SESSION = None
+_INFO_SESSION_LOCK = threading.Lock()
+
+
+def _info_session():
+    global _INFO_SESSION
+    if _INFO_SESSION is None:
+        with _INFO_SESSION_LOCK:
+            if _INFO_SESSION is None:
+                if requests is None or _HTTPAdapter is None:  # pragma: no cover
+                    raise RuntimeError("requests unavailable")
+                session = requests.Session()  # type: ignore[union-attr]
+                adapter = _HTTPAdapter(pool_connections=4, pool_maxsize=16)
+                session.mount("https://", adapter)
+                session.mount("http://", adapter)
+                _INFO_SESSION = session
+    return _INFO_SESSION
+
+
+def info_post(info_url, payload, timeout):
+    """Read-only POST to /info over the shared session (returns a response object with .json()). When a test
+    has replaced requests.post, the patched callable is used instead, so offline fixtures keep working."""
+    if requests is None:
+        raise RuntimeError("requests unavailable")
+    post = getattr(requests, "post", None)
+    if post is None:
+        raise RuntimeError("requests.post unavailable")
+    if post is not _ORIGINAL_REQUESTS_POST:
+        return post(info_url, json=payload, timeout=timeout)
+    return _info_session().post(info_url, json=payload, timeout=timeout)
 
 # Network selection. The leader feed and the follower account are chosen independently, so an
 # instance can watch real mainnet leaders while trading and verifying a testnet follower. Every
@@ -191,8 +234,7 @@ def _post(fetcher, payload, info_url, timeout):
         if fetcher is not None:
             raw = fetcher(payload)
         else:  # pragma: no cover - live read-only plumbing
-            import requests  # type: ignore
-            raw = requests.post(info_url, json=payload, timeout=timeout).json()
+            raw = info_post(info_url, payload, timeout).json()
     except Exception as exc:
         return {"ok": False, "status": TRUTH_UNAVAILABLE, "detail": repr(exc)[:200]}
     if not isinstance(raw, (dict, list)):
