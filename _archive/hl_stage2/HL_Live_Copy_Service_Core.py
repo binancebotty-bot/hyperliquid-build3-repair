@@ -5989,8 +5989,11 @@ class WSManager:
     for information only and does not influence the health grade.
     """
 
-    def __init__(self, wallets: Iterable[str], ingestor: LeaderFillIngestor, hot_fill_handler: Optional[Any] = None):
-        self.wallets = list(wallets)[:MAX_WALLETS]
+    def __init__(self, wallets: Any, ingestor: LeaderFillIngestor, hot_fill_handler: Optional[Any] = None):
+        # R0: wallets may be a live provider (callable), so a wallet enabled after start - or a different
+        # active set after a restart - is subscribed on the next (re)connect instead of a frozen snapshot.
+        self._wallet_source = wallets
+        self.wallets = self.wallets_now()
         self.ingestor = ingestor
         self.hot_fill_handler = hot_fill_handler
         self.queue: "queue.Queue[LeaderFill]" = queue.Queue(maxsize=50000)
@@ -6005,8 +6008,19 @@ class WSManager:
         self._last_socket_error: str = ""
         self._last_ping_ms: int = 0
         self._last_pong_ms: int = 0
+        # R0: subscription truth. WS_OK must never be inferred from socket-open alone.
+        self._subscribed: set = set()          # wallets HL has acked a userFills subscription for
+        self._socket_opened_at_ms: int = 0     # when the current socket opened (subscribe clock)
+        self._last_subscribe_ms: int = 0       # when subscribe messages were last sent
+        self._message_errors: int = 0
         self._heartbeat_interval: float = float(os.getenv("HL_LIVE_WS_HEARTBEAT_SEC", "25"))
         self._hb_thread: Optional[threading.Thread] = None
+
+    def wallets_now(self) -> List[str]:
+        """The wallets to subscribe right now: the live provider if one was given, else the fixed list."""
+        src = getattr(self, "_wallet_source", None)
+        raw = src() if callable(src) else (src or [])
+        return list(raw)[:MAX_WALLETS]
 
     def start(self) -> None:
         if not self.enabled or websocket is None or self._thread is not None:
@@ -6047,11 +6061,17 @@ class WSManager:
             try:
                 def on_open(ws: Any) -> None:
                     self._socket_open = True
+                    self._socket_opened_at_ms = utc_now_ms()
+                    self._subscribed = set()  # a fresh socket: any earlier subscription ack is void
+                    self.wallets = self.wallets_now()  # R0: subscribe the CURRENT enabled set
+                    for w in self.wallets:
+                        self.last_msg_ms.setdefault(w, 0)
                     for wallet in self.wallets:
                         ws.send(json.dumps({
                             "method": "subscribe",
                             "subscription": {"type": "userFills", "user": wallet},
                         }))
+                    self._last_subscribe_ms = utc_now_ms()
 
                 def on_message(_ws: Any, message: str) -> None:
                     self._on_message(message)
@@ -6087,6 +6107,14 @@ class WSManager:
             if isinstance(payload, dict) and payload.get("channel") == "pong":
                 self._last_pong_ms = utc_now_ms()
                 return
+            if isinstance(payload, dict) and payload.get("channel") == "subscriptionResponse":
+                _d = payload.get("data")
+                _sub = _d.get("subscription") if isinstance(_d, dict) else None
+                _acked = normalise_wallet((_sub or {}).get("user") or "") if isinstance(_sub, dict) else ""
+                if _acked:  # R0: a subscription HL accepted - proof the feed is actually live
+                    self._subscribed.add(_acked)
+                    self.last_msg_ms.setdefault(_acked, utc_now_ms())
+                return
             data = payload.get("data", payload) if isinstance(payload, dict) else payload
             # Hyperliquid userFills channel carries data.user â€" use as wallet hint
             channel_wallet = normalise_wallet(data.get("user") or "") if isinstance(data, dict) else ""
@@ -6108,8 +6136,7 @@ class WSManager:
                 fill = self.ingestor.parse_fill(channel_wallet, raw_with_receive, source)
                 if fill:
                     w = fill.leader_wallet
-                    if w in self.last_msg_ms:
-                        self.last_msg_ms[w] = received_ms
+                    self.last_msg_ms[w] = received_ms  # R0: track a wallet enabled after start too
                     hot_dispatched = False
                     if source == "WS_CAPTURED" and self.hot_fill_handler is not None:
                         try:
@@ -6122,6 +6149,7 @@ class WSManager:
                     except queue.Full:
                         log_error("ws_queue_full", RuntimeError("WS queue full"))
         except Exception as exc:
+            self._message_errors += 1  # R0: surface swallowed handler errors in the health payload
             log_error("ws_message", exc)
 
     def drain(self) -> List[LeaderFill]:
@@ -6144,6 +6172,14 @@ class WSManager:
         startup_grace_ms = int(os.getenv("HL_LIVE_WS_STARTUP_GRACE_MS", "30000"))
         thread_alive = self._thread is not None and self._thread.is_alive()
         socket_open = self._socket_open and thread_alive
+        if socket_open and not self._socket_opened_at_ms:
+            self._socket_opened_at_ms = now  # first observation of an open socket (e.g. set by a test)
+        # R0: an open socket that no wallet has been acked on (and that has never delivered a message)
+        # inside the bound is NOT healthy - the feed can be silent while the socket looks fine.
+        sub_grace_ms = int(os.getenv("HL_LIVE_WS_SUBSCRIBE_GRACE_MS", "30000"))
+        any_ack_or_msg = bool(self._subscribed) or any(int(v) > 0 for v in self.last_msg_ms.values())
+        subscribe_pending = bool(socket_open and not any_ack_or_msg and self._socket_opened_at_ms
+                                 and (now - self._socket_opened_at_ms) > sub_grace_ms)
         wallets: Dict[str, Any] = {}
         stale_count = 0
         for w in self.wallets:
@@ -6165,6 +6201,9 @@ class WSManager:
             }
         if not self.enabled:
             ws_status, worst_grade = "WS_DISABLED", "DISABLED"
+        elif subscribe_pending:
+            # R0: socket open but no wallet acked or delivered a message within the bound.
+            ws_status, worst_grade = "WS_DEGRADED", "DEGRADED"
         elif socket_open and stale_count == 0:
             ws_status, worst_grade = "WS_OK", "OK"
         elif socket_open and stale_count > 0:
@@ -6179,6 +6218,10 @@ class WSManager:
             "worst_health_grade": worst_grade,
             "ws_status": ws_status,
             "socket_open": socket_open,
+            "subscribe_acked": len(self._subscribed),
+            "subscribe_pending": subscribe_pending,
+            "last_subscribe_ms": self._last_subscribe_ms,
+            "message_errors": self._message_errors,
             "thread_alive": thread_alive,
             "last_socket_error": self._last_socket_error,
             "last_ping_ms": self._last_ping_ms,
@@ -7362,7 +7405,8 @@ class LiveCopyCore:
         self._coin_lane: Dict[str, Tuple[int, int]] = {}  # coin -> (lane, count of queued+in-flight fills)
         self._queued_lock = threading.Lock()
         self.async_dispatch = False  # main() turns this on in loop mode: polled fills go to the workers too
-        self.ws = WSManager(self.wallets, self.ingestor, self._enqueue_hot_ws_fill)
+        # R0: pass a live provider, not a snapshot, so a wallet enabled later (or after a restart) is subscribed.
+        self.ws = WSManager(lambda: self.cfg.stream_wallets(), self.ingestor, self._enqueue_hot_ws_fill)
         self.intent_builder = IntentBuilder(self.cfg, self.ledger)
         self.sender = SenderGateway(self.cfg, self.audit, self.ledger)
         if self.cfg.auto_send_enabled and not bval(os.getenv("HL_LIVE_MOCK_SEND"), False) and bval(os.getenv("HL_LIVE_PREWARM_SYMBOL_META"), True):
