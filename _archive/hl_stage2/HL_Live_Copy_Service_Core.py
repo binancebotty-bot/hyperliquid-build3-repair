@@ -10059,6 +10059,183 @@ def repair_ledger_catch_up(start_ms: Optional[int] = None, dry_run: bool = True)
             "exchange_positions_ledger_matches": all(p["ledger_matches_exchange"] for p in positions)}
 
 
+OPERATOR_ADOPT_SOURCE = "operator_adopt_oid_repair"
+OPERATOR_ADOPT_AUDIT_STATUS = "OPERATOR_APPROVED_OID_ADOPTED"
+
+
+def _adoptable_intent_rows(coin: str, side: str, size: float, matcher: "CopyFillMatcher") -> List[Dict[str, str]]:
+    """Recorded order-intent rows that can own a follower fill with this coin/side/size.
+
+    The engine writes the intent row BEFORE the exchange call, so a crash between leaving a resting limit
+    working and recording its send leaves an intent with no send row: the fill is real but unowned (run 5
+    opened PENGU this way). Only an unowned, same-side, same-size intent can be the order that filled; two
+    candidates are ambiguous and never adopted."""
+    tol = lambda a, b: abs(a - b) <= max(POSITION_EPSILON, 1e-6 * max(abs(a), abs(b), 1.0))
+    out: List[Dict[str, str]] = []
+    for row in read_csv_rows(ORDER_INTENTS_CSV):
+        if canonical_coin_key(row.get("coin")) != coin:
+            continue
+        if normalise_copy_fill_side(row.get("copy_side") or row.get("leader_side") or "") != side:
+            continue
+        if not str(row.get("leader_wallet") or "").strip():
+            continue
+        if str(row.get("intent_id") or "") in matcher.matched_intent_ids:
+            continue
+        if not tol(abs(fnum(row.get("copy_size"))), size):
+            continue
+        out.append(row)
+    return out
+
+
+def repair_adopt_oids(oids: List[str], start_ms: Optional[int] = None, dry_run: bool = False) -> Dict[str, Any]:
+    """Operator-approved per-oid adoption (T2, issue #3).
+
+    `--adopt-oid <oid>` names exchange order ids whose follower fills the operator has ruled on. A crash between
+    the exchange accepting a resting entry limit and the engine writing its send row leaves a real fill the
+    ledger never owned (run 5: PENGU sell 1,427, oid 62330275636, no send row). For each named oid this reads the
+    follower's OWN fills and refuses unless every fill of that oid:
+
+      * EXISTS in the follower's fill history (read for this follower account), and
+      * is NOT already in the ledger (live_fills), and
+      * has NO send row (an order this engine already placed is owned by the normal copy poll; never re-booked),
+      * and exactly ONE recorded, unowned order intent matches it (coin + side + size). That intent names the
+        sleeve, so the fill is booked there through the normal ledger fill path with an audit row.
+
+    Ledger and audit files only: places NO order, cancels nothing, writes nothing to the exchange (reads only).
+    Refuses and changes nothing when `--adopt-oid` is not given. Use `--dry-run` first; the engine must be stopped.
+    """
+    ensure_dirs()
+    named = [str(o).strip() for o in (oids or []) if str(o).strip()]
+    if not named:
+        return {"status": "REFUSED", "fills_read": 0, "requested_oids": [],
+                "reason": "no --adopt-oid given: adoption requires the operator to name the order ids",
+                "adopted": [], "refused": [], "adopted_count": 0, "refused_count": 0}
+    ledger = ManualLedger()
+    audit = AuditLogWriter()
+    matcher = CopyFillMatcher(ledger, audit)
+    if start_ms is None:
+        times = [int(fnum(r.get("created_at_ms"), 0)) for r in read_csv_rows(SEND_ATTEMPTS_CSV)]
+        times += [int(fnum(r.get("created_at_ms"), 0)) for r in read_csv_rows(ORDER_INTENTS_CSV)]
+        times = [t for t in times if t > 0]
+        start_ms = (min(times) - 60_000) if times else utc_now_ms() - 7 * 86_400_000
+    end_ms = utc_now_ms()
+    fills, fills_status = _read_all_copy_fills(int(start_ms), end_ms)
+    if fills_status != "FILLS_COMPLETE":
+        return {"status": "REFUSED", "reason": fills_status, "fills_read": len(fills), "requested_oids": named,
+                "adopted": [], "refused": [], "adopted_count": 0, "refused_count": 0}
+    by_oid: Dict[str, List[Dict[str, Any]]] = {}
+    for raw in fills:
+        raw_oid = CopyFillMatcher._copy_fill_oid(raw)
+        if raw_oid:
+            by_oid.setdefault(CopyFillMatcher._normalize_oid(raw_oid), []).append(raw)
+    adopted: List[Dict[str, Any]] = []
+    refused: List[Dict[str, Any]] = []
+    for oid in named:
+        norm = CopyFillMatcher._normalize_oid(oid)
+        exchange_fills = by_oid.get(norm, [])
+        if not exchange_fills:
+            refused.append({"oid": norm, "reason": "no fill with this order id exists on the exchange for this follower"})
+            continue
+        sent_row = (matcher._fresh_sent_row_for_oid(norm) or matcher.sent_oid_index.get(norm)
+                    or matcher.recovery_oid_index.get(norm))
+        if sent_row is not None:
+            refused.append({"oid": norm, "reason": "the order id is already in a send row: the engine placed it, so "
+                            "the normal copy poll owns its fills"})
+            continue
+        owning_rows = [r for r in read_csv_rows(LIVE_FILLS_CSV)
+                       if CopyFillMatcher._normalize_oid(str(r.get("exchange_order_id") or "")) == norm]
+        if owning_rows:
+            refused.append({"oid": norm, "reason": "the fill is already in the ledger (live_fills)",
+                            "sleeve": owning_rows[0].get("sleeve_id", "")})
+            continue
+        # plan: (plan, raw) per fill of this oid
+        plans: List[Tuple[Dict[str, Any], Dict[str, Any]]] = []
+        already: List[str] = []
+        for raw in exchange_fills:
+            cid = canonical_copy_fill_id(CopyAccountIngestor.copy_fill_id(raw))
+            if cid in matcher.matched_copy_fill_ids or str(raw.get("hash") or "") in matcher.matched_exchange_hashes:
+                already.append(cid)
+                continue
+            coin = canonical_coin_key(raw.get("coin"))
+            side = normalise_copy_fill_side(raw.get("side") or raw.get("dir") or "")
+            size = abs(fnum(raw.get("size", raw.get("sz")), 0.0))
+            cands = _adoptable_intent_rows(coin, side, size, matcher)
+            if len(cands) != 1:
+                plans.append(({"copy_fill_id": cid, "coin": coin, "side": side, "size": size,
+                               "error": "no recorded intent matches the fill" if not cands
+                                        else "more than one recorded intent matches the fill"}, raw))
+                continue
+            intent_row = cands[0]
+            wallet = normalise_wallet(intent_row.get("leader_wallet"))
+            plans.append(({"copy_fill_id": cid, "coin": coin, "side": side, "size": size,
+                           "sleeve_id": intent_row.get("sleeve_id") or ManualLedger.sleeve_id(wallet, coin),
+                           "leader_wallet": wallet, "intent_id": str(intent_row.get("intent_id") or "")}, raw))
+        if already:
+            refused.append({"oid": norm, "reason": "a fill of this order is already in the ledger",
+                            "copy_fill_ids": already})
+            continue
+        errors = [pl for pl, _r in plans if pl.get("error")]
+        if errors or not plans:
+            refused.append({"oid": norm, "reason": errors[0]["error"] if errors else "no fill to adopt",
+                            "fills": errors})
+            continue
+        entry = {"oid": norm, "fills": [pl for pl, _r in plans],
+                 "sleeves": sorted({pl["sleeve_id"] for pl, _r in plans})}
+        if not dry_run:
+            applied: List[Dict[str, Any]] = []
+            for pl, raw in plans:
+                if not claim_copy_fill_process_marker(pl["copy_fill_id"]):
+                    pl["not_applied"] = "already claimed by a process"
+                    continue
+                wallet, coin, side, size = pl["leader_wallet"], pl["coin"], pl["side"], pl["size"]
+                px = fnum(raw.get("price", raw.get("px")), 0.0)
+                intent = Intent(
+                    intent_id=pl["intent_id"] or f"adopt-oid:{norm}:{pl['copy_fill_id']}",
+                    fill=LeaderFill(pl["intent_id"] or f"adopt-oid:{norm}", wallet, coin, side, px, size,
+                                    int(fnum(raw.get("time"), utc_now_ms())), "OPERATOR_ADOPT_OID"),
+                    copy_side=side, copy_size=size, copy_notional=size * px, wallet_mode="LIVE", copy_mode="fixed",
+                    decision="ENTRY_ALLOWED", reason="OPERATOR_ADOPT_OID", sleeve_id=pl["sleeve_id"], position_id="",
+                    position_direction_before="", wallet_position_before=ledger.wallet_coin_position(wallet, coin),
+                    coin_net_before=ledger.coin_net(coin), reduce_only_intended=False, reduce_only_sent_planned=False,
+                    created_at_ms=utc_now_ms(), notes="lifecycle=ENTRY;source=OPERATOR_ADOPT_OID")
+                cf = dict(raw)
+                cf["copy_fill_id"] = pl["copy_fill_id"]
+                cf["source"] = OPERATOR_ADOPT_SOURCE
+                result = ledger.apply_copy_fill(intent, cf)
+                matcher.matched_intent_ids.add(intent.intent_id)
+                matcher.matched_copy_fill_ids.add(pl["copy_fill_id"])
+                audit.append_live_fill({
+                    "created_at": utc_now_iso(), "created_at_ms": utc_now_ms(),
+                    "copy_fill_id": pl["copy_fill_id"], "intent_id": intent.intent_id,
+                    "leader_fill_id": intent.fill.leader_fill_id, "leader_wallet": wallet, "sleeve_id": pl["sleeve_id"],
+                    "position_id": "", "coin": coin, "side": side, "fill_price": px, "fill_size": size,
+                    "fill_notional": size * px, "fee": fnum(raw.get("fee"), 0.0), "source": OPERATOR_ADOPT_SOURCE,
+                    "exchange_hash": str(raw.get("hash", "")), "exchange_order_id": norm,
+                    "ledger_action": result["ledger_action"], "wallet_position_before": result["wallet_position_before"],
+                    "wallet_position_after": result["wallet_position_after"], "coin_net_after": result["coin_net_after"],
+                    "notes": f"operator-approved adoption by oid={norm}; booked to sleeve {pl['sleeve_id']} from the "
+                             "recorded order intent; no exchange order placed",
+                })
+                audit.append_reconciliation(
+                    "LEDGER_REPAIR", OPERATOR_ADOPT_AUDIT_STATUS, leader_wallet=wallet, intent_id=intent.intent_id,
+                    copy_fill_id=pl["copy_fill_id"], coin=coin, manual_net=result["coin_net_after"],
+                    action="LEDGER_FILL_ADOPTED", terminal_state=OPERATOR_ADOPT_AUDIT_STATUS, exchange_order_id=norm,
+                    engine_can_close="False", engine_can_send="False",
+                    notes=f"operator-approved per-oid adoption: fill {side} {size} {coin} by oid={norm} was in no "
+                          "ledger/send row; booked to the sleeve named by the matching recorded intent; ledger only, "
+                          "no exchange order placed or cancelled")
+                applied.append({k: pl[k] for k in ("copy_fill_id", "coin", "side", "size", "sleeve_id", "intent_id")})
+            entry["applied"] = applied
+            entry["not_applied"] = [pl for pl, _r in plans if pl.get("not_applied")]
+        adopted.append(entry)
+    if not dry_run and adopted:
+        write_live_integrity_status()
+    return {"status": "DRY_RUN" if dry_run else "APPLIED", "network": FOLLOWER_NETWORK, "account": USER_WALLET,
+            "window_start_ms": int(start_ms), "window_end_ms": end_ms, "fills_read": len(fills),
+            "requested_oids": named, "adopted": adopted, "refused": refused,
+            "adopted_count": len(adopted), "refused_count": len(refused)}
+
+
 _INSTANCE_LOCK = None
 
 
@@ -10094,6 +10271,10 @@ def main() -> None:
                         help="Run 4 repair, ledger only: adopt unowned fills of this engine's own orders where that makes the "
                              "ledger equal the exchange; refuses any other coin. Use --dry-run first. Engine must be stopped.")
     parser.add_argument("--repair-start-ms", type=int, default=None, help="Fill window start for --repair-ledger-catch-up")
+    parser.add_argument("--adopt-oid", action="append", default=[],
+                        help="Operator-approved adoption (T2): adopt a follower fill by exchange order id (repeatable). "
+                             "Books an unowned fill that is in no ledger/send row to the sleeve of the matching recorded "
+                             "intent. Ledger and audit files only; no exchange write. Use --dry-run first. Engine must be stopped.")
     parser.add_argument("--once", action="store_true")
     parser.add_argument("--source-file", default="", help="Leader fills CSV for forensic replay (default: WS-only, no CSV)")
     parser.add_argument("--poll-live", action="store_true", help="Use read-only userFillsByTime polling for leaders")
@@ -10118,6 +10299,12 @@ def main() -> None:
         if not args.dry_run:
             acquire_instance_lock(AUDIT_DIR)  # refuses while the engine runs on this state folder
         result = repair_ledger_catch_up(args.repair_start_ms, dry_run=args.dry_run)
+        print(json.dumps(result, indent=2, sort_keys=True, default=str))
+        return
+    if args.adopt_oid:
+        if not args.dry_run:
+            acquire_instance_lock(AUDIT_DIR)  # refuses while the engine runs on this state folder
+        result = repair_adopt_oids(args.adopt_oid, start_ms=args.repair_start_ms, dry_run=args.dry_run)
         print(json.dumps(result, indent=2, sort_keys=True, default=str))
         return
     if args.repair_recovery_copy_fills:
