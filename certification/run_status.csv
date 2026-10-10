@@ -23,12 +23,12 @@ ENG-003,ENGINE,Fixed mode end-to-end,OPEN_DECISION,TESTNET,NOT_TESTED,,,,
 ENG-004,ENGINE,Unit semantics target delta -> order size,APPLIES,TESTNET,NOT_TESTED,,,,
 ENG-005,ENGINE,Multi-wallet aggregation (account-net),APPLIES,TESTNET,NOT_TESTED,,,,
 ENG-006,ENGINE,Multi-DEX / HIP-3 truth,APPLIES,TESTNET,FAIL,run1,9eb2d40,B1: per-DEX sequential reads (~0.52 s each across 268 DEXes); one --once cycle did not finish in 120 s (once_fh.txt).,run1@9eb2d40(testnet):FAIL
-ENG-007,ENGINE,Restart / gap recovery,APPLIES,TESTNET,NOT_TESTED,,,,
+ENG-007,ENGINE,Restart / gap recovery,APPLIES,TESTNET,PASS,run6,fc7efd7,restart/gap recovery: each re-arm (18:48:55 / 19:21:04 / 19:37:44 Z) ended in a ledger MATCH,run6@fc7efd7(testnet):PASS
 ENG-008,ENGINE,Pre-existing unrelated inventory preserved,APPLIES,TESTNET,NOT_TESTED,,,,
 ENG-009,ENGINE,Event-lineage persistence rules,APPLIES,TESTNET,NOT_TESTED,,,,
 ENG-010,ENGINE,Account-net truth only,APPLIES,TESTNET,NOT_TESTED,,,,
 ENG-011,ENGINE,In-flight suppression,APPLIES,TESTNET,NOT_TESTED,,,,
-ENG-012,ENGINE,Low-latency copy,OPEN_DECISION,TESTNET,NOT_TESTED,,,,
+ENG-012,ENGINE,Low-latency copy,OPEN_DECISION,TESTNET,FAIL,run6,fc7efd7,low-latency copy still far from 0.5 s: run6c 80.8 s -> run6f 47.1 s p50 leader->done,run5@cff92fa(testnet):FAIL ; run6@fc7efd7(testnet):FAIL
 ENG-013,ENGINE,Deterministic audit trail,APPLIES,TESTNET,NOT_TESTED,,,,
 ENG-014,ENGINE,Dropped/duplicated/reordered events,APPLIES,TESTNET,NOT_TESTED,,,,
 ENG-015,ENGINE,Sign flip handling,APPLIES,TESTNET,NOT_TESTED,,,,
@@ -41,7 +41,7 @@ PRICE-005,PRICING,Reduction/close never trapped by entry protection,APPLIES,TEST
 PRICE-006,PRICING,Adverse-diff measure is meaningful,APPLIES,MAINNET,NOT_TESTED,,,,
 PRICE-007,PRICING,Marketable slippage,APPLIES,MAINNET,NOT_TESTED,,,,
 PRICE-008,PRICING,Close adverse diff,OPEN_DECISION,MAINNET,NOT_TESTED,,,,
-ORD-001,ORDER,Single sender / single gate,APPLIES,TESTNET,PASS,run3b,ab7f2b0,Every exchange order id matches an engine send attempt; no unknown orders.,run3b@ab7f2b0(testnet):PASS
+ORD-001,ORDER,Single sender / single gate,APPLIES,TESTNET,PASS,run5,cff92fa,every exchange order traced to an engine send or an audited recovery order (run5 watch_log MATCH checks),run3b@ab7f2b0(testnet):PASS ; run4@3c03099(testnet):PASS ; run5@cff92fa(testnet):PASS
 ORD-002,ORDER,reduce_only correctness,APPLIES,TESTNET,NOT_TESTED,,,,
 ORD-003,ORDER,Minimum notional,OPEN_DECISION,TESTNET,NOT_TESTED,,,,
 ORD-004,ORDER,Size rounding,OPEN_DECISION,TESTNET,NOT_TESTED,,,,
@@ -49,17 +49,17 @@ ORD-005,ORDER,Exactly-once execution identity,APPLIES,TESTNET,PASS,run3b,ab7f2b0
 ORD-006,ORDER,Pre-send reservation,APPLIES,TESTNET,NOT_TESTED,,,,
 ORD-007,ORDER,Per-run send limit,OPEN_DECISION,TESTNET,NOT_TESTED,,,,
 ORD-008,ORDER,Exchange preflight,APPLIES,TESTNET,NOT_TESTED,,,,
-ORD-009,ORDER,Signing key valid on follower network,APPLIES,TESTNET,FAIL,run3a,ab7f2b0,F4/F5: no start-up check that the signer is approved on the follower network; the definite rejection 'User or API Wallet ... does not exist' was recorded as ORDER_UNKNOWN / SEND_OUTCOME_REVIEW_REQUIRED instead of a terminal reject.,run3a@ab7f2b0(testnet):FAIL
+ORD-009,ORDER,Signing key valid on follower network,APPLIES,TESTNET,PASS,run6,fc7efd7,run6f 401 of 528 sends ORDER_FILLED on testnet - signing key valid on the follower network,run3a@ab7f2b0(testnet):FAIL ; run4@3c03099(testnet):PASS ; run6@fc7efd7(testnet):PASS
 SET-001,SETTLE,ACK is not settlement,APPLIES,TESTNET,NOT_TESTED,,,,
 SET-002,SETTLE,Settlement on MASTER across all DEX scopes,APPLIES,TESTNET,NOT_TESTED,,,,
-SET-003,SETTLE,Terminal reject clears safely,APPLIES,TESTNET,NOT_TESTED,,,,
+SET-003,SETTLE,Terminal reject clears safely,APPLIES,TESTNET,FAIL,run4,3c03099,"terminal rejects did not clear safely: EXIT_RECOVERY_QUEUE_FAILED 190, CLOSE_REJECTED_REDUCE_ONLY 258, PENDING_EXIT_GUARD 1,661",run4@3c03099(testnet):FAIL
 SET-004,SETTLE,Partial fill,APPLIES,TESTNET,NOT_TESTED,,,,
 SET-005,SETTLE,Crash before oid,APPLIES,TESTNET,NOT_TESTED,,,,
 SET-006,SETTLE,Reconciliation gate before authority,APPLIES,TESTNET,NOT_TESTED,,,,
 SET-007,SETTLE,Testnet entry certification,APPLIES,TESTNET,NOT_TESTED,,,,
-SET-008,SETTLE,Testnet exit certification,APPLIES,TESTNET,NOT_TESTED,,,,
-RISK-001,RISK,Global control: Max total live exposure ($),APPLIES,TESTNET,NOT_TESTED,,,,
-RISK-002,RISK,Global control: Max per-asset directional exposure ($),APPLIES,TESTNET,NOT_TESTED,,,,
+SET-008,SETTLE,Testnet exit certification,APPLIES,TESTNET,FAIL,run5,cff92fa,"exit_analysis 06:30Z: of 2,743 EXIT/REDUCE rows, 182 EXIT_RECOVERY_REQUIRED, 13 CLOSE_REJECTED_REDUCE_ONLY_REJECTED, 1 price/tick rejected, 62 dust BELOW_MIN_NOTIONAL; exits do not reliably complete on illiquid testnet books",run5@cff92fa(testnet):FAIL
+RISK-001,RISK,Global control: Max total live exposure ($),APPLIES,TESTNET,FAIL,run5,cff92fa,"exchange gross notional $2,434-$3,127 vs the $1,200 total live exposure cap; new entries blocked but exits had not brought it under",run4@3c03099(testnet):FAIL ; run5@cff92fa(testnet):FAIL
+RISK-002,RISK,Global control: Max per-asset directional exposure ($),APPLIES,TESTNET,FAIL,run5,cff92fa,largest position CASHCAT $308 vs the $300 per-asset cap,run4@3c03099(testnet):FAIL ; run5@cff92fa(testnet):FAIL
 RISK-003,RISK,Global control: Max per-wallet exposure ($),APPLIES,TESTNET,NOT_TESTED,,,,
 RISK-004,RISK,Global control: Max per-order notional ($),APPLIES,TESTNET,PASS,run3b,ab7f2b0,No order over the $50 max-order cap; the cap fired once.,run3b@ab7f2b0(testnet):PASS
 RISK-005,RISK,Global control: Marketable slippage %,APPLIES,MAINNET,NOT_TESTED,,,,
@@ -289,8 +289,8 @@ UI-TRUTH-003,UI,UI is read-only observer,APPLIES,TESTNET,NOT_TESTED,,,,
 UI-TRUTH-004,UI,"At-a-glance wallet, portfolio and system health",OPEN_DECISION,TESTNET,NOT_TESTED,,,,
 UI-TRUTH-005,UI,"Historical Build 3 UI restored, not rebuilt",APPLIES,TESTNET,NOT_TESTED,,,,
 LIFE-001,LIFECYCLE,Simple launch/start,APPLIES,TESTNET,NOT_TESTED,,,,
-LIFE-002,LIFECYCLE,Stop,APPLIES,TESTNET,NOT_TESTED,,,,
-LIFE-003,LIFECYCLE,Clean restart,APPLIES,TESTNET,NOT_TESTED,,,,
+LIFE-002,LIFECYCLE,Stop,APPLIES,TESTNET,PASS,run5,cff92fa,with sending off the engine withdrew 185 resting entry limits and kept 1 reduce-only exit (run-4 disarm defect fixed and observed),run4@3c03099(testnet):FAIL ; run5@cff92fa(testnet):PASS
+LIFE-003,LIFECYCLE,Clean restart,APPLIES,TESTNET,PASS,run6,fc7efd7,"clean restarts across 03b473a w8 -> w24 -> 15cc943 w12 -> fc7efd7 w12, ledger MATCH each arm",run5@cff92fa(testnet):PASS ; run6@fc7efd7(testnet):PASS
 LIFE-004,LIFECYCLE,Status,APPLIES,TESTNET,NOT_TESTED,,,,
 LIFE-005,LIFECYCLE,Version identification,APPLIES,TESTNET,NOT_TESTED,,,,
 LIFE-006,LIFECYCLE,New-version cutover,APPLIES,TESTNET,NOT_TESTED,,,,
@@ -299,9 +299,9 @@ LIFE-008,LIFECYCLE,Configuration migration/compatibility,APPLIES,TESTNET,NOT_TES
 LIFE-009,LIFECYCLE,Crash / watchdog,APPLIES,TESTNET,NOT_TESTED,,,,
 NET-001,NETWORK,Credential-only mainnet switch,APPLIES,TESTNET,NOT_TESTED,,,,
 NET-002,NETWORK,Signer vs MASTER separation,APPLIES,TESTNET,NOT_TESTED,,,,
-NET-003,NETWORK,Leader and follower networks set independently,APPLIES,TESTNET,PASS,run3b,ab7f2b0,All 25 orders on testnet with mainnet leaders.,run3a@ab7f2b0(testnet):PASS ; run3b@ab7f2b0(testnet):PASS
+NET-003,NETWORK,Leader and follower networks set independently,APPLIES,TESTNET,PASS,run6,fc7efd7,leaders mainnet / follower testnet held across all run-6 arms; all orders on testnet,run3a@ab7f2b0(testnet):PASS ; run3b@ab7f2b0(testnet):PASS ; run4@3c03099(testnet):PASS ; run6@fc7efd7(testnet):PASS
 NET-006,NETWORK,Mainnet and testnet instances run in parallel,APPLIES,TESTNET,NOT_TESTED,,,,
-NET-007,NETWORK,Certification copies real active mainnet leaders,APPLIES,TESTNET,NOT_TESTED,,,,
+NET-007,NETWORK,Certification copies real active mainnet leaders,APPLIES,TESTNET,PASS,run4,3c03099,certification copied the 10 most active real mainnet leaders to the testnet follower,run4@3c03099(testnet):PASS
 NET-004,NETWORK,LIVE/mainnet activation gate,APPLIES,TESTNET,PASS,run3b,ab7f2b0,Mainnet untouched; the 6 Build 4 leftover mainnet orders unchanged.,run3b@ab7f2b0(testnet):PASS
 NET-005,NETWORK,Same SHA promotion,APPLIES,MAINNET,NOT_TESTED,,,,
 HEALTH-001,HEALTH,WS health visible,APPLIES,TESTNET,NOT_TESTED,,,,
@@ -790,10 +790,10 @@ UI-FP-194,UI,Controls: Add max diff %,APPLIES,TESTNET,NOT_TESTED,,,,
 UI-FP-195,UI,Controls: Add daily loss,APPLIES,TESTNET,NOT_TESTED,,,,
 UI-FP-196,UI,Main/model dashboard: Normalised model dollar fields,APPLIES,TESTNET,NOT_TESTED,,,,
 UI-FP-197,UI,Live-copy performance: Friction isolation from account truth,APPLIES,TESTNET,NOT_TESTED,,,,
-ENG-018,ENGINE,Leaders trading opposite ways in one coin,APPLIES,TESTNET,FAIL,run3b,ab7f2b0,F3: 0x7019's short SELL 447 STABLE flattened 0x7717's long on the exchange while the ledger still showed long 447 (before Boss's netting ruling).,run3b@ab7f2b0(testnet):FAIL
-ENG-019,ENGINE,Main loop keeps up with 10 very busy leaders,APPLIES,TESTNET,FAIL,run3b,ab7f2b0,"F1: main loop ran 4 cycles in ~3 min, each budget_exceeded, re-processing thousands of duplicate leader fills; copy-account poll starved.",run3b@ab7f2b0(testnet):FAIL
-ORD-010,ORDER,Leader-to-send delay measured; stale entries take the missed-entry path,APPLIES,TESTNET,FAIL,run3b,ab7f2b0,F2: one send worker at ~3.5 s per order; leader-to-send delay rose from 7 s to 81 s (SLOW_QUEUE_WAIT CRITICAL); no stale-entry cutoff.,run3b@ab7f2b0(testnet):FAIL
-SET-009,SETTLE,Ledger never diverges from the exchange,APPLIES,TESTNET,FAIL,run3b,ab7f2b0,"F1: 25 fills on the exchange, 4 in live_fills.csv; 20 positions the engine thought flat.",run3b@ab7f2b0(testnet):FAIL
+ENG-018,ENGINE,Leaders trading opposite ways in one coin,APPLIES,TESTNET,PASS,run4,3c03099,netting across leaders works and is shown per coin (which leader holds what),run3b@ab7f2b0(testnet):FAIL ; run4@3c03099(testnet):PASS
+ENG-019,ENGINE,Main loop keeps up with 10 very busy leaders,APPLIES,TESTNET,PASS,run6,fc7efd7,"send backlog 12-24 at each arm (run 4: 99,906); queue wait p50 15.2 s - the main loop kept up with the 10 busy leaders in runs 6c-6f",run3b@ab7f2b0(testnet):FAIL ; run4@3c03099(testnet):FAIL ; run6@fc7efd7(testnet):PASS
+ORD-010,ORDER,Leader-to-send delay measured; stale entries take the missed-entry path,APPLIES,TESTNET,FAIL,run6,fc7efd7,run6f fc7efd7 w12: leader->exchange-done p50 47.1 s / p90 71.1 s; queue wait p50 15.2 s / p90 31.9 s; target 0.5 s,run3b@ab7f2b0(testnet):FAIL ; run4@3c03099(testnet):FAIL ; run5@cff92fa(testnet):FAIL ; run6@fc7efd7(testnet):FAIL
+SET-009,SETTLE,Ledger never diverges from the exchange,APPLIES,TESTNET,FAIL,run5,cff92fa,"ledger matched the exchange on every coin except RESOLV (stale +1, repair refused an unowned fill) - a known persistent divergence",run3b@ab7f2b0(testnet):FAIL ; run4@3c03099(testnet):FAIL ; run5@cff92fa(testnet):FAIL
 ENG-017,ENGINE,Missed leader entry or add,APPLIES,MAINNET,NOT_TESTED,,,,
 UI-DIFF-01,UI,Diffs are reported in the live UI,APPLIES,TESTNET,NOT_TESTED,,,,
 UI-ROUTE-01,UI,Endpoint GET /,APPLIES,TESTNET,NOT_TESTED,,,,
