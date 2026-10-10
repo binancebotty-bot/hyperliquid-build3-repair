@@ -7421,6 +7421,11 @@ class LiveCopyCore:
         # same unprocessed fills while the queue was long, which made it longer)
         key = self._guard_key(fill)
         coin_key = canonical_coin_key(fill.coin)
+        with self._queued_lock:
+            if key in self._queued_keys:
+                return True
+        if self._already_handled(fill):  # a re-read duplicate costs nothing: no ledger work, no sleeve created
+            return True
         is_close = self._is_close_fill(fill)
         with self._queued_lock:
             if key in self._queued_keys:
@@ -7606,10 +7611,10 @@ class LiveCopyCore:
                         return
                     grp = groups[cursor[0]]
                     cursor[0] += 1
-                self._drain_priority(idx)  # closes that arrived meanwhile go before the next coin group
                 for fill in grp:
                     if self._hot_stop_event.is_set():
                         return
+                    self._drain_priority(idx)  # closes that arrived meanwhile go before the next fill
                     _one(fill)
 
         threads = [threading.Thread(target=_lane, name=f"hot{idx}-inner", daemon=True)
@@ -8563,6 +8568,10 @@ class LiveCopyCore:
                     if self._dispatch_fill(fill):
                         summary.leader_fills_queued += 1
                         continue
+                    # queue full: never send on this thread (it would break one-worker-per-coin); the fill is
+                    # not marked handled, so the next poll offers it again
+                    log_error("poll_dispatch_deferred", RuntimeError(f"send queue full, fill {fill.leader_fill_id} deferred"))
+                    continue
                 sync_fills.append(fill)
             for fill in (self._plan_batch(sync_fills) if sync_fills else []):  # same merging/ordering as the workers
                 self._process_leader_fill(fill, summary, self._entry_sends_blocked_reason)
