@@ -1013,7 +1013,7 @@ def _load_resting_withdraw_pending() -> List[Dict[str, Any]]:
 def _build_health_summary(service_state: Dict[str, Any], integrity_status: Dict[str, Any], now_ms: Optional[int] = None,
                           resting_pending: Optional[List[Dict[str, Any]]] = None,
                           reconciliation_rows: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
-    """One calm line: green Healthy / amber Needs a look / red Stopped: <reason>. Red only when the engine
+    """One calm line: green Healthy / amber Needs a look / red Stopped or Action needed: <reason>. Red only when the engine
     actually cannot send (signing key rejected, entries blocked, wrong network, engine down or silent);
     every internal code goes to the technical detail."""
     now_ms = now_ms or int(time.time() * 1000)
@@ -1036,6 +1036,12 @@ def _build_health_summary(service_state: Dict[str, Any], integrity_status: Dict[
     recon_failing = [r for r in (reconciliation_rows or []) if (inum(r.get("created_at_ms")) or _iso_to_ms(r.get("created_at"))) >= active_from and any(m in " ".join(str(r.get(k) or "").upper() for k in ("status", "terminal_state", "action")) for m in _CLOSE_FAILURE_MARKERS)]
     close_failing = (inum(counts.get("close_reject_or_recovery_required")) > 0 or inum(hard_counts.get("MANUAL_EXIT_RECOVERY_REQUIRED")) > 0
                      or bool(recon_failing))
+    # a position the engine never opened (manual or leftover) is the operator's, not an engine fault: only a coin
+    # where the engine's own records hold a size the exchange does not match is a records problem
+    pa = integrity_status.get("position_assignment") if isinstance(integrity_status.get("position_assignment"), dict) else {}
+    mm_rows = [r for r in (pa.get("exchange_manual_mismatches") or []) if isinstance(r, dict)]
+    records_disagree = (any(abs(fnum(r.get("manual"))) > 1e-12 for r in mm_rows) if mm_rows
+                        else inum(counts.get("exchange_manual_mismatch")) > 0)
     level, text = "green", "Healthy"
     beat = inum(st.get("last_state_write_ms") or st.get("created_at_ms"))
     nets = st.get("networks") if isinstance(st.get("networks"), dict) else {}
@@ -1048,13 +1054,13 @@ def _build_health_summary(service_state: Dict[str, Any], integrity_status: Dict[
     elif nets.get("follower") and str(nets.get("follower")).lower() != str(FOLLOWER_NETWORK).lower():
         level, text = "red", f"Stopped: the engine trades on {nets.get('follower')} but this screen reads {FOLLOWER_NETWORK}"
     elif resting_pending:
-        level, text = "red", "Stopped: a resting order could not be cancelled — check open orders"
+        level, text = "red", "Action needed: a resting order could not be cancelled — check open orders"
     elif close_failing:
-        level, text = "red", "Stopped: a close is failing — check the Reconciliation tab and close it on the exchange"
-    elif inum(counts.get("exchange_manual_mismatch")) > 0:
-        level, text = "red", "Stopped: the engine's records and the exchange disagree — check the Reconciliation tab"
+        level, text = "red", "Action needed: a close is failing — check the Reconciliation tab and close it on the exchange"
+    elif records_disagree:
+        level, text = "red", "Action needed: the engine's records and the exchange disagree — check the Reconciliation tab"
     elif inum(counts.get("audit_proof_missing")) > 0:
-        level, text = "red", "Stopped: the engine's audit files are missing — check the state folder"
+        level, text = "red", "Action needed: the engine's audit files are missing — check the state folder"
     elif st.get("entry_sends_blocked_reason"):
         level, text = "red", "Stopped: new entries paused because " + _plain_block_reason(str(st.get("entry_sends_blocked_reason"))) + " (exits still run)"
     elif integ in {"RED", "AMBER"}:

@@ -343,10 +343,17 @@ def main() -> None:
     # ---- R2 integrity stop-level conditions are red ----------------------------------------------------------
     def integ(**counts):
         return {"status": "RED", "available": True, "reasons": ["x"], "counts": counts}
-    check("R2_CLOSE_REJECT_IS_RED", H(fresh_state(), integ(close_reject_or_recovery_required=1))["text"].startswith("Stopped: a close is failing"))
+    check("R2_CLOSE_REJECT_IS_RED", H(fresh_state(), integ(close_reject_or_recovery_required=1))["text"].startswith("Action needed: a close is failing"))
     check("R2_MANUAL_EXIT_RECOVERY_IS_RED", H(fresh_state(), {"status": "RED", "available": True, "counts": {},
                                                             "hard_copy_invariant": {"counts": {"MANUAL_EXIT_RECOVERY_REQUIRED": 2}}})["level"] == "red")
     check("R2_EXCHANGE_MISMATCH_IS_RED", "disagree" in H(fresh_state(), integ(exchange_manual_mismatch=1))["text"])
+    def mm(*rows):
+        return {"status": "RED", "available": True, "reasons": ["exchange_manual_mismatch"], "counts": {"exchange_manual_mismatch": len(rows)},
+                "position_assignment": {"status": "MISMATCH", "exchange_manual_mismatches": list(rows)}}
+    ext = H(fresh_state(), mm({"coin": "SOL", "exchange": 0.5, "manual": 0.0}))
+    check("R2_POSITION_THE_ENGINE_NEVER_OPENED_IS_NOT_RED", ext["level"] == "amber", str(ext))
+    own = H(fresh_state(), mm({"coin": "SOL", "exchange": 0.5, "manual": 0.0}, {"coin": "BTC", "exchange": 0.0, "manual": 0.2}))
+    check("R2_ENGINE_RECORDS_DISAGREE_IS_RED", own["level"] == "red" and own["text"].startswith("Action needed:"), str(own))
     check("R2_MISSING_AUDIT_FILES_IS_RED", "audit files are missing" in H(fresh_state(), integ(audit_proof_missing=1))["text"])
     now = int(time.time() * 1000)
     rec_new = [{"created_at_ms": now - 60_000, "event": "SEND_TERMINAL", "action": "MANUAL_EXIT_RECOVERY_REQUIRED"}]
