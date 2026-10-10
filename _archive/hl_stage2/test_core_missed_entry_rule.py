@@ -259,7 +259,9 @@ def main() -> None:
             LEADER: {"enabled": True, "mode": "LIVE", "copy_mode": "fixed", "fixed_notional": 1000}}})
         k = c.LiveCopyCore(source_csv=tmp / "none.csv")
         k.sender._exchange_client_for_coin = lambda coin: (fake, "BTC")
-        k._own_fills_of_withdrawn_limits = lambda rows, seen=None: owned.extend(r["oid"] for r in rows) or 0
+        # the fill read is made outside the send lock, the ledger half inside it (run 5)
+        k._read_fills_of_withdrawn_limits = lambda rows: ([], "COPY_ACCOUNT_POLLED")
+        k._apply_fills_of_withdrawn_limits = lambda rows, read, seen=None: owned.extend(r["oid"] for r in rows) or 0
         return k
     owned = []
     m8_start = len(fake.cancels)

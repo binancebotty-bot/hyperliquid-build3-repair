@@ -9,6 +9,7 @@ import tempfile
 from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+os.environ["HL_LIVE_AUDIT_DIR"] = tempfile.mkdtemp(prefix="g3_")  # never the live state folder
 import exchange_truth as X  # noqa: E402
 import HL_Live_Copy_Service as svcmod  # noqa: E402
 svcmod.TEST_INJECTION_ENABLED = True  # test-only seam: injected providers/durability bypass
