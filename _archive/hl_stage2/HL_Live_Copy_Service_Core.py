@@ -782,7 +782,10 @@ def _write_attribution_json(path: Path, payload: Dict[str, Any]) -> None:
         tmp.write_text(json.dumps(_attribution_json_safe(payload), indent=2, sort_keys=True), encoding="utf-8")
         os.replace(tmp, path)
     except Exception:
-        pass
+        try:
+            tmp.unlink()  # a lost replace must not leave a temp file the startup scan reads as an interrupted write
+        except Exception:
+            pass
     finally:
         _ATTRIBUTION_WRITE_LOCAL.active = False
 
@@ -941,9 +944,8 @@ def atomic_write_json(path: Path, payload: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_name(f"{path.name}.{os.getpid()}_{threading.get_ident()}_{time.time_ns()}.tmp")
     text = json.dumps(payload, indent=2, sort_keys=True)
-    # the crash-attribution marker is its own file: written before taking the shared file lock (run 5: three
-    # marker writes per JSON write, all under the lock every audit append waits for)
-    record_core_phase("atomic_write_begin", path, {"tmp": str(tmp), "bytes": len(text)})
+    # no per-write crash-attribution marker any more (run 5: three marker writes per JSON write under the lock
+    # every audit append waits for); a failed replace still records one below
     with prof(f"write:{path.name}"):
         tmp.write_text(text, encoding="utf-8")  # a unique temp file: no lock needed until the replace
     with prof("file_lock_wait"):
@@ -7113,9 +7115,10 @@ class ServiceStateWriter:
             "networks": {"leader": LEADER_NETWORK, "follower": FOLLOWER_NETWORK},
             **dedupe.export(),
         }
-        for _k in ("copy_poll_stats", "last_exchange_snapshot_refresh_ms"):  # written by the copy thread
-            if isinstance(_existing_rt, dict) and _k in _existing_rt:
-                core_state[_k] = _existing_rt[_k]
+        # the copy thread keeps its stats in copy_poll_state.json; mirror the snapshot time, never stale stats
+        _cps = load_json(COPY_POLL_STATE_FILE, {})
+        if isinstance(_cps, dict) and "last_exchange_snapshot_refresh_ms" in _cps:
+            core_state["last_exchange_snapshot_refresh_ms"] = _cps["last_exchange_snapshot_refresh_ms"]
         atomic_write_json(CORE_RUNTIME_STATE_FILE, core_state)
 
 
