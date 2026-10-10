@@ -3175,6 +3175,8 @@ class SenderGateway:
         # position_abs_before, intent_id}. Protected by _pending_exit_lock.
         self._pending_exit_guard: Dict[str, Dict[str, Any]] = {}
         self._pending_exit_lock = threading.Lock()
+        # coin -> (ledger net, exchange net) of a mismatch that already survived a full wait with fresh records
+        self._gate_mismatch_confirmed: Dict[str, Tuple[float, float]] = {}
         self._load_asset_universe_snapshot()
 
     def _place_order(self, exchange: Any, sdk_coin: str, is_buy: bool, size: float, limit_px: float,
@@ -4257,7 +4259,15 @@ class SenderGateway:
         timing = self._base_timing(intent)
         gate_ok, gate_block = self._pre_send_ownership_gate(intent)
         lag_statuses = {"OWNERSHIP_GATE_UNEXPLAINED_EXCHANGE_POSITION", "OWNERSHIP_GATE_SIGN_CONFLICT"}
-        if not gate_ok and gate_block.get("status") in lag_statuses:
+        gate_coin = canonical_coin_key(intent.fill.coin)
+        gate_nets = (round(fnum(gate_block.get("manual_net")), 9), round(fnum(gate_block.get("exchange_net")), 9))
+        confirmed = (not gate_ok and gate_block.get("status") in lag_statuses
+                     and self._gate_mismatch_confirmed.get(gate_coin) == gate_nets)
+        if confirmed:
+            # run 5: this wait cost a send worker 6 s on EVERY fill in a coin whose mismatch is real (each blocked
+            # anyway), and the queue backed up behind it. The same mismatch already survived fresh records: block now.
+            gate_block["notes"] = str(gate_block.get("notes") or "") + "; mismatch already confirmed with fresh records, no wait"
+        if not gate_ok and gate_block.get("status") in lag_statuses and not confirmed:
             # often only the ledger (copy poll) or the exchange snapshot lagging the other by a few seconds: bring
             # both up to date and look again; only a mismatch that survives fresh records is a real one
             deadline = time.monotonic() + max(0.0, fnum(os.getenv("HL_LIVE_UNEXPLAINED_WAIT_SEC"), 6.0))
@@ -4274,6 +4284,11 @@ class SenderGateway:
                 gate_ok, gate_block = self._pre_send_ownership_gate(intent)
                 if not gate_ok and gate_block.get("status") in lag_statuses and time.monotonic() < deadline:
                     time.sleep(0.5)
+            if not gate_ok and gate_block.get("status") in lag_statuses:
+                self._gate_mismatch_confirmed[gate_coin] = (round(fnum(gate_block.get("manual_net")), 9),
+                                                            round(fnum(gate_block.get("exchange_net")), 9))
+        if gate_ok:
+            self._gate_mismatch_confirmed.pop(gate_coin, None)
         if not gate_ok:
             gate_block["timing"] = timing
             self._append_local_block_reconciliation(intent, str(gate_block.get("status") or "OWNERSHIP_GATE_BLOCKED"), gate_block)

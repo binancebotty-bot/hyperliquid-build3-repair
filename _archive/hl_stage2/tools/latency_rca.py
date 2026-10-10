@@ -52,6 +52,7 @@ for r in rows("order_intents.csv"):
     s = r.get("source") or "?"
     src[s] += 1; per_hour[hour(t)]["intents"] += 1; per_hour[hour(t)]["intents_" + s] += 1
 
+coin_busy = defaultdict(list)
 lag = defaultdict(list); by_status = defaultdict(lambda: defaultdict(list)); l2s = defaultdict(list)
 for r in rows("send_attempts.csv"):
     t = num(r.get("created_at_ms")) or 0
@@ -60,6 +61,8 @@ for r in rows("send_attempts.csv"):
     ws, lt, ic = num(r.get("ws_received_ms")), num(r.get("leader_fill_timestamp_ms")), num(r.get("intent_created_at_ms"))
     sd, sw = num(r.get("send_decision_started_ms")), num(r.get("send_attempt_written_ms"))
     b = by_status[st]
+    if sw and sd:
+        coin_busy[(r.get("coin") or "?").upper()].append(sw - sd)
     b["n"].append(1)
     b["worker_ms"].append(sw - sd if sw and sd else None)
     b["queue_wait_ms"].append(num(r.get("queue_wait_ms")))
@@ -100,3 +103,13 @@ print("\nD. top reconciliation rows (held = ms from intent written to this row, 
 for k, v in sorted(rec.items(), key=lambda kv: -kv[1])[:30]:
     h = held.get(k, [])
     print(f"   {v:>8}  {k[:70]:70}  held_total_s={sum(h)/1000:.0f} p50={pct(h,.5)} p90={pct(h,.9)}")
+
+import hashlib
+print("\nE. send-worker busy time by coin and by worker shard (4 workers; sha1(coin) % 4 as in the engine)")
+shard = defaultdict(float)
+for coin, v in coin_busy.items():
+    key = coin
+    shard[int(hashlib.sha1(key.encode()).hexdigest()[:8], 16) % 4] += sum(v)
+for k in sorted(shard): print(f"   worker {k+1}: busy {shard[k]/1000:.0f} s")
+for coin, v in sorted(coin_busy.items(), key=lambda kv: -sum(kv[1]))[:15]:
+    print(f"   {coin:14} sends={len(v):>6} busy={sum(v)/1000:>7.0f} s")
