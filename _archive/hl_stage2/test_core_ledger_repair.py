@@ -13,6 +13,8 @@ F  refused: a fill of an order the engine did not place; a replay that does not 
 D  dry run changes nothing; a second run finds nothing left; a second tranche of one exchange transaction
    (same hash, new tid) is a real fill, not a duplicate.
 X  exchange positions report: explained by the engine's own order ids or not.
+T  run 4's live_fills rows carry a doubled tid (hash:tid:tid): those fills are owned, not replayed again; an
+   engine row missing its side is refused before anything is applied; the 10,000-fill history limit refuses.
 N  no exchange write anywhere in the repair; apply refuses while the engine holds the state folder.
 
 Run: python test_core_ledger_repair.py   # RESULT:: markers, exit 0/1. No network, no orders.
@@ -56,7 +58,8 @@ def main() -> None:
 
     # ---- state as run 4 left it ----------------------------------------------------------------------------
     led = c.ManualLedger()
-    for w, coin, size in ((A, "BTC", 2.0), (A, "AVAX", -5.0), (B, "ETH", 1.0), (A, "SOL", 1.0), (A, "DOGE", 3.0)):
+    for w, coin, size in ((A, "BTC", 2.0), (A, "AVAX", -5.0), (B, "ETH", 1.0), (A, "SOL", 1.0), (A, "DOGE", 3.0),
+                          (A, "TIA", 3.0), (A, "KAS", 2.0)):
         s = led.sleeve(w, coin)
         s.update(signed_size=size, direction="LONG" if size > 0 else "SHORT", avg_entry_px=10.0, last_copy_fill_id="x")
     led._recompute_net(led.data)
@@ -99,6 +102,23 @@ def main() -> None:
     audit.append_live_fill({"created_at_ms": t0, "copy_fill_id": "0xeth:1", "intent_id": "i-eth", "leader_wallet": B,
                             "coin": "ETH", "side": "BUY", "fill_size": 1.0, "exchange_hash": "0xeth", "exchange_order_id": "801"})
 
+    # TIA: the entry fill (oid 901) was recorded the way run 4 wrote it, hash:tid:tid; its close (oid 902) was missed
+    audit.append_send_attempt({"created_at_ms": t0, "intent_id": "i-tia", "leader_fill_id": "lf5", "leader_wallet": A,
+                               "coin": "TIA", "side": "BUY", "copy_size": 3.0, "limit_price": 5.0, "status": "ORDER_FILLED",
+                               "exchange_order_id": "901", "terminal_state": "FILLED_AWAITING_COPY_POLL",
+                               "notes": "lifecycle=ENTRY"})
+    audit.append_live_fill({"created_at_ms": t0, "copy_fill_id": "0xtia:61:61", "intent_id": "i-tia", "leader_wallet": A,
+                            "coin": "TIA", "side": "BUY", "fill_size": 3.0, "exchange_hash": "0xtia", "exchange_order_id": "901"})
+    audit.append_send_attempt({"created_at_ms": t0, "intent_id": "i-tia-exit", "leader_fill_id": "lf6", "leader_wallet": A,
+                               "coin": "TIA", "side": "SELL", "copy_size": 3.0, "limit_price": 5.0, "status": "ORDER_FILLED",
+                               "exchange_order_id": "902", "reduce_only_sent": "True", "wallet_position_before": 3.0,
+                               "terminal_state": "FILLED_AWAITING_COPY_POLL", "notes": "lifecycle=EXIT"})
+    # KAS: the engine's close row (oid 911) lacks its side, so its fill cannot be recorded faithfully
+    audit.append_send_attempt({"created_at_ms": t0, "intent_id": "i-kas-exit", "leader_fill_id": "lf7", "leader_wallet": A,
+                               "coin": "KAS", "side": "", "copy_size": 2.0, "limit_price": 1.0, "status": "ORDER_FILLED",
+                               "exchange_order_id": "911", "reduce_only_sent": "True", "wallet_position_before": 2.0,
+                               "terminal_state": "FILLED_AWAITING_COPY_POLL", "notes": "lifecycle=EXIT"})
+
     def f(coin, side, sz, oid, h, tid, dt=0):
         return {"coin": coin, "side": side, "sz": str(sz), "px": "10", "oid": oid, "hash": h, "tid": tid,
                 "time": t0 + 1000 + dt, "dir": "Close", "fee": "0.01", "closedPnl": "0"}
@@ -109,6 +129,8 @@ def main() -> None:
         f("SOL", "A", 1.0, 999, "0xsol", 31, 30),
         f("DOGE", "A", 2.0, 701, "0xdoge", 41, 40),
         f("LINK", "B", 5.0, 998, "0xlink", 51, 50),
+        f("TIA", "B", 3.0, 901, "0xtia", 61, 60), f("TIA", "A", 3.0, 902, "0xtiax", 62, 61),
+        f("KAS", "A", 2.0, 911, "0xkas", 71, 70),
     ]
     reads = []
 
@@ -132,13 +154,19 @@ def main() -> None:
     dry = c.repair_ledger_catch_up(dry_run=True)
     fixed = {r["coin"] for r in dry["repairs"]}
     refused = {r["coin"]: r["reason"] for r in dry["refused"]}
-    check("D1_DRY_RUN_FINDS_THE_EXPLAINED_COINS", fixed == {"BTC", "AVAX"}, json.dumps(dry, default=str)[:500])
+    check("D1_DRY_RUN_FINDS_THE_EXPLAINED_COINS", fixed == {"BTC", "AVAX", "TIA"}, json.dumps(dry, default=str)[:500])
     check("D1_DRY_RUN_CHANGES_NOTHING", c.load_json(c.MANUAL_LIVE_POSITIONS_FILE, {}).get("by_wallet") == before.get("by_wallet")
           and len(c.read_csv_rows(c.LIVE_FILLS_CSV)) == live_before)
     check("F1_FILL_OF_AN_ORDER_THE_ENGINE_DID_NOT_PLACE_REFUSED", "not from an order this engine placed" in refused.get("SOL", ""),
           str(refused))
     check("F2_REPLAY_SHORT_OF_THE_EXCHANGE_NET_REFUSED", "gives ledger net 1.0" in refused.get("DOGE", ""), str(refused))
     check("F3_UNEXPLAINED_EXCHANGE_POSITION_REFUSED", "LINK" in refused, str(refused))
+    check("T1_DOUBLED_TID_ROW_OWNS_ITS_FILL_ONLY_THE_MISSED_CLOSE_REPLAYED",
+          [[x["copy_fill_id"] for x in r["fills"]] for r in dry["repairs"] if r["coin"] == "TIA"] == [["0xtiax:62"]],
+          str([r for r in dry["repairs"] if r["coin"] == "TIA"]))
+    check("T2_ENGINE_ROW_WITHOUT_SIDE_REFUSED_BEFORE_APPLYING", "lacks the side" in refused.get("KAS", ""), str(refused))
+    check("T3_POLL_PRESET_ID_NOT_DOUBLED", c.CopyAccountIngestor.copy_fill_id({"copy_fill_id": "0xh:7", "hash": "0xh", "tid": 7}) == "0xh:7"
+          and c.CopyAccountIngestor.copy_fill_id({"hash": "0xh", "tid": 7}) == "0xh:7")
     check("D1_BTC_DRY_RUN_SHOWS_BOTH_TRANCHES", [len(r["fills"]) for r in dry["repairs"] if r["coin"] == "BTC"] == [2])
 
     res = c.repair_ledger_catch_up(dry_run=False)
@@ -150,15 +178,20 @@ def main() -> None:
     check("F4_REFUSED_COINS_UNTOUCHED", led2.wallet_coin_position(A, "SOL") == 1.0 and led2.wallet_coin_position(A, "DOGE") == 3.0
           and led2.wallet_coin_position(B, "ETH") == 1.0)
     lf = [r for r in c.read_csv_rows(c.LIVE_FILLS_CSV) if r.get("source") == "ledger_catch_up_repair"]
-    check("E4_EACH_ADOPTED_FILL_WRITTEN_TO_LIVE_FILLS", sorted(r["copy_fill_id"] for r in lf) == ["0xavax:21", "0xbtc:11", "0xbtc:12"],
+    check("E4_EACH_ADOPTED_FILL_WRITTEN_TO_LIVE_FILLS", sorted(r["copy_fill_id"] for r in lf) == ["0xavax:21", "0xbtc:11", "0xbtc:12", "0xtiax:62"],
           str([r["copy_fill_id"] for r in lf]))
     rec = [r for r in c.read_csv_rows(c.RECONCILIATION_CSV) if r.get("status") == "LEDGER_CATCH_UP_REPAIR"]
-    check("E5_AUDIT_ROW_PER_REPAIRED_COIN_SAYS_NO_ORDER", sorted(r["coin"] for r in rec) == ["AVAX", "BTC"]
+    check("E5_AUDIT_ROW_PER_REPAIRED_COIN_SAYS_NO_ORDER", sorted(r["coin"] for r in rec) == ["AVAX", "BTC", "TIA"]
           and all("no exchange order placed" in r["notes"] for r in rec))
     again = c.repair_ledger_catch_up(dry_run=True)
-    check("D2_SECOND_RUN_FINDS_NOTHING_LEFT_TO_REPAIR", not again["repairs"] and {r["coin"] for r in again["refused"]} == {"SOL", "DOGE", "LINK"},
+    check("D2_SECOND_RUN_FINDS_NOTHING_LEFT_TO_REPAIR", not again["repairs"] and {r["coin"] for r in again["refused"]} == {"SOL", "DOGE", "LINK", "KAS"},
           json.dumps(again["repairs"], default=str)[:300])
 
+    check("T4_TIA_FLAT_AND_KAS_UNTOUCHED", abs(led2.wallet_coin_position(A, "TIA")) < 1e-12 and led2.wallet_coin_position(A, "KAS") == 2.0)
+    check("T5_REFUSED_COIN_CREATES_NO_EMPTY_SLEEVE",
+          all("LINK" not in (wm or {}) for wm in (c.load_json(c.MANUAL_LIVE_POSITIONS_FILE, {}).get("by_wallet") or {}).values()))
+    m0 = c.CopyFillMatcher(c.ManualLedger(), c.AuditLogWriter())
+    check("T6_RESTARTED_ENGINE_TREATS_DOUBLED_ID_AS_OWNED", "0xtia:61" in m0.matched_copy_fill_ids)
     pos = {p["coin"]: p for p in res["exchange_positions"]}
     check("X1_ENGINE_OWNED_POSITION_EXPLAINED", pos["ETH"]["explained_by_engine_orders"] and pos["ETH"]["ledger_matches_exchange"])
     check("X1_FOREIGN_POSITION_NOT_EXPLAINED", not pos["LINK"]["explained_by_engine_orders"] and not res["exchange_positions_all_explained"])
@@ -174,6 +207,11 @@ def main() -> None:
     big = [dict(f("XRP", "A", 1, 1, "0xx", i), time=t0 + 5) for i in range(2000)]
     c.COPY_FILLS_FETCHER = lambda p: big
     check("F6_FILL_HISTORY_THAT_CANNOT_BE_READ_IN_FULL_REFUSES", c.repair_ledger_catch_up(dry_run=True)["status"] == "REFUSED")
+    c.COPY_FILLS_FETCHER = fill_pages
+    huge = [dict(f("ADA", "B", 1, 5, f"0xh{i}", i), time=t0 + 100 + i) for i in range(10_500)]
+    c.COPY_FILLS_FETCHER = lambda p: [x for x in huge if p["startTime"] <= x["time"] <= p["endTime"]][:2000]
+    got10, st10 = c._read_all_copy_fills(t0, t0 + 100_000)
+    check("T7_10K_HISTORY_LIMIT_REFUSES", st10.startswith("FILLS_INCOMPLETE") and "10,000" in st10, st10)
     c.COPY_FILLS_FETCHER = fill_pages
 
     # paging restarts at the last fill's millisecond, so fills sharing it across a page edge are not lost

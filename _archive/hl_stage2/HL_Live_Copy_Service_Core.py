@@ -5934,7 +5934,8 @@ class CopyAccountIngestor:
         h = str(raw.get("copy_fill_id") or raw.get("hash") or "")
         tid = str(raw.get("tid") or "")
         if h and tid:
-            return f"{h}:{tid}"
+            # the copy poll pre-sets copy_fill_id = hash:tid; before this guard that became hash:tid:tid
+            return h if h.endswith(f":{tid}") else f"{h}:{tid}"
         if h:
             return h
         return str(raw.get("tid") or raw.get("oid") or stable_hash([
@@ -5988,11 +5989,13 @@ class CopyFillMatcher:
         live_rows = read_csv_rows(LIVE_FILLS_CSV)
         self.matched_intent_ids = {str(r.get("intent_id") or "") for r in live_rows if r.get("intent_id")}
         self.matched_copy_fill_ids = {str(r.get("copy_fill_id") or "") for r in live_rows if r.get("copy_fill_id")}
+        # rows written while the poll doubled the tid (hash:tid:tid) also own the canonical hash:tid
+        self.matched_copy_fill_ids |= {canonical_copy_fill_id(c) for c in self.matched_copy_fill_ids}
         # Pre-patch live_fills stored copy_fill_id == exchange_hash (no :tid suffix).
         # Track raw exchange hashes separately so that on restart, a re-polled fill whose
         # copy_fill_id is now "hash:tid" still matches the old ledgered entry.
         self.matched_exchange_hashes = {str(r.get("exchange_hash") or "") for r in live_rows if r.get("exchange_hash")
-                                        and str(r.get("copy_fill_id") or "") == str(r.get("exchange_hash"))}
+                                        and canonical_copy_fill_id(str(r.get("copy_fill_id") or "")) == str(r.get("exchange_hash"))}
         self.sent_oid_index = self._load_sent_oid_index()  # norm_oid â†' full ORDER_FILLED send_attempt row
         self.sent_oid_by_intent_id = {
             str(row.get("intent_id") or ""): oid
@@ -9240,6 +9243,14 @@ def repair_recovery_copy_fills(start_ms: Optional[int] = None, end_ms: Optional[
     }
 
 
+def canonical_copy_fill_id(cid: str) -> str:
+    """hash:tid:tid (written while the copy poll doubled the tid) -> hash:tid; other ids unchanged."""
+    parts = str(cid or "").split(":")
+    while len(parts) >= 3 and parts[-1] == parts[-2]:
+        parts.pop()
+    return ":".join(parts)
+
+
 COPY_FILLS_FETCHER = None  # test seam for the ledger-catch-up repair's full fill read; production uses HTTP
 
 
@@ -9264,6 +9275,8 @@ def _read_all_copy_fills(start_ms: int, end_ms: int, max_pages: int = 200) -> Tu
                 cid = CopyAccountIngestor.copy_fill_id(raw)
                 if cid not in seen:
                     seen[cid], new = dict(raw), new + 1
+        if len(seen) >= 10_000:  # the exchange serves only the most recent 10,000 fills: earlier ones may be missing
+            return list(seen.values()), "FILLS_INCOMPLETE: 10,000-fill exchange history limit reached; pass a later --repair-start-ms"
         if len(data) < 2000:
             return sorted(seen.values(), key=lambda r: int(fnum(r.get("time"), 0))), "FILLS_COMPLETE"
         last = max(int(fnum(r.get("time"), 0)) for r in data if isinstance(r, dict))
@@ -9296,14 +9309,15 @@ def repair_ledger_catch_up(start_ms: Optional[int] = None, dry_run: bool = True)
     end_ms = utc_now_ms()
     ledger_coins = {canonical_coin_key(c) for wm in (ledger.data.get("by_wallet") or {}).values()
                     if isinstance(wm, dict) for c in wm}
-    dexes = sorted(set(follower_dex_scope()) | {c.split(":", 1)[0].lower() for c in ledger_coins if ":" in c})
+    fills, fills_status = _read_all_copy_fills(int(start_ms), end_ms)
+    if fills_status != "FILLS_COMPLETE":
+        return {"status": "REFUSED", "reason": fills_status, "fills_read": len(fills)}
+    fill_coins = {canonical_coin_key(r.get("coin")) for r in fills}
+    dexes = sorted(set(follower_dex_scope()) | {c.split(":", 1)[0].lower() for c in ledger_coins | fill_coins if ":" in c})
     exp = _XNET.master_exposure(normalise_wallet(USER_WALLET), dexes, fetcher=EXPOSURE_FETCHER,
                                 info_url=HL_INFO_URL, timeout=HTTP_TIMEOUT_SEC)
     if not exp.get("ok"):
         return {"status": "REFUSED", "reason": f"exchange positions unreadable ({exp.get('status')} {exp.get('dex', '')})"}
-    fills, fills_status = _read_all_copy_fills(int(start_ms), end_ms)
-    if fills_status != "FILLS_COMPLETE":
-        return {"status": "REFUSED", "reason": fills_status, "fills_read": len(fills)}
     ex_net: Dict[str, float] = {}
     for k, v in (exp.get("by_coin") or {}).items():
         ex_net[canonical_coin_key(k)] = ex_net.get(canonical_coin_key(k), 0.0) + fnum(v.get("net"))
@@ -9317,6 +9331,9 @@ def repair_ledger_catch_up(start_ms: Optional[int] = None, dry_run: bool = True)
     for raw in fills:
         by_coin_fills.setdefault(canonical_coin_key(raw.get("coin")), []).append(raw)
     coins = sorted(ledger_coins | set(ex_net) | set(by_coin_fills))
+    def held(w: str, c: str) -> float:  # read-only: never creates an empty sleeve
+        return fnum(((ledger.data.get("by_wallet") or {}).get(w) or {}).get(c, {}).get("signed_size"), 0.0)
+
     tol = lambda a, b: abs(a - b) <= max(POSITION_EPSILON, 1e-9 * max(abs(a), abs(b), 1.0))
     repairs, refused, positions = [], [], []
     for coin in coins:
@@ -9333,7 +9350,7 @@ def repair_ledger_catch_up(start_ms: Optional[int] = None, dry_run: bool = True)
                 engine_sum += delta
             else:
                 foreign_sum += delta
-            cid = CopyAccountIngestor.copy_fill_id(raw)
+            cid = canonical_copy_fill_id(CopyAccountIngestor.copy_fill_id(raw))
             # owned: by hash:tid, or by bare hash for rows written before hash:tid keys
             if cid not in matcher.matched_copy_fill_ids and str(raw.get("hash") or "") not in matcher.matched_exchange_hashes:
                 unowned.append((raw, oid, row))
@@ -9351,17 +9368,21 @@ def repair_ledger_catch_up(start_ms: Optional[int] = None, dry_run: bool = True)
             why = "no unowned fills explain the difference"
         elif any(row is None for _r, _o, row in unowned):
             why = "an unowned fill is not from an order this engine placed"
-        elif any((claims_dir / (_safe_marker_name(CopyAccountIngestor.copy_fill_id(r)) + ".claim")).exists()
-                 for r, _o, _row in unowned):
+        elif any((claims_dir / (_safe_marker_name(n) + ".claim")).exists()
+                 for r, _o, _row in unowned
+                 for n in (canonical_copy_fill_id(CopyAccountIngestor.copy_fill_id(r)),
+                           canonical_copy_fill_id(CopyAccountIngestor.copy_fill_id(r)) + ":" + str(r.get("tid") or ""))):
             why = "an unowned fill was already claimed by a process"
+        elif any(matcher._intent_from_send_attempt(row) is None for _r, _o, row in unowned):
+            why = "an engine order row lacks the side or wallet needed to record its fill"
         sim: Dict[str, float] = {}
         if not why:
             for raw, _oid, row in unowned:
                 w = normalise_wallet(str(row.get("leader_wallet") or ""))
-                sim.setdefault(w, ledger.wallet_coin_position(w, coin))
+                sim.setdefault(w, held(w, coin))
                 sim[w] += ManualLedger.signed_delta(normalise_copy_fill_side(raw.get("side") or raw.get("dir") or ""),
                                                     abs(fnum(raw.get("sz", raw.get("size")))))
-            after = led_net + sum(sim[w] - ledger.wallet_coin_position(w, coin) for w in sim)
+            after = led_net + sum(sim[w] - held(w, coin) for w in sim)
             if not tol(after, x_net):
                 why = f"replaying the unowned engine fills gives ledger net {round(after, 10)}, exchange holds {x_net}"
         entry = {"coin": coin, "ledger_net": led_net, "exchange_net": x_net, "unowned_fills": len(unowned),
@@ -9376,8 +9397,9 @@ def repair_ledger_catch_up(start_ms: Optional[int] = None, dry_run: bool = True)
             for raw, oid, row in sorted(unowned, key=lambda u: int(fnum(u[0].get("time"), 0))):
                 item = dict(raw)
                 item["source"] = "ledger_catch_up_repair"
-                if not matcher._apply_oid_matched_copy_fill(item, row, oid, CopyAccountIngestor.copy_fill_id(raw)):
-                    entry.setdefault("not_applied", []).append(CopyAccountIngestor.copy_fill_id(raw))
+                cid = canonical_copy_fill_id(CopyAccountIngestor.copy_fill_id(raw))
+                if not matcher._apply_oid_matched_copy_fill(item, row, oid, cid):
+                    entry.setdefault("not_applied", []).append(cid)
             entry["ledger_net_after"] = ledger.coin_net(coin)
             entry["verified"] = tol(entry["ledger_net_after"], x_net)
             audit.append_reconciliation(
