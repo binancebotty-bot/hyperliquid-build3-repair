@@ -7271,6 +7271,11 @@ class LiveCopyCore:
         self.hot_send_workers = max(1, min(8, int(fnum(os.getenv("HL_LIVE_HOT_SEND_WORKERS"), 4))))
         self._hot_queues: List["queue.Queue[LeaderFill]"] = [queue.Queue(maxsize=50000) for _ in range(self.hot_send_workers)]
         self._hot_queue = self._hot_queues[0]
+        # run 5: convergence closes waited ~7.7 min behind a worker's batch of entries and were re-queued every few
+        # minutes without ever being sent. Closes (leader exits and convergence) get their own lane per worker,
+        # which the worker empties before every fill it sends.
+        self._prio_queues: List["queue.Queue[LeaderFill]"] = [queue.Queue(maxsize=50000) for _ in range(self.hot_send_workers)]
+        self._converge_queued: set = set()  # sleeves with a convergence close still waiting on a worker
         self._queued_keys: set = set()  # guard keys of fills waiting on a worker
         self._queued_lock = threading.Lock()
         self.async_dispatch = False  # main() turns this on in loop mode: polled fills go to the workers too
@@ -7338,12 +7343,25 @@ class LiveCopyCore:
                 return True
             self._queued_keys.add(key)
         try:
-            self._hot_queues[self._shard(fill)].put_nowait(fill)
+            shard = self._shard(fill)
+            prio = getattr(self, "_prio_queues", None)
+            if prio and len(prio) == len(self._hot_queues) and self._is_close_fill(fill):
+                prio[shard].put_nowait(fill)
+            else:
+                self._hot_queues[shard].put_nowait(fill)
             return True
         except queue.Full:
             with self._queued_lock:
                 self._queued_keys.discard(key)
             log_error("ws_hot_queue_full", RuntimeError("hot send queue full"))
+            return False
+
+    def _is_close_fill(self, fill: LeaderFill) -> bool:
+        if fill.source == "CONVERGE":
+            return True
+        try:
+            return self.ledger.classify_leader_side_for_wallet(fill.leader_wallet, fill.coin, fill.side)[0] == "EXIT"
+        except Exception:
             return False
 
     def _plan_batch(self, batch: List[LeaderFill]) -> List[LeaderFill]:
@@ -7380,14 +7398,57 @@ class LiveCopyCore:
         return [f for _p, _t, _i, merged in planned for f in merged]
 
     def hot_backlog(self) -> int:
-        return sum(q.qsize() for q in self._hot_queues)
+        return sum(q.qsize() for q in self._hot_queues) + sum(q.qsize() for q in getattr(self, "_prio_queues", []))
+
+    def _release_queued(self, batch: List[LeaderFill], q: "queue.Queue[LeaderFill]") -> None:
+        with self._queued_lock:
+            for f in batch:
+                self._queued_keys.discard(self._guard_key(f))
+                if f.source == "CONVERGE":
+                    raw = f.raw if isinstance(f.raw, dict) else {}
+                    self._converge_queued.discard((f.leader_wallet, canonical_coin_key(f.coin), str(raw.get("position_id") or "")))
+        for _ in batch:
+            try:
+                q.task_done()
+            except Exception:
+                pass
+
+    def _drain_priority(self, idx: int) -> None:
+        """Send every close waiting on this worker's priority lane, before the next fill of an entry batch."""
+        prio = getattr(self, "_prio_queues", None)
+        if not prio or idx >= len(prio):
+            return
+        pq = prio[idx]
+        while not self._hot_stop_event.is_set():
+            batch: List[LeaderFill] = []
+            while len(batch) < 500:
+                try:
+                    batch.append(pq.get_nowait())
+                except queue.Empty:
+                    break
+            if not batch:
+                return
+            try:
+                try:
+                    plan = self._plan_batch(batch)
+                except Exception as exc:
+                    log_error("ws_hot_plan", exc)
+                    plan = list(batch)
+                for fill in plan:
+                    try:
+                        self._process_leader_fill(fill, None, self._entry_sends_blocked_reason)
+                    except Exception as exc:
+                        log_error("ws_hot_send", exc)
+            finally:
+                self._release_queued(batch, pq)
 
     def _hot_send_loop(self, idx: int = 0) -> None:
         q = self._hot_queues[idx]
         batch_max = max(1, int(fnum(os.getenv("HL_LIVE_HOT_BATCH_MAX"), 500)))
         while not self._hot_stop_event.is_set():
+            self._drain_priority(idx)
             try:
-                batch = [q.get(timeout=0.25)]
+                batch = [q.get(timeout=0.05)]
             except queue.Empty:
                 continue
             while len(batch) < batch_max:  # everything already waiting on this worker is planned together
@@ -7402,19 +7463,13 @@ class LiveCopyCore:
                     log_error("ws_hot_plan", exc)
                     plan = list(batch)
                 for fill in plan:
+                    self._drain_priority(idx)  # a close that arrived meanwhile goes before the next fill
                     try:
                         self._process_leader_fill(fill, None, self._entry_sends_blocked_reason)
                     except Exception as exc:
                         log_error("ws_hot_send", exc)
             finally:
-                with self._queued_lock:
-                    for f in batch:
-                        self._queued_keys.discard(self._guard_key(f))
-                for _ in batch:
-                    try:
-                        q.task_done()
-                    except Exception:
-                        pass
+                self._release_queued(batch, q)
 
     def _append_send_terminal(self, fill: LeaderFill, intent: Intent, send_status: str) -> None:
         if send_status == "SEND_BLOCKED_LEADER_ALREADY_REDUCED":
@@ -8060,6 +8115,10 @@ class LiveCopyCore:
                     wait_ms = max(wait_ms, 1_800_000)
                 if now - first < confirm_ms or now - self._converge_sent.get(key, 0) < wait_ms:
                     continue
+                with self._queued_lock:
+                    if key in self._converge_queued:  # the last close is still waiting on a worker: never queue twice
+                        out["still_queued"] = out.get("still_queued", 0) + 1
+                        continue
                 reason = "LEADER_FLAT" if abs(lead) <= POSITION_EPSILON else "LEADER_OPPOSITE_SIDE"
                 close_side = "SELL" if size > 0 else "BUY"
                 fill = LeaderFill(f"converge:{wallet}:{canonical_coin_key(coin)}:{now}", wallet, coin, close_side, px,
@@ -8074,7 +8133,11 @@ class LiveCopyCore:
                 self._converge_sent[key] = now
                 self._converge_tries[key] = self._converge_tries.get(key, 0) + 1
                 if self.async_dispatch:
-                    self._dispatch_fill(fill)
+                    with self._queued_lock:
+                        self._converge_queued.add(key)
+                    if not self._dispatch_fill(fill):
+                        with self._queued_lock:
+                            self._converge_queued.discard(key)
                 else:
                     self._process_leader_fill(fill, None, self._entry_sends_blocked_reason)
                 out["queued"] += 1
