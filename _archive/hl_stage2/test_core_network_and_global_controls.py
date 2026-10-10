@@ -87,6 +87,10 @@ def network_tests() -> None:
     check("N5_CORE_MAINNET_KEEPS_HISTORICAL_STATE_FOLDER",
           got == ["https://api.hyperliquid.xyz/exchange", "wss://api.hyperliquid.xyz/ws", M_INFO, M_INFO,
                   "hl_live_copy_audit"], str(got))
+    # these probes import Core with its DEFAULT state folder (the live one on the PC): importing must write nothing
+    quiet = Path(tempfile.mkdtemp(prefix="importquiet_"))
+    run_py("import HL_Live_Copy_Service_Core as c; print(c.AUDIT_DIR)", {"HL_LIVE_AUDIT_DIR": str(quiet)})
+    check("N5_IMPORTING_CORE_WRITES_NOTHING_TO_THE_STATE_FOLDER", not any(quiet.rglob("*")), str(list(quiet.rglob("*"))[:5]))
     r = run_py(probe, {"HL_LIVE_ORDER_ENDPOINT": "https://api.hyperliquid.xyz/exchange"})
     check("N5_CORE_MISMATCHED_ENDPOINT_REFUSES_TO_START", r.returncode != 0 and "NETWORK_ENDPOINT_MISMATCH" in r.stderr, r.stderr[-200:])
 

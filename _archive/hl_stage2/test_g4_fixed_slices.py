@@ -25,6 +25,7 @@ def check(name: str, cond: bool, detail: str = "") -> None:
 def main() -> None:
     tmp = Path(tempfile.mkdtemp(prefix="g4fx_"))
     os.environ["HL_AUDIT_DIR"] = str(tmp)
+    os.environ["HL_LIVE_AUDIT_DIR"] = str(tmp)  # the variable the service reads: never the live state folder
 
     import HL_Live_Copy_Service as svcmod
     svcmod.TEST_INJECTION_ENABLED = True

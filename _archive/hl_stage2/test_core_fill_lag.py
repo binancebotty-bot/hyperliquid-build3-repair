@@ -142,9 +142,14 @@ def main() -> None:
         for t in threads:
             t.join(timeout=10)
         slow_cycle["sec"] = 0.0
-        time.sleep(4.5 if use_thread else 0)  # let the copy thread drain the last fills
-        if not use_thread:
-            core.run_cycle(use_source_csv=False, poll_live=False, poll_copy=True)
+        deadline = time.monotonic() + 60  # wait for the last fills to be owned (no timing threshold: a slow PC passes)
+        while time.monotonic() < deadline:
+            owned_now = {r.get("exchange_order_id") for r in c.read_csv_rows(c.LIVE_FILLS_CSV)}
+            if all(str(o) in owned_now for o in landed):
+                break
+            if not use_thread:
+                core.run_cycle(use_source_csv=False, poll_live=False, poll_copy=True)
+            time.sleep(0.5)
         stats = c.load_json(c.CORE_RUNTIME_STATE_FILE, {}).get("copy_poll_stats") or []
         lags = [s.get("fill_to_ledger_lag_ms_max") for s in stats if s.get("fill_to_ledger_lag_ms_max") is not None]
         meds = [s.get("fill_to_ledger_lag_ms_median") for s in stats if s.get("fill_to_ledger_lag_ms_median") is not None]
@@ -164,13 +169,56 @@ def main() -> None:
     print(f"MEASURE:: copy thread: worst {worst_new} ms, median of poll medians {med_new} ms over {len(landed_new)} fills")
     check("M1_COPY_THREAD_OWNS_EVERY_FILL", all(str(o) in owned_new for o in landed_new),
           f"{sum(str(o) not in owned_new for o in landed_new)} missing")
-    check("M2_COPY_THREAD_WORST_LAG_UNDER_3_5S", worst_new is not None and worst_new <= 3500, f"worst={worst_new}")
-    check("M3_COPY_THREAD_MEDIAN_LAG_UNDER_2S", med_new is not None and med_new <= 2000, f"median={med_new}")
-    check("M4_OLD_IN_CYCLE_POLL_WAS_SLOWER_UNDER_THE_SAME_LOAD", worst_old is not None and worst_new is not None
-          and worst_old > worst_new + 1000, f"old={worst_old} new={worst_new}")
+    # the lag figures above are a measurement (printed), not a pass/fail threshold: they depend on the machine.
+    # What the fix guarantees is checked deterministically below (D1, D2).
+    check("M1_OLD_IN_CYCLE_POLL_OWNS_EVERY_FILL_TOO", all(str(o) in owned_old for o in landed_old))
     stats = c.load_json(c.CORE_RUNTIME_STATE_FILE, {}).get("copy_poll_stats") or []
-    check("M5_LAG_RECORD_KEPT_FOR_THE_PC", stats and {"http_ms", "lock_wait_ms_max", "fill_to_ledger_lag_ms_max", "window_ms"}
-          <= set(stats[-1]), str(stats[-1:]))
+    check("M5_LAG_RECORD_KEPT_FOR_THE_PC", stats and {"http_ms", "lock_wait_ms_max", "fill_to_ledger_lag_ms_max", "window_ms",
+                                                      "send_lock_hold_ms_max"} <= set(stats[-1]), str(stats[-1:]))
+
+    # ---- D1: the copy thread owns a fill while the main cycle is stuck -----------------------------------------
+    gate = threading.Event()
+    blocked = threading.Event()
+
+    def stuck_integrity(*a, **k):
+        blocked.set()
+        gate.wait(60)
+    c.write_live_integrity_status = stuck_integrity
+    cyc = threading.Thread(target=lambda: new.run_cycle(use_source_csv=False, poll_live=False, poll_copy=False), daemon=True)
+    cyc.start()
+    blocked.wait(30)
+    oid1, side1 = engine_order()
+    land(oid1, side1)
+    deadline = time.monotonic() + 30
+    while time.monotonic() < deadline and str(oid1) not in {r.get("exchange_order_id") for r in c.read_csv_rows(c.LIVE_FILLS_CSV)}:
+        time.sleep(0.1)
+    check("D1_FILL_OWNED_WHILE_THE_MAIN_CYCLE_IS_STUCK", blocked.is_set() and cyc.is_alive()
+          and str(oid1) in {r.get("exchange_order_id") for r in c.read_csv_rows(c.LIVE_FILLS_CSV)})
+    gate.set()
+    cyc.join(30)
+    c.write_live_integrity_status = heavy_integrity
+
+    # ---- D2: no exchange read while a send worker holds the send lock ---------------------------------------------
+    under_lock = []
+
+    def mids(p):
+        under_lock.append(("mids", new._send_lock.held_by_me()))
+        return [] if p.get("type") == "perpDexs" else {"BTC": "100"}
+
+    def positions(p):
+        under_lock.append(("positions", new._send_lock.held_by_me()))
+        if p.get("type") != "clearinghouseState":
+            return []
+        return {"assetPositions": [], "marginSummary": {"accountValue": "1000"}}
+    c.MIDS_FETCHER, c.EXPOSURE_FETCHER = mids, positions
+    c._FOLLOWER_MIDS.update(px={}, ms=0)
+    new.intent_builder._exposure, new.intent_builder._exposure_prefetched = None, None
+    for i in range(3):
+        lf = c.LeaderFill(f"lag-d2-{i}", A, "BTC", "BUY", 100.0, 0.5, c.utc_now_ms(), "TEST", 0, {})
+        new._process_leader_fill(lf, c.CycleSummary(), "")
+    check("D2_EXCHANGE_READS_HAPPEN_BEFORE_THE_SEND_LOCK", under_lock and not any(held for _n, held in under_lock),
+          str(under_lock))
+
 
     # ---- W: hot window 20 s, full sweep once a minute --------------------------------------------------------
     hot = [s for s in stats if s.get("hot") and not s.get("sweep")]

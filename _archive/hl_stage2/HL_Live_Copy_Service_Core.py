@@ -158,6 +158,7 @@ LEADER_FETCHER = None  # test seam for leader equity reads; production uses HTTP
 MIDS_FETCHER = None  # test seam for follower mid reads; production uses HTTP
 USER_WALLET = os.getenv("HL_USER_WALLET", "").strip().lower()
 _FOLLOWER_MIDS: Dict[str, Any] = {"px": {}, "ms": 0}
+_FOLLOWER_MIDS_REFRESH_LOCK = threading.Lock()  # concurrent workers wait for one refresh instead of each fetching
 _SELF_TEST_MIDS: Optional[Dict[str, Any]] = None  # self-test only: leader prints double as follower mids
 
 
@@ -186,17 +187,25 @@ def follower_mid(coin: str) -> float:
     concurrently). Cached HL_LIVE_MIDS_CACHE_TTL_SEC (2 s); a refresh is timed from its start, and
     older than HL_LIVE_MIDS_MAX_AGE_SEC (5 s) counts as none."""
     now, m, dexes = utc_now_ms(), _FOLLOWER_MIDS, follower_dex_scope()
-    if (not m["px"] or m.get("scope") != dexes   # a newly learned DEX is priced at once
-            or now - m["ms"] > int(fnum(os.getenv("HL_LIVE_MIDS_CACHE_TTL_SEC"), 2.0) * 1000)):
-        out: Dict[str, float] = {}
-        payloads = [{"type": "allMids", **({"dex": dex} if dex else {})} for dex in dexes]
-        for res in _XNET.post_many(MIDS_FETCHER, payloads, HL_INFO_URL, HTTP_TIMEOUT_SEC):
-            for key, value in (res.get("data") if res.get("ok") and isinstance(res.get("data"), dict) else {}).items():
-                if fnum(value, 0.0) > 0 and math.isfinite(fnum(value, 0.0)):
-                    out[str(key).upper()] = fnum(value, 0.0)
-        if out:
-            m["px"], m["ms"], m["scope"] = out, now, dexes
-            m["refresh_ms"] = utc_now_ms() - now
+
+    def stale() -> bool:
+        return (not m["px"] or m.get("scope") != dexes   # a newly learned DEX is priced at once
+                or utc_now_ms() - m["ms"] > int(fnum(os.getenv("HL_LIVE_MIDS_CACHE_TTL_SEC"), 2.0) * 1000))
+    if stale():
+        with _FOLLOWER_MIDS_REFRESH_LOCK:
+            now = utc_now_ms()
+            if stale():
+                out: Dict[str, float] = {}
+                payloads = [{"type": "allMids", **({"dex": dex} if dex else {})} for dex in dexes]
+                for res in _XNET.post_many(MIDS_FETCHER, payloads, HL_INFO_URL, HTTP_TIMEOUT_SEC):
+                    data = res.get("data") if res.get("ok") and isinstance(res.get("data"), dict) else {}
+                    for key, value in data.items():
+                        if fnum(value, 0.0) > 0 and math.isfinite(fnum(value, 0.0)):
+                            out[str(key).upper()] = fnum(value, 0.0)
+                if out:
+                    m["px"], m["ms"], m["scope"] = out, now, dexes
+                    m["refresh_ms"] = utc_now_ms() - now
+    now = utc_now_ms()
     if not m["ms"] or now - m["ms"] > int(fnum(os.getenv("HL_LIVE_MIDS_MAX_AGE_SEC"), 5.0) * 1000):
         return 0.0
     return fnum(m["px"].get(str(coin or "").upper()), 0.0)
@@ -339,7 +348,49 @@ COPY_POLL_SWEEP_SEC = float(os.getenv("HL_LIVE_COPY_POLL_SWEEP_SEC", "60"))
 # a fill whose order id is not in the send history yet (the send worker records it after the exchange answers) is
 # left for the next read for this long instead of being consumed unmatched
 COPY_FILL_UNKNOWN_OID_GRACE_MS = int(os.getenv("HL_LIVE_COPY_FILL_UNKNOWN_OID_GRACE_MS", "10000"))
-RUNTIME_STATE_LOCK = threading.RLock()  # every read-modify-write of CORE_RUNTIME_STATE_FILE (cycle + copy thread)
+RUNTIME_STATE_LOCK = threading.RLock()
+
+
+class TimedLock:
+    """threading.Lock that records how long it is held (run 5: send workers held the send lock up to 8 s while the
+    copy poll waited). take_hold_max_ms() returns and resets the longest hold since the last call."""
+
+    def __init__(self) -> None:
+        self._lock = threading.Lock()
+        self._t0 = 0.0
+        self._hold_max_ms = 0.0
+        self.owner = ""
+
+    def acquire(self, blocking: bool = True, timeout: float = -1) -> bool:
+        ok = self._lock.acquire(blocking, timeout)
+        if ok:
+            self._t0 = time.monotonic()
+            self.owner = threading.current_thread().name
+        return ok
+
+    def release(self) -> None:
+        held = (time.monotonic() - self._t0) * 1000.0
+        if held > self._hold_max_ms:
+            self._hold_max_ms = held
+        self.owner = ""
+        self._lock.release()
+
+    def locked(self) -> bool:
+        return self._lock.locked()
+
+    def held_by_me(self) -> bool:
+        return self._lock.locked() and self.owner == threading.current_thread().name
+
+    def take_hold_max_ms(self) -> int:
+        m, self._hold_max_ms = self._hold_max_ms, 0.0
+        return int(m)
+
+    def __enter__(self) -> "TimedLock":
+        self.acquire()
+        return self
+
+    def __exit__(self, *_exc: Any) -> None:
+        self.release()  # every read-modify-write of CORE_RUNTIME_STATE_FILE (cycle + copy thread)
 # leader re-read on each poll after the first: enough for the info API to index a fill (was the 5 min copy overlap)
 LEADER_POLL_OVERLAP_MS = int(os.getenv("HL_LIVE_LEADER_POLL_OVERLAP_MS", "30000"))
 POLL_WINDOW_MS = int(os.getenv("HL_LIVE_POLL_WINDOW_MS", str(24 * 60 * 60 * 1000)))
@@ -885,7 +936,8 @@ def atomic_write_json(path: Path, payload: Any) -> None:
         record_core_phase("atomic_write_complete", path, {"tmp": str(tmp), "target_exists": path.exists()})
 
 
-install_core_attribution_hooks()
+# start/shutdown records are installed by main() when the engine itself runs (--once/--loop), never on import:
+# a test, the self-test or a repair command importing this module must not write into a live state folder (run 5)
 
 
 def load_json(path: Path, default: Any) -> Any:
@@ -2738,6 +2790,9 @@ class IntentBuilder:
         self._exposure: Optional[Dict[str, Any]] = None
         self._exposure_ms = 0
         self._exposure_pending: List[Tuple[str, float, float]] = []  # entries approved since the snapshot
+        self._exposure_gen = 0  # bumped at every snapshot install
+        self._exposure_prefetched: Optional[Tuple[Dict[str, Any], int, int, int]] = None  # (exp, ms, gen, pending_len)
+        self._exposure_prefetch_lock = threading.Lock()
         self._leader_dexes: Optional[List[str]] = None
         self._leader_dexes_ms = 0
         self._leader_equity: Dict[str, Tuple[float, int]] = {}
@@ -2814,6 +2869,14 @@ class IntentBuilder:
         ttl_ms = int(max(0.0, fnum(os.getenv("HL_LIVE_EXPOSURE_CACHE_TTL_SEC"), 2.0)) * 1000)
         if self._exposure is not None and now - self._exposure_ms <= ttl_ms:
             return self._exposure
+        pre = self._exposure_prefetched
+        if pre is not None and now - pre[1] <= ttl_ms and pre[2] == self._exposure_gen:
+            # read outside the send lock by prewarm(): entries approved after that read started stay pending
+            self._exposure, self._exposure_ms = pre[0], pre[1]
+            self._exposure_pending = self._exposure_pending[pre[3]:]
+            self._exposure_gen += 1
+            self._exposure_prefetched = None
+            return self._exposure
         if not is_valid_wallet(normalise_wallet(USER_WALLET)):
             return {"ok": False, "status": "COPY_ACCOUNT_NOT_CONFIGURED"}
         exp = _XNET.master_exposure(normalise_wallet(USER_WALLET), follower_dex_scope(), fetcher=EXPOSURE_FETCHER,
@@ -2821,7 +2884,34 @@ class IntentBuilder:
         if not exp.get("ok"):
             return {"ok": False, "status": str(exp.get("status") or "SNAPSHOT_UNAVAILABLE"), "dex": exp.get("dex", "")}
         self._exposure, self._exposure_ms, self._exposure_pending = exp, now, []
+        self._exposure_gen += 1
         return exp
+
+    def prewarm(self, fill: "LeaderFill") -> None:
+        """Outside the send lock: refresh the exchange reads build() needs (fresh follower mid, follower exposure,
+        leader equity) so the send lock is held only for local work (run 5: holds up to 8 s while each worker
+        fetched under it). Freshness rules are unchanged: build() still refetches anything too old."""
+        try:
+            follower_mid(fill.coin)
+            if self.cfg.copy_mode(fill.leader_wallet) != "fixed":
+                self.leader_equity(fill.leader_wallet)
+            ttl_ms = int(max(0.0, fnum(os.getenv("HL_LIVE_EXPOSURE_CACHE_TTL_SEC"), 2.0)) * 1000)
+            if not is_valid_wallet(normalise_wallet(USER_WALLET)):
+                return
+            with self._exposure_prefetch_lock:  # one read for all workers
+                started = utc_now_ms()
+                pre = self._exposure_prefetched
+                fresh_cache = self._exposure is not None and started - self._exposure_ms <= ttl_ms // 2
+                fresh_pre = pre is not None and started - pre[1] <= ttl_ms // 2 and pre[2] == self._exposure_gen
+                if fresh_cache or fresh_pre:
+                    return
+                gen, pending_len = self._exposure_gen, len(self._exposure_pending)
+                exp = _XNET.master_exposure(normalise_wallet(USER_WALLET), follower_dex_scope(), fetcher=EXPOSURE_FETCHER,
+                                            info_url=HL_INFO_URL, timeout=HTTP_TIMEOUT_SEC)
+                if exp.get("ok"):
+                    self._exposure_prefetched = (exp, started, gen, pending_len)
+        except Exception as exc:
+            log_error("intent_prewarm", exc)
 
     def _exposure_cap_block(self, fill: LeaderFill, copy_notional: float, value_px: float = 0.0) -> str:
         """Total and per-asset directional caps against follower exchange truth; "" when allowed."""
@@ -6992,7 +7082,7 @@ class LiveCopyCore:
         if not self.dedupe.live_start_ms:
             self.dedupe.live_start_ms = utc_now_ms()
         self.wallets = self.cfg.stream_wallets()
-        self._send_lock = threading.Lock()
+        self._send_lock = TimedLock()  # held for local ledger/intent work only: no network call under it (run 5)
         # PRE-SEND IDEMPOTENCY GUARD â€" plain Lock (not RLock), so re-entrancy from the
         # same thread is also blocked.  Seeded from SEND_ATTEMPTS_CSV on startup so
         # restarts and cross-instance races are caught without network access.
@@ -7376,12 +7466,15 @@ class LiveCopyCore:
             merged_ids = [str(i) for i in ((fill.raw or {}).get("merged_fill_ids") or []) if i]
             self._idem_accepted.update(merged_ids)  # the fills merged into this copy are handled by it
 
+        # A resting missed-entry limit the leader no longer supports is withdrawn, and any fill it got is owned by
+        # the ledger, BEFORE this fill is classified: the leader's close must find that position. The cancel and the
+        # fill read are network calls, so they are made before the send lock; only the ledger update is under it.
+        withdrawn = self.sender.cancel_resting_entries_against(fill)
+        withdrawn_fills = self._read_fills_of_withdrawn_limits(withdrawn) if withdrawn else None
+        self.intent_builder.prewarm(fill)
         with self._send_lock:
-            # A resting missed-entry limit the leader no longer supports is withdrawn, and any fill it got is
-            # owned by the ledger, BEFORE this fill is classified: the leader's close must find that position.
-            withdrawn = self.sender.cancel_resting_entries_against(fill)
             if withdrawn:
-                self._own_fills_of_withdrawn_limits(withdrawn)
+                self._apply_fills_of_withdrawn_limits(withdrawn, withdrawn_fills)
             # Determine lifecycle before dedupe so missed exits can be re-attempted.
             # _idem_accepted (seeded from send_attempts each startup) handles within-session dedup.
             try:
@@ -7418,11 +7511,20 @@ class LiveCopyCore:
     def _own_fills_of_withdrawn_limits(self, rows: List[Dict[str, Any]], seen_oids: Optional[set] = None) -> int:
         """Read the follower's fills since the withdrawn limits were placed and give the ones with their order ids
         to the ledger now (the regular copy poll would be seconds late). Unreadable = a Critical diff."""
-        oids = {CopyFillMatcher._normalize_oid(str(r.get("oid"))) for r in rows}
+        return self._apply_fills_of_withdrawn_limits(rows, self._read_fills_of_withdrawn_limits(rows), seen_oids)
+
+    def _read_fills_of_withdrawn_limits(self, rows: List[Dict[str, Any]]) -> Tuple[List[Dict[str, Any]], str]:
+        """The network half of _own_fills_of_withdrawn_limits: call it without the send lock."""
         _rt = load_json(CORE_RUNTIME_STATE_FILE, {})
         last_copy_poll_ms = int(fnum(_rt.get("last_copy_poll_ms"), 0)) if isinstance(_rt, dict) else 0
         since = max(0, max(min(int(fnum(r.get("placed_ms"), 0)) for r in rows), last_copy_poll_ms) - POLL_OVERLAP_MS)
-        fills, status = self.copy_ingestor.poll_copy_account_fills(USER_WALLET, since, utc_now_ms(), report_partial=True)
+        return self.copy_ingestor.poll_copy_account_fills(USER_WALLET, since, utc_now_ms(), report_partial=True)
+
+    def _apply_fills_of_withdrawn_limits(self, rows: List[Dict[str, Any]], read: Optional[Tuple[List[Dict[str, Any]], str]],
+                                         seen_oids: Optional[set] = None) -> int:
+        """The ledger half: under the send lock."""
+        oids = {CopyFillMatcher._normalize_oid(str(r.get("oid"))) for r in rows}
+        fills, status = read if read else ([], "COPY_ACCOUNT_POLL_NETWORK_ERROR")
         if status != "COPY_ACCOUNT_POLLED":
             self.audit.append_reconciliation(
                 "SEND_TERMINAL", "RESTING_ENTRY_FILL_UNVERIFIED", coin=rows[0].get("coin", ""),
@@ -7617,6 +7719,7 @@ class LiveCopyCore:
                     summary.copy_fills_unmatched += 1
         else:
             now_ms = utc_now_ms()
+            ready: List[Tuple[Dict[str, Any], str, str, int]] = []
             for raw_copy in copy_fills:
                 copy_id = CopyAccountIngestor.copy_fill_id(raw_copy)
                 oid = CopyFillMatcher._normalize_oid(CopyFillMatcher._copy_fill_oid(raw_copy))
@@ -7629,9 +7732,15 @@ class LiveCopyCore:
                 if not known and now_ms - fill_ms < COPY_FILL_UNKNOWN_OID_GRACE_MS:
                     deferred += 1  # its send row is not written yet: the next read owns it by order id
                     continue
+                ready.append((raw_copy, copy_id, oid, fill_ms))
+            # one lock acquisition per batch of new fills (each would otherwise queue behind the send workers
+            # again); batches stay small so a send waits at most a few ledger writes
+            batch = max(1, int(fnum(os.getenv("HL_LIVE_COPY_APPLY_BATCH"), 25)))
+            for i in range(0, len(ready), batch):
                 w0 = time.monotonic()
                 with self._send_lock, self._copy_ingest_lock:
-                    lock_wait_ms = max(lock_wait_ms, int((time.monotonic() - w0) * 1000))
+                  lock_wait_ms = max(lock_wait_ms, int((time.monotonic() - w0) * 1000))
+                  for raw_copy, copy_id, oid, fill_ms in ready[i:i + batch]:
                     allow_recovery_retry = bool(oid) and oid in self.matcher.recovery_oid_index \
                         and copy_id not in self.matcher.matched_copy_fill_ids
                     if not self.dedupe.accept_copy(copy_id, allow_retry=allow_recovery_retry):
@@ -7668,6 +7777,7 @@ class LiveCopyCore:
                      "unmatched": summary.copy_fills_unmatched, "deferred": deferred, "lock_wait_ms_max": lock_wait_ms,
                      "fill_to_ledger_lag_ms_max": max(lags) if lags else None,
                      "fill_to_ledger_lag_ms_median": sorted(lags)[len(lags) // 2] if lags else None,
+                     "send_lock_hold_ms_max": self._send_lock.take_hold_max_ms() if hot and isinstance(self._send_lock, TimedLock) else None,
                      "poll_ms": int((time.monotonic() - t0) * 1000), "status": summary.copy_account_status}
             with RUNTIME_STATE_LOCK:
                 state_update = load_json(CORE_RUNTIME_STATE_FILE, {})
@@ -7794,13 +7904,15 @@ class LiveCopyCore:
                 if not master_enabled:
                     retried += self.sender.withdraw_resting_entries_sending_off()
                 if retried:
+                    read = self._read_fills_of_withdrawn_limits(retried)
                     with self._send_lock:
-                        self._own_fills_of_withdrawn_limits(retried)
+                        self._apply_fills_of_withdrawn_limits(retried, read)
             late = self.sender.take_withdrawn_late()
             if late:
+                read = self._read_fills_of_withdrawn_limits(late)
                 with self._send_lock:
                     seen_late: set = set()
-                    self._own_fills_of_withdrawn_limits(late, seen_late)
+                    self._apply_fills_of_withdrawn_limits(late, read, seen_late)
                     # any fill of these limits (owned now or earlier by the copy poll), or a cancel answered
                     # "already filled/gone" whose fill the API may not show yet, leaves a position with no leader
                     if seen_late or any(r.get("withdraw_outcome") == "RESTING_ENTRY_ALREADY_GONE" for r in late):
@@ -9645,6 +9757,7 @@ def main() -> None:
         if _refusal:  # never adopt a ledger or send history this engine did not create on this network
             raise SystemExit(f"{_refusal}. Use a fresh state folder (HL_LIVE_AUDIT_DIR); never resume another run's state.")
         acquire_instance_lock(AUDIT_DIR)
+        install_core_attribution_hooks()
         _key = sender_key_check()
         if _key["ok"] is False:
             raise SystemExit(f"SENDER_KEY_NOT_VALID_ON_FOLLOWER_NETWORK: {_key['detail']}")
