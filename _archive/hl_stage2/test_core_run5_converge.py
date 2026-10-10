@@ -142,9 +142,14 @@ def main() -> None:
     def intent(lifecycle, ro):
         return c.Intent("i-" + lifecycle, fill, "SELL", 0.05, 5.0, "ON", "fixed", "EXIT_ALLOWED", "", "s", "p", "LONG",
                         0.05, 0.05, ro, ro, notes=f"lifecycle={lifecycle}")
+    c.atomic_write_json(c.EXCHANGE_ACCOUNT_SNAPSHOT_FILE, {"positions_by_coin": {"BTC": {"signed_size": 0.05}}})
     ok_exit, blk_exit = g._validate_final_wire_order(intent("EXIT", True), resolved, "BTC", 0.05, 100.0, {})
+    c.atomic_write_json(c.EXCHANGE_ACCOUNT_SNAPSHOT_FILE, {"positions_by_coin": {"BTC": {"signed_size": 0.5}}})
+    ok_sliver, _ = g._validate_final_wire_order(intent("EXIT", True), resolved, "BTC", 0.05, 100.0, {})
+    check("D4_SLIVER_OF_A_LARGER_ACCOUNT_POSITION_STAYS_BLOCKED", not ok_sliver)
+    c.atomic_write_json(c.EXCHANGE_ACCOUNT_SNAPSHOT_FILE, {"positions_by_coin": {"BTC": {"signed_size": 0.05}}})
     ok_entry, blk_entry = g._validate_final_wire_order(intent("ENTRY", False), resolved, "BTC", 0.05, 100.0, {})
-    check("D1_DUST_CLOSE_REACHES_THE_EXCHANGE", ok_exit, str(blk_exit))
+    check("D1_WHOLE_POSITION_DUST_CLOSE_REACHES_THE_EXCHANGE", ok_exit, str(blk_exit))
     check("D1_DUST_ENTRY_STILL_BLOCKED", not ok_entry and blk_entry.get("terminal_state") == "DUST_BELOW_MIN_NOTIONAL")
     os.environ["HL_LIVE_DUST_CLOSE_ATTEMPT"] = "0"
     ok_off, _ = g._validate_final_wire_order(intent("EXIT", True), resolved, "BTC", 0.05, 100.0, {})

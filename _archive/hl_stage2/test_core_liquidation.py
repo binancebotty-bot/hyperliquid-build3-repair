@@ -67,6 +67,13 @@ def main() -> None:
           f"{led.wallet_coin_position(W['a'], 'HYPE')} {led.wallet_coin_position(W['b'], 'HYPE')}")
     check("L4_NOT_APPLIED_ROW_WRITTEN", any(r.get("status") == "LIQUIDATION_NOT_APPLIED"
                                            for r in c.read_csv_rows(c.RECONCILIATION_CSV)))
+    # L6: our own order filling against SOMEONE ELSE's liquidation is our fill, never a liquidation of ours
+    other = {"coin": "HYPE", "side": "B", "sz": "0.1", "px": "50", "oid": 777, "hash": "0x7", "tid": 7,
+             "dir": "Close Short", "startPosition": "-0.1", "liquidation": {"liquidatedUser": "0x" + "9" * 40}}
+    check("L6_COUNTERPARTY_OF_A_LIQUIDATION_IS_NOT_OURS", not c.CopyFillMatcher._is_liquidation_fill(other))
+    c.USER_WALLET = "0x" + "8" * 40
+    check("L6_OUR_OWN_LIQUIDATION_FIELD_RECOGNISED",
+          c.CopyFillMatcher._is_liquidation_fill(dict(other, liquidation={"liquidatedUser": "0x" + "8" * 40})))
     failed = sum(1 for _n, ok in RESULTS if not ok)
     print(f"TOTAL={len(RESULTS)} FAILED={failed}")
     sys.exit(1 if failed else 0)

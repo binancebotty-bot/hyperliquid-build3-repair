@@ -5370,6 +5370,21 @@ class SenderGateway:
                 item["tradable_by_sender"] = False
                 item["reason"] = f"SDK_ORDER_INCOMPATIBLE: {reason}"[:300]
 
+    def _closes_whole_account_position(self, intent: "Intent", wire_size: float) -> bool:
+        """The exchange accepts a close under its $10 minimum only when it closes the account's WHOLE position in the
+        coin (run 5: a $0.005 reduce-only sliver of a larger PNUT position was rejected; Build 4 EXC-008: sub-minimum
+        residue is closed only by account-net convergence). True when the exchange's position in the coin is exactly
+        this close, and the ledger agrees with the exchange."""
+        exchange, reason = self._persisted_exchange_positions()
+        if reason:
+            return False
+        key = canonical_coin_key(intent.fill.coin)
+        ex_net = fnum(exchange.get(key), 0.0)
+        delta = ManualLedger.signed_delta(intent.copy_side, abs(wire_size))
+        tol = max(POSITION_EPSILON, 1e-9 * max(1.0, abs(ex_net)))
+        led_net = self.ledger.coin_net(key) if self.ledger else ex_net
+        return abs(ex_net) > tol and abs(ex_net + delta) <= tol and abs(led_net - ex_net) <= tol
+
     def _validate_final_wire_order(
         self,
         intent: "Intent",
@@ -5387,9 +5402,10 @@ class SenderGateway:
         Gate A: sdk_coin is canonical (not #N / @N / blank).
         Gate C: wire_size > 0 and finite.
         Gate D: limit_px > 0 and finite.
-        Gate B: wire_notional >= effective min notional, except a reduce-only close of an owned sleeve: that can
-        never add exposure, and blocking it left positions that fell under $10 open for good (run 5: 4-10 dust
-        positions); the exchange applies its own minimum. HL_LIVE_DUST_CLOSE_ATTEMPT=0 restores the old block.
+        Gate B: wire_notional >= effective min notional, except a reduce-only close of an owned sleeve that closes the
+        account's whole position in the coin (the exchange accepts those under $10; blocking them left 4-10 dust
+        positions open in run 5). Smaller slivers stay blocked as dust. HL_LIVE_DUST_CLOSE_ATTEMPT=0 restores the old
+        block.
         """
         raw_coin = str(resolved.get("raw_coin") or intent.fill.coin or "").strip()
 
@@ -5466,7 +5482,8 @@ class SenderGateway:
         cfg_min = self._effective_symbol_min_notional(resolved)
         dust_close = (bool(intent.reduce_only_intended) and "lifecycle=EXIT" in str(intent.notes or "")
                       and bval(os.getenv("HL_LIVE_DUST_CLOSE_ATTEMPT"), True)
-                      and self._reduce_only_on_wire(intent, wire_size))  # never a sub-minimum order that could open
+                      and self._reduce_only_on_wire(intent, wire_size)  # never a sub-minimum order that could open
+                      and self._closes_whole_account_position(intent, wire_size))
         if wire_notional < cfg_min and dust_close:
             timing["dust_close_below_min_notional"] = f"{wire_notional:.4f}<{cfg_min:.2f}"
         if wire_notional < cfg_min and not dust_close:
@@ -6151,7 +6168,10 @@ class CopyAccountIngestor:
             except Exception as exc:
                 log_error("poll_copy_account_fills", exc)
                 return out, "COPY_ACCOUNT_POLL_NETWORK_ERROR"
-        out.sort(key=lambda r: (int(fnum(r.get("timestamp_ms"), 0)), str(r.get("copy_fill_id"))))
+        # tranches of one liquidation share a millisecond: apply them in position order (largest position first)
+        out.sort(key=lambda r: (int(fnum(r.get("timestamp_ms"), 0)),
+                                -abs(fnum(r.get("startPosition"), 0.0)) if CopyFillMatcher._is_liquidation_fill(r) else 0.0,
+                                str(r.get("copy_fill_id"))))
         if report_partial and not complete:
             return out, "COPY_ACCOUNT_POLL_PARTIAL"  # page cap reached: newer fills were not read
         return out, "COPY_ACCOUNT_POLLED"
@@ -6597,7 +6617,12 @@ class CopyFillMatcher:
 
     @staticmethod
     def _is_liquidation_fill(copy_fill: Dict[str, Any]) -> bool:
-        return "liquidat" in str(copy_fill.get("dir") or "").lower() or isinstance(copy_fill.get("liquidation"), dict)
+        """The follower ITSELF was liquidated: dir "Liquidated ..." or liquidation.liquidatedUser is the follower. A
+        fill of one of our orders against someone else's liquidation also carries a liquidation field: never this."""
+        if str(copy_fill.get("dir") or "").strip().lower().startswith("liquidated"):
+            return True
+        liq = copy_fill.get("liquidation")
+        return isinstance(liq, dict) and normalise_wallet(str(liq.get("liquidatedUser") or "")) == normalise_wallet(USER_WALLET)
 
     def _try_apply_liquidation(self, copy_fill: Dict[str, Any], copy_id: str) -> bool:
         """The exchange liquidated (part of) the follower's position: no engine order, so no intent (run 5: an
@@ -6644,10 +6669,11 @@ class CopyFillMatcher:
             intent = Intent(f"liquidation:{copy_id}:{wallet}", synth, side, part, part * price, "", "", "LIQUIDATION",
                             "exchange liquidation", ManualLedger.sleeve_id(wallet, coin), "", "", sz, led_net, True, True,
                             created_at_ms=utc_now_ms(), notes="lifecycle=EXIT;source=EXCHANGE_LIQUIDATION")
+            row_id = copy_id if i == 0 else f"{copy_id}:liq:{wallet}"  # the fill's own id once: owned after a restart
             result = self.ledger.apply_copy_fill(intent, {"side": side, "size": part, "price": price,
-                                                          "copy_fill_id": f"{copy_id}:liq:{wallet}"})
+                                                          "copy_fill_id": row_id})
             append_csv(LIVE_FILLS_CSV, LIVE_FILL_FIELDS, {
-                "created_at": utc_now_iso(), "created_at_ms": utc_now_ms(), "copy_fill_id": f"{copy_id}:liq:{wallet}",
+                "created_at": utc_now_iso(), "created_at_ms": utc_now_ms(), "copy_fill_id": row_id,
                 "intent_id": intent.intent_id, "leader_fill_id": "", "leader_wallet": wallet,
                 "sleeve_id": ManualLedger.sleeve_id(wallet, coin), "position_id": "", "coin": coin, "side": side,
                 "fill_price": price, "fill_size": part, "fill_notional": part * price, "fee": copy_fill.get("fee", ""),
@@ -6778,8 +6804,6 @@ class CopyFillMatcher:
                 notes=f"duplicate copy fill ignored; side={side}; oid={oid}; reason=HASH_ALREADY_MATCHED_PRE_PATCH",
             )
             return False
-        if self._is_liquidation_fill(copy_fill):  # the exchange's order, never one of ours: no intent can match it
-            return self._try_apply_liquidation(copy_fill, copy_id)
         # OID hard match: check send_attempt index first, then recovery GTC order index
         # (recovery OIDs are placed after IOC rejection and recorded in reconciliation, not send_attempts).
         oid = self._copy_fill_oid(copy_fill)
@@ -6791,6 +6815,8 @@ class CopyFillMatcher:
             if sent_row:
                 if self._apply_oid_matched_copy_fill(copy_fill, sent_row, norm_oid, copy_id):
                     return True
+        if self._is_liquidation_fill(copy_fill):  # the exchange's order, not ours: no intent may be guessed for it
+            return self._try_apply_liquidation(copy_fill, copy_id)
         intent = self._choose_intent(copy_fill, intents_by_id)
         if not intent:
             oid = self._copy_fill_oid(copy_fill)
@@ -9910,17 +9936,23 @@ def repair_ledger_catch_up(start_ms: Optional[int] = None, dry_run: bool = True)
         sim: Dict[str, float] = {}
         if not why:
             liquidated = 0.0  # an exchange liquidation moves the ledger net by its own size (shared over the sleeves)
-            for raw, _oid, row in unowned:
+            for raw, _oid, row in sorted(unowned, key=lambda u: (int(fnum(u[0].get("time"), 0)),
+                                                                 -abs(fnum(u[0].get("startPosition"), 0.0)) if u[2] is None else 0.0)):
                 d = ManualLedger.signed_delta(normalise_copy_fill_side(raw.get("side") or raw.get("dir") or ""),
                                               abs(fnum(raw.get("sz", raw.get("size")))))
-                if row is None:
+                if row is None:  # applied only if the ledger then equals the position the exchange liquidated from
+                    net_now = led_net + sum(sim[w] - held(w, coin) for w in sim) + liquidated
+                    if not tol(net_now, fnum(raw.get("startPosition"), 0.0)):
+                        why = (f"a liquidation from position {raw.get('startPosition')} would find the ledger at "
+                               f"{round(net_now, 10)}")
+                        break
                     liquidated += d
                     continue
                 w = normalise_wallet(str(row.get("leader_wallet") or ""))
                 sim.setdefault(w, held(w, coin))
                 sim[w] += d
             after = led_net + sum(sim[w] - held(w, coin) for w in sim) + liquidated
-            if not tol(after, x_net):
+            if not why and not tol(after, x_net):
                 why = f"replaying the unowned engine fills gives ledger net {round(after, 10)}, exchange holds {x_net}"
         entry = {"coin": coin, "ledger_net": led_net, "exchange_net": x_net, "unowned_fills": len(unowned),
                  "sleeves_after": {w: round(v, 10) for w, v in sim.items()}}
@@ -9932,7 +9964,8 @@ def repair_ledger_catch_up(start_ms: Optional[int] = None, dry_run: bool = True)
                            "intent_id": row.get("intent_id") if row else "EXCHANGE_LIQUIDATION"}
                           for r, o, row in unowned]
         if not dry_run:
-            for raw, oid, row in sorted(unowned, key=lambda u: int(fnum(u[0].get("time"), 0))):
+            for raw, oid, row in sorted(unowned, key=lambda u: (int(fnum(u[0].get("time"), 0)),
+                                                                -abs(fnum(u[0].get("startPosition"), 0.0)) if u[2] is None else 0.0)):
                 item = dict(raw)
                 item["source"] = "ledger_catch_up_repair"
                 cid = canonical_copy_fill_id(CopyAccountIngestor.copy_fill_id(raw))
