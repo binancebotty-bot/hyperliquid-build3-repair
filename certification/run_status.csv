@@ -61,7 +61,7 @@ SET-008,SETTLE,Testnet exit certification,APPLIES,TESTNET,FAIL,run5,cff92fa,"exi
 RISK-001,RISK,Global control: Max total live exposure ($),APPLIES,TESTNET,FAIL,run5,cff92fa,"exchange gross notional $2,434-$3,127 vs the $1,200 total live exposure cap; new entries blocked but exits had not brought it under",run4@3c03099(testnet):FAIL ; run5@cff92fa(testnet):FAIL
 RISK-002,RISK,Global control: Max per-asset directional exposure ($),APPLIES,TESTNET,FAIL,run5,cff92fa,largest position CASHCAT $308 vs the $300 per-asset cap,run4@3c03099(testnet):FAIL ; run5@cff92fa(testnet):FAIL
 RISK-003,RISK,Global control: Max per-wallet exposure ($),APPLIES,TESTNET,NOT_TESTED,,,,
-RISK-004,RISK,Global control: Max per-order notional ($),APPLIES,TESTNET,PASS,run3b,ab7f2b0,No order over the $50 max-order cap; the cap fired once.,run3b@ab7f2b0(testnet):PASS
+RISK-004,RISK,Global control: Max per-order notional ($),APPLIES,TESTNET,FAIL,run4,3c03099,"An entry limit filled at $59.55 (order 62279966857) - over the $50 max per-order notional cap; the cap did not block it (missed-entry GTC limits are not cap-checked). The run's own watchdog auto-disarmed on it: watch_log 18:19:22Z 'DISARMED entry fill over cap: exchange fills over max order $50: [(62279966857, 59.55)]'.",run3b@ab7f2b0(testnet):PASS ; run4@3c03099(testnet):FAIL
 RISK-005,RISK,Global control: Marketable slippage %,APPLIES,MAINNET,NOT_TESTED,,,,
 RISK-006,RISK,Global control: Adverse close diff %,APPLIES,MAINNET,NOT_TESTED,,,,
 RISK-007,RISK,Global control: Symbol allowlist,APPLIES,TESTNET,NOT_TESTED,,,,

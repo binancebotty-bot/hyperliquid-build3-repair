@@ -160,6 +160,11 @@
      "evidence": "one position $548 vs the $300 per-asset directional cap; 186 resting orders worth $2,256 not counted in exposure"
     },
     {
+     "id": "RISK-004",
+     "result": "FAIL",
+     "evidence": "An entry limit filled at $59.55 (order 62279966857) - over the $50 max per-order notional cap; the cap did not block it (missed-entry GTC limits are not cap-checked). The run's own watchdog auto-disarmed on it: watch_log 18:19:22Z 'DISARMED entry fill over cap: exchange fills over max order $50: [(62279966857, 59.55)]'."
+    },
+    {
      "id": "SET-009",
      "result": "FAIL",
      "evidence": "exit-recovery reduce-only standing limits (EXIT_RECOVERY_QUEUED 172) are not written to send_attempts; their fills return COPY_FILL_UNMATCHED / NO_INTENT, so ~24 ledger-vs-exchange mismatches persist"
