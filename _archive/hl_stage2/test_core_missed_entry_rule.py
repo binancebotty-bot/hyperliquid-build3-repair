@@ -44,7 +44,7 @@ def check(name: str, cond: bool, detail: str = "") -> None:
 
 def main() -> None:
     tmp = Path(tempfile.mkdtemp(prefix="missedentry_"))
-    os.environ.update({"HL_LIVE_AUDIT_DIR": str(tmp), "HL_LEADER_NETWORK": "mainnet", "HL_FOLLOWER_NETWORK": "testnet",
+    os.environ.update({"HL_LIVE_LIQ_PARITY": "0", "HL_LIVE_AUDIT_DIR": str(tmp), "HL_LEADER_NETWORK": "mainnet", "HL_FOLLOWER_NETWORK": "testnet",
                        "HL_LIVE_ENV_FILE": str(tmp / "none.env"), "HL_LIVE_SCOPE_SWEEP_THREAD": "0",
                        "HL_LIVE_MIN_EXCHANGE_ORDER_GAP_MS": "0"})
     import requests
