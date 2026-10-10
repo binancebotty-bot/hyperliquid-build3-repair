@@ -7,6 +7,8 @@ C  convergence: while armed, an engine sleeve whose leader is now flat or on the
    20 sleeves on leaders that had left).
 D  dust: a reduce-only close of an owned sleeve below the $10 minimum reaches the exchange (it can never add
    exposure); entries below the minimum stay blocked; HL_LIVE_DUST_CLOSE_ATTEMPT=0 restores the old block.
+P  queue: leader exits and convergence closes go before waiting entries; a convergence close still waiting is
+   never queued again (run 5: closes waited ~7.7 min behind entries and were re-queued every few minutes).
 F  fixed sizing: a leader's run of fills in one coin is one order carrying the fixed amount per fill.
 
 Run: python test_core_run5_converge.py   # RESULT:: markers, exit 0/1. No network, no orders.
@@ -159,6 +161,66 @@ def main() -> None:
     g._reduce_only_on_wire = lambda intent, size: False
     ok_net, _ = g._validate_final_wire_order(intent("EXIT", True), resolved, "BTC", 0.05, 100.0, {})
     check("D3_NON_REDUCE_ONLY_CLOSE_KEEPS_THE_MINIMUM", not ok_net)
+
+    # P: closes jump the entry queue (run 5: convergence closes waited ~7.7 min behind entries and were re-queued)
+    import queue as _queue
+    import threading as _t
+    import time as _time
+    config(send=True)
+    core = c.LiveCopyCore(source_csv=tmp / "none.csv")
+    core._hot_stop_event.set()
+    for t in core._hot_threads:
+        t.join(timeout=2)
+    core._hot_stop_event.clear()
+    core.async_dispatch = True
+    core.cfg.master_switch_now = lambda: True
+    core.ledger.sleeve(B, "DOGE")["signed_size"] = 2.0
+    core.ledger.sleeve(B, "DOGE")["position_id"] = "pd"
+    core.ledger._recompute_net(core.ledger.data)
+    leader_pos[B]["DOGE"] = 0.0
+    leader_pos[A] = {}
+    got = []
+    first_entry_started = _t.Event()
+    release = _t.Event()
+
+    def slow_process(f, s=None, b=""):
+        got.append((f.source, f.coin))
+        if f.source == "TEST":
+            first_entry_started.set()
+            release.wait(2)
+        return False, "T", None
+    core._process_leader_fill = slow_process
+    t0 = c.utc_now_ms()
+    shard = core._shard(c.LeaderFill("x", B, "DOGE", "SELL", 1, 1, t0, "TEST", 0, {}))
+    entries = [c.LeaderFill(f"e{i}", B if i % 2 else A, "DOGE", "BUY", 100.0, 0.1, t0 + i, "TEST", 0,
+                            {"oid": str(100 + i), "dir": "Open Long"}) for i in range(6)]
+    for e in entries:
+        core._hot_queues[shard].put(e)
+    th = _t.Thread(target=core._hot_send_loop, args=(shard,), daemon=True)
+    th.start()
+    first_entry_started.wait(2)
+    os.environ["HL_LIVE_CONVERGE_CONFIRM_SEC"] = "0"
+    os.environ["HL_LIVE_CONVERGE_RETRY_SEC"] = "0"
+    r1 = core.converge_once()   # queued while the worker is busy with the entry batch
+    r2 = core.converge_once()   # still waiting: never queued twice
+    check("P2_A_WAITING_CONVERGE_CLOSE_IS_NEVER_QUEUED_TWICE",
+          r1.get("queued") == 1 and r2.get("queued") == 0 and r2.get("still_queued") == 1, f"{r1} {r2}")
+    release.set()
+    deadline = _time.time() + 5
+    while len(got) < 3 and _time.time() < deadline:
+        _time.sleep(0.02)
+    core._hot_stop_event.set()
+    th.join(timeout=2)
+    pos = [i for i, g in enumerate(got) if g[0] == "CONVERGE"]
+    check("P1_CONVERGE_CLOSE_SENT_BEFORE_THE_REST_OF_THE_ENTRY_BATCH", pos == [1] and len(got) == 3, str(got))  # entries merge per leader: 2 sends
+    check("P3_SENT_CLOSE_RELEASES_ITS_SLEEVE", not core._converge_queued, str(core._converge_queued))
+    xfill = c.LeaderFill("x2", B, "DOGE", "SELL", 100.0, 1.0, t0 + 50, "WS_CAPTURED", 0, {"oid": "999", "dir": "Close Long"})
+    core._dispatch_fill(xfill)
+    check("P4_LEADER_EXIT_GOES_TO_THE_PRIORITY_LANE",
+          core._prio_queues[shard].qsize() == 1 and core._hot_queues[shard].qsize() == 0)
+    os.environ.pop("HL_LIVE_CONVERGE_CONFIRM_SEC", None)
+    os.environ.pop("HL_LIVE_CONVERGE_RETRY_SEC", None)
+    core.stop()
 
     # F: fixed sizing merges a leader's run into fewer orders carrying the same amount
     config(send=False, max_order_notional_usd=50)
