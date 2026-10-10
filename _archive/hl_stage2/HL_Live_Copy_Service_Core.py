@@ -25,6 +25,7 @@ import concurrent.futures
 import csv
 import hashlib
 import io
+import inspect
 import json
 import math
 import os
@@ -470,7 +471,7 @@ SEND_ATTEMPT_FIELDS = [
     "sdk_client_started_ms", "sdk_client_finished_ms", "exchange_call_started_ms",
     "exchange_call_finished_ms", "send_attempt_written_ms", "queue_wait_ms", "leader_to_intent_ms",
     "intent_to_send_start_ms", "symbol_resolve_ms", "sdk_client_ms", "exchange_call_ms",
-    "send_total_ms", "leader_to_send_attempt_ms", "notes",
+    "send_total_ms", "leader_to_send_attempt_ms", "notes", "cloid",
     "enqueued_ms", "picked_up_ms", "process_started_ms", "prewarm_done_ms", "lock_acquired_ms", "intent_written_ms",
 ]
 
@@ -1059,6 +1060,37 @@ def append_csv(path: Path, fieldnames: List[str], row: Dict[str, Any]) -> None:
             f.write(buf.getvalue())
     finally:
         FILE_LOCK.release()
+
+
+def update_send_attempt_row(attempt_id: str, updates: Dict[str, Any]) -> bool:
+    """T1a: replace the send_attempts.csv row carrying attempt_id (the pending_send row written before the
+    exchange call) with the final result, so one send attempt is always one row. Returns False if no row
+    carries that attempt_id, in which case the caller appends. Rewrites the file only on this update path."""
+    path = SEND_ATTEMPTS_CSV
+    if not attempt_id or not path.exists() or path.stat().st_size <= 0:
+        return False
+    with FILE_LOCK:
+        data = path.read_bytes()
+    rows = list(csv.DictReader(io.StringIO(data.decode("utf-8-sig"), newline="")))
+    found = False
+    for row in rows:
+        if row.get("attempt_id") == attempt_id:
+            row.update(updates)
+            found = True
+            break
+    if not found:
+        return False
+    buf = io.StringIO()
+    writer = csv.DictWriter(buf, fieldnames=SEND_ATTEMPT_FIELDS)
+    writer.writeheader()
+    for row in rows:
+        writer.writerow({k: row.get(k, "") for k in SEND_ATTEMPT_FIELDS})
+    with FILE_LOCK:
+        with path.open("w", newline="", encoding="utf-8") as fh:
+            fh.write(buf.getvalue())
+    # the incremental reader caches by path/inode/size: force a full re-read of the rewritten file
+    _SEND_ROWS_CACHE.update(path=str(path), ino=None, size=0, mtime=None, tail=b"", rows=[], fields=None)
+    return True
 
 
 def read_csv_rows(path: Path) -> List[Dict[str, str]]:
@@ -2141,6 +2173,58 @@ def is_valid_wallet(wallet: str) -> bool:
 def stable_hash(parts: Iterable[Any]) -> str:
     raw = "|".join(str(p) for p in parts)
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:32]
+
+
+def generate_cloid(intent_id: str) -> str:
+    """T1a: deterministic 128-bit hex client order id (0x + first 32 hex of sha256(intent_id)). It rides on the
+    one physical order call, so a crash after the exchange accepted the order still leaves this id on a send row
+    for startup to find."""
+    return "0x" + hashlib.sha256(str(intent_id).encode("utf-8")).hexdigest()[:32]
+
+
+def generate_attempt_id(intent_id: str) -> str:
+    """T1a: deterministic send_attempts row id for an intent; the pending_send row and its final update share it."""
+    return stable_hash(["attempt", intent_id])
+
+
+try:
+    from hyperliquid.utils.types import Cloid as _SDKCloid  # type: ignore
+except Exception:  # SDK absent (tests, dry environments): the raw hex string is passed through
+    _SDKCloid = None  # type: ignore
+
+
+def _sdk_cloid(raw: str) -> Any:
+    """Wrap the raw hex cloid for the SDK's cloid= keyword when the SDK is present; otherwise pass it through."""
+    if not raw:
+        return None
+    if _SDKCloid is None:
+        return raw
+    try:
+        return _SDKCloid.from_str(raw)
+    except Exception:
+        return raw
+
+
+_CLOID_SUPPORT_CACHE: Dict[Any, bool] = {}
+
+
+def _exchange_accepts_cloid(exchange: Any) -> bool:
+    """The real HL SDK Exchange.order takes a cloid= keyword; a minimal fake/adaptor may not. Cached per type, so
+    the hot path costs nothing after the first order. Unknown/unsignatured callables are treated as accepting it."""
+    key = type(exchange)
+    hit = _CLOID_SUPPORT_CACHE.get(key)
+    if hit is not None:
+        return hit
+    fn = getattr(exchange, "order", None)
+    ok = True
+    if fn is not None:
+        try:
+            params = inspect.signature(fn).parameters
+            ok = ("cloid" in params) or any(p.kind == inspect.Parameter.VAR_KEYWORD for p in params.values())
+        except (TypeError, ValueError):
+            ok = True
+    _CLOID_SUPPORT_CACHE[key] = ok
+    return ok
 
 
 def normalise_copy_fill_side(raw: Any) -> str:
@@ -3248,7 +3332,8 @@ class SenderGateway:
         self._load_asset_universe_snapshot()
 
     def _place_order(self, exchange: Any, sdk_coin: str, is_buy: bool, size: float, limit_px: float,
-                     tif: str, reduce_only: bool, timing: Optional[Dict[str, Any]] = None, started_key: str = "") -> Any:
+                     tif: str, reduce_only: bool, timing: Optional[Dict[str, Any]] = None, started_key: str = "",
+                     cloid: Optional[str] = None) -> Any:
         """The ONE physical exchange order call. Every order (IOC, IOC retry, rate-limit recovery,
         exit recovery) is serialised and paced here."""
         # Only the time slot is serialised (pacing, and a distinct signing nonce per order): the exchange calls of
@@ -3259,7 +3344,11 @@ class SenderGateway:
             self._wait_exchange_order_slot()
         if timing is not None and started_key:
             timing[started_key] = utc_now_ms()
-        response = exchange.order(sdk_coin, is_buy, size, limit_px, {"limit": {"tif": tif}}, reduce_only=reduce_only)
+        order_kwargs: Dict[str, Any] = {"reduce_only": reduce_only}
+        sdk_cloid = _sdk_cloid(cloid) if cloid else None  # T1a: SDK Cloid so the order is findable after a crash
+        if sdk_cloid is not None and _exchange_accepts_cloid(exchange):
+            order_kwargs["cloid"] = sdk_cloid
+        response = exchange.order(sdk_coin, is_buy, size, limit_px, {"limit": {"tif": tif}}, **order_kwargs)
         self._note_sender_key_rejection(response)
         return response
 
@@ -3287,6 +3376,48 @@ class SenderGateway:
         with self._exchange_order_lock:
             self._wait_exchange_order_slot()
         return exchange.cancel(sdk_coin, int(oid))
+
+    def _begin_pending_send(self, intent: Intent, tif: str, order_type: str, limit_px: float, wire_size: float,
+                            cloid: str, timing: Dict[str, Any]) -> str:
+        """T1a: write the send_attempts row (status pending_send, with the cloid) BEFORE the exchange call, so a
+        crash after the exchange accepted the order still leaves one row naming the order. Returns its attempt_id."""
+        attempt_id = str(timing.get("send_attempt_id") or generate_attempt_id(intent.intent_id))
+        timing["send_attempt_id"] = attempt_id
+        timing["send_cloid"] = cloid
+        now = utc_now_ms()
+        self.audit.append_send_attempt({
+            "created_at": utc_now_iso(),
+            "created_at_ms": now,
+            "attempt_id": attempt_id,
+            "intent_id": intent.intent_id,
+            "leader_fill_id": intent.fill.leader_fill_id,
+            "leader_wallet": intent.fill.leader_wallet,
+            "coin": intent.fill.coin,
+            "side": intent.copy_side,
+            "order_type": order_type,
+            "limit_price": limit_px,
+            "copy_size": wire_size,
+            "copy_notional": abs(wire_size * limit_px),
+            "reduce_only_sent": str(bool(intent.reduce_only_intended)),
+            "sleeve_id": intent.sleeve_id,
+            "position_id": intent.position_id,
+            "wallet_position_before": intent.wallet_position_before,
+            "wallet_position_after_expected": "",
+            "coin_net_before": intent.coin_net_before,
+            "coin_net_after_expected": "",
+            "status": "pending_send",
+            "exchange_response": "",
+            "exchange_order_id": "",
+            "error": "",
+            "reject_category": "",
+            "terminal_state": "PENDING_SEND",
+            "operator_action": "WAIT_FOR_SEND_REPLY",
+            "latency_classification": "",
+            **{k: timing.get(k, "") for k in SEND_TIMING_FIELDS},
+            "notes": f"pending_send written before the exchange call; tif={tif}",
+            "cloid": cloid,
+        })
+        return attempt_id
 
     def _register_resting_entry(self, intent: Intent, sdk_coin: str, oid: str, px: float, size: float, why: str) -> None:
         """Record a resting missed-entry limit. If the leader already reduced that position after the fill this
@@ -4404,6 +4535,9 @@ class SenderGateway:
     def _send_real(self, intent: Intent, timing: Optional[Dict[str, Any]] = None) -> Tuple[bool, str, Dict[str, Any]]:
         timing = timing if isinstance(timing, dict) else self._base_timing(intent)
         timing.setdefault("send_real_started_ms", utc_now_ms())
+        # T1a: one deterministic attempt_id + cloid for this send; the pending row and the final update share them
+        timing.setdefault("send_attempt_id", generate_attempt_id(intent.intent_id))
+        timing.setdefault("send_cloid", generate_cloid(intent.intent_id))
         timing["symbol_resolve_started_ms"] = utc_now_ms()
         resolved = self._resolve_coin(intent.fill.coin)
         timing["symbol_resolve_finished_ms"] = utc_now_ms()
@@ -4738,9 +4872,15 @@ class SenderGateway:
         use_reduce_only = self._reduce_only_on_wire(intent, wire_size)
         netting_note = ""
         gtc_px = limit_px if rest_now else 0.0  # a resting limit is in flight: never re-send it after an exception
+        # T1a: write the pending_send row (with the cloid) before the one physical call, then replace it below
+        cloid = str(timing.get("send_cloid") or generate_cloid(intent.intent_id))
+        timing["send_cloid"] = cloid
+        self._begin_pending_send(intent, "Gtc" if rest_now else "Ioc", "REAL_GTC" if rest_now else "REAL_IOC",
+                                 limit_px, wire_size, cloid, timing)
         try:
             response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", wire_size, limit_px,
-                                         "Gtc" if rest_now else "Ioc", use_reduce_only, timing, "exchange_call_started_ms")
+                                         "Gtc" if rest_now else "Ioc", use_reduce_only, timing, "exchange_call_started_ms",
+                                         cloid=cloid)
             timing["exchange_call_finished_ms"] = utc_now_ms()
             if rest_now:
                 return self._resting_entry_result(
@@ -5797,10 +5937,13 @@ class SenderGateway:
         )
         terminal_state = result.get("terminal_state") or classify_terminal_state(status, reject_category, lifecycle, exchange_called)
         operator_action = result.get("operator_action") or classify_operator_action(status, reject_category, lifecycle, exchange_called)
-        self.audit.append_send_attempt({
+        raw_timing = result.get("timing") or {}
+        attempt_id = str(raw_timing.get("send_attempt_id") or "") or stable_hash(["attempt", intent.intent_id, written_ms])
+        cloid = str(raw_timing.get("send_cloid") or "")
+        row = {
             "created_at": utc_now_iso(),
             "created_at_ms": written_ms,
-            "attempt_id": stable_hash(["attempt", intent.intent_id, written_ms]),
+            "attempt_id": attempt_id,
             "intent_id": intent.intent_id,
             "leader_fill_id": intent.fill.leader_fill_id,
             "leader_wallet": intent.fill.leader_wallet,
@@ -5829,7 +5972,10 @@ class SenderGateway:
             "latency_classification": latency_classification,
             **{k: timing.get(k, "") for k in SEND_TIMING_FIELDS},
             "notes": result.get("notes") or "real exchange IOC attempt",
-        })
+            "cloid": cloid,
+        }
+        if not update_send_attempt_row(attempt_id, row):
+            self.audit.append_send_attempt(row)
         if status != "ORDER_FILLED":
             self.audit.append_reconciliation(
                 "SEND_TERMINAL", terminal_state,
@@ -6395,7 +6541,7 @@ class CopyFillMatcher:
     def _load_sent_oid_index(self) -> Dict[str, Dict[str, str]]:
         out: Dict[str, Dict[str, str]] = {}
         for row in read_csv_rows(SEND_ATTEMPTS_CSV):
-            if str(row.get("status") or "").upper() not in {"ORDER_FILLED", "ORDER_RESTING"}:
+            if str(row.get("status") or "").upper() not in {"ORDER_FILLED", "ORDER_RESTING", "PENDING_SEND"}:
                 continue
             oid_raw = str(row.get("exchange_order_id") or "").strip()
             if not oid_raw:
@@ -6469,7 +6615,7 @@ class CopyFillMatcher:
 
     def _fresh_sent_row_for_oid(self, norm_oid: str) -> Optional[Dict[str, str]]:
         for row in send_attempt_rows():
-            if str(row.get("status") or "").upper() not in {"ORDER_FILLED", "ORDER_RESTING"}:
+            if str(row.get("status") or "").upper() not in {"ORDER_FILLED", "ORDER_RESTING", "PENDING_SEND"}:
                 continue
             oid = CopyFillMatcher._normalize_oid(str(row.get("exchange_order_id") or ""))
             if oid and oid == norm_oid:
