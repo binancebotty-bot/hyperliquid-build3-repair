@@ -6964,7 +6964,7 @@ class ServiceStateWriter:
             "networks": {"leader": LEADER_NETWORK, "follower": FOLLOWER_NETWORK},
             **dedupe.export(),
         }
-        for _k in ("copy_poll_stats", "last_copy_sweep_ms"):  # owned by the copy thread
+        for _k in ("copy_poll_stats", "last_exchange_snapshot_refresh_ms"):  # written by the copy thread
             if isinstance(_existing_rt, dict) and _k in _existing_rt:
                 core_state[_k] = _existing_rt[_k]
         atomic_write_json(CORE_RUNTIME_STATE_FILE, core_state)
@@ -7052,6 +7052,9 @@ class LiveCopyCore:
     def stop(self) -> None:
         self._hot_stop_event.set()
         self.ws.stop()
+        ct = getattr(self, "_copy_thread", None)
+        if ct is not None and ct.is_alive() and ct is not threading.current_thread():
+            ct.join(timeout=5.0)  # let a read in progress finish its ledger writes
         for t in getattr(self, "_hot_threads", []):
             if t.is_alive() and t is not threading.current_thread():
                 t.join(timeout=1.0)
@@ -7574,7 +7577,9 @@ class LiveCopyCore:
         copy_resume_ms = 0
         if copy_status == "COPY_ACCOUNT_POLL_PARTIAL":
             copy_status = "COPY_ACCOUNT_POLLED"
-            copy_resume_ms = max((int(fnum(r.get("timestamp_ms"), 0)) for r in copy_fills), default=0) + POLL_OVERLAP_MS
+            # the next read must start at the newest fill read here, whichever window (hot or sweep) it uses
+            copy_resume_ms = max((int(fnum(r.get("timestamp_ms"), 0)) for r in copy_fills), default=0) + \
+                (COPY_POLL_HOT_OVERLAP_MS if hot else POLL_OVERLAP_MS)
         summary.copy_account_status = copy_status
         summary.copy_fills_seen = len(copy_fills)
         lags: List[int] = []
@@ -7692,13 +7697,16 @@ class LiveCopyCore:
         interval = max(0.25, float(interval_sec))
 
         def loop() -> None:
+            backoff = 0.0  # a failed or rate-limited read waits longer each time (up to 30 s): never hammer the API
             while not self._hot_stop_event.is_set():
                 began = time.monotonic()
+                ok = False
                 try:
-                    self.copy_poll_once(hot=True)
+                    ok = self.copy_poll_once(hot=True).get("status") in {"COPY_ACCOUNT_POLLED", "COPY_ACCOUNT_BASELINED"}
                 except Exception as exc:
                     log_error("copy_poll_thread", exc)
-                if self._hot_stop_event.wait(max(0.05, interval - (time.monotonic() - began))):
+                backoff = 0.0 if ok else min(30.0, max(interval, backoff * 2 or interval * 2))
+                if self._hot_stop_event.wait(max(0.05, interval + backoff - (time.monotonic() - began))):
                     break
         self._copy_thread = threading.Thread(target=loop, daemon=True, name="HLCoreCopyPoll")
         self._copy_thread.start()
@@ -9604,7 +9612,7 @@ def main() -> None:
                         help="Required to send REAL MAINNET orders (follower network mainnet). Only this command-line "
                              "flag can allow it; no env file or setting can.")
     parser.add_argument("--interval", type=float, default=5.0)
-    parser.add_argument("--copy-poll-interval", type=float, default=float(os.getenv("HL_LIVE_COPY_POLL_INTERVAL_SEC", "1")), help="Copy-account poll cadence in seconds when --poll-copy is enabled")
+    parser.add_argument("--copy-poll-interval", type=float, default=float(os.getenv("HL_LIVE_COPY_POLL_INTERVAL_SEC", "2")), help="Copy-account poll cadence in seconds when --poll-copy is enabled")
     args = parser.parse_args()
     if args.self_test:
         run_self_test()

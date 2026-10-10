@@ -134,7 +134,7 @@ def main() -> None:
         threads = [threading.Thread(target=t, daemon=True) for t in (sender, producer, main_loop)]
         slow_cycle["sec"] = 3.0
         if use_thread:
-            core.start_copy_poll_thread(1.0)
+            core.start_copy_poll_thread(2.0)  # the production default
         for t in threads:
             t.start()
         time.sleep(seconds)
@@ -142,7 +142,7 @@ def main() -> None:
         for t in threads:
             t.join(timeout=10)
         slow_cycle["sec"] = 0.0
-        time.sleep(2.5 if use_thread else 0)  # let the copy thread drain the last fills
+        time.sleep(4.5 if use_thread else 0)  # let the copy thread drain the last fills
         if not use_thread:
             core.run_cycle(use_source_csv=False, poll_live=False, poll_copy=True)
         stats = c.load_json(c.CORE_RUNTIME_STATE_FILE, {}).get("copy_poll_stats") or []
@@ -164,8 +164,8 @@ def main() -> None:
     print(f"MEASURE:: copy thread: worst {worst_new} ms, median of poll medians {med_new} ms over {len(landed_new)} fills")
     check("M1_COPY_THREAD_OWNS_EVERY_FILL", all(str(o) in owned_new for o in landed_new),
           f"{sum(str(o) not in owned_new for o in landed_new)} missing")
-    check("M2_COPY_THREAD_WORST_LAG_UNDER_3S", worst_new is not None and worst_new <= 3000, f"worst={worst_new}")
-    check("M3_COPY_THREAD_MEDIAN_LAG_UNDER_1_5S", med_new is not None and med_new <= 1500, f"median={med_new}")
+    check("M2_COPY_THREAD_WORST_LAG_UNDER_3_5S", worst_new is not None and worst_new <= 3500, f"worst={worst_new}")
+    check("M3_COPY_THREAD_MEDIAN_LAG_UNDER_2S", med_new is not None and med_new <= 2000, f"median={med_new}")
     check("M4_OLD_IN_CYCLE_POLL_WAS_SLOWER_UNDER_THE_SAME_LOAD", worst_old is not None and worst_new is not None
           and worst_old > worst_new + 1000, f"old={worst_old} new={worst_new}")
     stats = c.load_json(c.CORE_RUNTIME_STATE_FILE, {}).get("copy_poll_stats") or []
@@ -178,6 +178,27 @@ def main() -> None:
     check("W1_HOT_READ_GOES_BACK_ABOUT_20S", hot and max(s["window_ms"] for s in hot) <= c.COPY_POLL_HOT_OVERLAP_MS + 5000,
           str([s["window_ms"] for s in hot][:5]))
     check("W2_FIRST_READ_IS_A_FULL_SWEEP", sweeps and sweeps[0]["window_ms"] >= c.POLL_OVERLAP_MS, str(sweeps[:1]))
+
+    # ---- W3: a page-capped read resumes at its newest fill, so the next hot read misses nothing ---------------
+    real_ing = new.copy_ingestor
+
+    class CappedIngestor:
+        def poll_copy_account_fills(self, user_wallet, start_ms, end_ms=None, **_k):
+            return [{"coin": "BTC", "side": "B", "sz": "0.001", "px": "100", "oid": 1, "hash": "0xcap", "tid": 1,
+                     "time": start_ms + 1000, "timestamp_ms": start_ms + 1000, "copy_fill_id": "0xcap:1"}], "COPY_ACCOUNT_POLL_PARTIAL"
+    new.copy_ingestor = CappedIngestor()
+    seen_starts = []
+    capped = new.copy_poll_once(hot=True)
+    newest = c.load_json(c.CORE_RUNTIME_STATE_FILE, {}).get("last_copy_poll_ms") - c.COPY_POLL_HOT_OVERLAP_MS
+
+    class Spy:
+        def poll_copy_account_fills(self, user_wallet, start_ms, end_ms=None, **_k):
+            seen_starts.append(start_ms)
+            return [], "COPY_ACCOUNT_POLLED"
+    new.copy_ingestor = Spy()
+    new.copy_poll_once(hot=True)
+    check("W3_PAGE_CAPPED_READ_RESUMES_AT_ITS_NEWEST_FILL", seen_starts and seen_starts[0] <= newest, f"{seen_starts} {newest} {capped}")
+    new.copy_ingestor = real_ing
 
     # ---- G: a fill whose send row is not written yet waits for it ----------------------------------------------
     oid, side = engine_order(record_send=False)
