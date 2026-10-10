@@ -152,6 +152,11 @@ FORBIDDEN_WOULD_SEND_ORDERS_CSV = APPEND_ONLY_DIR / "would_send_orders.csv"
 HL_INFO_URL = NETWORKS["follower"]["info"]          # follower: meta, mids, copy fills, clearinghouseState
 HL_LEADER_INFO_URL = NETWORKS["leader"]["info"]     # leader fill polling only
 HL_WS_URL = os.getenv("HL_LIVE_WS_URL") or NETWORKS["leader"]["ws"]
+# Headroom monitor: counts this process's /info weight per host and writes alert events (alerts/headroom_events.jsonl).
+from headroom import HeadroomMonitor, CountingRequests  # noqa: E402
+HEADROOM = HeadroomMonitor(alerts_dir=AUDIT_DIR / "alerts")
+if requests is not None:
+    requests = CountingRequests(requests, HEADROOM, [HL_INFO_URL, HL_LEADER_INFO_URL])
 HL_EXCHANGE_URL = os.getenv("HL_LIVE_ORDER_ENDPOINT") or NETWORKS["follower"]["exchange"]
 # Real mainnet orders need the --confirm-mainnet-follower command-line flag (set only by main()); the order call
 # itself refuses otherwise, whoever imports this module.
@@ -6013,6 +6018,10 @@ class WSManager:
         self._socket_opened_at_ms: int = 0     # when the current socket opened (subscribe clock)
         self._last_subscribe_ms: int = 0       # when subscribe messages were last sent
         self._message_errors: int = 0
+        self._refusals: int = 0                # error replies from HL (e.g. the 15-user subscription limit)
+        self._last_refusal: str = ""
+        self._last_refusal_ms: int = 0
+        self._logged_refusal: str = ""
         self._heartbeat_interval: float = float(os.getenv("HL_LIVE_WS_HEARTBEAT_SEC", "25"))
         self._hb_thread: Optional[threading.Thread] = None
 
@@ -6107,6 +6116,17 @@ class WSManager:
             if isinstance(payload, dict) and payload.get("channel") == "pong":
                 self._last_pong_ms = utc_now_ms()
                 return
+            if isinstance(payload, dict) and payload.get("channel") == "error":
+                # e.g. "Cannot track more than 15 total users": HL refused a subscription (per-IP quota shared with
+                # every other process on this machine). Never silent: counted, kept verbatim, shown in the health.
+                _txt = str(payload.get("data"))[:300]
+                self._refusals += 1
+                HEADROOM.note_refusal("ws_users", str(payload.get("data"))[:300])
+                self._last_refusal, self._last_refusal_ms = _txt, utc_now_ms()
+                if _txt != self._logged_refusal:
+                    self._logged_refusal = _txt
+                    log_error("ws_subscription_refused", RuntimeError(_txt))
+                return
             if isinstance(payload, dict) and payload.get("channel") == "subscriptionResponse":
                 _d = payload.get("data")
                 _sub = _d.get("subscription") if isinstance(_d, dict) else None
@@ -6199,8 +6219,12 @@ class WSManager:
                 "stale": is_stale,
                 "last_error": self.last_error.get(w, ""),
             }
+        refused = bool(self._refusals and len(self._subscribed) < len(self.wallets))
         if not self.enabled:
             ws_status, worst_grade = "WS_DISABLED", "DISABLED"
+        elif refused:
+            # HL refused some or all subscriptions: those leaders are NOT on the live feed; the poll covers them
+            ws_status, worst_grade = "WS_DEGRADED", "DEGRADED"
         elif subscribe_pending:
             # R0: socket open but no wallet acked or delivered a message within the bound.
             ws_status, worst_grade = "WS_DEGRADED", "DEGRADED"
@@ -6220,6 +6244,11 @@ class WSManager:
             "socket_open": socket_open,
             "subscribe_acked": len(self._subscribed),
             "subscribe_pending": subscribe_pending,
+            "subscribe_refused": self._refusals,
+            "last_refusal": self._last_refusal,
+            "last_refusal_ms": self._last_refusal_ms,
+            "wallets_without_feed": max(0, len(self.wallets) - len(self._subscribed)),
+            "headroom": dict(getattr(HEADROOM, "_last", {}) or {}),
             "last_subscribe_ms": self._last_subscribe_ms,
             "message_errors": self._message_errors,
             "thread_alive": thread_alive,
@@ -7407,6 +7436,8 @@ class LiveCopyCore:
         self.async_dispatch = False  # main() turns this on in loop mode: polled fills go to the workers too
         # R0: pass a live provider, not a snapshot, so a wallet enabled later (or after a restart) is subscribed.
         self.ws = WSManager(lambda: self.cfg.stream_wallets(), self.ingestor, self._enqueue_hot_ws_fill)
+        HEADROOM.ws_provider = lambda: {"acked": len(self.ws._subscribed), "wanted": len(self.ws.wallets),
+                                        "refused": bool(self.ws._refusals), "last_refusal": self.ws._last_refusal}
         self.intent_builder = IntentBuilder(self.cfg, self.ledger)
         self.sender = SenderGateway(self.cfg, self.audit, self.ledger)
         if self.cfg.auto_send_enabled and not bval(os.getenv("HL_LIVE_MOCK_SEND"), False) and bval(os.getenv("HL_LIVE_PREWARM_SYMBOL_META"), True):
@@ -7977,16 +8008,32 @@ class LiveCopyCore:
             self.dedupe.processed.update(merged_ids)
             with prof("send_lock:intent_build"):
                 intent = self.intent_builder.build(fill)
-            with prof("send_lock:intent_append"):
-                self.audit.append_order_intent(intent)
-            stamp_fill(fill, "intent_written_ms")
             self.intents_by_id[intent.intent_id] = intent
             if summary is not None:
                 summary.leader_intents_written += 1
             is_pre_cutover = self.dedupe.live_start_ms > 0 and fill.timestamp_ms < self.dedupe.live_start_ms
-            if is_pre_cutover:
-                return True, "PRE_CUTOVER", intent
-        sent, send_status = self.sender.send_if_allowed(intent, entry_block_reason)
+        # The audit row is written AFTER the send lock is released (and still before any order can be sent): the
+        # CSV append waits on the shared file lock, which a big audit read can hold for seconds, and held inside the
+        # send lock that wait stopped every other worker from building its intent (replay throughput, run 6).
+        with prof("intent_append"):
+            self.audit.append_order_intent(intent)
+        stamp_fill(fill, "intent_written_ms")
+        if is_pre_cutover:
+            return True, "PRE_CUTOVER", intent
+        try:
+            sent, send_status = self.sender.send_if_allowed(intent, entry_block_reason)
+        except Exception as exc:  # run 6f: allowed intents with no send row. Every allowed intent ends in a terminal row.
+            log_error("send_if_allowed", exc)
+            try:
+                self.audit.append_reconciliation(
+                    "SEND_TERMINAL", "BLOCKED_SEND_EXCEPTION", leader_wallet=fill.leader_wallet,
+                    leader_fill_id=fill.leader_fill_id, intent_id=intent.intent_id, coin=fill.coin,
+                    action="SEND_TERMINAL_EXCEPTION", reject_category="SEND_EXCEPTION",
+                    terminal_state="BLOCKED_SEND_EXCEPTION", engine_can_close=True, engine_can_send=False,
+                    notes=f"{type(exc).__name__}: {str(exc)[:300]}; exchange call state unknown, check the exchange")
+            except Exception as exc2:
+                log_error("send_exception_audit", exc2)
+            return False, "SEND_EXCEPTION", intent
         if sent:
             if summary is not None:
                 summary.leader_sends_attempted += 1
@@ -8061,13 +8108,36 @@ class LiveCopyCore:
                 self.reconciler.fetch_snapshot()
             self._last_truth_refresh = time.monotonic()
 
+    def leader_poll_interval_sec(self) -> float:
+        """How often the leaders are polled. The live feed healthy (socket open and HL acked a subscription): the
+        poll is only a backstop, every HL_LIVE_LEADER_POLL_INTERVAL_SEC (30 s). Feed down, or open but never
+        acked: the poll IS the detector, so it runs faster, scaled to the info rate limit (about 20 weight per
+        wallet read, ~600 of the 1200/min budget: 2.2 s per active leader, never under 5 s)."""
+        ws = self.ws
+        if not ws.enabled:
+            return 0.0  # no feed configured: the poll runs every cycle (tests, polling-only mode)
+        active = {normalise_wallet(w) for w in self.cfg.active_wallets()}
+        acked = {normalise_wallet(w) for w in (getattr(ws, "_subscribed", ()) or ())}
+        # the poll may relax to the backstop rate only when EVERY followed leader is on the live feed
+        feed_ok = bool(ws.enabled and getattr(ws, "_socket_open", False) and active and active <= acked)
+        if feed_ok:
+            return max(0.0, fnum(os.getenv("HL_LIVE_LEADER_POLL_INTERVAL_SEC"), 30.0))
+        n = max(1, len(self.cfg.active_wallets()))
+        auto = max(2.0, 2.2 * n)
+        env = os.getenv("HL_LIVE_LEADER_POLL_NOFEED_SEC")
+        fast = max(1.0, fnum(env, auto)) if env else auto
+        return min(fast, max(0.0, fnum(os.getenv("HL_LIVE_LEADER_POLL_INTERVAL_SEC"), 30.0)))
+
     def _leader_poll_due(self) -> bool:
         """The live feed is the hot path; the poll is the missed-fill backstop. While the feed's socket is open the
         leaders are polled every HL_LIVE_LEADER_POLL_INTERVAL_SEC (default 30 s, within the info rate limit for
         10 busy wallets); without the feed, every cycle."""
         now = utc_now_ms()
-        interval = (max(0.0, fnum(os.getenv("HL_LIVE_LEADER_POLL_INTERVAL_SEC"), 30.0))
-                    if self.ws.enabled and getattr(self.ws, "_socket_open", False) else 0.0)
+        try:
+            HEADROOM.evaluate()
+        except Exception as exc:
+            log_error("headroom_evaluate", exc)
+        interval = self.leader_poll_interval_sec()
         if interval and now - getattr(self, "_last_leader_poll_ms", 0) < interval * 1000:
             return False
         self._last_leader_poll_ms = now
