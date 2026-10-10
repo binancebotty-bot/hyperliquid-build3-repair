@@ -1151,7 +1151,39 @@ def _engine_alert() -> str:
     return ""
 
 
+_UI_BULK_LIST_MIN = 500          # a plain list of ids this long is bookkeeping, never a UI cell
+_UI_EXEC_ROWS_CAP = 300          # newest execution-quality rows sent to the table; chips use the summary counts
+
+
+def _slim_ui_payload(obj: Any, depth: int = 0) -> Any:
+    """Shrink the audit summary for the browser. Long lists of plain ids (processed_leader_fill_ids etc.) are
+    replaced by `<name>_count`; nothing the page renders is dropped (the JS never reads those lists)."""
+    if depth > 8:
+        return obj
+    if isinstance(obj, dict):
+        out: Dict[str, Any] = {}
+        for k, v in obj.items():
+            if isinstance(v, (list, tuple, set)) and len(v) >= _UI_BULK_LIST_MIN and all(
+                    isinstance(i, (str, int, float)) for i in v):
+                out[f"{k}_count"] = len(v)
+            else:
+                out[k] = _slim_ui_payload(v, depth + 1)
+        return out
+    if isinstance(obj, list):
+        return [_slim_ui_payload(i, depth + 1) for i in obj]
+    return obj
+
+
 def _live_audit_summary() -> Dict[str, Any]:
+    result = _live_audit_summary_full()
+    rows = result.get("execution_quality_rows")
+    if isinstance(rows, list) and len(rows) > _UI_EXEC_ROWS_CAP:
+        result["execution_quality_rows_total"] = len(rows)
+        result["execution_quality_rows"] = rows[:_UI_EXEC_ROWS_CAP]
+    return _slim_ui_payload(result)
+
+
+def _live_audit_summary_full() -> Dict[str, Any]:
     path = _live_order_intents_path()
     reason_counts: Dict[str, int] = {}
     status_counts: Dict[str, int] = {}
@@ -7396,6 +7428,7 @@ function renderExecQuality(){
  const rows=lcAudit.execution_quality_rows||[];
  const qs=lcAudit.execution_quality_summary||{};
  const filled=rows.filter(r=>r.status==='ORDER_FILLED');
+ const nz=(k,fallback)=>(qs[k]!=null?qs[k]:fallback);
  const exchRej=rows.filter(r=>r.status==='ORDER_REJECTED');
  const localBlk=rows.filter(r=>r.status&&r.status!=='ORDER_FILLED'&&r.status!=='ORDER_REJECTED'&&r.status!=='CONFIRM_REQUIRED');
  const previews=rows.filter(r=>r.status==='CONFIRM_REQUIRED');
@@ -7404,18 +7437,18 @@ function renderExecQuality(){
  const historical=rows.filter(r=>String(r.truth_state||'').startsWith('HISTORICAL'));
  const adopted=rows.filter(r=>r.truth_state==='ADOPTED_RECONCILED');
  const bpsVals=filled.map(r=>r.fill_bps).filter(v=>v!=null);
- const avgBps=bpsVals.length?Math.round(bpsVals.reduce((a,b)=>a+b,0)/bpsVals.length*10)/10:null;
- const worstBps=bpsVals.length?Math.round(Math.max(...bpsVals)*10)/10:null;
- const lastFill=filled[0]||null;
+ const avgBps=qs.avg_fill_vs_limit_bps!=null?qs.avg_fill_vs_limit_bps:(bpsVals.length?Math.round(bpsVals.reduce((a,b)=>a+b,0)/bpsVals.length*10)/10:null);
+ const worstBps=qs.worst_fill_vs_limit_bps!=null?qs.worst_fill_vs_limit_bps:(bpsVals.length?Math.round(Math.max(...bpsVals)*10)/10:null);
+ const lastFill=(qs.last_fill&&qs.last_fill.coin)?qs.last_fill:(filled[0]||null);
  root.querySelector('#lcExecQualChips').innerHTML=[
-  ['Active red',activeRed.length,activeRed.length?'lc-amber':'lc-green'],
-  ['Active amber',activeAmber.length,activeAmber.length?'lc-amber':'lc-green'],
-  ['Adopted / reconciled',adopted.length,'lc-green'],
-  ['Historical separated',historical.length,'lc-blue'],
-  ['Filled',filled.length,'lc-green'],
-  ['Exchange rejected',exchRej.length,exchRej.length?'lc-amber':''],
-  ['Local blocked',localBlk.length,localBlk.length?'lc-amber':''],
-  ['Queued previews / would-send records',previews.length,''],
+  ['Active red',nz('active_red_count',activeRed.length),nz('active_red_count',activeRed.length)?'lc-amber':'lc-green'],
+  ['Active amber',nz('active_amber_count',activeAmber.length),nz('active_amber_count',activeAmber.length)?'lc-amber':'lc-green'],
+  ['Adopted / reconciled',nz('adopted_reconciled_count',adopted.length),'lc-green'],
+  ['Historical separated',nz('historical_count',historical.length),'lc-blue'],
+  ['Filled',nz('filled_count',filled.length),'lc-green'],
+  ['Exchange rejected',nz('exchange_rejected_count',exchRej.length),nz('exchange_rejected_count',exchRej.length)?'lc-amber':''],
+  ['Local blocked',nz('local_blocked_count',localBlk.length),nz('local_blocked_count',localBlk.length)?'lc-amber':''],
+  ['Queued previews / would-send records',nz('preview_count',previews.length),''],
   ['Avg fill-vs-limit',avgBps!=null?avgBps+'bps':'n/a',avgBps!=null&&avgBps>5?'lc-amber':''],
   ['Worst fill-vs-limit',worstBps!=null?worstBps+'bps':'n/a',worstBps!=null&&worstBps>10?'lc-amber':''],
   ['Last fill',lastFill?(lastFill.coin+' '+lastFill.side):'none',''],
