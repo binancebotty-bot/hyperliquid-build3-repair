@@ -65,4 +65,8 @@ check("OWNED_SIZE_INITIAL", abs(c.SenderGateway._owned_fill_size("77") - 1.5) < 
 c.append_csv(c.LIVE_FILLS_CSV, c.LIVE_FILL_FIELDS, {"exchange_order_id": "77", "fill_size": "0.5"})
 check("OWNED_SIZE_UPDATED_BY_APPEND", abs(c.SenderGateway._owned_fill_size("77") - 2.0) < 1e-9)
 check("OWNED_SIZE_UNKNOWN_ZERO", c.SenderGateway._owned_fill_size("999") == 0.0)
+# ---- 5. rotation leaves a headed file; tail reader returns whole recent rows
+check("FRESH_FILE_HAS_HEADER_AFTER_ROTATE", c.RECONCILIATION_CSV.exists() and c.RECONCILIATION_CSV.read_text().splitlines()[0].startswith("created_at"), c.RECONCILIATION_CSV.read_text()[:80] if c.RECONCILIATION_CSV.exists() else "missing")
+tail = c.read_csv_tail_rows(c.SEND_ATTEMPTS_CSV, 2 * 1024 * 1024)
+check("TAIL_ROWS_WHOLE_AND_RECENT", 0 < len(tail) < N and tail[-1]["attempt_id"] == "new" and all(r["attempt_id"] for r in tail), len(tail))
 print("TOTAL=%d FAILED=%d" % (len(R), R.count(False))); sys.exit(1 if False in R else 0)

@@ -1074,6 +1074,9 @@ def audit_history_paths(path: Path) -> List[Path]:
     return rotated_audit_paths(path) + ([path] if path.exists() else [])
 
 
+ROTATING_FIELDS: Dict[str, List[str]] = {"order_intents.csv": ORDER_INTENT_FIELDS, "reconciliation.csv": RECONCILIATION_FIELDS}
+
+
 def _rotate_audit_file(path: Path) -> None:
     """Called under FILE_LOCK after an append: past the size limit the file is renamed away (a new one with its
     header starts on the next append) and only the newest AUDIT_ROTATE_KEEP rotated copies are kept."""
@@ -1084,6 +1087,10 @@ def _rotate_audit_file(path: Path) -> None:
         if date == stamp:
             n = max(n, int(num) + 1)
     os.replace(path, path.with_name(f"{path.stem}.{stamp}.{n}.csv"))
+    fields = ROTATING_FIELDS.get(path.name)
+    if fields:  # the fresh file exists with its header at once: status checks never see it missing, no append lands headerless
+        with path.open("w", newline="", encoding="utf-8") as fh:
+            csv.DictWriter(fh, fieldnames=fields).writeheader()
     for old in rotated_audit_paths(path)[:-AUDIT_ROTATE_KEEP] if AUDIT_ROTATE_KEEP > 0 else []:
         try:
             old.unlink()
@@ -1109,6 +1116,8 @@ def append_csv(path: Path, fieldnames: List[str], row: Dict[str, Any]) -> None:
     with prof("file_lock_wait"):
         FILE_LOCK.acquire()
     try:
+        if not path.exists() or path.stat().st_size <= 0:  # rotated away since the header check above
+            ensure_csv_header(path, fieldnames)
         with prof(f"append:{path.name}"), path.open("a", newline="", encoding="utf-8") as f:
             f.write(buf.getvalue())
         if path == LIVE_FILLS_CSV and _OWNED_BY_OID["path"] == str(path):
@@ -1123,15 +1132,15 @@ def append_csv(path: Path, fieldnames: List[str], row: Dict[str, Any]) -> None:
         FILE_LOCK.release()
 
 
-def update_send_attempt_row(attempt_id: str, updates: Dict[str, Any]) -> bool:
+def update_send_attempt_row(attempt_id: str, updates: Dict[str, Any], base_row: Optional[Dict[str, Any]] = None) -> bool:
     """T1a: record the result of a send attempt whose pending_send row (written before the exchange call) already
     exists. APPEND-ONLY: the file is never rewritten (a rewrite of the 0.2 GB audit file per order would stall the
     send path and could drop rows appended meanwhile). The newest row for an attempt_id is its current state; the
     earlier pending_send row stays as the crash record. Returns False if no row carries attempt_id."""
     if not attempt_id:
         return False
-    base = None
-    for row in reversed(send_attempt_rows()):
+    base = dict(base_row) if base_row else None  # a full row from the caller keeps every column
+    for row in ([] if base else reversed(send_attempt_rows())):
         if row.get("attempt_id") == attempt_id:
             base = dict(row)
             break
@@ -1186,6 +1195,29 @@ def iter_audit_history(path: Path) -> Iterator[Dict[str, str]]:
             continue  # rotated or pruned between the listing and the open
 
 
+def read_csv_tail_rows(path: Path, max_bytes: int) -> List[Dict[str, str]]:
+    """Rows in roughly the last max_bytes of an audit CSV (whole rows only, header from the file start), so a status
+    report over a multi-hundred-MB append-only file parses a bounded slice. max_bytes <= 0 reads the whole file."""
+    if not path.exists():
+        return []
+    with FILE_LOCK:
+        size = path.stat().st_size
+        if size <= 0:
+            return []
+        if max_bytes <= 0 or size <= max_bytes:
+            with path.open("rb") as fh:
+                data = fh.read(size)
+            return list(csv.DictReader(io.StringIO(data.decode("utf-8-sig", errors="replace"), newline="")))
+        with path.open("rb") as fh:
+            header = fh.readline()
+            fh.seek(size - max_bytes)
+            data = fh.read(max_bytes)
+    nl = data.find(b"\n")
+    data = data[nl + 1:] if nl >= 0 else b""
+    text = (header.decode("utf-8-sig", errors="replace").rstrip("\r\n") + "\n") + data.decode("utf-8", errors="replace")
+    return list(csv.DictReader(io.StringIO(text, newline="")))
+
+
 def read_csv_rows(path: Path) -> List[Dict[str, str]]:
     """Every row of an audit CSV. Only the byte read is under the file lock; parsing (seconds for the large
     append-only files on the PC) runs after it, so appends from the send path never wait for a parse (run 5)."""
@@ -1215,6 +1247,7 @@ def _slim_send_row(row: Dict[str, Any]) -> Dict[str, str]:
 
 def _send_cache_reset(cache: Dict[str, Any]) -> None:
     cache.update(size=0, mtime=None, tail=b"", fields=None, rows=collections.deque(maxlen=_SEND_ROWS_WINDOW))
+    cache["recovery"] = collections.deque(maxlen=_SEND_ROWS_WINDOW)  # re-read from the start: no duplicate recovery rows
     if cache.get("by_oid") is None:  # the indexes survive a rotation or rewrite: an order id stays valid
         cache["by_oid"] = collections.OrderedDict()
         cache["recovery"] = collections.deque(maxlen=_SEND_ROWS_WINDOW)
@@ -1562,10 +1595,11 @@ def build_live_integrity_status() -> Dict[str, Any]:
     raw_index_price_domain_conflicts = {}
     if isinstance(asset_snapshot, dict) and isinstance(asset_snapshot.get("raw_index_price_domain_conflicts"), dict):
         raw_index_price_domain_conflicts = asset_snapshot.get("raw_index_price_domain_conflicts") or {}
-    intents = read_csv_rows(ORDER_INTENTS_CSV)
-    sends = read_csv_rows(SEND_ATTEMPTS_CSV)
-    fills = read_csv_rows(LIVE_FILLS_CSV)
-    recon = read_csv_rows(RECONCILIATION_CSV)
+    _tail = int(fnum(os.getenv("HL_LIVE_INTEGRITY_TAIL_BYTES"), 24 * 1024 * 1024))  # newest rows only (it ran every cycle on whole files)
+    intents = read_csv_tail_rows(ORDER_INTENTS_CSV, _tail)
+    sends = read_csv_tail_rows(SEND_ATTEMPTS_CSV, _tail)
+    fills = read_csv_tail_rows(LIVE_FILLS_CSV, _tail)
+    recon = read_csv_tail_rows(RECONCILIATION_CSV, _tail)
     audit_proof_missing = [
         p.name for p in (ORDER_INTENTS_CSV, SEND_ATTEMPTS_CSV, LIVE_FILLS_CSV, RECONCILIATION_CSV)
         if not p.exists() or p.stat().st_size <= 0
@@ -2292,8 +2326,16 @@ def build_live_integrity_status() -> Dict[str, Any]:
     }
 
 
-def write_live_integrity_status() -> Dict[str, Any]:
+_INTEGRITY_LAST: Dict[str, Any] = {"at": 0.0, "payload": None}
+
+
+def write_live_integrity_status(min_interval_sec: float = 0.0) -> Dict[str, Any]:
+    """min_interval_sec > 0: reuse the last payload if it was written that recently (the per-cycle caller)."""
+    now = time.monotonic()
+    if min_interval_sec > 0 and _INTEGRITY_LAST["payload"] is not None and now - _INTEGRITY_LAST["at"] < min_interval_sec:
+        return _INTEGRITY_LAST["payload"]
     payload = build_live_integrity_status()
+    _INTEGRITY_LAST.update(at=time.monotonic(), payload=payload)
     atomic_write_json(LIVE_INTEGRITY_STATUS_FILE, payload)
     return payload
 
@@ -3675,7 +3717,8 @@ class SenderGateway:
                 return update_send_attempt_row(str(row.get("attempt_id") or ""),
                                                {"status": "ORDER_RESTING", "exchange_order_id": oid,
                                                 "terminal_state": "ORDER_RESTING",
-                                                "notes": "adopted at startup by cloid; order still resting"})
+                                                "notes": "adopted at startup by cloid; order still resting"},
+                                               base_row=row)
         return False
 
     def _cancel_orphan_order(self, dex: str, o: Dict[str, Any]) -> str:
@@ -9199,7 +9242,7 @@ class LiveCopyCore:
             if time.monotonic() - started > float(os.getenv("HL_LIVE_RECON_CYCLE_BUDGET_SEC", "5")):
                 summary.budget_exceeded = True
             try:
-                write_live_integrity_status()
+                write_live_integrity_status(fnum(os.getenv("HL_LIVE_INTEGRITY_MIN_INTERVAL_SEC"), 5.0))
             except Exception as exc:
                 log_error("live_integrity_status", exc)
             self.state_writer.write(summary, self.dedupe, self.cfg)
