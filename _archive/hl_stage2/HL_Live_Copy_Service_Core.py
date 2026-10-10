@@ -230,6 +230,7 @@ _PREWARM_POOL = _TPE(max_workers=16, thread_name_prefix="prewarm")  # side-by-si
 OPEN_ORDERS_FETCHER = None  # test seam for follower openOrders reads; production uses HTTP
 LEADER_MIDS_FETCHER = None  # test seam for leader-network mid reads; production uses HTTP
 _LEADER_MIDS: Dict[str, Any] = {"px": {}, "ms": 0, "dexes": []}
+_LEADER_MIDS_REFRESH_LOCK = threading.Lock()
 
 
 def leader_mid(coin: str, use_cached: bool = False) -> float:
@@ -243,15 +244,18 @@ def leader_mid(coin: str, use_cached: bool = False) -> float:
     ttl_ms = (int(fnum(os.getenv("HL_LIVE_MIDS_MAX_AGE_SEC"), 5.0) * 1000) if use_cached
               else int(fnum(os.getenv("HL_LIVE_MIDS_CACHE_TTL_SEC"), 2.0) * 1000))
     if not m["px"] or dex not in m["dexes"] or now - m["ms"] > ttl_ms:
-        dexes = sorted(set(m["dexes"]) | {"", dex})
-        out: Dict[str, float] = {}
-        payloads = [{"type": "allMids", **({"dex": d} if d else {})} for d in dexes]
-        for res in _XNET.post_many(LEADER_MIDS_FETCHER, payloads, HL_LEADER_INFO_URL, HTTP_TIMEOUT_SEC):
-            for key, value in (res.get("data") if res.get("ok") and isinstance(res.get("data"), dict) else {}).items():
-                if fnum(value, 0.0) > 0 and math.isfinite(fnum(value, 0.0)):
-                    out[str(key).upper()] = fnum(value, 0.0)
-        if out:
-            m["px"], m["ms"], m["dexes"] = out, now, dexes
+        with _LEADER_MIDS_REFRESH_LOCK:  # prewarm calls this from several threads: one refresh at a time, and the
+            now = utc_now_ms()           # dex set is merged under the lock so a second dex is never dropped
+            if not m["px"] or dex not in m["dexes"] or now - m["ms"] > ttl_ms:
+                dexes = sorted(set(m["dexes"]) | {"", dex})
+                out: Dict[str, float] = {}
+                payloads = [{"type": "allMids", **({"dex": d} if d else {})} for d in dexes]
+                for res in _XNET.post_many(LEADER_MIDS_FETCHER, payloads, HL_LEADER_INFO_URL, HTTP_TIMEOUT_SEC):
+                    for key, value in (res.get("data") if res.get("ok") and isinstance(res.get("data"), dict) else {}).items():
+                        if fnum(value, 0.0) > 0 and math.isfinite(fnum(value, 0.0)):
+                            out[str(key).upper()] = fnum(value, 0.0)
+                if out:
+                    m["px"], m["ms"], m["dexes"] = out, now, dexes
     if not m["ms"] or now - m["ms"] > int(fnum(os.getenv("HL_LIVE_MIDS_MAX_AGE_SEC"), 5.0) * 1000):
         return 0.0
     return fnum(m["px"].get(text.upper()), 0.0)
