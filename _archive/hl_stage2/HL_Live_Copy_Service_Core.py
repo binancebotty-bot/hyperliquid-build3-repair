@@ -7344,10 +7344,12 @@ class LiveCopyCore:
                 _ids = _note.split("merged_leader_fills=", 1)[1].split(";", 1)[0].split(":", 1)[-1]
                 self._idem_accepted.update(i for i in _ids.split(",") if i)
         self._hot_stop_event = threading.Event()
+        self._coin_locks: Dict[str, "threading.Lock"] = {}
+        self._coin_locks_guard = threading.Lock()
         # Run 3: one worker took ~3.5 s per order and lag grew to 81 s. Fills are spread over several workers by
         # coin: one coin always goes to the same worker, so its fills (every leader's, as they net on one
         # account) stay in order, while different coins are sent in parallel.
-        self.hot_send_workers = max(1, min(8, int(fnum(os.getenv("HL_LIVE_HOT_SEND_WORKERS"), 4))))
+        self.hot_send_workers = max(1, min(32, int(fnum(os.getenv("HL_LIVE_HOT_SEND_WORKERS"), 4))))
         self._hot_queues: List["queue.Queue[LeaderFill]"] = [queue.Queue(maxsize=50000) for _ in range(self.hot_send_workers)]
         self._hot_queue = self._hot_queues[0]
         # run 5: convergence closes waited ~7.7 min behind a worker's batch of entries and were re-queued every few
@@ -7556,11 +7558,67 @@ class LiveCopyCore:
                     plan = list(batch)
                 for fill in plan:
                     try:
-                        self._process_leader_fill(fill, None, self._entry_sends_blocked_reason)
+                        with self._coin_lock(fill.coin):
+                            self._process_leader_fill(fill, None, self._entry_sends_blocked_reason)
                     except Exception as exc:
                         log_error("ws_hot_send", exc)
             finally:
                 self._release_queued(batch, pq)
+
+    def _coin_lock(self, coin: str) -> "threading.Lock":
+        """One lock per coin: a coin's fills (entries and priority closes) are never sent at the same time."""
+        key = canonical_coin_key(coin)
+        with self._coin_locks_guard:
+            lk = self._coin_locks.get(key)
+            if lk is None:
+                lk = self._coin_locks[key] = threading.Lock()
+            return lk
+
+    def _run_plan(self, idx: int, plan: List[LeaderFill]) -> None:
+        """Send a worker's planned fills. Different coins go side by side (HL_LIVE_HOT_INNER threads); one coin's
+        fills stay in plan order on one thread, and exits still start first."""
+        inner = max(1, int(fnum(os.getenv("HL_LIVE_HOT_INNER"), 6)))
+
+        def _one(fill: LeaderFill) -> None:
+            try:
+                with self._coin_lock(fill.coin):
+                    self._process_leader_fill(fill, None, self._entry_sends_blocked_reason)
+            except Exception as exc:
+                log_error("ws_hot_send", exc)
+
+        if inner <= 1 or len(plan) <= 1:
+            for fill in plan:
+                self._drain_priority(idx)  # a close that arrived meanwhile goes before the next fill
+                _one(fill)
+            return
+        by_coin: Dict[str, List[LeaderFill]] = {}
+        for fill in plan:
+            by_coin.setdefault(canonical_coin_key(fill.coin), []).append(fill)
+        groups = list(by_coin.values())  # dict keeps first-seen order, so exits (planned first) start first
+        self._drain_priority(idx)
+        cursor = [0]
+        cursor_lock = threading.Lock()
+
+        def _lane() -> None:
+            while not self._hot_stop_event.is_set():
+                with cursor_lock:
+                    if cursor[0] >= len(groups):
+                        return
+                    grp = groups[cursor[0]]
+                    cursor[0] += 1
+                self._drain_priority(idx)  # closes that arrived meanwhile go before the next coin group
+                for fill in grp:
+                    if self._hot_stop_event.is_set():
+                        return
+                    _one(fill)
+
+        threads = [threading.Thread(target=_lane, name=f"hot{idx}-inner", daemon=True)
+                   for _ in range(min(inner, len(groups)) - 1)]
+        for t in threads:
+            t.start()
+        _lane()
+        for t in threads:
+            t.join()
 
     def _hot_send_loop(self, idx: int = 0) -> None:
         q = self._hot_queues[idx]
@@ -7584,12 +7642,7 @@ class LiveCopyCore:
                 except Exception as exc:  # never drop a batch: send the fills one by one, in arrival order
                     log_error("ws_hot_plan", exc)
                     plan = list(batch)
-                for fill in plan:
-                    self._drain_priority(idx)  # a close that arrived meanwhile goes before the next fill
-                    try:
-                        self._process_leader_fill(fill, None, self._entry_sends_blocked_reason)
-                    except Exception as exc:
-                        log_error("ws_hot_send", exc)
+                self._run_plan(idx, plan)
             finally:
                 self._release_queued(batch, q)
 
