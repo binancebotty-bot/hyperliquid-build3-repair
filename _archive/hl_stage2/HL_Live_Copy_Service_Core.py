@@ -2318,6 +2318,10 @@ def claim_copy_fill_process_marker(copy_fill_id: str) -> bool:
         marker_dir = AUDIT_DIR / "copy_fill_claims"
         marker_dir.mkdir(parents=True, exist_ok=True)
         marker = marker_dir / (_safe_marker_name(copy_fill_id) + ".claim")
+        # a marker written while the poll doubled the tid (hash:tid:tid) also claims hash:tid
+        tid = str(copy_fill_id).rsplit(":", 1)[-1] if str(copy_fill_id).count(":") >= 1 else ""
+        if tid and (marker_dir / (_safe_marker_name(f"{copy_fill_id}:{tid}") + ".claim")).exists():
+            return False
         fd = os.open(str(marker), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
         with os.fdopen(fd, "w", encoding="utf-8") as f:
             f.write(f"copy_fill_id={copy_fill_id}\nclaimed_at={utc_now_iso()}\npid={os.getpid()}\n")

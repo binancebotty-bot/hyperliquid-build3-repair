@@ -192,6 +192,9 @@ def main() -> None:
           all("LINK" not in (wm or {}) for wm in (c.load_json(c.MANUAL_LIVE_POSITIONS_FILE, {}).get("by_wallet") or {}).values()))
     m0 = c.CopyFillMatcher(c.ManualLedger(), c.AuditLogWriter())
     check("T6_RESTARTED_ENGINE_TREATS_DOUBLED_ID_AS_OWNED", "0xtia:61" in m0.matched_copy_fill_ids)
+    c.claim_copy_fill_process_marker("0xold:9:9")  # a marker as run 4 named it
+    check("T8_OLD_DOUBLED_MARKER_STILL_CLAIMS_THE_FILL", c.claim_copy_fill_process_marker("0xold:9") is False
+          and c.claim_copy_fill_process_marker("0xnew:5") is True)
     pos = {p["coin"]: p for p in res["exchange_positions"]}
     check("X1_ENGINE_OWNED_POSITION_EXPLAINED", pos["ETH"]["explained_by_engine_orders"] and pos["ETH"]["ledger_matches_exchange"])
     check("X1_FOREIGN_POSITION_NOT_EXPLAINED", not pos["LINK"]["explained_by_engine_orders"] and not res["exchange_positions_all_explained"])
