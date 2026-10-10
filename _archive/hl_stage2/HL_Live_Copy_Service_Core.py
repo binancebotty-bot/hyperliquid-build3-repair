@@ -224,28 +224,38 @@ def follower_position_mark(coin: str) -> float:
     net, value = sum(abs(fnum(r.get("net"))) for r in rows), sum(fnum(r.get("value")) for r in rows)
     return value / net if net > 0 and value > 0 else 0.0
 
+from concurrent.futures import ThreadPoolExecutor as _TPE
+_PREWARM_POOL = _TPE(max_workers=16, thread_name_prefix="prewarm")  # side-by-side info reads for prewarm
+
 OPEN_ORDERS_FETCHER = None  # test seam for follower openOrders reads; production uses HTTP
 LEADER_MIDS_FETCHER = None  # test seam for leader-network mid reads; production uses HTTP
 _LEADER_MIDS: Dict[str, Any] = {"px": {}, "ms": 0, "dexes": []}
+_LEADER_MIDS_REFRESH_LOCK = threading.Lock()
 
 
-def leader_mid(coin: str) -> float:
+def leader_mid(coin: str, use_cached: bool = False) -> float:
     """Fresh mid of `coin` on the LEADER's network (its own DEX for a HIP-3 coin), same freshness rules as
-    follower_mid. Used only cross-network, to measure how far the leader's market moved since its fill."""
+    follower_mid. Used only cross-network, to measure how far the leader's market moved since its fill.
+    use_cached=True (the send path, after the intent is written): no refresh while the cached mid is still inside
+    the max-age bound that applies anyway; prewarm refreshes it before the send."""
     text = str(coin or "").strip()
     dex = text.split(":", 1)[0].strip().lower() if ":" in text else ""
     now, m = utc_now_ms(), _LEADER_MIDS
-    if (not m["px"] or dex not in m["dexes"]
-            or now - m["ms"] > int(fnum(os.getenv("HL_LIVE_MIDS_CACHE_TTL_SEC"), 2.0) * 1000)):
-        dexes = sorted(set(m["dexes"]) | {"", dex})
-        out: Dict[str, float] = {}
-        payloads = [{"type": "allMids", **({"dex": d} if d else {})} for d in dexes]
-        for res in _XNET.post_many(LEADER_MIDS_FETCHER, payloads, HL_LEADER_INFO_URL, HTTP_TIMEOUT_SEC):
-            for key, value in (res.get("data") if res.get("ok") and isinstance(res.get("data"), dict) else {}).items():
-                if fnum(value, 0.0) > 0 and math.isfinite(fnum(value, 0.0)):
-                    out[str(key).upper()] = fnum(value, 0.0)
-        if out:
-            m["px"], m["ms"], m["dexes"] = out, now, dexes
+    ttl_ms = (int(fnum(os.getenv("HL_LIVE_MIDS_MAX_AGE_SEC"), 5.0) * 1000) if use_cached
+              else int(fnum(os.getenv("HL_LIVE_MIDS_CACHE_TTL_SEC"), 2.0) * 1000))
+    if not m["px"] or dex not in m["dexes"] or now - m["ms"] > ttl_ms:
+        with _LEADER_MIDS_REFRESH_LOCK:  # prewarm calls this from several threads: one refresh at a time, and the
+            now = utc_now_ms()           # dex set is merged under the lock so a second dex is never dropped
+            if not m["px"] or dex not in m["dexes"] or now - m["ms"] > ttl_ms:
+                dexes = sorted(set(m["dexes"]) | {"", dex})
+                out: Dict[str, float] = {}
+                payloads = [{"type": "allMids", **({"dex": d} if d else {})} for d in dexes]
+                for res in _XNET.post_many(LEADER_MIDS_FETCHER, payloads, HL_LEADER_INFO_URL, HTTP_TIMEOUT_SEC):
+                    for key, value in (res.get("data") if res.get("ok") and isinstance(res.get("data"), dict) else {}).items():
+                        if fnum(value, 0.0) > 0 and math.isfinite(fnum(value, 0.0)):
+                            out[str(key).upper()] = fnum(value, 0.0)
+                if out:
+                    m["px"], m["ms"], m["dexes"] = out, now, dexes
     if not m["ms"] or now - m["ms"] > int(fnum(os.getenv("HL_LIVE_MIDS_MAX_AGE_SEC"), 5.0) * 1000):
         return 0.0
     return fnum(m["px"].get(text.upper()), 0.0)
@@ -461,6 +471,7 @@ SEND_ATTEMPT_FIELDS = [
     "exchange_call_finished_ms", "send_attempt_written_ms", "queue_wait_ms", "leader_to_intent_ms",
     "intent_to_send_start_ms", "symbol_resolve_ms", "sdk_client_ms", "exchange_call_ms",
     "send_total_ms", "leader_to_send_attempt_ms", "notes",
+    "enqueued_ms", "picked_up_ms", "process_started_ms", "prewarm_done_ms", "lock_acquired_ms", "intent_written_ms",
 ]
 
 SEND_TIMING_FIELDS = [
@@ -470,7 +481,22 @@ SEND_TIMING_FIELDS = [
     "exchange_call_finished_ms", "send_attempt_written_ms", "queue_wait_ms", "leader_to_intent_ms",
     "intent_to_send_start_ms", "symbol_resolve_ms", "sdk_client_ms", "exchange_call_ms",
     "send_total_ms", "leader_to_send_attempt_ms",
+    "enqueued_ms", "picked_up_ms", "process_started_ms", "prewarm_done_ms", "lock_acquired_ms", "intent_written_ms",
 ]
+
+STAGE_STAMP_KEYS = ("enqueued_ms", "picked_up_ms", "process_started_ms", "prewarm_done_ms", "lock_acquired_ms",
+                    "intent_written_ms")
+
+
+def stamp_fill(fill: Any, key: str) -> None:
+    """Record the wall-clock ms a leader fill reached a stage of the hot path (first time only). Carried on the
+    fill's own raw dict so it follows the fill from the websocket to the send-attempt row; never read for a decision."""
+    try:
+        raw = fill.raw
+        if isinstance(raw, dict):
+            raw.setdefault("_stamps", {}).setdefault(key, utc_now_ms())
+    except Exception:
+        pass
 
 LIVE_FILL_FIELDS = [
     "created_at", "created_at_ms", "copy_fill_id", "intent_id", "leader_fill_id", "leader_wallet",
@@ -2944,31 +2970,52 @@ class IntentBuilder:
         self._exposure_gen += 1
         return exp
 
-    def prewarm(self, fill: "LeaderFill") -> None:
+    def prewarm(self, fill: "LeaderFill", local_block: bool = False) -> None:
         """Outside the send lock: refresh the exchange reads build() needs (fresh follower mid, follower exposure,
-        leader equity) so the send lock is held only for local work (run 5: holds up to 8 s while each worker
-        fetched under it). Freshness rules are unchanged: build() still refetches anything too old."""
-        try:
-            follower_mid(fill.coin)
-            if self.cfg.copy_mode(fill.leader_wallet) != "fixed":
-                self.leader_equity(fill.leader_wallet)
-            ttl_ms = int(max(0.0, fnum(os.getenv("HL_LIVE_EXPOSURE_CACHE_TTL_SEC"), 2.0)) * 1000)
-            if not is_valid_wallet(normalise_wallet(USER_WALLET)):
+        leader equity, and cross-network the leader mid that _send_real compares with) so the send lock is held
+        only for local work and _send_real makes no info read after the intent is written (run 5: holds up to 8 s
+        while each worker fetched under it). The reads are independent, so they run side by side: a fill costs
+        one read time, not three or four. Freshness rules are unchanged: build() still refetches anything too old."""
+        jobs = [] if local_block else [lambda: follower_mid(fill.coin)]
+        if self.cfg.copy_mode(fill.leader_wallet) != "fixed":
+            # sizing reads the leader's equity even for a fill that is then blocked: keep it out of the send lock
+            jobs.append(lambda: self.leader_equity(fill.leader_wallet))
+        if local_block:
+            for j in jobs:
+                try:
+                    j()
+                except Exception as exc:
+                    log_error("intent_prewarm", exc)
+            return
+        if LEADER_NETWORK != FOLLOWER_NETWORK:
+            jobs.append(lambda: leader_mid(fill.coin))
+        if is_valid_wallet(normalise_wallet(USER_WALLET)):
+            jobs.append(self._prefetch_exposure)
+
+        def guarded(job):
+            try:
+                job()
+            except Exception as exc:
+                log_error("intent_prewarm", exc)
+        futures = [_PREWARM_POOL.submit(guarded, j) for j in jobs[1:]]
+        guarded(jobs[0])  # the calling worker does one read itself
+        for f in futures:
+            f.result()
+
+    def _prefetch_exposure(self) -> None:
+        ttl_ms = int(max(0.0, fnum(os.getenv("HL_LIVE_EXPOSURE_CACHE_TTL_SEC"), 2.0)) * 1000)
+        with self._exposure_prefetch_lock:  # one read for all workers
+            started = utc_now_ms()
+            pre = self._exposure_prefetched
+            fresh_cache = self._exposure is not None and started - self._exposure_ms <= ttl_ms // 2
+            fresh_pre = pre is not None and started - pre[1] <= ttl_ms // 2 and pre[2] == self._exposure_gen
+            if fresh_cache or fresh_pre:
                 return
-            with self._exposure_prefetch_lock:  # one read for all workers
-                started = utc_now_ms()
-                pre = self._exposure_prefetched
-                fresh_cache = self._exposure is not None and started - self._exposure_ms <= ttl_ms // 2
-                fresh_pre = pre is not None and started - pre[1] <= ttl_ms // 2 and pre[2] == self._exposure_gen
-                if fresh_cache or fresh_pre:
-                    return
-                gen, pending_len = self._exposure_gen, len(self._exposure_pending)
-                exp = _XNET.master_exposure(normalise_wallet(USER_WALLET), follower_dex_scope(), fetcher=EXPOSURE_FETCHER,
-                                            info_url=HL_INFO_URL, timeout=HTTP_TIMEOUT_SEC)
-                if exp.get("ok"):
-                    self._exposure_prefetched = (exp, started, gen, pending_len)
-        except Exception as exc:
-            log_error("intent_prewarm", exc)
+            gen, pending_len = self._exposure_gen, len(self._exposure_pending)
+            exp = _XNET.master_exposure(normalise_wallet(USER_WALLET), follower_dex_scope(), fetcher=EXPOSURE_FETCHER,
+                                        info_url=HL_INFO_URL, timeout=HTTP_TIMEOUT_SEC)
+            if exp.get("ok"):
+                self._exposure_prefetched = (exp, started, gen, pending_len)
 
     def _exposure_cap_block(self, fill: LeaderFill, copy_notional: float, value_px: float = 0.0) -> str:
         """Total and per-asset directional caps against follower exchange truth; "" when allowed."""
@@ -3001,6 +3048,29 @@ class IntentBuilder:
                 return "max asset directional exposure exceeded"
         self._exposure_pending.append((coin, units, value_px))
         return ""
+
+    def blocked_locally(self, fill: LeaderFill, entry_block_reason: str = "") -> bool:
+        """True when this fill will end in a local block before any exchange call: wallet off, CLO entry, symbol
+        not allowed for an entry, no owned sleeve for a leader close, or entries blocked. Uses only local state
+        (the same early tests as _decision / send_if_allowed), so it makes NO network call. Used to skip prewarm
+        for fills that cannot reach the exchange; a wrong "False" costs only the old behaviour, and a wrong
+        "True" only skips a cache warm-up (build() still refetches anything missing or too old)."""
+        try:
+            wallet = fill.leader_wallet
+            if not self.cfg.wallet_enabled(wallet) or self.cfg.wallet_mode(wallet) == "OFF":
+                return True
+            lifecycle, _ = self.ledger.classify_leader_side_for_wallet(wallet, fill.coin, fill.side)
+            if lifecycle in {"ENTRY", "ADD"}:
+                if entry_block_reason or self.cfg.wallet_mode(wallet) == "CLO":
+                    return True
+                if not self.cfg.is_symbol_allowed(fill.coin)[0]:
+                    return True
+                if (abs(self.ledger.wallet_coin_position(wallet, fill.coin)) <= POSITION_EPSILON
+                        and self._is_leader_close_fill(fill)):
+                    return True
+            return False
+        except Exception:
+            return False
 
     def build(self, fill: LeaderFill) -> Intent:
         wallet = fill.leader_wallet
@@ -4088,6 +4158,9 @@ class SenderGateway:
         ws_received = int(fnum(getattr(intent.fill, "ws_received_ms", 0), 0))
         if ws_received > 0:
             timing["ws_received_ms"] = ws_received
+        stamps = (intent.fill.raw or {}).get("_stamps") if isinstance(intent.fill.raw, dict) else None
+        if isinstance(stamps, dict):
+            timing.update({k: v for k, v in stamps.items() if k in STAGE_STAMP_KEYS})
         return timing
 
     @staticmethod
@@ -4475,7 +4548,7 @@ class SenderGateway:
             base_px = follower_px
         missed: Optional[Dict[str, Any]] = None
         if lifecycle in {"ENTRY", "ADD"} and bval(os.getenv("HL_LIVE_MISSED_ENTRY_RULE"), True):
-            market_px = follower_px if LEADER_NETWORK == FOLLOWER_NETWORK else leader_mid(intent.fill.coin)
+            market_px = follower_px if LEADER_NETWORK == FOLLOWER_NETWORK else leader_mid(intent.fill.coin, use_cached=True)
             missed = missed_entry_decision(intent.copy_side, fnum(intent.fill.price, 0.0), market_px, follower_px, bps)
             if not missed.get("ok"):
                 detail = (f"no fresh {LEADER_NETWORK} price for {intent.fill.coin} to compare with the leader's price "
@@ -7348,6 +7421,7 @@ class LiveCopyCore:
             if key in self._queued_keys:
                 return True
             self._queued_keys.add(key)
+        stamp_fill(fill, "enqueued_ms")
         try:
             shard = self._shard(fill)
             prio = getattr(self, "_prio_queues", None)
@@ -7434,6 +7508,8 @@ class LiveCopyCore:
                     break
             if not batch:
                 return
+            for _f in batch:
+                stamp_fill(_f, "picked_up_ms")
             try:
                 try:
                     plan = self._plan_batch(batch)
@@ -7462,6 +7538,8 @@ class LiveCopyCore:
                     batch.append(q.get_nowait())
                 except queue.Empty:
                     break
+            for _f in batch:
+                stamp_fill(_f, "picked_up_ms")
             try:
                 try:
                     plan = self._plan_batch(batch)
@@ -7650,6 +7728,7 @@ class LiveCopyCore:
             return self._guard_key(fill) in self._idem_accepted
 
     def _process_leader_fill(self, fill: LeaderFill, summary: Optional[CycleSummary] = None, entry_block_reason: str = "") -> Tuple[bool, str, Optional[Intent]]:
+        stamp_fill(fill, "process_started_ms")
         stale_reason = stale_snapshot_replay_reason(fill)
         if stale_reason:
             self.audit.append_reconciliation(
@@ -7706,8 +7785,12 @@ class LiveCopyCore:
         # would refuse the leader's next real entry) nor withdraw limits
         withdrawn = [] if converge else self.sender.cancel_resting_entries_against(fill)
         withdrawn_fills = self._read_fills_of_withdrawn_limits(withdrawn) if withdrawn else None
-        self.intent_builder.prewarm(fill)
+        # only fills that can reach the exchange pay for the mid/exposure reads (a locally blocked fill keeps only
+        # the cached leader-equity read that sizing needs)
+        self.intent_builder.prewarm(fill, local_block=self.intent_builder.blocked_locally(fill, entry_block_reason))
+        stamp_fill(fill, "prewarm_done_ms")
         with self._send_lock:
+            stamp_fill(fill, "lock_acquired_ms")
             if withdrawn:
                 self._apply_fills_of_withdrawn_limits(withdrawn, withdrawn_fills)
             # Determine lifecycle before dedupe so missed exits can be re-attempted.
@@ -7742,6 +7825,7 @@ class LiveCopyCore:
                 intent = self.intent_builder.build(fill)
             with prof("send_lock:intent_append"):
                 self.audit.append_order_intent(intent)
+            stamp_fill(fill, "intent_written_ms")
             self.intents_by_id[intent.intent_id] = intent
             if summary is not None:
                 summary.leader_intents_written += 1
