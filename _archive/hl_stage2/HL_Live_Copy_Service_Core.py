@@ -7356,6 +7356,7 @@ class LiveCopyCore:
         self._prio_queues: List["queue.Queue[LeaderFill]"] = [queue.Queue(maxsize=50000) for _ in range(self.hot_send_workers)]
         self._converge_queued: set = set()  # sleeves with a convergence close still waiting on a worker
         self._queued_keys: set = set()  # guard keys of fills waiting on a worker
+        self._coin_lane: Dict[str, Tuple[int, int]] = {}  # coin -> (lane, count of queued+in-flight fills)
         self._queued_lock = threading.Lock()
         self.async_dispatch = False  # main() turns this on in loop mode: polled fills go to the workers too
         self.ws = WSManager(self.wallets, self.ingestor, self._enqueue_hot_ws_fill)
@@ -7417,15 +7418,37 @@ class LiveCopyCore:
         # a fill already waiting is never queued again (run 4: the live feed and every backstop poll re-queued the
         # same unprocessed fills while the queue was long, which made it longer)
         key = self._guard_key(fill)
+        coin_key = canonical_coin_key(fill.coin)
+        is_close = self._is_close_fill(fill)
         with self._queued_lock:
             if key in self._queued_keys:
                 return True
             self._queued_keys.add(key)
+            # Dynamic per-coin lane assignment (P2a):
+            # - If coin already has queued/in-flight fills, use its lane (order kept)
+            # - For close fills (CONVERGE or leader exit) with no existing lane, use shard-based assignment
+            #   so they go to the same lane as manually queued entries for that coin
+            # - Otherwise pick the lane with the fewest queued+in-flight fills
+            if coin_key in self._coin_lane:
+                lane, count = self._coin_lane[coin_key]
+                self._coin_lane[coin_key] = (lane, count + 1)
+            elif is_close:
+                # Close fills without an existing lane use shard-based assignment
+                # to match manually queued entries for the same coin
+                lane = self._shard(fill)
+                self._coin_lane[coin_key] = (lane, 1)
+            else:
+                # Find lane with minimum total count
+                lane_counts = [0] * len(self._hot_queues)
+                for _coin, (_lane, _count) in self._coin_lane.items():
+                    lane_counts[_lane] += _count
+                lane = min(range(len(self._hot_queues)), key=lambda i: lane_counts[i])
+                self._coin_lane[coin_key] = (lane, 1)
+            shard = lane
         stamp_fill(fill, "enqueued_ms")
         try:
-            shard = self._shard(fill)
             prio = getattr(self, "_prio_queues", None)
-            if prio and len(prio) == len(self._hot_queues) and self._is_close_fill(fill):
+            if prio and len(prio) == len(self._hot_queues) and is_close:
                 prio[shard].put_nowait(fill)
             else:
                 self._hot_queues[shard].put_nowait(fill)
@@ -7433,6 +7456,13 @@ class LiveCopyCore:
         except queue.Full:
             with self._queued_lock:
                 self._queued_keys.discard(key)
+                # Decrement count on failure
+                if coin_key in self._coin_lane:
+                    lane, count = self._coin_lane[coin_key]
+                    if count <= 1:
+                        del self._coin_lane[coin_key]
+                    else:
+                        self._coin_lane[coin_key] = (lane, count - 1)
             log_error("ws_hot_queue_full", RuntimeError("hot send queue full"))
             return False
 
@@ -7487,6 +7517,14 @@ class LiveCopyCore:
                 if f.source == "CONVERGE":
                     raw = f.raw if isinstance(f.raw, dict) else {}
                     self._converge_queued.discard((f.leader_wallet, canonical_coin_key(f.coin), str(raw.get("position_id") or "")))
+                # Decrement coin lane count (P2a dynamic lanes)
+                coin_key = canonical_coin_key(f.coin)
+                if coin_key in self._coin_lane:
+                    lane, count = self._coin_lane[coin_key]
+                    if count <= 1:
+                        del self._coin_lane[coin_key]
+                    else:
+                        self._coin_lane[coin_key] = (lane, count - 1)
         for _ in batch:
             try:
                 q.task_done()
