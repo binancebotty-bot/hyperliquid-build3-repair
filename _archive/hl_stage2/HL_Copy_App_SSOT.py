@@ -81,6 +81,10 @@ LIVE_COPY_WS_HEALTH_FILE = LIVE_COPY_AUDIT_DIR / "live_ws_health.json"
 LIVE_COPY_SERVICE_STATE_FILE = LIVE_COPY_AUDIT_DIR / "live_service_state.json"
 LIVE_COPY_CORE_STATE_FILE = LIVE_COPY_AUDIT_DIR / "clean_core_runtime_state.json"
 LIVE_COPY_INTEGRITY_STATUS_FILE = LIVE_COPY_AUDIT_DIR / "live_integrity_status.json"
+RESTING_ENTRY_ORDERS_FILE = LIVE_COPY_AUDIT_DIR / "resting_entry_orders.json"  # the engine's resting missed-entry limits
+PNL_RUN_START_FILE = LIVE_COPY_AUDIT_DIR / "pnl_run_start.json"  # the screen's saved P&L start value (one per run)
+PNL_FILLS_CACHE_FILE = LIVE_COPY_AUDIT_DIR / "app_cache" / "follower_fills_cache.json"
+PNL_FUNDING_CACHE_FILE = LIVE_COPY_AUDIT_DIR / "app_cache" / "follower_funding_cache.json"
 LIVE_COPY_RECONCILIATION_CSV = LIVE_COPY_AUDIT_DIR / "append_only" / "reconciliation.csv"
 LIVE_COPY_ORDER_INTENTS_CSV = LIVE_COPY_AUDIT_DIR / "append_only" / "order_intents.csv"
 MANUAL_POSITIONS_FILE = LIVE_COPY_AUDIT_DIR / "manual_live_positions.json"
@@ -995,7 +999,20 @@ def _plain_block_reason(code: str) -> str:
     return c.replace("_", " ").lower()
 
 
-def _build_health_summary(service_state: Dict[str, Any], integrity_status: Dict[str, Any], now_ms: Optional[int] = None) -> Dict[str, Any]:
+_CLOSE_FAILURE_MARKERS = ("MANUAL_EXIT_RECOVERY_REQUIRED", "EXIT_RECOVERY_QUEUE_FAILED")
+
+
+def _load_resting_withdraw_pending() -> List[Dict[str, Any]]:
+    """Resting entry limits whose withdrawal (cancel) failed: still working on the exchange against the
+    operator's wish until the engine's retry succeeds."""
+    data = load_json(RESTING_ENTRY_ORDERS_FILE, {})
+    rows = data.values() if isinstance(data, dict) else (data if isinstance(data, list) else [])
+    return [dict(r) for r in rows if isinstance(r, dict) and r.get("withdraw_pending")]
+
+
+def _build_health_summary(service_state: Dict[str, Any], integrity_status: Dict[str, Any], now_ms: Optional[int] = None,
+                          resting_pending: Optional[List[Dict[str, Any]]] = None,
+                          reconciliation_rows: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
     """One calm line: green Healthy / amber Needs a look / red Stopped: <reason>. Red only when the engine
     actually cannot send (signing key rejected, entries blocked, wrong network, engine down or silent);
     every internal code goes to the technical detail."""
@@ -1011,6 +1028,14 @@ def _build_health_summary(service_state: Dict[str, Any], integrity_status: Dict[
     for k in ("entry_sends_blocked_reason", "sender_key_invalid", "send_block_reason", "copy_account_status", "ws_status"):
         if st.get(k):
             technical.append(f"{k}: {st.get(k)}")
+    resting_pending = list(resting_pending or [])
+    technical.extend(f"resting limit {r.get('coin', '')} oid={r.get('oid', '')} cancel failed: {r.get('withdraw_pending')}" for r in resting_pending)
+    hard = integrity_status.get("hard_copy_invariant") if isinstance(integrity_status.get("hard_copy_invariant"), dict) else {}
+    hard_counts = hard.get("counts") if isinstance(hard.get("counts"), dict) else {}
+    active_from = max(inum(st.get("started_at_ms")), now_ms - int(fnum(os.getenv("HL_LIVE_ACTIVE_INTEGRITY_WINDOW_MS"), 3600_000)))
+    recon_failing = [r for r in (reconciliation_rows or []) if (inum(r.get("created_at_ms")) or _iso_to_ms(r.get("created_at"))) >= active_from and any(m in " ".join(str(r.get(k) or "").upper() for k in ("status", "terminal_state", "action")) for m in _CLOSE_FAILURE_MARKERS)]
+    close_failing = (inum(counts.get("close_reject_or_recovery_required")) > 0 or inum(hard_counts.get("MANUAL_EXIT_RECOVERY_REQUIRED")) > 0
+                     or bool(recon_failing))
     level, text = "green", "Healthy"
     beat = inum(st.get("last_state_write_ms") or st.get("created_at_ms"))
     nets = st.get("networks") if isinstance(st.get("networks"), dict) else {}
@@ -1022,6 +1047,14 @@ def _build_health_summary(service_state: Dict[str, Any], integrity_status: Dict[
         level, text = "red", "Stopped: the exchange rejected the engine's signing key"
     elif nets.get("follower") and str(nets.get("follower")).lower() != str(FOLLOWER_NETWORK).lower():
         level, text = "red", f"Stopped: the engine trades on {nets.get('follower')} but this screen reads {FOLLOWER_NETWORK}"
+    elif resting_pending:
+        level, text = "red", "Stopped: a resting order could not be cancelled — check open orders"
+    elif close_failing:
+        level, text = "red", "Stopped: a close is failing — check the Reconciliation tab and close it on the exchange"
+    elif inum(counts.get("exchange_manual_mismatch")) > 0:
+        level, text = "red", "Stopped: the engine's records and the exchange disagree — check the Reconciliation tab"
+    elif inum(counts.get("audit_proof_missing")) > 0:
+        level, text = "red", "Stopped: the engine's audit files are missing — check the state folder"
     elif st.get("entry_sends_blocked_reason"):
         level, text = "red", "Stopped: new entries paused because " + _plain_block_reason(str(st.get("entry_sends_blocked_reason"))) + " (exits still run)"
     elif integ in {"RED", "AMBER"}:
@@ -1060,7 +1093,8 @@ def _build_live_top_status(
         subscribed = {str(w).lower() for w in ws_health.get("wallets", {})}
         wanted = {str(w).lower() for w, cfg in wallets.items() if isinstance(cfg, dict) and normalize_live_wallet_config(w, cfg).get("service_eligible")}
         restart_needed = subscribed != wanted
-    health = _build_health_summary(service_state, integrity_status)
+    health = _build_health_summary(service_state, integrity_status, resting_pending=_load_resting_withdraw_pending(),
+                                   reconciliation_rows=reconciliation_rows)
     subscribed_wallets = inum(ws_summary.get("wallet_count") or ws_summary.get("subscribed_wallet_count") or len(ws_health.get("wallets", {}) if isinstance(ws_health.get("wallets"), dict) else {}))
     last_send = send_attempts[-1] if send_attempts else {}
     last_fill = live_fills[-1] if live_fills else {}
@@ -1225,6 +1259,7 @@ def _live_audit_summary() -> Dict[str, Any]:
         "net_pnl_since_start": pnl_tally.get("actual_change"),
         "net_pnl_start_time": pnl_tally.get("start_time", ""),
         "net_pnl_reason": pnl_tally.get("reason", ""),
+        "net_pnl_partial": bool(pnl_tally.get("partial")),
         "open_positions": len(open_positions_now) if isinstance(open_positions_now, list) else None,
         "resting_orders": live_top_status.get("resting_entry_limits"),
     }
@@ -1704,8 +1739,7 @@ def _fetch_user_funding_paged(account: str, start_ms: int, end_ms: int, timeout:
         before = len(rows)
         for row in page:
             if isinstance(row, dict):
-                delta = row.get("delta") if isinstance(row.get("delta"), dict) else {}
-                rows[f"{_row_time_ms(row)}:{row.get('hash', '')}:{delta.get('coin', '')}"] = row
+                rows[_funding_dedupe_key(row)] = row
         if not page or len(rows) == before:
             break
         last = max((_row_time_ms(r) for r in page if isinstance(r, dict)), default=0)
@@ -1715,6 +1749,84 @@ def _fetch_user_funding_paged(account: str, start_ms: int, end_ms: int, timeout:
     ordered = sorted(rows.values(), key=_row_time_ms)
     return {"ok": True, "rows": ordered, "pages": pages, "complete": complete, "reason": reason,
             "funding_sum": round(sum(_funding_usdc(r) for r in ordered), 8)}
+
+
+USER_FILLS_HISTORY_LIMIT = 10000  # Hyperliquid serves only the account's most recent ~10,000 fills by time
+
+
+def _paged_cache_ident(account: str) -> Dict[str, str]:
+    return {"account": str(account or "").lower(), "network": str(FOLLOWER_NETWORK).lower(), "info_url": str(FOLLOWER_INFO_URL)}
+
+
+def _fetch_paged_cached(fetch, key_fn, cache_file: Path, account: str, start_ms: int, end_ms: int,
+                        history_limit: int = 0, timeout: float = 8.0) -> Dict[str, Any]:
+    """fetch() over [start_ms, end_ms] backed by a local cache: rows already cached are kept and only the
+    part from the last cached row's time onwards is fetched again (the overlap is deduped by key_fn). A cache
+    for another account / network, or one that starts after start_ms, is rebuilt from start_ms.
+    history_limited=True when a full fetch returned history_limit rows or more: the exchange keeps only the
+    most recent rows, so early history may be missing (and stays flagged for as long as that cache lives)."""
+    ident = _paged_cache_ident(account)
+    cache = load_json(cache_file, {})
+    usable = (isinstance(cache, dict) and all(cache.get(k) == v for k, v in ident.items())
+              and 0 < inum(cache.get("from_ms")) <= int(start_ms) and isinstance(cache.get("rows"), list))
+    rows: Dict[str, Dict[str, Any]] = {}
+    if usable:
+        for r in cache["rows"]:
+            if isinstance(r, dict):
+                rows[key_fn(r)] = r
+        last = max((_row_time_ms(r) for r in rows.values()), default=0)
+        fetch_from = max(int(start_ms), last or inum(cache.get("to_ms")) or int(start_ms))
+        from_ms, history_limited = inum(cache.get("from_ms")), bool(cache.get("history_limited"))
+    else:
+        fetch_from, from_ms, history_limited = int(start_ms), int(start_ms), False
+    cached_count = len(rows)
+    got = fetch(account, fetch_from, end_ms, timeout)
+    if not got.get("ok"):
+        if not usable:
+            return {**got, "history_limited": False, "cached_rows": 0, "fetched_from_ms": fetch_from}
+        complete, reason = False, "refresh failed (" + str(got.get("reason") or "no reply") + "); cached rows only"
+        new_rows: List[Dict[str, Any]] = []
+    else:
+        complete, reason = bool(got.get("complete")), str(got.get("reason") or "")
+        new_rows = list(got.get("rows") or [])
+        if not usable and history_limit and len(new_rows) >= history_limit:
+            history_limited = True
+        for r in new_rows:
+            if isinstance(r, dict):
+                rows[key_fn(r)] = r
+        ordered_all = sorted(rows.values(), key=_row_time_ms)
+        to_ms = int(end_ms) if complete else max((_row_time_ms(r) for r in ordered_all), default=from_ms)
+        try:
+            atomic_write_json(cache_file, {**ident, "from_ms": from_ms, "to_ms": to_ms, "history_limited": history_limited,
+                                           "saved_at": utc_now_iso(), "rows": ordered_all})
+        except Exception:
+            pass
+    if history_limited:
+        note = f"the exchange keeps only the latest ~{history_limit:,} fills: early history may be missing"
+        reason = "; ".join(x for x in (reason, note) if x)
+    ordered = [r for r in sorted(rows.values(), key=_row_time_ms) if int(start_ms) <= _row_time_ms(r) <= int(end_ms)]
+    return {"ok": True, "rows": ordered, "pages": inum(got.get("pages")), "complete": complete, "reason": reason,
+            "history_limited": history_limited, "cached_rows": cached_count, "fetched_from_ms": fetch_from}
+
+
+def _funding_dedupe_key(row: Dict[str, Any]) -> str:
+    delta = row.get("delta") if isinstance(row.get("delta"), dict) else {}
+    return f"{_row_time_ms(row)}:{row.get('hash', '')}:{delta.get('coin', '')}"
+
+
+def _fetch_user_fills_cached(account: str, start_ms: int, end_ms: int, timeout: float = 8.0,
+                             cache_file: Optional[Path] = None) -> Dict[str, Any]:
+    return _fetch_paged_cached(_fetch_user_fills_paged, _fill_dedupe_key, cache_file or PNL_FILLS_CACHE_FILE, account,
+                               start_ms, end_ms, history_limit=USER_FILLS_HISTORY_LIMIT, timeout=timeout)
+
+
+def _fetch_user_funding_cached(account: str, start_ms: int, end_ms: int, timeout: float = 8.0,
+                               cache_file: Optional[Path] = None) -> Dict[str, Any]:
+    got = _fetch_paged_cached(_fetch_user_funding_paged, _funding_dedupe_key, cache_file or PNL_FUNDING_CACHE_FILE, account,
+                              start_ms, end_ms, timeout=timeout)
+    if got.get("ok"):
+        got["funding_sum"] = round(sum(_funding_usdc(r) for r in got["rows"]), 8)
+    return got
 
 
 def _today_start_ms() -> int:
@@ -1753,9 +1865,28 @@ def _history_entry_ms(entry: Dict[str, Any]) -> int:
     return inum(entry.get("timestamp_ms")) or _iso_to_ms(entry.get("timestamp") or entry.get("updated_at"))
 
 
-def _pnl_tally_start(run_start_ms: Optional[int] = None, history: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
+def _engine_run_key() -> int:
+    """The engine run the screen is looking at: its started_at_ms (0 when the engine has not reported one)."""
+    st = load_json(LIVE_COPY_SERVICE_STATE_FILE, {})
+    return inum(st.get("started_at_ms")) if isinstance(st, dict) else 0
+
+
+def _pnl_tally_start(run_start_ms: Optional[int] = None, history: Optional[List[Dict[str, Any]]] = None,
+                     run_key: Optional[int] = None) -> Dict[str, Any]:
     """Where the P&L tally starts: the account-history record at or just before the run start (the first
-    real order fill), else the earliest record. Empty when there is no history."""
+    real order fill), else the earliest record. Empty when there is no history.
+    The first start value found for an engine run (run_key = the engine's started_at_ms) is saved in
+    pnl_run_start.json and reused for the rest of that run, so a screen restart or a trimmed account history
+    does not move it. Nothing is saved before the first real fill (the start is still provisional then)."""
+    if run_key is None:
+        run_key = _engine_run_key()
+    if run_key:
+        saved = load_json(PNL_RUN_START_FILE, {})
+        if (isinstance(saved, dict) and inum(saved.get("run_key")) == int(run_key) and saved.get("available")
+                and inum(saved.get("ms")) > 0 and isinstance(saved.get("entry"), dict)):
+            return {"available": True, "ms": inum(saved["ms"]), "entry": saved["entry"], "how": str(saved.get("how") or ""),
+                    "run_start_ms": inum(saved.get("run_start_ms")), "timestamp": str(saved.get("timestamp") or ""),
+                    "saved": True, "run_key": int(run_key)}
     if run_start_ms is None:
         run_start_ms = _earliest_real_order_filled_ms()
     if history is None:
@@ -1778,8 +1909,15 @@ def _pnl_tally_start(run_start_ms: Optional[int] = None, history: Optional[List[
     if chosen is None:
         chosen, how = entries[0], ("earliest record (after run start)" if run_start_ms else "earliest record")
     ms, entry = chosen
-    return {"available": True, "ms": ms, "entry": entry, "how": how, "run_start_ms": run_start_ms,
-            "timestamp": datetime.fromtimestamp(ms / 1000, tz=timezone.utc).isoformat()}
+    out = {"available": True, "ms": ms, "entry": entry, "how": how, "run_start_ms": run_start_ms,
+           "timestamp": datetime.fromtimestamp(ms / 1000, tz=timezone.utc).isoformat(), "saved": False}
+    if run_key and run_start_ms and run_start_ms > 0:
+        try:
+            atomic_write_json(PNL_RUN_START_FILE, {**out, "run_key": int(run_key), "saved_at": utc_now_iso()})
+            out["saved"] = True
+        except Exception:
+            pass
+    return out
 
 
 def _summarize_exchange_closed_pnl_rows(rows: List[Dict[str, Any]], start_ms: int, end_ms: int) -> Dict[str, Any]:
@@ -1844,7 +1982,7 @@ def _fetch_user_realized_pnl_snapshot(account: Optional[str] = None, baseline_ti
     if tally_start_ms > 0:
         fetch_candidates.append(tally_start_ms)
     fetch_start_ms = min(x for x in fetch_candidates if x > 0)
-    paged = _fetch_user_fills_paged(account, fetch_start_ms, now_ms)
+    paged = _fetch_user_fills_cached(account, fetch_start_ms, now_ms)
     rows = paged["rows"] if paged.get("ok") else None
     if rows is None:
         return {
@@ -1897,7 +2035,7 @@ def _fetch_user_realized_pnl_snapshot(account: Optional[str] = None, baseline_ti
     tally_inputs: Dict[str, Any] = {"available": False, "reason": tally_start.get("reason") or "no start value"}
     if tally_start_ms > 0:
         in_window = _summarize_exchange_closed_pnl_rows(rows, tally_start_ms, now_ms)
-        funding = _fetch_user_funding_paged(account, tally_start_ms, now_ms)
+        funding = _fetch_user_funding_cached(account, tally_start_ms, now_ms)
         tally_inputs = {
             "available": True,
             "start_ms": tally_start_ms,
@@ -1908,6 +2046,7 @@ def _fetch_user_realized_pnl_snapshot(account: Optional[str] = None, baseline_ti
             "fills_complete": bool(paged.get("complete")),
             "fill_pages": paged.get("pages", 0),
             "fills_note": paged.get("reason", ""),
+            "fills_history_limited": bool(paged.get("history_limited")),
             "funding": funding.get("funding_sum") if funding.get("ok") else None,
             "funding_count": len(funding.get("rows") or []),
             "funding_complete": bool(funding.get("ok") and funding.get("complete")),
@@ -1972,7 +2111,8 @@ def _fetch_user_realized_pnl_snapshot(account: Optional[str] = None, baseline_ti
         "actual_user_fills_source": "hyperliquid.info.userFillsByTime",
         "realized_fill_points": pnl_points,
         "realized_fills_paging": {"pages": paged.get("pages", 0), "complete": bool(paged.get("complete")),
-                                  "fill_count": len(rows), "note": paged.get("reason", "")},
+                                  "fill_count": len(rows), "note": paged.get("reason", ""),
+                                  "history_limited": bool(paged.get("history_limited")), "cached_rows": inum(paged.get("cached_rows"))},
         "pnl_tally_inputs": tally_inputs,
     }
 
@@ -2015,7 +2155,7 @@ def _build_pnl_tally(exchange_snapshot: Dict[str, Any], follower_account: Dict[s
     start = _pnl_tally_start(run_start_ms, history)
     inputs = exchange_snapshot.get("pnl_tally_inputs") if isinstance(exchange_snapshot.get("pnl_tally_inputs"), dict) else {}
     out: Dict[str, Any] = {"available": False, "start_available": bool(start.get("available")),
-                           "run_start_ms": start.get("run_start_ms") or 0}
+                           "run_start_ms": start.get("run_start_ms") or 0, "start_saved": bool(start.get("saved"))}
     if not start.get("available"):
         out["reason"] = start.get("reason") or "no start value"
         return out
@@ -2062,8 +2202,11 @@ def _build_pnl_tally(exchange_snapshot: Dict[str, Any], follower_account: Dict[s
         "fill_count": inum(inputs.get("fill_count")), "fills_complete": bool(inputs.get("fills_complete")),
         "fill_pages": inum(inputs.get("fill_pages")), "funding_count": inum(inputs.get("funding_count")),
         "funding_complete": bool(inputs.get("funding_complete")),
+        "history_limited": bool(inputs.get("fills_history_limited")),
         "notes": "; ".join(x for x in (inputs.get("fills_note"), inputs.get("funding_note")) if x),
     })
+    # a tally missing part of its history is shown with a "partial" tag, never as a clean number
+    out["partial"] = not (out["fills_complete"] and out["funding_complete"]) or out["history_limited"]
     return out
 
 
@@ -2846,6 +2989,7 @@ def _build_live_wallet_rows(
             "net_pnl_reason": perf.get("net_pnl_reason", ""),
             "drawdown_reason": perf.get("drawdown_reason", ""),
             "realized_complete": perf.get("realized_complete"),
+            "pnl_partial": bool(perf.get("pnl_partial")),
             "shared_coins": perf.get("shared_coins", []),
             "live_realized_pnl": None if _account_only else perf.get("live_realized_pnl"),
             "confirmed_realized_pnl": None if _account_only else perf.get("confirmed_realized_pnl"),
@@ -3009,6 +3153,9 @@ def _build_real_copy_positions(
                 # orphan (shown in Net by coin and on the Reconciliation tab)
                 continue
             status = f"ACCOUNT_LEVEL_ONLY / SHARED_SYMBOL_RESIDUAL {diff:+.6f}"
+            # the leaders' sleeves claim more than the exchange holds (or the other way round in sign): the
+            # engine's records are ahead of the exchange, not a position someone else opened
+            engine_shortfall = abs(ledger_net) > 1e-12 and ledger_net * (ex_signed - ledger_net) < 0
             rows.append({
                 "row_type": "ACCOUNT_LEVEL_ONLY",
                 "provenance": "ACCOUNT_LEVEL_ONLY",
@@ -3027,6 +3174,7 @@ def _build_real_copy_positions(
                 "unrealized_pnl": None,
                 "ledger_vs_exchange": status,
                 "orphan_classification": "SHARED_SYMBOL_RESIDUAL",
+                "engine_shortfall": engine_shortfall,
                 "residual_size": diff,
                 "unsupported_size": 0.0,
                 "reconciliation_note": "aggregate shared-symbol net; account-level only, never wallet-owned" if abs(diff) <= 1e-8 else "aggregate shared-symbol residual; account-level only, never wallet-owned",
@@ -3562,7 +3710,14 @@ def _build_live_leader_performance(
         replay = _replay_wallet_ledger_pnl(real_wfills)
         wallet_fees: Optional[float] = None
         realized_reason = ""
-        if real_wfills:
+        if real_wfills and not replay["complete"]:
+            # an incomplete record cannot give a closed P&L you can rely on: say so instead of a number
+            realized_reason = "partial: " + ("; ".join(replay["notes"]) or "the fill record is incomplete")
+            wallet_fees = round(replay["fees"], 4)
+            pnl_status = "PARTIAL"
+            attribution_quality = "ENGINE_LEDGER_SLEEVES_PARTIAL"
+            data_quality_notes.extend(replay["notes"])
+        elif real_wfills:
             realized_pnl = round(replay["realized"], 4)
             wallet_fees = round(replay["fees"], 4)
             pnl_status = "LEDGER"
@@ -3616,7 +3771,12 @@ def _build_live_leader_performance(
             current_exposure += exp_est
             ownership = ownership_by_coin.get(coin_upper, _classify_owned_exchange_net(signed, fnum(ex.get("signed_size")) if isinstance(ex, dict) else 0.0, exchange_available))
             ownership_status = str(ownership.get("status") or "EXCHANGE_UNAVAILABLE")
-            owned_upnl = _owned_sleeve_unrealized(signed, fnum(pos.get("avg_entry_px")), mark)
+            # the replay's own average when it covers this position (the ledger keeps the old average on a flip)
+            rp = (replay.get("positions") or {}).get(coin_upper)
+            sleeve_avg = fnum(pos.get("avg_entry_px"))
+            if rp and replay.get("complete") and abs(rp[0] - signed) <= max(1e-9, abs(signed) * 1e-6) and rp[1] > 0:
+                sleeve_avg = rp[1]
+            owned_upnl = _owned_sleeve_unrealized(signed, sleeve_avg, mark)
             pending = ownership_status in {"SIGN_CONFLICT_PENDING_RECONCILIATION", "EXTERNAL_FLAT_PENDING_RECONCILIATION", "OWNED_LEDGER_UNSUPPORTED_BY_EXCHANGE"}
             if coin_shared:
                 shared_coins.append(coin_upper)  # leaders sharing a coin is normal netting on one account
@@ -3667,7 +3827,7 @@ def _build_live_leader_performance(
         else:
             net_pnl = round(realized_pnl + unrealized_pnl - fnum(wallet_fees), 4)
 
-        pnl_points = list(replay["series"])
+        pnl_points = list(replay["series"]) if replay["complete"] else []
         if net_pnl is not None and pnl_points:
             pnl_points.append({"timestamp": exchange_snapshot.get("updated_at") or utc_now_iso(),
                                "timestamp_ms": int(time.time() * 1000), "value": net_pnl})
@@ -3689,6 +3849,7 @@ def _build_live_leader_performance(
         }] if current_exposure else []
         pnl_status_labels = {
             "LEDGER": "From engine ledger",
+            "PARTIAL": "Partial record",
             "EXACT": "Exact closed PnL",
             "OPEN_ONLY": "Open PnL",
             "ESTIMATED_FROM_REAL_ORDER_FILLS": "Real fills",
@@ -3727,6 +3888,7 @@ def _build_live_leader_performance(
             "realized_complete": bool(replay["complete"]) if real_wfills else None,
             "shared_coins": sorted(set(shared_coins)),
             "drawdown_reason": "" if pnl_points else (realized_reason or "no closed trades yet"),
+            "pnl_partial": bool(real_wfills) and not replay["complete"],
             "live_realized_pnl": realized_pnl,
             "confirmed_realized_pnl": confirmed_realized_pnl,
             "realized_match_status": realized_match_status,
@@ -6671,7 +6833,7 @@ def render_live_copy_control_panel() -> str:
     <div class="lc-banner-cell"><div class="label" id="lcBannerAcctLabel">Account value</div><div class="value" id="lcBannerAcct">—</div></div>
     <div class="lc-banner-cell"><div class="label">Sending</div><div class="value" id="lcBannerSending">—</div></div>
     <div class="lc-banner-cell lc-banner-health"><div class="label">Health</div><div class="value" id="lcBannerHealth">—</div></div>
-    <div class="lc-banner-cell"><div class="label" id="lcBannerPnlLabel">Net P&amp;L since run start</div><div class="value" id="lcBannerPnl">—</div></div>
+    <div class="lc-banner-cell"><div class="label" id="lcBannerPnlLabel">Account change since run start</div><div class="value" id="lcBannerPnl">—</div></div>
     <div class="lc-banner-cell"><div class="label">Open positions</div><div class="value" id="lcBannerOpen">—</div></div>
     <div class="lc-banner-cell" id="lcBannerRestingCell" hidden><div class="label">Resting orders</div><div class="value" id="lcBannerResting">—</div></div>
   </section>
@@ -6846,7 +7008,10 @@ function pill(text,kind){const t=String(text||'n/a');const token=String(kind||t)
  return `<span class="lc-pill ${cls}">${h(t)}</span>`;}
 const ROUTINE_REJECTS=['UNSUPPORTED_SYMBOL_OR_METADATA','SPOT_MARKET_SKIPPED','SYMBOL_UNAVAILABLE','META_UNAVAILABLE','SDK_SYMBOL_MAP_UNAVAILABLE','SYMBOL_NOT_TRADABLE_BY_SENDER','IOC_NO_IMMEDIATE_MATCH'];
 function isRoutineReject(r){r=r||{};return ROUTINE_REJECTS.some(k=>[r.reject_category,r.status,r.terminal_state].map(x=>String(x||'').toUpperCase()).some(x=>x.indexOf(k)>=0));}
-function terminalCls(v){const s=String(v||'').toUpperCase();if(ROUTINE_REJECTS.some(k=>s.indexOf(k)>=0))return 'lc-grey';if(s.startsWith('CLOSE_')||s.includes('RED')||s.includes('ERROR'))return 'lc-amber';if(s.startsWith('MISSED_ENTRY')||s.startsWith('MISSED_ADD')||s==='FILLED_AWAITING_COPY_POLL')return 'lc-amber';if(s==='ORDER_FILLED'||s==='FILLED_CONFIRMED'||s==='MATCH')return 'lc-green';return '';}
+// stop-level: a close that is failing or a resting order that could not be cancelled
+const STOP_LEVEL=['MANUAL_EXIT_RECOVERY_REQUIRED','EXIT_RECOVERY_QUEUE_FAILED','RESTING_ENTRY_CANCEL_FAILED','MANUAL_REVIEW_CANCEL_RESTING_ENTRY'];
+function isStopLevel(v){const s=String(v||'').toUpperCase();return (s.startsWith('CLOSE_')&&s!=='CLOSE_ONLY')||STOP_LEVEL.some(k=>s.indexOf(k)>=0);}
+function terminalCls(v){const s=String(v||'').toUpperCase();if(isStopLevel(s))return 'lc-red';if(ROUTINE_REJECTS.some(k=>s.indexOf(k)>=0))return 'lc-grey';if(s.includes('RED')||s.includes('ERROR'))return 'lc-amber';if(s.startsWith('MISSED_ENTRY')||s.startsWith('MISSED_ADD')||s==='FILLED_AWAITING_COPY_POLL')return 'lc-amber';if(s==='ORDER_FILLED'||s==='FILLED_CONFIRMED'||s==='MATCH')return 'lc-green';return '';}
 function truthCls(v){const s=String(v||'').toUpperCase();if(s.includes('ACTIVE')&&s.includes('RED'))return 'lc-amber';if(s.startsWith('ACTIVE_EXCHANGE_REJECT'))return 'lc-amber';if(s.startsWith('ACTIVE_'))return 'lc-amber';if(s.startsWith('HISTORICAL'))return 'lc-blue';if(s.includes('ADOPTED')||s.includes('RECONCILED'))return 'lc-green';return '';}
 function statusCard(label,value,kind,sub){return `<div class="lc-stat"><div class="label">${h(label)}</div><div class="value ${kind||''}" style="font-size:13px;word-break:break-word">${h(value||'—')}</div>${sub?`<div class="lc-muted" style="font-size:10px;margin-top:4px">${h(sub)}</div>`:''}</div>`;}
 function decisionPill(text){const t=String(text||'—');const u=t.toUpperCase();const cls=['WOULD_PLACE_IOC_LIMIT','WOULD_LATE_COPY','WOULD_REDUCE_OR_EXIT','WOULD_EXIT','WOULD_REDUCE'].includes(u)?'lc-green':u==='DO_NOT_MARKET_COPY'?'lc-grey':u==='MANUAL_REVIEW'?'lc-amber':'';return `<span class="lc-pill ${cls}">${h(t)}</span>`;}
@@ -7006,8 +7171,8 @@ function renderBanner(){
  const armed=lcAudit.master_real_orders_enabled===true;  // the master switch only
  set('lcBannerSending',armed?'ON':'OFF',armed?'lc-green':'lc-grey',armed?'real orders are being sent':'sending is switched off (a choice, not a fault)');
  set('lcBannerHealth',h(hl.text||'—'),levelCls(hl.level),'');
- const pl=root.querySelector('#lcBannerPnlLabel');if(pl)pl.textContent='Net P&L since '+(b.net_pnl_start_time?fmtWhen(Date.parse(b.net_pnl_start_time)):'run start');
- set('lcBannerPnl',b.net_pnl_since_start!=null?signedMoney(b.net_pnl_since_start):dash(b.net_pnl_reason||'start value unknown'),signCls(b.net_pnl_since_start),'actual change in account value; breakdown in "Does the P&L add up?"');
+ const pl=root.querySelector('#lcBannerPnlLabel');if(pl)pl.textContent='Account change since '+(b.net_pnl_start_time?fmtWhen(Date.parse(b.net_pnl_start_time)):'run start');
+ set('lcBannerPnl',(b.net_pnl_since_start!=null?signedMoney(b.net_pnl_since_start):dash(b.net_pnl_reason||'start value unknown'))+(b.net_pnl_partial?' <span class="lc-tag lc-amber" title="part of the exchange history could not be read">partial</span>':''),signCls(b.net_pnl_since_start),'actual change in account value; breakdown in "Does the P&L add up?"');
  set('lcBannerOpen',b.open_positions!=null?String(b.open_positions):dash('exchange not readable'),'');
  const rc=root.querySelector('#lcBannerRestingCell');if(rc){rc.hidden=(b.resting_orders==null);if(b.resting_orders!=null)set('lcBannerResting',String(b.resting_orders),'');}
  const tech=root.querySelector('#lcHealthTechBody');if(tech)tech.innerHTML=(hl.technical||[]).map(t=>`<li>${h(t)}</li>`).join('')||'<li>nothing to report</li>';
@@ -7031,7 +7196,7 @@ function renderTally(){
  if(t.available){
   const u=t.unexplained, big=u!=null&&Math.abs(u)>Math.max(1,Math.abs(t.start_value||0)*0.005);
   out+=row('Unexplained difference',u!=null?m(u):dash('a part above is unknown'),big?'lc-amber':'lc-grey','t-sum');
-  out+=`<div class="t-note">Counted ${h(t.fill_count)} exchange fills${t.fill_pages>1?' ('+h(t.fill_pages)+' pages)':''} and ${h(t.funding_count)} funding payments since the start.${t.fills_complete===false||t.funding_complete===false?' <span class="lc-amber">Some history could not be fetched'+(t.notes?': '+h(t.notes):'')+'.</span>':''}${big?' Deposits, withdrawals or transfers also show here.':''}</div>`;
+  out+=`<div class="t-note">Counted ${h(t.fill_count)} exchange fills${t.fill_pages>1?' ('+h(t.fill_pages)+' pages)':''} and ${h(t.funding_count)} funding payments since the start.${t.partial?' <span class="lc-tag lc-amber">partial</span> <span class="lc-amber">'+(t.history_limited?'The exchange keeps only the latest ~10,000 fills, so early history may be missing':'Some history could not be fetched')+(t.notes?': '+h(t.notes):'')+'.</span>':''}${big?' Deposits, withdrawals or transfers also show here.':''}</div>`;
  } else {
   out+=`<div class="t-note">${h(t.reason||'')}</div>`;
  }
@@ -7054,10 +7219,10 @@ function renderWallets(){
   const connDetail=(ml==='Off'||cs==='POLLING')?'':`<span class="lc-muted" style="font-size:10px">${h(d.ws_reason||d.conn_detail||'')} ${d.last_ws_intent_at?'intent:'+tiny(d.last_ws_intent_at,19):''}</span>`;
   const expStr=moneyFmt(d.current_exposure||0)||'$0';
   const real=d.realized_pnl, unreal=d.unrealized_pnl, net=d.net_pnl, st=d.pnl_status||'N/A';
-  const approx=d.realized_complete===false?' <span class="lc-grey" title="some earlier fills or a ledger repair are missing from the record">≈</span>':'';
+  const partial=d.pnl_partial?` <span class="lc-tag lc-amber" title="${h(d.realized_reason||'the fill record is incomplete')}">partial</span>`:'';
   const shared=(d.shared_coins||[]).map(c=>`<span class="lc-tag" title="other leaders also hold ${h(c)}; the exchange nets them on one account">shared ${h(c)}</span>`).join(' ');
-  const netHtml=net!=null?`<span class="lc-net ${signCls(net)}" title="closed ${h(moneyFmt(real)||'$0')} + open ${h(moneyFmt(unreal)||'$0')} − fees ${h(moneyFmt(d.fees)||'$0')}">${h(signedMoney(net))}</span>${approx}`:dash(d.net_pnl_reason||'no trades copied for this wallet yet');
-  const pnlHtml=`<div class="lc-cell-stack"><span class="${signCls(real)}" style="font-size:11px">Closed: ${moneyOrDash(real,d.realized_reason)}${approx}</span><span class="${signCls(unreal)}" style="font-size:11px">Open: ${moneyOrDash(unreal,d.unrealized_reason)}</span><span class="lc-muted" style="font-size:11px">Fees: ${moneyOrDash(d.fees,d.realized_reason)}</span><span>${pnlLabel(st,d.pnl_status_label)} ${shared}</span></div>`;
+  const netHtml=net!=null?`<span class="lc-net ${signCls(net)}" title="closed ${h(moneyFmt(real)||'$0')} + open ${h(moneyFmt(unreal)||'$0')} − fees ${h(moneyFmt(d.fees)||'$0')}">${h(signedMoney(net))}</span>`:dash(d.net_pnl_reason||'no trades copied for this wallet yet')+partial;
+  const pnlHtml=`<div class="lc-cell-stack"><span class="${signCls(real)}" style="font-size:11px">Closed: ${moneyOrDash(real,d.realized_reason)}${partial}</span><span class="${signCls(unreal)}" style="font-size:11px">Open: ${moneyOrDash(unreal,d.unrealized_reason)}</span><span class="lc-muted" style="font-size:11px">Fees: ${moneyOrDash(d.fees,d.realized_reason)}</span><span>${pnlLabel(st,d.pnl_status_label)} ${shared}</span></div>`;
   const bpsCls=d.avg_fill_bps!=null&&d.avg_fill_bps>10?'lc-neg':d.avg_fill_bps!=null&&d.avg_fill_bps<=0?'lc-pos':'';
   const wbpsCls=d.worst_fill_bps!=null&&d.worst_fill_bps>15?'lc-neg':'';
   const diffHtml=`<div class="lc-cell-stack"><span class="${signCls(d.total_diff_usd)}">Total: ${moneyFmt(d.total_diff_usd)||'n/a'}</span><span>Avg: ${moneyFmt(d.avg_diff_usd)||'n/a'}</span><span class="${bpsCls}">Avg bps: ${d.avg_diff_bps!=null?h(d.avg_diff_bps):'n/a'}</span><span class="${wbpsCls}">Worst bps: ${d.worst_diff_bps!=null?h(d.worst_diff_bps):'n/a'}</span></div>`;
@@ -7218,7 +7383,7 @@ function renderPositions(){
  const upnlStr=r.unrealized_pnl!=null?('$'+Number(r.unrealized_pnl).toLocaleString(undefined,{maximumFractionDigits:2})):'—';
   const st=r.ledger_vs_exchange||'ORPHAN_EXCHANGE';
   const prov=r.provenance||'ACCOUNT_LEVEL_ONLY';
-  return `<tr><td><b>${h(r.coin||'—')}</b></td><td class="${exCls}">${r.exchange_signed_size!=null?h(r.exchange_signed_size):'—'}</td><td>${r.entry_px!=null?h(r.entry_px):'—'}</td><td>${r.mark_px!=null?h(r.mark_px):'—'}</td><td class="${upnlCls}">${upnlStr}</td><td title="${h(prov)} / ${h(st)}"><span class="lc-pill lc-amber">Not opened by the engine — managed by you</span></td><td><span class="lc-grey">You</span></td><td><span class="lc-grey">No</span></td><td><span class="lc-grey">No</span></td><td class="lc-muted" title="${h(r.reconciliation_note||'')}">${r.exchange_total_size!=null?'exchange holds '+h(r.exchange_total_size)+'; leaders explain the rest':'no engine order behind it'}</td></tr>`;
+  return `<tr><td><b>${h(r.coin||'—')}</b></td><td class="${exCls}">${r.exchange_signed_size!=null?h(r.exchange_signed_size):'—'}</td><td>${r.entry_px!=null?h(r.entry_px):'—'}</td><td>${r.mark_px!=null?h(r.mark_px):'—'}</td><td class="${upnlCls}">${upnlStr}</td><td title="${h(prov)} / ${h(st)}"><span class="lc-pill lc-amber">${r.engine_shortfall?'Engine records exceed the exchange — check Reconciliation':'Not opened by the engine — managed by you'}</span></td><td><span class="lc-grey">${r.engine_shortfall?'Check':'You'}</span></td><td><span class="lc-grey">No</span></td><td><span class="lc-grey">No</span></td><td class="lc-muted" title="${h(r.reconciliation_note||'')}">${r.engine_shortfall?'exchange holds '+h(r.exchange_total_size)+'; the leaders&#39; records add up to '+h(r.signed_size):r.exchange_total_size!=null?'exchange holds '+h(r.exchange_total_size)+'; leaders explain the rest':'no engine order behind it'}</td></tr>`;
  }).join('')||'<tr><td colspan="10">None — every exchange position is explained by the engine.</td></tr>';
 }
 function renderExecQuality(){
@@ -7276,7 +7441,7 @@ function renderAudit(){
  root.querySelector('#lcAuditRows').innerHTML=rows.map(r=>{const iid=String(r.intent_id||'');const attempt=iid?sendByIntent[iid]:null;const execDec=String(r.execution_decision||'');let realRes='NO_SEND_ATTEMPT';if(attempt){const st=String(attempt.status||'');realRes=st==='ORDER_FILLED'?'REAL_ORDER_FILLED':st==='ORDER_REJECTED'?'EXCHANGE_REJECTED':st||'NO_SEND_ATTEMPT';}else if(execDec==='WOULD_PLACE_IOC_LIMIT'){realRes='WOULD_SEND_ONLY';}const rawNote=first(r,['notes','message']);const displayNote=rawNote&&rawNote.indexOf('dry-run simulated fill')!==-1?'legacy intent note: leader WS fill detected; check real order result':rawNote;const rrCls=realRes==='REAL_ORDER_FILLED'?'lc-green':realRes==='EXCHANGE_REJECTED'?'lc-amber':realRes==='WOULD_SEND_ONLY'?'lc-amber':'lc-muted';return `<tr><td>${h(first(r,['created_at','timestamp_iso','time']))}</td><td class="lc-wallet">${h(shortWallet(first(r,['leader_wallet','wallet'])))}</td><td>${h(first(r,['coin','asset']))}</td><td>${h(first(r,['side']))}</td><td><div class="lc-cell-stack"><span>${h(sourceOf(r))}</span><span class="lc-muted">${tiny(first(r,['reason']),32)}</span></div></td><td>${pill(first(r,['status'])||'—')}</td><td>${decisionPill(first(r,['execution_decision'])||'—')}</td><td>${tiny(first(r,['decision_reason']),34)}</td><td>${h(first(r,['suggested_limit_price','target_price']))}</td><td>${h(first(r,['adverse_diff_pct','diff_pct','real_diff_pct','price_diff_pct']))}</td><td>${h(first(r,['manual_reconcile_required']))}</td><td title="${h(displayNote)}">${tiny(displayNote,60)}</td><td><span class="lc-pill ${rrCls}">${h(realRes)}</span></td></tr>`;}).join('')||'<tr><td colspan="13">No audit rows found.</td></tr>';
  const terminalRows=lcAudit.send_terminal_rows||[];
  const legacyRows=lcAudit.legacy_terminal_rows||[];
- const terminalRow=r=>`<tr><td>${h(r.event||'SEND_TERMINAL')}</td><td><span class="lc-pill ${terminalCls(r.status||r.terminal_state)}">${h(r.status||'—')}</span></td><td>${h(r.action||r.operator_action||'—')}</td><td>${h(r.reject_category||'—')}</td><td><span class="lc-pill ${terminalCls(r.terminal_state)}">${h(r.terminal_state||'—')}</span></td><td>${h(r.coin||'—')}</td><td class="lc-wallet">${h(r.leader_wallet?shortWallet(r.leader_wallet):'—')}</td><td class="lc-wallet">${tiny(String(r.intent_id||'—'),28)}</td><td title="${h(r.notes||r.error||'')}">${tiny(r.notes||r.error||'',80)}</td></tr>`;
+ const terminalRow=r=>`<tr><td>${h(r.event||'SEND_TERMINAL')}</td><td><span class="lc-pill ${terminalCls(r.status||r.terminal_state)}">${h(r.status||'—')}</span></td><td class="${isStopLevel(r.action||r.operator_action)?'lc-red':''}">${h(r.action||r.operator_action||'—')}</td><td>${h(r.reject_category||'—')}</td><td><span class="lc-pill ${terminalCls(r.terminal_state)}">${h(r.terminal_state||'—')}</span></td><td>${h(r.coin||'—')}</td><td class="lc-wallet">${h(r.leader_wallet?shortWallet(r.leader_wallet):'—')}</td><td class="lc-wallet">${tiny(String(r.intent_id||'—'),28)}</td><td title="${h(r.notes||r.error||'')}">${tiny(r.notes||r.error||'',80)}</td></tr>`;
  const critical=terminalRows.filter(r=>String(r.terminal_state||r.status||'').startsWith('CLOSE_')||String(r.action||r.operator_action||'').indexOf('RECOVERY')>=0||String(r.action||r.operator_action||'').indexOf('MANUAL_REVIEW')>=0);
  const warnings=terminalRows.filter(r=>!critical.includes(r));
  const cbox=root.querySelector('#lcReconCriticalRows'), wbox=root.querySelector('#lcReconWarningRows'), lbox=root.querySelector('#lcReconLegacyRows');

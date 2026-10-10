@@ -267,7 +267,7 @@ def main() -> None:
     check("S9_GREY_POLLING_AND_OFF", "Polling (normal)" in panel and not off_in_red and "'lc-red'" not in pill_src
           and "COPY DISABLED</span>" not in panel)
     reds = [ln for ln in panel.splitlines() if "lc-red" in ln and "--lc-red" not in ln]
-    check("S9_RED_ONLY_FOR_STOP_LEVEL", len(reds) == 2 and all(("ENGINE ALERT" in ln or "levelCls" in ln) for ln in reds),
+    check("S9_RED_ONLY_FOR_STOP_LEVEL", len(reds) == 4 and all(("ENGINE ALERT" in ln or "levelCls" in ln or "isStopLevel" in ln) for ln in reds),
           "\n".join(x[:120] for x in reds))
 
     # ---- S10 one last fill / last reject -------------------------------------------------------------------
@@ -329,6 +329,143 @@ def main() -> None:
     ui._AUDIT_SUMMARY_CACHE.clear()
     b2 = client.get("/api/live-audit-summary").json().get("status_banner") or {}
     check("S12_RESTING_OMITTED_WHEN_NOT_REPORTED", b2.get("resting_orders") is None, str(b2.get("resting_orders")))
+
+    # ---- R1 a resting limit whose cancel failed is red ----------------------------------------------------
+    check("R1_NO_RESTING_FILE_STAYS_GREEN", ui._build_live_top_status(cfg, ws_off, fresh_state(), ok, [], [], [])["health"]["level"] == "green")
+    ui.atomic_write_json(ui.RESTING_ENTRY_ORDERS_FILE, {"1": {"coin": "BTC", "oid": 77, "withdraw_pending": "CANCEL_REJECTED"},
+                                                         "2": {"coin": "ETH", "oid": 78}})
+    hr = ui._build_live_top_status(cfg, ws_off, fresh_state(), ok, [], [], [])["health"]
+    check("R1_WITHDRAW_PENDING_IS_RED", hr["level"] == "red" and "could not be cancelled" in hr["text"]
+          and any("oid=77" in t for t in hr["technical"]) and not any("oid=78" in t for t in hr["technical"]), str(hr))
+    ui.atomic_write_json(ui.RESTING_ENTRY_ORDERS_FILE, {"2": {"coin": "ETH", "oid": 78, "withdraw_pending": ""}})
+    check("R1_RESTING_WITHOUT_PENDING_IS_GREEN", ui._build_live_top_status(cfg, ws_off, fresh_state(), ok, [], [], [])["health"]["level"] == "green")
+
+    # ---- R2 integrity stop-level conditions are red ----------------------------------------------------------
+    def integ(**counts):
+        return {"status": "RED", "available": True, "reasons": ["x"], "counts": counts}
+    check("R2_CLOSE_REJECT_IS_RED", H(fresh_state(), integ(close_reject_or_recovery_required=1))["text"].startswith("Stopped: a close is failing"))
+    check("R2_MANUAL_EXIT_RECOVERY_IS_RED", H(fresh_state(), {"status": "RED", "available": True, "counts": {},
+                                                            "hard_copy_invariant": {"counts": {"MANUAL_EXIT_RECOVERY_REQUIRED": 2}}})["level"] == "red")
+    check("R2_EXCHANGE_MISMATCH_IS_RED", "disagree" in H(fresh_state(), integ(exchange_manual_mismatch=1))["text"])
+    check("R2_MISSING_AUDIT_FILES_IS_RED", "audit files are missing" in H(fresh_state(), integ(audit_proof_missing=1))["text"])
+    now = int(time.time() * 1000)
+    rec_new = [{"created_at_ms": now - 60_000, "event": "SEND_TERMINAL", "action": "MANUAL_EXIT_RECOVERY_REQUIRED"}]
+    rec_old = [{"created_at_ms": now - 5 * 3600_000, "event": "SEND_TERMINAL", "action": "MANUAL_EXIT_RECOVERY_REQUIRED"}]
+    check("R2_RECENT_RECOVERY_ROW_IS_RED", H(fresh_state(started_at_ms=now - 3600_000), ok, reconciliation_rows=rec_new)["level"] == "red")
+    check("R2_OLD_RECOVERY_ROW_NOT_RED", H(fresh_state(started_at_ms=now - 3600_000), ok, reconciliation_rows=rec_old)["level"] == "green")
+    check("R2_STOP_LEVEL_RED_ON_SCREEN", "MANUAL_EXIT_RECOVERY_REQUIRED" in panel and "if(isStopLevel(s))return 'lc-red'" in panel
+          and "s!=='CLOSE_ONLY'" in panel)
+
+    # ---- R3 open P&L after a flip uses the replay's own average ---------------------------------------------
+    flip_fills = [
+        {"created_at_ms": t0, "created_at": "r1", "copy_fill_id": "g1", "leader_wallet": WA, "coin": "BTC", "side": "BUY",
+         "fill_price": 100, "fill_size": 1, "fee": 0, "wallet_position_before": 0, "wallet_position_after": 1},
+        {"created_at_ms": t0 + 1, "created_at": "r2", "copy_fill_id": "g2", "leader_wallet": WA, "coin": "BTC", "side": "SELL",
+         "fill_price": 110, "fill_size": 1.5, "fee": 0, "wallet_position_before": 1, "wallet_position_after": -0.5},
+    ]
+    write_csv(ui.LIVE_FILLS_CSV, flip_fills)
+    flip_manual = {"schema": "manual_live_positions.v1.wallet_sleeves", "by_wallet": {
+        WA: {"BTC": {"signed_size": -0.5, "avg_entry_px": 100.0, "leader_wallet": WA, "coin": "BTC"}}}}  # ledger kept the old avg
+    flip_snap = {"available": True, "updated_at": "now", "positions_by_coin": {
+        "BTC": {"coin": "BTC", "signed_size": -0.5, "mark_px": 105.0, "entry_px": 110.0, "unrealized_pnl": 2.5, "position_value": 52.5}}}
+    pf = ui._build_live_leader_performance(sends[:1], flip_manual, flip_snap, cfg, [])[WA.lower()]
+    # closed (110-100)*1 = 10; open -0.5*(105-110) = +2.5 (the stale ledger average would give -2.5)
+    check("R3_FLIP_USES_REPLAY_AVERAGE", abs(pf["live_realized_pnl"] - 10) < 1e-9 and abs(pf["live_unrealized_pnl"] - 2.5) < 1e-9,
+          str({k: pf.get(k) for k in ("live_realized_pnl", "live_unrealized_pnl")}))
+
+    # ---- R4 an incomplete record shows a dash and a "partial" tag ---------------------------------------------
+    gap_fills = [dict(flip_fills[1], wallet_position_before=3, copy_fill_id="g9")]  # earlier fills missing
+    write_csv(ui.LIVE_FILLS_CSV, gap_fills)
+    pp = ui._build_live_leader_performance(sends[:1], flip_manual, flip_snap, cfg, [])[WA.lower()]
+    check("R4_PARTIAL_HAS_NO_NUMBER", pp["live_realized_pnl"] is None and pp["live_net_pnl"] is None and pp["pnl_partial"] is True
+          and pp["pnl_status"] == "PARTIAL" and str(pp["realized_reason"]).startswith("partial:"), str({k: pp.get(k) for k in ("live_realized_pnl", "live_net_pnl", "pnl_partial", "pnl_status", "realized_reason")}))
+    prow = {r["wallet"].lower(): r for r in ui._build_live_wallet_rows(cfg, [], sends[:1], flip_manual, {}, ws_off,
+                                                                         {WA.lower(): pp}, live_fills=gap_fills)}[WA.lower()]
+    check("R4_ROW_CARRIES_PARTIAL", prow["pnl_partial"] is True and prow["net_pnl"] is None, str({k: prow.get(k) for k in ("pnl_partial", "net_pnl")}))
+    check("R4_PARTIAL_TAG_ON_SCREEN", ">partial</span>" in panel and "const partial=d.pnl_partial?" in panel and "≈</span>" not in panel
+          and "'no trades copied for this wallet yet')+partial" in panel)
+    write_csv(ui.LIVE_FILLS_CSV, live_fills)
+
+    # ---- R5 the run-start value is saved once per engine run ---------------------------------------------------
+    hist5 = [{"timestamp_ms": RUN_START_MS - 60_000, "unified_portfolio_value": 1449.0},
+             {"timestamp_ms": RUN_START_MS + 60_000, "unified_portfolio_value": 1447.0}]
+    ui.PNL_RUN_START_FILE.unlink(missing_ok=True)
+    s0 = ui._pnl_tally_start(0, hist5, run_key=111)
+    check("R5_NOT_SAVED_BEFORE_FIRST_FILL", not ui.PNL_RUN_START_FILE.exists() and s0["saved"] is False)
+    s1 = ui._pnl_tally_start(RUN_START_MS, hist5, run_key=111)
+    saved = ui.load_json(ui.PNL_RUN_START_FILE, {})
+    check("R5_FIRST_VALUE_SAVED", s1["saved"] and saved.get("run_key") == 111 and saved.get("entry", {}).get("unified_portfolio_value") == 1449.0, str(saved)[:200])
+    s2 = ui._pnl_tally_start(RUN_START_MS, hist5[1:], run_key=111)  # screen restarted; history trimmed
+    check("R5_REUSED_AFTER_RESTART", s2["saved"] and s2["ms"] == s1["ms"] and s2["entry"]["unified_portfolio_value"] == 1449.0, str(s2))
+    s3 = ui._pnl_tally_start(RUN_START_MS, hist5[1:], run_key=222)  # a new engine run starts afresh
+    check("R5_NEW_RUN_RECOMPUTES", s3["entry"]["unified_portfolio_value"] == 1447.0 and ui.load_json(ui.PNL_RUN_START_FILE, {}).get("run_key") == 222, str(s3))
+    ui.atomic_write_json(ui.LIVE_COPY_SERVICE_STATE_FILE, fresh_state(started_at_ms=222))
+    t5 = ui._build_pnl_tally({"available": True, "unified_portfolio_value": 1418.0, "pnl_tally_inputs": {}},
+                             {"ok": True, "value": 1418.0}, hist5, run_start_ms=RUN_START_MS)
+    check("R5_TALLY_USES_ENGINE_RUN_KEY", t5.get("start_saved") is True and t5.get("start_value") == 1447.0, str(t5))
+    ui.atomic_write_json(ui.LIVE_COPY_SERVICE_STATE_FILE, fresh_state())
+    ui.PNL_RUN_START_FILE.unlink(missing_ok=True)
+
+    # ---- R6 cached incremental fill / funding fetch; the 10,000-fill limit is flagged --------------------------
+    starts = []
+    real_open = ui.urllib.request.urlopen
+
+    def spy(req, timeout=None):
+        payload = json.loads(req.data.decode("utf-8"))
+        starts.append((payload.get("type"), payload.get("startTime")))
+        return real_open(req, timeout)
+    ui.urllib.request.urlopen = spy
+    try:
+        cf, ff = tmp / "c_fills.json", tmp / "c_fund.json"
+        first = ui._fetch_user_fills_cached(FOLLOWER, RUN_START_MS, NOW_MS + 1000, cache_file=cf)
+        n_first = len([x for x in starts if x[0] == "userFillsByTime"])
+        starts.clear()
+        last_t = max(f["time"] for f in FILLS)
+        FILLS.append({"coin": "BTC", "px": "100", "sz": "0.01", "side": "B", "time": last_t + 5000, "hash": "0xnew", "tid": 999999,
+                      "oid": 1, "closedPnl": "1", "fee": "0.01"})
+        second = ui._fetch_user_fills_cached(FOLLOWER, RUN_START_MS, NOW_MS + 1000, cache_file=cf)
+        fstarts = [x[1] for x in starts if x[0] == "userFillsByTime"]
+        check("R6_FIRST_FETCH_FULL", first["ok"] and len(first["rows"]) == N_FILLS and first["cached_rows"] == 0 and n_first >= 3)
+        check("R6_SECOND_FETCH_ONLY_NEW", len(fstarts) == 1 and fstarts[0] == last_t and second["cached_rows"] == N_FILLS
+              and len(second["rows"]) == N_FILLS + 1 and len({(r["hash"], r["tid"]) for r in second["rows"]}) == N_FILLS + 1,
+              f"starts={fstarts} rows={len(second['rows'])}")
+        FILLS.pop()
+        other = ui._fetch_user_fills_cached("0x" + "d" * 40, RUN_START_MS, NOW_MS + 1000, cache_file=cf)
+        check("R6_OTHER_ACCOUNT_REBUILDS", other["cached_rows"] == 0)
+        f1 = ui._fetch_user_funding_cached(FOLLOWER, RUN_START_MS, NOW_MS + 1000, cache_file=ff)
+        starts.clear()
+        f2 = ui._fetch_user_funding_cached(FOLLOWER, RUN_START_MS, NOW_MS + 1000, cache_file=ff)
+        check("R6_FUNDING_CACHED", f1["ok"] and f2["ok"] and len(f2["rows"]) == 15 and abs(f2["funding_sum"] + 3.75) < 1e-9
+              and f2["cached_rows"] == 15 and all(x[1] >= max(r["time"] for r in FUNDING) for x in starts), str(starts))
+        check("R6_NOT_LIMITED_BELOW_10000", first["history_limited"] is False)
+        old_limit = ui.USER_FILLS_HISTORY_LIMIT
+        ui.USER_FILLS_HISTORY_LIMIT = 5000  # same rule, smaller number: a full fetch at the limit may be cut short
+        try:
+            lim = ui._fetch_user_fills_cached(FOLLOWER, RUN_START_MS, NOW_MS + 1000, cache_file=tmp / "c_lim.json")
+            lim2 = ui._fetch_user_fills_cached(FOLLOWER, RUN_START_MS, NOW_MS + 1000, cache_file=tmp / "c_lim.json")
+        finally:
+            ui.USER_FILLS_HISTORY_LIMIT = old_limit
+        check("R6_HISTORY_LIMIT_FLAGGED_AND_KEPT", lim["history_limited"] and lim2["history_limited"] and "early history may be missing" in lim2["reason"])
+    finally:
+        ui.urllib.request.urlopen = real_open
+    tl = ui._build_pnl_tally({"available": True, "unified_portfolio_value": 1418.0, "unrealized_pnl": 0.0,
+                              "pnl_tally_inputs": {"available": True, "start_ms": RUN_START_MS - 60_000, "closed_pnl": 1, "fees": 0, "funding": 0,
+                                                   "fills_complete": True, "funding_complete": True, "fills_history_limited": True}},
+                             {"ok": True, "value": 1418.0}, hist5, run_start_ms=RUN_START_MS)
+    check("R6_TALLY_PARTIAL_WHEN_LIMITED", tl.get("available") and tl.get("partial") is True and tl.get("history_limited") is True, str(tl))
+    check("R6_TALLY_CLEAN_IS_NOT_PARTIAL", tally.get("partial") is False, str(tally.get("partial")))
+    check("R6_PARTIAL_ON_SCREEN", "t.partial?" in panel and "latest ~10,000 fills" in panel and "b.net_pnl_partial?" in panel)
+
+    # ---- R7 banner label -------------------------------------------------------------------------------------------
+    check("R7_BANNER_SAYS_ACCOUNT_CHANGE", "Account change since run start" in panel and "'Account change since '+" in panel
+          and "Net P&L since" not in panel and "Net P&amp;L since" not in panel)
+
+    # ---- R8 engine records ahead of the exchange are labelled as such -----------------------------------------------
+    snap_short = {"available": True, "positions_by_coin": {"BTC": {"coin": "BTC", "signed_size": 0.2, "mark_px": 120.0, "entry_px": 98.0}}}
+    sh = [r for r in ui._build_real_copy_positions(manual, snap_short) if r.get("row_type") == "ACCOUNT_LEVEL_ONLY"]
+    check("R8_SHORTFALL_FLAGGED", len(sh) == 1 and sh[0]["engine_shortfall"] is True, str(sh))
+    check("R8_EXTRA_ON_EXCHANGE_NOT_SHORTFALL", res[0].get("engine_shortfall") is False, str(res[0].get("engine_shortfall")))
+    check("R8_SHORTFALL_LABEL_ON_SCREEN", "Engine records exceed the exchange — check Reconciliation" in panel and "r.engine_shortfall?" in panel)
 
     failed = [n for n, ok in RESULTS if not ok]
     print(f"TOTAL={len(RESULTS)} FAILED={len(failed)}")
