@@ -292,6 +292,17 @@ def main() -> None:
 
     _real_sender = svcmod.send_hyperliquid_order
     svcmod.send_hyperliquid_order = fake_sender
+    # The auto-close path prices a close from a LIVE public l2Book quote (LIVE_AUTO_CLOSE_WITH_CURRENT_QUOTE
+    # defaults to 1). That made this check depend on the optional `requests` package and on network reachability
+    # of api.hyperliquid.xyz: with no requests (or no network) the close is refused CURRENT_QUOTE_UNAVAILABLE,
+    # the sender is never reached, and this check fails even though the planner behaved correctly. The test
+    # contract is pure/offline/no-network, so stub the quote fetcher deterministically like the sender above.
+    _real_quote = svcmod.fetch_public_executable_quote
+    svcmod.fetch_public_executable_quote = lambda coin, side: {
+        "ok": True, "coin": str(coin).upper(), "side": str(side).upper(),
+        "bid": 100.0, "ask": 100.0, "executable_price": 100.0,
+        "source": "TEST_STUB_L2BOOK", "error": "",
+    }
     svc13 = fresh()
     _r0 = svc13.process_ws_fill(fill("w0", "0xw1", "BTC", "BUY", 100.0, 1.0, 500, source="live_ws"))    # baseline only
     _r1 = svc13.process_ws_fill(fill("w1", "0xw1", "BTC", "BUY", 100.0, 10.0, 1000, source="live_ws"))   # planner OPEN BUY 1.0
@@ -306,6 +317,7 @@ def main() -> None:
     check("planner reduce_only + side reach the SENDER payload (FLATTEN SELL)",
           seen[-1]["side"] == "SELL" and seen[-1]["reduce_only"] is True, str(seen[-1:]))
     svcmod.send_hyperliquid_order = _real_sender
+    svcmod.fetch_public_executable_quote = _real_quote
     svcmod.LIVE_AUTO_SEND_ENABLED = False
     os.environ.pop("HL_LIVE_HL_PRIVATE_KEY", None)
 
