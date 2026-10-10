@@ -128,9 +128,9 @@ def main() -> None:
                     nxt = time.monotonic() + 1.0
                 time.sleep(0.05)
         with c.RUNTIME_STATE_LOCK:  # this run's lag record only
-            st = c.load_json(c.CORE_RUNTIME_STATE_FILE, {})
+            st = c.load_json(c.COPY_POLL_STATE_FILE, {})
             st["copy_poll_stats"] = []
-            c.atomic_write_json(c.CORE_RUNTIME_STATE_FILE, st)
+            c.atomic_write_json(c.COPY_POLL_STATE_FILE, st)
         threads = [threading.Thread(target=t, daemon=True) for t in (sender, producer, main_loop)]
         slow_cycle["sec"] = 3.0
         if use_thread:
@@ -150,7 +150,7 @@ def main() -> None:
             if not use_thread:
                 core.run_cycle(use_source_csv=False, poll_live=False, poll_copy=True)
             time.sleep(0.5)
-        stats = c.load_json(c.CORE_RUNTIME_STATE_FILE, {}).get("copy_poll_stats") or []
+        stats = c.load_json(c.COPY_POLL_STATE_FILE, {}).get("copy_poll_stats") or []
         lags = [s.get("fill_to_ledger_lag_ms_max") for s in stats if s.get("fill_to_ledger_lag_ms_max") is not None]
         meds = [s.get("fill_to_ledger_lag_ms_median") for s in stats if s.get("fill_to_ledger_lag_ms_median") is not None]
         owned = {r.get("exchange_order_id") for r in c.read_csv_rows(c.LIVE_FILLS_CSV)}
@@ -172,7 +172,7 @@ def main() -> None:
     # the lag figures above are a measurement (printed), not a pass/fail threshold: they depend on the machine.
     # What the fix guarantees is checked deterministically below (D1, D2).
     check("M1_OLD_IN_CYCLE_POLL_OWNS_EVERY_FILL_TOO", all(str(o) in owned_old for o in landed_old))
-    stats = c.load_json(c.CORE_RUNTIME_STATE_FILE, {}).get("copy_poll_stats") or []
+    stats = c.load_json(c.COPY_POLL_STATE_FILE, {}).get("copy_poll_stats") or []
     check("M5_LAG_RECORD_KEPT_FOR_THE_PC", stats and {"http_ms", "lock_wait_ms_max", "fill_to_ledger_lag_ms_max", "window_ms",
                                                       "send_lock_hold_ms_max"} <= set(stats[-1]), str(stats[-1:]))
 
@@ -237,7 +237,7 @@ def main() -> None:
     new.copy_ingestor = CappedIngestor()
     seen_starts = []
     capped = new.copy_poll_once(hot=True)
-    newest = c.load_json(c.CORE_RUNTIME_STATE_FILE, {}).get("last_copy_poll_ms") - c.COPY_POLL_HOT_OVERLAP_MS
+    newest = c.copy_cursor_ms() - c.COPY_POLL_HOT_OVERLAP_MS
 
     class Spy:
         def poll_copy_account_fills(self, user_wallet, start_ms, end_ms=None, **_k):
@@ -265,11 +265,32 @@ def main() -> None:
     new.stop()
 
     # ---- S: state write keeps the copy thread's fields; export while adding is safe -----------------------------
-    before = c.load_json(c.CORE_RUNTIME_STATE_FILE, {})
+    before = c.load_json(c.COPY_POLL_STATE_FILE, {})
     new.state_writer.write(c.CycleSummary(), new.dedupe, new.cfg)
-    after = c.load_json(c.CORE_RUNTIME_STATE_FILE, {})
     check("S1_CYCLE_STATE_WRITE_KEEPS_COPY_CURSOR_AND_LAG_RECORD",
-          after.get("last_copy_poll_ms") == before.get("last_copy_poll_ms") and after.get("copy_poll_stats") == before.get("copy_poll_stats"))
+          c.load_json(c.COPY_POLL_STATE_FILE, {}) == before
+          and c.load_json(c.CORE_RUNTIME_STATE_FILE, {}).get("last_copy_poll_ms") == before.get("last_copy_poll_ms"))
+    # P: the copy thread never rewrites the (multi-MB on the PC) runtime state; each poll names its slowest sections
+    rt_mtime = c.CORE_RUNTIME_STATE_FILE.stat().st_mtime_ns
+    oid2, side2 = engine_order()
+    land(oid2, side2)
+    st2 = new.copy_poll_once(hot=True)
+    check("P1_HOT_POLL_LEAVES_THE_RUNTIME_STATE_ALONE", c.CORE_RUNTIME_STATE_FILE.stat().st_mtime_ns == rt_mtime)
+    check("P2_POLL_RECORDS_ITS_SLOWEST_SECTIONS", isinstance(st2.get("slowest_sections"), list)
+          and any(s["section"] == "send_lock:copy_fill_apply" for s in st2["slowest_sections"])
+          and all({"section", "n", "total_ms", "max_ms"} <= set(s) for s in st2["slowest_sections"]),
+          str(st2.get("slowest_sections")))
+    # P3: parsing a big audit CSV does not hold the file lock (every append on the send path waits for it)
+    held = []
+    real_reader = c.csv.DictReader
+
+    def spy_reader(*a, **k):
+        held.append(c.FILE_LOCK._is_owned())
+        return real_reader(*a, **k)
+    c.csv.DictReader = spy_reader
+    c.read_csv_rows(c.LIVE_FILLS_CSV)
+    c.csv.DictReader = real_reader
+    check("P3_CSV_PARSE_OUTSIDE_THE_FILE_LOCK", held == [False], str(held))
     d = c.DedupeStore({})
     errors = []
 

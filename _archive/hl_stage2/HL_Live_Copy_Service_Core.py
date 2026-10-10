@@ -116,6 +116,9 @@ APPEND_ONLY_DIR = AUDIT_DIR / "append_only"
 LIVE_CONFIG_FILE = AUDIT_DIR / "live_config.json"
 SERVICE_STATE_FILE = AUDIT_DIR / "live_service_state.json"
 CORE_RUNTIME_STATE_FILE = AUDIT_DIR / "clean_core_runtime_state.json"
+# the copy thread's cursor and lag record (run 5): a few KB, so each poll no longer re-reads and rewrites the
+# multi-MB runtime state (its de-dup sets) and holds the file lock that every audit append waits for
+COPY_POLL_STATE_FILE = AUDIT_DIR / "copy_poll_state.json"
 LIVE_WS_HEALTH_FILE = AUDIT_DIR / "live_ws_health.json"
 MANUAL_LIVE_POSITIONS_FILE = AUDIT_DIR / "manual_live_positions.json"
 EXCHANGE_ACCOUNT_SNAPSHOT_FILE = AUDIT_DIR / "exchange_account_snapshot.json"
@@ -349,6 +352,38 @@ COPY_POLL_SWEEP_SEC = float(os.getenv("HL_LIVE_COPY_POLL_SWEEP_SEC", "60"))
 # left for the next read for this long instead of being consumed unmatched
 COPY_FILL_UNKNOWN_OID_GRACE_MS = int(os.getenv("HL_LIVE_COPY_FILL_UNKNOWN_OID_GRACE_MS", "10000"))
 RUNTIME_STATE_LOCK = threading.RLock()
+
+_PROF_LOCK = threading.Lock()
+_PROF: Dict[str, List[float]] = {}  # section -> [count, total_ms, max_ms] since the last take
+
+
+class prof:
+    """Per-section timing counters (run 5 profiling): `with prof("write:ledger"):`. prof_take() returns the slowest
+    sections since the last call, for copy_poll_stats."""
+    __slots__ = ("name", "t0")
+
+    def __init__(self, name: str) -> None:
+        self.name = name
+
+    def __enter__(self) -> "prof":
+        self.t0 = time.monotonic()
+        return self
+
+    def __exit__(self, *_exc: Any) -> None:
+        ms = (time.monotonic() - self.t0) * 1000.0
+        with _PROF_LOCK:
+            row = _PROF.setdefault(self.name, [0, 0.0, 0.0])
+            row[0] += 1
+            row[1] += ms
+            if ms > row[2]:
+                row[2] = ms
+
+
+def prof_take(top: int = 8) -> List[Dict[str, Any]]:
+    with _PROF_LOCK:
+        rows = sorted(_PROF.items(), key=lambda kv: -kv[1][2])[:top]
+        _PROF.clear()
+    return [{"section": k, "n": int(v[0]), "total_ms": int(v[1]), "max_ms": int(v[2])} for k, v in rows]
 
 
 class TimedLock:
@@ -906,10 +941,15 @@ def atomic_write_json(path: Path, payload: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_name(f"{path.name}.{os.getpid()}_{threading.get_ident()}_{time.time_ns()}.tmp")
     text = json.dumps(payload, indent=2, sort_keys=True)
-    with FILE_LOCK:
-        record_core_phase("atomic_write_begin", path, {"tmp": str(tmp), "bytes": len(text.encode("utf-8"))})
-        tmp.write_text(text, encoding="utf-8")
-        record_core_phase("atomic_write_tmp_written", path, {"tmp": str(tmp), "tmp_exists": tmp.exists()})
+    # the crash-attribution marker is its own file: written before taking the shared file lock (run 5: three
+    # marker writes per JSON write, all under the lock every audit append waits for)
+    record_core_phase("atomic_write_begin", path, {"tmp": str(tmp), "bytes": len(text)})
+    with prof(f"write:{path.name}"):
+        tmp.write_text(text, encoding="utf-8")  # a unique temp file: no lock needed until the replace
+    with prof("file_lock_wait"):
+        FILE_LOCK.acquire()
+    try:
+      with prof(f"replace:{path.name}"):
         last_exc: Optional[BaseException] = None
         for attempt in range(8):
             try:
@@ -933,7 +973,8 @@ def atomic_write_json(path: Path, payload: Any) -> None:
             except Exception:
                 pass
             raise last_exc
-        record_core_phase("atomic_write_complete", path, {"tmp": str(tmp), "target_exists": path.exists()})
+    finally:
+        FILE_LOCK.release()
 
 
 # start/shutdown records are installed by main() when the engine itself runs (--once/--loop), never on import:
@@ -981,17 +1022,27 @@ def ensure_csv_header(path: Path, fieldnames: List[str]) -> None:
 
 def append_csv(path: Path, fieldnames: List[str], row: Dict[str, Any]) -> None:
     ensure_csv_header(path, fieldnames)
-    with FILE_LOCK:
-        with path.open("a", newline="", encoding="utf-8") as f:
-            csv.DictWriter(f, fieldnames=fieldnames).writerow({k: row.get(k, "") for k in fieldnames})
+    buf = io.StringIO()
+    csv.DictWriter(buf, fieldnames=fieldnames).writerow({k: row.get(k, "") for k in fieldnames})
+    with prof("file_lock_wait"):
+        FILE_LOCK.acquire()
+    try:
+        with prof(f"append:{path.name}"), path.open("a", newline="", encoding="utf-8") as f:
+            f.write(buf.getvalue())
+    finally:
+        FILE_LOCK.release()
 
 
 def read_csv_rows(path: Path) -> List[Dict[str, str]]:
+    """Every row of an audit CSV. Only the byte read is under the file lock; parsing (seconds for the large
+    append-only files on the PC) runs after it, so appends from the send path never wait for a parse (run 5)."""
     if not path.exists() or path.stat().st_size <= 0:
         return []
     with FILE_LOCK:
-        with path.open("r", newline="", encoding="utf-8-sig") as f:
-            return list(csv.DictReader(f))
+        with prof(f"read:{path.name}"):
+            data = path.read_bytes()
+    with prof(f"parse:{path.name}"):
+        return list(csv.DictReader(io.StringIO(data.decode("utf-8-sig"), newline="")))
 
 
 _SEND_ROWS_CACHE: Dict[str, Any] = {"path": None, "ino": None, "size": 0, "mtime": None, "tail": b"", "rows": [], "fields": None}
@@ -2677,6 +2728,10 @@ class ManualLedger:
         self._last_seen_disk_mtime_ns = disk_mtime_ns
 
     def save(self, touched_sleeves: Optional[List[Tuple[str, str]]] = None) -> None:
+        with prof("ledger_save"):
+            self._save(touched_sleeves)
+
+    def _save(self, touched_sleeves: Optional[List[Tuple[str, str]]] = None) -> None:
         self._merge_fresh_disk_before_save(touched_sleeves)
         self._recompute_net(self.data)
         self.data["updated_at"] = utc_now_iso()
@@ -6613,6 +6668,10 @@ class CopyFillMatcher:
         return True
 
     def match_and_apply(self, copy_fill: Dict[str, Any], intents_by_id: Dict[str, Intent]) -> bool:
+        with prof("send_lock:copy_fill_apply"):
+            return self._match_and_apply(copy_fill, intents_by_id)
+
+    def _match_and_apply(self, copy_fill: Dict[str, Any], intents_by_id: Dict[str, Intent]) -> bool:
         copy_id = self.copy_fill_id(copy_fill)
         if copy_id in self.matched_copy_fill_ids:
             oid = self._copy_fill_oid(copy_fill)
@@ -7029,7 +7088,7 @@ class ServiceStateWriter:
 
     def _write_core_state(self, payload: Dict[str, Any], dedupe: "DedupeStore", _eff_gc: Dict[str, Any]) -> None:
         _existing_rt = load_json(CORE_RUNTIME_STATE_FILE, {})
-        _last_copy_poll_ms = int(fnum((_existing_rt or {}).get("last_copy_poll_ms"), 0)) if isinstance(_existing_rt, dict) else 0
+        _last_copy_poll_ms = copy_cursor_ms()  # mirrored here for older readers; the copy thread owns it
         _last_leader_poll_status = ""
         _last_leader_poll_status_ms = 0
         _last_leader_poll_cursor_ms: Any = {}
@@ -7492,8 +7551,10 @@ class LiveCopyCore:
                     summary.leader_fills_deduped += 1
                 return False, "DEDUPED", None
             self.dedupe.processed.update(merged_ids)
-            intent = self.intent_builder.build(fill)
-            self.audit.append_order_intent(intent)
+            with prof("send_lock:intent_build"):
+                intent = self.intent_builder.build(fill)
+            with prof("send_lock:intent_append"):
+                self.audit.append_order_intent(intent)
             self.intents_by_id[intent.intent_id] = intent
             if summary is not None:
                 summary.leader_intents_written += 1
@@ -7515,8 +7576,7 @@ class LiveCopyCore:
 
     def _read_fills_of_withdrawn_limits(self, rows: List[Dict[str, Any]]) -> Tuple[List[Dict[str, Any]], str]:
         """The network half of _own_fills_of_withdrawn_limits: call it without the send lock."""
-        _rt = load_json(CORE_RUNTIME_STATE_FILE, {})
-        last_copy_poll_ms = int(fnum(_rt.get("last_copy_poll_ms"), 0)) if isinstance(_rt, dict) else 0
+        last_copy_poll_ms = copy_cursor_ms()
         since = max(0, max(min(int(fnum(r.get("placed_ms"), 0)) for r in rows), last_copy_poll_ms) - POLL_OVERLAP_MS)
         return self.copy_ingestor.poll_copy_account_fills(USER_WALLET, since, utc_now_ms(), report_partial=True)
 
@@ -7552,8 +7612,7 @@ class LiveCopyCore:
                 return
             fills: List[Dict[str, Any]] = []
             if self.dedupe.copy_account_baseline_set:
-                _rt = load_json(CORE_RUNTIME_STATE_FILE, {})
-                last = int(fnum(_rt.get("last_copy_poll_ms"), 0)) if isinstance(_rt, dict) else 0
+                last = copy_cursor_ms()
                 start = max(0, (last or utc_now_ms()) - POLL_OVERLAP_MS)
                 fills, status = self.copy_ingestor.poll_copy_account_fills(USER_WALLET, start, utc_now_ms(), report_partial=True)
                 if status not in {"COPY_ACCOUNT_POLLED", "COPY_ACCOUNT_POLL_PARTIAL"}:
@@ -7666,9 +7725,9 @@ class LiveCopyCore:
 
     def _copy_poll_once(self, summary: CycleSummary, hot: bool) -> Dict[str, Any]:
         t0 = time.monotonic()
-        copy_state = load_json(CORE_RUNTIME_STATE_FILE, {})
+        copy_state = load_json(COPY_POLL_STATE_FILE, {})
         copy_state = copy_state if isinstance(copy_state, dict) else {}
-        last_poll_ms = int(fnum(copy_state.get("last_copy_poll_ms", load_json(SERVICE_STATE_FILE, {}).get("last_copy_poll_ms", 0)), 0))
+        last_poll_ms = copy_cursor_ms()
         sweep = (not hot) or time.monotonic() - self._last_copy_sweep >= COPY_POLL_SWEEP_SEC
         start_ms = max(0, last_poll_ms - (POLL_OVERLAP_MS if sweep else COPY_POLL_HOT_OVERLAP_MS))
         poll_end_ms = utc_now_ms()
@@ -7778,19 +7837,20 @@ class LiveCopyCore:
                      "fill_to_ledger_lag_ms_max": max(lags) if lags else None,
                      "fill_to_ledger_lag_ms_median": sorted(lags)[len(lags) // 2] if lags else None,
                      "send_lock_hold_ms_max": self._send_lock.take_hold_max_ms() if hot and isinstance(self._send_lock, TimedLock) else None,
-                     "poll_ms": int((time.monotonic() - t0) * 1000), "status": summary.copy_account_status}
-            with RUNTIME_STATE_LOCK:
-                state_update = load_json(CORE_RUNTIME_STATE_FILE, {})
-                if not isinstance(state_update, dict):
-                    state_update = {}
-                state_update["last_copy_poll_ms"] = next_cursor
-                if snapshot_ms:
-                    state_update["last_exchange_snapshot_refresh_ms"] = snapshot_ms
-                recent = [s for s in (state_update.get("copy_poll_stats") or []) if isinstance(s, dict)][-59:]
-                state_update["copy_poll_stats"] = recent + [stats]
-                if not hot:
+                     "poll_ms": int((time.monotonic() - t0) * 1000), "status": summary.copy_account_status,
+                     "slowest_sections": prof_take()}
+            small = {"last_copy_poll_ms": next_cursor,
+                     "last_exchange_snapshot_refresh_ms": snapshot_ms or int(fnum(copy_state.get("last_exchange_snapshot_refresh_ms"), 0)),
+                     "copy_poll_stats": [s for s in (copy_state.get("copy_poll_stats") or []) if isinstance(s, dict)][-59:] + [stats]}
+            with prof("copy_state_write"):
+                atomic_write_json(COPY_POLL_STATE_FILE, small)
+            if not hot:  # the in-cycle poll (no copy thread) also checkpoints the de-dup sets, as before
+                with RUNTIME_STATE_LOCK:
+                    state_update = load_json(CORE_RUNTIME_STATE_FILE, {})
+                    state_update = state_update if isinstance(state_update, dict) else {}
+                    state_update["last_copy_poll_ms"] = next_cursor
                     state_update.update(self.dedupe.export())
-                atomic_write_json(CORE_RUNTIME_STATE_FILE, state_update)
+                    atomic_write_json(CORE_RUNTIME_STATE_FILE, state_update)
             summary.last_copy_poll_age_ms = 0
             self._copy_last = stats
             return stats
@@ -7843,7 +7903,7 @@ class LiveCopyCore:
             hot_send_workers=self.hot_send_workers,
         )
         state_for_age = load_json(CORE_RUNTIME_STATE_FILE, {})
-        last_copy_poll_ms = int(fnum(state_for_age.get("last_copy_poll_ms"), 0)) if isinstance(state_for_age, dict) else 0
+        last_copy_poll_ms = copy_cursor_ms()
         summary.last_copy_poll_age_ms = max(0, utc_now_ms() - last_copy_poll_ms) if last_copy_poll_ms else 0
         # Per-wallet leader poll cursor: avoids re-fetching the full 24h window every cycle.
         _leader_poll_cursors: Dict[str, int] = {}
@@ -8094,7 +8154,7 @@ def _write_csv(path: Path, rows: List[Dict[str, Any]]) -> None:
 def run_self_test() -> None:
     import tempfile
 
-    global BASE_DIR, ENGINE_OUTPUT_DIR, AUDIT_DIR, APPEND_ONLY_DIR, LIVE_CONFIG_FILE, SERVICE_STATE_FILE, CORE_RUNTIME_STATE_FILE
+    global BASE_DIR, ENGINE_OUTPUT_DIR, AUDIT_DIR, APPEND_ONLY_DIR, LIVE_CONFIG_FILE, SERVICE_STATE_FILE, CORE_RUNTIME_STATE_FILE, COPY_POLL_STATE_FILE
     global LIVE_WS_HEALTH_FILE, MANUAL_LIVE_POSITIONS_FILE, EXCHANGE_ACCOUNT_SNAPSHOT_FILE, ORDER_INTENTS_CSV
     global SEND_ATTEMPTS_CSV, LIVE_FILLS_CSV, RECONCILIATION_CSV, ERRORS_CSV, RAW_LEADER_FILLS_CSV
     global MANUAL_WALLETS_FILE, WALLET_GATE_FILE, UI_STATE_FILE, FORBIDDEN_LIVE_POSITIONS_FILE, FORBIDDEN_WOULD_SEND_ORDERS_CSV
@@ -8144,6 +8204,7 @@ def run_self_test() -> None:
         LIVE_CONFIG_FILE = AUDIT_DIR / "live_config.json"
         SERVICE_STATE_FILE = AUDIT_DIR / "live_service_state.json"
         CORE_RUNTIME_STATE_FILE = AUDIT_DIR / "clean_core_runtime_state.json"
+        COPY_POLL_STATE_FILE = AUDIT_DIR / "copy_poll_state.json"
         LIVE_WS_HEALTH_FILE = AUDIT_DIR / "live_ws_health.json"
         MANUAL_LIVE_POSITIONS_FILE = AUDIT_DIR / "manual_live_positions.json"
         EXCHANGE_ACCOUNT_SNAPSHOT_FILE = AUDIT_DIR / "exchange_account_snapshot.json"
@@ -9498,6 +9559,15 @@ def repair_recovery_copy_fills(start_ms: Optional[int] = None, end_ms: Optional[
         "applied": applied,
         "skipped": skipped,
     }
+
+
+def copy_cursor_ms() -> int:
+    """Where the next copy read starts: the copy thread's small state file, else the runtime state (older runs)."""
+    small = load_json(COPY_POLL_STATE_FILE, {})
+    if isinstance(small, dict) and int(fnum(small.get("last_copy_poll_ms"), 0)) > 0:
+        return int(fnum(small.get("last_copy_poll_ms"), 0))
+    rt = load_json(CORE_RUNTIME_STATE_FILE, {})
+    return int(fnum(rt.get("last_copy_poll_ms"), 0)) if isinstance(rt, dict) else 0
 
 
 def canonical_copy_fill_id(cid: str) -> str:
