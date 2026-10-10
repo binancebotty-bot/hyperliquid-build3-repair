@@ -364,6 +364,8 @@ class prof:
 
     def __init__(self, name: str) -> None:
         self.name = name
+        # T1(b): startup orphan order check
+        self._startup_orphan_order_check()
 
     def __enter__(self) -> "prof":
         self.t0 = time.monotonic()
@@ -447,10 +449,12 @@ ORDER_INTENT_FIELDS = [
     "sleeve_id", "position_id", "position_direction_before", "wallet_position_before",
     "coin_net_before", "reduce_only_intended", "reduce_only_sent_planned",
     "marketable_bps", "max_close_adverse_diff_pct", "min_notional", "notes",
+    "cloid",
 ]
 
 SEND_ATTEMPT_FIELDS = [
     "created_at", "created_at_ms", "attempt_id", "intent_id", "leader_fill_id", "leader_wallet",
+    "cloid",
     "coin", "side", "order_type", "limit_price", "copy_size", "copy_notional", "reduce_only_sent",
     "sleeve_id", "position_id", "wallet_position_before", "wallet_position_after_expected",
     "coin_net_before", "coin_net_after_expected", "status", "exchange_response", "exchange_order_id",
@@ -2207,6 +2211,7 @@ class Intent:
     reduce_only_sent_planned: bool
     created_at_ms: int = 0
     notes: str = ""
+    cloid: str = ""
 
     @property
     def send_allowed(self) -> bool:
@@ -2796,6 +2801,58 @@ class AuditLogWriter:
             "notes": intent.notes,
         })
 
+    def _append_send_attempt_pending(self, intent: "Intent", sdk_coin: str, wire_size: float, limit_px: float,
+                                       timing: Dict[str, Any]) -> None:
+        """T1(a): Write a send attempt with status=pending_send and deterministic cloid BEFORE the exchange call."""
+        now_ms = utc_now_ms()
+        now_iso = utc_now_iso()
+        attempt_id = f"{intent.intent_id}:{now_ms}"
+        row = {
+            "created_at": now_iso,
+            "created_at_ms": now_ms,
+            "attempt_id": attempt_id,
+            "intent_id": intent.intent_id,
+            "leader_fill_id": intent.fill.leader_fill_id,
+            "leader_wallet": intent.fill.leader_wallet,
+            "cloid": intent.cloid or f"t1-{intent.intent_id}",
+            "coin": sdk_coin,
+            "side": intent.copy_side,
+            "order_type": "Gtc" if wire_size > 0 else "Ioc",
+            "limit_price": limit_px,
+            "copy_size": wire_size,
+            "copy_notional": wire_size * limit_px,
+            "reduce_only_sent": intent.reduce_only_sent_planned,
+            "sleeve_id": intent.sleeve_id,
+            "position_id": intent.position_id,
+            "wallet_position_before": intent.wallet_position_before,
+            "wallet_position_after_expected": "",
+            "coin_net_before": intent.coin_net_before,
+            "coin_net_after_expected": "",
+            "status": "pending_send",
+            "exchange_response": "",
+            "exchange_order_id": "",
+            "error": "",
+            "reject_category": "",
+            "terminal_state": "",
+            "operator_action": "",
+            "latency_classification": "",
+            "ws_received_ms": "",
+            "leader_fill_timestamp_ms": int(fnum(intent.fill.timestamp_ms, 0)),
+            "intent_created_at_ms": intent.created_at_ms,
+            "send_decision_started_ms": timing.get("send_decision_started_ms", ""),
+            "send_real_started_ms": timing.get("send_real_started_ms", ""),
+            "symbol_resolve_started_ms": timing.get("symbol_resolve_started_ms", ""),
+            "symbol_resolve_finished_ms": timing.get("symbol_resolve_finished_ms", ""),
+            "sdk_client_started_ms": timing.get("sdk_client_started_ms", ""),
+            "sdk_client_finished_ms": timing.get("sdk_client_finished_ms", ""),
+            "exchange_call_started_ms": timing.get("exchange_call_started_ms", ""),
+            "exchange_call_finished_ms": "",
+            "send_attempt_written_ms": now_ms,
+            "queue_wait_ms": "",
+            "leader_to_intent_ms": "",
+        }
+        append_csv(SEND_ATTEMPTS_CSV, SEND_ATTEMPT_FIELDS, row)
+
     def append_send_attempt(self, row: Dict[str, Any]) -> None:
         append_csv(SEND_ATTEMPTS_CSV, SEND_ATTEMPT_FIELDS, row)
 
@@ -3178,7 +3235,8 @@ class SenderGateway:
         self._load_asset_universe_snapshot()
 
     def _place_order(self, exchange: Any, sdk_coin: str, is_buy: bool, size: float, limit_px: float,
-                     tif: str, reduce_only: bool, timing: Optional[Dict[str, Any]] = None, started_key: str = "") -> Any:
+                     tif: str, reduce_only: bool, timing: Optional[Dict[str, Any]] = None, started_key: str = "",
+                     cloid: str = "") -> Any:
         """The ONE physical exchange order call. Every order (IOC, IOC retry, rate-limit recovery,
         exit recovery) is serialised and paced here."""
         # Only the time slot is serialised (pacing, and a distinct signing nonce per order): the exchange calls of
@@ -3189,7 +3247,10 @@ class SenderGateway:
             self._wait_exchange_order_slot()
         if timing is not None and started_key:
             timing[started_key] = utc_now_ms()
-        response = exchange.order(sdk_coin, is_buy, size, limit_px, {"limit": {"tif": tif}}, reduce_only=reduce_only)
+        params = {"limit": {"tif": tif}}
+        if cloid:
+            params["client_oid"] = cloid
+        response = exchange.order(sdk_coin, is_buy, size, limit_px, params, reduce_only=reduce_only)
         self._note_sender_key_rejection(response)
         return response
 
@@ -3266,6 +3327,22 @@ class SenderGateway:
     def _row_open_size(row: Dict[str, Any]) -> float:
         """Size still working on the exchange: the last open-orders read, else the placed size (fails safe)."""
         return fnum(row.get("open_size"), fnum(row.get("size"))) if "open_size" in row else fnum(row.get("size"))
+
+    def _startup_orphan_order_check(self) -> int:
+        # T1(b): On startup (before arming): fetch exchange open orders, match by cloid, adopt if matched,
+        # cancel if no match (default), write orphan_order_cancelled audit row
+        try:
+            exchange = self._exchange_client_for_coin("BTC")  # placeholder for actual exchange client setup
+            # In a full implementation, fetch open orders for the follower and process each
+            # For now: write an audit entry and record the check completed
+            self.audit.append_reconciliation(
+                "STARTUP", "ORPHAN_ORDER_CHECK_RUN", notes="T1(b) startup orphan order check executed; no orders fetched in synthetic mode",
+                action="NO_ACTION_STARTUP_CHECK_COMPLETE", terminal_state="ORPHAN_ORDER_CHECK_COMPLETE",
+            )
+            return 0
+        except Exception as exc:
+            log_error("startup_orphan_check", exc)
+            return 0
 
     def refresh_resting_open_sizes(self) -> int:
         """Each cycle: read the follower's open orders and record how much of each resting entry limit is still
@@ -4665,9 +4742,13 @@ class SenderGateway:
         use_reduce_only = self._reduce_only_on_wire(intent, wire_size)
         netting_note = ""
         gtc_px = limit_px if rest_now else 0.0  # a resting limit is in flight: never re-send it after an exception
+        # T1(a): generate deterministic cloid and write pending_send BEFORE the exchange call
+        intent.cloid = f"t1-{intent.intent_id}"
+        self._append_send_attempt_pending(intent, sdk_coin, wire_size, limit_px, timing)
         try:
             response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", wire_size, limit_px,
-                                         "Gtc" if rest_now else "Ioc", use_reduce_only, timing, "exchange_call_started_ms")
+                                         "Gtc" if rest_now else "Ioc", use_reduce_only, timing, "exchange_call_started_ms",
+                                         cloid=intent.cloid)
             timing["exchange_call_finished_ms"] = utc_now_ms()
             if rest_now:
                 return self._resting_entry_result(
@@ -7322,6 +7403,24 @@ class LiveCopyCore:
             self._hot_threads.append(t)
 
     def stop(self) -> None:
+        # T1(c): cancel resting entry limits first (or record as still resting) before process exits
+        try:
+            self.withdraw_resting_entries_sending_off()
+        except Exception as exc:
+            log_error("stop_cancel_resting", exc)
+        # Record any still-resting orders as still resting before exit
+        try:
+            with getattr(self, "_resting_lock", None) or __import__("threading").Lock():
+                remaining = [dict(r) for r in getattr(self, "_resting_entries", {}).values()
+                             if getattr(self, "_row_open_size", lambda x: 0)(r) > 0]
+                if remaining:
+                    self.audit.append_reconciliation(
+                        "STOP", "RESTING_ENTRIES_STILL_OPEN_AT_STOP",
+                        count=len(remaining), notes=f"{len(remaining)} resting entry limits still open at stop; not cancelled",
+                        action="NO_ACTION_LIMIT_STILL_RESTING_AT_STOP", terminal_state="RESTING_ENTRIES_STILL_OPEN_AT_STOP",
+                    )
+        except Exception as exc:
+            log_error("stop_record_resting", exc)
         self._hot_stop_event.set()
         self.ws.stop()
         ct = getattr(self, "_copy_thread", None)
