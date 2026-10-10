@@ -587,9 +587,9 @@ def main() -> None:
     with p.open("a") as fh:
         fh.write("C\n")
     whole = ids()
-    with p.open("r+") as fh:   # same size, same file, different content
-        fh.seek(len("intent_id,coin\n"))
-        fh.write("7")
+    with p.open("r+b") as fh:   # same size, same file, different content (bytes: Windows writes CRLF line ends)
+        fh.seek(p.read_bytes().index(b"1,BTC"))
+        fh.write(b"7")
     time.sleep(0.01)
     os.utime(p)
     rewritten = ids()
@@ -602,6 +602,7 @@ def main() -> None:
 
     failed = [n for n, ok in RESULTS if not ok]
     print(f"TOTAL={len(RESULTS)} FAILED={len(failed)}")
+    sys.stdout.flush()
     os._exit(1 if failed else 0)
 
 
