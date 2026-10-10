@@ -65,8 +65,9 @@ def main() -> None:
         unknown = c.update_send_attempt_row("nope", {"status": "X"})
     finally:
         c.SEND_ATTEMPTS_CSV = saved_csv
-    check("A5_UPDATE_REPLACES_IN_PLACE", upd and len(rows) == 2 and rows[0]["status"] == "ORDER_FILLED"
-          and rows[0]["exchange_order_id"] == "77" and rows[1]["status"] == "pending_send", str(rows)[:300])
+    check("A5_UPDATE_IS_APPEND_ONLY", upd and len(rows) == 3 and rows[0]["status"] == "pending_send"
+          and rows[2]["attempt_id"] == "a1" and rows[2]["status"] == "ORDER_FILLED"
+          and rows[2]["exchange_order_id"] == "77" and rows[2]["coin"] == "BTC" and rows[1]["status"] == "pending_send", str(rows)[:300])
     check("A6_UPDATE_UNKNOWN_ID_RETURNS_FALSE", unknown is False)
     c.SEND_ATTEMPTS_CSV = p
     try:
@@ -75,8 +76,8 @@ def main() -> None:
         after = [r.get("status") for r in c.send_attempt_rows()]
     finally:
         c.SEND_ATTEMPTS_CSV = saved_csv
-    check("A6B_INCREMENTAL_READER_SEES_THE_UPDATE", before == ["ORDER_FILLED", "pending_send"]
-          and after == ["ORDER_FILLED", "ORDER_REJECTED"], f"{before} -> {after}")
+    check("A6B_INCREMENTAL_READER_SEES_THE_UPDATE", before == ["pending_send", "pending_send", "ORDER_FILLED"]
+          and after == ["pending_send", "pending_send", "ORDER_FILLED", "ORDER_REJECTED"], f"{before} -> {after}")
 
     # ---- wire harness (fake exchange, no network) --------------------------------------------------
     class FakeExchange:
@@ -145,9 +146,9 @@ def main() -> None:
           and rows[0]["cloid"] == expected_cloid and rows[0]["attempt_id"] == expected_attempt, str(rows)[:400])
     gw._append_real_attempt(intent, status, res)
     rows = c.read_csv_rows(c.SEND_ATTEMPTS_CSV)
-    check("A10_FINAL_STATUS_REPLACES_THE_ROW_NOT_A_SECOND_ROW",
-          len(rows) == 1 and rows[0]["status"] == "ORDER_FILLED" and rows[0]["attempt_id"] == expected_attempt
-          and rows[0]["cloid"] == expected_cloid and rows[0]["exchange_order_id"], str(rows)[:400])
+    check("A10_FINAL_ROW_APPENDED_SAME_ATTEMPT_ID",
+          len(rows) == 2 and rows[0]["status"] == "pending_send" and rows[1]["status"] == "ORDER_FILLED"
+          and rows[1]["attempt_id"] == expected_attempt and rows[1]["cloid"] == expected_cloid and rows[1]["exchange_order_id"], str(rows)[:400])
 
     # ---- A11: crash between the two writes (resting limit accepted, engine dies) --------------------
     fake2 = FakeExchange()
@@ -172,6 +173,16 @@ def main() -> None:
         c.SEND_ATTEMPTS_CSV = saved_csv
     check("A12_READERS_TREAT_PENDING_SEND_AS_OWNED", "9090" in matcher.sent_oid_index
           and matcher.sent_oid_index["9090"]["status"] == "pending_send", str(list(matcher.sent_oid_index)))
+
+    # ---- A13: pending-row write failure -> fail closed: no exchange call, a not-attempted result ---------
+    fake3 = FakeExchange()
+    gw = gateway(fake3)
+    def boom(*a, **k):
+        raise OSError("disk full")
+    gw._begin_pending_send = boom
+    ok3, status3, res3, intent3 = send(fake3, follower=100.0)
+    check("A13_PENDING_WRITE_FAILURE_SENDS_NOTHING", (not ok3) and not fake3.calls
+          and "AUDIT_WRITE_FAILED" in str(status3), f"{ok3} {status3} {fake3.calls}")
 
     failed = [n for n, ok in RESULTS if not ok]
     print("TOTAL=%d FAILED=%d" % (len(RESULTS), len(failed)))

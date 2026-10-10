@@ -40,6 +40,7 @@ def main() -> None:
     requests.post = offline
     c.requests.post = offline
     c.USER_WALLET = FOLLOWER
+    c.ConfigManager.auto_send_enabled = property(lambda self: True)  # real sending configured (the check is skipped otherwise)
     c.follower_dex_scope = lambda: [""]          # one dex scope, deterministic
     c._LEARNED_DEXES = set()
 
@@ -87,8 +88,8 @@ def main() -> None:
     adopted = [r for r in recon_rows() if r.get("event") == "STARTUP_ORPHAN" and r.get("status") == "ORPHAN_ORDER_ADOPTED"]
     check("B3_ADOPTION_AUDITED", len(adopted) == 1 and adopted[0].get("exchange_order_id") == "555", str(adopted)[:300])
     promoted = [r for r in c.read_csv_rows(c.SEND_ATTEMPTS_CSV) if r.get("attempt_id") == "pend1"]
-    check("B4_PENDING_ROW_PROMOTED_TO_ORDER_RESTING", promoted and promoted[0]["status"] == "ORDER_RESTING"
-          and promoted[0]["exchange_order_id"] == "555", str(promoted)[:300])
+    check("B4_PENDING_ROW_PROMOTED_TO_ORDER_RESTING", promoted and promoted[-1]["status"] == "ORDER_RESTING"
+          and promoted[-1]["exchange_order_id"] == "555", str(promoted)[:300])
 
     # ---- B5: an unknown order is cancelled and audited ----------------------------------------------
     res, fake, gw = run(orders=[{"oid": 777, "coin": "BTC", "side": "A", "sz": "2.0", "limitPx": "99",

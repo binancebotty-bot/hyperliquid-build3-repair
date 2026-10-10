@@ -1068,33 +1068,21 @@ def append_csv(path: Path, fieldnames: List[str], row: Dict[str, Any]) -> None:
 
 
 def update_send_attempt_row(attempt_id: str, updates: Dict[str, Any]) -> bool:
-    """T1a: replace the send_attempts.csv row carrying attempt_id (the pending_send row written before the
-    exchange call) with the final result, so one send attempt is always one row. Returns False if no row
-    carries that attempt_id, in which case the caller appends. Rewrites the file only on this update path."""
-    path = SEND_ATTEMPTS_CSV
-    if not attempt_id or not path.exists() or path.stat().st_size <= 0:
+    """T1a: record the result of a send attempt whose pending_send row (written before the exchange call) already
+    exists. APPEND-ONLY: the file is never rewritten (a rewrite of the 0.2 GB audit file per order would stall the
+    send path and could drop rows appended meanwhile). The newest row for an attempt_id is its current state; the
+    earlier pending_send row stays as the crash record. Returns False if no row carries attempt_id."""
+    if not attempt_id:
         return False
-    with FILE_LOCK:
-        data = path.read_bytes()
-    rows = list(csv.DictReader(io.StringIO(data.decode("utf-8-sig"), newline="")))
-    found = False
-    for row in rows:
+    base = None
+    for row in reversed(send_attempt_rows()):
         if row.get("attempt_id") == attempt_id:
-            row.update(updates)
-            found = True
+            base = dict(row)
             break
-    if not found:
+    if base is None:
         return False
-    buf = io.StringIO()
-    writer = csv.DictWriter(buf, fieldnames=SEND_ATTEMPT_FIELDS)
-    writer.writeheader()
-    for row in rows:
-        writer.writerow({k: row.get(k, "") for k in SEND_ATTEMPT_FIELDS})
-    with FILE_LOCK:
-        with path.open("w", newline="", encoding="utf-8") as fh:
-            fh.write(buf.getvalue())
-    # the incremental reader caches by path/inode/size: force a full re-read of the rewritten file
-    _SEND_ROWS_CACHE.update(path=str(path), ino=None, size=0, mtime=None, tail=b"", rows=[], fields=None)
+    base.update(updates)
+    append_csv(SEND_ATTEMPTS_CSV, SEND_ATTEMPT_FIELDS, base)
     return True
 
 
@@ -3469,9 +3457,12 @@ class SenderGateway:
         matched to an engine send row / resting entry (by cloid or order id): a match is adopted as a resting
         engine order; no match is cancelled and audited as orphan_order_cancelled. A failed read fails closed
         (refuses to arm). Never runs on a mainnet follower without --confirm-mainnet-follower (existing guard)."""
-        if FOLLOWER_NETWORK == "mainnet" and not MAINNET_ORDERS_CONFIRMED:
+        if FOLLOWER_NETWORK == "mainnet":  # never cancels a mainnet order the engine cannot prove it placed (Boss manages those)
             return {"ok": True, "skipped": True, "adopted": [], "cancelled": [],
-                    "detail": "mainnet follower without --confirm-mainnet-follower: open orders left untouched"}
+                    "detail": "mainnet follower: open orders left untouched (cancel-unknown is testnet-only)"}
+        if not USER_WALLET or not self.cfg.auto_send_enabled or bval(os.getenv("HL_LIVE_MOCK_SEND"), False):
+            return {"ok": True, "skipped": True, "adopted": [], "cancelled": [],
+                    "detail": "no real sending configured (no follower wallet, auto-send off or mock send): not checked"}
         cloids, oids = self._engine_owned_cloids_and_oids()
         ok, orders, detail = self._read_open_orders()
         if not ok:
@@ -3519,7 +3510,11 @@ class SenderGateway:
         cl = str(cloid or "").strip().lower()
         if not cl:
             return False
-        for row in read_csv_rows(SEND_ATTEMPTS_CSV):
+        rows = read_csv_rows(SEND_ATTEMPTS_CSV)
+        latest = {}
+        for row in rows:
+            latest[str(row.get("attempt_id") or "")] = row  # append-only: the newest row per attempt is its state
+        for row in latest.values():
             if (str(row.get("cloid") or "").strip().lower() == cl
                     and str(row.get("status") or "").lower() == "pending_send"):
                 return update_send_attempt_row(str(row.get("attempt_id") or ""),
@@ -5031,8 +5026,18 @@ class SenderGateway:
         # T1a: write the pending_send row (with the cloid) before the one physical call, then replace it below
         cloid = str(timing.get("send_cloid") or generate_cloid(intent.intent_id))
         timing["send_cloid"] = cloid
-        self._begin_pending_send(intent, "Gtc" if rest_now else "Ioc", "REAL_GTC" if rest_now else "REAL_IOC",
-                                 limit_px, wire_size, cloid, timing)
+        try:
+            self._begin_pending_send(intent, "Gtc" if rest_now else "Ioc", "REAL_GTC" if rest_now else "REAL_IOC",
+                                     limit_px, wire_size, cloid, timing)
+        except Exception as exc:  # fail closed: no crash record means no order (the caller releases any exit reservation)
+            log_error("begin_pending_send", exc)
+            return False, "SEND_NOT_ATTEMPTED_AUDIT_WRITE_FAILED", {
+                "status": "AUDIT_WRITE_FAILED", "error": repr(exc), "exchange_response": {}, "oid": "",
+                "exchange_called": False, "write_reconciliation": True,
+                "notes": f"pending_send row could not be written ({exc!r}); order not sent",
+                "reject_category": "AUDIT_WRITE_FAILED", "terminal_state": "AUDIT_WRITE_FAILED",
+                "operator_action": "CHECK_DISK_AND_AUDIT_FILES", "timing": timing,
+            }
         try:
             response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", wire_size, limit_px,
                                          "Gtc" if rest_now else "Ioc", use_reduce_only, timing, "exchange_call_started_ms",
@@ -6130,8 +6135,7 @@ class SenderGateway:
             "notes": result.get("notes") or "real exchange IOC attempt",
             "cloid": cloid,
         }
-        if not update_send_attempt_row(attempt_id, row):
-            self.audit.append_send_attempt(row)
+        self.audit.append_send_attempt(row)  # same attempt_id as the pending_send row: the newest row is the state
         if status != "ORDER_FILLED":
             self.audit.append_reconciliation(
                 "SEND_TERMINAL", terminal_state,

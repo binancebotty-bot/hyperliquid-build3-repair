@@ -39,6 +39,7 @@ def main() -> None:
     requests.post = offline
     c.requests.post = offline
     c.USER_WALLET = FOLLOWER
+    c.ConfigManager.auto_send_enabled = property(lambda self: True)  # real sending configured (the check is skipped otherwise)
     c.follower_dex_scope = lambda: [""]
     c._LEARNED_DEXES = set()
     c.atomic_write_json(c.RESTING_ENTRY_ORDERS_FILE, {})

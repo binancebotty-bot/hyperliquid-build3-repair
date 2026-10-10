@@ -1636,7 +1636,11 @@ def _load_recent_send_attempts(limit: int = 20) -> List[Dict[str, Any]]:
     if not SEND_ATTEMPTS_CSV.exists():
         return []
     try:
-        rows, _ = _read_csv_incremental(SEND_ATTEMPTS_CSV, limit=limit)
+        rows, _ = _read_csv_incremental(SEND_ATTEMPTS_CSV, limit=limit * 4)
+        latest_rows: Dict[str, Dict[str, Any]] = {}
+        for n, row in enumerate(rows):  # newest row per attempt_id is the state (pending_send then final)
+            latest_rows[str(row.get("attempt_id") or "") or ("row%d" % n)] = row
+        rows = list(latest_rows.values())[-limit:]
         out: List[Dict[str, Any]] = []
         for row in rows:
             # Support both old "response" column and new-core "exchange_response" column
@@ -4161,7 +4165,11 @@ def _load_send_attempt_counts() -> Dict[str, int]:
         return counts
     try:
         rows, _ = _read_csv_incremental(SEND_ATTEMPTS_CSV, limit=None)
-        for row in rows:
+        # a send has a pending_send row and a final row with the same attempt_id: the newest row is its state
+        latest: Dict[str, Dict[str, Any]] = {}
+        for n, row in enumerate(rows):
+            latest[str(row.get("attempt_id") or "") or ("row%d" % n)] = row
+        for row in latest.values():
             s = str(row.get("status") or "UNKNOWN")
             counts[s] = counts.get(s, 0) + 1
     except Exception:
