@@ -114,6 +114,184 @@
      "evidence": "F3: 0x7019's short SELL 447 STABLE flattened 0x7717's long on the exchange while the ledger still showed long 447 (before Boss's netting ruling)."
     }
    ]
+  },
+  {
+   "run": "run4",
+   "date": "2026-10-09",
+   "commit": "3c03099",
+   "network": "leaders mainnet, follower testnet",
+   "follower_network": "testnet",
+   "report": "RUN4_FINDINGS.md",
+   "summary": "659 sends / 414 filled in the first 18 min with every exchange order id traced to the engine and the ledger matching the exchange within 2-10 s; netting across leaders worked. Then latency ran away (leader->send p50 93-99 min, backlog 99,906), the total/per-asset caps were breached by inherited + resting exposure, exit-recovery fills were not ledgered (~24 persistent mismatches) and disarm let 33 queued orders out.",
+   "results": [
+    {
+     "id": "ORD-001",
+     "result": "PASS",
+     "evidence": "every exchange order id traced to the engine in the first 18 min"
+    },
+    {
+     "id": "ORD-009",
+     "result": "PASS",
+     "evidence": "sender key valid on the follower network; orders went to testnet with mainnet leaders"
+    },
+    {
+     "id": "ORD-010",
+     "result": "FAIL",
+     "evidence": "Leader->send p50 rose 21 s (first 5 min) -> 57 s (10-18 min) -> 58/65/93/99 min overnight (p90 113 min); the whole delay is queue wait; send_backlog 99,906 at 22:11"
+    },
+    {
+     "id": "ENG-018",
+     "result": "PASS",
+     "evidence": "netting across leaders works and is shown per coin (which leader holds what)"
+    },
+    {
+     "id": "ENG-019",
+     "result": "FAIL",
+     "evidence": "send_backlog 99,906 with the main loop far behind the 10 very busy leaders (same run-4 latency evidence)"
+    },
+    {
+     "id": "RISK-001",
+     "result": "FAIL",
+     "evidence": "exchange gross notional $3,161 vs the $1,200 total live exposure cap"
+    },
+    {
+     "id": "RISK-002",
+     "result": "FAIL",
+     "evidence": "one position $548 vs the $300 per-asset directional cap; 186 resting orders worth $2,256 not counted in exposure"
+    },
+    {
+     "id": "RISK-004",
+     "result": "FAIL",
+     "evidence": "An entry limit filled at $59.55 (order 62279966857) - over the $50 max per-order notional cap; the cap did not block it (missed-entry GTC limits are not cap-checked). The run's own watchdog auto-disarmed on it: watch_log 18:19:22Z 'DISARMED entry fill over cap: exchange fills over max order $50: [(62279966857, 59.55)]'."
+    },
+    {
+     "id": "SET-009",
+     "result": "FAIL",
+     "evidence": "exit-recovery reduce-only standing limits (EXIT_RECOVERY_QUEUED 172) are not written to send_attempts; their fills return COPY_FILL_UNMATCHED / NO_INTENT, so ~24 ledger-vs-exchange mismatches persist"
+    },
+    {
+     "id": "SET-003",
+     "result": "FAIL",
+     "evidence": "terminal rejects did not clear safely: EXIT_RECOVERY_QUEUE_FAILED 190, CLOSE_REJECTED_REDUCE_ONLY 258, PENDING_EXIT_GUARD 1,661"
+    },
+    {
+     "id": "LIFE-002",
+     "result": "FAIL",
+     "evidence": "disarm is not immediate: 33 orders were sent 22:13:21-22:13:55 after disarm (already queued); resting entry limits stayed after disarm"
+    },
+    {
+     "id": "NET-003",
+     "result": "PASS",
+     "evidence": "network separation held: leaders read from mainnet, orders placed on testnet"
+    },
+    {
+     "id": "NET-007",
+     "result": "PASS",
+     "evidence": "certification copied the 10 most active real mainnet leaders to the testnet follower"
+    }
+   ]
+  },
+  {
+   "run": "run5",
+   "date": "2026-10-10",
+   "commit": "cff92fa",
+   "network": "leaders mainnet, follower testnet",
+   "follower_network": "testnet",
+   "report": "RUN5_FINDINGS.md",
+   "summary": "Restarts onto run-4 fixes: ledger repair applied 22/22 verified (RESOLV refused), disarm now withdraws resting entry limits, every exchange order traced to an engine send or an audited recovery. Latency was still minutes (queue wait dominates) and inherited exposure stayed ~2-3x the caps.",
+   "results": [
+    {
+     "id": "ORD-001",
+     "result": "PASS",
+     "evidence": "every exchange order traced to an engine send or an audited recovery order (run5 watch_log MATCH checks)"
+    },
+    {
+     "id": "ORD-010",
+     "result": "FAIL",
+     "evidence": "leader->send p50 36 s (03h) -> 126 s (04h) -> 775 s (05h), p90 1,159 s; queue wait is almost the whole delay; exchange call ~1 s"
+    },
+    {
+     "id": "ENG-012",
+     "result": "FAIL",
+     "evidence": "low-latency copy far from the 0.5 s target: run5 leader->send p50 minutes (queue wait dominates)"
+    },
+    {
+     "id": "RISK-001",
+     "result": "FAIL",
+     "evidence": "exchange gross notional $2,434-$3,127 vs the $1,200 total live exposure cap; new entries blocked but exits had not brought it under"
+    },
+    {
+     "id": "RISK-002",
+     "result": "FAIL",
+     "evidence": "largest position CASHCAT $308 vs the $300 per-asset cap"
+    },
+    {
+     "id": "SET-009",
+     "result": "FAIL",
+     "evidence": "ledger matched the exchange on every coin except RESOLV (stale +1, repair refused an unowned fill) - a known persistent divergence"
+    },
+    {
+     "id": "SET-008",
+     "result": "FAIL",
+     "evidence": "exit_analysis 06:30Z: of 2,743 EXIT/REDUCE rows, 182 EXIT_RECOVERY_REQUIRED, 13 CLOSE_REJECTED_REDUCE_ONLY_REJECTED, 1 price/tick rejected, 62 dust BELOW_MIN_NOTIONAL; exits do not reliably complete on illiquid testnet books"
+    },
+    {
+     "id": "LIFE-002",
+     "result": "PASS",
+     "evidence": "with sending off the engine withdrew 185 resting entry limits and kept 1 reduce-only exit (run-4 disarm defect fixed and observed)"
+    },
+    {
+     "id": "LIFE-003",
+     "result": "PASS",
+     "evidence": "clean restarts onto 8946636 / 5c6bf0c / cff92fa: sending off for each, re-armed after first pass, ledger MATCH each time"
+    }
+   ]
+  },
+  {
+   "run": "run6",
+   "date": "2026-10-10",
+   "commit": "fc7efd7",
+   "network": "leaders mainnet, follower testnet",
+   "follower_network": "testnet",
+   "report": "run5/latency_run6f_fc7efd7_w12.txt (+ run5/armed.txt)",
+   "summary": "Runs 6a-6f (03b473a w8 -> w24 -> 15cc943 w12 -> fc7efd7 w12). Every restart re-armed with a ledger MATCH. Latency improved (leader->exchange-done p50 80.8 s on 6c -> 47.1 s on 6f, queue wait p50 15.2 s) and the backlog stayed small, but it is still far from target; the leader live feed delivered nothing (ws rows 0), so fills arrived via the 30 s poll.",
+   "results": [
+    {
+     "id": "ORD-009",
+     "result": "PASS",
+     "evidence": "run6f 401 of 528 sends ORDER_FILLED on testnet - signing key valid on the follower network"
+    },
+    {
+     "id": "ORD-010",
+     "result": "FAIL",
+     "evidence": "run6f fc7efd7 w12: leader->exchange-done p50 47.1 s / p90 71.1 s; queue wait p50 15.2 s / p90 31.9 s; target 0.5 s"
+    },
+    {
+     "id": "ENG-012",
+     "result": "FAIL",
+     "evidence": "low-latency copy still far from 0.5 s: run6c 80.8 s -> run6f 47.1 s p50 leader->done"
+    },
+    {
+     "id": "ENG-019",
+     "result": "PASS",
+     "evidence": "send backlog 12-24 at each arm (run 4: 99,906); queue wait p50 15.2 s - the main loop kept up with the 10 busy leaders in runs 6c-6f"
+    },
+    {
+     "id": "ENG-007",
+     "result": "PASS",
+     "evidence": "restart/gap recovery: each re-arm (18:48:55 / 19:21:04 / 19:37:44 Z) ended in a ledger MATCH"
+    },
+    {
+     "id": "LIFE-003",
+     "result": "PASS",
+     "evidence": "clean restarts across 03b473a w8 -> w24 -> 15cc943 w12 -> fc7efd7 w12, ledger MATCH each arm"
+    },
+    {
+     "id": "NET-003",
+     "result": "PASS",
+     "evidence": "leaders mainnet / follower testnet held across all run-6 arms; all orders on testnet"
+    }
+   ]
   }
  ]
 }
