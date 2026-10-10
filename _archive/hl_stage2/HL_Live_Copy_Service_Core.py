@@ -7977,16 +7977,32 @@ class LiveCopyCore:
             self.dedupe.processed.update(merged_ids)
             with prof("send_lock:intent_build"):
                 intent = self.intent_builder.build(fill)
-            with prof("send_lock:intent_append"):
-                self.audit.append_order_intent(intent)
-            stamp_fill(fill, "intent_written_ms")
             self.intents_by_id[intent.intent_id] = intent
             if summary is not None:
                 summary.leader_intents_written += 1
             is_pre_cutover = self.dedupe.live_start_ms > 0 and fill.timestamp_ms < self.dedupe.live_start_ms
-            if is_pre_cutover:
-                return True, "PRE_CUTOVER", intent
-        sent, send_status = self.sender.send_if_allowed(intent, entry_block_reason)
+        # The audit row is written AFTER the send lock is released (and still before any order can be sent): the
+        # CSV append waits on the shared file lock, which a big audit read can hold for seconds, and held inside the
+        # send lock that wait stopped every other worker from building its intent (replay throughput, run 6).
+        with prof("intent_append"):
+            self.audit.append_order_intent(intent)
+        stamp_fill(fill, "intent_written_ms")
+        if is_pre_cutover:
+            return True, "PRE_CUTOVER", intent
+        try:
+            sent, send_status = self.sender.send_if_allowed(intent, entry_block_reason)
+        except Exception as exc:  # run 6f: allowed intents with no send row. Every allowed intent ends in a terminal row.
+            log_error("send_if_allowed", exc)
+            try:
+                self.audit.append_reconciliation(
+                    "SEND_TERMINAL", "BLOCKED_SEND_EXCEPTION", leader_wallet=fill.leader_wallet,
+                    leader_fill_id=fill.leader_fill_id, intent_id=intent.intent_id, coin=fill.coin,
+                    action="SEND_TERMINAL_EXCEPTION", reject_category="SEND_EXCEPTION",
+                    terminal_state="BLOCKED_SEND_EXCEPTION", engine_can_close=True, engine_can_send=False,
+                    notes=f"{type(exc).__name__}: {str(exc)[:300]}; exchange call state unknown, check the exchange")
+            except Exception as exc2:
+                log_error("send_exception_audit", exc2)
+            return False, "SEND_EXCEPTION", intent
         if sent:
             if summary is not None:
                 summary.leader_sends_attempted += 1
