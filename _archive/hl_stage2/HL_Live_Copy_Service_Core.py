@@ -6013,6 +6013,10 @@ class WSManager:
         self._socket_opened_at_ms: int = 0     # when the current socket opened (subscribe clock)
         self._last_subscribe_ms: int = 0       # when subscribe messages were last sent
         self._message_errors: int = 0
+        self._refusals: int = 0                # error replies from HL (e.g. the 15-user subscription limit)
+        self._last_refusal: str = ""
+        self._last_refusal_ms: int = 0
+        self._logged_refusal: str = ""
         self._heartbeat_interval: float = float(os.getenv("HL_LIVE_WS_HEARTBEAT_SEC", "25"))
         self._hb_thread: Optional[threading.Thread] = None
 
@@ -6107,6 +6111,16 @@ class WSManager:
             if isinstance(payload, dict) and payload.get("channel") == "pong":
                 self._last_pong_ms = utc_now_ms()
                 return
+            if isinstance(payload, dict) and payload.get("channel") == "error":
+                # e.g. "Cannot track more than 15 total users": HL refused a subscription (per-IP quota shared with
+                # every other process on this machine). Never silent: counted, kept verbatim, shown in the health.
+                _txt = str(payload.get("data"))[:300]
+                self._refusals += 1
+                self._last_refusal, self._last_refusal_ms = _txt, utc_now_ms()
+                if _txt != self._logged_refusal:
+                    self._logged_refusal = _txt
+                    log_error("ws_subscription_refused", RuntimeError(_txt))
+                return
             if isinstance(payload, dict) and payload.get("channel") == "subscriptionResponse":
                 _d = payload.get("data")
                 _sub = _d.get("subscription") if isinstance(_d, dict) else None
@@ -6199,8 +6213,12 @@ class WSManager:
                 "stale": is_stale,
                 "last_error": self.last_error.get(w, ""),
             }
+        refused = bool(self._refusals and len(self._subscribed) < len(self.wallets))
         if not self.enabled:
             ws_status, worst_grade = "WS_DISABLED", "DISABLED"
+        elif refused:
+            # HL refused some or all subscriptions: those leaders are NOT on the live feed; the poll covers them
+            ws_status, worst_grade = "WS_DEGRADED", "DEGRADED"
         elif subscribe_pending:
             # R0: socket open but no wallet acked or delivered a message within the bound.
             ws_status, worst_grade = "WS_DEGRADED", "DEGRADED"
@@ -6220,6 +6238,10 @@ class WSManager:
             "socket_open": socket_open,
             "subscribe_acked": len(self._subscribed),
             "subscribe_pending": subscribe_pending,
+            "subscribe_refused": self._refusals,
+            "last_refusal": self._last_refusal,
+            "last_refusal_ms": self._last_refusal_ms,
+            "wallets_without_feed": max(0, len(self.wallets) - len(self._subscribed)),
             "last_subscribe_ms": self._last_subscribe_ms,
             "message_errors": self._message_errors,
             "thread_alive": thread_alive,
@@ -8077,13 +8099,32 @@ class LiveCopyCore:
                 self.reconciler.fetch_snapshot()
             self._last_truth_refresh = time.monotonic()
 
+    def leader_poll_interval_sec(self) -> float:
+        """How often the leaders are polled. The live feed healthy (socket open and HL acked a subscription): the
+        poll is only a backstop, every HL_LIVE_LEADER_POLL_INTERVAL_SEC (30 s). Feed down, or open but never
+        acked: the poll IS the detector, so it runs faster, scaled to the info rate limit (about 20 weight per
+        wallet read, ~600 of the 1200/min budget: 2.2 s per active leader, never under 5 s)."""
+        ws = self.ws
+        if not ws.enabled:
+            return 0.0  # no feed configured: the poll runs every cycle (tests, polling-only mode)
+        active = {normalise_wallet(w) for w in self.cfg.active_wallets()}
+        acked = {normalise_wallet(w) for w in (getattr(ws, "_subscribed", ()) or ())}
+        # the poll may relax to the backstop rate only when EVERY followed leader is on the live feed
+        feed_ok = bool(ws.enabled and getattr(ws, "_socket_open", False) and active and active <= acked)
+        if feed_ok:
+            return max(0.0, fnum(os.getenv("HL_LIVE_LEADER_POLL_INTERVAL_SEC"), 30.0))
+        n = max(1, len(self.cfg.active_wallets()))
+        auto = max(2.0, 2.2 * n)
+        env = os.getenv("HL_LIVE_LEADER_POLL_NOFEED_SEC")
+        fast = max(1.0, fnum(env, auto)) if env else auto
+        return min(fast, max(0.0, fnum(os.getenv("HL_LIVE_LEADER_POLL_INTERVAL_SEC"), 30.0)))
+
     def _leader_poll_due(self) -> bool:
         """The live feed is the hot path; the poll is the missed-fill backstop. While the feed's socket is open the
         leaders are polled every HL_LIVE_LEADER_POLL_INTERVAL_SEC (default 30 s, within the info rate limit for
         10 busy wallets); without the feed, every cycle."""
         now = utc_now_ms()
-        interval = (max(0.0, fnum(os.getenv("HL_LIVE_LEADER_POLL_INTERVAL_SEC"), 30.0))
-                    if self.ws.enabled and getattr(self.ws, "_socket_open", False) else 0.0)
+        interval = self.leader_poll_interval_sec()
         if interval and now - getattr(self, "_last_leader_poll_ms", 0) < interval * 1000:
             return False
         self._last_leader_poll_ms = now
