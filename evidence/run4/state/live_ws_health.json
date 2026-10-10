@@ -1,0 +1,79 @@
+{
+  "created_at": "2026-10-09T22:10:35.768932+00:00",
+  "created_at_ms": 1791583835768,
+  "wallets": {
+    "0x010461c14e146ac35fe42271bdc1134ee31c703a": {
+      "last_error": "",
+      "last_message_ms": 1791583834873,
+      "stale": false,
+      "stale_ms": 895
+    },
+    "0x1b232b41b0e75550c59288b99874e4a8142fbe21": {
+      "last_error": "",
+      "last_message_ms": 1791579567688,
+      "stale": false,
+      "stale_ms": 4268080
+    },
+    "0x31ca8395cf837de08b24da3f660e77761dfb974b": {
+      "last_error": "",
+      "last_message_ms": 1791583834457,
+      "stale": false,
+      "stale_ms": 1311
+    },
+    "0x6ba889db7f923622d3548f621ecc2054b80c1817": {
+      "last_error": "",
+      "last_message_ms": 1791583832966,
+      "stale": false,
+      "stale_ms": 2802
+    },
+    "0x7019197d2b2ae7b44eee12a76015eb1fe94abd36": {
+      "last_error": "",
+      "last_message_ms": 1791581276769,
+      "stale": false,
+      "stale_ms": 2558999
+    },
+    "0x7717a7a245d9f950e586822b8c9b46863ed7bd7e": {
+      "last_error": "",
+      "last_message_ms": 1791583835501,
+      "stale": false,
+      "stale_ms": 267
+    },
+    "0x936cf4fb95c30ce83f658b5bbb247e4bb381bb0f": {
+      "last_error": "",
+      "last_message_ms": 1791583834457,
+      "stale": false,
+      "stale_ms": 1311
+    },
+    "0xc179e03922afe8fa9533d3f896338b9fb87ce0c8": {
+      "last_error": "",
+      "last_message_ms": 1791581949605,
+      "stale": false,
+      "stale_ms": 1886163
+    },
+    "0xd4c1f7e8d876c4749228d515473d36f919583d1d": {
+      "last_error": "",
+      "last_message_ms": 1791583835054,
+      "stale": false,
+      "stale_ms": 714
+    },
+    "0xf5d81a135f756ca16544e53c20fc20643ec3ad53": {
+      "last_error": "",
+      "last_message_ms": 1791583825050,
+      "stale": false,
+      "stale_ms": 10718
+    }
+  },
+  "ws_summary": {
+    "last_ping_ms": 1791583812610,
+    "last_pong_ms": 1791583812839,
+    "last_socket_error": "fin=1 opcode=8 data=b'\\x03\\xe8Expired'",
+    "open_count": 1,
+    "socket_open": true,
+    "stale_count": 0,
+    "thread_alive": true,
+    "total_reconnect_count": 1,
+    "wallet_count": 10,
+    "worst_health_grade": "OK",
+    "ws_status": "WS_OK"
+  }
+}

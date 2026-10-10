@@ -1,0 +1,78 @@
+{
+  "archived_wallets": {},
+  "auto_send_enabled": true,
+  "global_controls": {
+    "marketable_bps": 20.0,
+    "max_asset_directional_exposure_usd": 2000.0,
+    "max_close_adverse_diff_pct": 0.0,
+    "max_daily_loss_usd": 1000.0,
+    "max_order_notional_usd": 500.0,
+    "max_total_live_exposure_usd": 5000.0,
+    "max_wallet_exposure_usd": 600.0,
+    "stale_entry_sec": 30.0,
+    "symbol_allowlist": [],
+    "symbol_blocklist": []
+  },
+  "wallets": {
+    "0x010461c14e146ac35fe42271bdc1134ee31c703a": {
+      "copy_mode": "fixed",
+      "enabled": true,
+      "fixed_notional": 12,
+      "mode": "LIVE"
+    },
+    "0x1b232b41b0e75550c59288b99874e4a8142fbe21": {
+      "copy_mode": "fixed",
+      "enabled": true,
+      "fixed_notional": 12,
+      "mode": "LIVE"
+    },
+    "0x31ca8395cf837de08b24da3f660e77761dfb974b": {
+      "copy_mode": "fixed",
+      "enabled": true,
+      "fixed_notional": 12,
+      "mode": "LIVE"
+    },
+    "0x6ba889db7f923622d3548f621ecc2054b80c1817": {
+      "copy_mode": "fixed",
+      "enabled": true,
+      "fixed_notional": 12,
+      "mode": "LIVE"
+    },
+    "0x7019197d2b2ae7b44eee12a76015eb1fe94abd36": {
+      "copy_mode": "fixed",
+      "enabled": true,
+      "fixed_notional": 12,
+      "mode": "LIVE"
+    },
+    "0x7717a7a245d9f950e586822b8c9b46863ed7bd7e": {
+      "copy_mode": "fixed",
+      "enabled": true,
+      "fixed_notional": 12,
+      "mode": "LIVE"
+    },
+    "0x936cf4fb95c30ce83f658b5bbb247e4bb381bb0f": {
+      "copy_mode": "fixed",
+      "enabled": true,
+      "fixed_notional": 12,
+      "mode": "LIVE"
+    },
+    "0xc179e03922afe8fa9533d3f896338b9fb87ce0c8": {
+      "copy_mode": "fixed",
+      "enabled": true,
+      "fixed_notional": 12,
+      "mode": "LIVE"
+    },
+    "0xd4c1f7e8d876c4749228d515473d36f919583d1d": {
+      "copy_mode": "fixed",
+      "enabled": true,
+      "fixed_notional": 12,
+      "mode": "LIVE"
+    },
+    "0xf5d81a135f756ca16544e53c20fc20643ec3ad53": {
+      "copy_mode": "fixed",
+      "enabled": true,
+      "fixed_notional": 12,
+      "mode": "LIVE"
+    }
+  }
+}

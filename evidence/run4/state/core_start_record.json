@@ -1,0 +1,22 @@
+{
+  "argv": [
+    "HL_Live_Copy_Service_Core.py",
+    "--ws",
+    "--loop",
+    "--interval",
+    "10",
+    "--poll-live",
+    "--poll-copy"
+  ],
+  "cwd": "C:\\Users\\wigmore\\trading_stack\\hl-build3-testnet-cert\\_archive\\hl_stage2",
+  "event": "core_start",
+  "executable": "C:\\Users\\wigmore\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe",
+  "parent_pid": 45912,
+  "pid": 16176,
+  "script": "C:\\Users\\wigmore\\trading_stack\\hl-build3-testnet-cert\\_archive\\hl_stage2\\HL_Live_Copy_Service_Core.py",
+  "started_at": "2026-10-09T17:59:16.693071+00:00",
+  "started_at_ms": 1791568756693,
+  "startup_temp_count": 0,
+  "startup_temp_scan_file": "C:\\Users\\wigmore\\trading_stack\\hl-build3-testnet-cert\\_archive\\hl_stage2\\hl_live_copy_audit_testnet\\core_startup_temp_scan.json",
+  "timestamp": "2026-10-09T17:59:16.696483+00:00"
+}
