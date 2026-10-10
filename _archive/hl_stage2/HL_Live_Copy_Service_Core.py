@@ -3419,6 +3419,138 @@ class SenderGateway:
         })
         return attempt_id
 
+    def _engine_owned_cloids_and_oids(self):
+        """Cloids and order ids this engine owns: every send_attempts row plus every resting entry."""
+        cloids, oids = set(), set()
+        for row in read_csv_rows(SEND_ATTEMPTS_CSV):
+            cl = str(row.get("cloid") or "").strip().lower()
+            if cl:
+                cloids.add(cl)
+            oid = str(row.get("exchange_order_id") or "").strip()
+            if oid:
+                oids.add(oid)
+        with self._resting_lock:
+            for oid, row in self._resting_entries.items():
+                oids.add(str(oid))
+                cl = str(row.get("cloid") or "").strip().lower()
+                if cl:
+                    cloids.add(cl)
+        return cloids, oids
+
+    def _read_open_orders(self):
+        """Read the follower's open orders on every dex the engine reads. Returns (ok, [(dex, order)], detail).
+        A failed or unreadable dex makes ok False (the caller fails closed)."""
+        dexes = follower_dex_scope()
+        try:
+            results = _XNET.post_many(
+                OPEN_ORDERS_FETCHER,
+                [{"type": "openOrders", "user": USER_WALLET, **({"dex": d} if d else {})} for d in dexes],
+                HL_INFO_URL, HTTP_TIMEOUT_SEC)
+        except Exception as exc:
+            return False, [], f"open-orders read raised {exc!r}"
+        out, read_dexes = [], 0
+        for dex, res in zip(dexes, results):
+            if not (isinstance(res, dict) and res.get("ok") and isinstance(res.get("data"), list)):
+                detail = res.get("detail") if isinstance(res, dict) else res
+                return False, out, f"open-orders read failed for dex {dex!r}: {detail}"
+            read_dexes += 1
+            for o in res["data"]:
+                if isinstance(o, dict):
+                    out.append((dex, o))
+        return True, out, f"read {read_dexes}/{len(dexes)} dexes"
+
+    def startup_orphan_order_check(self) -> Dict[str, Any]:
+        """T1b: before arming, read the follower's open orders on every dex the engine reads. Each order is
+        matched to an engine send row / resting entry (by cloid or order id): a match is adopted as a resting
+        engine order; no match is cancelled and audited as orphan_order_cancelled. A failed read fails closed
+        (refuses to arm). Never runs on a mainnet follower without --confirm-mainnet-follower (existing guard)."""
+        if FOLLOWER_NETWORK == "mainnet" and not MAINNET_ORDERS_CONFIRMED:
+            return {"ok": True, "skipped": True, "adopted": [], "cancelled": [],
+                    "detail": "mainnet follower without --confirm-mainnet-follower: open orders left untouched"}
+        cloids, oids = self._engine_owned_cloids_and_oids()
+        ok, orders, detail = self._read_open_orders()
+        if not ok:
+            return {"ok": False, "skipped": False, "adopted": [], "cancelled": [],
+                    "detail": f"{detail}; refusing to arm (fail closed, no order touched)"}
+        adopted, cancelled = [], []
+        for dex, o in orders:
+            oid = str(o.get("oid", "")).strip()
+            if not oid:
+                continue
+            cloid = str(o.get("cloid") or "").strip().lower()
+            if (cloid and cloid in cloids) or (oid in oids):
+                self._adopt_orphan_order(dex, o)
+                adopted.append({"oid": oid, "cloid": cloid})
+            else:
+                outcome = self._cancel_orphan_order(dex, o)
+                cancelled.append({"oid": oid, "cloid": cloid, "outcome": outcome})
+        return {"ok": True, "skipped": False, "adopted": adopted, "cancelled": cancelled,
+                "detail": f"{detail}; adopted={len(adopted)} cancelled={len(cancelled)}"}
+
+    def _adopt_orphan_order(self, dex: str, o: Dict[str, Any]) -> None:
+        """A startup open order the engine already owns (matched by cloid or order id): record it as resting."""
+        oid = str(o.get("oid", ""))
+        coin = str(o.get("coin") or "")
+        side = "BUY" if str(o.get("side", "")).upper() in {"B", "BUY"} else "SELL"
+        size = fnum(o.get("sz") or o.get("origSz"))
+        px = fnum(o.get("limitPx"))
+        cloid = str(o.get("cloid") or "").strip()
+        row = {"oid": oid, "leader_wallet": "", "coin": coin, "sdk_coin": coin, "side": side, "limit_px": px,
+               "size": size, "intent_id": "", "leader_fill_id": "", "leader_fill_ms": 0, "leader_price": px,
+               "placed_ms": utc_now_ms(), "cloid": cloid, "why": "startup_orphan_adopted", "open_size": size}
+        with self._resting_lock:
+            self._resting_entries[oid] = row
+            atomic_write_json(RESTING_ENTRY_ORDERS_FILE, dict(self._resting_entries))
+        promoted = self._promote_pending_row_to_resting(cloid, oid)
+        self.audit.append_reconciliation(
+            "STARTUP_ORPHAN", "ORPHAN_ORDER_ADOPTED", coin=coin, exchange_order_id=oid,
+            action="NO_ACTION_ORPHAN_ADOPTED", terminal_state="ORPHAN_ORDER_ADOPTED",
+            notes=(f"startup: open order {oid} ({side} {size} @ {px}) matches an engine record (cloid={cloid}); "
+                   f"adopted as a resting engine order; pending_row_promoted={promoted}"))
+
+    def _promote_pending_row_to_resting(self, cloid: str, oid: str) -> bool:
+        """A pending_send row owning this cloid becomes ORDER_RESTING with the order id, so the matcher treats
+        the order (and any fill it later gets) as engine-owned."""
+        cl = str(cloid or "").strip().lower()
+        if not cl:
+            return False
+        for row in read_csv_rows(SEND_ATTEMPTS_CSV):
+            if (str(row.get("cloid") or "").strip().lower() == cl
+                    and str(row.get("status") or "").lower() == "pending_send"):
+                return update_send_attempt_row(str(row.get("attempt_id") or ""),
+                                               {"status": "ORDER_RESTING", "exchange_order_id": oid,
+                                                "terminal_state": "ORDER_RESTING",
+                                                "notes": "adopted at startup by cloid; order still resting"})
+        return False
+
+    def _cancel_orphan_order(self, dex: str, o: Dict[str, Any]) -> str:
+        """A startup open order matching nothing the engine placed: cancel it by default and audit it."""
+        oid = str(o.get("oid", ""))
+        coin = str(o.get("coin") or "")
+        raw_coin = (f"{dex}:{coin}" if dex else coin)
+        error, outcome = "", "ORPHAN_ORDER_CANCELLED"
+        try:
+            exchange, sdk_coin = self._exchange_client_for_coin(raw_coin)
+            response = self._cancel_order(exchange, sdk_coin or coin, oid)
+            statuses = (response or {}).get("response", {}).get("data", {}).get("statuses", []) if isinstance(response, dict) else []
+            first = statuses[0] if statuses else None
+            if first == "success":
+                outcome = "ORPHAN_ORDER_CANCELLED"
+            elif isinstance(first, dict) and re.search(r"already canceled|filled|never placed", str(first.get("error", "")), re.I):
+                outcome = "ORPHAN_ORDER_ALREADY_GONE"
+            else:
+                outcome, error = "ORPHAN_ORDER_CANCEL_FAILED", json.dumps(response, default=str)[:300]
+        except Exception as exc:
+            outcome, error = "ORPHAN_ORDER_CANCEL_FAILED", repr(exc)
+        self.audit.append_reconciliation(
+            "STARTUP_ORPHAN", "ORPHAN_ORDER_CANCELLED", coin=coin, exchange_order_id=oid,
+            action=("MANUAL_REVIEW_ORPHAN_CANCEL_FAILED" if outcome == "ORPHAN_ORDER_CANCEL_FAILED"
+                    else "NO_ACTION_ORPHAN_CANCELLED"),
+            terminal_state=outcome,
+            notes=(f"startup: open order {oid} ({coin}) matches no engine send row or resting entry; cancelled "
+                   f"by default; error={error}"))
+        return outcome
+
     def _register_resting_entry(self, intent: Intent, sdk_coin: str, oid: str, px: float, size: float, why: str) -> None:
         """Record a resting missed-entry limit. If the leader already reduced that position after the fill this
         limit copies (seen by another thread while the limit was being placed), withdraw it at once."""
@@ -3430,6 +3562,7 @@ class SenderGateway:
             "sdk_coin": sdk_coin, "side": intent.copy_side, "limit_px": px, "size": size, "intent_id": intent.intent_id,
             "leader_fill_id": intent.fill.leader_fill_id, "leader_fill_ms": int(fnum(intent.fill.timestamp_ms, 0)),
             "leader_price": intent.fill.price, "placed_ms": utc_now_ms(), "why": why,
+            "cloid": generate_cloid(intent.intent_id),
         }
         with self._resting_lock:
             self._resting_entries[str(oid)] = row
@@ -10733,6 +10866,11 @@ def main() -> None:
         source_path = Path(args.source_file) if args.source_file else None
         core = LiveCopyCore(source_csv=source_path or RAW_LEADER_FILLS_CSV)
         core.async_dispatch = bool(args.loop)  # loop mode: sends never hold up the polls and the ledger
+        # T1b: reconcile orders left open by an earlier crash BEFORE arming (fail closed on an unreadable read)
+        _orphan = core.sender.startup_orphan_order_check()
+        print(f"startup orphan-order check: {_orphan.get('detail')}", file=sys.stderr)
+        if not _orphan.get("ok"):
+            raise SystemExit(f"STARTUP_ORPHAN_CHECK_FAILED: {_orphan.get('detail')}")
         copy_poll_interval = max(0.5, float(args.copy_poll_interval))
         core.copy_poll_interval_seconds = copy_poll_interval if args.poll_copy else 0.0
         if args.ws:
