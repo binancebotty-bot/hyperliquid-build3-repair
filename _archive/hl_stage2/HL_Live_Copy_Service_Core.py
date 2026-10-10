@@ -332,6 +332,14 @@ DEFAULT_SLIPPAGE_BPS = 20.0  # Global Controls slippage when unset: Boss's 0.2 %
 DEFAULT_MAX_CLOSE_ADVERSE_DIFF_PCT = float(os.getenv("HL_LIVE_MAX_CLOSE_ADVERSE_DIFF_PCT", "0.25"))
 HTTP_TIMEOUT_SEC = float(os.getenv("HL_LIVE_HTTP_TIMEOUT_SEC", "3"))
 POLL_OVERLAP_MS = int(os.getenv("HL_LIVE_POLL_OVERLAP_MS", "300000"))
+# run 5: the copy poll runs on its own thread every second; each read goes back only this far (fills are de-duplicated
+# by id), and the full POLL_OVERLAP_MS window is re-read once a sweep interval as the backstop
+COPY_POLL_HOT_OVERLAP_MS = int(os.getenv("HL_LIVE_COPY_POLL_HOT_OVERLAP_MS", "20000"))
+COPY_POLL_SWEEP_SEC = float(os.getenv("HL_LIVE_COPY_POLL_SWEEP_SEC", "60"))
+# a fill whose order id is not in the send history yet (the send worker records it after the exchange answers) is
+# left for the next read for this long instead of being consumed unmatched
+COPY_FILL_UNKNOWN_OID_GRACE_MS = int(os.getenv("HL_LIVE_COPY_FILL_UNKNOWN_OID_GRACE_MS", "10000"))
+RUNTIME_STATE_LOCK = threading.RLock()  # every read-modify-write of CORE_RUNTIME_STATE_FILE (cycle + copy thread)
 # leader re-read on each poll after the first: enough for the info API to index a fill (was the 5 min copy overlap)
 LEADER_POLL_OVERLAP_MS = int(os.getenv("HL_LIVE_LEADER_POLL_OVERLAP_MS", "30000"))
 POLL_WINDOW_MS = int(os.getenv("HL_LIVE_POLL_WINDOW_MS", str(24 * 60 * 60 * 1000)))
@@ -2343,20 +2351,27 @@ class DedupeStore:
         self.copy_account_baseline_fill_count: int = int(fnum(state.get("copy_account_baseline_fill_count"), 0))
         self.copy_account_baseline_max_ts_ms: int = int(fnum(state.get("copy_account_baseline_max_ts_ms"), 0))
         self.live_start_ms: int = int(fnum(state.get("live_start_ms"), 0))
+        self._lock = threading.RLock()  # the copy thread, send workers and the cycle's state write share these sets
 
     def accept_leader(self, fill_id: str) -> bool:
-        if fill_id in self.processed:
-            return False
-        self.processed.add(fill_id)
-        return True
+        with self._lock:
+            if fill_id in self.processed:
+                return False
+            self.processed.add(fill_id)
+            return True
 
     def accept_copy(self, fill_id: str, allow_retry: bool = False) -> bool:
-        if fill_id in self.processed_copy:
-            return bool(allow_retry)
-        self.processed_copy.add(fill_id)
-        return True
+        with self._lock:
+            if fill_id in self.processed_copy:
+                return bool(allow_retry)
+            self.processed_copy.add(fill_id)
+            return True
 
     def baseline_copy_account(self, copy_fills: List[Dict[str, Any]]) -> int:
+        with self._lock:
+            return self._baseline_copy_account(copy_fills)
+
+    def _baseline_copy_account(self, copy_fills: List[Dict[str, Any]]) -> int:
         max_ts = self.copy_account_baseline_max_ts_ms
         for raw in copy_fills:
             self.processed_copy.add(CopyAccountIngestor.copy_fill_id(raw))
@@ -2368,9 +2383,11 @@ class DedupeStore:
         return len(copy_fills)
 
     def export(self) -> Dict[str, Any]:
+        with self._lock:
+            leader_ids, copy_ids = list(self.processed), list(self.processed_copy)
         return {
-            "processed_leader_fill_ids": sorted(self.processed)[-250000:],
-            "processed_copy_fill_ids": sorted(self.processed_copy)[-250000:],
+            "processed_leader_fill_ids": sorted(leader_ids)[-250000:],
+            "processed_copy_fill_ids": sorted(copy_ids)[-250000:],
             "copy_account_baseline_set": self.copy_account_baseline_set,
             "copy_account_baseline_at_ms": self.copy_account_baseline_at_ms,
             "copy_account_baseline_fill_count": self.copy_account_baseline_fill_count,
@@ -6913,6 +6930,14 @@ class ServiceStateWriter:
         # Preserve poll cursors/status written earlier this cycle. Fast copy-only
         # cycles must not erase the last leader-poll truth and then report
         # POLL_DISABLED while the process is running with --poll-live.
+        RUNTIME_STATE_LOCK.acquire()  # released after the write below: the copy thread writes the same file
+        try:
+            self._write_core_state(payload, dedupe, _eff_gc)
+        finally:
+            RUNTIME_STATE_LOCK.release()
+        atomic_write_json(SERVICE_STATE_FILE, payload)
+
+    def _write_core_state(self, payload: Dict[str, Any], dedupe: "DedupeStore", _eff_gc: Dict[str, Any]) -> None:
         _existing_rt = load_json(CORE_RUNTIME_STATE_FILE, {})
         _last_copy_poll_ms = int(fnum((_existing_rt or {}).get("last_copy_poll_ms"), 0)) if isinstance(_existing_rt, dict) else 0
         _last_leader_poll_status = ""
@@ -6939,8 +6964,10 @@ class ServiceStateWriter:
             "networks": {"leader": LEADER_NETWORK, "follower": FOLLOWER_NETWORK},
             **dedupe.export(),
         }
+        for _k in ("copy_poll_stats", "last_exchange_snapshot_refresh_ms"):  # written by the copy thread
+            if isinstance(_existing_rt, dict) and _k in _existing_rt:
+                core_state[_k] = _existing_rt[_k]
         atomic_write_json(CORE_RUNTIME_STATE_FILE, core_state)
-        atomic_write_json(SERVICE_STATE_FILE, payload)
 
 
 def load_existing_intents() -> Dict[str, Intent]:
@@ -7011,6 +7038,11 @@ class LiveCopyCore:
         self._entry_sends_blocked_reason: str = ""
         self._held_read_cursor: Dict[str, int] = {}  # leader read position while the saved cursor is held (key stop)
         self._copy_ingest_lock = threading.RLock()  # copy-fill ownership from the cycle and from limit withdrawals
+        self._copy_poll_lock = threading.Lock()  # one copy read at a time (cycle or copy thread)
+        self._snapshot_lock = threading.Lock()
+        self._last_copy_sweep = 0.0
+        self._copy_thread: Optional[threading.Thread] = None
+        self._copy_last: Dict[str, Any] = {}
         self._hot_threads: List[threading.Thread] = []
         for idx in range(self.hot_send_workers):
             t = threading.Thread(target=self._hot_send_loop, args=(idx,), daemon=True, name=f"HLCoreWS-hot-send-{idx + 1}")
@@ -7020,6 +7052,9 @@ class LiveCopyCore:
     def stop(self) -> None:
         self._hot_stop_event.set()
         self.ws.stop()
+        ct = getattr(self, "_copy_thread", None)
+        if ct is not None and ct.is_alive() and ct is not threading.current_thread():
+            ct.join(timeout=5.0)  # let a read in progress finish its ledger writes
         for t in getattr(self, "_hot_threads", []):
             if t.is_alive() and t is not threading.current_thread():
                 t.join(timeout=1.0)
@@ -7436,7 +7471,8 @@ class LiveCopyCore:
                                                 and copy_id not in self.matcher.matched_copy_fill_ids)
                         if self.dedupe.accept_copy(copy_id, allow_retry=allow_recovery_retry):
                             self.matcher.match_and_apply(raw_copy, self.intents_by_id)
-            self.reconciler.fetch_snapshot()
+            with self._snapshot_lock:
+                self.reconciler.fetch_snapshot()
             self._last_truth_refresh = time.monotonic()
 
     def _leader_poll_due(self) -> bool:
@@ -7516,6 +7552,164 @@ class LiveCopyCore:
             last = getattr(self, "_scope_sweep_last", None) or {}
             return "SCOPE_SWEEP_PENDING" + (f": {last.get('status')}" if last and not last.get("ok") else "")
         return ""
+
+    def copy_poll_once(self, summary: Optional[CycleSummary] = None, hot: bool = False) -> Dict[str, Any]:
+        """Read the follower's fills and give each new one to the ledger. hot=True (the copy thread, run 5): read back
+        only COPY_POLL_HOT_OVERLAP_MS (the full POLL_OVERLAP_MS once a sweep interval), leave fills whose order the
+        send history does not show yet for the next read, and take the send lock per fill so sends and ownership
+        interleave instead of one waiting for the other's whole batch. Returns timings for the run's lag record."""
+        summary = summary if summary is not None else CycleSummary()
+        with self._copy_poll_lock:
+            return self._copy_poll_once(summary, hot)
+
+    def _copy_poll_once(self, summary: CycleSummary, hot: bool) -> Dict[str, Any]:
+        t0 = time.monotonic()
+        copy_state = load_json(CORE_RUNTIME_STATE_FILE, {})
+        copy_state = copy_state if isinstance(copy_state, dict) else {}
+        last_poll_ms = int(fnum(copy_state.get("last_copy_poll_ms", load_json(SERVICE_STATE_FILE, {}).get("last_copy_poll_ms", 0)), 0))
+        sweep = (not hot) or time.monotonic() - self._last_copy_sweep >= COPY_POLL_SWEEP_SEC
+        start_ms = max(0, last_poll_ms - (POLL_OVERLAP_MS if sweep else COPY_POLL_HOT_OVERLAP_MS))
+        poll_end_ms = utc_now_ms()
+        copy_fills, copy_status = self.copy_ingestor.poll_copy_account_fills(USER_WALLET, start_ms, poll_end_ms,
+                                                                             report_partial=True)
+        http_ms = int((time.monotonic() - t0) * 1000)
+        # a read that hit the page cap is applied, and the next read resumes after its newest fill
+        copy_resume_ms = 0
+        if copy_status == "COPY_ACCOUNT_POLL_PARTIAL":
+            copy_status = "COPY_ACCOUNT_POLLED"
+            # the next read must start at the newest fill read here, whichever window (hot or sweep) it uses
+            copy_resume_ms = max((int(fnum(r.get("timestamp_ms"), 0)) for r in copy_fills), default=0) + \
+                (COPY_POLL_HOT_OVERLAP_MS if hot else POLL_OVERLAP_MS)
+        summary.copy_account_status = copy_status
+        summary.copy_fills_seen = len(copy_fills)
+        lags: List[int] = []
+        lock_wait_ms = 0
+        deferred = 0
+        if copy_status == "COPY_ACCOUNT_POLLED" and copy_fills:
+            try:
+                update_xyz_position_state_from_fills(copy_fills, "copy_account_poll")
+            except Exception as exc:
+                log_error("xyz_position_state_update", exc)
+        if copy_status == "COPY_ACCOUNT_POLLED" and copy_fills and not self.dedupe.copy_account_baseline_set:
+            summary.copy_fills_baselined = self.dedupe.baseline_copy_account(copy_fills)
+            summary.copy_account_status = "COPY_ACCOUNT_BASELINED"
+            self.audit.append_reconciliation("COPY_ACCOUNT_BASELINE", "COPY_ACCOUNT_BASELINED", notes=f"baseline historical copy fills count={summary.copy_fills_baselined}; no ledger mutation")
+        elif not hot:
+          w0 = time.monotonic()
+          with self._send_lock, self._copy_ingest_lock:  # send workers build intents from the same ledger
+            lock_wait_ms = int((time.monotonic() - w0) * 1000)
+            for raw_copy in copy_fills:
+                copy_id = CopyAccountIngestor.copy_fill_id(raw_copy)
+                recovery_oid = CopyFillMatcher._normalize_oid(CopyFillMatcher._copy_fill_oid(raw_copy))
+                allow_recovery_retry = (
+                    bool(recovery_oid)
+                    and recovery_oid in self.matcher.recovery_oid_index
+                    and copy_id not in self.matcher.matched_copy_fill_ids
+                )
+                if not self.dedupe.accept_copy(copy_id, allow_retry=allow_recovery_retry):
+                    summary.copy_fills_deduped += 1
+                    continue
+                if self.matcher.match_and_apply(raw_copy, self.intents_by_id):
+                    summary.copy_fills_matched += 1
+                    summary.ledger_updates += 1
+                    lags.append(max(0, utc_now_ms() - int(fnum(raw_copy.get("timestamp_ms", raw_copy.get("time")), 0))))
+                else:
+                    summary.copy_fills_unmatched += 1
+        else:
+            now_ms = utc_now_ms()
+            for raw_copy in copy_fills:
+                copy_id = CopyAccountIngestor.copy_fill_id(raw_copy)
+                oid = CopyFillMatcher._normalize_oid(CopyFillMatcher._copy_fill_oid(raw_copy))
+                fill_ms = int(fnum(raw_copy.get("timestamp_ms", raw_copy.get("time")), 0))
+                if copy_id in self.matcher.matched_copy_fill_ids:
+                    summary.copy_fills_deduped += 1
+                    continue
+                known = bool(oid) and (oid in self.matcher.sent_oid_index or oid in self.matcher.recovery_oid_index
+                                       or self.matcher._fresh_sent_row_for_oid(oid) is not None)
+                if not known and now_ms - fill_ms < COPY_FILL_UNKNOWN_OID_GRACE_MS:
+                    deferred += 1  # its send row is not written yet: the next read owns it by order id
+                    continue
+                w0 = time.monotonic()
+                with self._send_lock, self._copy_ingest_lock:
+                    lock_wait_ms = max(lock_wait_ms, int((time.monotonic() - w0) * 1000))
+                    allow_recovery_retry = bool(oid) and oid in self.matcher.recovery_oid_index \
+                        and copy_id not in self.matcher.matched_copy_fill_ids
+                    if not self.dedupe.accept_copy(copy_id, allow_retry=allow_recovery_retry):
+                        summary.copy_fills_deduped += 1
+                        continue
+                    if self.matcher.match_and_apply(raw_copy, self.intents_by_id):
+                        summary.copy_fills_matched += 1
+                        summary.ledger_updates += 1
+                        lags.append(max(0, utc_now_ms() - fill_ms))
+                    else:
+                        summary.copy_fills_unmatched += 1
+        if copy_status == "COPY_ACCOUNT_POLLED":
+            if sweep:
+                self._last_copy_sweep = time.monotonic()
+            # a deferred fill must stay inside the next read's window
+            next_cursor = copy_resume_ms or poll_end_ms
+            refresh_interval_ms = int(float(os.getenv("HL_LIVE_SNAPSHOT_REFRESH_INTERVAL_SEC", "5")) * 1000)
+            last_snapshot_refresh_ms = int(fnum(copy_state.get("last_exchange_snapshot_refresh_ms"), 0))
+            snapshot_ms = 0
+            if refresh_interval_ms <= 0 or utc_now_ms() - last_snapshot_refresh_ms >= refresh_interval_ms:
+                with self._snapshot_lock:
+                    snapshot, snap_status = self.reconciler.fetch_snapshot()
+                if snapshot:
+                    try:
+                        self.reconciler.audit_orphan_attribution(snapshot)
+                    except Exception as exc:
+                        log_error("audit_orphan_attribution", exc)
+                    snapshot_ms = utc_now_ms()
+                    summary.exchange_recon_status = snap_status
+                elif summary.exchange_recon_status == "SNAPSHOT_SKIPPED":
+                    summary.exchange_recon_status = snap_status
+            stats = {"at_ms": utc_now_ms(), "hot": hot, "sweep": sweep, "window_ms": poll_end_ms - start_ms,
+                     "http_ms": http_ms, "fills_seen": len(copy_fills), "matched": summary.copy_fills_matched,
+                     "unmatched": summary.copy_fills_unmatched, "deferred": deferred, "lock_wait_ms_max": lock_wait_ms,
+                     "fill_to_ledger_lag_ms_max": max(lags) if lags else None,
+                     "fill_to_ledger_lag_ms_median": sorted(lags)[len(lags) // 2] if lags else None,
+                     "poll_ms": int((time.monotonic() - t0) * 1000), "status": summary.copy_account_status}
+            with RUNTIME_STATE_LOCK:
+                state_update = load_json(CORE_RUNTIME_STATE_FILE, {})
+                if not isinstance(state_update, dict):
+                    state_update = {}
+                state_update["last_copy_poll_ms"] = next_cursor
+                if snapshot_ms:
+                    state_update["last_exchange_snapshot_refresh_ms"] = snapshot_ms
+                recent = [s for s in (state_update.get("copy_poll_stats") or []) if isinstance(s, dict)][-59:]
+                state_update["copy_poll_stats"] = recent + [stats]
+                if not hot:
+                    state_update.update(self.dedupe.export())
+                atomic_write_json(CORE_RUNTIME_STATE_FILE, state_update)
+            summary.last_copy_poll_age_ms = 0
+            self._copy_last = stats
+            return stats
+        if copy_status not in {"COPY_ACCOUNT_POLLED", "COPY_ACCOUNT_NOT_CONFIGURED"}:
+            summary.network_errors += 1
+        self._copy_last = {"at_ms": utc_now_ms(), "status": copy_status, "http_ms": http_ms, "fills_seen": len(copy_fills)}
+        return self._copy_last
+
+    def start_copy_poll_thread(self, interval_sec: float) -> None:
+        """Loop mode: the copy poll gets its own thread, so the leader polls, the cycle's integrity rebuild and its
+        state write never hold up ownership of the engine's own fills (run 5: up to ~90 s under load)."""
+        if getattr(self, "_copy_thread", None) is not None:
+            return
+        interval = max(0.25, float(interval_sec))
+
+        def loop() -> None:
+            backoff = 0.0  # a failed or rate-limited read waits longer each time (up to 30 s): never hammer the API
+            while not self._hot_stop_event.is_set():
+                began = time.monotonic()
+                ok = False
+                try:
+                    ok = self.copy_poll_once(hot=True).get("status") in {"COPY_ACCOUNT_POLLED", "COPY_ACCOUNT_BASELINED"}
+                except Exception as exc:
+                    log_error("copy_poll_thread", exc)
+                backoff = 0.0 if ok else min(30.0, max(interval, backoff * 2 or interval * 2))
+                if self._hot_stop_event.wait(max(0.05, interval + backoff - (time.monotonic() - began))):
+                    break
+        self._copy_thread = threading.Thread(target=loop, daemon=True, name="HLCoreCopyPoll")
+        self._copy_thread.start()
 
     def run_cycle(self, use_source_csv: bool = True, poll_live: bool = False, poll_copy: bool = False, reconcile_exchange: bool = False) -> CycleSummary:
         # HOT_CONFIG_RELOAD_WINAGENT: reload live_config/wallet_gate each cycle so UI/control changes affect a running core.
@@ -7681,6 +7875,7 @@ class LiveCopyCore:
                 # Persist status every leader-poll cycle, and cursor updates when
                 # present, so copy-only cycles keep displaying last poll truth.
                 try:
+                  with RUNTIME_STATE_LOCK:
                     _cs = load_json(CORE_RUNTIME_STATE_FILE, {})
                     if not isinstance(_cs, dict):
                         _cs = {}
@@ -7730,71 +7925,17 @@ class LiveCopyCore:
                 self._process_leader_fill(fill, summary, self._entry_sends_blocked_reason)
             summary.send_backlog = self.hot_backlog()
             if poll_copy:
-                copy_state = load_json(CORE_RUNTIME_STATE_FILE, {})
-                start_ms = max(0, int(fnum(copy_state.get("last_copy_poll_ms", load_json(SERVICE_STATE_FILE, {}).get("last_copy_poll_ms", 0)), 0)) - POLL_OVERLAP_MS)
-                copy_fills, copy_status = self.copy_ingestor.poll_copy_account_fills(USER_WALLET, start_ms, utc_now_ms(),
-                                                                                     report_partial=True)
-                # a read that hit the page cap is applied, and the next read resumes after its newest fill
-                copy_resume_ms = 0
-                if copy_status == "COPY_ACCOUNT_POLL_PARTIAL":
-                    copy_status = "COPY_ACCOUNT_POLLED"
-                    copy_resume_ms = max((int(fnum(r.get("timestamp_ms"), 0)) for r in copy_fills), default=0) + POLL_OVERLAP_MS
-                summary.copy_account_status = copy_status
-                summary.copy_fills_seen = len(copy_fills)
-                if copy_status == "COPY_ACCOUNT_POLLED" and copy_fills:
-                    try:
-                        update_xyz_position_state_from_fills(copy_fills, "copy_account_poll")
-                    except Exception as exc:
-                        log_error("xyz_position_state_update", exc)
-                if copy_status == "COPY_ACCOUNT_POLLED" and copy_fills and not self.dedupe.copy_account_baseline_set:
-                    summary.copy_fills_baselined = self.dedupe.baseline_copy_account(copy_fills)
-                    summary.copy_account_status = "COPY_ACCOUNT_BASELINED"
-                    self.audit.append_reconciliation("COPY_ACCOUNT_BASELINE", "COPY_ACCOUNT_BASELINED", notes=f"baseline historical copy fills count={summary.copy_fills_baselined}; no ledger mutation")
-                else:
-                  with self._send_lock, self._copy_ingest_lock:  # send workers build intents from the same ledger
-                    for raw_copy in copy_fills:
-                        copy_id = CopyAccountIngestor.copy_fill_id(raw_copy)
-                        recovery_oid = CopyFillMatcher._normalize_oid(CopyFillMatcher._copy_fill_oid(raw_copy))
-                        allow_recovery_retry = (
-                            bool(recovery_oid)
-                            and recovery_oid in self.matcher.recovery_oid_index
-                            and copy_id not in self.matcher.matched_copy_fill_ids
-                        )
-                        if not self.dedupe.accept_copy(copy_id, allow_retry=allow_recovery_retry):
-                            summary.copy_fills_deduped += 1
-                            continue
-                        if self.matcher.match_and_apply(raw_copy, self.intents_by_id):
-                            summary.copy_fills_matched += 1
-                            summary.ledger_updates += 1
-                        else:
-                            summary.copy_fills_unmatched += 1
-                if copy_status == "COPY_ACCOUNT_POLLED":
-                    state_update = load_json(CORE_RUNTIME_STATE_FILE, {})
-                    if not isinstance(state_update, dict):
-                        state_update = {}
-                    state_update["last_copy_poll_ms"] = copy_resume_ms or utc_now_ms()
-                    refresh_interval_ms = int(float(os.getenv("HL_LIVE_SNAPSHOT_REFRESH_INTERVAL_SEC", "5")) * 1000)
-                    last_snapshot_refresh_ms = int(fnum(state_update.get("last_exchange_snapshot_refresh_ms"), 0))
-                    if refresh_interval_ms <= 0 or utc_now_ms() - last_snapshot_refresh_ms >= refresh_interval_ms:
-                        snapshot, snap_status = self.reconciler.fetch_snapshot()
-                        if snapshot:
-                            try:
-                                self.reconciler.audit_orphan_attribution(snapshot)
-                            except Exception as exc:
-                                log_error("audit_orphan_attribution", exc)
-                            state_update["last_exchange_snapshot_refresh_ms"] = utc_now_ms()
-                            summary.exchange_recon_status = snap_status
-                        elif summary.exchange_recon_status == "SNAPSHOT_SKIPPED":
-                            summary.exchange_recon_status = snap_status
-                    state_update.update(self.dedupe.export())
-                    atomic_write_json(CORE_RUNTIME_STATE_FILE, state_update)
-                    summary.last_copy_poll_age_ms = 0
-                if copy_status not in {"COPY_ACCOUNT_POLLED", "COPY_ACCOUNT_NOT_CONFIGURED"}:
-                    summary.network_errors += 1
+                self.copy_poll_once(summary)
+            elif getattr(self, "_copy_thread", None) is not None:
+                last = dict(getattr(self, "_copy_last", {}) or {})  # the copy thread polls; report its latest read
+                summary.copy_account_status = str(last.get("status") or "COPY_POLL_THREAD_STARTING")
+                summary.copy_fills_seen = int(last.get("fills_seen") or 0)
+                summary.copy_fills_matched = int(last.get("matched") or 0)
             else:
                 summary.copy_account_status = "COPY_ACCOUNT_POLL_DISABLED"
             if reconcile_exchange:
-                summary.exchange_recon_status = self.reconciler.compare_snapshot()
+                with self._snapshot_lock:
+                    summary.exchange_recon_status = self.reconciler.compare_snapshot()
             elif not summary.exchange_recon_status or summary.exchange_recon_status == "SNAPSHOT_UNAVAILABLE":
                 summary.exchange_recon_status = "SNAPSHOT_SKIPPED"
         except Exception as exc:
@@ -9521,15 +9662,18 @@ def main() -> None:
         if args.ws:
             core.ws.enabled = True
             core.ws.start()
+        copy_thread = bool(args.loop and args.poll_copy and bval(os.getenv("HL_LIVE_COPY_POLL_THREAD", "1"), True))
+        if copy_thread:
+            core.start_copy_poll_thread(copy_poll_interval)
         try:
             next_main_at = 0.0
             next_copy_poll_at = 0.0
             while True:
                 now = time.monotonic()
                 main_due = (not args.loop) or now >= next_main_at
-                copy_due = bool(args.poll_copy and ((not args.loop) or now >= next_copy_poll_at))
+                copy_due = bool(args.poll_copy and not copy_thread and ((not args.loop) or now >= next_copy_poll_at))
                 if args.loop and not (main_due or copy_due):
-                    sleep_until = min(next_main_at, next_copy_poll_at if args.poll_copy else next_main_at)
+                    sleep_until = min(next_main_at, next_copy_poll_at if (args.poll_copy and not copy_thread) else next_main_at)
                     time.sleep(max(0.05, min(0.5, sleep_until - now)))
                     continue
                 summary = core.run_cycle(
