@@ -91,10 +91,25 @@ def missing_detail(audit_dir: Path, missing: List[str], limit: int = 40) -> List
                             info[fid] = {k: str(r.get(k) or "") for k in ("leader_wallet", "wallet", "coin", "side", "dir", "timestamp_ms", "time", "terminal_state", "status") if r.get(k)}
         except Exception as exc:
             print(f"MISSING_DETAIL scan error {f.name}: {exc!r}")
+    trace: Dict[str, List[str]] = {}
+    for d in (audit_dir, audit_dir.parent, audit_dir.parent.parent):
+        for f in (d / "fill_trace.jsonl", d / "fill_trace.jsonl.old"):
+            if not f.exists():
+                continue
+            try:
+                with f.open(encoding="utf-8", errors="replace") as fh:
+                    for line in fh:
+                        m = re.search(r'"k":"([a-z_]+)","id":"([^"]+)"', line)
+                        if m and m.group(2) in want:
+                            trace.setdefault(m.group(2), []).append(m.group(1) + (":" + (re.search(r'"status":"([^"]*)"', line).group(1) if '"status"' in line else "")))
+            except Exception as exc:
+                print(f"MISSING_DETAIL trace error {f}: {exc!r}")
+    for m in trace:
+        seen.setdefault(m, {})["fill_trace"] = len(trace[m])
     never = [m for m in missing if m not in seen]
     out = [f"MISSING_NEVER_IN_ANY_FILE={len(never)} (engine never ingested)  MISSING_IN_SOME_FILE={len(missing) - len(never)} (ingested, no final row)"]
     for m in missing[:limit]:
-        out.append(f"MISSING_ID {m} files={seen.get(m, {})} {info.get(m, {})}")
+        out.append(f"MISSING_ID {m} files={seen.get(m, {})} trace={trace.get(m, [])} {info.get(m, {})}")
     if len(missing) > limit:
         out.append(f"MISSING_ID ... {len(missing) - limit} more")
     return out

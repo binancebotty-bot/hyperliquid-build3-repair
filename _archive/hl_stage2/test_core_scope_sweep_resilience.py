@@ -101,6 +101,15 @@ def main():
         res = core.run_scope_sweep()
         DEXES[:] = full
         check("SHRUNK_DEX_LIST_IS_NOT_TRUSTED", (not res.get("ok")) and res.get("status") == "DEX_ENUM_UNAVAILABLE", str(res)[:160])
+        # (6) a restart keeps the readings that are still inside the max-age window: only the unread DEX is read again
+        core.__dict__.pop("_scope_dex_cache", None)
+        core._scope_cache_loaded = False
+        core._scope_sweep_ok = None
+        book["dead"] = set()
+        os.environ["HL_LIVE_SCOPE_DEX_FRESH_SEC"] = "240"
+        tries.clear()
+        res = core.run_scope_sweep()
+        check("RESTART_KEEPS_RECENT_READINGS", res.get("ok") and set(tries) == {"dex009"}, f"reads={sorted(tries)[:5]} res={str(res)[:120]}")
     finally:
         core.stop()
     failed = [n for n, ok in RESULTS if not ok]

@@ -323,6 +323,10 @@ def main() -> None:
     _lines = [_json.loads(x) for x in _tr.read_text().splitlines() if x.strip()] if _tr.exists() else []
     check("POLL_TRACE_RECORDS_WINDOW_AND_CURSOR", bool(_lines) and all(k in _lines[0] for k in ("start_ms", "end_ms", "cursor_in", "status", "fills", "new")), str(_lines[:1]))
 
+    _ft = Path(c.CORE_RUNTIME_STATE_FILE).parent / "fill_trace.jsonl"
+    _kinds = {_json.loads(x)["k"] for x in _ft.read_text().splitlines() if x.strip()} if _ft.exists() else set()
+    check("FILL_TRACE_HAS_DISPATCH_AND_PROCESSING_STEPS", {"poll_dispatched", "proc_start", "proc_end"} <= _kinds, str(_kinds))
+
     c.HLAccount, c.HLExchange = saved_acct
     failed = [n for n, ok in RESULTS if not ok]
     print(f"TOTAL={len(RESULTS)} FAILED={len(failed)}")
