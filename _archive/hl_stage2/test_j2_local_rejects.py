@@ -303,6 +303,7 @@ c.atomic_write_json(c.EXCHANGE_ACCOUNT_SNAPSHOT_FILE, {"positions_by_coin": {"BT
 ledger3b.coin_net = lambda coin: 1.0 if coin == "BTC" else 0.0
 gw3b = make_gateway(fake3b, ledger3b)
 gw3b._pre_send_ownership_gate = c.SenderGateway._pre_send_ownership_gate.__get__(gw3b, c.SenderGateway)
+gw3b._fresh_exchange_net = lambda coin: 1.0  # the close is sized against a fresh account read
 intent3b = make_intent("EXIT", "SELL", 1.0, wallet_pos_before=1.0, coin_net_before=1.0, reduce_only_intended=True)
 ok3b, status3b, calls3b = send_via_send_if_allowed(gw3b, intent3b)
 
