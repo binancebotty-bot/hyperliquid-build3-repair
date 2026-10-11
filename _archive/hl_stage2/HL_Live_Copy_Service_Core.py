@@ -5051,6 +5051,49 @@ class SenderGateway:
             return True
         return abs(ex_net - led_net) > max(POSITION_EPSILON, 0.001 * abs(delta))
 
+    def _repair_ledger_if_exchange_flat(self, intent: Intent, exchange_error: str) -> str:
+        """The exchange refused a reduce-only close because it holds nothing to reduce (outage tests: 24 of 318 rejects in 24 h, RESOLV
+        20 of them, the records said the sleeve was open and the account was flat). A fresh read of the follower account on the
+        coin's DEX settles it: when the account is flat in the coin and this leader's sleeve is the only one holding it, the sleeve
+        is closed in the ledger as exchange-flat (audited LEDGER_REPAIR row, no order sent), so the same phantom close is not
+        offered again. Any other state (position on the other side, other sleeves in the coin, unreadable account) changes nothing."""
+        try:
+            wallet = normalise_wallet(intent.fill.leader_wallet)
+            key = canonical_coin_key(intent.fill.coin)
+            if not self.ledger or not is_valid_wallet(normalise_wallet(USER_WALLET)):
+                return ""
+            sleeve = ((self.ledger.data.get("by_wallet") or {}).get(wallet) or {}).get(key) or {}
+            owned = fnum(sleeve.get("signed_size"), 0.0)
+            if abs(owned) <= POSITION_EPSILON:
+                return ""
+            dexes = list(follower_dex_scope())
+            if ":" in str(intent.fill.coin):  # the coin's own DEX is always read, whatever the scope has learned so far
+                own = str(intent.fill.coin).split(":", 1)[0].lower()
+                if own and own not in dexes:
+                    dexes.append(own)
+            exp = _XNET.master_exposure(normalise_wallet(USER_WALLET), dexes, fetcher=EXPOSURE_FETCHER,
+                                        info_url=HL_INFO_URL, timeout=HTTP_TIMEOUT_SEC)
+            if not exp.get("ok"):
+                return ""
+            ex_net = sum(fnum(v.get("net"), 0.0) for k, v in (exp.get("by_coin") or {}).items() if canonical_coin_key(k) == key)
+            if abs(ex_net) > POSITION_EPSILON:
+                return ""
+            with self.ledger._lock:
+                if abs(self.ledger.coin_net(key) - owned) > max(POSITION_EPSILON, 1e-9):  # another sleeve holds this coin
+                    return ""
+                result = self.ledger.close_sleeve_as_exchange_flat(wallet, key)
+            note = (f"ledger repaired (leader fill {intent.fill.leader_fill_id}): reduce-only close refused ({str(exchange_error)[:80]}); fresh account read is flat in {key}; "
+                    f"sleeve {owned} of {wallet} closed in the ledger, no order sent")
+            self.audit.append_live_fill_repair_close(result, note)
+            self.audit.append_reconciliation(
+                "LEDGER_REPAIR", "REDUCE_ONLY_REJECT_EXCHANGE_FLAT", leader_wallet=wallet,
+                coin=key, manual_net=owned, exchange_net=0.0, action="LEDGER_CLOSED",
+                terminal_state="LEDGER_REPAIR_PROVEN_EXCHANGE_FLAT", engine_can_close="False", engine_can_send="False", notes=note)
+            return note
+        except Exception as exc:
+            log_error("repair_ledger_if_exchange_flat", exc)
+            return ""
+
     def _pending_exit_blocked(self, intent: Intent) -> Tuple[bool, str]:
         """Return (blocked, reason). Caller must hold _pending_exit_lock.
 
@@ -5644,6 +5687,11 @@ class SenderGateway:
                     if time.monotonic() >= deadline:
                         break
                     time.sleep(0.5)
+            if (not ok and status == "ORDER_REJECTED" and use_reduce_only and lifecycle in {"REDUCE", "EXIT"}
+                    and reject_category == "REDUCE_ONLY_REJECTED"):
+                repair_note = self._repair_ledger_if_exchange_flat(intent, parsed_error)
+                if repair_note:
+                    netting_note = (netting_note + "; " if netting_note else "") + repair_note
             if not ok and status == "ORDER_REJECTED" and lifecycle in {"REDUCE", "EXIT"} and reject_category == "IOC_NO_IMMEDIATE_MATCH":
                 self._queue_exit_recovery_if_needed(exchange, sdk_coin, intent, limit_px, wire_size, response, parsed_error)
             if ok and status == "ORDER_FILLED" and lifecycle in {"REDUCE", "EXIT"}:
@@ -8519,6 +8567,25 @@ class LiveCopyCore:
         planned.sort(key=lambda p: (p[0], p[1], p[2]))
         return [f for _p, _t, _i, merged in planned for f in merged]
 
+    def _fill_trace(self, kind: str, fill: "LeaderFill", extra: Optional[Dict[str, Any]] = None) -> None:
+        """One json line per step a leader fill takes (poll_dispatched / poll_already_handled / poll_queue_full / late_closed_row /
+        proc_start / proc_end) in fill_trace.jsonl beside the runtime state: a fill the classifier calls MISSING can be found here
+        (never reached dispatch, dispatched and never processed, or processed and ended without a row). Capped at 8 MB; never raises."""
+        try:
+            path = Path(CORE_RUNTIME_STATE_FILE).parent / "fill_trace.jsonl"
+            rec = {"ts": utc_now_ms(), "k": kind, "id": str(fill.leader_fill_id), "w": str(fill.leader_wallet)[:10],
+                   "c": str(fill.coin), "t": int(fill.timestamp_ms or 0), **(extra or {})}
+            if "status_of" in rec:
+                _r = rec.pop("status_of")
+                rec["status"] = str(_r[1]) if isinstance(_r, tuple) and len(_r) > 1 else ""
+            with self.__dict__.setdefault("_fill_trace_lock", threading.Lock()):
+                if path.exists() and path.stat().st_size > 8000000:
+                    path.replace(path.with_suffix(".jsonl.old"))
+                with open(path, "a", encoding="utf-8") as fh:
+                    fh.write(json.dumps(rec, separators=(",", ":")) + "\n")
+        except Exception as exc:
+            log_error("fill_trace", exc)
+
     def _poll_trace(self, rec: Dict[str, Any]) -> None:
         """One json line per leader poll (cursor, window asked, fills returned, how many were new) in leader_poll_trace.jsonl
         beside the runtime state. Outage tests 14 to Q4: live-leader fills were never ingested after a restart and nothing
@@ -8881,8 +8948,11 @@ class LiveCopyCore:
         into it) were already marked handled, so without a row they vanished (outage test 14: 57 fills with no row)."""
         tid = threading.get_ident()
         self._inflight[tid] = (str(fill.leader_fill_id), utc_now_ms(), threading.current_thread().name, str(fill.leader_wallet), str(fill.coin))
+        self._fill_trace("proc_start", fill, {"merged": len((fill.raw or {}).get("merged_fill_ids") or [])})
         try:
-            return self._process_leader_fill_inner(fill, summary, entry_block_reason)
+            _res = self._process_leader_fill_inner(fill, summary, entry_block_reason)
+            self._fill_trace("proc_end", fill, {"status_of": _res})
+            return _res
         except Exception as exc:
             log_error("process_leader_fill", exc)
             try:
@@ -9314,9 +9384,23 @@ class LiveCopyCore:
         self._scope_enum_count = len(enum["dexes"])
         outside = [d for d in enum["dexes"] if d not in scope]
         cache: Dict[str, Tuple[int, Tuple[str, ...]]] = self.__dict__.setdefault("_scope_dex_cache", {})
+        addr = normalise_wallet(USER_WALLET)
+        cache_file = Path(CORE_RUNTIME_STATE_FILE).parent / "scope_dex_cache.json"
+        if not getattr(self, "_scope_cache_loaded", False):
+            # Q6: every restart began with an empty reading cache, so entries stayed blocked (SCOPE_UNAVAILABLE) until a whole
+            # sweep finished. Readings of the same account that are still inside the max-age window are kept across a restart.
+            self._scope_cache_loaded = True
+            try:
+                saved = load_json(cache_file, {})
+                keep_ms = int(fnum(os.getenv("HL_LIVE_SCOPE_SWEEP_MAX_AGE_SEC"), 900.0) * 1000)
+                if isinstance(saved, dict) and saved.get("account") == addr:
+                    for d, v in (saved.get("dex") or {}).items():
+                        if isinstance(v, list) and len(v) == 2 and 0 <= started - int(fnum(v[0], 0)) <= keep_ms:
+                            cache.setdefault(str(d), (int(fnum(v[0], 0)), tuple(str(x) for x in v[1])))
+            except Exception as exc:
+                log_error("scope_cache_load", exc)
         for gone in [d for d in cache if d not in outside]:
             cache.pop(gone, None)
-        addr = normalise_wallet(USER_WALLET)
         fresh_ms = int(fnum(os.getenv("HL_LIVE_SCOPE_DEX_FRESH_SEC"), 240.0) * 1000)
         todo = [d for d in outside if started - cache.get(d, (0, ()))[0] > fresh_ms]
         workers = max(1, min(8, int(fnum(os.getenv("HL_LIVE_READ_CONCURRENCY"), 8))))
@@ -9355,6 +9439,10 @@ class LiveCopyCore:
             pause = len(chunk) * 2 * 60.0 / per_min - (time.monotonic() - t_chunk)  # keep to the weight budget
             if pause > 0 and i + workers < len(todo) and not self._hot_stop_event.is_set():
                 self._hot_stop_event.wait(pause)
+        try:
+            atomic_write_json(cache_file, {"account": addr, "dex": {d: [v[0], list(v[1])] for d, v in cache.items()}})
+        except Exception as exc:
+            log_error("scope_cache_save", exc)
         max_age = int(fnum(os.getenv("HL_LIVE_SCOPE_SWEEP_MAX_AGE_SEC"), 900.0) * 1000)
         now = utc_now_ms()
         stale = [d for d in outside if now - cache.get(d, (0, ()))[0] > max_age]
@@ -9912,6 +10000,7 @@ class LiveCopyCore:
             for fill in fills:
                 why = closed_late.get(fill.leader_fill_id)
                 if why and fill.leader_fill_id not in self.dedupe.processed:
+                    self._fill_trace("late_closed_row", fill)
                     self.dedupe.processed.add(fill.leader_fill_id)
                     self.audit.append_reconciliation(
                         "SEND_TERMINAL", "MISSED_ENTRY_LEADER_ALREADY_CLOSED", leader_wallet=fill.leader_wallet,
@@ -9925,7 +10014,9 @@ class LiveCopyCore:
                 if self.async_dispatch:  # loop mode: sends run on the workers, never in this loop
                     if self._dispatch_fill(fill):
                         summary.leader_fills_queued += 1
+                        self._fill_trace("poll_dispatched", fill)
                         continue
+                    self._fill_trace("poll_queue_full", fill)
                     # queue full: never send on this thread (it would break one-worker-per-coin); the fill is
                     # not marked handled, so the next poll offers it again
                     log_error("poll_dispatch_deferred", RuntimeError(f"send queue full, fill {fill.leader_fill_id} deferred"))
