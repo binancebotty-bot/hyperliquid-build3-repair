@@ -1,3 +1,10 @@
+> **SUPERSEDED — v2 (commit daa1fa7).** This is the first pass. Findings 1 and 2 were judged on the BARE
+> `_process_leader_fill`; in production that call is always wrapped by `_run_plan._one` (`log_error "ws_hot_send"`) or
+> by `run_cycle`'s outer `try`, so at the production boundary those two checks are PASS, not engine gaps (they are
+> withdrawn). Findings 3-5 stand; their durable form is the whole-disk case in v2. The current deliverable is
+> `J1_PATCHES.md` (22 checks, 8 findings, all judged at production boundaries) + `J1_PATCH_disk_full_robustness.diff`;
+> the patch proposal in this document is subsumed by it.
+>
 # J1 - disk-full robustness: observed behaviour and a proposed patch (main 5e88e89)
 
 Test: `_archive/hl_stage2/test_core_disk_full.py` (15 checks, real code paths, a fake exchange that COUNTS calls).

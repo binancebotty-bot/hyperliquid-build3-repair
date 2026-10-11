@@ -13,6 +13,11 @@ The patch is **not applied** here (engine code is the engine thread's). Apply fr
 `HL_Live_Copy_Service_Core.py` has a BOM and mixed CRLF/LF: apply the diff byte-exactly (git apply), never
 through an editor that normalises line endings.
 
+This diff supersedes the earlier `DISK_FULL_PATCH_PROPOSAL.diff` on this branch (see the SUPERSEDED banner in
+`DISK_FULL_FINDINGS.md`): it keeps the same `log_error` fix and protects the same failure points without changing
+the send-path semantics (no `return`-instead-of-raise at the intent append), and adds short-write detection, temp
+cleanup, the engine-loop guard and the integrity counter.
+
 ## What already holds on main (no change needed)
 
 * Order intents are appended **before** any send: a failing intent append sends nothing (A1) and the worker
