@@ -1,0 +1,118 @@
+--- a/_archive/hl_stage2/HL_Live_Copy_Service_Core.py
++++ b/_archive/hl_stage2/HL_Live_Copy_Service_Core.py
+@@ -2341,15 +2341,21 @@
+ 
+ 
+ def log_error(context: str, exc: BaseException | str) -> None:
+-    ensure_dirs()
+-    append_csv(ERRORS_CSV, ERROR_FIELDS, {
+-        "created_at": utc_now_iso(),
+-        "created_at_ms": utc_now_ms(),
+-        "context": context,
+-        "error_type": type(exc).__name__ if isinstance(exc, BaseException) else "Error",
+-        "message": str(exc),
+-        "traceback": traceback.format_exc() if isinstance(exc, BaseException) else "",
+-    })
++    try:
++        ensure_dirs()
++        append_csv(ERRORS_CSV, ERROR_FIELDS, {
++            "created_at": utc_now_iso(),
++            "created_at_ms": utc_now_ms(),
++            "context": context,
++            "error_type": type(exc).__name__ if isinstance(exc, BaseException) else "Error",
++            "message": str(exc),
++            "traceback": traceback.format_exc() if isinstance(exc, BaseException) else "",
++        })
++    except Exception as _log_exc:  # a full disk must not turn the error path into a new exception
++        try:
++            sys.stderr.write("[log_error] %s: %r (the error log write failed: %r)\n" % (context, exc, _log_exc))
++        except Exception:
++            pass
+ 
+ 
+ def normalise_wallet(wallet: Any) -> str:
+@@ -6591,25 +6597,31 @@
+             "notes": result.get("notes") or "real exchange IOC attempt",
+             "cloid": cloid,
+         }
+-        self.audit.append_send_attempt(row)  # same attempt_id as the pending_send row: the newest row is the state
+-        if status != "ORDER_FILLED":
+-            self.audit.append_reconciliation(
+-                "SEND_TERMINAL", terminal_state,
+-                leader_wallet=intent.fill.leader_wallet,
+-                leader_fill_id=intent.fill.leader_fill_id,
+-                intent_id=intent.intent_id,
+-                coin=intent.fill.coin,
+-                action=operator_action,
+-                reject_category=reject_category,
+-                terminal_state=terminal_state,
+-                notes=(
+-                    f"lifecycle={lifecycle}; exchange_error={error_text}; order_type=REAL_IOC; "
+-                    f"side={intent.copy_side}; limit_price={result.get('limit_px', intent.fill.price)}; "
+-                    f"copy_size={result.get('wire_size', intent.copy_size)}; sleeve_id={intent.sleeve_id}; "
+-                    f"position_id={intent.position_id}; wallet_position_before={intent.wallet_position_before}; "
+-                    f"leader_to_send_attempt_ms={timing.get('leader_to_send_attempt_ms', '')}"
+-                ),
+-            )
++        try:
++            self.audit.append_send_attempt(row)  # same attempt_id as the pending_send row: the newest row is the state
++        except Exception as exc:  # the order is already out: record the lost terminal, never raise
++            log_error("append_send_attempt_terminal", exc)
++        try:
++            if status != "ORDER_FILLED":
++                self.audit.append_reconciliation(
++                    "SEND_TERMINAL", terminal_state,
++                    leader_wallet=intent.fill.leader_wallet,
++                    leader_fill_id=intent.fill.leader_fill_id,
++                    intent_id=intent.intent_id,
++                    coin=intent.fill.coin,
++                    action=operator_action,
++                    reject_category=reject_category,
++                    terminal_state=terminal_state,
++                    notes=(
++                        f"lifecycle={lifecycle}; exchange_error={error_text}; order_type=REAL_IOC; "
++                        f"side={intent.copy_side}; limit_price={result.get('limit_px', intent.fill.price)}; "
++                        f"copy_size={result.get('wire_size', intent.copy_size)}; sleeve_id={intent.sleeve_id}; "
++                        f"position_id={intent.position_id}; wallet_position_before={intent.wallet_position_before}; "
++                        f"leader_to_send_attempt_ms={timing.get('leader_to_send_attempt_ms', '')}"
++                    ),
++                )
++        except Exception as exc:  # the reconciliation row is the terminal proof; losing it must never raise
++            log_error("append_reconciliation_terminal", exc)
+         self._append_latency_warning_if_needed(intent, timing)
+ 
+     def _append_mock_attempt(self, intent: Intent, status: str, timing: Optional[Dict[str, Any]] = None) -> None:
+@@ -8797,7 +8809,20 @@
+         # CSV append waits on the shared file lock, which a big audit read can hold for seconds, and held inside the
+         # send lock that wait stopped every other worker from building its intent (replay throughput, run 6).
+         with prof("intent_append"):
+-            self.audit.append_order_intent(intent)
++            try:
++                self.audit.append_order_intent(intent)
++            except Exception as exc:  # no order_intent row => no order, and never abort the cycle
++                log_error("intent_append", exc)
++                try:
++                    self.audit.append_reconciliation(
++                        "SEND_TERMINAL", "SEND_NOT_ATTEMPTED_AUDIT_WRITE_FAILED",
++                        leader_wallet=fill.leader_wallet, leader_fill_id=fill.leader_fill_id,
++                        intent_id=intent.intent_id, coin=fill.coin, action="AUDIT_WRITE_FAILED",
++                        reject_category="AUDIT_WRITE_FAILED", terminal_state="AUDIT_WRITE_FAILED",
++                        engine_can_send=False, notes="order_intents append failed; order not sent")
++                except Exception as exc2:
++                    log_error("intent_append_reconcile", exc2)
++                return False, "SEND_NOT_ATTEMPTED_AUDIT_WRITE_FAILED", intent
+         stamp_fill(fill, "intent_written_ms")
+         if is_pre_cutover:
+             return True, "PRE_CUTOVER", intent
+@@ -9511,7 +9536,10 @@
+                 write_live_integrity_status(fnum(os.getenv("HL_LIVE_INTEGRITY_MIN_INTERVAL_SEC"), 5.0))
+             except Exception as exc:
+                 log_error("live_integrity_status", exc)
+-            self.state_writer.write(summary, self.dedupe, self.cfg)
++            try:
++                self.state_writer.write(summary, self.dedupe, self.cfg)
++            except Exception as exc:
++                log_error("state_writer", exc)
+         return summary
+ 
+ 
