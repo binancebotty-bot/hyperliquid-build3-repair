@@ -48,7 +48,7 @@ def classify(audit_dir: Path, fill_ids: List[str]) -> Dict[str, str]:
             return "SENT"
         terms = [str(r.get("terminal_state", "")) for r in recon.get(fid, []) if r.get("terminal_state")]
         for t in reversed(terms):
-            if t == "REPLAY_DEFERRED_TRUTH_UNREADABLE":
+            if t.startswith(("REPLAY_DEFERRED", "FILL_PENDING")):
                 continue
             if t == "MISSED_ENTRY_LEADER_ALREADY_CLOSED":
                 return "SKIPPED_FLAT"

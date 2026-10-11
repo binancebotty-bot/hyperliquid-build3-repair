@@ -225,7 +225,7 @@ def main() -> None:
     check("A1_NO_ORDER_SENT_WHEN_INTENT_ROW_CANNOT_BE_WRITTEN", fake_a.calls == [], "exchange calls=%d" % len(fake_a.calls))
     check("A2_FAILURE_CONTAINED_AT_THE_WORKER_BOUNDARY", raised_a is None,
           "the intent-append failure escaped _run_plan: %r" % (raised_a,))
-    check("A3_LOUD_RECORD_OF_THE_FAILURE", "ws_hot_send" in error_contexts(),
+    check("A3_LOUD_RECORD_OF_THE_FAILURE", ("ws_hot_send" in error_contexts() or "process_leader_fill" in error_contexts()),
           "errors.csv contexts=%s" % error_contexts()[-3:])
     it_a2 = intent(fid="a2")
     core.intents_by_id[it_a2.intent_id] = it_a2

@@ -3188,8 +3188,23 @@ class AuditLogWriter:
             "notes": intent.notes,
         })
 
+    def _note_fill_row(self, fid: Any, state: Any = "") -> None:
+        fid = str(fid or "").strip()
+        if not fid or str(state or "").startswith(("FILL_PENDING", "REPLAY_DEFERRED")):  # a "waiting" row is not a final one
+            return
+        with self.__dict__.setdefault("_rowed_lock", threading.Lock()):
+            rowed = self.__dict__.setdefault("_rowed", set())
+            if len(rowed) > 1000000:
+                rowed.clear()
+            rowed.add(fid)
+
+    def has_fill_row(self, fid: Any) -> bool:
+        """Has this process written any send-attempt or reconciliation row for the leader fill id (the final-row invariant)."""
+        return str(fid or "").strip() in self.__dict__.get("_rowed", ())
+
     def append_send_attempt(self, row: Dict[str, Any]) -> None:
         append_csv(SEND_ATTEMPTS_CSV, SEND_ATTEMPT_FIELDS, row)
+        self._note_fill_row(row.get("leader_fill_id"), row.get("terminal_state") or row.get("status"))
 
     def append_live_fill(self, row: Dict[str, Any]) -> None:
         append_csv(LIVE_FILLS_CSV, LIVE_FILL_FIELDS, row)
@@ -3230,6 +3245,7 @@ class AuditLogWriter:
             **kwargs,
         }
         append_csv(RECONCILIATION_CSV, RECONCILIATION_FIELDS, row)
+        self._note_fill_row(kwargs.get("leader_fill_id"), kwargs.get("terminal_state") or status)
 
 
 class IntentBuilder:
@@ -8288,6 +8304,12 @@ class LiveCopyCore:
         self._converge_tries: Dict[Tuple[str, str, str], int] = {}  # sleeve -> closes queued so far
         self._converge_last: Dict[str, Any] = {}
         self._hot_threads: List[threading.Thread] = []
+        self._pending_seen: Dict[str, Tuple[int, str, str, str]] = {}  # guard key -> (queued at ms, wallet, coin, fill id)
+        self._pending_rowed: set = set()
+        self._inflight: Dict[int, Tuple[str, int, str, str, str]] = {}  # thread id -> (fill id, started ms, thread name, wallet, coin)
+        self._stuck_dumped: set = set()
+        self._past_send_keys: set = set()  # guard keys whose processing reached the send call
+        threading.Thread(target=self._pending_sweeper, daemon=True, name="HLCore-pending-sweeper").start()
         for idx in range(self.hot_send_workers):
             t = threading.Thread(target=self._hot_send_loop, args=(idx,), daemon=True, name=f"HLCoreWS-hot-send-{idx + 1}")
             t.start()
@@ -8361,6 +8383,7 @@ class LiveCopyCore:
                 return True
             self._queued_keys.add(key)
             self._pending_ts[key] = (str(fill.leader_wallet).lower(), int(fnum(fill.timestamp_ms, 0)))
+            self._pending_seen[key] = (utc_now_ms(), str(fill.leader_wallet), str(fill.coin), str(fill.leader_fill_id))
             # Dynamic per-coin lane assignment (P2a):
             # - If coin already has queued/in-flight fills, use its lane (order kept)
             # - For close fills (CONVERGE or leader exit) with no existing lane, use shard-based assignment
@@ -8396,6 +8419,7 @@ class LiveCopyCore:
             with self._queued_lock:
                 self._queued_keys.discard(key)
                 self._pending_ts.pop(key, None)
+                self._pending_seen.pop(key, None)
                 # Decrement count on failure
                 if coin_key in self._coin_lane:
                     lane, count = self._coin_lane[coin_key]
@@ -8405,6 +8429,54 @@ class LiveCopyCore:
                         self._coin_lane[coin_key] = (lane, count - 1)
             log_error("ws_hot_queue_full", RuntimeError("hot send queue full"))
             return False
+
+    def _pending_sweeper(self) -> None:
+        """A fill that has waited for a worker longer than HL_LIVE_PENDING_ROW_SEC (default 60) gets one row saying it is queued,
+        so an unprocessed backlog is visible in the audit and is never mistaken for a silently lost trade."""
+        while not self._hot_stop_event.is_set():
+            time.sleep(max(0.2, fnum(os.getenv("HL_LIVE_PENDING_SWEEP_SEC"), 5.0)))
+            try:
+                limit = int(fnum(os.getenv("HL_LIVE_PENDING_ROW_SEC"), 60.0) * 1000)
+                now = utc_now_ms()
+                with self._queued_lock:
+                    late = [(k, v) for k, v in self._pending_seen.items() if now - v[0] > limit and k not in self._pending_rowed
+                            and k in self._queued_keys]
+                    self._pending_rowed.update(k for k, _v in late)
+                for _k, (at, wallet, coin, fid) in late:
+                    self.audit.append_reconciliation(
+                        "FILL_PENDING", "FILL_PENDING_QUEUED", leader_wallet=wallet, leader_fill_id=fid, coin=coin,
+                        action="QUEUED_NOT_LOST", terminal_state="FILL_PENDING_QUEUED", engine_can_send="False",
+                        notes=f"waited {(now - at) // 1000}s for a worker (queued or being processed); a final row follows when it is handled")
+                self._dump_stuck_workers(now)
+            except Exception as exc:
+                log_error("pending_sweeper", exc)
+
+    def _dump_stuck_workers(self, now: int) -> None:
+        """A worker stuck on one fill longer than HL_LIVE_STUCK_SEC (default 120): one row for the fill and one dump of every
+        thread's stack (stuck_threads_<ms>.txt beside the audit state), so a hang shows where it is instead of just silence."""
+        limit = int(fnum(os.getenv("HL_LIVE_STUCK_SEC"), 120.0) * 1000)
+        stuck = [(t, v) for t, v in list(self._inflight.items()) if now - v[1] > limit and v[0] not in self._stuck_dumped]
+        if not stuck:
+            return
+        import traceback
+        frames = sys._current_frames()
+        lines = [f"stuck workers at {now}: " + ", ".join(f"{v[2]} fill {v[0]} {v[4]} for {(now - v[1]) // 1000}s" for _t, v in stuck), ""]
+        for th in threading.enumerate():
+            fr = frames.get(th.ident)
+            if fr is not None:
+                lines.append(f"--- {th.name} ({th.ident})")
+                lines.extend(x.rstrip("\n") for x in traceback.format_stack(fr))
+        try:
+            out = Path(CORE_RUNTIME_STATE_FILE).parent / f"stuck_threads_{now}.txt"
+            out.write_text("\n".join(lines), encoding="utf-8")
+        except Exception as exc:
+            log_error("stuck_dump_write", exc)
+        for _t, (fid, at, tname, wallet, coin) in stuck:
+            self._stuck_dumped.add(fid)
+            self.audit.append_reconciliation(
+                "FILL_PENDING", "FILL_PENDING_STUCK", leader_wallet=wallet, leader_fill_id=fid, coin=coin,
+                action="WORKER_STUCK_SEE_STUCK_THREADS_FILE", terminal_state="FILL_PENDING_STUCK", engine_can_send="False",
+                notes=f"worker {tname} has been on this fill for {(now - at) // 1000}s; all thread stacks written to stuck_threads_{now}.txt")
 
     def _is_close_fill(self, fill: LeaderFill) -> bool:
         if fill.source == "CONVERGE":
@@ -8470,6 +8542,8 @@ class LiveCopyCore:
                 _gk = self._guard_key(f)
                 self._queued_keys.discard(_gk)
                 self._pending_ts.pop(_gk, None)
+                self._pending_seen.pop(_gk, None)
+                self._pending_rowed.discard(_gk)
                 if f.source == "CONVERGE":
                     raw = f.raw if isinstance(f.raw, dict) else {}
                     self._converge_queued.discard((f.leader_wallet, canonical_coin_key(f.coin), str(raw.get("position_id") or "")))
@@ -8488,6 +8562,12 @@ class LiveCopyCore:
                 pass
 
     def _drain_priority(self, idx: int) -> None:
+        try:
+            self._drain_priority_inner(idx)
+        except Exception as exc:  # the batch's queue slots are released in its own finally; the worker carries on
+            log_error("drain_priority", exc)
+
+    def _drain_priority_inner(self, idx: int) -> None:
         """Send every close waiting on this worker's priority lane, before the next fill of an entry batch."""
         prio = getattr(self, "_prio_queues", None)
         if not prio or idx >= len(prio):
@@ -8575,6 +8655,17 @@ class LiveCopyCore:
             t.join()
 
     def _hot_send_loop(self, idx: int = 0) -> None:
+        """A worker never dies quietly: an error that escapes the loop is logged and the loop restarts (a dead worker leaves
+        its queue unread, and every fill on it without a row)."""
+        while not self._hot_stop_event.is_set():
+            try:
+                self._hot_send_loop_inner(idx)
+                return
+            except Exception as exc:
+                log_error("hot_send_loop", exc)
+                time.sleep(0.5)
+
+    def _hot_send_loop_inner(self, idx: int = 0) -> None:
         q = self._hot_queues[idx]
         batch_max = max(1, int(fnum(os.getenv("HL_LIVE_HOT_BATCH_MAX"), 500)))
         while not self._hot_stop_event.is_set():
@@ -8773,6 +8864,64 @@ class LiveCopyCore:
             return self._guard_key(fill) in self._idem_accepted
 
     def _process_leader_fill(self, fill: LeaderFill, summary: Optional[CycleSummary] = None, entry_block_reason: str = "") -> Tuple[bool, str, Optional[Intent]]:
+        """Every fill ends in a row. An error while processing used to be only a log line: the fill (and any fills merged
+        into it) were already marked handled, so without a row they vanished (outage test 14: 57 fills with no row)."""
+        tid = threading.get_ident()
+        self._inflight[tid] = (str(fill.leader_fill_id), utc_now_ms(), threading.current_thread().name, str(fill.leader_wallet), str(fill.coin))
+        try:
+            return self._process_leader_fill_inner(fill, summary, entry_block_reason)
+        except Exception as exc:
+            log_error("process_leader_fill", exc)
+            try:
+                self._terminal_after_exception(fill, exc)
+            except Exception as exc2:
+                log_error("process_leader_fill_terminal", exc2)
+            return False, "PROCESS_EXCEPTION", None
+        finally:
+            self._inflight.pop(tid, None)
+            _k = self._guard_key(fill)
+            self._stuck_dumped.discard(str(fill.leader_fill_id))
+            if _k not in self._deferred:  # held fills keep their state; everything else is done with it
+                self._past_send_keys.discard(_k)
+                self.__dict__.get("_defer_first_ms", {}).pop(_k, None)
+
+    def _terminal_after_exception(self, fill: LeaderFill, exc: Exception) -> None:
+        raw = fill.raw if isinstance(fill.raw, dict) else {}
+        merged_ids = [str(i) for i in (raw.get("merged_fill_ids") or []) if i]
+        key = self._guard_key(fill)
+        firsts = self.__dict__.setdefault("_defer_first_ms", {})
+        now = utc_now_ms()
+        first = firsts.setdefault(key, now)
+        within = now - first <= int(fnum(os.getenv("HL_LIVE_DEFER_MAX_SEC"), 300.0) * 1000)
+        past_send = key in self._past_send_keys
+        if not past_send and within:  # nothing reached the exchange yet: hold it and offer it again
+            with self._idem_lock:
+                self._idem_accepted.discard(key)  # the head only; merged siblings stay marked and ride with it
+            with self.dedupe._lock:
+                self.dedupe.processed.discard(fill.leader_fill_id)
+            if first == now:  # one row per fill, not one per retry
+                self.audit.append_reconciliation(
+                    "REPLAY_DEFERRED", "REPLAY_DEFERRED_PROCESS_EXCEPTION", leader_wallet=fill.leader_wallet,
+                    leader_fill_id=fill.leader_fill_id, coin=fill.coin, action="RETRY_AFTER_ERROR",
+                    terminal_state="REPLAY_DEFERRED_PROCESS_EXCEPTION", engine_can_send="False",
+                    notes=f"processing failed before any order: {type(exc).__name__}: {str(exc)[:200]}; held, not lost")
+            delay = max(0.5, fnum(os.getenv("HL_LIVE_DEFER_RETRY_SEC"), 5.0))
+            with self._deferred_lock:
+                self._deferred[key] = (fill, time.monotonic() + delay)
+                if self._deferred_thread is None or not self._deferred_thread.is_alive():
+                    self._deferred_thread = threading.Thread(target=self._deferred_loop, daemon=True, name="HLCore-deferred")
+                    self._deferred_thread.start()
+            return
+        firsts.pop(key, None)
+        for fid in [str(fill.leader_fill_id), *merged_ids]:  # gave up, or the error came after the order call: a row for every fill
+            self.audit.append_reconciliation(
+                "SEND_TERMINAL", "BLOCKED_PROCESS_EXCEPTION", leader_wallet=fill.leader_wallet, leader_fill_id=fid, coin=fill.coin,
+                action="MANUAL_REVIEW_PROCESS_EXCEPTION", reject_category="PROCESS_EXCEPTION",
+                terminal_state="BLOCKED_PROCESS_EXCEPTION", engine_can_send="False",
+                notes=f"{type(exc).__name__}: {str(exc)[:300]}; "
+                      + ("the error came after the exchange call may have started: check the exchange" if past_send else "retries exhausted"))
+
+    def _process_leader_fill_inner(self, fill: LeaderFill, summary: Optional[CycleSummary] = None, entry_block_reason: str = "") -> Tuple[bool, str, Optional[Intent]]:
         stamp_fill(fill, "process_started_ms")
         stale_reason = stale_snapshot_replay_reason(fill)
         if stale_reason:
@@ -8865,6 +9014,13 @@ class LiveCopyCore:
             elif not self.dedupe.accept_leader(fill.leader_fill_id):
                 if summary is not None:
                     summary.leader_fills_deduped += 1
+                if guard_key not in self._idem_duplicate_audited:  # a fill that stops here leaves a row (once)
+                    self._idem_duplicate_audited.add(guard_key)
+                    self.audit.append_reconciliation(
+                        "DUPLICATE_LEADER_FILL_SKIPPED", "BLOCKED_DUPLICATE_DEDUPE_STORE", leader_wallet=fill.leader_wallet,
+                        leader_fill_id=fill.leader_fill_id, coin=fill.coin, action="NO_SEND_ALREADY_PROCESSED",
+                        terminal_state="BLOCKED_DUPLICATE_DEDUPE_STORE", engine_can_send="False",
+                        notes="the persisted dedupe store already holds this leader fill id; not sent again")
                 return False, "DEDUPED", None
             self.dedupe.processed.update(merged_ids)
             with prof("send_lock:intent_build"):
@@ -8895,7 +9051,12 @@ class LiveCopyCore:
             except Exception as exc:
                 log_error("merged_fill_row", exc)
         if is_pre_cutover:
+            self.audit.append_reconciliation(
+                "SEND_TERMINAL", "PRE_CUTOVER_NOT_SENT", leader_wallet=fill.leader_wallet, leader_fill_id=fill.leader_fill_id,
+                intent_id=intent.intent_id, coin=fill.coin, action="NO_SEND_BEFORE_LIVE_START", terminal_state="PRE_CUTOVER_NOT_SENT",
+                engine_can_send="False", notes=f"leader fill at {fill.timestamp_ms} is older than the saved live start {self.dedupe.live_start_ms}: recorded, not copied")
             return True, "PRE_CUTOVER", intent
+        self._past_send_keys.add(self._guard_key(fill))  # an error from here on must not offer the fill again (no double order)
         try:
             sent, send_status = self.sender.send_if_allowed(intent, entry_block_reason)
         except Exception as exc:  # run 6f: allowed intents with no send row. Every allowed intent ends in a terminal row.
@@ -8915,6 +9076,12 @@ class LiveCopyCore:
                 summary.leader_sends_attempted += 1
         else:
             self._append_send_terminal(fill, intent, send_status)
+            if not self.audit.has_fill_row(fill.leader_fill_id):  # the invariant: no fill ends without a row, whatever the status
+                self.audit.append_reconciliation(
+                    "SEND_TERMINAL", "BLOCKED_NO_TERMINAL_RECORDED", leader_wallet=fill.leader_wallet, leader_fill_id=fill.leader_fill_id,
+                    intent_id=intent.intent_id, coin=fill.coin, action="MANUAL_REVIEW_UNRECORDED_BLOCK",
+                    reject_category="UNRECORDED_SEND_BLOCK", terminal_state="BLOCKED_NO_TERMINAL_RECORDED", engine_can_send="False",
+                    notes=f"send_status={send_status}; decision={intent.decision}; send_allowed={intent.send_allowed}; no other row was written for this fill")
         return sent, send_status, intent
 
     _TRUTH_UNREADABLE_MARKERS = ("unavailable", "unreadable", "not yet verified clean")
