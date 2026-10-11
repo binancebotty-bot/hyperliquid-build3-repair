@@ -978,39 +978,43 @@ def atomic_write_json(path: Path, payload: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_name(f"{path.name}.{os.getpid()}_{threading.get_ident()}_{time.time_ns()}.tmp")
     text = json.dumps(payload, indent=2, sort_keys=True)
-    # no per-write crash-attribution marker any more (run 5: three marker writes per JSON write under the lock
-    # every audit append waits for); a failed replace still records one below
-    with prof(f"write:{path.name}"):
-        tmp.write_text(text, encoding="utf-8")  # a unique temp file: no lock needed until the replace
-    with prof("file_lock_wait"):
-        FILE_LOCK.acquire()
     try:
-      with prof(f"replace:{path.name}"):
-        last_exc: Optional[BaseException] = None
-        for attempt in range(8):
-            try:
-                os.replace(tmp, path)
-                last_exc = None
-                break
-            except PermissionError as exc:
-                # Windows can transiently deny os.replace when another local reader
-                # has the target open. A status-file write must not kill Core.
-                last_exc = exc
-                time.sleep(0.025 * (attempt + 1))
-        if last_exc is not None:
-            record_core_phase("atomic_write_replace_failed", path, {
-                "tmp": str(tmp),
-                "error": repr(last_exc),
-                "tmp_exists": tmp.exists(),
-                "target_exists": path.exists(),
-            })
-            try:
-                log_error(f"atomic_write_json:{path.name}", last_exc)
-            except Exception:
-                pass
-            raise last_exc
-    finally:
-        FILE_LOCK.release()
+        with prof(f"write:{path.name}"):
+            written = tmp.write_text(text, encoding="utf-8")  # a unique temp file: no lock needed until the replace
+        if written != len(text):  # a short write stores fewer bytes and does NOT raise
+            raise OSError(f"short audit json write: {written} of {len(text)} chars")
+        with prof("file_lock_wait"):
+            FILE_LOCK.acquire()
+        try:
+          with prof(f"replace:{path.name}"):
+            last_exc: Optional[BaseException] = None
+            for attempt in range(8):
+                try:
+                    os.replace(tmp, path)
+                    last_exc = None
+                    break
+                except PermissionError as exc:
+                    # Windows can transiently deny os.replace when another local reader
+                    # has the target open. A status-file write must not kill Core.
+                    last_exc = exc
+                    time.sleep(0.025 * (attempt + 1))
+            if last_exc is not None:
+                record_core_phase("atomic_write_replace_failed", path, {
+                    "tmp": str(tmp),
+                    "error": repr(last_exc),
+                    "tmp_exists": tmp.exists(),
+                    "target_exists": path.exists(),
+                })
+                raise last_exc
+        finally:
+            FILE_LOCK.release()
+    except BaseException as exc:
+        try:
+            tmp.unlink()  # never leave a .tmp behind: on a full disk they accumulate and make it worse
+        except OSError:
+            pass
+        note_audit_write_failure(path, exc)  # durable + loud, and it can never raise
+        raise
 
 
 # start/shutdown records are installed by main() when the engine itself runs (--once/--loop), never on import:
@@ -1110,6 +1114,38 @@ def _owned_note(row: Dict[str, Any]) -> None:
         sizes[norm] = sizes.get(norm, 0.0) + abs(fnum(row.get("fill_size")))
 
 
+_AUDIT_WRITE_FAILURES: Dict[str, Any] = {"count": 0, "last": ""}
+AUDIT_WRITE_FAILURES_FILE = ERRORS_CSV.with_name("audit_write_failures.log")
+
+
+def note_audit_write_failure(path: Path, exc: BaseException) -> None:
+    """A durable, never-raising record of an audit write failure: a full disk must not swallow it. It goes
+    to a plain-text journal (never back through the CSV append path that just failed, which would recurse)
+    and is surfaced as audit_write_failures in the live integrity status."""
+    _AUDIT_WRITE_FAILURES["count"] = int(_AUDIT_WRITE_FAILURES.get("count") or 0) + 1
+    _AUDIT_WRITE_FAILURES["last"] = f"{path.name}: {exc!r}"
+    try:
+        with AUDIT_WRITE_FAILURES_FILE.open("a", encoding="utf-8") as f:
+            f.write(f"{utc_now_iso()}\t{os.getpid()}\t{path.name}\t{exc!r}\n")
+    except Exception:
+        pass
+    try:
+        sys.stderr.write(f"[audit_write_failure] {path.name}: {exc!r}\n")
+    except Exception:
+        pass
+
+
+def audit_write_failure_count() -> int:
+    """Total audit write failures seen (the journal is the durable source: it survives a restart)."""
+    n = int(_AUDIT_WRITE_FAILURES.get("count") or 0)
+    try:
+        with AUDIT_WRITE_FAILURES_FILE.open("r", encoding="utf-8", errors="replace") as f:
+            n = max(n, sum(1 for _ in f))
+    except Exception:
+        pass
+    return n
+
+
 def append_csv(path: Path, fieldnames: List[str], row: Dict[str, Any]) -> None:
     ensure_csv_header(path, fieldnames)
     buf = io.StringIO()
@@ -1119,8 +1155,21 @@ def append_csv(path: Path, fieldnames: List[str], row: Dict[str, Any]) -> None:
     try:
         if not path.exists() or path.stat().st_size <= 0:  # rotated away since the header check above
             ensure_csv_header(path, fieldnames)
-        with prof(f"append:{path.name}"), path.open("a", newline="", encoding="utf-8") as f:
-            f.write(buf.getvalue())
+        size_before = path.stat().st_size if path.exists() else 0
+        try:
+            with prof(f"append:{path.name}"), path.open("a", newline="", encoding="utf-8") as f:
+                written = f.write(buf.getvalue())
+                f.flush()
+            if written != len(buf.getvalue()):  # a short write stores fewer bytes and does NOT raise
+                raise OSError(f"short audit append: wrote {written} of {len(buf.getvalue())} bytes")
+        except OSError as exc:
+            try:
+                if path.exists() and path.stat().st_size > size_before:
+                    os.truncate(path, size_before)  # drop a half-written row so the next append cannot glue onto it
+            except Exception:
+                pass
+            note_audit_write_failure(path, exc)  # durable + loud; the caller still sees the failure
+            raise
         if path == LIVE_FILLS_CSV and _OWNED_BY_OID["path"] == str(path):
             _owned_note(row)  # keeps the per-order owned-size totals current (never a whole-file scan)
         if AUDIT_ROTATE_BYTES > 0 and path.name in AUDIT_ROTATING_NAMES:
@@ -2295,6 +2344,7 @@ def build_live_integrity_status() -> Dict[str, Any]:
             "send_attempts": len(sends),
             "live_fills": len(fills),
             "reconciliation_rows": len(recon),
+            "audit_write_failures": audit_write_failure_count(),
             **issues,
         },
         "ownership_gate": {
@@ -2342,15 +2392,21 @@ def write_live_integrity_status(min_interval_sec: float = 0.0) -> Dict[str, Any]
 
 
 def log_error(context: str, exc: BaseException | str) -> None:
-    ensure_dirs()
-    append_csv(ERRORS_CSV, ERROR_FIELDS, {
-        "created_at": utc_now_iso(),
-        "created_at_ms": utc_now_ms(),
-        "context": context,
-        "error_type": type(exc).__name__ if isinstance(exc, BaseException) else "Error",
-        "message": str(exc),
-        "traceback": traceback.format_exc() if isinstance(exc, BaseException) else "",
-    })
+    try:
+        ensure_dirs()
+        append_csv(ERRORS_CSV, ERROR_FIELDS, {
+            "created_at": utc_now_iso(),
+            "created_at_ms": utc_now_ms(),
+            "context": context,
+            "error_type": type(exc).__name__ if isinstance(exc, BaseException) else "Error",
+            "message": str(exc),
+            "traceback": traceback.format_exc() if isinstance(exc, BaseException) else "",
+        })
+    except Exception as inner:  # the error log must never be the thing that crashes the engine on a full disk
+        try:
+            sys.stderr.write(f"[log_error:{context}] {exc!r} (error log write failed: {inner!r})\n")
+        except Exception:
+            pass
 
 
 def normalise_wallet(wallet: Any) -> str:
@@ -9617,7 +9673,10 @@ class LiveCopyCore:
                 write_live_integrity_status(fnum(os.getenv("HL_LIVE_INTEGRITY_MIN_INTERVAL_SEC"), 5.0))
             except Exception as exc:
                 log_error("live_integrity_status", exc)
-            self.state_writer.write(summary, self.dedupe, self.cfg)
+            try:
+                self.state_writer.write(summary, self.dedupe, self.cfg)
+            except Exception as exc:  # a state json write must never end the cycle (or the process)
+                log_error("cycle_state_write", exc)
         return summary
 
 
@@ -11571,13 +11630,20 @@ def main() -> None:
                     sleep_until = min(next_main_at, next_copy_poll_at if (args.poll_copy and not copy_thread) else next_main_at)
                     time.sleep(max(0.05, min(0.5, sleep_until - now)))
                     continue
-                summary = core.run_cycle(
-                    use_source_csv=bool(main_due and source_path and source_path.exists()),
-                    poll_live=bool(main_due and args.poll_live),
-                    poll_copy=copy_due,
-                    reconcile_exchange=bool(main_due and args.reconcile_exchange),
-                )
-                print(json.dumps(asdict(summary), indent=2, sort_keys=True))
+                try:
+                    summary = core.run_cycle(
+                        use_source_csv=bool(main_due and source_path and source_path.exists()),
+                        poll_live=bool(main_due and args.poll_live),
+                        poll_copy=copy_due,
+                        reconcile_exchange=bool(main_due and args.reconcile_exchange),
+                    )
+                except Exception as exc:  # one failing cycle must never end the engine
+                    log_error("run_cycle_loop", exc)
+                    if not args.loop:
+                        raise
+                    summary = None
+                if summary is not None:
+                    print(json.dumps(asdict(summary), indent=2, sort_keys=True))
                 if not args.loop:
                     break
                 if main_due:
