@@ -10604,6 +10604,7 @@ def run_self_test() -> None:
                 "wire_size": intent.copy_size, "exchange_called": True, "error": "",
             }
         _core_rs2.sender._send_real = _mock_real_send_ok
+        _core_rs2.run_scope_sweep()  # the sweep thread races the first cycle: read the account before it, so the gate is open
         _sum_rs2 = _core_rs2.run_cycle(use_source_csv=True, poll_live=False)
         _check("real sender: mocked exchange writes one REAL_IOC send_attempt",
                _sum_rs2.leader_sends_attempted == 1 and
