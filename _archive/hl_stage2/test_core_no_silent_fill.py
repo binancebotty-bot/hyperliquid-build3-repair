@@ -282,7 +282,7 @@ def main() -> None:
     real_inner = core._process_leader_fill_inner
 
     def slow_inner(fill, *a, **k):
-        if fill.leader_fill_id == "slow-1":
+        if fill.leader_fill_id in ("slow-1", "odd-2"):
             time.sleep(3.5)
         return real_inner(fill, *a, **k)
     core._process_leader_fill_inner = slow_inner
@@ -294,14 +294,16 @@ def main() -> None:
     # ---- (7) a status nothing writes a row for: the final check writes one ------------------------------------------
     real_sia = core.sender.send_if_allowed
     def odd_sia(intent, ebr=""):
-        if intent.fill.leader_fill_id == "odd-1":
+        if intent.fill.leader_fill_id.startswith("odd-"):
             return False, "SOME_FUTURE_STATUS"
         return real_sia(intent, ebr)
     core.sender.send_if_allowed = odd_sia
     real_ast = core._append_send_terminal
-    core._append_send_terminal = lambda fill, intent, st: None if fill.leader_fill_id == "odd-1" else real_ast(fill, intent, st)
+    core._append_send_terminal = lambda fill, intent, st: None if fill.leader_fill_id.startswith("odd-") else real_ast(fill, intent, st)
     core._dispatch_fill(mk("odd-1", "BN08" if False else "BN06", "SELL", "Open Short", c.utc_now_ms()))
     ids.append("odd-1")
+    core._dispatch_fill(mk("odd-2", "BN05", "SELL", "Open Short", c.utc_now_ms()))
+    ids.append("odd-2")
     time.sleep(1.5)
     # ---- (8) older than the saved live start: recorded, not copied, and says so --------------------------------------
     core.dedupe.live_start_ms = c.utc_now_ms() + 3_600_000
@@ -338,6 +340,7 @@ def main() -> None:
     check("ERROR_FILL_IS_HELD_THEN_HANDLED", "REPLAY_DEFERRED_PROCESS_EXCEPTION" in states("boom-1") and boom["n"] == 2 and res.get("boom-1") not in ("MISSING", None, ""),
           f"states={states('boom-1')} tries={boom['n']} outcome={res.get('boom-1')}")
     check("UNRECORDED_STATUS_GETS_A_FINAL_ROW", "BLOCKED_NO_TERMINAL_RECORDED" in states("odd-1"), f"states={states('odd-1')}")
+    check("WAITING_ROW_DOES_NOT_COUNT_AS_FINAL", "FILL_PENDING_QUEUED" in states("odd-2") and "BLOCKED_NO_TERMINAL_RECORDED" in states("odd-2"), f"states={states('odd-2')}")
     check("PRE_CUTOVER_FILL_SAYS_SO", "PRE_CUTOVER_NOT_SENT" in states("old-1"), f"states={states('old-1')}")
     check("STUCK_WORKER_IS_NAMED_AND_DUMPED", "FILL_PENDING_STUCK" in states("slow-1") and list(Path(c.CORE_RUNTIME_STATE_FILE).parent.glob("stuck_threads_*.txt")),
           f"states={states('slow-1')}")

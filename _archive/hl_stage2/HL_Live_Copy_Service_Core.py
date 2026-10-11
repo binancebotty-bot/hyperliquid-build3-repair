@@ -3188,11 +3188,13 @@ class AuditLogWriter:
             "notes": intent.notes,
         })
 
-    def _note_fill_row(self, fid: Any) -> None:
+    def _note_fill_row(self, fid: Any, state: Any = "") -> None:
         fid = str(fid or "").strip()
-        if fid:
+        if not fid or str(state or "").startswith(("FILL_PENDING", "REPLAY_DEFERRED")):  # a "waiting" row is not a final one
+            return
+        with self.__dict__.setdefault("_rowed_lock", threading.Lock()):
             rowed = self.__dict__.setdefault("_rowed", set())
-            if len(rowed) > 200000:
+            if len(rowed) > 1000000:
                 rowed.clear()
             rowed.add(fid)
 
@@ -3202,7 +3204,7 @@ class AuditLogWriter:
 
     def append_send_attempt(self, row: Dict[str, Any]) -> None:
         append_csv(SEND_ATTEMPTS_CSV, SEND_ATTEMPT_FIELDS, row)
-        self._note_fill_row(row.get("leader_fill_id"))
+        self._note_fill_row(row.get("leader_fill_id"), row.get("terminal_state") or row.get("status"))
 
     def append_live_fill(self, row: Dict[str, Any]) -> None:
         append_csv(LIVE_FILLS_CSV, LIVE_FILL_FIELDS, row)
@@ -3243,7 +3245,7 @@ class AuditLogWriter:
             **kwargs,
         }
         append_csv(RECONCILIATION_CSV, RECONCILIATION_FIELDS, row)
-        self._note_fill_row(kwargs.get("leader_fill_id"))
+        self._note_fill_row(kwargs.get("leader_fill_id"), kwargs.get("terminal_state") or status)
 
 
 class IntentBuilder:
@@ -8306,6 +8308,7 @@ class LiveCopyCore:
         self._pending_rowed: set = set()
         self._inflight: Dict[int, Tuple[str, int, str, str, str]] = {}  # thread id -> (fill id, started ms, thread name, wallet, coin)
         self._stuck_dumped: set = set()
+        self._past_send_keys: set = set()  # guard keys whose processing reached the send call
         threading.Thread(target=self._pending_sweeper, daemon=True, name="HLCore-pending-sweeper").start()
         for idx in range(self.hot_send_workers):
             t = threading.Thread(target=self._hot_send_loop, args=(idx,), daemon=True, name=f"HLCoreWS-hot-send-{idx + 1}")
@@ -8416,6 +8419,7 @@ class LiveCopyCore:
             with self._queued_lock:
                 self._queued_keys.discard(key)
                 self._pending_ts.pop(key, None)
+                self._pending_seen.pop(key, None)
                 # Decrement count on failure
                 if coin_key in self._coin_lane:
                     lane, count = self._coin_lane[coin_key]
@@ -8875,6 +8879,11 @@ class LiveCopyCore:
             return False, "PROCESS_EXCEPTION", None
         finally:
             self._inflight.pop(tid, None)
+            _k = self._guard_key(fill)
+            self._stuck_dumped.discard(str(fill.leader_fill_id))
+            if _k not in self._deferred:  # held fills keep their state; everything else is done with it
+                self._past_send_keys.discard(_k)
+                self.__dict__.get("_defer_first_ms", {}).pop(_k, None)
 
     def _terminal_after_exception(self, fill: LeaderFill, exc: Exception) -> None:
         raw = fill.raw if isinstance(fill.raw, dict) else {}
@@ -8884,7 +8893,8 @@ class LiveCopyCore:
         now = utc_now_ms()
         first = firsts.setdefault(key, now)
         within = now - first <= int(fnum(os.getenv("HL_LIVE_DEFER_MAX_SEC"), 300.0) * 1000)
-        if not raw.get("_past_send") and within:  # nothing reached the exchange yet: hold it and offer it again
+        past_send = key in self._past_send_keys
+        if not past_send and within:  # nothing reached the exchange yet: hold it and offer it again
             with self._idem_lock:
                 self._idem_accepted.discard(key)  # the head only; merged siblings stay marked and ride with it
             with self.dedupe._lock:
@@ -8909,7 +8919,7 @@ class LiveCopyCore:
                 action="MANUAL_REVIEW_PROCESS_EXCEPTION", reject_category="PROCESS_EXCEPTION",
                 terminal_state="BLOCKED_PROCESS_EXCEPTION", engine_can_send="False",
                 notes=f"{type(exc).__name__}: {str(exc)[:300]}; "
-                      + ("the error came after the exchange call may have started: check the exchange" if raw.get("_past_send") else "retries exhausted"))
+                      + ("the error came after the exchange call may have started: check the exchange" if past_send else "retries exhausted"))
 
     def _process_leader_fill_inner(self, fill: LeaderFill, summary: Optional[CycleSummary] = None, entry_block_reason: str = "") -> Tuple[bool, str, Optional[Intent]]:
         stamp_fill(fill, "process_started_ms")
@@ -9046,8 +9056,7 @@ class LiveCopyCore:
                 intent_id=intent.intent_id, coin=fill.coin, action="NO_SEND_BEFORE_LIVE_START", terminal_state="PRE_CUTOVER_NOT_SENT",
                 engine_can_send="False", notes=f"leader fill at {fill.timestamp_ms} is older than the saved live start {self.dedupe.live_start_ms}: recorded, not copied")
             return True, "PRE_CUTOVER", intent
-        if isinstance(fill.raw, dict):
-            fill.raw["_past_send"] = True  # an error from here on must not offer the fill again (no double order)
+        self._past_send_keys.add(self._guard_key(fill))  # an error from here on must not offer the fill again (no double order)
         try:
             sent, send_status = self.sender.send_if_allowed(intent, entry_block_reason)
         except Exception as exc:  # run 6f: allowed intents with no send row. Every allowed intent ends in a terminal row.
