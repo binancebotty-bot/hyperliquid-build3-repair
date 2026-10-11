@@ -225,6 +225,14 @@ def main() -> None:
 
     c.AuditLogWriter.append_order_intent = append_intent
 
+    FIRST_PREWARM: dict = {}
+    _orig_prewarm = core.intent_builder.prewarm
+
+    def _rec_prewarm(fill, *a, **k):
+        FIRST_PREWARM.setdefault(fill.leader_fill_id, c.utc_now_ms())
+        return _orig_prewarm(fill, *a, **k)
+    core.intent_builder.prewarm = _rec_prewarm
+
     time.sleep(0.2)  # let the worker threads reach their queue loops
 
     # ---- replay: dispatch the burst into the real hot queues -------------------------------------------
@@ -270,6 +278,13 @@ def main() -> None:
     print("MEASURE:: sent fills with an info read between intent and order = %d/%d %s"
           % (len(offenders), len(reads_after_intent), offenders[:5]))
 
+    # a fill that waited in the queue had its exchange reads started on arrival, not at pickup
+    waited = [f for f in fills if EVENTS.get(f.leader_fill_id, {}).get("order_sent_ms")
+              and EVENTS[f.leader_fill_id]["process_start_ms"] - EVENTS[f.leader_fill_id]["enqueue_ms"] > 300]
+    late = [f.leader_fill_id for f in waited
+            if FIRST_PREWARM.get(f.leader_fill_id, 1 << 62) >= EVENTS[f.leader_fill_id]["process_start_ms"]]
+    print("MEASURE:: queued fills whose reads started before pickup = %d/%d" % (len(waited) - len(late), len(waited)))
+    check("BENCH_QUEUED_FILLS_PREWARM_STARTS_ON_ARRIVAL", len(waited) > 0 and not late, f"late={late[:5]} waited={len(waited)}")
     check("BENCH_ALL_FILLS_REACHED_A_LOCAL_OUTCOME", len(queue_waits) == FILLS,
           f"{len(queue_waits)}/{FILLS} fills produced an outcome")
     check("BENCH_40PCT_REACHED_THE_EXCHANGE", sent == expected_sent, f"sent={sent} expected={expected_sent}")

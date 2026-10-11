@@ -233,6 +233,7 @@ def follower_position_mark(coin: str) -> float:
 
 from concurrent.futures import ThreadPoolExecutor as _TPE
 _PREWARM_POOL = _TPE(max_workers=16, thread_name_prefix="prewarm")  # side-by-side info reads for prewarm
+_EARLY_WARM_POOL = _TPE(max_workers=4, thread_name_prefix="earlywarm")  # runs whole prewarms; separate from _PREWARM_POOL it submits to
 
 OPEN_ORDERS_FETCHER = None  # test seam for follower openOrders reads; production uses HTTP
 LEADER_MIDS_FETCHER = None  # test seam for leader-network mid reads; production uses HTTP
@@ -8247,6 +8248,35 @@ class LiveCopyCore:
             if t.is_alive() and t is not threading.current_thread():
                 t.join(timeout=1.0)
 
+    def _prewarm_with_parity(self, fill: LeaderFill, local_block: bool, converge: bool = False) -> None:
+        """The exchange reads a send needs (IntentBuilder.prewarm) plus the parity gate's leader read, side by side."""
+        parity_warm = None
+        if (not local_block and not converge and self.cfg.liq_parity_enabled()
+                and not _fill_dir(fill).startswith(("close", "liquidat"))):  # the gate only judges entries and adds
+            def _warm_parity():
+                try:
+                    self.sender._leader_state(fill.leader_wallet, str(fill.coin).split(":", 1)[0].lower() if ":" in str(fill.coin) else "")
+                except Exception as exc:
+                    log_error("liq_parity_prewarm", exc)
+            parity_warm = _PREWARM_POOL.submit(_warm_parity)
+        self.intent_builder.prewarm(fill, local_block=local_block)
+        if parity_warm is not None:
+            parity_warm.result()
+
+    def _early_prewarm(self, fill: LeaderFill) -> None:
+        """Start the reads when the fill ARRIVES, so they overlap the queue wait (PC run on 5e88e89: 371 ms from receipt to
+        pickup, then ~1.1 s of cold reads). The worker's own prewarm then finds the caches fresh; a read still in flight is
+        shared through the existing refresh locks, never repeated. Skips what is blocked locally (no wasted info weight)."""
+        try:
+            stamps = (fill.raw or {}).get("_stamps") or {}
+            if stamps.get("process_started_ms") or utc_now_ms() - int(fnum(stamps.get("enqueued_ms"), utc_now_ms())) > 3000:
+                return  # a worker already took the fill (it does its own prewarm), or the early pool is behind: a stale warm only costs info weight
+            if self.intent_builder.blocked_locally(fill, ""):
+                return
+            self._prewarm_with_parity(fill, False)
+        except Exception as exc:
+            log_error("early_prewarm", exc)
+
     def _enqueue_hot_ws_fill(self, fill: LeaderFill) -> bool:
         if fill.source != "WS_CAPTURED":
             return False
@@ -8294,6 +8324,8 @@ class LiveCopyCore:
                 self._coin_lane[coin_key] = (lane, 1)
             shard = lane
         stamp_fill(fill, "enqueued_ms")
+        if fill.source == "WS_CAPTURED" and os.getenv("HL_LIVE_EARLY_PREWARM", "1") != "0":
+            _EARLY_WARM_POOL.submit(self._early_prewarm, fill)
         try:
             prio = getattr(self, "_prio_queues", None)
             if prio and len(prio) == len(self._hot_queues) and is_close:
@@ -8736,19 +8768,8 @@ class LiveCopyCore:
         withdrawn_fills = self._read_fills_of_withdrawn_limits(withdrawn) if withdrawn else None
         # only fills that can reach the exchange pay for the mid/exposure reads (a locally blocked fill keeps only
         # the cached leader-equity read that sizing needs)
-        parity_warm = None
         local_block = self.intent_builder.blocked_locally(fill, entry_block_reason)
-        if (not local_block and not converge and self.cfg.liq_parity_enabled()
-                and not _fill_dir(fill).startswith(("close", "liquidat"))):  # the gate only judges entries and adds
-            def _warm_parity():  # the parity gate's leader read, side by side with the other prewarm reads
-                try:
-                    self.sender._leader_state(fill.leader_wallet, str(fill.coin).split(":", 1)[0].lower() if ":" in str(fill.coin) else "")
-                except Exception as exc:
-                    log_error("liq_parity_prewarm", exc)
-            parity_warm = _PREWARM_POOL.submit(_warm_parity)
-        self.intent_builder.prewarm(fill, local_block=local_block)
-        if parity_warm is not None:
-            parity_warm.result()
+        self._prewarm_with_parity(fill, local_block, converge)
         stamp_fill(fill, "prewarm_done_ms")
         with self._send_lock:
             stamp_fill(fill, "lock_acquired_ms")
