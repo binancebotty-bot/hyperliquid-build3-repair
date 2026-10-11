@@ -62,6 +62,12 @@ def classify(audit_dir: Path, fill_ids: List[str]) -> Dict[str, str]:
     out: Dict[str, str] = {}
     for fid in fill_ids:
         res = own(fid)
+        if res == "BLOCKED_MERGED_INTO_HEAD_COPY":  # the sibling's own row names the head whose copy carried it
+            for r in recon.get(fid, []):
+                m = re.search(r"merged_into=([^;\s]+)", r.get("notes", "") or "")
+                if m:
+                    merged_head[fid] = m.group(1)
+            res = ""
         if not res and fid in merged_head:
             head = own(merged_head[fid])
             res = ("MERGED_SENT" if head == "SENT" else "MERGED_" + (head or "NO_OUTCOME")) if head else ""
