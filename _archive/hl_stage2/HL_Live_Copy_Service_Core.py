@@ -9271,29 +9271,124 @@ class LiveCopyCore:
 
     def run_scope_sweep(self) -> Dict[str, Any]:
         """Slow full-DEX sweep: reads the follower account on every listed perp DEX outside the follower
-        DEX scope (concurrently) and records any position held there. Prices, meta and exposure are only
-        read inside the scope, so this is what keeps inventory elsewhere from going unseen."""
+        DEX scope and records any position held there. Prices, meta and exposure are only read inside the
+        scope, so this is what keeps inventory elsewhere from going unseen.
+        Outage test 14: the testnet lists hundreds of DEXes, the burst of reads shared the 1200/min info budget with the
+        2 s copy poll, and ONE failed read failed the whole sweep, every 5 minutes, for 2 h (all entries blocked). Now:
+        each DEX is retried with backoff, keeps its last good reading, and the reads are paced under a weight budget
+        (HL_LIVE_SCOPE_SWEEP_WEIGHT_PER_MIN, default 480); the sweep is clean when every DEX has a reading no older than
+        HL_LIVE_SCOPE_SWEEP_MAX_AGE_SEC. Still fail-closed: a DEX that cannot be read for that long keeps entries blocked."""
         started = utc_now_ms()
         scope = set(follower_dex_scope())
-        enum = _XNET.list_perp_dexes(fetcher=EXPOSURE_FETCHER, info_url=HL_INFO_URL, timeout=HTTP_TIMEOUT_SEC)
+        enum: Dict[str, Any] = {}
+        for attempt in range(3):
+            try:
+                enum = _XNET.list_perp_dexes(fetcher=EXPOSURE_FETCHER, info_url=HL_INFO_URL, timeout=HTTP_TIMEOUT_SEC)
+            except Exception as exc:
+                enum = {"ok": False, "status": "DEX_ENUM_UNAVAILABLE", "detail": repr(exc)[:160]}
+            if enum.get("ok") or self._hot_stop_event.wait(1 << attempt):
+                break
         if not enum.get("ok"):
-            res = {"ok": False, "status": str(enum.get("status") or "DEX_ENUM_UNAVAILABLE"), "ms": started}
+            res = {"ok": False, "status": str(enum.get("status") or "DEX_ENUM_UNAVAILABLE"), "detail": str(enum.get("detail") or ""), "ms": started}
+            self._scope_sweep_note(res)
+            return res
+        prev_count = getattr(self, "_scope_enum_count", 0)
+        if prev_count and len(enum["dexes"]) < prev_count * 0.5 and getattr(self, "_scope_shrink_len", -1) != len(enum["dexes"]):  # a short list would shrink the sweep and open the gate unread; the same short list twice in a row is believed
+            self._scope_shrink_len = len(enum["dexes"])
+            res = {"ok": False, "status": "DEX_ENUM_UNAVAILABLE", "detail": f"DEX list shrank from {prev_count} to {len(enum['dexes'])}; not trusted", "ms": started}
+            self._scope_sweep_note(res)
+            return res
+        self._scope_enum_count = len(enum["dexes"])
+        outside = [d for d in enum["dexes"] if d not in scope]
+        cache: Dict[str, Tuple[int, Tuple[str, ...]]] = self.__dict__.setdefault("_scope_dex_cache", {})
+        for gone in [d for d in cache if d not in outside]:
+            cache.pop(gone, None)
+        addr = normalise_wallet(USER_WALLET)
+        fresh_ms = int(fnum(os.getenv("HL_LIVE_SCOPE_DEX_FRESH_SEC"), 240.0) * 1000)
+        todo = [d for d in outside if started - cache.get(d, (0, ()))[0] > fresh_ms]
+        workers = max(1, min(8, int(fnum(os.getenv("HL_LIVE_READ_CONCURRENCY"), 8))))
+        per_min = max(10.0, fnum(os.getenv("HL_LIVE_SCOPE_SWEEP_WEIGHT_PER_MIN"), 480.0))
+        failures: Dict[str, str] = {}
+
+        def _read(d: str) -> Tuple[str, Optional[Dict[str, Any]], str]:
+            last = ""
+            for attempt in range(3):
+                try:
+                    exp = _XNET.master_exposure(addr, [d], fetcher=EXPOSURE_FETCHER, info_url=HL_INFO_URL, timeout=HTTP_TIMEOUT_SEC)
+                except Exception as exc:
+                    exp = {"ok": False, "detail": repr(exc)[:160]}
+                if exp.get("ok"):
+                    return d, exp, ""
+                last = str(exp.get("detail") or exp.get("status") or "unreadable")[:160]
+                if self._hot_stop_event.wait(min(8, 1 << attempt) * max(0.0, fnum(os.getenv("HL_LIVE_SCOPE_BACKOFF_MULT"), 1.0))):
+                    break
+            return d, None, last
+
+        deadline = time.monotonic() + max(30.0, fnum(os.getenv("HL_LIVE_SCOPE_SWEEP_DEADLINE_SEC"), 600.0))
+        for i in range(0, len(todo), workers):
+            if self._hot_stop_event.is_set() or time.monotonic() > deadline:  # the rest is read next sweep
+                for d in todo[i:]:
+                    failures.setdefault(d, "not read: sweep deadline or stop")
+                break
+            chunk = todo[i:i + workers]
+            t_chunk = time.monotonic()
+            with _TPE(max_workers=len(chunk), thread_name_prefix="scope-read") as pool:
+                for d, exp, why in pool.map(_read, chunk):
+                    if exp is None:
+                        failures[d] = why
+                    else:
+                        cache[d] = (utc_now_ms(), tuple(sorted(k for k, v in (exp.get("by_coin") or {}).items()
+                                                               if abs(fnum(v.get("net"))) > POSITION_EPSILON)))
+            pause = len(chunk) * 2 * 60.0 / per_min - (time.monotonic() - t_chunk)  # keep to the weight budget
+            if pause > 0 and i + workers < len(todo) and not self._hot_stop_event.is_set():
+                self._hot_stop_event.wait(pause)
+        max_age = int(fnum(os.getenv("HL_LIVE_SCOPE_SWEEP_MAX_AGE_SEC"), 900.0) * 1000)
+        now = utc_now_ms()
+        stale = [d for d in outside if now - cache.get(d, (0, ()))[0] > max_age]
+        if stale:
+            d0 = stale[0]
+            res = {"ok": False, "status": "SCOPE_UNAVAILABLE", "dex": d0, "detail": failures.get(d0, "no reading yet"),
+                   "failed_dexes": len(stale), "dex_count": len(enum["dexes"]), "outside_count": len(outside), "ms": started,
+                   "duration_ms": now - started}
         else:
-            outside = [d for d in enum["dexes"] if d not in scope]
-            exp = _XNET.master_exposure(normalise_wallet(USER_WALLET), outside, fetcher=EXPOSURE_FETCHER,
-                                        info_url=HL_INFO_URL, timeout=HTTP_TIMEOUT_SEC)
-            if not exp.get("ok"):
-                res = {"ok": False, "status": str(exp.get("status") or "SCOPE_UNAVAILABLE"), "dex": exp.get("dex", ""), "ms": started}
-            else:
-                held = sorted(k for k, v in (exp.get("by_coin") or {}).items() if abs(fnum(v.get("net"))) > POSITION_EPSILON)
-                for coin in held:   # now read like every scoped DEX: exposure caps and ENG-016 see it
-                    learn_follower_dex(coin)
-                res = {"ok": True, "held": held, "dex_count": len(enum["dexes"]), "outside_count": len(outside),
-                       "ms": started, "duration_ms": utc_now_ms() - started}
+            held = sorted({c for _d, (_ms, coins) in cache.items() for c in coins})
+            for coin in held:   # now read like every scoped DEX: exposure caps and ENG-016 see it
+                learn_follower_dex(coin)
+            res = {"ok": True, "held": held, "dex_count": len(enum["dexes"]), "outside_count": len(outside),
+                   "ms": min([cache[d][0] for d in outside], default=started), "duration_ms": now - started,
+                   "retried_failures": len(failures)}
+        self._scope_sweep_note(res)
+        return res
+
+    def _scope_sweep_note(self, res: Dict[str, Any]) -> None:
+        """Remember the result, keep a state file the PC can read, and fail loud: after HL_LIVE_SCOPE_FAIL_ROW_AFTER (3)
+        failed sweeps in a row, one audit row (then one every 10 minutes) says entries are blocked and why."""
         self._scope_sweep_last = res
         if res.get("ok"):
             self._scope_sweep_ok = res
-        return res
+            self._scope_fail_streak = 0
+        else:
+            if res.get("status") == "SCOPE_UNAVAILABLE":  # a DEX with no usable reading: the earlier clean result no longer covers the account
+                self._scope_sweep_ok = None
+            self._scope_fail_streak = getattr(self, "_scope_fail_streak", 0) + 1
+            if (self._scope_fail_streak >= int(fnum(os.getenv("HL_LIVE_SCOPE_FAIL_ROW_AFTER"), 3.0))
+                    and utc_now_ms() - getattr(self, "_scope_fail_row_ms", 0) > 600000):
+                self._scope_fail_row_ms = utc_now_ms()
+                try:
+                    self.audit.append_reconciliation(
+                        "SCOPE_SWEEP_FAILING", "SCOPE_SWEEP_FAILING", action="ENTRIES_BLOCKED_UNTIL_SWEEP_CLEAN",
+                        terminal_state="SCOPE_SWEEP_FAILING", engine_can_send="False",
+                        notes=(f"{self._scope_fail_streak} sweeps in a row failed: status={res.get('status')}; dex={res.get('dex', '')}; "
+                               f"detail={str(res.get('detail', ''))[:160]}; failed_dexes={res.get('failed_dexes', '')}/"
+                               f"{res.get('outside_count', '')}; every entry is blocked until a sweep is clean"))
+                except Exception as exc:
+                    log_error("scope_sweep_row", exc)
+        try:
+            atomic_write_json(Path(CORE_RUNTIME_STATE_FILE).parent / "scope_sweep_state.json",
+                              {**{k: v for k, v in res.items() if k != "held"}, "held_count": len(res.get("held") or []),
+                               "fail_streak": getattr(self, "_scope_fail_streak", 0), "written_ms": utc_now_ms()})
+        except Exception as exc:
+            log_error("scope_sweep_state", exc)
 
     def _scope_sweep_loop(self) -> None:
         while not self._hot_stop_event.is_set():
@@ -9301,7 +9396,10 @@ class LiveCopyCore:
                 self.run_scope_sweep()
             except Exception as exc:
                 log_error("scope_sweep", exc)
-            self._hot_stop_event.wait(max(30.0, fnum(os.getenv("HL_LIVE_SCOPE_SWEEP_SEC"), 300.0)))
+                self._scope_sweep_note({"ok": False, "status": "SCOPE_UNAVAILABLE", "detail": repr(exc)[:160], "ms": utc_now_ms()})
+            clean = bool((getattr(self, "_scope_sweep_last", None) or {}).get("ok"))
+            self._hot_stop_event.wait(max(30.0, fnum(os.getenv("HL_LIVE_SCOPE_SWEEP_SEC"), 300.0)) if clean
+                                      else max(15.0, fnum(os.getenv("HL_LIVE_SCOPE_RETRY_SEC"), 30.0)))
 
     def _scope_sweep_block(self) -> str:
         """Entries stop until a full sweep has succeeded within HL_LIVE_SCOPE_SWEEP_MAX_AGE_SEC (unknown
