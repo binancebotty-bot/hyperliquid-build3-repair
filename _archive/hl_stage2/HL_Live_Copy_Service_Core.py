@@ -3682,10 +3682,9 @@ class SenderGateway:
                 "timing": timing}
         return None
 
-    def _leader_liq_distance(self, wallet: str, coin: str, mark: float, dex: str = "") -> Tuple[Optional[float], str]:
-        """|mark - liquidationPx| / mark of the leader's position, from the LEADER network (cached ~10 s). (None, why) when
-        unreadable; (floor, ...) when the leader has no liquidation price (fully collateralised: the stricter rule)."""
-        floor = fnum(os.getenv("HL_LIVE_LIQ_PARITY_FLOOR"), 0.25)
+    def _leader_state(self, wallet: str, dex: str = "") -> Tuple[Optional[Dict[str, Any]], str]:
+        """The leader's clearinghouseState (that dex's account), cached ~10 s, one fetch per wallet however many workers ask.
+        prewarm() calls this outside the send lock so the parity gate in send_if_allowed is normally a cache hit."""
         cache = self.__dict__.setdefault("_leader_liq_cache", collections.OrderedDict())
         lock = self.__dict__.setdefault("_leader_liq_lock", threading.Lock())
         key = (normalise_wallet(wallet), dex)  # one entry per wallet and dex (the response is that dex's account), bounded
@@ -3709,6 +3708,15 @@ class SenderGateway:
                 cache.move_to_end(key)
                 while len(cache) > 200:
                     cache.popitem(last=False)
+        return state, "ok"
+
+    def _leader_liq_distance(self, wallet: str, coin: str, mark: float, dex: str = "") -> Tuple[Optional[float], str]:
+        """|mark - liquidationPx| / mark of the leader's position, from the LEADER network (cached ~10 s). (None, why) when
+        unreadable; (floor, ...) when the leader has no liquidation price (fully collateralised: the stricter rule)."""
+        floor = fnum(os.getenv("HL_LIVE_LIQ_PARITY_FLOOR"), 0.25)
+        state, why = self._leader_state(wallet, dex)
+        if state is None:
+            return None, why
         for ap in state.get("assetPositions") or []:
             pos = ap.get("position") if isinstance(ap, dict) else None
             if isinstance(pos, dict) and canonical_coin_key(pos.get("coin")) == canonical_coin_key(coin):
@@ -5035,6 +5043,7 @@ class SenderGateway:
         if lifecycle in {"ENTRY", "ADD"} and self.leader_reduced_since(intent.fill):
             return False, "SEND_BLOCKED_LEADER_ALREADY_REDUCED"
         timing = self._base_timing(intent)
+        timing["ownership_gate_started_ms"] = utc_now_ms()
         gate_ok, gate_block = self._pre_send_ownership_gate(intent)
         lag_statuses = {"OWNERSHIP_GATE_UNEXPLAINED_EXCHANGE_POSITION", "OWNERSHIP_GATE_SIGN_CONFLICT"}
         if not gate_ok and gate_block.get("status") in lag_statuses:
@@ -5054,6 +5063,7 @@ class SenderGateway:
                 gate_ok, gate_block = self._pre_send_ownership_gate(intent)
                 if not gate_ok and gate_block.get("status") in lag_statuses and time.monotonic() < deadline:
                     time.sleep(0.5)
+        timing["ownership_gate_finished_ms"] = utc_now_ms()
         if not gate_ok:
             gate_block["timing"] = timing
             self._append_local_block_reconciliation(intent, str(gate_block.get("status") or "OWNERSHIP_GATE_BLOCKED"), gate_block)
@@ -5063,7 +5073,9 @@ class SenderGateway:
         if lifecycle in {"ENTRY", "ADD"} and self.cfg.send_mode_now() == "CLOSE":  # or to close-only meanwhile
             return False, "ENTRY_BLOCKED_GLOBAL_CLOSE_ONLY"
         if lifecycle in {"ENTRY", "ADD"} and self.cfg.liq_parity_enabled():
+            timing["liq_parity_started_ms"] = utc_now_ms()
             parity = self.liq_parity_block(intent)
+            timing["liq_parity_finished_ms"] = utc_now_ms()
             if parity is not None:
                 parity["timing"] = timing
                 self._append_local_block_reconciliation(intent, "LIQ_PARITY_BLOCKED", parity)
@@ -8724,7 +8736,19 @@ class LiveCopyCore:
         withdrawn_fills = self._read_fills_of_withdrawn_limits(withdrawn) if withdrawn else None
         # only fills that can reach the exchange pay for the mid/exposure reads (a locally blocked fill keeps only
         # the cached leader-equity read that sizing needs)
-        self.intent_builder.prewarm(fill, local_block=self.intent_builder.blocked_locally(fill, entry_block_reason))
+        parity_warm = None
+        local_block = self.intent_builder.blocked_locally(fill, entry_block_reason)
+        if not local_block and not converge and self.cfg.liq_parity_enabled():  # the parity gate's leader read, side by side with the other prewarm reads
+            def _warm_parity():
+                try:
+                    self.sender._leader_liq_distance(fill.leader_wallet, canonical_coin_key(fill.coin), fnum(fill.price, 0.0),
+                                                     str(fill.coin).split(":", 1)[0].lower() if ":" in str(fill.coin) else "")
+                except Exception as exc:
+                    log_error("liq_parity_prewarm", exc)
+            parity_warm = _PREWARM_POOL.submit(_warm_parity)
+        self.intent_builder.prewarm(fill, local_block=local_block)
+        if parity_warm is not None:
+            parity_warm.result()
         stamp_fill(fill, "prewarm_done_ms")
         with self._send_lock:
             stamp_fill(fill, "lock_acquired_ms")
@@ -9548,6 +9572,7 @@ def run_self_test() -> None:
         return {**mids, **_SELF_TEST_MIDS}
     old_mids_fetcher, MIDS_FETCHER = MIDS_FETCHER, _market_fixture
     old_mids_ttl = os.environ.get("HL_LIVE_MIDS_CACHE_TTL_SEC")
+    os.environ.setdefault("HL_LIVE_LIQ_PARITY", "0")  # parity gate is tested in test_core_liq_*; the self-test mocks have no leader/follower liquidation facts
     os.environ["HL_LIVE_MIDS_CACHE_TTL_SEC"] = "-1"   # every read sees the current fixture
     _SELF_TEST_MIDS = {}
     old_user_wallet, USER_WALLET = USER_WALLET, (USER_WALLET if is_valid_wallet(USER_WALLET) else "0x" + "e" * 40)

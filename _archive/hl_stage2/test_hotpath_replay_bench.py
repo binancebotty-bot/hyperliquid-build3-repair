@@ -186,6 +186,15 @@ def main() -> None:
     s._validate_final_wire_order = lambda *_a, **_k: (True, {})
     s._pre_exchange_asset_safety = lambda *_a, **_k: (True, {})
     s._pre_send_ownership_gate = lambda intent: (True, {})
+    # parity gate facts (offline): the leader holds a position 40% from the mark, the follower's reported liquidation is 90% away
+    _ls_cache = {}
+    _ls_fetch = slow('leader_state', lambda _p: {'assetPositions': [{'position': {'coin': ac, 'liquidationPx': '60'}} for ac in ALL_COINS]})
+    def _leader_state(wallet, dex=''):  # same shape as the real one: a read per wallet, cached 10 s
+        if wallet not in _ls_cache:
+            _ls_cache[wallet] = _ls_fetch({})
+        return _ls_cache[wallet], 'ok'
+    s._leader_state = _leader_state
+    s._follower_projected_liq_px = lambda intent, mark: (mark * 0.1, 'bench fact')
 
     # wrap the per-fill entry point to open/close the measurement context on the worker thread
     orig_process = core._process_leader_fill
