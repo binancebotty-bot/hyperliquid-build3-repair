@@ -8838,6 +8838,12 @@ class LiveCopyCore:
                     plan = list(batch)
                 self._run_plan(idx, plan)
             finally:
+                try:  # diagnosis: a fill leaving its queue slot that no step accepted is traced (it will be offered again)
+                    for _f in batch:
+                        if not self._already_handled(_f) and self._guard_key(_f) not in self._deferred:
+                            self._fill_trace("released_unaccepted", _f)
+                except Exception as exc:
+                    log_error("released_trace", exc)
                 self._release_queued(batch, q)
 
     def _append_send_terminal(self, fill: LeaderFill, intent: Intent, send_status: str) -> None:
@@ -9017,10 +9023,12 @@ class LiveCopyCore:
         into it) were already marked handled, so without a row they vanished (outage test 14: 57 fills with no row)."""
         tid = threading.get_ident()
         self._inflight[tid] = (str(fill.leader_fill_id), utc_now_ms(), threading.current_thread().name, str(fill.leader_wallet), str(fill.coin))
-        self._fill_trace("proc_start", fill, {"merged": len((fill.raw or {}).get("merged_fill_ids") or [])})
+        self._fill_trace("proc_start", fill, {"merged": len((fill.raw or {}).get("merged_fill_ids") or []),
+                                              "merged_ids": ",".join(str(i) for i in ((fill.raw or {}).get("merged_fill_ids") or [])[:20])})
         try:
             _res = self._process_leader_fill_inner(fill, summary, entry_block_reason)
             self._fill_trace("proc_end", fill, {"status_of": _res})
+            self._rows_for_merged_siblings(fill, _res)
             return _res
         except Exception as exc:
             log_error("process_leader_fill", exc)
@@ -9036,6 +9044,31 @@ class LiveCopyCore:
             if _k not in self._deferred:  # held fills keep their state; everything else is done with it
                 self._past_send_keys.discard(_k)
                 self.__dict__.get("_defer_first_ms", {}).pop(_k, None)
+
+    def _rows_for_merged_siblings(self, fill: LeaderFill, result: Any) -> None:
+        """A head fill that stops at the persisted dedupe store (DEDUPED) has already marked the fills merged into it as handled,
+        and only the head got a row: those fills were silent for good (outage test Q7: 152 ids dispatched by the poll, never
+        processed, no row). Each now gets its own row naming the head. The normal path already writes a row per merged fill
+        (FILL_MERGED) when the intent is built; a head held for a retry, or one that never accepted the run, writes nothing here."""
+        try:
+            sibs = [str(i) for i in ((fill.raw or {}).get("merged_fill_ids") or []) if i]
+            if not sibs:
+                return
+            status = str(result[1]) if isinstance(result, (tuple, list)) and len(result) > 1 else str(result)
+            if status != "DEDUPED":
+                return
+            if self._guard_key(fill) in self._deferred or status.startswith("STALE"):
+                return
+            with self._idem_lock:
+                if not all(i in self._idem_accepted for i in sibs):
+                    return
+            for sid in sibs:
+                self.audit.append_reconciliation(
+                    "MERGED_FILL", "MERGED_INTO_HEAD_COPY", leader_wallet=fill.leader_wallet, leader_fill_id=sid, coin=fill.coin,
+                    action="NO_SEPARATE_ORDER_CARRIED_BY_HEAD", terminal_state="MERGED_INTO_HEAD_COPY", engine_can_send="False",
+                    notes=f"merged_into={fill.leader_fill_id}; head_outcome={status}; carried by the head fill's one copy order")
+        except Exception as exc:
+            log_error("rows_for_merged_siblings", exc)
 
     def _terminal_after_exception(self, fill: LeaderFill, exc: Exception) -> None:
         raw = fill.raw if isinstance(fill.raw, dict) else {}
@@ -10081,9 +10114,12 @@ class LiveCopyCore:
                     summary.leader_fills_deduped += 1
                     continue
                 if self.async_dispatch:  # loop mode: sends run on the workers, never in this loop
+                    with self._queued_lock:
+                        _was_queued = self._guard_key(fill) in self._queued_keys
                     if self._dispatch_fill(fill):
                         summary.leader_fills_queued += 1
-                        self._fill_trace("poll_dispatched", fill)
+                        if not _was_queued:  # a fill already waiting is only offered again, not queued again
+                            self._fill_trace("poll_dispatched", fill)
                         continue
                     self._fill_trace("poll_queue_full", fill)
                     # queue full: never send on this thread (it would break one-worker-per-coin); the fill is
