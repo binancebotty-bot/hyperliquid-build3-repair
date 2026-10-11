@@ -8268,6 +8268,9 @@ class LiveCopyCore:
         pickup, then ~1.1 s of cold reads). The worker's own prewarm then finds the caches fresh; a read still in flight is
         shared through the existing refresh locks, never repeated. Skips what is blocked locally (no wasted info weight)."""
         try:
+            stamps = (fill.raw or {}).get("_stamps") or {}
+            if stamps.get("process_started_ms") or utc_now_ms() - int(fnum(stamps.get("enqueued_ms"), utc_now_ms())) > 3000:
+                return  # a worker already took the fill (it does its own prewarm), or the early pool is behind: a stale warm only costs info weight
             if self.intent_builder.blocked_locally(fill, ""):
                 return
             self._prewarm_with_parity(fill, False)
