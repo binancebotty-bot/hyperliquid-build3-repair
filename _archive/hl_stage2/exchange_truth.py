@@ -186,6 +186,8 @@ def identity_ok(signer_address, master_address) -> bool:
     return valid_address(signer) and valid_address(master) and signer != master
 
 _SESSION = None
+import threading as _threading
+_SESSION_LOCK = _threading.Lock()
 try:  # the real requests.post, captured at import: a test that later replaces it is detected by identity
     import requests as _rq  # type: ignore
     _ORIG_POST = _rq.post
@@ -203,13 +205,22 @@ def http_post(url, payload, timeout):
     if getattr(requests.post, "__module__", "") != "requests.api" or os.getenv("HL_LIVE_HTTP_SESSION", "1") == "0":
         return requests.post(url, json=payload, timeout=timeout)
     if _SESSION is None:
-        from requests.adapters import HTTPAdapter  # type: ignore
-        sess = requests.Session()
-        adapter = HTTPAdapter(pool_connections=4, pool_maxsize=32)
-        sess.mount("https://", adapter)
-        sess.mount("http://", adapter)
-        _SESSION = sess
-    return _SESSION.post(url, json=payload, timeout=timeout)
+        with _SESSION_LOCK:
+            if _SESSION is None:
+                from requests.adapters import HTTPAdapter  # type: ignore
+                sess = requests.Session()
+                adapter = HTTPAdapter(pool_connections=4, pool_maxsize=32)
+                sess.mount("https://", adapter)
+                sess.mount("http://", adapter)
+                _SESSION = sess
+    try:
+        return _SESSION.post(url, json=payload, timeout=timeout)
+    except requests.ConnectionError as exc:
+        # a pooled connection the server closed in the instant before use fails once; /info reads are idempotent, so
+        # retry once on a fresh connection. A timeout is never retried (it would double the worst case).
+        if isinstance(exc, requests.Timeout) or os.getenv("HL_LIVE_HTTP_RETRY", "1") == "0":
+            raise
+        return _SESSION.post(url, json=payload, timeout=timeout)
 
 
 _KEEPALIVE = {"thread": None}

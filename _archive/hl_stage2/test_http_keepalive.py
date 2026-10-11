@@ -96,6 +96,36 @@ for _ in range(4):
     cr.post(url, json={"type": "allMids"}, timeout=3.0).json()
 check("HEADROOM_WRAPPER_STILL_COUNTS_EVERY_READ", len(noted) == 4, str(len(noted)))
 check("HEADROOM_WRAPPER_READS_SHARE_ONE_CONNECTION", len(PORTS) == 1, "connections=%d" % len(PORTS))
+# a stale pooled connection fails once: retried once on a fresh one; a timeout is not retried
+class _Flaky:
+    def __init__(self, exc):
+        self.n = 0
+        self.exc = exc
+
+    def post(self, u, json=None, timeout=None):
+        self.n += 1
+        if self.n == 1:
+            raise self.exc
+        return "OK"
+real_sess = xt._SESSION
+fl = _Flaky(requests.ConnectionError("RemoteDisconnected"))
+xt._SESSION = fl
+try:
+    got = xt.http_post(url, {"type": "x"}, 3.0)
+finally:
+    xt._SESSION = real_sess
+check("STALE_CONNECTION_IS_RETRIED_ONCE", got == "OK" and fl.n == 2, "got=%r n=%d" % (got, fl.n))
+fl2 = _Flaky(requests.ReadTimeout("slow"))
+xt._SESSION = fl2
+try:
+    try:
+        xt.http_post(url, {"type": "x"}, 3.0)
+        raised_t = False
+    except requests.Timeout:
+        raised_t = True
+finally:
+    xt._SESSION = real_sess
+check("TIMEOUT_IS_NOT_RETRIED", raised_t and fl2.n == 1, "n=%d" % fl2.n)
 failed = [n for n, ok in R if not ok]
 print("TOTAL=%d FAILED=%d" % (len(R), len(failed)))
 raise SystemExit(1 if failed else 0)
