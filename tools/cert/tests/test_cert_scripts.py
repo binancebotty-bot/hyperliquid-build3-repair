@@ -161,6 +161,23 @@ class Gap5DiskGuard(unittest.TestCase):
         self.assertFalse(mod.decide(True, True, True, True, False))   # rows not exact
 
 
+class ExportLeaderFills(unittest.TestCase):
+    """The one network step: its wallet selection and JSON shape are tested offline;
+    the HTTP call itself is not (that is the PC operator's read-only export)."""
+
+    def test_wallet_selection_uses_only_live_and_clo(self):
+        mod = load_module('export_leader_fills')
+        cfg = json.loads((FIX / 'live_config_copy.json').read_text(encoding='utf-8'))
+        self.assertEqual(mod.wallets(cfg), ['0x1111111111111111111111111111111111111111'])
+
+    def test_list_form_config(self):
+        mod = load_module('export_leader_fills')
+        w = mod.wallets({'wallets': [{'address': '0xAAA', 'mode': 'LIVE'},
+                                     {'address': '0xBBB', 'mode': 'OFF'},
+                                     {'wallet': '0xCCC', 'mode': 'CLO'}]})
+        self.assertEqual(w, ['0xAAA', '0xCCC'])
+
+
 def _report_total(result):
     total = result.testsRun
     failed = len(result.failures) + len(result.errors) + len(getattr(result, 'unexpectedSuccesses', []))

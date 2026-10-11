@@ -37,10 +37,11 @@ no WebSocket subscriptions, no console window is spawned (subprocesses use
 | `cert_disk_guard.py` | 5 disk-full | an audit append that cannot be written **raises loudly**, is recorded in `errors.csv`, writes nothing partial, and recovers after the ACL is restored — through the engine's own `append_csv` / `log_error` | `python cert_disk_guard.py --audit-dir <copy> --core-dir <checkout>/_archive/hl_stage2` |
 | `export_leader_fills.py` | 1 (input) | the ONE network step: read-only `userFillsByTime` export of a window's leader fills to JSON, so the classifier runs offline afterwards | `python export_leader_fills.py --config <copy of live_config.json> --start-ms N --end-ms N --out fills.json` |
 
-Run the whole set's tests (fixtures + gates, 16 checks):
+Run the whole set's tests (fixtures + gates, 18 checks; the exporter is tested for its
+wallet selection and JSON shape — its HTTP call is the operator's read-only step):
 
 ```
-env -u PYTHONPATH <PY311> -u tools/cert/tests/test_cert_scripts.py     # -> TOTAL=16 FAILED=0
+env -u PYTHONPATH <PY311> -u tools/cert/tests/test_cert_scripts.py     # -> TOTAL=18 FAILED=0
 ```
 
 Scrub `PYTHON*` for every offline run: under an inherited `PYTHONPATH` the repo's
@@ -76,7 +77,7 @@ anything; never point it at the live checkout.
 
 ## Evidence from building this (2026-10-11, offline, on this host)
 
-* 16/16 tests pass (`tools/cert/tests/test_cert_scripts.py`).
+* 18/18 tests pass (`tools/cert/tests/test_cert_scripts.py`).
 * GAP-5, through the engine's own `append_csv`: baseline append ok → `icacls /deny USER:(WD,AD)`
   → `PermissionError(13)` raised → `log_error` row landed in `errors.csv` → ACL restored →
   clean append, exact row counts. (The Core's sender already returns
