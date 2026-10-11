@@ -185,14 +185,74 @@ def identity_ok(signer_address, master_address) -> bool:
     signer, master = str(signer_address or "").strip().lower(), str(master_address or "").strip().lower()
     return valid_address(signer) and valid_address(master) and signer != master
 
+_SESSION = None
+import threading as _threading
+_SESSION_LOCK = _threading.Lock()
+try:  # the real requests.post, captured at import: a test that later replaces it is detected by identity
+    import requests as _rq  # type: ignore
+    _ORIG_POST = _rq.post
+except Exception:  # pragma: no cover
+    _ORIG_POST = None
+
+
+def http_post(url, payload, timeout):
+    """requests.post over ONE shared keep-alive session. A bare requests.post opens a new TCP+TLS connection per read
+    (about 3 round trips); the session reuses a pooled one (about 1). A test that replaces requests.post (the offline
+    stubs) still gets its stub: the session is used only while requests.post is the real one. Disable with
+    HL_LIVE_HTTP_SESSION=0."""
+    global _SESSION, _ORIG_POST
+    import requests  # type: ignore
+    if getattr(requests.post, "__module__", "") != "requests.api" or os.getenv("HL_LIVE_HTTP_SESSION", "1") == "0":
+        return requests.post(url, json=payload, timeout=timeout)
+    if _SESSION is None:
+        with _SESSION_LOCK:
+            if _SESSION is None:
+                from requests.adapters import HTTPAdapter  # type: ignore
+                sess = requests.Session()
+                adapter = HTTPAdapter(pool_connections=4, pool_maxsize=32)
+                sess.mount("https://", adapter)
+                sess.mount("http://", adapter)
+                _SESSION = sess
+    try:
+        return _SESSION.post(url, json=payload, timeout=timeout)
+    except requests.ConnectionError as exc:
+        # a pooled connection the server closed in the instant before use fails once; /info reads are idempotent, so
+        # retry once on a fresh connection. A timeout is never retried (it would double the worst case).
+        if isinstance(exc, requests.Timeout) or os.getenv("HL_LIVE_HTTP_RETRY", "1") == "0":
+            raise
+        return _SESSION.post(url, json=payload, timeout=timeout)
+
+
+_KEEPALIVE = {"thread": None}
+
+
+def start_keepalive(urls, interval_sec=20.0):
+    """Keep one pooled connection per info host warm between sparse trades (a server closes idle connections), so a
+    fill never pays the TCP+TLS handshake. One tiny allMids read per host per interval (weight 2)."""
+    import threading
+    if _KEEPALIVE["thread"] is not None and _KEEPALIVE["thread"].is_alive():
+        return
+    stop = threading.Event()
+
+    def loop():
+        while not stop.wait(max(5.0, float(interval_sec))):
+            for u in urls:
+                try:
+                    http_post(u, {"type": "allMids"}, 5.0)
+                except Exception:
+                    pass
+    t = threading.Thread(target=loop, daemon=True, name="HLCoreHttpKeepalive")
+    _KEEPALIVE["thread"] = t
+    t.start()
+
+
 def _post(fetcher, payload, info_url, timeout):
     """Read-only POST to /info; `fetcher` is injected so tests use offline fixtures."""
     try:
         if fetcher is not None:
             raw = fetcher(payload)
         else:  # pragma: no cover - live read-only plumbing
-            import requests  # type: ignore
-            raw = requests.post(info_url, json=payload, timeout=timeout).json()
+            raw = http_post(info_url, payload, timeout).json()
     except Exception as exc:
         return {"ok": False, "status": TRUTH_UNAVAILABLE, "detail": repr(exc)[:200]}
     if not isinstance(raw, (dict, list)):

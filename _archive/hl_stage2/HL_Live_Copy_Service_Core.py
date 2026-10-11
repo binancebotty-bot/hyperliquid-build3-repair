@@ -3743,9 +3743,9 @@ class SenderGateway:
         """The leader's clearinghouseState (that dex's account), cached ~10 s, one fetch per wallet however many workers ask.
         prewarm() calls this outside the send lock so the parity gate in send_if_allowed is normally a cache hit."""
         cache = self.__dict__.setdefault("_leader_liq_cache", collections.OrderedDict())
-        lock = self.__dict__.setdefault("_leader_liq_lock", threading.Lock())
         key = (normalise_wallet(wallet), dex)  # one entry per wallet and dex (the response is that dex's account), bounded
-        with lock:  # one fetch per wallet per 10 s however many workers ask
+        with self.__dict__.setdefault("_leader_liq_locks", collections.defaultdict(threading.Lock))[key]:  # one fetch per wallet per
+            # 10 s however many workers ask; different wallets read side by side (one global lock serialised them behind each HTTP call)
             hit = cache.get(key)
             now = time.monotonic()
             if hit and now - hit[0] < 10.0:
@@ -9318,6 +9318,8 @@ class LiveCopyCore:
                     break
         self._copy_thread = threading.Thread(target=loop, daemon=True, name="HLCoreCopyPoll")
         self._copy_thread.start()
+        if os.getenv("HL_LIVE_HTTP_KEEPALIVE", "1") != "0" and not bval(os.getenv("HL_LIVE_DISABLE_NETWORK_REFRESH"), False):
+            _XNET.start_keepalive(sorted({HL_INFO_URL, HL_LEADER_INFO_URL}), fnum(os.getenv("HL_LIVE_HTTP_KEEPALIVE_SEC"), 20.0))
 
     # ---- convergence: no leader exit is ever lost ------------------------------------------------------------------
     def converge_once(self) -> Dict[str, Any]:

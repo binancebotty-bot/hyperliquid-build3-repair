@@ -166,7 +166,16 @@ class CountingRequests:
         return getattr(self._real, name)
 
     def post(self, url: str, *a: Any, **k: Any) -> Any:
-        resp = self._real.post(url, *a, **k)   # looked up at call time: patches on the real module still apply
+        real_post = self._real.post   # looked up at call time: patches on the real module still apply
+        if (getattr(real_post, "__module__", "") == "requests.api" and not a and "json" in k
+                and set(k) <= {"json", "timeout"}):
+            try:
+                import exchange_truth as _xt  # one shared keep-alive session: a bare post opens a new TCP+TLS connection per read
+                resp = _xt.http_post(url, k.get("json"), k.get("timeout"))
+            except ImportError:
+                resp = real_post(url, *a, **k)
+        else:
+            resp = real_post(url, *a, **k)
         if url in self._urls:
             try:
                 host = str(url).split("//", 1)[-1].split("/", 1)[0]
