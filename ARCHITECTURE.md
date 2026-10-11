@@ -1,0 +1,189 @@
+# Architecture Contract — Hyperliquid Build 3 Repair
+
+## Product-preservation presumption
+
+Build 3 is not treated as a failed prototype. It was an almost-complete operating product that ran for roughly two months before the material defect was identified, and it produced profitable live operation during that period.
+
+Therefore the default engineering presumption is **preserve unless disproved**:
+
+- retain existing working behaviour, UI, controls, launch paths and operational ergonomics wherever they can be proven safe;
+- repair specific proven defects rather than redesigning unrelated subsystems;
+- require evidence before replacing an existing Build 3 component;
+- treat any proposed rewrite of previously working product functionality as an architectural escalation;
+- certification must prove that repaired Build 3 still delivers the full product behaviour the operator previously relied on, not merely that the core sender works.
+
+Historical success does not waive safety proof, but it materially raises the burden of proof for replacement or redesign.
+
+## Objective
+Restore the actual Build 3 Hyperliquid copy engine to correct target-vs-actual convergence while preserving its proven runtime and exchange plumbing.
+
+This is a **repair of Build 3**, not a new engine.
+
+## Known failure
+Build 3 copied a fixed follower notional for each qualifying leader entry fill. Repeated leader ADD fills therefore created repeated follower ADDs without account-level desired-vs-actual convergence.
+
+## Chosen repair
+Maintain the authoritative post-baseline leader position lineage by `(wallet, coin)` from genuine leader
+events since the frozen baseline, derive each follower sleeve from leader position × copy scale, sum
+sleeves to desired account-net per coin, compare against follower actual/in-flight, and reuse the
+existing convergence planner and single sender.
+
+### Trading-authority precedence (Gate 1 freeze — Architect ruling `B3-A2C-GATE0-PASS-G1-1`)
+1. The frozen baseline plus **genuine post-baseline leader events are the ONLY source of trading
+   authority**. Desired exposure is derived from that event lineage.
+2. **Current leader position, restart and snapshot create ZERO new trade authority.** A snapshot, a
+   restart, or an observed current position must never, by itself, mint a new desired target or new orders.
+3. **Follower exchange state is authoritative for ACTUAL exposure and settlement measurement**
+   (invariants 9, 10, 11).
+4. A snapshot/current position may be used to **verify, reconcile and detect divergence** at recovery
+   boundaries; where the event lineage and the snapshot disagree, the divergence is surfaced for
+   adjudication — it is not converted into a fresh trading decision.
+
+This resolves the previously ruled current-position-derived target/convergence authority conflict.
+Product semantics, explicit non-goals and measurable downstream DONE are frozen in `PRODUCT_SEMANTICS.md`.
+
+## Non-negotiable invariants
+1. **One process.**
+2. **One physical production `.order()` call site.**
+3. **No new dependency without Architect approval.**
+4. **No new authoritative persistent trading-state store.**
+5. **No Build 4 control-plane/platform import.**
+6. **No new engine/runtime around Build 3.**
+7. Leader mutable state is isolated by `(wallet, coin)`.
+8. Default Hyperliquid account state is not complete for HIP-3/builder DEXes; startup/recovery truth must include all relevant perp DEX scopes.
+9. Exchange truth outranks local replay. The old manual follower-position file is not authoritative.
+10. API acknowledgement is not settlement. Physical sends require independent MASTER-account fill/position verification.
+11. MASTER/trading account and API signer are distinct identities. Balance/fills/positions are verified on MASTER.
+12. Convergence orders move actual toward desired; they must not blindly flatten unrelated pre-existing inventory.
+13. Restart/recovery establishes current TRUTH from fresh external snapshots, current cohort and current scales — for verification/reconciliation only. Per the trading-authority precedence (Gate 1 freeze) it creates ZERO new trade authority.
+14. No mainnet/LIVE activation without explicit Richard approval.
+
+## Scope budget
+Normal repair budget:
+- target: ~200–260 genuinely new production LOC;
+- production files: <=2;
+- processes: 1;
+- new dependencies: 0;
+- new authoritative persistent state: 0;
+- physical production order sites: 1.
+
+The LOC ceiling is an **architectural tripwire**, not a reason to ship an incomplete repair.
+
+## Automatic Architect escalation
+Hermes or Controller MUST stop and raise `ARCHITECT_REVIEW_REQUIRED` before proceeding if any of these becomes true:
+- proposed new production LOC >260;
+- >2 production files must be changed;
+- a second process is proposed;
+- a new runtime dependency is proposed;
+- a new persistent authority/state database is proposed;
+- a second physical order-send path is proposed;
+- any invariant above must change;
+- the same bounded gate fails twice for materially the same reason;
+- new evidence disproves the chosen target/convergence architecture;
+- repair begins requiring broad rewrite rather than bounded surgery.
+
+Architect does **not** wake on a timer and does not review ordinary commits.
+
+## Completion definition
+The project is complete only when:
+1. Build 3 source is tracked from a provenance-verified untouched baseline.
+2. Fixed-per-fill sizing is no longer authoritative.
+3. Unit semantics from target delta to exchange order size are proven.
+4. Multi-DEX leader/follower snapshot truth is proven.
+5. Restart/gap recovery resets from external truth without local-position replay.
+6. Testnet proves repeated leader ADDs converge toward target rather than repeatedly minting fixed notionals.
+7. Testnet settlement is independently confirmed through MASTER userFills and position state.
+8. Pre-existing unrelated inventory is preserved.
+9. Exactly one physical production order site remains.
+10. Controller reviews the exact final commit and executed evidence.
+11. Richard explicitly decides whether to authorize LIVE/mainnet.
+
+## Architect's job
+Protect these invariants and the project boundary. Do not micromanage implementation, reread history hourly, or invent improvements not required to complete the objective.
+
+
+## Full project acceptance scope
+
+The source-baseline import and target-delta repair are only the first gates. They do **not** define project completion.
+
+After the control loop is proven, the Controller must continue gate-by-gate until Build 3 is re-proven against the applicable project invariants and acceptance requirements preserved in the Build 4 project material. Build 4 is a **requirements/evidence source**, not permission to import its platform/control-plane architecture wholesale.
+
+Completion scope includes all of the following:
+
+1. **Engine correctness**
+   - accurate low-latency copying;
+   - deterministic, auditable leader→target→order→settlement evidence;
+   - proportional mode proven end-to-end;
+   - fixed mode proven end-to-end using recovered intended semantics, never the old blind fixed-notional-per-fill defect;
+   - multi-wallet aggregation, multi-DEX/HIP-3 truth, restart/gap recovery, settlement verification and pre-existing-inventory safety.
+
+2. **Build 3 user interface recovery**
+   - locate the correct historical Build 3 UI rather than rebuilding it by default;
+   - restore/reuse it with the repaired engine where technically sound;
+   - prove every displayed cell, status, value and control against authoritative engine/exchange truth;
+   - no cosmetic "green" state may outrank actual engine truth.
+
+3. **Wallet controls**
+   - add wallet;
+   - remove wallet;
+   - enable/disable wallet;
+   - fixed/proportional configuration;
+   - copy-scale / sizing controls;
+   - wallet status and current position/target representation;
+   - persistence and restart behaviour;
+   - failure/invalid-input handling.
+
+4. **Global controls and risk**
+   - global enable/disable / safe stop;
+   - live/paper/testnet mode boundaries;
+   - risk limits and exposure controls;
+   - order minimums/rounding;
+   - stale/uncertain-state containment;
+   - emergency stop/close behaviour only where explicitly intended;
+   - no control may silently bypass convergence or the single send authority.
+
+5. **Lifecycle operations**
+   - simple launch/start/stop;
+   - clean restart;
+   - version identification;
+   - new-version cutover;
+   - rollback/recovery path;
+   - configuration migration/compatibility where required;
+   - proof that switching versions cannot create duplicate send authority or stale replay.
+
+6. **UI/control exhaustive certification**
+   Every user-facing control, configuration field, status indicator, table/cell and launch/cutover function must be exercised and tied to an explicit acceptance test. Anything that has caused prior incidents or ambiguity receives a regression test.
+
+7. **Final mainnet readiness**
+   The engine is not complete merely because the core copy loop works. It is complete only when the full engine + UI + wallet controls + global risk controls + lifecycle/cutover behaviour have passed the applicable invariant/test matrix and the Controller has reviewed the exact evidence.
+
+Mainnet/LIVE cutover remains an explicit Richard decision after final certification.
+
+## Build 4 requirements source set
+
+Do **not** trawl the Build 4 codebase to rediscover requirements.
+
+Use these named root documents as the bounded requirements/evidence source:
+
+1. `GUT_CONTRACT.md` — frozen behavioural invariants and historical-regression catalogue.
+2. `FAILURES.md` — anti-regression contract and canonical historical failure taxonomy.
+3. `ACCEPTANCE.md` — exact executable acceptance/certification gates.
+4. `BUILD4_FINAL_AUTHORITY_MAP.md` — final responsibility/authority map, operator controls, modes, wallet/config authority and lifecycle responsibilities.
+5. `OPERATIONS.md` — supported launch/start/restart/stop/status/UI operational contract.
+6. `AGENT_START_HERE.md` — concise product/source/operations orientation when needed.
+
+Supporting documents such as `NO_SEND_GATE.md` or `PROOF_MODE_ARCHITECTURE.md` are read only when a named invariant/gate above explicitly points to them or when a specific unresolved requirement requires provenance.
+
+Implementation source is inspected only to prove or implement a specific requirement already identified from these documents. It is **not** the requirements-discovery mechanism.
+
+### Conflict rule
+
+The Build 4 documents span several design phases and may contain superseded statements. Do not silently merge contradictory semantics.
+
+For any material conflict:
+1. identify the exact documents/clauses;
+2. determine whether a later/final document explicitly supersedes the earlier clause;
+3. if precedence is not explicit, raise `ARCHITECT_REVIEW_REQUIRED`;
+4. Richard's later operator ruling outranks inherited Build 4 requirements.
+
+The goal is to inherit the proven product requirements and regression protections, **not** Build 4's implementation sprawl.

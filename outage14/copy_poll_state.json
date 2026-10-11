@@ -1,0 +1,3696 @@
+{
+  "copy_poll_stats": [
+    {
+      "at_ms": 1791710854834,
+      "deferred": 0,
+      "fill_to_ledger_lag_ms_max": null,
+      "fill_to_ledger_lag_ms_median": null,
+      "fills_seen": 0,
+      "hot": true,
+      "http_ms": 239,
+      "lock_wait_ms_max": 0,
+      "matched": 0,
+      "poll_ms": 239,
+      "send_lock_hold_ms_max": 450,
+      "slowest_sections": [
+        {
+          "max_ms": 450,
+          "n": 8,
+          "section": "send_lock:intent_build",
+          "total_ms": 453
+        },
+        {
+          "max_ms": 4,
+          "n": 7,
+          "section": "intent_append",
+          "total_ms": 27
+        },
+        {
+          "max_ms": 2,
+          "n": 1,
+          "section": "copy_state_write",
+          "total_ms": 2
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "write:copy_poll_state.json",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "replace:copy_poll_state.json",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 8,
+          "section": "file_lock_wait",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 7,
+          "section": "append:order_intents.csv",
+          "total_ms": 2
+        }
+      ],
+      "status": "COPY_ACCOUNT_POLLED",
+      "sweep": false,
+      "unmatched": 0,
+      "window_ms": 22013
+    },
+    {
+      "at_ms": 1791710860964,
+      "deferred": 0,
+      "fill_to_ledger_lag_ms_max": null,
+      "fill_to_ledger_lag_ms_median": null,
+      "fills_seen": 0,
+      "hot": true,
+      "http_ms": 289,
+      "lock_wait_ms_max": 0,
+      "matched": 0,
+      "poll_ms": 4358,
+      "send_lock_hold_ms_max": 987,
+      "slowest_sections": [
+        {
+          "max_ms": 987,
+          "n": 23,
+          "section": "send_lock:intent_build",
+          "total_ms": 2011
+        },
+        {
+          "max_ms": 323,
+          "n": 1,
+          "section": "parse:send_attempts.csv",
+          "total_ms": 323
+        },
+        {
+          "max_ms": 309,
+          "n": 20,
+          "section": "intent_append",
+          "total_ms": 1107
+        },
+        {
+          "max_ms": 133,
+          "n": 1,
+          "section": "parse:live_fills.csv",
+          "total_ms": 133
+        },
+        {
+          "max_ms": 103,
+          "n": 28,
+          "section": "file_lock_wait",
+          "total_ms": 183
+        },
+        {
+          "max_ms": 77,
+          "n": 20,
+          "section": "append:order_intents.csv",
+          "total_ms": 209
+        },
+        {
+          "max_ms": 22,
+          "n": 1,
+          "section": "write:clean_core_runtime_state.json",
+          "total_ms": 22
+        },
+        {
+          "max_ms": 21,
+          "n": 1,
+          "section": "write:live_service_state.json",
+          "total_ms": 21
+        }
+      ],
+      "status": "COPY_ACCOUNT_POLLED",
+      "sweep": false,
+      "unmatched": 0,
+      "window_ms": 22049
+    },
+    {
+      "at_ms": 1791710861254,
+      "deferred": 0,
+      "fill_to_ledger_lag_ms_max": null,
+      "fill_to_ledger_lag_ms_median": null,
+      "fills_seen": 0,
+      "hot": true,
+      "http_ms": 233,
+      "lock_wait_ms_max": 0,
+      "matched": 0,
+      "poll_ms": 233,
+      "send_lock_hold_ms_max": 0,
+      "slowest_sections": [
+        {
+          "max_ms": 3,
+          "n": 1,
+          "section": "intent_append",
+          "total_ms": 3
+        },
+        {
+          "max_ms": 2,
+          "n": 1,
+          "section": "copy_state_write",
+          "total_ms": 2
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "write:copy_poll_state.json",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "replace:copy_poll_state.json",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "send_lock:intent_build",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "append:order_intents.csv",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 2,
+          "section": "file_lock_wait",
+          "total_ms": 0
+        }
+      ],
+      "status": "COPY_ACCOUNT_POLLED",
+      "sweep": false,
+      "unmatched": 0,
+      "window_ms": 24376
+    },
+    {
+      "at_ms": 1791710863263,
+      "deferred": 0,
+      "fill_to_ledger_lag_ms_max": null,
+      "fill_to_ledger_lag_ms_median": null,
+      "fills_seen": 0,
+      "hot": true,
+      "http_ms": 233,
+      "lock_wait_ms_max": 0,
+      "matched": 0,
+      "poll_ms": 233,
+      "send_lock_hold_ms_max": 1,
+      "slowest_sections": [
+        {
+          "max_ms": 3,
+          "n": 4,
+          "section": "intent_append",
+          "total_ms": 12
+        },
+        {
+          "max_ms": 1,
+          "n": 1,
+          "section": "copy_state_write",
+          "total_ms": 1
+        },
+        {
+          "max_ms": 1,
+          "n": 4,
+          "section": "send_lock:intent_build",
+          "total_ms": 2
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "replace:copy_poll_state.json",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 5,
+          "section": "file_lock_wait",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "write:copy_poll_state.json",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 4,
+          "section": "append:order_intents.csv",
+          "total_ms": 1
+        }
+      ],
+      "status": "COPY_ACCOUNT_POLLED",
+      "sweep": false,
+      "unmatched": 0,
+      "window_ms": 22010
+    },
+    {
+      "at_ms": 1791710865284,
+      "deferred": 0,
+      "fill_to_ledger_lag_ms_max": null,
+      "fill_to_ledger_lag_ms_median": null,
+      "fills_seen": 0,
+      "hot": true,
+      "http_ms": 248,
+      "lock_wait_ms_max": 0,
+      "matched": 0,
+      "poll_ms": 248,
+      "send_lock_hold_ms_max": 1116,
+      "slowest_sections": [
+        {
+          "max_ms": 1115,
+          "n": 21,
+          "section": "send_lock:intent_build",
+          "total_ms": 1835
+        },
+        {
+          "max_ms": 11,
+          "n": 17,
+          "section": "intent_append",
+          "total_ms": 110
+        },
+        {
+          "max_ms": 8,
+          "n": 19,
+          "section": "file_lock_wait",
+          "total_ms": 48
+        },
+        {
+          "max_ms": 2,
+          "n": 1,
+          "section": "copy_state_write",
+          "total_ms": 2
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "write:copy_poll_state.json",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 17,
+          "section": "append:order_intents.csv",
+          "total_ms": 5
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "replace:copy_poll_state.json",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "replace:live_ws_health.json",
+          "total_ms": 0
+        }
+      ],
+      "status": "COPY_ACCOUNT_POLLED",
+      "sweep": false,
+      "unmatched": 0,
+      "window_ms": 22000
+    },
+    {
+      "at_ms": 1791710871204,
+      "deferred": 0,
+      "fill_to_ledger_lag_ms_max": null,
+      "fill_to_ledger_lag_ms_median": null,
+      "fills_seen": 0,
+      "hot": true,
+      "http_ms": 234,
+      "lock_wait_ms_max": 0,
+      "matched": 0,
+      "poll_ms": 4163,
+      "send_lock_hold_ms_max": 1196,
+      "slowest_sections": [
+        {
+          "max_ms": 1191,
+          "n": 13,
+          "section": "send_lock:intent_build",
+          "total_ms": 1769
+        },
+        {
+          "max_ms": 351,
+          "n": 1,
+          "section": "parse:send_attempts.csv",
+          "total_ms": 351
+        },
+        {
+          "max_ms": 316,
+          "n": 12,
+          "section": "intent_append",
+          "total_ms": 656
+        },
+        {
+          "max_ms": 308,
+          "n": 1,
+          "section": "copy_state_write",
+          "total_ms": 308
+        },
+        {
+          "max_ms": 124,
+          "n": 19,
+          "section": "file_lock_wait",
+          "total_ms": 150
+        },
+        {
+          "max_ms": 121,
+          "n": 1,
+          "section": "parse:live_fills.csv",
+          "total_ms": 121
+        },
+        {
+          "max_ms": 111,
+          "n": 12,
+          "section": "append:order_intents.csv",
+          "total_ms": 151
+        },
+        {
+          "max_ms": 92,
+          "n": 1,
+          "section": "write:copy_poll_state.json",
+          "total_ms": 92
+        }
+      ],
+      "status": "COPY_ACCOUNT_POLLED",
+      "sweep": false,
+      "unmatched": 0,
+      "window_ms": 22006
+    },
+    {
+      "at_ms": 1791710871503,
+      "deferred": 0,
+      "fill_to_ledger_lag_ms_max": null,
+      "fill_to_ledger_lag_ms_median": null,
+      "fills_seen": 0,
+      "hot": true,
+      "http_ms": 241,
+      "lock_wait_ms_max": 0,
+      "matched": 0,
+      "poll_ms": 241,
+      "send_lock_hold_ms_max": 491,
+      "slowest_sections": [
+        {
+          "max_ms": 490,
+          "n": 6,
+          "section": "send_lock:intent_build",
+          "total_ms": 492
+        },
+        {
+          "max_ms": 4,
+          "n": 5,
+          "section": "intent_append",
+          "total_ms": 15
+        },
+        {
+          "max_ms": 1,
+          "n": 1,
+          "section": "copy_state_write",
+          "total_ms": 1
+        },
+        {
+          "max_ms": 0,
+          "n": 7,
+          "section": "file_lock_wait",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "write:copy_poll_state.json",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "replace:copy_poll_state.json",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 5,
+          "section": "append:order_intents.csv",
+          "total_ms": 1
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "append:reconciliation.csv",
+          "total_ms": 0
+        }
+      ],
+      "status": "COPY_ACCOUNT_POLLED",
+      "sweep": false,
+      "unmatched": 0,
+      "window_ms": 24225
+    },
+    {
+      "at_ms": 1791710873508,
+      "deferred": 0,
+      "fill_to_ledger_lag_ms_max": null,
+      "fill_to_ledger_lag_ms_median": null,
+      "fills_seen": 0,
+      "hot": true,
+      "http_ms": 236,
+      "lock_wait_ms_max": 0,
+      "matched": 0,
+      "poll_ms": 236,
+      "send_lock_hold_ms_max": 1144,
+      "slowest_sections": [
+        {
+          "max_ms": 1139,
+          "n": 6,
+          "section": "send_lock:intent_build",
+          "total_ms": 1600
+        },
+        {
+          "max_ms": 3,
+          "n": 4,
+          "section": "intent_append",
+          "total_ms": 12
+        },
+        {
+          "max_ms": 2,
+          "n": 1,
+          "section": "copy_state_write",
+          "total_ms": 2
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "write:copy_poll_state.json",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 7,
+          "section": "file_lock_wait",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "replace:copy_poll_state.json",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 2,
+          "section": "append:reconciliation.csv",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 4,
+          "section": "append:order_intents.csv",
+          "total_ms": 1
+        }
+      ],
+      "status": "COPY_ACCOUNT_POLLED",
+      "sweep": false,
+      "unmatched": 0,
+      "window_ms": 22010
+    },
+    {
+      "at_ms": 1791710875805,
+      "deferred": 0,
+      "fill_to_ledger_lag_ms_max": null,
+      "fill_to_ledger_lag_ms_median": null,
+      "fills_seen": 0,
+      "hot": true,
+      "http_ms": 528,
+      "lock_wait_ms_max": 0,
+      "matched": 0,
+      "poll_ms": 528,
+      "send_lock_hold_ms_max": 0,
+      "slowest_sections": [
+        {
+          "max_ms": 4,
+          "n": 7,
+          "section": "intent_append",
+          "total_ms": 23
+        },
+        {
+          "max_ms": 2,
+          "n": 1,
+          "section": "copy_state_write",
+          "total_ms": 2
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "write:copy_poll_state.json",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "replace:live_ws_health.json",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "write:live_ws_health.json",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "replace:copy_poll_state.json",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 7,
+          "section": "send_lock:intent_build",
+          "total_ms": 2
+        },
+        {
+          "max_ms": 0,
+          "n": 7,
+          "section": "append:order_intents.csv",
+          "total_ms": 2
+        }
+      ],
+      "status": "COPY_ACCOUNT_POLLED",
+      "sweep": false,
+      "unmatched": 0,
+      "window_ms": 22169
+    },
+    {
+      "at_ms": 1791710881598,
+      "deferred": 0,
+      "fill_to_ledger_lag_ms_max": null,
+      "fill_to_ledger_lag_ms_median": null,
+      "fills_seen": 0,
+      "hot": true,
+      "http_ms": 235,
+      "lock_wait_ms_max": 0,
+      "matched": 0,
+      "poll_ms": 4317,
+      "send_lock_hold_ms_max": 1022,
+      "slowest_sections": [
+        {
+          "max_ms": 1022,
+          "n": 33,
+          "section": "send_lock:intent_build",
+          "total_ms": 3404
+        },
+        {
+          "max_ms": 386,
+          "n": 29,
+          "section": "intent_append",
+          "total_ms": 1045
+        },
+        {
+          "max_ms": 364,
+          "n": 1,
+          "section": "parse:send_attempts.csv",
+          "total_ms": 364
+        },
+        {
+          "max_ms": 161,
+          "n": 1,
+          "section": "copy_state_write",
+          "total_ms": 161
+        },
+        {
+          "max_ms": 134,
+          "n": 1,
+          "section": "parse:live_fills.csv",
+          "total_ms": 134
+        },
+        {
+          "max_ms": 112,
+          "n": 38,
+          "section": "file_lock_wait",
+          "total_ms": 148
+        },
+        {
+          "max_ms": 80,
+          "n": 29,
+          "section": "append:order_intents.csv",
+          "total_ms": 185
+        },
+        {
+          "max_ms": 23,
+          "n": 1,
+          "section": "write:live_service_state.json",
+          "total_ms": 23
+        }
+      ],
+      "status": "COPY_ACCOUNT_POLLED",
+      "sweep": false,
+      "unmatched": 0,
+      "window_ms": 21837
+    },
+    {
+      "at_ms": 1791710881887,
+      "deferred": 0,
+      "fill_to_ledger_lag_ms_max": null,
+      "fill_to_ledger_lag_ms_median": null,
+      "fills_seen": 0,
+      "hot": true,
+      "http_ms": 234,
+      "lock_wait_ms_max": 0,
+      "matched": 0,
+      "poll_ms": 234,
+      "send_lock_hold_ms_max": 0,
+      "slowest_sections": [
+        {
+          "max_ms": 3,
+          "n": 2,
+          "section": "intent_append",
+          "total_ms": 6
+        },
+        {
+          "max_ms": 2,
+          "n": 1,
+          "section": "copy_state_write",
+          "total_ms": 2
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "write:copy_poll_state.json",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 2,
+          "section": "send_lock:intent_build",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "replace:copy_poll_state.json",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 2,
+          "section": "append:order_intents.csv",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 3,
+          "section": "file_lock_wait",
+          "total_ms": 0
+        }
+      ],
+      "status": "COPY_ACCOUNT_POLLED",
+      "sweep": false,
+      "unmatched": 0,
+      "window_ms": 24374
+    },
+    {
+      "at_ms": 1791710883900,
+      "deferred": 0,
+      "fill_to_ledger_lag_ms_max": null,
+      "fill_to_ledger_lag_ms_median": null,
+      "fills_seen": 0,
+      "hot": true,
+      "http_ms": 241,
+      "lock_wait_ms_max": 0,
+      "matched": 0,
+      "poll_ms": 242,
+      "send_lock_hold_ms_max": 1116,
+      "slowest_sections": [
+        {
+          "max_ms": 1115,
+          "n": 9,
+          "section": "send_lock:intent_build",
+          "total_ms": 1370
+        },
+        {
+          "max_ms": 6,
+          "n": 7,
+          "section": "intent_append",
+          "total_ms": 30
+        },
+        {
+          "max_ms": 2,
+          "n": 9,
+          "section": "file_lock_wait",
+          "total_ms": 4
+        },
+        {
+          "max_ms": 1,
+          "n": 1,
+          "section": "copy_state_write",
+          "total_ms": 1
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "write:copy_poll_state.json",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "replace:copy_poll_state.json",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 7,
+          "section": "append:order_intents.csv",
+          "total_ms": 2
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "append:reconciliation.csv",
+          "total_ms": 0
+        }
+      ],
+      "status": "COPY_ACCOUNT_POLLED",
+      "sweep": false,
+      "unmatched": 0,
+      "window_ms": 22007
+    },
+    {
+      "at_ms": 1791710885919,
+      "deferred": 0,
+      "fill_to_ledger_lag_ms_max": null,
+      "fill_to_ledger_lag_ms_median": null,
+      "fills_seen": 0,
+      "hot": true,
+      "http_ms": 256,
+      "lock_wait_ms_max": 0,
+      "matched": 0,
+      "poll_ms": 256,
+      "send_lock_hold_ms_max": 1118,
+      "slowest_sections": [
+        {
+          "max_ms": 1118,
+          "n": 3,
+          "section": "send_lock:intent_build",
+          "total_ms": 1119
+        },
+        {
+          "max_ms": 3,
+          "n": 2,
+          "section": "intent_append",
+          "total_ms": 7
+        },
+        {
+          "max_ms": 2,
+          "n": 1,
+          "section": "copy_state_write",
+          "total_ms": 2
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "write:copy_poll_state.json",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "replace:live_ws_health.json",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "replace:copy_poll_state.json",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "write:live_ws_health.json",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 2,
+          "section": "append:order_intents.csv",
+          "total_ms": 0
+        }
+      ],
+      "status": "COPY_ACCOUNT_POLLED",
+      "sweep": false,
+      "unmatched": 0,
+      "window_ms": 22002
+    },
+    {
+      "at_ms": 1791710892281,
+      "deferred": 0,
+      "fill_to_ledger_lag_ms_max": null,
+      "fill_to_ledger_lag_ms_median": null,
+      "fills_seen": 0,
+      "hot": true,
+      "http_ms": 279,
+      "lock_wait_ms_max": 0,
+      "matched": 0,
+      "poll_ms": 4616,
+      "send_lock_hold_ms_max": 1276,
+      "slowest_sections": [
+        {
+          "max_ms": 1276,
+          "n": 24,
+          "section": "send_lock:intent_build",
+          "total_ms": 3799
+        },
+        {
+          "max_ms": 390,
+          "n": 19,
+          "section": "intent_append",
+          "total_ms": 1801
+        },
+        {
+          "max_ms": 367,
+          "n": 1,
+          "section": "parse:send_attempts.csv",
+          "total_ms": 367
+        },
+        {
+          "max_ms": 166,
+          "n": 33,
+          "section": "file_lock_wait",
+          "total_ms": 695
+        },
+        {
+          "max_ms": 139,
+          "n": 1,
+          "section": "parse:live_fills.csv",
+          "total_ms": 139
+        },
+        {
+          "max_ms": 77,
+          "n": 19,
+          "section": "append:order_intents.csv",
+          "total_ms": 200
+        },
+        {
+          "max_ms": 60,
+          "n": 1,
+          "section": "copy_state_write",
+          "total_ms": 60
+        },
+        {
+          "max_ms": 32,
+          "n": 2,
+          "section": "write:clean_core_runtime_state.json",
+          "total_ms": 58
+        }
+      ],
+      "status": "COPY_ACCOUNT_POLLED",
+      "sweep": false,
+      "unmatched": 0,
+      "window_ms": 22005
+    },
+    {
+      "at_ms": 1791710892579,
+      "deferred": 0,
+      "fill_to_ledger_lag_ms_max": null,
+      "fill_to_ledger_lag_ms_median": null,
+      "fills_seen": 0,
+      "hot": true,
+      "http_ms": 237,
+      "lock_wait_ms_max": 0,
+      "matched": 0,
+      "poll_ms": 237,
+      "send_lock_hold_ms_max": 0,
+      "slowest_sections": [
+        {
+          "max_ms": 1,
+          "n": 1,
+          "section": "copy_state_write",
+          "total_ms": 1
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "write:copy_poll_state.json",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "replace:copy_poll_state.json",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "file_lock_wait",
+          "total_ms": 0
+        }
+      ],
+      "status": "COPY_ACCOUNT_POLLED",
+      "sweep": true,
+      "unmatched": 0,
+      "window_ms": 304677
+    },
+    {
+      "at_ms": 1791710894586,
+      "deferred": 0,
+      "fill_to_ledger_lag_ms_max": null,
+      "fill_to_ledger_lag_ms_median": null,
+      "fills_seen": 0,
+      "hot": true,
+      "http_ms": 238,
+      "lock_wait_ms_max": 0,
+      "matched": 0,
+      "poll_ms": 238,
+      "send_lock_hold_ms_max": 485,
+      "slowest_sections": [
+        {
+          "max_ms": 482,
+          "n": 4,
+          "section": "send_lock:intent_build",
+          "total_ms": 939
+        },
+        {
+          "max_ms": 4,
+          "n": 2,
+          "section": "intent_append",
+          "total_ms": 6
+        },
+        {
+          "max_ms": 1,
+          "n": 1,
+          "section": "copy_state_write",
+          "total_ms": 1
+        },
+        {
+          "max_ms": 0,
+          "n": 3,
+          "section": "file_lock_wait",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "write:copy_poll_state.json",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "replace:copy_poll_state.json",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 2,
+          "section": "append:order_intents.csv",
+          "total_ms": 0
+        }
+      ],
+      "status": "COPY_ACCOUNT_POLLED",
+      "sweep": false,
+      "unmatched": 0,
+      "window_ms": 22005
+    },
+    {
+      "at_ms": 1791710896690,
+      "deferred": 0,
+      "fill_to_ledger_lag_ms_max": null,
+      "fill_to_ledger_lag_ms_median": null,
+      "fills_seen": 0,
+      "hot": true,
+      "http_ms": 282,
+      "lock_wait_ms_max": 0,
+      "matched": 0,
+      "poll_ms": 282,
+      "send_lock_hold_ms_max": 1125,
+      "slowest_sections": [
+        {
+          "max_ms": 1125,
+          "n": 9,
+          "section": "send_lock:intent_build",
+          "total_ms": 1128
+        },
+        {
+          "max_ms": 310,
+          "n": 8,
+          "section": "intent_append",
+          "total_ms": 653
+        },
+        {
+          "max_ms": 118,
+          "n": 8,
+          "section": "append:order_intents.csv",
+          "total_ms": 146
+        },
+        {
+          "max_ms": 84,
+          "n": 12,
+          "section": "file_lock_wait",
+          "total_ms": 85
+        },
+        {
+          "max_ms": 2,
+          "n": 1,
+          "section": "copy_state_write",
+          "total_ms": 2
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "write:copy_poll_state.json",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "write:live_integrity_status.json",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "replace:live_ws_health.json",
+          "total_ms": 0
+        }
+      ],
+      "status": "COPY_ACCOUNT_POLLED",
+      "sweep": false,
+      "unmatched": 0,
+      "window_ms": 22056
+    },
+    {
+      "at_ms": 1791710902908,
+      "deferred": 0,
+      "fill_to_ledger_lag_ms_max": null,
+      "fill_to_ledger_lag_ms_median": null,
+      "fills_seen": 0,
+      "hot": true,
+      "http_ms": 237,
+      "lock_wait_ms_max": 0,
+      "matched": 0,
+      "poll_ms": 4491,
+      "send_lock_hold_ms_max": 1116,
+      "slowest_sections": [
+        {
+          "max_ms": 1116,
+          "n": 30,
+          "section": "send_lock:intent_build",
+          "total_ms": 3964
+        },
+        {
+          "max_ms": 365,
+          "n": 1,
+          "section": "parse:send_attempts.csv",
+          "total_ms": 365
+        },
+        {
+          "max_ms": 160,
+          "n": 1,
+          "section": "parse:live_fills.csv",
+          "total_ms": 160
+        },
+        {
+          "max_ms": 65,
+          "n": 25,
+          "section": "intent_append",
+          "total_ms": 524
+        },
+        {
+          "max_ms": 65,
+          "n": 1,
+          "section": "copy_state_write",
+          "total_ms": 65
+        },
+        {
+          "max_ms": 45,
+          "n": 1,
+          "section": "write:copy_poll_state.json",
+          "total_ms": 45
+        },
+        {
+          "max_ms": 26,
+          "n": 1,
+          "section": "write:clean_core_runtime_state.json",
+          "total_ms": 26
+        },
+        {
+          "max_ms": 25,
+          "n": 1,
+          "section": "write:live_service_state.json",
+          "total_ms": 25
+        }
+      ],
+      "status": "COPY_ACCOUNT_POLLED",
+      "sweep": false,
+      "unmatched": 0,
+      "window_ms": 22013
+    },
+    {
+      "at_ms": 1791710903214,
+      "deferred": 0,
+      "fill_to_ledger_lag_ms_max": null,
+      "fill_to_ledger_lag_ms_median": null,
+      "fills_seen": 0,
+      "hot": true,
+      "http_ms": 246,
+      "lock_wait_ms_max": 0,
+      "matched": 0,
+      "poll_ms": 246,
+      "send_lock_hold_ms_max": 0,
+      "slowest_sections": [
+        {
+          "max_ms": 1,
+          "n": 1,
+          "section": "copy_state_write",
+          "total_ms": 1
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "write:copy_poll_state.json",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "replace:copy_poll_state.json",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "file_lock_wait",
+          "total_ms": 0
+        }
+      ],
+      "status": "COPY_ACCOUNT_POLLED",
+      "sweep": false,
+      "unmatched": 0,
+      "window_ms": 24551
+    },
+    {
+      "at_ms": 1791710905218,
+      "deferred": 0,
+      "fill_to_ledger_lag_ms_max": null,
+      "fill_to_ledger_lag_ms_median": null,
+      "fills_seen": 0,
+      "hot": true,
+      "http_ms": 248,
+      "lock_wait_ms_max": 0,
+      "matched": 0,
+      "poll_ms": 248,
+      "send_lock_hold_ms_max": 1123,
+      "slowest_sections": [
+        {
+          "max_ms": 1123,
+          "n": 8,
+          "section": "send_lock:intent_build",
+          "total_ms": 1374
+        },
+        {
+          "max_ms": 5,
+          "n": 6,
+          "section": "intent_append",
+          "total_ms": 24
+        },
+        {
+          "max_ms": 2,
+          "n": 1,
+          "section": "copy_state_write",
+          "total_ms": 2
+        },
+        {
+          "max_ms": 1,
+          "n": 9,
+          "section": "file_lock_wait",
+          "total_ms": 3
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "write:live_ws_health.json",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "write:copy_poll_state.json",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "replace:copy_poll_state.json",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "replace:live_ws_health.json",
+          "total_ms": 0
+        }
+      ],
+      "status": "COPY_ACCOUNT_POLLED",
+      "sweep": false,
+      "unmatched": 0,
+      "window_ms": 21998
+    },
+    {
+      "at_ms": 1791710907205,
+      "deferred": 0,
+      "fill_to_ledger_lag_ms_max": null,
+      "fill_to_ledger_lag_ms_median": null,
+      "fills_seen": 0,
+      "hot": true,
+      "http_ms": 232,
+      "lock_wait_ms_max": 0,
+      "matched": 0,
+      "poll_ms": 232,
+      "send_lock_hold_ms_max": 451,
+      "slowest_sections": [
+        {
+          "max_ms": 463,
+          "n": 7,
+          "section": "intent_append",
+          "total_ms": 1786
+        },
+        {
+          "max_ms": 451,
+          "n": 8,
+          "section": "send_lock:intent_build",
+          "total_ms": 454
+        },
+        {
+          "max_ms": 185,
+          "n": 11,
+          "section": "file_lock_wait",
+          "total_ms": 588
+        },
+        {
+          "max_ms": 44,
+          "n": 7,
+          "section": "append:order_intents.csv",
+          "total_ms": 47
+        },
+        {
+          "max_ms": 23,
+          "n": 1,
+          "section": "write:clean_core_runtime_state.json",
+          "total_ms": 23
+        },
+        {
+          "max_ms": 23,
+          "n": 1,
+          "section": "write:live_service_state.json",
+          "total_ms": 23
+        },
+        {
+          "max_ms": 7,
+          "n": 1,
+          "section": "copy_state_write",
+          "total_ms": 7
+        },
+        {
+          "max_ms": 6,
+          "n": 1,
+          "section": "write:copy_poll_state.json",
+          "total_ms": 6
+        }
+      ],
+      "status": "COPY_ACCOUNT_POLLED",
+      "sweep": false,
+      "unmatched": 0,
+      "window_ms": 22003
+    },
+    {
+      "at_ms": 1791710913358,
+      "deferred": 0,
+      "fill_to_ledger_lag_ms_max": null,
+      "fill_to_ledger_lag_ms_median": null,
+      "fills_seen": 0,
+      "hot": true,
+      "http_ms": 238,
+      "lock_wait_ms_max": 0,
+      "matched": 0,
+      "poll_ms": 4378,
+      "send_lock_hold_ms_max": 1164,
+      "slowest_sections": [
+        {
+          "max_ms": 1164,
+          "n": 35,
+          "section": "send_lock:intent_build",
+          "total_ms": 3756
+        },
+        {
+          "max_ms": 391,
+          "n": 1,
+          "section": "parse:send_attempts.csv",
+          "total_ms": 391
+        },
+        {
+          "max_ms": 139,
+          "n": 1,
+          "section": "parse:live_fills.csv",
+          "total_ms": 139
+        },
+        {
+          "max_ms": 63,
+          "n": 30,
+          "section": "intent_append",
+          "total_ms": 592
+        },
+        {
+          "max_ms": 22,
+          "n": 38,
+          "section": "file_lock_wait",
+          "total_ms": 101
+        },
+        {
+          "max_ms": 8,
+          "n": 30,
+          "section": "append:order_intents.csv",
+          "total_ms": 81
+        },
+        {
+          "max_ms": 6,
+          "n": 6,
+          "section": "append:reconciliation.csv",
+          "total_ms": 22
+        },
+        {
+          "max_ms": 5,
+          "n": 1,
+          "section": "read:send_attempts.csv",
+          "total_ms": 5
+        }
+      ],
+      "status": "COPY_ACCOUNT_POLLED",
+      "sweep": false,
+      "unmatched": 0,
+      "window_ms": 22011
+    },
+    {
+      "at_ms": 1791710913656,
+      "deferred": 0,
+      "fill_to_ledger_lag_ms_max": null,
+      "fill_to_ledger_lag_ms_median": null,
+      "fills_seen": 0,
+      "hot": true,
+      "http_ms": 236,
+      "lock_wait_ms_max": 0,
+      "matched": 0,
+      "poll_ms": 236,
+      "send_lock_hold_ms_max": 0,
+      "slowest_sections": [
+        {
+          "max_ms": 1,
+          "n": 1,
+          "section": "copy_state_write",
+          "total_ms": 1
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "write:copy_poll_state.json",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "replace:copy_poll_state.json",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "file_lock_wait",
+          "total_ms": 0
+        }
+      ],
+      "status": "COPY_ACCOUNT_POLLED",
+      "sweep": false,
+      "unmatched": 0,
+      "window_ms": 24441
+    },
+    {
+      "at_ms": 1791710915901,
+      "deferred": 0,
+      "fill_to_ledger_lag_ms_max": null,
+      "fill_to_ledger_lag_ms_median": null,
+      "fills_seen": 0,
+      "hot": true,
+      "http_ms": 451,
+      "lock_wait_ms_max": 0,
+      "matched": 0,
+      "poll_ms": 451,
+      "send_lock_hold_ms_max": 1161,
+      "slowest_sections": [
+        {
+          "max_ms": 1158,
+          "n": 16,
+          "section": "send_lock:intent_build",
+          "total_ms": 2355
+        },
+        {
+          "max_ms": 361,
+          "n": 10,
+          "section": "intent_append",
+          "total_ms": 777
+        },
+        {
+          "max_ms": 171,
+          "n": 15,
+          "section": "file_lock_wait",
+          "total_ms": 369
+        },
+        {
+          "max_ms": 2,
+          "n": 1,
+          "section": "copy_state_write",
+          "total_ms": 2
+        },
+        {
+          "max_ms": 1,
+          "n": 10,
+          "section": "append:order_intents.csv",
+          "total_ms": 4
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "write:copy_poll_state.json",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "replace:copy_poll_state.json",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "replace:live_ws_health.json",
+          "total_ms": 0
+        }
+      ],
+      "status": "COPY_ACCOUNT_POLLED",
+      "sweep": false,
+      "unmatched": 0,
+      "window_ms": 22186
+    },
+    {
+      "at_ms": 1791710917689,
+      "deferred": 0,
+      "fill_to_ledger_lag_ms_max": null,
+      "fill_to_ledger_lag_ms_median": null,
+      "fills_seen": 0,
+      "hot": true,
+      "http_ms": 233,
+      "lock_wait_ms_max": 0,
+      "matched": 0,
+      "poll_ms": 233,
+      "send_lock_hold_ms_max": 124,
+      "slowest_sections": [
+        {
+          "max_ms": 323,
+          "n": 13,
+          "section": "intent_append",
+          "total_ms": 1508
+        },
+        {
+          "max_ms": 192,
+          "n": 20,
+          "section": "file_lock_wait",
+          "total_ms": 605
+        },
+        {
+          "max_ms": 137,
+          "n": 1,
+          "section": "copy_state_write",
+          "total_ms": 137
+        },
+        {
+          "max_ms": 104,
+          "n": 11,
+          "section": "send_lock:intent_build",
+          "total_ms": 109
+        },
+        {
+          "max_ms": 23,
+          "n": 1,
+          "section": "write:clean_core_runtime_state.json",
+          "total_ms": 23
+        },
+        {
+          "max_ms": 23,
+          "n": 1,
+          "section": "write:live_service_state.json",
+          "total_ms": 23
+        },
+        {
+          "max_ms": 23,
+          "n": 13,
+          "section": "append:order_intents.csv",
+          "total_ms": 28
+        },
+        {
+          "max_ms": 1,
+          "n": 1,
+          "section": "replace:clean_core_runtime_state.json",
+          "total_ms": 1
+        }
+      ],
+      "status": "COPY_ACCOUNT_POLLED",
+      "sweep": false,
+      "unmatched": 0,
+      "window_ms": 21845
+    },
+    {
+      "at_ms": 1791710923838,
+      "deferred": 0,
+      "fill_to_ledger_lag_ms_max": null,
+      "fill_to_ledger_lag_ms_median": null,
+      "fills_seen": 0,
+      "hot": true,
+      "http_ms": 236,
+      "lock_wait_ms_max": 0,
+      "matched": 0,
+      "poll_ms": 4375,
+      "send_lock_hold_ms_max": 1235,
+      "slowest_sections": [
+        {
+          "max_ms": 1235,
+          "n": 37,
+          "section": "send_lock:intent_build",
+          "total_ms": 4526
+        },
+        {
+          "max_ms": 328,
+          "n": 1,
+          "section": "parse:send_attempts.csv",
+          "total_ms": 328
+        },
+        {
+          "max_ms": 166,
+          "n": 29,
+          "section": "intent_append",
+          "total_ms": 928
+        },
+        {
+          "max_ms": 137,
+          "n": 29,
+          "section": "append:order_intents.csv",
+          "total_ms": 228
+        },
+        {
+          "max_ms": 128,
+          "n": 1,
+          "section": "parse:live_fills.csv",
+          "total_ms": 128
+        },
+        {
+          "max_ms": 17,
+          "n": 39,
+          "section": "file_lock_wait",
+          "total_ms": 109
+        },
+        {
+          "max_ms": 5,
+          "n": 1,
+          "section": "read:send_attempts.csv",
+          "total_ms": 5
+        },
+        {
+          "max_ms": 5,
+          "n": 8,
+          "section": "append:reconciliation.csv",
+          "total_ms": 7
+        }
+      ],
+      "status": "COPY_ACCOUNT_POLLED",
+      "sweep": false,
+      "unmatched": 0,
+      "window_ms": 22011
+    },
+    {
+      "at_ms": 1791710924129,
+      "deferred": 0,
+      "fill_to_ledger_lag_ms_max": null,
+      "fill_to_ledger_lag_ms_median": null,
+      "fills_seen": 0,
+      "hot": true,
+      "http_ms": 238,
+      "lock_wait_ms_max": 0,
+      "matched": 0,
+      "poll_ms": 238,
+      "send_lock_hold_ms_max": 482,
+      "slowest_sections": [
+        {
+          "max_ms": 479,
+          "n": 1,
+          "section": "send_lock:intent_build",
+          "total_ms": 479
+        },
+        {
+          "max_ms": 1,
+          "n": 1,
+          "section": "copy_state_write",
+          "total_ms": 1
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "write:copy_poll_state.json",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "replace:copy_poll_state.json",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "file_lock_wait",
+          "total_ms": 0
+        }
+      ],
+      "status": "COPY_ACCOUNT_POLLED",
+      "sweep": false,
+      "unmatched": 0,
+      "window_ms": 24427
+    },
+    {
+      "at_ms": 1791710926172,
+      "deferred": 0,
+      "fill_to_ledger_lag_ms_max": null,
+      "fill_to_ledger_lag_ms_median": null,
+      "fills_seen": 0,
+      "hot": true,
+      "http_ms": 280,
+      "lock_wait_ms_max": 0,
+      "matched": 0,
+      "poll_ms": 280,
+      "send_lock_hold_ms_max": 464,
+      "slowest_sections": [
+        {
+          "max_ms": 464,
+          "n": 12,
+          "section": "send_lock:intent_build",
+          "total_ms": 470
+        },
+        {
+          "max_ms": 23,
+          "n": 1,
+          "section": "write:clean_core_runtime_state.json",
+          "total_ms": 23
+        },
+        {
+          "max_ms": 6,
+          "n": 11,
+          "section": "intent_append",
+          "total_ms": 43
+        },
+        {
+          "max_ms": 2,
+          "n": 1,
+          "section": "copy_state_write",
+          "total_ms": 2
+        },
+        {
+          "max_ms": 1,
+          "n": 1,
+          "section": "replace:clean_core_runtime_state.json",
+          "total_ms": 1
+        },
+        {
+          "max_ms": 1,
+          "n": 15,
+          "section": "file_lock_wait",
+          "total_ms": 6
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "write:copy_poll_state.json",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "replace:live_ws_health.json",
+          "total_ms": 0
+        }
+      ],
+      "status": "COPY_ACCOUNT_POLLED",
+      "sweep": false,
+      "unmatched": 0,
+      "window_ms": 21998
+    },
+    {
+      "at_ms": 1791710928151,
+      "deferred": 0,
+      "fill_to_ledger_lag_ms_max": null,
+      "fill_to_ledger_lag_ms_median": null,
+      "fills_seen": 0,
+      "hot": true,
+      "http_ms": 251,
+      "lock_wait_ms_max": 0,
+      "matched": 0,
+      "poll_ms": 251,
+      "send_lock_hold_ms_max": 898,
+      "slowest_sections": [
+        {
+          "max_ms": 890,
+          "n": 6,
+          "section": "send_lock:intent_build",
+          "total_ms": 2126
+        },
+        {
+          "max_ms": 123,
+          "n": 1,
+          "section": "copy_state_write",
+          "total_ms": 123
+        },
+        {
+          "max_ms": 61,
+          "n": 1,
+          "section": "write:copy_poll_state.json",
+          "total_ms": 61
+        },
+        {
+          "max_ms": 15,
+          "n": 1,
+          "section": "replace:copy_poll_state.json",
+          "total_ms": 15
+        },
+        {
+          "max_ms": 6,
+          "n": 3,
+          "section": "intent_append",
+          "total_ms": 13
+        },
+        {
+          "max_ms": 1,
+          "n": 5,
+          "section": "file_lock_wait",
+          "total_ms": 1
+        },
+        {
+          "max_ms": 1,
+          "n": 1,
+          "section": "write:live_integrity_status.json",
+          "total_ms": 1
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "replace:live_integrity_status.json",
+          "total_ms": 0
+        }
+      ],
+      "status": "COPY_ACCOUNT_POLLED",
+      "sweep": false,
+      "unmatched": 0,
+      "window_ms": 22013
+    },
+    {
+      "at_ms": 1791710937729,
+      "deferred": 0,
+      "fill_to_ledger_lag_ms_max": null,
+      "fill_to_ledger_lag_ms_median": null,
+      "fills_seen": 0,
+      "hot": true,
+      "http_ms": 237,
+      "lock_wait_ms_max": 0,
+      "matched": 0,
+      "poll_ms": 7814,
+      "send_lock_hold_ms_max": 1217,
+      "slowest_sections": [
+        {
+          "max_ms": 1215,
+          "n": 62,
+          "section": "send_lock:intent_build",
+          "total_ms": 6666
+        },
+        {
+          "max_ms": 621,
+          "n": 54,
+          "section": "intent_append",
+          "total_ms": 4025
+        },
+        {
+          "max_ms": 484,
+          "n": 1,
+          "section": "parse:send_attempts.csv",
+          "total_ms": 484
+        },
+        {
+          "max_ms": 294,
+          "n": 77,
+          "section": "file_lock_wait",
+          "total_ms": 1964
+        },
+        {
+          "max_ms": 179,
+          "n": 1,
+          "section": "parse:live_fills.csv",
+          "total_ms": 179
+        },
+        {
+          "max_ms": 129,
+          "n": 1,
+          "section": "copy_state_write",
+          "total_ms": 129
+        },
+        {
+          "max_ms": 108,
+          "n": 54,
+          "section": "append:order_intents.csv",
+          "total_ms": 441
+        },
+        {
+          "max_ms": 75,
+          "n": 1,
+          "section": "write:copy_poll_state.json",
+          "total_ms": 75
+        }
+      ],
+      "status": "COPY_ACCOUNT_POLLED",
+      "sweep": false,
+      "unmatched": 0,
+      "window_ms": 22014
+    },
+    {
+      "at_ms": 1791710938112,
+      "deferred": 0,
+      "fill_to_ledger_lag_ms_max": null,
+      "fill_to_ledger_lag_ms_median": null,
+      "fills_seen": 0,
+      "hot": true,
+      "http_ms": 316,
+      "lock_wait_ms_max": 0,
+      "matched": 0,
+      "poll_ms": 316,
+      "send_lock_hold_ms_max": 0,
+      "slowest_sections": [
+        {
+          "max_ms": 3,
+          "n": 1,
+          "section": "copy_state_write",
+          "total_ms": 3
+        },
+        {
+          "max_ms": 2,
+          "n": 3,
+          "section": "file_lock_wait",
+          "total_ms": 5
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "write:copy_poll_state.json",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "replace:copy_poll_state.json",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 2,
+          "section": "append:reconciliation.csv",
+          "total_ms": 0
+        }
+      ],
+      "status": "COPY_ACCOUNT_POLLED",
+      "sweep": false,
+      "unmatched": 0,
+      "window_ms": 27880
+    },
+    {
+      "at_ms": 1791710940106,
+      "deferred": 0,
+      "fill_to_ledger_lag_ms_max": null,
+      "fill_to_ledger_lag_ms_median": null,
+      "fills_seen": 0,
+      "hot": true,
+      "http_ms": 308,
+      "lock_wait_ms_max": 0,
+      "matched": 0,
+      "poll_ms": 308,
+      "send_lock_hold_ms_max": 779,
+      "slowest_sections": [
+        {
+          "max_ms": 778,
+          "n": 19,
+          "section": "send_lock:intent_build",
+          "total_ms": 2189
+        },
+        {
+          "max_ms": 211,
+          "n": 15,
+          "section": "intent_append",
+          "total_ms": 1245
+        },
+        {
+          "max_ms": 163,
+          "n": 21,
+          "section": "file_lock_wait",
+          "total_ms": 783
+        },
+        {
+          "max_ms": 76,
+          "n": 15,
+          "section": "append:order_intents.csv",
+          "total_ms": 82
+        },
+        {
+          "max_ms": 32,
+          "n": 1,
+          "section": "write:live_service_state.json",
+          "total_ms": 32
+        },
+        {
+          "max_ms": 30,
+          "n": 1,
+          "section": "write:clean_core_runtime_state.json",
+          "total_ms": 30
+        },
+        {
+          "max_ms": 6,
+          "n": 1,
+          "section": "copy_state_write",
+          "total_ms": 6
+        },
+        {
+          "max_ms": 1,
+          "n": 1,
+          "section": "replace:clean_core_runtime_state.json",
+          "total_ms": 1
+        }
+      ],
+      "status": "COPY_ACCOUNT_POLLED",
+      "sweep": false,
+      "unmatched": 0,
+      "window_ms": 21999
+    },
+    {
+      "at_ms": 1791710942131,
+      "deferred": 0,
+      "fill_to_ledger_lag_ms_max": null,
+      "fill_to_ledger_lag_ms_median": null,
+      "fills_seen": 0,
+      "hot": true,
+      "http_ms": 333,
+      "lock_wait_ms_max": 0,
+      "matched": 0,
+      "poll_ms": 333,
+      "send_lock_hold_ms_max": 923,
+      "slowest_sections": [
+        {
+          "max_ms": 923,
+          "n": 14,
+          "section": "send_lock:intent_build",
+          "total_ms": 1388
+        },
+        {
+          "max_ms": 9,
+          "n": 12,
+          "section": "intent_append",
+          "total_ms": 67
+        },
+        {
+          "max_ms": 2,
+          "n": 1,
+          "section": "copy_state_write",
+          "total_ms": 2
+        },
+        {
+          "max_ms": 2,
+          "n": 15,
+          "section": "file_lock_wait",
+          "total_ms": 10
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "write:copy_poll_state.json",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "replace:copy_poll_state.json",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 12,
+          "section": "append:order_intents.csv",
+          "total_ms": 5
+        },
+        {
+          "max_ms": 0,
+          "n": 2,
+          "section": "append:reconciliation.csv",
+          "total_ms": 0
+        }
+      ],
+      "status": "COPY_ACCOUNT_POLLED",
+      "sweep": false,
+      "unmatched": 0,
+      "window_ms": 22005
+    },
+    {
+      "at_ms": 1791710952005,
+      "deferred": 0,
+      "fill_to_ledger_lag_ms_max": null,
+      "fill_to_ledger_lag_ms_median": null,
+      "fills_seen": 0,
+      "hot": true,
+      "http_ms": 238,
+      "lock_wait_ms_max": 0,
+      "matched": 0,
+      "poll_ms": 8204,
+      "send_lock_hold_ms_max": 1210,
+      "slowest_sections": [
+        {
+          "max_ms": 1205,
+          "n": 52,
+          "section": "send_lock:intent_build",
+          "total_ms": 8295
+        },
+        {
+          "max_ms": 600,
+          "n": 41,
+          "section": "intent_append",
+          "total_ms": 4087
+        },
+        {
+          "max_ms": 542,
+          "n": 1,
+          "section": "parse:send_attempts.csv",
+          "total_ms": 542
+        },
+        {
+          "max_ms": 305,
+          "n": 49,
+          "section": "file_lock_wait",
+          "total_ms": 1166
+        },
+        {
+          "max_ms": 295,
+          "n": 2,
+          "section": "append:reconciliation.csv",
+          "total_ms": 295
+        },
+        {
+          "max_ms": 189,
+          "n": 1,
+          "section": "parse:live_fills.csv",
+          "total_ms": 189
+        },
+        {
+          "max_ms": 30,
+          "n": 1,
+          "section": "write:live_service_state.json",
+          "total_ms": 30
+        },
+        {
+          "max_ms": 30,
+          "n": 1,
+          "section": "write:clean_core_runtime_state.json",
+          "total_ms": 30
+        }
+      ],
+      "status": "COPY_ACCOUNT_POLLED",
+      "sweep": false,
+      "unmatched": 0,
+      "window_ms": 22003
+    },
+    {
+      "at_ms": 1791710952305,
+      "deferred": 0,
+      "fill_to_ledger_lag_ms_max": null,
+      "fill_to_ledger_lag_ms_median": null,
+      "fills_seen": 0,
+      "hot": true,
+      "http_ms": 243,
+      "lock_wait_ms_max": 0,
+      "matched": 0,
+      "poll_ms": 243,
+      "send_lock_hold_ms_max": 0,
+      "slowest_sections": [
+        {
+          "max_ms": 2,
+          "n": 1,
+          "section": "copy_state_write",
+          "total_ms": 2
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "replace:copy_poll_state.json",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "write:copy_poll_state.json",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "file_lock_wait",
+          "total_ms": 0
+        }
+      ],
+      "status": "COPY_ACCOUNT_POLLED",
+      "sweep": false,
+      "unmatched": 0,
+      "window_ms": 28261
+    },
+    {
+      "at_ms": 1791710954301,
+      "deferred": 0,
+      "fill_to_ledger_lag_ms_max": null,
+      "fill_to_ledger_lag_ms_median": null,
+      "fills_seen": 0,
+      "hot": true,
+      "http_ms": 233,
+      "lock_wait_ms_max": 0,
+      "matched": 0,
+      "poll_ms": 233,
+      "send_lock_hold_ms_max": 953,
+      "slowest_sections": [
+        {
+          "max_ms": 952,
+          "n": 14,
+          "section": "send_lock:intent_build",
+          "total_ms": 2129
+        },
+        {
+          "max_ms": 7,
+          "n": 10,
+          "section": "intent_append",
+          "total_ms": 65
+        },
+        {
+          "max_ms": 2,
+          "n": 11,
+          "section": "file_lock_wait",
+          "total_ms": 20
+        },
+        {
+          "max_ms": 2,
+          "n": 1,
+          "section": "copy_state_write",
+          "total_ms": 2
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "write:copy_poll_state.json",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "replace:copy_poll_state.json",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 10,
+          "section": "append:order_intents.csv",
+          "total_ms": 3
+        }
+      ],
+      "status": "COPY_ACCOUNT_POLLED",
+      "sweep": true,
+      "unmatched": 0,
+      "window_ms": 302005
+    },
+    {
+      "at_ms": 1791710956326,
+      "deferred": 0,
+      "fill_to_ledger_lag_ms_max": null,
+      "fill_to_ledger_lag_ms_median": null,
+      "fills_seen": 0,
+      "hot": true,
+      "http_ms": 250,
+      "lock_wait_ms_max": 0,
+      "matched": 0,
+      "poll_ms": 250,
+      "send_lock_hold_ms_max": 508,
+      "slowest_sections": [
+        {
+          "max_ms": 508,
+          "n": 25,
+          "section": "send_lock:intent_build",
+          "total_ms": 1458
+        },
+        {
+          "max_ms": 32,
+          "n": 1,
+          "section": "write:clean_core_runtime_state.json",
+          "total_ms": 32
+        },
+        {
+          "max_ms": 15,
+          "n": 22,
+          "section": "intent_append",
+          "total_ms": 183
+        },
+        {
+          "max_ms": 6,
+          "n": 27,
+          "section": "file_lock_wait",
+          "total_ms": 63
+        },
+        {
+          "max_ms": 2,
+          "n": 1,
+          "section": "copy_state_write",
+          "total_ms": 2
+        },
+        {
+          "max_ms": 1,
+          "n": 1,
+          "section": "replace:clean_core_runtime_state.json",
+          "total_ms": 1
+        },
+        {
+          "max_ms": 0,
+          "n": 22,
+          "section": "append:order_intents.csv",
+          "total_ms": 8
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "write:copy_poll_state.json",
+          "total_ms": 0
+        }
+      ],
+      "status": "COPY_ACCOUNT_POLLED",
+      "sweep": false,
+      "unmatched": 0,
+      "window_ms": 22004
+    },
+    {
+      "at_ms": 1791710964376,
+      "deferred": 0,
+      "fill_to_ledger_lag_ms_max": null,
+      "fill_to_ledger_lag_ms_median": null,
+      "fills_seen": 0,
+      "hot": true,
+      "http_ms": 271,
+      "lock_wait_ms_max": 0,
+      "matched": 0,
+      "poll_ms": 6252,
+      "send_lock_hold_ms_max": 1250,
+      "slowest_sections": [
+        {
+          "max_ms": 1250,
+          "n": 34,
+          "section": "send_lock:intent_build",
+          "total_ms": 5506
+        },
+        {
+          "max_ms": 505,
+          "n": 25,
+          "section": "intent_append",
+          "total_ms": 3186
+        },
+        {
+          "max_ms": 479,
+          "n": 1,
+          "section": "parse:send_attempts.csv",
+          "total_ms": 479
+        },
+        {
+          "max_ms": 291,
+          "n": 34,
+          "section": "file_lock_wait",
+          "total_ms": 1266
+        },
+        {
+          "max_ms": 277,
+          "n": 25,
+          "section": "append:order_intents.csv",
+          "total_ms": 389
+        },
+        {
+          "max_ms": 179,
+          "n": 1,
+          "section": "parse:live_fills.csv",
+          "total_ms": 179
+        },
+        {
+          "max_ms": 30,
+          "n": 1,
+          "section": "write:clean_core_runtime_state.json",
+          "total_ms": 30
+        },
+        {
+          "max_ms": 29,
+          "n": 1,
+          "section": "write:live_service_state.json",
+          "total_ms": 29
+        }
+      ],
+      "status": "COPY_ACCOUNT_POLLED",
+      "sweep": false,
+      "unmatched": 0,
+      "window_ms": 22053
+    },
+    {
+      "at_ms": 1791710964665,
+      "deferred": 0,
+      "fill_to_ledger_lag_ms_max": null,
+      "fill_to_ledger_lag_ms_median": null,
+      "fills_seen": 0,
+      "hot": true,
+      "http_ms": 234,
+      "lock_wait_ms_max": 0,
+      "matched": 0,
+      "poll_ms": 234,
+      "send_lock_hold_ms_max": 0,
+      "slowest_sections": [
+        {
+          "max_ms": 2,
+          "n": 1,
+          "section": "copy_state_write",
+          "total_ms": 2
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "write:copy_poll_state.json",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "replace:copy_poll_state.json",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "file_lock_wait",
+          "total_ms": 0
+        }
+      ],
+      "status": "COPY_ACCOUNT_POLLED",
+      "sweep": false,
+      "unmatched": 0,
+      "window_ms": 26306
+    },
+    {
+      "at_ms": 1791710966985,
+      "deferred": 0,
+      "fill_to_ledger_lag_ms_max": null,
+      "fill_to_ledger_lag_ms_median": null,
+      "fills_seen": 0,
+      "hot": true,
+      "http_ms": 481,
+      "lock_wait_ms_max": 0,
+      "matched": 0,
+      "poll_ms": 481,
+      "send_lock_hold_ms_max": 1167,
+      "slowest_sections": [
+        {
+          "max_ms": 1161,
+          "n": 11,
+          "section": "send_lock:intent_build",
+          "total_ms": 2323
+        },
+        {
+          "max_ms": 5,
+          "n": 7,
+          "section": "intent_append",
+          "total_ms": 33
+        },
+        {
+          "max_ms": 2,
+          "n": 1,
+          "section": "copy_state_write",
+          "total_ms": 2
+        },
+        {
+          "max_ms": 1,
+          "n": 12,
+          "section": "file_lock_wait",
+          "total_ms": 5
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "write:asset_universe_snapshot.json",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "write:copy_poll_state.json",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "replace:copy_poll_state.json",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "replace:asset_universe_snapshot.json",
+          "total_ms": 0
+        }
+      ],
+      "status": "COPY_ACCOUNT_POLLED",
+      "sweep": false,
+      "unmatched": 0,
+      "window_ms": 22270
+    },
+    {
+      "at_ms": 1791710968740,
+      "deferred": 0,
+      "fill_to_ledger_lag_ms_max": null,
+      "fill_to_ledger_lag_ms_median": null,
+      "fills_seen": 0,
+      "hot": true,
+      "http_ms": 231,
+      "lock_wait_ms_max": 0,
+      "matched": 0,
+      "poll_ms": 231,
+      "send_lock_hold_ms_max": 1280,
+      "slowest_sections": [
+        {
+          "max_ms": 1280,
+          "n": 10,
+          "section": "send_lock:intent_build",
+          "total_ms": 1415
+        },
+        {
+          "max_ms": 202,
+          "n": 1,
+          "section": "write:clean_core_runtime_state.json",
+          "total_ms": 202
+        },
+        {
+          "max_ms": 181,
+          "n": 9,
+          "section": "intent_append",
+          "total_ms": 1150
+        },
+        {
+          "max_ms": 159,
+          "n": 1,
+          "section": "copy_state_write",
+          "total_ms": 159
+        },
+        {
+          "max_ms": 134,
+          "n": 9,
+          "section": "append:order_intents.csv",
+          "total_ms": 137
+        },
+        {
+          "max_ms": 79,
+          "n": 1,
+          "section": "write:copy_poll_state.json",
+          "total_ms": 79
+        },
+        {
+          "max_ms": 59,
+          "n": 13,
+          "section": "file_lock_wait",
+          "total_ms": 144
+        },
+        {
+          "max_ms": 28,
+          "n": 1,
+          "section": "write:live_service_state.json",
+          "total_ms": 28
+        }
+      ],
+      "status": "COPY_ACCOUNT_POLLED",
+      "sweep": false,
+      "unmatched": 0,
+      "window_ms": 21804
+    },
+    {
+      "at_ms": 1791710977827,
+      "deferred": 0,
+      "fill_to_ledger_lag_ms_max": null,
+      "fill_to_ledger_lag_ms_median": null,
+      "fills_seen": 0,
+      "hot": true,
+      "http_ms": 240,
+      "lock_wait_ms_max": 0,
+      "matched": 0,
+      "poll_ms": 7309,
+      "send_lock_hold_ms_max": 1786,
+      "slowest_sections": [
+        {
+          "max_ms": 1779,
+          "n": 35,
+          "section": "send_lock:intent_build",
+          "total_ms": 7858
+        },
+        {
+          "max_ms": 532,
+          "n": 1,
+          "section": "parse:send_attempts.csv",
+          "total_ms": 532
+        },
+        {
+          "max_ms": 192,
+          "n": 1,
+          "section": "parse:live_fills.csv",
+          "total_ms": 192
+        },
+        {
+          "max_ms": 110,
+          "n": 26,
+          "section": "intent_append",
+          "total_ms": 1088
+        },
+        {
+          "max_ms": 41,
+          "n": 35,
+          "section": "file_lock_wait",
+          "total_ms": 251
+        },
+        {
+          "max_ms": 15,
+          "n": 26,
+          "section": "append:order_intents.csv",
+          "total_ms": 137
+        },
+        {
+          "max_ms": 8,
+          "n": 6,
+          "section": "append:reconciliation.csv",
+          "total_ms": 10
+        },
+        {
+          "max_ms": 6,
+          "n": 1,
+          "section": "read:send_attempts.csv",
+          "total_ms": 6
+        }
+      ],
+      "status": "COPY_ACCOUNT_POLLED",
+      "sweep": false,
+      "unmatched": 0,
+      "window_ms": 22013
+    },
+    {
+      "at_ms": 1791710978234,
+      "deferred": 0,
+      "fill_to_ledger_lag_ms_max": null,
+      "fill_to_ledger_lag_ms_median": null,
+      "fills_seen": 0,
+      "hot": true,
+      "http_ms": 351,
+      "lock_wait_ms_max": 0,
+      "matched": 0,
+      "poll_ms": 351,
+      "send_lock_hold_ms_max": 0,
+      "slowest_sections": [
+        {
+          "max_ms": 2,
+          "n": 1,
+          "section": "copy_state_write",
+          "total_ms": 2
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "write:copy_poll_state.json",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "replace:copy_poll_state.json",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "file_lock_wait",
+          "total_ms": 0
+        }
+      ],
+      "status": "COPY_ACCOUNT_POLLED",
+      "sweep": false,
+      "unmatched": 0,
+      "window_ms": 27364
+    },
+    {
+      "at_ms": 1791710980129,
+      "deferred": 0,
+      "fill_to_ledger_lag_ms_max": null,
+      "fill_to_ledger_lag_ms_median": null,
+      "fills_seen": 0,
+      "hot": true,
+      "http_ms": 237,
+      "lock_wait_ms_max": 0,
+      "matched": 0,
+      "poll_ms": 237,
+      "send_lock_hold_ms_max": 1214,
+      "slowest_sections": [
+        {
+          "max_ms": 1210,
+          "n": 10,
+          "section": "send_lock:intent_build",
+          "total_ms": 2376
+        },
+        {
+          "max_ms": 31,
+          "n": 1,
+          "section": "write:clean_core_runtime_state.json",
+          "total_ms": 31
+        },
+        {
+          "max_ms": 30,
+          "n": 1,
+          "section": "write:live_service_state.json",
+          "total_ms": 30
+        },
+        {
+          "max_ms": 6,
+          "n": 6,
+          "section": "intent_append",
+          "total_ms": 31
+        },
+        {
+          "max_ms": 2,
+          "n": 1,
+          "section": "copy_state_write",
+          "total_ms": 2
+        },
+        {
+          "max_ms": 2,
+          "n": 10,
+          "section": "file_lock_wait",
+          "total_ms": 8
+        },
+        {
+          "max_ms": 1,
+          "n": 1,
+          "section": "replace:clean_core_runtime_state.json",
+          "total_ms": 1
+        },
+        {
+          "max_ms": 1,
+          "n": 1,
+          "section": "replace:live_service_state.json",
+          "total_ms": 1
+        }
+      ],
+      "status": "COPY_ACCOUNT_POLLED",
+      "sweep": false,
+      "unmatched": 0,
+      "window_ms": 22006
+    },
+    {
+      "at_ms": 1791710982158,
+      "deferred": 0,
+      "fill_to_ledger_lag_ms_max": null,
+      "fill_to_ledger_lag_ms_median": null,
+      "fills_seen": 0,
+      "hot": true,
+      "http_ms": 256,
+      "lock_wait_ms_max": 0,
+      "matched": 0,
+      "poll_ms": 256,
+      "send_lock_hold_ms_max": 928,
+      "slowest_sections": [
+        {
+          "max_ms": 928,
+          "n": 10,
+          "section": "send_lock:intent_build",
+          "total_ms": 933
+        },
+        {
+          "max_ms": 4,
+          "n": 9,
+          "section": "intent_append",
+          "total_ms": 29
+        },
+        {
+          "max_ms": 2,
+          "n": 1,
+          "section": "copy_state_write",
+          "total_ms": 2
+        },
+        {
+          "max_ms": 0,
+          "n": 10,
+          "section": "file_lock_wait",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "replace:copy_poll_state.json",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "write:copy_poll_state.json",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 9,
+          "section": "append:order_intents.csv",
+          "total_ms": 3
+        }
+      ],
+      "status": "COPY_ACCOUNT_POLLED",
+      "sweep": false,
+      "unmatched": 0,
+      "window_ms": 22014
+    },
+    {
+      "at_ms": 1791710992143,
+      "deferred": 0,
+      "fill_to_ledger_lag_ms_max": null,
+      "fill_to_ledger_lag_ms_median": null,
+      "fills_seen": 0,
+      "hot": true,
+      "http_ms": 381,
+      "lock_wait_ms_max": 0,
+      "matched": 0,
+      "poll_ms": 8231,
+      "send_lock_hold_ms_max": 1333,
+      "slowest_sections": [
+        {
+          "max_ms": 1333,
+          "n": 29,
+          "section": "send_lock:intent_build",
+          "total_ms": 7839
+        },
+        {
+          "max_ms": 495,
+          "n": 1,
+          "section": "parse:send_attempts.csv",
+          "total_ms": 495
+        },
+        {
+          "max_ms": 167,
+          "n": 1,
+          "section": "parse:live_fills.csv",
+          "total_ms": 167
+        },
+        {
+          "max_ms": 91,
+          "n": 18,
+          "section": "intent_append",
+          "total_ms": 619
+        },
+        {
+          "max_ms": 62,
+          "n": 1,
+          "section": "write:live_ws_health.json",
+          "total_ms": 62
+        },
+        {
+          "max_ms": 45,
+          "n": 2,
+          "section": "write:clean_core_runtime_state.json",
+          "total_ms": 75
+        },
+        {
+          "max_ms": 40,
+          "n": 1,
+          "section": "write:live_service_state.json",
+          "total_ms": 40
+        },
+        {
+          "max_ms": 31,
+          "n": 33,
+          "section": "file_lock_wait",
+          "total_ms": 132
+        }
+      ],
+      "status": "COPY_ACCOUNT_POLLED",
+      "sweep": false,
+      "unmatched": 0,
+      "window_ms": 22009
+    },
+    {
+      "at_ms": 1791710992432,
+      "deferred": 0,
+      "fill_to_ledger_lag_ms_max": null,
+      "fill_to_ledger_lag_ms_median": null,
+      "fills_seen": 0,
+      "hot": true,
+      "http_ms": 236,
+      "lock_wait_ms_max": 0,
+      "matched": 0,
+      "poll_ms": 236,
+      "send_lock_hold_ms_max": 0,
+      "slowest_sections": [
+        {
+          "max_ms": 1,
+          "n": 1,
+          "section": "copy_state_write",
+          "total_ms": 1
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "write:copy_poll_state.json",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "replace:copy_poll_state.json",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "file_lock_wait",
+          "total_ms": 0
+        }
+      ],
+      "status": "COPY_ACCOUNT_POLLED",
+      "sweep": false,
+      "unmatched": 0,
+      "window_ms": 28286
+    },
+    {
+      "at_ms": 1791710994435,
+      "deferred": 0,
+      "fill_to_ledger_lag_ms_max": null,
+      "fill_to_ledger_lag_ms_median": null,
+      "fills_seen": 0,
+      "hot": true,
+      "http_ms": 232,
+      "lock_wait_ms_max": 0,
+      "matched": 0,
+      "poll_ms": 232,
+      "send_lock_hold_ms_max": 1240,
+      "slowest_sections": [
+        {
+          "max_ms": 1237,
+          "n": 11,
+          "section": "send_lock:intent_build",
+          "total_ms": 1966
+        },
+        {
+          "max_ms": 6,
+          "n": 8,
+          "section": "intent_append",
+          "total_ms": 40
+        },
+        {
+          "max_ms": 2,
+          "n": 1,
+          "section": "copy_state_write",
+          "total_ms": 2
+        },
+        {
+          "max_ms": 1,
+          "n": 9,
+          "section": "file_lock_wait",
+          "total_ms": 9
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "write:copy_poll_state.json",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "replace:copy_poll_state.json",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 8,
+          "section": "append:order_intents.csv",
+          "total_ms": 2
+        }
+      ],
+      "status": "COPY_ACCOUNT_POLLED",
+      "sweep": false,
+      "unmatched": 0,
+      "window_ms": 22005
+    },
+    {
+      "at_ms": 1791710996645,
+      "deferred": 0,
+      "fill_to_ledger_lag_ms_max": null,
+      "fill_to_ledger_lag_ms_median": null,
+      "fills_seen": 0,
+      "hot": true,
+      "http_ms": 390,
+      "lock_wait_ms_max": 0,
+      "matched": 0,
+      "poll_ms": 390,
+      "send_lock_hold_ms_max": 1124,
+      "slowest_sections": [
+        {
+          "max_ms": 1124,
+          "n": 8,
+          "section": "send_lock:intent_build",
+          "total_ms": 2302
+        },
+        {
+          "max_ms": 476,
+          "n": 5,
+          "section": "intent_append",
+          "total_ms": 1439
+        },
+        {
+          "max_ms": 299,
+          "n": 7,
+          "section": "file_lock_wait",
+          "total_ms": 455
+        },
+        {
+          "max_ms": 2,
+          "n": 1,
+          "section": "copy_state_write",
+          "total_ms": 2
+        },
+        {
+          "max_ms": 2,
+          "n": 5,
+          "section": "append:order_intents.csv",
+          "total_ms": 3
+        },
+        {
+          "max_ms": 1,
+          "n": 1,
+          "section": "write:live_ws_health.json",
+          "total_ms": 1
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "write:copy_poll_state.json",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "replace:live_ws_health.json",
+          "total_ms": 0
+        }
+      ],
+      "status": "COPY_ACCOUNT_POLLED",
+      "sweep": false,
+      "unmatched": 0,
+      "window_ms": 22133
+    },
+    {
+      "at_ms": 1791711004262,
+      "deferred": 0,
+      "fill_to_ledger_lag_ms_max": null,
+      "fill_to_ledger_lag_ms_median": null,
+      "fills_seen": 0,
+      "hot": true,
+      "http_ms": 309,
+      "lock_wait_ms_max": 0,
+      "matched": 0,
+      "poll_ms": 6001,
+      "send_lock_hold_ms_max": 1403,
+      "slowest_sections": [
+        {
+          "max_ms": 1403,
+          "n": 46,
+          "section": "send_lock:intent_build",
+          "total_ms": 7095
+        },
+        {
+          "max_ms": 488,
+          "n": 1,
+          "section": "parse:send_attempts.csv",
+          "total_ms": 488
+        },
+        {
+          "max_ms": 173,
+          "n": 38,
+          "section": "intent_append",
+          "total_ms": 2787
+        },
+        {
+          "max_ms": 170,
+          "n": 1,
+          "section": "parse:live_fills.csv",
+          "total_ms": 170
+        },
+        {
+          "max_ms": 96,
+          "n": 45,
+          "section": "file_lock_wait",
+          "total_ms": 673
+        },
+        {
+          "max_ms": 30,
+          "n": 1,
+          "section": "write:live_service_state.json",
+          "total_ms": 30
+        },
+        {
+          "max_ms": 30,
+          "n": 1,
+          "section": "write:clean_core_runtime_state.json",
+          "total_ms": 30
+        },
+        {
+          "max_ms": 22,
+          "n": 38,
+          "section": "append:order_intents.csv",
+          "total_ms": 297
+        }
+      ],
+      "status": "COPY_ACCOUNT_POLLED",
+      "sweep": false,
+      "unmatched": 0,
+      "window_ms": 21922
+    },
+    {
+      "at_ms": 1791711004581,
+      "deferred": 0,
+      "fill_to_ledger_lag_ms_max": null,
+      "fill_to_ledger_lag_ms_median": null,
+      "fills_seen": 0,
+      "hot": true,
+      "http_ms": 256,
+      "lock_wait_ms_max": 0,
+      "matched": 0,
+      "poll_ms": 256,
+      "send_lock_hold_ms_max": 0,
+      "slowest_sections": [
+        {
+          "max_ms": 2,
+          "n": 1,
+          "section": "copy_state_write",
+          "total_ms": 2
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "write:copy_poll_state.json",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "replace:copy_poll_state.json",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "file_lock_wait",
+          "total_ms": 0
+        }
+      ],
+      "status": "COPY_ACCOUNT_POLLED",
+      "sweep": false,
+      "unmatched": 0,
+      "window_ms": 26069
+    },
+    {
+      "at_ms": 1791711006748,
+      "deferred": 0,
+      "fill_to_ledger_lag_ms_max": null,
+      "fill_to_ledger_lag_ms_median": null,
+      "fills_seen": 0,
+      "hot": true,
+      "http_ms": 415,
+      "lock_wait_ms_max": 0,
+      "matched": 0,
+      "poll_ms": 415,
+      "send_lock_hold_ms_max": 1378,
+      "slowest_sections": [
+        {
+          "max_ms": 1377,
+          "n": 12,
+          "section": "send_lock:intent_build",
+          "total_ms": 1963
+        },
+        {
+          "max_ms": 583,
+          "n": 5,
+          "section": "intent_append",
+          "total_ms": 2533
+        },
+        {
+          "max_ms": 235,
+          "n": 8,
+          "section": "file_lock_wait",
+          "total_ms": 890
+        },
+        {
+          "max_ms": 1,
+          "n": 1,
+          "section": "copy_state_write",
+          "total_ms": 1
+        },
+        {
+          "max_ms": 1,
+          "n": 5,
+          "section": "append:order_intents.csv",
+          "total_ms": 3
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "write:copy_poll_state.json",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "replace:copy_poll_state.json",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "replace:live_ws_health.json",
+          "total_ms": 0
+        }
+      ],
+      "status": "COPY_ACCOUNT_POLLED",
+      "sweep": false,
+      "unmatched": 0,
+      "window_ms": 22117
+    },
+    {
+      "at_ms": 1791711008569,
+      "deferred": 0,
+      "fill_to_ledger_lag_ms_max": null,
+      "fill_to_ledger_lag_ms_median": null,
+      "fills_seen": 0,
+      "hot": true,
+      "http_ms": 228,
+      "lock_wait_ms_max": 0,
+      "matched": 0,
+      "poll_ms": 228,
+      "send_lock_hold_ms_max": 1187,
+      "slowest_sections": [
+        {
+          "max_ms": 1187,
+          "n": 8,
+          "section": "send_lock:intent_build",
+          "total_ms": 1459
+        },
+        {
+          "max_ms": 301,
+          "n": 11,
+          "section": "intent_append",
+          "total_ms": 1543
+        },
+        {
+          "max_ms": 96,
+          "n": 14,
+          "section": "file_lock_wait",
+          "total_ms": 393
+        },
+        {
+          "max_ms": 29,
+          "n": 1,
+          "section": "write:clean_core_runtime_state.json",
+          "total_ms": 29
+        },
+        {
+          "max_ms": 26,
+          "n": 1,
+          "section": "write:live_service_state.json",
+          "total_ms": 26
+        },
+        {
+          "max_ms": 6,
+          "n": 1,
+          "section": "copy_state_write",
+          "total_ms": 6
+        },
+        {
+          "max_ms": 1,
+          "n": 1,
+          "section": "replace:live_service_state.json",
+          "total_ms": 1
+        },
+        {
+          "max_ms": 1,
+          "n": 1,
+          "section": "replace:clean_core_runtime_state.json",
+          "total_ms": 1
+        }
+      ],
+      "status": "COPY_ACCOUNT_POLLED",
+      "sweep": false,
+      "unmatched": 0,
+      "window_ms": 21894
+    },
+    {
+      "at_ms": 1791711017209,
+      "deferred": 0,
+      "fill_to_ledger_lag_ms_max": null,
+      "fill_to_ledger_lag_ms_median": null,
+      "fills_seen": 0,
+      "hot": true,
+      "http_ms": 236,
+      "lock_wait_ms_max": 0,
+      "matched": 0,
+      "poll_ms": 6861,
+      "send_lock_hold_ms_max": 1217,
+      "slowest_sections": [
+        {
+          "max_ms": 1210,
+          "n": 32,
+          "section": "send_lock:intent_build",
+          "total_ms": 6068
+        },
+        {
+          "max_ms": 473,
+          "n": 1,
+          "section": "parse:send_attempts.csv",
+          "total_ms": 473
+        },
+        {
+          "max_ms": 342,
+          "n": 24,
+          "section": "intent_append",
+          "total_ms": 767
+        },
+        {
+          "max_ms": 168,
+          "n": 1,
+          "section": "parse:live_fills.csv",
+          "total_ms": 168
+        },
+        {
+          "max_ms": 160,
+          "n": 31,
+          "section": "file_lock_wait",
+          "total_ms": 275
+        },
+        {
+          "max_ms": 38,
+          "n": 24,
+          "section": "append:order_intents.csv",
+          "total_ms": 70
+        },
+        {
+          "max_ms": 6,
+          "n": 1,
+          "section": "read:send_attempts.csv",
+          "total_ms": 6
+        },
+        {
+          "max_ms": 6,
+          "n": 1,
+          "section": "write:live_ws_health.json",
+          "total_ms": 6
+        }
+      ],
+      "status": "COPY_ACCOUNT_POLLED",
+      "sweep": false,
+      "unmatched": 0,
+      "window_ms": 22011
+    },
+    {
+      "at_ms": 1791711017560,
+      "deferred": 0,
+      "fill_to_ledger_lag_ms_max": null,
+      "fill_to_ledger_lag_ms_median": null,
+      "fills_seen": 0,
+      "hot": true,
+      "http_ms": 295,
+      "lock_wait_ms_max": 0,
+      "matched": 0,
+      "poll_ms": 295,
+      "send_lock_hold_ms_max": 0,
+      "slowest_sections": [
+        {
+          "max_ms": 2,
+          "n": 1,
+          "section": "copy_state_write",
+          "total_ms": 2
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "replace:copy_poll_state.json",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "write:copy_poll_state.json",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "file_lock_wait",
+          "total_ms": 0
+        }
+      ],
+      "status": "COPY_ACCOUNT_POLLED",
+      "sweep": true,
+      "unmatched": 0,
+      "window_ms": 306917
+    },
+    {
+      "at_ms": 1791711019513,
+      "deferred": 0,
+      "fill_to_ledger_lag_ms_max": null,
+      "fill_to_ledger_lag_ms_median": null,
+      "fills_seen": 0,
+      "hot": true,
+      "http_ms": 233,
+      "lock_wait_ms_max": 0,
+      "matched": 0,
+      "poll_ms": 233,
+      "send_lock_hold_ms_max": 1229,
+      "slowest_sections": [
+        {
+          "max_ms": 1183,
+          "n": 28,
+          "section": "send_lock:intent_build",
+          "total_ms": 3068
+        },
+        {
+          "max_ms": 236,
+          "n": 23,
+          "section": "intent_append",
+          "total_ms": 1984
+        },
+        {
+          "max_ms": 174,
+          "n": 28,
+          "section": "file_lock_wait",
+          "total_ms": 477
+        },
+        {
+          "max_ms": 57,
+          "n": 23,
+          "section": "append:order_intents.csv",
+          "total_ms": 67
+        },
+        {
+          "max_ms": 28,
+          "n": 1,
+          "section": "write:clean_core_runtime_state.json",
+          "total_ms": 28
+        },
+        {
+          "max_ms": 28,
+          "n": 1,
+          "section": "write:live_service_state.json",
+          "total_ms": 28
+        },
+        {
+          "max_ms": 3,
+          "n": 1,
+          "section": "copy_state_write",
+          "total_ms": 3
+        },
+        {
+          "max_ms": 1,
+          "n": 1,
+          "section": "replace:live_service_state.json",
+          "total_ms": 1
+        }
+      ],
+      "status": "COPY_ACCOUNT_POLLED",
+      "sweep": false,
+      "unmatched": 0,
+      "window_ms": 22011
+    },
+    {
+      "at_ms": 1791711021522,
+      "deferred": 0,
+      "fill_to_ledger_lag_ms_max": null,
+      "fill_to_ledger_lag_ms_median": null,
+      "fills_seen": 0,
+      "hot": true,
+      "http_ms": 236,
+      "lock_wait_ms_max": 0,
+      "matched": 0,
+      "poll_ms": 236,
+      "send_lock_hold_ms_max": 456,
+      "slowest_sections": [
+        {
+          "max_ms": 456,
+          "n": 14,
+          "section": "send_lock:intent_build",
+          "total_ms": 713
+        },
+        {
+          "max_ms": 7,
+          "n": 13,
+          "section": "intent_append",
+          "total_ms": 53
+        },
+        {
+          "max_ms": 1,
+          "n": 1,
+          "section": "copy_state_write",
+          "total_ms": 1
+        },
+        {
+          "max_ms": 1,
+          "n": 13,
+          "section": "file_lock_wait",
+          "total_ms": 5
+        },
+        {
+          "max_ms": 0,
+          "n": 13,
+          "section": "append:order_intents.csv",
+          "total_ms": 5
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "write:copy_poll_state.json",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "replace:copy_poll_state.json",
+          "total_ms": 0
+        }
+      ],
+      "status": "COPY_ACCOUNT_POLLED",
+      "sweep": false,
+      "unmatched": 0,
+      "window_ms": 22010
+    },
+    {
+      "at_ms": 1791711030144,
+      "deferred": 0,
+      "fill_to_ledger_lag_ms_max": null,
+      "fill_to_ledger_lag_ms_median": null,
+      "fills_seen": 0,
+      "hot": true,
+      "http_ms": 250,
+      "lock_wait_ms_max": 0,
+      "matched": 0,
+      "poll_ms": 6844,
+      "send_lock_hold_ms_max": 1965,
+      "slowest_sections": [
+        {
+          "max_ms": 1958,
+          "n": 29,
+          "section": "send_lock:intent_build",
+          "total_ms": 7570
+        },
+        {
+          "max_ms": 464,
+          "n": 1,
+          "section": "parse:send_attempts.csv",
+          "total_ms": 464
+        },
+        {
+          "max_ms": 157,
+          "n": 1,
+          "section": "parse:live_fills.csv",
+          "total_ms": 157
+        },
+        {
+          "max_ms": 76,
+          "n": 21,
+          "section": "intent_append",
+          "total_ms": 578
+        },
+        {
+          "max_ms": 37,
+          "n": 1,
+          "section": "write:clean_core_runtime_state.json",
+          "total_ms": 37
+        },
+        {
+          "max_ms": 26,
+          "n": 25,
+          "section": "file_lock_wait",
+          "total_ms": 40
+        },
+        {
+          "max_ms": 12,
+          "n": 21,
+          "section": "append:order_intents.csv",
+          "total_ms": 107
+        },
+        {
+          "max_ms": 7,
+          "n": 1,
+          "section": "read:send_attempts.csv",
+          "total_ms": 7
+        }
+      ],
+      "status": "COPY_ACCOUNT_POLLED",
+      "sweep": false,
+      "unmatched": 0,
+      "window_ms": 22014
+    },
+    {
+      "at_ms": 1791711030503,
+      "deferred": 0,
+      "fill_to_ledger_lag_ms_max": null,
+      "fill_to_ledger_lag_ms_median": null,
+      "fills_seen": 0,
+      "hot": true,
+      "http_ms": 301,
+      "lock_wait_ms_max": 0,
+      "matched": 0,
+      "poll_ms": 301,
+      "send_lock_hold_ms_max": 0,
+      "slowest_sections": [
+        {
+          "max_ms": 2,
+          "n": 1,
+          "section": "copy_state_write",
+          "total_ms": 2
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "write:copy_poll_state.json",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "replace:copy_poll_state.json",
+          "total_ms": 0
+        },
+        {
+          "max_ms": 0,
+          "n": 1,
+          "section": "file_lock_wait",
+          "total_ms": 0
+        }
+      ],
+      "status": "COPY_ACCOUNT_POLLED",
+      "sweep": false,
+      "unmatched": 0,
+      "window_ms": 26902
+    },
+    {
+      "at_ms": 1791711032459,
+      "deferred": 0,
+      "fill_to_ledger_lag_ms_max": null,
+      "fill_to_ledger_lag_ms_median": null,
+      "fills_seen": 0,
+      "hot": true,
+      "http_ms": 251,
+      "lock_wait_ms_max": 0,
+      "matched": 0,
+      "poll_ms": 251,
+      "send_lock_hold_ms_max": 1114,
+      "slowest_sections": [
+        {
+          "max_ms": 1114,
+          "n": 27,
+          "section": "send_lock:intent_build",
+          "total_ms": 2518
+        },
+        {
+          "max_ms": 72,
+          "n": 23,
+          "section": "intent_append",
+          "total_ms": 242
+        },
+        {
+          "max_ms": 36,
+          "n": 1,
+          "section": "write:clean_core_runtime_state.json",
+          "total_ms": 36
+        },
+        {
+          "max_ms": 29,
+          "n": 1,
+          "section": "write:live_service_state.json",
+          "total_ms": 29
+        },
+        {
+          "max_ms": 7,
+          "n": 28,
+          "section": "file_lock_wait",
+          "total_ms": 62
+        },
+        {
+          "max_ms": 5,
+          "n": 1,
+          "section": "copy_state_write",
+          "total_ms": 5
+        },
+        {
+          "max_ms": 3,
+          "n": 1,
+          "section": "write:live_integrity_status.json",
+          "total_ms": 3
+        },
+        {
+          "max_ms": 1,
+          "n": 1,
+          "section": "replace:clean_core_runtime_state.json",
+          "total_ms": 1
+        }
+      ],
+      "status": "COPY_ACCOUNT_POLLED",
+      "sweep": false,
+      "unmatched": 0,
+      "window_ms": 22002
+    }
+  ],
+  "last_copy_poll_ms": 1791711032209,
+  "last_exchange_snapshot_refresh_ms": 1791711030144
+}

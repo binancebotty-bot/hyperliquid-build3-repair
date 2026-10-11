@@ -1,0 +1,47 @@
+created_at,created_at_ms,context,error_type,message,traceback
+2026-10-11T09:09:53.299105+00:00,1791709793299,poll_copy_account_fills,JSONDecodeError,Expecting value: line 1 column 1 (char 0),"Traceback (most recent call last):
+  File ""C:\Users\wigmore\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\requests\models.py"", line 976, in json
+    return complexjson.loads(self.text, **kwargs)
+           ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File ""C:\Users\wigmore\AppData\Local\Python\pythoncore-3.14-64\Lib\json\__init__.py"", line 346, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File ""C:\Users\wigmore\AppData\Local\Python\pythoncore-3.14-64\Lib\json\decoder.py"", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File ""C:\Users\wigmore\AppData\Local\Python\pythoncore-3.14-64\Lib\json\decoder.py"", line 363, in raw_decode
+    raise JSONDecodeError(""Expecting value"", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File ""C:\Users\wigmore\trading_stack\hl-build3-testnet-cert\_archive\hl_stage2\HL_Live_Copy_Service_Core.py"", line 7112, in poll_copy_account_fills
+    data = r.json()
+  File ""C:\Users\wigmore\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\requests\models.py"", line 980, in json
+    raise RequestsJSONDecodeError(e.msg, e.doc, e.pos)
+requests.exceptions.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+"
+2026-10-11T09:25:24.443401+00:00,1791710724443,poll_copy_account_fills,JSONDecodeError,Expecting value: line 1 column 1 (char 0),"Traceback (most recent call last):
+  File ""C:\Users\wigmore\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\requests\models.py"", line 976, in json
+    return complexjson.loads(self.text, **kwargs)
+           ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File ""C:\Users\wigmore\AppData\Local\Python\pythoncore-3.14-64\Lib\json\__init__.py"", line 346, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File ""C:\Users\wigmore\AppData\Local\Python\pythoncore-3.14-64\Lib\json\decoder.py"", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File ""C:\Users\wigmore\AppData\Local\Python\pythoncore-3.14-64\Lib\json\decoder.py"", line 363, in raw_decode
+    raise JSONDecodeError(""Expecting value"", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File ""C:\Users\wigmore\trading_stack\hl-build3-testnet-cert\_archive\hl_stage2\HL_Live_Copy_Service_Core.py"", line 7112, in poll_copy_account_fills
+    data = r.json()
+  File ""C:\Users\wigmore\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\requests\models.py"", line 980, in json
+    raise RequestsJSONDecodeError(e.msg, e.doc, e.pos)
+requests.exceptions.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+"

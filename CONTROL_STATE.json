@@ -1,0 +1,411 @@
+{
+  "schema": "wigmore_project_control_state_v1",
+  "project": "hyperliquid-build3-repair",
+  "updated_utc": "2026-10-09T13:59:02.780724Z",
+  "operator": "richard:operator",
+  "architect": {
+    "role": "project-architect",
+    "status": "G4_F3_RULING_CONSUMED_REPORT_BEFORE_CODE",
+    "wake_mode": "EVENT_DRIVEN_ONLY",
+    "pending_escalation": {
+      "message_id": "B3-C2A-G4-F3-MARK-AUTHORITY-RULING-1",
+      "raised_by": "gpt:reviewer-controller",
+      "sequence": 59,
+      "created_at_utc": "2026-10-08T22:22:35Z",
+      "answered": true,
+      "carrier": "1e7abfc997e8b1fc10810d70763245f1022aa009",
+      "answer_bucket": "control_mailbox/outbox (gpt:* targets route to outbox)",
+      "note": "Answered by B3-A2C-G4-F3-MARK-AUTHORITY-RULING-1, sequence62, commit7aecdd2830e6c9949e4009be29ac9d634b55328f; semantic validity confirmed by Architect sequence63 and consumed by Controller sequence64. Historical delivery envelope preserved unchanged."
+    }
+  },
+  "controller": {
+    "role": "gpt:reviewer-controller",
+    "status": "ACTIVE",
+    "surface": "current ChatGPT controller thread",
+    "last_adjudication": {
+      "message_id": "B3-C2H-G4-C2A-PASS-AWAIT-ARCHITECT-1",
+      "sequence": 60,
+      "verdict": "C2A=PASS_READONLY_INVENTORY; G4_F3=BLOCKED_PENDING_ARCHITECT_MARK_AUTHORITY",
+      "worker_disposition": "WAIT_AUTHORISED_PENDING_ARCHITECT_RULING",
+      "explicitly_not": "STAND_DOWN_PERMISSION"
+    },
+    "chatgpt_conversation_uuid": "6ac8e179-932c-83ed-b9ca-1bdc5c976d5d"
+  },
+  "implementation_owner": {
+    "role": "hermes:implementation-owner",
+    "status": "RULING_CONSUMED_REPORT_BEFORE_CODE",
+    "session": "20261007_214500_b3hermes",
+    "production_changes_authorised": false
+  },
+  "bindings": {
+    "authority": "C:/Users/wigmore/.hermes/state/projects/hyperliquid-build3-repair/CONTROL_CONTRACT.json target_role_bindings",
+    "generation": 1,
+    "gpt:project-architect": {
+      "uuid": "6ac680c7-6d84-83eb-8c7d-d3706cea33fc",
+      "status": "ACTIVE",
+      "reachability": "PROVEN"
+    },
+    "gpt:reviewer-controller": {
+      "uuid": "6ac6427b-8df0-83eb-beb8-3b6e8796d1e1",
+      "status": "ACTIVE",
+      "reachability": "PROVEN"
+    },
+    "hermes:implementation-owner": {
+      "session": "20261007_214500_b3hermes",
+      "status": "ACTIVE"
+    },
+    "controller_uuid_dispute": {
+      "state": "UNRESOLVED_REQUIRES_ADJUDICATION",
+      "control_state_says": "6ac6427b-8df0-83ed-beb8-3b6e8796d1e1",
+      "control_contract_says": "6ac7a51f-d400-83ed-b035-f520ef747394",
+      "declared_authority_source": "CONTROL_CONTRACT.json target_role_bindings (binding_version 1)",
+      "observed_evidence": "Wake-path envelope B3-H2C-TASK-DROPPED-FAILURE-1 (2026-10-08T22:06:34Z) reports BINDING ok=True uuid=6ac7a51f-d400-83ed-b035-f520ef747394 ver=1 status=ACTIVE, i.e. the CONTRACT uuid is the one that verifies in practice.",
+      "hypotheses_not_asserted": [
+        "Generation 1 -> 2 binding change that never propagated to CONTROL_STATE.json",
+        "stale copy of CONTROL_STATE written before the binding was re-issued"
+      ],
+      "action_taken_by_hermes": "NONE. Deliberately NOT rewritten: selecting a winning UUID is an authority decision reserved to Controller/Architect. Recorded as a dispute only.",
+      "raised_as": "B3-H2C-CONTROL-STATE-BINDING-DISPUTE-1"
+    },
+    "architect_uuid": "6ac680c7-6d84-83eb-8c7d-d3706cea33fc"
+  },
+  "architecture_decision": "REPAIR_BUILD3",
+  "authority_freeze": {
+    "doc": "PRODUCT_SEMANTICS.md",
+    "architect_ruling": "B3-A2C-GATE0-PASS-G1-1",
+    "conflict_resolved": "current-position/restart/snapshot no longer derives target/convergence authority",
+    "rule": "genuine post-baseline leader events are the ONLY trading authority; snapshots are verification/reconciliation only",
+    "architecture_amendment": "ARCHITECTURE.md 'Trading-authority precedence' + invariant 13"
+  },
+  "current_gate": {
+    "task_id": "G4-F3-AUTHORITATIVE-CURRENT-MARK-SEMANTICS",
+    "gate": "G4_FIXED_SLEEVE_MARK_AUTHORITY",
+    "status": "G3_PASS__G4_OPEN__F3_RULING_RECEIVED_IMPLEMENTATION_UNPROVEN",
+    "architect_ruling": {
+      "message_id": "B3-A2C-G3-AUTHORITY-SCOPE-RULING-1",
+      "verdict": "G3_AUTHORITY_SCOPE_RESOLVED_CORRECTION_AUTHORISED",
+      "g4_authorised": false
+    },
+    "production_logic_changes_authorised": false,
+    "accepted_g2_candidate": "606d32e2f449c545fed1e7f9a9a1cb2fa5c409d2",
+    "g2_evidence_commit": "fa3a86c30159784c0ffeadcabf2d7df317a98193",
+    "scope_budget": {
+      "base": "606d32e2f449c545fed1e7f9a9a1cb2fa5c409d2",
+      "gross_production_additions_max": 400,
+      "production_files_max": 2,
+      "processes_max": 1,
+      "new_dependencies_max": 0,
+      "new_persistent_stores_max": 0,
+      "physical_order_call_sites_max": 1,
+      "one_gate_exception": true
+    },
+    "required_semantics": [
+      "Follower account-net ACTUAL comes only from authoritative MASTER/trading-account exchange truth; no wallet-local dry-run/manual fallback.",
+      "Truth collection covers all relevant perp DEX scopes including HIP-3/builder DEX positions, or fails closed when a required scope is unavailable.",
+      "API signer identity and MASTER/trading-account identity remain distinct; balances/fills/positions/settlement are verified on MASTER.",
+      "Startup/restart/gap snapshots are verification/reconciliation only and create zero desired exposure/order authority.",
+      "G2 event-lineage checkpoint validity/replay rules remain binding.",
+      "API order acknowledgement is not settlement; in-flight remains blocking until independent MASTER userFills plus resulting position evidence proves fill/settlement, or terminal exchange rejection proves no fill.",
+      "Reconciliation divergence is surfaced and never silently rewrites event authority.",
+      "Unrelated pre-existing follower inventory remains protected."
+    ],
+    "excluded_scope": [
+      "Fixed-mode target invention; fixed mode remains HOLD_FAIL_CLOSED_PENDING_G4_PRODUCT_EVIDENCE.",
+      "UI/lifecycle redesign or G4 work.",
+      "New engine/process/dependency/persistent store/order path.",
+      "Real-money/mainnet activation.",
+      "End-to-end physical testnet trading unless separately proven necessary and non-live; default remains G5."
+    ],
+    "acceptance": [
+      "Authoritative MASTER account-net actual exposure proven.",
+      "Multi-DEX/HIP-3 truth coverage or explicit fail-closed on missing required scope proven.",
+      "Signer-vs-MASTER separation proven.",
+      "Restart/gap recovery creates zero trade authority.",
+      "Checkpoint rehydration/replay semantics remain valid.",
+      "API ACK does not clear in-flight.",
+      "Independent MASTER userFills plus resulting position state settle fills.",
+      "Terminal reject clears safely without phantom settlement.",
+      "Stale/uncertain/divergent truth fails closed.",
+      "Unrelated inventory preservation proven.",
+      "Exactly one physical order site remains.",
+      "Legacy and G2 regressions pass.",
+      "Graphify refreshed after implementation."
+    ],
+    "controller_adjudication": {
+      "verdict": "FAIL",
+      "candidate": "3113c59b2ed391a8ce95c01d008bd097c42814d2",
+      "scope_accepted_by_architect": true,
+      "accepted_gross_additions": 422,
+      "production_files": 2,
+      "order_call_sites": 1,
+      "exact_remaining_blocker": {
+        "id": "DURABLE_IN_FLIGHT_STATE_CLOBBER",
+        "summary": "persist_unresolved_send/attach_send_result/clear_unresolved_send mutate SERVICE_STATE_FILE via independent reload/write, but the active DryRunLiveCopyService retains an older self.state. process_ws_fill and run_once call self.persist() after process_fill, rewriting SERVICE_STATE_FILE from stale self.state and potentially erasing in_flight_unresolved and settlement checkpoint updates created during the send.",
+        "evidence": [
+          "manual_send_one_intent persists unresolved send before send_hyperliquid_order using persist_unresolved_send().",
+          "persist_unresolved_send writes SERVICE_STATE_FILE through _state_write(), not through the active service object's self.state.",
+          "process_ws_fill calls self.process_fill(fill,cfg) and then self.persist().",
+          "run_once processes fills then calls self.persist().",
+          "persist() writes SERVICE_STATE_FILE from self.state without merging current on-disk in_flight_unresolved.",
+          "Therefore any unresolved/partial/unknown real-send reservation written during process_fill can be clobbered before crash/restart recovery relies on it."
+        ],
+        "impact": "A real order may remain unsettled while the durable blocker is erased. Restart can then load no unresolved reservation and re-authorise overlapping/duplicate exposure, violating G3 IN_FLIGHT_RECOVERY_RULE and SETTLEMENT_LIFECYCLE_RULE."
+      },
+      "graphify_note": "Current graphify-out/GRAPH_REPORT.md at candidate is also stale (built_from=1f5cc723), but that is evidence-only and deferred until the production blocker is resolved; it is not the substantive G3 blocker.",
+      "md_p0_transport_hold": true,
+      "g4_authorised": false
+    },
+    "required_corrections": [
+      "Initialise production MASTER truth from HL_LIVE_HL_ACCOUNT_ADDRESS and signing identity derived from configured private key/Account; identities must be valid and distinct; no arbitrary production account_net provider fallback.",
+      "Persist unresolved pre-send reservation in existing SERVICE_STATE_FILE before exchange.order authority, including intent, coin/dex if known, planner side, authorised size, reduce_only, started_ms and pre-send MASTER truth; attach oid/status durably after exchange response without clearing on ACK.",
+      "Reload unresolved reservations before any new order authority; crash-before-oid reconciles from start_ms+intent attributes and remains blocking if ambiguous; partial persists remaining.",
+      "Enumerate all perp DEX scopes and query MASTER userFillsByTime per scope with dex, including default and HIP-3/builder; fail closed on missing scope and deduplicate deterministically.",
+      "Terminal reject/no-fill clear requires exchange-derived terminal rejection/refusal plus independent post-attempt MASTER no-fill truth across all required DEX scopes; caller boolean alone is forbidden.",
+      "Maintain frozen UNATTRIBUTED_BASELINE and confirmed copy-owned actual in existing SERVICE_STATE_FILE; establish only at explicit no-send baseline/recovery boundary; snapshots/restarts verify but never silently rewrite it; external/manual divergence blocks.",
+      "Wire reconciliation gate before convergence/order authority using authoritative MASTER net = unattributed baseline + confirmed engine-owned actual +/- unresolved reserved exposure within tolerance.",
+      "Wire real sender result into reservation/settlement lifecycle; immediate and restart/subsequent-loop reconciliation may resolve only from independent MASTER evidence."
+    ],
+    "persistence_rule": "Only safety/ownership checkpoints in existing SERVICE_STATE_FILE are authorised: unresolved sends, confirmed engine-owned actual, frozen unrelated-inventory attribution. They never create desired trading authority.",
+    "g3_disposition": {
+      "verdict": "PASS",
+      "ruled_by": "gpt:reviewer-controller",
+      "message_id": "B3-C2A-G3-PASS-ARCHITECT-GATE-1",
+      "reentry_message_id": "B3-C2A-G3-PASS-ARCHITECT-GATE-1-REENTRY",
+      "sequence": "2026-10-08T17:12:00Z / 17:36:30Z",
+      "correction_commit": "4a41f337a41989f4f00487c988ca39533c53216c",
+      "candidate_at_time_of_ruling": "dc9960aab75449df8278aeeedcef8dc7a0a833f9",
+      "blocked_blocker": "DURABLE_IN_FLIGHT_STATE_CLOBBER",
+      "blocker_status": "RESOLVED_AND_CORRECTED",
+      "correction_shape": "+7 lines in _archive/hl_stage2/HL_Live_Copy_Service.py persist(): reload in_flight_unresolved/in_flight_terminals from disk immediately before SERVICE_STATE_FILE write, so stale self.state cannot erase a durable send reservation.",
+      "reported_evidence": "WITH_FIX 48/48 PASS; negative control 47/48 with the fix removed",
+      "note": "Recorded, not re-adjudicated. Hermes makes no gate verdict of its own."
+    },
+    "g4_authorised": false
+  },
+  "source_of_truth": {
+    "terminal_runtime_local_path": "_archive/hl_stage2/HL_Live_Copy_Service.py",
+    "planner_local_path": "_archive/hl_stage2/convergence_shadow.py",
+    "source_tracking_status": "TRACKED_BASELINE_VERIFIED"
+  },
+  "scope_budget": {
+    "max_new_production_loc_before_architect_review": 260,
+    "max_production_files_before_architect_review": 2,
+    "process_count": 1,
+    "new_dependencies": 0,
+    "new_authoritative_persistent_state": 0,
+    "physical_order_call_sites": 1
+  },
+  "known_current_facts": [
+    "Build 3 fixed-notional-per-fill sizing is the proven exposure defect.",
+    "Build 3 has one physical production .order() call site.",
+    "Convergence planner already exists and outputs signed coin delta.",
+    "Default clearinghouseState omits HIP-3/builder DEX positions.",
+    "Direct leader WS path is fast but incomplete; snapshot truth is required on recovery boundaries.",
+    "MASTER account state must be distinguished from API signer state."
+  ],
+  "current_blocker": "F3 mark-source authority resolved by Architect ruling sequence62; minimal G4-C2B implementation and Controller PASS remain unproven. G1-G3 locked; G4 remains OPEN. Bootstrap sequence64 authorises read-only binding audit only; Richard now directs ruling consumption/state refresh and report BEFORE any code.",
+  "next_action": "REPORT_BEFORE_CODE under Richard direct instruction: F3 ruling B3-A2C-G4-F3-MARK-AUTHORITY-RULING-1 is consumed and recorded exactly once. Report that it authorises G4-C2B ONLY: minimal Hyperliquid metaAndAssetCtxs markPx adapter with exact DEX/environment, bounded monotonic freshness, fail-closed and exactly-once protections. Do not write production code before this report. Controller alone adjudicates implementation PASS/FAIL; after PASS report and wait for the next explicit gate. No G5, live/mainnet, UI/lifecycle work, scope expansion or stand-down permission. Permission booleans remain unchanged.",
+  "live_authorized": false,
+  "stand_down_authorised": false,
+  "last_controller_ruling": {
+    "task_id": "BUILD3_SOURCE_BASELINE_IMPORT_1",
+    "verdict": "PASS",
+    "commit_sha": "cea4beb77af17a387f6c5aea9ca0c4057a8eb750",
+    "evidence": "Exactly one commit ahead of d55d90f; only HL_Live_Copy_Service.py (4261 lines) and convergence_shadow.py (250 lines) added. User-reported before/after SHA-256 identical."
+  },
+  "control_topology": {
+    "global_md_channel": "binancebotty-bot/richard-mission-control-template#50",
+    "project_architect_channel": "binancebotty-bot/hyperliquid-build3-repair#1",
+    "project_reviewer_channel": "binancebotty-bot/hyperliquid-build3-repair#2",
+    "project_hermes_channel": "binancebotty-bot/hyperliquid-build3-repair#3",
+    "parallel_project_control_surfaces_forbidden": true
+  },
+  "transport_certification": {
+    "required_before_normal_implementation_loop": true,
+    "target": "LOW_LATENCY_TWO_WAY_CONTROL",
+    "richard_manual_relay_allowed_as_normal_path": false,
+    "current_status": "PASS",
+    "rest_api_calls_for_transport": 0,
+    "template_reference": "richard-mission-control-template#38",
+    "required_proof": [
+      "Controller/Architect -> Hermes semantic wake and consume",
+      "Hermes -> Controller semantic wake and consume",
+      "Controller -> Architect semantic wake and consume on escalation",
+      "Architect -> Controller correlated ruling",
+      "unchanged branch causes zero duplicate",
+      "restart preserves zero duplicate",
+      "REST_API_CALLS=0 for transport"
+    ],
+    "last_architect_ruling": {
+      "message_id": "B3-A2C-RULING-1",
+      "verdict": "G0_CONTINUE",
+      "architect_wake": "PASS",
+      "g1_authorised": false
+    }
+  },
+  "graphify": {
+    "policy": "REQUIRED_FOR_IMPLEMENTATION_HANDOFFS_ONCE_COMMISSIONED",
+    "status": "COMMISSIONED_IN_THIS_REPO",
+    "result": "171 nodes, 540 edges, 14 communities (graphify-out/graph.json, GRAPH_REPORT.md)",
+    "command": "python -m graphify update <repo> --force (Python311)"
+  },
+  "transport_blocker": {
+    "message_id": "B3-B2A-G2-TRANSPORT-BLOCKER-1",
+    "status": "CLEARED",
+    "cleared_by": "B3-B2A-G2-ESCALATION-DELIVERED-1",
+    "architect_delivery_message": "B3-C2A-G2-AUTHORITY-CONFLICT-1",
+    "automatic_wake_sent": true,
+    "exactly_once": true,
+    "duplicate_replay": false,
+    "focus_stealing_used": false
+  },
+  "authority_rulings": {
+    "B3-A2C-G4-F3-MARK-AUTHORITY-RULING-1": {
+      "message_id": "B3-A2C-G4-F3-MARK-AUTHORITY-RULING-1",
+      "responds_to": "B3-C2A-G4-F3-MARK-AUTHORITY-RULING-1",
+      "sequence": 62,
+      "source_commit": "7aecdd2830e6c9949e4009be29ac9d634b55328f",
+      "payload_digest": "sha256:97dfa2012eabbdb35d86959bf22118b3c0229dc17d1d7ac31df3636846518059",
+      "consumed_at_utc": "2026-10-09T13:59:02.780724Z",
+      "consumption_status": "CONSUMED_ONCE_RECORDED_NO_PRODUCT_EXECUTION",
+      "authorised_gate": "G4-C2B_ONLY",
+      "authority_confirmation": "B3-A2C-BOOT-85392E-1 (sequence63, binding_version2, commit2244d2262b04e0dc003e52483aba3413133abc16)",
+      "controller_consumption": "B3-C2H-BOOT-85392E-ALIGNMENT-DISPOSITION-1 (sequence64, commit65443ee3c7c8a475a324116ff48911b083f74e11)",
+      "binding_version_note": "Original v1 provenance retained unchanged; current Architect v2 ACK confirms semantic validity.",
+      "product_pass": false,
+      "scope": "Minimal synchronous Hyperliquid /info metaAndAssetCtxs markPx adapter only; exact DEX/environment mapping; <=1000ms HTTP/roundtrip/receipt-to-consume; monotonic admission-before-request-before-mint; fail closed; no fill/limit/bid/ask fallback; REDUCE/CLOSE and FLIP exactly-once protections; deterministic injected tests and G2/G3/G4-C1 regressions; no G5/live/UI/lifecycle."
+    },
+    "B3-A2C-G2-AUTHORITY-RULING-1": {
+      "fixed_mode": "HOLD_FAIL_CLOSED_PENDING_G4_PRODUCT_EVIDENCE",
+      "event_lineage_persistence": "ALLOWED_WITH_RULES_ONLY",
+      "g2_correction": "AUTHORISED",
+      "g3_authorised": false
+    }
+  },
+  "fixed_mode_hold": {
+    "status": "HOLD_FAIL_CLOSED_PENDING_G4_PRODUCT_EVIDENCE",
+    "surfaces": "FIXED_MODE_AUTHORITY_HOLD",
+    "orders": "ZERO",
+    "carried_to": "G4 (Build3 UI/config/product evidence proving the intended fixed TARGET exposure model)"
+  },
+  "event_lineage_persistence": {
+    "rule": "ALLOWED_WITH_RULES_ONLY",
+    "store": "existing SERVICE_STATE_FILE only (no new file/database/store)",
+    "coupling": "durably coupled to the processed event identity / high-water",
+    "restart": "may reload a VALID checkpoint only",
+    "never": "snapshot / current leader position / follower truth / reconciliation seed, top-up, rewrite or infer lineage",
+    "on_missing_corrupt_stale_inconsistent": "FAIL_CLOSED -> ZERO order authority until deterministic replay of durable genuine events reconstructs it"
+  },
+  "account_net_truth": {
+    "rule": "ACCOUNT-NET follower exposure is the only actual-net source",
+    "g2": "no live account-net plumbing in G2 (that is G3)",
+    "wallet_local_fallback": "FORBIDDEN",
+    "unavailable": "FAIL_CLOSED -> ACCOUNT_NET_TRUTH_UNAVAILABLE (zero order authority)"
+  },
+  "in_flight_suppression": "EXISTING un-settled sends wired into convergence; overlapping/duplicate authorisation blocked; no new store",
+  "single_order_site": "exactly one physical exchange.order() call site",
+  "adjudication_log": [
+    {
+      "ts_utc": "2026-10-09T09:06:35.989262+00:00",
+      "role": "controller",
+      "served_by": "openrouter/nvidia/nemotron-3-super-120b-a12b:free",
+      "used": "fallback",
+      "verdict": {
+        "next_action_correct": true,
+        "blocker_status": "LIVE",
+        "gate_closed_recommendation": false,
+        "confidence": "HIGH"
+      },
+      "text": "The gate remains in a failed state (G3_FINAL_REVIEW_FAIL_MD_P0_HOLD) with the controller adjudication marking the blocker DURABLE_IN_FLIGHT_STATE_CLOBBER as the exact remaining issue. No evidence shows this blocker has been resolved; the architect’s ruling only authorised a correction scope but did not yet apply it. Therefore the blocker is still LIVE, the prescribed next_action (awaiting P1‑P8 transport certification, then architect consumption and explicit authorisation of the minimal correction) remains appropriate, and the gate cannot be closed.\n\n```json\n{\"next_action_correct\": true, \"blocker_status\": \"LIVE\", \"gate_closed_recommendation\": false, \"confidence\": \"HIGH\"}\n```",
+      "INVALIDATED": true,
+      "invalidated_reason": "FALSE NEGATIVE. Verdict \"blocker LIVE / architect has not authorised\" was FACTUALLY WRONG. Architect authorisation (B3-C2H-G3-DURABLE-CLOBBER-RESUME-1, 17:03Z) and G3 PASS (B3-C2A-G3-PASS-ARCHITECT-GATE-1, 17:12Z) had both already landed when these were written.",
+      "root_cause": "Sourced from stale local CONTROL_STATE.json (updated_utc 2026-10-08T07:47Z) instead of origin/control-mailbox. Model: openrouter/nvidia/nemotron-3-super-120b-a12b:free (fallback).",
+      "status": "RETAINED_AS_DATED_RECORD_OF_DISCREPANCY_NOT_AUTHORITY"
+    },
+    {
+      "ts_utc": "2026-10-09T09:09:24.253758+00:00",
+      "role": "controller",
+      "served_by": "openrouter/nvidia/nemotron-3-super-120b-a12b:free",
+      "used": "fallback",
+      "verdict": {
+        "next_action_correct": true,
+        "blocker_status": "LIVE",
+        "gate_closed_recommendation": false,
+        "confidence": "HIGH"
+      },
+      "text": "The blocker remains unresolved and the gate is still in a failed hold state, so the prescribed next action (await P1‑P8 transport certification, then have the Architect consume the exact G3 blocker and authorise the minimal correction) is still appropriate. The gate should not be closed yet.\n\n```json\n{\"next_action_correct\": true, \"blocker_status\": \"LIVE\", \"gate_closed_recommendation\": false, \"confidence\": \"HIGH\"}\n```",
+      "INVALIDATED": true,
+      "invalidated_reason": "FALSE NEGATIVE. Verdict \"blocker LIVE / architect has not authorised\" was FACTUALLY WRONG. Architect authorisation (B3-C2H-G3-DURABLE-CLOBBER-RESUME-1, 17:03Z) and G3 PASS (B3-C2A-G3-PASS-ARCHITECT-GATE-1, 17:12Z) had both already landed when these were written.",
+      "root_cause": "Sourced from stale local CONTROL_STATE.json (updated_utc 2026-10-08T07:47Z) instead of origin/control-mailbox. Model: openrouter/nvidia/nemotron-3-super-120b-a12b:free (fallback).",
+      "status": "RETAINED_AS_DATED_RECORD_OF_DISCREPANCY_NOT_AUTHORITY"
+    },
+    {
+      "ts_utc": "2026-10-09T09:10:28.655013+00:00",
+      "role": "controller",
+      "served_by": "openrouter/nvidia/nemotron-3-super-120b-a12b:free",
+      "used": "fallback",
+      "verdict": {
+        "next_action_correct": true,
+        "blocker_status": "LIVE",
+        "gate_closed_recommendation": false,
+        "confidence": "HIGH"
+      },
+      "text": "The blocker DURABLE_IN_FLIGHT_STATE_CLOBBER remains unresolved; the controller’s adjudication still flags it as the exact remaining issue and the architect has not yet authorised the minimal correction. Therefore the prescribed next action—wait for P1‑P8 transport certification, then have the architect consume and authorise the blocker before any production change—is still appropriate. The gate cannot be closed until this blocker is addressed.\n\n```json\n{\"next_action_correct\": true, \"blocker_status\": \"LIVE\", \"gate_closed_recommendation\": false, \"confidence\": \"HIGH\"}\n```",
+      "INVALIDATED": true,
+      "invalidated_reason": "FALSE NEGATIVE. Verdict \"blocker LIVE / architect has not authorised\" was FACTUALLY WRONG. Architect authorisation (B3-C2H-G3-DURABLE-CLOBBER-RESUME-1, 17:03Z) and G3 PASS (B3-C2A-G3-PASS-ARCHITECT-GATE-1, 17:12Z) had both already landed when these were written.",
+      "root_cause": "Sourced from stale local CONTROL_STATE.json (updated_utc 2026-10-08T07:47Z) instead of origin/control-mailbox. Model: openrouter/nvidia/nemotron-3-super-120b-a12b:free (fallback).",
+      "status": "RETAINED_AS_DATED_RECORD_OF_DISCREPANCY_NOT_AUTHORITY"
+    },
+    {
+      "ts_utc": "2026-10-09T09:24:44.601881+00:00",
+      "role": "controller",
+      "served_by": "openrouter/nvidia/nemotron-3-super-120b-a12b:free",
+      "used": "fallback",
+      "verdict": {
+        "next_action_correct": true,
+        "blocker_status": "LIVE",
+        "gate_closed_recommendation": false,
+        "confidence": "HIGH"
+      },
+      "text": "The blocker remains unresolved and the gate is still under MD P0 hold, so the prescribed next action (await P1‑P8 transport certification then have the Architect authorise the minimal correction) is still appropriate. The gate cannot be closed until the blocker is addressed.\n\n```json\n{\"next_action_correct\": true, \"blocker_status\": \"LIVE\", \"gate_closed_recommendation\": false, \"confidence\": \"HIGH\"}\n```",
+      "INVALIDATED": true,
+      "invalidated_reason": "FALSE NEGATIVE. Verdict \"blocker LIVE / architect has not authorised\" was FACTUALLY WRONG. Architect authorisation (B3-C2H-G3-DURABLE-CLOBBER-RESUME-1, 17:03Z) and G3 PASS (B3-C2A-G3-PASS-ARCHITECT-GATE-1, 17:12Z) had both already landed when these were written.",
+      "root_cause": "Sourced from stale local CONTROL_STATE.json (updated_utc 2026-10-08T07:47Z) instead of origin/control-mailbox. Model: openrouter/nvidia/nemotron-3-super-120b-a12b:free (fallback).",
+      "status": "RETAINED_AS_DATED_RECORD_OF_DISCREPANCY_NOT_AUTHORITY"
+    },
+    {
+      "ts_utc": "2026-10-09T09:40:36.561752+00:00",
+      "role": "controller",
+      "served_by": "openrouter/nvidia/nemotron-3-super-120b-a12b:free",
+      "used": "fallback",
+      "verdict": {
+        "next_action_correct": true,
+        "blocker_status": "LIVE",
+        "gate_closed_recommendation": false,
+        "confidence": "HIGH"
+      },
+      "text": "The gate remains in a failed state (G3_FINAL_REVIEW_FAIL_MD_P0_HOLD) with the controller adjudication marking a FAIL and the blocker DURABLE_IN_FLIGHT_STATE_CLOBBER still described as unresolved. The architect’s ruling only authorised a correction scope but did not grant G4 authority, and no patch has been applied. Therefore the prescribed next action—awaiting P1‑P8 transport certification, then having the Architect consume the exact blocker and authorise the minimal correction before any production change—is still the appropriate step. The blocker is live, not stale or resolved, and the gate cannot be closed until the blocker is addressed.\n\n```json\n{\"next_action_correct\": true, \"blocker_status\": \"LIVE\", \"gate_closed_recommendation\": false, \"confidence\": \"HIGH\"}\n```",
+      "INVALIDATED": true,
+      "invalidated_reason": "FALSE NEGATIVE. Verdict \"blocker LIVE / architect has not authorised\" was FACTUALLY WRONG. Architect authorisation (B3-C2H-G3-DURABLE-CLOBBER-RESUME-1, 17:03Z) and G3 PASS (B3-C2A-G3-PASS-ARCHITECT-GATE-1, 17:12Z) had both already landed when these were written.",
+      "root_cause": "Sourced from stale local CONTROL_STATE.json (updated_utc 2026-10-08T07:47Z) instead of origin/control-mailbox. Model: openrouter/nvidia/nemotron-3-super-120b-a12b:free (fallback).",
+      "status": "RETAINED_AS_DATED_RECORD_OF_DISCREPANCY_NOT_AUTHORITY"
+    }
+  ],
+  "state_provenance": "Refreshed by hermes:implementation-owner under Richard direct instruction, 2026-10-09. Every fact below is traceable to a remote-verified origin/control-mailbox envelope; no field here grants authority, closes a gate, or authorises production change.",
+  "repo_head": {
+    "branch": "main",
+    "commit": "a940ad476cfd349dc3909f4b9dab16c5f6a6a400",
+    "subject": "G4-C2A: read-only mark source inventory (Architect F3)",
+    "frozen_candidate_3113c59": "PRESERVED_UNCHANGED (verified ancestor of HEAD)",
+    "commits_since_candidate": 26,
+    "note": "G4-C2A is the HEAD referenced by the pending Architect F3 escalation. The G3-PASS packet quoted dc9960a, which was correct when written at 17:12Z."
+  },
+  "adjudication_log_disposition": {
+    "policy": "Entries are retained verbatim as a dated record, per Richard, and are NOT authority.",
+    "recurring_cause_eliminated": true,
+    "recurring_cause_detail": "Scheduled task Build3WakeAndRearm, which appended these entries, was DELETED by Richard on 2026-10-09 (verified absent via Get-ScheduledTask; task name not found). Not paused - deleted.",
+    "residual_risk": "Any surviving component still deriving gate truth from local CONTROL_STATE.json rather than the mailbox will reproduce this false negative.",
+    "raised_as": "B3-H2C-ADJUDICATION-LOG-FALSE-NEGATIVE-1"
+  },
+  "highwater_note": "OPERATING_PROTOCOL.md states CONTROL_STATE.json holds only current state and is updated, not used as an append-only journal. adjudication_log is retained here solely under explicit Richard instruction as a dated discrepancy record, and is flagged INVALIDATED."
+}

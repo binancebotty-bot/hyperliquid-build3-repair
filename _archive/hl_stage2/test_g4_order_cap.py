@@ -1,0 +1,270 @@
+#!/usr/bin/env python3
+"""G4-C1 tests: operator global control max_order_notional_usd enforced for FIXED entries.
+
+Exercises the REAL in-process POST /api/global-controls, then the REAL engine process_fill/planner
+via the SAME live_config.json the UI writes (no new store, no second writer).
+
+Required behaviour under test:
+  - over-cap NEW entry -> fail closed with an explicit status and ZERO executable/sent intent
+  - within-cap -> passes only pre-existing gates
+  - zero / unset -> behaviour unchanged
+  - invalid nonzero values do not become authority
+  - CLOSE / reduce-only NEVER blocked by the entry-size cap
+  - unrelated inventory unchanged
+
+Run: python test_g4_order_cap.py      # RESULT:: markers, exit 0/1. No network, no LIVE orders.
+"""
+from __future__ import annotations
+
+import dataclasses
+import csv
+import json
+import os
+import sys
+import tempfile
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE))
+
+RESULTS = []
+
+
+def check(name: str, cond: bool, detail: str = "") -> None:
+    RESULTS.append((name, bool(cond)))
+    print("RESULT::%s_%s%s" % (name, "PASS" if cond else "FAIL", (" | " + detail) if (detail and not cond) else ""))
+
+
+def main() -> None:
+    tmp = Path(tempfile.mkdtemp(prefix="g4cap_"))
+    os.environ["HL_LIVE_AUDIT_DIR"] = str(tmp)
+    os.environ["HL_LIVE_AUTO_SEND_ENABLED"] = "0"
+    os.environ["HL_LIVE_POLL_ENABLED"] = "0"
+    cfg_path = tmp / "live_config.json"
+    cfg_path.write_text(json.dumps({
+        "wallets": {
+            "0xfixed": {"mode": "LIVE", "enabled": True, "copy_mode": "fixed",
+                        "norm_base": 100.0, "leader_equity_base": 1000.0, "fixed_notional": 1000.0},
+            "0xprop": {"mode": "LIVE", "enabled": True, "copy_mode": "proportional",
+                       "norm_base": 100.0, "leader_equity_base": 1000.0},
+        },
+        "global_controls": {"max_order_notional_usd": 0.0},
+    }), encoding="utf-8")
+
+    import HL_Live_Copy_Service as svcmod
+    import HL_Copy_App_SSOT as ui
+    from fastapi.testclient import TestClient
+    svcmod.TEST_INJECTION_ENABLED = True
+
+    # make the UI write exactly the file the engine reads (production topology, temp-isolated)
+    ui.LIVE_COPY_CONFIG_FILE = cfg_path
+    client = TestClient(ui.app)
+
+    FIX = svcmod.LiveWalletConfig(wallet="0xfixed", mode="LIVE", copy_mode="fixed",
+                                  fixed_notional=1000.0, norm_base=100.0,
+                                  leader_equity_base=1000.0, enabled=True)
+    PROP = svcmod.LiveWalletConfig(wallet="0xprop", mode="LIVE", copy_mode="proportional",
+                                   norm_base=100.0, leader_equity_base=1000.0, enabled=True)
+    PX = 100.0
+
+    def fill(fid, wallet, coin, side, price, size, ts, delta=None):
+        d = delta if delta is not None else (size if side.upper() == "BUY" else -size)
+        return svcmod.LeaderFill(
+            fill_id=fid, wallet=wallet.lower(), coin=coin.upper(), side=side.upper(),
+            price=price, size=abs(size), signed_size_delta=d, timestamp_ms=ts,
+            timestamp_iso="2026-01-01T00:00:00Z", source="test", recording_method="test", raw={},
+        )
+
+    def engine(wallets=("0xfixed",)):
+        s = svcmod.DryRunLiveCopyService()
+        s.state["leader_event_positions"] = {}
+        s.processed_ids = set()
+
+        def provider(coin):
+            total = sum(float(s.get_position(w, coin).get("signed_size") or 0.0) for w in wallets)
+            return {"ok": True, "net": total, "source": "TEST"}
+        s.account_net_provider = provider
+        return s
+
+    def intents(wallet="0xfixed"):
+        if not svcmod.ORDER_INTENTS_CSV.exists():
+            return []
+        with svcmod.ORDER_INTENTS_CSV.open(newline="", encoding="utf-8-sig") as f:
+            rows = [r for r in csv.DictReader(f) if str(r.get("leader_wallet", "")).lower() == wallet]
+        return rows[-1:]   # audit CSV is append-only and shared across engines in this file
+
+    def would_sends(wallet="0xfixed"):
+        if not svcmod.WOULD_SEND_ORDERS_CSV.exists():
+            return []
+        with svcmod.WOULD_SEND_ORDERS_CSV.open(newline="", encoding="utf-8-sig") as f:
+            rows = [r for r in csv.DictReader(f) if str(r.get("leader_wallet", "")).lower() == wallet]
+        return rows[-1:]
+
+    intended_notional = 1000.0   # fixed_notional 1000 at price 100 -> 10 shares
+
+    # ---------- 1) the REAL UI POST persists the control into the SAME config the engine reads ----------
+    r = client.post("/api/global-controls", json={"max_order_notional_usd": 500.0})
+    persisted = json.loads(cfg_path.read_text(encoding="utf-8")).get("global_controls", {})
+    check("C1_UI_POST_PERSISTS_MAX_ORDER_NOTIONAL",
+          r.status_code == 200 and r.json().get("ok")
+          and abs(float(persisted.get("max_order_notional_usd") or 0.0) - 500.0) < 1e-9,
+          f"status={r.status_code} persisted={persisted}")
+
+    # ---------- 2) over-cap NEW entry fails closed: explicit status, ZERO executable intent ----------
+    e1 = engine()
+    check("C1_ENGINE_READS_SAME_SOURCE", abs(e1.global_order_cap() - 500.0) < 1e-9, f"cap={e1.global_order_cap()}")
+    e1.process_fill(fill("c1", "0xfixed", "BTC", "BUY", PX, 10.0, 1000), FIX)
+    rows = intents()
+    pos = float(e1.get_position("0xfixed", "BTC").get("signed_size") or 0.0)
+    check("C1_OVER_CAP_ENTRY_BLOCKED_FAIL_CLOSED",
+          len(rows) == 1
+          and rows[0].get("status") == "BLOCKED_GLOBAL_MAX_ORDER_NOTIONAL"
+          and rows[0].get("execution_decision") == "BLOCKED_GLOBAL_MAX_ORDER_NOTIONAL"
+          and rows[0].get("decision_reason") == "GLOBAL_MAX_ORDER_NOTIONAL_EXCEEDED"
+          and abs(pos) < 1e-12,
+          f"row_status={rows[0].get('status') if rows else None} pos={pos}")
+    check("C1_OVER_CAP_WRITES_ZERO_EXECUTABLE_INTENT",
+          len(would_sends()) == 0 and int(e1.state["counters"].get("entries_blocked_global_max_order_notional", 0)) >= 1,
+          f"would_send={len(would_sends())}")
+
+    # ---------- 3) within-cap passes the pre-existing gates ----------
+    client.post("/api/global-controls", json={"max_order_notional_usd": 2000.0})
+    e2 = engine()
+    e2.process_fill(fill("c2", "0xfixed", "BTC", "BUY", PX, 10.0, 1000), FIX)
+    rows2 = intents()
+    pos2 = float(e2.get_position("0xfixed", "BTC").get("signed_size") or 0.0)
+    check("C1_WITHIN_CAP_PASSES_EXISTING_GATES",
+          len(rows2) == 1 and str(rows2[0].get("status")) == "DRY_RUN_FILLED"
+          and abs(pos2 - 10.0) < 1e-9
+          and "BLOCKED" not in str(rows2[0].get("execution_decision")),
+          f"status={rows2[0].get('status') if rows2 else None} pos={pos2}")
+
+    # ---------- 4) zero / unset -> unchanged ----------
+    client.post("/api/global-controls", json={"max_order_notional_usd": 0.0})
+    e3 = engine()
+    check("C1_ZERO_CAP_IS_OFF", abs(e3.global_order_cap()) < 1e-12, f"cap={e3.global_order_cap()}")
+    e3.process_fill(fill("c3", "0xfixed", "BTC", "BUY", PX, 10.0, 1000), FIX)
+    rows3 = intents()
+    pos3 = float(e3.get_position("0xfixed", "BTC").get("signed_size") or 0.0)
+    check("C1_ZERO_CAP_ENTRY_UNCHANGED",
+          len(rows3) == 1 and str(rows3[0].get("status")) == "DRY_RUN_FILLED" and abs(pos3 - 10.0) < 1e-9,
+          f"status={rows3[0].get('status') if rows3 else None} pos={pos3}")
+
+    # ---------- 5) invalid nonzero value never becomes authority ----------
+    raw = json.loads(cfg_path.read_text(encoding="utf-8"))
+    raw.setdefault("global_controls", {})["max_order_notional_usd"] = "not-a-number"
+    cfg_path.write_text(json.dumps(raw), encoding="utf-8")
+    check("C1_NON_NUMERIC_CAP_NOT_AUTHORITY", abs(engine().global_order_cap()) < 1e-12)
+    raw["global_controls"]["max_order_notional_usd"] = -25.0
+    cfg_path.write_text(json.dumps(raw), encoding="utf-8")
+    check("C1_NEGATIVE_CAP_NOT_AUTHORITY", abs(engine().global_order_cap()) < 1e-12)
+
+    # ---------- 6) CLOSE / reduce-only NEVER blocked by the entry cap ----------
+    # seed a real follower position at cap 0, then tighten the cap hard and REDUCE.
+    client.post("/api/global-controls", json={"max_order_notional_usd": 0.0})
+    e4 = engine()
+    e4.process_fill(fill("d1", "0xfixed", "BTC", "BUY", PX, 10.0, 1000), FIX)          # open 10 shares
+    seeded = float(e4.get_position("0xfixed", "BTC").get("signed_size") or 0.0)
+    client.post("/api/global-controls", json={"max_order_notional_usd": 50.0})          # absurdly small cap
+    e4.process_fill(fill("d2", "0xfixed", "BTC", "SELL", PX, 5.0, 2000, delta=-5.0), FIX)  # reduce 50%
+    reduced = float(e4.get_position("0xfixed", "BTC").get("signed_size") or 0.0)
+    e4.process_fill(fill("d3", "0xfixed", "BTC", "SELL", PX, 5.0, 3000, delta=-5.0), FIX)  # close to flat
+    flat = float(e4.get_position("0xfixed", "BTC").get("signed_size") or 0.0)
+    check("C1_REDUCE_AND_CLOSE_NEVER_BLOCKED_BY_ENTRY_CAP",
+          abs(seeded - 10.0) < 1e-9 and abs(reduced - 5.0) < 1e-9 and abs(flat) < 1e-12,
+          f"seeded={seeded} reduced={reduced} flat={flat}")
+
+    # ---------- 7) unrelated inventory unchanged while entries are cap-blocked ----------
+    client.post("/api/global-controls", json={"max_order_notional_usd": 100.0})
+    e5 = engine(("0xfixed", "0xprop"))
+    e5.process_fill(fill("p1", "0xprop", "BTC", "BUY", PX, 5.0, 100), PROP)
+    prop_before = float(e5.get_position("0xprop", "BTC").get("signed_size") or 0.0)
+    e5.process_fill(fill("c9", "0xfixed", "BTC", "BUY", PX, 10.0, 200), FIX)   # cap-blocked entry
+    prop_after = float(e5.get_position("0xprop", "BTC").get("signed_size") or 0.0)
+    fixed_pos = float(e5.get_position("0xfixed", "BTC").get("signed_size") or 0.0)
+    check("C1_UNRELATED_INVENTORY_UNCHANGED",
+          prop_before > 0 and abs(prop_after - prop_before) < 1e-9 and abs(fixed_pos) < 1e-12,
+          f"prop {prop_before}->{prop_after} fixed={fixed_pos}")
+
+    # ---------- 8) exactly one physical exchange order site preserved ----------
+    src = Path(svcmod.__file__).read_text(encoding="utf-8", errors="replace")
+    sites = [ln for ln in src.splitlines() if ".order(" in ln and "exchange" in ln.lower()]
+    check("C1_SINGLE_EXCHANGE_ORDER_SITE", len(sites) == 1, f"sites={len(sites)}")
+
+    # ---------- 9) GENUINE FLIP under a positive cap below fixed_notional ----------
+    # Controller B3-C2H-G4-C1-FLIP-CAP-CORRECTION-1: a flip reduces absolute leader magnitude but
+    # opens a fresh opposite fixed sleeve (F7), so it IS a new entry for the cap. The old-side close
+    # must remain permitted; the opposite over-cap entry must never get executable authority.
+    client.post("/api/global-controls", json={"max_order_notional_usd": 0.0})   # cap off: seed a long
+    e6 = engine()
+    e6.process_fill(fill("f1", "0xfixed", "BTC", "BUY", PX, 10.0, 1000), FIX)          # +10 shares
+    e6.process_fill(fill("f2", "0xfixed", "BTC", "BUY", PX, 10.0, 1100), FIX)          # +20 leader
+    seeded_long = float(e6.get_position("0xfixed", "BTC").get("signed_size") or 0.0)
+    client.post("/api/global-controls", json={"max_order_notional_usd": 500.0})        # cap < fixed_notional 1000
+    e6.process_fill(fill("f3", "0xfixed", "BTC", "SELL", PX, 22.0, 2000, delta=-22.0), FIX)  # +20 -> -2 FLIP
+    flip_pos = float(e6.get_position("0xfixed", "BTC").get("signed_size") or 0.0)
+    sleeve = (e6.state.get("fixed_sleeves") or {}).get("0xfixed", {}).get("BTC") or {}
+    flip_rows = intents()
+    check("C1_FLIP_CLOSES_OLD_SIDE_AND_DENIES_OVER_CAP_OPPOSITE_ENTRY",
+          abs(seeded_long - 20.0) < 1e-9
+          and abs(flip_pos) < 1e-12                      # old long fully closed, no short opened
+          and (sleeve.get("side") == 0 and not (sleeve.get("slices") or []))
+          and "BLOCKED" not in str(flip_rows[0].get("execution_decision") if flip_rows else "")
+          and int(e6.state["counters"].get("entries_blocked_global_max_order_notional", 0)) >= 1,
+          f"seeded={seeded_long} flip_pos={flip_pos} sleeve={sleeve} counter="
+          f"{e6.state['counters'].get('entries_blocked_global_max_order_notional')}")
+
+    # ---------- 10) END-TO-END: per-event BELOW cap, FINAL planner aggregate ABOVE cap ----------
+    # Controller B3-C2H-G4-C1-AGGREGATE-CAP-PROOF-1: this must exercise the LATE (final planner
+    # notional) branch, not the per-event early gate. A) per-event 300 <= cap 500 so the early gate
+    # does NOT block; B) the authoritative planner converges aggregated desired (600) vs account-net
+    # actual (0, the leg lags) => plan 600 > cap; C) late branch emits BLOCKED_GLOBAL_MAX_ORDER_NOTIONAL
+    # with no in-flight reservation, no would-send and no simulated follower mutation.
+    FIXED_SMALL = dataclasses.replace(FIX, fixed_notional=300.0)
+    client.post("/api/global-controls", json={"max_order_notional_usd": 500.0})
+    e9 = engine()
+    e9.account_net_provider = lambda coin: 0.0     # exchange/account-net leg lags; no baseline frozen
+    e9.process_fill(fill("q1", "0xfixed", "BTC", "BUY", PX, 3.0, 300), FIXED_SMALL)   # A: 300 <= 500
+    pos_a = float(e9.get_position("0xfixed", "BTC").get("signed_size") or 0.0)
+    rows_a = intents()
+    ws_before = len(would_sends())
+    e9.process_fill(fill("q2", "0xfixed", "BTC", "BUY", PX, 3.0, 600), FIXED_SMALL)   # B+C: plan 600 > 500
+    pos_b = float(e9.get_position("0xfixed", "BTC").get("signed_size") or 0.0)
+    rows_b = intents()
+    ws_after = len(would_sends())
+    check("C1_E2E_AGGREGATE_PLANNER_NOTIONAL_CAP_BLOCKS_ENTRY",
+          abs(pos_a - 3.0) < 1e-9                                    # A: early cap did NOT block
+          and str(rows_a[0].get("status")) == "DRY_RUN_FILLED"
+          and str(rows_b[0].get("status")) == "BLOCKED_GLOBAL_MAX_ORDER_NOTIONAL"    # C: late branch ran
+          and "BLOCKED" in str(rows_b[0].get("execution_decision"))
+          and abs(float(rows_b[0].get("copy_notional") or 0.0) - 600.0) < 1e-6       # B: aggregate plan > cap
+          and abs(pos_b - pos_a) < 1e-9                                              # C: no mutation
+          and ws_after == ws_before and not (e9.in_flight or {}),                    # C: no ws/in-flight
+          f"posA={pos_a} posB={pos_b} s1={rows_a[0].get('status') if rows_a else None} "
+          f"s2={rows_b[0].get('status') if rows_b else None} "
+          f"n2={rows_b[0].get('copy_notional') if rows_b else None} ws_delta={ws_after-ws_before}")
+
+    # D: replay of that exact leader fill adds zero trading authority
+    e9.process_fill(fill("q2", "0xfixed", "BTC", "BUY", PX, 3.0, 600), FIXED_SMALL)
+    pos_rep = float(e9.get_position("0xfixed", "BTC").get("signed_size") or 0.0)
+    check("C1_E2E_AGGREGATE_CAP_REPLAY_ADDS_NO_AUTHORITY", abs(pos_rep - pos_a) < 1e-9, f"pos={pos_rep}")
+
+    # D: genuine reduce-only close is not blocked by the entry cap (fresh engine, full close)
+    client.post("/api/global-controls", json={"max_order_notional_usd": 0.0})     # cap off: seed a long
+    e10 = engine()
+    e10.process_fill(fill("s1", "0xfixed", "BTC", "BUY", PX, 3.0, 300), FIXED_SMALL)   # leader +3
+    client.post("/api/global-controls", json={"max_order_notional_usd": 500.0})        # cap ON
+    e10.process_fill(fill("s2", "0xfixed", "BTC", "SELL", PX, 3.0, 300, delta=-3.0), FIXED_SMALL)  # close
+    pos_cl = float(e10.get_position("0xfixed", "BTC").get("signed_size") or 0.0)
+    rows_cl = intents()
+    check("C1_E2E_AGGREGATE_CAP_REDUCE_ONLY_NOT_BLOCKED",
+          abs(pos_cl) < 1e-9 and str(rows_cl[0].get("status")) != "BLOCKED_GLOBAL_MAX_ORDER_NOTIONAL",
+          f"pos={pos_cl} status={rows_cl[0].get('status') if rows_cl else None}")
+
+    failed = [n for n, ok in RESULTS if not ok]
+    print("TOTAL=%d FAILED=%d" % (len(RESULTS), len(failed)))
+    return 1 if failed else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
