@@ -249,18 +249,28 @@ def main() -> None:
 
     # ---- replay: the whole backlog arrives while the follower's positions are unreadable ----------------
     T0[0] = time.monotonic()
+    # a merged run (head + sibling) held while truth is unreadable: only the head is released, the sibling stays marked
+    # handled (a poll re-read must not order it alone), and the poll cursor may not pass the held fill
+    ma = c.LeaderFill("merge-a", LEADER, "BTC", "BUY", 100.0, 1.0, c.utc_now_ms(), "WS_CAPTURED")
+    mb = c.LeaderFill("merge-b", LEADER, "BTC", "BUY", 100.0, 1.0, c.utc_now_ms(), "WS_CAPTURED")
+    mm = c.merge_leader_fills([ma, mb])
+    ok, status, _i = core._process_leader_fill(mm)
+    held_status = status
+    with core._idem_lock:
+        sib_marked, head_marked = "merge-b" in core._idem_accepted, "merge-a" in core._idem_accepted
+    floor = core.leader_cursor_next(LEADER, c.utc_now_ms())
+    check("DEFER_HEAD_RELEASED_SIBLING_STAYS_MARKED", held_status == "REPLAY_DEFERRED_TRUTH_UNREADABLE" and sib_marked and not head_marked,
+          f"status={held_status} sib={sib_marked} head={head_marked}")
+    check("DEFER_POLL_CURSOR_NOT_PAST_HELD_FILL", 0 < floor <= int(mm.timestamp_ms), f"floor={floor} fill_ts={mm.timestamp_ms}")
     fills = []
     for i in range(FILLS):
         fill = c.LeaderFill(f"defer-{i:03d}", LEADER, ALL_COINS[i], "BUY", 100.0, 1.0, c.utc_now_ms(), "WS_CAPTURED")
         fills.append(fill)
         core._dispatch_fill(fill)
     deadline = time.monotonic() + 40.0
-    while time.monotonic() < deadline and len(fake.calls) < FILLS:
+    while time.monotonic() < deadline and len(fake.calls) < FILLS + 1:
         time.sleep(0.1)
     time.sleep(0.5)
-    ma = c.LeaderFill("merge-a", LEADER, "BN07", "BUY", 100.0, 1.0, c.utc_now_ms(), "WS_CAPTURED")
-    mb = c.LeaderFill("merge-b", LEADER, "BN07", "BUY", 100.0, 1.0, c.utc_now_ms(), "WS_CAPTURED")
-    core._process_leader_fill(c.merge_leader_fills([ma, mb]))
     core.stop()
 
     recon = c.read_csv_rows(c.RECONCILIATION_CSV) if hasattr(c, "RECONCILIATION_CSV") else []
