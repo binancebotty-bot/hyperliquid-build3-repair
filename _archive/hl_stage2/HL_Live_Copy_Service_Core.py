@@ -1055,9 +1055,10 @@ def ensure_csv_header(path: Path, fieldnames: List[str]) -> None:
             csv.DictWriter(f, fieldnames=fieldnames).writeheader()
 
 
-AUDIT_ROTATE_BYTES = int(os.getenv("HL_LIVE_AUDIT_ROTATE_BYTES", str(100 * 1024 * 1024)))  # 0 = never rotate
-AUDIT_ROTATE_KEEP = int(os.getenv("HL_LIVE_AUDIT_ROTATE_KEEP", "10"))
-AUDIT_ROTATING_NAMES = {"order_intents.csv", "reconciliation.csv"}  # the two that grew 0.1-0.2 GB/h under 10 leaders
+AUDIT_ROTATE_MB = int(os.getenv("HL_LIVE_AUDIT_ROTATE_MB", "100"))  # 0 = never rotate
+AUDIT_ROTATE_BYTES = AUDIT_ROTATE_MB * 1024 * 1024
+AUDIT_ROTATE_KEEP = int(os.getenv("HL_LIVE_AUDIT_KEEP", "10"))
+AUDIT_ROTATING_NAMES = {"order_intents.csv", "reconciliation.csv", "send_attempts.csv", "live_fills.csv"}
 
 
 def rotated_audit_paths(path: Path) -> List[Path]:
@@ -1074,7 +1075,12 @@ def audit_history_paths(path: Path) -> List[Path]:
     return rotated_audit_paths(path) + ([path] if path.exists() else [])
 
 
-ROTATING_FIELDS: Dict[str, List[str]] = {"order_intents.csv": ORDER_INTENT_FIELDS, "reconciliation.csv": RECONCILIATION_FIELDS}
+ROTATING_FIELDS: Dict[str, List[str]] = {
+    "order_intents.csv": ORDER_INTENT_FIELDS,
+    "reconciliation.csv": RECONCILIATION_FIELDS,
+    "send_attempts.csv": SEND_ATTEMPT_FIELDS,
+    "live_fills.csv": LIVE_FILL_FIELDS,
+}
 
 
 def _rotate_audit_file(path: Path) -> None:
