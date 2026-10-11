@@ -9282,14 +9282,23 @@ class LiveCopyCore:
         scope = set(follower_dex_scope())
         enum: Dict[str, Any] = {}
         for attempt in range(3):
-            enum = _XNET.list_perp_dexes(fetcher=EXPOSURE_FETCHER, info_url=HL_INFO_URL, timeout=HTTP_TIMEOUT_SEC)
-            if enum.get("ok"):
+            try:
+                enum = _XNET.list_perp_dexes(fetcher=EXPOSURE_FETCHER, info_url=HL_INFO_URL, timeout=HTTP_TIMEOUT_SEC)
+            except Exception as exc:
+                enum = {"ok": False, "status": "DEX_ENUM_UNAVAILABLE", "detail": repr(exc)[:160]}
+            if enum.get("ok") or self._hot_stop_event.wait(1 << attempt):
                 break
-            time.sleep(1 << attempt)
         if not enum.get("ok"):
             res = {"ok": False, "status": str(enum.get("status") or "DEX_ENUM_UNAVAILABLE"), "detail": str(enum.get("detail") or ""), "ms": started}
             self._scope_sweep_note(res)
             return res
+        prev_count = getattr(self, "_scope_enum_count", 0)
+        if prev_count and len(enum["dexes"]) < prev_count * 0.5 and getattr(self, "_scope_shrink_len", -1) != len(enum["dexes"]):  # a short list would shrink the sweep and open the gate unread; the same short list twice in a row is believed
+            self._scope_shrink_len = len(enum["dexes"])
+            res = {"ok": False, "status": "DEX_ENUM_UNAVAILABLE", "detail": f"DEX list shrank from {prev_count} to {len(enum['dexes'])}; not trusted", "ms": started}
+            self._scope_sweep_note(res)
+            return res
+        self._scope_enum_count = len(enum["dexes"])
         outside = [d for d in enum["dexes"] if d not in scope]
         cache: Dict[str, Tuple[int, Tuple[str, ...]]] = self.__dict__.setdefault("_scope_dex_cache", {})
         for gone in [d for d in cache if d not in outside]:
@@ -9304,14 +9313,23 @@ class LiveCopyCore:
         def _read(d: str) -> Tuple[str, Optional[Dict[str, Any]], str]:
             last = ""
             for attempt in range(3):
-                exp = _XNET.master_exposure(addr, [d], fetcher=EXPOSURE_FETCHER, info_url=HL_INFO_URL, timeout=HTTP_TIMEOUT_SEC)
+                try:
+                    exp = _XNET.master_exposure(addr, [d], fetcher=EXPOSURE_FETCHER, info_url=HL_INFO_URL, timeout=HTTP_TIMEOUT_SEC)
+                except Exception as exc:
+                    exp = {"ok": False, "detail": repr(exc)[:160]}
                 if exp.get("ok"):
                     return d, exp, ""
                 last = str(exp.get("detail") or exp.get("status") or "unreadable")[:160]
-                time.sleep(min(8, 1 << attempt) * max(0.0, fnum(os.getenv("HL_LIVE_SCOPE_BACKOFF_MULT"), 1.0)))
+                if self._hot_stop_event.wait(min(8, 1 << attempt) * max(0.0, fnum(os.getenv("HL_LIVE_SCOPE_BACKOFF_MULT"), 1.0))):
+                    break
             return d, None, last
 
+        deadline = time.monotonic() + max(30.0, fnum(os.getenv("HL_LIVE_SCOPE_SWEEP_DEADLINE_SEC"), 600.0))
         for i in range(0, len(todo), workers):
+            if self._hot_stop_event.is_set() or time.monotonic() > deadline:  # the rest is read next sweep
+                for d in todo[i:]:
+                    failures.setdefault(d, "not read: sweep deadline or stop")
+                break
             chunk = todo[i:i + workers]
             t_chunk = time.monotonic()
             with _TPE(max_workers=len(chunk), thread_name_prefix="scope-read") as pool:
@@ -9350,6 +9368,8 @@ class LiveCopyCore:
             self._scope_sweep_ok = res
             self._scope_fail_streak = 0
         else:
+            if res.get("status") == "SCOPE_UNAVAILABLE":  # a DEX with no usable reading: the earlier clean result no longer covers the account
+                self._scope_sweep_ok = None
             self._scope_fail_streak = getattr(self, "_scope_fail_streak", 0) + 1
             if (self._scope_fail_streak >= int(fnum(os.getenv("HL_LIVE_SCOPE_FAIL_ROW_AFTER"), 3.0))
                     and utc_now_ms() - getattr(self, "_scope_fail_row_ms", 0) > 600000):
@@ -9376,6 +9396,7 @@ class LiveCopyCore:
                 self.run_scope_sweep()
             except Exception as exc:
                 log_error("scope_sweep", exc)
+                self._scope_sweep_note({"ok": False, "status": "SCOPE_UNAVAILABLE", "detail": repr(exc)[:160], "ms": utc_now_ms()})
             clean = bool((getattr(self, "_scope_sweep_last", None) or {}).get("ok"))
             self._hot_stop_event.wait(max(30.0, fnum(os.getenv("HL_LIVE_SCOPE_SWEEP_SEC"), 300.0)) if clean
                                       else max(15.0, fnum(os.getenv("HL_LIVE_SCOPE_RETRY_SEC"), 30.0)))

@@ -74,6 +74,8 @@ def main():
         check("DEAD_DEX_FAILS_CLOSED_AND_IS_NAMED", (not res.get("ok")) and res.get("dex") == "dex007" and "Expecting value" in str(res.get("detail")),
               str(res)[:200])
         check("BLOCK_SAYS_SCOPE_UNAVAILABLE", core._scope_sweep_block().startswith("SCOPE_SWEEP_PENDING: SCOPE_UNAVAILABLE"), core._scope_sweep_block())
+        # (2b) a new DEX that cannot be read closes the gate even though an earlier sweep was clean
+        check("GATE_CLOSED_AFTER_FAILED_SWEEP", core._scope_sweep_ok is None, str(core._scope_sweep_ok)[:100])
         # (3) the other 59 DEXes kept their readings: only the dead one is re-read next time
         tries.clear()
         book["dead"] = set()
@@ -93,6 +95,12 @@ def main():
               str([r.get("terminal_state") for r in rows][-5:]))
         st = c.load_json(Path(c.CORE_RUNTIME_STATE_FILE).parent / "scope_sweep_state.json", {})
         check("STATE_FILE_NAMES_THE_FAILURE", st.get("status") == "SCOPE_UNAVAILABLE" and st.get("dex") == "dex009" and st.get("fail_streak", 0) >= 2, str(st)[:200])
+        # (5) a DEX list that shrinks to a fraction is not trusted (it would skip reads and open the gate)
+        full = list(DEXES)
+        DEXES[:] = DEXES[:5]
+        res = core.run_scope_sweep()
+        DEXES[:] = full
+        check("SHRUNK_DEX_LIST_IS_NOT_TRUSTED", (not res.get("ok")) and res.get("status") == "DEX_ENUM_UNAVAILABLE", str(res)[:160])
     finally:
         core.stop()
     failed = [n for n, ok in RESULTS if not ok]
