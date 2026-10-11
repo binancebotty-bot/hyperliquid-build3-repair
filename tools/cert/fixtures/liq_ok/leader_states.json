@@ -1,0 +1,31 @@
+{
+ "0xleaderA": {
+  "assetPositions": [
+   {
+    "position": {
+     "coin": "BTC",
+     "szi": "0.5",
+     "liquidationPx": "55000"
+    }
+   },
+   {
+    "position": {
+     "coin": "ETH",
+     "szi": "1.0",
+     "liquidationPx": "2400"
+    }
+   }
+  ]
+ },
+ "0xleaderB": {
+  "assetPositions": [
+   {
+    "position": {
+     "coin": "BTC",
+     "szi": "0.1",
+     "liquidationPx": "0"
+    }
+   }
+  ]
+ }
+}
