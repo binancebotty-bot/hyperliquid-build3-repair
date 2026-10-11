@@ -4758,12 +4758,11 @@ class SenderGateway:
         if not self.cfg.master_switch_now():  # sending switched off meanwhile: no new standing order
             return
         try:
-            _ro, _sz, _skip = self._close_wire_plan(intent, close_size, sz_dec, ledger_may_lag=remainder is not None)
-            if _skip:
-                return  # the account is already at the target: nothing to leave standing
-            close_size = _sz
+            # A resting order with no expiry stays reduce-only: it can fill long after the position changed by other means, and
+            # a non-reduce-only fill then would open a position nobody explains. It is withdrawn before the sleeve's next close.
+            _ro = True
             recovery_response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", close_size,
-                                                  limit_px, "Gtc", _ro)  # sized to the target when placed; withdrawn before the sleeve's next close
+                                                  limit_px, "Gtc", _ro)
             ok, status, oid, error = self._parse_hl_response(recovery_response)
             self._recovery_intent_ids.add(intent.intent_id)
             if ok and oid and status == "ORDER_RESTING":
