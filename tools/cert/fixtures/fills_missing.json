@@ -1,0 +1,36 @@
+{
+ "window": [
+  1791705404255,
+  1791705404441
+ ],
+ "fills": [
+  {
+   "coin": "BTC",
+   "dir": "Open Long",
+   "wallet": "0x1111111111111111111111111111111111111111",
+   "hash": "0xa1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+   "time": 1791705404500
+  },
+  {
+   "coin": "ETH",
+   "dir": "Close Long",
+   "wallet": "0x1111111111111111111111111111111111111111",
+   "hash": "0xb2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2",
+   "time": 1791705406500
+  },
+  {
+   "coin": "SOL",
+   "dir": "Open Short",
+   "wallet": "0x2222222222222222222222222222222222222222",
+   "hash": "0xc3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3",
+   "time": 1791705407500
+  },
+  {
+   "coin": "DOGE",
+   "dir": "Open Short",
+   "wallet": "0x2222222222222222222222222222222222222222",
+   "hash": "0xd4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4",
+   "time": 1791705408500
+  }
+ ]
+}
