@@ -36,6 +36,7 @@ def check(name: str, cond: bool, detail: str = "") -> None:
 
 def main() -> None:
     tmp = Path(tempfile.mkdtemp(prefix="g2_corr_"))
+    os.environ["HL_LIVE_LIQ_PARITY"] = "0"  # the parity gate has its own tests; this file mocks sends without liquidation facts
     os.environ["HL_LIVE_AUDIT_DIR"] = str(tmp)
     os.environ["HL_LIVE_AUTO_SEND_ENABLED"] = "0"
     os.environ["HL_LIVE_POLL_ENABLED"] = "0"
