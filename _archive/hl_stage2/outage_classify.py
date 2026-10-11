@@ -100,6 +100,27 @@ def missing_detail(audit_dir: Path, missing: List[str], limit: int = 40) -> List
     return out
 
 
+def block_reasons(audit_dir: Path, fill_ids: List[str], top: int = 12) -> List[str]:
+    """Why were the blocked fills blocked? Counts the final row of each id by terminal_state plus the reason text in its notes
+    (reason=... / block_reason=...). Q3/Q4: dozens of ENTRY_BLOCKED_RISK rows and zero copies, reason never visible."""
+    want = set(fill_ids)
+    last: Dict[str, Dict[str, str]] = {}
+    for r in _rows(audit_dir / "reconciliation.csv"):
+        fid = r.get("leader_fill_id", "")
+        t = str(r.get("terminal_state", ""))
+        if fid in want and t and not t.startswith(("REPLAY_DEFERRED", "FILL_PENDING")):
+            last[fid] = r
+    counts: Dict[str, int] = {}
+    for r in last.values():
+        m = re.search(r"(?:block_reason|reason)=([^;]{0,90})", r.get("notes", "") or "")
+        key = f"{r.get('terminal_state', '')} | {(m.group(1).strip() if m else '')}"
+        counts[key] = counts.get(key, 0) + 1
+    out = ["BLOCK_REASONS (terminal_state | reason): count"]
+    for k, n in sorted(counts.items(), key=lambda kv: -kv[1])[:top]:
+        out.append(f"  {n:4d}  {k}")
+    return out
+
+
 def main(argv: List[str]) -> int:
     if len(argv) < 3:
         print(__doc__)
@@ -115,6 +136,8 @@ def main(argv: List[str]) -> int:
     missing = [k for k, v in res.items() if v == "MISSING"]
     print(f"MISSING={len(missing)} of {len(res)}")
     for line in missing_detail(Path(argv[1]), missing):
+        print(line)
+    for line in block_reasons(Path(argv[1]), list(res)):
         print(line)
     return 1 if missing else 0
 

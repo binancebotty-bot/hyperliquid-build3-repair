@@ -45,6 +45,8 @@ check("CLASSIFY_UNKNOWN_FILL_IS_MISSING", res["zz"] == "MISSING", str(res))
 w(tmp / "errors.csv", [{"leader_fill_id": "mm", "note": "x"}])
 det = oc.missing_detail(tmp, ["mm", "nn"])
 check("MISSING_DETAIL_SPLITS_INGESTED_FROM_NEVER_SEEN", "NEVER_IN_ANY_FILE=1" in det[0] and "errors.csv" in det[1] and "files={}" in det[2], str(det))
+br = oc.block_reasons(tmp, ["b1", "c1"])
+check("BLOCK_REASONS_LISTS_TERMINAL_STATES", any("SEND_BLOCKED_RISK" in x for x in br) and any("MISSED_ENTRY" in x for x in br), str(br))
 failed = [n for n, ok in R if not ok]
 print("TOTAL=%d FAILED=%d" % (len(R), len(failed)))
 raise SystemExit(1 if failed else 0)
