@@ -189,10 +189,27 @@ def main():
     check("SKIPPED_WINDOW_POSITION_PRESERVED", abs(planner_position(ps, 0.0) - 0.0) <= 1e-9)
 
     # ---- mutation controls: the comparison MUST detect a wrong aggregation ------------------------------
+    # NOTE (instrument): a SKIP-counting mutation is only DETECTABLE on a window whose skipped subset does not
+    # net to zero. On the flat-return window above (ps) the skips sum to zero by construction, so counting them
+    # is a no-op and a control there can never fail - it would be a control that proves nothing. The window
+    # below returns to flat EARLY and then leaves flat again, so the skipped "open" (+2) is unbalanced.
+    ps_mut_win = [{"id": "M0", "coin": "ZZ", "side": "BUY", "size": 2.0, "price": 100.0, "ts": now,
+                   "startPosition": 0.0},
+                  {"id": "M1", "coin": "ZZ", "side": "SELL", "size": 2.0, "price": 100.0, "ts": now + 1,
+                   "startPosition": 2.0},
+                  {"id": "M2", "coin": "ZZ", "side": "BUY", "size": 3.0, "price": 100.0, "ts": now + 2,
+                   "startPosition": 0.0},
+                  {"id": "M3", "coin": "ZZ", "side": "SELL", "size": 1.0, "price": 100.0, "ts": now + 3,
+                   "startPosition": 3.0}]
+    pm = plan_catchup(ps_mut_win, 0.0)
+    check("SKIP_PLUS_ORDER_WINDOW_IS_POSITION_PRESERVED",
+          [s["action"] for s in pm["steps"]] == ["SKIP", "ENTRY"]
+          and abs(planner_position(pm, 0.0) - 2.0) <= 1e-9,
+          "steps=%s pos=%s" % ([s["action"] for s in pm["steps"]], planner_position(pm, 0.0)))
     mut_close = abs(planner_position(pc, 5.0, ignore_close=True) - 0.0) <= 1e-9
     check("MUTATION_IGNORING_THE_CLOSE_STEP_IS_DETECTED", mut_close is False,
           "ignoring CLOSE still looked position-preserving: the comparison cannot fail")
-    mut_skip = abs(planner_position(ps, 0.0, skip_contributes=True) - 0.0) <= 1e-9
+    mut_skip = abs(planner_position(pm, 0.0, skip_contributes=True) - 2.0) <= 1e-9
     check("MUTATION_LETTING_SKIPS_CONTRIBUTE_IS_DETECTED", mut_skip is False,
           "counting SKIP sizes still looked position-preserving: the comparison cannot fail")
     mut_sign = abs(planner_position(pf, 5.0, ignore_close=True) - (-3.0)) <= 1e-9

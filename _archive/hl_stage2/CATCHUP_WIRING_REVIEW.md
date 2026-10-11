@@ -157,3 +157,46 @@ Given the aggregate safety result, a flag-gated dry-run pilot is low-risk; the u
 ---
 _Model used for this job: deepseek-flash (the answering deepseek route); one independent verification worker on
 `deepseek-v4-flash` via the local FreeDeepSeek proxy, which produced the R1 lead (verified at runtime above)._
+
+
+---
+
+## Addendum (J3 re-run): the §5 test file was MISSING from the repo - it is written now
+
+§5 named `_archive/hl_stage2/test_catchup_re3_fixture.py`, but that file was **not in the repo** at main `5e88e89`
+(`test_*catchup*` matched only `test_catchup_plan.py`). It is written now, exactly to the shape §5 describes, and
+green: **TOTAL=29 FAILED=0, exit 0**. No Core edit; the review above is unchanged and stands.
+
+What the test proves (all on the RE3 fixture: 300 fills / 20 coins / 0-120 s / alternating BUY / size 0.1 @ 100.0 /
+first 5 coins carrying an owned sleeve of 5.0):
+
+- **Variant A** (exactly as RE3 builds it - no `startPosition`): `netting is False`, 300 `FILL` steps, no SKIP and no
+  net order, and the end position equals honest per-fill replay for **every** group and in aggregate.
+- **Variant B** (a coherent `startPosition` on every fill - seeded coins stand at +5.0, the rest at +1.0, so no coin
+  returns to flat inside the window): `netting is True` for **20/20** groups, exactly **20 order steps for 300 fills**,
+  positions still equal per group and in aggregate, and each group's `net` equals that window's raw signed sum.
+- **Branches the RE3 shape cannot reach** - CLOSE-only (one `CLOSE` sized to the sleeve), a flip (`CLOSE` then `ENTRY`
+  with the remainder), a partial reduce (one `ENTRY`), and the flat-return window (no order): all position-preserved.
+- **Mutation controls** (the comparison must be able to fail): ignoring the `CLOSE` step is detected; a wrong flip
+  sign is detected; letting `SKIP` steps contribute is detected.
+  **Instrument finding:** that third control is only meaningful on a window whose *skipped subset does not net to
+  zero*. On a flat-return window the skipped sizes sum to zero by construction, so counting them is a no-op and a
+  control there can never fail (my first run failed exactly there - the control, not the planner). It is pinned on an
+  unbalanced window instead: open +2, flat, re-open +3, reduce 1 (SKIP +2 then ENTRY +2; the mutant reads +4).
+- **R1, pinned as a check** (not just prose): the window `0 -> +3 -> +5` with `held_before` 0/5/-2 returns
+  `leader_after` 5/10/3 - the plan is relative and will faithfully reproduce a mis-tracked sleeve. Matches §4 R1.
+
+Line refs re-verified against main when writing the test (the counts in the review body drifted slightly):
+
+| claim | verified at |
+|---|---|
+| every window fill id + `merged_fill_ids` must be absorbed by idempotency | `merged_fill_ids` stamped L2482, absorbed L8726-8727 |
+| the cursor never passes an unprocessed fill | `leader_cursor_next` L8359-8366 (floored at the oldest queued/in-flight fill) |
+| the merged notion is capped, the net plan is not | `LiveConfigManager.max_order_notional` L2727, applied to intents L3495 (L8334-8342 is the merge site, not the cap) |
+| the engine's own skip rule is age-based, not batch-shape | `already_closed_late_entries` L291-316, `HL_LIVE_CATCHUP_NET_AGE_MS` default 60 s |
+
+Verdict unchanged: **NO-GO to wire as-is; GO only as a flag-gated, dry-run pilot once R1-R4 are closed.** The
+position-preservation result is now backed by an executable test as well as by the doc. Neighbours still green:
+`test_catchup_plan.py` 11/0, `test_core_outage_replay.py` 17/0.
+
+_Model used for this addendum: deepseek-flash (Hermes session). No worker, no Core edit, offline only._
