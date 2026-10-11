@@ -1,0 +1,13 @@
+{
+ "main": {
+  "assetPositions": [
+   {
+    "position": {
+     "coin": "BTC",
+     "szi": "0.5",
+     "liquidationPx": "57000"
+    }
+   }
+  ]
+ }
+}

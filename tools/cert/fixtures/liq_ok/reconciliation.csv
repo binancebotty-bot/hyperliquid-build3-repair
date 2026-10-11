@@ -1,0 +1,2 @@
+created_at,created_at_ms,event,status,leader_wallet,leader_fill_id,intent_id,copy_fill_id,coin,manual_net,exchange_net,action,reject_category,terminal_state,exchange_order_id,engine_can_close,engine_can_send,notes
+2026-10-11T00:10:00Z,1791706000000,SEND_BLOCKED,BLOCKED,,,,,XYZ,,,,LIQ_PARITY_BLOCKED,LIQ_PARITY_BLOCKED,,,,fixture parity block
