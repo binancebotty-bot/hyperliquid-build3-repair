@@ -1,0 +1,53 @@
+--- a/run5/test_queue_runner.py
++++ b/run5/test_queue_runner.py
+@@ -10,6 +10,7 @@
+ import psutil, requests
+ 
+ R = Path(__file__).resolve().parent
++RESULTS = R / "results"
+ E = R.parent
+ HS = Path(r"C:\Users\wigmore\trading_stack\hl-build3-testnet-cert\_archive\hl_stage2")
+ AUD = HS / "hl_live_copy_audit_testnet"
+@@ -132,13 +133,19 @@
+     return sh([sys.executable, "-I", str(R / "lat_stamps.py"), str(p)], timeout=120)[1]
+ 
+ 
+-def window_ids(t0, t1):
++def window_ids(t0, t1, item_id=None):
++    """Returns the flat hash list (unchanged, for outage_classify.py) and, if item_id is given, also writes
++    {hash: {wallet, coin, time}} to run5/results/<item_id>.window.json so a later job can map a MISSING_ID back
++    to its wallet/coin/time without re-querying mainnet (Q4_IDS had to do that itself)."""
+     W = json.loads(CFG.read_text(encoding="utf-8"))["wallets"]
+-    ids = []
++    ids, detail = [], {}
+     for w, v in W.items():
+         if v.get("mode") in ("LIVE", "CLO"):
+             fs = requests.post("https://api.hyperliquid.xyz/info", json={"type": "userFillsByTime", "user": w, "startTime": t0, "endTime": t1}, timeout=15).json()
+-            ids += [f["hash"] for f in fs if t0 <= f["time"] <= t1]
++            for f in fs:
++                if t0 <= f["time"] <= t1:
++                    ids.append(f["hash"])
++                    detail[f["hash"]] = {"wallet": w, "coin": f.get("coin"), "time": f.get("time"), "side": f.get("side")}
+             time.sleep(1)
++    if item_id:
++        RESULTS.mkdir(exist_ok=True)
++        (RESULTS / f"{item_id}.window.json").write_text(json.dumps(detail, indent=1), encoding="utf-8")
+     return ids
+@@ -190,11 +197,17 @@
+             state["logf"] = start_engine(item["id"] + "_post")
+             time.sleep(st.get("settle_min", 10) * 60)
+-            ids = window_ids(t0, t1)
++            ids = window_ids(t0, t1, item_id=item["id"])
+             idf = R / f"{item['id']}_window_ids.txt"
+             idf.write_text("\n".join(ids))
+             cls = sh([sys.executable, "-I", str(HS / "outage_classify.py"), str(AUD / "append_only"), str(idf)], timeout=300)[1]
+-            out.append(f"outage {st.get('down_min', 5)} min down, {len(ids)} fills / {len(set(ids))} orders in window; classifier:\n{cls[-6000:]}"
+-                       f"\nscope-blocked cycles after restart: {state['logf'].read_text(errors='ignore').count('SCOPE_UNAVAILABLE')}")
++            RESULTS.mkdir(exist_ok=True)
++            (RESULTS / f"{item['id']}.classifier.txt").write_text(cls, encoding="utf-8")   # FULL stdout, never truncated
++            cls_lines = cls.splitlines()
++            missing_n = sum(1 for l in cls_lines if l.strip().startswith("MISSING_ID") or l.strip() == "MISSING" or "MISSING=" in l)
++            header = next((l for l in cls_lines if l.strip().startswith("MISSING=")), f"MISSING={missing_n} (counted from classifier lines)")
++            out.append(f"outage {st.get('down_min', 5)} min down, {len(ids)} fills / {len(set(ids))} orders in window; classifier (full: run5/results/{item['id']}.classifier.txt):\n"
++                       f"{header}\n" + "\n".join(cls_lines[:40])
++                       + f"\nscope-blocked cycles after restart: {state['logf'].read_text(errors='ignore').count('SCOPE_UNAVAILABLE')}")
