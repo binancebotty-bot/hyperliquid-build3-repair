@@ -4738,6 +4738,7 @@ class SenderGateway:
         response: Any,
         parsed_error: str,
         remainder: Optional[float] = None,
+        sz_dec: Optional[int] = None,
     ) -> None:
         if not self.ledger or not intent.reduce_only_intended or self._exit_recovery_exists(intent):
             return
@@ -4757,8 +4758,12 @@ class SenderGateway:
         if not self.cfg.master_switch_now():  # sending switched off meanwhile: no new standing order
             return
         try:
+            _ro, _sz, _skip = self._close_wire_plan(intent, close_size, sz_dec, ledger_may_lag=remainder is not None)
+            if _skip:
+                return  # the account is already at the target: nothing to leave standing
+            close_size = _sz
             recovery_response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", close_size,
-                                                  limit_px, "Gtc", True)  # rests with no expiry: never over-closes
+                                                  limit_px, "Gtc", _ro)  # sized to the target when placed; withdrawn before the sleeve's next close
             ok, status, oid, error = self._parse_hl_response(recovery_response)
             self._recovery_intent_ids.add(intent.intent_id)
             if ok and oid and status == "ORDER_RESTING":
@@ -4768,9 +4773,9 @@ class SenderGateway:
                         "side": intent.copy_side, "intent_id": intent.intent_id, "placed_ms": utc_now_ms()}
                     atomic_write_json(STANDING_CLOSES_FILE, dict(self._standing_closes))
             if ok and oid:
-                self._record_placed_order(intent, oid, close_size, limit_px, True, "REAL_GTC_RECOVERY_CLOSE",
+                self._record_placed_order(intent, oid, close_size, limit_px, _ro, "REAL_GTC_RECOVERY_CLOSE",
                                           "EXIT_RECOVERY_ACTIVE", "REDUCE_ONLY_STANDING_LIMIT_CLOSE",
-                                          f"standing reduce-only close for what the IOC close did not fill; {notes}")
+                                          f"standing close (reduce_only={_ro}) for what the IOC close did not fill; {notes}")
             self.audit.append_reconciliation(
                 "EXIT_RECOVERY", "EXIT_RECOVERY_QUEUED" if ok else "EXIT_RECOVERY_QUEUE_FAILED",
                 leader_wallet=intent.fill.leader_wallet,
@@ -5051,6 +5056,63 @@ class SenderGateway:
             return True
         return abs(ex_net - led_net) > max(POSITION_EPSILON, 0.001 * abs(delta))
 
+    def _fresh_exchange_net(self, coin: str) -> Optional[float]:
+        """The follower account's net position in one coin from a fresh read (scope DEXs plus the coin's own DEX), or
+        None when the account cannot be read. Never raises."""
+        try:
+            if not is_valid_wallet(normalise_wallet(USER_WALLET)):
+                return None
+            key = canonical_coin_key(coin)
+            dexes = list(follower_dex_scope())
+            if ":" in str(coin):
+                own = str(coin).split(":", 1)[0].lower()
+                if own and own not in dexes:
+                    dexes.append(own)
+            exp = _XNET.master_exposure(normalise_wallet(USER_WALLET), dexes, fetcher=EXPOSURE_FETCHER,
+                                        info_url=HL_INFO_URL, timeout=HTTP_TIMEOUT_SEC)
+            if not exp.get("ok"):
+                return None
+            return sum(fnum(v.get("net"), 0.0) for k, v in (exp.get("by_coin") or {}).items() if canonical_coin_key(k) == key)
+        except Exception as exc:
+            log_error("fresh_exchange_net", exc)
+            return None
+
+    def _close_wire_plan(self, intent: Intent, size: float, sz_dec: Optional[int], min_notional_ok: Any = None,
+                         timing: Optional[Dict[str, Any]] = None, ledger_may_lag: bool = False) -> Tuple[bool, float, str]:
+        """Boss (2026-10-11): a follower close is not reduce-only by default, because the follower may need to move its
+        exposure the other way to follow the leader. Returns (reduce_only, size, skip_reason).
+        The close is sized from the follower's net target (the ledger's net in the coin after this close) against the
+        exchange's net position, and never exceeds this leader's own close. Stays reduce-only for: a CLOSE ONLY wallet
+        (reductions only), a dust close of the whole account position (the exchange only takes those reduce-only), an
+        account that cannot be read, or when HL_LIVE_CLOSE_TO_TARGET is off. When the exchange is already at or past
+        the target in the closing direction nothing is sent (skip_reason set)."""
+        if not self._reduce_only_for_intent(intent):
+            return False, size, ""
+        timing = timing if timing is not None else {}
+        if sz_dec is None:
+            return True, size, ""
+        if self.cfg.wallet_mode(intent.fill.leader_wallet) == "CLO" or timing.get("dust_close_below_min_notional"):
+            return True, size, ""
+        if not self.ledger or not bval(os.getenv("HL_LIVE_CLOSE_TO_TARGET"), True):
+            return True, size, ""
+        key = canonical_coin_key(intent.fill.coin)
+        delta = ManualLedger.signed_delta(intent.copy_side, abs(size or intent.copy_size))
+        if ledger_may_lag:
+            return True, size, ""  # the ledger may not hold the filled part yet: the target cannot be trusted
+        ex_net, led_net = self._fresh_exchange_net(intent.fill.coin), self.ledger.coin_net(key)
+        if ex_net is None:  # always read the exchange itself: a stale snapshot could hide a hand-closed position
+            return True, size, ""
+        need = led_net + delta - ex_net
+        if need * delta <= 0 or abs(need) <= POSITION_EPSILON:
+            return False, 0.0, (f"exchange net {ex_net} is already at or past the target {led_net + delta} "
+                                f"(ledger net {led_net}, this close {delta})")
+        new_size = self._floor_wire_size(round(min(abs(delta), abs(need)), 10), sz_dec)
+        if new_size <= 0:
+            return False, 0.0, f"close to target rounds to nothing (need {need}, this close {delta})"
+        if new_size < abs(size) and not (callable(min_notional_ok) and min_notional_ok(new_size)):
+            return True, size, ""  # the trimmed order would fall under the minimum: keep the full size, reduce-only
+        return False, new_size, ""
+
     def _repair_ledger_if_exchange_flat(self, intent: Intent, exchange_error: str) -> str:
         """The exchange refused a reduce-only close because it holds nothing to reduce (outage tests: 24 of 318 rejects in 24 h, RESOLV
         20 of them, the records said the sleeve was open and the account was flat). A fresh read of the follower account on the
@@ -5066,17 +5128,8 @@ class SenderGateway:
             owned = fnum(sleeve.get("signed_size"), 0.0)
             if abs(owned) <= POSITION_EPSILON:
                 return ""
-            dexes = list(follower_dex_scope())
-            if ":" in str(intent.fill.coin):  # the coin's own DEX is always read, whatever the scope has learned so far
-                own = str(intent.fill.coin).split(":", 1)[0].lower()
-                if own and own not in dexes:
-                    dexes.append(own)
-            exp = _XNET.master_exposure(normalise_wallet(USER_WALLET), dexes, fetcher=EXPOSURE_FETCHER,
-                                        info_url=HL_INFO_URL, timeout=HTTP_TIMEOUT_SEC)
-            if not exp.get("ok"):
-                return ""
-            ex_net = sum(fnum(v.get("net"), 0.0) for k, v in (exp.get("by_coin") or {}).items() if canonical_coin_key(k) == key)
-            if abs(ex_net) > POSITION_EPSILON:
+            ex_net = self._fresh_exchange_net(intent.fill.coin)
+            if ex_net is None or abs(ex_net) > POSITION_EPSILON:
                 return ""
             with self.ledger._lock:
                 if abs(self.ledger.coin_net(key) - owned) > max(POSITION_EPSILON, 1e-9):  # another sleeve holds this coin
@@ -5584,7 +5637,24 @@ class SenderGateway:
         _margin_block = self._ensure_margin_mode(exchange, sdk_coin, intent, lifecycle, timing)
         if _margin_block is not None:
             return _margin_block
-        use_reduce_only = self._reduce_only_on_wire(intent, wire_size)
+        use_reduce_only, close_size_planned, close_skip = (False, wire_size, "")
+        if lifecycle in {"EXIT", "REDUCE"}:
+            _min_n = self._effective_symbol_min_notional(resolved)
+            use_reduce_only, close_size_planned, close_skip = self._close_wire_plan(
+                intent, wire_size, sz_dec, lambda sz: abs(sz * limit_px) >= _min_n, timing)
+            if close_skip:
+                note = f"{close_skip}; intent_id={intent.intent_id}; no order sent"
+                repair = self._repair_ledger_if_exchange_flat(intent, "close skipped: already at target")
+                if repair:
+                    note += "; " + repair
+                return False, "SEND_NOT_ATTEMPTED_CLOSE_AT_TARGET", {
+                    "status": "CLOSE_ALREADY_AT_TARGET", "error": "", "exchange_response": {}, "oid": "",
+                    "exchange_called": False, "write_send_attempt": True, "notes": note, "reject_category": "",
+                    "terminal_state": "SEND_NOT_ATTEMPTED_CLOSE_AT_TARGET", "operator_action": "NO_SEND_CLOSE_AT_TARGET",
+                    "timing": timing}
+            if close_size_planned != wire_size:
+                timing["close_to_target_size"] = f"{wire_size}->{close_size_planned}"
+                wire_size = close_size_planned
         netting_note = ""
         gtc_px = limit_px if rest_now else 0.0  # a resting limit is in flight: never re-send it after an exception
         # T1a: write the pending_send row (with the cloid) before the one physical call, then replace it below
@@ -5693,7 +5763,7 @@ class SenderGateway:
                 if repair_note:
                     netting_note = (netting_note + "; " if netting_note else "") + repair_note
             if not ok and status == "ORDER_REJECTED" and lifecycle in {"REDUCE", "EXIT"} and reject_category == "IOC_NO_IMMEDIATE_MATCH":
-                self._queue_exit_recovery_if_needed(exchange, sdk_coin, intent, limit_px, wire_size, response, parsed_error)
+                self._queue_exit_recovery_if_needed(exchange, sdk_coin, intent, limit_px, wire_size, response, parsed_error, sz_dec=sz_dec)
             if ok and status == "ORDER_FILLED" and lifecycle in {"REDUCE", "EXIT"}:
                 # a close that only part-filled (thin book) leaves the rest standing as a reduce-only close at the
                 # same price, so the position still goes flat (run 4: leftovers stayed open as dust)
@@ -5701,7 +5771,7 @@ class SenderGateway:
                 left = self._floor_wire_size(round(wire_size - filled, 10), sz_dec) if filled > 0 else 0.0
                 if left > 0:
                     self._queue_exit_recovery_if_needed(exchange, sdk_coin, intent, limit_px, wire_size, response,
-                                                        f"close part-filled {filled} of {wire_size}", remainder=left)
+                                                        f"close part-filled {filled} of {wire_size}", remainder=left, sz_dec=sz_dec)
             return ok, status, {
                 "exchange_response": response, "oid": oid,
                 "limit_px": limit_px, "wire_size": wire_size, "copy_notional": wire_notional,
@@ -6433,7 +6503,7 @@ class SenderGateway:
         cfg_min = self._effective_symbol_min_notional(resolved)
         dust_close = (bool(intent.reduce_only_intended) and "lifecycle=EXIT" in str(intent.notes or "")
                       and bval(os.getenv("HL_LIVE_DUST_CLOSE_ATTEMPT"), True)
-                      and self._reduce_only_on_wire(intent, wire_size)  # never a sub-minimum order that could open
+                      and self._reduce_only_for_intent(intent)  # sent reduce-only (see _close_wire_plan): never a sub-minimum order that could open
                       and self._closes_whole_account_position(intent, wire_size))
         if wire_notional < cfg_min and dust_close:
             timing["dust_close_below_min_notional"] = f"{wire_notional:.4f}<{cfg_min:.2f}"

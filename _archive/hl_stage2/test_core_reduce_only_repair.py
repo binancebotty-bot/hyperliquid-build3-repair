@@ -35,6 +35,7 @@ class Ledger:
 def run(sleeves, ex_net, ok=True):
     rows.clear()
     me = SimpleNamespace(ledger=Ledger(sleeves), audit=Audit(), _send_lock=threading.Lock())
+    me._fresh_exchange_net = lambda coin: c.SenderGateway._fresh_exchange_net(me, coin)
     c._XNET.master_exposure = lambda *a, **k: ({"ok": True, "by_coin": {"RESOLV": {"net": ex_net}}} if ok else {"ok": False})
     c.follower_dex_scope = lambda: [""]
     intent = SimpleNamespace(fill=SimpleNamespace(leader_wallet=W, coin="RESOLV", leader_fill_id="f1"))

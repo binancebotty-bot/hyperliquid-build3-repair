@@ -157,8 +157,8 @@ def main() -> None:
     ok_off, _ = g._validate_final_wire_order(intent("EXIT", True), resolved, "BTC", 0.05, 100.0, {})
     os.environ.pop("HL_LIVE_DUST_CLOSE_ATTEMPT", None)
     check("D2_SWITCH_RESTORES_THE_OLD_BLOCK", not ok_off)
-    # D3: a close the netting rule would send WITHOUT reduce-only is not exempt from the minimum
-    g._reduce_only_on_wire = lambda intent, size: False
+    # D3: a close that is not a reduce-only close is not exempt from the minimum
+    g._reduce_only_for_intent = lambda intent: False
     ok_net, _ = g._validate_final_wire_order(intent("EXIT", True), resolved, "BTC", 0.05, 100.0, {})
     check("D3_NON_REDUCE_ONLY_CLOSE_KEEPS_THE_MINIMUM", not ok_net)
 
