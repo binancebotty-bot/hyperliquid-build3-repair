@@ -42,6 +42,9 @@ check("CLASSIFY_BLOCKED_HEAD_AND_SIBLING", res["b1"] == "BLOCKED_SEND_BLOCKED_RI
 check("CLASSIFY_SKIPPED_FLAT", res["c1"] == "SKIPPED_FLAT", str(res))
 check("CLASSIFY_DEFERRED_IS_OPEN_NOT_LOST", res["d1"] == "DEFERRED_OPEN", str(res))
 check("CLASSIFY_UNKNOWN_FILL_IS_MISSING", res["zz"] == "MISSING", str(res))
+w(tmp / "errors.csv", [{"leader_fill_id": "mm", "note": "x"}])
+det = oc.missing_detail(tmp, ["mm", "nn"])
+check("MISSING_DETAIL_SPLITS_INGESTED_FROM_NEVER_SEEN", "NEVER_IN_ANY_FILE=1" in det[0] and "errors.csv" in det[1] and "files={}" in det[2], str(det))
 failed = [n for n, ok in R if not ok]
 print("TOTAL=%d FAILED=%d" % (len(R), len(failed)))
 raise SystemExit(1 if failed else 0)

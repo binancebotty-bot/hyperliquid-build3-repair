@@ -71,6 +71,35 @@ def classify(audit_dir: Path, fill_ids: List[str]) -> Dict[str, str]:
     return out
 
 
+def missing_detail(audit_dir: Path, missing: List[str], limit: int = 40) -> List[str]:
+    """Where does each MISSING id appear at all? Every csv in the audit dir and its parent is scanned once.
+    No file at all = the engine never ingested it (catch-up did not fetch it, wallet OFF, cursor past it);
+    a file but no final row = it was ingested and then lost. Also shows wallet/coin/side/time when a row carries them."""
+    if not missing:
+        return []
+    want = set(missing)
+    seen: Dict[str, Dict[str, int]] = {}
+    info: Dict[str, Dict[str, str]] = {}
+    files = sorted(set(audit_dir.glob("*.csv")) | set(audit_dir.parent.glob("*.csv")))
+    for f in files:
+        try:
+            with f.open(newline="", encoding="utf-8-sig", errors="replace") as fh:
+                for r in csv.DictReader(fh):
+                    for fid in {str(v) for k, v in r.items() if v and ("fill" in str(k) or k in ("hash", "tid", "id"))} & want:
+                        seen.setdefault(fid, {})[f.name] = seen.get(fid, {}).get(f.name, 0) + 1
+                        if fid not in info:
+                            info[fid] = {k: str(r.get(k) or "") for k in ("leader_wallet", "wallet", "coin", "side", "dir", "timestamp_ms", "time", "terminal_state", "status") if r.get(k)}
+        except Exception as exc:
+            print(f"MISSING_DETAIL scan error {f.name}: {exc!r}")
+    never = [m for m in missing if m not in seen]
+    out = [f"MISSING_NEVER_IN_ANY_FILE={len(never)} (engine never ingested)  MISSING_IN_SOME_FILE={len(missing) - len(never)} (ingested, no final row)"]
+    for m in missing[:limit]:
+        out.append(f"MISSING_ID {m} files={seen.get(m, {})} {info.get(m, {})}")
+    if len(missing) > limit:
+        out.append(f"MISSING_ID ... {len(missing) - limit} more")
+    return out
+
+
 def main(argv: List[str]) -> int:
     if len(argv) < 3:
         print(__doc__)
@@ -85,6 +114,8 @@ def main(argv: List[str]) -> int:
         print(f"{k:45s} {counts[k]}")
     missing = [k for k, v in res.items() if v == "MISSING"]
     print(f"MISSING={len(missing)} of {len(res)}")
+    for line in missing_detail(Path(argv[1]), missing):
+        print(line)
     return 1 if missing else 0
 
 
