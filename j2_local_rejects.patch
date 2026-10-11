@@ -1,0 +1,72 @@
+--- a/HL_Live_Copy_Service_Core.py
++++ b/HL_Live_Copy_Service_Core.py
+@@ -5295,11 +5295,14 @@ class SenderGateway:
+             else:  # moved too far: no chase, rest a limit at the leader's price
+                 base_px, mult = missed["desired_px"], 1.0
+         rest_now = missed is not None and not missed["take"]
+-        if rest_now:
+-            already = self._already_resting_block(intent, timing)
+-            if already is not None:
+-                return already
++        # Check for resting-order churn on ALL entry/add intents, not just when resting
++        already = self._already_resting_block(intent, timing)
++        if already is not None:
++            return already
++        if rest_now:
++            # rest_now path continues to place the resting limit
++            pass
+         raw_px = base_px * mult
+@@ -5280,17 +5280,25 @@ class SenderGateway:
+         if lifecycle in {"ENTRY", "ADD"} and bval(os.getenv("HL_LIVE_MISSED_ENTRY_RULE"), True):
+             market_px = follower_px if LEADER_NETWORK == FOLLOWER_NETWORK else leader_mid(intent.fill.coin, use_cached=True)
+             missed = missed_entry_decision(intent.copy_side, fnum(intent.fill.price, 0.0), market_px, follower_px, bps)
+             if not missed.get("ok"):
+                 return False, "SEND_NOT_ATTEMPTED_LEADER_PRICE_UNAVAILABLE", {...}
+-            if missed["take"]:
+-                base_px = min(follower_px, missed["desired_px"]) if intent.copy_side == "BUY" else max(follower_px, missed["desired_px"])
+-            else:
+-                base_px, mult = missed["desired_px"], 1.0
++            if missed["take"]:
++                # Price within tolerance: proceed with IOC at capped price
++                base_px = min(follower_px, missed["desired_px"]) if intent.copy_side == "BUY" else max(follower_px, missed["desired_px"])
++            else:
++                # Price outside tolerance: local reject, no exchange call
++                detail = (
++                    f"missed entry price moved beyond tolerance; leader_px={intent.fill.price}; "
++                    f"market_px={market_px}; follower_px={follower_px}; adverse_bps={missed['adverse_bps']:.2f}; "
++                    f"tolerance_bps={bps}; intent_id={intent.intent_id}"
++                )
++                return False, "SEND_NOT_ATTEMPTED_MISSED_ENTRY_PRICE_OUTSIDE_BAND", {
++                    "status": "MISSED_ENTRY_PRICE_OUTSIDE_BAND",
++                    "error": detail, "exchange_response": {}, "oid": "",
++                    "exchange_called": False, "write_send_attempt": True, "notes": detail,
++                    "reject_category": "PRICE_OR_TICK_REJECTED",
++                    "terminal_state": "MISSED_ENTRY_PRICE_OUTSIDE_BAND",
++                    "operator_action": "MISSED_ENTRY_PRICE_OUTSIDE_BAND",
++                    "timing": timing,
++                }
+         rest_now = missed is not None and not missed["take"]
+@@ -660,6 +660,10 @@ def classify_terminal_state(status: str, reject_category: str = "", lifecycle: str = "UNKNOWN_LIFECYCLE", exchange_called: bool = True) -> str:
+         if lifecycle in {"REDUCE", "EXIT"}:
+             mapping = {
+                 "IOC_NO_IMMEDIATE_MATCH": "EXIT_RECOVERY_REQUIRED",
++                "MISSED_ENTRY_PRICE_OUTSIDE_BAND": "MISSED_ENTRY_PRICE_OUTSIDE_BAND",
+                 "INSUFFICIENT_MARGIN": "CLOSE_REJECTED_INSUFFICIENT_MARGIN",
+                 "PRICE_OR_TICK_REJECTED": "CLOSE_REJECTED_PRICE_OR_TICK_REJECTED",
+                 "SIZE_OR_NOTIONAL_REJECTED": "CLOSE_REJECTED_SIZE_OR_NOTIONAL_REJECTED",
+@@ -690,6 +694,7 @@ def classify_terminal_state(status: str, reject_category: str = "", lifecycle: str = "UNKNOWN_LIFECYCLE", exchange_called: bool = True) -> str:
+     if not exchange_called:
+         pre = {
++            "MISSED_ENTRY_PRICE_OUTSIDE_BAND": "MISSED_ENTRY_PRICE_OUTSIDE_BAND",
+             "SYMBOL_UNRESOLVED": "SEND_NOT_ATTEMPTED_SYMBOL_UNRESOLVED",
+             "PERP_INDEX_UNRESOLVED": "SEND_NOT_ATTEMPTED_SYMBOL_UNRESOLVED",
+             "SPOT_MARKET_SKIPPED": "SPOT_MARKET_SKIPPED",
+@@ -708,6 +712,9 @@ def classify_operator_action(status: str, reject_category: str = "", lifecycle: str = "UNKNOWN_LIFECYCLE", exchange_called: bool = True) -> str:
+     if terminal_state.startswith("MISSED_ENTRY"):
+         return "MISSED_ENTRY"
+     if terminal_state.startswith("MISSED_ADD"):
+         return "MISSED_ADD"
++    if terminal_state == "MISSED_ENTRY_PRICE_OUTSIDE_BAND":
++        return "MISSED_ENTRY"
+     if terminal_state.startswith("EXIT_RECOVERY_REQUIRED"):
+         return "EXIT_RECOVERY_REQUIRED"
