@@ -8805,6 +8805,8 @@ class LiveCopyCore:
             self.dedupe.processed.update(merged_ids)
             with prof("send_lock:intent_build"):
                 intent = self.intent_builder.build(fill)
+            if not converge and self._defer_unreadable_truth(fill, intent, merged_ids):
+                return False, "REPLAY_DEFERRED_TRUTH_UNREADABLE", intent
             self.intents_by_id[intent.intent_id] = intent
             self._intent_inserts = getattr(self, "_intent_inserts", 0) + 1
             if self._intent_inserts % 500 == 0:  # bounded: copy-fill matching only looks back COPY_MATCH_WINDOW_MS; an older
@@ -8820,6 +8822,14 @@ class LiveCopyCore:
         with prof("intent_append"):
             self.audit.append_order_intent(intent)
         stamp_fill(fill, "intent_written_ms")
+        for _mid in merged_ids:  # a merged fill is never silent: its own row says which order carries it
+            try:
+                self.audit.append_reconciliation(
+                    "FILL_MERGED", "LEADER_FILL_MERGED_INTO_ORDER", leader_wallet=fill.leader_wallet, leader_fill_id=_mid,
+                    intent_id=intent.intent_id, coin=fill.coin, action="COPIED_WITH_MERGED_ORDER", engine_can_send="False",
+                    notes=f"merged with leader fill {fill.leader_fill_id} into one copy order (intent {intent.intent_id})")
+            except Exception as exc:
+                log_error("merged_fill_row", exc)
         if is_pre_cutover:
             return True, "PRE_CUTOVER", intent
         try:
@@ -8842,6 +8852,52 @@ class LiveCopyCore:
         else:
             self._append_send_terminal(fill, intent, send_status)
         return sent, send_status, intent
+
+    _TRUTH_UNREADABLE_MARKERS = ("unavailable", "unreadable", "not yet verified clean")
+
+    def _defer_unreadable_truth(self, fill: LeaderFill, intent: Intent, merged_ids: List[str]) -> bool:
+        """A fill whose entry was refused only because exchange truth could not be read right now (startup snapshot not
+        ready, a throttled info call, the settle window after our own send) is NOT a trade to lose: it is released and
+        offered again shortly, so the missed-trade rule (execute within tolerance, else diff + limit) runs on it once the
+        read works. After HL_LIVE_DEFER_MAX_SEC it falls through to the usual terminal block. Outage test 11: the whole
+        backlog hit "follower positions unavailable" in the first seconds and was consumed as blocked."""
+        reason = str(getattr(intent, "reason", "") or "")
+        if (intent.decision != "SEND_BLOCKED_RISK" or not any(m in reason for m in self._TRUTH_UNREADABLE_MARKERS)
+                or classify_send_lifecycle(intent) not in {"ENTRY", "ADD"}):
+            return False
+        key = self._guard_key(fill)
+        now = utc_now_ms()
+        firsts = self.__dict__.setdefault("_defer_first_ms", {})
+        first = firsts.setdefault(key, now)
+        if now - first > int(fnum(os.getenv("HL_LIVE_DEFER_MAX_SEC"), 300.0) * 1000):
+            firsts.pop(key, None)
+            return False
+        with self._idem_lock:  # release the fill: it was marked handled when this attempt began
+            self._idem_accepted.discard(key)
+            self._idem_accepted.difference_update(merged_ids)
+        with self.dedupe._lock:
+            self.dedupe.processed.discard(fill.leader_fill_id)
+            self.dedupe.processed.difference_update(merged_ids)
+        if first == now:  # one row per fill, not one per retry
+            try:
+                self.audit.append_reconciliation(
+                    "REPLAY_DEFERRED", "REPLAY_DEFERRED_TRUTH_UNREADABLE", leader_wallet=fill.leader_wallet,
+                    leader_fill_id=fill.leader_fill_id, coin=fill.coin, action="RETRY_WHEN_READABLE", terminal_state="REPLAY_DEFERRED_TRUTH_UNREADABLE", engine_can_send="False",
+                    notes=f"entry held, not lost: {reason}; retried every {fnum(os.getenv('HL_LIVE_DEFER_RETRY_SEC'), 5.0):g}s up to "
+                          f"{fnum(os.getenv('HL_LIVE_DEFER_MAX_SEC'), 300.0):g}s")
+            except Exception as exc:
+                log_error("defer_row", exc)
+        delay = max(0.5, fnum(os.getenv("HL_LIVE_DEFER_RETRY_SEC"), 5.0))
+        def _again() -> None:
+            end = time.monotonic() + 60.0
+            while key in self._queued_keys and time.monotonic() < end and not self._hot_stop_event.is_set():
+                time.sleep(0.25)  # the worker that deferred it has not released its queue slot yet
+            if not self._hot_stop_event.is_set():
+                self._dispatch_fill(fill)
+        t = threading.Timer(delay, _again)
+        t.daemon = True
+        t.start()
+        return True
 
     def _own_fills_of_withdrawn_limits(self, rows: List[Dict[str, Any]], seen_oids: Optional[set] = None) -> int:
         """Read the follower's fills since the withdrawn limits were placed and give the ones with their order ids
