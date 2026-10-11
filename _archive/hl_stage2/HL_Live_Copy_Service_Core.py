@@ -8519,6 +8519,19 @@ class LiveCopyCore:
         planned.sort(key=lambda p: (p[0], p[1], p[2]))
         return [f for _p, _t, _i, merged in planned for f in merged]
 
+    def _poll_trace(self, rec: Dict[str, Any]) -> None:
+        """One json line per leader poll (cursor, window asked, fills returned, how many were new) in leader_poll_trace.jsonl
+        beside the runtime state. Outage tests 14 to Q4: live-leader fills were never ingested after a restart and nothing
+        said which window the catch-up asked for. Capped at 4 MB (the file restarts); never raises."""
+        try:
+            path = Path(CORE_RUNTIME_STATE_FILE).parent / "leader_poll_trace.jsonl"
+            if path.exists() and path.stat().st_size > 4000000:
+                path.replace(path.with_suffix(".jsonl.old"))
+            with open(path, "a", encoding="utf-8") as fh:
+                fh.write(json.dumps({"ts": utc_now_ms(), **rec}, separators=(",", ":")) + "\n")
+        except Exception as exc:
+            log_error("poll_trace", exc)
+
     def leader_cursor_next(self, wallet: str, proposed_ms: int) -> int:
         """Where the saved leader-poll cursor may move to. Never past the oldest fill of this leader that is still
         queued or in flight: those fills exist only in memory, so after a crash or restart the poll must re-read
@@ -9844,6 +9857,12 @@ class LiveCopyCore:
                 for w, _start in _jobs:
                     wallet_fills, status = _results[w]
                     fills.extend(wallet_fills)
+                    self._poll_trace({"kind": "poll", "wallet": str(w)[:10], "start_ms": _start, "end_ms": now,
+                                      "cursor_in": max(_leader_poll_cursors.get(w, 0), self._held_read_cursor.get(w, 0)),
+                                      "status": status, "fills": len(wallet_fills),
+                                      "first_ms": min((f.timestamp_ms for f in wallet_fills), default=0),
+                                      "last_ms": max((f.timestamp_ms for f in wallet_fills), default=0),
+                                      "new": sum(1 for f in wallet_fills if not self._already_handled(f))})
                     # while sending is stopped for a bad key the cursor stays put, so a restart replays these exits
                     # (reading moves on in memory, so the window does not grow every cycle)
                     _hold = bool(self.sender.sender_key_invalid)

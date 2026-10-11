@@ -318,6 +318,11 @@ def main() -> None:
     print("MEASURE:: window ids=%d outcomes=%s" % (len(hashes), dict(Counter(res.values()))))
     check("WINDOW_EVERY_ID_HAS_AN_OUTCOME", not missing, f"{len(missing)} missing: {missing[:8]}")
 
+    import json as _json
+    _tr = Path(c.CORE_RUNTIME_STATE_FILE).parent / "leader_poll_trace.jsonl"
+    _lines = [_json.loads(x) for x in _tr.read_text().splitlines() if x.strip()] if _tr.exists() else []
+    check("POLL_TRACE_RECORDS_WINDOW_AND_CURSOR", bool(_lines) and all(k in _lines[0] for k in ("start_ms", "end_ms", "cursor_in", "status", "fills", "new")), str(_lines[:1]))
+
     c.HLAccount, c.HLExchange = saved_acct
     failed = [n for n, ok in RESULTS if not ok]
     print(f"TOTAL={len(RESULTS)} FAILED={len(failed)}")
