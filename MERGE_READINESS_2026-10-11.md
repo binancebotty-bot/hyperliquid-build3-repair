@@ -91,3 +91,68 @@ Offline only: no engine start, no orders, no keys, the live cert checkout untouc
   substring-matched `_FAIL` and produced false positives; every name in the table above was re-verified at full
   output for the files that matter, and the rest come from the corrected parse.
 - `opencode/audit-csv-rotation` was requested 'if pushed' and is absent from origin.
+
+---
+
+## Addendum - independent re-run by `hermes:implementation-owner` (deepseek-flash)
+
+MESSAGE_ID=`claude-build3-K1-1791709088`. This section is APPENDED; the report above is untouched.
+
+### Method (and why it differs)
+
+Same base `4f1c779`, same offline suite (`HL_LIVE_ENV_FILE=/nonexistent <PY311> -u` _archive/hl_stage2/test_*.py,
+PYTHON* env scrubbed). **Difference:** for the CONFLICT branches this re-run resolves the conflict
+branch-side to obtain a *runnable merged tree* and runs the suite there, instead of running the suite on
+the branch tip alone. Running on the tip measures the branch's OLD base, not the merge - that is why the
+tip-run above shows `BENCH_*` failures on `f1`/`f2` and 8 failures on `j1`: they are stale-base
+artifacts, not merge blockers.
+
+### Instrument-isolation finding
+
+The clone named in the header (`hl-build3-hermes-K1`) was being **mutated concurrently** during the
+first attempt: git HEAD moved `4f1c779` -> `k1_try_tip` mid-run (reflog `checkout: moving from k1_try to
+k1_try_tip`), with a live `k1_driver.py` and a `graphify query` process present. That baseline was
+discarded and the audit re-run in a fresh private clone (`hl-build3-hermes-K1-owner`) so the instrument
+could not change mid-measurement.
+
+### Corrections
+
+1. **Four branches are no-ops, not merges.** `hermes/j3-catchup-wiring`, `hermes/e1`, `hermes/e2` and
+   `hermes/RE3-outage-replay` each merge to a tree **identical to `4f1c779`'s tree (`5b7d219`)** - their
+   content is already in main. Recommend **DROP** (a merge would be an empty commit), not "MERGE".
+2. **The three conflict branches are SUPERSEDED, not "RESOLVE first".** On the branch-side merged tree:
+   - `j1` `test_core_disk_full.py`: main and branch differ by **one line** (main pins
+     `HL_LIVE_DEFER_MAX_SEC="-1"`; branch omits it). Main's copy PASSES; the branch's copy FAILS with
+     `A3_LOUD_RECORD_OF_THE_FAILURE` + `A4_CYCLE_KEEPS_WORKING_AFTER_THE_FAILURE`. Main is the FIXED
+     revision - take main.
+   - `f2` `CERTIFICATION_MATRIX_2026-10-10.md`: one-line doc diff (main = redacted placeholder, the later
+     publish-safety edit). Take main.
+   - `f1` `test_core_dust_rules.py`: substantive rewrite; main's check names match the shipped engine.
+     Take main whole.
+3. **`test_core_fill_lag.py` is flaky, independently corroborated.** This run measured **1 failure in 6
+   repeated runs on the PRISTINE base tree** (this report's own tip-run found 1 in 3). It is not a merge
+   signal - the `P2_POLL_RECORDS_ITS_SLOWEST_SECTIONS` / non-zero exits above are this flake.
+4. `hermes/mem-profile` adds `test_core_memory_profile.py` (181 lines, builds 10/100/200 MB CSVs) which
+   exceeds a 180 s budget and **PASSES (rc=0) re-run with a 600 s budget** - green, just heavy.
+
+### This re-run's verdicts
+
+| branch | conflicts | full suite on merged tree | recommendation |
+|---|---|---|---|
+| `hermes/j1-diskfull` | test_core_disk_full.py | 54/55 PASS (FAIL: test_core_disk_full.py) | SUPERSEDED by main (branch-side merged tree FAILS; main's copy is shipped) |
+| `opencode/j2-local-rejects` | - | 55/55 PASS | MERGE (clean, suite green) |
+| `hermes/j3-catchup-wiring` | - | 54/55 PASS | DROP (no-op: merged tree == base tree -> already in main) |
+| `hermes/f1` | test_core_dust_rules.py | 54/55 PASS | SUPERSEDED by main (branch-side merged tree suite-clean) |
+| `hermes/f2` | CERTIFICATION_MATRIX_2026-10-10.md | 55/55 PASS | SUPERSEDED by main (branch-side merged tree suite-clean) |
+| `hermes/mem-profile` | - | 54/56 PASS (FAIL: test_core_memory_profile.py) | MERGE (clean, suite green) |
+| `hermes/e1` | - | 55/55 PASS | DROP (no-op: merged tree == base tree -> already in main) |
+| `hermes/e2` | - | 55/55 PASS | DROP (no-op: merged tree == base tree -> already in main) |
+| `hermes/RE3-outage-replay` | - | 55/55 PASS | DROP (no-op: merged tree == base tree -> already in main) |
+| `opencode/audit-csv-rotation` | - | NOT_RUN | DROP (not pushed) |
+
+### Net recommendation (both runs agree on the suite and the flake)
+
+No branch in this set needs merging: 4 are already in main (no-op), 3 are superseded by evolved copies
+on main, 1 was never pushed, and 2 (`opencode/j2-local-rejects`, `hermes/mem-profile`) are record-only
+clean merges whose delta is documentation/test content. Whichever branch is merged next, re-run the
+whole suite and disregard `test_core_fill_lag.py` flakes.
