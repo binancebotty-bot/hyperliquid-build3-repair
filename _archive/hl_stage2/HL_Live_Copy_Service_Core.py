@@ -8738,11 +8738,11 @@ class LiveCopyCore:
         # the cached leader-equity read that sizing needs)
         parity_warm = None
         local_block = self.intent_builder.blocked_locally(fill, entry_block_reason)
-        if not local_block and not converge and self.cfg.liq_parity_enabled():  # the parity gate's leader read, side by side with the other prewarm reads
-            def _warm_parity():
+        if (not local_block and not converge and self.cfg.liq_parity_enabled()
+                and not _fill_dir(fill).startswith(("close", "liquidat"))):  # the gate only judges entries and adds
+            def _warm_parity():  # the parity gate's leader read, side by side with the other prewarm reads
                 try:
-                    self.sender._leader_liq_distance(fill.leader_wallet, canonical_coin_key(fill.coin), fnum(fill.price, 0.0),
-                                                     str(fill.coin).split(":", 1)[0].lower() if ":" in str(fill.coin) else "")
+                    self.sender._leader_state(fill.leader_wallet, str(fill.coin).split(":", 1)[0].lower() if ":" in str(fill.coin) else "")
                 except Exception as exc:
                     log_error("liq_parity_prewarm", exc)
             parity_warm = _PREWARM_POOL.submit(_warm_parity)
