@@ -41,7 +41,7 @@ def main() -> None:
     os.environ.pop("HL_FOLLOWER_DEXES", None)
     os.environ.pop("HL_LIVE_HL_ACCOUNT_ADDRESS", None)
     os.environ.pop("HL_USER_WALLET", None)
-    os.environ.update({"HL_LIVE_AUDIT_DIR": str(tmp), "HL_LEADER_NETWORK": "mainnet", "HL_FOLLOWER_NETWORK": "testnet",
+    os.environ.update({"HL_LIVE_SCOPE_DEX_FRESH_SEC": "0", "HL_LIVE_SCOPE_SWEEP_WEIGHT_PER_MIN": "1000000", "HL_LIVE_SCOPE_BACKOFF_MULT": "0.01", "HL_LIVE_AUDIT_DIR": str(tmp), "HL_LEADER_NETWORK": "mainnet", "HL_FOLLOWER_NETWORK": "testnet",
                        "HL_LIVE_ENV_FILE": str(env_file), "HL_LIVE_SCOPE_SWEEP_THREAD": "0"})
     import requests
     import exchange_truth as X
