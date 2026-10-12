@@ -247,17 +247,27 @@ def start_keepalive(urls, interval_sec=20.0):
 
 
 def _post(fetcher, payload, info_url, timeout):
-    """Read-only POST to /info; `fetcher` is injected so tests use offline fixtures."""
-    try:
-        if fetcher is not None:
-            raw = fetcher(payload)
-        else:  # pragma: no cover - live read-only plumbing
-            raw = http_post(info_url, payload, timeout).json()
-    except Exception as exc:
-        return {"ok": False, "status": TRUTH_UNAVAILABLE, "detail": repr(exc)[:200]}
-    if not isinstance(raw, (dict, list)):
-        return {"ok": False, "status": TRUTH_UNAVAILABLE, "detail": "non-JSON payload"}
-    return {"ok": True, "data": raw}
+    """Read-only POST to /info; `fetcher` is injected so tests use offline fixtures. A live read that fails (a throttled or
+    empty answer is not JSON: outage tests Q7/Q8 blocked every entry as SCOPE_UNAVAILABLE on one such read) is tried again
+    after a short pause, HL_LIVE_INFO_RETRIES times (default 2); an injected fetcher is never retried."""
+    tries = 1 if fetcher is not None else 1 + max(0, int(float(os.getenv("HL_LIVE_INFO_RETRIES") or 2)))
+    last = {"ok": False, "status": TRUTH_UNAVAILABLE, "detail": "no attempt"}
+    for attempt in range(tries):
+        if attempt:
+            time.sleep(min(2.0, 0.4 * (2 ** (attempt - 1))))
+        try:
+            if fetcher is not None:
+                raw = fetcher(payload)
+            else:  # pragma: no cover - live read-only plumbing
+                raw = http_post(info_url, payload, timeout).json()
+        except Exception as exc:
+            last = {"ok": False, "status": TRUTH_UNAVAILABLE, "detail": repr(exc)[:200]}
+            continue
+        if not isinstance(raw, (dict, list)):
+            last = {"ok": False, "status": TRUTH_UNAVAILABLE, "detail": "non-JSON payload"}
+            continue
+        return {"ok": True, "data": raw}
+    return last
 
 def post_many(fetcher, payloads, info_url=HL_INFO_URL, timeout=8.0, workers=None):
     """_post for each payload, run concurrently (HL_LIVE_READ_CONCURRENCY, default 8); results keep the

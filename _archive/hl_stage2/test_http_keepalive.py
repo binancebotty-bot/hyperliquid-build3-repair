@@ -74,10 +74,12 @@ def stub(u, json=None, timeout=None, **k):
     calls.append(u)
     raise RuntimeError("offline test stub")
 requests.post = stub
+os.environ["HL_LIVE_INFO_RETRIES"] = "0"  # this checks the stub is used, not the retry
 try:
     res = xt._post(None, {"type": "x"}, url, 1.0)
 finally:
     requests.post = real
+    os.environ.pop("HL_LIVE_INFO_RETRIES", None)
 check("TEST_STUB_OF_REQUESTS_POST_IS_HONOURED", calls == [url] and not res["ok"], str((calls, res)))
 # the Core posts through headroom.CountingRequests: it must still count every read AND ride the shared session
 import headroom

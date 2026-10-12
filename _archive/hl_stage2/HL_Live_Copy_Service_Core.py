@@ -3317,7 +3317,9 @@ class IntentBuilder:
             return "" if self._coin_clean.get(coin) else f"UNOWNED_INVENTORY: {coin} not yet verified clean"
         exp = self.follower_exposure()
         if not exp.get("ok"):
-            return f"UNOWNED_INVENTORY: follower positions unavailable ({exp.get('status')}); entries fail closed"
+            return (f"UNOWNED_INVENTORY: follower positions unavailable ({exp.get('status')}"
+                    f"{' dex=' + repr(exp.get('dex')) if exp.get('dex') not in (None, '') else ''}"
+                    f"{' ' + exp.get('detail') if exp.get('detail') else ''}); entries fail closed")
         ex_net = sum(fnum(v.get("net")) for k, v in (exp.get("by_coin") or {}).items() if canonical_coin_key(k) == coin)
         own = self.ledger.coin_net(fill.coin)
         self._coin_clean[coin] = abs(ex_net - own) <= max(POSITION_EPSILON, 1e-6 * max(abs(ex_net), abs(own)))
@@ -3347,7 +3349,8 @@ class IntentBuilder:
         exp = _XNET.master_exposure(normalise_wallet(USER_WALLET), follower_dex_scope(), fetcher=EXPOSURE_FETCHER,
                                     info_url=HL_INFO_URL, timeout=HTTP_TIMEOUT_SEC)
         if not exp.get("ok"):
-            return {"ok": False, "status": str(exp.get("status") or "SNAPSHOT_UNAVAILABLE"), "dex": exp.get("dex", "")}
+            return {"ok": False, "status": str(exp.get("status") or "SNAPSHOT_UNAVAILABLE"), "dex": exp.get("dex", ""),
+                    "detail": str(exp.get("detail") or "")[:120]}
         self._exposure, self._exposure_ms, self._exposure_pending = exp, now, []
         self._exposure_gen += 1
         return exp
