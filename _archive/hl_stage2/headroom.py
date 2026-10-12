@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import json
 import os
+import socket
+import subprocess
 import threading
 import time
 from collections import deque
@@ -25,7 +27,48 @@ _ACTIONS = {
     "info_weight": ["THROTTLE_POLL", "SHED_LEADER"],
     "ws_users": ["RELEASE_SLOT", "SHED_LEADER"],
     "refusal": ["THROTTLE_POLL", "PAUSE_NEW_ENTRIES"],
+    "ws_foreign": ["ASK_BOSS_STOP_OR_CAP_OTHER_WS_CLIENT", "SHED_LEADER"],
 }
+FOREIGN_SCAN_SEC = float(os.getenv("HL_LIVE_FOREIGN_WS_SCAN_SEC", "30"))
+
+
+def scan_foreign_ws(ws_url: str, own_pid: Optional[int] = None) -> Dict[str, Any]:
+    """Other local processes holding an established connection to the Hyperliquid WebSocket host (they share this IP's
+    user/connection quota). Read-only: asks the OS for its connection table; touches no other process. {"ok": False}
+    when the table cannot be read."""
+    own_pid = own_pid or os.getpid()
+    host = str(ws_url).split("//", 1)[-1].split("/", 1)[0].split(":")[0]
+    try:
+        ips = {ai[4][0] for ai in socket.getaddrinfo(host, 443, proto=socket.IPPROTO_TCP)}
+    except Exception as exc:
+        return {"ok": False, "error": "resolve:" + repr(exc)[:120], "foreign": 0, "pids": {}}
+    pids: Dict[int, Dict[str, Any]] = {}
+    try:
+        try:
+            import psutil  # type: ignore
+            for c in psutil.net_connections(kind="tcp"):
+                if c.status == "ESTABLISHED" and c.raddr and c.raddr.ip in ips and c.raddr.port == 443 and c.pid and c.pid != own_pid:
+                    d = pids.setdefault(int(c.pid), {"connections": 0, "name": ""})
+                    d["connections"] += 1
+                    try:
+                        d["name"] = psutil.Process(c.pid).name()
+                    except Exception:
+                        pass
+        except ImportError:
+            if os.name != "nt":
+                return {"ok": False, "error": "no psutil and not Windows", "foreign": 0, "pids": {}}
+            out = subprocess.run(["netstat", "-ano"], capture_output=True, text=True, timeout=10).stdout
+            for line in out.splitlines():
+                parts = line.split()
+                if len(parts) >= 5 and parts[0] == "TCP" and parts[3] == "ESTABLISHED" and parts[2].rsplit(":", 1)[-1] == "443":
+                    remote_ip = parts[2].rsplit(":", 1)[0].strip("[]")
+                    pid = int(parts[4]) if parts[4].isdigit() else 0
+                    if remote_ip in ips and pid and pid != own_pid:
+                        pids.setdefault(pid, {"connections": 0, "name": ""})["connections"] += 1
+    except Exception as exc:
+        return {"ok": False, "error": repr(exc)[:160], "foreign": 0, "pids": {}}
+    return {"ok": True, "foreign": sum(v["connections"] for v in pids.values()),
+            "pids": {str(k): v for k, v in pids.items()}}
 
 
 def info_weight(payload: Any, rows: int = 0) -> int:
@@ -54,6 +97,10 @@ class HeadroomMonitor:
         self.refusals: List[Dict[str, Any]] = []
         self.alerts_dir = Path(alerts_dir) if alerts_dir else None
         self.ws_provider: Optional[Callable[[], Dict[str, Any]]] = None
+        self.foreign_ws_scanner: Optional[Callable[[], Dict[str, Any]]] = None   # set by the engine; None = no scan
+        self._foreign: Dict[str, Any] = {}
+        self._foreign_at = 0.0
+        self._foreign_busy = False
         self.run_id = str(int(clock()))
 
     # ---- counting -------------------------------------------------------------------------------------------
@@ -122,6 +169,24 @@ class HeadroomMonitor:
                                    "wanted": wanted, "last_refusal": w.get("last_refusal", "")}
             except Exception:
                 pass
+        if self.foreign_ws_scanner is not None:
+            self._refresh_foreign()
+            f = dict(self._foreign)
+            if f.get("ok"):
+                n = int(f.get("foreign", 0))
+                try:
+                    refused = bool((self.ws_provider() or {}).get("refused")) if self.ws_provider else False
+                except Exception:
+                    refused = False
+                lvl = "CRITICAL" if (n and refused) else ("WARN" if n else "OK")
+                who = ", ".join("pid %s %s (%d conn)" % (k, v.get("name") or "?", v.get("connections", 0))
+                                for k, v in sorted((f.get("pids") or {}).items()))
+                self._transition("ws_foreign", lvl, 100.0 if lvl == "CRITICAL" else (70.0 if n else 0.0), n, 0,
+                                 "other local processes hold %d HTTPS/WebSocket connection(s) to the feed host (not all are feed users): %s%s" % (n, who or "none",
+                                 "; our subscriptions were refused" if (n and refused) else ""))
+                out["ws_foreign"] = {"used": n, "limit": 0, "pct": 0.0, "level": self._level.get("ws_foreign", "OK"), "pids": f.get("pids", {})}
+            else:
+                out["ws_foreign_scan"] = {"ok": False, "error": f.get("error", "not scanned yet")}
         out["refusals"] = list(self.refusals[-5:])
         out["worst"] = max((v["level"] for v in out.values() if isinstance(v, dict) and "level" in v), key=LEVELS.index, default="OK")
         if any(k.startswith("refusal:") and v == "CRITICAL" for k, v in self._level.items()):
@@ -129,6 +194,25 @@ class HeadroomMonitor:
         self._last = out
         self._write_state(out)
         return out
+
+    def _refresh_foreign(self) -> None:
+        """Rescan at most every FOREIGN_SCAN_SEC, on a daemon thread, so a slow OS call never delays the poll cycle."""
+        now = self._clock()
+        if now - self._foreign_at < FOREIGN_SCAN_SEC or (self._foreign_busy and now - self._foreign_at < 120.0):
+            return  # a scan stuck for 2 min (DNS) is abandoned and retried; the old thread is a daemon
+        self._foreign_busy = True
+        self._foreign_at = now
+        scanner = self.foreign_ws_scanner
+
+        def _run() -> None:
+            try:
+                self._foreign = scanner() or {}
+            except Exception as exc:
+                self._foreign = {"ok": False, "error": repr(exc)[:160]}
+            finally:
+                self._foreign_busy = False
+
+        threading.Thread(target=_run, name="headroom-foreign-ws", daemon=True).start()
 
     # ---- output ---------------------------------------------------------------------------------------------
     def _write_event(self, ev: Dict[str, Any]) -> None:
