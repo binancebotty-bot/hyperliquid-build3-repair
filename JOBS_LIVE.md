@@ -1,4 +1,4 @@
 # Offloaded jobs: live status (updated every 5 min by jobs_supervisor.py on Boss's PC)
 
-- **Q1DIAG** (hermes, deepseek-flash (Hermes route)): LATE - past 60 min deadline (1225 min)
-- **SPH** (hermes, deepseek-flash (Hermes route)): RUNNING - 3 min elapsed
+- **Q1DIAG** (hermes): DONE - SHA none (no result after 2 posts; superseded by SBL/SPH/Q4IDS)
+- **SPH** (hermes, deepseek-flash (Hermes route)): DONE - SHA 761055b4760b5626e92c08a6c565cda3d31c5a8b
