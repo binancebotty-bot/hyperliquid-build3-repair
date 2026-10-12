@@ -3104,7 +3104,7 @@ def _build_live_wallet_rows(
         elif service_eligible and mode == "LIVE":
             eligibility = "COPYING"
         elif service_eligible and mode == "CLO":
-            eligibility = "CLOSE ONLY"
+            eligibility = "CLOSE ONLY (follows leader closes only)"
         else:
             eligibility = "DISABLED"
         effective_wallet_action = "COPYING" if mode == "LIVE" and service_eligible else ("CLOSE_ONLY" if mode == "CLO" and service_eligible else "WALLET_OFF")
@@ -7444,7 +7444,7 @@ function renderWallets(){
     <td>${execHtml}</td>
     <td>${riskHtml}</td>
     <td style="font-size:11px">${lfStr}</td>
-    <td><div class="lc-cell-stack"><div class="lc-inline-controls"><select name="mode"><option ${mode==='LIVE'?'selected':''}>LIVE</option><option ${mode==='CLO'?'selected':''}>CLO</option><option ${mode==='OFF'?'selected':''}>OFF</option></select><select name="copy_mode"><option value="proportional" ${model!=='fixed'?'selected':''}>prop</option><option value="fixed" ${model==='fixed'?'selected':''}>fixed</option></select></div><div class="lc-inline-controls"><span class="lc-muted">F</span><input name="fixed_notional" value="${h(d.fixed_notional??10)}" style="width:58px"><span class="lc-muted">N</span><input name="norm_base" value="${h(d.norm_base??100)}" style="width:52px"></div><div class="lc-mini-actions"><button data-act="save" type="button">Save</button><button data-act="clo" type="button">CLO</button><button data-act="off" type="button">OFF</button><button data-act="archive" class="lc-danger" type="button">Archive</button></div></div></td>
+    <td><div class="lc-cell-stack"><div class="lc-inline-controls"><select name="mode"><option ${mode==='LIVE'?'selected':''}>LIVE</option><option ${mode==='CLO'?'selected':''}>CLO</option><option ${mode==='OFF'?'selected':''}>OFF</option></select><select name="copy_mode"><option value="proportional" ${model!=='fixed'?'selected':''}>prop</option><option value="fixed" ${model==='fixed'?'selected':''}>fixed</option></select></div><div class="lc-inline-controls"><span class="lc-muted">F</span><input name="fixed_notional" value="${h(d.fixed_notional??10)}" style="width:58px"><span class="lc-muted">N</span><input name="norm_base" value="${h(d.norm_base??100)}" style="width:52px"></div><div class="lc-mini-actions"><button data-act="save" type="button">Save</button><button data-act="clo" type="button" title="Close-only: follow this leader's closes only, no new entries">CLO</button><button data-act="off" type="button">OFF</button><button data-act="archive" class="lc-danger" type="button">Archive</button></div></div></td>
   </tr>`;
  }).join('');
  root.querySelector('#lcWalletRows').innerHTML=rows||'<tr><td colspan="9">No live-copy wallets configured.</td></tr>';
@@ -7670,7 +7670,7 @@ function render(){
  root.querySelector('#lcWalletCount').textContent=`${tracked} / 10`;
  const mc=root.querySelector('#lcModeCounts');
  // wallet counts by mode; whether orders are SENT is the master switch, shown once in the banner
- if(mc) mc.innerHTML=`<span class="lc-pill ${liveCount?'lc-green':'lc-grey'}">Live wallets: ${liveCount}</span> <span class="lc-pill lc-grey">Close-only: ${cloCount}</span> <span class="lc-pill lc-grey">Off: ${offCount}</span>`;
+ if(mc) mc.innerHTML=`<span class="lc-pill ${liveCount?'lc-green':'lc-grey'}">Live wallets: ${liveCount}</span> <span class="lc-pill lc-grey" title="Close-only = follow this leader's closes only, never its new entries. It does not limit the follower account: a close may increase follower exposure when other leaders net against it.">Close-only wallets: ${cloCount}</span> <span class="lc-pill lc-grey">Off: ${offCount}</span>`;
  const feed=feedLabel(lcAudit.live_top_status||{});
  const wo=root.querySelector('#lcWsOverall');if(wo){wo.textContent=feed.text;wo.className=feed.cls;}
  renderBanner(); renderTally(); renderTopStatus(); renderCards(); renderWallets(); renderAudit(); renderHealth(); renderPositions(); renderExecQuality();
