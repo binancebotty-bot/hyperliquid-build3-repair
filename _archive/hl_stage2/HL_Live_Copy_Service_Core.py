@@ -203,8 +203,9 @@ def _follower_dex_names() -> Optional[set]:
     try:
         res = _XNET.list_perp_dexes(None, HL_INFO_URL, HTTP_TIMEOUT_SEC)
         cache["ms"] = utc_now_ms()
-        if res.get("ok"):
-            cache["names"] = {str(d).strip().lower() for d in res.get("dexes", []) if str(d).strip()}
+        got = {str(d).strip().lower() for d in res.get("dexes", []) if str(d).strip()} if res.get("ok") else set()
+        if got:  # an empty answer (error body, throttled) is "unknown", never "no DEX exists": dropping every learned DEX would under-count exposure
+            cache["names"] = got
     except Exception as exc:
         cache["ms"] = utc_now_ms()
         log_error("follower_dex_names", exc)

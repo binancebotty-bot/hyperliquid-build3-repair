@@ -27,6 +27,9 @@ os.environ.pop("HL_FOLLOWER_DEXES")
 # unknown (lookup fails) -> nothing filtered, as before
 c._FOLLOWER_DEX_NAMES.update({"names": None, "ms": 0}); calls["res"] = {"ok": False}
 check("UNKNOWN_KEEPS_ALL", c.follower_dex_scope() == ["", "io", "xyz"], str(c.follower_dex_scope()))
+# empty answer ([""] only, error body) -> unknown, not "no DEX exists"
+c._FOLLOWER_DEX_NAMES.update({"names": None, "ms": 0}); calls["res"] = {"ok": True, "dexes": [""]}
+check("EMPTY_ANSWER_IS_UNKNOWN", c.follower_dex_scope() == ["", "io", "xyz"] and c._FOLLOWER_DEX_NAMES["names"] is None, str(c.follower_dex_scope()))
 # injected test fetcher -> no lookup at all
 c._FOLLOWER_DEX_NAMES.update({"names": None, "ms": 0}); n = calls["n"]; c.EXPOSURE_FETCHER = lambda p: {}
 check("TEST_FETCHER_SKIPS_LOOKUP", c.follower_dex_scope() == ["", "io", "xyz"] and calls["n"] == n)
