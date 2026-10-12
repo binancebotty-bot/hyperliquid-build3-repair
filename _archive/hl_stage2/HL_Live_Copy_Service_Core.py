@@ -1173,7 +1173,48 @@ def load_json(path: Path, default: Any) -> Any:
     return default
 
 
+_HEADER_OK: Dict[str, Tuple[Tuple[str, ...], int, int, int]] = {}  # path -> (columns checked, st_dev, st_ino, size after OUR last append): the header is read once per file, not per append
+
+
+def _header_checked(path: Path, fieldnames: List[str]) -> Optional[Tuple[int, int]]:
+    """(st_dev, st_ino) of the file when its header was already verified to carry every column, else None."""
+    try:
+        st = path.stat()
+    except OSError:
+        return None
+    hit = _HEADER_OK.get(str(path))
+    if st.st_size > 0 and hit and hit[0] == tuple(fieldnames) and (hit[1], hit[2]) == (st.st_dev, st.st_ino) and st.st_size == hit[3]:  # any size change we did not make ourselves (rewrite, truncate, another writer) is re-verified
+        return (st.st_dev, st.st_ino)
+    return None
+
+
+def _remember_header(path: Path, fieldnames: List[str]) -> None:
+    try:
+        st = path.stat()
+        _HEADER_OK[str(path)] = (tuple(fieldnames), st.st_dev, st.st_ino, st.st_size)
+    except OSError:
+        _HEADER_OK.pop(str(path), None)
+
+
+def _note_append(path: Path, fieldnames: List[str]) -> None:
+    """After our own append the file is bigger: record the new size, but only for a file whose header was verified."""
+    hit = _HEADER_OK.get(str(path))
+    if not hit or hit[0] != tuple(fieldnames):
+        return
+    try:
+        st = path.stat()
+    except OSError:
+        _HEADER_OK.pop(str(path), None)
+        return
+    if (st.st_dev, st.st_ino) != (hit[1], hit[2]):
+        _HEADER_OK.pop(str(path), None)  # not the file that was verified: never vouch for it
+        return
+    _HEADER_OK[str(path)] = (hit[0], hit[1], hit[2], st.st_size)
+
+
 def ensure_csv_header(path: Path, fieldnames: List[str]) -> None:
+    if _header_checked(path, fieldnames) is not None:
+        return  # same file as when its header was last verified (a rotated or replaced file has a new inode)
     path.parent.mkdir(parents=True, exist_ok=True)
     if path.exists() and path.stat().st_size > 0:
         with FILE_LOCK:
@@ -1182,6 +1223,7 @@ def ensure_csv_header(path: Path, fieldnames: List[str]) -> None:
                     reader = csv.DictReader(f)
                     existing = list(reader.fieldnames or [])
                     if existing and all(name in existing for name in fieldnames):
+                        _remember_header(path, fieldnames)
                         return
                     rows = list(reader)
                 if existing:
@@ -1192,8 +1234,10 @@ def ensure_csv_header(path: Path, fieldnames: List[str]) -> None:
                         for row in rows:
                             writer.writerow({k: row.get(k, "") for k in fieldnames})
                     os.replace(tmp, path)
+                    _remember_header(path, fieldnames)
                     return
             except Exception as exc:
+                _HEADER_OK.pop(str(path), None)  # not verified: the next append checks again
                 log_error("ensure_csv_header", exc)
         return
     with FILE_LOCK:
@@ -1201,6 +1245,7 @@ def ensure_csv_header(path: Path, fieldnames: List[str]) -> None:
             return
         with path.open("w", newline="", encoding="utf-8") as f:
             csv.DictWriter(f, fieldnames=fieldnames).writeheader()
+        _remember_header(path, fieldnames)
 
 
 AUDIT_ROTATE_BYTES = int(os.getenv("HL_LIVE_AUDIT_ROTATE_BYTES", str(100 * 1024 * 1024)))  # 0 = never rotate
@@ -1313,6 +1358,7 @@ def append_csv(path: Path, fieldnames: List[str], row: Dict[str, Any]) -> None:
                 pass
             note_audit_write_failure(path, exc)  # durable + loud; the caller still sees the failure
             raise
+        _note_append(path, fieldnames)  # our own append changed the size: keep the header cache in step
         if path == LIVE_FILLS_CSV and _OWNED_BY_OID["path"] == str(path):
             _owned_note(row)  # keeps the per-order owned-size totals current (never a whole-file scan)
         if AUDIT_ROTATE_BYTES > 0 and path.name in AUDIT_ROTATING_NAMES:
@@ -1417,8 +1463,13 @@ def read_csv_rows(path: Path) -> List[Dict[str, str]]:
     if not path.exists() or path.stat().st_size <= 0:
         return []
     with FILE_LOCK:
+        fh = path.open("rb")  # the handle is taken under the lock, so a rotation cannot swap the file; the bytes are read after it
+        size = os.fstat(fh.fileno()).st_size  # a row being appended is wholly in or wholly out of [0, size)
+    try:
         with prof(f"read:{path.name}"):
-            data = path.read_bytes()
+            data = fh.read(size)
+    finally:
+        fh.close()
     with prof(f"parse:{path.name}"):
         return list(csv.DictReader(io.StringIO(data.decode("utf-8-sig"), newline="")))
 
