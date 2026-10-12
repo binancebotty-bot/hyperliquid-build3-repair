@@ -7222,6 +7222,7 @@ class WSManager:
         self._logged_refusal: str = ""
         self._heartbeat_interval: float = float(os.getenv("HL_LIVE_WS_HEARTBEAT_SEC", "25"))
         self._hb_thread: Optional[threading.Thread] = None
+        self._started_ms: int = 0              # when start() launched the socket thread (startup-grace clock)
 
     def wallets_now(self) -> List[str]:
         """The wallets to subscribe right now: the live provider if one was given, else the fixed list."""
@@ -7232,6 +7233,7 @@ class WSManager:
     def start(self) -> None:
         if not self.enabled or websocket is None or self._thread is not None:
             return
+        self._started_ms = utc_now_ms()
         self._thread = threading.Thread(
             target=self._shared_thread, daemon=True, name="HLCoreWS-shared"
         )
@@ -7446,11 +7448,19 @@ class WSManager:
                 "last_error": self.last_error.get(w, ""),
             }
         refused = bool(self._refusals and len(self._subscribed) < len(self.wallets))
+        start_grace_ms = int(fnum(os.getenv("HL_LIVE_WS_START_GRACE_MS"), 60000.0))
+        starting = bool(self.enabled and self._started_ms and not refused and (now - self._started_ms) < start_grace_ms
+                        and (not socket_open or not any_ack_or_msg))
         if not self.enabled:
             ws_status, worst_grade = "WS_DISABLED", "DISABLED"
         elif refused:
             # HL refused some or all subscriptions: those leaders are NOT on the live feed; the poll covers them
             ws_status, worst_grade = "WS_DEGRADED", "DEGRADED"
+        elif starting:
+            # Just launched: the socket is still connecting or the first acks are not in yet. The leader poll is the
+            # detector meanwhile (leader_poll_interval_sec), so entries are NOT blocked for this. Before this, the first
+            # cycle after a restart marked a burst of entries ENTRY_BLOCKED_WS_FEED_STALE for good (Q17: 34 rows in 6 s).
+            ws_status, worst_grade = "WS_STARTING", "STARTING"
         elif subscribe_pending:
             # R0: socket open but no wallet acked or delivered a message within the bound.
             ws_status, worst_grade = "WS_DEGRADED", "DEGRADED"
