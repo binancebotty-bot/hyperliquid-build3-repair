@@ -155,7 +155,7 @@ HL_INFO_URL = NETWORKS["follower"]["info"]          # follower: meta, mids, copy
 HL_LEADER_INFO_URL = NETWORKS["leader"]["info"]     # leader fill polling only
 HL_WS_URL = os.getenv("HL_LIVE_WS_URL") or NETWORKS["leader"]["ws"]
 # Headroom monitor: counts this process's /info weight per host and writes alert events (alerts/headroom_events.jsonl).
-from headroom import HeadroomMonitor, CountingRequests  # noqa: E402
+from headroom import HeadroomMonitor, CountingRequests, scan_foreign_ws  # noqa: E402
 HEADROOM = HeadroomMonitor(alerts_dir=AUDIT_DIR / "alerts")
 if requests is not None:
     requests = CountingRequests(requests, HEADROOM, [HL_INFO_URL, HL_LEADER_INFO_URL])
@@ -8740,6 +8740,8 @@ class LiveCopyCore:
         self.ws = WSManager(lambda: self.cfg.stream_wallets(), self.ingestor, self._enqueue_hot_ws_fill)
         HEADROOM.ws_provider = lambda: {"acked": len(self.ws._subscribed), "wanted": len(self.ws.wallets),
                                         "refused": bool(self.ws._refusals), "last_refusal": self.ws._last_refusal}
+        if self.ws.enabled and bval(os.getenv("HL_LIVE_FOREIGN_WS_SCAN"), True):  # other local processes on the feed host share its quota: alert, never act
+            HEADROOM.foreign_ws_scanner = lambda: scan_foreign_ws(HL_WS_URL)
         self.intent_builder = IntentBuilder(self.cfg, self.ledger)
         self.sender = SenderGateway(self.cfg, self.audit, self.ledger)
         if self.cfg.auto_send_enabled and not bval(os.getenv("HL_LIVE_MOCK_SEND"), False) and bval(os.getenv("HL_LIVE_PREWARM_SYMBOL_META"), True):
