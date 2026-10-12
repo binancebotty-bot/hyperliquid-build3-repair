@@ -317,6 +317,77 @@ def already_closed_late_entries(fills: List["LeaderFill"], now_ms: int) -> Dict[
     return out
 
 
+def collapse_stale_runs(fills: List["LeaderFill"], now_ms: int, handled: Optional[Any] = None) -> Tuple[List["LeaderFill"], List[Tuple["LeaderFill", str]]]:
+    """Catch-up after a long gap (engine off for hours or days): a leader's stale fills in one coin are copied as the
+    NET change they made, not one by one. A run is consecutive stale POLL fills whose startPosition chain is unbroken
+    (each starts where the last ended) and that never crosses zero; the run ends at a fill that ends flat. The run becomes
+    one fill of size |end - start| (the first fill's id is the head, the others ride along as merged_fill_ids, so every
+    id is still marked handled and gets its row); a run whose net change is zero is dropped with a row for each fill
+    (the sleeve the engine holds is already right). A flip (crossing zero), a fill without startPosition, a fresh fill and
+    an already handled fill are never collapsed. Returns (fills to process, [(fill, reason)] for the zero-net ones)."""
+    if not bval(os.getenv("HL_LIVE_CATCHUP_COLLAPSE"), True):
+        return list(fills), []
+    age_ms = max(0, int(fnum(os.getenv("HL_LIVE_CATCHUP_COLLAPSE_AGE_MS"), 600000)))
+    keep: List["LeaderFill"] = []
+    groups: Dict[Tuple[str, str], List["LeaderFill"]] = {}
+    for f in fills:
+        if (f.source != "POLL" or now_ms - int(fnum(f.timestamp_ms, 0)) <= age_ms
+                or (f.raw or {}).get("startPosition") in (None, "") or (handled is not None and handled(f))):
+            keep.append(f)
+        else:
+            groups.setdefault((normalise_wallet(f.leader_wallet), canonical_coin_key(f.coin)), []).append(f)
+    zero_rows: List[Tuple["LeaderFill", str]] = []
+    out: List["LeaderFill"] = list(keep)
+
+    def close_run(run: List[Tuple["LeaderFill", float, float]]) -> None:
+        if len(run) == 1:
+            out.append(run[0][0])
+            return
+        first, last = run[0], run[-1]
+        delta = last[2] - first[1]
+        if abs(delta) <= POSITION_EPSILON:
+            why = f"leader net change over {len(run)} stale fills is zero (position {first[1]:g} -> {last[2]:g}); nothing to copy"
+            zero_rows.extend((f, why) for f, _s, _e in run)
+            return
+        side = "BUY" if delta > 0 else "SELL"
+        same = [f for f, _s, _e in run if f.side == side]
+        vol = sum(abs(f.size) for f in same)
+        px = sum(f.price * abs(f.size) for f in same) / vol if vol > 0 else last[0].price
+        pos_after = last[2] if abs(last[2]) > POSITION_EPSILON else first[1]
+        opening = abs(last[2]) > abs(first[1]) + POSITION_EPSILON
+        raw = dict(first[0].raw or {})
+        raw["dir"] = ("Open " if opening else "Close ") + ("Long" if pos_after > 0 else "Short")
+        raw["startPosition"] = str(first[1])
+        raw["merged_fill_ids"] = [f.leader_fill_id for f, _s, _e in run[1:]]
+        raw["merged_fill_count"] = len(run)
+        raw["catchup_net"] = True
+        raw["catchup_net_start"], raw["catchup_net_end"] = first[1], last[2]
+        out.append(LeaderFill(leader_fill_id=first[0].leader_fill_id, leader_wallet=first[0].leader_wallet, coin=first[0].coin,
+                              side=side, price=px, size=abs(delta), timestamp_ms=last[0].timestamp_ms, source=first[0].source,
+                              ws_received_ms=0, raw=raw))
+
+    for group in groups.values():
+        run: List[Tuple["LeaderFill", float, float]] = []
+        for f in sorted(group, key=lambda x: (int(fnum(x.timestamp_ms, 0)), x.leader_fill_id)):
+            s = fnum((f.raw or {}).get("startPosition"), 0.0)
+            e = s + (abs(f.size) if f.side == "BUY" else -abs(f.size))
+            flips = s * e < -POSITION_EPSILON * POSITION_EPSILON and abs(s) > POSITION_EPSILON and abs(e) > POSITION_EPSILON
+            if run and abs(run[-1][2] - s) > max(POSITION_EPSILON, 1e-6 * max(1.0, abs(s))):
+                close_run(run); run = []   # chain broken: a fill is missing or handled in between
+            if flips:
+                if run:
+                    close_run(run); run = []
+                out.append(f)              # the flip itself runs normally (its exit part must run)
+                continue
+            run.append((f, s, e))
+            if abs(e) <= POSITION_EPSILON:  # ended flat: the run is complete
+                close_run(run); run = []
+        if run:
+            close_run(run)
+    out.sort(key=lambda x: (int(fnum(x.timestamp_ms, 0)), x.leader_fill_id))
+    return out, zero_rows
+
+
 SIGNER_ROLE_FETCHER = None  # test seam for the follower-network userRole read; production uses HTTP
 
 
@@ -10263,6 +10334,16 @@ class LiveCopyCore:
                 summary.poll_loop_status = str(state_for_age.get("last_leader_poll_status") or "POLL_DISABLED") if isinstance(state_for_age, dict) else "POLL_DISABLED"
             fills.sort(key=lambda f: (f.timestamp_ms, f.leader_fill_id))
             summary.leader_fills_seen = len(fills)
+            fills, _net_zero = collapse_stale_runs(fills, utc_now_ms(), self._already_handled)
+            for _zf, _why in _net_zero:  # a stale run that netted to zero: every id still gets its row and is marked handled
+                self._fill_trace("catchup_net_zero", _zf)
+                self.dedupe.processed.add(_zf.leader_fill_id)
+                with self._idem_lock:
+                    self._idem_accepted.add(self._guard_key(_zf))
+                self.audit.append_reconciliation(
+                    "SEND_TERMINAL", "CATCHUP_NET_ZERO", leader_wallet=_zf.leader_wallet, leader_fill_id=_zf.leader_fill_id,
+                    coin=_zf.coin, action="NO_ACTION_CATCHUP_NET_ZERO", terminal_state="CATCHUP_NET_ZERO", engine_can_send="False",
+                    notes=f"stale leader {_zf.side} {_zf.size} @ {_zf.price} at {_zf.timestamp_ms}: {_why}")
             closed_late = already_closed_late_entries(fills, utc_now_ms())
             sync_fills: List[LeaderFill] = []
             for fill in fills:
