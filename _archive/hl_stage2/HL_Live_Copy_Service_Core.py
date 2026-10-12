@@ -9435,11 +9435,39 @@ class LiveCopyCore:
                 self._deferred_thread.start()
         return True
 
+    def _alert_held_past_limit(self) -> None:
+        """A held fill must be decided within HL_LIVE_DEFER_MAX_SEC (plus a grace for the worker that holds its slot). One still
+        held after that is a visible ALERT row (one per fill) and an error-log line; it stays held and is retried, and the
+        classifier keeps counting it as unresolved (REPLAY_DEFERRED prefix) until a real outcome row exists."""
+        limit_ms = int((fnum(os.getenv("HL_LIVE_DEFER_MAX_SEC"), 300.0) + fnum(os.getenv("HL_LIVE_DEFER_ALERT_GRACE_SEC"), 60.0)) * 1000)
+        firsts = self.__dict__.get("_defer_first_ms", {})
+        alerted = self.__dict__.setdefault("_defer_alerted", set())
+        now = utc_now_ms()
+        with self._deferred_lock:
+            held = [(k, f) for k, (f, _at) in self._deferred.items()]
+        for k, f in held:
+            first = firsts.get(k)
+            if first is None or k in alerted or now - first <= limit_ms:
+                continue
+            alerted.add(k)
+            try:
+                self.audit.append_reconciliation(
+                    "ALERT", "REPLAY_DEFERRED_PAST_LIMIT_ALERT", leader_wallet=f.leader_wallet, leader_fill_id=f.leader_fill_id,
+                    coin=f.coin, action="HELD_PAST_LIMIT_RETRYING", terminal_state="REPLAY_DEFERRED_PAST_LIMIT_ALERT",
+                    engine_can_send="False",
+                    notes=f"held {int((now - first) / 1000)}s, limit {limit_ms // 1000}s: still undecided, retrying; needs a look if it repeats")
+                log_error("held_past_limit", RuntimeError(f"fill {f.leader_fill_id} held {int((now - first) / 1000)}s"))
+            except Exception as exc:
+                log_error("held_past_limit_row", exc)
+        if len(alerted) > 5000:
+            alerted.intersection_update({k for k, _f in held})
+
     def _deferred_loop(self) -> None:
         """One scheduler for every held fill (not a thread per fill): when due, and the fill's queue slot is free, offer it to
         the workers again. Held fills also keep the leader poll cursor from moving past them (leader_cursor_next)."""
         while not self._hot_stop_event.is_set():
             time.sleep(0.5)
+            self._alert_held_past_limit()
             now = time.monotonic()
             with self._deferred_lock:
                 due = [(k, f) for k, (f, at) in self._deferred.items() if at <= now]
