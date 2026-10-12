@@ -51,7 +51,9 @@ check("CLASSIFIER_RESOLVES_SIBLING_TO_HEAD", out["S1"] == "MERGED_SENT" and out[
 rows.clear(); c.LiveCopyCore._rows_for_held_siblings(me(set()), fill, "REPLAY_DEFERRED_TRUTH_UNREADABLE")
 check("HELD_HEAD_GIVES_SIBLINGS_A_DEFERRED_ROW", sorted(k["leader_fill_id"] for _a, k in rows) == ["S1", "S2"] and all(k["terminal_state"] == "REPLAY_DEFERRED_TRUTH_UNREADABLE" for _a, k in rows))
 w("reconciliation.csv", ["leader_fill_id", "terminal_state", "notes"], [{"leader_fill_id": "S1", "terminal_state": "REPLAY_DEFERRED_TRUTH_UNREADABLE", "notes": "merged_into=H"}])
-check("CLASSIFIER_CALLS_HELD_SIBLING_DEFERRED_OPEN", oc.classify(ad, ["S1"])["S1"] == "DEFERRED_OPEN")
+check("CLASSIFIER_HELD_SIBLING_TAKES_DECIDED_HEAD", oc.classify(ad, ["S1"])["S1"] == "MERGED_SENT")  # H was sent (send_attempts)
+w("send_attempts.csv", ["leader_fill_id", "status", "exchange_status"], [])
+check("CLASSIFIER_CALLS_HELD_SIBLING_DEFERRED_OPEN", oc.classify(ad, ["S1"])["S1"] == "DEFERRED_OPEN")  # head undecided: still open
 failed = [n for n, ok in R if not ok]
 print("TOTAL=%d FAILED=%d" % (len(R), len(failed)))
 raise SystemExit(1 if failed else 0)
