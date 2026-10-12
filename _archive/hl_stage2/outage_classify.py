@@ -52,6 +52,8 @@ def classify(audit_dir: Path, fill_ids: List[str]) -> Dict[str, str]:
                 continue
             if t == "MISSED_ENTRY_LEADER_ALREADY_CLOSED":
                 return "SKIPPED_FLAT"
+            if t == "CATCHUP_NET_ZERO":
+                return "SKIPPED_NET_ZERO"
             return "BLOCKED_" + t
         if terms:
             return "DEFERRED_OPEN"
