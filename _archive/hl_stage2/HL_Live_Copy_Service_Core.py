@@ -3346,11 +3346,17 @@ class IntentBuilder:
             return self._exposure
         if not is_valid_wallet(normalise_wallet(USER_WALLET)):
             return {"ok": False, "status": "COPY_ACCOUNT_NOT_CONFIGURED"}
+        fail = self.__dict__.get("_exposure_fail")
+        if fail is not None and now - fail[0] <= int(max(0.0, fnum(os.getenv("HL_LIVE_EXPOSURE_FAIL_TTL_SEC"), 2.0)) * 1000):
+            return dict(fail[1])  # the read just failed: workers behind it do not each repeat the slow failing read (startup: ~9 s per fill)
         exp = _XNET.master_exposure(normalise_wallet(USER_WALLET), follower_dex_scope(), fetcher=EXPOSURE_FETCHER,
                                     info_url=HL_INFO_URL, timeout=HTTP_TIMEOUT_SEC)
         if not exp.get("ok"):
-            return {"ok": False, "status": str(exp.get("status") or "SNAPSHOT_UNAVAILABLE"), "dex": exp.get("dex", ""),
-                    "detail": str(exp.get("detail") or "")[:120]}
+            bad = {"ok": False, "status": str(exp.get("status") or "SNAPSHOT_UNAVAILABLE"), "dex": exp.get("dex", ""),
+                   "detail": str(exp.get("detail") or "")[:120]}
+            self._exposure_fail = (utc_now_ms(), bad)
+            return dict(bad)
+        self._exposure_fail = None
         self._exposure, self._exposure_ms, self._exposure_pending = exp, now, []
         self._exposure_gen += 1
         return exp
@@ -3396,11 +3402,18 @@ class IntentBuilder:
             fresh_pre = pre is not None and started - pre[1] <= ttl_ms // 2 and pre[2] == self._exposure_gen
             if fresh_cache or fresh_pre:
                 return
+            fail = self.__dict__.get("_exposure_fail")
+            if fail is not None and started - fail[0] <= int(max(0.0, fnum(os.getenv("HL_LIVE_EXPOSURE_FAIL_TTL_SEC"), 2.0)) * 1000):
+                return  # failed a moment ago: follower_exposure() answers "unavailable" from that, without another slow read
             gen, pending_len = self._exposure_gen, len(self._exposure_pending)
             exp = _XNET.master_exposure(normalise_wallet(USER_WALLET), follower_dex_scope(), fetcher=EXPOSURE_FETCHER,
                                         info_url=HL_INFO_URL, timeout=HTTP_TIMEOUT_SEC)
             if exp.get("ok"):
                 self._exposure_prefetched = (exp, started, gen, pending_len)
+                self._exposure_fail = None
+            else:
+                self._exposure_fail = (utc_now_ms(), {"ok": False, "status": str(exp.get("status") or "SNAPSHOT_UNAVAILABLE"),
+                                                      "dex": exp.get("dex", ""), "detail": str(exp.get("detail") or "")[:120]})
 
     def _exposure_cap_block(self, fill: LeaderFill, copy_notional: float, value_px: float = 0.0) -> str:
         """Total and per-asset directional caps against follower exchange truth; "" when allowed."""
