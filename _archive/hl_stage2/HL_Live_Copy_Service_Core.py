@@ -9045,6 +9045,18 @@ class LiveCopyCore:
                 self._past_send_keys.discard(_k)
                 self.__dict__.get("_defer_first_ms", {}).pop(_k, None)
 
+    def _rows_for_held_siblings(self, fill: LeaderFill, state: str) -> None:
+        """A head held for a retry carries the fills merged into it; they were marked handled with it but had no row until the
+        head is finally decided (outage test Q8: 135 ids, 4 held heads). Each gets a row saying it is held with the head."""
+        for sid in [str(i) for i in ((fill.raw or {}).get("merged_fill_ids") or []) if i]:
+            try:
+                self.audit.append_reconciliation(
+                    "REPLAY_DEFERRED", state, leader_wallet=fill.leader_wallet, leader_fill_id=sid, coin=fill.coin,
+                    action="HELD_WITH_MERGED_HEAD", terminal_state=state, engine_can_send="False",
+                    notes=f"merged_into={fill.leader_fill_id}; held with its head fill for a retry, not lost")
+            except Exception as exc:
+                log_error("held_sibling_row", exc)
+
     def _rows_for_merged_siblings(self, fill: LeaderFill, result: Any) -> None:
         """A head fill that stops at the persisted dedupe store (DEDUPED) has already marked the fills merged into it as handled,
         and only the head got a row: those fills were silent for good (outage test Q7: 152 ids dispatched by the poll, never
@@ -9085,6 +9097,7 @@ class LiveCopyCore:
             with self.dedupe._lock:
                 self.dedupe.processed.discard(fill.leader_fill_id)
             if first == now:  # one row per fill, not one per retry
+                self._rows_for_held_siblings(fill, "REPLAY_DEFERRED_PROCESS_EXCEPTION")
                 self.audit.append_reconciliation(
                     "REPLAY_DEFERRED", "REPLAY_DEFERRED_PROCESS_EXCEPTION", leader_wallet=fill.leader_wallet,
                     leader_fill_id=fill.leader_fill_id, coin=fill.coin, action="RETRY_AFTER_ERROR",
@@ -9303,6 +9316,7 @@ class LiveCopyCore:
                           f"{fnum(os.getenv('HL_LIVE_DEFER_MAX_SEC'), 300.0):g}s")
             except Exception as exc:
                 log_error("defer_row", exc)
+            self._rows_for_held_siblings(fill, "REPLAY_DEFERRED_TRUTH_UNREADABLE")
         delay = max(0.5, fnum(os.getenv("HL_LIVE_DEFER_RETRY_SEC"), 5.0))
         with self._deferred_lock:
             self._deferred[key] = (fill, time.monotonic() + delay)
