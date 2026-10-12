@@ -9048,7 +9048,11 @@ class LiveCopyCore:
     def _rows_for_held_siblings(self, fill: LeaderFill, state: str) -> None:
         """A head held for a retry carries the fills merged into it; they were marked handled with it but had no row until the
         head is finally decided (outage test Q8: 135 ids, 4 held heads). Each gets a row saying it is held with the head."""
-        for sid in [str(i) for i in ((fill.raw or {}).get("merged_fill_ids") or []) if i]:
+        try:
+            sibs = [str(i) for i in ((fill.raw or {}).get("merged_fill_ids") or []) if i]
+        except Exception:
+            return
+        for sid in sibs:
             try:
                 self.audit.append_reconciliation(
                     "REPLAY_DEFERRED", state, leader_wallet=fill.leader_wallet, leader_fill_id=sid, coin=fill.coin,
