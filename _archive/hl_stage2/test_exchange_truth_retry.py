@@ -24,6 +24,11 @@ n = []
 def bad(p): n.append(1); raise ValueError("x")
 calls.clear()
 check("INJECTED_FETCHER_IS_NEVER_RETRIED", not e._post(bad, {}, "u", 1)["ok"] and len(n) == 1)
+class ReadTimeout(Exception): pass
+calls.clear()
+def slow(url, payload, timeout): calls.append(1); raise ReadTimeout("slow")
+e.http_post = slow
+check("TIMEOUT_IS_NOT_RETRIED", not e._post(None, {}, "u", 1)["ok"] and len(calls) == 1)
 failed = [k for k, ok in R if not ok]
 print("TOTAL=%d FAILED=%d" % (len(R), len(failed)))
 raise SystemExit(1 if failed else 0)

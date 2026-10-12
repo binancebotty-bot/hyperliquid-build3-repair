@@ -262,6 +262,8 @@ def _post(fetcher, payload, info_url, timeout):
                 raw = http_post(info_url, payload, timeout).json()
         except Exception as exc:
             last = {"ok": False, "status": TRUTH_UNAVAILABLE, "detail": repr(exc)[:200]}
+            if "timeout" in type(exc).__name__.lower():  # a slow answer is not retried: that would triple the wait
+                break
             continue
         if not isinstance(raw, (dict, list)):
             last = {"ok": False, "status": TRUTH_UNAVAILABLE, "detail": "non-JSON payload"}
