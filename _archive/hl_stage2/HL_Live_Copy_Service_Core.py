@@ -1199,8 +1199,17 @@ def _remember_header(path: Path, fieldnames: List[str]) -> None:
 def _note_append(path: Path, fieldnames: List[str]) -> None:
     """After our own append the file is bigger: record the new size, but only for a file whose header was verified."""
     hit = _HEADER_OK.get(str(path))
-    if hit and hit[0] == tuple(fieldnames):
-        _remember_header(path, fieldnames)
+    if not hit or hit[0] != tuple(fieldnames):
+        return
+    try:
+        st = path.stat()
+    except OSError:
+        _HEADER_OK.pop(str(path), None)
+        return
+    if (st.st_dev, st.st_ino) != (hit[1], hit[2]):
+        _HEADER_OK.pop(str(path), None)  # not the file that was verified: never vouch for it
+        return
+    _HEADER_OK[str(path)] = (hit[0], hit[1], hit[2], st.st_size)
 
 
 def ensure_csv_header(path: Path, fieldnames: List[str]) -> None:
@@ -1228,6 +1237,7 @@ def ensure_csv_header(path: Path, fieldnames: List[str]) -> None:
                     _remember_header(path, fieldnames)
                     return
             except Exception as exc:
+                _HEADER_OK.pop(str(path), None)  # not verified: the next append checks again
                 log_error("ensure_csv_header", exc)
         return
     with FILE_LOCK:

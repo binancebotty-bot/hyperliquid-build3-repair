@@ -113,6 +113,32 @@ c.append_csv(u, F2, {"a": 9, "d": 4})
 rows = list(real_reader(u.open(encoding="utf-8")))
 check("H9_IN_PLACE_REWRITE_REVERIFIED", rows and "d" in rows[0] and rows[-1]["d"] == "4", str(rows[:1]))
 
+# a verified entry exists, the file is replaced by an older-header file and the migration FAILS (Windows: a reader holds it open):
+# the stale entry must not vouch for the new file, and the next append must verify again
+w = tmp / "w.csv"
+c.append_csv(w, F2, {"a": 1})
+w.unlink()
+with w.open("w", newline="", encoding="utf-8") as fh:
+    cw = csv.DictWriter(fh, fieldnames=F)
+    cw.writeheader()
+    cw.writerow({"a": 1, "b": 2, "c": 3})
+real_replace = c.os.replace
+
+
+def failing_replace(*a, **k):
+    raise PermissionError("held open by a reader")
+
+
+c.os.replace = failing_replace
+try:
+    c.append_csv(w, F2, {"a": 5, "d": 6})
+finally:
+    c.os.replace = real_replace
+check("H10_FAILED_MIGRATION_LEAVES_NO_CACHE_ENTRY", str(w) not in c._HEADER_OK, str(c._HEADER_OK.get(str(w))))
+c.append_csv(w, F2, {"a": 7, "d": 8})
+rows = list(real_reader(w.open(encoding="utf-8")))
+check("H11_NEXT_APPEND_MIGRATES", rows and "d" in rows[0] and rows[-1]["d"] == "8", str(rows[:1]))
+
 c.csv.DictReader = real_reader
 failed = [n for n, ok in RESULTS if not ok]
 print("TOTAL=%d FAILED=%d" % (len(RESULTS), len(failed)))
