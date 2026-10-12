@@ -51,7 +51,7 @@ def main() -> None:
     check("A3_ATTEMPT_ID_DETERMINISTIC", c.generate_attempt_id("i1") == c.generate_attempt_id("i1")
           and c.generate_attempt_id("i1") != c.generate_attempt_id("i2"))
     check("A4_CLOID_FIELD_BEFORE_STAGE_STAMPS", "cloid" in c.SEND_ATTEMPT_FIELDS
-          and c.SEND_ATTEMPT_FIELDS[-len(c.STAGE_STAMP_KEYS):] == list(c.STAGE_STAMP_KEYS), str(c.SEND_ATTEMPT_FIELDS[-8:]))
+          and c.SEND_ATTEMPT_FIELDS[-len(c.STAGE_STAMP_KEYS) - 8:-8] == list(c.STAGE_STAMP_KEYS), str(c.SEND_ATTEMPT_FIELDS[-16:]))  # the last 8 are the per-gate columns
 
     # ---- update_send_attempt_row: replace in place, never duplicate --------------------------------
     p = tmp / "rows.csv"
