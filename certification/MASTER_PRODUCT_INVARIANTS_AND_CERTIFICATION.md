@@ -228,6 +228,12 @@ These come from reading the Core engine, `HL_Live_Copy_Service_Core.py` (7,705-l
 13. **Build 3's earlier fix for oversizing was a clamp.** Phase 3B added a post-sizing clamp to stop a USD 19M desired target on a USD 10k follower. Build 4 F6 later ruled clamps unsafe (block whole). TN-F06 and INC-13 cover both the behaviour and the display.
 14. **Two scenario classes cannot be fully proven on testnet.** Testnet had no XYZ HIP-3 markets, so namespace scenarios (TN-F09, INC-07/08) need a mainnet read-only verification step (TN-CAMP-09).
 
+## 10. Rulings after v0.4
+
+* **Closes are not reduce-only (Boss, 11-12 Oct 2026).** A leader reduction can mean the follower must *increase* its exposure (other leaders net against it), so a follower close is sized from the follower's net target against a fresh exchange read, never more than the leader's own close, and sent **without** reduce-only. Reduce-only stays only where the exchange requires it (whole-position dust closes, a trimmed order under the minimum) or the size cannot be worked out (account unreadable). This replaces the wording of **ORD-002** ("Reductions are reduce_only ... cannot flip") and **F-LOGIC-004** ("Reductions must be reduce_only ... unable to create opposite exposure"): treat both as superseded in part until the matrix is regenerated.
+* **CLOSE ONLY means "follow leader closes only" (Boss, 12 Oct 2026).** One rule everywhere, per wallet (`CLO`) and for the header control: it applies to the **leader** side (new leader entries and adds are not followed). It does not limit the follower account: every sleeve must be able to close out, even when that raises the follower's exposure. Sending OFF still sends nothing. This is the ruling for **UI-WALLET-005**, **INC-15** and the open decision **OD-25**'s mirror-only half.
+* **Resting recovery closes** are not reduce-only either; they are sized to the follower net target when placed and cancelled by the engine's guard when the target, the leader's sleeve or the follower's position changes, when the target is reached, or after `HL_LIVE_STANDING_CLOSE_MAX_AGE_SEC` (300 s).
+
 ## 9. Maintenance
 
 * This folder lives at `certification/` in the Build 3 repository (Boss approved the commit on 2026-10-09).

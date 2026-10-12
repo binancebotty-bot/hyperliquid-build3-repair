@@ -4158,6 +4158,72 @@ class SenderGateway:
             atomic_write_json(RESTING_ENTRY_ORDERS_FILE, dict(self._resting_entries))
         return still_open
 
+    def guard_standing_closes(self) -> int:
+        """A standing close that is not reduce-only must never fill into a position nobody wants (Boss, 12 Oct). Every
+        HL_LIVE_STANDING_GUARD_SEC (10) each such order is checked against a fresh read of the follower account and cancelled
+        when it is older than HL_LIVE_STANDING_CLOSE_MAX_AGE_SEC (300), when the leader's sleeve changed since it was placed,
+        when the follower's net target is already reached or no longer asks for the order's full size, or when the account
+        cannot be read. A cancelled close is offered again by the next leader event or the convergence thread. Returns how many
+        were cancelled."""
+        now = utc_now_ms()
+        if now - getattr(self, "_standing_guard_ms", 0) < int(fnum(os.getenv("HL_LIVE_STANDING_GUARD_SEC"), 10.0) * 1000):
+            return 0
+        self._standing_guard_ms = now
+        with self._resting_lock:
+            rows = {k: dict(v) for k, v in self._standing_closes.items() if not v.get("reduce_only", True)}
+        cancelled = 0
+        reads: Dict[str, Optional[float]] = {}  # one account read per coin per round
+        max_age = int(fnum(os.getenv("HL_LIVE_STANDING_CLOSE_MAX_AGE_SEC"), 300.0) * 1000)
+        for sleeve_id, row in rows.items():
+            try:
+                why = ""
+                coin, size = str(row.get("coin") or ""), fnum(row.get("size"), 0.0)
+                delta = ManualLedger.signed_delta(str(row.get("side") or ""), size)
+                if now - int(fnum(row.get("placed_ms"), 0)) > max_age:
+                    why = "older than the maximum age"
+                elif self.ledger is None:
+                    why = "no ledger to check the target against"
+                else:
+                    sleeve = self.ledger.sleeve(str(row.get("wallet") or ""), coin)
+                    if coin not in reads:
+                        reads[coin] = self._fresh_exchange_net(coin)
+                    ex_net = reads[coin]
+                    cur, ref, tol = fnum(sleeve.get("signed_size"), 0.0), fnum(row.get("sleeve_signed"), 0.0), fnum(row.get("sleeve_tol"), 0.0)
+                    # the sleeve may shrink by the part of the IOC close the ledger had not yet seen when this order was placed
+                    if not (cur * ref >= 0 and max(0.0, abs(ref) - tol) - POSITION_EPSILON <= abs(cur) <= abs(ref) + POSITION_EPSILON):
+                        why = "the leader's sleeve changed since the order was placed"
+                    elif ex_net is None:
+                        why = "the follower account could not be read"
+                    else:
+                        need = self.ledger.coin_net(canonical_coin_key(coin)) + delta - ex_net
+                        settling = tol > 0 and now - int(fnum(row.get("placed_ms"), 0)) < 30000  # the ledger may not hold the IOC part fill yet
+                        if not settling and (need * delta <= 0 or abs(need) < abs(delta) * (1.0 - 1e-6) - POSITION_EPSILON):
+                            why = f"the follower's target moved (needs {need:.8g}, order {delta:.8g})"
+                if not why:
+                    continue
+                exchange, sdk_coin = self._exchange_client_for_coin(coin)
+                response = self._cancel_order(exchange, str(row.get("sdk_coin") or sdk_coin), str(row.get("oid")))
+                statuses = (response or {}).get("response", {}).get("data", {}).get("statuses", []) if isinstance(response, dict) else []
+                first = statuses[0] if statuses else None
+                gone = first == "success" or (isinstance(first, dict) and re.search(r"already canceled|filled|never placed", str(first.get("error", "")), re.I))
+                if not gone:
+                    log_error("standing_close_guard_cancel", RuntimeError(json.dumps(response, default=str)[:300]))
+                    continue  # still working: checked again next round
+                with self._resting_lock:
+                    live = self._standing_closes.get(sleeve_id)
+                    if live is not None and str(live.get("oid")) == str(row.get("oid")):
+                        self._standing_closes.pop(sleeve_id, None)
+                        atomic_write_json(STANDING_CLOSES_FILE, dict(self._standing_closes))
+                cancelled += 1
+                self.audit.append_reconciliation(
+                    "EXIT_RECOVERY", "STANDING_CLOSE_CANCELLED_BY_GUARD", leader_wallet=str(row.get("wallet") or ""), coin=coin,
+                    intent_id=str(row.get("intent_id") or ""), exchange_order_id=str(row.get("oid")),
+                    action="STANDING_CLOSE_CANCELLED", terminal_state="STANDING_CLOSE_CANCELLED_BY_GUARD", engine_can_send="False",
+                    notes=f"standing close {row.get('side')} {size} cancelled: {why}")
+            except Exception as exc:
+                log_error("guard_standing_closes", exc)
+        return cancelled
+
     def prune_standing_closes(self) -> int:
         """Each cycle: forget standing recovery closes no longer open on the exchange (filled or cancelled; their
         fills are owned through send_attempts). Returns how many are still working."""
@@ -4761,9 +4827,27 @@ class SenderGateway:
         if not self.cfg.master_switch_now():  # sending switched off meanwhile: no new standing order
             return
         try:
-            # A resting order with no expiry stays reduce-only: it can fill long after the position changed by other means, and
-            # a non-reduce-only fill then would open a position nobody explains. It is withdrawn before the sleeve's next close.
-            _ro = True
+            # Boss (12 Oct): not reduce-only, because the follower may need to move its exposure the other way. Safe instead
+            # by sizing to the follower's net target from a fresh account read at placement, and by guard_standing_closes():
+            # the order is cancelled when its target, the leader's sleeve or the follower's position changes, when the target
+            # is reached, or when it gets old, so it can never fill into a position nobody wants.
+            _min_n = None
+            try:
+                _res = self._resolve_coin(intent.fill.coin)
+                _mn = self._effective_symbol_min_notional(_res) if _res.get("ok") else 0.0
+                _min_n = (lambda sz: abs(sz * limit_px) >= _mn)
+            except Exception as exc:
+                log_error("standing_close_min_notional", exc)
+            _ro, _sz, _skip = self._close_wire_plan(intent, close_size, sz_dec, _min_n, None, ledger_may_lag=remainder is not None)
+            if _skip:  # nothing to leave standing (the target is reached or there is nothing left to close): say so
+                self.audit.append_reconciliation(
+                    "EXIT_RECOVERY", "STANDING_CLOSE_NOT_PLACED", leader_wallet=intent.fill.leader_wallet,
+                    leader_fill_id=intent.fill.leader_fill_id, intent_id=intent.intent_id, coin=intent.fill.coin,
+                    action="NO_STANDING_CLOSE", terminal_state="STANDING_CLOSE_NOT_PLACED", engine_can_send="False", notes=_skip)
+                return
+            close_size = _sz
+            _key = canonical_coin_key(intent.fill.coin)
+            _led_net = self.ledger.coin_net(_key)
             recovery_response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", close_size,
                                                   limit_px, "Gtc", _ro)
             ok, status, oid, error = self._parse_hl_response(recovery_response)
@@ -4772,11 +4856,14 @@ class SenderGateway:
                 with self._resting_lock:
                     self._standing_closes[intent.sleeve_id] = {
                         "oid": str(oid), "coin": intent.fill.coin, "sdk_coin": sdk_coin, "size": close_size,
-                        "side": intent.copy_side, "intent_id": intent.intent_id, "placed_ms": utc_now_ms()}
+                        "side": intent.copy_side, "intent_id": intent.intent_id, "placed_ms": utc_now_ms(),
+                        "reduce_only": bool(_ro), "sleeve_signed": wallet_pos, "wallet": intent.fill.leader_wallet,
+                        "led_net": _led_net,
+                        "sleeve_tol": max(0.0, abs(wire_size) - abs(remainder)) if remainder is not None else 0.0}
                     atomic_write_json(STANDING_CLOSES_FILE, dict(self._standing_closes))
             if ok and oid:
                 self._record_placed_order(intent, oid, close_size, limit_px, _ro, "REAL_GTC_RECOVERY_CLOSE",
-                                          "EXIT_RECOVERY_ACTIVE", "REDUCE_ONLY_STANDING_LIMIT_CLOSE",
+                                          "EXIT_RECOVERY_ACTIVE", "STANDING_LIMIT_CLOSE",
                                           f"standing close (reduce_only={_ro}) for what the IOC close did not fill; {notes}")
             self.audit.append_reconciliation(
                 "EXIT_RECOVERY", "EXIT_RECOVERY_QUEUED" if ok else "EXIT_RECOVERY_QUEUE_FAILED",
@@ -4784,7 +4871,7 @@ class SenderGateway:
                 leader_fill_id=intent.fill.leader_fill_id,
                 intent_id=intent.intent_id,
                 coin=intent.fill.coin,
-                action="REDUCE_ONLY_STANDING_LIMIT_CLOSE",
+                action="STANDING_LIMIT_CLOSE_REDUCE_ONLY" if _ro else "STANDING_LIMIT_CLOSE",
                 reject_category="IOC_NO_IMMEDIATE_MATCH",
                 terminal_state="EXIT_RECOVERY_ACTIVE" if ok else "EXIT_RECOVERY_REQUIRED",
                 exchange_order_id=oid,
@@ -5084,26 +5171,35 @@ class SenderGateway:
         """Boss (2026-10-11): a follower close is not reduce-only by default, because the follower may need to move its
         exposure the other way to follow the leader. Returns (reduce_only, size, skip_reason).
         The close is sized from the follower's net target (the ledger's net in the coin after this close) against the
-        exchange's net position, and never exceeds this leader's own close. Stays reduce-only for: a CLOSE ONLY wallet
-        (reductions only), a dust close of the whole account position (the exchange only takes those reduce-only), an
-        account that cannot be read, or when HL_LIVE_CLOSE_TO_TARGET is off. When the exchange is already at or past
-        the target in the closing direction nothing is sent (skip_reason set)."""
+        exchange's net position, and never exceeds this leader's own close. CLOSE ONLY (a wallet's mode and the header
+        control alike) applies to the LEADER side: only leader closes are followed, never entries or adds. It does not
+        limit the follower account, so every sleeve can close out even when that raises the follower's exposure (Boss,
+        12 Oct). Reduce-only only where the exchange requires it (a dust close of the whole account position, or a trimmed
+        order under the minimum) and where the size cannot be worked out (account unreadable, HL_LIVE_CLOSE_TO_TARGET off).
+        When the exchange is already at or past the target in the closing direction nothing is sent (skip_reason set)."""
         if not self._reduce_only_for_intent(intent):
             return False, size, ""
         timing = timing if timing is not None else {}
         if sz_dec is None:
             return True, size, ""
-        if self.cfg.wallet_mode(intent.fill.leader_wallet) == "CLO" or timing.get("dust_close_below_min_notional"):
+        if timing.get("dust_close_below_min_notional"):  # the exchange only takes a sub-minimum order reduce-only
             return True, size, ""
         if not self.ledger or not bval(os.getenv("HL_LIVE_CLOSE_TO_TARGET"), True):
             return True, size, ""
         key = canonical_coin_key(intent.fill.coin)
         delta = ManualLedger.signed_delta(intent.copy_side, abs(size or intent.copy_size))
-        if ledger_may_lag:
-            return True, size, ""  # the ledger may not hold the filled part yet: the target cannot be trusted
         ex_net, led_net = self._fresh_exchange_net(intent.fill.coin), self.ledger.coin_net(key)
         if ex_net is None:  # always read the exchange itself: a stale snapshot could hide a hand-closed position
             return True, size, ""
+        if ledger_may_lag:  # the ledger may not hold the part already filled: size from the exchange alone, never past flat
+            if ex_net * delta >= 0 or abs(ex_net) <= POSITION_EPSILON:
+                return False, 0.0, f"exchange net {ex_net} has nothing left to close in the direction of this close ({delta})"
+            lag_size = self._floor_wire_size(round(min(abs(delta), abs(ex_net)), 10), sz_dec)
+            if lag_size <= 0:
+                return False, 0.0, f"close rounds to nothing (exchange net {ex_net}, this close {delta})"
+            if lag_size < abs(size) and not (callable(min_notional_ok) and min_notional_ok(lag_size)):
+                return True, size, ""
+            return False, lag_size, ""
         need = led_net + delta - ex_net
         if need * delta <= 0 or abs(need) <= POSITION_EPSILON:
             return False, 0.0, (f"exchange net {ex_net} is already at or past the target {led_net + delta} "
@@ -8940,6 +9036,13 @@ class LiveCopyCore:
                     "blocked before exchange.order"
                 ),
             )
+        elif send_status == "SEND_NOT_ATTEMPTED_CLOSE_AT_TARGET":
+            self.audit.append_reconciliation(
+                "SEND_TERMINAL", "CLOSE_ALREADY_AT_TARGET",
+                leader_wallet=fill.leader_wallet, leader_fill_id=fill.leader_fill_id, intent_id=intent.intent_id, coin=fill.coin,
+                action="NO_SEND_CLOSE_AT_TARGET", terminal_state="SEND_NOT_ATTEMPTED_CLOSE_AT_TARGET",
+                engine_can_close=False, engine_can_send=False,
+                notes=f"the follower account is already at or past the target for this close, nothing sent; coin={fill.coin}; side={fill.side}")
         elif send_status.startswith("ENTRY_BLOCKED_") and intent.send_allowed:
             lifecycle = classify_send_lifecycle(intent)
             block_reason = send_status[len("ENTRY_BLOCKED_"):]
@@ -9990,6 +10093,7 @@ class LiveCopyCore:
             # --- end entry safety gates ---
             try:
                 self.sender.prune_standing_closes()
+                self.sender.guard_standing_closes()
             except Exception as exc:
                 log_error("prune_standing_closes", exc)
             if self.sender.resting_entries():
