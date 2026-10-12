@@ -73,7 +73,7 @@ def classify(audit_dir: Path, fill_ids: List[str]) -> Dict[str, str]:
                 m = re.search(r"merged_into=([^;\s]+)", r.get("notes", "") or "")
                 if m:
                     head = own(m.group(1))
-                    if head and head != "DEFERRED_OPEN":
+                    if head and head not in ("DEFERRED_OPEN", "BLOCKED_MERGED_INTO_HEAD_COPY"):  # a chained head decides nothing itself
                         res = "MERGED_SENT" if head == "SENT" else "MERGED_" + head
         if not res and fid in merged_head:
             head = own(merged_head[fid])
