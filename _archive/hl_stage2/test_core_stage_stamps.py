@@ -44,7 +44,9 @@ intent = c.Intent(intent_id="i1", fill=fill, copy_side="BUY", copy_size=1.0, cop
 timing = c.SenderGateway._base_timing(intent)
 check("S3_TIMING_CARRIES_ALL_STAMPS", all(k in timing for k in c.STAGE_STAMP_KEYS), str(sorted(timing)))
 
-check("S4_NEW_COLUMNS_AT_THE_END", c.SEND_ATTEMPT_FIELDS[-len(c.STAGE_STAMP_KEYS):] == list(c.STAGE_STAMP_KEYS))
+# stage stamps sit before the later per-gate columns (test_core_send_stage_stamps2)
+_tail = [f for f in c.SEND_ATTEMPT_FIELDS if f.startswith(("ownership_gate", "liq_parity", "wire_validated", "margin_mode", "pending_send_done"))]
+check("S4_NEW_COLUMNS_AT_THE_END", c.SEND_ATTEMPT_FIELDS[-len(c.STAGE_STAMP_KEYS) - len(_tail):-len(_tail)] == list(c.STAGE_STAMP_KEYS))
 check("S5_TIMING_FIELDS_INCLUDE_STAMPS", all(k in c.SEND_TIMING_FIELDS for k in c.STAGE_STAMP_KEYS))
 
 old_fields = [f for f in c.SEND_ATTEMPT_FIELDS if f not in c.STAGE_STAMP_KEYS]
@@ -59,7 +61,7 @@ rows = list(csv.DictReader(path.open(newline="", encoding="utf-8-sig")))
 check("S6_OLD_HEADER_MIGRATED_ROWS_KEPT", [r["attempt_id"] for r in rows] == ["a1", "a2"] and rows[0]["coin"] == "BTC"
       and rows[0]["enqueued_ms"] == "" and rows[1]["enqueued_ms"] == "123")
 header = next(csv.reader(path.open(newline="", encoding="utf-8-sig")))
-check("S7_HEADER_ENDS_WITH_STAMPS", header[-len(c.STAGE_STAMP_KEYS):] == list(c.STAGE_STAMP_KEYS))
+check("S7_HEADER_ENDS_WITH_STAMPS", header[-len(c.STAGE_STAMP_KEYS) - len(_tail):-len(_tail)] == list(c.STAGE_STAMP_KEYS))
 
 failed = [n for n, ok in RESULTS if not ok]
 print("TOTAL=%d FAILED=%d" % (len(RESULTS), len(failed)))
