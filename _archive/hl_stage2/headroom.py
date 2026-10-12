@@ -47,7 +47,7 @@ def scan_foreign_ws(ws_url: str, own_pid: Optional[int] = None) -> Dict[str, Any
         try:
             import psutil  # type: ignore
             for c in psutil.net_connections(kind="tcp"):
-                if c.status == "ESTABLISHED" and c.raddr and c.raddr.ip in ips and c.pid and c.pid != own_pid:
+                if c.status == "ESTABLISHED" and c.raddr and c.raddr.ip in ips and c.raddr.port == 443 and c.pid and c.pid != own_pid:
                     d = pids.setdefault(int(c.pid), {"connections": 0, "name": ""})
                     d["connections"] += 1
                     try:
@@ -57,10 +57,10 @@ def scan_foreign_ws(ws_url: str, own_pid: Optional[int] = None) -> Dict[str, Any
         except ImportError:
             if os.name != "nt":
                 return {"ok": False, "error": "no psutil and not Windows", "foreign": 0, "pids": {}}
-            out = subprocess.run(["netstat", "-ano", "-p", "tcp"], capture_output=True, text=True, timeout=10).stdout
+            out = subprocess.run(["netstat", "-ano"], capture_output=True, text=True, timeout=10).stdout
             for line in out.splitlines():
                 parts = line.split()
-                if len(parts) >= 5 and parts[0] == "TCP" and parts[3] == "ESTABLISHED":
+                if len(parts) >= 5 and parts[0] == "TCP" and parts[3] == "ESTABLISHED" and parts[2].rsplit(":", 1)[-1] == "443":
                     remote_ip = parts[2].rsplit(":", 1)[0].strip("[]")
                     pid = int(parts[4]) if parts[4].isdigit() else 0
                     if remote_ip in ips and pid and pid != own_pid:
@@ -174,12 +174,15 @@ class HeadroomMonitor:
             f = dict(self._foreign)
             if f.get("ok"):
                 n = int(f.get("foreign", 0))
-                refused = bool((self.ws_provider() or {}).get("refused")) if self.ws_provider else False
+                try:
+                    refused = bool((self.ws_provider() or {}).get("refused")) if self.ws_provider else False
+                except Exception:
+                    refused = False
                 lvl = "CRITICAL" if (n and refused) else ("WARN" if n else "OK")
                 who = ", ".join("pid %s %s (%d conn)" % (k, v.get("name") or "?", v.get("connections", 0))
                                 for k, v in sorted((f.get("pids") or {}).items()))
                 self._transition("ws_foreign", lvl, 100.0 if lvl == "CRITICAL" else (70.0 if n else 0.0), n, 0,
-                                 "other local processes hold %d connection(s) to the feed host: %s%s" % (n, who or "none",
+                                 "other local processes hold %d HTTPS/WebSocket connection(s) to the feed host (not all are feed users): %s%s" % (n, who or "none",
                                  "; our subscriptions were refused" if (n and refused) else ""))
                 out["ws_foreign"] = {"used": n, "limit": 0, "pct": 0.0, "level": self._level.get("ws_foreign", "OK"), "pids": f.get("pids", {})}
             else:
@@ -195,8 +198,8 @@ class HeadroomMonitor:
     def _refresh_foreign(self) -> None:
         """Rescan at most every FOREIGN_SCAN_SEC, on a daemon thread, so a slow OS call never delays the poll cycle."""
         now = self._clock()
-        if self._foreign_busy or now - self._foreign_at < FOREIGN_SCAN_SEC:
-            return
+        if now - self._foreign_at < FOREIGN_SCAN_SEC or (self._foreign_busy and now - self._foreign_at < 120.0):
+            return  # a scan stuck for 2 min (DNS) is abandoned and retried; the old thread is a daemon
         self._foreign_busy = True
         self._foreign_at = now
         scanner = self.foreign_ws_scanner
