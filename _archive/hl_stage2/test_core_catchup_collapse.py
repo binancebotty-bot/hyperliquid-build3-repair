@@ -88,6 +88,32 @@ for f in out:
 check("BIG_GAP_NET_EQUALS_LEADER_FINAL_MINUS_START", all(abs(net.get(k, 0.0) - (e - s)) < 1e-6 for k, (s, e) in finals.items()), str({k: (round(net.get(k, 0), 3), round(e - s, 3)) for k, (s, e) in list(finals.items())[:3]}))
 check("BIG_GAP_FAR_FEWER_FILLS", len(out) < len(fills) * 0.5, f"{len(out)} of {len(fills)}")
 check("OFF_SWITCH", len(c.collapse_stale_runs(fills, NOW)[0]) < len(fills) and (os.environ.__setitem__("HL_LIVE_CATCHUP_COLLAPSE", "0") or True) and len(c.collapse_stale_runs(fills, NOW)[0]) == len(fills))
+os.environ.pop("HL_LIVE_CATCHUP_COLLAPSE", None)
+# 9 same-millisecond fills follow the position chain, not the id order
+T = 300
+x1 = c.LeaderFill(leader_fill_id="z1", leader_wallet=W, coin="BTC", side="BUY", price=1, size=1, timestamp_ms=NOW - T * 60000, source="POLL", raw={"startPosition": "0", "dir": "x"})
+x2 = c.LeaderFill(leader_fill_id="z2", leader_wallet=W, coin="BTC", side="BUY", price=1, size=1, timestamp_ms=NOW - T * 60000, source="POLL", raw={"startPosition": "1", "dir": "x"})
+x3 = c.LeaderFill(leader_fill_id="a3", leader_wallet=W, coin="BTC", side="SELL", price=1, size=2, timestamp_ms=NOW - T * 60000, source="POLL", raw={"startPosition": "2", "dir": "x"})
+out, zero = c.collapse_stale_runs([x3, x2, x1], NOW)   # id order would put a3 (the exit) first
+check("SAME_MS_FOLLOWS_CHAIN", not out and len(zero) == 3, str([(f.leader_fill_id, f.side) for f in out]))
+# 10 merge_leader_fills keeps the ids a net fill carries, and a net fill counts as one fill for fixed sizing
+a, b = fill("BTC", "BUY", 5, 0, 300), fill("BTC", "BUY", 3, 5, 299)
+net, _z = c.collapse_stale_runs([a, b], NOW)
+net = net[0]
+fresh = fill("BTC", "BUY", 1, 8, 1)
+net.raw["dir"] = fresh.raw["dir"] = "Open Long"
+m = c.merge_leader_fills([net, fresh])
+check("MERGE_KEEPS_CARRIED_IDS", sorted(m.raw["merged_fill_ids"]) == sorted([fresh.leader_fill_id, b.leader_fill_id]) and m.raw["merged_fill_count"] == 2, str(m.raw))
+check("NET_FILL_COUNTS_AS_ONE", net.raw["merged_fill_count"] == 1)
+# 11 closed-late skip of a net head gives every carried id a row and marks it handled
+import threading
+from types import SimpleNamespace
+rows = []
+class Audit:
+    def append_reconciliation(self, *a, **k): rows.append((a, k))
+me = SimpleNamespace(audit=Audit(), _idem_lock=threading.Lock(), _idem_accepted=set(), dedupe=SimpleNamespace(processed=set()))
+c.LiveCopyCore._rows_for_closed_late_siblings(me, net, "flat later")
+check("CLOSED_LATE_NET_HEAD_ROWS_FOR_SIBLINGS", [k["leader_fill_id"] for _a, k in rows] == [b.leader_fill_id] and b.leader_fill_id in me._idem_accepted and b.leader_fill_id in me.dedupe.processed)
 fails = [n for n, ok in R if not ok]
 print("TOTAL=%d FAILED=%d" % (len(R), len(fails)))
 sys.exit(1 if fails else 0)

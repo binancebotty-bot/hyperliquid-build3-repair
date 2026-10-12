@@ -317,6 +317,35 @@ def already_closed_late_entries(fills: List["LeaderFill"], now_ms: int) -> Dict[
     return out
 
 
+def _chain_sorted(group: List["LeaderFill"]) -> List["LeaderFill"]:
+    """Oldest first; fills in the same millisecond follow the startPosition chain (each starts where the last ended),
+    because their ids do not tell the true order."""
+    ordered = sorted(group, key=lambda x: (int(fnum(x.timestamp_ms, 0)), x.leader_fill_id))
+    out: List["LeaderFill"] = []
+    i = 0
+    while i < len(ordered):
+        j = i
+        while j < len(ordered) and int(fnum(ordered[j].timestamp_ms, 0)) == int(fnum(ordered[i].timestamp_ms, 0)):
+            j += 1
+        block = ordered[i:j]
+        if len(block) > 1:
+            end = None if not out else fnum((out[-1].raw or {}).get("startPosition"), 0.0) + (abs(out[-1].size) if out[-1].side == "BUY" else -abs(out[-1].size))
+            rest, chained = list(block), []
+            while rest:
+                nxt = next((f for f in rest if end is not None and abs(fnum((f.raw or {}).get("startPosition"), 0.0) - end) <= 1e-9 * max(1.0, abs(end))), None)
+                if nxt is None and end is None:  # block start: the fill nobody else's end feeds into
+                    ends = [fnum((f.raw or {}).get("startPosition"), 0.0) + (abs(f.size) if f.side == "BUY" else -abs(f.size)) for f in rest]
+                    nxt = next((f for f in rest if all(abs(fnum((f.raw or {}).get("startPosition"), 0.0) - e) > 1e-9 * max(1.0, abs(e)) for e in ends)), None)
+                nxt = nxt or (min(rest, key=lambda f: (abs(fnum((f.raw or {}).get("startPosition"), 0.0)), f.leader_fill_id)) if end is None else rest[0])  # a closed loop: start from the flattest
+                rest.remove(nxt)
+                chained.append(nxt)
+                end = fnum((nxt.raw or {}).get("startPosition"), 0.0) + (abs(nxt.size) if nxt.side == "BUY" else -abs(nxt.size))
+            block = chained
+        out.extend(block)
+        i = j
+    return out
+
+
 def collapse_stale_runs(fills: List["LeaderFill"], now_ms: int, handled: Optional[Any] = None) -> Tuple[List["LeaderFill"], List[Tuple["LeaderFill", str]]]:
     """Catch-up after a long gap (engine off for hours or days): a leader's stale fills in one coin are copied as the
     NET change they made, not one by one. A run is consecutive stale POLL fills whose startPosition chain is unbroken
@@ -359,7 +388,7 @@ def collapse_stale_runs(fills: List["LeaderFill"], now_ms: int, handled: Optiona
         raw["dir"] = ("Open " if opening else "Close ") + ("Long" if pos_after > 0 else "Short")
         raw["startPosition"] = str(first[1])
         raw["merged_fill_ids"] = [f.leader_fill_id for f, _s, _e in run[1:]]
-        raw["merged_fill_count"] = len(run)
+        raw["merged_fill_count"] = 1  # one net fill: fixed sizing copies it once, not once per stale fill
         raw["catchup_net"] = True
         raw["catchup_net_start"], raw["catchup_net_end"] = first[1], last[2]
         out.append(LeaderFill(leader_fill_id=first[0].leader_fill_id, leader_wallet=first[0].leader_wallet, coin=first[0].coin,
@@ -368,11 +397,11 @@ def collapse_stale_runs(fills: List["LeaderFill"], now_ms: int, handled: Optiona
 
     for group in groups.values():
         run: List[Tuple["LeaderFill", float, float]] = []
-        for f in sorted(group, key=lambda x: (int(fnum(x.timestamp_ms, 0)), x.leader_fill_id)):
+        for f in _chain_sorted(group):
             s = fnum((f.raw or {}).get("startPosition"), 0.0)
             e = s + (abs(f.size) if f.side == "BUY" else -abs(f.size))
             flips = s * e < -POSITION_EPSILON * POSITION_EPSILON and abs(s) > POSITION_EPSILON and abs(e) > POSITION_EPSILON
-            if run and abs(run[-1][2] - s) > max(POSITION_EPSILON, 1e-6 * max(1.0, abs(s))):
+            if run and abs(run[-1][2] - s) > max(POSITION_EPSILON, 1e-9 * max(1.0, abs(s))):
                 close_run(run); run = []   # chain broken: a fill is missing or handled in between
             if flips:
                 if run:
@@ -2607,8 +2636,8 @@ def merge_leader_fills(fills: List["LeaderFill"]) -> "LeaderFill":
     px = sum(f.price * abs(f.size) for f in fills) / size if size > 0 else fills[-1].price
     first, last = fills[0], fills[-1]
     raw = dict(first.raw or {})
-    raw["merged_fill_ids"] = [f.leader_fill_id for f in fills[1:]]
-    raw["merged_fill_count"] = len(fills)
+    raw["merged_fill_ids"] = [f.leader_fill_id for f in fills[1:]] + [str(i) for f in fills for i in ((f.raw or {}).get("merged_fill_ids") or []) if i]
+    raw["merged_fill_count"] = sum(max(1, int(fnum((f.raw or {}).get("merged_fill_count"), 1))) for f in fills)
     received = [f.ws_received_ms for f in fills if f.ws_received_ms]
     return LeaderFill(leader_fill_id=first.leader_fill_id, leader_wallet=first.leader_wallet, coin=first.coin,
                       side=first.side, price=px, size=size, timestamp_ms=last.timestamp_ms, source=first.source,
@@ -9251,6 +9280,20 @@ class LiveCopyCore:
             except Exception as exc:
                 log_error("held_sibling_row", exc)
 
+    def _rows_for_closed_late_siblings(self, fill: LeaderFill, why: str) -> None:
+        """A stale net fill skipped because the leader went flat later carries the ids it replaced: each gets its row and is marked handled."""
+        for sid in [str(i) for i in ((fill.raw or {}).get("merged_fill_ids") or []) if i]:
+            try:
+                self.dedupe.processed.add(sid)
+                with self._idem_lock:
+                    self._idem_accepted.add(sid)
+                self.audit.append_reconciliation(
+                    "SEND_TERMINAL", "MISSED_ENTRY_LEADER_ALREADY_CLOSED", leader_wallet=fill.leader_wallet, leader_fill_id=sid,
+                    coin=fill.coin, action="NO_ACTION_LEADER_ALREADY_FLAT", terminal_state="MISSED_ENTRY_LEADER_ALREADY_CLOSED",
+                    engine_can_send="False", notes=f"stale fills netted into {fill.leader_fill_id} (net {fill.side} {fill.size}) not copied: {why}")
+            except Exception as exc:
+                log_error("closed_late_sibling_row", exc)
+
     def _rows_for_merged_siblings(self, fill: LeaderFill, result: Any) -> None:
         """A head fill that stops at the persisted dedupe store (DEDUPED) has already marked the fills merged into it as handled,
         and only the head got a row: those fills were silent for good (outage test Q7: 152 ids dispatched by the poll, never
@@ -10356,6 +10399,7 @@ class LiveCopyCore:
                         leader_fill_id=fill.leader_fill_id, coin=fill.coin, action="NO_ACTION_LEADER_ALREADY_FLAT",
                         terminal_state="MISSED_ENTRY_LEADER_ALREADY_CLOSED", engine_can_send="False",
                         notes=(f"late leader {fill.side} {fill.size} @ {fill.price} at {fill.timestamp_ms} not copied: {why}"))
+                    self._rows_for_closed_late_siblings(fill, why)
                     continue
                 if self._already_handled(fill):  # run 3: thousands of re-read fills per cycle starved the loop
                     summary.leader_fills_deduped += 1
