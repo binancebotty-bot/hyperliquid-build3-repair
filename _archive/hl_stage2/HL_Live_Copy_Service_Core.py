@@ -3317,7 +3317,9 @@ class IntentBuilder:
             return "" if self._coin_clean.get(coin) else f"UNOWNED_INVENTORY: {coin} not yet verified clean"
         exp = self.follower_exposure()
         if not exp.get("ok"):
-            return f"UNOWNED_INVENTORY: follower positions unavailable ({exp.get('status')}); entries fail closed"
+            return (f"UNOWNED_INVENTORY: follower positions unavailable ({exp.get('status')}"
+                    f"{' dex=' + repr(exp.get('dex')) if exp.get('dex') not in (None, '') else ''}"
+                    f"{' ' + exp.get('detail') if exp.get('detail') else ''}); entries fail closed")
         ex_net = sum(fnum(v.get("net")) for k, v in (exp.get("by_coin") or {}).items() if canonical_coin_key(k) == coin)
         own = self.ledger.coin_net(fill.coin)
         self._coin_clean[coin] = abs(ex_net - own) <= max(POSITION_EPSILON, 1e-6 * max(abs(ex_net), abs(own)))
@@ -3347,7 +3349,8 @@ class IntentBuilder:
         exp = _XNET.master_exposure(normalise_wallet(USER_WALLET), follower_dex_scope(), fetcher=EXPOSURE_FETCHER,
                                     info_url=HL_INFO_URL, timeout=HTTP_TIMEOUT_SEC)
         if not exp.get("ok"):
-            return {"ok": False, "status": str(exp.get("status") or "SNAPSHOT_UNAVAILABLE"), "dex": exp.get("dex", "")}
+            return {"ok": False, "status": str(exp.get("status") or "SNAPSHOT_UNAVAILABLE"), "dex": exp.get("dex", ""),
+                    "detail": str(exp.get("detail") or "")[:120]}
         self._exposure, self._exposure_ms, self._exposure_pending = exp, now, []
         self._exposure_gen += 1
         return exp
@@ -9045,6 +9048,22 @@ class LiveCopyCore:
                 self._past_send_keys.discard(_k)
                 self.__dict__.get("_defer_first_ms", {}).pop(_k, None)
 
+    def _rows_for_held_siblings(self, fill: LeaderFill, state: str) -> None:
+        """A head held for a retry carries the fills merged into it; they were marked handled with it but had no row until the
+        head is finally decided (outage test Q8: 135 ids, 4 held heads). Each gets a row saying it is held with the head."""
+        try:
+            sibs = [str(i) for i in ((fill.raw or {}).get("merged_fill_ids") or []) if i]
+        except Exception:
+            return
+        for sid in sibs:
+            try:
+                self.audit.append_reconciliation(
+                    "REPLAY_DEFERRED", state, leader_wallet=fill.leader_wallet, leader_fill_id=sid, coin=fill.coin,
+                    action="HELD_WITH_MERGED_HEAD", terminal_state=state, engine_can_send="False",
+                    notes=f"merged_into={fill.leader_fill_id}; held with its head fill for a retry, not lost")
+            except Exception as exc:
+                log_error("held_sibling_row", exc)
+
     def _rows_for_merged_siblings(self, fill: LeaderFill, result: Any) -> None:
         """A head fill that stops at the persisted dedupe store (DEDUPED) has already marked the fills merged into it as handled,
         and only the head got a row: those fills were silent for good (outage test Q7: 152 ids dispatched by the poll, never
@@ -9085,6 +9104,7 @@ class LiveCopyCore:
             with self.dedupe._lock:
                 self.dedupe.processed.discard(fill.leader_fill_id)
             if first == now:  # one row per fill, not one per retry
+                self._rows_for_held_siblings(fill, "REPLAY_DEFERRED_PROCESS_EXCEPTION")
                 self.audit.append_reconciliation(
                     "REPLAY_DEFERRED", "REPLAY_DEFERRED_PROCESS_EXCEPTION", leader_wallet=fill.leader_wallet,
                     leader_fill_id=fill.leader_fill_id, coin=fill.coin, action="RETRY_AFTER_ERROR",
@@ -9303,6 +9323,7 @@ class LiveCopyCore:
                           f"{fnum(os.getenv('HL_LIVE_DEFER_MAX_SEC'), 300.0):g}s")
             except Exception as exc:
                 log_error("defer_row", exc)
+            self._rows_for_held_siblings(fill, "REPLAY_DEFERRED_TRUTH_UNREADABLE")
         delay = max(0.5, fnum(os.getenv("HL_LIVE_DEFER_RETRY_SEC"), 5.0))
         with self._deferred_lock:
             self._deferred[key] = (fill, time.monotonic() + delay)
