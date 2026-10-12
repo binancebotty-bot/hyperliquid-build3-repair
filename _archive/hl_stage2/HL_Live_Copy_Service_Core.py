@@ -6197,13 +6197,13 @@ class SenderGateway:
                     continue
                 perp_dexs = item.get("perp_dexs")
                 if isinstance(perp_dexs, list) and perp_dexs:
-                    dex_sets.add(tuple(str(x) for x in perp_dexs if str(x).strip()))
+                    dex_sets.add(tuple(str(x) for x in perp_dexs))  # as the send path keys it: ["", "xyz"], the empty name kept
                 else:
                     dex_name = str(item.get("perp_dex") or "").strip()
                     if dex_name:
-                        dex_sets.add((dex_name,))
+                        dex_sets.add(("", dex_name.lower()))
             for dex_tuple in sorted(dex_sets):
-                if dex_tuple:
+                if any(dex_tuple):
                     self._get_exchange_client(HLAccount, HLExchange, private_key, base_url, account_address, list(dex_tuple))
         except Exception:
             return
