@@ -619,6 +619,8 @@ SEND_ATTEMPT_FIELDS = [
     "intent_to_send_start_ms", "symbol_resolve_ms", "sdk_client_ms", "exchange_call_ms",
     "send_total_ms", "leader_to_send_attempt_ms", "notes", "cloid",
     "enqueued_ms", "picked_up_ms", "process_started_ms", "prewarm_done_ms", "lock_acquired_ms", "intent_written_ms",
+    "ownership_gate_started_ms", "ownership_gate_finished_ms", "liq_parity_started_ms", "liq_parity_finished_ms",
+    "wire_validated_ms", "margin_mode_started_ms", "margin_mode_finished_ms", "pending_send_done_ms",
 ]
 
 SEND_TIMING_FIELDS = [
@@ -629,6 +631,8 @@ SEND_TIMING_FIELDS = [
     "intent_to_send_start_ms", "symbol_resolve_ms", "sdk_client_ms", "exchange_call_ms",
     "send_total_ms", "leader_to_send_attempt_ms",
     "enqueued_ms", "picked_up_ms", "process_started_ms", "prewarm_done_ms", "lock_acquired_ms", "intent_written_ms",
+    "ownership_gate_started_ms", "ownership_gate_finished_ms", "liq_parity_started_ms", "liq_parity_finished_ms",
+    "wire_validated_ms", "margin_mode_started_ms", "margin_mode_finished_ms", "pending_send_done_ms",
 ]
 
 STAGE_STAMP_KEYS = ("enqueued_ms", "picked_up_ms", "process_started_ms", "prewarm_done_ms", "lock_acquired_ms",
@@ -5874,6 +5878,7 @@ class SenderGateway:
         _gate_ok, _gate_block = self._validate_final_wire_order(
             intent, resolved, sdk_coin, wire_size, limit_px, timing
         )
+        timing["wire_validated_ms"] = utc_now_ms()
         if not _gate_ok:
             return False, _gate_block["status"], _gate_block
         # â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
@@ -5884,7 +5889,9 @@ class SenderGateway:
             wire_size, standing_block = self._withdraw_standing_close(exchange, intent, wire_size, sz_dec, timing)
             if standing_block is not None:
                 return standing_block
+        timing["margin_mode_started_ms"] = utc_now_ms()
         _margin_block = self._ensure_margin_mode(exchange, sdk_coin, intent, lifecycle, timing)
+        timing["margin_mode_finished_ms"] = utc_now_ms()
         if _margin_block is not None:
             return _margin_block
         use_reduce_only, close_size_planned, close_skip = (False, wire_size, "")
@@ -5922,6 +5929,7 @@ class SenderGateway:
                 "reject_category": "AUDIT_WRITE_FAILED", "terminal_state": "AUDIT_WRITE_FAILED",
                 "operator_action": "CHECK_DISK_AND_AUDIT_FILES", "timing": timing,
             }
+        timing["pending_send_done_ms"] = utc_now_ms()
         try:
             response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", wire_size, limit_px,
                                          "Gtc" if rest_now else "Ioc", use_reduce_only, timing, "exchange_call_started_ms",
