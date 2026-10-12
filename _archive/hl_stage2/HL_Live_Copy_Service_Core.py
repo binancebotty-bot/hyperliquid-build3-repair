@@ -7121,6 +7121,34 @@ class WSManager:
                         self._last_ping_ms = utc_now_ms()
                     except Exception:
                         pass
+            try:
+                self._resubscribe_missing()
+            except Exception as exc:
+                log_error("ws_resubscribe", exc)
+
+    def _resubscribe_missing(self) -> None:
+        """HL refuses a subscription when the per-IP quota (15 users, shared with every process on this machine) is full, and
+        the refusal is final for that socket: before this, the wallet stayed without a feed until a reconnect. Every
+        HL_LIVE_WS_RESUBSCRIBE_SEC (60 s) the wallets with no ack are asked again on the open socket, so a freed quota is
+        picked up without a restart. A wallet without a feed stays visible (wallets_without_feed, DEGRADED, entry gate)."""
+        every_ms = int(max(1.0, fnum(os.getenv("HL_LIVE_WS_RESUBSCRIBE_SEC"), 60.0)) * 1000)
+        now = utc_now_ms()
+        if (not self._socket_open or now - self._socket_opened_at_ms < 15000
+                or now - self.__dict__.get("_last_resub_ms", 0) < every_ms):
+            return
+        app = self._app
+        missing = [w for w in self.wallets_now() if normalise_wallet(w) not in self._subscribed]
+        if app is None or not missing:
+            self.__dict__["_resub_alerted"] = False
+            return
+        self.__dict__["_last_resub_ms"] = now
+        self.__dict__["_resub_attempts"] = self.__dict__.get("_resub_attempts", 0) + 1
+        for wallet in missing:
+            app.send(json.dumps({"method": "subscribe", "subscription": {"type": "userFills", "user": wallet}}))
+        self._last_subscribe_ms = now
+        if not self.__dict__.get("_resub_alerted"):
+            self.__dict__["_resub_alerted"] = True
+            log_error("ws_partial_feed", RuntimeError(f"{len(missing)} of {len(self.wallets)} leader wallets have no live feed; asking again every {every_ms // 1000}s"))
 
     def _shared_thread(self) -> None:
         backoff = 1.0
@@ -7304,6 +7332,7 @@ class WSManager:
             "subscribe_acked": len(self._subscribed),
             "subscribe_pending": subscribe_pending,
             "subscribe_refused": self._refusals,
+            "resubscribe_attempts": self.__dict__.get("_resub_attempts", 0),
             "last_refusal": self._last_refusal,
             "last_refusal_ms": self._last_refusal_ms,
             "wallets_without_feed": max(0, len(self.wallets) - len(self._subscribed)),
