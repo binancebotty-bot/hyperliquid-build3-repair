@@ -183,13 +183,51 @@ def learn_follower_dex(coin: str) -> None:
         _LEARNED_DEXES.add(text.split(":", 1)[0].strip().lower())
 
 
+_FOLLOWER_DEX_NAMES: Dict[str, Any] = {"names": None, "ms": 0}
+_FOLLOWER_DEX_LOCK = threading.Lock()
+_FOLLOWER_DEX_DROPPED: set = set()
+
+
+def _follower_dex_names() -> Optional[set]:
+    """Names of the perp DEXes that exist on the FOLLOWER network (perpDexs), cached 5 min (30 s while unknown); None when
+    unknown or when a test fetcher is injected. A leader on another network trades markets ("io:...") whose DEX the
+    follower network does not have: reading its state fails every time, which failed every entry closed as
+    "follower positions unavailable" (outage tests Q8-Q16: zero copies). The refresh never blocks a reader."""
+    if EXPOSURE_FETCHER is not None or MIDS_FETCHER is not None:
+        return None
+    cache, now = _FOLLOWER_DEX_NAMES, utc_now_ms()
+    if now - cache["ms"] <= (300000 if cache["names"] is not None else 30000):
+        return cache["names"]
+    if not _FOLLOWER_DEX_LOCK.acquire(blocking=False):
+        return cache["names"]
+    try:
+        res = _XNET.list_perp_dexes(None, HL_INFO_URL, HTTP_TIMEOUT_SEC)
+        cache["ms"] = utc_now_ms()
+        if res.get("ok"):
+            cache["names"] = {str(d).strip().lower() for d in res.get("dexes", []) if str(d).strip()}
+    except Exception as exc:
+        cache["ms"] = utc_now_ms()
+        log_error("follower_dex_names", exc)
+    finally:
+        _FOLLOWER_DEX_LOCK.release()
+    return cache["names"]
+
+
 def follower_dex_scope() -> List[str]:
     """Perp DEXes the follower reads prices, symbol meta and exposure for: the default DEX (""), every
     HIP-3 DEX a leader has traded or the follower holds (learned), plus any named in HL_FOLLOWER_DEXES.
     Testnet lists hundreds of DEXes; reading all of them every few seconds cannot keep prices fresh,
     so the rest are covered by the slow full sweep, which adds any DEX the follower holds."""
     names = {n.strip().lower() for n in str(os.getenv("HL_FOLLOWER_DEXES") or "").split(",") if n.strip()}
-    return [""] + sorted(names | _LEARNED_DEXES)
+    learned = set(_LEARNED_DEXES)
+    known = _follower_dex_names()
+    if known is not None:  # a learned DEX the follower network does not have cannot hold a position there: leave it out
+        gone = {d for d in learned if d not in known and d not in names}
+        for d in sorted(gone - _FOLLOWER_DEX_DROPPED):
+            _FOLLOWER_DEX_DROPPED.add(d)
+            log_error("follower_dex_missing", RuntimeError(f"DEX '{d}' (from a leader market) does not exist on the follower network; not read"))
+        learned -= gone
+    return [""] + sorted(names | learned)
 
 
 def follower_mid(coin: str) -> float:
