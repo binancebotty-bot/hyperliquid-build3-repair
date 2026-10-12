@@ -2,4 +2,4 @@
 
 - **WSFS** (hermes): DONE - SHA ca60509a9f7a4dd976c533f903803df0fd057a35
 - **GUARD** (hermes): DONE - SHA ?
-- **RUNBOOK** (hermes, deepseek-flash (Hermes route)): RUNNING - 2 min elapsed
+- **RUNBOOK** (hermes, deepseek-flash (Hermes route)): RUNNING - 7 min elapsed
