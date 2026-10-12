@@ -5,7 +5,7 @@
 
 Outcomes: SENT, MERGED_SENT (carried by another fill's order), MERGED_<state> (carried by a blocked order),
 SKIPPED_FLAT (leader already flat), BLOCKED_<terminal_state>, DEFERRED_OPEN (held, retry pending), MISSING.
-A test passes only if MISSING == 0 ("never silently lose a trade"). Read-only; never touches the network or keys.
+A test passes only if MISSING == 0 and no id is still DEFERRED_OPEN (UNRESOLVED == 0) ("never silently lose a trade"). Read-only; never touches the network or keys.
 """
 from __future__ import annotations
 
@@ -68,6 +68,13 @@ def classify(audit_dir: Path, fill_ids: List[str]) -> Dict[str, str]:
                 if m:
                     merged_head[fid] = m.group(1)
             res = ""
+        if res == "DEFERRED_OPEN":  # a sibling held with its head: once the head is decided, the sibling is decided with it
+            for r in recon.get(fid, []):
+                m = re.search(r"merged_into=([^;\s]+)", r.get("notes", "") or "")
+                if m:
+                    head = own(m.group(1))
+                    if head and head not in ("DEFERRED_OPEN", "BLOCKED_MERGED_INTO_HEAD_COPY"):  # a chained head decides nothing itself
+                        res = "MERGED_SENT" if head == "SENT" else "MERGED_" + head
         if not res and fid in merged_head:
             head = own(merged_head[fid])
             res = ("MERGED_SENT" if head == "SENT" else "MERGED_" + (head or "NO_OUTCOME")) if head else ""
@@ -156,11 +163,13 @@ def main(argv: List[str]) -> int:
         print(f"{k:45s} {counts[k]}")
     missing = [k for k, v in res.items() if v == "MISSING"]
     print(f"MISSING={len(missing)} of {len(res)}")
+    open_ids = [k for k, v in res.items() if v == "DEFERRED_OPEN"]
+    print(f"UNRESOLVED={len(missing) + len(open_ids)} of {len(res)} (missing + still-deferred; the pass condition is 0)")
     for line in missing_detail(Path(argv[1]), missing):
         print(line)
     for line in block_reasons(Path(argv[1]), list(res)):
         print(line)
-    return 1 if missing else 0
+    return 1 if (missing or open_ids) else 0
 
 
 if __name__ == "__main__":
