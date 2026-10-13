@@ -168,6 +168,10 @@ def main() -> None:
         "wallets": {LEADER: {"enabled": True, "mode": "LIVE", "copy_mode": "fixed", "fixed_notional": 100}},
     })
 
+    # account-net provider: exchange snapshot with no positions (fresh follower).
+    # The real _pre_send_ownership_gate reads this file; without it the gate blocks all entries.
+    c.atomic_write_json(c.EXCHANGE_ACCOUNT_SNAPSHOT_FILE, {"assetPositions": []})
+
     os.environ["HL_LIVE_HL_PRIVATE_KEY"] = FAKE_KEY      # placeholder; never printed
     os.environ["HL_LIVE_HL_ACCOUNT_ADDRESS"] = FOLLOWER
     saved_acct = c.HLAccount, c.HLExchange
@@ -185,7 +189,7 @@ def main() -> None:
     s._exchange_client_has_symbol = lambda *_a, **_k: True
     s._validate_final_wire_order = lambda *_a, **_k: (True, {})
     s._pre_exchange_asset_safety = lambda *_a, **_k: (True, {})
-    s._pre_send_ownership_gate = lambda intent: (True, {})
+    # _pre_send_ownership_gate is NOT stubbed: the real gate runs with the exchange snapshot above.
     # parity gate facts (offline): the leader holds a position 40% from the mark, the follower's reported liquidation is 90% away
     _ls_cache = {}
     _ls_fetch = slow('leader_state', lambda _p: {'assetPositions': [{'position': {'coin': ac, 'liquidationPx': '60'}} for ac in ALL_COINS]})
