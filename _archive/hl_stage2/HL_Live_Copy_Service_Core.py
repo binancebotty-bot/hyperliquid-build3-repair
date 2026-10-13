@@ -592,6 +592,38 @@ POSITION_EPSILON = float(os.getenv("HL_LIVE_POSITION_EPSILON", "1e-9"))
 STALE_REPLAY_GRACE_MS = int(os.getenv("HL_LIVE_STALE_REPLAY_GRACE_MS", "5000"))
 
 FILE_LOCK = threading.RLock()
+SEND_FILE_LOCK = threading.RLock()  # send_attempts.csv only: the pending_send row (before every order) never queues behind other audit files' readers
+
+
+def _lock_for(path: Path) -> "threading.RLock":
+    return SEND_FILE_LOCK if path == SEND_ATTEMPTS_CSV else FILE_LOCK
+
+
+_LOCK_DIAG_SEC = float(os.getenv("HL_LIVE_LOCK_DIAG_SEC", "0.15"))  # an audit append that waits longer than this logs who held the lock (0 = off)
+_LOCK_DIAG = {"last": 0.0, "n": 0}
+
+
+def _note_lock_contention(path: Path, waited_sec: float) -> None:
+    """Diagnostic only: one line per second at most (200 per run) naming the code every other thread is in while an audit append
+    waits, so the holder of a slow lock is identified from the file instead of guessed. Never raises, takes no lock."""
+    try:
+        now = time.monotonic()
+        if now - _LOCK_DIAG["last"] < 1.0 or _LOCK_DIAG["n"] >= 200:
+            return
+        _LOCK_DIAG["last"], _LOCK_DIAG["n"] = now, _LOCK_DIAG["n"] + 1
+        names = {t.ident: t.name for t in threading.enumerate()}
+        threads = []
+        for ident, frame in sys._current_frames().items():
+            if ident == threading.get_ident():
+                continue
+            stack = traceback.extract_stack(frame)[-6:]
+            threads.append({"thread": names.get(ident, str(ident)),
+                            "stack": [f"{os.path.basename(fs.filename)}:{fs.lineno}:{fs.name}" for fs in stack]})
+        line = json.dumps({"ts_ms": utc_now_ms(), "path": path.name, "waited_ms": int(waited_sec * 1000), "threads": threads}, separators=(",", ":"))
+        with (AUDIT_DIR / "lock_contention.jsonl").open("a", encoding="utf-8") as fh:
+            fh.write(line + "\n")
+    except Exception:
+        pass
 ATTRIBUTION_LOCK = threading.RLock()
 _ATTRIBUTION_WRITE_LOCAL = threading.local()
 _CORE_ATTRIBUTION_HOOKS_INSTALLED = False
@@ -1217,7 +1249,7 @@ def ensure_csv_header(path: Path, fieldnames: List[str]) -> None:
         return  # same file as when its header was last verified (a rotated or replaced file has a new inode)
     path.parent.mkdir(parents=True, exist_ok=True)
     if path.exists() and path.stat().st_size > 0:
-        with FILE_LOCK:
+        with _lock_for(path):
             try:
                 with path.open("r", newline="", encoding="utf-8-sig") as f:
                     reader = csv.DictReader(f)
@@ -1240,7 +1272,7 @@ def ensure_csv_header(path: Path, fieldnames: List[str]) -> None:
                 _HEADER_OK.pop(str(path), None)  # not verified: the next append checks again
                 log_error("ensure_csv_header", exc)
         return
-    with FILE_LOCK:
+    with _lock_for(path):
         if path.exists() and path.stat().st_size > 0:
             return
         with path.open("w", newline="", encoding="utf-8") as f:
@@ -1338,8 +1370,14 @@ def append_csv(path: Path, fieldnames: List[str], row: Dict[str, Any]) -> None:
     ensure_csv_header(path, fieldnames)
     buf = io.StringIO()
     csv.DictWriter(buf, fieldnames=fieldnames).writerow({k: row.get(k, "") for k in fieldnames})
+    lock = _lock_for(path)
     with prof("file_lock_wait"):
-        FILE_LOCK.acquire()
+        _t0 = time.monotonic()
+        if _LOCK_DIAG_SEC <= 0:
+            lock.acquire()
+        elif not lock.acquire(timeout=_LOCK_DIAG_SEC):  # slow: say who holds it, then wait as before
+            _note_lock_contention(path, time.monotonic() - _t0)
+            lock.acquire()
     try:
         if not path.exists() or path.stat().st_size <= 0:  # rotated away since the header check above
             ensure_csv_header(path, fieldnames)
@@ -1368,7 +1406,7 @@ def append_csv(path: Path, fieldnames: List[str], row: Dict[str, Any]) -> None:
             except Exception as exc:
                 log_error("audit_rotate", exc)
     finally:
-        FILE_LOCK.release()
+        lock.release()
 
 
 def update_send_attempt_row(attempt_id: str, updates: Dict[str, Any], base_row: Optional[Dict[str, Any]] = None) -> bool:
@@ -1412,7 +1450,7 @@ def iter_csv_rows(path: Path) -> Iterator[Dict[str, str]]:
     under the file lock, so a row being appended is either wholly in the scan or wholly out of it."""
     if not path.exists():
         return
-    with FILE_LOCK:
+    with _lock_for(path):
         size = path.stat().st_size
     if size <= 0:
         return
@@ -1439,18 +1477,23 @@ def read_csv_tail_rows(path: Path, max_bytes: int) -> List[Dict[str, str]]:
     report over a multi-hundred-MB append-only file parses a bounded slice. max_bytes <= 0 reads the whole file."""
     if not path.exists():
         return []
-    with FILE_LOCK:
-        size = path.stat().st_size
+    with _lock_for(path):
+        try:
+            fh = path.open("rb")  # the handle and size are taken under the lock; the (up to 24 MB) read happens after it, so appends never wait for it
+        except FileNotFoundError:
+            return []
+        size = os.fstat(fh.fileno()).st_size
+    try:
         if size <= 0:
             return []
         if max_bytes <= 0 or size <= max_bytes:
-            with path.open("rb") as fh:
-                data = fh.read(size)
+            data = fh.read(size)
             return list(csv.DictReader(io.StringIO(data.decode("utf-8-sig", errors="replace"), newline="")))
-        with path.open("rb") as fh:
-            header = fh.readline()
-            fh.seek(size - max_bytes)
-            data = fh.read(max_bytes)
+        header = fh.readline()
+        fh.seek(size - max_bytes)
+        data = fh.read(max_bytes)
+    finally:
+        fh.close()
     nl = data.find(b"\n")
     data = data[nl + 1:] if nl >= 0 else b""
     text = (header.decode("utf-8-sig", errors="replace").rstrip("\r\n") + "\n") + data.decode("utf-8", errors="replace")
@@ -1462,7 +1505,7 @@ def read_csv_rows(path: Path) -> List[Dict[str, str]]:
     append-only files on the PC) runs after it, so appends from the send path never wait for a parse (run 5)."""
     if not path.exists() or path.stat().st_size <= 0:
         return []
-    with FILE_LOCK:
+    with _lock_for(path):
         fh = path.open("rb")  # the handle is taken under the lock, so a rotation cannot swap the file; the bytes are read after it
         size = os.fstat(fh.fileno()).st_size  # a row being appended is wholly in or wholly out of [0, size)
     try:
@@ -1519,7 +1562,7 @@ def _send_cache_refresh() -> Dict[str, Any]:
     slimmed to the fields readers use (before, every row of the whole file stayed in memory as a full dict)."""
     path = SEND_ATTEMPTS_CSV
     cache = _SEND_ROWS_CACHE
-    with FILE_LOCK:
+    with SEND_FILE_LOCK:
         st = path.stat() if path.exists() else None
         size, ino, mtime = (st.st_size, (st.st_dev, st.st_ino), st.st_mtime_ns) if st else (0, None, None)
         stale = (cache["path"] != str(path) or cache["ino"] != ino or size < cache["size"] or cache["rows"] is None
