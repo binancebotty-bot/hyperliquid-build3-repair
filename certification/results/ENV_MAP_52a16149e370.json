@@ -81,7 +81,7 @@
     },
     {
       "detail": {
-        "error": "NETWORK_STAMP_MISMATCH:C:\\Users\\wigmore\\AppData\\Local\\Temp\\envmap_stamp_vrubb5ce\\network.json is {'leader': 'mainnet', 'follower': 'testnet'} but this instance is {'leader': 'mainnet', 'follower': 'mainnet'}"
+        "error": "NETWORK_STAMP_MISMATCH:C:\\Users\\wigmore\\AppData\\Local\\Temp\\envmap_stamp_nen8pv1j\\network.json is {'leader': 'mainnet', 'follower': 'testnet'} but this instance is {'leader': 'mainnet', 'follower': 'mainnet'}"
       },
       "name": "NEG_state_dir_network_stamp_mismatch_rejected",
       "pass": true
@@ -148,7 +148,7 @@
       "status": "IDENTITY_INVALID"
     },
     "state_dir_network_stamp_mismatch": {
-      "error": "NETWORK_STAMP_MISMATCH:C:\\Users\\wigmore\\AppData\\Local\\Temp\\envmap_stamp_vrubb5ce\\network.json is {'leader': 'mainnet', 'follower': 'testnet'} but this instance is {'leader': 'mainnet', 'follower': 'mainnet'}",
+      "error": "NETWORK_STAMP_MISMATCH:C:\\Users\\wigmore\\AppData\\Local\\Temp\\envmap_stamp_nen8pv1j\\network.json is {'leader': 'mainnet', 'follower': 'testnet'} but this instance is {'leader': 'mainnet', 'follower': 'mainnet'}",
       "rejected": true
     },
     "wrong_network_endpoint": {
@@ -164,6 +164,6 @@
     "sdk_py": "3.11"
   },
   "task": "t_ce3bb91a",
-  "tested_commit": "2f57dba50fe5a7b73520bc88256a14fc996751f9",
+  "tested_commit": "52a16149e370732bb3162d69cb2f9ce4a43509bb",
   "title": "B3-ENV-MAP repoint HL_LIVE_ENV_FILE; bounded NAME-MAP; fail-closed identity/network"
 }
