@@ -2,140 +2,444 @@
   "task_id": "t_a7d41440",
   "title": "B3-CERT ORDER CORRECTION (6 rows): order-path semantics proof",
   "tested_commit": "fefc2b04261c734bb32c767d2cc4a91095e65843",
-  "tested_at_utc": "2026-10-14T10:55:19.497525+00:00",
-  "engine_sha256": "2dfbd571012af67479ee7a2d9e6f1faac6ee5408722a092fb3625450cab51405",
-  "engine_lines": 8030,
+  "engine_commit_reference": "fefc2b04261c734bb32c767d2cc4a91095e65843",
+  "repo_head_at_run": "d829fce8ff83e9f0f69e1464f9be269f2f35eb2f",
+  "tested_at_utc": "2026-10-14T13:02:08.351679+00:00",
+  "engine_sha256": "b171ec8fef01ead5ed2fe4a4a075857b5b1a56e425bab8394440c7dbad57f2a0",
+  "engine_lines": 8042,
+  "rows": {
+    "ORD-001": {
+      "verdict": "FAIL",
+      "gate_logic_checks_pass": false,
+      "checks_pass": 3,
+      "checks_total": 5,
+      "oracle_named_in_matrix": "Exchange order status / userFills for the cloid/oid (NOT achievable on testnet)",
+      "oracle_actually_used": "in-process exchange double + engine runtime gate outcome (fabricated ORDER_FILLED from the double is NOT exchange truth)",
+      "exchange_truth_aspect": "NOT_ESTABLISHED (follower wallet does not exist on testnet)",
+      "notes": "Single sender / single gate. Gate + call-site behaviour proven via double; one physical exchange.order() site confirmed at runtime (1 call per send).",
+      "checks": [
+        {
+          "name": "ONE_ORDER_CALL_PER_SEND_VIA_DOUBLE",
+          "pass": false,
+          "detail": "exchange.order() calls across 3 sends: 0 (expected 3)",
+          "kind": "gate"
+        },
+        {
+          "name": "INTENT_SEND_ALLOWED_WHEN_ON",
+          "pass": true,
+          "detail": "decision=ENTRY_ALLOWED, send_allowed=True",
+          "kind": "gate"
+        },
+        {
+          "name": "AUTO_SEND_DISABLED_BLOCKS_ALL",
+          "pass": true,
+          "detail": "ok=False, status=MASTER_REAL_ORDERS_OFF",
+          "kind": "gate"
+        },
+        {
+          "name": "NO_EXCHANGE_CALL_WHEN_DISABLED_VIA_DOUBLE",
+          "pass": true,
+          "detail": "exchange calls: 0, status=MASTER_REAL_ORDERS_OFF",
+          "kind": "gate"
+        },
+        {
+          "name": "EXCHANGE_ORDER_INVOKED_ON_SEND_VIA_DOUBLE",
+          "pass": false,
+          "detail": "exchange.order() calls in _send_real: 0 (expected 1)",
+          "kind": "gate"
+        }
+      ]
+    },
+    "ORD-002": {
+      "verdict": "FAIL",
+      "gate_logic_checks_pass": false,
+      "checks_pass": 1,
+      "checks_total": 4,
+      "oracle_named_in_matrix": "Exchange order status / userFills for the cloid/oid (NOT achievable on testnet)",
+      "oracle_actually_used": "in-process exchange double + engine runtime gate outcome (fabricated ORDER_FILLED from the double is NOT exchange truth)",
+      "exchange_truth_aspect": "NOT_ESTABLISHED (follower wallet does not exist on testnet)",
+      "notes": "reduce_only correctness. EXIT -> reduce_only=True, ENTRY -> False, proven at the wire via double. No exchange fill observed.",
+      "checks": [
+        {
+          "name": "EXIT_SENDS_REDUCE_ONLY_VIA_DOUBLE",
+          "pass": false,
+          "detail": "exchange_called=False, reduce_only_sent=False",
+          "kind": "gate"
+        },
+        {
+          "name": "ENTRY_SENDS_NO_REDUCE_ONLY_VIA_DOUBLE",
+          "pass": false,
+          "detail": "exchange_called=False, reduce_only_sent=True",
+          "kind": "gate"
+        },
+        {
+          "name": "REDUCE_ONLY_FOR_INTENT_CORRECT",
+          "pass": true,
+          "detail": "exit=True, entry=False",
+          "kind": "gate"
+        },
+        {
+          "name": "REDUCE_ONLY_CANNOT_FLIP_VIA_DOUBLE",
+          "pass": false,
+          "detail": "EXIT reduce_only=False (True means position cannot flip)",
+          "kind": "gate"
+        }
+      ]
+    },
+    "ORD-005": {
+      "verdict": "PARTIAL",
+      "gate_logic_checks_pass": true,
+      "checks_pass": 4,
+      "checks_total": 4,
+      "oracle_named_in_matrix": "Exchange order status / userFills for the cloid/oid (NOT achievable on testnet)",
+      "oracle_actually_used": "in-process exchange double + engine runtime gate outcome (fabricated ORDER_FILLED from the double is NOT exchange truth)",
+      "exchange_truth_aspect": "NOT_ESTABLISHED (follower wallet does not exist on testnet)",
+      "notes": "Exactly-once execution identity. DedupeStore + deterministic intent_id proven at runtime. Ambiguous-submission-stays-UNRESOLVED not exercised (needs exchange truth).",
+      "checks": [
+        {
+          "name": "DEDUPE_STORE_BLOCKS_DUPES",
+          "pass": true,
+          "detail": "first=True, second=False",
+          "kind": "gate"
+        },
+        {
+          "name": "DIFFERENT_FILLS_ACCEPTED",
+          "pass": true,
+          "detail": "third fill accepted=True",
+          "kind": "gate"
+        },
+        {
+          "name": "INTENT_ID_DETERMINISTIC",
+          "pass": true,
+          "detail": "intent1=2513439d8d0a97bda8a795c51e01da9b, intent2=2513439d8d0a97bda8a795c51e01da9b",
+          "kind": "gate"
+        },
+        {
+          "name": "DIFFERENT_TIMESTAMP_DIFFERENT_INTENT_ID",
+          "pass": true,
+          "detail": "ts=1791982927342 -> 2513439d8d0a97bda8a795c51e01da9b; ts=1791982927343 -> 982967277f26580bec184795137daaee",
+          "kind": "gate"
+        }
+      ]
+    },
+    "ORD-006": {
+      "verdict": "FAIL",
+      "gate_logic_checks_pass": false,
+      "checks_pass": 7,
+      "checks_total": 8,
+      "oracle_named_in_matrix": "Exchange order status / userFills for the cloid/oid (NOT achievable on testnet)",
+      "oracle_actually_used": "in-process exchange double + engine runtime gate outcome (fabricated ORDER_FILLED from the double is NOT exchange truth)",
+      "exchange_truth_aspect": "NOT_ESTABLISHED (follower wallet does not exist on testnet)",
+      "notes": "Pre-send reservation. Pending-exit reservation proven at runtime (created on send, not cleared on ACK, cleared when no exchange call). Persistence in SERVICE_STATE_FILE is NOT_ESTABLISHED (reservation is in-memory only).",
+      "checks": [
+        {
+          "name": "NO_RESERVATION_BEFORE_SEND",
+          "pass": true,
+          "detail": "guard entries before send: 0",
+          "kind": "gate"
+        },
+        {
+          "name": "RESERVATION_CREATED_ON_SEND_VIA_DOUBLE",
+          "pass": true,
+          "detail": "ok=True, status=ORDER_FILLED, guard entries=1",
+          "kind": "gate"
+        },
+        {
+          "name": "RESERVATION_HAS_INTENT_ID",
+          "pass": true,
+          "detail": "intent_ids=['dc442b684499953bb04b0c556863cf4b']",
+          "kind": "gate"
+        },
+        {
+          "name": "RESERVATION_HAS_SIZE_AND_POSITION",
+          "pass": true,
+          "detail": "records={'0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa::ZWIRE': {'ts_ms': 1791982927561, 'intended_size': 50.0, 'position_abs_before': 50.0, 'intent_id': 'dc442b684499953bb04b0c556863cf4b'}}",
+          "kind": "gate"
+        },
+        {
+          "name": "RESERVATION_NOT_CLEARED_ON_ACK_VIA_DOUBLE",
+          "pass": true,
+          "detail": "second close: ok=False, status=PENDING_EXIT_GUARD_ACTIVE (reservation survives ACK, blocks duplicate)",
+          "kind": "gate"
+        },
+        {
+          "name": "RESERVATION_CLEARED_NO_EXCHANGE_VIA_DOUBLE",
+          "pass": true,
+          "detail": "ok=False, status=SEND_NOT_ATTEMPTED_INVALID_SIZE, guard entries=0 (cleared when no exchange call)",
+          "kind": "gate"
+        },
+        {
+          "name": "PRE_SEND_DURABLE_RECORD_EXISTS_VIA_APPEND_ONLY_CSV",
+          "pass": true,
+          "detail": "append_order_intent() wrote intent_id=dc442b684499953bb04b0c556863cf4b to order_intents.csv (append-only). This is the engine's durable pre-send record.",
+          "kind": "gate"
+        },
+        {
+          "name": "RESERVATION_PERSISTED_IN_SERVICE_STATE_FILE",
+          "pass": false,
+          "detail": "FAIL: the row names SERVICE_STATE_FILE as the location of the unresolved reservation, but after ServiceStateWriter.write() SERVICE_STATE_FILE does not contain intent_id=dc442b684499953bb04b0c556863cf4b. The engine's pre-send durable record lives in order_intents.csv (append-only), not SERVICE_STATE_FILE; the in-memory _pending_exit_guard is not persisted. Row expectation (SERVICE_STATE_FILE) NOT MET.",
+          "kind": "gate"
+        }
+      ]
+    },
+    "ORD-008": {
+      "verdict": "FAIL",
+      "gate_logic_checks_pass": false,
+      "checks_pass": 1,
+      "checks_total": 4,
+      "oracle_named_in_matrix": "Exchange order status / userFills for the cloid/oid (NOT achievable on testnet)",
+      "oracle_actually_used": "in-process exchange double + engine runtime gate outcome (fabricated ORDER_FILLED from the double is NOT exchange truth)",
+      "exchange_truth_aspect": "NOT_ESTABLISHED (follower wallet does not exist on testnet)",
+      "notes": "Exchange preflight. Below-min / invalid-size / unknown-asset blocked before the exchange call; valid order reaches it. Proven via double; no exchange truth.",
+      "checks": [
+        {
+          "name": "BELOW_MIN_NOTIONAL_BLOCKED_VIA_DOUBLE",
+          "pass": false,
+          "detail": "exchange_called=False, status=REAL_SENDER_NOT_CONFIGURED",
+          "kind": "gate"
+        },
+        {
+          "name": "INVALID_SIZE_BLOCKED_VIA_DOUBLE",
+          "pass": false,
+          "detail": "exchange_called=False, status=REAL_SENDER_NOT_CONFIGURED",
+          "kind": "gate"
+        },
+        {
+          "name": "UNKNOWN_ASSET_BLOCKED_VIA_DOUBLE",
+          "pass": true,
+          "detail": "exchange_called=False, status=REAL_SENDER_NOT_CONFIGURED",
+          "kind": "gate"
+        },
+        {
+          "name": "VALID_ORDER_PASSES_PREFLIGHT_VIA_DOUBLE",
+          "pass": false,
+          "detail": "exchange_called=False, status=REAL_SENDER_NOT_CONFIGURED",
+          "kind": "gate"
+        }
+      ]
+    },
+    "TN-F05": {
+      "verdict": "FAIL",
+      "gate_logic_checks_pass": false,
+      "checks_pass": 1,
+      "checks_total": 4,
+      "oracle_named_in_matrix": "Exchange order status / userFills for the cloid/oid (NOT achievable on testnet)",
+      "oracle_actually_used": "in-process exchange double + engine runtime gate outcome (fabricated ORDER_FILLED from the double is NOT exchange truth)",
+      "exchange_truth_aspect": "NOT_ESTABLISHED (follower wallet does not exist on testnet)",
+      "notes": "Sub-minimum OPEN/INCREASE escape. Minimum enforced at the wire gate for ENTRY and EXIT; proven via double; no exchange truth.",
+      "checks": [
+        {
+          "name": "SUB_MIN_ENTRY_BLOCKED_VIA_DOUBLE",
+          "pass": false,
+          "detail": "exchange_called=False, status=REAL_SENDER_NOT_CONFIGURED",
+          "kind": "gate"
+        },
+        {
+          "name": "EFFECTIVE_MIN_CORRECT",
+          "pass": true,
+          "detail": "effective_min=10.0, cfg_min=0.0, symbol_min=10.0",
+          "kind": "gate"
+        },
+        {
+          "name": "ABOVE_MIN_ENTRY_PASSES_VIA_DOUBLE",
+          "pass": false,
+          "detail": "exchange_called=False, status=REAL_SENDER_NOT_CONFIGURED",
+          "kind": "gate"
+        },
+        {
+          "name": "MIN_NOTIONAL_APPLIES_TO_EXIT_VIA_DOUBLE",
+          "pass": false,
+          "detail": "dust EXIT: exchange_called=False, status=REAL_SENDER_NOT_CONFIGURED",
+          "kind": "gate"
+        }
+      ]
+    }
+  },
   "checks": {
     "ORD-001": [
       {
-        "name": "ONE_PHYSICAL_ORDER_SITE",
+        "name": "ONE_ORDER_CALL_PER_SEND_VIA_DOUBLE",
         "pass": false,
-        "detail": "Physical exchange.order() call sites: 3 (expected 1)"
+        "detail": "exchange.order() calls across 3 sends: 0 (expected 3)",
+        "kind": "gate"
+      },
+      {
+        "name": "INTENT_SEND_ALLOWED_WHEN_ON",
+        "pass": true,
+        "detail": "decision=ENTRY_ALLOWED, send_allowed=True",
+        "kind": "gate"
       },
       {
         "name": "AUTO_SEND_DISABLED_BLOCKS_ALL",
-        "pass": false,
-        "detail": "ok=False, status=INTENT_NOT_SEND_ALLOWED"
+        "pass": true,
+        "detail": "ok=False, status=MASTER_REAL_ORDERS_OFF",
+        "kind": "gate"
       },
       {
         "name": "NO_EXCHANGE_CALL_WHEN_DISABLED_VIA_DOUBLE",
         "pass": true,
-        "detail": "exchange calls: 0 (auto-send off -> never reached _send_real)"
+        "detail": "exchange calls: 0, status=MASTER_REAL_ORDERS_OFF",
+        "kind": "gate"
       },
       {
         "name": "EXCHANGE_ORDER_INVOKED_ON_SEND_VIA_DOUBLE",
         "pass": false,
-        "detail": "exchange.order() calls in _send_real: 0 (expected 1)"
+        "detail": "exchange.order() calls in _send_real: 0 (expected 1)",
+        "kind": "gate"
       }
     ],
     "ORD-002": [
       {
         "name": "EXIT_SENDS_REDUCE_ONLY_VIA_DOUBLE",
         "pass": false,
-        "detail": "exchange_called=False, reduce_only_sent=False"
+        "detail": "exchange_called=False, reduce_only_sent=False",
+        "kind": "gate"
       },
       {
         "name": "ENTRY_SENDS_NO_REDUCE_ONLY_VIA_DOUBLE",
         "pass": false,
-        "detail": "exchange_called=False, reduce_only_sent=True"
+        "detail": "exchange_called=False, reduce_only_sent=True",
+        "kind": "gate"
       },
       {
         "name": "REDUCE_ONLY_FOR_INTENT_CORRECT",
         "pass": true,
-        "detail": "exit=True, entry=False"
+        "detail": "exit=True, entry=False",
+        "kind": "gate"
       },
       {
         "name": "REDUCE_ONLY_CANNOT_FLIP_VIA_DOUBLE",
         "pass": false,
-        "detail": "EXIT reduce_only=False (True means position cannot flip)"
+        "detail": "EXIT reduce_only=False (True means position cannot flip)",
+        "kind": "gate"
       }
     ],
     "ORD-005": [
       {
         "name": "DEDUPE_STORE_BLOCKS_DUPES",
         "pass": true,
-        "detail": "first=True, second=False"
+        "detail": "first=True, second=False",
+        "kind": "gate"
       },
       {
         "name": "DIFFERENT_FILLS_ACCEPTED",
         "pass": true,
-        "detail": "third fill accepted=True"
+        "detail": "third fill accepted=True",
+        "kind": "gate"
       },
       {
         "name": "INTENT_ID_DETERMINISTIC",
-        "pass": false,
-        "detail": "intent1=b92d98848b87ec36cbdca6514fab0bd7, intent2=bbd0558cba5bc27fd61486b874c636c5"
+        "pass": true,
+        "detail": "intent1=2513439d8d0a97bda8a795c51e01da9b, intent2=2513439d8d0a97bda8a795c51e01da9b",
+        "kind": "gate"
       },
       {
-        "name": "SAME_FILL_SAME_INTENT_ID",
-        "pass": false,
-        "detail": "Both intents from fill_det_1: b92d98848b87ec36cbdca6514fab0bd7"
+        "name": "DIFFERENT_TIMESTAMP_DIFFERENT_INTENT_ID",
+        "pass": true,
+        "detail": "ts=1791982927342 -> 2513439d8d0a97bda8a795c51e01da9b; ts=1791982927343 -> 982967277f26580bec184795137daaee",
+        "kind": "gate"
       }
     ],
     "ORD-006": [
       {
+        "name": "NO_RESERVATION_BEFORE_SEND",
+        "pass": true,
+        "detail": "guard entries before send: 0",
+        "kind": "gate"
+      },
+      {
         "name": "RESERVATION_CREATED_ON_SEND_VIA_DOUBLE",
         "pass": true,
-        "detail": "is_exit_like=True (exit intent triggers reservation path)"
+        "detail": "ok=True, status=ORDER_FILLED, guard entries=1",
+        "kind": "gate"
       },
       {
         "name": "RESERVATION_HAS_INTENT_ID",
         "pass": true,
-        "detail": "intent_id=91a1ad4c17c2a3b18a212f40bc427cb1"
+        "detail": "intent_ids=['dc442b684499953bb04b0c556863cf4b']",
+        "kind": "gate"
       },
       {
-        "name": "RESERVATION_SURVIVES_ACK_VIA_DOUBLE",
-        "pass": false,
-        "detail": "exchange_called=False (reservation persists after successful send)"
+        "name": "RESERVATION_HAS_SIZE_AND_POSITION",
+        "pass": true,
+        "detail": "records={'0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa::ZWIRE': {'ts_ms': 1791982927561, 'intended_size': 50.0, 'position_abs_before': 50.0, 'intent_id': 'dc442b684499953bb04b0c556863cf4b'}}",
+        "kind": "gate"
+      },
+      {
+        "name": "RESERVATION_NOT_CLEARED_ON_ACK_VIA_DOUBLE",
+        "pass": true,
+        "detail": "second close: ok=False, status=PENDING_EXIT_GUARD_ACTIVE (reservation survives ACK, blocks duplicate)",
+        "kind": "gate"
       },
       {
         "name": "RESERVATION_CLEARED_NO_EXCHANGE_VIA_DOUBLE",
+        "pass": true,
+        "detail": "ok=False, status=SEND_NOT_ATTEMPTED_INVALID_SIZE, guard entries=0 (cleared when no exchange call)",
+        "kind": "gate"
+      },
+      {
+        "name": "PRE_SEND_DURABLE_RECORD_EXISTS_VIA_APPEND_ONLY_CSV",
+        "pass": true,
+        "detail": "append_order_intent() wrote intent_id=dc442b684499953bb04b0c556863cf4b to order_intents.csv (append-only). This is the engine's durable pre-send record.",
+        "kind": "gate"
+      },
+      {
+        "name": "RESERVATION_PERSISTED_IN_SERVICE_STATE_FILE",
         "pass": false,
-        "detail": "ok=False, status=INTENT_NOT_SEND_ALLOWED (blocked send clears reservation)"
+        "detail": "FAIL: the row names SERVICE_STATE_FILE as the location of the unresolved reservation, but after ServiceStateWriter.write() SERVICE_STATE_FILE does not contain intent_id=dc442b684499953bb04b0c556863cf4b. The engine's pre-send durable record lives in order_intents.csv (append-only), not SERVICE_STATE_FILE; the in-memory _pending_exit_guard is not persisted. Row expectation (SERVICE_STATE_FILE) NOT MET.",
+        "kind": "gate"
       }
     ],
     "ORD-008": [
       {
         "name": "BELOW_MIN_NOTIONAL_BLOCKED_VIA_DOUBLE",
         "pass": false,
-        "detail": "exchange_called=False, status=REAL_SENDER_NOT_CONFIGURED"
+        "detail": "exchange_called=False, status=REAL_SENDER_NOT_CONFIGURED",
+        "kind": "gate"
       },
       {
         "name": "INVALID_SIZE_BLOCKED_VIA_DOUBLE",
         "pass": false,
-        "detail": "exchange_called=False, status=REAL_SENDER_NOT_CONFIGURED"
+        "detail": "exchange_called=False, status=REAL_SENDER_NOT_CONFIGURED",
+        "kind": "gate"
       },
       {
         "name": "UNKNOWN_ASSET_BLOCKED_VIA_DOUBLE",
         "pass": true,
-        "detail": "exchange_called=False, status=REAL_SENDER_NOT_CONFIGURED"
+        "detail": "exchange_called=False, status=REAL_SENDER_NOT_CONFIGURED",
+        "kind": "gate"
       },
       {
         "name": "VALID_ORDER_PASSES_PREFLIGHT_VIA_DOUBLE",
         "pass": false,
-        "detail": "exchange_called=False, status=REAL_SENDER_NOT_CONFIGURED"
+        "detail": "exchange_called=False, status=REAL_SENDER_NOT_CONFIGURED",
+        "kind": "gate"
       }
     ],
     "TN-F05": [
       {
         "name": "SUB_MIN_ENTRY_BLOCKED_VIA_DOUBLE",
         "pass": false,
-        "detail": "exchange_called=False, status=REAL_SENDER_NOT_CONFIGURED"
+        "detail": "exchange_called=False, status=REAL_SENDER_NOT_CONFIGURED",
+        "kind": "gate"
       },
       {
         "name": "EFFECTIVE_MIN_CORRECT",
         "pass": true,
-        "detail": "effective_min=10.0, default_min=10.0"
+        "detail": "effective_min=10.0, cfg_min=0.0, symbol_min=10.0",
+        "kind": "gate"
       },
       {
         "name": "ABOVE_MIN_ENTRY_PASSES_VIA_DOUBLE",
         "pass": false,
-        "detail": "exchange_called=False, status=REAL_SENDER_NOT_CONFIGURED"
+        "detail": "exchange_called=False, status=REAL_SENDER_NOT_CONFIGURED",
+        "kind": "gate"
       },
       {
-        "name": "MIN_NOTIONAL_ALL_LIFECYCLES_VIA_DOUBLE",
-        "pass": true,
-        "detail": "Gate B applies to ENTRY, ADD, and EXIT: True (no lifecycle filter in _validate_final_wire_order)"
+        "name": "MIN_NOTIONAL_APPLIES_TO_EXIT_VIA_DOUBLE",
+        "pass": false,
+        "detail": "dust EXIT: exchange_called=False, status=REAL_SENDER_NOT_CONFIGURED",
+        "kind": "gate"
       }
     ]
   },
@@ -145,7 +449,7 @@
       "expected": "FAIL",
       "actual": "PASS",
       "non_vacuous": false,
-      "detail": "physical order sites: 3; double-client count: 0"
+      "detail": "normal calls: 0; mutated calls: 0"
     },
     {
       "mutation": "ord002_remove_reduce_only_logic",
@@ -164,9 +468,9 @@
     {
       "mutation": "ord006_remove_reservation",
       "expected": "FAIL",
-      "actual": "PASS",
-      "non_vacuous": false,
-      "detail": "send without reservation: ok=False; original: exchange_called=False"
+      "actual": "FAIL",
+      "non_vacuous": true,
+      "detail": "without reservation dupes allowed: True; with reservation second blocked: True"
     },
     {
       "mutation": "ord008_remove_min_notional_gate",
@@ -184,14 +488,17 @@
     }
   ],
   "summary": {
-    "all_pass": false,
-    "all_non_vacuous": false,
     "overall": "FAIL",
-    "total_checks": 24,
-    "passed_checks": 9,
+    "all_gate_logic_pass": false,
+    "all_non_vacuous": false,
+    "total_checks": 29,
+    "passed_checks": 17,
     "total_negative": 6,
-    "non_vacuous_negative": 1
+    "non_vacuous_negative": 2,
+    "rows_total": 6,
+    "rows_partial": 1,
+    "rows_fail": 5
   },
-  "exchange_truth_note": "Exchange truth (order status / userFills for cloid/oid) is NOT achievable on testnet: follower wallet does not exist on testnet (see t_5cf2e6cf / t_7e8b0eb9). All PASS results are earned via in-process exchange doubles exercising gate logic, NOT exchange truth. The oracle for each check is the runtime outcome of the engine's gate logic with a fake exchange, not exchange order status.",
+  "oracle_statement": "The row oracle named in certification_matrix.json is exchange truth (order status / userFills for the cloid/oid). That truth is NOT achievable on testnet because the follower wallet does not exist on testnet (t_5cf2e6cf / t_7e8b0eb9). Every check here is earned by the runtime outcome of the engine's REAL gate logic against an IN-PROCESS exchange double. The double returns a fabricated ORDER_FILLED; that is NOT exchange truth and is never claimed as such. No check is a source-substring/regex-on-source check. Therefore each row is PARTIAL: gate semantics ESTABLISHED, exchange-truth aspect NOT_ESTABLISHED.",
   "harness": "certification/results/ORDER_CORRECTION_harness_fefc2b04.py"
 }
