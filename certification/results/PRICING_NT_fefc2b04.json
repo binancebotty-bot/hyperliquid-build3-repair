@@ -1,0 +1,126 @@
+{
+  "task_id": "t_5e812878",
+  "title": "B3-CERT PRICING residual NOT_TESTED (5 rows) - CONFIRMATION",
+  "mode": "CONFIRM_AND_CITE (no engine re-run)",
+  "repo_head_at_run": "91bcf54004295fe370de74f520eec2cdd93d18ab",
+  "engine_commit_reference": "fefc2b04",
+  "engine_sha256": "2dfbd571012af67479ee7a2d9e6f1faac6ee5408722a092fb3625450cab51405",
+  "tested_at_utc": "2026-10-14T13:07:47Z",
+  "cited_artifact": "certification/results/PRICING_CORRECTION_fefc2b04.json",
+  "cited_harness": "certification/results/PRICING_CORRECTION_harness_fefc2b04.py",
+  "cited_task_id": "t_0246c47f",
+  "citation_commit": "346d9128da507ab64fd09ccce099f97b30e8c293",
+  "rows": {
+    "PRICE-001": {
+      "verdict": "PARTIAL",
+      "oracle_named_in_matrix": "Authoritative mark for OPEN/INCREASE/FLIP",
+      "oracle_actually_used": "engine runtime gate outcome (send_if_allowed -> _send_real -> _format_limit_px) with an IN-PROCESS exchange double",
+      "exchange_truth_aspect": "NOT_ESTABLISHED (follower wallet does not exist on testnet; t_5cf2e6cf)",
+      "gate_logic_checks_pass": true,
+      "checks_pass": 1,
+      "checks_total": 1,
+      "cited_from": "certification/results/PRICING_CORRECTION_fefc2b04.json"
+    },
+    "PRICE-002": {
+      "verdict": "PARTIAL",
+      "oracle_named_in_matrix": "Public quote freshness",
+      "oracle_actually_used": "engine runtime gate outcome (send_if_allowed -> _send_real -> _format_limit_px) with an IN-PROCESS exchange double",
+      "exchange_truth_aspect": "NOT_ESTABLISHED (follower wallet does not exist on testnet; t_5cf2e6cf)",
+      "gate_logic_checks_pass": true,
+      "checks_pass": 2,
+      "checks_total": 2,
+      "cited_from": "certification/results/PRICING_CORRECTION_fefc2b04.json"
+    },
+    "PRICE-005": {
+      "verdict": "PARTIAL",
+      "oracle_named_in_matrix": "Reduction/close never trapped by entry protection",
+      "oracle_actually_used": "engine runtime gate outcome (send_if_allowed -> _send_real -> _format_limit_px) with an IN-PROCESS exchange double",
+      "exchange_truth_aspect": "NOT_ESTABLISHED (follower wallet does not exist on testnet; t_5cf2e6cf)",
+      "gate_logic_checks_pass": true,
+      "checks_pass": 1,
+      "checks_total": 1,
+      "cited_from": "certification/results/PRICING_CORRECTION_fefc2b04.json"
+    },
+    "PRICE-006": {
+      "verdict": "PARTIAL",
+      "oracle_named_in_matrix": "Adverse-diff measure is meaningful",
+      "oracle_actually_used": "engine runtime gate outcome (send_if_allowed -> _send_real -> _format_limit_px) with an IN-PROCESS exchange double",
+      "exchange_truth_aspect": "NOT_ESTABLISHED (follower wallet does not exist on testnet; t_5cf2e6cf)",
+      "gate_logic_checks_pass": true,
+      "checks_pass": 2,
+      "checks_total": 2,
+      "cited_from": "certification/results/PRICING_CORRECTION_fefc2b04.json"
+    },
+    "PRICE-007": {
+      "verdict": "PARTIAL",
+      "oracle_named_in_matrix": "Marketable slippage",
+      "oracle_actually_used": "engine runtime gate outcome (send_if_allowed -> _send_real -> _format_limit_px) with an IN-PROCESS exchange double",
+      "exchange_truth_aspect": "NOT_ESTABLISHED (follower wallet does not exist on testnet; t_5cf2e6cf)",
+      "gate_logic_checks_pass": true,
+      "checks_pass": 1,
+      "checks_total": 1,
+      "cited_from": "certification/results/PRICING_CORRECTION_fefc2b04.json"
+    }
+  },
+  "confirmation_checks": [
+    {
+      "name": "CITED_ARTIFACT_EXISTS",
+      "pass": true,
+      "detail": "C:\\Users\\wigmore\\hyperliquid-build3-repair\\certification\\results\\PRICING_CORRECTION_fefc2b04.json"
+    },
+    {
+      "name": "CITED_ARTIFACT_TRACKED",
+      "pass": true,
+      "detail": "['certification/results/PRICING_CORRECTION_fefc2b04.json', 'certification/results/PRICING_CORRECTION_harness_fefc2b04.py']"
+    },
+    {
+      "name": "CITED_HARNESS_TRACKED",
+      "pass": true,
+      "detail": "['certification/results/PRICING_CORRECTION_fefc2b04.json', 'certification/results/PRICING_CORRECTION_harness_fefc2b04.py']"
+    },
+    {
+      "name": "ENGINE_SHA256_MATCHES_COMMITTED_BLOB",
+      "pass": true,
+      "detail": "actual=2dfbd571012af67479ee7a2d9e6f1faac6ee5408722a092fb3625450cab51405"
+    },
+    {
+      "name": "ALL_ROWS_PRESENT",
+      "pass": true,
+      "detail": "['PRICE-001', 'PRICE-002', 'PRICE-005', 'PRICE-006', 'PRICE-007']"
+    },
+    {
+      "name": "PER_ROW_GATE_LOGIC_PASS",
+      "pass": true,
+      "detail": "{'PRICE-001': True, 'PRICE-002': True, 'PRICE-005': True, 'PRICE-006': True, 'PRICE-007': True}"
+    },
+    {
+      "name": "CITED_ALL_GATE_CHECKS_PASS",
+      "pass": true,
+      "detail": "n=12 p=12"
+    },
+    {
+      "name": "CITED_NEGATIVES_NON_VACUOUS",
+      "pass": true,
+      "detail": "n=7 p=7"
+    },
+    {
+      "name": "NO_UNLABELLED_ORDER_FILLED",
+      "pass": true,
+      "detail": "[]"
+    },
+    {
+      "name": "ORACLE_NOT_ACHIEVABLE",
+      "pass": true,
+      "detail": "len=441"
+    }
+  ],
+  "summary": {
+    "overall": "CONFIRMED",
+    "checks_total": 10,
+    "checks_pass": 10,
+    "rows_total": 5,
+    "rows_confirmed": 5
+  },
+  "note": "All 5 rows already earned by committed PRICING_CORRECTION_fefc2b04.json (t_0246c47f): gate semantics ESTABLISHED, exchange-truth NOT_ESTABLISHED (follower wallet absent on testnet; t_5cf2e6cf). certification_matrix.json NOT edited.",
+  "output": "certification/results/PRICING_NT_fefc2b04.json"
+}
