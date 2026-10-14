@@ -1,0 +1,245 @@
+{
+  "task_id": "t_0246c47f",
+  "title": "B3-CERT PRICING CORRECTION (5 rows): mark/freshness semantics proof",
+  "tested_commit": "4f2efc4932ed641591644033891e3795bf3060aa",
+  "engine_commit_reference": "fefc2b04",
+  "tested_at_utc": "2026-10-14T12:24:01Z",
+  "engine_sha256": "2dfbd571012af67479ee7a2d9e6f1faac6ee5408722a092fb3625450cab51405",
+  "engine_source": "committed blob git show fefc2b04:_archive/hl_stage2/HL_Live_Copy_Service_Core.py",
+  "engine_lines": 8030,
+  "rows": {
+    "PRICE-001": {
+      "verdict": "PARTIAL",
+      "gate_logic_checks_pass": true,
+      "checks_pass": 1,
+      "checks_total": 1,
+      "oracle_named_in_matrix": "Authoritative mark for OPEN/INCREASE/FLIP",
+      "oracle_actually_used": "engine runtime gate outcome (send_if_allowed -> _send_real -> _format_limit_px) with an IN-PROCESS exchange double",
+      "exchange_truth_aspect": "NOT_ESTABLISHED (follower wallet does not exist on testnet; t_5cf2e6cf)",
+      "checks": [],
+      "negative_tests": [
+        {
+          "name": "PRICE-001_no_fresh_mid_blocks_entry_VIA_DOUBLE",
+          "pass": true,
+          "detail": "status=SEND_NOT_ATTEMPTED_FOLLOWER_PRICE_UNAVAILABLE calls=0",
+          "oracle": "engine_runtime_gate_outcome_via_double"
+        }
+      ]
+    },
+    "PRICE-002": {
+      "verdict": "PARTIAL",
+      "gate_logic_checks_pass": true,
+      "checks_pass": 2,
+      "checks_total": 2,
+      "oracle_named_in_matrix": "Public quote freshness",
+      "oracle_actually_used": "engine runtime gate outcome (send_if_allowed -> _send_real -> _format_limit_px) with an IN-PROCESS exchange double",
+      "exchange_truth_aspect": "NOT_ESTABLISHED (follower wallet does not exist on testnet; t_5cf2e6cf)",
+      "checks": [],
+      "negative_tests": [
+        {
+          "name": "PRICE-002_empty_cache_returns_zero_VIA_DOUBLE",
+          "pass": true,
+          "detail": "follower_mid=0.0 empty",
+          "oracle": "engine_runtime_gate_outcome_via_double"
+        },
+        {
+          "name": "PRICE-002_beyond_max_age_returns_zero_VIA_DOUBLE",
+          "pass": true,
+          "detail": "follower_mid=0.0 6s old",
+          "oracle": "engine_runtime_gate_outcome_via_double"
+        }
+      ]
+    },
+    "PRICE-005": {
+      "verdict": "PARTIAL",
+      "gate_logic_checks_pass": true,
+      "checks_pass": 1,
+      "checks_total": 1,
+      "oracle_named_in_matrix": "Reduction/close never trapped by entry protection",
+      "oracle_actually_used": "engine runtime gate outcome (send_if_allowed -> _send_real -> _format_limit_px) with an IN-PROCESS exchange double",
+      "exchange_truth_aspect": "NOT_ESTABLISHED (follower wallet does not exist on testnet; t_5cf2e6cf)",
+      "checks": [],
+      "negative_tests": [
+        {
+          "name": "PRICE-005_entry_block_reason_blocks_entry_VIA_DOUBLE",
+          "pass": true,
+          "detail": "status=ENTRY_BLOCKED_EXPOSURE_CAP calls=0",
+          "oracle": "engine_runtime_gate_outcome_via_double"
+        }
+      ]
+    },
+    "PRICE-006": {
+      "verdict": "PARTIAL",
+      "gate_logic_checks_pass": true,
+      "checks_pass": 2,
+      "checks_total": 2,
+      "oracle_named_in_matrix": "Adverse-diff measure is meaningful",
+      "oracle_actually_used": "engine runtime gate outcome (send_if_allowed -> _send_real -> _format_limit_px) with an IN-PROCESS exchange double",
+      "exchange_truth_aspect": "NOT_ESTABLISHED (follower wallet does not exist on testnet; t_5cf2e6cf)",
+      "checks": [],
+      "negative_tests": [
+        {
+          "name": "PRICE-006_tight_adverse_limit_blocks_close_VIA_DOUBLE",
+          "pass": true,
+          "detail": "status=SEND_NOT_ATTEMPTED_CLOSE_ADVERSE_DIFF calls=0",
+          "oracle": "engine_runtime_gate_outcome_via_double"
+        },
+        {
+          "name": "PRICE-006_fill_price_far_from_mid_blocks_close_VIA_DOUBLE",
+          "pass": true,
+          "detail": "status=SEND_NOT_ATTEMPTED_CLOSE_ADVERSE_DIFF calls=0",
+          "oracle": "engine_runtime_gate_outcome_via_double"
+        }
+      ]
+    },
+    "PRICE-007": {
+      "verdict": "PARTIAL",
+      "gate_logic_checks_pass": true,
+      "checks_pass": 1,
+      "checks_total": 1,
+      "oracle_named_in_matrix": "Marketable slippage",
+      "oracle_actually_used": "engine runtime gate outcome (send_if_allowed -> _send_real -> _format_limit_px) with an IN-PROCESS exchange double",
+      "exchange_truth_aspect": "NOT_ESTABLISHED (follower wallet does not exist on testnet; t_5cf2e6cf)",
+      "checks": [],
+      "negative_tests": [
+        {
+          "name": "PRICE-007_zero_bps_limit_equals_mid_VIA_DOUBLE",
+          "pass": true,
+          "detail": "buy limit=50000.0 expected=50000 for 0 bps (status=ORDER_FILLED; ORDER_FILLED fabricated by double, NOT exchange truth)",
+          "oracle": "engine_runtime_gate_outcome_via_double"
+        }
+      ]
+    }
+  },
+  "checks": [
+    {
+      "name": "ENGINE_SHA256_MATCHES_COMMITTED_BLOB",
+      "pass": true,
+      "detail": "actual=2dfbd571012af67479ee7a2d9e6f1faac6ee5408722a092fb3625450cab51405",
+      "oracle": "engine_runtime_gate_outcome_via_double"
+    },
+    {
+      "name": "ENTRY_PRICED_FROM_FOLLOWER_MID_VIA_DOUBLE",
+      "pass": true,
+      "detail": "limit=50100.0 expected_from_mid=50100.0 leader_price=60000 (double fabricates ORDER_FILLED; NOT exchange truth)",
+      "oracle": "engine_runtime_gate_outcome_via_double"
+    },
+    {
+      "name": "FRESH_MID_RETURNED_VIA_DOUBLE",
+      "pass": true,
+      "detail": "follower_mid=50000.0 0ms (seeded cache, NOT exchange truth)",
+      "oracle": "engine_runtime_gate_outcome_via_double"
+    },
+    {
+      "name": "WITHIN_MAX_AGE_RETURNS_VALUE_VIA_DOUBLE",
+      "pass": true,
+      "detail": "follower_mid=50000.0 3000ms (max 5000)",
+      "oracle": "engine_runtime_gate_outcome_via_double"
+    },
+    {
+      "name": "BEYOND_MAX_AGE_RETURNS_ZERO_VIA_DOUBLE",
+      "pass": true,
+      "detail": "follower_mid=0.0 6000ms",
+      "oracle": "engine_runtime_gate_outcome_via_double"
+    },
+    {
+      "name": "EXIT_NOT_BLOCKED_BY_ENTRY_PROTECTION_VIA_DOUBLE",
+      "pass": true,
+      "detail": "status=ORDER_FILLED calls=1 (double fabricates ORDER_FILLED; NOT exchange truth)",
+      "oracle": "engine_runtime_gate_outcome_via_double"
+    },
+    {
+      "name": "REDUCE_NOT_BLOCKED_BY_ENTRY_PROTECTION_VIA_DOUBLE",
+      "pass": true,
+      "detail": "status=ORDER_FILLED calls=1 (lifecycle=REDUCE via engine notes channel; ORDER_FILLED fabricated by double, NOT exchange truth)",
+      "oracle": "engine_runtime_gate_outcome_via_double"
+    },
+    {
+      "name": "ADVERSE_DIFF_COMPUTED_VS_FOLLOWER_MID_VIA_DOUBLE",
+      "pass": true,
+      "detail": "close limit=49900.0 adverse_vs_mid=0.2000% (NOT vs leader fill)",
+      "oracle": "engine_runtime_gate_outcome_via_double"
+    },
+    {
+      "name": "DEFAULT_SLIPPAGE_20BPS_READ",
+      "pass": true,
+      "detail": "marketable_bps default=20.0",
+      "oracle": "engine_runtime_gate_outcome_via_double"
+    },
+    {
+      "name": "BUY_SLIPPAGE_APPLIED_VIA_DOUBLE",
+      "pass": true,
+      "detail": "buy limit=50100.0 expected=50100 (mid*1.002)",
+      "oracle": "engine_runtime_gate_outcome_via_double"
+    },
+    {
+      "name": "SELL_SLIPPAGE_APPLIED_VIA_DOUBLE",
+      "pass": true,
+      "detail": "sell limit=49900.0 expected=49900 (mid*0.998)",
+      "oracle": "engine_runtime_gate_outcome_via_double"
+    },
+    {
+      "name": "CUSTOM_50BPS_APPLIED_VIA_DOUBLE",
+      "pass": true,
+      "detail": "buy limit=50249.0 expected=50249.0 (mid*1.005 floored to tick; != 20bps limit 50100)",
+      "oracle": "engine_runtime_gate_outcome_via_double"
+    }
+  ],
+  "negative_tests": [
+    {
+      "name": "PRICE-001_no_fresh_mid_blocks_entry_VIA_DOUBLE",
+      "pass": true,
+      "detail": "status=SEND_NOT_ATTEMPTED_FOLLOWER_PRICE_UNAVAILABLE calls=0",
+      "oracle": "engine_runtime_gate_outcome_via_double"
+    },
+    {
+      "name": "PRICE-002_empty_cache_returns_zero_VIA_DOUBLE",
+      "pass": true,
+      "detail": "follower_mid=0.0 empty",
+      "oracle": "engine_runtime_gate_outcome_via_double"
+    },
+    {
+      "name": "PRICE-002_beyond_max_age_returns_zero_VIA_DOUBLE",
+      "pass": true,
+      "detail": "follower_mid=0.0 6s old",
+      "oracle": "engine_runtime_gate_outcome_via_double"
+    },
+    {
+      "name": "PRICE-005_entry_block_reason_blocks_entry_VIA_DOUBLE",
+      "pass": true,
+      "detail": "status=ENTRY_BLOCKED_EXPOSURE_CAP calls=0",
+      "oracle": "engine_runtime_gate_outcome_via_double"
+    },
+    {
+      "name": "PRICE-006_tight_adverse_limit_blocks_close_VIA_DOUBLE",
+      "pass": true,
+      "detail": "status=SEND_NOT_ATTEMPTED_CLOSE_ADVERSE_DIFF calls=0",
+      "oracle": "engine_runtime_gate_outcome_via_double"
+    },
+    {
+      "name": "PRICE-006_fill_price_far_from_mid_blocks_close_VIA_DOUBLE",
+      "pass": true,
+      "detail": "status=SEND_NOT_ATTEMPTED_CLOSE_ADVERSE_DIFF calls=0",
+      "oracle": "engine_runtime_gate_outcome_via_double"
+    },
+    {
+      "name": "PRICE-007_zero_bps_limit_equals_mid_VIA_DOUBLE",
+      "pass": true,
+      "detail": "buy limit=50000.0 expected=50000 for 0 bps (status=ORDER_FILLED; ORDER_FILLED fabricated by double, NOT exchange truth)",
+      "oracle": "engine_runtime_gate_outcome_via_double"
+    }
+  ],
+  "summary": {
+    "overall": "PARTIAL",
+    "all_gate_logic_pass": true,
+    "total_checks": 12,
+    "passed_checks": 12,
+    "total_negative": 7,
+    "non_vacuous_negative": 7,
+    "rows_total": 5,
+    "rows_partial": 5,
+    "rows_fail": 0
+  },
+  "oracle_statement": "The matrix oracle for these rows is exchange truth, NOT achievable on testnet (follower wallet absent; t_5cf2e6cf). Every check is earned by the runtime outcome of the engine REAL pricing/gate logic against an IN-PROCESS exchange double. The double fabricates ORDER_FILLED; that is NOT exchange truth and is never claimed as such. No source-substring/regex check. Rows are PARTIAL: gate semantics ESTABLISHED, exchange-truth NOT_ESTABLISHED.",
+  "harness": "certification/results/PRICING_CORRECTION_harness_fefc2b04.py"
+}
