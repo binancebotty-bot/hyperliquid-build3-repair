@@ -35,8 +35,11 @@ P6 = ("Static PASS (INV-06 single .order() site L2703, no process spawns).")
 P10 = "Static census PASS (non-vacuous for this row)."
 F10 = ("Static census FAIL: INV-11 and INV-14 fail; INV-13 negative test non_vacuous=false. "
        "Static census documented as insufficient (runtime card t_4a54d270 required).")
-B1 = ("Runtime proof dry-run only (HL_LIVE_MOCK_SEND=1). Real testnet fill NOT_ESTABLISHED: "
-      "HL_LIVE_HL_PRIVATE_KEY unset, no .env/.env.testnet in repo.")
+B1 = ("Real testnet order attempted via engine _send_real (py3.11, HL_LIVE_ENV_FILE, "
+      "HL_FOLLOWER_NETWORK=testnet, HL_ENABLE_LIVE_SEND=1). Exchange called but rejected: "
+      "wallet 0x1110dd09c451f3a5258f83309a65f470e6cfe86a does not exist on testnet. "
+      "No genuine fill produced. Engine path verified: symbol resolution OK, mid price OK, "
+      "SDK client OK, risk limits OK, exchange call OK. Result: NOT_ESTABLISHED.")
 P11 = ("CORRECTED runtime+static PASS: 36/36 checks; 11/11 non-vacuous negatives; engine sha256 verified. "
        "Corrections: ENG-014 uses source=WS_SNAPSHOT (not WS) so stale_snapshot_replay_reason() actually "
        "exercises stale-detection; ENG-010 accepts ONLY ACCOUNT_NET_TRUTH_UNAVAILABLE (not IDENTITY_INVALID); "

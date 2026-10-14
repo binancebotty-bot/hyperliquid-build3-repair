@@ -52,13 +52,33 @@
     ]
   },
   "physical_testnet_fill": {
-    "attempted": false,
-    "reachable": false,
-    "reason": "No testnet credentials available (HL_LIVE_HL_PRIVATE_KEY not set, no .env.testnet in repo). Engine _send_real() requires a valid private key to construct an exchange client and place an order. Without credentials, the send path returns REAL_SENDER_NOT_CONFIGURED before any exchange call.",
+    "attempted": true,
+    "reachable": true,
+    "exchange_called": true,
+    "reason": "Exchange rejected order: wallet 0x1110dd09c451f3a5258f83309a65f470e6cfe86a does not exist on testnet. The private key in the env file does not correspond to a wallet that has been initialized on Hyperliquid testnet.",
     "exchange_order_id": null,
     "exchange_fill_id": null,
     "master_fill_observed": false,
-    "result": "NOT_ESTABLISHED"
+    "result": "NOT_ESTABLISHED",
+    "exchange_response": {
+      "status": "err",
+      "response": "User or API Wallet 0x1110dd09c451f3a5258f83309a65f470e6cfe86a does not exist."
+    },
+    "order_params": {
+      "coin": "HYPE",
+      "side": "BUY",
+      "size": 0.3,
+      "limit_px": 56.362,
+      "copy_notional": 16.9086
+    },
+    "engine_path_verified": {
+      "symbol_resolution": "OK - HYPE resolved to sdk_coin=HYPE",
+      "mid_price_fetched": "OK - testnet mid = $56.362",
+      "sdk_client_created": "OK - exchange client initialized",
+      "exchange_call_made": "OK - order sent to testnet exchange",
+      "risk_limits_checked": "OK - notional $16.91 < $20 max",
+      "reduce_only_flag": "false (entry order)"
+    }
   },
   "negative_tests": {
     "restart_mid_sequence": {
