@@ -1,0 +1,579 @@
+{
+  "task_id": "t_baf7c646",
+  "title": "B3-CERT WALLET area (14 rows): wallet/identity semantics proof",
+  "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+  "tested_at_utc": "2026-10-14T10:35:16Z",
+  "engine_sha256": "2dfbd571012af67479ee7a2d9e6f1faac6ee5408722a092fb3625450cab51405",
+  "total_rows": 14,
+  "pass_count": 91,
+  "fail_count": 0,
+  "rows": {
+    "UI-WALLET-001": {
+      "result": "PASS",
+      "checks": [
+        {
+          "name": "EMPTY_CONFIG_ZERO_WALLETS",
+          "pass": true,
+          "detail": "count=0"
+        },
+        {
+          "name": "VALID_WALLET_ADDED",
+          "pass": true,
+          "detail": "wallets=['0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa']"
+        },
+        {
+          "name": "WALLET_MODE_ON",
+          "pass": true,
+          "detail": "mode=ON"
+        },
+        {
+          "name": "WALLET_ENABLED",
+          "pass": true,
+          "detail": "enabled=True"
+        },
+        {
+          "name": "HOT_RELOAD",
+          "pass": true,
+          "detail": "re-read live_config.json"
+        },
+        {
+          "name": "NEG_INVALID_ADDR_SHORT",
+          "pass": true,
+          "detail": "0x123"
+        },
+        {
+          "name": "NEG_INVALID_ADDR_NONHEX",
+          "pass": true,
+          "detail": "non-hex"
+        },
+        {
+          "name": "NEG_INVALID_ADDR_EMPTY",
+          "pass": true,
+          "detail": "empty"
+        },
+        {
+          "name": "NEG_INVALID_ADDR_LONG",
+          "pass": true,
+          "detail": "too long"
+        },
+        {
+          "name": "NEG_INVALID_FILTERED",
+          "pass": true,
+          "detail": "invalid addr not in wallets()"
+        },
+        {
+          "name": "NEG_VALID_ADDR_PASSES",
+          "pass": true,
+          "detail": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa is valid"
+        }
+      ],
+      "evidence_ref": "certification/results/WALLET_fa9d9f55ff.json",
+      "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+      "tested_at_utc": "2026-10-14T10:35:16Z"
+    },
+    "UI-WALLET-003": {
+      "result": "PASS",
+      "checks": [
+        {
+          "name": "STARTS_OFF",
+          "pass": true,
+          "detail": "mode=OFF"
+        },
+        {
+          "name": "OFF_NOT_ACTIVE",
+          "pass": true,
+          "detail": "active=[]"
+        },
+        {
+          "name": "LIVE_MODE_SET",
+          "pass": true,
+          "detail": "mode=ON"
+        },
+        {
+          "name": "LIVE_IS_ACTIVE",
+          "pass": true,
+          "detail": "active=['0xcccccccccccccccccccccccccccccccccccccccc']"
+        },
+        {
+          "name": "EFFECTIVE_ACTION_COPYING",
+          "pass": true,
+          "detail": "action=COPYING"
+        },
+        {
+          "name": "NEG_OFF_ACTION",
+          "pass": true,
+          "detail": "action=WALLET_OFF"
+        },
+        {
+          "name": "NEG_CLO_NOT_COPYING",
+          "pass": true,
+          "detail": "action=CLOSE_ONLY"
+        }
+      ],
+      "evidence_ref": "certification/results/WALLET_fa9d9f55ff.json",
+      "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+      "tested_at_utc": "2026-10-14T10:35:16Z"
+    },
+    "UI-WALLET-004": {
+      "result": "PASS",
+      "checks": [
+        {
+          "name": "STARTS_ON",
+          "pass": true,
+          "detail": "mode=ON"
+        },
+        {
+          "name": "DISABLED",
+          "pass": true,
+          "detail": "enabled=False"
+        },
+        {
+          "name": "DISABLED_NOT_ACTIVE",
+          "pass": true,
+          "detail": "active=[]"
+        },
+        {
+          "name": "CONFIG_PRESERVED",
+          "pass": true,
+          "detail": "mode config kept"
+        },
+        {
+          "name": "NEG_ENABLED_IS_ACTIVE",
+          "pass": true,
+          "detail": "enabled wallet in active set"
+        },
+        {
+          "name": "NEG_DISABLED_IN_WALLETS",
+          "pass": true,
+          "detail": "still in wallets()"
+        }
+      ],
+      "evidence_ref": "certification/results/WALLET_fa9d9f55ff.json",
+      "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+      "tested_at_utc": "2026-10-14T10:35:16Z"
+    },
+    "UI-WALLET-005": {
+      "result": "PASS",
+      "checks": [
+        {
+          "name": "CLO_MODE",
+          "pass": true,
+          "detail": "mode=CLO"
+        },
+        {
+          "name": "CLO_ACTION",
+          "pass": true,
+          "detail": "action=CLOSE_ONLY"
+        },
+        {
+          "name": "CLO_IS_ACTIVE",
+          "pass": true,
+          "detail": "active=['0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee']"
+        },
+        {
+          "name": "CLO_BLOCKS_ENTRY",
+          "pass": true,
+          "detail": "CLO mode + CLOSE_ONLY action"
+        },
+        {
+          "name": "NEG_ON_ALLOWS_ENTRY",
+          "pass": true,
+          "detail": "action=COPYING"
+        },
+        {
+          "name": "NEG_OFF_NOT_CLOSE_ONLY",
+          "pass": true,
+          "detail": "action=WALLET_OFF"
+        }
+      ],
+      "evidence_ref": "certification/results/WALLET_fa9d9f55ff.json",
+      "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+      "tested_at_utc": "2026-10-14T10:35:16Z"
+    },
+    "UI-WALLET-007": {
+      "result": "PASS",
+      "checks": [
+        {
+          "name": "NORM_BASE_PERSISTS",
+          "pass": true,
+          "detail": "norm_base=5000"
+        },
+        {
+          "name": "NORM_BASE_READ_BY_FNUM",
+          "pass": true,
+          "detail": "fnum=5000.0"
+        },
+        {
+          "name": "NORM_BASE_DIFFERS",
+          "pass": true,
+          "detail": "1000 != 9000"
+        },
+        {
+          "name": "NEG_NORM_BASE_ZERO",
+          "pass": true,
+          "detail": "norm_base=0 stored"
+        },
+        {
+          "name": "NEG_NORM_BASE_NONNUMERIC",
+          "pass": true,
+          "detail": "fnum returns default"
+        }
+      ],
+      "evidence_ref": "certification/results/WALLET_fa9d9f55ff.json",
+      "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+      "tested_at_utc": "2026-10-14T10:35:16Z"
+    },
+    "UI-WALLET-009": {
+      "result": "PASS",
+      "checks": [
+        {
+          "name": "LEADER_EQUITY_BASE_PERSISTS",
+          "pass": true,
+          "detail": "leader_equity_base=10000"
+        },
+        {
+          "name": "LEADER_EQUITY_BASE_NOT_USED",
+          "pass": true,
+          "detail": "engine comment confirms not used"
+        },
+        {
+          "name": "NEG_NOT_IN_COPY_NOTIONAL",
+          "pass": true,
+          "detail": "_copy_notional code does not reference leader_equity_base"
+        }
+      ],
+      "evidence_ref": "certification/results/WALLET_fa9d9f55ff.json",
+      "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+      "tested_at_utc": "2026-10-14T10:35:16Z"
+    },
+    "UI-WALLET-010": {
+      "result": "PASS",
+      "checks": [
+        {
+          "name": "MODE_ACCESSIBLE",
+          "pass": true,
+          "detail": "mode=ON"
+        },
+        {
+          "name": "ENABLED_ACCESSIBLE",
+          "pass": true,
+          "detail": "enabled=True"
+        },
+        {
+          "name": "COPY_MODE_ACCESSIBLE",
+          "pass": true,
+          "detail": "copy_mode=fixed"
+        },
+        {
+          "name": "FIXED_NOTIONAL_ACCESSIBLE",
+          "pass": true,
+          "detail": "fixed_notional=25.0"
+        },
+        {
+          "name": "NEG_UNKNOWN_MODE_DEFAULT",
+          "pass": true,
+          "detail": "mode=OFF"
+        },
+        {
+          "name": "NEG_UNKNOWN_COPY_MODE_DEFAULT",
+          "pass": true,
+          "detail": "copy_mode=fixed"
+        },
+        {
+          "name": "NEG_UNKNOWN_FIXED_NOTIONAL_DEFAULT",
+          "pass": true,
+          "detail": "fixed_notional=10.0"
+        }
+      ],
+      "evidence_ref": "certification/results/WALLET_fa9d9f55ff.json",
+      "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+      "tested_at_utc": "2026-10-14T10:35:16Z"
+    },
+    "UI-WALLET-011": {
+      "result": "PASS",
+      "checks": [
+        {
+          "name": "RESTART_PRESERVES_MODE",
+          "pass": true,
+          "detail": "mode=CLO"
+        },
+        {
+          "name": "RESTART_PRESERVES_ENABLED",
+          "pass": true,
+          "detail": "enabled=True"
+        },
+        {
+          "name": "RESTART_PRESERVES_COPY_MODE",
+          "pass": true,
+          "detail": "copy_mode=proportional"
+        },
+        {
+          "name": "RESTART_PRESERVES_NORM_BASE",
+          "pass": true,
+          "detail": "norm_base=7500"
+        },
+        {
+          "name": "RESTART_PRESERVES_FIXED_NOTIONAL",
+          "pass": true,
+          "detail": "fixed_notional=15.0"
+        },
+        {
+          "name": "CONFIG_VALID_JSON",
+          "pass": true,
+          "detail": "wallets dict preserved"
+        },
+        {
+          "name": "NEG_CONFIG_MATCHES_ORIGINAL",
+          "pass": true,
+          "detail": "mode matches"
+        },
+        {
+          "name": "NEG_RESTART_NO_ORDERS",
+          "pass": true,
+          "detail": "ConfigManager._load() is read-only"
+        }
+      ],
+      "evidence_ref": "certification/results/WALLET_fa9d9f55ff.json",
+      "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+      "tested_at_utc": "2026-10-14T10:35:16Z"
+    },
+    "UI-WALLET-012": {
+      "result": "PASS",
+      "checks": [
+        {
+          "name": "BAD_ADDR_SHORT",
+          "pass": true,
+          "detail": "0x123"
+        },
+        {
+          "name": "BAD_ADDR_NONHEX",
+          "pass": true,
+          "detail": "non-hex"
+        },
+        {
+          "name": "BAD_ADDR_EMPTY",
+          "pass": true,
+          "detail": "empty"
+        },
+        {
+          "name": "BAD_ADDR_LONG",
+          "pass": true,
+          "detail": "too long"
+        },
+        {
+          "name": "BAD_ADDR_NO_PREFIX",
+          "pass": true,
+          "detail": "no 0x prefix"
+        },
+        {
+          "name": "BAD_MODE_TO_OFF",
+          "pass": true,
+          "detail": "mode=OFF"
+        },
+        {
+          "name": "BAD_COPY_MODE_TO_FIXED",
+          "pass": true,
+          "detail": "copy_mode=fixed"
+        },
+        {
+          "name": "NONNUM_NORM_BASE",
+          "pass": true,
+          "detail": "fnum returns default"
+        },
+        {
+          "name": "NEG_FIXED_NOTIONAL",
+          "pass": true,
+          "detail": "fixed_notional=0.0"
+        },
+        {
+          "name": "NEG_VALID_MODE",
+          "pass": true,
+          "detail": "ON preserved"
+        },
+        {
+          "name": "NEG_VALID_COPY_MODE",
+          "pass": true,
+          "detail": "proportional preserved"
+        }
+      ],
+      "evidence_ref": "certification/results/WALLET_fa9d9f55ff.json",
+      "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+      "tested_at_utc": "2026-10-14T10:35:16Z"
+    },
+    "UI-WALLET-013": {
+      "result": "PASS",
+      "checks": [
+        {
+          "name": "USER_WALLET_NOT_LEADER",
+          "pass": true,
+          "detail": "USER_WALLET not in leader wallets"
+        },
+        {
+          "name": "USER_WALLET_IS_FOLLOWER",
+          "pass": true,
+          "detail": "USER_WALLET="
+        },
+        {
+          "name": "NEG_OTHER_CAN_ENABLE",
+          "pass": true,
+          "detail": "other wallet enabled"
+        },
+        {
+          "name": "NEG_USER_NOT_IN_WALLETS",
+          "pass": true,
+          "detail": "USER_WALLET not in wallets()"
+        }
+      ],
+      "evidence_ref": "certification/results/WALLET_fa9d9f55ff.json",
+      "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+      "tested_at_utc": "2026-10-14T10:35:16Z"
+    },
+    "UI-WALLET-016": {
+      "result": "PASS",
+      "checks": [
+        {
+          "name": "INC_PERSISTS",
+          "pass": true,
+          "detail": "include_in_portfolio stored"
+        },
+        {
+          "name": "INC_NO_EFFECT_MODE",
+          "pass": true,
+          "detail": "mode=ON"
+        },
+        {
+          "name": "INC_NO_EFFECT_COPY_MODE",
+          "pass": true,
+          "detail": "copy_mode=fixed"
+        },
+        {
+          "name": "INC_NO_EFFECT_ENABLED",
+          "pass": true,
+          "detail": "enabled=True"
+        },
+        {
+          "name": "NEG_INC_FALSE_NO_EFFECT",
+          "pass": true,
+          "detail": "mode still ON"
+        },
+        {
+          "name": "NEG_INC_NOT_IN_TRADING",
+          "pass": true,
+          "detail": "not in _copy_notional or _decision"
+        }
+      ],
+      "evidence_ref": "certification/results/WALLET_fa9d9f55ff.json",
+      "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+      "tested_at_utc": "2026-10-14T10:35:16Z"
+    },
+    "UI-WALLET-017": {
+      "result": "PASS",
+      "checks": [
+        {
+          "name": "TAG_PERSISTS",
+          "pass": true,
+          "detail": "tag=MyLeader"
+        },
+        {
+          "name": "COLOUR_PERSISTS",
+          "pass": true,
+          "detail": "colour=#ff0000"
+        },
+        {
+          "name": "NOTE_PERSISTS",
+          "pass": true,
+          "detail": "note=Test wallet"
+        },
+        {
+          "name": "META_NO_EFFECT_MODE",
+          "pass": true,
+          "detail": "mode=ON"
+        },
+        {
+          "name": "META_NO_EFFECT_COPY_MODE",
+          "pass": true,
+          "detail": "copy_mode=fixed"
+        },
+        {
+          "name": "NEG_META_NOT_IN_SIZING",
+          "pass": true,
+          "detail": "meta not in _copy_notional"
+        }
+      ],
+      "evidence_ref": "certification/results/WALLET_fa9d9f55ff.json",
+      "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+      "tested_at_utc": "2026-10-14T10:35:16Z"
+    },
+    "UI-WALLET-018": {
+      "result": "PASS",
+      "checks": [
+        {
+          "name": "ADDED_ONCE",
+          "pass": true,
+          "detail": "wallet in config"
+        },
+        {
+          "name": "READD_OVERWRITES",
+          "pass": true,
+          "detail": "tag=Updated"
+        },
+        {
+          "name": "NO_DUPLICATE",
+          "pass": true,
+          "detail": "count=1"
+        },
+        {
+          "name": "ARCHIVED_PERSISTS",
+          "pass": true,
+          "detail": "archived in config"
+        },
+        {
+          "name": "NEG_DIFFERENT_SEPARATE",
+          "pass": true,
+          "detail": "count=2"
+        },
+        {
+          "name": "NEG_READD_NO_DUPLICATE",
+          "pass": true,
+          "detail": "still 1 wallet after re-add"
+        }
+      ],
+      "evidence_ref": "certification/results/WALLET_fa9d9f55ff.json",
+      "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+      "tested_at_utc": "2026-10-14T10:35:16Z"
+    },
+    "UI-WALLET-019": {
+      "result": "PASS",
+      "checks": [
+        {
+          "name": "ACTIVE_IN_STREAM",
+          "pass": true,
+          "detail": "stream=['0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb']"
+        },
+        {
+          "name": "OFF_NOT_ACTIVE",
+          "pass": true,
+          "detail": "active=[]"
+        },
+        {
+          "name": "MAX_WALLETS_CAP",
+          "pass": true,
+          "detail": "len=10, MAX=10"
+        },
+        {
+          "name": "NEG_DISABLED_NOT_ACTIVE",
+          "pass": true,
+          "detail": "disabled not in active"
+        },
+        {
+          "name": "NEG_CLO_IS_ACTIVE",
+          "pass": true,
+          "detail": "CLO in active set"
+        }
+      ],
+      "evidence_ref": "certification/results/WALLET_fa9d9f55ff.json",
+      "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+      "tested_at_utc": "2026-10-14T10:35:16Z"
+    }
+  }
+}

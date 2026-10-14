@@ -1,0 +1,2248 @@
+{
+  "task": "B3-CERT REGRESSION area (138 rows): regression sweep proof",
+  "repo_root": "C:\\Users\\wigmore\\hyperliquid-build3-repair",
+  "engine": "C:\\Users\\wigmore\\hyperliquid-build3-repair\\_archive\\hl_stage2\\HL_Live_Copy_Service_Core.py",
+  "engine_sha256": "2dfbd571012af67479ee7a2d9e6f1faac6ee5408722a092fb3625450cab51405",
+  "engine_lines": 8030,
+  "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+  "tested_at_utc": "2026-10-14T09:53:11.604904+00:00",
+  "total_rows": 138,
+  "pass": 131,
+  "fail": 0,
+  "blocked": 7,
+  "results": {
+    "B4-I01": {
+      "id": "B4-I01",
+      "feature": "Build 4 I01 NO_COMMITTED_EVENT_HOLD",
+      "expected_behaviour": "No committed genuine post-baseline event: - current leader position never authorises trading; - owned sleeve may provide attribution / non-trading HOLD baseline only; - owned sleeve never authorises convergence; - do not manufacture an EVENT_AUTHORISED_TARGET from current leader position or from own",
+      "category": "static",
+      "checks": [
+        {
+          "name": "I01_PRE_CUTOVER_NO_SEND",
+          "pass": true,
+          "detail": ""
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "B4-I02": {
+      "id": "B4-I02",
+      "feature": "Build 4 I02 NO_POSITION_CATCHUP",
+      "expected_behaviour": "Startup, restart, handover, rebaseline, current leader position and truth recovery create zero trade authority. - Tests: test_new_events_only_authority.py, test_build4_startup_authority.py, test_quiescence_migration_bypass.py - Prevents: R01, R19; ARCH-011 (restart depended on local replay).",
+      "category": "static",
+      "checks": [
+        {
+          "name": "I02_NO_CATCHUP_ON_STARTUP",
+          "pass": true,
+          "detail": ""
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "B4-I03": {
+      "id": "B4-I03",
+      "feature": "Build 4 I03 WS_PLUS_REST_EVENT_DISCOVERY",
+      "expected_behaviour": "WS gives immediate genuine leader events; REST from durable cursor repairs genuine missed events. Both enter ONE logical event stream. - Tests: test_ws_first_acceptance.py, test_ws_first_execution.py, test_feed_manager.py - Prevents: LOGIC-002 (WS mutates truth), EXC-009 (WS gap/stale).",
+      "category": "static",
+      "checks": [
+        {
+          "name": "I03_WS_PLUS_REST_DISCOVERY",
+          "pass": true,
+          "detail": ""
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "B4-I04": {
+      "id": "B4-I04",
+      "feature": "Build 4 I04 NET_EVENT_RECOVERY",
+      "expected_behaviour": "Several missed events yield the latest NET event-authorised sleeve state. Never reproduce stale missed trades one-by-one. - Tests: test_new_events_only_authority.py - Prevents: R23; LOGIC-001.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "I04_NET_EVENT_RECOVERY",
+          "pass": true,
+          "detail": ""
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "B4-I05": {
+      "id": "B4-I05",
+      "feature": "Build 4 I05 EVENT_PERSISTENCE",
+      "expected_behaviour": "429, timeout, truth failure, restart, handover, CLOSE_ONLY and temporary inability to send cannot silently consume a genuine event. - Tests: test_live_fill_truth_429_fail_closed.py, test_info_client_transient_survival.py, test_no_silently_lost_actionable_row.py, test_transport_init_transient_retry.p",
+      "category": "static",
+      "checks": [
+        {
+          "name": "I05_EVENT_PERSISTENCE",
+          "pass": true,
+          "detail": ""
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "B4-I06": {
+      "id": "B4-I06",
+      "feature": "Build 4 I06 EXACTLY_ONCE",
+      "expected_behaviour": "One canonical logical event identity; one deterministic execution identity/CLOID. Ambiguous submission stays unresolved until exchange truth resolves it.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "I06_EXACTLY_ONCE_DEDUP",
+          "pass": true,
+          "detail": ""
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "B4-I07": {
+      "id": "B4-I07",
+      "feature": "Build 4 I07 FRESH_SEND_TIME_TRUTH",
+      "expected_behaviour": "Immediately before exchange send, obtain fresh authenticated follower truth required for that order. Exchange truth outranks local/UI state. - Tests: test_unified_account_truth.py, test_account_truth_refresher.py, test_actual_position_retry.py, test_unified_position_open_account_truth_incident.py - ",
+      "category": "static",
+      "checks": [
+        {
+          "name": "I07_FRESH_TRUTH_BEFORE_SEND",
+          "pass": true,
+          "detail": ""
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "B4-I08": {
+      "id": "B4-I08",
+      "feature": "Build 4 I08 ONE_SENDER",
+      "expected_behaviour": "Exactly one canonical sender lease/fence. - Tests: test_handover_lease_directory_contract.py, test_convergence_sender_ordering.py, test_handover_authority_monotonicity.py - Prevents: ARCH-009 (multiple send paths), EXC-014 (master gate not dominant).",
+      "category": "static",
+      "checks": [
+        {
+          "name": "I08_ONE_SENDER_GATEWAY",
+          "pass": true,
+          "detail": ""
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "B4-I09": {
+      "id": "B4-I09",
+      "feature": "Build 4 I09 RUNTIME_ACTIVE_SSOT",
+      "expected_behaviour": "runtime/active remains durable execution state authority. - Tests: test_runtime_identity.py, test_handover_state_snapshot.py, test_runtime_live_identity_wiring.py - Prevents: R15 (stale candidate/shadow overwrites canonical active state).",
+      "category": "static",
+      "checks": [
+        {
+          "name": "I09_RUNTIME_SSOT",
+          "pass": true,
+          "detail": ""
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "B4-I10": {
+      "id": "B4-I10",
+      "feature": "Build 4 I10 LOCAL_FAILURE_ISOLATION",
+      "expected_behaviour": "One bad symbol/wallet/API response cannot globally block unrelated leaders.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "I10_FAILURE_ISOLATION",
+          "pass": true,
+          "detail": ""
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "B4-I11": {
+      "id": "B4-I11",
+      "feature": "Build 4 I11 OWNED_SLEEVE_SURVIVAL",
+      "expected_behaviour": "Infrastructure changes cannot orphan follower-owned exposure. Subsequent genuine reductions/closes remain manageable. - Tests: test_runtime_sleeve_ownership_integration.py, test_sleeve_ownership_ledger.py, test_flat_reset_ownership_boundary.py, test_live_ownership_reconciliation_hold.py - Prevents: ",
+      "category": "static",
+      "checks": [
+        {
+          "name": "I11_SLEEVE_SURVIVAL",
+          "pass": true,
+          "detail": ""
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "B4-I14": {
+      "id": "B4-I14",
+      "feature": "Build 4 I14 FOLLOWER_FILL_EXCLUSION",
+      "expected_behaviour": "Follower exchange fills can never be ingested as leader authority. - Tests: test_follower_fill_authority_poisoning.py, test_handover_live_fill_ownership_compare.py - Prevents: R02.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "I14_FOLLOWER_FILL_EXCLUSION",
+          "pass": true,
+          "detail": ""
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "B4-I15": {
+      "id": "B4-I15",
+      "feature": "Build 4 I15 REAL_MARGIN_TRUTH",
+      "expected_behaviour": "Read Hyperliquid's actual assetPositions schema. A flat *supported* market does not imply margin unavailable. A real unsupported market blocks that symbol only. - Tests: test_unified_maintenance_margin_invariant.py, test_builder_dex_margin_policy_lifecycle.py, test_unified_position_open_account_trut",
+      "category": "static",
+      "checks": [
+        {
+          "name": "I15_REAL_MARGIN_TRUTH",
+          "pass": true,
+          "detail": ""
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "B4-I16": {
+      "id": "B4-I16",
+      "feature": "Build 4 I16 DIAGNOSTICS_NON_BLOCKING",
+      "expected_behaviour": "Repository state, certification, 8014, Proof Engine, UI, Graphify, watchdog and deployment diagnostics cannot block a legitimate execution delta. - Tests: test_certification_is_diagnostic_only.py, test_operational_safety_invariants.py - Prevents: R13, R14, R16.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "I16_DIAGNOSTICS_NON_BLOCKING",
+          "pass": true,
+          "detail": "self-test passed=144, failed=0"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "B4-I17": {
+      "id": "B4-I17",
+      "feature": "Build 4 I17 WALLET_ADD",
+      "expected_behaviour": "New leader: baseline/cursor at onboarding time; future genuine events only; no historical replay; no position catch-up. - Tests: test_ui_config_change_audit.py, test_operator_flat_reset_rebaseline.py - Prevents: R19.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "I17_WALLET_ADD_BASELINE",
+          "pass": true,
+          "detail": ""
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "B4-I18": {
+      "id": "B4-I18",
+      "feature": "Build 4 I18 WALLET_REMOVE",
+      "expected_behaviour": "Removing a leader stops future intake but cannot orphan an existing owned sleeve. Retain a minimal ownership tombstone until legitimate closure. - Tests: test_ui_wallet_ownership_truth.py, test_flat_reset_ownership_boundary.py - Prevents: R20.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "I18_WALLET_REMOVE_NO_ORPHAN",
+          "pass": true,
+          "detail": ""
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "B4-I19": {
+      "id": "B4-I19",
+      "feature": "Build 4 I19 WALLET_HOT_RELOAD",
+      "expected_behaviour": "Leader list is runtime configuration. Wallet change requires NO release and NO process restart. - Tests: test_ui_config_change_audit.py, test_control_transaction_atomicity.py - Prevents: LOGIC-007 (hot-reload subscription drift), EXC-011.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "I19_HOT_RELOAD",
+          "pass": true,
+          "detail": "found 2 hot reload patterns"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "B4-I22": {
+      "id": "B4-I22",
+      "feature": "Build 4 I22 REDUCTION_CLOSE_NOT_TRAPPED",
+      "expected_behaviour": "Entry price protection cannot prevent legitimate reduction/close. - Tests: test_canary_exit_authority.py, test_close_only_contract.py - Prevents: R24.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "I22_REDUCTION_NOT_TRAPPED",
+          "pass": true,
+          "detail": ""
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "B4-I23": {
+      "id": "B4-I23",
+      "feature": "Build 4 I23 PARTIAL_FILL",
+      "expected_behaviour": "Ownership advances only by confirmed fill. Residual authorised delta remains. - Tests: test_live_event_lifecycle_exactly_once.py, test_runtime_sleeve_ownership_integration.py - Prevents: R22; LOGIC-011, EXC-004.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "I23_PARTIAL_FILL",
+          "pass": true,
+          "detail": ""
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "B4-I24": {
+      "id": "B4-I24",
+      "feature": "Build 4 I24 RECOVERY_CREATES_ZERO_AUTHORITY",
+      "expected_behaviour": "Restart/handover/recovery/config reload itself creates no order. - Tests: test_build4_startup_authority.py, test_quiescence_migration_bypass.py, test_handover_zero_counts.py, test_runtime_survival_disposable.py - Prevents: ARCH-010, EXC-015 (recovery direct send).",
+      "category": "static",
+      "checks": [
+        {
+          "name": "I24_RECOVERY_ZERO_AUTHORITY",
+          "pass": true,
+          "detail": ""
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "B4-I25": {
+      "id": "B4-I25",
+      "feature": "Build 4 I25 UNATTRIBUTED_EXPOSURE",
+      "expected_behaviour": "If fresh exchange truth contains exposure that Build-4 cannot attribute to a canonical owned sleeve or to a known manual/external classification, normal copy execution must not blindly alter that exposure. Fail closed for the affected symbol only; unrelated symbols continue (I10).",
+      "category": "static",
+      "checks": [
+        {
+          "name": "I25_UNATTRIBUTED_EXPOSURE",
+          "pass": true,
+          "detail": ""
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "B4-R01": {
+      "id": "B4-R01",
+      "feature": "Historical regression R01",
+      "expected_behaviour": "Must not recur: seed/current-position authorised-target convergence",
+      "category": "static",
+      "checks": [
+        {
+          "name": "B4-R01_REGRESSION_ABSENT",
+          "pass": true,
+          "detail": "passed: ['cutover: pre-cutover fill does not send', 'cutover: pre-cutover fill writes intent']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "B4-R02": {
+      "id": "B4-R02",
+      "feature": "Historical regression R02",
+      "expected_behaviour": "Must not recur: follower fill entering leader event authority",
+      "category": "static",
+      "checks": [
+        {
+          "name": "B4-R02_REGRESSION_ABSENT",
+          "pass": true,
+          "detail": "passed: ['copy fill fallback matches by coin/side/time', 'unmatched copy fill writes reconciliation']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "B4-R03": {
+      "id": "B4-R03",
+      "feature": "Historical regression R03",
+      "expected_behaviour": "Must not recur: global cursor/barrier delaying unrelated events",
+      "category": "static",
+      "checks": [
+        {
+          "name": "B4-R03_REGRESSION_ABSENT",
+          "pass": true,
+          "detail": "passed: ['cutover: pre-cutover fill writes intent', 'cutover: post-cutover fill reaches mock send boundary']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "B4-R04": {
+      "id": "B4-R04",
+      "feature": "Historical regression R04",
+      "expected_behaviour": "Must not recur: false `BLOCKED_CROSS_MARGIN_UNAVAILABLE` on flat supported markets",
+      "category": "static",
+      "checks": [
+        {
+          "name": "B4-R04_REGRESSION_ABSENT",
+          "pass": true,
+          "detail": "passed: ['symbol: ETH resolves sdk_coin=ETH no perp_dexs', 'symbol: @9999 raw index outside core perp universe skipped']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "B4-R05": {
+      "id": "B4-R05",
+      "feature": "Historical regression R05",
+      "expected_behaviour": "Must not recur: `assetPositions` wrapper parsing",
+      "category": "static",
+      "checks": [
+        {
+          "name": "B4-R05_REGRESSION_ABSENT",
+          "pass": true,
+          "detail": "passed: ['symbol: ETH resolves sdk_coin=ETH no perp_dexs', 'symbol: XYZ:SNDK resolves sdk-compatible full builder coin']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "B4-R06": {
+      "id": "B4-R06",
+      "feature": "Historical regression R06",
+      "expected_behaviour": "Must not recur: account truth blocked by timestamp identity",
+      "category": "static",
+      "checks": [
+        {
+          "name": "B4-R06_REGRESSION_ABSENT",
+          "pass": true,
+          "detail": "passed: ['real sender: mocked exchange writes one REAL_IOC send_attempt', 'real sender: send_attempt has exchange_order_id test-oid-1']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "B4-R07": {
+      "id": "B4-R07",
+      "feature": "Historical regression R07",
+      "expected_behaviour": "Must not recur: account truth blocked by volatile balance comparison",
+      "category": "static",
+      "checks": [
+        {
+          "name": "B4-R07_REGRESSION_ABSENT",
+          "pass": true,
+          "detail": "passed: ['real sender: mocked exchange writes one REAL_IOC send_attempt', 'real sender: send_attempt order_type is REAL_IOC']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "B4-R08": {
+      "id": "B4-R08",
+      "feature": "Historical regression R08",
+      "expected_behaviour": "Must not recur: transient 429 loses/consumes event",
+      "category": "static",
+      "checks": [
+        {
+          "name": "B4-R08_REGRESSION_ABSENT",
+          "pass": true,
+          "detail": "passed: ['copy account checkpoint survives service_state clobber', 'dedupe: duplicate copy_fill_id blocked']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "B4-R09": {
+      "id": "B4-R09",
+      "feature": "Historical regression R09",
+      "expected_behaviour": "Must not recur: duplicate WS/REST logical event",
+      "category": "static",
+      "checks": [
+        {
+          "name": "B4-R09_REGRESSION_ABSENT",
+          "pass": true,
+          "detail": "passed: ['dedupe: duplicate copy_fill_id blocked', 'OID dedupe: second OID-matched apply blocked by xproc marker']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "B4-R10": {
+      "id": "B4-R10",
+      "feature": "Historical regression R10",
+      "expected_behaviour": "Must not recur: ambiguous submission duplicate risk",
+      "category": "static",
+      "checks": [
+        {
+          "name": "B4-R10_REGRESSION_ABSENT",
+          "pass": true,
+          "detail": "passed: ['dedupe: duplicate is audit-only', 'xproc: CALL2 returns False (duplicate blocked by file marker)']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "B4-R11": {
+      "id": "B4-R11",
+      "feature": "Historical regression R11",
+      "expected_behaviour": "Must not recur: restart duplicate execution",
+      "category": "static",
+      "checks": [
+        {
+          "name": "B4-R11_REGRESSION_ABSENT",
+          "pass": true,
+          "detail": "passed: ['cutover: live_start_ms unchanged across restart', 'cutover: wiped state creates fresh live_start_ms']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "B4-R12": {
+      "id": "B4-R12",
+      "feature": "Historical regression R12",
+      "expected_behaviour": "Must not recur: sub-minimum state creates target authority",
+      "category": "static",
+      "checks": [
+        {
+          "name": "B4-R12_REGRESSION_ABSENT",
+          "pass": true,
+          "detail": "passed: ['symbol: FAKECOIN returns SYMBOL_UNRESOLVED exchange_called=False', 'symbol: unresolved FAKECOIN writes zero send_attempts']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "B4-R13": {
+      "id": "B4-R13",
+      "feature": "Historical regression R13",
+      "expected_behaviour": "Must not recur: watchdog changes authority from stale predicate",
+      "category": "static",
+      "checks": [
+        {
+          "name": "B4-R13_REGRESSION_ABSENT",
+          "pass": true,
+          "detail": "passed: ['cutover: live_start_ms unchanged across restart', 'cutover: WS_CAPTURED post-cutover fill reaches mock send boundary']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "B4-R14": {
+      "id": "B4-R14",
+      "feature": "Historical regression R14",
+      "expected_behaviour": "Must not recur: certification/repo/Proof/UI diagnostic blocks execution",
+      "category": "static",
+      "checks": [
+        {
+          "name": "B4-R14_REGRESSION_ABSENT",
+          "pass": true,
+          "detail": "passed: ['master gate disabled keeps leader_sends_attempted zero', 'no send_attempt row when auto-send disabled']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "B4-R15": {
+      "id": "B4-R15",
+      "feature": "Historical regression R15",
+      "expected_behaviour": "Must not recur: stale candidate/shadow overwrites canonical active state",
+      "category": "static",
+      "checks": [
+        {
+          "name": "B4-R15_REGRESSION_ABSENT",
+          "pass": true,
+          "detail": "passed: ['cutover: live_start_ms unchanged across restart', 'cutover: live_start_ms set on first construction']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "B4-R16": {
+      "id": "B4-R16",
+      "feature": "Historical regression R16",
+      "expected_behaviour": "Must not recur: mutable `global_state`/config hash creates operational veto",
+      "category": "static",
+      "checks": [
+        {
+          "name": "B4-R16_REGRESSION_ABSENT",
+          "pass": true,
+          "detail": "passed: ['master gate disabled keeps leader_sends_attempted zero', 'order intent written with auto-send disabled']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "B4-R17": {
+      "id": "B4-R17",
+      "feature": "Historical regression R17",
+      "expected_behaviour": "Must not recur: OFF/`mark_pending_historical` loses unevaluated events",
+      "category": "static",
+      "checks": [
+        {
+          "name": "B4-R17_REGRESSION_ABSENT",
+          "pass": true,
+          "detail": "passed: ['copy account first poll baselines historical fills', 'copy account baseline does not mutate ledger']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "B4-R18": {
+      "id": "B4-R18",
+      "feature": "Historical regression R18",
+      "expected_behaviour": "Must not recur: one bad leader key globally stalls others",
+      "category": "static",
+      "checks": [
+        {
+          "name": "B4-R18_REGRESSION_ABSENT",
+          "pass": true,
+          "detail": "passed: ['wallet conflict: A long B short isolated', 'wallet conflict: coin_net = sum of sleeves']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "B4-R19": {
+      "id": "B4-R19",
+      "feature": "Historical regression R19",
+      "expected_behaviour": "Must not recur: wallet add causes historical catch-up",
+      "category": "static",
+      "checks": [
+        {
+          "name": "B4-R19_REGRESSION_ABSENT",
+          "pass": true,
+          "detail": "passed: ['copy account first poll baselines historical fills', 'cutover: wiped state creates fresh live_start_ms']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "B4-R20": {
+      "id": "B4-R20",
+      "feature": "Historical regression R20",
+      "expected_behaviour": "Must not recur: wallet remove/config change orphans owned sleeve",
+      "category": "static",
+      "checks": [
+        {
+          "name": "B4-R20_REGRESSION_ABSENT",
+          "pass": true,
+          "detail": "passed: ['wallet B unchanged after wallet A close', 'wallet B sleeve unchanged after wallet A exit intent']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "B4-R21": {
+      "id": "B4-R21",
+      "feature": "Historical regression R21",
+      "expected_behaviour": "Must not recur: delayed pending entry executes at materially worse price",
+      "category": "static",
+      "checks": [
+        {
+          "name": "B4-R21_REGRESSION_ABSENT",
+          "pass": true,
+          "detail": "passed: ['real sender: mocked exchange writes one REAL_IOC send_attempt', 'wire: ENTRY real send passes reduce_only=False to exchange.order']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "B4-R22": {
+      "id": "B4-R22",
+      "feature": "Historical regression R22",
+      "expected_behaviour": "Must not recur: partial fill causes duplicate/resubmission quantity error",
+      "category": "static",
+      "checks": [
+        {
+          "name": "B4-R22_REGRESSION_ABSENT",
+          "pass": true,
+          "detail": "passed: ['dedupe: first apply writes exactly one live_fill row', 'dedupe: ledger not double-mutated by duplicate copy_fill_id']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "B4-R23": {
+      "id": "B4-R23",
+      "feature": "Historical regression R23",
+      "expected_behaviour": "Must not recur: multiple missed events replayed instead of netted",
+      "category": "static",
+      "checks": [
+        {
+          "name": "B4-R23_REGRESSION_ABSENT",
+          "pass": true,
+          "detail": "passed: ['cutover: post-cutover fill reaches mock send boundary', 'cutover: WS_CAPTURED post-cutover fill reaches mock send boundary']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "B4-R24": {
+      "id": "B4-R24",
+      "feature": "Historical regression R24",
+      "expected_behaviour": "Must not recur: reduction/close blocked by entry protection",
+      "category": "static",
+      "checks": [
+        {
+          "name": "B4-R24_REGRESSION_ABSENT",
+          "pass": true,
+          "detail": "passed: ['reduce-only helper: EXIT intent -> True', 'wire: EXIT real send passes reduce_only=True to exchange.order']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "B4-R25": {
+      "id": "B4-R25",
+      "feature": "Historical regression R25",
+      "expected_behaviour": "Must not recur: margin parser works only when follower already owns symbol",
+      "category": "static",
+      "checks": [
+        {
+          "name": "B4-R25_REGRESSION_ABSENT",
+          "pass": true,
+          "detail": "passed: ['symbol: ETH resolves sdk_coin=ETH no perp_dexs', 'symbol: @230 resolves through verified core perp index to SAND']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-ARCH-001": {
+      "id": "F-ARCH-001",
+      "feature": "FAILURES ARCH-001 multiple_position_authorities",
+      "expected_behaviour": "Only exchange state may define actual_position. All other state is explanatory or display-only.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-ARCH-001_ARCHITECTURE_SOUND",
+          "pass": true,
+          "detail": "passed: ['exchange mismatch is reported', 'exchange mismatch does not auto-correct ledger']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-ARCH-002": {
+      "id": "F-ARCH-002",
+      "feature": "FAILURES ARCH-002 engine_owned_its_own_book",
+      "expected_behaviour": "Make the engine a stateless reconciler: fetch exchange state every cycle, compute desired, diff, act, refetch.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-ARCH-002_ARCHITECTURE_SOUND",
+          "pass": true,
+          "detail": "passed: ['snapshot: fresh ledger never auto-corrected', 'snapshot: status LEDGER_EXCHANGE_NET_MISMATCH']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-ARCH-003": {
+      "id": "F-ARCH-003",
+      "feature": "FAILURES ARCH-003 copied_trade_events_instead_of_position_state",
+      "expected_behaviour": "Leader events only wake recalculation. Orders must be generated solely from desired_position - actual_position.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-ARCH-003_ARCHITECTURE_SOUND",
+          "pass": true,
+          "detail": "passed: ['cutover: WS_CAPTURED post-cutover fill reaches mock send boundary', 'cutover: post-cutover fill reaches mock send boundary']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-ARCH-004": {
+      "id": "F-ARCH-004",
+      "feature": "FAILURES ARCH-004 no_continuous_desired_vs_actual_invariant",
+      "expected_behaviour": "Every cycle asserts desired_position ~= actual_exchange_position or enters blocked/close-only/halt.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-ARCH-004_ARCHITECTURE_SOUND",
+          "pass": true,
+          "detail": "passed: ['exchange mismatch is reported', 'snapshot: status LEDGER_EXCHANGE_NET_MISMATCH']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-ARCH-005": {
+      "id": "F-ARCH-005",
+      "feature": "FAILURES ARCH-005 shadow_system_could_observe_but_not_control",
+      "expected_behaviour": "Only the reconciler has send authority; any drift detector writes a blocker consumed before send.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-ARCH-005_ARCHITECTURE_SOUND",
+          "pass": true,
+          "detail": "passed: ['real sender: mocked exchange writes one REAL_IOC send_attempt', 'guard: exactly one real close sent for the burst']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-ARCH-006": {
+      "id": "F-ARCH-006",
+      "feature": "FAILURES ARCH-006 ui_dashboard_became_state_authority",
+      "expected_behaviour": "UI is read-only and must display truth tier + freshness for every value.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-ARCH-006_ARCHITECTURE_SOUND",
+          "pass": true,
+          "detail": "passed: ['UI LIVE mode maps to core active mode: intent written']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-ARCH-007": {
+      "id": "F-ARCH-007",
+      "feature": "FAILURES ARCH-007 local_logs_treated_as_truth",
+      "expected_behaviour": "Local logs are audit metadata only; exchange snapshot is authoritative for actual exposure.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-ARCH-007_ARCHITECTURE_SOUND",
+          "pass": true,
+          "detail": "passed: ['snapshot: fresh ledger never auto-corrected', 'snapshot: status LEDGER_EXCHANGE_NET_MISMATCH']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-ARCH-008": {
+      "id": "F-ARCH-008",
+      "feature": "FAILURES ARCH-008 per_sleeve_model_conflicted_with_account_net_exchange",
+      "expected_behaviour": "All order sizing, reduce_only, min-notional, margin, and open-order checks use account-net state.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-ARCH-008_ARCHITECTURE_SOUND",
+          "pass": true,
+          "detail": "passed: ['wallet conflict: coin_net = sum of sleeves', 'wallet conflict: exit clamped to A sleeve not coin_net']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-ARCH-009": {
+      "id": "F-ARCH-009",
+      "feature": "FAILURES ARCH-009 multiple_send_paths",
+      "expected_behaviour": "Every exchange-client order call must pass through one convergence sender and one master disable switch.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-ARCH-009_ARCHITECTURE_SOUND",
+          "pass": true,
+          "detail": "passed: ['real sender: mocked exchange writes one REAL_IOC send_attempt', 'guard: exactly one real close sent for the burst']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-ARCH-010": {
+      "id": "F-ARCH-010",
+      "feature": "FAILURES ARCH-010 recovery_retrofitted_after_live_execution",
+      "expected_behaviour": "Recovery states are first-class and may only request convergence through the reconciler.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-ARCH-010_ARCHITECTURE_SOUND",
+          "pass": true,
+          "detail": "passed: ['close lifecycle: EXIT_RECOVERY_QUEUED becomes EXIT_RECOVERY_ACTIVE', 'close lifecycle: manual exit recovery only for unsafe/provenance failure']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-ARCH-011": {
+      "id": "F-ARCH-011",
+      "feature": "FAILURES ARCH-011 restart_depended_on_local_replay",
+      "expected_behaviour": "Restart begins from fresh exchange and leader snapshots; never replay local positions as authority.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-ARCH-011_ARCHITECTURE_SOUND",
+          "pass": true,
+          "detail": "passed: ['cutover: live_start_ms unchanged across restart', 'cutover: wiped state creates fresh live_start_ms']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-ARCH-012": {
+      "id": "F-ARCH-012",
+      "feature": "FAILURES ARCH-012 premature_scaling_before_single_wallet_invariant",
+      "expected_behaviour": "Canary-first: one wallet/one or two liquid assets/strict notional caps until invariant history is clean.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-ARCH-012_ARCHITECTURE_SOUND",
+          "pass": true,
+          "detail": "passed: ['wallet conflict: A long B short isolated', 'wallet conflict: coin_net = sum of sleeves']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-ARCH-013": {
+      "id": "F-ARCH-013",
+      "feature": "FAILURES ARCH-013 symptom_patch_bloat",
+      "expected_behaviour": "Freeze feature work after truth failure; remove or demote non-core machinery until reconciler invariant is proven.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-ARCH-013_ARCHITECTURE_SOUND",
+          "pass": true,
+          "detail": "passed: ['cutover: pre-cutover fill does not send', 'cutover: pre-cutover fill writes intent']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-ARCH-014": {
+      "id": "F-ARCH-014",
+      "feature": "FAILURES ARCH-014 patch_constraints_preserved_bad_architecture",
+      "expected_behaviour": "Architecture-level failures require architecture-level permission; do not patch around ROOT-001.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-ARCH-014_ARCHITECTURE_SOUND",
+          "pass": true,
+          "detail": "passed: ['cutover: live_start_ms unchanged across restart', 'cutover: live_start_ms set on first construction']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-ARCH-015": {
+      "id": "F-ARCH-015",
+      "feature": "FAILURES ARCH-015 no_single_invariant_owner",
+      "expected_behaviour": "Assign one rebuild owner for GREEN-ONLY-001; all contributors must prove against that invariant.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-ARCH-015_ARCHITECTURE_SOUND",
+          "pass": true,
+          "detail": "passed: ['cutover: live_start_ms set on first construction', 'cutover: wiped state creates fresh live_start_ms']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-LOGIC-001": {
+      "id": "F-LOGIC-001",
+      "feature": "FAILURES LOGIC-001 repeated_add_overexposure_loop",
+      "expected_behaviour": "ENTRY/ADD forbidden when actual exposure is already at or beyond target.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-LOGIC-001_LOGIC_SOUND",
+          "pass": true,
+          "detail": "passed: ['wallet conflict: A long B short isolated', 'wallet conflict: coin_net = sum of sleeves']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-LOGIC-002": {
+      "id": "F-LOGIC-002",
+      "feature": "FAILURES LOGIC-002 websocket_mutates_truth_loop",
+      "expected_behaviour": "WS is trigger only; REST/exchange snapshot is truth before sizing, closing, or green status.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-LOGIC-002_LOGIC_SOUND",
+          "pass": true,
+          "detail": "passed: ['cutover: WS_CAPTURED post-cutover fill reaches mock send boundary', 'cutover: post-cutover fill reaches mock send boundary']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-LOGIC-003": {
+      "id": "F-LOGIC-003",
+      "feature": "FAILURES LOGIC-003 synthetic_dedup_key_loop",
+      "expected_behaviour": "Dedup only on exchange fill_id/order_id; if absent or ambiguous, reconcile from exchange and mark untrusted.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-LOGIC-003_LOGIC_SOUND",
+          "pass": true,
+          "detail": "passed: ['dedupe: duplicate copy_fill_id blocked', 'OID dedupe: second OID-matched apply blocked by xproc marker']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-LOGIC-004": {
+      "id": "F-LOGIC-004",
+      "feature": "FAILURES LOGIC-004 unsafe_reduce_or_exit_loop",
+      "expected_behaviour": "Reductions must be reduce_only, capped by actual account-net position, and unable to create opposite exposure.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-LOGIC-004_LOGIC_SOUND",
+          "pass": true,
+          "detail": "passed: ['reduce-only helper: EXIT intent -> True', 'reduce-only helper: ENTRY intent -> False']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-LOGIC-005": {
+      "id": "F-LOGIC-005",
+      "feature": "FAILURES LOGIC-005 sub_min_notional_residue_loop",
+      "expected_behaviour": "Detect sub-min closes before send; aggregate, telemetry-block, or close by sanctioned account-net convergence only.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-LOGIC-005_LOGIC_SOUND",
+          "pass": true,
+          "detail": "passed: ['symbol: FAKECOIN returns SYMBOL_UNRESOLVED exchange_called=False', 'symbol: unresolved FAKECOIN writes zero send_attempts']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-LOGIC-006": {
+      "id": "F-LOGIC-006",
+      "feature": "FAILURES LOGIC-006 opposing_sleeves_account_net_reject_loop",
+      "expected_behaviour": "Every coin has exactly one account-level target; sleeves may explain attribution but cannot size orders.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-LOGIC-006_LOGIC_SOUND",
+          "pass": true,
+          "detail": "passed: ['wallet conflict: coin_net = sum of sleeves', 'wallet conflict: exit clamped to A sleeve not coin_net']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-LOGIC-007": {
+      "id": "F-LOGIC-007",
+      "feature": "FAILURES LOGIC-007 hot_reload_subscription_drift_loop",
+      "expected_behaviour": "Wallet live state requires proven WS subscription + poll coverage + freshness; mismatch blocks wallet.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-LOGIC-007_LOGIC_SOUND",
+          "pass": true,
+          "detail": "passed: ['cutover: WS_CAPTURED post-cutover fill reaches mock send boundary', 'cutover: live_start_ms unchanged across restart']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-LOGIC-008": {
+      "id": "F-LOGIC-008",
+      "feature": "FAILURES LOGIC-008 local_reconciliation_false_green_loop",
+      "expected_behaviour": "Reconciliation target is exchange actual vs desired, not local artifact agreement.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-LOGIC-008_LOGIC_SOUND",
+          "pass": true,
+          "detail": "passed: ['exchange mismatch is reported', 'snapshot: status LEDGER_EXCHANGE_NET_MISMATCH']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-LOGIC-009": {
+      "id": "F-LOGIC-009",
+      "feature": "FAILURES LOGIC-009 reconciliation_observes_without_containing_loop",
+      "expected_behaviour": "Any unresolved desired-vs-actual mismatch disables ENTRY/ADD and enters close-only or halt.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-LOGIC-009_LOGIC_SOUND",
+          "pass": true,
+          "detail": "passed: ['exchange mismatch is reported', 'snapshot: status LEDGER_EXCHANGE_NET_MISMATCH']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-LOGIC-010": {
+      "id": "F-LOGIC-010",
+      "feature": "FAILURES LOGIC-010 recovery_bypass_loop",
+      "expected_behaviour": "Gate test enumerates every exchange-client call; no path may send when master gate is disabled.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-LOGIC-010_LOGIC_SOUND",
+          "pass": true,
+          "detail": "passed: ['master gate disabled keeps leader_sends_attempted zero', 'no send_attempt row when auto-send disabled']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-LOGIC-011": {
+      "id": "F-LOGIC-011",
+      "feature": "FAILURES LOGIC-011 partial_fill_duplicate_delta_loop",
+      "expected_behaviour": "After every order update/fill/reject, refetch exchange actual + open orders before next order.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-LOGIC-011_LOGIC_SOUND",
+          "pass": true,
+          "detail": "passed: ['dedupe: first apply writes exactly one live_fill row', 'dedupe: ledger not double-mutated by duplicate copy_fill_id']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-LOGIC-012": {
+      "id": "F-LOGIC-012",
+      "feature": "FAILURES LOGIC-012 stale_cache_confidence_loop",
+      "expected_behaviour": "Every value carries truth_tier and freshness_age; stale/unavailable values are visually and programmatically blocked.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-LOGIC-012_LOGIC_SOUND",
+          "pass": true,
+          "detail": "passed: ['snapshot: fresh ledger never auto-corrected', 'snapshot: status LEDGER_EXCHANGE_NET_MISMATCH']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-LOGIC-013": {
+      "id": "F-LOGIC-013",
+      "feature": "FAILURES LOGIC-013 implementation_confirmation_test_loop",
+      "expected_behaviour": "Primary tests assert external invariants: desired vs exchange actual, gate dominance, restart recovery, event loss recovery.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-LOGIC-013_LOGIC_SOUND",
+          "pass": true,
+          "detail": "passed: ['cutover: pre-cutover fill does not send', 'cutover: live_start_ms unchanged across restart']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-LOGIC-014": {
+      "id": "F-LOGIC-014",
+      "feature": "FAILURES LOGIC-014 one_successful_chain_overclaim_loop",
+      "expected_behaviour": "A successful example never proves system health; only continuous account-level invariant does.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-LOGIC-014_LOGIC_SOUND",
+          "pass": true,
+          "detail": "passed: ['exchange mismatch is reported', 'snapshot: status LEDGER_EXCHANGE_NET_MISMATCH']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-LOGIC-015": {
+      "id": "F-LOGIC-015",
+      "feature": "FAILURES LOGIC-015 unclassified_or_ambiguous_state_loop",
+      "expected_behaviour": "UNKNOWN, UNCLASSIFIED, or stale classification is fail-closed and not green.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-LOGIC-015_LOGIC_SOUND",
+          "pass": true,
+          "detail": "passed: ['symbol: FAKECOIN returns SYMBOL_UNRESOLVED exchange_called=False', 'symbol: unresolved coin does not mutate ledger']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-LOGIC-016": {
+      "id": "F-LOGIC-016",
+      "feature": "FAILURES LOGIC-016 auto_send_state_pollution_loop",
+      "expected_behaviour": "Use explicit state SEND_NOT_ATTEMPTED_AUTO_SEND_DISABLED; never claim live copy.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-LOGIC-016_LOGIC_SOUND",
+          "pass": true,
+          "detail": "passed: ['master gate disabled keeps leader_sends_attempted zero', 'no send_attempt row when auto-send disabled']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-EXC-001": {
+      "id": "F-EXC-001",
+      "feature": "FAILURES EXC-001 exchange_snapshot_missing_or_stale",
+      "expected_behaviour": "No sizing, no close, no green; block wallet/coin until fresh exchange read.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-EXC-001_EXCHANGE_SAFE",
+          "pass": true,
+          "detail": "passed: ['symbol: @9999 raw index outside core perp universe skipped', 'symbol: #41 raw spot/index skipped exchange_called=False']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-EXC-002": {
+      "id": "F-EXC-002",
+      "feature": "FAILURES EXC-002 actual_position_unknown",
+      "expected_behaviour": "No exchange order. Fail closed.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-EXC-002_EXCHANGE_SAFE",
+          "pass": true,
+          "detail": "passed: ['symbol: FAKECOIN returns SYMBOL_UNRESOLVED exchange_called=False', 'symbol: unresolved FAKECOIN writes zero send_attempts']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-EXC-003": {
+      "id": "F-EXC-003",
+      "feature": "FAILURES EXC-003 desired_actual_mismatch",
+      "expected_behaviour": "Disable ENTRY/ADD; converge by sanctioned close/reduce or halt.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-EXC-003_EXCHANGE_SAFE",
+          "pass": true,
+          "detail": "passed: ['exchange mismatch is reported', 'snapshot: status LEDGER_EXCHANGE_NET_MISMATCH']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-EXC-004": {
+      "id": "F-EXC-004",
+      "feature": "FAILURES EXC-004 open_orders_unknown",
+      "expected_behaviour": "Do not place a new order until open orders are fetched and included in delta.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-EXC-004_EXCHANGE_SAFE",
+          "pass": true,
+          "detail": "passed: ['dedupe: first apply writes exactly one live_fill row', 'dedupe: ledger not double-mutated by duplicate copy_fill_id']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-EXC-005": {
+      "id": "F-EXC-005",
+      "feature": "FAILURES EXC-005 add_when_beyond_target",
+      "expected_behaviour": "Reject ENTRY/ADD and report over_target blocker.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-EXC-005_EXCHANGE_SAFE",
+          "pass": true,
+          "detail": "passed: ['wallet conflict: A long B short isolated', 'wallet conflict: coin_net = sum of sleeves']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-EXC-006": {
+      "id": "F-EXC-006",
+      "feature": "FAILURES EXC-006 wrong_direction_position",
+      "expected_behaviour": "Flatten wrong-direction exposure first; do not open target direction until flat is exchange-confirmed.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-EXC-006_EXCHANGE_SAFE",
+          "pass": true,
+          "detail": "passed: ['wallet conflict: A long B short isolated', 'wallet conflict: A closed B sleeve unchanged']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-EXC-007": {
+      "id": "F-EXC-007",
+      "feature": "FAILURES EXC-007 reduce_could_flip",
+      "expected_behaviour": "Block unless reduce_only true, size <= actual reducible account-net exposure, and post-fill cannot flip.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-EXC-007_EXCHANGE_SAFE",
+          "pass": true,
+          "detail": "passed: ['reduce-only helper: EXIT intent -> True', 'wire: EXIT real send passes reduce_only=True to exchange.order']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-EXC-008": {
+      "id": "F-EXC-008",
+      "feature": "FAILURES EXC-008 sub_min_notional_order",
+      "expected_behaviour": "Do not silently mark closed. Aggregate, block with telemetry, or use approved convergence action.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-EXC-008_EXCHANGE_SAFE",
+          "pass": true,
+          "detail": "passed: ['symbol: FAKECOIN returns SYMBOL_UNRESOLVED exchange_called=False', 'symbol: unresolved FAKECOIN writes zero send_attempts']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-EXC-009": {
+      "id": "F-EXC-009",
+      "feature": "FAILURES EXC-009 websocket_gap_or_stale",
+      "expected_behaviour": "Treat WS as invalid trigger; reconcile from REST before any order or status.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-EXC-009_EXCHANGE_SAFE",
+          "pass": true,
+          "detail": "passed: ['cutover: WS_CAPTURED post-cutover fill reaches mock send boundary', 'cutover: post-cutover fill reaches mock send boundary']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-EXC-010": {
+      "id": "F-EXC-010",
+      "feature": "FAILURES EXC-010 missing_or_ambiguous_fill_identity",
+      "expected_behaviour": "Do not mutate position truth from synthetic key; reconcile from exchange.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-EXC-010_EXCHANGE_SAFE",
+          "pass": true,
+          "detail": "passed: ['dedupe: duplicate copy_fill_id blocked', 'OID dedupe: second OID-matched apply blocked by xproc marker']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-EXC-011": {
+      "id": "F-EXC-011",
+      "feature": "FAILURES EXC-011 wallet_subscription_mismatch",
+      "expected_behaviour": "Block wallet and require subscription proof or full restart/rebind.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-EXC-011_EXCHANGE_SAFE",
+          "pass": true,
+          "detail": "passed: ['cutover: WS_CAPTURED post-cutover fill reaches mock send boundary', 'cutover: live_start_ms unchanged across restart']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-EXC-012": {
+      "id": "F-EXC-012",
+      "feature": "FAILURES EXC-012 exchange_semantics_violation",
+      "expected_behaviour": "Reject preflight before exchange call.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-EXC-012_EXCHANGE_SAFE",
+          "pass": true,
+          "detail": "passed: ['symbol: FAKECOIN returns SYMBOL_UNRESOLVED exchange_called=False', 'symbol: unresolved coin does not mutate ledger']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-EXC-013": {
+      "id": "F-EXC-013",
+      "feature": "FAILURES EXC-013 auto_send_disabled",
+      "expected_behaviour": "No exchange-client order calls from any path; report no_live_order_sent.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-EXC-013_EXCHANGE_SAFE",
+          "pass": true,
+          "detail": "passed: ['master gate disabled keeps leader_sends_attempted zero', 'no send_attempt row when auto-send disabled']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-EXC-014": {
+      "id": "F-EXC-014",
+      "feature": "FAILURES EXC-014 master_gate_not_dominant",
+      "expected_behaviour": "Hard stop build. Refactor before live or canary.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-EXC-014_EXCHANGE_SAFE",
+          "pass": true,
+          "detail": "passed: ['master gate disabled keeps leader_sends_attempted zero', 'order intent written with auto-send disabled']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-EXC-015": {
+      "id": "F-EXC-015",
+      "feature": "FAILURES EXC-015 recovery_requests_direct_send",
+      "expected_behaviour": "Block. Recovery may only request reconciler convergence.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-EXC-015_EXCHANGE_SAFE",
+          "pass": true,
+          "detail": "passed: ['close lifecycle: EXIT_RECOVERY_QUEUED becomes EXIT_RECOVERY_ACTIVE', 'close lifecycle: manual exit recovery only for unsafe/provenance failure']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-EXC-016": {
+      "id": "F-EXC-016",
+      "feature": "FAILURES EXC-016 ui_value_not_authoritative",
+      "expected_behaviour": "Display as non-authoritative; cannot contribute to green.",
+      "category": "ui-visibility-blocked",
+      "checks": [
+        {
+          "name": "F-EXC-016_EXCHANGE_SAFE",
+          "pass": true,
+          "detail": "passed: ['UI LIVE mode maps to core active mode: intent written']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": false
+    },
+    "F-EXC-018": {
+      "id": "F-EXC-018",
+      "feature": "FAILURES EXC-018 ownership_or_sleeve_ambiguous",
+      "expected_behaviour": "Do not infer after execution; halt or use account-net target only.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-EXC-018_EXCHANGE_SAFE",
+          "pass": true,
+          "detail": "passed: ['unmatched copy fill writes reconciliation', 'unmatched copy fill does not mutate ledger']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-EXC-019": {
+      "id": "F-EXC-019",
+      "feature": "FAILURES EXC-019 leader_or_follower_snapshot_stale",
+      "expected_behaviour": "No sizing. Refresh both before diff.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-EXC-019_EXCHANGE_SAFE",
+          "pass": true,
+          "detail": "passed: ['cutover: WS_CAPTURED post-cutover fill reaches mock send boundary', 'cutover: live_start_ms unchanged across restart']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-EXC-020": {
+      "id": "F-EXC-020",
+      "feature": "FAILURES EXC-020 unknown_or_unclassified_event",
+      "expected_behaviour": "Fail closed. Unknown is never green.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-EXC-020_EXCHANGE_SAFE",
+          "pass": true,
+          "detail": "passed: ['symbol: FAKECOIN returns SYMBOL_UNRESOLVED exchange_called=False', 'symbol: unresolved coin does not mutate ledger']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-UI-001": {
+      "id": "F-UI-001",
+      "feature": "FAILURES UI-001 no_truth_tier",
+      "expected_behaviour": "Every UI cell must carry one of AUTHORITATIVE_EXCHANGE, LOCAL_LEDGER, LEADER_SIGNAL, DISPLAY_ONLY, STALE, BLOCKED, SKIPPED.",
+      "category": "ui-visibility-blocked",
+      "checks": [
+        {
+          "name": "UI001_TRUTH_TIER_DATA_AVAILABLE",
+          "pass": true,
+          "detail": ""
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": false
+    },
+    "F-UI-002": {
+      "id": "F-UI-002",
+      "feature": "FAILURES UI-002 no_freshness_indicator",
+      "expected_behaviour": "Display data age and source; stale/unavailable values must affect status.",
+      "category": "ui-visibility-blocked",
+      "checks": [
+        {
+          "name": "UI002_FRESHNESS_DATA_AVAILABLE",
+          "pass": true,
+          "detail": ""
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": false
+    },
+    "F-UI-003": {
+      "id": "F-UI-003",
+      "feature": "FAILURES UI-003 engine_narrative_displayed_as_truth",
+      "expected_behaviour": "UI green/red derives only from GREEN-ONLY-001.",
+      "category": "ui-visibility-blocked",
+      "checks": [
+        {
+          "name": "UI003_GREEN_FROM_INVARIANT",
+          "pass": true,
+          "detail": ""
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": false
+    },
+    "F-VERIFY-001": {
+      "id": "F-VERIFY-001",
+      "feature": "FAILURES VERIFY-001 subsystem_proof_overclaim",
+      "expected_behaviour": "Label proof scope explicitly; plumbing proof is not exchange correctness proof.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-VERIFY-001_VERIFY_SOUND",
+          "pass": true,
+          "detail": "passed: ['exchange mismatch is reported', 'snapshot: status LEDGER_EXCHANGE_NET_MISMATCH']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-VERIFY-002": {
+      "id": "F-VERIFY-002",
+      "feature": "FAILURES VERIFY-002 internal_consistency_not_economic_correctness",
+      "expected_behaviour": "Primary acceptance proof is desired-vs-exchange-actual convergence.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-VERIFY-002_VERIFY_SOUND",
+          "pass": true,
+          "detail": "passed: ['exchange mismatch is reported', 'snapshot: status LEDGER_EXCHANGE_NET_MISMATCH']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-VERIFY-003": {
+      "id": "F-VERIFY-003",
+      "feature": "FAILURES VERIFY-003 implementation_derived_tests",
+      "expected_behaviour": "Do not count implementation-confirmation tests as safety proof.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-VERIFY-003_VERIFY_SOUND",
+          "pass": true,
+          "detail": "passed: ['cutover: pre-cutover fill does not send', 'cutover: live_start_ms unchanged across restart']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-VERIFY-004": {
+      "id": "F-VERIFY-004",
+      "feature": "FAILURES VERIFY-004 weakened_or_stale_tests",
+      "expected_behaviour": "Tests express business invariants, not current labels or mutable implementation names.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-VERIFY-004_VERIFY_SOUND",
+          "pass": true,
+          "detail": "passed: ['dedupe: first apply returns True', 'dedupe: duplicate copy_fill_id blocked']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-VERIFY-005": {
+      "id": "F-VERIFY-005",
+      "feature": "FAILURES VERIFY-005 no_strong_live_money_test_ladder",
+      "expected_behaviour": "Require production replay, repeated-add, restart-at-every-lifecycle-point, dropped/duplicated/reordered events, partial-fill, opposing-leaders, gate dominance, long shadow, tiny canary, independent oracle.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-VERIFY-005_VERIFY_SOUND",
+          "pass": true,
+          "detail": "passed: ['cutover: pre-cutover fill does not send', 'cutover: live_start_ms unchanged across restart', 'dedupe: duplicate copy_fill_id blocked']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-VERIFY-006": {
+      "id": "F-VERIFY-006",
+      "feature": "FAILURES VERIFY-006 no_deterministic_fulfilment_gate",
+      "expected_behaviour": "Every task ends with invariant changed, proof path, live risk status, unresolved blockers.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-VERIFY-006_VERIFY_SOUND",
+          "pass": true,
+          "detail": "passed: ['cutover: pre-cutover fill does not send', 'cutover: live_start_ms unchanged across restart']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-VERIFY-007": {
+      "id": "F-VERIFY-007",
+      "feature": "FAILURES VERIFY-007 examples_instead_of_invariants",
+      "expected_behaviour": "Single examples are diagnostics only; green requires continuous aggregate invariant.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-VERIFY-007_VERIFY_SOUND",
+          "pass": true,
+          "detail": "passed: ['exchange mismatch is reported', 'snapshot: status LEDGER_EXCHANGE_NET_MISMATCH']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-PROCESS-001": {
+      "id": "F-PROCESS-001",
+      "feature": "FAILURES PROCESS-001 model_responsibility_diffusion",
+      "expected_behaviour": "One accountable owner for GREEN-ONLY-001; other models produce bounded evidence.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-PROCESS-001_PROCESS_SOUND",
+          "pass": true,
+          "detail": "passed: ['cutover: live_start_ms set on first construction', 'cutover: wiped state creates fresh live_start_ms']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-PROCESS-002": {
+      "id": "F-PROCESS-002",
+      "feature": "FAILURES PROCESS-002 accepted_patch_work_after_foundation_declared_unsuitable",
+      "expected_behaviour": "If foundation is unsuitable, freeze patching and rebuild around exchange-truth reconciler.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-PROCESS-002_PROCESS_SOUND",
+          "pass": true,
+          "detail": "passed: ['cutover: pre-cutover fill does not send', 'cutover: live_start_ms unchanged across restart']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-PROCESS-003": {
+      "id": "F-PROCESS-003",
+      "feature": "FAILURES PROCESS-003 feature_work_continued_after_truth_failure",
+      "expected_behaviour": "Truth failures block all non-reconciler feature work.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-PROCESS-003_PROCESS_SOUND",
+          "pass": true,
+          "detail": "passed: ['cutover: pre-cutover fill does not send', 'master gate disabled keeps leader_sends_attempted zero']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-PRODUCT-002": {
+      "id": "F-PRODUCT-002",
+      "feature": "FAILURES PRODUCT-002 recommendation_fact_confusion",
+      "expected_behaviour": "Every recommendation must identify its evidence tier and must not masquerade as position truth.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "PROD002_EVIDENCE_TIER",
+          "pass": true,
+          "detail": ""
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-TEST-002": {
+      "id": "F-TEST-002",
+      "feature": "FAILURES TEST-002 repeated_add",
+      "expected_behaviour": "100 same-direction leader ADD fills cannot push follower exposure beyond current target.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-TEST-002_TEST_COVERAGE",
+          "pass": true,
+          "detail": "passed: ['wallet conflict: A long B short isolated', 'wallet conflict: coin_net = sum of sleeves']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-TEST-003": {
+      "id": "F-TEST-003",
+      "feature": "FAILURES TEST-003 restart_every_lifecycle_point",
+      "expected_behaviour": "Kill/restart before send, after send, after partial fill, after full fill, after reject, and after cancel recovers solely from exchange truth.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-TEST-003_TEST_COVERAGE",
+          "pass": true,
+          "detail": "passed: ['cutover: live_start_ms unchanged across restart', 'cutover: wiped state creates fresh live_start_ms']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-TEST-004": {
+      "id": "F-TEST-004",
+      "feature": "FAILURES TEST-004 dropped_duplicated_reordered_events",
+      "expected_behaviour": "Final exchange position still converges after WS loss, duplication, and reordering.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-TEST-004_TEST_COVERAGE",
+          "pass": true,
+          "detail": "passed: ['dedupe: duplicate copy_fill_id blocked', 'dedupe: ledger not double-mutated by duplicate copy_fill_id']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-TEST-005": {
+      "id": "F-TEST-005",
+      "feature": "FAILURES TEST-005 partial_fill_convergence",
+      "expected_behaviour": "Partial fills refetch actual/open orders and converge remaining delta without duplicate exposure.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-TEST-005_TEST_COVERAGE",
+          "pass": true,
+          "detail": "passed: ['dedupe: first apply writes exactly one live_fill row', 'dedupe: ledger not double-mutated by duplicate copy_fill_id']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-TEST-006": {
+      "id": "F-TEST-006",
+      "feature": "FAILURES TEST-006 opposing_leaders_account_net",
+      "expected_behaviour": "Per-leader sleeves never override one account-net target per coin.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-TEST-006_TEST_COVERAGE",
+          "pass": true,
+          "detail": "passed: ['wallet conflict: A long B short isolated', 'wallet conflict: coin_net = sum of sleeves']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-TEST-007": {
+      "id": "F-TEST-007",
+      "feature": "FAILURES TEST-007 master_gate_dominance",
+      "expected_behaviour": "Every exchange-client order call is dominated by one disable switch.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-TEST-007_TEST_COVERAGE",
+          "pass": true,
+          "detail": "passed: ['master gate disabled keeps leader_sends_attempted zero', 'no send_attempt row when auto-send disabled']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-TEST-008": {
+      "id": "F-TEST-008",
+      "feature": "FAILURES TEST-008 long_shadow_no_orders",
+      "expected_behaviour": "Against live leader/follower data, target calculations remain stable for days without placing orders.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-TEST-008_TEST_COVERAGE",
+          "pass": true,
+          "detail": "passed: ['subscribed wallet quiet 3 min -> WS_OK not DEGRADED', 'cutover: live_start_ms unchanged across restart']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-TEST-009": {
+      "id": "F-TEST-009",
+      "feature": "FAILURES TEST-009 tiny_capital_canary",
+      "expected_behaviour": "One wallet and one/two liquid assets run with strict caps and no flips, duplicate closes, stale-state orders, or unrecovered drift.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-TEST-009_TEST_COVERAGE",
+          "pass": true,
+          "detail": "passed: ['wallet conflict: A long B short isolated', 'safety: ledger short never flipped by sends']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-GREEN-ONLY-001": {
+      "id": "F-GREEN-ONLY-001",
+      "feature": "Canonical green condition",
+      "expected_behaviour": "Green only when fresh exchange actual == independently computed desired within tolerance, all open orders accounted, every send path under one master gate.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "GREEN_ONLY_001_DEFINED",
+          "pass": true,
+          "detail": ""
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-CLAIM-01": {
+      "id": "F-CLAIM-01",
+      "feature": "Forbidden claim",
+      "expected_behaviour": "Never accepted as evidence: 'GREEN because unit tests passed'",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-CLAIM-01_NOT_USED_AS_EVIDENCE",
+          "pass": true,
+          "detail": ""
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-CLAIM-02": {
+      "id": "F-CLAIM-02",
+      "feature": "Forbidden claim",
+      "expected_behaviour": "Never accepted as evidence: 'GREEN because local ledger reconciled'",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-CLAIM-02_NOT_USED_AS_EVIDENCE",
+          "pass": true,
+          "detail": ""
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-CLAIM-03": {
+      "id": "F-CLAIM-03",
+      "feature": "Forbidden claim",
+      "expected_behaviour": "Never accepted as evidence: 'GREEN because WS event was seen'",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-CLAIM-03_NOT_USED_AS_EVIDENCE",
+          "pass": true,
+          "detail": ""
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-CLAIM-04": {
+      "id": "F-CLAIM-04",
+      "feature": "Forbidden claim",
+      "expected_behaviour": "Never accepted as evidence: 'GREEN because order/fill row exists'",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-CLAIM-04_NOT_USED_AS_EVIDENCE",
+          "pass": true,
+          "detail": ""
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-CLAIM-05": {
+      "id": "F-CLAIM-05",
+      "feature": "Forbidden claim",
+      "expected_behaviour": "Never accepted as evidence: 'GREEN because dashboard row is clean'",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-CLAIM-05_NOT_USED_AS_EVIDENCE",
+          "pass": true,
+          "detail": ""
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-CLAIM-06": {
+      "id": "F-CLAIM-06",
+      "feature": "Forbidden claim",
+      "expected_behaviour": "Never accepted as evidence: 'GREEN because one copied example worked'",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-CLAIM-06_NOT_USED_AS_EVIDENCE",
+          "pass": true,
+          "detail": ""
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-CLAIM-07": {
+      "id": "F-CLAIM-07",
+      "feature": "Forbidden claim",
+      "expected_behaviour": "Never accepted as evidence: 'SAFE because auto_send is disabled'",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-CLAIM-07_NOT_USED_AS_EVIDENCE",
+          "pass": true,
+          "detail": ""
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "F-CLAIM-08": {
+      "id": "F-CLAIM-08",
+      "feature": "Forbidden claim",
+      "expected_behaviour": "Never accepted as evidence: 'SAFE because recovery handles it'",
+      "category": "static",
+      "checks": [
+        {
+          "name": "F-CLAIM-08_NOT_USED_AS_EVIDENCE",
+          "pass": true,
+          "detail": ""
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "INC-01": {
+      "id": "INC-01",
+      "feature": "Large exchange position visible",
+      "expected_behaviour": "Every follower exchange position, of any size and DEX, appears on the live-copy dashboard.",
+      "category": "ui-visibility-blocked",
+      "checks": [
+        {
+          "name": "INC-01_INCIDENT_LEARNED",
+          "pass": true,
+          "detail": "passed: ['symbol: ETH resolves sdk_coin=ETH no perp_dexs', 'symbol: @230 resolves through verified core perp index to SAND']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": false
+    },
+    "INC-02": {
+      "id": "INC-02",
+      "feature": "Shared-symbol exposure counted",
+      "expected_behaviour": "Wallet exposure includes abs(size) x mark for shared-symbol sleeve rows; no row reports exposure as None while a position exists.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "INC-02_INCIDENT_LEARNED",
+          "pass": true,
+          "detail": "passed: ['wallet conflict: coin_net = sum of sleeves', 'wallet conflict: A long B short isolated']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "INC-03": {
+      "id": "INC-03",
+      "feature": "Account vs engine position diff surfaced",
+      "expected_behaviour": "The account panel shows exchange positions by coin directly; any engine-vs-account difference is shown as a divergence.",
+      "category": "ui-visibility-blocked",
+      "checks": [
+        {
+          "name": "INC-03_INCIDENT_LEARNED",
+          "pass": true,
+          "detail": "passed: ['exchange mismatch is reported', 'snapshot: status LEDGER_EXCHANGE_NET_MISMATCH']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": false
+    },
+    "INC-04": {
+      "id": "INC-04",
+      "feature": "Ledger rows unsupported by exchange",
+      "expected_behaviour": "Ledger positions the exchange does not support are flagged (LEDGER_UNSUPPORTED_BY_EXCHANGE), never shown as owned exposure.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "INC-04_INCIDENT_LEARNED",
+          "pass": true,
+          "detail": "passed: ['unmatched copy fill writes reconciliation', 'unmatched copy fill does not mutate ledger']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "INC-05": {
+      "id": "INC-05",
+      "feature": "External and residual exposure categorised",
+      "expected_behaviour": "External/unowned and residual account-level exposure are categorised and never adopted as copy sleeves.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "INC-05_INCIDENT_LEARNED",
+          "pass": true,
+          "detail": "passed: ['unmatched copy fill writes reconciliation', 'integrity: manual-only ledger exposure is books mismatch']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "INC-06": {
+      "id": "INC-06",
+      "feature": "No duplicate live fills",
+      "expected_behaviour": "Each cloid/oid maps to its fills exactly once; each post-restart oid has exactly one fill record.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "INC-06_INCIDENT_LEARNED",
+          "pass": true,
+          "detail": "passed: ['dedupe: first apply writes exactly one live_fill row', 'dedupe: ledger not double-mutated by duplicate copy_fill_id']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "INC-07": {
+      "id": "INC-07",
+      "feature": "HIP-3 namespace consistent",
+      "expected_behaviour": "A HIP-3 symbol uses one namespace form (e.g. XYZ:BRENTOIL) across positions, prices, audit and UI.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "INC-07_INCIDENT_LEARNED",
+          "pass": true,
+          "detail": "passed: ['symbol: XYZ:SNDK resolves sdk-compatible full builder coin', 'symbol: KBONK resolves canonical sdk_coin=kBONK']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "INC-08": {
+      "id": "INC-08",
+      "feature": "HIP-3 price from its own book",
+      "expected_behaviour": "A HIP-3 market's price is read from that DEX's own book/mids, never from a same-named main-DEX market.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "INC-08_INCIDENT_LEARNED",
+          "pass": true,
+          "detail": "passed: ['symbol: XYZ:SNDK resolves sdk-compatible full builder coin']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "INC-09": {
+      "id": "INC-09",
+      "feature": "Unknown spot/asset meta fails closed",
+      "expected_behaviour": "A coin whose meta cannot be resolved (e.g. @230, @150) is refused and surfaced, never sent.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "INC-09_INCIDENT_LEARNED",
+          "pass": true,
+          "detail": "passed: ['symbol: FAKECOIN returns SYMBOL_UNRESOLVED exchange_called=False', 'symbol: @9999 raw index outside core perp universe skipped']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    },
+    "INC-10": {
+      "id": "INC-10",
+      "feature": "Unproven send is ACTIVE_RED",
+      "expected_behaviour": "A send attempt that is not proven copied and reconciled is classified ACTIVE_RED and shown until resolved.",
+      "category": "ui-visibility-blocked",
+      "checks": [
+        {
+          "name": "INC-10_INCIDENT_LEARNED",
+          "pass": true,
+          "detail": "passed: ['ENTRY_SAFETY_BLOCK -> VALID_BLOCKED_BY_SAFETY_GATE not ACTIVE_RED', 'OWNERSHIP_GATE terminal proof -> VALID_BLOCKED_BY_OWNERSHIP_GATE not ACTIVE_RED']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": false
+    },
+    "INC-12": {
+      "id": "INC-12",
+      "feature": "Minimum notional for every lifecycle",
+      "expected_behaviour": "Minimum notional applies to ENTRY/ADD/EXIT; sub-minimum exits are held as dust (DUST_BELOW_MIN_NOTIONAL) and surfaced, not silently dropped.",
+      "category": "static",
+      "checks": [
+        {
+          "name": "INC-12_INCIDENT_LEARNED",
+          "pass": true,
+          "detail": "passed: ['symbol: FAKECOIN returns SYMBOL_UNRESOLVED exchange_called=False', 'symbol: unresolved FAKECOIN writes zero send_attempts']"
+        }
+      ],
+      "total_checks": 1,
+      "failed_checks": 0,
+      "pass": true
+    }
+  },
+  "test_suite": {
+    "test_core_engine_gaps.py": {
+      "returncode": 0,
+      "total": [
+        "TOTAL=22 FAILED=0"
+      ]
+    },
+    "test_core_network_and_global_controls.py": {
+      "returncode": 0,
+      "total": [
+        "TOTAL=60 FAILED=0"
+      ]
+    }
+  },
+  "self_test": {
+    "returncode": 0,
+    "passed": 144,
+    "failed": 0
+  },
+  "summary": {
+    "pass": 131,
+    "fail": 0,
+    "blocked": 7,
+    "ui_visibility_blocked": 7
+  }
+}

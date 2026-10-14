@@ -1,0 +1,197 @@
+{
+  "task_id": "t_a7d41440",
+  "title": "B3-CERT ORDER CORRECTION (6 rows): order-path semantics proof",
+  "tested_commit": "fefc2b04261c734bb32c767d2cc4a91095e65843",
+  "tested_at_utc": "2026-10-14T10:55:19.497525+00:00",
+  "engine_sha256": "2dfbd571012af67479ee7a2d9e6f1faac6ee5408722a092fb3625450cab51405",
+  "engine_lines": 8030,
+  "checks": {
+    "ORD-001": [
+      {
+        "name": "ONE_PHYSICAL_ORDER_SITE",
+        "pass": false,
+        "detail": "Physical exchange.order() call sites: 3 (expected 1)"
+      },
+      {
+        "name": "AUTO_SEND_DISABLED_BLOCKS_ALL",
+        "pass": false,
+        "detail": "ok=False, status=INTENT_NOT_SEND_ALLOWED"
+      },
+      {
+        "name": "NO_EXCHANGE_CALL_WHEN_DISABLED_VIA_DOUBLE",
+        "pass": true,
+        "detail": "exchange calls: 0 (auto-send off -> never reached _send_real)"
+      },
+      {
+        "name": "EXCHANGE_ORDER_INVOKED_ON_SEND_VIA_DOUBLE",
+        "pass": false,
+        "detail": "exchange.order() calls in _send_real: 0 (expected 1)"
+      }
+    ],
+    "ORD-002": [
+      {
+        "name": "EXIT_SENDS_REDUCE_ONLY_VIA_DOUBLE",
+        "pass": false,
+        "detail": "exchange_called=False, reduce_only_sent=False"
+      },
+      {
+        "name": "ENTRY_SENDS_NO_REDUCE_ONLY_VIA_DOUBLE",
+        "pass": false,
+        "detail": "exchange_called=False, reduce_only_sent=True"
+      },
+      {
+        "name": "REDUCE_ONLY_FOR_INTENT_CORRECT",
+        "pass": true,
+        "detail": "exit=True, entry=False"
+      },
+      {
+        "name": "REDUCE_ONLY_CANNOT_FLIP_VIA_DOUBLE",
+        "pass": false,
+        "detail": "EXIT reduce_only=False (True means position cannot flip)"
+      }
+    ],
+    "ORD-005": [
+      {
+        "name": "DEDUPE_STORE_BLOCKS_DUPES",
+        "pass": true,
+        "detail": "first=True, second=False"
+      },
+      {
+        "name": "DIFFERENT_FILLS_ACCEPTED",
+        "pass": true,
+        "detail": "third fill accepted=True"
+      },
+      {
+        "name": "INTENT_ID_DETERMINISTIC",
+        "pass": false,
+        "detail": "intent1=b92d98848b87ec36cbdca6514fab0bd7, intent2=bbd0558cba5bc27fd61486b874c636c5"
+      },
+      {
+        "name": "SAME_FILL_SAME_INTENT_ID",
+        "pass": false,
+        "detail": "Both intents from fill_det_1: b92d98848b87ec36cbdca6514fab0bd7"
+      }
+    ],
+    "ORD-006": [
+      {
+        "name": "RESERVATION_CREATED_ON_SEND_VIA_DOUBLE",
+        "pass": true,
+        "detail": "is_exit_like=True (exit intent triggers reservation path)"
+      },
+      {
+        "name": "RESERVATION_HAS_INTENT_ID",
+        "pass": true,
+        "detail": "intent_id=91a1ad4c17c2a3b18a212f40bc427cb1"
+      },
+      {
+        "name": "RESERVATION_SURVIVES_ACK_VIA_DOUBLE",
+        "pass": false,
+        "detail": "exchange_called=False (reservation persists after successful send)"
+      },
+      {
+        "name": "RESERVATION_CLEARED_NO_EXCHANGE_VIA_DOUBLE",
+        "pass": false,
+        "detail": "ok=False, status=INTENT_NOT_SEND_ALLOWED (blocked send clears reservation)"
+      }
+    ],
+    "ORD-008": [
+      {
+        "name": "BELOW_MIN_NOTIONAL_BLOCKED_VIA_DOUBLE",
+        "pass": false,
+        "detail": "exchange_called=False, status=REAL_SENDER_NOT_CONFIGURED"
+      },
+      {
+        "name": "INVALID_SIZE_BLOCKED_VIA_DOUBLE",
+        "pass": false,
+        "detail": "exchange_called=False, status=REAL_SENDER_NOT_CONFIGURED"
+      },
+      {
+        "name": "UNKNOWN_ASSET_BLOCKED_VIA_DOUBLE",
+        "pass": true,
+        "detail": "exchange_called=False, status=REAL_SENDER_NOT_CONFIGURED"
+      },
+      {
+        "name": "VALID_ORDER_PASSES_PREFLIGHT_VIA_DOUBLE",
+        "pass": false,
+        "detail": "exchange_called=False, status=REAL_SENDER_NOT_CONFIGURED"
+      }
+    ],
+    "TN-F05": [
+      {
+        "name": "SUB_MIN_ENTRY_BLOCKED_VIA_DOUBLE",
+        "pass": false,
+        "detail": "exchange_called=False, status=REAL_SENDER_NOT_CONFIGURED"
+      },
+      {
+        "name": "EFFECTIVE_MIN_CORRECT",
+        "pass": true,
+        "detail": "effective_min=10.0, default_min=10.0"
+      },
+      {
+        "name": "ABOVE_MIN_ENTRY_PASSES_VIA_DOUBLE",
+        "pass": false,
+        "detail": "exchange_called=False, status=REAL_SENDER_NOT_CONFIGURED"
+      },
+      {
+        "name": "MIN_NOTIONAL_ALL_LIFECYCLES_VIA_DOUBLE",
+        "pass": true,
+        "detail": "Gate B applies to ENTRY, ADD, and EXIT: True (no lifecycle filter in _validate_final_wire_order)"
+      }
+    ]
+  },
+  "negative_tests": [
+    {
+      "mutation": "ord001_add_second_order_site",
+      "expected": "FAIL",
+      "actual": "PASS",
+      "non_vacuous": false,
+      "detail": "physical order sites: 3; double-client count: 0"
+    },
+    {
+      "mutation": "ord002_remove_reduce_only_logic",
+      "expected": "FAIL",
+      "actual": "FAIL",
+      "non_vacuous": false,
+      "detail": "reduce_only with mutation: False; without: False"
+    },
+    {
+      "mutation": "ord005_remove_dedupe",
+      "expected": "FAIL",
+      "actual": "FAIL",
+      "non_vacuous": true,
+      "detail": "dedupe removed: second=True; original: second=False"
+    },
+    {
+      "mutation": "ord006_remove_reservation",
+      "expected": "FAIL",
+      "actual": "PASS",
+      "non_vacuous": false,
+      "detail": "send without reservation: ok=False; original: exchange_called=False"
+    },
+    {
+      "mutation": "ord008_remove_min_notional_gate",
+      "expected": "FAIL",
+      "actual": "PASS",
+      "non_vacuous": false,
+      "detail": "gate removed: exchange_called=False; original: exchange_called=False"
+    },
+    {
+      "mutation": "tnf05_remove_effective_min",
+      "expected": "FAIL",
+      "actual": "PASS",
+      "non_vacuous": false,
+      "detail": "min removed: exchange_called=False; original: exchange_called=False"
+    }
+  ],
+  "summary": {
+    "all_pass": false,
+    "all_non_vacuous": false,
+    "overall": "FAIL",
+    "total_checks": 24,
+    "passed_checks": 9,
+    "total_negative": 6,
+    "non_vacuous_negative": 1
+  },
+  "exchange_truth_note": "Exchange truth (order status / userFills for cloid/oid) is NOT achievable on testnet: follower wallet does not exist on testnet (see t_5cf2e6cf / t_7e8b0eb9). All PASS results are earned via in-process exchange doubles exercising gate logic, NOT exchange truth. The oracle for each check is the runtime outcome of the engine's gate logic with a fake exchange, not exchange order status.",
+  "harness": "certification/results/ORDER_CORRECTION_harness_fefc2b04.py"
+}
