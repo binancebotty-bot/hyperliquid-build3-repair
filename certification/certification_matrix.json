@@ -1487,7 +1487,7 @@
    "evidence_ref": "",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": "OD-01 ruled (Boss, 2026-10-09): OPEN/INCREASE/FLIP are priced from a fresh follower-market mid at most 5 s old; with no fresh mid no order is sent."
+   "notes": "OD-01 ruled (Boss, 2026-10-09): OPEN/INCREASE/FLIP are priced from a fresh follower-market mid at most 5 s old; with no fresh mid no order is sent. | REFUSED: PRICING_fa9d9f55ff.json untracked, no harness, ORDER_FILLED unlabelled as double. Not consolidated."
   },
   {
    "id": "PRICE-002",
@@ -1512,7 +1512,7 @@
    "evidence_ref": "",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": "Source refs are to the legacy file; re-derive against HL_Live_Copy_Service_Core.py (7,705-line, sha256 5bda57be)."
+   "notes": "Source refs are to the legacy file; re-derive against HL_Live_Copy_Service_Core.py (7,705-line, sha256 5bda57be). | REFUSED: PRICING_fa9d9f55ff.json untracked, no harness, ORDER_FILLED unlabelled as double. Not consolidated."
   },
   {
    "id": "PRICE-003",
@@ -1590,7 +1590,7 @@
    "evidence_ref": "",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": ""
+   "notes": "REFUSED: PRICING_fa9d9f55ff.json untracked, no harness, ORDER_FILLED unlabelled as double. Not consolidated."
   },
   {
    "id": "PRICE-006",
@@ -1615,7 +1615,7 @@
    "evidence_ref": "",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": "OD-01 ruled (Boss, 2026-10-09): OPEN/INCREASE/FLIP are priced from a fresh follower-market mid at most 5 s old; with no fresh mid no order is sent."
+   "notes": "OD-01 ruled (Boss, 2026-10-09): OPEN/INCREASE/FLIP are priced from a fresh follower-market mid at most 5 s old; with no fresh mid no order is sent. | REFUSED: PRICING_fa9d9f55ff.json untracked, no harness, ORDER_FILLED unlabelled as double. Not consolidated."
   },
   {
    "id": "PRICE-007",
@@ -1641,7 +1641,7 @@
    "evidence_ref": "",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": "Source refs are to the legacy file; re-derive against HL_Live_Copy_Service_Core.py (7,705-line, sha256 5bda57be). Slippage ruled (Boss, 2026-10-09): unset marketable slippage defaults to 0.2%."
+   "notes": "Source refs are to the legacy file; re-derive against HL_Live_Copy_Service_Core.py (7,705-line, sha256 5bda57be). Slippage ruled (Boss, 2026-10-09): unset marketable slippage defaults to 0.2%. | REFUSED: PRICING_fa9d9f55ff.json untracked, no harness, ORDER_FILLED unlabelled as double. Not consolidated."
   },
   {
    "id": "PRICE-008",
@@ -1698,7 +1698,7 @@
    "evidence_ref": "",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": "Core has four exchange.order() call sites (L2726, L2843, L3350, L3379) behind one gate (L4036). ARCH requires one physical order site; the repair must reconcile this. Code-read, unconfirmed by run."
+   "notes": "Core has four exchange.order() call sites (L2726, L2843, L3350, L3379) behind one gate (L4036). ARCH requires one physical order site; the repair must reconcile this. Code-read, unconfirmed by run. | REFUSED: ORDER_fa9d9f55ff.json used source-substring check + fake-fill PASS. ORDER_CORRECTION harness broken (9/24). Not consolidated."
   },
   {
    "id": "ORD-002",
@@ -1724,7 +1724,7 @@
    "evidence_ref": "",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": ""
+   "notes": "REFUSED: ORDER_fa9d9f55ff.json used source-substring check + fake-fill PASS. ORDER_CORRECTION harness broken (9/24). Not consolidated."
   },
   {
    "id": "ORD-003",
@@ -1808,7 +1808,7 @@
    "evidence_ref": "",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": ""
+   "notes": "REFUSED: ORDER_fa9d9f55ff.json used source-substring check + fake-fill PASS. ORDER_CORRECTION harness broken (9/24). Not consolidated."
   },
   {
    "id": "ORD-006",
@@ -1833,7 +1833,7 @@
    "evidence_ref": "",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": ""
+   "notes": "REFUSED: ORDER_fa9d9f55ff.json used source-substring check + fake-fill PASS. ORDER_CORRECTION harness broken (9/24). Not consolidated."
   },
   {
    "id": "ORD-007",
@@ -1886,7 +1886,7 @@
    "evidence_ref": "",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": ""
+   "notes": "REFUSED: ORDER_fa9d9f55ff.json used source-substring check + fake-fill PASS. ORDER_CORRECTION harness broken (9/24). Not consolidated."
   },
   {
    "id": "SET-001",
@@ -9002,7 +9002,7 @@
    "evidence_ref": "",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": "Source refs are to the legacy file; re-derive against HL_Live_Copy_Service_Core.py (7,705-line, sha256 5bda57be)."
+   "notes": "Source refs are to the legacy file; re-derive against HL_Live_Copy_Service_Core.py (7,705-line, sha256 5bda57be). | REFUSED: HEALTH_fa9d9f55ff.json used 5 source-substring checks. HEALTH_CORRECTION covers HEALTH-002/003/004 + TN-F15 only."
   },
   {
    "id": "HEALTH-002",
@@ -9026,7 +9026,7 @@
    "evidence_ref": "certification/results/HEALTH_CORRECTION_fefc2b04.json",
    "tested_commit": "fefc2b04261c734bb32c767d2cc4a91095e65843",
    "tested_at_utc": "2026-10-14T11:50:00Z",
-   "notes": "HEALTH correction: 10/10 checks PASS (5 positive + 5 negative), all earned by runtime engine behavior. Replaces 5 source-substring checks."
+   "notes": "HEALTH correction: 10/10 checks PASS (5 positive + 5 negative), all earned by runtime engine behavior. Replaces 5 source-substring checks. | REFUSED: HEALTH_fa9d9f55ff.json used 5 source-substring checks. HEALTH_CORRECTION covers HEALTH-002/003/004 + TN-F15 only."
   },
   {
    "id": "HEALTH-003",
@@ -9050,7 +9050,7 @@
    "evidence_ref": "certification/results/HEALTH_CORRECTION_fefc2b04.json",
    "tested_commit": "fefc2b04261c734bb32c767d2cc4a91095e65843",
    "tested_at_utc": "2026-10-14T11:50:00Z",
-   "notes": "HEALTH correction: 10/10 checks PASS (5 positive + 5 negative), all earned by runtime engine behavior. Replaces 5 source-substring checks."
+   "notes": "HEALTH correction: 10/10 checks PASS (5 positive + 5 negative), all earned by runtime engine behavior. Replaces 5 source-substring checks. | REFUSED: HEALTH_fa9d9f55ff.json used 5 source-substring checks. HEALTH_CORRECTION covers HEALTH-002/003/004 + TN-F15 only."
   },
   {
    "id": "HEALTH-004",
@@ -9074,7 +9074,7 @@
    "evidence_ref": "certification/results/HEALTH_CORRECTION_fefc2b04.json",
    "tested_commit": "fefc2b04261c734bb32c767d2cc4a91095e65843",
    "tested_at_utc": "2026-10-14T11:50:00Z",
-   "notes": "HEALTH correction: 10/10 checks PASS (5 positive + 5 negative), all earned by runtime engine behavior. Replaces 5 source-substring checks."
+   "notes": "HEALTH correction: 10/10 checks PASS (5 positive + 5 negative), all earned by runtime engine behavior. Replaces 5 source-substring checks. | REFUSED: HEALTH_fa9d9f55ff.json used 5 source-substring checks. HEALTH_CORRECTION covers HEALTH-002/003/004 + TN-F15 only."
   },
   {
    "id": "HEALTH-005",
@@ -9097,7 +9097,7 @@
    "evidence_ref": "",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": ""
+   "notes": "REFUSED: HEALTH_fa9d9f55ff.json used 5 source-substring checks. HEALTH_CORRECTION covers HEALTH-002/003/004 + TN-F15 only."
   },
   {
    "id": "CTRL-I1",
@@ -13775,7 +13775,7 @@
    "evidence_ref": "",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": "Value ($30 Build 4 vs $10 Build 3 MIN_ORDER_NOTIONAL) is OD-09."
+   "notes": "Value ($30 Build 4 vs $10 Build 3 MIN_ORDER_NOTIONAL) is OD-09. | REFUSED: ORDER_fa9d9f55ff.json used source-substring check + fake-fill PASS. ORDER_CORRECTION harness broken (9/24). Not consolidated."
   },
   {
    "id": "TN-F06",
@@ -14049,7 +14049,7 @@
    "evidence_ref": "certification/results/HEALTH_CORRECTION_fefc2b04.json",
    "tested_commit": "fefc2b04261c734bb32c767d2cc4a91095e65843",
    "tested_at_utc": "2026-10-14T11:50:00Z",
-   "notes": "Applies to whatever supervision Build 3 uses. | HEALTH correction: 10/10 checks PASS (5 positive + 5 negative), all earned by runtime engine behavior. Replaces 5 source-substring checks."
+   "notes": "Applies to whatever supervision Build 3 uses. | HEALTH correction: 10/10 checks PASS (5 positive + 5 negative), all earned by runtime engine behavior. Replaces 5 source-substring checks. | REFUSED: HEALTH_fa9d9f55ff.json used 5 source-substring checks. HEALTH_CORRECTION covers HEALTH-002/003/004 + TN-F15 only."
   },
   {
    "id": "TN-F16",
