@@ -1,7 +1,22 @@
 {
   "schema": "wigmore_project_control_state_v1",
   "project": "hyperliquid-build3-repair",
-  "updated_utc": "2026-10-09T13:59:02.780724Z",
+  "updated_utc": "2026-10-14T14:12:00Z",
+  "operator_hold": {
+    "state": "OPERATOR_HOLD_ACTIVE",
+    "set_by": "richard:operator",
+    "set_at_utc": "2026-10-14T14:12:00Z",
+    "directive": "Wait for the currently running kanban jobs to finish, then start NO new work and PAUSE operations until the operator or an external controller gives the go-ahead.",
+    "what_this_means": [
+      "Drain-only: the 2 running cards (t_65aa985e, t_dc69fe0c) finish naturally; do NOT reclaim, block or kill them.",
+      "Do NOT create, dispatch or unblock any new card.",
+      "Do NOT auto-resume on a cron/wake tick - a wake that fires during the hold must STOP and report, never dispatch.",
+      "Resume ONLY on an explicit go-ahead from richard:operator or an external controller."
+    ],
+    "running_at_hold": ["t_65aa985e", "t_dc69fe0c"],
+    "release_condition": "Explicit operator or controller go-ahead.",
+    "recorded_by": "hermes:implementation-owner"
+  },
   "operator": "richard:operator",
   "architect": {
     "role": "project-architect",
