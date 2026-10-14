@@ -21,6 +21,7 @@ E4 = "certification/results/ENG-INV-07-09_runtime_43731b4f1f19.json"
 E5 = "certification/results/ENG-INV-03-05_43731b4f.json"
 E6 = "certification/results/ENG-INV-06-09_43731b4.json"
 E10 = "certification/results/ENG-INV-10-14_43731b4f.json"
+E11 = "certification/results/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json"
 
 P1 = ("Independently re-verified: 47/47 checks PASS; engine sha256 2dfbd571... matches on-disk "
       "_archive/hl_stage2/HL_Live_Copy_Service_Core.py; negative mutations present.")
@@ -36,6 +37,11 @@ F10 = ("Static census FAIL: INV-11 and INV-14 fail; INV-13 negative test non_vac
        "Static census documented as insufficient (runtime card t_4a54d270 required).")
 B1 = ("Runtime proof dry-run only (HL_LIVE_MOCK_SEND=1). Real testnet fill NOT_ESTABLISHED: "
       "HL_LIVE_HL_PRIVATE_KEY unset, no .env/.env.testnet in repo.")
+P11 = ("CORRECTED runtime+static PASS: 36/36 checks; 11/11 non-vacuous negatives; engine sha256 verified. "
+       "Corrections: ENG-014 uses source=WS_SNAPSHOT (not WS) so stale_snapshot_replay_reason() actually "
+       "exercises stale-detection; ENG-010 accepts ONLY ACCOUNT_NET_TRUTH_UNAVAILABLE (not IDENTITY_INVALID); "
+       "ENG-011 accepts ONLY IN_FLIGHT_NOT_OWNED (not ACCOUNT_NET_TRUTH_UNAVAILABLE). "
+       "Prior artifact had 3 unearned PASSes via widened accept sets + source-substring fallback.")
 
 V = {
     "ENG-005": ("PASS", E1, "2026-10-14T05:15:38Z", P1),
@@ -61,6 +67,17 @@ V = {
     "ENG-INV-11": ("FAIL", E10, "2026-10-14T07:40:45Z", F10),
     "ENG-INV-13": ("FAIL", E10, "2026-10-14T07:40:45Z", F10),
     "ENG-INV-14": ("FAIL", E10, "2026-10-14T07:40:45Z", F10),
+    "ENG-INV-01": ("PASS", E11, "2026-10-14T09:05:00Z", P11),
+    "ENG-INV-02": ("PASS", E11, "2026-10-14T09:05:00Z", P11),
+    "ENG-010": ("PASS", E11, "2026-10-14T09:05:00Z", P11),
+    "ENG-011": ("PASS", E11, "2026-10-14T09:05:00Z", P11),
+    "ENG-012": ("PASS", E11, "2026-10-14T09:05:00Z", P11),
+    "ENG-013": ("PASS", E11, "2026-10-14T09:05:00Z", P11),
+    "ENG-014": ("PASS", E11, "2026-10-14T09:05:00Z", P11),
+    "ENG-SEM-B1": ("PASS", E11, "2026-10-14T09:05:00Z", P11),
+    "ENG-SEM-B2": ("PASS", E11, "2026-10-14T09:05:00Z", P11),
+    "ENG-SEM-B3": ("PASS", E11, "2026-10-14T09:05:00Z", P11),
+    "ENG-SEM-B4": ("PASS", E11, "2026-10-14T09:05:00Z", P11),
 }
 
 

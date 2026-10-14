@@ -598,11 +598,11 @@
     "census run against a deliberately mutated copy must FAIL (non-vacuous)"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": ""
+   "result": "PASS",
+   "evidence_ref": "certification/results/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json",
+   "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+   "tested_at_utc": "2026-10-14T09:05:00Z",
+   "notes": "Runtime+static PASS: 36/36 checks; 11/11 non-vacuous negatives; engine sha256 verified; drives REAL engine symbols. | CORRECTED runtime+static PASS: 36/36 checks; 11/11 non-vacuous negatives; engine sha256 verified. Corrections: ENG-014 uses source=WS_SNAPSHOT (not WS) so stale_snapshot_replay_reason() actually exercises stale-detection; ENG-010 accepts ONLY ACCOUNT_NET_TRUTH_UNAVAILABLE (not IDENTITY_INVALID); ENG-011 accepts ONLY IN_FLIGHT_NOT_OWNED (not ACCOUNT_NET_TRUTH_UNAVAILABLE). Prior artifact had 3 unearned PASSes via widened accept sets + source-substring fallback."
   },
   {
    "id": "ENG-INV-02",
@@ -622,11 +622,11 @@
     "census run against a deliberately mutated copy must FAIL (non-vacuous)"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": ""
+   "result": "PASS",
+   "evidence_ref": "certification/results/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json",
+   "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+   "tested_at_utc": "2026-10-14T09:05:00Z",
+   "notes": "Runtime+static PASS: 36/36 checks; 11/11 non-vacuous negatives; engine sha256 verified; drives REAL engine symbols. | CORRECTED runtime+static PASS: 36/36 checks; 11/11 non-vacuous negatives; engine sha256 verified. Corrections: ENG-014 uses source=WS_SNAPSHOT (not WS) so stale_snapshot_replay_reason() actually exercises stale-detection; ENG-010 accepts ONLY ACCOUNT_NET_TRUTH_UNAVAILABLE (not IDENTITY_INVALID); ENG-011 accepts ONLY IN_FLIGHT_NOT_OWNED (not ACCOUNT_NET_TRUTH_UNAVAILABLE). Prior artifact had 3 unearned PASSes via widened accept sets + source-substring fallback."
   },
   {
    "id": "ENG-INV-03",
@@ -649,7 +649,7 @@
    "evidence_ref": "certification/results/ENG-INV-03-05_43731b4f.json",
    "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
    "tested_at_utc": "2026-10-14T05:00:00Z",
-   "notes": "Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports."
+   "notes": "Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports. | Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports. | Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports."
   },
   {
    "id": "ENG-INV-04",
@@ -673,7 +673,7 @@
    "evidence_ref": "certification/results/ENG-INV-03-05_43731b4f.json",
    "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
    "tested_at_utc": "2026-10-14T05:00:00Z",
-   "notes": "Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports."
+   "notes": "Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports. | Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports. | Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports."
   },
   {
    "id": "ENG-INV-05",
@@ -696,7 +696,7 @@
    "evidence_ref": "certification/results/ENG-INV-03-05_43731b4f.json",
    "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
    "tested_at_utc": "2026-10-14T05:00:00Z",
-   "notes": "Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports."
+   "notes": "Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports. | Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports. | Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports."
   },
   {
    "id": "ENG-INV-06",
@@ -719,7 +719,7 @@
    "evidence_ref": "certification/results/ENG-INV-06-09_43731b4.json",
    "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
    "tested_at_utc": "2026-10-14T05:00:01Z",
-   "notes": "Static PASS (INV-06 single .order() site L2703, no process spawns)."
+   "notes": "Static PASS (INV-06 single .order() site L2703, no process spawns). | Static PASS (INV-06 single .order() site L2703, no process spawns). | Static PASS (INV-06 single .order() site L2703, no process spawns)."
   },
   {
    "id": "ENG-INV-07",
@@ -745,7 +745,7 @@
    "evidence_ref": "certification/results/ENG-INV-07-09_runtime_43731b4f1f19.json",
    "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
    "tested_at_utc": "2026-10-14T05:29:40Z",
-   "notes": "Runtime proof dry-run only (HL_LIVE_MOCK_SEND=1). Real testnet fill NOT_ESTABLISHED: HL_LIVE_HL_PRIVATE_KEY unset, no .env/.env.testnet in repo. | Runtime proof dry-run only (HL_LIVE_MOCK_SEND=1). Real testnet fill NOT_ESTABLISHED: HL_LIVE_HL_PRIVATE_KEY unset, no .env/.env.testnet in repo."
+   "notes": "Runtime proof dry-run only (HL_LIVE_MOCK_SEND=1). Real testnet fill NOT_ESTABLISHED: HL_LIVE_HL_PRIVATE_KEY unset, no .env/.env.testnet in repo. | Runtime proof dry-run only (HL_LIVE_MOCK_SEND=1). Real testnet fill NOT_ESTABLISHED: HL_LIVE_HL_PRIVATE_KEY unset, no .env/.env.testnet in repo. | Runtime proof dry-run only (HL_LIVE_MOCK_SEND=1). Real testnet fill NOT_ESTABLISHED: HL_LIVE_HL_PRIVATE_KEY unset, no .env/.env.testnet in repo. | Runtime proof dry-run only (HL_LIVE_MOCK_SEND=1). Real testnet fill NOT_ESTABLISHED: HL_LIVE_HL_PRIVATE_KEY unset, no .env/.env.testnet in repo."
   },
   {
    "id": "ENG-INV-08",
@@ -772,7 +772,7 @@
    "evidence_ref": "certification/results/ENG-INV-07-09_runtime_43731b4f1f19.json",
    "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
    "tested_at_utc": "2026-10-14T05:29:40Z",
-   "notes": "Runtime proof dry-run only (HL_LIVE_MOCK_SEND=1). Real testnet fill NOT_ESTABLISHED: HL_LIVE_HL_PRIVATE_KEY unset, no .env/.env.testnet in repo. | Runtime proof dry-run only (HL_LIVE_MOCK_SEND=1). Real testnet fill NOT_ESTABLISHED: HL_LIVE_HL_PRIVATE_KEY unset, no .env/.env.testnet in repo."
+   "notes": "Runtime proof dry-run only (HL_LIVE_MOCK_SEND=1). Real testnet fill NOT_ESTABLISHED: HL_LIVE_HL_PRIVATE_KEY unset, no .env/.env.testnet in repo. | Runtime proof dry-run only (HL_LIVE_MOCK_SEND=1). Real testnet fill NOT_ESTABLISHED: HL_LIVE_HL_PRIVATE_KEY unset, no .env/.env.testnet in repo. | Runtime proof dry-run only (HL_LIVE_MOCK_SEND=1). Real testnet fill NOT_ESTABLISHED: HL_LIVE_HL_PRIVATE_KEY unset, no .env/.env.testnet in repo. | Runtime proof dry-run only (HL_LIVE_MOCK_SEND=1). Real testnet fill NOT_ESTABLISHED: HL_LIVE_HL_PRIVATE_KEY unset, no .env/.env.testnet in repo."
   },
   {
    "id": "ENG-INV-09",
@@ -799,7 +799,7 @@
    "evidence_ref": "certification/results/ENG-INV-07-09_runtime_43731b4f1f19.json",
    "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
    "tested_at_utc": "2026-10-14T05:29:40Z",
-   "notes": "Runtime proof dry-run only (HL_LIVE_MOCK_SEND=1). Real testnet fill NOT_ESTABLISHED: HL_LIVE_HL_PRIVATE_KEY unset, no .env/.env.testnet in repo. | Runtime proof dry-run only (HL_LIVE_MOCK_SEND=1). Real testnet fill NOT_ESTABLISHED: HL_LIVE_HL_PRIVATE_KEY unset, no .env/.env.testnet in repo."
+   "notes": "Runtime proof dry-run only (HL_LIVE_MOCK_SEND=1). Real testnet fill NOT_ESTABLISHED: HL_LIVE_HL_PRIVATE_KEY unset, no .env/.env.testnet in repo. | Runtime proof dry-run only (HL_LIVE_MOCK_SEND=1). Real testnet fill NOT_ESTABLISHED: HL_LIVE_HL_PRIVATE_KEY unset, no .env/.env.testnet in repo. | Runtime proof dry-run only (HL_LIVE_MOCK_SEND=1). Real testnet fill NOT_ESTABLISHED: HL_LIVE_HL_PRIVATE_KEY unset, no .env/.env.testnet in repo. | Runtime proof dry-run only (HL_LIVE_MOCK_SEND=1). Real testnet fill NOT_ESTABLISHED: HL_LIVE_HL_PRIVATE_KEY unset, no .env/.env.testnet in repo."
   },
   {
    "id": "ENG-INV-10",
@@ -826,7 +826,7 @@
    "evidence_ref": "certification/results/ENG-INV-10-14_43731b4f.json",
    "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
    "tested_at_utc": "2026-10-14T07:40:45Z",
-   "notes": "Static census PASS (non-vacuous for this row)."
+   "notes": "Static census PASS (non-vacuous for this row). | Static census PASS (non-vacuous for this row). | Static census PASS (non-vacuous for this row)."
   },
   {
    "id": "ENG-INV-11",
@@ -853,7 +853,7 @@
    "evidence_ref": "certification/results/ENG-INV-10-14_43731b4f.json",
    "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
    "tested_at_utc": "2026-10-14T07:40:45Z",
-   "notes": "Static census FAIL: INV-11 and INV-14 fail; INV-13 negative test non_vacuous=false. Static census documented as insufficient (runtime card t_4a54d270 required)."
+   "notes": "Static census FAIL: INV-11 and INV-14 fail; INV-13 negative test non_vacuous=false. Static census documented as insufficient (runtime card t_4a54d270 required). | Static census FAIL: INV-11 and INV-14 fail; INV-13 negative test non_vacuous=false. Static census documented as insufficient (runtime card t_4a54d270 required). | Static census FAIL: INV-11 and INV-14 fail; INV-13 negative test non_vacuous=false. Static census documented as insufficient (runtime card t_4a54d270 required)."
   },
   {
    "id": "ENG-INV-12",
@@ -880,7 +880,7 @@
    "evidence_ref": "certification/results/ENG-INV-10-14_43731b4f.json",
    "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
    "tested_at_utc": "2026-10-14T07:40:45Z",
-   "notes": "Static census PASS (non-vacuous for this row)."
+   "notes": "Static census PASS (non-vacuous for this row). | Static census PASS (non-vacuous for this row). | Static census PASS (non-vacuous for this row)."
   },
   {
    "id": "ENG-INV-13",
@@ -907,7 +907,7 @@
    "evidence_ref": "certification/results/ENG-INV-10-14_43731b4f.json",
    "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
    "tested_at_utc": "2026-10-14T07:40:45Z",
-   "notes": "Static census FAIL: INV-11 and INV-14 fail; INV-13 negative test non_vacuous=false. Static census documented as insufficient (runtime card t_4a54d270 required)."
+   "notes": "Static census FAIL: INV-11 and INV-14 fail; INV-13 negative test non_vacuous=false. Static census documented as insufficient (runtime card t_4a54d270 required). | Static census FAIL: INV-11 and INV-14 fail; INV-13 negative test non_vacuous=false. Static census documented as insufficient (runtime card t_4a54d270 required). | Static census FAIL: INV-11 and INV-14 fail; INV-13 negative test non_vacuous=false. Static census documented as insufficient (runtime card t_4a54d270 required)."
   },
   {
    "id": "ENG-INV-14",
@@ -934,7 +934,7 @@
    "evidence_ref": "certification/results/ENG-INV-10-14_43731b4f.json",
    "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
    "tested_at_utc": "2026-10-14T07:40:45Z",
-   "notes": "Static census FAIL: INV-11 and INV-14 fail; INV-13 negative test non_vacuous=false. Static census documented as insufficient (runtime card t_4a54d270 required)."
+   "notes": "Static census FAIL: INV-11 and INV-14 fail; INV-13 negative test non_vacuous=false. Static census documented as insufficient (runtime card t_4a54d270 required). | Static census FAIL: INV-11 and INV-14 fail; INV-13 negative test non_vacuous=false. Static census documented as insufficient (runtime card t_4a54d270 required). | Static census FAIL: INV-11 and INV-14 fail; INV-13 negative test non_vacuous=false. Static census documented as insufficient (runtime card t_4a54d270 required)."
   },
   {
    "id": "ENG-SEM-B1",
@@ -955,11 +955,11 @@
     "lineage checkpoint missing/corrupt"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": ""
+   "result": "PASS",
+   "evidence_ref": "certification/results/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json",
+   "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+   "tested_at_utc": "2026-10-14T09:05:00Z",
+   "notes": "Runtime+static PASS: 36/36 checks; 11/11 non-vacuous negatives; engine sha256 verified; drives REAL engine symbols. | CORRECTED runtime+static PASS: 36/36 checks; 11/11 non-vacuous negatives; engine sha256 verified. Corrections: ENG-014 uses source=WS_SNAPSHOT (not WS) so stale_snapshot_replay_reason() actually exercises stale-detection; ENG-010 accepts ONLY ACCOUNT_NET_TRUTH_UNAVAILABLE (not IDENTITY_INVALID); ENG-011 accepts ONLY IN_FLIGHT_NOT_OWNED (not ACCOUNT_NET_TRUTH_UNAVAILABLE). Prior artifact had 3 unearned PASSes via widened accept sets + source-substring fallback."
   },
   {
    "id": "ENG-SEM-B2",
@@ -980,11 +980,11 @@
     "lineage checkpoint missing/corrupt"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": ""
+   "result": "PASS",
+   "evidence_ref": "certification/results/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json",
+   "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+   "tested_at_utc": "2026-10-14T09:05:00Z",
+   "notes": "Runtime+static PASS: 36/36 checks; 11/11 non-vacuous negatives; engine sha256 verified; drives REAL engine symbols. | CORRECTED runtime+static PASS: 36/36 checks; 11/11 non-vacuous negatives; engine sha256 verified. Corrections: ENG-014 uses source=WS_SNAPSHOT (not WS) so stale_snapshot_replay_reason() actually exercises stale-detection; ENG-010 accepts ONLY ACCOUNT_NET_TRUTH_UNAVAILABLE (not IDENTITY_INVALID); ENG-011 accepts ONLY IN_FLIGHT_NOT_OWNED (not ACCOUNT_NET_TRUTH_UNAVAILABLE). Prior artifact had 3 unearned PASSes via widened accept sets + source-substring fallback."
   },
   {
    "id": "ENG-SEM-B3",
@@ -1005,11 +1005,11 @@
     "lineage checkpoint missing/corrupt"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": ""
+   "result": "PASS",
+   "evidence_ref": "certification/results/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json",
+   "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+   "tested_at_utc": "2026-10-14T09:05:00Z",
+   "notes": "Runtime+static PASS: 36/36 checks; 11/11 non-vacuous negatives; engine sha256 verified; drives REAL engine symbols. | CORRECTED runtime+static PASS: 36/36 checks; 11/11 non-vacuous negatives; engine sha256 verified. Corrections: ENG-014 uses source=WS_SNAPSHOT (not WS) so stale_snapshot_replay_reason() actually exercises stale-detection; ENG-010 accepts ONLY ACCOUNT_NET_TRUTH_UNAVAILABLE (not IDENTITY_INVALID); ENG-011 accepts ONLY IN_FLIGHT_NOT_OWNED (not ACCOUNT_NET_TRUTH_UNAVAILABLE). Prior artifact had 3 unearned PASSes via widened accept sets + source-substring fallback."
   },
   {
    "id": "ENG-SEM-B4",
@@ -1030,11 +1030,11 @@
     "lineage checkpoint missing/corrupt"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": ""
+   "result": "PASS",
+   "evidence_ref": "certification/results/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json",
+   "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+   "tested_at_utc": "2026-10-14T09:05:00Z",
+   "notes": "Runtime+static PASS: 36/36 checks; 11/11 non-vacuous negatives; engine sha256 verified; drives REAL engine symbols. | CORRECTED runtime+static PASS: 36/36 checks; 11/11 non-vacuous negatives; engine sha256 verified. Corrections: ENG-014 uses source=WS_SNAPSHOT (not WS) so stale_snapshot_replay_reason() actually exercises stale-detection; ENG-010 accepts ONLY ACCOUNT_NET_TRUTH_UNAVAILABLE (not IDENTITY_INVALID); ENG-011 accepts ONLY IN_FLIGHT_NOT_OWNED (not ACCOUNT_NET_TRUTH_UNAVAILABLE). Prior artifact had 3 unearned PASSes via widened accept sets + source-substring fallback."
   },
   {
    "id": "ENG-001",
@@ -1062,7 +1062,7 @@
    "evidence_ref": "certification/results/ENG-001-004_43731b4f.json",
    "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
    "tested_at_utc": "2026-10-14T06:50:38Z",
-   "notes": "Artifact reports 29 passed / 4 FAILED / overall FAIL. Failing: eng001_after_reduce (exp 0.7 got 0.0), eng001_after_close (exp 0.0 got -1.0), eng002_partial_reduce (exp 1.2 got 0.0), eng002_close (exp 0.0 got -1.5). Card t_84233ea7's '33/33 PASS' summary is FALSE and is flagged as fabricated evidence. | Artifact reports 29 passed / 4 FAILED / overall FAIL. Failing: eng001_after_reduce (exp 0.7 got 0.0), eng001_after_close (exp 0.0 got -1.0), eng002_partial_reduce (exp 1.2 got 0.0), eng002_close (exp 0.0 got -1.5). Card t_84233ea7's '33/33 PASS' summary is FALSE and is flagged as fabricated evidence."
+   "notes": "Artifact reports 29 passed / 4 FAILED / overall FAIL. Failing: eng001_after_reduce (exp 0.7 got 0.0), eng001_after_close (exp 0.0 got -1.0), eng002_partial_reduce (exp 1.2 got 0.0), eng002_close (exp 0.0 got -1.5). Card t_84233ea7's '33/33 PASS' summary is FALSE and is flagged as fabricated evidence. | Artifact reports 29 passed / 4 FAILED / overall FAIL. Failing: eng001_after_reduce (exp 0.7 got 0.0), eng001_after_close (exp 0.0 got -1.0), eng002_partial_reduce (exp 1.2 got 0.0), eng002_close (exp 0.0 got -1.5). Card t_84233ea7's '33/33 PASS' summary is FALSE and is flagged as fabricated evidence. | Artifact reports 29 passed / 4 FAILED / overall FAIL. Failing: eng001_after_reduce (exp 0.7 got 0.0), eng001_after_close (exp 0.0 got -1.0), eng002_partial_reduce (exp 1.2 got 0.0), eng002_close (exp 0.0 got -1.5). Card t_84233ea7's '33/33 PASS' summary is FALSE and is flagged as fabricated evidence. | Artifact reports 29 passed / 4 FAILED / overall FAIL. Failing: eng001_after_reduce (exp 0.7 got 0.0), eng001_after_close (exp 0.0 got -1.0), eng002_partial_reduce (exp 1.2 got 0.0), eng002_close (exp 0.0 got -1.5). Card t_84233ea7's '33/33 PASS' summary is FALSE and is flagged as fabricated evidence."
   },
   {
    "id": "ENG-002",
@@ -1088,7 +1088,7 @@
    "evidence_ref": "certification/results/ENG-001-004_43731b4f.json",
    "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
    "tested_at_utc": "2026-10-14T06:50:38Z",
-   "notes": "Artifact reports 29 passed / 4 FAILED / overall FAIL. Failing: eng001_after_reduce (exp 0.7 got 0.0), eng001_after_close (exp 0.0 got -1.0), eng002_partial_reduce (exp 1.2 got 0.0), eng002_close (exp 0.0 got -1.5). Card t_84233ea7's '33/33 PASS' summary is FALSE and is flagged as fabricated evidence. | Artifact reports 29 passed / 4 FAILED / overall FAIL. Failing: eng001_after_reduce (exp 0.7 got 0.0), eng001_after_close (exp 0.0 got -1.0), eng002_partial_reduce (exp 1.2 got 0.0), eng002_close (exp 0.0 got -1.5). Card t_84233ea7's '33/33 PASS' summary is FALSE and is flagged as fabricated evidence."
+   "notes": "Artifact reports 29 passed / 4 FAILED / overall FAIL. Failing: eng001_after_reduce (exp 0.7 got 0.0), eng001_after_close (exp 0.0 got -1.0), eng002_partial_reduce (exp 1.2 got 0.0), eng002_close (exp 0.0 got -1.5). Card t_84233ea7's '33/33 PASS' summary is FALSE and is flagged as fabricated evidence. | Artifact reports 29 passed / 4 FAILED / overall FAIL. Failing: eng001_after_reduce (exp 0.7 got 0.0), eng001_after_close (exp 0.0 got -1.0), eng002_partial_reduce (exp 1.2 got 0.0), eng002_close (exp 0.0 got -1.5). Card t_84233ea7's '33/33 PASS' summary is FALSE and is flagged as fabricated evidence. | Artifact reports 29 passed / 4 FAILED / overall FAIL. Failing: eng001_after_reduce (exp 0.7 got 0.0), eng001_after_close (exp 0.0 got -1.0), eng002_partial_reduce (exp 1.2 got 0.0), eng002_close (exp 0.0 got -1.5). Card t_84233ea7's '33/33 PASS' summary is FALSE and is flagged as fabricated evidence. | Artifact reports 29 passed / 4 FAILED / overall FAIL. Failing: eng001_after_reduce (exp 0.7 got 0.0), eng001_after_close (exp 0.0 got -1.0), eng002_partial_reduce (exp 1.2 got 0.0), eng002_close (exp 0.0 got -1.5). Card t_84233ea7's '33/33 PASS' summary is FALSE and is flagged as fabricated evidence."
   },
   {
    "id": "ENG-003",
@@ -1143,7 +1143,7 @@
    "evidence_ref": "certification/results/ENG-001-004_43731b4f.json",
    "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
    "tested_at_utc": "2026-10-14T06:50:38Z",
-   "notes": "Artifact reports 29 passed / 4 FAILED / overall FAIL. Failing: eng001_after_reduce (exp 0.7 got 0.0), eng001_after_close (exp 0.0 got -1.0), eng002_partial_reduce (exp 1.2 got 0.0), eng002_close (exp 0.0 got -1.5). Card t_84233ea7's '33/33 PASS' summary is FALSE and is flagged as fabricated evidence. | Artifact reports 29 passed / 4 FAILED / overall FAIL. Failing: eng001_after_reduce (exp 0.7 got 0.0), eng001_after_close (exp 0.0 got -1.0), eng002_partial_reduce (exp 1.2 got 0.0), eng002_close (exp 0.0 got -1.5). Card t_84233ea7's '33/33 PASS' summary is FALSE and is flagged as fabricated evidence."
+   "notes": "Artifact reports 29 passed / 4 FAILED / overall FAIL. Failing: eng001_after_reduce (exp 0.7 got 0.0), eng001_after_close (exp 0.0 got -1.0), eng002_partial_reduce (exp 1.2 got 0.0), eng002_close (exp 0.0 got -1.5). Card t_84233ea7's '33/33 PASS' summary is FALSE and is flagged as fabricated evidence. | Artifact reports 29 passed / 4 FAILED / overall FAIL. Failing: eng001_after_reduce (exp 0.7 got 0.0), eng001_after_close (exp 0.0 got -1.0), eng002_partial_reduce (exp 1.2 got 0.0), eng002_close (exp 0.0 got -1.5). Card t_84233ea7's '33/33 PASS' summary is FALSE and is flagged as fabricated evidence. | Artifact reports 29 passed / 4 FAILED / overall FAIL. Failing: eng001_after_reduce (exp 0.7 got 0.0), eng001_after_close (exp 0.0 got -1.0), eng002_partial_reduce (exp 1.2 got 0.0), eng002_close (exp 0.0 got -1.5). Card t_84233ea7's '33/33 PASS' summary is FALSE and is flagged as fabricated evidence. | Artifact reports 29 passed / 4 FAILED / overall FAIL. Failing: eng001_after_reduce (exp 0.7 got 0.0), eng001_after_close (exp 0.0 got -1.0), eng002_partial_reduce (exp 1.2 got 0.0), eng002_close (exp 0.0 got -1.5). Card t_84233ea7's '33/33 PASS' summary is FALSE and is flagged as fabricated evidence."
   },
   {
    "id": "ENG-005",
@@ -1170,7 +1170,7 @@
    "evidence_ref": "certification/results/ENG-005-009_43731b4f.json",
    "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
    "tested_at_utc": "2026-10-14T05:15:38Z",
-   "notes": "Independently re-verified: 47/47 checks PASS; engine sha256 2dfbd571... matches on-disk _archive/hl_stage2/HL_Live_Copy_Service_Core.py; negative mutations present. | Independently re-verified: 47/47 checks PASS; engine sha256 2dfbd571... matches on-disk _archive/hl_stage2/HL_Live_Copy_Service_Core.py; negative mutations present."
+   "notes": "Independently re-verified: 47/47 checks PASS; engine sha256 2dfbd571... matches on-disk _archive/hl_stage2/HL_Live_Copy_Service_Core.py; negative mutations present. | Independently re-verified: 47/47 checks PASS; engine sha256 2dfbd571... matches on-disk _archive/hl_stage2/HL_Live_Copy_Service_Core.py; negative mutations present. | Independently re-verified: 47/47 checks PASS; engine sha256 2dfbd571... matches on-disk _archive/hl_stage2/HL_Live_Copy_Service_Core.py; negative mutations present. | Independently re-verified: 47/47 checks PASS; engine sha256 2dfbd571... matches on-disk _archive/hl_stage2/HL_Live_Copy_Service_Core.py; negative mutations present."
   },
   {
    "id": "ENG-006",
@@ -1196,7 +1196,7 @@
    "evidence_ref": "certification/results/ENG-005-009_43731b4f.json",
    "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
    "tested_at_utc": "2026-10-14T05:15:38Z",
-   "notes": "Independently re-verified: 47/47 checks PASS; engine sha256 2dfbd571... matches on-disk _archive/hl_stage2/HL_Live_Copy_Service_Core.py; negative mutations present. | Independently re-verified: 47/47 checks PASS; engine sha256 2dfbd571... matches on-disk _archive/hl_stage2/HL_Live_Copy_Service_Core.py; negative mutations present."
+   "notes": "Independently re-verified: 47/47 checks PASS; engine sha256 2dfbd571... matches on-disk _archive/hl_stage2/HL_Live_Copy_Service_Core.py; negative mutations present. | Independently re-verified: 47/47 checks PASS; engine sha256 2dfbd571... matches on-disk _archive/hl_stage2/HL_Live_Copy_Service_Core.py; negative mutations present. | Independently re-verified: 47/47 checks PASS; engine sha256 2dfbd571... matches on-disk _archive/hl_stage2/HL_Live_Copy_Service_Core.py; negative mutations present. | Independently re-verified: 47/47 checks PASS; engine sha256 2dfbd571... matches on-disk _archive/hl_stage2/HL_Live_Copy_Service_Core.py; negative mutations present."
   },
   {
    "id": "ENG-007",
@@ -1223,7 +1223,7 @@
    "evidence_ref": "certification/results/ENG-005-009_43731b4f.json",
    "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
    "tested_at_utc": "2026-10-14T05:15:38Z",
-   "notes": "Independently re-verified: 47/47 checks PASS; engine sha256 2dfbd571... matches on-disk _archive/hl_stage2/HL_Live_Copy_Service_Core.py; negative mutations present. | Independently re-verified: 47/47 checks PASS; engine sha256 2dfbd571... matches on-disk _archive/hl_stage2/HL_Live_Copy_Service_Core.py; negative mutations present."
+   "notes": "Independently re-verified: 47/47 checks PASS; engine sha256 2dfbd571... matches on-disk _archive/hl_stage2/HL_Live_Copy_Service_Core.py; negative mutations present. | Independently re-verified: 47/47 checks PASS; engine sha256 2dfbd571... matches on-disk _archive/hl_stage2/HL_Live_Copy_Service_Core.py; negative mutations present. | Independently re-verified: 47/47 checks PASS; engine sha256 2dfbd571... matches on-disk _archive/hl_stage2/HL_Live_Copy_Service_Core.py; negative mutations present. | Independently re-verified: 47/47 checks PASS; engine sha256 2dfbd571... matches on-disk _archive/hl_stage2/HL_Live_Copy_Service_Core.py; negative mutations present."
   },
   {
    "id": "ENG-008",
@@ -1250,7 +1250,7 @@
    "evidence_ref": "certification/results/ENG-005-009_43731b4f.json",
    "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
    "tested_at_utc": "2026-10-14T05:15:38Z",
-   "notes": "Independently re-verified: 47/47 checks PASS; engine sha256 2dfbd571... matches on-disk _archive/hl_stage2/HL_Live_Copy_Service_Core.py; negative mutations present. | Independently re-verified: 47/47 checks PASS; engine sha256 2dfbd571... matches on-disk _archive/hl_stage2/HL_Live_Copy_Service_Core.py; negative mutations present."
+   "notes": "Independently re-verified: 47/47 checks PASS; engine sha256 2dfbd571... matches on-disk _archive/hl_stage2/HL_Live_Copy_Service_Core.py; negative mutations present. | Independently re-verified: 47/47 checks PASS; engine sha256 2dfbd571... matches on-disk _archive/hl_stage2/HL_Live_Copy_Service_Core.py; negative mutations present. | Independently re-verified: 47/47 checks PASS; engine sha256 2dfbd571... matches on-disk _archive/hl_stage2/HL_Live_Copy_Service_Core.py; negative mutations present. | Independently re-verified: 47/47 checks PASS; engine sha256 2dfbd571... matches on-disk _archive/hl_stage2/HL_Live_Copy_Service_Core.py; negative mutations present."
   },
   {
    "id": "ENG-009",
@@ -1276,7 +1276,7 @@
    "evidence_ref": "certification/results/ENG-005-009_43731b4f.json",
    "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
    "tested_at_utc": "2026-10-14T05:15:38Z",
-   "notes": "Independently re-verified: 47/47 checks PASS; engine sha256 2dfbd571... matches on-disk _archive/hl_stage2/HL_Live_Copy_Service_Core.py; negative mutations present. | Independently re-verified: 47/47 checks PASS; engine sha256 2dfbd571... matches on-disk _archive/hl_stage2/HL_Live_Copy_Service_Core.py; negative mutations present."
+   "notes": "Independently re-verified: 47/47 checks PASS; engine sha256 2dfbd571... matches on-disk _archive/hl_stage2/HL_Live_Copy_Service_Core.py; negative mutations present. | Independently re-verified: 47/47 checks PASS; engine sha256 2dfbd571... matches on-disk _archive/hl_stage2/HL_Live_Copy_Service_Core.py; negative mutations present. | Independently re-verified: 47/47 checks PASS; engine sha256 2dfbd571... matches on-disk _archive/hl_stage2/HL_Live_Copy_Service_Core.py; negative mutations present. | Independently re-verified: 47/47 checks PASS; engine sha256 2dfbd571... matches on-disk _archive/hl_stage2/HL_Live_Copy_Service_Core.py; negative mutations present."
   },
   {
    "id": "ENG-010",
@@ -1298,11 +1298,11 @@
     "duplicate/reordered event"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": ""
+   "result": "PASS",
+   "evidence_ref": "certification/results/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json",
+   "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+   "tested_at_utc": "2026-10-14T09:05:00Z",
+   "notes": "Runtime+static PASS: 36/36 checks; 11/11 non-vacuous negatives; engine sha256 verified; drives REAL engine symbols. | CORRECTED runtime+static PASS: 36/36 checks; 11/11 non-vacuous negatives; engine sha256 verified. Corrections: ENG-014 uses source=WS_SNAPSHOT (not WS) so stale_snapshot_replay_reason() actually exercises stale-detection; ENG-010 accepts ONLY ACCOUNT_NET_TRUTH_UNAVAILABLE (not IDENTITY_INVALID); ENG-011 accepts ONLY IN_FLIGHT_NOT_OWNED (not ACCOUNT_NET_TRUTH_UNAVAILABLE). Prior artifact had 3 unearned PASSes via widened accept sets + source-substring fallback."
   },
   {
    "id": "ENG-011",
@@ -1324,11 +1324,11 @@
     "duplicate/reordered event"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": ""
+   "result": "PASS",
+   "evidence_ref": "certification/results/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json",
+   "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+   "tested_at_utc": "2026-10-14T09:05:00Z",
+   "notes": "Runtime+static PASS: 36/36 checks; 11/11 non-vacuous negatives; engine sha256 verified; drives REAL engine symbols. | CORRECTED runtime+static PASS: 36/36 checks; 11/11 non-vacuous negatives; engine sha256 verified. Corrections: ENG-014 uses source=WS_SNAPSHOT (not WS) so stale_snapshot_replay_reason() actually exercises stale-detection; ENG-010 accepts ONLY ACCOUNT_NET_TRUTH_UNAVAILABLE (not IDENTITY_INVALID); ENG-011 accepts ONLY IN_FLIGHT_NOT_OWNED (not ACCOUNT_NET_TRUTH_UNAVAILABLE). Prior artifact had 3 unearned PASSes via widened accept sets + source-substring fallback."
   },
   {
    "id": "ENG-012",
@@ -1352,11 +1352,11 @@
     "duplicate/reordered event"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": ""
+   "result": "PASS",
+   "evidence_ref": "certification/results/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json",
+   "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+   "tested_at_utc": "2026-10-14T09:05:00Z",
+   "notes": "Runtime+static PASS: 36/36 checks; 11/11 non-vacuous negatives; engine sha256 verified; drives REAL engine symbols. | CORRECTED runtime+static PASS: 36/36 checks; 11/11 non-vacuous negatives; engine sha256 verified. Corrections: ENG-014 uses source=WS_SNAPSHOT (not WS) so stale_snapshot_replay_reason() actually exercises stale-detection; ENG-010 accepts ONLY ACCOUNT_NET_TRUTH_UNAVAILABLE (not IDENTITY_INVALID); ENG-011 accepts ONLY IN_FLIGHT_NOT_OWNED (not ACCOUNT_NET_TRUTH_UNAVAILABLE). Prior artifact had 3 unearned PASSes via widened accept sets + source-substring fallback."
   },
   {
    "id": "ENG-013",
@@ -1377,11 +1377,11 @@
     "duplicate/reordered event"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": ""
+   "result": "PASS",
+   "evidence_ref": "certification/results/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json",
+   "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+   "tested_at_utc": "2026-10-14T09:05:00Z",
+   "notes": "Runtime+static PASS: 36/36 checks; 11/11 non-vacuous negatives; engine sha256 verified; drives REAL engine symbols. | CORRECTED runtime+static PASS: 36/36 checks; 11/11 non-vacuous negatives; engine sha256 verified. Corrections: ENG-014 uses source=WS_SNAPSHOT (not WS) so stale_snapshot_replay_reason() actually exercises stale-detection; ENG-010 accepts ONLY ACCOUNT_NET_TRUTH_UNAVAILABLE (not IDENTITY_INVALID); ENG-011 accepts ONLY IN_FLIGHT_NOT_OWNED (not ACCOUNT_NET_TRUTH_UNAVAILABLE). Prior artifact had 3 unearned PASSes via widened accept sets + source-substring fallback."
   },
   {
    "id": "ENG-014",
@@ -1404,11 +1404,11 @@
     "duplicate/reordered event"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": ""
+   "result": "PASS",
+   "evidence_ref": "certification/results/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json",
+   "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+   "tested_at_utc": "2026-10-14T09:05:00Z",
+   "notes": "Runtime+static PASS: 36/36 checks; 11/11 non-vacuous negatives; engine sha256 verified; drives REAL engine symbols. | CORRECTED runtime+static PASS: 36/36 checks; 11/11 non-vacuous negatives; engine sha256 verified. Corrections: ENG-014 uses source=WS_SNAPSHOT (not WS) so stale_snapshot_replay_reason() actually exercises stale-detection; ENG-010 accepts ONLY ACCOUNT_NET_TRUTH_UNAVAILABLE (not IDENTITY_INVALID); ENG-011 accepts ONLY IN_FLIGHT_NOT_OWNED (not ACCOUNT_NET_TRUTH_UNAVAILABLE). Prior artifact had 3 unearned PASSes via widened accept sets + source-substring fallback."
   },
   {
    "id": "ENG-015",
@@ -1435,7 +1435,7 @@
    "evidence_ref": "certification/results/ENG-015-016-TNF17_43731b4f.json",
    "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
    "tested_at_utc": "2026-10-14T05:22:23Z",
-   "notes": "Independently re-verified: 9/9 checks PASS; each row carries a non-vacuous mutation. | Independently re-verified: 9/9 checks PASS; each row carries a non-vacuous mutation."
+   "notes": "Independently re-verified: 9/9 checks PASS; each row carries a non-vacuous mutation. | Independently re-verified: 9/9 checks PASS; each row carries a non-vacuous mutation. | Independently re-verified: 9/9 checks PASS; each row carries a non-vacuous mutation. | Independently re-verified: 9/9 checks PASS; each row carries a non-vacuous mutation."
   },
   {
    "id": "ENG-016",
@@ -1461,7 +1461,7 @@
    "evidence_ref": "certification/results/ENG-015-016-TNF17_43731b4f.json",
    "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
    "tested_at_utc": "2026-10-14T05:22:23Z",
-   "notes": "Independently re-verified: 9/9 checks PASS; each row carries a non-vacuous mutation. | Independently re-verified: 9/9 checks PASS; each row carries a non-vacuous mutation."
+   "notes": "Independently re-verified: 9/9 checks PASS; each row carries a non-vacuous mutation. | Independently re-verified: 9/9 checks PASS; each row carries a non-vacuous mutation. | Independently re-verified: 9/9 checks PASS; each row carries a non-vacuous mutation. | Independently re-verified: 9/9 checks PASS; each row carries a non-vacuous mutation."
   },
   {
    "id": "PRICE-001",
@@ -14102,7 +14102,7 @@
    "evidence_ref": "certification/results/ENG-015-016-TNF17_43731b4f.json",
    "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
    "tested_at_utc": "2026-10-14T05:22:23Z",
-   "notes": "Equivalent to PRODUCT_SEMANTICS B1/B2. | Independently re-verified: 9/9 checks PASS; each row carries a non-vacuous mutation. | Independently re-verified: 9/9 checks PASS; each row carries a non-vacuous mutation."
+   "notes": "Equivalent to PRODUCT_SEMANTICS B1/B2. | Independently re-verified: 9/9 checks PASS; each row carries a non-vacuous mutation. | Independently re-verified: 9/9 checks PASS; each row carries a non-vacuous mutation. | Independently re-verified: 9/9 checks PASS; each row carries a non-vacuous mutation. | Independently re-verified: 9/9 checks PASS; each row carries a non-vacuous mutation."
   },
   {
    "id": "TN-F18",
