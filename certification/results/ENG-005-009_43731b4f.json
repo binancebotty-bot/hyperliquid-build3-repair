@@ -1,0 +1,298 @@
+{
+  "id": "ENG-005-009",
+  "result": "PASS",
+  "evidence_ref": "C:\\Users\\wigmore\\hyperliquid-build3-repair\\certification\\results\\ENG-005-009_43731b4f.json",
+  "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+  "tested_at_utc": "2026-10-14T05:15:38Z",
+  "engine_sha256": "2dfbd571012af67479ee7a2d9e6f1faac6ee5408722a092fb3625450cab51405",
+  "engine_lines": 8030,
+  "checks": [
+    {
+      "id": "ENG-005",
+      "check": "NET_SUM_SIGNED",
+      "result": "PASS",
+      "detail": "expected BTC net=1.0, got 1.0"
+    },
+    {
+      "id": "ENG-005",
+      "check": "NET_ABS_MUTATION_FAILS",
+      "result": "PASS",
+      "detail": "broken aggregation gave 2.0, should not equal 1.0"
+    },
+    {
+      "id": "ENG-005",
+      "check": "ENGINE_HAS_RECOMPUTE_NET",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "ENG-005",
+      "check": "ENGINE_SUMS_SIGNED",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "ENG-005",
+      "check": "ENGINE_USES_ACCOUNT_NET",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "ENG-005",
+      "check": "ENGINE_NETS_OPPOSING_LEADERS",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "ENG-006",
+      "check": "PERPDexs_AVAILABLE",
+      "result": "PASS",
+      "detail": "found 270 DEX scopes (including default)"
+    },
+    {
+      "id": "ENG-006",
+      "check": "ENGINE_LIST_PERP_DEXES",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "ENG-006",
+      "check": "ENGINE_MASTER_EXPOSURE",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "ENG-006",
+      "check": "ENGINE_DEX_LOOP",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "ENG-006",
+      "check": "ENGINE_FOLLOWER_EXPOSURE",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "ENG-006",
+      "check": "ENGINE_DEX_ENUM",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "ENG-006",
+      "check": "DEFAULT_ONLY_SUBSET",
+      "result": "PASS",
+      "detail": "default DEX positions are a subset of all-DEX positions"
+    },
+    {
+      "id": "ENG-006",
+      "check": "NON_DEFAULT_DEXES_EXIST",
+      "result": "PASS",
+      "detail": "found 269 non-default DEXes"
+    },
+    {
+      "id": "ENG-006",
+      "check": "HIP3_DEXES_INCLUDED",
+      "result": "PASS",
+      "detail": "total DEX scopes: 270"
+    },
+    {
+      "id": "ENG-007",
+      "check": "ENGINE_SERVICE_STATE_FILE",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "ENG-007",
+      "check": "ENGINE_DEDUPE_STORE",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "ENG-007",
+      "check": "ENGINE_PROCESSED_LEADER",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "ENG-007",
+      "check": "ENGINE_PROCESSED_COPY",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "ENG-007",
+      "check": "ENGINE_IDEM_SEED",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "ENG-007",
+      "check": "ENGINE_LOADS_DEDUPE_ON_STARTUP",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "ENG-007",
+      "check": "ENGINE_EXIT_RETRY",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "ENG-007",
+      "check": "ENGINE_EXCHANGE_TRUTH",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "ENG-007",
+      "check": "RESTART_DEDUP_PREVENTS_REPLAY",
+      "result": "PASS",
+      "detail": "duplicate fill_id was rejected after restart"
+    },
+    {
+      "id": "ENG-007",
+      "check": "RESTART_NO_PERSISTENCE_ALLOWS_REPLAY",
+      "result": "PASS",
+      "detail": "without persistence, duplicate fill_id was accepted (this is the bug)"
+    },
+    {
+      "id": "ENG-007",
+      "check": "ENGINE_DEDUPE_CHECK",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "ENG-007",
+      "check": "ENGINE_REDUCE_ONLY_EXITS",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "ENG-008",
+      "check": "ENGINE_UNOWNED_BLOCK",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "ENG-008",
+      "check": "ENGINE_NET_COMPARE",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "ENG-008",
+      "check": "ENGINE_FAIL_CLOSED",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "ENG-008",
+      "check": "ENGINE_BASELINE_COPY",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "ENG-008",
+      "check": "ENGINE_BASELINE_PROCESSED",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "ENG-008",
+      "check": "UNOWNED_BLOCK_WHEN_DIFFER",
+      "result": "PASS",
+      "detail": "engine blocks entry when exchange net != engine net"
+    },
+    {
+      "id": "ENG-008",
+      "check": "UNOWNED_MUTATION_ALLOWS",
+      "result": "PASS",
+      "detail": "mutated engine allows entry despite unowned inventory (this is the bug)"
+    },
+    {
+      "id": "ENG-008",
+      "check": "ENGINE_DECISION_CALLS_UNOWNED",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "ENG-008",
+      "check": "ENGINE_SETTLE_WINDOW",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "ENG-009",
+      "check": "ENGINE_PERSISTS_LINEAGE",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "ENG-009",
+      "check": "ENGINE_PROCESSED_IDS",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "ENG-009",
+      "check": "ENGINE_LOADS_STATE",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "ENG-009",
+      "check": "ENGINE_MERGED_STATE",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "ENG-009",
+      "check": "ENGINE_DEDUPE_INIT",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "ENG-009",
+      "check": "ENGINE_FAIL_CLOSED",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "ENG-009",
+      "check": "CORRUPT_STATE_ALLOWS_FILL",
+      "result": "PASS",
+      "detail": "with corrupt state, new fill is accepted (no dedupe)"
+    },
+    {
+      "id": "ENG-009",
+      "check": "LAYERED_DEFENSE",
+      "result": "PASS",
+      "detail": "fail-closed requires both dedupe and exchange truth check"
+    },
+    {
+      "id": "ENG-009",
+      "check": "ENGINE_STALE_CHECK",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "ENG-009",
+      "check": "ENGINE_DEDUPE_BEFORE_SEND",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "ENG-009",
+      "check": "ENGINE_IDEM_BEFORE_SEND",
+      "result": "PASS",
+      "detail": ""
+    }
+  ],
+  "summary": {
+    "total": 47,
+    "passed": 47,
+    "failed": 0
+  }
+}

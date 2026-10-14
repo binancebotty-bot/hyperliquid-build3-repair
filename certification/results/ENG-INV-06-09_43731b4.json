@@ -1,0 +1,164 @@
+{
+  "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+  "tested_at_utc": "2026-10-14T05:00:01.500510+00:00",
+  "engine_dir": "C:\\Users\\wigmore\\hyperliquid-build3-repair",
+  "file_hashes": {
+    "_archive\\hl_stage2\\HL_Live_Copy_Service_Core.py": {
+      "sha256": "2dfbd571012af67479ee7a2d9e6f1faac6ee5408722a092fb3625450cab51405",
+      "lines": 8030
+    },
+    "_archive\\hl_stage2\\exchange_truth.py": {
+      "sha256": "6f841fd7e6a4d4b72c4a5c4c7390f88addb627602199c6a14cfa2851d849b6ff",
+      "lines": 340
+    },
+    "_archive\\hl_stage2\\convergence_shadow.py": {
+      "sha256": "f63732d5f132cd7052e08f78c02d5434cf11167c7aaeceffc8084b1b96cc481d",
+      "lines": 250
+    }
+  },
+  "invariants": {
+    "ENG-INV-06": {
+      "id": "ENG-INV-06",
+      "result": "PASS",
+      "checks": {
+        "single_order_call_site": true,
+        "no_process_spawns": true,
+        "no_new_third_party_imports": true,
+        "no_persistent_store": true
+      },
+      "order_call_sites": [
+        {
+          "file": "_archive\\hl_stage2\\HL_Live_Copy_Service_Core.py",
+          "line": 2703,
+          "col": 19
+        }
+      ],
+      "process_spawns": [],
+      "unexpected_third_party_imports": {},
+      "persistent_stores": [],
+      "total_py_files_scanned": 1,
+      "allowed_third_party_found": {
+        "requests": [
+          "_archive\\hl_stage2\\HL_Live_Copy_Service_Core.py"
+        ],
+        "websocket": [
+          "_archive\\hl_stage2\\HL_Live_Copy_Service_Core.py"
+        ],
+        "eth_account": [
+          "_archive\\hl_stage2\\HL_Live_Copy_Service_Core.py"
+        ],
+        "hyperliquid": [
+          "_archive\\hl_stage2\\HL_Live_Copy_Service_Core.py"
+        ]
+      }
+    },
+    "ENG-INV-07": {
+      "id": "ENG-INV-07",
+      "result": "PASS",
+      "checks": {
+        "sleeve_id_uses_wallet_and_coin": true,
+        "sleeve_id_function_exists": true,
+        "position_id_uses_wallet_coin_direction": true,
+        "position_id_function_exists": true,
+        "manual_ledger_has_per_wallet_coin_sleeves": true,
+        "manual_ledger_class_exists": true,
+        "no_global_leader_state_mixing_wallets": true,
+        "sleeve_method_takes_wallet_and_coin": true,
+        "sleeve_method_exists": true
+      },
+      "details": {
+        "sleeve_id_args": [
+          "wallet",
+          "coin"
+        ],
+        "sleeve_id_body": "def sleeve_id(wallet: str, coin: str) -> str:\n        return f\"{normalise_wallet(wallet)}::{canonical_coin_key(coin)}\"",
+        "position_id_args": [
+          "wallet",
+          "coin",
+          "direction",
+          "opened_by_intent_id"
+        ],
+        "sleeve_method_args": [
+          "self",
+          "wallet",
+          "coin"
+        ],
+        "manual_ledger_has_by_wallet": true,
+        "manual_ledger_has_nested_wallet_coin": true,
+        "manual_ledger_has_sleeve_method": true,
+        "global_leader_dicts": []
+      },
+      "core_file": "C:\\Users\\wigmore\\hyperliquid-build3-repair\\_archive\\hl_stage2\\HL_Live_Copy_Service_Core.py"
+    },
+    "ENG-INV-08": {
+      "id": "ENG-INV-08",
+      "result": "PASS",
+      "checks": {
+        "list_perp_dexes_function_exists": true,
+        "list_perp_dexes_includes_default_scope": true,
+        "list_perp_dexes_enumerates_all_scopes": true,
+        "master_account_net_exists": true,
+        "master_account_net_iterates_all_dexes": true,
+        "master_account_net_fails_closed_on_missing_scope": true,
+        "master_exposure_exists": true,
+        "master_exposure_iterates_all_dexes": true,
+        "master_exposure_fails_closed_on_missing_scope": true,
+        "master_userfills_all_dexes_exists": true,
+        "master_userfills_all_dexes_iterates_all_dexes": true,
+        "master_userfills_all_dexes_fails_closed": true,
+        "core_calls_list_perp_dexes_at_startup": true
+      },
+      "details": {
+        "list_perp_dexes_body": "def list_perp_dexes(fetcher=None, info_url=HL_INFO_URL, timeout=8.0):\n    \"\"\"Every perp DEX scope: the default scope plus HIP-3/builder DEXes.\"\"\"\n    res = _post(fetcher, {\"type\": \"perpDexs\"}, info_url, timeout)\n    if not res.get(\"ok\"):\n        return {\"ok\": False, \"status\": DEX_ENUM_UNAVAILABLE, \"detail\": res.get(\"detail\", \"\")}\n    names = [\"\"]\n    for item in (res[\"data\"] if isinstance(res[\"data\"], list) else []):\n        name = (item.get(\"name\") if isinstance(item, dict) else item) or \"\"\n        if str(name).strip():\n            names.append(str(name).strip())\n    return {\"ok\": True, \"status\": TRUTH_OK, \"dexes\": sorted(set(names))}",
+        "master_account_net_body": "def master_account_net(master_address, coin, fetcher=None, info_url=HL_INFO_URL, timeout=8.0, dexes=None):\n    \"\"\"MASTER signed exposure for `coin` aggregated over every perp DEX scope. Missing scope fails closed.\"\"\"\n    if not valid_address(master_address):\n        return {\"ok\": False, \"status\": IDENTITY_INVALID}\n    if dexes is None:\n        enum = list_perp_dexes(fetcher, info_url, timeout)\n        if not enum.get(\"ok\"):\n            return {\"ok\": False, \"status\": DEX_ENUM_UNAVAILABLE, \"detail\": enum.get(\"detail\", \"\")}\n        dexes = enum[\"dexes\"]\n    want, total, scopes = str(coin or \"\").upper().strip(), 0.0, []\n    for dex in dexes:\n        payload = {\"type\": \"clearinghouseState\", \"user\": master_address}\n        if dex:\n            payload[\"dex\"] = dex\n        res = _post(fetcher, pay",
+        "master_exposure_body": "def master_exposure(master_address, dexes, fetcher=None, info_url=HL_INFO_URL, timeout=8.0):\n    \"\"\"Account exposure across every perp DEX scope: total |positionValue| plus per-coin signed size\n    and |value|, and equity_usd (sum of accountValue; None if any scope omits it). Used by the\n    global exposure caps and leader equity sizing; any unreadable scope fails closed.\"\"\"\n    if not valid_address(master_address):\n        return {\"ok\": False, \"status\": IDENTITY_INVALID}\n    total, by_coin, equity = 0.0, {}, 0.0\n    for dex in (dexes if dexes is not None else [\"\"]):\n        payload = {\"type\": \"clearinghouseState\", \"user\": master_address}\n        if dex:\n            payload[\"dex\"] = dex\n        res = _post(fetcher, payload, info_url, timeout)\n        state = res.get(\"data\") if res.get(\"ok\"",
+        "master_userfills_all_dexes_body": "def master_userfills_all_dexes(master_address, start_ms, dexes, fetcher=None, info_url=HL_INFO_URL, timeout=8.0):\n    \"\"\"Per-scope MASTER userFillsByTime for the default DEX and every HIP-3/builder scope.\n\n    Any required scope unavailable/unreadable => settlement truth unavailable (caller keeps blocking).\n    Fills are deduplicated deterministically across scopes.\n    \"\"\"\n    if not valid_address(master_address):\n        return {\"ok\": False, \"status\": IDENTITY_INVALID}\n    merged, seen, scopes, raw = [], set(), [], 0\n    for dex in (dexes if dexes is not None else [\"\"]):\n        res = master_userfills(master_address, start_ms, dex, fetcher=fetcher, info_url=info_url, timeout=timeout)\n        if not res.get(\"ok\"):\n            return {\"ok\": False, \"status\": TRUTH_UNAVAILABLE, \"dex\": dex, \""
+      },
+      "exchange_truth_file": "C:\\Users\\wigmore\\hyperliquid-build3-repair\\_archive\\hl_stage2\\exchange_truth.py"
+    },
+    "ENG-INV-09": {
+      "id": "ENG-INV-09",
+      "result": "PASS",
+      "checks": {
+        "engine_uses_clearinghouse_state_for_actual": true,
+        "engine_uses_userfills_for_settlement": true,
+        "manual_positions_not_read_as_authoritative": true,
+        "engine_imports_exchange_truth": true,
+        "engine_uses_master_exchange_truth": true,
+        "engine_verifies_settlement_via_exchange": true
+      },
+      "details": {
+        "manual_pos_var": "MANUAL_LIVE_POSITIONS_FILE",
+        "manual_pos_is_read": false,
+        "manual_pos_is_written": false
+      },
+      "core_file": "C:\\Users\\wigmore\\hyperliquid-build3-repair\\_archive\\hl_stage2\\HL_Live_Copy_Service_Core.py"
+    }
+  },
+  "mutation_tests": {
+    "INV-06_second_order_site": {
+      "mutation": "Added second .order() call site",
+      "expected": "FAIL",
+      "actual": "FAIL",
+      "non_vacuous": true
+    },
+    "INV-07_remove_wallet_from_sleeve_id": {
+      "mutation": "Removed wallet from sleeve_id function",
+      "expected": "FAIL",
+      "actual": "FAIL",
+      "non_vacuous": true
+    },
+    "INV-08_remove_hip3_enumeration": {
+      "mutation": "Removed HIP-3/builder DEX enumeration from list_perp_dexes",
+      "expected": "FAIL",
+      "actual": "FAIL",
+      "non_vacuous": true
+    },
+    "INV-09_manual_positions_authoritative": {
+      "mutation": "Added manual_live_positions.json read as authoritative truth",
+      "expected": "FAIL",
+      "actual": "FAIL",
+      "non_vacuous": true
+    }
+  }
+}

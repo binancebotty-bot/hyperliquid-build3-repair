@@ -645,11 +645,11 @@
     "census run against a deliberately mutated copy must FAIL (non-vacuous)"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": ""
+   "result": "PASS",
+   "evidence_ref": "certification/results/ENG-INV-03-05_43731b4f.json",
+   "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+   "tested_at_utc": "2026-10-14T05:00:00Z",
+   "notes": "Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports."
   },
   {
    "id": "ENG-INV-04",
@@ -669,11 +669,11 @@
     "census run against a deliberately mutated copy must FAIL (non-vacuous)"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": ""
+   "result": "PASS",
+   "evidence_ref": "certification/results/ENG-INV-03-05_43731b4f.json",
+   "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+   "tested_at_utc": "2026-10-14T05:00:00Z",
+   "notes": "Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports."
   },
   {
    "id": "ENG-INV-05",
@@ -692,11 +692,11 @@
     "census run against a deliberately mutated copy must FAIL (non-vacuous)"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": ""
+   "result": "PASS",
+   "evidence_ref": "certification/results/ENG-INV-03-05_43731b4f.json",
+   "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+   "tested_at_utc": "2026-10-14T05:00:00Z",
+   "notes": "Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports."
   },
   {
    "id": "ENG-INV-06",
@@ -715,11 +715,11 @@
     "census run against a deliberately mutated copy must FAIL (non-vacuous)"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": ""
+   "result": "PASS",
+   "evidence_ref": "certification/results/ENG-INV-06-09_43731b4.json",
+   "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+   "tested_at_utc": "2026-10-14T05:00:01Z",
+   "notes": "Static PASS (INV-06 single .order() site L2703, no process spawns)."
   },
   {
    "id": "ENG-INV-07",
@@ -741,11 +741,11 @@
     "duplicate/reordered event"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": ""
+   "result": "BLOCKED",
+   "evidence_ref": "certification/results/ENG-INV-07-09_runtime_43731b4f1f19.json",
+   "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+   "tested_at_utc": "2026-10-14T05:29:40Z",
+   "notes": "Runtime proof dry-run only (HL_LIVE_MOCK_SEND=1). Real testnet fill NOT_ESTABLISHED: HL_LIVE_HL_PRIVATE_KEY unset, no .env/.env.testnet in repo. | Runtime proof dry-run only (HL_LIVE_MOCK_SEND=1). Real testnet fill NOT_ESTABLISHED: HL_LIVE_HL_PRIVATE_KEY unset, no .env/.env.testnet in repo."
   },
   {
    "id": "ENG-INV-08",
@@ -768,11 +768,11 @@
     "duplicate/reordered event"
    ],
    "prior_evidence": "G3 PASS (B3-C2A-G3-PASS-ARCHITECT-GATE-1, correction 4a41f33) covers inv 8-13 at unit level; not testnet-certified",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": ""
+   "result": "BLOCKED",
+   "evidence_ref": "certification/results/ENG-INV-07-09_runtime_43731b4f1f19.json",
+   "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+   "tested_at_utc": "2026-10-14T05:29:40Z",
+   "notes": "Runtime proof dry-run only (HL_LIVE_MOCK_SEND=1). Real testnet fill NOT_ESTABLISHED: HL_LIVE_HL_PRIVATE_KEY unset, no .env/.env.testnet in repo. | Runtime proof dry-run only (HL_LIVE_MOCK_SEND=1). Real testnet fill NOT_ESTABLISHED: HL_LIVE_HL_PRIVATE_KEY unset, no .env/.env.testnet in repo."
   },
   {
    "id": "ENG-INV-09",
@@ -795,11 +795,11 @@
     "duplicate/reordered event"
    ],
    "prior_evidence": "G3 PASS (B3-C2A-G3-PASS-ARCHITECT-GATE-1, correction 4a41f33) covers inv 8-13 at unit level; not testnet-certified",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": ""
+   "result": "BLOCKED",
+   "evidence_ref": "certification/results/ENG-INV-07-09_runtime_43731b4f1f19.json",
+   "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+   "tested_at_utc": "2026-10-14T05:29:40Z",
+   "notes": "Runtime proof dry-run only (HL_LIVE_MOCK_SEND=1). Real testnet fill NOT_ESTABLISHED: HL_LIVE_HL_PRIVATE_KEY unset, no .env/.env.testnet in repo. | Runtime proof dry-run only (HL_LIVE_MOCK_SEND=1). Real testnet fill NOT_ESTABLISHED: HL_LIVE_HL_PRIVATE_KEY unset, no .env/.env.testnet in repo."
   },
   {
    "id": "ENG-INV-10",
@@ -822,11 +822,11 @@
     "duplicate/reordered event"
    ],
    "prior_evidence": "G3 PASS (B3-C2A-G3-PASS-ARCHITECT-GATE-1, correction 4a41f33) covers inv 8-13 at unit level; not testnet-certified",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": ""
+   "result": "PASS",
+   "evidence_ref": "certification/results/ENG-INV-10-14_43731b4f.json",
+   "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+   "tested_at_utc": "2026-10-14T07:40:45Z",
+   "notes": "Static census PASS (non-vacuous for this row)."
   },
   {
    "id": "ENG-INV-11",
@@ -849,11 +849,11 @@
     "duplicate/reordered event"
    ],
    "prior_evidence": "G3 PASS (B3-C2A-G3-PASS-ARCHITECT-GATE-1, correction 4a41f33) covers inv 8-13 at unit level; not testnet-certified",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": ""
+   "result": "FAIL",
+   "evidence_ref": "certification/results/ENG-INV-10-14_43731b4f.json",
+   "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+   "tested_at_utc": "2026-10-14T07:40:45Z",
+   "notes": "Static census FAIL: INV-11 and INV-14 fail; INV-13 negative test non_vacuous=false. Static census documented as insufficient (runtime card t_4a54d270 required)."
   },
   {
    "id": "ENG-INV-12",
@@ -876,11 +876,11 @@
     "duplicate/reordered event"
    ],
    "prior_evidence": "G3 PASS (B3-C2A-G3-PASS-ARCHITECT-GATE-1, correction 4a41f33) covers inv 8-13 at unit level; not testnet-certified",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": ""
+   "result": "PASS",
+   "evidence_ref": "certification/results/ENG-INV-10-14_43731b4f.json",
+   "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+   "tested_at_utc": "2026-10-14T07:40:45Z",
+   "notes": "Static census PASS (non-vacuous for this row)."
   },
   {
    "id": "ENG-INV-13",
@@ -903,11 +903,11 @@
     "duplicate/reordered event"
    ],
    "prior_evidence": "G3 PASS (B3-C2A-G3-PASS-ARCHITECT-GATE-1, correction 4a41f33) covers inv 8-13 at unit level; not testnet-certified",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": ""
+   "result": "FAIL",
+   "evidence_ref": "certification/results/ENG-INV-10-14_43731b4f.json",
+   "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+   "tested_at_utc": "2026-10-14T07:40:45Z",
+   "notes": "Static census FAIL: INV-11 and INV-14 fail; INV-13 negative test non_vacuous=false. Static census documented as insufficient (runtime card t_4a54d270 required)."
   },
   {
    "id": "ENG-INV-14",
@@ -930,11 +930,11 @@
     "duplicate/reordered event"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": ""
+   "result": "FAIL",
+   "evidence_ref": "certification/results/ENG-INV-10-14_43731b4f.json",
+   "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+   "tested_at_utc": "2026-10-14T07:40:45Z",
+   "notes": "Static census FAIL: INV-11 and INV-14 fail; INV-13 negative test non_vacuous=false. Static census documented as insufficient (runtime card t_4a54d270 required)."
   },
   {
    "id": "ENG-SEM-B1",
@@ -1058,11 +1058,11 @@
     "duplicate/reordered event"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": ""
+   "result": "FAIL",
+   "evidence_ref": "certification/results/ENG-001-004_43731b4f.json",
+   "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+   "tested_at_utc": "2026-10-14T06:50:38Z",
+   "notes": "Artifact reports 29 passed / 4 FAILED / overall FAIL. Failing: eng001_after_reduce (exp 0.7 got 0.0), eng001_after_close (exp 0.0 got -1.0), eng002_partial_reduce (exp 1.2 got 0.0), eng002_close (exp 0.0 got -1.5). Card t_84233ea7's '33/33 PASS' summary is FALSE and is flagged as fabricated evidence. | Artifact reports 29 passed / 4 FAILED / overall FAIL. Failing: eng001_after_reduce (exp 0.7 got 0.0), eng001_after_close (exp 0.0 got -1.0), eng002_partial_reduce (exp 1.2 got 0.0), eng002_close (exp 0.0 got -1.5). Card t_84233ea7's '33/33 PASS' summary is FALSE and is flagged as fabricated evidence."
   },
   {
    "id": "ENG-002",
@@ -1084,11 +1084,11 @@
     "duplicate/reordered event"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": ""
+   "result": "FAIL",
+   "evidence_ref": "certification/results/ENG-001-004_43731b4f.json",
+   "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+   "tested_at_utc": "2026-10-14T06:50:38Z",
+   "notes": "Artifact reports 29 passed / 4 FAILED / overall FAIL. Failing: eng001_after_reduce (exp 0.7 got 0.0), eng001_after_close (exp 0.0 got -1.0), eng002_partial_reduce (exp 1.2 got 0.0), eng002_close (exp 0.0 got -1.5). Card t_84233ea7's '33/33 PASS' summary is FALSE and is flagged as fabricated evidence. | Artifact reports 29 passed / 4 FAILED / overall FAIL. Failing: eng001_after_reduce (exp 0.7 got 0.0), eng001_after_close (exp 0.0 got -1.0), eng002_partial_reduce (exp 1.2 got 0.0), eng002_close (exp 0.0 got -1.5). Card t_84233ea7's '33/33 PASS' summary is FALSE and is flagged as fabricated evidence."
   },
   {
    "id": "ENG-003",
@@ -1139,11 +1139,11 @@
     "duplicate/reordered event"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": ""
+   "result": "FAIL",
+   "evidence_ref": "certification/results/ENG-001-004_43731b4f.json",
+   "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+   "tested_at_utc": "2026-10-14T06:50:38Z",
+   "notes": "Artifact reports 29 passed / 4 FAILED / overall FAIL. Failing: eng001_after_reduce (exp 0.7 got 0.0), eng001_after_close (exp 0.0 got -1.0), eng002_partial_reduce (exp 1.2 got 0.0), eng002_close (exp 0.0 got -1.5). Card t_84233ea7's '33/33 PASS' summary is FALSE and is flagged as fabricated evidence. | Artifact reports 29 passed / 4 FAILED / overall FAIL. Failing: eng001_after_reduce (exp 0.7 got 0.0), eng001_after_close (exp 0.0 got -1.0), eng002_partial_reduce (exp 1.2 got 0.0), eng002_close (exp 0.0 got -1.5). Card t_84233ea7's '33/33 PASS' summary is FALSE and is flagged as fabricated evidence."
   },
   {
    "id": "ENG-005",
@@ -1166,11 +1166,11 @@
     "duplicate/reordered event"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": ""
+   "result": "PASS",
+   "evidence_ref": "certification/results/ENG-005-009_43731b4f.json",
+   "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+   "tested_at_utc": "2026-10-14T05:15:38Z",
+   "notes": "Independently re-verified: 47/47 checks PASS; engine sha256 2dfbd571... matches on-disk _archive/hl_stage2/HL_Live_Copy_Service_Core.py; negative mutations present. | Independently re-verified: 47/47 checks PASS; engine sha256 2dfbd571... matches on-disk _archive/hl_stage2/HL_Live_Copy_Service_Core.py; negative mutations present."
   },
   {
    "id": "ENG-006",
@@ -1192,11 +1192,11 @@
     "duplicate/reordered event"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": ""
+   "result": "PASS",
+   "evidence_ref": "certification/results/ENG-005-009_43731b4f.json",
+   "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+   "tested_at_utc": "2026-10-14T05:15:38Z",
+   "notes": "Independently re-verified: 47/47 checks PASS; engine sha256 2dfbd571... matches on-disk _archive/hl_stage2/HL_Live_Copy_Service_Core.py; negative mutations present. | Independently re-verified: 47/47 checks PASS; engine sha256 2dfbd571... matches on-disk _archive/hl_stage2/HL_Live_Copy_Service_Core.py; negative mutations present."
   },
   {
    "id": "ENG-007",
@@ -1219,11 +1219,11 @@
     "duplicate/reordered event"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": ""
+   "result": "PASS",
+   "evidence_ref": "certification/results/ENG-005-009_43731b4f.json",
+   "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+   "tested_at_utc": "2026-10-14T05:15:38Z",
+   "notes": "Independently re-verified: 47/47 checks PASS; engine sha256 2dfbd571... matches on-disk _archive/hl_stage2/HL_Live_Copy_Service_Core.py; negative mutations present. | Independently re-verified: 47/47 checks PASS; engine sha256 2dfbd571... matches on-disk _archive/hl_stage2/HL_Live_Copy_Service_Core.py; negative mutations present."
   },
   {
    "id": "ENG-008",
@@ -1246,11 +1246,11 @@
     "duplicate/reordered event"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": ""
+   "result": "PASS",
+   "evidence_ref": "certification/results/ENG-005-009_43731b4f.json",
+   "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+   "tested_at_utc": "2026-10-14T05:15:38Z",
+   "notes": "Independently re-verified: 47/47 checks PASS; engine sha256 2dfbd571... matches on-disk _archive/hl_stage2/HL_Live_Copy_Service_Core.py; negative mutations present. | Independently re-verified: 47/47 checks PASS; engine sha256 2dfbd571... matches on-disk _archive/hl_stage2/HL_Live_Copy_Service_Core.py; negative mutations present."
   },
   {
    "id": "ENG-009",
@@ -1272,11 +1272,11 @@
     "duplicate/reordered event"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": ""
+   "result": "PASS",
+   "evidence_ref": "certification/results/ENG-005-009_43731b4f.json",
+   "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+   "tested_at_utc": "2026-10-14T05:15:38Z",
+   "notes": "Independently re-verified: 47/47 checks PASS; engine sha256 2dfbd571... matches on-disk _archive/hl_stage2/HL_Live_Copy_Service_Core.py; negative mutations present. | Independently re-verified: 47/47 checks PASS; engine sha256 2dfbd571... matches on-disk _archive/hl_stage2/HL_Live_Copy_Service_Core.py; negative mutations present."
   },
   {
    "id": "ENG-010",
@@ -1431,11 +1431,11 @@
     "duplicate/reordered event"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": ""
+   "result": "PASS",
+   "evidence_ref": "certification/results/ENG-015-016-TNF17_43731b4f.json",
+   "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+   "tested_at_utc": "2026-10-14T05:22:23Z",
+   "notes": "Independently re-verified: 9/9 checks PASS; each row carries a non-vacuous mutation. | Independently re-verified: 9/9 checks PASS; each row carries a non-vacuous mutation."
   },
   {
    "id": "ENG-016",
@@ -1457,11 +1457,11 @@
     "duplicate/reordered event"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": ""
+   "result": "PASS",
+   "evidence_ref": "certification/results/ENG-015-016-TNF17_43731b4f.json",
+   "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+   "tested_at_utc": "2026-10-14T05:22:23Z",
+   "notes": "Independently re-verified: 9/9 checks PASS; each row carries a non-vacuous mutation. | Independently re-verified: 9/9 checks PASS; each row carries a non-vacuous mutation."
   },
   {
    "id": "PRICE-001",
@@ -14098,11 +14098,11 @@
     "duplicate/reordered event"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "Equivalent to PRODUCT_SEMANTICS B1/B2."
+   "result": "PASS",
+   "evidence_ref": "certification/results/ENG-015-016-TNF17_43731b4f.json",
+   "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+   "tested_at_utc": "2026-10-14T05:22:23Z",
+   "notes": "Equivalent to PRODUCT_SEMANTICS B1/B2. | Independently re-verified: 9/9 checks PASS; each row carries a non-vacuous mutation. | Independently re-verified: 9/9 checks PASS; each row carries a non-vacuous mutation."
   },
   {
    "id": "TN-F18",
