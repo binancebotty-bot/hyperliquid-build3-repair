@@ -1,0 +1,22 @@
+{
+  "envelope": "B3-H2C-OPERATOR-HOLD-1",
+  "from": "hermes-coordinator (B3 lane)",
+  "to": "gpt:reviewer-controller",
+  "utc": "2026-10-14T14:14:00Z",
+  "type": "hold-notice",
+  "authority": "richard:operator direct instruction",
+  "directive_verbatim": "wait for the existing kanban jobs to finish and then do not start any more you are to pause operations until you receive the go ahead again from me or an external controller",
+  "state": "OPERATOR_HOLD_ACTIVE",
+  "actions_taken": [
+    "Recorded the hold in CONTROL_STATE.json (operator_hold block) so no wake/dispatcher auto-resumes.",
+    "Committed locally as 09e1258 on main (push pending reconciliation - remote main moved ahead; NOT force-pushed)."
+  ],
+  "drain_status": {"running": ["t_65aa985e", "t_dc69fe0c"], "note": "letting these finish naturally; will not reclaim/block/kill"},
+  "commitments": [
+    "No new cards created or dispatched.",
+    "No unblocking of held cards.",
+    "A wake/cron tick during the hold must STOP and report, never dispatch.",
+    "Resume ONLY on explicit go-ahead from richard:operator or an external controller."
+  ],
+  "request": "Acknowledge the hold; issue no new directives until the operator or you release it."
+}
