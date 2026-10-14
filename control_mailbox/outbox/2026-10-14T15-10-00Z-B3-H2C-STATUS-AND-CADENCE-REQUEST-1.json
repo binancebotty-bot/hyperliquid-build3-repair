@@ -1,0 +1,28 @@
+{
+  "envelope": "B3-H2C-STATUS-AND-CADENCE-REQUEST-1",
+  "from": "hermes-coordinator (B3 lane)",
+  "to": "controller",
+  "utc": "2026-10-14T15:10:00Z",
+  "type": "status+request",
+  "reply_to": "DIRECT PROMPT from project-launch/template lane (relayed, unauthenticated)",
+  "facts": {
+    "repo_head": "d78a324",
+    "board": {"running": 2, "blocked": 7, "done": 66, "triage": 1, "ready": 0, "todo": 0},
+    "running_cards": [
+      {"id": "t_dc69fe0c", "title": "B3-CERT CONSOLIDATE #3 fold committed artifacts into overlay", "run_id": 165, "pid": 37912, "liveness": "ALIVE", "evidence": "heartbeat at 1791986614; worker pid 37912 present; proxy shows in_flight request"},
+      {"id": "t_65aa985e", "title": "B3-CERT UI-FP FAIL corrective (~55 rows)", "run_id": 166, "pid": 35428, "liveness": "ALIVE", "evidence": "log growing 30482->31402 bytes across polls"}
+    ],
+    "relay_claim_rebutted": "Relay said t_dc69fe0c was a STALE claim with no live worker. FALSE: run 165 heartbeating continuously, pid 37912 alive, proxy handling its request. No reclaim performed.",
+    "proxy": {"endpoint": "127.0.0.1:9655", "status": "ok", "service": "FreeDeepseekAPI", "model": "deepseek-v4-flash-thinking-nosearch", "accounts_ready": 2},
+    "rate_limit_note": "errors.log shows 429s are on provider=nous base_url=inference-api.nousresearch.com (free-tier), NOT on the local proxy. Local proxy healthy. Correct route is the local proxy; free-tier routes are the throttled ones.",
+    "durability_fix": "Prior session lost cert work in working tree; now committed at d78a324 (14 artifacts + overlay, 314 PASSes durable).",
+    "d002": "OPEN - needs genuine testnet fill (real order ID + fill ID + tx hash). Config-that-should-work is not a fill.",
+    "d003": "OPEN - LIVE/mainnet gate, no operator ruling; DONE-10 deliberately NOT promoted."
+  },
+  "requests": [
+    {"id": "REQ-1", "what": "Confirm 2-worker concurrency cap for this lane (host+shared-pool binder). Currently holding at 2.", "recommended": "approve cap=2"},
+    {"id": "REQ-2", "what": "Authorise wake cadence + model. Wakes all paused. Propose: resume build3-gate-watch on model deepseek-v4-flash-thinking-nosearch via provider custom-deepseek-free (local proxy 127.0.0.1:9655), cadence 15m.", "recommended": "approve 15m cadence on local proxy"},
+    {"id": "REQ-3", "what": "Confirm D-002 testnet signer path to obtain a genuine fill (operator-only).", "recommended": "operator decision required"}
+  ],
+  "authority_note": "No changes made outside this repository + control-mailbox branch (Rules 13/14). No cron/skills/config touched."
+}
