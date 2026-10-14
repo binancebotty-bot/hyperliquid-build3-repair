@@ -64,10 +64,19 @@ DEFAULT_ENV_FILE = BASE_DIR.parent / "hl_stage2.env"
 ENV_FILE = Path(os.getenv("HL_LIVE_ENV_FILE", str(DEFAULT_ENV_FILE)))
 
 
+# Bounded NAME-MAP mirroring exchange_truth.ENV_NAME_ALIASES (that module is imported after
+# this loader runs, so the map is duplicated here deliberately). NAMES only - no value is printed.
+ENV_NAME_ALIASES = {
+    "HL_TESTNET_ACCOUNT_ADDRESS": "HL_LIVE_HL_ACCOUNT_ADDRESS",
+    "HL_TESTNET_AGENT_PRIVATE_KEY": "HL_LIVE_HL_PRIVATE_KEY",
+}
+
+
 def load_env_file(path: Path) -> None:
     """Load NAME=VALUE pairs from a .env file into os.environ.
     Existing non-empty OS env values are never overwritten.
-    No values are printed or logged.
+    No values are printed or logged. A known prod-base NAME is also published under its
+    canonical engine NAME (bounded map above); a canonical name already set is never overwritten.
     """
     try:
         if not path.exists():
@@ -87,6 +96,9 @@ def load_env_file(path: Path) -> None:
                 value = value[1:-1]
             if not os.environ.get(name):
                 os.environ[name] = value
+            env_alias = ENV_NAME_ALIASES.get(name)
+            if env_alias and not os.environ.get(env_alias):
+                os.environ[env_alias] = value
     except Exception:
         pass
 

@@ -51,6 +51,26 @@ def resolve_networks(env=None):
     return {"leader": leader, "follower": follower}
 
 
+# Bounded NAME-MAP for the prod-base credential file (.env.testnet): its names are mapped onto the
+# engine's canonical names at load time. NAMES only - no value is ever copied, printed, or logged.
+ENV_NAME_ALIASES = {
+    "HL_TESTNET_ACCOUNT_ADDRESS": "HL_LIVE_HL_ACCOUNT_ADDRESS",
+    "HL_TESTNET_AGENT_PRIVATE_KEY": "HL_LIVE_HL_PRIVATE_KEY",
+}
+
+
+def apply_env_name_aliases(merged):
+    """Map the bounded prod-base NAMES onto canonical engine NAMES in a name->value mapping.
+
+    Only the pairs in ENV_NAME_ALIASES are mapped; a canonical name already present (e.g. from
+    os.environ) is never overwritten by its alias.
+    """
+    for src, dst in ENV_NAME_ALIASES.items():
+        if src in merged and dst not in merged:
+            merged[dst] = merged[src]
+    return merged
+
+
 def env_with_file(path):
     """os.environ over KEY=VALUE lines of a local env file (os.environ wins), for processes that read
     hl_stage2.env without loading it into os.environ (the UI), so both sides pick the same networks."""
@@ -64,6 +84,7 @@ def env_with_file(path):
                     merged[k.strip()] = v.strip()
     except OSError:
         pass
+    apply_env_name_aliases(merged)
     merged.update(os.environ)
     return merged
 
