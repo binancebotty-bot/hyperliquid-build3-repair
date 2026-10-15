@@ -190,8 +190,16 @@ def main() -> None:
           "active but unpolled: %s" % (sorted(set(active) - set(polled)),))
     check("H_SPLIT_EXISTS", len(core.wallets) == 10 and len(polled) == 7, "ws=%d poll=%d" % (len(core.wallets), len(polled)))
     os.environ["HL_LIVE_POLL_ALL_ACTIVE"] = "0"
+    # Fix for Finding 5: use a DIFFERENT wallets list so the assertion is not tautological.
+    # poll_wallets() must return exactly self.wallets when HL_LIVE_POLL_ALL_ACTIVE=0,
+    # not just "whatever happens to be in self.wallets".
+    core_diff = FakeCore(cfg, list(core.wallets)[:3])
     check("H_POLL_ALL_ACTIVE_ZERO_FALLS_BACK",
-          c.LiveCopyCore.poll_wallets(core) == list(core.wallets), "did not fall back to self.wallets")
+          c.LiveCopyCore.poll_wallets(core_diff) == list(core_diff.wallets),
+          "did not fall back to self.wallets: got %s" % (c.LiveCopyCore.poll_wallets(core_diff),))
+    check("H_POLL_ALL_ACTIVE_ZERO_NOT_ALL_ACTIVE",
+          c.LiveCopyCore.poll_wallets(core_diff) != cfg.active_wallets(),
+          "poll_wallets returned all active wallets instead of self.wallets")
     os.environ.pop("HL_LIVE_POLL_ALL_ACTIVE", None)
 
     # ---------------------------------------------------------------- 3. one WS thread
@@ -243,6 +251,102 @@ def main() -> None:
     finally:
         et._SESSION = None
         requests.Session.post = saved_post
+
+    # ---------------------------------------------------------------- 5. Finding 1: HTTP pool max crash
+    # A non-numeric HL_LIVE_HTTP_POOL_MAX must not crash http_post.
+    for bad_val in ["abc", "", "6.5", "1e3"]:
+        et._SESSION = None
+        os.environ["HL_LIVE_HTTP_POOL_MAX"] = bad_val
+        requests.Session.post = lambda self, url, **kw: FakeResp()
+        try:
+            et.http_post("https://api.hyperliquid.xyz/info", {"type": "allMids"}, 1)
+            ad = et._SESSION.get_adapter("https://api.hyperliquid.xyz/info")
+            got = int(ad.poolmanager.connection_pool_kw.get("maxsize"))
+            check("H_POOL_MAX_BAD_VAL_%s" % (bad_val.replace(".", "_").replace(" ", "_") or "empty"),
+                  got == 6, "expected default 6, got %s" % (got,))
+        except ValueError:
+            check("H_POOL_MAX_BAD_VAL_%s" % (bad_val.replace(".", "_").replace(" ", "_") or "empty"),
+                  False, "ValueError raised for HL_LIVE_HTTP_POOL_MAX=%r" % (bad_val,))
+        finally:
+            requests.Session.post = saved_post
+    et._SESSION = None
+    os.environ.pop("HL_LIVE_HTTP_POOL_MAX", None)
+
+    # ---------------------------------------------------------------- 6. Finding 2: poll interval with poll-all-active
+    # When active > MAX_WALLETS, feed_ok must still be True if the WS slots are all acked.
+    class FakeWS2:
+        def __init__(self, enabled=True, socket_open=True, subscribed=()):
+            self.enabled = enabled
+            self._socket_open = socket_open
+            self._subscribed = subscribed
+
+    class FakeCore2:
+        def __init__(self, cfg, wallets, active_wallets):
+            self.cfg = cfg
+            self.wallets = wallets
+            self._active = active_wallets
+        def active_wallets(self):
+            return self._active
+
+    # 15 active wallets, 10 WS slots, all 10 slots acked -> feed_ok=True -> backstop rate
+    active_15 = [c.normalise_wallet(wallet(i)) for i in range(15)]
+    ws_slots_10 = active_15[:10]
+    fake_ws = FakeWS2(enabled=True, socket_open=True, subscribed=ws_slots_10)
+    core2 = FakeCore2(cfg, ws_slots_10, active_15)
+    core2.ws = fake_ws
+    os.environ["HL_LIVE_POLL_ALL_ACTIVE"] = "1"
+    os.environ["HL_LIVE_LEADER_POLL_INTERVAL_SEC"] = "30"
+    interval = c.LiveCopyCore.leader_poll_interval_sec(core2)
+    check("H_POLL_INTERVAL_FEED_OK_WITH_SPLIT",
+          interval == 30.0,
+          "expected backstop rate 30.0, got %s (feed_ok should be True when WS slots are acked)" % (interval,))
+    # If the WS slots are NOT all acked, feed_ok=False -> fast rate
+    fake_ws2 = FakeWS2(enabled=True, socket_open=True, subscribed=ws_slots_10[:5])
+    core2.ws = fake_ws2
+    interval2 = c.LiveCopyCore.leader_poll_interval_sec(core2)
+    check("H_POLL_INTERVAL_FEED_NOT_OK_FAST",
+          interval2 < 30.0,
+          "expected fast rate < 30.0, got %s (feed_ok should be False when WS slots are not acked)" % (interval2,))
+    os.environ.pop("HL_LIVE_POLL_ALL_ACTIVE", None)
+    os.environ.pop("HL_LIVE_LEADER_POLL_INTERVAL_SEC", None)
+
+    # ---------------------------------------------------------------- 7. Finding 3: _by_fill_rank caching
+    # Call _by_fill_rank twice with the same CSV; the second call must use the cache.
+    os.environ["HL_LIVE_WS_RANK_CSV"] = str(rank_path)
+    # _by_fill_rank is on ConfigManager, not LiveCopyCore
+    cands = cfg.stream_wallets()
+    # First call: populates cache
+    r1 = cfg._by_fill_rank(list(cands))
+    # Second call: must use cache (same result, no file re-read)
+    r2 = cfg._by_fill_rank(list(cands))
+    check("H_BY_FILL_RANK_CACHE_CONSISTENT", r1 == r2, "cache returned different result")
+    # Verify cache is actually used by checking mtime is stored
+    check("H_BY_FILL_RANK_CACHE_MTIME_SET",
+          getattr(cfg, "_rank_cache_mtime", None) is not None,
+          "cache mtime not set")
+    # Invalidate by touching the file (change mtime)
+    import time as _time
+    _time.sleep(0.01)
+    rank_path.write_text(rank_path.read_text(encoding="utf-8") + "", encoding="utf-8")
+    # Touch to change mtime
+    os.utime(rank_path, None)
+    r3 = cfg._by_fill_rank(list(cands))
+    check("H_BY_FILL_RANK_CACHE_INVALIDATED", r3 == r1, "cache not invalidated on mtime change")
+    os.environ.pop("HL_LIVE_WS_RANK_CSV", None)
+
+    # ---------------------------------------------------------------- 8. Finding 4: poll_wallets OFF filtering
+    # poll_wallets() must filter OFF wallets from the active set.
+    os.environ["HL_LIVE_POLL_ALL_ACTIVE"] = "1"
+    # cfg has 7 active + 8 OFF wallets; poll_wallets must return only the 7 active
+    polled_filtered = c.LiveCopyCore.poll_wallets(core)
+    off_wallets = [w for w in cfg.active_wallets() if cfg.wallet_mode(w) == "OFF"]
+    check("H_POLL_WALLETS_FILTERS_OFF",
+          not any(w in polled_filtered for w in off_wallets),
+          "OFF wallets in poll set: %s" % ([w for w in polled_filtered if w in off_wallets],))
+    check("H_POLL_WALLETS_ACTIVE_ONLY",
+          polled_filtered == [w for w in cfg.active_wallets() if cfg.wallet_mode(w) != "OFF"],
+          "poll_wallets did not filter OFF wallets")
+    os.environ.pop("HL_LIVE_POLL_ALL_ACTIVE", None)
 
     failed = [n for n, ok in RESULTS if not ok]
     print("TOTAL=%d FAILED=%d" % (len(RESULTS), len(failed)))

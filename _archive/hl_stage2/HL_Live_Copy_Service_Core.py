@@ -3047,6 +3047,12 @@ class ConfigManager:
         path = str(os.getenv("HL_LIVE_WS_RANK_CSV", "") or "").strip()
         if not path:
             return cands
+        try:
+            mtime = os.path.getmtime(path)
+        except OSError:
+            return cands
+        if getattr(self, "_rank_cache_mtime", None) == mtime:
+            return self._rank_cache_fills(cands)
         fills: Dict[str, float] = {}
         try:
             with open(path, "r", newline="", encoding="utf-8-sig") as fh:
@@ -3059,7 +3065,10 @@ class ConfigManager:
         if not fills:
             return cands
         pos = {w: i for i, w in enumerate(cands)}
-        return sorted(cands, key=lambda w: (-fills.get(w, -1.0), pos[w]))
+        result = sorted(cands, key=lambda w: (-fills.get(w, -1.0), pos[w]))
+        self._rank_cache_fills = lambda c: sorted(c, key=lambda w: (-fills.get(w, -1.0), pos.get(w, len(c))))
+        self._rank_cache_mtime = mtime
+        return result
 
     def max_wallet_exposure(self, wallet: str) -> float:
         wc = self.wallet_cfg(wallet)
@@ -9943,9 +9952,11 @@ class LiveCopyCore:
         if not ws.enabled:
             return 0.0  # no feed configured: the poll runs every cycle (tests, polling-only mode)
         active = {normalise_wallet(w) for w in self.cfg.active_wallets()}
+        feed_set = {normalise_wallet(w) for w in self.wallets}
         acked = {normalise_wallet(w) for w in (getattr(ws, "_subscribed", ()) or ())}
-        # the poll may relax to the backstop rate only when EVERY followed leader is on the live feed
-        feed_ok = bool(ws.enabled and getattr(ws, "_socket_open", False) and active and active <= acked)
+        # the poll may relax to the backstop rate when the feed is healthy and every WS slot is feed-acked;
+        # the poll set may be larger than the feed set (poll-all-active), which is by design
+        feed_ok = bool(ws.enabled and getattr(ws, "_socket_open", False) and feed_set and feed_set <= acked)
         if feed_ok:
             return max(0.0, fnum(os.getenv("HL_LIVE_LEADER_POLL_INTERVAL_SEC"), 30.0))
         n = max(1, len(self.cfg.active_wallets()))
@@ -10436,7 +10447,7 @@ class LiveCopyCore:
         This never widens what is copied: LEADER_POLL_OVERLAP_MS plus the per-wallet cursor and the
         _already_handled dedupe make a fill seen by both the feed and the poll run exactly once, and
         leader_poll_interval_sec() already relaxes the cadence when every leader is feed-acked."""
-        return (self.cfg.active_wallets()
+        return ([w for w in self.cfg.active_wallets() if self.cfg.wallet_mode(w) != "OFF"]
                 if bval(os.getenv("HL_LIVE_POLL_ALL_ACTIVE"), True)
                 else list(self.wallets))
 

@@ -214,7 +214,11 @@ def http_post(url, payload, timeout):
                 # counter reads a 32-deep pool as a WS-connection breach. Default 6 -> <= 7 sockets per host.
                 # 0 = unlimited (urllib3 semantics) = the previous behaviour. Never raise
                 # HL_LIVE_READ_CONCURRENCY to compensate: the sweep already carries unread DEXes forward.
-                adapter = HTTPAdapter(pool_connections=4, pool_maxsize=int(os.getenv("HL_LIVE_HTTP_POOL_MAX", "6")))
+                try:
+                    _pool_max = int(os.getenv("HL_LIVE_HTTP_POOL_MAX", "6"))
+                except ValueError:
+                    _pool_max = 6
+                adapter = HTTPAdapter(pool_connections=4, pool_maxsize=_pool_max)
                 sess.mount("https://", adapter)
                 sess.mount("http://", adapter)
                 _SESSION = sess
