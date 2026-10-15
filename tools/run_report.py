@@ -35,6 +35,7 @@ import argparse
 import csv
 import importlib.util
 import json
+import sys
 import time
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple
@@ -159,30 +160,47 @@ def reconciliation_counts(audit_dir: Path, prefixes: Sequence[str] = RECON_PREFI
 # ------------------------------------------------------------------- outage
 
 def fetch_leader_fills(wallets: Iterable[str], start_ms: int, end_ms: int,
-                       min_interval_s: float = 1.0, url: str = EXCHANGE_INFO_URL) -> List[Dict[str, Any]]:
-    """Read-only POST userFillsByTime per wallet, filtered to [start_ms, end_ms]. <= 1 request/second."""
+                       min_interval_s: float = 1.0, url: str = EXCHANGE_INFO_URL,
+                       max_pages: int = 40) -> List[Dict[str, Any]]:
+    """Read-only paged POST userFillsByTime per wallet, filtered to [start_ms, end_ms]. <= 1 request/second.
+
+    The API returns at most 2,000 fills per response, oldest first. A single request silently dropped every fill after the
+    2,000th of a busy wallet, which would hide missing fills from this report (a false PASS). Pages continue from the last
+    fill's time (the boundary millisecond is re-read; fills are de-duplicated on hash+tid)."""
     out: List[Dict[str, Any]] = []
     last = 0.0
     for w in wallets:
-        gap = min_interval_s - (time.monotonic() - last)
-        if gap > 0:
-            time.sleep(gap)
-        payload = {"type": "userFillsByTime", "user": w, "startTime": int(start_ms),
-                   "endTime": int(end_ms), "aggregateByTime": False}
-        req = _urlrequest.Request(url, data=json.dumps(payload).encode("utf-8"),
-                                  headers={"Content-Type": "application/json"}, method="POST")
-        try:
-            with _urlrequest.urlopen(req, timeout=20) as r:
-                data = json.loads(r.read().decode("utf-8", "replace"))
-        except Exception as exc:  # network is best-effort; never crash the report
-            print(f"[run_report] userFillsByTime {w} failed: {type(exc).__name__}: {exc}", file=sys.stderr)
+        seen: set = set()
+        start = int(start_ms)
+        for _page in range(max_pages):
+            gap = min_interval_s - (time.monotonic() - last)
+            if gap > 0:
+                time.sleep(gap)
+            payload = {"type": "userFillsByTime", "user": w, "startTime": start,
+                       "endTime": int(end_ms), "aggregateByTime": False}
+            req = _urlrequest.Request(url, data=json.dumps(payload).encode("utf-8"),
+                                      headers={"Content-Type": "application/json"}, method="POST")
+            try:
+                with _urlrequest.urlopen(req, timeout=20) as r:
+                    data = json.loads(r.read().decode("utf-8", "replace"))
+            except Exception as exc:  # network is best-effort; never crash the report
+                print(f"[run_report] userFillsByTime {w} failed: {type(exc).__name__}: {exc}", file=sys.stderr)
+                last = time.monotonic()
+                break
             last = time.monotonic()
-            continue
-        last = time.monotonic()
-        for f in (data if isinstance(data, list) else []):
-            t = int(f.get("time") or 0)
-            if start_ms <= t <= end_ms:
-                out.append(f)
+            rows = [f for f in (data if isinstance(data, list) else []) if isinstance(f, dict)]
+            for f in rows:
+                t = int(f.get("time") or 0)
+                key = (f.get("hash"), f.get("tid"), t, f.get("oid"), f.get("sz"), f.get("px"))
+                if start_ms <= t <= end_ms and key not in seen:
+                    seen.add(key)
+                    out.append(f)
+            if len(rows) < 2000:
+                break
+            newest = max(int(f.get("time") or 0) for f in rows)
+            start = newest if newest > start else start + 1
+        else:
+            print(f"[run_report] userFillsByTime {w}: page cap {max_pages} reached; the window may be incomplete", file=sys.stderr)
     return out
 
 
