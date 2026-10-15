@@ -215,10 +215,10 @@ def http_post(url, payload, timeout):
                 # 0 = unlimited (urllib3 semantics) = the previous behaviour. Never raise
                 # HL_LIVE_READ_CONCURRENCY to compensate: the sweep already carries unread DEXes forward.
                 try:
-                    _pool_max = int(os.getenv("HL_LIVE_HTTP_POOL_MAX", "6"))
+                    _pool_max = int(os.getenv("HL_LIVE_HTTP_POOL_MAX", "8"))
                 except ValueError:
-                    _pool_max = 6
-                adapter = HTTPAdapter(pool_connections=4, pool_maxsize=_pool_max)
+                    _pool_max = 8
+                adapter = HTTPAdapter(pool_connections=4, pool_maxsize=_pool_max, pool_block=True)
                 sess.mount("https://", adapter)
                 sess.mount("http://", adapter)
                 _SESSION = sess

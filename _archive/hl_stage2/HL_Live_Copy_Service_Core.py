@@ -3033,11 +3033,13 @@ class ConfigManager:
 
         With HL_LIVE_WS_RANK_CSV set the candidates are first ordered by 24 h fill volume, so the
         scarce WS slots go to the busiest leaders instead of to config-dict order (active-first
-        remains the tie-break, never the sort key). Every active leader is still REST-polled
+        partition: active wallets fill the first slots, OFF wallets only fill the remainder.
+        Every active leader is still REST-polled
         (see LiveCopyCore.poll_wallets), so a wallet outranked out of the feed loses nothing."""
         active = self.active_wallets()
-        cands = active + [w for w in self.wallets() if w not in active]
-        return self._by_fill_rank(cands)[:MAX_WALLETS]
+        rest = [w for w in self.wallets() if w not in active]
+        n_active = min(len(active), MAX_WALLETS)
+        return self._by_fill_rank(active)[:n_active] + self._by_fill_rank(rest)[:MAX_WALLETS - n_active]
 
     def _by_fill_rank(self, cands: List[str]) -> List[str]:
         """cands ordered by fills_24h DESC from the CSV named by HL_LIVE_WS_RANK_CSV. Env unset, file
@@ -9951,7 +9953,7 @@ class LiveCopyCore:
         ws = self.ws
         if not ws.enabled:
             return 0.0  # no feed configured: the poll runs every cycle (tests, polling-only mode)
-        active = {normalise_wallet(w) for w in self.cfg.active_wallets()}
+        feed_set = {normalise_wallet(w) for w in self.cfg.stream_wallets()}
         feed_set = {normalise_wallet(w) for w in self.wallets}
         acked = {normalise_wallet(w) for w in (getattr(ws, "_subscribed", ()) or ())}
         # the poll may relax to the backstop rate when the feed is healthy and every WS slot is feed-acked;
@@ -10508,7 +10510,7 @@ class LiveCopyCore:
                     if int(fnum(_prev_counts.get("filled_without_live_fill_beyond_grace"), 0)) > 0:
                         _block = "UNRECONCILED_FILLED_SENDS"
             # Gate 4: more active wallets than the leader stream can follow (refused, never dropped)
-            if not _block and len(self.cfg.active_wallets()) > MAX_WALLETS:
+            if not _block and not set(self.cfg.active_wallets()) <= set(self.cfg.stream_wallets()):
                 _block = "TOO_MANY_ACTIVE_WALLETS"
             # Gate 5: Global Controls daily loss limit (rolling 24 h follower PnL; unreadable fails closed)
             if not _block:
@@ -10632,7 +10634,7 @@ class LiveCopyCore:
                     _ec = _cs.get("last_leader_poll_cursor_ms")
                     if not isinstance(_ec, dict):
                         _ec = {}
-                    _active_cursor_wallets = {str(w).lower() for w in self.wallets}
+                    _active_cursor_wallets = {str(w).lower() for w in self.poll_wallets()}
                     _ec = {
                         str(w).lower(): v
                         for w, v in _ec.items()

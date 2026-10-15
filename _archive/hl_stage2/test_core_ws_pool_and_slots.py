@@ -146,12 +146,19 @@ def main() -> None:
     os.environ["HL_LIVE_WS_RANK_CSV"] = str(rank_path)
     ranked = cfg.stream_wallets()
     busiest_first = [w for w, _ in rank_rows]
+    active_ranked = [w for w in busiest_first if modes.get(w) != "OFF"]
+    off_ranked = [w for w in busiest_first if modes.get(w) == "OFF"]
+    expected = active_ranked[:10] + off_ranked[:max(0, 10 - len(active_ranked))]
     check("H_SLOTS_RANKED_BY_FILLS",
-          ranked == busiest_first[:10],
-          "ranked=%s expected=%s" % (ranked, busiest_first[:10]))
-    check("H_SLOTS_RANKED_DIFFERS_FROM_TODAY", ranked != baseline, "ranked==baseline")
-    check("H_SLOTS_RANKED_ALL_BUSIEST", all(c.normalise_wallet(wallet(i)) in ranked for i in range(7, 15)),
-          "missing a busy leader: %s" % (ranked,))
+          ranked == expected,
+          "ranked=%s expected=%s" % (ranked, expected))
+    check("H_SLOTS_ACTIVE_IN_FILL_ORDER",
+          [w for w in ranked if modes.get(w) != "OFF"] == [w for w in busiest_first if modes.get(w) != "OFF"],
+          "active wallets not in fill-rank order: %s" % (ranked,))
+    check("H_SLOTS_ACTIVE_ALL_IN_RATED", all(c.normalise_wallet(wallet(i)) in ranked for i in range(7)),
+          "missing an active leader: %s" % (ranked,))
+    check("H_SLOTS_REMAINING_FROM_OFF", all(c.normalise_wallet(wallet(i)) in ranked for i in range(7, 10)),
+          "missing a busy OFF leader: %s" % (ranked,))
 
     # missing file / no rows / garbage -> strict no-op (byte-identical to today)
     os.environ["HL_LIVE_WS_RANK_CSV"] = str(tmp / "does_not_exist.csv")
@@ -243,11 +250,14 @@ def main() -> None:
             requests.Session.post = saved_post
 
     try:
-        check("H_POOL_MAXSIZE_DEFAULT_6", pool_maxsize_for(None) == 6, "got %s" % (pool_maxsize_for(None),))
+        check("H_POOL_MAXSIZE_DEFAULT_8", pool_maxsize_for(None) == 8, "got %s" % (pool_maxsize_for(None),))
         check("H_POOL_MAXSIZE_FROM_ENV", pool_maxsize_for("9") == 9, "got %s" % (pool_maxsize_for("9"),))
         check("H_POOL_MAXSIZE_ZERO_UNLIMITED", pool_maxsize_for("0") == 0, "got %s" % (pool_maxsize_for("0"),))
         sess = et._SESSION
         check("H_POOL_SINGLE_SHARED_SESSION", sess is et._SESSION, "session replaced")
+        _adapter = et._SESSION.get_adapter("https://api.hyperliquid.xyz/info")
+        _block = _adapter.poolmanager.connection_pool_kw.get("block")
+        check("H_POOL_BLOCK_TRUE", _block is True, "pool_block=%s (must be True to bound peak sockets)" % (_block,))
     finally:
         et._SESSION = None
         requests.Session.post = saved_post
@@ -263,7 +273,7 @@ def main() -> None:
             ad = et._SESSION.get_adapter("https://api.hyperliquid.xyz/info")
             got = int(ad.poolmanager.connection_pool_kw.get("maxsize"))
             check("H_POOL_MAX_BAD_VAL_%s" % (bad_val.replace(".", "_").replace(" ", "_") or "empty"),
-                  got == 6, "expected default 6, got %s" % (got,))
+                  got == 8, "expected default 8, got %s" % (got,))
         except ValueError:
             check("H_POOL_MAX_BAD_VAL_%s" % (bad_val.replace(".", "_").replace(" ", "_") or "empty"),
                   False, "ValueError raised for HL_LIVE_HTTP_POOL_MAX=%r" % (bad_val,))
@@ -347,6 +357,34 @@ def main() -> None:
           polled_filtered == [w for w in cfg.active_wallets() if cfg.wallet_mode(w) != "OFF"],
           "poll_wallets did not filter OFF wallets")
     os.environ.pop("HL_LIVE_POLL_ALL_ACTIVE", None)
+
+    # ---------------------------------------------------------------- 9. B-FINDING 1: mode partition
+    # With MAX_WALLETS=3 and 3 active + 3 busier OFF, all 3 active must be in stream_wallets().
+    _saved_max = c.MAX_WALLETS
+    c.MAX_WALLETS = 3
+    ranked_3 = cfg.stream_wallets()
+    check("B1_ALL_SLOTS_ARE_ACTIVE", all(modes.get(w) != "OFF" for w in ranked_3),
+          "non-active wallet in slots: %s" % (ranked_3,))
+    check("B1_NO_OFF_WHEN_ACTIVE_FILL", not any(c.normalise_wallet(wallet(i)) in ranked_3 for i in range(7, 15)),
+          "OFF wallet took a slot from an active one: %s" % (ranked_3,))
+    c.MAX_WALLETS = _saved_max
+
+    # ---------------------------------------------------------------- 10. review-1: feed_set uses stream_wallets
+    # leader_poll_interval_sec must relax to backstop when all WS slots are acked,
+    # even when poll set > feed set.
+    class _FakeWS:
+        def __init__(self):
+            self.enabled = True
+            self._socket_open = True
+            self._subscribed = ()
+    _ws = _FakeWS()
+    _ws._subscribed = tuple(cfg.stream_wallets())
+    core.ws = _ws
+    os.environ["HL_LIVE_LEADER_POLL_INTERVAL_SEC"] = "30"
+    _interval = c.LiveCopyCore.leader_poll_interval_sec(core)
+    check("R1_FEED_OK_RELAXES", _interval == 30.0,
+          "expected backstop 30.0 when all WS slots acked, got %s" % (_interval,))
+    os.environ.pop("HL_LIVE_LEADER_POLL_INTERVAL_SEC", None)
 
     failed = [n for n, ok in RESULTS if not ok]
     print("TOTAL=%d FAILED=%d" % (len(RESULTS), len(failed)))
