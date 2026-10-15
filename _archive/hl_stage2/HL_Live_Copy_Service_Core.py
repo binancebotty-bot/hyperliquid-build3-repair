@@ -7197,6 +7197,31 @@ class SenderGateway:
         self._append_latency_warning_if_needed(intent, timing)
 
 
+TRACE_KEEP_FILES = max(1, int(os.environ.get("HL_TRACE_KEEP_FILES", "12") or 12))
+TRACE_MAX_BYTES_FILL = int(os.environ.get("HL_FILL_TRACE_MAX_BYTES", "32000000") or 32000000)
+TRACE_MAX_BYTES_POLL = int(os.environ.get("HL_POLL_TRACE_MAX_BYTES", "16000000") or 16000000)
+
+
+def rotate_trace_file(path: Path, max_bytes: int, keep: int = 0) -> None:
+    """Rotate a diagnostic jsonl once it passes max_bytes: x.jsonl -> x.jsonl.1 -> x.jsonl.2 ... keeping `keep` old files
+    (default HL_TRACE_KEEP_FILES). The old single .old file was overwritten on every rotation, so an outage window could be gone
+    before it was diagnosed (Q20). Never raises."""
+    try:
+        keep = keep or TRACE_KEEP_FILES
+        if not path.exists() or path.stat().st_size <= max_bytes:
+            return
+        last = path.with_name(path.name + "." + str(keep))
+        if last.exists():
+            last.unlink()
+        for i in range(keep - 1, 0, -1):
+            src = path.with_name(path.name + "." + str(i))
+            if src.exists():
+                src.replace(path.with_name(path.name + "." + str(i + 1)))
+        path.replace(path.with_name(path.name + ".1"))
+    except Exception as exc:
+        log_error("trace_rotate", exc)
+
+
 class LeaderFillIngestor:
     @staticmethod
     def stable_leader_fill_id(wallet: str, raw: Dict[str, Any]) -> str:
@@ -9033,7 +9058,7 @@ class LiveCopyCore:
     def _fill_trace(self, kind: str, fill: "LeaderFill", extra: Optional[Dict[str, Any]] = None) -> None:
         """One json line per step a leader fill takes (poll_dispatched / poll_already_handled / poll_queue_full / late_closed_row /
         proc_start / proc_end) in fill_trace.jsonl beside the runtime state: a fill the classifier calls MISSING can be found here
-        (never reached dispatch, dispatched and never processed, or processed and ended without a row). Capped at 8 MB; never raises."""
+        (never reached dispatch, dispatched and never processed, or processed and ended without a row). Rotated at 32 MB, 12 files kept; never raises."""
         try:
             path = Path(CORE_RUNTIME_STATE_FILE).parent / "fill_trace.jsonl"
             rec = {"ts": utc_now_ms(), "k": kind, "id": str(fill.leader_fill_id), "w": str(fill.leader_wallet)[:10],
@@ -9042,8 +9067,7 @@ class LiveCopyCore:
                 _r = rec.pop("status_of")
                 rec["status"] = str(_r[1]) if isinstance(_r, tuple) and len(_r) > 1 else ""
             with self.__dict__.setdefault("_fill_trace_lock", threading.Lock()):
-                if path.exists() and path.stat().st_size > 8000000:
-                    path.replace(path.with_suffix(".jsonl.old"))
+                rotate_trace_file(path, TRACE_MAX_BYTES_FILL)
                 with open(path, "a", encoding="utf-8") as fh:
                     fh.write(json.dumps(rec, separators=(",", ":")) + "\n")
         except Exception as exc:
@@ -9052,11 +9076,10 @@ class LiveCopyCore:
     def _poll_trace(self, rec: Dict[str, Any]) -> None:
         """One json line per leader poll (cursor, window asked, fills returned, how many were new) in leader_poll_trace.jsonl
         beside the runtime state. Outage tests 14 to Q4: live-leader fills were never ingested after a restart and nothing
-        said which window the catch-up asked for. Capped at 4 MB (the file restarts); never raises."""
+        said which window the catch-up asked for. Rotated at 16 MB, 12 files kept; never raises."""
         try:
             path = Path(CORE_RUNTIME_STATE_FILE).parent / "leader_poll_trace.jsonl"
-            if path.exists() and path.stat().st_size > 4000000:
-                path.replace(path.with_suffix(".jsonl.old"))
+            rotate_trace_file(path, TRACE_MAX_BYTES_POLL)
             with open(path, "a", encoding="utf-8") as fh:
                 fh.write(json.dumps({"ts": utc_now_ms(), **rec}, separators=(",", ":")) + "\n")
         except Exception as exc:
