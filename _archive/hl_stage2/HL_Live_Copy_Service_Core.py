@@ -3029,9 +3029,48 @@ class ConfigManager:
 
     def stream_wallets(self) -> List[str]:
         """Wallets the leader stream follows: active ones first, so an OFF wallet never takes the
-        slot of a live one. More active wallets than slots is refused, never silently dropped."""
+        slot of a live one. More active wallets than slots is refused, never silently dropped.
+
+        With HL_LIVE_WS_RANK_CSV set the candidates are first ordered by 24 h fill volume, so the
+        scarce WS slots go to the busiest leaders instead of to config-dict order (active-first
+        partition: active wallets fill the first slots, OFF wallets only fill the remainder.
+        Every active leader is still REST-polled
+        (see LiveCopyCore.poll_wallets), so a wallet outranked out of the feed loses nothing."""
         active = self.active_wallets()
-        return (active + [w for w in self.wallets() if w not in active])[:MAX_WALLETS]
+        rest = [w for w in self.wallets() if w not in active]
+        n_active = min(len(active), MAX_WALLETS)
+        return self._by_fill_rank(active)[:n_active] + self._by_fill_rank(rest)[:MAX_WALLETS - n_active]
+
+    def _by_fill_rank(self, cands: List[str]) -> List[str]:
+        """cands ordered by fills_24h DESC from the CSV named by HL_LIVE_WS_RANK_CSV. Env unset, file
+        unreadable, or no usable row -> cands unchanged, byte-identical to the previous order. A wallet
+        with no row keeps today's position relative to the other unranked ones (sorts last, ties in
+        input order). Malformed rows are skipped, never fatal."""
+        path = str(os.getenv("HL_LIVE_WS_RANK_CSV", "") or "").strip()
+        if not path:
+            return cands
+        try:
+            mtime = os.path.getmtime(path)
+        except OSError:
+            return cands
+        if getattr(self, "_rank_cache_mtime", None) == mtime:
+            return self._rank_cache_fills(cands)
+        fills: Dict[str, float] = {}
+        try:
+            with open(path, "r", newline="", encoding="utf-8-sig") as fh:
+                for row in csv.DictReader(fh):
+                    w = normalise_wallet(row.get("wallet"))
+                    if is_valid_wallet(w):
+                        fills[w] = max(fills.get(w, 0.0), fnum(row.get("fills_24h"), 0.0))
+        except (OSError, ValueError, csv.Error):
+            return cands
+        if not fills:
+            return cands
+        pos = {w: i for i, w in enumerate(cands)}
+        result = sorted(cands, key=lambda w: (-fills.get(w, -1.0), pos[w]))
+        self._rank_cache_fills = lambda c: sorted(c, key=lambda w: (-fills.get(w, -1.0), pos.get(w, len(c))))
+        self._rank_cache_mtime = mtime
+        return result
 
     def max_wallet_exposure(self, wallet: str) -> float:
         wc = self.wallet_cfg(wallet)
@@ -9914,10 +9953,11 @@ class LiveCopyCore:
         ws = self.ws
         if not ws.enabled:
             return 0.0  # no feed configured: the poll runs every cycle (tests, polling-only mode)
-        active = {normalise_wallet(w) for w in self.cfg.active_wallets()}
+        feed_set = {normalise_wallet(w) for w in self.wallets}
         acked = {normalise_wallet(w) for w in (getattr(ws, "_subscribed", ()) or ())}
-        # the poll may relax to the backstop rate only when EVERY followed leader is on the live feed
-        feed_ok = bool(ws.enabled and getattr(ws, "_socket_open", False) and active and active <= acked)
+        # the poll may relax to the backstop rate when the feed is healthy and every WS slot is feed-acked;
+        # the poll set may be larger than the feed set (poll-all-active), which is by design
+        feed_ok = bool(ws.enabled and getattr(ws, "_socket_open", False) and feed_set and feed_set <= acked)
         if feed_ok:
             return max(0.0, fnum(os.getenv("HL_LIVE_LEADER_POLL_INTERVAL_SEC"), 30.0))
         n = max(1, len(self.cfg.active_wallets()))
@@ -10401,6 +10441,17 @@ class LiveCopyCore:
         self._converge_thread = threading.Thread(target=loop, daemon=True, name="HLCoreConverge")
         self._converge_thread.start()
 
+    def poll_wallets(self) -> List[str]:
+        """Leaders the REST backstop reads this cycle. Default (HL_LIVE_POLL_ALL_ACTIVE, on) is every
+        active leader whether or not it holds one of the MAX_WALLETS WS slots, so no leader fill is
+        lost when the feed follows only the busiest wallets. Set to 0 to poll only self.wallets.
+        This never widens what is copied: LEADER_POLL_OVERLAP_MS plus the per-wallet cursor and the
+        _already_handled dedupe make a fill seen by both the feed and the poll run exactly once, and
+        leader_poll_interval_sec() already relaxes the cadence when every leader is feed-acked."""
+        return ([w for w in self.cfg.active_wallets() if self.cfg.wallet_mode(w) != "OFF"]
+                if bval(os.getenv("HL_LIVE_POLL_ALL_ACTIVE"), True)
+                else list(self.wallets))
+
     def run_cycle(self, use_source_csv: bool = True, poll_live: bool = False, poll_copy: bool = False, reconcile_exchange: bool = False) -> CycleSummary:
         # HOT_CONFIG_RELOAD_WINAGENT: reload live_config/wallet_gate each cycle so UI/control changes affect a running core.
         try:
@@ -10458,7 +10509,7 @@ class LiveCopyCore:
                     if int(fnum(_prev_counts.get("filled_without_live_fill_beyond_grace"), 0)) > 0:
                         _block = "UNRECONCILED_FILLED_SENDS"
             # Gate 4: more active wallets than the leader stream can follow (refused, never dropped)
-            if not _block and len(self.cfg.active_wallets()) > MAX_WALLETS:
+            if not _block and not set(self.cfg.active_wallets()) <= set(self.cfg.stream_wallets()):
                 _block = "TOO_MANY_ACTIVE_WALLETS"
             # Gate 5: Global Controls daily loss limit (rolling 24 h follower PnL; unreadable fails closed)
             if not _block:
@@ -10520,7 +10571,7 @@ class LiveCopyCore:
                 # (was 5 min of thousands of already-handled fills per busy wallet per cycle).
                 _catchup_ms = max(POLL_WINDOW_MS, int(fnum(os.getenv("HL_LIVE_POLL_MAX_CATCHUP_MS"), 7 * 86400000)))
                 _jobs: List[Tuple[str, int]] = []
-                for w in self.wallets:
+                for w in self.poll_wallets():
                     # Skip wallets that are turned off — no fills to copy, avoids wasteful network calls.
                     if self.cfg.wallet_mode(w) == "OFF":
                         continue
@@ -10582,7 +10633,7 @@ class LiveCopyCore:
                     _ec = _cs.get("last_leader_poll_cursor_ms")
                     if not isinstance(_ec, dict):
                         _ec = {}
-                    _active_cursor_wallets = {str(w).lower() for w in self.wallets}
+                    _active_cursor_wallets = {str(w).lower() for w in self.poll_wallets()}
                     _ec = {
                         str(w).lower(): v
                         for w, v in _ec.items()
