@@ -9953,7 +9953,6 @@ class LiveCopyCore:
         ws = self.ws
         if not ws.enabled:
             return 0.0  # no feed configured: the poll runs every cycle (tests, polling-only mode)
-        feed_set = {normalise_wallet(w) for w in self.cfg.stream_wallets()}
         feed_set = {normalise_wallet(w) for w in self.wallets}
         acked = {normalise_wallet(w) for w in (getattr(ws, "_subscribed", ()) or ())}
         # the poll may relax to the backstop rate when the feed is healthy and every WS slot is feed-acked;

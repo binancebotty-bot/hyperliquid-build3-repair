@@ -211,7 +211,7 @@ def http_post(url, payload, timeout):
                 sess = requests.Session()
                 # HL_LIVE_HTTP_POOL_MAX caps the persistent TLS sockets this process holds per HL host
                 # (the single WS socket is separate and already 1 by construction): an outside socket
-                # counter reads a 32-deep pool as a WS-connection breach. Default 6 -> <= 7 sockets per host.
+                # counter reads a 32-deep pool as a WS-connection breach. Default 8 -> <= 9 sockets per host.
                 # 0 = unlimited (urllib3 semantics) = the previous behaviour. Never raise
                 # HL_LIVE_READ_CONCURRENCY to compensate: the sweep already carries unread DEXes forward.
                 try:
