@@ -23,6 +23,11 @@ import argparse
 import atexit
 import concurrent.futures
 import csv
+
+# Audit rows can hold fields over the 128 KB csv default (Q22 classifier, Q23 engine startup both died on it).
+csv.field_size_limit(2**31 - 1)
+if csv.field_size_limit() < 2**24:  # startup self-check: fail loudly, never start with a limit that kills history reads
+    raise RuntimeError("csv field size limit too small: %d" % csv.field_size_limit())
 import hashlib
 import io
 import inspect
@@ -1445,6 +1450,9 @@ class _BoundedRaw(io.RawIOBase):
         return len(data)
 
 
+CSV_BAD_ROWS = 0
+
+
 def iter_csv_rows(path: Path) -> Iterator[Dict[str, str]]:
     """Rows of an audit CSV one at a time (no whole-file bytes, text or row list in memory). The size is taken
     under the file lock, so a row being appended is either wholly in the scan or wholly out of it."""
@@ -1457,7 +1465,18 @@ def iter_csv_rows(path: Path) -> Iterator[Dict[str, str]]:
     with path.open("rb") as fh:
         text = io.TextIOWrapper(io.BufferedReader(_BoundedRaw(fh, size)), encoding="utf-8-sig", newline="")
         try:
-            for row in csv.DictReader(text):
+            rd = csv.DictReader(text)
+            while True:
+                try:
+                    row = next(rd)
+                except StopIteration:
+                    break
+                except csv.Error as exc:  # one damaged row must not stop the engine starting; counted and logged
+                    global CSV_BAD_ROWS
+                    CSV_BAD_ROWS += 1
+                    if CSV_BAD_ROWS <= 5 or CSV_BAD_ROWS % 1000 == 0:
+                        log_error("csv_bad_row", "%s: %s (bad rows so far: %d)" % (path.name, exc, CSV_BAD_ROWS))
+                    continue
                 yield row
         finally:
             text.detach()
