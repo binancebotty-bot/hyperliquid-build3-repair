@@ -3090,6 +3090,18 @@ class ConfigManager:
             raw = DEFAULT_SLIPPAGE_BPS
         return max(0.0, min(100.0, fnum(raw, 0.0)))
 
+    def ioc_retry_bps(self) -> float:
+        gc = self.global_controls
+        raw = fnum(gc.get("ioc_retry_bps"), 100.0)
+        return max(0.0, min(fnum(gc.get("ioc_retry_max_bps"), 300.0), raw))
+
+    def ioc_retry_enabled(self) -> bool:
+        return bval(self.global_controls.get("ioc_retry_enabled"), True)
+
+    def ioc_retry_notional_cap(self, base_notional: float) -> float:
+        mult = max(1.0, fnum(self.global_controls.get("ioc_retry_notional_cap_mult"), 2.0))
+        return base_notional * mult
+
     def max_close_adverse_diff_pct(self) -> float:
         return max(0.0, fnum(self.global_controls.get("max_close_adverse_diff_pct"), 0.0))  # 0/missing = OFF
 
@@ -6306,22 +6318,39 @@ class SenderGateway:
             if (
                 not ok
                 and status == "ORDER_REJECTED"
-                and lifecycle in {"ENTRY", "ADD"}
+                and self.cfg.ioc_retry_enabled()
+                and lifecycle in {"ENTRY", "ADD", "EXIT", "REDUCE"}
                 and reject_category == "IOC_NO_IMMEDIATE_MATCH"
             ):
-                retry_bps = max(bps, fnum(os.getenv("HL_LIVE_ENTRY_IOC_RETRY_BPS"), 100.0))
-                max_retry_bps = max(retry_bps, fnum(os.getenv("HL_LIVE_MAX_ENTRY_IOC_RETRY_BPS"), retry_bps))
-                retry_bps = min(retry_bps, max_retry_bps)
+                retry_bps = self.cfg.ioc_retry_bps()
                 if retry_bps > bps:
                     retry_mult = (1.0 + retry_bps / 10000.0) if intent.copy_side == "BUY" else (1.0 - retry_bps / 10000.0)
                     retry_px = self._format_limit_px(base_px * retry_mult, price_max_dec)
                     if missed is not None:  # Boss's rule: the retry never goes past leader price + tolerance
                         cap = self._px_passive(missed["cap_px"], price_max_dec, intent.copy_side == "BUY")
                         retry_px = min(retry_px, cap) if intent.copy_side == "BUY" else max(retry_px, cap)
-                    more_aggressive = retry_px > limit_px if intent.copy_side == "BUY" else retry_px < limit_px
                     retry_notional = abs(wire_size * retry_px)
+                    retry_cap = self.cfg.ioc_retry_notional_cap(wire_notional)
                     retry_safe, retry_unsafe = self._pre_exchange_asset_safety(intent, resolved, retry_px, wire_size)
-                    if more_aggressive and retry_safe and retry_notional <= max(wire_notional * 1.5, wire_notional + 5.0):
+                    if retry_px != limit_px and retry_safe and retry_notional <= retry_cap:
+                        if not self.cfg.master_switch_now():
+                            return False, "MASTER_REAL_ORDERS_OFF", {
+                                "exchange_response": response, "oid": oid,
+                                "limit_px": limit_px, "wire_size": wire_size, "copy_notional": wire_notional,
+                                "exchange_called": True, "error": parsed_error, "timing": timing,
+                                "reject_category": reject_category,
+                                "reduce_only_sent": use_reduce_only,
+                                "notes": f"IOC retry blocked: master switch off; initial_error={parsed_error}",
+                            }
+                        if lifecycle in {"ENTRY", "ADD"} and self.cfg.send_mode_now() == "CLOSE":
+                            return False, "ENTRY_BLOCKED_GLOBAL_CLOSE_ONLY", {
+                                "exchange_response": response, "oid": oid,
+                                "limit_px": limit_px, "wire_size": wire_size, "copy_notional": wire_notional,
+                                "exchange_called": True, "error": parsed_error, "timing": timing,
+                                "reject_category": reject_category,
+                                "reduce_only_sent": use_reduce_only,
+                                "notes": f"IOC retry blocked: CLOSE_ONLY mode; initial_error={parsed_error}",
+                            }
                         timing["entry_ioc_retry_started_ms"] = utc_now_ms()
                         retry_response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", wire_size,
                                                            retry_px, "Ioc", False)
