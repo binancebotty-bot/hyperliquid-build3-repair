@@ -1,0 +1,73 @@
+# Router backlog (snapshot 2026-10-15 18:44Z)
+
+Another agent can re-feed any not-completed item: copy a line of queue.jsonl (prompt_file is repo-relative; make it absolute to your checkout) into the router queue. See free-compute-task-manager docs/TASK_CONTRACT.md and DELEGATION_ROUTER.md.
+
+Status counts: completed (output exists)=41, give_up=23, active=1
+
+| id | title | status | last model | expected output | prompt (repo) |
+|---|---|---|---|---|---|
+| w0 | strong tests weak rows 0 | give_up | meituan/longcat-2.5-preview:free | C:\Users\wigmore\trading_stack\_oc_jobs\new_tests3\RESULT_w0.csv | ops/backlog/prompts/w0__JOB_wk0.md |
+| w1 | strong tests weak rows 1 | completed (output exists) | cohere/north-mini-code:free | C:\Users\wigmore\trading_stack\_oc_jobs\new_tests3\RESULT_w1.csv | ops/backlog/prompts/w1__JOB_wk1.md |
+| w2 | strong tests weak rows 2 | completed (output exists) | cohere/north-mini-code:free | C:\Users\wigmore\trading_stack\_oc_jobs\new_tests3\RESULT_w2.csv | ops/backlog/prompts/w2__JOB_wk2.md |
+| w3 | strong tests weak rows 3 | completed (output exists) | poolside/laguna-s-2.1:free | C:\Users\wigmore\trading_stack\_oc_jobs\new_tests3\RESULT_w3.csv | ops/backlog/prompts/w3__JOB_wk3.md |
+| w4 | strong tests weak rows 4 | completed (output exists) | nvidia/nemotron-3-ultra-550b-a55b:free | C:\Users\wigmore\trading_stack\_oc_jobs\new_tests3\RESULT_w4.csv | ops/backlog/prompts/w4__JOB_wk4.md |
+| w5 | strong tests weak rows 5 | completed (output exists) | nvidia/nemotron-3-ultra-550b-a55b:free | C:\Users\wigmore\trading_stack\_oc_jobs\new_tests3\RESULT_w5.csv | ops/backlog/prompts/w5__JOB_wk5.md |
+| auditC1 | proof audit 13-17 v1 | completed (output exists) | nvidia/nemotron-3-super-120b-a12b:free | C:\Users\wigmore\trading_stack\_oc_jobs\proof_audit2\audit_C1.csv | ops/backlog/prompts/auditC1__JOB_audit_C1.md |
+| auditC2 | proof audit 13-17 v2 | completed (output exists) | stepfun/step-5-preview:free | C:\Users\wigmore\trading_stack\_oc_jobs\proof_audit2\audit_C2.csv | ops/backlog/prompts/auditC2__JOB_audit_C2.md |
+| auditD1 | proof audit 18-22 v1 | completed (output exists) | meituan/longcat-2.5-preview:free | C:\Users\wigmore\trading_stack\_oc_jobs\proof_audit2\audit_D1.csv | ops/backlog/prompts/auditD1__JOB_audit_D1.md |
+| auditD2 | proof audit 18-22 v2 | completed (output exists) | cohere/north-mini-code:free | C:\Users\wigmore\trading_stack\_oc_jobs\proof_audit2\audit_D2.csv | ops/backlog/prompts/auditD2__JOB_audit_D2.md |
+| live0 | testnet proof procedures 0 | completed (output exists) | poolside/laguna-s-2.1:free | C:\Users\wigmore\trading_stack\_oc_jobs\proof_audit2\LIVE_PROC_0.md | ops/backlog/prompts/live0__JOB_live0.md |
+| live1 | testnet proof procedures 1 | completed (output exists) | nvidia/nemotron-3-ultra-550b-a55b:free | C:\Users\wigmore\trading_stack\_oc_jobs\proof_audit2\LIVE_PROC_1.md | ops/backlog/prompts/live1__JOB_live1.md |
+| wsfix_r | retry wsfix | completed (output exists) | nvidia/nemotron-3-ultra-550b-a55b:free | C:\Users\wigmore\trading_stack\_oc_jobs\FIXRESULT_wsslots2.md | ops/backlog/prompts/wsfix_r__JOB_wsfix.md |
+| rev_statefile_A_r | retry rev_statefile_A | completed (output exists) | nvidia/nemotron-3-super-120b-a12b:free | C:\Users\wigmore\trading_stack\_oc_jobs\REVIEW_statefile_A.md | ops/backlog/prompts/rev_statefile_A_r__JOB_rev_statefile_A.md |
+| rev_statefile_B_r | retry rev_statefile_B | completed (output exists) | poolside/laguna-s-2.1:free | C:\Users\wigmore\trading_stack\_oc_jobs\REVIEW_statefile_B.md | ops/backlog/prompts/rev_statefile_B_r__JOB_rev_statefile_B.md |
+| rev_ioc_A_r | retry rev_ioc_A | completed (output exists) | meituan/longcat-2.5-preview:free | C:\Users\wigmore\trading_stack\_oc_jobs\REVIEW_ioc_A.md | ops/backlog/prompts/rev_ioc_A_r__JOB_rev_ioc_A.md |
+| rev_ledger_B_r | retry rev_ledger_B | completed (output exists) | cohere/north-mini-code:free | C:\Users\wigmore\trading_stack\_oc_jobs\REVIEW_ledger_B.md | ops/backlog/prompts/rev_ledger_B_r__JOB_rev_ledger_B.md |
+| tests0_r | retry tests0 | give_up | stepfun/step-5-preview:free | C:\Users\wigmore\trading_stack\_oc_jobs\new_tests2\RESULT_h0.csv | ops/backlog/prompts/tests0_r__JOB_tests0.md |
+| tests1_r | retry tests1 | completed (output exists) | cohere/north-mini-code:free | C:\Users\wigmore\trading_stack\_oc_jobs\new_tests2\RESULT_h1.csv | ops/backlog/prompts/tests1_r__JOB_tests1.md |
+| ledgerfix2 | ledger fix: real schema | give_up | cohere/north-mini-code:free | C:\Users\wigmore\trading_stack\_oc_jobs\FIXRESULT_ledger2.md | ops/backlog/prompts/ledgerfix2__JOB_ledgerfix2.md |
+| statefile3 | state-file fix round 3 | give_up | stepfun/step-5-preview:free | C:\Users\wigmore\trading_stack\_oc_jobs\FIXRESULT_statefile3.md | ops/backlog/prompts/statefile3__JOB_statefile3.md |
+| r1_ENG_INV_10 | 1-row test ENG-INV-10 | completed (output exists) | meituan/longcat-2.5-preview:free | C:\Users\wigmore\trading_stack\_oc_jobs\new_tests4\RESULT_ENG_INV_10.csv | ops/backlog/prompts/r1_ENG_INV_10__JOB_ENG_INV_10.md |
+| r1_ENG_INV_13 | 1-row test ENG-INV-13 | completed (output exists) | nvidia/nemotron-3-ultra-550b-a55b:free | C:\Users\wigmore\trading_stack\_oc_jobs\new_tests4\RESULT_ENG_INV_13.csv | ops/backlog/prompts/r1_ENG_INV_13__JOB_ENG_INV_13.md |
+| r1_ENG_INV_14 | 1-row test ENG-INV-14 | completed (output exists) | nvidia/nemotron-3-super-120b-a12b:free | C:\Users\wigmore\trading_stack\_oc_jobs\new_tests4\RESULT_ENG_INV_14.csv | ops/backlog/prompts/r1_ENG_INV_14__JOB_ENG_INV_14.md |
+| r1_ENG_SEM_B1 | 1-row test ENG-SEM-B1 | completed (output exists) | nvidia/nemotron-3-super-120b-a12b:free | C:\Users\wigmore\trading_stack\_oc_jobs\new_tests4\RESULT_ENG_SEM_B1.csv | ops/backlog/prompts/r1_ENG_SEM_B1__JOB_ENG_SEM_B1.md |
+| r1_ENG_SEM_B2 | 1-row test ENG-SEM-B2 | completed (output exists) | nvidia/nemotron-3-super-120b-a12b:free | C:\Users\wigmore\trading_stack\_oc_jobs\new_tests4\RESULT_ENG_SEM_B2.csv | ops/backlog/prompts/r1_ENG_SEM_B2__JOB_ENG_SEM_B2.md |
+| r1_ENG_SEM_B4 | 1-row test ENG-SEM-B4 | give_up | poolside/laguna-s-2.1:free | C:\Users\wigmore\trading_stack\_oc_jobs\new_tests4\RESULT_ENG_SEM_B4.csv | ops/backlog/prompts/r1_ENG_SEM_B4__JOB_ENG_SEM_B4.md |
+| r1_ENG_004 | 1-row test ENG-004 | completed (output exists) | cohere/north-mini-code:free | C:\Users\wigmore\trading_stack\_oc_jobs\new_tests4\RESULT_ENG_004.csv | ops/backlog/prompts/r1_ENG_004__JOB_ENG_004.md |
+| r1_ENG_007 | 1-row test ENG-007 | give_up | nvidia/nemotron-3-super-120b-a12b:free | C:\Users\wigmore\trading_stack\_oc_jobs\new_tests4\RESULT_ENG_007.csv | ops/backlog/prompts/r1_ENG_007__JOB_ENG_007.md |
+| r1_ENG_013 | 1-row test ENG-013 | give_up | poolside/laguna-s-2.1:free | C:\Users\wigmore\trading_stack\_oc_jobs\new_tests4\RESULT_ENG_013.csv | ops/backlog/prompts/r1_ENG_013__JOB_ENG_013.md |
+| r1_ENG_014 | 1-row test ENG-014 | give_up | nvidia/nemotron-3-super-120b-a12b:free | C:\Users\wigmore\trading_stack\_oc_jobs\new_tests4\RESULT_ENG_014.csv | ops/backlog/prompts/r1_ENG_014__JOB_ENG_014.md |
+| r1_ORD_008 | 1-row test ORD-008 | give_up | nvidia/nemotron-3-ultra-550b-a55b:free | C:\Users\wigmore\trading_stack\_oc_jobs\new_tests4\RESULT_ORD_008.csv | ops/backlog/prompts/r1_ORD_008__JOB_ORD_008.md |
+| r1_SET_004 | 1-row test SET-004 | completed (output exists) | nvidia/nemotron-3-ultra-550b-a55b:free | C:\Users\wigmore\trading_stack\_oc_jobs\new_tests4\RESULT_SET_004.csv | ops/backlog/prompts/r1_SET_004__JOB_SET_004.md |
+| r1_UI_WALLET_001 | 1-row test UI-WALLET-001 | give_up | meituan/longcat-2.5-preview:free | C:\Users\wigmore\trading_stack\_oc_jobs\new_tests4\RESULT_UI_WALLET_001.csv | ops/backlog/prompts/r1_UI_WALLET_001__JOB_UI_WALLET_001.md |
+| r1_UI_WALLET_003 | 1-row test UI-WALLET-003 | give_up | cohere/north-mini-code:free | C:\Users\wigmore\trading_stack\_oc_jobs\new_tests4\RESULT_UI_WALLET_003.csv | ops/backlog/prompts/r1_UI_WALLET_003__JOB_UI_WALLET_003.md |
+| r1_UI_WALLET_004 | 1-row test UI-WALLET-004 | give_up | nvidia/nemotron-3-super-120b-a12b:free | C:\Users\wigmore\trading_stack\_oc_jobs\new_tests4\RESULT_UI_WALLET_004.csv | ops/backlog/prompts/r1_UI_WALLET_004__JOB_UI_WALLET_004.md |
+| r1_UI_WALLET_005 | 1-row test UI-WALLET-005 | give_up | meituan/longcat-2.5-preview:free | C:\Users\wigmore\trading_stack\_oc_jobs\new_tests4\RESULT_UI_WALLET_005.csv | ops/backlog/prompts/r1_UI_WALLET_005__JOB_UI_WALLET_005.md |
+| r1_UI_WALLET_012 | 1-row test UI-WALLET-012 | give_up | nvidia/nemotron-3-ultra-550b-a55b:free | C:\Users\wigmore\trading_stack\_oc_jobs\new_tests4\RESULT_UI_WALLET_012.csv | ops/backlog/prompts/r1_UI_WALLET_012__JOB_UI_WALLET_012.md |
+| r1_UI_WALLET_013 | 1-row test UI-WALLET-013 | give_up | cohere/north-mini-code:free | C:\Users\wigmore\trading_stack\_oc_jobs\new_tests4\RESULT_UI_WALLET_013.csv | ops/backlog/prompts/r1_UI_WALLET_013__JOB_UI_WALLET_013.md |
+| r1_UI_WALLET_019 | 1-row test UI-WALLET-019 | give_up | nvidia/nemotron-3-super-120b-a12b:free | C:\Users\wigmore\trading_stack\_oc_jobs\new_tests4\RESULT_UI_WALLET_019.csv | ops/backlog/prompts/r1_UI_WALLET_019__JOB_UI_WALLET_019.md |
+| r1_LIFE_009 | 1-row test LIFE-009 | give_up | nvidia/nemotron-3-super-120b-a12b:free | C:\Users\wigmore\trading_stack\_oc_jobs\new_tests4\RESULT_LIFE_009.csv | ops/backlog/prompts/r1_LIFE_009__JOB_LIFE_009.md |
+| r1_HEALTH_001 | 1-row test HEALTH-001 | give_up | poolside/laguna-s-2.1:free | C:\Users\wigmore\trading_stack\_oc_jobs\new_tests4\RESULT_HEALTH_001.csv | ops/backlog/prompts/r1_HEALTH_001__JOB_HEALTH_001.md |
+| r1_HEALTH_002 | 1-row test HEALTH-002 | give_up | nvidia/nemotron-3-ultra-550b-a55b:free | C:\Users\wigmore\trading_stack\_oc_jobs\new_tests4\RESULT_HEALTH_002.csv | ops/backlog/prompts/r1_HEALTH_002__JOB_HEALTH_002.md |
+| r1_HEALTH_003 | 1-row test HEALTH-003 | active | cohere/north-mini-code:free | C:\Users\wigmore\trading_stack\_oc_jobs\new_tests4\RESULT_HEALTH_003.csv | ops/backlog/prompts/r1_HEALTH_003__JOB_HEALTH_003.md |
+| r1_HEALTH_004 | 1-row test HEALTH-004 | give_up | cohere/north-mini-code:free | C:\Users\wigmore\trading_stack\_oc_jobs\new_tests4\RESULT_HEALTH_004.csv | ops/backlog/prompts/r1_HEALTH_004__JOB_HEALTH_004.md |
+| oc_ENG_004 | OC 1-row test ENG_004 | completed (output exists) | step-5-preview-free | C:\Users\wigmore\trading_stack\_oc_jobs\new_tests4oc\RESULT_ENG_004.csv | ops/backlog/prompts/oc_ENG_004__OC_ENG_004.md |
+| oc_ENG_007 | OC 1-row test ENG_007 | completed (output exists) | step-5-preview-free | C:\Users\wigmore\trading_stack\_oc_jobs\new_tests4oc\RESULT_ENG_007.csv | ops/backlog/prompts/oc_ENG_007__OC_ENG_007.md |
+| oc_ENG_013 | OC 1-row test ENG_013 | completed (output exists) | longcat-2.5-preview-free | C:\Users\wigmore\trading_stack\_oc_jobs\new_tests4oc\RESULT_ENG_013.csv | ops/backlog/prompts/oc_ENG_013__OC_ENG_013.md |
+| oc_ENG_014 | OC 1-row test ENG_014 | give_up | space-bunny-free | C:\Users\wigmore\trading_stack\_oc_jobs\new_tests4oc\RESULT_ENG_014.csv | ops/backlog/prompts/oc_ENG_014__OC_ENG_014.md |
+| oc_ENG_INV_10 | OC 1-row test ENG_INV_10 | give_up | nemotron-3-ultra-free | C:\Users\wigmore\trading_stack\_oc_jobs\new_tests4oc\RESULT_ENG_INV_10.csv | ops/backlog/prompts/oc_ENG_INV_10__OC_ENG_INV_10.md |
+| oc_ENG_INV_13 | OC 1-row test ENG_INV_13 | completed (output exists) | step-5-preview-free | C:\Users\wigmore\trading_stack\_oc_jobs\new_tests4oc\RESULT_ENG_INV_13.csv | ops/backlog/prompts/oc_ENG_INV_13__OC_ENG_INV_13.md |
+| oc_ENG_INV_14 | OC 1-row test ENG_INV_14 | completed (output exists) | nemotron-3-ultra-free | C:\Users\wigmore\trading_stack\_oc_jobs\new_tests4oc\RESULT_ENG_INV_14.csv | ops/backlog/prompts/oc_ENG_INV_14__OC_ENG_INV_14.md |
+| oc_ENG_SEM_B1 | OC 1-row test ENG_SEM_B1 | completed (output exists) | longcat-2.5-preview-free | C:\Users\wigmore\trading_stack\_oc_jobs\new_tests4oc\RESULT_ENG_SEM_B1.csv | ops/backlog/prompts/oc_ENG_SEM_B1__OC_ENG_SEM_B1.md |
+| oc_ENG_SEM_B2 | OC 1-row test ENG_SEM_B2 | completed (output exists) | step-5-preview-free | C:\Users\wigmore\trading_stack\_oc_jobs\new_tests4oc\RESULT_ENG_SEM_B2.csv | ops/backlog/prompts/oc_ENG_SEM_B2__OC_ENG_SEM_B2.md |
+| oc_ENG_SEM_B4 | OC 1-row test ENG_SEM_B4 | completed (output exists) | nemotron-3-ultra-free | C:\Users\wigmore\trading_stack\_oc_jobs\new_tests4oc\RESULT_ENG_SEM_B4.csv | ops/backlog/prompts/oc_ENG_SEM_B4__OC_ENG_SEM_B4.md |
+| oc_HEALTH_001 | OC 1-row test HEALTH_001 | completed (output exists) | longcat-2.5-preview-free | C:\Users\wigmore\trading_stack\_oc_jobs\new_tests4oc\RESULT_HEALTH_001.csv | ops/backlog/prompts/oc_HEALTH_001__OC_HEALTH_001.md |
+| oc_HEALTH_002 | OC 1-row test HEALTH_002 | completed (output exists) | longcat-2.5-preview-free | C:\Users\wigmore\trading_stack\_oc_jobs\new_tests4oc\RESULT_HEALTH_002.csv | ops/backlog/prompts/oc_HEALTH_002__OC_HEALTH_002.md |
+| oc_HEALTH_003 | OC 1-row test HEALTH_003 | completed (output exists) | nemotron-3.5-lightning-free | C:\Users\wigmore\trading_stack\_oc_jobs\new_tests4oc\RESULT_HEALTH_003.csv | ops/backlog/prompts/oc_HEALTH_003__OC_HEALTH_003.md |
+| oc_HEALTH_004 | OC 1-row test HEALTH_004 | completed (output exists) | longcat-2.5-preview-free | C:\Users\wigmore\trading_stack\_oc_jobs\new_tests4oc\RESULT_HEALTH_004.csv | ops/backlog/prompts/oc_HEALTH_004__OC_HEALTH_004.md |
+| oc_LIFE_009 | OC 1-row test LIFE_009 | completed (output exists) | nemotron-3.5-lightning-free | C:\Users\wigmore\trading_stack\_oc_jobs\new_tests4oc\RESULT_LIFE_009.csv | ops/backlog/prompts/oc_LIFE_009__OC_LIFE_009.md |
+| oc_ORD_008 | OC 1-row test ORD_008 | completed (output exists) | nemotron-3.5-lightning-free | C:\Users\wigmore\trading_stack\_oc_jobs\new_tests4oc\RESULT_ORD_008.csv | ops/backlog/prompts/oc_ORD_008__OC_ORD_008.md |
+| oc_SET_004 | OC 1-row test SET_004 | completed (output exists) | longcat-2.5-preview-free | C:\Users\wigmore\trading_stack\_oc_jobs\new_tests4oc\RESULT_SET_004.csv | ops/backlog/prompts/oc_SET_004__OC_SET_004.md |
+| oc_UI_WALLET_001 | OC 1-row test UI_WALLET_001 | give_up | longcat-2.5-preview-free | C:\Users\wigmore\trading_stack\_oc_jobs\new_tests4oc\RESULT_UI_WALLET_001.csv | ops/backlog/prompts/oc_UI_WALLET_001__OC_UI_WALLET_001.md |
+| oc_UI_WALLET_003 | OC 1-row test UI_WALLET_003 | completed (output exists) | nemotron-3.5-lightning-free | C:\Users\wigmore\trading_stack\_oc_jobs\new_tests4oc\RESULT_UI_WALLET_003.csv | ops/backlog/prompts/oc_UI_WALLET_003__OC_UI_WALLET_003.md |
+| oc_UI_WALLET_004 | OC 1-row test UI_WALLET_004 | completed (output exists) | nemotron-3.5-lightning-free | C:\Users\wigmore\trading_stack\_oc_jobs\new_tests4oc\RESULT_UI_WALLET_004.csv | ops/backlog/prompts/oc_UI_WALLET_004__OC_UI_WALLET_004.md |
