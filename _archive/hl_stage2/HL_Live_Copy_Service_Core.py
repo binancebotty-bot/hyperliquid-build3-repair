@@ -3029,9 +3029,37 @@ class ConfigManager:
 
     def stream_wallets(self) -> List[str]:
         """Wallets the leader stream follows: active ones first, so an OFF wallet never takes the
-        slot of a live one. More active wallets than slots is refused, never silently dropped."""
+        slot of a live one. More active wallets than slots is refused, never silently dropped.
+
+        With HL_LIVE_WS_RANK_CSV set the candidates are first ordered by 24 h fill volume, so the
+        scarce WS slots go to the busiest leaders instead of to config-dict order (active-first
+        remains the tie-break, never the sort key). Every active leader is still REST-polled
+        (see LiveCopyCore.poll_wallets), so a wallet outranked out of the feed loses nothing."""
         active = self.active_wallets()
-        return (active + [w for w in self.wallets() if w not in active])[:MAX_WALLETS]
+        cands = active + [w for w in self.wallets() if w not in active]
+        return self._by_fill_rank(cands)[:MAX_WALLETS]
+
+    def _by_fill_rank(self, cands: List[str]) -> List[str]:
+        """cands ordered by fills_24h DESC from the CSV named by HL_LIVE_WS_RANK_CSV. Env unset, file
+        unreadable, or no usable row -> cands unchanged, byte-identical to the previous order. A wallet
+        with no row keeps today's position relative to the other unranked ones (sorts last, ties in
+        input order). Malformed rows are skipped, never fatal."""
+        path = str(os.getenv("HL_LIVE_WS_RANK_CSV", "") or "").strip()
+        if not path:
+            return cands
+        fills: Dict[str, float] = {}
+        try:
+            with open(path, "r", newline="", encoding="utf-8-sig") as fh:
+                for row in csv.DictReader(fh):
+                    w = normalise_wallet(row.get("wallet"))
+                    if is_valid_wallet(w):
+                        fills[w] = max(fills.get(w, 0.0), fnum(row.get("fills_24h"), 0.0))
+        except (OSError, ValueError, csv.Error):
+            return cands
+        if not fills:
+            return cands
+        pos = {w: i for i, w in enumerate(cands)}
+        return sorted(cands, key=lambda w: (-fills.get(w, -1.0), pos[w]))
 
     def max_wallet_exposure(self, wallet: str) -> float:
         wc = self.wallet_cfg(wallet)
@@ -10401,6 +10429,17 @@ class LiveCopyCore:
         self._converge_thread = threading.Thread(target=loop, daemon=True, name="HLCoreConverge")
         self._converge_thread.start()
 
+    def poll_wallets(self) -> List[str]:
+        """Leaders the REST backstop reads this cycle. Default (HL_LIVE_POLL_ALL_ACTIVE, on) is every
+        active leader whether or not it holds one of the MAX_WALLETS WS slots, so no leader fill is
+        lost when the feed follows only the busiest wallets. Set to 0 to poll only self.wallets.
+        This never widens what is copied: LEADER_POLL_OVERLAP_MS plus the per-wallet cursor and the
+        _already_handled dedupe make a fill seen by both the feed and the poll run exactly once, and
+        leader_poll_interval_sec() already relaxes the cadence when every leader is feed-acked."""
+        return (self.cfg.active_wallets()
+                if bval(os.getenv("HL_LIVE_POLL_ALL_ACTIVE"), True)
+                else list(self.wallets))
+
     def run_cycle(self, use_source_csv: bool = True, poll_live: bool = False, poll_copy: bool = False, reconcile_exchange: bool = False) -> CycleSummary:
         # HOT_CONFIG_RELOAD_WINAGENT: reload live_config/wallet_gate each cycle so UI/control changes affect a running core.
         try:
@@ -10520,7 +10559,7 @@ class LiveCopyCore:
                 # (was 5 min of thousands of already-handled fills per busy wallet per cycle).
                 _catchup_ms = max(POLL_WINDOW_MS, int(fnum(os.getenv("HL_LIVE_POLL_MAX_CATCHUP_MS"), 7 * 86400000)))
                 _jobs: List[Tuple[str, int]] = []
-                for w in self.wallets:
+                for w in self.poll_wallets():
                     # Skip wallets that are turned off — no fills to copy, avoids wasteful network calls.
                     if self.cfg.wallet_mode(w) == "OFF":
                         continue
