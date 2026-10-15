@@ -41,6 +41,9 @@ from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple
 from urllib import request as _urlrequest
 
+# audit rows can carry fields over the 128 KB default (Q22: classifier crashed, MISSING never computed)
+csv.field_size_limit(2**31 - 1)
+
 EXCHANGE_INFO_URL = "https://api.hyperliquid.xyz/info"  # mainnet: leaders are read-only mainnet wallets
 RECON_PREFIXES = ("MARGIN_MODE_SET", "LIQ_PARITY_")
 # "LIVE/CLO only": LIVE, LIVE_*, CLO (close-only) and CLOSE_ONLY* all count as live-exposed.
