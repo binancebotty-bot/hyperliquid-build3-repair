@@ -15,6 +15,9 @@ import sys
 from pathlib import Path
 from typing import Dict, Iterable, List
 
+# audit rows can carry fields over the 128 KB default (Q22: classifier crashed, MISSING never computed)
+csv.field_size_limit(2**31 - 1)
+
 _SENT = {"ORDER_FILLED", "ORDER_PARTIAL", "ORDER_RESTING", "FILLED", "SENT", "REAL_IOC_FILLED"}
 
 
