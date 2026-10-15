@@ -2818,6 +2818,7 @@ class Intent:
     coin_net_before: float
     reduce_only_intended: bool
     reduce_only_sent_planned: bool
+    exchange_position_after: float = 0.0
     created_at_ms: int = 0
     notes: str = ""
 
@@ -3257,6 +3258,12 @@ class ManualLedger:
         before_abs = abs(before)
         delta = self.signed_delta(side, size)
         after = before + delta
+        # RESOLV fix: when the exchange reported an authoritative position_after
+        # (from send_attempts), use it instead of the locally-computed value.
+        # Rounding/step-size differences between fill size and exchange fill
+        # caused the ledger to drift (e.g. RESOLV: ledger -661 vs exchange -662).
+        if intent.exchange_position_after != 0.0:
+            after = intent.exchange_position_after
         if abs(after) <= POSITION_EPSILON:
             after = 0.0
         old_avg = fnum(sleeve.get("avg_entry_px"), 0.0)
@@ -7770,6 +7777,7 @@ class CopyFillMatcher:
             ts_ms = int(sent_row.get("leader_fill_timestamp_ms") or sent_row.get("created_at_ms") or utc_now_ms())
             wallet_pos_before = float(sent_row.get("wallet_position_before") or 0.0)
             coin_net_before = float(sent_row.get("coin_net_before") or 0.0)
+            exchange_pos_after = float(sent_row.get("position_after") or 0.0)
             delta = ManualLedger.signed_delta(side, 1.0)
             terminal = str(sent_row.get("terminal_state") or "").upper()
             reduce_only = (
@@ -7804,6 +7812,7 @@ class CopyFillMatcher:
             position_direction_before="",
             wallet_position_before=wallet_pos_before,
             coin_net_before=coin_net_before,
+            exchange_position_after=exchange_pos_after,
             reduce_only_intended=reduce_only,
             reduce_only_sent_planned=reduce_only,
             notes="lifecycle=EXIT; recovered_from_send_attempt" if reduce_only else "recovered_from_send_attempt_oid_match",
@@ -8628,6 +8637,39 @@ class ExchangeReconciler:
             )
             emitted += 1
         return emitted
+
+    def report_unledgered_positions(self, exchange_positions: Dict[str, float]) -> Dict[str, Any]:
+        """Read-only reconciliation: report exchange positions the ledger lacks.
+        
+        Returns a dict with 'unledgered' (coins where exchange has a position
+        but the ledger has zero or no entry) and 'ledger_only' (coins where the
+        ledger has a position but the exchange does not). Never writes to
+        live files; purely informational so PENGU-style leftovers are annotated
+        not adopted blindly.
+        """
+        manual = {
+            str(coin).upper(): fnum(v.get("signed_size"), 0.0)
+            for coin, v in (self.ledger.data.get("by_coin_net") or {}).items()
+            if isinstance(v, dict)
+        }
+        unledgered = {}
+        ledger_only = {}
+        for coin, ex_size in sorted(exchange_positions.items()):
+            coin_u = str(coin).upper()
+            ex_net = self._exchange_signed_size(ex_size)
+            if abs(ex_net) <= POSITION_EPSILON:
+                continue
+            ledger_net = fnum(manual.get(coin_u), 0.0)
+            if abs(ledger_net) <= POSITION_EPSILON:
+                unledgered[coin_u] = {"exchange_net": ex_net, "ledger_net": ledger_net}
+        for coin_u, ledger_net in sorted(manual.items()):
+            if abs(ledger_net) <= POSITION_EPSILON:
+                continue
+            ex_net = fnum(exchange_positions.get(coin_u, exchange_positions.get(coin_u.lower(), 0.0)), 0.0)
+            ex_net = self._exchange_signed_size(ex_net) if ex_net else 0.0
+            if abs(ex_net) <= POSITION_EPSILON:
+                ledger_only[coin_u] = {"ledger_net": ledger_net, "exchange_net": ex_net}
+        return {"unledgered": unledgered, "ledger_only": ledger_only}
 
     def compare_snapshot(self, snapshot: Optional[Dict[str, Any]] = None) -> str:
         if not snapshot:
