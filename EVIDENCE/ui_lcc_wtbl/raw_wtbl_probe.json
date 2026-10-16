@@ -1,0 +1,954 @@
+{
+  "register_ref": "main:certification/certification_matrix.json",
+  "register_commit": "b142cf88d389e791160f691aac3d936852b99975",
+  "panel_span": [
+    5436,
+    6016
+  ],
+  "panel_sha256": "174bc8214e2e77555d8d811093e7174030b74f85395168442b976c0853c36347",
+  "src_sha256": "7468ab5188750617b090b56c3e719d73e91f5b4241f4782382ccac1a22989276",
+  "src_bytes": 375250,
+  "tested_at_utc": "2026-10-16T23:29:49.550925Z",
+  "variants": {
+    "real": {
+      "rows": 15,
+      "wallets": [
+        {
+          "wallet": "0x010461c14e146ac35fe42271bdc1134ee31c703a",
+          "cells": [
+            "0x010461c1...1c703a\nTRACKED",
+            "LIVE\nCOPYING\nSHARED_WS_OK\nHOT10 shared socket active",
+            "R: n/a\nU: n/a\nNet: n/a\nPartial record",
+            "Total: $0.65\nAvg: $0\nAvg bps: 3.3\nWorst bps: 160.3",
+            "958 filled / 0 exits\n711 recent rejects\n46 recent blocks",
+            "Exposure: $1,991.14\nOpen pos: 94\nDD: n/a\nMaxDD: n/a",
+            "SAND BUY @\n",
+            "LIVE\nCLO\nOFF\nprop\nfixed\nF\nN\nSave\nCLO\nOFF\nArchive"
+          ],
+          "modeVal": "LIVE",
+          "copyVal": "fixed",
+          "fixed": "12",
+          "norm": "100",
+          "acts": [
+            "save",
+            "clo",
+            "off",
+            "archive"
+          ]
+        },
+        {
+          "wallet": "0x1b232b41b0e75550c59288b99874e4a8142fbe21",
+          "cells": [
+            "0x1b232b41...2fbe21\nTRACKED",
+            "LIVE\nCOPYING\nSHARED_WS_OK\nHOT10 shared socket active",
+            "R: n/a\nU: $0\nNet: n/a\nNo PnL yet",
+            "Total: n/a\nAvg: n/a\nAvg bps: n/a\nWorst bps: n/a",
+            "0 filled / 0 exits\n0 recent rejects\n0 recent blocks",
+            "Exposure: $0\nOpen pos: 0\nDD: n/a\nMaxDD: n/a",
+            "none yet",
+            "LIVE\nCLO\nOFF\nprop\nfixed\nF\nN\nSave\nCLO\nOFF\nArchive"
+          ],
+          "modeVal": "LIVE",
+          "copyVal": "fixed",
+          "fixed": "12",
+          "norm": "100",
+          "acts": [
+            "save",
+            "clo",
+            "off",
+            "archive"
+          ]
+        },
+        {
+          "wallet": "0x1f4ab7e9acebb8b591e74b81e34bebe8be9bc934",
+          "cells": [
+            "0x1f4ab7e9...9bc934\nTRACKED",
+            "OFF\nDISABLED\nCOPY DISABLED",
+            "R: $-0.72\nU: $0\nNet: $-0.9\nFrom engine ledger",
+            "Total: n/a\nAvg: n/a\nAvg bps: n/a\nWorst bps: n/a",
+            "0 filled / 0 exits\n0 recent rejects\n0 recent blocks",
+            "Exposure: $0\nOpen pos: 0\nDD: $-1\nMaxDD: $-1",
+            "none yet",
+            "LIVE\nCLO\nOFF\nprop\nfixed\nF\nN\nSave\nCLO\nOFF\nArchive"
+          ],
+          "modeVal": "OFF",
+          "copyVal": "fixed",
+          "fixed": "12",
+          "norm": "100",
+          "acts": [
+            "save",
+            "clo",
+            "off",
+            "archive"
+          ]
+        },
+        {
+          "wallet": "0x31ca8395cf837de08b24da3f660e77761dfb974b",
+          "cells": [
+            "0x31ca8395...fb974b\nTRACKED",
+            "LIVE\nCOPYING\nSHARED_WS_OK\nHOT10 shared socket active",
+            "R: n/a\nU: n/a\nNet: n/a\nPartial record",
+            "Total: $1.29\nAvg: $0\nAvg bps: 5.2\nWorst bps: 73.8",
+            "943 filled / 0 exits\n811 recent rejects\n34 recent blocks",
+            "Exposure: $1,969.63\nOpen pos: 92\nDD: n/a\nMaxDD: n/a",
+            "HEMI SELL @\n",
+            "LIVE\nCLO\nOFF\nprop\nfixed\nF\nN\nSave\nCLO\nOFF\nArchive"
+          ],
+          "modeVal": "LIVE",
+          "copyVal": "fixed",
+          "fixed": "12",
+          "norm": "100",
+          "acts": [
+            "save",
+            "clo",
+            "off",
+            "archive"
+          ]
+        },
+        {
+          "wallet": "0x35519de6193f0e6581032d87236988629e35a281",
+          "cells": [
+            "0x35519de6...35a281\nTRACKED",
+            "OFF\nDISABLED\nCOPY DISABLED",
+            "R: n/a\nU: $0\nNet: n/a\nNo PnL yet",
+            "Total: n/a\nAvg: n/a\nAvg bps: n/a\nWorst bps: n/a",
+            "0 filled / 0 exits\n0 recent rejects\n0 recent blocks",
+            "Exposure: $0\nOpen pos: 0\nDD: n/a\nMaxDD: n/a",
+            "none yet",
+            "LIVE\nCLO\nOFF\nprop\nfixed\nF\nN\nSave\nCLO\nOFF\nArchive"
+          ],
+          "modeVal": "OFF",
+          "copyVal": "fixed",
+          "fixed": "12",
+          "norm": "100",
+          "acts": [
+            "save",
+            "clo",
+            "off",
+            "archive"
+          ]
+        },
+        {
+          "wallet": "0x6ba889db7f923622d3548f621ecc2054b80c1817",
+          "cells": [
+            "0x6ba889db...0c1817\nTRACKED",
+            "LIVE\nCOPYING\nSHARED_WS_OK\nHOT10 shared socket active",
+            "R: n/a\nU: n/a\nNet: n/a\nPartial record",
+            "Total: $0.17\nAvg: $0\nAvg bps: -4.8\nWorst bps: 57.2",
+            "66 filled / 0 exits\n106 recent rejects\n3 recent blocks",
+            "Exposure: $475.96\nOpen pos: 15\nDD: n/a\nMaxDD: n/a",
+            "ARB BUY @\n",
+            "LIVE\nCLO\nOFF\nprop\nfixed\nF\nN\nSave\nCLO\nOFF\nArchive"
+          ],
+          "modeVal": "LIVE",
+          "copyVal": "fixed",
+          "fixed": "12",
+          "norm": "100",
+          "acts": [
+            "save",
+            "clo",
+            "off",
+            "archive"
+          ]
+        },
+        {
+          "wallet": "0x7019197d2b2ae7b44eee12a76015eb1fe94abd36",
+          "cells": [
+            "0x7019197d...4abd36\nTRACKED",
+            "LIVE\nCOPYING\nSHARED_WS_OK\nHOT10 shared socket active",
+            "R: n/a\nU: n/a\nNet: n/a\nPartial record",
+            "Total: $-0.56\nAvg: $-0.02\nAvg bps: -11.6\nWorst bps: 87.6",
+            "49 filled / 0 exits\n92 recent rejects\n4 recent blocks",
+            "Exposure: $933.22\nOpen pos: 54\nDD: n/a\nMaxDD: n/a",
+            "ZK BUY @\n",
+            "LIVE\nCLO\nOFF\nprop\nfixed\nF\nN\nSave\nCLO\nOFF\nArchive"
+          ],
+          "modeVal": "LIVE",
+          "copyVal": "fixed",
+          "fixed": "12",
+          "norm": "100",
+          "acts": [
+            "save",
+            "clo",
+            "off",
+            "archive"
+          ]
+        },
+        {
+          "wallet": "0x7717a7a245d9f950e586822b8c9b46863ed7bd7e",
+          "cells": [
+            "0x7717a7a2...d7bd7e\nTRACKED",
+            "LIVE\nCOPYING\nSHARED_WS_OK\nHOT10 shared socket active",
+            "R: n/a\nU: n/a\nNet: n/a\nPartial record",
+            "Total: $0.69\nAvg: $0.04\nAvg bps: 26.7\nWorst bps: 80.9",
+            "58 filled / 0 exits\n296 recent rejects\n3 recent blocks",
+            "Exposure: $1,769.73\nOpen pos: 65\nDD: n/a\nMaxDD: n/a",
+            "BTC SELL @\n",
+            "LIVE\nCLO\nOFF\nprop\nfixed\nF\nN\nSave\nCLO\nOFF\nArchive"
+          ],
+          "modeVal": "LIVE",
+          "copyVal": "fixed",
+          "fixed": "12",
+          "norm": "100",
+          "acts": [
+            "save",
+            "clo",
+            "off",
+            "archive"
+          ]
+        },
+        {
+          "wallet": "0x7bc5239180bea2255f4dd243d79481d39adee41e",
+          "cells": [
+            "0x7bc52391...dee41e\nTRACKED",
+            "OFF\nDISABLED\nCOPY DISABLED",
+            "R: $-0.32\nU: $0\nNet: $-0.4\nFrom engine ledger",
+            "Total: n/a\nAvg: n/a\nAvg bps: n/a\nWorst bps: n/a",
+            "0 filled / 0 exits\n0 recent rejects\n0 recent blocks",
+            "Exposure: $0\nOpen pos: 0\nDD: $-0.71\nMaxDD: $-0.71",
+            "none yet",
+            "LIVE\nCLO\nOFF\nprop\nfixed\nF\nN\nSave\nCLO\nOFF\nArchive"
+          ],
+          "modeVal": "OFF",
+          "copyVal": "fixed",
+          "fixed": "12",
+          "norm": "100",
+          "acts": [
+            "save",
+            "clo",
+            "off",
+            "archive"
+          ]
+        },
+        {
+          "wallet": "0x833b99b27dac651d02080f5e220e929df891db06",
+          "cells": [
+            "0x833b99b2...91db06\nTRACKED",
+            "OFF\nDISABLED\nCOPY DISABLED",
+            "R: n/a\nU: $0\nNet: n/a\nNo PnL yet",
+            "Total: n/a\nAvg: n/a\nAvg bps: n/a\nWorst bps: n/a",
+            "0 filled / 0 exits\n0 recent rejects\n0 recent blocks",
+            "Exposure: $0\nOpen pos: 0\nDD: n/a\nMaxDD: n/a",
+            "none yet",
+            "LIVE\nCLO\nOFF\nprop\nfixed\nF\nN\nSave\nCLO\nOFF\nArchive"
+          ],
+          "modeVal": "OFF",
+          "copyVal": "fixed",
+          "fixed": "12",
+          "norm": "100",
+          "acts": [
+            "save",
+            "clo",
+            "off",
+            "archive"
+          ]
+        },
+        {
+          "wallet": "0x936cf4fb95c30ce83f658b5bbb247e4bb381bb0f",
+          "cells": [
+            "0x936cf4fb...81bb0f\nTRACKED",
+            "LIVE\nCOPYING\nSHARED_WS_OK\nHOT10 shared socket active",
+            "R: $-12.94\nU: $-4.04\nNet: $-28.88\nFrom engine ledger",
+            "Total: $0.45\nAvg: $0.03\nAvg bps: 47.8\nWorst bps: 76.5",
+            "29 filled / 0 exits\n108 recent rejects\n2 recent blocks",
+            "Exposure: $869.54\nOpen pos: 10\nDD: $-30.93\nMaxDD: $-30.93",
+            "AERO SELL @\n",
+            "LIVE\nCLO\nOFF\nprop\nfixed\nF\nN\nSave\nCLO\nOFF\nArchive"
+          ],
+          "modeVal": "LIVE",
+          "copyVal": "fixed",
+          "fixed": "12",
+          "norm": "100",
+          "acts": [
+            "save",
+            "clo",
+            "off",
+            "archive"
+          ]
+        },
+        {
+          "wallet": "0xc179e03922afe8fa9533d3f896338b9fb87ce0c8",
+          "cells": [
+            "0xc179e039...7ce0c8\nTRACKED",
+            "LIVE\nCOPYING\nSHARED_WS_OK\nHOT10 shared socket active",
+            "R: $-12.82\nU: n/a\nNet: n/a\nFrom engine ledger",
+            "Total: $0.55\nAvg: $0.08\nAvg bps: 46.4\nWorst bps: 51.9",
+            "11 filled / 0 exits\n30 recent rejects\n0 recent blocks",
+            "Exposure: $162.53\nOpen pos: 3\nDD: $-23.26\nMaxDD: $-23.26",
+            "BTC SELL @\n",
+            "LIVE\nCLO\nOFF\nprop\nfixed\nF\nN\nSave\nCLO\nOFF\nArchive"
+          ],
+          "modeVal": "LIVE",
+          "copyVal": "fixed",
+          "fixed": "12",
+          "norm": "100",
+          "acts": [
+            "save",
+            "clo",
+            "off",
+            "archive"
+          ]
+        },
+        {
+          "wallet": "0xcbe834386b8ec9d8c50eaad48dacb83e8b42ddfc",
+          "cells": [
+            "0xcbe83438...42ddfc\nTRACKED",
+            "OFF\nDISABLED\nCOPY DISABLED",
+            "R: $-1.11\nU: $0\nNet: $-1.2\nFrom engine ledger",
+            "Total: n/a\nAvg: n/a\nAvg bps: n/a\nWorst bps: n/a",
+            "0 filled / 0 exits\n0 recent rejects\n0 recent blocks",
+            "Exposure: $0\nOpen pos: 0\nDD: $-1.24\nMaxDD: $-1.85",
+            "none yet",
+            "LIVE\nCLO\nOFF\nprop\nfixed\nF\nN\nSave\nCLO\nOFF\nArchive"
+          ],
+          "modeVal": "OFF",
+          "copyVal": "fixed",
+          "fixed": "12",
+          "norm": "100",
+          "acts": [
+            "save",
+            "clo",
+            "off",
+            "archive"
+          ]
+        },
+        {
+          "wallet": "0xd4c1f7e8d876c4749228d515473d36f919583d1d",
+          "cells": [
+            "0xd4c1f7e8...583d1d\nTRACKED",
+            "LIVE\nCOPYING\nSHARED_WS_OK\nHOT10 shared socket active",
+            "R: $-4.6\nU: $-1.3\nNet: $-9.65\nFrom engine ledger",
+            "Total: $0.12\nAvg: $0.01\nAvg bps: 8.3\nWorst bps: 95.3",
+            "19 filled / 0 exits\n32 recent rejects\n2 recent blocks",
+            "Exposure: $799.62\nOpen pos: 13\nDD: $-19.5\nMaxDD: $-20.08",
+            "WLD SELL @\n",
+            "LIVE\nCLO\nOFF\nprop\nfixed\nF\nN\nSave\nCLO\nOFF\nArchive"
+          ],
+          "modeVal": "LIVE",
+          "copyVal": "fixed",
+          "fixed": "12",
+          "norm": "100",
+          "acts": [
+            "save",
+            "clo",
+            "off",
+            "archive"
+          ]
+        },
+        {
+          "wallet": "0xf5d81a135f756ca16544e53c20fc20643ec3ad53",
+          "cells": [
+            "0xf5d81a13...c3ad53\nTRACKED",
+            "LIVE\nCOPYING\nSHARED_WS_OK\nHOT10 shared socket active",
+            "R: n/a\nU: n/a\nNet: n/a\nPartial record",
+            "Total: $-0.18\nAvg: $-0\nAvg bps: 7.7\nWorst bps: 96.2",
+            "146 filled / 0 exits\n434 recent rejects\n7 recent blocks",
+            "Exposure: $926.99\nOpen pos: 14\nDD: n/a\nMaxDD: n/a",
+            "ETH SELL @\n",
+            "LIVE\nCLO\nOFF\nprop\nfixed\nF\nN\nSave\nCLO\nOFF\nArchive"
+          ],
+          "modeVal": "LIVE",
+          "copyVal": "fixed",
+          "fixed": "12",
+          "norm": "100",
+          "acts": [
+            "save",
+            "clo",
+            "off",
+            "archive"
+          ]
+        }
+      ],
+      "status": "Loaded",
+      "posts_on_load": [],
+      "detail": {
+        "present": true,
+        "heads": [
+          "A — Live Performance",
+          "B — Open Positions (94)",
+          "C — Lead vs Copy / Friction",
+          "D — Execution Audit",
+          "E — Rejects & Blocks"
+        ],
+        "text": "A — Live Performance Realized: n/a Unrealized: n/a Net: n/a Exposure: $1,991.14 DD: n/a MaxDD: n/a PnL status: Partial record Attribution: ENGINE_LEDGER_SLEEVES_PARTIAL Confirmed realized match: $-0.67 (EXACT_ID_MATCHED_EXCHANGE_USER_FILLS) Cumulative rejects: 711; cumulative local blocks: 46; queued previews / would-send records: 0 AXS: sleeve closed without a price (LEDGER_REPAIR_CLOSE); AZTEC: sleeve closed without a price (LEDGER_REPAIR_CLOSE); HYPER: sleeve closed without a price (LEDGER_REPAIR_CLOSE); INJ: sleeve closed without a price (LEDGER_REPAIR_CLOSE); JUP: sleeve closed without a price (LEDGER_REPAIR_CLOSE); LDO: sleeve closed without a price (LEDGER_REPAIR_CLOSE); ME: sleeve closed without a price (LEDGER_REPAIR_CLOSE); MORPHO: sleeve closed without a price (LEDGER_REPAIR_CLOSE); SAND: sleeve closed without a price (LEDGER_REPAIR_CLOSE); SPX: sleeve closed without a price (LEDGER_REPAIR_CLOSE); STX: sleeve closed without a price (LEDGER_REPAIR_CLOSE); SUPER: sleeve closed without a price (LEDGER_REPAIR_CLOSE); SUSHI: sleeve closed without a price (LEDGER_REPAIR_CLOSE); AR SIGN_CONFLICT_PENDING_RECONCILIATION; SNX OWNED_LEDGER_UNSUPPORTED_BY_EXCHANGE B — Open Positions (94) COIN SIDE SIZE ENTRY PX MARK PX UNREALIZED PNL EXPOSURE EXCHANGE MATCH 0G SHORT -3 0.24681 0.24697499999999997 $-0 $0.74 SHARED 2Z SHORT -135 0.032936613070601674 0.032973 $-0 $4.45 SHARED ACE SHORT -52.5 0.16672706547671648 0.1665 $0.01 $8.74 SHARED ADA LONG 66 0.22664 0.2266 $-0 $14.96 OWNED_FULLY_SUPPORTED AIXBT LONG 651 0.019166837902256234 0.019181 $0.01 $12.49 SHARED ALGO SHORT -263 0.11594208406304728 0.115565 $0.1 $30.39 SHARED ANIME LONG 6769 0.00292759477027626 0.002927 $-0 $19.81 SHARED APE LONG 215 0.15039903683475087 0.15106 $0.14 $32.48 SHARED APT LONG 11.249999999999998 0.8397867118299653 0.8416999999999999 $0.02 $9.47 SHARED AR SHORT -6.86 3.903039637096504 3.9274999999999998 n/a $26.94 SIGN_CONFLICT_PENDING_RECONCILIATION ARB LONG 2.100000000000017 0.19192281708173298 0.19252999999999998 $0 $0.4 SHARED AVNT LONG 77 0.11638323308270677 0.11638 $-0 $8.96 SHARED AXS SHORT -11.3 1.0538 1.05485 $-0.01 $11.92 SHARED AZTEC SHORT -595 0.02013 0.020236 $-0.06 $12.04 SHARED BABY LONG 990 0.012129 0.012145000000000001 $0.02 $12.02 SHARED BANANA SHORT -3.3 3.6028 n/a n/a $11.89 SHARED BERA LONG 148 0.18584896621621622 0.18682 $0.14 $27.65 SHARED BIGTIME SHORT -2859 0.007214411833889136 0.007218 $-0.01 $20.64 SHARED BLUR SHORT -851 0.010712998433004042 0.010645 $0.06 $9.06 SHARED BRETT SHORT -11796 0.004806912191731088 0.004825 $-0.21 $56.92 SHARED CAKE SHORT -6.999999999999998 2.178425295644149 2.18212 $-0.03 $15.27 SHARED CASHCAT LONG 202 0.11038638613861386 0.11052999999999999 $0.03 $22.33 SHARED CC SHORT -954 0.10362056177165362 0.10370000000000001 $-0.08 $98.93 SHARED CELO SHORT -138 0.085749 0.085745 $0 $11.83 SHARED CHIP SHORT -4 0.04586925 0.045964000000000005 $-0 $0.18 SHARED DOGE SHORT -338 0.07991310431671594 0.080311 $-0.13 $27.15 SHARED DYDX SHORT -0.9 0.12387 0.12382 $0 $0.11 SHARED DYM SHORT -4605 0.018229971335504885 0.018260000000000002 $-0.14 $84.09 SHARED ENS LONG 4.42 5.693676447144285 5.6939 $0 $25.17 OWNED_FULLY_SUPPORTED FARTCOIN LONG 205.6 0.15323495288465033 0.15334 $0.02 $31.53 SHARED FET LONG 111 0.1999181081081081 0.19899999999999998 $-0.1 $22.09 SHARED FIL SHORT -5.5 1.1307527272727274 1.1446999999999998 $-0.08 $6.3 SHARED FOGO LONG 1058 0.004256087901701324 0.004256 $-0 $4.5 SHARED GALA SHORT -5981 0.002025 0.002028 $-0."
+      }
+    },
+    "nullcfg": {
+      "null_wallet": "0x010461c14e146ac35fe42271bdc1134ee31c703a",
+      "wallets": [
+        {
+          "wallet": "0x010461c14e146ac35fe42271bdc1134ee31c703a",
+          "cells": [
+            "0x010461c1...1c703a\nTRACKED",
+            "LIVE\nCOPYING\nSHARED_WS_OK\nHOT10 shared socket active",
+            "R: n/a\nU: n/a\nNet: n/a\nPartial record",
+            "Total: $0.65\nAvg: $0\nAvg bps: 3.3\nWorst bps: 160.3",
+            "958 filled / 0 exits\n711 recent rejects\n46 recent blocks",
+            "Exposure: $1,991.14\nOpen pos: 94\nDD: n/a\nMaxDD: n/a",
+            "SAND BUY @\n",
+            "LIVE\nCLO\nOFF\nprop\nfixed\nF\nN\nSave\nCLO\nOFF\nArchive"
+          ],
+          "modeVal": "LIVE",
+          "copyVal": "fixed",
+          "fixed": "10",
+          "norm": "100",
+          "acts": [
+            "save",
+            "clo",
+            "off",
+            "archive"
+          ]
+        },
+        {
+          "wallet": "0x1b232b41b0e75550c59288b99874e4a8142fbe21",
+          "cells": [
+            "0x1b232b41...2fbe21\nTRACKED",
+            "LIVE\nCOPYING\nSHARED_WS_OK\nHOT10 shared socket active",
+            "R: n/a\nU: $0\nNet: n/a\nNo PnL yet",
+            "Total: n/a\nAvg: n/a\nAvg bps: n/a\nWorst bps: n/a",
+            "0 filled / 0 exits\n0 recent rejects\n0 recent blocks",
+            "Exposure: $0\nOpen pos: 0\nDD: n/a\nMaxDD: n/a",
+            "none yet",
+            "LIVE\nCLO\nOFF\nprop\nfixed\nF\nN\nSave\nCLO\nOFF\nArchive"
+          ],
+          "modeVal": "LIVE",
+          "copyVal": "fixed",
+          "fixed": "12",
+          "norm": "100",
+          "acts": [
+            "save",
+            "clo",
+            "off",
+            "archive"
+          ]
+        },
+        {
+          "wallet": "0x1f4ab7e9acebb8b591e74b81e34bebe8be9bc934",
+          "cells": [
+            "0x1f4ab7e9...9bc934\nTRACKED",
+            "OFF\nDISABLED\nCOPY DISABLED",
+            "R: $-0.72\nU: $0\nNet: $-0.9\nFrom engine ledger",
+            "Total: n/a\nAvg: n/a\nAvg bps: n/a\nWorst bps: n/a",
+            "0 filled / 0 exits\n0 recent rejects\n0 recent blocks",
+            "Exposure: $0\nOpen pos: 0\nDD: $-1\nMaxDD: $-1",
+            "none yet",
+            "LIVE\nCLO\nOFF\nprop\nfixed\nF\nN\nSave\nCLO\nOFF\nArchive"
+          ],
+          "modeVal": "OFF",
+          "copyVal": "fixed",
+          "fixed": "12",
+          "norm": "100",
+          "acts": [
+            "save",
+            "clo",
+            "off",
+            "archive"
+          ]
+        },
+        {
+          "wallet": "0x31ca8395cf837de08b24da3f660e77761dfb974b",
+          "cells": [
+            "0x31ca8395...fb974b\nTRACKED",
+            "LIVE\nCOPYING\nSHARED_WS_OK\nHOT10 shared socket active",
+            "R: n/a\nU: n/a\nNet: n/a\nPartial record",
+            "Total: $1.29\nAvg: $0\nAvg bps: 5.2\nWorst bps: 73.8",
+            "943 filled / 0 exits\n811 recent rejects\n34 recent blocks",
+            "Exposure: $1,969.63\nOpen pos: 92\nDD: n/a\nMaxDD: n/a",
+            "HEMI SELL @\n",
+            "LIVE\nCLO\nOFF\nprop\nfixed\nF\nN\nSave\nCLO\nOFF\nArchive"
+          ],
+          "modeVal": "LIVE",
+          "copyVal": "fixed",
+          "fixed": "12",
+          "norm": "100",
+          "acts": [
+            "save",
+            "clo",
+            "off",
+            "archive"
+          ]
+        },
+        {
+          "wallet": "0x35519de6193f0e6581032d87236988629e35a281",
+          "cells": [
+            "0x35519de6...35a281\nTRACKED",
+            "OFF\nDISABLED\nCOPY DISABLED",
+            "R: n/a\nU: $0\nNet: n/a\nNo PnL yet",
+            "Total: n/a\nAvg: n/a\nAvg bps: n/a\nWorst bps: n/a",
+            "0 filled / 0 exits\n0 recent rejects\n0 recent blocks",
+            "Exposure: $0\nOpen pos: 0\nDD: n/a\nMaxDD: n/a",
+            "none yet",
+            "LIVE\nCLO\nOFF\nprop\nfixed\nF\nN\nSave\nCLO\nOFF\nArchive"
+          ],
+          "modeVal": "OFF",
+          "copyVal": "fixed",
+          "fixed": "12",
+          "norm": "100",
+          "acts": [
+            "save",
+            "clo",
+            "off",
+            "archive"
+          ]
+        },
+        {
+          "wallet": "0x6ba889db7f923622d3548f621ecc2054b80c1817",
+          "cells": [
+            "0x6ba889db...0c1817\nTRACKED",
+            "LIVE\nCOPYING\nSHARED_WS_OK\nHOT10 shared socket active",
+            "R: n/a\nU: n/a\nNet: n/a\nPartial record",
+            "Total: $0.17\nAvg: $0\nAvg bps: -4.8\nWorst bps: 57.2",
+            "66 filled / 0 exits\n106 recent rejects\n3 recent blocks",
+            "Exposure: $475.96\nOpen pos: 15\nDD: n/a\nMaxDD: n/a",
+            "ARB BUY @\n",
+            "LIVE\nCLO\nOFF\nprop\nfixed\nF\nN\nSave\nCLO\nOFF\nArchive"
+          ],
+          "modeVal": "LIVE",
+          "copyVal": "fixed",
+          "fixed": "12",
+          "norm": "100",
+          "acts": [
+            "save",
+            "clo",
+            "off",
+            "archive"
+          ]
+        },
+        {
+          "wallet": "0x7019197d2b2ae7b44eee12a76015eb1fe94abd36",
+          "cells": [
+            "0x7019197d...4abd36\nTRACKED",
+            "LIVE\nCOPYING\nSHARED_WS_OK\nHOT10 shared socket active",
+            "R: n/a\nU: n/a\nNet: n/a\nPartial record",
+            "Total: $-0.56\nAvg: $-0.02\nAvg bps: -11.6\nWorst bps: 87.6",
+            "49 filled / 0 exits\n92 recent rejects\n4 recent blocks",
+            "Exposure: $933.22\nOpen pos: 54\nDD: n/a\nMaxDD: n/a",
+            "ZK BUY @\n",
+            "LIVE\nCLO\nOFF\nprop\nfixed\nF\nN\nSave\nCLO\nOFF\nArchive"
+          ],
+          "modeVal": "LIVE",
+          "copyVal": "fixed",
+          "fixed": "12",
+          "norm": "100",
+          "acts": [
+            "save",
+            "clo",
+            "off",
+            "archive"
+          ]
+        },
+        {
+          "wallet": "0x7717a7a245d9f950e586822b8c9b46863ed7bd7e",
+          "cells": [
+            "0x7717a7a2...d7bd7e\nTRACKED",
+            "LIVE\nCOPYING\nSHARED_WS_OK\nHOT10 shared socket active",
+            "R: n/a\nU: n/a\nNet: n/a\nPartial record",
+            "Total: $0.69\nAvg: $0.04\nAvg bps: 26.7\nWorst bps: 80.9",
+            "58 filled / 0 exits\n296 recent rejects\n3 recent blocks",
+            "Exposure: $1,769.73\nOpen pos: 65\nDD: n/a\nMaxDD: n/a",
+            "BTC SELL @\n",
+            "LIVE\nCLO\nOFF\nprop\nfixed\nF\nN\nSave\nCLO\nOFF\nArchive"
+          ],
+          "modeVal": "LIVE",
+          "copyVal": "fixed",
+          "fixed": "12",
+          "norm": "100",
+          "acts": [
+            "save",
+            "clo",
+            "off",
+            "archive"
+          ]
+        },
+        {
+          "wallet": "0x7bc5239180bea2255f4dd243d79481d39adee41e",
+          "cells": [
+            "0x7bc52391...dee41e\nTRACKED",
+            "OFF\nDISABLED\nCOPY DISABLED",
+            "R: $-0.32\nU: $0\nNet: $-0.4\nFrom engine ledger",
+            "Total: n/a\nAvg: n/a\nAvg bps: n/a\nWorst bps: n/a",
+            "0 filled / 0 exits\n0 recent rejects\n0 recent blocks",
+            "Exposure: $0\nOpen pos: 0\nDD: $-0.71\nMaxDD: $-0.71",
+            "none yet",
+            "LIVE\nCLO\nOFF\nprop\nfixed\nF\nN\nSave\nCLO\nOFF\nArchive"
+          ],
+          "modeVal": "OFF",
+          "copyVal": "fixed",
+          "fixed": "12",
+          "norm": "100",
+          "acts": [
+            "save",
+            "clo",
+            "off",
+            "archive"
+          ]
+        },
+        {
+          "wallet": "0x833b99b27dac651d02080f5e220e929df891db06",
+          "cells": [
+            "0x833b99b2...91db06\nTRACKED",
+            "OFF\nDISABLED\nCOPY DISABLED",
+            "R: n/a\nU: $0\nNet: n/a\nNo PnL yet",
+            "Total: n/a\nAvg: n/a\nAvg bps: n/a\nWorst bps: n/a",
+            "0 filled / 0 exits\n0 recent rejects\n0 recent blocks",
+            "Exposure: $0\nOpen pos: 0\nDD: n/a\nMaxDD: n/a",
+            "none yet",
+            "LIVE\nCLO\nOFF\nprop\nfixed\nF\nN\nSave\nCLO\nOFF\nArchive"
+          ],
+          "modeVal": "OFF",
+          "copyVal": "fixed",
+          "fixed": "12",
+          "norm": "100",
+          "acts": [
+            "save",
+            "clo",
+            "off",
+            "archive"
+          ]
+        },
+        {
+          "wallet": "0x936cf4fb95c30ce83f658b5bbb247e4bb381bb0f",
+          "cells": [
+            "0x936cf4fb...81bb0f\nTRACKED",
+            "LIVE\nCOPYING\nSHARED_WS_OK\nHOT10 shared socket active",
+            "R: $-12.94\nU: $-4.04\nNet: $-28.88\nFrom engine ledger",
+            "Total: $0.45\nAvg: $0.03\nAvg bps: 47.8\nWorst bps: 76.5",
+            "29 filled / 0 exits\n108 recent rejects\n2 recent blocks",
+            "Exposure: $869.54\nOpen pos: 10\nDD: $-30.93\nMaxDD: $-30.93",
+            "AERO SELL @\n",
+            "LIVE\nCLO\nOFF\nprop\nfixed\nF\nN\nSave\nCLO\nOFF\nArchive"
+          ],
+          "modeVal": "LIVE",
+          "copyVal": "fixed",
+          "fixed": "12",
+          "norm": "100",
+          "acts": [
+            "save",
+            "clo",
+            "off",
+            "archive"
+          ]
+        },
+        {
+          "wallet": "0xc179e03922afe8fa9533d3f896338b9fb87ce0c8",
+          "cells": [
+            "0xc179e039...7ce0c8\nTRACKED",
+            "LIVE\nCOPYING\nSHARED_WS_OK\nHOT10 shared socket active",
+            "R: $-12.82\nU: n/a\nNet: n/a\nFrom engine ledger",
+            "Total: $0.55\nAvg: $0.08\nAvg bps: 46.4\nWorst bps: 51.9",
+            "11 filled / 0 exits\n30 recent rejects\n0 recent blocks",
+            "Exposure: $162.53\nOpen pos: 3\nDD: $-23.26\nMaxDD: $-23.26",
+            "BTC SELL @\n",
+            "LIVE\nCLO\nOFF\nprop\nfixed\nF\nN\nSave\nCLO\nOFF\nArchive"
+          ],
+          "modeVal": "LIVE",
+          "copyVal": "fixed",
+          "fixed": "12",
+          "norm": "100",
+          "acts": [
+            "save",
+            "clo",
+            "off",
+            "archive"
+          ]
+        },
+        {
+          "wallet": "0xcbe834386b8ec9d8c50eaad48dacb83e8b42ddfc",
+          "cells": [
+            "0xcbe83438...42ddfc\nTRACKED",
+            "OFF\nDISABLED\nCOPY DISABLED",
+            "R: $-1.11\nU: $0\nNet: $-1.2\nFrom engine ledger",
+            "Total: n/a\nAvg: n/a\nAvg bps: n/a\nWorst bps: n/a",
+            "0 filled / 0 exits\n0 recent rejects\n0 recent blocks",
+            "Exposure: $0\nOpen pos: 0\nDD: $-1.24\nMaxDD: $-1.85",
+            "none yet",
+            "LIVE\nCLO\nOFF\nprop\nfixed\nF\nN\nSave\nCLO\nOFF\nArchive"
+          ],
+          "modeVal": "OFF",
+          "copyVal": "fixed",
+          "fixed": "12",
+          "norm": "100",
+          "acts": [
+            "save",
+            "clo",
+            "off",
+            "archive"
+          ]
+        },
+        {
+          "wallet": "0xd4c1f7e8d876c4749228d515473d36f919583d1d",
+          "cells": [
+            "0xd4c1f7e8...583d1d\nTRACKED",
+            "LIVE\nCOPYING\nSHARED_WS_OK\nHOT10 shared socket active",
+            "R: $-4.6\nU: $-1.3\nNet: $-9.65\nFrom engine ledger",
+            "Total: $0.12\nAvg: $0.01\nAvg bps: 8.3\nWorst bps: 95.3",
+            "19 filled / 0 exits\n32 recent rejects\n2 recent blocks",
+            "Exposure: $799.62\nOpen pos: 13\nDD: $-19.5\nMaxDD: $-20.08",
+            "WLD SELL @\n",
+            "LIVE\nCLO\nOFF\nprop\nfixed\nF\nN\nSave\nCLO\nOFF\nArchive"
+          ],
+          "modeVal": "LIVE",
+          "copyVal": "fixed",
+          "fixed": "12",
+          "norm": "100",
+          "acts": [
+            "save",
+            "clo",
+            "off",
+            "archive"
+          ]
+        },
+        {
+          "wallet": "0xf5d81a135f756ca16544e53c20fc20643ec3ad53",
+          "cells": [
+            "0xf5d81a13...c3ad53\nTRACKED",
+            "LIVE\nCOPYING\nSHARED_WS_OK\nHOT10 shared socket active",
+            "R: n/a\nU: n/a\nNet: n/a\nPartial record",
+            "Total: $-0.18\nAvg: $-0\nAvg bps: 7.7\nWorst bps: 96.2",
+            "146 filled / 0 exits\n434 recent rejects\n7 recent blocks",
+            "Exposure: $926.99\nOpen pos: 14\nDD: n/a\nMaxDD: n/a",
+            "ETH SELL @\n",
+            "LIVE\nCLO\nOFF\nprop\nfixed\nF\nN\nSave\nCLO\nOFF\nArchive"
+          ],
+          "modeVal": "LIVE",
+          "copyVal": "fixed",
+          "fixed": "12",
+          "norm": "100",
+          "acts": [
+            "save",
+            "clo",
+            "off",
+            "archive"
+          ]
+        }
+      ]
+    },
+    "apierror": {
+      "status": "Unexpected token '<', \"<html>Inte\"... is not valid JSON",
+      "rows": 0
+    },
+    "wire_save": {
+      "posts": [
+        {
+          "path": "/api/live-config/set-wallet",
+          "body": "{\"wallet\":\"0x010461c14e146ac35fe42271bdc1134ee31c703a\",\"mode\":\"LIVE\",\"copy_mode\":\"fixed\",\"norm_base\":100,\"fixed_notional\":12,\"leader_equity_base\":10000,\"max_diff_pct\":0.1,\"daily_loss_limit\":0}"
+        }
+      ]
+    },
+    "wire_clo": {
+      "posts": [
+        {
+          "path": "/api/live-config/set-mode",
+          "body": "{\"wallet\":\"0x010461c14e146ac35fe42271bdc1134ee31c703a\",\"mode\":\"CLO\"}"
+        }
+      ]
+    },
+    "wire_off": {
+      "posts": [
+        {
+          "path": "/api/live-config/set-mode",
+          "body": "{\"wallet\":\"0x010461c14e146ac35fe42271bdc1134ee31c703a\",\"mode\":\"OFF\"}"
+        }
+      ]
+    },
+    "wire_archive": {
+      "posts": [
+        {
+          "path": "/api/live-config/remove-wallet",
+          "body": "{\"wallet\":\"0x010461c14e146ac35fe42271bdc1134ee31c703a\",\"archive\":true}"
+        }
+      ]
+    }
+  },
+  "oracle_rows": {
+    "n": 15,
+    "mode_match": 15,
+    "copy_match": 15,
+    "rows": [
+      {
+        "wallet": "0x010461c14e146ac35fe42271bdc1134ee31c703a",
+        "eng_mode": "LIVE",
+        "dom_mode": "LIVE",
+        "mode_match": true,
+        "eng_copy": "fixed",
+        "dom_copy": "fixed",
+        "copy_match": true,
+        "eng_fixed": 12,
+        "dom_fixed": "12"
+      },
+      {
+        "wallet": "0x1b232b41b0e75550c59288b99874e4a8142fbe21",
+        "eng_mode": "LIVE",
+        "dom_mode": "LIVE",
+        "mode_match": true,
+        "eng_copy": "fixed",
+        "dom_copy": "fixed",
+        "copy_match": true,
+        "eng_fixed": 12,
+        "dom_fixed": "12"
+      },
+      {
+        "wallet": "0x1f4ab7e9acebb8b591e74b81e34bebe8be9bc934",
+        "eng_mode": "OFF",
+        "dom_mode": "OFF",
+        "mode_match": true,
+        "eng_copy": "fixed",
+        "dom_copy": "fixed",
+        "copy_match": true,
+        "eng_fixed": 12,
+        "dom_fixed": "12"
+      },
+      {
+        "wallet": "0x31ca8395cf837de08b24da3f660e77761dfb974b",
+        "eng_mode": "LIVE",
+        "dom_mode": "LIVE",
+        "mode_match": true,
+        "eng_copy": "fixed",
+        "dom_copy": "fixed",
+        "copy_match": true,
+        "eng_fixed": 12,
+        "dom_fixed": "12"
+      },
+      {
+        "wallet": "0x35519de6193f0e6581032d87236988629e35a281",
+        "eng_mode": "OFF",
+        "dom_mode": "OFF",
+        "mode_match": true,
+        "eng_copy": "fixed",
+        "dom_copy": "fixed",
+        "copy_match": true,
+        "eng_fixed": 12,
+        "dom_fixed": "12"
+      },
+      {
+        "wallet": "0x6ba889db7f923622d3548f621ecc2054b80c1817",
+        "eng_mode": "LIVE",
+        "dom_mode": "LIVE",
+        "mode_match": true,
+        "eng_copy": "fixed",
+        "dom_copy": "fixed",
+        "copy_match": true,
+        "eng_fixed": 12,
+        "dom_fixed": "12"
+      },
+      {
+        "wallet": "0x7019197d2b2ae7b44eee12a76015eb1fe94abd36",
+        "eng_mode": "LIVE",
+        "dom_mode": "LIVE",
+        "mode_match": true,
+        "eng_copy": "fixed",
+        "dom_copy": "fixed",
+        "copy_match": true,
+        "eng_fixed": 12,
+        "dom_fixed": "12"
+      },
+      {
+        "wallet": "0x7717a7a245d9f950e586822b8c9b46863ed7bd7e",
+        "eng_mode": "LIVE",
+        "dom_mode": "LIVE",
+        "mode_match": true,
+        "eng_copy": "fixed",
+        "dom_copy": "fixed",
+        "copy_match": true,
+        "eng_fixed": 12,
+        "dom_fixed": "12"
+      },
+      {
+        "wallet": "0x7bc5239180bea2255f4dd243d79481d39adee41e",
+        "eng_mode": "OFF",
+        "dom_mode": "OFF",
+        "mode_match": true,
+        "eng_copy": "fixed",
+        "dom_copy": "fixed",
+        "copy_match": true,
+        "eng_fixed": 12,
+        "dom_fixed": "12"
+      },
+      {
+        "wallet": "0x833b99b27dac651d02080f5e220e929df891db06",
+        "eng_mode": "OFF",
+        "dom_mode": "OFF",
+        "mode_match": true,
+        "eng_copy": "fixed",
+        "dom_copy": "fixed",
+        "copy_match": true,
+        "eng_fixed": 12,
+        "dom_fixed": "12"
+      },
+      {
+        "wallet": "0x936cf4fb95c30ce83f658b5bbb247e4bb381bb0f",
+        "eng_mode": "LIVE",
+        "dom_mode": "LIVE",
+        "mode_match": true,
+        "eng_copy": "fixed",
+        "dom_copy": "fixed",
+        "copy_match": true,
+        "eng_fixed": 12,
+        "dom_fixed": "12"
+      },
+      {
+        "wallet": "0xc179e03922afe8fa9533d3f896338b9fb87ce0c8",
+        "eng_mode": "LIVE",
+        "dom_mode": "LIVE",
+        "mode_match": true,
+        "eng_copy": "fixed",
+        "dom_copy": "fixed",
+        "copy_match": true,
+        "eng_fixed": 12,
+        "dom_fixed": "12"
+      },
+      {
+        "wallet": "0xcbe834386b8ec9d8c50eaad48dacb83e8b42ddfc",
+        "eng_mode": "OFF",
+        "dom_mode": "OFF",
+        "mode_match": true,
+        "eng_copy": "fixed",
+        "dom_copy": "fixed",
+        "copy_match": true,
+        "eng_fixed": 12,
+        "dom_fixed": "12"
+      },
+      {
+        "wallet": "0xd4c1f7e8d876c4749228d515473d36f919583d1d",
+        "eng_mode": "LIVE",
+        "dom_mode": "LIVE",
+        "mode_match": true,
+        "eng_copy": "fixed",
+        "dom_copy": "fixed",
+        "copy_match": true,
+        "eng_fixed": 12,
+        "dom_fixed": "12"
+      },
+      {
+        "wallet": "0xf5d81a135f756ca16544e53c20fc20643ec3ad53",
+        "eng_mode": "LIVE",
+        "dom_mode": "LIVE",
+        "mode_match": true,
+        "eng_copy": "fixed",
+        "dom_copy": "fixed",
+        "copy_match": true,
+        "eng_fixed": 12,
+        "dom_fixed": "12"
+      }
+    ]
+  },
+  "oracle_cfg_vs_eng": {
+    "n_cfg": 15,
+    "n_eng": 15,
+    "agree": 15,
+    "disagree": 0,
+    "disagreements": []
+  },
+  "oracle_detail": {
+    "w0": "0x010461c14e146ac35fe42271bdc1134ee31c703a",
+    "served_open_positions_len": 94,
+    "served_attribution": "ENGINE_LEDGER_SLEEVES_PARTIAL",
+    "dom_heads": [
+      "A — Live Performance",
+      "B — Open Positions (94)",
+      "C — Lead vs Copy / Friction",
+      "D — Execution Audit",
+      "E — Rejects & Blocks"
+    ]
+  }
+}

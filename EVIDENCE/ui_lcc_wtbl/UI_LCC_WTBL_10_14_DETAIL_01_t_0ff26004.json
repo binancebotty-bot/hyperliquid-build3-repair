@@ -1,0 +1,297 @@
+{
+  "task_id": "t_0ff26004",
+  "title": "B3-CERT UI-LCC [impl] WTBL-10..14 + DETAIL-01",
+  "register_ref": "main:certification/certification_matrix.json",
+  "register_commit": "b142cf88d389e791160f691aac3d936852b99975",
+  "tested_commit": "b142cf88d389e791160f691aac3d936852b99975",
+  "tested_at_utc": "2026-10-16T23:33:03.918196Z",
+  "ui_source_sha256": "7468ab5188750617b090b56c3e719d73e91f5b4241f4782382ccac1a22989276",
+  "ui_source_bytes": 375250,
+  "panel_span": [
+    5436,
+    6016
+  ],
+  "panel_sha256": "174bc8214e2e77555d8d811093e7174030b74f85395168442b976c0853c36347",
+  "oracle_rows": {
+    "n": 15,
+    "mode_match": 15,
+    "copy_match": 15,
+    "rows": [
+      {
+        "wallet": "0x010461c14e146ac35fe42271bdc1134ee31c703a",
+        "eng_mode": "LIVE",
+        "dom_mode": "LIVE",
+        "mode_match": true,
+        "eng_copy": "fixed",
+        "dom_copy": "fixed",
+        "copy_match": true,
+        "eng_fixed": 12,
+        "dom_fixed": "12"
+      },
+      {
+        "wallet": "0x1b232b41b0e75550c59288b99874e4a8142fbe21",
+        "eng_mode": "LIVE",
+        "dom_mode": "LIVE",
+        "mode_match": true,
+        "eng_copy": "fixed",
+        "dom_copy": "fixed",
+        "copy_match": true,
+        "eng_fixed": 12,
+        "dom_fixed": "12"
+      },
+      {
+        "wallet": "0x1f4ab7e9acebb8b591e74b81e34bebe8be9bc934",
+        "eng_mode": "OFF",
+        "dom_mode": "OFF",
+        "mode_match": true,
+        "eng_copy": "fixed",
+        "dom_copy": "fixed",
+        "copy_match": true,
+        "eng_fixed": 12,
+        "dom_fixed": "12"
+      },
+      {
+        "wallet": "0x31ca8395cf837de08b24da3f660e77761dfb974b",
+        "eng_mode": "LIVE",
+        "dom_mode": "LIVE",
+        "mode_match": true,
+        "eng_copy": "fixed",
+        "dom_copy": "fixed",
+        "copy_match": true,
+        "eng_fixed": 12,
+        "dom_fixed": "12"
+      },
+      {
+        "wallet": "0x35519de6193f0e6581032d87236988629e35a281",
+        "eng_mode": "OFF",
+        "dom_mode": "OFF",
+        "mode_match": true,
+        "eng_copy": "fixed",
+        "dom_copy": "fixed",
+        "copy_match": true,
+        "eng_fixed": 12,
+        "dom_fixed": "12"
+      },
+      {
+        "wallet": "0x6ba889db7f923622d3548f621ecc2054b80c1817",
+        "eng_mode": "LIVE",
+        "dom_mode": "LIVE",
+        "mode_match": true,
+        "eng_copy": "fixed",
+        "dom_copy": "fixed",
+        "copy_match": true,
+        "eng_fixed": 12,
+        "dom_fixed": "12"
+      },
+      {
+        "wallet": "0x7019197d2b2ae7b44eee12a76015eb1fe94abd36",
+        "eng_mode": "LIVE",
+        "dom_mode": "LIVE",
+        "mode_match": true,
+        "eng_copy": "fixed",
+        "dom_copy": "fixed",
+        "copy_match": true,
+        "eng_fixed": 12,
+        "dom_fixed": "12"
+      },
+      {
+        "wallet": "0x7717a7a245d9f950e586822b8c9b46863ed7bd7e",
+        "eng_mode": "LIVE",
+        "dom_mode": "LIVE",
+        "mode_match": true,
+        "eng_copy": "fixed",
+        "dom_copy": "fixed",
+        "copy_match": true,
+        "eng_fixed": 12,
+        "dom_fixed": "12"
+      },
+      {
+        "wallet": "0x7bc5239180bea2255f4dd243d79481d39adee41e",
+        "eng_mode": "OFF",
+        "dom_mode": "OFF",
+        "mode_match": true,
+        "eng_copy": "fixed",
+        "dom_copy": "fixed",
+        "copy_match": true,
+        "eng_fixed": 12,
+        "dom_fixed": "12"
+      },
+      {
+        "wallet": "0x833b99b27dac651d02080f5e220e929df891db06",
+        "eng_mode": "OFF",
+        "dom_mode": "OFF",
+        "mode_match": true,
+        "eng_copy": "fixed",
+        "dom_copy": "fixed",
+        "copy_match": true,
+        "eng_fixed": 12,
+        "dom_fixed": "12"
+      },
+      {
+        "wallet": "0x936cf4fb95c30ce83f658b5bbb247e4bb381bb0f",
+        "eng_mode": "LIVE",
+        "dom_mode": "LIVE",
+        "mode_match": true,
+        "eng_copy": "fixed",
+        "dom_copy": "fixed",
+        "copy_match": true,
+        "eng_fixed": 12,
+        "dom_fixed": "12"
+      },
+      {
+        "wallet": "0xc179e03922afe8fa9533d3f896338b9fb87ce0c8",
+        "eng_mode": "LIVE",
+        "dom_mode": "LIVE",
+        "mode_match": true,
+        "eng_copy": "fixed",
+        "dom_copy": "fixed",
+        "copy_match": true,
+        "eng_fixed": 12,
+        "dom_fixed": "12"
+      },
+      {
+        "wallet": "0xcbe834386b8ec9d8c50eaad48dacb83e8b42ddfc",
+        "eng_mode": "OFF",
+        "dom_mode": "OFF",
+        "mode_match": true,
+        "eng_copy": "fixed",
+        "dom_copy": "fixed",
+        "copy_match": true,
+        "eng_fixed": 12,
+        "dom_fixed": "12"
+      },
+      {
+        "wallet": "0xd4c1f7e8d876c4749228d515473d36f919583d1d",
+        "eng_mode": "LIVE",
+        "dom_mode": "LIVE",
+        "mode_match": true,
+        "eng_copy": "fixed",
+        "dom_copy": "fixed",
+        "copy_match": true,
+        "eng_fixed": 12,
+        "dom_fixed": "12"
+      },
+      {
+        "wallet": "0xf5d81a135f756ca16544e53c20fc20643ec3ad53",
+        "eng_mode": "LIVE",
+        "dom_mode": "LIVE",
+        "mode_match": true,
+        "eng_copy": "fixed",
+        "dom_copy": "fixed",
+        "copy_match": true,
+        "eng_fixed": 12,
+        "dom_fixed": "12"
+      }
+    ]
+  },
+  "oracle_detail": {
+    "w0": "0x010461c14e146ac35fe42271bdc1134ee31c703a",
+    "served_open_positions_len": 94,
+    "served_attribution": "ENGINE_LEDGER_SLEEVES_PARTIAL",
+    "dom_heads": [
+      "A — Live Performance",
+      "B — Open Positions (94)",
+      "C — Lead vs Copy / Friction",
+      "D — Execution Audit",
+      "E — Rejects & Blocks"
+    ]
+  },
+  "negative_tests": {
+    "api_error_surfaced": "Unexpected token '<', \"<html>Inte\"... is not valid JSON",
+    "null_fixed_rendered": "10",
+    "null_norm_rendered": "100"
+  },
+  "engine_apply_prior_evidence": "certification/results/UI_CORRECTION_2d29211.json",
+  "rows": [
+    {
+      "id": "UI-LCC-WTBL-10",
+      "feature": "Controls F/N/B inputs",
+      "result": "NOT_TESTED",
+      "applicability": "APPLIES",
+      "checks": {
+        "F_INPUT_NAME": "fixed_notional",
+        "N_INPUT_NAME": "norm_base",
+        "B_INPUT_NAME": "leader_equity_base",
+        "F_RENDERED_ALL_ROWS": true,
+        "N_RENDERED_ALL_ROWS": true,
+        "NEGATIVE_NULL_SOURCE_FIXED_RENDERS": "10",
+        "NEGATIVE_NULL_SOURCE_NORM_RENDERS": "100",
+        "B_INPUT_VISIBILITY": "type=hidden (source line 5780) - not operator-editable"
+      },
+      "basis": "certified control panel (register blob b142cf88) rendered in headless Chromium (py3.11); window.fetch routed to captured live :8031 payloads; DOM click captured the write wire",
+      "detail": "F and N inputs render for all 15 wallet rows and are carried by the Save wire; B is a hidden input. NOT_TESTED: (1) row negative test \"source unavailable shows n/a/Unavailable not 0\" fails - a null fixed_notional/norm_base renders the default 10/100, not n/a; (2) the B input named in the feature is not an operator-visible input."
+    },
+    {
+      "id": "UI-LCC-WTBL-11",
+      "feature": "Save",
+      "result": "PASS",
+      "applicability": "APPLIES",
+      "checks": {
+        "BUTTON_PRESENT": true,
+        "WRITE_PATH": "/api/live-config/set-wallet",
+        "WRITE_BODY": "{\"wallet\":\"0x010461c14e146ac35fe42271bdc1134ee31c703a\",\"mode\":\"LIVE\",\"copy_mode\":\"fixed\",\"norm_base\":100,\"fixed_notional\":12,\"leader_equity_base\":10000,\"max_diff_pct\":0.1,\"daily_loss_limit\":0}"
+      },
+      "basis": "certified control panel (register blob b142cf88) rendered in headless Chromium (py3.11); window.fetch routed to captured live :8031 payloads; DOM click captured the write wire",
+      "detail": "Save click posts /api/live-config/set-wallet with the row payload; engine-truth mode/fixed match config 15/15; engine-apply leg backed by committed in-process proof certification/results/UI_CORRECTION_2d29211.json (B1-B7)."
+    },
+    {
+      "id": "UI-LCC-WTBL-12",
+      "feature": "CLO",
+      "result": "PASS",
+      "applicability": "APPLIES",
+      "checks": {
+        "BUTTON_PRESENT": true,
+        "WRITE_PATH": "/api/live-config/set-mode",
+        "WRITE_BODY": "{\"wallet\":\"0x010461c14e146ac35fe42271bdc1134ee31c703a\",\"mode\":\"CLO\"}"
+      },
+      "basis": "certified control panel (register blob b142cf88) rendered in headless Chromium (py3.11); window.fetch routed to captured live :8031 payloads; DOM click captured the write wire",
+      "detail": "CLO click posts /api/live-config/set-mode mode=CLO."
+    },
+    {
+      "id": "UI-LCC-WTBL-13",
+      "feature": "OFF",
+      "result": "PASS",
+      "applicability": "APPLIES",
+      "checks": {
+        "BUTTON_PRESENT": true,
+        "WRITE_PATH": "/api/live-config/set-mode",
+        "WRITE_BODY": "{\"wallet\":\"0x010461c14e146ac35fe42271bdc1134ee31c703a\",\"mode\":\"OFF\"}"
+      },
+      "basis": "certified control panel (register blob b142cf88) rendered in headless Chromium (py3.11); window.fetch routed to captured live :8031 payloads; DOM click captured the write wire",
+      "detail": "OFF click posts /api/live-config/set-mode mode=OFF."
+    },
+    {
+      "id": "UI-LCC-WTBL-14",
+      "feature": "Archive",
+      "result": "PASS",
+      "applicability": "APPLIES",
+      "checks": {
+        "BUTTON_PRESENT": true,
+        "WRITE_PATH": "/api/live-config/remove-wallet",
+        "WRITE_BODY": "{\"wallet\":\"0x010461c14e146ac35fe42271bdc1134ee31c703a\",\"archive\":true}"
+      },
+      "basis": "certified control panel (register blob b142cf88) rendered in headless Chromium (py3.11); window.fetch routed to captured live :8031 payloads; DOM click captured the write wire",
+      "detail": "Archive click (confirm auto-accepted) posts /api/live-config/remove-wallet archive=true."
+    },
+    {
+      "id": "UI-LCC-DETAIL-01",
+      "feature": "Wallet detail section: A Live Performance",
+      "result": "PASS",
+      "applicability": "APPLIES",
+      "checks": {
+        "DETAIL_EXPANDS": true,
+        "DETAIL_SECTIONS": [
+          "A — Live Performance",
+          "B — Open Positions (94)",
+          "C — Lead vs Copy / Friction",
+          "D — Execution Audit",
+          "E — Rejects & Blocks"
+        ],
+        "SERVED_ATTRIBUTION_QUALITY": "ENGINE_LEDGER_SLEEVES_PARTIAL",
+        "SERVED_OPEN_POSITIONS": 94
+      },
+      "basis": "certified control panel (register blob b142cf88) rendered in headless Chromium (py3.11); window.fetch routed to captured live :8031 payloads; DOM click captured the write wire",
+      "detail": "Row click inserts a detail row rendering sections A-E; section A renders attribution_quality from engine truth."
+    }
+  ]
+}
