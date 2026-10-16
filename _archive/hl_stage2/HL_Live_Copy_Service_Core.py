@@ -3133,8 +3133,16 @@ def claim_copy_fill_process_marker(copy_fill_id: str) -> bool:
         return True
 
 
+DEDUPE_IDS_JSONL_NAME = "dedupe_ids.jsonl"
+DEDUPE_TAIL_LIMIT = 5000
+# schema 2 = bounded recency tail in the JSON + full sets in the append-only JSONL; a loader that
+# does not understand schema 2 must refuse to start (rolling the branch back to the 250k-id reader
+# would otherwise treat every id the tail dropped as unseen and re-copy it on a CLOSE_ONLY lane)
+DEDUPE_STATE_SCHEMA = 2
+DEDUPE_JSONL_COMPACT_LINES = 500_000
+
 class DedupeStore:
-    def __init__(self, state: Optional[Dict[str, Any]] = None):
+    def __init__(self, state: Optional[Dict[str, Any]] = None, state_dir: Optional[Path] = None):
         state = state if isinstance(state, dict) else {}
         self.processed: set[str] = set(state.get("processed_leader_fill_ids") or [])
         self.processed_copy: set[str] = set(state.get("processed_copy_fill_ids") or [])
@@ -3144,12 +3152,28 @@ class DedupeStore:
         self.copy_account_baseline_max_ts_ms: int = int(fnum(state.get("copy_account_baseline_max_ts_ms"), 0))
         self.live_start_ms: int = int(fnum(state.get("live_start_ms"), 0))
         self._lock = threading.RLock()  # the copy thread, send workers and the cycle's state write share these sets
+        self._state_dir = Path(state_dir) if state_dir else None
+        self._jsonl_new_leader: List[str] = []
+        self._jsonl_new_copy: List[str] = []
+        # insertion-order recency windows: the JSON tail must keep the MOST RECENT ids, and an
+        # exchange fill id does not sort by time, so sorted()[-N:] was an arbitrary subset
+        self._recent_leader: "collections.deque" = collections.deque(maxlen=DEDUPE_TAIL_LIMIT)
+        self._recent_copy: "collections.deque" = collections.deque(maxlen=DEDUPE_TAIL_LIMIT)
+        self._recent_leader.extend(str(x) for x in (state.get("processed_leader_fill_ids") or []))
+        self._recent_copy.extend(str(x) for x in (state.get("processed_copy_fill_ids") or []))
+        self._jsonl_skipped_lines: int = 0
+        self.dedupe_load_failed: bool = False
+        self._jsonl_flush_failures: int = 0
+        self._migrate_from_legacy_json(state)
 
     def accept_leader(self, fill_id: str) -> bool:
         with self._lock:
             if fill_id in self.processed:
                 return False
             self.processed.add(fill_id)
+            self._recent_leader.append(fill_id)
+            if self._state_dir:
+                self._jsonl_new_leader.append(fill_id)
             return True
 
     def accept_copy(self, fill_id: str, allow_retry: bool = False) -> bool:
@@ -3157,6 +3181,9 @@ class DedupeStore:
             if fill_id in self.processed_copy:
                 return bool(allow_retry)
             self.processed_copy.add(fill_id)
+            self._recent_copy.append(fill_id)
+            if self._state_dir:
+                self._jsonl_new_copy.append(fill_id)
             return True
 
     def baseline_copy_account(self, copy_fills: List[Dict[str, Any]]) -> int:
@@ -3166,7 +3193,13 @@ class DedupeStore:
     def _baseline_copy_account(self, copy_fills: List[Dict[str, Any]]) -> int:
         max_ts = self.copy_account_baseline_max_ts_ms
         for raw in copy_fills:
-            self.processed_copy.add(CopyAccountIngestor.copy_fill_id(raw))
+            fid = CopyAccountIngestor.copy_fill_id(raw)
+            if fid in self.processed_copy:
+                continue  # already persisted: a baseline re-run must not re-append the same ids
+            self.processed_copy.add(fid)
+            self._recent_copy.append(fid)
+            if self._state_dir:
+                self._jsonl_new_copy.append(fid)
             max_ts = max(max_ts, int(fnum(raw.get("timestamp_ms", raw.get("time")), 0)))
         self.copy_account_baseline_set = True
         self.copy_account_baseline_at_ms = utc_now_ms()
@@ -3177,15 +3210,147 @@ class DedupeStore:
     def export(self) -> Dict[str, Any]:
         with self._lock:
             leader_ids, copy_ids = list(self.processed), list(self.processed_copy)
+            recent_leader = sorted(self._recent_leader)
+            recent_copy = sorted(self._recent_copy)
+            skipped = self._jsonl_skipped_lines
+            load_failed = self.dedupe_load_failed
+            flush_failures = self._jsonl_flush_failures
         return {
-            "processed_leader_fill_ids": sorted(leader_ids)[-250000:],
-            "processed_copy_fill_ids": sorted(copy_ids)[-250000:],
+            "dedupe_state_schema": DEDUPE_STATE_SCHEMA,
+            "dedupe_tail_limit": DEDUPE_TAIL_LIMIT,
+            "processed_leader_fill_ids": recent_leader,
+            "processed_copy_fill_ids": recent_copy,
+            "processed_leader_fill_ids_is_partial": True,
+            "processed_copy_fill_ids_is_partial": True,
+            "processed_leader_fill_ids_total": len(leader_ids),
+            "processed_copy_fill_ids_total": len(copy_ids),
+            "dedupe_jsonl_skipped_lines": skipped,
+            "dedupe_load_failed": load_failed,
+            "dedupe_jsonl_flush_failures": flush_failures,
             "copy_account_baseline_set": self.copy_account_baseline_set,
             "copy_account_baseline_at_ms": self.copy_account_baseline_at_ms,
             "copy_account_baseline_fill_count": self.copy_account_baseline_fill_count,
             "copy_account_baseline_max_ts_ms": self.copy_account_baseline_max_ts_ms,
             "live_start_ms": self.live_start_ms,
         }
+
+    def flush_jsonl(self) -> None:
+        """Flush pending new ids to the append-only JSONL file."""
+        if not self._state_dir:
+            return
+        with self._lock:
+            new_leader = self._jsonl_new_leader
+            new_copy = self._jsonl_new_copy
+            self._jsonl_new_leader = []
+            self._jsonl_new_copy = []
+        if not new_leader and not new_copy:
+            return
+        jsonl_path = self._state_dir / DEDUPE_IDS_JSONL_NAME
+        try:
+            with jsonl_path.open("a", encoding="utf-8") as f:
+                for fid in new_leader:
+                    f.write(json.dumps({"type": "leader", "id": fid}) + "\n")
+                for fid in new_copy:
+                    f.write(json.dumps({"type": "copy", "id": fid}) + "\n")
+                f.flush()
+                os.fsync(f.fileno())
+        except Exception as exc:
+            # a failed append must NEVER lose the batch: re-queue it (in order, ahead of anything
+            # appended meanwhile) so the next flush retries, and surface a health counter.
+            # fail-safe: never raise into the poll loop.
+            self._jsonl_flush_failures += 1
+            log_error("dedupe_flush_jsonl", exc)
+            with self._lock:
+                self._jsonl_new_leader[:0] = new_leader
+                self._jsonl_new_copy[:0] = new_copy
+            return
+        self._maybe_compact_jsonl(jsonl_path, new_leader, new_copy)
+
+    def _jsonl_line_count(self, jsonl_path: Path) -> int:
+        try:
+            with jsonl_path.open("r", encoding="utf-8", errors="replace") as f:
+                return sum(1 for line in f if line.strip())
+        except Exception:
+            return 0
+
+    def _compact_jsonl(self, jsonl_path: Path, pending_leader: List[str], pending_copy: List[str]) -> None:
+        # dedupe + bound the file: one line per id in a stable order, written via tmp + os.replace
+        # so a crash mid-rewrite can never leave a half-written JSONL (os.replace is atomic)
+        with self._lock:
+            leader_ids = [i for i in sorted(self.processed) if i] + [i for i in pending_leader if i]
+            copy_ids = [i for i in sorted(self.processed_copy) if i] + [i for i in pending_copy if i]
+        leader_ids = list(dict.fromkeys(leader_ids))
+        copy_ids = list(dict.fromkeys(copy_ids))
+        tmp_path = jsonl_path.with_name(jsonl_path.name + ".compact.tmp")
+        with tmp_path.open("w", encoding="utf-8") as f:
+            for fid in leader_ids:
+                f.write(json.dumps({"type": "leader", "id": fid}) + "\n")
+            for fid in copy_ids:
+                f.write(json.dumps({"type": "copy", "id": fid}) + "\n")
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(str(tmp_path), str(jsonl_path))
+
+    def _maybe_compact_jsonl(self, jsonl_path: Path, pending_leader: List[str], pending_copy: List[str]) -> None:
+        # the file is append-only, so rewrite it once it grows past the bound; a rewrite failure
+        # is non-fatal (the pending ids were already appended) and is retried on the next flush
+        if self._jsonl_line_count(jsonl_path) <= DEDUPE_JSONL_COMPACT_LINES:
+            return
+        try:
+            self._compact_jsonl(jsonl_path, pending_leader, pending_copy)
+        except Exception as exc:
+            log_error("dedupe_compact_jsonl", exc)
+
+    def _migrate_from_legacy_json(self, state: Dict[str, Any]) -> None:
+        """On startup: load full sets from JSONL if present; otherwise migrate from legacy JSON keys."""
+        if not self._state_dir:
+            return
+        jsonl_path = self._state_dir / DEDUPE_IDS_JSONL_NAME
+        if jsonl_path.exists():
+            self._load_from_jsonl(jsonl_path)
+        else:
+            legacy_leader = list(state.get("processed_leader_fill_ids") or [])
+            legacy_copy = list(state.get("processed_copy_fill_ids") or [])
+            if legacy_leader or legacy_copy:
+                self._append_to_jsonl(jsonl_path, legacy_leader, legacy_copy)
+
+    def _load_from_jsonl(self, jsonl_path: Path) -> None:
+        """Load all ids from the JSONL file into the sets."""
+        try:
+            with jsonl_path.open("r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        rec = json.loads(line)
+                    except (json.JSONDecodeError, ValueError):
+                        # a torn last line from a kill -9 mid-append is expected; count it so
+                        # progressive corruption is visible instead of silent
+                        self._jsonl_skipped_lines += 1
+                        continue
+                    if rec.get("type") == "leader":
+                        self.processed.add(str(rec.get("id", "")))
+                    elif rec.get("type") == "copy":
+                        self.processed_copy.add(str(rec.get("id", "")))
+        except Exception as exc:
+            # the file could not be read at all (locked, permissions, path is a directory):
+            # flag it loudly - LiveCopyCore refuses to start rather than re-copy fills
+            self.dedupe_load_failed = True
+            log_error("dedupe_load_from_jsonl", exc)
+
+    def _append_to_jsonl(self, jsonl_path: Path, leader_ids: List[str], copy_ids: List[str]) -> None:
+        """Append new ids to the JSONL file."""
+        try:
+            with jsonl_path.open("a", encoding="utf-8") as f:
+                for fid in leader_ids:
+                    f.write(json.dumps({"type": "leader", "id": fid}) + "\n")
+                for fid in copy_ids:
+                    f.write(json.dumps({"type": "copy", "id": fid}) + "\n")
+                f.flush()
+                os.fsync(f.fileno())
+        except Exception as exc:
+            log_error("dedupe_append_to_jsonl", exc)
 
 
 class ManualLedger:
@@ -8778,6 +8943,7 @@ class ServiceStateWriter:
             _last_leader_poll_status = str(_existing_rt.get("last_leader_poll_status") or "")
             _last_leader_poll_status_ms = int(fnum(_existing_rt.get("last_leader_poll_status_ms"), 0))
             _last_leader_poll_cursor_ms = _existing_rt.get("last_leader_poll_cursor_ms") if isinstance(_existing_rt.get("last_leader_poll_cursor_ms"), dict) else {}
+        dedupe.flush_jsonl()  # persist full sets to append-only JSONL before writing bounded JSON
         core_state = {
             "created_at": payload.get("created_at"),
             "created_at_ms": payload.get("created_at_ms"),
@@ -8820,7 +8986,17 @@ class LiveCopyCore:
         merged_state = service_state if isinstance(service_state, dict) else {}
         if isinstance(core_state, dict):
             merged_state = {**merged_state, **core_state}
-        self.dedupe = DedupeStore(merged_state)
+        self.dedupe = DedupeStore(merged_state, state_dir=CORE_RUNTIME_STATE_FILE.parent)
+        if self.dedupe.dedupe_load_failed:
+            # the JSONL is the record of truth for the dedupe sets; if it could not be read the
+            # in-memory sets are only the bounded JSON tail, so starting would re-accept (and
+            # re-copy) every fill outside that tail. Refuse to start instead - a human fixes the
+            # file; duplicate sends on a CLOSE_ONLY lane are the worse outcome.
+            raise RuntimeError(
+                "DEDUPE_JSONL_UNREADABLE: cannot read "
+                + str(CORE_RUNTIME_STATE_FILE.parent / DEDUPE_IDS_JSONL_NAME)
+                + " (skipped_lines=" + str(self.dedupe._jsonl_skipped_lines)
+                + "). Fix or remove the file, then restart; do not start with a partial dedupe set.")
         if not self.dedupe.live_start_ms:
             self.dedupe.live_start_ms = utc_now_ms()
         self.wallets = self.cfg.stream_wallets()
