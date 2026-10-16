@@ -1,0 +1,15 @@
+{
+  "url": "http://127.0.0.1:8031/live-copy",
+  "ts": "2026-10-16T23:30:36.603697",
+  "playwright_version": "n/a",
+  "http_status": 200,
+  "title": "Live Copy Dashboard",
+  "selector": "#liveCopyPanel .lc-title",
+  "rendered_text": "Live Copy Command Centre",
+  "pills_text": "Wallets: 15 / 10 Live wallets: 10 Close-only wallets: 0 Off: 5 Leader feed: Websocket OK",
+  "dom_element_count": 17338,
+  "body_text_len": 67249,
+  "body_text_sample": "Live Copy Command Centre\nWallets:\n15 / 10\nLive wallets: 10\nClose-only wallets: 0\nOff: 5\nLeader feed:\nWebsocket OK\nRefresh\nGlobal Controls\nAdd wallet\nACCOUNT VALUE (TESTNET)\n$666.57\nSENDING\nOFF\nHEALTH\nAction needed: a close is failing — check the Reconciliation tab and close it on the exchange\nACCOUNT CHANGE SINCE 9 OCT, 19:01\n−$796.34\nOPEN POSITIONS\n128\nRESTING ORDERS\n33\nTechnical detail\nLoaded\nDo",
+  "route": "ROUTE_AVAILABLE",
+  "route_name": "playwright.chromium headless (Python 3.11)"
+}

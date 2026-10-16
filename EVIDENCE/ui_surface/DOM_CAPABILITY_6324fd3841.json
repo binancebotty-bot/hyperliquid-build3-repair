@@ -1,0 +1,22 @@
+{
+  "card": "t_c53cecfd",
+  "verdict": "ROUTE_AVAILABLE",
+  "register_of_record": "main@b142cf88d389",
+  "probe_commit": "6324fd3841",
+  "surface": "http://127.0.0.1:8031/live-copy",
+  "route_name": "playwright.sync_api chromium headless (Python 3.11)",
+  "interpreter": "C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe",
+  "captured_text": "Live Copy Command Centre",
+  "captured_selector": "#liveCopyPanel .lc-title",
+  "captured_second_sample": "Wallets: 15 / 10 Live wallets: 10 Close-only wallets: 0 Off: 5 Leader feed: Websocket OK",
+  "http_status": 200,
+  "rendered_proof": {"dom_element_count": 17338, "body_innerText_len": 67249, "note": "body.innerText is post-JS rendered text (67249 chars), not raw HTML. Raw curl returns static template ('Wallets: 0 / 10'); rendered DOM shows live values 'Wallets: 15 / 10', 'Live wallets: 10'."},
+  "option_enumeration": [
+    {"option": "browser tool/plugin for worker", "finding": "Hermes worker toolset exposes browser_exec (present, UNTESTED per one-capture rule)", "state": "PRESENT_UNTESTED"},
+    {"option": "Chrome/Edge/Chromium installed", "finding": "Chrome FOUND, Edge FOUND, playwright Chromium under ms-playwright (chromium-1208/1228, headless_shell)", "state": "AVAILABLE"},
+    {"option": "headless lib import", "finding": "Py3.11: playwright OK, selenium 4.43.0 OK, pyppeteer missing. Py3.14: all missing -> route must run under Python 3.11", "state": "AVAILABLE_ON_PY311"}
+  ],
+  "constraints_respected": {"operator_browser_untouched": true, "new_headless_instance_only": true, "cdp_9223_untouched": true, "port_8031_not_restarted": true, "no_install_performed": true, "read_only_http": true, "matrix_untouched": true, "apply_verified_results_untouched": true},
+  "artifacts": {"harness": "evidence/ui_surface/dom_capability_probe.py", "harness_sha256": "1670c4a043930fe27218cc77911720038e9d4bff8869ee2d8b3949df470b6be7", "raw_output": "evidence/ui_surface/DOM_CAPABILITY_RAW.txt", "raw_output_sha256": "271a66d4e757106290869f43e3b853efffc13ff704fe06adae1c693a9b5213ee"},
+  "implication_for_85_ui_rows": "A rendered-DOM proof route EXISTS and is reproducible (playwright + Python 3.11, new headless Chromium). The 85 UI rows recorded NOT_TESTED for 'no browser DOM capture' are NOT permanently unprovable."
+}
