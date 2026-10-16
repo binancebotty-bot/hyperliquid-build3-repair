@@ -57,10 +57,12 @@ signal; fix the task shape, not the concurrency).
 
 | date | lane | level tried | result | next |
 |---|---|---|---|---|
-| 2026-10-16 | custom-deepseek-free | 6 | ✅ held (17 total running, all alive; proxy in_flight 3, 1 acct busy, 0 cooldown) | probe 7 |
+| 2026-10-16 | **custom-deepseek-free** | 6 | ⚠️ **CORRECTED — NOT a real 6.** README: *"Real parallelism is the number of idle logins"*; `DEEPSEEK_MAX_CONCURRENT=24` is only the process cap. We have **3 logins** → true ceiling **3**. At 6, cards queue behind busy logins (`DEEPSEEK_ACCOUNT_LOCK_WAIT_MS` 120s) and a login can enter cooldown (`DEEPSEEK_ACCOUNT_COOLDOWN_MS` 600s). 429 modes: `concurrent_chat_blocked` (lock wait ran out), `rate_limit` (all logins cooling). **Effective ceiling = 3** (raise by adding logins, not cards). | hold at 3; add a login to go higher |
 | 2026-10-16 | openai-codex (luna) | 3 | ✅ held | probe 4 |
 | 2026-10-16 | gemini | 8 | ✅ held | probe 9 |
 | 2026-10-16 | nous | 7 then 4 | ❌ broke at both — account-wide fair-share 429 | ceiling ~3 |
+
+**LESSON (false green):** "N cards are running and the lane looks healthy" is NOT proof of N-way parallelism. Check the PROVIDER's own documented parallelism (logins / accounts / concurrency knob) and its in-flight vs lock counts. A queue that drains slowly looks identical to concurrency until you read the provider's internals.
 
 ## Standing routing rules (derived from the above)
 
