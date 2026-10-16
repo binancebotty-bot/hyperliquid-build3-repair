@@ -2818,7 +2818,7 @@ class Intent:
     coin_net_before: float
     reduce_only_intended: bool
     reduce_only_sent_planned: bool
-    exchange_position_after: float = 0.0
+    exchange_position_after: Optional[float] = None
     created_at_ms: int = 0
     notes: str = ""
 
@@ -3484,7 +3484,7 @@ class ManualLedger:
         # (from send_attempts), use it instead of the locally-computed value.
         # Rounding/step-size differences between fill size and exchange fill
         # caused the ledger to drift (e.g. RESOLV: ledger -661 vs exchange -662).
-        if intent.exchange_position_after != 0.0:
+        if intent.exchange_position_after is not None:
             after = intent.exchange_position_after
         if abs(after) <= POSITION_EPSILON:
             after = 0.0
@@ -8026,7 +8026,7 @@ class CopyFillMatcher:
             ts_ms = int(sent_row.get("leader_fill_timestamp_ms") or sent_row.get("created_at_ms") or utc_now_ms())
             wallet_pos_before = float(sent_row.get("wallet_position_before") or 0.0)
             coin_net_before = float(sent_row.get("coin_net_before") or 0.0)
-            exchange_pos_after = float(sent_row.get("position_after") or 0.0)
+            exchange_pos_after = float(sent_row.get("wallet_position_after_expected") or 0.0)
             delta = ManualLedger.signed_delta(side, 1.0)
             terminal = str(sent_row.get("terminal_state") or "").upper()
             reduce_only = (
