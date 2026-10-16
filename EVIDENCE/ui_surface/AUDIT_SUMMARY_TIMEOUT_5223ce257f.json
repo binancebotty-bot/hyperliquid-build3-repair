@@ -9,11 +9,11 @@
   "probe": {
     "method": "GET, read-only; three sequential requests, 10-second client timeout",
     "results": [
-      {"request": 1, "http_status": 200, "body_bytes": 5648038, "elapsed_seconds": 6.495},
-      {"request": 2, "http_status": 200, "body_bytes": 5648037, "elapsed_seconds": 0.095},
-      {"request": 3, "http_status": 200, "body_bytes": 5648037, "elapsed_seconds": 0.103}
+      {"request": 1, "http_status": 200, "body_bytes": 5679338, "elapsed_seconds": 6.223, "rows": 132247},
+      {"request": 2, "http_status": 200, "body_bytes": 5679337, "elapsed_seconds": 0.102, "rows": 132247},
+      {"request": 3, "http_status": 200, "body_bytes": 5679337, "elapsed_seconds": 0.084, "rows": 132247}
     ],
-    "response_excerpt": "{\"ok\":true,\"rows\":131687,...",
+    "response_excerpt": "{\"ok\":true,\"rows\":132247,...",
     "limitations": "No server restart, process instrumentation, route-specific trace, or upstream timing breakdown was performed."
   },
   "source_findings": [
