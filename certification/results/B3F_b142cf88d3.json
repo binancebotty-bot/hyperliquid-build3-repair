@@ -1,0 +1,86 @@
+{
+  "schema": "b3_network_row_evidence_v1",
+  "register_ref": "main:certification/certification_matrix.json",
+  "engine_commit": "b142cf88d389e791160f691aac3d936852b99975",
+  "tested_at_utc": "2026-10-16T21:21:21Z",
+  "results": [
+    {
+      "row_id": "TN-T6",
+      "feature": "Testnet transport T6",
+      "result": "NOT_TESTED",
+      "execution_proof": "Configuration (env/credentials) -> endpoints actually contacted (captured) -> identities used for signing and for truth reads",
+      "independent_oracle": "Packet/HTTP capture or request log of hostnames; exchange-side account address of resulting fills",
+      "checks": [
+        {"name": "captured_testnet_endpoint_identity", "result": "NOT_TESTED", "detail": "MISSING ROUTE: live testnet transport invocation with captured outbound hostnames/request log plus signing and truth-read identity evidence; no transport request was sent."},
+        {"name": "negative_mixed_network_signer_master_missing_credential", "result": "NOT_TESTED", "detail": "MISSING ROUTE: isolated live testnet transport and independent capture/oracle required to exercise mixed endpoints, signer==master, and missing credential cases; no mocks or credentials were used."}
+      ],
+      "notes": "Each declared negative remains untested because the transport/capture route is absent. Read-only UI GET http://127.0.0.1:8031/live-copy returned HTTP 200; this does not establish transport or oracle evidence.",
+      "engine_commit": "b142cf88d389e791160f691aac3d936852b99975"
+    },
+    {
+      "row_id": "TN-T7",
+      "feature": "Testnet transport T7",
+      "result": "NOT_TESTED",
+      "execution_proof": "Configuration (env/credentials) -> endpoints actually contacted (captured) -> identities used for signing and for truth reads",
+      "independent_oracle": "Packet/HTTP capture or request log of hostnames; exchange-side account address of resulting fills",
+      "checks": [
+        {"name": "production_signer_fallback_negative", "result": "NOT_TESTED", "detail": "MISSING ROUTE: live testnet transport with captured signing identity and independent exchange-side oracle; production signer fallback was not exercised."},
+        {"name": "negative_mixed_network_signer_master_missing_credential", "result": "NOT_TESTED", "detail": "MISSING ROUTE: isolated live testnet transport and independent capture/oracle required for each declared negative; no mock or fallback test was substituted."}
+      ],
+      "notes": "No authenticated transport was invoked.",
+      "engine_commit": "b142cf88d389e791160f691aac3d936852b99975"
+    },
+    {
+      "row_id": "TN-T8",
+      "feature": "Testnet transport T8",
+      "result": "NOT_TESTED",
+      "execution_proof": "Configuration (env/credentials) -> endpoints actually contacted (captured) -> identities used for signing and for truth reads",
+      "independent_oracle": "Packet/HTTP capture or request log of hostnames; exchange-side account address of resulting fills",
+      "checks": [
+        {"name": "production_sender_fallback_negative", "result": "NOT_TESTED", "detail": "MISSING ROUTE: live testnet transport with captured requests to prove sender selection and independent exchange-side identity oracle; no request was sent."},
+        {"name": "negative_mixed_network_signer_master_missing_credential", "result": "NOT_TESTED", "detail": "MISSING ROUTE: isolated live transport and capture/oracle for the declared negatives; no mocks used."}
+      ],
+      "notes": "No authenticated transport was invoked.",
+      "engine_commit": "b142cf88d389e791160f691aac3d936852b99975"
+    },
+    {
+      "row_id": "TN-T9",
+      "feature": "Testnet transport T9",
+      "result": "NOT_TESTED",
+      "execution_proof": "Configuration (env/credentials) -> endpoints actually contacted (captured) -> identities used for signing and for truth reads",
+      "independent_oracle": "Packet/HTTP capture or request log of hostnames; exchange-side account address of resulting fills",
+      "checks": [
+        {"name": "production_account_fallback_negative", "result": "NOT_TESTED", "detail": "MISSING ROUTE: live testnet transport with captured configuration/request identity and independent exchange-side oracle; no request was sent."},
+        {"name": "negative_mixed_network_signer_master_missing_credential", "result": "NOT_TESTED", "detail": "MISSING ROUTE: isolated live transport and independent capture/oracle for the declared negatives; no mocks used."}
+      ],
+      "notes": "No authenticated transport was invoked.",
+      "engine_commit": "b142cf88d389e791160f691aac3d936852b99975"
+    },
+    {
+      "row_id": "TN-T10",
+      "feature": "Testnet transport T10",
+      "result": "NOT_TESTED",
+      "execution_proof": "Configuration (env/credentials) -> endpoints actually contacted (captured) -> identities used for signing and for truth reads",
+      "independent_oracle": "Packet/HTTP capture or request log of hostnames; exchange-side account address of resulting fills",
+      "checks": [
+        {"name": "generic_default_endpoint_negative", "result": "NOT_TESTED", "detail": "MISSING ROUTE: live testnet transport with captured contacted hostnames/request log to establish endpoint selection; no request was sent."},
+        {"name": "negative_mixed_network_signer_master_missing_credential", "result": "NOT_TESTED", "detail": "MISSING ROUTE: isolated live transport and independent capture/oracle for the declared negatives; no mocks used."}
+      ],
+      "notes": "No authenticated transport was invoked.",
+      "engine_commit": "b142cf88d389e791160f691aac3d936852b99975"
+    },
+    {
+      "row_id": "TN-T11",
+      "feature": "Testnet transport T11",
+      "result": "NOT_TESTED",
+      "execution_proof": "Configuration (env/credentials) -> endpoints actually contacted (captured) -> identities used for signing and for truth reads",
+      "independent_oracle": "Packet/HTTP capture or request log of hostnames; exchange-side account address of resulting fills",
+      "checks": [
+        {"name": "alternate_http_client_negative", "result": "NOT_TESTED", "detail": "MISSING ROUTE: live testnet transport with captured HTTP client/request path and independent exchange-side oracle; alternate path not invoked."},
+        {"name": "negative_mixed_network_signer_master_missing_credential", "result": "NOT_TESTED", "detail": "MISSING ROUTE: isolated live transport and independent capture/oracle for the declared negatives; no mocks used."}
+      ],
+      "notes": "No authenticated transport was invoked.",
+      "engine_commit": "b142cf88d389e791160f691aac3d936852b99975"
+    }
+  ]
+}
