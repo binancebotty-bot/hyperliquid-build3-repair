@@ -9463,6 +9463,30 @@ class LiveCopyCore:
                     f"side={fill.side}; copy_size={intent.copy_size}; exchange_called=false"
                 ),
             )
+        elif send_status == "INTENT_NOT_SEND_ALLOWED" and not str(intent.decision or "").startswith("SEND_BLOCKED"):
+            # A fill blocked before send_if_allowed (wallet OFF/CLO, symbol unavailable, etc.)
+            # must still leave an audit row — never vanish silently.
+            if self.audit.has_fill_row(fill.leader_fill_id):
+                return
+            lifecycle = classify_send_lifecycle(intent)
+            decision = str(intent.decision or "UNKNOWN")
+            terminal_state = f"SEND_NOT_ATTEMPTED_{decision}"
+            self.audit.append_reconciliation(
+                "SEND_TERMINAL", terminal_state,
+                leader_wallet=fill.leader_wallet,
+                leader_fill_id=fill.leader_fill_id,
+                intent_id=intent.intent_id,
+                coin=fill.coin,
+                action=f"NO_SEND_{decision}",
+                reject_category=decision,
+                terminal_state=terminal_state,
+                engine_can_close=False,
+                engine_can_send=False,
+                notes=(
+                    f"lifecycle={lifecycle}; decision={decision}; reason={intent.reason}; "
+                    f"coin={fill.coin}; side={fill.side}; copy_size={intent.copy_size}; exchange_called=false"
+                ),
+            )
         elif (intent.send_allowed
               and not send_status.startswith("OWNERSHIP_GATE_")
               and send_status != "MOCK_ORDER_SUPPRESSED"
@@ -9773,7 +9797,10 @@ class LiveCopyCore:
             if summary is not None:
                 summary.leader_sends_attempted += 1
         else:
-            self._append_send_terminal(fill, intent, send_status)
+            try:
+                self._append_send_terminal(fill, intent, send_status)
+            except Exception as exc:
+                log_error("append_send_terminal", exc)
             if not self.audit.has_fill_row(fill.leader_fill_id):  # the invariant: no fill ends without a row, whatever the status
                 self.audit.append_reconciliation(
                     "SEND_TERMINAL", "BLOCKED_NO_TERMINAL_RECORDED", leader_wallet=fill.leader_wallet, leader_fill_id=fill.leader_fill_id,
