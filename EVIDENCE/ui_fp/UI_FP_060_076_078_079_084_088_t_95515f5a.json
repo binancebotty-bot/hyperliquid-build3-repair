@@ -1,0 +1,59 @@
+{
+  "schema": "b3_certification_evidence_v1",
+  "register_ref": "certification/certification_matrix.json",
+  "register_commit": "b142cf88d389e791160f691aac3d936852b99975",
+  "tested_at_utc": "2026-10-16T23:14:17Z",
+  "tested_surface": "http://127.0.0.1:8031/live-copy",
+  "route": "New headless Chromium using Python 3.11 Playwright; rendered DOM + urllib-served /api/live-copy-summary; no engine import; read-only.",
+  "results": [
+    {
+      "id": "UI-FP-060",
+      "result": "NOT_TESTED",
+      "probe": "rendered live-copy DOM and /api/live-copy-summary captured (raw/rows_probe.json); DOM contains wallet list and aggregate exposure, but this capture did not identify a per-wallet expanded detail exposure value matching current_exposure.",
+      "missing_route": "The live-copy page exposes only wallet summary in the captured view; no verified expanded-detail exposure field or value was captured. The summary API real_copy_positions has position_value null for sampled rows. A row-specific expansion/field mapping is needed."
+    },
+    {
+      "id": "UI-FP-076",
+      "result": "NOT_TESTED",
+      "probe": "DOM and API capture verified; API execution_quality_rows contains coin and other fields, but the rendered DOM capture did not capture the friction detail surface.",
+      "missing_route": "A rendered Execution Quality/friction detail table and row-level DOM-to-API mapping for friction_fills[].coin were not established; the existing rendered tables are positions, send attempts, intents, and reconciliations."
+    },
+    {
+      "id": "UI-FP-078",
+      "result": "NOT_TESTED",
+      "probe": "DOM and API capture verified; the API execution_quality_rows sampled entries expose limit_px, but no rendered DOM field for leader_reference_px was captured.",
+      "missing_route": "No verified rendered friction detail field for leader/reference price and no row-level mapping to intent leader_price or target/limit was captured."
+    },
+    {
+      "id": "UI-FP-079",
+      "result": "NOT_TESTED",
+      "probe": "DOM and API capture verified; API execution_quality_rows sampled rows show fill_avg_px null for pending attempts, but no rendered DOM friction-fill field was captured.",
+      "missing_route": "No rendered friction detail row with a copy fill price and matching independent API/oracle source was captured."
+    },
+    {
+      "id": "UI-FP-084",
+      "result": "NOT_TESTED",
+      "probe": "DOM and API capture verified; no rendered field or independent recomputation for fill-vs-limit bps was captured.",
+      "missing_route": "No rendered friction detail row with side-adjusted fill_vs_limit_bps was captured, and no independent computation could be bound to a displayed value."
+    },
+    {
+      "id": "UI-FP-088",
+      "result": "NOT_TESTED",
+      "probe": "Rendered OWNED COPY POSITIONS table (raw/rows_probe.json, table index 2) contains WALLET, COIN, SIDE, SIGNED SIZE; sampled 0G row displays SHORT / -3 and served API owned_copy_positions for that wallet+coin also says SHORT / signed_size -3. This is not an independent check against the register-specified manual_live_positions.json source.",
+      "missing_route": "The on-disk manual_live_positions.json oracle at the proven audit path contains only a ZWIRE sleeve for a synthetic 0xaaaa… wallet, not the displayed 0G wallet+coin row. No shared wallet+coin sample exists across DOM and the independent manual ledger, so the expected sign(manual signed_size) contract cannot be certified."
+    }
+  ],
+  "limitations": [
+    "Probe was a read-only observation of the live service; no controls or order actions were used.",
+    "All six rows remain NOT_TESTED because at least one required rendered-to-independent-source mapping is missing; no row is represented as a pass or failure."
+  ],
+  "raw_files": [
+    "EVIDENCE/ui_fp/raw/ui_fp_probe.json",
+    "EVIDENCE/ui_fp/raw/ui_fp_probe2.json",
+    "EVIDENCE/ui_fp/raw/rows_probe.json",
+    "EVIDENCE/ui_fp/raw/manual_oracle_summary.json",
+    "EVIDENCE/ui_fp/scripts/ui_fp_probe.py",
+    "EVIDENCE/ui_fp/scripts/ui_fp_probe2.py",
+    "EVIDENCE/ui_fp/scripts/probe_rows.py"
+  ]
+}
