@@ -245,20 +245,37 @@ def follower_mid(coin: str) -> float:
     def stale() -> bool:
         return (not m["px"] or m.get("scope") != dexes   # a newly learned DEX is priced at once
                 or utc_now_ms() - m["ms"] > int(fnum(os.getenv("HL_LIVE_MIDS_CACHE_TTL_SEC"), 2.0) * 1000))
+    def refresh_locked() -> None:
+        now = utc_now_ms()
+        if stale():
+            out: Dict[str, float] = {}
+            payloads = [{"type": "allMids", **({"dex": dex} if dex else {})} for dex in dexes]
+            for res in _XNET.post_many(MIDS_FETCHER, payloads, HL_INFO_URL, HTTP_TIMEOUT_SEC):
+                data = res.get("data") if res.get("ok") and isinstance(res.get("data"), dict) else {}
+                for key, value in data.items():
+                    if fnum(value, 0.0) > 0 and math.isfinite(fnum(value, 0.0)):
+                        out[str(key).upper()] = fnum(value, 0.0)
+            if out:
+                m["px"], m["ms"], m["scope"] = out, now, dexes
+                m["refresh_ms"] = utc_now_ms() - now
     if stale():
-        with _FOLLOWER_MIDS_REFRESH_LOCK:
-            now = utc_now_ms()
-            if stale():
-                out: Dict[str, float] = {}
-                payloads = [{"type": "allMids", **({"dex": dex} if dex else {})} for dex in dexes]
-                for res in _XNET.post_many(MIDS_FETCHER, payloads, HL_INFO_URL, HTTP_TIMEOUT_SEC):
-                    data = res.get("data") if res.get("ok") and isinstance(res.get("data"), dict) else {}
-                    for key, value in data.items():
-                        if fnum(value, 0.0) > 0 and math.isfinite(fnum(value, 0.0)):
-                            out[str(key).upper()] = fnum(value, 0.0)
-                if out:
-                    m["px"], m["ms"], m["scope"] = out, now, dexes
-                    m["refresh_ms"] = utc_now_ms() - now
+        max_age_ms = int(fnum(os.getenv("HL_LIVE_MIDS_MAX_AGE_SEC"), 5.0) * 1000)
+        usable = bool(m["px"]) and m.get("scope") == dexes and bool(m["ms"]) and now - m["ms"] <= max_age_ms
+        if usable and bval(os.getenv("HL_LIVE_MIDS_SWR"), True):
+            # stale-while-revalidate: the cached mids are still inside the max-age bound that applies anyway, so an
+            # order does not wait for the refresh (every worker queued behind one allMids read per scope: ~2-3 s each)
+            if _FOLLOWER_MIDS_REFRESH_LOCK.acquire(blocking=False):
+                def _bg() -> None:
+                    try:
+                        refresh_locked()
+                    except Exception as exc:
+                        log_error("follower_mid_refresh", exc)
+                    finally:
+                        _FOLLOWER_MIDS_REFRESH_LOCK.release()
+                threading.Thread(target=_bg, name="mids-refresh", daemon=True).start()
+        else:
+            with _FOLLOWER_MIDS_REFRESH_LOCK:
+                refresh_locked()
     now = utc_now_ms()
     if not m["ms"] or now - m["ms"] > int(fnum(os.getenv("HL_LIVE_MIDS_MAX_AGE_SEC"), 5.0) * 1000):
         return 0.0
@@ -295,7 +312,28 @@ def leader_mid(coin: str, use_cached: bool = False) -> float:
     now, m = utc_now_ms(), _LEADER_MIDS
     ttl_ms = (int(fnum(os.getenv("HL_LIVE_MIDS_MAX_AGE_SEC"), 5.0) * 1000) if use_cached
               else int(fnum(os.getenv("HL_LIVE_MIDS_CACHE_TTL_SEC"), 2.0) * 1000))
-    if not m["px"] or dex not in m["dexes"] or now - m["ms"] > ttl_ms:
+    max_age_ms = int(fnum(os.getenv("HL_LIVE_MIDS_MAX_AGE_SEC"), 5.0) * 1000)
+    if (m["px"] and dex in m["dexes"] and ttl_ms < now - m["ms"] <= max_age_ms
+            and bval(os.getenv("HL_LIVE_MIDS_SWR"), True)):
+        # stale-while-revalidate (see follower_mid): inside the max-age bound the cached mid is used, refreshed behind
+        if _LEADER_MIDS_REFRESH_LOCK.acquire(blocking=False):
+            def _bg() -> None:
+                try:
+                    dexes = sorted(set(m["dexes"]) | {"", dex})
+                    out: Dict[str, float] = {}
+                    payloads = [{"type": "allMids", **({"dex": d} if d else {})} for d in dexes]
+                    for res in _XNET.post_many(LEADER_MIDS_FETCHER, payloads, HL_LEADER_INFO_URL, HTTP_TIMEOUT_SEC):
+                        for key, value in (res.get("data") if res.get("ok") and isinstance(res.get("data"), dict) else {}).items():
+                            if fnum(value, 0.0) > 0 and math.isfinite(fnum(value, 0.0)):
+                                out[str(key).upper()] = fnum(value, 0.0)
+                    if out:
+                        m["px"], m["ms"], m["dexes"] = out, now, dexes
+                except Exception as exc:
+                    log_error("leader_mid_refresh", exc)
+                finally:
+                    _LEADER_MIDS_REFRESH_LOCK.release()
+            threading.Thread(target=_bg, name="mids-refresh", daemon=True).start()
+    elif not m["px"] or dex not in m["dexes"] or now - m["ms"] > ttl_ms:
         with _LEADER_MIDS_REFRESH_LOCK:  # prewarm calls this from several threads: one refresh at a time, and the
             now = utc_now_ms()           # dex set is merged under the lock so a second dex is never dropped
             if not m["px"] or dex not in m["dexes"] or now - m["ms"] > ttl_ms:
