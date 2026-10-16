@@ -1,0 +1,62 @@
+n=61 counts={"STILL_NOT_TESTED": 19, "FAIL": 16, "PASS": 10, "BLOCKED": 16} real_executed=5 negatives_pass=True
+ENG-INV-11|FAIL|STILL_NOT_TESTED|ENGINE_FAIL_9eb2d40f69.json/rows::ENG-INV-11 (committed sibling artifa
+ENG-INV-13|FAIL|FAIL|ENGINE_FAIL_9eb2d40f69.json/rows::ENG-INV-13 (committed sibling artifa
+ENG-INV-14|FAIL|FAIL|ENGINE_FAIL_9eb2d40f69.json/rows::ENG-INV-14 (committed sibling artifa
+ENG-001|FAIL|STILL_NOT_TESTED|ENGINE_FAIL_9eb2d40f69.json/rows::ENG-001 (committed sibling artifact,
+ENG-002|FAIL|FAIL|ENGINE_FAIL_9eb2d40f69.json/rows::ENG-002 (committed sibling artifact,
+ENG-003|NOT_TESTED|STILL_NOT_TESTED|no executed evidence artifact (live-network)
+ENG-004|FAIL|STILL_NOT_TESTED|ENGINE_FAIL_9eb2d40f69.json/rows::ENG-004 (committed sibling artifact,
+ORD-001|FAIL|FAIL|ORDER_CORRECTION_fefc2b04.json/rows::ORD-001 (committed sibling artifa
+ORD-002|FAIL|FAIL|ORDER_CORRECTION_fefc2b04.json/rows::ORD-002 (committed sibling artifa
+ORD-003|NOT_TESTED|PASS|MIXED_NT_FAIL_b3e6d66651.json/checks::ORD-003 (REAL EXECUTION this run
+ORD-004|NOT_TESTED|PASS|MIXED_NT_FAIL_b3e6d66651.json/checks::ORD-004 (REAL EXECUTION this run
+ORD-005|NOT_TESTED|STILL_NOT_TESTED|no executed evidence artifact found for this row
+ORD-006|FAIL|FAIL|ORDER_CORRECTION_fefc2b04.json/rows::ORD-006 (committed sibling artifa
+ORD-007|NOT_TESTED|STILL_NOT_TESTED|no executed evidence artifact found for this row
+ORD-008|FAIL|FAIL|ORDER_CORRECTION_fefc2b04.json/rows::ORD-008 (committed sibling artifa
+UI-WALLET-002|NOT_TESTED|STILL_NOT_TESTED|no executed evidence artifact (live-network)
+UI-WALLET-006|NOT_TESTED|STILL_NOT_TESTED|no executed evidence artifact (live-network)
+UI-WALLET-008|NOT_TESTED|STILL_NOT_TESTED|no executed evidence artifact (live-network)
+UI-WALLET-014|NOT_TESTED|STILL_NOT_TESTED|no executed evidence artifact (live-network)
+UI-WALLET-015|NOT_TESTED|STILL_NOT_TESTED|no executed evidence artifact (live-network)
+UI-LCC-CARD-02|NOT_TESTED|BLOCKED|UI_NT_b3e6d66651.json/rows::UI-LCC-CARD-02 (committed sibling artifact
+UI-LCC-CARD-03|NOT_TESTED|BLOCKED|UI_NT_b3e6d66651.json/rows::UI-LCC-CARD-03 (committed sibling artifact
+UI-LCC-CARD-04|NOT_TESTED|BLOCKED|UI_NT_b3e6d66651.json/rows::UI-LCC-CARD-04 (committed sibling artifact
+UI-LCC-CARD-05|NOT_TESTED|BLOCKED|UI_NT_b3e6d66651.json/rows::UI-LCC-CARD-05 (committed sibling artifact
+UI-LCC-CARD-06|NOT_TESTED|BLOCKED|UI_NT_b3e6d66651.json/rows::UI-LCC-CARD-06 (committed sibling artifact
+UI-LCC-CARD-07|NOT_TESTED|BLOCKED|UI_NT_b3e6d66651.json/rows::UI-LCC-CARD-07 (committed sibling artifact
+UI-LCC-WTBL-09|NOT_TESTED|BLOCKED|UI_NT_b3e6d66651.json/rows::UI-LCC-WTBL-09 (committed sibling artifact
+UI-LCC-WTBL-10|NOT_TESTED|BLOCKED|UI_NT_b3e6d66651.json/rows::UI-LCC-WTBL-10 (committed sibling artifact
+UI-LCC-WTBL-11|NOT_TESTED|BLOCKED|UI_NT_b3e6d66651.json/rows::UI-LCC-WTBL-11 (committed sibling artifact
+UI-LCC-WTBL-12|NOT_TESTED|BLOCKED|UI_NT_b3e6d66651.json/rows::UI-LCC-WTBL-12 (committed sibling artifact
+UI-LCC-WTBL-13|NOT_TESTED|BLOCKED|UI_NT_b3e6d66651.json/rows::UI-LCC-WTBL-13 (committed sibling artifact
+UI-LCC-WTBL-14|NOT_TESTED|BLOCKED|UI_NT_b3e6d66651.json/rows::UI-LCC-WTBL-14 (committed sibling artifact
+UI-LCC-DETAIL-01|NOT_TESTED|BLOCKED|UI_NT_b3e6d66651.json/rows::UI-LCC-DETAIL-01 (committed sibling artifa
+UI-LCC-DETAIL-02|NOT_TESTED|BLOCKED|UI_NT_b3e6d66651.json/rows::UI-LCC-DETAIL-02 (committed sibling artifa
+UI-LCC-DETAIL-03|NOT_TESTED|BLOCKED|UI_NT_b3e6d66651.json/rows::UI-LCC-DETAIL-03 (committed sibling artifa
+UI-LCC-DETAIL-04|NOT_TESTED|BLOCKED|UI_NT_b3e6d66651.json/rows::UI-LCC-DETAIL-04 (committed sibling artifa
+UI-LCC-ADD-06|NOT_TESTED|PASS|UI_NT_b3e6d66651.json/rows::UI-LCC-ADD-06 (committed sibling artifact,
+UI-LCC-ADD-07|NOT_TESTED|FAIL|UI_NT_b3e6d66651.json/rows::UI-LCC-ADD-07 (committed sibling artifact,
+UI-LCC-ADD-10|NOT_TESTED|PASS|UI_NT_b3e6d66651.json/rows::UI-LCC-ADD-10 (committed sibling artifact,
+UI-SSOT-TOP-06|NOT_TESTED|FAIL|UI_NT_b3e6d66651.json/rows::UI-SSOT-TOP-06 (committed sibling artifact
+UI-SSOT-TBL-25|NOT_TESTED|PASS|UI_NT_b3e6d66651.json/rows::UI-SSOT-TBL-25 (committed sibling artifact
+UI-SSOT-PAGE-11|NOT_TESTED|PASS|UI_NT_b3e6d66651.json/rows::UI-SSOT-PAGE-11 (committed sibling artifac
+UI-TRUTH-005|NOT_TESTED|PASS|UI_NT_b3e6d66651.json/rows::UI-TRUTH-005 (committed sibling artifact, 
+HEALTH-001|NOT_TESTED|STILL_NOT_TESTED|no executed evidence artifact (live-network)
+HEALTH-005|NOT_TESTED|STILL_NOT_TESTED|no executed evidence artifact (live-network)
+CTRL-BIND|NOT_TESTED|STILL_NOT_TESTED|no executed evidence artifact (live-network)
+DONE-10|NOT_TESTED|FAIL|CONTROL_fa9d9f55ff.json/rows::DONE-10 (committed sibling artifact, car
+TN-F03|NOT_TESTED|STILL_NOT_TESTED|no executed evidence artifact (live-network)
+TN-F04|NOT_TESTED|STILL_NOT_TESTED|no executed evidence artifact (live-network)
+TN-F05|FAIL|FAIL|ORDER_CORRECTION_fefc2b04.json/rows::TN-F05 (committed sibling artifac
+TN-F09|FAIL|FAIL|NLS_RESIDUAL_2a269ad226.json/rows::TN-F09 (committed sibling artifact,
+TN-F10|FAIL|FAIL|NLS_RESIDUAL_2a269ad226.json/rows::TN-F10 (committed sibling artifact,
+TN-F11|FAIL|FAIL|NLS_RESIDUAL_2a269ad226.json/rows::TN-F11 (committed sibling artifact,
+TN-F12|FAIL|FAIL|NLS_RESIDUAL_2a269ad226.json/rows::TN-F12 (committed sibling artifact,
+TN-F13|NOT_TESTED|STILL_NOT_TESTED|no executed evidence artifact (live-network)
+TN-F19|FAIL|FAIL|NLS_RESIDUAL_2a269ad226.json/rows::TN-F19 (committed sibling artifact,
+ENG-VAL-01|NOT_TESTED|PASS|MIXED_NT_FAIL_b3e6d66651.json/checks::ENG-VAL-01 (REAL EXECUTION this 
+ENG-VAL-02|NOT_TESTED|PASS|MIXED_NT_FAIL_b3e6d66651.json/checks::ENG-VAL-02 (REAL EXECUTION this 
+ENG-VAL-03|NOT_TESTED|STILL_NOT_TESTED|no executed evidence artifact (live-network)
+ENG-VAL-04|NOT_TESTED|PASS|MIXED_NT_FAIL_b3e6d66651.json/checks::ENG-VAL-04 (REAL EXECUTION this 
+INC-11|NOT_TESTED|STILL_NOT_TESTED|no executed evidence artifact (live-network)

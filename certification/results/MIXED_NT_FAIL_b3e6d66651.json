@@ -1,0 +1,1204 @@
+{
+ "schema": "b3cert.mixed_nt_fail.v2",
+ "task_id": "t_34859113",
+ "title": "B3-CERT MIXED NOT_TESTED+FAIL corrective (61 rows)",
+ "register_of_record": "certification/certification_matrix.json @ main b142cf8",
+ "tested_commit": "b3e6d6665116510f8a9ceaa5254b060bf4d73998",
+ "tested_at_utc": "2026-10-16T19:38:00Z",
+ "engine_source": "C:\\Users\\wigmore\\hyperliquid-build3-repair\\.worktrees\\t_34859113\\_archive\\hl_stage2\\HL_Live_Copy_Service_Core.py",
+ "engine_sha256": "c5a40384e9a36dcf9116f202b1857e4081611e8d83f2c5288248d3b702248d04",
+ "method": "offline-deterministic rows executed for real against the pinned engine source with per-check pass/fail + non-vacuous negatives; sibling-executed rows carried from committed artifacts; live-network rows kept STILL_NOT_TESTED with blocker",
+ "evidence_artifacts_scanned": [
+  "B3-TESTNET-ACCEPT.json",
+  "CONTROL_fa9d9f55ff.json",
+  "DONE10_CORRECTION_4fb8255.json",
+  "ENG-001-004_43731b4f.json",
+  "ENG-005-009_43731b4f.json",
+  "ENG-015-016-TNF17_43731b4f.json",
+  "ENG-INV-01-02_ENG-010-014_SEM-B1-B4_43731b4f.json",
+  "ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json",
+  "ENG-INV-03-05_43731b4f.json",
+  "ENG-INV-06-09_43731b4.json",
+  "ENG-INV-07-09_runtime_43731b4f.json",
+  "ENG-INV-07-09_runtime_43731b4f1f19.json",
+  "ENG-INV-10-14_43731b4f.json",
+  "ENGINE_RESIDUAL_2a269ad226.json",
+  "ENV_MAP_52a16149e370.json",
+  "HEALTH_CORRECTION_fefc2b04.json",
+  "HEALTH_fa9d9f55ff.json",
+  "NET_LIFE_SETTLE_fa9d9f55ff.json",
+  "NLS_RESIDUAL_2a269ad226.json",
+  "ORDER_CORRECTION_fefc2b04.json",
+  "ORDER_fa9d9f55ff.json",
+  "PRICING_CORRECTION_2d29211148.json",
+  "PRICING_CORRECTION_fefc2b04.json",
+  "PRICING_NT_fefc2b04.json",
+  "PRICING_fa9d9f55ff.json",
+  "REGRESSION_43731b4f.json",
+  "REGRESSION_fa9d9f55ff.json",
+  "RHC_RESIDUAL_2a269ad.json",
+  "RISK_fa9d9f55.json",
+  "UI_CORRECTION_2d29211.json",
+  "UI_FP_FAIL_09e1258003.json",
+  "UI_fa9d9f55ff.json",
+  "WALLET_fa9d9f55ff.json",
+  "UI_NT_b3e6d66651.json",
+  "ENGINE_FAIL_9eb2d40f69.json"
+ ],
+ "real_execution_rows": [
+  "ENG-VAL-01",
+  "ENG-VAL-02",
+  "ENG-VAL-04",
+  "ORD-003",
+  "ORD-004"
+ ],
+ "checks": [
+  {
+   "row": "ORD-003",
+   "check": "sub-min blocked",
+   "expected": false,
+   "actual": false,
+   "pass": true,
+   "note": ""
+  },
+  {
+   "row": "ORD-003",
+   "check": "status BELOW_MIN_NOTIONAL",
+   "expected": "SEND_NOT_ATTEMPTED_BELOW_MIN_NOTIONAL",
+   "actual": "SEND_NOT_ATTEMPTED_BELOW_MIN_NOTIONAL",
+   "pass": true,
+   "note": ""
+  },
+  {
+   "row": "ORD-003",
+   "check": "exchange_called False",
+   "expected": false,
+   "actual": false,
+   "pass": true,
+   "note": ""
+  },
+  {
+   "row": "ORD-003",
+   "check": "NEG notional>=min opens",
+   "expected": true,
+   "actual": true,
+   "pass": true,
+   "note": ""
+  },
+  {
+   "row": "ORD-004",
+   "check": "ceil@3dp==1.235",
+   "expected": 1.235,
+   "actual": 1.235,
+   "pass": true,
+   "note": ""
+  },
+  {
+   "row": "ORD-004",
+   "check": "floor@3dp==1.234",
+   "expected": 1.234,
+   "actual": 1.234,
+   "pass": true,
+   "note": ""
+  },
+  {
+   "row": "ORD-004",
+   "check": "NEG floor@0==1.0",
+   "expected": 1.0,
+   "actual": 1.0,
+   "pass": true,
+   "note": ""
+  },
+  {
+   "row": "ORD-004",
+   "check": "NEG floor@0 != ceil@3",
+   "expected": true,
+   "actual": true,
+   "pass": true,
+   "note": ""
+  },
+  {
+   "row": "ENG-VAL-01",
+   "check": "fnum(None)==0.0",
+   "expected": 0.0,
+   "actual": 0.0,
+   "pass": true,
+   "note": ""
+  },
+  {
+   "row": "ENG-VAL-01",
+   "check": "fnum(None,3.3)==3.3",
+   "expected": 3.3,
+   "actual": 3.3,
+   "pass": true,
+   "note": ""
+  },
+  {
+   "row": "ENG-VAL-01",
+   "check": "fnum-empty,4.4==4.4",
+   "expected": 4.4,
+   "actual": 4.4,
+   "pass": true,
+   "note": ""
+  },
+  {
+   "row": "ENG-VAL-01",
+   "check": "fnum-junk,5.5==5.5",
+   "expected": 5.5,
+   "actual": 5.5,
+   "pass": true,
+   "note": ""
+  },
+  {
+   "row": "ENG-VAL-01",
+   "check": "NEG fnum(12.5,9.9)==12.5",
+   "expected": 12.5,
+   "actual": 12.5,
+   "pass": true,
+   "note": ""
+  },
+  {
+   "row": "ENG-VAL-02",
+   "check": "wire_size=nan blocked",
+   "expected": false,
+   "actual": false,
+   "pass": true,
+   "note": ""
+  },
+  {
+   "row": "ENG-VAL-02",
+   "check": "limit_px=nan blocked",
+   "expected": false,
+   "actual": false,
+   "pass": true,
+   "note": ""
+  },
+  {
+   "row": "ENG-VAL-02",
+   "check": "wire_size=inf blocked",
+   "expected": false,
+   "actual": false,
+   "pass": true,
+   "note": ""
+  },
+  {
+   "row": "ENG-VAL-02",
+   "check": "limit_px=inf blocked",
+   "expected": false,
+   "actual": false,
+   "pass": true,
+   "note": ""
+  },
+  {
+   "row": "ENG-VAL-02",
+   "check": "fnum(nan)==0.0",
+   "expected": 0.0,
+   "actual": 0.0,
+   "pass": true,
+   "note": ""
+  },
+  {
+   "row": "ENG-VAL-02",
+   "check": "fnum(inf,7.5)==7.5",
+   "expected": 7.5,
+   "actual": 7.5,
+   "pass": true,
+   "note": ""
+  },
+  {
+   "row": "ENG-VAL-02",
+   "check": "NEG finite size passes",
+   "expected": true,
+   "actual": true,
+   "pass": true,
+   "note": ""
+  },
+  {
+   "row": "ENG-VAL-04",
+   "check": "liq == oracle(20x)",
+   "expected": 41538.461538,
+   "actual": 41538.461538,
+   "pass": true,
+   "note": ""
+  },
+  {
+   "row": "ENG-VAL-04",
+   "check": "NEG leverage changes liq",
+   "expected": true,
+   "actual": true,
+   "pass": true,
+   "note": ""
+  },
+  {
+   "row": "ENG-VAL-04",
+   "check": "NEG flat-after -> None",
+   "expected": null,
+   "actual": null,
+   "pass": true,
+   "note": ""
+  }
+ ],
+ "negative_tests_pass": true,
+ "engine_self_test": {
+  "ran": true,
+  "exit_code": 1,
+  "pass": false,
+  "tail": "orktrees\\t_34859113\\_archive\\hl_stage2\\HL_Live_Copy_Service_Core.py\", line 12924, in main\n    run_self_test()\n  File \"C:\\Users\\wigmore\\hyperliquid-build3-repair\\.worktrees\\t_34859113\\_archive\\hl_stage2\\HL_Live_Copy_Service_Core.py\", line 12069, in run_self_test\n    _check(\"ENTRY_SAFETY_BLOCK \u2192 VALID_BLOCKED_BY_SAFETY_GATE not ACTIVE_RED\",\n  File \"C:\\Users\\wigmore\\hyperliquid-build3-repair\\.worktrees\\t_34859113\\_archive\\hl_stage2\\HL_Live_Copy_Service_Core.py\", line 11056, in _check\n    raise TestFailure(f\"FAIL: {name}\" + (f\" :: {detail}\" if detail else \"\"))\nTestFailure: FAIL: ENTRY_SAFETY_BLOCK \u2192 VALID_BLOCKED_BY_SAFETY_GATE not ACTIVE_RED :: counts={'COPIED_AND_RECONCILED': 1, 'EXPLICITLY_EXCLUDED_BY_CONFIG': 0, 'VALID_NO_ACTION_CLOSE_PROVEN': 0, 'VALID_CLOSE_RECOVERY_TERMINAL': 0, 'MISSED_ENTRY_TERMINAL': 0, 'MISSED_ADD_TERMINAL': 0, 'ENTRY_ADD_RECOVERY_ACTIVE': 0, 'EXIT_RECOVERY_ACTIVE': 0, 'ENGINE_CLOSE_RETRY_REQUIRED': 0, 'MANUAL_EXIT_RECOVERY_REQUIRED': 0, 'VALID_BLOCKED_BY_SAFETY_GATE': 0, 'VALID_BLOCKED_BY_OWNERSHIP_GATE': 0, 'VALID_BLOCKED_BY_SYMBOL_GATE': 0, 'VALID_BLOCKED_BY_MIN_NOTIONAL': 0, 'VALID_BLOCKED_BY_DUPLICATE_OR_REPLAY': 0, 'ACTIVE_RED': 10, 'UNCLASSIFIED': 0}\n",
+  "engine_sha256": "c5a40384e9a36dcf9116f202b1857e4081611e8d83f2c5288248d3b702248d04"
+ },
+ "carried_evidence_note": "carried verdicts come from committed sibling artifacts; the FAIL sibling was pinned to engine sha 2dfbd571..., while the CURRENT engine at tested_commit is c5a40384... whose own --self-test is RED, so carried FAILs are NOT re-passed here",
+ "summary": {
+  "n": 61,
+  "verdict_counts": {
+   "STILL_NOT_TESTED": 19,
+   "FAIL": 16,
+   "PASS": 10,
+   "BLOCKED": 16
+  },
+  "real_executed": 5
+ },
+ "rows": [
+  {
+   "id": "ENG-INV-11",
+   "area": "ENGINE",
+   "register_result": "FAIL",
+   "applicability": "APPLIES",
+   "execution_proof": "Leader event (testnet-observable) -> desired net per coin -> planner delta -> single sender -> testnet order -> MASTER fill/position",
+   "independent_oracle": "Hyperliquid testnet info API read by a script that does not import engine code: clearinghouseState (all perp DEXes), openOrders, userFillsByTime for MASTER; leader fills from mainnet info API",
+   "tested_commit": "b3e6d6665116510f8a9ceaa5254b060bf4d73998",
+   "tested_at_utc": "2026-10-16T19:38:00Z",
+   "verdict": "STILL_NOT_TESTED",
+   "evidence_ref": "ENGINE_FAIL_9eb2d40f69.json/rows::ENG-INV-11 (committed sibling artifact, carried)"
+  },
+  {
+   "id": "ENG-INV-13",
+   "area": "ENGINE",
+   "register_result": "FAIL",
+   "applicability": "APPLIES",
+   "execution_proof": "Leader event (testnet-observable) -> desired net per coin -> planner delta -> single sender -> testnet order -> MASTER fill/position",
+   "independent_oracle": "Hyperliquid testnet info API read by a script that does not import engine code: clearinghouseState (all perp DEXes), openOrders, userFillsByTime for MASTER; leader fills from mainnet info API",
+   "tested_commit": "b3e6d6665116510f8a9ceaa5254b060bf4d73998",
+   "tested_at_utc": "2026-10-16T19:38:00Z",
+   "verdict": "FAIL",
+   "evidence_ref": "ENGINE_FAIL_9eb2d40f69.json/rows::ENG-INV-13 (committed sibling artifact, carried)"
+  },
+  {
+   "id": "ENG-INV-14",
+   "area": "ENGINE",
+   "register_result": "FAIL",
+   "applicability": "APPLIES",
+   "execution_proof": "Leader event (testnet-observable) -> desired net per coin -> planner delta -> single sender -> testnet order -> MASTER fill/position",
+   "independent_oracle": "Hyperliquid testnet info API read by a script that does not import engine code: clearinghouseState (all perp DEXes), openOrders, userFillsByTime for MASTER; leader fills from mainnet info API",
+   "tested_commit": "b3e6d6665116510f8a9ceaa5254b060bf4d73998",
+   "tested_at_utc": "2026-10-16T19:38:00Z",
+   "verdict": "FAIL",
+   "evidence_ref": "ENGINE_FAIL_9eb2d40f69.json/rows::ENG-INV-14 (committed sibling artifact, carried)"
+  },
+  {
+   "id": "ENG-001",
+   "area": "ENGINE",
+   "register_result": "FAIL",
+   "applicability": "APPLIES",
+   "execution_proof": "Leader event (testnet-observable) -> desired net per coin -> planner delta -> single sender -> testnet order -> MASTER fill/position",
+   "independent_oracle": "Hyperliquid testnet info API read by a script that does not import engine code: clearinghouseState (all perp DEXes), openOrders, userFillsByTime for MASTER; leader fills from mainnet info API",
+   "tested_commit": "b3e6d6665116510f8a9ceaa5254b060bf4d73998",
+   "tested_at_utc": "2026-10-16T19:38:00Z",
+   "verdict": "STILL_NOT_TESTED",
+   "evidence_ref": "ENGINE_FAIL_9eb2d40f69.json/rows::ENG-001 (committed sibling artifact, carried)"
+  },
+  {
+   "id": "ENG-002",
+   "area": "ENGINE",
+   "register_result": "FAIL",
+   "applicability": "APPLIES",
+   "execution_proof": "Leader event (testnet-observable) -> desired net per coin -> planner delta -> single sender -> testnet order -> MASTER fill/position",
+   "independent_oracle": "Hyperliquid testnet info API read by a script that does not import engine code: clearinghouseState (all perp DEXes), openOrders, userFillsByTime for MASTER; leader fills from mainnet info API",
+   "tested_commit": "b3e6d6665116510f8a9ceaa5254b060bf4d73998",
+   "tested_at_utc": "2026-10-16T19:38:00Z",
+   "verdict": "FAIL",
+   "evidence_ref": "ENGINE_FAIL_9eb2d40f69.json/rows::ENG-002 (committed sibling artifact, carried)"
+  },
+  {
+   "id": "ENG-003",
+   "area": "ENGINE",
+   "register_result": "NOT_TESTED",
+   "applicability": "OPEN_DECISION",
+   "execution_proof": "Leader event (testnet-observable) -> desired net per coin -> planner delta -> single sender -> testnet order -> MASTER fill/position",
+   "independent_oracle": "Hyperliquid testnet info API read by a script that does not import engine code: clearinghouseState (all perp DEXes), openOrders, userFillsByTime for MASTER; leader fills from mainnet info API",
+   "tested_commit": "b3e6d6665116510f8a9ceaa5254b060bf4d73998",
+   "tested_at_utc": "2026-10-16T19:38:00Z",
+   "verdict": "STILL_NOT_TESTED",
+   "blocker": "requires the live testnet engine running + real exchange orders; engine not running (last core_start_record 2026-10-15T09:54Z) and no real-order authority in this card",
+   "evidence_ref": "no executed evidence artifact (live-network)"
+  },
+  {
+   "id": "ENG-004",
+   "area": "ENGINE",
+   "register_result": "FAIL",
+   "applicability": "APPLIES",
+   "execution_proof": "Leader event (testnet-observable) -> desired net per coin -> planner delta -> single sender -> testnet order -> MASTER fill/position",
+   "independent_oracle": "Hyperliquid testnet info API read by a script that does not import engine code: clearinghouseState (all perp DEXes), openOrders, userFillsByTime for MASTER; leader fills from mainnet info API",
+   "tested_commit": "b3e6d6665116510f8a9ceaa5254b060bf4d73998",
+   "tested_at_utc": "2026-10-16T19:38:00Z",
+   "verdict": "STILL_NOT_TESTED",
+   "evidence_ref": "ENGINE_FAIL_9eb2d40f69.json/rows::ENG-004 (committed sibling artifact, carried)"
+  },
+  {
+   "id": "ORD-001",
+   "area": "ORDER",
+   "register_result": "FAIL",
+   "applicability": "APPLIES",
+   "execution_proof": "Planner delta -> order payload as signed (size, side, reduce_only, tif, cloid, asset id) -> exchange response",
+   "independent_oracle": "Exchange order status / userFills for the cloid/oid; asset meta from the same network's info API",
+   "tested_commit": "b3e6d6665116510f8a9ceaa5254b060bf4d73998",
+   "tested_at_utc": "2026-10-16T19:38:00Z",
+   "verdict": "FAIL",
+   "evidence_ref": "ORDER_CORRECTION_fefc2b04.json/rows::ORD-001 (committed sibling artifact, carried)"
+  },
+  {
+   "id": "ORD-002",
+   "area": "ORDER",
+   "register_result": "FAIL",
+   "applicability": "APPLIES",
+   "execution_proof": "Planner delta -> order payload as signed (size, side, reduce_only, tif, cloid, asset id) -> exchange response",
+   "independent_oracle": "Exchange order status / userFills for the cloid/oid; asset meta from the same network's info API",
+   "tested_commit": "b3e6d6665116510f8a9ceaa5254b060bf4d73998",
+   "tested_at_utc": "2026-10-16T19:38:00Z",
+   "verdict": "FAIL",
+   "evidence_ref": "ORDER_CORRECTION_fefc2b04.json/rows::ORD-002 (committed sibling artifact, carried)"
+  },
+  {
+   "id": "ORD-003",
+   "area": "ORDER",
+   "register_result": "NOT_TESTED",
+   "applicability": "OPEN_DECISION",
+   "execution_proof": "Planner delta -> order payload as signed (size, side, reduce_only, tif, cloid, asset id) -> exchange response",
+   "independent_oracle": "Exchange order status / userFills for the cloid/oid; asset meta from the same network's info API",
+   "tested_commit": "b3e6d6665116510f8a9ceaa5254b060bf4d73998",
+   "tested_at_utc": "2026-10-16T19:38:00Z",
+   "verdict": "PASS",
+   "evidence_ref": "MIXED_NT_FAIL_b3e6d66651.json/checks::ORD-003 (REAL EXECUTION this run)",
+   "checks": [
+    {
+     "row": "ORD-003",
+     "check": "sub-min blocked",
+     "expected": false,
+     "actual": false,
+     "pass": true,
+     "note": ""
+    },
+    {
+     "row": "ORD-003",
+     "check": "status BELOW_MIN_NOTIONAL",
+     "expected": "SEND_NOT_ATTEMPTED_BELOW_MIN_NOTIONAL",
+     "actual": "SEND_NOT_ATTEMPTED_BELOW_MIN_NOTIONAL",
+     "pass": true,
+     "note": ""
+    },
+    {
+     "row": "ORD-003",
+     "check": "exchange_called False",
+     "expected": false,
+     "actual": false,
+     "pass": true,
+     "note": ""
+    },
+    {
+     "row": "ORD-003",
+     "check": "NEG notional>=min opens",
+     "expected": true,
+     "actual": true,
+     "pass": true,
+     "note": ""
+    }
+   ]
+  },
+  {
+   "id": "ORD-004",
+   "area": "ORDER",
+   "register_result": "NOT_TESTED",
+   "applicability": "OPEN_DECISION",
+   "execution_proof": "Planner delta -> order payload as signed (size, side, reduce_only, tif, cloid, asset id) -> exchange response",
+   "independent_oracle": "Exchange order status / userFills for the cloid/oid; asset meta from the same network's info API",
+   "tested_commit": "b3e6d6665116510f8a9ceaa5254b060bf4d73998",
+   "tested_at_utc": "2026-10-16T19:38:00Z",
+   "verdict": "PASS",
+   "evidence_ref": "MIXED_NT_FAIL_b3e6d66651.json/checks::ORD-004 (REAL EXECUTION this run)",
+   "checks": [
+    {
+     "row": "ORD-004",
+     "check": "ceil@3dp==1.235",
+     "expected": 1.235,
+     "actual": 1.235,
+     "pass": true,
+     "note": ""
+    },
+    {
+     "row": "ORD-004",
+     "check": "floor@3dp==1.234",
+     "expected": 1.234,
+     "actual": 1.234,
+     "pass": true,
+     "note": ""
+    },
+    {
+     "row": "ORD-004",
+     "check": "NEG floor@0==1.0",
+     "expected": 1.0,
+     "actual": 1.0,
+     "pass": true,
+     "note": ""
+    },
+    {
+     "row": "ORD-004",
+     "check": "NEG floor@0 != ceil@3",
+     "expected": true,
+     "actual": true,
+     "pass": true,
+     "note": ""
+    }
+   ]
+  },
+  {
+   "id": "ORD-005",
+   "area": "ORDER",
+   "register_result": "NOT_TESTED",
+   "applicability": "APPLIES",
+   "execution_proof": "Planner delta -> order payload as signed (size, side, reduce_only, tif, cloid, asset id) -> exchange response",
+   "independent_oracle": "Exchange order status / userFills for the cloid/oid; asset meta from the same network's info API",
+   "tested_commit": "b3e6d6665116510f8a9ceaa5254b060bf4d73998",
+   "tested_at_utc": "2026-10-16T19:38:00Z",
+   "verdict": "STILL_NOT_TESTED",
+   "blocker": "no executed evidence artifact found",
+   "evidence_ref": "no executed evidence artifact found for this row"
+  },
+  {
+   "id": "ORD-006",
+   "area": "ORDER",
+   "register_result": "FAIL",
+   "applicability": "APPLIES",
+   "execution_proof": "Planner delta -> order payload as signed (size, side, reduce_only, tif, cloid, asset id) -> exchange response",
+   "independent_oracle": "Exchange order status / userFills for the cloid/oid; asset meta from the same network's info API",
+   "tested_commit": "b3e6d6665116510f8a9ceaa5254b060bf4d73998",
+   "tested_at_utc": "2026-10-16T19:38:00Z",
+   "verdict": "FAIL",
+   "evidence_ref": "ORDER_CORRECTION_fefc2b04.json/rows::ORD-006 (committed sibling artifact, carried)"
+  },
+  {
+   "id": "ORD-007",
+   "area": "ORDER",
+   "register_result": "NOT_TESTED",
+   "applicability": "OPEN_DECISION",
+   "execution_proof": "Planner delta -> order payload as signed (size, side, reduce_only, tif, cloid, asset id) -> exchange response",
+   "independent_oracle": "Exchange order status / userFills for the cloid/oid; asset meta from the same network's info API",
+   "tested_commit": "b3e6d6665116510f8a9ceaa5254b060bf4d73998",
+   "tested_at_utc": "2026-10-16T19:38:00Z",
+   "verdict": "STILL_NOT_TESTED",
+   "blocker": "no executed evidence artifact found",
+   "evidence_ref": "no executed evidence artifact found for this row"
+  },
+  {
+   "id": "ORD-008",
+   "area": "ORDER",
+   "register_result": "FAIL",
+   "applicability": "APPLIES",
+   "execution_proof": "Planner delta -> order payload as signed (size, side, reduce_only, tif, cloid, asset id) -> exchange response",
+   "independent_oracle": "Exchange order status / userFills for the cloid/oid; asset meta from the same network's info API",
+   "tested_commit": "b3e6d6665116510f8a9ceaa5254b060bf4d73998",
+   "tested_at_utc": "2026-10-16T19:38:00Z",
+   "verdict": "FAIL",
+   "evidence_ref": "ORDER_CORRECTION_fefc2b04.json/rows::ORD-008 (committed sibling artifact, carried)"
+  },
+  {
+   "id": "UI-WALLET-002",
+   "area": "WALLET",
+   "register_result": "NOT_TESTED",
+   "applicability": "OPEN_DECISION",
+   "execution_proof": "UI action -> live_config.json / wallet_gate.json write -> running engine reads it (no restart) -> testnet behaviour",
+   "independent_oracle": "Exchange positions, orders and fills; config file content hash before/after",
+   "tested_commit": "b3e6d6665116510f8a9ceaa5254b060bf4d73998",
+   "tested_at_utc": "2026-10-16T19:38:00Z",
+   "verdict": "STILL_NOT_TESTED",
+   "blocker": "requires the live testnet engine running + real exchange orders; engine not running (last core_start_record 2026-10-15T09:54Z) and no real-order authority in this card",
+   "evidence_ref": "no executed evidence artifact (live-network)"
+  },
+  {
+   "id": "UI-WALLET-006",
+   "area": "WALLET",
+   "register_result": "NOT_TESTED",
+   "applicability": "OPEN_DECISION",
+   "execution_proof": "UI action -> live_config.json / wallet_gate.json write -> running engine reads it (no restart) -> testnet behaviour",
+   "independent_oracle": "Exchange positions, orders and fills; config file content hash before/after",
+   "tested_commit": "b3e6d6665116510f8a9ceaa5254b060bf4d73998",
+   "tested_at_utc": "2026-10-16T19:38:00Z",
+   "verdict": "STILL_NOT_TESTED",
+   "blocker": "requires the live testnet engine running + real exchange orders; engine not running (last core_start_record 2026-10-15T09:54Z) and no real-order authority in this card",
+   "evidence_ref": "no executed evidence artifact (live-network)"
+  },
+  {
+   "id": "UI-WALLET-008",
+   "area": "WALLET",
+   "register_result": "NOT_TESTED",
+   "applicability": "OPEN_DECISION",
+   "execution_proof": "UI action -> live_config.json / wallet_gate.json write -> running engine reads it (no restart) -> testnet behaviour",
+   "independent_oracle": "Exchange positions, orders and fills; config file content hash before/after",
+   "tested_commit": "b3e6d6665116510f8a9ceaa5254b060bf4d73998",
+   "tested_at_utc": "2026-10-16T19:38:00Z",
+   "verdict": "STILL_NOT_TESTED",
+   "blocker": "requires the live testnet engine running + real exchange orders; engine not running (last core_start_record 2026-10-15T09:54Z) and no real-order authority in this card",
+   "evidence_ref": "no executed evidence artifact (live-network)"
+  },
+  {
+   "id": "UI-WALLET-014",
+   "area": "WALLET",
+   "register_result": "NOT_TESTED",
+   "applicability": "OPEN_DECISION",
+   "execution_proof": "UI action -> live_config.json / wallet_gate.json write -> running engine reads it (no restart) -> testnet behaviour",
+   "independent_oracle": "Exchange positions, orders and fills; config file content hash before/after",
+   "tested_commit": "b3e6d6665116510f8a9ceaa5254b060bf4d73998",
+   "tested_at_utc": "2026-10-16T19:38:00Z",
+   "verdict": "STILL_NOT_TESTED",
+   "blocker": "requires the live testnet engine running + real exchange orders; engine not running (last core_start_record 2026-10-15T09:54Z) and no real-order authority in this card",
+   "evidence_ref": "no executed evidence artifact (live-network)"
+  },
+  {
+   "id": "UI-WALLET-015",
+   "area": "WALLET",
+   "register_result": "NOT_TESTED",
+   "applicability": "OPEN_DECISION",
+   "execution_proof": "UI action -> live_config.json / wallet_gate.json write -> running engine reads it (no restart) -> testnet behaviour",
+   "independent_oracle": "Exchange positions, orders and fills; config file content hash before/after",
+   "tested_commit": "b3e6d6665116510f8a9ceaa5254b060bf4d73998",
+   "tested_at_utc": "2026-10-16T19:38:00Z",
+   "verdict": "STILL_NOT_TESTED",
+   "blocker": "requires the live testnet engine running + real exchange orders; engine not running (last core_start_record 2026-10-15T09:54Z) and no real-order authority in this card",
+   "evidence_ref": "no executed evidence artifact (live-network)"
+  },
+  {
+   "id": "UI-LCC-CARD-02",
+   "area": "UI",
+   "register_result": "NOT_TESTED",
+   "applicability": "APPLIES",
+   "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+   "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+   "tested_commit": "b3e6d6665116510f8a9ceaa5254b060bf4d73998",
+   "tested_at_utc": "2026-10-16T19:38:00Z",
+   "verdict": "BLOCKED",
+   "evidence_ref": "UI_NT_b3e6d66651.json/rows::UI-LCC-CARD-02 (committed sibling artifact, carried)"
+  },
+  {
+   "id": "UI-LCC-CARD-03",
+   "area": "UI",
+   "register_result": "NOT_TESTED",
+   "applicability": "APPLIES",
+   "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+   "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+   "tested_commit": "b3e6d6665116510f8a9ceaa5254b060bf4d73998",
+   "tested_at_utc": "2026-10-16T19:38:00Z",
+   "verdict": "BLOCKED",
+   "evidence_ref": "UI_NT_b3e6d66651.json/rows::UI-LCC-CARD-03 (committed sibling artifact, carried)"
+  },
+  {
+   "id": "UI-LCC-CARD-04",
+   "area": "UI",
+   "register_result": "NOT_TESTED",
+   "applicability": "APPLIES",
+   "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+   "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+   "tested_commit": "b3e6d6665116510f8a9ceaa5254b060bf4d73998",
+   "tested_at_utc": "2026-10-16T19:38:00Z",
+   "verdict": "BLOCKED",
+   "evidence_ref": "UI_NT_b3e6d66651.json/rows::UI-LCC-CARD-04 (committed sibling artifact, carried)"
+  },
+  {
+   "id": "UI-LCC-CARD-05",
+   "area": "UI",
+   "register_result": "NOT_TESTED",
+   "applicability": "APPLIES",
+   "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+   "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+   "tested_commit": "b3e6d6665116510f8a9ceaa5254b060bf4d73998",
+   "tested_at_utc": "2026-10-16T19:38:00Z",
+   "verdict": "BLOCKED",
+   "evidence_ref": "UI_NT_b3e6d66651.json/rows::UI-LCC-CARD-05 (committed sibling artifact, carried)"
+  },
+  {
+   "id": "UI-LCC-CARD-06",
+   "area": "UI",
+   "register_result": "NOT_TESTED",
+   "applicability": "APPLIES",
+   "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+   "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+   "tested_commit": "b3e6d6665116510f8a9ceaa5254b060bf4d73998",
+   "tested_at_utc": "2026-10-16T19:38:00Z",
+   "verdict": "BLOCKED",
+   "evidence_ref": "UI_NT_b3e6d66651.json/rows::UI-LCC-CARD-06 (committed sibling artifact, carried)"
+  },
+  {
+   "id": "UI-LCC-CARD-07",
+   "area": "UI",
+   "register_result": "NOT_TESTED",
+   "applicability": "APPLIES",
+   "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+   "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+   "tested_commit": "b3e6d6665116510f8a9ceaa5254b060bf4d73998",
+   "tested_at_utc": "2026-10-16T19:38:00Z",
+   "verdict": "BLOCKED",
+   "evidence_ref": "UI_NT_b3e6d66651.json/rows::UI-LCC-CARD-07 (committed sibling artifact, carried)"
+  },
+  {
+   "id": "UI-LCC-WTBL-09",
+   "area": "UI",
+   "register_result": "NOT_TESTED",
+   "applicability": "APPLIES",
+   "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+   "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+   "tested_commit": "b3e6d6665116510f8a9ceaa5254b060bf4d73998",
+   "tested_at_utc": "2026-10-16T19:38:00Z",
+   "verdict": "BLOCKED",
+   "evidence_ref": "UI_NT_b3e6d66651.json/rows::UI-LCC-WTBL-09 (committed sibling artifact, carried)"
+  },
+  {
+   "id": "UI-LCC-WTBL-10",
+   "area": "UI",
+   "register_result": "NOT_TESTED",
+   "applicability": "APPLIES",
+   "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+   "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+   "tested_commit": "b3e6d6665116510f8a9ceaa5254b060bf4d73998",
+   "tested_at_utc": "2026-10-16T19:38:00Z",
+   "verdict": "BLOCKED",
+   "evidence_ref": "UI_NT_b3e6d66651.json/rows::UI-LCC-WTBL-10 (committed sibling artifact, carried)"
+  },
+  {
+   "id": "UI-LCC-WTBL-11",
+   "area": "UI",
+   "register_result": "NOT_TESTED",
+   "applicability": "APPLIES",
+   "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+   "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+   "tested_commit": "b3e6d6665116510f8a9ceaa5254b060bf4d73998",
+   "tested_at_utc": "2026-10-16T19:38:00Z",
+   "verdict": "BLOCKED",
+   "evidence_ref": "UI_NT_b3e6d66651.json/rows::UI-LCC-WTBL-11 (committed sibling artifact, carried)"
+  },
+  {
+   "id": "UI-LCC-WTBL-12",
+   "area": "UI",
+   "register_result": "NOT_TESTED",
+   "applicability": "APPLIES",
+   "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+   "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+   "tested_commit": "b3e6d6665116510f8a9ceaa5254b060bf4d73998",
+   "tested_at_utc": "2026-10-16T19:38:00Z",
+   "verdict": "BLOCKED",
+   "evidence_ref": "UI_NT_b3e6d66651.json/rows::UI-LCC-WTBL-12 (committed sibling artifact, carried)"
+  },
+  {
+   "id": "UI-LCC-WTBL-13",
+   "area": "UI",
+   "register_result": "NOT_TESTED",
+   "applicability": "APPLIES",
+   "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+   "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+   "tested_commit": "b3e6d6665116510f8a9ceaa5254b060bf4d73998",
+   "tested_at_utc": "2026-10-16T19:38:00Z",
+   "verdict": "BLOCKED",
+   "evidence_ref": "UI_NT_b3e6d66651.json/rows::UI-LCC-WTBL-13 (committed sibling artifact, carried)"
+  },
+  {
+   "id": "UI-LCC-WTBL-14",
+   "area": "UI",
+   "register_result": "NOT_TESTED",
+   "applicability": "APPLIES",
+   "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+   "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+   "tested_commit": "b3e6d6665116510f8a9ceaa5254b060bf4d73998",
+   "tested_at_utc": "2026-10-16T19:38:00Z",
+   "verdict": "BLOCKED",
+   "evidence_ref": "UI_NT_b3e6d66651.json/rows::UI-LCC-WTBL-14 (committed sibling artifact, carried)"
+  },
+  {
+   "id": "UI-LCC-DETAIL-01",
+   "area": "UI",
+   "register_result": "NOT_TESTED",
+   "applicability": "APPLIES",
+   "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+   "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+   "tested_commit": "b3e6d6665116510f8a9ceaa5254b060bf4d73998",
+   "tested_at_utc": "2026-10-16T19:38:00Z",
+   "verdict": "BLOCKED",
+   "evidence_ref": "UI_NT_b3e6d66651.json/rows::UI-LCC-DETAIL-01 (committed sibling artifact, carried)"
+  },
+  {
+   "id": "UI-LCC-DETAIL-02",
+   "area": "UI",
+   "register_result": "NOT_TESTED",
+   "applicability": "APPLIES",
+   "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+   "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+   "tested_commit": "b3e6d6665116510f8a9ceaa5254b060bf4d73998",
+   "tested_at_utc": "2026-10-16T19:38:00Z",
+   "verdict": "BLOCKED",
+   "evidence_ref": "UI_NT_b3e6d66651.json/rows::UI-LCC-DETAIL-02 (committed sibling artifact, carried)"
+  },
+  {
+   "id": "UI-LCC-DETAIL-03",
+   "area": "UI",
+   "register_result": "NOT_TESTED",
+   "applicability": "APPLIES",
+   "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+   "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+   "tested_commit": "b3e6d6665116510f8a9ceaa5254b060bf4d73998",
+   "tested_at_utc": "2026-10-16T19:38:00Z",
+   "verdict": "BLOCKED",
+   "evidence_ref": "UI_NT_b3e6d66651.json/rows::UI-LCC-DETAIL-03 (committed sibling artifact, carried)"
+  },
+  {
+   "id": "UI-LCC-DETAIL-04",
+   "area": "UI",
+   "register_result": "NOT_TESTED",
+   "applicability": "APPLIES",
+   "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+   "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+   "tested_commit": "b3e6d6665116510f8a9ceaa5254b060bf4d73998",
+   "tested_at_utc": "2026-10-16T19:38:00Z",
+   "verdict": "BLOCKED",
+   "evidence_ref": "UI_NT_b3e6d66651.json/rows::UI-LCC-DETAIL-04 (committed sibling artifact, carried)"
+  },
+  {
+   "id": "UI-LCC-ADD-06",
+   "area": "UI",
+   "register_result": "NOT_TESTED",
+   "applicability": "APPLIES",
+   "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+   "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+   "tested_commit": "b3e6d6665116510f8a9ceaa5254b060bf4d73998",
+   "tested_at_utc": "2026-10-16T19:38:00Z",
+   "verdict": "PASS",
+   "evidence_ref": "UI_NT_b3e6d66651.json/rows::UI-LCC-ADD-06 (committed sibling artifact, carried)"
+  },
+  {
+   "id": "UI-LCC-ADD-07",
+   "area": "UI",
+   "register_result": "NOT_TESTED",
+   "applicability": "APPLIES",
+   "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+   "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+   "tested_commit": "b3e6d6665116510f8a9ceaa5254b060bf4d73998",
+   "tested_at_utc": "2026-10-16T19:38:00Z",
+   "verdict": "FAIL",
+   "evidence_ref": "UI_NT_b3e6d66651.json/rows::UI-LCC-ADD-07 (committed sibling artifact, carried)"
+  },
+  {
+   "id": "UI-LCC-ADD-10",
+   "area": "UI",
+   "register_result": "NOT_TESTED",
+   "applicability": "APPLIES",
+   "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+   "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+   "tested_commit": "b3e6d6665116510f8a9ceaa5254b060bf4d73998",
+   "tested_at_utc": "2026-10-16T19:38:00Z",
+   "verdict": "PASS",
+   "evidence_ref": "UI_NT_b3e6d66651.json/rows::UI-LCC-ADD-10 (committed sibling artifact, carried)"
+  },
+  {
+   "id": "UI-SSOT-TOP-06",
+   "area": "UI",
+   "register_result": "NOT_TESTED",
+   "applicability": "APPLIES",
+   "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+   "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+   "tested_commit": "b3e6d6665116510f8a9ceaa5254b060bf4d73998",
+   "tested_at_utc": "2026-10-16T19:38:00Z",
+   "verdict": "FAIL",
+   "evidence_ref": "UI_NT_b3e6d66651.json/rows::UI-SSOT-TOP-06 (committed sibling artifact, carried)"
+  },
+  {
+   "id": "UI-SSOT-TBL-25",
+   "area": "UI",
+   "register_result": "NOT_TESTED",
+   "applicability": "APPLIES",
+   "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+   "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+   "tested_commit": "b3e6d6665116510f8a9ceaa5254b060bf4d73998",
+   "tested_at_utc": "2026-10-16T19:38:00Z",
+   "verdict": "PASS",
+   "evidence_ref": "UI_NT_b3e6d66651.json/rows::UI-SSOT-TBL-25 (committed sibling artifact, carried)"
+  },
+  {
+   "id": "UI-SSOT-PAGE-11",
+   "area": "UI",
+   "register_result": "NOT_TESTED",
+   "applicability": "APPLIES",
+   "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+   "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+   "tested_commit": "b3e6d6665116510f8a9ceaa5254b060bf4d73998",
+   "tested_at_utc": "2026-10-16T19:38:00Z",
+   "verdict": "PASS",
+   "evidence_ref": "UI_NT_b3e6d66651.json/rows::UI-SSOT-PAGE-11 (committed sibling artifact, carried)"
+  },
+  {
+   "id": "UI-TRUTH-005",
+   "area": "UI",
+   "register_result": "NOT_TESTED",
+   "applicability": "APPLIES",
+   "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+   "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+   "tested_commit": "b3e6d6665116510f8a9ceaa5254b060bf4d73998",
+   "tested_at_utc": "2026-10-16T19:38:00Z",
+   "verdict": "PASS",
+   "evidence_ref": "UI_NT_b3e6d66651.json/rows::UI-TRUTH-005 (committed sibling artifact, carried)"
+  },
+  {
+   "id": "HEALTH-001",
+   "area": "HEALTH",
+   "register_result": "NOT_TESTED",
+   "applicability": "APPLIES",
+   "execution_proof": "Induced condition (WS drop, stale truth, API error) -> engine state -> UI indicator within stated latency",
+   "independent_oracle": "Wall-clock timestamps of the induced fault versus the UI/status change",
+   "tested_commit": "b3e6d6665116510f8a9ceaa5254b060bf4d73998",
+   "tested_at_utc": "2026-10-16T19:38:00Z",
+   "verdict": "STILL_NOT_TESTED",
+   "blocker": "requires the live testnet engine running + real exchange orders; engine not running (last core_start_record 2026-10-15T09:54Z) and no real-order authority in this card",
+   "evidence_ref": "no executed evidence artifact (live-network)"
+  },
+  {
+   "id": "HEALTH-005",
+   "area": "HEALTH",
+   "register_result": "NOT_TESTED",
+   "applicability": "APPLIES",
+   "execution_proof": "Induced condition (WS drop, stale truth, API error) -> engine state -> UI indicator within stated latency",
+   "independent_oracle": "Wall-clock timestamps of the induced fault versus the UI/status change",
+   "tested_commit": "b3e6d6665116510f8a9ceaa5254b060bf4d73998",
+   "tested_at_utc": "2026-10-16T19:38:00Z",
+   "verdict": "STILL_NOT_TESTED",
+   "blocker": "requires the live testnet engine running + real exchange orders; engine not running (last core_start_record 2026-10-15T09:54Z) and no real-order authority in this card",
+   "evidence_ref": "no executed evidence artifact (live-network)"
+  },
+  {
+   "id": "CTRL-BIND",
+   "area": "CONTROL",
+   "register_result": "NOT_TESTED",
+   "applicability": "OPEN_DECISION",
+   "execution_proof": "Envelope on origin/control-mailbox -> wake -> correlated consumption record -> durable state transition",
+   "independent_oracle": "git log of origin/control-mailbox (exact SHAs) and the consumer's durable receipt",
+   "tested_commit": "b3e6d6665116510f8a9ceaa5254b060bf4d73998",
+   "tested_at_utc": "2026-10-16T19:38:00Z",
+   "verdict": "STILL_NOT_TESTED",
+   "blocker": "requires the live testnet engine running + real exchange orders; engine not running (last core_start_record 2026-10-15T09:54Z) and no real-order authority in this card",
+   "evidence_ref": "no executed evidence artifact (live-network)"
+  },
+  {
+   "id": "DONE-10",
+   "area": "CONTROL",
+   "register_result": "NOT_TESTED",
+   "applicability": "APPLIES",
+   "execution_proof": "Envelope on origin/control-mailbox -> wake -> correlated consumption record -> durable state transition",
+   "independent_oracle": "git log of origin/control-mailbox (exact SHAs) and the consumer's durable receipt",
+   "tested_commit": "b3e6d6665116510f8a9ceaa5254b060bf4d73998",
+   "tested_at_utc": "2026-10-16T19:38:00Z",
+   "verdict": "FAIL",
+   "evidence_ref": "CONTROL_fa9d9f55ff.json/rows::DONE-10 (committed sibling artifact, carried)"
+  },
+  {
+   "id": "TN-F03",
+   "area": "ENGINE",
+   "register_result": "NOT_TESTED",
+   "applicability": "OPEN_DECISION",
+   "execution_proof": "Predeclared Phase 6T-style scenario on testnet through the production engine path only (no direct exchange.order); evidence per class with exchange parity",
+   "independent_oracle": "Hyperliquid testnet info API read by a script that does not import engine code: clearinghouseState (all perp DEXes), openOrders, userFillsByTime for MASTER; leader fills from mainnet info API",
+   "tested_commit": "b3e6d6665116510f8a9ceaa5254b060bf4d73998",
+   "tested_at_utc": "2026-10-16T19:38:00Z",
+   "verdict": "STILL_NOT_TESTED",
+   "blocker": "requires the live testnet engine running + real exchange orders; engine not running (last core_start_record 2026-10-15T09:54Z) and no real-order authority in this card",
+   "evidence_ref": "no executed evidence artifact (live-network)"
+  },
+  {
+   "id": "TN-F04",
+   "area": "ENGINE",
+   "register_result": "NOT_TESTED",
+   "applicability": "APPLIES_PROPOSED",
+   "execution_proof": "Predeclared Phase 6T-style scenario on testnet through the production engine path only (no direct exchange.order); evidence per class with exchange parity",
+   "independent_oracle": "Hyperliquid testnet info API read by a script that does not import engine code: clearinghouseState (all perp DEXes), openOrders, userFillsByTime for MASTER; leader fills from mainnet info API",
+   "tested_commit": "b3e6d6665116510f8a9ceaa5254b060bf4d73998",
+   "tested_at_utc": "2026-10-16T19:38:00Z",
+   "verdict": "STILL_NOT_TESTED",
+   "blocker": "requires the live testnet engine running + real exchange orders; engine not running (last core_start_record 2026-10-15T09:54Z) and no real-order authority in this card",
+   "evidence_ref": "no executed evidence artifact (live-network)"
+  },
+  {
+   "id": "TN-F05",
+   "area": "ORDER",
+   "register_result": "FAIL",
+   "applicability": "APPLIES",
+   "execution_proof": "Predeclared Phase 6T-style scenario on testnet through the production engine path only (no direct exchange.order); evidence per class with exchange parity",
+   "independent_oracle": "Exchange order status / userFills for the cloid/oid; asset meta from the same network's info API",
+   "tested_commit": "b3e6d6665116510f8a9ceaa5254b060bf4d73998",
+   "tested_at_utc": "2026-10-16T19:38:00Z",
+   "verdict": "FAIL",
+   "evidence_ref": "ORDER_CORRECTION_fefc2b04.json/rows::TN-F05 (committed sibling artifact, carried)"
+  },
+  {
+   "id": "TN-F09",
+   "area": "SETTLE",
+   "register_result": "FAIL",
+   "applicability": "APPLIES",
+   "execution_proof": "Predeclared Phase 6T-style scenario on testnet through the production engine path only (no direct exchange.order); evidence per class with exchange parity",
+   "independent_oracle": "MASTER userFillsByTime per DEX scope and clearinghouseState, read independently of the engine",
+   "tested_commit": "b3e6d6665116510f8a9ceaa5254b060bf4d73998",
+   "tested_at_utc": "2026-10-16T19:38:00Z",
+   "verdict": "FAIL",
+   "evidence_ref": "NLS_RESIDUAL_2a269ad226.json/rows::TN-F09 (committed sibling artifact, carried)"
+  },
+  {
+   "id": "TN-F10",
+   "area": "SETTLE",
+   "register_result": "FAIL",
+   "applicability": "APPLIES_PROPOSED",
+   "execution_proof": "Predeclared Phase 6T-style scenario on testnet through the production engine path only (no direct exchange.order); evidence per class with exchange parity",
+   "independent_oracle": "MASTER userFillsByTime per DEX scope and clearinghouseState, read independently of the engine",
+   "tested_commit": "b3e6d6665116510f8a9ceaa5254b060bf4d73998",
+   "tested_at_utc": "2026-10-16T19:38:00Z",
+   "verdict": "FAIL",
+   "evidence_ref": "NLS_RESIDUAL_2a269ad226.json/rows::TN-F10 (committed sibling artifact, carried)"
+  },
+  {
+   "id": "TN-F11",
+   "area": "SETTLE",
+   "register_result": "FAIL",
+   "applicability": "APPLIES_PROPOSED",
+   "execution_proof": "Predeclared Phase 6T-style scenario on testnet through the production engine path only (no direct exchange.order); evidence per class with exchange parity",
+   "independent_oracle": "MASTER userFillsByTime per DEX scope and clearinghouseState, read independently of the engine",
+   "tested_commit": "b3e6d6665116510f8a9ceaa5254b060bf4d73998",
+   "tested_at_utc": "2026-10-16T19:38:00Z",
+   "verdict": "FAIL",
+   "evidence_ref": "NLS_RESIDUAL_2a269ad226.json/rows::TN-F11 (committed sibling artifact, carried)"
+  },
+  {
+   "id": "TN-F12",
+   "area": "SETTLE",
+   "register_result": "FAIL",
+   "applicability": "APPLIES",
+   "execution_proof": "Predeclared Phase 6T-style scenario on testnet through the production engine path only (no direct exchange.order); evidence per class with exchange parity",
+   "independent_oracle": "MASTER userFillsByTime per DEX scope and clearinghouseState, read independently of the engine",
+   "tested_commit": "b3e6d6665116510f8a9ceaa5254b060bf4d73998",
+   "tested_at_utc": "2026-10-16T19:38:00Z",
+   "verdict": "FAIL",
+   "evidence_ref": "NLS_RESIDUAL_2a269ad226.json/rows::TN-F12 (committed sibling artifact, carried)"
+  },
+  {
+   "id": "TN-F13",
+   "area": "SETTLE",
+   "register_result": "NOT_TESTED",
+   "applicability": "APPLIES",
+   "execution_proof": "Predeclared Phase 6T-style scenario on testnet through the production engine path only (no direct exchange.order); evidence per class with exchange parity",
+   "independent_oracle": "MASTER userFillsByTime per DEX scope and clearinghouseState, read independently of the engine",
+   "tested_commit": "b3e6d6665116510f8a9ceaa5254b060bf4d73998",
+   "tested_at_utc": "2026-10-16T19:38:00Z",
+   "verdict": "STILL_NOT_TESTED",
+   "blocker": "requires the live testnet engine running + real exchange orders; engine not running (last core_start_record 2026-10-15T09:54Z) and no real-order authority in this card",
+   "evidence_ref": "no executed evidence artifact (live-network)"
+  },
+  {
+   "id": "TN-F19",
+   "area": "LIFECYCLE",
+   "register_result": "FAIL",
+   "applicability": "APPLIES",
+   "execution_proof": "Predeclared Phase 6T-style scenario on testnet through the production engine path only (no direct exchange.order); evidence per class with exchange parity",
+   "independent_oracle": "OS process list, port bindings, exchange open orders/fills during the transition window",
+   "tested_commit": "b3e6d6665116510f8a9ceaa5254b060bf4d73998",
+   "tested_at_utc": "2026-10-16T19:38:00Z",
+   "verdict": "FAIL",
+   "evidence_ref": "NLS_RESIDUAL_2a269ad226.json/rows::TN-F19 (committed sibling artifact, carried)"
+  },
+  {
+   "id": "ENG-VAL-01",
+   "area": "ENGINE",
+   "register_result": "NOT_TESTED",
+   "applicability": "APPLIES_PROPOSED",
+   "execution_proof": "Leader event (testnet-observable) -> desired net per coin -> planner delta -> single sender -> testnet order -> MASTER fill/position",
+   "independent_oracle": "Hyperliquid testnet info API read by a script that does not import engine code: clearinghouseState (all perp DEXes), openOrders, userFillsByTime for MASTER; leader fills from mainnet info API",
+   "tested_commit": "b3e6d6665116510f8a9ceaa5254b060bf4d73998",
+   "tested_at_utc": "2026-10-16T19:38:00Z",
+   "verdict": "PASS",
+   "evidence_ref": "MIXED_NT_FAIL_b3e6d66651.json/checks::ENG-VAL-01 (REAL EXECUTION this run)",
+   "checks": [
+    {
+     "row": "ENG-VAL-01",
+     "check": "fnum(None)==0.0",
+     "expected": 0.0,
+     "actual": 0.0,
+     "pass": true,
+     "note": ""
+    },
+    {
+     "row": "ENG-VAL-01",
+     "check": "fnum(None,3.3)==3.3",
+     "expected": 3.3,
+     "actual": 3.3,
+     "pass": true,
+     "note": ""
+    },
+    {
+     "row": "ENG-VAL-01",
+     "check": "fnum-empty,4.4==4.4",
+     "expected": 4.4,
+     "actual": 4.4,
+     "pass": true,
+     "note": ""
+    },
+    {
+     "row": "ENG-VAL-01",
+     "check": "fnum-junk,5.5==5.5",
+     "expected": 5.5,
+     "actual": 5.5,
+     "pass": true,
+     "note": ""
+    },
+    {
+     "row": "ENG-VAL-01",
+     "check": "NEG fnum(12.5,9.9)==12.5",
+     "expected": 12.5,
+     "actual": 12.5,
+     "pass": true,
+     "note": ""
+    }
+   ]
+  },
+  {
+   "id": "ENG-VAL-02",
+   "area": "ENGINE",
+   "register_result": "NOT_TESTED",
+   "applicability": "APPLIES_PROPOSED",
+   "execution_proof": "Leader event (testnet-observable) -> desired net per coin -> planner delta -> single sender -> testnet order -> MASTER fill/position",
+   "independent_oracle": "Hyperliquid testnet info API read by a script that does not import engine code: clearinghouseState (all perp DEXes), openOrders, userFillsByTime for MASTER; leader fills from mainnet info API",
+   "tested_commit": "b3e6d6665116510f8a9ceaa5254b060bf4d73998",
+   "tested_at_utc": "2026-10-16T19:38:00Z",
+   "verdict": "PASS",
+   "evidence_ref": "MIXED_NT_FAIL_b3e6d66651.json/checks::ENG-VAL-02 (REAL EXECUTION this run)",
+   "checks": [
+    {
+     "row": "ENG-VAL-02",
+     "check": "wire_size=nan blocked",
+     "expected": false,
+     "actual": false,
+     "pass": true,
+     "note": ""
+    },
+    {
+     "row": "ENG-VAL-02",
+     "check": "limit_px=nan blocked",
+     "expected": false,
+     "actual": false,
+     "pass": true,
+     "note": ""
+    },
+    {
+     "row": "ENG-VAL-02",
+     "check": "wire_size=inf blocked",
+     "expected": false,
+     "actual": false,
+     "pass": true,
+     "note": ""
+    },
+    {
+     "row": "ENG-VAL-02",
+     "check": "limit_px=inf blocked",
+     "expected": false,
+     "actual": false,
+     "pass": true,
+     "note": ""
+    },
+    {
+     "row": "ENG-VAL-02",
+     "check": "fnum(nan)==0.0",
+     "expected": 0.0,
+     "actual": 0.0,
+     "pass": true,
+     "note": ""
+    },
+    {
+     "row": "ENG-VAL-02",
+     "check": "fnum(inf,7.5)==7.5",
+     "expected": 7.5,
+     "actual": 7.5,
+     "pass": true,
+     "note": ""
+    },
+    {
+     "row": "ENG-VAL-02",
+     "check": "NEG finite size passes",
+     "expected": true,
+     "actual": true,
+     "pass": true,
+     "note": ""
+    }
+   ]
+  },
+  {
+   "id": "ENG-VAL-03",
+   "area": "ENGINE",
+   "register_result": "NOT_TESTED",
+   "applicability": "APPLIES_PROPOSED",
+   "execution_proof": "Leader event (testnet-observable) -> desired net per coin -> planner delta -> single sender -> testnet order -> MASTER fill/position",
+   "independent_oracle": "Hyperliquid testnet info API read by a script that does not import engine code: clearinghouseState (all perp DEXes), openOrders, userFillsByTime for MASTER; leader fills from mainnet info API",
+   "tested_commit": "b3e6d6665116510f8a9ceaa5254b060bf4d73998",
+   "tested_at_utc": "2026-10-16T19:38:00Z",
+   "verdict": "STILL_NOT_TESTED",
+   "blocker": "requires the live testnet engine running + real exchange orders; engine not running (last core_start_record 2026-10-15T09:54Z) and no real-order authority in this card",
+   "evidence_ref": "no executed evidence artifact (live-network)"
+  },
+  {
+   "id": "ENG-VAL-04",
+   "area": "ENGINE",
+   "register_result": "NOT_TESTED",
+   "applicability": "APPLIES_PROPOSED",
+   "execution_proof": "Leader event (testnet-observable) -> desired net per coin -> planner delta -> single sender -> testnet order -> MASTER fill/position",
+   "independent_oracle": "Hyperliquid testnet info API read by a script that does not import engine code: clearinghouseState (all perp DEXes), openOrders, userFillsByTime for MASTER; leader fills from mainnet info API",
+   "tested_commit": "b3e6d6665116510f8a9ceaa5254b060bf4d73998",
+   "tested_at_utc": "2026-10-16T19:38:00Z",
+   "verdict": "PASS",
+   "evidence_ref": "MIXED_NT_FAIL_b3e6d66651.json/checks::ENG-VAL-04 (REAL EXECUTION this run)",
+   "checks": [
+    {
+     "row": "ENG-VAL-04",
+     "check": "liq == oracle(20x)",
+     "expected": 41538.461538,
+     "actual": 41538.461538,
+     "pass": true,
+     "note": ""
+    },
+    {
+     "row": "ENG-VAL-04",
+     "check": "NEG leverage changes liq",
+     "expected": true,
+     "actual": true,
+     "pass": true,
+     "note": ""
+    },
+    {
+     "row": "ENG-VAL-04",
+     "check": "NEG flat-after -> None",
+     "expected": null,
+     "actual": null,
+     "pass": true,
+     "note": ""
+    }
+   ]
+  },
+  {
+   "id": "INC-11",
+   "area": "HEALTH",
+   "register_result": "NOT_TESTED",
+   "applicability": "APPLIES_PROPOSED",
+   "execution_proof": "Induced condition (WS drop, stale truth, API error) -> engine state -> UI indicator within stated latency",
+   "independent_oracle": "Wall-clock timestamps of the induced fault versus the UI/status change",
+   "tested_commit": "b3e6d6665116510f8a9ceaa5254b060bf4d73998",
+   "tested_at_utc": "2026-10-16T19:38:00Z",
+   "verdict": "STILL_NOT_TESTED",
+   "blocker": "requires the live testnet engine running + real exchange orders; engine not running (last core_start_record 2026-10-15T09:54Z) and no real-order authority in this card",
+   "evidence_ref": "no executed evidence artifact (live-network)"
+  }
+ ]
+}
