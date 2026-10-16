@@ -73,6 +73,21 @@ refused to proceed on a register that contradicted its card. The card premise (F
 - `RUN_STATUS.md` / `run_status.csv` are DERIVED summaries. When they disagree with `main`'s matrix,
   the matrix wins and the summary is stale.
 
+### MEASURED DISCREPANCY (2026-10-16) — the register and the summary disagree hugely
+
+| source | PASS | FAIL | NOT_TESTED | BLOCKED | total |
+|---|---|---|---|---|---|
+| **`main` register (of record), via `git show main:…`** | **579** | **76** | 122 | 13 | 790 |
+| `certification/RUN_STATUS.md` (derived, stale) | **6** | 9 | 794 | 0 | 809 |
+
+**The register wins: 579 / 790 PASS**, and it is substantiated — all 579 PASS rows carry both an
+`evidence_ref` and a `tested_commit`; the 14 distinct evidence files they cite **all exist on `main`**
+(verified `git cat-file -e`), across 5 tested commits.
+
+**Do NOT quote `RUN_STATUS.md` as the project position.** It under-reports by ~573 PASSes. To state the
+position, compute it from `main`'s matrix. (Same class of error as the working-tree matrix: a DERIVED
+artefact read as if it were the register.)
+
 ## Change log
 
 | date | change |
