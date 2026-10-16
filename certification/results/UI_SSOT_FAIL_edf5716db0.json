@@ -1,0 +1,124 @@
+{
+  "task_id": "t_8fc704ce",
+  "title": "B3-CERT UI SSOT/TRUTH FAIL corrective (UI-SSOT-*, UI-TRUTH-003)",
+  "tested_commit": "edf5716db02665ac3cdef12a3be582e736a2a117",
+  "source_branch": "hermes/ui-delta-landing",
+  "source_commit": "5223ce257fe504636967a50f7064630bdc8e0ab0",
+  "page01_fixture": "GENUINE: non-user wallet 0x1111... exists in app_model_state.json (2 wallets: 0x1111..., 0x7ae3b08b...); no synthetic fixture needed",
+  "tested_at_utc": "2026-10-16T19:33:38.221160+00:00",
+  "ui_source": "C:\\Users\\wigmore\\.hermes\\kanban\\workspaces\\t_4811b885\\repo\\_archive\\hl_stage2\\HL_Copy_App_SSOT.py",
+  "ui_source_sha256": "84e3a4b00d58fd69907074b8e732059a69fa31fe3f30942491e32a938aff565c",
+  "oracle": "runtime: starlette TestClient against the real testnet audit state (read-only copy); independent recompute of the audit-summary builder in a fresh interpreter; per-row mutation negatives; engine-independence by source census + live_config byte-hash invariance",
+  "provenance_note": "certification_matrix.json pins UI sha256 fad19d22 (HL_Copy_App_SSOT_20260513.py) / c0f9e508 (HL_Copy_App_SSOT.py). Neither hash exists as a git object here; the only tracked UI source is _archive/hl_stage2/HL_Copy_App_SSOT.py @ sha256 84e3a4b00d58. Rows were executed against that SERVED real source; the pinned 13-May hash is UNVERIFIABLE in this repo (provenance gap to report).",
+  "rows": {
+    "UI-SSOT-PAGE-01": {
+      "verdict": "PASS",
+      "oracle": "served non-user detail page"
+    },
+    "UI-SSOT-TOP-07": {
+      "verdict": "PASS",
+      "oracle": "runtime TestClient on real testnet state + independent recompute/mutation"
+    },
+    "UI-SSOT-TOP-09": {
+      "verdict": "PASS",
+      "oracle": "runtime TestClient on real testnet state + independent recompute/mutation"
+    },
+    "UI-SSOT-PAGE-13": {
+      "verdict": "PASS",
+      "oracle": "runtime TestClient on real testnet state + independent recompute/mutation"
+    },
+    "UI-SSOT-PAGE-14": {
+      "verdict": "PASS",
+      "oracle": "runtime TestClient on real testnet state + independent recompute/mutation"
+    },
+    "UI-SSOT-PAGE-15": {
+      "verdict": "PASS",
+      "oracle": "runtime TestClient on real testnet state + independent recompute/mutation"
+    },
+    "UI-TRUTH-003": {
+      "verdict": "PASS",
+      "oracle": "runtime TestClient on real testnet state + independent recompute/mutation"
+    }
+  },
+  "checks": {
+    "UI_SHA256_RECORDED": {
+      "pass": true,
+      "detail": "84e3a4b00d58fd69907074b8e732059a69fa31fe3f30942491e32a938aff565c"
+    },
+    "APP_SERVES_LIVE_COPY": {
+      "pass": true,
+      "detail": ""
+    },
+    "UI-SSOT-TOP-07:CURRENT_MODE_LABEL": {
+      "pass": true,
+      "detail": "model_scope=True mode_labelled_model=True engine_truth_labelled=True"
+    },
+    "UI-SSOT-TOP-09:POLL_BADGE": {
+      "pass": true,
+      "detail": "POLL badge in analytics top bar=True"
+    },
+    "UI-SSOT-PAGE-13:WS_HEALTH_ENDPOINT": {
+      "pass": true,
+      "detail": "status=200 ok=True wallets=1 fields=['last_error', 'last_message_ms', 'stale', 'stale_ms']"
+    },
+    "UI-SSOT-PAGE-14:AUDIT_SUMMARY_ENDPOINT": {
+      "pass": true,
+      "detail": "status=200 body_ok=True error=None oracle={\"ok\": true, \"keys\": [\"ok\", \"rows\", \"reason_counts\", \"status_counts\", \"source_counts\", \"execution_decision_cou"
+    },
+    "UI-SSOT-PAGE-15:CONTRACT_BANNER": {
+      "pass": true,
+      "detail": "clean_errs=0 mutated_errs=4 banner_rendered=True"
+    },
+    "UI-SSOT-PAGE-01:WALLET_DETAIL": {
+      "pass": true,
+      "detail": "nonuser=0x1111111111 status=200"
+    },
+    "UI-TRUTH-003:READ_ONLY_OBSERVER": {
+      "pass": true,
+      "detail": "no_engine_import=True no_spawn=True live_config_unchanged=True"
+    }
+  },
+  "negative_tests": {
+    "NEG_TOP07_MODEL_LABEL": {
+      "pass": true,
+      "detail": "removing the model label from the top bar makes the property false (non-vacuous)"
+    },
+    "NEG_TOP09_POLL_BADGE": {
+      "pass": true,
+      "detail": "removing the POLL badge from the template removes it from the render (non-vacuous)"
+    },
+    "NEG_PAGE13_MUTABLE": {
+      "pass": true,
+      "detail": "a missing health file yields empty wallets -> the row would FAIL (non-vacuous)"
+    },
+    "NEG_PAGE14_GUARD_LOAD_BEARING": {
+      "pass": true,
+      "detail": "empty_tail_rows=2 good_path_clean=True buggy_path_raises=True -> the guard is load-bearing (PASS is earned by the fix)"
+    },
+    "NEG_PAGE15_NONVACUOUS": {
+      "pass": true,
+      "detail": "a contract-violating state yields errors AND renders the banner"
+    },
+    "NEG_PAGE01_MUTATED_404": {
+      "pass": true,
+      "detail": "unknown wallet 404s (route is real, not a catch-all 200)"
+    },
+    "NEG_TRUTH003_500_ISOLATED": {
+      "pass": true,
+      "detail": "a UI endpoint 500 does not alter live_config.json (UI outage is not a trading mutation)"
+    }
+  },
+  "blocked": [],
+  "summary": {
+    "total_checks": 9,
+    "passed_checks": 9,
+    "failed_checks": 0,
+    "total_negative_tests": 7,
+    "passed_negative_tests": 7,
+    "failed_negative_tests": 0,
+    "blocked_count": 0,
+    "rows_pass": 7,
+    "rows_fail": 0,
+    "rows_blocked": 0
+  }
+}

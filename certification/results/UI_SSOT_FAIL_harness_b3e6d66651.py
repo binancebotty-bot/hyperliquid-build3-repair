@@ -26,8 +26,8 @@ import copy, hashlib, json, os, re, shutil, subprocess, sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-REPO = Path('C:/Users/wigmore/hyperliquid-build3-repair')
-SCR = Path('C:/Users/wigmore/.hermes/cache/scratch/b3ui')
+REPO = Path(os.environ.get('UI_SSOT_REPO') or 'C:/Users/wigmore/.hermes/kanban/workspaces/t_4811b885/repo')
+SCR = Path(os.environ.get('UI_SSOT_SCR') or 'C:/Users/wigmore/.hermes/cache/scratch/b3ui_t4811b885')
 REAL_STATE = REPO / '_archive' / 'hl_stage2' / 'hl_live_copy_audit_testnet'
 UI_SRC = REPO / '_archive' / 'hl_stage2' / 'HL_Copy_App_SSOT.py'
 APP_MODEL = REPO / '_archive' / 'hl_stage2' / 'hl_copy_output' / 'app_model_state.json'
@@ -163,8 +163,44 @@ def main():
     page14 = r14.status_code == 200 and b14.get('ok') is True
     check('UI-SSOT-PAGE-14:AUDIT_SUMMARY_ENDPOINT', page14,
           f'status={r14.status_code} body_ok={b14.get("ok")} error={str(b14.get("error"))[:70]} oracle={oracle14[:110]}')
-    neg('NEG_PAGE14_NOT_SILENT', r14.status_code >= 400 or b14.get('ok') is not True,
-        f'the endpoint failure is surfaced (status={r14.status_code}), not a silent 200-ok')
+    # Non-vacuous negative: the empty-tail guard is LOAD-BEARING. Reverting it
+    # and calling the exact production path (_service_position_evidence_by_coin)
+    # with the REAL empty-tail live_fills rows raises IndexError; the shipped
+    # guard returns cleanly. This proves the PASS is earned by the fix.
+    _lf = ui._load_recent_live_fills(250000)
+    _empty_tail = [r for r in _lf if 'exchange_order_id=' in str(r.get('notes') or '')
+                   and not str(r.get('exchange_order_id') or '').strip()]
+
+    def _buggy_row_oid(row):
+        for _k in ('exchange_order_id', 'oid', 'order_id', 'orderId'):
+            _v = str(row.get(_k) or '').strip()
+            if _v:
+                return _v
+        _notes = str(row.get('notes') or '')
+        _m = 'exchange_order_id='
+        if _m in _notes:
+            _tail = _notes.split(_m, 1)[1]
+            return _tail.split(';', 1)[0].split()[0]
+        return ''
+
+    _good_row_oid = ui._row_exchange_order_id
+    _good_clean = True
+    try:
+        ui._service_position_evidence_by_coin(send_attempts=[], live_fills=list(_empty_tail))
+    except Exception:
+        _good_clean = False
+    ui._row_exchange_order_id = _buggy_row_oid
+    _buggy_raised = False
+    try:
+        ui._service_position_evidence_by_coin(send_attempts=[], live_fills=list(_empty_tail))
+    except Exception:
+        _buggy_raised = True
+    finally:
+        ui._row_exchange_order_id = _good_row_oid
+    neg('NEG_PAGE14_GUARD_LOAD_BEARING',
+        page14 and bool(_empty_tail) and _good_clean and _buggy_raised,
+        f'empty_tail_rows={len(_empty_tail)} good_path_clean={_good_clean} '
+        f'buggy_path_raises={_buggy_raised} -> the guard is load-bearing (PASS is earned by the fix)')
 
     # ================= PAGE-15: contract warning banner =================
     errs_clean = ui.validate_render_contract(copy.deepcopy(st))
@@ -241,6 +277,9 @@ def main():
         'task_id': 't_8fc704ce',
         'title': 'B3-CERT UI SSOT/TRUTH FAIL corrective (UI-SSOT-*, UI-TRUTH-003)',
         'tested_commit': COMMIT,
+        'source_branch': os.environ.get('UI_SSOT_SRC_BRANCH', ''),
+        'source_commit': os.environ.get('UI_SSOT_SRC_COMMIT', ''),
+        'page01_fixture': os.environ.get('UI_SSOT_PAGE01_FIXTURE', ''),
         'tested_at_utc': stamp,
         'ui_source': str(UI_SRC),
         'ui_source_sha256': UI_SHA,
