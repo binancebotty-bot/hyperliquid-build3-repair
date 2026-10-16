@@ -1,15 +1,132 @@
 {
-  "suite": "NET_S4",
+  "engine_blob_sha_main": "1ba069f2d74c5f4922cb0bdd173b7eadc17d3fd9",
+  "engine_commit_under_test": "52a16149e370732bb3162d69cb2f9ce4a43509bb",
+  "mutations": "none; GET only; no engine started and no order submitted",
   "register_of_record": "main:b142cf88d389e791160f691aac3d936852b99975:certification/certification_matrix.json",
-  "engine_commit_under_test": "f28341d1f02f76060c384844ab6aa439ddee976e",
-  "observed_at_utc": "2026-10-16T21:31:28Z",
-  "harness": "certification/results/NET_S4_f28341d1_harness.py",
-  "harness_execution": {"command":"python certification/results/NET_S4_f28341d1_harness.py","ui_probe":{"url":"http://127.0.0.1:8031/live-copy","http_status":200,"bytes_read":87350},"mutations":"none; GET only; no engine started and no order submitted"},
   "rows": [
-    {"id":"TN-F22","result":"NOT_TESTED","checks":[{"name":"declared_testnet_production_engine_scenario","result":"NOT_TESTED"},{"name":"independent_exchange_or_packet_oracle","result":"NOT_TESTED"},{"name":"negative_tests","result":"NOT_TESTED"}],"missing_runtime":"Active Build-3 testnet production-engine scenario with fresh row-specific exchange-parity capture and independent captured request-packet/exchange orders-and-fills oracle. The available UI HTTP 200 does not establish those prerequisites.","register_row_applicability":"APPLIES_PROPOSED","register_open_decisions":["OD-09"],"engine_commit":"f28341d1f02f76060c384844ab6aa439ddee976e"},
-    {"id":"TN-F23","result":"NOT_TESTED","checks":[{"name":"declared_testnet_production_engine_scenario","result":"NOT_TESTED"},{"name":"independent_exchange_or_packet_oracle","result":"NOT_TESTED"},{"name":"negative_tests","result":"NOT_TESTED"}],"missing_runtime":"Active Build-3 testnet production-engine scenario with fresh row-specific exchange-parity capture and independent captured request-packet/exchange orders-and-fills oracle. The available UI HTTP 200 does not establish those prerequisites.","register_row_applicability":"APPLIES","register_open_decisions":[],"engine_commit":"f28341d1f02f76060c384844ab6aa439ddee976e"},
-    {"id":"TN-F26","result":"NOT_TESTED","checks":[{"name":"declared_testnet_production_engine_scenario","result":"NOT_TESTED"},{"name":"independent_exchange_or_packet_oracle","result":"NOT_TESTED"},{"name":"negative_tests","result":"NOT_TESTED"}],"missing_runtime":"Active Build-3 testnet production-engine scenario with fresh row-specific exchange-parity capture and independent captured request-packet/exchange orders-and-fills oracle; additionally OD-22 remains open in the register, so its policy-dependent expected behavior is not ruled.","register_row_applicability":"OPEN_DECISION","register_open_decisions":["OD-22"],"engine_commit":"f28341d1f02f76060c384844ab6aa439ddee976e"},
-    {"id":"TN-F27","result":"NOT_TESTED","checks":[{"name":"declared_testnet_production_engine_scenario","result":"NOT_TESTED"},{"name":"independent_exchange_or_packet_oracle","result":"NOT_TESTED"},{"name":"negative_tests","result":"NOT_TESTED"}],"missing_runtime":"Active Build-3 testnet production-engine scenario with fresh row-specific exchange-parity capture and independent captured request-packet/exchange orders-and-fills oracle; additionally OD-23 remains open in the register, so its policy-dependent expected behavior is not ruled.","register_row_applicability":"OPEN_DECISION","register_open_decisions":["OD-23"],"engine_commit":"f28341d1f02f76060c384844ab6aa439ddee976e"},
-    {"id":"TN-PS1","result":"NOT_TESTED","checks":[{"name":"declared_testnet_production_engine_scenario","result":"NOT_TESTED"},{"name":"independent_exchange_or_packet_oracle","result":"NOT_TESTED"},{"name":"negative_tests","result":"NOT_TESTED"}],"missing_runtime":"Active Build-3 testnet production-engine decision-time trace and fresh exchange orders/fills oracle are absent; additionally OD-23 remains open in the register, so the expected safety policy is not ruled.","register_row_applicability":"OPEN_DECISION","register_open_decisions":["OD-23"],"engine_commit":"f28341d1f02f76060c384844ab6aa439ddee976e"}
-  ]
+    {
+      "checks": [
+        {
+          "name": "declared_testnet_production_engine_scenario",
+          "result": "NOT_TESTED"
+        },
+        {
+          "name": "independent_exchange_or_packet_oracle",
+          "result": "NOT_TESTED"
+        },
+        {
+          "name": "negative_tests",
+          "result": "NOT_TESTED"
+        }
+      ],
+      "engine_commit": "52a16149e370732bb3162d69cb2f9ce4a43509bb",
+      "id": "TN-F22",
+      "missing_runtime": "Active Build-3 testnet production-engine scenario with fresh row-specific exchange-parity capture and independent captured request-packet/exchange orders-and-fills oracle. The available UI HTTP 200 does not establish those prerequisites.",
+      "register_open_decisions": [
+        "OD-09"
+      ],
+      "register_result": "BLOCKED",
+      "register_row_applicability": "APPLIES_PROPOSED",
+      "result": "BLOCKED"
+    },
+    {
+      "checks": [
+        {
+          "name": "declared_testnet_production_engine_scenario",
+          "result": "NOT_TESTED"
+        },
+        {
+          "name": "independent_exchange_or_packet_oracle",
+          "result": "NOT_TESTED"
+        },
+        {
+          "name": "negative_tests",
+          "result": "NOT_TESTED"
+        }
+      ],
+      "engine_commit": "52a16149e370732bb3162d69cb2f9ce4a43509bb",
+      "id": "TN-F23",
+      "missing_runtime": "Active Build-3 testnet production-engine scenario with fresh row-specific exchange-parity capture and independent captured request-packet/exchange orders-and-fills oracle. The available UI HTTP 200 does not establish those prerequisites.",
+      "register_open_decisions": [],
+      "register_result": "BLOCKED",
+      "register_row_applicability": "APPLIES",
+      "result": "BLOCKED"
+    },
+    {
+      "checks": [
+        {
+          "name": "declared_testnet_production_engine_scenario",
+          "result": "NOT_TESTED"
+        },
+        {
+          "name": "independent_exchange_or_packet_oracle",
+          "result": "NOT_TESTED"
+        },
+        {
+          "name": "negative_tests",
+          "result": "NOT_TESTED"
+        }
+      ],
+      "engine_commit": "52a16149e370732bb3162d69cb2f9ce4a43509bb",
+      "id": "TN-F26",
+      "missing_runtime": "Active Build-3 testnet production-engine scenario with fresh row-specific exchange-parity capture and independent captured request-packet/exchange orders-and-fills oracle. The available UI HTTP 200 does not establish those prerequisites.; register applicability is OPEN_DECISION and the applicable OD remains unresolved.",
+      "register_open_decisions": [
+        "OD-22"
+      ],
+      "register_result": "NOT_TESTED",
+      "register_row_applicability": "OPEN_DECISION",
+      "result": "NOT_TESTED"
+    },
+    {
+      "checks": [
+        {
+          "name": "declared_testnet_production_engine_scenario",
+          "result": "NOT_TESTED"
+        },
+        {
+          "name": "independent_exchange_or_packet_oracle",
+          "result": "NOT_TESTED"
+        },
+        {
+          "name": "negative_tests",
+          "result": "NOT_TESTED"
+        }
+      ],
+      "engine_commit": "52a16149e370732bb3162d69cb2f9ce4a43509bb",
+      "id": "TN-F27",
+      "missing_runtime": "Active Build-3 testnet production-engine scenario with fresh row-specific exchange-parity capture and independent captured request-packet/exchange orders-and-fills oracle. The available UI HTTP 200 does not establish those prerequisites.; register applicability is OPEN_DECISION and the applicable OD remains unresolved.",
+      "register_open_decisions": [
+        "OD-23"
+      ],
+      "register_result": "NOT_TESTED",
+      "register_row_applicability": "OPEN_DECISION",
+      "result": "NOT_TESTED"
+    },
+    {
+      "checks": [
+        {
+          "name": "declared_testnet_production_engine_scenario",
+          "result": "NOT_TESTED"
+        },
+        {
+          "name": "independent_exchange_or_packet_oracle",
+          "result": "NOT_TESTED"
+        },
+        {
+          "name": "negative_tests",
+          "result": "NOT_TESTED"
+        }
+      ],
+      "engine_commit": "52a16149e370732bb3162d69cb2f9ce4a43509bb",
+      "id": "TN-PS1",
+      "missing_runtime": "Active Build-3 testnet production-engine scenario with fresh row-specific exchange-parity capture and independent captured request-packet/exchange orders-and-fills oracle. The available UI HTTP 200 does not establish those prerequisites.; register applicability is OPEN_DECISION and the applicable OD remains unresolved.",
+      "register_open_decisions": [
+        "OD-23"
+      ],
+      "register_result": "NOT_TESTED",
+      "register_row_applicability": "OPEN_DECISION",
+      "result": "NOT_TESTED"
+    }
+  ],
+  "suite": "NET_S4"
 }
