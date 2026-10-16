@@ -1,0 +1,17 @@
+{
+  "schema": "uilcc3_evidence_v1",
+  "register_of_record": "main:certification/certification_matrix.json",
+  "register_commit": "b142cf8 (main ref per AUTHORITY_INDEX)",
+  "probe_commit": "31e599c5f58de686c9e74357079a85f03e23213a",
+  "tested_at_utc": "2026-10-16T21:27:54Z",
+  "target": "http://127.0.0.1:8031/live-copy",
+  "harness": "certification/results/harness_uilcc3.py",
+  "probe_summary": "Fresh read-only run: /live-copy 200/87350 bytes; /api/live-config 200; /api/live-ws-health 200; /api/live-audit-summary 200, ok=true, 153492 rows, 6139200 bytes in 6.581s; /api/global-controls 200. Static HTML contains labels but does not prove rendered row state. No configuration, engine, or exchange writes were made.",
+  "rows": [
+    {"id":"UI-LCC-WTBL-13","register_status":"NOT_TESTED","result":"NOT_TESTED","checks":{"surface_http":"PASS: HTTP 200","declared_feature":"PASS: static HTML has OFF token","per_wallet_rendered_value":"NOT_TESTED: no browser DOM/render capture","independent_engine_exchange_oracle":"NOT_TESTED: no per-wallet truth comparison","negative_unavailable_stale_api_error":"NOT_TESTED: no controlled negative condition"},"reason":"Static HTML and aggregate API availability do not establish per-wallet OFF rendering or its oracle."},
+    {"id":"UI-LCC-WTBL-14","register_status":"NOT_TESTED","result":"NOT_TESTED","checks":{"surface_http":"PASS: HTTP 200","declared_feature":"PASS: static HTML has Archive token","per_wallet_rendered_value":"NOT_TESTED: no browser DOM/render capture","independent_engine_exchange_oracle":"NOT_TESTED: no per-wallet truth comparison","negative_unavailable_stale_api_error":"NOT_TESTED: no controlled negative condition"},"reason":"Static HTML and aggregate API availability do not establish per-wallet Archive rendering or its oracle."},
+    {"id":"UI-LCC-DETAIL-01","register_status":"NOT_TESTED","result":"NOT_TESTED","checks":{"surface_http":"PASS: HTTP 200","declared_feature":"PASS: static HTML has A Live Performance token","per_wallet_rendered_value":"NOT_TESTED: no browser DOM/render capture","independent_engine_exchange_oracle":"NOT_TESTED: no per-wallet truth comparison","negative_unavailable_stale_api_error":"NOT_TESTED: no controlled negative condition"},"reason":"Detail content is populated client-side from live-audit-summary; no wallet-specific rendered DOM plus independent fill/position attribution proof was captured."},
+    {"id":"UI-LCC-DETAIL-02","register_status":"NOT_TESTED","result":"NOT_TESTED","checks":{"surface_http":"PASS: HTTP 200","declared_feature":"PASS: static HTML has B Open Positions token","per_wallet_rendered_value":"NOT_TESTED: no browser DOM/render capture","independent_engine_exchange_oracle":"NOT_TESTED: no per-wallet truth comparison","negative_unavailable_stale_api_error":"NOT_TESTED: no controlled negative condition"},"reason":"Detail content is populated client-side; no wallet-specific rendered positions compared with independent exchange position truth."},
+    {"id":"UI-LCC-DETAIL-03","register_status":"NOT_TESTED","result":"NOT_TESTED","checks":{"surface_http":"PASS: HTTP 200","declared_feature":"PASS: static HTML has C Lead vs Copy / Friction token","per_wallet_rendered_value":"NOT_TESTED: no browser DOM/render capture","independent_engine_exchange_oracle":"NOT_TESTED: no per-wallet truth comparison","negative_unavailable_stale_api_error":"NOT_TESTED: no controlled negative condition"},"reason":"Detail content is populated client-side; no wallet-specific lead/copy/fill friction output compared with an independent source."}
+  ]
+}
