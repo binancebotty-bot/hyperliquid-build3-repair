@@ -16,7 +16,7 @@ messages, card bodies, and your own assumptions all rank BELOW it.
 | 4 | Which architecture is allowed / forbidden? | `ARCHITECTURE.md` (+ invariants §4 authority ranking) |
 | 5 | What does a term/product concept mean? | `PRODUCT_SEMANTICS.md` |
 | 6 | Where is the live surface / port / endpoint? | `EVIDENCE/CERT_ENVIRONMENT.md` |
-| 7 | What are open human decisions? | `certification/open_decisions.json` |
+| 7 | What are open human decisions? | **`EVIDENCE/OPEN_DECISIONS.md`** — the parked list of **23 OPEN decisions** (OD-02…OD-25) with owner + affected records, one line each. Source of truth: `certification/open_decisions.json`. **No card can clear one.** |
 | 8 | Current run status / what's already earned | `certification/RUN_STATUS.md`, `certification/run_results.json` |
 | 9 | Testnet operation rules | `TESTNET_RUN_HANDOVER.md`, `CONTROL_STATE.json` |
 | 10 | This project's binding rules for agents | `AGENTS.md` |
