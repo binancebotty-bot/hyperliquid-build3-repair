@@ -75,18 +75,28 @@ refused to proceed on a register that contradicted its card. The card premise (F
 
 ### MEASURED DISCREPANCY (2026-10-16) — the register and the summary disagree hugely
 
-| source | PASS | FAIL | NOT_TESTED | BLOCKED | total |
-|---|---|---|---|---|---|
-| **`main` register (of record), via `git show main:…`** | **579** | **76** | 122 | 13 | 790 |
-| `certification/RUN_STATUS.md` (derived, stale) | **6** | 9 | 794 | 0 | 809 |
+**CONTROLLER RULING (option 3, reconcile first): the 579-PASS matrix is UNPUSHED and UNVERIFIED.** `b142cf88`
+does **not** exist on `origin/main` (`3ea99f4d`); the 579-PASS matrix has never left this PC.
 
-**The register wins: 579 / 790 PASS**, and it is substantiated — all 579 PASS rows carry both an
-`evidence_ref` and a `tested_commit`; the 14 distinct evidence files they cite **all exist on `main`**
-(verified `git cat-file -e`), across 5 tested commits.
+**Quote that figure ONLY as:**
 
-**Do NOT quote `RUN_STATUS.md` as the project position.** It under-reports by ~573 PASSes. To state the
-position, compute it from `main`'s matrix. (Same class of error as the working-tree matrix: a DERIVED
-artefact read as if it were the register.)
+> **"579 / 790 PASS on PC-local main @ b142cf88, unpushed, not yet verified against shared origin."**
+
+Do NOT publish it as the project position and do NOT call it the register of record until it is pushed and
+reviewed. `t_70c69d13` (status regen) stays HELD.
+
+**Row-by-row comparison (coordinator, read-only):**
+
+| ref | rows | verdicts |
+|---|---|---|
+| PC-local `main` @ `b142cf88` (unpushed) | 790 | 579 PASS / 76 FAIL / 122 NT / 13 BLOCKED |
+| `origin/main` @ `3ea99f4d` (shared) | 832 | **832 NOT_TESTED — no verdicts at all** |
+
+- ids ONLY on PC-local: **0** · ids ONLY on origin: **42** · on both: **790** · verdict differs on **668**
+- origin is a strict SUPERSET by id (+42 rows: `ENG-017/018/019`, `ORD-009/010`, `SET-009`, `UI-DIFF-01`, `UI-ROUTE-01..05`, …)
+- so origin = requirements list extended to 832 with verdicts absent; PC-local = 790 rows WITH the work applied
+
+**Do NOT quote `RUN_STATUS.md` either** — it is a DERIVED summary and stale (claims 6 PASS).
 
 ## Change log
 
