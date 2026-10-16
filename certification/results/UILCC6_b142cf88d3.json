@@ -1,0 +1,26 @@
+{
+  "schema": "hl_certification_result_v1",
+  "suite": "UILCC6",
+  "tested_commit": "b142cf88d389e791160f691aac3d936852b99975",
+  "tested_at_utc": "2026-10-16T20:44:31Z",
+  "register_ref": "main:certification/certification_matrix.json",
+  "surface": "http://127.0.0.1:8031/live-copy",
+  "engine_commit": "b142cf88d389e791160f691aac3d936852b99975",
+  "probe": {
+    "ui_http_status": 200,
+    "ui_bytes": 87350,
+    "ui_elapsed_seconds": 0.0026,
+    "audit_http_status": 200,
+    "audit_bytes": 5855673,
+    "audit_elapsed_seconds": 6.78592,
+    "observation": "The endpoint responded, but no DOM capture binding live runtime values to rendered cells, independent exchange/engine oracle recomputation, or negative-condition injection was obtained. No add-wallet POST was performed because that would mutate live configuration. Therefore no check is earned."
+  },
+  "rows": [
+    {"id":"UI-LCC-DETAIL-01","register_result":"NOT_TESTED","execution_proof":"NOT_TESTED: no DOM capture at time T","independent_oracle":"NOT_TESTED: independent exchange/engine recomputation absent","negative_tests":{"source_unavailable":"NOT_TESTED","stale_source":"NOT_TESTED","api_error":"NOT_TESTED"},"checks":[],"result":"NOT_TESTED","evidence_ref":"certification/results/UILCC6_b142cf88d3.json"},
+    {"id":"UI-LCC-DETAIL-02","register_result":"NOT_TESTED","execution_proof":"NOT_TESTED: no DOM capture at time T","independent_oracle":"NOT_TESTED: independent exchange/engine recomputation absent","negative_tests":{"source_unavailable":"NOT_TESTED","stale_source":"NOT_TESTED","api_error":"NOT_TESTED"},"checks":[],"result":"NOT_TESTED","evidence_ref":"certification/results/UILCC6_b142cf88d3.json"},
+    {"id":"UI-LCC-DETAIL-03","register_result":"NOT_TESTED","execution_proof":"NOT_TESTED: no DOM capture at time T","independent_oracle":"NOT_TESTED: independent exchange/engine recomputation absent","negative_tests":{"source_unavailable":"NOT_TESTED","stale_source":"NOT_TESTED","api_error":"NOT_TESTED"},"checks":[],"result":"NOT_TESTED","evidence_ref":"certification/results/UILCC6_b142cf88d3.json"},
+    {"id":"UI-LCC-DETAIL-04","register_result":"NOT_TESTED","execution_proof":"NOT_TESTED: no DOM capture at time T","independent_oracle":"NOT_TESTED: independent exchange/engine recomputation absent","negative_tests":{"source_unavailable":"NOT_TESTED","stale_source":"NOT_TESTED","api_error":"NOT_TESTED"},"checks":[],"result":"NOT_TESTED","evidence_ref":"certification/results/UILCC6_b142cf88d3.json"},
+    {"id":"UI-LCC-ADD-06","register_result":"NOT_TESTED","execution_proof":"NOT_TESTED: no DOM capture and no POST/persistence round-trip (no live configuration mutation)","independent_oracle":"NOT_TESTED: independent live_config.json readback/persisted value not verified","negative_tests":{"invalid_input_rejected":"NOT_TESTED","visible_error":"NOT_TESTED","source_unavailable":"NOT_TESTED","stale_source":"NOT_TESTED","api_error":"NOT_TESTED"},"checks":[],"result":"NOT_TESTED","evidence_ref":"certification/results/UILCC6_b142cf88d3.json"},
+    {"id":"UI-LCC-ADD-07","register_result":"NOT_TESTED","execution_proof":"NOT_TESTED: no DOM capture and no POST/persistence round-trip (no live configuration mutation)","independent_oracle":"NOT_TESTED: independent live_config.json readback/persisted value not verified","negative_tests":{"invalid_input_rejected":"NOT_TESTED","visible_error":"NOT_TESTED","source_unavailable":"NOT_TESTED","stale_source":"NOT_TESTED","api_error":"NOT_TESTED"},"checks":[],"result":"NOT_TESTED","evidence_ref":"certification/results/UILCC6_b142cf88d3.json"}
+  ]
+}
