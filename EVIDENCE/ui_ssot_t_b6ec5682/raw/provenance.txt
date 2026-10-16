@@ -1,0 +1,27 @@
+# t_b6ec5682 provenance facts (captured 2026-10-16T23:19:10Z)
+
+register_of_record = git show b142cf88:certification/certification_matrix.json
+register_commit    = b142cf88d389e791160f691aac3d936852b99975
+
+--- register SSOT source (hyperliquid-build3-repair @ b142cf88) ---
+path=_archive/hl_stage2/HL_Copy_App_SSOT.py
+7468ab5188750617b090b56c3e719d73e91f5b4241f4782382ccac1a22989276 */c/Users/wigmore/.hermes/cache/scratch/reg.py
+lines=6360
+root path HL_Copy_App_SSOT.py exists at b142cf88: NO (git rev-parse fatal)
+
+--- LIVE :8031 server ---
+pid=8668 cmdline="C:/Users/wigmore/AppData/Local/Python/bin/python.exe" -m uvicorn HL_Copy_App_SSOT:app --host 127.0.0.1 --port 8031
+live state_dir=C:/Users/wigmore/trading_stack/hl-build3-testnet-cert/_archive/hl_stage2/hl_live_copy_audit_testnet
+
+--- LIVE served source checkout (hl-build3-testnet-cert) ---
+HEAD=b5e6d613de36e3020ac28ba2317e6571a5c37e9b (detached)
+path=_archive/hl_stage2/HL_Copy_App_SSOT.py
+658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2 *C:/Users/wigmore/trading_stack/hl-build3-testnet-cert/_archive/hl_stage2/HL_Copy_App_SSOT.py
+
+--- token divergence (counts) ---
+Engine sizing:                 register=0 live=1
+Model mode:                    register=0 live=1
+Live Copy Dashboard            register=0 live=1
+Current: {mode}                register=1 live=0
+@app.get("/live-copy"          register=0 live=1
+api/live-copy-summary          register=0 live=1

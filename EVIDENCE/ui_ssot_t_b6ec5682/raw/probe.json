@@ -1,0 +1,620 @@
+{
+  "register_ref": "main:certification/certification_matrix.json",
+  "register_commit": "b142cf88d389e791160f691aac3d936852b99975",
+  "tested_at_utc": "2026-10-16T23:11:05.916919Z",
+  "dom": {
+    "root": {
+      "url": "http://127.0.0.1:8031/",
+      "http_status": 200,
+      "final_url": "http://127.0.0.1:8031/live-copy",
+      "title": "Live Copy Dashboard",
+      "body_text": "Live Copy Command Centre Wallets: 15 / 10 Live wallets: 10 Close-only wallets: 0 Off: 5 Leader feed: Websocket OK Refresh Global Controls Add wallet ACCOUNT VALUE (TESTNET) $636.21 SENDING OFF HEALTH Action needed: a close is failing — check the Reconciliation tab and close it on the exchange ACCOUNT CHANGE SINCE 9 OCT, 19:01 −$827.12 OPEN POSITIONS 128 RESTING ORDERS 35 Technical detail Loaded Does the P&L add up? Start value to now, from the exchange: every fill and funding payment in the window is counted. Start value (9 Oct, 19:01, at run start; unified portfolio value (spot USDC total)) $1,449.21 + Closed P&L (realised) −$531.39 + Funding +$40.77 − Fees −$328.35 + Open positions (unrealised) now +$0.79, at start $0.00 — no open positions at start +$0.79 = Expected change −$818.17 Actual change (now $622.08) −$827.12 Unexplained difference −$8.95 Counted 45787 exchange fills and 9156 funding payments since the start. Deposits, withdrawals or transfers also show here. Live Copy Status HEALTH Action needed: a close is failing — check the Reconciliation tab and close it on the exchange details under Technical detail LEADER FEED Websocket OK websocket FOLLOWER ACCOUNT READ Reading (normal) WALLETS 10 live / 10 followed live + close-only are followed LAST SEND GAS pending_send PENDING_SEND LAST FILL AZTEC SELL 706.0 2026-10-16T23:11:15.676765+00:00 LAST REJECT PUMP INSUFFICIENT_MARGIN INSUFFICIENT_MARGIN LAST LATENCY WARNING severity=WARN; classification=SLOW_EXCHANGE_CALL; wallet=0xf5d81a135f756ca16544e53c20fc20643ec3ad53 coin=ZEC intent_id=3a6458851584ae45339d73762983d076 delay_ms=2958 largest_component=exchange_call_ms:1748 2026-10-16T23:11:14.514912+00:00 Real Account PORTFOLIO VALUE (TESTNET) $636.21 OPEN POSITIONS P&L (UNREALISED) $0.79 CLOSED P&L (REALISED) $-531.39 since 9 Oct, 19:01 OPEN POSITIONS 128 LIVE EXPOSURE $9,100.59 Live Account / Wallet PnL Exchange account graph. ALL range — 117 portfolio pts, 45787 realized fills. Account Selected Wallet PnL Exposure 1D 7D ALL Apply Reset Total PnL Realized PnL Drawdown $99.3 -$413.6 -$926.4 Fri 9 Sun 11 Tue 13 Thu 15 Sat 17 Live Copy Wallets Configured wallets from live_config.json. Click a row for real copy details for that leader. WALLET NET P&L FEED CLOSED / OPEN / FEES LEAD↔COPY DIFF EXECUTION RISK / EXPOSURE LAST FILL CONTROLS 0x010461c1...1c703a Live — partial Websocket OK HOT10 shared socket active Closed: — partial Open: — Fees: $86.56 Partial record shared 0G shared 2Z shared ACE shared AIXBT shared ALGO shared ANIME shared APE shared APT shared AR shared ARB shared AVNT shared BABY shared BERA shared BIGTIME shared BLUR shared BRETT shared CAKE shared CASHCAT shared CC shared CELO shared CHIP shared DOGE shared DYDX shared DYM shared EIGEN shared FARTCOIN shared FET shared FIL shared FOGO shared GAS shared GMT shared GRAM shared GRASS shared HBAR shared HEMI shared INIT shared IO shared IOTA shared JTO shared KAITO shared KPEPE shared KSHIB shared LDO shared LINEA shared LIT shared MELANIA shared MON shared MOODENG shared MOVE shared NEO shared NIL shared ORDI shared PNUT shared POLYX shared PONS shared PUMP shared REZ shared RSR shared RUNE shared S shared SAND shared SKR shared SKY shared SNX shared SOL shared SPX shared STABLE shared STX shared SUPER shared SUSHI shared TAO shared TRUMP shared UMA shared USUAL shared VVV shared W shared WLD shared WLFI shared XLM shared XMR shared ZEN shared ZETA shared ZK shared ZRO Total: $0.81 Avg: $0 Avg bps: 4.6 Worst bps: 160.3 1065 filled / 0 exits 613 recent rejects 49 recent blocks Exposure: $1,854.24 Open pos: 93 DD: — MaxDD: — LINEA BUY @ LIVE CLO OFF prop fixed F N Save CLO OFF Archive 0x1b232b41...2fbe21 Live — Websocket OK HOT10 shared socket active Closed: — Open: $0 Fees: — No PnL yet Total: n/a Avg: n/a Avg bps: n/a Worst bps: n/a 0 filled / 0 exits 0 recent rejects 0 recent blocks Exposure: $0 Open pos: 0 DD: — MaxDD: — none yet LIVE CLO OFF prop fixed F N Save CLO OFF Archive 0x31ca8395...fb974b Live — parti"
+    },
+    "live_copy": {
+      "url": "http://127.0.0.1:8031/live-copy",
+      "http_status": 200,
+      "final_url": "http://127.0.0.1:8031/live-copy",
+      "title": "Live Copy Dashboard",
+      "selector": "#liveCopyPanel",
+      "selector_present": true,
+      "selector_text": "Live Copy Command Centre Wallets: 15 / 10 Live wallets: 10 Close-only wallets: 0 Off: 5 Leader feed: Websocket OK Refresh Global Controls Add wallet ACCOUNT VALUE (TESTNET) $636.21 SENDING OFF HEALTH Action needed: a close is failing — check the Reconciliation tab and close it on the exchange ACCOUNT CHANGE SINCE 9 OCT, 19:01 −$827.12 OPEN POSITIONS 128 RESTING ORDERS 35 Technical detail Loaded Does the P&L add up? Start value to now, from the exchange: every fill and funding payment in the window is counted. Start value (9 Oct, 19:01, at run start; unified portfolio value (spot USDC total)) $1,449.21 + Closed P&L (realised) −$531.39 + Funding +$40.77 − Fees −$328.35 + Open positions (unrealised) now +$0.79, at start $0.00 — no open positions at start +$0.79 = Expected change −$818.17 Actual change (now $622.08) −$827.12 Unexplained difference −$8.95 Counted 45787 exchange fills and 9156 funding payments since the start. Deposits, withdrawals or transfers also show here. Live Copy Status HEALTH Action needed: a close is failing — check the Reconciliation tab and close it on the exchange details under Technical detail LEADER FEED Websocket OK websocket FOLLOWER ACCOUNT READ Reading (normal) WALLETS 10 live / 10 followed live + close-only are followed LAST SEND GAS pending_send PENDING_SEND LAST FILL AZTEC SELL 706.0 2026-10-16T23:11:15.676765+00:00 LAST REJECT PUMP INSUFFICIENT_MARGIN INSUFFICIENT_MARGIN LAST LATENCY WARNING severity=WARN; classification=SLOW_EXCHANGE_CALL; wa",
+      "body_text": "Live Copy Command Centre Wallets: 15 / 10 Live wallets: 10 Close-only wallets: 0 Off: 5 Leader feed: Websocket OK Refresh Global Controls Add wallet ACCOUNT VALUE (TESTNET) $636.21 SENDING OFF HEALTH Action needed: a close is failing — check the Reconciliation tab and close it on the exchange ACCOUNT CHANGE SINCE 9 OCT, 19:01 −$827.12 OPEN POSITIONS 128 RESTING ORDERS 35 Technical detail Loaded Does the P&L add up? Start value to now, from the exchange: every fill and funding payment in the window is counted. Start value (9 Oct, 19:01, at run start; unified portfolio value (spot USDC total)) $1,449.21 + Closed P&L (realised) −$531.39 + Funding +$40.77 − Fees −$328.35 + Open positions (unrealised) now +$0.79, at start $0.00 — no open positions at start +$0.79 = Expected change −$818.17 Actual change (now $622.08) −$827.12 Unexplained difference −$8.95 Counted 45787 exchange fills and 9156 funding payments since the start. Deposits, withdrawals or transfers also show here. Live Copy Status HEALTH Action needed: a close is failing — check the Reconciliation tab and close it on the exchange details under Technical detail LEADER FEED Websocket OK websocket FOLLOWER ACCOUNT READ Reading (normal) WALLETS 10 live / 10 followed live + close-only are followed LAST SEND GAS pending_send PENDING_SEND LAST FILL AZTEC SELL 706.0 2026-10-16T23:11:15.676765+00:00 LAST REJECT PUMP INSUFFICIENT_MARGIN INSUFFICIENT_MARGIN LAST LATENCY WARNING severity=WARN; classification=SLOW_EXCHANGE_CALL; wallet=0xf5d81a135f756ca16544e53c20fc20643ec3ad53 coin=ZEC intent_id=3a6458851584ae45339d73762983d076 delay_ms=2958 largest_component=exchange_call_ms:1748 2026-10-16T23:11:14.514912+00:00 Real Account PORTFOLIO VALUE (TESTNET) $636.21 OPEN POSITIONS P&L (UNREALISED) $0.79 CLOSED P&L (REALISED) $-531.39 since 9 Oct, 19:01 OPEN POSITIONS 128 LIVE EXPOSURE $9,100.59 Live Account / Wallet PnL Exchange account graph. ALL range — 117 portfolio pts, 45787 realized fills. Account Selected Wallet PnL Exposure 1D 7D ALL Apply Reset Total PnL Realized PnL Drawdown $99.3 -$413.6 -$926.4 Fri 9 Sun 11 Tue 13 Thu 15 Sat 17 Live Copy Wallets Configured wallets from live_config.json. Click a row for real copy details for that leader. WALLET NET P&L FEED CLOSED / OPEN / FEES LEAD↔COPY DIFF EXECUTION RISK / EXPOSURE LAST FILL CONTROLS 0x010461c1...1c703a Live — partial Websocket OK HOT10 shared socket active Closed: — partial Open: — Fees: $86.56 Partial record shared 0G shared 2Z shared ACE shared AIXBT shared ALGO shared ANIME shared APE shared APT shared AR shared ARB shared AVNT shared BABY shared BERA shared BIGTIME shared BLUR shared BRETT shared CAKE shared CASHCAT shared CC shared CELO shared CHIP shared DOGE shared DYDX shared DYM shared EIGEN shared FARTCOIN shared FET shared FIL shared FOGO shared GAS shared GMT shared GRAM shared GRASS shared HBAR shared HEMI shared INIT shared IO shared IOTA shared JTO shared KAITO shared KPEPE shared KSHIB shared LDO shared LINEA shared LIT shared MELANIA shared MON shared MOODENG shared MOVE shared NEO shared NIL shared ORDI shared PNUT shared POLYX shared PONS shared PUMP shared REZ shared RSR shared RUNE shared S shared SAND shared SKR shared SKY shared SNX shared SOL shared SPX shared STABLE shared STX shared SUPER shared SUSHI shared TAO shared TRUMP shared UMA shared USUAL shared VVV shared W shared WLD shared WLFI shared XLM shared XMR shared ZEN shared ZETA shared ZK shared ZRO Total: $0.81 Avg: $0 Avg bps: 4.6 Worst bps: 160.3 1065 filled / 0 exits 613 recent rejects 49 recent blocks Exposure: $1,854.24 Open pos: 93 DD: — MaxDD: — LINEA BUY @ LIVE CLO OFF prop fixed F N Save CLO OFF Archive 0x1b232b41...2fbe21 Live — Websocket OK HOT10 shared socket active Closed: — Open: $0 Fees: — No PnL yet Total: n/a Avg: n/a Avg bps: n/a Worst bps: n/a 0 filled / 0 exits 0 recent rejects 0 recent blocks Exposure: $0 Open pos: 0 DD: — MaxDD: — none yet LIVE CLO OFF prop fixed F N Save CLO OFF Archive 0x31ca8395...fb974b Live — parti"
+    },
+    "sort_wallet": {
+      "url": "http://127.0.0.1:8031/sort/wallet?direction=asc",
+      "http_status": 200,
+      "final_url": "http://127.0.0.1:8031/sort/wallet?direction=asc",
+      "title": "HL Copy Engine SSOT",
+      "selector": "div.top",
+      "selector_present": true,
+      "selector_text": "⚡ HL Copy Engine POLL Updated: 2026-10-16T23:11:19.212503+00:00 Normalisation Base: Model mode: proportional fixed Fixed $: Fee bps: Copy friction bps: Set Engine sizing: 10 FIXED Auto refresh off",
+      "body_text": "⚡ HL Copy Engine POLL Updated: 2026-10-16T23:11:19.212503+00:00 Normalisation Base: Model mode: proportional fixed Fixed $: Fee bps: Copy friction bps: Set Engine sizing: 10 FIXED Auto refresh off ACCOUNT (EXCHANGE) EQUITY +$636.21 TESTNET 0x7ae3…9205 PNL LEAD $0.00 (+0.00%) COPY $0.00 (+0.00%) Δ $0.00 (+0.00%) REALISED LEAD $0.00 (+0.00%) COPY $0.00 (+0.00%) UNREALISED LEAD $0.00 (+0.00%) COPY $0.00 (+0.00%) DRAWDOWN LEAD DD $0.00 (-0.00%) COPY DD $0.00 (-0.00%) COPY MAX $0.00 (-0.00%) MAX DD LEAD $0.00 (-0.00%) COPY $0.00 (-0.00%) EXPOSURE OPEN $0.00 MAX $0.00 BASE 0.00x / 0.00x COPYABILITY AVG TRADE % 0.000% AVG TRADE $ $0.00 AVG POS $0.00 REQ LEV 0.00x ACTIVITY FILLS 0 EXITS 0 OPEN POS 0 WIN 0.0% DB HEALTH 🟢 OK build 0.03s CACHE 0 BUILDS 16 COMBINED PORTFOLIO — NON-USER WALLETS -1.00 -0.50 +0.00 +0.50 +1.00 23:59 23:59 23:59 23:59 00:00 Copy PnL Realised Drawdown Hover for values · click chart to expand TRACKED WALLETS (10 followed: 10 LIVE, 0 close-only; 0 with copy history) — model derived in app from engine SSOT only. app-derived only; engine truth is not mutated WALLET LEAD EQ COPY EQ LEAD REAL COPY REAL LEAD UNREAL COPY UNREAL LEAD DD COPY DD LEAD MAXDD COPY MAXDD Δ $/% PNL/HR AVG TRADE % WIN% AVG POS $ MAX POS $ AVG NOTIONAL % ≥ $10 REQ LEV FILLS L/C EXITS L/C POS L/C INC / WALLET MODEL 0x7ae3b0…5e9205 USER (MODEL) +$100.00 +$100.00 $0.00 (+0.00%) $0.00 (+0.00%) $0.00 (+0.00%) $0.00 (+0.00%) $0.00 (-0.00%) $0.00 (-0.00%) $0.00 (-0.00%) $0.00 (-0.00%) $0.00 (+0.00%) — — — $0.00 $0.00 $0.00 0.0% 0.00x 0 / 0 0 / 0 0 / 0 aggregate baseSet"
+    },
+    "wallet_user": {
+      "url": "http://127.0.0.1:8031/wallet/0x010461c14e146ac35fe42271bdc1134ee31c703a",
+      "http_status": 404,
+      "final_url": "http://127.0.0.1:8031/wallet/0x010461c14e146ac35fe42271bdc1134ee31c703a",
+      "title": "",
+      "selector": "#liveCopyPanel",
+      "selector_present": false,
+      "selector_text": "",
+      "body_text": "Wallet not found: 0x010461c14e146ac35fe42271bdc1134ee31c703a"
+    },
+    "route": "ROUTE_AVAILABLE"
+  },
+  "dom_queries": {
+    "topbar_present": true,
+    "topbar_text": "⚡ HL Copy Engine POLL Updated: 2026-10-16T23:11:21.223584+00:00 Normalisation Base: Model mode: proportional fixed Fixed $: Fee bps: Copy friction bps: Set Engine sizing: 10 FIXED Auto refresh off",
+    "poll_badge": "POLL",
+    "has_set_button": true,
+    "set_forms": [
+      "/api/ui-state"
+    ],
+    "mode_select_names": [
+      "copy_mode"
+    ],
+    "current_label": "Engine sizing: 10 FIXED",
+    "th_sort_links": [
+      "/sort/lead_equity",
+      "/sort/copy_equity",
+      "/sort/lead_real",
+      "/sort/copy_real",
+      "/sort/lead_unreal",
+      "/sort/copy_unreal",
+      "/sort/lead_dd",
+      "/sort/copy_dd",
+      "/sort/lead_maxdd",
+      "/sort/copy_maxdd",
+      "/sort/delta",
+      "/sort/pnl_per_hour",
+      "/sort/avg_trade_pct",
+      "/sort/win_rate",
+      "/sort/avg_position_usd",
+      "/sort/max_position_usd",
+      "/sort/avg_entry_notional_usd",
+      "/sort/pct_entries_ge10",
+      "/sort/required_leverage",
+      "/sort/fill_count",
+      "/sort/exit_count",
+      "/sort/open_position_count"
+    ],
+    "th_sort_active": [],
+    "data_sort_cells": 23,
+    "table_rows": 1,
+    "diff_flags": 0
+  },
+  "api_root_redirect": {
+    "http": 200,
+    "url": "http://127.0.0.1:8031/live-copy",
+    "text_head": "<!doctype html>\n<html>\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<title>Live Copy Dashboard</title>\n<style>html,body{margin:0;padding:0;backgro"
+  },
+  "api_state": {
+    "http": 200,
+    "url": "http://127.0.0.1:8031/api/state",
+    "json": {
+      "ok": true,
+      "updated_at": "2026-10-16T23:11:25.322136+00:00",
+      "auto_send_enabled": false,
+      "send_mode": "OFF",
+      "wallet_gate_on_count": 1,
+      "wallet_gate_on": [
+        "not-an-address"
+      ],
+      "global_controls": {
+        "max_total_live_exposure_usd": 5000.0,
+        "max_asset_directional_exposure_usd": 2000.0,
+        "max_daily_loss_usd": 1000.0,
+        "max_wallet_exposure_usd": 600.0,
+        "max_order_notional_usd": 500.0,
+        "marketable_bps": 20.0,
+        "max_close_adverse_diff_pct": 0.0,
+        "symbol_allowlist": [],
+        "symbol_blocklist": [
+          "HYPE",
+          "PENGU",
+          "RESOLV"
+        ],
+        "marketable_slippage_pct": 0.2,
+        "marketable_slippage_off": false,
+        "close_adverse_diff_off": true
+      },
+      "files": {
+        "raw_live_fills": {
+          "exists": false,
+          "bytes": 0,
+          "mtime": ""
+        },
+        "copy_trades": {
+          "exists": true,
+          "bytes": 558,
+          "mtime": "2026-10-16T23:11:21.249970+00:00"
+        },
+        "order_intents": {
+          "exists": true,
+          "bytes": 1295039,
+          "mtime": "2026-10-16T23:11:23.333167+00:00"
+        },
+        "send_attempts": {
+          "exists": true,
+          "bytes": 126376836,
+          "mtime": "2026-10-16T23:11:22.296646+00:00"
+        },
+        "live_fills": {
+          "exists": true,
+          "bytes": 30001783,
+          "mtime": "2026-10-16T23:11:21.305848+00:00"
+        },
+        "reconciliation": {
+          "exists": true,
+          "bytes": 10774759,
+          "mtime": "2026-10-16T23:11:23.360511+00:00"
+        }
+      },
+      "app_health": {
+        "last_build_started_at": "2026-10-16T23:11:21.222870+00:00",
+        "last_build_finished_at": "2026-10-16T23:11:21.256188+00:00",
+        "last_build_seconds": 0.0333,
+        "last_persist_at": "2026-10-16T23:11:21.256171+00:00",
+        "last_error": "",
+        "cache_hits": 1,
+        "build_count": 17
+      },
+      "note": "lightweight status only; no model rebuild and no CSV scan"
+    }
+  },
+  "api_ui_state": {
+    "http": 200,
+    "url": "http://127.0.0.1:8031/api/ui-state",
+    "json": {
+      "norm_base": 100.0,
+      "user_norm_base": 100.0,
+      "copy_mode": "proportional",
+      "normalisation_mode": "equity",
+      "fixed_notional": 100.0,
+      "leader_equity_base": 10000.0,
+      "fee_bps": 5.0,
+      "copy_friction_bps": 0.0,
+      "wallet_config": {},
+      "wallet_include": {},
+      "wallet_meta": {},
+      "ranking": {
+        "column": "wallet",
+        "direction": "asc"
+      }
+    }
+  },
+  "api_live_config": {
+    "http": 200,
+    "url": "http://127.0.0.1:8031/api/live-config",
+    "json": {
+      "ok": true,
+      "config": {
+        "archived_wallets": {},
+        "auto_send_enabled": false,
+        "global_controls": {
+          "max_total_live_exposure_usd": 5000.0,
+          "max_asset_directional_exposure_usd": 2000.0,
+          "max_daily_loss_usd": 1000.0,
+          "max_wallet_exposure_usd": 600.0,
+          "max_order_notional_usd": 500.0,
+          "marketable_bps": 20.0,
+          "max_close_adverse_diff_pct": 0.0,
+          "symbol_allowlist": [],
+          "symbol_blocklist": [
+            "HYPE",
+            "PENGU",
+            "RESOLV"
+          ]
+        },
+        "wallets": {
+          "0x010461c14e146ac35fe42271bdc1134ee31c703a": {
+            "copy_mode": "fixed",
+            "enabled": true,
+            "fixed_notional": 12,
+            "mode": "LIVE",
+            "max_wallet_exposure_usd": 2000.0
+          },
+          "0x1b232b41b0e75550c59288b99874e4a8142fbe21": {
+            "copy_mode": "fixed",
+            "enabled": true,
+            "fixed_notional": 12,
+            "mode": "LIVE",
+            "max_wallet_exposure_usd": 2000.0
+          },
+          "0x31ca8395cf837de08b24da3f660e77761dfb974b": {
+            "copy_mode": "fixed",
+            "enabled": true,
+            "fixed_notional": 12,
+            "mode": "LIVE",
+            "max_wallet_exposure_usd": 2000.0
+          },
+          "0x6ba889db7f923622d3548f621ecc2054b80c1817": {
+            "copy_mode": "fixed",
+            "enabled": true,
+            "fixed_notional": 12,
+            "mode": "LIVE",
+            "max_wallet_exposure_usd": 2000.0
+          },
+          "0x7019197d2b2ae7b44eee12a76015eb1fe94abd36": {
+            "copy_mode": "fixed",
+            "enabled": true,
+            "fixed_notional": 12,
+            "mode": "LIVE",
+            "max_wallet_exposure_usd": 2000.0
+          },
+          "0x7717a7a245d9f950e586822b8c9b46863ed7bd7e": {
+            "copy_mode": "fixed",
+            "enabled": true,
+            "fixed_notional": 12,
+            "mode": "LIVE",
+            "max_wallet_exposure_usd": 2000.0
+          },
+          "0x936cf4fb95c30ce83f658b5bbb247e4bb381bb0f": {
+            "copy_mode": "fixed",
+            "enabled": true,
+            "fixed_notional": 12,
+            "mode": "LIVE",
+            "max_wallet_exposure_usd": 2000.0
+          },
+          "0xc179e03922afe8fa9533d3f896338b9fb87ce0c8": {
+            "copy_mode": "fixed",
+            "enabled": true,
+            "fixed_notional": 12,
+            "mode": "LIVE",
+            "max_wallet_exposure_usd": 2000.0
+          },
+          "0xd4c1f7e8d876c4749228d515473d36f919583d1d": {
+            "copy_mode": "fixed",
+            "enabled": true,
+            "fixed_notional": 12,
+            "mode": "LIVE",
+            "max_wallet_exposure_usd": 2000.0
+          },
+          "0xf5d81a135f756ca16544e53c20fc20643ec3ad53": {
+            "copy_mode": "fixed",
+            "enabled": true,
+            "fixed_notional": 12,
+            "mode": "LIVE",
+            "max_wallet_exposure_usd": 2000.0
+          },
+          "0x7bc5239180bea2255f4dd243d79481d39adee41e": {
+            "copy_mode": "fixed",
+            "enabled": true,
+            "fixed_notional": 12,
+            "mode": "OFF",
+            "max_wallet_exposure_usd": 2000.0
+          },
+          "0x1f4ab7e9acebb8b591e74b81e34bebe8be9bc934": {
+            "copy_mode": "fixed",
+            "enabled": true,
+            "fixed_notional": 12,
+            "mode": "OFF",
+            "max_wallet_exposure_usd": 2000.0
+          },
+          "0xcbe834386b8ec9d8c50eaad48dacb83e8b42ddfc": {
+            "copy_mode": "fixed",
+            "enabled": true,
+            "fixed_notional": 12,
+            "mode": "OFF",
+            "max_wallet_exposure_usd": 2000.0
+          },
+          "0x35519de6193f0e6581032d87236988629e35a281": {
+            "copy_mode": "fixed",
+            "enabled": true,
+            "fixed_notional": 12,
+            "mode": "OFF",
+            "max_wallet_exposure_usd": 2000.0
+          },
+          "0x833b99b27dac651d02080f5e220e929df891db06": {
+            "copy_mode": "fixed",
+            "enabled": true,
+            "fixed_notional": 12,
+            "mode": "OFF",
+            "max_wallet_exposure_usd": 2000.0
+          }
+        }
+      },
+      "wallet_count": 15,
+      "active_wallets": 10,
+      "max_wallets": 10
+    }
+  },
+  "api_live_ws_health": {
+    "http": 200,
+    "url": "http://127.0.0.1:8031/api/live-ws-health",
+    "json": {
+      "ok": true,
+      "health": {
+        "created_at": "2026-10-16T23:11:20.863368+00:00",
+        "created_at_ms": 1792192280863,
+        "wallets": {
+          "0x010461c14e146ac35fe42271bdc1134ee31c703a": {
+            "last_error": "",
+            "last_message_ms": 1792192279494,
+            "stale": false,
+            "stale_ms": 1369
+          },
+          "0x1b232b41b0e75550c59288b99874e4a8142fbe21": {
+            "last_error": "",
+            "last_message_ms": 1792190755817,
+            "stale": false,
+            "stale_ms": 1525046
+          },
+          "0x31ca8395cf837de08b24da3f660e77761dfb974b": {
+            "last_error": "",
+            "last_message_ms": 1792192279228,
+            "stale": false,
+            "stale_ms": 1635
+          },
+          "0x6ba889db7f923622d3548f621ecc2054b80c1817": {
+            "last_error": "",
+            "last_message_ms": 1792192280480,
+            "stale": false,
+            "stale_ms": 383
+          },
+          "0x7019197d2b2ae7b44eee12a76015eb1fe94abd36": {
+            "last_error": "",
+            "last_message_ms": 1792192277144,
+            "stale": false,
+            "stale_ms": 3719
+          },
+          "0x7717a7a245d9f950e586822b8c9b46863ed7bd7e": {
+            "last_error": "",
+            "last_message_ms": 1792192279698,
+            "stale": false,
+            "stale_ms": 1165
+          },
+          "0x936cf4fb95c30ce83f658b5bbb247e4bb381bb0f": {
+            "last_error": "",
+            "last_message_ms": 1792192280191,
+            "stale": false,
+            "stale_ms": 672
+          },
+          "0xc179e03922afe8fa9533d3f896338b9fb87ce0c8": {
+            "last_error": "",
+            "last_message_ms": 1792192199246,
+            "stale": false,
+            "stale_ms": 81617
+          },
+          "0xd4c1f7e8d876c4749228d515473d36f919583d1d": {
+            "last_error": "",
+            "last_message_ms": 1792192279453,
+            "stale": false,
+            "stale_ms": 1410
+          },
+          "0xf5d81a135f756ca16544e53c20fc20643ec3ad53": {
+            "last_error": "",
+            "last_message_ms": 1792192280773,
+            "stale": false,
+            "stale_ms": 90
+          }
+        },
+        "ws_summary": {
+          "headroom": {
+            "info_weight:api.hyperliquid-testnet.xyz": {
+              "level": "OK",
+              "limit": 1200,
+              "pct": 33.6,
+              "used": 403
+            },
+            "info_weight:api.hyperliquid.xyz": {
+              "level": "OK",
+              "limit": 1200,
+              "pct": 48.0,
+              "used": 576
+            },
+            "refusals": [],
+            "worst": "OK",
+            "ws_foreign": {
+              "level": "OK",
+              "limit": 0,
+              "pct": 0.0,
+              "pids": {},
+              "used": 0
+            },
+            "ws_users": {
+              "last_refusal": "",
+              "level": "OK",
+              "limit": 15,
+              "pct": 66.7,
+              "used": 10,
+              "wanted": 10
+            }
+          },
+          "last_ping_ms": 1792192280069,
+          "last_pong_ms": 1792192280295,
+          "last_refusal": "",
+          "last_refusal_ms": 0,
+          "last_socket_error": "",
+          "last_subscribe_ms": 1792190754891,
+          "message_errors": 0,
+          "open_count": 1,
+          "resubscribe_attempts": 0,
+          "socket_open": true,
+          "stale_count": 0,
+          "subscribe_acked": 10,
+          "subscribe_pending": false,
+          "subscribe_refused": 0,
+          "thread_alive": true,
+          "total_reconnect_count": 0,
+          "wallet_count": 10,
+          "wallets_without_feed": 0,
+          "worst_health_grade": "OK",
+          "ws_status": "WS_OK"
+        },
+        "overall": "WS_OK",
+        "enabled": true
+      }
+    }
+  },
+  "api_live_audit_summary": {
+    "http": null,
+    "error": "TimeoutError: TimeoutError('timed out')"
+  },
+  "oracle_exchange_snapshot_app": {
+    "account_address": "0xcccccccccccccccccccccccccccccccccccccccc",
+    "account_value": 0.0,
+    "account_value_label": "Clearinghouse account value",
+    "account_value_source": "clearinghouseState.marginSummary.accountValue",
+    "actual_user_fills_recent": [],
+    "actual_user_fills_source": "hyperliquid.info.userFillsByTime",
+    "available": true,
+    "available_to_trade": null,
+    "available_to_trade_candidates": {},
+    "available_to_trade_source": "",
+    "closed_pnl_sum": 0,
+    "cross_raw_total_usd": 0.0,
+    "fee_policy": "exchange_closedPnl_as_reported",
+    "fee_sum": 0,
+    "fee_sum_24h": 0,
+    "fee_sum_7d": 0,
+    "fee_sum_all_available_window": 0,
+    "fee_sum_selected": 0,
+    "fee_sum_since_baseline": 0,
+    "fee_sum_since_first_live_order": 0,
+    "fee_sum_today": 0,
+    "fetched_at_ms": 1792154922440,
+    "margin_raw_total_usd": 0.0,
+    "margin_used": 0.0,
+    "margin_used_source": "clearinghouseState.marginSummary.totalMarginUsed",
+    "ok": true,
+    "open_position_count": 0,
+    "open_positions": [],
+    "open_positions_count": 0,
+    "pnl_tally_inputs": {
+      "available": false,
+      "reason": "no account history recorded yet"
+    },
+    "positions_by_coin": {},
+    "raw_cross_margin_summary": {
+      "accountValue": "0.0",
+      "totalMarginUsed": "0.0",
+      "totalNtlPos": "0.0",
+      "totalRawUsd": "0.0"
+    },
+    "raw_margin_summary": {
+      "accountValue": "0.0",
+      "totalMarginUsed": "0.0",
+      "totalNtlPos": "0.0",
+      "totalRawUsd": "0.0"
+    },
+    "raw_spot_balances": [],
+    "raw_total_usd": 0.0,
+    "raw_total_usd_label": "Raw USD / collateral value",
+    "raw_total_usd_source": "clearinghouseState.marginSummary.totalRawUsd",
+    "raw_withdrawable": "0.0",
+    "realized_fill_points": [],
+    "realized_fills_paging": {
+      "cached_rows": 0,
+      "complete": true,
+      "fill_count": 0,
+      "history_limited": false,
+      "note": "",
+      "pages": 1
+    },
+    "realized_pnl_24h": 0,
+    "realized_pnl_24h_fill_count": 0,
+    "realized_pnl_24h_nonzero_count": 0,
+    "realized_pnl_24h_source": "hyperliquid.info.userFillsByTime.closedPnl; last 24h",
+    "realized_pnl_7d": 0,
+    "realized_pnl_7d_fill_count": 0,
+    "realized_pnl_7d_nonzero_count": 0,
+    "realized_pnl_7d_source": "hyperliquid.info.userFillsByTime.closedPnl; last 7d",
+    "realized_pnl_all_available_fill_count": 0,
+    "realized_pnl_all_available_window": 0,
+    "realized_pnl_all_available_window_source": "hyperliquid.info.userFillsByTime.closedPnl; fetched 7d/today/baseline window",
+    "realized_pnl_fill_count": 0,
+    "realized_pnl_selected": 0,
+    "realized_pnl_selected_end": "2026-10-16T12:48:43.053000+00:00",
+    "realized_pnl_selected_fill_count": 0,
+    "realized_pnl_selected_label": "today",
+    "realized_pnl_selected_source": "hyperliquid.info.userFillsByTime.closedPnl; selected=today",
+    "realized_pnl_selected_start": "2026-10-15T23:00:00+00:00",
+    "realized_pnl_since_baseline": 0,
+    "realized_pnl_since_baseline_fill_count": 0,
+    "realized_pnl_since_baseline_source": "hyperliquid.info.userFillsByTime.closedPnl; start=account_reconciliation.baseline_timestamp",
+    "realized_pnl_since_first_live_order": 0,
+    "realized_pnl_since_first_live_order_fill_count": 0,
+    "realized_pnl_since_first_live_order_nonzero_count": 0,
+    "realized_pnl_since_first_live_order_source": "hyperliquid.info.userFillsByTime.closedPnl; start=earliest send_attempts ORDER_FILLED",
+    "realized_pnl_since_first_live_order_start": "2026-10-14T11:12:07.758000+00:00",
+    "realized_pnl_snapshot_status": "OK",
+    "realized_pnl_today": 0,
+    "realized_pnl_today_fill_count": 0,
+    "realized_pnl_today_nonzero_count": 0,
+    "realized_pnl_today_source": "hyperliquid.info.userFillsByTime.closedPnl; today Europe/London",
+    "realized_pnl_total": 0,
+    "realized_pnl_total_source": "hyperliquid.info.userFillsByTime.closedPnl; selected=today",
+    "realized_pnl_window_end": "2026-10-16T12:48:43.053000+00:00",
+    "realized_pnl_window_start": "2026-10-15T23:00:00+00:00",
+    "source": "hyperliquid_clearinghouse_state",
+    "spot_account_source": "spotClearinghouseState",
+    "spot_parse_status": "OK",
+    "status": "OK",
+    "total_account_value": null,
+    "total_account_value_status": "unavailable from clearinghouseState",
+    "total_notional_position": 0.0,
+    "unified_portfolio_value": null,
+    "unified_portfolio_value_source": "",
+    "unrealized_pnl": 0.0,
+    "unrealized_pnl_source": "sum(assetPositions.position.unrealizedPnl)",
+    "updated_at": "2026-10-16T12:48:43.384744+00:00",
+    "withdrawable": 0.0,
+    "withdrawable_source": "clearinghouseState.withdrawable",
+    "age_ms": 37370899
+  },
+  "oracle_ui_state_disk": {
+    "copy_friction_bps": 0.0,
+    "copy_mode": "proportional",
+    "fee_bps": 5.0,
+    "fixed_notional": "100",
+    "leader_equity_base": 10000.0,
+    "norm_base": 100.0,
+    "normalisation_mode": "equity",
+    "ranking": {
+      "column": null,
+      "direction": "desc"
+    },
+    "user_norm_base": 250.0,
+    "wallet_config": {},
+    "wallet_include": {},
+    "wallet_meta": {}
+  },
+  "oracle_live_config_disk": {
+    "auto_send_enabled": false,
+    "global_controls": {},
+    "wallets": {
+      "0xdddddddddddddddddddddddddddddddddddddddd": {
+        "copy_mode": "fixed",
+        "enabled": true,
+        "fixed_notional": 1000,
+        "mode": "LIVE"
+      }
+    }
+  },
+  "oracle_live_ws_health_disk": {
+    "created_at": "2026-10-14T10:34:15.036313+00:00",
+    "created_at_ms": 1791974055036,
+    "wallets": {
+      "0xdddddddddddddddddddddddddddddddddddddddd": {
+        "last_error": "",
+        "last_message_ms": 0,
+        "stale": false,
+        "stale_ms": null
+      }
+    },
+    "ws_summary": {
+      "last_ping_ms": 0,
+      "last_pong_ms": 0,
+      "last_socket_error": "",
+      "open_count": 0,
+      "socket_open": false,
+      "stale_count": 0,
+      "thread_alive": false,
+      "total_reconnect_count": 0,
+      "wallet_count": 1,
+      "worst_health_grade": "DEGRADED",
+      "ws_status": "WS_DEGRADED"
+    }
+  }
+}

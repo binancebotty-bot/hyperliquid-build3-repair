@@ -1,0 +1,61 @@
+{
+  "card": "t_b6ec5682",
+  "register_ref": "main:certification/certification_matrix.json",
+  "register_commit": "b142cf88d389e791160f691aac3d936852b99975",
+  "tested_at_utc": "2026-10-16T23:19:51Z",
+  "register_source": {
+    "path": "_archive/hl_stage2/HL_Copy_App_SSOT.py",
+    "git_blob": "04533ced547a6e8c1d31b8ce25b4b215889e4409",
+    "sha256": "7468ab5188750617b090b56c3e719d73e91f5b4241f4782382ccac1a22989276"
+  },
+  "provenance_caveat": "Live :8031 is a different checkout (trading_stack/hl-build3-testnet-cert @ b5e6d61) than the register (hyperliquid-build3-repair @ b142cf88). Register code is read via git show; live DOM is cited as a contrasting deployed build.",
+  "rows": [
+    {
+      "id": "UI-SSOT-TBL-25",
+      "feature": "Analytics table column: Column sort (/sort/{column})",
+      "prior_result": "NOT_TESTED",
+      "verdict": "PASS",
+      "checks": [
+        {"name": "SORT_ENDPOINT_EXISTS_AND_ALLOWLISTS", "result": "PASS", "detail": "register line 6181 @app.get('/sort/{column}') with an explicit allowed-column set; unknown column -> BAD_SORT/redirect (fail closed)."},
+        {"name": "SORT_PERSISTS", "result": "PASS", "detail": "sort_column -> save_ui_state({'ranking':{column,direction}}) (line ~6201) -> ui_state.json. Oracle: /api/ui-state ranking == on-disk ui_state.json ranking (both {'column':'wallet','direction':'asc'})."},
+        {"name": "CELLS_RECOMPUTABLE_FROM_ENGINE_SSOT", "result": "PASS", "detail": "render_row emits data-sort values computed from the engine-SSOT model state."},
+        {"name": "LC_MISMATCH_FLAGGED_DIFF", "result": "PASS", "detail": "register line ~5095: mismatch = left != right -> appends LEAD_COPY_COUNT_MISMATCH flag and renders '<span class=badge neg>DIFF</span>'."}
+      ],
+      "basis": "register source blob 04533ced + live oracle (api/ui-state vs disk ui_state.json match)",
+      "raw": {"th_sort_links_live": 22, "data_sort_cells_live": 23, "th_sort_active_live": []}
+    },
+    {
+      "id": "UI-SSOT-PAGE-01",
+      "feature": "/wallet/{wallet} detail page (closed trades + actions tables)",
+      "prior_result": "FAIL",
+      "verdict": "PASS",
+      "checks": [
+        {"name": "WALLET_DETAIL_ROUTE_EXISTS", "result": "PASS", "detail": "register line 6020 @app.get('/wallet/{wallet}'); unknown wallet -> 404 'Wallet not found' (fail closed); USER wallet -> full page with live-copy control panel."},
+        {"name": "CLOSED_TRADES_TABLE_RENDERED", "result": "PASS", "detail": "wallet_detail renders a TRADE/COIN/SIDE/ENTRY TIME/EXIT TIME/LEAD ENTRY/COPY ENTRY/ENTRY DIFF/... table from state['copy_trades'] and an 'Expected copy fills' table."},
+        {"name": "RESET_SNAPSHOT_TOUCH_NO_ENGINE_TRUTH", "result": "PASS", "detail": "register test_g4_ui_controls.py executed in-process: RESULT::B_RESET_SAFE_DOES_NOT_TOUCH_ENGINE_TRUTH_PASS and RESULT::B_SNAPSHOT_GRANTS_NO_AUTHORITY_PASS; TOTAL=7 FAILED=0."},
+        {"name": "CONTRACT_BANNER_ON_RENDER_CONTRACT_ERROR", "result": "PASS", "detail": "render_home (line 5057-5061) calls validate_render_contract(state) and prepends a 'CONTRACT WARNING (n errors)' banner when errors are present."}
+      ],
+      "basis": "register source blob 04533ced + register test_g4_ui_controls.py (7/7 PASS)"
+    },
+    {
+      "id": "UI-SSOT-PAGE-11",
+      "feature": "/api/live-config",
+      "prior_result": "NOT_TESTED",
+      "verdict": "PASS",
+      "checks": [
+        {"name": "ENDPOINT_EXISTS_AND_RETURNS_CONFIG", "result": "PASS", "detail": "register line 6213 @app.get('/api/live-config') -> _live_copy_config_response(_load_live_copy_config()); error path _live_config_error (fail closed)."},
+        {"name": "ENDPOINT_CONSISTENT_WITH_DISK_CONFIG", "result": "PASS", "detail": "live API returns ok=true with 15 wallets; the served LIVE_COPY_CONFIG_FILE (live_config.json in the live state_dir) holds the same 15 wallets, global_controls.send_mode=ON."},
+        {"name": "RESET_SNAPSHOT_TOUCH_NO_ENGINE_TRUTH", "result": "PASS", "detail": "same register test_g4_ui_controls.py run: B_RESET_SAFE/B_SNAPSHOT PASS, 7/7."},
+        {"name": "CONTRACT_BANNER_PRESENT", "result": "PASS", "detail": "render_home contract banner present in register source (line 5061)."}
+      ],
+      "basis": "register source blob 04533ced + live oracle (/api/live-config vs on-disk live_config.json)"
+    }
+  ],
+  "raw_evidence": {
+    "endpoints_oracle": "raw/endpoints_oracle.txt",
+    "endpoints_oracle_sha256": "4afc58973d962d3aa2bc3240e4e1adf0e2abd948a568028b6d574c07105576b4",
+    "probe_json": "raw/probe.json",
+    "probe_json_sha256": "84cf048eeba2772e9a15a54a0ee10c648e898d5484dc4d9aa0d32299a81e9e8c",
+    "test_output": "raw/test_g4_ui_controls.txt"
+  }
+}

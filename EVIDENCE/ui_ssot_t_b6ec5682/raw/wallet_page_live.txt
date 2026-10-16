@@ -1,0 +1,22 @@
+# wallet-page DOM (live :8031, user wallet) 2026-10-16T23:22:09Z
+
+<title>Live Copy Control Centre
+<h3>Global Live Copy Controls
+<h3>Does the P&amp;L add up?
+<h3>Live Copy Status
+<h3>Real Account
+<h3>Live Account / Wallet PnL
+<h3>Live Copy Wallets
+<h3>Real User Copy Positions
+<h3>Execution Quality
+<h3>Order Intents / Audit
+<h3>Ledger vs Exchange
+<h3>WS Health Detail
+<h3>Add Wallet
+
+--- non-user wallet (fail closed) ---
+status=404
+<h3>Wallet not found: 0x010461c14e146ac35fe42271bdc1134ee31c703a</h3>
+--- register build has NO /live-copy route (0 hits) ---
+register hits for @app.get("/live-copy"):
+0

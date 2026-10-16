@@ -1,0 +1,24 @@
+# t_b6ec5682 endpoint + oracle raw facts (2026-10-16T23:19:51Z)
+
+--- HTTP status (live :8031) ---
+/                                307->http://127.0.0.1:8031/live-copy
+/live-copy                       200->
+/live-copy.json                  200->
+/api/live-config                 200->
+/api/ui-state                    200->
+/api/state                       200->
+/api/live-ws-health              200->
+/api/live-audit-summary          200->
+/sort/wallet?direction=asc       200->
+/sort/coin                       200->
+
+--- oracle: exchange_account_snapshot_app.json age ---
+ok True status OK fetched_at_ms 1792192791938 age_ms 11303
+
+--- oracle: live_config.json (LIVE state_dir) vs API ---
+disk wallets 15 global_controls.send_mode ON
+api wallets 15
+
+--- api/ui-state vs disk ui_state.json ---
+api ranking {'column': 'wallet', 'direction': 'asc'} copy_mode proportional
+disk ranking {'column': 'wallet', 'direction': 'asc'} copy_mode proportional

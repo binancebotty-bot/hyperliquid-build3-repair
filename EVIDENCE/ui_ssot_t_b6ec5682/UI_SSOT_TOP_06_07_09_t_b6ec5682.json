@@ -1,0 +1,58 @@
+{
+  "card": "t_b6ec5682",
+  "register_ref": "main:certification/certification_matrix.json",
+  "register_commit": "b142cf88d389e791160f691aac3d936852b99975",
+  "tested_at_utc": "2026-10-16T23:19:51Z",
+  "register_source": {
+    "path": "_archive/hl_stage2/HL_Copy_App_SSOT.py",
+    "git_blob": "04533ced547a6e8c1d31b8ce25b4b215889e4409",
+    "sha256": "7468ab5188750617b090b56c3e719d73e91f5b4241f4782382ccac1a22989276",
+    "lines": 6360,
+    "top_bar_line": 5181
+  },
+  "provenance_caveat": "The live :8031 server is NOT this register build. :8031 serves a different checkout (C:/Users/wigmore/trading_stack/hl-build3-testnet-cert @ b5e6d613de36e3020ac28ba2317e6571a5c37e9b, SSOT sha256 658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2) whose top bar reads 'Model mode:'/'Engine sizing:'. The register build has no /live-copy route at all (0 hits). Verdicts below are grounded on the REGISTER SOURCE read via git show; the live DOM is cited only as a contrasting deployed build. The register matrix also pins source path hyperliquid-build3-repair/HL_Copy_App_SSOT.py sha c0f9e508... which is NOT a resolvable object in the repo.",
+  "shared_requirement": "Changes only the app-derived MODEL (ui_state.json), never live trading; MUST be labelled as model so it cannot be mistaken for live engine settings.",
+  "rows": [
+    {
+      "id": "UI-SSOT-TOP-06",
+      "feature": "Analytics top bar: Set",
+      "prior_result": "NOT_TESTED",
+      "verdict": "FAIL",
+      "checks": [
+        {"name": "SET_WRITES_MODEL_ONLY", "result": "PASS", "detail": "register line 5181: form action=/api/ui-state -> POST api_set_ui_state (line 6105) -> save_ui_state (line 673) -> atomic_write_json(UI_STATE_FILE='ui_state.json') (line 693). Touches no engine truth."},
+        {"name": "SET_LABELLED_AS_MODEL", "result": "FAIL", "detail": "register top bar (line 5181) labels the control 'Mode:' and shows 'Current: {mode}'. The token 'model' appears NOWHERE in the register top bar (0 hits); the only model wording is the table-section footer 'model derived in app from engine SSOT only'. A user can mistake the Set control for a live engine setting."}
+      ],
+      "basis": "register source b142cf88:_archive/hl_stage2/HL_Copy_App_SSOT.py (blob 04533ced)",
+      "note": "Deployed build (different checkout) fixed this with a 'Model mode:' label + 'Engine sizing:' readback; that fix is NOT in the register commit."
+    },
+    {
+      "id": "UI-SSOT-TOP-07",
+      "feature": "Analytics top bar: Current mode label",
+      "prior_result": "FAIL",
+      "verdict": "FAIL",
+      "checks": [
+        {"name": "CURRENT_MODE_DERIVED_FROM_MODEL", "result": "PASS", "detail": "register line 5181 renders 'Current: {mode}' fed from ui.get('copy_mode','proportional').upper() from ui_state.json."},
+        {"name": "CURRENT_MODE_LABELLED_AS_MODEL", "result": "FAIL", "detail": "Label is 'Current:' / 'Mode:', not marked as app-model; indistinguishable from an engine setting."}
+      ],
+      "basis": "register source blob 04533ced",
+      "note": "Prior evidence_ref certification/results/UI_CORRECTION_2d29211.json @2d29211 noted 'ranking element not found'; the element DOES exist in the register (line 5181). The decisive defect is the missing model label, not element absence."
+    },
+    {
+      "id": "UI-SSOT-TOP-09",
+      "feature": "Analytics top bar: POLL badge",
+      "prior_result": "FAIL",
+      "verdict": "FAIL",
+      "checks": [
+        {"name": "POLL_BADGE_IS_MODEL_DERIVED", "result": "FAIL", "detail": "register line 5181 emits a STATIC '<span class=\"live\">POLL</span>' string in HTML_TEMPLATE. It is not read from ui_state.json and not labelled as the app model, so the shared requirement is unmet."}
+      ],
+      "basis": "register source blob 04533ced",
+      "note": "Live build's /live-copy shows live WS-derived pills instead; that is a different checkout."
+    }
+  ],
+  "raw_evidence": {
+    "probe_json": "raw/probe.json",
+    "probe_json_sha256": "84cf048eeba2772e9a15a54a0ee10c648e898d5484dc4d9aa0d32299a81e9e8c",
+    "provenance_txt": "raw/provenance.txt",
+    "provenance_txt_sha256": "50f8f388db9f3307631257025a0ae4dfda4a33d0911744554d6498356750b05a"
+  }
+}
