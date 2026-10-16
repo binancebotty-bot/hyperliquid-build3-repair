@@ -75,11 +75,16 @@ def classify(audit_dir: Path, fill_ids: List[str]) -> Dict[str, str]:
             res = ""
         if res == "DEFERRED_OPEN":  # a sibling held with its head: once the head is decided, the sibling is decided with it
             for r in recon.get(fid, []):
-                m = re.search(r"merged_into=([^;\s]+)", r.get("notes", "") or "")
+                notes = r.get("notes", "") or ""
+                m = re.search(r"merged_into=([^;\s]+)", notes) or re.search(r"merged with leader fill (0x[0-9a-fA-F]+) into one copy order", notes)
                 if m:
                     head = own(m.group(1))
                     if head and head not in ("DEFERRED_OPEN", "BLOCKED_MERGED_INTO_HEAD_COPY"):  # a chained head decides nothing itself
                         res = "MERGED_SENT" if head == "SENT" else "MERGED_" + head
+            if res == "DEFERRED_OPEN" and fid in merged_head:  # the intent row lists it as merged into a head that has decided
+                head = own(merged_head[fid])
+                if head and head not in ("DEFERRED_OPEN", "BLOCKED_MERGED_INTO_HEAD_COPY"):
+                    res = "MERGED_SENT" if head == "SENT" else "MERGED_" + head
         if not res and fid in merged_head:
             head = own(merged_head[fid])
             res = ("MERGED_SENT" if head == "SENT" else "MERGED_" + (head or "NO_OUTCOME")) if head else ""

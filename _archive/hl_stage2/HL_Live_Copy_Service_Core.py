@@ -9352,7 +9352,10 @@ class LiveCopyCore:
                     late = [(k, v) for k, v in self._pending_seen.items() if now - v[0] > limit and k not in self._pending_rowed
                             and k in self._queued_keys]
                     self._pending_rowed.update(k for k, _v in late)
+                _handled = self.__dict__.get("_handled_ids", {})
                 for _k, (at, wallet, coin, fid) in late:
+                    if fid in _handled:  # already decided (its own or its head's final row exists): a pending row now would be wrong and leave a merged sibling looking open
+                        continue
                     self.audit.append_reconciliation(
                         "FILL_PENDING", "FILL_PENDING_QUEUED", leader_wallet=wallet, leader_fill_id=fid, coin=coin,
                         action="QUEUED_NOT_LOST", terminal_state="FILL_PENDING_QUEUED", engine_can_send="False",
@@ -9897,6 +9900,15 @@ class LiveCopyCore:
             if _k not in self._deferred:  # held fills keep their state; everything else is done with it
                 self._past_send_keys.discard(_k)
                 self.__dict__.get("_defer_first_ms", {}).pop(_k, None)
+                try:  # decided: the pending sweeper must not write "a final row follows" for it afterwards (the batch releases its queue keys only when the whole batch is done)
+                    _done = self.__dict__.setdefault("_handled_ids", {})
+                    for _i in [str(fill.leader_fill_id), *[str(x) for x in ((fill.raw or {}).get("merged_fill_ids") or []) if x]]:
+                        _done[_i] = True
+                    if len(_done) > 200000:
+                        for _old in list(_done)[:50000]:
+                            _done.pop(_old, None)
+                except Exception as exc:
+                    log_error("handled_ids", exc)
 
     def _rows_for_held_siblings(self, fill: LeaderFill, state: str) -> None:
         """A head held for a retry carries the fills merged into it; they were marked handled with it but had no row until the
