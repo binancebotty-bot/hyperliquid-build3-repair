@@ -1,0 +1,224 @@
+{
+  "schema": "b3_network_row_evidence_v1",
+  "register_ref": "main:certification/certification_matrix.json",
+  "engine_commit": "f28341d1f02f76060c384844ab6aa439ddee976e",
+  "tested_at_utc": "2026-10-16T21:01:17Z",
+  "results": [
+    {
+      "row_id": "TN-F25",
+      "feature": "Testnet scenario F25: Deployment / control-plane identity",
+      "result": "NOT_TESTED",
+      "execution_proof": "Predeclared Phase 6T-style scenario on testnet through the production engine path only (no direct exchange.order); evidence per class with exchange parity",
+      "independent_oracle": "OS process list, port bindings, exchange open orders/fills during the transition window",
+      "checks": [
+        {
+          "name": "production_engine_testnet_scenario",
+          "result": "NOT_TESTED",
+          "detail": "MISSING ROUTE: approved isolated Phase 6T-style scenario runner through the production engine path, with exchange parity capture. No scenario launched."
+        },
+        {
+          "name": "process_ports_exchange_parity",
+          "result": "NOT_TESTED",
+          "detail": "MISSING ROUTE: synchronized OS process/port-binding capture and exchange open-order/fill oracle during the transition window."
+        },
+        {
+          "name": "second_start_attempt",
+          "result": "NOT_TESTED",
+          "detail": "MISSING ROUTE: controlled second-start attempt in an isolated testnet scenario with observable outcome."
+        },
+        {
+          "name": "crash_mid_transition",
+          "result": "NOT_TESTED",
+          "detail": "MISSING ROUTE: safe crash-injection harness and exchange-parity readback; no process was crashed."
+        },
+        {
+          "name": "stale_lock_pid",
+          "result": "NOT_TESTED",
+          "detail": "MISSING ROUTE: isolated stale-lock/PID fixture and production-engine recovery observation."
+        },
+        {
+          "name": "previous_version_config",
+          "result": "NOT_TESTED",
+          "detail": "MISSING ROUTE: isolated previous-version configuration fixture run through the production engine and exchange-parity oracle."
+        }
+      ],
+      "notes": "Only read-only reachability check performed: pinned UI GET http://127.0.0.1:8031/live-copy returned HTTP 200; this is not the declared engine scenario or independent oracle. No mutation or mock.",
+      "engine_commit": "f28341d1f02f76060c384844ab6aa439ddee976e"
+    },
+    {
+      "row_id": "TN-T1",
+      "feature": "Testnet transport T1",
+      "result": "NOT_TESTED",
+      "execution_proof": "Configuration (env/credentials) -> endpoints actually contacted (captured) -> identities used for signing and for truth reads",
+      "independent_oracle": "Packet/HTTP capture or request log of hostnames; exchange-side account address of resulting fills",
+      "checks": [
+        {
+          "name": "transport_endpoint_identity_capture",
+          "result": "NOT_TESTED",
+          "detail": "MISSING ROUTE: live testnet transport execution with captured outbound hostnames/request log and signing-vs-truth-read identity evidence."
+        },
+        {
+          "name": "exchange_fill_identity_oracle",
+          "result": "NOT_TESTED",
+          "detail": "MISSING ROUTE: exchange-side account-address/fill oracle correlated to a genuine production-engine testnet request."
+        },
+        {
+          "name": "negative_mixed_network_endpoints",
+          "result": "NOT_TESTED",
+          "detail": "MISSING ROUTE: isolated mixed testnet/mainnet endpoint negative-case harness with captured requests; not attempted."
+        },
+        {
+          "name": "negative_signer_equals_master",
+          "result": "NOT_TESTED",
+          "detail": "MISSING ROUTE: isolated identity-negative test and captured signing/truth-read identity oracle; not attempted."
+        },
+        {
+          "name": "negative_missing_credential",
+          "result": "NOT_TESTED",
+          "detail": "MISSING ROUTE: isolated missing-credential transport test with captured request evidence; not attempted."
+        }
+      ],
+      "engine_commit": "f28341d1f02f76060c384844ab6aa439ddee976e"
+    },
+    {
+      "row_id": "TN-T2",
+      "feature": "Testnet transport T2",
+      "result": "NOT_TESTED",
+      "execution_proof": "Configuration (env/credentials) -> endpoints actually contacted (captured) -> identities used for signing and for truth reads",
+      "independent_oracle": "Packet/HTTP capture or request log of hostnames; exchange-side account address of resulting fills",
+      "checks": [
+        {
+          "name": "transport_endpoint_identity_capture",
+          "result": "NOT_TESTED",
+          "detail": "MISSING ROUTE: live testnet transport execution with captured outbound hostnames/request log and signing-vs-truth-read identity evidence."
+        },
+        {
+          "name": "exchange_fill_identity_oracle",
+          "result": "NOT_TESTED",
+          "detail": "MISSING ROUTE: exchange-side account-address/fill oracle correlated to a genuine production-engine testnet request."
+        },
+        {
+          "name": "negative_mixed_network_endpoints",
+          "result": "NOT_TESTED",
+          "detail": "MISSING ROUTE: isolated mixed testnet/mainnet endpoint negative-case harness with captured requests; not attempted."
+        },
+        {
+          "name": "negative_signer_equals_master",
+          "result": "NOT_TESTED",
+          "detail": "MISSING ROUTE: isolated identity-negative test and captured signing/truth-read identity oracle; not attempted."
+        },
+        {
+          "name": "negative_missing_credential",
+          "result": "NOT_TESTED",
+          "detail": "MISSING ROUTE: isolated missing-credential transport test with captured request evidence; not attempted."
+        }
+      ],
+      "engine_commit": "f28341d1f02f76060c384844ab6aa439ddee976e"
+    },
+    {
+      "row_id": "TN-T3",
+      "feature": "Testnet transport T3",
+      "result": "NOT_TESTED",
+      "execution_proof": "Configuration (env/credentials) -> endpoints actually contacted (captured) -> identities used for signing and for truth reads",
+      "independent_oracle": "Packet/HTTP capture or request log of hostnames; exchange-side account address of resulting fills",
+      "checks": [
+        {
+          "name": "transport_endpoint_identity_capture",
+          "result": "NOT_TESTED",
+          "detail": "MISSING ROUTE: live testnet transport execution with captured outbound hostnames/request log and signing-vs-truth-read identity evidence."
+        },
+        {
+          "name": "exchange_fill_identity_oracle",
+          "result": "NOT_TESTED",
+          "detail": "MISSING ROUTE: exchange-side account-address/fill oracle correlated to a genuine production-engine testnet request."
+        },
+        {
+          "name": "negative_mixed_network_endpoints",
+          "result": "NOT_TESTED",
+          "detail": "MISSING ROUTE: isolated mixed testnet/mainnet endpoint negative-case harness with captured requests; not attempted."
+        },
+        {
+          "name": "negative_signer_equals_master",
+          "result": "NOT_TESTED",
+          "detail": "MISSING ROUTE: isolated identity-negative test and captured signing/truth-read identity oracle; not attempted."
+        },
+        {
+          "name": "negative_missing_credential",
+          "result": "NOT_TESTED",
+          "detail": "MISSING ROUTE: isolated missing-credential transport test with captured request evidence; not attempted."
+        }
+      ],
+      "engine_commit": "f28341d1f02f76060c384844ab6aa439ddee976e"
+    },
+    {
+      "row_id": "TN-T4",
+      "feature": "Testnet transport T4",
+      "result": "NOT_TESTED",
+      "execution_proof": "Configuration (env/credentials) -> endpoints actually contacted (captured) -> identities used for signing and for truth reads",
+      "independent_oracle": "Packet/HTTP capture or request log of hostnames; exchange-side account address of resulting fills",
+      "checks": [
+        {
+          "name": "transport_endpoint_identity_capture",
+          "result": "NOT_TESTED",
+          "detail": "MISSING ROUTE: live testnet transport execution with captured outbound hostnames/request log and signing-vs-truth-read identity evidence."
+        },
+        {
+          "name": "exchange_fill_identity_oracle",
+          "result": "NOT_TESTED",
+          "detail": "MISSING ROUTE: exchange-side account-address/fill oracle correlated to a genuine production-engine testnet request."
+        },
+        {
+          "name": "negative_mixed_network_endpoints",
+          "result": "NOT_TESTED",
+          "detail": "MISSING ROUTE: isolated mixed testnet/mainnet endpoint negative-case harness with captured requests; not attempted."
+        },
+        {
+          "name": "negative_signer_equals_master",
+          "result": "NOT_TESTED",
+          "detail": "MISSING ROUTE: isolated identity-negative test and captured signing/truth-read identity oracle; not attempted."
+        },
+        {
+          "name": "negative_missing_credential",
+          "result": "NOT_TESTED",
+          "detail": "MISSING ROUTE: isolated missing-credential transport test with captured request evidence; not attempted."
+        }
+      ],
+      "engine_commit": "f28341d1f02f76060c384844ab6aa439ddee976e"
+    },
+    {
+      "row_id": "TN-T5",
+      "feature": "Testnet transport T5",
+      "result": "NOT_TESTED",
+      "execution_proof": "Configuration (env/credentials) -> endpoints actually contacted (captured) -> identities used for signing and for truth reads",
+      "independent_oracle": "Packet/HTTP capture or request log of hostnames; exchange-side account address of resulting fills",
+      "checks": [
+        {
+          "name": "transport_endpoint_identity_capture",
+          "result": "NOT_TESTED",
+          "detail": "MISSING ROUTE: live testnet transport execution with captured outbound hostnames/request log and signing-vs-truth-read identity evidence."
+        },
+        {
+          "name": "exchange_fill_identity_oracle",
+          "result": "NOT_TESTED",
+          "detail": "MISSING ROUTE: exchange-side account-address/fill oracle correlated to a genuine production-engine testnet request."
+        },
+        {
+          "name": "negative_mixed_network_endpoints",
+          "result": "NOT_TESTED",
+          "detail": "MISSING ROUTE: isolated mixed testnet/mainnet endpoint negative-case harness with captured requests; not attempted."
+        },
+        {
+          "name": "negative_signer_equals_master",
+          "result": "NOT_TESTED",
+          "detail": "MISSING ROUTE: isolated identity-negative test and captured signing/truth-read identity oracle; not attempted."
+        },
+        {
+          "name": "negative_missing_credential",
+          "result": "NOT_TESTED",
+          "detail": "MISSING ROUTE: isolated missing-credential transport test with captured request evidence; not attempted."
+        }
+      ],
+      "engine_commit": "f28341d1f02f76060c384844ab6aa439ddee976e"
+    }
+  ]
+}
