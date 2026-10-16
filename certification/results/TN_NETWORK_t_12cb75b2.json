@@ -1,0 +1,57 @@
+{
+  "schema": "b3_certification_evidence_v1",
+  "task_id": "t_12cb75b2",
+  "register_of_record": "b142cf88d389e791160f691aac3d936852b99975:certification/certification_matrix.json",
+  "tested_engine_commit": "c0e72c663fd1eecc995b285ca40ad953fa6b067f",
+  "engine_blob": "0921eb4b09963c9656013719f77bbabdebb07b09:_archive/hl_stage2/HL_Live_Copy_Service_Core.py",
+  "tested_at_utc": "2026-10-16T23:21:07Z",
+  "result": "NOT_TESTED",
+  "probe_summary": {
+    "testnet_endpoint_probe": "GET https://api.hyperliquid-testnet.xyz/info returned HTTP 405 (curl exit 23 due to expected empty output write); this establishes only endpoint reachability, not authenticated identity or an executed engine scenario.",
+    "process_probe": "tasklist process-name census showed only generic python.exe/pythonw.exe among Python processes; no B3 engine process identity, command line, or PID was captured. No engine was started.",
+    "runtime_and_oracle": "No production-path B3 testnet engine run, captured outbound request log, or independent MASTER exchange state/fill/order snapshot was available in this run. No credentials were inspected or used."
+  },
+  "rows": [
+    {
+      "id": "TN-F13",
+      "result": "NOT_TESTED",
+      "evidence_ref": "certification/results/TN_NETWORK_t_12cb75b2.json#TN-F13",
+      "missing": "The predeclared F13 production-engine testnet scenarios (no-fill acknowledgement, partial fill, HIP-3 DEX fill, and crash-after-send-before-oid) were not executed; no independent MASTER userFillsByTime-per-DEX and clearinghouseState oracle snapshots or exchange parity evidence were captured. OD-24 remains open, so its numeric tolerance cannot be assumed."
+    },
+    {
+      "id": "TN-F23",
+      "result": "NOT_TESTED",
+      "evidence_ref": "certification/results/TN_NETWORK_t_12cb75b2.json#TN-F23",
+      "missing": "No live testnet engine scenario was run against the certified UI at http://127.0.0.1:8031/live-copy; no independently recomputed account/position/open-order/risk values or paired exchange truth snapshot was captured, including the unavailable/stale/API-error negative cases."
+    },
+    {
+      "id": "TN-F25",
+      "result": "NOT_TESTED",
+      "evidence_ref": "certification/results/TN_NETWORK_t_12cb75b2.json#TN-F25",
+      "missing": "No start/second-start/crash/restart/cutover transition was executed on testnet, and no OS process-to-release/commit identity snapshot plus testnet open-orders/fills window was captured. OD-12 remains open; no lifecycle mechanism was assumed."
+    },
+    {
+      "id": "TN-F26",
+      "result": "NOT_TESTED",
+      "evidence_ref": "certification/results/TN_NETWORK_t_12cb75b2.json#TN-F26",
+      "missing": "No production-engine testnet allocation/risk-budget cases or independent exchange order/fill oracle were run. OD-22 is open and governs the allocation/sizing basis; no disputed interpretation was tested."
+    },
+    {
+      "id": "TN-F27",
+      "result": "NOT_TESTED",
+      "evidence_ref": "certification/results/TN_NETWORK_t_12cb75b2.json#TN-F27",
+      "missing": "No testnet leader margin/leverage divergence-without-fill scenario or independent exchange order/fill oracle was run. OD-23 is open; no authority/safety interpretation was assumed."
+    },
+    {
+      "id": "TN-T6",
+      "result": "NOT_TESTED",
+      "evidence_ref": "certification/results/TN_NETWORK_t_12cb75b2.json#TN-T6",
+      "missing": "No packet/HTTP capture or request log of endpoints actually contacted was obtained, and no exchange-side address identity for signing versus truth reads was verified. Endpoint reachability alone does not satisfy the specified transport proof; mixed-network, signer/master, and missing-credential negative cases were not executed."
+    }
+  ],
+  "limitations": [
+    "No row is PASS: no corresponding execution proof was performed.",
+    "This package does not edit certification_matrix.json or apply_verified_results.py.",
+    "The registered engine commit is recorded as the repository HEAD/blob under assessment; the production engine was not started or behaviorally exercised."
+  ]
+}
