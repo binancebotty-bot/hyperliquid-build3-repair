@@ -1,0 +1,10 @@
+{
+  "id": "PRICE-003",
+  "result": "NOT_TESTED",
+  "tested_commit": "c0e72c663fd1eecc995b285ca40ad953fa6b067f",
+  "register_ref": "b142cf88d389e791160f691aac3d936852b99975:certification/certification_matrix.json",
+  "execution_proof_required": "Leader event -> price source actually consulted (logged with timestamp/age) -> order limit price on the wire -> fill price",
+  "independent_oracle_required": "Independent l2Book / allMids snapshot captured at decision time plus the exchange fill record",
+  "missing": ["No executed, commit-bound leader event/order-wire/fill trace was produced in this run.", "No contemporaneous independent l2Book/allMids snapshot paired to an exchange fill record was produced in this run; therefore stale/unavailable/price-moved negative cases are also unproven."],
+  "notes": "Row is OPEN_DECISION (OD-10) in the pinned register. No PASS asserted."
+}
