@@ -1,0 +1,64 @@
+{
+  "schema": "uilcc4_evidence_v1",
+  "register_ref": "main:certification/certification_matrix.json",
+  "register_commit": "b142cf88d389e791160f691aac3d936852b99975",
+  "tested_at_utc": "2026-10-16T21:16:55Z",
+  "live_surface": "http://127.0.0.1:8031/live-copy",
+  "engine_commit": null,
+  "engine_commit_note": "Not exposed by the live page or /api/live-config; cannot attribute the deployed service to a source commit.",
+  "overall": "INCOMPLETE_NOT_TESTED",
+  "constraints": [
+    "No POST or state-changing request was issued.",
+    "No rendered browser DOM capture or independent exchange oracle was available.",
+    "/api/live-audit-summary GET timed out after 12 seconds.",
+    "The declared proof requires rendered UI plus persistence/rejection behavior and independent oracle, not static source inspection."
+  ],
+  "rows": [
+    {
+      "id": "UI-LCC-DETAIL-04",
+      "result": "NOT_TESTED",
+      "fresh_probe": "GET /live-copy returned HTTP 200, 87,350 bytes. Static served HTML includes walletDetailHtml() template and attribution field logic; it does not establish the rendered wallet-specific detail or match against independent exchange fills/positions.",
+      "oracle": "Unavailable: no independent exchange/engine read captured.",
+      "negative_test": "NOT_RUN: unavailable/stale/API-error behavior not observed in a rendered DOM.",
+      "engine_commit": null
+    },
+    {
+      "id": "UI-LCC-ADD-06",
+      "result": "NOT_TESTED",
+      "fresh_probe": "GET /live-copy returned HTTP 200; served Add Wallet form has no Leader equity base control. GET /api/live-config returned HTTP 200. GET /api/live-config/add-wallet returned HTTP 405. No POST issued.",
+      "oracle": "NOT_RUN: no controlled safe test wallet/config mutation or independent persistence readback.",
+      "negative_test": "NOT_RUN: invalid-input rejection and visible error require an intentional POST and rendered DOM.",
+      "engine_commit": null
+    },
+    {
+      "id": "UI-LCC-ADD-07",
+      "result": "NOT_TESTED",
+      "fresh_probe": "GET /live-copy returned HTTP 200; served Add Wallet form has no Max diff % control. GET /api/live-config returned HTTP 200; add-wallet GET returned HTTP 405. No POST issued.",
+      "oracle": "NOT_RUN: no controlled persistence readback.",
+      "negative_test": "NOT_RUN: invalid-input rejection and visible error require an intentional POST and rendered DOM.",
+      "engine_commit": null
+    },
+    {
+      "id": "UI-LCC-ADD-10",
+      "result": "NOT_TESTED",
+      "fresh_probe": "GET /live-copy returned HTTP 200; served form includes Add wallet submit wired to POST /api/live-config/add-wallet. GET to that endpoint returns HTTP 405. No POST issued.",
+      "oracle": "NOT_RUN: submit/persistence behavior not exercised; no independent readback.",
+      "negative_test": "NOT_RUN: invalid-input rejection and visible error require an intentional POST and rendered DOM.",
+      "engine_commit": null
+    },
+    {
+      "id": "UI-SSOT-TOP-06",
+      "result": "NOT_TESTED",
+      "fresh_probe": "GET /live-copy returned HTTP 200. No rendered DOM action was taken; no isolated ui_state mutation or independently verified unchanged live-trading configuration was performed.",
+      "oracle": "NOT_RUN: no independent before/after live-config comparison around a model-only setting change.",
+      "negative_test": "NOT_RUN: cannot prove model labeling/non-impact without a safe controlled setting change.",
+      "engine_commit": null
+    }
+  ],
+  "shared_probe": {
+    "GET /api/live-audit-summary initial probe": "Timeout after 12.03 seconds",
+    "GET /api/live-audit-summary harness rerun": "HTTP 200, application/json, 5987100 bytes",
+    "GET /api/live-config": "HTTP 200, JSON 2186 bytes",
+    "deployed_engine_commit": "Not exposed by observed responses"
+  }
+}
