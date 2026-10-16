@@ -4987,8 +4987,28 @@ class SenderGateway:
         ]
         return f"missing append-only audit proof files: {','.join(missing)}" if missing else ""
 
+    _PERSISTED_POS_CACHE: Dict[str, Any] = {}
+
     @staticmethod
     def _persisted_exchange_positions() -> Tuple[Dict[str, float], str]:
+        # Speed: per-order gate re-parsed the full snapshot JSON each call. Cache keyed by (mtime_ns,size), max age HL_LIVE_GATE_SNAPSHOT_CACHE_SEC (default 2; 0 = off).
+        ttl = fnum(os.getenv("HL_LIVE_GATE_SNAPSHOT_CACHE_SEC"), 2.0)
+        cache = SenderGateway._PERSISTED_POS_CACHE
+        try:
+            st = EXCHANGE_ACCOUNT_SNAPSHOT_FILE.stat()
+            key = (st.st_mtime_ns, st.st_size)
+        except OSError:
+            key = None
+        now = time.monotonic()
+        if ttl > 0 and key is not None and cache.get("key") == key and now - cache.get("at", 0.0) <= ttl:
+            return dict(cache["pos"]), cache["err"]
+        pos, err = SenderGateway._persisted_exchange_positions_uncached()
+        if ttl > 0 and key is not None:
+            cache.update(key=key, at=now, pos=dict(pos), err=err)
+        return pos, err
+
+    @staticmethod
+    def _persisted_exchange_positions_uncached() -> Tuple[Dict[str, float], str]:
         snapshot = load_json(EXCHANGE_ACCOUNT_SNAPSHOT_FILE, {})
         if not isinstance(snapshot, dict):
             return {}, "exchange snapshot unavailable"
