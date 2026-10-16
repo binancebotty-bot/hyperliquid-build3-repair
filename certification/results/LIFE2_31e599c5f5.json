@@ -1,0 +1,99 @@
+{
+  "schema": "b3_cert_evidence_v1",
+  "register_ref": "main:certification/certification_matrix.json",
+  "engine_commit": "31e599c5f58de686c9e74357079a85f03e23213a",
+  "rows": [
+    {
+      "id": "F25-P07",
+      "register_ref": "main:certification/certification_matrix.json",
+      "register_status": "NOT_TESTED",
+      "engine_commit": "31e599c5f58de686c9e74357079a85f03e23213a",
+      "result": "NOT_TESTED",
+      "execution_proof": "Operator command -> process table / PID / lock -> engine status endpoint -> exchange shows zero unintended orders",
+      "independent_oracle": "OS process list, port bindings, exchange open orders/fills during the transition window",
+      "negative_tests": [
+        "second start attempt",
+        "crash mid-transition",
+        "stale lock/PID",
+        "config from previous version"
+      ],
+      "checks": {
+        "operator_transition": "NOT_RUN: no authorized lifecycle transition was executed",
+        "process_pid_lock": "NOT_TESTED: target lifecycle runtime/lock identity not established",
+        "engine_status_endpoint": "NOT_TESTED: lifecycle status endpoint not established",
+        "exchange_orders_fills": "NOT_TESTED: no transition window; exchange oracle not queried"
+      },
+      "missing_runtime": "Build-4 lifecycle promotion/transition runtime bound to this engine commit, PID/lock/status endpoint, and independent exchange open-order/fill observations during the transition window",
+      "tested_at_utc": "2026-10-16T21:18:10.125907+00:00"
+    },
+    {
+      "id": "F25-P08",
+      "register_ref": "main:certification/certification_matrix.json",
+      "register_status": "NOT_TESTED",
+      "engine_commit": "31e599c5f58de686c9e74357079a85f03e23213a",
+      "result": "NOT_TESTED",
+      "execution_proof": "Operator command -> process table / PID / lock -> engine status endpoint -> exchange shows zero unintended orders",
+      "independent_oracle": "OS process list, port bindings, exchange open orders/fills during the transition window",
+      "negative_tests": [
+        "second start attempt",
+        "crash mid-transition",
+        "stale lock/PID",
+        "config from previous version"
+      ],
+      "checks": {
+        "operator_transition": "NOT_RUN: no authorized lifecycle transition was executed",
+        "process_pid_lock": "NOT_TESTED: target lifecycle runtime/lock identity not established",
+        "engine_status_endpoint": "NOT_TESTED: lifecycle status endpoint not established",
+        "exchange_orders_fills": "NOT_TESTED: no transition window; exchange oracle not queried"
+      },
+      "missing_runtime": "Build-4 lifecycle promotion/transition runtime bound to this engine commit, PID/lock/status endpoint, and independent exchange open-order/fill observations during the transition window",
+      "tested_at_utc": "2026-10-16T21:18:10.125907+00:00"
+    },
+    {
+      "id": "F25-P09",
+      "register_ref": "main:certification/certification_matrix.json",
+      "register_status": "NOT_TESTED",
+      "engine_commit": "31e599c5f58de686c9e74357079a85f03e23213a",
+      "result": "NOT_TESTED",
+      "execution_proof": "Operator command -> process table / PID / lock -> engine status endpoint -> exchange shows zero unintended orders",
+      "independent_oracle": "OS process list, port bindings, exchange open orders/fills during the transition window",
+      "negative_tests": [
+        "second start attempt",
+        "crash mid-transition",
+        "stale lock/PID",
+        "config from previous version"
+      ],
+      "checks": {
+        "operator_transition": "NOT_RUN: no authorized lifecycle transition was executed",
+        "process_pid_lock": "NOT_TESTED: target lifecycle runtime/lock identity not established",
+        "engine_status_endpoint": "NOT_TESTED: lifecycle status endpoint not established",
+        "exchange_orders_fills": "NOT_TESTED: no transition window; exchange oracle not queried"
+      },
+      "missing_runtime": "Build-4 lifecycle promotion/transition runtime bound to this engine commit, PID/lock/status endpoint, and independent exchange open-order/fill observations during the transition window",
+      "tested_at_utc": "2026-10-16T21:18:10.125907+00:00"
+    },
+    {
+      "id": "F25-P10",
+      "register_ref": "main:certification/certification_matrix.json",
+      "register_status": "NOT_TESTED",
+      "engine_commit": "31e599c5f58de686c9e74357079a85f03e23213a",
+      "result": "NOT_TESTED",
+      "execution_proof": "Operator command -> process table / PID / lock -> engine status endpoint -> exchange shows zero unintended orders",
+      "independent_oracle": "OS process list, port bindings, exchange open orders/fills during the transition window",
+      "negative_tests": [
+        "second start attempt",
+        "crash mid-transition",
+        "stale lock/PID",
+        "config from previous version"
+      ],
+      "checks": {
+        "operator_transition": "NOT_RUN: no authorized lifecycle transition was executed",
+        "process_pid_lock": "NOT_TESTED: target lifecycle runtime/lock identity not established",
+        "engine_status_endpoint": "NOT_TESTED: lifecycle status endpoint not established",
+        "exchange_orders_fills": "NOT_TESTED: no transition window; exchange oracle not queried"
+      },
+      "missing_runtime": "Build-4 lifecycle promotion/transition runtime bound to this engine commit, PID/lock/status endpoint, and independent exchange open-order/fill observations during the transition window",
+      "tested_at_utc": "2026-10-16T21:18:10.125907+00:00"
+    }
+  ]
+}
