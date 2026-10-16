@@ -1,0 +1,201 @@
+{
+  "register_commit": "b142cf88d389e791160f691aac3d936852b99975",
+  "tested_at_utc": "2026-10-17T00:12:39Z",
+  "rows": [
+    {
+      "register_ref": "main:certification/certification_matrix.json",
+      "register_commit": "b142cf88d389e791160f691aac3d936852b99975",
+      "tested_commit": "b142cf88d389e791160f691aac3d936852b99975",
+      "tested_at_utc": "2026-10-17T00:12:39Z",
+      "ui_source_blob": "_archive/hl_stage2/HL_Copy_App_SSOT.py",
+      "ui_source_sha256_at_register": "7468ab5188750617b090b56c3e719d73e91f5b4241f4782382ccac1a22989276",
+      "independence_rule": "HL_Copy_App_SSOT.py was never imported; oracle = urllib reads of the served JSON API + on-disk engine artefacts",
+      "read_only": true,
+      "probe": "EVIDENCE/ui_wallet/scripts/ui_wallet_probe.py",
+      "raw": "EVIDENCE/ui_wallet/raw/ui_wallet_probe.json (sha256 d2e9c62714f57e89d5d016e6c6a5eb15b485259a9057b504b14e5b7ee422c2c6)",
+      "id": "UI-WALLET-002",
+      "area": "WALLET",
+      "applicability": "OPEN_DECISION",
+      "open_decisions": [
+        "OD-13"
+      ],
+      "result": "NOT_TESTED",
+      "why": "Requirement itself depends on unruled OD-13 (wallet archival/tombstone semantics); the register states an OPEN_DECISION record cannot be certified until ruled.",
+      "executed_checks": [
+        {
+          "check": "UI surface exposes a remove/archive control per wallet",
+          "observed": "rendered #liveCopyPanel wallet rows: 15; per-row buttons LIVE=0 CLO=15 OFF=15 ARCHIVE=15 PURGE=0",
+          "note": "Archive control present in the rendered UI."
+        },
+        {
+          "check": "source implements archive-then-hide + restore",
+          "observed": "remove-wallet handler pops the wallet, forces mode=OFF/enabled=false, writes archived_at and stores it under archived_wallets; set-mode/set-wallet pop it back out of archived_wallets",
+          "note": "archive/restore mechanism exists in source @register commit."
+        },
+        {
+          "check": "source implements a tombstone for existing owned exposure",
+          "observed": "token \"tombstone\" occurrences in source = 0",
+          "note": "No tombstone concept exists; the archival write path never inspects exposure."
+        }
+      ],
+      "missing_route": "A ruling on OD-13 plus a documented, testable expectation for what happens to an archived wallet that still owns exposure."
+    },
+    {
+      "register_ref": "main:certification/certification_matrix.json",
+      "register_commit": "b142cf88d389e791160f691aac3d936852b99975",
+      "tested_commit": "b142cf88d389e791160f691aac3d936852b99975",
+      "tested_at_utc": "2026-10-17T00:12:39Z",
+      "ui_source_blob": "_archive/hl_stage2/HL_Copy_App_SSOT.py",
+      "ui_source_sha256_at_register": "7468ab5188750617b090b56c3e719d73e91f5b4241f4782382ccac1a22989276",
+      "independence_rule": "HL_Copy_App_SSOT.py was never imported; oracle = urllib reads of the served JSON API + on-disk engine artefacts",
+      "read_only": true,
+      "probe": "EVIDENCE/ui_wallet/scripts/ui_wallet_probe.py",
+      "raw": "EVIDENCE/ui_wallet/raw/ui_wallet_probe.json (sha256 d2e9c62714f57e89d5d016e6c6a5eb15b485259a9057b504b14e5b7ee422c2c6)",
+      "id": "UI-WALLET-006",
+      "area": "WALLET",
+      "applicability": "OPEN_DECISION",
+      "open_decisions": [
+        "OD-02"
+      ],
+      "result": "NOT_TESTED",
+      "why": "Copy-model semantics (in particular the fixed-mode HOLD) depend on unruled OD-02.",
+      "executed_checks": [
+        {
+          "check": "source accepts and persists a per-wallet copy_mode",
+          "observed": "_normalise_live_wallet_payload accepts copy_mode in {proportional, fixed} and raises BAD_COPY_MODE otherwise; persisted through /api/wallet-config and /api/live-config/set-wallet",
+          "note": "Persistence path exists."
+        },
+        {
+          "check": "rendered UI exposes a prop/fixed selector per wallet",
+          "observed": "rendered wallet rows carry a copy_mode select (prop/fixed) + Set control",
+          "note": "UI control present."
+        },
+        {
+          "check": "fixed is HOLD fail-closed until OD-02 is ruled and the UI says so",
+          "observed": "token \"FIXED-MODE HOLD\" occurrences in source = 0; token \"OD-02\" occurrences = 0",
+          "note": "No HOLD gate and no in-UI OD-02 disclosure exists; the fixed mode is accepted and acted on immediately."
+        }
+      ],
+      "missing_route": "Ruling on OD-02; then a test of mode persistence -> engine sizing with the HOLD behaviour in force."
+    },
+    {
+      "register_ref": "main:certification/certification_matrix.json",
+      "register_commit": "b142cf88d389e791160f691aac3d936852b99975",
+      "tested_commit": "b142cf88d389e791160f691aac3d936852b99975",
+      "tested_at_utc": "2026-10-17T00:12:39Z",
+      "ui_source_blob": "_archive/hl_stage2/HL_Copy_App_SSOT.py",
+      "ui_source_sha256_at_register": "7468ab5188750617b090b56c3e719d73e91f5b4241f4782382ccac1a22989276",
+      "independence_rule": "HL_Copy_App_SSOT.py was never imported; oracle = urllib reads of the served JSON API + on-disk engine artefacts",
+      "read_only": true,
+      "probe": "EVIDENCE/ui_wallet/scripts/ui_wallet_probe.py",
+      "raw": "EVIDENCE/ui_wallet/raw/ui_wallet_probe.json (sha256 d2e9c62714f57e89d5d016e6c6a5eb15b485259a9057b504b14e5b7ee422c2c6)",
+      "id": "UI-WALLET-008",
+      "area": "WALLET",
+      "applicability": "OPEN_DECISION",
+      "open_decisions": [
+        "OD-02"
+      ],
+      "result": "NOT_TESTED",
+      "why": "fixed_notional is only meaningful under the unruled fixed semantics of OD-02.",
+      "executed_checks": [
+        {
+          "check": "source enforces fixed_notional >= 0.01",
+          "observed": "_normalise_live_wallet_payload: fixed_notional = max(0.01, fnum(payload.get('fixed_notional', base.get('fixed_notional', 10)), 10))",
+          "note": "Lower bound is enforced at the normalisation boundary (source read @register commit)."
+        },
+        {
+          "check": "live served config carries a fixed_notional",
+          "observed": "/api/live-config wallets each carry copy_mode=fixed and fixed_notional=12",
+          "note": "Field is live in the served config."
+        },
+        {
+          "check": "rendered UI exposes a fixed-$ input per wallet",
+          "observed": "rendered wallet rows carry an F input bound to fixed_notional",
+          "note": "Control present."
+        }
+      ],
+      "missing_route": "Ruling on OD-02; then a persistence test proving the clamped value reaches engine sizing."
+    },
+    {
+      "register_ref": "main:certification/certification_matrix.json",
+      "register_commit": "b142cf88d389e791160f691aac3d936852b99975",
+      "tested_commit": "b142cf88d389e791160f691aac3d936852b99975",
+      "tested_at_utc": "2026-10-17T00:12:39Z",
+      "ui_source_blob": "_archive/hl_stage2/HL_Copy_App_SSOT.py",
+      "ui_source_sha256_at_register": "7468ab5188750617b090b56c3e719d73e91f5b4241f4782382ccac1a22989276",
+      "independence_rule": "HL_Copy_App_SSOT.py was never imported; oracle = urllib reads of the served JSON API + on-disk engine artefacts",
+      "read_only": true,
+      "probe": "EVIDENCE/ui_wallet/scripts/ui_wallet_probe.py",
+      "raw": "EVIDENCE/ui_wallet/raw/ui_wallet_probe.json (sha256 d2e9c62714f57e89d5d016e6c6a5eb15b485259a9057b504b14e5b7ee422c2c6)",
+      "id": "UI-WALLET-014",
+      "area": "WALLET",
+      "applicability": "OPEN_DECISION",
+      "open_decisions": [
+        "OD-05"
+      ],
+      "result": "NOT_TESTED",
+      "why": "The coexistence rule between the two mode writers is exactly what unruled OD-05 covers.",
+      "executed_checks": [
+        {
+          "check": "two independent mode writers exist",
+          "observed": "legacy POST /api/set-wallet-mode and /api/set-all-modes write wallet_gate.json with modes {ON, OFF, CLOSE_ONLY}; POST /api/live-config/set-mode writes live_config.json with modes {LIVE, CLO, OFF}",
+          "note": "Both writers are present and reachable in the same process (source read @register commit)."
+        },
+        {
+          "check": "the two writers are reconciled / cannot contradict",
+          "observed": "token \"contradict\" occurrences = 0; no cross-file reconciliation call appears in either handler (the only consistency helper invoked is repair_live_config_consistency, which operates inside live_config.json alone)",
+          "note": "No reconciliation guard exists; the two files can hold independent, contradictory authority."
+        },
+        {
+          "check": "the UI shows the effective mode",
+          "observed": "token \"effective_mode\" occurrences in source = 0; rendered DOM search for /effective|current mode/i returned []",
+          "note": "No effective-mode display exists."
+        },
+        {
+          "check": "live served state shows the divergence",
+          "observed": "/api/state send_mode=OFF while wallet_gate_on=['not-an-address'] (wallet_gate_on_count=1); /api/live-config wallets all carry mode=LIVE",
+          "note": "The two authority files disagree in the live system right now."
+        }
+      ],
+      "missing_route": "Ruling on OD-05, then a bounded test that drives both writers and asserts a single effective authority."
+    },
+    {
+      "register_ref": "main:certification/certification_matrix.json",
+      "register_commit": "b142cf88d389e791160f691aac3d936852b99975",
+      "tested_commit": "b142cf88d389e791160f691aac3d936852b99975",
+      "tested_at_utc": "2026-10-17T00:12:39Z",
+      "ui_source_blob": "_archive/hl_stage2/HL_Copy_App_SSOT.py",
+      "ui_source_sha256_at_register": "7468ab5188750617b090b56c3e719d73e91f5b4241f4782382ccac1a22989276",
+      "independence_rule": "HL_Copy_App_SSOT.py was never imported; oracle = urllib reads of the served JSON API + on-disk engine artefacts",
+      "read_only": true,
+      "probe": "EVIDENCE/ui_wallet/scripts/ui_wallet_probe.py",
+      "raw": "EVIDENCE/ui_wallet/raw/ui_wallet_probe.json (sha256 d2e9c62714f57e89d5d016e6c6a5eb15b485259a9057b504b14e5b7ee422c2c6)",
+      "id": "UI-WALLET-015",
+      "area": "WALLET",
+      "applicability": "OPEN_DECISION",
+      "open_decisions": [
+        "OD-13"
+      ],
+      "result": "NOT_TESTED",
+      "why": "Purge semantics for a wallet that owns exposure is what unruled OD-13 covers.",
+      "executed_checks": [
+        {
+          "check": "purge is exposed in the UI",
+          "observed": "rendered #liveCopyPanel PURGE buttons = 0; the legacy page source still emits a PURGE form on action=/api/admin/purge-wallet",
+          "note": "The admin purge form is not rendered on the live-copy surface captured here."
+        },
+        {
+          "check": "source refuses or makes safe a purge when the wallet owns exposure",
+          "observed": "purge_wallet_everywhere() guards only wallet == USER_WALLET (CANNOT_PURGE_USER_WALLET) and then unconditionally removes the wallet from ui_state.json, wallet_gate.json, live_config.json, engine_truth, baselines, CSVs and derived files; no exposure/position lookup appears in the function body",
+          "note": "No exposure-ownership guard exists; purge proceeds regardless of open exposure."
+        },
+        {
+          "check": "purge token census",
+          "observed": "endpoint /api/admin/purge-wallet occurrences = 2; purge_wallet_everywhere def = 1; archived_wallets key = 7",
+          "note": "Mechanism present, safety condition absent."
+        }
+      ],
+      "missing_route": "Ruling on OD-13; then a safe-execution test that purges a wallet holding open exposure and asserts the documented outcome."
+    }
+  ]
+}

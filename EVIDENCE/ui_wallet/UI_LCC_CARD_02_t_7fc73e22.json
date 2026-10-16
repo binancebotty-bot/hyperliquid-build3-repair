@@ -1,0 +1,56 @@
+{
+  "register_commit": "b142cf88d389e791160f691aac3d936852b99975",
+  "tested_at_utc": "2026-10-17T00:12:39Z",
+  "rows": [
+    {
+      "register_ref": "main:certification/certification_matrix.json",
+      "register_commit": "b142cf88d389e791160f691aac3d936852b99975",
+      "tested_commit": "b142cf88d389e791160f691aac3d936852b99975",
+      "tested_at_utc": "2026-10-17T00:12:39Z",
+      "id": "UI-LCC-CARD-02",
+      "area": "UI",
+      "applicability": "APPLIES",
+      "open_decisions": [],
+      "result": "PARTIAL",
+      "why": "The Unrealized PnL value leg and the source-unavailable leg are verified by executed probes, but two further legs named in the row are not satisfied: Live Exposure is still the manual estimate and is not labelled as such or replaced by exchange truth, and the card does not flag a stale source.",
+      "executed_checks": [
+        {
+          "check": "certified card renderer produces an Unrealized PnL cell in a real browser",
+          "observed": "rendered DOM (renderCards + helpers extracted verbatim from the register blob, executed in a fresh headless Chromium on the live audit payload): label 'Unrealized PnL' value '$0.66' class 'value lc-pos'; all 7 card labels rendered",
+          "verdict": "PASS"
+        },
+        {
+          "check": "that value equals the exchange truth at snapshot time (independent oracle)",
+          "observed": "urllib /api/live-audit-summary exchange_account_snapshot: account_address=0x7ae3b08bb4e7b085c6db5d635b96bec9715e9205 (= MASTER), available=true, unrealized_pnl=0.659395, unrealized_pnl_source='sum(assetPositions.position.unrealizedPnl)', updated_at=2026-10-16T23:12:20Z; rendered value $0.66 == round(0.659395, 2); capture age 9,665 ms",
+          "verdict": "PASS"
+        },
+        {
+          "check": "source unavailable shows n/a / Unavailable rather than 0",
+          "observed": "same certified renderer with available=false and unrealized_pnl=null: 'Unrealized PnL' = 'n/a', 'Portfolio Value' = 'Unavailable'",
+          "verdict": "PASS"
+        },
+        {
+          "check": "stale source is flagged",
+          "observed": "rendered card shows no age/as-of/stale marker (source-renderCards has no age logic); the fresh master snapshot is ~10 s old and a STALE on-disk app snapshot (account 0xcccc..., fetched 1792154922440, unrealized_pnl 0.0) would render identically",
+          "verdict": "FAIL"
+        },
+        {
+          "check": "Live Exposure is exchange truth or is explicitly labelled as the manual estimate",
+          "observed": "rendered label is plain 'Live Exposure' with value $9,390.04 (class lc-amber); the value comes from manual_live_summary.manual_live_exposure_estimate = 9390.043448; no 'estimated'/'manual' text appears in any card label or value",
+          "verdict": "FAIL"
+        },
+        {
+          "check": "API error surfaced",
+          "observed": "not executed against an induced API error; no non-destructive route to force a served-API error was available at capture",
+          "verdict": "NOT_TESTED"
+        }
+      ],
+      "ui_source_sha256_at_register": "7468ab5188750617b090b56c3e719d73e91f5b4241f4782382ccac1a22989276",
+      "probe": "EVIDENCE/ui_wallet/scripts/ui_lcc_card02_probe.py",
+      "raw": "EVIDENCE/ui_wallet/raw/ui_lcc_card02_probe.json (sha256 d908500f6e8380879dbfc1243b6712e7749b66810778864396e5a86649294fa8)",
+      "harness_note": "The :8031 service is NOT running the register-commit build (its Real Account strip renders the labels OPEN POSITIONS P&L (UNREALISED) / LIVE EXPOSURE / PORTFOLIO VALUE (TESTNET), which occur 0 times in the register blob). Rendering the live page would therefore certify the wrong artifact; the probe renders the certified renderer instead.",
+      "independence_rule": "HL_Copy_App_SSOT.py was never imported; oracle = urllib read of the served JSON API + on-disk engine artefacts.",
+      "read_only": true
+    }
+  ]
+}
