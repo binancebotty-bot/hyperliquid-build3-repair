@@ -1,0 +1,223 @@
+{
+  "harness": "HEALTH_harness_b142cf88d3.py",
+  "area": "HEALTH",
+  "rows": [
+    "HEALTH-001",
+    "HEALTH-005",
+    "INC-11"
+  ],
+  "register_ref": "main",
+  "register_commit": "b142cf88d389e791160f691aac3d936852b99975",
+  "checkout_ref": "31e599c5f58de686c9e74357079a85f03e23213a",
+  "tested_commit": "b142cf88d389e791160f691aac3d936852b99975",
+  "ui_surface": "http://127.0.0.1:8031",
+  "read_at_utc": "2026-10-16T21:29:54.308088+00:00",
+  "oracle": "live HTTP surface http://127.0.0.1:8031 + wall-clock timestamps; source facts are explicitly labelled SRC: and never counted as runtime proof",
+  "total_checks": 24,
+  "passed": 18,
+  "failed": 6,
+  "checks": [
+    {
+      "row": "REGISTER",
+      "name": "REGISTER_READABLE",
+      "pass": true,
+      "detail": "read main:certification/certification_matrix.json; ref=main=b142cf88d3; rows=790"
+    },
+    {
+      "row": "HEALTH-001",
+      "name": "ROW_STATUS_READ_FROM_REGISTER",
+      "pass": true,
+      "detail": "result=NOT_TESTED applicability=APPLIES tested_commit=-"
+    },
+    {
+      "row": "HEALTH-005",
+      "name": "ROW_STATUS_READ_FROM_REGISTER",
+      "pass": true,
+      "detail": "result=NOT_TESTED applicability=APPLIES tested_commit=-"
+    },
+    {
+      "row": "INC-11",
+      "name": "ROW_STATUS_READ_FROM_REGISTER",
+      "pass": true,
+      "detail": "result=NOT_TESTED applicability=APPLIES_PROPOSED tested_commit=-"
+    },
+    {
+      "row": "ENGINE-PIN",
+      "name": "REGISTER_PIN_OBJECT_RESOLVES",
+      "pass": false,
+      "detail": "git cat-file -t 5bda57be -> fatal: Not a valid object name"
+    },
+    {
+      "row": "ENGINE-PIN",
+      "name": "REGISTER_PIN_MATCHES_REPO_BLOB",
+      "pass": false,
+      "detail": "register pin=5bda57be/7705 lines; b142cf88d3:_archive/hl_stage2/HL_Live_Copy_Service_Core.py=b171ec8fef01/8042 lines; 31e599c5f5:_archive/hl_stage2/HL_Live_Copy_Service_Core.py=c5a40384e9a3/13026 lines"
+    },
+    {
+      "row": "ENGINE-PIN",
+      "name": "SOURCE_BLOBS_HASHED",
+      "pass": true,
+      "detail": "31e599c5f5:_archive/hl_stage2/HL_Copy_App_SSOT.py=4574ca72b0da/8123L; b142cf88d3:_archive/hl_stage2/HL_Live_Copy_Service.py=e2f04fa82695/5109L"
+    },
+    {
+      "row": "SURFACE",
+      "name": "UI_LIVE_COPY_HTTP_200",
+      "pass": true,
+      "detail": "GET http://127.0.0.1:8031/live-copy -> 200"
+    },
+    {
+      "row": "HEALTH-001",
+      "name": "WS_HEALTH_ENDPOINT_OK",
+      "pass": true,
+      "detail": "GET /api/live-ws-health -> 200 in 0.019s"
+    },
+    {
+      "row": "HEALTH-001",
+      "name": "PER_WALLET_STATE_PRESENT",
+      "pass": true,
+      "detail": "wallets=10; keys per wallet=['last_error', 'last_message_ms', 'stale', 'stale_ms']"
+    },
+    {
+      "row": "HEALTH-001",
+      "name": "PER_WALLET_STALENESS_FIELD",
+      "pass": true,
+      "detail": "every wallet row carries stale + stale_ms (n=10)"
+    },
+    {
+      "row": "HEALTH-001",
+      "name": "RECONNECT_COUNTER_EXPOSED",
+      "pass": true,
+      "detail": "ws_summary.total_reconnect_count=0 resubscribe_attempts=0 open_count=1"
+    },
+    {
+      "row": "HEALTH-001",
+      "name": "WS_STATUS_GRADE_EXPOSED",
+      "pass": true,
+      "detail": "ws_summary.ws_status=WS_OK worst_health_grade=OK stale_count=0"
+    },
+    {
+      "row": "HEALTH-001",
+      "name": "DECLARED_BOUND_30000_EXISTS_IN_NAMED_SOURCE",
+      "pass": true,
+      "detail": "b142cf88d3:_archive/hl_stage2/HL_Live_Copy_Service.py: LIVE_WS_STALE_MS = int(os.getenv(\"HL_LIVE_WS_STALE_MS\", \"30000\"))"
+    },
+    {
+      "row": "HEALTH-001",
+      "name": "CORE_RUNTIME_THRESHOLD_IS_THE_DECLARED_30000",
+      "pass": false,
+      "detail": "31e599c5f5:_archive/hl_stage2/HL_Live_Copy_Service_Core.py thresholds: wallet_stale_threshold_ms = int(os.getenv(\"HL_LIVE_WS_WALLET_STALE_MS\", \"120000\")); subscribed_stale_ms = int(os.getenv(\"HL_LIVE_WS_SUBSCRIBED_STALE_MS\", str(4 * 60 * 60 * 1000)))"
+    },
+    {
+      "row": "HEALTH-001",
+      "name": "NEG:PERSISTENT_SILENCE_OVER_30S_IS_FLAGGED",
+      "pass": false,
+      "detail": "3 wallet(s) exceed the declared 30000ms bound; flagged stale=true: 0. 0x1b232b41 stale_ms=2640703 stale=False; 0x7019197d stale_ms=62362 stale=False; 0xc179e039 stale_ms=51775 stale=False"
+    },
+    {
+      "row": "HEALTH-001",
+      "name": "NEG:SILENCE_ADVANCES_ACROSS_SAMPLES",
+      "pass": true,
+      "detail": "sample B at 2026-10-16T21:29:39.154000+00:00 (gap 45s): 0x1b232b41 2640703->2680705 stale=False; 0x7019197d 62362->102364 stale=False"
+    },
+    {
+      "row": "HEALTH-005",
+      "name": "SRC:NONBLOCKING_DIAG_READ_PATH",
+      "pass": true,
+      "detail": "source-read (not runtime): HL_Copy_App_SSOT.py defines _model_cache_snapshot_nonblocking() which acquires _MODEL_BUILD_LOCK with blocking=False and returns the cached state"
+    },
+    {
+      "row": "HEALTH-005",
+      "name": "SRC:AUDIT_SUMMARY_READ_ONLY_CACHE",
+      "pass": true,
+      "detail": "source-read (not runtime): /api/live-audit-summary is documented read-only with a 2s in-process cache"
+    },
+    {
+      "row": "HEALTH-005",
+      "name": "RUNTIME:DIAG_BUILD_COST_MEASURED",
+      "pass": true,
+      "detail": "GET /api/live-audit-summary -> 200 in 7.056s (build_seconds=6.907); this is the DIAGNOSTIC cost - it is NOT evidence about engine execution blocking"
+    },
+    {
+      "row": "HEALTH-005",
+      "name": "RUNTIME:EXECUTION_DELTA_UNDER_DIAG_LOAD",
+      "pass": false,
+      "detail": "NOT EXERCISED - no engine-under-test and no legitimately induceable execution delta in this lane; the live engine (state_dir C:/Users/wigmore/trading_stack/hl-build3-testnet-cert/_archive/hl_stage2) is a running production lane this card must not perturb"
+    },
+    {
+      "row": "INC-11",
+      "name": "SRC:ENGINE_DOWN_IS_RED",
+      "pass": true,
+      "detail": "source-read (not runtime): _build_health_summary() sets red 'Stopped: the engine is not running (no engine status found)' when the service-state dict is empty, and red 'the engine has not reported for N min' past ENGINE_STALE_SEC; engine_heartbeat_ms is published in the status payload"
+    },
+    {
+      "row": "INC-11",
+      "name": "STATUS_CARD_NEVER_OK_WHILE_ENGINE_ABSENT",
+      "pass": false,
+      "detail": "NOT EXERCISED - proving this row non-vacuously requires stopping/withholding the engine and observing the rendered status card; the live engine may not be killed (process-hygiene hard stops) and there is no rendered-DOM oracle available to this card"
+    },
+    {
+      "row": "RUNTIME",
+      "name": "ENGINE_STATE_DIR_LOCATED",
+      "pass": true,
+      "detail": "leader=mainnet follower=testnet state_dir=C:\\Users\\wigmore\\trading_stack\\hl-build3-testnet-cert\\_archive\\hl_stage2\\hl_live_copy_audit_testnet"
+    }
+  ],
+  "row_verdicts": {
+    "HEALTH-001": {
+      "result": "FAIL",
+      "why": "The live :8031 surface publishes per-wallet staleness, but against the ROW'S OWN declared bound (stale > HL_LIVE_WS_STALE_MS = 30000 flagged) the published flag is wrong. In one sample 4 of 10 wallets exceeded 30000ms of silence and ZERO were flagged stale:true, including one wallet silent for 2,540,339ms (~42 min) with stale=false. Cause is a threshold mismatch in the live core: HL_Live_Copy_Service_Core.py uses HL_LIVE_WS_WALLET_STALE_MS default 120000 (and HL_LIVE_WS_SUBSCRIBED_STALE_MS default 4h), not the declared 30000. Per-wallet reconnect count is also not exposed per wallet (only ws_summary.total_reconnect_count, observed 0).",
+      "register_result": "NOT_TESTED",
+      "defect": {
+        "declared": "stale > HL_LIVE_WS_STALE_MS (30000) flagged",
+        "observed": "4/10 wallets >30000ms, 0 flagged; 0x1b232b41b0e75550c59288b99874e4a8142fbe21 stale_ms=2540339 stale=false",
+        "negative_detail": "3 wallet(s) exceed the declared 30000ms bound; flagged stale=true: 0. 0x1b232b41 stale_ms=2640703 stale=False; 0x7019197d stale_ms=62362 stale=False; 0xc179e039 stale_ms=51775 stale=False",
+        "threshold_check_detail": "31e599c5f5:_archive/hl_stage2/HL_Live_Copy_Service_Core.py thresholds: wallet_stale_threshold_ms = int(os.getenv(\"HL_LIVE_WS_WALLET_STALE_MS\", \"120000\")); subscribed_stale_ms = int(os.getenv(\"HL_LIVE_WS_SUBSCRIBED_STALE_MS\", str(4 * 60 * 60 * 1000)))",
+        "runtime_thresholds": [
+          "HL_LIVE_WS_WALLET_STALE_MS default 120000",
+          "HL_LIVE_WS_SUBSCRIBED_STALE_MS default 14400000"
+        ],
+        "declared_threshold_lives_in": "b142cf88d3:_archive/hl_stage2/HL_Live_Copy_Service.py (LIVE_WS_STALE_MS default 30000)",
+        "owning_lane": "outside this repo (live state_dir C:/Users/wigmore/trading_stack/hl-build3-testnet-cert)",
+        "action_taken": "reported only; this card's authority ends at the hyperliquid-build3-repair repo"
+      }
+    },
+    "HEALTH-005": {
+      "result": "NOT_TESTED",
+      "why": "Declared proof is an induced condition (WS drop / stale truth / API error) -> engine state -> UI indicator within a stated latency, with the fault's wall-clock as oracle. No induced fault and no engine-under-test are available to this card, so the row cannot be non-vacuously tested. Two non-blocking diagnostic read paths were confirmed by SOURCE READ ONLY (explicitly NOT counted as runtime proof); the diagnostic build cost was measured (7.02s) as context only - it is NOT evidence about engine execution blocking.",
+      "register_result": "NOT_TESTED",
+      "missing_surfaces": [
+        "ENGINE-UNDER-TEST: an engine instance dedicated to certification whose WS/stale/error state may be induced without touching the live lane (live state_dir C:/Users/wigmore/trading_stack/hl-build3-testnet-cert/_archive/hl_stage2 is OUTSIDE this repo and is running as a production lane this card must not perturb)",
+        "RENDERED-DOM ORACLE: a headless capture of the :8031 /live-copy DOM, to correlate the induced fault's wall-clock with the rendered indicator (the declared oracle for these rows)"
+      ],
+      "source_read_only": [
+        "_model_cache_snapshot_nonblocking (blocking=False)",
+        "/api/live-audit-summary documented read-only + 2s cache"
+      ]
+    },
+    "INC-11": {
+      "result": "NOT_TESTED",
+      "why": "Proving 'status cards never show OK while no engine process exists' requires withholding/stopping the engine and observing the rendered card. The live engine may not be killed, there is no engine-under-test, and no rendered-DOM oracle is available to this card. The detection logic was confirmed by SOURCE READ ONLY: _build_health_summary() sets red 'Stopped: the engine is not running (no engine status found)' on an empty service state, and red 'the engine has not reported for N min' past ENGINE_STALE_SEC, publishing engine_heartbeat_ms.",
+      "register_result": "NOT_TESTED",
+      "missing_surfaces": [
+        "ENGINE-UNDER-TEST: an engine instance dedicated to certification whose WS/stale/error state may be induced without touching the live lane (live state_dir C:/Users/wigmore/trading_stack/hl-build3-testnet-cert/_archive/hl_stage2 is OUTSIDE this repo and is running as a production lane this card must not perturb)",
+        "RENDERED-DOM ORACLE: a headless capture of the :8031 /live-copy DOM, to correlate the induced fault's wall-clock with the rendered indicator (the declared oracle for these rows)"
+      ],
+      "source_read_only": [
+        "_build_health_summary engine-down red path",
+        "engine_heartbeat_ms",
+        "_engine_alert (sender key / entries paused)"
+      ],
+      "note": "APPLIES_PROPOSED with open_decision OD-20 (at-a-glance system health); applicability is not settled by the Controller, so even a PASS could not be recorded unilaterally"
+    }
+  },
+  "summary": {
+    "HEALTH-001": "FAIL",
+    "HEALTH-005": "NOT_TESTED",
+    "INC-11": "NOT_TESTED"
+  },
+  "defects_found": 1,
+  "defect_rows": [
+    "HEALTH-001"
+  ],
+  "matrix_edited": false
+}
