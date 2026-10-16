@@ -1,0 +1,78 @@
+{
+  "schema": "uilcc2_result_v1",
+  "register_ref": "main",
+  "register_commit": "b142cf88d389e791160f691aac3d936852b99975",
+  "engine_commit": "5b82026103440469ac28a294b2fb3f3ce75ce1b7",
+  "tested_commit": "31e599c5f58de686c9e74357079a85f03e23213a",
+  "tested_at_utc": "2026-10-16T20:36:19Z",
+  "target_url": "http://127.0.0.1:8031/live-copy",
+  "overall_result": "NOT_TESTED",
+  "probe_summary": {
+    "live_copy_http_status": 200,
+    "live_copy_elapsed_seconds": 0.023,
+    "live_copy_bytes": 87350,
+    "audit_summary_http_status": 200,
+    "audit_summary_elapsed_seconds": 6.341,
+    "audit_summary_rows": 136612,
+    "api_status_http_status": 404,
+    "rendered_ui_dom_capture": false,
+    "independent_oracle": false
+  },
+  "records": [
+    {
+      "id": "UI-LCC-CARD-07",
+      "result": "NOT_TESTED",
+      "checks": [
+        {"name": "declared_UI_route_served", "result": "PASS", "evidence": "GET /live-copy returned HTTP 200, 87,350 bytes, 0.023s."},
+        {"name": "declared_Last_Reject_value_matches_independent_master_exchange_oracle", "result": "NOT_TESTED", "evidence": "No rendered DOM snapshot or independent same-time exchange oracle was captured; no Last Reject value comparison is asserted."},
+        {"name": "negative_source_unavailable_or_stale_or_API_error", "result": "NOT_TESTED", "evidence": "No controlled unavailable/stale/API-error case was exercised; no negative-case pass is claimed."}
+      ],
+      "evidence": "certification/results/UILCC2_5b82026103.json#UI-LCC-CARD-07",
+      "notes": "The served HTML did not contain the literal 'Last Reject' (index -1); this alone does not prove the runtime-rendered UI lacks it. /api/status returned 404. The live-audit-summary read succeeded, but is not an independent oracle for this card."
+    },
+    {
+      "id": "UI-LCC-WTBL-09",
+      "result": "NOT_TESTED",
+      "checks": [
+        {"name": "declared_UI_route_served", "result": "PASS", "evidence": "GET /live-copy returned HTTP 200, 87,350 bytes, 0.023s."},
+        {"name": "copy_model_control_matches_wallet_engine_truth_and_applies", "result": "NOT_TESTED", "evidence": "No rendered DOM, per-wallet engine truth, persisted config comparison, or apply-cycle proof captured."},
+        {"name": "negative_source_unavailable_or_stale_or_API_error", "result": "NOT_TESTED", "evidence": "No controlled negative case exercised; no negative-case pass is claimed."}
+      ],
+      "evidence": "certification/results/UILCC2_5b82026103.json#UI-LCC-WTBL-09",
+      "notes": "The HTML response did not contain the literal 'Controls copy model' (index -1); dynamic rendering is not ruled out. No control was changed."
+    },
+    {
+      "id": "UI-LCC-WTBL-10",
+      "result": "NOT_TESTED",
+      "checks": [
+        {"name": "declared_UI_route_served", "result": "PASS", "evidence": "GET /live-copy returned HTTP 200, 87,350 bytes, 0.023s."},
+        {"name": "F_N_B_inputs_match_wallet_engine_truth_and_apply", "result": "NOT_TESTED", "evidence": "No rendered DOM, per-wallet engine truth, persisted config comparison, or apply-cycle proof captured."},
+        {"name": "negative_source_unavailable_or_stale_or_API_error", "result": "NOT_TESTED", "evidence": "No controlled negative case exercised; no negative-case pass is claimed."}
+      ],
+      "evidence": "certification/results/UILCC2_5b82026103.json#UI-LCC-WTBL-10",
+      "notes": "The HTML response did not contain the literal 'F/N/B' (index -1); dynamic rendering is not ruled out. No control was changed."
+    },
+    {
+      "id": "UI-LCC-WTBL-11",
+      "result": "NOT_TESTED",
+      "checks": [
+        {"name": "declared_UI_route_served", "result": "PASS", "evidence": "GET /live-copy returned HTTP 200, 87,350 bytes, 0.023s."},
+        {"name": "Save_persists_values_and_engine_applies_them", "result": "NOT_TESTED", "evidence": "No UI action, persisted-state readback, or engine apply-cycle proof captured."},
+        {"name": "negative_source_unavailable_or_stale_or_API_error", "result": "NOT_TESTED", "evidence": "No controlled negative case exercised; no negative-case pass is claimed."}
+      ],
+      "evidence": "certification/results/UILCC2_5b82026103.json#UI-LCC-WTBL-11",
+      "notes": "No Save action was issued because it could mutate live configuration; therefore persistence and engine application remain untested."
+    },
+    {
+      "id": "UI-LCC-WTBL-12",
+      "result": "NOT_TESTED",
+      "checks": [
+        {"name": "declared_UI_route_served", "result": "PASS", "evidence": "GET /live-copy returned HTTP 200, 87,350 bytes, 0.023s."},
+        {"name": "CLO_value_matches_wallet_engine_truth_and_applies", "result": "NOT_TESTED", "evidence": "No rendered DOM, per-wallet engine truth, persisted config comparison, or apply-cycle proof captured."},
+        {"name": "negative_source_unavailable_or_stale_or_API_error", "result": "NOT_TESTED", "evidence": "No controlled negative case exercised; no negative-case pass is claimed."}
+      ],
+      "evidence": "certification/results/UILCC2_5b82026103.json#UI-LCC-WTBL-12",
+      "notes": "No CLO value or negative-case behavior was inspected in a rendered DOM. No certification status is advanced."
+    }
+  ]
+}
