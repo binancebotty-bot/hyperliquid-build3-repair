@@ -1,0 +1,1504 @@
+{
+ "audit": "PASS-row evidence provenance (RISK + WALLET + SETTLE + LIFECYCLE)",
+ "register_of_record_ref": "main",
+ "register_of_record_commit": "b142cf88d389e791160f691aac3d936852b99975",
+ "matrix_sha256": "86b2237fe95f88ca9eb758fb42ddbdf3efdaef71e56f79a10e2d2635f44f341a",
+ "read_only": true,
+ "scope": {
+  "areas": [
+   "RISK",
+   "WALLET",
+   "SETTLE",
+   "LIFECYCLE"
+  ],
+  "pass_rows_in_scope": 46
+ },
+ "areas": {
+  "RISK": {
+   "matrix_pass_rows": 14,
+   "evidence_refs": [
+    "certification/results/RISK_fa9d9f55.json"
+   ],
+   "evidence_blob_sha256": {
+    "certification/results/RISK_fa9d9f55.json": "12d23963d978ad62a24caf182eb2da7bd44c47896da9b56955127f280c9d5616"
+   },
+   "pass_rows_kept": 0,
+   "pass_rows_demoted": 14,
+   "per_row": {
+    "RISK-001": {
+     "area": "RISK",
+     "evidence_ref": "certification/results/RISK_fa9d9f55.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "explicit_result": null,
+     "detail_blank": true,
+     "checks": 2,
+     "negative_tests": 6,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 2,
+     "declared_execution_proof": "UI/config value -> live_config.json -> engine read at decision time -> block/allow recorded in order_intents with reason -> exchange shows (no) order",
+     "declared_independent_oracle": "Exchange orders/fills (absence or presence) plus independent recomputation of the limit from config",
+     "declared_negative_tests": [
+      "blank value",
+      "zero",
+      "negative",
+      "non-numeric",
+      "value changed while engine running",
+      "rejected save"
+     ],
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "cited_hashes": {
+      "fa9d9f55fffa74cb6888c471d97d1655267999b6": "commit"
+     },
+     "verdict": "DEMOTE",
+     "reasons": [
+      "record present but carries NO executed-proof detail (blank)"
+     ]
+    },
+    "RISK-002": {
+     "area": "RISK",
+     "evidence_ref": "certification/results/RISK_fa9d9f55.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "explicit_result": null,
+     "detail_blank": true,
+     "checks": 2,
+     "negative_tests": 4,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 2,
+     "declared_execution_proof": "UI/config value -> live_config.json -> engine read at decision time -> block/allow recorded in order_intents with reason -> exchange shows (no) order",
+     "declared_independent_oracle": "Exchange orders/fills (absence or presence) plus independent recomputation of the limit from config",
+     "declared_negative_tests": [
+      "blank value",
+      "zero",
+      "negative",
+      "non-numeric",
+      "value changed while engine running",
+      "rejected save"
+     ],
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "cited_hashes": {
+      "fa9d9f55fffa74cb6888c471d97d1655267999b6": "commit"
+     },
+     "verdict": "DEMOTE",
+     "reasons": [
+      "record present but carries NO executed-proof detail (blank)"
+     ]
+    },
+    "RISK-003": {
+     "area": "RISK",
+     "evidence_ref": "certification/results/RISK_fa9d9f55.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "explicit_result": null,
+     "detail_blank": true,
+     "checks": 2,
+     "negative_tests": 4,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 2,
+     "declared_execution_proof": "UI/config value -> live_config.json -> engine read at decision time -> block/allow recorded in order_intents with reason -> exchange shows (no) order",
+     "declared_independent_oracle": "Exchange orders/fills (absence or presence) plus independent recomputation of the limit from config",
+     "declared_negative_tests": [
+      "blank value",
+      "zero",
+      "negative",
+      "non-numeric",
+      "value changed while engine running",
+      "rejected save"
+     ],
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "cited_hashes": {
+      "fa9d9f55fffa74cb6888c471d97d1655267999b6": "commit"
+     },
+     "verdict": "DEMOTE",
+     "reasons": [
+      "record present but carries NO executed-proof detail (blank)"
+     ]
+    },
+    "RISK-004": {
+     "area": "RISK",
+     "evidence_ref": "certification/results/RISK_fa9d9f55.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "explicit_result": null,
+     "detail_blank": true,
+     "checks": 2,
+     "negative_tests": 4,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 2,
+     "declared_execution_proof": "UI/config value -> live_config.json -> engine read at decision time -> block/allow recorded in order_intents with reason -> exchange shows (no) order",
+     "declared_independent_oracle": "Exchange orders/fills (absence or presence) plus independent recomputation of the limit from config",
+     "declared_negative_tests": [
+      "blank value",
+      "zero",
+      "negative",
+      "non-numeric",
+      "value changed while engine running",
+      "rejected save"
+     ],
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "cited_hashes": {
+      "fa9d9f55fffa74cb6888c471d97d1655267999b6": "commit"
+     },
+     "verdict": "DEMOTE",
+     "reasons": [
+      "record present but carries NO executed-proof detail (blank)"
+     ]
+    },
+    "RISK-005": {
+     "area": "RISK",
+     "evidence_ref": "certification/results/RISK_fa9d9f55.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "explicit_result": null,
+     "detail_blank": true,
+     "checks": 5,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 1,
+     "checks_owned_by_this_row": 4,
+     "declared_execution_proof": "UI/config value -> live_config.json -> engine read at decision time -> block/allow recorded in order_intents with reason -> exchange shows (no) order",
+     "declared_independent_oracle": "Exchange orders/fills (absence or presence) plus independent recomputation of the limit from config",
+     "declared_negative_tests": [
+      "blank value",
+      "zero",
+      "negative",
+      "non-numeric",
+      "value changed while engine running",
+      "rejected save"
+     ],
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "cited_hashes": {
+      "fa9d9f55fffa74cb6888c471d97d1655267999b6": "commit"
+     },
+     "verdict": "DEMOTE",
+     "reasons": [
+      "record present but carries NO executed-proof detail (blank)"
+     ]
+    },
+    "RISK-006": {
+     "area": "RISK",
+     "evidence_ref": "certification/results/RISK_fa9d9f55.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "explicit_result": null,
+     "detail_blank": true,
+     "checks": 4,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 1,
+     "checks_owned_by_this_row": 3,
+     "declared_execution_proof": "UI/config value -> live_config.json -> engine read at decision time -> block/allow recorded in order_intents with reason -> exchange shows (no) order",
+     "declared_independent_oracle": "Exchange orders/fills (absence or presence) plus independent recomputation of the limit from config",
+     "declared_negative_tests": [
+      "blank value",
+      "zero",
+      "negative",
+      "non-numeric",
+      "value changed while engine running",
+      "rejected save"
+     ],
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "cited_hashes": {
+      "fa9d9f55fffa74cb6888c471d97d1655267999b6": "commit"
+     },
+     "verdict": "DEMOTE",
+     "reasons": [
+      "record present but carries NO executed-proof detail (blank)"
+     ]
+    },
+    "RISK-007": {
+     "area": "RISK",
+     "evidence_ref": "certification/results/RISK_fa9d9f55.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "explicit_result": null,
+     "detail_blank": true,
+     "checks": 3,
+     "negative_tests": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 3,
+     "declared_execution_proof": "UI/config value -> live_config.json -> engine read at decision time -> block/allow recorded in order_intents with reason -> exchange shows (no) order",
+     "declared_independent_oracle": "Exchange orders/fills (absence or presence) plus independent recomputation of the limit from config",
+     "declared_negative_tests": [
+      "blank value",
+      "zero",
+      "negative",
+      "non-numeric",
+      "value changed while engine running",
+      "rejected save"
+     ],
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "cited_hashes": {
+      "fa9d9f55fffa74cb6888c471d97d1655267999b6": "commit"
+     },
+     "verdict": "DEMOTE",
+     "reasons": [
+      "record present but carries NO executed-proof detail (blank)"
+     ]
+    },
+    "RISK-008": {
+     "area": "RISK",
+     "evidence_ref": "certification/results/RISK_fa9d9f55.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "explicit_result": null,
+     "detail_blank": true,
+     "checks": 2,
+     "negative_tests": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 2,
+     "declared_execution_proof": "UI/config value -> live_config.json -> engine read at decision time -> block/allow recorded in order_intents with reason -> exchange shows (no) order",
+     "declared_independent_oracle": "Exchange orders/fills (absence or presence) plus independent recomputation of the limit from config",
+     "declared_negative_tests": [
+      "blank value",
+      "zero",
+      "negative",
+      "non-numeric",
+      "value changed while engine running",
+      "rejected save"
+     ],
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "cited_hashes": {
+      "fa9d9f55fffa74cb6888c471d97d1655267999b6": "commit"
+     },
+     "verdict": "DEMOTE",
+     "reasons": [
+      "record present but carries NO executed-proof detail (blank)"
+     ]
+    },
+    "RISK-014": {
+     "area": "RISK",
+     "evidence_ref": "certification/results/RISK_fa9d9f55.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "explicit_result": null,
+     "detail_blank": true,
+     "checks": 2,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 2,
+     "declared_execution_proof": "UI/config value -> live_config.json -> engine read at decision time -> block/allow recorded in order_intents with reason -> exchange shows (no) order",
+     "declared_independent_oracle": "Exchange orders/fills (absence or presence) plus independent recomputation of the limit from config",
+     "declared_negative_tests": [
+      "blank value",
+      "zero",
+      "negative",
+      "non-numeric",
+      "value changed while engine running",
+      "rejected save"
+     ],
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "cited_hashes": {
+      "fa9d9f55fffa74cb6888c471d97d1655267999b6": "commit"
+     },
+     "verdict": "DEMOTE",
+     "reasons": [
+      "record present but carries NO executed-proof detail (blank)"
+     ]
+    },
+    "RISK-015": {
+     "area": "RISK",
+     "evidence_ref": "certification/results/RISK_fa9d9f55.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "explicit_result": null,
+     "detail_blank": true,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "UI/config value -> live_config.json -> engine read at decision time -> block/allow recorded in order_intents with reason -> exchange shows (no) order",
+     "declared_independent_oracle": "Exchange orders/fills (absence or presence) plus independent recomputation of the limit from config",
+     "declared_negative_tests": [
+      "blank value",
+      "zero",
+      "negative",
+      "non-numeric",
+      "value changed while engine running",
+      "rejected save"
+     ],
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "cited_hashes": {
+      "fa9d9f55fffa74cb6888c471d97d1655267999b6": "commit"
+     },
+     "verdict": "DEMOTE",
+     "reasons": [
+      "record present but carries NO executed-proof detail (blank)"
+     ]
+    },
+    "RISK-016": {
+     "area": "RISK",
+     "evidence_ref": "certification/results/RISK_fa9d9f55.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "explicit_result": null,
+     "detail_blank": true,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "UI/config value -> live_config.json -> engine read at decision time -> block/allow recorded in order_intents with reason -> exchange shows (no) order",
+     "declared_independent_oracle": "Exchange orders/fills (absence or presence) plus independent recomputation of the limit from config",
+     "declared_negative_tests": [
+      "blank value",
+      "zero",
+      "negative",
+      "non-numeric",
+      "value changed while engine running",
+      "rejected save"
+     ],
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "cited_hashes": {
+      "fa9d9f55fffa74cb6888c471d97d1655267999b6": "commit"
+     },
+     "verdict": "DEMOTE",
+     "reasons": [
+      "record present but carries NO executed-proof detail (blank)"
+     ]
+    },
+    "TN-F06": {
+     "area": "RISK",
+     "evidence_ref": "certification/results/RISK_fa9d9f55.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "explicit_result": null,
+     "detail_blank": true,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Predeclared Phase 6T-style scenario on testnet through the production engine path only (no direct exchange.order); evidence per class with exchange parity",
+     "declared_independent_oracle": "Exchange orders/fills (absence or presence) plus independent recomputation of the limit from config",
+     "declared_negative_tests": [
+      "blank value",
+      "zero",
+      "negative",
+      "non-numeric",
+      "value changed while engine running",
+      "rejected save"
+     ],
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "cited_hashes": {
+      "fa9d9f55fffa74cb6888c471d97d1655267999b6": "commit"
+     },
+     "verdict": "DEMOTE",
+     "reasons": [
+      "record present but carries NO executed-proof detail (blank)"
+     ]
+    },
+    "TN-F16": {
+     "area": "RISK",
+     "evidence_ref": "certification/results/RISK_fa9d9f55.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "explicit_result": null,
+     "detail_blank": true,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Predeclared Phase 6T-style scenario on testnet through the production engine path only (no direct exchange.order); evidence per class with exchange parity",
+     "declared_independent_oracle": "Exchange orders/fills (absence or presence) plus independent recomputation of the limit from config",
+     "declared_negative_tests": [
+      "blank value",
+      "zero",
+      "negative",
+      "non-numeric",
+      "value changed while engine running",
+      "rejected save"
+     ],
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "cited_hashes": {
+      "fa9d9f55fffa74cb6888c471d97d1655267999b6": "commit"
+     },
+     "verdict": "DEMOTE",
+     "reasons": [
+      "record present but carries NO executed-proof detail (blank)"
+     ]
+    },
+    "TN-F21": {
+     "area": "RISK",
+     "evidence_ref": "certification/results/RISK_fa9d9f55.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "explicit_result": null,
+     "detail_blank": true,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Predeclared Phase 6T-style scenario on testnet through the production engine path only (no direct exchange.order); evidence per class with exchange parity",
+     "declared_independent_oracle": "Exchange orders/fills (absence or presence) plus independent recomputation of the limit from config",
+     "declared_negative_tests": [
+      "blank value",
+      "zero",
+      "negative",
+      "non-numeric",
+      "value changed while engine running",
+      "rejected save"
+     ],
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "cited_hashes": {
+      "fa9d9f55fffa74cb6888c471d97d1655267999b6": "commit"
+     },
+     "verdict": "DEMOTE",
+     "reasons": [
+      "record present but carries NO executed-proof detail (blank)"
+     ]
+    }
+   }
+  },
+  "WALLET": {
+   "matrix_pass_rows": 14,
+   "evidence_refs": [
+    "certification/results/WALLET_fa9d9f55ff.json"
+   ],
+   "evidence_blob_sha256": {
+    "certification/results/WALLET_fa9d9f55ff.json": "7a076d3c15a2a27a3e7b3e5d5e1b4c702d08583c94bb2384cff530efa90355d2"
+   },
+   "pass_rows_kept": 14,
+   "pass_rows_demoted": 0,
+   "per_row": {
+    "UI-WALLET-001": {
+     "area": "WALLET",
+     "evidence_ref": "certification/results/WALLET_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "explicit_result": "PASS",
+     "detail_blank": false,
+     "checks": 11,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 11,
+     "declared_execution_proof": "UI action -> live_config.json / wallet_gate.json write -> running engine reads it (no restart) -> testnet behaviour",
+     "declared_independent_oracle": "Exchange positions, orders and fills; config file content hash before/after",
+     "declared_negative_tests": [
+      "restart after change",
+      "stale configuration",
+      "rejected update",
+      "API failure during change",
+      "invalid address",
+      "duplicate wallet"
+     ],
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "cited_hashes": {
+      "fa9d9f55fffa74cb6888c471d97d1655267999b6": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "UI-WALLET-003": {
+     "area": "WALLET",
+     "evidence_ref": "certification/results/WALLET_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "explicit_result": "PASS",
+     "detail_blank": false,
+     "checks": 7,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 1,
+     "checks_owned_by_this_row": 6,
+     "declared_execution_proof": "UI action -> live_config.json / wallet_gate.json write -> running engine reads it (no restart) -> testnet behaviour",
+     "declared_independent_oracle": "Exchange positions, orders and fills; config file content hash before/after",
+     "declared_negative_tests": [
+      "restart after change",
+      "stale configuration",
+      "rejected update",
+      "API failure during change",
+      "invalid address",
+      "duplicate wallet"
+     ],
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "cited_hashes": {
+      "fa9d9f55fffa74cb6888c471d97d1655267999b6": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "UI-WALLET-004": {
+     "area": "WALLET",
+     "evidence_ref": "certification/results/WALLET_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "explicit_result": "PASS",
+     "detail_blank": false,
+     "checks": 6,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 6,
+     "declared_execution_proof": "UI action -> config -> running engine -> testnet behaviour",
+     "declared_independent_oracle": "Exchange positions, orders and fills",
+     "declared_negative_tests": [
+      "Restart",
+      "Stale configuration",
+      "Rejected update",
+      "API failure"
+     ],
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "cited_hashes": {
+      "fa9d9f55fffa74cb6888c471d97d1655267999b6": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "UI-WALLET-005": {
+     "area": "WALLET",
+     "evidence_ref": "certification/results/WALLET_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "explicit_result": "PASS",
+     "detail_blank": false,
+     "checks": 6,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 6,
+     "declared_execution_proof": "UI action -> live_config.json / wallet_gate.json write -> running engine reads it (no restart) -> testnet behaviour",
+     "declared_independent_oracle": "Exchange positions, orders and fills; config file content hash before/after",
+     "declared_negative_tests": [
+      "restart after change",
+      "stale configuration",
+      "rejected update",
+      "API failure during change",
+      "invalid address",
+      "duplicate wallet"
+     ],
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "cited_hashes": {
+      "fa9d9f55fffa74cb6888c471d97d1655267999b6": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "UI-WALLET-007": {
+     "area": "WALLET",
+     "evidence_ref": "certification/results/WALLET_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "explicit_result": "PASS",
+     "detail_blank": false,
+     "checks": 5,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 5,
+     "declared_execution_proof": "UI action -> live_config.json / wallet_gate.json write -> running engine reads it (no restart) -> testnet behaviour",
+     "declared_independent_oracle": "Exchange positions, orders and fills; config file content hash before/after",
+     "declared_negative_tests": [
+      "restart after change",
+      "stale configuration",
+      "rejected update",
+      "API failure during change",
+      "invalid address",
+      "duplicate wallet"
+     ],
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "cited_hashes": {
+      "fa9d9f55fffa74cb6888c471d97d1655267999b6": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "UI-WALLET-009": {
+     "area": "WALLET",
+     "evidence_ref": "certification/results/WALLET_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "explicit_result": "PASS",
+     "detail_blank": false,
+     "checks": 3,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 3,
+     "declared_execution_proof": "UI action -> live_config.json / wallet_gate.json write -> running engine reads it (no restart) -> testnet behaviour",
+     "declared_independent_oracle": "Exchange positions, orders and fills; config file content hash before/after",
+     "declared_negative_tests": [
+      "restart after change",
+      "stale configuration",
+      "rejected update",
+      "API failure during change",
+      "invalid address",
+      "duplicate wallet"
+     ],
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "cited_hashes": {
+      "fa9d9f55fffa74cb6888c471d97d1655267999b6": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "UI-WALLET-010": {
+     "area": "WALLET",
+     "evidence_ref": "certification/results/WALLET_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "explicit_result": "PASS",
+     "detail_blank": false,
+     "checks": 7,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 7,
+     "declared_execution_proof": "UI action -> live_config.json / wallet_gate.json write -> running engine reads it (no restart) -> testnet behaviour",
+     "declared_independent_oracle": "Exchange positions, orders and fills; config file content hash before/after",
+     "declared_negative_tests": [
+      "restart after change",
+      "stale configuration",
+      "rejected update",
+      "API failure during change",
+      "invalid address",
+      "duplicate wallet"
+     ],
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "cited_hashes": {
+      "fa9d9f55fffa74cb6888c471d97d1655267999b6": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "UI-WALLET-011": {
+     "area": "WALLET",
+     "evidence_ref": "certification/results/WALLET_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "explicit_result": "PASS",
+     "detail_blank": false,
+     "checks": 8,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 8,
+     "declared_execution_proof": "UI action -> live_config.json / wallet_gate.json write -> running engine reads it (no restart) -> testnet behaviour",
+     "declared_independent_oracle": "Exchange positions, orders and fills; config file content hash before/after",
+     "declared_negative_tests": [
+      "restart after change",
+      "stale configuration",
+      "rejected update",
+      "API failure during change",
+      "invalid address",
+      "duplicate wallet"
+     ],
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "cited_hashes": {
+      "fa9d9f55fffa74cb6888c471d97d1655267999b6": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "UI-WALLET-012": {
+     "area": "WALLET",
+     "evidence_ref": "certification/results/WALLET_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "explicit_result": "PASS",
+     "detail_blank": false,
+     "checks": 11,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 11,
+     "declared_execution_proof": "UI action -> live_config.json / wallet_gate.json write -> running engine reads it (no restart) -> testnet behaviour",
+     "declared_independent_oracle": "Exchange positions, orders and fills; config file content hash before/after",
+     "declared_negative_tests": [
+      "restart after change",
+      "stale configuration",
+      "rejected update",
+      "API failure during change",
+      "invalid address",
+      "duplicate wallet"
+     ],
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "cited_hashes": {
+      "fa9d9f55fffa74cb6888c471d97d1655267999b6": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "UI-WALLET-013": {
+     "area": "WALLET",
+     "evidence_ref": "certification/results/WALLET_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "explicit_result": "PASS",
+     "detail_blank": false,
+     "checks": 4,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 4,
+     "declared_execution_proof": "UI action -> live_config.json / wallet_gate.json write -> running engine reads it (no restart) -> testnet behaviour",
+     "declared_independent_oracle": "Exchange positions, orders and fills; config file content hash before/after",
+     "declared_negative_tests": [
+      "restart after change",
+      "stale configuration",
+      "rejected update",
+      "API failure during change",
+      "invalid address",
+      "duplicate wallet"
+     ],
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "cited_hashes": {
+      "fa9d9f55fffa74cb6888c471d97d1655267999b6": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "UI-WALLET-016": {
+     "area": "WALLET",
+     "evidence_ref": "certification/results/WALLET_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "explicit_result": "PASS",
+     "detail_blank": false,
+     "checks": 6,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 6,
+     "declared_execution_proof": "UI action -> live_config.json / wallet_gate.json write -> running engine reads it (no restart) -> testnet behaviour",
+     "declared_independent_oracle": "Exchange positions, orders and fills; config file content hash before/after",
+     "declared_negative_tests": [
+      "restart after change",
+      "stale configuration",
+      "rejected update",
+      "API failure during change",
+      "invalid address",
+      "duplicate wallet"
+     ],
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "cited_hashes": {
+      "fa9d9f55fffa74cb6888c471d97d1655267999b6": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "UI-WALLET-017": {
+     "area": "WALLET",
+     "evidence_ref": "certification/results/WALLET_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "explicit_result": "PASS",
+     "detail_blank": false,
+     "checks": 6,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 6,
+     "declared_execution_proof": "UI action -> live_config.json / wallet_gate.json write -> running engine reads it (no restart) -> testnet behaviour",
+     "declared_independent_oracle": "Exchange positions, orders and fills; config file content hash before/after",
+     "declared_negative_tests": [
+      "restart after change",
+      "stale configuration",
+      "rejected update",
+      "API failure during change",
+      "invalid address",
+      "duplicate wallet"
+     ],
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "cited_hashes": {
+      "fa9d9f55fffa74cb6888c471d97d1655267999b6": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "UI-WALLET-018": {
+     "area": "WALLET",
+     "evidence_ref": "certification/results/WALLET_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "explicit_result": "PASS",
+     "detail_blank": false,
+     "checks": 6,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 6,
+     "declared_execution_proof": "UI action -> live_config.json / wallet_gate.json write -> running engine reads it (no restart) -> testnet behaviour",
+     "declared_independent_oracle": "Exchange positions, orders and fills; config file content hash before/after",
+     "declared_negative_tests": [
+      "restart after change",
+      "stale configuration",
+      "rejected update",
+      "API failure during change",
+      "invalid address",
+      "duplicate wallet"
+     ],
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "cited_hashes": {
+      "fa9d9f55fffa74cb6888c471d97d1655267999b6": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "UI-WALLET-019": {
+     "area": "WALLET",
+     "evidence_ref": "certification/results/WALLET_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "explicit_result": "PASS",
+     "detail_blank": false,
+     "checks": 5,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 1,
+     "checks_owned_by_this_row": 4,
+     "declared_execution_proof": "UI action -> live_config.json / wallet_gate.json write -> running engine reads it (no restart) -> testnet behaviour",
+     "declared_independent_oracle": "Exchange positions, orders and fills; config file content hash before/after",
+     "declared_negative_tests": [
+      "restart after change",
+      "stale configuration",
+      "rejected update",
+      "API failure during change",
+      "invalid address",
+      "duplicate wallet"
+     ],
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "cited_hashes": {
+      "fa9d9f55fffa74cb6888c471d97d1655267999b6": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    }
+   }
+  },
+  "SETTLE": {
+   "matrix_pass_rows": 9,
+   "evidence_refs": [
+    "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json",
+    "certification/results/NLS_RESIDUAL_2a269ad226.json"
+   ],
+   "evidence_blob_sha256": {
+    "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json": "a740eaf40f04d5f7fcba66d1090b1b13aebb5c00e4ec0a58ef0432d5419b635b",
+    "certification/results/NLS_RESIDUAL_2a269ad226.json": "f5c9fd5414cd93b10ad0f8e275fc195258c4023c85115d3f9b79dfb50c9ef15c"
+   },
+   "pass_rows_kept": 9,
+   "pass_rows_demoted": 0,
+   "per_row": {
+    "SET-001": {
+     "area": "SETTLE",
+     "evidence_ref": "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "explicit_result": null,
+     "detail_blank": false,
+     "checks": 2,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 2,
+     "declared_execution_proof": "Sender response -> in-flight reservation in SERVICE_STATE_FILE -> MASTER userFills + clearinghouseState across all DEX scopes -> reservation cleared",
+     "declared_independent_oracle": "MASTER userFillsByTime per DEX scope and clearinghouseState, read independently of the engine",
+     "declared_negative_tests": [
+      "ack without fill",
+      "partial fill",
+      "fill on HIP-3 DEX scope",
+      "crash after send before oid persisted"
+     ],
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "cited_hashes": {
+      "fa9d9f55fffa74cb6888c471d97d1655267999b6": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "SET-002": {
+     "area": "SETTLE",
+     "evidence_ref": "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "explicit_result": null,
+     "detail_blank": false,
+     "checks": 2,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 2,
+     "declared_execution_proof": "Sender response -> in-flight reservation in SERVICE_STATE_FILE -> MASTER userFills + clearinghouseState across all DEX scopes -> reservation cleared",
+     "declared_independent_oracle": "MASTER userFillsByTime per DEX scope and clearinghouseState, read independently of the engine",
+     "declared_negative_tests": [
+      "ack without fill",
+      "partial fill",
+      "fill on HIP-3 DEX scope",
+      "crash after send before oid persisted"
+     ],
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "cited_hashes": {
+      "fa9d9f55fffa74cb6888c471d97d1655267999b6": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "SET-003": {
+     "area": "SETTLE",
+     "evidence_ref": "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "explicit_result": null,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Sender response -> in-flight reservation in SERVICE_STATE_FILE -> MASTER userFills + clearinghouseState across all DEX scopes -> reservation cleared",
+     "declared_independent_oracle": "MASTER userFillsByTime per DEX scope and clearinghouseState, read independently of the engine",
+     "declared_negative_tests": [
+      "ack without fill",
+      "partial fill",
+      "fill on HIP-3 DEX scope",
+      "crash after send before oid persisted"
+     ],
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "cited_hashes": {
+      "fa9d9f55fffa74cb6888c471d97d1655267999b6": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "SET-004": {
+     "area": "SETTLE",
+     "evidence_ref": "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "explicit_result": null,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Sender response -> in-flight reservation in SERVICE_STATE_FILE -> MASTER userFills + clearinghouseState across all DEX scopes -> reservation cleared",
+     "declared_independent_oracle": "MASTER userFillsByTime per DEX scope and clearinghouseState, read independently of the engine",
+     "declared_negative_tests": [
+      "ack without fill",
+      "partial fill",
+      "fill on HIP-3 DEX scope",
+      "crash after send before oid persisted"
+     ],
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "cited_hashes": {
+      "fa9d9f55fffa74cb6888c471d97d1655267999b6": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "SET-005": {
+     "area": "SETTLE",
+     "evidence_ref": "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "explicit_result": null,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Sender response -> in-flight reservation in SERVICE_STATE_FILE -> MASTER userFills + clearinghouseState across all DEX scopes -> reservation cleared",
+     "declared_independent_oracle": "MASTER userFillsByTime per DEX scope and clearinghouseState, read independently of the engine",
+     "declared_negative_tests": [
+      "ack without fill",
+      "partial fill",
+      "fill on HIP-3 DEX scope",
+      "crash after send before oid persisted"
+     ],
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "cited_hashes": {
+      "fa9d9f55fffa74cb6888c471d97d1655267999b6": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "SET-006": {
+     "area": "SETTLE",
+     "evidence_ref": "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "explicit_result": null,
+     "detail_blank": false,
+     "checks": 2,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 2,
+     "declared_execution_proof": "Sender response -> in-flight reservation in SERVICE_STATE_FILE -> MASTER userFills + clearinghouseState across all DEX scopes -> reservation cleared",
+     "declared_independent_oracle": "MASTER userFillsByTime per DEX scope and clearinghouseState, read independently of the engine",
+     "declared_negative_tests": [
+      "ack without fill",
+      "partial fill",
+      "fill on HIP-3 DEX scope",
+      "crash after send before oid persisted"
+     ],
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "cited_hashes": {
+      "fa9d9f55fffa74cb6888c471d97d1655267999b6": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "SET-007": {
+     "area": "SETTLE",
+     "evidence_ref": "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "explicit_result": null,
+     "detail_blank": false,
+     "checks": 2,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 2,
+     "declared_execution_proof": "Sender response -> in-flight reservation in SERVICE_STATE_FILE -> MASTER userFills + clearinghouseState across all DEX scopes -> reservation cleared",
+     "declared_independent_oracle": "MASTER userFillsByTime per DEX scope and clearinghouseState, read independently of the engine",
+     "declared_negative_tests": [
+      "ack without fill",
+      "partial fill",
+      "fill on HIP-3 DEX scope",
+      "crash after send before oid persisted"
+     ],
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "cited_hashes": {
+      "fa9d9f55fffa74cb6888c471d97d1655267999b6": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "SET-008": {
+     "area": "SETTLE",
+     "evidence_ref": "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "explicit_result": null,
+     "detail_blank": false,
+     "checks": 2,
+     "negative_tests": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 2,
+     "declared_execution_proof": "Sender response -> in-flight reservation in SERVICE_STATE_FILE -> MASTER userFills + clearinghouseState across all DEX scopes -> reservation cleared",
+     "declared_independent_oracle": "MASTER userFillsByTime per DEX scope and clearinghouseState, read independently of the engine",
+     "declared_negative_tests": [
+      "ack without fill",
+      "partial fill",
+      "fill on HIP-3 DEX scope",
+      "crash after send before oid persisted"
+     ],
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "cited_hashes": {
+      "fa9d9f55fffa74cb6888c471d97d1655267999b6": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "TN-F18": {
+     "area": "SETTLE",
+     "evidence_ref": "certification/results/NLS_RESIDUAL_2a269ad226.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "explicit_result": "PASS",
+     "detail_blank": false,
+     "checks": 9,
+     "negative_tests": 2,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 9,
+     "declared_execution_proof": "Predeclared Phase 6T-style scenario on testnet through the production engine path only (no direct exchange.order); evidence per class with exchange parity",
+     "declared_independent_oracle": "MASTER userFillsByTime per DEX scope and clearinghouseState, read independently of the engine",
+     "declared_negative_tests": [
+      "ack without fill",
+      "partial fill",
+      "fill on HIP-3 DEX scope",
+      "crash after send before oid persisted"
+     ],
+     "tested_commit": "2a269ad2260270fee844eedc2cc23545abc91dd0",
+     "cited_hashes": {
+      "2a269ad2260270fee844eedc2cc23545abc91dd0": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    }
+   }
+  },
+  "LIFECYCLE": {
+   "matrix_pass_rows": 9,
+   "evidence_refs": [
+    "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json"
+   ],
+   "evidence_blob_sha256": {
+    "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json": "a740eaf40f04d5f7fcba66d1090b1b13aebb5c00e4ec0a58ef0432d5419b635b"
+   },
+   "pass_rows_kept": 9,
+   "pass_rows_demoted": 0,
+   "per_row": {
+    "LIFE-001": {
+     "area": "LIFECYCLE",
+     "evidence_ref": "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "explicit_result": null,
+     "detail_blank": false,
+     "checks": 4,
+     "negative_tests": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 4,
+     "declared_execution_proof": "Operator command -> process table / PID / lock -> engine status endpoint -> exchange shows zero unintended orders",
+     "declared_independent_oracle": "OS process list, port bindings, exchange open orders/fills during the transition window",
+     "declared_negative_tests": [
+      "second start attempt",
+      "crash mid-transition",
+      "stale lock/PID",
+      "config from previous version"
+     ],
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "cited_hashes": {
+      "fa9d9f55fffa74cb6888c471d97d1655267999b6": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "LIFE-002": {
+     "area": "LIFECYCLE",
+     "evidence_ref": "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "explicit_result": null,
+     "detail_blank": false,
+     "checks": 2,
+     "negative_tests": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 2,
+     "declared_execution_proof": "Operator command -> process table / PID / lock -> engine status endpoint -> exchange shows zero unintended orders",
+     "declared_independent_oracle": "OS process list, port bindings, exchange open orders/fills during the transition window",
+     "declared_negative_tests": [
+      "second start attempt",
+      "crash mid-transition",
+      "stale lock/PID",
+      "config from previous version"
+     ],
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "cited_hashes": {
+      "fa9d9f55fffa74cb6888c471d97d1655267999b6": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "LIFE-003": {
+     "area": "LIFECYCLE",
+     "evidence_ref": "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "explicit_result": null,
+     "detail_blank": false,
+     "checks": 2,
+     "negative_tests": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 2,
+     "declared_execution_proof": "Operator command -> process table / PID / lock -> engine status endpoint -> exchange shows zero unintended orders",
+     "declared_independent_oracle": "OS process list, port bindings, exchange open orders/fills during the transition window",
+     "declared_negative_tests": [
+      "second start attempt",
+      "crash mid-transition",
+      "stale lock/PID",
+      "config from previous version"
+     ],
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "cited_hashes": {
+      "fa9d9f55fffa74cb6888c471d97d1655267999b6": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "LIFE-004": {
+     "area": "LIFECYCLE",
+     "evidence_ref": "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "explicit_result": null,
+     "detail_blank": false,
+     "checks": 2,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 2,
+     "declared_execution_proof": "Operator command -> process table / PID / lock -> engine status endpoint -> exchange shows zero unintended orders",
+     "declared_independent_oracle": "OS process list, port bindings, exchange open orders/fills during the transition window",
+     "declared_negative_tests": [
+      "second start attempt",
+      "crash mid-transition",
+      "stale lock/PID",
+      "config from previous version"
+     ],
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "cited_hashes": {
+      "fa9d9f55fffa74cb6888c471d97d1655267999b6": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "LIFE-005": {
+     "area": "LIFECYCLE",
+     "evidence_ref": "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "explicit_result": null,
+     "detail_blank": false,
+     "checks": 2,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 2,
+     "declared_execution_proof": "Operator command -> process table / PID / lock -> engine status endpoint -> exchange shows zero unintended orders",
+     "declared_independent_oracle": "OS process list, port bindings, exchange open orders/fills during the transition window",
+     "declared_negative_tests": [
+      "second start attempt",
+      "crash mid-transition",
+      "stale lock/PID",
+      "config from previous version"
+     ],
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "cited_hashes": {
+      "fa9d9f55fffa74cb6888c471d97d1655267999b6": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "LIFE-006": {
+     "area": "LIFECYCLE",
+     "evidence_ref": "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "explicit_result": null,
+     "detail_blank": false,
+     "checks": 2,
+     "negative_tests": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 2,
+     "declared_execution_proof": "Operator command -> process table / PID / lock -> engine status endpoint -> exchange shows zero unintended orders",
+     "declared_independent_oracle": "OS process list, port bindings, exchange open orders/fills during the transition window",
+     "declared_negative_tests": [
+      "second start attempt",
+      "crash mid-transition",
+      "stale lock/PID",
+      "config from previous version"
+     ],
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "cited_hashes": {
+      "fa9d9f55fffa74cb6888c471d97d1655267999b6": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "LIFE-007": {
+     "area": "LIFECYCLE",
+     "evidence_ref": "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "explicit_result": null,
+     "detail_blank": false,
+     "checks": 2,
+     "negative_tests": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 2,
+     "declared_execution_proof": "Operator command -> process table / PID / lock -> engine status endpoint -> exchange shows zero unintended orders",
+     "declared_independent_oracle": "OS process list, port bindings, exchange open orders/fills during the transition window",
+     "declared_negative_tests": [
+      "second start attempt",
+      "crash mid-transition",
+      "stale lock/PID",
+      "config from previous version"
+     ],
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "cited_hashes": {
+      "fa9d9f55fffa74cb6888c471d97d1655267999b6": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "LIFE-008": {
+     "area": "LIFECYCLE",
+     "evidence_ref": "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "explicit_result": null,
+     "detail_blank": false,
+     "checks": 3,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 3,
+     "declared_execution_proof": "Operator command -> process table / PID / lock -> engine status endpoint -> exchange shows zero unintended orders",
+     "declared_independent_oracle": "OS process list, port bindings, exchange open orders/fills during the transition window",
+     "declared_negative_tests": [
+      "second start attempt",
+      "crash mid-transition",
+      "stale lock/PID",
+      "config from previous version"
+     ],
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "cited_hashes": {
+      "fa9d9f55fffa74cb6888c471d97d1655267999b6": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "LIFE-009": {
+     "area": "LIFECYCLE",
+     "evidence_ref": "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "explicit_result": null,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Operator command -> process table / PID / lock -> engine status endpoint -> exchange shows zero unintended orders",
+     "declared_independent_oracle": "OS process list, port bindings, exchange open orders/fills during the transition window",
+     "declared_negative_tests": [
+      "second start attempt",
+      "crash mid-transition",
+      "stale lock/PID",
+      "config from previous version"
+     ],
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "cited_hashes": {
+      "fa9d9f55fffa74cb6888c471d97d1655267999b6": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    }
+   }
+  }
+ },
+ "demotion_list": [
+  {
+   "area": "RISK",
+   "id": "RISK-001",
+   "reasons": [
+    "record present but carries NO executed-proof detail (blank)"
+   ]
+  },
+  {
+   "area": "RISK",
+   "id": "RISK-002",
+   "reasons": [
+    "record present but carries NO executed-proof detail (blank)"
+   ]
+  },
+  {
+   "area": "RISK",
+   "id": "RISK-003",
+   "reasons": [
+    "record present but carries NO executed-proof detail (blank)"
+   ]
+  },
+  {
+   "area": "RISK",
+   "id": "RISK-004",
+   "reasons": [
+    "record present but carries NO executed-proof detail (blank)"
+   ]
+  },
+  {
+   "area": "RISK",
+   "id": "RISK-005",
+   "reasons": [
+    "record present but carries NO executed-proof detail (blank)"
+   ]
+  },
+  {
+   "area": "RISK",
+   "id": "RISK-006",
+   "reasons": [
+    "record present but carries NO executed-proof detail (blank)"
+   ]
+  },
+  {
+   "area": "RISK",
+   "id": "RISK-007",
+   "reasons": [
+    "record present but carries NO executed-proof detail (blank)"
+   ]
+  },
+  {
+   "area": "RISK",
+   "id": "RISK-008",
+   "reasons": [
+    "record present but carries NO executed-proof detail (blank)"
+   ]
+  },
+  {
+   "area": "RISK",
+   "id": "RISK-014",
+   "reasons": [
+    "record present but carries NO executed-proof detail (blank)"
+   ]
+  },
+  {
+   "area": "RISK",
+   "id": "RISK-015",
+   "reasons": [
+    "record present but carries NO executed-proof detail (blank)"
+   ]
+  },
+  {
+   "area": "RISK",
+   "id": "RISK-016",
+   "reasons": [
+    "record present but carries NO executed-proof detail (blank)"
+   ]
+  },
+  {
+   "area": "RISK",
+   "id": "TN-F06",
+   "reasons": [
+    "record present but carries NO executed-proof detail (blank)"
+   ]
+  },
+  {
+   "area": "RISK",
+   "id": "TN-F16",
+   "reasons": [
+    "record present but carries NO executed-proof detail (blank)"
+   ]
+  },
+  {
+   "area": "RISK",
+   "id": "TN-F21",
+   "reasons": [
+    "record present but carries NO executed-proof detail (blank)"
+   ]
+  }
+ ],
+ "evidence_files": {
+  "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json": {
+   "exists": true,
+   "blob_sha256": "a740eaf40f04d5f7fcba66d1090b1b13aebb5c00e4ec0a58ef0432d5419b635b",
+   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+   "tested_commit_resolves": "commit",
+   "engine_sha256": "2dfbd571012af67479ee7a2d9e6f1faac6ee5408722a092fb3625450cab51405",
+   "engine_sha256_as_git_object": "MISSING",
+   "engine_sha256_as_content": "MATCH",
+   "engine_content_path": "_archive/hl_stage2/HL_Live_Copy_Service_Core.py",
+   "engine_content_sha256": "2dfbd571012af67479ee7a2d9e6f1faac6ee5408722a092fb3625450cab51405"
+  },
+  "certification/results/RISK_fa9d9f55.json": {
+   "exists": true,
+   "blob_sha256": "12d23963d978ad62a24caf182eb2da7bd44c47896da9b56955127f280c9d5616",
+   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+   "tested_commit_resolves": "commit",
+   "engine_sha256": "2dfbd571012af67479ee7a2d9e6f1faac6ee5408722a092fb3625450cab51405",
+   "engine_sha256_as_git_object": "MISSING",
+   "engine_sha256_as_content": "MATCH",
+   "engine_content_path": "_archive/hl_stage2/HL_Live_Copy_Service_Core.py",
+   "engine_content_sha256": "2dfbd571012af67479ee7a2d9e6f1faac6ee5408722a092fb3625450cab51405"
+  },
+  "certification/results/WALLET_fa9d9f55ff.json": {
+   "exists": true,
+   "blob_sha256": "7a076d3c15a2a27a3e7b3e5d5e1b4c702d08583c94bb2384cff530efa90355d2",
+   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+   "tested_commit_resolves": "commit",
+   "engine_sha256": "2dfbd571012af67479ee7a2d9e6f1faac6ee5408722a092fb3625450cab51405",
+   "engine_sha256_as_git_object": "MISSING",
+   "engine_sha256_as_content": "MATCH",
+   "engine_content_path": "_archive/hl_stage2/HL_Live_Copy_Service_Core.py",
+   "engine_content_sha256": "2dfbd571012af67479ee7a2d9e6f1faac6ee5408722a092fb3625450cab51405"
+  },
+  "certification/results/NLS_RESIDUAL_2a269ad226.json": {
+   "exists": true,
+   "blob_sha256": "f5c9fd5414cd93b10ad0f8e275fc195258c4023c85115d3f9b79dfb50c9ef15c",
+   "tested_commit": "2a269ad2260270fee844eedc2cc23545abc91dd0",
+   "tested_commit_resolves": "commit",
+   "engine_sha256": "b171ec8fef01ead5ed2fe4a4a075857b5b1a56e425bab8394440c7dbad57f2a0",
+   "engine_sha256_as_git_object": "MISSING",
+   "engine_sha256_as_content": "MISMATCH",
+   "engine_content_path": "_archive/hl_stage2/HL_Live_Copy_Service_Core.py",
+   "engine_content_sha256": "2dfbd571012af67479ee7a2d9e6f1faac6ee5408722a092fb3625450cab51405"
+  }
+ },
+ "totals": {
+  "pass_rows_in_scope": 46,
+  "kept": 32,
+  "demoted": 14,
+  "demote_reasons_tally": {
+   "record present but carries NO executed-proof detail (blank)": 14
+  }
+ }
+}
