@@ -1,0 +1,157 @@
+{
+  "task_id": "t_59968de6",
+  "title": "B3-CERT UI-LCC DETAIL-02..04 + ADD-06/07/10",
+  "register_of_record": "git show b142cf88:certification/certification_matrix.json",
+  "register_ref_resolved": "b142cf88d389e791160f691aac3d936852b99975",
+  "tested_commit": "b142cf88d389e791160f691aac3d936852b99975",
+  "engine_sha256": "7468ab5188750617b090b56c3e719d73e91f5b4241f4782382ccac1a22989276",
+  "tested_at_utc": "2026-10-16T22:43:52.081951+00:00",
+  "runtime_probe_method": "Python TCP connect, loopback 127.0.0.1:8000 (HL_Copy_App_SSOT.py source default APP_PORT)",
+  "runtime_probe": {
+    "reachable": false,
+    "address": "127.0.0.1:8000",
+    "error_type": "TimeoutError",
+    "error": "timed out"
+  },
+  "rows": [
+    {
+      "id": "UI-LCC-DETAIL-02",
+      "feature": "Wallet open-positions detail: Coin/Side/Size/Entry/Mark/uPnL/Exposure/Exchange match",
+      "register_result_at_b142cf88": "NOT_TESTED",
+      "expected_behaviour": "Per-wallet detail matches exchange fills/positions attributed to that leader; attribution quality shown.",
+      "row_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+      "row_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+      "result": "NOT_TESTED",
+      "tested_commit": "b142cf88d389e791160f691aac3d936852b99975",
+      "engine_sha256": "7468ab5188750617b090b56c3e719d73e91f5b4241f4782382ccac1a22989276",
+      "tested_at_utc": "2026-10-16T22:43:52.081951+00:00",
+      "execution_proof": "NOT EXECUTED: live API payload -> rendered DOM was unavailable.",
+      "independent_oracle": "NOT EXECUTED: independent contemporaneous exchange/engine truth input was unavailable; no engine/UI import was used as an oracle.",
+      "runtime_probe": {
+        "reachable": false,
+        "address": "127.0.0.1:8000",
+        "error_type": "TimeoutError",
+        "error": "timed out"
+      },
+      "exact_missing_prerequisites": "A reachable UI-LCC runtime URL/HL_APP_PORT binding is unavailable to this run; the source default 127.0.0.1:8000 timed out on a TCP connection attempt. The contemporaneous independent exchange/engine truth input (raw exchange position/fill data plus attribution state) was not supplied or retrieved. Therefore no API payload, rendered DOM, independent recomputation, or persistence/validation round-trip was executed.",
+      "negative_tests": "NOT EXECUTED: no live UI/API was available to verify unavailable/stale/API-error rendering.",
+      "notes": "No PASS claimed. No live configuration was mutated."
+    },
+    {
+      "id": "UI-LCC-DETAIL-03",
+      "feature": "Wallet Lead vs Copy / Friction detail",
+      "register_result_at_b142cf88": "NOT_TESTED",
+      "expected_behaviour": "Per-wallet detail matches exchange fills/positions attributed to that leader; attribution quality shown.",
+      "row_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+      "row_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+      "result": "NOT_TESTED",
+      "tested_commit": "b142cf88d389e791160f691aac3d936852b99975",
+      "engine_sha256": "7468ab5188750617b090b56c3e719d73e91f5b4241f4782382ccac1a22989276",
+      "tested_at_utc": "2026-10-16T22:43:52.081951+00:00",
+      "execution_proof": "NOT EXECUTED: live API payload -> rendered DOM was unavailable.",
+      "independent_oracle": "NOT EXECUTED: independent contemporaneous exchange/engine truth input was unavailable; no engine/UI import was used as an oracle.",
+      "runtime_probe": {
+        "reachable": false,
+        "address": "127.0.0.1:8000",
+        "error_type": "TimeoutError",
+        "error": "timed out"
+      },
+      "exact_missing_prerequisites": "A reachable UI-LCC runtime URL/HL_APP_PORT binding is unavailable to this run; the source default 127.0.0.1:8000 timed out on a TCP connection attempt. The contemporaneous independent exchange/engine truth input (raw exchange position/fill data plus attribution state) was not supplied or retrieved. Therefore no API payload, rendered DOM, independent recomputation, or persistence/validation round-trip was executed.",
+      "negative_tests": "NOT EXECUTED: no live UI/API was available to verify unavailable/stale/API-error rendering.",
+      "notes": "No PASS claimed. No live configuration was mutated."
+    },
+    {
+      "id": "UI-LCC-DETAIL-04",
+      "feature": "Wallet Execution Audit detail",
+      "register_result_at_b142cf88": "NOT_TESTED",
+      "expected_behaviour": "Per-wallet detail matches exchange fills/positions attributed to that leader; attribution quality shown.",
+      "row_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+      "row_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+      "result": "NOT_TESTED",
+      "tested_commit": "b142cf88d389e791160f691aac3d936852b99975",
+      "engine_sha256": "7468ab5188750617b090b56c3e719d73e91f5b4241f4782382ccac1a22989276",
+      "tested_at_utc": "2026-10-16T22:43:52.081951+00:00",
+      "execution_proof": "NOT EXECUTED: live API payload -> rendered DOM was unavailable.",
+      "independent_oracle": "NOT EXECUTED: independent contemporaneous exchange/engine truth input was unavailable; no engine/UI import was used as an oracle.",
+      "runtime_probe": {
+        "reachable": false,
+        "address": "127.0.0.1:8000",
+        "error_type": "TimeoutError",
+        "error": "timed out"
+      },
+      "exact_missing_prerequisites": "A reachable UI-LCC runtime URL/HL_APP_PORT binding is unavailable to this run; the source default 127.0.0.1:8000 timed out on a TCP connection attempt. The contemporaneous independent exchange/engine truth input (raw exchange position/fill data plus attribution state) was not supplied or retrieved. Therefore no API payload, rendered DOM, independent recomputation, or persistence/validation round-trip was executed.",
+      "negative_tests": "NOT EXECUTED: no live UI/API was available to verify unavailable/stale/API-error rendering.",
+      "notes": "No PASS claimed. No live configuration was mutated."
+    },
+    {
+      "id": "UI-LCC-ADD-06",
+      "feature": "Add-wallet Leader equity base field",
+      "register_result_at_b142cf88": "NOT_TESTED",
+      "expected_behaviour": "Field value persists exactly to live_config.json via /api/live-config/add-wallet; invalid input rejected with visible error.",
+      "row_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+      "row_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+      "result": "NOT_TESTED",
+      "tested_commit": "b142cf88d389e791160f691aac3d936852b99975",
+      "engine_sha256": "7468ab5188750617b090b56c3e719d73e91f5b4241f4782382ccac1a22989276",
+      "tested_at_utc": "2026-10-16T22:43:52.081951+00:00",
+      "execution_proof": "NOT EXECUTED: live API payload -> rendered DOM was unavailable.",
+      "independent_oracle": "NOT EXECUTED: independent contemporaneous exchange/engine truth input was unavailable; no engine/UI import was used as an oracle.",
+      "runtime_probe": {
+        "reachable": false,
+        "address": "127.0.0.1:8000",
+        "error_type": "TimeoutError",
+        "error": "timed out"
+      },
+      "exact_missing_prerequisites": "A reachable UI-LCC runtime URL/HL_APP_PORT binding is unavailable to this run; the source default 127.0.0.1:8000 timed out on a TCP connection attempt. The contemporaneous independent exchange/engine truth input (raw exchange position/fill data plus attribution state) was not supplied or retrieved. Therefore no API payload, rendered DOM, independent recomputation, or persistence/validation round-trip was executed. The row is additionally constrained by unresolved OD-07 and OD-10 in the register, so no live configuration write was attempted.",
+      "negative_tests": "NOT EXECUTED: no live UI/API was available to verify unavailable/stale/API-error rendering.",
+      "notes": "No PASS claimed. No live configuration was mutated."
+    },
+    {
+      "id": "UI-LCC-ADD-07",
+      "feature": "Add-wallet Max diff % field",
+      "register_result_at_b142cf88": "NOT_TESTED",
+      "expected_behaviour": "Field value persists exactly to live_config.json via /api/live-config/add-wallet; invalid input rejected with visible error.",
+      "row_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+      "row_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+      "result": "NOT_TESTED",
+      "tested_commit": "b142cf88d389e791160f691aac3d936852b99975",
+      "engine_sha256": "7468ab5188750617b090b56c3e719d73e91f5b4241f4782382ccac1a22989276",
+      "tested_at_utc": "2026-10-16T22:43:52.081951+00:00",
+      "execution_proof": "NOT EXECUTED: live API payload -> rendered DOM was unavailable.",
+      "independent_oracle": "NOT EXECUTED: independent contemporaneous exchange/engine truth input was unavailable; no engine/UI import was used as an oracle.",
+      "runtime_probe": {
+        "reachable": false,
+        "address": "127.0.0.1:8000",
+        "error_type": "TimeoutError",
+        "error": "timed out"
+      },
+      "exact_missing_prerequisites": "A reachable UI-LCC runtime URL/HL_APP_PORT binding is unavailable to this run; the source default 127.0.0.1:8000 timed out on a TCP connection attempt. The contemporaneous independent exchange/engine truth input (raw exchange position/fill data plus attribution state) was not supplied or retrieved. Therefore no API payload, rendered DOM, independent recomputation, or persistence/validation round-trip was executed. The row is additionally constrained by unresolved OD-07 and OD-10 in the register, so no live configuration write was attempted.",
+      "negative_tests": "NOT EXECUTED: no live UI/API was available to verify unavailable/stale/API-error rendering.",
+      "notes": "No PASS claimed. No live configuration was mutated."
+    },
+    {
+      "id": "UI-LCC-ADD-10",
+      "feature": "Add-wallet submit",
+      "register_result_at_b142cf88": "NOT_TESTED",
+      "expected_behaviour": "Field value persists exactly to live_config.json via /api/live-config/add-wallet; invalid input rejected with visible error.",
+      "row_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+      "row_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+      "result": "NOT_TESTED",
+      "tested_commit": "b142cf88d389e791160f691aac3d936852b99975",
+      "engine_sha256": "7468ab5188750617b090b56c3e719d73e91f5b4241f4782382ccac1a22989276",
+      "tested_at_utc": "2026-10-16T22:43:52.081951+00:00",
+      "execution_proof": "NOT EXECUTED: live API payload -> rendered DOM was unavailable.",
+      "independent_oracle": "NOT EXECUTED: independent contemporaneous exchange/engine truth input was unavailable; no engine/UI import was used as an oracle.",
+      "runtime_probe": {
+        "reachable": false,
+        "address": "127.0.0.1:8000",
+        "error_type": "TimeoutError",
+        "error": "timed out"
+      },
+      "exact_missing_prerequisites": "A reachable UI-LCC runtime URL/HL_APP_PORT binding is unavailable to this run; the source default 127.0.0.1:8000 timed out on a TCP connection attempt. The contemporaneous independent exchange/engine truth input (raw exchange position/fill data plus attribution state) was not supplied or retrieved. Therefore no API payload, rendered DOM, independent recomputation, or persistence/validation round-trip was executed. The row is additionally constrained by unresolved OD-07 and OD-10 in the register, so no live configuration write was attempted.",
+      "negative_tests": "NOT EXECUTED: no live UI/API was available to verify unavailable/stale/API-error rendering.",
+      "notes": "No PASS claimed. No live configuration was mutated."
+    }
+  ],
+  "status": "NOT_TESTED_ALL_ROWS"
+}
