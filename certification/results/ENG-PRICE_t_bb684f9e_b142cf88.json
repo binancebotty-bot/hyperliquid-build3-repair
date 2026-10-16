@@ -1,0 +1,90 @@
+{
+  "task_id": "t_bb684f9e",
+  "tested_commit": "b142cf88d389e791160f691aac3d936852b99975",
+  "register_of_record": "git show b142cf88:certification/certification_matrix.json",
+  "register_matrix_sha256": "86b2237fe95f88ca9eb758fb42ddbdf3efdaef71e56f79a10e2d2635f44f341a",
+  "engine_under_test": {
+    "path": "_archive/hl_stage2/HL_Live_Copy_Service_Core.py",
+    "sha256": "b171ec8fef01ead5ed2fe4a4a075857b5b1a56e425bab8394440c7dbad57f2a0",
+    "lines": 8042
+  },
+  "rows": {
+    "ENG-INV-07": {
+      "expected_behaviour": "Leader mutable state is isolated by (wallet, coin).",
+      "verdict": "NOT_TESTED",
+      "executed_checks": [
+        {"name": "SLEEVE_KEY_IS_WALLET_COIN", "pass": true, "detail": "sleeve_id form wallet::coin: 880 distinct (wallet,coin) keys over 10 wallets / 264 coins; malformed=0; every key resolves to a real wallet+coin=True", "oracle": "engine audit CSV order_intents.csv (live lineage snapshot; sha256 in live/SNAPSHOT_SHA256.txt)"}
+      ],
+      "missing_for_pass": "Row execution_proof is a leader event driven through planner delta -> single sender -> testnet order -> MASTER fill AT THIS COMMIT. No leader event was driven at b142cf88. The (wallet,coin) keying above is proven on the LIVE lineage audit artifact whose engine is a different commit."
+    },
+    "ENG-INV-08": {
+      "expected_behaviour": "Startup/recovery truth includes all relevant perp DEX scopes (default + HIP-3/builder); missing required scope fails closed.",
+      "verdict": "NOT_TESTED",
+      "executed_checks": [
+        {"name": "PERP_DEXS_ENUMERATED_BY_ORACLE", "pass": true, "detail": "testnet perpDexs entries=273 named=272 sample=[test, unit, scam, felix, volmex]", "oracle": "live testnet info API type=perpDexs (no engine import)"},
+        {"name": "ENGINE_ENUMERATES_PERP_DEX_SCOPE", "pass": true, "detail": "engine list_perp_dexes() ok=True n=273 sample=['', KNETIQ, TOON, VOLMEX, ab, abcd]", "oracle": "engine runtime call at b142cf88 against live testnet"}
+      ],
+      "missing_for_pass": "Negative case not exercised: a MISSING required scope must FAIL CLOSED. Needs a controlled scope-degradation run of the engine."
+    },
+    "ENG-INV-09": {
+      "expected_behaviour": "Exchange truth outranks local replay; the manual follower-position file is not authoritative.",
+      "verdict": "NOT_TESTED",
+      "executed_checks": [
+        {"name": "EXCHANGE_FILLS_INDEPENDENTLY_READ", "pass": true, "detail": "testnet userFillsByTime (no engine import) matched 7 of 7 audit-referenced order ids", "oracle": "live testnet info API userFillsByTime"},
+        {"name": "ENGINE_LEDGER_AGREES_WITH_EXCHANGE", "pass": true, "detail": "7 order ids in BOTH engine live_fills.csv and exchange oracle; sample=[2Z|0x31ca..|0.032954|0.032954, ARB|0xf5d8..|0.19253|0.19253]", "oracle": "testnet userFillsByTime vs engine audit CSV"}
+      ],
+      "missing_for_pass": "Discriminating case not exercised: a STALE manual follower-position file must NOT override exchange truth. Needs a controlled stale-file run against a live engine."
+    },
+    "ENG-003": {
+      "expected_behaviour": "Fixed mode executes using recovered intended semantics, never fixed-notional-per-fill. Until ruled, fixed mode is HOLD fail-closed with ZERO orders and surfaces FIXED_MODE_AUTHORITY_HOLD.",
+      "applicability": "OPEN_DECISION",
+      "open_decision": "OD-02 (owner Architect)",
+      "verdict": "NOT_TESTED",
+      "census": {"FIXED_MODE_AUTHORITY_HOLD": {"core": 0, "legacy": 4}, "fixed_notional": {"core": 18, "legacy": 75}},
+      "reason": "OPEN_DECISION on OD-02; expected_behaviour is a fail-closed HOLD with ZERO orders while the row execution_proof is a testnet ORDER chain - a zero-order hold cannot be proven by an order chain and OD-02 is unruled. The named HOLD surface exists only in the LEGACY module, not in the ENGINE module under test."
+    },
+    "PRICE-001": {
+      "expected_behaviour": "One ruled mark source with a proven age bound is used on every OPEN/INCREASE/FLIP path. Currently BLOCKED: no validated-freshness mark reaches apply_fixed_sleeve_event(); fill.price is used with no age check.",
+      "verdict": "NOT_TESTED",
+      "executed_checks": [
+        {"name": "FOLLOWER_MID_CONSULTED_ON_ENTRY_PRICE_PATH", "pass": true, "detail": "engine mid source (follower_mid) returned a live testnet value (HYPE=54.0262) at the register commit", "oracle": "live testnet info API allMids"},
+        {"name": "WIRE_LIMIT_PRICE_TRACED_TO_EXCHANGE_FILL", "pass": true, "detail": "3 of 3 sampled real testnet orders traced engine send_attempts.limit_price -> exchange userFillsByTime fill: marketable-side consistent=True, size match=True, cloid match=3 (VVV 23.07->23.093, ETC 7.9236->7.933, KAITO 0.29316->0.29358)", "oracle": "testnet userFillsByTime joined to engine send_attempts.csv on exchange_order_id"}
+      ],
+      "missing_for_pass": "apply_fixed_sleeve_event does not exist in the ENGINE module under test (core=0, legacy=2). The row names a LEGACY defect site; the core-path equivalent at b142cf88 is not identified, so the exact claim cannot be evaluated against the engine under test."
+    },
+    "PRICE-002": {
+      "expected_behaviour": "Cached public executable quote is used only within HL_LIVE_QUOTE_CACHE_TTL_MS (default 1000 ms); older -> refetch; unusable -> EXECUTABLE_QUOTE_UNAVAILABLE.",
+      "verdict": "NOT_TESTED",
+      "executed_checks": [
+        {"name": "REAL_NETWORK_PATH_RETURNS_LIVE_TESTNET_MID", "pass": true, "detail": "follower_mid(HYPE)=54.0262 live vs oracle allMids 53.9893", "oracle": "live testnet info API allMids"},
+        {"name": "WITHIN_MAX_AGE_RETURNS_CACHED", "pass": true, "detail": "cache age ~0s (< 5.0s) -> follower_mid=111.0 (cached, no refresh)", "oracle": "engine runtime call at b142cf88"},
+        {"name": "STALE_BEYOND_MAX_AGE_RETURNS_ZERO", "pass": true, "detail": "cache age 6.0s (> 5.0s) and refetch unavailable -> follower_mid=0.0 (no order possible)", "oracle": "engine runtime call at b142cf88"},
+        {"name": "BEYOND_CACHE_TTL_REFETCHES", "pass": true, "detail": "cache age 2.5s (> TTL 2.0s) -> refresh calls=1 value=222.0", "oracle": "engine runtime call at b142cf88"}
+      ],
+      "missing_for_pass": "The row names HL_LIVE_QUOTE_CACHE_TTL_MS / EXECUTABLE_QUOTE_UNAVAILABLE which exist ONLY in the LEGACY module (core=0). The ENGINE under test implements HL_LIVE_MIDS_CACHE_TTL_SEC (2s) + HL_LIVE_MIDS_MAX_AGE_SEC (5s) via follower_mid(), whose TTL/max-age rules WERE executed and pass. The row must be re-derived against the Core names before it can be certified as written."
+    }
+  },
+  "engine_lineage": {
+    "finding": "THREE DISTINCT ENGINE BINARIES are in play, and the register commit is NOT the engine that ran the copy session.",
+    "register_commit_core": {"commit": "b142cf88", "sha256": "b171ec8fef01ead5ed2fe4a4a075857b5b1a56e425bab8394440c7dbad57f2a0", "lines": 8042},
+    "prior_evidence_core": {"commit": "43731b4f", "sha256": "2dfbd571012af67479ee7a2d9e6f1faac6ee5408722a092fb3625450cab51405", "lines": 8030},
+    "live_lineage_core": {"commit": "d8a49d3e114a85d2dcc03d2d9375cfeb7f4cc1a4", "branch": "origin/engine/gate-snapshot-cache", "sha256": "0cc9720c2932c09c89e567f4c18a38e954ab9946f2cd1a367055bf844aa4a798", "lines": 13129},
+    "live_lineage_vs_main": "d8a49d3 is NOT a descendant of main (merge-base 43731b4f; 23 commits on main's side, 222 on the live side). The live engine holds 222 commits of engine work absent from the register.",
+    "shared_code_proof": "follower_mid() and list_perp_dexes() are BYTE-IDENTICAL between b142cf88 and d8a49d3 (extracted-function diff = IDENTICAL), so the pricing/TTL/DEX-scope semantics hold on both; the rest differs by 5477 insertions / 390 deletions."
+  },
+  "method": {
+    "two_run_control": "Each probe ran twice (scrubbed env dropping PYTHONPATH vs inherited). Only delta was the live HYPE mid (54.0262 vs 54.0597) - a real-time instrument artefact, not a product delta.",
+    "credentials": "No credential material read or loaded. HL_LIVE_ENV_FILE=/nonexistent; no .env in repo. No key value printed, logged or committed.",
+    "no_orders": "No order placed, cancelled or modified. Testnet exchange used read-only (info API).",
+    "oracle_independence": "All exchange reads made by standalone scripts that do NOT import engine or UI code."
+  },
+  "summary": {
+    "rows": 6,
+    "PASS": 0,
+    "FAIL": 0,
+    "NOT_TESTED": 6,
+    "executed_checks_passed": 10,
+    "executed_checks_failed": 0,
+    "headline": "All 6 rows remain NOT_TESTED. 10 executed checks pass, but no row is fully covered at the register commit; each names exactly what is missing. Most important finding: engine-lineage divergence - the register commit is not the engine that ran the live copy session, and 3 of 6 rows name symbols that exist only in the legacy module."
+  }
+}
