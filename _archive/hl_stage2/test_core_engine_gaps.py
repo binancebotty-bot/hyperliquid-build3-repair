@@ -16,6 +16,8 @@ Run: python test_core_engine_gaps.py   # RESULT:: markers, exit 0/1. No network,
 from __future__ import annotations
 
 import os
+os.environ["HL_LIVE_GATES_ALERT_ONLY"] = "0"  # this test pins the legacy blocking gates; alert-only has its own test file
+os.environ["HL_LIVE_DEFER_MAX_SEC"] = "300"  # legacy bounded hold
 import re
 import subprocess
 import sys

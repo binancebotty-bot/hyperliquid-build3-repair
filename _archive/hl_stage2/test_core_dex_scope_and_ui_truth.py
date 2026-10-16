@@ -15,6 +15,8 @@ Run: python test_core_dex_scope_and_ui_truth.py   # RESULT:: markers, exit 0/1. 
 from __future__ import annotations
 
 import os
+os.environ["HL_LIVE_GATES_ALERT_ONLY"] = "0"  # this test pins the legacy blocking gates; alert-only has its own test file
+os.environ["HL_LIVE_DEFER_MAX_SEC"] = "300"  # legacy bounded hold
 import sys
 import tempfile
 import threading

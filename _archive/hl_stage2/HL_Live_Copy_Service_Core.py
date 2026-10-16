@@ -10048,7 +10048,8 @@ class LiveCopyCore:
         now = utc_now_ms()
         new_fill = key not in firsts
         first = firsts.setdefault(key, now)
-        if now - first > int(fnum(os.getenv("HL_LIVE_DEFER_MAX_SEC"), 300.0) * 1000):
+        max_sec = fnum(os.getenv("HL_LIVE_DEFER_MAX_SEC"), 0.0)  # 0 = hold until readable (Boss rule 16 Oct: never a terminal block)
+        if max_sec < 0 or (max_sec > 0 and now - first > int(max_sec * 1000)):  # negative = no hold at all (tests)
             firsts.pop(key, None)
             return False
         with self._idem_lock:  # release the HEAD only: merged siblings stay marked handled, so a poll re-read cannot
@@ -10228,6 +10229,20 @@ class LiveCopyCore:
             return False
         self._last_leader_poll_ms = now
         return True
+
+    def _gate_would_block(self, reason: str) -> None:
+        """Alert-only gate: one reconciliation row per gate per minute, never raises, never blocks."""
+        try:
+            now = time.monotonic()
+            seen = self.__dict__.setdefault("_gate_alert_ms", {})
+            if now - seen.get(reason, -1e9) < 60.0:
+                return
+            seen[reason] = now
+            self.audit.append_reconciliation(
+                "GATE_WOULD_BLOCK", reason, action="ALERT_ONLY_ENTRIES_PROCEED", terminal_state=reason, engine_can_send="True",
+                notes=f"cycle gate {reason} would have blocked entries; HL_LIVE_GATES_ALERT_ONLY=1 so entries proceed (Boss rule 16 Oct)")
+        except Exception as exc:
+            log_error("gate_would_block_row", exc)
 
     def _daily_loss_block(self) -> str:
         """Entries stop once the follower account has lost max_daily_loss_usd over the last 24 h."""
@@ -10765,6 +10780,12 @@ class LiveCopyCore:
             # Gate 6: the full-DEX sweep must have covered the whole follower account recently (fails closed)
             if not _block:
                 _block = self._scope_sweep_block()
+            # Boss rule 16 Oct (decision card, testnet): nothing that was not in the two-month engine blocks an entry. A cycle
+            # gate (feed stale, poll stale, unreconciled sends, wallet slots, sweep, unreadable P&L, rejected key) is an ALERT:
+            # one GATE_WOULD_BLOCK row, the entry proceeds. The daily loss LIMIT the operator sets stays a hard stop (old build).
+            if _block and _block != "DAILY_LOSS_LIMIT_REACHED" and bval(os.getenv("HL_LIVE_GATES_ALERT_ONLY"), True):
+                self._gate_would_block(_block)
+                _block = ""
             self._entry_sends_blocked_reason = _block
             summary.entry_sends_blocked_reason = _block
             summary.sender_key_invalid = self.sender.sender_key_invalid

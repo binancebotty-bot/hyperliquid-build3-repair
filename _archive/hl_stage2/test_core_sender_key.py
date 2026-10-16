@@ -16,6 +16,8 @@ from __future__ import annotations
 
 import io
 import os
+os.environ["HL_LIVE_GATES_ALERT_ONLY"] = "0"  # this test pins the legacy blocking gates; alert-only has its own test file
+os.environ["HL_LIVE_DEFER_MAX_SEC"] = "300"  # legacy bounded hold
 import sys
 import tempfile
 from contextlib import redirect_stderr

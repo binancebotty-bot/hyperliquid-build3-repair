@@ -29,6 +29,7 @@ from __future__ import annotations
 import errno
 import json
 import os
+os.environ["HL_LIVE_GATES_ALERT_ONLY"] = "0"  # this test pins the legacy blocking gates; alert-only has its own test file
 import pathlib
 import re
 import sys
