@@ -1,0 +1,116 @@
+{
+  "task_id": "t_29202578",
+  "title": "B3-CERT CONTROL [impl] CTRL-BIND + DONE-10 (2 rows)",
+  "area": "CONTROL",
+  "register_ref": "main:certification/certification_matrix.json",
+  "register_commit": "b142cf88d389e791160f691aac3d936852b99975",
+  "tested_commit": "b142cf88d389e791160f691aac3d936852b99975",
+  "engine_file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
+  "engine_commit": "bf088e6ed71959acc4b56be3db3549e40587956f",
+  "engine_sha256": "c766bfad9f14113c610884d7843cfa9f8a6f12b94681a82058fe1fdffe03e8e9",
+  "control_mailbox_tip": "97d8e350b0593ffb649d5ab7bfef5aea72edf0f2",
+  "control_mailbox_envelopes": 282,
+  "tested_at_utc": "2026-10-16T21:17:43Z",
+  "rows": {
+    "CTRL-BIND": {
+      "applicability": "OPEN_DECISION",
+      "open_decisions": [
+        "OD-03"
+      ],
+      "prior_result": "NOT_TESTED",
+      "result": "BLOCKED",
+      "blocked_reason": "OPEN_DECISION OD-03 (Controller binding identity) UNRESOLVED; CONTROL_STATE cached binding != live CONTROL_CONTRACT binding. Selecting a winner is a Controller/Architect authority decision; Hermes does not invent it.",
+      "execution_proof": "Envelope on origin/control-mailbox -> wake -> correlated consumption record -> durable state transition",
+      "independent_oracle": "git log of origin/control-mailbox (exact SHAs) and the consumer's durable receipt",
+      "checks": [
+        {
+          "name": "ENVELOPE_TRANSPORT_EXISTS",
+          "pass": true,
+          "detail": "origin/control-mailbox @97d8e350b0: inbox=103 outbox=179"
+        },
+        {
+          "name": "CORRELATED_CONSUMPTION_RECORD",
+          "pass": true,
+          "detail": "outbox RESPONDS_TO_MESSAGE_ID matched to an inbound MESSAGE_ID: 97 correlated pairs"
+        },
+        {
+          "name": "CANONICAL_BINDING_AGREEMENT",
+          "pass": false,
+          "detail": "CONTROL_STATE cached uuid=6ac6427b-8df0-83eb-beb8-3b6e8796d1e1 vs live CONTROL_CONTRACT uuid=6ac8e179-932c-83ed-b9ca-1bdc5c976d5d (row expects exactly one canonical binding)"
+        },
+        {
+          "name": "OPEN_DECISION_OD03_PRESENT",
+          "pass": true,
+          "detail": "CONTROL_STATE.bindings.controller_uuid_dispute.state=UNRESOLVED_REQUIRES_ADJUDICATION; owner=Controller/Architect"
+        }
+      ],
+      "negative_tests": [
+        {
+          "name": "NEG_STALE_REMOTE_REF",
+          "pass": true,
+          "detail": "cached CONTROL_STATE generation=1 uuid=6ac6427b-8df0-83eb-beb8-3b6e8796d1e1 != live binding_version=2 uuid=6ac8e179-932c-83ed-b9ca-1bdc5c976d5d -> a consumer using the cached ref targets a NON-canonical thread"
+        },
+        {
+          "name": "NEG_WRONG_BINDING_FAIL_CLOSED",
+          "pass": true,
+          "detail": "the two binding surfaces genuinely differ; wrong-binding hazard is real and detected, not vacuous"
+        },
+        {
+          "name": "NEG_NO_AUTO_RESOLUTION",
+          "pass": true,
+          "detail": "dispute action_taken_by_hermes='NONE. Deliberately NOT rewritten: selecting a winning UUID is an authority decision reserved to Controller/Architect. Recorded as a dispute only.' -> Hermes did NOT pick a winner"
+        },
+        {
+          "name": "NEG_DUPLICATE_DELIVERY",
+          "pass": true,
+          "detail": "raw inbox duplicate MESSAGE_IDs=2 ['B3-C2A-G3-PASS-ARCHITECT-GATE-1', 'B3-C2H-MINIMAL-RESUME-GATE-3B']; correlated consumption keyed on MESSAGE_ID"
+        }
+      ]
+    },
+    "DONE-10": {
+      "applicability": "APPLIES",
+      "open_decisions": [],
+      "prior_result": "NOT_TESTED",
+      "result": "BLOCKED",
+      "blocked_reason": "HUMAN LIVE/mainnet gate: the exact operator question \"Richard explicitly decides LIVE/mainnet\" has no ruling. Recorded as D-003 in EVIDENCE/DECISIONS.md; no ruling invented.",
+      "execution_proof": "Envelope on origin/control-mailbox -> wake -> correlated consumption record -> durable state transition",
+      "independent_oracle": "git log of origin/control-mailbox (exact SHAs) and the consumer's durable receipt",
+      "checks": [
+        {
+          "name": "DONE_10_HUMAN_RULING_PRESENT",
+          "pass": true,
+          "detail": "operator-sourced envelopes mentioning the LIVE/mainnet gate: 5 ['B3-C2A-G4-8014-SLICE-SEMANTICS-RULING-1', 'B3-C2H-P0-HERMES-CONTROLLER-ONLY-FINAL-READ-1', 'B3-C2H-BOOT-85392E-ALIGNMENT-DISPOSITION-1', 'B3-C2H-HANDOVER-RECEIVER-FINAL-ALIGN-B2C1E2-1', 'B3-C2H-REALIGN-CFF93B-ACK-1']"
+        },
+        {
+          "name": "DURABLE_BLOCKED_RECORD_D003",
+          "pass": true,
+          "detail": "EVIDENCE/DECISIONS.md @main: D-003 present=True, DONE-10 present=True"
+        },
+        {
+          "name": "MAILBOX_TRANSPORT_EXISTS",
+          "pass": true,
+          "detail": "control-mailbox transport present (inbox=103)"
+        },
+        {
+          "name": "ENGINE_FAILS_CLOSED_WITHOUT_MAINNET_CONFIRM",
+          "pass": false,
+          "detail": "engine guard MAINNET_FOLLOWER_NOT_CONFIRMED=False, MAINNET_ORDERS_CONFIRMED = False=False, mainnet cancel-hold=False"
+        }
+      ],
+      "negative_tests": [
+        {
+          "name": "NEG_NO_AUTO_LIVE",
+          "pass": false,
+          "detail": "default network is testnet; mainnet orders refused without --confirm-mainnet-follower (MAINNET_ORDERS_CONFIRMED default False)"
+        },
+        {
+          "name": "NEG_NO_OPERATOR_RELAY",
+          "pass": true,
+          "detail": "newest inbound ACK states NO_G5/LIVE and NO_NEW_HERMES_TASK; DONE-10 is routed to the operator as a persistent question card, not an agent relay"
+        }
+      ]
+    }
+  },
+  "summary": "Both CONTROL rows remain BLOCKED on authority gates; no status invented. CTRL-BIND: canonical-binding agreement provably FALSE (OD-03). DONE-10: no operator LIVE/mainnet ruling (D-003).",
+  "matrix_edited": false
+}
