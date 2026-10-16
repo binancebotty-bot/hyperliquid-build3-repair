@@ -1,0 +1,153 @@
+{
+  "schema": "b3_cert_result_v1",
+  "result_set": "B3B",
+  "register_ref": "main:certification/certification_matrix.json",
+  "register_commit": "b142cf88d389e791160f691aac3d936852b99975",
+  "engine_commit": "3a03df4e347d472b70f40ba2f5a9b340bdc27d38",
+  "rows": [
+    {
+      "id": "F25-P06",
+      "result": "NOT_TESTED",
+      "register_ref": "main:certification/certification_matrix.json",
+      "engine_commit": "3a03df4e347d472b70f40ba2f5a9b340bdc27d38",
+      "checks": [
+        {
+          "name": "execution proof",
+          "result": "NOT_TESTED",
+          "detail": "Not executed: declared process/PID/lock, engine endpoint, lifecycle transition, and exchange non-effect proof cannot be established without the missing live testnet lifecycle route."
+        },
+        {
+          "name": "independent oracle",
+          "result": "NOT_TESTED",
+          "detail": "Independent OS process/port and exchange open-orders/fills transition-window oracle not available as a captured auditable route."
+        },
+        {
+          "name": "negative tests",
+          "result": "NOT_TESTED",
+          "detail": "Listed negatives (second start, crash mid-transition, stale lock/PID, prior-version config) were not induced; doing so without controlled transport and independent exchange oracle is unsafe."
+        }
+      ],
+      "missing_route": "Live testnet lifecycle command/transport instrumentation and independent captured-request/exchange open-orders/fills oracle are unavailable; cannot safely run the declared operator transition or listed negative scenarios. Rendered DOM capture also unavailable; only HTTP GET 200 at http://127.0.0.1:8031/live-copy."
+    },
+    {
+      "id": "F25-P07",
+      "result": "NOT_TESTED",
+      "register_ref": "main:certification/certification_matrix.json",
+      "engine_commit": "3a03df4e347d472b70f40ba2f5a9b340bdc27d38",
+      "checks": [
+        {
+          "name": "execution proof",
+          "result": "NOT_TESTED",
+          "detail": "Not executed: declared process/PID/lock, engine endpoint, lifecycle transition, and exchange non-effect proof cannot be established without the missing live testnet lifecycle route."
+        },
+        {
+          "name": "independent oracle",
+          "result": "NOT_TESTED",
+          "detail": "Independent OS process/port and exchange open-orders/fills transition-window oracle not available as a captured auditable route."
+        },
+        {
+          "name": "negative tests",
+          "result": "NOT_TESTED",
+          "detail": "Listed negatives (second start, crash mid-transition, stale lock/PID, prior-version config) were not induced; doing so without controlled transport and independent exchange oracle is unsafe."
+        }
+      ],
+      "missing_route": "Live testnet lifecycle command/transport instrumentation and independent captured-request/exchange open-orders/fills oracle are unavailable; cannot safely run the declared operator transition or listed negative scenarios. Rendered DOM capture also unavailable; only HTTP GET 200 at http://127.0.0.1:8031/live-copy."
+    },
+    {
+      "id": "F25-P08",
+      "result": "NOT_TESTED",
+      "register_ref": "main:certification/certification_matrix.json",
+      "engine_commit": "3a03df4e347d472b70f40ba2f5a9b340bdc27d38",
+      "checks": [
+        {
+          "name": "execution proof",
+          "result": "NOT_TESTED",
+          "detail": "Not executed: declared process/PID/lock, engine endpoint, lifecycle transition, and exchange non-effect proof cannot be established without the missing live testnet lifecycle route."
+        },
+        {
+          "name": "independent oracle",
+          "result": "NOT_TESTED",
+          "detail": "Independent OS process/port and exchange open-orders/fills transition-window oracle not available as a captured auditable route."
+        },
+        {
+          "name": "negative tests",
+          "result": "NOT_TESTED",
+          "detail": "Listed negatives (second start, crash mid-transition, stale lock/PID, prior-version config) were not induced; doing so without controlled transport and independent exchange oracle is unsafe."
+        }
+      ],
+      "missing_route": "Live testnet lifecycle command/transport instrumentation and independent captured-request/exchange open-orders/fills oracle are unavailable; cannot safely run the declared operator transition or listed negative scenarios. Rendered DOM capture also unavailable; only HTTP GET 200 at http://127.0.0.1:8031/live-copy."
+    },
+    {
+      "id": "F25-P09",
+      "result": "NOT_TESTED",
+      "register_ref": "main:certification/certification_matrix.json",
+      "engine_commit": "3a03df4e347d472b70f40ba2f5a9b340bdc27d38",
+      "checks": [
+        {
+          "name": "execution proof",
+          "result": "NOT_TESTED",
+          "detail": "Not executed: declared process/PID/lock, engine endpoint, lifecycle transition, and exchange non-effect proof cannot be established without the missing live testnet lifecycle route."
+        },
+        {
+          "name": "independent oracle",
+          "result": "NOT_TESTED",
+          "detail": "Independent OS process/port and exchange open-orders/fills transition-window oracle not available as a captured auditable route."
+        },
+        {
+          "name": "negative tests",
+          "result": "NOT_TESTED",
+          "detail": "Listed negatives (second start, crash mid-transition, stale lock/PID, prior-version config) were not induced; doing so without controlled transport and independent exchange oracle is unsafe."
+        }
+      ],
+      "missing_route": "Live testnet lifecycle command/transport instrumentation and independent captured-request/exchange open-orders/fills oracle are unavailable; cannot safely run the declared operator transition or listed negative scenarios. Rendered DOM capture also unavailable; only HTTP GET 200 at http://127.0.0.1:8031/live-copy."
+    },
+    {
+      "id": "F25-P10",
+      "result": "NOT_TESTED",
+      "register_ref": "main:certification/certification_matrix.json",
+      "engine_commit": "3a03df4e347d472b70f40ba2f5a9b340bdc27d38",
+      "checks": [
+        {
+          "name": "execution proof",
+          "result": "NOT_TESTED",
+          "detail": "Not executed: declared process/PID/lock, engine endpoint, lifecycle transition, and exchange non-effect proof cannot be established without the missing live testnet lifecycle route."
+        },
+        {
+          "name": "independent oracle",
+          "result": "NOT_TESTED",
+          "detail": "Independent OS process/port and exchange open-orders/fills transition-window oracle not available as a captured auditable route."
+        },
+        {
+          "name": "negative tests",
+          "result": "NOT_TESTED",
+          "detail": "Listed negatives (second start, crash mid-transition, stale lock/PID, prior-version config) were not induced; doing so without controlled transport and independent exchange oracle is unsafe."
+        }
+      ],
+      "missing_route": "Live testnet lifecycle command/transport instrumentation and independent captured-request/exchange open-orders/fills oracle are unavailable; cannot safely run the declared operator transition or listed negative scenarios. Rendered DOM capture also unavailable; only HTTP GET 200 at http://127.0.0.1:8031/live-copy."
+    },
+    {
+      "id": "F25-X01",
+      "result": "NOT_TESTED",
+      "register_ref": "main:certification/certification_matrix.json",
+      "engine_commit": "3a03df4e347d472b70f40ba2f5a9b340bdc27d38",
+      "checks": [
+        {
+          "name": "execution proof",
+          "result": "NOT_TESTED",
+          "detail": "Not executed: declared process/PID/lock, engine endpoint, lifecycle transition, and exchange non-effect proof cannot be established without the missing live testnet lifecycle route."
+        },
+        {
+          "name": "independent oracle",
+          "result": "NOT_TESTED",
+          "detail": "Independent OS process/port and exchange open-orders/fills transition-window oracle not available as a captured auditable route."
+        },
+        {
+          "name": "negative tests",
+          "result": "NOT_TESTED",
+          "detail": "Listed negatives (second start, crash mid-transition, stale lock/PID, prior-version config) were not induced; doing so without controlled transport and independent exchange oracle is unsafe."
+        }
+      ],
+      "missing_route": "Live testnet lifecycle command/transport instrumentation and independent captured-request/exchange open-orders/fills oracle are unavailable; cannot safely run the declared operator transition or listed negative scenarios. Rendered DOM capture also unavailable; only HTTP GET 200 at http://127.0.0.1:8031/live-copy."
+    }
+  ]
+}
