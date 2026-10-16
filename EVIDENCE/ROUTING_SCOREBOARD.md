@@ -64,9 +64,30 @@ signal; fix the task shape, not the concurrency).
 
 **LESSON (false green):** "N cards are running and the lane looks healthy" is NOT proof of N-way parallelism. Check the PROVIDER's own documented parallelism (logins / accounts / concurrency knob) and its in-flight vs lock counts. A queue that drains slowly looks identical to concurrency until you read the provider's internals.
 
+## Lane-specific blockers (measured, not assumed)
+
+| class | blocker | evidence |
+|---|---|---|
+| **UI rows** | need **rendered-DOM capture + an independent oracle**; workers have **no browser route**, and must not drive the operator's Edge. HTTP probes cannot produce a DOM proof — workers correctly record `NOT_TESTED` rather than substitute. | 4 cards (UILCC5/6, UISSM/UISSM2) all completed with per-row `"HTML source text alone is not render proof"`. This is a CAPABILITY gap: the fix is a worker browser route or re-scoping rows to HTTP-verifiable ones. |
+| **NETWORK / SETTLE / ORDER / ENGINE-FAIL rows** | need the live **testnet transport runtime + captured request/packet oracle**; absent on this machine. | Every worker blocked with the missing runtime NAMED; none mocked. On Codex's list per controller. |
+| ~~`/api/live-audit-summary` broken~~ | **CORRECTED**: it is NOT broken. Measured `HTTP 200`, 5,847,300 bytes, 138,730 rows, **3.9–6.8s** by two independent cards. Slow, but it responds. | Do not re-assert "endpoint down" — my original claim came from a single observation and was wrong. |
+
+**LESSON:** do not call a surface "broken" off one timeout. Measure it directly (status + bytes + elapsed) before carding a fix — a slow endpoint and a dead endpoint need different work.
+
 ## Standing routing rules (derived from the above)
 
-1. **Route by COMPLETE evidence, not by capability claims.** A lane with one proven completion outranks a lane with nine impressive-looking running cards.
+0. **FILL EVERY LANE, EVERY CYCLE.** An idle lane with a card available to run is a routing failure. Enumerate
+   the lanes, set each one a target, and keep them fed from the runnable pool: deepseek-proxy 3 (its 3-login
+   ceiling), luna 4 (paid cap), nous ~2-3, gemini as much as it holds. Do not leave a lane dark because the
+   board "looks busy" elsewhere. (Learned: sitting at 2 running while four lanes were idle drew a well-earned
+   correction.)
+1. **A CARD'S SCOPE MUST BE STATED, NEVER INFERABLE.** If a card covers N rows, ENUMERATE the ids in the body.
+   A worker given "18 rows" with no list will (correctly) refuse, block, and — after two identical blocks —
+   land in TRIAGE, where it loops. Triage is a terminal state for repeat-offenders, not a queue: it drains
+   only when the underlying cause is fixed. (Learned: two cards looped purely because the coordinator omitted
+   ids, and the count was wrong — 17, not 18.)
+Token budget: state the ids; a shorter card is not cheaper if it loops.
+2. **Route by COMPLETE evidence, not by capability claims.** A lane with one proven completion outranks a lane with nine impressive-looking running cards.
 2. **Luna (subscription) and Gemini (free) are the primary lanes.** Put the highest-value and longest tasks there.
 3. **Free DeepSeek is bounded** (a few cards) — it doubles as the harness's own inference path; flooding it risks the orchestration loop.
 4. **nous cannot hold a long card.** Use it only for short fill or when nothing better is available; a 60-row card on nous is a guaranteed zero.
