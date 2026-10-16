@@ -1,0 +1,18 @@
+{
+  "schema": "b3_ui_lcc_evidence_v1",
+  "register_ref": "main:certification/certification_matrix.json",
+  "engine_commit": "31e599c5f58de686c9e74357079a85f03e23213a",
+  "tested_commit": "31e599c5f58de686c9e74357079a85f03e23213a",
+  "surface": "http://127.0.0.1:8031/live-copy",
+  "surface_probe": {"http_status": 200, "html_bytes": 87350},
+  "audit_summary_probe": {"http_status": 200, "response_bytes": 5855324, "rows": 138730, "elapsed_seconds": 3.92},
+  "api_status_probe": {"http_status": 404, "note": "The declared example endpoint was not available at this path; no substitution or inference made."},
+  "rows": [
+    {"id":"UI-LCC-WTBL-09","result":"NOT_TESTED","feature":"Live Copy Wallets column: Controls copy model select","execution_proof":"NOT_PROVEN: No browser DOM capture or matching rendered cell value was obtained; HTML source text alone is not render proof.","independent_oracle":"NOT_PROVEN: no independent per-wallet engine/exchange oracle was read.","negative_test":"NOT_TESTED: no controlled unavailable/stale/API-error condition was exercised.","checks":{"served_ui":"HTTP 200 confirmed","declared_execution_proof":"NOT_MET","independent_oracle":"NOT_MET","negative":"NOT_MET"}},
+    {"id":"UI-LCC-WTBL-10","result":"NOT_TESTED","feature":"Live Copy Wallets column: Controls F/N/B inputs","execution_proof":"NOT_PROVEN: No browser DOM capture or rendered F/N/B values tied to per-wallet engine state.","independent_oracle":"NOT_PROVEN: no independent per-wallet engine/exchange oracle was read.","negative_test":"NOT_TESTED: no unavailable/stale/API-error condition exercised.","checks":{"served_ui":"HTTP 200 confirmed","declared_execution_proof":"NOT_MET","independent_oracle":"NOT_MET","negative":"NOT_MET"}},
+    {"id":"UI-LCC-WTBL-11","result":"NOT_TESTED","feature":"Live Copy Wallets column: Save","execution_proof":"NOT_PROVEN: no UI Save action, persisted live_config.json readback, or engine-application proof performed.","independent_oracle":"NOT_PROVEN: no independent engine/exchange oracle read.","negative_test":"NOT_TESTED: no negative condition exercised.","checks":{"served_ui":"HTTP 200 confirmed","declared_execution_proof":"NOT_MET","independent_oracle":"NOT_MET","negative":"NOT_MET"}},
+    {"id":"UI-LCC-WTBL-12","result":"NOT_TESTED","feature":"Live Copy Wallets column: CLO","execution_proof":"NOT_PROVEN: no browser DOM observation or associated control state transition proof.","independent_oracle":"NOT_PROVEN: no independent per-wallet engine/exchange oracle read.","negative_test":"NOT_TESTED: no negative condition exercised.","checks":{"served_ui":"HTTP 200 confirmed","declared_execution_proof":"NOT_MET","independent_oracle":"NOT_MET","negative":"NOT_MET"}},
+    {"id":"UI-LCC-WTBL-13","result":"NOT_TESTED","feature":"Live Copy Wallets column: OFF","execution_proof":"NOT_PROVEN: no browser DOM observation or OFF-state transition/persistence proof.","independent_oracle":"NOT_PROVEN: no independent per-wallet engine/exchange oracle read.","negative_test":"NOT_TESTED: no negative condition exercised.","checks":{"served_ui":"HTTP 200 confirmed","declared_execution_proof":"NOT_MET","independent_oracle":"NOT_MET","negative":"NOT_MET"}},
+    {"id":"UI-LCC-WTBL-14","result":"NOT_TESTED","feature":"Live Copy Wallets column: Archive","execution_proof":"NOT_PROVEN: no browser DOM observation or archive action/persisted-state proof; archive was not triggered.","independent_oracle":"NOT_PROVEN: no independent per-wallet engine/exchange oracle read.","negative_test":"NOT_TESTED: no negative condition exercised.","checks":{"served_ui":"HTTP 200 confirmed","declared_execution_proof":"NOT_MET","independent_oracle":"NOT_MET","negative":"NOT_MET"}}
+  ]
+}
