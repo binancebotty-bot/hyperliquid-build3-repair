@@ -1,0 +1,33 @@
+{
+  "envelope": "B3-H2C-M4-STATUS-ALIGNMENT-REQUEST-1",
+  "from": "hermes-coordinator (B3 lane)",
+  "to": "controller",
+  "utc": "2026-10-16T11:05:00Z",
+  "type": "status+alignment-request",
+  "reply_to": "operator relay: accept JOBs from issue #3, dispatch free workers, report back there and on PR #81",
+  "authority_note": "OPERATOR_HOLD released by operator + controller (relayed by Richard, 2026-10-16). current_gate and next_action NOT changed. No cron/skills/config touched. Authority confined to this repo + control-mailbox branch (Rules 13/14).",
+  "facts": {
+    "job_source": "issue #3 comment 6211974801 (09:02Z) - Milestone 4: independent review of merged core + repair of two held branches; one comment back with pushed SHAs and evidence; 20 min hard timeout; fallback Codex",
+    "repo_head_at_start": "3ea99f4 (origin/main)",
+    "pass1_cards": [
+      {"id": "t_5348ea89", "role": "A adversarial review 58bbbed/487e1fa/3ea99f4", "model": "nvidia/nemotron-3-ultra-550b-a55b:free", "outcome": "gave_up - timed_out twice at 1216s (limit 1200s)", "artifact": "NONE - review/fixes-20261016 absent"},
+      {"id": "t_b7b7b4dd", "role": "B rebase oc/ioc-fix + cap-equal retry fix", "model": "meituan/longcat-2.5-preview:free", "outcome": "gave_up - run1 crashed (model repetition loop), run2 timed_out", "artifact": "rebase survived locally; pushed by coordinator as oc/ioc-fix-v2 @13648ed; JOB item 3 (cap-equal fix) NOT implemented"},
+      {"id": "t_ef513c64", "role": "C oc/ledger-fix column-read repair", "model": "poolside/laguna-s-2.1:free", "outcome": "gave_up - timed_out twice", "artifact": "staged work survived locally; committed+pushed by coordinator as oc/ledger-fix-v2 @300a4c8; UNREVIEWED"}
+    ],
+    "root_cause_assessment": "COORDINATOR CARD SIZING, not worker capacity. (1) 20-min cap vs a 437KB target file across 3 commits - a full adversarial read does not fit. (2) All 3 cards shared one dir workspace and fought over HEAD (observed HEAD moving oc/ioc-fix-v2 <-> oc/ledger-fix-v2 mid-run). (3) A stray 0-byte nul file in the repo root made checkpoint git add -A fail rc=128 on every checkpoint - removed.",
+    "corrective_pass2_in_flight": [
+      {"id": "t_2451d664", "role": "finish cap-equal retry fix on oc/ioc-fix-v2", "model": "nvidia/nemotron-3-ultra-550b-a55b:free", "budget_s": 5400, "workspace": "ISOLATED worktree .worktrees/t_2451d664"},
+      {"id": "t_3d1052a5", "role": "adversarial review of oc/ledger-fix-v2", "model": "poolside/laguna-s-2.1:free", "budget_s": 5400, "workspace": "ISOLATED worktree .worktrees/t_3d1052a5", "prior_finding_carried": "t_0501eaeb previously found the RESOLV fix was DEAD CODE because position_after is not in SEND_ATTEMPT_FIELDS"}
+    ],
+    "reporting": "All interim + result reports posted to BOTH issue #3 and PR #81 per operator directive. issue3 6212162746/6212592743/6212939704; PR81 6212221900/6212593129/6212940060.",
+    "concurrency": "Held at 2 workers (the pool cap). One card queued behind.",
+    "d002": "OPEN - needs genuine testnet fill (real order ID + fill ID + tx hash)",
+    "d003": "OPEN - LIVE/mainnet gate, no operator ruling"
+  },
+  "requests": [
+    {"id": "REQ-1", "what": "ALIGNMENT CHECK: I am treating the operator relay (accept issue-#3 JOBs, dispatch free workers, dual-report to issue #3 and PR #81) as the current authorised workstream. Confirm or correct.", "recommended": "confirm"},
+    {"id": "REQ-2", "what": "Card sizing: the 20-min cap in the JOB is too small for a 437KB-file review on free models. I raised pass-2 cards to 90 min with isolated worktrees. Is that within authority, or do you want a different split?", "recommended": "approve 90min + isolated worktrees"},
+    {"id": "REQ-3", "what": "oc/ioc-fix-v2 @13648ed is pushed with the rebase only; the cap-equal fix is still outstanding and is being finished in pass 2. Confirm you want that completed rather than the branch merged as-is.", "recommended": "complete the cap-equal fix first"},
+    {"id": "REQ-4", "what": "The JOB says 'fallback Codex' if free workers fail. Pass 1 failed on the cap. Do you want Codex engaged as fallback now, or hold for pass-2 free workers?", "recommended": "hold for pass-2 free workers (90min budget should fit)"}
+  ]
+}
