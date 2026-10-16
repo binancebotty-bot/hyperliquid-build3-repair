@@ -9399,10 +9399,41 @@ class LiveCopyCore:
             if "status_of" in rec:
                 _r = rec.pop("status_of")
                 rec["status"] = str(_r[1]) if isinstance(_r, tuple) and len(_r) > 1 else ""
+            line = json.dumps(rec, separators=(",", ":")) + "\n"
+            # Speed: every worker and the main cycle share this one lock, and open()+close() of a growing file per record (rotation
+            # stat first) held it long enough that ~40 threads queued here (stack samples 16 Oct: ~all send threads in this lock).
+            # One append handle is kept open; it is reopened when the path changes, the file is rotated away, or it passes the size cap.
             with self.__dict__.setdefault("_fill_trace_lock", threading.Lock()):
-                rotate_trace_file(path, TRACE_MAX_BYTES_FILL)
-                with open(path, "a", encoding="utf-8") as fh:
-                    fh.write(json.dumps(rec, separators=(",", ":")) + "\n")
+                st = self.__dict__.get("_fill_trace_fh")
+                now = time.monotonic()
+                if st is not None and (st["path"] != str(path) or now - st["checked"] > 2.0):
+                    try:  # still the same file on disk (not rotated or removed by someone else)?
+                        same = os.path.exists(path) and os.path.samestat(os.fstat(st["fh"].fileno()), os.stat(path))
+                    except OSError:
+                        same = False
+                    if not same or st["path"] != str(path):
+                        try:
+                            st["fh"].close()
+                        except Exception:
+                            pass
+                        st = None
+                    else:
+                        st["checked"] = now
+                if st is not None and st["size"] > TRACE_MAX_BYTES_FILL:
+                    try:
+                        st["fh"].close()
+                    except Exception:
+                        pass
+                    st = None
+                    rotate_trace_file(path, TRACE_MAX_BYTES_FILL)
+                if st is None:
+                    rotate_trace_file(path, TRACE_MAX_BYTES_FILL)
+                    fh = open(path, "a", encoding="utf-8")
+                    st = {"fh": fh, "path": str(path), "checked": now, "size": os.fstat(fh.fileno()).st_size}
+                    self.__dict__["_fill_trace_fh"] = st
+                st["fh"].write(line)
+                st["fh"].flush()
+                st["size"] += len(line.encode("utf-8"))
         except Exception as exc:
             log_error("fill_trace", exc)
 
