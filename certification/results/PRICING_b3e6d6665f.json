@@ -1,0 +1,20 @@
+{
+  "schema": "b3_certification_result_v1",
+  "area": "PRICING",
+  "tested_commit": "b3e6d6665116510f8a9ceaa5254b060bf4d73998",
+  "register_ref": "main:certification/certification_matrix.json",
+  "overall_result": "NOT_TESTED",
+  "runtime_missing": "Testnet transport runtime and captured independent price oracle (l2Book/allMids snapshot plus exchange fill record)",
+  "rows": [
+    {"id": "PRICE-001", "result": "NOT_TESTED", "checks": {"execution_proof": "NOT_TESTED", "independent_oracle": "NOT_TESTED", "negative_tests": "NOT_TESTED"}},
+    {"id": "PRICE-002", "result": "NOT_TESTED", "checks": {"execution_proof": "NOT_TESTED", "independent_oracle": "NOT_TESTED", "negative_tests": "NOT_TESTED"}},
+    {"id": "PRICE-003", "result": "NOT_TESTED", "checks": {"execution_proof": "NOT_TESTED", "independent_oracle": "NOT_TESTED", "negative_tests": "NOT_TESTED"}},
+    {"id": "PRICE-004", "result": "NOT_TESTED", "checks": {"execution_proof": "NOT_TESTED", "independent_oracle": "NOT_TESTED", "negative_tests": "NOT_TESTED"}},
+    {"id": "PRICE-005", "result": "NOT_TESTED", "checks": {"execution_proof": "NOT_TESTED", "independent_oracle": "NOT_TESTED", "negative_tests": "NOT_TESTED"}},
+    {"id": "PRICE-006", "result": "NOT_TESTED", "checks": {"execution_proof": "NOT_TESTED", "independent_oracle": "NOT_TESTED", "negative_tests": "NOT_TESTED"}},
+    {"id": "PRICE-007", "result": "NOT_TESTED", "checks": {"execution_proof": "NOT_TESTED", "independent_oracle": "NOT_TESTED", "negative_tests": "NOT_TESTED"}},
+    {"id": "PRICE-008", "result": "NOT_TESTED", "checks": {"execution_proof": "NOT_TESTED", "independent_oracle": "NOT_TESTED", "negative_tests": "NOT_TESTED"}}
+  ],
+  "progress_ref": "certification/results/PROGRESS_PRICING.jsonl",
+  "notes": "No PASS is claimed. Per-row progress records identify the unavailability boundary; the required live/captured oracle was not exercised. Register status source is main; working-tree matrix was not used."
+}
