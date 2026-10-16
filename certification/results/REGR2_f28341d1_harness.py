@@ -16,7 +16,7 @@ def main():
     assert set(records) == EXPECTED, ("register rows missing", EXPECTED - set(records))
     artifact = json.loads(ARTIFACT.read_text(encoding="utf-8"))
     assert artifact["register_of_record"].startswith("main:certification/certification_matrix.json@")
-    assert artifact["engine_commit"] == "f28341d1f02f76060c384844ab6aa439ddee976e"
+    assert artifact["engine_commit"] == "52a16149e370732bb3162d69cb2f9ce4a43509bb"
     rows = {row["id"]: row for row in artifact["rows"]}
     assert set(rows) == EXPECTED, ("artifact rows mismatch", set(rows))
     for row_id, row in rows.items():

@@ -1,18 +1,131 @@
 {
   "schema": "b3-cert-evidence-v1",
   "register_of_record": "main:certification/certification_matrix.json@b142cf88d389e791160f691aac3d936852b99975",
-  "engine_commit": "f28341d1f02f76060c384844ab6aa439ddee976e",
+  "engine_commit": "52a16149e370732bb3162d69cb2f9ce4a43509bb",
   "tested_at_utc": "2026-10-16T21:24:19Z",
   "area": "REGRESSION",
   "method": "Fresh bounded route discovery; no engine or oracle was mocked. The locally present UI route answered HTTP 200 but is not a testnet transport/captured-request or recorded-replay oracle for these rows.",
   "rows": [
-    {"id":"B4-I12","register_result":"NOT_TESTED","applicability":"OPEN_DECISION","open_decisions":["OD-05"],"proof":"NOT_RUN: no testnet/replay execution of lifecycle trigger","oracle":"NOT_RUN: no exchange truth or independently computed recorded-replay output","negative_test":"NOT_RUN: restart at lifecycle points not exercised","check_results":{"proof":"NOT_TESTED","oracle":"NOT_TESTED","negative":"NOT_TESTED"},"missing_routes":["Build-4 testnet transport or recorded-replay runner and its independent expected-output oracle"]},
-    {"id":"B4-I13","register_result":"NOT_TESTED","applicability":"OPEN_DECISION","open_decisions":["OD-09"],"proof":"NOT_RUN: no testnet/replay sizing-trigger execution","oracle":"NOT_RUN: no exchange truth or independently computed recorded-replay output","negative_test":"NOT_RUN: restart at lifecycle points not exercised","check_results":{"proof":"NOT_TESTED","oracle":"NOT_TESTED","negative":"NOT_TESTED"},"missing_routes":["Build-4 testnet transport or recorded-replay runner and its independent expected-output oracle"]},
-    {"id":"B4-I20","register_result":"NOT_TESTED","applicability":"OPEN_DECISION","open_decisions":["OD-10"],"proof":"NOT_RUN: no testnet/replay adverse-entry trigger execution","oracle":"NOT_RUN: no exchange fill/reference-price evidence or independent recorded-replay output","negative_test":"NOT_RUN: restart at lifecycle points not exercised","check_results":{"proof":"NOT_TESTED","oracle":"NOT_TESTED","negative":"NOT_TESTED"},"missing_routes":["Build-4 testnet transport or recorded-replay runner; captured order/fill request and independent price-bound oracle"]},
-    {"id":"B4-I21","register_result":"NOT_TESTED","applicability":"OPEN_DECISION","open_decisions":["OD-10"],"proof":"NOT_RUN: no testnet/replay PRICE_WAIT trigger execution","oracle":"NOT_RUN: no exchange truth or independently computed recorded-replay output","negative_test":"NOT_RUN: restart at lifecycle points not exercised","check_results":{"proof":"NOT_TESTED","oracle":"NOT_TESTED","negative":"NOT_TESTED"},"missing_routes":["Build-4 testnet transport or recorded-replay runner; captured event/order requests and independent event-preservation oracle"]},
-    {"id":"B4-I26","register_result":"NOT_TESTED","applicability":"OPEN_DECISION","open_decisions":["OD-11"],"proof":"NOT_RUN: no testnet/replay forced independent-oracle disagreement execution","oracle":"NOT_RUN: no independent oracle process/output or exchange truth available to compare with engine decision","negative_test":"NOT_RUN: restart at lifecycle points not exercised","check_results":{"proof":"NOT_TESTED","oracle":"NOT_TESTED","negative":"NOT_TESTED"},"missing_routes":["Build-4 testnet transport or recorded-replay runner plus an independent oracle capable of producing a deliberate disagreement"]},
-    {"id":"F-EXC-017","register_result":"NOT_TESTED","applicability":"OPEN_DECISION","open_decisions":["OD-11"],"proof":"NOT_RUN: no testnet/replay independent_oracle_disagrees trigger execution","oracle":"NOT_RUN: no independent target-vs-exchange calculation and captured send/halt evidence","negative_test":"NOT_RUN: restart at lifecycle points not exercised","check_results":{"proof":"NOT_TESTED","oracle":"NOT_TESTED","negative":"NOT_TESTED"},"missing_routes":["Build-4 testnet transport or recorded-replay runner; independent target-vs-exchange oracle and captured send/halt requests"]}
+    {
+      "id": "B4-I12",
+      "register_result": "NOT_TESTED",
+      "applicability": "OPEN_DECISION",
+      "open_decisions": [
+        "OD-05"
+      ],
+      "proof": "NOT_RUN: no testnet/replay execution of lifecycle trigger",
+      "oracle": "NOT_RUN: no exchange truth or independently computed recorded-replay output",
+      "negative_test": "NOT_RUN: restart at lifecycle points not exercised",
+      "check_results": {
+        "proof": "NOT_TESTED",
+        "oracle": "NOT_TESTED",
+        "negative": "NOT_TESTED"
+      },
+      "missing_routes": [
+        "Build-4 testnet transport or recorded-replay runner and its independent expected-output oracle"
+      ]
+    },
+    {
+      "id": "B4-I13",
+      "register_result": "NOT_TESTED",
+      "applicability": "OPEN_DECISION",
+      "open_decisions": [
+        "OD-09"
+      ],
+      "proof": "NOT_RUN: no testnet/replay sizing-trigger execution",
+      "oracle": "NOT_RUN: no exchange truth or independently computed recorded-replay output",
+      "negative_test": "NOT_RUN: restart at lifecycle points not exercised",
+      "check_results": {
+        "proof": "NOT_TESTED",
+        "oracle": "NOT_TESTED",
+        "negative": "NOT_TESTED"
+      },
+      "missing_routes": [
+        "Build-4 testnet transport or recorded-replay runner and its independent expected-output oracle"
+      ]
+    },
+    {
+      "id": "B4-I20",
+      "register_result": "NOT_TESTED",
+      "applicability": "OPEN_DECISION",
+      "open_decisions": [
+        "OD-10"
+      ],
+      "proof": "NOT_RUN: no testnet/replay adverse-entry trigger execution",
+      "oracle": "NOT_RUN: no exchange fill/reference-price evidence or independent recorded-replay output",
+      "negative_test": "NOT_RUN: restart at lifecycle points not exercised",
+      "check_results": {
+        "proof": "NOT_TESTED",
+        "oracle": "NOT_TESTED",
+        "negative": "NOT_TESTED"
+      },
+      "missing_routes": [
+        "Build-4 testnet transport or recorded-replay runner; captured order/fill request and independent price-bound oracle"
+      ]
+    },
+    {
+      "id": "B4-I21",
+      "register_result": "NOT_TESTED",
+      "applicability": "OPEN_DECISION",
+      "open_decisions": [
+        "OD-10"
+      ],
+      "proof": "NOT_RUN: no testnet/replay PRICE_WAIT trigger execution",
+      "oracle": "NOT_RUN: no exchange truth or independently computed recorded-replay output",
+      "negative_test": "NOT_RUN: restart at lifecycle points not exercised",
+      "check_results": {
+        "proof": "NOT_TESTED",
+        "oracle": "NOT_TESTED",
+        "negative": "NOT_TESTED"
+      },
+      "missing_routes": [
+        "Build-4 testnet transport or recorded-replay runner; captured event/order requests and independent event-preservation oracle"
+      ]
+    },
+    {
+      "id": "B4-I26",
+      "register_result": "NOT_TESTED",
+      "applicability": "OPEN_DECISION",
+      "open_decisions": [
+        "OD-11"
+      ],
+      "proof": "NOT_RUN: no testnet/replay forced independent-oracle disagreement execution",
+      "oracle": "NOT_RUN: no independent oracle process/output or exchange truth available to compare with engine decision",
+      "negative_test": "NOT_RUN: restart at lifecycle points not exercised",
+      "check_results": {
+        "proof": "NOT_TESTED",
+        "oracle": "NOT_TESTED",
+        "negative": "NOT_TESTED"
+      },
+      "missing_routes": [
+        "Build-4 testnet transport or recorded-replay runner plus an independent oracle capable of producing a deliberate disagreement"
+      ]
+    },
+    {
+      "id": "F-EXC-017",
+      "register_result": "NOT_TESTED",
+      "applicability": "OPEN_DECISION",
+      "open_decisions": [
+        "OD-11"
+      ],
+      "proof": "NOT_RUN: no testnet/replay independent_oracle_disagrees trigger execution",
+      "oracle": "NOT_RUN: no independent target-vs-exchange calculation and captured send/halt evidence",
+      "negative_test": "NOT_RUN: restart at lifecycle points not exercised",
+      "check_results": {
+        "proof": "NOT_TESTED",
+        "oracle": "NOT_TESTED",
+        "negative": "NOT_TESTED"
+      },
+      "missing_routes": [
+        "Build-4 testnet transport or recorded-replay runner; independent target-vs-exchange oracle and captured send/halt requests"
+      ]
+    }
   ],
-  "route_probe": {"surface":"http://127.0.0.1:8031/","outcome":"HTTP 200 text/html; charset=utf-8","interpretation":"UI availability only; not evidence for the six declared testnet/replay proof routes"},
-  "overall":"NOT_TESTED"
+  "route_probe": {
+    "surface": "http://127.0.0.1:8031/",
+    "outcome": "HTTP 200 text/html; charset=utf-8",
+    "interpretation": "UI availability only; not evidence for the six declared testnet/replay proof routes"
+  },
+  "overall": "NOT_TESTED",
+  "engine_blob_sha_main": "1ba069f2d74c5f4922cb0bdd173b7eadc17d3fd9"
 }
