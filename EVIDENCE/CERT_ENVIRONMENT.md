@@ -30,6 +30,29 @@ curl -s -m 6 -o /dev/null -w 'http=%{http_code}\n' http://127.0.0.1:8031/live-co
 netstat -ano | grep -E '127.0.0.1:8031\s.*LISTENING'   # take the trailing PID
 ```
 
+## Browser/DOM probes (UI rows) — the playwright environment
+
+UI rows need a **rendered DOM**, not just an HTTP 200. The proven route (used by `36d1c52`, which
+produced real FAIL/PARTIAL verdicts) is headless Chromium via playwright. Three environment facts,
+each verified 2026-10-17 — get these wrong and the probe fails while the product is fine:
+
+1. **Interpreter:** playwright is installed ONLY under Python 3.11 —
+   `C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe`.
+   The default `python` (3.14) raises `ModuleNotFoundError: No module named 'playwright'`.
+2. **Browsers path — this is the one that bites.** The worker environment sets
+   `PLAYWRIGHT_BROWSERS_PATH=C:/Users/wigmore/.hermes/tools`, which has `chromium-1208` but **not**
+   `chromium_headless_shell-1208`, so launch dies with
+   `Executable doesn't exist at C:\Users\wigmore\.hermes\tools\chromium_headless_shell-1208\...`.
+   **Override it:**
+   `export PLAYWRIGHT_BROWSERS_PATH=C:/Users/wigmore/AppData/Local/ms-playwright`
+   A/B tested: default bad path = FAILED; override = **LAUNCH OK, Chromium 145.0.7632.6**.
+3. **Repo path:** `C:/Users/wigmore/hyperliquid-build3-repair`. There is **no `projects` segment** —
+   a worker guessed `C:/Users/wigmore/projects/hyperliquid-build3-repair`, found nothing, and blocked.
+
+**A tool failure is not a product gap.** If the probe cannot run because of the environment above,
+fix the environment; do NOT record the row `NOT_TESTED`, which understates the product's real status
+and is as misleading as a false PASS.
+
 ## Rules that follow from this
 
 1. **A card that needs a live surface must name the exact URL** from this table. "The real UI" is not a spec.
@@ -43,3 +66,4 @@ netstat -ano | grep -E '127.0.0.1:8031\s.*LISTENING'   # take the trailing PID
 |---|---|---|
 | 2026-10-16 | UI cert surface established as **:8031/live-copy** | operator: "that was the one claude was using"; probe `http=200`, PID 8668, 2 ESTABLISHED |
 | 2026-10-16 | :8014 recorded as unrelated (operator) | operator: "the 8014 user interface is a process that is not to do with the live copy engine" |
+| 2026-10-17 | playwright/py3.11 route + `PLAYWRIGHT_BROWSERS_PATH` override + exact repo path recorded | A/B launch test: bad `.hermes/tools` path FAILED, `ms-playwright` LAUNCH OK 145.0.7632.6 |
