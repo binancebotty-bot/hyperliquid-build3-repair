@@ -1694,11 +1694,11 @@
     "unknown asset"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "Core has four exchange.order() call sites (L2726, L2843, L3350, L3379) behind one gate (L4036). ARCH requires one physical order site; the repair must reconcile this. Code-read, unconfirmed by run. | REFUSED: ORDER_fa9d9f55ff.json used source-substring check + fake-fill PASS. ORDER_CORRECTION harness broken (9/24). Not consolidated."
+   "result": "FAIL",
+   "evidence_ref": "certification/results/ORDER_CORRECTION_fefc2b04.json",
+   "tested_commit": "fefc2b04261c734bb32c767d2cc4a91095e65843",
+   "tested_at_utc": "2026-10-14T13:02:08.351679+00:00",
+   "notes": "Core has four exchange.order() call sites (L2726, L2843, L3350, L3379) behind one gate (L4036). ARCH requires one physical order site; the repair must reconcile this. Code-read, unconfirmed by run. | REFUSED: ORDER_fa9d9f55ff.json used source-substring check + fake-fill PASS. ORDER_CORRECTION harness broken (9/24). Not consolidated. | Consolidate #3 (t_dc69fe0c): folded from committed ORDER_CORRECTION_fefc2b04.json at its OWN verdict. Checks earned by the engine real runtime gate vs an IN-PROCESS exchange double; the row independent oracle (exchange order status/userFills) is NOT_ESTABLISHED because the follower wallet does not exist on testnet (D-002). Own verdict=FAIL (3/5 checks)."
   },
   {
    "id": "ORD-002",
@@ -1720,11 +1720,11 @@
     "unknown asset"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "REFUSED: ORDER_fa9d9f55ff.json used source-substring check + fake-fill PASS. ORDER_CORRECTION harness broken (9/24). Not consolidated."
+   "result": "FAIL",
+   "evidence_ref": "certification/results/ORDER_CORRECTION_fefc2b04.json",
+   "tested_commit": "fefc2b04261c734bb32c767d2cc4a91095e65843",
+   "tested_at_utc": "2026-10-14T13:02:08.351679+00:00",
+   "notes": "REFUSED: ORDER_fa9d9f55ff.json used source-substring check + fake-fill PASS. ORDER_CORRECTION harness broken (9/24). Not consolidated. | Consolidate #3 (t_dc69fe0c): folded from committed ORDER_CORRECTION_fefc2b04.json at its OWN verdict. Checks earned by the engine real runtime gate vs an IN-PROCESS exchange double; the row independent oracle (exchange order status/userFills) is NOT_ESTABLISHED because the follower wallet does not exist on testnet (D-002). Own verdict=FAIL (1/4 checks)."
   },
   {
    "id": "ORD-003",
@@ -1829,11 +1829,11 @@
     "unknown asset"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "REFUSED: ORDER_fa9d9f55ff.json used source-substring check + fake-fill PASS. ORDER_CORRECTION harness broken (9/24). Not consolidated."
+   "result": "FAIL",
+   "evidence_ref": "certification/results/ORDER_CORRECTION_fefc2b04.json",
+   "tested_commit": "fefc2b04261c734bb32c767d2cc4a91095e65843",
+   "tested_at_utc": "2026-10-14T13:02:08.351679+00:00",
+   "notes": "REFUSED: ORDER_fa9d9f55ff.json used source-substring check + fake-fill PASS. ORDER_CORRECTION harness broken (9/24). Not consolidated. | Consolidate #3 (t_dc69fe0c): folded from committed ORDER_CORRECTION_fefc2b04.json at its OWN verdict. Checks earned by the engine real runtime gate vs an IN-PROCESS exchange double; the row independent oracle (exchange order status/userFills) is NOT_ESTABLISHED because the follower wallet does not exist on testnet (D-002). Own verdict=FAIL (7/8 checks)."
   },
   {
    "id": "ORD-007",
@@ -1882,11 +1882,11 @@
     "unknown asset"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "REFUSED: ORDER_fa9d9f55ff.json used source-substring check + fake-fill PASS. ORDER_CORRECTION harness broken (9/24). Not consolidated."
+   "result": "FAIL",
+   "evidence_ref": "certification/results/ORDER_CORRECTION_fefc2b04.json",
+   "tested_commit": "fefc2b04261c734bb32c767d2cc4a91095e65843",
+   "tested_at_utc": "2026-10-14T13:02:08.351679+00:00",
+   "notes": "REFUSED: ORDER_fa9d9f55ff.json used source-substring check + fake-fill PASS. ORDER_CORRECTION harness broken (9/24). Not consolidated. | Consolidate #3 (t_dc69fe0c): folded from committed ORDER_CORRECTION_fefc2b04.json at its OWN verdict. Checks earned by the engine real runtime gate vs an IN-PROCESS exchange double; the row independent oracle (exchange order status/userFills) is NOT_ESTABLISHED because the follower wallet does not exist on testnet (D-002). Own verdict=FAIL (1/4 checks)."
   },
   {
    "id": "SET-001",
@@ -12012,11 +12012,11 @@
     "restart at each lifecycle point"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "Trigger/failure: UI value lacks AUTHORITATIVE_EXCHANGE tier and freshness."
+   "result": "BLOCKED",
+   "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+   "tested_at_utc": "2026-10-14T09:53:11Z",
+   "notes": "Trigger/failure: UI value lacks AUTHORITATIVE_EXCHANGE tier and freshness. | Consolidate #3 (t_dc69fe0c): REGRESSION_fa9d9f55ff.json marks this row ui-visibility-blocked (1 check passed, 0 failed, pass=false; artifact summary pass=131 fail=0 blocked=7). Copied as BLOCKED: UI-visibility evidence unavailable, NOT a product failure."
   },
   {
    "id": "F-EXC-017",
@@ -12124,11 +12124,11 @@
     "restart at each lifecycle point"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "Trigger/failure: UI presented exchange truth, local ledger, leader signal, stale cache, fallback, and display-only values with equal confidence."
+   "result": "BLOCKED",
+   "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+   "tested_at_utc": "2026-10-14T09:53:11Z",
+   "notes": "Trigger/failure: UI presented exchange truth, local ledger, leader signal, stale cache, fallback, and display-only values with equal confidence. | Consolidate #3 (t_dc69fe0c): REGRESSION_fa9d9f55ff.json marks this row ui-visibility-blocked (1 check passed, 0 failed, pass=false; artifact summary pass=131 fail=0 blocked=7). Copied as BLOCKED: UI-visibility evidence unavailable, NOT a product failure."
   },
   {
    "id": "F-UI-002",
@@ -12146,11 +12146,11 @@
     "restart at each lifecycle point"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "Trigger/failure: Rows with unavailable or stale MTM/exchange source looked verified."
+   "result": "BLOCKED",
+   "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+   "tested_at_utc": "2026-10-14T09:53:11Z",
+   "notes": "Trigger/failure: Rows with unavailable or stale MTM/exchange source looked verified. | Consolidate #3 (t_dc69fe0c): REGRESSION_fa9d9f55ff.json marks this row ui-visibility-blocked (1 check passed, 0 failed, pass=false; artifact summary pass=131 fail=0 blocked=7). Copied as BLOCKED: UI-visibility evidence unavailable, NOT a product failure."
   },
   {
    "id": "F-UI-003",
@@ -12168,11 +12168,11 @@
     "restart at each lifecycle point"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "Trigger/failure: Dashboard reported what the engine believed happened rather than exchange target variance."
+   "result": "BLOCKED",
+   "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+   "tested_at_utc": "2026-10-14T09:53:11Z",
+   "notes": "Trigger/failure: Dashboard reported what the engine believed happened rather than exchange target variance. | Consolidate #3 (t_dc69fe0c): REGRESSION_fa9d9f55ff.json marks this row ui-visibility-blocked (1 check passed, 0 failed, pass=false; artifact summary pass=131 fail=0 blocked=7). Copied as BLOCKED: UI-visibility evidence unavailable, NOT a product failure."
   },
   {
    "id": "F-VERIFY-001",
@@ -13771,11 +13771,11 @@
     "unknown asset"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "Value ($30 Build 4 vs $10 Build 3 MIN_ORDER_NOTIONAL) is OD-09. | REFUSED: ORDER_fa9d9f55ff.json used source-substring check + fake-fill PASS. ORDER_CORRECTION harness broken (9/24). Not consolidated."
+   "result": "FAIL",
+   "evidence_ref": "certification/results/ORDER_CORRECTION_fefc2b04.json",
+   "tested_commit": "fefc2b04261c734bb32c767d2cc4a91095e65843",
+   "tested_at_utc": "2026-10-14T13:02:08.351679+00:00",
+   "notes": "Value ($30 Build 4 vs $10 Build 3 MIN_ORDER_NOTIONAL) is OD-09. | REFUSED: ORDER_fa9d9f55ff.json used source-substring check + fake-fill PASS. ORDER_CORRECTION harness broken (9/24). Not consolidated. | Consolidate #3 (t_dc69fe0c): folded from committed ORDER_CORRECTION_fefc2b04.json at its OWN verdict. Checks earned by the engine real runtime gate vs an IN-PROCESS exchange double; the row independent oracle (exchange order status/userFills) is NOT_ESTABLISHED because the follower wallet does not exist on testnet (D-002). Own verdict=FAIL (1/4 checks)."
   },
   {
    "id": "TN-F06",
@@ -13888,11 +13888,11 @@
     "crash after send before oid persisted"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "Testnet has no XYZ markets; protocol uses k-prefix markets as analogue - XYZ must be verified separately on mainnet."
+   "result": "FAIL",
+   "evidence_ref": "certification/results/NLS_RESIDUAL_2a269ad226.json",
+   "tested_commit": "2a269ad2260270fee844eedc2cc23545abc91dd0",
+   "tested_at_utc": "2026-10-14T13:00:00Z",
+   "notes": "Testnet has no XYZ markets; protocol uses k-prefix markets as analogue - XYZ must be verified separately on mainnet. | Consolidate #3 (t_dc69fe0c): folded from committed NLS_RESIDUAL_2a269ad226.json at its OWN measured result. Own result=FAIL (4/5 checks)."
   },
   {
    "id": "TN-F10",
@@ -13914,11 +13914,11 @@
     "crash after send before oid persisted"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "Consistent with ACK-is-not-settlement and durable in-flight reservations."
+   "result": "FAIL",
+   "evidence_ref": "certification/results/NLS_RESIDUAL_2a269ad226.json",
+   "tested_commit": "2a269ad2260270fee844eedc2cc23545abc91dd0",
+   "tested_at_utc": "2026-10-14T13:00:00Z",
+   "notes": "Consistent with ACK-is-not-settlement and durable in-flight reservations. | Consolidate #3 (t_dc69fe0c): folded from committed NLS_RESIDUAL_2a269ad226.json at its OWN measured result. Own result=FAIL (3/4 checks)."
   },
   {
    "id": "TN-F11",
@@ -13939,11 +13939,11 @@
     "crash after send before oid persisted"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": ""
+   "result": "FAIL",
+   "evidence_ref": "certification/results/NLS_RESIDUAL_2a269ad226.json",
+   "tested_commit": "2a269ad2260270fee844eedc2cc23545abc91dd0",
+   "tested_at_utc": "2026-10-14T13:00:00Z",
+   "notes": "Consolidate #3 (t_dc69fe0c): folded from committed NLS_RESIDUAL_2a269ad226.json at its OWN measured result. Own result=FAIL (2/4 checks)."
   },
   {
    "id": "TN-F12",
@@ -13964,11 +13964,11 @@
     "crash after send before oid persisted"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "Equivalent to PRODUCT_SEMANTICS B4 (divergence surfaced for adjudication)."
+   "result": "FAIL",
+   "evidence_ref": "certification/results/NLS_RESIDUAL_2a269ad226.json",
+   "tested_commit": "2a269ad2260270fee844eedc2cc23545abc91dd0",
+   "tested_at_utc": "2026-10-14T13:00:00Z",
+   "notes": "Equivalent to PRODUCT_SEMANTICS B4 (divergence surfaced for adjudication). | Consolidate #3 (t_dc69fe0c): folded from committed NLS_RESIDUAL_2a269ad226.json at its OWN measured result. Own result=FAIL (3/3 checks)."
   },
   {
    "id": "TN-F13",
@@ -14124,11 +14124,11 @@
     "crash after send before oid persisted"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "Earlier builds deduped on (time, px, sz, side) without fill id."
+   "result": "PASS",
+   "evidence_ref": "certification/results/NLS_RESIDUAL_2a269ad226.json",
+   "tested_commit": "2a269ad2260270fee844eedc2cc23545abc91dd0",
+   "tested_at_utc": "2026-10-14T13:00:00Z",
+   "notes": "Earlier builds deduped on (time, px, sz, side) without fill id. | Consolidate #3 (t_dc69fe0c): folded from committed NLS_RESIDUAL_2a269ad226.json at its OWN measured result. Own result=PASS (9/9 checks)."
   },
   {
    "id": "TN-F19",
@@ -14149,11 +14149,11 @@
     "config from previous version"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "Equivalent to B2 / DONE-4."
+   "result": "FAIL",
+   "evidence_ref": "certification/results/NLS_RESIDUAL_2a269ad226.json",
+   "tested_commit": "2a269ad2260270fee844eedc2cc23545abc91dd0",
+   "tested_at_utc": "2026-10-14T13:00:00Z",
+   "notes": "Equivalent to B2 / DONE-4. | Consolidate #3 (t_dc69fe0c): folded from committed NLS_RESIDUAL_2a269ad226.json at its OWN measured result. Own result=FAIL (5/6 checks)."
   },
   {
    "id": "TN-F20",
@@ -15609,11 +15609,11 @@
     "restart at each lifecycle point"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": ""
+   "result": "BLOCKED",
+   "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+   "tested_at_utc": "2026-10-14T09:53:11Z",
+   "notes": "Consolidate #3 (t_dc69fe0c): REGRESSION_fa9d9f55ff.json marks this row ui-visibility-blocked (1 check passed, 0 failed, pass=false; artifact summary pass=131 fail=0 blocked=7). Copied as BLOCKED: UI-visibility evidence unavailable, NOT a product failure."
   },
   {
    "id": "INC-02",
@@ -15653,11 +15653,11 @@
     "restart at each lifecycle point"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": ""
+   "result": "BLOCKED",
+   "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+   "tested_at_utc": "2026-10-14T09:53:11Z",
+   "notes": "Consolidate #3 (t_dc69fe0c): REGRESSION_fa9d9f55ff.json marks this row ui-visibility-blocked (1 check passed, 0 failed, pass=false; artifact summary pass=131 fail=0 blocked=7). Copied as BLOCKED: UI-visibility evidence unavailable, NOT a product failure."
   },
   {
    "id": "INC-04",
@@ -15809,11 +15809,11 @@
     "restart at each lifecycle point"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": ""
+   "result": "BLOCKED",
+   "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+   "tested_at_utc": "2026-10-14T09:53:11Z",
+   "notes": "Consolidate #3 (t_dc69fe0c): REGRESSION_fa9d9f55ff.json marks this row ui-visibility-blocked (1 check passed, 0 failed, pass=false; artifact summary pass=131 fail=0 blocked=7). Copied as BLOCKED: UI-visibility evidence unavailable, NOT a product failure."
   },
   {
    "id": "INC-11",
