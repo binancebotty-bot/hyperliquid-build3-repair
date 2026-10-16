@@ -3141,6 +3141,9 @@ DEDUPE_TAIL_LIMIT = 5000
 DEDUPE_STATE_SCHEMA = 2
 DEDUPE_JSONL_COMPACT_LINES = 500_000
 
+_CAP_TLS = threading.local()  # exposure-cap size-down fraction handed from _decision to build() on the same thread
+
+
 class DedupeStore:
     def __init__(self, state: Optional[Dict[str, Any]] = None, state_dir: Optional[Path] = None):
         state = state if isinstance(state, dict) else {}
@@ -3910,15 +3913,35 @@ class IntentBuilder:
         if resting.get("unreadable"):
             return "resting limits unreadable; entries fail closed while a cap is set"
         resting_total = fnum(resting.get("total_usd"), 0.0)
-        if cap_total > 0 and fnum(exp.get("total_usd")) + pending_total + resting_total + copy_notional > cap_total + 1e-9:
-            return "max total exposure exceeded (positions + resting limits)" if resting_total > 0 else "max total exposure exceeded"
+        size_down = bval(os.getenv("HL_LIVE_CAP_SIZE_DOWN"), True)
+        min_n = self.cfg.min_notional()
+        frac = 1.0  # Boss cap rule 16 Oct: the last order fills up to the remaining allowance; after that increases are blocked
+        if cap_total > 0:
+            remaining = cap_total - (fnum(exp.get("total_usd")) + pending_total + resting_total)
+            if remaining < copy_notional - 1e-9:
+                if not size_down or remaining < max(min_n, 1e-9):
+                    return "max total exposure exceeded (positions + resting limits)" if resting_total > 0 else "max total exposure exceeded"
+                frac = max(0.0, remaining) / copy_notional
         if cap_asset > 0:
             net = sum(fnum(v.get("net")) for k, v in (exp.get("by_coin") or {}).items() if canonical_coin_key(k) == coin)
-            after = net + pending_coin + units
-            worst = max(abs(after + fnum((resting.get("buy_units") or {}).get(coin), 0.0)),
-                        abs(after - fnum((resting.get("sell_units") or {}).get(coin), 0.0)))
-            if worst * value_px > cap_asset + 1e-9:
-                return "max asset directional exposure exceeded"
+            buy_u, sell_u = fnum((resting.get("buy_units") or {}).get(coin), 0.0), fnum((resting.get("sell_units") or {}).get(coin), 0.0)
+
+            def _worst(f: float) -> float:
+                after_f = net + pending_coin + units * f
+                return max(abs(after_f + buy_u), abs(after_f - sell_u)) * value_px
+            if _worst(frac) > cap_asset + 1e-9:
+                if not size_down or _worst(0.0) > cap_asset + 1e-9:
+                    return "max asset directional exposure exceeded"
+                lo, hi = 0.0, frac
+                for _i in range(40):  # _worst is convex in f: bisect the largest fraction that fits
+                    mid = (lo + hi) / 2.0
+                    lo, hi = (mid, hi) if _worst(mid) <= cap_asset + 1e-9 else (lo, mid)
+                frac = lo
+        if frac < 1.0 - 1e-9:
+            if frac * copy_notional < max(min_n, 1e-9):
+                return "max total exposure exceeded" if cap_total > 0 else "max asset directional exposure exceeded"
+            _CAP_TLS.scale = frac  # build() sizes the order down by this fraction
+            units *= frac
         self._exposure_pending.append((coin, units, value_px))
         return ""
 
@@ -3970,7 +3993,14 @@ class IntentBuilder:
             existing = self.ledger.sleeve(wallet, coin)
             position_id = str(existing.get("position_id") or self.ledger.position_id(wallet, coin, direction_before, str(existing.get("opened_by_intent_id") or intent_id)))
         coin_net_before = self.ledger.coin_net(coin)
+        _CAP_TLS.scale = 1.0
         decision, reason = self._decision(wallet, fill, lifecycle, copy_notional, before)
+        _cap_frac = float(getattr(_CAP_TLS, "scale", 1.0) or 1.0)
+        _CAP_TLS.scale = 1.0
+        if decision == "ENTRY_ALLOWED" and _cap_frac < 1.0 - 1e-9:
+            copy_size = round(copy_size * _cap_frac, 8)
+            copy_notional = copy_notional * _cap_frac
+            reason = f"{reason}; CAP_SIZED_DOWN to {_cap_frac:.4f} of the copy (remaining exposure allowance)"
         if decision in {"ENTRY_ALLOWED", "EXIT_ALLOWED"}:
             self._coin_activity[canonical_coin_key(coin)] = utc_now_ms()
         reduce_only_intended = bool(is_reduce)

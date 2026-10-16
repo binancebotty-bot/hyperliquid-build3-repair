@@ -51,6 +51,7 @@ def main() -> None:
     os.environ["HL_LIVE_MIN_EXCHANGE_ORDER_GAP_MS"] = "0"
     import requests
     import HL_Live_Copy_Service_Core as c
+    os.environ["HL_LIVE_CAP_SIZE_DOWN"] = "0"  # these tests pin the block-whole accounting; size-down has its own test file
 
     def offline(*a, **k):
         raise RuntimeError("offline test: no network")

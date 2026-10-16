@@ -147,6 +147,7 @@ def global_controls_tests() -> None:
     tmp = Path(tempfile.mkdtemp(prefix="coregc_"))
     os.environ.update({"HL_LIVE_AUDIT_DIR": str(tmp), "HL_LEADER_NETWORK": "mainnet", "HL_FOLLOWER_NETWORK": "testnet",
                        "HL_LIVE_ENV_FILE": str(tmp / "none.env"), "HL_FOLLOWER_DEXES": "xyz"})  # HIP-3 DEX in scope
+    os.environ["HL_LIVE_CAP_SIZE_DOWN"] = "0"  # these tests pin the block-whole accounting; size-down has its own test file
     import HL_Live_Copy_Service_Core as c
     import HL_Copy_App_SSOT as ui
     from fastapi.testclient import TestClient
