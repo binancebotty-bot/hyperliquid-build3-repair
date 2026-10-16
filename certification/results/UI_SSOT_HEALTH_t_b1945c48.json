@@ -1,0 +1,58 @@
+{
+  "schema": "b3_certification_results_v1",
+  "task_id": "t_b1945c48",
+  "register_ref": "b142cf88d389e791160f691aac3d936852b99975:certification/certification_matrix.json",
+  "candidate_engine_commit": "b142cf88d389e791160f691aac3d936852b99975",
+  "tested_commit": null,
+  "runtime_binding": "NOT_ESTABLISHED: live listener deployment identity was not independently bound to candidate_engine_commit; all runtime probes are observations only, not executed proofs on that engine commit.",
+  "ui_source_blob": "04533ced547a6e8c1d31b8ce25b4b215889e4409",
+  "tested_at_utc": "2026-10-16T22:50:16Z",
+  "target": "http://127.0.0.1:8031/live-copy",
+  "runtime_observations": {
+    "live_copy": "HTTP 200, text/html, 87350 bytes",
+    "api_live_config": "HTTP 200, application/json, 2681 bytes; config payload readable",
+    "api_status": "HTTP 404, 22 bytes",
+    "api_health": "HTTP 404, 22 bytes",
+    "api_ws_health": "HTTP 404, 22 bytes",
+    "dom_html_contains": ["lcRefresh", "lcWalletCount", "lcWsOverall", "lcFeedPill"],
+    "analytics_set_or_sort_markers": "not found in rendered /live-copy HTML"
+  },
+  "results": [
+    {
+      "id": "UI-SSOT-TOP-06",
+      "result": "NOT_TESTED",
+      "evidence": "Live /live-copy HTML returned HTTP 200, but the analytics-set page/control is absent (no normalization/normalisation or /sort/ marker); the row's actual set action, saved ui_state and model-only/no-live-trading effect were not exercised. A current rendered analytics surface plus safe executable control workflow and independent model/live-state oracle are missing. No PASS/FAIL inferred from the unrelated command-centre page.",
+      "negative_tests_not_executed": ["source unavailable", "stale source", "API error"]
+    },
+    {
+      "id": "UI-SSOT-TBL-25",
+      "result": "NOT_TESTED",
+      "evidence": "Live /live-copy HTML returned HTTP 200, but the analytics table sort control/route (/sort/{column}) is absent from this rendered page. Sort stability/persistence, cell recomputation and L/C DIFF behavior were not exercised. The analytics surface and independent engine/exchange recomputation oracle are missing.",
+      "negative_tests_not_executed": ["source unavailable", "stale source", "API error"]
+    },
+    {
+      "id": "UI-SSOT-PAGE-11",
+      "result": "NOT_TESTED",
+      "evidence": "GET http://127.0.0.1:8031/api/live-config returned HTTP 200 JSON (2681 bytes), and GET /live-copy returned HTTP 200 HTML. No live reset/snapshot action was executed; no independent before/after engine-truth snapshot or rendered contract-error banner test was run. Endpoint payload versus rendered page consistency and non-mutation are therefore unproven.",
+      "negative_tests_not_executed": ["source unavailable", "stale source", "API error"]
+    },
+    {
+      "id": "UI-TRUTH-005",
+      "result": "NOT_TESTED",
+      "evidence": "The rendered live target is titled 'Live Copy Dashboard' and includes the 'Live Copy Command Centre' section; response is HTTP 200. This does not prove historical provenance/restoration of the certified 13 May source or its exact use with the repaired engine. The independent provenance/source-hash comparison against the declared historical artifact and end-to-end engine truth proof were not executed.",
+      "negative_tests_not_executed": ["source unavailable", "stale source", "API error"]
+    },
+    {
+      "id": "HEALTH-001",
+      "result": "NOT_TESTED",
+      "evidence": "The UI responds HTTP 200 and contains lcWsOverall/lcFeedPill; GET /api/status, /api/health and /api/ws-health each returned HTTP 404. The required proof needs a controlled induced WS drop/stale condition and wall-clock correlation through engine state to UI, followed by recovery/flapping checks. No safe controlled fault injection procedure/runtime oracle was available; no fault was induced. These probes do not establish healthy or faulty WS behavior.",
+      "negative_tests_not_executed": ["fault clears and indicator recovers", "flapping"]
+    },
+    {
+      "id": "HEALTH-005",
+      "result": "NOT_TESTED",
+      "evidence": "The live UI and /api/live-config respond, but the required execution-delta proof under induced WS drop/stale/API error plus independent wall-clock comparison was not run. No approved safe execution-delta fixture or fault-injection procedure was available; no production action or fault was induced. Read-only HTTP probes cannot prove diagnostics never block a legitimate execution delta.",
+      "negative_tests_not_executed": ["fault clears and indicator recovers", "flapping"]
+    }
+  ]
+}
