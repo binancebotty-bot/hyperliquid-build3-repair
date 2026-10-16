@@ -8026,7 +8026,13 @@ class CopyFillMatcher:
             ts_ms = int(sent_row.get("leader_fill_timestamp_ms") or sent_row.get("created_at_ms") or utc_now_ms())
             wallet_pos_before = float(sent_row.get("wallet_position_before") or 0.0)
             coin_net_before = float(sent_row.get("coin_net_before") or 0.0)
-            exchange_pos_after = float(sent_row.get("position_after") or 0.0)
+            leader_fill_id = str(sent_row.get("leader_fill_id") or "").strip()
+            exchange_pos_after = 0.0
+            if leader_fill_id:
+                for row in reversed(read_csv_rows(LIVE_FILLS_CSV)):
+                    if str(row.get("leader_fill_id") or "").strip() == leader_fill_id:
+                        exchange_pos_after = float(row.get("wallet_position_after") or 0.0)
+                        break
             delta = ManualLedger.signed_delta(side, 1.0)
             terminal = str(sent_row.get("terminal_state") or "").upper()
             reduce_only = (
