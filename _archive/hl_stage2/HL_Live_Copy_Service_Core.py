@@ -9145,6 +9145,8 @@ class LiveCopyCore:
         self._stuck_dumped: set = set()
         self._past_send_keys: set = set()  # guard keys whose processing reached the send call
         threading.Thread(target=self._pending_sweeper, daemon=True, name="HLCore-pending-sweeper").start()
+        if fnum(os.getenv("HL_LIVE_STACK_SAMPLE_SEC"), 5.0) > 0:  # diagnostic only: where do the threads sit (no py-spy needed)
+            threading.Thread(target=self._stack_sampler, daemon=True, name="HLCore-stack-sampler").start()
         for idx in range(self.hot_send_workers):
             t = threading.Thread(target=self._hot_send_loop, args=(idx,), daemon=True, name=f"HLCoreWS-hot-send-{idx + 1}")
             t.start()
@@ -9264,6 +9266,38 @@ class LiveCopyCore:
                         self._coin_lane[coin_key] = (lane, count - 1)
             log_error("ws_hot_queue_full", RuntimeError("hot send queue full"))
             return False
+
+    def _stack_sampler(self) -> None:
+        """Diagnostic only, changes nothing: every HL_LIVE_STACK_SAMPLE_SEC (default 5) one line in stack_samples.jsonl beside the
+        runtime state: for each thread-name group, the innermost frame its threads are in (file:function:line) and how many.
+        Shows where send workers wait (lock, sleep, file, network) without py-spy. The file is trimmed at ~5 MB."""
+        import collections
+        path = Path(CORE_RUNTIME_STATE_FILE).parent / "stack_samples.jsonl"
+        me = threading.get_ident()
+        while not self._hot_stop_event.is_set():
+            time.sleep(max(1.0, fnum(os.getenv("HL_LIVE_STACK_SAMPLE_SEC"), 5.0)))
+            try:
+                frames = sys._current_frames()
+                names = {t.ident: t.name for t in threading.enumerate()}
+                groups: Dict[str, "collections.Counter"] = {}
+                for ident, fr in frames.items():
+                    if ident == me:
+                        continue
+                    name = re.sub(r"[-_]?\d+", "", names.get(ident, "?"))[:40]
+                    inner = fr
+                    chain = []
+                    while inner is not None and len(chain) < 3:
+                        chain.append(f"{Path(inner.f_code.co_filename).name}:{inner.f_code.co_name}:{inner.f_lineno}")
+                        inner = inner.f_back
+                    groups.setdefault(name, collections.Counter())[" < ".join(chain)] += 1
+                row = {"at_utc": utc_now_iso(),
+                       "threads": {k: dict(v.most_common(6)) for k, v in groups.items()}}
+                if path.exists() and path.stat().st_size > 5_000_000:
+                    path.write_bytes(path.read_bytes()[-2_000_000:])
+                with open(path, "a", encoding="utf-8") as fh:
+                    fh.write(json.dumps(row, default=str) + "\n")
+            except Exception as exc:
+                log_error("stack_sampler", exc)
 
     def _pending_sweeper(self) -> None:
         """A fill that has waited for a worker longer than HL_LIVE_PENDING_ROW_SEC (default 60) gets one row saying it is queued,
