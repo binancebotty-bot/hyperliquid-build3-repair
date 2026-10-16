@@ -1,0 +1,200 @@
+{
+ "live_state_dir": "C:/Users/wigmore/trading_stack/hl-build3-testnet-cert/_archive/hl_stage2/hl_live_copy_audit_testnet",
+ "exists": true,
+ "disk_created_at": "2026-10-16T23:16:13.917581+00:00",
+ "disk_ws_summary": {
+  "headroom": {
+   "info_weight:api.hyperliquid-testnet.xyz": {
+    "level": "OK",
+    "limit": 1200,
+    "pct": 31.0,
+    "used": 372
+   },
+   "info_weight:api.hyperliquid.xyz": {
+    "level": "OK",
+    "limit": 1200,
+    "pct": 44.0,
+    "used": 528
+   },
+   "refusals": [],
+   "worst": "OK",
+   "ws_foreign": {
+    "level": "OK",
+    "limit": 0,
+    "pct": 0.0,
+    "pids": {},
+    "used": 0
+   },
+   "ws_users": {
+    "last_refusal": "",
+    "level": "OK",
+    "limit": 15,
+    "pct": 66.7,
+    "used": 10,
+    "wanted": 10
+   }
+  },
+  "last_ping_ms": 1792192555288,
+  "last_pong_ms": 1792192556004,
+  "last_refusal": "",
+  "last_refusal_ms": 0,
+  "last_socket_error": "",
+  "last_subscribe_ms": 1792190754891,
+  "message_errors": 0,
+  "open_count": 1,
+  "resubscribe_attempts": 0,
+  "socket_open": true,
+  "stale_count": 0,
+  "subscribe_acked": 10,
+  "subscribe_pending": false,
+  "subscribe_refused": 0,
+  "thread_alive": true,
+  "total_reconnect_count": 0,
+  "wallet_count": 10,
+  "wallets_without_feed": 0,
+  "worst_health_grade": "OK",
+  "ws_status": "WS_OK"
+ },
+ "disk_wallet_count": 10,
+ "disk_per_wallet_keys": [
+  "last_error",
+  "last_message_ms",
+  "stale",
+  "stale_ms"
+ ],
+ "api_wallet_count": 10,
+ "api_per_wallet_keys": [
+  "last_error",
+  "last_message_ms",
+  "stale",
+  "stale_ms"
+ ],
+ "stale_ms_identical_wallets": 0,
+ "stale_ms_differing_wallets": 10,
+ "stale_ms_diffs_sample": [
+  {
+   "wallet": "0x010461c14e146ac35fe42271bdc1134ee31c703a",
+   "api": 1497,
+   "disk": 631
+  },
+  {
+   "wallet": "0x1b232b41b0e75550c59288b99874e4a8142fbe21",
+   "api": 1465044,
+   "disk": 1818100
+  },
+  {
+   "wallet": "0x31ca8395cf837de08b24da3f660e77761dfb974b",
+   "api": 150,
+   "disk": 421
+  },
+  {
+   "wallet": "0x6ba889db7f923622d3548f621ecc2054b80c1817",
+   "api": 386,
+   "disk": 1436
+  },
+  {
+   "wallet": "0x7019197d2b2ae7b44eee12a76015eb1fe94abd36",
+   "api": 11080,
+   "disk": 20587
+  }
+ ],
+ "only_in_api": [],
+ "only_in_disk": [],
+ "live_csv": {
+  "path": "C:/Users/wigmore/trading_stack/hl-build3-testnet-cert/_archive/hl_stage2/hl_live_copy_audit_testnet\\append_only\\reconciliation.csv",
+  "bytes": 12184712,
+  "lines": 25439,
+  "header": "created_at,created_at_ms,event,status,leader_wallet,leader_fill_id,intent_id,copy_fill_id,coin,manual_net,exchange_net,action,reject_category,terminal_state,exchange_order_id,engine_can_close,engine_can_send,notes",
+  "data_rows": 25438,
+  "send_terminal_rows": 6857,
+  "distinct_actions": [
+   "CHECK_MARGIN_MODE_ON_EXCHANGE",
+   "CLOSE_MANUALLY_NO_FOLLOWER_PRICE",
+   "EXIT_RECOVERY_REQUIRED",
+   "HOLD_DUST_OR_AGGREGATE",
+   "MANUAL_REVIEW_LEADER_REDUCED_BEFORE_COPY",
+   "MANUAL_REVIEW_REQUIRED",
+   "MISSED_ADD",
+   "MISSED_ENTRY",
+   "MISSED_ENTRY_MANUAL_REVIEW",
+   "MISSED_ENTRY_RECOVERY_LIMIT_RESTING",
+   "NO_ACTION_LIMIT_WITHDRAWN",
+   "NO_SEND_CLOSE_AT_TARGET",
+   "NO_SEND_NO_WALLET_OWNED_POSITION",
+   "NO_SEND_PENDING_EXIT_IN_FLIGHT",
+   "NO_SEND_SYMBOL_UNAVAILABLE",
+   "REVIEW_REQUIRED",
+   "SEND_TERMINAL_UNCLASSIFIED"
+  ],
+  "distinct_terminal_states": [
+   "BLOCKED_SEND_UNCLASSIFIED",
+   "CLOSE_REJECTED_EXCHANGE_REJECTED_UNKNOWN",
+   "CLOSE_REJECTED_INSUFFICIENT_MARGIN",
+   "CLOSE_REJECTED_REDUCE_ONLY_REJECTED",
+   "CLOSE_REJECTED_SIZE_OR_NOTIONAL_REJECTED",
+   "DUST_BELOW_MIN_NOTIONAL",
+   "ENTRY_LIMIT_RESTING_PRICE_MOVED",
+   "EXCHANGE_CALL_ERROR_REVIEW_REQUIRED",
+   "EXIT_RECOVERY_REQUIRED",
+   "MANUAL_EXIT_RECOVERY_REQUIRED",
+   "MARGIN_MODE_UNSET",
+   "MISSED_ADD_EXCHANGE_REJECTED_UNKNOWN",
+   "MISSED_ADD_INSUFFICIENT_MARGIN",
+   "MISSED_ENTRY_EXCHANGE_REJECTED_UNKNOWN",
+   "MISSED_ENTRY_INSUFFICIENT_MARGIN",
+   "MISSED_ENTRY_IOC_NO_MATCH",
+   "MISSED_ENTRY_LEADER_ALREADY_REDUCED",
+   "MISSED_ENTRY_LIMIT_REJECTED",
+   "NO_MANUAL_POSITION_TO_CLOSE",
+   "PENDING_EXIT_GUARD_ACTIVE",
+   "RESTING_ENTRY_ALREADY_GONE",
+   "RESTING_ENTRY_CANCELLED_LEADER_REDUCED",
+   "SEND_NOT_ATTEMPTED_CLOSE_AT_TARGET",
+   "SEND_NOT_ATTEMPTED_SYMBOL_UNAVAILABLE"
+  ],
+  "mtime": "2026-10-17T00:16:21.047702",
+  "last_line": "2026-10-16T23:16:20.500994+00:00,1792192580500,SEND_LATENCY_WARN,SLOW_SEND_PATH,0x31ca8395cf837de08b24da3f660e77761dfb974b,0x23833a2eaa9607ad24fc0446b7f21401050052144599267fc74be5816999e197,b44329574498d94f755a3201f5d8c3b4,,GOAT,,,AUDIT_ONLY,,,,,,severity=WARN; classification=SLOW_EXCHANGE_CALL; wallet=0x31ca8395cf837de08b24da3f660e77761dfb974b coin=GOAT intent_id=b44329574498d94f755a3201f5d8c3b4 delay_ms=1668 largest_component=exchange_call_ms:901"
+ },
+ "live_csv_intents_bound_to_api_prefix": 100,
+ "other_files": {
+  "manual_live_positions.json": {
+   "exists": true,
+   "keys": [
+    "by_coin_net",
+    "by_wallet",
+    "schema",
+    "updated_at",
+    "updated_at_ms"
+   ],
+   "fetched_at_ms": null
+  },
+  "exchange_account_snapshot.json": {
+   "exists": true,
+   "keys": [
+    "created_at",
+    "created_at_ms",
+    "positions_by_coin",
+    "raw"
+   ],
+   "fetched_at_ms": null
+  },
+  "exchange_account_snapshot_app.json": {
+   "exists": true,
+   "keys": [
+    "account_address",
+    "account_value",
+    "account_value_label",
+    "account_value_source",
+    "actual_user_fills_recent",
+    "actual_user_fills_source",
+    "available",
+    "available_to_trade",
+    "available_to_trade_candidates",
+    "available_to_trade_source",
+    "closed_pnl_sum",
+    "cross_raw_total_usd"
+   ],
+   "fetched_at_ms": 1792192491930
+  }
+ }
+}

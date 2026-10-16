@@ -1,0 +1,255 @@
+{
+ "register_commit": "b142cf88d389e791160f691aac3d936852b99975",
+ "dom_route": "ROUTE_AVAILABLE",
+ "ws_row_count": 10,
+ "ws_rows_compared": [
+  {
+   "wallet": "0x010461c1...1c703a",
+   "dom_current": "OFFLINE",
+   "dom_grade": "—",
+   "dom_thread": "down",
+   "dom_reconnect_per_min": "0.00",
+   "dom_stale_ms": "1497",
+   "api_stale_ms": 1497,
+   "stale_match": true
+  },
+  {
+   "wallet": "0x1b232b41...2fbe21",
+   "dom_current": "OFFLINE",
+   "dom_grade": "—",
+   "dom_thread": "down",
+   "dom_reconnect_per_min": "0.00",
+   "dom_stale_ms": "1465044",
+   "api_stale_ms": 1465044,
+   "stale_match": true
+  },
+  {
+   "wallet": "0x31ca8395...fb974b",
+   "dom_current": "OFFLINE",
+   "dom_grade": "—",
+   "dom_thread": "down",
+   "dom_reconnect_per_min": "0.00",
+   "dom_stale_ms": "150",
+   "api_stale_ms": 150,
+   "stale_match": true
+  },
+  {
+   "wallet": "0x6ba889db...0c1817",
+   "dom_current": "OFFLINE",
+   "dom_grade": "—",
+   "dom_thread": "down",
+   "dom_reconnect_per_min": "0.00",
+   "dom_stale_ms": "386",
+   "api_stale_ms": 386,
+   "stale_match": true
+  },
+  {
+   "wallet": "0x7019197d...4abd36",
+   "dom_current": "OFFLINE",
+   "dom_grade": "—",
+   "dom_thread": "down",
+   "dom_reconnect_per_min": "0.00",
+   "dom_stale_ms": "11080",
+   "api_stale_ms": 11080,
+   "stale_match": true
+  },
+  {
+   "wallet": "0x7717a7a2...d7bd7e",
+   "dom_current": "OFFLINE",
+   "dom_grade": "—",
+   "dom_thread": "down",
+   "dom_reconnect_per_min": "0.00",
+   "dom_stale_ms": "1496",
+   "api_stale_ms": 1496,
+   "stale_match": true
+  },
+  {
+   "wallet": "0x936cf4fb...81bb0f",
+   "dom_current": "OFFLINE",
+   "dom_grade": "—",
+   "dom_thread": "down",
+   "dom_reconnect_per_min": "0.00",
+   "dom_stale_ms": "9412",
+   "api_stale_ms": 9412,
+   "stale_match": true
+  },
+  {
+   "wallet": "0xc179e039...7ce0c8",
+   "dom_current": "OFFLINE",
+   "dom_grade": "—",
+   "dom_thread": "down",
+   "dom_reconnect_per_min": "0.00",
+   "dom_stale_ms": "21615",
+   "api_stale_ms": 21615,
+   "stale_match": true
+  },
+  {
+   "wallet": "0xd4c1f7e8...583d1d",
+   "dom_current": "OFFLINE",
+   "dom_grade": "—",
+   "dom_thread": "down",
+   "dom_reconnect_per_min": "0.00",
+   "dom_stale_ms": "15233",
+   "api_stale_ms": 15233,
+   "stale_match": true
+  },
+  {
+   "wallet": "0xf5d81a13...c3ad53",
+   "dom_current": "OFFLINE",
+   "dom_grade": "—",
+   "dom_thread": "down",
+   "dom_reconnect_per_min": "0.00",
+   "dom_stale_ms": "149",
+   "api_stale_ms": 149,
+   "stale_match": true
+  }
+ ],
+ "ws_all_stale_ms_match_api": true,
+ "api_per_wallet_keys": [
+  "last_error",
+  "last_message_ms",
+  "stale",
+  "stale_ms"
+ ],
+ "disk_per_wallet_keys": [
+  "last_error",
+  "last_message_ms",
+  "stale",
+  "stale_ms"
+ ],
+ "ui_lookup_key_presence_in_api": {
+  "Current": {
+   "current_status": false,
+   "effective_status": false,
+   "status": false
+  },
+  "Thread": {
+   "thread_alive": false,
+   "worker_thread_alive": false
+  },
+  "Reconnect/min": {
+   "reconnects_per_min": false
+  },
+  "Grade": {
+   "current_health_grade": false,
+   "health_grade": false
+  },
+  "Data status": {
+   "data_status": false
+  }
+ },
+ "register_src_fallback_exprs": [
+  {
+   "pattern": "current_status||wh.effective_status||wh.status||'OFFLINE'",
+   "hits": [
+    "b142cf88d389e791160f691aac3d936852b99975:_archive/hl_stage2/HL_Copy_App_SSOT.py:5940: const rows=Object.entries(lcHealth.wallets||{}).sort().map(([wallet,wh])=>{const current=String(wh.current_status||wh.effective_status||wh.status||'OFFLINE');const effective=String(wh.effective_status||wh.status||current);const grade=String(wh.current_health_grade||wh.health_grade||'—');const alive=!!wh.thread_alive||!!wh.worker_thread_alive;const fatal=Number(wh.fatal_error_count||0);const label=(current==='STALE'&&alive&&fatal===0)?'STALE / current idle':current;const lastErr=wh.last_error_repr||wh.last_error||wh.last_close_msg||'';const recentErr=Number(wh.recent_error_count||0);const lifeErr=Number(wh.lifetime_error_count??wh.error_count??0);return `<tr><td class=\"lc-wallet\">${h(shortWallet(wallet))}</td><td title=\"effective: ${h(effective)}\">${pill(label,current)}</td><td>${pill(grade,grade)}</td><td>${h(alive?'alive':'down')}</td><td>${Number(wh.reconnects_per_min||0).toFixed(2)}</td><td>${h(wh.processed_count??0)}</td><td>${h(wh.raw_message_count??0)}</td><td>${h(wh.parsed_fill_message_count??0)}</td><td>${h(wh.snapshot_fill_seen_count??0)}</td><td>${h(wh.snapshot_fill_recovered_count??0)}</td><td>${h(wh.ignored_snapshot_count??0)}</td><td>${h(recentErr)}</td><td>${h(lifeErr)}</td><td>${h(wh.transport_stale_ms??wh.stale_ms??'')}</td><td>${pill(wh.data_status||'—',wh.data_status||'')}</td><td title=\"${h(lastErr)}\">${tiny(lastErr,70)}</td></tr>`;}).join('');"
+   ]
+  },
+  {
+   "pattern": "alive?'alive':'down'",
+   "hits": [
+    "b142cf88d389e791160f691aac3d936852b99975:_archive/hl_stage2/HL_Copy_App_SSOT.py:5940: const rows=Object.entries(lcHealth.wallets||{}).sort().map(([wallet,wh])=>{const current=String(wh.current_status||wh.effective_status||wh.status||'OFFLINE');const effective=String(wh.effective_status||wh.status||current);const grade=String(wh.current_health_grade||wh.health_grade||'—');const alive=!!wh.thread_alive||!!wh.worker_thread_alive;const fatal=Number(wh.fatal_error_count||0);const label=(current==='STALE'&&alive&&fatal===0)?'STALE / current idle':current;const lastErr=wh.last_error_repr||wh.last_error||wh.last_close_msg||'';const recentErr=Number(wh.recent_error_count||0);const lifeErr=Number(wh.lifetime_error_count??wh.error_count??0);return `<tr><td class=\"lc-wallet\">${h(shortWallet(wallet))}</td><td title=\"effective: ${h(effective)}\">${pill(label,current)}</td><td>${pill(grade,grade)}</td><td>${h(alive?'alive':'down')}</td><td>${Number(wh.reconnects_per_min||0).toFixed(2)}</td><td>${h(wh.processed_count??0)}</td><td>${h(wh.raw_message_count??0)}</td><td>${h(wh.parsed_fill_message_count??0)}</td><td>${h(wh.snapshot_fill_seen_count??0)}</td><td>${h(wh.snapshot_fill_recovered_count??0)}</td><td>${h(wh.ignored_snapshot_count??0)}</td><td>${h(recentErr)}</td><td>${h(lifeErr)}</td><td>${h(wh.transport_stale_ms??wh.stale_ms??'')}</td><td>${pill(wh.data_status||'—',wh.data_status||'')}</td><td title=\"${h(lastErr)}\">${tiny(lastErr,70)}</td></tr>`;}).join('');"
+   ]
+  },
+  {
+   "pattern": "reconnects_per_min||0",
+   "hits": [
+    "b142cf88d389e791160f691aac3d936852b99975:_archive/hl_stage2/HL_Copy_App_SSOT.py:5940: const rows=Object.entries(lcHealth.wallets||{}).sort().map(([wallet,wh])=>{const current=String(wh.current_status||wh.effective_status||wh.status||'OFFLINE');const effective=String(wh.effective_status||wh.status||current);const grade=String(wh.current_health_grade||wh.health_grade||'—');const alive=!!wh.thread_alive||!!wh.worker_thread_alive;const fatal=Number(wh.fatal_error_count||0);const label=(current==='STALE'&&alive&&fatal===0)?'STALE / current idle':current;const lastErr=wh.last_error_repr||wh.last_error||wh.last_close_msg||'';const recentErr=Number(wh.recent_error_count||0);const lifeErr=Number(wh.lifetime_error_count??wh.error_count??0);return `<tr><td class=\"lc-wallet\">${h(shortWallet(wallet))}</td><td title=\"effective: ${h(effective)}\">${pill(label,current)}</td><td>${pill(grade,grade)}</td><td>${h(alive?'alive':'down')}</td><td>${Number(wh.reconnects_per_min||0).toFixed(2)}</td><td>${h(wh.processed_count??0)}</td><td>${h(wh.raw_message_count??0)}</td><td>${h(wh.parsed_fill_message_count??0)}</td><td>${h(wh.snapshot_fill_seen_count??0)}</td><td>${h(wh.snapshot_fill_recovered_count??0)}</td><td>${h(wh.ignored_snapshot_count??0)}</td><td>${h(recentErr)}</td><td>${h(lifeErr)}</td><td>${h(wh.transport_stale_ms??wh.stale_ms??'')}</td><td>${pill(wh.data_status||'—',wh.data_status||'')}</td><td title=\"${h(lastErr)}\">${tiny(lastErr,70)}</td></tr>`;}).join('');"
+   ]
+  },
+  {
+   "pattern": "wh.transport_stale_ms??wh.stale_ms",
+   "hits": [
+    "b142cf88d389e791160f691aac3d936852b99975:_archive/hl_stage2/HL_Copy_App_SSOT.py:5940: const rows=Object.entries(lcHealth.wallets||{}).sort().map(([wallet,wh])=>{const current=String(wh.current_status||wh.effective_status||wh.status||'OFFLINE');const effective=String(wh.effective_status||wh.status||current);const grade=String(wh.current_health_grade||wh.health_grade||'—');const alive=!!wh.thread_alive||!!wh.worker_thread_alive;const fatal=Number(wh.fatal_error_count||0);const label=(current==='STALE'&&alive&&fatal===0)?'STALE / current idle':current;const lastErr=wh.last_error_repr||wh.last_error||wh.last_close_msg||'';const recentErr=Number(wh.recent_error_count||0);const lifeErr=Number(wh.lifetime_error_count??wh.error_count??0);return `<tr><td class=\"lc-wallet\">${h(shortWallet(wallet))}</td><td title=\"effective: ${h(effective)}\">${pill(label,current)}</td><td>${pill(grade,grade)}</td><td>${h(alive?'alive':'down')}</td><td>${Number(wh.reconnects_per_min||0).toFixed(2)}</td><td>${h(wh.processed_count??0)}</td><td>${h(wh.raw_message_count??0)}</td><td>${h(wh.parsed_fill_message_count??0)}</td><td>${h(wh.snapshot_fill_seen_count??0)}</td><td>${h(wh.snapshot_fill_recovered_count??0)}</td><td>${h(wh.ignored_snapshot_count??0)}</td><td>${h(recentErr)}</td><td>${h(lifeErr)}</td><td>${h(wh.transport_stale_ms??wh.stale_ms??'')}</td><td>${pill(wh.data_status||'—',wh.data_status||'')}</td><td title=\"${h(lastErr)}\">${tiny(lastErr,70)}</td></tr>`;}).join('');"
+   ]
+  }
+ ],
+ "register_src_token_counts": {
+  "current_status": 2,
+  "effective_status": 3,
+  "thread_alive": 3,
+  "worker_thread_alive": 1,
+  "reconnects_per_min": 1,
+  "current_health_grade": 2,
+  "health_grade": 4,
+  "processed_count": 1,
+  "raw_message_count": 1,
+  "data_status": 2,
+  "total_reconnect_count": 0,
+  "stale_ms": 2
+ },
+ "api_ws_summary_total_reconnect_count": 0,
+ "api_ws_summary_thread_alive": true,
+ "api_ws_summary_worst_health_grade": "OK",
+ "warnings_row_count": 93,
+ "warnings_dom_distinct_events": [
+  "SEND_TERMINAL"
+ ],
+ "warnings_dom_distinct_actions": [
+  "HOLD_DUST_OR_AGGREGATE",
+  "MISSED_ADD",
+  "MISSED_ENTRY",
+  "NO_SEND_NO_WALLET_OWNED_POSITION",
+  "NO_SEND_PENDING_EXIT_IN_FLIGHT",
+  "NO_SEND_SYMBOL_UNAVAILABLE"
+ ],
+ "warnings_dom_distinct_wallets": [
+  "0x010461c1...1c703a",
+  "0x31ca8395...fb974b",
+  "0x6ba889db...0c1817",
+  "0x7019197d...4abd36",
+  "0x7717a7a2...d7bd7e",
+  "0x936cf4fb...81bb0f",
+  "0xd4c1f7e8...583d1d",
+  "0xf5d81a13...c3ad53"
+ ],
+ "warnings_dom_distinct_intents": [
+  "006342c779826fb1fd746992342…",
+  "02268a4ac246663abcc104ca025…",
+  "028c48afa63cf503134d2a4fc00…",
+  "0328947ed5ecda1116241cd5207…",
+  "06ef7a0319ab6bdfdc37c1aa973…"
+ ],
+ "warnings_intents_intersect_api_send_terminal": 0,
+ "api_send_terminal_count": 100,
+ "api_send_terminal_distinct_actions_sample": [
+  "EXIT_RECOVERY_REQUIRED",
+  "HOLD_DUST_OR_AGGREGATE",
+  "MISSED_ADD",
+  "MISSED_ENTRY",
+  "MISSED_ENTRY_MANUAL_REVIEW",
+  "NO_SEND_NO_WALLET_OWNED_POSITION",
+  "NO_SEND_PENDING_EXIT_IN_FLIGHT",
+  "NO_SEND_SYMBOL_UNAVAILABLE"
+ ],
+ "api_send_terminal_distinct_wallets_sample": [
+  "0x010461c14e146ac35fe42271bdc1134ee31c703a",
+  "0x31ca8395cf837de08b24da3f660e77761dfb974b",
+  "0x6ba889db7f923622d3548f621ecc2054b80c1817",
+  "0x7019197d2b2ae7b44eee12a76015eb1fe94abd36",
+  "0x7717a7a245d9f950e586822b8c9b46863ed7bd7e"
+ ],
+ "legacy_rows": {
+  "rows": [
+   [
+    "No legacy terminal-state gaps."
+   ]
+  ]
+ },
+ "critical_row_count": 7,
+ "orphan_row_count": 50,
+ "recon_csv": {
+  "path": "C:/Users/wigmore/hyperliquid-build3-repair/_archive/hl_stage2/hl_live_copy_audit_testnet\\append_only\\reconciliation.csv",
+  "bytes": 30478,
+  "lines": 70,
+  "header": "created_at,created_at_ms,event,status,leader_wallet,leader_fill_id,intent_id,copy_fill_id,coin,manual_net,exchange_net,action,reject_category,terminal_state,exchange_order_id,engine_can_close,engine_can_send,notes"
+ },
+ "recon_csv_header": "created_at,created_at_ms,event,status,leader_wallet,leader_fill_id,intent_id,copy_fill_id,coin,manual_net,exchange_net,action,reject_category,terminal_state,exchange_order_id,engine_can_close,engine_can_send,notes",
+ "recon_csv_last2": [
+  "2026-10-15T08:49:43.622148+00:00,1792054183622,SEND_TERMINAL,DUST_BELOW_MIN_NOTIONAL,0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,tnf05-sub,1cdfd7721fd70fd04c1e1c133f926687,,ZWIRE,0.0,,HOLD_DUST_OR_AGGREGATE,SIZE_OR_NOTIONAL_REJECTED,DUST_BELOW_MIN_NOTIONAL,,False,False,blocked before exchange: notional < min_notional; coin=ZWIRE; raw_coin=ZWIRE; notional=5.010000; min=10.00; size=0.05; price=100.2; intent_id=1cdfd7721fd70fd04c1e1c133f926687; leader_wallet=0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "2026-10-15T08:49:43.841763+00:00,1792054183841,SEND_TERMINAL,DUST_BELOW_MIN_NOTIONAL,0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,tnf05-exit,f1e12b4fcc339638ce32ef4f7108202f,,ZWIRE,-0.05,,HOLD_DUST_OR_AGGREGATE,SIZE_OR_NOTIONAL_REJECTED,DUST_BELOW_MIN_NOTIONAL,,False,False,blocked before exchange: notional < min_notional; coin=ZWIRE; raw_coin=ZWIRE; notional=5.010000; min=10.00; size=0.05; price=100.2; intent_id=f1e12b4fcc339638ce32ef4f7108202f; leader_wallet=0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+ ],
+ "live_ws_health_created_at": "2026-10-14T10:34:15.036313+00:00",
+ "dom_capture_ts": "2026-10-17T00:10:21.187612",
+ "greenred_count": 60
+}

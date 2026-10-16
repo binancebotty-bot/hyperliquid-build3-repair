@@ -1,0 +1,178 @@
+{
+ "card": "t_674c5537",
+ "register_ref": "main:certification/certification_matrix.json",
+ "register_commit": "b142cf88d389e791160f691aac3d936852b99975",
+ "live_ui": "http://127.0.0.1:8031/live-copy (HTTP 200, UI PID 8668 uvicorn HL_Copy_App_SSOT:app)",
+ "live_state_dir": "C:/Users/wigmore/trading_stack/hl-build3-testnet-cert/_archive/hl_stage2/hl_live_copy_audit_testnet",
+ "captured_at_utc": "2026-10-16T23:10:21.187612Z",
+ "dom_route": "ROUTE_AVAILABLE",
+ "method": "playwright.chromium headless py3.11 rendered DOM (tabs: Reconciliation, WS Health); oracles = served JSON API + on-disk state files; no HL_Copy_App_SSOT import; READ-ONLY",
+ "UI-FP-145": {
+  "feature": "Reconciliation / Warnings: Action",
+  "required": "Action cell text from reconciliation records",
+  "rendered_header": "ACTION present in Warnings thead",
+  "positive_result": "PASS",
+  "basis": "Action cell captured for 100/100 rendered rows (7 critical + 93 warnings); distinct values all real reconciliation action tokens; 100/100 bind to reconciliation.csv SEND_TERMINAL rows (6857 in live CSV) and to served send_terminal_rows (100)",
+  "negative_tests": "NOT_EXERCISED (read-only run)",
+  "prior": "FAIL (interval element not found)"
+ },
+ "UI-FP-149": {
+  "feature": "Reconciliation / Warnings: Wallet",
+  "required": "Wallet cell text from reconciliation records",
+  "rendered_header": "WALLET present in Warnings thead",
+  "positive_result": "PASS",
+  "basis": "Wallet cell captured for 100/100 rows; 93/93 warnings wallet cells are exact shortWallet() of a leader_wallet in served send_terminal_rows; 0 unbound; no placeholder",
+  "negative_tests": "NOT_EXERCISED",
+  "prior": "FAIL (tags element not found)"
+ },
+ "UI-FP-150": {
+  "feature": "Reconciliation / Warnings: Intent",
+  "required": "Intent cell text from reconciliation records",
+  "rendered_header": "INTENT present in Warnings thead",
+  "positive_result": "PASS",
+  "basis": "Intent cell captured for 100/100 rows; 78 bind to served send_terminal_rows intent_id, remaining 22 bind to intent_id values in reconciliation.csv (22/22) -> 100/100 provenance-bound",
+  "negative_tests": "NOT_EXERCISED",
+  "prior": "FAIL (links element not found)"
+ },
+ "UI-FP-165": {
+  "feature": "WS Health Detail: Current",
+  "required": "Current cell shows live_ws_health.json state at T",
+  "rendered_header": "CURRENT present in WS thead",
+  "positive_result": "FAIL",
+  "basis": "Rendered Current = OFFLINE for all 10 wallets while same-capture /api/live-ws-health reports stale=false for 10/10 (summary thread_alive=True ws_status=WS_OK wallet_count=10). Source @register reads wh.current_status||wh.effective_status||wh.status||\"OFFLINE\" but neither payload nor disk per-wallet keys contain any of them (keys = last_error,last_message_ms,stale,stale_ms) -> hardcoded OFFLINE fallback. Chain API->cell BROKEN.",
+  "negative_tests": "N/A (positive chain fails)",
+  "prior": "FAIL (search element not found)"
+ },
+ "UI-FP-167": {
+  "feature": "WS Health Detail: Thread",
+  "required": "Thread cell shows live_ws_health.json thread state at T",
+  "rendered_header": "THREAD present in WS thead",
+  "positive_result": "FAIL",
+  "basis": "Rendered Thread = \"down\" for all 10 wallets; same-capture API thread_alive=True. UI reads wh.thread_alive||wh.worker_thread_alive, neither key exists in payload or disk -> hardcoded \"down\" fallback contradicting live thread state. Chain BROKEN.",
+  "negative_tests": "N/A",
+  "prior": "FAIL (export element not found)"
+ },
+ "UI-FP-168": {
+  "feature": "WS Health Detail: Reconnect/min",
+  "required": "Reconnect/min cell shows live_ws_health.json reconnect rate at T",
+  "rendered_header": "RECONNECT/MIN present in WS thead",
+  "positive_result": "FAIL",
+  "basis": "Rendered Reconnect/min = 0.00 for all 10 wallets because UI reads wh.reconnects_per_min (absent); the summary counter that does exist is ws_summary.total_reconnect_count=0 which the per-wallet path never reads -> Number(undefined||0).toFixed(2) fallback. Chain BROKEN.",
+  "negative_tests": "N/A",
+  "prior": "FAIL (import element not found)"
+ },
+ "hard_facts": {
+  "ws_tab_rendered": true,
+  "ws_rows_rendered": 10,
+  "ws_headers": [
+   "WALLET",
+   "CURRENT",
+   "GRADE",
+   "THREAD",
+   "RECONNECT/MIN",
+   "PROCESSED",
+   "RAW MSG",
+   "PARSED",
+   "SNAP SEEN",
+   "SNAP RECOVERED",
+   "IGNORED",
+   "RECENT ERRORS",
+   "LIFETIME ERRORS",
+   "STALE MS",
+   "DATA STATUS",
+   "LAST CLOSE/ERROR"
+  ],
+  "ws_dom_current_distinct": [
+   "OFFLINE"
+  ],
+  "ws_dom_thread_distinct": [
+   "down"
+  ],
+  "ws_dom_reconnect_distinct": [
+   "0.00"
+  ],
+  "api_per_wallet_keys": [
+   "last_error",
+   "last_message_ms",
+   "stale",
+   "stale_ms"
+  ],
+  "disk_per_wallet_keys": [
+   "last_error",
+   "last_message_ms",
+   "stale",
+   "stale_ms"
+  ],
+  "api_wallets_stale_false": 10,
+  "api_wallets_stale_true": 0,
+  "api_ws_summary": {
+   "thread_alive": true,
+   "ws_status": "WS_OK",
+   "wallet_count": 10,
+   "total_reconnect_count": 0,
+   "worst_health_grade": "OK",
+   "stale_count": 0
+  },
+  "ui_lookup_keys_absent_everywhere": [
+   "current_health_grade",
+   "current_status",
+   "data_status",
+   "effective_status",
+   "health_grade",
+   "reconnects_per_min",
+   "status",
+   "thread_alive",
+   "worker_thread_alive"
+  ],
+  "register_src_token_counts": {
+   "current_status": 2,
+   "effective_status": 3,
+   "wh.status": 2,
+   "thread_alive": 3,
+   "worker_thread_alive": 1,
+   "reconnects_per_min": 1,
+   "total_reconnect_count": 0,
+   "current_health_grade": 2,
+   "health_grade": 4,
+   "data_status": 2
+  },
+  "ws_stale_ms_dom_matches_api_all_rows": true,
+  "recon_warnings_rows": 93,
+  "recon_critical_rows": 7,
+  "recon_warnings_headers": "EVENT, STATUS, ACTION, REJECT CATEGORY, TERMINAL STATE, COIN, WALLET, INTENT, NOTES",
+  "recon_legacy_rows": [
+   [
+    "No legacy terminal-state gaps."
+   ]
+  ],
+  "unbound_intent_cells_vs_api": 22,
+  "unbound_intent_cells_bound_to_csv": {
+   "unbound_tested": 22,
+   "bound_to_csv": 22
+  },
+  "live_csv": {
+   "bytes": 12184712,
+   "lines": 25439,
+   "data_rows": 25438,
+   "send_terminal_rows": 6857,
+   "mtime": "2026-10-17T00:16:21.047702"
+  },
+  "live_csv_distinct_actions_count": 17,
+  "live_csv_distinct_terminal_states_count": 24
+ },
+ "instrument_notes": [
+  "The disk oracle first read the ARCHIVED repo dir _archive/hl_stage2/hl_live_copy_audit_testnet (live_ws_health.json dated 2026-10-14, 1 wallet). The RUNNING app (/api/global-controls) uses state_dir C:/Users/wigmore/trading_stack/hl-build3-testnet-cert/_archive/hl_stage2/hl_live_copy_audit_testnet (10 wallets, created_at 2026-10-16T23:16:13.917581+00:00). All disk facts above come from the running state_dir.",
+  "stale_ms: DOM == same-capture API for all 10 rows (True); DOM vs DISK stale_ms differs 10/10 - expected lag between two writers of the rolling file, NOT a UI defect.",
+  "Prior notes (interval/tags/links/search/export/import element not found) came from a matcher searching the WRONG tokens; the real headers are ACTION/WALLET/INTENT and CURRENT/THREAD/RECONNECT/MIN."
+ ],
+ "verdicts": {
+  "UI-FP-145": "PASS",
+  "UI-FP-149": "PASS",
+  "UI-FP-150": "PASS",
+  "UI-FP-165": "FAIL",
+  "UI-FP-167": "FAIL",
+  "UI-FP-168": "FAIL"
+ },
+ "negative_tests_note": "The three negative tests on 145/149/150 were NOT exercised (inducing them needs mutating the read-only live surface); reported NOT_EXERCISED, not PASS.",
+ "artifact_sha256": "5fe28ed42a75a4dae2c20f9de347e94ed0752e414bbc69862dca7809947265e0"
+}

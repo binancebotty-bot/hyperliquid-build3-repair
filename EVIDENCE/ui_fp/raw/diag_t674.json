@@ -1,0 +1,278 @@
+{
+ "unbound_intent_cells": {
+  "count": 22,
+  "sample": [
+   {
+    "action": "NO_SEND_PENDING_EXIT_IN_FLIGHT",
+    "wallet": "0xf5d81a13...c3ad53",
+    "intent_cell": "c27eaf8139eb0fb3fc225f73151…",
+    "event": "SEND_TERMINAL"
+   },
+   {
+    "action": "NO_SEND_NO_WALLET_OWNED_POSITION",
+    "wallet": "0x010461c1...1c703a",
+    "intent_cell": "8eaa222f7feb8ab9cb4a2fba2af…",
+    "event": "SEND_TERMINAL"
+   },
+   {
+    "action": "NO_SEND_NO_WALLET_OWNED_POSITION",
+    "wallet": "0x31ca8395...fb974b",
+    "intent_cell": "e268756fd92dd108e784ae913e2…",
+    "event": "SEND_TERMINAL"
+   },
+   {
+    "action": "NO_SEND_SYMBOL_UNAVAILABLE",
+    "wallet": "0xf5d81a13...c3ad53",
+    "intent_cell": "eb1182cc36a55cc9b83dab0e1c4…",
+    "event": "SEND_TERMINAL"
+   },
+   {
+    "action": "NO_SEND_SYMBOL_UNAVAILABLE",
+    "wallet": "0xf5d81a13...c3ad53",
+    "intent_cell": "f419d630dd024960c579d8b9ce3…",
+    "event": "SEND_TERMINAL"
+   },
+   {
+    "action": "HOLD_DUST_OR_AGGREGATE",
+    "wallet": "0x010461c1...1c703a",
+    "intent_cell": "e495b1311bafa1871549bd8ffd2…",
+    "event": "SEND_TERMINAL"
+   }
+  ],
+  "csv_rebind": {
+   "unbound_tested": 22,
+   "bound_to_csv": 22
+  }
+ },
+ "api_send_terminal_row_keys": [
+  "action",
+  "coin",
+  "copy_fill_id",
+  "created_at",
+  "created_at_ms",
+  "engine_can_close",
+  "engine_can_send",
+  "event",
+  "exchange_net",
+  "exchange_order_id",
+  "intent_id",
+  "leader_fill_id",
+  "leader_wallet",
+  "manual_net",
+  "notes",
+  "reject_category",
+  "status",
+  "terminal_state"
+ ],
+ "api_terminal_intent_id_sample": [
+  "a3bd365af64f10216bd74e97d2b644ea",
+  "f39b42744ea23a10f585372860c24bc7",
+  "028c48afa63cf503134d2a4fc002694a"
+ ],
+ "register_rows": {
+  "UI-FP-145": {
+   "feature": "Reconciliation / Warnings: Action",
+   "expected_behaviour": "Shows Action from append_only/reconciliation.csv/manual_live_positions.json/exchange_account_snapshot.json as direct reconciliation/manual/exchange field (provenance APP_DERIVED; rows HEADER; can affect send: NO; execution truth: NO).",
+   "sources": [
+    "local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+   ],
+   "negative_tests": [
+    "source unavailable shows n/a/Unavailable not 0",
+    "stale source flagged",
+    "API error surfaced"
+   ],
+   "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+   "result_in_register": "FAIL",
+   "field_keys": [
+    "applicability",
+    "area",
+    "evidence_ref",
+    "execution_proof",
+    "expected_behaviour",
+    "feature",
+    "id",
+    "independent_oracle",
+    "negative_tests",
+    "notes",
+    "open_decisions",
+    "prior_evidence",
+    "result",
+    "sources",
+    "tested_at_utc",
+    "tested_commit"
+   ]
+  },
+  "UI-FP-149": {
+   "feature": "Reconciliation / Warnings: Wallet",
+   "expected_behaviour": "Shows Wallet from append_only/reconciliation.csv/manual_live_positions.json/exchange_account_snapshot.json as direct reconciliation/manual/exchange field (provenance APP_DERIVED; rows HEADER; can affect send: NO; execution truth: NO).",
+   "sources": [
+    "local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+   ],
+   "negative_tests": [
+    "source unavailable shows n/a/Unavailable not 0",
+    "stale source flagged",
+    "API error surfaced"
+   ],
+   "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+   "result_in_register": "FAIL",
+   "field_keys": [
+    "applicability",
+    "area",
+    "evidence_ref",
+    "execution_proof",
+    "expected_behaviour",
+    "feature",
+    "id",
+    "independent_oracle",
+    "negative_tests",
+    "notes",
+    "open_decisions",
+    "prior_evidence",
+    "result",
+    "sources",
+    "tested_at_utc",
+    "tested_commit"
+   ]
+  },
+  "UI-FP-150": {
+   "feature": "Reconciliation / Warnings: Intent",
+   "expected_behaviour": "Shows Intent from append_only/reconciliation.csv/manual_live_positions.json/exchange_account_snapshot.json as direct reconciliation/manual/exchange field (provenance APP_DERIVED; rows HEADER; can affect send: NO; execution truth: NO).",
+   "sources": [
+    "local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+   ],
+   "negative_tests": [
+    "source unavailable shows n/a/Unavailable not 0",
+    "stale source flagged",
+    "API error surfaced"
+   ],
+   "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+   "result_in_register": "FAIL",
+   "field_keys": [
+    "applicability",
+    "area",
+    "evidence_ref",
+    "execution_proof",
+    "expected_behaviour",
+    "feature",
+    "id",
+    "independent_oracle",
+    "negative_tests",
+    "notes",
+    "open_decisions",
+    "prior_evidence",
+    "result",
+    "sources",
+    "tested_at_utc",
+    "tested_commit"
+   ]
+  },
+  "UI-FP-165": {
+   "feature": "WS Health Detail: Current",
+   "expected_behaviour": "Shows Current from live_ws_health.json as direct WS health field (provenance LIVE_SERVICE_STATE; rows HEADER; can affect send: NO; execution truth: NO).",
+   "sources": [
+    "local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+   ],
+   "negative_tests": [
+    "source unavailable shows n/a/Unavailable not 0",
+    "stale source flagged",
+    "API error surfaced"
+   ],
+   "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+   "result_in_register": "FAIL",
+   "field_keys": [
+    "applicability",
+    "area",
+    "evidence_ref",
+    "execution_proof",
+    "expected_behaviour",
+    "feature",
+    "id",
+    "independent_oracle",
+    "negative_tests",
+    "notes",
+    "open_decisions",
+    "prior_evidence",
+    "result",
+    "sources",
+    "tested_at_utc",
+    "tested_commit"
+   ]
+  },
+  "UI-FP-167": {
+   "feature": "WS Health Detail: Thread",
+   "expected_behaviour": "Shows Thread from live_ws_health.json as direct WS health field (provenance LIVE_SERVICE_STATE; rows HEADER; can affect send: NO; execution truth: NO).",
+   "sources": [
+    "local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+   ],
+   "negative_tests": [
+    "source unavailable shows n/a/Unavailable not 0",
+    "stale source flagged",
+    "API error surfaced"
+   ],
+   "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+   "result_in_register": "FAIL",
+   "field_keys": [
+    "applicability",
+    "area",
+    "evidence_ref",
+    "execution_proof",
+    "expected_behaviour",
+    "feature",
+    "id",
+    "independent_oracle",
+    "negative_tests",
+    "notes",
+    "open_decisions",
+    "prior_evidence",
+    "result",
+    "sources",
+    "tested_at_utc",
+    "tested_commit"
+   ]
+  },
+  "UI-FP-168": {
+   "feature": "WS Health Detail: Reconnect/min",
+   "expected_behaviour": "Shows Reconnect/min from live_ws_health.json as direct WS health field (provenance LIVE_SERVICE_STATE; rows HEADER; can affect send: NO; execution truth: NO).",
+   "sources": [
+    "local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+   ],
+   "negative_tests": [
+    "source unavailable shows n/a/Unavailable not 0",
+    "stale source flagged",
+    "API error surfaced"
+   ],
+   "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+   "result_in_register": "FAIL",
+   "field_keys": [
+    "applicability",
+    "area",
+    "evidence_ref",
+    "execution_proof",
+    "expected_behaviour",
+    "feature",
+    "id",
+    "independent_oracle",
+    "negative_tests",
+    "notes",
+    "open_decisions",
+    "prior_evidence",
+    "result",
+    "sources",
+    "tested_at_utc",
+    "tested_commit"
+   ]
+  }
+ },
+ "src_token_counts": {
+  "current_status": 2,
+  "effective_status": 3,
+  "wh.status": 2,
+  "thread_alive": 3,
+  "worker_thread_alive": 1,
+  "reconnects_per_min": 1,
+  "total_reconnect_count": 0,
+  "current_health_grade": 2,
+  "health_grade": 4,
+  "data_status": 2
+ }
+}
