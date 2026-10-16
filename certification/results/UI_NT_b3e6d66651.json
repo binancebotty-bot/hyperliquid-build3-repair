@@ -1,0 +1,242 @@
+{
+  "task_id": "t_1fb73bd2",
+  "title": "B3-CERT UI NOT_TESTED APPLIES (23 rows): UI-LCC-*/UI-SSOT-*/UI-TRUTH-005",
+  "tested_commit": "b3e6d6665116510f8a9ceaa5254b060bf4d73998",
+  "tested_at_utc": "2026-10-16T14:45:45.153533+00:00",
+  "ui_source": "C:\\Users\\wigmore\\hyperliquid-build3-repair\\.worktrees\\t_1fb73bd2\\_archive\\hl_stage2\\HL_Copy_App_SSOT.py",
+  "ui_source_sha256": "4574ca72b0da4dc4aec101e6fa87b485a0e80abb99426a773957c26b5c173692",
+  "state_source": "C:\\Users\\wigmore\\hyperliquid-build3-repair\\_archive\\hl_stage2\\hl_live_copy_audit_testnet",
+  "oracle": "runtime: real UI served over HTTP from the tracked source; DOM rendered by real Chromium (Playwright) so the page JS calls the real endpoints; every asserted value independently recomputed from the raw audit/exchange files without importing the UI module; per-check mutation negative",
+  "provenance_note": "certification_matrix.json pins UI sha256 fad19d22 (HL_Copy_App_SSOT_20260513.py) / c0f9e508 (HL_Copy_App_SSOT.py). Neither exists as a git object here; the only tracked UI source is _archive/hl_stage2/HL_Copy_App_SSOT.py @ sha256 4574ca72b0da (identical in the worktree and the main checkout at b3e6d66651). Rows ran against that SERVED real source; the pinned 13-May hash is UNVERIFIABLE here (provenance gap already reported by t_8fc704ce).",
+  "rows": {
+    "UI-LCC-CARD-02": {
+      "verdict": "BLOCKED",
+      "oracle": "BLOCKED by upstream GET /api/live-audit-summary 500 (IndexError in _row_exchange_order_id at HL_Copy_App_SSOT.py:1731 on a live_fills.csv row whose notes end in a bare \"exchange_order_id=\"); the page renders with an empty lcAudit, so card values are not a product-truth signal."
+    },
+    "UI-LCC-CARD-03": {
+      "verdict": "BLOCKED",
+      "oracle": "BLOCKED by upstream GET /api/live-audit-summary 500 (IndexError in _row_exchange_order_id at HL_Copy_App_SSOT.py:1731 on a live_fills.csv row whose notes end in a bare \"exchange_order_id=\"); the page renders with an empty lcAudit, so card values are not a product-truth signal."
+    },
+    "UI-LCC-CARD-04": {
+      "verdict": "BLOCKED",
+      "oracle": "BLOCKED by upstream GET /api/live-audit-summary 500 (IndexError in _row_exchange_order_id at HL_Copy_App_SSOT.py:1731 on a live_fills.csv row whose notes end in a bare \"exchange_order_id=\"); the page renders with an empty lcAudit, so card values are not a product-truth signal."
+    },
+    "UI-LCC-CARD-05": {
+      "verdict": "BLOCKED",
+      "oracle": "BLOCKED by upstream GET /api/live-audit-summary 500 (IndexError in _row_exchange_order_id at HL_Copy_App_SSOT.py:1731 on a live_fills.csv row whose notes end in a bare \"exchange_order_id=\"); the page renders with an empty lcAudit, so card values are not a product-truth signal."
+    },
+    "UI-LCC-CARD-06": {
+      "verdict": "BLOCKED",
+      "oracle": "BLOCKED by upstream GET /api/live-audit-summary 500 (IndexError in _row_exchange_order_id at HL_Copy_App_SSOT.py:1731 on a live_fills.csv row whose notes end in a bare \"exchange_order_id=\"); the page renders with an empty lcAudit, so card values are not a product-truth signal."
+    },
+    "UI-LCC-CARD-07": {
+      "verdict": "BLOCKED",
+      "oracle": "BLOCKED by upstream GET /api/live-audit-summary 500 (IndexError in _row_exchange_order_id at HL_Copy_App_SSOT.py:1731 on a live_fills.csv row whose notes end in a bare \"exchange_order_id=\"); the page renders with an empty lcAudit, so card values are not a product-truth signal."
+    },
+    "UI-LCC-WTBL-09": {
+      "verdict": "BLOCKED",
+      "oracle": "BLOCKED by upstream GET /api/live-audit-summary 500 (IndexError in _row_exchange_order_id at HL_Copy_App_SSOT.py:1731 on a live_fills.csv row whose notes end in a bare \"exchange_order_id=\"); the page renders with an empty lcAudit, so card values are not a product-truth signal."
+    },
+    "UI-LCC-WTBL-10": {
+      "verdict": "BLOCKED",
+      "oracle": "BLOCKED by upstream GET /api/live-audit-summary 500 (IndexError in _row_exchange_order_id at HL_Copy_App_SSOT.py:1731 on a live_fills.csv row whose notes end in a bare \"exchange_order_id=\"); the page renders with an empty lcAudit, so card values are not a product-truth signal."
+    },
+    "UI-LCC-WTBL-11": {
+      "verdict": "BLOCKED",
+      "oracle": "BLOCKED by upstream GET /api/live-audit-summary 500 (IndexError in _row_exchange_order_id at HL_Copy_App_SSOT.py:1731 on a live_fills.csv row whose notes end in a bare \"exchange_order_id=\"); the page renders with an empty lcAudit, so card values are not a product-truth signal."
+    },
+    "UI-LCC-WTBL-12": {
+      "verdict": "BLOCKED",
+      "oracle": "BLOCKED by upstream GET /api/live-audit-summary 500 (IndexError in _row_exchange_order_id at HL_Copy_App_SSOT.py:1731 on a live_fills.csv row whose notes end in a bare \"exchange_order_id=\"); the page renders with an empty lcAudit, so card values are not a product-truth signal."
+    },
+    "UI-LCC-WTBL-13": {
+      "verdict": "BLOCKED",
+      "oracle": "BLOCKED by upstream GET /api/live-audit-summary 500 (IndexError in _row_exchange_order_id at HL_Copy_App_SSOT.py:1731 on a live_fills.csv row whose notes end in a bare \"exchange_order_id=\"); the page renders with an empty lcAudit, so card values are not a product-truth signal."
+    },
+    "UI-LCC-WTBL-14": {
+      "verdict": "BLOCKED",
+      "oracle": "BLOCKED by upstream GET /api/live-audit-summary 500 (IndexError in _row_exchange_order_id at HL_Copy_App_SSOT.py:1731 on a live_fills.csv row whose notes end in a bare \"exchange_order_id=\"); the page renders with an empty lcAudit, so card values are not a product-truth signal."
+    },
+    "UI-LCC-DETAIL-01": {
+      "verdict": "BLOCKED",
+      "oracle": "BLOCKED by upstream GET /api/live-audit-summary 500 (IndexError in _row_exchange_order_id at HL_Copy_App_SSOT.py:1731 on a live_fills.csv row whose notes end in a bare \"exchange_order_id=\"); the page renders with an empty lcAudit, so card values are not a product-truth signal."
+    },
+    "UI-LCC-DETAIL-02": {
+      "verdict": "BLOCKED",
+      "oracle": "BLOCKED by upstream GET /api/live-audit-summary 500 (IndexError in _row_exchange_order_id at HL_Copy_App_SSOT.py:1731 on a live_fills.csv row whose notes end in a bare \"exchange_order_id=\"); the page renders with an empty lcAudit, so card values are not a product-truth signal."
+    },
+    "UI-LCC-DETAIL-03": {
+      "verdict": "BLOCKED",
+      "oracle": "BLOCKED by upstream GET /api/live-audit-summary 500 (IndexError in _row_exchange_order_id at HL_Copy_App_SSOT.py:1731 on a live_fills.csv row whose notes end in a bare \"exchange_order_id=\"); the page renders with an empty lcAudit, so card values are not a product-truth signal."
+    },
+    "UI-LCC-DETAIL-04": {
+      "verdict": "BLOCKED",
+      "oracle": "BLOCKED by upstream GET /api/live-audit-summary 500 (IndexError in _row_exchange_order_id at HL_Copy_App_SSOT.py:1731 on a live_fills.csv row whose notes end in a bare \"exchange_order_id=\"); the page renders with an empty lcAudit, so card values are not a product-truth signal."
+    },
+    "UI-LCC-ADD-06": {
+      "verdict": "PASS",
+      "oracle": "runtime DOM (real Chromium) on the served UI + independent recompute from raw audit/exchange files"
+    },
+    "UI-LCC-ADD-07": {
+      "verdict": "FAIL",
+      "oracle": "runtime DOM (real Chromium) on the served UI + independent recompute from raw audit/exchange files"
+    },
+    "UI-LCC-ADD-10": {
+      "verdict": "PASS",
+      "oracle": "runtime DOM (real Chromium) on the served UI + independent recompute from raw audit/exchange files"
+    },
+    "UI-SSOT-TOP-06": {
+      "verdict": "FAIL",
+      "oracle": "runtime DOM (real Chromium) on the served UI + independent recompute from raw audit/exchange files"
+    },
+    "UI-SSOT-TBL-25": {
+      "verdict": "PASS",
+      "oracle": "runtime DOM (real Chromium) on the served UI + independent recompute from raw audit/exchange files"
+    },
+    "UI-SSOT-PAGE-11": {
+      "verdict": "PASS",
+      "oracle": "runtime DOM (real Chromium) on the served UI + independent recompute from raw audit/exchange files"
+    },
+    "UI-TRUTH-005": {
+      "verdict": "PASS",
+      "oracle": "runtime DOM (real Chromium) on the served UI + independent recompute from raw audit/exchange files"
+    }
+  },
+  "checks": {
+    "UI_SHA256_RECORDED": {
+      "pass": true,
+      "detail": "4574ca72b0da4dc4aec101e6fa87b485a0e80abb99426a773957c26b5c173692"
+    },
+    "LCC_SURFACE_UPSTREAM_AUDIT_SUMMARY_200": {
+      "pass": false,
+      "detail": "GET /api/live-audit-summary status=500 error='list index out of range' - a non-200 here means the Live Copy Command Centre renders with an empty audit object (product defect, reproduced on the committed state at b3e6d66651)."
+    },
+    "APP_SERVES_LIVE_COPY": {
+      "pass": true,
+      "detail": "status=200"
+    },
+    "UI-LCC-CARD-02:UNREALIZED_PNL": {
+      "pass": false,
+      "detail": "dom='\u2014' oracle=0.0"
+    },
+    "UI-LCC-CARD-03:REALIZED_PNL": {
+      "pass": true,
+      "detail": "labels=['CLOSED P&L (REALISED)', 'LIVE EXPOSURE', 'OPEN POSITIONS', 'OPEN POSITIONS P&L (UNREALISED)', 'PORTFOLIO VALUE ()']"
+    },
+    "UI-LCC-CARD-04:OPEN_POSITIONS": {
+      "pass": false,
+      "detail": "dom='\u2014' oracle=0"
+    },
+    "UI-LCC-CARD-05:LIVE_EXPOSURE": {
+      "pass": true,
+      "detail": "dom='$0' oracle=0.0"
+    },
+    "UI-LCC-CARD-06:LAST_FILL": {
+      "pass": false,
+      "detail": "dom='\u2014' oracle_filled=176"
+    },
+    "UI-LCC-CARD-07:LAST_REJECT": {
+      "pass": false,
+      "detail": "dom='\u2014' oracle_rejected=6"
+    },
+    "UI-LCC-ADD-06:LEADER_EQUITY_BASE_FIELD": {
+      "pass": true,
+      "detail": "fields=['copy_mode', 'fixed_notional', 'mode', 'norm_base', 'wallet']"
+    },
+    "UI-LCC-ADD-07:MAX_DIFF_FIELD": {
+      "pass": false,
+      "detail": "no Max-diff control in the served Add-wallet modal; fields=['copy_mode', 'fixed_notional', 'mode', 'norm_base', 'wallet']"
+    },
+    "UI-LCC-ADD-10:ADD_WALLET_SUBMIT_PERSISTS": {
+      "pass": true,
+      "detail": "persisted={'copy_mode': 'fixed', 'enabled': True, 'fixed_notional': 55.0, 'mode': 'LIVE', 'norm_base': 1234.0}"
+    },
+    "UI-LCC-ADD-10:INVALID_INPUT_REJECTED": {
+      "pass": true,
+      "detail": "status=400"
+    },
+    "UI-SSOT-TOP-06:SET_IS_MODEL_ONLY": {
+      "pass": false,
+      "detail": "model_labelled=False engine_labelled=False live_config_unchanged=True"
+    },
+    "UI-SSOT-TBL-25:SORT_ROUTE": {
+      "pass": true,
+      "detail": "status=200 len=22194"
+    },
+    "UI-SSOT-PAGE-11:LIVE_CONFIG_ENDPOINT": {
+      "pass": true,
+      "detail": "status=200"
+    },
+    "UI-SSOT-PAGE-11:RESET_SNAPSHOT_SAFE": {
+      "pass": true,
+      "detail": "cfg_unchanged=True csv_unchanged=True"
+    },
+    "UI-TRUTH-005:HISTORICAL_UI_TRACKED_AND_SERVED": {
+      "pass": true,
+      "detail": "tracked=True blob=4574ca72b0da served=4574ca72b0da new_ui=[]"
+    },
+    "NO_PAGE_JS_ERRORS": {
+      "pass": false,
+      "detail": "console=['Failed to load resource: the server responded with a status of 500 (Internal Server Error)', 'Failed to load resource: the server responded with a status of 500 (Internal Server Error)']"
+    }
+  },
+  "negative_tests": {
+    "NEG_CARD_UNAVAILABLE_NOT_ZERO": {
+      "pass": true,
+      "detail": "unreadable exchange shows the dash, never a fabricated $0"
+    },
+    "NEG_ADD_NONVACUOUS": {
+      "pass": true,
+      "detail": "round-trips to disk"
+    },
+    "NEG_TOP06_LABEL_PRESENT": {
+      "pass": false,
+      "detail": "model label renders"
+    },
+    "NEG_TBL25_UNKNOWN_COLUMN_REJECTED": {
+      "pass": false,
+      "detail": "unknown column status=200"
+    },
+    "NEG_PAGE11_NONVACUOUS": {
+      "pass": true,
+      "detail": "real config body"
+    },
+    "NEG_TRUTH005_NONVACUOUS": {
+      "pass": true,
+      "detail": "served UI byte-identical to committed source"
+    }
+  },
+  "blocked": [
+    {
+      "scope": [
+        "UI-LCC-WTBL-09..14",
+        "UI-LCC-DETAIL-01..04"
+      ],
+      "reason": "GET /api/live-audit-summary returned status=500 error='list index out of range'; the page refresh() Promise.all rejects, render() never runs, #lcWalletRows stays on \"Loading live-copy config...\" so the wallet rows/detail are unreachable.",
+      "api_status": 500,
+      "api_error": "list index out of range"
+    },
+    {
+      "scope": [
+        "UI-LCC-CARD-02",
+        "UI-LCC-CARD-03",
+        "UI-LCC-CARD-04",
+        "UI-LCC-CARD-05",
+        "UI-LCC-CARD-06",
+        "UI-LCC-CARD-07"
+      ],
+      "reason": "BLOCKED by upstream GET /api/live-audit-summary 500 (IndexError in _row_exchange_order_id at HL_Copy_App_SSOT.py:1731 on a live_fills.csv row whose notes end in a bare \"exchange_order_id=\"); the page renders with an empty lcAudit, so card values are not a product-truth signal."
+    }
+  ],
+  "summary": {
+    "total_checks": 19,
+    "passed_checks": 11,
+    "failed_checks": 8,
+    "total_negative_tests": 6,
+    "passed_negative_tests": 4,
+    "failed_negative_tests": 2,
+    "rows_pass": 5,
+    "rows_fail": 2,
+    "rows_blocked": 16
+  }
+}
