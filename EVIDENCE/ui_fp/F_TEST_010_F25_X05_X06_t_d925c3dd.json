@@ -1,0 +1,108 @@
+{
+  "schema": "b3_row_evidence_v1",
+  "card": "t_d925c3dd",
+  "register_ref": "main:certification/certification_matrix.json",
+  "register_commit": "b142cf88d389e791160f691aac3d936852b99975",
+  "register_read_via": "git show b142cf88:certification/certification_matrix.json (working-tree copy NOT used)",
+  "tested_at_utc": "2026-10-17T00:20:00Z",
+  "engine_commit": "c0e72c6d (repo HEAD); certified source blobs read at register commit b142cf88 - _archive/hl_stage2/HL_Live_Copy_Service_Core.py sha256 b171ec8fef01ead5ed2fe4a4a075857b5b1a56e425bab8394440c7dbad57f2a0",
+  "live_surface": "http://127.0.0.1:8031/live-copy (UI PID 8668); engine PID 28164 'python.exe HL_Live_Copy_Service_Core.py --ws --loop --interval 10 --poll-live --poll-copy'",
+  "independent_oracle": "OS process table + command lines (powershell Get-CimInstance), TCP port bindings (netstat -ano), repo/git object reads. NO engine import.",
+  "artifacts": {
+    "process_oracle": "EVIDENCE/ui_fp/raw/oracle_cmdlines.json",
+    "process_oracle_sha256": "e2fd6688069b9dd1d310e63e03359b3431d8e1ad46e733e7f35f43b8ad2ef6a0",
+    "harness": "EVIDENCE/ui_fp/scripts/oracle_cmdlines.py",
+    "harness_sha256": "08907b8f69d2477663c6e03723a35ad4166361dee8ee4a09ba98b7edd1d3bb6a"
+  },
+  "results": [
+    {
+      "row_id": "F-TEST-010",
+      "area": "REGRESSION",
+      "feature": "FAILURES TEST-010 independent_oracle",
+      "expected_behaviour": "Read-only oracle independently calculates target vs exchange state and halts on disagreement.",
+      "prior_result": "NOT_TESTED",
+      "applicability": "OPEN_DECISION (OD-11)",
+      "result": "NOT_TESTED",
+      "execution_proof": "REQUIRED: reproduce the historical trigger on testnet or recorded replay -> assert the failure cannot occur, with an independent oracle that recomputes target-vs-exchange state without engine code.",
+      "checks": [
+        {
+          "name": "independent_oracle_present_in_repo",
+          "result": "NOT_TESTED",
+          "detail": "MISSING ROUTE: no independent_oracle.py (or equivalent runtime oracle) exists in the repo at the register commit. FAILURES TEST-010 / GUT I26 require one; OD-11 records that Build 4's independent_oracle.py was deleted and that the runtime oracle is an OPEN decision owned by the Architect. The agent-spec oracle for this contract (a script that does not import the engine) is a certification method, not the product mechanism this row demands."
+        },
+        {
+          "name": "recorded_replay_fixture",
+          "result": "NOT_TESTED",
+          "detail": "MISSING ROUTE: no recorded-replay fixture for the TEST-010 trigger exists. The nearest artifacts are offline self-tests of the engine's own seams (_archive/hl_stage2/test_core_outage_replay.py, test_hotpath_replay_bench.py) and convergence_shadow.py - all import-own-code / seam-stub replays, not an independent oracle of exchange truth, and none exercises a halt-on-disagreement."
+        },
+        {
+          "name": "halt_on_disagreement",
+          "result": "NOT_TESTED",
+          "detail": "MISSING ROUTE: the certified engine source at b142cf88 contains no target-vs-exchange disagreement halt path to exercise (grep for disagree/halt/target_vs returns no oracle-halt construct). Cannot assert 'the failure cannot occur' without the mechanism and the oracle."
+        }
+      ],
+      "notes": "Honest NOT_TESTED. Blocking item named exactly: runtime independent oracle (OD-11) + a recorded-replay fixture + the halt-on-disagreement path. OD-11 is an OPEN decision; this card cannot clear it."
+    },
+    {
+      "row_id": "F25-X05",
+      "area": "LIFECYCLE",
+      "feature": "F25 automatic fail 5",
+      "expected_behaviour": "Must never happen: the lease holder is read from any file other than the authoritative",
+      "prior_result": "NOT_TESTED",
+      "applicability": "ADAPTED_PROPOSED (OD-12)",
+      "result": "NOT_TESTED",
+      "execution_proof": "REQUIRED: operator command -> process table / PID / lock -> engine status endpoint -> exchange shows zero unintended orders, across a lifecycle transition window.",
+      "checks": [
+        {
+          "name": "authoritative_lease_mechanism_exists",
+          "result": "NOT_TESTED",
+          "detail": "MISSING ROUTE: the certified source at b142cf88 contains no lease-holder concept and no authoritative lease file. grep -i 'lease_holder' / 'single_writer' / 'LOCKFILE' -> 0 occurrences in HL_Live_Copy_Service_Core.py; the two 'LEASE' hits are the substring inside the word 'release'. With no authoritative lease file defined, the negative 'must never be read from a non-authoritative file' has no mechanism to execute against."
+        },
+        {
+          "name": "operator_entry_point",
+          "result": "NOT_TESTED",
+          "detail": "MISSING ROUTE: no canonical operator start/stop entry point and no launcher exists (see F25-X06 oracle); OD-12 records that no Build 3 document names the canonical start command, lock or version source. Without the transition command there is no lifecycle transition window to observe."
+        },
+        {
+          "name": "os_oracle_pid_port_lock",
+          "result": "PASS",
+          "detail": "OS oracle executed and reproducible: UI PID 8668 = 'python.exe -m uvicorn HL_Copy_App_SSOT:app --host 127.0.0.1 --port 8031' LISTENING 127.0.0.1:8031; engine PID 28164 = 'python.exe HL_Live_Copy_Service_Core.py --ws --loop --interval 10 --poll-live --poll-copy'. No launcher/release-named process present. This proves the OS oracle route works but does not by itself test the lease-holder rule."
+        }
+      ],
+      "notes": "Honest NOT_TESTED with the exact missing route NAMED (authoritative lease mechanism + canonical operator entry point, both blocked on OD-12). A working OS/port oracle was executed and recorded, so the block is product-side, not instrument-side."
+    },
+    {
+      "row_id": "F25-X06",
+      "area": "LIFECYCLE",
+      "feature": "F25 automatic fail 6",
+      "expected_behaviour": "Must never happen: a deployment candidate is built from a dirty worktree",
+      "prior_result": "NOT_TESTED",
+      "applicability": "ADAPTED_PROPOSED (OD-12)",
+      "result": "NOT_TESTED",
+      "execution_proof": "REQUIRED: operator command -> process table / PID / lock -> engine status endpoint -> exchange shows zero unintended orders, across a deployment/cutover.",
+      "checks": [
+        {
+          "name": "deployment_build_mechanism_exists",
+          "result": "NOT_TESTED",
+          "detail": "MISSING ROUTE: the repo contains no deployment-candidate build mechanism. grep -i 'current_release' / 'launcher' / 'version_source' -> 0 occurrences in both the UI and the Core source at b142cf88; no build script / Makefile / release tooling exists; find '*release*' / 'build*.py' returns nothing. There is no 'deployment candidate build' to observe, so the negative cannot be executed."
+        },
+        {
+          "name": "working_tree_cleanliness_observation",
+          "result": "OBSERVATION",
+          "detail": "CONTEXT (not a verdict for this row): the shared checkout at HEAD c0e72c6 is currently DIRTY - 23 entries - including modified certified sources _archive/hl_stage2/HL_Copy_App_SSOT.py and _archive/hl_stage2/HL_Live_Copy_Service_Core.py, plus untracked artifacts. This shows the tree is not clean, but nothing in the repo builds a deployment candidate FROM it, so it is not evidence for or against this row's negative."
+        },
+        {
+          "name": "os_oracle_process_table",
+          "result": "PASS",
+          "detail": "OS oracle executed: no launcher/release/version-named process exists; the engine runs directly from the working directory (PID 28164 running HL_Live_Copy_Service_Core.py in place). Recorded for the lifecycle family, not as a verdict on the dirty-tree rule."
+        }
+      ],
+      "notes": "Honest NOT_TESTED. Exact missing item NAMED: there is no deployment/release build mechanism in the repo to test the dirty-worktree prohibition against (OD-12). The dirty-worktree fact is recorded as an observation with its own evidence, not converted into a PASS/FAIL for a mechanism that does not exist."
+    }
+  ],
+  "method_limits": [
+    "Rendered-DOM and API captures are point-in-time; the engine and UI were running read-only throughout (no start/stop/order action was taken).",
+    "No register edit, no apply_verified_results.py use, no mock data, no substituted evidence.",
+    "The working-tree copy of certification_matrix.json was not used as a status source."
+  ]
+}

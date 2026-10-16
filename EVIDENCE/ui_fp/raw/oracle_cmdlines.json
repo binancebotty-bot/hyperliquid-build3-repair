@@ -1,0 +1,184 @@
+{
+  "python_processes": [
+    {
+      "pid": 29844,
+      "name": "pythonw.exe",
+      "cmdline": "C:\\Users\\wigmore\\AppData\\Local\\Python\\bin\\pythonw.exe -I C:\\Users\\wigmore\\trading_stack\\hl-build3-testnet-cert-evidence\\run5\\watch_sup.py"
+    },
+    {
+      "pid": 34216,
+      "name": "python.exe",
+      "cmdline": "\"C:\\Users\\wigmore\\AppData\\Local\\Python\\bin\\python.exe\" -u HL_Copy_Engine_SSOT.py "
+    },
+    {
+      "pid": 11960,
+      "name": "pythonw.exe",
+      "cmdline": "C:\\Users\\wigmore\\AppData\\Local\\Python\\bin\\pythonw.exe -u C:\\Users\\wigmore\\trading_stack\\hl-build3-testnet-cert-evidence\\run5\\test_queue_runner.py"
+    },
+    {
+      "pid": 7752,
+      "name": "python.exe",
+      "cmdline": "C:\\Users\\wigmore\\.hermes\\tools\\python-3.14.7+20260901-win32-x64\\python.exe -m hermes_cli.main gateway run"
+    },
+    {
+      "pid": 8668,
+      "name": "python.exe",
+      "cmdline": "\"C:\\Users\\wigmore\\AppData\\Local\\Python\\bin\\python.exe\" -m uvicorn HL_Copy_App_SSOT:app --host 127.0.0.1 --port 8031 "
+    },
+    {
+      "pid": 39660,
+      "name": "pythonw.exe",
+      "cmdline": "\"C:\\Users\\wigmore\\AppData\\Local\\Python\\bin\\pythonw.exe\" -m uvicorn wallet_proof_engine_8014:app --host 127.0.0.1 --port 8014 --log-level warning "
+    },
+    {
+      "pid": 38044,
+      "name": "pythonw.exe",
+      "cmdline": "\"C:\\Users\\wigmore\\AppData\\Local\\Python\\bin\\pythonw.exe\" -m uvicorn wallet_talent_scout_8012:app --host 127.0.0.1 --port 8012 --log-level warning "
+    },
+    {
+      "pid": 21340,
+      "name": "pythonw.exe",
+      "cmdline": "\"C:\\Users\\wigmore\\.hermes\\tools\\python-3.14.7+20260901-win32-x64\\pythonw.exe\" -I -c \"import base64;exec(base64.b64decode('aW1wb3J0IG9zLCBzeXMKcm9vdCA9IHInQzpcVXNlcnNcd2lnbW9yZVwuaGVybWVzXGhlcm1lcy1hZ2VudCcKb3MuZW52aXJvbi5wb3AoJ1BZVEhPTkhPTUUnLCBOb25lKQpvcy5lbnZpcm9uLnBvcCgnUFlUSE9OUEFUSCcsIE5vbmUpCm9zLmVudmlyb24ucG9wKCdWSVJUVUFMX0VOVicsIE5vbmUpCnN5cy5wYXRoLmluc2VydCgwLCByb290KQpzeXMuX2hlcm1lc19waW5fZGVmYXVsdF9ob21lID0gVHJ1ZQpzeXMuYXJndiA9IFsnaGVybWVzJywgJ2Rhc2hib2FyZCcsICctLWhvc3QnLCAnMC4wLjAuMCcsICctLXBvcnQnLCAnOTExOScsICctLW5vLW9wZW4nLCAnLS1za2lwLWJ1aWxkJ10KbG9nID0gb3BlbihyJ0M6XFVzZXJzXHdpZ21vcmVcLmhlcm1lc1xsb2dzXG1vYmlsZS1kYXNoYm9hcmQtc2VydmljZS5sb2cnLCAnYScsIGVuY29kaW5nPSd1dGYtOCcsIGJ1ZmZlcmluZz0xKQpzeXMuc3Rkb3V0ID0gbG9nCnN5cy5zdGRlcnIgPSBsb2cKaW1wb3J0IGhlcm1lc19ib290c3RyYXAKZnJvbSBoZXJtZXNfY2xpLm1haW4gaW1wb3J0IG1haW4KcmFpc2UgU3lzdGVtRXhpdChtYWluKCkp'))\""
+    },
+    {
+      "pid": 30604,
+      "name": "python.exe",
+      "cmdline": "C:\\Users\\wigmore\\.hermes\\tools\\python-3.14.7+20260901-win32-x64\\python.exe -I -I -c \"import sys, runpy; sys.path.insert(0, 'C:\\\\Users\\\\wigmore\\\\.hermes\\\\hermes-agent'); sys.argv = ['hermes', 'dashboard', '--host', '0.0.0.0', '--port', '9119', '--no-open', '--skip-build']; runpy.run_path('C:\\\\Users\\\\wigmore\\\\.hermes\\\\hermes-agent\\\\hermes', run_name='__main__')\""
+    },
+    {
+      "pid": 22468,
+      "name": "pythonw.exe",
+      "cmdline": "\"C:\\Users\\wigmore\\AppData\\Local\\Python\\bin\\pythonw.exe\" \"C:\\Users\\wigmore\\WINAGENT-HERMES BRIDGE\\bridge_runtime\\window_watchdog.py\" --log \"C:\\Users\\wigmore\\WINAGENT-HERMES BRIDGE\\bridge_runtime\\window_events.jsonl\" --poll 0.15 --all-classes "
+    },
+    {
+      "pid": 25384,
+      "name": "pythonw.exe",
+      "cmdline": "\"C:\\Users\\wigmore\\AppData\\Local\\Python\\bin\\pythonw.exe\" \"C:\\Users\\wigmore\\WINAGENT-HERMES BRIDGE\\bridge_runtime\\proc_watchdog.py\" --log \"C:\\Users\\wigmore\\WINAGENT-HERMES BRIDGE\\bridge_runtime\\proc_start_events.jsonl\" --interval 0.008 "
+    },
+    {
+      "pid": 8924,
+      "name": "pythonw.exe",
+      "cmdline": "\"C:\\Users\\wigmore\\AppData\\Local\\Python\\bin\\pythonw.exe\" \"C:\\Users\\wigmore\\WINAGENT-HERMES BRIDGE\\bridge_runtime\\console_autohide.py\" --log \"C:\\Users\\wigmore\\WINAGENT-HERMES BRIDGE\\bridge_runtime\\autohide_events.jsonl\" --interval 0.05 --grace 25 "
+    },
+    {
+      "pid": 42312,
+      "name": "pythonw.exe",
+      "cmdline": "C:\\Users\\wigmore\\AppData\\Local\\Python\\pythoncore-3.14-64\\pythonw.exe C:\\Users\\wigmore\\trading_stack\\_tools\\hl_monitor.py"
+    },
+    {
+      "pid": 41260,
+      "name": "python.exe",
+      "cmdline": "\"C:\\Users\\wigmore\\.hermes\\tools\\python-3.14.7+20260901-win32-x64\\python.exe\" -I \"C:\\Users\\wigmore\\.hermes\\hermes-agent\\.hermes\\bin\\hermes.exe\" serve --host 127.0.0.1 --port 0"
+    },
+    {
+      "pid": 42552,
+      "name": "pythonw.exe",
+      "cmdline": "\"C:\\Users\\wigmore\\AppData\\Local\\Python\\bin\\pythonw.exe\" \"C:\\Users\\wigmore\\WINAGENT-HERMES BRIDGE\\bridge_runtime\\window_watchdog.py\" --log \"C:\\Users\\wigmore\\WINAGENT-HERMES BRIDGE\\bridge_runtime\\window_events.jsonl\" --poll 0.15 --all-classes"
+    },
+    {
+      "pid": 44552,
+      "name": "pythonw.exe",
+      "cmdline": "\"C:\\Users\\wigmore\\AppData\\Local\\Python\\bin\\pythonw.exe\" \"C:\\Users\\wigmore\\WINAGENT-HERMES BRIDGE\\bridge_runtime\\console_autohide.py\" --log \"C:\\Users\\wigmore\\WINAGENT-HERMES BRIDGE\\bridge_runtime\\autohide_events.jsonl\" --interval 0.05 --grace 25"
+    },
+    {
+      "pid": 2660,
+      "name": "python.exe",
+      "cmdline": "C:\\Users\\wigmore\\.hermes\\tools\\python-3.14.7+20260901-win32-x64\\python.exe -m browser_harness.daemon"
+    },
+    {
+      "pid": 30480,
+      "name": "python.exe",
+      "cmdline": "C:\\Users\\wigmore\\.hermes\\tools\\python-3.14.7+20260901-win32-x64\\python.exe -m hermes_cli.main -p default --cli --accept-hooks -m meituan/longcat-2.5-preview:free --provider nous --toolsets browser,clarify,code_execution,connections,cronjob,delegation,file,kanban,memory,messaging,session_search,skills,terminal,todo,tradingview-mcp,vision,web chat -q \"work kanban task t_f707eb6b\""
+    },
+    {
+      "pid": 4752,
+      "name": "python.exe",
+      "cmdline": "C:\\Users\\wigmore\\.hermes\\tools\\python-3.14.7+20260901-win32-x64\\python.exe -m hermes_cli.main -p default --cli --accept-hooks --toolsets browser,clarify,code_execution,connections,cronjob,delegation,file,kanban,memory,messaging,session_search,skills,terminal,todo,tradingview-mcp,vision,web chat -q \"work kanban task t_0ff26004\""
+    },
+    {
+      "pid": 37392,
+      "name": "python.exe",
+      "cmdline": "C:\\Users\\wigmore\\.hermes\\tools\\python-3.14.7+20260901-win32-x64\\python.exe -m hermes_cli.main -p default --cli --accept-hooks --toolsets browser,clarify,code_execution,connections,cronjob,delegation,file,kanban,memory,messaging,session_search,skills,terminal,todo,tradingview-mcp,vision,web chat -q \"work kanban task t_e278511c\""
+    },
+    {
+      "pid": 22812,
+      "name": "python.exe",
+      "cmdline": "C:\\Users\\wigmore\\.hermes\\tools\\python-3.14.7+20260901-win32-x64\\python.exe -m hermes_cli.main -p default --cli --accept-hooks -m meituan/longcat-2.5-preview:free --provider nous --toolsets browser,clarify,code_execution,connections,cronjob,delegation,file,kanban,memory,messaging,session_search,skills,terminal,todo,tradingview-mcp,vision,web chat -q \"work kanban task t_11c374e0\""
+    },
+    {
+      "pid": 12360,
+      "name": "pythonw.exe",
+      "cmdline": "C:/Users/wigmore/AppData/Local/Python/bin/pythonw.exe -I C:\\Users\\wigmore\\trading_stack\\hl-build3-testnet-cert-evidence\\run5\\watch.py 86400 1792190023682"
+    },
+    {
+      "pid": 28860,
+      "name": "python.exe",
+      "cmdline": "C:\\Users\\wigmore\\.hermes\\tools\\python-3.14.7+20260901-win32-x64\\python.exe C:\\Users\\wigmore\\AppData\\Local\\Temp\\hermes_kernel_k9e7l4n2\\hermes_kernel_runner.py"
+    },
+    {
+      "pid": 40420,
+      "name": "python.exe",
+      "cmdline": "C:\\Users\\wigmore\\.hermes\\tools\\python-3.14.7+20260901-win32-x64\\python.exe C:\\Users\\wigmore\\AppData\\Local\\Temp\\hermes_kernel_yhg_xhx5\\hermes_kernel_runner.py"
+    },
+    {
+      "pid": 4920,
+      "name": "python.exe",
+      "cmdline": "C:\\Users\\wigmore\\.hermes\\installs\\dcb5c798bbd5e4e2\\environments\\e7ac25d813bd4356bc2120049f8ca50b\\venv\\Scripts\\python.exe -u gitwatcher.py"
+    },
+    {
+      "pid": 26568,
+      "name": "python.exe",
+      "cmdline": "C:\\Users\\wigmore\\.hermes\\installs\\dcb5c798bbd5e4e2\\environments\\e7ac25d813bd4356bc2120049f8ca50b\\venv\\Scripts\\python.exe -u gitwatcher.py"
+    },
+    {
+      "pid": 26880,
+      "name": "python.exe",
+      "cmdline": "C:\\Users\\wigmore\\.hermes\\tools\\python-3.14.7+20260901-win32-x64\\python.exe -m hermes_cli.main -p default --cli --accept-hooks -m gemini-2.5-flash --provider gemini --toolsets browser,clarify,code_execution,connections,cronjob,delegation,file,kanban,memory,messaging,session_search,skills,terminal,todo,tradingview-mcp,vision,web chat -q \"work kanban task t_12cb75b2\""
+    },
+    {
+      "pid": 27296,
+      "name": "python.exe",
+      "cmdline": "C:\\Users\\wigmore\\.hermes\\tools\\python-3.14.7+20260901-win32-x64\\python.exe -m hermes_cli.main -p default --cli --accept-hooks -m gemini-2.5-flash --provider gemini --toolsets browser,clarify,code_execution,connections,cronjob,delegation,file,kanban,memory,messaging,session_search,skills,terminal,todo,tradingview-mcp,vision,web chat -q \"work kanban task t_3cc5bffa\""
+    },
+    {
+      "pid": 50680,
+      "name": "python.exe",
+      "cmdline": "C:\\Users\\wigmore\\.hermes\\tools\\python-3.14.7+20260901-win32-x64\\python.exe -m hermes_cli.main -p default --cli --accept-hooks -m gemini-2.5-flash --provider gemini --toolsets browser,clarify,code_execution,connections,cronjob,delegation,file,kanban,memory,messaging,session_search,skills,terminal,todo,tradingview-mcp,vision,web chat -q \"work kanban task t_d0ad302a\""
+    },
+    {
+      "pid": 46456,
+      "name": "python.exe",
+      "cmdline": "C:\\Users\\wigmore\\.hermes\\tools\\python-3.14.7+20260901-win32-x64\\python.exe -m hermes_cli.main -p default --cli --accept-hooks -m meituan/longcat-2.5-preview:free --provider nous --toolsets browser,clarify,code_execution,connections,cronjob,delegation,file,kanban,memory,messaging,session_search,skills,terminal,todo,tradingview-mcp,vision,web chat -q \"work kanban task t_1d4d8c50\""
+    },
+    {
+      "pid": 28164,
+      "name": "python.exe",
+      "cmdline": "C:\\Users\\wigmore\\AppData\\Local\\Python\\bin\\python.exe HL_Live_Copy_Service_Core.py --ws --loop --interval 10 --poll-live --poll-copy"
+    },
+    {
+      "pid": 23116,
+      "name": "python.exe",
+      "cmdline": "C:\\Users\\wigmore\\.hermes\\tools\\python-3.14.7+20260901-win32-x64\\python.exe -m hermes_cli.main -p default --cli --accept-hooks -m deepseek-v4-flash-thinking-nosearch --provider custom-deepseek-free --toolsets browser,clarify,code_execution,connections,cronjob,delegation,file,kanban,memory,messaging,session_search,skills,terminal,todo,tradingview-mcp,vision,web chat -q \"work kanban task t_d925c3dd\""
+    },
+    {
+      "pid": 13944,
+      "name": "python.exe",
+      "cmdline": "C:\\Users\\wigmore\\AppData\\Local\\Programs\\Python\\Python311\\python.exe scripts/oracle_cmdlines.py"
+    }
+  ],
+  "ui_on_8031": [
+    {
+      "pid": 8668,
+      "name": "python.exe",
+      "cmdline": "\"C:\\Users\\wigmore\\AppData\\Local\\Python\\bin\\python.exe\" -m uvicorn HL_Copy_App_SSOT:app --host 127.0.0.1 --port 8031 "
+    }
+  ],
+  "engine_processes": [
+    {
+      "pid": 28164,
+      "name": "python.exe",
+      "cmdline": "C:\\Users\\wigmore\\AppData\\Local\\Python\\bin\\python.exe HL_Live_Copy_Service_Core.py --ws --loop --interval 10 --poll-live --poll-copy"
+    }
+  ],
+  "launcher_named_processes": []
+}

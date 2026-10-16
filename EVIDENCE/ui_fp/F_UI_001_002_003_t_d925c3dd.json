@@ -1,0 +1,105 @@
+{
+  "schema": "b3_ui_row_evidence_v1",
+  "card": "t_d925c3dd",
+  "register_ref": "main:certification/certification_matrix.json",
+  "register_commit": "b142cf88d389e791160f691aac3d936852b99975",
+  "register_read_via": "git show b142cf88:certification/certification_matrix.json (working-tree copy NOT used)",
+  "tested_at_utc": "2026-10-17T00:15:00Z",
+  "engine_commit": "c0e72c6d",
+  "engine_commit_note": "Engine/UI source blobs verified at the register commit: _archive/hl_stage2/HL_Copy_App_SSOT.py sha256 7468ab5188750617b090b56c3e719d73e91f5b4241f4782382ccac1a22989276 (git show b142cf88:...) and _archive/hl_stage2/HL_Live_Copy_Service_Core.py sha256 b171ec8fef01ead5ed2fe4a4a075857b5b1a56e425bab8394440c7dbad57f2a0.",
+  "live_surface": "http://127.0.0.1:8031/live-copy (HTTP 200; listener PID 8668; cmdline 'python.exe -m uvicorn HL_Copy_App_SSOT:app --host 127.0.0.1 --port 8031')",
+  "route": "playwright.chromium headless (Python 3.11) rendered DOM + served JSON API + on-disk app exchange snapshot + OS process/port oracle",
+  "independent_oracle": "urllib read of the served JSON API and of exchange_account_snapshot_app.json on disk + netstat/tasklist process-and-port read. NO import of HL_Copy_App_SSOT.py or the engine (independence rule respected).",
+  "artifacts": {
+    "probe1": "EVIDENCE/ui_fp/raw/ui_fp_probe.json",
+    "probe1_sha256": "60ad4856a8a68d5f56239b8c217ea756e8353fa7642d9e7f0f29c7db73133613",
+    "probe2": "EVIDENCE/ui_fp/raw/ui_fp_probe2.json",
+    "probe2_sha256": "95776e5fad7741208b0808be1fc8621a3f84262f4076a274918b725c437e37b8",
+    "harness1": "EVIDENCE/ui_fp/scripts/ui_fp_probe.py",
+    "harness1_sha256": "32cd3dd51ac1c5d75ac1e5d21eb3b485acfe4332b58390de4cfcf569c72e8a1f",
+    "harness2": "EVIDENCE/ui_fp/scripts/ui_fp_probe2.py",
+    "harness2_sha256": "6cb9bde2153ed6f56d79493eee74b962feebf75415e85b9eb705e7449ec0aac6"
+  },
+  "results": [
+    {
+      "row_id": "F-UI-001",
+      "area": "REGRESSION",
+      "feature": "FAILURES UI-001 no_truth_tier",
+      "expected_behaviour": "Every UI cell must carry one of AUTHORITATIVE_EXCHANGE, LOCAL_LEDGER, LEADER_SIGNAL, DISPLAY_ONLY, STALE, BLOCKED, SKIPPED.",
+      "prior_result": "BLOCKED",
+      "prior_evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+      "prior_block_reason": "ui-visibility-blocked: 1 check passed, 0 failed, pass=false (data-availability check only)",
+      "result": "FAIL",
+      "execution_proof": "Rendered the certification surface in a NEW headless Chromium and read the post-JS DOM: no truth-tier token is emitted. Independent oracle: the rendered text AND the served JSON API payloads contain no tier token; grep of the engine/UI source at the register commit finds zero occurrences of any of the seven tier literals.",
+      "checks": [
+        {
+          "name": "rendered_dom_tier_tokens",
+          "result": "FAIL",
+          "detail": "Full-page rendered body.innerText (live-copy, 67249-char panel; analytics home) contains NONE of AUTHORITATIVE_EXCHANGE, LOCAL_LEDGER, LEADER_SIGNAL, DISPLAY_ONLY, STALE, BLOCKED, SKIPPED. Only the substring 'BLOCKED' appears, and only inside enum values such as 'BLOCKED_SEND_UNCLASSIFIED' in the rejects detail (my probe2 full-page scan returned all-false because the panel is lazy-rendered into #liveCopyPanel, captured in probe1)."
+        },
+        {
+          "name": "served_api_tier_tokens",
+          "result": "FAIL",
+          "detail": "GET /api/state (1515 B) and /api/ui-state (316 B) contain none of the seven tier literals."
+        },
+        {
+          "name": "source_tier_tokens_at_register_commit",
+          "result": "FAIL",
+          "detail": "git show b142cf88:_archive/hl_stage2/HL_Copy_App_SSOT.py -> 0 occurrences of AUTHORITATIVE_EXCHANGE, LOCAL_LEDGER, LEADER_SIGNAL, DISPLAY_ONLY, truth_tier. The 7-tier scheme required by this row is not implemented in the certified source."
+        }
+      ],
+      "notes": "The previous BLOCKED was a ui-visibility block, not a product verdict. With the DOM route now available the row can be executed, and it fails: the truth-tier contract is absent from rendered output, from the served API, and from the source at the register commit. Applicability APPLIES_PROPOSED; no open decision covers the tier scheme itself."
+    },
+    {
+      "row_id": "F-UI-002",
+      "area": "REGRESSION",
+      "feature": "FAILURES UI-002 no_freshness_indicator",
+      "expected_behaviour": "Display data age and source; stale/unavailable values must affect status.",
+      "prior_result": "BLOCKED",
+      "prior_evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+      "result": "PARTIAL",
+      "execution_proof": "Rendered DOM shows an age/source surface exists (LAST UPDATED column, 'Stale ms' column header, source-labelled rows, per-value source labels), but the freshness is NOT reflected in the headline status: the dashboard shows green 'Websocket OK' / green 'Live' pills while the independent oracle reads the account snapshot as 36326546 ms (~10.1 h) old, and the account value cells render as '$650.74' next to an em-dash placeholder rather than an explicitly stale/unavailable state.",
+      "checks": [
+        {
+          "name": "freshness_surface_present",
+          "result": "PASS",
+          "detail": "Rendered panel exposes age/source: 'LAST UPDATED', 'Stale ms' header, source tooltips e.g. 'source unavailable shows n/a/Unavailable not 0'. API /api/state exposes updated_at; /api/live-ws-health exposes per-wallet stale/stale_ms."
+        },
+        {
+          "name": "stale_affects_status",
+          "result": "FAIL",
+          "detail": "ORACLE: exchange_account_snapshot_app.json fetched_at_ms=1792154922440 -> age 36326546 ms at capture; the file's own updated_at is 2026-10-16T12:48:43Z. The rendered panel nevertheless shows green 'Websocket OK'/'Live' pills and an ACCOUNT VALUE figure; no rendered cell marks the account value as STALE, and no tier label ties the number to its age."
+        }
+      ],
+      "notes": "Split verdict recorded honestly: the display/age plumbing exists (PASS), but the requirement 'stale/unavailable values must affect status' is NOT met on the rendered surface (FAIL). Row-level result recorded as PARTIAL rather than PASS because the expected_behaviour conjunction is not satisfied; the register row's own oracle (recorded replay / exchange truth) was used for the age figure."
+    },
+    {
+      "row_id": "F-UI-003",
+      "area": "REGRESSION",
+      "feature": "FAILURES UI-003 engine_narrative_displayed_as_truth",
+      "expected_behaviour": "UI green/red derives only from GREEN-ONLY-001.",
+      "prior_result": "BLOCKED",
+      "prior_evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+      "result": "FAIL",
+      "execution_proof": "Rendered DOM scan of every green/red/amber element in #liveCopyPanel (60 captured) cross-read against the certified source: the green/red classes are produced by truthCls()/pill() helpers keyed on engine-reported state strings, not by any GREEN-ONLY-001 evaluator. No occurrence of GREEN_ONLY_001/GREEN-ONLY-001 exists in the UI or engine source at the register commit.",
+      "checks": [
+        {
+          "name": "greenred_elements_captured",
+          "result": "PASS",
+          "detail": "60 green/red/amber elements captured from the rendered panel, e.g. green 'Websocket OK', green 'Live', amber 'ENS EXCHANGE_ERROR', amber 'BTC INSUFFICIENT_MARGIN', red 'Action needed: a close is failing'."
+        },
+        {
+          "name": "green_derives_from_green_only_001",
+          "result": "FAIL",
+          "detail": "Source at the register commit contains 0 occurrences of GREEN_ONLY_001/GREEN-ONLY-001; no evaluator binding exists. The green pills derive from WS/engine status fields, so the UI asserts engine narrative as truth without the required invariant. Note: F-GREEN-ONLY-001 itself PASSes only on a static 'defined' check (REGRESSION_fa9d9f55ff.json: GREEN_ONLY_001_DEFINED, category=static) - a source-definition check, not a runtime derivation."
+        },
+        {
+          "name": "independent_oracle_derivation",
+          "result": "NOT_TESTED",
+          "detail": "MISSING ROUTE: no independent oracle recomputes desired-vs-actual to gate green/red; OD-11 records the runtime independent oracle as an open decision (Build 4's independent_oracle.py was deleted). Without it, 'green derives only from GREEN-ONLY-001' cannot be satisfied by construction."
+        }
+      ],
+      "notes": "Row fails on evidence. Related open decision OD-11 (runtime independent oracle) is cited in the register for F-TEST-010, not for this row, but it is the same missing mechanism; recorded here as the missing route for the oracle sub-check only. No status invented: the FAIL is against executed rendered-DOM + source evidence."
+    }
+  ]
+}
