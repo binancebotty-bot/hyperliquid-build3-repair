@@ -6369,6 +6369,20 @@ class SenderGateway:
                         reject_category = classify_reject_category(parsed_error, response) if status == "ORDER_REJECTED" else ""
                         limit_px = retry_px
                         wire_notional = retry_notional
+                    elif retry_px == limit_px and missed is not None and retry_safe and retry_notional <= retry_cap:
+                        # Cap-equal case: retry price equals first price after capping.
+                        # Keep the existing resting-limit-at-leader-price behaviour (diff + limit), emit one audit row,
+                        # and never silently drop the entry. Matches the fallback path below (no master-switch/CLOSE_ONLY gate).
+                        rest_px = self._px_passive(missed["desired_px"], price_max_dec, intent.copy_side == "BUY")
+                        rest_safe, _rest_unsafe = self._pre_exchange_asset_safety(intent, resolved, rest_px, wire_size)
+                        if rest_safe and rest_px > 0 and self.resting_entry_for(intent.fill.leader_wallet, intent.fill.coin,
+                                                                                intent.copy_side) is None:
+                            timing["entry_ioc_retry_cap_equal_started_ms"] = utc_now_ms()
+                            rest_response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", wire_size,
+                                                              rest_px, "Gtc", False, timing, "missed_entry_limit_started_ms")
+                            timing["entry_ioc_retry_cap_equal_finished_ms"] = utc_now_ms()
+                            return self._resting_entry_result(intent, sdk_coin, rest_response, rest_px, wire_size, timing, missed,
+                                                              f"copy order found no match (cap-equal retry capped at leader price + tolerance; initial_error={parsed_error})")
             if (not ok and status == "ORDER_REJECTED" and missed is not None
                     and classify_reject_category(parsed_error, response) == "IOC_NO_IMMEDIATE_MATCH"):
                 # missed while sending (price ran within the tolerance window): diff + limit at the leader's price
