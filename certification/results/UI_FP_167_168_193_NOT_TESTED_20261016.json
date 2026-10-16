@@ -1,0 +1,46 @@
+{
+  "task_id": "t_2893eca2",
+  "register_ref": "b142cf88:certification/certification_matrix.json",
+  "register_rows": ["UI-FP-167", "UI-FP-168", "UI-FP-193"],
+  "result": "NOT_TESTED",
+  "tested_at_utc": "2026-10-16T22:24:16Z",
+  "engine_commit": "b142cf88",
+  "engine_sha256": "b171ec8fef01ead5ed2fe4a4a075857b5b1a56e425bab8394440c7dbad57f2a0",
+  "ui_commit": "b142cf88",
+  "ui_sha256": "bb7b9cc399167db5abc3acc740196e871baadfba7df19edbc966c2f7178fdcc3",
+  "rows": {
+    "UI-FP-167": {
+      "feature": "WS Health Detail: Thread",
+      "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+      "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+      "result": "NOT_TESTED",
+      "missing": ["No rendered-DOM capture for the live Thread cell", "No independent, contemporaneous oracle recomputation of the Thread value"],
+      "probe": "GET http://127.0.0.1:8014/live-copy returned HTTP 200 and 138325 bytes; GET /api/ui-state returned HTTP 200 and 13623 bytes. These endpoint responses do not prove which UI version served them and are not DOM evidence.",
+      "prior_evidence_note": "The register's prior evidence points to UI_CORRECTION_2d29211.json tested on 2d29211148c9ba8498bade2d5791ed908f193708. It is not reused as proof for this row/run."
+    },
+    "UI-FP-168": {
+      "feature": "WS Health Detail: Reconnect/min",
+      "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+      "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+      "result": "NOT_TESTED",
+      "missing": ["No rendered-DOM capture for the live Reconnect/min cell", "No independent, contemporaneous oracle recomputation of the Reconnect/min value"],
+      "probe": "GET http://127.0.0.1:8014/live-copy returned HTTP 200 and 138325 bytes; GET /api/ui-state returned HTTP 200 and 13623 bytes. These endpoint responses do not prove which UI version served them and are not DOM evidence.",
+      "prior_evidence_note": "The register's prior evidence points to UI_CORRECTION_2d29211.json tested on 2d29211148c9ba8498bade2d5791ed908f193708. It is not reused as proof for this row/run."
+    },
+    "UI-FP-193": {
+      "feature": "Controls: Add leader equity base",
+      "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+      "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+      "result": "NOT_TESTED",
+      "missing": ["No rendered-DOM capture of leader_equity_base after POST normalization/persistence", "No independent, contemporaneous recomputation of persisted state", "No executed POST/update scenario"],
+      "probe": "GET http://127.0.0.1:8014/live-copy returned HTTP 200 and 138325 bytes; GET /api/ui-state returned HTTP 200 and 13623 bytes. No POST was issued. These endpoint responses do not prove which UI version served them and are not DOM evidence.",
+      "prior_evidence_note": "The register's prior evidence points to UI_CORRECTION_2d29211.json tested on 2d29211148c9ba8498bade2d5791ed908f193708. It is not reused as proof for this row/run."
+    }
+  },
+  "limitations": [
+    "Python playwright and selenium are not installed in this execution environment.",
+    "No browser-driven DOM capture or screenshot was produced; no UI PASS is claimed.",
+    "The exact served UI runtime could not be tied to the tested UI commit, so observed HTTP responses are recorded only as bounded probes.",
+    "No mutation or trading action was taken."
+  ]
+}
