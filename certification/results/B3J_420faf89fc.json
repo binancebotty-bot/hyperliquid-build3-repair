@@ -1,0 +1,245 @@
+{
+  "schema": "b3_ui_row_evidence_v1",
+  "card": "t_3cdb4e1a",
+  "register_ref": "main:certification/certification_matrix.json",
+  "register_commit": "b142cf88d389e791160f691aac3d936852b99975",
+  "engine_commit": "420faf89fca2d63681c1627c17b81bf9bc44c927",
+  "tested_at_utc": "2026-10-16T21:37:59Z",
+  "live_surface": "http://127.0.0.1:8031/live-copy (HTTP 200 verified)",
+  "results": [
+    {
+      "row_id": "INC-18",
+      "area": "LIFECYCLE",
+      "feature": "Operator control resolves to the running release",
+      "result": "NOT_TESTED",
+      "prior_result": "NOT_TESTED",
+      "prior_evidence_ref": "",
+      "execution_proof": "Operator command -> process table / PID / lock -> engine status endpoint -> exchange shows zero unintended orders",
+      "independent_oracle": "OS process list, port bindings, exchange open orders/fills during the transition window",
+      "engine_commit": "420faf89fca2d63681c1627c17b81bf9bc44c927",
+      "checks": [
+        {
+          "name": "operator_entry_point",
+          "result": "NOT_TESTED",
+          "detail": "MISSING ROUTE: the operator start/stop/status entry point is absent from the register repo; the register cites FINDING_P1_OPERATOR_LAUNCHER_POINTER_BROKEN.md whose declared source path is absent, so no command can be shown to resolve to the running release."
+        },
+        {
+          "name": "pid_port_lock_binding",
+          "result": "PASS",
+          "detail": "Live PID 8668 = python -m uvicorn HL_Copy_App_SSOT:app --host 127.0.0.1 --port 8031; PID 39660 = pythonw -m uvicorn wallet_proof_engine_8014:app --port 8014. netstat shows 127.0.0.1:8031 and :8014 LISTENING. Process-to-port binding is real but is not operator-command resolution."
+        },
+        {
+          "name": "engine_status_endpoint",
+          "result": "PASS",
+          "detail": "GET http://127.0.0.1:8031/api/state -> HTTP 200 application/json; ok=true; updated_at present."
+        },
+        {
+          "name": "exchange_open_orders_oracle",
+          "result": "NOT_TESTED",
+          "detail": "MISSING ROUTE: exchange-side open orders/fills during a start/stop transition window were not read."
+        },
+        {
+          "name": "negative_second_start_stale_lock_crash_config",
+          "result": "NOT_TESTED",
+          "detail": "MISSING ROUTE: second-start, crash-mid-transition, stale lock/PID and prior-version config cases require the absent operator entry point."
+        }
+      ],
+      "notes": "Register row carries OPEN_DECISION OD-12. Fresh bounded probe observed process/port/status surfaces, but the declared operator-command chain and the exchange oracle route are absent. Prior register status NOT_TESTED retained."
+    },
+    {
+      "row_id": "UI-FP-149",
+      "area": "UI",
+      "feature": "Reconciliation / Warnings: Wallet",
+      "result": "NOT_TESTED",
+      "prior_result": "FAIL",
+      "prior_evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+      "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+      "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+      "engine_commit": "420faf89fca2d63681c1627c17b81bf9bc44c927",
+      "checks": [
+        {
+          "name": "live_surface_http",
+          "result": "PASS",
+          "detail": "GET http://127.0.0.1:8031/live-copy -> HTTP 200 text/html, 87350 bytes. GET /api/state -> 200."
+        },
+        {
+          "name": "rendered_dom_cell",
+          "result": "NOT_TESTED",
+          "detail": "MISSING ROUTE: the Reconciliation table rendered in a Loading state at time T; no rendered per-row Wallet cell text captured to compare against an endpoint payload."
+        },
+        {
+          "name": "engine_truth_to_payload_binding",
+          "result": "NOT_TESTED",
+          "detail": "MISSING ROUTE: no time-T snapshot binding reconciliation.csv/exchange_account_snapshot.json to the served payload for this cell."
+        },
+        {
+          "name": "independent_oracle",
+          "result": "NOT_TESTED",
+          "detail": "MISSING ROUTE: no independently recomputed Wallet truth by a script that does not import HL_Copy_App_SSOT.py."
+        },
+        {
+          "name": "negative_source_unavailable_stale_api_error",
+          "result": "NOT_TESTED",
+          "detail": "MISSING ROUTE: source-unavailable, stale-source and API-error cases not exercised."
+        }
+      ],
+      "notes": "Register status FAIL retained (prior fresh evidence UI_CORRECTION_2d29211.json at tested_commit 2d29211148c9ba8498bade2d5791ed908f193708). This fresh probe did not earn PASS: declared payload-to-rendered-cell chain and independent oracle route are absent. No mocks, no widened accept set."
+    },
+    {
+      "row_id": "UI-FP-150",
+      "area": "UI",
+      "feature": "Reconciliation / Warnings: Intent",
+      "result": "NOT_TESTED",
+      "prior_result": "FAIL",
+      "prior_evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+      "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+      "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+      "engine_commit": "420faf89fca2d63681c1627c17b81bf9bc44c927",
+      "checks": [
+        {
+          "name": "live_surface_http",
+          "result": "PASS",
+          "detail": "GET http://127.0.0.1:8031/live-copy -> HTTP 200 text/html."
+        },
+        {
+          "name": "rendered_dom_cell",
+          "result": "NOT_TESTED",
+          "detail": "MISSING ROUTE: Reconciliation table rendered in a Loading state at time T; no rendered per-row Intent cell text captured."
+        },
+        {
+          "name": "engine_truth_to_payload_binding",
+          "result": "NOT_TESTED",
+          "detail": "MISSING ROUTE: no time-T binding of the Intent source column to the served payload."
+        },
+        {
+          "name": "independent_oracle",
+          "result": "NOT_TESTED",
+          "detail": "MISSING ROUTE: no independent recomputation by a script not importing HL_Copy_App_SSOT.py."
+        },
+        {
+          "name": "negative_source_unavailable_stale_api_error",
+          "result": "NOT_TESTED",
+          "detail": "MISSING ROUTE: negative cases not exercised."
+        }
+      ],
+      "notes": "Register status FAIL retained. Fresh probe could not complete the declared chain or oracle; no promotion."
+    },
+    {
+      "row_id": "UI-FP-165",
+      "area": "UI",
+      "feature": "WS Health Detail: Current",
+      "result": "NOT_TESTED",
+      "prior_result": "FAIL",
+      "prior_evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+      "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+      "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+      "engine_commit": "420faf89fca2d63681c1627c17b81bf9bc44c927",
+      "checks": [
+        {
+          "name": "live_surface_http",
+          "result": "PASS",
+          "detail": "GET http://127.0.0.1:8031/live-copy -> HTTP 200; GET /api/live-ws-health -> HTTP 200 application/json, 2239 bytes."
+        },
+        {
+          "name": "rendered_dom_cell",
+          "result": "PASS",
+          "detail": "Rendered DOM captured via a real browser: WS Health Detail header row includes CURRENT, THREAD, RECONNECT/MIN; data rows render a CURRENT value (e.g. OFFLINE) for each of 10 wallets."
+        },
+        {
+          "name": "engine_truth_to_payload_binding",
+          "result": "NOT_TESTED",
+          "detail": "MISSING ROUTE: time-T equality between the served ws-health payload cell and the rendered CURRENT cell for the same wallet was not established cell-by-cell."
+        },
+        {
+          "name": "independent_oracle",
+          "result": "NOT_TESTED",
+          "detail": "MISSING ROUTE: no independent recomputation of the same WS-health truth by a script that does not import HL_Copy_App_SSOT.py; running-instance live_ws_health.json source not located on disk."
+        },
+        {
+          "name": "negative_source_unavailable_stale_api_error",
+          "result": "NOT_TESTED",
+          "detail": "MISSING ROUTE: source-unavailable, stale-source and API-error cases not exercised."
+        }
+      ],
+      "notes": "Register status FAIL retained. The rendered DOM route is now demonstrably available and the CURRENT column renders, but the declared payload-equality check and the independent oracle route remain absent, so no PASS is earned."
+    },
+    {
+      "row_id": "UI-FP-167",
+      "area": "UI",
+      "feature": "WS Health Detail: Thread",
+      "result": "NOT_TESTED",
+      "prior_result": "FAIL",
+      "prior_evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+      "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+      "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+      "engine_commit": "420faf89fca2d63681c1627c17b81bf9bc44c927",
+      "checks": [
+        {
+          "name": "live_surface_http",
+          "result": "PASS",
+          "detail": "GET http://127.0.0.1:8031/live-copy -> HTTP 200; GET /api/live-ws-health -> HTTP 200."
+        },
+        {
+          "name": "rendered_dom_cell",
+          "result": "PASS",
+          "detail": "Rendered DOM captured via a real browser: WS Health Detail header includes THREAD; data rows render a THREAD value (alive/down; observed down) for each wallet."
+        },
+        {
+          "name": "engine_truth_to_payload_binding",
+          "result": "NOT_TESTED",
+          "detail": "MISSING ROUTE: cell-by-cell equality between served payload and rendered THREAD cell not established at time T."
+        },
+        {
+          "name": "independent_oracle",
+          "result": "NOT_TESTED",
+          "detail": "MISSING ROUTE: no independent recomputation by a script not importing HL_Copy_App_SSOT.py; running-instance live_ws_health.json not located."
+        },
+        {
+          "name": "negative_source_unavailable_stale_api_error",
+          "result": "NOT_TESTED",
+          "detail": "MISSING ROUTE: negative cases not exercised."
+        }
+      ],
+      "notes": "Register status FAIL retained. THREAD column renders, but declared payload-equality and oracle routes are absent."
+    },
+    {
+      "row_id": "UI-FP-168",
+      "area": "UI",
+      "feature": "WS Health Detail: Reconnect/min",
+      "result": "NOT_TESTED",
+      "prior_result": "FAIL",
+      "prior_evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+      "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+      "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+      "engine_commit": "420faf89fca2d63681c1627c17b81bf9bc44c927",
+      "checks": [
+        {
+          "name": "live_surface_http",
+          "result": "PASS",
+          "detail": "GET http://127.0.0.1:8031/live-copy -> HTTP 200; GET /api/live-ws-health -> HTTP 200."
+        },
+        {
+          "name": "rendered_dom_cell",
+          "result": "PASS",
+          "detail": "Rendered DOM captured via a real browser: WS Health Detail header includes RECONNECT/MIN; data rows render a numeric value (e.g. 0.00) per wallet."
+        },
+        {
+          "name": "engine_truth_to_payload_binding",
+          "result": "NOT_TESTED",
+          "detail": "MISSING ROUTE: cell-by-cell equality between served payload and rendered RECONNECT/MIN cell not established at time T."
+        },
+        {
+          "name": "independent_oracle",
+          "result": "NOT_TESTED",
+          "detail": "MISSING ROUTE: no independent recomputation by a script not importing HL_Copy_App_SSOT.py; running-instance live_ws_health.json not located."
+        },
+        {
+          "name": "negative_source_unavailable_stale_api_error",
+          "result": "NOT_TESTED",
+          "detail": "MISSING ROUTE: negative cases not exercised."
+        }
+      ],
+      "notes": "Register status FAIL retained. RECONNECT/MIN column renders, but declared payload-equality and oracle routes are absent."
+    }
+  ]
+}
