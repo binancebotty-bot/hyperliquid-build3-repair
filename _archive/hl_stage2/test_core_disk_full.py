@@ -111,6 +111,10 @@ class Inject:
 
     def __enter__(self):
         inject = self
+        for _k in list(self.c._APPEND_FH):  # a kept-open audit handle would bypass the injected Path.open: drop it so the next append opens through it
+            self.c._close_append_handle(pathlib.Path(_k))
+        self._keep_open = self.c.AUDIT_KEEP_OPEN
+        self.c.AUDIT_KEEP_OPEN = False  # this injector counts Path.open calls per row (skip=N): use the per-row-open mode so the count means the same; the kept-open failure path is in test_core_append_truncate.py
         pathlib.Path.open = lambda self_path, *a, **k: inject._open(self_path, *a, **k)
         pathlib.Path.write_text = lambda self_path, data, *a, **k: inject._write_text(self_path, data, *a, **k)
         if self.also_replace:
@@ -131,6 +135,7 @@ class Inject:
         return self._orig_write_text(self_path, data, *a, **k)
 
     def __exit__(self, *exc):
+        self.c.AUDIT_KEEP_OPEN = self._keep_open
         pathlib.Path.open = self._orig_open
         pathlib.Path.write_text = self._orig_write_text
         self.c.os.replace = self._orig_replace

@@ -1393,7 +1393,7 @@ def _append_handle(path: Path) -> Any:
         try:
             if os.path.samestat(os.fstat(fh.fileno()), os.stat(path)):
                 return fh
-        except (OSError, ValueError):
+        except Exception:
             pass
         _close_append_handle(path)
     fh = path.open("a", newline="", encoding="utf-8")

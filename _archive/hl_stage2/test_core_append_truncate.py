@@ -53,6 +53,7 @@ def fake_open(self, *a, **k):
     return PartialThenFull(f) if self == p and a and a[0] == "a" else f
 
 
+c._close_append_handle(p)  # the kept-open audit handle would bypass the injected Path.open
 Path.open = fake_open
 raised = False
 try:

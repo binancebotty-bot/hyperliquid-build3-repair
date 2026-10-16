@@ -91,6 +91,7 @@ def main() -> None:
             reads[0] += 1
         return real_load(path, default)
     c.load_json = counting_load
+    c._COIN_KEY_RECHECK_SEC = 0.0  # this test is about the file-change signature; the once-a-second stat throttle is tested in test_core_audit_keep_open.py
     keys = [c.canonical_coin_key("kpepe") for _ in range(2000)]
     check("K1_COIN_KEY_TABLE_NOT_RE_READ_EVERY_CALL", reads[0] <= 1 and set(keys) == {"KPEPE"}, f"reads={reads[0]} {set(keys)}")
     time.sleep(0.02)
