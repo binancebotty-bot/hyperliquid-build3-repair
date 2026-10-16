@@ -35,6 +35,33 @@ This file is the durable scoreboard; update it from measurement, never from impr
 
 Legend: ✅ proven · ⏳ partial signal · ⚠️ weak · ❌ fails · **COMPLETE is the only axis that earns a lane the primary queue.**
 
+## Concurrency probing (operator directive 2026-10-16)
+
+There is **no imposed concurrency cap** — the only real limits are *available models* and *available
+tasks* (`kanban.max_in_progress_per_profile` is set high on purpose). So concurrency is found by
+**probing each provider upward until it actually breaks**, then recording the ceiling and the refill.
+
+Protocol:
+1. Run a provider at its current proven level N.
+2. If it completes/holds with all workers alive → **raise N by 1** next wave.
+3. Record the failure mode at the breaking point (429? stall? cooldown? account starvation?).
+4. Record the refill schedule — when the provider tops back up (free windows and daily buckets
+   silently refresh; many refresh at **00:00 UTC**).
+5. Update the lane's CEIL row. Never lower a lane's proven ceiling without evidence.
+
+Distinguish failure modes when a probe breaks: **provider-limited** (429 / fair-share / cooldown →
+real ceiling) vs **harness-limited** (protocol violation, invented tool, EOL churn → not a provider
+signal; fix the task shape, not the concurrency).
+
+### Probe log
+
+| date | lane | level tried | result | next |
+|---|---|---|---|---|
+| 2026-10-16 | custom-deepseek-free | 6 | ✅ held (17 total running, all alive; proxy in_flight 3, 1 acct busy, 0 cooldown) | probe 7 |
+| 2026-10-16 | openai-codex (luna) | 3 | ✅ held | probe 4 |
+| 2026-10-16 | gemini | 8 | ✅ held | probe 9 |
+| 2026-10-16 | nous | 7 then 4 | ❌ broke at both — account-wide fair-share 429 | ceiling ~3 |
+
 ## Standing routing rules (derived from the above)
 
 1. **Route by COMPLETE evidence, not by capability claims.** A lane with one proven completion outranks a lane with nine impressive-looking running cards.
