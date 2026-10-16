@@ -1,0 +1,130 @@
+{
+  "task_id": "t_8fc704ce",
+  "title": "B3-CERT UI SSOT/TRUTH FAIL corrective (UI-SSOT-*, UI-TRUTH-003)",
+  "tested_commit": "b3e6d6665116510f8a9ceaa5254b060bf4d73998",
+  "tested_at_utc": "2026-10-16T12:55:04.939062+00:00",
+  "ui_source": "C:\\Users\\wigmore\\hyperliquid-build3-repair\\_archive\\hl_stage2\\HL_Copy_App_SSOT.py",
+  "ui_source_sha256": "4574ca72b0da4dc4aec101e6fa87b485a0e80abb99426a773957c26b5c173692",
+  "oracle": "runtime: starlette TestClient against the real testnet audit state (read-only copy); independent recompute of the audit-summary builder in a fresh interpreter; per-row mutation negatives; engine-independence by source census + live_config byte-hash invariance",
+  "provenance_note": "certification_matrix.json pins UI sha256 fad19d22 (HL_Copy_App_SSOT_20260513.py) / c0f9e508 (HL_Copy_App_SSOT.py). Neither hash exists as a git object here; the only tracked UI source is _archive/hl_stage2/HL_Copy_App_SSOT.py @ sha256 4574ca72b0da. Rows were executed against that SERVED real source; the pinned 13-May hash is UNVERIFIABLE in this repo (provenance gap to report).",
+  "rows": {
+    "UI-SSOT-PAGE-01": {
+      "verdict": "BLOCKED",
+      "oracle": "route reachability + model-state census"
+    },
+    "UI-SSOT-TOP-07": {
+      "verdict": "PASS",
+      "oracle": "runtime TestClient on real testnet state + independent recompute/mutation"
+    },
+    "UI-SSOT-TOP-09": {
+      "verdict": "PASS",
+      "oracle": "runtime TestClient on real testnet state + independent recompute/mutation"
+    },
+    "UI-SSOT-PAGE-13": {
+      "verdict": "PASS",
+      "oracle": "runtime TestClient on real testnet state + independent recompute/mutation"
+    },
+    "UI-SSOT-PAGE-14": {
+      "verdict": "FAIL",
+      "oracle": "runtime TestClient on real testnet state + independent recompute/mutation"
+    },
+    "UI-SSOT-PAGE-15": {
+      "verdict": "PASS",
+      "oracle": "runtime TestClient on real testnet state + independent recompute/mutation"
+    },
+    "UI-TRUTH-003": {
+      "verdict": "PASS",
+      "oracle": "runtime TestClient on real testnet state + independent recompute/mutation"
+    }
+  },
+  "checks": {
+    "UI_SHA256_RECORDED": {
+      "pass": true,
+      "detail": "4574ca72b0da4dc4aec101e6fa87b485a0e80abb99426a773957c26b5c173692"
+    },
+    "APP_SERVES_LIVE_COPY": {
+      "pass": true,
+      "detail": ""
+    },
+    "UI-SSOT-TOP-07:CURRENT_MODE_LABEL": {
+      "pass": true,
+      "detail": "model_scope=True mode_labelled_model=True engine_truth_labelled=True"
+    },
+    "UI-SSOT-TOP-09:POLL_BADGE": {
+      "pass": true,
+      "detail": "POLL badge in analytics top bar=True"
+    },
+    "UI-SSOT-PAGE-13:WS_HEALTH_ENDPOINT": {
+      "pass": true,
+      "detail": "status=200 ok=True wallets=1 fields=['last_error', 'last_message_ms', 'stale', 'stale_ms']"
+    },
+    "UI-SSOT-PAGE-14:AUDIT_SUMMARY_ENDPOINT": {
+      "pass": false,
+      "detail": "status=500 body_ok=False error=list index out of range oracle={\"ok\": false, \"exc\": \"IndexError: list index out of range\"}"
+    },
+    "UI-SSOT-PAGE-15:CONTRACT_BANNER": {
+      "pass": true,
+      "detail": "clean_errs=0 mutated_errs=2 banner_rendered=True"
+    },
+    "UI-TRUTH-003:READ_ONLY_OBSERVER": {
+      "pass": true,
+      "detail": "no_engine_import=True no_spawn=True live_config_unchanged=True"
+    }
+  },
+  "negative_tests": {
+    "NEG_TOP07_MODEL_LABEL": {
+      "pass": true,
+      "detail": "removing the model label from the top bar makes the property false (non-vacuous)"
+    },
+    "NEG_TOP09_POLL_BADGE": {
+      "pass": true,
+      "detail": "removing the POLL badge from the template removes it from the render (non-vacuous)"
+    },
+    "NEG_PAGE13_MUTABLE": {
+      "pass": true,
+      "detail": "a missing health file yields empty wallets -> the row would FAIL (non-vacuous)"
+    },
+    "NEG_PAGE14_NOT_SILENT": {
+      "pass": true,
+      "detail": "the endpoint failure is surfaced (status=500), not a silent 200-ok"
+    },
+    "NEG_PAGE15_NONVACUOUS": {
+      "pass": true,
+      "detail": "a contract-violating state yields errors AND renders the banner"
+    },
+    "NEG_PAGE01_MUTATED_404": {
+      "pass": true,
+      "detail": "unknown wallet 404s (route is real, not a catch-all 200)"
+    },
+    "NEG_TRUTH003_500_ISOLATED": {
+      "pass": true,
+      "detail": "a UI endpoint 500 does not alter live_config.json (UI outage is not a trading mutation)"
+    }
+  },
+  "blocked": [
+    {
+      "row": "UI-SSOT-PAGE-01",
+      "reason": "no NON-USER wallet exists in the testnet model state (only the user wallet is present), so the non-user detail branch /wallet/{wallet} is unreachable and its closed-trades/actions tables cannot be verified. Route presence IS proven: unknown wallet -> 404, user wallet -> 200 with the detail tables rendered.",
+      "proved": {
+        "unknown_404": 404,
+        "user_200": 200,
+        "detail_rendered": false,
+        "model_wallets": [
+          "0x7ae3b08bb4e7b085c6db5d635b96bec9715e9205"
+        ]
+      }
+    }
+  ],
+  "summary": {
+    "total_checks": 8,
+    "passed_checks": 7,
+    "failed_checks": 1,
+    "total_negative_tests": 7,
+    "passed_negative_tests": 7,
+    "failed_negative_tests": 0,
+    "blocked_count": 1,
+    "rows_pass": 5,
+    "rows_fail": 1,
+    "rows_blocked": 1
+  }
+}
