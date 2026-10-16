@@ -1,0 +1,70 @@
+{
+  "package_id": "B3-CERT-SETTLE-t_e278511c",
+  "register_ref": "b142cf88:certification/certification_matrix.json",
+  "tested_commit": "b142cf88d389e791160f691aac3d936852b99975",
+  "tested_at_utc": "2026-10-16T23:09:44Z",
+  "overall_result": "NOT_TESTED",
+  "execution_performed": false,
+  "scope": "Six requested rows assessed independently against their pinned execution_proof and independent_oracle. No trading action was attempted.",
+  "runtime_probe": {
+    "probe": "Windows process listing for Build-3/Hyperliquid copy engine; listener listing for any certification runtime; repository testnet-runtime file-name scan.",
+    "observed": "No matching Build-3/Hyperliquid engine process was returned. Listener listing showed UI services on 8012, 8014, and 8031, but no evidence that any is a runnable testnet engine. Repository scan found only result/harness filenames and TESTNET_RUN_HANDOVER.md, not a running testnet engine.",
+    "limitation": "No exchange-side MASTER userFillsByTime/clearinghouseState verification was executed."
+  },
+  "missing_prerequisites": [
+    "A runnable testnet engine process on the tested engine commit through its production order path.",
+    "Exchange-side independent verification for the scenario window: MASTER userFillsByTime in the required DEX scope and clearinghouseState, with evidence bound to the same run.",
+    "For F25-X07 specifically, a controlled operator command and captured process/PID/lock, engine status endpoint, and exchange open-orders/fills over the transition window."
+  ],
+  "rows": [
+    {
+      "id": "F25-X07",
+      "result": "NOT_TESTED",
+      "execution_proof": "Operator command -> process table / PID / lock -> engine status endpoint -> exchange shows zero unintended orders",
+      "independent_oracle": "OS process list, port bindings, exchange open orders/fills during the transition window",
+      "row_specific_observation": "No matching engine process found in the process probe; no engine status/lock evidence and no exchange transition-window oracle were captured.",
+      "evidence_ref": ""
+    },
+    {
+      "id": "TN-F02",
+      "result": "NOT_TESTED",
+      "execution_proof": "Predeclared Phase 6T-style scenario on testnet through the production engine path only (no direct exchange.order); evidence per class with exchange parity",
+      "independent_oracle": "Exchange orders/fills (absence or presence) plus independent recomputation of the limit from config",
+      "row_specific_observation": "No production-path testnet scenario or exchange orders/fills oracle was run; independent config-based recomputation therefore cannot be tied to a testnet execution.",
+      "evidence_ref": ""
+    },
+    {
+      "id": "TN-F09",
+      "result": "NOT_TESTED",
+      "execution_proof": "Predeclared Phase 6T-style scenario on testnet through the production engine path only (no direct exchange.order); evidence per class with exchange parity",
+      "independent_oracle": "MASTER userFillsByTime per DEX scope and clearinghouseState, read independently of the engine",
+      "row_specific_observation": "No production-path testnet scenario or MASTER per-DEX fills/clearinghouseState oracle was run; XYZ-versus-NBIS scope behavior is unverified.",
+      "evidence_ref": ""
+    },
+    {
+      "id": "TN-F10",
+      "result": "NOT_TESTED",
+      "execution_proof": "Predeclared Phase 6T-style scenario on testnet through the production engine path only (no direct exchange.order); evidence per class with exchange parity",
+      "independent_oracle": "MASTER userFillsByTime per DEX scope and clearinghouseState, read independently of the engine",
+      "row_specific_observation": "No production-path ambiguous-submit/429 scenario or MASTER per-DEX settlement oracle was run; duplicate prevention is unverified.",
+      "evidence_ref": ""
+    },
+    {
+      "id": "TN-F11",
+      "result": "NOT_TESTED",
+      "execution_proof": "Predeclared Phase 6T-style scenario on testnet through the production engine path only (no direct exchange.order); evidence per class with exchange parity",
+      "independent_oracle": "MASTER userFillsByTime per DEX scope and clearinghouseState, read independently of the engine",
+      "row_specific_observation": "No production-path ownership/truth crash-point scenario or MASTER per-DEX settlement oracle was run; fail-open behavior is unverified.",
+      "evidence_ref": ""
+    },
+    {
+      "id": "TN-F12",
+      "result": "NOT_TESTED",
+      "execution_proof": "Predeclared Phase 6T-style scenario on testnet through the production engine path only (no direct exchange.order); evidence per class with exchange parity",
+      "independent_oracle": "MASTER userFillsByTime per DEX scope and clearinghouseState, read independently of the engine",
+      "row_specific_observation": "No production-path out-of-tolerance divergence scenario or MASTER per-DEX settlement oracle was run; manual-reconciliation behavior is unverified.",
+      "evidence_ref": ""
+    }
+  ],
+  "safety": "Mocks, prior artifacts, and source inspection were not substituted for testnet execution. certification_matrix.json and apply_verified_results.py were not edited."
+}
