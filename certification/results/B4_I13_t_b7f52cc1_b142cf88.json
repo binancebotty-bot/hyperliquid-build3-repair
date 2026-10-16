@@ -1,0 +1,23 @@
+{
+ "schema": "b3cert_row_evidence/v1",
+ "task_id": "t_b7f52cc1",
+ "row_id": "B4-I13",
+ "register_ref": "b142cf88",
+ "engine_commit": {
+  "ref": "b142cf88",
+  "core_sha256": "5470e51b478a1b8e03178e66b64b43435391e1f42eb0010cdee15bd48334b0ac",
+  "core_lines": 8043
+ },
+ "generated_utc": "2026-10-16T22:55:06Z",
+ "verdict": "NOT_TESTED",
+ "open_decisions": [
+  "OD-09"
+ ],
+ "missing_for_pass": [
+  "No testnet/replay run of ENTRY/ADD min-notional (read-only).",
+  "OD-09 OPEN: Build-4 I13 USD30+buffer12 vs Core HL_LIVE_MIN_NOTIONAL default 10, ENTRY/ADD only; no ruling.",
+  "Prior-evidence B4 tests named by row absent at register (0 matches) and are unit tests -> never set result."
+ ],
+ "execution_proof": "Reproduce historical trigger on testnet or recorded replay -> assert failure cannot occur",
+ "independent_oracle": "Exchange truth, or recorded-replay expected output without engine code"
+}

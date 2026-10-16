@@ -1,0 +1,23 @@
+{
+ "schema": "b3cert_row_evidence/v1",
+ "task_id": "t_b7f52cc1",
+ "row_id": "CTRL-BIND",
+ "register_ref": "b142cf88",
+ "engine_commit": {
+  "ref": "b142cf88",
+  "core_sha256": "5470e51b478a1b8e03178e66b64b43435391e1f42eb0010cdee15bd48334b0ac",
+  "core_lines": 8043
+ },
+ "generated_utc": "2026-10-16T22:55:06Z",
+ "verdict": "NOT_TESTED",
+ "open_decisions": [
+  "OD-03"
+ ],
+ "missing_for_pass": [
+  "No controller wake sent/consumed in this read-only run.",
+  "No durable consumption receipt: newest inbox envelope 2026-10-09T16-14-33Z B3-C2H-REALIGN-CFF93B-ACK-1 seq71; newest outbox 2026-10-16T11-05-00Z B3-H2C-M4-STATUS-ALIGNMENT-REQUEST-1 has no inbound reply.",
+  "OD-03 OPEN: 3 distinct controller UUIDs. CONTROL_CONTRACT target_role_bindings gpt:reviewer-controller=6ac8e179-932c-83ed-b9ca-1bdc5c976d5d v2 ACTIVE; CONTROL_STATE bindings.uuid=6ac6427b-8df0-83eb-beb8-3b6e8796d1e1 and dispute.control_state_says=6ac6427b-8df0-83ed-beb8-3b6e8796d1e1; dispute.control_contract_says=6ac7a51f-d400-83ed-b035-f520ef747394."
+ ],
+ "execution_proof": "Envelope on origin/control-mailbox -> wake -> correlated consumption record -> durable state transition",
+ "independent_oracle": "git log of origin/control-mailbox and consumer durable receipt"
+}

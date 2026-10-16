@@ -1,0 +1,23 @@
+{
+ "schema": "b3cert_row_evidence/v1",
+ "task_id": "t_b7f52cc1",
+ "row_id": "B4-I26",
+ "register_ref": "b142cf88",
+ "engine_commit": {
+  "ref": "b142cf88",
+  "core_sha256": "5470e51b478a1b8e03178e66b64b43435391e1f42eb0010cdee15bd48334b0ac",
+  "core_lines": 8043
+ },
+ "generated_utc": "2026-10-16T22:55:06Z",
+ "verdict": "NOT_TESTED",
+ "open_decisions": [
+  "OD-11"
+ ],
+ "missing_for_pass": [
+  "OD-11 OPEN: runtime independent oracle deleted; register commit has NO file matching oracle.",
+  "No disagreement scenario executed (read-only).",
+  "B4 tests named by row absent at register."
+ ],
+ "execution_proof": "Reproduce historical trigger on testnet or recorded replay -> assert failure cannot occur",
+ "independent_oracle": "Exchange truth, or recorded-replay expected output without engine code"
+}

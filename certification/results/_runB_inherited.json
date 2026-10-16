@@ -1,0 +1,46 @@
+{
+ "register_ref": "b142cf88",
+ "checks": {
+  "core_has_max_diff_pct": 0,
+  "core_has_follower_mid": 3,
+  "core_has_independent_oracle": 0,
+  "core_has_apply_fixed_sleeve_event": 0,
+  "core_has_ENTRY_PRICE_BOUND": 0,
+  "core_has_PRICE_WAIT": 0,
+  "pinned_hash_resolution": {
+   "2dfbd57": "fatal: Not a valid object name 2dfbd57",
+   "2dfbd571": "fatal: Not a valid object name 2dfbd571",
+   "5bda57be": "fatal: Not a valid object name 5bda57be",
+   "5de53fa": "fatal: Not a valid object name 5de53fa"
+  },
+  "legacy_b4_tests_at_register": [],
+  "independent_oracle_at_register": [],
+  "core_min_notional_default_line": [
+   "DEFAULT_MIN_NOTIONAL = float(os.getenv(\"HL_LIVE_MIN_NOTIONAL\", \"10\"))"
+  ],
+  "ui_probe": {
+   "url": "http://127.0.0.1:8031/live-copy",
+   "http": 200,
+   "bytes": 87117,
+   "has_AUTHORITATIVE_EXCHANGE": false,
+   "truth_tier_tokens": []
+  }
+ },
+ "register_row_status": {
+  "CTRL-BIND": "NOT_TESTED",
+  "B4-I13": "NOT_TESTED",
+  "B4-I20": "NOT_TESTED",
+  "B4-I21": "NOT_TESTED",
+  "B4-I26": "NOT_TESTED",
+  "F-EXC-016": "BLOCKED"
+ },
+ "engine_commit": {
+  "ref": "b142cf88",
+  "core_sha256": "5470e51b478a1b8e03178e66b64b43435391e1f42eb0010cdee15bd48334b0ac",
+  "core_lines": 8043
+ },
+ "env": {
+  "PYTHONPATH": "",
+  "python": "3.14.0"
+ }
+}

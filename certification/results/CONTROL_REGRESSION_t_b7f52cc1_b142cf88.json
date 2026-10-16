@@ -1,0 +1,150 @@
+{
+ "schema": "b3cert_evidence_package/v1",
+ "task_id": "t_b7f52cc1",
+ "generated_utc": "2026-10-16T22:55:06Z",
+ "register_of_record": {
+  "ref": "b142cf88",
+  "path": "certification/certification_matrix.json",
+  "row_status_at_register": {
+   "CTRL-BIND": "NOT_TESTED",
+   "B4-I13": "NOT_TESTED",
+   "B4-I20": "NOT_TESTED",
+   "B4-I21": "NOT_TESTED",
+   "B4-I26": "NOT_TESTED",
+   "F-EXC-016": "BLOCKED"
+  }
+ },
+ "engine_commit": {
+  "ref": "b142cf88",
+  "core_sha256": "5470e51b478a1b8e03178e66b64b43435391e1f42eb0010cdee15bd48334b0ac",
+  "core_lines": 8043
+ },
+ "method": {
+  "two_run_control": "runA PYTHONPATH scrubbed, runB inherited; both rc=0",
+  "oracle_independence": "reads git objects + OS HTTP only; imports no engine/UI code",
+  "no_credentials": true,
+  "no_orders": true,
+  "read_only": true
+ },
+ "executed_checks": {
+  "core_has_max_diff_pct": 0,
+  "core_has_follower_mid": 3,
+  "core_has_independent_oracle": 0,
+  "core_has_apply_fixed_sleeve_event": 0,
+  "core_has_ENTRY_PRICE_BOUND": 0,
+  "core_has_PRICE_WAIT": 0,
+  "pinned_hash_resolution": {
+   "2dfbd57": "fatal: Not a valid object name 2dfbd57",
+   "2dfbd571": "fatal: Not a valid object name 2dfbd571",
+   "5bda57be": "fatal: Not a valid object name 5bda57be",
+   "5de53fa": "fatal: Not a valid object name 5de53fa"
+  },
+  "legacy_b4_tests_at_register": [],
+  "independent_oracle_at_register": [],
+  "core_min_notional_default_line": [
+   "DEFAULT_MIN_NOTIONAL = float(os.getenv(\"HL_LIVE_MIN_NOTIONAL\", \"10\"))"
+  ],
+  "ui_probe": {
+   "url": "http://127.0.0.1:8031/live-copy",
+   "http": 200,
+   "bytes": 87117,
+   "has_AUTHORITATIVE_EXCHANGE": false,
+   "truth_tier_tokens": []
+  }
+ },
+ "provenance_note": {
+  "pinned_hashes_unresolvable_locally": {
+   "2dfbd57": "fatal: Not a valid object name 2dfbd57",
+   "2dfbd571": "fatal: Not a valid object name 2dfbd571",
+   "5bda57be": "fatal: Not a valid object name 5bda57be",
+   "5de53fa": "fatal: Not a valid object name 5de53fa"
+  },
+  "note": "Re-check against origin/cert/local-main-b142cf8 after J15 per controller correction."
+ },
+ "rows": {
+  "CTRL-BIND": {
+   "verdict": "NOT_TESTED",
+   "open_decisions": [
+    "OD-03"
+   ],
+   "missing_for_pass": [
+    "No controller wake sent/consumed in this read-only run.",
+    "No durable consumption receipt: newest inbox envelope 2026-10-09T16-14-33Z B3-C2H-REALIGN-CFF93B-ACK-1 seq71; newest outbox 2026-10-16T11-05-00Z B3-H2C-M4-STATUS-ALIGNMENT-REQUEST-1 has no inbound reply.",
+    "OD-03 OPEN: 3 distinct controller UUIDs. CONTROL_CONTRACT target_role_bindings gpt:reviewer-controller=6ac8e179-932c-83ed-b9ca-1bdc5c976d5d v2 ACTIVE; CONTROL_STATE bindings.uuid=6ac6427b-8df0-83eb-beb8-3b6e8796d1e1 and dispute.control_state_says=6ac6427b-8df0-83ed-beb8-3b6e8796d1e1; dispute.control_contract_says=6ac7a51f-d400-83ed-b035-f520ef747394."
+   ],
+   "execution_proof": "Envelope on origin/control-mailbox -> wake -> correlated consumption record -> durable state transition",
+   "independent_oracle": "git log of origin/control-mailbox and consumer durable receipt"
+  },
+  "B4-I13": {
+   "verdict": "NOT_TESTED",
+   "open_decisions": [
+    "OD-09"
+   ],
+   "missing_for_pass": [
+    "No testnet/replay run of ENTRY/ADD min-notional (read-only).",
+    "OD-09 OPEN: Build-4 I13 USD30+buffer12 vs Core HL_LIVE_MIN_NOTIONAL default 10, ENTRY/ADD only; no ruling.",
+    "Prior-evidence B4 tests named by row absent at register (0 matches) and are unit tests -> never set result."
+   ],
+   "execution_proof": "Reproduce historical trigger on testnet or recorded replay -> assert failure cannot occur",
+   "independent_oracle": "Exchange truth, or recorded-replay expected output without engine code"
+  },
+  "B4-I20": {
+   "verdict": "NOT_TESTED",
+   "open_decisions": [
+    "OD-10"
+   ],
+   "missing_for_pass": [
+    "No testnet/replay entry order placed.",
+    "OD-10 OPEN: entry price bound unruled. max_diff_pct appears 0 times in Core at register; exists only in legacy HL_Live_Copy_Service.py default 0.10.",
+    "B4 tests named by row absent at register; unit tests."
+   ],
+   "execution_proof": "Reproduce historical trigger on testnet or recorded replay -> assert failure cannot occur",
+   "independent_oracle": "Exchange truth, or recorded-replay expected output without engine code"
+  },
+  "B4-I21": {
+   "verdict": "NOT_TESTED",
+   "open_decisions": [
+    "OD-10"
+   ],
+   "missing_for_pass": [
+    "PRICE_WAIT appears 0 times in Core at register -> behaviour unobservable at this commit without re-derivation.",
+    "OD-10 OPEN (shared with B4-I20).",
+    "B4 test named by row absent at register."
+   ],
+   "execution_proof": "Reproduce historical trigger on testnet or recorded replay -> assert failure cannot occur",
+   "independent_oracle": "Exchange truth, or recorded-replay expected output without engine code"
+  },
+  "B4-I26": {
+   "verdict": "NOT_TESTED",
+   "open_decisions": [
+    "OD-11"
+   ],
+   "missing_for_pass": [
+    "OD-11 OPEN: runtime independent oracle deleted; register commit has NO file matching oracle.",
+    "No disagreement scenario executed (read-only).",
+    "B4 tests named by row absent at register."
+   ],
+   "execution_proof": "Reproduce historical trigger on testnet or recorded replay -> assert failure cannot occur",
+   "independent_oracle": "Exchange truth, or recorded-replay expected output without engine code"
+  },
+  "F-EXC-016": {
+   "verdict": "BLOCKED",
+   "open_decisions": [],
+   "missing_for_pass": [
+    "UI-visibility evidence unavailable: independent HTTP read of http://127.0.0.1:8031/live-copy = 200, 87117 bytes, but served doc lacks AUTHORITATIVE_EXCHANGE and all of LOCAL_LEDGER/DISPLAY_ONLY/LEADER_SIGNAL.",
+    "REGRESSION_fa9d9f55ff.json marked ui-visibility-blocked (pass=false; 131 pass/0 fail/7 blocked) - copied as BLOCKED, NOT a product failure.",
+    "Register applicability APPLIES_PROPOSED, result BLOCKED."
+   ],
+   "execution_proof": "Reproduce historical trigger on testnet or recorded replay -> assert failure cannot occur",
+   "independent_oracle": "Exchange truth, or recorded-replay expected output without engine code"
+  }
+ },
+ "verdict_summary": {
+  "CTRL-BIND": "NOT_TESTED",
+  "B4-I13": "NOT_TESTED",
+  "B4-I20": "NOT_TESTED",
+  "B4-I21": "NOT_TESTED",
+  "B4-I26": "NOT_TESTED",
+  "F-EXC-016": "BLOCKED"
+ }
+}

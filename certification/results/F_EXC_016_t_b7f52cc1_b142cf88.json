@@ -1,0 +1,21 @@
+{
+ "schema": "b3cert_row_evidence/v1",
+ "task_id": "t_b7f52cc1",
+ "row_id": "F-EXC-016",
+ "register_ref": "b142cf88",
+ "engine_commit": {
+  "ref": "b142cf88",
+  "core_sha256": "5470e51b478a1b8e03178e66b64b43435391e1f42eb0010cdee15bd48334b0ac",
+  "core_lines": 8043
+ },
+ "generated_utc": "2026-10-16T22:55:06Z",
+ "verdict": "BLOCKED",
+ "open_decisions": [],
+ "missing_for_pass": [
+  "UI-visibility evidence unavailable: independent HTTP read of http://127.0.0.1:8031/live-copy = 200, 87117 bytes, but served doc lacks AUTHORITATIVE_EXCHANGE and all of LOCAL_LEDGER/DISPLAY_ONLY/LEADER_SIGNAL.",
+  "REGRESSION_fa9d9f55ff.json marked ui-visibility-blocked (pass=false; 131 pass/0 fail/7 blocked) - copied as BLOCKED, NOT a product failure.",
+  "Register applicability APPLIES_PROPOSED, result BLOCKED."
+ ],
+ "execution_proof": "Reproduce historical trigger on testnet or recorded replay -> assert failure cannot occur",
+ "independent_oracle": "Exchange truth, or recorded-replay expected output without engine code"
+}
