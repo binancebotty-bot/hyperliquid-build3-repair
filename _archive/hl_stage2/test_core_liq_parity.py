@@ -27,6 +27,7 @@ Run (from _archive/hl_stage2):  HL_LIVE_ENV_FILE=/nonexistent python -u test_cor
 from __future__ import annotations
 
 import os
+os.environ["HL_LIVE_LIQ_PARITY_ENFORCE"] = "1"  # these tests cover the enforcing gate
 import sys
 import tempfile
 from pathlib import Path
@@ -199,6 +200,12 @@ def main() -> None:
           "follower distance 0.01 < leader 0.50 but entry=%s (want (False, LIQ_PARITY_BLOCKED)); "
           "leader liquidationPx never read (leader_reads=%s)" % (unsafe, leader_reads))
 
+    os.environ["HL_LIVE_LIQ_PARITY_ENFORCE"] = "0"   # Boss 16 Oct: log only, the entry goes through
+    follower_liq(99.0)
+    logonly = parity_entry()
+    wb = [r for r in c.iter_csv_rows(c.RECONCILIATION_CSV) if r.get("terminal_state") == "LIQ_PARITY_WOULD_BLOCK"]
+    check("L6B_LOG_ONLY_SENDS_AND_LOGS", logonly[1] == SENT and len(wb) >= 1, "entry=%s would_block_rows=%d" % (logonly, len(wb)))
+    os.environ["HL_LIVE_LIQ_PARITY_ENFORCE"] = "1"
     follower_liq(10.0)                       # follower safer (0.90 >= 0.50): only a PASS if a gate exists
     safe = parity_entry()
     check("L7_PARITY_ALLOWS_SAME_OR_BETTER", proj is not None and safe[1] == SENT,

@@ -5922,6 +5922,19 @@ class SenderGateway:
             timing["liq_parity_started_ms"] = utc_now_ms()
             parity = self.liq_parity_block(intent)
             timing["liq_parity_finished_ms"] = utc_now_ms()
+            if parity is not None and not bval(os.getenv("HL_LIVE_LIQ_PARITY_ENFORCE"), False):
+                # Boss 16 Oct 20:40 UK: let entries through, log only. Set HL_LIVE_LIQ_PARITY_ENFORCE=1 to block again.
+                try:
+                    self.audit.append_reconciliation(
+                        "GATE_WOULD_BLOCK", "LIQ_PARITY_WOULD_BLOCK",
+                        leader_wallet=intent.fill.leader_wallet, leader_fill_id=intent.fill.leader_fill_id,
+                        intent_id=intent.intent_id, coin=canonical_coin_key(intent.fill.coin),
+                        action="LOG_ONLY_SENT_ANYWAY", reject_category="LIQ_PARITY_BLOCK",
+                        terminal_state="LIQ_PARITY_WOULD_BLOCK", engine_can_close=False, engine_can_send=True,
+                        notes=str(parity.get("notes") or "liquidation parity check refused (log only)"))
+                except Exception as exc:
+                    log_error("liq_parity_would_block", exc)
+                parity = None
             if parity is not None:
                 parity["timing"] = timing
                 self._append_local_block_reconciliation(intent, "LIQ_PARITY_BLOCKED", parity)

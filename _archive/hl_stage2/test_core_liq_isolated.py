@@ -3,6 +3,7 @@
 liquidation maths, leader read on the right dex, parity gate applied (not skipped).
 Run: HL_LIVE_ENV_FILE=/nonexistent python test_core_liq_isolated.py"""
 import os, sys, tempfile
+os.environ["HL_LIVE_LIQ_PARITY_ENFORCE"] = "1"  # these tests cover the enforcing gate
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 tmp = Path(tempfile.mkdtemp(prefix="liqiso_"))
