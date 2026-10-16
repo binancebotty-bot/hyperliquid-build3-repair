@@ -3164,6 +3164,7 @@ class DedupeStore:
         self._jsonl_skipped_lines: int = 0
         self.dedupe_load_failed: bool = False
         self._jsonl_flush_failures: int = 0
+        self._jsonl_lines: int = 0  # lines in the JSONL, tracked in memory: no file re-read per flush
         self._migrate_from_legacy_json(state)
 
     def accept_leader(self, fill_id: str) -> bool:
@@ -3264,6 +3265,7 @@ class DedupeStore:
                 self._jsonl_new_leader[:0] = new_leader
                 self._jsonl_new_copy[:0] = new_copy
             return
+        self._jsonl_lines += len(new_leader) + len(new_copy)
         self._maybe_compact_jsonl(jsonl_path, new_leader, new_copy)
 
     def _jsonl_line_count(self, jsonl_path: Path) -> int:
@@ -3290,11 +3292,15 @@ class DedupeStore:
             f.flush()
             os.fsync(f.fileno())
         os.replace(str(tmp_path), str(jsonl_path))
+        self._jsonl_lines = len(leader_ids) + len(copy_ids)
 
     def _maybe_compact_jsonl(self, jsonl_path: Path, pending_leader: List[str], pending_copy: List[str]) -> None:
         # the file is append-only, so rewrite it once it grows past the bound; a rewrite failure
         # is non-fatal (the pending ids were already appended) and is retried on the next flush
-        if self._jsonl_line_count(jsonl_path) <= DEDUPE_JSONL_COMPACT_LINES:
+        with self._lock:
+            unique = len(self.processed) + len(self.processed_copy)
+        # only a file with real duplicate lines is worth a rewrite (a file of unique ids is already compact)
+        if self._jsonl_lines <= DEDUPE_JSONL_COMPACT_LINES or self._jsonl_lines <= unique * 1.5:
             return
         try:
             self._compact_jsonl(jsonl_path, pending_leader, pending_copy)
@@ -3312,7 +3318,9 @@ class DedupeStore:
             legacy_leader = list(state.get("processed_leader_fill_ids") or [])
             legacy_copy = list(state.get("processed_copy_fill_ids") or [])
             if legacy_leader or legacy_copy:
-                self._append_to_jsonl(jsonl_path, legacy_leader, legacy_copy)
+                if not self._append_to_jsonl(jsonl_path, legacy_leader, legacy_copy):
+                    # the JSON is bounded from now on: if the full set was not persisted, refuse to start
+                    self.dedupe_load_failed = True
 
     def _load_from_jsonl(self, jsonl_path: Path) -> None:
         """Load all ids from the JSONL file into the sets."""
@@ -3329,6 +3337,7 @@ class DedupeStore:
                         # progressive corruption is visible instead of silent
                         self._jsonl_skipped_lines += 1
                         continue
+                    self._jsonl_lines += 1
                     if rec.get("type") == "leader":
                         self.processed.add(str(rec.get("id", "")))
                     elif rec.get("type") == "copy":
@@ -3339,18 +3348,24 @@ class DedupeStore:
             self.dedupe_load_failed = True
             log_error("dedupe_load_from_jsonl", exc)
 
-    def _append_to_jsonl(self, jsonl_path: Path, leader_ids: List[str], copy_ids: List[str]) -> None:
-        """Append new ids to the JSONL file."""
+    def _append_to_jsonl(self, jsonl_path: Path, leader_ids: List[str], copy_ids: List[str]) -> bool:
+        """Write the migrated ids via tmp + os.replace (a crash mid-write never leaves a partial JSONL that the
+        next start would trust). True when the whole set is on disk."""
+        tmp_path = jsonl_path.with_name(jsonl_path.name + ".migrate.tmp")
         try:
-            with jsonl_path.open("a", encoding="utf-8") as f:
+            with tmp_path.open("w", encoding="utf-8") as f:
                 for fid in leader_ids:
                     f.write(json.dumps({"type": "leader", "id": fid}) + "\n")
                 for fid in copy_ids:
                     f.write(json.dumps({"type": "copy", "id": fid}) + "\n")
                 f.flush()
                 os.fsync(f.fileno())
+            os.replace(str(tmp_path), str(jsonl_path))
+            self._jsonl_lines = len(leader_ids) + len(copy_ids)
+            return True
         except Exception as exc:
             log_error("dedupe_append_to_jsonl", exc)
+            return False
 
 
 class ManualLedger:

@@ -183,4 +183,33 @@ try:
 finally:
     c.DEDUPE_JSONL_COMPACT_LINES = old_compact
 
+# ---- 10. Migration that cannot persist the full set refuses to start (the JSON is bounded from now on)
+tmp10 = Path(tempfile.mkdtemp(prefix="dedupe_migrate_fail_"))
+sd10 = tmp10 / "hl_live_copy_audit"
+sd10.mkdir(parents=True, exist_ok=True)
+(sd10 / (c.DEDUPE_IDS_JSONL_NAME + ".migrate.tmp")).mkdir()  # a directory where the tmp file goes: the write fails
+d10 = c.DedupeStore({"processed_leader_fill_ids": ["a", "b"]}, state_dir=sd10)
+check("MIGRATE_FAIL_FLAGGED", d10.dedupe_load_failed is True)
+check("MIGRATE_NO_PARTIAL_JSONL", not (sd10 / c.DEDUPE_IDS_JSONL_NAME).exists())
+
+# ---- 11. A file of unique ids is never rewritten; one with real duplicate lines is
+old_compact = c.DEDUPE_JSONL_COMPACT_LINES
+c.DEDUPE_JSONL_COMPACT_LINES = 10
+try:
+    tmp11 = Path(tempfile.mkdtemp(prefix="dedupe_compact_dup_"))
+    sd11 = tmp11 / "hl_live_copy_audit"
+    sd11.mkdir(parents=True, exist_ok=True)
+    d11 = c.DedupeStore(state_dir=sd11)
+    for i in range(12):
+        d11.accept_leader("u_%d" % i)
+    d11.flush_jsonl()
+    check("NO_REWRITE_WHEN_UNIQUE", d11._jsonl_lines == 12, d11._jsonl_lines)
+    d11._jsonl_lines = 40  # as if the file held duplicate lines
+    d11.accept_leader("u_new")
+    d11.flush_jsonl()
+    lines11 = sum(1 for line in (sd11 / c.DEDUPE_IDS_JSONL_NAME).open("r", encoding="utf-8") if line.strip())
+    check("REWRITE_WHEN_DUPLICATES", lines11 == 13 and d11._jsonl_lines == 13, (lines11, d11._jsonl_lines))
+finally:
+    c.DEDUPE_JSONL_COMPACT_LINES = old_compact
+
 print("TOTAL=%d FAILED=%d" % (len(R), R.count(False))); sys.exit(1 if False in R else 0)
