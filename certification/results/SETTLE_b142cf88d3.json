@@ -1,0 +1,499 @@
+{
+  "task_id": "t_9c2d381a",
+  "title": "B3-CERT SETTLE [impl] TN-F09..TN-F13 (5 rows)",
+  "area": "SETTLE",
+  "harness": "SETTLE_harness_b142cf88d3.py",
+  "fresh_probe_at_utc": "2026-10-16T21:35:04Z",
+  "register_ref": "main:certification/certification_matrix.json",
+  "register_head": "b142cf88d389e791160f691aac3d936852b99975",
+  "engine_under_test": {
+    "available": true,
+    "sha256": "b171ec8fef01ead5ed2fe4a4a075857b5b1a56e425bab8394440c7dbad57f2a0",
+    "lines": 8042,
+    "blob_introduced_by": "52a16149e370732bb3162d69cb2f9ce4a43509bb"
+  },
+  "running_engine_probe": {
+    "engine_processes": [
+      {
+        "pid": "46176",
+        "cmdline": "C:\\Users\\wigmore\\AppData\\Local\\Python\\bin\\python.exe HL_Live_Copy_Service_Core.py --ws --loop --interval 10 --poll-live --poll-copy"
+      }
+    ],
+    "engine_process_running": true,
+    "engine_started": {
+      "46176": "2026-10-16T21:42:44.7893335+01:00"
+    },
+    "state_dir": "C:\\Users\\wigmore\\trading_stack\\hl-build3-testnet-cert\\_archive\\hl_stage2\\hl_live_copy_audit_testnet",
+    "state_dir_exists": true,
+    "network_stamp": {
+      "leader": "mainnet",
+      "follower": "testnet",
+      "claimed_at_ms": 1791568756702,
+      "prior_state": []
+    },
+    "live_config": {
+      "auto_send_enabled": false,
+      "wallets_live": 10,
+      "wallets_off": 5
+    },
+    "auto_send_enabled": false
+  },
+  "oracle_probe": {
+    "endpoint": "https://api.hyperliquid-testnet.xyz/info",
+    "oracle_read_http": 200,
+    "master": "0x7ae3b08bb4e7b085c6db5d635b96bec9715e9205",
+    "window_start_ms": 1792100104951,
+    "window_end_ms": 1792186504951,
+    "fills_in_window": 2000,
+    "newest_fill_ms": 1792172970841,
+    "newest_fill_age_h": 3.76,
+    "fills_since_engine_start": 0,
+    "fills_last_30min": 0,
+    "window_ref_ms": 1792183364789,
+    "coins": [
+      "2Z",
+      "AAVE",
+      "ACE",
+      "ADA",
+      "AERO",
+      "AIXBT",
+      "ALGO",
+      "ALT",
+      "ANIME",
+      "APE",
+      "APEX",
+      "APT"
+    ]
+  },
+  "predeclared_scenario_probe": {
+    "runnable_scenario_scripts_in_repo": [],
+    "count": 0
+  },
+  "folded_evidence_harness": {
+    "present": true,
+    "sha256": "efdf617b497daac19fccf958b6216621de3da5e35d453820fa877afb2a20c6f1",
+    "imports_unittest_mock": true,
+    "patches_network": true,
+    "pinned_tested_commit": "TESTED_COMMIT = \"2a269ad2260270fee844eedc2cc23545abc91dd0\"",
+    "pinned_tested_at": "TESTED_AT_UTC = \"2026-10-14T13:00:00Z\""
+  },
+  "missing_runtime": "PREDECLARED_PHASE6T_SETTLEMENT_SCENARIO over the LIVE testnet transport: no runnable Phase-6T scenario artifact exists in the register repo (git ls-tree main -> 0 match(es)), and although a live testnet engine IS running (pid 46176, state dir C:\\Users\\wigmore\\trading_stack\\hl-build3-testnet-cert\\_archive\\hl_stage2\\hl_live_copy_audit_testnet, leader=mainnet follower=testnet, auto_send_enabled=False), it produced NO exchange settlement event in the probe window (independent oracle https://api.hyperliquid-testnet.xyz/info: 2000 fills in 24h, newest 3.76h old, 0 since engine start). Producing one requires a controlled entry, which the certification contract forbids.",
+  "rows": {
+    "TN-F09": {
+      "area": "SETTLE",
+      "feature": "Testnet scenario F9: Namespace collision (XYZ:NBIS vs NBIS)",
+      "applicability": "APPLIES",
+      "result": "NOT_TESTED",
+      "register_result_before_probe": "FAIL",
+      "register_evidence_ref_before_probe": "certification/results/NLS_RESIDUAL_2a269ad226.json",
+      "register_tested_commit_before_probe": "2a269ad2260270fee844eedc2cc23545abc91dd0",
+      "engine_commit_cited": "52a16149e370732bb3162d69cb2f9ce4a43509bb",
+      "engine_blob_sha256": "b171ec8fef01ead5ed2fe4a4a075857b5b1a56e425bab8394440c7dbad57f2a0",
+      "declared_execution_proof": "Predeclared Phase 6T-style scenario on testnet through the production engine path only (no direct exchange.order); evidence per class with exchange parity",
+      "declared_independent_oracle": "MASTER userFillsByTime per DEX scope and clearinghouseState, read independently of the engine",
+      "blocked_by": [
+        "MISSING_RUNTIME:PREDECLARED_PHASE6T_SETTLEMENT_SCENARIO over the LIVE testnet transport: no runnable Phase-6T scenario artifact exists in the register repo (git ls-tree main -> 0 match(es)), and although a live testnet engine IS running (pid 46176, state dir C:\\Users\\wigmore\\trading_stack\\hl-build3-testnet-cert\\_archive\\hl_stage2\\hl_live_copy_audit_testnet, leader=mainnet follower=testnet, auto_send_enabled=False), it produced NO exchange settlement event in the probe window (independent oracle https://api.hyperliquid-testnet.xyz/info: 2000 fills in 24h, newest 3.76h old, 0 since engine start). Producing one requires a controlled entry, which the certification contract forbids."
+      ],
+      "missing_runtime": "PREDECLARED_PHASE6T_SETTLEMENT_SCENARIO over the LIVE testnet transport: no runnable Phase-6T scenario artifact exists in the register repo (git ls-tree main -> 0 match(es)), and although a live testnet engine IS running (pid 46176, state dir C:\\Users\\wigmore\\trading_stack\\hl-build3-testnet-cert\\_archive\\hl_stage2\\hl_live_copy_audit_testnet, leader=mainnet follower=testnet, auto_send_enabled=False), it produced NO exchange settlement event in the probe window (independent oracle https://api.hyperliquid-testnet.xyz/info: 2000 fills in 24h, newest 3.76h old, 0 since engine start). Producing one requires a controlled entry, which the certification contract forbids.",
+      "probe_checks": [
+        {
+          "name": "REGISTER_ROW_PRESENT",
+          "pass": true,
+          "detail": "register=main:certification/certification_matrix.json result=FAIL tested_commit=2a269ad2260270fee844eedc2cc23545abc91dd0"
+        },
+        {
+          "name": "DECLARED_PROOF_IS_LIVE_TESTNET_ENGINE_SCENARIO",
+          "pass": true,
+          "detail": "Predeclared Phase 6T-style scenario on testnet through the production engine path only (no direct exchange.ord"
+        },
+        {
+          "name": "PREDECLARED_SCENARIO_ARTIFACT_EXISTS",
+          "pass": false,
+          "detail": "runnable Phase-6T scenario scripts in main = <none>"
+        },
+        {
+          "name": "REGISTER_ENGINE_BLOB_MATCHES",
+          "pass": true,
+          "detail": "engine sha256=b171ec8fef01ead5ed2fe4a4a075857b5b1a56e425bab8394440c7dbad57f2a0 lines=8042 (expected b171ec8fef01/8042)"
+        },
+        {
+          "name": "ORACLE_SURFACE_REACHABLE",
+          "pass": true,
+          "detail": "https://api.hyperliquid-testnet.xyz/info http=200"
+        },
+        {
+          "name": "ENGINE_PRODUCED_SETTLEMENT_EVENT",
+          "pass": false,
+          "detail": "engine_running=True network={\"leader\": \"mainnet\", \"follower\": \"testnet\", \"claimed_at_ms\": 1791568756702, \"prior_state\": []} auto_send=False oracle_fills_since_start=0"
+        },
+        {
+          "name": "FOLDED_EVIDENCE_ENGINE_BLOB_DIFFERS",
+          "pass": true,
+          "detail": "folded tested_commit=2a269ad22602 blob=2dfbd571012a vs register blob=b171ec8fef01"
+        },
+        {
+          "name": "FOLDED_EVIDENCE_USED_MOCKS",
+          "pass": true,
+          "detail": "mock_harness=certification/results/NLS_RESIDUAL_harness_2a269ad_v4.py patches_network=True pinned_commit=TESTED_COMMIT = \"2a269ad2260270fee844eedc2cc23545abc91dd0\""
+        }
+      ],
+      "negative_tests": [
+        {
+          "name": "NEG_NO_ENGINE_PRODUCED_SETTLEMENT_EVENT",
+          "pass": true,
+          "detail": "oracle https://api.hyperliquid-testnet.xyz/info: fills_24h=2000 newest=3.76h fills_since_engine_start=0 for master 0x7ae3b08bb4e7b085c6db5d635b96bec9715e9205"
+        },
+        {
+          "name": "NEG_NO_RUNNABLE_PREDECLARED_SCENARIO",
+          "pass": true,
+          "detail": "scenario scripts found in main = <none>"
+        },
+        {
+          "name": "NEG_ENGINE_NOT_IN_UNCONTROLLED_SEND_MODE",
+          "pass": true,
+          "detail": "auto_send_enabled=False wallets_live=10 wallets_off=5"
+        }
+      ],
+      "checks_passed": 6,
+      "checks_total": 8,
+      "negs_passed": 3,
+      "negs_total": 3,
+      "notes": "Fresh read-only probe at 2026-10-16T21:35:04Z. Status is NOT_TESTED, not re-affirmed from the register's prior folded FAIL: the prior evidence (certification/results/NLS_RESIDUAL_harness_2a269ad_v4.py, pinned to engine blob 2dfbd571012a) is an in-process harness that patches the network, so it is not executed exchange evidence and cannot be carried forward. The declared proof needs a live testnet settlement event; PREDECLARED_PHASE6T_SETTLEMENT_SCENARIO over the LIVE testnet transport: no runnable Phase-6T scenario artifact exists in the register repo (git ls-tree main -> 0 match(es)), and although a live testnet engine IS running (pid 46176, state dir C:\\Users\\wigmore\\trading_stack\\hl-build3-testnet-cert\\_archive\\hl_stage2\\hl_live_copy_audit_testnet, leader=mainnet follower=testnet, auto_send_enabled=False), it produced NO exchange settlement event in the probe window (independent oracle https://api.hyperliquid-testnet.xyz/info: 2000 fills in 24h, newest 3.76h old, 0 since engine start). Producing one requires a controlled entry, which the certification contract forbids."
+    },
+    "TN-F10": {
+      "area": "SETTLE",
+      "feature": "Testnet scenario F10: Ambiguous intent / 429 storm",
+      "applicability": "APPLIES_PROPOSED",
+      "result": "NOT_TESTED",
+      "register_result_before_probe": "FAIL",
+      "register_evidence_ref_before_probe": "certification/results/NLS_RESIDUAL_2a269ad226.json",
+      "register_tested_commit_before_probe": "2a269ad2260270fee844eedc2cc23545abc91dd0",
+      "engine_commit_cited": "52a16149e370732bb3162d69cb2f9ce4a43509bb",
+      "engine_blob_sha256": "b171ec8fef01ead5ed2fe4a4a075857b5b1a56e425bab8394440c7dbad57f2a0",
+      "declared_execution_proof": "Predeclared Phase 6T-style scenario on testnet through the production engine path only (no direct exchange.order); evidence per class with exchange parity",
+      "declared_independent_oracle": "MASTER userFillsByTime per DEX scope and clearinghouseState, read independently of the engine",
+      "blocked_by": [
+        "MISSING_RUNTIME:PREDECLARED_PHASE6T_SETTLEMENT_SCENARIO over the LIVE testnet transport: no runnable Phase-6T scenario artifact exists in the register repo (git ls-tree main -> 0 match(es)), and although a live testnet engine IS running (pid 46176, state dir C:\\Users\\wigmore\\trading_stack\\hl-build3-testnet-cert\\_archive\\hl_stage2\\hl_live_copy_audit_testnet, leader=mainnet follower=testnet, auto_send_enabled=False), it produced NO exchange settlement event in the probe window (independent oracle https://api.hyperliquid-testnet.xyz/info: 2000 fills in 24h, newest 3.76h old, 0 since engine start). Producing one requires a controlled entry, which the certification contract forbids."
+      ],
+      "missing_runtime": "PREDECLARED_PHASE6T_SETTLEMENT_SCENARIO over the LIVE testnet transport: no runnable Phase-6T scenario artifact exists in the register repo (git ls-tree main -> 0 match(es)), and although a live testnet engine IS running (pid 46176, state dir C:\\Users\\wigmore\\trading_stack\\hl-build3-testnet-cert\\_archive\\hl_stage2\\hl_live_copy_audit_testnet, leader=mainnet follower=testnet, auto_send_enabled=False), it produced NO exchange settlement event in the probe window (independent oracle https://api.hyperliquid-testnet.xyz/info: 2000 fills in 24h, newest 3.76h old, 0 since engine start). Producing one requires a controlled entry, which the certification contract forbids.",
+      "probe_checks": [
+        {
+          "name": "REGISTER_ROW_PRESENT",
+          "pass": true,
+          "detail": "register=main:certification/certification_matrix.json result=FAIL tested_commit=2a269ad2260270fee844eedc2cc23545abc91dd0"
+        },
+        {
+          "name": "DECLARED_PROOF_IS_LIVE_TESTNET_ENGINE_SCENARIO",
+          "pass": true,
+          "detail": "Predeclared Phase 6T-style scenario on testnet through the production engine path only (no direct exchange.ord"
+        },
+        {
+          "name": "PREDECLARED_SCENARIO_ARTIFACT_EXISTS",
+          "pass": false,
+          "detail": "runnable Phase-6T scenario scripts in main = <none>"
+        },
+        {
+          "name": "REGISTER_ENGINE_BLOB_MATCHES",
+          "pass": true,
+          "detail": "engine sha256=b171ec8fef01ead5ed2fe4a4a075857b5b1a56e425bab8394440c7dbad57f2a0 lines=8042 (expected b171ec8fef01/8042)"
+        },
+        {
+          "name": "ORACLE_SURFACE_REACHABLE",
+          "pass": true,
+          "detail": "https://api.hyperliquid-testnet.xyz/info http=200"
+        },
+        {
+          "name": "ENGINE_PRODUCED_SETTLEMENT_EVENT",
+          "pass": false,
+          "detail": "engine_running=True network={\"leader\": \"mainnet\", \"follower\": \"testnet\", \"claimed_at_ms\": 1791568756702, \"prior_state\": []} auto_send=False oracle_fills_since_start=0"
+        },
+        {
+          "name": "FOLDED_EVIDENCE_ENGINE_BLOB_DIFFERS",
+          "pass": true,
+          "detail": "folded tested_commit=2a269ad22602 blob=2dfbd571012a vs register blob=b171ec8fef01"
+        },
+        {
+          "name": "FOLDED_EVIDENCE_USED_MOCKS",
+          "pass": true,
+          "detail": "mock_harness=certification/results/NLS_RESIDUAL_harness_2a269ad_v4.py patches_network=True pinned_commit=TESTED_COMMIT = \"2a269ad2260270fee844eedc2cc23545abc91dd0\""
+        }
+      ],
+      "negative_tests": [
+        {
+          "name": "NEG_NO_ENGINE_PRODUCED_SETTLEMENT_EVENT",
+          "pass": true,
+          "detail": "oracle https://api.hyperliquid-testnet.xyz/info: fills_24h=2000 newest=3.76h fills_since_engine_start=0 for master 0x7ae3b08bb4e7b085c6db5d635b96bec9715e9205"
+        },
+        {
+          "name": "NEG_NO_RUNNABLE_PREDECLARED_SCENARIO",
+          "pass": true,
+          "detail": "scenario scripts found in main = <none>"
+        },
+        {
+          "name": "NEG_ENGINE_NOT_IN_UNCONTROLLED_SEND_MODE",
+          "pass": true,
+          "detail": "auto_send_enabled=False wallets_live=10 wallets_off=5"
+        }
+      ],
+      "checks_passed": 6,
+      "checks_total": 8,
+      "negs_passed": 3,
+      "negs_total": 3,
+      "notes": "Fresh read-only probe at 2026-10-16T21:35:04Z. Status is NOT_TESTED, not re-affirmed from the register's prior folded FAIL: the prior evidence (certification/results/NLS_RESIDUAL_harness_2a269ad_v4.py, pinned to engine blob 2dfbd571012a) is an in-process harness that patches the network, so it is not executed exchange evidence and cannot be carried forward. The declared proof needs a live testnet settlement event; PREDECLARED_PHASE6T_SETTLEMENT_SCENARIO over the LIVE testnet transport: no runnable Phase-6T scenario artifact exists in the register repo (git ls-tree main -> 0 match(es)), and although a live testnet engine IS running (pid 46176, state dir C:\\Users\\wigmore\\trading_stack\\hl-build3-testnet-cert\\_archive\\hl_stage2\\hl_live_copy_audit_testnet, leader=mainnet follower=testnet, auto_send_enabled=False), it produced NO exchange settlement event in the probe window (independent oracle https://api.hyperliquid-testnet.xyz/info: 2000 fills in 24h, newest 3.76h old, 0 since engine start). Producing one requires a controlled entry, which the certification contract forbids."
+    },
+    "TN-F11": {
+      "area": "SETTLE",
+      "feature": "Testnet scenario F11: Ownership / truth fail-open",
+      "applicability": "APPLIES_PROPOSED",
+      "result": "NOT_TESTED",
+      "register_result_before_probe": "FAIL",
+      "register_evidence_ref_before_probe": "certification/results/NLS_RESIDUAL_2a269ad226.json",
+      "register_tested_commit_before_probe": "2a269ad2260270fee844eedc2cc23545abc91dd0",
+      "engine_commit_cited": "52a16149e370732bb3162d69cb2f9ce4a43509bb",
+      "engine_blob_sha256": "b171ec8fef01ead5ed2fe4a4a075857b5b1a56e425bab8394440c7dbad57f2a0",
+      "declared_execution_proof": "Predeclared Phase 6T-style scenario on testnet through the production engine path only (no direct exchange.order); evidence per class with exchange parity",
+      "declared_independent_oracle": "MASTER userFillsByTime per DEX scope and clearinghouseState, read independently of the engine",
+      "blocked_by": [
+        "MISSING_RUNTIME:PREDECLARED_PHASE6T_SETTLEMENT_SCENARIO over the LIVE testnet transport: no runnable Phase-6T scenario artifact exists in the register repo (git ls-tree main -> 0 match(es)), and although a live testnet engine IS running (pid 46176, state dir C:\\Users\\wigmore\\trading_stack\\hl-build3-testnet-cert\\_archive\\hl_stage2\\hl_live_copy_audit_testnet, leader=mainnet follower=testnet, auto_send_enabled=False), it produced NO exchange settlement event in the probe window (independent oracle https://api.hyperliquid-testnet.xyz/info: 2000 fills in 24h, newest 3.76h old, 0 since engine start). Producing one requires a controlled entry, which the certification contract forbids."
+      ],
+      "missing_runtime": "PREDECLARED_PHASE6T_SETTLEMENT_SCENARIO over the LIVE testnet transport: no runnable Phase-6T scenario artifact exists in the register repo (git ls-tree main -> 0 match(es)), and although a live testnet engine IS running (pid 46176, state dir C:\\Users\\wigmore\\trading_stack\\hl-build3-testnet-cert\\_archive\\hl_stage2\\hl_live_copy_audit_testnet, leader=mainnet follower=testnet, auto_send_enabled=False), it produced NO exchange settlement event in the probe window (independent oracle https://api.hyperliquid-testnet.xyz/info: 2000 fills in 24h, newest 3.76h old, 0 since engine start). Producing one requires a controlled entry, which the certification contract forbids.",
+      "probe_checks": [
+        {
+          "name": "REGISTER_ROW_PRESENT",
+          "pass": true,
+          "detail": "register=main:certification/certification_matrix.json result=FAIL tested_commit=2a269ad2260270fee844eedc2cc23545abc91dd0"
+        },
+        {
+          "name": "DECLARED_PROOF_IS_LIVE_TESTNET_ENGINE_SCENARIO",
+          "pass": true,
+          "detail": "Predeclared Phase 6T-style scenario on testnet through the production engine path only (no direct exchange.ord"
+        },
+        {
+          "name": "PREDECLARED_SCENARIO_ARTIFACT_EXISTS",
+          "pass": false,
+          "detail": "runnable Phase-6T scenario scripts in main = <none>"
+        },
+        {
+          "name": "REGISTER_ENGINE_BLOB_MATCHES",
+          "pass": true,
+          "detail": "engine sha256=b171ec8fef01ead5ed2fe4a4a075857b5b1a56e425bab8394440c7dbad57f2a0 lines=8042 (expected b171ec8fef01/8042)"
+        },
+        {
+          "name": "ORACLE_SURFACE_REACHABLE",
+          "pass": true,
+          "detail": "https://api.hyperliquid-testnet.xyz/info http=200"
+        },
+        {
+          "name": "ENGINE_PRODUCED_SETTLEMENT_EVENT",
+          "pass": false,
+          "detail": "engine_running=True network={\"leader\": \"mainnet\", \"follower\": \"testnet\", \"claimed_at_ms\": 1791568756702, \"prior_state\": []} auto_send=False oracle_fills_since_start=0"
+        },
+        {
+          "name": "FOLDED_EVIDENCE_ENGINE_BLOB_DIFFERS",
+          "pass": true,
+          "detail": "folded tested_commit=2a269ad22602 blob=2dfbd571012a vs register blob=b171ec8fef01"
+        },
+        {
+          "name": "FOLDED_EVIDENCE_USED_MOCKS",
+          "pass": true,
+          "detail": "mock_harness=certification/results/NLS_RESIDUAL_harness_2a269ad_v4.py patches_network=True pinned_commit=TESTED_COMMIT = \"2a269ad2260270fee844eedc2cc23545abc91dd0\""
+        }
+      ],
+      "negative_tests": [
+        {
+          "name": "NEG_NO_ENGINE_PRODUCED_SETTLEMENT_EVENT",
+          "pass": true,
+          "detail": "oracle https://api.hyperliquid-testnet.xyz/info: fills_24h=2000 newest=3.76h fills_since_engine_start=0 for master 0x7ae3b08bb4e7b085c6db5d635b96bec9715e9205"
+        },
+        {
+          "name": "NEG_NO_RUNNABLE_PREDECLARED_SCENARIO",
+          "pass": true,
+          "detail": "scenario scripts found in main = <none>"
+        },
+        {
+          "name": "NEG_ENGINE_NOT_IN_UNCONTROLLED_SEND_MODE",
+          "pass": true,
+          "detail": "auto_send_enabled=False wallets_live=10 wallets_off=5"
+        }
+      ],
+      "checks_passed": 6,
+      "checks_total": 8,
+      "negs_passed": 3,
+      "negs_total": 3,
+      "notes": "Fresh read-only probe at 2026-10-16T21:35:04Z. Status is NOT_TESTED, not re-affirmed from the register's prior folded FAIL: the prior evidence (certification/results/NLS_RESIDUAL_harness_2a269ad_v4.py, pinned to engine blob 2dfbd571012a) is an in-process harness that patches the network, so it is not executed exchange evidence and cannot be carried forward. The declared proof needs a live testnet settlement event; PREDECLARED_PHASE6T_SETTLEMENT_SCENARIO over the LIVE testnet transport: no runnable Phase-6T scenario artifact exists in the register repo (git ls-tree main -> 0 match(es)), and although a live testnet engine IS running (pid 46176, state dir C:\\Users\\wigmore\\trading_stack\\hl-build3-testnet-cert\\_archive\\hl_stage2\\hl_live_copy_audit_testnet, leader=mainnet follower=testnet, auto_send_enabled=False), it produced NO exchange settlement event in the probe window (independent oracle https://api.hyperliquid-testnet.xyz/info: 2000 fills in 24h, newest 3.76h old, 0 since engine start). Producing one requires a controlled entry, which the certification contract forbids."
+    },
+    "TN-F12": {
+      "area": "SETTLE",
+      "feature": "Testnet scenario F12: Manual reconciliation",
+      "applicability": "APPLIES",
+      "result": "NOT_TESTED",
+      "register_result_before_probe": "FAIL",
+      "register_evidence_ref_before_probe": "certification/results/NLS_RESIDUAL_2a269ad226.json",
+      "register_tested_commit_before_probe": "2a269ad2260270fee844eedc2cc23545abc91dd0",
+      "engine_commit_cited": "52a16149e370732bb3162d69cb2f9ce4a43509bb",
+      "engine_blob_sha256": "b171ec8fef01ead5ed2fe4a4a075857b5b1a56e425bab8394440c7dbad57f2a0",
+      "declared_execution_proof": "Predeclared Phase 6T-style scenario on testnet through the production engine path only (no direct exchange.order); evidence per class with exchange parity",
+      "declared_independent_oracle": "MASTER userFillsByTime per DEX scope and clearinghouseState, read independently of the engine",
+      "blocked_by": [
+        "MISSING_RUNTIME:PREDECLARED_PHASE6T_SETTLEMENT_SCENARIO over the LIVE testnet transport: no runnable Phase-6T scenario artifact exists in the register repo (git ls-tree main -> 0 match(es)), and although a live testnet engine IS running (pid 46176, state dir C:\\Users\\wigmore\\trading_stack\\hl-build3-testnet-cert\\_archive\\hl_stage2\\hl_live_copy_audit_testnet, leader=mainnet follower=testnet, auto_send_enabled=False), it produced NO exchange settlement event in the probe window (independent oracle https://api.hyperliquid-testnet.xyz/info: 2000 fills in 24h, newest 3.76h old, 0 since engine start). Producing one requires a controlled entry, which the certification contract forbids."
+      ],
+      "missing_runtime": "PREDECLARED_PHASE6T_SETTLEMENT_SCENARIO over the LIVE testnet transport: no runnable Phase-6T scenario artifact exists in the register repo (git ls-tree main -> 0 match(es)), and although a live testnet engine IS running (pid 46176, state dir C:\\Users\\wigmore\\trading_stack\\hl-build3-testnet-cert\\_archive\\hl_stage2\\hl_live_copy_audit_testnet, leader=mainnet follower=testnet, auto_send_enabled=False), it produced NO exchange settlement event in the probe window (independent oracle https://api.hyperliquid-testnet.xyz/info: 2000 fills in 24h, newest 3.76h old, 0 since engine start). Producing one requires a controlled entry, which the certification contract forbids.",
+      "probe_checks": [
+        {
+          "name": "REGISTER_ROW_PRESENT",
+          "pass": true,
+          "detail": "register=main:certification/certification_matrix.json result=FAIL tested_commit=2a269ad2260270fee844eedc2cc23545abc91dd0"
+        },
+        {
+          "name": "DECLARED_PROOF_IS_LIVE_TESTNET_ENGINE_SCENARIO",
+          "pass": true,
+          "detail": "Predeclared Phase 6T-style scenario on testnet through the production engine path only (no direct exchange.ord"
+        },
+        {
+          "name": "PREDECLARED_SCENARIO_ARTIFACT_EXISTS",
+          "pass": false,
+          "detail": "runnable Phase-6T scenario scripts in main = <none>"
+        },
+        {
+          "name": "REGISTER_ENGINE_BLOB_MATCHES",
+          "pass": true,
+          "detail": "engine sha256=b171ec8fef01ead5ed2fe4a4a075857b5b1a56e425bab8394440c7dbad57f2a0 lines=8042 (expected b171ec8fef01/8042)"
+        },
+        {
+          "name": "ORACLE_SURFACE_REACHABLE",
+          "pass": true,
+          "detail": "https://api.hyperliquid-testnet.xyz/info http=200"
+        },
+        {
+          "name": "ENGINE_PRODUCED_SETTLEMENT_EVENT",
+          "pass": false,
+          "detail": "engine_running=True network={\"leader\": \"mainnet\", \"follower\": \"testnet\", \"claimed_at_ms\": 1791568756702, \"prior_state\": []} auto_send=False oracle_fills_since_start=0"
+        },
+        {
+          "name": "FOLDED_EVIDENCE_ENGINE_BLOB_DIFFERS",
+          "pass": true,
+          "detail": "folded tested_commit=2a269ad22602 blob=2dfbd571012a vs register blob=b171ec8fef01"
+        },
+        {
+          "name": "FOLDED_EVIDENCE_USED_MOCKS",
+          "pass": true,
+          "detail": "mock_harness=certification/results/NLS_RESIDUAL_harness_2a269ad_v4.py patches_network=True pinned_commit=TESTED_COMMIT = \"2a269ad2260270fee844eedc2cc23545abc91dd0\""
+        }
+      ],
+      "negative_tests": [
+        {
+          "name": "NEG_NO_ENGINE_PRODUCED_SETTLEMENT_EVENT",
+          "pass": true,
+          "detail": "oracle https://api.hyperliquid-testnet.xyz/info: fills_24h=2000 newest=3.76h fills_since_engine_start=0 for master 0x7ae3b08bb4e7b085c6db5d635b96bec9715e9205"
+        },
+        {
+          "name": "NEG_NO_RUNNABLE_PREDECLARED_SCENARIO",
+          "pass": true,
+          "detail": "scenario scripts found in main = <none>"
+        },
+        {
+          "name": "NEG_ENGINE_NOT_IN_UNCONTROLLED_SEND_MODE",
+          "pass": true,
+          "detail": "auto_send_enabled=False wallets_live=10 wallets_off=5"
+        }
+      ],
+      "checks_passed": 6,
+      "checks_total": 8,
+      "negs_passed": 3,
+      "negs_total": 3,
+      "notes": "Fresh read-only probe at 2026-10-16T21:35:04Z. Status is NOT_TESTED, not re-affirmed from the register's prior folded FAIL: the prior evidence (certification/results/NLS_RESIDUAL_harness_2a269ad_v4.py, pinned to engine blob 2dfbd571012a) is an in-process harness that patches the network, so it is not executed exchange evidence and cannot be carried forward. The declared proof needs a live testnet settlement event; PREDECLARED_PHASE6T_SETTLEMENT_SCENARIO over the LIVE testnet transport: no runnable Phase-6T scenario artifact exists in the register repo (git ls-tree main -> 0 match(es)), and although a live testnet engine IS running (pid 46176, state dir C:\\Users\\wigmore\\trading_stack\\hl-build3-testnet-cert\\_archive\\hl_stage2\\hl_live_copy_audit_testnet, leader=mainnet follower=testnet, auto_send_enabled=False), it produced NO exchange settlement event in the probe window (independent oracle https://api.hyperliquid-testnet.xyz/info: 2000 fills in 24h, newest 3.76h old, 0 since engine start). Producing one requires a controlled entry, which the certification contract forbids."
+    },
+    "TN-F13": {
+      "area": "SETTLE",
+      "feature": "Testnet scenario F13: Reconciliation tolerance / blind catch-up",
+      "applicability": "APPLIES",
+      "result": "NOT_TESTED",
+      "register_result_before_probe": "NOT_TESTED",
+      "register_evidence_ref_before_probe": "",
+      "register_tested_commit_before_probe": "",
+      "engine_commit_cited": "52a16149e370732bb3162d69cb2f9ce4a43509bb",
+      "engine_blob_sha256": "b171ec8fef01ead5ed2fe4a4a075857b5b1a56e425bab8394440c7dbad57f2a0",
+      "declared_execution_proof": "Predeclared Phase 6T-style scenario on testnet through the production engine path only (no direct exchange.order); evidence per class with exchange parity",
+      "declared_independent_oracle": "MASTER userFillsByTime per DEX scope and clearinghouseState, read independently of the engine",
+      "blocked_by": [
+        "OPEN_DECISION:OD-24",
+        "MISSING_RUNTIME:PREDECLARED_PHASE6T_SETTLEMENT_SCENARIO over the LIVE testnet transport: no runnable Phase-6T scenario artifact exists in the register repo (git ls-tree main -> 0 match(es)), and although a live testnet engine IS running (pid 46176, state dir C:\\Users\\wigmore\\trading_stack\\hl-build3-testnet-cert\\_archive\\hl_stage2\\hl_live_copy_audit_testnet, leader=mainnet follower=testnet, auto_send_enabled=False), it produced NO exchange settlement event in the probe window (independent oracle https://api.hyperliquid-testnet.xyz/info: 2000 fills in 24h, newest 3.76h old, 0 since engine start). Producing one requires a controlled entry, which the certification contract forbids."
+      ],
+      "missing_runtime": "PREDECLARED_PHASE6T_SETTLEMENT_SCENARIO over the LIVE testnet transport: no runnable Phase-6T scenario artifact exists in the register repo (git ls-tree main -> 0 match(es)), and although a live testnet engine IS running (pid 46176, state dir C:\\Users\\wigmore\\trading_stack\\hl-build3-testnet-cert\\_archive\\hl_stage2\\hl_live_copy_audit_testnet, leader=mainnet follower=testnet, auto_send_enabled=False), it produced NO exchange settlement event in the probe window (independent oracle https://api.hyperliquid-testnet.xyz/info: 2000 fills in 24h, newest 3.76h old, 0 since engine start). Producing one requires a controlled entry, which the certification contract forbids.",
+      "probe_checks": [
+        {
+          "name": "REGISTER_ROW_PRESENT",
+          "pass": true,
+          "detail": "register=main:certification/certification_matrix.json result=NOT_TESTED tested_commit=<none>"
+        },
+        {
+          "name": "DECLARED_PROOF_IS_LIVE_TESTNET_ENGINE_SCENARIO",
+          "pass": true,
+          "detail": "Predeclared Phase 6T-style scenario on testnet through the production engine path only (no direct exchange.ord"
+        },
+        {
+          "name": "PREDECLARED_SCENARIO_ARTIFACT_EXISTS",
+          "pass": false,
+          "detail": "runnable Phase-6T scenario scripts in main = <none>"
+        },
+        {
+          "name": "REGISTER_ENGINE_BLOB_MATCHES",
+          "pass": true,
+          "detail": "engine sha256=b171ec8fef01ead5ed2fe4a4a075857b5b1a56e425bab8394440c7dbad57f2a0 lines=8042 (expected b171ec8fef01/8042)"
+        },
+        {
+          "name": "ORACLE_SURFACE_REACHABLE",
+          "pass": true,
+          "detail": "https://api.hyperliquid-testnet.xyz/info http=200"
+        },
+        {
+          "name": "ENGINE_PRODUCED_SETTLEMENT_EVENT",
+          "pass": false,
+          "detail": "engine_running=True network={\"leader\": \"mainnet\", \"follower\": \"testnet\", \"claimed_at_ms\": 1791568756702, \"prior_state\": []} auto_send=False oracle_fills_since_start=0"
+        },
+        {
+          "name": "FOLDED_EVIDENCE_ENGINE_BLOB_DIFFERS",
+          "pass": false,
+          "detail": "folded tested_commit=<none> blob=<none> vs register blob=b171ec8fef01"
+        },
+        {
+          "name": "FOLDED_EVIDENCE_USED_MOCKS",
+          "pass": true,
+          "detail": "mock_harness=certification/results/NLS_RESIDUAL_harness_2a269ad_v4.py patches_network=True pinned_commit=TESTED_COMMIT = \"2a269ad2260270fee844eedc2cc23545abc91dd0\""
+        }
+      ],
+      "negative_tests": [
+        {
+          "name": "NEG_NO_ENGINE_PRODUCED_SETTLEMENT_EVENT",
+          "pass": true,
+          "detail": "oracle https://api.hyperliquid-testnet.xyz/info: fills_24h=2000 newest=3.76h fills_since_engine_start=0 for master 0x7ae3b08bb4e7b085c6db5d635b96bec9715e9205"
+        },
+        {
+          "name": "NEG_NO_RUNNABLE_PREDECLARED_SCENARIO",
+          "pass": true,
+          "detail": "scenario scripts found in main = <none>"
+        },
+        {
+          "name": "NEG_ENGINE_NOT_IN_UNCONTROLLED_SEND_MODE",
+          "pass": true,
+          "detail": "auto_send_enabled=False wallets_live=10 wallets_off=5"
+        }
+      ],
+      "checks_passed": 5,
+      "checks_total": 8,
+      "negs_passed": 3,
+      "negs_total": 3,
+      "notes": "Fresh read-only probe at 2026-10-16T21:35:04Z. Status is NOT_TESTED, not re-affirmed from the register's prior folded FAIL: the prior evidence (certification/results/NLS_RESIDUAL_harness_2a269ad_v4.py, pinned to engine blob ?) is an in-process harness that patches the network, so it is not executed exchange evidence and cannot be carried forward. The declared proof needs a live testnet settlement event; PREDECLARED_PHASE6T_SETTLEMENT_SCENARIO over the LIVE testnet transport: no runnable Phase-6T scenario artifact exists in the register repo (git ls-tree main -> 0 match(es)), and although a live testnet engine IS running (pid 46176, state dir C:\\Users\\wigmore\\trading_stack\\hl-build3-testnet-cert\\_archive\\hl_stage2\\hl_live_copy_audit_testnet, leader=mainnet follower=testnet, auto_send_enabled=False), it produced NO exchange settlement event in the probe window (independent oracle https://api.hyperliquid-testnet.xyz/info: 2000 fills in 24h, newest 3.76h old, 0 since engine start). Producing one requires a controlled entry, which the certification contract forbids."
+    }
+  },
+  "summary": {
+    "rows": 5,
+    "passed": 0,
+    "failed": 0,
+    "not_tested": 5,
+    "blocked_on_open_decision": 1,
+    "mocked": 0,
+    "status_changes": 0,
+    "register_rows_unchanged": true
+  }
+}
