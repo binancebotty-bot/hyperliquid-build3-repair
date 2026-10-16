@@ -1,0 +1,196 @@
+{
+  "schema": "b3_network_row_evidence_v1",
+  "register_ref": "main:certification/certification_matrix.json",
+  "register_commit": "b142cf88d389e791160f691aac3d936852b99975",
+  "engine_commit": "b142cf88d389e791160f691aac3d936852b99975",
+  "tested_at_utc": "2026-10-16T21:49:17Z",
+  "probe_note": "Fresh read-only route probe for this run: (1) rendered DOM GET http://127.0.0.1:8031/live-copy -> HTTP 200, HTML title 'Live Copy Dashboard', idle follower (Wallets: 0/10, Leader feed: --); it does not enumerate B3 cert rows and does not establish transport or exchange-oracle evidence. (2) repo tracked-file scan (git ls-files | grep -iE 'transport|oracle|testnet|info_api|cert_harness') -> only TESTNET_RUN_HANDOVER.md (a 2026-10-09 handover doc), no approved isolated testnet transport runner and no independent info-API oracle script. (3) TESTNET_RUN_HANDOVER.md records the testnet run as IN PROGRESS with no trade placed (follower 0x7AE3...9205). (4) TN-F19 own evidence certification/results/NLS_RESIDUAL_2a269ad226.json re-read from main (tested_commit 2a269ad): FAIL 5/6 (MOCK_START_NO_REAL_ORDERS mock_sent=0; negative NEG_SECOND_START_DEDUPED deduped=0). No live testnet transport was invoked, no credentials or secrets were read, and no mock was used.",
+  "results": [
+    {
+      "row_id": "F25-X08",
+      "feature": "F25 automatic fail 8",
+      "area": "LIFECYCLE",
+      "applicability": "ADAPTED_PROPOSED",
+      "result": "NOT_TESTED",
+      "execution_proof": "Operator command -> process table / PID / lock -> engine status endpoint -> exchange shows zero unintended orders",
+      "independent_oracle": "OS process list, port bindings, exchange open orders/fills during the transition window",
+      "negative_tests": ["second start attempt", "crash mid-transition", "stale lock/PID", "config from previous version"],
+      "checks": [
+        {
+          "name": "execution proof",
+          "result": "NOT_TESTED",
+          "detail": "MISSING ROUTE: operator-command lifecycle transition (cold start / restart / crash mid-transition / stale lock / config from previous version) through the production engine path with process-table/PID/lock and engine-status endpoint evidence was not invoked. Read-only rendered DOM GET http://127.0.0.1:8031/live-copy returned HTTP 200 (Live Copy Dashboard, idle follower 0/10 wallets) but no state-changing lifecycle action was taken, no credentials read, no mock."
+        },
+        {
+          "name": "independent oracle",
+          "result": "NOT_TESTED",
+          "detail": "MISSING ROUTE: OS process-list / port-binding capture and exchange open-orders and fills truth read during a transition window were not performed. The dashboard DOM shows an idle follower, not a transition-window exchange-side order/fill census; no process/port capture, no exchange truth read, no credentials read, no mock."
+        },
+        {
+          "name": "negative tests",
+          "result": "NOT_TESTED",
+          "detail": "MISSING ROUTE: declared negatives (second start attempt, crash mid-transition, stale lock/PID, config from previous version) require an isolated live testnet transport plus a captured exchange oracle and were not exercised; no mocks substituted."
+        }
+      ],
+      "missing_route": "Live testnet transport: operator-command lifecycle transition through the production engine path (process table/PID/lock, engine status, exchange zero-unintended-orders) plus OS process/port-listing and exchange open-orders/fills oracle. Read-only DOM GET http://127.0.0.1:8031/live-copy returned HTTP 200 (idle follower, 0/10 wallets) but is insufficient; no transport runner, no process/port capture, no exchange truth read, no credentials read, no mock.",
+      "notes": "Register main:b142cf8 records F25-X08 = NOT_TESTED (evidence_ref empty, tested_commit empty). Non-vacuous negative: the lifecycle transition transport/oracle route is absent (repo scan found only TESTNET_RUN_HANDOVER.md; handover notes the testnet run IN PROGRESS with no trade placed; live-copy :8031 dashboard idle). Honest status retained: NOT_TESTED.",
+      "engine_commit": "b142cf88d389e791160f691aac3d936852b99975"
+    },
+    {
+      "row_id": "TN-F03",
+      "feature": "Testnet scenario F3: Configured follower-capital basis / sizing authority",
+      "area": "ENGINE",
+      "applicability": "OPEN_DECISION",
+      "open_decisions": ["OD-22"],
+      "result": "NOT_TESTED",
+      "execution_proof": "Predeclared Phase 6T-style scenario on testnet through the production engine path only (no direct exchange.order); evidence per class with exchange parity",
+      "independent_oracle": "Hyperliquid testnet info API read by a script that does not import engine code: clearinghouseState (all perp DEXes), openOrders, userFillsByTime for MASTER; leader fills from mainnet info API",
+      "negative_tests": ["restart mid-sequence", "stale leader snapshot", "API 429/timeout", "duplicate/reordered event"],
+      "checks": [
+        {
+          "name": "execution proof",
+          "result": "NOT_TESTED",
+          "detail": "MISSING ROUTE: live testnet scenario F3 through the production engine path (no direct exchange.order) was not invoked. TESTNET_RUN_HANDOVER.md (2026-10-09) records the testnet run IN PROGRESS with no trade placed; repo scan found only TESTNET_RUN_HANDOVER.md, no approved scenario transport runner. No state-changing action taken, no credentials read, no mock."
+        },
+        {
+          "name": "independent oracle",
+          "result": "NOT_TESTED",
+          "detail": "MISSING ROUTE: independent Hyperliquid testnet info-API oracle (clearinghouseState/openOrders/userFillsByTime for MASTER 0x7AE3...9205; leader fills from mainnet info API) via a script that does not import engine code was not exercised; no request-log/capture present; dashboard :8031 idle. No credentials read, no mock."
+        },
+        {
+          "name": "negative tests",
+          "result": "NOT_TESTED",
+          "detail": "MISSING ROUTE: declared negatives (restart mid-sequence, stale leader snapshot, API 429/timeout, duplicate/reordered event) require an isolated live testnet transport plus a captured exchange oracle and were not exercised; no mocks substituted."
+        }
+      ],
+      "missing_route": "Live testnet transport (scenario F3 via the production engine path, no direct exchange.order) plus independent HL testnet info-API oracle (engine-free script). Absent: no scenario transport runner; no trade placed (handover 2026-10-09); dashboard :8031 idle; no credentials read; no mock.",
+      "notes": "Register main:b142cf8 records TN-F03 = NOT_TESTED (applicability OPEN_DECISION, OD-22; evidence_ref empty, tested_commit empty). Testnet scenario F3 not executed (transport/oracle absent). Honest status retained: NOT_TESTED. Per register note: Build 3 basis is norm_base / leader_equity_base.",
+      "engine_commit": "b142cf88d389e791160f691aac3d936852b99975"
+    },
+    {
+      "row_id": "TN-F04",
+      "feature": "Testnet scenario F4: Exit sizing",
+      "area": "ENGINE",
+      "applicability": "APPLIES_PROPOSED",
+      "result": "NOT_TESTED",
+      "execution_proof": "Predeclared Phase 6T-style scenario on testnet through the production engine path only (no direct exchange.order); evidence per class with exchange parity",
+      "independent_oracle": "Hyperliquid testnet info API read by a script that does not import engine code: clearinghouseState (all perp DEXes), openOrders, userFillsByTime for MASTER; leader fills from mainnet info API",
+      "negative_tests": ["restart mid-sequence", "stale leader snapshot", "API 429/timeout", "duplicate/reordered event"],
+      "checks": [
+        {
+          "name": "execution proof",
+          "result": "NOT_TESTED",
+          "detail": "MISSING ROUTE: live testnet scenario F4 (exit sizing) through the production engine path (no direct exchange.order) was not invoked. TESTNET_RUN_HANDOVER.md records the testnet run IN PROGRESS, no trade placed; repo scan found only TESTNET_RUN_HANDOVER.md, no approved scenario transport runner. No credentials read, no mock."
+        },
+        {
+          "name": "independent oracle",
+          "result": "NOT_TESTED",
+          "detail": "MISSING ROUTE: independent HL testnet info-API oracle (clearinghouseState/openOrders/userFillsByTime for MASTER 0x7AE3...9205; leader fills from mainnet info API) via an engine-free script was not exercised; no request capture; dashboard :8031 idle. No credentials read, no mock."
+        },
+        {
+          "name": "negative tests",
+          "result": "NOT_TESTED",
+          "detail": "MISSING ROUTE: declared negatives (restart mid-sequence, stale leader snapshot, API 429/timeout, duplicate/reordered event) require an isolated live testnet transport plus a captured exchange oracle and were not exercised; no mocks substituted."
+        }
+      ],
+      "missing_route": "Live testnet transport (scenario F4 via the production engine path) plus independent HL info-API oracle. Absent: no scenario transport runner; no trade placed; dashboard :8031 idle; no credentials read; no mock.",
+      "notes": "Register main:b142cf8 records TN-F04 = NOT_TESTED (applicability APPLIES_PROPOSED; evidence_ref empty, tested_commit empty). Testnet scenario F4 not executed (transport/oracle absent). Honest status retained: NOT_TESTED. Per register note: Build 3 proportional sleeve = leader position x copy scale.",
+      "engine_commit": "b142cf88d389e791160f691aac3d936852b99975"
+    },
+    {
+      "row_id": "TN-F19",
+      "feature": "Testnet scenario F19: Startup / restart unintended orders",
+      "area": "LIFECYCLE",
+      "applicability": "APPLIES",
+      "result": "FAIL",
+      "execution_proof": "Predeclared Phase 6T-style scenario on testnet through the production engine path only (no direct exchange.order); evidence per class with exchange parity",
+      "independent_oracle": "OS process list, port bindings, exchange open orders/fills during the transition window",
+      "negative_tests": ["second start attempt", "crash mid-transition", "stale lock/PID", "config from previous version"],
+      "evidence_ref": "certification/results/NLS_RESIDUAL_2a269ad226.json",
+      "tested_commit": "2a269ad2260270fee844eedc2cc23545abc91dd0",
+      "tested_at_utc": "2026-10-14T13:00:00Z",
+      "checks": [
+        {"name": "COLD_START_ZERO_SENDS", "result": "PASS", "detail": "send_attempts=0 (own evidence: NLS_RESIDUAL_2a269ad226.json)"},
+        {"name": "COLD_START_INTENTS_WRITTEN", "result": "PASS", "detail": "intents=1"},
+        {"name": "MOCK_START_INTENTS_WRITTEN", "result": "PASS", "detail": "intents=1"},
+        {"name": "MOCK_START_NO_REAL_ORDERS", "result": "FAIL", "detail": "FAIL: mock_sent=0 (own measured result at 2a269ad)"},
+        {"name": "RESTART_NO_UNINTENDED_ORDERS", "result": "PASS", "detail": "real_orders=0"},
+        {"name": "CRASH_RECOVERY_STALE_BLOCKED", "result": "PASS", "detail": "stale_skipped=1"}
+      ],
+      "negative_tests_results": [
+        {"name": "NEG_SECOND_START_DEDUPED", "result": "FAIL", "detail": "NEG-FAIL: deduped=0"},
+        {"name": "NEG_STALE_LOCK_NO_CRASH", "result": "PASS", "detail": "fatal_errors=0"},
+        {"name": "NEG_LEGACY_CONFIG_HANDLED", "result": "PASS", "detail": "fatal_errors=0"}
+      ],
+      "checks_passed": 5,
+      "checks_total": 6,
+      "negs_passed": 2,
+      "negs_total": 3,
+      "missing_route": "Fresh live re-probe of TN-F19 at the current engine commit b142cf8 is unavailable (live testnet transport route absent: no transport runner, no credentials read, no mock). FAIL is retained from TN-F19 own evidence certification/results/NLS_RESIDUAL_2a269ad226.json at tested_commit 2a269ad, re-read non-vacuously from main.",
+      "notes": "Honest status RETAINED as FAIL per register main:b142cf8 (register result=FAIL, evidence_ref=certification/results/NLS_RESIDUAL_2a269ad226.json, tested_commit=2a269ad). Re-read TN-F19 OWN evidence (tested_at 2026-10-14T13:00:00Z): 5/6 checks pass, MOCK_START_NO_REAL_ORDERS fails (mock_sent=0); 2/3 negatives pass, NEG_SECOND_START_DEDUPED fails (deduped=0). Per controller rule a row changes status ONLY on a fresh probe of its own; no fresh b142cf8 probe was performed because the live testnet transport route is absent. FAIL stands.",
+      "engine_commit": "b142cf88d389e791160f691aac3d936852b99975"
+    },
+    {
+      "row_id": "TN-F20",
+      "feature": "Testnet scenario F20: Sender lease / fencing",
+      "area": "LIFECYCLE",
+      "applicability": "ADAPTED_PROPOSED",
+      "open_decisions": ["OD-12"],
+      "result": "NOT_TESTED",
+      "execution_proof": "Predeclared Phase 6T-style scenario on testnet through the production engine path only (no direct exchange.order); evidence per class with exchange parity",
+      "independent_oracle": "OS process list, port bindings, exchange open orders/fills during the transition window",
+      "negative_tests": ["second start attempt", "crash mid-transition", "stale lock/PID", "config from previous version"],
+      "checks": [
+        {
+          "name": "execution proof",
+          "result": "NOT_TESTED",
+          "detail": "MISSING ROUTE: live testnet scenario/transport for sender lease fencing through the production engine path (no direct exchange.order) was not invoked. TESTNET_RUN_HANDOVER.md records the testnet run IN PROGRESS, no trade placed; repo scan found only TESTNET_RUN_HANDOVER.md, no approved transport runner. No credentials read, no mock."
+        },
+        {
+          "name": "independent oracle",
+          "result": "NOT_TESTED",
+          "detail": "MISSING ROUTE: OS process-list / port-binding capture and exchange open-orders/fills truth read during a transition window were not performed; dashboard :8031 idle. No credentials read, no mock."
+        },
+        {
+          "name": "negative tests",
+          "result": "NOT_TESTED",
+          "detail": "MISSING ROUTE: declared negatives (second start attempt, crash mid-transition, stale lock/PID, config from previous version) require an isolated live testnet transport plus a captured exchange oracle and were not exercised; no mocks substituted."
+        }
+      ],
+      "missing_route": "Live testnet transport (sender lease/fencing scenario via the production engine path) plus OS process/port and exchange order/fill oracle. Absent: no transport runner; no trade placed; dashboard :8031 idle; no credentials read; no mock.",
+      "notes": "Register main:b142cf8 records TN-F20 = NOT_TESTED (applicability ADAPTED_PROPOSED, OD-12; evidence_ref empty, tested_commit empty). Honest status retained: NOT_TESTED. Per register note: Build 3 mechanism is one process + one .order() site.",
+      "engine_commit": "b142cf88d389e791160f691aac3d936852b99975"
+    },
+    {
+      "row_id": "TN-F24",
+      "feature": "Testnet scenario F24: Shared rate-limit / 429 regression",
+      "area": "NETWORK",
+      "applicability": "ADAPTED_PROPOSED",
+      "open_decisions": ["OD-24"],
+      "result": "NOT_TESTED",
+      "execution_proof": "Predeclared Phase 6T-style scenario on testnet through the production engine path only (no direct exchange.order); evidence per class with exchange parity",
+      "independent_oracle": "Packet/HTTP capture or request log of hostnames; exchange-side account address of resulting fills",
+      "negative_tests": ["mixed testnet/mainnet endpoints", "signer == master", "missing credential"],
+      "checks": [
+        {
+          "name": "execution proof",
+          "result": "NOT_TESTED",
+          "detail": "MISSING ROUTE: live testnet scenario F24 (shared rate-limit/429 regression) through the production engine path (no direct exchange.order) was not invoked. TESTNET_RUN_HANDOVER.md records the testnet run IN PROGRESS, no trade placed; repo scan found only TESTNET_RUN_HANDOVER.md, no approved transport runner. No credentials read, no mock."
+        },
+        {
+          "name": "independent oracle",
+          "result": "NOT_TESTED",
+          "detail": "MISSING ROUTE: packet/HTTP capture or request-log of hostnames plus exchange-side account address of resulting fills was not performed; no capture/log tool present; dashboard :8031 idle (HTTP 200). No credentials read, no mock."
+        },
+        {
+          "name": "negative tests",
+          "result": "NOT_TESTED",
+          "detail": "MISSING ROUTE: declared negatives (mixed testnet/mainnet endpoints, signer equals master, missing credential) require an isolated live testnet transport plus packet/HTTP capture and an exchange-side fill-address oracle; not exercised; no mocks or credentials used."
+        }
+      ],
+      "missing_route": "Live testnet transport (scenario F24 via the production engine path) plus packet/HTTP capture/request-log hostname oracle and exchange-side fill-address oracle. Absent: no capture tool, no transport runner, no trade placed; dashboard :8031 HTTP 200 idle; 1200 WU/min weight budget is a config value, not live-verified; no credentials read; no mock.",
+      "notes": "Register main:b142cf8 records TN-F24 = NOT_TESTED (applicability ADAPTED_PROPOSED, OD-24; evidence_ref empty, tested_commit empty). The 1200 WU/min weight budget is recorded in the register expected_behaviour, not live-verified. Honest status retained: NOT_TESTED.",
+      "engine_commit": "b142cf88d389e791160f691aac3d936852b99975"
+    }
+  ]
+}
