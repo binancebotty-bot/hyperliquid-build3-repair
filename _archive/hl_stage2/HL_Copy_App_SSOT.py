@@ -890,6 +890,19 @@ def _normalise_global_controls(raw: Any) -> Dict[str, Any]:
                 out[k] = [str(s).strip().upper() for s in val] if isinstance(val, list) else []
             else:
                 out[k] = max(0.0, fnum(raw[k]))
+    # keys the form does not own (send_mode, follower_leverage, liq_parity, ...) pass through untouched: a UI save
+    # used to drop them, which silently switched sending to the legacy root flag (OFF) and reset the leverage
+    for k, v in raw.items():
+        if k not in out and k != "marketable_slippage_pct":
+            out[k] = v
+    if "send_mode" in out:
+        sm = str(out.get("send_mode") or "").upper().strip().replace("_", " ").replace("-", " ")
+        if sm in {"OFF", "ON"}:
+            out["send_mode"] = sm
+        elif sm in {"CLOSE", "CLOSE ONLY", "CLO"}:
+            out["send_mode"] = "CLOSE"
+        else:
+            out.pop("send_mode")
     if "marketable_slippage_pct" in raw:
         out["marketable_bps"] = max(0.0, fnum(raw.get("marketable_slippage_pct")) * 100.0)
     return out
@@ -7975,7 +7988,8 @@ async def set_global_controls(req: Request):
     try:
         body = await req.json()
         config = _load_live_copy_config()
-        config["global_controls"] = _normalise_global_controls(body)
+        kept = {k: v for k, v in (config.get("global_controls") or {}).items() if k not in _GLOBAL_CONTROLS_DEFAULTS and k != "marketable_slippage_pct"}
+        config["global_controls"] = {**kept, **_normalise_global_controls(body)}
         _save_live_copy_config(config)
         return JSONResponse({"ok": True, "global_controls": _global_controls_for_ui(config["global_controls"])})
     except Exception as exc:
