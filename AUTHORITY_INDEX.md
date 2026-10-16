@@ -78,6 +78,19 @@ refused to proceed on a register that contradicted its card. The card premise (F
 **CONTROLLER RULING (option 3, reconcile first): the 579-PASS matrix is UNPUSHED and UNVERIFIED.** `b142cf88`
 does **not** exist on `origin/main` (`3ea99f4d`); the 579-PASS matrix has never left this PC.
 
+**CONTROLLER CORRECTION (later): the provenance check must ALSO run against the published branch.**
+My first sweep tested hashes with `git cat-file -t` against the **local** repo. The 4 dead hashes
+(`2dfbd57`, `2dfbd571`, `5bda57be`, `5de53fa`, cited by 170 of 579 PASS rows) may be commits that exist
+**only in the PC's local history** — the same cause as the missing matrix. So:
+
+- re-run the resolve check against **`origin/cert/local-main-b142cf8` AFTER J15 publishes it**;
+- hashes that resolve there **stay PASS**; hashes still unresolvable are **demoted** with reason
+  "pinned hash unresolvable", listed;
+- therefore **409 PASS is the FLOOR and 579 PASS is the CEILING — quote NEITHER until J15 lands.**
+
+**Open decisions:** the controller will split them (engine-behaviour vs Boss-needed) after the speed
+re-measure. **No action from me before that** — list parked at `EVIDENCE/OPEN_DECISIONS.md`.
+
 **Quote that figure ONLY as:**
 
 > **"579 / 790 PASS on PC-local main @ b142cf88, unpushed, not yet verified against shared origin."**
