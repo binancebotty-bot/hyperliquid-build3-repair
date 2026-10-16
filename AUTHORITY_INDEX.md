@@ -11,7 +11,7 @@ messages, card bodies, and your own assumptions all rank BELOW it.
 | # | Question you have | Authoritative source |
 |---|---|---|
 | 1 | What must be true / what am I certifying? | `certification/MASTER_PRODUCT_INVARIANTS_AND_CERTIFICATION.md` |
-| 2 | What is the exact requirement + its proof? | `certification/certification_matrix.json` (the 832-record register) — read the ACTUAL record for your row id |
+| 2 | What is the exact requirement + its proof? | `certification/certification_matrix.json` **AT `main`** — read via `git show main:certification/certification_matrix.json`. **NEVER the working-tree copy** (see §Register of record) |
 | 3 | How is evidence judged? What counts as PASS? | `OPERATING_PROTOCOL.md` + invariants §Evidence discipline |
 | 4 | Which architecture is allowed / forbidden? | `ARCHITECTURE.md` (+ invariants §4 authority ranking) |
 | 5 | What does a term/product concept mean? | `PRODUCT_SEMANTICS.md` |
@@ -41,6 +41,37 @@ messages, card bodies, and your own assumptions all rank BELOW it.
   earlier one ONLY where it says so explicitly.
 - **Do not ask the coordinator for anything this index already answers.** Ask only for genuine
   human-authority decisions (credentials, policy, LIVE/mainnet).
+
+## Register of record — READ THIS BEFORE QUOTING ANY ROW STATUS
+
+**The register of record is `certification/certification_matrix.json` AT `main`.** Read it as a
+committed blob, never from a working tree:
+
+```bash
+git show main:certification/certification_matrix.json    # authoritative
+```
+
+**Why this rule exists.** On 2026-10-16 the working checkout sat on branch `oc/ledger-fix-v2`, whose
+matrix disagrees with main:
+
+| register | FAIL total | UI FAIL rows |
+|---|---|---|
+| `main` (`b142cf8`) — **of record** | **76** | **60** |
+| `oc/ledger-fix-v2` (`4649d47`) — the checkout's branch | **0** | **0** |
+
+A worker that read the local file saw "NOT_TESTED" for rows that are FAIL on main, and correctly
+refused to proceed on a register that contradicted its card. The card premise (FAIL) was right; the
+*local file* was the wrong source. Reading the working tree is how a certified row silently becomes
+"unproven" or vice versa.
+
+**Rules:**
+- Quote row status ONLY from `git show main:<path>` (or another explicitly named ref), and STATE the
+  ref you read in your evidence.
+- A working-tree copy is never evidence of a row's status.
+- If `main` and your checkout disagree, `main` wins — and say so in your report; do not silently
+  reconcile.
+- `RUN_STATUS.md` / `run_status.csv` are DERIVED summaries. When they disagree with `main`'s matrix,
+  the matrix wins and the summary is stale.
 
 ## Change log
 
