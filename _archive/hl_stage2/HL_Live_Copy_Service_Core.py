@@ -1270,6 +1270,7 @@ def ensure_csv_header(path: Path, fieldnames: List[str]) -> None:
                         writer.writeheader()
                         for row in rows:
                             writer.writerow({k: row.get(k, "") for k in fieldnames})
+                    _close_append_handle(path)
                     os.replace(tmp, path)
                     _remember_header(path, fieldnames)
                     return
@@ -1371,6 +1372,35 @@ def audit_write_failure_count() -> int:
     return n
 
 
+AUDIT_KEEP_OPEN = os.getenv("HL_LIVE_AUDIT_KEEP_OPEN", "1") != "0"  # 0 = open and close the audit CSV for every row (old behaviour)
+_APPEND_FH: Dict[str, Any] = {}  # path -> open append handle; used and closed only under the path's audit lock
+
+
+def _close_append_handle(path: Path) -> None:
+    fh = _APPEND_FH.pop(str(path), None)
+    if fh is not None:
+        try:
+            fh.close()
+        except Exception:
+            pass
+
+
+def _append_handle(path: Path) -> Any:
+    """The open append handle for an audit CSV, reopened when the path now names another file (rotated, replaced, removed)."""
+    key = str(path)
+    fh = _APPEND_FH.get(key)
+    if fh is not None:
+        try:
+            if os.path.samestat(os.fstat(fh.fileno()), os.stat(path)):
+                return fh
+        except (OSError, ValueError):
+            pass
+        _close_append_handle(path)
+    fh = path.open("a", newline="", encoding="utf-8")
+    _APPEND_FH[key] = fh
+    return fh
+
+
 def append_csv(path: Path, fieldnames: List[str], row: Dict[str, Any]) -> None:
     ensure_csv_header(path, fieldnames)
     buf = io.StringIO()
@@ -1385,15 +1415,20 @@ def append_csv(path: Path, fieldnames: List[str], row: Dict[str, Any]) -> None:
             lock.acquire()
     try:
         if not path.exists() or path.stat().st_size <= 0:  # rotated away since the header check above
+            _close_append_handle(path)
             ensure_csv_header(path, fieldnames)
         size_before = path.stat().st_size if path.exists() else 0
         try:
-            with prof(f"append:{path.name}"), path.open("a", newline="", encoding="utf-8") as f:
+            with prof(f"append:{path.name}"):
+                f = _append_handle(path)  # kept open: open()+close() of a 0.1-0.2 GB audit file per row capped the engine near 100 rows/s per file
                 written = f.write(buf.getvalue())
                 f.flush()
+                if not AUDIT_KEEP_OPEN:
+                    _close_append_handle(path)
             if written != len(buf.getvalue()):  # a short write stores fewer bytes and does NOT raise
                 raise OSError(f"short audit append: wrote {written} of {len(buf.getvalue())} bytes")
         except OSError as exc:
+            _close_append_handle(path)
             try:
                 if path.exists() and path.stat().st_size > size_before:
                     os.truncate(path, size_before)  # drop a half-written row so the next append cannot glue onto it
@@ -1407,6 +1442,7 @@ def append_csv(path: Path, fieldnames: List[str], row: Dict[str, Any]) -> None:
         if AUDIT_ROTATE_BYTES > 0 and path.name in AUDIT_ROTATING_NAMES:
             try:
                 if path.stat().st_size >= AUDIT_ROTATE_BYTES:
+                    _close_append_handle(path)
                     _rotate_audit_file(path)
             except Exception as exc:
                 log_error("audit_rotate", exc)
@@ -1643,6 +1679,8 @@ _CANONICAL_SYMBOL_OVERRIDES = {
 
 
 _COIN_KEY_CACHE: Tuple[Any, Dict[str, str]] = (None, {})
+_COIN_KEY_CHECKED_AT = [0.0]  # monotonic time of the last os.stat of the universe file
+_COIN_KEY_RECHECK_SEC = float(os.getenv("HL_LIVE_COIN_MAP_RECHECK_SEC", "1.0"))  # canonical_coin_key ran os.stat on every call (thousands per second across send threads); 0 = every call
 
 
 def _coin_key_map() -> Dict[str, str]:
@@ -1650,6 +1688,9 @@ def _coin_key_map() -> Dict[str, str]:
     file was parsed on every call, thousands of times per cycle)."""
     global _COIN_KEY_CACHE
     path = ASSET_UNIVERSE_SNAPSHOT_FILE
+    if _COIN_KEY_CACHE[0] is not None and _COIN_KEY_CACHE[0][0] == str(path) and time.monotonic() - _COIN_KEY_CHECKED_AT[0] < _COIN_KEY_RECHECK_SEC:
+        return _COIN_KEY_CACHE[1]
+    _COIN_KEY_CHECKED_AT[0] = time.monotonic()
     try:
         st = os.stat(path)
         sig: Any = (str(path), st.st_mtime_ns, st.st_size)
