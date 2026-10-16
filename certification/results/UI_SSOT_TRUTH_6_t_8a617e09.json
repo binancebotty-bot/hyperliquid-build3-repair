@@ -1,0 +1,123 @@
+{
+  "schema": "b3_ui_ssot_truth_reverification_v1",
+  "card": "t_8a617e09",
+  "register_ref": "git show b142cf88:certification/certification_matrix.json ONLY",
+  "register_commit": "b142cf88d389e791160f691aac3d936852b99975",
+  "tested_at_utc": "2026-10-16T23:05:52.522368+00:00",
+  "route": "read-only urllib GETs to 127.0.0.1:8031; certified UI source read via git show; attempted pinned Python 3.11 Playwright probe",
+  "independent_oracle": "HTTP status/body and certified source blob; no HL_Copy_App_SSOT.py import",
+  "playwright_attempt": {
+    "status": "NO_ROUTE",
+    "failure": "Chromium executable missing (Playwright install message)"
+  },
+  "responses": {
+    "/api/live-ws-health": {
+      "status": 200,
+      "bytes": 2232
+    },
+    "/api/live-audit-summary": {
+      "status": 200,
+      "bytes": 6925304
+    },
+    "/live-copy": {
+      "status": 200,
+      "bytes": 87350
+    },
+    "/api/state": {
+      "status": 200,
+      "bytes": 1413
+    },
+    "/api/ui-state": {
+      "status": 200,
+      "bytes": 290
+    }
+  },
+  "truth_token_counts": {
+    "certified_ui_source": {
+      "AUTHORITATIVE_EXCHANGE": 0,
+      "LOCAL_LEDGER": 0,
+      "LEADER_SIGNAL": 0,
+      "DISPLAY_ONLY": 0,
+      "STALE": 3,
+      "BLOCKED": 0,
+      "SKIPPED": 0
+    },
+    "/api/live-ws-health": {
+      "AUTHORITATIVE_EXCHANGE": 0,
+      "LOCAL_LEDGER": 0,
+      "LEADER_SIGNAL": 0,
+      "DISPLAY_ONLY": 0,
+      "STALE": 0,
+      "BLOCKED": 0,
+      "SKIPPED": 0
+    },
+    "/api/live-audit-summary": {
+      "AUTHORITATIVE_EXCHANGE": 0,
+      "LOCAL_LEDGER": 0,
+      "LEADER_SIGNAL": 0,
+      "DISPLAY_ONLY": 0,
+      "STALE": 0,
+      "BLOCKED": 135,
+      "SKIPPED": 2
+    },
+    "/live-copy": {
+      "AUTHORITATIVE_EXCHANGE": 0,
+      "LOCAL_LEDGER": 0,
+      "LEADER_SIGNAL": 0,
+      "DISPLAY_ONLY": 0,
+      "STALE": 3,
+      "BLOCKED": 0,
+      "SKIPPED": 1
+    },
+    "/api/state": {
+      "AUTHORITATIVE_EXCHANGE": 0,
+      "LOCAL_LEDGER": 0,
+      "LEADER_SIGNAL": 0,
+      "DISPLAY_ONLY": 0,
+      "STALE": 0,
+      "BLOCKED": 0,
+      "SKIPPED": 0
+    },
+    "/api/ui-state": {
+      "AUTHORITATIVE_EXCHANGE": 0,
+      "LOCAL_LEDGER": 0,
+      "LEADER_SIGNAL": 0,
+      "DISPLAY_ONLY": 0,
+      "STALE": 0,
+      "BLOCKED": 0,
+      "SKIPPED": 0
+    }
+  },
+  "results": [
+    {
+      "row_id": "UI-SSOT-PAGE-13",
+      "result": "NOT_TESTED",
+      "basis": "GET /api/live-ws-health returned HTTP 200 (2,233 bytes); no rendered DOM was available to verify API/UI consistency or negative conditions."
+    },
+    {
+      "row_id": "UI-SSOT-PAGE-14",
+      "result": "NOT_TESTED",
+      "basis": "GET /api/live-audit-summary returned HTTP 200 (6,925,304 bytes); no rendered DOM was available to verify endpoint/UI consistency or negative tests."
+    },
+    {
+      "row_id": "UI-SSOT-PAGE-15",
+      "result": "NOT_TESTED",
+      "basis": "Live page returned HTTP 200 but no contract-error trigger was introduced; Playwright Chromium could not launch because its executable is absent, so banner-on-error was not verified."
+    },
+    {
+      "row_id": "UI-TRUTH-003",
+      "result": "NOT_TESTED",
+      "basis": "Read-only GET probes only; no authorized perturbation or execution-path test established whether UI outage/diagnostics affect trading."
+    },
+    {
+      "row_id": "UI-TRUTH-005",
+      "result": "NOT_TESTED",
+      "basis": "The pinned source blob exists at the register commit, but historical provenance/reuse against the repaired engine was not established by this runtime probe."
+    },
+    {
+      "row_id": "F-UI-001",
+      "result": "FAIL",
+      "basis": "The seven-tier contract is not implemented in certified source: AUTHORITATIVE_EXCHANGE, LOCAL_LEDGER, LEADER_SIGNAL, DISPLAY_ONLY, BLOCKED have 0 source occurrences; served /api/state and /api/ui-state have 0 occurrences for all seven. API payloads contain incidental BLOCKED/SKIPPED and HTML contains incidental labels, but without rendered DOM evidence of a tier on every cell the assertion fails on certified source + state payload."
+    }
+  ]
+}
