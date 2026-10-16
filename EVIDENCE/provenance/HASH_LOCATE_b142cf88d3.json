@@ -1,0 +1,62 @@
+{
+  "engine_files_scanned": 138,
+  "hashes": {
+    "2dfbd57": {
+      "as_git_commit": null,
+      "as_sha256_digest": null,
+      "digest_present_on_disk": [],
+      "full_digests_cited_by_register": [
+        "2dfbd571012af67479ee7a2d9e6f1faac6ee5408722a092fb3625450cab51405"
+      ],
+      "prefix": "2dfbd57"
+    },
+    "2dfbd571": {
+      "as_git_commit": null,
+      "as_sha256_digest": null,
+      "digest_present_on_disk": [],
+      "full_digests_cited_by_register": [
+        "2dfbd571012af67479ee7a2d9e6f1faac6ee5408722a092fb3625450cab51405"
+      ],
+      "prefix": "2dfbd571"
+    },
+    "5bda57be": {
+      "as_git_commit": null,
+      "as_sha256_digest": {
+        "paths": [
+          "C:/Users/wigmore/trading_stack/_candidates/jun02_core_pre_convergence_wiring/hl_stage2/HL_Live_Copy_Service_Core.py"
+        ],
+        "sha256": "5bda57be3fbf8766c0d19b7380e451e22342bf953ed97e10d3fa43e191b1f848"
+      },
+      "digest_present_on_disk": [
+        {
+          "paths": [
+            "C:/Users/wigmore/trading_stack/_candidates/jun02_core_pre_convergence_wiring/hl_stage2/HL_Live_Copy_Service_Core.py"
+          ],
+          "sha256": "5bda57be3fbf8766c0d19b7380e451e22342bf953ed97e10d3fa43e191b1f848"
+        }
+      ],
+      "full_digests_cited_by_register": [
+        "5bda57be3fbf8766c0d19b7380e451e22342bf953ed97e10d3fa43e191b1f848"
+      ],
+      "prefix": "5bda57be"
+    },
+    "5de53fa": {
+      "as_git_commit": {
+        "repo": "C:/Users/wigmore/richard-mission-control-template",
+        "sha": "5de53fa96227c907cc65241351db7826d5e76476"
+      },
+      "as_sha256_digest": null,
+      "digest_present_on_disk": [],
+      "full_digests_cited_by_register": [],
+      "prefix": "5de53fa"
+    }
+  },
+  "method": {
+    "commit_scan": "git -C <repo> rev-list --all, prefix match, over 101 repos",
+    "file_scan": "sha256 of every HL_Live_Copy_Service_Core.py under C:/Users/wigmore/trading_stack (138 files)",
+    "note": "a 64-hex sha256 file digest can NEVER resolve via git cat-file"
+  },
+  "register_of_record": "main @ b142cf88d389e791160f691aac3d936852b99975",
+  "repos_scanned": 101,
+  "task": "t_c24c9a36"
+}
