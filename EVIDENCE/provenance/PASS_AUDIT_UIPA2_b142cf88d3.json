@@ -1,0 +1,2649 @@
+{
+ "audit": "PASS-row evidence provenance (UI, part 2 of 4)",
+ "register_of_record_ref": "main",
+ "register_of_record_commit": "b142cf88d389e791160f691aac3d936852b99975",
+ "matrix_sha256": "86b2237fe95f88ca9eb758fb42ddbdf3efdaef71e56f79a10e2d2635f44f341a",
+ "read_only": true,
+ "scope": {
+  "area": "UI",
+  "part": 2,
+  "of": 4,
+  "ui_pass_rows_total": 314,
+  "quarter_size": 78,
+  "first_row": "UI-LCC-REC-05",
+  "last_row": "UI-SSOT-PAGE-05"
+ },
+ "areas": {
+  "UI": {
+   "matrix_rows": 400,
+   "matrix_pass_rows": 314,
+   "scope_rows": 78,
+   "evidence_refs": [
+    "certification/results/UI_CORRECTION_2d29211.json"
+   ],
+   "evidence_blob_sha256": {
+    "certification/results/UI_CORRECTION_2d29211.json": "36ac91c1a04438dce4c02b62fadb0e1cdacc260e81b2a4d220e8ec599d6437e8"
+   },
+   "pass_rows_kept": 55,
+   "pass_rows_demoted": 23,
+   "demote_reasons_tally": {
+    "per-row proof is CARRIED": 23
+   },
+   "global_checks": {
+    "ENGINE_SHA256_MATCH": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": true,
+     "detail": "expected=2dfbd571012af67479ee7a2d9e6f1faac6ee5408722a092fb3625450cab51405 actual=2dfbd571012af67479ee7a2d9e6f1faac6ee5408722a092fb3625450cab51405",
+     "cited_hashes": {
+      "2dfbd571012af67479ee7a2d9e6f1faac6ee5408722a092fb3625450cab51405": "MISSING"
+     }
+    },
+    "RENDER_HOME:EXECUTES": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": true,
+     "detail": "",
+     "cited_hashes": {}
+    },
+    "RENDER_HOME:WALLET_ADDRESS_BOUND": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": true,
+     "detail": "Wallet address from state not found in rendered HTML",
+     "cited_hashes": {}
+    },
+    "RENDER_HOME:ENGINE_TRUTH_BOUNDARY_BOUND": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": true,
+     "detail": "engine_truth_boundary from state not found in rendered HTML",
+     "cited_hashes": {}
+    },
+    "RENDER_HOME:UPDATED_AT_BOUND": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": true,
+     "detail": "updated_at from state not found in rendered HTML",
+     "cited_hashes": {}
+    },
+    "RENDER_HOME:NORM_BASE_BOUND": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": true,
+     "detail": "norm_base from state not found in rendered HTML",
+     "cited_hashes": {}
+    },
+    "RENDER_HOME:COPY_MODE_BOUND": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": true,
+     "detail": "copy_mode from state not found in rendered HTML",
+     "cited_hashes": {}
+    },
+    "RENDER_HOME:TBL_HEADER_01": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": true,
+     "detail": "Header 'WALLET' vs rendered 'WALLET'",
+     "cited_hashes": {}
+    },
+    "RENDER_HOME:TBL_HEADER_02": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": true,
+     "detail": "Header '' vs rendered ''",
+     "cited_hashes": {}
+    },
+    "RENDER_HOME:TBL_HEADER_03": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": true,
+     "detail": "Header '' vs rendered ''",
+     "cited_hashes": {}
+    },
+    "RENDER_HOME:TBL_HEADER_04": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": true,
+     "detail": "Header '' vs rendered ''",
+     "cited_hashes": {}
+    },
+    "RENDER_HOME:TBL_HEADER_05": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": true,
+     "detail": "Header '' vs rendered ''",
+     "cited_hashes": {}
+    },
+    "RENDER_HOME:TBL_HEADER_06": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": true,
+     "detail": "Header '' vs rendered ''",
+     "cited_hashes": {}
+    },
+    "RENDER_HOME:TBL_HEADER_07": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": true,
+     "detail": "Header '' vs rendered ''",
+     "cited_hashes": {}
+    },
+    "RENDER_HOME:TBL_HEADER_08": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": true,
+     "detail": "Header '' vs rendered ''",
+     "cited_hashes": {}
+    },
+    "RENDER_HOME:TBL_HEADER_09": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": true,
+     "detail": "Header '' vs rendered ''",
+     "cited_hashes": {}
+    },
+    "RENDER_HOME:TBL_HEADER_10": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": true,
+     "detail": "Header '' vs rendered ''",
+     "cited_hashes": {}
+    },
+    "RENDER_HOME:TBL_HEADER_11": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": true,
+     "detail": "Header '' vs rendered ''",
+     "cited_hashes": {}
+    },
+    "RENDER_HOME:TBL_HEADER_12": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": true,
+     "detail": "Header '' vs rendered ''",
+     "cited_hashes": {}
+    },
+    "RENDER_HOME:TBL_HEADER_13": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": true,
+     "detail": "Header '' vs rendered ''",
+     "cited_hashes": {}
+    },
+    "RENDER_HOME:TBL_HEADER_14": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": true,
+     "detail": "Header '' vs rendered ''",
+     "cited_hashes": {}
+    },
+    "RENDER_HOME:TBL_HEADER_15": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": true,
+     "detail": "Header '' vs rendered ''",
+     "cited_hashes": {}
+    },
+    "RENDER_HOME:TBL_HEADER_16": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": true,
+     "detail": "Header '' vs rendered ''",
+     "cited_hashes": {}
+    },
+    "RENDER_HOME:TBL_HEADER_17": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": true,
+     "detail": "Header '' vs rendered ''",
+     "cited_hashes": {}
+    },
+    "RENDER_HOME:TBL_HEADER_18": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": true,
+     "detail": "Header '' vs rendered ''",
+     "cited_hashes": {}
+    },
+    "RENDER_HOME:TBL_HEADER_19": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": true,
+     "detail": "Header '' vs rendered ''",
+     "cited_hashes": {}
+    },
+    "RENDER_HOME:TBL_HEADER_20": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": true,
+     "detail": "Header '' vs rendered ''",
+     "cited_hashes": {}
+    },
+    "RENDER_HOME:TBL_HEADER_21": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": true,
+     "detail": "Header '' vs rendered ''",
+     "cited_hashes": {}
+    },
+    "RENDER_HOME:TBL_HEADER_22": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": true,
+     "detail": "Header '' vs rendered ''",
+     "cited_hashes": {}
+    },
+    "RENDER_HOME:TBL_HEADER_23": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": true,
+     "detail": "Header '' vs rendered ''",
+     "cited_hashes": {}
+    },
+    "RENDER_HOME:TBL_HEADER_24": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": true,
+     "detail": "Header 'INC / WALLET MODEL' vs rendered 'INC / WALLET MODEL'",
+     "cited_hashes": {}
+    },
+    "RENDER_HOME:EMPTY_STATE_FALLBACK": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": true,
+     "detail": "Empty state should show fallback values",
+     "cited_hashes": {}
+    },
+    "RENDER_ROW:EXECUTES": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": true,
+     "detail": "",
+     "cited_hashes": {}
+    },
+    "RENDER_ROW:WALLET_BOUND": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": true,
+     "detail": "Wallet address not found in rendered row",
+     "cited_hashes": {}
+    },
+    "RENDER_ROW:MODE_BOUND": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": true,
+     "detail": "Effective copy mode not found in rendered row",
+     "cited_hashes": {}
+    },
+    "RENDER_ROW:PNL_BOUND": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": true,
+     "detail": "Lead equity not found in rendered row",
+     "cited_hashes": {}
+    },
+    "RENDER_ROW:DIFF_BOUND": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": true,
+     "detail": "Delta equity not found in rendered row",
+     "cited_hashes": {}
+    },
+    "RENDER_ROW:HEALTH_BOUND": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": false,
+     "detail": "Health indicator not found in rendered row",
+     "cited_hashes": {}
+    },
+    "RENDER_ROW:EXPOSURE_BOUND": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": true,
+     "detail": "Copy equity not found in rendered row",
+     "cited_hashes": {}
+    },
+    "RENDER_ROW:EMPTY_FALLBACK": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": true,
+     "detail": "Empty row should show fallback values",
+     "cited_hashes": {}
+    },
+    "UI-SSOT:PAGE_RENDER": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": true,
+     "detail": "",
+     "cited_hashes": {}
+    },
+    "UI-SSOT-TOP-07:RANKING_ELEMENT": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": false,
+     "detail": "ranking element not found in SSOT page",
+     "cited_hashes": {}
+    },
+    "UI-SSOT-TOP-09:UPDATED_AT_ELEMENT": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": false,
+     "detail": "updated_at element not found in SSOT page",
+     "cited_hashes": {}
+    },
+    "UI-SSOT-PAGE-01:<!DOCTYPE_ELEMENT": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": false,
+     "detail": "<!DOCTYPE element not found",
+     "cited_hashes": {}
+    },
+    "UI-SSOT-PAGE-13:SET_WALLET_MODE_ELEMENT": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": false,
+     "detail": "set-wallet-mode element not found",
+     "cited_hashes": {}
+    },
+    "UI-SSOT-PAGE-14:SET_ALL_MODES_ELEMENT": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": false,
+     "detail": "set-all-modes element not found",
+     "cited_hashes": {}
+    },
+    "UI-SSOT-PAGE-15:RESET_APP_HISTORY_ELEMENT": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": false,
+     "detail": "reset-app-history element not found",
+     "cited_hashes": {}
+    },
+    "UI-TRUTH-003:READ_ONLY_OBSERVER": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": false,
+     "detail": "UI should be read-only observer",
+     "cited_hashes": {}
+    },
+    "UI-FP-008:RESTART_ELEMENT": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": false,
+     "detail": "restart element not found",
+     "cited_hashes": {}
+    },
+    "UI-FP-009:INTEGRITY_ELEMENT": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": false,
+     "detail": "integrity element not found",
+     "cited_hashes": {}
+    },
+    "UI-FP-010:WS_STATUS_ELEMENT": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": false,
+     "detail": "ws_status element not found",
+     "cited_hashes": {}
+    },
+    "UI-FP-011:COPY_POLL_ELEMENT": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": false,
+     "detail": "copy_poll element not found",
+     "cited_hashes": {}
+    },
+    "UI-FP-012:MASTER_REAL_ORDERS_ELEMENT": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": false,
+     "detail": "master_real_orders element not found",
+     "cited_hashes": {}
+    },
+    "UI-FP-013:ACTIVE_WALLETS_ELEMENT": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": false,
+     "detail": "active_wallets element not found",
+     "cited_hashes": {}
+    },
+    "UI-FP-014:LAST_SEND_ELEMENT": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": false,
+     "detail": "last_send element not found",
+     "cited_hashes": {}
+    },
+    "UI-FP-017:LAST_LATENCY_WARNING_ELEMENT": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": false,
+     "detail": "last_latency_warning element not found",
+     "cited_hashes": {}
+    },
+    "UI-FP-025:LATENCY_ELEMENT": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": false,
+     "detail": "latency element not found",
+     "cited_hashes": {}
+    },
+    "UI-FP-029:WITHDRAW_ELEMENT": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": false,
+     "detail": "withdraw element not found",
+     "cited_hashes": {}
+    },
+    "UI-FP-030:TRANSFER_ELEMENT": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": false,
+     "detail": "transfer element not found",
+     "cited_hashes": {}
+    },
+    "UI-FP-041:COPY_MODEL_ELEMENT": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": false,
+     "detail": "copy_model element not found",
+     "cited_hashes": {}
+    },
+    "UI-FP-048:HOVER_ELEMENT": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": false,
+     "detail": "hover element not found",
+     "cited_hashes": {}
+    },
+    "UI-FP-052:SEARCH_ELEMENT": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": false,
+     "detail": "search element not found",
+     "cited_hashes": {}
+    },
+    "UI-FP-054:EXPORT_ELEMENT": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": false,
+     "detail": "export element not found",
+     "cited_hashes": {}
+    },
+    "UI-FP-055:IMPORT_ELEMENT": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": false,
+     "detail": "import element not found",
+     "cited_hashes": {}
+    },
+    "UI-FP-060:INTERVAL_ELEMENT": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": false,
+     "detail": "interval element not found",
+     "cited_hashes": {}
+    },
+    "UI-FP-076:SEARCH_ELEMENT": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": false,
+     "detail": "search element not found",
+     "cited_hashes": {}
+    },
+    "UI-FP-078:EXPORT_ELEMENT": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": false,
+     "detail": "export element not found",
+     "cited_hashes": {}
+    },
+    "UI-FP-079:IMPORT_ELEMENT": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": false,
+     "detail": "import element not found",
+     "cited_hashes": {}
+    },
+    "UI-FP-084:INTERVAL_ELEMENT": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": false,
+     "detail": "interval element not found",
+     "cited_hashes": {}
+    },
+    "UI-FP-088:TAGS_ELEMENT": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": false,
+     "detail": "tags element not found",
+     "cited_hashes": {}
+    },
+    "UI-FP-089:LINKS_ELEMENT": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": false,
+     "detail": "links element not found",
+     "cited_hashes": {}
+    },
+    "UI-FP-090:EXPORT_ELEMENT": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": false,
+     "detail": "export element not found",
+     "cited_hashes": {}
+    },
+    "UI-FP-107:SEARCH_ELEMENT": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": false,
+     "detail": "search element not found",
+     "cited_hashes": {}
+    },
+    "UI-FP-109:EXPORT_ELEMENT": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": false,
+     "detail": "export element not found",
+     "cited_hashes": {}
+    },
+    "UI-FP-110:IMPORT_ELEMENT": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": false,
+     "detail": "import element not found",
+     "cited_hashes": {}
+    },
+    "UI-FP-115:INTERVAL_ELEMENT": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": false,
+     "detail": "interval element not found",
+     "cited_hashes": {}
+    },
+    "UI-FP-119:TAGS_ELEMENT": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": false,
+     "detail": "tags element not found",
+     "cited_hashes": {}
+    },
+    "UI-FP-120:LINKS_ELEMENT": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": false,
+     "detail": "links element not found",
+     "cited_hashes": {}
+    },
+    "UI-FP-133:CREATED_ELEMENT": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": false,
+     "detail": "Created element not found",
+     "cited_hashes": {}
+    },
+    "UI-FP-137:SEARCH_ELEMENT": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": false,
+     "detail": "search element not found",
+     "cited_hashes": {}
+    },
+    "UI-FP-139:EXPORT_ELEMENT": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": false,
+     "detail": "export element not found",
+     "cited_hashes": {}
+    },
+    "UI-FP-140:IMPORT_ELEMENT": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": false,
+     "detail": "import element not found",
+     "cited_hashes": {}
+    },
+    "UI-FP-145:INTERVAL_ELEMENT": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": false,
+     "detail": "interval element not found",
+     "cited_hashes": {}
+    },
+    "UI-FP-149:TAGS_ELEMENT": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": false,
+     "detail": "tags element not found",
+     "cited_hashes": {}
+    },
+    "UI-FP-150:LINKS_ELEMENT": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": false,
+     "detail": "links element not found",
+     "cited_hashes": {}
+    },
+    "UI-FP-165:SEARCH_ELEMENT": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": false,
+     "detail": "search element not found",
+     "cited_hashes": {}
+    },
+    "UI-FP-167:EXPORT_ELEMENT": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": false,
+     "detail": "export element not found",
+     "cited_hashes": {}
+    },
+    "UI-FP-168:IMPORT_ELEMENT": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": false,
+     "detail": "import element not found",
+     "cited_hashes": {}
+    },
+    "UI-FP-175:LATENCY_ELEMENT": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": false,
+     "detail": "Latency element not found",
+     "cited_hashes": {}
+    },
+    "UI-FP-178:SUBSCRIBED_ELEMENT": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": false,
+     "detail": "Subscribed element not found",
+     "cited_hashes": {}
+    },
+    "UI-FP-179:SUBS_ELEMENT": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": false,
+     "detail": "Subs element not found",
+     "cited_hashes": {}
+    },
+    "UI-FP-181:SOCKET_ELEMENT": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": false,
+     "detail": "Socket element not found",
+     "cited_hashes": {}
+    },
+    "UI-FP-182:CONNECTS_ELEMENT": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": false,
+     "detail": "Connects element not found",
+     "cited_hashes": {}
+    },
+    "UI-FP-183:DISCONNECTS_ELEMENT": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": false,
+     "detail": "Disconnects element not found",
+     "cited_hashes": {}
+    },
+    "UI-FP-184:ERRORS_ELEMENT": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": false,
+     "detail": "Errors element not found",
+     "cited_hashes": {}
+    },
+    "UI-FP-185:MESSAGES_ELEMENT": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": false,
+     "detail": "Messages element not found",
+     "cited_hashes": {}
+    },
+    "UI-FP-186:BYTES_ELEMENT": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": false,
+     "detail": "Bytes element not found",
+     "cited_hashes": {}
+    },
+    "UI-FP-187:UPTIME_ELEMENT": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": false,
+     "detail": "Uptime element not found",
+     "cited_hashes": {}
+    },
+    "UI-FP-190:SEARCH_ELEMENT": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": false,
+     "detail": "search element not found",
+     "cited_hashes": {}
+    },
+    "UI-FP-192:EXPORT_ELEMENT": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": false,
+     "detail": "export element not found",
+     "cited_hashes": {}
+    },
+    "UI-FP-193:IMPORT_ELEMENT": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "pass": false,
+     "detail": "import element not found",
+     "cited_hashes": {}
+    }
+   },
+   "per_row": {
+    "UI-LCC-REC-05": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "UI-LCC-REC-06": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "UI-LCC-REC-07": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "UI-LCC-REC-08": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "UI-LCC-REC-09": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "UI-LCC-REC-10": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 1,
+     "checks_owned_by_this_row": 0,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 1 of 1 checks are byte-identical boilerplate shared across rows"
+     ]
+    },
+    "UI-LCC-REC-11": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "UI-LCC-WS-01": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 3,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 1,
+     "checks_owned_by_this_row": 2,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "UI-LCC-WS-02": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "UI-LCC-WS-03": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "UI-LCC-WS-04": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "UI-LCC-WS-05": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "UI-LCC-WS-06": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "UI-LCC-WS-07": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "UI-LCC-WS-08": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "UI-LCC-WS-09": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "UI-LCC-WS-10": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "UI-LCC-WS-11": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "UI-LCC-WS-12": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "UI-LCC-WS-13": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "UI-LCC-WS-14": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "UI-LCC-WS-15": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "UI-LCC-WS-16": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "UI-LCC-TAB-01": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 2,
+     "negative_tests": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 2,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "UI-LCC-TAB-02": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 2,
+     "negative_tests": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 2,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "UI-LCC-TAB-03": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 2,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 2,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "UI-LCC-TAB-04": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 2,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 2,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "UI-LCC-TAB-05": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 2,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 2,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "UI-LCC-ADD-01": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 3,
+     "negative_tests": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 3,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "UI-LCC-ADD-02": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "UI-LCC-ADD-03": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "UI-LCC-ADD-04": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "UI-LCC-ADD-05": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "UI-LCC-ADD-08": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "UI-LCC-ADD-09": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "UI-SSOT-TOP-01": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "UI-SSOT-TOP-02": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "UI-SSOT-TOP-03": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "UI-SSOT-TOP-04": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "UI-SSOT-TOP-05": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "UI-SSOT-TOP-08": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "UI-SSOT-CARD-01": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "UI-SSOT-CARD-02": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "UI-SSOT-CARD-03": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "UI-SSOT-CARD-04": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "UI-SSOT-CARD-05": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "UI-SSOT-CARD-06": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "UI-SSOT-CARD-07": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "UI-SSOT-CARD-08": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "UI-SSOT-CARD-09": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "UI-SSOT-TBL-01": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "UI-SSOT-TBL-02": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 1,
+     "checks_owned_by_this_row": 0,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 1 of 1 checks are byte-identical boilerplate shared across rows"
+     ]
+    },
+    "UI-SSOT-TBL-03": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 1,
+     "checks_owned_by_this_row": 0,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 1 of 1 checks are byte-identical boilerplate shared across rows"
+     ]
+    },
+    "UI-SSOT-TBL-04": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 1,
+     "checks_owned_by_this_row": 0,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 1 of 1 checks are byte-identical boilerplate shared across rows"
+     ]
+    },
+    "UI-SSOT-TBL-05": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 1,
+     "checks_owned_by_this_row": 0,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 1 of 1 checks are byte-identical boilerplate shared across rows"
+     ]
+    },
+    "UI-SSOT-TBL-06": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 1,
+     "checks_owned_by_this_row": 0,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 1 of 1 checks are byte-identical boilerplate shared across rows"
+     ]
+    },
+    "UI-SSOT-TBL-07": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 1,
+     "checks_owned_by_this_row": 0,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 1 of 1 checks are byte-identical boilerplate shared across rows"
+     ]
+    },
+    "UI-SSOT-TBL-08": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 1,
+     "checks_owned_by_this_row": 0,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 1 of 1 checks are byte-identical boilerplate shared across rows"
+     ]
+    },
+    "UI-SSOT-TBL-09": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 1,
+     "checks_owned_by_this_row": 0,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 1 of 1 checks are byte-identical boilerplate shared across rows"
+     ]
+    },
+    "UI-SSOT-TBL-10": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 1,
+     "checks_owned_by_this_row": 0,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 1 of 1 checks are byte-identical boilerplate shared across rows"
+     ]
+    },
+    "UI-SSOT-TBL-11": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 1,
+     "checks_owned_by_this_row": 0,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 1 of 1 checks are byte-identical boilerplate shared across rows"
+     ]
+    },
+    "UI-SSOT-TBL-12": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 1,
+     "checks_owned_by_this_row": 0,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 1 of 1 checks are byte-identical boilerplate shared across rows"
+     ]
+    },
+    "UI-SSOT-TBL-13": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 1,
+     "checks_owned_by_this_row": 0,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 1 of 1 checks are byte-identical boilerplate shared across rows"
+     ]
+    },
+    "UI-SSOT-TBL-14": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 1,
+     "checks_owned_by_this_row": 0,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 1 of 1 checks are byte-identical boilerplate shared across rows"
+     ]
+    },
+    "UI-SSOT-TBL-15": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 1,
+     "checks_owned_by_this_row": 0,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 1 of 1 checks are byte-identical boilerplate shared across rows"
+     ]
+    },
+    "UI-SSOT-TBL-16": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 1,
+     "checks_owned_by_this_row": 0,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 1 of 1 checks are byte-identical boilerplate shared across rows"
+     ]
+    },
+    "UI-SSOT-TBL-17": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 1,
+     "checks_owned_by_this_row": 0,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 1 of 1 checks are byte-identical boilerplate shared across rows"
+     ]
+    },
+    "UI-SSOT-TBL-18": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 1,
+     "checks_owned_by_this_row": 0,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 1 of 1 checks are byte-identical boilerplate shared across rows"
+     ]
+    },
+    "UI-SSOT-TBL-19": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 1,
+     "checks_owned_by_this_row": 0,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 1 of 1 checks are byte-identical boilerplate shared across rows"
+     ]
+    },
+    "UI-SSOT-TBL-20": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 1,
+     "checks_owned_by_this_row": 0,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 1 of 1 checks are byte-identical boilerplate shared across rows"
+     ]
+    },
+    "UI-SSOT-TBL-21": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 1,
+     "checks_owned_by_this_row": 0,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 1 of 1 checks are byte-identical boilerplate shared across rows"
+     ]
+    },
+    "UI-SSOT-TBL-22": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 1,
+     "checks_owned_by_this_row": 0,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 1 of 1 checks are byte-identical boilerplate shared across rows"
+     ]
+    },
+    "UI-SSOT-TBL-23": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 1,
+     "checks_owned_by_this_row": 0,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 1 of 1 checks are byte-identical boilerplate shared across rows"
+     ]
+    },
+    "UI-SSOT-TBL-24": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "UI-SSOT-PAGE-02": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "UI-SSOT-PAGE-03": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "UI-SSOT-PAGE-04": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    },
+    "UI-SSOT-PAGE-05": {
+     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "negative_tests": 0,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+     "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+     "declared_negative_tests": [
+      "source unavailable shows n/a/Unavailable not 0",
+      "stale source flagged",
+      "API error surfaced"
+     ],
+     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+     "cited_hashes": {
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit"
+     },
+     "verdict": "KEEP",
+     "reasons": []
+    }
+   }
+  }
+ },
+ "demotion_list": [
+  {
+   "area": "UI",
+   "id": "UI-LCC-REC-10",
+   "reasons": [
+    "per-row proof is CARRIED: 1 of 1 checks are byte-identical boilerplate shared across rows"
+   ]
+  },
+  {
+   "area": "UI",
+   "id": "UI-SSOT-TBL-02",
+   "reasons": [
+    "per-row proof is CARRIED: 1 of 1 checks are byte-identical boilerplate shared across rows"
+   ]
+  },
+  {
+   "area": "UI",
+   "id": "UI-SSOT-TBL-03",
+   "reasons": [
+    "per-row proof is CARRIED: 1 of 1 checks are byte-identical boilerplate shared across rows"
+   ]
+  },
+  {
+   "area": "UI",
+   "id": "UI-SSOT-TBL-04",
+   "reasons": [
+    "per-row proof is CARRIED: 1 of 1 checks are byte-identical boilerplate shared across rows"
+   ]
+  },
+  {
+   "area": "UI",
+   "id": "UI-SSOT-TBL-05",
+   "reasons": [
+    "per-row proof is CARRIED: 1 of 1 checks are byte-identical boilerplate shared across rows"
+   ]
+  },
+  {
+   "area": "UI",
+   "id": "UI-SSOT-TBL-06",
+   "reasons": [
+    "per-row proof is CARRIED: 1 of 1 checks are byte-identical boilerplate shared across rows"
+   ]
+  },
+  {
+   "area": "UI",
+   "id": "UI-SSOT-TBL-07",
+   "reasons": [
+    "per-row proof is CARRIED: 1 of 1 checks are byte-identical boilerplate shared across rows"
+   ]
+  },
+  {
+   "area": "UI",
+   "id": "UI-SSOT-TBL-08",
+   "reasons": [
+    "per-row proof is CARRIED: 1 of 1 checks are byte-identical boilerplate shared across rows"
+   ]
+  },
+  {
+   "area": "UI",
+   "id": "UI-SSOT-TBL-09",
+   "reasons": [
+    "per-row proof is CARRIED: 1 of 1 checks are byte-identical boilerplate shared across rows"
+   ]
+  },
+  {
+   "area": "UI",
+   "id": "UI-SSOT-TBL-10",
+   "reasons": [
+    "per-row proof is CARRIED: 1 of 1 checks are byte-identical boilerplate shared across rows"
+   ]
+  },
+  {
+   "area": "UI",
+   "id": "UI-SSOT-TBL-11",
+   "reasons": [
+    "per-row proof is CARRIED: 1 of 1 checks are byte-identical boilerplate shared across rows"
+   ]
+  },
+  {
+   "area": "UI",
+   "id": "UI-SSOT-TBL-12",
+   "reasons": [
+    "per-row proof is CARRIED: 1 of 1 checks are byte-identical boilerplate shared across rows"
+   ]
+  },
+  {
+   "area": "UI",
+   "id": "UI-SSOT-TBL-13",
+   "reasons": [
+    "per-row proof is CARRIED: 1 of 1 checks are byte-identical boilerplate shared across rows"
+   ]
+  },
+  {
+   "area": "UI",
+   "id": "UI-SSOT-TBL-14",
+   "reasons": [
+    "per-row proof is CARRIED: 1 of 1 checks are byte-identical boilerplate shared across rows"
+   ]
+  },
+  {
+   "area": "UI",
+   "id": "UI-SSOT-TBL-15",
+   "reasons": [
+    "per-row proof is CARRIED: 1 of 1 checks are byte-identical boilerplate shared across rows"
+   ]
+  },
+  {
+   "area": "UI",
+   "id": "UI-SSOT-TBL-16",
+   "reasons": [
+    "per-row proof is CARRIED: 1 of 1 checks are byte-identical boilerplate shared across rows"
+   ]
+  },
+  {
+   "area": "UI",
+   "id": "UI-SSOT-TBL-17",
+   "reasons": [
+    "per-row proof is CARRIED: 1 of 1 checks are byte-identical boilerplate shared across rows"
+   ]
+  },
+  {
+   "area": "UI",
+   "id": "UI-SSOT-TBL-18",
+   "reasons": [
+    "per-row proof is CARRIED: 1 of 1 checks are byte-identical boilerplate shared across rows"
+   ]
+  },
+  {
+   "area": "UI",
+   "id": "UI-SSOT-TBL-19",
+   "reasons": [
+    "per-row proof is CARRIED: 1 of 1 checks are byte-identical boilerplate shared across rows"
+   ]
+  },
+  {
+   "area": "UI",
+   "id": "UI-SSOT-TBL-20",
+   "reasons": [
+    "per-row proof is CARRIED: 1 of 1 checks are byte-identical boilerplate shared across rows"
+   ]
+  },
+  {
+   "area": "UI",
+   "id": "UI-SSOT-TBL-21",
+   "reasons": [
+    "per-row proof is CARRIED: 1 of 1 checks are byte-identical boilerplate shared across rows"
+   ]
+  },
+  {
+   "area": "UI",
+   "id": "UI-SSOT-TBL-22",
+   "reasons": [
+    "per-row proof is CARRIED: 1 of 1 checks are byte-identical boilerplate shared across rows"
+   ]
+  },
+  {
+   "area": "UI",
+   "id": "UI-SSOT-TBL-23",
+   "reasons": [
+    "per-row proof is CARRIED: 1 of 1 checks are byte-identical boilerplate shared across rows"
+   ]
+  }
+ ]
+}
