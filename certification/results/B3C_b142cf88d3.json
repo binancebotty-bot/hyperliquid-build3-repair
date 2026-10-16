@@ -1,0 +1,223 @@
+{
+  "register_ref": "main:b142cf88d389e791160f691aac3d936852b99975",
+  "engine_commit": "b142cf88d389e791160f691aac3d936852b99975",
+  "overall_result": "NOT_TESTED",
+  "checks": [
+    {
+      "id": "F25-X02",
+      "engine_commit": "b142cf88d389e791160f691aac3d936852b99975",
+      "result": "NOT_TESTED",
+      "execution_proof": {
+        "status": "NOT_TESTED",
+        "missing_route": "live testnet lifecycle transition with process/PID/lock and engine status captured together"
+      },
+      "independent_oracle": {
+        "status": "NOT_TESTED",
+        "missing_route": "independent exchange open-orders/fills capture tied to lifecycle transition window"
+      },
+      "negative_tests": [
+        {
+          "check": "second start attempt",
+          "status": "NOT_TESTED"
+        },
+        {
+          "check": "crash mid-transition",
+          "status": "NOT_TESTED"
+        },
+        {
+          "check": "stale lock/PID",
+          "status": "NOT_TESTED"
+        },
+        {
+          "check": "config from previous version",
+          "status": "NOT_TESTED"
+        }
+      ],
+      "ui_probe": {
+        "url": "http://127.0.0.1:8031/live-copy",
+        "http_status": 200,
+        "sufficient_for_row": false
+      }
+    },
+    {
+      "id": "F25-X03",
+      "engine_commit": "b142cf88d389e791160f691aac3d936852b99975",
+      "result": "NOT_TESTED",
+      "execution_proof": {
+        "status": "NOT_TESTED",
+        "missing_route": "live testnet lifecycle transition with process/PID/lock and engine status captured together"
+      },
+      "independent_oracle": {
+        "status": "NOT_TESTED",
+        "missing_route": "independent exchange open-orders/fills capture tied to lifecycle transition window"
+      },
+      "negative_tests": [
+        {
+          "check": "second start attempt",
+          "status": "NOT_TESTED"
+        },
+        {
+          "check": "crash mid-transition",
+          "status": "NOT_TESTED"
+        },
+        {
+          "check": "stale lock/PID",
+          "status": "NOT_TESTED"
+        },
+        {
+          "check": "config from previous version",
+          "status": "NOT_TESTED"
+        }
+      ],
+      "ui_probe": {
+        "url": "http://127.0.0.1:8031/live-copy",
+        "http_status": 200,
+        "sufficient_for_row": false
+      }
+    },
+    {
+      "id": "F25-X04",
+      "engine_commit": "b142cf88d389e791160f691aac3d936852b99975",
+      "result": "NOT_TESTED",
+      "execution_proof": {
+        "status": "NOT_TESTED",
+        "missing_route": "live testnet lifecycle transition with process/PID/lock and engine status captured together"
+      },
+      "independent_oracle": {
+        "status": "NOT_TESTED",
+        "missing_route": "independent exchange open-orders/fills capture tied to lifecycle transition window"
+      },
+      "negative_tests": [
+        {
+          "check": "second start attempt",
+          "status": "NOT_TESTED"
+        },
+        {
+          "check": "crash mid-transition",
+          "status": "NOT_TESTED"
+        },
+        {
+          "check": "stale lock/PID",
+          "status": "NOT_TESTED"
+        },
+        {
+          "check": "config from previous version",
+          "status": "NOT_TESTED"
+        }
+      ],
+      "ui_probe": {
+        "url": "http://127.0.0.1:8031/live-copy",
+        "http_status": 200,
+        "sufficient_for_row": false
+      }
+    },
+    {
+      "id": "F25-X05",
+      "engine_commit": "b142cf88d389e791160f691aac3d936852b99975",
+      "result": "NOT_TESTED",
+      "execution_proof": {
+        "status": "NOT_TESTED",
+        "missing_route": "live testnet lifecycle transition with process/PID/lock and engine status captured together"
+      },
+      "independent_oracle": {
+        "status": "NOT_TESTED",
+        "missing_route": "independent exchange open-orders/fills capture tied to lifecycle transition window"
+      },
+      "negative_tests": [
+        {
+          "check": "second start attempt",
+          "status": "NOT_TESTED"
+        },
+        {
+          "check": "crash mid-transition",
+          "status": "NOT_TESTED"
+        },
+        {
+          "check": "stale lock/PID",
+          "status": "NOT_TESTED"
+        },
+        {
+          "check": "config from previous version",
+          "status": "NOT_TESTED"
+        }
+      ],
+      "ui_probe": {
+        "url": "http://127.0.0.1:8031/live-copy",
+        "http_status": 200,
+        "sufficient_for_row": false
+      }
+    },
+    {
+      "id": "F25-X06",
+      "engine_commit": "b142cf88d389e791160f691aac3d936852b99975",
+      "result": "NOT_TESTED",
+      "execution_proof": {
+        "status": "NOT_TESTED",
+        "missing_route": "live testnet lifecycle transition with process/PID/lock and engine status captured together"
+      },
+      "independent_oracle": {
+        "status": "NOT_TESTED",
+        "missing_route": "independent exchange open-orders/fills capture tied to lifecycle transition window"
+      },
+      "negative_tests": [
+        {
+          "check": "second start attempt",
+          "status": "NOT_TESTED"
+        },
+        {
+          "check": "crash mid-transition",
+          "status": "NOT_TESTED"
+        },
+        {
+          "check": "stale lock/PID",
+          "status": "NOT_TESTED"
+        },
+        {
+          "check": "config from previous version",
+          "status": "NOT_TESTED"
+        }
+      ],
+      "ui_probe": {
+        "url": "http://127.0.0.1:8031/live-copy",
+        "http_status": 200,
+        "sufficient_for_row": false
+      }
+    },
+    {
+      "id": "F25-X07",
+      "engine_commit": "b142cf88d389e791160f691aac3d936852b99975",
+      "result": "NOT_TESTED",
+      "execution_proof": {
+        "status": "NOT_TESTED",
+        "missing_route": "live testnet lifecycle transition with process/PID/lock and engine status captured together"
+      },
+      "independent_oracle": {
+        "status": "NOT_TESTED",
+        "missing_route": "independent exchange open-orders/fills capture tied to lifecycle transition window"
+      },
+      "negative_tests": [
+        {
+          "check": "second start attempt",
+          "status": "NOT_TESTED"
+        },
+        {
+          "check": "crash mid-transition",
+          "status": "NOT_TESTED"
+        },
+        {
+          "check": "stale lock/PID",
+          "status": "NOT_TESTED"
+        },
+        {
+          "check": "config from previous version",
+          "status": "NOT_TESTED"
+        }
+      ],
+      "ui_probe": {
+        "url": "http://127.0.0.1:8031/live-copy",
+        "http_status": 200,
+        "sufficient_for_row": false
+      }
+    }
+  ]
+}
