@@ -17,11 +17,11 @@
     "limitations": "No server restart, process instrumentation, route-specific trace, or upstream timing breakdown was performed."
   },
   "source_findings": [
-    {"location": "_archive/hl_stage2/HL_Copy_App_SSOT.py:905-947", "finding": "Cold summary construction streams the complete order_intents CSV, counts 131,687 rows in the live response, and retains rolling audit_rows/last_rows using list append plus pop(0)."},
+    {"location": "_archive/hl_stage2/HL_Copy_App_SSOT.py:905-947", "finding": "Cold summary construction streams the complete order_intents CSV, counts 132,247 rows in the live response, and retains rolling audit_rows/last_rows using list append plus pop(0)."},
     {"location": "_archive/hl_stage2/HL_Copy_App_SSOT.py:949-955", "finding": "The same synchronous build then loads local state, fetches an exchange account snapshot, and appends exchange history before composing the response."},
     {"location": "_archive/hl_stage2/HL_Copy_App_SSOT.py:7991-8013", "finding": "The pinned source has a 2-second in-process cache; the cache lock protects only cache lookup/update, not the expensive build. Warm requests were fast in this probe."}
   ],
-  "diagnosis": "The observed latency is cold-build latency, not a persistent endpoint hang in this probe: first GET took 6.495s, then cache-hit requests took 0.095s and 0.103s. The handler's likely dominant work is the unbounded full-history CSV scan and synchronous downstream snapshot/state reads; the available probe does not isolate their individual durations, so attribution to one specific blocking read is not proven. The initial task report of timeout may reflect cold-build latency exceeding the caller's 3-8s timeout. Response size is ~5.65 MB.",
+  "diagnosis": "The measured cold request took 6.223s, then cache-hit requests took 0.102s and 0.084s. The handler's likely dominant work is the unbounded full-history CSV scan and synchronous downstream snapshot/state reads; the available probe does not isolate their individual durations, so attribution to one specific blocking read is not proven. The initial task report of timeout may reflect cold-build latency exceeding the caller's 3-8s timeout. Response size is ~5.65 MB.",
   "change": "No source change made. The live endpoint returned HTTP 200 for all probes and its pinned code already has a cache. A code change to truncate or async-ify audit/history would alter payload semantics and would require broader validation; no safe bounded fix was established from the available read-only evidence.",
   "safety": "Live process PID 8668 was not restarted, killed, or reconfigured. Ports 8014 and 8000 were not touched. Certification matrix and apply_verified_results.py were not touched."
 }
