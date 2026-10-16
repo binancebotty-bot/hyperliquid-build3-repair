@@ -1,0 +1,39 @@
+{
+  "schema": "b3_ui_row_evidence_v1",
+  "row_id": "UI-FP-193",
+  "register_ref": "main:certification/certification_matrix.json",
+  "feature": "Controls: Add leader equity base",
+  "engine_commit": "b8e9ac628aaf60f94033f1eaf3b738573afb311a",
+  "tested_at_utc": "2026-10-16T20:59:04Z",
+  "result": "NOT_TESTED",
+  "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+  "independent_oracle": "Independent read of same exchange/engine truth recomputed by script not importing HL_Copy_App_SSOT.py",
+  "checks": [
+    {
+      "name": "live_surface_http",
+      "result": "PASS",
+      "detail": "GET http://127.0.0.1:8031/live-copy returned HTTP 200 text/html; source length 87117 bytes."
+    },
+    {
+      "name": "rendered_dom_cell",
+      "result": "NOT_TESTED",
+      "detail": "MISSING ROUTE: browser-rendered DOM capture of live-copy is unavailable; HTML response is not rendered DOM evidence."
+    },
+    {
+      "name": "post_normalize_persist",
+      "result": "NOT_TESTED",
+      "detail": "MISSING ROUTE: safe isolated live_config POST normalization/persistence probe and readback; no mutation attempted."
+    },
+    {
+      "name": "independent_oracle",
+      "result": "NOT_TESTED",
+      "detail": "MISSING ROUTE: independently recomputed engine/exchange truth for leader_equity_base; no oracle was available."
+    },
+    {
+      "name": "negative_tests",
+      "result": "NOT_TESTED",
+      "detail": "MISSING ROUTE: controlled source-unavailable, stale-source, and API-error cases with observed rendered outcomes."
+    }
+  ],
+  "notes": "Fresh bounded probe. Live surface responded, but declared chain and oracle cannot be completed without the named missing routes. No mocks, source-code fallback, or config mutation."
+}
