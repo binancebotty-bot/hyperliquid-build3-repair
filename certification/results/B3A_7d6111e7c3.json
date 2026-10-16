@@ -1,0 +1,153 @@
+{
+  "schema": "b3a_row_evidence_v1",
+  "register_ref": "main:certification/certification_matrix.json",
+  "register_commit": "b142cf88d389e791160f691aac3d936852b99975",
+  "engine_commit": "7d6111e7c3ebef0a8a58035f06c8dbf027f750a8",
+  "generated_at_utc": "2026-10-16T21:13:46.394149+00:00",
+  "rows": [
+    {
+      "id": "ENG-003",
+      "result": "NOT_TESTED",
+      "register_ref": "main:certification/certification_matrix.json",
+      "engine_commit": "7d6111e7c3ebef0a8a58035f06c8dbf027f750a8",
+      "checks": [
+        {
+          "name": "execution proof",
+          "result": "NOT_TESTED",
+          "detail": "No authorized live testnet operation route; no state-changing action taken."
+        },
+        {
+          "name": "independent oracle",
+          "result": "NOT_TESTED",
+          "detail": "No captured testnet event/exchange-info oracle route."
+        },
+        {
+          "name": "negative tests",
+          "result": "NOT_TESTED",
+          "detail": "Cannot safely exercise required negative scenario without transport/oracle."
+        }
+      ],
+      "missing_route": "Live testnet transport + captured-request/exchange-info oracle; lifecycle rows also lack safe controlled operator-command transition instrumentation. Rendered DOM route absent; only HTTP GET 200 at http://127.0.0.1:8031/live-copy."
+    },
+    {
+      "id": "F25-P01",
+      "result": "NOT_TESTED",
+      "register_ref": "main:certification/certification_matrix.json",
+      "engine_commit": "7d6111e7c3ebef0a8a58035f06c8dbf027f750a8",
+      "checks": [
+        {
+          "name": "execution proof",
+          "result": "NOT_TESTED",
+          "detail": "No authorized live testnet operation route; no state-changing action taken."
+        },
+        {
+          "name": "independent oracle",
+          "result": "NOT_TESTED",
+          "detail": "No captured testnet event/exchange-info oracle route."
+        },
+        {
+          "name": "negative tests",
+          "result": "NOT_TESTED",
+          "detail": "Cannot safely exercise required negative scenario without transport/oracle."
+        }
+      ],
+      "missing_route": "Live testnet transport + captured-request/exchange-info oracle; lifecycle rows also lack safe controlled operator-command transition instrumentation. Rendered DOM route absent; only HTTP GET 200 at http://127.0.0.1:8031/live-copy."
+    },
+    {
+      "id": "F25-P02",
+      "result": "NOT_TESTED",
+      "register_ref": "main:certification/certification_matrix.json",
+      "engine_commit": "7d6111e7c3ebef0a8a58035f06c8dbf027f750a8",
+      "checks": [
+        {
+          "name": "execution proof",
+          "result": "NOT_TESTED",
+          "detail": "No authorized live testnet operation route; no state-changing action taken."
+        },
+        {
+          "name": "independent oracle",
+          "result": "NOT_TESTED",
+          "detail": "No captured testnet event/exchange-info oracle route."
+        },
+        {
+          "name": "negative tests",
+          "result": "NOT_TESTED",
+          "detail": "Cannot safely exercise required negative scenario without transport/oracle."
+        }
+      ],
+      "missing_route": "Live testnet transport + captured-request/exchange-info oracle; lifecycle rows also lack safe controlled operator-command transition instrumentation. Rendered DOM route absent; only HTTP GET 200 at http://127.0.0.1:8031/live-copy."
+    },
+    {
+      "id": "F25-P03",
+      "result": "NOT_TESTED",
+      "register_ref": "main:certification/certification_matrix.json",
+      "engine_commit": "7d6111e7c3ebef0a8a58035f06c8dbf027f750a8",
+      "checks": [
+        {
+          "name": "execution proof",
+          "result": "NOT_TESTED",
+          "detail": "No authorized live testnet operation route; no state-changing action taken."
+        },
+        {
+          "name": "independent oracle",
+          "result": "NOT_TESTED",
+          "detail": "No captured testnet event/exchange-info oracle route."
+        },
+        {
+          "name": "negative tests",
+          "result": "NOT_TESTED",
+          "detail": "Cannot safely exercise required negative scenario without transport/oracle."
+        }
+      ],
+      "missing_route": "Live testnet transport + captured-request/exchange-info oracle; lifecycle rows also lack safe controlled operator-command transition instrumentation. Rendered DOM route absent; only HTTP GET 200 at http://127.0.0.1:8031/live-copy."
+    },
+    {
+      "id": "F25-P04",
+      "result": "NOT_TESTED",
+      "register_ref": "main:certification/certification_matrix.json",
+      "engine_commit": "7d6111e7c3ebef0a8a58035f06c8dbf027f750a8",
+      "checks": [
+        {
+          "name": "execution proof",
+          "result": "NOT_TESTED",
+          "detail": "No authorized live testnet operation route; no state-changing action taken."
+        },
+        {
+          "name": "independent oracle",
+          "result": "NOT_TESTED",
+          "detail": "No captured testnet event/exchange-info oracle route."
+        },
+        {
+          "name": "negative tests",
+          "result": "NOT_TESTED",
+          "detail": "Cannot safely exercise required negative scenario without transport/oracle."
+        }
+      ],
+      "missing_route": "Live testnet transport + captured-request/exchange-info oracle; lifecycle rows also lack safe controlled operator-command transition instrumentation. Rendered DOM route absent; only HTTP GET 200 at http://127.0.0.1:8031/live-copy."
+    },
+    {
+      "id": "F25-P05",
+      "result": "NOT_TESTED",
+      "register_ref": "main:certification/certification_matrix.json",
+      "engine_commit": "7d6111e7c3ebef0a8a58035f06c8dbf027f750a8",
+      "checks": [
+        {
+          "name": "execution proof",
+          "result": "NOT_TESTED",
+          "detail": "No authorized live testnet operation route; no state-changing action taken."
+        },
+        {
+          "name": "independent oracle",
+          "result": "NOT_TESTED",
+          "detail": "No captured testnet event/exchange-info oracle route."
+        },
+        {
+          "name": "negative tests",
+          "result": "NOT_TESTED",
+          "detail": "Cannot safely exercise required negative scenario without transport/oracle."
+        }
+      ],
+      "missing_route": "Live testnet transport + captured-request/exchange-info oracle; lifecycle rows also lack safe controlled operator-command transition instrumentation. Rendered DOM route absent; only HTTP GET 200 at http://127.0.0.1:8031/live-copy."
+    }
+  ]
+}
