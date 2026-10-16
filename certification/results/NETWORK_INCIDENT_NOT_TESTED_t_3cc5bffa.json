@@ -1,0 +1,57 @@
+{
+  "task_id": "t_3cc5bffa",
+  "register_of_record": "b142cf88:certification/certification_matrix.json (PC-local pinned blob; AUTHORITY_INDEX notes it is unpushed/unverified against origin)",
+  "tested_commit": "c0e72c663fd1eecc995b285ca40ad953fa6b067f",
+  "tested_at_utc": "2026-10-16T23:21:50Z",
+  "result": "NOT_TESTED",
+  "rows": [
+    {
+      "id": "TN-T7",
+      "required_execution_proof": "Configuration (env/credentials) -> endpoints actually contacted (captured) -> identities used for signing and for truth reads",
+      "required_independent_oracle": "Packet/HTTP capture or request log of hostnames; exchange-side account address of resulting fills",
+      "probe_performed": "Checked for .env.testnet and trading_stack/Hyperliquid scanner/_archive/hl_stage2.env; both absent. Sent GET to https://api.hyperliquid-testnet.xyz/info; HTTP 405 (endpoint responds, but this is not the required transport execution and yields no identity/fill oracle). No authenticated trading request was made.",
+      "result": "NOT_TESTED",
+      "missing_exactly": ["Testnet credential/configuration in either checked location", "captured engine transport request and signer/truth-read identities", "exchange-side account address of resulting fills"]
+    },
+    {
+      "id": "TN-T8",
+      "required_execution_proof": "Configuration (env/credentials) -> endpoints actually contacted (captured) -> identities used for signing and for truth reads",
+      "required_independent_oracle": "Packet/HTTP capture or request log of hostnames; exchange-side account address of resulting fills",
+      "probe_performed": "Checked for .env.testnet and trading_stack/Hyperliquid scanner/_archive/hl_stage2.env; both absent. Sent GET to https://api.hyperliquid-testnet.xyz/info; HTTP 405 (not the required transport execution and yields no identity/fill oracle). No authenticated trading request was made.",
+      "result": "NOT_TESTED",
+      "missing_exactly": ["Testnet credential/configuration in either checked location", "captured engine transport request and signer/truth-read identities", "exchange-side account address of resulting fills"]
+    },
+    {
+      "id": "TN-T9",
+      "required_execution_proof": "Configuration (env/credentials) -> endpoints actually contacted (captured) -> identities used for signing and for truth reads",
+      "required_independent_oracle": "Packet/HTTP capture or request log of hostnames; exchange-side account address of resulting fills",
+      "probe_performed": "Checked for .env.testnet and trading_stack/Hyperliquid scanner/_archive/hl_stage2.env; both absent. Sent GET to https://api.hyperliquid-testnet.xyz/info; HTTP 405 (not the required transport execution and yields no identity/fill oracle). No authenticated trading request was made.",
+      "result": "NOT_TESTED",
+      "missing_exactly": ["Testnet credential/configuration in either checked location", "captured engine transport request and signer/truth-read identities", "exchange-side account address of resulting fills"]
+    },
+    {
+      "id": "TN-T10",
+      "required_execution_proof": "Configuration (env/credentials) -> endpoints actually contacted (captured) -> identities used for signing and for truth reads",
+      "required_independent_oracle": "Packet/HTTP capture or request log of hostnames; exchange-side account address of resulting fills",
+      "probe_performed": "Checked for .env.testnet and trading_stack/Hyperliquid scanner/_archive/hl_stage2.env; both absent. Sent GET to https://api.hyperliquid-testnet.xyz/info; HTTP 405 (not the required transport execution and yields no identity/fill oracle). No authenticated trading request was made.",
+      "result": "NOT_TESTED",
+      "missing_exactly": ["Testnet credential/configuration in either checked location", "captured engine transport request and signer/truth-read identities", "exchange-side account address of resulting fills"]
+    },
+    {
+      "id": "INC-01",
+      "required_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+      "required_independent_oracle": "Exchange truth, or recorded-replay expected output computed without engine code",
+      "probe_performed": "Queried the pinned register's cited report paths using git show b142cf88:<path>; both source paths are absent in that commit. The required replay/testnet trigger could not be run; no mock substituted.",
+      "result": "NOT_TESTED",
+      "missing_exactly": ["Historical trigger input/replay fixture for large-position visibility", "independent exchange-truth or expected-output oracle"]
+    },
+    {
+      "id": "INC-03",
+      "required_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+      "required_independent_oracle": "Exchange truth, or recorded-replay expected output computed without engine code",
+      "probe_performed": "Queried the pinned register's cited report path using git show b142cf88:<path>; the source path is absent in that commit. The required replay/testnet trigger could not be run; no mock substituted.",
+      "result": "NOT_TESTED",
+      "missing_exactly": ["Historical trigger input/replay fixture for account-vs-engine position divergence", "independent exchange-truth or expected-output oracle"]
+    }
+  ]
+}
