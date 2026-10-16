@@ -1,0 +1,3322 @@
+{
+ "audit": "PASS-row evidence provenance (REGRESSION + CONTROL)",
+ "register_of_record_ref": "main",
+ "register_of_record_commit": "b142cf88d389e791160f691aac3d936852b99975",
+ "matrix_sha256": "86b2237fe95f88ca9eb758fb42ddbdf3efdaef71e56f79a10e2d2635f44f341a",
+ "read_only": true,
+ "areas": {
+  "REGRESSION": {
+   "matrix_rows": 148,
+   "matrix_pass_rows": 131,
+   "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+   "evidence_blob_sha256": "16ff5878c596fe262e8469f910ce21de17cb505015a9f8546dec9a6155d7530b",
+   "evidence_rows_in_file": 138,
+   "pass_rows_demoted": 29,
+   "per_row": {
+    "B4-I01": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": true,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "record present but carries NO executed-proof detail (blank)"
+     ]
+    },
+    "B4-I02": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": true,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "record present but carries NO executed-proof detail (blank)"
+     ]
+    },
+    "B4-I03": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": true,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "record present but carries NO executed-proof detail (blank)"
+     ]
+    },
+    "B4-I04": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": true,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "record present but carries NO executed-proof detail (blank)"
+     ]
+    },
+    "B4-I05": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": true,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "record present but carries NO executed-proof detail (blank)"
+     ]
+    },
+    "B4-I06": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": true,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "record present but carries NO executed-proof detail (blank)"
+     ]
+    },
+    "B4-I07": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": true,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "record present but carries NO executed-proof detail (blank)"
+     ]
+    },
+    "B4-I08": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": true,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "record present but carries NO executed-proof detail (blank)"
+     ]
+    },
+    "B4-I09": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": true,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "record present but carries NO executed-proof detail (blank)"
+     ]
+    },
+    "B4-I10": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": true,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "record present but carries NO executed-proof detail (blank)"
+     ]
+    },
+    "B4-I11": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": true,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "record present but carries NO executed-proof detail (blank)"
+     ]
+    },
+    "B4-I14": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": true,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "record present but carries NO executed-proof detail (blank)"
+     ]
+    },
+    "B4-I15": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": true,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "record present but carries NO executed-proof detail (blank)"
+     ]
+    },
+    "B4-I16": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "B4-I17": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": true,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "record present but carries NO executed-proof detail (blank)"
+     ]
+    },
+    "B4-I18": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": true,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "record present but carries NO executed-proof detail (blank)"
+     ]
+    },
+    "B4-I19": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "B4-I22": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": true,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "record present but carries NO executed-proof detail (blank)"
+     ]
+    },
+    "B4-I23": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": true,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "record present but carries NO executed-proof detail (blank)"
+     ]
+    },
+    "B4-I24": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": true,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "record present but carries NO executed-proof detail (blank)"
+     ]
+    },
+    "B4-I25": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": true,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "record present but carries NO executed-proof detail (blank)"
+     ]
+    },
+    "B4-R01": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "B4-R02": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "B4-R03": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "B4-R04": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "B4-R05": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "B4-R06": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "B4-R07": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "B4-R08": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "B4-R09": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "B4-R10": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "B4-R11": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "B4-R12": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "B4-R13": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "B4-R14": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "B4-R15": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "B4-R16": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "B4-R17": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "B4-R18": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "B4-R19": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "B4-R20": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "B4-R21": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "B4-R22": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "B4-R23": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "B4-R24": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "B4-R25": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "F-ARCH-001": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "F-ARCH-002": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "F-ARCH-003": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "F-ARCH-004": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "F-ARCH-005": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "F-ARCH-006": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "F-ARCH-007": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "F-ARCH-008": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "F-ARCH-009": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "F-ARCH-010": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "F-ARCH-011": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "F-ARCH-012": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "F-ARCH-013": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "F-ARCH-014": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "F-ARCH-015": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "F-LOGIC-001": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "F-LOGIC-002": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "F-LOGIC-003": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "F-LOGIC-004": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "F-LOGIC-005": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "F-LOGIC-006": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "F-LOGIC-007": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "F-LOGIC-008": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "F-LOGIC-009": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "F-LOGIC-010": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "F-LOGIC-011": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "F-LOGIC-012": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "F-LOGIC-013": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "F-LOGIC-014": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "F-LOGIC-015": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "F-LOGIC-016": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "F-EXC-001": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "F-EXC-002": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "F-EXC-003": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "F-EXC-004": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "F-EXC-005": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "F-EXC-006": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "F-EXC-007": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "F-EXC-008": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "F-EXC-009": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "F-EXC-010": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "F-EXC-011": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "F-EXC-012": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "F-EXC-013": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "F-EXC-014": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "F-EXC-015": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "F-EXC-018": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "F-EXC-019": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "F-EXC-020": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "F-VERIFY-001": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "F-VERIFY-002": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "F-VERIFY-003": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "F-VERIFY-004": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "F-VERIFY-005": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "F-VERIFY-006": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "F-VERIFY-007": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "F-PROCESS-001": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "F-PROCESS-002": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "F-PROCESS-003": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "F-PRODUCT-002": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": true,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "record present but carries NO executed-proof detail (blank)"
+     ]
+    },
+    "F-TEST-002": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "F-TEST-003": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "F-TEST-004": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "F-TEST-005": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "F-TEST-006": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "F-TEST-007": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "F-TEST-008": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "F-TEST-009": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "F-GREEN-ONLY-001": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": true,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "record present but carries NO executed-proof detail (blank)"
+     ]
+    },
+    "F-CLAIM-01": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": true,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "record present but carries NO executed-proof detail (blank)"
+     ]
+    },
+    "F-CLAIM-02": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": true,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "record present but carries NO executed-proof detail (blank)"
+     ]
+    },
+    "F-CLAIM-03": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": true,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "record present but carries NO executed-proof detail (blank)"
+     ]
+    },
+    "F-CLAIM-04": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": true,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "record present but carries NO executed-proof detail (blank)"
+     ]
+    },
+    "F-CLAIM-05": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": true,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "record present but carries NO executed-proof detail (blank)"
+     ]
+    },
+    "F-CLAIM-06": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": true,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "record present but carries NO executed-proof detail (blank)"
+     ]
+    },
+    "F-CLAIM-07": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": true,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "record present but carries NO executed-proof detail (blank)"
+     ]
+    },
+    "F-CLAIM-08": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": true,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "record present but carries NO executed-proof detail (blank)"
+     ]
+    },
+    "INC-02": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "INC-04": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "INC-05": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "INC-06": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "INC-07": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "INC-08": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "INC-09": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    },
+    "INC-12": {
+     "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 1,
+     "checks_shared_with_other_rows": 0,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+     "declared_independent_oracle": "Exchange truth as above, or recorded-replay expected output computed without engine code",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "BOUND",
+     "reasons": []
+    }
+   }
+  },
+  "CONTROL": {
+   "matrix_rows": 54,
+   "matrix_pass_rows": 52,
+   "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
+   "evidence_blob_sha256": "9e017fd7ffdda98a76a45ab8eb2dbab2998fc57e2baa0201d02a3fdf602b6218",
+   "evidence_rows_in_file": 53,
+   "pass_rows_demoted": 52,
+   "per_row": {
+    "CTRL-I1": {
+     "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 24,
+     "checks_shared_with_other_rows": 23,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Envelope on origin/control-mailbox -> wake -> correlated consumption record -> durable state transition",
+     "declared_independent_oracle": "git log of origin/control-mailbox (exact SHAs) and the consumer's durable receipt",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+     ]
+    },
+    "CTRL-I2": {
+     "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 24,
+     "checks_shared_with_other_rows": 23,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Envelope on origin/control-mailbox -> wake -> correlated consumption record -> durable state transition",
+     "declared_independent_oracle": "git log of origin/control-mailbox (exact SHAs) and the consumer's durable receipt",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+     ]
+    },
+    "CTRL-I3": {
+     "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 24,
+     "checks_shared_with_other_rows": 23,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Envelope on origin/control-mailbox -> wake -> correlated consumption record -> durable state transition",
+     "declared_independent_oracle": "git log of origin/control-mailbox (exact SHAs) and the consumer's durable receipt",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+     ]
+    },
+    "CTRL-I4": {
+     "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 24,
+     "checks_shared_with_other_rows": 23,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Envelope on origin/control-mailbox -> wake -> correlated consumption record -> durable state transition",
+     "declared_independent_oracle": "git log of origin/control-mailbox (exact SHAs) and the consumer's durable receipt",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+     ]
+    },
+    "CTRL-I5": {
+     "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 24,
+     "checks_shared_with_other_rows": 23,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Envelope on origin/control-mailbox -> wake -> correlated consumption record -> durable state transition",
+     "declared_independent_oracle": "git log of origin/control-mailbox (exact SHAs) and the consumer's durable receipt",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+     ]
+    },
+    "CTRL-I6": {
+     "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 24,
+     "checks_shared_with_other_rows": 23,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Envelope on origin/control-mailbox -> wake -> correlated consumption record -> durable state transition",
+     "declared_independent_oracle": "git log of origin/control-mailbox (exact SHAs) and the consumer's durable receipt",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+     ]
+    },
+    "CTRL-I7": {
+     "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 24,
+     "checks_shared_with_other_rows": 23,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Envelope on origin/control-mailbox -> wake -> correlated consumption record -> durable state transition",
+     "declared_independent_oracle": "git log of origin/control-mailbox (exact SHAs) and the consumer's durable receipt",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+     ]
+    },
+    "CTRL-I8": {
+     "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 24,
+     "checks_shared_with_other_rows": 23,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Envelope on origin/control-mailbox -> wake -> correlated consumption record -> durable state transition",
+     "declared_independent_oracle": "git log of origin/control-mailbox (exact SHAs) and the consumer's durable receipt",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+     ]
+    },
+    "CTRL-I9": {
+     "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 24,
+     "checks_shared_with_other_rows": 23,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Envelope on origin/control-mailbox -> wake -> correlated consumption record -> durable state transition",
+     "declared_independent_oracle": "git log of origin/control-mailbox (exact SHAs) and the consumer's durable receipt",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+     ]
+    },
+    "CTRL-I10": {
+     "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 24,
+     "checks_shared_with_other_rows": 23,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Envelope on origin/control-mailbox -> wake -> correlated consumption record -> durable state transition",
+     "declared_independent_oracle": "git log of origin/control-mailbox (exact SHAs) and the consumer's durable receipt",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+     ]
+    },
+    "CTRL-I11": {
+     "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 24,
+     "checks_shared_with_other_rows": 23,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Envelope on origin/control-mailbox -> wake -> correlated consumption record -> durable state transition",
+     "declared_independent_oracle": "git log of origin/control-mailbox (exact SHAs) and the consumer's durable receipt",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+     ]
+    },
+    "CTRL-I12": {
+     "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 24,
+     "checks_shared_with_other_rows": 23,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Envelope on origin/control-mailbox -> wake -> correlated consumption record -> durable state transition",
+     "declared_independent_oracle": "git log of origin/control-mailbox (exact SHAs) and the consumer's durable receipt",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+     ]
+    },
+    "CTRL-I13": {
+     "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 24,
+     "checks_shared_with_other_rows": 23,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Envelope on origin/control-mailbox -> wake -> correlated consumption record -> durable state transition",
+     "declared_independent_oracle": "git log of origin/control-mailbox (exact SHAs) and the consumer's durable receipt",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+     ]
+    },
+    "CTRL-I14": {
+     "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 24,
+     "checks_shared_with_other_rows": 23,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Envelope on origin/control-mailbox -> wake -> correlated consumption record -> durable state transition",
+     "declared_independent_oracle": "git log of origin/control-mailbox (exact SHAs) and the consumer's durable receipt",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+     ]
+    },
+    "CTRL-I15": {
+     "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 24,
+     "checks_shared_with_other_rows": 23,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Envelope on origin/control-mailbox -> wake -> correlated consumption record -> durable state transition",
+     "declared_independent_oracle": "git log of origin/control-mailbox (exact SHAs) and the consumer's durable receipt",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+     ]
+    },
+    "CTRL-I16": {
+     "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 24,
+     "checks_shared_with_other_rows": 23,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Envelope on origin/control-mailbox -> wake -> correlated consumption record -> durable state transition",
+     "declared_independent_oracle": "git log of origin/control-mailbox (exact SHAs) and the consumer's durable receipt",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+     ]
+    },
+    "CTRL-I17": {
+     "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 24,
+     "checks_shared_with_other_rows": 23,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Envelope on origin/control-mailbox -> wake -> correlated consumption record -> durable state transition",
+     "declared_independent_oracle": "git log of origin/control-mailbox (exact SHAs) and the consumer's durable receipt",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+     ]
+    },
+    "CTRL-I18": {
+     "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 24,
+     "checks_shared_with_other_rows": 23,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Envelope on origin/control-mailbox -> wake -> correlated consumption record -> durable state transition",
+     "declared_independent_oracle": "git log of origin/control-mailbox (exact SHAs) and the consumer's durable receipt",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+     ]
+    },
+    "CTRL-I19": {
+     "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 24,
+     "checks_shared_with_other_rows": 23,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Envelope on origin/control-mailbox -> wake -> correlated consumption record -> durable state transition",
+     "declared_independent_oracle": "git log of origin/control-mailbox (exact SHAs) and the consumer's durable receipt",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+     ]
+    },
+    "CTRL-I20": {
+     "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 24,
+     "checks_shared_with_other_rows": 23,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Envelope on origin/control-mailbox -> wake -> correlated consumption record -> durable state transition",
+     "declared_independent_oracle": "git log of origin/control-mailbox (exact SHAs) and the consumer's durable receipt",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+     ]
+    },
+    "CTRL-I21": {
+     "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 24,
+     "checks_shared_with_other_rows": 23,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Envelope on origin/control-mailbox -> wake -> correlated consumption record -> durable state transition",
+     "declared_independent_oracle": "git log of origin/control-mailbox (exact SHAs) and the consumer's durable receipt",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+     ]
+    },
+    "CTRL-I22": {
+     "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 24,
+     "checks_shared_with_other_rows": 23,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Envelope on origin/control-mailbox -> wake -> correlated consumption record -> durable state transition",
+     "declared_independent_oracle": "git log of origin/control-mailbox (exact SHAs) and the consumer's durable receipt",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+     ]
+    },
+    "CTRL-I23": {
+     "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 24,
+     "checks_shared_with_other_rows": 23,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Envelope on origin/control-mailbox -> wake -> correlated consumption record -> durable state transition",
+     "declared_independent_oracle": "git log of origin/control-mailbox (exact SHAs) and the consumer's durable receipt",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+     ]
+    },
+    "CTRL-GATE0": {
+     "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 24,
+     "checks_shared_with_other_rows": 23,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Envelope on origin/control-mailbox -> wake -> correlated consumption record -> durable state transition",
+     "declared_independent_oracle": "git log of origin/control-mailbox (exact SHAs) and the consumer's durable receipt",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+     ]
+    },
+    "CTRL-HWM": {
+     "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 24,
+     "checks_shared_with_other_rows": 23,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Envelope on origin/control-mailbox -> wake -> correlated consumption record -> durable state transition",
+     "declared_independent_oracle": "git log of origin/control-mailbox (exact SHAs) and the consumer's durable receipt",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+     ]
+    },
+    "CTRL-EVID": {
+     "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 24,
+     "checks_shared_with_other_rows": 23,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Envelope on origin/control-mailbox -> wake -> correlated consumption record -> durable state transition",
+     "declared_independent_oracle": "git log of origin/control-mailbox (exact SHAs) and the consumer's durable receipt",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+     ]
+    },
+    "CTRL-ESC": {
+     "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 24,
+     "checks_shared_with_other_rows": 23,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Envelope on origin/control-mailbox -> wake -> correlated consumption record -> durable state transition",
+     "declared_independent_oracle": "git log of origin/control-mailbox (exact SHAs) and the consumer's durable receipt",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+     ]
+    },
+    "DONE-01": {
+     "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 24,
+     "checks_shared_with_other_rows": 23,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Envelope on origin/control-mailbox -> wake -> correlated consumption record -> durable state transition",
+     "declared_independent_oracle": "git log of origin/control-mailbox (exact SHAs) and the consumer's durable receipt",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+     ]
+    },
+    "DONE-02": {
+     "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 24,
+     "checks_shared_with_other_rows": 23,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Envelope on origin/control-mailbox -> wake -> correlated consumption record -> durable state transition",
+     "declared_independent_oracle": "git log of origin/control-mailbox (exact SHAs) and the consumer's durable receipt",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+     ]
+    },
+    "DONE-03": {
+     "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 24,
+     "checks_shared_with_other_rows": 23,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Envelope on origin/control-mailbox -> wake -> correlated consumption record -> durable state transition",
+     "declared_independent_oracle": "git log of origin/control-mailbox (exact SHAs) and the consumer's durable receipt",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+     ]
+    },
+    "DONE-04": {
+     "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 24,
+     "checks_shared_with_other_rows": 23,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Envelope on origin/control-mailbox -> wake -> correlated consumption record -> durable state transition",
+     "declared_independent_oracle": "git log of origin/control-mailbox (exact SHAs) and the consumer's durable receipt",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+     ]
+    },
+    "DONE-05": {
+     "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 24,
+     "checks_shared_with_other_rows": 23,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Envelope on origin/control-mailbox -> wake -> correlated consumption record -> durable state transition",
+     "declared_independent_oracle": "git log of origin/control-mailbox (exact SHAs) and the consumer's durable receipt",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+     ]
+    },
+    "DONE-06": {
+     "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 24,
+     "checks_shared_with_other_rows": 23,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Envelope on origin/control-mailbox -> wake -> correlated consumption record -> durable state transition",
+     "declared_independent_oracle": "git log of origin/control-mailbox (exact SHAs) and the consumer's durable receipt",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+     ]
+    },
+    "DONE-07": {
+     "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 24,
+     "checks_shared_with_other_rows": 23,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Envelope on origin/control-mailbox -> wake -> correlated consumption record -> durable state transition",
+     "declared_independent_oracle": "git log of origin/control-mailbox (exact SHAs) and the consumer's durable receipt",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+     ]
+    },
+    "DONE-08": {
+     "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 24,
+     "checks_shared_with_other_rows": 23,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Envelope on origin/control-mailbox -> wake -> correlated consumption record -> durable state transition",
+     "declared_independent_oracle": "git log of origin/control-mailbox (exact SHAs) and the consumer's durable receipt",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+     ]
+    },
+    "DONE-09": {
+     "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 24,
+     "checks_shared_with_other_rows": 23,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Envelope on origin/control-mailbox -> wake -> correlated consumption record -> durable state transition",
+     "declared_independent_oracle": "git log of origin/control-mailbox (exact SHAs) and the consumer's durable receipt",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+     ]
+    },
+    "TN-CAMP-01": {
+     "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 24,
+     "checks_shared_with_other_rows": 23,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Campaign manifest committed before the first order; final report diffed against it",
+     "declared_independent_oracle": "git history of the manifest plus exchange order/fill history for the campaign window",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+     ]
+    },
+    "TN-CAMP-02": {
+     "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 24,
+     "checks_shared_with_other_rows": 23,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Campaign manifest committed before the first order; final report diffed against it",
+     "declared_independent_oracle": "git history of the manifest plus exchange order/fill history for the campaign window",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+     ]
+    },
+    "TN-CAMP-03": {
+     "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 24,
+     "checks_shared_with_other_rows": 23,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Campaign manifest committed before the first order; final report diffed against it",
+     "declared_independent_oracle": "git history of the manifest plus exchange order/fill history for the campaign window",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+     ]
+    },
+    "TN-CAMP-04": {
+     "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 24,
+     "checks_shared_with_other_rows": 23,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Campaign manifest committed before the first order; final report diffed against it",
+     "declared_independent_oracle": "git history of the manifest plus exchange order/fill history for the campaign window",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+     ]
+    },
+    "TN-CAMP-05": {
+     "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 24,
+     "checks_shared_with_other_rows": 23,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Campaign manifest committed before the first order; final report diffed against it",
+     "declared_independent_oracle": "git history of the manifest plus exchange order/fill history for the campaign window",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+     ]
+    },
+    "TN-CAMP-06": {
+     "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 24,
+     "checks_shared_with_other_rows": 23,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Campaign manifest committed before the first order; final report diffed against it",
+     "declared_independent_oracle": "git history of the manifest plus exchange order/fill history for the campaign window",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+     ]
+    },
+    "TN-CAMP-07": {
+     "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 24,
+     "checks_shared_with_other_rows": 23,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Campaign manifest committed before the first order; final report diffed against it",
+     "declared_independent_oracle": "git history of the manifest plus exchange order/fill history for the campaign window",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+     ]
+    },
+    "TN-CAMP-08": {
+     "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 24,
+     "checks_shared_with_other_rows": 23,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Campaign manifest committed before the first order; final report diffed against it",
+     "declared_independent_oracle": "git history of the manifest plus exchange order/fill history for the campaign window",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+     ]
+    },
+    "TN-CAMP-09": {
+     "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 24,
+     "checks_shared_with_other_rows": 23,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Campaign manifest committed before the first order; final report diffed against it",
+     "declared_independent_oracle": "git history of the manifest plus exchange order/fill history for the campaign window",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+     ]
+    },
+    "HARN-01": {
+     "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 24,
+     "checks_shared_with_other_rows": 23,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Envelope on origin/control-mailbox -> wake -> correlated consumption record -> durable state transition",
+     "declared_independent_oracle": "git log of origin/control-mailbox (exact SHAs) and the consumer's durable receipt",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+     ]
+    },
+    "HARN-02": {
+     "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 24,
+     "checks_shared_with_other_rows": 23,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Envelope on origin/control-mailbox -> wake -> correlated consumption record -> durable state transition",
+     "declared_independent_oracle": "git log of origin/control-mailbox (exact SHAs) and the consumer's durable receipt",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+     ]
+    },
+    "HARN-03": {
+     "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 24,
+     "checks_shared_with_other_rows": 23,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Envelope on origin/control-mailbox -> wake -> correlated consumption record -> durable state transition",
+     "declared_independent_oracle": "git log of origin/control-mailbox (exact SHAs) and the consumer's durable receipt",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+     ]
+    },
+    "HARN-04": {
+     "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 24,
+     "checks_shared_with_other_rows": 23,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Envelope on origin/control-mailbox -> wake -> correlated consumption record -> durable state transition",
+     "declared_independent_oracle": "git log of origin/control-mailbox (exact SHAs) and the consumer's durable receipt",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+     ]
+    },
+    "HARN-05": {
+     "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 24,
+     "checks_shared_with_other_rows": 23,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Envelope on origin/control-mailbox -> wake -> correlated consumption record -> durable state transition",
+     "declared_independent_oracle": "git log of origin/control-mailbox (exact SHAs) and the consumer's durable receipt",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+     ]
+    },
+    "HARN-06": {
+     "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 24,
+     "checks_shared_with_other_rows": 23,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Envelope on origin/control-mailbox -> wake -> correlated consumption record -> durable state transition",
+     "declared_independent_oracle": "git log of origin/control-mailbox (exact SHAs) and the consumer's durable receipt",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+     ]
+    },
+    "HARN-07": {
+     "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
+     "record_present": true,
+     "record_says_pass": true,
+     "detail_blank": false,
+     "checks": 24,
+     "checks_shared_with_other_rows": 23,
+     "checks_owned_by_this_row": 1,
+     "declared_execution_proof": "Envelope on origin/control-mailbox -> wake -> correlated consumption record -> durable state transition",
+     "declared_independent_oracle": "git log of origin/control-mailbox (exact SHAs) and the consumer's durable receipt",
+     "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+     "verdict": "DEMOTE",
+     "reasons": [
+      "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+     ]
+    }
+   }
+  }
+ },
+ "demotion_list": [
+  {
+   "area": "REGRESSION",
+   "id": "B4-I01",
+   "reasons": [
+    "record present but carries NO executed-proof detail (blank)"
+   ]
+  },
+  {
+   "area": "REGRESSION",
+   "id": "B4-I02",
+   "reasons": [
+    "record present but carries NO executed-proof detail (blank)"
+   ]
+  },
+  {
+   "area": "REGRESSION",
+   "id": "B4-I03",
+   "reasons": [
+    "record present but carries NO executed-proof detail (blank)"
+   ]
+  },
+  {
+   "area": "REGRESSION",
+   "id": "B4-I04",
+   "reasons": [
+    "record present but carries NO executed-proof detail (blank)"
+   ]
+  },
+  {
+   "area": "REGRESSION",
+   "id": "B4-I05",
+   "reasons": [
+    "record present but carries NO executed-proof detail (blank)"
+   ]
+  },
+  {
+   "area": "REGRESSION",
+   "id": "B4-I06",
+   "reasons": [
+    "record present but carries NO executed-proof detail (blank)"
+   ]
+  },
+  {
+   "area": "REGRESSION",
+   "id": "B4-I07",
+   "reasons": [
+    "record present but carries NO executed-proof detail (blank)"
+   ]
+  },
+  {
+   "area": "REGRESSION",
+   "id": "B4-I08",
+   "reasons": [
+    "record present but carries NO executed-proof detail (blank)"
+   ]
+  },
+  {
+   "area": "REGRESSION",
+   "id": "B4-I09",
+   "reasons": [
+    "record present but carries NO executed-proof detail (blank)"
+   ]
+  },
+  {
+   "area": "REGRESSION",
+   "id": "B4-I10",
+   "reasons": [
+    "record present but carries NO executed-proof detail (blank)"
+   ]
+  },
+  {
+   "area": "REGRESSION",
+   "id": "B4-I11",
+   "reasons": [
+    "record present but carries NO executed-proof detail (blank)"
+   ]
+  },
+  {
+   "area": "REGRESSION",
+   "id": "B4-I14",
+   "reasons": [
+    "record present but carries NO executed-proof detail (blank)"
+   ]
+  },
+  {
+   "area": "REGRESSION",
+   "id": "B4-I15",
+   "reasons": [
+    "record present but carries NO executed-proof detail (blank)"
+   ]
+  },
+  {
+   "area": "REGRESSION",
+   "id": "B4-I17",
+   "reasons": [
+    "record present but carries NO executed-proof detail (blank)"
+   ]
+  },
+  {
+   "area": "REGRESSION",
+   "id": "B4-I18",
+   "reasons": [
+    "record present but carries NO executed-proof detail (blank)"
+   ]
+  },
+  {
+   "area": "REGRESSION",
+   "id": "B4-I22",
+   "reasons": [
+    "record present but carries NO executed-proof detail (blank)"
+   ]
+  },
+  {
+   "area": "REGRESSION",
+   "id": "B4-I23",
+   "reasons": [
+    "record present but carries NO executed-proof detail (blank)"
+   ]
+  },
+  {
+   "area": "REGRESSION",
+   "id": "B4-I24",
+   "reasons": [
+    "record present but carries NO executed-proof detail (blank)"
+   ]
+  },
+  {
+   "area": "REGRESSION",
+   "id": "B4-I25",
+   "reasons": [
+    "record present but carries NO executed-proof detail (blank)"
+   ]
+  },
+  {
+   "area": "REGRESSION",
+   "id": "F-PRODUCT-002",
+   "reasons": [
+    "record present but carries NO executed-proof detail (blank)"
+   ]
+  },
+  {
+   "area": "REGRESSION",
+   "id": "F-GREEN-ONLY-001",
+   "reasons": [
+    "record present but carries NO executed-proof detail (blank)"
+   ]
+  },
+  {
+   "area": "REGRESSION",
+   "id": "F-CLAIM-01",
+   "reasons": [
+    "record present but carries NO executed-proof detail (blank)"
+   ]
+  },
+  {
+   "area": "REGRESSION",
+   "id": "F-CLAIM-02",
+   "reasons": [
+    "record present but carries NO executed-proof detail (blank)"
+   ]
+  },
+  {
+   "area": "REGRESSION",
+   "id": "F-CLAIM-03",
+   "reasons": [
+    "record present but carries NO executed-proof detail (blank)"
+   ]
+  },
+  {
+   "area": "REGRESSION",
+   "id": "F-CLAIM-04",
+   "reasons": [
+    "record present but carries NO executed-proof detail (blank)"
+   ]
+  },
+  {
+   "area": "REGRESSION",
+   "id": "F-CLAIM-05",
+   "reasons": [
+    "record present but carries NO executed-proof detail (blank)"
+   ]
+  },
+  {
+   "area": "REGRESSION",
+   "id": "F-CLAIM-06",
+   "reasons": [
+    "record present but carries NO executed-proof detail (blank)"
+   ]
+  },
+  {
+   "area": "REGRESSION",
+   "id": "F-CLAIM-07",
+   "reasons": [
+    "record present but carries NO executed-proof detail (blank)"
+   ]
+  },
+  {
+   "area": "REGRESSION",
+   "id": "F-CLAIM-08",
+   "reasons": [
+    "record present but carries NO executed-proof detail (blank)"
+   ]
+  },
+  {
+   "area": "CONTROL",
+   "id": "CTRL-I1",
+   "reasons": [
+    "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+   ]
+  },
+  {
+   "area": "CONTROL",
+   "id": "CTRL-I2",
+   "reasons": [
+    "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+   ]
+  },
+  {
+   "area": "CONTROL",
+   "id": "CTRL-I3",
+   "reasons": [
+    "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+   ]
+  },
+  {
+   "area": "CONTROL",
+   "id": "CTRL-I4",
+   "reasons": [
+    "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+   ]
+  },
+  {
+   "area": "CONTROL",
+   "id": "CTRL-I5",
+   "reasons": [
+    "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+   ]
+  },
+  {
+   "area": "CONTROL",
+   "id": "CTRL-I6",
+   "reasons": [
+    "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+   ]
+  },
+  {
+   "area": "CONTROL",
+   "id": "CTRL-I7",
+   "reasons": [
+    "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+   ]
+  },
+  {
+   "area": "CONTROL",
+   "id": "CTRL-I8",
+   "reasons": [
+    "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+   ]
+  },
+  {
+   "area": "CONTROL",
+   "id": "CTRL-I9",
+   "reasons": [
+    "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+   ]
+  },
+  {
+   "area": "CONTROL",
+   "id": "CTRL-I10",
+   "reasons": [
+    "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+   ]
+  },
+  {
+   "area": "CONTROL",
+   "id": "CTRL-I11",
+   "reasons": [
+    "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+   ]
+  },
+  {
+   "area": "CONTROL",
+   "id": "CTRL-I12",
+   "reasons": [
+    "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+   ]
+  },
+  {
+   "area": "CONTROL",
+   "id": "CTRL-I13",
+   "reasons": [
+    "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+   ]
+  },
+  {
+   "area": "CONTROL",
+   "id": "CTRL-I14",
+   "reasons": [
+    "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+   ]
+  },
+  {
+   "area": "CONTROL",
+   "id": "CTRL-I15",
+   "reasons": [
+    "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+   ]
+  },
+  {
+   "area": "CONTROL",
+   "id": "CTRL-I16",
+   "reasons": [
+    "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+   ]
+  },
+  {
+   "area": "CONTROL",
+   "id": "CTRL-I17",
+   "reasons": [
+    "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+   ]
+  },
+  {
+   "area": "CONTROL",
+   "id": "CTRL-I18",
+   "reasons": [
+    "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+   ]
+  },
+  {
+   "area": "CONTROL",
+   "id": "CTRL-I19",
+   "reasons": [
+    "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+   ]
+  },
+  {
+   "area": "CONTROL",
+   "id": "CTRL-I20",
+   "reasons": [
+    "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+   ]
+  },
+  {
+   "area": "CONTROL",
+   "id": "CTRL-I21",
+   "reasons": [
+    "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+   ]
+  },
+  {
+   "area": "CONTROL",
+   "id": "CTRL-I22",
+   "reasons": [
+    "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+   ]
+  },
+  {
+   "area": "CONTROL",
+   "id": "CTRL-I23",
+   "reasons": [
+    "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+   ]
+  },
+  {
+   "area": "CONTROL",
+   "id": "CTRL-GATE0",
+   "reasons": [
+    "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+   ]
+  },
+  {
+   "area": "CONTROL",
+   "id": "CTRL-HWM",
+   "reasons": [
+    "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+   ]
+  },
+  {
+   "area": "CONTROL",
+   "id": "CTRL-EVID",
+   "reasons": [
+    "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+   ]
+  },
+  {
+   "area": "CONTROL",
+   "id": "CTRL-ESC",
+   "reasons": [
+    "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+   ]
+  },
+  {
+   "area": "CONTROL",
+   "id": "DONE-01",
+   "reasons": [
+    "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+   ]
+  },
+  {
+   "area": "CONTROL",
+   "id": "DONE-02",
+   "reasons": [
+    "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+   ]
+  },
+  {
+   "area": "CONTROL",
+   "id": "DONE-03",
+   "reasons": [
+    "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+   ]
+  },
+  {
+   "area": "CONTROL",
+   "id": "DONE-04",
+   "reasons": [
+    "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+   ]
+  },
+  {
+   "area": "CONTROL",
+   "id": "DONE-05",
+   "reasons": [
+    "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+   ]
+  },
+  {
+   "area": "CONTROL",
+   "id": "DONE-06",
+   "reasons": [
+    "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+   ]
+  },
+  {
+   "area": "CONTROL",
+   "id": "DONE-07",
+   "reasons": [
+    "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+   ]
+  },
+  {
+   "area": "CONTROL",
+   "id": "DONE-08",
+   "reasons": [
+    "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+   ]
+  },
+  {
+   "area": "CONTROL",
+   "id": "DONE-09",
+   "reasons": [
+    "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+   ]
+  },
+  {
+   "area": "CONTROL",
+   "id": "TN-CAMP-01",
+   "reasons": [
+    "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+   ]
+  },
+  {
+   "area": "CONTROL",
+   "id": "TN-CAMP-02",
+   "reasons": [
+    "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+   ]
+  },
+  {
+   "area": "CONTROL",
+   "id": "TN-CAMP-03",
+   "reasons": [
+    "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+   ]
+  },
+  {
+   "area": "CONTROL",
+   "id": "TN-CAMP-04",
+   "reasons": [
+    "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+   ]
+  },
+  {
+   "area": "CONTROL",
+   "id": "TN-CAMP-05",
+   "reasons": [
+    "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+   ]
+  },
+  {
+   "area": "CONTROL",
+   "id": "TN-CAMP-06",
+   "reasons": [
+    "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+   ]
+  },
+  {
+   "area": "CONTROL",
+   "id": "TN-CAMP-07",
+   "reasons": [
+    "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+   ]
+  },
+  {
+   "area": "CONTROL",
+   "id": "TN-CAMP-08",
+   "reasons": [
+    "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+   ]
+  },
+  {
+   "area": "CONTROL",
+   "id": "TN-CAMP-09",
+   "reasons": [
+    "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+   ]
+  },
+  {
+   "area": "CONTROL",
+   "id": "HARN-01",
+   "reasons": [
+    "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+   ]
+  },
+  {
+   "area": "CONTROL",
+   "id": "HARN-02",
+   "reasons": [
+    "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+   ]
+  },
+  {
+   "area": "CONTROL",
+   "id": "HARN-03",
+   "reasons": [
+    "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+   ]
+  },
+  {
+   "area": "CONTROL",
+   "id": "HARN-04",
+   "reasons": [
+    "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+   ]
+  },
+  {
+   "area": "CONTROL",
+   "id": "HARN-05",
+   "reasons": [
+    "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+   ]
+  },
+  {
+   "area": "CONTROL",
+   "id": "HARN-06",
+   "reasons": [
+    "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+   ]
+  },
+  {
+   "area": "CONTROL",
+   "id": "HARN-07",
+   "reasons": [
+    "per-row proof is CARRIED: 23 of 24 checks are byte-identical boilerplate shared across rows"
+   ]
+  }
+ ]
+}
