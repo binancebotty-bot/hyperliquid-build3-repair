@@ -1,0 +1,137 @@
+{
+  "tested_commit": "b3e6d6665116510f8a9ceaa5254b060bf4d73998",
+  "rows": [
+    {
+      "id": "F25-X05",
+      "status": "STILL_NOT_TESTED",
+      "checks": [
+        {
+          "check": "execution_proof",
+          "status": "STILL_NOT_TESTED",
+          "reason": "Requires an authorized deployment transition and contemporaneous process/port/exchange observation; not run by this read-only certification."
+        },
+        {
+          "check": "second start attempt",
+          "status": "STILL_NOT_TESTED",
+          "reason": "Requires an authorized deployment transition and contemporaneous process/port/exchange observation; not run by this read-only certification."
+        },
+        {
+          "check": "crash mid-transition",
+          "status": "STILL_NOT_TESTED",
+          "reason": "Requires an authorized deployment transition and contemporaneous process/port/exchange observation; not run by this read-only certification."
+        },
+        {
+          "check": "stale lock/PID",
+          "status": "STILL_NOT_TESTED",
+          "reason": "Requires an authorized deployment transition and contemporaneous process/port/exchange observation; not run by this read-only certification."
+        },
+        {
+          "check": "config from previous version",
+          "status": "STILL_NOT_TESTED",
+          "reason": "Requires an authorized deployment transition and contemporaneous process/port/exchange observation; not run by this read-only certification."
+        }
+      ],
+      "negative_tests_non_vacuous": false,
+      "reason": "No deployment transition was initiated; therefore none of the negative cases is claimed as exercised."
+    },
+    {
+      "id": "F25-X06",
+      "status": "STILL_NOT_TESTED",
+      "checks": [
+        {
+          "check": "execution_proof",
+          "status": "STILL_NOT_TESTED",
+          "reason": "Requires an authorized deployment transition and contemporaneous process/port/exchange observation; not run by this read-only certification."
+        },
+        {
+          "check": "second start attempt",
+          "status": "STILL_NOT_TESTED",
+          "reason": "Requires an authorized deployment transition and contemporaneous process/port/exchange observation; not run by this read-only certification."
+        },
+        {
+          "check": "crash mid-transition",
+          "status": "STILL_NOT_TESTED",
+          "reason": "Requires an authorized deployment transition and contemporaneous process/port/exchange observation; not run by this read-only certification."
+        },
+        {
+          "check": "stale lock/PID",
+          "status": "STILL_NOT_TESTED",
+          "reason": "Requires an authorized deployment transition and contemporaneous process/port/exchange observation; not run by this read-only certification."
+        },
+        {
+          "check": "config from previous version",
+          "status": "STILL_NOT_TESTED",
+          "reason": "Requires an authorized deployment transition and contemporaneous process/port/exchange observation; not run by this read-only certification."
+        }
+      ],
+      "negative_tests_non_vacuous": false,
+      "reason": "No deployment transition was initiated; therefore none of the negative cases is claimed as exercised."
+    },
+    {
+      "id": "F25-X07",
+      "status": "STILL_NOT_TESTED",
+      "checks": [
+        {
+          "check": "execution_proof",
+          "status": "STILL_NOT_TESTED",
+          "reason": "Requires an authorized deployment transition and contemporaneous process/port/exchange observation; not run by this read-only certification."
+        },
+        {
+          "check": "second start attempt",
+          "status": "STILL_NOT_TESTED",
+          "reason": "Requires an authorized deployment transition and contemporaneous process/port/exchange observation; not run by this read-only certification."
+        },
+        {
+          "check": "crash mid-transition",
+          "status": "STILL_NOT_TESTED",
+          "reason": "Requires an authorized deployment transition and contemporaneous process/port/exchange observation; not run by this read-only certification."
+        },
+        {
+          "check": "stale lock/PID",
+          "status": "STILL_NOT_TESTED",
+          "reason": "Requires an authorized deployment transition and contemporaneous process/port/exchange observation; not run by this read-only certification."
+        },
+        {
+          "check": "config from previous version",
+          "status": "STILL_NOT_TESTED",
+          "reason": "Requires an authorized deployment transition and contemporaneous process/port/exchange observation; not run by this read-only certification."
+        }
+      ],
+      "negative_tests_non_vacuous": false,
+      "reason": "No deployment transition was initiated; therefore none of the negative cases is claimed as exercised."
+    },
+    {
+      "id": "F25-X08",
+      "status": "STILL_NOT_TESTED",
+      "checks": [
+        {
+          "check": "execution_proof",
+          "status": "STILL_NOT_TESTED",
+          "reason": "Requires an authorized deployment transition and contemporaneous process/port/exchange observation; not run by this read-only certification."
+        },
+        {
+          "check": "second start attempt",
+          "status": "STILL_NOT_TESTED",
+          "reason": "Requires an authorized deployment transition and contemporaneous process/port/exchange observation; not run by this read-only certification."
+        },
+        {
+          "check": "crash mid-transition",
+          "status": "STILL_NOT_TESTED",
+          "reason": "Requires an authorized deployment transition and contemporaneous process/port/exchange observation; not run by this read-only certification."
+        },
+        {
+          "check": "stale lock/PID",
+          "status": "STILL_NOT_TESTED",
+          "reason": "Requires an authorized deployment transition and contemporaneous process/port/exchange observation; not run by this read-only certification."
+        },
+        {
+          "check": "config from previous version",
+          "status": "STILL_NOT_TESTED",
+          "reason": "Requires an authorized deployment transition and contemporaneous process/port/exchange observation; not run by this read-only certification."
+        }
+      ],
+      "negative_tests_non_vacuous": false,
+      "reason": "No deployment transition was initiated; therefore none of the negative cases is claimed as exercised."
+    }
+  ]
+}
