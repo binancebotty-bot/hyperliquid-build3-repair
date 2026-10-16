@@ -1,0 +1,117 @@
+{
+  "tested_commit": "b3e6d6665116510f8a9ceaa5254b060bf4d73998",
+  "source_matrix_commit": "b142cf88d389e791160f691aac3d936852b99975",
+  "rows": [
+    {
+      "id": "TN-F20",
+      "status": "STILL_NOT_TESTED",
+      "execution_proof": "Predeclared Phase 6T-style scenario on testnet through the production engine path only (no direct exchange.order); evidence per class with exchange parity",
+      "independent_oracle": "OS process list, port bindings, exchange open orders/fills during the transition window",
+      "checks": [
+        {
+          "check": "execution_proof",
+          "status": "STILL_NOT_TESTED",
+          "reason": "STILL_NOT_TESTED: exercising this proof requires an authorized testnet deployment/control transition and contemporaneous process, port, and exchange observation. This read-only run did not initiate transitions, terminate processes, or interact with the exchange."
+        },
+        {
+          "check": "second start attempt",
+          "status": "STILL_NOT_TESTED",
+          "reason": "STILL_NOT_TESTED: exercising this proof requires an authorized testnet deployment/control transition and contemporaneous process, port, and exchange observation. This read-only run did not initiate transitions, terminate processes, or interact with the exchange."
+        },
+        {
+          "check": "crash mid-transition",
+          "status": "STILL_NOT_TESTED",
+          "reason": "STILL_NOT_TESTED: exercising this proof requires an authorized testnet deployment/control transition and contemporaneous process, port, and exchange observation. This read-only run did not initiate transitions, terminate processes, or interact with the exchange."
+        },
+        {
+          "check": "stale lock/PID",
+          "status": "STILL_NOT_TESTED",
+          "reason": "STILL_NOT_TESTED: exercising this proof requires an authorized testnet deployment/control transition and contemporaneous process, port, and exchange observation. This read-only run did not initiate transitions, terminate processes, or interact with the exchange."
+        },
+        {
+          "check": "config from previous version",
+          "status": "STILL_NOT_TESTED",
+          "reason": "STILL_NOT_TESTED: exercising this proof requires an authorized testnet deployment/control transition and contemporaneous process, port, and exchange observation. This read-only run did not initiate transitions, terminate processes, or interact with the exchange."
+        }
+      ],
+      "negative_tests_non_vacuous": false,
+      "reason": "STILL_NOT_TESTED: exercising this proof requires an authorized testnet deployment/control transition and contemporaneous process, port, and exchange observation. This read-only run did not initiate transitions, terminate processes, or interact with the exchange.",
+      "tested_commit": "b3e6d6665116510f8a9ceaa5254b060bf4d73998",
+      "tested_at_utc": "2026-10-16T20:17:22.019225+00:00"
+    },
+    {
+      "id": "TN-F25",
+      "status": "STILL_NOT_TESTED",
+      "execution_proof": "Predeclared Phase 6T-style scenario on testnet through the production engine path only (no direct exchange.order); evidence per class with exchange parity",
+      "independent_oracle": "OS process list, port bindings, exchange open orders/fills during the transition window",
+      "checks": [
+        {
+          "check": "execution_proof",
+          "status": "STILL_NOT_TESTED",
+          "reason": "STILL_NOT_TESTED: exercising this proof requires an authorized testnet deployment/control transition and contemporaneous process, port, and exchange observation. This read-only run did not initiate transitions, terminate processes, or interact with the exchange."
+        },
+        {
+          "check": "second start attempt",
+          "status": "STILL_NOT_TESTED",
+          "reason": "STILL_NOT_TESTED: exercising this proof requires an authorized testnet deployment/control transition and contemporaneous process, port, and exchange observation. This read-only run did not initiate transitions, terminate processes, or interact with the exchange."
+        },
+        {
+          "check": "crash mid-transition",
+          "status": "STILL_NOT_TESTED",
+          "reason": "STILL_NOT_TESTED: exercising this proof requires an authorized testnet deployment/control transition and contemporaneous process, port, and exchange observation. This read-only run did not initiate transitions, terminate processes, or interact with the exchange."
+        },
+        {
+          "check": "stale lock/PID",
+          "status": "STILL_NOT_TESTED",
+          "reason": "STILL_NOT_TESTED: exercising this proof requires an authorized testnet deployment/control transition and contemporaneous process, port, and exchange observation. This read-only run did not initiate transitions, terminate processes, or interact with the exchange."
+        },
+        {
+          "check": "config from previous version",
+          "status": "STILL_NOT_TESTED",
+          "reason": "STILL_NOT_TESTED: exercising this proof requires an authorized testnet deployment/control transition and contemporaneous process, port, and exchange observation. This read-only run did not initiate transitions, terminate processes, or interact with the exchange."
+        }
+      ],
+      "negative_tests_non_vacuous": false,
+      "reason": "STILL_NOT_TESTED: exercising this proof requires an authorized testnet deployment/control transition and contemporaneous process, port, and exchange observation. This read-only run did not initiate transitions, terminate processes, or interact with the exchange.",
+      "tested_commit": "b3e6d6665116510f8a9ceaa5254b060bf4d73998",
+      "tested_at_utc": "2026-10-16T20:17:22.143506+00:00"
+    },
+    {
+      "id": "INC-18",
+      "status": "STILL_NOT_TESTED",
+      "execution_proof": "Operator command -> process table / PID / lock -> engine status endpoint -> exchange shows zero unintended orders",
+      "independent_oracle": "OS process list, port bindings, exchange open orders/fills during the transition window",
+      "checks": [
+        {
+          "check": "execution_proof",
+          "status": "STILL_NOT_TESTED",
+          "reason": "STILL_NOT_TESTED: exercising this proof requires an authorized testnet deployment/control transition and contemporaneous process, port, and exchange observation. This read-only run did not initiate transitions, terminate processes, or interact with the exchange."
+        },
+        {
+          "check": "second start attempt",
+          "status": "STILL_NOT_TESTED",
+          "reason": "STILL_NOT_TESTED: exercising this proof requires an authorized testnet deployment/control transition and contemporaneous process, port, and exchange observation. This read-only run did not initiate transitions, terminate processes, or interact with the exchange."
+        },
+        {
+          "check": "crash mid-transition",
+          "status": "STILL_NOT_TESTED",
+          "reason": "STILL_NOT_TESTED: exercising this proof requires an authorized testnet deployment/control transition and contemporaneous process, port, and exchange observation. This read-only run did not initiate transitions, terminate processes, or interact with the exchange."
+        },
+        {
+          "check": "stale lock/PID",
+          "status": "STILL_NOT_TESTED",
+          "reason": "STILL_NOT_TESTED: exercising this proof requires an authorized testnet deployment/control transition and contemporaneous process, port, and exchange observation. This read-only run did not initiate transitions, terminate processes, or interact with the exchange."
+        },
+        {
+          "check": "config from previous version",
+          "status": "STILL_NOT_TESTED",
+          "reason": "STILL_NOT_TESTED: exercising this proof requires an authorized testnet deployment/control transition and contemporaneous process, port, and exchange observation. This read-only run did not initiate transitions, terminate processes, or interact with the exchange."
+        }
+      ],
+      "negative_tests_non_vacuous": false,
+      "reason": "STILL_NOT_TESTED: exercising this proof requires an authorized testnet deployment/control transition and contemporaneous process, port, and exchange observation. This read-only run did not initiate transitions, terminate processes, or interact with the exchange.",
+      "tested_commit": "b3e6d6665116510f8a9ceaa5254b060bf4d73998",
+      "tested_at_utc": "2026-10-16T20:17:22.255160+00:00"
+    }
+  ]
+}
