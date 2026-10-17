@@ -604,11 +604,11 @@
     "census run against a deliberately mutated copy must FAIL (non-vacuous)"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json",
+   "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+   "tested_at_utc": "2026-10-14T09:05:00Z",
+   "notes": "Row-bound re-earn (t_ff1af604): Runtime+static PASS: 36/36 checks; 11/11 non-vacuous negatives; engine sha256 verified; drives REAL engine symbols. | CORRECTED runtime+static PASS: 36/36 checks; 11/11 non-vacuous negatives; engine sha256 verified. Corrections: ENG-014 uses source=WS_SNAPSHOT (not WS) so stale_snapshot_replay_reason() actually exercises stale-detection; ENG-010 accepts ONLY ACCOUNT_NET_TRUTH_UNAVAILABLE (not IDENTITY_INVALID); ENG-011 accepts ONLY IN_FLIGHT_NOT_OWNED (not ACCOUNT_NET_TRUTH_UNAVAILABLE). Prior artifact had 3 unearned PASSes via widened accept sets + source-substring fallback. | CORRECTED runtime+static PASS: 36/36 checks; 11/11 non-vacuous negatives; engine sha256 verified. Corrections: ENG-014 uses source=WS_SNAPSHOT (not WS) so stale_snapshot_replay_reason() actually exercises stale-detection; ENG-010 accepts ONLY ACCOUNT_NET_TRUTH_UNAVAILABLE (not IDENTITY_INVALID); ENG-011 accepts ONLY IN_FLIGHT_NOT_OWNED (not ACCOUNT_NET_TRUTH_UNAVAILABLE). Prior artifact had 3 unearned PASSes via widened accept sets + source-substring fallback. | CORRECTED runtime+static PASS: 36/36 checks; 11/11 non-vacuous negatives; engine sha256 verified. Corrections: ENG-014 uses source=WS_SNAPSHOT (not WS) so stale_snapshot_replay_reason() actually exercises stale-detection; ENG-010 accepts ONLY ACCOUNT_NET_TRUTH_UNAVAILABLE (not IDENTITY_INVALID); ENG-011 accepts ONLY IN_FLIGHT_NOT_OWNED (not ACCOUNT_NET_TRUTH_UNAVAILABLE). Prior artifact had 3 unearned PASSes via widened accept sets + source-substring fallback. | CORRECTED runtime+static PASS: 36/36 checks; 11/11 non-vacuous negatives; engine sha256 verified. Corrections: ENG-014 uses source=WS_SNAPSHOT (not WS) so stale_snapshot_replay_reason() actually exercises stale-detection; ENG-010 accepts ONLY ACCOUNT_NET_TRUTH_UNAVAILABLE (not IDENTITY_INVALID); ENG-011 accepts ONLY IN_FLIGHT_NOT_OWNED (not ACCOUNT_NET_TRUTH_UNAVAILABLE). Prior artifact had 3 unearned PASSes via widened accept sets + source-substring fallback. | CORRECTED runtime+static PASS: 36/36 checks; 11/11 non-vacuous negatives; engine sha256 verified. Corrections: ENG-014 uses source=WS_SNAPSHOT (not WS) so stale_snapshot_replay_reason() actually exercises stale-detection; ENG-010 accepts ONLY ACCOUNT_NET_TRUTH_UNAVAILABLE (not IDENTITY_INVALID); ENG-011 accepts ONLY IN_FLIGHT_NOT_OWNED (not ACCOUNT_NET_TRUTH_UNAVAILABLE). Prior artifact had 3 unearned PASSes via widened accept sets + source-substring fallback.",
    "proof_network": "TESTNET"
   },
   {
@@ -629,11 +629,11 @@
     "census run against a deliberately mutated copy must FAIL (non-vacuous)"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json",
+   "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+   "tested_at_utc": "2026-10-14T09:05:00Z",
+   "notes": "Row-bound re-earn (t_ff1af604): Runtime+static PASS: 36/36 checks; 11/11 non-vacuous negatives; engine sha256 verified; drives REAL engine symbols. | CORRECTED runtime+static PASS: 36/36 checks; 11/11 non-vacuous negatives; engine sha256 verified. Corrections: ENG-014 uses source=WS_SNAPSHOT (not WS) so stale_snapshot_replay_reason() actually exercises stale-detection; ENG-010 accepts ONLY ACCOUNT_NET_TRUTH_UNAVAILABLE (not IDENTITY_INVALID); ENG-011 accepts ONLY IN_FLIGHT_NOT_OWNED (not ACCOUNT_NET_TRUTH_UNAVAILABLE). Prior artifact had 3 unearned PASSes via widened accept sets + source-substring fallback. | CORRECTED runtime+static PASS: 36/36 checks; 11/11 non-vacuous negatives; engine sha256 verified. Corrections: ENG-014 uses source=WS_SNAPSHOT (not WS) so stale_snapshot_replay_reason() actually exercises stale-detection; ENG-010 accepts ONLY ACCOUNT_NET_TRUTH_UNAVAILABLE (not IDENTITY_INVALID); ENG-011 accepts ONLY IN_FLIGHT_NOT_OWNED (not ACCOUNT_NET_TRUTH_UNAVAILABLE). Prior artifact had 3 unearned PASSes via widened accept sets + source-substring fallback. | CORRECTED runtime+static PASS: 36/36 checks; 11/11 non-vacuous negatives; engine sha256 verified. Corrections: ENG-014 uses source=WS_SNAPSHOT (not WS) so stale_snapshot_replay_reason() actually exercises stale-detection; ENG-010 accepts ONLY ACCOUNT_NET_TRUTH_UNAVAILABLE (not IDENTITY_INVALID); ENG-011 accepts ONLY IN_FLIGHT_NOT_OWNED (not ACCOUNT_NET_TRUTH_UNAVAILABLE). Prior artifact had 3 unearned PASSes via widened accept sets + source-substring fallback. | CORRECTED runtime+static PASS: 36/36 checks; 11/11 non-vacuous negatives; engine sha256 verified. Corrections: ENG-014 uses source=WS_SNAPSHOT (not WS) so stale_snapshot_replay_reason() actually exercises stale-detection; ENG-010 accepts ONLY ACCOUNT_NET_TRUTH_UNAVAILABLE (not IDENTITY_INVALID); ENG-011 accepts ONLY IN_FLIGHT_NOT_OWNED (not ACCOUNT_NET_TRUTH_UNAVAILABLE). Prior artifact had 3 unearned PASSes via widened accept sets + source-substring fallback. | CORRECTED runtime+static PASS: 36/36 checks; 11/11 non-vacuous negatives; engine sha256 verified. Corrections: ENG-014 uses source=WS_SNAPSHOT (not WS) so stale_snapshot_replay_reason() actually exercises stale-detection; ENG-010 accepts ONLY ACCOUNT_NET_TRUTH_UNAVAILABLE (not IDENTITY_INVALID); ENG-011 accepts ONLY IN_FLIGHT_NOT_OWNED (not ACCOUNT_NET_TRUTH_UNAVAILABLE). Prior artifact had 3 unearned PASSes via widened accept sets + source-substring fallback.",
    "proof_network": "TESTNET"
   },
   {
@@ -653,11 +653,11 @@
     "census run against a deliberately mutated copy must FAIL (non-vacuous)"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/ENG-INV-03-05_oracle_t_ff1af604.py + certification/results/ENG-INV-03-05_oracle_run_tested_43731b4f.json#baseline.ENG-INV-03 + #mutation_controls[ENG-INV-03]",
+   "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+   "tested_at_utc": "2026-10-17T11:15:00Z",
+   "notes": "Row-bound re-earn (t_ff1af604): Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports. | Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports. | Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports. | Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports. | Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports. | Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports. | Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports. | Row-bound re-earn (t_ff1af604): Row-bound; replaces demoted aggregate ENG-INV-03-05_43731b4f.json (demoted because one blob covered three ids with no per-row assertion). Dedicated AST oracle walks all 5 production engine files and reports this row under its own key: zero unapproved third-party imports. Non-vacuous: appending 'import totally_unapproved_new_package' to a copy of the Core engine flips only ENG-INV-03 to FAIL.",
    "proof_network": "TESTNET"
   },
   {
@@ -678,11 +678,11 @@
     "census run against a deliberately mutated copy must FAIL (non-vacuous)"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/ENG-INV-03-05_oracle_t_ff1af604.py + certification/results/ENG-INV-03-05_oracle_run_tested_43731b4f.json#baseline.ENG-INV-04 + #mutation_controls[ENG-INV-04]",
+   "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+   "tested_at_utc": "2026-10-17T11:15:00Z",
+   "notes": "Row-bound re-earn (t_ff1af604): Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports. | Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports. | Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports. | Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports. | Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports. | Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports. | Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports. | Row-bound re-earn (t_ff1af604): Row-bound. Zero authoritative persistent-store imports engine-wide plus zero store sinks. Only .dump site is exchange_truth.py:108 json.dump of a network-stamp config, excluded as not a store. Instrument note: an earlier revision wrongly FAILed here because sqlite3/dbm/shelve are stdlib and the stdlib skip ran before store classification, making the check vacuous; fixed, and the committed run records the fixed instrument. Non-vacuous: appending 'import sqlite3' flips only ENG-INV-04.",
    "proof_network": "TESTNET"
   },
   {
@@ -702,11 +702,11 @@
     "census run against a deliberately mutated copy must FAIL (non-vacuous)"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/ENG-INV-03-05_oracle_t_ff1af604.py + certification/results/ENG-INV-03-05_oracle_run_tested_43731b4f.json#baseline.ENG-INV-05 + #mutation_controls[ENG-INV-05]",
+   "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+   "tested_at_utc": "2026-10-17T11:15:00Z",
+   "notes": "Row-bound re-earn (t_ff1af604): Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports. | Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports. | Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports. | Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports. | Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports. | Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports. | Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports. | Row-bound re-earn (t_ff1af604): Row-bound. Zero Build-4 control-plane/platform imports engine-wide. Non-vacuous: appending 'import build4_control_plane' flips only ENG-INV-05.",
    "proof_network": "TESTNET"
   },
   {
@@ -726,11 +726,11 @@
     "census run against a deliberately mutated copy must FAIL (non-vacuous)"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/ENG-INV-06-09_43731b4.json",
+   "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+   "tested_at_utc": "2026-10-14T05:00:01Z",
+   "notes": "Row-bound re-earn (t_ff1af604): Static PASS (INV-06 single .order() site L2703, no process spawns). | Static PASS (INV-06 single .order() site L2703, no process spawns). | Static PASS (INV-06 single .order() site L2703, no process spawns). | Static PASS (INV-06 single .order() site L2703, no process spawns). | Static PASS (INV-06 single .order() site L2703, no process spawns). | Static PASS (INV-06 single .order() site L2703, no process spawns). | Static PASS (INV-06 single .order() site L2703, no process spawns).",
    "proof_network": "TESTNET"
   },
   {
