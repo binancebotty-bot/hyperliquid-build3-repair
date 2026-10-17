@@ -1,0 +1,80 @@
+{
+  "card_id": "t_f262b6dc",
+  "serving_commit": "6cf5dcf671b791e8f833060458f00cb7bb7bcdb5",
+  "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+  "how_serving_build_was_established": "Measured in serving checkout C:/Users/wigmore/trading_stack/hl-build3-testnet-cert: git rev-parse HEAD => 6cf5dcf671b791e8f833060458f00cb7bb7bcdb5; sha256sum _archive/hl_stage2/HL_Copy_App_SSOT.py => 658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2. This was measured independently of the register branch.",
+  "oracle": "Independent read-only live endpoints /api/live-config and /api/ui-state, compared against headless Chromium rendered DOM at http://127.0.0.1:8031/live-copy; probe does not import the engine module.",
+  "files": [
+    "EVIDENCE/ui_fp_corrective_t_f262b6dc/probe.py",
+    "EVIDENCE/ui_fp_corrective_t_f262b6dc/dom_capture.json",
+    "EVIDENCE/ui_fp_corrective_t_f262b6dc/analyze_capture.py"
+  ],
+  "rows": [
+    {
+      "row_id": "UI-FP-184",
+      "verdict": "PARTIAL",
+      "serving_commit": "6cf5dcf671b791e8f833060458f00cb7bb7bcdb5",
+      "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "executed_probe": "python EVIDENCE/ui_fp_corrective_t_f262b6dc/probe.py; python EVIDENCE/ui_fp_corrective_t_f262b6dc/analyze_capture.py",
+      "independent_oracle": "Read-only GET of /api/live-config and /api/ui-state, compared in analyze_capture.py to live rendered Chromium DOM; no HL_Copy_App_SSOT.py import. Values can falsify the predicate.",
+      "observed": "UI gcMktPct=0.2%; API marketable_bps=20.0 bps; 100*bps conversion checked; DOM/raw API capture: EVIDENCE/ui_fp_corrective_t_f262b6dc/dom_capture.json",
+      "reproduces": "Set PLAYWRIGHT_BROWSERS_PATH=C:/Users/wigmore/AppData/Local/ms-playwright; run C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe EVIDENCE/ui_fp_corrective_t_f262b6dc/probe.py && C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe EVIDENCE/ui_fp_corrective_t_f262b6dc/analyze_capture.py",
+      "predicate_result": "UI/API equality observed; persistence/execution-truth POST leg deliberately not tested under READ-ONLY mandate."
+    },
+    {
+      "row_id": "UI-FP-185",
+      "verdict": "PARTIAL",
+      "serving_commit": "6cf5dcf671b791e8f833060458f00cb7bb7bcdb5",
+      "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "executed_probe": "python EVIDENCE/ui_fp_corrective_t_f262b6dc/probe.py; python EVIDENCE/ui_fp_corrective_t_f262b6dc/analyze_capture.py",
+      "independent_oracle": "Read-only GET of /api/live-config and /api/ui-state, compared in analyze_capture.py to live rendered Chromium DOM; no HL_Copy_App_SSOT.py import. Values can falsify the predicate.",
+      "observed": "UI gcCloseAdv=0%; API max_close_adverse_diff_pct=0.0%; DOM/raw API capture: EVIDENCE/ui_fp_corrective_t_f262b6dc/dom_capture.json",
+      "reproduces": "Set PLAYWRIGHT_BROWSERS_PATH=C:/Users/wigmore/AppData/Local/ms-playwright; run C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe EVIDENCE/ui_fp_corrective_t_f262b6dc/probe.py && C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe EVIDENCE/ui_fp_corrective_t_f262b6dc/analyze_capture.py",
+      "predicate_result": "UI/API equality observed; persistence/execution-truth POST leg deliberately not tested under READ-ONLY mandate."
+    },
+    {
+      "row_id": "UI-FP-186",
+      "verdict": "PARTIAL",
+      "serving_commit": "6cf5dcf671b791e8f833060458f00cb7bb7bcdb5",
+      "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "executed_probe": "python EVIDENCE/ui_fp_corrective_t_f262b6dc/probe.py; python EVIDENCE/ui_fp_corrective_t_f262b6dc/analyze_capture.py",
+      "independent_oracle": "Read-only GET of /api/live-config and /api/ui-state, compared in analyze_capture.py to live rendered Chromium DOM; no HL_Copy_App_SSOT.py import. Values can falsify the predicate.",
+      "observed": "UI gcAllowlist=[]; API symbol_allowlist=[]; DOM/raw API capture: EVIDENCE/ui_fp_corrective_t_f262b6dc/dom_capture.json",
+      "reproduces": "Set PLAYWRIGHT_BROWSERS_PATH=C:/Users/wigmore/AppData/Local/ms-playwright; run C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe EVIDENCE/ui_fp_corrective_t_f262b6dc/probe.py && C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe EVIDENCE/ui_fp_corrective_t_f262b6dc/analyze_capture.py",
+      "predicate_result": "UI/API equality observed; persistence/execution-truth POST leg deliberately not tested under READ-ONLY mandate."
+    },
+    {
+      "row_id": "UI-FP-187",
+      "verdict": "PARTIAL",
+      "serving_commit": "6cf5dcf671b791e8f833060458f00cb7bb7bcdb5",
+      "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "executed_probe": "python EVIDENCE/ui_fp_corrective_t_f262b6dc/probe.py; python EVIDENCE/ui_fp_corrective_t_f262b6dc/analyze_capture.py",
+      "independent_oracle": "Read-only GET of /api/live-config and /api/ui-state, compared in analyze_capture.py to live rendered Chromium DOM; no HL_Copy_App_SSOT.py import. Values can falsify the predicate.",
+      "observed": "OBSERVED UI gcBlocklist=['HYPE', 'PENGU', 'RESOLV']; API symbol_blocklist=['HYPE', 'PENGU', 'RESOLV']; DOM/raw API capture: EVIDENCE/ui_fp_corrective_t_f262b6dc/dom_capture.json",
+      "reproduces": "Set PLAYWRIGHT_BROWSERS_PATH=C:/Users/wigmore/AppData/Local/ms-playwright; run C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe EVIDENCE/ui_fp_corrective_t_f262b6dc/probe.py && C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe EVIDENCE/ui_fp_corrective_t_f262b6dc/analyze_capture.py",
+      "predicate_result": "UI/API equality observed; persistence/execution-truth POST leg deliberately not tested under READ-ONLY mandate."
+    },
+    {
+      "row_id": "UI-FP-190",
+      "verdict": "PARTIAL",
+      "serving_commit": "6cf5dcf671b791e8f833060458f00cb7bb7bcdb5",
+      "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "executed_probe": "python EVIDENCE/ui_fp_corrective_t_f262b6dc/probe.py; python EVIDENCE/ui_fp_corrective_t_f262b6dc/analyze_capture.py",
+      "independent_oracle": "Read-only GET of /api/live-config and /api/ui-state, compared in analyze_capture.py to live rendered Chromium DOM; no HL_Copy_App_SSOT.py import. Values can falsify the predicate.",
+      "observed": "15 DOM wallet rows copy_mode values=['fixed']; API wallet copy_mode values=['fixed']; DOM/API wallet-key maps equal=True; count DOM=15 API=15; DOM/raw API capture: EVIDENCE/ui_fp_corrective_t_f262b6dc/dom_capture.json",
+      "reproduces": "Set PLAYWRIGHT_BROWSERS_PATH=C:/Users/wigmore/AppData/Local/ms-playwright; run C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe EVIDENCE/ui_fp_corrective_t_f262b6dc/probe.py && C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe EVIDENCE/ui_fp_corrective_t_f262b6dc/analyze_capture.py",
+      "predicate_result": "UI/API equality observed; persistence/execution-truth POST leg deliberately not tested under READ-ONLY mandate."
+    },
+    {
+      "row_id": "UI-FP-192",
+      "verdict": "NOT_TESTED",
+      "serving_commit": "6cf5dcf671b791e8f833060458f00cb7bb7bcdb5",
+      "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "executed_probe": "python EVIDENCE/ui_fp_corrective_t_f262b6dc/probe.py; python EVIDENCE/ui_fp_corrective_t_f262b6dc/analyze_capture.py",
+      "independent_oracle": "Read-only rendered DOM plus GET /api/live-config and /api/ui-state; neither includes a min_notional field.",
+      "observed": "min_notional UI control(s)=[]; API global_controls.min_notional=None. Distinct field fixed_notional is observed as 12 per wallet in UI and API; it is not treated as min_notional. Missing: a defined/directly served min_notional UI/API field or explicit mapping oracle. Raw capture: EVIDENCE/ui_fp_corrective_t_f262b6dc/dom_capture.json",
+      "reproduces": "Set PLAYWRIGHT_BROWSERS_PATH=C:/Users/wigmore/AppData/Local/ms-playwright; run C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe EVIDENCE/ui_fp_corrective_t_f262b6dc/probe.py && C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe EVIDENCE/ui_fp_corrective_t_f262b6dc/analyze_capture.py",
+      "predicate_result": "NOT_TESTED: no directly observed min_notional UI/API value; do not infer from fixed_notional."
+    }
+  ]
+}
