@@ -3156,11 +3156,11 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "PASS",
-   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
-   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
-   "tested_at_utc": "2026-10-14T11:49:07Z",
-   "notes": "All checks pass"
+   "result": "NOT_TESTED",
+   "evidence_ref": "",
+   "tested_commit": "",
+   "tested_at_utc": "",
+   "notes": "NOT_TESTED: :8031 PID 8668 started 2026-10-15T09:28:40Z, before register commit b142cf88 (2026-10-16T12:58:54Z); process rule forbids binding any row to the later build. No UI probe performed."
   },
   {
    "id": "UI-LCC-HDR-02",
@@ -3183,11 +3183,11 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "PASS",
-   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
-   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
-   "tested_at_utc": "2026-10-14T11:49:07Z",
-   "notes": "All checks pass"
+   "result": "NOT_TESTED",
+   "evidence_ref": "",
+   "tested_commit": "",
+   "tested_at_utc": "",
+   "notes": "NOT_TESTED: :8031 PID 8668 started 2026-10-15T09:28:40Z, before register commit b142cf88 (2026-10-16T12:58:54Z); process rule forbids binding any row to the later build. No UI probe performed."
   },
   {
    "id": "UI-LCC-HDR-03",
@@ -3210,11 +3210,11 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "PASS",
-   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
-   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
-   "tested_at_utc": "2026-10-14T11:49:07Z",
-   "notes": "All checks pass"
+   "result": "NOT_TESTED",
+   "evidence_ref": "",
+   "tested_commit": "",
+   "tested_at_utc": "",
+   "notes": "NOT_TESTED: :8031 PID 8668 started 2026-10-15T09:28:40Z, before register commit b142cf88 (2026-10-16T12:58:54Z); process rule forbids binding any row to the later build. No UI probe performed."
   },
   {
    "id": "UI-LCC-HDR-04",
@@ -3237,11 +3237,11 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "PASS",
-   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
-   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
-   "tested_at_utc": "2026-10-14T11:49:07Z",
-   "notes": "All checks pass"
+   "result": "NOT_TESTED",
+   "evidence_ref": "",
+   "tested_commit": "",
+   "tested_at_utc": "",
+   "notes": "NOT_TESTED: :8031 PID 8668 started 2026-10-15T09:28:40Z, before register commit b142cf88 (2026-10-16T12:58:54Z); process rule forbids binding any row to the later build. No UI probe performed."
   },
   {
    "id": "UI-LCC-HDR-05",
@@ -3264,11 +3264,11 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "PASS",
-   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
-   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
-   "tested_at_utc": "2026-10-14T11:49:07Z",
-   "notes": "All checks pass"
+   "result": "NOT_TESTED",
+   "evidence_ref": "",
+   "tested_commit": "",
+   "tested_at_utc": "",
+   "notes": "NOT_TESTED: :8031 PID 8668 started 2026-10-15T09:28:40Z, before register commit b142cf88 (2026-10-16T12:58:54Z); process rule forbids binding any row to the later build. No UI probe performed."
   },
   {
    "id": "UI-LCC-HDR-06",
@@ -3291,11 +3291,11 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "PASS",
-   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
-   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
-   "tested_at_utc": "2026-10-14T11:49:07Z",
-   "notes": "All checks pass"
+   "result": "NOT_TESTED",
+   "evidence_ref": "",
+   "tested_commit": "",
+   "tested_at_utc": "",
+   "notes": "NOT_TESTED: :8031 PID 8668 started 2026-10-15T09:28:40Z, before register commit b142cf88 (2026-10-16T12:58:54Z); process rule forbids binding any row to the later build. No UI probe performed."
   },
   {
    "id": "UI-LCC-BTN-01",
@@ -3318,11 +3318,11 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "PASS",
-   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
-   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
-   "tested_at_utc": "2026-10-14T11:49:07Z",
-   "notes": "All checks pass"
+   "result": "NOT_TESTED",
+   "evidence_ref": "",
+   "tested_commit": "",
+   "tested_at_utc": "",
+   "notes": "NOT_TESTED: :8031 PID 8668 started 2026-10-15T09:28:40Z, before register commit b142cf88 (2026-10-16T12:58:54Z); process rule forbids binding any row to the later build. No UI probe performed."
   },
   {
    "id": "UI-LCC-BTN-02",
@@ -3345,11 +3345,11 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "PASS",
-   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
-   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
-   "tested_at_utc": "2026-10-14T11:49:07Z",
-   "notes": "All checks pass"
+   "result": "NOT_TESTED",
+   "evidence_ref": "",
+   "tested_commit": "",
+   "tested_at_utc": "",
+   "notes": "NOT_TESTED: :8031 PID 8668 started 2026-10-15T09:28:40Z, before register commit b142cf88 (2026-10-16T12:58:54Z); process rule forbids binding any row to the later build. No UI probe performed."
   },
   {
    "id": "UI-LCC-BTN-03",
@@ -3372,11 +3372,11 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "PASS",
-   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
-   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
-   "tested_at_utc": "2026-10-14T11:49:07Z",
-   "notes": "All checks pass"
+   "result": "NOT_TESTED",
+   "evidence_ref": "",
+   "tested_commit": "",
+   "tested_at_utc": "",
+   "notes": "NOT_TESTED: :8031 PID 8668 started 2026-10-15T09:28:40Z, before register commit b142cf88 (2026-10-16T12:58:54Z); process rule forbids binding any row to the later build. No UI probe performed."
   },
   {
    "id": "UI-LCC-BTN-04",
@@ -3399,11 +3399,11 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "PASS",
-   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
-   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
-   "tested_at_utc": "2026-10-14T11:49:07Z",
-   "notes": "All checks pass"
+   "result": "NOT_TESTED",
+   "evidence_ref": "",
+   "tested_commit": "",
+   "tested_at_utc": "",
+   "notes": "NOT_TESTED: :8031 PID 8668 started 2026-10-15T09:28:40Z, before register commit b142cf88 (2026-10-16T12:58:54Z); process rule forbids binding any row to the later build. No UI probe performed."
   },
   {
    "id": "UI-LCC-BTN-05",
@@ -3426,11 +3426,11 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "PASS",
-   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
-   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
-   "tested_at_utc": "2026-10-14T11:49:07Z",
-   "notes": "All checks pass"
+   "result": "NOT_TESTED",
+   "evidence_ref": "",
+   "tested_commit": "",
+   "tested_at_utc": "",
+   "notes": "NOT_TESTED: :8031 PID 8668 started 2026-10-15T09:28:40Z, before register commit b142cf88 (2026-10-16T12:58:54Z); process rule forbids binding any row to the later build. No UI probe performed."
   },
   {
    "id": "UI-LCC-CARD-01",
@@ -3453,11 +3453,11 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "PASS",
-   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
-   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
-   "tested_at_utc": "2026-10-14T11:49:07Z",
-   "notes": "All checks pass"
+   "result": "NOT_TESTED",
+   "evidence_ref": "",
+   "tested_commit": "",
+   "tested_at_utc": "",
+   "notes": "NOT_TESTED: :8031 PID 8668 started 2026-10-15T09:28:40Z, before register commit b142cf88 (2026-10-16T12:58:54Z); process rule forbids binding any row to the later build. No UI probe performed."
   },
   {
    "id": "UI-LCC-CARD-02",
@@ -3642,11 +3642,11 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "PASS",
-   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
-   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
-   "tested_at_utc": "2026-10-14T11:49:07Z",
-   "notes": "All checks pass"
+   "result": "NOT_TESTED",
+   "evidence_ref": "",
+   "tested_commit": "",
+   "tested_at_utc": "",
+   "notes": "NOT_TESTED: :8031 PID 8668 started 2026-10-15T09:28:40Z, before register commit b142cf88 (2026-10-16T12:58:54Z); process rule forbids binding any row to the later build. No UI probe performed."
   },
   {
    "id": "UI-LCC-GRAPH-02",
@@ -3669,11 +3669,11 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "PASS",
-   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
-   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
-   "tested_at_utc": "2026-10-14T11:49:07Z",
-   "notes": "All checks pass"
+   "result": "NOT_TESTED",
+   "evidence_ref": "",
+   "tested_commit": "",
+   "tested_at_utc": "",
+   "notes": "NOT_TESTED: :8031 PID 8668 started 2026-10-15T09:28:40Z, before register commit b142cf88 (2026-10-16T12:58:54Z); process rule forbids binding any row to the later build. No UI probe performed."
   },
   {
    "id": "UI-LCC-GRAPH-03",
@@ -3696,11 +3696,11 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "PASS",
-   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
-   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
-   "tested_at_utc": "2026-10-14T11:49:07Z",
-   "notes": "All checks pass"
+   "result": "NOT_TESTED",
+   "evidence_ref": "",
+   "tested_commit": "",
+   "tested_at_utc": "",
+   "notes": "NOT_TESTED: :8031 PID 8668 started 2026-10-15T09:28:40Z, before register commit b142cf88 (2026-10-16T12:58:54Z); process rule forbids binding any row to the later build. No UI probe performed."
   },
   {
    "id": "UI-LCC-GRAPH-04",
@@ -3723,11 +3723,11 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "PASS",
-   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
-   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
-   "tested_at_utc": "2026-10-14T11:49:07Z",
-   "notes": "All checks pass"
+   "result": "NOT_TESTED",
+   "evidence_ref": "",
+   "tested_commit": "",
+   "tested_at_utc": "",
+   "notes": "NOT_TESTED: :8031 PID 8668 started 2026-10-15T09:28:40Z, before register commit b142cf88 (2026-10-16T12:58:54Z); process rule forbids binding any row to the later build. No UI probe performed."
   },
   {
    "id": "UI-LCC-GRAPH-05",
@@ -3750,11 +3750,11 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "PASS",
-   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
-   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
-   "tested_at_utc": "2026-10-14T11:49:07Z",
-   "notes": "All checks pass"
+   "result": "NOT_TESTED",
+   "evidence_ref": "",
+   "tested_commit": "",
+   "tested_at_utc": "",
+   "notes": "NOT_TESTED: :8031 PID 8668 started 2026-10-15T09:28:40Z, before register commit b142cf88 (2026-10-16T12:58:54Z); process rule forbids binding any row to the later build. No UI probe performed."
   },
   {
    "id": "UI-LCC-GRAPH-06",
@@ -3777,11 +3777,11 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "PASS",
-   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
-   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
-   "tested_at_utc": "2026-10-14T11:49:07Z",
-   "notes": "All checks pass"
+   "result": "NOT_TESTED",
+   "evidence_ref": "",
+   "tested_commit": "",
+   "tested_at_utc": "",
+   "notes": "NOT_TESTED: :8031 PID 8668 started 2026-10-15T09:28:40Z, before register commit b142cf88 (2026-10-16T12:58:54Z); process rule forbids binding any row to the later build. No UI probe performed."
   },
   {
    "id": "UI-LCC-GRAPH-07",
@@ -3804,11 +3804,11 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "PASS",
-   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
-   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
-   "tested_at_utc": "2026-10-14T11:49:07Z",
-   "notes": "All checks pass"
+   "result": "NOT_TESTED",
+   "evidence_ref": "",
+   "tested_commit": "",
+   "tested_at_utc": "",
+   "notes": "NOT_TESTED: :8031 PID 8668 started 2026-10-15T09:28:40Z, before register commit b142cf88 (2026-10-16T12:58:54Z); process rule forbids binding any row to the later build. No UI probe performed."
   },
   {
    "id": "UI-LCC-GRAPH-08",
@@ -3831,11 +3831,11 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "PASS",
-   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
-   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
-   "tested_at_utc": "2026-10-14T11:49:07Z",
-   "notes": "All checks pass"
+   "result": "NOT_TESTED",
+   "evidence_ref": "",
+   "tested_commit": "",
+   "tested_at_utc": "",
+   "notes": "NOT_TESTED: :8031 PID 8668 started 2026-10-15T09:28:40Z, before register commit b142cf88 (2026-10-16T12:58:54Z); process rule forbids binding any row to the later build. No UI probe performed."
   },
   {
    "id": "UI-LCC-GRAPH-09",
@@ -3858,11 +3858,11 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "PASS",
-   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
-   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
-   "tested_at_utc": "2026-10-14T11:49:07Z",
-   "notes": "All checks pass"
+   "result": "NOT_TESTED",
+   "evidence_ref": "",
+   "tested_commit": "",
+   "tested_at_utc": "",
+   "notes": "NOT_TESTED: :8031 PID 8668 started 2026-10-15T09:28:40Z, before register commit b142cf88 (2026-10-16T12:58:54Z); process rule forbids binding any row to the later build. No UI probe performed."
   },
   {
    "id": "UI-LCC-GRAPH-10",
@@ -3885,11 +3885,11 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "PASS",
-   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
-   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
-   "tested_at_utc": "2026-10-14T11:49:07Z",
-   "notes": "All checks pass"
+   "result": "NOT_TESTED",
+   "evidence_ref": "",
+   "tested_commit": "",
+   "tested_at_utc": "",
+   "notes": "NOT_TESTED: :8031 PID 8668 started 2026-10-15T09:28:40Z, before register commit b142cf88 (2026-10-16T12:58:54Z); process rule forbids binding any row to the later build. No UI probe performed."
   },
   {
    "id": "UI-LCC-GRAPH-11",
@@ -3912,11 +3912,11 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "PASS",
-   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
-   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
-   "tested_at_utc": "2026-10-14T11:49:07Z",
-   "notes": "All checks pass"
+   "result": "NOT_TESTED",
+   "evidence_ref": "",
+   "tested_commit": "",
+   "tested_at_utc": "",
+   "notes": "NOT_TESTED: :8031 PID 8668 started 2026-10-15T09:28:40Z, before register commit b142cf88 (2026-10-16T12:58:54Z); process rule forbids binding any row to the later build. No UI probe performed."
   },
   {
    "id": "UI-LCC-GRAPH-12",
@@ -3939,11 +3939,11 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "PASS",
-   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
-   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
-   "tested_at_utc": "2026-10-14T11:49:07Z",
-   "notes": "All checks pass"
+   "result": "NOT_TESTED",
+   "evidence_ref": "",
+   "tested_commit": "",
+   "tested_at_utc": "",
+   "notes": "NOT_TESTED: :8031 PID 8668 started 2026-10-15T09:28:40Z, before register commit b142cf88 (2026-10-16T12:58:54Z); process rule forbids binding any row to the later build. No UI probe performed."
   },
   {
    "id": "UI-LCC-GRAPH-13",
@@ -3966,11 +3966,11 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "PASS",
-   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
-   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
-   "tested_at_utc": "2026-10-14T11:49:07Z",
-   "notes": "All checks pass"
+   "result": "NOT_TESTED",
+   "evidence_ref": "",
+   "tested_commit": "",
+   "tested_at_utc": "",
+   "notes": "NOT_TESTED: :8031 PID 8668 started 2026-10-15T09:28:40Z, before register commit b142cf88 (2026-10-16T12:58:54Z); process rule forbids binding any row to the later build. No UI probe performed."
   },
   {
    "id": "UI-LCC-GRAPH-14",
@@ -3993,11 +3993,11 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "PASS",
-   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
-   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
-   "tested_at_utc": "2026-10-14T11:49:07Z",
-   "notes": "All checks pass"
+   "result": "NOT_TESTED",
+   "evidence_ref": "",
+   "tested_commit": "",
+   "tested_at_utc": "",
+   "notes": "NOT_TESTED: :8031 PID 8668 started 2026-10-15T09:28:40Z, before register commit b142cf88 (2026-10-16T12:58:54Z); process rule forbids binding any row to the later build. No UI probe performed."
   },
   {
    "id": "UI-LCC-GRAPH-15",
@@ -4020,11 +4020,11 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "PASS",
-   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
-   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
-   "tested_at_utc": "2026-10-14T11:49:07Z",
-   "notes": "All checks pass"
+   "result": "NOT_TESTED",
+   "evidence_ref": "",
+   "tested_commit": "",
+   "tested_at_utc": "",
+   "notes": "NOT_TESTED: :8031 PID 8668 started 2026-10-15T09:28:40Z, before register commit b142cf88 (2026-10-16T12:58:54Z); process rule forbids binding any row to the later build. No UI probe performed."
   },
   {
    "id": "UI-LCC-GRAPH-16",
@@ -4047,11 +4047,11 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "PASS",
-   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
-   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
-   "tested_at_utc": "2026-10-14T11:49:07Z",
-   "notes": "All checks pass"
+   "result": "NOT_TESTED",
+   "evidence_ref": "",
+   "tested_commit": "",
+   "tested_at_utc": "",
+   "notes": "NOT_TESTED: :8031 PID 8668 started 2026-10-15T09:28:40Z, before register commit b142cf88 (2026-10-16T12:58:54Z); process rule forbids binding any row to the later build. No UI probe performed."
   },
   {
    "id": "UI-LCC-WTBL-01",
