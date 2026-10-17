@@ -1,0 +1,228 @@
+{
+  "schema": "hl_certification_result_v1",
+  "suite": "NET_S1",
+  "register_commit": "b142cf8",
+  "tested_commit": "b3e6d6665116510f8a9ceaa5254b060bf4d73998",
+  "result": "NOT_TESTED",
+  "reason": "TN-T1..TN-T5 execution_proof requires endpoints ACTUALLY CONTACTED (captured) plus signing/truth-read identities, checked by an independent packet/HTTP capture oracle. No testnet transport runtime is tracked at the tested commit (only TESTNET_RUN_HANDOVER.md) and no capture oracle is available. Per Claude ruling PR #81 comment 6223545714, no mock or source-substring substitute was used. OD-08 remains open (Architect).",
+  "availability_findings": [
+    "Only TESTNET_RUN_HANDOVER.md is tracked for testnet; no transport implementation file exists at b3e6d66.",
+    "grep over tracked *.py at b3e6d66 finds ZERO occurrences of allow_redirects (TN-T4/TN-T5 policy unimplemented in tracked code).",
+    "_archive/hl_stage2/exchange_truth.py:50 has a netloc equality check on an outbound URL, but that is static-source inspection, not an executed observation, and cannot satisfy the captured-endpoint oracle.",
+    "_archive/hl_stage2/HL_Live_Copy_Service_Core.py defines HL_INFO_URL (L159), HL_LEADER_INFO_URL and HL_EXCHANGE_URL (L167) with a single follower/leader split; OD-08 (per-side split in code and its testnet proof) is open.",
+    "No mitmproxy/tcpdump/pcap capture tooling is tracked in the repository."
+  ],
+  "checks": [],
+  "rows": [
+    {
+      "id": "TN-T1",
+      "expected_behaviour": "exact Testnet origin, parsed and component-checked",
+      "result": "NOT_TESTED",
+      "missing": "Executed testnet transport runtime (none tracked at b3e6d66); captured packet/HTTP hostname log; signing and truth-read identity evidence; exchange-side account address of resulting fills. OD-08 open.",
+      "checks": [
+        {
+          "check": "endpoints actually contacted (captured)",
+          "status": "STILL_NOT_TESTED",
+          "reason": "No runtime executed and no independent capture oracle; nothing was observed on the wire."
+        },
+        {
+          "check": "identities used for signing and for truth reads",
+          "status": "STILL_NOT_TESTED",
+          "reason": "Requires a live testnet runtime and the exchange-side account address of resulting fills; not available."
+        },
+        {
+          "check": "row-specific behaviour observed",
+          "status": "STILL_NOT_TESTED",
+          "reason": "Static source inspection is not an executed observation and is excluded as a substitute."
+        }
+      ],
+      "negative_tests_non_vacuous": false,
+      "negative_tests": [
+        {
+          "case": "mixed testnet/mainnet endpoints",
+          "status": "STILL_NOT_TESTED",
+          "reason": "No runtime available to host the hostile configuration."
+        },
+        {
+          "case": "signer == master",
+          "status": "STILL_NOT_TESTED",
+          "reason": "Requires a live runtime and its identity evidence."
+        },
+        {
+          "case": "missing credential",
+          "status": "STILL_NOT_TESTED",
+          "reason": "Requires a live runtime to show the failure path against real endpoints."
+        }
+      ],
+      "reason": "Execution proof not runnable: runtime and independent capture oracle absent. No PASS claim."
+    },
+    {
+      "id": "TN-T2",
+      "expected_behaviour": "NO substring host validation (the original FINDING-1 bypass class)",
+      "result": "NOT_TESTED",
+      "missing": "Executed runtime plus captured request log proving the contacted host under a hostile-origin input. OD-08 open.",
+      "checks": [
+        {
+          "check": "endpoints actually contacted (captured)",
+          "status": "STILL_NOT_TESTED",
+          "reason": "No runtime executed and no independent capture oracle; nothing was observed on the wire."
+        },
+        {
+          "check": "identities used for signing and for truth reads",
+          "status": "STILL_NOT_TESTED",
+          "reason": "Requires a live testnet runtime and the exchange-side account address of resulting fills; not available."
+        },
+        {
+          "check": "row-specific behaviour observed",
+          "status": "STILL_NOT_TESTED",
+          "reason": "Static source inspection is not an executed observation and is excluded as a substitute."
+        }
+      ],
+      "negative_tests_non_vacuous": false,
+      "negative_tests": [
+        {
+          "case": "mixed testnet/mainnet endpoints",
+          "status": "STILL_NOT_TESTED",
+          "reason": "No runtime available to host the hostile configuration."
+        },
+        {
+          "case": "signer == master",
+          "status": "STILL_NOT_TESTED",
+          "reason": "Requires a live runtime and its identity evidence."
+        },
+        {
+          "case": "missing credential",
+          "status": "STILL_NOT_TESTED",
+          "reason": "Requires a live runtime to show the failure path against real endpoints."
+        }
+      ],
+      "reason": "Execution proof not runnable: runtime and independent capture oracle absent. No PASS claim."
+    },
+    {
+      "id": "TN-T3",
+      "expected_behaviour": "per-request origin validation IMMEDIATELY before network I/O",
+      "result": "NOT_TESTED",
+      "missing": "Executed runtime with per-request instrumentation and a captured log ordering validation against network I/O. OD-08 open.",
+      "checks": [
+        {
+          "check": "endpoints actually contacted (captured)",
+          "status": "STILL_NOT_TESTED",
+          "reason": "No runtime executed and no independent capture oracle; nothing was observed on the wire."
+        },
+        {
+          "check": "identities used for signing and for truth reads",
+          "status": "STILL_NOT_TESTED",
+          "reason": "Requires a live testnet runtime and the exchange-side account address of resulting fills; not available."
+        },
+        {
+          "check": "row-specific behaviour observed",
+          "status": "STILL_NOT_TESTED",
+          "reason": "Static source inspection is not an executed observation and is excluded as a substitute."
+        }
+      ],
+      "negative_tests_non_vacuous": false,
+      "negative_tests": [
+        {
+          "case": "mixed testnet/mainnet endpoints",
+          "status": "STILL_NOT_TESTED",
+          "reason": "No runtime available to host the hostile configuration."
+        },
+        {
+          "case": "signer == master",
+          "status": "STILL_NOT_TESTED",
+          "reason": "Requires a live runtime and its identity evidence."
+        },
+        {
+          "case": "missing credential",
+          "status": "STILL_NOT_TESTED",
+          "reason": "Requires a live runtime to show the failure path against real endpoints."
+        }
+      ],
+      "reason": "Execution proof not runnable: runtime and independent capture oracle absent. No PASS claim."
+    },
+    {
+      "id": "TN-T4",
+      "expected_behaviour": "redirects disabled (allow_redirects=False forced)",
+      "result": "NOT_TESTED",
+      "missing": "Executed runtime whose HTTP client forces allow_redirects=False, proven by a captured 3xx. Tracked source at b3e6d66 has zero occurrences of allow_redirects.",
+      "checks": [
+        {
+          "check": "endpoints actually contacted (captured)",
+          "status": "STILL_NOT_TESTED",
+          "reason": "No runtime executed and no independent capture oracle; nothing was observed on the wire."
+        },
+        {
+          "check": "identities used for signing and for truth reads",
+          "status": "STILL_NOT_TESTED",
+          "reason": "Requires a live testnet runtime and the exchange-side account address of resulting fills; not available."
+        },
+        {
+          "check": "row-specific behaviour observed",
+          "status": "STILL_NOT_TESTED",
+          "reason": "Static source inspection is not an executed observation and is excluded as a substitute."
+        }
+      ],
+      "negative_tests_non_vacuous": false,
+      "negative_tests": [
+        {
+          "case": "mixed testnet/mainnet endpoints",
+          "status": "STILL_NOT_TESTED",
+          "reason": "No runtime available to host the hostile configuration."
+        },
+        {
+          "case": "signer == master",
+          "status": "STILL_NOT_TESTED",
+          "reason": "Requires a live runtime and its identity evidence."
+        },
+        {
+          "case": "missing credential",
+          "status": "STILL_NOT_TESTED",
+          "reason": "Requires a live runtime to show the failure path against real endpoints."
+        }
+      ],
+      "reason": "Execution proof not runnable: runtime and independent capture oracle absent. No PASS claim."
+    },
+    {
+      "id": "TN-T5",
+      "expected_behaviour": "any 3xx refused outright, never followed and re-validated",
+      "result": "NOT_TESTED",
+      "missing": "Executed runtime plus a captured 3xx showing refusal and no follow-up request. No 3xx-refusal path is tracked at b3e6d66.",
+      "checks": [
+        {
+          "check": "endpoints actually contacted (captured)",
+          "status": "STILL_NOT_TESTED",
+          "reason": "No runtime executed and no independent capture oracle; nothing was observed on the wire."
+        },
+        {
+          "check": "identities used for signing and for truth reads",
+          "status": "STILL_NOT_TESTED",
+          "reason": "Requires a live testnet runtime and the exchange-side account address of resulting fills; not available."
+        },
+        {
+          "check": "row-specific behaviour observed",
+          "status": "STILL_NOT_TESTED",
+          "reason": "Static source inspection is not an executed observation and is excluded as a substitute."
+        }
+      ],
+      "negative_tests_non_vacuous": false,
+      "negative_tests": [
+        {
+          "case": "mixed testnet/mainnet endpoints",
+          "status": "STILL_NOT_TESTED",
+          "reason": "No runtime available to host the hostile configuration."
+        },
+        {
+          "case": "signer == master",
+          "status": "STILL_NOT_TESTED",
+          "reason": "Requires a live runtime and its identity evidence."
+        },
+        {
+          "case": "missing credential",
+          "status": "STILL_NOT_TESTED",
+          "reason": "Requires a live runtime to show the failure path against real endpoints."
+        }
+      ],
+      "reason": "Execution proof not runnable: runtime and independent capture oracle absent. No PASS claim."
+    }
+  ]
+}
