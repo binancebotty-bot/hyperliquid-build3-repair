@@ -1,0 +1,137 @@
+{
+ "batch": "CERT 17/53",
+ "register_of_record": "origin/cert/local-main-b142cf8:certification/certification_matrix.json",
+ "rows_requested": 15,
+ "rows_reported": 15,
+ "serving_build": {
+  "url": "http://127.0.0.1:8031",
+  "pid": 33368,
+  "started_utc": "2026-10-17T10:54:09Z",
+  "app_dir": "C:/Users/wigmore/trading_stack/hl-build3-testnet-cert-j28-89b3bc7/_archive/hl_stage2",
+  "module_sha256_on_disk": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+  "module_sha256_at_tested_commit": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+  "binding": "IDENTICAL - served working copy byte-identical to git blob at tested_commit",
+  "commit_committed_utc": "2026-10-17T07:18:14Z (earlier than process start => bindable)"
+ },
+ "method": [
+  "Fetched register from origin/cert/local-main-b142cf8 (never the working-tree copy).",
+  "Verified served module sha256 == blob sha256 at tested_commit, so served == tested code.",
+  "Rendered /model headless over HTTP and parsed cards, thead and tbody deterministically.",
+  "Cross-checked DB HEALTH against /api/state.app_health from a separate endpoint.",
+  "Exercised /sort/<column>?direction=asc for all 12 columns, reading back the /sort response and persisted /api/ui-state.ranking, then restoring lead_equity/desc."
+ ],
+ "defects_found": [
+  "ZERO_FOR_UNAVAILABLE: COPYABILITY/ACTIVITY cards and LEAD EQ..Delta value columns render 0/0.000%/$0.00 while engine_truth.json + raw_live_fills.csv are absent from the serving DATA_DIR; n/a IS expressible (ACCOUNT card does it).",
+  "STALE_SORT_INDICATOR: /sort/<col> persists to ui_state and marks the column active in its own HTML, but GET /model serves _MODEL_DASHBOARD_HTML_CACHE (state_built_at 0.0) and keeps sort-active on LEAD EQ only (7 occurrences before and after every sort call).",
+  "SINGLE_ROW_DATASET: only the USER row exists, so sort stability cannot be shown by row order at all; the only observable carrier is the header marker, which is stale."
+ ],
+ "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+ "tested_at_utc": "2026-10-17T22:32:21.326792+00:00",
+ "results": [
+  {
+   "row_id": "UI-SSOT-CARD-07",
+   "verdict": "FAIL",
+   "evidence_ref": "certification/results/UI_SSOT_17_89b3bc7.json#CARD07_COPYABILITY",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "COPYABILITY card present on /model with exactly the registered metrics [('AVG TRADE %','0.000%'),('AVG TRADE $','$0.00'),('AVG POS','$0.00'),('REQ LEV','0.00x')] - presence proven and row-bound. FAIL on the value leg: Card renders numeric zeros while the engine SSOT inputs are ABSENT from the serving DATA_DIR (hl_copy_output contains only app_model_state.json, copy_trades.csv, equity_history.json, expected_copy_fills.csv, portfolio_history.json - no engine_truth.json, no raw_live_fills.csv). The row's own negative test 'source unavailable shows n/a/Unavailable not 0' is violated. The same render proves n/a is expressible: the ACCOUNT (EXCHANGE) card shows ('TESTNET','UNAVAILABLE') / ('WHY','ACCOUNT_ADDRESS_UNAVAILABLE'). Registered expected_behaviour also requires recomputability from engine_truth.json + raw fills; with both inputs absent the card still prints zeros instead of an unavailable marker."
+  },
+  {
+   "row_id": "UI-SSOT-CARD-08",
+   "verdict": "FAIL",
+   "evidence_ref": "certification/results/UI_SSOT_17_89b3bc7.json#CARD08_ACTIVITY",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "ACTIVITY card present on /model with exactly [('FILLS','0'),('EXITS','0'),('OPEN POS','0'),('WIN','0.0%')] (row-bound label set). FAIL on the value leg: Card renders numeric zeros while the engine SSOT inputs are ABSENT from the serving DATA_DIR (hl_copy_output contains only app_model_state.json, copy_trades.csv, equity_history.json, expected_copy_fills.csv, portfolio_history.json - no engine_truth.json, no raw_live_fills.csv). The row's own negative test 'source unavailable shows n/a/Unavailable not 0' is violated. The same render proves n/a is expressible: the ACCOUNT (EXCHANGE) card shows ('TESTNET','UNAVAILABLE') / ('WHY','ACCOUNT_ADDRESS_UNAVAILABLE'). FILLS/EXITS/OPEN POS are counts whose sources (raw_live_fills.csv, engine_truth.json) do not exist in the serving DATA_DIR, so 0 is the forbidden zero-stands-for-unavailable pattern named in FAILURES UI-001..003."
+  },
+  {
+   "row_id": "UI-SSOT-CARD-09",
+   "verdict": "PASS",
+   "evidence_ref": "certification/results/UI_SSOT_17_89b3bc7.json#CARD09_DBHEALTH",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "DB HEALTH card rendered [('OK','build 0.12s'),('CACHE','7'),('BUILDS','109')] and all three were independently recomputed from a different surface, GET /api/state -> app_health = {cache_hits:7, build_count:109, last_error:'', last_build_seconds:0.1229}: CACHE==cache_hits, BUILDS==build_count, detail==build {last_build_seconds:.2f}s. The label is not a cannot-fail string: health_status_label() returns RED ERROR on non-empty last_error and YELLOW SLOW when last_build_seconds>4.0, so GREEN is a real predicate a failing build would flip. Row-bound: no other card reports cache_hits/build_count/build seconds. A later poll showed BUILDS 116, i.e. the counter is live."
+  },
+  {
+   "row_id": "UI-SSOT-TBL-01",
+   "verdict": "NOT_TESTED",
+   "evidence_ref": "certification/results/UI_SSOT_17_89b3bc7.json#TBL01_WALLET_ROUTE_ABSENT",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "ABSENT ROUTE, component named: HL_Copy_App_SSOT.py DATA_DIR = C:/Users/wigmore/trading_stack/hl-build3-testnet-cert-j28-89b3bc7/_archive/hl_stage2/hl_copy_output contains no engine_truth.json and no raw_live_fills.csv (verified by listing the serving dir), so the registered oracle 'independent read of the same exchange/engine truth recomputed without importing HL_Copy_App_SSOT.py' cannot run for wallet membership. Not a tooling fault. Observed and row-bound: header 'WALLET' at position 1 of 24 (24 th vs 24 td), single cell data-sort=0x7ae3b08bb4e7b085c6db5d635b96bec9715e9205 (== USER_WALLET default) rendered 0x7ae3b0...5e9205. Not a PASS because the recompute leg is unrunnable; not a FAIL because the column is correct. WALLET is a static th with no sort-active carrier, so the 'sort persists visibly' leg has no carrier for this column."
+  },
+  {
+   "row_id": "UI-SSOT-TBL-02",
+   "verdict": "FAIL",
+   "evidence_ref": "certification/results/UI_SSOT_17_89b3bc7.json#TBL02_LEAD_EQUITY",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "Two row-bound defects on column 2 'LEAD EQ' (sort key 'lead_equity', header at position 2 of 24, 24 th vs 24 td): (1) ZERO-FOR-UNAVAILABLE - cell renders '+$100.00' while engine_truth.json and raw_live_fills.csv are absent from the serving hl_copy_output, violating this row's negative test 'source unavailable shows n/a/Unavailable not 0'; the ACCOUNT card in the same render does show UNAVAILABLE. (2) SORT INDICATOR STALE - GET /sort/lead_equity?direction=asc returned {ok:true,column:lead_equity,direction:asc} and /api/ui-state ranking persisted to {column:lead_equity,direction:asc}, but the following GET /model still carried sort-active only on LEAD EQ ('LEAD EQ v') and on the /sort response's own copy ('LEAD EQ ^'); _MODEL_DASHBOARD_HTML_CACHE is served with state_built_at 0.0, so the analytics page does not reflect the persisted sort for this column and 'sort is stable and persists' is not satisfied as observable. 'L/C mismatches flagged DIFF' also has no carrier here: the DIFF badge is emitted only by lc_cell() for the FILLS/EXITS/POS L/C columns, not this value column."
+  },
+  {
+   "row_id": "UI-SSOT-TBL-03",
+   "verdict": "FAIL",
+   "evidence_ref": "certification/results/UI_SSOT_17_89b3bc7.json#TBL03_COPY_EQUITY",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "Two row-bound defects on column 3 'COPY EQ' (sort key 'copy_equity', header at position 3 of 24, 24 th vs 24 td): (1) ZERO-FOR-UNAVAILABLE - cell renders '+$100.00' while engine_truth.json and raw_live_fills.csv are absent from the serving hl_copy_output, violating this row's negative test 'source unavailable shows n/a/Unavailable not 0'; the ACCOUNT card in the same render does show UNAVAILABLE. (2) SORT INDICATOR STALE - GET /sort/copy_equity?direction=asc returned {ok:true,column:copy_equity,direction:asc} and /api/ui-state ranking persisted to {column:copy_equity,direction:asc}, but the following GET /model still carried sort-active only on LEAD EQ ('LEAD EQ v') and on the /sort response's own copy ('COPY EQ ^'); _MODEL_DASHBOARD_HTML_CACHE is served with state_built_at 0.0, so the analytics page does not reflect the persisted sort for this column and 'sort is stable and persists' is not satisfied as observable. 'L/C mismatches flagged DIFF' also has no carrier here: the DIFF badge is emitted only by lc_cell() for the FILLS/EXITS/POS L/C columns, not this value column."
+  },
+  {
+   "row_id": "UI-SSOT-TBL-04",
+   "verdict": "FAIL",
+   "evidence_ref": "certification/results/UI_SSOT_17_89b3bc7.json#TBL04_LEAD_REAL",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "Two row-bound defects on column 4 'LEAD REAL' (sort key 'lead_real', header at position 4 of 24, 24 th vs 24 td): (1) ZERO-FOR-UNAVAILABLE - cell renders '$0.00 (+0.00%)' while engine_truth.json and raw_live_fills.csv are absent from the serving hl_copy_output, violating this row's negative test 'source unavailable shows n/a/Unavailable not 0'; the ACCOUNT card in the same render does show UNAVAILABLE. (2) SORT INDICATOR STALE - GET /sort/lead_real?direction=asc returned {ok:true,column:lead_real,direction:asc} and /api/ui-state ranking persisted to {column:lead_real,direction:asc}, but the following GET /model still carried sort-active only on LEAD EQ ('LEAD EQ v') and on the /sort response's own copy ('LEAD REAL ^'); _MODEL_DASHBOARD_HTML_CACHE is served with state_built_at 0.0, so the analytics page does not reflect the persisted sort for this column and 'sort is stable and persists' is not satisfied as observable. 'L/C mismatches flagged DIFF' also has no carrier here: the DIFF badge is emitted only by lc_cell() for the FILLS/EXITS/POS L/C columns, not this value column."
+  },
+  {
+   "row_id": "UI-SSOT-TBL-05",
+   "verdict": "FAIL",
+   "evidence_ref": "certification/results/UI_SSOT_17_89b3bc7.json#TBL05_COPY_REAL",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "Two row-bound defects on column 5 'COPY REAL' (sort key 'copy_real', header at position 5 of 24, 24 th vs 24 td): (1) ZERO-FOR-UNAVAILABLE - cell renders '$0.00 (+0.00%)' while engine_truth.json and raw_live_fills.csv are absent from the serving hl_copy_output, violating this row's negative test 'source unavailable shows n/a/Unavailable not 0'; the ACCOUNT card in the same render does show UNAVAILABLE. (2) SORT INDICATOR STALE - GET /sort/copy_real?direction=asc returned {ok:true,column:copy_real,direction:asc} and /api/ui-state ranking persisted to {column:copy_real,direction:asc}, but the following GET /model still carried sort-active only on LEAD EQ ('LEAD EQ v') and on the /sort response's own copy ('COPY REAL ^'); _MODEL_DASHBOARD_HTML_CACHE is served with state_built_at 0.0, so the analytics page does not reflect the persisted sort for this column and 'sort is stable and persists' is not satisfied as observable. 'L/C mismatches flagged DIFF' also has no carrier here: the DIFF badge is emitted only by lc_cell() for the FILLS/EXITS/POS L/C columns, not this value column."
+  },
+  {
+   "row_id": "UI-SSOT-TBL-06",
+   "verdict": "FAIL",
+   "evidence_ref": "certification/results/UI_SSOT_17_89b3bc7.json#TBL06_LEAD_UNREAL",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "Two row-bound defects on column 6 'LEAD UNREAL' (sort key 'lead_unreal', header at position 6 of 24, 24 th vs 24 td): (1) ZERO-FOR-UNAVAILABLE - cell renders '$0.00 (+0.00%)' while engine_truth.json and raw_live_fills.csv are absent from the serving hl_copy_output, violating this row's negative test 'source unavailable shows n/a/Unavailable not 0'; the ACCOUNT card in the same render does show UNAVAILABLE. (2) SORT INDICATOR STALE - GET /sort/lead_unreal?direction=asc returned {ok:true,column:lead_unreal,direction:asc} and /api/ui-state ranking persisted to {column:lead_unreal,direction:asc}, but the following GET /model still carried sort-active only on LEAD EQ ('LEAD EQ v') and on the /sort response's own copy ('LEAD UNREAL ^'); _MODEL_DASHBOARD_HTML_CACHE is served with state_built_at 0.0, so the analytics page does not reflect the persisted sort for this column and 'sort is stable and persists' is not satisfied as observable. 'L/C mismatches flagged DIFF' also has no carrier here: the DIFF badge is emitted only by lc_cell() for the FILLS/EXITS/POS L/C columns, not this value column."
+  },
+  {
+   "row_id": "UI-SSOT-TBL-07",
+   "verdict": "FAIL",
+   "evidence_ref": "certification/results/UI_SSOT_17_89b3bc7.json#TBL07_COPY_UNREAL",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "Two row-bound defects on column 7 'COPY UNREAL' (sort key 'copy_unreal', header at position 7 of 24, 24 th vs 24 td): (1) ZERO-FOR-UNAVAILABLE - cell renders '$0.00 (+0.00%)' while engine_truth.json and raw_live_fills.csv are absent from the serving hl_copy_output, violating this row's negative test 'source unavailable shows n/a/Unavailable not 0'; the ACCOUNT card in the same render does show UNAVAILABLE. (2) SORT INDICATOR STALE - GET /sort/copy_unreal?direction=asc returned {ok:true,column:copy_unreal,direction:asc} and /api/ui-state ranking persisted to {column:copy_unreal,direction:asc}, but the following GET /model still carried sort-active only on LEAD EQ ('LEAD EQ v') and on the /sort response's own copy ('COPY UNREAL ^'); _MODEL_DASHBOARD_HTML_CACHE is served with state_built_at 0.0, so the analytics page does not reflect the persisted sort for this column and 'sort is stable and persists' is not satisfied as observable. 'L/C mismatches flagged DIFF' also has no carrier here: the DIFF badge is emitted only by lc_cell() for the FILLS/EXITS/POS L/C columns, not this value column."
+  },
+  {
+   "row_id": "UI-SSOT-TBL-08",
+   "verdict": "FAIL",
+   "evidence_ref": "certification/results/UI_SSOT_17_89b3bc7.json#TBL08_LEAD_DD",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "Two row-bound defects on column 8 'LEAD DD' (sort key 'lead_dd', header at position 8 of 24, 24 th vs 24 td): (1) ZERO-FOR-UNAVAILABLE - cell renders '$0.00 (-0.00%)' while engine_truth.json and raw_live_fills.csv are absent from the serving hl_copy_output, violating this row's negative test 'source unavailable shows n/a/Unavailable not 0'; the ACCOUNT card in the same render does show UNAVAILABLE. (2) SORT INDICATOR STALE - GET /sort/lead_dd?direction=asc returned {ok:true,column:lead_dd,direction:asc} and /api/ui-state ranking persisted to {column:lead_dd,direction:asc}, but the following GET /model still carried sort-active only on LEAD EQ ('LEAD EQ v') and on the /sort response's own copy ('LEAD DD ^'); _MODEL_DASHBOARD_HTML_CACHE is served with state_built_at 0.0, so the analytics page does not reflect the persisted sort for this column and 'sort is stable and persists' is not satisfied as observable. 'L/C mismatches flagged DIFF' also has no carrier here: the DIFF badge is emitted only by lc_cell() for the FILLS/EXITS/POS L/C columns, not this value column."
+  },
+  {
+   "row_id": "UI-SSOT-TBL-09",
+   "verdict": "FAIL",
+   "evidence_ref": "certification/results/UI_SSOT_17_89b3bc7.json#TBL09_COPY_DD",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "Two row-bound defects on column 9 'COPY DD' (sort key 'copy_dd', header at position 9 of 24, 24 th vs 24 td): (1) ZERO-FOR-UNAVAILABLE - cell renders '$0.00 (-0.00%)' while engine_truth.json and raw_live_fills.csv are absent from the serving hl_copy_output, violating this row's negative test 'source unavailable shows n/a/Unavailable not 0'; the ACCOUNT card in the same render does show UNAVAILABLE. (2) SORT INDICATOR STALE - GET /sort/copy_dd?direction=asc returned {ok:true,column:copy_dd,direction:asc} and /api/ui-state ranking persisted to {column:copy_dd,direction:asc}, but the following GET /model still carried sort-active only on LEAD EQ ('LEAD EQ v') and on the /sort response's own copy ('COPY DD ^'); _MODEL_DASHBOARD_HTML_CACHE is served with state_built_at 0.0, so the analytics page does not reflect the persisted sort for this column and 'sort is stable and persists' is not satisfied as observable. 'L/C mismatches flagged DIFF' also has no carrier here: the DIFF badge is emitted only by lc_cell() for the FILLS/EXITS/POS L/C columns, not this value column."
+  },
+  {
+   "row_id": "UI-SSOT-TBL-10",
+   "verdict": "FAIL",
+   "evidence_ref": "certification/results/UI_SSOT_17_89b3bc7.json#TBL10_LEAD_MAXDD",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "Two row-bound defects on column 10 'LEAD MAXDD' (sort key 'lead_maxdd', header at position 10 of 24, 24 th vs 24 td): (1) ZERO-FOR-UNAVAILABLE - cell renders '$0.00 (-0.00%)' while engine_truth.json and raw_live_fills.csv are absent from the serving hl_copy_output, violating this row's negative test 'source unavailable shows n/a/Unavailable not 0'; the ACCOUNT card in the same render does show UNAVAILABLE. (2) SORT INDICATOR STALE - GET /sort/lead_maxdd?direction=asc returned {ok:true,column:lead_maxdd,direction:asc} and /api/ui-state ranking persisted to {column:lead_maxdd,direction:asc}, but the following GET /model still carried sort-active only on LEAD EQ ('LEAD EQ v') and on the /sort response's own copy ('LEAD MAXDD ^'); _MODEL_DASHBOARD_HTML_CACHE is served with state_built_at 0.0, so the analytics page does not reflect the persisted sort for this column and 'sort is stable and persists' is not satisfied as observable. 'L/C mismatches flagged DIFF' also has no carrier here: the DIFF badge is emitted only by lc_cell() for the FILLS/EXITS/POS L/C columns, not this value column."
+  },
+  {
+   "row_id": "UI-SSOT-TBL-11",
+   "verdict": "FAIL",
+   "evidence_ref": "certification/results/UI_SSOT_17_89b3bc7.json#TBL11_COPY_MAXDD",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "Two row-bound defects on column 11 'COPY MAXDD' (sort key 'copy_maxdd', header at position 11 of 24, 24 th vs 24 td): (1) ZERO-FOR-UNAVAILABLE - cell renders '$0.00 (-0.00%)' while engine_truth.json and raw_live_fills.csv are absent from the serving hl_copy_output, violating this row's negative test 'source unavailable shows n/a/Unavailable not 0'; the ACCOUNT card in the same render does show UNAVAILABLE. (2) SORT INDICATOR STALE - GET /sort/copy_maxdd?direction=asc returned {ok:true,column:copy_maxdd,direction:asc} and /api/ui-state ranking persisted to {column:copy_maxdd,direction:asc}, but the following GET /model still carried sort-active only on LEAD EQ ('LEAD EQ v') and on the /sort response's own copy ('COPY MAXDD ^'); _MODEL_DASHBOARD_HTML_CACHE is served with state_built_at 0.0, so the analytics page does not reflect the persisted sort for this column and 'sort is stable and persists' is not satisfied as observable. 'L/C mismatches flagged DIFF' also has no carrier here: the DIFF badge is emitted only by lc_cell() for the FILLS/EXITS/POS L/C columns, not this value column."
+  },
+  {
+   "row_id": "UI-SSOT-TBL-12",
+   "verdict": "FAIL",
+   "evidence_ref": "certification/results/UI_SSOT_17_89b3bc7.json#TBL12_DELTA",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "Two row-bound defects on column 12 'DELTA' (sort key 'delta', header at position 12 of 24, 24 th vs 24 td): (1) ZERO-FOR-UNAVAILABLE - cell renders '$0.00 (+0.00%)' while engine_truth.json and raw_live_fills.csv are absent from the serving hl_copy_output, violating this row's negative test 'source unavailable shows n/a/Unavailable not 0'; the ACCOUNT card in the same render does show UNAVAILABLE. (2) SORT INDICATOR STALE - GET /sort/delta?direction=asc returned {ok:true,column:delta,direction:asc} and /api/ui-state ranking persisted to {column:delta,direction:asc}, but the following GET /model still carried sort-active only on LEAD EQ ('LEAD EQ v') and on the /sort response's own copy ('DELTA ^'); _MODEL_DASHBOARD_HTML_CACHE is served with state_built_at 0.0, so the analytics page does not reflect the persisted sort for this column and 'sort is stable and persists' is not satisfied as observable. 'L/C mismatches flagged DIFF' also has no carrier here: the DIFF badge is emitted only by lc_cell() for the FILLS/EXITS/POS L/C columns, not this value column."
+  }
+ ]
+}
