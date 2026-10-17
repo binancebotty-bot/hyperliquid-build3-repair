@@ -1,0 +1,190 @@
+{
+  "source_commit": "e0c6944",
+  "selected_ids": [
+    "UI-FP-161",
+    "UI-FP-162",
+    "UI-FP-163",
+    "UI-FP-164",
+    "UI-FP-166",
+    "UI-LCC-CARD-01",
+    "UI-LCC-EXQ-11",
+    "UI-LCC-EXQ-12",
+    "UI-LCC-EXQ-13",
+    "UI-LCC-TAB-01",
+    "UI-LCC-TAB-02",
+    "UI-LCC-TAB-03",
+    "UI-LCC-TAB-04",
+    "UI-LCC-TAB-05",
+    "UI-LCC-WS-01",
+    "UI-LCC-WS-02",
+    "UI-LCC-WS-03",
+    "UI-LCC-WS-04",
+    "UI-LCC-WS-05",
+    "UI-LCC-WS-06",
+    "UI-LCC-WS-07",
+    "UI-LCC-WS-08",
+    "UI-LCC-WS-09",
+    "UI-LCC-WS-10",
+    "UI-LCC-WS-11",
+    "UI-LCC-WS-12",
+    "UI-LCC-WS-13",
+    "UI-LCC-WS-14",
+    "UI-LCC-WS-15",
+    "UI-LCC-WS-16"
+  ],
+  "audited": 30,
+  "KEEP": 0,
+  "DEMOTE": 30,
+  "results": [
+    {
+      "row_id": "UI-FP-161",
+      "verdict": "DEMOTE",
+      "why": "no row-bound execution proof/oracle evidence: matrix result is NOT_TESTED, evidence_ref/tested_commit empty; recorded proof/oracle are generic boilerplate"
+    },
+    {
+      "row_id": "UI-FP-162",
+      "verdict": "DEMOTE",
+      "why": "no row-bound execution proof/oracle evidence: matrix result is NOT_TESTED, evidence_ref/tested_commit empty; recorded proof/oracle are generic boilerplate"
+    },
+    {
+      "row_id": "UI-FP-163",
+      "verdict": "DEMOTE",
+      "why": "no row-bound execution proof/oracle evidence: matrix result is NOT_TESTED, evidence_ref/tested_commit empty; recorded proof/oracle are generic boilerplate"
+    },
+    {
+      "row_id": "UI-FP-164",
+      "verdict": "DEMOTE",
+      "why": "no row-bound execution proof/oracle evidence: matrix result is NOT_TESTED, evidence_ref/tested_commit empty; recorded proof/oracle are generic boilerplate"
+    },
+    {
+      "row_id": "UI-FP-166",
+      "verdict": "DEMOTE",
+      "why": "no row-bound execution proof/oracle evidence: matrix result is NOT_TESTED, evidence_ref/tested_commit empty; recorded proof/oracle are generic boilerplate"
+    },
+    {
+      "row_id": "UI-LCC-CARD-01",
+      "verdict": "DEMOTE",
+      "why": "no row-bound execution proof/oracle evidence: matrix result is NOT_TESTED, evidence_ref/tested_commit empty; recorded proof/oracle are generic boilerplate"
+    },
+    {
+      "row_id": "UI-LCC-EXQ-11",
+      "verdict": "DEMOTE",
+      "why": "no row-bound execution proof/oracle evidence: matrix result is NOT_TESTED, evidence_ref/tested_commit empty; recorded proof/oracle are generic boilerplate"
+    },
+    {
+      "row_id": "UI-LCC-EXQ-12",
+      "verdict": "DEMOTE",
+      "why": "no row-bound execution proof/oracle evidence: matrix result is NOT_TESTED, evidence_ref/tested_commit empty; recorded proof/oracle are generic boilerplate"
+    },
+    {
+      "row_id": "UI-LCC-EXQ-13",
+      "verdict": "DEMOTE",
+      "why": "no row-bound execution proof/oracle evidence: matrix result is NOT_TESTED, evidence_ref/tested_commit empty; recorded proof/oracle are generic boilerplate"
+    },
+    {
+      "row_id": "UI-LCC-TAB-01",
+      "verdict": "DEMOTE",
+      "why": "no row-bound execution proof/oracle evidence: matrix result is NOT_TESTED, evidence_ref/tested_commit empty; recorded proof/oracle are generic boilerplate"
+    },
+    {
+      "row_id": "UI-LCC-TAB-02",
+      "verdict": "DEMOTE",
+      "why": "no row-bound execution proof/oracle evidence: matrix result is NOT_TESTED, evidence_ref/tested_commit empty; recorded proof/oracle are generic boilerplate"
+    },
+    {
+      "row_id": "UI-LCC-TAB-03",
+      "verdict": "DEMOTE",
+      "why": "no row-bound execution proof/oracle evidence: matrix result is NOT_TESTED, evidence_ref/tested_commit empty; recorded proof/oracle are generic boilerplate"
+    },
+    {
+      "row_id": "UI-LCC-TAB-04",
+      "verdict": "DEMOTE",
+      "why": "no row-bound execution proof/oracle evidence: matrix result is NOT_TESTED, evidence_ref/tested_commit empty; recorded proof/oracle are generic boilerplate"
+    },
+    {
+      "row_id": "UI-LCC-TAB-05",
+      "verdict": "DEMOTE",
+      "why": "no row-bound execution proof/oracle evidence: matrix result is NOT_TESTED, evidence_ref/tested_commit empty; recorded proof/oracle are generic boilerplate"
+    },
+    {
+      "row_id": "UI-LCC-WS-01",
+      "verdict": "DEMOTE",
+      "why": "no row-bound execution proof/oracle evidence: matrix result is NOT_TESTED, evidence_ref/tested_commit empty; recorded proof/oracle are generic boilerplate"
+    },
+    {
+      "row_id": "UI-LCC-WS-02",
+      "verdict": "DEMOTE",
+      "why": "no row-bound execution proof/oracle evidence: matrix result is NOT_TESTED, evidence_ref/tested_commit empty; recorded proof/oracle are generic boilerplate"
+    },
+    {
+      "row_id": "UI-LCC-WS-03",
+      "verdict": "DEMOTE",
+      "why": "no row-bound execution proof/oracle evidence: matrix result is NOT_TESTED, evidence_ref/tested_commit empty; recorded proof/oracle are generic boilerplate"
+    },
+    {
+      "row_id": "UI-LCC-WS-04",
+      "verdict": "DEMOTE",
+      "why": "no row-bound execution proof/oracle evidence: matrix result is NOT_TESTED, evidence_ref/tested_commit empty; recorded proof/oracle are generic boilerplate"
+    },
+    {
+      "row_id": "UI-LCC-WS-05",
+      "verdict": "DEMOTE",
+      "why": "no row-bound execution proof/oracle evidence: matrix result is NOT_TESTED, evidence_ref/tested_commit empty; recorded proof/oracle are generic boilerplate"
+    },
+    {
+      "row_id": "UI-LCC-WS-06",
+      "verdict": "DEMOTE",
+      "why": "no row-bound execution proof/oracle evidence: matrix result is NOT_TESTED, evidence_ref/tested_commit empty; recorded proof/oracle are generic boilerplate"
+    },
+    {
+      "row_id": "UI-LCC-WS-07",
+      "verdict": "DEMOTE",
+      "why": "no row-bound execution proof/oracle evidence: matrix result is NOT_TESTED, evidence_ref/tested_commit empty; recorded proof/oracle are generic boilerplate"
+    },
+    {
+      "row_id": "UI-LCC-WS-08",
+      "verdict": "DEMOTE",
+      "why": "no row-bound execution proof/oracle evidence: matrix result is NOT_TESTED, evidence_ref/tested_commit empty; recorded proof/oracle are generic boilerplate"
+    },
+    {
+      "row_id": "UI-LCC-WS-09",
+      "verdict": "DEMOTE",
+      "why": "no row-bound execution proof/oracle evidence: matrix result is NOT_TESTED, evidence_ref/tested_commit empty; recorded proof/oracle are generic boilerplate"
+    },
+    {
+      "row_id": "UI-LCC-WS-10",
+      "verdict": "DEMOTE",
+      "why": "no row-bound execution proof/oracle evidence: matrix result is NOT_TESTED, evidence_ref/tested_commit empty; recorded proof/oracle are generic boilerplate"
+    },
+    {
+      "row_id": "UI-LCC-WS-11",
+      "verdict": "DEMOTE",
+      "why": "no row-bound execution proof/oracle evidence: matrix result is NOT_TESTED, evidence_ref/tested_commit empty; recorded proof/oracle are generic boilerplate"
+    },
+    {
+      "row_id": "UI-LCC-WS-12",
+      "verdict": "DEMOTE",
+      "why": "no row-bound execution proof/oracle evidence: matrix result is NOT_TESTED, evidence_ref/tested_commit empty; recorded proof/oracle are generic boilerplate"
+    },
+    {
+      "row_id": "UI-LCC-WS-13",
+      "verdict": "DEMOTE",
+      "why": "no row-bound execution proof/oracle evidence: matrix result is NOT_TESTED, evidence_ref/tested_commit empty; recorded proof/oracle are generic boilerplate"
+    },
+    {
+      "row_id": "UI-LCC-WS-14",
+      "verdict": "DEMOTE",
+      "why": "no row-bound execution proof/oracle evidence: matrix result is NOT_TESTED, evidence_ref/tested_commit empty; recorded proof/oracle are generic boilerplate"
+    },
+    {
+      "row_id": "UI-LCC-WS-15",
+      "verdict": "DEMOTE",
+      "why": "no row-bound execution proof/oracle evidence: matrix result is NOT_TESTED, evidence_ref/tested_commit empty; recorded proof/oracle are generic boilerplate"
+    },
+    {
+      "row_id": "UI-LCC-WS-16",
+      "verdict": "DEMOTE",
+      "why": "no row-bound execution proof/oracle evidence: matrix result is NOT_TESTED, evidence_ref/tested_commit empty; recorded proof/oracle are generic boilerplate"
+    }
+  ]
+}
