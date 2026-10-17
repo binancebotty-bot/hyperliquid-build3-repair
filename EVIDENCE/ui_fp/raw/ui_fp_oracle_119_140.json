@@ -1,0 +1,174 @@
+{
+ "register_commit": "b142cf88d389e791160f691aac3d936852b99975",
+ "surface": "http://127.0.0.1:8031/live-copy",
+ "ui_fp_119": {
+  "dom_header": "EXCHANGE MS",
+  "api_field": "execution_quality_rows[].exchange_call_ms",
+  "api_rows_nonempty": 300,
+  "api_sample": [
+   {
+    "oid": "",
+    "exchange_call_ms": "1078",
+    "status": "ORDER_REJECTED",
+    "coin": "USUAL"
+   },
+   {
+    "oid": "",
+    "exchange_call_ms": "1117",
+    "status": "ORDER_REJECTED",
+    "coin": "WLD"
+   },
+   {
+    "oid": "",
+    "exchange_call_ms": "1045",
+    "status": "ORDER_REJECTED",
+    "coin": "ARB"
+   }
+  ],
+  "oracle_csv": "send_attempts.csv:exchange_call_ms",
+  "oracle_rows_nonempty": 138,
+  "oracle_sample": [
+   {
+    "attempt_id": "3b8e3179a0b7056d689c3291ca59cc42",
+    "exchange_call_ms": "0",
+    "status": "ORDER_FILLED"
+   },
+   {
+    "attempt_id": "fe913a93d2c7df6eb50279f7f21c5320",
+    "exchange_call_ms": "0",
+    "status": "ORDER_FILLED"
+   },
+   {
+    "attempt_id": "e39fb69c7352268afd1a9e4530d0d8f6",
+    "exchange_call_ms": "0",
+    "status": "ORDER_FILLED"
+   }
+  ]
+ },
+ "ui_fp_120": {
+  "dom_header": "ERROR",
+  "api_field": "execution_quality_rows[].error",
+  "api_rows_nonempty": 130,
+  "api_sample": [
+   {
+    "coin": "USUAL",
+    "error": "Insufficient margin to place order. asset=140",
+    "reject_category": "INSUFFICIENT_MARGIN",
+    "status": "ORDER_REJECTED"
+   },
+   {
+    "coin": "WLD",
+    "error": "Insufficient margin to place order. asset=15",
+    "reject_category": "INSUFFICIENT_MARGIN",
+    "status": "ORDER_REJECTED"
+   },
+   {
+    "coin": "ARB",
+    "error": "Insufficient margin to place order. asset=13",
+    "reject_category": "INSUFFICIENT_MARGIN",
+    "status": "ORDER_REJECTED"
+   }
+  ],
+  "oracle_csv": "send_attempts.csv:error",
+  "oracle_rows_nonempty": 2,
+  "oracle_sample": [
+   {
+    "attempt_id": "22d631851be6e288e4f945afd6dff154",
+    "error": "TypeError('FakeExchange.order() takes from 6 to 7 positional arguments but 9 wer",
+    "reject_category": "EXCHANGE_REJECTED_UNKNOWN"
+   },
+   {
+    "attempt_id": "ce89fed5f1d6239d2b005042e218b886",
+    "error": "TypeError('FakeExchange.order() takes from 6 to 7 positional arguments but 9 wer",
+    "reject_category": "EXCHANGE_REJECTED_UNKNOWN"
+   }
+  ]
+ },
+ "ui_fp_133": {
+  "dom_header": "REAL ORDER RESULT",
+  "api_field": "audit_rows[].intent_id join send_attempts.status",
+  "oracle_computed_sample": [
+   {
+    "intent_id": "29bd568f4742ae4af1ac7706d60c503a",
+    "computed_real_result": "NO_SEND_ATTEMPT",
+    "coin": "XYZ:BRENTOIL"
+   },
+   {
+    "intent_id": "2678e69ec672d2443b33a2e269d7a258",
+    "computed_real_result": "NO_SEND_ATTEMPT",
+    "coin": "ZRO"
+   },
+   {
+    "intent_id": "b8cc43a71a02dda27eede38039b8ab94",
+    "computed_real_result": "NO_SEND_ATTEMPT",
+    "coin": "XYZ:SNDK"
+   },
+   {
+    "intent_id": "5d305ad07b89661190a751d1ef3efbbc",
+    "computed_real_result": "NO_SEND_ATTEMPT",
+    "coin": "XYZ:BRENTOIL"
+   },
+   {
+    "intent_id": "70640acf1c4a4cd415029dafeab6b115",
+    "computed_real_result": "NO_SEND_ATTEMPT",
+    "coin": "SOL"
+   },
+   {
+    "intent_id": "962ead2f7519cb92ea718ba291bcf237",
+    "computed_real_result": "NO_SEND_ATTEMPT",
+    "coin": "PUMP"
+   }
+  ],
+  "oracle_distinct": [
+   "NO_SEND_ATTEMPT"
+  ]
+ },
+ "ui_fp_137": {
+  "dom_header": "REJECT CATEGORY",
+  "panel": "recon -> Actionable Critical Items/Warnings",
+  "api_rows_nonempty": 286,
+  "api_sample": [
+   {
+    "coin": "DOGE",
+    "reject_category": "INSUFFICIENT_MARGIN",
+    "event": "SEND_TERMINAL"
+   },
+   {
+    "coin": "ZORA",
+    "reject_category": "LIQ_PARITY_BLOCK",
+    "event": "GATE_WOULD_BLOCK"
+   },
+   {
+    "coin": "WLD",
+    "reject_category": "LIQ_PARITY_BLOCK",
+    "event": "GATE_WOULD_BLOCK"
+   }
+  ],
+  "oracle_csv": "reconciliation.csv:reject_category",
+  "oracle_rows_nonempty": 51
+ },
+ "ui_fp_139": {
+  "dom_header": "COIN",
+  "api_rows_nonempty": 500,
+  "api_sample": [
+   "DOGE",
+   "DOGE",
+   "WLD",
+   "DOGE",
+   "ZORA"
+  ],
+  "oracle_rows_nonempty": 60
+ },
+ "ui_fp_140": {
+  "dom_header": "WALLET",
+  "api_rows_nonempty": 500,
+  "api_sample": [
+   "0x7019197d2b2ae7b44eee12a76015eb1fe94abd36",
+   "0x7019197d2b2ae7b44eee12a76015eb1fe94abd36",
+   "0x6ba889db7f923622d3548f621ecc2054b80c1817",
+   "0xf5d81a135f756ca16544e53c20fc20643ec3ad53",
+   "0x010461c14e146ac35fe42271bdc1134ee31c703a"
+  ],
+  "oracle_rows_nonempty": 60
+ }
+}
