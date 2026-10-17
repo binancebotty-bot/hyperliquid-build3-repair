@@ -1,0 +1,169 @@
+{
+  "summary": {
+    "audited": 30,
+    "KEEP": 0,
+    "DEMOTE": 30,
+    "remaining_unaudited": 3,
+    "remaining_row_ids": [
+      "UI-LCC-EXQ-11",
+      "UI-LCC-EXQ-12",
+      "UI-LCC-EXQ-13"
+    ],
+    "scope": "UI-LCC-WTBL/POS/EXQ PASS rows not covered by audits 8b8c114, 9a7ae8d, e99b288, 3a78996",
+    "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+    "tested_commit": "2d29211148c9",
+    "method": "Read execution_proof + independent_oracle per row from cert branch matrix; DEMOTE if carried/vacuous/missing/not bound"
+  },
+  "results": [
+    {
+      "row_id": "UI-LCC-WTBL-01",
+      "verdict": "DEMOTE",
+      "why": "execution_proof and independent_oracle are carried boilerplate — identical text across all 33 rows, not row-specific; proof does not describe what this specific row checked"
+    },
+    {
+      "row_id": "UI-LCC-WTBL-02",
+      "verdict": "DEMOTE",
+      "why": "execution_proof and independent_oracle are carried boilerplate — identical text across all 33 rows, not row-specific; proof does not describe what this specific row checked"
+    },
+    {
+      "row_id": "UI-LCC-WTBL-03",
+      "verdict": "DEMOTE",
+      "why": "execution_proof and independent_oracle are carried boilerplate — identical text across all 33 rows, not row-specific; proof does not describe what this specific row checked"
+    },
+    {
+      "row_id": "UI-LCC-WTBL-04",
+      "verdict": "DEMOTE",
+      "why": "execution_proof and independent_oracle are carried boilerplate — identical text across all 33 rows, not row-specific; proof does not describe what this specific row checked"
+    },
+    {
+      "row_id": "UI-LCC-WTBL-05",
+      "verdict": "DEMOTE",
+      "why": "execution_proof and independent_oracle are carried boilerplate — identical text across all 33 rows, not row-specific; proof does not describe what this specific row checked"
+    },
+    {
+      "row_id": "UI-LCC-WTBL-06",
+      "verdict": "DEMOTE",
+      "why": "execution_proof and independent_oracle are carried boilerplate — identical text across all 33 rows, not row-specific; proof does not describe what this specific row checked"
+    },
+    {
+      "row_id": "UI-LCC-WTBL-07",
+      "verdict": "DEMOTE",
+      "why": "execution_proof and independent_oracle are carried boilerplate — identical text across all 33 rows, not row-specific; proof does not describe what this specific row checked"
+    },
+    {
+      "row_id": "UI-LCC-WTBL-08",
+      "verdict": "DEMOTE",
+      "why": "execution_proof and independent_oracle are carried boilerplate — identical text across all 33 rows, not row-specific; proof does not describe what this specific row checked"
+    },
+    {
+      "row_id": "UI-LCC-POS-01",
+      "verdict": "DEMOTE",
+      "why": "execution_proof and independent_oracle are carried boilerplate — identical text across all 33 rows, not row-specific; proof does not describe what this specific row checked"
+    },
+    {
+      "row_id": "UI-LCC-POS-02",
+      "verdict": "DEMOTE",
+      "why": "execution_proof and independent_oracle are carried boilerplate — identical text across all 33 rows, not row-specific; proof does not describe what this specific row checked"
+    },
+    {
+      "row_id": "UI-LCC-POS-03",
+      "verdict": "DEMOTE",
+      "why": "execution_proof and independent_oracle are carried boilerplate — identical text across all 33 rows, not row-specific; proof does not describe what this specific row checked"
+    },
+    {
+      "row_id": "UI-LCC-POS-04",
+      "verdict": "DEMOTE",
+      "why": "execution_proof and independent_oracle are carried boilerplate — identical text across all 33 rows, not row-specific; proof does not describe what this specific row checked"
+    },
+    {
+      "row_id": "UI-LCC-POS-05",
+      "verdict": "DEMOTE",
+      "why": "execution_proof and independent_oracle are carried boilerplate — identical text across all 33 rows, not row-specific; proof does not describe what this specific row checked"
+    },
+    {
+      "row_id": "UI-LCC-POS-06",
+      "verdict": "DEMOTE",
+      "why": "execution_proof and independent_oracle are carried boilerplate — identical text across all 33 rows, not row-specific; proof does not describe what this specific row checked"
+    },
+    {
+      "row_id": "UI-LCC-POS-07",
+      "verdict": "DEMOTE",
+      "why": "execution_proof and independent_oracle are carried boilerplate — identical text across all 33 rows, not row-specific; proof does not describe what this specific row checked"
+    },
+    {
+      "row_id": "UI-LCC-POS-08",
+      "verdict": "DEMOTE",
+      "why": "execution_proof and independent_oracle are carried boilerplate — identical text across all 33 rows, not row-specific; proof does not describe what this specific row checked"
+    },
+    {
+      "row_id": "UI-LCC-POS-09",
+      "verdict": "DEMOTE",
+      "why": "execution_proof and independent_oracle are carried boilerplate — identical text across all 33 rows, not row-specific; proof does not describe what this specific row checked"
+    },
+    {
+      "row_id": "UI-LCC-POS-10",
+      "verdict": "DEMOTE",
+      "why": "execution_proof and independent_oracle are carried boilerplate — identical text across all 33 rows, not row-specific; proof does not describe what this specific row checked"
+    },
+    {
+      "row_id": "UI-LCC-POS-11",
+      "verdict": "DEMOTE",
+      "why": "execution_proof and independent_oracle are carried boilerplate — identical text across all 33 rows, not row-specific; proof does not describe what this specific row checked"
+    },
+    {
+      "row_id": "UI-LCC-POS-12",
+      "verdict": "DEMOTE",
+      "why": "execution_proof and independent_oracle are carried boilerplate — identical text across all 33 rows, not row-specific; proof does not describe what this specific row checked"
+    },
+    {
+      "row_id": "UI-LCC-EXQ-01",
+      "verdict": "DEMOTE",
+      "why": "execution_proof and independent_oracle are carried boilerplate — identical text across all 33 rows, not row-specific; proof does not describe what this specific row checked"
+    },
+    {
+      "row_id": "UI-LCC-EXQ-02",
+      "verdict": "DEMOTE",
+      "why": "execution_proof and independent_oracle are carried boilerplate — identical text across all 33 rows, not row-specific; proof does not describe what this specific row checked"
+    },
+    {
+      "row_id": "UI-LCC-EXQ-03",
+      "verdict": "DEMOTE",
+      "why": "execution_proof and independent_oracle are carried boilerplate — identical text across all 33 rows, not row-specific; proof does not describe what this specific row checked"
+    },
+    {
+      "row_id": "UI-LCC-EXQ-04",
+      "verdict": "DEMOTE",
+      "why": "execution_proof and independent_oracle are carried boilerplate — identical text across all 33 rows, not row-specific; proof does not describe what this specific row checked"
+    },
+    {
+      "row_id": "UI-LCC-EXQ-05",
+      "verdict": "DEMOTE",
+      "why": "execution_proof and independent_oracle are carried boilerplate — identical text across all 33 rows, not row-specific; proof does not describe what this specific row checked"
+    },
+    {
+      "row_id": "UI-LCC-EXQ-06",
+      "verdict": "DEMOTE",
+      "why": "execution_proof and independent_oracle are carried boilerplate — identical text across all 33 rows, not row-specific; proof does not describe what this specific row checked"
+    },
+    {
+      "row_id": "UI-LCC-EXQ-07",
+      "verdict": "DEMOTE",
+      "why": "execution_proof and independent_oracle are carried boilerplate — identical text across all 33 rows, not row-specific; proof does not describe what this specific row checked"
+    },
+    {
+      "row_id": "UI-LCC-EXQ-08",
+      "verdict": "DEMOTE",
+      "why": "execution_proof and independent_oracle are carried boilerplate — identical text across all 33 rows, not row-specific; proof does not describe what this specific row checked"
+    },
+    {
+      "row_id": "UI-LCC-EXQ-09",
+      "verdict": "DEMOTE",
+      "why": "execution_proof and independent_oracle are carried boilerplate — identical text across all 33 rows, not row-specific; proof does not describe what this specific row checked"
+    },
+    {
+      "row_id": "UI-LCC-EXQ-10",
+      "verdict": "DEMOTE",
+      "why": "execution_proof and independent_oracle are carried boilerplate — identical text across all 33 rows, not row-specific; proof does not describe what this specific row checked"
+    }
+  ]
+}
