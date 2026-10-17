@@ -1,0 +1,1538 @@
+{
+ "audit": "RE-ADJUDICATION of the 87 rows citing certification/results/UI_CORRECTION_2d29211.json",
+ "register_of_record_ref": "origin/cert/local-main-b142cf8",
+ "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+ "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+ "read_only": true,
+ "matrix_edited": false,
+ "standard": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+ "summary": {
+  "scope_rows": 87,
+  "keep": 0,
+  "demote": 87,
+  "slice1_keep_rows": 27,
+  "slice1_keep_that_hold": 0,
+  "slice1_flip_to_demote": 27,
+  "demote_rows_flipping_to_keep": 0,
+  "categories": {
+   "ROW_BOUND_STRUCTURAL_ONLY": 85,
+   "NOT_ROW_BOUND": 2
+  },
+  "artifact_failed_checks_total": 61,
+  "artifact_failed_checks_inside_these_87_rows": 0,
+  "pass_with_missing_or_mismatch_detail": 334
+ },
+ "results": [
+  {
+   "row_id": "UI-LCC-HDR-01",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-HDR-01:WALLET_COUNT_ELEMENT, UI-LCC-HDR-01:DEFAULT_SHOWN). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice1",
+   "slice_verdict": "KEEP",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-HDR-01:WALLET_COUNT_ELEMENT",
+    "UI-LCC-HDR-01:DEFAULT_SHOWN"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [
+    "UI-LCC-HDR-01:NO_WALLETS_FALLBACK"
+   ],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": true
+  },
+  {
+   "row_id": "UI-LCC-HDR-02",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-HDR-02:MODE_COUNTS_ELEMENT). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice1",
+   "slice_verdict": "KEEP",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-HDR-02:MODE_COUNTS_ELEMENT"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": true
+  },
+  {
+   "row_id": "UI-LCC-HDR-03",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-HDR-03:AUTO_SEND_ELEMENT, UI-LCC-HDR-03:AUTO_SEND_DEFAULT). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice1",
+   "slice_verdict": "KEEP",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-HDR-03:AUTO_SEND_ELEMENT",
+    "UI-LCC-HDR-03:AUTO_SEND_DEFAULT"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [
+    "UI-LCC-HDR-03:AUTOSEND_FALLBACK"
+   ],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": true
+  },
+  {
+   "row_id": "UI-LCC-HDR-04",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-HDR-04:WS_OVERALL_ELEMENT, UI-LCC-HDR-04:WS_DEFAULT_OFFLINE). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice1",
+   "slice_verdict": "KEEP",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-HDR-04:WS_OVERALL_ELEMENT",
+    "UI-LCC-HDR-04:WS_DEFAULT_OFFLINE"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [
+    "UI-LCC-HDR-04:WS_OFFLINE_FALLBACK"
+   ],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": true
+  },
+  {
+   "row_id": "UI-LCC-HDR-05",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-HDR-05:REAL_ORDERS_ELEMENT, UI-LCC-HDR-05:REAL_ORDERS_DEFAULT). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice1",
+   "slice_verdict": "KEEP",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-HDR-05:REAL_ORDERS_ELEMENT",
+    "UI-LCC-HDR-05:REAL_ORDERS_DEFAULT"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [
+    "UI-LCC-HDR-05:REAL_ORDERS_FALLBACK"
+   ],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": true
+  },
+  {
+   "row_id": "UI-LCC-HDR-06",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-HDR-06:STATUS_ELEMENT). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice1",
+   "slice_verdict": "KEEP",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-HDR-06:STATUS_ELEMENT"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": true
+  },
+  {
+   "row_id": "UI-LCC-BTN-01",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-BTN-01:REFRESH_BUTTON). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice1",
+   "slice_verdict": "KEEP",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-BTN-01:REFRESH_BUTTON"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": true
+  },
+  {
+   "row_id": "UI-LCC-BTN-02",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-BTN-02:GC_TOGGLE_BUTTON, UI-LCC-BTN-02:GC_TOGGLE_ARIA). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice1",
+   "slice_verdict": "KEEP",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-BTN-02:GC_TOGGLE_BUTTON",
+    "UI-LCC-BTN-02:GC_TOGGLE_ARIA"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": true
+  },
+  {
+   "row_id": "UI-LCC-BTN-03",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-BTN-03:ADD_WALLET_BUTTON). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice1",
+   "slice_verdict": "KEEP",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-BTN-03:ADD_WALLET_BUTTON"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": true
+  },
+  {
+   "row_id": "UI-LCC-BTN-04",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-BTN-04:GC_CLOSE_BUTTON). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice1",
+   "slice_verdict": "KEEP",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-BTN-04:GC_CLOSE_BUTTON"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": true
+  },
+  {
+   "row_id": "UI-LCC-BTN-05",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-BTN-05:GC_SAVE_BUTTON). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice1",
+   "slice_verdict": "KEEP",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-BTN-05:GC_SAVE_BUTTON"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": true
+  },
+  {
+   "row_id": "UI-LCC-GRAPH-01",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-GRAPH-01:GRAPH_CONTAINER, UI-LCC-GRAPH-01:ACCOUNT_MODE_BTN). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice1",
+   "slice_verdict": "KEEP",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-GRAPH-01:GRAPH_CONTAINER",
+    "UI-LCC-GRAPH-01:ACCOUNT_MODE_BTN"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [
+    "UI-LCC-GRAPH-01:EMPTY_GRAPH_FALLBACK"
+   ],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": true
+  },
+  {
+   "row_id": "UI-LCC-GRAPH-02",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-GRAPH-02:WALLET_PNL_MODE_BTN). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice1",
+   "slice_verdict": "KEEP",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-GRAPH-02:WALLET_PNL_MODE_BTN"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [
+    "UI-LCC-GRAPH-02:GRAPH_LEGEND"
+   ],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": true
+  },
+  {
+   "row_id": "UI-LCC-GRAPH-03",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-GRAPH-03:EXPOSURE_MODE_BTN). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice1",
+   "slice_verdict": "KEEP",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-GRAPH-03:EXPOSURE_MODE_BTN"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": true
+  },
+  {
+   "row_id": "UI-LCC-GRAPH-04",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-GRAPH-04:1D_SCALE_BTN). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice1",
+   "slice_verdict": "KEEP",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-GRAPH-04:1D_SCALE_BTN"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": true
+  },
+  {
+   "row_id": "UI-LCC-GRAPH-05",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-GRAPH-05:7D_SCALE_BTN). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice1",
+   "slice_verdict": "KEEP",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-GRAPH-05:7D_SCALE_BTN"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": true
+  },
+  {
+   "row_id": "UI-LCC-GRAPH-06",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-GRAPH-06:ALL_SCALE_BTN). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice1",
+   "slice_verdict": "KEEP",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-GRAPH-06:ALL_SCALE_BTN"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": true
+  },
+  {
+   "row_id": "UI-LCC-GRAPH-07",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-GRAPH-07:lcGraphStart). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice1",
+   "slice_verdict": "KEEP",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-GRAPH-07:lcGraphStart"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": true
+  },
+  {
+   "row_id": "UI-LCC-GRAPH-08",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-GRAPH-08:lcGraphEnd). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice1",
+   "slice_verdict": "KEEP",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-GRAPH-08:lcGraphEnd"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": true
+  },
+  {
+   "row_id": "UI-LCC-GRAPH-09",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-GRAPH-09:lcGraphApplyRange). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice1",
+   "slice_verdict": "KEEP",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-GRAPH-09:lcGraphApplyRange"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": true
+  },
+  {
+   "row_id": "UI-LCC-GRAPH-10",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-GRAPH-10:lcGraphResetRange). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice1",
+   "slice_verdict": "KEEP",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-GRAPH-10:lcGraphResetRange"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": true
+  },
+  {
+   "row_id": "UI-LCC-GRAPH-11",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-GRAPH-11:lcExchangePath). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice1",
+   "slice_verdict": "KEEP",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-GRAPH-11:lcExchangePath"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": true
+  },
+  {
+   "row_id": "UI-LCC-GRAPH-12",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-GRAPH-12:lcRealizedPath). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice1",
+   "slice_verdict": "KEEP",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-GRAPH-12:lcRealizedPath"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": true
+  },
+  {
+   "row_id": "UI-LCC-GRAPH-13",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-GRAPH-13:lcDrawdownPath). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice1",
+   "slice_verdict": "KEEP",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-GRAPH-13:lcDrawdownPath"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": true
+  },
+  {
+   "row_id": "UI-LCC-GRAPH-14",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-GRAPH-14:lcYMax). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice1",
+   "slice_verdict": "KEEP",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-GRAPH-14:lcYMax"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": true
+  },
+  {
+   "row_id": "UI-LCC-GRAPH-15",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-GRAPH-15:lcXAxisTicks). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice1",
+   "slice_verdict": "KEEP",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-GRAPH-15:lcXAxisTicks"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": true
+  },
+  {
+   "row_id": "UI-LCC-GRAPH-16",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-GRAPH-16:lcGraphSubtitle). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice1",
+   "slice_verdict": "KEEP",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-GRAPH-16:lcGraphSubtitle"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": true
+  },
+  {
+   "row_id": "UI-LCC-WTBL-01",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-WTBL-01:TABLE_EXISTS, UI-LCC-WTBL-01:COLUMN_COUNT, UI-LCC-WTBL-01:COLUMN_HEADER). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice2",
+   "slice_verdict": "DEMOTE",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-WTBL-01:TABLE_EXISTS",
+    "UI-LCC-WTBL-01:COLUMN_COUNT",
+    "UI-LCC-WTBL-01:COLUMN_HEADER"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": false
+  },
+  {
+   "row_id": "UI-LCC-WTBL-02",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-WTBL-02:COLUMN_HEADER). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice2",
+   "slice_verdict": "DEMOTE",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-WTBL-02:COLUMN_HEADER"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": false
+  },
+  {
+   "row_id": "UI-LCC-WTBL-03",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-WTBL-03:COLUMN_HEADER). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice2",
+   "slice_verdict": "DEMOTE",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-WTBL-03:COLUMN_HEADER"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": false
+  },
+  {
+   "row_id": "UI-LCC-WTBL-04",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-WTBL-04:COLUMN_HEADER). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice2",
+   "slice_verdict": "DEMOTE",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-WTBL-04:COLUMN_HEADER"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": false
+  },
+  {
+   "row_id": "UI-LCC-WTBL-05",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-WTBL-05:COLUMN_HEADER). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice2",
+   "slice_verdict": "DEMOTE",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-WTBL-05:COLUMN_HEADER"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": false
+  },
+  {
+   "row_id": "UI-LCC-WTBL-06",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-WTBL-06:COLUMN_HEADER). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice2",
+   "slice_verdict": "DEMOTE",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-WTBL-06:COLUMN_HEADER"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": false
+  },
+  {
+   "row_id": "UI-LCC-WTBL-07",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-WTBL-07:COLUMN_HEADER). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice2",
+   "slice_verdict": "DEMOTE",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-WTBL-07:COLUMN_HEADER"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": false
+  },
+  {
+   "row_id": "UI-LCC-WTBL-08",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-WTBL-08:COLUMN_HEADER). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice2",
+   "slice_verdict": "DEMOTE",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-WTBL-08:COLUMN_HEADER"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": false
+  },
+  {
+   "row_id": "UI-LCC-POS-01",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-POS-01:TABLE_EXISTS, UI-LCC-POS-01:COLUMN_COUNT, UI-LCC-POS-01:COLUMN_HEADER). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice2",
+   "slice_verdict": "DEMOTE",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-POS-01:TABLE_EXISTS",
+    "UI-LCC-POS-01:COLUMN_COUNT",
+    "UI-LCC-POS-01:COLUMN_HEADER"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": false
+  },
+  {
+   "row_id": "UI-LCC-POS-02",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-POS-02:COLUMN_HEADER). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice2",
+   "slice_verdict": "DEMOTE",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-POS-02:COLUMN_HEADER"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": false
+  },
+  {
+   "row_id": "UI-LCC-POS-03",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-POS-03:COLUMN_HEADER). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice2",
+   "slice_verdict": "DEMOTE",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-POS-03:COLUMN_HEADER"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": false
+  },
+  {
+   "row_id": "UI-LCC-POS-04",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-POS-04:COLUMN_HEADER). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice2",
+   "slice_verdict": "DEMOTE",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-POS-04:COLUMN_HEADER"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": false
+  },
+  {
+   "row_id": "UI-LCC-POS-05",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-POS-05:COLUMN_HEADER). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice2",
+   "slice_verdict": "DEMOTE",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-POS-05:COLUMN_HEADER"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": false
+  },
+  {
+   "row_id": "UI-LCC-POS-06",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-POS-06:COLUMN_HEADER). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice2",
+   "slice_verdict": "DEMOTE",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-POS-06:COLUMN_HEADER"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": false
+  },
+  {
+   "row_id": "UI-LCC-POS-07",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-POS-07:COLUMN_HEADER). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice2",
+   "slice_verdict": "DEMOTE",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-POS-07:COLUMN_HEADER"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": false
+  },
+  {
+   "row_id": "UI-LCC-POS-08",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-POS-08:COLUMN_HEADER). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice2",
+   "slice_verdict": "DEMOTE",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-POS-08:COLUMN_HEADER"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": false
+  },
+  {
+   "row_id": "UI-LCC-POS-09",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-POS-09:COLUMN_HEADER). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice2",
+   "slice_verdict": "DEMOTE",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-POS-09:COLUMN_HEADER"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": false
+  },
+  {
+   "row_id": "UI-LCC-POS-10",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-POS-10:COLUMN_HEADER). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice2",
+   "slice_verdict": "DEMOTE",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-POS-10:COLUMN_HEADER"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": false
+  },
+  {
+   "row_id": "UI-LCC-POS-11",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-POS-11:COLUMN_HEADER). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice2",
+   "slice_verdict": "DEMOTE",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-POS-11:COLUMN_HEADER"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": false
+  },
+  {
+   "row_id": "UI-LCC-POS-12",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-POS-12:COLUMN_HEADER). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice2",
+   "slice_verdict": "DEMOTE",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-POS-12:COLUMN_HEADER"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": false
+  },
+  {
+   "row_id": "UI-LCC-EXQ-01",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-EXQ-01:TABLE_EXISTS, UI-LCC-EXQ-01:COLUMN_COUNT, UI-LCC-EXQ-01:COLUMN_HEADER). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice2",
+   "slice_verdict": "DEMOTE",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-EXQ-01:TABLE_EXISTS",
+    "UI-LCC-EXQ-01:COLUMN_COUNT",
+    "UI-LCC-EXQ-01:COLUMN_HEADER"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": false
+  },
+  {
+   "row_id": "UI-LCC-EXQ-02",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-EXQ-02:COLUMN_HEADER). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice2",
+   "slice_verdict": "DEMOTE",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-EXQ-02:COLUMN_HEADER"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": false
+  },
+  {
+   "row_id": "UI-LCC-EXQ-03",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-EXQ-03:COLUMN_HEADER). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice2",
+   "slice_verdict": "DEMOTE",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-EXQ-03:COLUMN_HEADER"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": false
+  },
+  {
+   "row_id": "UI-LCC-EXQ-04",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-EXQ-04:COLUMN_HEADER). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice2",
+   "slice_verdict": "DEMOTE",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-EXQ-04:COLUMN_HEADER"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": false
+  },
+  {
+   "row_id": "UI-LCC-EXQ-05",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-EXQ-05:COLUMN_HEADER). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice2",
+   "slice_verdict": "DEMOTE",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-EXQ-05:COLUMN_HEADER"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": false
+  },
+  {
+   "row_id": "UI-LCC-EXQ-06",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-EXQ-06:COLUMN_HEADER). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice2",
+   "slice_verdict": "DEMOTE",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-EXQ-06:COLUMN_HEADER"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": false
+  },
+  {
+   "row_id": "UI-LCC-EXQ-07",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-EXQ-07:COLUMN_HEADER). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice2",
+   "slice_verdict": "DEMOTE",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-EXQ-07:COLUMN_HEADER"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": false
+  },
+  {
+   "row_id": "UI-LCC-EXQ-08",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-EXQ-08:COLUMN_HEADER). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice2",
+   "slice_verdict": "DEMOTE",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-EXQ-08:COLUMN_HEADER"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": false
+  },
+  {
+   "row_id": "UI-LCC-EXQ-09",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-EXQ-09:COLUMN_HEADER). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice2",
+   "slice_verdict": "DEMOTE",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-EXQ-09:COLUMN_HEADER"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": false
+  },
+  {
+   "row_id": "UI-LCC-EXQ-10",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-EXQ-10:COLUMN_HEADER). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice2",
+   "slice_verdict": "DEMOTE",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-EXQ-10:COLUMN_HEADER"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": false
+  },
+  {
+   "row_id": "UI-LCC-ADD-01",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-ADD-01:MODAL_CONTAINER, UI-LCC-ADD-01:ADD_FORM, UI-LCC-ADD-01:WALLET_INPUT). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice3",
+   "slice_verdict": "DEMOTE",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-ADD-01:MODAL_CONTAINER",
+    "UI-LCC-ADD-01:ADD_FORM",
+    "UI-LCC-ADD-01:WALLET_INPUT"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [
+    "UI-LCC-ADD-01:VALIDATION_FALLBACK"
+   ],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": false
+  },
+  {
+   "row_id": "UI-LCC-ADD-02",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-ADD-02:MODE_INPUT). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice3",
+   "slice_verdict": "DEMOTE",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-ADD-02:MODE_INPUT"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": false
+  },
+  {
+   "row_id": "UI-LCC-ADD-03",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-ADD-03:COPY_MODE_INPUT). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice3",
+   "slice_verdict": "DEMOTE",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-ADD-03:COPY_MODE_INPUT"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": false
+  },
+  {
+   "row_id": "UI-LCC-ADD-04",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-ADD-04:FIXED_NOTIONAL_INPUT). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice3",
+   "slice_verdict": "DEMOTE",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-ADD-04:FIXED_NOTIONAL_INPUT"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": false
+  },
+  {
+   "row_id": "UI-LCC-ADD-05",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-ADD-05:NORM_BASE_INPUT). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice3",
+   "slice_verdict": "DEMOTE",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-ADD-05:NORM_BASE_INPUT"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": false
+  },
+  {
+   "row_id": "UI-LCC-ADD-08",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "No row-bound assertion: every check is a page-wide token search (UI-LCC-ADD-08:SUBMIT_BUTTON), so the same assertion passes for any page containing that token. Limb (i) fails; this file does not evidence the row.",
+   "slice": "slice3",
+   "slice_verdict": "DEMOTE",
+   "category": "NOT_ROW_BOUND",
+   "row_bound_checks": [],
+   "page_wide_checks": [
+    "UI-LCC-ADD-08:SUBMIT_BUTTON"
+   ],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": false
+  },
+  {
+   "row_id": "UI-LCC-ADD-09",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "No row-bound assertion: every check is a page-wide token search (UI-LCC-ADD-09:CANCEL_BUTTON), so the same assertion passes for any page containing that token. Limb (i) fails; this file does not evidence the row.",
+   "slice": "slice3",
+   "slice_verdict": "DEMOTE",
+   "category": "NOT_ROW_BOUND",
+   "row_bound_checks": [],
+   "page_wide_checks": [
+    "UI-LCC-ADD-09:CANCEL_BUTTON"
+   ],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": false
+  },
+  {
+   "row_id": "UI-LCC-AUD-01",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-AUD-01:TABLE_EXISTS, UI-LCC-AUD-01:COLUMN_COUNT, UI-LCC-AUD-01:COLUMN_HEADER). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice3",
+   "slice_verdict": "DEMOTE",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-AUD-01:TABLE_EXISTS",
+    "UI-LCC-AUD-01:COLUMN_COUNT",
+    "UI-LCC-AUD-01:COLUMN_HEADER"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": false
+  },
+  {
+   "row_id": "UI-LCC-AUD-02",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-AUD-02:COLUMN_HEADER). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice3",
+   "slice_verdict": "DEMOTE",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-AUD-02:COLUMN_HEADER"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": false
+  },
+  {
+   "row_id": "UI-LCC-AUD-03",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-AUD-03:COLUMN_HEADER). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice3",
+   "slice_verdict": "DEMOTE",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-AUD-03:COLUMN_HEADER"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": false
+  },
+  {
+   "row_id": "UI-LCC-AUD-04",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-AUD-04:COLUMN_HEADER). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice3",
+   "slice_verdict": "DEMOTE",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-AUD-04:COLUMN_HEADER"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": false
+  },
+  {
+   "row_id": "UI-LCC-AUD-05",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-AUD-05:COLUMN_HEADER). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice3",
+   "slice_verdict": "DEMOTE",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-AUD-05:COLUMN_HEADER"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": false
+  },
+  {
+   "row_id": "UI-LCC-AUD-06",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-AUD-06:COLUMN_HEADER). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice3",
+   "slice_verdict": "DEMOTE",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-AUD-06:COLUMN_HEADER"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": false
+  },
+  {
+   "row_id": "UI-LCC-AUD-07",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-AUD-07:COLUMN_HEADER). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice3",
+   "slice_verdict": "DEMOTE",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-AUD-07:COLUMN_HEADER"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": false
+  },
+  {
+   "row_id": "UI-LCC-AUD-08",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-AUD-08:COLUMN_HEADER). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice3",
+   "slice_verdict": "DEMOTE",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-AUD-08:COLUMN_HEADER"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": false
+  },
+  {
+   "row_id": "UI-LCC-AUD-09",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-AUD-09:COLUMN_HEADER). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice3",
+   "slice_verdict": "DEMOTE",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-AUD-09:COLUMN_HEADER"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": false
+  },
+  {
+   "row_id": "UI-LCC-AUD-10",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-AUD-10:COLUMN_HEADER). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice3",
+   "slice_verdict": "DEMOTE",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-AUD-10:COLUMN_HEADER"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": false
+  },
+  {
+   "row_id": "UI-LCC-AUD-11",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-AUD-11:COLUMN_HEADER). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice3",
+   "slice_verdict": "DEMOTE",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-AUD-11:COLUMN_HEADER"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": false
+  },
+  {
+   "row_id": "UI-LCC-AUD-12",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-AUD-12:COLUMN_HEADER). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice3",
+   "slice_verdict": "DEMOTE",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-AUD-12:COLUMN_HEADER"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": false
+  },
+  {
+   "row_id": "UI-LCC-AUD-13",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-AUD-13:COLUMN_HEADER). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice3",
+   "slice_verdict": "DEMOTE",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-AUD-13:COLUMN_HEADER"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": false
+  },
+  {
+   "row_id": "UI-LCC-REC-01",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-REC-01:TABLE_EXISTS, UI-LCC-REC-01:COLUMN_COUNT, UI-LCC-REC-01:COLUMN_HEADER). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice3",
+   "slice_verdict": "DEMOTE",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-REC-01:TABLE_EXISTS",
+    "UI-LCC-REC-01:COLUMN_COUNT",
+    "UI-LCC-REC-01:COLUMN_HEADER"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": false
+  },
+  {
+   "row_id": "UI-LCC-REC-02",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-REC-02:COLUMN_HEADER). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice3",
+   "slice_verdict": "DEMOTE",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-REC-02:COLUMN_HEADER"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": false
+  },
+  {
+   "row_id": "UI-LCC-REC-03",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-REC-03:COLUMN_HEADER). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice3",
+   "slice_verdict": "DEMOTE",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-REC-03:COLUMN_HEADER"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": false
+  },
+  {
+   "row_id": "UI-LCC-REC-04",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-REC-04:COLUMN_HEADER). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice3",
+   "slice_verdict": "DEMOTE",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-REC-04:COLUMN_HEADER"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": false
+  },
+  {
+   "row_id": "UI-LCC-REC-05",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-REC-05:COLUMN_HEADER). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice3",
+   "slice_verdict": "DEMOTE",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-REC-05:COLUMN_HEADER"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": false
+  },
+  {
+   "row_id": "UI-LCC-REC-06",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-REC-06:COLUMN_HEADER). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice3",
+   "slice_verdict": "DEMOTE",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-REC-06:COLUMN_HEADER"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": false
+  },
+  {
+   "row_id": "UI-LCC-REC-07",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-REC-07:COLUMN_HEADER). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice3",
+   "slice_verdict": "DEMOTE",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-REC-07:COLUMN_HEADER"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": false
+  },
+  {
+   "row_id": "UI-LCC-REC-08",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-REC-08:COLUMN_HEADER). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice3",
+   "slice_verdict": "DEMOTE",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-REC-08:COLUMN_HEADER"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": false
+  },
+  {
+   "row_id": "UI-LCC-REC-09",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-REC-09:COLUMN_HEADER). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice3",
+   "slice_verdict": "DEMOTE",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-REC-09:COLUMN_HEADER"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": false
+  },
+  {
+   "row_id": "UI-LCC-REC-11",
+   "verdict": "DEMOTE",
+   "standard_applied": "A check counts as ROW-SPECIFIC evidence for row X only if it meets BOTH limbs: (i) BINDING - the assertion names X own element/field/column and would fail if X alone were wrong while the rest of the page stayed correct; (ii) BEHAVIOUR - it exercises an observable in X stated expected_behaviour (engine/exchange-truth binding, unknown-to-n/a fallback, persistence/apply, or error surfacing), not merely the presence of a token anywhere on the page and not a label compared against the same SSOT source that produced the render. Failing (i) = vacuous. Passing (i) but failing (ii) = row-bound structural only, which cannot certify the row.",
+   "why": "Row-bound structural assertions only (UI-LCC-REC-11:COLUMN_HEADER). Each names this row own element/field/column (limb (i) ok) but asserts existence, tag, static default, or a header label compared against the same SSOT source that produced the render; none exercises engine-truth binding, unknown-to-n/a fallback, persistence or error surfacing (limb (ii) fails). The row stated expected_behaviour is unproven by this evidence.",
+   "slice": "slice3",
+   "slice_verdict": "DEMOTE",
+   "category": "ROW_BOUND_STRUCTURAL_ONLY",
+   "row_bound_checks": [
+    "UI-LCC-REC-11:COLUMN_HEADER"
+   ],
+   "page_wide_checks": [],
+   "negative_tests": [],
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "flip": false
+  }
+ ]
+}
