@@ -1,0 +1,54 @@
+{
+  "schema": "hl_certification_results_v1",
+  "commit": "31e599c",
+  "records": [
+    {
+      "id": "TN-F03",
+      "result": "NOT_TESTED",
+      "evidence_ref": "",
+      "tested_commit": "",
+      "tested_at_utc": "",
+      "notes": "Unable to execute proof: missing local-trading repo and/or API access; previous attempts rate-limited (quota wall)."
+    },
+    {
+      "id": "TN-F04",
+      "result": "NOT_TESTED",
+      "evidence_ref": "",
+      "tested_commit": "",
+      "tested_at_utc": "",
+      "notes": "Unable to execute proof: missing local-trading repo and/or API access; previous attempts rate-limited (quota wall)."
+    },
+    {
+      "id": "TN-F06",
+      "result": "NOT_TESTED",
+      "evidence_ref": "",
+      "tested_commit": "",
+      "tested_at_utc": "",
+      "notes": "Unable to execute proof: missing local-trading repo and/or API access; previous attempts rate-limited (quota wall)."
+    },
+    {
+      "id": "TN-F08",
+      "result": "NOT_TESTED",
+      "evidence_ref": "",
+      "tested_commit": "",
+      "tested_at_utc": "",
+      "notes": "Unable to execute proof: missing local-trading repo and/or API access; previous attempts rate-limited (quota wall)."
+    },
+    {
+      "id": "TN-F14",
+      "result": "NOT_TESTED",
+      "evidence_ref": "",
+      "tested_commit": "",
+      "tested_at_utc": "",
+      "notes": "Unable to execute proof: missing local-trading repo and/or API access; previous attempts rate-limited (quota wall)."
+    },
+    {
+      "id": "TN-F15",
+      "result": "NOT_TESTED",
+      "evidence_ref": "",
+      "tested_commit": "",
+      "tested_at_utc": "",
+      "notes": "Unable to execute proof: missing local-trading repo and/or API access; previous attempts rate-limited (quota wall)."
+    }
+  ]
+}

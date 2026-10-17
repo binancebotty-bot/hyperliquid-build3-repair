@@ -1,0 +1,1 @@
+Harness for NET_S3 commit 31e599c\nAttempted to certify NETWORK rows: TN-F03, TN-F04, TN-F06, TN-F08, TN-F14, TN-F15\nUnable to execute proof due to missing local-trading repo and API access.\nPrevious attempts were rate-limited (quota wall).\nAll rows left as NOT_TESTED.\n
