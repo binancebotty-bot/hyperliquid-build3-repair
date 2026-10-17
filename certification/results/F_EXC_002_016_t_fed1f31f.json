@@ -1,0 +1,107 @@
+[
+  {
+    "row_id": "F-EXC-002",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+    "tested_commit": "b142cf88d389e791160f691aac3d936852b99975",
+    "why": "Row-specific acceptance criterion: No exchange order. Fail closed. The required failure-trigger replay is not established for this row: the artifact cited by the prior register is a shared regression sweep, not row-bound evidence. The Build-3 certification checkout contains no Build-4 testnet/replay execution route for reproducing this EXC case; therefore this is untested, not a product pass/fail."
+  },
+  {
+    "row_id": "F-EXC-003",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+    "tested_commit": "b142cf88d389e791160f691aac3d936852b99975",
+    "why": "Row-specific acceptance criterion: Disable ENTRY/ADD; converge by sanctioned close/reduce or halt. The required failure-trigger replay is not established for this row: the artifact cited by the prior register is a shared regression sweep, not row-bound evidence. The Build-3 certification checkout contains no Build-4 testnet/replay execution route for reproducing this EXC case; therefore this is untested, not a product pass/fail."
+  },
+  {
+    "row_id": "F-EXC-004",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+    "tested_commit": "b142cf88d389e791160f691aac3d936852b99975",
+    "why": "Row-specific acceptance criterion: Do not place a new order until open orders are fetched and included in delta. The required failure-trigger replay is not established for this row: the artifact cited by the prior register is a shared regression sweep, not row-bound evidence. The Build-3 certification checkout contains no Build-4 testnet/replay execution route for reproducing this EXC case; therefore this is untested, not a product pass/fail."
+  },
+  {
+    "row_id": "F-EXC-005",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+    "tested_commit": "b142cf88d389e791160f691aac3d936852b99975",
+    "why": "Row-specific acceptance criterion: Reject ENTRY/ADD and report over_target blocker. The required failure-trigger replay is not established for this row: the artifact cited by the prior register is a shared regression sweep, not row-bound evidence. The Build-3 certification checkout contains no Build-4 testnet/replay execution route for reproducing this EXC case; therefore this is untested, not a product pass/fail."
+  },
+  {
+    "row_id": "F-EXC-006",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+    "tested_commit": "b142cf88d389e791160f691aac3d936852b99975",
+    "why": "Row-specific acceptance criterion: Flatten wrong-direction exposure first; do not open target direction until flat is exchange-confirmed. The required failure-trigger replay is not established for this row: the artifact cited by the prior register is a shared regression sweep, not row-bound evidence. The Build-3 certification checkout contains no Build-4 testnet/replay execution route for reproducing this EXC case; therefore this is untested, not a product pass/fail."
+  },
+  {
+    "row_id": "F-EXC-007",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+    "tested_commit": "b142cf88d389e791160f691aac3d936852b99975",
+    "why": "Row-specific acceptance criterion: Block unless reduce_only true, size <= actual reducible account-net exposure, and post-fill cannot flip. The required failure-trigger replay is not established for this row: the artifact cited by the prior register is a shared regression sweep, not row-bound evidence. The Build-3 certification checkout contains no Build-4 testnet/replay execution route for reproducing this EXC case; therefore this is untested, not a product pass/fail."
+  },
+  {
+    "row_id": "F-EXC-008",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+    "tested_commit": "b142cf88d389e791160f691aac3d936852b99975",
+    "why": "Row-specific acceptance criterion: Do not silently mark closed. Aggregate, block with telemetry, or use approved convergence action. The required failure-trigger replay is not established for this row: the artifact cited by the prior register is a shared regression sweep, not row-bound evidence. The Build-3 certification checkout contains no Build-4 testnet/replay execution route for reproducing this EXC case; therefore this is untested, not a product pass/fail."
+  },
+  {
+    "row_id": "F-EXC-009",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+    "tested_commit": "b142cf88d389e791160f691aac3d936852b99975",
+    "why": "Row-specific acceptance criterion: Treat WS as invalid trigger; reconcile from REST before any order or status. The required failure-trigger replay is not established for this row: the artifact cited by the prior register is a shared regression sweep, not row-bound evidence. The Build-3 certification checkout contains no Build-4 testnet/replay execution route for reproducing this EXC case; therefore this is untested, not a product pass/fail."
+  },
+  {
+    "row_id": "F-EXC-010",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+    "tested_commit": "b142cf88d389e791160f691aac3d936852b99975",
+    "why": "Row-specific acceptance criterion: Do not mutate position truth from synthetic key; reconcile from exchange. The required failure-trigger replay is not established for this row: the artifact cited by the prior register is a shared regression sweep, not row-bound evidence. The Build-3 certification checkout contains no Build-4 testnet/replay execution route for reproducing this EXC case; therefore this is untested, not a product pass/fail."
+  },
+  {
+    "row_id": "F-EXC-011",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+    "tested_commit": "b142cf88d389e791160f691aac3d936852b99975",
+    "why": "Row-specific acceptance criterion: Block wallet and require subscription proof or full restart/rebind. The required failure-trigger replay is not established for this row: the artifact cited by the prior register is a shared regression sweep, not row-bound evidence. The Build-3 certification checkout contains no Build-4 testnet/replay execution route for reproducing this EXC case; therefore this is untested, not a product pass/fail."
+  },
+  {
+    "row_id": "F-EXC-012",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+    "tested_commit": "b142cf88d389e791160f691aac3d936852b99975",
+    "why": "Row-specific acceptance criterion: Reject preflight before exchange call. The required failure-trigger replay is not established for this row: the artifact cited by the prior register is a shared regression sweep, not row-bound evidence. The Build-3 certification checkout contains no Build-4 testnet/replay execution route for reproducing this EXC case; therefore this is untested, not a product pass/fail."
+  },
+  {
+    "row_id": "F-EXC-013",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+    "tested_commit": "b142cf88d389e791160f691aac3d936852b99975",
+    "why": "Row-specific acceptance criterion: No exchange-client order calls from any path; report no_live_order_sent. The required failure-trigger replay is not established for this row: the artifact cited by the prior register is a shared regression sweep, not row-bound evidence. The Build-3 certification checkout contains no Build-4 testnet/replay execution route for reproducing this EXC case; therefore this is untested, not a product pass/fail."
+  },
+  {
+    "row_id": "F-EXC-014",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+    "tested_commit": "b142cf88d389e791160f691aac3d936852b99975",
+    "why": "Row-specific acceptance criterion: Hard stop build. Refactor before live or canary. The required failure-trigger replay is not established for this row: the artifact cited by the prior register is a shared regression sweep, not row-bound evidence. The Build-3 certification checkout contains no Build-4 testnet/replay execution route for reproducing this EXC case; therefore this is untested, not a product pass/fail."
+  },
+  {
+    "row_id": "F-EXC-015",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+    "tested_commit": "b142cf88d389e791160f691aac3d936852b99975",
+    "why": "Row-specific acceptance criterion: Block. Recovery may only request reconciler convergence. The required failure-trigger replay is not established for this row: the artifact cited by the prior register is a shared regression sweep, not row-bound evidence. The Build-3 certification checkout contains no Build-4 testnet/replay execution route for reproducing this EXC case; therefore this is untested, not a product pass/fail."
+  },
+  {
+    "row_id": "F-EXC-016",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+    "tested_commit": "b142cf88d389e791160f691aac3d936852b99975",
+    "why": "Row-specific acceptance criterion: Display as non-authoritative; cannot contribute to green. The required failure-trigger replay is not established for this row: the artifact cited by the prior register is a shared regression sweep, not row-bound evidence. The Build-3 certification checkout contains no Build-4 testnet/replay execution route for reproducing this EXC case; therefore this is untested, not a product pass/fail."
+  }
+]
