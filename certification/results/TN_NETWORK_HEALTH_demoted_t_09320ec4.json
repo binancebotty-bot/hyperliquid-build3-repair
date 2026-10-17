@@ -1,0 +1,86 @@
+[
+  {
+    "row_id": "TN-CAMP-01",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "origin/hermes/union-arithmetic-v2-corrected-t_f0d76afe:EVIDENCE/provenance/UNION_ARITHMETIC_V2_t_f0d76afe.json (demoted_sources); certification/certification_matrix.csv row TN-CAMP-01",
+    "tested_commit": "a0df277848f7e9d21b6539497c2f26d026619025",
+    "why": "NOT_TESTED: no runnable testnet engine, testnet credential state, or exchange reachability/evidence available in this environment; this row requires testnet execution and exchange-side evidence."
+  },
+  {
+    "row_id": "TN-CAMP-02",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "origin/hermes/union-arithmetic-v2-corrected-t_f0d76afe:EVIDENCE/provenance/UNION_ARITHMETIC_V2_t_f0d76afe.json (demoted_sources); certification/certification_matrix.csv row TN-CAMP-02",
+    "tested_commit": "a0df277848f7e9d21b6539497c2f26d026619025",
+    "why": "NOT_TESTED: no runnable testnet engine, testnet credential state, or exchange reachability/evidence available in this environment; this row requires testnet execution and exchange-side evidence."
+  },
+  {
+    "row_id": "TN-CAMP-03",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "origin/hermes/union-arithmetic-v2-corrected-t_f0d76afe:EVIDENCE/provenance/UNION_ARITHMETIC_V2_t_f0d76afe.json (demoted_sources); certification/certification_matrix.csv row TN-CAMP-03",
+    "tested_commit": "a0df277848f7e9d21b6539497c2f26d026619025",
+    "why": "NOT_TESTED: no runnable testnet engine, testnet credential state, or exchange reachability/evidence available in this environment; this row requires testnet execution and exchange-side evidence."
+  },
+  {
+    "row_id": "TN-CAMP-04",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "origin/hermes/union-arithmetic-v2-corrected-t_f0d76afe:EVIDENCE/provenance/UNION_ARITHMETIC_V2_t_f0d76afe.json (demoted_sources); certification/certification_matrix.csv row TN-CAMP-04",
+    "tested_commit": "a0df277848f7e9d21b6539497c2f26d026619025",
+    "why": "NOT_TESTED: no runnable testnet engine, testnet credential state, or exchange reachability/evidence available in this environment; this row requires testnet execution and exchange-side evidence."
+  },
+  {
+    "row_id": "TN-CAMP-05",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "origin/hermes/union-arithmetic-v2-corrected-t_f0d76afe:EVIDENCE/provenance/UNION_ARITHMETIC_V2_t_f0d76afe.json (demoted_sources); certification/certification_matrix.csv row TN-CAMP-05",
+    "tested_commit": "a0df277848f7e9d21b6539497c2f26d026619025",
+    "why": "NOT_TESTED: no runnable testnet engine, testnet credential state, or exchange reachability/evidence available in this environment; this row requires testnet execution and exchange-side evidence."
+  },
+  {
+    "row_id": "TN-CAMP-06",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "origin/hermes/union-arithmetic-v2-corrected-t_f0d76afe:EVIDENCE/provenance/UNION_ARITHMETIC_V2_t_f0d76afe.json (demoted_sources); certification/certification_matrix.csv row TN-CAMP-06",
+    "tested_commit": "a0df277848f7e9d21b6539497c2f26d026619025",
+    "why": "NOT_TESTED: no runnable testnet engine, testnet credential state, or exchange reachability/evidence available in this environment; this row requires testnet execution and exchange-side evidence."
+  },
+  {
+    "row_id": "TN-CAMP-07",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "origin/hermes/union-arithmetic-v2-corrected-t_f0d76afe:EVIDENCE/provenance/UNION_ARITHMETIC_V2_t_f0d76afe.json (demoted_sources); certification/certification_matrix.csv row TN-CAMP-07",
+    "tested_commit": "a0df277848f7e9d21b6539497c2f26d026619025",
+    "why": "NOT_TESTED: no runnable testnet engine, testnet credential state, or exchange reachability/evidence available in this environment; this row requires testnet execution and exchange-side evidence."
+  },
+  {
+    "row_id": "TN-CAMP-08",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "origin/hermes/union-arithmetic-v2-corrected-t_f0d76afe:EVIDENCE/provenance/UNION_ARITHMETIC_V2_t_f0d76afe.json (demoted_sources); certification/certification_matrix.csv row TN-CAMP-08",
+    "tested_commit": "a0df277848f7e9d21b6539497c2f26d026619025",
+    "why": "NOT_TESTED: no runnable testnet engine, testnet credential state, or exchange reachability/evidence available in this environment; this row requires testnet execution and exchange-side evidence."
+  },
+  {
+    "row_id": "TN-CAMP-09",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "origin/hermes/union-arithmetic-v2-corrected-t_f0d76afe:EVIDENCE/provenance/UNION_ARITHMETIC_V2_t_f0d76afe.json (demoted_sources); certification/certification_matrix.csv row TN-CAMP-09",
+    "tested_commit": "a0df277848f7e9d21b6539497c2f26d026619025",
+    "why": "NOT_TESTED: no runnable testnet engine, testnet credential state, or exchange reachability/evidence available in this environment; this row requires testnet execution and exchange-side evidence."
+  },
+  {
+    "row_id": "TN-F06",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "origin/hermes/union-arithmetic-v2-corrected-t_f0d76afe:EVIDENCE/provenance/UNION_ARITHMETIC_V2_t_f0d76afe.json (demoted_sources); certification/certification_matrix.csv row TN-F06",
+    "tested_commit": "a0df277848f7e9d21b6539497c2f26d026619025",
+    "why": "NOT_TESTED: no runnable testnet engine, testnet credential state, or exchange reachability/evidence available in this environment; this row requires testnet execution and exchange-side evidence."
+  },
+  {
+    "row_id": "TN-F16",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "origin/hermes/union-arithmetic-v2-corrected-t_f0d76afe:EVIDENCE/provenance/UNION_ARITHMETIC_V2_t_f0d76afe.json (demoted_sources); certification/certification_matrix.csv row TN-F16",
+    "tested_commit": "a0df277848f7e9d21b6539497c2f26d026619025",
+    "why": "NOT_TESTED: no runnable testnet engine, testnet credential state, or exchange reachability/evidence available in this environment; this row requires testnet execution and exchange-side evidence."
+  },
+  {
+    "row_id": "TN-F21",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "origin/hermes/union-arithmetic-v2-corrected-t_f0d76afe:EVIDENCE/provenance/UNION_ARITHMETIC_V2_t_f0d76afe.json (demoted_sources); certification/certification_matrix.csv row TN-F21",
+    "tested_commit": "a0df277848f7e9d21b6539497c2f26d026619025",
+    "why": "NOT_TESTED: no runnable testnet engine, testnet credential state, or exchange reachability/evidence available in this environment; this row requires testnet execution and exchange-side evidence."
+  }
+]
