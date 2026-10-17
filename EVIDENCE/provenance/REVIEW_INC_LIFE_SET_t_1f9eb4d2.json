@@ -1,0 +1,192 @@
+{
+  "source_branch": "hermes/verdicts-inc-life-set-t_8388dcec",
+  "source_head": "c2002e21a9a2350f22c21b7f20947115f98b9c2c",
+  "rows": [
+    {
+      "row_id": "INC-02",
+      "verdict": "PASS",
+      "probe": "Inspected cited JSON check keys/details: generic <ID>_INCIDENT_LEARNED wrapper / reused symbol-dedupe strings",
+      "why": "DEMOTE is supported: cited evidence lacks an independently falsifiable assertion for this row."
+    },
+    {
+      "row_id": "INC-04",
+      "verdict": "PASS",
+      "probe": "Inspected cited JSON check keys/details: generic <ID>_INCIDENT_LEARNED wrapper / reused symbol-dedupe strings",
+      "why": "DEMOTE is supported: cited evidence lacks an independently falsifiable assertion for this row."
+    },
+    {
+      "row_id": "INC-05",
+      "verdict": "PASS",
+      "probe": "Inspected cited JSON check keys/details: generic <ID>_INCIDENT_LEARNED wrapper / reused symbol-dedupe strings",
+      "why": "DEMOTE is supported: cited evidence lacks an independently falsifiable assertion for this row."
+    },
+    {
+      "row_id": "INC-06",
+      "verdict": "PASS",
+      "probe": "Inspected cited JSON check keys/details: generic <ID>_INCIDENT_LEARNED wrapper / reused symbol-dedupe strings",
+      "why": "DEMOTE is supported: cited evidence lacks an independently falsifiable assertion for this row."
+    },
+    {
+      "row_id": "INC-07",
+      "verdict": "PASS",
+      "probe": "Inspected cited JSON check keys/details: generic <ID>_INCIDENT_LEARNED wrapper / reused symbol-dedupe strings",
+      "why": "DEMOTE is supported: cited evidence lacks an independently falsifiable assertion for this row."
+    },
+    {
+      "row_id": "INC-08",
+      "verdict": "PASS",
+      "probe": "Inspected cited JSON check keys/details: generic <ID>_INCIDENT_LEARNED wrapper / reused symbol-dedupe strings",
+      "why": "DEMOTE is supported: cited evidence lacks an independently falsifiable assertion for this row."
+    },
+    {
+      "row_id": "INC-09",
+      "verdict": "PASS",
+      "probe": "Inspected cited JSON check keys/details: generic <ID>_INCIDENT_LEARNED wrapper / reused symbol-dedupe strings",
+      "why": "DEMOTE is supported: cited evidence lacks an independently falsifiable assertion for this row."
+    },
+    {
+      "row_id": "INC-12",
+      "verdict": "PASS",
+      "probe": "Inspected cited JSON check keys/details: generic <ID>_INCIDENT_LEARNED wrapper / reused symbol-dedupe strings",
+      "why": "DEMOTE is supported: cited evidence lacks an independently falsifiable assertion for this row."
+    },
+    {
+      "row_id": "INC-13",
+      "verdict": "PASS",
+      "probe": "Inspected cited JSON check keys/details: UI_CORRECTION checks carry pass=true despite defect text; summary records failures.",
+      "why": "DEMOTE is supported: cited evidence lacks an independently falsifiable assertion for this row."
+    },
+    {
+      "row_id": "INC-14",
+      "verdict": "PASS",
+      "probe": "Inspected cited JSON check keys/details: UI_CORRECTION checks carry pass=true despite defect text; summary records failures.",
+      "why": "DEMOTE is supported: cited evidence lacks an independently falsifiable assertion for this row."
+    },
+    {
+      "row_id": "INC-15",
+      "verdict": "PASS",
+      "probe": "Inspected cited JSON check keys/details: UI_CORRECTION checks carry pass=true despite defect text; summary records failures.",
+      "why": "DEMOTE is supported: cited evidence lacks an independently falsifiable assertion for this row."
+    },
+    {
+      "row_id": "INC-16",
+      "verdict": "PASS",
+      "probe": "Inspected cited JSON check keys/details: UI_CORRECTION checks carry pass=true despite defect text; summary records failures.",
+      "why": "DEMOTE is supported: cited evidence lacks an independently falsifiable assertion for this row."
+    },
+    {
+      "row_id": "INC-17",
+      "verdict": "PASS",
+      "probe": "Inspected cited JSON check keys/details: UI_CORRECTION checks carry pass=true despite defect text; summary records failures.",
+      "why": "DEMOTE is supported: cited evidence lacks an independently falsifiable assertion for this row."
+    },
+    {
+      "row_id": "LIFE-001",
+      "verdict": "PASS",
+      "probe": "Checked row-keyed checks: INSTANCE_LOCK_ACQUIRED=instance.lock exists: True; ENGINE_CONSTRUCTS=LiveCopyCore constructed successfully; ENGINE_HAS_COMPONENTS=ledger=ManualLedger, dedupe=DedupeStore; PROCESS_ALIVE=PID=35084; NEG:AUTO_SEND_DISABLED_ZERO_SENDS=auto_send_enabled=False (must be False when HL_LIVE_AUTO_SEND_ENABLED=0)",
+      "why": "KEEP supported: evidence has a falsifiable check keyed to this row; no sibling row can satisfy the same row_id-keyed observation."
+    },
+    {
+      "row_id": "LIFE-002",
+      "verdict": "PASS",
+      "probe": "Checked row-keyed checks: WS_THREAD_RUNNING=WS thread alive: True; STOP_KILLS_WS_THREAD=WS heartbeat thread dead after stop: True; NEG:STOP_EVENT_SET=hot_stop_event set: True",
+      "why": "KEEP supported: evidence has a falsifiable check keyed to this row; no sibling row can satisfy the same row_id-keyed observation."
+    },
+    {
+      "row_id": "LIFE-003",
+      "verdict": "PASS",
+      "probe": "Checked row-keyed checks: FIRST_CONSTRUCTION_OK=First LiveCopyCore constructed; RESTART_CONSTRUCTION_OK=Second LiveCopyCore constructed after state persist; NEG:RESTART_PERSISTS_STATE=live_start_ms=1791971709954",
+      "why": "KEEP supported: evidence has a falsifiable check keyed to this row; no sibling row can satisfy the same row_id-keyed observation."
+    },
+    {
+      "row_id": "LIFE-004",
+      "verdict": "PASS",
+      "probe": "Checked row-keyed checks: STATUS_RETURNS_DICT=status keys: ['created_at', 'created_at_ms', 'status', 'counts', 'ownership_gate']; STATUS_HAS_COUNTS=has counts: True",
+      "why": "KEEP supported: evidence has a falsifiable check keyed to this row; no sibling row can satisfy the same row_id-keyed observation."
+    },
+    {
+      "row_id": "LIFE-005",
+      "verdict": "FAIL",
+      "probe": "Compared evidence PROCESS_STARTED_AT_MS=1791971708642 and engine filename with tested_commit fa9d9f55...; evidence has no serving PID/build commit binding or proof the commit predates that process start.",
+      "why": "KEEP/Demote decision cannot establish the required process-rule binding; artifact proves a timestamp and filename only, not which committed build served."
+    },
+    {
+      "row_id": "LIFE-006",
+      "verdict": "FAIL",
+      "probe": "Evidence has LIVE_START_MS_SET, LIVE_START_MS_PERSISTS and NEG:WIPED_STATE_FRESH_LIVE_START (t3 differs from t1).",
+      "why": "DEMOTE is not supported by the cited evidence: row-keyed fresh-start negative control distinguishes lifecycle reset from LIFE-007 persistence; the review summary overlooks that falsifiable control."
+    },
+    {
+      "row_id": "LIFE-007",
+      "verdict": "PASS",
+      "probe": "Checked row-keyed checks: RECOVERY_FIRST_CONSTRUCTION=live_start_ms=1; RECOVERY_STATE_PERSISTS=live_start_ms=1 (should be 1 from persisted state); NEG:STATE_FILE_PERSISTS=state file exists: True",
+      "why": "KEEP supported: evidence has a falsifiable check keyed to this row; no sibling row can satisfy the same row_id-keyed observation."
+    },
+    {
+      "row_id": "LIFE-008",
+      "verdict": "PASS",
+      "probe": "Checked row-keyed checks: CONFIG_LOADS_WALLETS=wallets loaded: 1; CONFIG_AUTO_SEND=auto_send_enabled=False; CONFIG_EMPTY_WALLETS_OK=wallets type: <class 'dict'>",
+      "why": "KEEP supported: evidence has a falsifiable check keyed to this row; no sibling row can satisfy the same row_id-keyed observation."
+    },
+    {
+      "row_id": "LIFE-009",
+      "verdict": "PASS",
+      "probe": "Checked row-keyed checks: INSTANCE_LOCK_PREVENTS_DOUBLE=Correctly refused: INSTANCE_ALREADY_RUNNING: another engine holds C:\\Users\\wigmore\\AppData\\Local\\Temp\\b3cert_life_2czh50ze\\audit9; NEG:DIFFERENT_DIR_ALLOWED=Different state dir correctly allowed",
+      "why": "KEEP supported: evidence has a falsifiable check keyed to this row; no sibling row can satisfy the same row_id-keyed observation."
+    },
+    {
+      "row_id": "SET-001",
+      "verdict": "FAIL",
+      "probe": "Checked row-keyed evidence entries: ACK_NOT_SETTLEMENT=status=UNSETTLED, settled=False; ACK_NO_PROOF_UNKNOWN=status=SETTLEMENT_UNKNOWN",
+      "why": "Author marks KEEP, but row-keyed evidence alone does not establish test execution/mutation sensitivity; no independent mutation control was demonstrated for this row."
+    },
+    {
+      "row_id": "SET-002",
+      "verdict": "FAIL",
+      "probe": "Checked row-keyed evidence entries: MASTER_FULL_SETTLEMENT=status=SETTLED_FULL, filled=1.0; MASTER_MULTI_SCOPE_SETTLEMENT=status=SETTLED_FULL, filled=1.0",
+      "why": "Author marks KEEP, but row-keyed evidence alone does not establish test execution/mutation sensitivity; no independent mutation control was demonstrated for this row."
+    },
+    {
+      "row_id": "SET-003",
+      "verdict": "FAIL",
+      "probe": "Checked row-keyed evidence entries: TERMINAL_REJECT_SETTLES=status=TERMINAL_REJECT_NO_FILL",
+      "why": "Author marks KEEP, but row-keyed evidence alone does not establish test execution/mutation sensitivity; no independent mutation control was demonstrated for this row."
+    },
+    {
+      "row_id": "SET-004",
+      "verdict": "FAIL",
+      "probe": "Checked row-keyed evidence entries: PARTIAL_FILL_SETTLES=status=SETTLED_PARTIAL, filled=0.6, remaining=0.4",
+      "why": "Author marks KEEP, but row-keyed evidence alone does not establish test execution/mutation sensitivity; no independent mutation control was demonstrated for this row."
+    },
+    {
+      "row_id": "SET-005",
+      "verdict": "FAIL",
+      "probe": "Checked row-keyed evidence entries: CRASH_BEFORE_OID_UNSETTLED=status=UNSETTLED",
+      "why": "Author marks KEEP, but row-keyed evidence alone does not establish test execution/mutation sensitivity; no independent mutation control was demonstrated for this row."
+    },
+    {
+      "row_id": "SET-006",
+      "verdict": "FAIL",
+      "probe": "Checked row-keyed evidence entries: RECONCILIATION_NO_DIVERGENCE_OK=divergence=0.0, blocker=None; RECONCILIATION_DIVERGENCE_BLOCKED=divergence=1.0, blocker=RECONCILIATION_DIVERGENCE",
+      "why": "Author marks KEEP, but row-keyed evidence alone does not establish test execution/mutation sensitivity; no independent mutation control was demonstrated for this row."
+    },
+    {
+      "row_id": "SET-007",
+      "verdict": "PASS",
+      "probe": "Checked row-keyed evidence entries: TESTNET_ENDPOINTS_RESOLVE=follower=testnet; TESTNET_HOSTNAME_CORRECT=follower_info=https://api.hyperliquid-testnet.xyz/info",
+      "why": "DEMOTE supported: only topology/stamp checks, not the claimed genuine entry/exit proof."
+    },
+    {
+      "row_id": "SET-008",
+      "verdict": "PASS",
+      "probe": "Checked row-keyed evidence entries: CERT_TOPOLOGY_LEADER_MAINNET_FOLLOWER_TESTNET=leader=mainnet, follower=testnet; NETWORK_STAMP_BINDS=stamp={'leader': 'mainnet', 'follower': 'testnet'}",
+      "why": "DEMOTE supported: only topology/stamp checks, not the claimed genuine entry/exit proof."
+    }
+  ],
+  "overall": "FAIL",
+  "counts": {
+    "audited": 30,
+    "PASS": 22,
+    "FAIL": 8
+  }
+}
