@@ -63,6 +63,7 @@ duplicate / abandoned blockers are closed with a reason, not re-presented.
   (realignment ACK only, no DONE-10 ruling); newest outbox is `2026-10-14T11-40-00Z-B3-H2C-PHYSICAL-FILL-RESULT-1.json`
   (testnet physical-fill result, not a MAINNET ruling). No DONE-10 decision present anywhere in the
   mailbox or in this file before this entry.
+- **Re-verified 2026-10-17 (t_aff3260d):** `git fetch origin control-mailbox` re-run; newest inbound is still `2026-10-09T16-14-33Z-B3-C2H-REALIGN-CFF93B-ACK-1.json` (realign ACK only) and no DONE-10 ruling exists in the mailbox or in this file. Row remains BLOCKED; no ruling inferred.
 - **Row state:** kept `BLOCKED` on human decision — NOT `PASS`, NOT treated as unblocked. Do NOT invent
   or infer a ruling. `certification_matrix.json` is NOT edited by this task (matrix is owner-applied
   via the overlay); this durable entry is the authoritative blocked-reason record until the matrix
