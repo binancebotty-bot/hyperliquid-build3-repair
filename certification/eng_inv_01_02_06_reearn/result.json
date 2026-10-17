@@ -1,0 +1,314 @@
+{
+ "schema": "eng_inv_01_02_06_reearn/v2",
+ "card": "t_43fbb222",
+ "supersedes_card": "t_20e1cb6d",
+ "repo": "binancebotty-bot/hyperliquid-build3-repair",
+ "branch_base": "89b3bc7",
+ "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+ "inv02_predicate_version": "CERTIFIED_SCOPE (narrowed, defect 2 of t_43fbb222)",
+ "engine_sha256": {
+  "HL_Copy_App_SSOT.py": "7468ab5188750617b090b56c3e719d73e91f5b4241f4782382ccac1a22989276",
+  "HL_Live_Copy_Service.py": "e2f04fa826958c73169bae2490a6ebb3ebfd09d9aecda513ef0d7bd8a10ec2c6",
+  "HL_Live_Copy_Service_Core.py": "2dfbd571012af67479ee7a2d9e6f1faac6ee5408722a092fb3625450cab51405",
+  "convergence_shadow.py": "4d0265c5bece3222967246601866b90783feda7fd8cbe17c3707e4217944cb81",
+  "exchange_truth.py": "aa3f660eea52d285c8109027fa16a9a4ccc492385d130a243c86a1b94518b903"
+ },
+ "rows": [
+  {
+   "row": "ENG-INV-01",
+   "expected_behaviour": "One process.",
+   "assertion": "AST of every production engine source at the cited commit contains no process-spawn construct (import subprocess/multiprocessing/pty, Popen()/Process()/fork(), os.system/popen/spawn*)",
+   "pass": true,
+   "detail": {
+    "files_scanned": [
+     "HL_Copy_App_SSOT.py",
+     "HL_Live_Copy_Service.py",
+     "HL_Live_Copy_Service_Core.py",
+     "convergence_shadow.py",
+     "exchange_truth.py"
+    ],
+    "spawn_sites": []
+   }
+  },
+  {
+   "row": "ENG-INV-02",
+   "expected_behaviour": "Exactly one physical production .order() call site.",
+   "predicate_name": "ONE_PHYSICAL_ORDER_SITE_CERTIFIED_SCOPE",
+   "assertion": "exactly one `*.order(...)` Call node exists in the CERTIFIED BUILD 3 ENGINE SCOPE (HL_Live_Copy_Service_Core.py); .order() nodes in modules outside that scope are reported separately and do not count",
+   "certified_scope": [
+    "HL_Live_Copy_Service_Core.py"
+   ],
+   "scope_authority": [
+    "ARCHITECTURE.md scope budget (\"physical production order sites: 1\")",
+    "MASTER_PRODUCT_INVARIANTS_AND_CERTIFICATION.md OD-26 / section 5",
+    "CONTROL_STATE.json single_order_site"
+   ],
+   "pass": true,
+   "detail": {
+    "order_call_nodes_certified_scope": [
+     {
+      "file": "HL_Live_Copy_Service_Core.py",
+      "line": 2703,
+      "receiver": "exchange",
+      "enclosing": {
+       "line": 2695,
+       "def": "def _place_order(self, exchange: Any, sdk_coin: str, is_buy: bool, size: float, limit_px: float,"
+      }
+     }
+    ],
+    "count_certified_scope": 1,
+    "order_call_nodes_all": [
+     {
+      "file": "HL_Live_Copy_Service.py",
+      "line": 1036,
+      "receiver": "exchange"
+     },
+     {
+      "file": "HL_Live_Copy_Service_Core.py",
+      "line": 2703,
+      "receiver": "exchange"
+     }
+    ],
+    "count_all": 2,
+    "excluded_from_scope": [
+     {
+      "file": "HL_Live_Copy_Service.py",
+      "line": 1036,
+      "receiver": "exchange",
+      "excluded_because": "module outside the certified engine scope; OD-26 fixes certification to HL_Live_Copy_Service_Core.py",
+      "enclosing": {
+       "line": 936,
+       "def": "def send_hyperliquid_order(payload: Dict[str, Any], marketable_bps: float = 0.0, use_current_quote: bool = False, max_no"
+      }
+     }
+    ],
+    "note": "count_all is reported unchanged so the narrowing is auditable. Before this card the row was measured on count_all."
+   }
+  },
+  {
+   "row": "ENG-INV-06",
+   "expected_behaviour": "No new engine/runtime around Build 3.",
+   "assertion": "relative to the branch-point commit the production .py file set gains no new file, no new .order() send site appears, and no new authoritative persistent store constructor is introduced",
+   "pass": true,
+   "detail": {
+    "base_commit": "89b3bc7",
+    "test_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+    "base_production_files": [
+     "HL_Copy_App_SSOT.py",
+     "HL_Live_Copy_Service.py",
+     "HL_Live_Copy_Service_Core.py",
+     "bench_memory_profile.py",
+     "catchup_plan.py",
+     "convergence_shadow.py",
+     "exchange_truth.py",
+     "headroom.py",
+     "outage_classify.py",
+     "tools_memory_profile.py"
+    ],
+    "test_production_files": [
+     "HL_Copy_App_SSOT.py",
+     "HL_Live_Copy_Service.py",
+     "HL_Live_Copy_Service_Core.py",
+     "convergence_shadow.py",
+     "exchange_truth.py"
+    ],
+    "added_files": [],
+    "removed_files": [
+     "bench_memory_profile.py",
+     "catchup_plan.py",
+     "headroom.py",
+     "outage_classify.py",
+     "tools_memory_profile.py"
+    ],
+    "base_order_sites": [
+     {
+      "file": "HL_Live_Copy_Service.py",
+      "line": 1036,
+      "receiver": "exchange"
+     },
+     {
+      "file": "HL_Live_Copy_Service_Core.py",
+      "line": 4344,
+      "receiver": "exchange"
+     }
+    ],
+    "test_order_sites": [
+     {
+      "file": "HL_Live_Copy_Service.py",
+      "line": 1036,
+      "receiver": "exchange"
+     },
+     {
+      "file": "HL_Live_Copy_Service_Core.py",
+      "line": 2703,
+      "receiver": "exchange"
+     }
+    ],
+    "new_store_tokens": []
+   }
+  }
+ ],
+ "mutation_controls": [
+  {
+   "row": "ENG-INV-01",
+   "mutation": "inv01_add_subprocess",
+   "expected": "FAIL",
+   "actual_row_check": false,
+   "non_vacuous": true,
+   "detail": null,
+   "note": ""
+  },
+  {
+   "row": "ENG-INV-01",
+   "mutation": "inv01_add_second_process",
+   "expected": "FAIL",
+   "actual_row_check": false,
+   "non_vacuous": true,
+   "detail": null,
+   "note": ""
+  },
+  {
+   "row": "ENG-INV-02",
+   "mutation": "inv02_add_site_core_far",
+   "expected": "FAIL",
+   "actual_row_check": false,
+   "non_vacuous": true,
+   "detail": {
+    "certified_scope_sites": [
+     {
+      "file": "HL_Live_Copy_Service_Core.py",
+      "line": 2703,
+      "receiver": "exchange"
+     },
+     {
+      "file": "HL_Live_Copy_Service_Core.py",
+      "line": 8034,
+      "receiver": "exchange"
+     }
+    ],
+    "count": 2
+   },
+   "note": "a second send path appended to the certified engine must trip the narrowed check"
+  },
+  {
+   "row": "ENG-INV-02",
+   "mutation": "inv02_add_site_core_in_place_order",
+   "expected": "FAIL",
+   "actual_row_check": false,
+   "non_vacuous": true,
+   "detail": {
+    "certified_scope_sites": [
+     {
+      "file": "HL_Live_Copy_Service_Core.py",
+      "line": 2701,
+      "receiver": "exchange"
+     },
+     {
+      "file": "HL_Live_Copy_Service_Core.py",
+      "line": 2704,
+      "receiver": "exchange"
+     }
+    ],
+    "count": 2
+   },
+   "note": "a second send stacked inside the one sanctioned sender must also trip it"
+  },
+  {
+   "row": "ENG-INV-02",
+   "mutation": "inv02_add_site_legacy_only",
+   "expected": "PASS (scope-bounded: excluded from certified scope)",
+   "actual_row_check": true,
+   "non_vacuous": true,
+   "detail": {
+    "certified_scope_count": 1,
+    "whole_tree_count": 3,
+    "excluded": [
+     {
+      "file": "HL_Live_Copy_Service.py",
+      "line": 1036,
+      "receiver": "exchange"
+     },
+     {
+      "file": "HL_Live_Copy_Service.py",
+      "line": 5113,
+      "receiver": "exchange"
+     }
+    ]
+   },
+   "note": "demonstrates the scope boundary: the same synthetic send path is invisible to the narrowed predicate and visible to the unnarrowed one. Both numbers are reported."
+  },
+  {
+   "row": "ENG-INV-02",
+   "mutation": "reproduce the ORIGINAL cited predicate verbatim: window 2700<line<2800 on Core only",
+   "expected": "PASS on the unmutated tree",
+   "actual_row_check": true,
+   "non_vacuous": true,
+   "detail": {
+    "core_order_lines": [
+     2703
+    ],
+    "window_2700_2800": [
+     2703
+    ],
+    "passed": true
+   },
+   "note": "the original predicate was window- and file-bound; it is superseded, not reused"
+  },
+  {
+   "row": "ENG-INV-02",
+   "mutation": "original cited predicate vs a real second send path in the LEGACY module",
+   "expected": "PASS - it is blind to every file except Core",
+   "actual_row_check": true,
+   "non_vacuous": true,
+   "detail": {
+    "cited_predicate": {
+     "core_order_lines": [
+      2703
+     ],
+     "window_2700_2800": [
+      2703
+     ],
+     "passed": true
+    },
+    "whole_tree_count": 3
+   },
+   "note": "this blindness is why the original predicate could not speak for the row"
+  },
+  {
+   "row": "ENG-INV-02",
+   "mutation": "original cited predicate vs a second .order() site INSIDE 2700<line<2800",
+   "expected": "FAIL - its own-window negative control is real",
+   "actual_row_check": false,
+   "non_vacuous": true,
+   "detail": {
+    "core_order_lines": [
+     2703,
+     2705
+    ],
+    "window_2700_2800": [
+     2703,
+     2705
+    ],
+    "passed": false
+   }
+  },
+  {
+   "row": "ENG-INV-06",
+   "mutation": "inv06_add_runtime_file",
+   "expected": "FAIL",
+   "actual_row_check": false,
+   "non_vacuous": true,
+   "detail": null,
+   "note": ""
+  },
+  {
+   "row": "ENG-INV-06",
+   "mutation": "inv06_add_store",
+   "expected": "FAIL",
+   "actual_row_check": false,
+   "non_vacuous": true,
+   "detail": null,
+   "note": ""
+  }
+ ]
+}
