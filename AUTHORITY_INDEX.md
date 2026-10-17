@@ -154,3 +154,17 @@ are visible at a glance rather than inferred from a database column.
 
 **Success is measured by COMPLETIONS per lane, not by "is it running".** A lane with 6 cards running and
 7 ever completed is not working; it is churning.
+
+### Card creation trap — the title is not the model (2026-10-17)
+
+A card whose TITLE names its lane (`[deepseek:deepseek-v4-flash]`) but whose `model_override` and
+`provider_override` columns are NULL dispatches on the **profile default**, which here is
+`custom:deepseek` — the PAID provider. Eight cards ran that way for a full cycle while their titles read
+"deepseek", "luna", "gemini", "openrouter".
+
+**Rules:**
+1. Set `model` and `provider` **at creation time** on the creating tool call. Never rely on a follow-up
+   `set-model` — a card can be dispatched in the gap.
+2. After any batch of card creation, assert `count(tasks running AND provider_override IS NULL) = 0`
+   before considering the batch done. Treat any UNSET as a **paid-model violation**, not a cosmetic gap.
+3. The title convention is for human readability only. It is not a routing signal.
