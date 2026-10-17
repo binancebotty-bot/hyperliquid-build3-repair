@@ -1,0 +1,379 @@
+{
+ "batch": "UI-LCC-POS-06..UI-LCC-EXQ-08",
+ "task": "t_6b2c80f7",
+ "generated_at_utc": "2026-10-17T18:05:54.748272+00:00",
+ "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+ "page": "http://127.0.0.1:8031/live-copy",
+ "serving_process": {
+  "pid": 33368,
+  "started_local": "17/10/2026 11:54:09",
+  "cmdline": "python.exe -I -m uvicorn HL_Copy_App_SSOT:app --host 127.0.0.1 --port 8031 --app-dir C:/Users/wigmore/trading_stack/hl-build3-testnet-cert-j28-89b3bc7/_archive/hl_stage2",
+  "serving_build_dir": "hl-build3-testnet-cert-j28-89b3bc7 (name encodes 89b3bc7, committed 07:18Z, before the process start 10:54Z)"
+ },
+ "row_alignment": {
+  "dom_rows": 300,
+  "payload_rows": 300,
+  "compared": 300,
+  "identity_columns": "Time and Wallet are the row identity: Time agrees 300/300 with 0/300 cross-row matches and Wallet 300/300 with only 64/300, so DOM row k is payload row k."
+ },
+ "exchange_context": {
+  "exchange_snapshot_status": "UNAVAILABLE",
+  "account_reason": "ACCOUNT_ADDRESS_UNAVAILABLE",
+  "note": "MASTER clearinghouseState is UNAVAILABLE on this serving build (ACCOUNT_ADDRESS_UNAVAILABLE), so the exchange-equality half of the shared expected behaviour cannot be tested. It does not excuse absent or displaced columns, which are judged against the rendered table and the live payload the same page renders."
+ },
+ "measurements": {
+  "headers": [
+   "Time",
+   "Wallet",
+   "Coin",
+   "Side",
+   "Status",
+   "Terminal state",
+   "Operator action",
+   "Reject category",
+   "OID",
+   "Fill avg px",
+   "Size",
+   "Pos before -> after",
+   "Leader\u2192send ms",
+   "Total ms",
+   "Symbol ms",
+   "SDK ms",
+   "Exchange ms",
+   "Error"
+  ],
+  "header_count": 18,
+  "cells_per_row": [
+   19
+  ],
+  "binding": {
+   "Time": {
+    "col": 0,
+    "agree": 300,
+    "of": 300,
+    "contradict": 0,
+    "cross37": 0,
+    "cross37_of": 300
+   },
+   "Wallet": {
+    "col": 1,
+    "agree": 300,
+    "of": 300,
+    "contradict": 0,
+    "cross37": 64,
+    "cross37_of": 300
+   },
+   "Coin": {
+    "col": 2,
+    "agree": 293,
+    "of": 300,
+    "contradict": 7,
+    "cross37": 13,
+    "cross37_of": 300
+   },
+   "Side": {
+    "col": 3,
+    "agree": 300,
+    "of": 300,
+    "contradict": 0,
+    "cross37": 158,
+    "cross37_of": 300
+   },
+   "Status": {
+    "col": 4,
+    "agree": 0,
+    "of": 300,
+    "contradict": 300,
+    "cross37": 0,
+    "cross37_of": 300
+   },
+   "Terminal state": {
+    "col": 5,
+    "agree": 0,
+    "of": 300,
+    "contradict": 300,
+    "cross37": 0,
+    "cross37_of": 300
+   },
+   "Operator action": {
+    "col": 6,
+    "agree": 3,
+    "of": 300,
+    "contradict": 297,
+    "cross37": 0,
+    "cross37_of": 300
+   },
+   "Reject category": {
+    "col": 7,
+    "agree": 0,
+    "of": 284,
+    "contradict": 284,
+    "cross37": 0,
+    "cross37_of": 268
+   },
+   "OID": {
+    "col": 8,
+    "agree": 0,
+    "of": 16,
+    "contradict": 16,
+    "cross37": 0,
+    "cross37_of": 0
+   },
+   "Fill avg px": {
+    "col": 9,
+    "agree": 0,
+    "of": 16,
+    "contradict": 16,
+    "cross37": 0,
+    "cross37_of": 0
+   },
+   "Size": {
+    "col": 10,
+    "agree": 0,
+    "of": 16,
+    "contradict": 16,
+    "cross37": 0,
+    "cross37_of": 0
+   }
+  },
+  "rendered_cell_to_payload_field": {
+   "0": {
+    "header": "Time",
+    "carries": {
+     "time": 300
+    }
+   },
+   "1": {
+    "header": "Wallet",
+    "carries": {
+     "leader_wallet": 300
+    }
+   },
+   "2": {
+    "header": "Coin",
+    "carries": {
+     "coin": 293
+    }
+   },
+   "3": {
+    "header": "Side",
+    "carries": {
+     "side": 300
+    }
+   },
+   "4": {
+    "header": "Status",
+    "carries": {
+     "terminal_state": 16
+    }
+   },
+   "5": {
+    "header": "Terminal state",
+    "carries": {
+     "status": 300
+    }
+   },
+   "6": {
+    "header": "Operator action",
+    "carries": {
+     "terminal_state": 300,
+     "operator_action": 3
+    }
+   },
+   "7": {
+    "header": "Reject category",
+    "carries": {
+     "operator_action": 300,
+     "terminal_state": 148
+    }
+   },
+   "8": {
+    "header": "OID",
+    "carries": {
+     "reject_category": 284
+    }
+   },
+   "9": {
+    "header": "Fill avg px",
+    "carries": {
+     "oid": 16
+    }
+   },
+   "10": {
+    "header": "Size",
+    "carries": {
+     "fill_avg_px": 16
+    }
+   },
+   "11": {
+    "header": "Pos before -> after",
+    "carries": {
+     "fill_size": 16
+    }
+   },
+   "14": {
+    "header": "Symbol ms",
+    "carries": {
+     "time": 1
+    }
+   }
+  },
+  "limit_px_nonnull": 300,
+  "payload_total": 5000,
+  "owned": {
+   "headers": [
+    "Wallet",
+    "Coin",
+    "Side",
+    "Signed size",
+    "Avg entry",
+    "Ledger/exchange",
+    "Exchange size",
+    "Last copy fill",
+    "Last updated"
+   ],
+   "dom_rows": 465,
+   "payload_rows": 465,
+   "wallet": {
+    "agree": 465,
+    "of": 465,
+    "contradict": 0,
+    "cross37": 96
+   },
+   "wallet_keyjoin": {
+    "agree": 464,
+    "of": 464,
+    "unkeyed": 1
+   },
+   "last_updated_rendered_values": [
+    "\u2014"
+   ],
+   "last_copy_fill_0x": 465,
+   "payload": {
+    "ms": 465,
+    "at": 0,
+    "oid": 0,
+    "mark": 0,
+    "upnl": 0,
+    "pv": 0
+   }
+  }
+ },
+ "artifacts": [
+  "certification/results/UI_LCC_POS06_EXQ08_evidence.json",
+  "certification/results/UI_LCC_POS06_EXQ08_atomic.json",
+  "final3.py"
+ ],
+ "rows": [
+  {
+   "row_id": "UI-LCC-POS-06",
+   "verdict": "FAIL",
+   "evidence_ref": "certification/results/UI_LCC_POS06_EXQ08_evidence.json",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "No Mark px column exists in Real Copy Positions. The rendered headers are exactly ['Wallet', 'Coin', 'Side', 'Signed size', 'Avg entry', 'Ledger/exchange', 'Exchange size', 'Last copy fill', 'Last updated'] and none carries a mark price; the payload mark_px is null on 0/465 rows because the exchange oracle is UNAVAILABLE (ACCOUNT_ADDRESS_UNAVAILABLE). The column is absent from the build, not merely unpopulated."
+  },
+  {
+   "row_id": "UI-LCC-POS-07",
+   "verdict": "FAIL",
+   "evidence_ref": "certification/results/UI_LCC_POS06_EXQ08_evidence.json",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "No Pos value column exists: headers ['Wallet', 'Coin', 'Side', 'Signed size', 'Avg entry', 'Ledger/exchange', 'Exchange size', 'Last copy fill', 'Last updated'] contain no position-value column and payload position_value is null on 0/465 rows."
+  },
+  {
+   "row_id": "UI-LCC-POS-08",
+   "verdict": "FAIL",
+   "evidence_ref": "certification/results/UI_LCC_POS06_EXQ08_evidence.json",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "No Unrealized PnL column exists: headers ['Wallet', 'Coin', 'Side', 'Signed size', 'Avg entry', 'Ledger/exchange', 'Exchange size', 'Last copy fill', 'Last updated'] contain no PnL column and payload unrealized_pnl is null on 0/465 rows."
+  },
+  {
+   "row_id": "UI-LCC-POS-09",
+   "verdict": "PASS",
+   "evidence_ref": "certification/results/UI_LCC_POS06_EXQ08_evidence.json",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "Leader wallet (column 0 of ['Wallet', 'Coin', 'Side', 'Signed size', 'Avg entry', 'Ledger/exchange', 'Exchange size', 'Last copy fill', 'Last updated']) is row-bound: the cell equals the elided head+tail form of THIS row leader_wallet on 465/465 rows with 0 contradictions, while the same cell against payload row k+37 matches on only 96/465. Independently, keying each row to payload on (coin, side, signed size) gives 464/464 matches (1 unkeyed). A swapped wallet would break it."
+  },
+  {
+   "row_id": "UI-LCC-POS-10",
+   "verdict": "FAIL",
+   "evidence_ref": "certification/results/UI_LCC_POS06_EXQ08_evidence.json",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "No Status column exists: headers ['Wallet', 'Coin', 'Side', 'Signed size', 'Avg entry', 'Ledger/exchange', 'Exchange size', 'Last copy fill', 'Last updated']. The only status-shaped cell is the Ledger/exchange reconciliation badge (values such as OWNED_COPYEXCHANGE_UNAVAILABLE), which compares ledger against exchange rather than reporting position status; the Status column is not rendered."
+  },
+  {
+   "row_id": "UI-LCC-POS-11",
+   "verdict": "FAIL",
+   "evidence_ref": "certification/results/UI_LCC_POS06_EXQ08_evidence.json",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "No Last OID column exists: headers ['Wallet', 'Coin', 'Side', 'Signed size', 'Avg entry', 'Ledger/exchange', 'Exchange size', 'Last copy fill', 'Last updated']. The nearest column, Last copy fill, renders a 0x fill id on 465 rows (a fill id, not an order id) and payload last_oid is empty on 0/465 rows, so order identity is never displayed."
+  },
+  {
+   "row_id": "UI-LCC-POS-12",
+   "verdict": "FAIL",
+   "evidence_ref": "certification/results/UI_LCC_POS06_EXQ08_evidence.json",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "Last updated is rendered but ALL 465 rows show only the em-dash placeholder (distinct rendered values ['\u2014']) while payload last_updated_ms is non-zero on 465/465 rows (only last_updated_at is empty). The timestamp is present in the same payload and still never displayed: a product defect, not an oracle gap."
+  },
+  {
+   "row_id": "UI-LCC-EXQ-01",
+   "verdict": "PASS",
+   "evidence_ref": "certification/results/UI_LCC_POS06_EXQ08_evidence.json",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "Time column (index 0 of ['Time', 'Wallet', 'Coin', 'Side', 'Status', 'Terminal state', 'Operator action', 'Reject category', 'OID', 'Fill avg px', 'Size', 'Pos before -> after', 'Leader\u2192send ms', 'Total ms', 'Symbol ms', 'SDK ms', 'Exchange ms', 'Error']) renders THIS row time on 300/300 rows (0 contradictions); the rendered value comes from that row and would change with any other row. Time and Wallet are the row identity: Time agrees 300/300 with 0/300 cross-row matches and Wallet 300/300 with only 64/300, so DOM row k is payload row k."
+  },
+  {
+   "row_id": "UI-LCC-EXQ-02",
+   "verdict": "PASS",
+   "evidence_ref": "certification/results/UI_LCC_POS06_EXQ08_evidence.json",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "Wallet column (index 1 of ['Time', 'Wallet', 'Coin', 'Side', 'Status', 'Terminal state', 'Operator action', 'Reject category', 'OID', 'Fill avg px', 'Size', 'Pos before -> after', 'Leader\u2192send ms', 'Total ms', 'Symbol ms', 'SDK ms', 'Exchange ms', 'Error']) renders THIS row leader_wallet on 300/300 rows (0 contradictions); the rendered value comes from that row and would change with any other row. Time and Wallet are the row identity: Time agrees 300/300 with 0/300 cross-row matches and Wallet 300/300 with only 64/300, so DOM row k is payload row k."
+  },
+  {
+   "row_id": "UI-LCC-EXQ-03",
+   "verdict": "PASS",
+   "evidence_ref": "certification/results/UI_LCC_POS06_EXQ08_evidence.json",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "Coin column (index 2 of ['Time', 'Wallet', 'Coin', 'Side', 'Status', 'Terminal state', 'Operator action', 'Reject category', 'OID', 'Fill avg px', 'Size', 'Pos before -> after', 'Leader\u2192send ms', 'Total ms', 'Symbol ms', 'SDK ms', 'Exchange ms', 'Error']) renders THIS row coin on 293/300 rows (7 contradictions); the rendered value comes from that row and would change with any other row. Time and Wallet are the row identity: Time agrees 300/300 with 0/300 cross-row matches and Wallet 300/300 with only 64/300, so DOM row k is payload row k."
+  },
+  {
+   "row_id": "UI-LCC-EXQ-04",
+   "verdict": "PASS",
+   "evidence_ref": "certification/results/UI_LCC_POS06_EXQ08_evidence.json",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "Side column (index 3 of ['Time', 'Wallet', 'Coin', 'Side', 'Status', 'Terminal state', 'Operator action', 'Reject category', 'OID', 'Fill avg px', 'Size', 'Pos before -> after', 'Leader\u2192send ms', 'Total ms', 'Symbol ms', 'SDK ms', 'Exchange ms', 'Error']) renders THIS row side on 300/300 rows (0 contradictions); the rendered value comes from that row and would change with any other row. Time and Wallet are the row identity: Time agrees 300/300 with 0/300 cross-row matches and Wallet 300/300 with only 64/300, so DOM row k is payload row k."
+  },
+  {
+   "row_id": "UI-LCC-EXQ-05",
+   "verdict": "FAIL",
+   "evidence_ref": "certification/results/UI_LCC_POS06_EXQ08_evidence.json",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "Status column (index 4 of ['Time', 'Wallet', 'Coin', 'Side', 'Status', 'Terminal state', 'Operator action', 'Reject category', 'OID', 'Fill avg px', 'Size', 'Pos before -> after', 'Leader\u2192send ms', 'Total ms', 'Symbol ms', 'SDK ms', 'Exchange ms', 'Error']) does not render status: only 0/300 rows agree (300 contradictions) and the cell actually carries the terminal_state of the same row. Time and Wallet are the row identity: Time agrees 300/300 with 0/300 cross-row matches and Wallet 300/300 with only 64/300, so DOM row k is payload row k. Execution Quality declares 18 headers but renders 19 cells per row: the undeclared chip occupies index 4, so every declared column from Status onward carries its LEFT NEIGHBOUR payload field (rendered cell -> payload field: {\"4\": [\"terminal_state\"], \"5\": [\"status\"], \"6\": [\"terminal_state\"], \"7\": [\"operator_action\"], \"8\": [\"reject_category\"], \"9\": [\"oid\"], \"10\": [\"fill_avg_px\"], \"11\": [\"fill_size\"], \"14\": [\"time\"]}). Nothing is missing from the payload; the columns are shifted by one."
+  },
+  {
+   "row_id": "UI-LCC-EXQ-06",
+   "verdict": "FAIL",
+   "evidence_ref": "certification/results/UI_LCC_POS06_EXQ08_evidence.json",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "The Limit px column is not rendered at all: the table headers are ['Time', 'Wallet', 'Coin', 'Side', 'Status', 'Terminal state', 'Operator action', 'Reject category', 'OID', 'Fill avg px', 'Size', 'Pos before -> after', 'Leader\u2192send ms', 'Total ms', 'Symbol ms', 'SDK ms', 'Exchange ms', 'Error'] (18 columns) and no Limit px header exists although payload limit_px is non-null on 300/300 rows. Execution Quality declares 18 headers but renders 19 cells per row: the undeclared chip occupies index 4, so every declared column from Status onward carries its LEFT NEIGHBOUR payload field (rendered cell -> payload field: {\"4\": [\"terminal_state\"], \"5\": [\"status\"], \"6\": [\"terminal_state\"], \"7\": [\"operator_action\"], \"8\": [\"reject_category\"], \"9\": [\"oid\"], \"10\": [\"fill_avg_px\"], \"11\": [\"fill_size\"], \"14\": [\"time\"]}). Nothing is missing from the payload; the columns are shifted by one."
+  },
+  {
+   "row_id": "UI-LCC-EXQ-07",
+   "verdict": "FAIL",
+   "evidence_ref": "certification/results/UI_LCC_POS06_EXQ08_evidence.json",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "Fill avg px column (index 9 of ['Time', 'Wallet', 'Coin', 'Side', 'Status', 'Terminal state', 'Operator action', 'Reject category', 'OID', 'Fill avg px', 'Size', 'Pos before -> after', 'Leader\u2192send ms', 'Total ms', 'Symbol ms', 'SDK ms', 'Exchange ms', 'Error']) does not render fill_avg_px: only 0/16 rows agree (16 contradictions) and the cell actually carries the oid of the same row. Time and Wallet are the row identity: Time agrees 300/300 with 0/300 cross-row matches and Wallet 300/300 with only 64/300, so DOM row k is payload row k. Execution Quality declares 18 headers but renders 19 cells per row: the undeclared chip occupies index 4, so every declared column from Status onward carries its LEFT NEIGHBOUR payload field (rendered cell -> payload field: {\"4\": [\"terminal_state\"], \"5\": [\"status\"], \"6\": [\"terminal_state\"], \"7\": [\"operator_action\"], \"8\": [\"reject_category\"], \"9\": [\"oid\"], \"10\": [\"fill_avg_px\"], \"11\": [\"fill_size\"], \"14\": [\"time\"]}). Nothing is missing from the payload; the columns are shifted by one."
+  },
+  {
+   "row_id": "UI-LCC-EXQ-08",
+   "verdict": "FAIL",
+   "evidence_ref": "certification/results/UI_LCC_POS06_EXQ08_evidence.json",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "Size column (index 10 of ['Time', 'Wallet', 'Coin', 'Side', 'Status', 'Terminal state', 'Operator action', 'Reject category', 'OID', 'Fill avg px', 'Size', 'Pos before -> after', 'Leader\u2192send ms', 'Total ms', 'Symbol ms', 'SDK ms', 'Exchange ms', 'Error']) does not render fill_size: only 0/16 rows agree (16 contradictions) and the cell actually carries the fill_avg_px of the same row. Time and Wallet are the row identity: Time agrees 300/300 with 0/300 cross-row matches and Wallet 300/300 with only 64/300, so DOM row k is payload row k. Execution Quality declares 18 headers but renders 19 cells per row: the undeclared chip occupies index 4, so every declared column from Status onward carries its LEFT NEIGHBOUR payload field (rendered cell -> payload field: {\"4\": [\"terminal_state\"], \"5\": [\"status\"], \"6\": [\"terminal_state\"], \"7\": [\"operator_action\"], \"8\": [\"reject_category\"], \"9\": [\"oid\"], \"10\": [\"fill_avg_px\"], \"11\": [\"fill_size\"], \"14\": [\"time\"]}). Nothing is missing from the payload; the columns are shifted by one."
+  }
+ ],
+ "verdict_counts": {
+  "PASS": 5,
+  "FAIL": 10,
+  "NOT_TESTED": 0
+ }
+}

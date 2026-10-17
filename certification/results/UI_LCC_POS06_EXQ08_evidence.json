@@ -1,0 +1,253 @@
+{
+ "captured_at_utc": "2026-10-17T18:05:54.747272+00:00",
+ "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+ "page_url": "http://127.0.0.1:8031/live-copy",
+ "raw_source": "certification/results/UI_LCC_POS06_EXQ08_atomic.json",
+ "rows_alignment": {
+  "dom_rows": 300,
+  "payload_rows": 300,
+  "compared": 300
+ },
+ "execq": {
+  "headers": [
+   "Time",
+   "Wallet",
+   "Coin",
+   "Side",
+   "Status",
+   "Terminal state",
+   "Operator action",
+   "Reject category",
+   "OID",
+   "Fill avg px",
+   "Size",
+   "Pos before -> after",
+   "Leader\u2192send ms",
+   "Total ms",
+   "Symbol ms",
+   "SDK ms",
+   "Exchange ms",
+   "Error"
+  ],
+  "header_count": 18,
+  "cells_per_row": [
+   19
+  ],
+  "binding": {
+   "Time": {
+    "col": 0,
+    "agree": 300,
+    "of": 300,
+    "contradict": 0,
+    "cross37": 0,
+    "cross37_of": 300
+   },
+   "Wallet": {
+    "col": 1,
+    "agree": 300,
+    "of": 300,
+    "contradict": 0,
+    "cross37": 64,
+    "cross37_of": 300
+   },
+   "Coin": {
+    "col": 2,
+    "agree": 293,
+    "of": 300,
+    "contradict": 7,
+    "cross37": 13,
+    "cross37_of": 300
+   },
+   "Side": {
+    "col": 3,
+    "agree": 300,
+    "of": 300,
+    "contradict": 0,
+    "cross37": 158,
+    "cross37_of": 300
+   },
+   "Status": {
+    "col": 4,
+    "agree": 0,
+    "of": 300,
+    "contradict": 300,
+    "cross37": 0,
+    "cross37_of": 300
+   },
+   "Terminal state": {
+    "col": 5,
+    "agree": 0,
+    "of": 300,
+    "contradict": 300,
+    "cross37": 0,
+    "cross37_of": 300
+   },
+   "Operator action": {
+    "col": 6,
+    "agree": 3,
+    "of": 300,
+    "contradict": 297,
+    "cross37": 0,
+    "cross37_of": 300
+   },
+   "Reject category": {
+    "col": 7,
+    "agree": 0,
+    "of": 284,
+    "contradict": 284,
+    "cross37": 0,
+    "cross37_of": 268
+   },
+   "OID": {
+    "col": 8,
+    "agree": 0,
+    "of": 16,
+    "contradict": 16,
+    "cross37": 0,
+    "cross37_of": 0
+   },
+   "Fill avg px": {
+    "col": 9,
+    "agree": 0,
+    "of": 16,
+    "contradict": 16,
+    "cross37": 0,
+    "cross37_of": 0
+   },
+   "Size": {
+    "col": 10,
+    "agree": 0,
+    "of": 16,
+    "contradict": 16,
+    "cross37": 0,
+    "cross37_of": 0
+   }
+  },
+  "rendered_cell_to_payload_field": {
+   "0": {
+    "header": "Time",
+    "carries": {
+     "time": 300
+    }
+   },
+   "1": {
+    "header": "Wallet",
+    "carries": {
+     "leader_wallet": 300
+    }
+   },
+   "2": {
+    "header": "Coin",
+    "carries": {
+     "coin": 293
+    }
+   },
+   "3": {
+    "header": "Side",
+    "carries": {
+     "side": 300
+    }
+   },
+   "4": {
+    "header": "Status",
+    "carries": {
+     "terminal_state": 16
+    }
+   },
+   "5": {
+    "header": "Terminal state",
+    "carries": {
+     "status": 300
+    }
+   },
+   "6": {
+    "header": "Operator action",
+    "carries": {
+     "terminal_state": 300,
+     "operator_action": 3
+    }
+   },
+   "7": {
+    "header": "Reject category",
+    "carries": {
+     "operator_action": 300,
+     "terminal_state": 148
+    }
+   },
+   "8": {
+    "header": "OID",
+    "carries": {
+     "reject_category": 284
+    }
+   },
+   "9": {
+    "header": "Fill avg px",
+    "carries": {
+     "oid": 16
+    }
+   },
+   "10": {
+    "header": "Size",
+    "carries": {
+     "fill_avg_px": 16
+    }
+   },
+   "11": {
+    "header": "Pos before -> after",
+    "carries": {
+     "fill_size": 16
+    }
+   },
+   "14": {
+    "header": "Symbol ms",
+    "carries": {
+     "time": 1
+    }
+   }
+  },
+  "limit_px_nonnull": 300,
+  "payload_total": 5000
+ },
+ "owned": {
+  "headers": [
+   "Wallet",
+   "Coin",
+   "Side",
+   "Signed size",
+   "Avg entry",
+   "Ledger/exchange",
+   "Exchange size",
+   "Last copy fill",
+   "Last updated"
+  ],
+  "dom_rows": 465,
+  "payload_rows": 465,
+  "wallet": {
+   "agree": 465,
+   "of": 465,
+   "contradict": 0,
+   "cross37": 96
+  },
+  "wallet_keyjoin": {
+   "agree": 464,
+   "of": 464,
+   "unkeyed": 1
+  },
+  "last_updated_rendered_values": [
+   "\u2014"
+  ],
+  "last_copy_fill_0x": 465,
+  "payload": {
+   "ms": 465,
+   "at": 0,
+   "oid": 0,
+   "mark": 0,
+   "upnl": 0,
+   "pv": 0
+  }
+ },
+ "exchange_context": {
+  "exchange_snapshot_status": "UNAVAILABLE",
+  "account_reason": "ACCOUNT_ADDRESS_UNAVAILABLE"
+ }
+}
