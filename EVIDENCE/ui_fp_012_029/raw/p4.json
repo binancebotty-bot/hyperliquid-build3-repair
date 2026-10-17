@@ -1,0 +1,54 @@
+{
+ "dom_cards": [
+  {
+   "label": "HEALTH",
+   "value": "Action needed: a close is failing — check the Reconciliation tab and close it on the exchange"
+  },
+  {
+   "label": "LEADER FEED",
+   "value": "Websocket OK"
+  },
+  {
+   "label": "FOLLOWER ACCOUNT READ",
+   "value": "Reading (normal)"
+  },
+  {
+   "label": "WALLETS",
+   "value": "10 live / 10 followed"
+  },
+  {
+   "label": "LAST SEND",
+   "value": "BANANA pending_send"
+  },
+  {
+   "label": "LAST FILL",
+   "value": "MEGA SELL 75.0"
+  },
+  {
+   "label": "LAST REJECT",
+   "value": "POPCAT INSUFFICIENT_MARGIN"
+  },
+  {
+   "label": "LAST LATENCY WARNING",
+   "value": "severity=WARN; classification=SLOW_EXCHANGE_CALL; wallet=0x31ca8395cf837de08b24da3f660e77761dfb974b coin=POPCAT intent_id=ab34deb12cced8cf0979ca9ccd38c090 delay_ms=1793 largest_component=exchange_call_ms:1063"
+  }
+ ],
+ "dom_captured_ms": 1792196089946,
+ "api_captured_ms": 1792196092302,
+ "api": {
+  "last_send_coin": "CAKE",
+  "last_send_status": "pending_send",
+  "last_send_ms": "1792196088106",
+  "last_fill_coin": "MEGA",
+  "last_fill_side": "SELL",
+  "last_fill_size": "75.0",
+  "last_reject_coin": "POPCAT",
+  "last_reject_status": "ORDER_REJECTED",
+  "last_lat_status": "SLOW_SEND_PATH",
+  "last_lat_notes": "severity=CRITICAL; classification=SLOW_EXCHANGE_CALL; wallet=0x010461c14e146ac35fe42271bdc1134ee31c703a coin=BANANA intent_id=037655748acaf74eda119a207892d1b2 d",
+  "master": "OFF",
+  "active": 10,
+  "sub": 10,
+  "live": 10
+ }
+}

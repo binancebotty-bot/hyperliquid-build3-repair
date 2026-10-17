@@ -1,0 +1,176 @@
+{
+ "tested_at_utc": "2026-10-17T00:12:20.425054Z",
+ "tested_at_ms": 1792195940425,
+ "dom": {
+  "url": "http://127.0.0.1:8031/live-copy",
+  "truth_status_html": "<div class=\"lc-stat-strip\" id=\"lcTruthStatus\" style=\"grid-template-columns:repeat(auto-fit,minmax(150px,1fr))\"><div class=\"lc-stat\"><div class=\"label\">Health</div><div class=\"value lc-red\" style=\"font-size:13px;word-break:break-word\">Action needed: a close is failing — check the Reconciliation tab and close it on the exchange</div><div class=\"lc-muted\" style=\"font-size:10px;margin-top:4px\">details under Technical detail</div></div><div class=\"lc-stat\"><div class=\"label\">Leader feed</div><div class=\"value lc-green\" style=\"font-size:13px;word-break:break-word\">Websocket OK</div><div class=\"lc-muted\" style=\"font-size:10px;margin-top:4px\">websocket</div></div><div class=\"lc-stat\"><div class=\"label\">Follower account read</div><div class=\"value lc-green\" style=\"font-size:13px;word-break:break-word\">Reading (normal)</div></div><div class=\"lc-stat\"><div class=\"label\">Wallets</div><div class=\"value \" style=\"font-size:13px;word-break:break-word\">10 live / 10 followed</div><div class=\"lc-muted\" style=\"font-size:10px;margin-top:4px\">live + close-only are followed</div></div><div class=\"lc-stat\"><div class=\"label\">Last send</div><div class=\"value \" style=\"font-size:13px;word-break:break-word\">KBONK pending_send</div><div class=\"lc-muted\" style=\"font-size:10px;margin-top:4px\">PENDING_SEND</div></div><div class=\"lc-stat\"><div class=\"label\">Last fill</div><div class=\"value \" style=\"font-size:13px;word-break:break-word\">NIL BUY 144.0</div><div class=\"lc-muted\" style=\"font-size:10px;margin-top:4px\">2026-10-17T00:12:15.174088+00:00</div></div><div class=\"lc-stat\"><div class=\"label\">Last reject</div><div class=\"value lc-amber\" style=\"font-size:13px;word-break:break-word\">WCT INSUFFICIENT_MARGIN</div><div class=\"lc-muted\" style=\"font-size:10px;margin-top:4px\">INSUFFICIENT_MARGIN</div></div><div class=\"lc-stat\"><div class=\"label\">Last latency warning</div><div class=\"value lc-amber\" style=\"font-size:13px;word-break:break-word\">severity=CRITICAL; classification=SLOW_QUEUE_WAIT; wallet=0x010461c14e146ac35fe42271bdc1134ee31c703a coin=GOAT intent_id=9c226e5dd351a0289878e4ad5fe1e3b3 delay_ms=3879 largest_component=leader_to_intent_ms:2584</div><div class=\"lc-muted\" style=\"font-size:10px;margin-top:4px\">2026-10-17T00:12:20.290551+00:00</div></div></div>",
+  "stat_cards": [
+   {
+    "label": "HEALTH",
+    "value": "Action needed: a close is failing — check the Reconciliation tab and close it on the exchange",
+    "cls": "lc-stat"
+   },
+   {
+    "label": "LEADER FEED",
+    "value": "Websocket OK",
+    "cls": "lc-stat"
+   },
+   {
+    "label": "FOLLOWER ACCOUNT READ",
+    "value": "Reading (normal)",
+    "cls": "lc-stat"
+   },
+   {
+    "label": "WALLETS",
+    "value": "10 live / 10 followed",
+    "cls": "lc-stat"
+   },
+   {
+    "label": "LAST SEND",
+    "value": "KBONK pending_send",
+    "cls": "lc-stat"
+   },
+   {
+    "label": "LAST FILL",
+    "value": "NIL BUY 144.0",
+    "cls": "lc-stat"
+   },
+   {
+    "label": "LAST REJECT",
+    "value": "WCT INSUFFICIENT_MARGIN",
+    "cls": "lc-stat"
+   },
+   {
+    "label": "LAST LATENCY WARNING",
+    "value": "severity=CRITICAL; classification=SLOW_QUEUE_WAIT; wallet=0x010461c14e146ac35fe42271bdc1134ee31c703a coin=GOAT intent_id=9c226e5dd351a0289878e4ad5fe1e3b3 delay_ms=3879 largest_component=leader_to_intent_ms:2584",
+    "cls": "lc-stat"
+   }
+  ],
+  "top_status_full_text": "Live Copy Status HEALTH Action needed: a close is failing — check the Reconciliation tab and close it on the exchange details under Technical detail LEADER FEED Websocket OK websocket FOLLOWER ACCOUNT READ Reading (normal) WALLETS 10 live / 10 followed live + close-only are followed LAST SEND KBONK pending_send PENDING_SEND LAST FILL NIL BUY 144.0 2026-10-17T00:12:15.174088+00:00 LAST REJECT WCT INSUFFICIENT_MARGIN INSUFFICIENT_MARGIN LAST LATENCY WARNING severity=CRITICAL; classification=SLOW_QUEUE_WAIT; wallet=0x010461c14e146ac35fe42271bdc1134ee31c703a coin=GOAT intent_id=9c226e5dd351a0289878e4ad5fe1e3b3 delay_ms=3879 largest_component=leader_to_intent_ms:2584 2026-10-17T00:12:20.290551+00:00",
+  "svgs": [
+   {
+    "outer_len": 1745173,
+    "id": "lcEquityChart",
+    "cls": "",
+    "ptext": "$100.9 -$420.4 -$941.7 Fri 9 Sun 11 Tue 13 Thu 15 Sat 17"
+   }
+  ],
+  "graph_ids": [
+   {
+    "id": "lcBannerPnlLabel",
+    "cls": "label",
+    "text": "ACCOUNT CHANGE SINCE 9 OCT, 19:01"
+   },
+   {
+    "id": "lcBannerPnl",
+    "cls": "value lc-neg",
+    "text": "−$840.85"
+   },
+   {
+    "id": "lcGraphSubtitle",
+    "cls": "",
+    "text": "Exchange account graph. ALL range — 147 portfolio pts, 47193 realized fills."
+   },
+   {
+    "id": "lcGraphStart",
+    "cls": "",
+    "text": ""
+   },
+   {
+    "id": "lcGraphEnd",
+    "cls": "",
+    "text": ""
+   },
+   {
+    "id": "lcGraphApplyRange",
+    "cls": "",
+    "text": "Apply"
+   },
+   {
+    "id": "lcGraphResetRange",
+    "cls": "",
+    "text": "Reset"
+   },
+   {
+    "id": "lcEquityChart",
+    "cls": "[object SVGAnimatedString]",
+    "text": ""
+   }
+  ],
+  "canvas": 0,
+  "panel_ids": [
+   "lcWalletCount",
+   "lcModeCounts",
+   "lcFeedPill",
+   "lcWsOverall",
+   "lcRefresh",
+   "lcGcToggle",
+   "lcGlobalControlsPanel",
+   "lcGcClose",
+   "gcNetworks",
+   "lcGcForm",
+   "gcMaxTotal",
+   "gcMaxDir",
+   "gcMaxDailyLoss",
+   "gcMaxWallet",
+   "gcMaxOrder",
+   "gcMktPct",
+   "gcMktPctState",
+   "gcCloseAdv",
+   "gcCloseAdvState",
+   "gcAllowlist",
+   "gcBlocklist",
+   "lcGcStatus",
+   "lcGcSave",
+   "lcBanner",
+   "lcBannerAcctLabel",
+   "lcBannerAcct",
+   "lcBannerSending",
+   "lcBannerHealth",
+   "lcBannerPnlLabel",
+   "lcBannerPnl",
+   "lcBannerOpen",
+   "lcBannerRestingCell",
+   "lcBannerResting",
+   "lcHealthTech",
+   "lcHealthTechBody",
+   "lcRestartNote",
+   "lcStatus",
+   "lcTallyPanel",
+   "lcTally",
+   "lcTruthStatus",
+   "lcRealCards",
+   "lcGraphSubtitle",
+   "lcGraphStart",
+   "lcGraphEnd",
+   "lcGraphApplyRange",
+   "lcGraphResetRange",
+   "lcEquityChart",
+   "lcZeroLine",
+   "lcExchangeFill",
+   "lcExchangePath",
+   "lcRealizedPath",
+   "lcDrawdownPath",
+   "lcYMax",
+   "lcYMid",
+   "lcYMin",
+   "lcXAxisTicks",
+   "lcWalletRows",
+   "lcNetByCoinRows",
+   "lcOwnedPositionRows",
+   "lcOrphanPositionRows",
+   "lcExecQualChips",
+   "lcExecQualRows",
+   "lcSourceChips",
+   "lcAuditRows",
+   "lcReconCriticalRows",
+   "lcReconWarningRows",
+   "lcReconLegacyRows",
+   "lcReconRows",
+   "lcHealthRows",
+   "lcWalletModal",
+   "lcAddForm"
+  ],
+  "route": "ROUTE_AVAILABLE"
+ }
+}

@@ -1,0 +1,1011 @@
+{
+ "register_commit": "b142cf88d389e791160f691aac3d936852b99975",
+ "tested_at_utc": "2026-10-17T00:08:25.817299Z",
+ "tested_at_ms": 1792195705817,
+ "dom": {
+  "url": "http://127.0.0.1:8031/live-copy",
+  "ts": "2026-10-17T01:08:25.817299",
+  "http_status": 200,
+  "title": "Live Copy Dashboard",
+  "panel_present": true,
+  "panel_text": "Live Copy Command Centre Wallets: 15 / 10 Live wallets: 10 Close-only wallets: 0 Off: 5 Leader feed: Websocket OK Refresh Global Controls Add wallet ACCOUNT VALUE (TESTNET) $625.02 SENDING OFF HEALTH Action needed: a close is failing — check the Reconciliation tab and close it on the exchange ACCOUNT CHANGE SINCE 9 OCT, 19:01 −$838.11 OPEN POSITIONS 133 RESTING ORDERS 31 Technical detail Loaded Does the P&L add up? Start value to now, from the exchange: every fill and funding payment in the window is counted. Start value (9 Oct, 19:01, at run start; unified portfolio value (spot USDC total)) $1,449.21 + Closed P&L (realised) −$538.98 + Funding +$40.81 − Fees −$333.74 + Open positions (unrealised) now +$2.71, at start $0.00 — no open positions at start +$2.71 = Expected change −$829.20 Actual change (now $611.09) −$838.11 Unexplained difference −$8.91 Counted 46953 exchange fills and 9286 funding payments since the start. Deposits, withdrawals or transfers also show here. Live Copy Status HEALTH Action needed: a close is failing — check the Reconciliation tab and close it on the exchange details under Technical detail LEADER FEED Websocket OK websocket FOLLOWER ACCOUNT READ Reading (normal) WALLETS 10 live / 10 followed live + close-only are followed LAST SEND ETH pending_send PENDING_SEND LAST FILL VIRTUAL BUY 1.3 2026-10-17T00:08:12.910083+00:00 LAST REJECT RENDER INSUFFICIENT_MARGIN INSUFFICIENT_MARGIN LAST LATENCY WARNING severity=CRITICAL; classification=SLOW_QUEUE_WAIT; wallet=0x7019197d2b2ae7b44eee12a76015eb1fe94abd36 coin=RENDER intent_id=fc7702229329c3eba4ff3b676a81eca1 delay_ms=4100 largest_component=exchange_call_ms:1582 2026-10-17T00:08:26.309493+00:00 Real Account PORTFOLIO VALUE (TESTNET) $625.02 OPEN POSITIONS P&L (UNREALISED) $2.71 CLOSED P&L (REALISED) $-538.98 since 9 Oct, 19:01 OPEN POSITIONS 133 LIVE EXPOSURE $9,913.7 Live Account / Wallet PnL Exchange account graph. ALL range — 139 portfolio pts, 46953 realized fills. Account Selected Wallet PnL Exposure 1D 7D ALL Apply Reset Total PnL Realized PnL Drawdown $100.6 -$419.1 -$938.7 Fri 9 Sun 11 Tue 13 Thu 15 Sat 17 Live Copy Wallets Configured wallets from live_config.json. Click a row for real copy details for that leader. WALLET NET P&L FEED CLOSED / OPEN / FEES LEAD↔COPY DIFF EXECUTION RISK / EXPOSURE LAST FILL CONTROLS 0x010461c1...1c703a Live — partial Websocket OK HOT10 shared socket active Closed: — partial Open: — Fees: $88.4 Partial record shared 0G shared 2Z shared ACE shared AIXBT shared ALGO shared ALT shared ANIME shared APE shared APT shared AR shared ARB shared ATOM shared AVNT shared AXS shared AZTEC shared BABY shared BANANA shared BERA shared BIGTIME shared BIO shared BLUR shared BNB shared BRETT shared CAKE shared CASHCAT shared CC shared CELO shared CHIP shared COMP shared DYDX shared DYM shared EIGEN shared ETH shared FIL shared FOGO shared GALA shared GAS shared GOAT shared GRAM shared GRASS shared HBAR shared HYPER shared ICP shared IMX shared INJ shared IO shared JTO shared JUP shared KAITO shared KBONK shared KLUNC shared KNEIRO shared KPEPE shared LDO shared LINEA shared LIT shared MANTA shared ME shared MELANIA shared MERL shared MINA shared NEO shared NIL shared ORDI shared PNUT shared PROVE shared PUMP shared REZ shared RSR shared RUNE shared S shared SAND shared SKY shared SNX shared SOL shared SPX shared STBL shared SUI shared SUPER shared SUSHI shared TAO shared TRB shared TRUMP shared VIRTUAL shared W shared WLD shared WLFI shared XAI shared XLM shared XMR shared ZEN shared ZETA shared ZRO Total: $1.75 Avg: $0.01 Avg bps: 3.7 Worst bps: 65.8 292 filled / 0 exits 1220 recent rejects 3 recent blocks Exposure: $1,937.45 Open pos: 97 DD: — MaxDD: — VIRTUAL BUY @ LIVE CLO OFF prop fixed F N Save CLO OFF Archive 0x1b232b41...2fbe21 Live — Websocket OK HOT10 shared socket active Closed: — Open: $0 Fees: — No PnL yet Total: n/a Avg: n/a Avg bps: n/a Worst bps: n/a 0 filled / 0 exits 0 recent rejects 0 recent blocks Exposure: $0 Open pos: 0 DD: — MaxDD: — none yet LIVE CLO OFF prop fixed F N Save CLO OFF Archive 0x31ca8395...fb974b Live — partial Websocket OK HOT10 shared socket active Closed: — partial Open: — Fees: $98.23 Partial record shared 0G shared 2Z shared ACE shared AERO shared AIXBT shared ALGO shared ALT shared ANIME shared AR shared ATOM shared AVAX shared AVNT shared BABY shared BANANA shared BERA shared BIGTIME shared BIO shared BLUR shared BNB shared BRETT shared CASHCAT shared CC shared CELO shared CHIP shared COMP shared DOGE shared DYM shared EIGEN shared FARTCOIN shared FET shared FIL shared FOGO shared GALA shared GAS shared GOAT shared GRAM shared HBAR shared HYPER shared ICP shared IMX shared INIT shared IO shared JTO shared JUP shared KAITO shared KBONK shared KLUNC shared KNEIRO shared KPEPE shared KSHIB shared LDO shared LINEA shared LIT shared MANTA shared ME shared MEGA shared MELANIA shared MERL shared MOODENG shared NEO shared NIL shared NXPC shared ORDI shared POLYX shared PONS shared PROVE shared PYTH shared RESOLV shared REZ shared RUNE shared S shared SAND shared SKR shared SKY shared SPX shared STBL shared SUPER shared SUSHI shared SYRUP shared TAO shared TRB shared TRUMP shared TURBO shared USELESS shared VVV shared W shared WLD shared WLFI shared XAI shared XLM shared ZEN shared ZETA shared ZRO Total: $0.89 Avg: $0 Avg bps: 4.5 Worst bps: 62.1 306 filled / 0 exits 1483 recent rejects 1 recent blocks Exposure: $1,997.76 Open pos: 102 DD: — MaxDD: — BERA SELL @ LIVE CLO OFF prop fixed F N Save CLO OFF Archive 0x6ba889db...0c1817 Live — partial Websocket OK HOT10 shared socket active Closed: — partial Open: — Fees: $23.11 Partial record shared ARB shared AVAX shared BTC shared DOGE shared ETH shared FARTCOIN shared ICP shared INJ shared JUP shared KPEPE shared ONDO shared SOL shared TAO shared VIRTUAL shared WLD shared ZRO Total: $0.68 Avg: $0.02 Avg bps: 5.1 Worst bps: 80.8 49 filled / 0 exits 142 recent rejects 0 recent blocks Exposure: $327.7 Open pos: 16 DD: — MaxDD: — WLD SELL @ LIVE CLO OFF prop fixed F N Save CLO OFF Archive 0x7019197d...4abd36 Live — partial Websocket OK HOT10 shared socket active Closed: — partial Open: — Fees: $29.41 Partial record shared 0G shared 2Z shared AIXBT shared APE shared APT shared AR shared ARB shared ATOM shared AVNT shared AXS shared AZTEC shared BIGTIME shared BRETT shared BTC shared CASHCAT shared CC shared CHIP shared COMP shared DYM shared ETH shared FARTCOIN shared FET shared FIL shared GRASS shared HBAR shared ICP shared INJ shared IO shared JTO shared JUP shared LINEA shared LIT shared MEGA shared MINA shared NIL shared ONDO shared PNUT shared PONS shared PUMP shared REZ shared SKR shared SNX shared SPX shared STBL shared SUSHI shared TAO shared TURBO shared USELESS shared VVV shared WLD shared WLFI shared XLM shared ZEN shared ZETA shared ZRO Total: $0.14 Avg: $0 Avg bps: 4.8 Worst bps: 67 37 filled / 0 exits 139 recent rejects 1 recent blocks Exposure: $1,031.08 Open pos: 58 DD: — MaxDD: — MEGA BUY @ LIVE CLO OFF prop fixed F N Save CLO OFF Archive 0x7717a7a2...d7bd7e Live — partial Websocket OK HOT10 shared socket active Closed: — partial Open: — Fees: $6.88 Partial record shared 0G shared 2Z shared AERO shared ALGO shared APE shared ATOM shared AVAX shared AVNT shared AXS shared AZTEC shared BABY shared BNB shared BRETT shared BTC shared CAKE shared CC shared CHIP shared DOGE shared DYDX shared DYM shared FARTCOIN shared FOGO shared GAS shared GOAT shared GRAM shared GRASS shared HYPER shared INIT shared KAITO shared KBONK shared KPEPE shared KSHIB shared LDO shared LINEA shared LIT shared MANTA shared MINA shared MOODENG shared NEO shared NIL shared NXPC shared POLYX shared PONS shared PROVE shared PYTH shared RESOLV shared REZ shared RSR shared RUNE shared SKR shared STBL shared SUPER shared SYRUP shared USELESS shared VVV shared W shared WLD shared XMR shared ZETA Total: $0.32 Avg: $0.01 Avg bps: 15.2 Worst bps: 53.2 40 filled / 0 exits 498 recent rejects 1 recent blocks Exposure: $1,980.07 Open pos: 67 DD: — MaxDD: — PYTH SELL @ LIVE CLO OFF prop fixed F N Save CLO OFF Archive 0x936cf4fb...81bb0f Live −$29.83 Websocket OK HOT10 shared socket active Closed: $-14.09 Open: $-3.75 Fees: $11.99 From engine ledger shared AERO shared BTC shared CASHCAT shared CC shared EIGEN shared LIT shared NIL shared SUI shared VVV shared W Total: $0.03 Avg: $0.01 Avg bps: 7.4 Worst bps: 14.3 6 filled / 0 exits 62 recent rejects 0 recent blocks Exposure: $762.86 Open pos: 10 DD: $-31.88 MaxDD: $-31.88 AERO SELL @ LIVE CLO OFF prop fixed F N Save CLO OFF Archive 0xc179e039...7ce0c8 Live — Websocket OK HOT10 shared socket active Closed: $-12.98 Open: — Fees: $10.51 From engine ledger shared SOL shared XMR Total: $-0.23 Avg: $-0.03 Avg bps: 14.2 Worst bps: 56.4 7 filled / 0 exits 31 recent rejects 0 recent blocks Exposure: $105.9 Open pos: 2 DD: $-23.49 MaxDD: $-23.49 XMR SELL @ LIVE CLO OFF prop fixed F N Save CLO OFF Archive 0xd4c1f7e8...583d1d Live −$13.13 Websocket OK HOT10 shared socket active Closed: $-4.6 Open: $-4.73 Fees: $3.8 From engine ledger shared ARB shared AVAX shared BNB shared BTC shared DOGE shared ETH shared LIT shared NEAR shared PONS shared SUI shared TAO shared WLD shared WLFI Total: $-0.02 Avg: $-0 Avg bps: -4.9 Worst bps: 8.2 13 filled / 0 exits 56 recent rejects 0 recent blocks Exposure: $900.44 Open pos: 13 DD: $-22.99 MaxDD: $-22.99 WLD SELL @ LIVE CLO OFF prop fixed F N Save CLO OFF Archive 0xf5d81a13...c3ad53 Live — partial Websocket OK HOT10 shared socket active Closed: — partial Open: — Fees: $61.03 Partial record shared ARB shared BTC shared DOGE shared ETH shared FARTCOIN shared KPEPE shared MEGA shared NEAR shared PONS shared SOL shared SUI shared TAO shared USELESS shared VVV shared WLD Total: $0.36 Avg: $0 Avg bps: -1.9 Worst bps: 104.8 107 filled / 0 exits 501 recent rejects 5 recent blocks Exposure: $1,060.09 Open pos: 15 DD: — MaxDD: — WLD BUY @ LIVE CLO OFF prop fixed F N Save CLO OFF Archive 0x1f4ab7e9...9bc934 Off −$0.90 not followed Closed: $-0.72 Open: $0 Fees: $0.18 From engine ledger Total: n/a Avg: n/a Avg bps: n/a Worst bps: n/a 0 filled / 0 exits 0 recent rejects 0 recent blocks Exposure: $0 Open pos: 0 DD: $-1 MaxDD: $-1 none yet LIVE CLO OFF prop fixed F N Save CLO OFF Archive 0x35519de6...35a281 Off — not followed Closed: — Open: $0 Fees: — No PnL yet Total: n/a Avg: n/a Avg bps: n/a Worst bps: n/a 0 filled / 0 exits 0 recent rejects 0 recent blocks Exposure: $0 Open pos: 0 DD: — MaxDD: — none yet LIVE CLO OFF prop fixed F N Save CLO OFF Archive 0x7bc52391...dee41e Off −$0.40 not followed Closed: $-0.32 Open: $0 Fees: $0.08 From engine ledger Total: n/a Avg: n/a Avg bps: n/a Worst bps: n/a 0 filled / 0 exits 0 recent rejects 0 recent blocks Exposure: $0 Open pos: 0 DD: $-0.71 MaxDD: $-0.71 none yet LIVE CLO OFF prop fixed F N Save CLO OFF Archive 0x833b99b2...91db06 Off — not followed Closed: — Open: $0 Fees: — No PnL yet Total: n/a Avg: n/a Avg bps: n/a Worst bps: n/a 0 filled / 0 exits 0 recent rejects 0 recent blocks Exposure: $0 Open pos: 0 DD: — MaxDD: — none yet LIVE CLO OFF prop fixed F N Save CLO OFF Archive 0xcbe83438...42ddfc Off −$1.20 not followed Closed: $-1.11 Open: $0 Fees: $0.08 From engine ledger Total: n/a Avg: n/a Avg bps: n/a Worst bps: n/a 0 filled / 0 exits 0 recent rejects 0 recent blocks Exposure: $0 Open pos: 0 DD: $-1.24 MaxDD: $-1.85 none yet LIVE CLO OFF prop fixed F N Save CLO OFF Archive Real Copy Positions Execution Quality Order Intents / Audit Reconciliation WS Health Real User Copy Positions Manual ledger vs real exchange account. All sizes signed (positive = long, negative = short). Exchange data requires HL_LIVE_HL_ACCOUNT_ADDRESS configured. NET BY COIN — ONE SHARED ACCOUNT (leaders net like the exchange) COIN LEDGER NET (SUM OF LEADERS) EXCHANGE NET LEDGER/EXCHANGE WHICH LEADER HOLDS WHAT 0G -3 -3 MATCH 0x010461c1...1c703a: -99 0x31ca8395...fb974b: +102 0x7019197d...4abd36: +42 0x7717a7a2...d7bd7e: -48 2Z -19 -19 MATCH 0x010461c1...1c703a: -38 0x31ca8395...fb974b: +37 0x7019197d...4abd36: -749 0x7717a7a2...d7bd7e: +731 AAVE -0.33 0 MISMATCH 0x7717a7a2...d7bd7e: -0.33 ACE -20.57 -20.57 MATCH 0x010461c1...1c703a: -124.22 0x31ca8395...fb974b: +103.65 ADA 52 52 MATCH 0x010461c1...1c703a: +52 AERO -10 -10 MATCH 0x31ca8395...fb974b: +143 0x7717a7a2...d7bd7e: -101 0x936cf4fb...81bb0f: -52 AIXBT 38 38 MATCH 0x010461c1...1c703a: +651 0x31ca8395...fb974b: -622 0x7019197d...4abd36: +9 ALGO 420 420 MATCH 0x010461c1...1c703a: -260 0x31ca8395...fb974b: +2 0x7717a7a2...d7bd7e: +678 ALT 1426 1426 MATCH 0x010461c1...1c703a: -25 0x31ca8395...fb974b: +1451 ANIME -774 -774 MATCH 0x010461c1...1c703a: +2635 0x31ca8395...fb974b: -3409 APE -52.4 -52.4 MATCH 0x010461c1...1c703a: +278.2 0x7019197d...4abd36: +79.4 0x7717a7a2...d7bd7e: -410 APT 55.03 55.03 MATCH 0x010461c1...1c703a: +26.17 0x7019197d...4abd36: +28.86 AR -0.74 0.73 MISMATCH 0x010461c1...1c703a: -6.86 0x31ca8395...fb974b: +3.05 0x7019197d...4abd36: +3.07 ARB -122.3 -122.3 MATCH 0x010461c1...1c703a: +2.1 0x6ba889db...0c1817: +77 0x7019197d...4abd36: +9.6 0xd4c1f7e8...583d1d: -187.8 0xf5d81a13...c3ad53: -23.2 ASTER 0 16 MISMATCH no leader ATOM 2.96 2.96 MATCH 0x010461c1...1c703a: +5.75 0x31ca8395...fb974b: -3.96 0x7019197d...4abd36: -5.67 0x7717a7a2...d7bd7e: +6.84 AVAX 0.48 0.48 MATCH 0x31ca8395...fb974b: +0.79 0x6ba889db...0c1817: +0.88 0x7717a7a2...d7bd7e: +0.01 0xd4c1f7e8...583d1d: -1.2 AVNT -110 -110 MATCH 0x010461c1...1c703a: +77 0x31ca8395...fb974b: -184 0x7019197d...4abd36: +510 0x7717a7a2...d7bd7e: -513 AXS -3.6 -3.6 MATCH 0x010461c1...1c703a: -7.2 0x7019197d...4abd36: -3.5 0x7717a7a2...d7bd7e: +7.1 AZTEC 330 330 MATCH 0x010461c1...1c703a: -1173 0x7019197d...4abd36: +7 0x7717a7a2...d7bd7e: +1496 BABY 3389 3390 MISMATCH 0x010461c1...1c703a: +990 0x31ca8395...fb974b: +1 0x7717a7a2...d7bd7e: +2398 BANANA -0.3 -0.3 MATCH 0x010461c1...1c703a: -2.9 0x31ca8395...fb974b: +2.6 BERA -72.7 -72.7 MATCH 0x010461c1...1c703a: +129.4 0x31ca8395...fb974b: -202.1 BIGTIME 5589 5589 MATCH 0x010461c1...1c703a: -4515 0x31ca8395...fb974b: +8433 0x7019197d...4abd36: +1671 BIO 232 232 MATCH 0x010461c1...1c703a: +614 0x31ca8395...fb974b: -382 BLUR 274 274 MATCH 0x010461c1...1c703a: -851 0x31ca8395...fb974b: +1125 BNB 0.227 0.227 MATCH 0x010461c1...1c703a: +0.032 0x31ca8395...fb974b: -0.226 0x7717a7a2...d7bd7e: +0.324 0xd4c1f7e8...583d1d: +0.097 BRETT 1919 1919 MATCH 0x010461c1...1c703a: -11783 0x31ca8395...fb974b: +1403 0x7019197d...4abd36: +12298 0x7717a7a2...d7bd7e: +1 BTC -0.00003 -0.00003 MATCH 0x6ba889db...0c1817: +0.00063 0x7019197d...4abd36: +0.00014 0x7717a7a2...d7bd7e: +0.00009 0x936cf4fb...81bb0f: -0.00335 0xd4c1f7e8...583d1d: -0.00065 0xf5d81a13...c3ad53: +0.00311 CAKE 5.5 5.5 MATCH 0x010461c1...1c703a: -5.4 0x7717a7a2...d7bd7e: +10.9 CASHCAT -232 -232 MATCH 0x010461c1...1c703a: +260 0x31ca8395...fb974b: -308 0x7019197d...4abd36: -175 0x936cf4fb...81bb0f: -9 CC -20 -20 MATCH 0x010461c1...1c703a: -954 0x31ca8395...fb974b: +116 0x7019197d...4abd36: +5 0x7717a7a2...d7bd7e: -231 0x936cf4fb...81bb0f: +1044 CELO 190 190 MATCH 0x010461c1...1c703a: -142 0x31ca8395...fb974b: +332 CHIP -476 -476 MATCH 0x010461c1...1c703a: -4 0x31ca8395...fb974b: +3389 0x7019197d...4abd36: -4 0x7717a7a2...d7bd7e: -3857 COMP 0.01 0.01 MATCH 0x010461c1...1c703a: +0.06 0x31ca8395...fb974b: -0.59 0x7019197d...4abd36: +0.54 DOGE 76 76 MATCH 0x31ca8395...fb974b: +2 0x6ba889db...0c1817: +966 0x7717a7a2...d7bd7e: +153 0xd4c1f7e8...583d1d: -448 0xf5d81a13...c3ad53: -597 DYDX -96.1 -96.1 MATCH 0x010461c1...1c703a: -0.1 0x7717a7a2...d7bd7e: -96 DYM 179.8 179.8 MATCH 0x010461c1...1c703a: -2688.9 0x31ca8395...fb974b: +232.8 0x7019197d...4abd36: +1973.5 0x7717a7a2...d7bd7e: +662.4 EIGEN 149.9 149.9 MATCH 0x010461c1...1c703a: +85.63 0x31ca8395...fb974b: -30.35 0x936cf4fb...81bb0f: +94.62 ETC 1.49 1.49 MATCH 0x31ca8395...fb974b: +1.49 ETH 0.0028 0.0028 MATCH 0x010461c1...1c703a: +0.0187 0x6ba889db...0c1817: -0.0028 0x7019197d...4abd36: +0.0049 0xd4c1f7e8...583d1d: -0.0068 0xf5d81a13...c3ad53: -0.0112 FARTCOIN -83.2 -83.2 MATCH 0x31ca8395...fb974b: -47.5 0x6ba889db...0c1817: -127.4 0x7019197d...4abd36: +13.7 0x7717a7a2...d7bd7e: +0.3 0xf5d81a13...c3ad53: +77.7 FET 58 58 MATCH 0x31ca8395...fb974b: -20 0x7019197d...4abd36: +78 FIL -5.7 -5.7 MATCH 0x010461c1...1c703a: -15.9 0x31ca8395...fb974b: +30.4 0x7019197d...4abd36: -20.2 FOGO 4910 4910 MATCH 0x010461c1...1c703a: +2708 0x31ca8395...fb974b: -610 0x7717a7a2...d7bd7e: +2812 GALA 332 332 MATCH 0x010461c1...1c703a: -14057 0x31ca8395...fb974b: +14389 GAS -2.2 -2.2 MATCH 0x010461c1...1c703a: +6.2 0x31ca8395...fb974b: -11.6 0x7717a7a2...d7bd7e: +3.2 GOAT 1154 1154 MATCH 0x010461c1...1c703a: +9 0x31ca8395...fb974b: -2023 0x7717a7a2...d7bd7e: +3168 GRAM 22 22 MATCH 0x010461c1...1c703a: +7 0x31ca8395...fb974b: -9 0x7717a7a2...d7bd7e: +24 GRASS 136.1 136.1 MATCH 0x010461c1...1c703a: -112.6 0x7019197d...4abd36: -37.7 0x7717a7a2...d7bd7e: +286.4 HBAR 137 137 MATCH 0x010461c1...1c703a: +164 0x31ca8395...fb974b: -33 0x7019197d...4abd36: +6 HEMI 2236 2236 MATCH 0x31ca8395...fb974b: +2236 HYPER -42 -42 MATCH 0x010461c1...1c703a: +281 0x31ca8395...fb974b: -238 0x7717a7a2...d7bd7e: -85 ICP 1.39 1.39 MATCH 0x010461c1...1c703a: -8.03 0x31ca8395...fb974b: +9.32 0x6ba889db...0c1817: +6.15 0x7019197d...4abd36: -6.05 IMX -20.8 -20.8 MATCH 0x010461c1...1c703a: +133.1 0x31ca8395...fb974b: -153.9 INIT 92 92 MATCH 0x31ca8395...fb974b: -4 0x7717a7a2...d7bd7e: +96 INJ 0.2 0.2 MATCH 0x010461c1...1c703a: +1.3 0x6ba889db...0c1817: -1.6 0x7019197d...4abd36: +0.5 IO 1.4 1.4 MATCH 0x010461c1...1c703a: -4.3 0x31ca8395...fb974b: +80.6 0x7019197d...4abd36: -74.9 IOTA -17 -17 MATCH 0x31ca8395...fb974b: -17 JTO -1 -1 MATCH 0x010461c1...1c703a: +73 0x31ca8395...fb974b: -2 0x7019197d...4abd36: -72 JUP 108 108 MATCH 0x010461c1...1c703a: +65 0x31ca8395...fb974b: -31 0x6ba889db...0c1817: -18 0x7019197d...4abd36: +92 KAITO -18 -18 MATCH 0x010461c1...1c703a: +217 0x31ca8395...fb974b: -80 0x7717a7a2...d7bd7e: -155 KAS 646 970 MISMATCH 0x7019197d...4abd36: +646 KBONK 5545 5545 MATCH 0x010461c1...1c703a: -45 0x31ca8395...fb974b: +1623 0x7717a7a2...d7bd7e: +3967 KLUNC -85 -85 MATCH 0x010461c1...1c703a: +73 0x31ca8395...fb974b: -158 KNEIRO 38.3 38.3 MATCH 0x010461c1...1c703a: +156.1 0x31ca8395...fb974b: -117.8 KPEPE 643 643 MATCH 0x010461c1...1c703a: -1613 0x31ca8395...fb974b: +21441 0x6ba889db...0c1817: -1377 0x7717a7a2...d7bd7e: +595 0xf5d81a13...c3ad53: -18403 KSHIB 215 215 MATCH 0x31ca8395...fb974b: -2264 0x7717a7a2...d7bd7e: +2479 LDO 14.6 14.6 MATCH 0x010461c1...1c703a: +99.9 0x31ca8395...fb974b: -145.7 0x7717a7a2...d7bd7e: +60.4 LINEA 7325 7325 MATCH 0x010461c1...1c703a: +3649 0x31ca8395...fb974b: -277 0x7019197d...4abd36: +3980 0x7717a7a2...d7bd7e: -27 LIT -3 -3 MATCH 0x010461c1...1c703a: -11 0x31ca8395...fb974b: +1 0x7019197d...4abd36: -4 0x7717a7a2...d7bd7e: +3 0x936cf4fb...81bb0f: +1 0xd4c1f7e8...583d1d: +7 MANTA -80.8 -80.8 MATCH 0x010461c1...1c703a: +163.5 0x31ca8395...fb974b: -679.9 0x7717a7a2...d7bd7e: +435.6 ME -109 -109 MATCH 0x010461c1...1c703a: +7.8 0x31ca8395...fb974b: -116.8 MEGA -214 -214 MATCH 0x31ca8395...fb974b: -849 0x7019197d...4abd36: +762 0xf5d81a13...c3ad53: -127 MELANIA 141.7 141.7 MATCH 0x010461c1...1c703a: -202.5 0x31ca8395...fb974b: +344.2 MERL 148 148 MATCH 0x010461c1...1c703a: +441 0x31ca8395...fb974b: -293 MET 348 348 MATCH 0x010461c1...1c703a: +348 MINA 1078 1078 MATCH 0x010461c1...1c703a: +679 0x7019197d...4abd36: +321 0x7717a7a2...d7bd7e: +78 MON -8 -8 MATCH 0x31ca8395...fb974b: -8 MOODENG 339 339 MATCH 0x31ca8395...fb974b: +26 0x7717a7a2...d7bd7e: +313 MORPHO 5 5 MATCH 0x7019197d...4abd36: +5 NEAR 1.4 1.4 MATCH 0xd4c1f7e8...583d1d: +11.5 0xf5d81a13...c3ad53: -10.1 NEO -0.12 -0.12 MATCH 0x010461c1...1c703a: -5.06 0x31ca8395...fb974b: -0.04 0x7717a7a2...d7bd7e: +4.98 NIL 13 13 MATCH 0x010461c1...1c703a: -288 0x31ca8395...fb974b: +153 0x7019197d...4abd36: +1 0x7717a7a2...d7bd7e: -1 0x936cf4fb...81bb0f: +148 NXPC 132 132 MATCH 0x31ca8395...fb974b: ",
+  "lcStatus_present": true,
+  "lcStatus_text": "Loaded",
+  "lcStatus_rows": [],
+  "label_hits": {
+   "MASTER REAL ORDERS": [],
+   "MASTER REAL": [],
+   "ACTIVE": [
+    {
+     "txt": "HOT10 shared socket active",
+     "chain": [
+      "SPAN.lc-muted",
+      "DIV.lc-cell-stack",
+      "TD",
+      "TR.lc-wallet-row.lc-row-LIVE"
+     ]
+    },
+    {
+     "txt": "HOT10 shared socket active",
+     "chain": [
+      "SPAN.lc-muted",
+      "DIV.lc-cell-stack",
+      "TD",
+      "TR.lc-wallet-row.lc-row-LIVE"
+     ]
+    },
+    {
+     "txt": "HOT10 shared socket active",
+     "chain": [
+      "SPAN.lc-muted",
+      "DIV.lc-cell-stack",
+      "TD",
+      "TR.lc-wallet-row.lc-row-LIVE"
+     ]
+    },
+    {
+     "txt": "HOT10 shared socket active",
+     "chain": [
+      "SPAN.lc-muted",
+      "DIV.lc-cell-stack",
+      "TD",
+      "TR.lc-wallet-row.lc-row-LIVE"
+     ]
+    },
+    {
+     "txt": "HOT10 shared socket active",
+     "chain": [
+      "SPAN.lc-muted",
+      "DIV.lc-cell-stack",
+      "TD",
+      "TR.lc-wallet-row.lc-row-LIVE"
+     ]
+    },
+    {
+     "txt": "HOT10 shared socket active",
+     "chain": [
+      "SPAN.lc-muted",
+      "DIV.lc-cell-stack",
+      "TD",
+      "TR.lc-wallet-row.lc-row-LIVE"
+     ]
+    },
+    {
+     "txt": "HOT10 shared socket active",
+     "chain": [
+      "SPAN.lc-muted",
+      "DIV.lc-cell-stack",
+      "TD",
+      "TR.lc-wallet-row.lc-row-LIVE"
+     ]
+    },
+    {
+     "txt": "HOT10 shared socket active",
+     "chain": [
+      "SPAN.lc-muted",
+      "DIV.lc-cell-stack",
+      "TD",
+      "TR.lc-wallet-row.lc-row-LIVE"
+     ]
+    },
+    {
+     "txt": "HOT10 shared socket active",
+     "chain": [
+      "SPAN.lc-muted",
+      "DIV.lc-cell-stack",
+      "TD",
+      "TR.lc-wallet-row.lc-row-LIVE"
+     ]
+    },
+    {
+     "txt": "HOT10 shared socket active",
+     "chain": [
+      "SPAN.lc-muted",
+      "DIV.lc-cell-stack",
+      "TD",
+      "TR.lc-wallet-row.lc-row-LIVE"
+     ]
+    }
+   ],
+   "SUBSCRIBED": [],
+   "LAST SEND": [
+    {
+     "txt": "LAST SEND",
+     "chain": [
+      "DIV.label",
+      "DIV.lc-stat",
+      "DIV#lcTruthStatus.lc-stat-strip",
+      "SECTION.lc-panel.lc-top-status"
+     ]
+    }
+   ],
+   "LAST FILL": [
+    {
+     "txt": "LAST FILL",
+     "chain": [
+      "DIV.label",
+      "DIV.lc-stat",
+      "DIV#lcTruthStatus.lc-stat-strip",
+      "SECTION.lc-panel.lc-top-status"
+     ]
+    },
+    {
+     "txt": "LAST FILL",
+     "chain": [
+      "TH",
+      "TR",
+      "THEAD",
+      "TABLE.lc-wallet-table"
+     ]
+    }
+   ],
+   "LAST REJECT": [
+    {
+     "txt": "LAST REJECT",
+     "chain": [
+      "DIV.label",
+      "DIV.lc-stat",
+      "DIV#lcTruthStatus.lc-stat-strip",
+      "SECTION.lc-panel.lc-top-status"
+     ]
+    }
+   ],
+   "LAST LATENCY": [
+    {
+     "txt": "LAST LATENCY WARNING",
+     "chain": [
+      "DIV.label",
+      "DIV.lc-stat",
+      "DIV#lcTruthStatus.lc-stat-strip",
+      "SECTION.lc-panel.lc-top-status"
+     ]
+    }
+   ],
+   "LATENCY WARNING": [
+    {
+     "txt": "LAST LATENCY WARNING",
+     "chain": [
+      "DIV.label",
+      "DIV.lc-stat",
+      "DIV#lcTruthStatus.lc-stat-strip",
+      "SECTION.lc-panel.lc-top-status"
+     ]
+    }
+   ]
+  },
+  "svg_info": [
+   {
+    "outer_len": 1735437,
+    "chain": [
+     "DIV.lc-chart-wrap",
+     "SECTION.lc-panel.lc-graph-panel",
+     "DIV#liveCopyPanel.section.live-copy-centre",
+     "BODY"
+    ],
+    "parent_text": "$100.6 -$419.1 -$938.7 Fri 9 Sun 11 Tue 13 Thu 15 Sat 17"
+   }
+  ],
+  "graph_text_hits": [
+   {
+    "txt": "(9 Oct, 19:01, at run start; unified portfolio value (spot USDC total))",
+    "chain": [
+     "SPAN.lc-muted",
+     "DIV.t-label.",
+     "DIV#lcTally.lc-tally"
+    ]
+   },
+   {
+    "txt": "PORTFOLIO VALUE (TESTNET)",
+    "chain": [
+     "DIV.label",
+     "DIV.lc-stat",
+     "DIV#lcRealCards.lc-stat-strip"
+    ]
+   },
+   {
+    "txt": "LIVE EXPOSURE",
+    "chain": [
+     "DIV.label",
+     "DIV.lc-stat",
+     "DIV#lcRealCards.lc-stat-strip"
+    ]
+   },
+   {
+    "txt": "Live Account / Wallet PnL",
+    "chain": [
+     "H3",
+     "DIV",
+     "DIV.lc-graph-top"
+    ]
+   },
+   {
+    "txt": "Exchange account graph. ALL range — 139 portfolio pts, 46953 realized fills.",
+    "chain": [
+     "P#lcGraphSubtitle",
+     "DIV",
+     "DIV.lc-graph-top"
+    ]
+   },
+   {
+    "txt": "Selected Wallet PnL",
+    "chain": [
+     "BUTTON",
+     "DIV.lc-chart-controls",
+     "DIV.lc-graph-top"
+    ]
+   },
+   {
+    "txt": "Exposure",
+    "chain": [
+     "BUTTON",
+     "DIV.lc-chart-controls",
+     "DIV.lc-graph-top"
+    ]
+   },
+   {
+    "txt": "RISK / EXPOSURE",
+    "chain": [
+     "TH",
+     "TR",
+     "THEAD"
+    ]
+   },
+   {
+    "txt": "No PnL yet",
+    "chain": [
+     "SPAN.lc-pill.lc-grey",
+     "SPAN",
+     "DIV.lc-cell-stack"
+    ]
+   },
+   {
+    "txt": "No PnL yet",
+    "chain": [
+     "SPAN.lc-pill.lc-grey",
+     "SPAN",
+     "DIV.lc-cell-stack"
+    ]
+   },
+   {
+    "txt": "No PnL yet",
+    "chain": [
+     "SPAN.lc-pill.lc-grey",
+     "SPAN",
+     "DIV.lc-cell-stack"
+    ]
+   },
+   {
+    "txt": "UNREALIZED PNL",
+    "chain": [
+     "TH",
+     "TR",
+     "THEAD"
+    ]
+   },
+   {
+    "txt": "max wallet exposure exceeded",
+    "chain": [
+     "SPAN.lc-muted",
+     "DIV.lc-cell-stack",
+     "TD"
+    ]
+   },
+   {
+    "txt": "max wallet exposure exceeded",
+    "chain": [
+     "SPAN.lc-muted",
+     "DIV.lc-cell-stack",
+     "TD"
+    ]
+   }
+  ],
+  "buttons": [
+   {
+    "tag": "BUTTON",
+    "id": "lcRefresh",
+    "txt": "Refresh",
+    "val": null
+   },
+   {
+    "tag": "BUTTON",
+    "id": "lcGcToggle",
+    "txt": "Global Controls",
+    "val": null
+   },
+   {
+    "tag": "BUTTON",
+    "id": null,
+    "txt": "Add wallet",
+    "val": null
+   },
+   {
+    "tag": "BUTTON",
+    "id": "lcGcClose",
+    "txt": "close",
+    "val": null
+   },
+   {
+    "tag": "BUTTON",
+    "id": "lcGcSave",
+    "txt": "Save Global Controls",
+    "val": null
+   },
+   {
+    "tag": "BUTTON",
+    "id": null,
+    "txt": "Account",
+    "val": null
+   },
+   {
+    "tag": "BUTTON",
+    "id": null,
+    "txt": "Selected Wallet PnL",
+    "val": null
+   },
+   {
+    "tag": "BUTTON",
+    "id": null,
+    "txt": "Exposure",
+    "val": null
+   },
+   {
+    "tag": "BUTTON",
+    "id": null,
+    "txt": "1D",
+    "val": null
+   },
+   {
+    "tag": "BUTTON",
+    "id": null,
+    "txt": "7D",
+    "val": null
+   },
+   {
+    "tag": "BUTTON",
+    "id": null,
+    "txt": "ALL",
+    "val": null
+   },
+   {
+    "tag": "BUTTON",
+    "id": "lcGraphApplyRange",
+    "txt": "Apply",
+    "val": null
+   },
+   {
+    "tag": "BUTTON",
+    "id": "lcGraphResetRange",
+    "txt": "Reset",
+    "val": null
+   },
+   {
+    "tag": "SELECT",
+    "id": null,
+    "txt": "LIVE\nCLO\nOFF",
+    "val": "LIVE"
+   },
+   {
+    "tag": "OPTION",
+    "id": null,
+    "txt": "LIVE",
+    "val": "LIVE"
+   },
+   {
+    "tag": "OPTION",
+    "id": null,
+    "txt": "CLO",
+    "val": "CLO"
+   },
+   {
+    "tag": "OPTION",
+    "id": null,
+    "txt": "OFF",
+    "val": "OFF"
+   },
+   {
+    "tag": "SELECT",
+    "id": null,
+    "txt": "prop\nfixed",
+    "val": "fixed"
+   },
+   {
+    "tag": "OPTION",
+    "id": null,
+    "txt": "prop",
+    "val": "proportional"
+   },
+   {
+    "tag": "OPTION",
+    "id": null,
+    "txt": "fixed",
+    "val": "fixed"
+   },
+   {
+    "tag": "BUTTON",
+    "id": null,
+    "txt": "Save",
+    "val": null
+   },
+   {
+    "tag": "BUTTON",
+    "id": null,
+    "txt": "CLO",
+    "val": null
+   },
+   {
+    "tag": "BUTTON",
+    "id": null,
+    "txt": "OFF",
+    "val": null
+   },
+   {
+    "tag": "BUTTON",
+    "id": null,
+    "txt": "Archive",
+    "val": null
+   },
+   {
+    "tag": "SELECT",
+    "id": null,
+    "txt": "LIVE\nCLO\nOFF",
+    "val": "LIVE"
+   },
+   {
+    "tag": "OPTION",
+    "id": null,
+    "txt": "LIVE",
+    "val": "LIVE"
+   },
+   {
+    "tag": "OPTION",
+    "id": null,
+    "txt": "CLO",
+    "val": "CLO"
+   },
+   {
+    "tag": "OPTION",
+    "id": null,
+    "txt": "OFF",
+    "val": "OFF"
+   },
+   {
+    "tag": "SELECT",
+    "id": null,
+    "txt": "prop\nfixed",
+    "val": "fixed"
+   },
+   {
+    "tag": "OPTION",
+    "id": null,
+    "txt": "prop",
+    "val": "proportional"
+   },
+   {
+    "tag": "OPTION",
+    "id": null,
+    "txt": "fixed",
+    "val": "fixed"
+   },
+   {
+    "tag": "BUTTON",
+    "id": null,
+    "txt": "Save",
+    "val": null
+   },
+   {
+    "tag": "BUTTON",
+    "id": null,
+    "txt": "CLO",
+    "val": null
+   },
+   {
+    "tag": "BUTTON",
+    "id": null,
+    "txt": "OFF",
+    "val": null
+   },
+   {
+    "tag": "BUTTON",
+    "id": null,
+    "txt": "Archive",
+    "val": null
+   },
+   {
+    "tag": "SELECT",
+    "id": null,
+    "txt": "LIVE\nCLO\nOFF",
+    "val": "LIVE"
+   },
+   {
+    "tag": "OPTION",
+    "id": null,
+    "txt": "LIVE",
+    "val": "LIVE"
+   },
+   {
+    "tag": "OPTION",
+    "id": null,
+    "txt": "CLO",
+    "val": "CLO"
+   },
+   {
+    "tag": "OPTION",
+    "id": null,
+    "txt": "OFF",
+    "val": "OFF"
+   },
+   {
+    "tag": "SELECT",
+    "id": null,
+    "txt": "prop\nfixed",
+    "val": "fixed"
+   },
+   {
+    "tag": "OPTION",
+    "id": null,
+    "txt": "prop",
+    "val": "proportional"
+   },
+   {
+    "tag": "OPTION",
+    "id": null,
+    "txt": "fixed",
+    "val": "fixed"
+   },
+   {
+    "tag": "BUTTON",
+    "id": null,
+    "txt": "Save",
+    "val": null
+   },
+   {
+    "tag": "BUTTON",
+    "id": null,
+    "txt": "CLO",
+    "val": null
+   },
+   {
+    "tag": "BUTTON",
+    "id": null,
+    "txt": "OFF",
+    "val": null
+   },
+   {
+    "tag": "BUTTON",
+    "id": null,
+    "txt": "Archive",
+    "val": null
+   },
+   {
+    "tag": "SELECT",
+    "id": null,
+    "txt": "LIVE\nCLO\nOFF",
+    "val": "LIVE"
+   },
+   {
+    "tag": "OPTION",
+    "id": null,
+    "txt": "LIVE",
+    "val": "LIVE"
+   },
+   {
+    "tag": "OPTION",
+    "id": null,
+    "txt": "CLO",
+    "val": "CLO"
+   },
+   {
+    "tag": "OPTION",
+    "id": null,
+    "txt": "OFF",
+    "val": "OFF"
+   },
+   {
+    "tag": "SELECT",
+    "id": null,
+    "txt": "prop\nfixed",
+    "val": "fixed"
+   },
+   {
+    "tag": "OPTION",
+    "id": null,
+    "txt": "prop",
+    "val": "proportional"
+   },
+   {
+    "tag": "OPTION",
+    "id": null,
+    "txt": "fixed",
+    "val": "fixed"
+   },
+   {
+    "tag": "BUTTON",
+    "id": null,
+    "txt": "Save",
+    "val": null
+   },
+   {
+    "tag": "BUTTON",
+    "id": null,
+    "txt": "CLO",
+    "val": null
+   },
+   {
+    "tag": "BUTTON",
+    "id": null,
+    "txt": "OFF",
+    "val": null
+   },
+   {
+    "tag": "BUTTON",
+    "id": null,
+    "txt": "Archive",
+    "val": null
+   },
+   {
+    "tag": "SELECT",
+    "id": null,
+    "txt": "LIVE\nCLO\nOFF",
+    "val": "LIVE"
+   },
+   {
+    "tag": "OPTION",
+    "id": null,
+    "txt": "LIVE",
+    "val": "LIVE"
+   },
+   {
+    "tag": "OPTION",
+    "id": null,
+    "txt": "CLO",
+    "val": "CLO"
+   }
+  ],
+  "route": "ROUTE_AVAILABLE"
+ },
+ "api_summary": {
+  "http": null,
+  "error": "TimeoutError: TimeoutError('timed out')"
+ },
+ "api_ui_state": {
+  "http": 200,
+  "body": {
+   "norm_base": 100.0,
+   "user_norm_base": 100.0,
+   "copy_mode": "proportional",
+   "normalisation_mode": "equity",
+   "fixed_notional": 100.0,
+   "leader_equity_base": 10000.0,
+   "fee_bps": 5.0,
+   "copy_friction_bps": 0.0,
+   "wallet_config": {},
+   "wallet_include": {},
+   "wallet_meta": {},
+   "ranking": {
+    "column": "wallet",
+    "direction": "asc"
+   }
+  }
+ },
+ "snap": {
+  "path": "C:/Users/wigmore/hyperliquid-build3-repair/_archive/hl_stage2/hl_live_copy_audit_testnet\\exchange_account_snapshot_app.json",
+  "ok": true,
+  "body": {
+   "account_address": "0xcccccccccccccccccccccccccccccccccccccccc",
+   "account_value": 0.0,
+   "account_value_label": "Clearinghouse account value",
+   "account_value_source": "clearinghouseState.marginSummary.accountValue",
+   "actual_user_fills_recent": [],
+   "actual_user_fills_source": "hyperliquid.info.userFillsByTime",
+   "available": true,
+   "available_to_trade": null,
+   "available_to_trade_candidates": {},
+   "available_to_trade_source": "",
+   "closed_pnl_sum": 0,
+   "cross_raw_total_usd": 0.0,
+   "fee_policy": "exchange_closedPnl_as_reported",
+   "fee_sum": 0,
+   "fee_sum_24h": 0,
+   "fee_sum_7d": 0,
+   "fee_sum_all_available_window": 0,
+   "fee_sum_selected": 0,
+   "fee_sum_since_baseline": 0,
+   "fee_sum_since_first_live_order": 0,
+   "fee_sum_today": 0,
+   "fetched_at_ms": 1792154922440,
+   "margin_raw_total_usd": 0.0,
+   "margin_used": 0.0,
+   "margin_used_source": "clearinghouseState.marginSummary.totalMarginUsed",
+   "ok": true,
+   "open_position_count": 0,
+   "open_positions": [],
+   "open_positions_count": 0,
+   "pnl_tally_inputs": {
+    "available": false,
+    "reason": "no account history recorded yet"
+   },
+   "positions_by_coin": {},
+   "raw_cross_margin_summary": {
+    "accountValue": "0.0",
+    "totalMarginUsed": "0.0",
+    "totalNtlPos": "0.0",
+    "totalRawUsd": "0.0"
+   },
+   "raw_margin_summary": {
+    "accountValue": "0.0",
+    "totalMarginUsed": "0.0",
+    "totalNtlPos": "0.0",
+    "totalRawUsd": "0.0"
+   },
+   "raw_spot_balances": [],
+   "raw_total_usd": 0.0,
+   "raw_total_usd_label": "Raw USD / collateral value",
+   "raw_total_usd_source": "clearinghouseState.marginSummary.totalRawUsd",
+   "raw_withdrawable": "0.0",
+   "realized_fill_points": [],
+   "realized_fills_paging": {
+    "cached_rows": 0,
+    "complete": true,
+    "fill_count": 0,
+    "history_limited": false,
+    "note": "",
+    "pages": 1
+   },
+   "realized_pnl_24h": 0,
+   "realized_pnl_24h_fill_count": 0,
+   "realized_pnl_24h_nonzero_count": 0,
+   "realized_pnl_24h_source": "hyperliquid.info.userFillsByTime.closedPnl; last 24h",
+   "realized_pnl_7d": 0,
+   "realized_pnl_7d_fill_count": 0,
+   "realized_pnl_7d_nonzero_count": 0,
+   "realized_pnl_7d_source": "hyperliquid.info.userFillsByTime.closedPnl; last 7d",
+   "realized_pnl_all_available_fill_count": 0,
+   "realized_pnl_all_available_window": 0,
+   "realized_pnl_all_available_window_source": "hyperliquid.info.userFillsByTime.closedPnl; fetched 7d/today/baseline window",
+   "realized_pnl_fill_count": 0,
+   "realized_pnl_selected": 0,
+   "realized_pnl_selected_end": "2026-10-16T12:48:43.053000+00:00",
+   "realized_pnl_selected_fill_count": 0,
+   "realized_pnl_selected_label": "today",
+   "realized_pnl_selected_source": "hyperliquid.info.userFillsByTime.closedPnl; selected=today",
+   "realized_pnl_selected_start": "2026-10-15T23:00:00+00:00",
+   "realized_pnl_since_baseline": 0,
+   "realized_pnl_since_baseline_fill_count": 0,
+   "realized_pnl_since_baseline_source": "hyperliquid.info.userFillsByTime.closedPnl; start=account_reconciliation.baseline_timestamp",
+   "realized_pnl_since_first_live_order": 0,
+   "realized_pnl_since_first_live_order_fill_count": 0,
+   "realized_pnl_since_first_live_order_nonzero_count": 0,
+   "realized_pnl_since_first_live_order_source": "hyperliquid.info.userFillsByTime.closedPnl; start=earliest send_attempts ORDER_FILLED",
+   "realized_pnl_since_first_live_order_start": "2026-10-14T11:12:07.758000+00:00",
+   "realized_pnl_snapshot_status": "OK",
+   "realized_pnl_today": 0,
+   "realized_pnl_today_fill_count": 0,
+   "realized_pnl_today_nonzero_count": 0,
+   "realized_pnl_today_source": "hyperliquid.info.userFillsByTime.closedPnl; today Europe/London",
+   "realized_pnl_total": 0,
+   "realized_pnl_total_source": "hyperliquid.info.userFillsByTime.closedPnl; selected=today",
+   "realized_pnl_window_end": "2026-10-16T12:48:43.053000+00:00",
+   "realized_pnl_window_start": "2026-10-15T23:00:00+00:00",
+   "source": "hyperliquid_clearinghouse_state",
+   "spot_account_source": "spotClearinghouseState",
+   "spot_parse_status": "OK",
+   "status": "OK",
+   "total_account_value": null,
+   "total_account_value_status": "unavailable from clearinghouseState",
+   "total_notional_position": 0.0,
+   "unified_portfolio_value": null,
+   "unified_portfolio_value_source": "",
+   "unrealized_pnl": 0.0,
+   "unrealized_pnl_source": "sum(assetPositions.position.unrealizedPnl)",
+   "updated_at": "2026-10-16T12:48:43.384744+00:00",
+   "withdrawable": 0.0,
+   "withdrawable_source": "clearinghouseState.withdrawable"
+  }
+ },
+ "file_exchange_account_history.json": {
+  "path": "C:/Users/wigmore/hyperliquid-build3-repair/_archive/hl_stage2/hl_live_copy_audit_testnet\\exchange_account_history.json",
+  "ok": true,
+  "body": [
+   {
+    "account_value": 0.0,
+    "manual_live_exposure": 55120.020000000004,
+    "open_position_count": 0,
+    "portfolio_value": 0.0,
+    "realized_pnl_24h": 0.0,
+    "realized_pnl_7d": 0.0,
+    "realized_pnl_selected": 0.0,
+    "realized_pnl_selected_label": "today",
+    "realized_pnl_since_baseline": 0.0,
+    "realized_pnl_since_first_live_order": 0.0,
+    "realized_pnl_today": 0.0,
+    "timestamp": "2026-10-16T12:48:16.041071+00:00",
+    "unified_portfolio_value": null,
+    "unrealized_pnl": 0.0,
+    "withdrawable": 0.0
+   },
+   {
+    "account_value": 0.0,
+    "manual_live_exposure": 55120.020000000004,
+    "open_position_count": 0,
+    "portfolio_value": 0.0,
+    "realized_pnl_24h": 0.0,
+    "realized_pnl_7d": 0.0,
+    "realized_pnl_selected": 0.0,
+    "realized_pnl_selected_label": "today",
+    "realized_pnl_since_baseline": 0.0,
+    "realized_pnl_since_first_live_order": 0.0,
+    "realized_pnl_today": 0.0,
+    "timestamp": "2026-10-16T12:48:43.384744+00:00",
+    "unified_portfolio_value": null,
+    "unrealized_pnl": 0.0,
+    "withdrawable": 0.0
+   }
+  ]
+ },
+ "file_live_integrity_status.json": {
+  "path": "C:/Users/wigmore/hyperliquid-build3-repair/_archive/hl_stage2/hl_live_copy_audit_testnet\\live_integrity_status.json",
+  "ok": true,
+  "body": {
+   "active_window_ms": 3600000,
+   "counts": {
+    "archived_manual_residual_accounted": 0,
+    "audit_only_rejected_send": 0,
+    "audit_proof_missing": 0,
+    "audit_proof_stale": 0,
+    "close_reject_or_recovery_required": 0,
+    "copy_poll_network_warnings": 0,
+    "entry_add_recovery_active": 0,
+    "exchange_manual_mismatch": 0,
+    "filled_awaiting_copy_poll": 0,
+    "filled_without_exchange_order_id": 0,
+    "filled_without_live_fill_beyond_grace": 0,
+    "generic_terminal_state": 0,
+    "hard_copy_active_red": 0,
+    "hard_copy_unclassified": 0,
+    "historical_known_terminal": 0,
+    "historical_service_created_unledgered_stale_resolved": 0,
+    "latency_warnings": 0,
+    "live_fills": 0,
+    "missed_add": 0,
+    "missed_entry": 0,
+    "ownership_gate_blocks": 0,
+    "reconciliation_rows": 0,
+    "rejected_missing_terminal_state": 0,
+    "send_attempts": 0,
+    "service_created_unledgered_positions": 0,
+    "service_created_unledgered_stale_resolved": 0,
+    "unmatched_without_terminal_state": 0
+   },
+   "created_at": "2026-10-14T09:47:41.275417+00:00",
+   "created_at_ms": 1791971261269,
+   "hard_copy_invariant": {
+    "active_red_rows": [],
+    "core_started_at_ms": 0,
+    "counts": {
+     "ACTIVE_RED": 0,
+     "COPIED_AND_RECONCILED": 0,
+     "ENGINE_CLOSE_RETRY_REQUIRED": 0,
+     "ENTRY_ADD_RECOVERY_ACTIVE": 0,
+     "EXIT_RECOVERY_ACTIVE": 0,
+     "EXPLICITLY_EXCLUDED_BY_CONFIG": 0,
+     "MANUAL_EXIT_RECOVERY_REQUIRED": 0,
+     "MISSED_ADD_TERMINAL": 0,
+     "MISSED_ENTRY_TERMINAL": 0,
+     "UNCLASSIFIED": 0,
+     "VALID_BLOCKED_BY_DUPLICATE_OR_REPLAY": 0,
+     "VALID_BLOCKED_BY_MIN_NOTIONAL": 0,
+     "VALID_BLOCKED_BY_OWNERSHIP_GATE": 0,
+     "VALID_BLOCKED_BY_SAFETY_GATE": 0,
+     "VALID_BLOCKED_BY_SYMBOL_GATE": 0,
+     "VALID_CLOSE_RECOVERY_TERMINAL": 0,
+     "VALID_NO_ACTION_CLOSE_PROVEN": 0
+    },
+    "historical_unresolved_active_red_count": 0,
+    "historical_unresolved_active_red_rows": [],
+    "live_wallet_intents_checked": 0,
+    "missed_terminal_rows": [],
+    "unclassified_rows": []
+   },
+   "latency_warning_window_ms": 90000,
+   "missed_terminal_window_ms": 86400000,
+   "notes": "audit-only live integrity status; no ledger mutation",
+   "ownership_gate": {
+    "missing_audit_files": [],
+    "recent_blocks": [],
+    "stale_audit_files": [],
+    "status": "READY"
+   },
+   "pending_grace_ms": 600000,
+   "position_assignment": {
+    "archived_manual_residuals": [],
+    "exchange_manual_mismatches": [],
+    "status": "MATCHED"
+   },
+   "reasons": [],
+   "status": "GREEN"
+  }
+ },
+ "file_live_service_state.json": {
+  "path": "C:/Users/wigmore/hyperliquid-build3-repair/_archive/hl_stage2/hl_live_copy_audit_testnet\\live_service_state.json",
+  "ok": true,
+  "body": {
+   "active_wallets": 1,
+   "argv": [
+    "HL_Live_Copy_Service_Core.py",
+    "--once"
+   ],
+   "auto_send_enabled": true,
+   "budget_exceeded": false,
+   "budget_exceeded_note": "cycle_timing_only — not a financial cap; applies no order blocks",
+   "config_path": "C:\\Users\\wigmore\\hyperliquid-build3-repair\\_archive\\hl_stage2\\hl_live_copy_audit_testnet\\live_config.json",
+   "copy_account_baseline_at_ms": 0,
+   "copy_account_baseline_fill_count": 0,
+   "copy_account_baseline_max_ts_ms": 0,
+   "copy_account_baseline_set": false,
+   "copy_account_status": "COPY_ACCOUNT_POLL_DISABLED",
+   "copy_fills_baselined": 0,
+   "copy_fills_deduped": 0,
+   "copy_fills_matched": 0,
+   "copy_fills_seen": 0,
+   "copy_fills_unmatched": 0,
+   "copy_poll_interval_seconds": 0.0,
+   "created_at": "2026-10-14T09:23:12.748614+00:00",
+   "created_at_ms": 1791969792748,
+   "cycle": "run_cycle",
+   "cycle_time_budget_exceeded": false,
+   "effective_global_controls": {
+    "marketable_bps": 20.0,
+    "max_asset_directional_exposure_usd": 0.0,
+    "max_close_adverse_diff_pct": 0.0,
+    "max_daily_loss_usd": 0.0,
+    "max_order_notional_usd": 20.0,
+    "max_total_live_exposure_usd": 50.0,
+    "max_wallet_exposure_usd": 0.0,
+    "symbol_allowlist": [],
+    "symbol_blocklist": []
+   },
+   "effective_real_orders_enabled": true,
+   "exchange_recon_status": "SNAPSHOT_SKIPPED",
+   "fatal_errors": 0,
+   "forbidden_files": {
+    "live_positions_exists": false,
+    "would_send_orders_exists": false
+   },
+   "hot_send_workers": 1,
+   "last_copy_poll_age_ms": 0,
+   "last_state_write_ms": 1791969792748,
+   "leader_fills_deduped": 0,
+   "leader_fills_seen": 0,
+   "leader_intents_written": 0,
+   "leader_sends_attempted": 0,
+   "ledger_updates": 0,
+   "live_start_ms": 1,
+   "master_real_orders_enabled": true,
+   "network_errors": 0,
+   "networks": {
+    "follower": "testnet",
+    "leader": "mainnet"
+   },
+   "ok": true,
+   "poll_loop_status": "POLL_DISABLED",
+   "process_id": 31672,
+   "processed_copy_fill_ids": [],
+   "processed_leader_fill_ids": [],
+   "recovery_limits_placed": 0,
+   "send_block_reason": "",
+   "started_at": "2026-10-14T09:13:17.825511+00:00",
+   "started_at_ms": 1791969197825,
+   "wallet_modes_active": {
+    "CLO": 0,
+    "LIVE": 1,
+    "OFF": 0
+   },
+   "ws_open_count": 0,
+   "ws_reconnect_count": 0,
+   "ws_stale_count": 0,
+   "ws_status": "WS_DEGRADED",
+   "ws_wallet_count": 1,
+   "ws_worst_health_grade": "DEGRADED"
+  }
+ }
+}

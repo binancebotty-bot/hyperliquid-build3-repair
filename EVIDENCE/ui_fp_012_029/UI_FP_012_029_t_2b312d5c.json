@@ -1,0 +1,84 @@
+{
+ "register_of_record": "main:certification/certification_matrix.json @ b142cf88d389e791160f691aac3d936852b99975",
+ "register_matrix_sha256": "86b2237fe95f88ca9eb758fb42ddbdf3efdaef71e56f79a10e2d2635f44f341a",
+ "task": "t_2b312d5c",
+ "tested_at_utc": "2026-10-17T00:16:48.586066Z",
+ "route": "playwright.chromium headless (Python 3.11), http://127.0.0.1:8031/live-copy rendered DOM; oracle = served JSON API + on-disk snapshot; no engine import; read-only",
+ "dom_status_strip_cards": [
+  "HEALTH",
+  "LEADER FEED",
+  "FOLLOWER ACCOUNT READ",
+  "WALLETS",
+  "LAST SEND",
+  "LAST FILL",
+  "LAST REJECT",
+  "LAST LATENCY WARNING"
+ ],
+ "page_wide_svg_count": 1,
+ "page_wide_svg_ids": [
+  "lcEquityChart"
+ ],
+ "raw_sha256": {
+  "matrix_b142cf88.json": "86b2237fe95f88ca9eb758fb42ddbdf3efdaef71e56f79a10e2d2635f44f341a",
+  "p2.json": "0375bc76bcca9eeb412702c2b1e200e1536afbfbb5c34dc7c68fb2e767a65e57",
+  "p3.json": "48e1585fa4624967e290bcc64cfd66e74915a2eecb780d2f343355ab2f02b07b",
+  "p4.json": "400340ab10642de2d59c0cae2bbbb01347677ffbc6d81de7bd27194eb9c172e6",
+  "rows_out.json": "88cd06436beb0af97ef5d1b6338c968d9b0f41ad27e57c521bb278fadb9d7660"
+ },
+ "rows": [
+  {
+   "id": "UI-FP-012",
+   "feature": "Live Copy Status cards: MASTER REAL ORDERS",
+   "expected": "Shows live_top_status.master_real_orders as master real order switch (provenance LIVE_SERVICE_STATE; execution truth: YES).",
+   "result": "FAIL",
+   "probe": "Rendered DOM #lcTruthStatus .lc-stat cards (probe2/p4) + page-wide text scan for /MASTER REAL/i (probe3 any_master_text) + served /api/live-copy-summary.live_top_status.master_real_orders",
+   "basis": "The rendered status strip contains exactly 8 cards: HEALTH, LEADER FEED, FOLLOWER ACCOUNT READ, WALLETS, LAST SEND, LAST FILL, LAST REJECT, LAST LATENCY WARNING. There is NO MASTER REAL ORDERS card; page-wide leaf scan for /MASTER REAL/i returned 0 hits. The API DOES expose live_top_status.master_real_orders=\"OFF\", but the value is not rendered anywhere in the panel. Chain breaks at the render step.",
+   "oracle": "/api/live-copy-summary live_top_status.master_real_orders=OFF; on-disk live_service_state.json master_real_orders_enabled=true (stale)"
+  },
+  {
+   "id": "UI-FP-013",
+   "feature": "Live Copy Status cards: Active/subscribed wallets",
+   "expected": "Shows live_top_status.active_wallets/subscribed_wallets as active wallet count / subscribed count.",
+   "result": "PARTIAL",
+   "probe": "DOM .lc-stat WALLETS card value (probe2/p4) vs /api/live-copy-summary live_top_status.{active_wallets,subscribed_wallets,live_wallets}; token scan for active_wallets/subscribed_wallets/ACTIVE/SUBSCRIBED",
+   "basis": "Rendered WALLETS card value = \"10 live / 10 followed\"; API active_wallets=10, subscribed_wallets=10, live_wallets=10 -> counts MATCH. However there is no discrete \"active_wallets\"/\"subscribed_wallets\" element as the register names it; token scan for active_wallets/subscribed_wallets = false and ACTIVE/SUBSCRIBED = 0. Data fidelity holds; the named element does not exist. No negative-path (stale/unavailable) proof captured.",
+   "oracle": "/api/live-copy-summary live_top_status.active_wallets=10 subscribed_wallets=10 live_wallets=10"
+  },
+  {
+   "id": "UI-FP-014",
+   "feature": "Live Copy Status cards: Last send",
+   "expected": "Shows live_top_status.last_send as latest send_attempt row (provenance ENGINE_TRUTH).",
+   "result": "PASS",
+   "probe": "DOM .lc-stat LAST SEND card (probe2/p4) vs /api/live-copy-summary.live_top_status.last_send at same instant",
+   "basis": "LAST SEND card present and renders a live last_send entry (coin + status): probe4 DOM \"BANANA pending_send\" at dom_ms=1792196089946, API last_send coin=CAKE status=pending_send created_at_ms=1792196088106. Field present, status (pending_send) matches; the coin differs only because last_send advances every ~1-3s and the DOM/API reads are 3.5s apart (cross-process clock skew on a sub-second-advancing field; exact-value atomicity not achievable).",
+   "oracle": "/api/live-copy-summary live_top_status.last_send (created_at_ms 1792196088106, status pending_send)"
+  },
+  {
+   "id": "UI-FP-017",
+   "feature": "Live Copy Status cards: Last latency warning",
+   "expected": "Shows live_top_status.last_latency_warning as latest SEND_LATENCY_WARN reconciliation row.",
+   "result": "PASS",
+   "probe": "DOM .lc-stat LAST LATENCY WARNING card (probe2/p4) vs /api/live-copy-summary.live_top_status.last_latency_warning",
+   "basis": "LAST LATENCY WARNING card present and renders a full SEND_LATENCY_WARN row. probe4 DOM: \"severity=WARN; classification=SLOW_EXCHANGE_CALL; wallet=0x31ca... coin=POPCAT intent_id=... delay_ms=1793 largest_component=exchange_call_ms:1063\"; API last_latency_warning status=SLOW_SEND_PATH notes=\"severity=CRITICAL; classification=SLOW_EXCHANGE_CALL; wallet=0x0104... coin=BANANA ...\". Shape matches exactly (severity/classification/wallet/coin/delay/largest_component); values differ only by the same sub-second field-advance skew.",
+   "oracle": "/api/live-copy-summary live_top_status.last_latency_warning (status SLOW_SEND_PATH)"
+  },
+  {
+   "id": "UI-FP-025",
+   "feature": "Graph: Account graph total PnL",
+   "expected": "Shows exchange_account_history[].unified_portfolio_value as point.value = unified_portfolio_value - first_visible_unified_portfolio_value.",
+   "result": "PASS",
+   "probe": "Rendered SVG #lcEquityChart + #lcGraphSubtitle + y/x axis <text> (probe2/probe3) vs /api/live-copy-summary.exchange_account_history",
+   "basis": "Account equity graph is rendered as SVG #lcEquityChart (outerHTML ~1.75MB); subtitle \"Exchange account graph. ALL range - 151 portfolio pts, 47295 realized fills.\"; y-axis labels are baseline-relative deltas ($100.9 / -$420.x / -$942.x) and x-axis spans Fri 9..Sat 17. API exchange_account_history carries 156 points with portfolio_value/unified_portfolio_value. Baseline-relative delta rendering matches \"unified_portfolio_value - first_visible_unified_portfolio_value\"; ACCOUNT CHANGE banner (-$841) is consistent with start 1449 -> now ~620.",
+   "oracle": "/api/live-copy-summary exchange_account_history (156 pts, first portfolio_value 0.0 baseline, last portfolio_value 620.408382)"
+  },
+  {
+   "id": "UI-FP-029",
+   "feature": "Graph: Selected wallet exposure graph",
+   "expected": "Shows selected wallet current_exposure points from live_leader_performance[wallet].exposure_series as MANUAL_LEDGER.",
+   "result": "FAIL",
+   "probe": "Page-wide svg enumeration + graph/chart/exposure id scan + wallet-row click to reveal detail (probe3); /api/live-copy-summary.live_leader_performance[wallet].exposure_series",
+   "basis": "Exactly ONE svg exists page-wide (#lcEquityChart, the ACCOUNT equity graph). There is NO per-wallet / selected-wallet exposure graph element: after clicking a wallet row (lcWalletModal), the svg set is unchanged (still only lcEquityChart). The data IS present in the API (live_leader_performance[wallet].exposure_series is a list for every wallet) but it is not plotted. Chain breaks at the render step.",
+   "oracle": "/api/live-copy-summary live_leader_performance[0x0104...].exposure_series present (list) but no corresponding rendered graph"
+  }
+ ]
+}
