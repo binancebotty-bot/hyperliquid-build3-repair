@@ -1,0 +1,43 @@
+{
+  "packet": "J24 runtime audit logs; read-only",
+  "verdict_basis": "Independent bounded inspection of live_fills.csv data rows 68626-69060 and send_attempts.csv data rows 211300-212800, plus matrix execution_proof fields. These logs show event/attempt/order IDs and copy-poll fills, but are not the independent testnet info-API oracle specified by the matrix.",
+  "verdicts": [
+    {
+      "id": "ENG-001",
+      "verdict": "PARTIAL",
+      "evidence": "send_attempts data row 211614: EIGEN BUY, intent 6579360695ae9e6ed309895949f64638, exchange order 62959788778, submitted copy_size 44.74; exchange response says filled totalSz 0.11. Matching live_fills data row 68708 records that order/intent and wallet position 405.22 to 405.33. This evidences a send and corresponding polled fill, but not the required repeated-ADD convergence chain.",
+      "missing": "Per-coin desired-net and in-flight computation/planner delta across repeated ADDs, and independent MASTER testnet position/fills oracle. The log's own expected net is not proof of desired-net correctness."
+    },
+    {
+      "id": "ENG-002",
+      "verdict": "PARTIAL",
+      "evidence": "Bounded live_fills rows 68626-69060 contain 436 matched order IDs (395 UPDATED, 41 CLOSED). Example row 68626 GMT SELL order 62959692386 records position 653 to 0; row 68708 EIGEN BUY order 62959788778 records position 405.22 to 405.33. Attempt row 211614 matches the EIGEN order. These show some fills/position updates and closes, not a complete identified open/add/partial-reduce/close scenario sequence.",
+      "missing": "A traceable same-position scenario covering open, add, partial reduce, close with desired-net/planner/in-flight values and independent MASTER API snapshots. No proof that cited unrelated rows form the required single sequence."
+    },
+    {
+      "id": "ENG-004",
+      "verdict": "PARTIAL",
+      "evidence": "Attempt row 211614 submits EIGEN size 44.74 while exchange response reports totalSz 0.11; matching live_fills row 68708 reports 0.11. Attempt row 212800 records INIT submitted size 95 with exchange fill totalSz 90 (order 62960142243). Thus submitted and exchange-filled sizes can be compared for sampled rows.",
+      "missing": "No szDecimals metadata or rounding calculation establishing the correct permitted wire-size across different decimal precision coins; nor proof that partial fill differences are rounding rather than fill quantity."
+    },
+    {
+      "id": "ENG-INV-11",
+      "verdict": "PARTIAL",
+      "evidence": "Sampled attempt rows include leader_wallet and sleeves; matching fill rows document copy-account order IDs and positions. This is operational evidence of copy activity only.",
+      "missing": "No independently verified signer identity versus MASTER identity binding or read-only testnet info API evidence identifying MASTER; the audit CSV alone cannot establish account separation."
+    },
+    {
+      "id": "ENG-INV-13",
+      "verdict": "PARTIAL",
+      "evidence": "Attempt row 211614 contains ownership-gate timestamps and a filled order; bounded fill rows show subsequent matched position updates. This establishes activity, not that the required restart/disarmed test was observed.",
+      "missing": "Pre-arm state and proof that no order was sent while disarmed, and coverage of every restart/zero-authority negative case. Subsequent execution does not establish those negatives."
+    },
+    {
+      "id": "ENG-INV-14",
+      "verdict": "NOT_TESTED",
+      "evidence": "No unauthorized-mainnet negative test is evidenced in the inspected testnet send/fill logs. Matrix row expected_behaviour is no mainnet/LIVE activation without explicit approval; task scope specifies the named missing negative.",
+      "missing": "Evidence of the unauthorized-mainnet negative and its named blocker. No attempt to infer details beyond available task text."
+    }
+  ],
+  "integrity": "No audit logs or matrix files modified. No PASS verdicts."
+}
