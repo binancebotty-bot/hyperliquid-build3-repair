@@ -1,0 +1,107 @@
+[
+  {
+    "row_id": "UI-LCC-EXQ-09",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/UI_LCC_EXQ_AUD_batch12_dom.json",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "The live Execution Quality / Order Intents table does not render per-row data for required 'OID' field: captured tbody is [['Loading...']] rather than an intent/order row. This fails the row-specific content requirement; it is not a harness exception (HTTP 200, document complete, serving commit is bound)."
+  },
+  {
+    "row_id": "UI-LCC-EXQ-10",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/UI_LCC_EXQ_AUD_batch12_dom.json",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "The live Execution Quality / Order Intents table does not render per-row data for required 'Fill-vs-limit %' field: captured tbody is [['Loading...']] rather than an intent/order row. This fails the row-specific content requirement; it is not a harness exception (HTTP 200, document complete, serving commit is bound)."
+  },
+  {
+    "row_id": "UI-LCC-EXQ-11",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/UI_LCC_EXQ_AUD_batch12_dom.json",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "The live Execution Quality / Order Intents table does not render per-row data for required 'Leader-vs-user %' field: captured tbody is [['Loading...']] rather than an intent/order row. This fails the row-specific content requirement; it is not a harness exception (HTTP 200, document complete, serving commit is bound)."
+  },
+  {
+    "row_id": "UI-LCC-EXQ-12",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/UI_LCC_EXQ_AUD_batch12_dom.json",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "The live Execution Quality / Order Intents table does not render per-row data for required 'Market slip %' field: captured tbody is [['Loading...']] rather than an intent/order row. This fails the row-specific content requirement; it is not a harness exception (HTTP 200, document complete, serving commit is bound)."
+  },
+  {
+    "row_id": "UI-LCC-EXQ-13",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/UI_LCC_EXQ_AUD_batch12_dom.json",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "The live Execution Quality / Order Intents table does not render per-row data for required 'Error' field: captured tbody is [['Loading...']] rather than an intent/order row. This fails the row-specific content requirement; it is not a harness exception (HTTP 200, document complete, serving commit is bound)."
+  },
+  {
+    "row_id": "UI-LCC-AUD-01",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/UI_LCC_EXQ_AUD_batch12_dom.json",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "The live Execution Quality / Order Intents table does not render per-row data for required 'Time' field: captured tbody is [['Loading audit summary...']] rather than an intent/order row. This fails the row-specific content requirement; it is not a harness exception (HTTP 200, document complete, serving commit is bound)."
+  },
+  {
+    "row_id": "UI-LCC-AUD-02",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/UI_LCC_EXQ_AUD_batch12_dom.json",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "The live Execution Quality / Order Intents table does not render per-row data for required 'Wallet' field: captured tbody is [['Loading audit summary...']] rather than an intent/order row. This fails the row-specific content requirement; it is not a harness exception (HTTP 200, document complete, serving commit is bound)."
+  },
+  {
+    "row_id": "UI-LCC-AUD-03",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/UI_LCC_EXQ_AUD_batch12_dom.json",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "The live Execution Quality / Order Intents table does not render per-row data for required 'Coin' field: captured tbody is [['Loading audit summary...']] rather than an intent/order row. This fails the row-specific content requirement; it is not a harness exception (HTTP 200, document complete, serving commit is bound)."
+  },
+  {
+    "row_id": "UI-LCC-AUD-04",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/UI_LCC_EXQ_AUD_batch12_dom.json",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "The live Execution Quality / Order Intents table does not render per-row data for required 'Side' field: captured tbody is [['Loading audit summary...']] rather than an intent/order row. This fails the row-specific content requirement; it is not a harness exception (HTTP 200, document complete, serving commit is bound)."
+  },
+  {
+    "row_id": "UI-LCC-AUD-05",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/UI_LCC_EXQ_AUD_batch12_dom.json",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "The live Execution Quality / Order Intents table does not render per-row data for required 'Source/Reason' field: captured tbody is [['Loading audit summary...']] rather than an intent/order row. This fails the row-specific content requirement; it is not a harness exception (HTTP 200, document complete, serving commit is bound)."
+  },
+  {
+    "row_id": "UI-LCC-AUD-06",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/UI_LCC_EXQ_AUD_batch12_dom.json",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "The live Execution Quality / Order Intents table does not render per-row data for required 'Status' field: captured tbody is [['Loading audit summary...']] rather than an intent/order row. This fails the row-specific content requirement; it is not a harness exception (HTTP 200, document complete, serving commit is bound)."
+  },
+  {
+    "row_id": "UI-LCC-AUD-07",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/UI_LCC_EXQ_AUD_batch12_dom.json",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "The live Execution Quality / Order Intents table does not render per-row data for required 'Decision' field: captured tbody is [['Loading audit summary...']] rather than an intent/order row. This fails the row-specific content requirement; it is not a harness exception (HTTP 200, document complete, serving commit is bound)."
+  },
+  {
+    "row_id": "UI-LCC-AUD-08",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/UI_LCC_EXQ_AUD_batch12_dom.json",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "The live Execution Quality / Order Intents table does not render per-row data for required 'Decision reason' field: captured tbody is [['Loading audit summary...']] rather than an intent/order row. This fails the row-specific content requirement; it is not a harness exception (HTTP 200, document complete, serving commit is bound)."
+  },
+  {
+    "row_id": "UI-LCC-AUD-09",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/UI_LCC_EXQ_AUD_batch12_dom.json",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "The live Execution Quality / Order Intents table does not render per-row data for required 'Suggested limit' field: captured tbody is [['Loading audit summary...']] rather than an intent/order row. This fails the row-specific content requirement; it is not a harness exception (HTTP 200, document complete, serving commit is bound)."
+  },
+  {
+    "row_id": "UI-LCC-AUD-10",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/UI_LCC_EXQ_AUD_batch12_dom.json",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "The live Execution Quality / Order Intents table does not render per-row data for required 'Diff %' field: captured tbody is [['Loading audit summary...']] rather than an intent/order row. This fails the row-specific content requirement; it is not a harness exception (HTTP 200, document complete, serving commit is bound)."
+  }
+]

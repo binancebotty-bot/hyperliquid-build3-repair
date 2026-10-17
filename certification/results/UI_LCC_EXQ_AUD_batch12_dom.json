@@ -1,0 +1,206 @@
+{
+  "captured_at_utc": "2026-10-17T15:41:33.713015+00:00",
+  "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+  "serving_process": {
+    "pid": 33368,
+    "started_at_utc": "2026-10-17T10:54:09.552605+00:00",
+    "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762"
+  },
+  "page": {
+    "url": "http://127.0.0.1:8031/live-copy",
+    "http_status": 200,
+    "readyState": "complete"
+  },
+  "tables": [
+    {
+      "headers": [
+        "WALLET",
+        "NET P&L",
+        "FEED",
+        "CLOSED / OPEN / FEES",
+        "LEAD\u2194COPY DIFF",
+        "EXECUTION",
+        "RISK / EXPOSURE",
+        "LAST FILL",
+        "CONTROLS"
+      ],
+      "rows": [
+        [
+          "Loading live-copy config..."
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "COIN",
+        "LEDGER NET (SUM OF LEADERS)",
+        "EXCHANGE NET",
+        "LEDGER/EXCHANGE",
+        "WHICH LEADER HOLDS WHAT"
+      ],
+      "rows": [
+        [
+          "Loading..."
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "WALLET",
+        "COIN",
+        "SIDE",
+        "SIGNED SIZE",
+        "AVG ENTRY",
+        "LEDGER/EXCHANGE",
+        "EXCHANGE SIZE",
+        "LAST COPY FILL",
+        "LAST UPDATED"
+      ],
+      "rows": [
+        [
+          "Loading..."
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "COIN",
+        "UNEXPLAINED SIZE",
+        "ENTRY PX",
+        "MARK PX",
+        "UNREALIZED PNL",
+        "STATUS",
+        "WHO MANAGES IT",
+        "ENGINE CLOSES IT?",
+        "ENGINE USES IT?",
+        "CONTEXT"
+      ],
+      "rows": [
+        [
+          "Loading..."
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Time",
+        "Wallet",
+        "Coin",
+        "Side",
+        "Status",
+        "Terminal state",
+        "Operator action",
+        "Reject category",
+        "OID",
+        "Fill avg px",
+        "Size",
+        "Pos before -> after",
+        "Leader\u2192send ms",
+        "Total ms",
+        "Symbol ms",
+        "SDK ms",
+        "Exchange ms",
+        "Error"
+      ],
+      "rows": [
+        [
+          "Loading..."
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Time",
+        "Wallet",
+        "Coin",
+        "Side",
+        "Source/Reason",
+        "Status",
+        "Decision",
+        "Decision reason",
+        "Suggested limit",
+        "Diff %",
+        "Manual?",
+        "Intent note",
+        "Real order result"
+      ],
+      "rows": [
+        [
+          "Loading audit summary..."
+        ]
+      ]
+    },
+    {
+      "headers": [
+        "Event",
+        "Status",
+        "Action",
+        "Reject category",
+        "Terminal state",
+        "Coin",
+        "Wallet",
+        "Intent",
+        "Notes"
+      ],
+      "rows": []
+    },
+    {
+      "headers": [
+        "Event",
+        "Status",
+        "Action",
+        "Reject category",
+        "Terminal state",
+        "Coin",
+        "Wallet",
+        "Intent",
+        "Notes"
+      ],
+      "rows": []
+    },
+    {
+      "headers": [
+        "Status",
+        "Wallet",
+        "Coin",
+        "Intent",
+        "Issue"
+      ],
+      "rows": []
+    },
+    {
+      "headers": [
+        "Severity",
+        "Wallet",
+        "Coin",
+        "Issue",
+        "Manual ledger",
+        "Exchange",
+        "Action"
+      ],
+      "rows": []
+    },
+    {
+      "headers": [
+        "Wallet",
+        "Current",
+        "Grade",
+        "Thread",
+        "Reconnect/min",
+        "Processed",
+        "Raw msg",
+        "Parsed",
+        "Snap seen",
+        "Snap recovered",
+        "Ignored",
+        "Recent errors",
+        "Lifetime errors",
+        "Stale ms",
+        "Data status",
+        "Last close/error"
+      ],
+      "rows": []
+    }
+  ],
+  "body_tail": "Live Copy Command Centre\nWallets:\n0 / 10\nLeader feed:\n\u2014\nRefresh\nGlobal Controls\nAdd wallet\nACCOUNT VALUE\n\u2014\nSENDING\n\u2014\nHEALTH\n\u2014\nACCOUNT CHANGE SINCE RUN START\n\u2014\nOPEN POSITIONS\n\u2014\nTechnical detail\nLoading...\nDoes the P&L add up?\n\nStart value to now, from the exchange: every fill and funding payment in the window is counted.\n\nLoading\u2026\nLive Copy Status\nReal Account\nLive Account / Wallet PnL\n\nPortfolio value change from exchange snapshots; realised PnL from actual user closedPnl.\n\nAccount\nSelected Wallet PnL\nExposure\n1D\n7D\nALL\nApply\nReset\nTotal PnL\nRealized PnL\nDrawdown\nLive Copy Wallets\n\nConfigured wallets from live_config.json. Click a row for real copy details for that leader.\n\nWALLET\tNET P&L\tFEED\tCLOSED / OPEN / FEES\tLEAD\u2194COPY DIFF\tEXECUTION\tRISK / EXPOSURE\tLAST FILL\tCONTROLS\nLoading live-copy config...\nReal Copy Positions\nExecution Quality\nOrder Intents / Audit\nReconciliation\nWS Health\nReal User Copy Positions\n\nManual ledger vs real exchange account. All sizes signed (positive = long, negative = short). Exchange data requires HL_LIVE_HL_ACCOUNT_ADDRESS configured.\n\nNET BY COIN \u2014 ONE SHARED ACCOUNT (leaders net like the exchange)\nCOIN\tLEDGER NET (SUM OF LEADERS)\tEXCHANGE NET\tLEDGER/EXCHANGE\tWHICH LEADER HOLDS WHAT\nLoading...\nOWNED COPY POSITIONS\nWALLET\tCOIN\tSIDE\tSIGNED SIZE\tAVG ENTRY\tLEDGER/EXCHANGE\tEXCHANGE SIZE\tLAST COPY FILL\tLAST UPDATED\nLoading...\nPOSITIONS NOT OPENED BY THE ENGINE\nCOIN\tUNEXPLAINED SIZE\tENTRY PX\tMARK PX\tUNREALIZED PNL\tSTATUS\tWHO MANAGES IT\tENGINE CLOSES IT?\tENGINE USES IT?\tCONTEXT\nLoading..."
+}
