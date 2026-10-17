@@ -1,0 +1,226 @@
+{
+ "task_id": "t_6b07b48d",
+ "batch": "CERT BATCH 2/27 ENG-013..RISK-002 (30 rows)",
+ "register": "origin/cert/local-main-b142cf8:certification/certification_matrix.json",
+ "register_commit": "b142cf88",
+ "generated_by": "default/deepseek-v4-flash-thinking-nosearch",
+ "counts": {
+  "PASS": 6,
+  "FAIL": 10,
+  "NOT_TESTED": 8,
+  "BLOCKED": 6
+ },
+ "standard": "PASS only on row-bound evidence asserting this row's own execution_proof/independent_oracle; shared sweeps, source substrings and predicates that cannot fail are not counted.",
+ "rows": [
+  {
+   "row_id": "ENG-013",
+   "verdict": "PASS",
+   "evidence_ref": "certification/results/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json",
+   "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+   "why": "Row-bound runtime evidence: this row's own checks assert intent_id traceability (8a5192e8...), leader_fill linkage (fill_audit_1), coin_net_before=0.0, an audit CSV actually written (exists=True size=2154) and SETTLED_FULL settlement of that same intent. These are keyed to this intent/fill pair and would fail for another row. Mutation eng013_remove_audit_write is non-vacuous (audit calls 0 after mutation)."
+  },
+  {
+   "row_id": "ENG-014",
+   "verdict": "PASS",
+   "evidence_ref": "certification/results/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json",
+   "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+   "why": "Row-bound runtime evidence at the same engine: stale WS snapshot drives reason=STALE_WS_SNAPSHOT_IGNORED (source corrected from WS to WS_SNAPSHOT so the stale path is genuinely exercised), the dedupe store returns first=True/second=False, and a SELL-before-BUY reorder yields lifecycle=ENTRY. IDEMPOTENCY_GUARD_IN_SOURCE is a source-substring check and is NOT counted; the row passes on the three runtime assertions only."
+  },
+  {
+   "row_id": "ENG-015",
+   "verdict": "PASS",
+   "evidence_ref": "certification/results/ENG-015-016-TNF17_43731b4f.json",
+   "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+   "why": "Own execution path run as a subprocess of the committed convergence_shadow module: selftest rc=0 with disaster=True invariant=True idempotent=True sign_flip_leg1/leg2=True; the mutation replacing the sign-flip two-leg split with one crossing order is non-vacuous (mutated run FAILs). Assertions are specific to the two-leg sign-flip mechanism and cannot carry another row."
+  },
+  {
+   "row_id": "ENG-016",
+   "verdict": "PASS",
+   "evidence_ref": "certification/results/ENG-015-016-TNF17_43731b4f.json",
+   "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+   "why": "Own execution path: reconcile_sleeve subprocess rc=0 with the unattributed_net subtraction in place, and the mutation removing that subtraction is detected (non_vacuous=true, detected=True). Row-bound to the unattributed-exclusion rule; no other row in the batch shares this assertion."
+  },
+  {
+   "row_id": "PRICE-001",
+   "verdict": "FAIL",
+   "evidence_ref": "C:/Users/wigmore/.hermes/cache/scratch/b3_clean/_art_PRICING_CORRECTION_2d29211148.json",
+   "tested_commit": "UNBOUND: invalid tested_commit 2d29211148fefc2b04261c734bb32c767d2cc4a91095e65843",
+   "why": "No admissible evidence at the register commit: git ls-tree origin/cert/local-main-b142cf8 -- certification/results lists NO PRICING artifact, and the working-tree copy cites tested_commit 2d29211148fefc2b04261c734bb32c767d2cc4a91095e65843 which is not a git object (cat-file: Not a valid object name). That artifact self-reports overall FAIL, 3/13 checks pass. On the merits ENTRY_PRICED_FROM_FOLLOWER_MID is not established: the only priced attempt gives limit=100.2 against its own expected 50100.0 (follower_mid*20bps) and follower_mid returns 0.0 on a fresh cache, so entry pricing from follower mid is unproven."
+  },
+  {
+   "row_id": "PRICE-002",
+   "verdict": "FAIL",
+   "evidence_ref": "C:/Users/wigmore/.hermes/cache/scratch/b3_clean/_art_PRICING_CORRECTION_2d29211148.json",
+   "tested_commit": "UNBOUND: invalid tested_commit 2d29211148fefc2b04261c734bb32c767d2cc4a91095e65843",
+   "why": "No admissible evidence at the register commit: git ls-tree origin/cert/local-main-b142cf8 -- certification/results lists NO PRICING artifact, and the working-tree copy cites tested_commit 2d29211148fefc2b04261c734bb32c767d2cc4a91095e65843 which is not a git object (cat-file: Not a valid object name). That artifact self-reports overall FAIL, 3/13 checks pass. Follower-mid TTL cache is contradicted by the only measurement: FRESH_MID_RETURNED_FROM_CACHE and WITHIN_TTL_RETURNS_CACHED both return 0.0. Not merely untested - the fresh/within-TTL requirement fails."
+  },
+  {
+   "row_id": "PRICE-003",
+   "verdict": "BLOCKED",
+   "evidence_ref": "certification/certification_matrix.json",
+   "tested_commit": "b142cf88",
+   "why": "Register applicability is OPEN_DECISION on OD-10, so the approved worst-price bound itself is unruled and cannot be certified. Evidence position: no PRICING artifact exists at b142cf8."
+  },
+  {
+   "row_id": "PRICE-004",
+   "verdict": "BLOCKED",
+   "evidence_ref": "certification/certification_matrix.json",
+   "tested_commit": "b142cf88",
+   "why": "OPEN_DECISION on OD-10 (what counts as an unacceptable entry price is unruled), so \"no order, target preserved, later valid price executes once\" cannot be judged. No PRICING artifact at b142cf8."
+  },
+  {
+   "row_id": "PRICE-005",
+   "verdict": "FAIL",
+   "evidence_ref": "C:/Users/wigmore/.hermes/cache/scratch/b3_clean/_art_PRICING_CORRECTION_2d29211148.json",
+   "tested_commit": "UNBOUND: invalid tested_commit 2d29211148fefc2b04261c734bb32c767d2cc4a91095e65843",
+   "why": "No admissible evidence at the register commit: git ls-tree origin/cert/local-main-b142cf8 -- certification/results lists NO PRICING artifact, and the working-tree copy cites tested_commit 2d29211148fefc2b04261c734bb32c767d2cc4a91095e65843 which is not a git object (cat-file: Not a valid object name). That artifact self-reports overall FAIL, 3/13 checks pass. Product miss recorded by its own checks: REDUCE_NOT_BLOCKED_BY_ENTRY_PROTECTION, EXIT_NOT_BLOCKED_BY_ENTRY_PROTECTION and ENTRY_BLOCK_REASON_IGNORED_FOR_REDUCE all return ok=False/status=INTENT_NOT_SEND_ALLOWED - exits ARE trapped by entry protection."
+  },
+  {
+   "row_id": "PRICE-006",
+   "verdict": "FAIL",
+   "evidence_ref": "C:/Users/wigmore/.hermes/cache/scratch/b3_clean/_art_PRICING_CORRECTION_2d29211148.json",
+   "tested_commit": "UNBOUND: invalid tested_commit 2d29211148fefc2b04261c734bb32c767d2cc4a91095e65843",
+   "why": "No admissible evidence at the register commit: git ls-tree origin/cert/local-main-b142cf8 -- certification/results lists NO PRICING artifact, and the working-tree copy cites tested_commit 2d29211148fefc2b04261c734bb32c767d2cc4a91095e65843 which is not a git object (cat-file: Not a valid object name). That artifact self-reports overall FAIL, 3/13 checks pass. Close adverse-diff gate does not work as specified: measured adverse 99.80% against max_close_adverse_diff_pct=0.25% still fills (ok=True, ORDER_FILLED), and the diff is computed from a wrong reference (limit=99.80 vs expected 49900.00)."
+  },
+  {
+   "row_id": "PRICE-007",
+   "verdict": "FAIL",
+   "evidence_ref": "C:/Users/wigmore/.hermes/cache/scratch/b3_clean/_art_PRICING_CORRECTION_2d29211148.json",
+   "tested_commit": "UNBOUND: invalid tested_commit 2d29211148fefc2b04261c734bb32c767d2cc4a91095e65843",
+   "why": "No admissible evidence at the register commit: git ls-tree origin/cert/local-main-b142cf8 -- certification/results lists NO PRICING artifact, and the working-tree copy cites tested_commit 2d29211148fefc2b04261c734bb32c767d2cc4a91095e65843 which is not a git object (cat-file: Not a valid object name). That artifact self-reports overall FAIL, 3/13 checks pass. Slippage is not applied to the wire price: BUY limit=100.20 and SELL limit=99.80 against expected mid*20bps of 50100.00/49900.00. Only the default-value read (20.0 bps) passes, which is a constant check that would pass for any row."
+  },
+  {
+   "row_id": "PRICE-008",
+   "verdict": "BLOCKED",
+   "evidence_ref": "certification/certification_matrix.json",
+   "tested_commit": "b142cf88",
+   "why": "OPEN_DECISION on OD-10: whether the close adverse-diff limit may trap an exit is explicitly unruled. Cannot certify a policy still being decided. No PRICING artifact at b142cf8."
+  },
+  {
+   "row_id": "ORD-001",
+   "verdict": "FAIL",
+   "evidence_ref": "certification/results/ORDER_CORRECTION_fefc2b04.json",
+   "tested_commit": "fefc2b04261c734bb32c767d2cc4a91095e65843",
+   "why": "Single-sender is not proven at the wire. The newer reproducible run (ORDER_CORRECTION_fefc2b04) drives the real gate logic but never reaches the exchange double: exchange.order() calls across 3 sends = 0 and \"in _send_real: 0 (expected 1)\" because _send_real returns REAL_SENDER_NOT_CONFIGURED. The older ORDER_fa9d9f55ff claims exchange_called=True/ORDER_FILLED on the same engine, so the two runs contradict each other and the green is unreliable. One physical .order() site (L2703) is proven statically only; the payload-to-exchange-response leg is missing."
+  },
+  {
+   "row_id": "ORD-002",
+   "verdict": "FAIL",
+   "evidence_ref": "certification/results/ORDER_CORRECTION_fefc2b04.json",
+   "tested_commit": "fefc2b04261c734bb32c767d2cc4a91095e65843",
+   "why": "reduce_only fails on the wire: in ORDER_CORRECTION_fefc2b04 the corrected double shows EXIT reduce_only=False (position can flip) and ENTRY reduce_only_sent=True. The older fa9d artifact asserts the opposite with no explanation. \"Reductions are reduce_only and cannot flip\" is contradicted by the only run that instruments the send path."
+  },
+  {
+   "row_id": "ORD-003",
+   "verdict": "BLOCKED",
+   "evidence_ref": "certification/certification_matrix.json",
+   "tested_commit": "b142cf88",
+   "why": "OPEN_DECISION on OD-09 (minimum-order policy unruled), so \"below minimum ... no target authority or silent residue\" cannot be certified as written. Related min-notional gating is separately FAIL in this batch (ORD-008/TN-F05)."
+  },
+  {
+   "row_id": "ORD-004",
+   "verdict": "BLOCKED",
+   "evidence_ref": "certification/certification_matrix.json",
+   "tested_commit": "b142cf88",
+   "why": "OPEN_DECISION on OD-08 (size-quantisation policy unruled). No ORD artifact at b142cf8 exercises szDecimals quantisation or the zero-after-rounding case, so nothing can be bound even once ruled."
+  },
+  {
+   "row_id": "ORD-005",
+   "verdict": "FAIL",
+   "evidence_ref": "certification/results/ORDER_CORRECTION_fefc2b04.json",
+   "tested_commit": "fefc2b04261c734bb32c767d2cc4a91095e65843",
+   "why": "Only half the row is earned: dedupe and deterministic intent_id are proven in the double (first=True/second=False, reproducible id), but the row requires ambiguous submission to stay UNRESOLVED with no resubmit until exchange truth resolves it - the run records that leg as not exercised and the oracle (exchange order status/userFills by cloid) is unachievable here, so the execution_proof chain stops before the exchange response."
+  },
+  {
+   "row_id": "ORD-006",
+   "verdict": "FAIL",
+   "evidence_ref": "certification/results/ORDER_fa9d9f55ff.json",
+   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+   "why": "The committed artifact proves the requirement is NOT met: its own check NO_RESERVATION_BEFORE_SEND passes with \"Reservation before send: False\", and the correction run agrees (RESERVATION_CREATED_ON_SEND=True). The row requires the unresolved reservation persisted in SERVICE_STATE_FILE BEFORE exchange.order; both runs show it appearing only after the send, and SERVICE_STATE_FILE persistence is not established (append-only CSV only)."
+  },
+  {
+   "row_id": "ORD-007",
+   "verdict": "BLOCKED",
+   "evidence_ref": "certification/certification_matrix.json",
+   "tested_commit": "b142cf88",
+   "why": "OPEN_DECISION on OD-16 (per-run auto-send cap / wallet restriction semantics unruled). No artifact at b142cf8 drives HL_LIVE_AUTO_SEND_MAX_PER_RUN or the wallet restriction and no operator-visible surface for them was captured."
+  },
+  {
+   "row_id": "ORD-008",
+   "verdict": "FAIL",
+   "evidence_ref": "certification/results/ORDER_CORRECTION_fefc2b04.json",
+   "tested_commit": "fefc2b04261c734bb32c767d2cc4a91095e65843",
+   "why": "Preflight ordering is not proven: in ORDER_CORRECTION_fefc2b04 the below-min and invalid-size cases report exchange_called=False but status=REAL_SENDER_NOT_CONFIGURED instead of the specific preflight rejection, and VALID_ORDER_PASSES_PREFLIGHT fails - so \"rejected before the exchange call\" is indistinguishable from \"no sender configured\" and the valid-order control never reaches the exchange."
+  },
+  {
+   "row_id": "SET-001",
+   "verdict": "NOT_TESTED",
+   "evidence_ref": "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json",
+   "tested_commit": "b142cf88",
+   "why": "Missing component: MASTER userFillsByTime per DEX scope plus clearinghouseState read independently of the engine (the token userFills appears zero times in the artifact). No NET_LIFE_SETTLE harness is committed at b142cf8 (ls-tree returns the JSON alone), so the 45/45 claim is neither reproducible nor non-vacuity auditable. ACK_NOT_SETTLEMENT exercises a state branch, not settlement truth."
+  },
+  {
+   "row_id": "SET-002",
+   "verdict": "NOT_TESTED",
+   "evidence_ref": "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json",
+   "tested_commit": "b142cf88",
+   "why": "Missing component: per-DEX-scope userFillsByTime query with deterministic dedupe and fail-closed on a missing scope. The artifact only asserts SETTLED_FULL for single/multi scope; no userFillsByTime call exists in it and no harness is committed to show how the status was produced."
+  },
+  {
+   "row_id": "SET-003",
+   "verdict": "NOT_TESTED",
+   "evidence_ref": "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json",
+   "tested_commit": "b142cf88",
+   "why": "Missing component: exchange-derived terminal rejection plus post-attempt MASTER no-fill across all scopes. The artifact has TERMINAL_REJECT_SETTLES / INCOMPLETE_REJECT_EVIDENCE_BLOCKS as state labels only, with no rejection payload and no userFills check behind them, and no committed harness."
+  },
+  {
+   "row_id": "SET-004",
+   "verdict": "NOT_TESTED",
+   "evidence_ref": "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json",
+   "tested_commit": "b142cf88",
+   "why": "Missing component: confirmed partial fill from exchange truth. SETTLED_PARTIAL filled=0.6 is a computed state with nothing tying it to a userFills record, and the harness that would show the provenance is not committed."
+  },
+  {
+   "row_id": "SET-005",
+   "verdict": "NOT_TESTED",
+   "evidence_ref": "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json",
+   "tested_commit": "b142cf88",
+   "why": "Missing component: reconciliation of a crash between send and oid persistence from started_ms plus intent attributes against MASTER fills. Only the UNSETTLED label is asserted; no reconstruct-from-exchange step and no committed harness."
+  },
+  {
+   "row_id": "SET-006",
+   "verdict": "NOT_TESTED",
+   "evidence_ref": "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json",
+   "tested_commit": "b142cf88",
+   "why": "Missing component: independent MASTER net (unattributed baseline + confirmed engine-owned actual +/- unresolved reserved) within tolerance. Only divergence=0.0/1.0 and a blocker name are asserted; no clearinghouseState read, no committed harness, so the arithmetic is unverifiable and could not be shown to fail."
+  },
+  {
+   "row_id": "SET-007",
+   "verdict": "NOT_TESTED",
+   "evidence_ref": "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json",
+   "tested_commit": "b142cf88",
+   "why": "Missing component: a genuine post-start leader OPEN/INCREASE on testnet with observed fill identity and expected-qty vs actual-fill match. The only SET-007 checks are TESTNET_ENDPOINTS_RESOLVE / TESTNET_HOSTNAME_CORRECT - endpoint assertions a different row (NET-001) would pass identically. No follower fill exists on testnet (prior t_5cf2e6cf / t_7e8b0eb9)."
+  },
+  {
+   "row_id": "SET-008",
+   "verdict": "NOT_TESTED",
+   "evidence_ref": "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json",
+   "tested_commit": "b142cf88",
+   "why": "Missing component: an observed reduction/close fill with attribution and clean reconciliation. The only SET-008 checks are CERT_TOPOLOGY_LEADER_MAINNET_FOLLOWER_TESTNET and NETWORK_STAMP_BINDS - network-stamp assertions shared with the NET rows, silent on any exit fill. No testnet exit fill exists for this topology."
+  },
+  {
+   "row_id": "RISK-001",
+   "verdict": "PASS",
+   "evidence_ref": "certification/results/RISK_fa9d9f55.json",
+   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+   "why": "Row-bound runtime proof with a committed auditable harness (RISK_harness_fa9d9f55ff.py): ENGINE_SHA256_MATCH is checked against the engine actually imported, then IntentBuilder.decision is driven with max_total_live_exposure_usd=3500 over real positions ETH 2000 + xyz:GOLD 700 and returns SEND_BLOCKED_RISK/\"max total exposure exceeded\" while 5000 returns ENTRY_ALLOWED; blank/0/negative/non-numeric disable the cap, a value changed while running takes effect, and an unavailable exchange fails closed (20/20 non-vacuous negatives). The register note \"no caller\" is stale: the cap has a live caller at _exposure_cap_block (L2526) which the harness reaches. Caveat: the artifact engine (2dfbd571, 8030 lines) is 12 env-alias lines behind the register engine (b171ec8f, 8042 lines); the delta is ENV_NAME_ALIASES only and cannot affect risk logic."
+  },
+  {
+   "row_id": "RISK-002",
+   "verdict": "PASS",
+   "evidence_ref": "certification/results/RISK_fa9d9f55.json",
+   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+   "why": "Same committed harness, row-specific assertion: max_asset_directional_exposure_usd blocks when the per-asset directional net exceeds the cap and allows when the same asset sits the other way (ASSET_CAP_BLOCKS / ASSET_NET_DIRECTION_ALLOWED) plus the blank/zero/negative/non-numeric disable matrix. Distinct from RISK-001: the negative case asserts direction handling, which the total-cap check cannot produce. 20/20 non-vacuous negatives. Same env-alias-only engine-delta caveat."
+  }
+ ]
+}
