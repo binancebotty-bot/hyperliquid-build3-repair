@@ -3244,6 +3244,9 @@ class DedupeStore:
         self._state_dir = Path(state_dir) if state_dir else None
         self._jsonl_new_leader: List[str] = []
         self._jsonl_new_copy: List[str] = []
+        self._jsonl_new_release: List[str] = []  # copy ids released after they were flushed: written as copy_release records
+        self._retry_after: Dict[str, int] = {}  # released copy id -> earliest time it is offered again
+        self._release_counts: Dict[str, int] = {}
         # insertion-order recency windows: the JSON tail must keep the MOST RECENT ids, and an
         # exchange fill id does not sort by time, so sorted()[-N:] was an arbitrary subset
         self._recent_leader: "collections.deque" = collections.deque(maxlen=DEDUPE_TAIL_LIMIT)
@@ -3270,17 +3273,42 @@ class DedupeStore:
         with self._lock:
             if fill_id in self.processed_copy:
                 return bool(allow_retry)
+            wait_until = self._retry_after.get(fill_id)
+            if wait_until and utc_now_ms() < wait_until:
+                return False  # released a moment ago: offered again once the gap has passed, not on every read
             self.processed_copy.add(fill_id)
             self._recent_copy.append(fill_id)
             if self._state_dir:
-                self._jsonl_new_copy.append(fill_id)
+                if fill_id in self._jsonl_new_release:
+                    self._jsonl_new_release.remove(fill_id)  # re-accepted before the release record was written: the old copy line stands
+                else:
+                    self._jsonl_new_copy.append(fill_id)
             return True
 
-    def release_copy(self, fill_id: str) -> None:
+    def release_copy(self, fill_id: str, gap_ms: int = 0, max_releases: int = 1000000) -> bool:
         """Forget an accepted copy fill that could not be matched yet, so a later read offers it again (its send row,
-        which carries the order id, is written only when the exchange reply arrives: replies take up to ~76 s on testnet)."""
+        which carries the order id, is written only when the exchange reply arrives: replies take up to ~76 s on testnet).
+        Durable: a release not yet flushed just drops the pending copy line; one already flushed is written as a
+        copy_release record that the loader replays, so a restart does not bring the id back as accepted.
+        Returns False (id stays accepted) once max_releases is used up for this id."""
         with self._lock:
+            n = self._release_counts.get(fill_id, 0)
+            if fill_id not in self.processed_copy or n >= max_releases:
+                return False
+            self._release_counts[fill_id] = n + 1
             self.processed_copy.discard(fill_id)
+            try:
+                self._recent_copy.remove(fill_id)
+            except ValueError:
+                pass
+            if gap_ms > 0:
+                self._retry_after[fill_id] = utc_now_ms() + int(gap_ms)
+            if self._state_dir:
+                if fill_id in self._jsonl_new_copy:
+                    self._jsonl_new_copy.remove(fill_id)
+                else:
+                    self._jsonl_new_release.append(fill_id)
+            return True
 
     def baseline_copy_account(self, copy_fills: List[Dict[str, Any]]) -> int:
         with self._lock:
@@ -3337,13 +3365,17 @@ class DedupeStore:
         with self._lock:
             new_leader = self._jsonl_new_leader
             new_copy = self._jsonl_new_copy
+            new_release = self._jsonl_new_release
             self._jsonl_new_leader = []
             self._jsonl_new_copy = []
-        if not new_leader and not new_copy:
+            self._jsonl_new_release = []
+        if not new_leader and not new_copy and not new_release:
             return
         jsonl_path = self._state_dir / DEDUPE_IDS_JSONL_NAME
         try:
             with jsonl_path.open("a", encoding="utf-8") as f:
+                for fid in new_release:  # before the copy lines: an id released and accepted again is accepted
+                    f.write(json.dumps({"type": "copy_release", "id": fid}) + "\n")
                 for fid in new_leader:
                     f.write(json.dumps({"type": "leader", "id": fid}) + "\n")
                 for fid in new_copy:
@@ -3359,8 +3391,9 @@ class DedupeStore:
             with self._lock:
                 self._jsonl_new_leader[:0] = new_leader
                 self._jsonl_new_copy[:0] = new_copy
+                self._jsonl_new_release[:0] = new_release
             return
-        self._jsonl_lines += len(new_leader) + len(new_copy)
+        self._jsonl_lines += len(new_leader) + len(new_copy) + len(new_release)
         self._maybe_compact_jsonl(jsonl_path, new_leader, new_copy)
 
     def _jsonl_line_count(self, jsonl_path: Path) -> int:
@@ -3437,6 +3470,8 @@ class DedupeStore:
                         self.processed.add(str(rec.get("id", "")))
                     elif rec.get("type") == "copy":
                         self.processed_copy.add(str(rec.get("id", "")))
+                    elif rec.get("type") == "copy_release":
+                        self.processed_copy.discard(str(rec.get("id", "")))
         except Exception as exc:
             # the file could not be read at all (locked, permissions, path is a directory):
             # flag it loudly - LiveCopyCore refuses to start rather than re-copy fills
@@ -10659,9 +10694,13 @@ class LiveCopyCore:
             retry_ms = int(fnum(os.getenv("HL_LIVE_COPY_UNMATCHED_RETRY_MS"), 300000))
             if retry_ms <= 0 or copy_id in self.matcher.matched_copy_fill_ids:
                 return
+            if self.matcher._is_liquidation_fill(raw_copy):
+                return  # the exchange's order, never ours: waiting cannot make it match
             fill_ms = int(fnum(raw_copy.get("timestamp_ms", raw_copy.get("time")), 0))
             if fill_ms > 0 and utc_now_ms() - fill_ms < retry_ms:
-                self.dedupe.release_copy(copy_id)
+                # at most N offers, GAP apart: bounds the COPY_FILL_UNMATCHED rows a fill that never matches can write
+                self.dedupe.release_copy(copy_id, gap_ms=int(fnum(os.getenv("HL_LIVE_COPY_UNMATCHED_GAP_MS"), 30000)),
+                                         max_releases=int(fnum(os.getenv("HL_LIVE_COPY_UNMATCHED_MAX_RELEASES"), 6)))
         except Exception as exc:
             log_error("release_if_young_unmatched", exc)
 
