@@ -1,0 +1,148 @@
+{
+  "audit": "PASS-AUDIT B4 family",
+  "source_register": "origin/cert/local-main-b142cf8:certification/certification_matrix.json",
+  "uncovered_source": "origin/hermes/union-arithmetic-v2-corrected-t_f0d76afe:EVIDENCE/provenance/UNION_ARITHMETIC_V2_t_f0d76afe.json",
+  "uncovered_B4_count": 27,
+  "summary": {
+    "audited": 27,
+    "KEEP": 0,
+    "DEMOTE": 27
+  },
+  "rows": [
+    {
+      "row_id": "B4-I16",
+      "verdict": "DEMOTE",
+      "why": "DEMOTE: evidence_ref is the same broad REGRESSION_fa9d9f55ff.json for the entire regression family, whose aggregate suite/self-test results do not establish a row-specific independent oracle; execution_proof and independent_oracle are identical generic boilerplate across B4 rows, and the artifact does not bind a distinct proof to this row."
+    },
+    {
+      "row_id": "B4-I19",
+      "verdict": "DEMOTE",
+      "why": "DEMOTE: evidence_ref is the same broad REGRESSION_fa9d9f55ff.json for the entire regression family, whose aggregate suite/self-test results do not establish a row-specific independent oracle; execution_proof and independent_oracle are identical generic boilerplate across B4 rows, and the artifact does not bind a distinct proof to this row."
+    },
+    {
+      "row_id": "B4-R01",
+      "verdict": "DEMOTE",
+      "why": "DEMOTE: evidence_ref is the same broad REGRESSION_fa9d9f55ff.json for the entire regression family, whose aggregate suite/self-test results do not establish a row-specific independent oracle; execution_proof and independent_oracle are identical generic boilerplate across B4 rows, and the artifact does not bind a distinct proof to this row."
+    },
+    {
+      "row_id": "B4-R02",
+      "verdict": "DEMOTE",
+      "why": "DEMOTE: evidence_ref is the same broad REGRESSION_fa9d9f55ff.json for the entire regression family, whose aggregate suite/self-test results do not establish a row-specific independent oracle; execution_proof and independent_oracle are identical generic boilerplate across B4 rows, and the artifact does not bind a distinct proof to this row."
+    },
+    {
+      "row_id": "B4-R03",
+      "verdict": "DEMOTE",
+      "why": "DEMOTE: evidence_ref is the same broad REGRESSION_fa9d9f55ff.json for the entire regression family, whose aggregate suite/self-test results do not establish a row-specific independent oracle; execution_proof and independent_oracle are identical generic boilerplate across B4 rows, and the artifact does not bind a distinct proof to this row."
+    },
+    {
+      "row_id": "B4-R04",
+      "verdict": "DEMOTE",
+      "why": "DEMOTE: evidence_ref is the same broad REGRESSION_fa9d9f55ff.json for the entire regression family, whose aggregate suite/self-test results do not establish a row-specific independent oracle; execution_proof and independent_oracle are identical generic boilerplate across B4 rows, and the artifact does not bind a distinct proof to this row."
+    },
+    {
+      "row_id": "B4-R05",
+      "verdict": "DEMOTE",
+      "why": "DEMOTE: evidence_ref is the same broad REGRESSION_fa9d9f55ff.json for the entire regression family, whose aggregate suite/self-test results do not establish a row-specific independent oracle; execution_proof and independent_oracle are identical generic boilerplate across B4 rows, and the artifact does not bind a distinct proof to this row."
+    },
+    {
+      "row_id": "B4-R06",
+      "verdict": "DEMOTE",
+      "why": "DEMOTE: evidence_ref is the same broad REGRESSION_fa9d9f55ff.json for the entire regression family, whose aggregate suite/self-test results do not establish a row-specific independent oracle; execution_proof and independent_oracle are identical generic boilerplate across B4 rows, and the artifact does not bind a distinct proof to this row."
+    },
+    {
+      "row_id": "B4-R07",
+      "verdict": "DEMOTE",
+      "why": "DEMOTE: evidence_ref is the same broad REGRESSION_fa9d9f55ff.json for the entire regression family, whose aggregate suite/self-test results do not establish a row-specific independent oracle; execution_proof and independent_oracle are identical generic boilerplate across B4 rows, and the artifact does not bind a distinct proof to this row."
+    },
+    {
+      "row_id": "B4-R08",
+      "verdict": "DEMOTE",
+      "why": "DEMOTE: evidence_ref is the same broad REGRESSION_fa9d9f55ff.json for the entire regression family, whose aggregate suite/self-test results do not establish a row-specific independent oracle; execution_proof and independent_oracle are identical generic boilerplate across B4 rows, and the artifact does not bind a distinct proof to this row."
+    },
+    {
+      "row_id": "B4-R09",
+      "verdict": "DEMOTE",
+      "why": "DEMOTE: evidence_ref is the same broad REGRESSION_fa9d9f55ff.json for the entire regression family, whose aggregate suite/self-test results do not establish a row-specific independent oracle; execution_proof and independent_oracle are identical generic boilerplate across B4 rows, and the artifact does not bind a distinct proof to this row."
+    },
+    {
+      "row_id": "B4-R10",
+      "verdict": "DEMOTE",
+      "why": "DEMOTE: evidence_ref is the same broad REGRESSION_fa9d9f55ff.json for the entire regression family, whose aggregate suite/self-test results do not establish a row-specific independent oracle; execution_proof and independent_oracle are identical generic boilerplate across B4 rows, and the artifact does not bind a distinct proof to this row."
+    },
+    {
+      "row_id": "B4-R11",
+      "verdict": "DEMOTE",
+      "why": "DEMOTE: evidence_ref is the same broad REGRESSION_fa9d9f55ff.json for the entire regression family, whose aggregate suite/self-test results do not establish a row-specific independent oracle; execution_proof and independent_oracle are identical generic boilerplate across B4 rows, and the artifact does not bind a distinct proof to this row."
+    },
+    {
+      "row_id": "B4-R12",
+      "verdict": "DEMOTE",
+      "why": "DEMOTE: evidence_ref is the same broad REGRESSION_fa9d9f55ff.json for the entire regression family, whose aggregate suite/self-test results do not establish a row-specific independent oracle; execution_proof and independent_oracle are identical generic boilerplate across B4 rows, and the artifact does not bind a distinct proof to this row."
+    },
+    {
+      "row_id": "B4-R13",
+      "verdict": "DEMOTE",
+      "why": "DEMOTE: evidence_ref is the same broad REGRESSION_fa9d9f55ff.json for the entire regression family, whose aggregate suite/self-test results do not establish a row-specific independent oracle; execution_proof and independent_oracle are identical generic boilerplate across B4 rows, and the artifact does not bind a distinct proof to this row."
+    },
+    {
+      "row_id": "B4-R14",
+      "verdict": "DEMOTE",
+      "why": "DEMOTE: evidence_ref is the same broad REGRESSION_fa9d9f55ff.json for the entire regression family, whose aggregate suite/self-test results do not establish a row-specific independent oracle; execution_proof and independent_oracle are identical generic boilerplate across B4 rows, and the artifact does not bind a distinct proof to this row."
+    },
+    {
+      "row_id": "B4-R15",
+      "verdict": "DEMOTE",
+      "why": "DEMOTE: evidence_ref is the same broad REGRESSION_fa9d9f55ff.json for the entire regression family, whose aggregate suite/self-test results do not establish a row-specific independent oracle; execution_proof and independent_oracle are identical generic boilerplate across B4 rows, and the artifact does not bind a distinct proof to this row."
+    },
+    {
+      "row_id": "B4-R16",
+      "verdict": "DEMOTE",
+      "why": "DEMOTE: evidence_ref is the same broad REGRESSION_fa9d9f55ff.json for the entire regression family, whose aggregate suite/self-test results do not establish a row-specific independent oracle; execution_proof and independent_oracle are identical generic boilerplate across B4 rows, and the artifact does not bind a distinct proof to this row."
+    },
+    {
+      "row_id": "B4-R17",
+      "verdict": "DEMOTE",
+      "why": "DEMOTE: evidence_ref is the same broad REGRESSION_fa9d9f55ff.json for the entire regression family, whose aggregate suite/self-test results do not establish a row-specific independent oracle; execution_proof and independent_oracle are identical generic boilerplate across B4 rows, and the artifact does not bind a distinct proof to this row."
+    },
+    {
+      "row_id": "B4-R18",
+      "verdict": "DEMOTE",
+      "why": "DEMOTE: evidence_ref is the same broad REGRESSION_fa9d9f55ff.json for the entire regression family, whose aggregate suite/self-test results do not establish a row-specific independent oracle; execution_proof and independent_oracle are identical generic boilerplate across B4 rows, and the artifact does not bind a distinct proof to this row."
+    },
+    {
+      "row_id": "B4-R19",
+      "verdict": "DEMOTE",
+      "why": "DEMOTE: evidence_ref is the same broad REGRESSION_fa9d9f55ff.json for the entire regression family, whose aggregate suite/self-test results do not establish a row-specific independent oracle; execution_proof and independent_oracle are identical generic boilerplate across B4 rows, and the artifact does not bind a distinct proof to this row."
+    },
+    {
+      "row_id": "B4-R20",
+      "verdict": "DEMOTE",
+      "why": "DEMOTE: evidence_ref is the same broad REGRESSION_fa9d9f55ff.json for the entire regression family, whose aggregate suite/self-test results do not establish a row-specific independent oracle; execution_proof and independent_oracle are identical generic boilerplate across B4 rows, and the artifact does not bind a distinct proof to this row."
+    },
+    {
+      "row_id": "B4-R21",
+      "verdict": "DEMOTE",
+      "why": "DEMOTE: evidence_ref is the same broad REGRESSION_fa9d9f55ff.json for the entire regression family, whose aggregate suite/self-test results do not establish a row-specific independent oracle; execution_proof and independent_oracle are identical generic boilerplate across B4 rows, and the artifact does not bind a distinct proof to this row."
+    },
+    {
+      "row_id": "B4-R22",
+      "verdict": "DEMOTE",
+      "why": "DEMOTE: evidence_ref is the same broad REGRESSION_fa9d9f55ff.json for the entire regression family, whose aggregate suite/self-test results do not establish a row-specific independent oracle; execution_proof and independent_oracle are identical generic boilerplate across B4 rows, and the artifact does not bind a distinct proof to this row."
+    },
+    {
+      "row_id": "B4-R23",
+      "verdict": "DEMOTE",
+      "why": "DEMOTE: evidence_ref is the same broad REGRESSION_fa9d9f55ff.json for the entire regression family, whose aggregate suite/self-test results do not establish a row-specific independent oracle; execution_proof and independent_oracle are identical generic boilerplate across B4 rows, and the artifact does not bind a distinct proof to this row."
+    },
+    {
+      "row_id": "B4-R24",
+      "verdict": "DEMOTE",
+      "why": "DEMOTE: evidence_ref is the same broad REGRESSION_fa9d9f55ff.json for the entire regression family, whose aggregate suite/self-test results do not establish a row-specific independent oracle; execution_proof and independent_oracle are identical generic boilerplate across B4 rows, and the artifact does not bind a distinct proof to this row."
+    },
+    {
+      "row_id": "B4-R25",
+      "verdict": "DEMOTE",
+      "why": "DEMOTE: evidence_ref is the same broad REGRESSION_fa9d9f55ff.json for the entire regression family, whose aggregate suite/self-test results do not establish a row-specific independent oracle; execution_proof and independent_oracle are identical generic boilerplate across B4 rows, and the artifact does not bind a distinct proof to this row."
+    }
+  ]
+}
