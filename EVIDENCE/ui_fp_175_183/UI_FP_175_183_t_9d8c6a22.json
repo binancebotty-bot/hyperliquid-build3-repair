@@ -1,0 +1,73 @@
+{
+  "card_id": "t_9d8c6a22",
+  "serving_commit": "6cf5dcf671b791e8f833060458f00cb7bb7bcdb5",
+  "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+  "serving_process": {
+    "pid": 8668,
+    "executable": "C:/Users/wigmore/AppData/Local/Python/bin/python.exe",
+    "command": "python.exe -m uvicorn HL_Copy_App_SSOT:app --host 127.0.0.1 --port 8031",
+    "cwd": "C:/Users/wigmore/trading_stack/hl-build3-testnet-cert/_archive/hl_stage2"
+  },
+  "register_scope_note": "Separate UI-only certification section; the register at b142cf88 is the record of scope but does not serve /live-copy. Controller ruling authorizes testing the actual serving build and requires per-row binding to its commit and SSOT hash. Main matrix was not edited.",
+  "capture_time_utc": "2026-10-17T01:16:21.847837+00:00",
+  "probe": "EVIDENCE/ui_fp_175_183/probe.py",
+  "capture": "EVIDENCE/ui_fp_175_183/dom_capture.json",
+  "execution": "PLAYWRIGHT_BROWSERS_PATH=C:/Users/wigmore/AppData/Local/ms-playwright C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe EVIDENCE/ui_fp_175_183/probe.py",
+  "capture_method": "Read-only headless Chromium DOM capture at http://127.0.0.1:8031/live-copy plus urllib GET /api/state, /api/live-config, and /api/ui-state. All three API responses were HTTP 200. No engine import, form submission, or UI action.",
+  "rows": [
+    {
+      "row_id": "UI-FP-175",
+      "verdict": "NOT_TESTED",
+      "serving_commit": "6cf5dcf671b791e8f833060458f00cb7bb7bcdb5",
+      "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "observed": "Rendered /live-copy DOM contains no 'Recent errors' field; captured /api/state, /api/live-config, and /api/ui-state contain no live_ws_health/recent-errors payload. The configured API/oracle route for live_ws_health.json is absent from this serving build.",
+      "missing_route": "A read-only route/served source exposing live_ws_health.json Recent errors (and its corresponding rendered field); no safe route exists in the captured endpoints.",
+      "evidence": "EVIDENCE/ui_fp_175_183/dom_capture.json"
+    },
+    {
+      "row_id": "UI-FP-178",
+      "verdict": "NOT_TESTED",
+      "serving_commit": "6cf5dcf671b791e8f833060458f00cb7bb7bcdb5",
+      "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "observed": "Rendered /live-copy DOM contains no 'Data status' field; captured /api/state, /api/live-config, and /api/ui-state contain no live_ws_health/data-status payload. The configured API/oracle route for live_ws_health.json is absent from this serving build.",
+      "missing_route": "A read-only route/served source exposing live_ws_health.json Data status (and its corresponding rendered field); no safe route exists in the captured endpoints.",
+      "evidence": "EVIDENCE/ui_fp_175_183/dom_capture.json"
+    },
+    {
+      "row_id": "UI-FP-179",
+      "verdict": "NOT_TESTED",
+      "serving_commit": "6cf5dcf671b791e8f833060458f00cb7bb7bcdb5",
+      "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "observed": "Rendered /live-copy DOM contains no 'Last close/error' field; captured /api/state, /api/live-config, and /api/ui-state contain no live_ws_health/last-close-error payload. The configured API/oracle route for live_ws_health.json is absent from this serving build.",
+      "missing_route": "A read-only route/served source exposing live_ws_health.json Last close/error (and its corresponding rendered field); no safe route exists in the captured endpoints.",
+      "evidence": "EVIDENCE/ui_fp_175_183/dom_capture.json"
+    },
+    {
+      "row_id": "UI-FP-181",
+      "verdict": "PARTIAL",
+      "serving_commit": "6cf5dcf671b791e8f833060458f00cb7bb7bcdb5",
+      "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "observed": "DOM input #gcMaxDir=2000; /api/state global_controls.max_asset_directional_exposure_usd=2000.0; /api/live-config config.global_controls.max_asset_directional_exposure_usd=2000.0. UI/API/on-disk persistence equality is not established by GET alone.",
+      "unverified_leg": "POST normalization and durable persistence, intentionally not exercised under the read-only mandate.",
+      "evidence": "EVIDENCE/ui_fp_175_183/dom_capture.json"
+    },
+    {
+      "row_id": "UI-FP-182",
+      "verdict": "PARTIAL",
+      "serving_commit": "6cf5dcf671b791e8f833060458f00cb7bb7bcdb5",
+      "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "observed": "DOM input #gcMaxWallet=600; /api/state global_controls.max_wallet_exposure_usd=600.0; /api/live-config config.global_controls.max_wallet_exposure_usd=600.0. UI/API/on-disk persistence equality is not established by GET alone.",
+      "unverified_leg": "POST normalization and durable persistence, intentionally not exercised under the read-only mandate.",
+      "evidence": "EVIDENCE/ui_fp_175_183/dom_capture.json"
+    },
+    {
+      "row_id": "UI-FP-183",
+      "verdict": "PARTIAL",
+      "serving_commit": "6cf5dcf671b791e8f833060458f00cb7bb7bcdb5",
+      "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "observed": "DOM input #gcMaxOrder=500; /api/state global_controls.max_order_notional_usd=500.0; /api/live-config config.global_controls.max_order_notional_usd=500.0. UI/API/on-disk persistence equality is not established by GET alone.",
+      "unverified_leg": "POST normalization and durable persistence, intentionally not exercised under the read-only mandate.",
+      "evidence": "EVIDENCE/ui_fp_175_183/dom_capture.json"
+    }
+  ]
+}
