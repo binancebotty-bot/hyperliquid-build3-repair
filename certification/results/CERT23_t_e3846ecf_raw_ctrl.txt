@@ -28,7 +28,7 @@ TOTAL model/provider envelopes 16
   B3-C2H-P0-FIX-UNSEEN-PUSH-CONSUMER-1 DIRECTIVE
 TOTAL 3
 --- BIND
-mailbox-branch CONTROL_STATE updated_utc 2026-10-07T18:55:00Z
+mailbox-branch CONTROL_STATE updated_utc 2026-10-14T14:12:00Z
 repo CONTROL_STATE updated_utc 2026-10-14T14:12:00Z
 contract controller 6ac8e179-932c-83ed-b9ca-1bdc5c976d5d ACTIVE v 2
 contract architect 6ac8e151-e9f4-83eb-86d0-ba5b917ba09a ACTIVE v 2

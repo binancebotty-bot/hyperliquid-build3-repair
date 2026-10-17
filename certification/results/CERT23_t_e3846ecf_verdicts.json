@@ -53,14 +53,14 @@
    "verdict": "FAIL",
    "evidence_ref": "certification/results/CERT23_t_e3846ecf_evidence.json",
    "tested_commit": "b142cf88d389e791160f691aac3d936852b99975",
-   "why": "Measured over the 12 handoff-type envelopes (RESPONSE/RESULT/STATUS/ACK): TASK_ID 11/12, COMMIT_SHA 0/12, FILES_CHANGED 0/12, LOC 12/12, TESTS 5/12, OUTPUT 0/12, UNCERTAINTY 0/12, STAND_DOWN_REQUEST 0/12. Over all 102 envelopes FILES_CHANGED appears 3 times and OUTPUT 0 times. Five of the eight required fields are effectively absent, so \"every handoff carries\" is false."
+   "why": "Measured over the 12 handoff-type envelopes (RESPONSE 6, STATUS 4, RESULT 1, ACK 1): TASK_ID 11/12, COMMIT_SHA 0/12, FILES_CHANGED 0/12, TESTS 0/12, LOC 0/12, OUTPUT 0/12, UNCERTAINTY 0/12, STAND_DOWN_REQUEST 0/12. The string FILES_CHANGED appears 0 times anywhere in the 102 envelopes. Six of eight required fields are absent on every handoff, so \"every handoff carries\" is false; one missing field on one envelope would not fail this row, the measured absence across the whole handoff set does."
   },
   {
    "row_id": "CTRL-ESC",
    "verdict": "PASS",
    "evidence_ref": "certification/results/CERT23_t_e3846ecf_evidence.json",
    "tested_commit": "b142cf88d389e791160f691aac3d936852b99975",
-   "why": "Tripwires are defined (ARCHITECTURE.md 74-77: production LOC >260, second process, new runtime dependency) and were exercised on real scope: B3-C2A-G2-SCOPE-ESCALATION-2 emits ARCHITECT_REVIEW_REQUIRED citing \"+274 / -18\" against \"authorised cap <=260 genuinely new production LOC\", and B3-C2A-G3-AUTHORITY-SCOPE-ESCALATION-1 emits ARCHITECT_REVIEW_REQUIRED citing production files = 2 / 2. Each is bound to its own scope evidence; a missing tripwire would appear as a landed over-budget commit with no escalation."
+   "why": "Tripwires are defined (ARCHITECTURE.md line 72 Automatic Architect escalation, clause line 74 proposed new production LOC >260, plus >2 production files, second process, new runtime dependency, new persistent authority DB, second physical order-send path) and were exercised on real scope: B3-C2A-G2-SCOPE-ESCALATION-2 emits ARCHITECT_REVIEW_REQUIRED citing \"+274 / -18\" against \"authorised cap <=260 genuinely new production LOC\", and B3-C2A-G3-AUTHORITY-SCOPE-ESCALATION-1 emits ARCHITECT_REVIEW_REQUIRED citing production files = 2 / 2. Each is bound to its own scope evidence; a missing tripwire would appear as a landed over-budget commit with no escalation."
   },
   {
    "row_id": "B4-I01",
@@ -102,7 +102,7 @@
    "verdict": "FAIL",
    "evidence_ref": "certification/results/CERT23_t_e3846ecf_evidence.json",
    "tested_commit": "b142cf88d389e791160f691aac3d936852b99975",
-   "why": "No deterministic execution identity. \"cloid\" and \"client_order_id\" occur 0 times in HL_Live_Copy_Service.py (the single repo-wide cloid hit is HL_Copy_App_SSOT.py:2531, a read of a row field, not a mint site). exchange.order() is called with (coin, is_buy, size, price, tif, reduce_only) and no client order id, so the only identity is the logical fill_id dedupe. Exactly-once across an ambiguous submission therefore rests entirely on post-hoc MASTER reconciliation, not on an exchange-dedupable CLOID."
+   "why": "No deterministic execution identity. \"cloid\" and \"client_order_id\" occur 0 times in HL_Live_Copy_Service.py (git grep -i cloid at the tested commit returns only reads/descriptions: HL_Copy_App_SSOT.py:2531 `row.get(\"cloid\")` and certification_matrix.csv prose - no mint or send site). exchange.order() is called with (coin, is_buy, size, price, tif, reduce_only) and no client order id, so the only identity is the logical fill_id dedupe. Exactly-once across an ambiguous submission therefore rests entirely on post-hoc MASTER reconciliation, not on an exchange-dedupable CLOID."
   },
   {
    "row_id": "B4-I07",
