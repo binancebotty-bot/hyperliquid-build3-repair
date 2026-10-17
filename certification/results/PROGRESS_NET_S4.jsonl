@@ -1,0 +1,5 @@
+{"id":"TN-T16","result":"NOT_TESTED","reason":"Required testnet transport runtime and captured packet/HTTP plus exchange-side account/fill oracle are unavailable; no mock substituted.","tested_commit":"b3e6d6665116510f8a9ceaa5254b060bf4d73998"}
+{"id":"TN-T17","result":"NOT_TESTED","reason":"Required testnet transport runtime and captured packet/HTTP plus exchange-side account/fill oracle are unavailable; no mock substituted.","tested_commit":"b3e6d6665116510f8a9ceaa5254b060bf4d73998"}
+{"id":"TN-A1","result":"NOT_TESTED","reason":"Real testnet transport client path and independent request-log oracle unavailable; no mock substituted.","tested_commit":"b3e6d6665116510f8a9ceaa5254b060bf4d73998"}
+{"id":"TN-A2","result":"NOT_TESTED","reason":"Real testnet transport client path and independent request-log oracle unavailable; no mock substituted.","tested_commit":"b3e6d6665116510f8a9ceaa5254b060bf4d73998"}
+{"id":"TN-A3","result":"NOT_TESTED","reason":"Real testnet transport client path and independent request-log oracle unavailable; no mock substituted.","tested_commit":"b3e6d6665116510f8a9ceaa5254b060bf4d73998"}

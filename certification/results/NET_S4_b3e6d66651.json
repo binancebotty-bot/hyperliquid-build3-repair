@@ -1,0 +1,15 @@
+{
+  "schema": "hl_certification_result_v1",
+  "suite": "NET_S4",
+  "tested_commit": "b3e6d6665116510f8a9ceaa5254b060bf4d73998",
+  "result": "NOT_TESTED",
+  "reason": "Required real testnet transport runtime and independent network/exchange evidence are unavailable in this checkout. Per ruling, do not mock; preserve NOT_TESTED and name the missing runtime.",
+  "rows": [
+    {"id":"TN-T16","result":"NOT_TESTED","missing":"Testnet transport runtime; captured packet/HTTP/request log; exchange-side account/fill identity evidence"},
+    {"id":"TN-T17","result":"NOT_TESTED","missing":"Testnet transport runtime; captured packet/HTTP/request log; exchange-side account/fill identity evidence"},
+    {"id":"TN-A1","result":"NOT_TESTED","missing":"Real transport client path and independent request log showing no hostile-origin connection"},
+    {"id":"TN-A2","result":"NOT_TESTED","missing":"Real transport client path and independent request log showing no hostile-origin connection"},
+    {"id":"TN-A3","result":"NOT_TESTED","missing":"Real transport client path and independent request log showing no hostile-origin connection"}
+  ],
+  "checks": []
+}
