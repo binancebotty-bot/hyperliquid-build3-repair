@@ -1,0 +1,71 @@
+{
+  "schema": "b3_origin_only_row_evidence_v1",
+  "register_ref": "origin/main:certification/certification_matrix.json",
+  "register_commit": "3ea99f4d912b329cdd248fe068bede93a6d8bc80",
+  "origin_only_ids_confirmed_against_local_main_b142cf88": ["ENG-017", "ENG-018", "ENG-019", "ORD-009", "ORD-010", "SET-009"],
+  "engine_commit": "b142cf88d389e791160f691aac3d936852b99975",
+  "execution_context_commit": "6324fd384110022a6609a24f6f05a62d6f6e1b0f",
+  "tested_at_utc": "2026-10-17T09:41:52Z",
+  "results": [
+    {
+      "row_id": "ENG-017",
+      "feature": "Missed leader entry or add",
+      "result": "NOT_TESTED",
+      "execution_proof": "Induce a gap on testnet across a real mainnet leader entry; resume and capture recovered fill, decision, order payload and exchange outcome.",
+      "independent_oracle": "Mainnet leader fill price/time vs follower mid and testnet follower orders/fills, read independently without engine code.",
+      "negative_tests": ["price same as leader -> entry taken", "price better -> entry taken", "price worse within tolerance -> entry taken", "price worse beyond tolerance -> diff and resting limit; no marketable order", "resting limit fills -> diff clears and position owned once", "leader reduces/closes before fill -> limit cancelled/resized without orphan exposure", "restart while limit rests -> no duplicate limit", "missed ADD follows same rule", "no fresh mid -> no order (OD-01)", "leftover inventory is untouched (ENG-016)"],
+      "missing_route": "Authorized live testnet execution route capable of inducing a real leader-entry gap, resuming recovery, and independently observing the follower exchange; no such route was available in this run.",
+      "notes": "OD-10 is listed on the origin row; its tolerance and desired-price rule remain unruled. No mock or substitute proof was used."
+    },
+    {
+      "row_id": "ENG-018",
+      "feature": "Leaders trading opposite ways in one coin",
+      "result": "NOT_TESTED",
+      "execution_proof": "During a testnet run, observe two real mainnet leaders take opposite entries in one coin; capture sends, exchange net position, ledger net and per-leader UI sleeves.",
+      "independent_oracle": "Testnet clearinghouseState net size vs sum of per-leader sleeves; leader fills from the mainnet info API.",
+      "negative_tests": ["equal opposite entries -> account flat and both sleeves shown", "one leader exits after netting -> its own sleeve sized and account net correct", "restart while netted -> attribution restored without new orders", "ledger net differs from exchange -> diff shown and sending stops (SET-009)"],
+      "missing_route": "Authorized testnet follower execution and independent testnet/mainnet info-API observation of real leader fills and follower position; not available in this run.",
+      "notes": "No live activity or UI rendering evidence was claimed."
+    },
+    {
+      "row_id": "ENG-019",
+      "feature": "Main loop keeps up with 10 very busy leaders",
+      "result": "NOT_TESTED",
+      "execution_proof": "Run at least 30 minutes against the 10 most active mainnet leaders on testnet; record cycle durations, poll timestamps and duplicate-fill counts.",
+      "independent_oracle": "Compare engine cycle/poll timestamps to wall clock and testnet follower fills from info API to ledger rows.",
+      "negative_tests": ["thousands of historical fills at startup", "one very high-rate leader", "slow info API", "429 rate limiting"],
+      "missing_route": "Authorized 30-minute testnet run with the 10 most active mainnet leaders plus independent testnet info-API observation; unavailable in this run.",
+      "notes": "No load was simulated or mocked as a substitute."
+    },
+    {
+      "row_id": "ORD-009",
+      "feature": "Signing key valid on follower network",
+      "result": "NOT_TESTED",
+      "execution_proof": "Start engine against follower network and observe signer userRole validation; inject signer rejection on send and verify terminal stop, UI alert and Critical diffs.",
+      "independent_oracle": "Signer userRole and MASTER independently read from follower info API; exchange order history confirms no order after rejection.",
+      "negative_tests": ["mainnet agent key on testnet", "agent approved by different account", "userRole timeout/error -> refuse start", "malformed key", "mid-run rejection -> no retries and no ORDER_UNKNOWN", "logs/UI contain no key material"],
+      "missing_route": "Authorized follower-network transport with safe signer scenarios and independent userRole/MASTER/order-history info-API reads; unavailable in this run. No credential was accessed or used.",
+      "notes": "Prior unit evidence on the origin row is not treated as testnet certification."
+    },
+    {
+      "row_id": "ORD-010",
+      "feature": "Leader-to-send delay measured; stale entries take the missed-entry path",
+      "result": "NOT_TESTED",
+      "execution_proof": "On a busy testnet run capture per-order leader time, send time and decision; delay a queue and verify entries older than 30s route to ENG-017.",
+      "independent_oracle": "Compare leader fill timestamps from mainnet info API to testnet follower order timestamps.",
+      "negative_tests": ["entry at 29s -> normal copy", "entry at 31s -> missed-entry rule", "exit at 120s -> still sent", "queue backlog of 50 -> delay recorded without unbounded growth"],
+      "missing_route": "Authorized busy testnet run with controllable queue delay, real mainnet leader timestamps and independent follower order observation; unavailable in this run.",
+      "notes": "OD-10 remains open; no threshold decision was made."
+    },
+    {
+      "row_id": "SET-009",
+      "feature": "Ledger never diverges from the exchange",
+      "result": "NOT_TESTED",
+      "execution_proof": "After each testnet run compare exchange fills/positions against ledger rows/net positions; induce a missed copy-account poll and verify sending stops.",
+      "independent_oracle": "Testnet userFillsByTime and clearinghouseState across all DEX scopes, queried without engine code.",
+      "negative_tests": ["copy-account poll delayed", "fill arrives after restart", "partial fills", "exit refused because ledger thought flat must not recur"],
+      "missing_route": "Authorized testnet execution plus independent all-DEX userFillsByTime/clearinghouseState access and a controllable missed-poll scenario; unavailable in this run.",
+      "notes": "No testnet or exchange evidence was fabricated."
+    }
+  ]
+}
