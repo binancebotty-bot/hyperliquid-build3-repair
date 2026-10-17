@@ -1,0 +1,69 @@
+{
+  "task_id": "t_d2b53553",
+  "title": "B3-CERT ORDER evidence: ORD-002..ORD-007",
+  "result": "NOT_TESTED",
+  "tested_commit": "",
+  "engine_commit_reference": "b142cf88",
+  "tested_at_utc": "",
+  "execution_performed": false,
+  "blockers": [
+    {
+      "missing": "Testnet follower wallet/account required to execute a real order submission.",
+      "basis": "The committed ORDER_CORRECTION_fefc2b04.json records that the follower wallet does not exist on testnet; its in-process exchange double is explicitly not exchange truth."
+    },
+    {
+      "missing": "Same-network exchange info API plus order-status/userFills oracle for a real cloid/oid.",
+      "basis": "No real order was submitted, so no exchange cloid/oid exists to query; matrix requires this independent oracle for every listed row."
+    },
+    {
+      "missing": "AUTHORITY_INDEX.md required by task preamble.",
+      "basis": "Absent from the isolated checkout and from pinned commit b142cf88; task-specific authority instructions could not be read."
+    }
+  ],
+  "rows": {
+    "ORD-002": {
+      "result": "NOT_TESTED",
+      "feature": "reduce_only correctness",
+      "execution_proof_required": "Planner delta -> order payload as signed (size, side, reduce_only, tif, cloid, asset id) -> exchange response",
+      "independent_oracle_required": "Exchange order status / userFills for the cloid/oid; asset meta from the same network's info API",
+      "exact_missing": ["real Testnet follower account/wallet for order submission", "same-network exchange order-status/userFills and asset-meta oracle", "AUTHORITY_INDEX.md"]
+    },
+    "ORD-003": {
+      "result": "NOT_TESTED",
+      "feature": "Minimum notional",
+      "execution_proof_required": "Planner delta -> order payload as signed (size, side, reduce_only, tif, cloid, asset id) -> exchange response",
+      "independent_oracle_required": "Exchange order status / userFills for the cloid/oid; asset meta from the same network's info API",
+      "exact_missing": ["real Testnet follower account/wallet for order submission", "same-network exchange order-status/userFills and asset-meta oracle", "AUTHORITY_INDEX.md", "decisions OD-09 applicability to minimum-notional behavior"]
+    },
+    "ORD-004": {
+      "result": "NOT_TESTED",
+      "feature": "Size rounding",
+      "execution_proof_required": "Planner delta -> order payload as signed (size, side, reduce_only, tif, cloid, asset id) -> exchange response",
+      "independent_oracle_required": "Exchange order status / userFills for the cloid/oid; asset meta from the same network's info API",
+      "exact_missing": ["real Testnet follower account/wallet for order submission", "same-network exchange order-status/userFills and asset-meta oracle", "AUTHORITY_INDEX.md", "decision OD-08 applicability to size-rounding behavior"]
+    },
+    "ORD-005": {
+      "result": "NOT_TESTED",
+      "feature": "Exactly-once execution identity",
+      "execution_proof_required": "Planner delta -> order payload as signed (size, side, reduce_only, tif, cloid, asset id) -> exchange response",
+      "independent_oracle_required": "Exchange order status / userFills for the cloid/oid; asset meta from the same network's info API",
+      "exact_missing": ["real Testnet follower account/wallet for order submission", "same-network exchange order-status/userFills and asset-meta oracle", "AUTHORITY_INDEX.md"]
+    },
+    "ORD-006": {
+      "result": "NOT_TESTED",
+      "feature": "Pre-send reservation",
+      "execution_proof_required": "Planner delta -> order payload as signed (size, side, reduce_only, tif, cloid, asset id) -> exchange response",
+      "independent_oracle_required": "Exchange order status / userFills for the cloid/oid; asset meta from the same network's info API",
+      "exact_missing": ["real Testnet follower account/wallet for order submission", "same-network exchange order-status/userFills and asset-meta oracle", "AUTHORITY_INDEX.md"]
+    },
+    "ORD-007": {
+      "result": "NOT_TESTED",
+      "feature": "Per-run send limit",
+      "execution_proof_required": "Planner delta -> order payload as signed (size, side, reduce_only, tif, cloid, asset id) -> exchange response",
+      "independent_oracle_required": "Exchange order status / userFills for the cloid/oid; asset meta from the same network's info API",
+      "exact_missing": ["real Testnet follower account/wallet for order submission", "same-network exchange order-status/userFills and asset-meta oracle", "AUTHORITY_INDEX.md", "decision OD-16 applicability to per-run send-limit behavior"]
+    }
+  },
+  "prior_artifact_reference": "certification/results/ORDER_CORRECTION_fefc2b04.json",
+  "notes": "No proof was executed in this task. No row is marked PASS. Prior double-based evidence was not reused as proof. Register certification/certification_matrix.json was not modified."
+}
