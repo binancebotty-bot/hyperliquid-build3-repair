@@ -1,0 +1,194 @@
+{
+  "audit": "PASS-row evidence audit: F-ARCH + F-EXC",
+  "register_commit": "b142cf88d389e791160f691aac3d936852b99975",
+  "source_uncovered_artifact": "origin/hermes/union-arithmetic-v2-corrected-t_f0d76afe:EVIDENCE/provenance/UNION_ARITHMETIC_V2_t_f0d76afe.json",
+  "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+  "evidence_tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+  "scope_ids": [
+    "F-ARCH-001",
+    "F-ARCH-002",
+    "F-ARCH-003",
+    "F-ARCH-004",
+    "F-ARCH-005",
+    "F-ARCH-006",
+    "F-ARCH-007",
+    "F-ARCH-008",
+    "F-ARCH-009",
+    "F-ARCH-010",
+    "F-ARCH-011",
+    "F-ARCH-012",
+    "F-ARCH-013",
+    "F-ARCH-014",
+    "F-ARCH-015",
+    "F-EXC-001",
+    "F-EXC-002",
+    "F-EXC-003",
+    "F-EXC-004",
+    "F-EXC-005",
+    "F-EXC-006",
+    "F-EXC-007",
+    "F-EXC-008",
+    "F-EXC-009",
+    "F-EXC-010",
+    "F-EXC-011",
+    "F-EXC-012",
+    "F-EXC-013",
+    "F-EXC-014",
+    "F-EXC-015"
+  ],
+  "audited": 30,
+  "KEEP": 0,
+  "DEMOTE": 30,
+  "rows": [
+    {
+      "row_id": "F-ARCH-001",
+      "verdict": "DEMOTE",
+      "why": "Check observes mismatch reporting/no auto-correction, not exclusive exchange authority under the specified historical trigger; independent oracle absent."
+    },
+    {
+      "row_id": "F-ARCH-002",
+      "verdict": "DEMOTE",
+      "why": "Fresh-ledger/no-auto-correction check does not exercise the complete stateless fetch-diff-act-refetch cycle; no independent oracle."
+    },
+    {
+      "row_id": "F-ARCH-003",
+      "verdict": "DEMOTE",
+      "why": "Post-cutover fill reaching mock send boundary does not prove orders derive solely from desired-minus-actual position; independent oracle absent."
+    },
+    {
+      "row_id": "F-ARCH-004",
+      "verdict": "DEMOTE",
+      "why": "Mismatch reporting does not test every-cycle desired-vs-actual invariant or required blocked state; independent oracle absent."
+    },
+    {
+      "row_id": "F-ARCH-005",
+      "verdict": "DEMOTE",
+      "why": "Mocked sender/close-burst checks do not show drift detector blocker dominates every send path; independent oracle absent."
+    },
+    {
+      "row_id": "F-ARCH-006",
+      "verdict": "DEMOTE",
+      "why": "UI-mode-to-intent check does not prove UI read-only status or truth-tier/freshness display; independent oracle absent."
+    },
+    {
+      "row_id": "F-ARCH-007",
+      "verdict": "DEMOTE",
+      "why": "Ledger mismatch reporting does not prove logs are metadata-only and exchange snapshot is authoritative; independent oracle absent."
+    },
+    {
+      "row_id": "F-ARCH-008",
+      "verdict": "DEMOTE",
+      "why": "Sleeve aggregation checks do not cover all account-net sizing, reduce-only, margin, and open-order checks; independent oracle absent."
+    },
+    {
+      "row_id": "F-ARCH-009",
+      "verdict": "DEMOTE",
+      "why": "Mocked sender and burst guard do not establish all exchange order call sites pass the sole sender/master gate; independent oracle absent."
+    },
+    {
+      "row_id": "F-ARCH-010",
+      "verdict": "DEMOTE",
+      "why": "Recovery lifecycle checks do not establish all recovery states can only request reconciler convergence; independent oracle absent."
+    },
+    {
+      "row_id": "F-ARCH-011",
+      "verdict": "DEMOTE",
+      "why": "Restart/cutover timestamp checks do not prove restart uses fresh exchange and leader snapshots rather than local replay; independent oracle absent."
+    },
+    {
+      "row_id": "F-ARCH-012",
+      "verdict": "DEMOTE",
+      "why": "Opposing-sleeve checks do not verify canary-first wallet/asset/cap restrictions; independent oracle absent."
+    },
+    {
+      "row_id": "F-ARCH-013",
+      "verdict": "DEMOTE",
+      "why": "Cutover checks do not verify feature freeze/removal of non-core machinery after truth failure; independent oracle absent."
+    },
+    {
+      "row_id": "F-ARCH-014",
+      "verdict": "DEMOTE",
+      "why": "Cutover timestamp checks do not establish architecture-level permissions or avoid patching around ROOT-001; independent oracle absent."
+    },
+    {
+      "row_id": "F-ARCH-015",
+      "verdict": "DEMOTE",
+      "why": "Cutover construction checks do not establish a single invariant owner and contributor proof requirement; independent oracle absent."
+    },
+    {
+      "row_id": "F-EXC-001",
+      "verdict": "DEMOTE",
+      "why": "Symbol-resolution tests do not reproduce missing/stale exchange snapshot and prove no sizing/close/green; independent oracle absent."
+    },
+    {
+      "row_id": "F-EXC-002",
+      "verdict": "DEMOTE",
+      "why": "Unresolved-symbol refusal does not test unknown actual account-net position and fail-closed behavior; independent oracle absent."
+    },
+    {
+      "row_id": "F-EXC-003",
+      "verdict": "DEMOTE",
+      "why": "Mismatch reporting alone does not prove ENTRY/ADD disablement and sanctioned close/reduce-or-halt handling; independent oracle absent."
+    },
+    {
+      "row_id": "F-EXC-004",
+      "verdict": "DEMOTE",
+      "why": "Fill deduplication does not prove open orders/pending cancels are fetched and included before placing orders; independent oracle absent."
+    },
+    {
+      "row_id": "F-EXC-005",
+      "verdict": "DEMOTE",
+      "why": "Sleeve aggregation does not exercise over-target ENTRY/ADD refusal and over_target reporting; independent oracle absent."
+    },
+    {
+      "row_id": "F-EXC-006",
+      "verdict": "DEMOTE",
+      "why": "Sleeve isolation is not a test of wrong-direction flattening followed by exchange-confirmed flatness; independent oracle absent."
+    },
+    {
+      "row_id": "F-EXC-007",
+      "verdict": "DEMOTE",
+      "why": "Reduce-only wire checks do not establish size bound against actual reducible account-net exposure or no-flip post-fill; independent oracle absent."
+    },
+    {
+      "row_id": "F-EXC-008",
+      "verdict": "DEMOTE",
+      "why": "Unresolved-symbol checks do not exercise below-minimum notional disposition/telemetry; independent oracle absent."
+    },
+    {
+      "row_id": "F-EXC-009",
+      "verdict": "DEMOTE",
+      "why": "Post-cutover fill reaching a mock send boundary does not test WS gaps/staleness and mandatory REST reconciliation; independent oracle absent."
+    },
+    {
+      "row_id": "F-EXC-010",
+      "verdict": "DEMOTE",
+      "why": "Dedupe checks do not exercise missing/ambiguous exchange fill identity and prove no synthetic-key position mutation; independent oracle absent."
+    },
+    {
+      "row_id": "F-EXC-011",
+      "verdict": "DEMOTE",
+      "why": "Restart timestamp/send-path checks do not verify subscription identity or require subscription proof/rebind; independent oracle absent."
+    },
+    {
+      "row_id": "F-EXC-012",
+      "verdict": "DEMOTE",
+      "why": "Unresolved coin behavior does not cover all exchange semantics (reduce-only, margin, precision, min-notional, size) before exchange call; independent oracle absent."
+    },
+    {
+      "row_id": "F-EXC-013",
+      "verdict": "DEMOTE",
+      "why": "Disabled auto-send checks cover this gate state, not proof that every order path has zero exchange-client calls; independent oracle absent."
+    },
+    {
+      "row_id": "F-EXC-014",
+      "verdict": "DEMOTE",
+      "why": "Disabled-gate checks do not establish the master gate dominates every order path as a hard build stop; independent oracle absent."
+    },
+    {
+      "row_id": "F-EXC-015",
+      "verdict": "DEMOTE",
+      "why": "Recovery lifecycle checks do not demonstrate no direct send across every recovery/manual/auto-repair path; independent oracle absent."
+    }
+  ]
+}
