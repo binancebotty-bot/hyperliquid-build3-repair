@@ -1,0 +1,1292 @@
+{
+  "audit": "PASS-row evidence provenance (UI part 4 of 4)",
+  "register_of_record_ref": "main",
+  "register_of_record_commit": "b142cf88d389e791160f691aac3d936852b99975",
+  "matrix_sha256": "86b2237fe95f88ca9eb758fb42ddbdf3efdaef71e56f79a10e2d2635f44f341a",
+  "read_only": true,
+  "areas": {
+    "UI": {
+      "matrix_rows": 400,
+      "matrix_pass_rows": 314,
+      "part": 4,
+      "of": 4,
+      "scope_first_row": "UI-FP-091",
+      "scope_last_row": "UI-FP-197",
+      "scope_rows": 78,
+      "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+      "evidence_blob_sha256": "36ac91c1a04438dce4c02b62fadb0e1cdacc260e81b2a4d220e8ec599d6437e8",
+      "evidence_rows_in_file": 441,
+      "pass_rows_demoted": 55,
+      "pass_rows_kept": 23,
+      "per_row": {
+        "UI-FP-091": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 0,
+          "checks_owned_by_this_row": 1,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "KEEP",
+          "reasons": []
+        },
+        "UI-FP-092": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 1,
+          "checks_owned_by_this_row": 0,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "DEMOTE",
+          "reasons": [
+            "all 1 check(s) carried/shared (byte-identical to sibling)"
+          ]
+        },
+        "UI-FP-093": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 1,
+          "checks_owned_by_this_row": 0,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "DEMOTE",
+          "reasons": [
+            "all 1 check(s) carried/shared (byte-identical to sibling)"
+          ]
+        },
+        "UI-FP-094": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 1,
+          "checks_owned_by_this_row": 0,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "DEMOTE",
+          "reasons": [
+            "all 1 check(s) carried/shared (byte-identical to sibling)"
+          ]
+        },
+        "UI-FP-095": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 1,
+          "checks_owned_by_this_row": 0,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "DEMOTE",
+          "reasons": [
+            "all 1 check(s) carried/shared (byte-identical to sibling)"
+          ]
+        },
+        "UI-FP-096": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 1,
+          "checks_owned_by_this_row": 0,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "DEMOTE",
+          "reasons": [
+            "all 1 check(s) carried/shared (byte-identical to sibling)"
+          ]
+        },
+        "UI-FP-097": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 0,
+          "checks_owned_by_this_row": 1,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "KEEP",
+          "reasons": []
+        },
+        "UI-FP-098": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 0,
+          "checks_owned_by_this_row": 1,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "KEEP",
+          "reasons": []
+        },
+        "UI-FP-099": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 0,
+          "checks_owned_by_this_row": 1,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "KEEP",
+          "reasons": []
+        },
+        "UI-FP-100": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 1,
+          "checks_owned_by_this_row": 0,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "DEMOTE",
+          "reasons": [
+            "all 1 check(s) carried/shared (byte-identical to sibling)"
+          ]
+        },
+        "UI-FP-101": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 0,
+          "checks_owned_by_this_row": 1,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "KEEP",
+          "reasons": []
+        },
+        "UI-FP-102": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 1,
+          "checks_owned_by_this_row": 0,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "DEMOTE",
+          "reasons": [
+            "all 1 check(s) carried/shared (byte-identical to sibling)"
+          ]
+        },
+        "UI-FP-103": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 0,
+          "checks_owned_by_this_row": 1,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "KEEP",
+          "reasons": []
+        },
+        "UI-FP-104": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 1,
+          "checks_owned_by_this_row": 0,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "DEMOTE",
+          "reasons": [
+            "all 1 check(s) carried/shared (byte-identical to sibling)"
+          ]
+        },
+        "UI-FP-105": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 1,
+          "checks_owned_by_this_row": 0,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "DEMOTE",
+          "reasons": [
+            "all 1 check(s) carried/shared (byte-identical to sibling)"
+          ]
+        },
+        "UI-FP-106": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 1,
+          "checks_owned_by_this_row": 0,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "DEMOTE",
+          "reasons": [
+            "all 1 check(s) carried/shared (byte-identical to sibling)"
+          ]
+        },
+        "UI-FP-108": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 1,
+          "checks_owned_by_this_row": 0,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "DEMOTE",
+          "reasons": [
+            "all 1 check(s) carried/shared (byte-identical to sibling)"
+          ]
+        },
+        "UI-FP-111": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 1,
+          "checks_owned_by_this_row": 0,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "DEMOTE",
+          "reasons": [
+            "all 1 check(s) carried/shared (byte-identical to sibling)"
+          ]
+        },
+        "UI-FP-112": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 1,
+          "checks_owned_by_this_row": 0,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "DEMOTE",
+          "reasons": [
+            "all 1 check(s) carried/shared (byte-identical to sibling)"
+          ]
+        },
+        "UI-FP-113": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 1,
+          "checks_owned_by_this_row": 0,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "DEMOTE",
+          "reasons": [
+            "all 1 check(s) carried/shared (byte-identical to sibling)"
+          ]
+        },
+        "UI-FP-114": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 1,
+          "checks_owned_by_this_row": 0,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "DEMOTE",
+          "reasons": [
+            "all 1 check(s) carried/shared (byte-identical to sibling)"
+          ]
+        },
+        "UI-FP-116": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 1,
+          "checks_owned_by_this_row": 0,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "DEMOTE",
+          "reasons": [
+            "all 1 check(s) carried/shared (byte-identical to sibling)"
+          ]
+        },
+        "UI-FP-117": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 1,
+          "checks_owned_by_this_row": 0,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "DEMOTE",
+          "reasons": [
+            "all 1 check(s) carried/shared (byte-identical to sibling)"
+          ]
+        },
+        "UI-FP-118": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 1,
+          "checks_owned_by_this_row": 0,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "DEMOTE",
+          "reasons": [
+            "all 1 check(s) carried/shared (byte-identical to sibling)"
+          ]
+        },
+        "UI-FP-121": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 0,
+          "checks_owned_by_this_row": 1,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "KEEP",
+          "reasons": []
+        },
+        "UI-FP-122": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 1,
+          "checks_owned_by_this_row": 0,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "DEMOTE",
+          "reasons": [
+            "all 1 check(s) carried/shared (byte-identical to sibling)"
+          ]
+        },
+        "UI-FP-123": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 1,
+          "checks_owned_by_this_row": 0,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "DEMOTE",
+          "reasons": [
+            "all 1 check(s) carried/shared (byte-identical to sibling)"
+          ]
+        },
+        "UI-FP-124": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 1,
+          "checks_owned_by_this_row": 0,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "DEMOTE",
+          "reasons": [
+            "all 1 check(s) carried/shared (byte-identical to sibling)"
+          ]
+        },
+        "UI-FP-125": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 1,
+          "checks_owned_by_this_row": 0,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "DEMOTE",
+          "reasons": [
+            "all 1 check(s) carried/shared (byte-identical to sibling)"
+          ]
+        },
+        "UI-FP-126": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 1,
+          "checks_owned_by_this_row": 0,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "DEMOTE",
+          "reasons": [
+            "all 1 check(s) carried/shared (byte-identical to sibling)"
+          ]
+        },
+        "UI-FP-127": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 0,
+          "checks_owned_by_this_row": 1,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "KEEP",
+          "reasons": []
+        },
+        "UI-FP-128": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 1,
+          "checks_owned_by_this_row": 0,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "DEMOTE",
+          "reasons": [
+            "all 1 check(s) carried/shared (byte-identical to sibling)"
+          ]
+        },
+        "UI-FP-129": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 0,
+          "checks_owned_by_this_row": 1,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "KEEP",
+          "reasons": []
+        },
+        "UI-FP-130": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 0,
+          "checks_owned_by_this_row": 1,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "KEEP",
+          "reasons": []
+        },
+        "UI-FP-131": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 1,
+          "checks_owned_by_this_row": 0,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "DEMOTE",
+          "reasons": [
+            "all 1 check(s) carried/shared (byte-identical to sibling)"
+          ]
+        },
+        "UI-FP-132": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 1,
+          "checks_owned_by_this_row": 0,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "DEMOTE",
+          "reasons": [
+            "all 1 check(s) carried/shared (byte-identical to sibling)"
+          ]
+        },
+        "UI-FP-134": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 0,
+          "checks_owned_by_this_row": 1,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "KEEP",
+          "reasons": []
+        },
+        "UI-FP-135": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 1,
+          "checks_owned_by_this_row": 0,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "DEMOTE",
+          "reasons": [
+            "all 1 check(s) carried/shared (byte-identical to sibling)"
+          ]
+        },
+        "UI-FP-136": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 1,
+          "checks_owned_by_this_row": 0,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "DEMOTE",
+          "reasons": [
+            "all 1 check(s) carried/shared (byte-identical to sibling)"
+          ]
+        },
+        "UI-FP-138": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 1,
+          "checks_owned_by_this_row": 0,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "DEMOTE",
+          "reasons": [
+            "all 1 check(s) carried/shared (byte-identical to sibling)"
+          ]
+        },
+        "UI-FP-141": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 1,
+          "checks_owned_by_this_row": 0,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "DEMOTE",
+          "reasons": [
+            "all 1 check(s) carried/shared (byte-identical to sibling)"
+          ]
+        },
+        "UI-FP-142": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 1,
+          "checks_owned_by_this_row": 0,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "DEMOTE",
+          "reasons": [
+            "all 1 check(s) carried/shared (byte-identical to sibling)"
+          ]
+        },
+        "UI-FP-143": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 1,
+          "checks_owned_by_this_row": 0,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "DEMOTE",
+          "reasons": [
+            "all 1 check(s) carried/shared (byte-identical to sibling)"
+          ]
+        },
+        "UI-FP-144": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 1,
+          "checks_owned_by_this_row": 0,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "DEMOTE",
+          "reasons": [
+            "all 1 check(s) carried/shared (byte-identical to sibling)"
+          ]
+        },
+        "UI-FP-146": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 1,
+          "checks_owned_by_this_row": 0,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "DEMOTE",
+          "reasons": [
+            "all 1 check(s) carried/shared (byte-identical to sibling)"
+          ]
+        },
+        "UI-FP-147": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 1,
+          "checks_owned_by_this_row": 0,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "DEMOTE",
+          "reasons": [
+            "all 1 check(s) carried/shared (byte-identical to sibling)"
+          ]
+        },
+        "UI-FP-148": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 1,
+          "checks_owned_by_this_row": 0,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "DEMOTE",
+          "reasons": [
+            "all 1 check(s) carried/shared (byte-identical to sibling)"
+          ]
+        },
+        "UI-FP-151": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 0,
+          "checks_owned_by_this_row": 1,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "KEEP",
+          "reasons": []
+        },
+        "UI-FP-152": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 0,
+          "checks_owned_by_this_row": 1,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "KEEP",
+          "reasons": []
+        },
+        "UI-FP-153": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 1,
+          "checks_owned_by_this_row": 0,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "DEMOTE",
+          "reasons": [
+            "all 1 check(s) carried/shared (byte-identical to sibling)"
+          ]
+        },
+        "UI-FP-154": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 1,
+          "checks_owned_by_this_row": 0,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "DEMOTE",
+          "reasons": [
+            "all 1 check(s) carried/shared (byte-identical to sibling)"
+          ]
+        },
+        "UI-FP-155": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 1,
+          "checks_owned_by_this_row": 0,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "DEMOTE",
+          "reasons": [
+            "all 1 check(s) carried/shared (byte-identical to sibling)"
+          ]
+        },
+        "UI-FP-156": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 0,
+          "checks_owned_by_this_row": 1,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "KEEP",
+          "reasons": []
+        },
+        "UI-FP-157": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 0,
+          "checks_owned_by_this_row": 1,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "KEEP",
+          "reasons": []
+        },
+        "UI-FP-158": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 0,
+          "checks_owned_by_this_row": 1,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "KEEP",
+          "reasons": []
+        },
+        "UI-FP-159": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 1,
+          "checks_owned_by_this_row": 0,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "DEMOTE",
+          "reasons": [
+            "all 1 check(s) carried/shared (byte-identical to sibling)"
+          ]
+        },
+        "UI-FP-160": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 1,
+          "checks_owned_by_this_row": 0,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "DEMOTE",
+          "reasons": [
+            "all 1 check(s) carried/shared (byte-identical to sibling)"
+          ]
+        },
+        "UI-FP-161": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 0,
+          "checks_owned_by_this_row": 1,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "KEEP",
+          "reasons": []
+        },
+        "UI-FP-162": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 0,
+          "checks_owned_by_this_row": 1,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "KEEP",
+          "reasons": []
+        },
+        "UI-FP-163": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 1,
+          "checks_owned_by_this_row": 0,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "DEMOTE",
+          "reasons": [
+            "all 1 check(s) carried/shared (byte-identical to sibling)"
+          ]
+        },
+        "UI-FP-164": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 1,
+          "checks_owned_by_this_row": 0,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "DEMOTE",
+          "reasons": [
+            "all 1 check(s) carried/shared (byte-identical to sibling)"
+          ]
+        },
+        "UI-FP-166": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 1,
+          "checks_owned_by_this_row": 0,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "DEMOTE",
+          "reasons": [
+            "all 1 check(s) carried/shared (byte-identical to sibling)"
+          ]
+        },
+        "UI-FP-169": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 1,
+          "checks_owned_by_this_row": 0,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "DEMOTE",
+          "reasons": [
+            "all 1 check(s) carried/shared (byte-identical to sibling)"
+          ]
+        },
+        "UI-FP-170": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 1,
+          "checks_owned_by_this_row": 0,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "DEMOTE",
+          "reasons": [
+            "all 1 check(s) carried/shared (byte-identical to sibling)"
+          ]
+        },
+        "UI-FP-171": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 0,
+          "checks_owned_by_this_row": 1,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "KEEP",
+          "reasons": []
+        },
+        "UI-FP-172": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 1,
+          "checks_owned_by_this_row": 0,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "DEMOTE",
+          "reasons": [
+            "all 1 check(s) carried/shared (byte-identical to sibling)"
+          ]
+        },
+        "UI-FP-173": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 0,
+          "checks_owned_by_this_row": 1,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "KEEP",
+          "reasons": []
+        },
+        "UI-FP-174": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 0,
+          "checks_owned_by_this_row": 1,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "KEEP",
+          "reasons": []
+        },
+        "UI-FP-176": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 1,
+          "checks_owned_by_this_row": 0,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "DEMOTE",
+          "reasons": [
+            "all 1 check(s) carried/shared (byte-identical to sibling)"
+          ]
+        },
+        "UI-FP-177": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 0,
+          "checks_owned_by_this_row": 1,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "KEEP",
+          "reasons": []
+        },
+        "UI-FP-180": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 0,
+          "checks_owned_by_this_row": 1,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "KEEP",
+          "reasons": []
+        },
+        "UI-FP-188": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 1,
+          "checks_owned_by_this_row": 0,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "DEMOTE",
+          "reasons": [
+            "all 1 check(s) carried/shared (byte-identical to sibling)"
+          ]
+        },
+        "UI-FP-189": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 1,
+          "checks_owned_by_this_row": 0,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "DEMOTE",
+          "reasons": [
+            "all 1 check(s) carried/shared (byte-identical to sibling)"
+          ]
+        },
+        "UI-FP-191": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 1,
+          "checks_owned_by_this_row": 0,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "DEMOTE",
+          "reasons": [
+            "all 1 check(s) carried/shared (byte-identical to sibling)"
+          ]
+        },
+        "UI-FP-194": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 1,
+          "checks_owned_by_this_row": 0,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "DEMOTE",
+          "reasons": [
+            "all 1 check(s) carried/shared (byte-identical to sibling)"
+          ]
+        },
+        "UI-FP-195": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 1,
+          "checks_owned_by_this_row": 0,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "DEMOTE",
+          "reasons": [
+            "all 1 check(s) carried/shared (byte-identical to sibling)"
+          ]
+        },
+        "UI-FP-196": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 1,
+          "checks_owned_by_this_row": 0,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "DEMOTE",
+          "reasons": [
+            "all 1 check(s) carried/shared (byte-identical to sibling)"
+          ]
+        },
+        "UI-FP-197": {
+          "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+          "record_present": true,
+          "record_says_pass": true,
+          "detail_blank": false,
+          "checks": 1,
+          "checks_shared_with_other_rows": 1,
+          "checks_owned_by_this_row": 0,
+          "declared_execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+          "declared_independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+          "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+          "verdict": "DEMOTE",
+          "reasons": [
+            "all 1 check(s) carried/shared (byte-identical to sibling)"
+          ]
+        }
+      }
+    }
+  },
+  "hash_resolution_local": {
+    "tested_commit_2d29211148c9ba8498bade2d5791ed908f193708": "commit",
+    "engine_sha256_2dfbd571012af67479ee7a2d9e6f1faac6ee5408722a092fb3625450cab51405": "MISSING_local (content hash, not a git object)",
+    "note": "LOCAL ONLY - re-check against origin/cert/local-main-b142cf8 after J15"
+  },
+  "demote_reasons_tally": {
+    "all 1 check": 55
+  },
+  "demote_ids": [
+    "UI-FP-092",
+    "UI-FP-093",
+    "UI-FP-094",
+    "UI-FP-095",
+    "UI-FP-096",
+    "UI-FP-100",
+    "UI-FP-102",
+    "UI-FP-104",
+    "UI-FP-105",
+    "UI-FP-106",
+    "UI-FP-108",
+    "UI-FP-111",
+    "UI-FP-112",
+    "UI-FP-113",
+    "UI-FP-114",
+    "UI-FP-116",
+    "UI-FP-117",
+    "UI-FP-118",
+    "UI-FP-122",
+    "UI-FP-123",
+    "UI-FP-124",
+    "UI-FP-125",
+    "UI-FP-126",
+    "UI-FP-128",
+    "UI-FP-131",
+    "UI-FP-132",
+    "UI-FP-135",
+    "UI-FP-136",
+    "UI-FP-138",
+    "UI-FP-141",
+    "UI-FP-142",
+    "UI-FP-143",
+    "UI-FP-144",
+    "UI-FP-146",
+    "UI-FP-147",
+    "UI-FP-148",
+    "UI-FP-153",
+    "UI-FP-154",
+    "UI-FP-155",
+    "UI-FP-159",
+    "UI-FP-160",
+    "UI-FP-163",
+    "UI-FP-164",
+    "UI-FP-166",
+    "UI-FP-169",
+    "UI-FP-170",
+    "UI-FP-172",
+    "UI-FP-176",
+    "UI-FP-188",
+    "UI-FP-189",
+    "UI-FP-191",
+    "UI-FP-194",
+    "UI-FP-195",
+    "UI-FP-196",
+    "UI-FP-197"
+  ]
+}
