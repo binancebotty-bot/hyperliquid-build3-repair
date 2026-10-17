@@ -53,6 +53,24 @@ One JSON document, plus the files it references, committed on your isolated bran
 }
 ```
 
+## Control-write rows: the authorised isolated write-test (controller ruling)
+
+Control rows (save / CLO / OFF / archive) cannot be proven read-only. **Supervised write-tests are
+authorised ONLY on an isolated instance**, with these hard limits — breaching any of them is a FAIL:
+
+1. Run a **SECOND Command Centre process on ANOTHER PORT**, started from the serving build
+   (`b5e6d61` or later).
+2. Point it at a **COPY** of `live_config.json` and a **scratch audit dir**. Never the live config.
+3. **NEVER** write through the live `:8031` app and never touch the running engine (PID 11700), its
+   wallet modes, or the 10 cohort wallets. A mode change on the live config would flip real copying.
+4. **Launch hidden** — no windows. **No second engine.**
+5. Per row: capture **before/after** state of the copy, use an **independent oracle that reads the copy
+   file directly**, and record the serving commit + SSOT sha256 **and the port and config path used**.
+6. A row that cannot be exercised in isolation stays **NOT_TESTED** with the reason named.
+
+Rationale: testnet writes carry no trading risk, but a write via the live app would flip real copying
+— the exact thing the alert-only rule forbids. Isolation is what makes the test safe.
+
 ## The two review rules (controller-confirmed additions)
 
 1. **A card may NEVER review or approve its own output.** The reviewer must be a **different card**
