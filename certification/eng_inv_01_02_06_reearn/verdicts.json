@@ -1,0 +1,123 @@
+{
+ "schema": "eng_inv_01_02_06_verdicts/v1",
+ "card": "t_20e1cb6d",
+ "repo": "binancebotty-bot/hyperliquid-build3-repair",
+ "branch": "hermes/eng-inv-01-02-06-rowbound-t_20e1cb6d",
+ "branch_base": "89b3bc7",
+ "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+ "probe": "certification/eng_inv_01_02_06_reearn/probe.py",
+ "raw_result": "certification/eng_inv_01_02_06_reearn/result.json",
+ "summary": {
+  "ENG-INV-01": "PASS",
+  "ENG-INV-02": "FAIL",
+  "ENG-INV-06": "PASS"
+ },
+ "rows": [
+  {
+   "row_id": "ENG-INV-01",
+   "verdict": "PASS",
+   "quoted_evidence": {
+    "artifact": "certification/results/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json",
+    "artifact_location": "origin/cert/local-main-b142cf8",
+    "artifact_key": "checks['ENG-INV-01']",
+    "quote": "[{\"name\": \"NO_PROCESS_SPAWNS\", \"pass\": true, \"detail\": \"Found 0 process spawn(s): []\"}]",
+    "why_row_specific": "The artifact stores results in a check list keyed by row id. ENG-INV-01 owns exactly one entry, NO_PROCESS_SPAWNS; no sibling row in the same file (ENG-INV-02, ENG-010..014, SEM-B1..B4) declares that check in its own list. A sibling therefore cannot ride on this record, which is the failure mode that disqualified the 03/04/05 attempt.",
+    "independent_recheck": "{\"row\": \"ENG-INV-01\", \"expected_behaviour\": \"One process.\", \"assertion\": \"AST of every production engine source at the cited commit contains no process-spawn construct (import subprocess/multiprocessing/pty, Popen()/Process()/fork(), os.system/popen/spawn*)\", \"pass\": true, \"detail\": {\"files_scanned\": [\"HL_Copy_App_SSOT.py\", \"HL_Live_Copy_Service.py\", \"HL_Live_Copy_Service_Core.py\", \"convergence_shadow.py\", \"exchange_truth.py\"], \"spawn_sites\": []}}",
+    "recheck_scope_widened": "the cited harness parsed only Core + Service; this re-run parsed all five production sources in _archive/hl_stage2 at the same commit and still found zero spawn sites"
+   },
+   "mutation_control": {
+    "row": "ENG-INV-01",
+    "mutation": "inv01_add_subprocess",
+    "expected": "FAIL",
+    "actual_row_check": false,
+    "non_vacuous": true
+   },
+   "extra_mutations": [
+    {
+     "row": "ENG-INV-01",
+     "mutation": "inv01_add_second_process",
+     "expected": "FAIL",
+     "actual_row_check": false,
+     "non_vacuous": true
+    }
+   ],
+   "why": "Both tests met. SPECIFICITY: the cited row record is a one-element check list owned by ENG-INV-01 alone, so it is not one shared result labelled twice. NON-VACUITY: appending subprocess.Popen to the engine flips NO_PROCESS_SPAWNS to FAIL, and a second multiprocessing.Process variant flips it too; both were re-executed here rather than copied from the artifact. LIMIT STATED HONESTLY: the runtime-process-count half of the row execution_proof is NOT claimed. The probe is static-census only. The OS process list on this host carries unrelated Hermes/agent processes that cannot be bound to commit 43731b4f, so no process-count observation is asserted."
+  },
+  {
+   "row_id": "ENG-INV-02",
+   "verdict": "FAIL",
+   "quoted_evidence": {
+    "artifact": "certification/results/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json",
+    "artifact_location": "origin/cert/local-main-b142cf8",
+    "artifact_key": "checks['ENG-INV-02']",
+    "quote": "[{\"name\": \"ONE_PHYSICAL_ORDER_SITE\", \"pass\": true, \"detail\": \"Physical .order() calls: [2703] (total all: 2)\"}]",
+    "predicate_that_produced_it": "# ENG-INV-02: Exactly one physical .order() call site\n# ============================================================================\n\ndef test_inv02_one_order_site():\n    \"\"\"AST scan: exactly one .order() call site in the engine.\"\"\"\n    tree = ast_parse_file(ENGINE_PATH)\n    order_calls = count_order_call_sites(tree)\n    tree2 = ast_parse_file(SERVICE_PATH)\n    order_calls2 = count_order_call_sites(tree2)\n    all_calls = order_calls + order_calls2\n    # Filter out mock/test order calls (inside test methods, mock classes)\n    # The physical send path is in SenderGateway._place_order\n    physical_calls = [ln for ln in order_calls if ln > 2700 and ln < 2800]\n    passed = len(physical_calls) == 1\n    add_check(\"ENG-INV-02\", \"ONE_PHYSICAL_ORDER_SITE\", passed,\n              f\"Physical .order() calls: {physical_calls} (total all: {len(all_calls)})\")",
+    "why_row_specific": "The check is keyed ENG-INV-02 and no sibling declares ONE_PHYSICAL_ORDER_SITE, so the record is row-keyed. But the quoted detail contradicts itself in one string: it reports the physical set as [2703] while admitting \"total all: 2\". The predicate on lines 232-233 keeps only .order() nodes with 2700<line<2800 and is passed the Core file only, so it cannot speak about any other production file.",
+    "independent_recheck": "{\"row\": \"ENG-INV-02\", \"expected_behaviour\": \"One physical production .order() call site.\", \"assertion\": \"the AST of all production engine sources at the cited commit contains exactly one `*.order(...)` Call node\", \"pass\": false, \"detail\": {\"order_call_nodes\": [{\"file\": \"HL_Live_Copy_Service.py\", \"line\": 1036, \"receiver\": \"exchange\"}, {\"file\": \"HL_Live_Copy_Service_Core.py\", \"line\": 2703, \"receiver\": \"exchange\"}], \"count\": 2}}"
+   },
+   "mutation_control": {
+    "row": "ENG-INV-02",
+    "mutation": "inv02_add_site_other_file",
+    "expected": "FAIL",
+    "actual_row_check": false,
+    "non_vacuous": true
+   },
+   "extra_mutations": [
+    {
+     "row": "ENG-INV-02",
+     "mutation": "inv02_add_site_other_file",
+     "expected": "FAIL",
+     "actual_row_check": false,
+     "non_vacuous": true
+    },
+    {
+     "row": "ENG-INV-02",
+     "mutation": "inv02_add_site_core_far",
+     "expected": "FAIL",
+     "actual_row_check": false,
+     "non_vacuous": true
+    }
+   ],
+   "why": "SPECIFICITY FAILS and the evidence contradicts the row as written. The row reads \"One physical production .order() call site\" with no file qualifier. At the cited commit 43731b4f the production sources of _archive/hl_stage2 contain TWO physical Attribute-call .order() nodes: HL_Live_Copy_Service.py:1036 and HL_Live_Copy_Service_Core.py:2703. The cited predicate sees one because it is line-window bound (2700<line<2800, harness L232) and file bound (Core only). Proven rather than argued: appending a genuine second send path to HL_Live_Copy_Service.py leaves the cited predicate PASSING, while the unwindowed whole-tree predicate flips to FAIL. The predicate does carry a real negative control - a site inserted inside its own window flips it to FAIL - which is why the defect is scoping, not fabrication. SCOPE DECISION NEEDED: if the Controller/Architect rules that \"production\" means the Core engine only, the cited predicate becomes admissible once its window is replaced by a whole-file count. That ruling is not mine to make silently, so the row is returned FAIL rather than PASS under a private assumption. CONTEXT: the legacy service already existed in the branch point 89b3bc7 with the same site at line 1036, so this is a pre-existing scope question, not a regression introduced by the certify branch."
+  },
+  {
+   "row_id": "ENG-INV-06",
+   "verdict": "PASS",
+   "quoted_evidence": {
+    "artifact": "certification/results/ENG-INV-06-09_43731b4.json",
+    "artifact_location": "origin/cert/local-main-b142cf8",
+    "artifact_key": "invariants['ENG-INV-06']",
+    "quote": "{\"id\": \"ENG-INV-06\", \"result\": \"PASS\", \"checks\": {\"single_order_call_site\": true, \"no_process_spawns\": true, \"no_new_third_party_imports\": true, \"no_persistent_store\": true}, \"order_call_sites\": [{\"file\": \"_archive\\\\hl_stage2\\\\HL_Live_Copy_Service_Core.py\", \"line\": 2703, \"col\": 19}], \"process_spawns\": [], \"persistent_stores\": [], \"total_py_files_scanned\": 1}",
+    "artifact_negative_test": "{\"mutation\": \"Added second .order() call site\", \"expected\": \"FAIL\", \"actual\": \"FAIL\", \"non_vacuous\": true}",
+    "why_row_specific": "ENG-INV-06 owns a four-check record (single_order_call_site, no_process_spawns, no_new_third_party_imports, no_persistent_store) plus its own order_call_sites list. ENG-INV-01 and ENG-INV-02 carry neither no_persistent_store nor no_new_third_party_imports, so the two rows cannot be standing on one result.",
+    "known_limitation_of_the_cited_run": "total_py_files_scanned=1. The shipped census sets py_files = [core_file] (census_inv_06_09.py L86), so it never enumerated the other production files and on its own cannot exclude a runtime added elsewhere.",
+    "limitation_quote": "        }\n\n    py_files = [core_file]\n\n    order_call_sites: List[Dict[str, Any]] = []",
+    "independent_recheck": "{\"row\": \"ENG-INV-06\", \"expected_behaviour\": \"No new engine/runtime around Build 3.\", \"assertion\": \"relative to the branch-point commit the production .py file set gains no new file, no new .order() send site appears, and no new authoritative persistent store constructor is introduced\", \"pass\": true, \"detail\": {\"base_commit\": \"89b3bc7\", \"test_commit\": \"43731b4f1f19a56e835032dabf608a550f925717\", \"base_production_files\": [\"HL_Copy_App_SSOT.py\", \"HL_Live_Copy_Service.py\", \"HL_Live_Copy_Service_Core.py\", \"bench_memory_profile.py\", \"catchup_plan.py\", \"convergence_shadow.py\", \"exchange_truth.py\", \"headroom.py\", \"outage_classify.py\", \"tools_memory_profile.py\"], \"test_production_files\": [\"HL_Copy_App_SSOT.py\", \"HL_Live_Copy_Service.py\", \"HL_Live_Copy_Service_Core.py\", \"convergence_shadow.py\", \"exchange_truth.py\"], \"added_files\": [], \"removed_files\": [\"bench_memory_profile.py\", \"catchup_plan.py\", \"headroom.py\", \"outage_classify.py\", \"tools_memory_profile.py\"], \"base_order_sites\": [{\"file\": \"HL_Live_Copy_Service.py\", \"line\": 1036, \"receiver\": \"exchange\"}, {\"file\": \"HL_Live_Copy_Service_Core.py\", \"line\": 4344, \"receiver\": \"exchange\"}], \"test_order_sites\": [{\"file\": \"HL_Live_Copy_Service.py\", \"line\": 1036, \"receiver\": \"exchange\"}, {\"file\": \"HL_Live_Copy_Service_Core.py\", \"line\": 2703, \"receiver\": \"exchange\"}], \"new_store_tokens\": []}}"
+   },
+   "mutation_control": {
+    "row": "ENG-INV-06",
+    "mutation": "inv06_add_runtime_file",
+    "expected": "FAIL",
+    "actual_row_check": false,
+    "non_vacuous": true
+   },
+   "extra_mutations": [
+    {
+     "row": "ENG-INV-06",
+     "mutation": "inv06_add_runtime_file",
+     "expected": "FAIL",
+     "actual_row_check": false,
+     "non_vacuous": true
+    },
+    {
+     "row": "ENG-INV-06",
+     "mutation": "inv06_add_store",
+     "expected": "FAIL",
+     "actual_row_check": false,
+     "non_vacuous": true
+    }
+   ],
+   "why": "PASS on what the row actually asserts: \"No NEW engine/runtime around Build 3\". Measured against the branch point 89b3bc7, the production .py set gains ZERO files (five removed, none added), no new .order() send site appears (the same two sites exist at both commits), and no new authoritative store constructor is introduced. The cited artifact is row-specific and its INV-06_second_order_site negative test is non-vacuous (expected FAIL / actual FAIL). My independent mutations add a runtime file and add sqlite3.connect, and the row flips to FAIL in both cases. LIMITS STATED: (1) the cited run scanned only the Core file, so the whole-file-set comparison above, not the artifact, is what closes that gap; (2) the row asserts no NEW runtime, and the manual CLI send path at HL_Live_Copy_Service.py:1036 predates the baseline, so it is not a violation of this row - it is what sinks ENG-INV-02. The two rows are therefore not interchangeable, which is why they are verdicted separately."
+  }
+ ]
+}
