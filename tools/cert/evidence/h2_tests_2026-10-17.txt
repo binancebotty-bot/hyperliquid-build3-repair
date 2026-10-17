@@ -1,0 +1,17 @@
+test_a_match_passes (__main__.VerifierBaseline.test_a_match_passes) ... ok
+test_b2_real_j14_baseline_file_covers_its_own_coins (__main__.VerifierBaseline.test_b2_real_j14_baseline_file_covers_its_own_coins) ... ok
+test_b_known_only_gaps_pass (__main__.VerifierBaseline.test_b_known_only_gaps_pass) ... ok
+test_c_coin_outside_baseline_fails (__main__.VerifierBaseline.test_c_coin_outside_baseline_fails) ... ok
+test_d2_drift_tolerance_from_baseline_file_is_honoured (__main__.VerifierBaseline.test_d2_drift_tolerance_from_baseline_file_is_honoured) ... ok
+test_d_baseline_coin_whose_delta_moved_fails (__main__.VerifierBaseline.test_d_baseline_coin_whose_delta_moved_fails) ... ok
+test_e_cap_is_the_configured_500_not_the_stale_50 (__main__.VerifierBaseline.test_e_cap_is_the_configured_500_not_the_stale_50) ... ok
+test_f_entry_over_the_configured_cap_fails (__main__.VerifierBaseline.test_f_entry_over_the_configured_cap_fails) ... ok
+test_g_close_fill_is_exempt_from_the_cap (__main__.VerifierBaseline.test_g_close_fill_is_exempt_from_the_cap) ... ok
+test_h_missing_configured_cap_is_inconclusive (__main__.VerifierBaseline.test_h_missing_configured_cap_is_inconclusive) ... ok
+test_i_blocked_coin_gap_is_known_refused_not_mismatch (__main__.VerifierBaseline.test_i_blocked_coin_gap_is_known_refused_not_mismatch) ... ok
+test_j_no_baseline_file_means_every_gap_is_new (__main__.VerifierBaseline.test_j_no_baseline_file_means_every_gap_is_new) ... ok
+
+----------------------------------------------------------------------
+Ran 12 tests in 0.679s
+
+OK
