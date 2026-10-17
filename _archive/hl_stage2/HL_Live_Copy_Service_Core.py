@@ -695,7 +695,9 @@ SEND_ATTEMPT_FIELDS = [
     "coin_net_before", "coin_net_after_expected", "status", "exchange_response", "exchange_order_id",
     "error", "reject_category", "terminal_state", "operator_action", "latency_classification",
     "ws_received_ms", "leader_fill_timestamp_ms", "intent_created_at_ms", "send_decision_started_ms",
-    "send_real_started_ms", "symbol_resolve_started_ms", "symbol_resolve_finished_ms",
+    "send_real_started_ms", "exchange_slot_wait_started_ms", "exchange_slot_wait_finished_ms",
+    "send_worker_name", "send_worker_ident",
+    "symbol_resolve_started_ms", "symbol_resolve_finished_ms",
     "sdk_client_started_ms", "sdk_client_finished_ms", "exchange_call_started_ms",
     "exchange_call_finished_ms", "send_attempt_written_ms", "queue_wait_ms", "leader_to_intent_ms",
     "intent_to_send_start_ms", "symbol_resolve_ms", "sdk_client_ms", "exchange_call_ms",
@@ -707,7 +709,9 @@ SEND_ATTEMPT_FIELDS = [
 
 SEND_TIMING_FIELDS = [
     "ws_received_ms", "leader_fill_timestamp_ms", "intent_created_at_ms", "send_decision_started_ms",
-    "send_real_started_ms", "symbol_resolve_started_ms", "symbol_resolve_finished_ms",
+    "send_real_started_ms", "exchange_slot_wait_started_ms", "exchange_slot_wait_finished_ms",
+    "send_worker_name", "send_worker_ident",
+    "symbol_resolve_started_ms", "symbol_resolve_finished_ms",
     "sdk_client_started_ms", "sdk_client_finished_ms", "exchange_call_started_ms",
     "exchange_call_finished_ms", "send_attempt_written_ms", "queue_wait_ms", "leader_to_intent_ms",
     "intent_to_send_start_ms", "symbol_resolve_ms", "sdk_client_ms", "exchange_call_ms",
@@ -3990,15 +3994,37 @@ class IntentBuilder:
 
         timing = bval(os.getenv("HL_LIVE_PREWARM_TIMING"), False)
         spans: Dict[str, int] = {}
+        job_stamps: Dict[str, Dict[str, Any]] = {}
+        prewarm_started_ms = utc_now_ms() if timing else 0
+        caller_worker_name = threading.current_thread().name if timing else ""
+        caller_worker_ident = threading.get_ident() if timing else 0
 
         def guarded(job):
+            job_name = getattr(job, "__name__", "job")
+            worker_name = threading.current_thread().name if timing else ""
+            worker_ident = threading.get_ident() if timing else 0
+            started_ms = utc_now_ms() if timing else 0
             t0 = time.monotonic()
             try:
                 job()
             except Exception as exc:
                 log_error("intent_prewarm", exc)
-            if timing:
-                spans[getattr(job, "__name__", "job")] = int((time.monotonic() - t0) * 1000)
+            finally:
+                if timing:
+                    finished_ms = utc_now_ms()
+                    spans[job_name] = int((time.monotonic() - t0) * 1000)
+                    endpoint_role = {
+                        "leader_mid": "leader_info",
+                        "follower_mid": "follower_info",
+                        "exposure": "follower_info",
+                    }.get(job_name, job_name)
+                    job_stamps[job_name] = {
+                        "endpoint_role": endpoint_role,
+                        "started_ms": started_ms,
+                        "finished_ms": finished_ms,
+                        "worker_name": worker_name,
+                        "worker_ident": worker_ident,
+                    }
         t_all = time.monotonic()
         futures = [_PREWARM_POOL.submit(guarded, j) for j in jobs[1:]]
         guarded(jobs[0])  # the calling worker does one read itself
@@ -4007,7 +4033,17 @@ class IntentBuilder:
         if timing:
             try:  # diagnostic only: which read decides the prewarm time (HL_LIVE_PREWARM_TIMING=1)
                 with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "prewarm_timing.jsonl"), "a", encoding="utf-8") as fh:
-                    fh.write(json.dumps({"ms": utc_now_ms(), "total": int((time.monotonic() - t_all) * 1000), "jobs": spans}) + "\n")
+                    finished_ms = utc_now_ms()
+                    fh.write(json.dumps({
+                        "ms": finished_ms,
+                        "started_ms": prewarm_started_ms,
+                        "finished_ms": finished_ms,
+                        "total": int((time.monotonic() - t_all) * 1000),
+                        "caller_worker_name": caller_worker_name,
+                        "caller_worker_ident": caller_worker_ident,
+                        "jobs": spans,
+                        "job_stamps": job_stamps,
+                    }) + "\n")
             except Exception:
                 pass
 
@@ -4334,7 +4370,12 @@ class SenderGateway:
         if FOLLOWER_NETWORK == "mainnet" and not MAINNET_ORDERS_CONFIRMED:
             raise RuntimeError("MAINNET_FOLLOWER_NOT_CONFIRMED: mainnet order refused without --confirm-mainnet-follower")
         with self._exchange_order_lock:
+            slot_wait_timing = str(os.getenv("HL_LIVE_SLOT_WAIT_TIMING_ENABLED", "")).strip().lower() in {"1", "true", "yes", "on"}
+            if slot_wait_timing and timing is not None:
+                timing["exchange_slot_wait_started_ms"] = utc_now_ms()
             self._wait_exchange_order_slot()
+            if slot_wait_timing and timing is not None:
+                timing["exchange_slot_wait_finished_ms"] = utc_now_ms()
         if timing is not None and started_key:
             timing[started_key] = utc_now_ms()
         order_kwargs: Dict[str, Any] = {"reduce_only": reduce_only}
@@ -5706,12 +5747,14 @@ class SenderGateway:
             return None
 
     @staticmethod
-    def _base_timing(intent: Intent) -> Dict[str, int]:
+    def _base_timing(intent: Intent) -> Dict[str, Any]:
         now = utc_now_ms()
         timing = {
             "leader_fill_timestamp_ms": int(fnum(intent.fill.timestamp_ms, 0)),
             "intent_created_at_ms": int(fnum(intent.created_at_ms, 0)) or now,
             "send_decision_started_ms": now,
+            "send_worker_name": threading.current_thread().name,
+            "send_worker_ident": threading.get_ident(),
         }
         ws_received = int(fnum(getattr(intent.fill, "ws_received_ms", 0), 0))
         if ws_received > 0:
@@ -6088,6 +6131,8 @@ class SenderGateway:
 
     def _send_real(self, intent: Intent, timing: Optional[Dict[str, Any]] = None) -> Tuple[bool, str, Dict[str, Any]]:
         timing = timing if isinstance(timing, dict) else self._base_timing(intent)
+        timing["send_worker_name"] = threading.current_thread().name
+        timing["send_worker_ident"] = threading.get_ident()
         timing.setdefault("send_real_started_ms", utc_now_ms())
         # T1a: one deterministic attempt_id + cloid for this send; the pending row and the final update share them
         timing.setdefault("send_attempt_id", generate_attempt_id(intent.intent_id))
