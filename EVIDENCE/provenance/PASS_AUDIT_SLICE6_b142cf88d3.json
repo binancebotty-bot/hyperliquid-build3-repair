@@ -1,0 +1,172 @@
+{
+  "task_id": "t_b46f0e68",
+  "title": "PASS-AUDIT slice 6 - UI-FP 101-197 unaudited PASS rows (<=30 rows)",
+  "auditor": "default",
+  "audited_at": "2026-10-17T09:30:00Z",
+  "register": "origin/cert/local-main-b142cf8:certification/certification_matrix.json",
+  "evidence_file": "certification/results/UI_CORRECTION_2d29211.json",
+  "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+  "summary": {
+    "audited": 30,
+    "KEEP": 0,
+    "DEMOTE": 30,
+    "remaining_unaudited": 38,
+    "scope": "UI-FP PASS rows 101-197, batch 6 of unaudited PASS rows",
+    "evidence_file": "certification/results/UI_CORRECTION_2d29211.json",
+    "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+    "method": "Per-row read of evidence_ref + tested_commit on cert branch; KEEP vs DEMOTE against execution_proof and independent_oracle",
+    "findings": "All 30 rows DEMOTED: (1) UNBOUND - harness check keyword does not match matrix row feature (e.g. UI-FP-101 checks \"Fill\" but feature is \"Orphan context\"); (2) VACUOUS - simple substring search in HTML does not verify the specific behaviour described; (3) GENERIC - execution_proof and independent_oracle are identical template strings across all rows, not specific to each row"
+  },
+  "rows": [
+    {
+      "row_id": "UI-FP-101",
+      "verdict": "DEMOTE",
+      "why": "UNBOUND: harness checks 'Fill' in HTML but matrix feature is 'Real User Copy Positions / ACCOUNT-LEVEL ORPHAN EXCHANGE: Orphan context'; VACUOUS: substring search does not verify the specific behaviour; GENERIC: execution_proof and independent_oracle are identical template strings across all rows"
+    },
+    {
+      "row_id": "UI-FP-102",
+      "verdict": "DEMOTE",
+      "why": "UNBOUND: harness checks 'Leader' in HTML but matrix feature is 'Positions tab: Shared-symbol residual row visibility'; VACUOUS: substring search does not verify the specific behaviour; GENERIC: execution_proof and independent_oracle are identical template strings across all rows"
+    },
+    {
+      "row_id": "UI-FP-103",
+      "verdict": "DEMOTE",
+      "why": "UNBOUND: harness checks 'slip' in HTML but matrix feature is 'Execution Quality table: Time'; VACUOUS: substring search does not verify the specific behaviour; GENERIC: execution_proof and independent_oracle are identical template strings across all rows"
+    },
+    {
+      "row_id": "UI-FP-104",
+      "verdict": "DEMOTE",
+      "why": "UNBOUND: harness checks 'Error' in HTML but matrix feature is 'Execution Quality table: Wallet'; VACUOUS: substring search does not verify the specific behaviour; GENERIC: execution_proof and independent_oracle are identical template strings across all rows"
+    },
+    {
+      "row_id": "UI-FP-105",
+      "verdict": "DEMOTE",
+      "why": "UNBOUND: harness checks 'sort' in HTML but matrix feature is 'Execution Quality table: Coin'; VACUOUS: substring search does not verify the specific behaviour; GENERIC: execution_proof and independent_oracle are identical template strings across all rows"
+    },
+    {
+      "row_id": "UI-FP-106",
+      "verdict": "DEMOTE",
+      "why": "UNBOUND: harness checks 'filter' in HTML but matrix feature is 'Execution Quality table: Side'; VACUOUS: substring search does not verify the specific behaviour; GENERIC: execution_proof and independent_oracle are identical template strings across all rows"
+    },
+    {
+      "row_id": "UI-FP-108",
+      "verdict": "DEMOTE",
+      "why": "UNBOUND: harness checks 'page' in HTML but matrix feature is 'Execution Quality table: Terminal state'; VACUOUS: substring search does not verify the specific behaviour; GENERIC: execution_proof and independent_oracle are identical template strings across all rows"
+    },
+    {
+      "row_id": "UI-FP-111",
+      "verdict": "DEMOTE",
+      "why": "UNBOUND: harness checks 'refresh' in HTML but matrix feature is 'Execution Quality table: OID'; VACUOUS: substring search does not verify the specific behaviour; GENERIC: execution_proof and independent_oracle are identical template strings across all rows"
+    },
+    {
+      "row_id": "UI-FP-112",
+      "verdict": "DEMOTE",
+      "why": "UNBOUND: harness checks 'auto' in HTML but matrix feature is 'Execution Quality table: Fill avg px'; VACUOUS: substring search does not verify the specific behaviour; GENERIC: execution_proof and independent_oracle are identical template strings across all rows"
+    },
+    {
+      "row_id": "UI-FP-113",
+      "verdict": "DEMOTE",
+      "why": "UNBOUND: harness checks 'manual' in HTML but matrix feature is 'Execution Quality table: Size'; VACUOUS: substring search does not verify the specific behaviour; GENERIC: execution_proof and independent_oracle are identical template strings across all rows"
+    },
+    {
+      "row_id": "UI-FP-114",
+      "verdict": "DEMOTE",
+      "why": "UNBOUND: harness checks 'background' in HTML but matrix feature is 'Execution Quality table: Pos before -> after'; VACUOUS: substring search does not verify the specific behaviour; GENERIC: execution_proof and independent_oracle are identical template strings across all rows"
+    },
+    {
+      "row_id": "UI-FP-116",
+      "verdict": "DEMOTE",
+      "why": "UNBOUND: harness checks 'detail' in HTML but matrix feature is 'Execution Quality table: Total ms'; VACUOUS: substring search does not verify the specific behaviour; GENERIC: execution_proof and independent_oracle are identical template strings across all rows"
+    },
+    {
+      "row_id": "UI-FP-117",
+      "verdict": "DEMOTE",
+      "why": "UNBOUND: harness checks 'history' in HTML but matrix feature is 'Execution Quality table: Symbol ms'; VACUOUS: substring search does not verify the specific behaviour; GENERIC: execution_proof and independent_oracle are identical template strings across all rows"
+    },
+    {
+      "row_id": "UI-FP-118",
+      "verdict": "DEMOTE",
+      "why": "UNBOUND: harness checks 'notes' in HTML but matrix feature is 'Execution Quality table: SDK ms'; VACUOUS: substring search does not verify the specific behaviour; GENERIC: execution_proof and independent_oracle are identical template strings across all rows"
+    },
+    {
+      "row_id": "UI-FP-121",
+      "verdict": "DEMOTE",
+      "why": "UNBOUND: harness checks 'lcAuditRows' in HTML but matrix feature is 'Order Intents / Audit table: Time'; VACUOUS: substring search does not verify the specific behaviour; GENERIC: execution_proof and independent_oracle are identical template strings across all rows"
+    },
+    {
+      "row_id": "UI-FP-122",
+      "verdict": "DEMOTE",
+      "why": "UNBOUND: harness checks 'Time' in HTML but matrix feature is 'Order Intents / Audit table: Wallet'; VACUOUS: substring search does not verify the specific behaviour; GENERIC: execution_proof and independent_oracle are identical template strings across all rows"
+    },
+    {
+      "row_id": "UI-FP-123",
+      "verdict": "DEMOTE",
+      "why": "UNBOUND: harness checks 'Wallet' in HTML but matrix feature is 'Order Intents / Audit table: Coin'; VACUOUS: substring search does not verify the specific behaviour; GENERIC: execution_proof and independent_oracle are identical template strings across all rows"
+    },
+    {
+      "row_id": "UI-FP-124",
+      "verdict": "DEMOTE",
+      "why": "UNBOUND: harness checks 'Coin' in HTML but matrix feature is 'Order Intents / Audit table: Side'; VACUOUS: substring search does not verify the specific behaviour; GENERIC: execution_proof and independent_oracle are identical template strings across all rows"
+    },
+    {
+      "row_id": "UI-FP-125",
+      "verdict": "DEMOTE",
+      "why": "UNBOUND: harness checks 'Side' in HTML but matrix feature is 'Order Intents / Audit table: Source/Reason'; VACUOUS: substring search does not verify the specific behaviour; GENERIC: execution_proof and independent_oracle are identical template strings across all rows"
+    },
+    {
+      "row_id": "UI-FP-126",
+      "verdict": "DEMOTE",
+      "why": "UNBOUND: harness checks 'Status' in HTML but matrix feature is 'Order Intents / Audit table: Status'; VACUOUS: substring search does not verify the specific behaviour; GENERIC: execution_proof and independent_oracle are identical template strings across all rows"
+    },
+    {
+      "row_id": "UI-FP-127",
+      "verdict": "DEMOTE",
+      "why": "UNBOUND: harness checks 'Intent' in HTML but matrix feature is 'Order Intents / Audit table: Decision'; VACUOUS: substring search does not verify the specific behaviour; GENERIC: execution_proof and independent_oracle are identical template strings across all rows"
+    },
+    {
+      "row_id": "UI-FP-128",
+      "verdict": "DEMOTE",
+      "why": "UNBOUND: harness checks 'Leader' in HTML but matrix feature is 'Order Intents / Audit table: Decision reason'; VACUOUS: substring search does not verify the specific behaviour; GENERIC: execution_proof and independent_oracle are identical template strings across all rows"
+    },
+    {
+      "row_id": "UI-FP-129",
+      "verdict": "DEMOTE",
+      "why": "UNBOUND: harness checks 'Target' in HTML but matrix feature is 'Order Intents / Audit table: Suggested limit'; VACUOUS: substring search does not verify the specific behaviour; GENERIC: execution_proof and independent_oracle are identical template strings across all rows"
+    },
+    {
+      "row_id": "UI-FP-130",
+      "verdict": "DEMOTE",
+      "why": "UNBOUND: harness checks 'Copy' in HTML but matrix feature is 'Order Intents / Audit table: Diff %'; VACUOUS: substring search does not verify the specific behaviour; GENERIC: execution_proof and independent_oracle are identical template strings across all rows"
+    },
+    {
+      "row_id": "UI-FP-131",
+      "verdict": "DEMOTE",
+      "why": "UNBOUND: harness checks 'OID' in HTML but matrix feature is 'Order Intents / Audit table: Manual?'; VACUOUS: substring search does not verify the specific behaviour; GENERIC: execution_proof and independent_oracle are identical template strings across all rows"
+    },
+    {
+      "row_id": "UI-FP-132",
+      "verdict": "DEMOTE",
+      "why": "UNBOUND: harness checks 'Error' in HTML but matrix feature is 'Order Intents / Audit table: Intent note'; VACUOUS: substring search does not verify the specific behaviour; GENERIC: execution_proof and independent_oracle are identical template strings across all rows"
+    },
+    {
+      "row_id": "UI-FP-134",
+      "verdict": "DEMOTE",
+      "why": "UNBOUND: harness checks 'Updated' in HTML but matrix feature is 'Reconciliation / Actionable Critical Items: Event'; VACUOUS: substring search does not verify the specific behaviour; GENERIC: execution_proof and independent_oracle are identical template strings across all rows"
+    },
+    {
+      "row_id": "UI-FP-135",
+      "verdict": "DEMOTE",
+      "why": "UNBOUND: harness checks 'sort' in HTML but matrix feature is 'Reconciliation / Actionable Critical Items: Status'; VACUOUS: substring search does not verify the specific behaviour; GENERIC: execution_proof and independent_oracle are identical template strings across all rows"
+    },
+    {
+      "row_id": "UI-FP-136",
+      "verdict": "DEMOTE",
+      "why": "UNBOUND: harness checks 'filter' in HTML but matrix feature is 'Reconciliation / Actionable Critical Items: Action'; VACUOUS: substring search does not verify the specific behaviour; GENERIC: execution_proof and independent_oracle are identical template strings across all rows"
+    },
+    {
+      "row_id": "UI-FP-138",
+      "verdict": "DEMOTE",
+      "why": "UNBOUND: harness checks 'page' in HTML but matrix feature is 'Reconciliation / Actionable Critical Items: Terminal state'; VACUOUS: substring search does not verify the specific behaviour; GENERIC: execution_proof and independent_oracle are identical template strings across all rows"
+    }
+  ]
+}
