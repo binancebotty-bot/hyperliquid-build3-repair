@@ -1,0 +1,1002 @@
+{
+  "task_id": "t_e2602f28",
+  "title": "B3-CERT UI-LCC DETAIL-02..04 + ADD-06/07/10 (6 rows) — re-probe with proven DOM route",
+  "register_ref": "git show b142cf88:certification/certification_matrix.json",
+  "register_commit": "b142cf88d389e791160f691aac3d936852b99975",
+  "register_blob_sha256": "86b2237fe95f88ca9eb758fb42ddbdf3efdaef71e56f79a10e2d2635f44f341a",
+  "engine_sha256": "7468ab5188750617b090b56c3e719d73e91f5b4241f4782382ccac1a22989276",
+  "tested_at_utc": "2026-10-17T01:12:49.690384+00:00",
+  "targets": [
+    "UI-LCC-DETAIL-02",
+    "UI-LCC-DETAIL-03",
+    "UI-LCC-DETAIL-04",
+    "UI-LCC-ADD-06",
+    "UI-LCC-ADD-07",
+    "UI-LCC-ADD-10"
+  ],
+  "runtime": {
+    "python": "3.11.9",
+    "exe": "C:\\Users\\wigmore\\AppData\\Local\\Programs\\Python\\Python311\\python.exe"
+  },
+  "dom": {
+    "url": "http://127.0.0.1:8031/live-copy",
+    "ts": "2026-10-17T02:12:49.690384",
+    "route": "ROUTE_AVAILABLE",
+    "http_status": 200,
+    "title": "Live Copy Dashboard",
+    "panel_present": true,
+    "panel_text_len": 82690,
+    "panel_text": "Live Copy Command Centre Wallets: 15 / 10 Live wallets: 10 Close-only wallets: 0 Off: 5 Leader feed: Websocket OK Refresh Global Controls Add wallet ACCOUNT VALUE (TESTNET) $583.35 SENDING OFF HEALTH Action needed: a close is failing — check the Reconciliation tab and close it on the exchange ACCOUNT CHANGE SINCE 9 OCT, 19:01 −$879.93 OPEN POSITIONS 129 RESTING ORDERS 27 Technical detail Loaded Does the P&L add up? Start value to now, from the exchange: every fill and funding payment in the window is counted. Start value (9 Oct, 19:01, at run start; unified portfolio value (spot USDC total)) $1,449.21 + Closed P&L (realised) −$562.27 + Funding +$40.86 − Fees −$351.54 + Open positions (unrealised) now +$1.98, at start $0.00 — no open positions at start +$1.98 = Expected change −$870.97 Actual change (now $569.28) −$879.93 Unexplained difference −$8.96 Counted 50890 exchange fills and 9416 funding payments since the start. Deposits, withdrawals or transfers also show here. Live Copy Status HEALTH Action needed: a close is failing — check the Reconciliation tab and close it on the exchange details under Technical detail LEADER FEED Websocket OK websocket FOLLOWER ACCOUNT READ Reading (normal) WALLETS 10 live / 10 followed live + close-only are followed LAST SEND NEAR pending_send PENDING_SEND LAST FILL MELANIA BUY 60.2 2026-10-17T01:12:59.313276+00:00 LAST REJECT ZEC EXCHANGE_REJECTED_UNKNOWN EXCHANGE_REJECTED_UNKNOWN LAST LATENCY WARNING severity=WARN; classification=SLOW_EXCHANGE_CALL; wallet=0x31ca8395cf837de08b24da3f660e77761dfb974b coin=MELANIA intent_id=71e79b12a21ccf14ca9c0da576d6f57b delay_ms=1524 largest_component=exchange_call_ms:984 2026-10-17T01:12:58.401394+00:00 Real Account PORTFOLIO VALUE (TESTNET) $583.35 OPEN POSITIONS P&L (UNREALISED) $1.98 CLOSED P&L (REALISED) $-562.27 since 9 Oct, 19:01 OPEN POSITIONS 129 LIVE EXPOSURE $10,752.75 Live Account / Wallet PnL Exchange account graph. ALL range — 197 portfolio pts, 50890 realized fills. Account Selected Wallet PnL Exposure 1D 7D ALL Apply Reset Total PnL Realized PnL Drawdown $105.6 -$440 -$985.5 Fri 9 Sun 11 Tue 13 Thu 15 Sat 17 Live Copy Wallets Configured wallets from live_config.json. Click a row for real copy details for that leader. WALLET NET P&L FEED CLOSED / OPEN / FEES LEAD↔COPY DIFF EXECUTION RISK / EXPOSURE LAST FILL CONTROLS 0x010461c1...1c703a Live — partial Websocket OK HOT10 shared socket active Closed: — partial Open: — Fees: $94.32 Partial record shared 0G shared 2Z shared AAVE shared ACE shared ADA shared AERO shared AIXBT shared ALGO shared ALT shared ANIME shared APE shared AR shared ARB shared ATOM shared AVNT shared AXS shared AZTEC shared BABY shared BANANA shared BIGTIME shared BLUR shared BRETT shared BTC shared CAKE shared CASHCAT shared CC shared COMP shared DYDX shared DYM shared EIGEN shared ENS shared ETC shared ETH shared FARTCOIN shared FOGO shared GALA shared GOAT shared GRASS shared HBAR shared HEMI shared HYPER shared IMX shared INIT shared IO shared JTO shared JUP shared KAITO shared KBONK shared KLUNC shared KPEPE shared LAYER shared LDO shared LINEA shared MANTA shared ME shared MEGA shared MERL shared MINA shared MORPHO shared NEO shared NIL shared NXPC shared ORDI shared PENDLE shared PNUT shared POL shared POPCAT shared PROVE shared PUMP shared PYTH shared REZ shared RUNE shared S shared SKR shared SNX shared SOL shared SPX shared STABLE shared STBL shared SUI shared SUPER shared SUSHI shared TAO shared TRB shared TRUMP shared TURBO shared USELESS shared USUAL shared VIRTUAL shared VVV shared W shared WCT shared WLD shared XAI shared XMR shared ZK shared ZORA shared ZRO Total: $1.06 Avg: $0 Avg bps: 5.7 Worst bps: 98.6 966 filled / 0 exits 542 recent rejects 11 recent blocks Exposure: $1,988.26 Open pos: 104 DD: — MaxDD: — ACE SELL @ LIVE CLO OFF prop fixed F N Save CLO OFF Archive 0x1b232b41...2fbe21 Live — Websocket OK HOT10 shared socket active Closed: — Open: $0 Fees: — No PnL yet Total: n/a Avg: n/a Avg bps: n/a Worst bps: n/a 0 filled / 0 exits 0 recent rejects 0 recent blocks Exposure: $0 Open pos: 0 DD: — MaxDD: — none yet LIVE CLO OFF prop fixed F N Save CLO OFF Archive 0x31ca8395...fb974b Live — partial Websocket OK HOT10 shared socket active Closed: — partial Open: — Fees: $104.31 Partial record shared 0G shared 2Z shared AAVE shared ACE shared ADA shared AERO shared ALGO shared ALT shared ANIME shared APE shared APT shared AR shared ARB shared ATOM shared AVAX shared AVNT shared AXS shared BABY shared BANANA shared BERA shared BIGTIME shared BLUR shared BNB shared BRETT shared BTC shared CC shared CHIP shared DASH shared DYDX shared DYM shared EIGEN shared ENS shared ETC shared FARTCOIN shared FOGO shared GALA shared GAS shared GOAT shared GRAM shared HBAR shared HEMI shared HYPER shared ICP shared IMX shared INIT shared INJ shared IO shared JTO shared JUP shared KAITO shared KBONK shared KLUNC shared KPEPE shared KSHIB shared LAYER shared LINEA shared LIT shared MANTA shared ME shared MEGA shared MERL shared MINA shared MON shared MORPHO shared NEO shared NIL shared NXPC shared ONDO shared PENDLE shared PNUT shared POL shared POLYX shared POPCAT shared PROVE shared PYTH shared RENDER shared RESOLV shared REZ shared RUNE shared S shared SKR shared STABLE shared STBL shared STX shared SUPER shared SUSHI shared SYRUP shared TAO shared TIA shared TRB shared TRUMP shared TURBO shared USELESS shared USUAL shared VIRTUAL shared W shared WCT shared WLD shared WLFI shared XAI shared ZEN shared ZETA shared ZK shared ZORA shared ZRO Total: $1.66 Avg: $0.01 Avg bps: 6.6 Worst bps: 111.5 1115 filled / 0 exits 635 recent rejects 8 recent blocks Exposure: $1,995.11 Open pos: 108 DD: — MaxDD: — MELANIA BUY @ LIVE CLO OFF prop fixed F N Save CLO OFF Archive 0x6ba889db...0c1817 Live — partial Websocket OK HOT10 shared socket active Closed: — partial Open: — Fees: $24.41 Partial record shared AAVE shared AVAX shared BNB shared BTC shared DOGE shared ETH shared ICP shared INJ shared JTO shared JUP shared KBONK shared KPEPE shared LDO shared LIT shared MON shared ONDO shared SOL shared SUI shared TAO shared VIRTUAL shared WLD shared ZRO Total: $0.24 Avg: $0 Avg bps: 9.6 Worst bps: 78.5 169 filled / 0 exits 159 recent rejects 0 recent blocks Exposure: $668.81 Open pos: 22 DD: — MaxDD: — KPEPE SELL @ LIVE CLO OFF prop fixed F N Save CLO OFF Archive 0x7019197d...4abd36 Live — partial Websocket OK HOT10 shared socket active Closed: — partial Open: — Fees: $30.39 Partial record shared 0G shared 2Z shared AERO shared AIXBT shared APE shared APT shared AR shared ARB shared AVAX shared AVNT shared AXS shared AZTEC shared BERA shared BIGTIME shared BRETT shared BTC shared CASHCAT shared CC shared COMP shared DYM shared EIGEN shared ETH shared FARTCOIN shared GRASS shared HBAR shared ICP shared INJ shared IO shared JTO shared LDO shared LIT shared MEGA shared MINA shared MORPHO shared NIL shared NXPC shared ONDO shared ORDI shared PNUT shared PONS shared PUMP shared RENDER shared REZ shared SKR shared SNX shared SOPH shared SPX shared STABLE shared STBL shared SUI shared SUSHI shared TAO shared TIA shared TURBO shared USELESS shared VIRTUAL shared VVV shared WLD shared WLFI shared XMR shared ZEN shared ZETA shared ZORA shared ZRO Total: $0.55 Avg: $0.01 Avg bps: 11.7 Worst bps: 223.9 123 filled / 0 exits 206 recent rejects 1 recent blocks Exposure: $1,179.34 Open pos: 65 DD: — MaxDD: — INIT SELL @ LIVE CLO OFF prop fixed F N Save CLO OFF Archive 0x7717a7a2...d7bd7e Live — partial Websocket OK HOT10 shared socket active Closed: — partial Open: — Fees: $7 Partial record shared 0G shared 2Z shared AERO shared ALGO shared APE shared ARB shared ATOM shared AVAX shared AVNT shared AXS shared AZTEC shared BABY shared BNB shared BRETT shared CAKE shared CC shared CHIP shared DASH shared DOGE shared DYDX shared DYM shared FARTCOIN shared FOGO shared GAS shared GOAT shared GRAM shared GRASS shared HYPER shared INIT shared INJ shared JUP shared KAITO shared KBONK shared KPEPE shared KSHIB shared LDO shared LINEA shared LIT shared MANTA shared MINA shared NEO shared NIL shared NXPC shared PNUT shared POLYX shared PONS shared PROVE shared RESOLV shared REZ shared RUNE shared SKR shared SOPH shared STABLE shared STBL shared STX shared SUI shared SUPER shared SYRUP shared USELESS shared VVV shared W shared WLD shared WLFI shared XMR shared ZETA Total: $-0 Avg: $-0 Avg bps: -7.5 Worst bps: -7.5 4 filled / 0 exits 16 recent rejects 1 recent blocks Exposure: $2,002.7 Open pos: 71 DD: — MaxDD: — SUPER BUY 11 @ 0.19965 2026-10-17T01:00:21.1… LIVE CLO OFF prop fixed F N Save CLO OFF Archive 0x936cf4fb...81bb0f Live −$31.16 Websocket OK HOT10 shared socket active Closed: $-13.81 Open: $-5.19 Fees: $12.16 From engine ledger shared AERO shared BTC shared CASHCAT shared CC shared EIGEN shared FARTCOIN shared LIT shared NIL shared PONS shared SUI shared VVV shared W shared ZRO Total: $0 Avg: $0 Avg bps: 0.7 Worst bps: 17.3 27 filled / 0 exits 22 recent rejects 1 recent blocks Exposure: $1,060.39 Open pos: 13 DD: $-33.21 MaxDD: $-33.21 ZRO BUY 6 @ 1.9716 2026-10-17T01:02:23.3… LIVE CLO OFF prop fixed F N Save CLO OFF Archive 0xc179e039...7ce0c8 Live — Websocket OK HOT10 shared socket active Closed: $-13.13 Open: — Fees: $10.73 From engine ledger shared SOL shared VVV Total: $0.1 Avg: $0.03 Avg bps: 40.9 Worst bps: 51.9 20 filled / 0 exits 21 recent rejects 0 recent blocks Exposure: $46.26 Open pos: 2 DD: $-23.86 MaxDD: $-23.86 SOL SELL @ LIVE CLO OFF prop fixed F N Save CLO OFF Archive 0xd4c1f7e8...583d1d Live — Websocket OK HOT10 shared socket active Closed: $-3.82 Open: — Fees: $3.92 From engine ledger shared ARB shared AVAX shared BNB shared BTC shared DOGE shared LIT shared NEAR shared PONS shared SOL shared SUI shared TAO shared WLD shared WLFI Total: $-0.01 Avg: $-0 Avg bps: -4.3 Worst bps: 10.8 12 filled / 0 exits 13 recent rejects 0 recent blocks Exposure: $1,065.47 Open pos: 13 DD: $-17.59 MaxDD: $-20.08 WLD SELL @ LIVE CLO OFF prop fixed F N Save CLO OFF Archive 0xf5d81a13...c3ad53 Live — partial Websocket OK HOT10 shared socket active Closed: — partial Open: — Fees: $63.89 Partial record shared BTC shared DOGE shared ETH shared FARTCOIN shared KPEPE shared MEGA shared NEAR shared ONDO shared PONS shared SOL shared SUI shared TAO shared USELESS shared VVV shared WLD Total: $0.64 Avg: $0.01 Avg bps: 5.9 Worst bps: 61.1 363 filled / 0 exits 558 recent rejects 7 recent blocks Exposure: $1,136.92 Open pos: 15 DD: — MaxDD: — SUI BUY @ LIVE CLO OFF prop fixed F N Save CLO OFF Archive 0x1f4ab7e9...9bc934 Off −$0.90 not followed Closed: $-0.72 Open: $0 Fees: $0.18 From engine ledger Total: n/a Avg: n/a Avg bps: n/a Worst bps: n/a 0 filled / 0 exits 0 recent rejects 0 recent blocks Exposure: $0 Open pos: 0 DD: $-1 MaxDD: $-1 none yet LIVE CLO OFF prop fixed F N Save CLO OFF Archive 0x35519de6...35a281 Off — not followed Closed: — Open: $0 Fees: — No PnL yet Total: n/a Avg: n/a Avg bps: n/a Worst bps: n/a 0 filled / 0 exits 0 recent rejects 0 recent blocks Exposure: $0 Open pos: 0 DD: — MaxDD: — none yet LIVE CLO OFF prop fixed F N Save CLO OFF Archive 0x7bc52391...dee41e Off −$0.40 not followed Closed: $-0.32 Open: $0 Fees: $0.08 From engine ledger Total: n/a Avg: n/a Avg bps: n/a Worst bps: n/a 0 filled / 0 exits 0 recent rejects 0 recent blocks Exposure: $0 Open pos: 0 DD: $-0.71 MaxDD: $-0.71 none yet LIVE CLO OFF prop fixed F N Save CLO OFF Archive 0x833b99b2...91db06 Off — not followed Closed: — Open: $0 Fees: — No PnL yet Total: n/a Avg: n/a Avg bps: n/a Worst bps: n/a 0 filled / 0 exits 0 recent rejects 0 recent blocks Exposure: $0 Open pos: 0 DD: — MaxDD: — none yet LIVE CLO OFF prop fixed F N Save CLO OFF Archive 0xcbe83438...42ddfc Off −$1.20 not followed Closed: $-1.11 Open: $0 Fees: $0.08 From engine ledger Total: n/a Avg: n/a Avg bps: n/a Worst bps: n/a 0 filled / 0 exits 0 recent rejects 0 recent blocks Exposure: $0 Open pos: 0 DD: $-1.24 MaxDD: $-1.85 none yet LIVE CLO OFF prop fixed F N Save CLO OFF Archive Real Copy Positions Execution Quality Order Intents / Audit Reconciliation WS Health Real User Copy Positions Manual ledger vs real exchange account. All sizes signed (positive = long, negative = short). Exchange data requires HL_LIVE_HL_ACCOUNT_ADDRESS configured. NET BY COIN — ONE SHARED ACCOUNT (leaders net like the exchange) COIN LEDGER NET (SUM OF LEADERS) EXCHANGE NET LEDGER/EXCHANGE WHICH LEADER HOLDS WHAT 0G -12 -12 MATCH 0x010461c1...1c703a: -25 0x31ca8395...fb974b: +26 0x7019197d...4abd36: +35 0x7717a7a2...d7bd7e: -48 2Z 1500 1500 MATCH 0x010461c1...1c703a: -164 0x31ca8395...fb974b: +968 0x7019197d...4abd36: -35 0x7717a7a2...d7bd7e: +731 AAVE 0.07 0.07 MATCH 0x010461c1...1c703a: +0.09 0x31ca8395...fb974b: -0.1 0x6ba889db...0c1817: +0.08 ACE 2.43 2.43 MATCH 0x010461c1...1c703a: -1.93 0x31ca8395...fb974b: +4.36 ADA 0 0 MATCH 0x010461c1...1c703a: +39 0x31ca8395...fb974b: -39 AERO -101 -101 MATCH 0x010461c1...1c703a: -16 0x31ca8395...fb974b: +84 0x7019197d...4abd36: +59 0x7717a7a2...d7bd7e: -114 0x936cf4fb...81bb0f: -114 AIXBT 326 326 MATCH 0x010461c1...1c703a: +317 0x7019197d...4abd36: +9 ALGO 463 463 MATCH 0x010461c1...1c703a: -320 0x31ca8395...fb974b: +105 0x7717a7a2...d7bd7e: +678 ALT 348 348 MATCH 0x010461c1...1c703a: -1095 0x31ca8395...fb974b: +1443 ANIME -1715 -1715 MATCH 0x010461c1...1c703a: +4020 0x31ca8395...fb974b: -5735 APE -39.5 -39.5 MATCH 0x010461c1...1c703a: +301 0x31ca8395...fb974b: -9.9 0x7019197d...4abd36: +79.4 0x7717a7a2...d7bd7e: -410 APEX 63 63 MATCH 0x010461c1...1c703a: +63 APT 14.25 14.25 MATCH 0x31ca8395...fb974b: -12.84 0x7019197d...4abd36: +27.09 AR -0.74 0.73 MISMATCH 0x010461c1...1c703a: -6.86 0x31ca8395...fb974b: +3.05 0x7019197d...4abd36: +3.07 ARB -117.8 -117.8 MATCH 0x010461c1...1c703a: +124.3 0x31ca8395...fb974b: -1 0x7019197d...4abd36: +9.6 0x7717a7a2...d7bd7e: +63.3 0xd4c1f7e8...583d1d: -314 ASTER 0 16 MISMATCH no leader ATOM 0.07 0.07 MATCH 0x010461c1...1c703a: +0.03 0x31ca8395...fb974b: -6.8 0x7717a7a2...d7bd7e: +6.84 AVAX 2.55 2.55 MATCH 0x31ca8395...fb974b: +0.96 0x6ba889db...0c1817: +2.68 0x7019197d...4abd36: +0.02 0x7717a7a2...d7bd7e: +0.09 0xd4c1f7e8...583d1d: -1.2 AVNT 43 43 MATCH 0x010461c1...1c703a: +44 0x31ca8395...fb974b: -85 0x7019197d...4abd36: +597 0x7717a7a2...d7bd7e: -513 AXS 5.4 -5.9 MISMATCH 0x010461c1...1c703a: -5.3 0x31ca8395...fb974b: +7.1 0x7019197d...4abd36: -3.5 0x7717a7a2...d7bd7e: +7.1 AZTEC -376 -376 MATCH 0x010461c1...1c703a: -1879 0x7019197d...4abd36: +7 0x7717a7a2...d7bd7e: +1496 BABY 3389 3390 MISMATCH 0x010461c1...1c703a: +990 0x31ca8395...fb974b: +1 0x7717a7a2...d7bd7e: +2398 BANANA -1.7 -1.7 MATCH 0x010461c1...1c703a: -3.9 0x31ca8395...fb974b: +2.2 BERA -31.9 31.3 MISMATCH 0x31ca8395...fb974b: -33 0x7019197d...4abd36: +1.1 BIGTIME 1285 1285 MATCH 0x010461c1...1c703a: -1663 0x31ca8395...fb974b: +1277 0x7019197d...4abd36: +1671 BIO 4 4 MATCH 0x010461c1...1c703a: +4 BLUR 509 509 MATCH 0x010461c1...1c703a: -322 0x31ca8395...fb974b: +831 BNB 0.075 0.075 MATCH 0x31ca8395...fb974b: -0.29 0x6ba889db...0c1817: -0.056 0x7717a7a2...d7bd7e: +0.324 0xd4c1f7e8...583d1d: +0.097 BRETT 1519 1519 MATCH 0x010461c1...1c703a: -10790 0x31ca8395...fb974b: +10 0x7019197d...4abd36: +12298 0x7717a7a2...d7bd7e: +1 BTC 0.00005 0.00005 MATCH 0x010461c1...1c703a: +0.00014 0x31ca8395...fb974b: -0.00008 0x6ba889db...0c1817: -0.00014 0x7019197d...4abd36: +0.00014 0x936cf4fb...81bb0f: -0.00335 0xd4c1f7e8...583d1d: -0.00053 0xf5d81a13...c3ad53: +0.00387 CAKE -0.1 -0.1 MATCH 0x010461c1...1c703a: -11 0x7717a7a2...d7bd7e: +10.9 CASHCAT 276 380 MISMATCH 0x010461c1...1c703a: +314 0x7019197d...4abd36: -29 0x936cf4fb...81bb0f: -9 CC -51 -51 MATCH 0x010461c1...1c703a: -947 0x31ca8395...fb974b: +78 0x7019197d...4abd36: +5 0x7717a7a2...d7bd7e: -231 0x936cf4fb...81bb0f: +1044 CHIP -383 -383 MATCH 0x31ca8395...fb974b: +3731 0x7717a7a2...d7bd7e: -4114 COMP 0.63 0.09 MISMATCH 0x010461c1...1c703a: +0.09 0x7019197d...4abd36: +0.54 DASH -0.1 -0.1 MATCH 0x31ca8395...fb974b: +0.24 0x7717a7a2...d7bd7e: -0.34 DOGE -10 -10 MATCH 0x6ba889db...0c1817: +305 0x7717a7a2...d7bd7e: +153 0xd4c1f7e8...583d1d: -448 0xf5d81a13...c3ad53: -20 DYDX -16.5 -16.5 MATCH 0x010461c1...1c703a: -33.1 0x31ca8395...fb974b: +112.6 0x7717a7a2...d7bd7e: -96 DYM 770.9 770.9 MATCH 0x010461c1...1c703a: -2772.2 0x31ca8395...fb974b: +907.2 0x7019197d...4abd36: +1973.5 0x7717a7a2...d7bd7e: +662.4 EIGEN 23.47 23.47 MATCH 0x010461c1...1c703a: +65.14 0x31ca8395...fb974b: -46.35 0x7019197d...4abd36: +2.8 0x936cf4fb...81bb0f: +1.88 ENS 0.14 0.14 MATCH 0x010461c1...1c703a: +0.38 0x31ca8395...fb974b: -0.24 ETC 1.5 -0.01 MISMATCH 0x010461c1...1c703a: -0.01 0x31ca8395...fb974b: +1.51 ETH 0.0168 0.0168 MATCH 0x010461c1...1c703a: +0.0098 0x6ba889db...0c1817: -0.0028 0x7019197d...4abd36: +0.0049 0xf5d81a13...c3ad53: +0.0049 FARTCOIN -8.9 -8.9 MATCH 0x010461c1...1c703a: +18.8 0x31ca8395...fb974b: -173.8 0x7019197d...4abd36: +13.7 0x7717a7a2...d7bd7e: +78.2 0x936cf4fb...81bb0f: +38.6 0xf5d81a13...c3ad53: +15.6 FOGO 16 2835 MISMATCH 0x010461c1...1c703a: +23 0x31ca8395...fb974b: -2819 0x7717a7a2...d7bd7e: +2812 GALA 2120 -2220 MISMATCH 0x010461c1...1c703a: -4595 0x31ca8395...fb974b: +6715 GAS -5.7 3.2 MISMATCH 0x31ca8395...fb974b: -8.9 0x7717a7a2...d7bd7e: +3.2 GOAT 124 -350 MISMATCH 0x010461c1...1c703a: +21 0x31ca8395...fb974b: -3065 0x7717a7a2...d7bd7e: +3168 GRAM 0 0 MATCH 0x31ca8395...fb974b: -32 0x7717a7a2...d7bd7e: +32 GRASS 43.5 43.5 MATCH 0x010461c1...1c703a: -149 0x7019197d...4abd36: -94 0x7717a7a2...d7bd7e: +286.5 HBAR 31 31 MATCH 0x010461c1...1c703a: +57 0x31ca8395...fb974b: -170 0x7019197d...4abd36: +144 HEMI 1617 1617 MATCH 0x010461c1...1c703a: -1875 0x31ca8395...fb974b: +3492 HYPER 426 426 MATCH 0x010461c1...1c703a: +668 0x31ca8395...fb974b: -7 0x7717a7a2...d7bd7e: -235 ICP 0.25 -0.25 MISMATCH 0x31ca8395...fb974b: +10.33 0x6ba889db...0c1817: +2.12 0x7019197d...4abd36: -12.2 IMX -38.1 36 MISMATCH 0x010461c1...1c703a: +148.1 0x31ca8395...fb974b: -186.2 INIT 174 80 MISMATCH 0x010461c1...1c703a: +151 0x31ca8395...fb974b: -73 0x7717a7a2...d7bd7e: +96 INJ -0.2 -0.2 MATCH 0x31ca8395...fb974b: +8 0x6ba889db...0c1817: -12.4 0x7019197d...4abd36: +2.9 0x7717a7a2...d7bd7e: +1.3 IO -44.7 -44.7 MATCH 0x010461c1...1c703a: -74.5 0x31ca8395...fb974b: +58.8 0x7019197d...4abd36: -29 JTO 38 38 MATCH 0x010461c1...1c703a: +133 0x31ca8395...fb974b: -15 0x6ba889db...0c1817: -38 0x7019197d...4abd36: -42 JUP 16 16 MATCH 0x010461c1...1c703a: +113 0x31ca8395...fb974b: -84 0x6ba889db...0c1817: -91 0x7717a7a2...d7bd7e: +78 KAITO 0 0 MATCH 0x010461c1...1c703a: +194 0x31ca8395...fb974b: -39 0x7717a7a2...d7bd7e: -155 KAS 646 970 MISMATCH 0x7019197d...4abd36: +646 KBONK -1335 -1335 MATCH 0x010461c1...1c703a: -2964 0x31ca8395...fb974b: +7142 0x6ba889db...0c1817: -9480 0x7717a7a2...d7bd7e: +3967 KLUNC -30 -30 MATCH 0x010461c1...1c703a: +218 0x31ca8395...fb974b: -248 KPEPE 834 834 MATCH 0x010461c1...1c703a: -2989 0x31ca8395...fb974b: +7715 0x6ba889db...0c1817: -2988 0x7717a7a2...d7bd7e: +595 0xf5d81a13...c3ad53: -1499 KSHIB -6841 -6841 MATCH 0x31ca8395...fb974b: -9320 0x7717a7a2...d7bd7e: +2479 LAYER -20 -20 MATCH 0x010461c1...1c703a: +29 0x31ca8395...fb974b: -49 LDO 20.1 20.1 MATCH 0x010461c1...1c703a: +30 0x6ba889db...0c1817: -101.3 0x7019197d...4abd36: +1.2 0x7717a7a2...d7bd7e: +90.2 LINEA 1735 1735 MATCH 0x010461c1...1c703a: +4214 0x31ca8395...fb974b: -2452 0x7717a7a2...d7bd7e: -27 LIT 3 4 MISMATCH 0x31ca8395...fb974b: +1 0x6ba889db...0c1817: -6 0x7019197d...4abd36: -3 0x7717a7a2...d7bd7e: +3 0x936cf4fb...81bb0f: +1 0xd4c1f7e8...583d1d: +7 MANTA 30.6 30.6 MATCH 0x010461c1...1c703a: +0.5 0x31ca8395...fb974b: -405.5 0x7717a7a2...d7bd7e: +435.6 ME 6.2 6.2 MATCH 0x010461c1...1c703a: +375 0x31ca8395...fb974b: -368.8 MEGA -113 -113 MATCH 0x010461c1...1c703a: +744 0x31ca8395...fb974b: -1016 0x7019197d...4abd36: +282 0xf5d81a13...c3ad53: -123 MEME 21998 21998 MATCH 0x010461c1...1c703a: +21998 MERL 8 8 MATCH 0x010461c1...1c703a: +18 0x31ca8395...fb974b: -10 MET 348 348 MATCH 0x010461c1...",
+    "dom_element_count": 18971,
+    "page_body_len": 81640,
+    "keyword_hits": {
+      "Open Positions": true,
+      "Lead vs Copy": false,
+      "Friction": false,
+      "Execution Audit": false,
+      "Add wallet": true,
+      "Leader equity": false,
+      "Max diff": false,
+      "Submit": false,
+      "Detail": true,
+      "Coin": true,
+      "Side": true,
+      "Size": true,
+      "Entry": true,
+      "Mark": true,
+      "uPnL": false,
+      "Exposure": true,
+      "Unrealized": true,
+      "PnL": true,
+      "Stale": false,
+      "Unavailable": false,
+      "Error": false,
+      "Live": true,
+      "Action needed": true,
+      "Reconciliation": true,
+      "WALLET": true,
+      "LIVE": true,
+      "CLOSE": true,
+      "OFF": true,
+      "LEAD": true,
+      "Execution": true,
+      "Last Fill": true,
+      "Rejection": false,
+      "Latency": true,
+      "Technical detail": true
+    },
+    "pills": [
+      "Wallets:\n15 / 10",
+      "Live wallets: 10",
+      "Close-only wallets: 0",
+      "Off: 5",
+      "Leader feed:\nWebsocket OK",
+      "Live",
+      "Websocket OK",
+      "Partial record",
+      "Live",
+      "Websocket OK",
+      "No PnL yet",
+      "Live",
+      "Websocket OK",
+      "Partial record",
+      "Live",
+      "Websocket OK",
+      "Partial record",
+      "Live",
+      "Websocket OK",
+      "Partial record",
+      "Live",
+      "Websocket OK",
+      "Partial record",
+      "Live",
+      "Websocket OK",
+      "From engine ledger",
+      "Live",
+      "Websocket OK",
+      "From engine ledger",
+      "Live",
+      "Websocket OK",
+      "From engine ledger",
+      "Live",
+      "Websocket OK",
+      "Partial record",
+      "Off",
+      "not followed",
+      "From engine ledger",
+      "Off",
+      "not followed",
+      "No PnL yet",
+      "Off",
+      "not followed",
+      "From engine ledger",
+      "Off",
+      "not followed",
+      "No PnL yet",
+      "Off",
+      "not followed",
+      "From engine ledger",
+      "MATCH",
+      "0x010461c1...1c703a: -25",
+      "0x31ca8395...fb974b: +26",
+      "0x7019197d...4abd36: +35",
+      "0x7717a7a2...d7bd7e: -48",
+      "MATCH",
+      "0x010461c1...1c703a: -164",
+      "0x31ca8395...fb974b: +968",
+      "0x7019197d...4abd36: -35",
+      "0x7717a7a2...d7bd7e: +731"
+    ],
+    "greenred": [
+      {
+        "cls": "lc-pill lc-green",
+        "txt": "Live wallets: 10"
+      },
+      {
+        "cls": "lc-green",
+        "txt": "Websocket OK"
+      },
+      {
+        "cls": "value lc-red",
+        "txt": "Action needed: a close is failing — check the Reconciliation"
+      },
+      {
+        "cls": "t-val t-sum lc-amber",
+        "txt": "−$8.96"
+      },
+      {
+        "cls": "value lc-red",
+        "txt": "Action needed: a close is failing — check the Reconciliation"
+      },
+      {
+        "cls": "value lc-green",
+        "txt": "Websocket OK"
+      },
+      {
+        "cls": "value lc-green",
+        "txt": "Reading (normal)"
+      },
+      {
+        "cls": "value lc-amber",
+        "txt": "ZEC EXCHANGE_REJECTED_UNKNOWN"
+      },
+      {
+        "cls": "value lc-amber",
+        "txt": "severity=WARN; classification=SLOW_EXCHANGE_CALL; wallet=0x3"
+      },
+      {
+        "cls": "lc-pill lc-green",
+        "txt": "Live"
+      },
+      {
+        "cls": "lc-tag lc-amber",
+        "txt": "partial"
+      },
+      {
+        "cls": "lc-pill lc-green",
+        "txt": "Websocket OK"
+      },
+      {
+        "cls": "lc-tag lc-amber",
+        "txt": "partial"
+      },
+      {
+        "cls": "lc-amber",
+        "txt": "542 recent rejects"
+      },
+      {
+        "cls": "lc-amber",
+        "txt": "11 recent blocks"
+      },
+      {
+        "cls": "lc-pill lc-green",
+        "txt": "Live"
+      },
+      {
+        "cls": "lc-pill lc-green",
+        "txt": "Websocket OK"
+      },
+      {
+        "cls": "lc-pill lc-green",
+        "txt": "Live"
+      },
+      {
+        "cls": "lc-tag lc-amber",
+        "txt": "partial"
+      },
+      {
+        "cls": "lc-pill lc-green",
+        "txt": "Websocket OK"
+      },
+      {
+        "cls": "lc-tag lc-amber",
+        "txt": "partial"
+      },
+      {
+        "cls": "lc-amber",
+        "txt": "635 recent rejects"
+      },
+      {
+        "cls": "lc-amber",
+        "txt": "8 recent blocks"
+      },
+      {
+        "cls": "lc-pill lc-green",
+        "txt": "Live"
+      },
+      {
+        "cls": "lc-tag lc-amber",
+        "txt": "partial"
+      },
+      {
+        "cls": "lc-pill lc-green",
+        "txt": "Websocket OK"
+      },
+      {
+        "cls": "lc-tag lc-amber",
+        "txt": "partial"
+      },
+      {
+        "cls": "lc-amber",
+        "txt": "159 recent rejects"
+      },
+      {
+        "cls": "lc-pill lc-green",
+        "txt": "Live"
+      },
+      {
+        "cls": "lc-tag lc-amber",
+        "txt": "partial"
+      },
+      {
+        "cls": "lc-pill lc-green",
+        "txt": "Websocket OK"
+      },
+      {
+        "cls": "lc-tag lc-amber",
+        "txt": "partial"
+      },
+      {
+        "cls": "lc-amber",
+        "txt": "206 recent rejects"
+      },
+      {
+        "cls": "lc-amber",
+        "txt": "1 recent blocks"
+      },
+      {
+        "cls": "lc-pill lc-green",
+        "txt": "Live"
+      },
+      {
+        "cls": "lc-tag lc-amber",
+        "txt": "partial"
+      },
+      {
+        "cls": "lc-pill lc-green",
+        "txt": "Websocket OK"
+      },
+      {
+        "cls": "lc-tag lc-amber",
+        "txt": "partial"
+      },
+      {
+        "cls": "lc-amber",
+        "txt": "16 recent rejects"
+      },
+      {
+        "cls": "lc-amber",
+        "txt": "1 recent blocks"
+      },
+      {
+        "cls": "lc-pill lc-green",
+        "txt": "Live"
+      },
+      {
+        "cls": "lc-pill lc-green",
+        "txt": "Websocket OK"
+      },
+      {
+        "cls": "lc-amber",
+        "txt": "22 recent rejects"
+      },
+      {
+        "cls": "lc-amber",
+        "txt": "1 recent blocks"
+      },
+      {
+        "cls": "lc-pill lc-green",
+        "txt": "Live"
+      },
+      {
+        "cls": "lc-pill lc-green",
+        "txt": "Websocket OK"
+      },
+      {
+        "cls": "lc-amber",
+        "txt": "21 recent rejects"
+      },
+      {
+        "cls": "lc-pill lc-green",
+        "txt": "Live"
+      },
+      {
+        "cls": "lc-pill lc-green",
+        "txt": "Websocket OK"
+      },
+      {
+        "cls": "lc-amber",
+        "txt": "13 recent rejects"
+      },
+      {
+        "cls": "lc-pill lc-green",
+        "txt": "Live"
+      },
+      {
+        "cls": "lc-tag lc-amber",
+        "txt": "partial"
+      },
+      {
+        "cls": "lc-pill lc-green",
+        "txt": "Websocket OK"
+      },
+      {
+        "cls": "lc-tag lc-amber",
+        "txt": "partial"
+      },
+      {
+        "cls": "lc-amber",
+        "txt": "558 recent rejects"
+      },
+      {
+        "cls": "lc-amber",
+        "txt": "7 recent blocks"
+      },
+      {
+        "cls": "lc-pill lc-green",
+        "txt": "MATCH"
+      },
+      {
+        "cls": "lc-pill lc-green",
+        "txt": "MATCH"
+      },
+      {
+        "cls": "lc-pill lc-green",
+        "txt": "MATCH"
+      },
+      {
+        "cls": "lc-pill lc-green",
+        "txt": "MATCH"
+      },
+      {
+        "cls": "lc-pill lc-green",
+        "txt": "MATCH"
+      },
+      {
+        "cls": "lc-pill lc-green",
+        "txt": "MATCH"
+      },
+      {
+        "cls": "lc-pill lc-green",
+        "txt": "MATCH"
+      },
+      {
+        "cls": "lc-pill lc-green",
+        "txt": "MATCH"
+      },
+      {
+        "cls": "lc-pill lc-green",
+        "txt": "MATCH"
+      },
+      {
+        "cls": "lc-pill lc-green",
+        "txt": "MATCH"
+      },
+      {
+        "cls": "lc-pill lc-green",
+        "txt": "MATCH"
+      },
+      {
+        "cls": "lc-pill lc-green",
+        "txt": "MATCH"
+      },
+      {
+        "cls": "lc-pill lc-green",
+        "txt": "MATCH"
+      },
+      {
+        "cls": "lc-pill lc-amber",
+        "txt": "MISMATCH"
+      },
+      {
+        "cls": "lc-pill lc-green",
+        "txt": "MATCH"
+      },
+      {
+        "cls": "lc-pill lc-amber",
+        "txt": "MISMATCH"
+      },
+      {
+        "cls": "lc-pill lc-green",
+        "txt": "MATCH"
+      },
+      {
+        "cls": "lc-pill lc-green",
+        "txt": "MATCH"
+      },
+      {
+        "cls": "lc-pill lc-green",
+        "txt": "MATCH"
+      },
+      {
+        "cls": "lc-pill lc-amber",
+        "txt": "MISMATCH"
+      },
+      {
+        "cls": "lc-pill lc-green",
+        "txt": "MATCH"
+      },
+      {
+        "cls": "lc-pill lc-amber",
+        "txt": "MISMATCH"
+      },
+      {
+        "cls": "lc-pill lc-green",
+        "txt": "MATCH"
+      },
+      {
+        "cls": "lc-pill lc-amber",
+        "txt": "MISMATCH"
+      }
+    ]
+  },
+  "api_live_copy_summary": {
+    "http": 200,
+    "bytes": 7640365
+  },
+  "api_live_copy_summary_trim": {
+    "ok": true,
+    "tracked_wallet_count": 15,
+    "auto_live_wallet_count": 0,
+    "auto_live_eligible_wallets": [],
+    "live_wallet_rows_count": 15,
+    "owned_copy_positions_count": 414,
+    "owned_copy_positions_sample": [
+      {
+        "row_type": "OWNED_COPY",
+        "coin": "0G",
+        "signed_size": -25.0,
+        "side": "SHORT",
+        "leader_wallet": "0x010461c14e146ac35fe42271bdc1134ee31c703a",
+        "avg_entry_px": 0.24555,
+        "last_copy_fill_id": "0xbaa213321fb4a331bc1b042be4c40f0000dd2b17bab7c2035e6abe84deb87d1c:18880826607137",
+        "last_updated_ms": 1792199328186,
+        "last_intent_id": "",
+        "last_oid": "",
+        "last_updated_at": "",
+        "exchange_signed_size": -12.0,
+        "entry_px": 0.24555,
+        "mark_px": 0.24558,
+        "position_value": null,
+        "unrealized_pnl": null,
+        "ledger_vs_exchange": "SHARED_SYMBOL_SLEEVE_TRACKED",
+        "residual_size": 0.0,
+        "unsupported_size": 0.0,
+        "reconciliation_note": "shared symbol: sleeve tracked; exchange is netted at account level"
+      },
+      {
+        "row_type": "OWNED_COPY",
+        "coin": "0G",
+        "signed_size": 26.0,
+        "side": "LONG",
+        "leader_wallet": "0x31ca8395cf837de08b24da3f660e77761dfb974b",
+        "avg_entry_px": 0.24617000000000003,
+        "last_copy_fill_id": "0x34869e0d640347c43600042be4bf04010400b5f2ff066696d84f4960230721ae:678305693129339",
+        "last_updated_ms": 1792199245986,
+        "last_intent_id": "",
+        "last_oid": "",
+        "last_updated_at": "",
+        "exchange_signed_size": -12.0,
+        "entry_px": 0.24617000000000003,
+        "mark_px": 0.24558,
+        "position_value": null,
+        "unrealized_pnl": null,
+        "ledger_vs_exchange": "SHARED_SYMBOL_SLEEVE_TRACKED",
+        "residual_size": 0.0,
+        "unsupported_size": 0.0,
+        "reconciliation_note": "shared symbol: sleeve tracked; exchange is netted at account level"
+      },
+      {
+        "row_type": "OWNED_COPY",
+        "coin": "0G",
+        "signed_size": 35.0,
+        "side": "LONG",
+        "leader_wallet": "0x7019197d2b2ae7b44eee12a76015eb1fe94abd36",
+        "avg_entry_px": 0.24705,
+        "last_copy_fill_id": "0xd2ce6b21b5de94d0d448042be402a4010900830750d1b3a27697167474d26ebb:716241767358583",
+        "last_updated_ms": 1792195930967,
+        "last_intent_id": "",
+        "last_oid": "",
+        "last_updated_at": "",
+        "exchange_signed_size": -12.0,
+        "entry_px": 0.24705,
+        "mark_px": 0.24558,
+        "position_value": null,
+        "unrealized_pnl": null,
+        "ledger_vs_exchange": "SHARED_SYMBOL_SLEEVE_TRACKED",
+        "residual_size": 0.0,
+        "unsupported_size": 0.0,
+        "reconciliation_note": "shared symbol: sleeve tracked; exchange is netted at account level"
+      },
+      {
+        "row_type": "OWNED_COPY",
+        "coin": "0G",
+        "signed_size": -48.0,
+        "side": "SHORT",
+        "leader_wallet": "0x7717a7a245d9f950e586822b8c9b46863ed7bd7e",
+        "avg_entry_px": 0.24600999999999998,
+        "last_copy_fill_id": "0x319ca4c16baf891d3316042be2103a0000d7bca706a2a7efd56550142aa36307:1088576524756423",
+        "last_updated_ms": 1792186668782,
+        "last_intent_id": "",
+        "last_oid": "",
+        "last_updated_at": "",
+        "exchange_signed_size": -12.0,
+        "entry_px": 0.24600999999999998,
+        "mark_px": 0.24558,
+        "position_value": null,
+        "unrealized_pnl": null,
+        "ledger_vs_exchange": "SHARED_SYMBOL_SLEEVE_TRACKED",
+        "residual_size": 0.0,
+        "unsupported_size": 0.0,
+        "reconciliation_note": "shared symbol: sleeve tracked; exchange is netted at account level"
+      },
+      {
+        "row_type": "OWNED_COPY",
+        "coin": "2Z",
+        "signed_size": -164.0,
+        "side": "SHORT",
+        "leader_wallet": "0x010461c14e146ac35fe42271bdc1134ee31c703a",
+        "avg_entry_px": 0.03302522592705498,
+        "last_copy_fill_id": "0x1f728da5e68d07b620ec042be4ca800000ada58b81802688c33b38f8a580e1a0:312722045172058",
+        "last_updated_ms": 1792199449632,
+        "last_intent_id": "",
+        "last_oid": "",
+        "last_updated_at": "",
+        "exchange_signed_size": 1500.0,
+        "entry_px": 0.03302522592705498,
+        "mark_px": 0.03299,
+        "position_value": null,
+        "unrealized_pnl": null,
+        "ledger_vs_exchange": "SHARED_SYMBOL_SLEEVE_TRACKED",
+        "residual_size": 0.0,
+        "unsupported_size": 0.0,
+        "reconciliation_note": "shared symbol: sleeve tracked; exchange is netted at account level"
+      }
+    ],
+    "real_copy_positions_count": 433,
+    "manual_live_summary": {
+      "open_manual_position_count": 133,
+      "manual_positions_total": null
+    },
+    "exchange_account_snapshot": {
+      "ok": true,
+      "status": "OK",
+      "updated_at": "2026-10-17T01:12:58.298772+00:00",
+      "fetched_at_ms": 1792199570797,
+      "account_value": 553.100751,
+      "account_value_source": "clearinghouseState.marginSummary.accountValue",
+      "raw_total_usd": 43.957287,
+      "age_ms": 13067
+    },
+    "execution_quality_summary": {
+      "filled_count": 2796,
+      "exchange_rejected_count": 2177,
+      "local_blocked_count": 27,
+      "active_red_count": 2177,
+      "active_amber_count": 2327,
+      "historical_count": 0,
+      "adopted_reconciled_count": 496,
+      "preview_count": 0,
+      "avg_fill_vs_limit_bps": -13.71,
+      "worst_fill_vs_limit_bps": 0.0,
+      "avg_leader_vs_user_bps": 6.94,
+      "last_fill": {
+        "coin": "LINEA",
+        "side": "SELL",
+        "time": "2026-10-17T01:12:59.659042+00:00"
+      }
+    },
+    "status_banner": {
+      "account_value": 583.351241,
+      "follower_network": "testnet",
+      "sending": "OFF",
+      "live_wallets": 10,
+      "health_level": "red",
+      "health_text": "Action needed: a close is failing — check the Reconciliation tab and close it on the exchange"
+    },
+    "tracked_counts": {
+      "reason_counts": {
+        "len": 7478,
+        "preview": "{\"EXIT\": 9612, \"ADD\": 7087, \"UNOWNED_INVENTORY: ASTER exchange net 16.0 != engine-owned net 0.0; entries blocked\": 48, \"no owned sleeve; leader close fill cannot open reverse position\": 10709, \"ENTRY\": 3817, \"no fresh follower-network (testnet) price to value the order\": 2503, \"SYMBOL_BLOCKED\": 1007, \"UNOWNED_INVENTORY: AAVE exchange net 0 != engine-owned net -0.33; entries blocked\": 40, \"UNOWNED_INVENTORY: INIT exchange net -260.0 != engine-owned net -356.0; entries blocked\": 2, \"UNOWNED_INVENTORY: KAS exchange net 970.0 != engine-owned net 646.0; entries blocked\": 68, \"UNOWNED_INVENTORY: LIT exchange net -1.0 != engine-owned net 1.0; entries blocked\": 1, \"UNOWNED_INVENTORY: ALT exchange net 1473.0 != engine-owned net 1471.0; entries blocked\": 1, \"UNOWNED_INVENTORY: BABY exchange net 3390.0 != engine-owned net 3389.0; entries blocked\": 50, \"UNOWNED_INVENTORY: SNX exchange net 7.1 != engine-owned net 121.49999999999999; entries blocked\": 45, \"UNOWNED_INVENTORY: PONS exchange net 24.0 != engine-owned net 61.0; entries blocked\": 1, \"max wallet exposure exceeded\": 4557, \"UNOWNED_INVENTORY: SYRUP exchange net -19.0 != engine-owned net 39.0; entries blocked\": 68, \"UNOWNED_INVENTORY: PAX"
+      },
+      "status_counts": {
+        "len": 18,
+        "preview": "{\"UNKNOWN\": 39859}"
+      },
+      "source_counts": {
+        "len": 54,
+        "preview": "{\"WS_CAPTURED\": 39335, \"POLL\": 486, \"WS_SNAPSHOT\": 38}"
+      }
+    }
+  },
+  "api_live_config": {
+    "http": 200
+  },
+  "api_live_config_trim": {
+    "ok": true,
+    "auto_send_enabled": false,
+    "wallets_count": 15,
+    "wallet_addrs": [
+      "0x010461c14e146ac35fe42271bdc1134ee31c703a",
+      "0x1b232b41b0e75550c59288b99874e4a8142fbe21",
+      "0x31ca8395cf837de08b24da3f660e77761dfb974b",
+      "0x6ba889db7f923622d3548f621ecc2054b80c1817",
+      "0x7019197d2b2ae7b44eee12a76015eb1fe94abd36",
+      "0x7717a7a245d9f950e586822b8c9b46863ed7bd7e",
+      "0x936cf4fb95c30ce83f658b5bbb247e4bb381bb0f",
+      "0xc179e03922afe8fa9533d3f896338b9fb87ce0c8",
+      "0xd4c1f7e8d876c4749228d515473d36f919583d1d",
+      "0xf5d81a135f756ca16544e53c20fc20643ec3ad53",
+      "0x7bc5239180bea2255f4dd243d79481d39adee41e",
+      "0x1f4ab7e9acebb8b591e74b81e34bebe8be9bc934",
+      "0xcbe834386b8ec9d8c50eaad48dacb83e8b42ddfc",
+      "0x35519de6193f0e6581032d87236988629e35a281",
+      "0x833b99b27dac651d02080f5e220e929df891db06"
+    ],
+    "global_controls": {
+      "max_total_live_exposure_usd": 5000.0,
+      "max_asset_directional_exposure_usd": 2000.0,
+      "max_daily_loss_usd": 1000.0,
+      "max_wallet_exposure_usd": 600.0,
+      "max_order_notional_usd": 500.0,
+      "marketable_bps": 20.0,
+      "max_close_adverse_diff_pct": 0.0,
+      "symbol_allowlist": [],
+      "symbol_blocklist": [
+        "HYPE",
+        "PENGU",
+        "RESOLV"
+      ]
+    },
+    "archived_wallets_count": 0
+  },
+  "api_ws_health": {
+    "http": 200,
+    "body": {
+      "ok": true,
+      "health": {
+        "created_at": "2026-10-17T01:12:59.294004+00:00",
+        "created_at_ms": 1792199579293,
+        "wallets": {
+          "0x010461c14e146ac35fe42271bdc1134ee31c703a": {
+            "last_error": "",
+            "last_message_ms": 1792199578911,
+            "stale": false,
+            "stale_ms": 382
+          },
+          "0x1b232b41b0e75550c59288b99874e4a8142fbe21": {
+            "last_error": "",
+            "last_message_ms": 1792197703173,
+            "stale": false,
+            "stale_ms": 1876120
+          },
+          "0x31ca8395cf837de08b24da3f660e77761dfb974b": {
+            "last_error": "",
+            "last_message_ms": 1792199579075,
+            "stale": false,
+            "stale_ms": 218
+          },
+          "0x6ba889db7f923622d3548f621ecc2054b80c1817": {
+            "last_error": "",
+            "last_message_ms": 1792199574194,
+            "stale": false,
+            "stale_ms": 5099
+          },
+          "0x7019197d2b2ae7b44eee12a76015eb1fe94abd36": {
+            "last_error": "",
+            "last_message_ms": 1792199569119,
+            "stale": false,
+            "stale_ms": 10174
+          },
+          "0x7717a7a245d9f950e586822b8c9b46863ed7bd7e": {
+            "last_error": "",
+            "last_message_ms": 1792199576748,
+            "stale": false,
+            "stale_ms": 2545
+          },
+          "0x936cf4fb95c30ce83f658b5bbb247e4bb381bb0f": {
+            "last_error": "",
+            "last_message_ms": 1792199551356,
+            "stale": false,
+            "stale_ms": 27937
+          },
+          "0xc179e03922afe8fa9533d3f896338b9fb87ce0c8": {
+            "last_error": "",
+            "last_message_ms": 1792199539331,
+            "stale": false,
+            "stale_ms": 39962
+          },
+          "0xd4c1f7e8d876c4749228d515473d36f919583d1d": {
+            "last_error": "",
+            "last_message_ms": 1792199564174,
+            "stale": false,
+            "stale_ms": 15119
+          },
+          "0xf5d81a135f756ca16544e53c20fc20643ec3ad53": {
+            "last_error": "",
+            "last_message_ms": 1792199578576,
+            "stale": false,
+            "stale_ms": 717
+          }
+        },
+        "ws_summary": {
+          "headroom": {
+            "info_weight:api.hyperliquid-testnet.xyz": {
+              "level": "OK",
+              "limit": 1200,
+              "pct": 43.8,
+              "used": 526
+            },
+            "info_weight:api.hyperliquid.xyz": {
+              "level": "OK",
+              "limit": 1200,
+              "pct": 43.3,
+              "used": 520
+            },
+            "refusals": [],
+            "worst": "OK",
+            "ws_foreign": {
+              "level": "OK",
+              "limit": 0,
+              "pct": 0.0,
+              "pids": {},
+              "used": 0
+            },
+            "ws_users": {
+              "last_refusal": "",
+              "level": "OK",
+              "limit": 15,
+              "pct": 66.7,
+              "used": 10,
+              "wanted": 10
+            }
+          },
+          "last_ping_ms": 1792199554784,
+          "last_pong_ms": 1792199555074,
+          "last_refusal": "",
+          "last_refusal_ms": 0,
+          "last_socket_error": "",
+          "last_subscribe_ms": 1792197701279,
+          "message_errors": 0,
+          "open_count": 1,
+          "resubscribe_attempts": 0,
+          "socket_open": true,
+          "stale_count": 0,
+          "subscribe_acked": 10,
+          "subscribe_pending": false,
+          "subscribe_refused": 0,
+          "thread_alive": true,
+          "total_reconnect_count": 0,
+          "wallet_count": 10,
+          "wallets_without_feed": 0,
+          "worst_health_grade": "OK",
+          "ws_status": "WS_OK"
+        },
+        "overall": "WS_OK",
+        "enabled": true
+      }
+    }
+  },
+  "oracle_exchange_snapshot_file": {
+    "path": "C:/Users/wigmore/hyperliquid-build3-repair\\_archive\\hl_stage2\\hl_live_copy_audit_testnet\\exchange_account_snapshot_app.json",
+    "ok": true,
+    "status": "OK",
+    "account_value_source": "clearinghouseState.marginSummary.accountValue",
+    "updated_at": "2026-10-16T12:48:43.384744+00:00",
+    "fetched_at_ms": 1792154922440,
+    "age_ms": 44661462,
+    "sha256": "60dbbe318766d95cea922e0a8990615801840b1673667acdd6ddb34596ec0e77",
+    "size": 4562
+  },
+  "oracle_live_config_file": {
+    "path": "C:/Users/wigmore/hyperliquid-build3-repair\\_archive\\hl_stage2\\hl_live_copy_audit_testnet\\live_config.json",
+    "sha256": "c4b5c7c85c71981b63753e91219d24c679e2177c7eeb9bff7e713567df09d087",
+    "mtime": "2026-10-14T10:34:16.683933Z",
+    "size": 248,
+    "body": {
+      "auto_send_enabled": false,
+      "global_controls": {},
+      "wallets": {
+        "0xdddddddddddddddddddddddddddddddddddddddd": {
+          "copy_mode": "fixed",
+          "enabled": true,
+          "fixed_notional": 1000,
+          "mode": "LIVE"
+        }
+      }
+    }
+  },
+  "register_rows": {
+    "UI-LCC-DETAIL-02": {
+      "id": "UI-LCC-DETAIL-02",
+      "area": "UI",
+      "feature": "Wallet detail section: B Open Positions (Coin/Side/Size/Entry/Mark/uPnL/Exposure/Exchange match)",
+      "expected_behaviour": "Per-wallet detail matches exchange fills/positions attributed to that leader; attribution quality shown.",
+      "sources": [
+        "HL_Copy_App_SSOT.py walletDetailHtml",
+        "ARCH Full scope 2",
+        "ARCH Full scope 6",
+        "FAILURES UI-001..003"
+      ],
+      "applicability": "APPLIES",
+      "open_decisions": [],
+      "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+      "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+      "negative_tests": [
+        "source unavailable shows n/a/Unavailable not 0",
+        "stale source flagged",
+        "API error surfaced"
+      ],
+      "prior_evidence": "",
+      "result": "NOT_TESTED",
+      "evidence_ref": "",
+      "tested_commit": "",
+      "tested_at_utc": "",
+      "notes": ""
+    },
+    "UI-LCC-DETAIL-03": {
+      "id": "UI-LCC-DETAIL-03",
+      "area": "UI",
+      "feature": "Wallet detail section: C Lead vs Copy / Friction",
+      "expected_behaviour": "Per-wallet detail matches exchange fills/positions attributed to that leader; attribution quality shown.",
+      "sources": [
+        "HL_Copy_App_SSOT.py walletDetailHtml",
+        "ARCH Full scope 2",
+        "ARCH Full scope 6",
+        "FAILURES UI-001..003"
+      ],
+      "applicability": "APPLIES",
+      "open_decisions": [],
+      "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+      "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+      "negative_tests": [
+        "source unavailable shows n/a/Unavailable not 0",
+        "stale source flagged",
+        "API error surfaced"
+      ],
+      "prior_evidence": "",
+      "result": "NOT_TESTED",
+      "evidence_ref": "",
+      "tested_commit": "",
+      "tested_at_utc": "",
+      "notes": ""
+    },
+    "UI-LCC-DETAIL-04": {
+      "id": "UI-LCC-DETAIL-04",
+      "area": "UI",
+      "feature": "Wallet detail section: D Execution Audit",
+      "expected_behaviour": "Per-wallet detail matches exchange fills/positions attributed to that leader; attribution quality shown.",
+      "sources": [
+        "HL_Copy_App_SSOT.py walletDetailHtml",
+        "ARCH Full scope 2",
+        "ARCH Full scope 6",
+        "FAILURES UI-001..003"
+      ],
+      "applicability": "APPLIES",
+      "open_decisions": [],
+      "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+      "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+      "negative_tests": [
+        "source unavailable shows n/a/Unavailable not 0",
+        "stale source flagged",
+        "API error surfaced"
+      ],
+      "prior_evidence": "",
+      "result": "NOT_TESTED",
+      "evidence_ref": "",
+      "tested_commit": "",
+      "tested_at_utc": "",
+      "notes": ""
+    },
+    "UI-LCC-ADD-06": {
+      "id": "UI-LCC-ADD-06",
+      "area": "UI",
+      "feature": "Add-wallet modal field: Leader equity base",
+      "expected_behaviour": "Field value persists exactly to live_config.json via /api/live-config/add-wallet; invalid input rejected with visible error.",
+      "sources": [
+        "HL_Copy_App_SSOT.py lcAddForm",
+        "ARCH Full scope 2",
+        "ARCH Full scope 6",
+        "FAILURES UI-001..003"
+      ],
+      "applicability": "APPLIES",
+      "open_decisions": [
+        "OD-07",
+        "OD-10"
+      ],
+      "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+      "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+      "negative_tests": [
+        "source unavailable shows n/a/Unavailable not 0",
+        "stale source flagged",
+        "API error surfaced"
+      ],
+      "prior_evidence": "",
+      "result": "NOT_TESTED",
+      "evidence_ref": "",
+      "tested_commit": "",
+      "tested_at_utc": "",
+      "notes": ""
+    },
+    "UI-LCC-ADD-07": {
+      "id": "UI-LCC-ADD-07",
+      "area": "UI",
+      "feature": "Add-wallet modal field: Max diff %",
+      "expected_behaviour": "Field value persists exactly to live_config.json via /api/live-config/add-wallet; invalid input rejected with visible error.",
+      "sources": [
+        "HL_Copy_App_SSOT.py lcAddForm",
+        "ARCH Full scope 2",
+        "ARCH Full scope 6",
+        "FAILURES UI-001..003"
+      ],
+      "applicability": "APPLIES",
+      "open_decisions": [
+        "OD-07",
+        "OD-10"
+      ],
+      "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+      "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+      "negative_tests": [
+        "source unavailable shows n/a/Unavailable not 0",
+        "stale source flagged",
+        "API error surfaced"
+      ],
+      "prior_evidence": "",
+      "result": "NOT_TESTED",
+      "evidence_ref": "",
+      "tested_commit": "",
+      "tested_at_utc": "",
+      "notes": ""
+    },
+    "UI-LCC-ADD-10": {
+      "id": "UI-LCC-ADD-10",
+      "area": "UI",
+      "feature": "Add-wallet modal field: Add wallet submit",
+      "expected_behaviour": "Field value persists exactly to live_config.json via /api/live-config/add-wallet; invalid input rejected with visible error.",
+      "sources": [
+        "HL_Copy_App_SSOT.py lcAddForm",
+        "ARCH Full scope 2",
+        "ARCH Full scope 6",
+        "FAILURES UI-001..003"
+      ],
+      "applicability": "APPLIES",
+      "open_decisions": [
+        "OD-07",
+        "OD-10"
+      ],
+      "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+      "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+      "negative_tests": [
+        "source unavailable shows n/a/Unavailable not 0",
+        "stale source flagged",
+        "API error surfaced"
+      ],
+      "prior_evidence": "",
+      "result": "NOT_TESTED",
+      "evidence_ref": "",
+      "tested_commit": "",
+      "tested_at_utc": "",
+      "notes": ""
+    }
+  }
+}

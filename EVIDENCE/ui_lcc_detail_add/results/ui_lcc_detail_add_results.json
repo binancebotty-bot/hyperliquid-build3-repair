@@ -1,0 +1,211 @@
+{
+  "task_id": "t_e2602f28",
+  "title": "B3-CERT UI-LCC DETAIL-02..04 + ADD-06/07/10 (6 rows) - re-probe with proven DOM route",
+  "register_of_record": "git show b142cf88:certification/certification_matrix.json",
+  "register_commit": "b142cf88d389e791160f691aac3d936852b99975",
+  "register_blob_sha256": "86b2237fe95f88ca9eb758fb42ddbdf3efdaef71e56f79a10e2d2635f44f341a",
+  "engine_sha256": "7468ab5188750617b090b56c3e719d73e91f5b4241f4782382ccac1a22989276",
+  "tested_at_utc": "2026-10-17T01:12:49.690384+00:00",
+  "tested_commit": "b142cf88d389e791160f691aac3d936852b99975",
+  "route": null,
+  "two_run_control": null,
+  "dom": {
+    "route": "ROUTE_AVAILABLE",
+    "http_status": 200,
+    "panel_present": true,
+    "dom_element_count": 18971,
+    "page_body_len": 81640,
+    "keywords_true": [
+      "Open Positions",
+      "Add wallet",
+      "Detail",
+      "Coin",
+      "Side",
+      "Size",
+      "Entry",
+      "Mark",
+      "Exposure",
+      "Unrealized",
+      "PnL",
+      "Live",
+      "Action needed",
+      "Reconciliation",
+      "WALLET",
+      "LIVE",
+      "CLOSE",
+      "OFF",
+      "LEAD",
+      "Execution",
+      "Last Fill",
+      "Latency",
+      "Technical detail"
+    ],
+    "keywords_absent_from_landing": [
+      "Lead vs Copy",
+      "Friction",
+      "Execution Audit",
+      "Leader equity",
+      "Max diff",
+      "Submit",
+      "uPnL",
+      "Stale",
+      "Unavailable",
+      "Error"
+    ],
+    "pills_present": [
+      "Wallets:\n15 / 10",
+      "Live wallets: 10",
+      "Close-only wallets: 0",
+      "Off: 5",
+      "Leader feed:\nWebsocket OK",
+      "Live",
+      "Websocket OK",
+      "Partial record",
+      "Live",
+      "Websocket OK",
+      "No PnL yet",
+      "Live",
+      "Websocket OK",
+      "Partial record",
+      "Live",
+      "Websocket OK",
+      "Partial record",
+      "Live",
+      "Websocket OK",
+      "Partial record",
+      "Live",
+      "Websocket OK",
+      "Partial record",
+      "Live",
+      "Websocket OK",
+      "From engine ledger",
+      "Live",
+      "Websocket OK",
+      "From engine ledger",
+      "Live"
+    ],
+    "greenred_classed_elements": 80
+  },
+  "served_api_fresh": {
+    "http": 200,
+    "tracked_wallet_count": 15,
+    "owned_copy_positions_count": 414,
+    "exchange_account_snapshot": {
+      "updated_at": "2026-10-17T01:12:58.298772+00:00",
+      "account_value": 553.100751,
+      "account_value_source": "clearinghouseState.marginSummary.accountValue",
+      "age_ms": 13067
+    },
+    "status_banner_health": "red",
+    "status_banner_text": "Action needed: a close is failing — check the Reconciliation tab and close it on the exchange",
+    "sending": "OFF",
+    "live_wallets": 10,
+    "last_fill": {
+      "coin": "LINEA",
+      "side": "SELL",
+      "time": "2026-10-17T01:12:59.659042+00:00"
+    }
+  },
+  "oracle": {
+    "served_api_fresh": {
+      "updated_at": "2026-10-17T01:12:58.298772+00:00",
+      "account_value": 553.100751,
+      "account_value_source": "clearinghouseState.marginSummary.accountValue",
+      "age_ms": 13067
+    },
+    "on_disk_independent_snapshot": {
+      "path": "C:/Users/wigmore/hyperliquid-build3-repair\\_archive\\hl_stage2\\hl_live_copy_audit_testnet\\exchange_account_snapshot_app.json",
+      "updated_at": "2026-10-16T12:48:43.384744+00:00",
+      "age_ms": 44661462,
+      "sha256": "60dbbe318766d95cea922e0a8990615801840b1673667acdd6ddb34596ec0e77"
+    },
+    "on_disk_live_config_fixture": {
+      "path": "C:/Users/wigmore/hyperliquid-build3-repair\\_archive\\hl_stage2\\hl_live_copy_audit_testnet\\live_config.json",
+      "mtime": "2026-10-14T10:34:16.683933Z",
+      "sha256": "c4b5c7c85c71981b63753e91219d24c679e2177c7eeb9bff7e713567df09d087",
+      "wallet_count": 1
+    }
+  },
+  "api_live_config": {
+    "http": 200,
+    "wallets_count": 15,
+    "auto_send_enabled": false
+  },
+  "rows": [
+    {
+      "id": "UI-LCC-DETAIL-02",
+      "feature": "Wallet detail section: B Open Positions (Coin/Side/Size/Entry/Mark/uPnL/Exposure/Exchange match)",
+      "register_result_at_b142cf88": "NOT_TESTED",
+      "applicability": "APPLIES",
+      "result": "NOT_TESTED",
+      "execution_proof": "Landing renders OPEN POSITIONS 131 + per-wallet coin position list (e.g. 'shared 0G shared AAVE...') + per-wallet Exposure/Open-pos/LAST FILL. The per-wallet DETAIL modal B=Open Positions table (Coin/Side/Size/Entry/Mark/uPnL/Exposure/Exchange-match cells) is opened by clicking a wallet row; 'uPnL' keyword is ABSENT from the landing, so the full detail table is not rendered. Served owned_copy_positions (414, fresh) has coin/side/signed_size/avg_entry_px/mark_px but not uPnL/Exchange-match (unrealized_pnl=None, position_value=None) and is the engine copy-ledger, not an independent exchange oracle; on-disk independent oracle ~12.4h stale.",
+      "independent_oracle": "EXECUTED (mixed freshness): served /api exchange_account_snapshot is FRESH (13067 ms old, account_value=553.100751); on-disk exchange_account_snapshot_app.json is the independent app-owned snapshot but is STALE (44661462 ms, updated 2026-10-16T12:48:43.384744+00:00). No engine/UI import was used as an oracle.",
+      "negative_tests": "NOT EXECUTED: the route is landing-render only; 'source unavailable / stale-flag / API-error' states are not triggered (would require control interaction / fault injection / mutation).",
+      "exact_missing_route": "Read-only UI-control-interaction capture of the per-wallet DETAIL modal (click a wallet row -> open DETAIL sections B/C/D) and read its cells; the 36d1c52 landing-render route does not click. The certified read-only detail-capture harness proven for sibling DETAIL-01 (t_0ff26004: wallet-row click + served-API field match) is the concrete route to convert these rows to PASS/PARTIAL. Plus a fresh independent per-wallet exchange position/fill/attribution oracle (on-disk exchange_account_snapshot_app.json is ~12.4h stale).",
+      "notes": "Surface renders an open-positions summary (count + coin list + exposure), not the full per-wallet detail table. No PASS claimed. No mutation."
+    },
+    {
+      "id": "UI-LCC-DETAIL-03",
+      "feature": "Wallet detail section: C Lead vs Copy / Friction",
+      "register_result_at_b142cf88": "NOT_TESTED",
+      "applicability": "APPLIES",
+      "result": "NOT_TESTED",
+      "execution_proof": "Landing renders the wallet-TABLE 'LEAD<->COPY DIFF' column + 'Avg bps'/'Worst bps' + 'N filled / N recent rejects' (execution-quality summary). The detail C-section ('Lead vs Copy'/'Friction') is in the per-wallet DETAIL modal (wallet-row click). Keywords 'Lead vs Copy' and 'Friction' are ABSENT from the landing. Independent oracle stale.",
+      "independent_oracle": "EXECUTED (mixed freshness): served /api exchange_account_snapshot is FRESH (13067 ms old, account_value=553.100751); on-disk exchange_account_snapshot_app.json is the independent app-owned snapshot but is STALE (44661462 ms, updated 2026-10-16T12:48:43.384744+00:00). No engine/UI import was used as an oracle.",
+      "negative_tests": "NOT EXECUTED: the route is landing-render only; 'source unavailable / stale-flag / API-error' states are not triggered (would require control interaction / fault injection / mutation).",
+      "exact_missing_route": "Read-only UI-control-interaction capture of the per-wallet DETAIL modal (click a wallet row -> open DETAIL sections B/C/D) and read its cells; the 36d1c52 landing-render route does not click. The certified read-only detail-capture harness proven for sibling DETAIL-01 (t_0ff26004: wallet-row click + served-API field match) is the concrete route to convert these rows to PASS/PARTIAL. Plus a fresh independent per-wallet exchange position/fill/attribution oracle (on-disk exchange_account_snapshot_app.json is ~12.4h stale).",
+      "notes": "Surface renders lead<->copy diff + friction/bps aggregates, not the per-wallet C-section detail. No PASS claimed. No mutation."
+    },
+    {
+      "id": "UI-LCC-DETAIL-04",
+      "feature": "Wallet detail section: D Execution Audit",
+      "register_result_at_b142cf88": "NOT_TESTED",
+      "applicability": "APPLIES",
+      "result": "NOT_TESTED",
+      "execution_proof": "Landing renders 'EXECUTION' column + 'LAST FILL' + 'LAST REJECT ... INSUFFICIENT_MARGIN' + 'LAST LATENCY WARNING severity=CRITICAL delay_ms=6947' + 'Technical detail'. The detail D-section ('Execution Audit') is in the per-wallet DETAIL modal (wallet-row click). Keyword 'Execution Audit' is ABSENT from the landing. Independent oracle stale.",
+      "independent_oracle": "EXECUTED (mixed freshness): served /api exchange_account_snapshot is FRESH (13067 ms old, account_value=553.100751); on-disk exchange_account_snapshot_app.json is the independent app-owned snapshot but is STALE (44661462 ms, updated 2026-10-16T12:48:43.384744+00:00). No engine/UI import was used as an oracle.",
+      "negative_tests": "NOT EXECUTED: the route is landing-render only; 'source unavailable / stale-flag / API-error' states are not triggered (would require control interaction / fault injection / mutation).",
+      "exact_missing_route": "Read-only UI-control-interaction capture of the per-wallet DETAIL modal (click a wallet row -> open DETAIL sections B/C/D) and read its cells; the 36d1c52 landing-render route does not click. The certified read-only detail-capture harness proven for sibling DETAIL-01 (t_0ff26004: wallet-row click + served-API field match) is the concrete route to convert these rows to PASS/PARTIAL. Plus a fresh independent per-wallet exchange position/fill/attribution oracle (on-disk exchange_account_snapshot_app.json is ~12.4h stale).",
+      "notes": "Surface renders last-fill/last-reject/latency/execution summary, not the per-wallet D-section Execution Audit detail. No PASS claimed. No mutation."
+    },
+    {
+      "id": "UI-LCC-ADD-06",
+      "feature": "Add-wallet modal field: Leader equity base",
+      "register_result_at_b142cf88": "NOT_TESTED",
+      "applicability": "APPLIES",
+      "result": "NOT_TESTED",
+      "execution_proof": "Landing renders the 'Add wallet' button only; 'Leader equity' is ABSENT. Per register UI source @ b142cf88 (sha256 7468ab51...), the leader_equity_base input is type=hidden (source line 5780). Verifying persistence to live_config.json requires POST /api/live-config/add-wallet (mutation), forbidden. On-disk live_config.json is a 13-day stale fixture (0xdddddd placeholder), not the live config (15 wallets served via /api/live-config).",
+      "independent_oracle": "EXECUTED (mixed freshness): served /api exchange_account_snapshot is FRESH (13067 ms old, account_value=553.100751); on-disk exchange_account_snapshot_app.json is the independent app-owned snapshot but is STALE (44661462 ms, updated 2026-10-16T12:48:43.384744+00:00). No engine/UI import was used as an oracle.",
+      "negative_tests": "NOT EXECUTED: the route is landing-render only; 'source unavailable / stale-flag / API-error' states are not triggered (would require control interaction / fault injection / mutation).",
+      "exact_missing_route": "Sanctioned non-mutating write-wire capture of POST /api/live-config/add-wallet (page.route intercept) to verify (a) field -> live_config.json persistence and (b) invalid-input -> visible error. Forbidden by the fully-READ-ONLY route, the CERT_ENVIRONMENT (no served-config write), OD-07/OD-10, and wallets disabled (auto_send_enabled=false; WALLES_ENABLED=0). The add-wallet modal fields (Leader equity base is type=hidden per register source line 5780; Max diff %; Submit) are not rendered on the landing. The on-disk live_config.json is a stale 13-day fixture (0xdddddd placeholder), not the live engine config.",
+      "notes": "No PASS claimed. No live configuration was mutated. Constrained by OD-07/OD-10 + wallets disabled (auto_send_enabled=false)."
+    },
+    {
+      "id": "UI-LCC-ADD-07",
+      "feature": "Add-wallet modal field: Max diff %",
+      "register_result_at_b142cf88": "NOT_TESTED",
+      "applicability": "APPLIES",
+      "result": "NOT_TESTED",
+      "execution_proof": "Landing renders the 'Add wallet' button only; 'Max diff' is ABSENT. Add-wallet modal field requires opening the modal (control interaction) + POST /api/live-config/add-wallet for persistence (mutation, forbidden).",
+      "independent_oracle": "EXECUTED (mixed freshness): served /api exchange_account_snapshot is FRESH (13067 ms old, account_value=553.100751); on-disk exchange_account_snapshot_app.json is the independent app-owned snapshot but is STALE (44661462 ms, updated 2026-10-16T12:48:43.384744+00:00). No engine/UI import was used as an oracle.",
+      "negative_tests": "NOT EXECUTED: the route is landing-render only; 'source unavailable / stale-flag / API-error' states are not triggered (would require control interaction / fault injection / mutation).",
+      "exact_missing_route": "Sanctioned non-mutating write-wire capture of POST /api/live-config/add-wallet (page.route intercept) to verify (a) field -> live_config.json persistence and (b) invalid-input -> visible error. Forbidden by the fully-READ-ONLY route, the CERT_ENVIRONMENT (no served-config write), OD-07/OD-10, and wallets disabled (auto_send_enabled=false; WALLES_ENABLED=0). The add-wallet modal fields (Leader equity base is type=hidden per register source line 5780; Max diff %; Submit) are not rendered on the landing. The on-disk live_config.json is a stale 13-day fixture (0xdddddd placeholder), not the live engine config.",
+      "notes": "No PASS claimed. No live configuration was mutated. Constrained by OD-07/OD-10 + wallets disabled."
+    },
+    {
+      "id": "UI-LCC-ADD-10",
+      "feature": "Add-wallet modal field: Add wallet submit",
+      "register_result_at_b142cf88": "NOT_TESTED",
+      "applicability": "APPLIES",
+      "result": "NOT_TESTED",
+      "execution_proof": "Landing renders the 'Add wallet' button only; 'Submit' is ABSENT. Submit == POST /api/live-config/add-wallet (mutation), forbidden by the fully-READ-ONLY route and the CERT_ENVIRONMENT (no served-config write); OD-07/OD-10 unresolved and wallets disabled.",
+      "independent_oracle": "EXECUTED (mixed freshness): served /api exchange_account_snapshot is FRESH (13067 ms old, account_value=553.100751); on-disk exchange_account_snapshot_app.json is the independent app-owned snapshot but is STALE (44661462 ms, updated 2026-10-16T12:48:43.384744+00:00). No engine/UI import was used as an oracle.",
+      "negative_tests": "NOT EXECUTED: the route is landing-render only; 'source unavailable / stale-flag / API-error' states are not triggered (would require control interaction / fault injection / mutation).",
+      "exact_missing_route": "Sanctioned non-mutating write-wire capture of POST /api/live-config/add-wallet (page.route intercept) to verify (a) field -> live_config.json persistence and (b) invalid-input -> visible error. Forbidden by the fully-READ-ONLY route, the CERT_ENVIRONMENT (no served-config write), OD-07/OD-10, and wallets disabled (auto_send_enabled=false; WALLES_ENABLED=0). The add-wallet modal fields (Leader equity base is type=hidden per register source line 5780; Max diff %; Submit) are not rendered on the landing. The on-disk live_config.json is a stale 13-day fixture (0xdddddd placeholder), not the live engine config.",
+      "notes": "No PASS claimed. No live configuration was mutated. Constrained by OD-07/OD-10 + wallets disabled (auto_send_enabled=false)."
+    }
+  ],
+  "status": "NOT_TESTED_ALL_ROWS",
+  "raw_capture_sha256": "1c835ee51696f764093bc519baa14b8c2d08ca2c67bbe74cc02c5367e5422bd7",
+  "raw_capture_bytes": 51701
+}
