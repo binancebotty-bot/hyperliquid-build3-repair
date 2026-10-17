@@ -1,0 +1,312 @@
+{
+  "audit": "PASS-row evidence provenance (ENGINE + NETWORK + HEALTH)",
+  "register_commit": "b142cf88d389e791160f691aac3d936852b99975",
+  "scope": {
+    "areas": [
+      "ENGINE",
+      "NETWORK",
+      "HEALTH"
+    ],
+    "total_rows": 36,
+    "by_area": {
+      "ENGINE": 25,
+      "NETWORK": 7,
+      "HEALTH": 4
+    }
+  },
+  "summary": {
+    "audited": 36,
+    "keep": 36,
+    "demote": 0
+  },
+  "rows": [
+    {
+      "row_id": "ENG-INV-01",
+      "area": "ENGINE",
+      "verdict": "KEEP",
+      "why": "Static census at tested commit: 0 process spawns found. Negative test (add subprocess) is non-vacuous.",
+      "evidence_file": "ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json",
+      "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717"
+    },
+    {
+      "row_id": "ENG-INV-02",
+      "area": "ENGINE",
+      "verdict": "KEEP",
+      "why": "Static census: exactly 1 physical .order() call site at L2703. Negative test (add second site) is non-vacuous.",
+      "evidence_file": "ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json",
+      "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717"
+    },
+    {
+      "row_id": "ENG-INV-03",
+      "area": "ENGINE",
+      "verdict": "KEEP",
+      "why": "Census PASS: 0 third-party imports. File hashes verified at tested commit.",
+      "evidence_file": "ENG-INV-03-05_43731b4f.json",
+      "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717"
+    },
+    {
+      "row_id": "ENG-INV-04",
+      "area": "ENGINE",
+      "verdict": "KEEP",
+      "why": "Census PASS: 0 persistent stores. File hashes verified at tested commit.",
+      "evidence_file": "ENG-INV-03-05_43731b4f.json",
+      "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717"
+    },
+    {
+      "row_id": "ENG-INV-05",
+      "area": "ENGINE",
+      "verdict": "KEEP",
+      "why": "Census PASS: 0 Build-4 imports. File hashes verified at tested commit.",
+      "evidence_file": "ENG-INV-03-05_43731b4f.json",
+      "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717"
+    },
+    {
+      "row_id": "ENG-INV-06",
+      "area": "ENGINE",
+      "verdict": "KEEP",
+      "why": "4/4 static checks pass: single .order() site, no process spawns, no new imports, no persistent store. Negative test non-vacuous.",
+      "evidence_file": "ENG-INV-06-09_43731b4.json",
+      "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717"
+    },
+    {
+      "row_id": "ENG-INV-10",
+      "area": "ENGINE",
+      "verdict": "KEEP",
+      "why": "4/4 checks pass: resolve_settlement() defined and called, no ack-as-settlement, uses MASTER account. Negative test non-vacuous.",
+      "evidence_file": "ENG-INV-10-14_43731b4f.json",
+      "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717"
+    },
+    {
+      "row_id": "ENG-INV-12",
+      "area": "ENGINE",
+      "verdict": "KEEP",
+      "why": "4/4 checks pass: convergence/delta functions defined, no flatten-all pattern, checks position ownership. Negative tests non-vacuous.",
+      "evidence_file": "ENG-INV-10-14_43731b4f.json",
+      "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717"
+    },
+    {
+      "row_id": "ENG-SEM-B1",
+      "area": "ENGINE",
+      "verdict": "KEEP",
+      "why": "3/3 checks pass: authority derives from event, has lifecycle, copy size derived from event. Negative test non-vacuous.",
+      "evidence_file": "ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json",
+      "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717"
+    },
+    {
+      "row_id": "ENG-SEM-B2",
+      "area": "ENGINE",
+      "verdict": "KEEP",
+      "why": "3/3 checks pass: snapshot marked rebuild, poll not marked, flat snapshot no new authority. Negative test non-vacuous.",
+      "evidence_file": "ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json",
+      "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717"
+    },
+    {
+      "row_id": "ENG-SEM-B3",
+      "area": "ENGINE",
+      "verdict": "KEEP",
+      "why": "4/4 checks pass: follower exposure exists, returns OK, unowned inventory uses exposure, settlement uses MASTER truth. Negative test non-vacuous.",
+      "evidence_file": "ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json",
+      "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717"
+    },
+    {
+      "row_id": "ENG-SEM-B4",
+      "area": "ENGINE",
+      "verdict": "KEEP",
+      "why": "4/4 checks pass: divergence detected, no baseline yet, divergence no new authority, sleeve divergence detected. Negative test non-vacuous.",
+      "evidence_file": "ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json",
+      "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717"
+    },
+    {
+      "row_id": "ENG-005",
+      "area": "ENGINE",
+      "verdict": "KEEP",
+      "why": "5/5 checks pass: NET_SUM_SIGNED (expected BTC net=1.0, got 1.0), NET_ABS_MUTATION_FAILS (broken aggregation gave 2.0), plus 3 existence checks.",
+      "evidence_file": "ENG-005-009_43731b4f.json",
+      "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717"
+    },
+    {
+      "row_id": "ENG-006",
+      "area": "ENGINE",
+      "verdict": "KEEP",
+      "why": "10/10 checks pass: 270 DEX scopes found, 269 non-default DEXes, HIP-3 included, default subset verified.",
+      "evidence_file": "ENG-005-009_43731b4f.json",
+      "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717"
+    },
+    {
+      "row_id": "ENG-007",
+      "area": "ENGINE",
+      "verdict": "KEEP",
+      "why": "12/12 checks pass: restart dedup prevents replay (duplicate fill_id rejected), no-persistence allows replay (bug detected).",
+      "evidence_file": "ENG-005-009_43731b4f.json",
+      "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717"
+    },
+    {
+      "row_id": "ENG-008",
+      "area": "ENGINE",
+      "verdict": "KEEP",
+      "why": "10/10 checks pass: unowned block when differ, mutation allows entry (bug detected), baseline copy verified.",
+      "evidence_file": "ENG-005-009_43731b4f.json",
+      "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717"
+    },
+    {
+      "row_id": "ENG-009",
+      "area": "ENGINE",
+      "verdict": "KEEP",
+      "why": "10/10 checks pass: corrupt state allows fill (bug detected), layered defense verified, stale check present.",
+      "evidence_file": "ENG-005-009_43731b4f.json",
+      "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717"
+    },
+    {
+      "row_id": "ENG-010",
+      "area": "ENGINE",
+      "verdict": "KEEP",
+      "why": "3/3 checks pass: ACCOUNT_NET_UNAVAILABLE fails closed, ACCOUNT_NET_AVAILABLE returns net=1.5, provider fail-closed. Negative test non-vacuous.",
+      "evidence_file": "ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json",
+      "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717"
+    },
+    {
+      "row_id": "ENG-011",
+      "area": "ENGINE",
+      "verdict": "KEEP",
+      "why": "5/5 checks pass: mark in-flight creates reservation, wrong intent keeps block, correct intent clears, wrong intent from MASTER, reservation survives reload. Negative test non-vacuous.",
+      "evidence_file": "ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json",
+      "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717"
+    },
+    {
+      "row_id": "ENG-012",
+      "area": "ENGINE",
+      "verdict": "KEEP",
+      "why": "3/3 checks pass: timing dict populated, latency measured in send, WS path primary. Negative test non-vacuous.",
+      "evidence_file": "ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json",
+      "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717"
+    },
+    {
+      "row_id": "ENG-013",
+      "area": "ENGINE",
+      "verdict": "KEEP",
+      "why": "5/5 checks pass: intent has traceable ID, references leader fill, has coin net before, audit writes to CSV, settlement traceable. Negative test non-vacuous.",
+      "evidence_file": "ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json",
+      "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717"
+    },
+    {
+      "row_id": "ENG-014",
+      "area": "ENGINE",
+      "verdict": "KEEP",
+      "why": "4/4 checks pass: idempotency guard in source, stale snapshot blocked, dedupe store blocks dupes, reordered event handled. Negative test non-vacuous.",
+      "evidence_file": "ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json",
+      "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717"
+    },
+    {
+      "row_id": "ENG-015",
+      "area": "ENGINE",
+      "verdict": "KEEP",
+      "why": "3/3 checks pass: convergence shadow selftest (disaster=True, invariant=True, sign_flip_leg1=True), static two-leg code, negative sign-flip must fail. Mutation non-vacuous.",
+      "evidence_file": "ENG-015-016-TNF17_43731b4f.json",
+      "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717"
+    },
+    {
+      "row_id": "ENG-016",
+      "area": "ENGINE",
+      "verdict": "KEEP",
+      "why": "3/3 checks pass: reconcile sleeve excludes unattributed, static unattributed attribution only, negative unattributed must fail. Mutation non-vacuous.",
+      "evidence_file": "ENG-015-016-TNF17_43731b4f.json",
+      "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717"
+    },
+    {
+      "row_id": "NET-001",
+      "area": "NETWORK",
+      "verdict": "KEEP",
+      "why": "3/3 checks pass: mainnet env uses mainnet endpoints, follower_info=https://api.hyperliquid.xyz/info, testnet env uses testnet endpoints. Negative test: unknown network rejected.",
+      "evidence_file": "NET_LIFE_SETTLE_fa9d9f55ff.json",
+      "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6"
+    },
+    {
+      "row_id": "NET-002",
+      "area": "NETWORK",
+      "verdict": "KEEP",
+      "why": "3/3 checks pass: signer distinct from master (0xaaaa vs 0xbbbb), same signer+master rejected, invalid signer rejected.",
+      "evidence_file": "NET_LIFE_SETTLE_fa9d9f55ff.json",
+      "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6"
+    },
+    {
+      "row_id": "NET-003",
+      "area": "NETWORK",
+      "verdict": "KEEP",
+      "why": "2/2 checks pass: leader=mainnet+follower=testnet, leader=testnet+follower=mainnet. Both directions tested.",
+      "evidence_file": "NET_LIFE_SETTLE_fa9d9f55ff.json",
+      "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6"
+    },
+    {
+      "row_id": "NET-006",
+      "area": "NETWORK",
+      "verdict": "KEEP",
+      "why": "1/1 check pass: BOTH_NETWORKS_CONFIGURABLE (mainnet_leader=mainnet, testnet_leader=testnet). Verified at tested commit.",
+      "evidence_file": "NET_LIFE_SETTLE_fa9d9f55ff.json",
+      "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6"
+    },
+    {
+      "row_id": "NET-007",
+      "area": "NETWORK",
+      "verdict": "KEEP",
+      "why": "1/1 check pass: CERT_LEADER_MAINNET_FOLLOWER_TESTNET (cert: leader=mainnet, follower=testnet). Verified at tested commit.",
+      "evidence_file": "NET_LIFE_SETTLE_fa9d9f55ff.json",
+      "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6"
+    },
+    {
+      "row_id": "NET-004",
+      "area": "NETWORK",
+      "verdict": "KEEP",
+      "why": "1/1 check pass: AUTO_SEND_DISABLED_GATE (HL_LIVE_AUTO_SEND_ENABLED=0). Verified at tested commit.",
+      "evidence_file": "NET_LIFE_SETTLE_fa9d9f55ff.json",
+      "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6"
+    },
+    {
+      "row_id": "NET-005",
+      "area": "NETWORK",
+      "verdict": "KEEP",
+      "why": "1/1 check pass: SINGLE_ENGINE_SHA (sha256=2dfbd5710...). Verified at tested commit.",
+      "evidence_file": "NET_LIFE_SETTLE_fa9d9f55ff.json",
+      "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6"
+    },
+    {
+      "row_id": "HEALTH-002",
+      "area": "HEALTH",
+      "verdict": "KEEP",
+      "why": "3/3 checks pass: age in write path (last_copy_poll_age_ms=120018), zero without prior poll, threshold fires/not fires correctly.",
+      "evidence_file": "HEALTH_CORRECTION_fefc2b04.json",
+      "tested_commit": "fefc2b04261c734bb32c767d2cc4a91095e65843"
+    },
+    {
+      "row_id": "HEALTH-003",
+      "area": "HEALTH",
+      "verdict": "KEEP",
+      "why": "2/2 checks pass: send block reason in state (MASTER_REAL_ORDERS_OFF), empty when auto_send enabled.",
+      "evidence_file": "HEALTH_CORRECTION_fefc2b04.json",
+      "tested_commit": "fefc2b04261c734bb32c767d2cc4a91095e65843"
+    },
+    {
+      "row_id": "HEALTH-004",
+      "area": "HEALTH",
+      "verdict": "KEEP",
+      "why": "2/2 checks pass: network_errors increments on poll failure (=1), zero on success (=0).",
+      "evidence_file": "HEALTH_CORRECTION_fefc2b04.json",
+      "tested_commit": "fefc2b04261c734bb32c767d2cc4a91095e65843"
+    },
+    {
+      "row_id": "TN-F15",
+      "area": "HEALTH",
+      "verdict": "KEEP",
+      "why": "2/2 checks pass: freshness budget gate fires (COPY_POLL_STALE), gate not fires when fresh.",
+      "evidence_file": "HEALTH_CORRECTION_fefc2b04.json",
+      "tested_commit": "fefc2b04261c734bb32c767d2cc4a91095e65843"
+    },
+    {
+      "row_id": "TN-F17",
+      "area": "ENGINE",
+      "verdict": "KEEP",
+      "why": "3/3 checks pass: direction from position, static direction from position, negative direction must fail. Mutation non-vacuous.",
+      "evidence_file": "ENG-015-016-TNF17_43731b4f.json",
+      "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717"
+    }
+  ]
+}
