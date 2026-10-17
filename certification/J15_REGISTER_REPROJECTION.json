@@ -1,0 +1,189 @@
+{
+  "task_id": "t_58784780",
+  "title": "J15 REGISTER RE-PROJECTION (read-only)",
+  "refs": {
+    "cert": "origin/cert/local-main-b142cf8",
+    "cert_sha": "b142cf88d389e791160f691aac3d936852b99975",
+    "main": "origin/main",
+    "main_sha": "3ea99f4d912b329cdd248fe068bede93a6d8bc80",
+    "cert_matrix_sha256": "86b2237fe95f88ca9eb758fb42ddbdf3efdaef71e56f79a10e2d2635f44f341a",
+    "main_matrix_sha256": "5202a4b4f4da0ef34285ca1e38d535282a8e2365ba130df18b92178c43c422e7"
+  },
+  "row_reconciliation": {
+    "cert_rows": 790,
+    "cert_ids": 790,
+    "main_rows": 832,
+    "main_ids": 832,
+    "shared": 790,
+    "only_cert": [],
+    "only_main": [
+      "ENG-017",
+      "ENG-018",
+      "ENG-019",
+      "ORD-009",
+      "ORD-010",
+      "SET-009",
+      "UI-DIFF-01",
+      "UI-ROUTE-01",
+      "UI-ROUTE-02",
+      "UI-ROUTE-03",
+      "UI-ROUTE-04",
+      "UI-ROUTE-05",
+      "UI-ROUTE-06",
+      "UI-ROUTE-07",
+      "UI-ROUTE-08",
+      "UI-ROUTE-09",
+      "UI-ROUTE-10",
+      "UI-ROUTE-11",
+      "UI-ROUTE-12",
+      "UI-ROUTE-13",
+      "UI-ROUTE-14",
+      "UI-ROUTE-15",
+      "UI-ROUTE-16",
+      "UI-ROUTE-17",
+      "UI-ROUTE-18",
+      "UI-ROUTE-19",
+      "UI-ROUTE-20",
+      "UI-ROUTE-21",
+      "UI-ROUTE-22",
+      "UI-ROUTE-23",
+      "UI-ROUTE-24",
+      "UI-ROUTE-25",
+      "UI-ROUTE-26",
+      "UI-ROUTE-27",
+      "UI-ROUTE-28",
+      "UI-ROUTE-29",
+      "UI-ROUTE-30",
+      "UI-ROUTE-31",
+      "UI-ROUTE-32",
+      "UI-ROUTE-33",
+      "UI-ROUTE-34",
+      "UI-ROUTE-35"
+    ],
+    "only_main_count": 42,
+    "union": 832,
+    "working": "790 cert + 42 main-only = 832 union 832"
+  },
+  "result_composition": {
+    "cert_branch": {
+      "PASS": 579,
+      "BLOCKED": 13,
+      "FAIL": 76,
+      "NOT_TESTED": 122
+    },
+    "main_branch": {
+      "NOT_TESTED": 832
+    },
+    "shared_row_result_drift": {
+      "NOT_TESTED_to_PASS": 579,
+      "NOT_TESTED_to_FAIL": 76,
+      "NOT_TESTED_to_BLOCKED": 13
+    },
+    "drift_total": 668,
+    "note": "Every shared row is NOT_TESTED on main and carries a verdict on the cert branch: drift is a pure forward move, zero conflicts in either direction."
+  },
+  "schema_drift": {
+    "only_main": [
+      "proof_network"
+    ],
+    "only_cert": []
+  },
+  "pass_resolvability": {
+    "pass_rows_total": 579,
+    "pass_rows_fully_resolvable": 579,
+    "pass_rows_missing_evidence": [],
+    "pass_rows_unresolvable_commit": [],
+    "distinct_evidence_refs": 14,
+    "distinct_tested_commits": 5,
+    "tested_commit_types": {
+      "43731b4f1f19a56e835032dabf608a550f925717": "commit",
+      "fa9d9f55fffa74cb6888c471d97d1655267999b6": "commit",
+      "2d29211148c9ba8498bade2d5791ed908f193708": "commit",
+      "fefc2b04261c734bb32c767d2cc4a91095e65843": "commit",
+      "2a269ad2260270fee844eedc2cc23545abc91dd0": "commit"
+    },
+    "method": "git cat-file -e origin/cert/local-main-b142cf8:<evidence_ref>; git cat-file -t <tested_commit>"
+  },
+  "evidence_files": {
+    "certification_results_files_on_cert_branch": 68,
+    "cited_by_pass_rows": 14,
+    "all_cited_present": true,
+    "missing": [],
+    "per_file": {
+      "certification/results/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json": {
+        "present": true,
+        "bytes": 8774
+      },
+      "certification/results/ENG-INV-03-05_43731b4f.json": {
+        "present": true,
+        "bytes": 1305
+      },
+      "certification/results/ENG-INV-06-09_43731b4.json": {
+        "present": true,
+        "bytes": 8878
+      },
+      "certification/results/ENG-INV-10-14_43731b4f.json": {
+        "present": true,
+        "bytes": 7805
+      },
+      "certification/results/ENG-005-009_43731b4f.json": {
+        "present": true,
+        "bytes": 6646
+      },
+      "certification/results/ENG-015-016-TNF17_43731b4f.json": {
+        "present": true,
+        "bytes": 4276
+      },
+      "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json": {
+        "present": true,
+        "bytes": 14644
+      },
+      "certification/results/RISK_fa9d9f55.json": {
+        "present": true,
+        "bytes": 5404
+      },
+      "certification/results/WALLET_fa9d9f55ff.json": {
+        "present": true,
+        "bytes": 15574
+      },
+      "certification/results/UI_CORRECTION_2d29211.json": {
+        "present": true,
+        "bytes": 53394
+      },
+      "certification/results/HEALTH_CORRECTION_fefc2b04.json": {
+        "present": true,
+        "bytes": 1988
+      },
+      "certification/results/CONTROL_fa9d9f55ff.json": {
+        "present": true,
+        "bytes": 227323
+      },
+      "certification/results/REGRESSION_fa9d9f55ff.json": {
+        "present": true,
+        "bytes": 80022
+      },
+      "certification/results/NLS_RESIDUAL_2a269ad226.json": {
+        "present": true,
+        "bytes": 9182
+      }
+    }
+  },
+  "merged_projection": {
+    "rule": "For ids present on both branches the cert-branch row wins (main has only NOT_TESTED there); the 42 main-only ids keep their main result. A PASS row whose evidence file or tested_commit does not resolve is demoted to NOT_TESTED.",
+    "total_rows": 832,
+    "by_result": {
+      "PASS": 579,
+      "FAIL": 76,
+      "NOT_TESTED": 164,
+      "BLOCKED": 13
+    },
+    "demoted_rows": [],
+    "demotion_note": "None: all 579 PASS rows fully resolve, so the projection equals cert composition plus 42 main-only NOT_TESTED."
+  },
+  "assumptions": [
+    "certification/results/*.json evidence files are the intended evidence objects; resolvability is checked as file-presence on the cert branch plus commit object existence, not by re-reading the JSON verdicts.",
+    "Row identity is the record id field; ids are unique in both files (790/832 unique).",
+    "Merged row count means the union of ids, not a git three-way merge of file bytes.",
+    "No verdict was re-probed or changed; arithmetic only."
+  ]
+}
