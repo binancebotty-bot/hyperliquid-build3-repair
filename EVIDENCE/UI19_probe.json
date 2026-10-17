@@ -1,0 +1,170 @@
+{
+  "captured_at_utc": "2026-10-17T17:28:17.877305+00:00",
+  "base": "http://127.0.0.1:8031",
+  "method": "GET only; no state mutation",
+  "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+  "results": [
+    {
+      "row_id": "UI-SSOT-PAGE-03",
+      "path": "/api/state",
+      "status": 200,
+      "content_type": "application/json",
+      "bytes": 1399,
+      "shape": [
+        "app_health",
+        "auto_send_enabled",
+        "files",
+        "global_controls",
+        "note",
+        "ok",
+        "send_mode",
+        "updated_at",
+        "wallet_gate_on",
+        "wallet_gate_on_count"
+      ],
+      "body_preview": "{\"ok\":true,\"updated_at\":\"2026-10-17T17:27:57.194523+00:00\",\"auto_send_enabled\":true,\"send_mode\":\"ON\",\"wallet_gate_on_count\":0,\"wallet_gate_on\":[],\"global_controls\":{\"max_total_live_exposure_usd\":5000.0,\"max_asset_directional_exposure_usd\":2000.0,\"max_daily_loss_usd\":1000.0,\"max_wallet_exposure_usd\":600.0,\"max_order_notional_usd\":500.0,\"marketable_bps\":20.0,\"max_close_adverse_diff_pct\":0.0,\"symbol_"
+    },
+    {
+      "row_id": "UI-SSOT-PAGE-04",
+      "path": "/api/metrics",
+      "status": 200,
+      "content_type": "application/json",
+      "bytes": 2777,
+      "shape": [
+        "portfolio",
+        "wallets"
+      ],
+      "body_preview": "{\"wallets\":[{\"wallet\":\"0x7ae3b08bb4e7b085c6db5d635b96bec9715e9205\",\"is_user_wallet\":true,\"alloc\":100.0,\"lead\":{\"alloc\":100.0,\"equity\":100.0,\"realized\":0,\"realised\":0,\"unrealized\":0,\"unrealised\":0,\"drawdown\":0,\"drawdown_usd\":0,\"drawdown_pct\":0.0,\"max_drawdown\":0.0,\"maxdd\":0.0,\"max_drawdown_pct\":0.0,\"peak\":100.0,\"peak_equity\":100.0},\"copy\":{\"alloc\":100.0,\"equity\":100.0,\"realized\":0,\"realised\":0,\"unr"
+    },
+    {
+      "row_id": "UI-SSOT-PAGE-05",
+      "path": "/api/trades/0x7ae3b08bb4e7b085c6db5d635b96bec9715e9205",
+      "status": 200,
+      "content_type": "application/json",
+      "bytes": 2,
+      "shape": "list:0",
+      "body_preview": "[]"
+    },
+    {
+      "row_id": "UI-SSOT-PAGE-06",
+      "path": "/api/equity/0x7ae3b08bb4e7b085c6db5d635b96bec9715e9205",
+      "status": 200,
+      "content_type": "application/json",
+      "bytes": 186,
+      "shape": "list:1",
+      "body_preview": "[{\"ts\":\"1970-01-01T00:00:00+00:00\",\"lead_pnl\":0.0,\"lead_equity\":100.0,\"lead_drawdown\":0.0,\"copy_pnl\":0.0,\"copy_equity\":100.0,\"copy_drawdown\":0.0,\"pnl\":0.0,\"equity\":100.0,\"drawdown\":0.0}]"
+    },
+    {
+      "row_id": "UI-SSOT-PAGE-07",
+      "path": "/api/ui-state",
+      "status": 200,
+      "content_type": "application/json",
+      "bytes": 293,
+      "shape": [
+        "copy_friction_bps",
+        "copy_mode",
+        "fee_bps",
+        "fixed_notional",
+        "leader_equity_base",
+        "norm_base",
+        "normalisation_mode",
+        "ranking",
+        "user_norm_base",
+        "wallet_config",
+        "wallet_include",
+        "wallet_meta"
+      ],
+      "body_preview": "{\"norm_base\":100.0,\"user_norm_base\":100.0,\"copy_mode\":\"proportional\",\"normalisation_mode\":\"equity\",\"fixed_notional\":100.0,\"leader_equity_base\":10000.0,\"fee_bps\":5.0,\"copy_friction_bps\":0.0,\"wallet_config\":{},\"wallet_include\":{},\"wallet_meta\":{},\"ranking\":{\"column\":\"wallet\",\"direction\":\"asc\"}}"
+    },
+    {
+      "row_id": "UI-SSOT-PAGE-08",
+      "path": "/api/norm",
+      "status": 405,
+      "body_preview": "{\"detail\":\"Method Not Allowed\"}"
+    },
+    {
+      "row_id": "UI-SSOT-PAGE-09",
+      "path": "/api/reset-app-history",
+      "status": 405,
+      "body_preview": "{\"detail\":\"Method Not Allowed\"}"
+    },
+    {
+      "row_id": "UI-SSOT-PAGE-10",
+      "path": "/api/snapshot",
+      "status": 405,
+      "body_preview": "{\"detail\":\"Method Not Allowed\"}"
+    },
+    {
+      "row_id": "UI-SSOT-PAGE-11",
+      "path": "/api/live-config",
+      "status": 200,
+      "content_type": "application/json",
+      "bytes": 2821,
+      "shape": [
+        "active_wallets",
+        "config",
+        "max_wallets",
+        "ok",
+        "wallet_count"
+      ],
+      "body_preview": "{\"ok\":true,\"config\":{\"archived_wallets\":{},\"auto_send_enabled\":true,\"global_controls\":{\"max_total_live_exposure_usd\":5000.0,\"max_asset_directional_exposure_usd\":2000.0,\"max_daily_loss_usd\":1000.0,\"max_wallet_exposure_usd\":600.0,\"max_order_notional_usd\":500.0,\"marketable_bps\":20.0,\"max_close_adverse_diff_pct\":0.0,\"symbol_allowlist\":[],\"symbol_blocklist\":[\"HYPE\",\"PENGU\",\"RESOLV\"]},\"wallets\":{\"0x0000"
+    },
+    {
+      "row_id": "UI-SSOT-PAGE-12",
+      "path": "/api/global-controls",
+      "status": 200,
+      "content_type": "application/json",
+      "bytes": 620,
+      "shape": [
+        "global_controls",
+        "networks",
+        "ok"
+      ],
+      "body_preview": "{\"ok\":true,\"global_controls\":{\"max_total_live_exposure_usd\":5000.0,\"max_asset_directional_exposure_usd\":2000.0,\"max_daily_loss_usd\":1000.0,\"max_wallet_exposure_usd\":600.0,\"max_order_notional_usd\":500.0,\"marketable_bps\":20.0,\"max_close_adverse_diff_pct\":0.0,\"symbol_allowlist\":[],\"symbol_blocklist\":[\"HYPE\",\"PENGU\",\"RESOLV\"],\"marketable_slippage_pct\":0.2,\"marketable_slippage_off\":false,\"close_adverse"
+    },
+    {
+      "row_id": "UI-SSOT-PAGE-13",
+      "path": "/api/live-ws-health",
+      "status": 200,
+      "content_type": "application/json",
+      "bytes": 2273,
+      "shape": [
+        "health",
+        "ok"
+      ],
+      "body_preview": "{\"ok\":true,\"health\":{\"created_at\":\"2026-10-17T17:27:53.787965+00:00\",\"created_at_ms\":1792258073787,\"wallets\":{\"0x010461c14e146ac35fe42271bdc1134ee31c703a\":{\"last_error\":\"\",\"last_message_ms\":1792258073394,\"stale\":false,\"stale_ms\":393},\"0x1b232b41b0e75550c59288b99874e4a8142fbe21\":{\"last_error\":\"\",\"last_message_ms\":1792258066511,\"stale\":false,\"stale_ms\":7276},\"0x31ca8395cf837de08b24da3f660e77761dfb97"
+    },
+    {
+      "row_id": "UI-SSOT-PAGE-14",
+      "path": "/api/live-audit-summary",
+      "error": "TimeoutError: timed out"
+    },
+    {
+      "row_id": "UI-SSOT-PAGE-15",
+      "path": "/",
+      "status": 200,
+      "content_type": "text/html; charset=utf-8",
+      "bytes": 87350,
+      "shape": "html/text",
+      "body_preview": "<!doctype html>\n<html>\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<title>Live Copy Dashboard</title>\n<style>html,body{margin:0;padding:0;background:#070c11;color:#e6edf5;font-family:Arial,Helvetica,sans-serif}</style>\n</head>\n<body>\n\n<div class=\"section live-copy-centre\" id=\"liveCopyPanel\">\n  <header class=\"lc-header\">\n    <div class=\"lc-titl"
+    },
+    {
+      "row_id": "UI-TRUTH-001",
+      "path": "/live-copy",
+      "status": 200,
+      "content_type": "text/html; charset=utf-8",
+      "bytes": 87350,
+      "shape": "html/text",
+      "body_preview": "<!doctype html>\n<html>\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<title>Live Copy Dashboard</title>\n<style>html,body{margin:0;padding:0;background:#070c11;color:#e6edf5;font-family:Arial,Helvetica,sans-serif}</style>\n</head>\n<body>\n\n<div class=\"section live-copy-centre\" id=\"liveCopyPanel\">\n  <header class=\"lc-header\">\n    <div class=\"lc-titl"
+    },
+    {
+      "row_id": "UI-TRUTH-002",
+      "path": "/live-copy",
+      "status": 200,
+      "content_type": "text/html; charset=utf-8",
+      "bytes": 87350,
+      "shape": "html/text",
+      "body_preview": "<!doctype html>\n<html>\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<title>Live Copy Dashboard</title>\n<style>html,body{margin:0;padding:0;background:#070c11;color:#e6edf5;font-family:Arial,Helvetica,sans-serif}</style>\n</head>\n<body>\n\n<div class=\"section live-copy-centre\" id=\"liveCopyPanel\">\n  <header class=\"lc-header\">\n    <div class=\"lc-titl"
+    }
+  ]
+}
