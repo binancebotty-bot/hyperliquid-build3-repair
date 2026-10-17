@@ -1,0 +1,224 @@
+{
+  "task_id": "t_55cfc76a",
+  "title": "PASS-AUDIT slice 5 \u2014 UI-FP 001\u2013100 unaudited PASS rows (\u226430 rows)",
+  "register": "origin/cert/local-main-b142cf8",
+  "register_sha": "b142cf88d389e791160f691aac3d936852b99975",
+  "scope": "UI-FP-NNN with NNN \u2264 100, result=PASS",
+  "total_pass_rows": 76,
+  "audited": 30,
+  "keep": 0,
+  "demote": 30,
+  "remaining_unaudited": 46,
+  "remaining_unaudited_ids": [
+    "UI-FP-043",
+    "UI-FP-044",
+    "UI-FP-045",
+    "UI-FP-046",
+    "UI-FP-047",
+    "UI-FP-049",
+    "UI-FP-050",
+    "UI-FP-051",
+    "UI-FP-053",
+    "UI-FP-056",
+    "UI-FP-057",
+    "UI-FP-058",
+    "UI-FP-059",
+    "UI-FP-061",
+    "UI-FP-062",
+    "UI-FP-063",
+    "UI-FP-064",
+    "UI-FP-065",
+    "UI-FP-066",
+    "UI-FP-067",
+    "UI-FP-068",
+    "UI-FP-069",
+    "UI-FP-070",
+    "UI-FP-071",
+    "UI-FP-072",
+    "UI-FP-073",
+    "UI-FP-074",
+    "UI-FP-075",
+    "UI-FP-077",
+    "UI-FP-080",
+    "UI-FP-081",
+    "UI-FP-082",
+    "UI-FP-083",
+    "UI-FP-085",
+    "UI-FP-086",
+    "UI-FP-087",
+    "UI-FP-091",
+    "UI-FP-092",
+    "UI-FP-093",
+    "UI-FP-094",
+    "UI-FP-095",
+    "UI-FP-096",
+    "UI-FP-097",
+    "UI-FP-098",
+    "UI-FP-099",
+    "UI-FP-100"
+  ],
+  "audit_commits_not_found": [
+    "8b8c114",
+    "9a7ae8d",
+    "e99b288",
+    "3a78996"
+  ],
+  "note": "The 4 audit commits (8b8c114, 9a7ae8d, e99b288, 3a78996) referenced in the task body could not be located in any repo on this system. All 76 UI-FP-001..100 PASS rows were candidates. Since 76 > 30, the first 30 were audited and the remaining 46 are recorded as still-unaudited.",
+  "execution_proof_common": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+  "independent_oracle_common": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+  "evidence_ref_common": "certification/results/UI_CORRECTION_2d29211.json",
+  "tested_commit_common": "2d29211148c9ba8498bade2d5791ed908f193708",
+  "results": [
+    {
+      "row_id": "UI-FP-001",
+      "verdict": "DEMOTE",
+      "why": "execution_proof and independent_oracle are carried boilerplate (identical across all 76 rows); no row-specific proof"
+    },
+    {
+      "row_id": "UI-FP-002",
+      "verdict": "DEMOTE",
+      "why": "execution_proof and independent_oracle are carried boilerplate (identical across all 76 rows); no row-specific proof"
+    },
+    {
+      "row_id": "UI-FP-003",
+      "verdict": "DEMOTE",
+      "why": "execution_proof and independent_oracle are carried boilerplate (identical across all 76 rows); no row-specific proof"
+    },
+    {
+      "row_id": "UI-FP-004",
+      "verdict": "DEMOTE",
+      "why": "execution_proof and independent_oracle are carried boilerplate (identical across all 76 rows); no row-specific proof"
+    },
+    {
+      "row_id": "UI-FP-005",
+      "verdict": "DEMOTE",
+      "why": "execution_proof and independent_oracle are carried boilerplate (identical across all 76 rows); no row-specific proof"
+    },
+    {
+      "row_id": "UI-FP-006",
+      "verdict": "DEMOTE",
+      "why": "execution_proof and independent_oracle are carried boilerplate (identical across all 76 rows); no row-specific proof"
+    },
+    {
+      "row_id": "UI-FP-007",
+      "verdict": "DEMOTE",
+      "why": "execution_proof and independent_oracle are carried boilerplate (identical across all 76 rows); no row-specific proof"
+    },
+    {
+      "row_id": "UI-FP-015",
+      "verdict": "DEMOTE",
+      "why": "execution_proof and independent_oracle are carried boilerplate (identical across all 76 rows); no row-specific proof"
+    },
+    {
+      "row_id": "UI-FP-016",
+      "verdict": "DEMOTE",
+      "why": "execution_proof and independent_oracle are carried boilerplate (identical across all 76 rows); no row-specific proof"
+    },
+    {
+      "row_id": "UI-FP-018",
+      "verdict": "DEMOTE",
+      "why": "execution_proof and independent_oracle are carried boilerplate (identical across all 76 rows); no row-specific proof"
+    },
+    {
+      "row_id": "UI-FP-019",
+      "verdict": "DEMOTE",
+      "why": "execution_proof and independent_oracle are carried boilerplate (identical across all 76 rows); no row-specific proof"
+    },
+    {
+      "row_id": "UI-FP-020",
+      "verdict": "DEMOTE",
+      "why": "execution_proof and independent_oracle are carried boilerplate (identical across all 76 rows); no row-specific proof"
+    },
+    {
+      "row_id": "UI-FP-021",
+      "verdict": "DEMOTE",
+      "why": "execution_proof and independent_oracle are carried boilerplate (identical across all 76 rows); no row-specific proof"
+    },
+    {
+      "row_id": "UI-FP-022",
+      "verdict": "DEMOTE",
+      "why": "execution_proof and independent_oracle are carried boilerplate (identical across all 76 rows); no row-specific proof"
+    },
+    {
+      "row_id": "UI-FP-023",
+      "verdict": "DEMOTE",
+      "why": "execution_proof and independent_oracle are carried boilerplate (identical across all 76 rows); no row-specific proof"
+    },
+    {
+      "row_id": "UI-FP-024",
+      "verdict": "DEMOTE",
+      "why": "execution_proof and independent_oracle are carried boilerplate (identical across all 76 rows); no row-specific proof"
+    },
+    {
+      "row_id": "UI-FP-026",
+      "verdict": "DEMOTE",
+      "why": "execution_proof and independent_oracle are carried boilerplate (identical across all 76 rows); no row-specific proof"
+    },
+    {
+      "row_id": "UI-FP-027",
+      "verdict": "DEMOTE",
+      "why": "execution_proof and independent_oracle are carried boilerplate (identical across all 76 rows); no row-specific proof"
+    },
+    {
+      "row_id": "UI-FP-028",
+      "verdict": "DEMOTE",
+      "why": "execution_proof and independent_oracle are carried boilerplate (identical across all 76 rows); no row-specific proof"
+    },
+    {
+      "row_id": "UI-FP-031",
+      "verdict": "DEMOTE",
+      "why": "execution_proof and independent_oracle are carried boilerplate (identical across all 76 rows); no row-specific proof"
+    },
+    {
+      "row_id": "UI-FP-032",
+      "verdict": "DEMOTE",
+      "why": "execution_proof and independent_oracle are carried boilerplate (identical across all 76 rows); no row-specific proof"
+    },
+    {
+      "row_id": "UI-FP-033",
+      "verdict": "DEMOTE",
+      "why": "execution_proof and independent_oracle are carried boilerplate (identical across all 76 rows); no row-specific proof"
+    },
+    {
+      "row_id": "UI-FP-034",
+      "verdict": "DEMOTE",
+      "why": "execution_proof and independent_oracle are carried boilerplate (identical across all 76 rows); no row-specific proof"
+    },
+    {
+      "row_id": "UI-FP-035",
+      "verdict": "DEMOTE",
+      "why": "execution_proof and independent_oracle are carried boilerplate (identical across all 76 rows); no row-specific proof"
+    },
+    {
+      "row_id": "UI-FP-036",
+      "verdict": "DEMOTE",
+      "why": "execution_proof and independent_oracle are carried boilerplate (identical across all 76 rows); no row-specific proof"
+    },
+    {
+      "row_id": "UI-FP-037",
+      "verdict": "DEMOTE",
+      "why": "execution_proof and independent_oracle are carried boilerplate (identical across all 76 rows); no row-specific proof"
+    },
+    {
+      "row_id": "UI-FP-038",
+      "verdict": "DEMOTE",
+      "why": "execution_proof and independent_oracle are carried boilerplate (identical across all 76 rows); no row-specific proof"
+    },
+    {
+      "row_id": "UI-FP-039",
+      "verdict": "DEMOTE",
+      "why": "execution_proof and independent_oracle are carried boilerplate (identical across all 76 rows); no row-specific proof"
+    },
+    {
+      "row_id": "UI-FP-040",
+      "verdict": "DEMOTE",
+      "why": "execution_proof and independent_oracle are carried boilerplate (identical across all 76 rows); no row-specific proof"
+    },
+    {
+      "row_id": "UI-FP-042",
+      "verdict": "DEMOTE",
+      "why": "execution_proof and independent_oracle are carried boilerplate (identical across all 76 rows); no row-specific proof"
+    }
+  ],
+  "summary": "audited=30 KEEP=0 DEMOTE=30 remaining_unaudited=46"
+}
