@@ -1,0 +1,149 @@
+{
+ "review_task_id": "t_289e1d8a",
+ "reviewed_work_task_id": "t_4b8fc417",
+ "reviewed_branch": "hermes/cert6-ui-wallet-t_4b8fc417",
+ "reviewed_head": "6c6222603a01680aefbbec4ff0ab77cf3c9a586c",
+ "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+ "reviewer_lane": "custom-deepseek-free / deepseek-v4-flash-thinking-nosearch",
+ "author_lane": "custom-deepseek-free / deepseek-v4-flash-thinking-nosearch",
+ "reviewer_independence": "SAME provider and model as the author. Independence was procedure-only: claims re-derived from the commit object, from the register on origin/cert/local-main-b142cf8, from a fresh git-archive tree under py3.11, and from a live DOM read of port 8031. Recorded as a weakness; prefer a different model for adversarial review of this lane.",
+ "process_rule": {
+  "commit_committed_at_utc": "2026-10-17T07:18:14Z",
+  "serving_process_started_at_utc": "2026-10-17T10:54:09Z",
+  "commit_predates_process": true,
+  "verdict": "BINDING_LEGITIMATE"
+ },
+ "evidence_resolution": {
+  "certification/results/UI_WALLET_002_016_t_4b8fc417.json": "EXISTS on branch",
+  "certification/results/UI_WALLET_002_016_t_4b8fc417_EVIDENCE.json": "EXISTS on branch, 5721 bytes, 16 populated sections",
+  "origin/cert/local-main-b142cf8:certification/certification_matrix.json": "EXISTS; records[].id carries UI-WALLET-001..019",
+  "missing_citations": 0
+ },
+ "overall_verdict": "FAIL",
+ "verdict_counts": {
+  "NOT_TESTED": 3,
+  "FAIL": 7,
+  "PASS": 5
+ },
+ "author_claimed_counts": {
+  "PASS": 7,
+  "FAIL": 5,
+  "NOT_TESTED": 3
+ },
+ "demotions": [
+  {
+   "row_id": "UI-WALLET-003",
+   "from": "PASS",
+   "to": "FAIL"
+  },
+  {
+   "row_id": "UI-WALLET-012",
+   "from": "PASS",
+   "to": "FAIL"
+  }
+ ],
+ "rows": [
+  {
+   "row_id": "UI-WALLET-002",
+   "verdict": "NOT_TESTED",
+   "probe": "Register applicability OPEN_DECISION with open_decisions OD-13. Grepped for archived-sleeve close management: only archived_manual_residuals accounting exists; ConfigManager.wallets() never returns archived wallets; archived_cfg is read at Core L2547-2555 solely to route residuals.",
+   "why": "Agree. An OPEN_DECISION row cannot be certified until ruled and the named missing component is real. Row-bound: names archived-sleeve close management, which no sibling row mentions."
+  },
+  {
+   "row_id": "UI-WALLET-003",
+   "verdict": "FAIL",
+   "probe": "L11014-11018 loads last_leader_poll_cursor_ms. L11115-11118 skips mode OFF wallets via continue BEFORE the cursor advances, so a disabled wallet cursor FREEZES. L11119 sets start = max(cursor-30000, now-7d). Grep for enabled_at / copied_since / no_catchup filters returned NONE. Replay window computed: frozen 1h -> 3630s replayed, 1d -> 86430s, 3d -> 259230s.",
+   "why": "DEMOTED from PASS. The author probe searched for a written catchup key on enable and, finding none, concluded no catch-up; that predicate is VACUOUS here because the mechanism is the frozen per-wallet poll cursor, not a config key. A leader entry opened while the wallet was OFF remains inside the replay window on re-enable and nothing suppresses it: missed_entry_decision (L361) is documented to take a fill however late within tolerance, else rest a limit at the leader price - that is copying the leader current position on enable. Partial mitigation only: already_closed_late_entries suppresses a late entry only when the leader went flat later in the same batch. Proof is static and deterministic, not a live send."
+  },
+  {
+   "row_id": "UI-WALLET-004",
+   "verdict": "FAIL",
+   "probe": "_decision at Core L4201-4206: the first two guards are not wallet_enabled -> BLOCKED_OFF and mode OFF -> BLOCKED_OFF, both before the lifecycle branch that returns EXIT_ALLOWED. EXIT_ALLOWED at L8222 and L12320 is built from a reduce_only flag, i.e. the manual path, not follower management.",
+   "why": "Agree with FAIL. Row-bound: with mode OFF an EXIT on an already-owned sleeve is refused, so owned exposure is not safely managed. The justification would fail for a sibling that only required entries to be blocked."
+  },
+  {
+   "row_id": "UI-WALLET-005",
+   "verdict": "PASS",
+   "probe": "Core L4201-4250: CLO blocks only lifecycle ENTRY and ADD; the fall-through returns EXIT_ALLOWED for EXIT. CLO is a real persisted mode (CLOSE_ONLY maps to CLO). The three predicates were evaluated separately rather than asserted as one blanket result.",
+   "why": "PASS holds. Only row asserting the CLO asymmetry and the code shows exactly that asymmetry. Weaker point: applied to the entry component before netting is asserted, not demonstrated with a netting fixture."
+  },
+  {
+   "row_id": "UI-WALLET-006",
+   "verdict": "FAIL",
+   "probe": "Fetched the live panel at 127.0.0.1:8031/live-copy (HTTP 200) and grepped the served HTML: exact-case HOLD 0 matches; case-insensitive fail-closed 0; OD-02 0. An earlier count of 14 was MY instrument error (it matched hold/holding substrings) and was corrected by isolating the terms. Register expected_behaviour requires fixed is HOLD fail-closed until OD-02 ruled and the UI says so.",
+   "why": "Agree with FAIL; could not disprove it. The UI obligation is affirmative and the served DOM does not meet it. Stricter verdict upheld despite the row being OPEN_DECISION, because the requirement carries a concrete currently-false UI clause independent of how OD-02 is ruled."
+  },
+  {
+   "row_id": "UI-WALLET-007",
+   "verdict": "PASS",
+   "probe": "Ran _normalise_live_wallet_payload on a fresh git-archive tree of the tested commit under py3.11: existing norm_base 250.0 with payload -5 stored 1.0 (clamped, not dropped). Per-key persistence corroborated by the two-process restart evidence (fresh ConfigManager reads 321.0 while fixed_notional stays 12.5).",
+   "why": "PASS holds on norm_base >= 1 persists and changes proportional copy scale. Correction to the author wording (does not change this verdict): a non-numeric norm_base does NOT fall back harmlessly - it resets the stored value to the hardcoded 100. See row 012."
+  },
+  {
+   "row_id": "UI-WALLET-008",
+   "verdict": "NOT_TESTED",
+   "probe": "Register applicability OPEN_DECISION, open_decisions OD-02. Located the live unruled consumer: IntentBuilder._copy_notional at Core L4187-4189, fixed branch = fixed_notional * max(1, merged_fill_count), live for every wallet stored as copy_mode fixed (the default).",
+   "why": "Agree. Persistence is proven, but used only by ruled fixed semantics cannot be asserted while OD-02 is unruled and the fixed branch actively sizes. Row-specific: names the _copy_notional fixed branch; row 006 names the missing UI disclosure."
+  },
+  {
+   "row_id": "UI-WALLET-009",
+   "verdict": "FAIL",
+   "probe": "HL_Copy_App_SSOT.py L1000 defines ENGINE_IGNORED_WALLET_KEYS = (leader_equity_base, max_diff_pct, daily_loss_limit); the normaliser carry-forward loop at L1021 drops any key in that tuple. The drop is deliberate and commented as dropped on save so no control looks live while doing nothing.",
+   "why": "Agree with FAIL. leader_equity_base >= 1 persists and is a sizing input fails on the persist half by construction; the ENGINE_IGNORED claim is independently confirmed."
+  },
+  {
+   "row_id": "UI-WALLET-010",
+   "verdict": "PASS",
+   "probe": "Fetched the live panel (HTTP 200, ~87KB) and checked that rows differ rather than share boilerplate: per-wallet tuples one sweep could not produce (0x936cf4fb 1928.19 / 15 pos / DD -27.47 / MON SELL vs 0xc179e039 161.23 / 4 pos / DD -25 / SOL SELL vs 0x1b232b41 0 / 0 pos / none yet; OFF rows read not followed while LIVE rows read Websocket OK).",
+   "why": "PASS holds. This is the row where duplicated justification would have been fatal; the evidence is per-wallet and mutually inconsistent in the right way. Caveat: I confirmed the render and its distinctness from the live DOM but did not re-query the exchange per wallet, so the matches-exchange-truth clause rests on the author oracle rather than my own re-derivation."
+  },
+  {
+   "row_id": "UI-WALLET-011",
+   "verdict": "PASS",
+   "probe": "Assessed the restart evidence structure: a writer process persists via the HTTP route, a separate reader process rebuilds ConfigManager over the same file and returns CLO/true/proportional/321.0/12.5; the isolated audit dir held no send_attempts.csv. Genuine two-process test, not an in-process round-trip.",
+   "why": "PASS holds; the only row asserting survival across restart. Weaker point I could not disprove: restart creates no orders rests on absence of send_attempts.csv in an isolated dir - consistent, but an absence-of-evidence argument."
+  },
+  {
+   "row_id": "UI-WALLET-012",
+   "verdict": "FAIL",
+   "probe": "Reproduced the matrix under py3.11: BAD_WALLET, BAD_MODE and BAD_COPY_MODE raise correctly; norm_base -5 clamps to 1.0. Then moved the fixture off the author value. Existing fixed_notional 42.0 with payload abc stored 10 (the hardcoded fnum default), NOT 42. Existing norm_base 250.0 with payload abc stored 100, NOT 250. Root cause L1019-1020: fnum collapses an unparseable payload value to DEFAULT and never consults base because the payload key is present.",
+   "why": "DEMOTED from PASS. The requirement is rejected or clamped exactly as documented, the UI shows the error, config unchanged. A non-numeric field silently rewrites the stored setting to a hardcoded default, so config is NOT unchanged and no error reaches the operator. The author fixture used existing fixed_notional 10, numerically identical to the fallback default - the fixture masked the very defect it was meant to expose."
+  },
+  {
+   "row_id": "UI-WALLET-013",
+   "verdict": "FAIL",
+   "probe": "/api/set-wallet-mode at L7865-7873 has an explicit guard forcing the user wallet to OFF, and purge raises CANNOT_PURGE_USER_WALLET at L513-514. /api/live-config/add-wallet at L8035-8050 has NO user-wallet guard: it normalises, merges and saves, so the Live Copy surface can persist the account wallet as LIVE enabled true.",
+   "why": "Agree with FAIL, confirmed by reading the route bodies rather than the summary. Row-bound: the guard exists on the legacy writer only, which is exactly the asymmetry the row is about."
+  },
+  {
+   "row_id": "UI-WALLET-014",
+   "verdict": "FAIL",
+   "probe": "repair_live_config_consistency at L979-996 touches only mode and enabled WITHIN live_config and never reads or writes wallet_gate.json. Engine wallet_mode at Core L3082-3090 reads only self.wallet_cfg, i.e. live_config; wallet_gate.json appears in Core at exactly three sites, none feeding wallet_mode (L152 path constant, L10990 comment, L11365 test tmpdir). Register open_decisions OD-05.",
+   "why": "Agree with FAIL, with a stronger mechanism than the two-file observation: the legacy gate file is effectively dead authority for the engine, so a UI showing gate ON while live_config says OFF is not merely unreconciled, it is misleading."
+  },
+  {
+   "row_id": "UI-WALLET-015",
+   "verdict": "NOT_TESTED",
+   "probe": "Register applicability OPEN_DECISION, open_decisions OD-13. Read purge_wallet_everywhere at L510-556: the only refusal is CANNOT_PURGE_USER_WALLET; no exposure guard exists on the non-user path, which removes the wallet from config/audit/derived files unconditionally.",
+   "why": "Agree. The refused-or-safe-when-owning-exposure branch is ABSENT rather than failing, so the row cannot be certified either way until OD-13 is ruled. Row-specific: names the missing exposure guard, distinct from the row 002 archived-sleeve issue under the same OD."
+  },
+  {
+   "row_id": "UI-WALLET-016",
+   "verdict": "PASS",
+   "probe": "grep -c wallet_include against HL_Live_Copy_Service_Core.py and HL_Live_Copy_Service.py on the tested commit returned NO MATCHES in either file, so the toggle cannot reach sizing or order construction. Corroborated that the write lands only in ui_state.wallet_include and the wallet live_config mode is OFF before and after.",
+   "why": "PASS holds; the cleanest row in the batch because the negative is proven by a source census over the whole engine rather than a single probe. Row-bound to the INC aggregation toggle."
+  }
+ ],
+ "rejected_items": [
+  "UI-WALLET-003",
+  "UI-WALLET-012"
+ ],
+ "required_changes": [
+  "UI-WALLET-003: either suppress pre-enable history at the LIVE transition (per-wallet enable timestamp, or a cursor reset written by the enable path) and prove it by injecting a leader fill older than the enable instant, or record the catch-up as a product defect for ruling. A probe that only looks for a catchup key is not acceptable evidence for this row.",
+  "UI-WALLET-012: a non-numeric norm_base or fixed_notional must be rejected or must preserve the stored value. Re-run the matrix with existing values NOT equal to the hardcoded defaults (42.0 and 250.0); the current fixture of 10 masks the silent reset."
+ ],
+ "non_blocking_corrections": [
+  "Row 007 why-text claims a non-numeric norm_base falls back without corrupting the stored value. That is false (250 becomes 100). The row still passes its own requirement; fix the wording.",
+  "This review shares the author provider and model; independence was procedure-only."
+ ]
+}
