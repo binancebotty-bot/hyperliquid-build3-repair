@@ -1,0 +1,7 @@
+UI-FP RE-EARN BLOCKER — task t_6f2624fd
+Observed 2026-10-17 (UTC offset +01:00).
+Live endpoint: http://127.0.0.1:8031/live-copy returned HTTP 200, 87,350 bytes.
+Process PID 8668: Python uvicorn HL_Copy_App_SSOT:app --host 127.0.0..1 --port 8031
+Process creation reported by Get-CimInstance: 15/10/2026 10:28:40 (Windows local time).
+Relevant observed repo HEAD: bafef276756a08202d831146b19bc714852dc349, committed 2026-10-17T11:18:58+01:00; this is after the serving process started and cannot be the loaded build.
+Conclusion: No trustworthy serving commit / SSOT hash is established for the running process. The endpoint is alive, but UI evidence cannot be bound to the register build. Do not certify any row from it; verdicts are NOT_TESTED pending a restart/build-identity route that proves the serving artifact and its launch time.
