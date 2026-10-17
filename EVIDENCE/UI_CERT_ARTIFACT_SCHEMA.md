@@ -53,6 +53,18 @@ One JSON document, plus the files it references, committed on your isolated bran
 }
 ```
 
+## The two review rules (controller-confirmed additions)
+
+1. **A card may NEVER review or approve its own output.** The reviewer must be a **different card**
+   (and a different model from the author). A card that closes with "reviewed and approved" has
+   reviewed nothing — that happened (`t_775a0935`) and its approval was void.
+2. **The reviewer must RECOMPUTE every number** in a verdict from the oracle itself. Copying a figure
+   from the artifact is not verification. This rule has already caught a false PASS: a claimed
+   `−$849.98` recomputed to `−$858.21`.
+
+Corollary: **never accept a self-claim as evidence** — not "approved", not "verified", not "committed".
+Check the committed object.
+
 ## Hard requirements (each has already caused a FAIL)
 
 1. **`row_id`** — the key is `row_id`, not `id`. Every row record, no exceptions.
