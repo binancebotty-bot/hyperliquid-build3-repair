@@ -1,0 +1,1327 @@
+{
+ "register_ref": "main:certification/certification_matrix.json",
+ "register_commit": "b142cf88d389e791160f691aac3d936852b99975",
+ "tested_at_utc": "2026-10-17T00:08:28.361910Z",
+ "dom": {
+  "http_status": 200,
+  "title": "Live Copy Dashboard",
+  "body_text": "Live Copy Command Centre\nWallets:\n15 / 10\nLive wallets: 10\nClose-only wallets: 0\nOff: 5\nLeader feed:\nWebsocket OK\nRefresh\nGlobal Controls\nAdd wallet\nACCOUNT VALUE (TESTNET)\n$625.02\nSENDING\nOFF\nHEALTH\nAction needed: a close is failing — check the Reconciliation tab and close it on the exchange\nACCOUNT CHANGE SINCE 9 OCT, 19:01\n−$838.11\nOPEN POSITIONS\n133\nRESTING ORDERS\n31\nTechnical detail\nLoaded\nDoes the P&L add up?\n\nStart value to now, from the exchange: every fill and funding payment in the window is counted.\n\nStart value (9 Oct, 19:01, at run start; unified portfolio value (spot USDC total))\n$1,449.21\n+ Closed P&L (realised)\n−$538.98\n+ Funding\n+$40.81\n− Fees\n−$333.74\n+ Open positions (unrealised) now +$2.71, at start $0.00 — no open positions at start\n+$2.71\n= Expected change\n−$829.20\nActual change (now $611.09)\n−$838.11\nUnexplained difference\n−$8.91\nCounted 46953 exchange fills and 9286 funding payments since the start. Deposits, withdrawals or transfers also show here.\nLive Copy Status\nHEALTH\nAction needed: a close is failing — check the Reconciliation tab and close it on the exchange\ndetails under Technical detail\nLEADER FEED\nWebsocket OK\nwebsocket\nFOLLOWER ACCOUNT READ\nReading (normal)\nWALLETS\n10 live / 10 followed\nlive + close-only are followed\nLAST SEND\nSOL pending_send\nPENDING_SEND\nLAST FILL\nVIRTUAL BUY 1.3\n2026-10-17T00:08:12.910083+00:00\nLAST REJECT\nNXPC INSUFFICIENT_MARGIN\nINSUFFICIENT_MARGIN\nLAST LATENCY WARNING\nseverity=CRITICAL; classification=SLOW_EXCHANGE_CALL; wallet=0x7019197d2b2ae7b44eee12a76015eb1fe94abd36 coin=OP intent_id=a226fe532754995cd128aeb896b1c816 delay_ms=4951 largest_component=exchange_call_ms:1009\n2026-10-17T00:08:26.105947+00:00\nReal Account\nPORTFOLIO VALUE (TESTNET)\n$625.02\nOPEN POSITIONS P&L (UNREALISED)\n$2.71\nCLOSED P&L (REALISED)\n$-538.98 since 9 Oct, 19:01\nOPEN POSITIONS\n133\nLIVE EXPOSURE\n$9,913.7\nLive Account / Wallet PnL\n\nExchange account graph. ALL range — 139 portfolio pts, 46953 realized fills.\n\nAccount\nSelected Wallet PnL\nExposure\n1D\n7D\nALL\nApply\nReset\nTotal PnL\nRealized PnL\nDrawdown\n$100.6\n-$419.1\n-$938.7\nFri 9\nSun 11\nTue 13\nThu 15\nSat 17\nLive Copy Wallets\n\nConfigured wallets from live_config.json. Click a row for real copy details for that leader.\n\nWALLET\tNET P&L\tFEED\tCLOSED / OPEN / FEES\tLEAD↔COPY DIFF\tEXECUTION\tRISK / EXPOSURE\tLAST FILL\tCONTROLS\n\n0x010461c1...1c703a\nLive\n\t— partial\t\nWebsocket OK\nHOT10 shared socket active\n\t\nClosed: — partial\nOpen: —\nFees: $88.4\nPartial record shared 0G shared 2Z shared ACE shared AIXBT shared ALGO shared ALT shared ANIME shared APE shared APT shared AR shared ARB shared ATOM shared AVNT shared AXS shared AZTEC shared BABY shared BANANA shared BERA shared BIGTIME shared BIO shared BLUR shared BNB shared BRETT shared CAKE shared CASHCAT shared CC shared CELO shared CHIP shared COMP shared DYDX shared DYM shared EIGEN shared ETH shared FIL shared FOGO shared GALA shared GAS shared GOAT shared GRAM shared GRASS shared HBAR shared HYPER shared ICP shared IMX shared INJ shared IO shared JTO shared JUP shared KAITO shared KBONK shared KLUNC shared KNEIRO shared KPEPE shared LDO shared LINEA shared LIT shared MANTA shared ME shared MELANIA shared MERL shared MINA shared NEO shared NIL shared ORDI shared PNUT shared PROVE shared PUMP shared REZ shared RSR shared RUNE shared S shared SAND shared SKY shared SNX shared SOL shared SPX shared STBL shared SUI shared SUPER shared SUSHI shared TAO shared TRB shared TRUMP shared VIRTUAL shared W shared WLD shared WLFI shared XAI shared XLM shared XMR shared ZEN shared ZETA shared ZRO\n\t\nTotal: $1.76\nAvg: $0.01\nAvg bps: 3.8\nWorst bps: 65.8\n\t\n291 filled / 0 exits\n1220 recent rejects\n2 recent blocks\n\t\nExposure: $1,937.45\nOpen pos: 97\nDD: —\nMaxDD: —\n\tVIRTUAL BUY @\n\t\nLIVE\nCLO\nOFF\nprop\nfixed\nF\nN\nSave\nCLO\nOFF\nArchive\n\n\n0x1b232b41...2fbe21\nLive\n\t—\t\nWebsocket OK\nHOT10 shared socket active\n\t\nClosed: —\nOpen: $0\nFees: —\nNo PnL yet\n\t\nTotal: n/a\nAvg: n/a\nAvg bps: n/a\nWorst bps: n/a\n\t\n0 filled / 0 exits\n0 recent rejects\n0 recent blocks\n\t\nExposure: $0\nOpen pos: 0\nDD: —\nMaxDD: —\n\tnone yet\t\nLIVE\nCLO\nOFF\nprop\nfixed\nF\nN\nSave\nCLO\nOFF\nArchive\n\n\n0x31ca8395...fb974b\nLive\n\t— partial\t\nWebsocket OK\nHOT10 shared socket active\n\t\nClosed: — partial\nOpen: —\nFees: $98.23\nPartial record shared 0G shared 2Z shared ACE shared AERO shared AIXBT shared ALGO shared ALT shared ANIME shared AR shared ATOM shared AVAX shared AVNT shared BABY shared BANANA shared BERA shared BIGTIME shared BIO shared BLUR shared BNB shared BRETT shared CASHCAT shared CC shared CELO shared CHIP shared COMP shared DOGE shared DYM shared EIGEN shared FARTCOIN shared FET shared FIL shared FOGO shared GALA shared GAS shared GOAT shared GRAM shared HBAR shared HYPER shared ICP shared IMX shared INIT shared IO shared JTO shared JUP shared KAITO shared KBONK shared KLUNC shared KNEIRO shared KPEPE shared KSHIB shared LDO shared LINEA shared LIT shared MANTA shared ME shared MEGA shared MELANIA shared MERL shared MOODENG shared NEO shared NIL shared NXPC shared ORDI shared POLYX shared PONS shared PROVE shared PYTH shared RESOLV shared REZ shared RUNE shared S shared SAND shared SKR shared SKY shared SPX shared STBL shared SUPER shared SUSHI shared SYRUP shared TAO shared TRB shared TRUMP shared TURBO shared USELESS shared VVV shared W shared WLD shared WLFI shared XAI shared XLM shared ZEN shared ZETA shared ZRO\n\t\nTotal: $0.89\nAvg: $0\nAvg bps: 4.5\nWorst bps: 62.1\n\t\n306 filled / 0 exits\n1484 recent rejects\n1 recent blocks\n\t\nExposure: $1,997.76\nOpen pos: 102\nDD: —\nMaxDD: —\n\tBERA SELL @\n\t\nLIVE\nCLO\nOFF\nprop\nfixed\nF\nN\nSave\nCLO\nOFF\nArchive\n\n\n0x6ba889db...0c1817\nLive\n\t— partial\t\nWebsocket OK\nHOT10 shared socket active\n\t\nClosed: — partial\nOpen: —\nFees: $23.11\nPartial record shared ARB shared AVAX shared BTC shared DOGE shared ETH shared FARTCOIN shared ICP shared INJ shared JUP shared KPEPE shared ONDO shared SOL shared TAO shared VIRTUAL shared WLD shared ZRO\n\t\nTotal: $0.68\nAvg: $0.02\nAvg bps: 5.1\nWorst bps: 80.8\n\t\n49 filled / 0 exits\n142 recent rejects\n0 recent blocks\n\t\nExposure: $327.7\nOpen pos: 16\nDD: —\nMaxDD: —\n\tWLD SELL @\n\t\nLIVE\nCLO\nOFF\nprop\nfixed\nF\nN\nSave\nCLO\nOFF\nArchive\n\n\n0x7019197d...4abd36\nLive\n\t— partial\t\nWebsocket OK\nHOT10 shared socket active\n\t\nClosed: — partial\nOpen: —\nFees: $29.41\nPartial record shared 0G shared 2Z shared AIXBT shared APE shared APT shared AR shared ARB shared ATOM shared AVNT shared AXS shared AZTEC shared BIGTIME shared BRETT shared BTC shared CASHCAT shared CC shared CHIP shared COMP shared DYM shared ETH shared FARTCOIN shared FET shared FIL shared GRASS shared HBAR shared ICP shared INJ shared IO shared JTO shared JUP shared LINEA shared LIT shared MEGA shared MINA shared NIL shared ONDO shared PNUT shared PONS shared PUMP shared REZ shared SKR shared SNX shared SPX shared STBL shared SUSHI shared TAO shared TURBO shared USELESS shared VVV shared WLD shared WLFI shared XLM shared ZEN shared ZETA shared ZRO\n\t\nTotal: $0.14\nAvg: $0\nAvg bps: 4.8\nWorst bps: 67\n\t\n37 filled / 0 exits\n137 recent rejects\n3 recent blocks\n\t\nExposure: $1,031.08\nOpen pos: 58\nDD: —\nMaxDD: —\n\tMEGA BUY @\n\t\nLIVE\nCLO\nOFF\nprop\nfixed\nF\nN\nSave\nCLO\nOFF\nArchive\n\n\n0x7717a7a2...d7bd7e\nLive\n\t— partial\t\nWebsocket OK\nHOT10 shared socket active\n\t\nClosed: — partial\nOpen: —\nFees: $6.88\nPartial record shared 0G shared 2Z shared AERO shared ALGO shared APE shared ATOM shared AVAX shared AVNT shared AXS shared AZTEC shared BABY shared BNB shared BRETT shared BTC shared CAKE shared CC shared CHIP shared DOGE shared DYDX shared DYM shared FARTCOIN shared FOGO shared GAS shared GOAT shared GRAM shared GRASS shared HYPER shared INIT shared KAITO shared KBONK shared KPEPE shared KSHIB shared LDO shared LINEA shared LIT shared MANTA shared MINA shared MOODENG shared NEO shared NIL shared NXPC shared POLYX shared PONS shared PROVE shared PYTH shared RESOLV shared REZ shared RSR shared RUNE shared SKR shared STBL shared SUPER shared SYRUP shared USELESS shared VVV shared W shared WLD shared XMR shared ZETA\n\t\nTotal: $0.32\nAvg: $0.01\nAvg bps: 15.2\nWorst bps: 53.2\n\t\n40 filled / 0 exits\n499 recent rejects\n1 recent blocks\n\t\nExposure: $1,980.07\nOpen pos: 67\nDD: —\nMaxDD: —\n\tPYTH SELL @\n\t\nLIVE\nCLO\nOFF\nprop\nfixed\nF\nN\nSave\nCLO\nOFF\nArchive\n\n\n0x936cf4fb...81bb0f\nLive\n\t−$29.83\t\nWebsocket OK\nHOT10 shared socket active\n\t\nClosed: $-14.09\nOpen: $-3.75\nFees: $11.99\nFrom engine ledger shared AERO shared BTC shared CASHCAT shared CC shared EIGEN shared LIT shared NIL shared SUI shared VVV shared W\n\t\nTotal: $0.03\nAvg: $0.01\nAvg bps: 7.4\nWorst bps: 14.3\n\t\n6 filled / 0 exits\n62 recent rejects\n0 recent blocks\n\t\nExposure: $762.86\nOpen pos: 10\nDD: $-31.88\nMaxDD: $-31.88\n\tAERO SELL @\n\t\nLIVE\nCLO\nOFF\nprop\nfixed\nF\nN\nSave\nCLO\nOFF\nArchive\n\n\n0xc179e039...7ce0c8\nLive\n\t—\t\nWebsocket OK\nHOT10 shared socket active\n\t\nClosed: $-12.98\nOpen: —\nFees: $10.51\nFrom engine ledger shared SOL shared XMR\n\t\nTotal: $-0.23\nAvg: $-0.03\nAvg bps: 14.2\nWorst bps: 56.4\n\t\n7 filled / 0 exits\n31 recent rejects\n0 recent blocks\n\t\nExposure: $105.9\nOpen pos: 2\nDD: $-23.49\nMaxDD: $-23.49\n\tXMR SELL @\n\t\nLIVE\nCLO\nOFF\nprop\nfixed\nF\nN\nSave\nCLO\nOFF\nArchive\n\n\n0xd4c1f7e8...583d1d\nLive\n\t−$13.13\t\nWebsocket OK\nHOT10 shared socket active\n\t\nClosed: $-4.6\nOpen: $-4.73\nFees: $3.8\nFrom engine ledger shared ARB shared AVAX shared BNB shared BTC shared DOGE shared ETH shared LIT shared NEAR shared PONS shared SUI shared TAO shared WLD shared WLFI\n\t\nTotal: $-0.02\nAvg: $-0\nAvg bps: -4.9\nWorst bps: 8.2\n\t\n13 filled / 0 exits\n56 recent rejects\n0 recent blocks\n\t\nExposure: $900.44\nOpen pos: 13\nDD: $-22.99\nMaxDD: $-22.99\n\tWLD SELL @\n\t\nLIVE\nCLO\nOFF\nprop\nfixed\nF\nN\nSave\nCLO\nOFF\nArchive\n\n\n0xf5d81a13...c3ad53\nLive\n\t— partial\t\nWebsocket OK\nHOT10 shared socket active\n\t\nClosed: — partial\nOpen: —\nFees: $61.03\nPartial record shared ARB shared BTC shared DOGE shared ETH shared FARTCOIN shared KPEPE shared MEGA shared NEAR shared PONS shared SOL shared SUI shared TAO shared USELESS shared VVV shared WLD\n\t\nTotal: $0.36\nAvg: $0\nAvg bps: -1.9\nWorst bps: 104.8\n\t\n107 filled / 0 exits\n501 recent rejects\n5 recent blocks\n\t\nExposure: $1,060.09\nOpen pos: 15\nDD: —\nMaxDD: —\n\tWLD BUY @\n\t\nLIVE\nCLO\nOFF\nprop\nfixed\nF\nN\nSave\nCLO\nOFF\nArchive\n\n\n0x1f4ab7e9...9bc934\nOff\n\t−$0.90\t\nnot followed\n\t\nClosed: $-0.72\nOpen: $0\nFees: $0.18\nFrom engine ledger\n\t\nTotal: n/a\nAvg: n/a\nAvg bps: n/a\nWorst bps: n/a\n\t\n0 filled / 0 exits\n0 recent rejects\n0 recent blocks\n\t\nExposure: $0\nOpen pos: 0\nDD: $-1\nMaxDD: $-1\n\tnone yet\t\nLIVE\nCLO\nOFF\nprop\nfixed\nF\nN\nSave\nCLO\nOFF\nArchive\n\n\n0x35519de6...35a281\nOff\n\t—\t\nnot followed\n\t\nClosed: —\nOpen: $0\nFees: —\nNo PnL yet\n\t\nTotal: n/a\nAvg: n/a\nAvg bps: n/a\nWorst bps: n/a\n\t\n0 filled / 0 exits\n0 recent rejects\n0 recent blocks\n\t\nExposure: $0\nOpen pos: 0\nDD: —\nMaxDD: —\n\tnone yet\t\nLIVE\nCLO\nOFF\nprop\nfixed\nF\nN\nSave\nCLO\nOFF\nArchive\n\n\n0x7bc52391...dee41e\nOff\n\t−$0.40\t\nnot followed\n\t\nClosed: $-0.32\nOpen: $0\nFees: $0.08\nFrom engine ledger\n\t\nTotal: n/a\nAvg: n/a\nAvg bps: n/a\nWorst bps: n/a\n\t\n0 filled / 0 exits\n0 recent rejects\n0 recent blocks\n\t\nExposure: $0\nOpen pos: 0\nDD: $-0.71\nMaxDD: $-0.71\n\tnone yet\t\nLIVE\nCLO\nOFF\nprop\nfixed\nF\nN\nSave\nCLO\nOFF\nArchive\n\n\n0x833b99b2...91db06\nOff\n\t—\t\nnot followed\n\t\nClosed: —\nOpen: $0\nFees: —\nNo PnL yet\n\t\nTotal: n/a\nAvg: n/a\nAvg bps: n/a\nWorst bps: n/a\n\t\n0 filled / 0 exits\n0 recent rejects\n0 recent blocks\n\t\nExposure: $0\nOpen pos: 0\nDD: —\nMaxDD: —\n\tnone yet\t\nLIVE\nCLO\nOFF\nprop\nfixed\nF\nN\nSave\nCLO\nOFF\nArchive\n\n\n0xcbe83438...42ddfc\nOff\n\t−$1.20\t\nnot followed\n\t\nClosed: $-1.11\nOpen: $0\nFees: $0.08\nFrom engine ledger\n\t\nTotal: n/a\nAvg: n/a\nAvg bps: n/a\nWorst bps: n/a\n\t\n0 filled / 0 exits\n0 recent rejects\n0 recent blocks\n\t\nExposure: $0\nOpen pos: 0\nDD: $-1.24\nMaxDD: $-1.85\n\tnone yet\t\nLIVE\nCLO\nOFF\nprop\nfixed\nF\nN\nSave\nCLO\nOFF\nArchive\nReal Copy Positions\nExecution Quality\nOrder Intents / Audit\nReconciliation\nWS Health\nReal User Copy Positions\n\nManual ledger vs real exchange account. All sizes signed (positive = long, negative = short). Exchange data requires HL_LIVE_HL_ACCOUNT_ADDRESS configured.\n\nNET BY COIN — ONE SHARED ACCOUNT (leaders net like the exchange)\nCOIN\tLEDGER NET (SUM OF LEADERS)\tEXCHANGE NET\tLEDGER/EXCHANGE\tWHICH LEADER HOLDS WHAT\n0G\t-3\t-3\tMATCH\t0x010461c1...1c703a: -99 0x31ca8395...fb974b: +102 0x7019197d...4abd36: +42 0x7717a7a2...d7bd7e: -48\n2Z\t-19\t-19\tMATCH\t0x010461c1...1c703a: -38 0x31ca8395...fb974b: +37 0x7019197d...4abd36: -749 0x7717a7a2...d7bd7e: +731\nAAVE\t-0.33\t0\tMISMATCH\t0x7717a7a2...d7bd7e: -0.33\nACE\t-20.57\t-20.57\tMATCH\t0x010461c1...1c703a: -124.22 0x31ca8395...fb974b: +103.65\nADA\t52\t52\tMATCH\t0x010461c1...1c703a: +52\nAERO\t-10\t-10\tMATCH\t0x31ca8395...fb974b: +143 0x7717a7a2...d7bd7e: -101 0x936cf4fb...81bb0f: -52\nAIXBT\t38\t38\tMATCH\t0x010461c1...1c703a: +651 0x31ca8395...fb974b: -622 0x7019197d...4abd36: +9\nALGO\t420\t420\tMATCH\t0x010461c1...1c703a: -260 0x31ca8395...fb974b: +2 0x7717a7a2...d7bd7e: +678\nALT\t1426\t1426\tMATCH\t0x010461c1...1c703a: -25 0x31ca8395...fb974b: +1451\nANIME\t-774\t-774\tMATCH\t0x010461c1...1c703a: +2635 0x31ca8395...fb974b: -3409\nAPE\t-52.4\t-52.4\tMATCH\t0x010461c1...1c703a: +278.2 0x7019197d...4abd36: +79.4 0x7717a7a2...d7bd7e: -410\nAPT\t55.03\t55.03\tMATCH\t0x010461c1...1c703a: +26.17 0x7019197d...4abd36: +28.86\nAR\t-0.74\t0.73\tMISMATCH\t0x010461c1...1c703a: -6.86 0x31ca8395...fb974b: +3.05 0x7019197d...4abd36: +3.07\nARB\t-122.3\t-122.3\tMATCH\t0x010461c1...1c703a: +2.1 0x6ba889db...0c1817: +77 0x7019197d...4abd36: +9.6 0xd4c1f7e8...583d1d: -187.8 0xf5d81a13...c3ad53: -23.2\nASTER\t0\t16\tMISMATCH\tno leader\nATOM\t2.96\t2.96\tMATCH\t0x010461c1...1c703a: +5.75 0x31ca8395...fb974b: -3.96 0x7019197d...4abd36: -5.67 0x7717a7a2...d7bd7e: +6.84\nAVAX\t0.48\t0.48\tMATCH\t0x31ca8395...fb974b: +0.79 0x6ba889db...0c1817: +0.88 0x7717a7a2...d7bd7e: +0.01 0xd4c1f7e8...583d1d: -1.2\nAVNT\t-110\t-110\tMATCH\t0x010461c1...1c703a: +77 0x31ca8395...fb974b: -184 0x7019197d...4abd36: +510 0x7717a7a2...d7bd7e: -513\nAXS\t-3.6\t-3.6\tMATCH\t0x010461c1...1c703a: -7.2 0x7019197d...4abd36: -3.5 0x7717a7a2...d7bd7e: +7.1\nAZTEC\t330\t330\tMATCH\t0x010461c1...1c703a: -1173 0x7019197d...4abd36: +7 0x7717a7a2...d7bd7e: +1496\nBABY\t3389\t3390\tMISMATCH\t0x010461c1...1c703a: +990 0x31ca8395...fb974b: +1 0x7717a7a2...d7bd7e: +2398\nBANANA\t-0.3\t-0.3\tMATCH\t0x010461c1...1c703a: -2.9 0x31ca8395...fb974b: +2.6\nBERA\t-72.7\t-72.7\tMATCH\t0x010461c1...1c703a: +129.4 0x31ca8395...fb974b: -202.1\nBIGTIME\t5589\t5589\tMATCH\t0x010461c1...1c703a: -4515 0x31ca8395...fb974b: +8433 0x7019197d...4abd36: +1671\nBIO\t232\t232\tMATCH\t0x010461c1...1c703a: +614 0x31ca8395...fb974b: -382\nBLUR\t274\t274\tMATCH\t0x010461c1...1c703a: -851 0x31ca8395...fb974b: +1125\nBNB\t0.227\t0.227\tMATCH\t0x010461c1...1c703a: +0.032 0x31ca8395...fb974b: -0.226 0x7717a7a2...d7bd7e: +0.324 0xd4c1f7e8...583d1d: +0.097\nBRETT\t1919\t1919\tMATCH\t0x010461c1...1c703a: -11783 0x31ca8395...fb974b: +1403 0x7019197d...4abd36: +12298 0x7717a7a2...d7bd7e: +1\nBTC\t-0.00003\t-0.00003\tMATCH\t0x6ba889db...0c1817: +0.00063 0x7019197d...4abd36: +0.00014 0x7717a7a2...d7bd7e: +0.00009 0x936cf4fb...81bb0f: -0.00335 0xd4c1f7e8...583d1d: -0.00065 0xf5d81a13...c3ad53: +0.00311\nCAKE\t5.5\t5.5\tMATCH\t0x010461c1...1c703a: -5.4 0x7717a7a2...d7bd7e: +10.9\nCASHCAT\t-232\t-232\tMATCH\t0x010461c1...1c703a: +260 0x31ca8395...fb974b: -308 0x7019197d...4abd36: -175 0x936cf4fb...81bb0f: -9\nCC\t-20\t-20\tMATCH\t0x010461c1...1c703a: -954 0x31ca8395...fb974b: +116 0x7019197d...4abd36: +5 0x7717a7a2...d7bd7e: -231 0x936cf4fb...81bb0f: +1044\nCELO\t190\t190\tMATCH\t0x010461c1...1c703a: -142 0x31ca8395...fb974b: +332\nCHIP\t-476\t-476\tMATCH\t0x010461c1...1c703a: -4 0x31ca8395...fb974b: +3389 0x7019197d...4abd36: -4 0x7717a7a2...d7bd7e: -3857\nCOMP\t0.01\t0.01\tMATCH\t0x010461c1...1c703a: +0.06 0x31ca8395...fb974b: -0.59 0x7019197d...4abd36: +0.54\nDOGE\t76\t76\tMATCH\t0x31ca8395...fb974b: +2 0x6ba889db...0c1817: +966 0x7717a7a2...d7bd7e: +153 0xd4c1f7e8...583d1d: -448 0xf5d81a13...c3ad53: -597\nDYDX\t-96.1\t-96.1\tMATCH\t0x010461c1...1c703a: -0.1 0x7717a7a2...d7bd7e: -96\nDYM\t179.8\t179.8\tMATCH\t0x010461c1...1c703a: -2688.9 0x31ca8395...fb974b: +232.8 0x7019197d...4abd36: +1973.5 0x7717a7a2...d7bd7e: +662.4\nEIGEN\t149.9\t149.9\tMATCH\t0x010461c1...1c703a: +85.63 0x31ca8395...fb974b: -30.35 0x936cf4fb...81bb0f: +94.62\nETC\t1.49\t1.49\tMATCH\t0x31ca8395...fb974b: +1.49\nETH\t0.0028\t0.0028\tMATCH\t0x010461c1...1c703a: +0.0187 0x6ba889db...0c1817: -0.0028 0x7019197d...4abd36: +0.0049 0xd4c1f7e8...583d1d: -0.0068 0xf5d81a13...c3ad53: -0.0112\nFARTCOIN\t-83.2\t-83.2\tMATCH\t0x31ca8395...fb974b: -47.5 0x6ba889db...0c1817: -127.4 0x7019197d...4abd36: +13.7 0x7717a7a2...d7bd7e: +0.3 0xf5d81a13...c3ad53: +77.7\nFET\t58\t58\tMATCH\t0x31ca8395...fb974b: -20 0x7019197d...4abd36: +78\nFIL\t-5.7\t-5.7\tMATCH\t0x010461c1...1c703a: -15.9 0x31ca8395...fb974b: +30.4 0x7019197d...4abd36: -20.2\nFOGO\t4910\t4910\tMATCH\t0x010461c1...1c703a: +2708 0x31ca8395...fb974b: -610 0x7717a7a2...d7bd7e: +2812\nGALA\t332\t332\tMATCH\t0x010461c1...1c703a: -14057 0x31ca8395...fb974b: +14389\nGAS\t-2.2\t-2.2\tMATCH\t0x010461c1...1c703a: +6.2 0x31ca8395...fb974b: -11.6 0x7717a7a2...d7bd7e: +3.2\nGOAT\t1154\t1154\tMATCH\t0x010461c1...1c703a: +9 0x31ca8395...fb974b: -2023 0x7717a7a2...d7bd7e: +3168\nGRAM\t22\t22\tMATCH\t0x010461c1...1c703a: +7 0x31ca8395...fb974b: -9 0x7717a7a2...d7bd7e: +24\nGRASS\t136.1\t136.1\tMATCH\t0x010461c1...1c703a: -112.6 0x7019197d...4abd36: -37.7 0x7717a7a2...d7bd7e: +286.4\nHBAR\t137\t137\tMATCH\t0x010461c1...1c703a: +164 0x31ca8395...fb974b: -33 0x7019197d...4abd36: +6\nHEMI\t2236\t2236\tMATCH\t0x31ca8395...fb974b: +2236\nHYPER\t-42\t-42\tMATCH\t0x010461c1...1c703a: +281 0x31ca8395...fb974b: -238 0x7717a7a2...d7bd7e: -85\nICP\t1.39\t1.39\tMATCH\t0x010461c1...1c703a: -8.03 0x31ca8395...fb974b: +9.32 0x6ba889db...0c1817: +6.15 0x7019197d...4abd36: -6.05\nIMX\t-20.8\t-20.8\tMATCH\t0x010461c1...1c703a: +133.1 0x31ca8395...fb974b: -153.9\nINIT\t92\t92\tMATCH\t0x31ca8395...fb974b: -4 0x7717a7a2...d7bd7e: +96\nINJ\t0.2\t0.2\tMATCH\t0x010461c1...1c703a: +1.3 0x6ba889db...0c1817: -1.6 0x7019197d...4abd36: +0.5\nIO\t1.4\t1.4\tMATCH\t0x010461c1...1c703a: -4.3 0x31ca8395...fb974b: +80.6 0x7019197d...4abd36: -74.9\nIOTA\t-17\t-17\tMATCH\t0x31ca8395...fb974b: -17\nJTO\t-1\t-1\tMATCH\t0x010461c1...1c703a: +73 0x31ca8395...fb974b: -2 0x7019197d...4abd36: -72\nJUP\t108\t108\tMATCH\t0x010461c1...1c703a: +65 0x31ca8395...fb974b: -31 0x6ba889db...0c1817: -18 0x7019197d...4abd36: +92\nKAITO\t-18\t-18\tMATCH\t0x010461c1...1c703a: +217 0x31ca8395...fb974b: -80 0x7717a7a2...d7bd7e: -155\nKAS\t646\t970\tMISMATCH\t0x7019197d...4abd36: +646\nKBONK\t5545\t5545\tMATCH\t0x010461c1...1c703a: -45 0x31ca8395...fb974b: +1623 0x7717a7a2...d7bd7e: +3967\nKLUNC\t-85\t-85\tMATCH\t0x010461c1...1c703a: +73 0x31ca8395...fb974b: -158\nKNEIRO\t38.3\t38.3\tMATCH\t0x010461c1...1c703a: +156.1 0x31ca8395...fb974b: -117.8\nKPEPE\t643\t643\tMATCH\t0x010461c1...1c703a: -1613 0x31ca8395...fb974b: +21441 0x6ba889db...0c1817: -1377 0x7717a7a2...d7bd7e: +595 0xf5d81a13...c3ad53: -18403\nKSHIB\t215\t215\tMATCH\t0x31ca8395...fb974b: -2264 0x7717a7a2...d7bd7e: +2479\nLDO\t14.6\t14.6\tMATCH\t0x010461c1...1c703a: +99.9 0x31ca8395...fb974b: -145.7 0x7717a7a2...d7bd7e: +60.4\nLINEA\t7325\t7325\tMATCH\t0x010461c1...1c703a: +3649 0x31ca8395...fb974b: -277 0x7019197d...4abd36: +3980 0x7717a7a2...d7bd7e: -27\nLIT\t-3\t-3\tMATCH\t0x010461c1...1c703a: -11 0x31ca8395...fb974b: +1 0x7019197d...4abd36: -4 0x7717a7a2...d7bd7e: +3 0x936cf4fb...81bb0f: +1 0xd4c1f7e8...583d1d: +7\nMANTA\t-80.8\t-80.8\tMATCH\t0x010461c1...1c703a: +163.5 0x31ca8395...fb974b: -679.9 0x7717a7a2...d7bd7e: +435.6\nME\t-109\t-109\tMATCH\t0x010461c1...1c703a: +7.8 0x31ca8395...fb974b: -116.8\nMEGA\t-214\t-214\tMATCH\t0x31ca8395...fb974b: -849 0x7019197d...4abd36: +762 0xf5d81a13...c3ad53: -127\nMELANIA\t141.7\t141.7\tMATCH\t0x010461c1...1c703a: -202.5 0x31ca8395...fb974b: +344.2\nMERL\t148\t148\tMATCH\t0x010461c1...1c703a: +441 0x31ca8395...fb974b: -293\nMET\t348\t348\tMATCH\t0x010461c1...1c703a: +348\nMINA\t1078\t1078\tMATCH\t0x010461c1...1c703a: +679 0x7019197d...4abd36: +321 0x7717a7a2...d7bd7e: +78\nMON\t-8\t-8\tMATCH\t0x31ca8395...fb974b: -8\nMOODENG\t339\t339\tMATCH\t0x31ca8395...fb974b: +26 0x7717a7a2...d7bd7e: +313\nMORPHO\t5\t5\tMATCH\t0x7019197d...4abd36: +5\nNEAR\t1.4\t1.4\tMATCH\t0xd4c1f7e8...583d1d: +11.5 0xf5d81a13...c3ad53: -10.1\nNEO\t-0.12\t-0.12\tMATCH\t0x010461c1...1c703a: -5.06 0x31ca8395...fb974b: -0.04 0x7717a7a2...d7bd7e: +4.98\nNIL\t13\t13\tMATCH\t0x010461c1...1c703a: -288 0x31ca8395...fb974b: +153 0x7019197d...4abd36: +1 0x7717a7a2...d7bd7e: -1 0x936cf4fb...81bb0f: +148\nNXPC\t132\t132\tMATCH\t0x31ca8395...fb974b: -57 0x7717a7a2...d7bd7e: +189\nONDO\t4\t4\tMATCH\t0x6ba889db...0c1817: -22 0x7019197d...4abd36: +26\nORDI\t-0.01\t-0.01\tMATCH\t0x010461c1...1c703a: +0.07 0x31ca8395...fb974b: -0.08\nPAXG\t-0.003\t-0.006\tMISMATCH\t0x31ca8395...fb974b: -0.003\nPENGU\t0\t-1427\tMISMATCH\tno leader\nPEOPLE\t1005\t1005\tMATCH\t0x31ca8395...fb974b: +1005\nPNUT\t-49.3\t-49.3\tMATCH\t0x010461c1...1c703a: -308.4 0x7019197d...4abd36: +259.1\nPOL\t-102\t-102\tMATCH\t0x010461c1...1c703a: -102\nPOLYX\t77\t77\tMATCH\t0x31ca8395...fb974b: -254 0x7717a7a2...d7bd7e: +331\nPONS\t72\t72\tMATCH\t0x31ca8395...fb974b: +327 0x7019197d...4abd36: +18 0x7717a7a2...d7bd7e: +120 0xd4c1f7e8...583d1d: -111 0xf5d81a13...c3ad53: -282\nPOPCAT\t256\t256\tMATCH\t0x31ca8395...fb974b: +256\nPROVE\t53\t53\tMATCH\t0x010461c1...1c703a: -20 0x31ca8395...fb974b: +136 0x7717a7a2...d7bd7e: -63\nPUMP\t275\t275\tMATCH\t0x010461c1...1c703a: +557 0x7019197d...4abd36: -282\nPYTH\t-308\t-308\tMATCH\t0x31ca8395...fb974b: +65 0x7717a7a2...d7bd7e: -373\nRENDER\t-5\t-5\tMATCH\t0x7019197d...4abd36: -5\nRESOLV\t-661\t-662\tMISMATCH\t0x31ca8395...fb974b: +1 0x7717a7a2...d7bd7e: -662\nREZ\t-623\t-623\tMATCH\t0x010461c1...1c703a: +10627 0x31ca8395...fb974b: -4575 0x7019197d...4abd36: +30 0x7717a7a2...d7bd7e: -6705\nRSR\t-1614\t-1614\tMATCH\t0x010461c1...1c703a: -3489 0x7717a7a2...d7bd7e: +1875\nRUNE\t1.6\t1.6\tMATCH\t0x010461c1...1c703a: +3.2 0x31ca8395...fb974b: -1.1 0x7717a7a2...d7bd7e: -0.5\nS\t0\t0\tMATCH\t0x010461c1...1c703a: +218 0x31ca8395...fb974b: -218\nSAND\t-822\t-822\tMATCH\t0x010461c1...1c703a: -410 0x31ca8395...fb974b: -412\nSKR\t-1599\t-1599\tMATCH\t0x31ca8395...fb974b: -32 0x7019197d...4abd36: -2346 0x7717a7a2...d7bd7e: +779\nSKY\t-157\t-157\tMATCH\t0x010461c1...1c703a: -456 0x31ca8395...fb974b: +299\nSNX\t121.5\t7.1\tMISMATCH\t0x010461c1...1c703a: +114.4 0x7019197d...4abd36: +7.1\nSOL\t0\t0\tMATCH\t0x010461c1...1c703a: +0.11 0x6ba889db...0c1817: +0.11 0xc179e039...7ce0c8: -0.21 0xf5d81a13...c3ad53: -0.01\nSOPH\t-10208\t-10208\tMATCH\t0x7717a7a2...d7bd7e: -10208\nSPX\t2.9\t2.9\tMATCH\t0x010461c1...1c703a: -34.6 0x31ca8395...fb974b: +3.8 0x7019197d...4abd36: +33.7\nSTABLE\t432\t432\tMATCH\t0x7717a7a2...d7bd7e: +432\nSTBL\t-92\t-92\tMATCH\t0x010461c1...1c703a: +478 0x31ca8395...fb974b: -404 0x7019197d...4abd36: +1017 0x7717a7a2...d7bd7e: -1183\nSTX\t-13.3\t-13.3\tMATCH\t0x010461c1...1c703a: -13.3\nSUI\t0.9\t0.9\tMATCH\t0x010461c1...1c703a: +11.6 0x936cf4fb...81bb0f: +11.7 0xd4c1f7e8...583d1d: -22.8 0xf5d81a13...c3ad53: +0.4\nSUPER\t-33\t-33\tMATCH\t0x010461c1...1c703a: +84 0x31ca8395...fb974b: -59 0x7717a7a2...d7bd7e: -58\nSUSHI\t-19.4\t-19.4\tMATCH\t0x010461c1...1c703a: +66.8 0x31ca8395...fb974b: -100.5 0x7019197d...4abd36: +14.3\nSYRUP\t39\t-19\tMISMATCH\t0x31ca8395...fb974b: +100 0x7717a7a2...d7bd7e: -61\nTAO\t-0.008\t-0.008\tMATCH\t0x010461c1...1c703a: -0.034 0x31ca8395...fb974b: +0.021 0x6ba889db...0c1817: -0.105 0x7019197d...4abd36: +0.003 0xd4c1f7e8...583d1d: +0.019 0xf5d81a13...c3ad53: +0.088\nTRB\t-0.03\t-0.03\tMATCH\t0x010461c1...1c703a: -0.08 0x31ca8395...fb974b: +0.05\nTRUMP\t-2.3\t-2.3\tMATCH\t0x010461c1...1c703a: -2.4 0x31ca8395...fb974b: +0.1\nTURBO\t-833\t-833\tMATCH\t0x31ca8395...fb974b: +25453 0x7019197d...4abd36: -26286\nUSELESS\t10\t10\tMATCH\t0x31ca8395...fb974b: -126 0x7019197d...4abd36: +74 0x7717a7a2...d7bd7e: +136 0xf5d81a13...c3ad53: -74\nVIRTUAL\t0.6\t0.6\tMATCH\t0x010461c1...1c703a: +1.4 0x6ba889db...0c1817: -0.8\nVVV\t-0.75\t-0.75\tMATCH\t0x31ca8395...fb974b: +0.5 0x7019197d...4abd36: -9.15 0x7717a7a2...d7bd7e: +4.96 0x936cf4fb...81bb0f: +8.63 0xf5d81a13...c3ad53: -5.69\nW\t235\t235\tMATCH\t0x010461c1...1c703a: -474 0x31ca8395...fb974b: +5056 0x7717a7a2...d7bd7e: +1630 0x936cf4fb...81bb0f: -5977\nWIF\t11\t11\tMATCH\t0x31ca8395...fb974b: +11\nWLD\t10.9\t10.9\tMATCH\t0x010461c1...1c703a: +255 0x31ca8395...fb974b: -20.7 0x6ba889db...0c1817: +98.9 0x7019197d...4abd36: -16.8 0x7717a7a2...d7bd7e: +92.8 0xd4c1f7e8...583d1d: -1022.8 0xf5d81a13...c3ad53: +624.5\nWLFI\t364\t364\tMATCH\t0x010461c1...1c703a: -179 0x31ca8395...fb974b: +334 0x7019197d...4abd36: +210 0xd4c1f7e8...583d1d: -1\nXAI\t663\t663\tMATCH\t0x010461c1...1c703a: -730.7 0x31ca8395...fb974b: +1393.7\nXLM\t82\t82\tMATCH\t0x010461c1...1c703a: +132 0x31ca8395...fb974b: -132 0x7019197d...4abd36: +82\nXMR\t0.1\t0.1\tMATCH\t0x010461c1...1c703a: -0.06 0x7717a7a2...d7bd7e: +0.01 0xc179e039...7ce0c8: +0.15\nXYZ:AMZN\t0.047\t0\tMISMATCH\t0x7717a7a2...d7bd7e: +0.047\nXYZ:HOOD\t0.025\t0\tMISMATCH\t0x7717a7a2...d7bd7e: +0.025\nXYZ:MSTR\t-0.081\t0\tMISMATCH\t0x7717a7a2...d7bd7e: -0.081\nXYZ:PLTR\t0.171\t0\tMISMATCH\t0x7717a7a2...d7bd7e: +0.171\nXYZ:TSLA\t0.029\t0\tMISMATCH\t0x7717a7a2...d7bd7e: +0.029\nZEN\t0.42\t0.42\tMATCH\t0x010461c1...1c703a: -2.48 0x31ca8395...fb974b: +2.87 0x7019197d...4abd36: +0.03\nZETA\t226.9\t226.9\tMATCH\t0x010461c1...1c703a: +209.5 0x31ca8395...fb974b: -615.4 0x7019197d...4abd36: +554.8 0x7717a7a2...d7bd7e: +78\nZK\t14\t14\tMATCH\t0x31ca8395...fb974b: +14\nZRO\t-4.2\t-4.2\tMATCH\t0x010461c1...1c703a: -3.8 0x31ca8395...fb974b: +0.3 0x6ba889db...0c1817: -1.5 0x7019197d...4abd36: +0.8\nOWNED COPY POSITIONS\nWALLET\tCOIN\tSIDE\tSIGNED SIZE\tAVG ENTRY\tLEDGER/EXCHANGE\tEXCHANGE SIZE\tLAST COPY FILL\tLAST UPDATED\n0x010461c1...1c703a\t0G\tSHORT\t-99\t0.2467178787878788\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-3\t0xea15c657e1f4ff13eb8f0…\t—\n0x31ca8395...fb974b\t0G\tLONG\t102\t0.24676705882352942\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-3\t0x19082d4eac20c6481a810…\t—\n0x7019197d...4abd36\t0G\tLONG\t42\t0.24705\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-3\t0xe567cd53e6b08270e6e10…\t—\n0x7717a7a2...d7bd7e\t0G\tSHORT\t-48\t0.24600999999999998\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-3\t0x319ca4c16baf891d33160…\t—\n0x010461c1...1c703a\t2Z\tSHORT\t-38\t0.032996\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-19\t0x7892476133861c5a7a0c0…\t—\n0x31ca8395...fb974b\t2Z\tLONG\t37\t0.03303\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-19\t0x32b0a3dca11a0a6a342a0…\t—\n0x7019197d...4abd36\t2Z\tSHORT\t-749\t0.032889217623498\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-19\t0x14f66857e7e6181216700…\t—\n0x7717a7a2...d7bd7e\t2Z\tLONG\t731\t0.032980640218878254\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-19\t0xa69eced47db0a358a8180…\t—\n0x7717a7a2...d7bd7e\tAAVE\tSHORT\t-0.33\t155.92\t\nOWNED_COPY\nEXTERNAL_FLAT_PENDING_RECONCILIATION\n\t0\t0x90519fb8e8e0956291cb0…\t—\n0x010461c1...1c703a\tACE\tSHORT\t-124.22\t0.16700012025058458\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-20.57\t0x62f5946027d70f59646f0…\t—\n0x31ca8395...fb974b\tACE\tLONG\t103.65\t0.16762606604541813\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-20.57\t0x6afdec294f1b35356c770…\t—\n0x010461c1...1c703a\tADA\tLONG\t52\t0.22616\t\nOWNED_COPY\nOWNED_FULLY_SUPPORTED\n\t52\t0xcbde5c7885dd05a0cd580…\t—\n0x31ca8395...fb974b\tAERO\tLONG\t143\t0.8795120973480555\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-10\t0xb37d8d3c4cf90bc5b4f70…\t—\n0x7717a7a2...d7bd7e\tAERO\tSHORT\t-101\t0.8794680198019801\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-10\t0xf3df8f06ba8743d3f5590…\t—\n0x936cf4fb...81bb0f\tAERO\tSHORT\t-52\t0.8790584615384615\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-10\t0x23b7437d19fb78da25300…\t—\n0x010461c1...1c703a\tAIXBT\tLONG\t651\t0.019166837902256234\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t38\t0x14f85fa167a47b2c16720…\t—\n0x31ca8395...fb974b\tAIXBT\tSHORT\t-622\t0.019235\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t38\t0xd3758169ed5456b1d4ef0…\t—\n0x7019197d...4abd36\tAIXBT\tLONG\t9\t0.018934\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t38\t0xb4116e3f0c19f055b58b0…\t—\n0x010461c1...1c703a\tALGO\tSHORT\t-260\t0.11594208406304728\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t420\t0x251df0816a168a7326970…\t—\n0x31ca8395...fb974b\tALGO\tLONG\t2\t0.11551\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t420\t0xab83691f111dfcc2acfd0…\t—\n0x7717a7a2...d7bd7e\tALGO\tLONG\t678\t0.11567722713864308\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t420\t0x61038a7bf969dee7627d0…\t—\n0x010461c1...1c703a\tALT\tSHORT\t-25\t0.008268995870612526\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t1426\t0x9380406d9f20d55394f90…\t—\n0x31ca8395...fb974b\tALT\tLONG\t1451\t0.008278\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t1426\t0x3f8c81529a9d02bf41060…\t—\n0x010461c1...1c703a\tANIME\tLONG\t2635\t0.002933\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-774\t0x268979302fb2195028030…\t—\n0x31ca8395...fb974b\tANIME\tSHORT\t-3409\t0.002919308301554708\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-774\t0xd521cfc42b34c618d69b0…\t—\n0x010461c1...1c703a\tAPE\tLONG\t278.20000000000005\t0.15109723454085974\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-52.4\t0x35c3224497291d28373c0…\t—\n0x7019197d...4abd36\tAPE\tLONG\t79.4\t0.15106\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-52.4\t0x6e75fd57e40b39996fef0…\t—\n0x7717a7a2...d7bd7e\tAPE\tSHORT\t-410\t0.15047505609756098\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-52.4\t0x4dcdba3b4913f58f4f470…\t—\n0x010461c1...1c703a\tAPT\tLONG\t26.169999999999998\t0.8439061714974059\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t55.03\t0xb08390ffc807dbe7b1fd0…\t—\n0x7019197d...4abd36\tAPT\tLONG\t28.86\t0.8388823631323632\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t55.03\t0xa473d615251be2f5a5ed0…\t—\n0x010461c1...1c703a\tAR\tSHORT\t-6.86\t3.903039637096504\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t0.73\t0x1bd420b85e736e3a1d4d0…\t—\n0x31ca8395...fb974b\tAR\tLONG\t3.05\t3.905862295081967\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t0.73\t0x65f657191f3264a067700…\t—\n0x7019197d...4abd36\tAR\tLONG\t3.07\t3.9154\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t0.73\t0xe892eaed85e46fd1ea0c0…\t—\n0x010461c1...1c703a\tARB\tLONG\t2.100000000000017\t0.19192281708173298\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-122.3\t0x3cd1f77862cb47443e4b0…\t—\n0x6ba889db...0c1817\tARB\tLONG\t77\t0.19199563505642933\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-122.3\t0xabb68eda18b0ede0ad300…\t—\n0x7019197d...4abd36\tARB\tLONG\t9.6\t0.19306\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-122.3\t0x77f179457d902716796b0…\t—\n0xd4c1f7e8...583d1d\tARB\tSHORT\t-187.8\t0.19225646964856227\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-122.3\t0x62a6745d3e9cf9c464200…\t—\n0xf5d81a13...c3ad53\tARB\tSHORT\t-23.200000000000003\t0.19177409482758623\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-122.3\t0xb92be45f69160db3baa50…\t—\n0x010461c1...1c703a\tATOM\tLONG\t5.749999999999999\t1.7671995633187771\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t2.96\t0x5031b315c7af957451ab0…\t—\n0x31ca8395...fb974b\tATOM\tSHORT\t-3.96\t1.7548\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t2.96\t0xc7a91c566d2dc7ebc9220…\t—\n0x7019197d...4abd36\tATOM\tSHORT\t-5.669999999999999\t1.7637273362445414\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t2.96\t0xdc35c181f4caeee7ddaf0…\t—\n0x7717a7a2...d7bd7e\tATOM\tLONG\t6.84\t1.7516000000000003\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t2.96\t0xe058ff7c438786e5e1d20…\t—\n0x31ca8395...fb974b\tAVAX\tLONG\t0.79\t9.983829867318436\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t0.48\t0x18783292f7d56c0719f10…\t—\n0x6ba889db...0c1817\tAVAX\tLONG\t0.8800000000000003\t9.983393103448273\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t0.48\t0xaede4323450bbf34b0570…\t—\n0x7717a7a2...d7bd7e\tAVAX\tLONG\t0.010000000000000009\t10.118382051282051\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t0.48\t0xef5b030f82f6d33cf0d40…\t—\n0xd4c1f7e8...583d1d\tAVAX\tSHORT\t-1.2\t9.9958\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t0.48\t0x844eb3349c58229385c80…\t—\n0x010461c1...1c703a\tAVNT\tLONG\t77\t0.11638323308270677\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-110\t0xf69c7d3a67326ba3f8160…\t—\n0x31ca8395...fb974b\tAVNT\tSHORT\t-184\t0.11677771739130435\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-110\t0x726a904af74ea4f873e40…\t—\n0x7019197d...4abd36\tAVNT\tLONG\t510\t0.11625\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-110\t0x0d37ad390c093e750eb10…\t—\n0x7717a7a2...d7bd7e\tAVNT\tSHORT\t-513\t0.11638970760233917\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-110\t0xca0a871b08479db6cb840…\t—\n0x010461c1...1c703a\tAXS\tSHORT\t-7.2\t1.0581\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-3.6\t0x1f0120ccde5605a0207a0…\t—\n0x7019197d...4abd36\tAXS\tSHORT\t-3.5\t1.048\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-3.6\t0x1c4b74b2e31386f11dc50…\t—\n0x7717a7a2...d7bd7e\tAXS\tLONG\t7.1\t1.0537\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-3.6\t0x94313daa4e5bc39a95aa0…\t—\n0x010461c1...1c703a\tAZTEC\tSHORT\t-1173\t0.020049181585677752\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t330\t0xb0df916571859c2eb2590…\t—\n0x7019197d...4abd36\tAZTEC\tLONG\t7\t0.020226\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t330\t0xa7646e36e86028c8a8de0…\t—\n0x7717a7a2...d7bd7e\tAZTEC\tLONG\t1496\t0.02009050267379679\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t330\t0x4ad6204271fd727e4c4f0…\t—\n0x010461c1...1c703a\tBABY\tLONG\t990\t0.012129\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t3390\t0xd722361591b5eb1dd89b0…\t—\n0x31ca8395...fb974b\tBABY\tLONG\t1\t0.012138\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t3390\t0xd24d0a43a20e067fd3c60…\t—\n0x7717a7a2...d7bd7e\tBABY\tLONG\t2398\t0.012118004587155964\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t3390\t0x48c9f0237c080c8f4a430…\t—\n0x010461c1...1c703a\tBANANA\tSHORT\t-2.899999999999999\t3.612488752122241\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-0.3\t0xe84834fb57d1e4b6e9c10…\t—\n0x31ca8395...fb974b\tBANANA\tLONG\t2.5999999999999996\t3.6070999999999995\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-0.3\t0xa0ee7b4131da3f35a2680…\t—\n0x010461c1...1c703a\tBERA\tLONG\t129.4\t0.18584896621621622\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-72.7\t0x23a28a927bac2886251c0…\t—\n0x31ca8395...fb974b\tBERA\tSHORT\t-202.1\t0.1864768665677058\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-72.7\t0x03a4a850c31e759e051e0…\t—\n0x010461c1...1c703a\tBIGTIME\tSHORT\t-4515\t0.0072193975715431884\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t5589\t0x7061ac18052af8d471db0…\t—\n0x31ca8395...fb974b\tBIGTIME\tLONG\t8433\t0.007238644610458912\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t5589\t0x0d65dbfaf6230f950edf0…\t—\n0x7019197d...4abd36\tBIGTIME\tLONG\t1671\t0.007182015559545183\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t5589\t0x196f2ead1e2fc6cf1ae80…\t—\n0x010461c1...1c703a\tBIO\tLONG\t614\t0.025246749185667754\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t232\t0xc8147100b78999c1c98e0…\t—\n0x31ca8395...fb974b\tBIO\tSHORT\t-382\t0.025215\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t232\t0x5fca001145e2f24e61430…\t—\n0x010461c1...1c703a\tBLUR\tSHORT\t-851\t0.010712998433004042\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t274\t0x7d090ed23be73edb7e820…\t—\n0x31ca8395...fb974b\tBLUR\tLONG\t1125\t0.010695776295597486\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t274\t0x2a62a74e6c13dcae2bdc0…\t—\n0x010461c1...1c703a\tBNB\tLONG\t0.032\t722.23\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t0.227\t0x9dce6057eb25e71d9f480…\t—\n0x31ca8395...fb974b\tBNB\tSHORT\t-0.2260000000000001\t723.2940977371882\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t0.227\t0xd0622e66f41a9b17d1db0…\t—\n0x7717a7a2...d7bd7e\tBNB\tLONG\t0.32400000000000007\t729.4344135802467\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t0.227\t0x64caae9909f2285f66440…\t—\n0xd4c1f7e8...583d1d\tBNB\tLONG\t0.097\t729.6772164948454\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t0.227\t0x91e80198473f152593610…\t—\n0x010461c1...1c703a\tBRETT\tSHORT\t-11783\t0.004806912191731088\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t1919\t0xe046f62c5e4b1fc2e1c00…\t—\n0x31ca8395...fb974b\tBRETT\tLONG\t1403\t0.004814227369921596\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t1919\t0x686e09ca5c39793a69e70…\t—\n0x7019197d...4abd36\tBRETT\tLONG\t12298\t0.004745821678321678\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t1919\t0xb5569a72707b151cb6d00…\t—\n0x7717a7a2...d7bd7e\tBRETT\tLONG\t1\t0.004804\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t1919\t0x974e3663ffc6bfac98c70…\t—\n0x6ba889db...0c1817\tBTC\tLONG\t0.0006299999999999999\t81418.66666666667\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-0.00003\t0xe5dc10bd08e6f931e7550…\t—\n0x7019197d...4abd36\tBTC\tLONG\t0.00014\t80935\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-0.00003\t0x17c5d49a78d2d699193f0…\t—\n0x7717a7a2...d7bd7e\tBTC\tLONG\t0.00008999999999999999\t81393\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-0.00003\t0xd0baf5d82584462dd2340…\t—\n0x936cf4fb...81bb0f\tBTC\tSHORT\t-0.0033500000000000014\t81076.56913827654\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-0.00003\t0x82056310644c9007837f0…\t—\n0xd4c1f7e8...583d1d\tBTC\tSHORT\t-0.00065\t81464.92307692306\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-0.00003\t0x087423dd3a1b341c09ed0…\t—\n0xf5d81a13...c3ad53\tBTC\tLONG\t0.003110000000000001\t81384.29500936746\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-0.00003\t0xb0d0e27a7e3e6c1cb24a0…\t—\n0x010461c1...1c703a\tCAKE\tSHORT\t-5.4\t2.1818\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t5.5\t0x3fe9926a56ce58b541630…\t—\n0x7717a7a2...d7bd7e\tCAKE\tLONG\t10.9\t2.188764220183486\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t5.5\t0x3775b86d1f88eead38ef0…\t—\n0x010461c1...1c703a\tCASHCAT\tLONG\t260\t0.11045411538461539\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-232\t0x91f72aa79d431ef393700…\t—\n0x31ca8395...fb974b\tCASHCAT\tSHORT\t-308\t0.11020999999999999\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-232\t0x00f309680c0a4a7d026c0…\t—\n0x7019197d...4abd36\tCASHCAT\tSHORT\t-175\t0.1096581142857143\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-232\t0x57bf04c6b15033b759380…\t—\n0x936cf4fb...81bb0f\tCASHCAT\tSHORT\t-9\t0.11073\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-232\t0xe3f35a11d767cdb8e56d0…\t—\n0x010461c1...1c703a\tCC\tSHORT\t-954\t0.10362047423950228\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-20\t0x4addb633379741a84c570…\t—\n0x31ca8395...fb974b\tCC\tLONG\t116\t0.10381532051282051\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-20\t0x836398c78d7e015d84dd0…\t—\n0x7019197d...4abd36\tCC\tLONG\t5\t0.10339000000000001\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-20\t0x190c3f67ec9d6de41a850…\t—\n0x7717a7a2...d7bd7e\tCC\tSHORT\t-231\t0.10372\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-20\t0xfc1f056b48e11f37fd980…\t—\n0x936cf4fb...81bb0f\tCC\tLONG\t1044\t0.10365938697318007\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-20\t0x0f95ccae8e2e7001110f0…\t—\n0x010461c1...1c703a\tCELO\tSHORT\t-142\t0.0857174896373057\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t190\t0x9c83febfdef74af09dfd0…\t—\n0x31ca8395...fb974b\tCELO\tLONG\t332\t0.08586330722891566\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t190\t0x57c8429424616a0f59410…\t—\n0x010461c1...1c703a\tCHIP\tSHORT\t-4\t0.04586925\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-476\t0xb5c03543a38f5b35b7390…\t—\n0x31ca8395...fb974b\tCHIP\tLONG\t3389\t0.04594824206803988\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-476\t0xdd668ccd5d2b6873dee00…\t—\n0x7019197d...4abd36\tCHIP\tSHORT\t-4\t0.0454075\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-476\t0xe3366a464c1dc0cde4b00…\t—\n0x7717a7a2...d7bd7e\tCHIP\tSHORT\t-3857\t0.04575842079336272\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-476\t0xf9cf549e1c7cb1dafb490…\t—\n0x010461c1...1c703a\tCOMP\tLONG\t0.06\t22.304999999999996\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t0.01\t0x7b555132be091e7c7ccf0…\t—\n0x31ca8395...fb974b\tCOMP\tSHORT\t-0.5900000000000001\t22.26033898305085\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t0.01\t0xd60e0a6bb8837785d7870…\t—\n0x7019197d...4abd36\tCOMP\tLONG\t0.54\t22.096\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t0.01\t0xf9d26fdb15fcbc85fb4c0…\t—\n0x31ca8395...fb974b\tDOGE\tLONG\t2\t0.080305\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t76\t0xa39bfcb3cade4742a5150…\t—\n0x6ba889db...0c1817\tDOGE\tLONG\t966\t0.08013538381794243\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t76\t0xb23b58bfa1281041b3b50…\t—\n0x7717a7a2...d7bd7e\tDOGE\tLONG\t153\t0.08042748366013071\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t76\t0x67e8b53298e1259a69620…\t—\n0xd4c1f7e8...583d1d\tDOGE\tSHORT\t-448\t0.07949581250000001\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t76\t0xd2e618b223c1ced4d45f0…\t—\n0xf5d81a13...c3ad53\tDOGE\tSHORT\t-597\t0.08017694290814073\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t76\t0x00bd25f794415d6702360…\t—\n0x010461c1...1c703a\tDYDX\tSHORT\t-0.1\t0.12398\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-96.1\t0x6791aaab67bb45d4690b0…\t—\n0x7717a7a2...d7bd7e\tDYDX\tSHORT\t-96\t0.12377506249999999\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-96.1\t0xe2f4230b74fd2cc8e46d0…\t—\n0x010461c1...1c703a\tDYM\tSHORT\t-2688.9\t0.01825088523615365\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t179.8\t0xf6985bf6f21533fef8120…\t—\n0x31ca8395...fb974b\tDYM\tLONG\t232.80000000000018\t0.018299999999999997\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t179.8\t0x0d73f72a6eb3183a0eed0…\t—\n0x7019197d...4abd36\tDYM\tLONG\t1973.5000000000002\t0.018273215100076002\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t179.8\t0x6882eee56730515a69fc0…\t—\n0x7717a7a2...d7bd7e\tDYM\tLONG\t662.4000000000001\t0.018250160024154586\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t179.8\t0x429fbdeee81c6fad44190…\t—\n0x010461c1...1c703a\tEIGEN\tLONG\t85.63000000000001\t0.25034806726614506\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t149.9\t0xd3567d6ee94ce468d4d00…\t—\n0x31ca8395...fb974b\tEIGEN\tSHORT\t-30.349999999999994\t0.24725414640156476\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t149.9\t0x0e72985f8f57d2350fec0…\t—\n0x936cf4fb...81bb0f\tEIGEN\tLONG\t94.62\t0.2502630522088354\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t149.9\t0x4559dfdfdace210846d30…\t—\n0x31ca8395...fb974b\tETC\tLONG\t1.49\t7.9662\t\nOWNED_COPY\nOWNED_FULLY_SUPPORTED\n\t1.49\t0x90a30c93f6188923921c0…\t—\n0x010461c1...1c703a\tETH\tLONG\t0.0187\t2415.1716577540105\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t0.0028\t0x2801126f2b513e9f297a0…\t—\n0x6ba889db...0c1817\tETH\tSHORT\t-0.0028\t2416.4\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t0.0028\t0x233562394e31d23524af0…\t—\n0x7019197d...4abd36\tETH\tLONG\t0.0049\t2404.8\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t0.0028\t0x507d681bd595fc2e51f70…\t—\n0xd4c1f7e8...583d1d\tETH\tSHORT\t-0.0068\t2415.25\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t0.0028\t0x3a3f07f72d7c93653bb80…\t—\n0xf5d81a13...c3ad53\tETH\tSHORT\t-0.011199999999999998\t2414.7336930038286\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t0.0028\t0x871cb238b314bcc388960…\t—\n0x31ca8395...fb974b\tFARTCOIN\tSHORT\t-47.5\t0.15313391578947366\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-83.2\t0xdaa0b55fbfb10552dc1a0…\t—\n0x6ba889db...0c1817\tFARTCOIN\tSHORT\t-127.4\t0.15327385075795372\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-83.2\t0xff377340b010847b00b10…\t—\n0x7019197d...4abd36\tFARTCOIN\tLONG\t13.7\t0.15369000000000002\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-83.2\t0x956d562ae5447a4d96e70…\t—\n0x7717a7a2...d7bd7e\tFARTCOIN\tLONG\t0.3\t0.15221\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-83.2\t0xcfd69416ad51a4e1d1500…\t—\n0xf5d81a13...c3ad53\tFARTCOIN\tLONG\t77.7\t0.15339\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-83.2\t0x896db1285aa3972c8ae70…\t—\n0x31ca8395...fb974b\tFET\tSHORT\t-20\t0.19967\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t58\t0x34841366a09e27bc35fd0…\t—\n0x7019197d...4abd36\tFET\tLONG\t78\t0.19880923076923077\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t58\t0x44e55b97302428d8465f0…\t—\n0x010461c1...1c703a\tFIL\tSHORT\t-15.9\t1.1424264150943397\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-5.7\t0x49f2a671bfc389274b6c0…\t—\n0x31ca8395...fb974b\tFIL\tLONG\t30.4\t1.1444618421052632\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-5.7\t0x438aa4ef13354a7445040…\t—\n0x7019197d...4abd36\tFIL\tSHORT\t-20.2\t1.1460470297029701\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-5.7\t0xf8404d54e26fe96cf9ba0…\t—\n0x010461c1...1c703a\tFOGO\tLONG\t2708\t0.00429\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t4910\t0x6e91f5e835a40907700b0…\t—\n0x31ca8395...fb974b\tFOGO\tSHORT\t-610\t0.0042426082667462095\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t4910\t0x3a7b725de82a0eff3bf50…\t—\n0x7717a7a2...d7bd7e\tFOGO\tLONG\t2812\t0.004271\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t4910\t0x2031d5b19afc308021ab0…\t—\n0x010461c1...1c703a\tGALA\tSHORT\t-14057\t0.0020283151716002923\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t332\t0xdb5d2d5b6319a316dcd60…\t—\n0x31ca8395...fb974b\tGALA\tLONG\t14389\t0.0020363347630159537\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t332\t0xc5d389b0b8442a32c74d0…\t—\n0x010461c1...1c703a\tGAS\tLONG\t6.199999999999998\t1.3029917431192661\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-2.2\t0x92aa4aa1cac3232294240…\t—\n0x31ca8395...fb974b\tGAS\tSHORT\t-11.6\t1.3011724270359373\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-2.2\t0x138beb3484f31fc915050…\t—\n0x7717a7a2...d7bd7e\tGAS\tLONG\t3.2\t1.3003\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-2.2\t0x105745489ca5543211d10…\t—\n0x010461c1...1c703a\tGOAT\tLONG\t9\t0.014978\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t1154\t0xb662ab9a3dfd2226b7dc0…\t—\n0x31ca8395...fb974b\tGOAT\tSHORT\t-2023\t0.014971566966237035\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t1154\t0xe7f8c064ec45d41ae9720…\t—\n0x7717a7a2...d7bd7e\tGOAT\tLONG\t3168\t0.014984869633838382\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t1154\t0xab14596306b6a85eac8e0…\t—\n0x010461c1...1c703a\tGRAM\tLONG\t7\t1.3569714285714285\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t22\t0x0b4d74420d8d8a830cc70…\t—\n0x31ca8395...fb974b\tGRAM\tSHORT\t-9\t1.351923012345679\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t22\t0xc4edd2904ded5d37c6670…\t—\n0x7717a7a2...d7bd7e\tGRAM\tLONG\t24\t1.3549\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t22\t0x416c8c927ad434c342e60…\t—\n0x010461c1...1c703a\tGRASS\tSHORT\t-112.60000000000007\t0.6319544484349524\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t136.1\t0x86cca677acc4daa888460…\t—\n0x7019197d...4abd36\tGRASS\tSHORT\t-37.7\t0.6321542440318302\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t136.1\t0x37d7fcd3bc78fc8139510…\t—\n0x7717a7a2...d7bd7e\tGRASS\tLONG\t286.40000000000003\t0.6309860824022345\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t136.1\t0xc119016e5f1153d2c2920…\t—\n0x010461c1...1c703a\tHBAR\tLONG\t164\t0.0836268022689899\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t137\t0x0a59e11a230be1490bd30…\t—\n0x31ca8395...fb974b\tHBAR\tSHORT\t-33\t0.08349236363636363\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t137\t0x72e026fd449a87e074590…\t—\n0x7019197d...4abd36\tHBAR\tLONG\t6\t0.08252\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t137\t0x2080a3950003751521fa0…\t—\n0x31ca8395...fb974b\tHEMI\tLONG\t2236\t0.005344\t\nOWNED_COPY\nOWNED_FULLY_SUPPORTED\n\t2236\t0x4854ecce7262e69549ce0…\t—\n0x010461c1...1c703a\tHYPER\tLONG\t281\t0.06504991112701525\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-42\t0x23abc85feebd5ede25250…\t—\n0x31ca8395...fb974b\tHYPER\tSHORT\t-238\t0.0648323112033195\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-42\t0x2d050548451805592e7e0…\t—\n0x7717a7a2...d7bd7e\tHYPER\tSHORT\t-85\t0.064948\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-42\t0x856b6c486cee17d286e50…\t—\n0x010461c1...1c703a\tICP\tSHORT\t-8.030000000000001\t3.0221074031199286\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t1.39\t0x0812748b70d0383f098c0…\t—\n0x31ca8395...fb974b\tICP\tLONG\t9.320000000000004\t3.020863563924722\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t1.39\t0x07a1a62dd636c382091b0…\t—\n0x6ba889db...0c1817\tICP\tLONG\t6.149999999999999\t3.0261875678143815\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t1.39\t0x72dbc691d70823d574550…\t—\n0x7019197d...4abd36\tICP\tSHORT\t-6.050000000000001\t3.0026031404958675\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t1.39\t0x931f3aa1119a3a0394980…\t—\n0x010461c1...1c703a\tIMX\tLONG\t133.10000000000002\t0.16325567993989482\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-20.8\t0x53d72605f1a8eb3e55500…\t—\n0x31ca8395...fb974b\tIMX\tSHORT\t-153.9\t0.1632623725606513\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-20.8\t0xb040110dffa9a977b1b90…\t—\n0x31ca8395...fb974b\tINIT\tSHORT\t-4\t0.12609354497354497\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t92\t0x2e8a3cc0215ac50b30030…\t—\n0x7717a7a2...d7bd7e\tINIT\tLONG\t96\t0.12512\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t92\t0x0540f7e6028ef2de06ba0…\t—\n0x010461c1...1c703a\tINJ\tLONG\t1.3\t8.7433\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t0.2\t0x658d0cafe0529a7e67060…\t—\n0x6ba889db...0c1817\tINJ\tSHORT\t-1.6\t8.74195\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t0.2\t0xcdb8f69ae5de3deacf320…\t—\n0x7019197d...4abd36\tINJ\tLONG\t0.5\t8.7224\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t0.2\t0x198f29c31ce081161b080…\t—\n0x010461c1...1c703a\tIO\tSHORT\t-4.3000000000000025\t0.16196767441860466\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t1.4\t0x7eb1d3139f6e481c802b0…\t—\n0x31ca8395...fb974b\tIO\tLONG\t80.6\t0.1620445476045947\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t1.4\t0x1ee5e0ebfd1226c8205f0…\t—\n0x7019197d...4abd36\tIO\tSHORT\t-74.9\t0.16200132176234977\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t1.4\t0x25c8a5efcec2169c27420…\t—\n0x31ca8395...fb974b\tIOTA\tSHORT\t-17\t0.047815\t\nOWNED_COPY\nOWNED_FULLY_SUPPORTED\n\t-17\t0xd396aa3836cf9e6ad5100…\t—\n0x010461c1...1c703a\tJTO\tLONG\t73\t0.46768109589041096\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-1\t0xbbbe7f4d1c12c68bbd380…\t—\n0x31ca8395...fb974b\tJTO\tSHORT\t-2\t0.4664503703703704\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-1\t0x74d6506d58269aee76500…\t—\n0x7019197d...4abd36\tJTO\tSHORT\t-72\t0.466906111111111\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-1\t0xdad72ea1794fd95ddc500…\t—\n0x010461c1...1c703a\tJUP\tLONG\t65\t0.307462\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t108\t0xeafc8fe1ef0db6c6ec760…\t—\n0x31ca8395...fb974b\tJUP\tSHORT\t-31\t0.30877\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t108\t0xda61ae55d7be4521dbdb0…\t—\n0x6ba889db...0c1817\tJUP\tSHORT\t-18\t0.307594414556962\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t108\t0x6d45efe29c0aafbe6ebf0…\t—\n0x7019197d...4abd36\tJUP\tLONG\t92\t0.30857864814814817\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t108\t0x014996f8a543bc0102c30…\t—\n0x010461c1...1c703a\tKAITO\tLONG\t217\t0.294757827791919\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-18\t0xfc33a57b3d56f6d8fdad0…\t—\n0x31ca8395...fb974b\tKAITO\tSHORT\t-80\t0.29457636363636364\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-18\t0xdb70b7f0cbe1506cdcea0…\t—\n0x7717a7a2...d7bd7e\tKAITO\tSHORT\t-155\t0.2941185806451613\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-18\t0x6e05869eb4afff766f7f0…\t—\n0x7019197d...4abd36\tKAS\tLONG\t646\t0.0363995\t\nOWNED_COPY\nRESIDUAL_ACCOUNT_LEVEL\n\t970\t0xbe1baa1ba1adda20bf950…\t—\n0x010461c1...1c703a\tKBONK\tSHORT\t-45\t0.003055\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t5545\t0x7610033b2147fac277890…\t—\n0x31ca8395...fb974b\tKBONK\tLONG\t1623\t0.003050048059149722\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t5545\t0xbb8c56ee64555c03bd060…\t—\n0x7717a7a2...d7bd7e\tKBONK\tLONG\t3967\t0.00302\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t5545\t0x4fe9f17659b44bc551630…\t—\n0x010461c1...1c703a\tKLUNC\tLONG\t73\t0.048768\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-85\t0x6fdd683254863ae371570…\t—\n0x31ca8395...fb974b\tKLUNC\tSHORT\t-158\t0.048752\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-85\t0xd2131c5497f29aefd38c0…\t—\n0x010461c1...1c703a\tKNEIRO\tLONG\t156.1\t0.07684\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t38.3\t0x0cfde53919791c190e770…\t—\n0x31ca8395...fb974b\tKNEIRO\tSHORT\t-117.8\t0.0768\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t38.3\t0x43a6f212e72014e945200…\t—\n0x010461c1...1c703a\tKPEPE\tSHORT\t-1613\t0.004046\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t643\t0xf08e5ab93ecac1d9f2080…\t—\n0x31ca8395...fb974b\tKPEPE\tLONG\t21441\t0.004049250446260716\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t643\t0xfe40a93a14998598ffba0…\t—\n0x6ba889db...0c1817\tKPEPE\tSHORT\t-1377\t0.004025\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t643\t0xfdb958322187cfc3ff330…\t—\n0x7717a7a2...d7bd7e\tKPEPE\tLONG\t595\t0.004040194957983193\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t643\t0xdbb0055f2362fba6dd290…\t—\n0xf5d81a13...c3ad53\tKPEPE\tSHORT\t-18403\t0.004037310379387028\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t643\t0x3e4332243110514a3fbc0…\t—\n0x31ca8395...fb974b\tKSHIB\tSHORT\t-2264\t0.0050916130296260135\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t215\t0x6d50d3d52c84f83b6eca0…\t—\n0x7717a7a2...d7bd7e\tKSHIB\tLONG\t2479\t0.005106154901169827\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t215\t0xcf2d982328ed39f6d0a70…\t—\n0x010461c1...1c703a\tLDO\tLONG\t99.89999999999999\t0.4008154138418337\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t14.6\t0x27d2c6a7093075bc294c0…\t—\n0x31ca8395...fb974b\tLDO\tSHORT\t-145.70000000000002\t0.4004598737808375\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t14.6\t0x2a58d5c57e4b7ee92bd20…\t—\n0x7717a7a2...d7bd7e\tLDO\tLONG\t60.4\t0.397959023178808\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t14.6\t0xe86cad82fc2bfacbe9e60…\t—\n0x010461c1...1c703a\tLINEA\tLONG\t3649\t0.002859\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t7325\t0x0ce675774b0d23f10e600…\t—\n0x31ca8395...fb974b\tLINEA\tSHORT\t-277\t0.002856\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t7325\t0x2c840f645f53c0bb2dfd0…\t—\n0x7019197d...4abd36\tLINEA\tLONG\t3980\t0.002856\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t7325\t0x68ae005fb85f1a826a270…\t—\n0x7717a7a2...d7bd7e\tLINEA\tSHORT\t-27\t0.002831\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t7325\t0x6ec704bdaa324d4170400…\t—\n0x010461c1...1c703a\tLIT\tSHORT\t-11\t3.196190909090909\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-3\t0xa93d8881798402a0aab70…\t—\n0x31ca8395...fb974b\tLIT\tLONG\t1\t3.2116\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-3\t0x8607dc6cb360d31287810…\t—\n0x7019197d...4abd36\tLIT\tSHORT\t-4\t3.2031\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-3\t0x08a2ec9bf4286b410a1c0…\t—\n0x7717a7a2...d7bd7e\tLIT\tLONG\t3\t3.1965\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-3\t0x229bac5b57d868db24150…\t—\n0x936cf4fb...81bb0f\tLIT\tLONG\t1\t3.2117\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-3\t0xd3fe6389ab02ba89d5780…\t—\n0xd4c1f7e8...583d1d\tLIT\tLONG\t7\t3.0926428571428572\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-3\t0x64a37b6cde7e55e5661d0…\t—\n0x010461c1...1c703a\tMANTA\tLONG\t163.5\t0.07341\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-80.8\t0xf95c78321f4a20d8fad60…\t—\n0x31ca8395...fb974b\tMANTA\tSHORT\t-679.9\t0.07261480795730013\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-80.8\t0xa27a22ea6e36d440a3f30…\t—\n0x7717a7a2...d7bd7e\tMANTA\tLONG\t435.59999999999997\t0.07266859044995409\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-80.8\t0x1a221e4b50dac4221b9b0…\t—\n0x010461c1...1c703a\tME\tLONG\t7.8\t0.06344\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-109\t0x79b33fb9d31dc10c7b2c0…\t—\n0x31ca8395...fb974b\tME\tSHORT\t-116.80000000000001\t0.06356220890410959\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-109\t0xc9ff61eab849694bcb790…\t—\n0x31ca8395...fb974b\tMEGA\tSHORT\t-849\t0.04683581972796342\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-214\t0x43e7b7be5f64f57345610…\t—\n0x7019197d...4abd36\tMEGA\tLONG\t762\t0.047134999999999996\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-214\t0x22e5ac652321d5ab245f0…\t—\n0xf5d81a13...c3ad53\tMEGA\tSHORT\t-127\t0.04642666929133858\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-214\t0x146791a4091c629915e10…\t—\n0x010461c1...1c703a\tMELANIA\tSHORT\t-202.5\t0.08567593941449363\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t141.7\t0x3ff588c689fa8bea416f0…\t—\n0x31ca8395...fb974b\tMELANIA\tLONG\t344.20000000000005\t0.08550221753238238\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t141.7\t0x6eb66e6fd9fe1f1c70300…\t—\n0x010461c1...1c703a\tMERL\tLONG\t441\t0.027236\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t148\t0xb8f9118053c6c293ba720…\t—\n0x31ca8395...fb974b\tMERL\tSHORT\t-293\t0.027254649325626205\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t148\t0x8eb0c53f5f348154902a0…\t—\n0x010461c1...1c703a\tMET\tLONG\t348\t0.3472170114942529\t\nOWNED_COPY\nOWNED_FULLY_SUPPORTED\n\t348\t0xe6e3df8ac9ae663ce85d0…\t—\n0x010461c1...1c703a\tMINA\tLONG\t679\t0.07672361561119294\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t1078\t0x46efe7a6cfbf3c2a48690…\t—\n0x7019197d...4abd36\tMINA\tLONG\t321\t0.07461507236842105\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t1078\t0xa20c651e36070179a3860…\t—\n0x7717a7a2...d7bd7e\tMINA\tLONG\t78\t0.07584351282051283\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t1078\t0xe9e38734476cdb60eb5d0…\t—\n0x31ca8395...fb974b\tMON\tSHORT\t-8\t0.022829\t\nOWNED_COPY\nOWNED_FULLY_SUPPORTED\n\t-8\t0xf14f4306f28728aff2c80…\t—\n0x31ca8395...fb974b\tMOODENG\tLONG\t26\t0.038714807692307694\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t339\t0xb3a3182d93f50c92b51c0…\t—\n0x7717a7a2...d7bd7e\tMOODENG\tLONG\t313\t0.03872866453674122\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t339\t0x2a6634d66679ece62bdf0…\t—\n0x7019197d...4abd36\tMORPHO\tLONG\t5\t2.3851\t\nOWNED_COPY\nOWNED_FULLY_SUPPORTED\n\t5\t0xb49f2e5dba143c06b6180…\t—\n0xd4c1f7e8...583d1d\tNEAR\tLONG\t11.5\t5.144126086956521\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t1.4\t0xcad3225fb9a4cb79cc4c0…\t—\n0xf5d81a13...c3ad53\tNEAR\tSHORT\t-10.1\t5.057813861386139\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t1.4\t0xc949cafdc132beaccac30…\t—\n0x010461c1...1c703a\tNEO\tSHORT\t-5.06\t2.345960798385317\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-0.12\t0xfb6a3b7ea6eaf452fce30…\t—\n0x31ca8395...fb974b\tNEO\tSHORT\t-0.04\t2.3452\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-0.12\t0x0afb848d4a4d54670c750…\t—\n0x7717a7a2...d7bd7e\tNEO\tLONG\t4.98\t2.3472\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-0.12\t0xa7c002e5f5b0ca5ea9390…\t—\n0x010461c1...1c703a\tNIL\tSHORT\t-288\t0.08256032238314681\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t13\t0xcf2ee7fd3405fc0bd0a80…\t—\n0x31ca8395...fb974b\tNIL\tLONG\t153\t0.08233114771386431\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t13\t0xd5331249e90929ded6ac0…\t—\n0x7019197d...4abd36\tNIL\tLONG\t1\t0.082199\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t13\t0x09b59a83c58c3fef0b2f0…\t—\n0x7717a7a2...d7bd7e\tNIL\tSHORT\t-1\t0.082882\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t13\t0x9cd740063d5e982a9e500…\t—\n0x936cf4fb...81bb0f\tNIL\tLONG\t148\t0.080838\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t13\t0xb04321fd9923b5ecb1bc0…\t—\n0x31ca8395...fb974b\tNXPC\tSHORT\t-57\t0.18243212827970454\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t132\t0x5473ec17136b8c0f55ed0…\t—\n0x7717a7a2...d7bd7e\tNXPC\tLONG\t189\t0.18266809523809524\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t132\t0x241c01a8b5a1c1a425950…\t—\n0x6ba889db...0c1817\tONDO\tSHORT\t-22\t0.45307\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t4\t0x9fd02b90af9c3259a1490…\t—\n0x7019197d...4abd36\tONDO\tLONG\t26\t0.45333999999999997\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t4\t0xb1b45c4b30685573b32e0…\t—\n0x010461c1...1c703a\tORDI\tLONG\t0.07\t3.9314000000000004\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-0.01\t0xed82a0b7f41714fceefc0…\t—\n0x31ca8395...fb974b\tORDI\tSHORT\t-0.08\t3.93035\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-0.01\t0x4f1746da1b077e6150910…\t—\n0x31ca8395...fb974b\tPAXG\tSHORT\t-0.003\t4149.8\t\nOWNED_COPY\nRESIDUAL_ACCOUNT_LEVEL\n\t-0.006\t0x163ff39d60ebb65a17b90…\t—\n0x31ca8395...fb974b\tPEOPLE\tLONG\t1005\t0.0080029491482329\t\nOWNED_COPY\nOWNED_FULLY_SUPPORTED\n\t1005\t0xec68ae03bf6ec219ede20…\t—\n0x010461c1...1c703a\tPNUT\tSHORT\t-308.40000000000003\t0.0461215540622281\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-49.3\t0xfde8396d4e6e151cff610…\t—\n0x7019197d...4abd36\tPNUT\tLONG\t259.1\t0.04555\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-49.3\t0x8d06f477772761748e800…\t—\n0x010461c1...1c703a\tPOL\tSHORT\t-102\t0.094339\t\nOWNED_COPY\nOWNED_FULLY_SUPPORTED\n\t-102\t0x802730ba72deded081a00…\t—\n0x31ca8395...fb974b\tPOLYX\tSHORT\t-254\t0.03644309836065574\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t77\t0xa78f924a8e3c2c0ba9090…\t—\n0x7717a7a2...d7bd7e\tPOLYX\tLONG\t331\t0.036173\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t77\t0x20415bab8f9d337521bb0…\t—\n0x31ca8395...fb974b\tPONS\tLONG\t327\t0.32123015945827865\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t72\t0x60de94fdbd235a9062580…\t—\n0x7019197d...4abd36\tPONS\tLONG\t18\t0.31497\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t72\t0xd492556e2ed2842bd60c0…\t—\n0x7717a7a2...d7bd7e\tPONS\tLONG\t120\t0.3133679865771812\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t72\t0xe99bd2a947136232eb150…\t—\n0xd4c1f7e8...583d1d\tPONS\tSHORT\t-111\t0.31944\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t72\t0x61cf6f96e78a06ed63490…\t—\n0xf5d81a13...c3ad53\tPONS\tSHORT\t-282\t0.32081620173894365\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t72\t0x2a7ef472400ea7232bf80…\t—\n0x31ca8395...fb974b\tPOPCAT\tLONG\t256\t0.046728\t\nOWNED_COPY\nOWNED_FULLY_SUPPORTED\n\t256\t0xd5a46d84be6071e4d71e0…\t—\n0x010461c1...1c703a\tPROVE\tSHORT\t-20\t0.1887\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t53\t0x5d414f28f387a56f5ebb0…\t—\n0x31ca8395...fb974b\tPROVE\tLONG\t136\t0.1890324533343251\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t53\t0x6b9176248dcaf4b76d0b0…\t—\n0x7717a7a2...d7bd7e\tPROVE\tSHORT\t-63\t0.18796\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t53\t0x935434c76a6c849a94cd0…\t—\n0x010461c1...1c703a\tPUMP\tLONG\t557\t0.00469\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t275\t0x7a0286c679045f527b7c0…\t—\n0x7019197d...4abd36\tPUMP\tSHORT\t-282\t0.004342\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t275\t0x41943253828e7a12430d0…\t—\n0x31ca8395...fb974b\tPYTH\tLONG\t65\t0.0869395\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-308\t0x39f24a37f20d2a9d3b6c0…\t—\n0x7717a7a2...d7bd7e\tPYTH\tSHORT\t-373\t0.08698185591549741\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-308\t0x4ba09af11b1d0ab34d1a0…\t—\n0x7019197d...4abd36\tRENDER\tSHORT\t-5\t1.9266999999999999\t\nOWNED_COPY\nOWNED_FULLY_SUPPORTED\n\t-5\t0xea4d4fed7726fe4eebc70…\t—\n0x31ca8395...fb974b\tRESOLV\tLONG\t1\t0.018032\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-662\t0x5dce7446ce6fa3eb5f480…\t—\n0x7717a7a2...d7bd7e\tRESOLV\tSHORT\t-662\t0.018079\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-662\t0xb88eabdfc137cac1ba080…\t—\n0x010461c1...1c703a\tREZ\tLONG\t10627\t0.0035886472644461255\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-623\t0x1c39b320c643f5611db30…\t—\n0x31ca8395...fb974b\tREZ\tSHORT\t-4575\t0.003597369398907104\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-623\t0x4b63a03e05a511be4cdd0…\t—\n0x7019197d...4abd36\tREZ\tLONG\t30\t0.003559\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-623\t0x2f3eda7c56a9682430b80…\t—\n0x7717a7a2...d7bd7e\tREZ\tSHORT\t-6705\t0.0035594329604772554\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-623\t0x17ab1462e1673b1719240…\t—\n0x010461c1...1c703a\tRSR\tSHORT\t-3489\t0.0019206624135142424\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-1614\t0x77c0b56fecb77846793a0…\t—\n0x7717a7a2...d7bd7e\tRSR\tLONG\t1875\t0.0018952357333333332\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-1614\t0x76c5c86e4c14ecb5783f0…\t—\n0x010461c1...1c703a\tRUNE\tLONG\t3.2\t0.64309\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t1.6\t0x5a2d272cc002d67a5ba60…\t—\n0x31ca8395...fb974b\tRUNE\tSHORT\t-1.1000000000000014\t0.6425659893048128\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t1.6\t0xabd596443cc50a3bad4f0…\t—\n0x7717a7a2...d7bd7e\tRUNE\tSHORT\t-0.5\t0.64319\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t1.6\t0xe63c9839a5933bb5e7b60…\t—\n0x010461c1...1c703a\tS\tLONG\t218\t0.054985000000000006\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t0\t0xa75ac2fb49237eb6a8d40…\t—\n0x31ca8395...fb974b\tS\tSHORT\t-218\t0.055038\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t0\t0x7a2c1bd81b42741a7ba50…\t—\n0x010461c1...1c703a\tSAND\tSHORT\t-410\t0.05410838963383411\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-822\t0x3bdb94fcd553e8023d550…\t—\n0x31ca8395...fb974b\tSAND\tSHORT\t-412\t0.05414024924400963\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-822\t0x3b38df200b608a2c3cb20…\t—\n0x31ca8395...fb974b\tSKR\tSHORT\t-32\t0.0153705\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-1599\t0x165aeb6242a2552017d40…\t—\n0x7019197d...4abd36\tSKR\tSHORT\t-2346\t0.015318831202046036\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-1599\t0x1576dc1e85b2ef5316f00…\t—\n0x7717a7a2...d7bd7e\tSKR\tLONG\t779\t0.015384\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-1599\t0x74fe3fb8140c081076770…\t—\n0x010461c1...1c703a\tSKY\tSHORT\t-456\t0.07094433495604321\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-157\t0x39be79fc8cd858e73b380…\t—\n0x31ca8395...fb974b\tSKY\tLONG\t299\t0.07100049096162182\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-157\t0x0a5c99a8e326de260bd60…\t—\n0x010461c1...1c703a\tSNX\tLONG\t114.39999999999999\t0.22481968803829755\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t7.1\t0xe3e849eeda35fd6fe5620…\t—\n0x7019197d...4abd36\tSNX\tLONG\t7.1\t0.2253\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t7.1\t0xbaa64d503ebb5389bc200…\t—\n0x010461c1...1c703a\tSOL\tLONG\t0.11\t103.65\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t0\t0x31e5aade07101969335f0…\t—\n0x6ba889db...0c1817\tSOL\tLONG\t0.11\t103.88\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t0\t0xdee19ccf7055e4cfe05b0…\t—\n0xc179e039...7ce0c8\tSOL\tSHORT\t-0.21\t103.77\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t0\t0x427f87bcfbb0489e43f90…\t—\n0xf5d81a13...c3ad53\tSOL\tSHORT\t-0.01\t103.64\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t0\t0xb121be0e0ece6277b29b0…\t—\n0x7717a7a2...d7bd7e\tSOPH\tSHORT\t-10208\t0.00234\t\nOWNED_COPY\nOWNED_FULLY_SUPPORTED\n\t-10208\t0x2399e2964a60d92325130…\t—\n0x010461c1...1c703a\tSPX\tSHORT\t-34.60000000000001\t0.3550640477194618\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t2.9\t0x4443b82408e2b5ba45bd0…\t—\n0x31ca8395...fb974b\tSPX\tLONG\t3.8000000000000003\t0.3560581578947368\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t2.9\t0x5235262b398d47de53ae0…\t—\n0x7019197d...4abd36\tSPX\tLONG\t33.7\t0.35601\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t2.9\t0xbb4311a9d07f9f51bcbc0…\t—\n0x7717a7a2...d7bd7e\tSTABLE\tLONG\t432\t0.026448439814814814\t\nOWNED_COPY\nOWNED_FULLY_SUPPORTED\n\t432\t0x4463d0403faa67c445dd0…\t—\n0x010461c1...1c703a\tSTBL\tLONG\t478\t0.024052112233445565\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-92\t0x5dff3e085eb58df95f780…\t—\n0x31ca8395...fb974b\tSTBL\tSHORT\t-404\t0.023406\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-92\t0xed1980c791e07d9dee930…\t—\n0x7019197d...4abd36\tSTBL\tLONG\t1017\t0.02368\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-92\t0x925a7037e125c7ee93d40…\t—\n0x7717a7a2...d7bd7e\tSTBL\tSHORT\t-1183\t0.023825000000000002\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-92\t0x1d8c3cad82d5331c1f050…\t—\n0x010461c1...1c703a\tSTX\tSHORT\t-13.300000000000002\t0.38955141887566186\t\nOWNED_COPY\nOWNED_FULLY_SUPPORTED\n\t-13.3\t0xa71632576e11b697a88f0…\t—\n0x010461c1...1c703a\tSUI\tLONG\t11.6\t1.0216\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t0.9\t0x3881cbaab419bb3f39fb0…\t—\n0x936cf4fb...81bb0f\tSUI\tLONG\t11.7\t1.0229\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t0.9\t0x4dbf4d4a836186694f390…\t—\n0xd4c1f7e8...583d1d\tSUI\tSHORT\t-22.8\t1.0523048245614035\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t0.9\t0x228ffddc706ccaab24090…\t—\n0xf5d81a13...c3ad53\tSUI\tLONG\t0.4\t1.0219\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t0.9\t0xd854fbbb62c10756d9ce0…\t—\n0x010461c1...1c703a\tSUPER\tLONG\t84\t0.2013988778861716\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-33\t0x2342bf346f5180aa24bc0…\t—\n0x31ca8395...fb974b\tSUPER\tSHORT\t-59\t0.20181\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-33\t0x6955d0b0b927b7836acf0…\t—\n0x7717a7a2...d7bd7e\tSUPER\tSHORT\t-58\t0.20305\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-33\t0x0985b031341c8e090aff0…\t—\n0x010461c1...1c703a\tSUSHI\tLONG\t66.79999999999998\t0.22743506887052345\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-19.4\t0x3c90db81d83616aa3e0a0…\t—\n0x31ca8395...fb974b\tSUSHI\tSHORT\t-100.50000000000001\t0.22704798107032514\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-19.4\t0xcf96debf10bfef87d1100…\t—\n0x7019197d...4abd36\tSUSHI\tLONG\t14.300000000000011\t0.22615918648310385\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-19.4\t0xac33bb7d2ba69ff2adad0…\t—\n0x31ca8395...fb974b\tSYRUP\tLONG\t100\t0.2034011\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-19\t0x8ecea37afdcbf9cc90480…\t—\n0x7717a7a2...d7bd7e\tSYRUP\tSHORT\t-61\t0.20354803278688527\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-19\t0x0bd1a31a6b55e4520d4b0…\t—\n0x010461c1...1c703a\tTAO\tSHORT\t-0.033999999999999975\t274.7704340539635\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-0.008\t0x7d579b19aa6a2d037ed10…\t—\n0x31ca8395...fb974b\tTAO\tLONG\t0.021\t275.8\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-0.008\t0x43e5965a3a0dca15455f0…\t—\n0x6ba889db...0c1817\tTAO\tSHORT\t-0.105\t275.65609523809525\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-0.008\t0x6c1de7259ecd53516d970…\t—\n0x7019197d...4abd36\tTAO\tLONG\t0.003\t275.82\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-0.008\t0x2f437ce1f1d08d1b30bd0…\t—\n0xd4c1f7e8...583d1d\tTAO\tLONG\t0.019000000000000003\t278.98\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-0.008\t0x1e9eb30809ee048620180…\t—\n0xf5d81a13...c3ad53\tTAO\tLONG\t0.088\t274.04028571428574\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-0.008\t0x58c78c921299af995a410…\t—\n0x010461c1...1c703a\tTRB\tSHORT\t-0.08\t18.424625\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-0.03\t0xfdd0c7f3eff3c7ebff4a0…\t—\n0x31ca8395...fb974b\tTRB\tLONG\t0.05\t18.425\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-0.03\t0xe71645a819ffc662e8900…\t—\n0x010461c1...1c703a\tTRUMP\tSHORT\t-2.4\t1.8142999999999998\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-2.3\t0xcff0e4ca51830d21d16a0…\t—\n0x31ca8395...fb974b\tTRUMP\tLONG\t0.1\t1.8161\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-2.3\t0xd7332098ad3ba9cad8ac0…\t—\n0x31ca8395...fb974b\tTURBO\tLONG\t25453\t0.0009045007364882727\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-833\t0xfc17569fd96dd75afd910…\t—\n0x7019197d...4abd36\tTURBO\tSHORT\t-26286\t0.0009129989347941871\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-833\t0x25b22a5427deb0cd272b0…\t—\n0x31ca8395...fb974b\tUSELESS\tSHORT\t-126\t0.16297999999999999\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t10\t0xb2332d5bd0c8c4a1b3ac0…\t—\n0x7019197d...4abd36\tUSELESS\tLONG\t74\t0.16216\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t10\t0x5c77296c03ca72c05df00…\t—\n0x7717a7a2...d7bd7e\tUSELESS\tLONG\t136\t0.16080999999999998\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t10\t0x55079ed39ec6294b56810…\t—\n0xf5d81a13...c3ad53\tUSELESS\tSHORT\t-74\t0.1614\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t10\t0xe999313da0d388ffeb120…\t—\n0x010461c1...1c703a\tVIRTUAL\tLONG\t1.4000000000000015\t0.6713137665886028\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t0.6\t0x179c0d754bc165ec19150…\t—\n0x6ba889db...0c1817\tVIRTUAL\tSHORT\t-0.8\t0.6698\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t0.6\t0x1b1a4f4f1155a8c41c940…\t—\n0x31ca8395...fb974b\tVVV\tLONG\t0.5\t22.852\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-0.75\t0xd89160fb6d7383d5da0b0…\t—\n0x7019197d...4abd36\tVVV\tSHORT\t-9.149999999999997\t22.940568323927266\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-0.75\t0x9d1a2a84faf74e249e930…\t—\n0x7717a7a2...d7bd7e\tVVV\tLONG\t4.96\t23.003683467741933\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-0.75\t0x71bd76e154ca16f973370…\t—\n0x936cf4fb...81bb0f\tVVV\tLONG\t8.629999999999997\t23.213626086956534\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-0.75\t0x744ffb0a24fc16a675c90…\t—\n0xf5d81a13...c3ad53\tVVV\tSHORT\t-5.689999999999998\t22.878279984920166\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-0.75\t0x1e4d7b4648e1ea021fc70…\t—\n0x010461c1...1c703a\tW\tSHORT\t-474\t0.014349\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t235\t0xd7455af5d3da2a8cd8bf0…\t—\n0x31ca8395...fb974b\tW\tLONG\t5056\t0.014405684594959946\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t235\t0x1ebbf746d88216f920350…\t—\n0x7717a7a2...d7bd7e\tW\tLONG\t1630\t0.014725980368098161\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t235\t0xc15093f7fb5b66b9c2ca0…\t—\n0x936cf4fb...81bb0f\tW\tSHORT\t-5977\t0.01426603881545926\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t235\t0xb94fceb079b465f5bac90…\t—\n0x31ca8395...fb974b\tWIF\tLONG\t11\t0.2083427272727273\t\nOWNED_COPY\nOWNED_FULLY_SUPPORTED\n\t11\t0x78ebecbfa642ee777a650…\t—\n0x010461c1...1c703a\tWLD\tLONG\t255.00000000000003\t0.514448301249897\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t10.9\t0xbfc3bd9b5266c431c13d0…\t—\n0x31ca8395...fb974b\tWLD\tSHORT\t-20.7\t0.51414\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t10.9\t0x9cc7be37d6db14459e410…\t—\n0x6ba889db...0c1817\tWLD\tLONG\t98.9\t0.5153309934047137\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t10.9\t0x5a7c9bc32b9ee7165bf60…\t—\n0x7019197d...4abd36\tWLD\tSHORT\t-16.8\t0.51677\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t10.9\t0x65d4eb558644dbf0674e0…\t—\n0x7717a7a2...d7bd7e\tWLD\tLONG\t92.80000000000001\t0.5169371443965516\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t10.9\t0xe534a5e14f1f3c49e6ae0…\t—\n0xd4c1f7e8...583d1d\tWLD\tSHORT\t-1022.7999999999998\t0.513856708056316\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t10.9\t0xd562956fa379a6a2d6dc0…\t—\n0xf5d81a13...c3ad53\tWLD\tLONG\t624.5000000000001\t0.5162931406794328\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t10.9\t0xbbe2f7d4c06cdca0bd5c0…\t—\n0x010461c1...1c703a\tWLFI\tSHORT\t-179\t0.056957482760994875\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t364\t0xccb06ecf8494c208ce2a0…\t—\n0x31ca8395...fb974b\tWLFI\tLONG\t334\t0.05696406988654271\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t364\t0x1bb10ecfa81cd3651d2a0…\t—\n0x7019197d...4abd36\tWLFI\tLONG\t210\t0.056926\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t364\t0xa331bce721438a2ba4ab0…\t—\n0xd4c1f7e8...583d1d\tWLFI\tSHORT\t-1\t0.057133\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t364\t0xa8c0d1e262c16d75aa3a0…\t—\n0x010461c1...1c703a\tXAI\tSHORT\t-730.7\t0.008583199671547831\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t663\t0x21e64f11722b810823600…\t—\n0x31ca8395...fb974b\tXAI\tLONG\t1393.7\t0.00863\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t663\t0x5249dd5e47de432953c30…\t—\n0x010461c1...1c703a\tXLM\tLONG\t132\t0.181365\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t82\t0x77f9e1bb7f55df9479730…\t—\n0x31ca8395...fb974b\tXLM\tSHORT\t-132\t0.18141249999999998\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t82\t0x967b3a0673f78bc797f40…\t—\n0x7019197d...4abd36\tXLM\tLONG\t82\t0.18126028031441455\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t82\t0x81fcebc33d52efc483760…\t—\n0x010461c1...1c703a\tXMR\tSHORT\t-0.05999999999999994\t561.706931818182\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t0.1\t0xbca3a0fa7bb41710be1d0…\t—\n0x7717a7a2...d7bd7e\tXMR\tLONG\t0.01\t563.34\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t0.1\t0xc3ac71b383698a84c5260…\t—\n0xc179e039...7ce0c8\tXMR\tLONG\t0.14999999999999997\t561.5325\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t0.1\t0xac0a659381ddb790ad840…\t—\n0x7717a7a2...d7bd7e\tXYZ:AMZN\tLONG\t0.047\t255.02999999999997\t\nOWNED_COPY\nEXTERNAL_FLAT_PENDING_RECONCILIATION\n\t0\t0x0ce3b3a1745d6b240e5d0…\t—\n0x7717a7a2...d7bd7e\tXYZ:HOOD\tLONG\t0.024999999999999994\t102.74534482758621\t\nOWNED_COPY\nEXTERNAL_FLAT_PENDING_RECONCILIATION\n\t0\t0x2d8c20d8b4ed77722f050…\t—\n0x7717a7a2...d7bd7e\tXYZ:MSTR\tSHORT\t-0.081\t157.62\t\nOWNED_COPY\nEXTERNAL_FLAT_PENDING_RECONCILIATION\n\t0\t0x77c4fc6eed27104d793e0…\t—\n0x7717a7a2...d7bd7e\tXYZ:PLTR\tLONG\t0.171\t177.67999999999998\t\nOWNED_COPY\nEXTERNAL_FLAT_PENDING_RECONCILIATION\n\t0\t0x33129cb3c9b37d21348c0…\t—\n0x7717a7a2...d7bd7e\tXYZ:TSLA\tLONG\t0.029\t374.10999999999996\t\nOWNED_COPY\nEXTERNAL_FLAT_PENDING_RECONCILIATION\n\t0\t0x7056b743aff1cb4571d00…\t—\n0x010461c1...1c703a\tZEN\tSHORT\t-2.4800000000000004\t6.0583313253012046\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t0.42\t0x329456b8cd2f3ff5340e0…\t—\n0x31ca8395...fb974b\tZEN\tLONG\t2.87\t6.071228571428572\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t0.42\t0x31feab596918551533780…\t—\n0x7019197d...4abd36\tZEN\tLONG\t0.029999999999999805\t5.9588\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t0.42\t0x0f755e4745166de710ef0…\t—\n0x010461c1...1c703a\tZETA\tLONG\t209.49999999999994\t0.043970731829622973\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t226.9\t0xb5556ecfecdf4732b6cf0…\t—\n0x31ca8395...fb974b\tZETA\tSHORT\t-615.4\t0.04380162450306511\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t226.9\t0x24e0f416c4a03c75265a0…\t—\n0x7019197d...4abd36\tZETA\tLONG\t554.8\t0.04339917808219178\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t226.9\t0x992110d92b95cb079a9a0…\t—\n0x7717a7a2...d7bd7e\tZETA\tLONG\t78\t0.04388\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t226.9\t0xd3d6f502de26d03ad5500…\t—\n0x31ca8395...fb974b\tZK\tLONG\t14\t0.016607\t\nOWNED_COPY\nOWNED_FULLY_SUPPORTED\n\t14\t0x08eb08b2028184100a640…\t—\n0x010461c1...1c703a\tZRO\tSHORT\t-3.8000000000000025\t2.0507974717021047\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-4.2\t0xef8dfe51ade09197f1070…\t—\n0x31ca8395...fb974b\tZRO\tLONG\t0.2999999999999998\t2.0588\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-4.2\t0xadfefdebcacd1c9baf780…\t—\n0x6ba889db...0c1817\tZRO\tSHORT\t-1.5\t2.045526666666667\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-4.2\t0xe13b5c37bbf91ccfe2b50…\t—\n0x7019197d...4abd36\tZRO\tLONG\t0.8000000000000007\t2.0544\t\nOWNED_COPY\nSHARED_SYMBOL_SLEEVE_TRACKED\n\t-4.2\t0x113b805e8f3bd74c12b50…\t—\nPOSITIONS NOT OPENED BY THE ENGINE\nCOIN\tUNEXPLAINED SIZE\tENTRY PX\tMARK PX\tUNREALIZED PNL\tSTATUS\tWHO MANAGES IT\tENGINE CLOSES IT?\tENGINE USES IT?\tCONTEXT\nKAS\t324\t0.036365\t0.036265\t—\tNot opened by the engine — managed by you\tYou\tNo\tNo\tno engine order behind it\nPAXG\t-0.003\t4149.7\t4151.861\t—\tNot opened by the engine — managed by you\tYou\tNo\tNo\tno engine order behind it\nAR\t1.47\t3.9051\t3.9282000000000004\t—\tEngine records exceed the exchange — check Reconciliation\tCheck\tNo\tNo\texchange holds 0.73; the leaders' records add up to -0.74\nBABY\t1\t0.012122\t0.012209\t—\tNot opened by the engine — managed by you\tYou\tNo\tNo\texchange holds 3390; leaders explain the rest\nRESOLV\t-1\t0.016882\t0.017546\t—\tNot opened by the engine — managed by you\tYou\tNo\tNo\texchange holds -662; leaders explain the rest\nSNX\t-114.4\t0.22466\t0.22501000000000002\t—\tEngine records exceed the exchange — check Reconciliation\tCheck\tNo\tNo\texchange holds 7.1; the leaders' records add up to 121.5\nSYRUP\t-58\t0.20301\t0.20505\t—\tEngine records exceed the exchange — check Reconciliation\tCheck\tNo\tNo\texchange holds -19; the leaders' records add up to 39\nASTER\t16\t0.71211\t0.71066\t$-0.02\tNot opened by the engine — managed by you\tYou\tNo\tNo\tno engine order behind it\nPENGU\t-1427\t0.008399\t0.0075829999999999995\t$1.16\tNot opened by the engine — managed by you\tYou\tNo\tNo\tno engine order behind it",
+  "html_len": 2414929,
+  "inputs": [
+   {
+    "tag": "INPUT",
+    "type": "number",
+    "name": "",
+    "id": "gcMaxTotal",
+    "cls": "",
+    "ph": "0 = disabled",
+    "val": "5000",
+    "txt": ""
+   },
+   {
+    "tag": "INPUT",
+    "type": "number",
+    "name": "",
+    "id": "gcMaxDir",
+    "cls": "",
+    "ph": "0 = disabled",
+    "val": "2000",
+    "txt": ""
+   },
+   {
+    "tag": "INPUT",
+    "type": "number",
+    "name": "",
+    "id": "gcMaxDailyLoss",
+    "cls": "",
+    "ph": "0 = disabled",
+    "val": "1000",
+    "txt": ""
+   },
+   {
+    "tag": "INPUT",
+    "type": "number",
+    "name": "",
+    "id": "gcMaxWallet",
+    "cls": "",
+    "ph": "0 = disabled",
+    "val": "600",
+    "txt": ""
+   },
+   {
+    "tag": "INPUT",
+    "type": "number",
+    "name": "",
+    "id": "gcMaxOrder",
+    "cls": "",
+    "ph": "0 = disabled",
+    "val": "500",
+    "txt": ""
+   },
+   {
+    "tag": "INPUT",
+    "type": "number",
+    "name": "",
+    "id": "gcMktPct",
+    "cls": "",
+    "ph": "0 = no slippage allowed",
+    "val": "0.2",
+    "txt": ""
+   },
+   {
+    "tag": "INPUT",
+    "type": "number",
+    "name": "",
+    "id": "gcCloseAdv",
+    "cls": "",
+    "ph": "0 = OFF",
+    "val": "0",
+    "txt": ""
+   },
+   {
+    "tag": "INPUT",
+    "type": "text",
+    "name": "",
+    "id": "gcAllowlist",
+    "cls": "",
+    "ph": "BTC,ETH",
+    "val": "",
+    "txt": ""
+   },
+   {
+    "tag": "INPUT",
+    "type": "text",
+    "name": "",
+    "id": "gcBlocklist",
+    "cls": "",
+    "ph": "DOGE,SHIB",
+    "val": "HYPE,PENGU,RESOLV",
+    "txt": ""
+   },
+   {
+    "tag": "INPUT",
+    "type": "datetime-local",
+    "name": "",
+    "id": "lcGraphStart",
+    "cls": "",
+    "ph": "",
+    "val": "",
+    "txt": ""
+   },
+   {
+    "tag": "INPUT",
+    "type": "datetime-local",
+    "name": "",
+    "id": "lcGraphEnd",
+    "cls": "",
+    "ph": "",
+    "val": "",
+    "txt": ""
+   },
+   {
+    "tag": "SELECT",
+    "type": "select-one",
+    "name": "mode",
+    "id": "",
+    "cls": "",
+    "ph": "",
+    "val": "LIVE",
+    "txt": "LIVE\nCLO\nOFF"
+   },
+   {
+    "tag": "SELECT",
+    "type": "select-one",
+    "name": "copy_mode",
+    "id": "",
+    "cls": "",
+    "ph": "",
+    "val": "fixed",
+    "txt": "prop\nfixed"
+   },
+   {
+    "tag": "INPUT",
+    "type": "text",
+    "name": "fixed_notional",
+    "id": "",
+    "cls": "",
+    "ph": "",
+    "val": "12",
+    "txt": ""
+   },
+   {
+    "tag": "INPUT",
+    "type": "text",
+    "name": "norm_base",
+    "id": "",
+    "cls": "",
+    "ph": "",
+    "val": "100",
+    "txt": ""
+   },
+   {
+    "tag": "SELECT",
+    "type": "select-one",
+    "name": "mode",
+    "id": "",
+    "cls": "",
+    "ph": "",
+    "val": "LIVE",
+    "txt": "LIVE\nCLO\nOFF"
+   },
+   {
+    "tag": "SELECT",
+    "type": "select-one",
+    "name": "copy_mode",
+    "id": "",
+    "cls": "",
+    "ph": "",
+    "val": "fixed",
+    "txt": "prop\nfixed"
+   },
+   {
+    "tag": "INPUT",
+    "type": "text",
+    "name": "fixed_notional",
+    "id": "",
+    "cls": "",
+    "ph": "",
+    "val": "12",
+    "txt": ""
+   },
+   {
+    "tag": "INPUT",
+    "type": "text",
+    "name": "norm_base",
+    "id": "",
+    "cls": "",
+    "ph": "",
+    "val": "100",
+    "txt": ""
+   },
+   {
+    "tag": "SELECT",
+    "type": "select-one",
+    "name": "mode",
+    "id": "",
+    "cls": "",
+    "ph": "",
+    "val": "LIVE",
+    "txt": "LIVE\nCLO\nOFF"
+   },
+   {
+    "tag": "SELECT",
+    "type": "select-one",
+    "name": "copy_mode",
+    "id": "",
+    "cls": "",
+    "ph": "",
+    "val": "fixed",
+    "txt": "prop\nfixed"
+   },
+   {
+    "tag": "INPUT",
+    "type": "text",
+    "name": "fixed_notional",
+    "id": "",
+    "cls": "",
+    "ph": "",
+    "val": "12",
+    "txt": ""
+   },
+   {
+    "tag": "INPUT",
+    "type": "text",
+    "name": "norm_base",
+    "id": "",
+    "cls": "",
+    "ph": "",
+    "val": "100",
+    "txt": ""
+   },
+   {
+    "tag": "SELECT",
+    "type": "select-one",
+    "name": "mode",
+    "id": "",
+    "cls": "",
+    "ph": "",
+    "val": "LIVE",
+    "txt": "LIVE\nCLO\nOFF"
+   },
+   {
+    "tag": "SELECT",
+    "type": "select-one",
+    "name": "copy_mode",
+    "id": "",
+    "cls": "",
+    "ph": "",
+    "val": "fixed",
+    "txt": "prop\nfixed"
+   },
+   {
+    "tag": "INPUT",
+    "type": "text",
+    "name": "fixed_notional",
+    "id": "",
+    "cls": "",
+    "ph": "",
+    "val": "12",
+    "txt": ""
+   },
+   {
+    "tag": "INPUT",
+    "type": "text",
+    "name": "norm_base",
+    "id": "",
+    "cls": "",
+    "ph": "",
+    "val": "100",
+    "txt": ""
+   },
+   {
+    "tag": "SELECT",
+    "type": "select-one",
+    "name": "mode",
+    "id": "",
+    "cls": "",
+    "ph": "",
+    "val": "LIVE",
+    "txt": "LIVE\nCLO\nOFF"
+   },
+   {
+    "tag": "SELECT",
+    "type": "select-one",
+    "name": "copy_mode",
+    "id": "",
+    "cls": "",
+    "ph": "",
+    "val": "fixed",
+    "txt": "prop\nfixed"
+   },
+   {
+    "tag": "INPUT",
+    "type": "text",
+    "name": "fixed_notional",
+    "id": "",
+    "cls": "",
+    "ph": "",
+    "val": "12",
+    "txt": ""
+   },
+   {
+    "tag": "INPUT",
+    "type": "text",
+    "name": "norm_base",
+    "id": "",
+    "cls": "",
+    "ph": "",
+    "val": "100",
+    "txt": ""
+   },
+   {
+    "tag": "SELECT",
+    "type": "select-one",
+    "name": "mode",
+    "id": "",
+    "cls": "",
+    "ph": "",
+    "val": "LIVE",
+    "txt": "LIVE\nCLO\nOFF"
+   },
+   {
+    "tag": "SELECT",
+    "type": "select-one",
+    "name": "copy_mode",
+    "id": "",
+    "cls": "",
+    "ph": "",
+    "val": "fixed",
+    "txt": "prop\nfixed"
+   },
+   {
+    "tag": "INPUT",
+    "type": "text",
+    "name": "fixed_notional",
+    "id": "",
+    "cls": "",
+    "ph": "",
+    "val": "12",
+    "txt": ""
+   },
+   {
+    "tag": "INPUT",
+    "type": "text",
+    "name": "norm_base",
+    "id": "",
+    "cls": "",
+    "ph": "",
+    "val": "100",
+    "txt": ""
+   },
+   {
+    "tag": "SELECT",
+    "type": "select-one",
+    "name": "mode",
+    "id": "",
+    "cls": "",
+    "ph": "",
+    "val": "LIVE",
+    "txt": "LIVE\nCLO\nOFF"
+   },
+   {
+    "tag": "SELECT",
+    "type": "select-one",
+    "name": "copy_mode",
+    "id": "",
+    "cls": "",
+    "ph": "",
+    "val": "fixed",
+    "txt": "prop\nfixed"
+   },
+   {
+    "tag": "INPUT",
+    "type": "text",
+    "name": "fixed_notional",
+    "id": "",
+    "cls": "",
+    "ph": "",
+    "val": "12",
+    "txt": ""
+   },
+   {
+    "tag": "INPUT",
+    "type": "text",
+    "name": "norm_base",
+    "id": "",
+    "cls": "",
+    "ph": "",
+    "val": "100",
+    "txt": ""
+   },
+   {
+    "tag": "SELECT",
+    "type": "select-one",
+    "name": "mode",
+    "id": "",
+    "cls": "",
+    "ph": "",
+    "val": "LIVE",
+    "txt": "LIVE\nCLO\nOFF"
+   },
+   {
+    "tag": "SELECT",
+    "type": "select-one",
+    "name": "copy_mode",
+    "id": "",
+    "cls": "",
+    "ph": "",
+    "val": "fixed",
+    "txt": "prop\nfixed"
+   },
+   {
+    "tag": "INPUT",
+    "type": "text",
+    "name": "fixed_notional",
+    "id": "",
+    "cls": "",
+    "ph": "",
+    "val": "12",
+    "txt": ""
+   },
+   {
+    "tag": "INPUT",
+    "type": "text",
+    "name": "norm_base",
+    "id": "",
+    "cls": "",
+    "ph": "",
+    "val": "100",
+    "txt": ""
+   },
+   {
+    "tag": "SELECT",
+    "type": "select-one",
+    "name": "mode",
+    "id": "",
+    "cls": "",
+    "ph": "",
+    "val": "LIVE",
+    "txt": "LIVE\nCLO\nOFF"
+   },
+   {
+    "tag": "SELECT",
+    "type": "select-one",
+    "name": "copy_mode",
+    "id": "",
+    "cls": "",
+    "ph": "",
+    "val": "fixed",
+    "txt": "prop\nfixed"
+   },
+   {
+    "tag": "INPUT",
+    "type": "text",
+    "name": "fixed_notional",
+    "id": "",
+    "cls": "",
+    "ph": "",
+    "val": "12",
+    "txt": ""
+   },
+   {
+    "tag": "INPUT",
+    "type": "text",
+    "name": "norm_base",
+    "id": "",
+    "cls": "",
+    "ph": "",
+    "val": "100",
+    "txt": ""
+   },
+   {
+    "tag": "SELECT",
+    "type": "select-one",
+    "name": "mode",
+    "id": "",
+    "cls": "",
+    "ph": "",
+    "val": "LIVE",
+    "txt": "LIVE\nCLO\nOFF"
+   },
+   {
+    "tag": "SELECT",
+    "type": "select-one",
+    "name": "copy_mode",
+    "id": "",
+    "cls": "",
+    "ph": "",
+    "val": "fixed",
+    "txt": "prop\nfixed"
+   },
+   {
+    "tag": "INPUT",
+    "type": "text",
+    "name": "fixed_notional",
+    "id": "",
+    "cls": "",
+    "ph": "",
+    "val": "12",
+    "txt": ""
+   },
+   {
+    "tag": "INPUT",
+    "type": "text",
+    "name": "norm_base",
+    "id": "",
+    "cls": "",
+    "ph": "",
+    "val": "100",
+    "txt": ""
+   },
+   {
+    "tag": "SELECT",
+    "type": "select-one",
+    "name": "mode",
+    "id": "",
+    "cls": "",
+    "ph": "",
+    "val": "OFF",
+    "txt": "LIVE\nCLO\nOFF"
+   },
+   {
+    "tag": "SELECT",
+    "type": "select-one",
+    "name": "copy_mode",
+    "id": "",
+    "cls": "",
+    "ph": "",
+    "val": "fixed",
+    "txt": "prop\nfixed"
+   },
+   {
+    "tag": "INPUT",
+    "type": "text",
+    "name": "fixed_notional",
+    "id": "",
+    "cls": "",
+    "ph": "",
+    "val": "12",
+    "txt": ""
+   },
+   {
+    "tag": "INPUT",
+    "type": "text",
+    "name": "norm_base",
+    "id": "",
+    "cls": "",
+    "ph": "",
+    "val": "100",
+    "txt": ""
+   },
+   {
+    "tag": "SELECT",
+    "type": "select-one",
+    "name": "mode",
+    "id": "",
+    "cls": "",
+    "ph": "",
+    "val": "OFF",
+    "txt": "LIVE\nCLO\nOFF"
+   },
+   {
+    "tag": "SELECT",
+    "type": "select-one",
+    "name": "copy_mode",
+    "id": "",
+    "cls": "",
+    "ph": "",
+    "val": "fixed",
+    "txt": "prop\nfixed"
+   },
+   {
+    "tag": "INPUT",
+    "type": "text",
+    "name": "fixed_notional",
+    "id": "",
+    "cls": "",
+    "ph": "",
+    "val": "12",
+    "txt": ""
+   },
+   {
+    "tag": "INPUT",
+    "type": "text",
+    "name": "norm_base",
+    "id": "",
+    "cls": "",
+    "ph": "",
+    "val": "100",
+    "txt": ""
+   },
+   {
+    "tag": "SELECT",
+    "type": "select-one",
+    "name": "mode",
+    "id": "",
+    "cls": "",
+    "ph": "",
+    "val": "OFF",
+    "txt": "LIVE\nCLO\nOFF"
+   },
+   {
+    "tag": "SELECT",
+    "type": "select-one",
+    "name": "copy_mode",
+    "id": "",
+    "cls": "",
+    "ph": "",
+    "val": "fixed",
+    "txt": "prop\nfixed"
+   },
+   {
+    "tag": "INPUT",
+    "type": "text",
+    "name": "fixed_notional",
+    "id": "",
+    "cls": "",
+    "ph": "",
+    "val": "12",
+    "txt": ""
+   },
+   {
+    "tag": "INPUT",
+    "type": "text",
+    "name": "norm_base",
+    "id": "",
+    "cls": "",
+    "ph": "",
+    "val": "100",
+    "txt": ""
+   },
+   {
+    "tag": "SELECT",
+    "type": "select-one",
+    "name": "mode",
+    "id": "",
+    "cls": "",
+    "ph": "",
+    "val": "OFF",
+    "txt": "LIVE\nCLO\nOFF"
+   },
+   {
+    "tag": "SELECT",
+    "type": "select-one",
+    "name": "copy_mode",
+    "id": "",
+    "cls": "",
+    "ph": "",
+    "val": "fixed",
+    "txt": "prop\nfixed"
+   },
+   {
+    "tag": "INPUT",
+    "type": "text",
+    "name": "fixed_notional",
+    "id": "",
+    "cls": "",
+    "ph": "",
+    "val": "12",
+    "txt": ""
+   },
+   {
+    "tag": "INPUT",
+    "type": "text",
+    "name": "norm_base",
+    "id": "",
+    "cls": "",
+    "ph": "",
+    "val": "100",
+    "txt": ""
+   },
+   {
+    "tag": "SELECT",
+    "type": "select-one",
+    "name": "mode",
+    "id": "",
+    "cls": "",
+    "ph": "",
+    "val": "OFF",
+    "txt": "LIVE\nCLO\nOFF"
+   },
+   {
+    "tag": "SELECT",
+    "type": "select-one",
+    "name": "copy_mode",
+    "id": "",
+    "cls": "",
+    "ph": "",
+    "val": "fixed",
+    "txt": "prop\nfixed"
+   },
+   {
+    "tag": "INPUT",
+    "type": "text",
+    "name": "fixed_notional",
+    "id": "",
+    "cls": "",
+    "ph": "",
+    "val": "12",
+    "txt": ""
+   },
+   {
+    "tag": "INPUT",
+    "type": "text",
+    "name": "norm_base",
+    "id": "",
+    "cls": "",
+    "ph": "",
+    "val": "100",
+    "txt": ""
+   },
+   {
+    "tag": "INPUT",
+    "type": "text",
+    "name": "wallet",
+    "id": "",
+    "cls": "",
+    "ph": "0x wallet address",
+    "val": "",
+    "txt": ""
+   },
+   {
+    "tag": "SELECT",
+    "type": "select-one",
+    "name": "mode",
+    "id": "",
+    "cls": "",
+    "ph": "",
+    "val": "LIVE",
+    "txt": "LIVECLOOFF"
+   },
+   {
+    "tag": "SELECT",
+    "type": "select-one",
+    "name": "copy_mode",
+    "id": "",
+    "cls": "",
+    "ph": "",
+    "val": "fixed",
+    "txt": "fixedproportional"
+   },
+   {
+    "tag": "INPUT",
+    "type": "text",
+    "name": "norm_base",
+    "id": "",
+    "cls": "",
+    "ph": "",
+    "val": "100",
+    "txt": ""
+   },
+   {
+    "tag": "INPUT",
+    "type": "text",
+    "name": "fixed_notional",
+    "id": "",
+    "cls": "",
+    "ph": "",
+    "val": "10",
+    "txt": ""
+   }
+  ],
+  "data_attrs": [],
+  "panel_present": true,
+  "lc_pills": [
+   "Wallets:\n15 / 10",
+   "Live wallets: 10",
+   "Close-only wallets: 0",
+   "Off: 5",
+   "Leader feed:\nWebsocket OK",
+   "Live",
+   "Websocket OK",
+   "Partial record",
+   "Live",
+   "Websocket OK",
+   "No PnL yet",
+   "Live",
+   "Websocket OK",
+   "Partial record",
+   "Live",
+   "Websocket OK",
+   "Partial record",
+   "Live",
+   "Websocket OK",
+   "Partial record",
+   "Live",
+   "Websocket OK",
+   "Partial record",
+   "Live",
+   "Websocket OK",
+   "From engine ledger",
+   "Live",
+   "Websocket OK",
+   "From engine ledger",
+   "Live",
+   "Websocket OK",
+   "From engine ledger",
+   "Live",
+   "Websocket OK",
+   "Partial record",
+   "Off",
+   "not followed",
+   "From engine ledger",
+   "Off",
+   "not followed",
+   "No PnL yet",
+   "Off",
+   "not followed",
+   "From engine ledger",
+   "Off",
+   "not followed",
+   "No PnL yet",
+   "Off",
+   "not followed",
+   "From engine ledger",
+   "MATCH",
+   "0x010461c1...1c703a: -99",
+   "0x31ca8395...fb974b: +102",
+   "0x7019197d...4abd36: +42",
+   "0x7717a7a2...d7bd7e: -48",
+   "MATCH",
+   "0x010461c1...1c703a: -38",
+   "0x31ca8395...fb974b: +37",
+   "0x7019197d...4abd36: -749",
+   "0x7717a7a2...d7bd7e: +731",
+   "MISMATCH",
+   "0x7717a7a2...d7bd7e: -0.33",
+   "MATCH",
+   "0x010461c1...1c703a: -124.22",
+   "0x31ca8395...fb974b: +103.65",
+   "MATCH",
+   "0x010461c1...1c703a: +52",
+   "MATCH",
+   "0x31ca8395...fb974b: +143",
+   "0x7717a7a2...d7bd7e: -101",
+   "0x936cf4fb...81bb0f: -52",
+   "MATCH",
+   "0x010461c1...1c703a: +651",
+   "0x31ca8395...fb974b: -622",
+   "0x7019197d...4abd36: +9",
+   "MATCH",
+   "0x010461c1...1c703a: -260",
+   "0x31ca8395...fb974b: +2",
+   "0x7717a7a2...d7bd7e: +678",
+   "MATCH"
+  ]
+ },
+ "api_api_ui-state": {
+  "http": 200,
+  "body": {
+   "norm_base": 100.0,
+   "user_norm_base": 100.0,
+   "copy_mode": "proportional",
+   "normalisation_mode": "equity",
+   "fixed_notional": 100.0,
+   "leader_equity_base": 10000.0,
+   "fee_bps": 5.0,
+   "copy_friction_bps": 0.0,
+   "wallet_config": {},
+   "wallet_include": {},
+   "wallet_meta": {},
+   "ranking": {
+    "column": "wallet",
+    "direction": "asc"
+   }
+  }
+ },
+ "api_api_state": {
+  "http": 200,
+  "body": {
+   "ok": true,
+   "updated_at": "2026-10-17T00:08:30.642685+00:00",
+   "auto_send_enabled": false,
+   "send_mode": "OFF",
+   "wallet_gate_on_count": 1,
+   "wallet_gate_on": [
+    "not-an-address"
+   ],
+   "global_controls": {
+    "max_total_live_exposure_usd": 5000.0,
+    "max_asset_directional_exposure_usd": 2000.0,
+    "max_daily_loss_usd": 1000.0,
+    "max_wallet_exposure_usd": 600.0,
+    "max_order_notional_usd": 500.0,
+    "marketable_bps": 20.0,
+    "max_close_adverse_diff_pct": 0.0,
+    "symbol_allowlist": [],
+    "symbol_blocklist": [
+     "HYPE",
+     "PENGU",
+     "RESOLV"
+    ],
+    "marketable_slippage_pct": 0.2,
+    "marketable_slippage_off": false,
+    "close_adverse_diff_off": true
+   },
+   "files": {
+    "raw_live_fills": {
+     "exists": false,
+     "bytes": 0,
+     "mtime": ""
+    },
+    "copy_trades": {
+     "exists": true,
+     "bytes": 558,
+     "mtime": "2026-10-16T23:53:14.482479+00:00"
+    },
+    "order_intents": {
+     "exists": true,
+     "bytes": 10181762,
+     "mtime": "2026-10-17T00:08:30.457940+00:00"
+    },
+    "send_attempts": {
+     "exists": true,
+     "bytes": 141641234,
+     "mtime": "2026-10-17T00:08:30.517540+00:00"
+    },
+    "live_fills": {
+     "exists": true,
+     "bytes": 30758389,
+     "mtime": "2026-10-17T00:08:12.909826+00:00"
+    },
+    "reconciliation": {
+     "exists": true,
+     "bytes": 27359845,
+     "mtime": "2026-10-17T00:08:30.295114+00:00"
+    }
+   },
+   "app_health": {
+    "last_build_started_at": "2026-10-16T23:53:14.466358+00:00",
+    "last_build_finished_at": "2026-10-16T23:53:14.489565+00:00",
+    "last_build_seconds": 0.0232,
+    "last_persist_at": "2026-10-16T23:53:14.489551+00:00",
+    "last_error": "",
+    "cache_hits": 5,
+    "build_count": 24
+   },
+   "note": "lightweight status only; no model rebuild and no CSV scan"
+  }
+ },
+ "api_api_live-copy-summary": {
+  "http": null,
+  "error": "TimeoutError: TimeoutError('timed out')"
+ },
+ "api_api_live-ws-health": {
+  "http": 200,
+  "body": {
+   "ok": true,
+   "health": {
+    "created_at": "2026-10-17T00:08:38.360326+00:00",
+    "created_at_ms": 1792195718360,
+    "wallets": {
+     "0x010461c14e146ac35fe42271bdc1134ee31c703a": {
+      "last_error": "",
+      "last_message_ms": 1792195718185,
+      "stale": false,
+      "stale_ms": 175
+     },
+     "0x1b232b41b0e75550c59288b99874e4a8142fbe21": {
+      "last_error": "",
+      "last_message_ms": 1792190755817,
+      "stale": false,
+      "stale_ms": 4962543
+     },
+     "0x31ca8395cf837de08b24da3f660e77761dfb974b": {
+      "last_error": "",
+      "last_message_ms": 1792195717514,
+      "stale": false,
+      "stale_ms": 846
+     },
+     "0x6ba889db7f923622d3548f621ecc2054b80c1817": {
+      "last_error": "",
+      "last_message_ms": 1792195712063,
+      "stale": false,
+      "stale_ms": 6297
+     },
+     "0x7019197d2b2ae7b44eee12a76015eb1fe94abd36": {
+      "last_error": "",
+      "last_message_ms": 1792195710358,
+      "stale": false,
+      "stale_ms": 8002
+     },
+     "0x7717a7a245d9f950e586822b8c9b46863ed7bd7e": {
+      "last_error": "",
+      "last_message_ms": 1792195718185,
+      "stale": false,
+      "stale_ms": 175
+     },
+     "0x936cf4fb95c30ce83f658b5bbb247e4bb381bb0f": {
+      "last_error": "",
+      "last_message_ms": 1792195706233,
+      "stale": false,
+      "stale_ms": 12127
+     },
+     "0xc179e03922afe8fa9533d3f896338b9fb87ce0c8": {
+      "last_error": "",
+      "last_message_ms": 1792195612419,
+      "stale": false,
+      "stale_ms": 105941
+     },
+     "0xd4c1f7e8d876c4749228d515473d36f919583d1d": {
+      "last_error": "",
+      "last_message_ms": 1792195713915,
+      "stale": false,
+      "stale_ms": 4445
+     },
+     "0xf5d81a135f756ca16544e53c20fc20643ec3ad53": {
+      "last_error": "",
+      "last_message_ms": 1792195713723,
+      "stale": false,
+      "stale_ms": 4637
+     }
+    },
+    "ws_summary": {
+     "headroom": {
+      "info_weight:api.hyperliquid-testnet.xyz": {
+       "level": "OK",
+       "limit": 1200,
+       "pct": 25.2,
+       "used": 303
+      },
+      "info_weight:api.hyperliquid.xyz": {
+       "level": "OK",
+       "limit": 1200,
+       "pct": 44.3,
+       "used": 532
+      },
+      "refusals": [],
+      "worst": "OK",
+      "ws_foreign": {
+       "level": "OK",
+       "limit": 0,
+       "pct": 0.0,
+       "pids": {},
+       "used": 0
+      },
+      "ws_users": {
+       "last_refusal": "",
+       "level": "OK",
+       "limit": 15,
+       "pct": 66.7,
+       "used": 10,
+       "wanted": 10
+      }
+     },
+     "last_ping_ms": 1792195711006,
+     "last_pong_ms": 1792195711740,
+     "last_refusal": "",
+     "last_refusal_ms": 0,
+     "last_socket_error": "",
+     "last_subscribe_ms": 1792190754891,
+     "message_errors": 0,
+     "open_count": 1,
+     "resubscribe_attempts": 0,
+     "socket_open": true,
+     "stale_count": 0,
+     "subscribe_acked": 10,
+     "subscribe_pending": false,
+     "subscribe_refused": 0,
+     "thread_alive": true,
+     "total_reconnect_count": 0,
+     "wallet_count": 10,
+     "wallets_without_feed": 0,
+     "worst_health_grade": "OK",
+     "ws_status": "WS_OK"
+    },
+    "overall": "WS_OK",
+    "enabled": true
+   }
+  }
+ },
+ "api_api_live-config": {
+  "http": 200,
+  "body": {
+   "ok": true,
+   "config": {
+    "archived_wallets": {},
+    "auto_send_enabled": false,
+    "global_controls": {
+     "max_total_live_exposure_usd": 5000.0,
+     "max_asset_directional_exposure_usd": 2000.0,
+     "max_daily_loss_usd": 1000.0,
+     "max_wallet_exposure_usd": 600.0,
+     "max_order_notional_usd": 500.0,
+     "marketable_bps": 20.0,
+     "max_close_adverse_diff_pct": 0.0,
+     "symbol_allowlist": [],
+     "symbol_blocklist": [
+      "HYPE",
+      "PENGU",
+      "RESOLV"
+     ]
+    },
+    "wallets": {
+     "0x010461c14e146ac35fe42271bdc1134ee31c703a": {
+      "copy_mode": "fixed",
+      "enabled": true,
+      "fixed_notional": 12,
+      "mode": "LIVE",
+      "max_wallet_exposure_usd": 2000.0
+     },
+     "0x1b232b41b0e75550c59288b99874e4a8142fbe21": {
+      "copy_mode": "fixed",
+      "enabled": true,
+      "fixed_notional": 12,
+      "mode": "LIVE",
+      "max_wallet_exposure_usd": 2000.0
+     },
+     "0x31ca8395cf837de08b24da3f660e77761dfb974b": {
+      "copy_mode": "fixed",
+      "enabled": true,
+      "fixed_notional": 12,
+      "mode": "LIVE",
+      "max_wallet_exposure_usd": 2000.0
+     },
+     "0x6ba889db7f923622d3548f621ecc2054b80c1817": {
+      "copy_mode": "fixed",
+      "enabled": true,
+      "fixed_notional": 12,
+      "mode": "LIVE",
+      "max_wallet_exposure_usd": 2000.0
+     },
+     "0x7019197d2b2ae7b44eee12a76015eb1fe94abd36": {
+      "copy_mode": "fixed",
+      "enabled": true,
+      "fixed_notional": 12,
+      "mode": "LIVE",
+      "max_wallet_exposure_usd": 2000.0
+     },
+     "0x7717a7a245d9f950e586822b8c9b46863ed7bd7e": {
+      "copy_mode": "fixed",
+      "enabled": true,
+      "fixed_notional": 12,
+      "mode": "LIVE",
+      "max_wallet_exposure_usd": 2000.0
+     },
+     "0x936cf4fb95c30ce83f658b5bbb247e4bb381bb0f": {
+      "copy_mode": "fixed",
+      "enabled": true,
+      "fixed_notional": 12,
+      "mode": "LIVE",
+      "max_wallet_exposure_usd": 2000.0
+     },
+     "0xc179e03922afe8fa9533d3f896338b9fb87ce0c8": {
+      "copy_mode": "fixed",
+      "enabled": true,
+      "fixed_notional": 12,
+      "mode": "LIVE",
+      "max_wallet_exposure_usd": 2000.0
+     },
+     "0xd4c1f7e8d876c4749228d515473d36f919583d1d": {
+      "copy_mode": "fixed",
+      "enabled": true,
+      "fixed_notional": 12,
+      "mode": "LIVE",
+      "max_wallet_exposure_usd": 2000.0
+     },
+     "0xf5d81a135f756ca16544e53c20fc20643ec3ad53": {
+      "copy_mode": "fixed",
+      "enabled": true,
+      "fixed_notional": 12,
+      "mode": "LIVE",
+      "max_wallet_exposure_usd": 2000.0
+     },
+     "0x7bc5239180bea2255f4dd243d79481d39adee41e": {
+      "copy_mode": "fixed",
+      "enabled": true,
+      "fixed_notional": 12,
+      "mode": "OFF",
+      "max_wallet_exposure_usd": 2000.0
+     },
+     "0x1f4ab7e9acebb8b591e74b81e34bebe8be9bc934": {
+      "copy_mode": "fixed",
+      "enabled": true,
+      "fixed_notional": 12,
+      "mode": "OFF",
+      "max_wallet_exposure_usd": 2000.0
+     },
+     "0xcbe834386b8ec9d8c50eaad48dacb83e8b42ddfc": {
+      "copy_mode": "fixed",
+      "enabled": true,
+      "fixed_notional": 12,
+      "mode": "OFF",
+      "max_wallet_exposure_usd": 2000.0
+     },
+     "0x35519de6193f0e6581032d87236988629e35a281": {
+      "copy_mode": "fixed",
+      "enabled": true,
+      "fixed_notional": 12,
+      "mode": "OFF",
+      "max_wallet_exposure_usd": 2000.0
+     },
+     "0x833b99b27dac651d02080f5e220e929df891db06": {
+      "copy_mode": "fixed",
+      "enabled": true,
+      "fixed_notional": 12,
+      "mode": "OFF",
+      "max_wallet_exposure_usd": 2000.0
+     }
+    }
+   },
+   "wallet_count": 15,
+   "active_wallets": 10,
+   "max_wallets": 10
+  }
+ },
+ "oracle_snapshot": {
+  "account_address": "0xcccccccccccccccccccccccccccccccccccccccc",
+  "account_value": 0.0,
+  "account_value_label": "Clearinghouse account value",
+  "account_value_source": "clearinghouseState.marginSummary.accountValue",
+  "actual_user_fills_recent": [],
+  "actual_user_fills_source": "hyperliquid.info.userFillsByTime",
+  "available": true,
+  "available_to_trade": null,
+  "available_to_trade_candidates": {},
+  "available_to_trade_source": "",
+  "closed_pnl_sum": 0,
+  "cross_raw_total_usd": 0.0,
+  "fee_policy": "exchange_closedPnl_as_reported",
+  "fee_sum": 0,
+  "fee_sum_24h": 0,
+  "fee_sum_7d": 0,
+  "fee_sum_all_available_window": 0,
+  "fee_sum_selected": 0,
+  "fee_sum_since_baseline": 0,
+  "fee_sum_since_first_live_order": 0,
+  "fee_sum_today": 0,
+  "fetched_at_ms": 1792154922440,
+  "margin_raw_total_usd": 0.0,
+  "margin_used": 0.0,
+  "margin_used_source": "clearinghouseState.marginSummary.totalMarginUsed",
+  "ok": true,
+  "open_position_count": 0,
+  "open_positions": [],
+  "open_positions_count": 0,
+  "pnl_tally_inputs": {
+   "available": false,
+   "reason": "no account history recorded yet"
+  },
+  "positions_by_coin": {},
+  "raw_cross_margin_summary": {
+   "accountValue": "0.0",
+   "totalMarginUsed": "0.0",
+   "totalNtlPos": "0.0",
+   "totalRawUsd": "0.0"
+  },
+  "raw_margin_summary": {
+   "accountValue": "0.0",
+   "totalMarginUsed": "0.0",
+   "totalNtlPos": "0.0",
+   "totalRawUsd": "0.0"
+  },
+  "raw_spot_balances": [],
+  "raw_total_usd": 0.0,
+  "raw_total_usd_label": "Raw USD / collateral value",
+  "raw_total_usd_source": "clearinghouseState.marginSummary.totalRawUsd",
+  "raw_withdrawable": "0.0",
+  "realized_fill_points": [],
+  "realized_fills_paging": {
+   "cached_rows": 0,
+   "complete": true,
+   "fill_count": 0,
+   "history_limited": false,
+   "note": "",
+   "pages": 1
+  },
+  "realized_pnl_24h": 0,
+  "realized_pnl_24h_fill_count": 0,
+  "realized_pnl_24h_nonzero_count": 0,
+  "realized_pnl_24h_source": "hyperliquid.info.userFillsByTime.closedPnl; last 24h",
+  "realized_pnl_7d": 0,
+  "realized_pnl_7d_fill_count": 0,
+  "realized_pnl_7d_nonzero_count": 0,
+  "realized_pnl_7d_source": "hyperliquid.info.userFillsByTime.closedPnl; last 7d",
+  "realized_pnl_all_available_fill_count": 0,
+  "realized_pnl_all_available_window": 0,
+  "realized_pnl_all_available_window_source": "hyperliquid.info.userFillsByTime.closedPnl; fetched 7d/today/baseline window",
+  "realized_pnl_fill_count": 0,
+  "realized_pnl_selected": 0,
+  "realized_pnl_selected_end": "2026-10-16T12:48:43.053000+00:00",
+  "realized_pnl_selected_fill_count": 0,
+  "realized_pnl_selected_label": "today",
+  "realized_pnl_selected_source": "hyperliquid.info.userFillsByTime.closedPnl; selected=today",
+  "realized_pnl_selected_start": "2026-10-15T23:00:00+00:00",
+  "realized_pnl_since_baseline": 0,
+  "realized_pnl_since_baseline_fill_count": 0,
+  "realized_pnl_since_baseline_source": "hyperliquid.info.userFillsByTime.closedPnl; start=account_reconciliation.baseline_timestamp",
+  "realized_pnl_since_first_live_order": 0,
+  "realized_pnl_since_first_live_order_fill_count": 0,
+  "realized_pnl_since_first_live_order_nonzero_count": 0,
+  "realized_pnl_since_first_live_order_source": "hyperliquid.info.userFillsByTime.closedPnl; start=earliest send_attempts ORDER_FILLED",
+  "realized_pnl_since_first_live_order_start": "2026-10-14T11:12:07.758000+00:00",
+  "realized_pnl_snapshot_status": "OK",
+  "realized_pnl_today": 0,
+  "realized_pnl_today_fill_count": 0,
+  "realized_pnl_today_nonzero_count": 0,
+  "realized_pnl_today_source": "hyperliquid.info.userFillsByTime.closedPnl; today Europe/London",
+  "realized_pnl_total": 0,
+  "realized_pnl_total_source": "hyperliquid.info.userFillsByTime.closedPnl; selected=today",
+  "realized_pnl_window_end": "2026-10-16T12:48:43.053000+00:00",
+  "realized_pnl_window_start": "2026-10-15T23:00:00+00:00",
+  "source": "hyperliquid_clearinghouse_state",
+  "spot_account_source": "spotClearinghouseState",
+  "spot_parse_status": "OK",
+  "status": "OK",
+  "total_account_value": null,
+  "total_account_value_status": "unavailable from clearinghouseState",
+  "total_notional_position": 0.0,
+  "unified_portfolio_value": null,
+  "unified_portfolio_value_source": "",
+  "unrealized_pnl": 0.0,
+  "unrealized_pnl_source": "sum(assetPositions.position.unrealizedPnl)",
+  "updated_at": "2026-10-16T12:48:43.384744+00:00",
+  "withdrawable": 0.0,
+  "withdrawable_source": "clearinghouseState.withdrawable"
+ }
+}

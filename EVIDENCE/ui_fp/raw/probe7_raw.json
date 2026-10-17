@@ -1,0 +1,1020 @@
+{
+ "tested_at_utc": "2026-10-17T00:14:17.859044Z",
+ "api_leader_perf": {
+  "0x010461c14e146ac35fe42271bdc1134ee31c703a": {
+   "avg_diff_bps": 5.4,
+   "open_position_count": 97
+  },
+  "0x1b232b41b0e75550c59288b99874e4a8142fbe21": {
+   "avg_diff_bps": null,
+   "open_position_count": 0
+  },
+  "0x1f4ab7e9acebb8b591e74b81e34bebe8be9bc934": {
+   "avg_diff_bps": null,
+   "open_position_count": 0
+  },
+  "0x31ca8395cf837de08b24da3f660e77761dfb974b": {
+   "avg_diff_bps": 4.0,
+   "open_position_count": 104
+  },
+  "0x35519de6193f0e6581032d87236988629e35a281": {
+   "avg_diff_bps": null,
+   "open_position_count": 0
+  },
+  "0x6ba889db7f923622d3548f621ecc2054b80c1817": {
+   "avg_diff_bps": 3.0,
+   "open_position_count": 17
+  },
+  "0x7019197d2b2ae7b44eee12a76015eb1fe94abd36": {
+   "avg_diff_bps": 7.7,
+   "open_position_count": 60
+  },
+  "0x7717a7a245d9f950e586822b8c9b46863ed7bd7e": {
+   "avg_diff_bps": 15.4,
+   "open_position_count": 68
+  },
+  "0x7bc5239180bea2255f4dd243d79481d39adee41e": {
+   "avg_diff_bps": null,
+   "open_position_count": 0
+  },
+  "0x833b99b27dac651d02080f5e220e929df891db06": {
+   "avg_diff_bps": null,
+   "open_position_count": 0
+  },
+  "0x936cf4fb95c30ce83f658b5bbb247e4bb381bb0f": {
+   "avg_diff_bps": 8.8,
+   "open_position_count": 10
+  },
+  "0xc179e03922afe8fa9533d3f896338b9fb87ce0c8": {
+   "avg_diff_bps": 4.6,
+   "open_position_count": 1
+  },
+  "0xcbe834386b8ec9d8c50eaad48dacb83e8b42ddfc": {
+   "avg_diff_bps": null,
+   "open_position_count": 0
+  },
+  "0xd4c1f7e8d876c4749228d515473d36f919583d1d": {
+   "avg_diff_bps": -4.2,
+   "open_position_count": 13
+  },
+  "0xf5d81a135f756ca16544e53c20fc20643ec3ad53": {
+   "avg_diff_bps": 1.9,
+   "open_position_count": 14
+  }
+ },
+ "api_live_config_wallets": {
+  "0x010461c14e146ac35fe42271bdc1134ee31c703a": {
+   "copy_mode": "fixed",
+   "enabled": true,
+   "fixed_notional": 12,
+   "mode": "LIVE",
+   "max_wallet_exposure_usd": 2000.0
+  },
+  "0x1b232b41b0e75550c59288b99874e4a8142fbe21": {
+   "copy_mode": "fixed",
+   "enabled": true,
+   "fixed_notional": 12,
+   "mode": "LIVE",
+   "max_wallet_exposure_usd": 2000.0
+  },
+  "0x31ca8395cf837de08b24da3f660e77761dfb974b": {
+   "copy_mode": "fixed",
+   "enabled": true,
+   "fixed_notional": 12,
+   "mode": "LIVE",
+   "max_wallet_exposure_usd": 2000.0
+  },
+  "0x6ba889db7f923622d3548f621ecc2054b80c1817": {
+   "copy_mode": "fixed",
+   "enabled": true,
+   "fixed_notional": 12,
+   "mode": "LIVE",
+   "max_wallet_exposure_usd": 2000.0
+  },
+  "0x7019197d2b2ae7b44eee12a76015eb1fe94abd36": {
+   "copy_mode": "fixed",
+   "enabled": true,
+   "fixed_notional": 12,
+   "mode": "LIVE",
+   "max_wallet_exposure_usd": 2000.0
+  },
+  "0x7717a7a245d9f950e586822b8c9b46863ed7bd7e": {
+   "copy_mode": "fixed",
+   "enabled": true,
+   "fixed_notional": 12,
+   "mode": "LIVE",
+   "max_wallet_exposure_usd": 2000.0
+  },
+  "0x936cf4fb95c30ce83f658b5bbb247e4bb381bb0f": {
+   "copy_mode": "fixed",
+   "enabled": true,
+   "fixed_notional": 12,
+   "mode": "LIVE",
+   "max_wallet_exposure_usd": 2000.0
+  },
+  "0xc179e03922afe8fa9533d3f896338b9fb87ce0c8": {
+   "copy_mode": "fixed",
+   "enabled": true,
+   "fixed_notional": 12,
+   "mode": "LIVE",
+   "max_wallet_exposure_usd": 2000.0
+  },
+  "0xd4c1f7e8d876c4749228d515473d36f919583d1d": {
+   "copy_mode": "fixed",
+   "enabled": true,
+   "fixed_notional": 12,
+   "mode": "LIVE",
+   "max_wallet_exposure_usd": 2000.0
+  },
+  "0xf5d81a135f756ca16544e53c20fc20643ec3ad53": {
+   "copy_mode": "fixed",
+   "enabled": true,
+   "fixed_notional": 12,
+   "mode": "LIVE",
+   "max_wallet_exposure_usd": 2000.0
+  },
+  "0x7bc5239180bea2255f4dd243d79481d39adee41e": {
+   "copy_mode": "fixed",
+   "enabled": true,
+   "fixed_notional": 12,
+   "mode": "OFF",
+   "max_wallet_exposure_usd": 2000.0
+  },
+  "0x1f4ab7e9acebb8b591e74b81e34bebe8be9bc934": {
+   "copy_mode": "fixed",
+   "enabled": true,
+   "fixed_notional": 12,
+   "mode": "OFF",
+   "max_wallet_exposure_usd": 2000.0
+  },
+  "0xcbe834386b8ec9d8c50eaad48dacb83e8b42ddfc": {
+   "copy_mode": "fixed",
+   "enabled": true,
+   "fixed_notional": 12,
+   "mode": "OFF",
+   "max_wallet_exposure_usd": 2000.0
+  },
+  "0x35519de6193f0e6581032d87236988629e35a281": {
+   "copy_mode": "fixed",
+   "enabled": true,
+   "fixed_notional": 12,
+   "mode": "OFF",
+   "max_wallet_exposure_usd": 2000.0
+  },
+  "0x833b99b27dac651d02080f5e220e929df891db06": {
+   "copy_mode": "fixed",
+   "enabled": true,
+   "fixed_notional": 12,
+   "mode": "OFF",
+   "max_wallet_exposure_usd": 2000.0
+  }
+ },
+ "api_ui_state": {
+  "norm_base": 100.0,
+  "copy_mode": "proportional",
+  "fixed_notional": 100.0,
+  "normalisation_mode": "equity",
+  "user_norm_base": 100.0
+ },
+ "dom": [
+  {
+   "wallet": "0x010461c14e146ac35fe42271bdc1134ee31c703a",
+   "dom_bps": "5.4",
+   "dom_op": "97",
+   "sels": [
+    {
+     "name": "mode",
+     "val": "LIVE"
+    },
+    {
+     "name": "copy_mode",
+     "val": "fixed"
+    }
+   ],
+   "ins": [
+    {
+     "name": "fixed_notional",
+     "val": "12"
+    },
+    {
+     "name": "norm_base",
+     "val": "100"
+    }
+   ]
+  },
+  {
+   "wallet": "0x1b232b41b0e75550c59288b99874e4a8142fbe21",
+   "dom_bps": "n/a",
+   "dom_op": "0",
+   "sels": [
+    {
+     "name": "mode",
+     "val": "LIVE"
+    },
+    {
+     "name": "copy_mode",
+     "val": "fixed"
+    }
+   ],
+   "ins": [
+    {
+     "name": "fixed_notional",
+     "val": "12"
+    },
+    {
+     "name": "norm_base",
+     "val": "100"
+    }
+   ]
+  },
+  {
+   "wallet": "0x31ca8395cf837de08b24da3f660e77761dfb974b",
+   "dom_bps": "4",
+   "dom_op": "104",
+   "sels": [
+    {
+     "name": "mode",
+     "val": "LIVE"
+    },
+    {
+     "name": "copy_mode",
+     "val": "fixed"
+    }
+   ],
+   "ins": [
+    {
+     "name": "fixed_notional",
+     "val": "12"
+    },
+    {
+     "name": "norm_base",
+     "val": "100"
+    }
+   ]
+  },
+  {
+   "wallet": "0x6ba889db7f923622d3548f621ecc2054b80c1817",
+   "dom_bps": "3",
+   "dom_op": "17",
+   "sels": [
+    {
+     "name": "mode",
+     "val": "LIVE"
+    },
+    {
+     "name": "copy_mode",
+     "val": "fixed"
+    }
+   ],
+   "ins": [
+    {
+     "name": "fixed_notional",
+     "val": "12"
+    },
+    {
+     "name": "norm_base",
+     "val": "100"
+    }
+   ]
+  },
+  {
+   "wallet": "0x7019197d2b2ae7b44eee12a76015eb1fe94abd36",
+   "dom_bps": "7.7",
+   "dom_op": "60",
+   "sels": [
+    {
+     "name": "mode",
+     "val": "LIVE"
+    },
+    {
+     "name": "copy_mode",
+     "val": "fixed"
+    }
+   ],
+   "ins": [
+    {
+     "name": "fixed_notional",
+     "val": "12"
+    },
+    {
+     "name": "norm_base",
+     "val": "100"
+    }
+   ]
+  },
+  {
+   "wallet": "0x7717a7a245d9f950e586822b8c9b46863ed7bd7e",
+   "dom_bps": "15.4",
+   "dom_op": "68",
+   "sels": [
+    {
+     "name": "mode",
+     "val": "LIVE"
+    },
+    {
+     "name": "copy_mode",
+     "val": "fixed"
+    }
+   ],
+   "ins": [
+    {
+     "name": "fixed_notional",
+     "val": "12"
+    },
+    {
+     "name": "norm_base",
+     "val": "100"
+    }
+   ]
+  },
+  {
+   "wallet": "0x936cf4fb95c30ce83f658b5bbb247e4bb381bb0f",
+   "dom_bps": "8.8",
+   "dom_op": "10",
+   "sels": [
+    {
+     "name": "mode",
+     "val": "LIVE"
+    },
+    {
+     "name": "copy_mode",
+     "val": "fixed"
+    }
+   ],
+   "ins": [
+    {
+     "name": "fixed_notional",
+     "val": "12"
+    },
+    {
+     "name": "norm_base",
+     "val": "100"
+    }
+   ]
+  },
+  {
+   "wallet": "0xc179e03922afe8fa9533d3f896338b9fb87ce0c8",
+   "dom_bps": "4.6",
+   "dom_op": "1",
+   "sels": [
+    {
+     "name": "mode",
+     "val": "LIVE"
+    },
+    {
+     "name": "copy_mode",
+     "val": "fixed"
+    }
+   ],
+   "ins": [
+    {
+     "name": "fixed_notional",
+     "val": "12"
+    },
+    {
+     "name": "norm_base",
+     "val": "100"
+    }
+   ]
+  },
+  {
+   "wallet": "0xd4c1f7e8d876c4749228d515473d36f919583d1d",
+   "dom_bps": "-4.2",
+   "dom_op": "13",
+   "sels": [
+    {
+     "name": "mode",
+     "val": "LIVE"
+    },
+    {
+     "name": "copy_mode",
+     "val": "fixed"
+    }
+   ],
+   "ins": [
+    {
+     "name": "fixed_notional",
+     "val": "12"
+    },
+    {
+     "name": "norm_base",
+     "val": "100"
+    }
+   ]
+  },
+  {
+   "wallet": "0xf5d81a135f756ca16544e53c20fc20643ec3ad53",
+   "dom_bps": "1.9",
+   "dom_op": "14",
+   "sels": [
+    {
+     "name": "mode",
+     "val": "LIVE"
+    },
+    {
+     "name": "copy_mode",
+     "val": "fixed"
+    }
+   ],
+   "ins": [
+    {
+     "name": "fixed_notional",
+     "val": "12"
+    },
+    {
+     "name": "norm_base",
+     "val": "100"
+    }
+   ]
+  },
+  {
+   "wallet": "0x1f4ab7e9acebb8b591e74b81e34bebe8be9bc934",
+   "dom_bps": "n/a",
+   "dom_op": "0",
+   "sels": [
+    {
+     "name": "mode",
+     "val": "OFF"
+    },
+    {
+     "name": "copy_mode",
+     "val": "fixed"
+    }
+   ],
+   "ins": [
+    {
+     "name": "fixed_notional",
+     "val": "12"
+    },
+    {
+     "name": "norm_base",
+     "val": "100"
+    }
+   ]
+  },
+  {
+   "wallet": "0x35519de6193f0e6581032d87236988629e35a281",
+   "dom_bps": "n/a",
+   "dom_op": "0",
+   "sels": [
+    {
+     "name": "mode",
+     "val": "OFF"
+    },
+    {
+     "name": "copy_mode",
+     "val": "fixed"
+    }
+   ],
+   "ins": [
+    {
+     "name": "fixed_notional",
+     "val": "12"
+    },
+    {
+     "name": "norm_base",
+     "val": "100"
+    }
+   ]
+  },
+  {
+   "wallet": "0x7bc5239180bea2255f4dd243d79481d39adee41e",
+   "dom_bps": "n/a",
+   "dom_op": "0",
+   "sels": [
+    {
+     "name": "mode",
+     "val": "OFF"
+    },
+    {
+     "name": "copy_mode",
+     "val": "fixed"
+    }
+   ],
+   "ins": [
+    {
+     "name": "fixed_notional",
+     "val": "12"
+    },
+    {
+     "name": "norm_base",
+     "val": "100"
+    }
+   ]
+  },
+  {
+   "wallet": "0x833b99b27dac651d02080f5e220e929df891db06",
+   "dom_bps": "n/a",
+   "dom_op": "0",
+   "sels": [
+    {
+     "name": "mode",
+     "val": "OFF"
+    },
+    {
+     "name": "copy_mode",
+     "val": "fixed"
+    }
+   ],
+   "ins": [
+    {
+     "name": "fixed_notional",
+     "val": "12"
+    },
+    {
+     "name": "norm_base",
+     "val": "100"
+    }
+   ]
+  },
+  {
+   "wallet": "0xcbe834386b8ec9d8c50eaad48dacb83e8b42ddfc",
+   "dom_bps": "n/a",
+   "dom_op": "0",
+   "sels": [
+    {
+     "name": "mode",
+     "val": "OFF"
+    },
+    {
+     "name": "copy_mode",
+     "val": "fixed"
+    }
+   ],
+   "ins": [
+    {
+     "name": "fixed_notional",
+     "val": "12"
+    },
+    {
+     "name": "norm_base",
+     "val": "100"
+    }
+   ]
+  }
+ ],
+ "html_lcGraphScale": true,
+ "disk_live_config": {
+  "auto_send_enabled": false,
+  "global_controls": {},
+  "wallets": {
+   "0xdddddddddddddddddddddddddddddddddddddddd": {
+    "copy_mode": "fixed",
+    "enabled": true,
+    "fixed_notional": 1000,
+    "mode": "LIVE"
+   }
+  }
+ },
+ "disk_ui_state_err": "FileNotFoundError(2, 'No such file or directory')",
+ "summary": {
+  "rows": [
+   {
+    "wallet": "0x010461c14e",
+    "dom_bps": "5.4",
+    "dom_op": "97",
+    "api": {
+     "avg_diff_bps": 5.4,
+     "open_position_count": 97
+    },
+    "dom_ctrl": [
+     {
+      "name": "mode",
+      "val": "LIVE"
+     },
+     {
+      "name": "copy_mode",
+      "val": "fixed"
+     }
+    ],
+    "dom_fn": [
+     {
+      "name": "fixed_notional",
+      "val": "12"
+     },
+     {
+      "name": "norm_base",
+      "val": "100"
+     }
+    ]
+   },
+   {
+    "wallet": "0x1b232b41b0",
+    "dom_bps": "n/a",
+    "dom_op": "0",
+    "api": {
+     "avg_diff_bps": null,
+     "open_position_count": 0
+    },
+    "dom_ctrl": [
+     {
+      "name": "mode",
+      "val": "LIVE"
+     },
+     {
+      "name": "copy_mode",
+      "val": "fixed"
+     }
+    ],
+    "dom_fn": [
+     {
+      "name": "fixed_notional",
+      "val": "12"
+     },
+     {
+      "name": "norm_base",
+      "val": "100"
+     }
+    ]
+   },
+   {
+    "wallet": "0x31ca8395cf",
+    "dom_bps": "4",
+    "dom_op": "104",
+    "api": {
+     "avg_diff_bps": 4.0,
+     "open_position_count": 104
+    },
+    "dom_ctrl": [
+     {
+      "name": "mode",
+      "val": "LIVE"
+     },
+     {
+      "name": "copy_mode",
+      "val": "fixed"
+     }
+    ],
+    "dom_fn": [
+     {
+      "name": "fixed_notional",
+      "val": "12"
+     },
+     {
+      "name": "norm_base",
+      "val": "100"
+     }
+    ]
+   },
+   {
+    "wallet": "0x6ba889db7f",
+    "dom_bps": "3",
+    "dom_op": "17",
+    "api": {
+     "avg_diff_bps": 3.0,
+     "open_position_count": 17
+    },
+    "dom_ctrl": [
+     {
+      "name": "mode",
+      "val": "LIVE"
+     },
+     {
+      "name": "copy_mode",
+      "val": "fixed"
+     }
+    ],
+    "dom_fn": [
+     {
+      "name": "fixed_notional",
+      "val": "12"
+     },
+     {
+      "name": "norm_base",
+      "val": "100"
+     }
+    ]
+   },
+   {
+    "wallet": "0x7019197d2b",
+    "dom_bps": "7.7",
+    "dom_op": "60",
+    "api": {
+     "avg_diff_bps": 7.7,
+     "open_position_count": 60
+    },
+    "dom_ctrl": [
+     {
+      "name": "mode",
+      "val": "LIVE"
+     },
+     {
+      "name": "copy_mode",
+      "val": "fixed"
+     }
+    ],
+    "dom_fn": [
+     {
+      "name": "fixed_notional",
+      "val": "12"
+     },
+     {
+      "name": "norm_base",
+      "val": "100"
+     }
+    ]
+   },
+   {
+    "wallet": "0x7717a7a245",
+    "dom_bps": "15.4",
+    "dom_op": "68",
+    "api": {
+     "avg_diff_bps": 15.4,
+     "open_position_count": 68
+    },
+    "dom_ctrl": [
+     {
+      "name": "mode",
+      "val": "LIVE"
+     },
+     {
+      "name": "copy_mode",
+      "val": "fixed"
+     }
+    ],
+    "dom_fn": [
+     {
+      "name": "fixed_notional",
+      "val": "12"
+     },
+     {
+      "name": "norm_base",
+      "val": "100"
+     }
+    ]
+   },
+   {
+    "wallet": "0x936cf4fb95",
+    "dom_bps": "8.8",
+    "dom_op": "10",
+    "api": {
+     "avg_diff_bps": 8.8,
+     "open_position_count": 10
+    },
+    "dom_ctrl": [
+     {
+      "name": "mode",
+      "val": "LIVE"
+     },
+     {
+      "name": "copy_mode",
+      "val": "fixed"
+     }
+    ],
+    "dom_fn": [
+     {
+      "name": "fixed_notional",
+      "val": "12"
+     },
+     {
+      "name": "norm_base",
+      "val": "100"
+     }
+    ]
+   },
+   {
+    "wallet": "0xc179e03922",
+    "dom_bps": "4.6",
+    "dom_op": "1",
+    "api": {
+     "avg_diff_bps": 4.6,
+     "open_position_count": 1
+    },
+    "dom_ctrl": [
+     {
+      "name": "mode",
+      "val": "LIVE"
+     },
+     {
+      "name": "copy_mode",
+      "val": "fixed"
+     }
+    ],
+    "dom_fn": [
+     {
+      "name": "fixed_notional",
+      "val": "12"
+     },
+     {
+      "name": "norm_base",
+      "val": "100"
+     }
+    ]
+   },
+   {
+    "wallet": "0xd4c1f7e8d8",
+    "dom_bps": "-4.2",
+    "dom_op": "13",
+    "api": {
+     "avg_diff_bps": -4.2,
+     "open_position_count": 13
+    },
+    "dom_ctrl": [
+     {
+      "name": "mode",
+      "val": "LIVE"
+     },
+     {
+      "name": "copy_mode",
+      "val": "fixed"
+     }
+    ],
+    "dom_fn": [
+     {
+      "name": "fixed_notional",
+      "val": "12"
+     },
+     {
+      "name": "norm_base",
+      "val": "100"
+     }
+    ]
+   },
+   {
+    "wallet": "0xf5d81a135f",
+    "dom_bps": "1.9",
+    "dom_op": "14",
+    "api": {
+     "avg_diff_bps": 1.9,
+     "open_position_count": 14
+    },
+    "dom_ctrl": [
+     {
+      "name": "mode",
+      "val": "LIVE"
+     },
+     {
+      "name": "copy_mode",
+      "val": "fixed"
+     }
+    ],
+    "dom_fn": [
+     {
+      "name": "fixed_notional",
+      "val": "12"
+     },
+     {
+      "name": "norm_base",
+      "val": "100"
+     }
+    ]
+   },
+   {
+    "wallet": "0x1f4ab7e9ac",
+    "dom_bps": "n/a",
+    "dom_op": "0",
+    "api": {
+     "avg_diff_bps": null,
+     "open_position_count": 0
+    },
+    "dom_ctrl": [
+     {
+      "name": "mode",
+      "val": "OFF"
+     },
+     {
+      "name": "copy_mode",
+      "val": "fixed"
+     }
+    ],
+    "dom_fn": [
+     {
+      "name": "fixed_notional",
+      "val": "12"
+     },
+     {
+      "name": "norm_base",
+      "val": "100"
+     }
+    ]
+   },
+   {
+    "wallet": "0x35519de619",
+    "dom_bps": "n/a",
+    "dom_op": "0",
+    "api": {
+     "avg_diff_bps": null,
+     "open_position_count": 0
+    },
+    "dom_ctrl": [
+     {
+      "name": "mode",
+      "val": "OFF"
+     },
+     {
+      "name": "copy_mode",
+      "val": "fixed"
+     }
+    ],
+    "dom_fn": [
+     {
+      "name": "fixed_notional",
+      "val": "12"
+     },
+     {
+      "name": "norm_base",
+      "val": "100"
+     }
+    ]
+   },
+   {
+    "wallet": "0x7bc5239180",
+    "dom_bps": "n/a",
+    "dom_op": "0",
+    "api": {
+     "avg_diff_bps": null,
+     "open_position_count": 0
+    },
+    "dom_ctrl": [
+     {
+      "name": "mode",
+      "val": "OFF"
+     },
+     {
+      "name": "copy_mode",
+      "val": "fixed"
+     }
+    ],
+    "dom_fn": [
+     {
+      "name": "fixed_notional",
+      "val": "12"
+     },
+     {
+      "name": "norm_base",
+      "val": "100"
+     }
+    ]
+   },
+   {
+    "wallet": "0x833b99b27d",
+    "dom_bps": "n/a",
+    "dom_op": "0",
+    "api": {
+     "avg_diff_bps": null,
+     "open_position_count": 0
+    },
+    "dom_ctrl": [
+     {
+      "name": "mode",
+      "val": "OFF"
+     },
+     {
+      "name": "copy_mode",
+      "val": "fixed"
+     }
+    ],
+    "dom_fn": [
+     {
+      "name": "fixed_notional",
+      "val": "12"
+     },
+     {
+      "name": "norm_base",
+      "val": "100"
+     }
+    ]
+   },
+   {
+    "wallet": "0xcbe834386b",
+    "dom_bps": "n/a",
+    "dom_op": "0",
+    "api": {
+     "avg_diff_bps": null,
+     "open_position_count": 0
+    },
+    "dom_ctrl": [
+     {
+      "name": "mode",
+      "val": "OFF"
+     },
+     {
+      "name": "copy_mode",
+      "val": "fixed"
+     }
+    ],
+    "dom_fn": [
+     {
+      "name": "fixed_notional",
+      "val": "12"
+     },
+     {
+      "name": "norm_base",
+      "val": "100"
+     }
+    ]
+   }
+  ],
+  "bps_match": 9,
+  "bps_mismatch": 0,
+  "op_match": 15,
+  "op_mismatch": 0,
+  "ctrl_match": 15,
+  "ctrl_mismatch": 0,
+  "fn_match": 15,
+  "fn_mismatch": 0,
+  "nb_match": 15,
+  "nb_mismatch": 0,
+  "n": 15
+ }
+}

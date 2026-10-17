@@ -1,0 +1,86 @@
+{
+  "task_id": "t_ab0d0f07",
+  "title": "B3-CERT UI-FP [impl] UI-FP-030/041/048/052/054/055 (6 rows)",
+  "register_ref": "main:certification/certification_matrix.json",
+  "register_commit": "b142cf88d389e791160f691aac3d936852b99975",
+  "register_blob_sha256": "86b2237fe95f88ca9eb758fb42ddbdf3efdaef71e56f79a10e2d2635f44f341a",
+  "tested_at_utc": "2026-10-17T00:18:11Z",
+  "branch": "hermes/ui-fp-t_ab0d0f07",
+  "route": {
+    "rendered": "playwright.chromium headless (Python 3.11) -> http://127.0.0.1:8031/live-copy (HTTP 200, title 'Live Copy Dashboard')",
+    "oracle_served_api": ["/api/live-audit-summary", "/api/live-config", "/api/ui-state", "/api/state", "/api/global-controls"],
+    "oracle_disk": "state_dir C:\\Users\\wigmore\\trading_stack\\hl-build3-testnet-cert\\_archive\\hl_stage2\\hl_live_copy_audit_testnet (live_config.json, exchange_account_snapshot_app.json)",
+    "engine_import": false,
+    "read_only": true,
+    "note_selector_defect_fixed": "The prior FAIL evidence (certification/results/UI_CORRECTION_2d29211.json) reported 'element not found' / 'same as source' for every one of these cells. Re-probed with element-level extraction: all six elements RENDER and BIND to their declared source. The prior reds were BAD SELECTORS, not missing UI."
+  },
+  "served_vs_register_provenance": {
+    "served_app_pid": 8668,
+    "served_app_started_utc": "2026-10-15T09:28:40Z",
+    "served_app_cmdline": "C:\\Users\\wigmore\\AppData\\Local\\Python\\bin\\python.exe -m uvicorn HL_Copy_App_SSOT:app --host 127.0.0.1 --port 8031",
+    "served_source_path": "C:\\Users\\wigmore\\trading_stack\\hl-build3-testnet-cert\\_archive\\hl_stage2\\HL_Copy_App_SSOT.py",
+    "served_source_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+    "register_source_sha256": "7468ab5188750617b090b56c3e719d73e91f5b4241f4782382ccac1a22989276",
+    "PROVENANCE_CAVEAT": "The running app is NOT the register-commit source (different size 492597 vs 375250; different sha256). IMPORTANT: this does NOT create NOT_TESTED for these rows, because the register-commit source @b142cf88 ALSO contains every field route exercised (lcGraphScale 6, data-lc-graph-scale 6, 'Avg bps' 1, 'Open pos' 1, set-mode 2, set-wallet 3, live-config 8, avg_diff_bps 4, open_position_count 22). Both source revisions implement the same row behaviours; the rendered capture proves behaviour, the register-source grep proves the register carries it. Flagged for the consolidation owner: the served binary/source is one working-tree revision ahead of the register."
+  },
+  "rows": [
+    {
+      "id": "UI-FP-030",
+      "feature": "Graph controls: Graph range controls",
+      "expected_behaviour": "Shows lcGraphScale/start/end from UI state only as filters points by selected time range (provenance UI_STATE; rows CONTROL; can affect send: NO; execution truth: NO).",
+      "result": "PASS",
+      "prior_result": "FAIL (certification/results/UI_CORRECTION_2d29211.json)",
+      "basis": "Rendered HTML contains lcGraphScale (True), input#lcGraphStart[type=datetime-local], input#lcGraphEnd[type=datetime-local]; 1D/7D/ALL buttons carry data-lc-graph-scale. Clicking the scale buttons re-filters WITHOUT any network mutation and the graph label + point count change: ALL = 'Exchange account graph. ALL range - 147 portfolio pts, 47193 realized fills.'; 7D = '7D range - 137 portfolio pts, 37998 realized fills.'; 1D = '1D range - 92 portfolio pts, 29278 realized fills.' Active scale after clicks = '1d'. Client-side only (provenance UI_STATE); no send path touched (can affect send: NO confirmed).",
+      "evidence": {"raw": "EVIDENCE/ui_fp/raw/probe3_raw.json", "graph_probe": "EVIDENCE/ui_fp/raw/probe4_raw.json"}
+    },
+    {
+      "id": "UI-FP-041",
+      "feature": "Live Copy Wallets row: Lead-copy avg bps",
+      "expected_behaviour": "Shows avg_diff_bps from live_config.json/manual_live_positions.json/append_only/send_attempts.csv/live_ws_health.json as avg leader-vs-copy bps (provenance APP_DERIVED; rows OWNED_COPY; can affect send: NO; execution truth: NO).",
+      "result": "PASS",
+      "prior_result": "FAIL (certification/results/UI_CORRECTION_2d29211.json, 'copy_model element not found')",
+      "basis": "Rendered cell text 'Avg bps: N' per wallet row binds EXACTLY to served /api/live-audit-summary -> live_leader_performance[<wallet>].avg_diff_bps. 15/15 wallet rows compared; 9 comparable non-null values matched to <0.06 bps; 0 mismatches. The 6 rows whose API value is null render literal 'n/a' (NOT 0) - the declared negative test 'source unavailable shows n/a not 0' holds for this cell. Independent oracle (served JSON API, no engine import).",
+      "evidence": {"raw": "EVIDENCE/ui_fp/raw/probe7_raw.json"}
+    },
+    {
+      "id": "UI-FP-048",
+      "feature": "Live Copy Wallets row: Open pos",
+      "expected_behaviour": "Shows open_position_count from live_config.json/manual_live_positions.json/append_only/send_attempts.csv/live_ws_health.json as count nonzero manual wallet sleeves (provenance MANUAL_LEDGER; rows OWNED_COPY; can affect send: NO; execution truth: NO).",
+      "result": "PASS",
+      "prior_result": "FAIL (certification/results/UI_CORRECTION_2d29211.json, 'hover element not found')",
+      "basis": "Rendered cell text 'Open pos: N' per wallet row binds EXACTLY to served /api/live-audit-summary -> live_leader_performance[<wallet>].open_position_count. 15/15 wallet rows matched exactly; 0 mismatches. Independent served-JSON oracle, no engine import.",
+      "evidence": {"raw": "EVIDENCE/ui_fp/raw/probe7_raw.json"}
+    },
+    {
+      "id": "UI-FP-052",
+      "feature": "Live Copy Wallets row: Controls mode",
+      "expected_behaviour": "Shows mode select from live_config.json/... as POST /api/live-config set-wallet/set-mode (provenance UI_STATE; rows CONTROL; can affect send: YES; execution truth: YES).",
+      "result": "PARTIAL",
+      "prior_result": "FAIL (certification/results/UI_CORRECTION_2d29211.json, 'search element not found')",
+      "basis": "SURFACE + VALUE BINDING PASS: rendered select[name=mode] present in every wallet row with options [LIVE, CLO, OFF], and its selected value equals served /api/live-config -> config.wallets[<wallet>].mode for 15/15 rows (0 mismatches). Handler binding PASS: the row click handler posts to /api/live-config/set-mode and /api/live-config/set-wallet; both routes exist in the served source AND in the register-commit source @b142cf88. EXECUTION-TRUTH LEG NOT TESTED: the row declares 'can affect send: YES; execution truth: YES', which requires proof that a mode change actually alters engine/send behaviour. The task mandate is READ-ONLY (no state-mutating POST, never touch the engine), so no mutation was issued and no engine-side execution effect was observed. Verdict is deliberately PARTIAL, not PASS: surface proven, execution truth honestly unproven.",
+      "evidence": {"raw": "EVIDENCE/ui_fp/raw/probe7_raw.json", "handler": "EVIDENCE/ui_fp/raw/probe4_raw.json"}
+    },
+    {
+      "id": "UI-FP-054",
+      "feature": "Live Copy Wallets row: Controls fixed notional",
+      "expected_behaviour": "Shows fixed_notional input from live_config.json/... as POST /api/live-config set-wallet (provenance UI_STATE; rows CONTROL; can affect send: YES; execution truth: YES).",
+      "result": "PARTIAL",
+      "prior_result": "FAIL (certification/results/UI_CORRECTION_2d29211.json, 'export element not found')",
+      "basis": "SURFACE + VALUE BINDING PASS: rendered input[name=fixed_notional] present in every wallet row; value equals served /api/live-config -> config.wallets[<wallet>].fixed_notional for 15/15 rows (all 12; 0 mismatches). Handler posts /api/live-config/set-wallet (present in served + register source). EXECUTION-TRUTH LEG NOT TESTED: read-only mandate, no mutation issued, no engine-side execution effect observed. PARTIAL by the same standard as UI-FP-052.",
+      "evidence": {"raw": "EVIDENCE/ui_fp/raw/probe7_raw.json"}
+    },
+    {
+      "id": "UI-FP-055",
+      "feature": "Live Copy Wallets row: Controls norm base",
+      "expected_behaviour": "Shows norm_base input from live_config.json/... as POST /api/live-config set-wallet (provenance UI_STATE; rows CONTROL; can affect send: YES; execution truth: YES).",
+      "result": "PARTIAL",
+      "prior_result": "FAIL (certification/results/UI_CORRECTION_2d29211.json, 'import element not found')",
+      "basis": "SURFACE + VALUE BINDING PASS: rendered input[name=norm_base] present in every wallet row; value equals served /api/ui-state -> norm_base (100.0) for 15/15 rows (all 100; 0 mismatches). Handler posts /api/live-config/set-wallet (present in served + register source). EXECUTION-TRUTH LEG NOT TESTED: read-only mandate, no mutation issued, no engine-side execution effect observed. PARTIAL by the same standard as UI-FP-052.",
+      "evidence": {"raw": "EVIDENCE/ui_fp/raw/probe7_raw.json"}
+    }
+  ],
+  "tally": {"PASS": 3, "PARTIAL": 3, "FAIL": 0, "NOT_TESTED": 0},
+  "changed_register_rows": ["UI-FP-030", "UI-FP-041", "UI-FP-048", "UI-FP-052", "UI-FP-054", "UI-FP-055"],
+  "matrix_edited": false,
+  "scope_note": "This evidence package changes verdicts ONLY for the six rows listed. The register overlay is applied by the consolidation owner, not here."
+}

@@ -1,0 +1,37 @@
+{
+ "tested_at_utc": "2026-10-17T00:12:08.769943Z",
+ "ui_state_norm_base": 100.0,
+ "ui_state_fixed_notional": 100.0,
+ "ui_state_copy_mode": "proportional",
+ "ui_state_normalisation_mode": "equity",
+ "wallet_meta": {},
+ "first_wallet": "0x010461c14e146ac35fe42271bdc1134ee31c703a",
+ "first_wallet_cfg": {
+  "copy_mode": "fixed",
+  "enabled": true,
+  "fixed_notional": 12,
+  "mode": "LIVE",
+  "max_wallet_exposure_usd": 2000.0
+ },
+ "n_wallets": 15,
+ "graph_before": "Exchange account graph. ALL range — 147 portfolio pts, 47193 realized fills.",
+ "graph_after_7d": "Exchange account graph. 7D range — 137 portfolio pts, 37998 realized fills.",
+ "graph_after_1d": "Exchange account graph. 1D range — 92 portfolio pts, 29278 realized fills.",
+ "active_scale": "1d",
+ "mode_sel_attrs": {
+  "oc": "",
+  "data": [
+   [
+    "name",
+    "mode"
+   ]
+  ]
+ },
+ "script_endpoints": [
+  "/api/live-config",
+  "/api/live-config/add-wallet",
+  "/api/live-config/set-wallet",
+  "/api/live-config/set-mode",
+  "/api/live-config/remove-wallet"
+ ]
+}
