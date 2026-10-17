@@ -1,0 +1,109 @@
+{
+ "task_id": "t_770ce423",
+ "harness": "certification/results/uifa3_harness_v5_retest.py",
+ "ssot_commit": "5223ce257fe504636967a50f7064630bdc8e0ab0",
+ "register_commit": "b142cf8",
+ "captured_at_utc": "2026-10-17T18:03:54.026972+00:00",
+ "scope": "re-test of UI-FP-115 and UI-FP-133 only; the other 15 rows keep their v3 verdicts",
+ "summary": {
+  "pass": 0,
+  "fail": 2
+ },
+ "rows": [
+  {
+   "row_id": "UI-FP-115",
+   "result": "FAIL",
+   "checks": [
+    {
+     "name": "COLUMN_PRESENT",
+     "pass": true,
+     "detail": "header index 12 (arrow-normalised match)"
+    },
+    {
+     "name": "HEADER_CELL_ALIGNMENT",
+     "pass": false,
+     "detail": "thead=18 th vs tbody=19 td; renderExecQuality (SSOT 7624-7632) emits an unlabelled truth_state pill at body index 4, shifting every cell from Status onward by one"
+    },
+    {
+     "name": "FIELD_VALUE_MATCH_UNDER_HEADER",
+     "pass": false,
+     "detail": "tested=0 matched_under_header=0"
+    },
+    {
+     "name": "DATA_PRESENT_AT_SHIFTED_POSITION",
+     "pass": false,
+     "detail": "tested=0 matched_at_body_index_13=0"
+    }
+   ],
+   "evidence": {
+    "header_index": 12,
+    "body_index_with_shift": 13,
+    "tested": 0,
+    "matched_under_header": 0,
+    "matched_at_shifted_body_index": 0,
+    "mismatches_at_shifted_position": [],
+    "thead_th": 18,
+    "row_td": 19,
+    "harness_note": "v3 missed the header (U+2192 arrow) and v4 looked up the payload through a shifted OID cell; v5 snapshots the CSV before the DOM read, matches headers arrow-insensitively, and reports both the labelled and the shifted body position."
+   }
+  },
+  {
+   "row_id": "UI-FP-133",
+   "result": "FAIL",
+   "checks": [
+    {
+     "name": "COLUMN_PRESENT",
+     "pass": true,
+     "detail": "Real order result"
+    },
+    {
+     "name": "FIELD_VALUE_MATCH",
+     "pass": false,
+     "detail": "matched=0 mism=0 skipped=10"
+    }
+   ],
+   "evidence": {
+    "matched": 0,
+    "mismatches": [],
+    "skipped": 10,
+    "skip_detail": [
+     {
+      "coin": "STRK",
+      "skip": "no intent at exact created_at in the frozen snapshot"
+     },
+     {
+      "coin": "BSV",
+      "skip": "no intent at exact created_at in the frozen snapshot"
+     },
+     {
+      "coin": "ADA",
+      "skip": "no intent at exact created_at in the frozen snapshot"
+     },
+     {
+      "coin": "NIL",
+      "skip": "no intent at exact created_at in the frozen snapshot"
+     },
+     {
+      "coin": "ARB",
+      "skip": "no intent at exact created_at in the frozen snapshot"
+     },
+     {
+      "coin": "KPEPE",
+      "skip": "no intent at exact created_at in the frozen snapshot"
+     },
+     {
+      "coin": "STRK",
+      "skip": "no intent at exact created_at in the frozen snapshot"
+     },
+     {
+      "coin": "AZTEC",
+      "skip": "no intent at exact created_at in the frozen snapshot"
+     }
+    ],
+    "window_rule": "last 100 send_attempts.csv rows from the frozen snapshot",
+    "settle_rule": "only intents whose newest attempt is >= 60s old at capture",
+    "harness_note": "v3 skipped everything (window rule); v4 raced a pending_send row against the later terminal write; v5 freezes the CSV before the DOM read and refuses in-flight attempts."
+   }
+  }
+ ]
+}

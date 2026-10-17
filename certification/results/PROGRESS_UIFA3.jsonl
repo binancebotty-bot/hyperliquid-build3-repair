@@ -1,0 +1,17 @@
+{"row_id": "UI-FP-076", "result": "PASS", "stage": "v3 baseline (live DOM + independent oracle)", "final": true, "at_utc": "2026-10-17T18:39:02.791016+00:00"}
+{"row_id": "UI-FP-078", "result": "PASS", "stage": "v3 baseline (live DOM + independent oracle)", "final": true, "at_utc": "2026-10-17T18:39:02.791016+00:00"}
+{"row_id": "UI-FP-079", "result": "PASS", "stage": "v3 baseline (live DOM + independent oracle)", "final": true, "at_utc": "2026-10-17T18:39:02.791016+00:00"}
+{"row_id": "UI-FP-084", "result": "PASS", "stage": "v3 baseline (live DOM + independent oracle)", "final": true, "at_utc": "2026-10-17T18:39:02.791016+00:00"}
+{"row_id": "UI-FP-088", "result": "PASS", "stage": "v3 baseline (live DOM + independent oracle)", "final": true, "at_utc": "2026-10-17T18:39:02.791016+00:00"}
+{"row_id": "UI-FP-089", "result": "PASS", "stage": "v3 baseline (live DOM + independent oracle)", "final": true, "at_utc": "2026-10-17T18:39:02.791016+00:00"}
+{"row_id": "UI-FP-090", "result": "PASS", "stage": "v3 baseline (live DOM + independent oracle)", "final": true, "at_utc": "2026-10-17T18:39:02.791016+00:00"}
+{"row_id": "UI-FP-107", "result": "FAIL", "stage": "v10 retest: 15 terminal rows, 0 under labelled header, 15 at index+1", "final": true, "at_utc": "2026-10-17T18:39:02.791016+00:00"}
+{"row_id": "UI-FP-109", "result": "FAIL", "stage": "v10 retest: 15 terminal rows, 0 under labelled header, 0 at index+1 - value mismatch beyond the column shift", "final": true, "at_utc": "2026-10-17T18:39:02.791016+00:00"}
+{"row_id": "UI-FP-110", "result": "FAIL", "stage": "v10 retest: 15 terminal rows, 0 under labelled header, 15 at index+1", "final": true, "at_utc": "2026-10-17T18:39:02.791016+00:00"}
+{"row_id": "UI-FP-115", "result": "FAIL", "stage": "v9 retest: 29 terminal rows, 0 matched under labelled header, 29 matched at index+1", "final": true, "at_utc": "2026-10-17T18:39:02.791016+00:00"}
+{"row_id": "UI-FP-119", "result": "FAIL", "stage": "v9 retest: 29 terminal rows, 0 matched under labelled header, 29 matched at index+1", "final": true, "at_utc": "2026-10-17T18:39:02.791016+00:00"}
+{"row_id": "UI-FP-120", "result": "FAIL", "stage": "v10 retest: 15 terminal rows, 0 under labelled header, 15 at index+1", "final": true, "at_utc": "2026-10-17T18:39:02.791016+00:00"}
+{"row_id": "UI-FP-133", "result": "PASS", "stage": "v7 retest: 7/7 matched once young attempts were excluded (v3 was vacuous 0-sample)", "final": true, "at_utc": "2026-10-17T18:39:02.791016+00:00"}
+{"row_id": "UI-FP-137", "result": "PASS", "stage": "v3 baseline (live DOM + independent oracle)", "final": true, "at_utc": "2026-10-17T18:39:02.791016+00:00"}
+{"row_id": "UI-FP-139", "result": "PASS", "stage": "v3 baseline (live DOM + independent oracle)", "final": true, "at_utc": "2026-10-17T18:39:02.791016+00:00"}
+{"row_id": "UI-FP-140", "result": "PASS", "stage": "v3 baseline (live DOM + independent oracle)", "final": true, "at_utc": "2026-10-17T18:39:02.791016+00:00"}

@@ -1,0 +1,920 @@
+{
+ "task_id": "t_770ce423",
+ "title": "B3-CERT UI FAIL small (17 rows): UI-FP-076..140",
+ "harness": "certification/results/uifa3_harness_v2.py",
+ "register_commit": "b142cf8",
+ "ssot_commit": "5223ce25",
+ "live_surface": "http://127.0.0.1:8031/live-copy",
+ "state_dir": "C:\\Users\\wigmore\\trading_stack\\hl-build3-testnet-cert\\_archive\\hl_stage2\\hl_live_copy_audit_testnet",
+ "tested_at_utc": "2026-10-17T15:58:21.737139+00:00",
+ "harness_revision_note": "v2 supersedes v1: v1 evidence classes were instrument defects - headerless csv_tail oracle, unexercised wallet friction expansion, case-sensitive header compare.",
+ "rows_tested": 17,
+ "summary": {
+  "total_rows": 17,
+  "pass": 3,
+  "fail": 14
+ },
+ "rows": [
+  {
+   "row_id": "UI-FP-076",
+   "result": "FAIL",
+   "checks": [
+    {
+     "name": "FRICTION_TABLE_PRESENT",
+     "pass": false,
+     "detail": "rows=0 col=True"
+    }
+   ],
+   "evidence": {
+    "header": [
+     "WALLET",
+     "NET P&L",
+     "FEED",
+     "CLOSED / OPEN / FEES",
+     "LEAD↔COPY DIFF",
+     "EXECUTION",
+     "RISK / EXPOSURE",
+     "LAST FILL",
+     "CONTROLS",
+     "COIN",
+     "SIDE",
+     "SIZE",
+     "ENTRY PX",
+     "MARK PX",
+     "UNREALIZED PNL",
+     "EXPOSURE",
+     "EXCHANGE MATCH",
+     "TIME",
+     "COIN",
+     "SIDE",
+     "LEADER/REF PX",
+     "OUR FILL PX",
+     "SIZE",
+     "DIFF $",
+     "DIFF BPS",
+     "LIMIT PX",
+     "FILL-VS-LIMIT BPS",
+     "OID",
+     "TIME",
+     "COIN",
+     "SIDE",
+     "SIZE @ PX",
+     "POS BEFORE→AFTER",
+     "OID",
+     "TIME",
+     "COIN",
+     "SIDE",
+     "ERROR",
+     "TIME",
+     "COIN",
+     "STATUS (REASON)"
+    ]
+   }
+  },
+  {
+   "row_id": "UI-FP-078",
+   "result": "FAIL",
+   "checks": [
+    {
+     "name": "FRICTION_TABLE_PRESENT",
+     "pass": false,
+     "detail": "rows=0 col=True"
+    }
+   ],
+   "evidence": {
+    "header": [
+     "WALLET",
+     "NET P&L",
+     "FEED",
+     "CLOSED / OPEN / FEES",
+     "LEAD↔COPY DIFF",
+     "EXECUTION",
+     "RISK / EXPOSURE",
+     "LAST FILL",
+     "CONTROLS",
+     "COIN",
+     "SIDE",
+     "SIZE",
+     "ENTRY PX",
+     "MARK PX",
+     "UNREALIZED PNL",
+     "EXPOSURE",
+     "EXCHANGE MATCH",
+     "TIME",
+     "COIN",
+     "SIDE",
+     "LEADER/REF PX",
+     "OUR FILL PX",
+     "SIZE",
+     "DIFF $",
+     "DIFF BPS",
+     "LIMIT PX",
+     "FILL-VS-LIMIT BPS",
+     "OID",
+     "TIME",
+     "COIN",
+     "SIDE",
+     "SIZE @ PX",
+     "POS BEFORE→AFTER",
+     "OID",
+     "TIME",
+     "COIN",
+     "SIDE",
+     "ERROR",
+     "TIME",
+     "COIN",
+     "STATUS (REASON)"
+    ]
+   }
+  },
+  {
+   "row_id": "UI-FP-079",
+   "result": "FAIL",
+   "checks": [
+    {
+     "name": "FRICTION_TABLE_PRESENT",
+     "pass": false,
+     "detail": "rows=0 col=True"
+    }
+   ],
+   "evidence": {
+    "header": [
+     "WALLET",
+     "NET P&L",
+     "FEED",
+     "CLOSED / OPEN / FEES",
+     "LEAD↔COPY DIFF",
+     "EXECUTION",
+     "RISK / EXPOSURE",
+     "LAST FILL",
+     "CONTROLS",
+     "COIN",
+     "SIDE",
+     "SIZE",
+     "ENTRY PX",
+     "MARK PX",
+     "UNREALIZED PNL",
+     "EXPOSURE",
+     "EXCHANGE MATCH",
+     "TIME",
+     "COIN",
+     "SIDE",
+     "LEADER/REF PX",
+     "OUR FILL PX",
+     "SIZE",
+     "DIFF $",
+     "DIFF BPS",
+     "LIMIT PX",
+     "FILL-VS-LIMIT BPS",
+     "OID",
+     "TIME",
+     "COIN",
+     "SIDE",
+     "SIZE @ PX",
+     "POS BEFORE→AFTER",
+     "OID",
+     "TIME",
+     "COIN",
+     "SIDE",
+     "ERROR",
+     "TIME",
+     "COIN",
+     "STATUS (REASON)"
+    ]
+   }
+  },
+  {
+   "row_id": "UI-FP-084",
+   "result": "FAIL",
+   "checks": [
+    {
+     "name": "FRICTION_TABLE_PRESENT",
+     "pass": false,
+     "detail": "rows=0 col=True"
+    }
+   ],
+   "evidence": {
+    "header": [
+     "WALLET",
+     "NET P&L",
+     "FEED",
+     "CLOSED / OPEN / FEES",
+     "LEAD↔COPY DIFF",
+     "EXECUTION",
+     "RISK / EXPOSURE",
+     "LAST FILL",
+     "CONTROLS",
+     "COIN",
+     "SIDE",
+     "SIZE",
+     "ENTRY PX",
+     "MARK PX",
+     "UNREALIZED PNL",
+     "EXPOSURE",
+     "EXCHANGE MATCH",
+     "TIME",
+     "COIN",
+     "SIDE",
+     "LEADER/REF PX",
+     "OUR FILL PX",
+     "SIZE",
+     "DIFF $",
+     "DIFF BPS",
+     "LIMIT PX",
+     "FILL-VS-LIMIT BPS",
+     "OID",
+     "TIME",
+     "COIN",
+     "SIDE",
+     "SIZE @ PX",
+     "POS BEFORE→AFTER",
+     "OID",
+     "TIME",
+     "COIN",
+     "SIDE",
+     "ERROR",
+     "TIME",
+     "COIN",
+     "STATUS (REASON)"
+    ]
+   }
+  },
+  {
+   "row_id": "UI-FP-088",
+   "result": "FAIL",
+   "checks": [
+    {
+     "name": "OWNED_TABLE_PRESENT",
+     "pass": true,
+     "detail": "rows=6"
+    },
+    {
+     "name": "COLUMN_PRESENT",
+     "pass": true,
+     "detail": "Side"
+    },
+    {
+     "name": "FIELD_VALUE_MATCH",
+     "pass": false,
+     "detail": "matched=0 mism=6"
+    }
+   ],
+   "evidence": {
+    "matched": 0,
+    "mismatches": [
+     {
+      "coin": "0G",
+      "dom": "SHORT",
+      "oracle": null
+     },
+     {
+      "coin": "0G",
+      "dom": "LONG",
+      "oracle": null
+     },
+     {
+      "coin": "0G",
+      "dom": "LONG",
+      "oracle": null
+     },
+     {
+      "coin": "2Z",
+      "dom": "SHORT",
+      "oracle": null
+     }
+    ]
+   }
+  },
+  {
+   "row_id": "UI-FP-089",
+   "result": "FAIL",
+   "checks": [
+    {
+     "name": "OWNED_TABLE_PRESENT",
+     "pass": true,
+     "detail": "rows=6"
+    },
+    {
+     "name": "COLUMN_PRESENT",
+     "pass": true,
+     "detail": "Signed size"
+    },
+    {
+     "name": "FIELD_VALUE_MATCH",
+     "pass": false,
+     "detail": "matched=0 mism=6"
+    }
+   ],
+   "evidence": {
+    "matched": 0,
+    "mismatches": [
+     {
+      "coin": "0G",
+      "dom": "-76",
+      "oracle": 0.0
+     },
+     {
+      "coin": "0G",
+      "dom": "56",
+      "oracle": 0.0
+     },
+     {
+      "coin": "0G",
+      "dom": "35",
+      "oracle": 0.0
+     },
+     {
+      "coin": "2Z",
+      "dom": "-380",
+      "oracle": 731.0
+     }
+    ]
+   }
+  },
+  {
+   "row_id": "UI-FP-090",
+   "result": "FAIL",
+   "checks": [
+    {
+     "name": "OWNED_TABLE_PRESENT",
+     "pass": true,
+     "detail": "rows=6"
+    },
+    {
+     "name": "COLUMN_PRESENT",
+     "pass": true,
+     "detail": "Avg entry"
+    },
+    {
+     "name": "FIELD_VALUE_MATCH",
+     "pass": false,
+     "detail": "matched=0 mism=6"
+    }
+   ],
+   "evidence": {
+    "matched": 0,
+    "mismatches": [
+     {
+      "coin": "0G",
+      "dom": "0.23904190487032664",
+      "oracle": 0.0
+     },
+     {
+      "coin": "0G",
+      "dom": "0.24095533476792808",
+      "oracle": 0.0
+     },
+     {
+      "coin": "0G",
+      "dom": "0.24705",
+      "oracle": 0.0
+     },
+     {
+      "coin": "2Z",
+      "dom": "0.032408243450358615",
+      "oracle": 0.032980640218878254
+     }
+    ]
+   }
+  },
+  {
+   "row_id": "UI-FP-107",
+   "result": "FAIL",
+   "checks": [
+    {
+     "name": "EXECQUAL_TABLE_PRESENT",
+     "pass": true,
+     "detail": "th=['Time', 'Wallet', 'Coin', 'Side', 'Status', 'Terminal state', 'Operator action', 'Reject category', 'OID', 'Fill avg px', 'Size', 'Pos before -> after', 'Leader→send ms', 'Total ms', 'Symbol ms', 'SDK ms', 'Exchange ms', 'Error']"
+    },
+    {
+     "name": "COLUMN_PRESENT",
+     "pass": true,
+     "detail": "Status"
+    },
+    {
+     "name": "HEADER_CELL_ALIGNMENT",
+     "pass": false,
+     "detail": "thead=18 th vs row=19 td"
+    },
+    {
+     "name": "FIELD_VALUE_MATCH_UNDER_HEADER",
+     "pass": false,
+     "detail": "matched=0 mism=6"
+    }
+   ],
+   "evidence": {
+    "matched": 0,
+    "mismatches": [
+     {
+      "coin": "KBONK",
+      "dom": "ACTIVE_LOCAL_BLOCK",
+      "oracle": "ORDER_FILLED"
+     },
+     {
+      "coin": "VVV",
+      "dom": "ACTIVE_LOCAL_BLOCK",
+      "oracle": "ORDER_FILLED"
+     },
+     {
+      "coin": "2Z",
+      "dom": "ACTIVE_LOCAL_BLOCK",
+      "oracle": "ORDER_FILLED"
+     },
+     {
+      "coin": "AAVE",
+      "dom": "ACTIVE_LOCAL_BLOCK",
+      "oracle": "ORDER_FILLED"
+     }
+    ],
+    "thead_th": 18,
+    "row_td": 19
+   }
+  },
+  {
+   "row_id": "UI-FP-109",
+   "result": "FAIL",
+   "checks": [
+    {
+     "name": "EXECQUAL_TABLE_PRESENT",
+     "pass": true,
+     "detail": "th=['Time', 'Wallet', 'Coin', 'Side', 'Status', 'Terminal state', 'Operator action', 'Reject category', 'OID', 'Fill avg px', 'Size', 'Pos before -> after', 'Leader→send ms', 'Total ms', 'Symbol ms', 'SDK ms', 'Exchange ms', 'Error']"
+    },
+    {
+     "name": "COLUMN_PRESENT",
+     "pass": true,
+     "detail": "Operator action"
+    },
+    {
+     "name": "HEADER_CELL_ALIGNMENT",
+     "pass": false,
+     "detail": "thead=18 th vs row=19 td"
+    },
+    {
+     "name": "FIELD_VALUE_MATCH_UNDER_HEADER",
+     "pass": false,
+     "detail": "matched=0 mism=6"
+    }
+   ],
+   "evidence": {
+    "matched": 0,
+    "mismatches": [
+     {
+      "coin": "KBONK",
+      "dom": "PENDING_SEND",
+      "oracle": "UPDATED"
+     },
+     {
+      "coin": "VVV",
+      "dom": "PENDING_SEND",
+      "oracle": "UPDATED"
+     },
+     {
+      "coin": "2Z",
+      "dom": "PENDING_SEND",
+      "oracle": "UPDATED"
+     },
+     {
+      "coin": "AAVE",
+      "dom": "PENDING_SEND",
+      "oracle": "UPDATED"
+     }
+    ],
+    "thead_th": 18,
+    "row_td": 19
+   }
+  },
+  {
+   "row_id": "UI-FP-110",
+   "result": "FAIL",
+   "checks": [
+    {
+     "name": "EXECQUAL_TABLE_PRESENT",
+     "pass": true,
+     "detail": "th=['Time', 'Wallet', 'Coin', 'Side', 'Status', 'Terminal state', 'Operator action', 'Reject category', 'OID', 'Fill avg px', 'Size', 'Pos before -> after', 'Leader→send ms', 'Total ms', 'Symbol ms', 'SDK ms', 'Exchange ms', 'Error']"
+    },
+    {
+     "name": "COLUMN_PRESENT",
+     "pass": true,
+     "detail": "Reject category"
+    },
+    {
+     "name": "HEADER_CELL_ALIGNMENT",
+     "pass": false,
+     "detail": "thead=18 th vs row=19 td"
+    },
+    {
+     "name": "FIELD_VALUE_MATCH_UNDER_HEADER",
+     "pass": false,
+     "detail": "matched=0 mism=6"
+    }
+   ],
+   "evidence": {
+    "matched": 0,
+    "mismatches": [
+     {
+      "coin": "KBONK",
+      "dom": "WAIT_FOR_SEND_REPLY",
+      "oracle": null
+     },
+     {
+      "coin": "VVV",
+      "dom": "WAIT_FOR_SEND_REPLY",
+      "oracle": null
+     },
+     {
+      "coin": "2Z",
+      "dom": "WAIT_FOR_SEND_REPLY",
+      "oracle": null
+     },
+     {
+      "coin": "AAVE",
+      "dom": "WAIT_FOR_SEND_REPLY",
+      "oracle": null
+     }
+    ],
+    "thead_th": 18,
+    "row_td": 19
+   }
+  },
+  {
+   "row_id": "UI-FP-115",
+   "result": "FAIL",
+   "checks": [
+    {
+     "name": "EXECQUAL_TABLE_PRESENT",
+     "pass": true,
+     "detail": "col=False"
+    }
+   ],
+   "evidence": {
+    "header": [
+     "Time",
+     "Wallet",
+     "Coin",
+     "Side",
+     "Status",
+     "Terminal state",
+     "Operator action",
+     "Reject category",
+     "OID",
+     "Fill avg px",
+     "Size",
+     "Pos before -> after",
+     "Leader→send ms",
+     "Total ms",
+     "Symbol ms",
+     "SDK ms",
+     "Exchange ms",
+     "Error"
+    ]
+   }
+  },
+  {
+   "row_id": "UI-FP-119",
+   "result": "FAIL",
+   "checks": [
+    {
+     "name": "EXECQUAL_TABLE_PRESENT",
+     "pass": true,
+     "detail": "th=['Time', 'Wallet', 'Coin', 'Side', 'Status', 'Terminal state', 'Operator action', 'Reject category', 'OID', 'Fill avg px', 'Size', 'Pos before -> after', 'Leader→send ms', 'Total ms', 'Symbol ms', 'SDK ms', 'Exchange ms', 'Error']"
+    },
+    {
+     "name": "COLUMN_PRESENT",
+     "pass": true,
+     "detail": "Exchange ms"
+    },
+    {
+     "name": "HEADER_CELL_ALIGNMENT",
+     "pass": false,
+     "detail": "thead=18 th vs row=19 td"
+    },
+    {
+     "name": "FIELD_VALUE_MATCH_UNDER_HEADER",
+     "pass": false,
+     "detail": "matched=0 mism=6"
+    }
+   ],
+   "evidence": {
+    "matched": 0,
+    "mismatches": [
+     {
+      "coin": "KBONK",
+      "dom": "—",
+      "oracle": null
+     },
+     {
+      "coin": "VVV",
+      "dom": "—",
+      "oracle": null
+     },
+     {
+      "coin": "2Z",
+      "dom": "—",
+      "oracle": null
+     },
+     {
+      "coin": "AAVE",
+      "dom": "—",
+      "oracle": null
+     }
+    ],
+    "thead_th": 18,
+    "row_td": 19
+   }
+  },
+  {
+   "row_id": "UI-FP-120",
+   "result": "FAIL",
+   "checks": [
+    {
+     "name": "EXECQUAL_TABLE_PRESENT",
+     "pass": true,
+     "detail": "th=['Time', 'Wallet', 'Coin', 'Side', 'Status', 'Terminal state', 'Operator action', 'Reject category', 'OID', 'Fill avg px', 'Size', 'Pos before -> after', 'Leader→send ms', 'Total ms', 'Symbol ms', 'SDK ms', 'Exchange ms', 'Error']"
+    },
+    {
+     "name": "COLUMN_PRESENT",
+     "pass": true,
+     "detail": "Error"
+    },
+    {
+     "name": "HEADER_CELL_ALIGNMENT",
+     "pass": false,
+     "detail": "thead=18 th vs row=19 td"
+    },
+    {
+     "name": "FIELD_VALUE_MATCH_UNDER_HEADER",
+     "pass": false,
+     "detail": "matched=0 mism=6"
+    }
+   ],
+   "evidence": {
+    "matched": 0,
+    "mismatches": [
+     {
+      "coin": "KBONK",
+      "dom": "—",
+      "oracle": "matched by exchange_order_id=62972477469; MATCHED_BY_EXCHANGE_ORDER_ID"
+     },
+     {
+      "coin": "VVV",
+      "dom": "—",
+      "oracle": "matched by exchange_order_id=62973245933; MATCHED_BY_EXCHANGE_ORDER_ID"
+     },
+     {
+      "coin": "2Z",
+      "dom": "—",
+      "oracle": "matched by exchange_order_id=62973721713; MATCHED_BY_EXCHANGE_ORDER_ID"
+     },
+     {
+      "coin": "AAVE",
+      "dom": "—",
+      "oracle": "matched by exchange_order_id=62972826994; MATCHED_BY_EXCHANGE_ORDER_ID"
+     }
+    ],
+    "thead_th": 18,
+    "row_td": 19
+   }
+  },
+  {
+   "row_id": "UI-FP-133",
+   "result": "FAIL",
+   "checks": [
+    {
+     "name": "AUDIT_TABLE_PRESENT",
+     "pass": true,
+     "detail": "th=['TIME', 'WALLET', 'COIN', 'SIDE', 'SOURCE/REASON', 'STATUS', 'DECISION', 'DECISION REASON', 'SUGGESTED LIMIT', 'DIFF %', 'MANUAL?', 'INTENT NOTE', 'REAL ORDER RESULT']"
+    },
+    {
+     "name": "COLUMN_PRESENT",
+     "pass": true,
+     "detail": "Real order result"
+    },
+    {
+     "name": "FIELD_VALUE_MATCH",
+     "pass": false,
+     "detail": "matched=1 mism=5"
+    }
+   ],
+   "evidence": {
+    "matched": 1,
+    "mismatches": [
+     {
+      "coin": "AERO",
+      "dom": "NO_SEND_ATTEMPT",
+      "oracle": "REAL_ORDER_FILLED"
+     },
+     {
+      "coin": "AERO",
+      "dom": "NO_SEND_ATTEMPT",
+      "oracle": "REAL_ORDER_FILLED"
+     },
+     {
+      "coin": "GMT",
+      "dom": "NO_SEND_ATTEMPT",
+      "oracle": "REAL_ORDER_FILLED"
+     },
+     {
+      "coin": "KBONK",
+      "dom": "pending_send",
+      "oracle": "REAL_ORDER_FILLED"
+     }
+    ],
+    "header": [
+     "TIME",
+     "WALLET",
+     "COIN",
+     "SIDE",
+     "SOURCE/REASON",
+     "STATUS",
+     "DECISION",
+     "DECISION REASON",
+     "SUGGESTED LIMIT",
+     "DIFF %",
+     "MANUAL?",
+     "INTENT NOTE",
+     "REAL ORDER RESULT"
+    ]
+   }
+  },
+  {
+   "row_id": "UI-FP-137",
+   "result": "PASS",
+   "checks": [
+    {
+     "name": "CRITICAL_TABLE_PRESENT",
+     "pass": true,
+     "detail": "rows=8"
+    },
+    {
+     "name": "CRITICAL_ROWS_RENDERED",
+     "pass": true,
+     "detail": "dom=8 oracle=484"
+    },
+    {
+     "name": "COLUMN_PRESENT",
+     "pass": true,
+     "detail": "Reject category"
+    },
+    {
+     "name": "FIELD_VALUE_MATCH",
+     "pass": true,
+     "detail": "matched=8 mism=0"
+    }
+   ],
+   "evidence": {
+    "matched": 8,
+    "mismatches": [],
+    "dom_critical": 8,
+    "oracle_critical": 484
+   }
+  },
+  {
+   "row_id": "UI-FP-139",
+   "result": "PASS",
+   "checks": [
+    {
+     "name": "CRITICAL_TABLE_PRESENT",
+     "pass": true,
+     "detail": "rows=8"
+    },
+    {
+     "name": "CRITICAL_ROWS_RENDERED",
+     "pass": true,
+     "detail": "dom=8 oracle=484"
+    },
+    {
+     "name": "COLUMN_PRESENT",
+     "pass": true,
+     "detail": "Coin"
+    },
+    {
+     "name": "FIELD_VALUE_MATCH",
+     "pass": true,
+     "detail": "matched=8 mism=0"
+    }
+   ],
+   "evidence": {
+    "matched": 8,
+    "mismatches": [],
+    "dom_critical": 8,
+    "oracle_critical": 484
+   }
+  },
+  {
+   "row_id": "UI-FP-140",
+   "result": "PASS",
+   "checks": [
+    {
+     "name": "CRITICAL_TABLE_PRESENT",
+     "pass": true,
+     "detail": "rows=8"
+    },
+    {
+     "name": "CRITICAL_ROWS_RENDERED",
+     "pass": true,
+     "detail": "dom=8 oracle=484"
+    },
+    {
+     "name": "COLUMN_PRESENT",
+     "pass": true,
+     "detail": "Terminal state"
+    },
+    {
+     "name": "FIELD_VALUE_MATCH",
+     "pass": true,
+     "detail": "matched=8 mism=0"
+    }
+   ],
+   "evidence": {
+    "matched": 8,
+    "mismatches": [],
+    "dom_critical": 8,
+    "oracle_critical": 484
+   }
+  }
+ ],
+ "defects": [
+  {
+   "row_id": "UI-FP-076",
+   "summary": "friction column not rendered",
+   "evidence": "['WALLET', 'NET P&L', 'FEED', 'CLOSED / OPEN / FEES', 'LEAD↔COPY DIFF', 'EXECUTION', 'RISK / EXPOSURE', 'LAST FILL', 'CONTROLS', 'COIN', 'SIDE', 'SIZE', 'ENTRY PX', 'MARK PX', 'UNREALIZED PNL', 'EXPOSURE', 'EXCHANGE MATCH', 'TIME', 'COIN', 'SIDE', 'LEADER/REF PX', 'OUR FILL PX', 'SIZE', 'DIFF $', 'DIFF BPS', 'LIMIT PX', 'FILL-VS-LIMIT BPS', 'OID', 'TIME', 'COIN', 'SIDE', 'SIZE @ PX', 'POS BEFORE→AFTER', 'OID', 'TIME', 'COIN', 'SIDE', 'ERROR', 'TIME', 'COIN', 'STATUS (REASON)']"
+  },
+  {
+   "row_id": "UI-FP-078",
+   "summary": "friction column not rendered",
+   "evidence": "['WALLET', 'NET P&L', 'FEED', 'CLOSED / OPEN / FEES', 'LEAD↔COPY DIFF', 'EXECUTION', 'RISK / EXPOSURE', 'LAST FILL', 'CONTROLS', 'COIN', 'SIDE', 'SIZE', 'ENTRY PX', 'MARK PX', 'UNREALIZED PNL', 'EXPOSURE', 'EXCHANGE MATCH', 'TIME', 'COIN', 'SIDE', 'LEADER/REF PX', 'OUR FILL PX', 'SIZE', 'DIFF $', 'DIFF BPS', 'LIMIT PX', 'FILL-VS-LIMIT BPS', 'OID', 'TIME', 'COIN', 'SIDE', 'SIZE @ PX', 'POS BEFORE→AFTER', 'OID', 'TIME', 'COIN', 'SIDE', 'ERROR', 'TIME', 'COIN', 'STATUS (REASON)']"
+  },
+  {
+   "row_id": "UI-FP-079",
+   "summary": "friction column not rendered",
+   "evidence": "['WALLET', 'NET P&L', 'FEED', 'CLOSED / OPEN / FEES', 'LEAD↔COPY DIFF', 'EXECUTION', 'RISK / EXPOSURE', 'LAST FILL', 'CONTROLS', 'COIN', 'SIDE', 'SIZE', 'ENTRY PX', 'MARK PX', 'UNREALIZED PNL', 'EXPOSURE', 'EXCHANGE MATCH', 'TIME', 'COIN', 'SIDE', 'LEADER/REF PX', 'OUR FILL PX', 'SIZE', 'DIFF $', 'DIFF BPS', 'LIMIT PX', 'FILL-VS-LIMIT BPS', 'OID', 'TIME', 'COIN', 'SIDE', 'SIZE @ PX', 'POS BEFORE→AFTER', 'OID', 'TIME', 'COIN', 'SIDE', 'ERROR', 'TIME', 'COIN', 'STATUS (REASON)']"
+  },
+  {
+   "row_id": "UI-FP-084",
+   "summary": "friction column not rendered",
+   "evidence": "['WALLET', 'NET P&L', 'FEED', 'CLOSED / OPEN / FEES', 'LEAD↔COPY DIFF', 'EXECUTION', 'RISK / EXPOSURE', 'LAST FILL', 'CONTROLS', 'COIN', 'SIDE', 'SIZE', 'ENTRY PX', 'MARK PX', 'UNREALIZED PNL', 'EXPOSURE', 'EXCHANGE MATCH', 'TIME', 'COIN', 'SIDE', 'LEADER/REF PX', 'OUR FILL PX', 'SIZE', 'DIFF $', 'DIFF BPS', 'LIMIT PX', 'FILL-VS-LIMIT BPS', 'OID', 'TIME', 'COIN', 'SIDE', 'SIZE @ PX', 'POS BEFORE→AFTER', 'OID', 'TIME', 'COIN', 'SIDE', 'ERROR', 'TIME', 'COIN', 'STATUS (REASON)']"
+  },
+  {
+   "row_id": "UI-FP-088",
+   "summary": "owned Side mismatch vs manual_live_positions",
+   "evidence": "[{'coin': '0G', 'dom': 'SHORT', 'oracle': None}, {'coin': '0G', 'dom': 'LONG', 'oracle': None}, {'coin': '0G', 'dom': 'LONG', 'oracle': None}]"
+  },
+  {
+   "row_id": "UI-FP-089",
+   "summary": "owned Signed size mismatch vs manual_live_positions",
+   "evidence": "[{'coin': '0G', 'dom': '-76', 'oracle': 0.0}, {'coin': '0G', 'dom': '56', 'oracle': 0.0}, {'coin': '0G', 'dom': '35', 'oracle': 0.0}]"
+  },
+  {
+   "row_id": "UI-FP-090",
+   "summary": "owned Avg entry mismatch vs manual_live_positions",
+   "evidence": "[{'coin': '0G', 'dom': '0.23904190487032664', 'oracle': 0.0}, {'coin': '0G', 'dom': '0.24095533476792808', 'oracle': 0.0}, {'coin': '0G', 'dom': '0.24705', 'oracle': 0.0}]"
+  },
+  {
+   "row_id": "UI-FP-107",
+   "summary": "Execution Quality Status: renderExecQuality emits 19 td per row but thead declares 18 th (extra truth_state pill shifts columns right by one)",
+   "evidence": "th=18 td=19 matched=0/6"
+  },
+  {
+   "row_id": "UI-FP-109",
+   "summary": "Execution Quality Operator action: renderExecQuality emits 19 td per row but thead declares 18 th (extra truth_state pill shifts columns right by one)",
+   "evidence": "th=18 td=19 matched=0/6"
+  },
+  {
+   "row_id": "UI-FP-110",
+   "summary": "Execution Quality Reject category: renderExecQuality emits 19 td per row but thead declares 18 th (extra truth_state pill shifts columns right by one)",
+   "evidence": "th=18 td=19 matched=0/6"
+  },
+  {
+   "row_id": "UI-FP-119",
+   "summary": "Execution Quality Exchange ms: renderExecQuality emits 19 td per row but thead declares 18 th (extra truth_state pill shifts columns right by one)",
+   "evidence": "th=18 td=19 matched=0/6"
+  },
+  {
+   "row_id": "UI-FP-120",
+   "summary": "Execution Quality Error: renderExecQuality emits 19 td per row but thead declares 18 th (extra truth_state pill shifts columns right by one)",
+   "evidence": "th=18 td=19 matched=0/6"
+  },
+  {
+   "row_id": "UI-FP-133",
+   "summary": "Real order result mismatches",
+   "evidence": "[{'coin': 'AERO', 'dom': 'NO_SEND_ATTEMPT', 'oracle': 'REAL_ORDER_FILLED'}, {'coin': 'AERO', 'dom': 'NO_SEND_ATTEMPT', 'oracle': 'REAL_ORDER_FILLED'}, {'coin': 'GMT', 'dom': 'NO_SEND_ATTEMPT', 'oracle': 'REAL_ORDER_FILLED'}]"
+  }
+ ],
+ "negative_tests": [
+  {
+   "name": "NEG_DEAD_PORT_SURFACED",
+   "pass": true,
+   "detail": "dead-port probe raises URLError and is reported, never swallowed"
+  },
+  {
+   "name": "NEG_API_ERROR_SURFACED",
+   "pass": true,
+   "detail": "surfaced: HTTP Error 404: Not Found"
+  },
+  {
+   "name": "NEG_EMPTY_IS_NOT_ZERO",
+   "pass": true,
+   "detail": "empty cells render em-dash, never 0"
+  }
+ ]
+}

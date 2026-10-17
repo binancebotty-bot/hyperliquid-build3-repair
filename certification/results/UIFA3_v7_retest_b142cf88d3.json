@@ -1,0 +1,119 @@
+{
+ "task_id": "t_770ce423",
+ "harness": "certification/results/uifa3_harness_v7_retest.py",
+ "ssot_commit": "5223ce257fe504636967a50f7064630bdc8e0ab0",
+ "register_commit": "b142cf8",
+ "captured_at_utc": "2026-10-17T18:07:34.087665+00:00",
+ "scope": "re-test of UI-FP-115 and UI-FP-133; the other 15 rows keep their v3 verdicts",
+ "summary": {
+  "pass": 1,
+  "fail": 1
+ },
+ "rows": [
+  {
+   "row_id": "UI-FP-115",
+   "result": "FAIL",
+   "checks": [
+    {
+     "name": "COLUMN_PRESENT",
+     "pass": true,
+     "detail": "header index 12 (U+2192 arrow normalised)"
+    },
+    {
+     "name": "HEADER_CELL_ALIGNMENT",
+     "pass": false,
+     "detail": "thead=18 th, tbody=19 td. renderExecQuality (SSOT 7624-7632) writes an unlabelled truth_state pill at body index 4, so every header from Status onward labels the wrong cell."
+    },
+    {
+     "name": "FIELD_VALUE_MATCH_UNDER_HEADER",
+     "pass": false,
+     "detail": "tested=0 matched_under_header=0"
+    },
+    {
+     "name": "DATA_PRESENT_AT_SHIFTED_POSITION",
+     "pass": false,
+     "detail": "tested=0 matched_at_body_index_13=0"
+    }
+   ],
+   "evidence": {
+    "header_index": 12,
+    "shifted_body_index": 13,
+    "tested": 0,
+    "matched_under_header": 0,
+    "matched_at_shifted_body_index": 0,
+    "mismatches_at_shifted_position": [],
+    "skipped": [
+     {
+      "coin": "VIRTUAL",
+      "oid": "—",
+      "why": "unsettled or no matching attempt"
+     },
+     {
+      "coin": "ZEC",
+      "oid": "—",
+      "why": "unsettled or no matching attempt"
+     },
+     {
+      "coin": "NEAR",
+      "oid": "—",
+      "why": "unsettled or no matching attempt"
+     },
+     {
+      "coin": "EIGEN",
+      "oid": "—",
+      "why": "unsettled or no matching attempt"
+     },
+     {
+      "coin": "DASH",
+      "oid": "—",
+      "why": "unsettled or no matching attempt"
+     },
+     {
+      "coin": "ZEC",
+      "oid": "—",
+      "why": "unsettled or no matching attempt"
+     }
+    ],
+    "thead_th": 18,
+    "row_td": 19
+   }
+  },
+  {
+   "row_id": "UI-FP-133",
+   "result": "PASS",
+   "checks": [
+    {
+     "name": "COLUMN_PRESENT",
+     "pass": true,
+     "detail": "Real order result"
+    },
+    {
+     "name": "FIELD_VALUE_MATCH",
+     "pass": true,
+     "detail": "matched=7 mism=0 skipped=3"
+    }
+   ],
+   "evidence": {
+    "matched": 7,
+    "mismatches": [],
+    "skip_detail": [
+     {
+      "coin": "VIRTUAL",
+      "why": "attempt younger than 60s at capture"
+     },
+     {
+      "coin": "NEAR",
+      "why": "attempt younger than 60s at capture"
+     },
+     {
+      "coin": "ZEC",
+      "why": "attempt younger than 60s at capture"
+     }
+    ],
+    "join_rule": "order_intents.csv row with the identical created_at string for that coin",
+    "settle_rule": "newest attempt >= 60s old at DOM capture",
+    "window_rule": "last 100 send_attempts.csv rows (mirrors the UI join)"
+   }
+  }
+ ]
+}

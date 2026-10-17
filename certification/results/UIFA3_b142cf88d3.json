@@ -1,0 +1,605 @@
+{
+ "task_id": "t_770ce423",
+ "card": "B3-CERT UI FAIL small (17 rows): UI-FP-076..140",
+ "ssot_commit": "5223ce257fe504636967a50f7064630bdc8e0ab0",
+ "ssot_path": "_archive/hl_stage2/HL_Copy_App_SSOT.py",
+ "register_commit": "b142cf8",
+ "certified_at_utc": "2026-10-17T18:39:02.791016+00:00",
+ "served_surface": "http://127.0.0.1:8031/live-copy (DOM captured live; oracle = append_only CSVs under state_dir from /api/global-controls)",
+ "harnesses": [
+  "certification/results/uifa3_harness_v3.py",
+  "certification/results/uifa3_harness_v7_retest.py",
+  "certification/results/uifa3_harness_v9_retest.py",
+  "certification/results/uifa3_harness_v10_retest.py",
+  "certification/results/consolidate_uifa3.py"
+ ],
+ "summary": {
+  "total_rows": 17,
+  "pass": 11,
+  "fail": 6,
+  "not_tested": 0
+ },
+ "root_cause": {
+  "row_family": "UI-FP-107/109/110/115/119/120 (Execution Quality table)",
+  "defect": "SSOT line 7144 declares 18 <th>; renderExecQuality (SSOT 7595) emits 19 <td> because an unlabelled truth_state pill is written at body index 4. Every header from Status onward labels the neighbouring cell.",
+  "proof": "v9: 29 terminal rows, 0/29 matched under the labelled header index, 29/29 matched at index+1 for Leader->send ms (12->13) and Exchange ms (16->17). v10 (independent capture, 15 terminal rows): same shift proven for Status (4->5), Reject category (7->8), Error (17->18) at 15/15; UI-FP-109 Operator action matched 0/15 at BOTH positions, i.e. a second, value-level defect sits behind the shift.",
+  "status": "UNFIXED in authoritative SSOT commit; FAIL kept, no accept-set widening."
+ },
+ "rows": [
+  {
+   "row_id": "UI-FP-076",
+   "result": "PASS",
+   "checks": [
+    {
+     "name": "FRICTION_TABLE_PRESENT",
+     "pass": true,
+     "detail": "wallet=0x010461c14e146ac35fe42271bdc1134ee31c703a th=11 rows=21"
+    },
+    {
+     "name": "COLUMN_PRESENT",
+     "pass": true,
+     "detail": "Coin"
+    },
+    {
+     "name": "FIELD_VALUE_MATCH",
+     "pass": true,
+     "detail": "matched=20 mism=0 skipped=1"
+    }
+   ],
+   "evidence": {
+    "matched": 20,
+    "mismatches": [],
+    "skipped_no_oracle": 1
+   },
+   "verdict_stage": "v3 baseline (live DOM + independent oracle)"
+  },
+  {
+   "row_id": "UI-FP-078",
+   "result": "PASS",
+   "checks": [
+    {
+     "name": "FRICTION_TABLE_PRESENT",
+     "pass": true,
+     "detail": "wallet=0x010461c14e146ac35fe42271bdc1134ee31c703a th=11 rows=21"
+    },
+    {
+     "name": "COLUMN_PRESENT",
+     "pass": true,
+     "detail": "Leader/ref px"
+    },
+    {
+     "name": "FIELD_VALUE_MATCH",
+     "pass": true,
+     "detail": "matched=20 mism=0 skipped=1"
+    }
+   ],
+   "evidence": {
+    "matched": 20,
+    "mismatches": [],
+    "skipped_no_oracle": 1
+   },
+   "verdict_stage": "v3 baseline (live DOM + independent oracle)"
+  },
+  {
+   "row_id": "UI-FP-079",
+   "result": "PASS",
+   "checks": [
+    {
+     "name": "FRICTION_TABLE_PRESENT",
+     "pass": true,
+     "detail": "wallet=0x010461c14e146ac35fe42271bdc1134ee31c703a th=11 rows=21"
+    },
+    {
+     "name": "COLUMN_PRESENT",
+     "pass": true,
+     "detail": "Our fill px"
+    },
+    {
+     "name": "FIELD_VALUE_MATCH",
+     "pass": true,
+     "detail": "matched=20 mism=0 skipped=1"
+    }
+   ],
+   "evidence": {
+    "matched": 20,
+    "mismatches": [],
+    "skipped_no_oracle": 1
+   },
+   "verdict_stage": "v3 baseline (live DOM + independent oracle)"
+  },
+  {
+   "row_id": "UI-FP-084",
+   "result": "PASS",
+   "checks": [
+    {
+     "name": "FRICTION_TABLE_PRESENT",
+     "pass": true,
+     "detail": "wallet=0x010461c14e146ac35fe42271bdc1134ee31c703a th=11 rows=21"
+    },
+    {
+     "name": "COLUMN_PRESENT",
+     "pass": true,
+     "detail": "Fill-vs-limit bps"
+    },
+    {
+     "name": "FIELD_VALUE_MATCH",
+     "pass": true,
+     "detail": "matched=20 mism=0 skipped=1"
+    }
+   ],
+   "evidence": {
+    "matched": 20,
+    "mismatches": [],
+    "skipped_no_oracle": 1
+   },
+   "verdict_stage": "v3 baseline (live DOM + independent oracle)"
+  },
+  {
+   "row_id": "UI-FP-088",
+   "result": "PASS",
+   "checks": [
+    {
+     "name": "OWNED_TABLE_PRESENT",
+     "pass": true,
+     "detail": "rows=12"
+    },
+    {
+     "name": "COLUMN_PRESENT",
+     "pass": true,
+     "detail": "Side"
+    },
+    {
+     "name": "FIELD_VALUE_MATCH",
+     "pass": true,
+     "detail": "matched=12 mism=0 skipped=0"
+    }
+   ],
+   "evidence": {
+    "matched": 12,
+    "mismatches": []
+   },
+   "verdict_stage": "v3 baseline (live DOM + independent oracle)"
+  },
+  {
+   "row_id": "UI-FP-089",
+   "result": "PASS",
+   "checks": [
+    {
+     "name": "OWNED_TABLE_PRESENT",
+     "pass": true,
+     "detail": "rows=12"
+    },
+    {
+     "name": "COLUMN_PRESENT",
+     "pass": true,
+     "detail": "Signed size"
+    },
+    {
+     "name": "FIELD_VALUE_MATCH",
+     "pass": true,
+     "detail": "matched=12 mism=0 skipped=0"
+    }
+   ],
+   "evidence": {
+    "matched": 12,
+    "mismatches": []
+   },
+   "verdict_stage": "v3 baseline (live DOM + independent oracle)"
+  },
+  {
+   "row_id": "UI-FP-090",
+   "result": "PASS",
+   "checks": [
+    {
+     "name": "OWNED_TABLE_PRESENT",
+     "pass": true,
+     "detail": "rows=12"
+    },
+    {
+     "name": "COLUMN_PRESENT",
+     "pass": true,
+     "detail": "Avg entry"
+    },
+    {
+     "name": "FIELD_VALUE_MATCH",
+     "pass": true,
+     "detail": "matched=12 mism=0 skipped=0"
+    }
+   ],
+   "evidence": {
+    "matched": 12,
+    "mismatches": []
+   },
+   "verdict_stage": "v3 baseline (live DOM + independent oracle)"
+  },
+  {
+   "row_id": "UI-FP-107",
+   "result": "FAIL",
+   "checks": [
+    {
+     "name": "EXECQUAL_TABLE_PRESENT",
+     "pass": true,
+     "detail": "th=18"
+    },
+    {
+     "name": "COLUMN_PRESENT",
+     "pass": true,
+     "detail": "'Status' at header index 4"
+    },
+    {
+     "name": "HEADER_CELL_ALIGNMENT",
+     "pass": false,
+     "detail": "thead=18 th vs tbody=19 td; renderExecQuality emits an unlabelled truth_state pill at body index 4"
+    },
+    {
+     "name": "FIELD_VALUE_MATCH_UNDER_HEADER",
+     "pass": false,
+     "detail": "tested=15 matched_under_header=0"
+    },
+    {
+     "name": "FIELD_VALUE_MATCH_AT_RENDERED_INDEX",
+     "pass": true,
+     "detail": "tested=15 matched_at_body_index_5=15"
+    }
+   ],
+   "evidence": {
+    "header_index": 4,
+    "shifted_body_index": 5,
+    "tested": 15,
+    "matched_under_header": 0,
+    "matched_at_shifted_body_index": 15,
+    "mismatches": [],
+    "oracle_column": "send_attempts.csv:status"
+   },
+   "verdict_stage": "v10 retest: 15 terminal rows, 0 under labelled header, 15 at index+1"
+  },
+  {
+   "row_id": "UI-FP-109",
+   "result": "FAIL",
+   "checks": [
+    {
+     "name": "EXECQUAL_TABLE_PRESENT",
+     "pass": true,
+     "detail": "th=18"
+    },
+    {
+     "name": "COLUMN_PRESENT",
+     "pass": true,
+     "detail": "'Operator action' at header index 6"
+    },
+    {
+     "name": "HEADER_CELL_ALIGNMENT",
+     "pass": false,
+     "detail": "thead=18 th vs tbody=19 td; renderExecQuality emits an unlabelled truth_state pill at body index 4"
+    },
+    {
+     "name": "FIELD_VALUE_MATCH_UNDER_HEADER",
+     "pass": false,
+     "detail": "tested=15 matched_under_header=0"
+    },
+    {
+     "name": "FIELD_VALUE_MATCH_AT_RENDERED_INDEX",
+     "pass": false,
+     "detail": "tested=15 matched_at_body_index_7=0"
+    }
+   ],
+   "evidence": {
+    "header_index": 6,
+    "shifted_body_index": 7,
+    "tested": 15,
+    "matched_under_header": 0,
+    "matched_at_shifted_body_index": 0,
+    "mismatches": [
+     {
+      "coin": "UMA",
+      "oid": "62982973404",
+      "under_header": "ADOPTED_RECONCILED",
+      "body_shifted": "COPY_POLL_ADOPTED",
+      "oracle": "WAIT_FOR_COPY_POLL"
+     },
+     {
+      "coin": "ZORA",
+      "oid": "62982971288",
+      "under_header": "ADOPTED_RECONCILED",
+      "body_shifted": "COPY_POLL_ADOPTED",
+      "oracle": "WAIT_FOR_COPY_POLL"
+     },
+     {
+      "coin": "ORDI",
+      "oid": "62982969932",
+      "under_header": "ADOPTED_RECONCILED",
+      "body_shifted": "COPY_POLL_ADOPTED",
+      "oracle": "WAIT_FOR_COPY_POLL"
+     },
+     {
+      "coin": "ANIME",
+      "oid": "62982866314",
+      "under_header": "ADOPTED_RECONCILED",
+      "body_shifted": "COPY_POLL_ADOPTED",
+      "oracle": "WAIT_FOR_COPY_POLL"
+     }
+    ],
+    "oracle_column": "send_attempts.csv:operator_action"
+   },
+   "verdict_stage": "v10 retest: 15 terminal rows, 0 under labelled header, 0 at index+1 - value mismatch beyond the column shift"
+  },
+  {
+   "row_id": "UI-FP-110",
+   "result": "FAIL",
+   "checks": [
+    {
+     "name": "EXECQUAL_TABLE_PRESENT",
+     "pass": true,
+     "detail": "th=18"
+    },
+    {
+     "name": "COLUMN_PRESENT",
+     "pass": true,
+     "detail": "'Reject category' at header index 7"
+    },
+    {
+     "name": "HEADER_CELL_ALIGNMENT",
+     "pass": false,
+     "detail": "thead=18 th vs tbody=19 td; renderExecQuality emits an unlabelled truth_state pill at body index 4"
+    },
+    {
+     "name": "FIELD_VALUE_MATCH_UNDER_HEADER",
+     "pass": false,
+     "detail": "tested=15 matched_under_header=0"
+    },
+    {
+     "name": "FIELD_VALUE_MATCH_AT_RENDERED_INDEX",
+     "pass": true,
+     "detail": "tested=15 matched_at_body_index_8=15"
+    }
+   ],
+   "evidence": {
+    "header_index": 7,
+    "shifted_body_index": 8,
+    "tested": 15,
+    "matched_under_header": 0,
+    "matched_at_shifted_body_index": 15,
+    "mismatches": [],
+    "oracle_column": "send_attempts.csv:reject_category"
+   },
+   "verdict_stage": "v10 retest: 15 terminal rows, 0 under labelled header, 15 at index+1"
+  },
+  {
+   "row_id": "UI-FP-115",
+   "result": "FAIL",
+   "checks": [
+    {
+     "name": "COLUMN_PRESENT",
+     "pass": true,
+     "detail": "header 'Leader→send ms' at index 12 (U+2192 normalised)"
+    },
+    {
+     "name": "HEADER_CELL_ALIGNMENT",
+     "pass": false,
+     "detail": "thead=18 th vs tbody=19 td; renderExecQuality emits an unlabelled truth_state pill at body index 4"
+    },
+    {
+     "name": "FIELD_VALUE_MATCH_UNDER_HEADER",
+     "pass": false,
+     "detail": "tested=29 matched_under_header=0"
+    },
+    {
+     "name": "FIELD_VALUE_MATCH_AT_RENDERED_INDEX",
+     "pass": true,
+     "detail": "tested=29 matched_at_body_index_13=29"
+    }
+   ],
+   "evidence": {
+    "header_index": 12,
+    "shifted_body_index": 13,
+    "tested": 29,
+    "matched_under_header": 0,
+    "matched_at_shifted_body_index": 29,
+    "mismatches": [],
+    "oracle_column": "send_attempts.csv:leader_to_send_attempt_ms",
+    "scope": "rows whose exchange_order_id is already terminal in the CSV and >= 2s old at DOM capture"
+   },
+   "verdict_stage": "v9 retest: 29 terminal rows, 0 matched under labelled header, 29 matched at index+1"
+  },
+  {
+   "row_id": "UI-FP-119",
+   "result": "FAIL",
+   "checks": [
+    {
+     "name": "COLUMN_PRESENT",
+     "pass": true,
+     "detail": "header 'Exchange ms' at index 16 (U+2192 normalised)"
+    },
+    {
+     "name": "HEADER_CELL_ALIGNMENT",
+     "pass": false,
+     "detail": "thead=18 th vs tbody=19 td; renderExecQuality emits an unlabelled truth_state pill at body index 4"
+    },
+    {
+     "name": "FIELD_VALUE_MATCH_UNDER_HEADER",
+     "pass": false,
+     "detail": "tested=29 matched_under_header=0"
+    },
+    {
+     "name": "FIELD_VALUE_MATCH_AT_RENDERED_INDEX",
+     "pass": true,
+     "detail": "tested=29 matched_at_body_index_17=29"
+    }
+   ],
+   "evidence": {
+    "header_index": 16,
+    "shifted_body_index": 17,
+    "tested": 29,
+    "matched_under_header": 0,
+    "matched_at_shifted_body_index": 29,
+    "mismatches": [],
+    "oracle_column": "send_attempts.csv:exchange_call_ms",
+    "scope": "rows whose exchange_order_id is already terminal in the CSV and >= 2s old at DOM capture"
+   },
+   "verdict_stage": "v9 retest: 29 terminal rows, 0 matched under labelled header, 29 matched at index+1"
+  },
+  {
+   "row_id": "UI-FP-120",
+   "result": "FAIL",
+   "checks": [
+    {
+     "name": "EXECQUAL_TABLE_PRESENT",
+     "pass": true,
+     "detail": "th=18"
+    },
+    {
+     "name": "COLUMN_PRESENT",
+     "pass": true,
+     "detail": "'Error' at header index 17"
+    },
+    {
+     "name": "HEADER_CELL_ALIGNMENT",
+     "pass": false,
+     "detail": "thead=18 th vs tbody=19 td; renderExecQuality emits an unlabelled truth_state pill at body index 4"
+    },
+    {
+     "name": "FIELD_VALUE_MATCH_UNDER_HEADER",
+     "pass": false,
+     "detail": "tested=15 matched_under_header=0"
+    },
+    {
+     "name": "FIELD_VALUE_MATCH_AT_RENDERED_INDEX",
+     "pass": true,
+     "detail": "tested=15 matched_at_body_index_18=15"
+    }
+   ],
+   "evidence": {
+    "header_index": 17,
+    "shifted_body_index": 18,
+    "tested": 15,
+    "matched_under_header": 0,
+    "matched_at_shifted_body_index": 15,
+    "mismatches": [],
+    "oracle_column": "send_attempts.csv:error"
+   },
+   "verdict_stage": "v10 retest: 15 terminal rows, 0 under labelled header, 15 at index+1"
+  },
+  {
+   "row_id": "UI-FP-133",
+   "result": "PASS",
+   "checks": [
+    {
+     "name": "COLUMN_PRESENT",
+     "pass": true,
+     "detail": "Real order result"
+    },
+    {
+     "name": "FIELD_VALUE_MATCH",
+     "pass": true,
+     "detail": "matched=7 mism=0 skipped=3"
+    }
+   ],
+   "evidence": {
+    "matched": 7,
+    "mismatches": [],
+    "skip_detail": [
+     {
+      "coin": "VIRTUAL",
+      "why": "attempt younger than 60s at capture"
+     },
+     {
+      "coin": "NEAR",
+      "why": "attempt younger than 60s at capture"
+     },
+     {
+      "coin": "ZEC",
+      "why": "attempt younger than 60s at capture"
+     }
+    ],
+    "join_rule": "order_intents.csv row with the identical created_at string for that coin",
+    "settle_rule": "newest attempt >= 60s old at DOM capture",
+    "window_rule": "last 100 send_attempts.csv rows (mirrors the UI join)"
+   },
+   "verdict_stage": "v7 retest: 7/7 matched once young attempts were excluded (v3 was vacuous 0-sample)"
+  },
+  {
+   "row_id": "UI-FP-137",
+   "result": "PASS",
+   "checks": [
+    {
+     "name": "CRITICAL_TABLE_PRESENT",
+     "pass": true,
+     "detail": "th=9 rows=8"
+    },
+    {
+     "name": "COLUMN_PRESENT",
+     "pass": true,
+     "detail": "Reject category"
+    },
+    {
+     "name": "FIELD_VALUE_MATCH",
+     "pass": true,
+     "detail": "matched=7 mism=0 skipped=1"
+    }
+   ],
+   "evidence": {
+    "matched": 7,
+    "mismatches": [],
+    "skipped": 1,
+    "oracle_critical": 7480
+   },
+   "verdict_stage": "v3 baseline (live DOM + independent oracle)"
+  },
+  {
+   "row_id": "UI-FP-139",
+   "result": "PASS",
+   "checks": [
+    {
+     "name": "CRITICAL_TABLE_PRESENT",
+     "pass": true,
+     "detail": "th=9 rows=8"
+    },
+    {
+     "name": "COLUMN_PRESENT",
+     "pass": true,
+     "detail": "Coin"
+    },
+    {
+     "name": "FIELD_VALUE_MATCH",
+     "pass": true,
+     "detail": "matched=7 mism=0 skipped=1"
+    }
+   ],
+   "evidence": {
+    "matched": 7,
+    "mismatches": [],
+    "skipped": 1,
+    "oracle_critical": 7480
+   },
+   "verdict_stage": "v3 baseline (live DOM + independent oracle)"
+  },
+  {
+   "row_id": "UI-FP-140",
+   "result": "PASS",
+   "checks": [
+    {
+     "name": "CRITICAL_TABLE_PRESENT",
+     "pass": true,
+     "detail": "th=9 rows=8"
+    },
+    {
+     "name": "COLUMN_PRESENT",
+     "pass": true,
+     "detail": "Wallet"
+    },
+    {
+     "name": "FIELD_VALUE_MATCH",
+     "pass": true,
+     "detail": "matched=7 mism=0 skipped=1"
+    }
+   ],
+   "evidence": {
+    "matched": 7,
+    "mismatches": [],
+    "skipped": 1,
+    "oracle_critical": 7480
+   },
+   "verdict_stage": "v3 baseline (live DOM + independent oracle)"
+  }
+ ]
+}

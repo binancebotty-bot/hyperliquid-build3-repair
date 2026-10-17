@@ -1,0 +1,82 @@
+{
+ "task_id": "t_770ce423",
+ "harness": "certification/results/uifa3_harness_v9_retest.py",
+ "ssot_commit": "5223ce257fe504636967a50f7064630bdc8e0ab0",
+ "register_commit": "b142cf8",
+ "captured_at_utc": "2026-10-17T18:20:49.960625+00:00",
+ "scope": "UI-FP-115 and UI-FP-119 non-vacuous retest of the Execution Quality column shift",
+ "rows": [
+  {
+   "row_id": "UI-FP-115",
+   "result": "FAIL",
+   "checks": [
+    {
+     "name": "COLUMN_PRESENT",
+     "pass": true,
+     "detail": "header 'Leader→send ms' at index 12 (U+2192 normalised)"
+    },
+    {
+     "name": "HEADER_CELL_ALIGNMENT",
+     "pass": false,
+     "detail": "thead=18 th vs tbody=19 td; renderExecQuality emits an unlabelled truth_state pill at body index 4"
+    },
+    {
+     "name": "FIELD_VALUE_MATCH_UNDER_HEADER",
+     "pass": false,
+     "detail": "tested=29 matched_under_header=0"
+    },
+    {
+     "name": "FIELD_VALUE_MATCH_AT_RENDERED_INDEX",
+     "pass": true,
+     "detail": "tested=29 matched_at_body_index_13=29"
+    }
+   ],
+   "evidence": {
+    "header_index": 12,
+    "shifted_body_index": 13,
+    "tested": 29,
+    "matched_under_header": 0,
+    "matched_at_shifted_body_index": 29,
+    "mismatches": [],
+    "oracle_column": "send_attempts.csv:leader_to_send_attempt_ms",
+    "scope": "rows whose exchange_order_id is already terminal in the CSV and >= 2s old at DOM capture"
+   }
+  },
+  {
+   "row_id": "UI-FP-119",
+   "result": "FAIL",
+   "checks": [
+    {
+     "name": "COLUMN_PRESENT",
+     "pass": true,
+     "detail": "header 'Exchange ms' at index 16 (U+2192 normalised)"
+    },
+    {
+     "name": "HEADER_CELL_ALIGNMENT",
+     "pass": false,
+     "detail": "thead=18 th vs tbody=19 td; renderExecQuality emits an unlabelled truth_state pill at body index 4"
+    },
+    {
+     "name": "FIELD_VALUE_MATCH_UNDER_HEADER",
+     "pass": false,
+     "detail": "tested=29 matched_under_header=0"
+    },
+    {
+     "name": "FIELD_VALUE_MATCH_AT_RENDERED_INDEX",
+     "pass": true,
+     "detail": "tested=29 matched_at_body_index_17=29"
+    }
+   ],
+   "evidence": {
+    "header_index": 16,
+    "shifted_body_index": 17,
+    "tested": 29,
+    "matched_under_header": 0,
+    "matched_at_shifted_body_index": 29,
+    "mismatches": [],
+    "oracle_column": "send_attempts.csv:exchange_call_ms",
+    "scope": "rows whose exchange_order_id is already terminal in the CSV and >= 2s old at DOM capture"
+   }
+  }
+ ]
+}

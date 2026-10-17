@@ -1,0 +1,75 @@
+{
+ "task_id": "t_770ce423",
+ "harness": "certification/results/uifa3_harness_v4_retest.py",
+ "ssot_commit": "5223ce257fe504636967a50f7064630bdc8e0ab0",
+ "register_commit": "b142cf8",
+ "tested_at_utc": "2026-10-17T18:01:47.520511+00:00",
+ "scope": "re-test of UI-FP-115 and UI-FP-133 only; all other rows carry their v3 verdict unchanged",
+ "summary": {
+  "pass": 0,
+  "fail": 2
+ },
+ "rows": [
+  {
+   "row_id": "UI-FP-115",
+   "result": "FAIL",
+   "checks": [
+    {
+     "name": "COLUMN_PRESENT",
+     "pass": true,
+     "detail": "header index 12 (arrow-normalised match)"
+    },
+    {
+     "name": "HEADER_CELL_ALIGNMENT",
+     "pass": false,
+     "detail": "thead=18 th vs tbody=19 td"
+    },
+    {
+     "name": "FIELD_VALUE_MATCH_UNDER_HEADER",
+     "pass": false,
+     "detail": "tested=0 matched=0 mism=0"
+    }
+   ],
+   "evidence": {
+    "header_index": 12,
+    "tested": 0,
+    "mismatches": [],
+    "thead_th": 18,
+    "row_td": 19,
+    "v3_note": "v3 compared literal Leader->send ms with rendered Leader→send ms (U+2192) and reported COLUMN_PRESENT False; harness defect, corrected in v4."
+   }
+  },
+  {
+   "row_id": "UI-FP-133",
+   "result": "FAIL",
+   "checks": [
+    {
+     "name": "COLUMN_PRESENT",
+     "pass": true,
+     "detail": "Real order result"
+    },
+    {
+     "name": "FIELD_VALUE_MATCH",
+     "pass": false,
+     "detail": "matched=9 mism=1 skipped=0"
+    }
+   ],
+   "evidence": {
+    "matched": 9,
+    "mismatches": [
+     {
+      "coin": "NEAR",
+      "dom": "pending_send",
+      "oracle": "NO_SEND_ATTEMPT",
+      "intent_id": "b795c4cb57e71f6395a0c668678ab946",
+      "attempt_status": null
+     }
+    ],
+    "skipped": 0,
+    "skip_detail": [],
+    "window_rule": "last 100 send_attempts.csv rows",
+    "v3_note": "v3 skipped all 10 rows because its oracle rejected any intent present in the API last-100 window; v4 recomputes that window from the CSV and only skips attempts younger than 30s or outside the window."
+   }
+  }
+ ]
+}

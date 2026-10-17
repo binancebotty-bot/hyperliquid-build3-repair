@@ -1,0 +1,199 @@
+{
+ "task_id": "t_770ce423",
+ "harness": "certification/results/uifa3_harness_v10_retest.py",
+ "ssot_commit": "5223ce257fe504636967a50f7064630bdc8e0ab0",
+ "register_commit": "b142cf8",
+ "captured_at_utc": "2026-10-17T18:33:07.833857+00:00",
+ "scope": "UI-FP-107/109/110/120 non-vacuous re-score of the Execution Quality column shift",
+ "rows": [
+  {
+   "row_id": "UI-FP-107",
+   "result": "FAIL",
+   "checks": [
+    {
+     "name": "EXECQUAL_TABLE_PRESENT",
+     "pass": true,
+     "detail": "th=18"
+    },
+    {
+     "name": "COLUMN_PRESENT",
+     "pass": true,
+     "detail": "'Status' at header index 4"
+    },
+    {
+     "name": "HEADER_CELL_ALIGNMENT",
+     "pass": false,
+     "detail": "thead=18 th vs tbody=19 td; renderExecQuality emits an unlabelled truth_state pill at body index 4"
+    },
+    {
+     "name": "FIELD_VALUE_MATCH_UNDER_HEADER",
+     "pass": false,
+     "detail": "tested=15 matched_under_header=0"
+    },
+    {
+     "name": "FIELD_VALUE_MATCH_AT_RENDERED_INDEX",
+     "pass": true,
+     "detail": "tested=15 matched_at_body_index_5=15"
+    }
+   ],
+   "evidence": {
+    "header_index": 4,
+    "shifted_body_index": 5,
+    "tested": 15,
+    "matched_under_header": 0,
+    "matched_at_shifted_body_index": 15,
+    "mismatches": [],
+    "oracle_column": "send_attempts.csv:status"
+   }
+  },
+  {
+   "row_id": "UI-FP-109",
+   "result": "FAIL",
+   "checks": [
+    {
+     "name": "EXECQUAL_TABLE_PRESENT",
+     "pass": true,
+     "detail": "th=18"
+    },
+    {
+     "name": "COLUMN_PRESENT",
+     "pass": true,
+     "detail": "'Operator action' at header index 6"
+    },
+    {
+     "name": "HEADER_CELL_ALIGNMENT",
+     "pass": false,
+     "detail": "thead=18 th vs tbody=19 td; renderExecQuality emits an unlabelled truth_state pill at body index 4"
+    },
+    {
+     "name": "FIELD_VALUE_MATCH_UNDER_HEADER",
+     "pass": false,
+     "detail": "tested=15 matched_under_header=0"
+    },
+    {
+     "name": "FIELD_VALUE_MATCH_AT_RENDERED_INDEX",
+     "pass": false,
+     "detail": "tested=15 matched_at_body_index_7=0"
+    }
+   ],
+   "evidence": {
+    "header_index": 6,
+    "shifted_body_index": 7,
+    "tested": 15,
+    "matched_under_header": 0,
+    "matched_at_shifted_body_index": 0,
+    "mismatches": [
+     {
+      "coin": "UMA",
+      "oid": "62982973404",
+      "under_header": "ADOPTED_RECONCILED",
+      "body_shifted": "COPY_POLL_ADOPTED",
+      "oracle": "WAIT_FOR_COPY_POLL"
+     },
+     {
+      "coin": "ZORA",
+      "oid": "62982971288",
+      "under_header": "ADOPTED_RECONCILED",
+      "body_shifted": "COPY_POLL_ADOPTED",
+      "oracle": "WAIT_FOR_COPY_POLL"
+     },
+     {
+      "coin": "ORDI",
+      "oid": "62982969932",
+      "under_header": "ADOPTED_RECONCILED",
+      "body_shifted": "COPY_POLL_ADOPTED",
+      "oracle": "WAIT_FOR_COPY_POLL"
+     },
+     {
+      "coin": "ANIME",
+      "oid": "62982866314",
+      "under_header": "ADOPTED_RECONCILED",
+      "body_shifted": "COPY_POLL_ADOPTED",
+      "oracle": "WAIT_FOR_COPY_POLL"
+     }
+    ],
+    "oracle_column": "send_attempts.csv:operator_action"
+   }
+  },
+  {
+   "row_id": "UI-FP-110",
+   "result": "FAIL",
+   "checks": [
+    {
+     "name": "EXECQUAL_TABLE_PRESENT",
+     "pass": true,
+     "detail": "th=18"
+    },
+    {
+     "name": "COLUMN_PRESENT",
+     "pass": true,
+     "detail": "'Reject category' at header index 7"
+    },
+    {
+     "name": "HEADER_CELL_ALIGNMENT",
+     "pass": false,
+     "detail": "thead=18 th vs tbody=19 td; renderExecQuality emits an unlabelled truth_state pill at body index 4"
+    },
+    {
+     "name": "FIELD_VALUE_MATCH_UNDER_HEADER",
+     "pass": false,
+     "detail": "tested=15 matched_under_header=0"
+    },
+    {
+     "name": "FIELD_VALUE_MATCH_AT_RENDERED_INDEX",
+     "pass": true,
+     "detail": "tested=15 matched_at_body_index_8=15"
+    }
+   ],
+   "evidence": {
+    "header_index": 7,
+    "shifted_body_index": 8,
+    "tested": 15,
+    "matched_under_header": 0,
+    "matched_at_shifted_body_index": 15,
+    "mismatches": [],
+    "oracle_column": "send_attempts.csv:reject_category"
+   }
+  },
+  {
+   "row_id": "UI-FP-120",
+   "result": "FAIL",
+   "checks": [
+    {
+     "name": "EXECQUAL_TABLE_PRESENT",
+     "pass": true,
+     "detail": "th=18"
+    },
+    {
+     "name": "COLUMN_PRESENT",
+     "pass": true,
+     "detail": "'Error' at header index 17"
+    },
+    {
+     "name": "HEADER_CELL_ALIGNMENT",
+     "pass": false,
+     "detail": "thead=18 th vs tbody=19 td; renderExecQuality emits an unlabelled truth_state pill at body index 4"
+    },
+    {
+     "name": "FIELD_VALUE_MATCH_UNDER_HEADER",
+     "pass": false,
+     "detail": "tested=15 matched_under_header=0"
+    },
+    {
+     "name": "FIELD_VALUE_MATCH_AT_RENDERED_INDEX",
+     "pass": true,
+     "detail": "tested=15 matched_at_body_index_18=15"
+    }
+   ],
+   "evidence": {
+    "header_index": 17,
+    "shifted_body_index": 18,
+    "tested": 15,
+    "matched_under_header": 0,
+    "matched_at_shifted_body_index": 15,
+    "mismatches": [],
+    "oracle_column": "send_attempts.csv:error"
+   }
+  }
+ ]
+}

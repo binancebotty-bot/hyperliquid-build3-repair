@@ -1,0 +1,147 @@
+{
+ "task_id": "t_770ce423",
+ "harness": "certification/results/uifa3_harness_v6_retest.py",
+ "ssot_commit": "5223ce257fe504636967a50f7064630bdc8e0ab0",
+ "register_commit": "b142cf8",
+ "captured_at_utc": "2026-10-17T18:06:14.972371+00:00",
+ "scope": "re-test of UI-FP-115 and UI-FP-133; the other 15 rows keep their v3 verdicts",
+ "summary": {
+  "pass": 0,
+  "fail": 2
+ },
+ "rows": [
+  {
+   "row_id": "UI-FP-115",
+   "result": "FAIL",
+   "checks": [
+    {
+     "name": "COLUMN_PRESENT",
+     "pass": true,
+     "detail": "header index 12 (U+2192 arrow normalised)"
+    },
+    {
+     "name": "HEADER_CELL_ALIGNMENT",
+     "pass": false,
+     "detail": "thead=18 th, tbody=19 td. renderExecQuality (SSOT 7624-7632) emits an unlabelled truth_state pill at body index 4, so every header from Status onward labels the wrong cell."
+    },
+    {
+     "name": "FIELD_VALUE_MATCH_UNDER_HEADER",
+     "pass": false,
+     "detail": "tested=1 matched_under_header=0"
+    },
+    {
+     "name": "DATA_PRESENT_AT_SHIFTED_POSITION",
+     "pass": false,
+     "detail": "tested=1 matched_at_body_index_13=1"
+    }
+   ],
+   "evidence": {
+    "header_index": 12,
+    "shifted_body_index": 13,
+    "tested": 1,
+    "matched_under_header": 0,
+    "matched_at_shifted_body_index": 1,
+    "mismatches_at_shifted_position": [],
+    "skipped": [
+     {
+      "coin": "WLD",
+      "oid": "—",
+      "why": "oid not in frozen send_attempts snapshot"
+     },
+     {
+      "coin": "NEAR",
+      "oid": "—",
+      "why": "oid not in frozen send_attempts snapshot"
+     },
+     {
+      "coin": "ZEC",
+      "oid": "—",
+      "why": "oid not in frozen send_attempts snapshot"
+     },
+     {
+      "coin": "ALGO",
+      "oid": "—",
+      "why": "oid not in frozen send_attempts snapshot"
+     },
+     {
+      "coin": "SOL",
+      "oid": "—",
+      "why": "oid not in frozen send_attempts snapshot"
+     },
+     {
+      "coin": "ETH",
+      "oid": "—",
+      "why": "oid not in frozen send_attempts snapshot"
+     }
+    ],
+    "thead_th": 18,
+    "row_td": 19
+   }
+  },
+  {
+   "row_id": "UI-FP-133",
+   "result": "FAIL",
+   "checks": [
+    {
+     "name": "COLUMN_PRESENT",
+     "pass": true,
+     "detail": "Real order result"
+    },
+    {
+     "name": "FIELD_VALUE_MATCH",
+     "pass": false,
+     "detail": "matched=0 mism=0 skipped=10"
+    }
+   ],
+   "evidence": {
+    "matched": 0,
+    "mismatches": [],
+    "skip_detail": [
+     {
+      "coin": "ARB",
+      "why": "ambiguous intent match",
+      "n": 0
+     },
+     {
+      "coin": "ETH",
+      "why": "ambiguous intent match",
+      "n": 0
+     },
+     {
+      "coin": "ETH",
+      "why": "ambiguous intent match",
+      "n": 0
+     },
+     {
+      "coin": "FET",
+      "why": "ambiguous intent match",
+      "n": 0
+     },
+     {
+      "coin": "ZEC",
+      "why": "ambiguous intent match",
+      "n": 0
+     },
+     {
+      "coin": "WLD",
+      "why": "ambiguous intent match",
+      "n": 0
+     },
+     {
+      "coin": "XYZ:BRENTOIL",
+      "why": "ambiguous intent match",
+      "n": 0
+     },
+     {
+      "coin": "AR",
+      "why": "ambiguous intent match",
+      "n": 0
+     }
+    ],
+    "join_rule": "nearest order_intents.csv row for (coin, time) within 2.0s, unique only",
+    "settle_rule": "newest attempt >= 60s old at capture",
+    "window_rule": "last 100 send_attempts.csv rows of the frozen snapshot"
+   }
+  }
+ ]
+}
