@@ -293,6 +293,13 @@ def follower_position_mark(coin: str) -> float:
     return value / net if net > 0 and value > 0 else 0.0
 
 from concurrent.futures import ThreadPoolExecutor as _TPE
+def _named_job(name, fn):
+    def job():
+        fn()
+    job.__name__ = name
+    return job
+
+
 _PREWARM_POOL = _TPE(max_workers=16, thread_name_prefix="prewarm")  # side-by-side info reads for prewarm
 _EARLY_WARM_POOL = _TPE(max_workers=4, thread_name_prefix="earlywarm")  # runs whole prewarms; separate from _PREWARM_POOL it submits to
 
@@ -3924,10 +3931,10 @@ class IntentBuilder:
         only for local work and _send_real makes no info read after the intent is written (run 5: holds up to 8 s
         while each worker fetched under it). The reads are independent, so they run side by side: a fill costs
         one read time, not three or four. Freshness rules are unchanged: build() still refetches anything too old."""
-        jobs = [] if local_block else [lambda: follower_mid(fill.coin)]
+        jobs = [] if local_block else [_named_job('follower_mid', lambda: follower_mid(fill.coin))]
         if self.cfg.copy_mode(fill.leader_wallet) != "fixed":
             # sizing reads the leader's equity even for a fill that is then blocked: keep it out of the send lock
-            jobs.append(lambda: self.leader_equity(fill.leader_wallet))
+            jobs.append(_named_job('leader_equity', lambda: self.leader_equity(fill.leader_wallet)))
         if local_block:
             for j in jobs:
                 try:
@@ -3936,19 +3943,32 @@ class IntentBuilder:
                     log_error("intent_prewarm", exc)
             return
         if LEADER_NETWORK != FOLLOWER_NETWORK:
-            jobs.append(lambda: leader_mid(fill.coin))
+            jobs.append(_named_job('leader_mid', lambda: leader_mid(fill.coin)))
         if is_valid_wallet(normalise_wallet(USER_WALLET)):
-            jobs.append(self._prefetch_exposure)
+            jobs.append(_named_job('exposure', self._prefetch_exposure))
+
+        timing = bval(os.getenv("HL_LIVE_PREWARM_TIMING"), False)
+        spans: Dict[str, int] = {}
 
         def guarded(job):
+            t0 = time.monotonic()
             try:
                 job()
             except Exception as exc:
                 log_error("intent_prewarm", exc)
+            if timing:
+                spans[getattr(job, "__name__", "job")] = int((time.monotonic() - t0) * 1000)
+        t_all = time.monotonic()
         futures = [_PREWARM_POOL.submit(guarded, j) for j in jobs[1:]]
         guarded(jobs[0])  # the calling worker does one read itself
         for f in futures:
             f.result()
+        if timing:
+            try:  # diagnostic only: which read decides the prewarm time (HL_LIVE_PREWARM_TIMING=1)
+                with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "prewarm_timing.jsonl"), "a", encoding="utf-8") as fh:
+                    fh.write(json.dumps({"ms": utc_now_ms(), "total": int((time.monotonic() - t_all) * 1000), "jobs": spans}) + "\n")
+            except Exception:
+                pass
 
     def _prefetch_exposure(self) -> None:
         ttl_ms = int(max(0.0, fnum(os.getenv("HL_LIVE_EXPOSURE_CACHE_TTL_SEC"), 2.0)) * 1000)
