@@ -1,0 +1,112 @@
+{
+  "tested_at_utc": "2026-10-17T13:26:44.772924+00:00",
+  "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+  "serve_url": "http://127.0.0.1:8031/live-copy",
+  "rows": [
+    {
+      "row_id": "UI-SSOT-TBL-13",
+      "verdict": "FAIL",
+      "evidence_ref": "certification/results/UI_SSOT_TBL13_PAGE02_20261017.json",
+      "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "why": "Row-specific probe for 'PNL/HR': rendered /live-copy response contains the distinctive label=False; expected analytics column/sort control is absent from this served page. HTTP GET returned 87117 bytes; cannot claim analytics rendering or stable/persistent sorting."
+    },
+    {
+      "row_id": "UI-SSOT-TBL-14",
+      "verdict": "FAIL",
+      "evidence_ref": "certification/results/UI_SSOT_TBL13_PAGE02_20261017.json",
+      "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "why": "Row-specific probe for 'AVG TRADE %': rendered /live-copy response contains the distinctive label=False; expected analytics column/sort control is absent from this served page. HTTP GET returned 87117 bytes; cannot claim analytics rendering or stable/persistent sorting."
+    },
+    {
+      "row_id": "UI-SSOT-TBL-15",
+      "verdict": "FAIL",
+      "evidence_ref": "certification/results/UI_SSOT_TBL13_PAGE02_20261017.json",
+      "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "why": "Row-specific probe for 'WIN%': rendered /live-copy response contains the distinctive label=False; expected analytics column/sort control is absent from this served page. HTTP GET returned 87117 bytes; cannot claim analytics rendering or stable/persistent sorting."
+    },
+    {
+      "row_id": "UI-SSOT-TBL-16",
+      "verdict": "FAIL",
+      "evidence_ref": "certification/results/UI_SSOT_TBL13_PAGE02_20261017.json",
+      "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "why": "Row-specific probe for 'AVG POS $': rendered /live-copy response contains the distinctive label=False; expected analytics column/sort control is absent from this served page. HTTP GET returned 87117 bytes; cannot claim analytics rendering or stable/persistent sorting."
+    },
+    {
+      "row_id": "UI-SSOT-TBL-17",
+      "verdict": "FAIL",
+      "evidence_ref": "certification/results/UI_SSOT_TBL13_PAGE02_20261017.json",
+      "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "why": "Row-specific probe for 'MAX POS $': rendered /live-copy response contains the distinctive label=False; expected analytics column/sort control is absent from this served page. HTTP GET returned 87117 bytes; cannot claim analytics rendering or stable/persistent sorting."
+    },
+    {
+      "row_id": "UI-SSOT-TBL-18",
+      "verdict": "FAIL",
+      "evidence_ref": "certification/results/UI_SSOT_TBL13_PAGE02_20261017.json",
+      "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "why": "Row-specific probe for 'AVG NOTIONAL': rendered /live-copy response contains the distinctive label=False; expected analytics column/sort control is absent from this served page. HTTP GET returned 87117 bytes; cannot claim analytics rendering or stable/persistent sorting."
+    },
+    {
+      "row_id": "UI-SSOT-TBL-19",
+      "verdict": "FAIL",
+      "evidence_ref": "certification/results/UI_SSOT_TBL13_PAGE02_20261017.json",
+      "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "why": "Row-specific probe for '% >= $10': rendered /live-copy response contains the distinctive label=False; expected analytics column/sort control is absent from this served page. HTTP GET returned 87117 bytes; cannot claim analytics rendering or stable/persistent sorting."
+    },
+    {
+      "row_id": "UI-SSOT-TBL-20",
+      "verdict": "FAIL",
+      "evidence_ref": "certification/results/UI_SSOT_TBL13_PAGE02_20261017.json",
+      "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "why": "Row-specific probe for 'REQ LEV': rendered /live-copy response contains the distinctive label=False; expected analytics column/sort control is absent from this served page. HTTP GET returned 87117 bytes; cannot claim analytics rendering or stable/persistent sorting."
+    },
+    {
+      "row_id": "UI-SSOT-TBL-21",
+      "verdict": "FAIL",
+      "evidence_ref": "certification/results/UI_SSOT_TBL13_PAGE02_20261017.json",
+      "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "why": "Row-specific probe for 'FILLS L/C': rendered /live-copy response contains the distinctive label=False; expected analytics column/sort control is absent from this served page. HTTP GET returned 87117 bytes; cannot claim analytics rendering or stable/persistent sorting."
+    },
+    {
+      "row_id": "UI-SSOT-TBL-22",
+      "verdict": "FAIL",
+      "evidence_ref": "certification/results/UI_SSOT_TBL13_PAGE02_20261017.json",
+      "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "why": "Row-specific probe for 'EXITS L/C': rendered /live-copy response contains the distinctive label=False; expected analytics column/sort control is absent from this served page. HTTP GET returned 87117 bytes; cannot claim analytics rendering or stable/persistent sorting."
+    },
+    {
+      "row_id": "UI-SSOT-TBL-23",
+      "verdict": "FAIL",
+      "evidence_ref": "certification/results/UI_SSOT_TBL13_PAGE02_20261017.json",
+      "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "why": "Row-specific probe for 'POS L/C': rendered /live-copy response contains the distinctive label=False; expected analytics column/sort control is absent from this served page. HTTP GET returned 87117 bytes; cannot claim analytics rendering or stable/persistent sorting."
+    },
+    {
+      "row_id": "UI-SSOT-TBL-24",
+      "verdict": "FAIL",
+      "evidence_ref": "certification/results/UI_SSOT_TBL13_PAGE02_20261017.json",
+      "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "why": "Row-specific probe for 'INC / WALLET MODEL': rendered /live-copy response contains the distinctive label=False; expected analytics column/sort control is absent from this served page. HTTP GET returned 87117 bytes; cannot claim analytics rendering or stable/persistent sorting."
+    },
+    {
+      "row_id": "UI-SSOT-TBL-25",
+      "verdict": "FAIL",
+      "evidence_ref": "certification/results/UI_SSOT_TBL13_PAGE02_20261017.json",
+      "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "why": "Row-specific probe for 'Column sort (/sort/{column})': rendered /live-copy response contains the distinctive label=True; expected analytics column/sort control is absent from this served page. HTTP GET returned 87117 bytes; cannot claim analytics rendering or stable/persistent sorting."
+    },
+    {
+      "row_id": "UI-SSOT-PAGE-01",
+      "verdict": "FAIL",
+      "evidence_ref": "certification/results/UI_SSOT_TBL13_PAGE02_20261017.json",
+      "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "why": "GET /wallet/0x0000000000000000000000000000000000000000 => HTTP 404, final URL /wallet/0x0000000000000000000000000000000000000000; expected wallet detail page was not served (404)."
+    },
+    {
+      "row_id": "UI-SSOT-PAGE-02",
+      "verdict": "FAIL",
+      "evidence_ref": "certification/results/UI_SSOT_TBL13_PAGE02_20261017.json",
+      "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "why": "GET /wallet-meta/0x0000000000000000000000000000000000000000 => HTTP 200 and returned editor HTML. The required reset/snapshot no-engine-truth side-effect checks and render-contract error banner behavior are not demonstrated; PASS would overstate the read-only route probe, so this requirement fails certification on the available row-specific evidence."
+    }
+  ]
+}
