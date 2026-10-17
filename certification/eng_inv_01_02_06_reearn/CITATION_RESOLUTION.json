@@ -2,229 +2,138 @@
  "schema": "eng_inv_citation_resolution/v1",
  "card": "t_43fbb222",
  "branch": "hermes/eng-inv-citation-fix-narrow-inv02-t_43fbb222",
- "resolved_against": "git cat-file -e 89b3bc7586bf328df336fc9ea721cee212617762:<path>",
- "commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+ "resolved_against": "git cat-file -e 4ba6cc78b52de9b5d67d7c883dd7e7a0c79bf039:<path>",
+ "commit": "4ba6cc78b52de9b5d67d7c883dd7e7a0c79bf039",
  "total_refs": 18,
- "missing_count": 18,
- "ACCEPTANCE_ZERO_MISSING": false,
+ "missing_count": 0,
+ "ACCEPTANCE_ZERO_MISSING": true,
  "table": [
   {
    "row_id": "ENG-INV-01",
    "evidence_ref": "certification/eng_inv_01_02_06_reearn/cited/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json#checks/ENG-INV-01",
    "path": "certification/eng_inv_01_02_06_reearn/cited/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json",
    "key": "checks/ENG-INV-01",
-   "EXISTS": "NO"
+   "EXISTS": "yes"
   },
   {
    "row_id": "ENG-INV-01",
    "evidence_ref": "certification/eng_inv_01_02_06_reearn/cited/SHA256SUMS.txt",
    "path": "certification/eng_inv_01_02_06_reearn/cited/SHA256SUMS.txt",
    "key": "",
-   "EXISTS": "NO"
+   "EXISTS": "yes"
   },
   {
    "row_id": "ENG-INV-01",
    "evidence_ref": "certification/eng_inv_01_02_06_reearn/probe.py",
    "path": "certification/eng_inv_01_02_06_reearn/probe.py",
    "key": "",
-   "EXISTS": "NO"
+   "EXISTS": "yes"
   },
   {
    "row_id": "ENG-INV-01",
    "evidence_ref": "certification/eng_inv_01_02_06_reearn/result.json#rows/ENG-INV-01",
    "path": "certification/eng_inv_01_02_06_reearn/result.json",
    "key": "rows/ENG-INV-01",
-   "EXISTS": "NO"
+   "EXISTS": "yes"
   },
   {
    "row_id": "ENG-INV-02",
    "evidence_ref": "certification/eng_inv_01_02_06_reearn/cited/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json#checks/ENG-INV-02",
    "path": "certification/eng_inv_01_02_06_reearn/cited/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json",
    "key": "checks/ENG-INV-02",
-   "EXISTS": "NO"
+   "EXISTS": "yes"
   },
   {
    "row_id": "ENG-INV-02",
    "evidence_ref": "certification/eng_inv_01_02_06_reearn/cited/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_harness_corrected_43731b4f.py#L220-L235",
    "path": "certification/eng_inv_01_02_06_reearn/cited/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_harness_corrected_43731b4f.py",
    "key": "L220-L235",
-   "EXISTS": "NO"
+   "EXISTS": "yes"
   },
   {
    "row_id": "ENG-INV-02",
    "evidence_ref": "certification/eng_inv_01_02_06_reearn/probe.py#production_order_sites",
    "path": "certification/eng_inv_01_02_06_reearn/probe.py",
    "key": "production_order_sites",
-   "EXISTS": "NO"
+   "EXISTS": "yes"
   },
   {
    "row_id": "ENG-INV-02",
    "evidence_ref": "certification/eng_inv_01_02_06_reearn/result.json#rows/ENG-INV-02",
    "path": "certification/eng_inv_01_02_06_reearn/result.json",
    "key": "rows/ENG-INV-02",
-   "EXISTS": "NO"
+   "EXISTS": "yes"
   },
   {
    "row_id": "ENG-INV-02",
    "evidence_ref": "certification/eng_inv_01_02_06_reearn/cited/SHA256SUMS.txt",
    "path": "certification/eng_inv_01_02_06_reearn/cited/SHA256SUMS.txt",
    "key": "",
-   "EXISTS": "NO"
+   "EXISTS": "yes"
   },
   {
    "row_id": "ENG-INV-06",
    "evidence_ref": "certification/eng_inv_01_02_06_reearn/cited/ENG-INV-06-09_43731b4.json#invariants/ENG-INV-06",
    "path": "certification/eng_inv_01_02_06_reearn/cited/ENG-INV-06-09_43731b4.json",
    "key": "invariants/ENG-INV-06",
-   "EXISTS": "NO"
+   "EXISTS": "yes"
   },
   {
    "row_id": "ENG-INV-06",
    "evidence_ref": "certification/eng_inv_01_02_06_reearn/cited/ENG-INV-06-09_43731b4.json#mutation_tests/INV-06_second_order_site",
    "path": "certification/eng_inv_01_02_06_reearn/cited/ENG-INV-06-09_43731b4.json",
    "key": "mutation_tests/INV-06_second_order_site",
-   "EXISTS": "NO"
+   "EXISTS": "yes"
   },
   {
    "row_id": "ENG-INV-06",
    "evidence_ref": "certification/eng_inv_01_02_06_reearn/cited/census_inv_06_09.py#L84-L88",
    "path": "certification/eng_inv_01_02_06_reearn/cited/census_inv_06_09.py",
    "key": "L84-L88",
-   "EXISTS": "NO"
+   "EXISTS": "yes"
   },
   {
    "row_id": "ENG-INV-06",
    "evidence_ref": "certification/eng_inv_01_02_06_reearn/probe.py",
    "path": "certification/eng_inv_01_02_06_reearn/probe.py",
    "key": "",
-   "EXISTS": "NO"
+   "EXISTS": "yes"
   },
   {
    "row_id": "ENG-INV-06",
    "evidence_ref": "certification/eng_inv_01_02_06_reearn/result.json#rows/ENG-INV-06",
    "path": "certification/eng_inv_01_02_06_reearn/result.json",
    "key": "rows/ENG-INV-06",
-   "EXISTS": "NO"
+   "EXISTS": "yes"
   },
   {
    "row_id": "ENG-INV-06",
    "evidence_ref": "certification/eng_inv_01_02_06_reearn/cited/SHA256SUMS.txt",
    "path": "certification/eng_inv_01_02_06_reearn/cited/SHA256SUMS.txt",
    "key": "",
-   "EXISTS": "NO"
+   "EXISTS": "yes"
   },
   {
    "row_id": "(document)",
    "evidence_ref": "probe = certification/eng_inv_01_02_06_reearn/probe.py",
    "path": "certification/eng_inv_01_02_06_reearn/probe.py",
    "key": "",
-   "EXISTS": "NO"
+   "EXISTS": "yes"
   },
   {
    "row_id": "(document)",
    "evidence_ref": "raw_result = certification/eng_inv_01_02_06_reearn/result.json",
    "path": "certification/eng_inv_01_02_06_reearn/result.json",
    "key": "",
-   "EXISTS": "NO"
+   "EXISTS": "yes"
   },
   {
    "row_id": "(document)",
    "evidence_ref": "citation_resolver = certification/eng_inv_01_02_06_reearn/verify_citations.py",
    "path": "certification/eng_inv_01_02_06_reearn/verify_citations.py",
    "key": "",
-   "EXISTS": "NO"
+   "EXISTS": "yes"
   }
  ],
- "missing": [
-  {
-   "row_id": "ENG-INV-01",
-   "path": "certification/eng_inv_01_02_06_reearn/cited/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json",
-   "ref": "certification/eng_inv_01_02_06_reearn/cited/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json#checks/ENG-INV-01"
-  },
-  {
-   "row_id": "ENG-INV-01",
-   "path": "certification/eng_inv_01_02_06_reearn/cited/SHA256SUMS.txt",
-   "ref": "certification/eng_inv_01_02_06_reearn/cited/SHA256SUMS.txt"
-  },
-  {
-   "row_id": "ENG-INV-01",
-   "path": "certification/eng_inv_01_02_06_reearn/probe.py",
-   "ref": "certification/eng_inv_01_02_06_reearn/probe.py"
-  },
-  {
-   "row_id": "ENG-INV-01",
-   "path": "certification/eng_inv_01_02_06_reearn/result.json",
-   "ref": "certification/eng_inv_01_02_06_reearn/result.json#rows/ENG-INV-01"
-  },
-  {
-   "row_id": "ENG-INV-02",
-   "path": "certification/eng_inv_01_02_06_reearn/cited/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json",
-   "ref": "certification/eng_inv_01_02_06_reearn/cited/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json#checks/ENG-INV-02"
-  },
-  {
-   "row_id": "ENG-INV-02",
-   "path": "certification/eng_inv_01_02_06_reearn/cited/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_harness_corrected_43731b4f.py",
-   "ref": "certification/eng_inv_01_02_06_reearn/cited/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_harness_corrected_43731b4f.py#L220-L235"
-  },
-  {
-   "row_id": "ENG-INV-02",
-   "path": "certification/eng_inv_01_02_06_reearn/probe.py",
-   "ref": "certification/eng_inv_01_02_06_reearn/probe.py#production_order_sites"
-  },
-  {
-   "row_id": "ENG-INV-02",
-   "path": "certification/eng_inv_01_02_06_reearn/result.json",
-   "ref": "certification/eng_inv_01_02_06_reearn/result.json#rows/ENG-INV-02"
-  },
-  {
-   "row_id": "ENG-INV-02",
-   "path": "certification/eng_inv_01_02_06_reearn/cited/SHA256SUMS.txt",
-   "ref": "certification/eng_inv_01_02_06_reearn/cited/SHA256SUMS.txt"
-  },
-  {
-   "row_id": "ENG-INV-06",
-   "path": "certification/eng_inv_01_02_06_reearn/cited/ENG-INV-06-09_43731b4.json",
-   "ref": "certification/eng_inv_01_02_06_reearn/cited/ENG-INV-06-09_43731b4.json#invariants/ENG-INV-06"
-  },
-  {
-   "row_id": "ENG-INV-06",
-   "path": "certification/eng_inv_01_02_06_reearn/cited/ENG-INV-06-09_43731b4.json",
-   "ref": "certification/eng_inv_01_02_06_reearn/cited/ENG-INV-06-09_43731b4.json#mutation_tests/INV-06_second_order_site"
-  },
-  {
-   "row_id": "ENG-INV-06",
-   "path": "certification/eng_inv_01_02_06_reearn/cited/census_inv_06_09.py",
-   "ref": "certification/eng_inv_01_02_06_reearn/cited/census_inv_06_09.py#L84-L88"
-  },
-  {
-   "row_id": "ENG-INV-06",
-   "path": "certification/eng_inv_01_02_06_reearn/probe.py",
-   "ref": "certification/eng_inv_01_02_06_reearn/probe.py"
-  },
-  {
-   "row_id": "ENG-INV-06",
-   "path": "certification/eng_inv_01_02_06_reearn/result.json",
-   "ref": "certification/eng_inv_01_02_06_reearn/result.json#rows/ENG-INV-06"
-  },
-  {
-   "row_id": "ENG-INV-06",
-   "path": "certification/eng_inv_01_02_06_reearn/cited/SHA256SUMS.txt",
-   "ref": "certification/eng_inv_01_02_06_reearn/cited/SHA256SUMS.txt"
-  },
-  {
-   "row_id": "(document)",
-   "path": "certification/eng_inv_01_02_06_reearn/probe.py",
-   "ref": "probe"
-  },
-  {
-   "row_id": "(document)",
-   "path": "certification/eng_inv_01_02_06_reearn/result.json",
-   "ref": "raw_result"
-  },
-  {
-   "row_id": "(document)",
-   "path": "certification/eng_inv_01_02_06_reearn/verify_citations.py",
-   "ref": "citation_resolver"
-  }
- ]
+ "missing": []
 }
