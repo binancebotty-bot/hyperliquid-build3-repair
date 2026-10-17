@@ -1,0 +1,308 @@
+{
+ "audit": "PASS-AUDIT CLOSEOUT last unaudited PASS rows",
+ "source_register": "origin/cert/local-main-b142cf8:certification/certification_matrix.json",
+ "uncovered_source": "origin/hermes/union-arithmetic-v2-corrected-t_f0d76afe@e0c6944:EVIDENCE/provenance/UNION_ARITHMETIC_V2_t_f0d76afe.json",
+ "scope_method": "uncovered_pass_ids (201) minus every row_id present in any origin/hermes/pass-audit-* audit artifact",
+ "audited": 33,
+ "KEEP": 0,
+ "DEMOTE": 33,
+ "rows": [
+  {
+   "row_id": "UI-FP-141",
+   "verdict": "DEMOTE",
+   "why": "evidence_ref certification/results/UI_CORRECTION_2d29211.json binds only static presence predicate UI-FP-141:REFRESH_ELEMENT (pass=True): a marker-existence test on the rendered page, which cannot substantiate this row execution_proof (engine/exchange truth at T -> API payload -> rendered cell at T, DOM capture) nor its independent_oracle (recompute not importing HL_Copy_App_SSOT.py). proof/oracle strings are identical across 33 of 33 rows and the same artifact reports 61/441 failed checks with blocked_count=3, so it is not a clean PASS basis. Corroborated by prior verdict DEMOTE at 0661c23.",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "bound_check_key": "UI-FP-141:REFRESH_ELEMENT",
+   "bound_check_pass": true,
+   "prior_verdict_0661c23": "DEMOTE"
+  },
+  {
+   "row_id": "UI-FP-142",
+   "verdict": "DEMOTE",
+   "why": "evidence_ref certification/results/UI_CORRECTION_2d29211.json binds only static presence predicate UI-FP-142:AUTO_ELEMENT (pass=True): a marker-existence test on the rendered page, which cannot substantiate this row execution_proof (engine/exchange truth at T -> API payload -> rendered cell at T, DOM capture) nor its independent_oracle (recompute not importing HL_Copy_App_SSOT.py). proof/oracle strings are identical across 33 of 33 rows and the same artifact reports 61/441 failed checks with blocked_count=3, so it is not a clean PASS basis. Corroborated by prior verdict DEMOTE at 0661c23.",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "bound_check_key": "UI-FP-142:AUTO_ELEMENT",
+   "bound_check_pass": true,
+   "prior_verdict_0661c23": "DEMOTE"
+  },
+  {
+   "row_id": "UI-FP-143",
+   "verdict": "DEMOTE",
+   "why": "evidence_ref certification/results/UI_CORRECTION_2d29211.json binds only static presence predicate UI-FP-143:MANUAL_ELEMENT (pass=True): a marker-existence test on the rendered page, which cannot substantiate this row execution_proof (engine/exchange truth at T -> API payload -> rendered cell at T, DOM capture) nor its independent_oracle (recompute not importing HL_Copy_App_SSOT.py). proof/oracle strings are identical across 33 of 33 rows and the same artifact reports 61/441 failed checks with blocked_count=3, so it is not a clean PASS basis. Corroborated by prior verdict DEMOTE at 0661c23.",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "bound_check_key": "UI-FP-143:MANUAL_ELEMENT",
+   "bound_check_pass": true,
+   "prior_verdict_0661c23": "DEMOTE"
+  },
+  {
+   "row_id": "UI-FP-144",
+   "verdict": "DEMOTE",
+   "why": "evidence_ref certification/results/UI_CORRECTION_2d29211.json binds only static presence predicate UI-FP-144:BACKGROUND_ELEMENT (pass=True): a marker-existence test on the rendered page, which cannot substantiate this row execution_proof (engine/exchange truth at T -> API payload -> rendered cell at T, DOM capture) nor its independent_oracle (recompute not importing HL_Copy_App_SSOT.py). proof/oracle strings are identical across 33 of 33 rows and the same artifact reports 61/441 failed checks with blocked_count=3, so it is not a clean PASS basis. Corroborated by prior verdict DEMOTE at 0661c23.",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "bound_check_key": "UI-FP-144:BACKGROUND_ELEMENT",
+   "bound_check_pass": true,
+   "prior_verdict_0661c23": "DEMOTE"
+  },
+  {
+   "row_id": "UI-FP-146",
+   "verdict": "DEMOTE",
+   "why": "evidence_ref certification/results/UI_CORRECTION_2d29211.json binds only static presence predicate UI-FP-146:DETAIL_ELEMENT (pass=True): a marker-existence test on the rendered page, which cannot substantiate this row execution_proof (engine/exchange truth at T -> API payload -> rendered cell at T, DOM capture) nor its independent_oracle (recompute not importing HL_Copy_App_SSOT.py). proof/oracle strings are identical across 33 of 33 rows and the same artifact reports 61/441 failed checks with blocked_count=3, so it is not a clean PASS basis. Corroborated by prior verdict DEMOTE at 0661c23.",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "bound_check_key": "UI-FP-146:DETAIL_ELEMENT",
+   "bound_check_pass": true,
+   "prior_verdict_0661c23": "DEMOTE"
+  },
+  {
+   "row_id": "UI-FP-147",
+   "verdict": "DEMOTE",
+   "why": "evidence_ref certification/results/UI_CORRECTION_2d29211.json binds only static presence predicate UI-FP-147:HISTORY_ELEMENT (pass=True): a marker-existence test on the rendered page, which cannot substantiate this row execution_proof (engine/exchange truth at T -> API payload -> rendered cell at T, DOM capture) nor its independent_oracle (recompute not importing HL_Copy_App_SSOT.py). proof/oracle strings are identical across 33 of 33 rows and the same artifact reports 61/441 failed checks with blocked_count=3, so it is not a clean PASS basis. Corroborated by prior verdict DEMOTE at 0661c23.",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "bound_check_key": "UI-FP-147:HISTORY_ELEMENT",
+   "bound_check_pass": true,
+   "prior_verdict_0661c23": "DEMOTE"
+  },
+  {
+   "row_id": "UI-FP-148",
+   "verdict": "DEMOTE",
+   "why": "evidence_ref certification/results/UI_CORRECTION_2d29211.json binds only static presence predicate UI-FP-148:NOTES_ELEMENT (pass=True): a marker-existence test on the rendered page, which cannot substantiate this row execution_proof (engine/exchange truth at T -> API payload -> rendered cell at T, DOM capture) nor its independent_oracle (recompute not importing HL_Copy_App_SSOT.py). proof/oracle strings are identical across 33 of 33 rows and the same artifact reports 61/441 failed checks with blocked_count=3, so it is not a clean PASS basis. Corroborated by prior verdict DEMOTE at 0661c23.",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "bound_check_key": "UI-FP-148:NOTES_ELEMENT",
+   "bound_check_pass": true,
+   "prior_verdict_0661c23": "DEMOTE"
+  },
+  {
+   "row_id": "UI-FP-151",
+   "verdict": "DEMOTE",
+   "why": "evidence_ref certification/results/UI_CORRECTION_2d29211.json binds only static presence predicate UI-FP-151:LCRECONROWS_ELEMENT (pass=True): a marker-existence test on the rendered page, which cannot substantiate this row execution_proof (engine/exchange truth at T -> API payload -> rendered cell at T, DOM capture) nor its independent_oracle (recompute not importing HL_Copy_App_SSOT.py). proof/oracle strings are identical across 33 of 33 rows and the same artifact reports 61/441 failed checks with blocked_count=3, so it is not a clean PASS basis. Corroborated by prior verdict DEMOTE at 0661c23.",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "bound_check_key": "UI-FP-151:LCRECONROWS_ELEMENT",
+   "bound_check_pass": true,
+   "prior_verdict_0661c23": "DEMOTE"
+  },
+  {
+   "row_id": "UI-FP-152",
+   "verdict": "DEMOTE",
+   "why": "evidence_ref certification/results/UI_CORRECTION_2d29211.json binds only static presence predicate UI-FP-152:SEVERITY_ELEMENT (pass=True): a marker-existence test on the rendered page, which cannot substantiate this row execution_proof (engine/exchange truth at T -> API payload -> rendered cell at T, DOM capture) nor its independent_oracle (recompute not importing HL_Copy_App_SSOT.py). proof/oracle strings are identical across 33 of 33 rows and the same artifact reports 61/441 failed checks with blocked_count=3, so it is not a clean PASS basis. Corroborated by prior verdict DEMOTE at 0661c23.",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "bound_check_key": "UI-FP-152:SEVERITY_ELEMENT",
+   "bound_check_pass": true,
+   "prior_verdict_0661c23": "DEMOTE"
+  },
+  {
+   "row_id": "UI-FP-153",
+   "verdict": "DEMOTE",
+   "why": "evidence_ref certification/results/UI_CORRECTION_2d29211.json binds only static presence predicate UI-FP-153:WALLET_ELEMENT (pass=True): a marker-existence test on the rendered page, which cannot substantiate this row execution_proof (engine/exchange truth at T -> API payload -> rendered cell at T, DOM capture) nor its independent_oracle (recompute not importing HL_Copy_App_SSOT.py). proof/oracle strings are identical across 33 of 33 rows and the same artifact reports 61/441 failed checks with blocked_count=3, so it is not a clean PASS basis. Corroborated by prior verdict DEMOTE at 0661c23.",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "bound_check_key": "UI-FP-153:WALLET_ELEMENT",
+   "bound_check_pass": true,
+   "prior_verdict_0661c23": "DEMOTE"
+  },
+  {
+   "row_id": "UI-FP-154",
+   "verdict": "DEMOTE",
+   "why": "evidence_ref certification/results/UI_CORRECTION_2d29211.json binds only static presence predicate UI-FP-154:COIN_ELEMENT (pass=True): a marker-existence test on the rendered page, which cannot substantiate this row execution_proof (engine/exchange truth at T -> API payload -> rendered cell at T, DOM capture) nor its independent_oracle (recompute not importing HL_Copy_App_SSOT.py). proof/oracle strings are identical across 33 of 33 rows and the same artifact reports 61/441 failed checks with blocked_count=3, so it is not a clean PASS basis. Corroborated by prior verdict DEMOTE at 0661c23.",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "bound_check_key": "UI-FP-154:COIN_ELEMENT",
+   "bound_check_pass": true,
+   "prior_verdict_0661c23": "DEMOTE"
+  },
+  {
+   "row_id": "UI-FP-155",
+   "verdict": "DEMOTE",
+   "why": "evidence_ref certification/results/UI_CORRECTION_2d29211.json binds only static presence predicate UI-FP-155:SIDE_ELEMENT (pass=True): a marker-existence test on the rendered page, which cannot substantiate this row execution_proof (engine/exchange truth at T -> API payload -> rendered cell at T, DOM capture) nor its independent_oracle (recompute not importing HL_Copy_App_SSOT.py). proof/oracle strings are identical across 33 of 33 rows and the same artifact reports 61/441 failed checks with blocked_count=3, so it is not a clean PASS basis. Corroborated by prior verdict DEMOTE at 0661c23.",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "bound_check_key": "UI-FP-155:SIDE_ELEMENT",
+   "bound_check_pass": true,
+   "prior_verdict_0661c23": "DEMOTE"
+  },
+  {
+   "row_id": "UI-FP-156",
+   "verdict": "DEMOTE",
+   "why": "evidence_ref certification/results/UI_CORRECTION_2d29211.json binds only static presence predicate UI-FP-156:LEDGER_ELEMENT (pass=True): a marker-existence test on the rendered page, which cannot substantiate this row execution_proof (engine/exchange truth at T -> API payload -> rendered cell at T, DOM capture) nor its independent_oracle (recompute not importing HL_Copy_App_SSOT.py). proof/oracle strings are identical across 33 of 33 rows and the same artifact reports 61/441 failed checks with blocked_count=3, so it is not a clean PASS basis. Corroborated by prior verdict DEMOTE at 0661c23.",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "bound_check_key": "UI-FP-156:LEDGER_ELEMENT",
+   "bound_check_pass": true,
+   "prior_verdict_0661c23": "DEMOTE"
+  },
+  {
+   "row_id": "UI-FP-157",
+   "verdict": "DEMOTE",
+   "why": "evidence_ref certification/results/UI_CORRECTION_2d29211.json binds only static presence predicate UI-FP-157:EXCHANGE_ELEMENT (pass=True): a marker-existence test on the rendered page, which cannot substantiate this row execution_proof (engine/exchange truth at T -> API payload -> rendered cell at T, DOM capture) nor its independent_oracle (recompute not importing HL_Copy_App_SSOT.py). proof/oracle strings are identical across 33 of 33 rows and the same artifact reports 61/441 failed checks with blocked_count=3, so it is not a clean PASS basis. Corroborated by prior verdict DEMOTE at 0661c23.",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "bound_check_key": "UI-FP-157:EXCHANGE_ELEMENT",
+   "bound_check_pass": true,
+   "prior_verdict_0661c23": "DEMOTE"
+  },
+  {
+   "row_id": "UI-FP-158",
+   "verdict": "DEMOTE",
+   "why": "evidence_ref certification/results/UI_CORRECTION_2d29211.json binds only static presence predicate UI-FP-158:DIFF_ELEMENT (pass=True): a marker-existence test on the rendered page, which cannot substantiate this row execution_proof (engine/exchange truth at T -> API payload -> rendered cell at T, DOM capture) nor its independent_oracle (recompute not importing HL_Copy_App_SSOT.py). proof/oracle strings are identical across 33 of 33 rows and the same artifact reports 61/441 failed checks with blocked_count=3, so it is not a clean PASS basis. Corroborated by prior verdict DEMOTE at 0661c23.",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "bound_check_key": "UI-FP-158:DIFF_ELEMENT",
+   "bound_check_pass": true,
+   "prior_verdict_0661c23": "DEMOTE"
+  },
+  {
+   "row_id": "UI-FP-159",
+   "verdict": "DEMOTE",
+   "why": "evidence_ref certification/results/UI_CORRECTION_2d29211.json binds only static presence predicate UI-FP-159:STATUS_ELEMENT (pass=True): a marker-existence test on the rendered page, which cannot substantiate this row execution_proof (engine/exchange truth at T -> API payload -> rendered cell at T, DOM capture) nor its independent_oracle (recompute not importing HL_Copy_App_SSOT.py). proof/oracle strings are identical across 33 of 33 rows and the same artifact reports 61/441 failed checks with blocked_count=3, so it is not a clean PASS basis. Corroborated by prior verdict DEMOTE at 0661c23.",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "bound_check_key": "UI-FP-159:STATUS_ELEMENT",
+   "bound_check_pass": true,
+   "prior_verdict_0661c23": "DEMOTE"
+  },
+  {
+   "row_id": "UI-FP-160",
+   "verdict": "DEMOTE",
+   "why": "evidence_ref certification/results/UI_CORRECTION_2d29211.json binds only static presence predicate UI-FP-160:OID_ELEMENT (pass=True): a marker-existence test on the rendered page, which cannot substantiate this row execution_proof (engine/exchange truth at T -> API payload -> rendered cell at T, DOM capture) nor its independent_oracle (recompute not importing HL_Copy_App_SSOT.py). proof/oracle strings are identical across 33 of 33 rows and the same artifact reports 61/441 failed checks with blocked_count=3, so it is not a clean PASS basis. Corroborated by prior verdict DEMOTE at 0661c23.",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "bound_check_key": "UI-FP-160:OID_ELEMENT",
+   "bound_check_pass": true,
+   "prior_verdict_0661c23": "DEMOTE"
+  },
+  {
+   "row_id": "UI-FP-169",
+   "verdict": "DEMOTE",
+   "why": "evidence_ref certification/results/UI_CORRECTION_2d29211.json binds only static presence predicate UI-FP-169:REFRESH_ELEMENT (pass=True): a marker-existence test on the rendered page, which cannot substantiate this row execution_proof (engine/exchange truth at T -> API payload -> rendered cell at T, DOM capture) nor its independent_oracle (recompute not importing HL_Copy_App_SSOT.py). proof/oracle strings are identical across 33 of 33 rows and the same artifact reports 61/441 failed checks with blocked_count=3, so it is not a clean PASS basis.",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "bound_check_key": "UI-FP-169:REFRESH_ELEMENT",
+   "bound_check_pass": true,
+   "prior_verdict_0661c23": null
+  },
+  {
+   "row_id": "UI-FP-170",
+   "verdict": "DEMOTE",
+   "why": "evidence_ref certification/results/UI_CORRECTION_2d29211.json binds only static presence predicate UI-FP-170:AUTO_ELEMENT (pass=True): a marker-existence test on the rendered page, which cannot substantiate this row execution_proof (engine/exchange truth at T -> API payload -> rendered cell at T, DOM capture) nor its independent_oracle (recompute not importing HL_Copy_App_SSOT.py). proof/oracle strings are identical across 33 of 33 rows and the same artifact reports 61/441 failed checks with blocked_count=3, so it is not a clean PASS basis.",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "bound_check_key": "UI-FP-170:AUTO_ELEMENT",
+   "bound_check_pass": true,
+   "prior_verdict_0661c23": null
+  },
+  {
+   "row_id": "UI-FP-171",
+   "verdict": "DEMOTE",
+   "why": "evidence_ref certification/results/UI_CORRECTION_2d29211.json binds only static presence predicate UI-FP-171:LCHEALTHROWS_ELEMENT (pass=True): a marker-existence test on the rendered page, which cannot substantiate this row execution_proof (engine/exchange truth at T -> API payload -> rendered cell at T, DOM capture) nor its independent_oracle (recompute not importing HL_Copy_App_SSOT.py). proof/oracle strings are identical across 33 of 33 rows and the same artifact reports 61/441 failed checks with blocked_count=3, so it is not a clean PASS basis.",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "bound_check_key": "UI-FP-171:LCHEALTHROWS_ELEMENT",
+   "bound_check_pass": true,
+   "prior_verdict_0661c23": null
+  },
+  {
+   "row_id": "UI-FP-172",
+   "verdict": "DEMOTE",
+   "why": "evidence_ref certification/results/UI_CORRECTION_2d29211.json binds only static presence predicate UI-FP-172:WALLET_ELEMENT (pass=True): a marker-existence test on the rendered page, which cannot substantiate this row execution_proof (engine/exchange truth at T -> API payload -> rendered cell at T, DOM capture) nor its independent_oracle (recompute not importing HL_Copy_App_SSOT.py). proof/oracle strings are identical across 33 of 33 rows and the same artifact reports 61/441 failed checks with blocked_count=3, so it is not a clean PASS basis.",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "bound_check_key": "UI-FP-172:WALLET_ELEMENT",
+   "bound_check_pass": true,
+   "prior_verdict_0661c23": null
+  },
+  {
+   "row_id": "UI-FP-173",
+   "verdict": "DEMOTE",
+   "why": "evidence_ref certification/results/UI_CORRECTION_2d29211.json binds only static presence predicate UI-FP-173:CURRENT_ELEMENT (pass=True): a marker-existence test on the rendered page, which cannot substantiate this row execution_proof (engine/exchange truth at T -> API payload -> rendered cell at T, DOM capture) nor its independent_oracle (recompute not importing HL_Copy_App_SSOT.py). proof/oracle strings are identical across 33 of 33 rows and the same artifact reports 61/441 failed checks with blocked_count=3, so it is not a clean PASS basis.",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "bound_check_key": "UI-FP-173:CURRENT_ELEMENT",
+   "bound_check_pass": true,
+   "prior_verdict_0661c23": null
+  },
+  {
+   "row_id": "UI-FP-174",
+   "verdict": "DEMOTE",
+   "why": "evidence_ref certification/results/UI_CORRECTION_2d29211.json binds only static presence predicate UI-FP-174:GRADE_ELEMENT (pass=True): a marker-existence test on the rendered page, which cannot substantiate this row execution_proof (engine/exchange truth at T -> API payload -> rendered cell at T, DOM capture) nor its independent_oracle (recompute not importing HL_Copy_App_SSOT.py). proof/oracle strings are identical across 33 of 33 rows and the same artifact reports 61/441 failed checks with blocked_count=3, so it is not a clean PASS basis.",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "bound_check_key": "UI-FP-174:GRADE_ELEMENT",
+   "bound_check_pass": true,
+   "prior_verdict_0661c23": null
+  },
+  {
+   "row_id": "UI-FP-176",
+   "verdict": "DEMOTE",
+   "why": "evidence_ref certification/results/UI_CORRECTION_2d29211.json binds only static presence predicate UI-FP-176:STATUS_ELEMENT (pass=True): a marker-existence test on the rendered page, which cannot substantiate this row execution_proof (engine/exchange truth at T -> API payload -> rendered cell at T, DOM capture) nor its independent_oracle (recompute not importing HL_Copy_App_SSOT.py). proof/oracle strings are identical across 33 of 33 rows and the same artifact reports 61/441 failed checks with blocked_count=3, so it is not a clean PASS basis.",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "bound_check_key": "UI-FP-176:STATUS_ELEMENT",
+   "bound_check_pass": true,
+   "prior_verdict_0661c23": null
+  },
+  {
+   "row_id": "UI-FP-177",
+   "verdict": "DEMOTE",
+   "why": "evidence_ref certification/results/UI_CORRECTION_2d29211.json binds only static presence predicate UI-FP-177:LAST_ELEMENT (pass=True): a marker-existence test on the rendered page, which cannot substantiate this row execution_proof (engine/exchange truth at T -> API payload -> rendered cell at T, DOM capture) nor its independent_oracle (recompute not importing HL_Copy_App_SSOT.py). proof/oracle strings are identical across 33 of 33 rows and the same artifact reports 61/441 failed checks with blocked_count=3, so it is not a clean PASS basis.",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "bound_check_key": "UI-FP-177:LAST_ELEMENT",
+   "bound_check_pass": true,
+   "prior_verdict_0661c23": null
+  },
+  {
+   "row_id": "UI-FP-180",
+   "verdict": "DEMOTE",
+   "why": "evidence_ref certification/results/UI_CORRECTION_2d29211.json binds only static presence predicate UI-FP-180:THREAD_ELEMENT (pass=True): a marker-existence test on the rendered page, which cannot substantiate this row execution_proof (engine/exchange truth at T -> API payload -> rendered cell at T, DOM capture) nor its independent_oracle (recompute not importing HL_Copy_App_SSOT.py). proof/oracle strings are identical across 33 of 33 rows and the same artifact reports 61/441 failed checks with blocked_count=3, so it is not a clean PASS basis.",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "bound_check_key": "UI-FP-180:THREAD_ELEMENT",
+   "bound_check_pass": true,
+   "prior_verdict_0661c23": null
+  },
+  {
+   "row_id": "UI-FP-188",
+   "verdict": "DEMOTE",
+   "why": "evidence_ref certification/results/UI_CORRECTION_2d29211.json binds only static presence predicate UI-FP-188:SORT_ELEMENT (pass=True): a marker-existence test on the rendered page, which cannot substantiate this row execution_proof (engine/exchange truth at T -> API payload -> rendered cell at T, DOM capture) nor its independent_oracle (recompute not importing HL_Copy_App_SSOT.py). proof/oracle strings are identical across 33 of 33 rows and the same artifact reports 61/441 failed checks with blocked_count=3, so it is not a clean PASS basis.",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "bound_check_key": "UI-FP-188:SORT_ELEMENT",
+   "bound_check_pass": true,
+   "prior_verdict_0661c23": null
+  },
+  {
+   "row_id": "UI-FP-189",
+   "verdict": "DEMOTE",
+   "why": "evidence_ref certification/results/UI_CORRECTION_2d29211.json binds only static presence predicate UI-FP-189:FILTER_ELEMENT (pass=True): a marker-existence test on the rendered page, which cannot substantiate this row execution_proof (engine/exchange truth at T -> API payload -> rendered cell at T, DOM capture) nor its independent_oracle (recompute not importing HL_Copy_App_SSOT.py). proof/oracle strings are identical across 33 of 33 rows and the same artifact reports 61/441 failed checks with blocked_count=3, so it is not a clean PASS basis.",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "bound_check_key": "UI-FP-189:FILTER_ELEMENT",
+   "bound_check_pass": true,
+   "prior_verdict_0661c23": null
+  },
+  {
+   "row_id": "UI-FP-191",
+   "verdict": "DEMOTE",
+   "why": "evidence_ref certification/results/UI_CORRECTION_2d29211.json binds only static presence predicate UI-FP-191:PAGE_ELEMENT (pass=True): a marker-existence test on the rendered page, which cannot substantiate this row execution_proof (engine/exchange truth at T -> API payload -> rendered cell at T, DOM capture) nor its independent_oracle (recompute not importing HL_Copy_App_SSOT.py). proof/oracle strings are identical across 33 of 33 rows and the same artifact reports 61/441 failed checks with blocked_count=3, so it is not a clean PASS basis.",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "bound_check_key": "UI-FP-191:PAGE_ELEMENT",
+   "bound_check_pass": true,
+   "prior_verdict_0661c23": null
+  },
+  {
+   "row_id": "UI-FP-194",
+   "verdict": "DEMOTE",
+   "why": "evidence_ref certification/results/UI_CORRECTION_2d29211.json binds only static presence predicate UI-FP-194:REFRESH_ELEMENT (pass=True): a marker-existence test on the rendered page, which cannot substantiate this row execution_proof (engine/exchange truth at T -> API payload -> rendered cell at T, DOM capture) nor its independent_oracle (recompute not importing HL_Copy_App_SSOT.py). proof/oracle strings are identical across 33 of 33 rows and the same artifact reports 61/441 failed checks with blocked_count=3, so it is not a clean PASS basis.",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "bound_check_key": "UI-FP-194:REFRESH_ELEMENT",
+   "bound_check_pass": true,
+   "prior_verdict_0661c23": null
+  },
+  {
+   "row_id": "UI-FP-195",
+   "verdict": "DEMOTE",
+   "why": "evidence_ref certification/results/UI_CORRECTION_2d29211.json binds only static presence predicate UI-FP-195:AUTO_ELEMENT (pass=True): a marker-existence test on the rendered page, which cannot substantiate this row execution_proof (engine/exchange truth at T -> API payload -> rendered cell at T, DOM capture) nor its independent_oracle (recompute not importing HL_Copy_App_SSOT.py). proof/oracle strings are identical across 33 of 33 rows and the same artifact reports 61/441 failed checks with blocked_count=3, so it is not a clean PASS basis.",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "bound_check_key": "UI-FP-195:AUTO_ELEMENT",
+   "bound_check_pass": true,
+   "prior_verdict_0661c23": null
+  },
+  {
+   "row_id": "UI-FP-196",
+   "verdict": "DEMOTE",
+   "why": "evidence_ref certification/results/UI_CORRECTION_2d29211.json binds only static presence predicate UI-FP-196:MANUAL_ELEMENT (pass=True): a marker-existence test on the rendered page, which cannot substantiate this row execution_proof (engine/exchange truth at T -> API payload -> rendered cell at T, DOM capture) nor its independent_oracle (recompute not importing HL_Copy_App_SSOT.py). proof/oracle strings are identical across 33 of 33 rows and the same artifact reports 61/441 failed checks with blocked_count=3, so it is not a clean PASS basis.",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "bound_check_key": "UI-FP-196:MANUAL_ELEMENT",
+   "bound_check_pass": true,
+   "prior_verdict_0661c23": null
+  },
+  {
+   "row_id": "UI-FP-197",
+   "verdict": "DEMOTE",
+   "why": "evidence_ref certification/results/UI_CORRECTION_2d29211.json binds only static presence predicate UI-FP-197:BACKGROUND_ELEMENT (pass=True): a marker-existence test on the rendered page, which cannot substantiate this row execution_proof (engine/exchange truth at T -> API payload -> rendered cell at T, DOM capture) nor its independent_oracle (recompute not importing HL_Copy_App_SSOT.py). proof/oracle strings are identical across 33 of 33 rows and the same artifact reports 61/441 failed checks with blocked_count=3, so it is not a clean PASS basis.",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "bound_check_key": "UI-FP-197:BACKGROUND_ELEMENT",
+   "bound_check_pass": true,
+   "prior_verdict_0661c23": null
+  }
+ ]
+}
