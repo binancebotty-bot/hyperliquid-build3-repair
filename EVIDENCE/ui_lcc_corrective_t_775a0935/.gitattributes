@@ -1,0 +1,3 @@
+# Keep evidence bytes stable: no CRLF expansion on checkout, so the committed
+# capture's on-disk sha256 equals its declared dom_sha256 (809be3fb...).
+* text eol=lf

@@ -1,0 +1,64 @@
+{
+ "probe5_dom_sha256": "809be3fb0f9a05ae2e1691504a3934218915177c085c8394c6ffbbada1500858",
+ "ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+ "ssot_path": "C:\\Users\\wigmore\\trading_stack\\hl-build3-testnet-cert\\_archive\\hl_stage2\\HL_Copy_App_SSOT.py",
+ "wallet": "0x010461c14e146ac35fe42271bdc1134ee31c703a",
+ "frozen_snapshot": {
+  "live_config.json": {
+   "sha256": "e09e292c5922cf41e65e1c172e74b2f3b2af544e53e3dd8fed3dda1d1d7a6786",
+   "bytes": 3652
+  },
+  "manual_live_positions.json": {
+   "sha256": "92134103a8bb2c4ceb40ad6aa5739203d31d0c864648a7093d42911f3fb3f420",
+   "bytes": 558335
+  },
+  "append_only/live_fills.csv": {
+   "sha256": "9e5328e3a226127eee78a528ec2c52f73708543fc3cc87b5b5e346d5baadfd0f",
+   "bytes": 31753764
+  },
+  "_at": 1792197066.9344053
+ },
+ "truth_n": 98,
+ "api_n": 98,
+ "dom_n": 98,
+ "dom_header_n": 98,
+ "counts_agree_dom_api_truth": true,
+ "api_vs_truth": {
+  "only_truth": [],
+  "only_api": []
+ },
+ "dom_vs_truth": {
+  "only_truth": [],
+  "only_dom": []
+ },
+ "api_vs_truth_size_mismatch": [
+  {
+   "c": "KPEPE",
+   "t": -4601.0,
+   "a": -1613.0
+  },
+  {
+   "c": "KSHIB",
+   "t": 4.0,
+   "a": 3.0
+  }
+ ],
+ "dom_vs_truth_size_mismatch": [
+  {
+   "c": "KPEPE",
+   "t": -4601.0,
+   "d": -1613.0
+  },
+  {
+   "c": "KSHIB",
+   "t": 4.0,
+   "d": 3.0
+  }
+ ],
+ "fees": {
+  "dom": "90.63",
+  "api": 90.6284,
+  "frozen_disk_sum": 90.6284,
+  "fill_rows": 14876
+ }
+}

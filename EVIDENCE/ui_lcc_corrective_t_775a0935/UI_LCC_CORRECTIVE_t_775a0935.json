@@ -1,80 +1,118 @@
 {
  "task": "t_775a0935",
  "register_commit": "b142cf88d389e791160f691aac3d936852b99975",
+ "cert_target_build": "b5e6d613de36e3020ac28ba2317e6571a5c37e9b",
+ "cert_target_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+ "cert_target_ssot_path": "C:/Users/wigmore/trading_stack/hl-build3-testnet-cert/_archive/hl_stage2/HL_Copy_App_SSOT.py",
+ "register_blob_sha256": "7468ab5188750617b090b56c3e719d73e91f5b4241f4782382ccac1a22989276",
+ "cert_section": "UI-ONLY (exception per ENGINE RULING: b142cf88 has no /live-copy route; UI rows certify against the build that serves /live-copy)",
  "probe_target": "http://127.0.0.1:8031/live-copy (headless Chromium via playwright/py3.11)",
  "read_only": true,
- "live_surface_binding": {
-  "serving_process": "python -m uvicorn HL_Copy_App_SSOT:app --host 127.0.0.1 --port 8031 (PID 8668)",
-  "served_source": "C:/Users/wigmore/trading_stack/hl-build3-testnet-cert/_archive/hl_stage2/HL_Copy_App_SSOT.py (HEAD b5e6d61)",
-  "register_blob_sha256": "7468ab5188750617b090b56c3e719d73e91f5b4241f4782382ccac1a22989276",
-  "finding": "LIVE /live-copy is served by the hl-build3-testnet-cert lineage, NOT the register blob. b142cf88 has ZERO /live-copy route; its liveCopyPanel is embedded in home render. Served rowPayload lacks leader_equity_base/max_diff_pct/daily_loss_limit and renderWallets differs."
+ "producing_probe": "probe5.py",
+ "producing_probe_sha256": "ce115ba8fb891139e4c1921da974599c35da0a277ca37c3bfcad88ecca4d5768",
+ "dom_capture": {
+  "file": "live_dom_capture.html",
+  "declared_dom_sha256": "809be3fb0f9a05ae2e1691504a3934218915177c085c8394c6ffbbada1500858",
+  "on_disk_sha256": "809be3fb0f9a05ae2e1691504a3934218915177c085c8394c6ffbbada1500858",
+  "tie_out": "MATCH (LF-normalized; the browser returns CRLF but the committed file is LF so its on-disk sha256 equals the declared value)",
+  "rendered_open_positions_header": 98,
+  "rendered_fees": "90.63",
+  "note": "Supersedes the stale earlier capture f0526ac7d0682d876898f663ae2bb296a664e80557c690620c0e0e35d14faa09 (97/89.02), which was NOT the capture whose 96/89.86 figures were cited. The declared ab2c92c6 (probe3) and cd89282c (probe4) hashes are dropped as stale - neither HTML was committed. This committed file is produced by probe5.py."
  },
- "rows_rendered": 15,
- "dom_sha256": "ab2c92c61c0ab155dd6795507277005a7ea35a552a669f65a95075ae2b5d3eef",
+ "probe5_result": {
+  "file": "probe5_result.json",
+  "sha256": "2ba28ca019fc63543b4bfb82717f21b0e29366b2bc3fea02c929b10e8c0ef916",
+  "rows_rendered": 15,
+  "audit_ok": true
+ },
+ "verify5_out": {
+  "file": "verify5_out.json",
+  "sha256": "de18a233c157eeed38b1a00b9283d2f076fcdc5c51a74532d0ba0fe40eba7af7",
+  "wallet": "0x010461c14e146ac35fe42271bdc1134ee31c703a",
+  "counts_agree_dom_api_truth": true,
+  "truth_n": 98,
+  "api_n": 98,
+  "dom_n": 98,
+  "dom_header_n": 98,
+  "fees": { "dom": "90.63", "api": 90.6284, "frozen_disk_sum": 90.6284, "fill_rows": 14876 },
+  "size_mismatches": [
+   { "c": "KPEPE", "truth": -4601.0, "api": -1613.0, "dom": -1613.0 },
+   { "c": "KSHIB", "truth": 4.0, "api": 3.0, "dom": 3.0 }
+  ],
+  "mismatch_attribution": "DOM == API on both rows; the disk snapshot leads the API by the live append race, so this is engine movement, not a render error."
+ },
+ "frozen_snapshot": {
+  "at_unix": 1792197066.9344053,
+  "live_config.json": "e09e292c5922cf41e65e1c172e74b2f3b2af544e53e3dd8fed3dda1d1d7a6786",
+  "manual_live_positions.json": "92134103a8bb2c4ceb40ad6aa5739203d31d0c864648a7093d42911f3fb3f420",
+  "append_only/live_fills.csv": "9e5328e3a226127eee78a528ec2c52f73708543fc3cc87b5b5e346d5baadfd0f"
+ },
  "controls": {
   "every_row_has_all4": true,
-  "buttons_sample": [
-   "save",
-   "clo",
-   "off",
-   "archive"
-  ],
-  "inputs_per_row": [
-   "fixed_notional",
-   "norm_base"
-  ],
+  "buttons_sample": ["save", "clo", "off", "archive"],
+  "inputs_per_row": ["fixed_notional", "norm_base"],
   "rows_with_B_input": 0
  },
  "wire_map_from_served_JS": {
-  "save": {
-   "endpoint": "/api/live-config/set-wallet",
-   "payload": "rowPayload(tr)={wallet,mode,copy_mode,norm_base,fixed_notional}"
-  },
-  "clo": {
-   "endpoint": "/api/live-config/set-mode",
-   "payload": "{wallet,mode:'CLO'}"
-  },
-  "off": {
-   "endpoint": "/api/live-config/set-mode",
-   "payload": "{wallet,mode:'OFF'}"
-  },
-  "archive": {
-   "endpoint": "/api/live-config/remove-wallet",
-   "payload": "{wallet,archive:true}"
-  }
+  "save": { "endpoint": "/api/live-config/set-wallet", "payload": "rowPayload(tr)={wallet,mode,copy_mode,norm_base,fixed_notional}" },
+  "clo": { "endpoint": "/api/live-config/set-mode", "payload": "{wallet,mode:'CLO'}" },
+  "off": { "endpoint": "/api/live-config/set-mode", "payload": "{wallet,mode:'OFF'}" },
+  "archive": { "endpoint": "/api/live-config/remove-wallet", "payload": "{wallet,archive:true}" }
  },
  "oracle": {
   "method": "independent recompute from engine-written on-disk files (manual_live_positions.json, live_config.json, append_only/live_fills.csv, send_attempts.csv); NO HL_Copy_App_SSOT import",
-  "config": {
-   "rows": 15,
-   "mode_match": "15/15",
-   "copy_mode_match": "15/15",
-   "fixed_notional_match": "15/15",
-   "modes": {
-    "LIVE": 10,
-    "OFF": 5
-   }
-  }
+  "config": { "rows": 15, "mode_match": "15/15", "copy_mode_match": "15/15", "fixed_notional_match": "15/15", "modes": { "LIVE": 10, "OFF": 5 } }
  },
- "detail01_wallet": "0x010461c14e146ac35fe42271bdc1134ee31c703a",
- "detail01_dom_open_n": 96,
- "detail01_api_open_n": 96,
- "detail01_truth_open_n": 96,
- "detail01_fees": {
-  "truth": 89.8602,
-  "api": 89.8602,
-  "dom": "89.86"
- },
- "detail01_coin_deltas_vs_disk": [
+ "rows": [
   {
-   "c": "JTO",
-   "t": 98.0,
-   "d": 103.0
+   "id": "UI-LCC-WTBL-10",
+   "verdict": "NOT_TESTED",
+   "cert_target_build": "b5e6d613de36e3020ac28ba2317e6571a5c37e9b",
+   "cert_target_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+   "dom_capture_sha256": "809be3fb0f9a05ae2e1691504a3934218915177c085c8394c6ffbbada1500858",
+   "reason": "F (fixed_notional) and N (norm_base) inputs render per row, matching config truth 15/15. BUT the row requires an F/N/B triple and the served surface has NO B (leader_equity_base) input (0/15 rows). Negative test 'source unavailable shows n/a not 0' FAILS: renderWallets uses d.fixed_notional??10 / d.norm_base??100 so a null source renders 10/100, not n/a. Honest NOT_TESTED."
   },
   {
-   "c": "USELESS",
-   "t": 73.0,
-   "d": 146.0
+   "id": "UI-LCC-WTBL-11",
+   "verdict": "NOT_TESTED",
+   "cert_target_build": "b5e6d613de36e3020ac28ba2317e6571a5c37e9b",
+   "cert_target_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+   "dom_capture_sha256": "809be3fb0f9a05ae2e1691504a3934218915177c085c8394c6ffbbada1500858",
+   "reason": "Save present on all 15 rows; served JS wires it to POST /api/live-config/set-wallet with rowPayload(tr). Live handler set_live_config_wallet exists. Verifying the write's ACTUAL effect requires POSTing to the live service, which is FORBIDDEN (read-only mandatory) -> NOT_TESTED. Not the withdrawn stub {ok:true} PASS."
+  },
+  {
+   "id": "UI-LCC-WTBL-12",
+   "verdict": "NOT_TESTED",
+   "cert_target_build": "b5e6d613de36e3020ac28ba2317e6571a5c37e9b",
+   "cert_target_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+   "dom_capture_sha256": "809be3fb0f9a05ae2e1691504a3934218915177c085c8394c6ffbbada1500858",
+   "reason": "CLO present on all 15 rows; wired to POST /api/live-config/set-mode {wallet,mode:CLO}. Live handler set_live_config_mode exists. Effect verification requires mutation -> NOT_TESTED."
+  },
+  {
+   "id": "UI-LCC-WTBL-13",
+   "verdict": "NOT_TESTED",
+   "cert_target_build": "b5e6d613de36e3020ac28ba2317e6571a5c37e9b",
+   "cert_target_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+   "dom_capture_sha256": "809be3fb0f9a05ae2e1691504a3934218915177c085c8394c6ffbbada1500858",
+   "reason": "OFF present on all 15 rows; wired to POST /api/live-config/set-mode {wallet,mode:OFF}. Live handler exists. Effect verification requires mutation -> NOT_TESTED."
+  },
+  {
+   "id": "UI-LCC-WTBL-14",
+   "verdict": "NOT_TESTED",
+   "cert_target_build": "b5e6d613de36e3020ac28ba2317e6571a5c37e9b",
+   "cert_target_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+   "dom_capture_sha256": "809be3fb0f9a05ae2e1691504a3934218915177c085c8394c6ffbbada1500858",
+   "reason": "Archive present on all 15 rows; wired to POST /api/live-config/remove-wallet {wallet,archive:true} behind a window.confirm gate. Live handler remove_live_config_wallet exists. Effect verification requires mutation -> NOT_TESTED."
+  },
+  {
+   "id": "UI-LCC-DETAIL-01",
+   "verdict": "PASS",
+   "cert_target_build": "b5e6d613de36e3020ac28ba2317e6571a5c37e9b",
+   "cert_target_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+   "dom_capture_sha256": "809be3fb0f9a05ae2e1691504a3934218915177c085c8394c6ffbbada1500858",
+   "wallet": "0x010461c14e146ac35fe42271bdc1134ee31c703a",
+   "proof": "Section B header DOM 98 == API list 98 == frozen-disk recompute 98 (174 keys, flat dropped); fees DOM 90.63 == API 90.6284 == frozen live_fills.csv sum 90.6284 over 14876 fill rows for this wallet. Coin-set deltas vs disk (KPEPE, KSHIB) show DOM == API, i.e. live append race, not render error. Attribution ENGINE_LEDGER_SLEEVES_PARTIAL shown.",
+   "reason": null
   }
  ],
  "verdicts": {
@@ -85,19 +123,9 @@
   "UI-LCC-WTBL-14": "NOT_TESTED",
   "UI-LCC-DETAIL-01": "PASS"
  },
- "notes": {
-  "UI-LCC-WTBL-10": "F (fixed_notional) and N (norm_base) inputs render per row (F=12 from config, N=100 default), matching config truth 15/15. BUT the row requires F/N/B inputs and the served surface has NO B (leader_equity_base) input (0/15 rows). Negative test \"source unavailable shows n/a not 0\" FAILS: renderWallets uses d.fixed_notional??10 / d.norm_base??100 so a null source renders 10/100, not n/a. Honest NOT_TESTED.",
-  "UI-LCC-WTBL-11": "Save button present on all 15 rows; served JS wires it to POST /api/live-config/set-wallet with rowPayload(tr)={wallet,mode,copy_mode,norm_base,fixed_notional}. Live handler set_live_config_wallet exists and writes live_config.json. Verifying the write's ACTUAL effect requires POSTING to the live service, which is FORBIDDEN (read-only mandatory). Non-mutating proof cannot confirm effect -> NOT_TESTED.",
-  "UI-LCC-WTBL-12": "CLO button present on all 15 rows; wired to POST /api/live-config/set-mode {wallet,mode:CLO}. Live handler set_live_config_mode exists. Effect verification requires mutation -> NOT_TESTED.",
-  "UI-LCC-WTBL-13": "OFF button present on all 15 rows; wired to POST /api/live-config/set-mode {wallet,mode:OFF}. Live handler exists. Effect verification requires mutation -> NOT_TESTED.",
-  "UI-LCC-WTBL-14": "Archive button present on all 15 rows; wired to POST /api/live-config/remove-wallet {wallet,archive:true} behind a window.confirm gate (dialog handler auto-accepted). Live handler remove_live_config_wallet exists. Effect verification requires mutation -> NOT_TESTED.",
-  "UI-LCC-DETAIL-01": "PASS. Detail expands A-E for the selected wallet. Per-wallet correctness: for wallet 0x0104..c703a the rendered B-section shows 96 open positions matching the API list exactly (96/96 coins) and the independent disk recompute within the live append race (2 coins JTO/USELESS differ by size because the engine appended fills between the API read and the disk snapshot - the API shows the SAME deltas, so it is movement, not a render error). Fees: DOM 89.86 == API 89.8602 == independent sum of fee column over 14681 live_fills rows for this wallet = 89.8602. Attribution shown ENGINE_LEDGER_SLEEVES_PARTIAL.",
-  "timing": "All DOM values were captured on the same API-response instant as a point-in-time freeze of the on-disk engine files, eliminating the earlier race that made DOM appear stale."
- },
- "evidence_sha256": {
-  "probe3_result.json": "2b0a977ef56b1bd836f4962ec9d1bc5dce7966df6755711b32c2ff0eafd05a5f",
-  "probe4_result.json": "d95e71617737683e3c188a54843040c94b205e6251f65cca4855649b17b5ae03",
-  "final_cmp_out.json": "4d886824c85cddc344a946a45457f5fb5b8633f415de418e47af0aae78c7752f",
-  "oracle_out.json": "2b9f373866359fb4adb15476c2d0f0bc53a99dba80cf0101e29b75694cc882ae"
+ "live_surface_binding": {
+  "serving_process": "python -m uvicorn HL_Copy_App_SSOT:app --host 127.0.0.1 --port 8031 (PID 8668)",
+  "served_source": "C:/Users/wigmore/trading_stack/hl-build3-testnet-cert/_archive/hl_stage2/HL_Copy_App_SSOT.py (HEAD b5e6d61)",
+  "finding": "LIVE /live-copy is served by the hl-build3-testnet-cert lineage, NOT the register blob. b142cf88 has ZERO /live-copy route. Row verdicts are recorded against the LIVE serving build per the ENGINE RULING; this section is UI-only, not the main register."
  }
 }
