@@ -1,0 +1,1200 @@
+{
+ "task_id": "t_6a310ebd",
+ "title": "PASS-AUDIT slice 4 - UI-SSOT / UI-WALLET / UI-TRUTH PASS rows (scope re-audit; no row is actually unaudited)",
+ "audit_date": "2026-10-17",
+ "read_only": true,
+ "register": {
+  "ref": "origin/cert/local-main-b142cf8",
+  "commit": "b142cf88d389e791160f691aac3d936852b99975",
+  "path": "certification/certification_matrix.json",
+  "sha256": "86b2237fe95f88ca9eb758fb42ddbdf3efdaef71e56f79a10e2d2635f44f341a",
+  "rows": 790
+ },
+ "scope": {
+  "prefixes": [
+   "UI-SSOT-",
+   "UI-WALLET-",
+   "UI-TRUTH-"
+  ],
+  "register_PASS_rows_in_scope": 66,
+  "rows_audited_this_slice": 66,
+  "rows_already_named_by_a_committed_PASS_AUDIT": 66,
+  "rows_not_covered": 0,
+  "committed_PASS_AUDIT_blobs_considered": [
+   "EVIDENCE/audits/PASS_AUDIT_SLICE2_t_f441e9fc.json",
+   "EVIDENCE/provenance/PASS_AUDIT_CONSOLIDATION_b142cf88d3.json",
+   "EVIDENCE/provenance/PASS_AUDIT_NONUI2_b142cf88d3.json",
+   "EVIDENCE/provenance/PASS_AUDIT_SLICE6_b142cf88d3.json",
+   "EVIDENCE/provenance/PASS_AUDIT_UILCC_HDR_BTN_GRAPH_b142cf88d3.json",
+   "EVIDENCE/provenance/PASS_AUDIT_UIPA2_b142cf88d3.json",
+   "EVIDENCE/provenance/PASS_AUDIT_UIPA3_b142cf88d3.json",
+   "EVIDENCE/provenance/PASS_AUDIT_b142cf88d3.json",
+   "EVIDENCE/provenance/PASS_AUDIT_slice3_t_e4186e8a.json"
+  ],
+  "scope_note": "Every PASS row in scope (66) is already named by at least one committed PASS_AUDIT blob (9 blobs; union 489 row ids) - 9a7ae8d (UI part 2/4), 3a78996 (UI part 3/4), e99b288 (WALLET area) plus slices 2/3/6/7 and the HDR/BTN/GRAPH audit. The task premise that these rows are unaudited is FALSE; this slice is a RE-AUDIT against each row's own evidence."
+ },
+ "evidence": {
+  "certification/results/UI_CORRECTION_2d29211.json": {
+   "sha256": "36ac91c1a04438dce4c02b62fadb0e1cdacc260e81b2a4d220e8ec599d6437e8",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "engine_sha256_declared": "2dfbd571012af67479ee7a2d9e6f1faac6ee5408722a092fb3625450cab51405",
+   "engine_content_sha256_at_tested_commit": "2dfbd571012af67479ee7a2d9e6f1faac6ee5408722a092fb3625450cab51405",
+   "engine_binding": "MATCH",
+   "checks": 441,
+   "checks_pass": 380,
+   "checks_fail": 61,
+   "negative_tests": 23,
+   "negative_tests_fail": 0,
+   "semantics_finding": "The cited harness (certification/results/UI_CORRECTION_harness_2d29211.py) records check(name, passed, detail) with the detail string UNCONDITIONALLY (CHECKS.append({'name','pass','detail'})), and the harness passes a negative-condition string as the detail even when the condition is satisfied, e.g. check('UI-SSOT-TBL-01:COLUMN', h in html or h.upper() in html, f'{h} column not found'). The detail therefore describes the FAILURE MODE, not the observed result. It is NOT an inverted pass flag. A row whose only check is of this form is UNSUBSTANTIATED, not failing."
+  },
+  "certification/results/WALLET_fa9d9f55ff.json": {
+   "sha256": "7a076d3c15a2a27a3e7b3e5d5e1b4c702d08583c94bb2384cff530efa90355d2",
+   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+   "engine_sha256_declared": "2dfbd571012af67479ee7a2d9e6f1faac6ee5408722a092fb3625450cab51405",
+   "engine_content_sha256_at_tested_commit": "2dfbd571012af67479ee7a2d9e6f1faac6ee5408722a092fb3625450cab51405",
+   "engine_binding": "MATCH",
+   "total_rows": 14,
+   "pass_count": 91,
+   "fail_count": 0
+  }
+ },
+ "summary": {
+  "audited": 66,
+  "KEEP": 14,
+  "DEMOTE": 52,
+  "remaining_unaudited": 0,
+  "remaining_row_ids": [],
+  "rows_conflicting_with_a_prior_KEEP": 29,
+  "conflicting_row_ids": [
+   "UI-SSOT-CARD-01",
+   "UI-SSOT-CARD-02",
+   "UI-SSOT-CARD-03",
+   "UI-SSOT-CARD-04",
+   "UI-SSOT-CARD-05",
+   "UI-SSOT-CARD-06",
+   "UI-SSOT-CARD-07",
+   "UI-SSOT-CARD-08",
+   "UI-SSOT-CARD-09",
+   "UI-SSOT-PAGE-02",
+   "UI-SSOT-PAGE-03",
+   "UI-SSOT-PAGE-04",
+   "UI-SSOT-PAGE-05",
+   "UI-SSOT-PAGE-06",
+   "UI-SSOT-PAGE-07",
+   "UI-SSOT-PAGE-09",
+   "UI-SSOT-PAGE-10",
+   "UI-SSOT-PAGE-12",
+   "UI-SSOT-TBL-01",
+   "UI-SSOT-TBL-24",
+   "UI-SSOT-TOP-01",
+   "UI-SSOT-TOP-02",
+   "UI-SSOT-TOP-03",
+   "UI-SSOT-TOP-04",
+   "UI-SSOT-TOP-05",
+   "UI-SSOT-TOP-08",
+   "UI-TRUTH-001",
+   "UI-TRUTH-002",
+   "UI-TRUTH-004"
+  ],
+  "note": "Read-only findings; the register is NOT modified. 14 rows KEEP (all UI-WALLET-*). 52 rows DEMOTE: 7 carry a genuine pass=False in UI_CORRECTION_2d29211.json; the other 45 rest on checks whose detail is a failure-mode string rather than an observed result (see evidence semantics_finding)."
+ },
+ "rows": [
+  {
+   "row_id": "UI-SSOT-CARD-01",
+   "verdict": "DEMOTE",
+   "why": "UNSUBSTANTIATED: pass=True but the record's own detail reports a negative condition -> UI-SSOT-CARD-01:PNL_CARD",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "checks": 1,
+   "negative_tests": 0,
+   "failed_checks": [],
+   "vacuous_checks": [
+    "UI-SSOT-CARD-01:PNL_CARD"
+   ],
+   "feature": "Analytics header card: PNL Lead/Copy/Delta",
+   "prior_audit_verdict": [
+    "KEEP"
+   ]
+  },
+  {
+   "row_id": "UI-SSOT-CARD-02",
+   "verdict": "DEMOTE",
+   "why": "UNSUBSTANTIATED: pass=True but the record's own detail reports a negative condition -> UI-SSOT-CARD-02:REALISED_CARD",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "checks": 1,
+   "negative_tests": 0,
+   "failed_checks": [],
+   "vacuous_checks": [
+    "UI-SSOT-CARD-02:REALISED_CARD"
+   ],
+   "feature": "Analytics header card: REALISED Lead/Copy",
+   "prior_audit_verdict": [
+    "KEEP"
+   ]
+  },
+  {
+   "row_id": "UI-SSOT-CARD-03",
+   "verdict": "DEMOTE",
+   "why": "UNSUBSTANTIATED: pass=True but the record's own detail reports a negative condition -> UI-SSOT-CARD-03:UNREALISED_CARD",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "checks": 1,
+   "negative_tests": 0,
+   "failed_checks": [],
+   "vacuous_checks": [
+    "UI-SSOT-CARD-03:UNREALISED_CARD"
+   ],
+   "feature": "Analytics header card: UNREALISED Lead/Copy",
+   "prior_audit_verdict": [
+    "KEEP"
+   ]
+  },
+  {
+   "row_id": "UI-SSOT-CARD-04",
+   "verdict": "DEMOTE",
+   "why": "UNSUBSTANTIATED: pass=True but the record's own detail reports a negative condition -> UI-SSOT-CARD-04:DRAWDOWN_CARD",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "checks": 1,
+   "negative_tests": 0,
+   "failed_checks": [],
+   "vacuous_checks": [
+    "UI-SSOT-CARD-04:DRAWDOWN_CARD"
+   ],
+   "feature": "Analytics header card: DRAWDOWN Lead DD/Copy DD/Copy Max",
+   "prior_audit_verdict": [
+    "KEEP"
+   ]
+  },
+  {
+   "row_id": "UI-SSOT-CARD-05",
+   "verdict": "DEMOTE",
+   "why": "UNSUBSTANTIATED: pass=True but the record's own detail reports a negative condition -> UI-SSOT-CARD-05:MAX_DD_CARD",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "checks": 1,
+   "negative_tests": 0,
+   "failed_checks": [],
+   "vacuous_checks": [
+    "UI-SSOT-CARD-05:MAX_DD_CARD"
+   ],
+   "feature": "Analytics header card: MAX DD Lead/Copy",
+   "prior_audit_verdict": [
+    "KEEP"
+   ]
+  },
+  {
+   "row_id": "UI-SSOT-CARD-06",
+   "verdict": "DEMOTE",
+   "why": "UNSUBSTANTIATED: pass=True but the record's own detail reports a negative condition -> UI-SSOT-CARD-06:EXPOSURE_CARD",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "checks": 1,
+   "negative_tests": 0,
+   "failed_checks": [],
+   "vacuous_checks": [
+    "UI-SSOT-CARD-06:EXPOSURE_CARD"
+   ],
+   "feature": "Analytics header card: EXPOSURE Open/Max/Base",
+   "prior_audit_verdict": [
+    "KEEP"
+   ]
+  },
+  {
+   "row_id": "UI-SSOT-CARD-07",
+   "verdict": "DEMOTE",
+   "why": "UNSUBSTANTIATED: pass=True but the record's own detail reports a negative condition -> UI-SSOT-CARD-07:COPYABILITY_CARD",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "checks": 1,
+   "negative_tests": 0,
+   "failed_checks": [],
+   "vacuous_checks": [
+    "UI-SSOT-CARD-07:COPYABILITY_CARD"
+   ],
+   "feature": "Analytics header card: COPYABILITY Avg trade %/$ /Avg pos/Req lev",
+   "prior_audit_verdict": [
+    "KEEP"
+   ]
+  },
+  {
+   "row_id": "UI-SSOT-CARD-08",
+   "verdict": "DEMOTE",
+   "why": "UNSUBSTANTIATED: pass=True but the record's own detail reports a negative condition -> UI-SSOT-CARD-08:ACTIVITY_CARD",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "checks": 1,
+   "negative_tests": 0,
+   "failed_checks": [],
+   "vacuous_checks": [
+    "UI-SSOT-CARD-08:ACTIVITY_CARD"
+   ],
+   "feature": "Analytics header card: ACTIVITY Fills/Exits/Open pos/Win",
+   "prior_audit_verdict": [
+    "KEEP"
+   ]
+  },
+  {
+   "row_id": "UI-SSOT-CARD-09",
+   "verdict": "DEMOTE",
+   "why": "UNSUBSTANTIATED: pass=True but the record's own detail reports a negative condition -> UI-SSOT-CARD-09:DB_HEALTH_CARD",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "checks": 1,
+   "negative_tests": 0,
+   "failed_checks": [],
+   "vacuous_checks": [
+    "UI-SSOT-CARD-09:DB_HEALTH_CARD"
+   ],
+   "feature": "Analytics header card: DB HEALTH status/cache/builds",
+   "prior_audit_verdict": [
+    "KEEP"
+   ]
+  },
+  {
+   "row_id": "UI-SSOT-PAGE-02",
+   "verdict": "DEMOTE",
+   "why": "UNSUBSTANTIATED: pass=True but the record's own detail reports a negative condition -> UI-SSOT-PAGE-02:<HTML_ELEMENT",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "checks": 1,
+   "negative_tests": 0,
+   "failed_checks": [],
+   "vacuous_checks": [
+    "UI-SSOT-PAGE-02:<HTML_ELEMENT"
+   ],
+   "feature": "Other page/endpoint: /wallet-meta/{wallet} editor",
+   "prior_audit_verdict": [
+    "KEEP"
+   ]
+  },
+  {
+   "row_id": "UI-SSOT-PAGE-03",
+   "verdict": "DEMOTE",
+   "why": "UNSUBSTANTIATED: pass=True but the record's own detail reports a negative condition -> UI-SSOT-PAGE-03:<STYLE_ELEMENT",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "checks": 1,
+   "negative_tests": 0,
+   "failed_checks": [],
+   "vacuous_checks": [
+    "UI-SSOT-PAGE-03:<STYLE_ELEMENT"
+   ],
+   "feature": "Other page/endpoint: /api/state",
+   "prior_audit_verdict": [
+    "KEEP"
+   ]
+  },
+  {
+   "row_id": "UI-SSOT-PAGE-04",
+   "verdict": "DEMOTE",
+   "why": "UNSUBSTANTIATED: pass=True but the record's own detail reports a negative condition -> UI-SSOT-PAGE-04:<SCRIPT_ELEMENT",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "checks": 1,
+   "negative_tests": 0,
+   "failed_checks": [],
+   "vacuous_checks": [
+    "UI-SSOT-PAGE-04:<SCRIPT_ELEMENT"
+   ],
+   "feature": "Other page/endpoint: /api/metrics",
+   "prior_audit_verdict": [
+    "KEEP"
+   ]
+  },
+  {
+   "row_id": "UI-SSOT-PAGE-05",
+   "verdict": "DEMOTE",
+   "why": "UNSUBSTANTIATED: pass=True but the record's own detail reports a negative condition -> UI-SSOT-PAGE-05:_SORT__ELEMENT",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "checks": 1,
+   "negative_tests": 0,
+   "failed_checks": [],
+   "vacuous_checks": [
+    "UI-SSOT-PAGE-05:_SORT__ELEMENT"
+   ],
+   "feature": "Other page/endpoint: /api/trades/{wallet}",
+   "prior_audit_verdict": [
+    "KEEP"
+   ]
+  },
+  {
+   "row_id": "UI-SSOT-PAGE-06",
+   "verdict": "DEMOTE",
+   "why": "UNSUBSTANTIATED: pass=True but the record's own detail reports a negative condition -> UI-SSOT-PAGE-06:_API_UI_STATE_ELEMENT",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "checks": 1,
+   "negative_tests": 0,
+   "failed_checks": [],
+   "vacuous_checks": [
+    "UI-SSOT-PAGE-06:_API_UI_STATE_ELEMENT"
+   ],
+   "feature": "Other page/endpoint: /api/equity/{wallet}",
+   "prior_audit_verdict": [
+    "KEEP"
+   ]
+  },
+  {
+   "row_id": "UI-SSOT-PAGE-07",
+   "verdict": "DEMOTE",
+   "why": "UNSUBSTANTIATED: pass=True but the record's own detail reports a negative condition -> UI-SSOT-PAGE-07:NORM_BASE_ELEMENT",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "checks": 1,
+   "negative_tests": 0,
+   "failed_checks": [],
+   "vacuous_checks": [
+    "UI-SSOT-PAGE-07:NORM_BASE_ELEMENT"
+   ],
+   "feature": "Other page/endpoint: /api/ui-state GET/POST",
+   "prior_audit_verdict": [
+    "KEEP"
+   ]
+  },
+  {
+   "row_id": "UI-SSOT-PAGE-08",
+   "verdict": "DEMOTE",
+   "why": "UNSUBSTANTIATED: pass=True but the record's own detail reports a negative condition -> UI-SSOT-PAGE-08:FIXED_NOTIONAL_ELEMENT",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "checks": 1,
+   "negative_tests": 0,
+   "failed_checks": [],
+   "vacuous_checks": [
+    "UI-SSOT-PAGE-08:FIXED_NOTIONAL_ELEMENT"
+   ],
+   "feature": "Other page/endpoint: /api/norm",
+   "prior_audit_verdict": [
+    "DEMOTE"
+   ]
+  },
+  {
+   "row_id": "UI-SSOT-PAGE-09",
+   "verdict": "DEMOTE",
+   "why": "UNSUBSTANTIATED: pass=True but the record's own detail reports a negative condition -> UI-SSOT-PAGE-09:FEE_BPS_ELEMENT",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "checks": 1,
+   "negative_tests": 0,
+   "failed_checks": [],
+   "vacuous_checks": [
+    "UI-SSOT-PAGE-09:FEE_BPS_ELEMENT"
+   ],
+   "feature": "Other page/endpoint: /api/reset-app-history",
+   "prior_audit_verdict": [
+    "KEEP"
+   ]
+  },
+  {
+   "row_id": "UI-SSOT-PAGE-10",
+   "verdict": "DEMOTE",
+   "why": "UNSUBSTANTIATED: pass=True but the record's own detail reports a negative condition -> UI-SSOT-PAGE-10:FRICTION_ELEMENT",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "checks": 1,
+   "negative_tests": 0,
+   "failed_checks": [],
+   "vacuous_checks": [
+    "UI-SSOT-PAGE-10:FRICTION_ELEMENT"
+   ],
+   "feature": "Other page/endpoint: /api/snapshot",
+   "prior_audit_verdict": [
+    "KEEP"
+   ]
+  },
+  {
+   "row_id": "UI-SSOT-PAGE-12",
+   "verdict": "DEMOTE",
+   "why": "UNSUBSTANTIATED: pass=True but the record's own detail reports a negative condition -> UI-SSOT-PAGE-12:COPY_MODE_ELEMENT",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "checks": 1,
+   "negative_tests": 0,
+   "failed_checks": [],
+   "vacuous_checks": [
+    "UI-SSOT-PAGE-12:COPY_MODE_ELEMENT"
+   ],
+   "feature": "Other page/endpoint: /api/global-controls GET",
+   "prior_audit_verdict": [
+    "KEEP"
+   ]
+  },
+  {
+   "row_id": "UI-SSOT-TBL-01",
+   "verdict": "DEMOTE",
+   "why": "UNSUBSTANTIATED: pass=True but the record's own detail reports a negative condition -> UI-SSOT-TBL-01:COLUMN; UI-SSOT-TBL-01:NO_WALLETS_FALLBACK",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "checks": 1,
+   "negative_tests": 1,
+   "failed_checks": [],
+   "vacuous_checks": [
+    "UI-SSOT-TBL-01:COLUMN",
+    "UI-SSOT-TBL-01:NO_WALLETS_FALLBACK"
+   ],
+   "feature": "Analytics table column: WALLET",
+   "prior_audit_verdict": [
+    "KEEP"
+   ]
+  },
+  {
+   "row_id": "UI-SSOT-TBL-02",
+   "verdict": "DEMOTE",
+   "why": "UNSUBSTANTIATED: pass=True but the record's own detail reports a negative condition -> UI-SSOT-TBL-02:COLUMN",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "checks": 1,
+   "negative_tests": 0,
+   "failed_checks": [],
+   "vacuous_checks": [
+    "UI-SSOT-TBL-02:COLUMN"
+   ],
+   "feature": "Analytics table column: LEAD EQ",
+   "prior_audit_verdict": [
+    "DEMOTE"
+   ]
+  },
+  {
+   "row_id": "UI-SSOT-TBL-03",
+   "verdict": "DEMOTE",
+   "why": "UNSUBSTANTIATED: pass=True but the record's own detail reports a negative condition -> UI-SSOT-TBL-03:COLUMN",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "checks": 1,
+   "negative_tests": 0,
+   "failed_checks": [],
+   "vacuous_checks": [
+    "UI-SSOT-TBL-03:COLUMN"
+   ],
+   "feature": "Analytics table column: COPY EQ",
+   "prior_audit_verdict": [
+    "DEMOTE"
+   ]
+  },
+  {
+   "row_id": "UI-SSOT-TBL-04",
+   "verdict": "DEMOTE",
+   "why": "UNSUBSTANTIATED: pass=True but the record's own detail reports a negative condition -> UI-SSOT-TBL-04:COLUMN",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "checks": 1,
+   "negative_tests": 0,
+   "failed_checks": [],
+   "vacuous_checks": [
+    "UI-SSOT-TBL-04:COLUMN"
+   ],
+   "feature": "Analytics table column: LEAD REAL",
+   "prior_audit_verdict": [
+    "DEMOTE"
+   ]
+  },
+  {
+   "row_id": "UI-SSOT-TBL-05",
+   "verdict": "DEMOTE",
+   "why": "UNSUBSTANTIATED: pass=True but the record's own detail reports a negative condition -> UI-SSOT-TBL-05:COLUMN",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "checks": 1,
+   "negative_tests": 0,
+   "failed_checks": [],
+   "vacuous_checks": [
+    "UI-SSOT-TBL-05:COLUMN"
+   ],
+   "feature": "Analytics table column: COPY REAL",
+   "prior_audit_verdict": [
+    "DEMOTE"
+   ]
+  },
+  {
+   "row_id": "UI-SSOT-TBL-06",
+   "verdict": "DEMOTE",
+   "why": "UNSUBSTANTIATED: pass=True but the record's own detail reports a negative condition -> UI-SSOT-TBL-06:COLUMN",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "checks": 1,
+   "negative_tests": 0,
+   "failed_checks": [],
+   "vacuous_checks": [
+    "UI-SSOT-TBL-06:COLUMN"
+   ],
+   "feature": "Analytics table column: LEAD UNREAL",
+   "prior_audit_verdict": [
+    "DEMOTE"
+   ]
+  },
+  {
+   "row_id": "UI-SSOT-TBL-07",
+   "verdict": "DEMOTE",
+   "why": "UNSUBSTANTIATED: pass=True but the record's own detail reports a negative condition -> UI-SSOT-TBL-07:COLUMN",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "checks": 1,
+   "negative_tests": 0,
+   "failed_checks": [],
+   "vacuous_checks": [
+    "UI-SSOT-TBL-07:COLUMN"
+   ],
+   "feature": "Analytics table column: COPY UNREAL",
+   "prior_audit_verdict": [
+    "DEMOTE"
+   ]
+  },
+  {
+   "row_id": "UI-SSOT-TBL-08",
+   "verdict": "DEMOTE",
+   "why": "UNSUBSTANTIATED: pass=True but the record's own detail reports a negative condition -> UI-SSOT-TBL-08:COLUMN",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "checks": 1,
+   "negative_tests": 0,
+   "failed_checks": [],
+   "vacuous_checks": [
+    "UI-SSOT-TBL-08:COLUMN"
+   ],
+   "feature": "Analytics table column: LEAD DD",
+   "prior_audit_verdict": [
+    "DEMOTE"
+   ]
+  },
+  {
+   "row_id": "UI-SSOT-TBL-09",
+   "verdict": "DEMOTE",
+   "why": "UNSUBSTANTIATED: pass=True but the record's own detail reports a negative condition -> UI-SSOT-TBL-09:COLUMN",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "checks": 1,
+   "negative_tests": 0,
+   "failed_checks": [],
+   "vacuous_checks": [
+    "UI-SSOT-TBL-09:COLUMN"
+   ],
+   "feature": "Analytics table column: COPY DD",
+   "prior_audit_verdict": [
+    "DEMOTE"
+   ]
+  },
+  {
+   "row_id": "UI-SSOT-TBL-10",
+   "verdict": "DEMOTE",
+   "why": "UNSUBSTANTIATED: pass=True but the record's own detail reports a negative condition -> UI-SSOT-TBL-10:COLUMN",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "checks": 1,
+   "negative_tests": 0,
+   "failed_checks": [],
+   "vacuous_checks": [
+    "UI-SSOT-TBL-10:COLUMN"
+   ],
+   "feature": "Analytics table column: LEAD MAXDD",
+   "prior_audit_verdict": [
+    "DEMOTE"
+   ]
+  },
+  {
+   "row_id": "UI-SSOT-TBL-11",
+   "verdict": "DEMOTE",
+   "why": "UNSUBSTANTIATED: pass=True but the record's own detail reports a negative condition -> UI-SSOT-TBL-11:COLUMN",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "checks": 1,
+   "negative_tests": 0,
+   "failed_checks": [],
+   "vacuous_checks": [
+    "UI-SSOT-TBL-11:COLUMN"
+   ],
+   "feature": "Analytics table column: COPY MAXDD",
+   "prior_audit_verdict": [
+    "DEMOTE"
+   ]
+  },
+  {
+   "row_id": "UI-SSOT-TBL-12",
+   "verdict": "DEMOTE",
+   "why": "UNSUBSTANTIATED: pass=True but the record's own detail reports a negative condition -> UI-SSOT-TBL-12:COLUMN",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "checks": 1,
+   "negative_tests": 0,
+   "failed_checks": [],
+   "vacuous_checks": [
+    "UI-SSOT-TBL-12:COLUMN"
+   ],
+   "feature": "Analytics table column: Delta $/%",
+   "prior_audit_verdict": [
+    "DEMOTE"
+   ]
+  },
+  {
+   "row_id": "UI-SSOT-TBL-13",
+   "verdict": "DEMOTE",
+   "why": "UNSUBSTANTIATED: pass=True but the record's own detail reports a negative condition -> UI-SSOT-TBL-13:COLUMN",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "checks": 1,
+   "negative_tests": 0,
+   "failed_checks": [],
+   "vacuous_checks": [
+    "UI-SSOT-TBL-13:COLUMN"
+   ],
+   "feature": "Analytics table column: PNL/HR",
+   "prior_audit_verdict": [
+    "DEMOTE"
+   ]
+  },
+  {
+   "row_id": "UI-SSOT-TBL-14",
+   "verdict": "DEMOTE",
+   "why": "UNSUBSTANTIATED: pass=True but the record's own detail reports a negative condition -> UI-SSOT-TBL-14:COLUMN",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "checks": 1,
+   "negative_tests": 0,
+   "failed_checks": [],
+   "vacuous_checks": [
+    "UI-SSOT-TBL-14:COLUMN"
+   ],
+   "feature": "Analytics table column: AVG TRADE %",
+   "prior_audit_verdict": [
+    "DEMOTE"
+   ]
+  },
+  {
+   "row_id": "UI-SSOT-TBL-15",
+   "verdict": "DEMOTE",
+   "why": "UNSUBSTANTIATED: pass=True but the record's own detail reports a negative condition -> UI-SSOT-TBL-15:COLUMN",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "checks": 1,
+   "negative_tests": 0,
+   "failed_checks": [],
+   "vacuous_checks": [
+    "UI-SSOT-TBL-15:COLUMN"
+   ],
+   "feature": "Analytics table column: WIN%",
+   "prior_audit_verdict": [
+    "DEMOTE"
+   ]
+  },
+  {
+   "row_id": "UI-SSOT-TBL-16",
+   "verdict": "DEMOTE",
+   "why": "UNSUBSTANTIATED: pass=True but the record's own detail reports a negative condition -> UI-SSOT-TBL-16:COLUMN",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "checks": 1,
+   "negative_tests": 0,
+   "failed_checks": [],
+   "vacuous_checks": [
+    "UI-SSOT-TBL-16:COLUMN"
+   ],
+   "feature": "Analytics table column: AVG POS $",
+   "prior_audit_verdict": [
+    "DEMOTE"
+   ]
+  },
+  {
+   "row_id": "UI-SSOT-TBL-17",
+   "verdict": "DEMOTE",
+   "why": "UNSUBSTANTIATED: pass=True but the record's own detail reports a negative condition -> UI-SSOT-TBL-17:COLUMN",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "checks": 1,
+   "negative_tests": 0,
+   "failed_checks": [],
+   "vacuous_checks": [
+    "UI-SSOT-TBL-17:COLUMN"
+   ],
+   "feature": "Analytics table column: MAX POS $",
+   "prior_audit_verdict": [
+    "DEMOTE"
+   ]
+  },
+  {
+   "row_id": "UI-SSOT-TBL-18",
+   "verdict": "DEMOTE",
+   "why": "UNSUBSTANTIATED: pass=True but the record's own detail reports a negative condition -> UI-SSOT-TBL-18:COLUMN",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "checks": 1,
+   "negative_tests": 0,
+   "failed_checks": [],
+   "vacuous_checks": [
+    "UI-SSOT-TBL-18:COLUMN"
+   ],
+   "feature": "Analytics table column: AVG NOTIONAL",
+   "prior_audit_verdict": [
+    "DEMOTE"
+   ]
+  },
+  {
+   "row_id": "UI-SSOT-TBL-19",
+   "verdict": "DEMOTE",
+   "why": "UNSUBSTANTIATED: pass=True but the record's own detail reports a negative condition -> UI-SSOT-TBL-19:COLUMN",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "checks": 1,
+   "negative_tests": 0,
+   "failed_checks": [],
+   "vacuous_checks": [
+    "UI-SSOT-TBL-19:COLUMN"
+   ],
+   "feature": "Analytics table column: % >= $10",
+   "prior_audit_verdict": [
+    "DEMOTE"
+   ]
+  },
+  {
+   "row_id": "UI-SSOT-TBL-20",
+   "verdict": "DEMOTE",
+   "why": "UNSUBSTANTIATED: pass=True but the record's own detail reports a negative condition -> UI-SSOT-TBL-20:COLUMN",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "checks": 1,
+   "negative_tests": 0,
+   "failed_checks": [],
+   "vacuous_checks": [
+    "UI-SSOT-TBL-20:COLUMN"
+   ],
+   "feature": "Analytics table column: REQ LEV",
+   "prior_audit_verdict": [
+    "DEMOTE"
+   ]
+  },
+  {
+   "row_id": "UI-SSOT-TBL-21",
+   "verdict": "DEMOTE",
+   "why": "UNSUBSTANTIATED: pass=True but the record's own detail reports a negative condition -> UI-SSOT-TBL-21:COLUMN",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "checks": 1,
+   "negative_tests": 0,
+   "failed_checks": [],
+   "vacuous_checks": [
+    "UI-SSOT-TBL-21:COLUMN"
+   ],
+   "feature": "Analytics table column: FILLS L/C",
+   "prior_audit_verdict": [
+    "DEMOTE"
+   ]
+  },
+  {
+   "row_id": "UI-SSOT-TBL-22",
+   "verdict": "DEMOTE",
+   "why": "UNSUBSTANTIATED: pass=True but the record's own detail reports a negative condition -> UI-SSOT-TBL-22:COLUMN",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "checks": 1,
+   "negative_tests": 0,
+   "failed_checks": [],
+   "vacuous_checks": [
+    "UI-SSOT-TBL-22:COLUMN"
+   ],
+   "feature": "Analytics table column: EXITS L/C",
+   "prior_audit_verdict": [
+    "DEMOTE"
+   ]
+  },
+  {
+   "row_id": "UI-SSOT-TBL-23",
+   "verdict": "DEMOTE",
+   "why": "UNSUBSTANTIATED: pass=True but the record's own detail reports a negative condition -> UI-SSOT-TBL-23:COLUMN",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "checks": 1,
+   "negative_tests": 0,
+   "failed_checks": [],
+   "vacuous_checks": [
+    "UI-SSOT-TBL-23:COLUMN"
+   ],
+   "feature": "Analytics table column: POS L/C",
+   "prior_audit_verdict": [
+    "DEMOTE"
+   ]
+  },
+  {
+   "row_id": "UI-SSOT-TBL-24",
+   "verdict": "DEMOTE",
+   "why": "UNSUBSTANTIATED: pass=True but the record's own detail reports a negative condition -> UI-SSOT-TBL-24:COLUMN",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "checks": 1,
+   "negative_tests": 0,
+   "failed_checks": [],
+   "vacuous_checks": [
+    "UI-SSOT-TBL-24:COLUMN"
+   ],
+   "feature": "Analytics table column: INC / WALLET MODEL controls",
+   "prior_audit_verdict": [
+    "KEEP"
+   ]
+  },
+  {
+   "row_id": "UI-SSOT-TOP-01",
+   "verdict": "DEMOTE",
+   "why": "UNSUBSTANTIATED: pass=True but the record's own detail reports a negative condition -> UI-SSOT-TOP-01:NORM_BASE_ELEMENT; UI-SSOT-TOP-01:EMPTY_STATE_FALLBACK",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "checks": 1,
+   "negative_tests": 1,
+   "failed_checks": [],
+   "vacuous_checks": [
+    "UI-SSOT-TOP-01:NORM_BASE_ELEMENT",
+    "UI-SSOT-TOP-01:EMPTY_STATE_FALLBACK"
+   ],
+   "feature": "Analytics top bar: Normalisation Base",
+   "prior_audit_verdict": [
+    "KEEP"
+   ]
+  },
+  {
+   "row_id": "UI-SSOT-TOP-02",
+   "verdict": "DEMOTE",
+   "why": "UNSUBSTANTIATED: pass=True but the record's own detail reports a negative condition -> UI-SSOT-TOP-02:COPY_MODE_ELEMENT",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "checks": 1,
+   "negative_tests": 0,
+   "failed_checks": [],
+   "vacuous_checks": [
+    "UI-SSOT-TOP-02:COPY_MODE_ELEMENT"
+   ],
+   "feature": "Analytics top bar: Mode (proportional/fixed)",
+   "prior_audit_verdict": [
+    "KEEP"
+   ]
+  },
+  {
+   "row_id": "UI-SSOT-TOP-03",
+   "verdict": "DEMOTE",
+   "why": "UNSUBSTANTIATED: pass=True but the record's own detail reports a negative condition -> UI-SSOT-TOP-03:FIXED_NOTIONAL_ELEMENT",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "checks": 1,
+   "negative_tests": 0,
+   "failed_checks": [],
+   "vacuous_checks": [
+    "UI-SSOT-TOP-03:FIXED_NOTIONAL_ELEMENT"
+   ],
+   "feature": "Analytics top bar: Fixed $",
+   "prior_audit_verdict": [
+    "KEEP"
+   ]
+  },
+  {
+   "row_id": "UI-SSOT-TOP-04",
+   "verdict": "DEMOTE",
+   "why": "UNSUBSTANTIATED: pass=True but the record's own detail reports a negative condition -> UI-SSOT-TOP-04:FEE_BPS_ELEMENT",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "checks": 1,
+   "negative_tests": 0,
+   "failed_checks": [],
+   "vacuous_checks": [
+    "UI-SSOT-TOP-04:FEE_BPS_ELEMENT"
+   ],
+   "feature": "Analytics top bar: Fee bps",
+   "prior_audit_verdict": [
+    "KEEP"
+   ]
+  },
+  {
+   "row_id": "UI-SSOT-TOP-05",
+   "verdict": "DEMOTE",
+   "why": "UNSUBSTANTIATED: pass=True but the record's own detail reports a negative condition -> UI-SSOT-TOP-05:COPY_FRICTION_BPS_ELEMENT",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "checks": 1,
+   "negative_tests": 0,
+   "failed_checks": [],
+   "vacuous_checks": [
+    "UI-SSOT-TOP-05:COPY_FRICTION_BPS_ELEMENT"
+   ],
+   "feature": "Analytics top bar: Copy friction bps",
+   "prior_audit_verdict": [
+    "KEEP"
+   ]
+  },
+  {
+   "row_id": "UI-SSOT-TOP-08",
+   "verdict": "DEMOTE",
+   "why": "UNSUBSTANTIATED: pass=True but the record's own detail reports a negative condition -> UI-SSOT-TOP-08:DIRECTION_ELEMENT",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "checks": 1,
+   "negative_tests": 0,
+   "failed_checks": [],
+   "vacuous_checks": [
+    "UI-SSOT-TOP-08:DIRECTION_ELEMENT"
+   ],
+   "feature": "Analytics top bar: Updated timestamp",
+   "prior_audit_verdict": [
+    "KEEP"
+   ]
+  },
+  {
+   "row_id": "UI-TRUTH-001",
+   "verdict": "DEMOTE",
+   "why": "UNSUBSTANTIATED: pass=True but the record's own detail reports a negative condition -> UI-TRUTH-001:NO_TRUTH_TIER_FALLBACK",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "checks": 1,
+   "negative_tests": 1,
+   "failed_checks": [],
+   "vacuous_checks": [
+    "UI-TRUTH-001:NO_TRUTH_TIER_FALLBACK"
+   ],
+   "feature": "Truth tier and freshness on every value",
+   "prior_audit_verdict": [
+    "KEEP"
+   ]
+  },
+  {
+   "row_id": "UI-TRUTH-002",
+   "verdict": "DEMOTE",
+   "why": "UNSUBSTANTIATED: pass=True but the record's own detail reports a negative condition -> UI-TRUTH-002:CONDITIONAL_GREEN",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "checks": 1,
+   "negative_tests": 1,
+   "failed_checks": [],
+   "vacuous_checks": [
+    "UI-TRUTH-002:CONDITIONAL_GREEN"
+   ],
+   "feature": "No cosmetic green",
+   "prior_audit_verdict": [
+    "KEEP"
+   ]
+  },
+  {
+   "row_id": "UI-TRUTH-004",
+   "verdict": "DEMOTE",
+   "why": "UNSUBSTANTIATED: pass=True but the record's own detail reports a negative condition -> UI-TRUTH-004:FRESHNESS_SHOWN; UI-TRUTH-004:STALE_DATA_FLAG",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "checks": 1,
+   "negative_tests": 1,
+   "failed_checks": [],
+   "vacuous_checks": [
+    "UI-TRUTH-004:FRESHNESS_SHOWN",
+    "UI-TRUTH-004:STALE_DATA_FLAG"
+   ],
+   "feature": "At-a-glance wallet, portfolio and system health",
+   "prior_audit_verdict": [
+    "KEEP"
+   ]
+  },
+  {
+   "row_id": "UI-WALLET-001",
+   "verdict": "KEEP",
+   "why": "row record PASS; 11/11 checks pass (6 negative tests), 0 failed; proof is the engine's own wallet/config semantics path, matching the row's declared execution_proof (UI action -> config write -> running engine reads it)",
+   "evidence_ref": "certification/results/WALLET_fa9d9f55ff.json",
+   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+   "checks": 11,
+   "negative_tests": 6,
+   "failed_checks": [],
+   "vacuous_checks": [],
+   "feature": "Add a leader wallet",
+   "prior_audit_verdict": [
+    "KEEP"
+   ]
+  },
+  {
+   "row_id": "UI-WALLET-003",
+   "verdict": "KEEP",
+   "why": "row record PASS; 7/7 checks pass (2 negative tests), 0 failed; proof is the engine's own wallet/config semantics path, matching the row's declared execution_proof (UI action -> config write -> running engine reads it)",
+   "evidence_ref": "certification/results/WALLET_fa9d9f55ff.json",
+   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+   "checks": 7,
+   "negative_tests": 2,
+   "failed_checks": [],
+   "vacuous_checks": [],
+   "feature": "Enable a leader wallet (LIVE)",
+   "prior_audit_verdict": [
+    "KEEP"
+   ]
+  },
+  {
+   "row_id": "UI-WALLET-004",
+   "verdict": "KEEP",
+   "why": "row record PASS; 6/6 checks pass (2 negative tests), 0 failed; proof is the engine's own wallet/config semantics path, matching the row's declared execution_proof (UI action -> config write -> running engine reads it)",
+   "evidence_ref": "certification/results/WALLET_fa9d9f55ff.json",
+   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+   "checks": 6,
+   "negative_tests": 2,
+   "failed_checks": [],
+   "vacuous_checks": [],
+   "feature": "Disable a leader wallet",
+   "prior_audit_verdict": [
+    "KEEP"
+   ]
+  },
+  {
+   "row_id": "UI-WALLET-005",
+   "verdict": "KEEP",
+   "why": "row record PASS; 6/6 checks pass (2 negative tests), 0 failed; proof is the engine's own wallet/config semantics path, matching the row's declared execution_proof (UI action -> config write -> running engine reads it)",
+   "evidence_ref": "certification/results/WALLET_fa9d9f55ff.json",
+   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+   "checks": 6,
+   "negative_tests": 2,
+   "failed_checks": [],
+   "vacuous_checks": [],
+   "feature": "Close-only a leader wallet (CLO)",
+   "prior_audit_verdict": [
+    "KEEP"
+   ]
+  },
+  {
+   "row_id": "UI-WALLET-007",
+   "verdict": "KEEP",
+   "why": "row record PASS; 5/5 checks pass (2 negative tests), 0 failed; proof is the engine's own wallet/config semantics path, matching the row's declared execution_proof (UI action -> config write -> running engine reads it)",
+   "evidence_ref": "certification/results/WALLET_fa9d9f55ff.json",
+   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+   "checks": 5,
+   "negative_tests": 2,
+   "failed_checks": [],
+   "vacuous_checks": [],
+   "feature": "Norm base (N)",
+   "prior_audit_verdict": [
+    "KEEP"
+   ]
+  },
+  {
+   "row_id": "UI-WALLET-009",
+   "verdict": "KEEP",
+   "why": "row record PASS; 3/3 checks pass (1 negative tests), 0 failed; proof is the engine's own wallet/config semantics path, matching the row's declared execution_proof (UI action -> config write -> running engine reads it)",
+   "evidence_ref": "certification/results/WALLET_fa9d9f55ff.json",
+   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+   "checks": 3,
+   "negative_tests": 1,
+   "failed_checks": [],
+   "vacuous_checks": [],
+   "feature": "Leader equity base (B)",
+   "prior_audit_verdict": [
+    "KEEP"
+   ]
+  },
+  {
+   "row_id": "UI-WALLET-010",
+   "verdict": "KEEP",
+   "why": "row record PASS; 7/7 checks pass (3 negative tests), 0 failed; proof is the engine's own wallet/config semantics path, matching the row's declared execution_proof (UI action -> config write -> running engine reads it)",
+   "evidence_ref": "certification/results/WALLET_fa9d9f55ff.json",
+   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+   "checks": 7,
+   "negative_tests": 3,
+   "failed_checks": [],
+   "vacuous_checks": [],
+   "feature": "Wallet status and position/target representation",
+   "prior_audit_verdict": [
+    "KEEP"
+   ]
+  },
+  {
+   "row_id": "UI-WALLET-011",
+   "verdict": "KEEP",
+   "why": "row record PASS; 8/8 checks pass (2 negative tests), 0 failed; proof is the engine's own wallet/config semantics path, matching the row's declared execution_proof (UI action -> config write -> running engine reads it)",
+   "evidence_ref": "certification/results/WALLET_fa9d9f55ff.json",
+   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+   "checks": 8,
+   "negative_tests": 2,
+   "failed_checks": [],
+   "vacuous_checks": [],
+   "feature": "Persistence and restart",
+   "prior_audit_verdict": [
+    "KEEP"
+   ]
+  },
+  {
+   "row_id": "UI-WALLET-012",
+   "verdict": "KEEP",
+   "why": "row record PASS; 11/11 checks pass (3 negative tests), 0 failed; proof is the engine's own wallet/config semantics path, matching the row's declared execution_proof (UI action -> config write -> running engine reads it)",
+   "evidence_ref": "certification/results/WALLET_fa9d9f55ff.json",
+   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+   "checks": 11,
+   "negative_tests": 3,
+   "failed_checks": [],
+   "vacuous_checks": [],
+   "feature": "Invalid input handling",
+   "prior_audit_verdict": [
+    "KEEP"
+   ]
+  },
+  {
+   "row_id": "UI-WALLET-013",
+   "verdict": "KEEP",
+   "why": "row record PASS; 4/4 checks pass (2 negative tests), 0 failed; proof is the engine's own wallet/config semantics path, matching the row's declared execution_proof (UI action -> config write -> running engine reads it)",
+   "evidence_ref": "certification/results/WALLET_fa9d9f55ff.json",
+   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+   "checks": 4,
+   "negative_tests": 2,
+   "failed_checks": [],
+   "vacuous_checks": [],
+   "feature": "USER/account wallet can never be enabled",
+   "prior_audit_verdict": [
+    "KEEP"
+   ]
+  },
+  {
+   "row_id": "UI-WALLET-016",
+   "verdict": "KEEP",
+   "why": "row record PASS; 6/6 checks pass (2 negative tests), 0 failed; proof is the engine's own wallet/config semantics path, matching the row's declared execution_proof (UI action -> config write -> running engine reads it)",
+   "evidence_ref": "certification/results/WALLET_fa9d9f55ff.json",
+   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+   "checks": 6,
+   "negative_tests": 2,
+   "failed_checks": [],
+   "vacuous_checks": [],
+   "feature": "Include in portfolio (INC)",
+   "prior_audit_verdict": [
+    "KEEP"
+   ]
+  },
+  {
+   "row_id": "UI-WALLET-017",
+   "verdict": "KEEP",
+   "why": "row record PASS; 6/6 checks pass (1 negative tests), 0 failed; proof is the engine's own wallet/config semantics path, matching the row's declared execution_proof (UI action -> config write -> running engine reads it)",
+   "evidence_ref": "certification/results/WALLET_fa9d9f55ff.json",
+   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+   "checks": 6,
+   "negative_tests": 1,
+   "failed_checks": [],
+   "vacuous_checks": [],
+   "feature": "Wallet meta (tag/colour/note)",
+   "prior_audit_verdict": [
+    "KEEP"
+   ]
+  },
+  {
+   "row_id": "UI-WALLET-018",
+   "verdict": "KEEP",
+   "why": "row record PASS; 6/6 checks pass (2 negative tests), 0 failed; proof is the engine's own wallet/config semantics path, matching the row's declared execution_proof (UI action -> config write -> running engine reads it)",
+   "evidence_ref": "certification/results/WALLET_fa9d9f55ff.json",
+   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+   "checks": 6,
+   "negative_tests": 2,
+   "failed_checks": [],
+   "vacuous_checks": [],
+   "feature": "Duplicate add / re-add archived",
+   "prior_audit_verdict": [
+    "KEEP"
+   ]
+  },
+  {
+   "row_id": "UI-WALLET-019",
+   "verdict": "KEEP",
+   "why": "row record PASS; 5/5 checks pass (2 negative tests), 0 failed; proof is the engine's own wallet/config semantics path, matching the row's declared execution_proof (UI action -> config write -> running engine reads it)",
+   "evidence_ref": "certification/results/WALLET_fa9d9f55ff.json",
+   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+   "checks": 5,
+   "negative_tests": 2,
+   "failed_checks": [],
+   "vacuous_checks": [],
+   "feature": "Wallet subscription coverage",
+   "prior_audit_verdict": [
+    "KEEP"
+   ]
+  }
+ ]
+}
