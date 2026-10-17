@@ -53,6 +53,30 @@ One JSON document, plus the files it references, committed on your isolated bran
 }
 ```
 
+## THE PROCESS RULE — bind to the build the RUNNING PROCESS loads, not the disk HEAD
+
+**This one invalidated two otherwise-clean artifacts.** Both cited a serving commit that the `:8031`
+process could not possibly have been running: the process (PID 8668) started `2026-10-15T09:28:40Z`,
+while `b5e6d613` was committed `2026-10-16T22:37:14Z` and `6cf5dcf6` at `2026-10-16T23:32:31Z` — both
+**after** the process started. A process cannot execute code committed after it began.
+
+**A checkout's `git rev-parse HEAD` is NOT the serving build.** The repo on disk can be updated while a
+long-running process keeps executing the older code it loaded at launch (`--reload` absent).
+
+Before citing any `serving_commit`:
+
+1. Get the **process's start time** (`wmic process where "ProcessId=<pid>" get CreationDate`) — from
+   bash, not from Python's subprocess, which cannot resolve `wmic`.
+2. Get the **commit's date** (`git log -1 --format=%cI <commit>`).
+3. **The commit MUST predate the process start.** If it does not, that commit is NOT what is being
+   served — find the build whose date is earlier, or bind to a **hash of what the process actually
+   serves** (rendered DOM / served JS bytes), which is the strongest available evidence.
+4. Prefer binding to content the process serves rather than to any commit when the launch checkout is
+   uncertain.
+
+Record the method and both timestamps in the artifact. A binding that cannot survive this arithmetic
+check is a FAIL.
+
 ## Control-write rows: the authorised isolated write-test (controller ruling)
 
 Control rows (save / CLO / OFF / archive) cannot be proven read-only. **Supervised write-tests are
