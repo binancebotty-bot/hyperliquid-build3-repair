@@ -1,0 +1,58 @@
+{
+  "baseline": {
+    "files": [
+      "convergence_shadow.py",
+      "exchange_truth.py",
+      "HL_Copy_App_SSOT.py",
+      "HL_Live_Copy_Service.py",
+      "HL_Live_Copy_Service_Core.py"
+    ],
+    "all_sites": [
+      {
+        "file": "HL_Live_Copy_Service.py",
+        "line": 1036,
+        "receiver": "exchange",
+        "manual_cli_gate": true
+      },
+      {
+        "file": "HL_Live_Copy_Service_Core.py",
+        "line": 2703,
+        "receiver": "exchange",
+        "manual_cli_gate": false
+      }
+    ],
+    "automated": [
+      {
+        "file": "HL_Live_Copy_Service_Core.py",
+        "line": 2703,
+        "receiver": "exchange",
+        "manual_cli_gate": false
+      }
+    ],
+    "manual": [
+      {
+        "file": "HL_Live_Copy_Service.py",
+        "line": 1036,
+        "receiver": "exchange",
+        "manual_cli_gate": true
+      }
+    ],
+    "spawns": [],
+    "unexpected": {},
+    "checks": {
+      "one_automated_send_site": true,
+      "no_process_spawns": true,
+      "no_unexpected_imports": true,
+      "engine_wide_scope": true
+    },
+    "result": "PASS"
+  },
+  "mutation": {
+    "expected": "FAIL",
+    "actual": "FAIL",
+    "base_sites": 2,
+    "mut_sites": 3,
+    "non_vacuous": true
+  },
+  "verdict": "PASS"
+}
