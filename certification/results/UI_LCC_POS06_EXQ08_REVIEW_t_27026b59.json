@@ -1,0 +1,117 @@
+{
+ "reviewer_task": "t_27026b59",
+ "author_task": "t_6b2c80f7",
+ "branch": "hermes/cert11-ui-lcc-pos06-exq08-t_6b2c80f7",
+ "reviewed_head": "2f1767a3e01ebe5b5b8d3a7dcc20f9952ecbdc57",
+ "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+ "reviewer_model": "deepseek-v4-flash-thinking-nosearch via custom-deepseek-free",
+ "binding": "PID 33368 is the sole listener on 127.0.0.1:8031 (netstat -ano). Serving dir C:/Users/wigmore/trading_stack/hl-build3-testnet-cert-j28-89b3bc7 is a git checkout at 89b3bc7586bf328df336fc9ea721cee212617762 and its working-tree _archive/hl_stage2/HL_Copy_App_SSOT.py is unmodified (git diff --quiet HEAD rc=0); blob delta 154cf48 vs 72cf65f is core.autocrlf=true CRLF only. Commit 07:18:14Z precedes process start 10:54:09Z, so THE PROCESS RULE holds.",
+ "evidence_existence": "All three cited paths exist on the reviewed head and branch blobs hash-match the files probed: verdicts f1743a61fc3d1ee2a4fa30db07e57e52f88a8b3d41bb076a15b81b9c19d94baa, evidence d78e7a5d605ed5ddb3af052ec32a6df8dc79a1480cdd907548f1ba3df67d58aa, atomic 405f6ad06ca45f842257fe92d957549ac22cb476d0c3525c698901261473594c.",
+ "independence": "Recomputed every binding from the committed atomic DOM+payload, not from the author map. Served template (source line 7156) declares 18 th with colspan=18 while the render emits 19 td: time,leader_wallet,coin,side,truth_state,status,terminal_state,operator_action,reject_category,oid,fill_avg_px,fill_size,POS,leader_to_send_ms,send_total_ms,symbol_resolve_ms,sdk_client_ms,exchange_call_ms,error. So cell i (i>=4) carries declared header i-1. Mutation control is payload[k+37]; structural mutations were also run (swap cells 4/5; shuffle wallet column).",
+ "rows": [
+  {
+   "row_id": "UI-LCC-POS-06",
+   "verdict": "FAIL",
+   "probe": "owned payload mark_px non-null 0/465; owned thead (source line 7144) has 9 headers, none a mark column",
+   "why": "The only Mark px header (line 7146) heads POSITIONS NOT OPENED BY THE ENGINE, which renders orphan rows, not copy positions; the copy-positions table has no mark column, so it is absent from the build, not merely unpopulated. FAIL upheld."
+  },
+  {
+   "row_id": "UI-LCC-POS-07",
+   "verdict": "FAIL",
+   "probe": "owned payload position_value non-null 0/465; no position-value header in the owned thead",
+   "why": "No Pos value column exists in the copy-positions table. FAIL upheld."
+  },
+  {
+   "row_id": "UI-LCC-POS-08",
+   "verdict": "FAIL",
+   "probe": "owned payload unrealized_pnl non-null 0/465; no PnL header in the owned thead",
+   "why": "No Unrealized PnL column exists in the copy-positions table. FAIL upheld."
+  },
+  {
+   "row_id": "UI-LCC-POS-09",
+   "verdict": "PASS",
+   "probe": "wallet cell vs payload[k] 465/465; cross37 only 96/465; shuffled-wallet mutation drops to 93/465; (coin,side,signed_size) keyjoin 464/464",
+   "why": "Row-bound and falsifiable: shuffling the wallet column breaks it. PASS upheld."
+  },
+  {
+   "row_id": "UI-LCC-POS-10",
+   "verdict": "FAIL",
+   "probe": "owned thead 9 headers, no Status; owned payload has no status/state field, only ledger_vs_exchange",
+   "why": "The only status-shaped cell is the Ledger/exchange reconciliation badge, which compares ledger to exchange rather than reporting position status. FAIL upheld."
+  },
+  {
+   "row_id": "UI-LCC-POS-11",
+   "verdict": "FAIL",
+   "probe": "no Last OID header; payload last_oid non-empty 0/465; Last copy fill renders a 0x fill id on 465/465",
+   "why": "Order identity is never displayed; the nearest column shows last_copy_fill_id. FAIL upheld."
+  },
+  {
+   "row_id": "UI-LCC-POS-12",
+   "verdict": "FAIL",
+   "probe": "Last updated renders only the em-dash on 465/465; payload last_updated_ms non-null 465/465; renderer (line 7596) formats r.last_updated_at, empty on 465/465",
+   "why": "The timestamp is in the same payload and never displayed: a product defect in the renderer, not an oracle gap. FAIL upheld."
+  },
+  {
+   "row_id": "UI-LCC-EXQ-01",
+   "verdict": "PASS",
+   "probe": "cell00 exact equality vs payload[k] is 0/300 because the cell is elided to 22 chars; the 22-char prefix is unique on 275/300 rows, agrees 300/300 with payload[k] time and 0/300 cross-row",
+   "why": "Row-bound under the elided-text convention also used for Wallet; the value derives from that row and collides with no sibling. PASS upheld; the author why omits the elision."
+  },
+  {
+   "row_id": "UI-LCC-EXQ-02",
+   "verdict": "PASS",
+   "probe": "cell01 vs payload[k] 300/300, cross37 64",
+   "why": "Distinct per row and the mutation control fails. PASS upheld."
+  },
+  {
+   "row_id": "UI-LCC-EXQ-03",
+   "verdict": "PASS",
+   "probe": "cell02 vs payload[k] 300/300, cross37 13",
+   "why": "PASS upheld; the author 293/300 undercounts, direction unchanged."
+  },
+  {
+   "row_id": "UI-LCC-EXQ-04",
+   "verdict": "PASS",
+   "probe": "cell03 vs payload[k] 300/300, cross37 158",
+   "why": "PASS upheld."
+  },
+  {
+   "row_id": "UI-LCC-EXQ-05",
+   "verdict": "FAIL",
+   "probe": "cell04 vs payload[k] truth_state 300/300; swapping DOM cells 4 and 5 drops status agreement to 0/300",
+   "why": "No cell carries status under the Status header and the predicate is falsifiable. FAIL upheld, but the author evidence is wrong: cell 4 carries truth_state, not terminal_state, and cell 5 (Terminal state) carries status."
+  },
+  {
+   "row_id": "UI-LCC-EXQ-06",
+   "verdict": "FAIL",
+   "probe": "source line 7156 declares 18 th with colspan=18 while the live DOM renders 19 td on 300/300 rows; execq payload limit_px non-null 300/300 and no Limit px header exists",
+   "why": "Limit px is absent from the build although the payload has it on every row, and the undeclared truth_state cell at index 4 shifts every declared column from Status onward. FAIL upheld."
+  },
+  {
+   "row_id": "UI-LCC-EXQ-07",
+   "verdict": "FAIL",
+   "probe": "cell09 vs payload[k] oid 300/300 and vs fill_avg_px 0/300",
+   "why": "The Fill avg px column shows the order id. FAIL upheld."
+  },
+  {
+   "row_id": "UI-LCC-EXQ-08",
+   "verdict": "FAIL",
+   "probe": "cell10 vs payload[k] fill_avg_px 300/300 and vs fill_size 0/300",
+   "why": "The Size column shows the average fill price. FAIL upheld."
+  }
+ ],
+ "verdict_counts": {
+  "PASS": 5,
+  "FAIL": 10,
+  "NOT_TESTED": 0
+ },
+ "overall": "AGREE 15/15: every author verdict upheld, no row demoted, so no verdict-level REDO is required. Author evidence documentation has a shift error and one undercount (listed) that should be fixed before this artifact is cited as the Execution Quality reference.",
+ "evidence_detail_errors": [
+  "rendered_cell_to_payload_field maps cell 4 to terminal_state; recompute says truth_state (300/300).",
+  "the same map assigns cell 14 to time; recompute says send_total_ms (300/300).",
+  "the EXQ-05 why repeats the claim that cell 4 carries terminal_state; it carries truth_state.",
+  "EXQ-01 why asserts time equality without disclosing the 22-char elision (exact equality 0/300).",
+  "rendered_cell_to_payload_field omits keys 12 and 13 although cells 12,13 carry POS and leader_to_send_attempt_ms."
+ ],
+ "numeric_correction": "author EXQ-03 reports 293/300 coin agreement; independent recompute gives 300/300."
+}
