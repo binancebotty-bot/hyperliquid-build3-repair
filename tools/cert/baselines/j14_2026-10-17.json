@@ -1,0 +1,28 @@
+{
+  "_comment": "Known-gap baseline for the testnet ledger verifier, taken from the J14 20-coin reconciliation table posted 2026-10-17T02:43:19Z (repo binancebotty-bot/hyperliquid-build3-repair, comment 6228641796). delta = exchange_minus_engine in COIN UNITS, exactly as the table's \"delta units\" column. A coin listed here may keep its delta; any other coin with a gap, or a listed coin whose delta moves, is a MISMATCH.",
+  "as_of": "2026-10-17T02:35:46Z",
+  "source": "issue/PR comment 6228641796 (J14 read-only ledger reconciliation)",
+  "drift_tol": 1e-06,
+  "coins": {
+    "AR": 1.47,
+    "ASTER": 16.0,
+    "BABY": 1.0,
+    "COMP": -0.54,
+    "ETC": -1.51,
+    "FARTCOIN": -47.3,
+    "GALA": -4340.0,
+    "GAS": 8.9,
+    "GOAT": -474.0,
+    "INJ": -1.7,
+    "KAS": 324.0,
+    "MORPHO": 4.9,
+    "NXPC": 1.0,
+    "ONDO": 153.0,
+    "PAXG": -0.003,
+    "SNX": -114.4,
+    "STBL": 8.0,
+    "SYRUP": -58.0,
+    "WCT": -265.0,
+    "XLM": -65.0
+  }
+}
