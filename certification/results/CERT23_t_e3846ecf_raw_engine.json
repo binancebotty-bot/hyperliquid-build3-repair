@@ -1,0 +1,44 @@
+{
+ "I01": {
+  "r": {
+   "processed": false,
+   "reason": "BASELINE_CREATED_FROM_WS"
+  },
+  "leader_pos": {},
+  "slices": {},
+  "processed": []
+ },
+ "I01_MUTATED_BASELINE": {
+  "r": {
+   "processed": true,
+   "reason": "LIVE_WS_DETECTED"
+  },
+  "processed": [
+   "f1"
+  ]
+ },
+ "I02": {
+  "restart_leader_pos": {},
+  "stale_r": {
+   "processed": false,
+   "reason": "WS_BEFORE_BASELINE"
+  },
+  "after_leader_pos": {}
+ },
+ "I03": {
+  "ws_result": {
+   "processed": true,
+   "reason": "LIVE_WS_DETECTED"
+  },
+  "rest_result": null,
+  "processed_count": 1
+ },
+ "I05": {
+  "exception": null,
+  "event_still_processed": true,
+  "processed": [
+   "genuine1"
+  ],
+  "recon_rows": 1
+ }
+}

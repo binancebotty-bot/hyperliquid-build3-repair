@@ -1,0 +1,170 @@
+{
+ "batch": "CERT 23/53",
+ "task_id": "t_e3846ecf",
+ "rows": [
+  "CTRL-I22",
+  "CTRL-I23",
+  "CTRL-GATE0",
+  "CTRL-BIND",
+  "CTRL-HWM",
+  "CTRL-EVID",
+  "CTRL-ESC",
+  "B4-I01",
+  "B4-I02",
+  "B4-I03",
+  "B4-I04",
+  "B4-I05",
+  "B4-I06",
+  "B4-I07",
+  "B4-I08"
+ ],
+ "tested_commit": "b142cf88d389e791160f691aac3d936852b99975",
+ "engine_blob": "_archive/hl_stage2/HL_Live_Copy_Service.py",
+ "engine_blob_sha256": "e2f04fa826958c73169bae2490a6ebb3ebfd09d9aecda513ef0d7bd8a10ec2c6",
+ "engine_blob_identical_at": [
+  "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+  "b142cf88d389e791160f691aac3d936852b99975"
+ ],
+ "control_mailbox_head": "97d8e350b0593ffb649d5ab7bfef5aea72edf0f2",
+ "envelope_count": 102,
+ "python": "3.11.9 C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe",
+ "prior_evidence_rejected": {
+  "control_file": "certification/results/CONTROL_fa9d9f55ff.json",
+  "regression_file": "certification/results/REGRESSION_fa9d9f55ff.json",
+  "reason": "Control rows carry a 24-check shared sweep of which 14 checks are byte-identical boilerplate across every row; 3 of the row-named checks (KEY_ENVELOPES_HAVE_TASK_ID, EVERY_HANDOFF_HAS_COMMIT_SHA, EVERY_HANDOFF_HAS_FILES_CHANGED) would pass for any row and are contradicted by direct measurement. Regression rows carry exactly 1 auto-named check per row with an EMPTY detail string - no assertion, cannot fail. CTRL-BIND has no row in the control file at all.",
+  "regression_sweep_shape": "138 rows, 138 single-check rows, 32 checks with empty detail",
+  "named_build4_tests_present_at_tested_commit": 0,
+  "named_build4_tests_checked": [
+   "test_new_events_only_authority.py",
+   "test_ws_first_acceptance.py",
+   "test_ws_first_execution.py",
+   "test_feed_manager.py",
+   "test_live_event_lifecycle_exactly_once.py",
+   "test_handover_lease_directory_contract.py",
+   "test_idle_no_post_baseline_event.py",
+   "test_unified_account_truth.py",
+   "test_live_fill_truth_429_fail_closed.py"
+  ]
+ },
+ "probes": {
+  "engine_behaviour": {
+   "I01": {
+    "r": {
+     "processed": false,
+     "reason": "BASELINE_CREATED_FROM_WS"
+    },
+    "leader_pos": {},
+    "slices": {},
+    "processed": []
+   },
+   "I01_MUTATED_BASELINE": {
+    "r": {
+     "processed": true,
+     "reason": "LIVE_WS_DETECTED"
+    },
+    "processed": [
+     "f1"
+    ]
+   },
+   "I02": {
+    "restart_leader_pos": {},
+    "stale_r": {
+     "processed": false,
+     "reason": "WS_BEFORE_BASELINE"
+    },
+    "after_leader_pos": {}
+   },
+   "I03": {
+    "ws_result": {
+     "processed": true,
+     "reason": "LIVE_WS_DETECTED"
+    },
+    "rest_result": null,
+    "processed_count": 1
+   },
+   "I05": {
+    "exception": null,
+    "event_still_processed": true,
+    "processed": [
+     "genuine1"
+    ],
+    "recon_rows": 1
+   }
+  },
+  "b4_static_and_sleeve": {
+   "I04_three_missed_increases_slices": 3,
+   "I04_one_net_event_slices": 1,
+   "I04_net_equals_missed": false,
+   "I06_cloid_occurrences": 0,
+   "I06_client_order_id_occurrences": 0,
+   "I07_follower_truth_before_order": false,
+   "I07_presend_snapshot_is_master_net": false,
+   "I08_count_lease": 4,
+   "I08_count_fence": 0,
+   "I08_count_msvcrt": 0,
+   "I08_count_fcntl": 0,
+   "I08_count_CreateMutex": 0,
+   "I08_count_lock_file": 0,
+   "I08_count_lockfile": 0,
+   "I08_order_call_sites": 1
+  },
+  "authority_and_i05": {
+   "AUTHORITY_SOURCE_values": [
+    "ARCHITECT_COMMAND_6060195161_CONTROLLER_RULING_6062206639",
+    "ARCHITECT_G3_PASS_GRAPHIFY_RULING_12fa6197",
+    "B3-A2C-G3-PASS-GRAPHIFY-RULING-1",
+    "B3-A2C-G4-8014-SLICE-SEMANTICS-RULING-1",
+    "BUILD3_COMMISSION_AND_CONTINUE_1",
+    "CONTROLLER_ADJUDICATES_C2A_PASS",
+    "CONTROLLER_C1_SOURCE_AND_TEST_REVIEW",
+    "CONTROLLER_C1_SOURCE_REVIEW",
+    "CONTROLLER_DISPOSITION_AFTER_ARCHITECT_SEQ65",
+    "CONTROLLER_ESCALATION_ARCHITECT_F3",
+    "CONTROLLER_G3_PASS_6065132657",
+    "CONTROLLER_G4_AUTHORITY_ESCALATION_DFA7AE42",
+    "CONTROLLER_G4_C1_OFFLINE_PASS",
+    "CONTROLLER_G4_EVIDENCE_REVIEW",
+    "CONTROLLER_G4_F7_CODE_REVIEW",
+    "CONTROLLER_G4_ONE_BOUNDED_TASK",
+    "CONTROLLER_G4_ORIGINAL_SOURCE_EVIDENCE_REVIEW",
+    "CONTROLLER_REVIEW_ARCHITECT_G4",
+    "CONTROLLER_TRANSPORT_RECOVERY_AFTER_NO_CONSUMPTION_EVIDENCE",
+    "GLOBAL_MD_ESCALATION_6065872233",
+    "PROJECT_CONTROLLER_REVIEW_ARCHITECT_G4",
+    "RICHARD_AUTHORITY_BOUNDARY_CORRECTION",
+    "RICHARD_CLEARED_ARCHITECT_COMPOSER",
+    "RICHARD_HUMAN_AUTHORITY",
+    "RICHARD_HUMAN_AUTHORITY_CLARIFICATION",
+    "RICHARD_OPERATOR_BOOTSTRAP_CONTROLLER_GENERATION2",
+    "RICHARD_OPERATOR_EXACT_BUILD3_ARCHIVE_ROOT",
+    "RICHARD_OPERATOR_LOCAL_ARCHIVE_LOCATION_HINT",
+    "RICHARD_OPERATOR_REALIGNMENT_ONLY_AFTER_ARCHITECT_SEQ70",
+    "RICHARD_OPERATOR_REQUEST_AND_ARCHITECT_SEQ67_SEQ68",
+    "company-control-v1"
+   ],
+   "authority_source_model_names": [],
+   "NOTIFICATION_has_authority_source": [],
+   "types_with_authority_source": [
+    "DIRECTIVE",
+    "ESCALATION",
+    "RESULT"
+   ],
+   "I05_processed_ids": [
+    "g1"
+   ],
+   "I05_leader_event_positions": {
+    "0x1111111111111111111111111111111111111111::BTC": 1.0
+   },
+   "I05_authority_survived_truth_failure": true,
+   "I05_would_send_lines": 1
+  },
+  "control_mailbox": "ENVELOPES 102\n--- authority-bearing types\n  B3-C2A-ACK-1 ACK AUTH_SRC= None ACTION= None DIR= None\n  B3-C2H-INGRESS-RESULT-1 NOTIFICATION AUTH_SRC= None ACTION= None DIR= B3-C2H-P0-BIND-BUILD3-INGRESS-1\nSEQ count 102 min 1 max 71 distinct 62\nSEQ duplicates [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 15, 18, 19, 20, 22, 23, 25, 27, 28, 30, 32, 33, 34, 37, 39, 42, 45]\n--- model/provider mentions\n  B3-C2H-G3-1 DIRECTIVE ['provider']\n  B3-C2H-G3-FAIL-1 RULING ['self.account_net_provider']\n  B3-C2A-G3-AUTHORITY-SCOPE-ESCALATION-1 ESCALATION ['account_net_provider']\n  B3-C2H-G3-CORRECTION-1 DIRECTIVE ['account_net_provider', 'provider', 'account_net_provider']\n  B3-A2H-DELIVERY-HARDENING-AMEND-F-REPLY-1 RESPONSE ['provider', 'nF-T1_LIVE_PROVIDER']\n  B3-C2H-MD-P0-HOLD-1 DIRECTIVE ['provider', 'provider']\n  B3-C2H-P0-BIND-BUILD3-INGRESS-1 DIRECTIVE ['provider']\n  B3-C2H-Z9-CORRELATE-WAKE-TO-TURNSTART-1 DIRECTIVE ['user/model', 'user/model']\n  B3-C2H-Z9-USE-TURNCONTEXT-CORRELATION-1 DIRECTIVE ['model/user', 'user/model']\n  B3-C2H-G4-EVIDENCE-RECOVERY-1 DIRECTIVE ['model.', 'E_INTENDED_TARGET_MODEL', 'model.']\n  B3-C2A-G4-AUTHORITY-ESCALATION-1 ESCALATION ['model_copy_notional', 'model.', 'E_INTENDED_TARGET_MODEL']\n  B3-C2H-G4-LOCATE-ORIGINAL-HL_STAGE2-UI-1 DIRECTIVE ['model_copy_notional', 'model_copy_notional']\n  B3-C2H-G4-AUTHENTICATE-ORIGINAL-UI-FIXED-MODEL-1 DIRECTIVE ['ORIGINAL-UI-FIXED-MODEL-1', 'ORIGINAL-UI-FIXED-MODEL-1', 'L-UI-FIXED-TARGET-MODEL']\n  B3-C2A-G4-8014-SLICE-SEMANTICS-RULING-1 DIRECTIVE ['ORIGINAL-UI-FIXED-MODEL-1', 'L-UI-FIXED-TARGET-MODEL', 'ENT_SLICED_SLEEVE_MODEL']\n  B3-C2H-P0-HERMES-CONTROLLER-ONLY-FINAL-READ-1 DIRECTIVE ['model/session', 'model/session']\n  B3-C2H-REALIGN-CFF93B-ACK-1 RESULT ['modelling', 'modelling']\nTOTAL model/provider envelopes 16\n--- HWM: file-change-only evidence in envelopes\n  B3-C2A-G2-SCOPE-ESCALATION-2 ESCALATION\n  B3-C2H-WAKE-REALIGN-1 RULING\n  B3-C2H-P0-FIX-UNSEEN-PUSH-CONSUMER-1 DIRECTIVE\nTOTAL 3\n--- BIND\nmailbox-branch CONTROL_STATE updated_utc 2026-10-07T18:55:00Z\nrepo CONTROL_STATE updated_utc 2026-10-14T14:12:00Z\ncontract controller 6ac8e179-932c-83ed-b9ca-1bdc5c976d5d ACTIVE v 2\ncontract architect 6ac8e151-e9f4-83eb-86d0-ba5b917ba09a ACTIVE v 2\nstate controller 6ac6427b-8df0-83eb-beb8-3b6e8796d1e1 ACTIVE\nstate architect 6ac680c7-6d84-83eb-8c7d-d3706cea33fc ACTIVE\nAGREE controller False AGREE architect False\ndispute UNRESOLVED_REQUIRES_ADJUDICATION\nretired ['6ac16cbd-7528-83ed-8330-bc7a0a80042e', '6ac69838-2d80-83eb-8349-72a84f4ec1a2', '6ac62652-9610-83eb-bc72-b60131cd719a', '6ac51107-dddc-83eb-9352-908ae99e3215', '6ac4ce9d-73bc-83eb-8968-5b577ccdb065', '6ac4c8d6-2fc0-83ed-895d-fc3b7ed7098a', '6ac16c89-0da8-83ed-9e2b-d3d9a5b4b1c0', '6ac680c7-6d84-83eb-8c7d-d3706cea33fc', '6ac7a51f-d400-83ed-b035-f520ef747394']\ncontract keys ['authority_source', 'control_branch', 'control_root', 'created_utc', 'highwater_requirements', 'human_authority', 'implementation_authorization_relations', 'parallel_project_control_surfaces_forbidden', 'project_id', 'registered_control_surfaces', 'retired_binding_uuids', 'schema', 'source_provenance_bindings', 'source_role_bindings', 'target_role_bindings', 'version']\n"
+ },
+ "reproduce": {
+  "engine": "python3.11 probe_engine.py",
+  "b4b": "python3.11 probe_b4b.py",
+  "final": "python3.11 probe_final.py",
+  "ctrl": "python3.11 probe_ctrl.py",
+  "note": "Probes read ./engine.py and ./env/control_mailbox/inbox/*.json. Reproduce from this repo: (1) git show b142cf88:_archive/hl_stage2/HL_Live_Copy_Service.py > engine.py (sha256 must equal engine_blob_sha256); (2) git archive origin/control-mailbox control_mailbox/inbox CONTROL_STATE.json | tar -x -C env; (3) git show b142cf88:CONTROL_STATE.json > CONTROL_STATE.json and copy the project CONTROL_CONTRACT.json in; (4) run each probe. Raw outputs of this run are committed as CERT23_t_e3846ecf_raw_*"
+ }
+}

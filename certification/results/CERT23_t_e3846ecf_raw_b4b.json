@@ -1,0 +1,17 @@
+{
+ "I04_three_missed_increases_slices": 3,
+ "I04_one_net_event_slices": 1,
+ "I04_net_equals_missed": false,
+ "I06_cloid_occurrences": 0,
+ "I06_client_order_id_occurrences": 0,
+ "I07_follower_truth_before_order": false,
+ "I07_presend_snapshot_is_master_net": false,
+ "I08_count_lease": 4,
+ "I08_count_fence": 0,
+ "I08_count_msvcrt": 0,
+ "I08_count_fcntl": 0,
+ "I08_count_CreateMutex": 0,
+ "I08_count_lock_file": 0,
+ "I08_count_lockfile": 0,
+ "I08_order_call_sites": 1
+}
