@@ -1,0 +1,131 @@
+{
+ "review_task": "t_ade3c935",
+ "reviews_task": "t_e4d49ba2",
+ "reviewed_branch": "hermes/cert-batch1-t_e4d49ba2",
+ "reviewed_tip": "ef333190d396766f3104184e1567e2b76e82a241",
+ "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+ "product_path": "_archive/hl_stage2/",
+ "method": "Independent re-derivation on a detached worktree of 43731b4; executed the author's committed probes; read every cited artifact at ef33319; built my own mutation controls where the author shipped none.",
+ "counts": {
+  "PASS": 8,
+  "FAIL": 7
+ },
+ "demotions_vs_author": [
+  "ENG-INV-01"
+ ],
+ "agree_with_author": [
+  "ENG-INV-02",
+  "ENG-INV-03",
+  "ENG-INV-04",
+  "ENG-INV-06",
+  "ENG-INV-13",
+  "ENG-INV-14"
+ ],
+ "rows": [
+  {
+   "row_id": "ENG-INV-01",
+   "verdict": "FAIL",
+   "probe": "Static half reproduces: grep -nE 'subprocess|Popen|os.system|multiprocessing|os.fork' over HL_Copy_App_SSOT.py, HL_Live_Copy_Service.py, HL_Live_Copy_Service_Core.py, convergence_shadow.py, exchange_truth.py at 43731b4 = 0 hits. Runtime half does NOT exist: git grep -il 'process_count|process count|psutil' at ef33319 -- certification hits only the matrix's own execution_proof text and the author's verdict file; no committed artifact contains a measured process count or an OS process-list oracle. Mutation control negative_tests.inv01_add_subprocess (expected FAIL, actual FAIL, non_vacuous true) holds.",
+   "why": "DEMOTED from the author's PASS. The row's execution_proof is 'static census ... PLUS runtime process count' and its independent_oracle is 'OS process list'. The author records PASS while stating that this required component is absent. The static no-spawn-construct evidence is real and non-vacuous, but a static census cannot establish 'One process.', which is the invariant in expected_behaviour. Unproven against the row's own proof standard."
+  },
+  {
+   "row_id": "ENG-INV-02",
+   "verdict": "FAIL",
+   "probe": "grep -n '.order(' at 43731b4 returns two production call expressions: HL_Live_Copy_Service_Core.py:2703 and HL_Live_Copy_Service.py:1036 (4273/4275 are docstring mentions only). Traced reachability of the second: CLI --send-one-intent --confirm-send -> manual_send_one_intent (L1124) -> confirm_send branch -> send_hyperliquid_order (L936) -> 'from eth_account import Account' -> Exchange(account, base_url=..., account_address=...) -> exchange.order(canonical_coin, ...) at L1036. The corrected artifact's own check recorded pass=true with detail 'Physical .order() calls: [2703] (total all: 2)' - it counted two sites and passed.",
+   "why": "Agrees with the author's FAIL and I confirmed the defect independently. Exactly-one-physical-call-site is false on the committed bytes; a census scoped to the Core file cannot prove uniqueness. The register still records PASS for this row."
+  },
+  {
+   "row_id": "ENG-INV-03",
+   "verdict": "FAIL",
+   "probe": "Read the whole artifact at ef33319:certification/results/ENG-INV-03-05_43731b4f.json - key set is census/repo_root/tested_commit/file_info/totals/findings/verdict. No negative_tests, mutation or control key exists anywhere in it. git grep -ril 'Architect approval' at ef33319 = 0 files. The census allowlists requests/websocket/eth_account/hyperliquid, so every hit is simultaneously found and allowed.",
+   "why": "Agrees with the author's FAIL. The predicate cannot fail, no approval record or recorded absence-proof is cited, and the row has no mutation control, so 'without Architect approval' is untested."
+  },
+  {
+   "row_id": "ENG-INV-04",
+   "verdict": "FAIL",
+   "probe": "sqlite3/shelve/dbm appear 0 times across the five modules, so persistent_stores=0 is a true count of that narrow predicate. But atomic_write_json appears 59 times in HL_Live_Copy_Service_Core.py; ManualLedger.save (Core:2334-2339) calls atomic_write_json(self.path, self.data) with self.path defaulting to MANUAL_LIVE_POSITIONS_FILE (Core:2109, defined Core:118); that store is re-read at Core:1033, 5718, 5763 and consumed by _fresh_persisted_coin_net (Core:5755) and _merge_fresh_disk_before_save.",
+   "why": "Agrees with the author's FAIL. persistent_stores=0 measures only sqlite/shelve/dbm constructors while the engine keeps sleeve/ledger state in an atomically written JSON store reloaded on start. The predicate is blind to the mechanism actually in use and carries no negative test."
+  },
+  {
+   "row_id": "ENG-INV-05",
+   "verdict": "PASS",
+   "probe": "Independent count: grep -inc 'build4|build_4' = 0 for each of HL_Copy_App_SSOT.py, HL_Live_Copy_Service.py, HL_Live_Copy_Service_Core.py, convergence_shadow.py, exchange_truth.py at 43731b4. Mutation control built by me because the author shipped none for this row: appended 'import build4_control_plane' to a scratch copy of HL_Live_Copy_Service_Core.py -> hit count 1, predicate flips.",
+   "why": "Row-bound and non-vacuous: I could not break it and constructed the failing case myself. The negative is mine, not the author's - this row has no shipped control."
+  },
+  {
+   "row_id": "ENG-INV-06",
+   "verdict": "FAIL",
+   "probe": "Read ENG-INV-06-09_43731b4.json at ef33319: records single_order_call_site true, order_call_sites [{HL_Live_Copy_Service_Core.py, 2703}], total_py_files_scanned 1, and bundles that as the basis for ENG-INV-06 PASS. Verified against 43731b4: a second reachable production site exists at HL_Live_Copy_Service.py:1036 (see ENG-INV-02).",
+   "why": "Agrees with the author's FAIL. 'No new engine/runtime around Build 3' is asserted on a bundle whose load-bearing premise (single order site) is false on the committed bytes."
+  },
+  {
+   "row_id": "ENG-INV-07",
+   "verdict": "PASS",
+   "probe": "Read Core:2140-2141 - sleeve_id(wallet, coin) returns normalise_wallet(wallet)::canonical_coin_key(coin); position_id additionally keys direction and opened_by_intent_id; by_wallet occurs 33 times in Core with per-wallet wallet_map construction (Core:2150-2151) and no global leader dict. R6 mutation_tests INV-07_remove_wallet_from_sleeve_id: expected FAIL, actual FAIL, non_vacuous true.",
+   "why": "Row-bound and non-vacuous; I could not break the isolation claim. Explicit caveat: PASS covers state isolation only. R7 reports physical_testnet_fill NOT_ESTABLISHED (the attempted send was rejected: the wallet does not exist on testnet), so this is not a physical-fill certification and the row's generic execution_proof chain was not executed end to end."
+  },
+  {
+   "row_id": "ENG-INV-08",
+   "verdict": "PASS",
+   "probe": "Executed the author's committed probe2 against 43731b4 bytes: dex_enum_ok true, dex_enum_list ['', 'XYZ'], fetcher raising -> DEX_ENUM_UNAVAILABLE, partial HIP-3 scope failure -> ok false status SCOPE_UNAVAILABLE. Read exchange_truth.master_account_net L138-164: enum failure returns DEX_ENUM_UNAVAILABLE and any scope whose state lacks assetPositions returns SCOPE_UNAVAILABLE immediately - the loop does not skip a missing scope. Mutation INV-08_remove_hip3_enumeration: expected FAIL, actual FAIL, non_vacuous true.",
+   "why": "I tried to break this and could not: a missing required scope genuinely fails closed, and the author constructed the failing case rather than asserting the happy path."
+  },
+  {
+   "row_id": "ENG-INV-09",
+   "verdict": "PASS",
+   "probe": "Read account_net_actual (Service ~L2475-2500): returns LINEAGE_CHECKPOINT_INVALID, IDENTITY_INVALID or the upstream truth status (ACCOUNT_NET_TRUTH_UNAVAILABLE); in production it never falls back to wallet-local dry-run state, and the successful branch is source MASTER_EXCHANGE_TRUTH minus unattributed_baseline. ExchangeReconciler.compare_snapshot reports LEDGER_EXCHANGE_NET_MISMATCH and the self-test asserts the ledger is byte-identical afterwards (Core L6795-6800). Mutation INV-09_manual_positions_authoritative: expected FAIL, actual FAIL.",
+   "why": "Holds on the committed bytes. Caveat I verified and am recording rather than burying: manual_live_positions.json IS read (Core:5755 _fresh_persisted_coin_net) and IS written (ManualLedger.save, Core:2339). It is a pre-emission/audit guard whose docstring returns 0.0 on read error to fall through to normal emission; I could not show it changing a trade decision, so it does not overturn the invariant, but 'not read at all' would be the wrong summary."
+  },
+  {
+   "row_id": "ENG-INV-10",
+   "verdict": "PASS",
+   "probe": "Executed probe2: the same intent with fills=[] and reject_evidence ack:True returns SETTLEMENT_UNKNOWN, while an independent MASTER fill returns SETTLED_FULL. Read exchange_truth.resolve_settlement L297-322: a caller boolean is never sufficient - the reject path demands terminal_reject AND no_fill_proved, rejects oid_accepted, rejects a conflicting matching fill, and a None fills/master_net returns SETTLE_UNKNOWN. Mutation inv10_no_settlement: expected FAIL, actual FAIL.",
+   "why": "A discriminating pair, not a symbol-presence check: the ack case and the fill case differ, so 'ack is not settlement' cannot pass by construction."
+  },
+  {
+   "row_id": "ENG-INV-11",
+   "verdict": "PASS",
+   "probe": "Executed probe1: identity_ok(distinct) true, identity_ok(same) false, identity_ok('') false, runtime_master_identity({}) ok false, runtime_master_identity(same address) -> IDENTITY_INVALID. Traced enforcement: account_net_actual calls XTRUTH.identity_ok(ident signer, ident master) and returns IDENTITY_INVALID before any master_account_net call.",
+   "why": "The register's FAIL ('No MASTER_ADDRESS constant found') is a name-lookup miss - the wiring is runtime_master_identity() keyed on HL_LIVE_HL_ACCOUNT_ADDRESS, verified live. Caveat: the register still records FAIL for this row; the correction lives only in the author's artifact."
+  },
+  {
+   "row_id": "ENG-INV-12",
+   "verdict": "PASS",
+   "probe": "Executed convergence_shadow.compute_convergence_order directly on six cases: desired 1.0 / actual 0.0 -> BUY 1.0 OPEN; 0.0 / 1.0 -> SELL 1.0 reduce_only True FLATTEN; 1.0 / 1.0 -> NONE CONVERGED; 0.5 / 0.2 -> BUY 0.3 ADD. flatten_all / close_all / flatten-all count = 0 in all product modules. Unowned inventory is excluded upstream: account_net_actual subtracts unattributed_baseline from MASTER net and desired comes from event_authorised_desired_net.",
+   "why": "Behaviour verified numerically, not by symbol presence. Mutations inv12_no_delta and inv12_flatten_all both flip to FAIL. Caveat: 'never blindly flattens unrelated inventory' rests on the unattributed_baseline subtraction, which I read but did not exercise with a live unowned position."
+  },
+  {
+   "row_id": "ENG-INV-13",
+   "verdict": "FAIL",
+   "probe": "Read ENG-INV-10-14_43731b4f.json: negative_tests entry inv13_order_in_restart has expected FAIL, actual PASS, non_vacuous false, detail 'Check passed=True after mutation', while results.ENG-INV-13.passed is true and summary.overall is FAIL with all_non_vacuous false. Separately read _lineage_checkpoint_valid (Service L2456-2474): when the leader_event_positions store is absent or empty it returns True, so a MISSING lineage checkpoint is treated as valid rather than failing closed.",
+   "why": "Agrees with the author's FAIL, and I add a defect the author did not record: the artifact's own control says the check cannot fail, and the missing-checkpoint branch of the row's own negative test ('lineage checkpoint missing/corrupt') is not fail-closed. FAIL as unproven plus one concrete gap, not as a full code-defect finding."
+  },
+  {
+   "row_id": "ENG-INV-14",
+   "verdict": "FAIL",
+   "probe": "Executed probe1: resolve_networks with HL_FOLLOWER_NETWORK mainnet returns follower network mainnet with no token, gate or approval step. grep -ic 'approval' and 'richard' in exchange_truth.py = 0 and 0. The endpoint-mismatch guard does raise NetworkConfigError on incoherent URL overrides and the default follower is testnet, but neither is an approval gate.",
+   "why": "Agrees with the author's FAIL: activation to mainnet is pure environment configuration. I confirmed there is no approval mechanism to find, so this is a genuine product miss rather than a lookup miss."
+  },
+  {
+   "row_id": "ENG-SEM-B1",
+   "verdict": "PASS",
+   "probe": "Read R1 checks.SEM-B1: AUTHORITY_DERIVES_FROM_EVENT detail 'intent.fill.leader_fill_id=b1_fill_1', COPY_SIZE_DERIVED_FROM_EVENT detail 'copy_size=0.0002, expected=0.0002', plus INTENT_HAS_LIFECYCLE 'decision=BLOCKED_OFF'. Mutation sem_b1_remove_fill_reference: expected FAIL, actual FAIL, non_vacuous true. Lineage gating read at Service:2300-2312 (checkpoint seq+last_fill_id coupled to the processed-event ledger on the only mint site).",
+   "why": "Authority derives from a concrete leader event and the control is real. Two caveats recorded rather than silently endorsed: the intent lifecycle detail is BLOCKED_OFF, so order authority was not exercised; and per ENG-INV-13 a missing lineage checkpoint validates as True, so exclusivity is not airtight in the absent-store case."
+  }
+ ],
+ "evidence_resolution": {
+  "note": "Every evidence_ref in the author artifact resolves on branch tip ef33319 (git cat-file -e confirmed for all five cited artifacts and both probes). A stricter check the author did not do: NONE of these artifacts exists at the tested commit 43731b4f - they live only on the cert branch. That is legitimate, since they are new evidence produced after the tested commit, but it means an evidence_ref path cannot date-stamp the product bytes. The product bytes were instead verified by sha256 against the hashes recorded inside the artifacts (Core 2dfbd571, Service e2f04fa8, exchange_truth 6f841fd7, convergence_shadow f63732d5, SSOT bb7b9cc3), all matched on a clean detached checkout of 43731b4.",
+  "probes_executed": [
+   "certification/results/ENG_INV_rowbound_probe_batch1.py",
+   "certification/results/ENG_INV_rowbound_probe2_batch1.py"
+  ],
+  "probe_results_match_author": true
+ },
+ "process_rule": {
+  "cited_serving_build": "none",
+  "verdict": "NOT_APPLICABLE",
+  "why": "No serving build or process start time is cited by any row; all rows bind to a git commit. 43731b4f is a real commit object dated 2026-10-09 14:11:59 +0000, so the commit binding itself is not fabricated."
+ },
+ "overall": "FAIL",
+ "overall_reason": "7 of 15 rows fail: six confirmed by the author (02, 03, 04, 06, 13, 14) and reproduced independently here, plus ENG-INV-01 demoted because the row's own execution_proof demands a runtime process count that no committed artifact supplies. Eight rows survive my attempts to break them (05, 07, 08, 09, 10, 11, 12, SEM-B1), several with caveats recorded above. No evidence_ref is broken and no commit binding is fabricated."
+}
