@@ -1,0 +1,128 @@
+{
+  "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+  "tested_at_utc": "2026-10-17T13:29:10.889821+00:00",
+  "page": {
+    "url": "http://127.0.0.1:8031/live-copy",
+    "http_status": 200,
+    "dom_captured_at": "2026-10-17T13:29:10.745Z"
+  },
+  "serving_process": {
+    "pid": 33368,
+    "started_at_utc": "2026-10-17T10:54:09.552605+00:00",
+    "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762"
+  },
+  "tables": {
+    "audit_headers": [
+      "Time",
+      "Wallet",
+      "Coin",
+      "Side",
+      "Source/Reason",
+      "Status",
+      "Decision",
+      "Decision reason",
+      "Suggested limit",
+      "Diff %",
+      "Manual?",
+      "Intent note",
+      "Real order result"
+    ],
+    "audit_rows": 10,
+    "reconciliation_headers": [
+      "Severity",
+      "Wallet",
+      "Coin",
+      "Issue",
+      "Manual ledger",
+      "Exchange",
+      "Action"
+    ],
+    "reconciliation_rows": 50,
+    "health_headers": [
+      "Wallet",
+      "Current",
+      "Grade",
+      "Thread",
+      "Reconnect/min",
+      "Processed",
+      "Raw msg",
+      "Parsed",
+      "Snap seen",
+      "Snap recovered",
+      "Ignored",
+      "Recent errors",
+      "Lifetime errors",
+      "Stale ms",
+      "Data status",
+      "Last close/error"
+    ],
+    "health_rows": 10
+  },
+  "checks": {
+    "UI-LCC-AUD-11": {
+      "pass": false,
+      "detail": "Manual? cell empty on 10/10 rendered intents; none of these intent payloads provides manual_reconcile_required; required flag is not rendered."
+    },
+    "UI-LCC-AUD-12": {
+      "pass": true,
+      "detail": "Intent-note source-to-cell match, including specified legacy-note translation and UI 60-character truncation: 10/10 rendered intents; first source text='lifecycle=ENTRY'."
+    },
+    "UI-LCC-AUD-13": {
+      "pass": false,
+      "detail": "Per-intent result recomputed by intent_id from send attempts (decision fallback otherwise) matched column 13 on 10/10 intents; matched attempts among these rows=0."
+    },
+    "UI-LCC-REC-01": {
+      "pass": true,
+      "detail": "Severity header/value row comparison: 50/50 rendered reconciliation rows."
+    },
+    "UI-LCC-REC-02": {
+      "pass": false,
+      "detail": "Expected Wallet in column 2; actual column 2 header='Wallet', first value='0G'; source wallet is rendered in column 3 instead."
+    },
+    "UI-LCC-REC-03": {
+      "pass": false,
+      "detail": "Expected Coin in column 3; actual column 3 header='Coin', first value='0x010461c1...1c703a'; source coin is rendered in column 2 instead."
+    },
+    "UI-LCC-REC-04": {
+      "pass": true,
+      "detail": "Issue header/value row comparison: 50/50 rendered rows."
+    },
+    "UI-LCC-REC-05": {
+      "pass": false,
+      "detail": "Required Count column absent; actual headers=['Severity', 'Wallet', 'Coin', 'Issue', 'Manual ledger', 'Exchange', 'Action']; count is rendered under the final Action header."
+    },
+    "UI-LCC-REC-06": {
+      "pass": true,
+      "detail": "Manual ledger source-to-cell numeric/sign match: 50/50 rows."
+    },
+    "UI-LCC-REC-07": {
+      "pass": true,
+      "detail": "Exchange source-to-cell match: 50/50."
+    },
+    "UI-LCC-REC-08": {
+      "pass": false,
+      "detail": "Required 'Last intent' column absent; actual headers=['Severity', 'Wallet', 'Coin', 'Issue', 'Manual ledger', 'Exchange', 'Action']."
+    },
+    "UI-LCC-REC-09": {
+      "pass": false,
+      "detail": "Required 'Last oid' column absent; actual headers=['Severity', 'Wallet', 'Coin', 'Issue', 'Manual ledger', 'Exchange', 'Action']."
+    },
+    "UI-LCC-REC-10": {
+      "pass": false,
+      "detail": "Required 'Last updated' column absent; actual headers=['Severity', 'Wallet', 'Coin', 'Issue', 'Manual ledger', 'Exchange', 'Action']."
+    },
+    "UI-LCC-REC-11": {
+      "pass": false,
+      "detail": "Action header exists but last-cell first value='1' (the count); source rows provide action_available only, not a rendered action."
+    },
+    "UI-LCC-WS-01": {
+      "pass": true,
+      "detail": "Wallet header and sorted identity-to-row mapping: 10/10 wallet rows; header='Wallet'."
+    }
+  },
+  "summary": {
+    "pass": 6,
+    "fail": 9,
+    "total": 15
+  }
+}
