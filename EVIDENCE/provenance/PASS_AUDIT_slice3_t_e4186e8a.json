@@ -1,0 +1,219 @@
+{
+  "task_id": "t_e4186e8a",
+  "title": "PASS-AUDIT slice 3 \u2014 UI-LCC AUD/REC/WS/TAB/ADD unaudited PASS rows",
+  "audit_date": "2026-10-17",
+  "register": "origin/cert/local-main-b142cf8:certification/certification_matrix.json",
+  "scope": {
+    "prefixes": [
+      "UI-LCC-AUD-",
+      "UI-LCC-REC-",
+      "UI-LCC-WS-",
+      "UI-LCC-TAB-",
+      "UI-LCC-ADD-"
+    ],
+    "total_pass_rows_in_scope": 52,
+    "already_demoted": [
+      "UI-LCC-REC-10"
+    ],
+    "rows_to_audit": 51
+  },
+  "results": [
+    {
+      "row_id": "UI-LCC-ADD-01",
+      "verdict": "DEMOTE",
+      "why": "Evidence UI_CORRECTION_2d29211.json has vacuous checks: detail reports 'not found'/'does not match' but pass=True; check logic inverted/broken, PASS verdict unearned"
+    },
+    {
+      "row_id": "UI-LCC-ADD-02",
+      "verdict": "DEMOTE",
+      "why": "Evidence UI_CORRECTION_2d29211.json has vacuous checks: detail reports 'not found'/'does not match' but pass=True; check logic inverted/broken, PASS verdict unearned"
+    },
+    {
+      "row_id": "UI-LCC-ADD-03",
+      "verdict": "DEMOTE",
+      "why": "Evidence UI_CORRECTION_2d29211.json has vacuous checks: detail reports 'not found'/'does not match' but pass=True; check logic inverted/broken, PASS verdict unearned"
+    },
+    {
+      "row_id": "UI-LCC-ADD-04",
+      "verdict": "DEMOTE",
+      "why": "Evidence UI_CORRECTION_2d29211.json has vacuous checks: detail reports 'not found'/'does not match' but pass=True; check logic inverted/broken, PASS verdict unearned"
+    },
+    {
+      "row_id": "UI-LCC-ADD-05",
+      "verdict": "DEMOTE",
+      "why": "Evidence UI_CORRECTION_2d29211.json has vacuous checks: detail reports 'not found'/'does not match' but pass=True; check logic inverted/broken, PASS verdict unearned"
+    },
+    {
+      "row_id": "UI-LCC-ADD-08",
+      "verdict": "DEMOTE",
+      "why": "Evidence UI_CORRECTION_2d29211.json has vacuous checks: detail reports 'not found'/'does not match' but pass=True; check logic inverted/broken, PASS verdict unearned"
+    },
+    {
+      "row_id": "UI-LCC-ADD-09",
+      "verdict": "DEMOTE",
+      "why": "Evidence UI_CORRECTION_2d29211.json has vacuous checks: detail reports 'not found'/'does not match' but pass=True; check logic inverted/broken, PASS verdict unearned"
+    },
+    {
+      "row_id": "UI-LCC-AUD-01",
+      "verdict": "DEMOTE",
+      "why": "Evidence UI_CORRECTION_2d29211.json has vacuous checks: detail reports 'not found'/'does not match' but pass=True; check logic inverted/broken, PASS verdict unearned"
+    },
+    {
+      "row_id": "UI-LCC-AUD-02",
+      "verdict": "DEMOTE",
+      "why": "Evidence UI_CORRECTION_2d29211.json has vacuous checks: detail reports 'not found'/'does not match' but pass=True; check logic inverted/broken, PASS verdict unearned"
+    },
+    {
+      "row_id": "UI-LCC-AUD-03",
+      "verdict": "DEMOTE",
+      "why": "Evidence UI_CORRECTION_2d29211.json has vacuous checks: detail reports 'not found'/'does not match' but pass=True; check logic inverted/broken, PASS verdict unearned"
+    },
+    {
+      "row_id": "UI-LCC-AUD-04",
+      "verdict": "DEMOTE",
+      "why": "Evidence UI_CORRECTION_2d29211.json has vacuous checks: detail reports 'not found'/'does not match' but pass=True; check logic inverted/broken, PASS verdict unearned"
+    },
+    {
+      "row_id": "UI-LCC-AUD-05",
+      "verdict": "DEMOTE",
+      "why": "Evidence UI_CORRECTION_2d29211.json has vacuous checks: detail reports 'not found'/'does not match' but pass=True; check logic inverted/broken, PASS verdict unearned"
+    },
+    {
+      "row_id": "UI-LCC-AUD-06",
+      "verdict": "DEMOTE",
+      "why": "Evidence UI_CORRECTION_2d29211.json has vacuous checks: detail reports 'not found'/'does not match' but pass=True; check logic inverted/broken, PASS verdict unearned"
+    },
+    {
+      "row_id": "UI-LCC-AUD-07",
+      "verdict": "DEMOTE",
+      "why": "Evidence UI_CORRECTION_2d29211.json has vacuous checks: detail reports 'not found'/'does not match' but pass=True; check logic inverted/broken, PASS verdict unearned"
+    },
+    {
+      "row_id": "UI-LCC-AUD-08",
+      "verdict": "DEMOTE",
+      "why": "Evidence UI_CORRECTION_2d29211.json has vacuous checks: detail reports 'not found'/'does not match' but pass=True; check logic inverted/broken, PASS verdict unearned"
+    },
+    {
+      "row_id": "UI-LCC-AUD-09",
+      "verdict": "DEMOTE",
+      "why": "Evidence UI_CORRECTION_2d29211.json has vacuous checks: detail reports 'not found'/'does not match' but pass=True; check logic inverted/broken, PASS verdict unearned"
+    },
+    {
+      "row_id": "UI-LCC-AUD-10",
+      "verdict": "DEMOTE",
+      "why": "Evidence UI_CORRECTION_2d29211.json has vacuous checks: detail reports 'not found'/'does not match' but pass=True; check logic inverted/broken, PASS verdict unearned"
+    },
+    {
+      "row_id": "UI-LCC-AUD-11",
+      "verdict": "DEMOTE",
+      "why": "Evidence UI_CORRECTION_2d29211.json has vacuous checks: detail reports 'not found'/'does not match' but pass=True; check logic inverted/broken, PASS verdict unearned"
+    },
+    {
+      "row_id": "UI-LCC-AUD-12",
+      "verdict": "DEMOTE",
+      "why": "Evidence UI_CORRECTION_2d29211.json has vacuous checks: detail reports 'not found'/'does not match' but pass=True; check logic inverted/broken, PASS verdict unearned"
+    },
+    {
+      "row_id": "UI-LCC-AUD-13",
+      "verdict": "DEMOTE",
+      "why": "Evidence UI_CORRECTION_2d29211.json has vacuous checks: detail reports 'not found'/'does not match' but pass=True; check logic inverted/broken, PASS verdict unearned"
+    },
+    {
+      "row_id": "UI-LCC-REC-01",
+      "verdict": "DEMOTE",
+      "why": "Evidence UI_CORRECTION_2d29211.json has vacuous checks: detail reports 'not found'/'does not match' but pass=True; check logic inverted/broken, PASS verdict unearned"
+    },
+    {
+      "row_id": "UI-LCC-REC-02",
+      "verdict": "DEMOTE",
+      "why": "Evidence UI_CORRECTION_2d29211.json has vacuous checks: detail reports 'not found'/'does not match' but pass=True; check logic inverted/broken, PASS verdict unearned"
+    },
+    {
+      "row_id": "UI-LCC-REC-03",
+      "verdict": "DEMOTE",
+      "why": "Evidence UI_CORRECTION_2d29211.json has vacuous checks: detail reports 'not found'/'does not match' but pass=True; check logic inverted/broken, PASS verdict unearned"
+    },
+    {
+      "row_id": "UI-LCC-REC-04",
+      "verdict": "DEMOTE",
+      "why": "Evidence UI_CORRECTION_2d29211.json has vacuous checks: detail reports 'not found'/'does not match' but pass=True; check logic inverted/broken, PASS verdict unearned"
+    },
+    {
+      "row_id": "UI-LCC-REC-05",
+      "verdict": "DEMOTE",
+      "why": "Evidence UI_CORRECTION_2d29211.json has vacuous checks: detail reports 'not found'/'does not match' but pass=True; check logic inverted/broken, PASS verdict unearned"
+    },
+    {
+      "row_id": "UI-LCC-REC-06",
+      "verdict": "DEMOTE",
+      "why": "Evidence UI_CORRECTION_2d29211.json has vacuous checks: detail reports 'not found'/'does not match' but pass=True; check logic inverted/broken, PASS verdict unearned"
+    },
+    {
+      "row_id": "UI-LCC-REC-07",
+      "verdict": "DEMOTE",
+      "why": "Evidence UI_CORRECTION_2d29211.json has vacuous checks: detail reports 'not found'/'does not match' but pass=True; check logic inverted/broken, PASS verdict unearned"
+    },
+    {
+      "row_id": "UI-LCC-REC-08",
+      "verdict": "DEMOTE",
+      "why": "Evidence UI_CORRECTION_2d29211.json has vacuous checks: detail reports 'not found'/'does not match' but pass=True; check logic inverted/broken, PASS verdict unearned"
+    },
+    {
+      "row_id": "UI-LCC-REC-09",
+      "verdict": "DEMOTE",
+      "why": "Evidence UI_CORRECTION_2d29211.json has vacuous checks: detail reports 'not found'/'does not match' but pass=True; check logic inverted/broken, PASS verdict unearned"
+    },
+    {
+      "row_id": "UI-LCC-REC-11",
+      "verdict": "DEMOTE",
+      "why": "Evidence UI_CORRECTION_2d29211.json has vacuous checks: detail reports 'not found'/'does not match' but pass=True; check logic inverted/broken, PASS verdict unearned"
+    }
+  ],
+  "summary": {
+    "audited": 30,
+    "KEEP": 0,
+    "DEMOTE": 30,
+    "remaining_unaudited": 21,
+    "remaining_ids": [
+      "UI-LCC-TAB-01",
+      "UI-LCC-TAB-02",
+      "UI-LCC-TAB-03",
+      "UI-LCC-TAB-04",
+      "UI-LCC-TAB-05",
+      "UI-LCC-WS-01",
+      "UI-LCC-WS-02",
+      "UI-LCC-WS-03",
+      "UI-LCC-WS-04",
+      "UI-LCC-WS-05",
+      "UI-LCC-WS-06",
+      "UI-LCC-WS-07",
+      "UI-LCC-WS-08",
+      "UI-LCC-WS-09",
+      "UI-LCC-WS-10",
+      "UI-LCC-WS-11",
+      "UI-LCC-WS-12",
+      "UI-LCC-WS-13",
+      "UI-LCC-WS-14",
+      "UI-LCC-WS-15",
+      "UI-LCC-WS-16"
+    ],
+    "scope_prefixes": [
+      "UI-LCC-AUD-",
+      "UI-LCC-REC-",
+      "UI-LCC-WS-",
+      "UI-LCC-TAB-",
+      "UI-LCC-ADD-"
+    ],
+    "evidence_file": "certification/results/UI_CORRECTION_2d29211.json",
+    "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+    "evidence_summary": {
+      "total_checks": 441,
+      "passed_checks": 380,
+      "failed_checks": 61,
+      "total_negative_tests": 23,
+      "passed_negative_tests": 23,
+      "blocked_count": 3
+    },
+    "key_finding": "Evidence file has systematic vacuous-pass pattern: checks with detail='not found'/'does not match' are marked pass=True. This affects all scope rows' evidence."
+  }
+}
