@@ -1,0 +1,162 @@
+{
+  "audit": "PASS-AUDIT remaining 3/4 [gemini:2.5-flash] F- remainder + non-UI uncovered",
+  "source": "uncovered_pass_ids in origin/hermes/union-arithmetic-v2-corrected-t_f0d76afe @ e0c6944",
+  "register_commit": "e0c6944",
+  "summary": {
+    "audited": 30,
+    "KEEP": 0,
+    "DEMOTE": 30
+  },
+  "rows": [
+    {
+      "row_id": "F-EXC-018",
+      "verdict": "DEMOTE",
+      "why": "Shared 138-row regression sweep; no row-bound incident replay/oracle cited."
+    },
+    {
+      "row_id": "F-EXC-019",
+      "verdict": "DEMOTE",
+      "why": "Shared 138-row regression sweep; no row-bound incident replay/oracle cited."
+    },
+    {
+      "row_id": "F-EXC-020",
+      "verdict": "DEMOTE",
+      "why": "Shared 138-row regression sweep; no row-bound incident replay/oracle cited."
+    },
+    {
+      "row_id": "F-PROCESS-001",
+      "verdict": "DEMOTE",
+      "why": "Shared 138-row regression sweep; no row-bound incident replay/oracle cited."
+    },
+    {
+      "row_id": "F-PROCESS-002",
+      "verdict": "DEMOTE",
+      "why": "Shared 138-row regression sweep; no row-bound incident replay/oracle cited."
+    },
+    {
+      "row_id": "F-PROCESS-003",
+      "verdict": "DEMOTE",
+      "why": "Shared 138-row regression sweep; no row-bound incident replay/oracle cited."
+    },
+    {
+      "row_id": "F-TEST-002",
+      "verdict": "DEMOTE",
+      "why": "Shared 138-row regression sweep; no row-bound incident replay/oracle cited."
+    },
+    {
+      "row_id": "F-TEST-003",
+      "verdict": "DEMOTE",
+      "why": "Shared 138-row regression sweep; no row-bound incident replay/oracle cited."
+    },
+    {
+      "row_id": "F-TEST-004",
+      "verdict": "DEMOTE",
+      "why": "Shared 138-row regression sweep; no row-bound incident replay/oracle cited."
+    },
+    {
+      "row_id": "F-TEST-005",
+      "verdict": "DEMOTE",
+      "why": "Shared 138-row regression sweep; no row-bound incident replay/oracle cited."
+    },
+    {
+      "row_id": "F-TEST-006",
+      "verdict": "DEMOTE",
+      "why": "Shared 138-row regression sweep; no row-bound incident replay/oracle cited."
+    },
+    {
+      "row_id": "F-TEST-007",
+      "verdict": "DEMOTE",
+      "why": "Shared 138-row regression sweep; no row-bound incident replay/oracle cited."
+    },
+    {
+      "row_id": "F-TEST-008",
+      "verdict": "DEMOTE",
+      "why": "Shared 138-row regression sweep; no row-bound incident replay/oracle cited."
+    },
+    {
+      "row_id": "F-TEST-009",
+      "verdict": "DEMOTE",
+      "why": "Shared 138-row regression sweep; no row-bound incident replay/oracle cited."
+    },
+    {
+      "row_id": "B4-I16",
+      "verdict": "DEMOTE",
+      "why": "Shared 138-row regression sweep; no row-bound incident replay/oracle cited."
+    },
+    {
+      "row_id": "B4-I19",
+      "verdict": "DEMOTE",
+      "why": "Shared 138-row regression sweep; no row-bound incident replay/oracle cited."
+    },
+    {
+      "row_id": "B4-R01",
+      "verdict": "DEMOTE",
+      "why": "Shared 138-row regression sweep; no row-bound incident replay/oracle cited."
+    },
+    {
+      "row_id": "B4-R02",
+      "verdict": "DEMOTE",
+      "why": "Shared 138-row regression sweep; no row-bound incident replay/oracle cited."
+    },
+    {
+      "row_id": "B4-R03",
+      "verdict": "DEMOTE",
+      "why": "Shared 138-row regression sweep; no row-bound incident replay/oracle cited."
+    },
+    {
+      "row_id": "B4-R04",
+      "verdict": "DEMOTE",
+      "why": "Shared 138-row regression sweep; no row-bound incident replay/oracle cited."
+    },
+    {
+      "row_id": "B4-R05",
+      "verdict": "DEMOTE",
+      "why": "Shared 138-row regression sweep; no row-bound incident replay/oracle cited."
+    },
+    {
+      "row_id": "B4-R06",
+      "verdict": "DEMOTE",
+      "why": "Shared 138-row regression sweep; no row-bound incident replay/oracle cited."
+    },
+    {
+      "row_id": "B4-R07",
+      "verdict": "DEMOTE",
+      "why": "Shared 138-row regression sweep; no row-bound incident replay/oracle cited."
+    },
+    {
+      "row_id": "B4-R08",
+      "verdict": "DEMOTE",
+      "why": "Shared 138-row regression sweep; no row-bound incident replay/oracle cited."
+    },
+    {
+      "row_id": "B4-R09",
+      "verdict": "DEMOTE",
+      "why": "Shared 138-row regression sweep; no row-bound incident replay/oracle cited."
+    },
+    {
+      "row_id": "B4-R10",
+      "verdict": "DEMOTE",
+      "why": "Shared 138-row regression sweep; no row-bound incident replay/oracle cited."
+    },
+    {
+      "row_id": "B4-R11",
+      "verdict": "DEMOTE",
+      "why": "Shared 138-row regression sweep; no row-bound incident replay/oracle cited."
+    },
+    {
+      "row_id": "B4-R12",
+      "verdict": "DEMOTE",
+      "why": "Shared 138-row regression sweep; no row-bound incident replay/oracle cited."
+    },
+    {
+      "row_id": "B4-R13",
+      "verdict": "DEMOTE",
+      "why": "Shared 138-row regression sweep; no row-bound incident replay/oracle cited."
+    },
+    {
+      "row_id": "B4-R14",
+      "verdict": "DEMOTE",
+      "why": "Shared 138-row regression sweep; no row-bound incident replay/oracle cited."
+    }
+  ]
+}
