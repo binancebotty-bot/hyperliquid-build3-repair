@@ -1,0 +1,80 @@
+{
+ "task_id": "t_4b8fc417",
+ "rows": "UI-WALLET-002..UI-WALLET-016",
+ "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+ "serving_build": {"pid": 33368, "port": 8031, "started_at_utc": "2026-10-17T10:54:09Z", "commit": "89b3bc7586bf328df336fc9ea721cee212617762", "commit_committed_at_utc": "2026-10-17T07:18:14Z"},
+ "tooling": {
+  "python": "C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe",
+  "render": "playwright chromium headless, goto /live-copy (307 -> /live-copy), domcontentloaded + readyState poll",
+  "source_tree": "git archive 89b3bc7586 _archive/hl_stage2",
+  "isolated_audit_dir": "HL_LIVE_AUDIT_DIR=<scratch>/_probe_wallet_audit3 (no contact with the live :8031 audit dir)"
+ },
+ "engine_decision_matrix": {
+  "note": "IntentBuilder._decision on one wallet+fill; each config written to an isolated live_config.json and reloaded by a fresh ConfigManager",
+  "mode_OFF_enabled_false": {"ENTRY": ["BLOCKED_OFF", "wallet disabled"], "EXIT": ["BLOCKED_OFF", "wallet disabled"]},
+  "mode_CLO_enabled_true": {"ENTRY": ["BLOCKED_CLO_ENTRY", "CLO blocks entries/adds"], "ADD": ["BLOCKED_CLO_ENTRY", "CLO blocks entries/adds"], "EXIT": ["EXIT_ALLOWED", "EXIT"]},
+  "mode_LIVE_enabled_true": {"ENTRY": ["ENTRY_ALLOWED", "ENTRY"]}
+ },
+ "restart_test": {
+  "writer_process": {"route": "POST /api/live-config/add-wallet", "status": 200, "persisted": {"mode": "CLO", "enabled": true, "copy_mode": "proportional", "norm_base": 321.0, "fixed_notional": 12.5}},
+  "reader_process": {"ConfigManager(wallet_mode)": "CLO", "wallet_enabled": true, "copy_mode": "proportional", "fixed_notional": 12.5, "wallet_cfg.norm_base": 321.0},
+  "orders_created": "none - no send_attempts.csv in the isolated audit dir"
+ },
+ "invalid_input_matrix": {
+  "POST /api/live-config/add-wallet {wallet: not-an-address}": [400, "BAD_WALLET"],
+  "POST /api/live-config/set-mode {mode: NONSENSE}": [400, "BAD_MODE"],
+  "POST /api/live-config/set-wallet {copy_mode: nonsense}": [400, "BAD_COPY_MODE"],
+  "POST /api/live-config/set-wallet {norm_base: -5}": [200, "stored 1.0 (was 250.0)"],
+  "POST /api/live-config/set-wallet {fixed_notional: abc}": [200, "stored unchanged 10"]
+ },
+ "archive_restore": {
+  "POST /api/live-config/remove-wallet {archive: true}": {"in_wallets": false, "in_archived": true, "archived": {"mode": "OFF", "enabled": false, "copy_mode": "proportional", "norm_base": 100.0, "fixed_notional": 10.0, "archived_at": "2026-10-17T17:54:01+00:00"}},
+  "POST /api/live-config/set-mode {mode: OFF}": {"in_wallets": true, "in_archived": false},
+  "engine_view_after_archive": {"ConfigManager.wallets()": [], "archived_wallets_present": true}
+ },
+ "user_wallet_checks": {
+  "POST /api/set-wallet-mode {user, ON}": [200, {"mode": "OFF"}],
+  "POST /api/admin/purge-wallet {user} (form)": [400, "CANNOT_PURGE_USER_WALLET"],
+  "POST /api/live-config/add-wallet {user, LIVE}": [200, {"persisted": {"mode": "LIVE", "enabled": true}}],
+  "fresh ConfigManager.active_wallets()": ["0x7ae3b08bb4e7b085c6db5d635b96bec9715e9205"],
+  "fresh ConfigManager.wallet_mode(user)": "ON"
+ },
+ "two_writer_conflict": {
+  "POST /api/set-wallet-mode {wallet, ON}": {"wallet_gate.json": {"mode": "ON", "off_mode": null}},
+  "POST /api/live-config/set-mode {wallet, OFF}": {"live_config.json": {"mode": "OFF", "enabled": false}},
+  "after_both": {"wallet_gate.json": {"mode": "ON"}, "live_config.json": {"mode": "OFF"}, "reconciled": false}
+ },
+ "purge_checks": {
+  "POST /api/admin/purge-wallet {other wallet} (form)": [200, "redirect"],
+  "exposure_guard_present": false
+ },
+ "include_toggle": {
+  "POST /api/wallet-include": 200,
+  "ui_state.wallet_include": {"0xa1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1": true},
+  "live_config wallet mode before/after": ["OFF", "OFF"],
+  "engine_source wallet_include references": 0
+ },
+ "panel_dom": {
+  "url": "http://127.0.0.1:8031/live-copy",
+  "http": 200,
+  "bytes": 87350,
+  "api_calls": [[200, "/api/live-config"], [200, "/api/live-ws-health"], [200, "/api/global-controls"], [200, "/api/live-audit-summary"]],
+  "page_errors": [],
+  "wallet_count_pill": "16 / 10",
+  "wallet_rows": 16,
+  "per_wallet_samples": [
+   {"wallet": "0x010461c14e146ac35fe42271bdc1134ee31c703a", "mode": "LIVE", "copy_mode": "fixed", "fixed_notional": "12", "norm_base": "100", "health": "Websocket OK | HOT10 shared socket active", "risk": "Exposure: $1,996.85 | Open pos: 118", "exec": "115 filled / 0 exits | 1635 recent rejects | 1 recent blocks", "target": "ICP BUY"},
+   {"wallet": "0x1b232b41b0e75550c59288b99874e4a8142fbe21", "mode": "LIVE", "copy_mode": "fixed", "health": "Websocket OK | HOT10 shared socket active", "risk": "Exposure: $0 | Open pos: 0", "target": "none yet"},
+   {"wallet": "0x31ca8395cf837de08b24da3f660e77761dfb974b", "mode": "LIVE", "risk": "Exposure: $1,996.5 | Open pos: 121", "exec": "62 filled / 0 exits | 865 recent rejects"},
+   {"wallet": "0x936cf4fb95c30ce83f658b5bbb247e4bb381bb0f", "mode": "LIVE", "risk": "Exposure: $1,928.19 | Open pos: 15 | DD: $-27.47 | MaxDD: $-28.48", "target": "MON SELL"},
+   {"wallet": "0xc179e03922afe8fa9533d3f896338b9fb87ce0c8", "mode": "LIVE", "risk": "Exposure: $161.23 | Open pos: 4 | DD: $-25 | MaxDD: $-25", "target": "SOL SELL"},
+   {"wallet": "0x0000000000000000000000000000000000000001", "mode": "OFF", "health": "not followed", "risk": "Exposure: $0 | Open pos: 0"}
+  ],
+  "fixed_copy_mode_warning_present": false,
+  "hold_or_fail_closed_text_present": false
+ },
+ "notes": [
+  "The live :8031 config held 16 wallets (max_wallets=10) at test time; the panel rendered all 16 rows and reported '16 / 10'.",
+  "All config mutation probes ran against an isolated HL_LIVE_AUDIT_DIR so the live testnet config was never modified."
+ ]
+}
