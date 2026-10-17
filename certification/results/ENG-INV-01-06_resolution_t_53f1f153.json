@@ -1,0 +1,44 @@
+[
+  {
+    "row_id": "ENG-INV-01",
+    "verdict": "PASS",
+    "evidence_ref": "certification/results/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json#checks.ENG-INV-01; negative_tests.inv01_add_subprocess",
+    "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+    "why": "Retain per committed evidence audit: distinct keyed NO_PROCESS_SPAWNS assertion (0 found) and matching non-vacuous mutation control (spawn detected). This supports the audit's limited static assertion; does not establish an independent runtime OS process count."
+  },
+  {
+    "row_id": "ENG-INV-02",
+    "verdict": "PASS",
+    "evidence_ref": "certification/results/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json#checks.ENG-INV-02; negative_tests.inv02_add_second_order_site",
+    "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+    "why": "Retain per committed evidence audit: row-keyed ONE_PHYSICAL_ORDER_SITE check reports one physical site at line 2703, with a matching mutation control detecting a second site."
+  },
+  {
+    "row_id": "ENG-INV-03",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": null,
+    "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+    "why": "Existing aggregate census JSON is not uniquely bound to this row and its cited census/mutation script is absent from the clean certification clone. Exact missing route: obtain the certified engine snapshot at this commit within the authorized clean workspace, plus an independent row-specific dependency-import census/mutation harness and Architect-approval record, then run and commit row-bound output."
+  },
+  {
+    "row_id": "ENG-INV-04",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": null,
+    "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+    "why": "Existing aggregate census JSON is not uniquely bound to this row and its cited census/mutation script is absent from the clean certification clone. Exact missing route: obtain the certified engine snapshot at this commit within the authorized clean workspace, plus an independent row-specific authoritative-persistent-store census/mutation harness, then run and commit row-bound output."
+  },
+  {
+    "row_id": "ENG-INV-05",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": null,
+    "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+    "why": "Existing aggregate census JSON is not uniquely bound to this row and its cited census/mutation script is absent from the clean certification clone. Exact missing route: obtain the certified engine snapshot at this commit within the authorized clean workspace, plus an independent row-specific Build-4 control-plane/platform import census/mutation harness, then run and commit row-bound output."
+  },
+  {
+    "row_id": "ENG-INV-06",
+    "verdict": "PASS",
+    "evidence_ref": "certification/results/ENG-INV-06-09_43731b4.json#invariants.ENG-INV-06; mutation_tests.INV-06_second_order_site",
+    "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+    "why": "Retain per committed evidence audit: separately keyed ENG-INV-06 result with single order site, zero process spawns, no unexpected third-party imports, no persistent stores, and its own second-order-site mutation control."
+  }
+]
