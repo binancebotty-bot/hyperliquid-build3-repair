@@ -1,0 +1,32 @@
+{
+  "schema": "b3_row_verdicts_v1",
+  "register_of_record": "origin/cert/local-main-b142cf8:certification/certification_matrix.json",
+  "probe": "Executed read-only route census: required UI LCC repo, Build4 source repo, and testnet/live exchange oracle routes absent from this isolated workspace; did not access prohibited hyperliquid-build3-repair checkout or issue any exchange action.",
+  "independent_oracle": "Filesystem existence checks of exact source/oracle routes; Git register-of-record row definitions read from origin/cert/local-main-b142cf8.",
+  "verdicts": [
+    {"row_id":"UI-LCC-ADD-07","result":"NOT_TESTED","missing_route":"UI LCC application source/runtime route (HL_Copy_App_SSOT.py) and live_config.json persistence endpoint /api/live-config/add-wallet are not available in the authorized clean clone/workspace; no app runtime or independent persistence readback."},
+    {"row_id":"UI-LCC-ADD-10","result":"NOT_TESTED","missing_route":"UI LCC application source/runtime route (HL_Copy_App_SSOT.py) and /api/live-config/add-wallet endpoint plus invalid-input UI runtime are unavailable; cannot verify persistence/rejection with independent readback."},
+    {"row_id":"UI-SSOT-TOP-06","result":"NOT_TESTED","missing_route":"UI LCC app route and ui_state.json runtime/model output unavailable; cannot observe label or prove no live-trading mutation."},
+    {"row_id":"UI-SSOT-TBL-25","result":"NOT_TESTED","missing_route":"UI LCC app runtime with engine SSOT and rendered table is unavailable; cannot compare cells, DIFF flags, or stable persisted sorting."},
+    {"row_id":"UI-SSOT-PAGE-11","result":"NOT_TESTED","missing_route":"UI LCC endpoint/render runtime and test_g4_ui_controls oracle unavailable; cannot compare endpoint/render data or exercise reset/snapshot safety/banner."},
+    {"row_id":"HEALTH-001","result":"NOT_TESTED","missing_route":"Legacy HL_Live_Copy_Service.py live WebSocket runtime and independent timestamp/reconnect oracle unavailable; cannot induce or observe >30000ms stale state."},
+    {"row_id":"HEALTH-005","result":"NOT_TESTED","missing_route":"Build4 execution runtime plus controlled execution-delta fixture and independent order/fill oracle unavailable; cannot test diagnostics non-blocking behavior."},
+    {"row_id":"CTRL-BIND","result":"NOT_TESTED","missing_route":"Authorized clean clone lacks the live canonical CONTROL_CONTRACT.json binding source; cannot independently compare it with CONTROL_STATE.json or reverify unique controller binding."},
+    {"row_id":"B4-I12","result":"NOT_TESTED","missing_route":"Build4 source/test runtime and isolated exchange-send oracle unavailable; cannot exercise mode/action matrix or verify mode changes create zero orders."},
+    {"row_id":"B4-I13","result":"NOT_TESTED","missing_route":"Build4 source/test runtime and independent sizing/risk oracle unavailable; cannot execute sizing mathematics, USD 30 minimum, or USD 12 buffer cases."},
+    {"row_id":"B4-I20","result":"NOT_TESTED","missing_route":"Build4 delayed-entry implementation plus exchange-enforced limit-order/fill oracle unavailable; cannot establish adverse-price boundary at order execution."},
+    {"row_id":"B4-I21","result":"NOT_TESTED","missing_route":"Build4 delayed-entry runtime and independent event/order-state oracle unavailable; cannot test PRICE_WAIT preservation, supersession, or exactly-once execution."},
+    {"row_id":"B4-I26","result":"NOT_TESTED","missing_route":"Build4 implementation and separate non-importing decision oracle/fixture unavailable; cannot induce disagreement and verify fail-closed behavior."},
+    {"row_id":"F-EXC-016","result":"NOT_TESTED","missing_route":"Build4 failure-handling runtime plus independent GREEN-ONLY-001 status oracle unavailable; cannot verify EXC-016 is display-only and excluded from green."},
+    {"row_id":"F-EXC-017","result":"NOT_TESTED","missing_route":"Build4 failure-handling runtime and independent send/mismatch telemetry oracle unavailable; cannot induce EXC-017 or verify sends halt and mismatch surfaces."},
+    {"row_id":"F-UI-001","result":"NOT_TESTED","missing_route":"Build4 UI runtime and rendered-cell provenance oracle unavailable; cannot inspect every cell's required authority classification."},
+    {"row_id":"F-UI-002","result":"NOT_TESTED","missing_route":"Build4 UI runtime and independently timed/source-tagged data feed unavailable; cannot verify age/source display or stale/unavailable status effect."},
+    {"row_id":"F-UI-003","result":"NOT_TESTED","missing_route":"Build4 UI runtime and independent GREEN-ONLY-001 oracle unavailable; cannot verify green/red derivation."},
+    {"row_id":"F-VERIFY-008","result":"NOT_TESTED","missing_route":"Build4 separate read-only verifier and exchange-state fixture unavailable; cannot verify non-importing independent desired-versus-actual calculation."},
+    {"row_id":"F-PRODUCT-001","result":"NOT_TESTED","missing_route":"Build4 wallet-selection runtime and independently sourced MTM history/flags fixture unavailable; cannot exercise selection thresholds or rejection cases."},
+    {"row_id":"F-TEST-001","result":"NOT_TESTED","missing_route":"Build4 historical snapshot replay runtime and independent testnet follower exchange position oracle unavailable; cannot measure convergence/bounds."},
+    {"row_id":"F-TEST-010","result":"NOT_TESTED","missing_route":"Build4 independent read-only test oracle and exchange-state disagreement fixture unavailable; cannot verify target-vs-actual halt behavior."},
+    {"row_id":"F25-P01","result":"NOT_TESTED","missing_route":"F25 production launcher and independently observed running production instance unavailable; cannot verify live Status behavior."},
+    {"row_id":"F25-P02","result":"NOT_TESTED","missing_route":"F25 production launcher/runtime and stale-pointer fixture with independent process/runtime oracle unavailable; cannot test stale-pointer rejection."}
+  ]
+}
