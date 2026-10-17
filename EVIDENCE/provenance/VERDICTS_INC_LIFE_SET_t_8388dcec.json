@@ -1,0 +1,219 @@
+{
+ "audited": 30,
+ "KEEP": 13,
+ "DEMOTE": 17,
+ "scope_source": "origin/hermes/union-arithmetic-v2-corrected-t_f0d76afe:EVIDENCE/provenance/UNION_ARITHMETIC_V2_t_f0d76afe.json uncovered_pass_ids (INC-/LIFE-/SET-)",
+ "register": "origin/cert/local-main-b142cf8:certification/certification_matrix.json",
+ "verdicts": [
+  {
+   "row_id": "INC-02",
+   "verdict": "DEMOTE",
+   "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+   "why": "wrapper check '<ID>_INCIDENT_LEARNED' over wallet-conflict strings shared with other INC rows; nothing asserts abs(size)xmark shared-symbol exposure, so it would pass for a different row."
+  },
+  {
+   "row_id": "INC-04",
+   "verdict": "DEMOTE",
+   "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+   "why": "wrapper check over unmatched-copy-fill strings; no assertion of LEDGER_UNSUPPORTED_BY_EXCHANGE or owned-exposure suppression - shared boilerplate."
+  },
+  {
+   "row_id": "INC-05",
+   "verdict": "DEMOTE",
+   "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+   "why": "wrapper check over unmatched-copy-fill and manual-ledger strings; external/residual categorisation never asserted; same lines cited elsewhere."
+  },
+  {
+   "row_id": "INC-06",
+   "verdict": "DEMOTE",
+   "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+   "why": "wrapper check over dedupe strings; no per-oid/cloid single-fill-record assertion; generic citation reused across rows."
+  },
+  {
+   "row_id": "INC-07",
+   "verdict": "DEMOTE",
+   "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+   "why": "wrapper check over symbol-resolution strings; no cross-surface namespace consistency (positions/prices/audit/UI) assertion - cannot fail for this row."
+  },
+  {
+   "row_id": "INC-08",
+   "verdict": "DEMOTE",
+   "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+   "why": "cites the same 'XYZ:SNDK resolves sdk-compatible full builder coin' string used by INC-07; nothing reads a HIP-3 DEX's own book."
+  },
+  {
+   "row_id": "INC-09",
+   "verdict": "DEMOTE",
+   "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+   "why": "wrapper check over symbol strings also cited by INC-12; fail-closed refusal/surfacing is only symbol-resolution text, not bound to this row."
+  },
+  {
+   "row_id": "INC-12",
+   "verdict": "DEMOTE",
+   "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+   "why": "cites the FAKECOIN SYMBOL_UNRESOLVED strings that belong to the symbol rows; min-notional/DUST_BELOW_MIN_NOTIONAL never exercised."
+  },
+  {
+   "row_id": "INC-13",
+   "verdict": "DEMOTE",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "why": "evidence detail states the opposite of the claim while pass=true ('Target gating not implemented' / 'False budget detected' / 'Close-only mode not visible' / 'Mode transition not visible' / 'Error not surfaced'); predicate cannot fail and the artifact reports 61 failed checks."
+  },
+  {
+   "row_id": "INC-14",
+   "verdict": "DEMOTE",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "why": "evidence detail states the opposite of the claim while pass=true ('Target gating not implemented' / 'False budget detected' / 'Close-only mode not visible' / 'Mode transition not visible' / 'Error not surfaced'); predicate cannot fail and the artifact reports 61 failed checks."
+  },
+  {
+   "row_id": "INC-15",
+   "verdict": "DEMOTE",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "why": "evidence detail states the opposite of the claim while pass=true ('Target gating not implemented' / 'False budget detected' / 'Close-only mode not visible' / 'Mode transition not visible' / 'Error not surfaced'); predicate cannot fail and the artifact reports 61 failed checks."
+  },
+  {
+   "row_id": "INC-16",
+   "verdict": "DEMOTE",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "why": "evidence detail states the opposite of the claim while pass=true ('Target gating not implemented' / 'False budget detected' / 'Close-only mode not visible' / 'Mode transition not visible' / 'Error not surfaced'); predicate cannot fail and the artifact reports 61 failed checks."
+  },
+  {
+   "row_id": "INC-17",
+   "verdict": "DEMOTE",
+   "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+   "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+   "why": "evidence detail states the opposite of the claim while pass=true ('Target gating not implemented' / 'False budget detected' / 'Close-only mode not visible' / 'Mode transition not visible' / 'Error not surfaced'); predicate cannot fail and the artifact reports 61 failed checks."
+  },
+  {
+   "row_id": "LIFE-001",
+   "verdict": "KEEP",
+   "evidence_ref": "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json",
+   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+   "why": "KEEP: instance-lock acquired plus construct/alive-PID checks are produced only for this row and fail if the lock or single-process launch regresses."
+  },
+  {
+   "row_id": "LIFE-002",
+   "verdict": "KEEP",
+   "evidence_ref": "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json",
+   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+   "why": "KEEP: STOP_KILLS_WS_THREAD asserts thread death after stop - a falsifiable stop-specific result."
+  },
+  {
+   "row_id": "LIFE-003",
+   "verdict": "KEEP",
+   "evidence_ref": "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json",
+   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+   "why": "KEEP: first construction and restart construction are separate asserted outcomes, failing if restart cannot rebuild from persisted state."
+  },
+  {
+   "row_id": "LIFE-004",
+   "verdict": "KEEP",
+   "evidence_ref": "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json",
+   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+   "why": "KEEP: returns the engine's real status dict with counts/ownership_gate keys, falsifiable on API shape."
+  },
+  {
+   "row_id": "LIFE-005",
+   "verdict": "DEMOTE",
+   "evidence_ref": "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json",
+   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+   "why": "DEMOTE: 'version identifiable' only names the engine FILE and the second check reports a start timestamp; neither the source commit nor the UI nor an UNPROVEN verdict is asserted - naming a file always passes."
+  },
+  {
+   "row_id": "LIFE-006",
+   "verdict": "DEMOTE",
+   "evidence_ref": "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json",
+   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+   "why": "DEMOTE: both checks only assert live_start_ms is set and persists - the same property as LIFE-007; nothing asserts cutover creates no duplicate send authority or stale replay."
+  },
+  {
+   "row_id": "LIFE-007",
+   "verdict": "KEEP",
+   "evidence_ref": "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json",
+   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+   "why": "KEEP: recovery construction must honour the persisted live_start_ms, failing if recovery ignores state."
+  },
+  {
+   "row_id": "LIFE-008",
+   "verdict": "KEEP",
+   "evidence_ref": "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json",
+   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+   "why": "KEEP: config load results asserted concretely (wallets count, auto_send False, empty-wallets dict), falsifiable on config handling."
+  },
+  {
+   "row_id": "LIFE-009",
+   "verdict": "KEEP",
+   "evidence_ref": "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json",
+   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+   "why": "KEEP: records an actual INSTANCE_ALREADY_RUNNING refusal with lock path, unproducible unless a second instance was denied."
+  },
+  {
+   "row_id": "SET-001",
+   "verdict": "KEEP",
+   "evidence_ref": "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json",
+   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+   "why": "KEEP: row-specific settlement state asserted (UNSETTLED / SETTLED_FULL / TERMINAL_REJECT_NO_FILL / SETTLED_PARTIAL 0.6-0.4 / divergence blocker), each failing for a different row."
+  },
+  {
+   "row_id": "SET-002",
+   "verdict": "KEEP",
+   "evidence_ref": "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json",
+   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+   "why": "KEEP: row-specific settlement state asserted (UNSETTLED / SETTLED_FULL / TERMINAL_REJECT_NO_FILL / SETTLED_PARTIAL 0.6-0.4 / divergence blocker), each failing for a different row."
+  },
+  {
+   "row_id": "SET-003",
+   "verdict": "KEEP",
+   "evidence_ref": "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json",
+   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+   "why": "KEEP: row-specific settlement state asserted (UNSETTLED / SETTLED_FULL / TERMINAL_REJECT_NO_FILL / SETTLED_PARTIAL 0.6-0.4 / divergence blocker), each failing for a different row."
+  },
+  {
+   "row_id": "SET-004",
+   "verdict": "KEEP",
+   "evidence_ref": "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json",
+   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+   "why": "KEEP: row-specific settlement state asserted (UNSETTLED / SETTLED_FULL / TERMINAL_REJECT_NO_FILL / SETTLED_PARTIAL 0.6-0.4 / divergence blocker), each failing for a different row."
+  },
+  {
+   "row_id": "SET-005",
+   "verdict": "KEEP",
+   "evidence_ref": "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json",
+   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+   "why": "KEEP: row-specific settlement state asserted (UNSETTLED / SETTLED_FULL / TERMINAL_REJECT_NO_FILL / SETTLED_PARTIAL 0.6-0.4 / divergence blocker), each failing for a different row."
+  },
+  {
+   "row_id": "SET-006",
+   "verdict": "KEEP",
+   "evidence_ref": "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json",
+   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+   "why": "KEEP: row-specific settlement state asserted (UNSETTLED / SETTLED_FULL / TERMINAL_REJECT_NO_FILL / SETTLED_PARTIAL 0.6-0.4 / divergence blocker), each failing for a different row."
+  },
+  {
+   "row_id": "SET-007",
+   "verdict": "DEMOTE",
+   "evidence_ref": "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json",
+   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+   "why": "DEMOTE: only TESTNET_ENDPOINTS_RESOLVE and TESTNET_HOSTNAME_CORRECT are cited - topology strings shared with NET-001/NET-007; no REAL_TESTNET_ENTRY sub-gate (genuine leader OPEN, fill identity, copy scale, expected==actual, single submission) is asserted."
+  },
+  {
+   "row_id": "SET-008",
+   "verdict": "DEMOTE",
+   "evidence_ref": "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json",
+   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+   "why": "DEMOTE: only CERT_TOPOLOGY and NETWORK_STAMP_BINDS cited - shared topology boilerplate also cited by NET rows; no REAL_TESTNET_EXIT sub-gate (genuine reduction, fraction, attributed qty, exit fill) is asserted."
+  }
+ ]
+}
