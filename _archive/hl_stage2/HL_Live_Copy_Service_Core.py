@@ -130,6 +130,7 @@ LIVE_WS_HEALTH_FILE = AUDIT_DIR / "live_ws_health.json"
 MANUAL_LIVE_POSITIONS_FILE = AUDIT_DIR / "manual_live_positions.json"
 EXCHANGE_ACCOUNT_SNAPSHOT_FILE = AUDIT_DIR / "exchange_account_snapshot.json"
 RESTING_ENTRY_ORDERS_FILE = AUDIT_DIR / "resting_entry_orders.json"  # missed-entry limits resting at the leader's price
+WITHDRAWN_ENTRY_FILLS_FILE = AUDIT_DIR / "withdrawn_entry_fill_reads.json"  # cancelled limits awaiting an armed fill read
 STANDING_CLOSES_FILE = AUDIT_DIR / "standing_recovery_closes.json"  # reduce-only recovery closes resting, by sleeve
 EXCHANGE_ACCOUNT_SNAPSHOT_APP_FILE = AUDIT_DIR / "exchange_account_snapshot_app.json"
 LIVE_INTEGRITY_STATUS_FILE = AUDIT_DIR / "live_integrity_status.json"
@@ -742,6 +743,7 @@ RECONCILIATION_FIELDS = [
     "created_at", "created_at_ms", "event", "status", "leader_wallet", "leader_fill_id", "intent_id",
     "copy_fill_id", "coin", "manual_net", "exchange_net", "action", "reject_category", "terminal_state",
     "exchange_order_id", "engine_can_close", "engine_can_send", "notes",
+    "fill_age_ms", "cycle_id", "cycle_backlog_high_water",
 ]
 
 ERROR_FIELDS = ["created_at", "created_at_ms", "context", "error_type", "message", "traceback"]
@@ -4313,7 +4315,9 @@ class SenderGateway:
         self._resting_lock = threading.RLock()  # WS hot-path and cycle threads both touch the resting list
         self._standing_closes: Dict[str, Dict[str, Any]] = load_json(STANDING_CLOSES_FILE, {}) or {}
         self._leader_side_seen_ms: Dict[Tuple[str, str, str], int] = {}  # newest leader fill per wallet/coin/side
-        self._withdrawn_late: List[Dict[str, Any]] = []  # withdrawn at registration: the core must own their fills
+        _pending_withdrawn = load_json(WITHDRAWN_ENTRY_FILLS_FILE, [])
+        self._withdrawn_late: List[Dict[str, Any]] = [dict(r) for r in _pending_withdrawn
+                                                     if isinstance(r, dict)] if isinstance(_pending_withdrawn, list) else []
         self._last_exchange_order_ms: int = 0
         self._exchange_rate_limit_cooldown_until_ms: int = 0
         # Pending-exit guard: prevents a burst of leader close fills from each
@@ -4720,7 +4724,7 @@ class SenderGateway:
             with self._resting_lock:
                 rows = self._claim_rows([r for r in self._resting_entries.values() if not r.get("withdraw_pending")])
             return (self._withdraw_rows(rows, "engine stop: resting entry limit cancelled before exit", "",
-                                        "RESTING_ENTRY_CANCELLED_ON_STOP") if rows else [])
+                                        "RESTING_ENTRY_CANCELLED_ON_STOP", defer_fill_reads=True) if rows else [])
         except Exception as exc:
             log_error("stop_cancel_resting_entries", exc)
             self.audit.append_reconciliation(
@@ -4751,15 +4755,58 @@ class SenderGateway:
             if late:
                 late = self._claim_rows([row]) == [row]
         if late:
-            gone = self._withdraw_rows([row], f"leader already reduced at {opposite_ms} while this limit was being placed", "")
-            with self._resting_lock:
-                self._withdrawn_late.extend(gone)
+            self._withdraw_rows([row], f"leader already reduced at {opposite_ms} while this limit was being placed", "",
+                                defer_fill_reads=True)
+
+    def defer_withdrawn_late(self, rows: List[Dict[str, Any]]) -> None:
+        """Persist canceled entry limits until an armed cycle can read their fills.
+
+        A disarmed cycle must not pay for a copy-account fill read. The durable queue
+        makes a restart during the disarmed interval safe: the next armed cycle owns
+        any fill that raced the cancellation before it processes later leader fills.
+        """
+        if not rows:
+            return
+        with self._resting_lock:
+            by_oid = {str(r.get("oid") or ""): dict(r) for r in self._withdrawn_late
+                      if str(r.get("oid") or "")}
+            for row in rows:
+                oid = str(row.get("oid") or "")
+                if oid:
+                    by_oid[oid] = {k: v for k, v in dict(row).items() if k != "withdrawing"}
+            self._withdrawn_late = list(by_oid.values())
+            atomic_write_json(WITHDRAWN_ENTRY_FILLS_FILE, self._withdrawn_late)
+
+    def pending_withdrawn_late(self) -> List[Dict[str, Any]]:
+        with self._resting_lock:
+            return [dict(r) for r in self._withdrawn_late]
+
+    def acknowledge_withdrawn_late(self, rows: List[Dict[str, Any]]) -> None:
+        """Forget queue rows only after the follower fill read completed successfully."""
+        oids = {str(r.get("oid") or "") for r in rows if str(r.get("oid") or "")}
+        if not oids:
+            return
+        with self._resting_lock:
+            self._withdrawn_late = [r for r in self._withdrawn_late if str(r.get("oid") or "") not in oids]
+            atomic_write_json(WITHDRAWN_ENTRY_FILLS_FILE, self._withdrawn_late)
+
+    def mark_withdrawn_late_warning_logged(self, rows: List[Dict[str, Any]]) -> None:
+        """Persist that an unreadable cancel-race fill has already raised its critical audit row."""
+        oids = {str(r.get("oid") or "") for r in rows if str(r.get("oid") or "")}
+        if not oids:
+            return
+        with self._resting_lock:
+            for row in self._withdrawn_late:
+                if str(row.get("oid") or "") in oids:
+                    row["fill_read_warning_logged"] = True
+            atomic_write_json(WITHDRAWN_ENTRY_FILLS_FILE, self._withdrawn_late)
 
     def take_withdrawn_late(self) -> List[Dict[str, Any]]:
         """Limits withdrawn at registration (the leader's reduce was already handled): any fill they got is
         owned by the core and shown as a Critical diff, because no leader close will follow it."""
         with self._resting_lock:
             rows, self._withdrawn_late = self._withdrawn_late, []
+            atomic_write_json(WITHDRAWN_ENTRY_FILLS_FILE, self._withdrawn_late)
         return rows
 
     def leader_reduced_since(self, fill: LeaderFill) -> int:
@@ -4959,27 +5006,48 @@ class SenderGateway:
         """A resting missed-entry limit lives only while the leader still holds that position: a NEWER leader fill
         on the other side (reduce, close, flip) in that wallet and coin withdraws it. No clock expiry (Boss).
         Returns the withdrawn rows (cancelled, or already filled/gone) so their fills can be owned first."""
+        self.record_leader_fill_seen(fill)
+        return self._cancel_resting_entries_against_recorded_fill(fill, fill.leader_fill_id)
+
+    def record_leader_fill_seen(self, fill: LeaderFill) -> None:
+        """Cheap state-only half of cancel_resting_entries_against; used while sends are OFF."""
+        if str(fill.source or "").upper() == "CONVERGE":
+            return
         wallet, key = normalise_wallet(fill.leader_wallet), canonical_coin_key(fill.coin)
         ts = int(fnum(fill.timestamp_ms, 0))
         with self._resting_lock:
             seen = (wallet, key, fill.side)
             self._leader_side_seen_ms[seen] = max(self._leader_side_seen_ms.get(seen, 0), ts)
+
+    def cancel_resting_entries_for_disarmed_close(self, fill: LeaderFill, leader_close: bool) -> List[Dict[str, Any]]:
+        """Cancel only on a confirmed close while OFF; do not read withdrawn fills here."""
+        if not leader_close or str(fill.source or "").upper() == "CONVERGE":
+            return []
+        return self._cancel_resting_entries_against_recorded_fill(fill, fill.leader_fill_id, defer_fill_reads=True)
+
+    def _cancel_resting_entries_against_recorded_fill(self, fill: LeaderFill, audit_fill_id: str,
+                                                       defer_fill_reads: bool = False) -> List[Dict[str, Any]]:
+        wallet, key = normalise_wallet(fill.leader_wallet), canonical_coin_key(fill.coin)
+        ts = int(fnum(fill.timestamp_ms, 0))
+        with self._resting_lock:
             rows = self._claim_rows([r for r in self._resting_entries.values()
                                      if r.get("leader_wallet") == wallet and canonical_coin_key(r.get("coin")) == key
                                      and r.get("side") != fill.side
                                      and int(fnum(r.get("leader_fill_ms") or r.get("placed_ms"), 0)) <= ts])
         if not rows:
             return []
-        return self._withdraw_rows(rows, f"leader {fill.side} {fill.size} @ {fill.price} reduces that position", fill.leader_fill_id)
+        return self._withdraw_rows(rows, f"leader {fill.side} {fill.size} @ {fill.price} reduces that position",
+                                  audit_fill_id, defer_fill_reads=defer_fill_reads)
 
-    def retry_pending_withdrawals(self) -> List[Dict[str, Any]]:
+    def retry_pending_withdrawals(self, defer_fill_reads: bool = False) -> List[Dict[str, Any]]:
         """Each cycle: retry withdrawals that failed (the leader may never trade that coin again)."""
         with self._resting_lock:
             rows = self._claim_rows([r for r in self._resting_entries.values() if r.get("withdraw_pending")])
         withdrawn: List[Dict[str, Any]] = []
         for label in sorted({str(r.get("withdraw_label") or "RESTING_ENTRY_CANCELLED_LEADER_REDUCED") for r in rows}):
             same = [r for r in rows if str(r.get("withdraw_label") or "RESTING_ENTRY_CANCELLED_LEADER_REDUCED") == label]
-            withdrawn += self._withdraw_rows(same, f"retry of a failed withdrawal ({same[0].get('withdraw_pending')})", "", label)
+            withdrawn += self._withdraw_rows(same, f"retry of a failed withdrawal ({same[0].get('withdraw_pending')})", "", label,
+                                             defer_fill_reads=defer_fill_reads)
         return withdrawn
 
     def _claim_rows(self, rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -4993,15 +5061,17 @@ class SenderGateway:
                 claimed.append(dict(live))
         return claimed
 
-    def withdraw_resting_entries_sending_off(self) -> List[Dict[str, Any]]:
+    def withdraw_resting_entries_sending_off(self, defer_fill_reads: bool = False) -> List[Dict[str, Any]]:
         """Sending switched off: withdraw every missed-entry limit this engine placed (its own order ids, from its
         own registry; never any other order, and resting exit limits are not in it and stay). Run 4 finding."""
         with self._resting_lock:
             rows = self._claim_rows([r for r in self._resting_entries.values() if not r.get("withdraw_pending")])
-        return self._withdraw_rows(rows, "sending was switched off", "", "RESTING_ENTRY_CANCELLED_SENDING_OFF") if rows else []
+        return self._withdraw_rows(rows, "sending was switched off", "", "RESTING_ENTRY_CANCELLED_SENDING_OFF",
+                                   defer_fill_reads=defer_fill_reads) if rows else []
 
     def _withdraw_rows(self, rows: List[Dict[str, Any]], why: str, leader_fill_id: str,
-                       cancelled: str = "RESTING_ENTRY_CANCELLED_LEADER_REDUCED") -> List[Dict[str, Any]]:
+                       cancelled: str = "RESTING_ENTRY_CANCELLED_LEADER_REDUCED",
+                       defer_fill_reads: bool = False) -> List[Dict[str, Any]]:
         withdrawn: List[Dict[str, Any]] = []
         for row in rows:
             oid, response, error = str(row.get("oid")), {}, ""
@@ -5022,12 +5092,15 @@ class SenderGateway:
             with self._resting_lock:
                 if outcome != "RESTING_ENTRY_CANCEL_FAILED":
                     self._resting_entries.pop(oid, None)
-                    withdrawn.append({**row, "withdraw_outcome": outcome})
+                    withdrawn.append({**row, "withdraw_outcome": outcome, "withdraw_reason": why})
                 elif oid in self._resting_entries:
                     self._resting_entries[oid]["withdraw_pending"] = why
                     self._resting_entries[oid]["withdraw_label"] = cancelled
                     self._resting_entries[oid].pop("withdrawing", None)
                 atomic_write_json(RESTING_ENTRY_ORDERS_FILE, dict(self._resting_entries))
+            if defer_fill_reads and outcome != "RESTING_ENTRY_CANCEL_FAILED":
+                # Persist each successful cancellation before proceeding to the next order.
+                self.defer_withdrawn_late([withdrawn[-1]])
             if outcome == "RESTING_ENTRY_CANCEL_FAILED" and not first_failure:
                 continue  # already on screen as a Critical diff; retried quietly each cycle
             self.audit.append_reconciliation(
@@ -9243,6 +9316,10 @@ class LiveCopyCore:
         self.hot_send_workers = max(1, min(32, int(fnum(os.getenv("HL_LIVE_HOT_SEND_WORKERS"), 4))))
         self._hot_queues: List["queue.Queue[LeaderFill]"] = [queue.Queue(maxsize=50000) for _ in range(self.hot_send_workers)]
         self._hot_queue = self._hot_queues[0]
+        self._backlog_diag_lock = threading.Lock()
+        self._backlog_cycle_id = 0
+        self._backlog_cycle_high_water = 0
+        self._backlog_cycle_high_waters: Dict[int, int] = {}
         # run 5: convergence closes waited ~7.7 min behind a worker's batch of entries and were re-queued every few
         # minutes without ever being sent. Closes (leader exits and convergence) get their own lane per worker,
         # which the worker empties before every fill it sends.
@@ -9282,6 +9359,7 @@ class LiveCopyCore:
         self._held_read_cursor: Dict[str, int] = {}  # leader read position while the saved cursor is held (key stop)
         self._copy_ingest_lock = threading.RLock()  # copy-fill ownership from the cycle and from limit withdrawals
         self._copy_poll_lock = threading.Lock()  # one copy read at a time (cycle or copy thread)
+        self._withdrawn_queue_process_lock = threading.Lock()
         self._snapshot_lock = threading.Lock()
         self._last_copy_sweep = 0.0
         self._copy_thread: Optional[threading.Thread] = None
@@ -9339,6 +9417,8 @@ class LiveCopyCore:
         pickup, then ~1.1 s of cold reads). The worker's own prewarm then finds the caches fresh; a read still in flight is
         shared through the existing refresh locks, never repeated. Skips what is blocked locally (no wasted info weight)."""
         try:
+            if self.cfg.send_mode_now() == "OFF":
+                return
             stamps = (fill.raw or {}).get("_stamps") or {}
             if stamps.get("process_started_ms") or utc_now_ms() - int(fnum(stamps.get("enqueued_ms"), utc_now_ms())) > 3000:
                 return  # a worker already took the fill (it does its own prewarm), or the early pool is behind: a stale warm only costs info weight
@@ -9396,14 +9476,24 @@ class LiveCopyCore:
                 self._coin_lane[coin_key] = (lane, 1)
             shard = lane
         stamp_fill(fill, "enqueued_ms")
+        raw = fill.raw if isinstance(fill.raw, dict) else {}
+        fill.raw = raw
+        stamps = raw.setdefault("_stamps", {})
+        with self._backlog_diag_lock:
+            cycle_id = self._backlog_cycle_id
+        if isinstance(stamps, dict):
+            with self._backlog_diag_lock:
+                stamps["backlog_cycle_id"] = cycle_id
         if fill.source == "WS_CAPTURED" and os.getenv("HL_LIVE_EARLY_PREWARM", "1") != "0":
             _EARLY_WARM_POOL.submit(self._early_prewarm, fill)
+        backlog_before_put = self.hot_backlog()
         try:
             prio = getattr(self, "_prio_queues", None)
             if prio and len(prio) == len(self._hot_queues) and is_close:
                 prio[shard].put_nowait(fill)
             else:
                 self._hot_queues[shard].put_nowait(fill)
+            self._observe_backlog_high_water(backlog_before_put + 1, cycle_id)
             return True
         except queue.Full:
             with self._queued_lock:
@@ -9621,6 +9711,61 @@ class LiveCopyCore:
 
     def hot_backlog(self) -> int:
         return sum(q.qsize() for q in self._hot_queues) + sum(q.qsize() for q in getattr(self, "_prio_queues", []))
+
+    def _begin_backlog_cycle(self) -> None:
+        backlog = self.hot_backlog()
+        with self._backlog_diag_lock:
+            self._backlog_cycle_id += 1
+            self._backlog_cycle_high_water = backlog
+            self._backlog_cycle_high_waters[self._backlog_cycle_id] = backlog
+            if len(self._backlog_cycle_high_waters) > 20000:
+                for old_cycle in sorted(self._backlog_cycle_high_waters)[:10000]:
+                    self._backlog_cycle_high_waters.pop(old_cycle, None)
+
+    def _observe_backlog_high_water(self, observed_backlog: Optional[int] = None,
+                                    cycle_id: Optional[int] = None) -> int:
+        backlog = self.hot_backlog()
+        if observed_backlog is not None:
+            backlog = max(backlog, max(0, int(observed_backlog)))
+        with self._backlog_diag_lock:
+            cid = int(cycle_id if cycle_id is not None else self._backlog_cycle_id)
+            high_water = max(self._backlog_cycle_high_waters.get(cid, 0), backlog)
+            self._backlog_cycle_high_waters[cid] = high_water
+            if cid == self._backlog_cycle_id:
+                self._backlog_cycle_high_water = high_water
+            return high_water
+
+    def _disarmed_diagnostic_fields(self, fill: LeaderFill) -> Dict[str, Any]:
+        if not bval(os.getenv("HL_LIVE_DISARMED_PATH_DIAGNOSTICS"), False):
+            return {}
+        stamps = ((fill.raw or {}).get("_stamps") or {}) if isinstance(fill.raw, dict) else {}
+        if not isinstance(stamps, dict):
+            stamps = {}
+        with self._backlog_diag_lock:
+            cycle_id = int(fnum(stamps.get("backlog_cycle_id"), self._backlog_cycle_id))
+            high_water = self._backlog_cycle_high_waters.get(
+                cycle_id, self._backlog_cycle_high_water if cycle_id == self._backlog_cycle_id else 0)
+        return {
+            "fill_age_ms": max(0, utc_now_ms() - int(fnum(fill.timestamp_ms, 0))),
+            "cycle_id": cycle_id,
+            "cycle_backlog_high_water": high_water,
+        }
+
+    def _invalidate_disarmed_fill_caches(self, fill: LeaderFill) -> None:
+        """Force the next armed fill to refresh leader/follower truth after an OFF interval."""
+        builder = self.intent_builder
+        builder._leader_equity.pop(normalise_wallet(fill.leader_wallet), None)
+        builder._sizing_block.pop(normalise_wallet(fill.leader_wallet), None)
+        coin = canonical_coin_key(fill.coin)
+        builder._coin_clean.pop(coin, None)
+        builder._exposure = None
+        builder._exposure_ms = 0
+        builder._exposure_prefetched = None
+        builder._exposure_fail = None
+        # Disarmed fills intentionally avoid market and exposure reads. Drop cached mids too, so
+        # the first armed fill refreshes both networks instead of trusting a pre-disarm snapshot.
+        _FOLLOWER_MIDS.update(px={}, ms=0, scope=None)
+        _LEADER_MIDS.update(px={}, ms=0, dexes=[])
 
     def _release_queued(self, batch: List[LeaderFill], q: "queue.Queue[LeaderFill]") -> None:
         with self._queued_lock:
@@ -10114,6 +10259,66 @@ class LiveCopyCore:
                 notes=f"{type(exc).__name__}: {str(exc)[:300]}; "
                       + ("the error came after the exchange call may have started: check the exchange" if past_send else "retries exhausted"))
 
+    def _process_disarmed_leader_fill(self, fill: LeaderFill, summary: Optional[CycleSummary],
+                                      merged_ids: List[str]) -> Tuple[bool, str, Optional[Intent]]:
+        """Record a fill while globally OFF without intent, prewarm, or follower-read work."""
+        converge = str(fill.source or "").upper() == "CONVERGE"
+        if not converge:
+            self.sender.record_leader_fill_seen(fill)
+            try:
+                leader_close = self.intent_builder._is_leader_close_fill(fill)
+                if not leader_close:
+                    leader_close = self.ledger.classify_leader_side_for_wallet(
+                        fill.leader_wallet, fill.coin, fill.side)[0] in {"EXIT", "REDUCE"}
+            except Exception:
+                leader_close = False
+            self.sender.cancel_resting_entries_for_disarmed_close(fill, leader_close)
+
+        self._invalidate_disarmed_fill_caches(fill)
+        lifecycle = "UNKNOWN_LIFECYCLE"
+        try:
+            with self._send_lock:
+                lifecycle, _ = self.ledger.classify_leader_side_for_wallet(
+                    fill.leader_wallet, fill.coin, fill.side)
+                if lifecycle in {"EXIT", "REDUCE"}:
+                    self.dedupe.processed.add(fill.leader_fill_id)
+                elif not self.dedupe.accept_leader(fill.leader_fill_id):
+                    if summary is not None:
+                        summary.leader_fills_deduped += 1
+                    if fill.leader_fill_id not in self._idem_duplicate_audited:
+                        self._idem_duplicate_audited.add(fill.leader_fill_id)
+                        self.audit.append_reconciliation(
+                            "DUPLICATE_LEADER_FILL_SKIPPED", "BLOCKED_DUPLICATE_DEDUPE_STORE",
+                            leader_wallet=fill.leader_wallet, leader_fill_id=fill.leader_fill_id,
+                            coin=fill.coin, action="NO_SEND_ALREADY_PROCESSED",
+                            terminal_state="BLOCKED_DUPLICATE_DEDUPE_STORE", engine_can_send="False",
+                            notes="the persisted dedupe store already holds this leader fill id; not sent again")
+                    return False, "DEDUPED", None
+                self.dedupe.processed.update(merged_ids)
+        except Exception:
+            # Preserve the normal path's safe lifecycle fallback when the local ledger is unreadable.
+            with self.dedupe._lock:
+                self.dedupe.processed.add(fill.leader_fill_id)
+                self.dedupe.processed.update(merged_ids)
+
+        terminal_state = classify_terminal_state(
+            "MASTER_REAL_ORDERS_OFF", "MASTER_REAL_ORDERS_OFF", lifecycle, False)
+        action = classify_operator_action(
+            "MASTER_REAL_ORDERS_OFF", "MASTER_REAL_ORDERS_OFF", lifecycle, False)
+        ids = list(dict.fromkeys([str(fill.leader_fill_id), *[str(i) for i in merged_ids if str(i)]]))
+        for fid in ids:
+            sibling = fid != str(fill.leader_fill_id)
+            self.audit.append_reconciliation(
+                "SEND_TERMINAL", terminal_state,
+                leader_wallet=fill.leader_wallet, leader_fill_id=fid, coin=fill.coin,
+                action=action, reject_category="MASTER_REAL_ORDERS_OFF", terminal_state=terminal_state,
+                engine_can_close="False", engine_can_send="False",
+                notes=("global send_mode=OFF; fill recorded without building an intent or reading follower state; "
+                       + (f"merged_into={fill.leader_fill_id}" if sibling else "exchange.order not called")),
+                **self._disarmed_diagnostic_fields(fill),
+            )
+        return False, "MASTER_REAL_ORDERS_OFF", None
+
     def _process_leader_fill_inner(self, fill: LeaderFill, summary: Optional[CycleSummary] = None, entry_block_reason: str = "") -> Tuple[bool, str, Optional[Intent]]:
         stamp_fill(fill, "process_started_ms")
         stale_reason = stale_snapshot_replay_reason(fill)
@@ -10163,6 +10368,12 @@ class LiveCopyCore:
             self._idem_accepted.add(guard_key)
             merged_ids = [str(i) for i in ((fill.raw or {}).get("merged_fill_ids") or []) if i]
             self._idem_accepted.update(merged_ids)  # the fills merged into this copy are handled by it
+
+        if self.cfg.send_mode_now() == "OFF":
+            return self._process_disarmed_leader_fill(fill, summary, merged_ids)
+        self._process_deferred_withdrawn_entry_fills()
+        if self.cfg.send_mode_now() == "OFF":
+            return self._process_disarmed_leader_fill(fill, summary, merged_ids)
 
         # A resting missed-entry limit the leader no longer supports is withdrawn, and any fill it got is owned by
         # the ledger, BEFORE this fill is classified: the leader's close must find that position. The cancel and the
@@ -10410,6 +10621,45 @@ class LiveCopyCore:
                 if self.dedupe.accept_copy(CopyAccountIngestor.copy_fill_id(raw)) and self.matcher.match_and_apply(raw, self.intents_by_id):
                     owned += 1
         return owned
+
+    def _process_deferred_withdrawn_entry_fills(self) -> int:
+        """Own persisted cancel-race fills on an armed cycle, before later leader events."""
+        with self._withdrawn_queue_process_lock:
+            if self.cfg.send_mode_now() == "OFF":
+                return 0
+            rows = self.sender.pending_withdrawn_late()
+            if not rows:
+                return 0
+            read = self._read_fills_of_withdrawn_limits(rows)
+            seen_oids: set = set()
+            successful_read = bool(read and read[1] == "COPY_ACCOUNT_POLLED")
+            should_report = successful_read or not all(r.get("fill_read_warning_logged") for r in rows)
+            if should_report:
+                with self._send_lock:
+                    owned = self._apply_fills_of_withdrawn_limits(rows, read, seen_oids)
+                    leader_was_reduced = any(
+                        "leader" in str(r.get("withdraw_reason") or "").lower()
+                        and ("reduced" in str(r.get("withdraw_reason") or "").lower()
+                             or "close" in str(r.get("withdraw_reason") or "").lower())
+                        for r in rows)
+                    if successful_read and leader_was_reduced and (
+                            seen_oids or any(r.get("withdraw_outcome") == "RESTING_ENTRY_ALREADY_GONE" for r in rows)):
+                        self.audit.append_reconciliation(
+                            "SEND_TERMINAL", "RESTING_ENTRY_FILLED_AFTER_LEADER_REDUCED", coin=rows[0].get("coin", ""),
+                            leader_wallet=rows[0].get("leader_wallet", ""), terminal_state="RESTING_ENTRY_FILLED_AFTER_LEADER_REDUCED",
+                            action="MANUAL_REVIEW_RECONCILE_ENTRY_LEADER_ALREADY_REDUCED",
+                            exchange_order_id=",".join(str(r.get("oid")) for r in rows),
+                            notes=("a missed-entry limit filled before it could be withdrawn, after the leader had already "
+                                   "reduced (or the exchange said it was already filled/gone); the follower may hold a "
+                                   "position the leader no longer has; reconcile on the exchange"))
+                if not successful_read:
+                    self.sender.mark_withdrawn_late_warning_logged(rows)
+            else:
+                owned = 0
+            if not successful_read:
+                return 0  # critical row written once; retain durable queue and retry while armed
+            self.sender.acknowledge_withdrawn_late(rows)
+            return owned
 
     def _refresh_truth_for_gate(self, force: bool = False) -> None:
         """The ownership gate saw the exchange and the ledger disagree: own the follower's newest fills (as the
@@ -11018,6 +11268,7 @@ class LiveCopyCore:
                 _leader_poll_cursors = {str(k): int(fnum(v, 0)) for k, v in _raw_cursor.items()}
         _block = ""  # evaluated in full, then published once: the hot path never sees a half-run gate set
         started = time.monotonic()
+        self._begin_backlog_cycle()
         try:
             self.sender.refresh_asset_universe()
             ws_health = self.ws.write_health()
@@ -11072,30 +11323,15 @@ class LiveCopyCore:
                 except Exception as exc:
                     log_error("refresh_resting_open_sizes", exc)
                 # sending off: no order of the engine's may keep working on the exchange (run 4: limits kept filling)
-                retried = self.sender.retry_pending_withdrawals()
+                _defer_withdrawn_reads = self.cfg.send_mode_now() == "OFF"
+                retried = self.sender.retry_pending_withdrawals(defer_fill_reads=_defer_withdrawn_reads)
                 if not master_enabled or self.cfg.send_mode == "CLOSE":  # CLOSE withdraws entry limits like OFF; close limits stay
-                    retried += self.sender.withdraw_resting_entries_sending_off()
-                if retried:
+                    retried += self.sender.withdraw_resting_entries_sending_off(defer_fill_reads=_defer_withdrawn_reads)
+                if retried and self.cfg.send_mode_now() != "OFF":
                     read = self._read_fills_of_withdrawn_limits(retried)
                     with self._send_lock:
                         self._apply_fills_of_withdrawn_limits(retried, read)
-            late = self.sender.take_withdrawn_late()
-            if late:
-                read = self._read_fills_of_withdrawn_limits(late)
-                with self._send_lock:
-                    seen_late: set = set()
-                    self._apply_fills_of_withdrawn_limits(late, read, seen_late)
-                    # any fill of these limits (owned now or earlier by the copy poll), or a cancel answered
-                    # "already filled/gone" whose fill the API may not show yet, leaves a position with no leader
-                    if seen_late or any(r.get("withdraw_outcome") == "RESTING_ENTRY_ALREADY_GONE" for r in late):
-                        self.audit.append_reconciliation(
-                            "SEND_TERMINAL", "RESTING_ENTRY_FILLED_AFTER_LEADER_REDUCED", coin=late[0].get("coin", ""),
-                            leader_wallet=late[0].get("leader_wallet", ""), terminal_state="RESTING_ENTRY_FILLED_AFTER_LEADER_REDUCED",
-                            action="MANUAL_REVIEW_RECONCILE_ENTRY_LEADER_ALREADY_REDUCED",
-                            exchange_order_id=",".join(str(r.get("oid")) for r in late),
-                            notes=("a missed-entry limit filled before it could be withdrawn, after the leader had already "
-                                   "reduced (or the exchange said it was already filled/gone); the follower may hold a "
-                                   "position the leader no longer has; reconcile on the exchange"))
+            self._process_deferred_withdrawn_entry_fills()
             fills: List[LeaderFill] = []
             fills.extend(self.ws.drain())
             if use_source_csv:
@@ -11236,6 +11472,7 @@ class LiveCopyCore:
             for fill in (self._plan_batch(sync_fills) if sync_fills else []):  # same merging/ordering as the workers
                 self._process_leader_fill(fill, summary, self._entry_sends_blocked_reason)
             summary.send_backlog = self.hot_backlog()
+            self._observe_backlog_high_water()
             if poll_copy:
                 self.copy_poll_once(summary)
             elif getattr(self, "_copy_thread", None) is not None:
