@@ -1,0 +1,159 @@
+{
+  "results": [
+    {
+      "row_id": "UI-FP-001",
+      "verdict": "DEMOTE",
+      "why": "Evidence is carried/identical across rows and does not substantiate the execution_proof or independent_oracle - evidence only validates element presence/absence, not the data flow process or independent truth verification claimed in the proof/oracle fields"
+    },
+    {
+      "row_id": "UI-FP-002",
+      "verdict": "DEMOTE",
+      "why": "Evidence is carried/identical across rows and does not substantiate the execution_proof or independent_oracle - evidence only validates element presence/absence, not the data flow process or independent truth verification claimed in the proof/oracle fields"
+    },
+    {
+      "row_id": "UI-FP-005",
+      "verdict": "DEMOTE",
+      "why": "Evidence is carried/identical across rows and does not substantiate the execution_proof or independent_oracle - evidence only validates element presence/absence, not the data flow process or independent truth verification claimed in the proof/oracle fields"
+    },
+    {
+      "row_id": "UI-FP-006",
+      "verdict": "DEMOTE",
+      "why": "Evidence is carried/identical across rows and does not substantiate the execution_proof or independent_oracle - evidence only validates element presence/absence, not the data flow process or independent truth verification claimed in the proof/oracle fields"
+    },
+    {
+      "row_id": "UI-FP-007",
+      "verdict": "DEMOTE",
+      "why": "Evidence is carried/identical across rows and does not substantiate the execution_proof or independent_oracle - evidence only validates element presence/absence, not the data flow process or independent truth verification claimed in the proof/oracle fields"
+    },
+    {
+      "row_id": "UI-FP-018",
+      "verdict": "DEMOTE",
+      "why": "Evidence is carried/identical across rows and does not substantiate the execution_proof or independent_oracle - evidence only validates element presence/absence, not the data flow process or independent truth verification claimed in the proof/oracle fields"
+    },
+    {
+      "row_id": "UI-FP-019",
+      "verdict": "DEMOTE",
+      "why": "Evidence is carried/identical across rows and does not substantiate the execution_proof or independent_oracle - evidence only validates element presence/absence, not the data flow process or independent truth verification claimed in the proof/oracle fields"
+    },
+    {
+      "row_id": "UI-FP-020",
+      "verdict": "DEMOTE",
+      "why": "Evidence is carried/identical across rows and does not substantiate the execution_proof or independent_oracle - evidence only validates element presence/absence, not the data flow process or independent truth verification claimed in the proof/oracle fields"
+    },
+    {
+      "row_id": "UI-FP-021",
+      "verdict": "DEMOTE",
+      "why": "Evidence is carried/identical across rows and does not substantiate the execution_proof or independent_oracle - evidence only validates element presence/absence, not the data flow process or independent truth verification claimed in the proof/oracle fields"
+    },
+    {
+      "row_id": "UI-FP-022",
+      "verdict": "DEMOTE",
+      "why": "Evidence is carried/identical across rows and does not substantiate the execution_proof or independent_oracle - evidence only validates element presence/absence, not the data flow process or independent truth verification claimed in the proof/oracle fields"
+    },
+    {
+      "row_id": "UI-FP-026",
+      "verdict": "DEMOTE",
+      "why": "Evidence is carried/identical across rows and does not substantiate the execution_proof or independent_oracle - evidence only validates element presence/absence, not the data flow process or independent truth verification claimed in the proof/oracle fields"
+    },
+    {
+      "row_id": "UI-FP-027",
+      "verdict": "DEMOTE",
+      "why": "Evidence is carried/identical across rows and does not substantiate the execution_proof or independent_oracle - evidence only validates element presence/absence, not the data flow process or independent truth verification claimed in the proof/oracle fields"
+    },
+    {
+      "row_id": "UI-FP-028",
+      "verdict": "DEMOTE",
+      "why": "Evidence is carried/identical across rows and does not substantiate the execution_proof or independent_oracle - evidence only validates element presence/absence, not the data flow process or independent truth verification claimed in the proof/oracle fields"
+    },
+    {
+      "row_id": "UI-FP-141",
+      "verdict": "DEMOTE",
+      "why": "Evidence is carried/identical across rows and does not substantiate the execution_proof or independent_oracle - evidence only validates element presence/absence, not the data flow process or independent truth verification claimed in the proof/oracle fields"
+    },
+    {
+      "row_id": "UI-FP-142",
+      "verdict": "DEMOTE",
+      "why": "Evidence is carried/identical across rows and does not substantiate the execution_proof or independent_oracle - evidence only validates element presence/absence, not the data flow process or independent truth verification claimed in the proof/oracle fields"
+    },
+    {
+      "row_id": "UI-FP-143",
+      "verdict": "DEMOTE",
+      "why": "Evidence is carried/identical across rows and does not substantiate the execution_proof or independent_oracle - evidence only validates element presence/absence, not the data flow process or independent truth verification claimed in the proof/oracle fields"
+    },
+    {
+      "row_id": "UI-FP-144",
+      "verdict": "DEMOTE",
+      "why": "Evidence is carried/identical across rows and does not substantiate the execution_proof or independent_oracle - evidence only validates element presence/absence, not the data flow process or independent truth verification claimed in the proof/oracle fields"
+    },
+    {
+      "row_id": "UI-FP-146",
+      "verdict": "DEMOTE",
+      "why": "Evidence is carried/identical across rows and does not substantiate the execution_proof or independent_oracle - evidence only validates element presence/absence, not the data flow process or independent truth verification claimed in the proof/oracle fields"
+    },
+    {
+      "row_id": "UI-FP-147",
+      "verdict": "DEMOTE",
+      "why": "Evidence is carried/identical across rows and does not substantiate the execution_proof or independent_oracle - evidence only validates element presence/absence, not the data flow process or independent truth verification claimed in the proof/oracle fields"
+    },
+    {
+      "row_id": "UI-FP-148",
+      "verdict": "DEMOTE",
+      "why": "Evidence is carried/identical across rows and does not substantiate the execution_proof or independent_oracle - evidence only validates element presence/absence, not the data flow process or independent truth verification claimed in the proof/oracle fields"
+    },
+    {
+      "row_id": "UI-FP-151",
+      "verdict": "DEMOTE",
+      "why": "Evidence is carried/identical across rows and does not substantiate the execution_proof or independent_oracle - evidence only validates element presence/absence, not the data flow process or independent truth verification claimed in the proof/oracle fields"
+    },
+    {
+      "row_id": "UI-FP-152",
+      "verdict": "DEMOTE",
+      "why": "Evidence is carried/identical across rows and does not substantiate the execution_proof or independent_oracle - evidence only validates element presence/absence, not the data flow process or independent truth verification claimed in the proof/oracle fields"
+    },
+    {
+      "row_id": "UI-FP-153",
+      "verdict": "DEMOTE",
+      "why": "Evidence is carried/identical across rows and does not substantiate the execution_proof or independent_oracle - evidence only validates element presence/absence, not the data flow process or independent truth verification claimed in the proof/oracle fields"
+    },
+    {
+      "row_id": "UI-FP-154",
+      "verdict": "DEMOTE",
+      "why": "Evidence is carried/identical across rows and does not substantiate the execution_proof or independent_oracle - evidence only validates element presence/absence, not the data flow process or independent truth verification claimed in the proof/oracle fields"
+    },
+    {
+      "row_id": "UI-FP-155",
+      "verdict": "DEMOTE",
+      "why": "Evidence is carried/identical across rows and does not substantiate the execution_proof or independent_oracle - evidence only validates element presence/absence, not the data flow process or independent truth verification claimed in the proof/oracle fields"
+    },
+    {
+      "row_id": "UI-FP-156",
+      "verdict": "DEMOTE",
+      "why": "Evidence is carried/identical across rows and does not substantiate the execution_proof or independent_oracle - evidence only validates element presence/absence, not the data flow process or independent truth verification claimed in the proof/oracle fields"
+    },
+    {
+      "row_id": "UI-FP-157",
+      "verdict": "DEMOTE",
+      "why": "Evidence is carried/identical across rows and does not substantiate the execution_proof or independent_oracle - evidence only validates element presence/absence, not the data flow process or independent truth verification claimed in the proof/oracle fields"
+    },
+    {
+      "row_id": "UI-FP-158",
+      "verdict": "DEMOTE",
+      "why": "Evidence is carried/identical across rows and does not substantiate the execution_proof or independent_oracle - evidence only validates element presence/absence, not the data flow process or independent truth verification claimed in the proof/oracle fields"
+    },
+    {
+      "row_id": "UI-FP-159",
+      "verdict": "DEMOTE",
+      "why": "Evidence is carried/identical across rows and does not substantiate the execution_proof or independent_oracle - evidence only validates element presence/absence, not the data flow process or independent truth verification claimed in the proof/oracle fields"
+    },
+    {
+      "row_id": "UI-FP-160",
+      "verdict": "DEMOTE",
+      "why": "Evidence is carried/identical across rows and does not substantiate the execution_proof or independent_oracle - evidence only validates element presence/absence, not the data flow process or independent truth verification claimed in the proof/oracle fields"
+    }
+  ],
+  "summary": {
+    "audited": 30,
+    "KEEP": 0,
+    "DEMOTE": 30
+  }
+}
