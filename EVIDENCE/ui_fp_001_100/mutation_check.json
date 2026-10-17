@@ -1,0 +1,228 @@
+{
+ "card_id": "t_b9d358f4",
+ "purpose": "prove every in-scope PASS predicate can fail (schema hard requirement 6)",
+ "method": "one targeted mutation of the frozen DOM capture per row, re-run evaluate.py, row must flip PASS->FAIL",
+ "reproduces": "python EVIDENCE/ui_fp_001_100/mutation_check.py",
+ "scope_rows": 27,
+ "baseline_reproduces_artifact": true,
+ "killed": 27,
+ "vacuous": [],
+ "rows": [
+  {
+   "row_id": "UI-FP-001",
+   "mutation": "lcWalletCount 16/10 -> 17/10",
+   "declared": "PASS",
+   "mutated_verdict": "FAIL",
+   "killed": true,
+   "error": ""
+  },
+  {
+   "row_id": "UI-FP-002",
+   "mutation": "LIVE 10 -> 11",
+   "declared": "PASS",
+   "mutated_verdict": "FAIL",
+   "killed": true,
+   "error": ""
+  },
+  {
+   "row_id": "UI-FP-003",
+   "mutation": "CLO 0 -> 1",
+   "declared": "PASS",
+   "mutated_verdict": "FAIL",
+   "killed": true,
+   "error": ""
+  },
+  {
+   "row_id": "UI-FP-004",
+   "mutation": "OFF 6 -> 7",
+   "declared": "PASS",
+   "mutated_verdict": "FAIL",
+   "killed": true,
+   "error": ""
+  },
+  {
+   "row_id": "UI-FP-005",
+   "mutation": "sending ON -> OFF",
+   "declared": "PASS",
+   "mutated_verdict": "FAIL",
+   "killed": true,
+   "error": ""
+  },
+  {
+   "row_id": "UI-FP-006",
+   "mutation": "ws OK -> DEGRADED",
+   "declared": "PASS",
+   "mutated_verdict": "FAIL",
+   "killed": true,
+   "error": ""
+  },
+  {
+   "row_id": "UI-FP-007",
+   "mutation": "resting 0 -> 1",
+   "declared": "PASS",
+   "mutated_verdict": "FAIL",
+   "killed": true,
+   "error": ""
+  },
+  {
+   "row_id": "UI-FP-026",
+   "mutation": "drop realized-fills clause",
+   "declared": "PASS",
+   "mutated_verdict": "FAIL",
+   "killed": true,
+   "error": ""
+  },
+  {
+   "row_id": "UI-FP-027",
+   "mutation": "svg paths -> 0",
+   "declared": "PASS",
+   "mutated_verdict": "FAIL",
+   "killed": true,
+   "error": ""
+  },
+  {
+   "row_id": "UI-FP-028",
+   "mutation": "drop graph subtitle",
+   "declared": "PASS",
+   "mutated_verdict": "FAIL",
+   "killed": true,
+   "error": ""
+  },
+  {
+   "row_id": "UI-FP-032",
+   "mutation": "wallet Live -> OFF",
+   "declared": "PASS",
+   "mutated_verdict": "FAIL",
+   "killed": true,
+   "error": ""
+  },
+  {
+   "row_id": "UI-FP-033",
+   "mutation": "wallet Live -> OFF",
+   "declared": "PASS",
+   "mutated_verdict": "FAIL",
+   "killed": true,
+   "error": ""
+  },
+  {
+   "row_id": "UI-FP-034",
+   "mutation": "cell2 WS -> DEGRADED",
+   "declared": "PASS",
+   "mutated_verdict": "FAIL",
+   "killed": true,
+   "error": ""
+  },
+  {
+   "row_id": "UI-FP-038",
+   "mutation": "drop partial label",
+   "declared": "PASS",
+   "mutated_verdict": "FAIL",
+   "killed": true,
+   "error": ""
+  },
+  {
+   "row_id": "UI-FP-044",
+   "mutation": "0 exits -> 3",
+   "declared": "PASS",
+   "mutated_verdict": "FAIL",
+   "killed": true,
+   "error": ""
+  },
+  {
+   "row_id": "UI-FP-047",
+   "mutation": "exposure -> 0.01",
+   "declared": "PASS",
+   "mutated_verdict": "FAIL",
+   "killed": true,
+   "error": ""
+  },
+  {
+   "row_id": "UI-FP-051",
+   "mutation": "last fill -> none yet",
+   "declared": "PASS",
+   "mutated_verdict": "FAIL",
+   "killed": true,
+   "error": ""
+  },
+  {
+   "row_id": "UI-FP-063",
+   "mutation": "drop Partial record",
+   "declared": "PASS",
+   "mutated_verdict": "FAIL",
+   "killed": true,
+   "error": ""
+  },
+  {
+   "row_id": "UI-FP-064",
+   "mutation": "drop attribution code",
+   "declared": "PASS",
+   "mutated_verdict": "FAIL",
+   "killed": true,
+   "error": ""
+  },
+  {
+   "row_id": "UI-FP-065",
+   "mutation": "drop closedPnl row",
+   "declared": "PASS",
+   "mutated_verdict": "FAIL",
+   "killed": true,
+   "error": ""
+  },
+  {
+   "row_id": "UI-FP-066",
+   "mutation": "drop cumulative rejects",
+   "declared": "PASS",
+   "mutated_verdict": "FAIL",
+   "killed": true,
+   "error": ""
+  },
+  {
+   "row_id": "UI-FP-067",
+   "mutation": "coin 0G -> ZZZ",
+   "declared": "PASS",
+   "mutated_verdict": "FAIL",
+   "killed": true,
+   "error": ""
+  },
+  {
+   "row_id": "UI-FP-068",
+   "mutation": "side SHORT -> LONG",
+   "declared": "PASS",
+   "mutated_verdict": "FAIL",
+   "killed": true,
+   "error": ""
+  },
+  {
+   "row_id": "UI-FP-069",
+   "mutation": "size -76 -> -77",
+   "declared": "PASS",
+   "mutated_verdict": "FAIL",
+   "killed": true,
+   "error": ""
+  },
+  {
+   "row_id": "UI-FP-070",
+   "mutation": "entry px -> 0.999",
+   "declared": "PASS",
+   "mutated_verdict": "FAIL",
+   "killed": true,
+   "error": ""
+  },
+  {
+   "row_id": "UI-FP-071",
+   "mutation": "mark n/a -> 0.5",
+   "declared": "PASS",
+   "mutated_verdict": "FAIL",
+   "killed": true,
+   "error": ""
+  },
+  {
+   "row_id": "UI-FP-077",
+   "mutation": "friction side SELL -> BUY",
+   "declared": "PASS",
+   "mutated_verdict": "FAIL",
+   "killed": true,
+   "error": ""
+  }
+ ]
+}

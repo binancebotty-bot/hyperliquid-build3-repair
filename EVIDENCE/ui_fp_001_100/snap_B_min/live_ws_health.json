@@ -1,0 +1,119 @@
+{
+  "created_at": "2026-10-17T13:22:21.248178+00:00",
+  "created_at_ms": 1792243341248,
+  "wallets": {
+    "0x010461c14e146ac35fe42271bdc1134ee31c703a": {
+      "last_error": "",
+      "last_message_ms": 1792243340926,
+      "stale": false,
+      "stale_ms": 322
+    },
+    "0x1b232b41b0e75550c59288b99874e4a8142fbe21": {
+      "last_error": "",
+      "last_message_ms": 1792241521969,
+      "stale": false,
+      "stale_ms": 1819279
+    },
+    "0x31ca8395cf837de08b24da3f660e77761dfb974b": {
+      "last_error": "",
+      "last_message_ms": 1792243340824,
+      "stale": false,
+      "stale_ms": 424
+    },
+    "0x6ba889db7f923622d3548f621ecc2054b80c1817": {
+      "last_error": "",
+      "last_message_ms": 1792243336152,
+      "stale": false,
+      "stale_ms": 5096
+    },
+    "0x7019197d2b2ae7b44eee12a76015eb1fe94abd36": {
+      "last_error": "",
+      "last_message_ms": 1792243334908,
+      "stale": false,
+      "stale_ms": 6340
+    },
+    "0x7717a7a245d9f950e586822b8c9b46863ed7bd7e": {
+      "last_error": "",
+      "last_message_ms": 1792243340928,
+      "stale": false,
+      "stale_ms": 320
+    },
+    "0x936cf4fb95c30ce83f658b5bbb247e4bb381bb0f": {
+      "last_error": "",
+      "last_message_ms": 1792243340061,
+      "stale": false,
+      "stale_ms": 1187
+    },
+    "0xc179e03922afe8fa9533d3f896338b9fb87ce0c8": {
+      "last_error": "",
+      "last_message_ms": 1792243051812,
+      "stale": false,
+      "stale_ms": 289436
+    },
+    "0xd4c1f7e8d876c4749228d515473d36f919583d1d": {
+      "last_error": "",
+      "last_message_ms": 1792243329011,
+      "stale": false,
+      "stale_ms": 12237
+    },
+    "0xf5d81a135f756ca16544e53c20fc20643ec3ad53": {
+      "last_error": "",
+      "last_message_ms": 1792243339661,
+      "stale": false,
+      "stale_ms": 1587
+    }
+  },
+  "ws_summary": {
+    "headroom": {
+      "info_weight:api.hyperliquid-testnet.xyz": {
+        "level": "OK",
+        "limit": 1200,
+        "pct": 31.2,
+        "used": 375
+      },
+      "info_weight:api.hyperliquid.xyz": {
+        "level": "OK",
+        "limit": 1200,
+        "pct": 44.2,
+        "used": 531
+      },
+      "refusals": [],
+      "worst": "OK",
+      "ws_foreign": {
+        "level": "OK",
+        "limit": 0,
+        "pct": 0.0,
+        "pids": {},
+        "used": 0
+      },
+      "ws_users": {
+        "last_refusal": "",
+        "level": "OK",
+        "limit": 15,
+        "pct": 66.7,
+        "used": 10,
+        "wanted": 10
+      }
+    },
+    "last_ping_ms": 1792243317011,
+    "last_pong_ms": 1792243317244,
+    "last_refusal": "",
+    "last_refusal_ms": 0,
+    "last_socket_error": "",
+    "last_subscribe_ms": 1792235869451,
+    "message_errors": 0,
+    "open_count": 1,
+    "resubscribe_attempts": 0,
+    "socket_open": true,
+    "stale_count": 0,
+    "subscribe_acked": 10,
+    "subscribe_pending": false,
+    "subscribe_refused": 0,
+    "thread_alive": true,
+    "total_reconnect_count": 0,
+    "wallet_count": 10,
+    "wallets_without_feed": 0,
+    "worst_health_grade": "OK",
+    "ws_status": "WS_OK"
+  }
+}
