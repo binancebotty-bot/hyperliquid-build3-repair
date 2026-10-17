@@ -1,0 +1,126 @@
+{
+  "tested_commit": "b142cf88d389e791160f691aac3d936852b99975",
+  "tested_at_utc": "2026-10-17T10:10:15.294755+00:00",
+  "rows": {
+    "ENG-INV-07": {
+      "verdict": "BLOCKED",
+      "detail": "Engine loads; follower wallet missing on testnet -> no real fill",
+      "gate": "NO_GATE_CHECK"
+    },
+    "ENG-INV-08": {
+      "verdict": "BLOCKED",
+      "detail": "Engine loads; follower wallet missing on testnet -> no real fill",
+      "gate": "NO_GATE_CHECK"
+    },
+    "ENG-INV-09": {
+      "verdict": "BLOCKED",
+      "detail": "Engine loads; follower wallet missing on testnet -> no real fill",
+      "gate": "NO_GATE_CHECK"
+    },
+    "ENG-003": {
+      "verdict": "NOT_TESTED",
+      "detail": "Fixed mode end-to-end requires testnet fill; follower wallet missing on testnet",
+      "gate": "NO_TEST"
+    },
+    "PRICE-001": {
+      "verdict": "PARTIAL",
+      "detail": "Gate logic present; fresh follower-market mid required; no fresh mid on testnet -> no order sent",
+      "gate": "GATE_PRESENT"
+    },
+    "PRICE-002": {
+      "verdict": "NOT_TESTED",
+      "detail": "Price row PRICE-002 requires testnet fill; follower wallet missing on testnet",
+      "gate": "NO_TEST"
+    },
+    "PRICE-003": {
+      "verdict": "NOT_TESTED",
+      "detail": "Price row PRICE-003 requires testnet fill; follower wallet missing on testnet",
+      "gate": "NO_TEST"
+    },
+    "PRICE-004": {
+      "verdict": "NOT_TESTED",
+      "detail": "Price row PRICE-004 requires testnet fill; follower wallet missing on testnet",
+      "gate": "NO_TEST"
+    },
+    "PRICE-005": {
+      "verdict": "NOT_TESTED",
+      "detail": "Price row PRICE-005 requires testnet fill; follower wallet missing on testnet",
+      "gate": "NO_TEST"
+    },
+    "PRICE-006": {
+      "verdict": "NOT_TESTED",
+      "detail": "Price row PRICE-006 requires testnet fill; follower wallet missing on testnet",
+      "gate": "NO_TEST"
+    },
+    "PRICE-007": {
+      "verdict": "NOT_TESTED",
+      "detail": "Price row PRICE-007 requires testnet fill; follower wallet missing on testnet",
+      "gate": "NO_TEST"
+    },
+    "PRICE-008": {
+      "verdict": "NOT_TESTED",
+      "detail": "Price row PRICE-008 requires testnet fill; follower wallet missing on testnet",
+      "gate": "NO_TEST"
+    },
+    "RISK-009": {
+      "verdict": "NOT_TESTED",
+      "detail": "Could not instantiate engine for RISK-009",
+      "gate": "NO_INSTANCE"
+    },
+    "RISK-010": {
+      "verdict": "NOT_TESTED",
+      "detail": "Could not instantiate engine for RISK-010",
+      "gate": "NO_INSTANCE"
+    },
+    "RISK-011": {
+      "verdict": "NOT_TESTED",
+      "detail": "Could not instantiate engine for RISK-011",
+      "gate": "NO_INSTANCE"
+    },
+    "RISK-012": {
+      "verdict": "NOT_TESTED",
+      "detail": "Could not instantiate engine for RISK-012",
+      "gate": "NO_INSTANCE"
+    },
+    "RISK-013": {
+      "verdict": "NOT_TESTED",
+      "detail": "Could not instantiate engine for RISK-013",
+      "gate": "NO_INSTANCE"
+    },
+    "UI-LCC-CARD-07": {
+      "verdict": "NOT_TESTED",
+      "detail": "UI row UI-LCC-CARD-07: UI running; need to extract specific value from /live-copy",
+      "gate": "UI_RUNNING"
+    },
+    "UI-LCC-WTBL-09": {
+      "verdict": "NOT_TESTED",
+      "detail": "UI row UI-LCC-WTBL-09: UI running; need to extract specific value from /live-copy",
+      "gate": "UI_RUNNING"
+    },
+    "UI-LCC-DETAIL-01": {
+      "verdict": "NOT_TESTED",
+      "detail": "UI row UI-LCC-DETAIL-01: UI running; need to extract specific value from /live-copy",
+      "gate": "UI_RUNNING"
+    },
+    "UI-LCC-DETAIL-02": {
+      "verdict": "NOT_TESTED",
+      "detail": "UI row UI-LCC-DETAIL-02: UI running; need to extract specific value from /live-copy",
+      "gate": "UI_RUNNING"
+    },
+    "UI-LCC-DETAIL-03": {
+      "verdict": "NOT_TESTED",
+      "detail": "UI row UI-LCC-DETAIL-03: UI running; need to extract specific value from /live-copy",
+      "gate": "UI_RUNNING"
+    },
+    "UI-LCC-DETAIL-04": {
+      "verdict": "NOT_TESTED",
+      "detail": "UI row UI-LCC-DETAIL-04: UI running; need to extract specific value from /live-copy",
+      "gate": "UI_RUNNING"
+    },
+    "UI-LCC-ADD-06": {
+      "verdict": "NOT_TESTED",
+      "detail": "UI row UI-LCC-ADD-06: UI running; need to extract specific value from /live-copy",
+      "gate": "UI_RUNNING"
+    }
+  }
+}

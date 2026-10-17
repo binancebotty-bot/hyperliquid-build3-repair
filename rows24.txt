@@ -1,0 +1,167 @@
+### ENG-INV-07 [ENGINE] Build 3 invariant 7  result=BLOCKED applic=APPLIES
+EXPECT: Leader mutable state is isolated by (wallet, coin).
+PROOF : Leader event (testnet-observable) -> desired net per coin -> planner delta -> single sender -> testnet order -> MASTER fill/position
+ORACLE: Hyperliquid testnet info API read by a script that does not import engine code: clearinghouseState (all perp DEXes), openOrders, userFillsByTime for MASTER; leader fills from mainnet info API
+NEG   : ["restart mid-sequence", "stale leader snapshot", "API 429/timeout", "duplicate/reordered event"]
+SOURCES: ["hyperliquid-build3-repair/ARCHITECTURE.md", "ARCH inv7"]
+
+### ENG-INV-08 [ENGINE] Build 3 invariant 8  result=BLOCKED applic=APPLIES
+EXPECT: Startup/recovery truth includes all relevant perp DEX scopes (default + HIP-3/builder); missing required scope fails closed.
+PROOF : Leader event (testnet-observable) -> desired net per coin -> planner delta -> single sender -> testnet order -> MASTER fill/position
+ORACLE: Hyperliquid testnet info API read by a script that does not import engine code: clearinghouseState (all perp DEXes), openOrders, userFillsByTime for MASTER; leader fills from mainnet info API
+NEG   : ["restart mid-sequence", "stale leader snapshot", "API 429/timeout", "duplicate/reordered event"]
+SOURCES: ["hyperliquid-build3-repair/ARCHITECTURE.md", "ARCH inv8", "CONTROL_STATE required_semantics[1]"]
+
+### ENG-INV-09 [ENGINE] Build 3 invariant 9  result=BLOCKED applic=APPLIES
+EXPECT: Exchange truth outranks local replay; the manual follower-position file is not authoritative.
+PROOF : Leader event (testnet-observable) -> desired net per coin -> planner delta -> single sender -> testnet order -> MASTER fill/position
+ORACLE: Hyperliquid testnet info API read by a script that does not import engine code: clearinghouseState (all perp DEXes), openOrders, userFillsByTime for MASTER; leader fills from mainnet info API
+NEG   : ["restart mid-sequence", "stale leader snapshot", "API 429/timeout", "duplicate/reordered event"]
+SOURCES: ["hyperliquid-build3-repair/ARCHITECTURE.md", "ARCH inv9", "FAILURES ROOT-001"]
+
+### ENG-003 [ENGINE] Fixed mode end-to-end  result=NOT_TESTED applic=OPEN_DECISION
+EXPECT: Fixed mode executes using recovered intended semantics, never fixed-notional-per-fill. Until ruled, fixed mode is HOLD fail-closed with ZERO orders and surfaces FIXED_MODE_AUTHORITY_HOLD.
+PROOF : Leader event (testnet-observable) -> desired net per coin -> planner delta -> single sender -> testnet order -> MASTER fill/position
+ORACLE: Hyperliquid testnet info API read by a script that does not import engine code: clearinghouseState (all perp DEXes), openOrders, userFillsByTime for MASTER; leader fills from mainnet info API
+NEG   : ["restart mid-sequence", "stale leader snapshot", "API 429/timeout", "duplicate/reordered event"]
+SOURCES: ["PRODUCT_SEMANTICS \u00a75 FIXED-MODE HOLD", "CONTROL_STATE fixed_mode_hold", "HL_Live_Copy_Service_Core.py (7,705-line, sha256 5bda57be)"]
+
+### PRICE-001 [PRICING] Authoritative mark for OPEN/INCREASE/FLIP  result=NOT_TESTED applic=APPLIES
+EXPECT: One ruled mark source with a proven age bound is used on every OPEN/INCREASE/FLIP path. Currently BLOCKED: no validated-freshness mark reaches apply_fixed_sleeve_event(); fill.price is used with no age check.
+PROOF : Leader event -> price source actually consulted (logged with timestamp/age) -> order limit price on the wire -> fill price
+ORACLE: Independent l2Book / allMids snapshot captured at decision time plus the exchange fill record
+NEG   : ["stale quote beyond TTL", "quote unavailable", "price moves past bound before send"]
+SOURCES: ["CONTROL_STATE current_blocker", "hyperliquid-build3-repair/G4_C2A_MARK_SOURCE_INVENTORY.md", "Boss decision, Network switch thread 2026-10-09T13:26Z"]
+
+### PRICE-002 [PRICING] Public quote freshness  result=NOT_TESTED applic=APPLIES
+EXPECT: Cached public executable quote is used only within HL_LIVE_QUOTE_CACHE_TTL_MS (default 1000 ms); older -> refetch; unusable -> EXECUTABLE_QUOTE_UNAVAILABLE.
+PROOF : Leader event -> price source actually consulted (logged with timestamp/age) -> order limit price on the wire -> fill price
+ORACLE: Independent l2Book / allMids snapshot captured at decision time plus the exchange fill record
+NEG   : ["stale quote beyond TTL", "quote unavailable", "price moves past bound before send"]
+SOURCES: ["G4_C2A_MARK_SOURCE_INVENTORY trace table", "legacy HL_Live_Copy_Service.py LIVE_QUOTE_CACHE_TTL_MS"]
+
+### PRICE-003 [PRICING] Entry price bound  result=NOT_TESTED applic=OPEN_DECISION
+EXPECT: ENTRY/INCREASE never executes worse than the approved bound versus the causative leader reference; the exchange order itself enforces the bound (limit/IOC).
+PROOF : Leader event -> price source actually consulted (logged with timestamp/age) -> order limit price on the wire -> fill price
+ORACLE: Independent l2Book / allMids snapshot captured at decision time plus the exchange fill record
+NEG   : ["stale quote beyond TTL", "quote unavailable", "price moves past bound before send"]
+SOURCES: ["GUT I20", "FAILURES R21"]
+
+### PRICE-004 [PRICING] PRICE_WAIT  result=NOT_TESTED applic=OPEN_DECISION
+EXPECT: Unacceptable entry price -> no order, event target preserved; later valid price executes exactly once.
+PROOF : Leader event -> price source actually consulted (logged with timestamp/age) -> order limit price on the wire -> fill price
+ORACLE: Independent l2Book / allMids snapshot captured at decision time plus the exchange fill record
+NEG   : ["stale quote beyond TTL", "quote unavailable", "price moves past bound before send"]
+SOURCES: ["GUT I21"]
+
+### PRICE-005 [PRICING] Reduction/close never trapped by entry protection  result=NOT_TESTED applic=APPLIES
+EXPECT: Entry-price protection and entry caps never block a legitimate reduce/close.
+PROOF : Leader event -> price source actually consulted (logged with timestamp/age) -> order limit price on the wire -> fill price
+ORACLE: Independent l2Book / allMids snapshot captured at decision time plus the exchange fill record
+NEG   : ["stale quote beyond TTL", "quote unavailable", "price moves past bound before send"]
+SOURCES: ["GUT I22", "HL_Live_Copy_Service.global_order_cap_block docstring"]
+
+### PRICE-006 [PRICING] Adverse-diff measure is meaningful  result=NOT_TESTED applic=APPLIES
+EXPECT: adverse_diff_pct is computed against an independent executable price, not against the fill price itself (structural zero).
+PROOF : Leader event -> price source actually consulted (logged with timestamp/age) -> order limit price on the wire -> fill price
+ORACLE: Independent l2Book / allMids snapshot captured at decision time plus the exchange fill record
+NEG   : ["stale quote beyond TTL", "quote unavailable", "price moves past bound before send"]
+SOURCES: ["G4_C2A_MARK_SOURCE_INVENTORY Consequences", "Boss decision, Network switch thread 2026-10-09T13:26Z"]
+
+### PRICE-007 [PRICING] Marketable slippage  result=NOT_TESTED applic=APPLIES
+EXPECT: Marketable limit offset (HL_LIVE_AUTO_SEND_MARKETABLE_BPS default 5; UI global 'Marketable slippage %') is applied as configured and shown truthfully.
+PROOF : Leader event -> price source actually consulted (logged with timestamp/age) -> order limit price on the wire -> fill price
+ORACLE: Independent l2Book / allMids snapshot captured at decision time plus the exchange fill record
+NEG   : ["stale quote beyond TTL", "quote unavailable", "price moves past bound before send"]
+SOURCES: ["legacy HL_Live_Copy_Service.py LIVE_AUTO_SEND_MARKETABLE_BPS", "HL_Copy_App_SSOT.py gcMktPct", "Boss decision, Network switch thread 2026-10-09T13:26Z"]
+
+### PRICE-008 [PRICING] Close adverse diff  result=NOT_TESTED applic=OPEN_DECISION
+EXPECT: Close adverse diff limit (HL_LIVE_MAX_CLOSE_ADVERSE_DIFF_PCT default 0.25; UI 'Adverse close diff %') applied as configured and cannot trap an exit unless explicitly intended.
+PROOF : Leader event -> price source actually consulted (logged with timestamp/age) -> order limit price on the wire -> fill price
+ORACLE: Independent l2Book / allMids snapshot captured at decision time plus the exchange fill record
+NEG   : ["stale quote beyond TTL", "quote unavailable", "price moves past bound before send"]
+SOURCES: ["legacy HL_Live_Copy_Service.py LIVE_MAX_CLOSE_ADVERSE_DIFF_PCT", "HL_Copy_App_SSOT.py gcCloseAdv", "GUT I22"]
+
+### RISK-009 [RISK] Per-wallet daily loss limit  result=NOT_TESTED applic=OPEN_DECISION
+EXPECT: daily_loss_limit stops new entries for that wallet when breached, or is labelled display-only. Source census: stored and logged only; no enforcement found.
+PROOF : UI/config value -> live_config.json -> engine read at decision time -> block/allow recorded in order_intents with reason -> exchange shows (no) order
+ORACLE: Exchange orders/fills (absence or presence) plus independent recomputation of the limit from config
+NEG   : ["blank value", "zero", "negative", "non-numeric", "value changed while engine running", "rejected save"]
+SOURCES: ["legacy HL_Live_Copy_Service.py LiveWalletConfig.daily_loss_limit", "HL_Copy_App_SSOT.py Add-wallet modal 'Daily loss'", "HL_Live_Copy_Service_Core.py (7,705-line, sha256 5bda57be)"]
+
+### RISK-010 [RISK] Per-wallet max diff %  result=NOT_TESTED applic=OPEN_DECISION
+EXPECT: max_diff_pct applied as the entry price bound for that wallet.
+PROOF : UI/config value -> live_config.json -> engine read at decision time -> block/allow recorded in order_intents with reason -> exchange shows (no) order
+ORACLE: Exchange orders/fills (absence or presence) plus independent recomputation of the limit from config
+NEG   : ["blank value", "zero", "negative", "non-numeric", "value changed while engine running", "rejected save"]
+SOURCES: ["legacy HL_Live_Copy_Service.py max_diff_pct", "HL_Copy_App_SSOT.py Add-wallet modal 'Max diff %'"]
+
+### RISK-011 [RISK] Live wallet cap  result=NOT_TESTED applic=OPEN_DECISION
+EXPECT: At most 10 service-eligible wallets; 11th is rejected with MAX_WALLETS_EXCEEDED and config unchanged.
+PROOF : UI/config value -> live_config.json -> engine read at decision time -> block/allow recorded in order_intents with reason -> exchange shows (no) order
+ORACLE: Exchange orders/fills (absence or presence) plus independent recomputation of the limit from config
+NEG   : ["blank value", "zero", "negative", "non-numeric", "value changed while engine running", "rejected save"]
+SOURCES: ["HL_Copy_App_SSOT.py _enforce_live_copy_cap", "legacy HL_Live_Copy_Service.py MAX_LIVE_WALLETS=10", "HL_Live_Copy_Service_Core.py (7,705-line, sha256 5bda57be)"]
+
+### RISK-012 [RISK] Global safe stop  result=NOT_TESTED applic=OPEN_DECISION
+EXPECT: One operator action stops all new sends account-wide and is acknowledged by the running engine; it creates zero orders.
+PROOF : UI/config value -> live_config.json -> engine read at decision time -> block/allow recorded in order_intents with reason -> exchange shows (no) order
+ORACLE: Exchange orders/fills (absence or presence) plus independent recomputation of the limit from config
+NEG   : ["blank value", "zero", "negative", "non-numeric", "value changed while engine running", "rejected save"]
+SOURCES: ["ARCH Full scope 4 'global enable/disable / safe stop'", "GUT I12", "hyperliquid-build4/BUILD4_FINAL_AUTHORITY_MAP.md Modes"]
+
+### RISK-013 [RISK] Live / paper / testnet mode boundaries  result=NOT_TESTED applic=OPEN_DECISION
+EXPECT: Testnet and mainnet cannot be confused; dry-run/paper sends nothing; mode change itself creates zero orders.
+PROOF : UI/config value -> live_config.json -> engine read at decision time -> block/allow recorded in order_intents with reason -> exchange shows (no) order
+ORACLE: Exchange orders/fills (absence or presence) plus independent recomputation of the limit from config
+NEG   : ["blank value", "zero", "negative", "non-numeric", "value changed while engine running", "rejected save"]
+SOURCES: ["ARCH Full scope 4", "GUT I12"]
+
+### UI-LCC-CARD-07 [UI] Real Account card: Last Reject  result=NOT_TESTED applic=APPLIES
+EXPECT: Value equals MASTER exchange truth at snapshot time (Live Exposure currently from manual_live_exposure_estimate — must be labelled or replaced by exchange truth); unavailable -> 'Unavailable'/'n/a'.
+PROOF : Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)
+ORACLE: Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py
+NEG   : ["source unavailable shows n/a/Unavailable not 0", "stale source flagged", "API error surfaced"]
+SOURCES: ["HL_Copy_App_SSOT.py renderCards", "ARCH Full scope 2", "ARCH Full scope 6", "FAILURES UI-001..003"]
+
+### UI-LCC-WTBL-09 [UI] Live Copy Wallets column: Controls copy model select  result=NOT_TESTED applic=APPLIES
+EXPECT: Each value matches engine/exchange truth for that wallet; controls write live_config.json and the engine applies them.
+PROOF : Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)
+ORACLE: Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py
+NEG   : ["source unavailable shows n/a/Unavailable not 0", "stale source flagged", "API error surfaced"]
+SOURCES: ["HL_Copy_App_SSOT.py renderWallets", "ARCH Full scope 2", "ARCH Full scope 6", "FAILURES UI-001..003"]
+
+### UI-LCC-DETAIL-01 [UI] Wallet detail section: A Live Performance  result=NOT_TESTED applic=APPLIES
+EXPECT: Per-wallet detail matches exchange fills/positions attributed to that leader; attribution quality shown.
+PROOF : Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)
+ORACLE: Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py
+NEG   : ["source unavailable shows n/a/Unavailable not 0", "stale source flagged", "API error surfaced"]
+SOURCES: ["HL_Copy_App_SSOT.py walletDetailHtml", "ARCH Full scope 2", "ARCH Full scope 6", "FAILURES UI-001..003"]
+
+### UI-LCC-DETAIL-02 [UI] Wallet detail section: B Open Positions (Coin/Side/Size/Entry/Mark/uPnL/Exposure/Exchange match)  result=NOT_TESTED applic=APPLIES
+EXPECT: Per-wallet detail matches exchange fills/positions attributed to that leader; attribution quality shown.
+PROOF : Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)
+ORACLE: Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py
+NEG   : ["source unavailable shows n/a/Unavailable not 0", "stale source flagged", "API error surfaced"]
+SOURCES: ["HL_Copy_App_SSOT.py walletDetailHtml", "ARCH Full scope 2", "ARCH Full scope 6", "FAILURES UI-001..003"]
+
+### UI-LCC-DETAIL-03 [UI] Wallet detail section: C Lead vs Copy / Friction  result=NOT_TESTED applic=APPLIES
+EXPECT: Per-wallet detail matches exchange fills/positions attributed to that leader; attribution quality shown.
+PROOF : Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)
+ORACLE: Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py
+NEG   : ["source unavailable shows n/a/Unavailable not 0", "stale source flagged", "API error surfaced"]
+SOURCES: ["HL_Copy_App_SSOT.py walletDetailHtml", "ARCH Full scope 2", "ARCH Full scope 6", "FAILURES UI-001..003"]
+
+### UI-LCC-DETAIL-04 [UI] Wallet detail section: D Execution Audit  result=NOT_TESTED applic=APPLIES
+EXPECT: Per-wallet detail matches exchange fills/positions attributed to that leader; attribution quality shown.
+PROOF : Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)
+ORACLE: Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py
+NEG   : ["source unavailable shows n/a/Unavailable not 0", "stale source flagged", "API error surfaced"]
+SOURCES: ["HL_Copy_App_SSOT.py walletDetailHtml", "ARCH Full scope 2", "ARCH Full scope 6", "FAILURES UI-001..003"]
+
+### UI-LCC-ADD-06 [UI] Add-wallet modal field: Leader equity base  result=NOT_TESTED applic=APPLIES
+EXPECT: Field value persists exactly to live_config.json via /api/live-config/add-wallet; invalid input rejected with visible error.
+PROOF : Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)
+ORACLE: Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py
+NEG   : ["source unavailable shows n/a/Unavailable not 0", "stale source flagged", "API error surfaced"]
+SOURCES: ["HL_Copy_App_SSOT.py lcAddForm", "ARCH Full scope 2", "ARCH Full scope 6", "FAILURES UI-001..003"]

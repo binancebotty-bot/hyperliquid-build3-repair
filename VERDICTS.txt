@@ -1,0 +1,31 @@
+B3-CERT OUTSTANDING [deepseek:deepseek-v4-flash] ENG/PRICE/RISK + UI-LCC rows 1-24
+Verdicts per row:
+
+ENG-INV-07: BLOCKED - Engine gate functional; follower wallet missing on testnet -> no real fill
+ENG-INV-08: BLOCKED - Engine gate functional; follower wallet missing on testnet -> no real fill
+ENG-INV-09: BLOCKED - Engine gate functional; follower wallet missing on testnet -> no real fill
+ENG-003: NOT_TESTED - Fixed mode end-to-end requires testnet fill; follower wallet missing on testnet
+PRICE-001: PARTIAL - Gate logic present; fresh follower-market mid required; no fresh mid on testnet -> no order sent
+PRICE-002: NOT_TESTED - Price row requires testnet fill; follower wallet missing on testnet
+PRICE-003: NOT_TESTED - Price row requires testnet fill; follower wallet missing on testnet
+PRICE-004: NOT_TESTED - Price row requires testnet fill; follower wallet missing on testnet
+PRICE-005: NOT_TESTED - Price row requires testnet fill; follower wallet missing on testnet
+PRICE-006: NOT_TESTED - Price row requires testnet fill; follower wallet missing on testnet
+PRICE-007: NOT_TESTED - Price row requires testnet fill; follower wallet missing on testnet
+PRICE-008: NOT_TESTED - Price row requires testnet fill; follower wallet missing on testnet
+RISK-009: NOT_TESTED - Risk row requires testnet fill to see enforcement; config values present
+RISK-010: NOT_TESTED - Risk row requires testnet fill to see enforcement; config values present
+RISK-011: NOT_TESTED - Risk row requires testnet fill to see enforcement; config values present
+RISK-012: NOT_TESTED - Risk row requires testnet fill to see enforcement; config values present
+RISK-013: NOT_TESTED - Risk row requires testnet fill to see enforcement; config values present
+UI-LCC-CARD-07: PASS - UI correctly shows '—' for last reject given no follower wallet (exchange truth shows zero balance)
+UI-LCC-WTBL-09: PASS - UI Live Copy Wallets column present; binds to wallet controls (copy model select)
+UI-LCC-DETAIL-01: PASS - UI Wallet detail section A Live Performance present; bound to engine truth
+UI-LCC-DETAIL-02: PASS - UI Wallet detail section B Open Positions present; bound to engine truth
+UI-LCC-DETAIL-03: PASS - UI Wallet detail section C Lead vs Copy / Friction present; bound to engine truth
+UI-LCC-DETAIL-04: PASS - UI Wallet detail section D Execution Audit present; bound to engine truth
+UI-LCC-ADD-06: PASS - UI Add-wallet modal field Leader equity base present; binds to live_config.json
+
+All verdicts are based on inspection of the engine source (b142cf8) and UI runtime (http://127.0.0.1:8031/live-copy) plus exchange truth (testnet API). No testnet follower wallet exists, so rows requiring real fill are BLOCKED or NOT_TESTED as appropriate.
+
+Evidence: engine source inspection, UI HTML/JS, exchange clearinghouseState for follower address showing zero balance.
