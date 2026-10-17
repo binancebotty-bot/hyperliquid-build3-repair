@@ -1,0 +1,122 @@
+{
+  "audited": 23,
+  "KEEP": 0,
+  "DEMOTE": 23,
+  "rows": [
+    {
+      "row_id": "F-LOGIC-001",
+      "verdict": "DEMOTE",
+      "why": "Evidence is insufficient for this row: the cited payload gives only a generic static LOGIC_SOUND/VERIFY_SOUND check, with no row-specific execution trace or independent oracle result. The check details are recycled across unrelated requirements, so they do not substantiate this row\u2019s stated execution_proof or independent_oracle."
+    },
+    {
+      "row_id": "F-LOGIC-002",
+      "verdict": "DEMOTE",
+      "why": "Evidence is insufficient for this row: the cited payload gives only a generic static LOGIC_SOUND/VERIFY_SOUND check, with no row-specific execution trace or independent oracle result. The check details are recycled across unrelated requirements, so they do not substantiate this row\u2019s stated execution_proof or independent_oracle."
+    },
+    {
+      "row_id": "F-LOGIC-003",
+      "verdict": "DEMOTE",
+      "why": "Evidence is insufficient for this row: the cited payload gives only a generic static LOGIC_SOUND/VERIFY_SOUND check, with no row-specific execution trace or independent oracle result. The check details are recycled across unrelated requirements, so they do not substantiate this row\u2019s stated execution_proof or independent_oracle."
+    },
+    {
+      "row_id": "F-LOGIC-004",
+      "verdict": "DEMOTE",
+      "why": "Evidence is insufficient for this row: the cited payload gives only a generic static LOGIC_SOUND/VERIFY_SOUND check, with no row-specific execution trace or independent oracle result. The check details are recycled across unrelated requirements, so they do not substantiate this row\u2019s stated execution_proof or independent_oracle."
+    },
+    {
+      "row_id": "F-LOGIC-005",
+      "verdict": "DEMOTE",
+      "why": "Evidence is insufficient for this row: the cited payload gives only a generic static LOGIC_SOUND/VERIFY_SOUND check, with no row-specific execution trace or independent oracle result. The check details are recycled across unrelated requirements, so they do not substantiate this row\u2019s stated execution_proof or independent_oracle."
+    },
+    {
+      "row_id": "F-LOGIC-006",
+      "verdict": "DEMOTE",
+      "why": "Evidence is insufficient for this row: the cited payload gives only a generic static LOGIC_SOUND/VERIFY_SOUND check, with no row-specific execution trace or independent oracle result. The check details are recycled across unrelated requirements, so they do not substantiate this row\u2019s stated execution_proof or independent_oracle."
+    },
+    {
+      "row_id": "F-LOGIC-007",
+      "verdict": "DEMOTE",
+      "why": "Evidence is insufficient for this row: the cited payload gives only a generic static LOGIC_SOUND/VERIFY_SOUND check, with no row-specific execution trace or independent oracle result. The check details are recycled across unrelated requirements, so they do not substantiate this row\u2019s stated execution_proof or independent_oracle."
+    },
+    {
+      "row_id": "F-LOGIC-008",
+      "verdict": "DEMOTE",
+      "why": "Evidence is insufficient for this row: the cited payload gives only a generic static LOGIC_SOUND/VERIFY_SOUND check, with no row-specific execution trace or independent oracle result. The check details are recycled across unrelated requirements, so they do not substantiate this row\u2019s stated execution_proof or independent_oracle."
+    },
+    {
+      "row_id": "F-LOGIC-009",
+      "verdict": "DEMOTE",
+      "why": "Evidence is insufficient for this row: the cited payload gives only a generic static LOGIC_SOUND/VERIFY_SOUND check, with no row-specific execution trace or independent oracle result. The check details are recycled across unrelated requirements, so they do not substantiate this row\u2019s stated execution_proof or independent_oracle."
+    },
+    {
+      "row_id": "F-LOGIC-010",
+      "verdict": "DEMOTE",
+      "why": "Evidence is insufficient for this row: the cited payload gives only a generic static LOGIC_SOUND/VERIFY_SOUND check, with no row-specific execution trace or independent oracle result. The check details are recycled across unrelated requirements, so they do not substantiate this row\u2019s stated execution_proof or independent_oracle."
+    },
+    {
+      "row_id": "F-LOGIC-011",
+      "verdict": "DEMOTE",
+      "why": "Evidence is insufficient for this row: the cited payload gives only a generic static LOGIC_SOUND/VERIFY_SOUND check, with no row-specific execution trace or independent oracle result. The check details are recycled across unrelated requirements, so they do not substantiate this row\u2019s stated execution_proof or independent_oracle."
+    },
+    {
+      "row_id": "F-LOGIC-012",
+      "verdict": "DEMOTE",
+      "why": "Evidence is insufficient for this row: the cited payload gives only a generic static LOGIC_SOUND/VERIFY_SOUND check, with no row-specific execution trace or independent oracle result. The check details are recycled across unrelated requirements, so they do not substantiate this row\u2019s stated execution_proof or independent_oracle."
+    },
+    {
+      "row_id": "F-LOGIC-013",
+      "verdict": "DEMOTE",
+      "why": "Evidence is insufficient for this row: the cited payload gives only a generic static LOGIC_SOUND/VERIFY_SOUND check, with no row-specific execution trace or independent oracle result. The check details are recycled across unrelated requirements, so they do not substantiate this row\u2019s stated execution_proof or independent_oracle."
+    },
+    {
+      "row_id": "F-LOGIC-014",
+      "verdict": "DEMOTE",
+      "why": "Evidence is insufficient for this row: the cited payload gives only a generic static LOGIC_SOUND/VERIFY_SOUND check, with no row-specific execution trace or independent oracle result. The check details are recycled across unrelated requirements, so they do not substantiate this row\u2019s stated execution_proof or independent_oracle."
+    },
+    {
+      "row_id": "F-LOGIC-015",
+      "verdict": "DEMOTE",
+      "why": "Evidence is insufficient for this row: the cited payload gives only a generic static LOGIC_SOUND/VERIFY_SOUND check, with no row-specific execution trace or independent oracle result. The check details are recycled across unrelated requirements, so they do not substantiate this row\u2019s stated execution_proof or independent_oracle."
+    },
+    {
+      "row_id": "F-LOGIC-016",
+      "verdict": "DEMOTE",
+      "why": "Evidence is insufficient for this row: the cited payload gives only a generic static LOGIC_SOUND/VERIFY_SOUND check, with no row-specific execution trace or independent oracle result. The check details are recycled across unrelated requirements, so they do not substantiate this row\u2019s stated execution_proof or independent_oracle."
+    },
+    {
+      "row_id": "F-VERIFY-001",
+      "verdict": "DEMOTE",
+      "why": "Evidence is insufficient for this row: the cited payload gives only a generic static LOGIC_SOUND/VERIFY_SOUND check, with no row-specific execution trace or independent oracle result. The check details are recycled across unrelated requirements, so they do not substantiate this row\u2019s stated execution_proof or independent_oracle."
+    },
+    {
+      "row_id": "F-VERIFY-002",
+      "verdict": "DEMOTE",
+      "why": "Evidence is insufficient for this row: the cited payload gives only a generic static LOGIC_SOUND/VERIFY_SOUND check, with no row-specific execution trace or independent oracle result. The check details are recycled across unrelated requirements, so they do not substantiate this row\u2019s stated execution_proof or independent_oracle."
+    },
+    {
+      "row_id": "F-VERIFY-003",
+      "verdict": "DEMOTE",
+      "why": "Evidence is insufficient for this row: the cited payload gives only a generic static LOGIC_SOUND/VERIFY_SOUND check, with no row-specific execution trace or independent oracle result. The check details are recycled across unrelated requirements, so they do not substantiate this row\u2019s stated execution_proof or independent_oracle."
+    },
+    {
+      "row_id": "F-VERIFY-004",
+      "verdict": "DEMOTE",
+      "why": "Evidence is insufficient for this row: the cited payload gives only a generic static LOGIC_SOUND/VERIFY_SOUND check, with no row-specific execution trace or independent oracle result. The check details are recycled across unrelated requirements, so they do not substantiate this row\u2019s stated execution_proof or independent_oracle."
+    },
+    {
+      "row_id": "F-VERIFY-005",
+      "verdict": "DEMOTE",
+      "why": "Evidence is insufficient for this row: the cited payload gives only a generic static LOGIC_SOUND/VERIFY_SOUND check, with no row-specific execution trace or independent oracle result. The check details are recycled across unrelated requirements, so they do not substantiate this row\u2019s stated execution_proof or independent_oracle."
+    },
+    {
+      "row_id": "F-VERIFY-006",
+      "verdict": "DEMOTE",
+      "why": "Evidence is insufficient for this row: the cited payload gives only a generic static LOGIC_SOUND/VERIFY_SOUND check, with no row-specific execution trace or independent oracle result. The check details are recycled across unrelated requirements, so they do not substantiate this row\u2019s stated execution_proof or independent_oracle."
+    },
+    {
+      "row_id": "F-VERIFY-007",
+      "verdict": "DEMOTE",
+      "why": "Evidence is insufficient for this row: the cited payload gives only a generic static LOGIC_SOUND/VERIFY_SOUND check, with no row-specific execution trace or independent oracle result. The check details are recycled across unrelated requirements, so they do not substantiate this row\u2019s stated execution_proof or independent_oracle."
+    }
+  ]
+}
