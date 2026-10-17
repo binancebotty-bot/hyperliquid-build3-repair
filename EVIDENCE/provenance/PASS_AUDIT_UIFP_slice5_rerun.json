@@ -1,0 +1,318 @@
+{
+  "summary": {
+    "audited": 57,
+    "KEEP": 0,
+    "DEMOTE": 57,
+    "remaining_unaudited": 0
+  },
+  "rows": [
+    {
+      "row_id": "UI-FP-031",
+      "verdict": "DEMOTE",
+      "why": "carried generic proof/oracle; not row-specific"
+    },
+    {
+      "row_id": "UI-FP-032",
+      "verdict": "DEMOTE",
+      "why": "carried generic proof/oracle; not row-specific"
+    },
+    {
+      "row_id": "UI-FP-033",
+      "verdict": "DEMOTE",
+      "why": "carried generic proof/oracle; not row-specific"
+    },
+    {
+      "row_id": "UI-FP-034",
+      "verdict": "DEMOTE",
+      "why": "carried generic proof/oracle; not row-specific"
+    },
+    {
+      "row_id": "UI-FP-035",
+      "verdict": "DEMOTE",
+      "why": "carried generic proof/oracle; not row-specific"
+    },
+    {
+      "row_id": "UI-FP-036",
+      "verdict": "DEMOTE",
+      "why": "carried generic proof/oracle; not row-specific"
+    },
+    {
+      "row_id": "UI-FP-037",
+      "verdict": "DEMOTE",
+      "why": "carried generic proof/oracle; not row-specific"
+    },
+    {
+      "row_id": "UI-FP-038",
+      "verdict": "DEMOTE",
+      "why": "carried generic proof/oracle; not row-specific"
+    },
+    {
+      "row_id": "UI-FP-039",
+      "verdict": "DEMOTE",
+      "why": "carried generic proof/oracle; not row-specific"
+    },
+    {
+      "row_id": "UI-FP-040",
+      "verdict": "DEMOTE",
+      "why": "carried generic proof/oracle; not row-specific"
+    },
+    {
+      "row_id": "UI-FP-042",
+      "verdict": "DEMOTE",
+      "why": "carried generic proof/oracle; not row-specific"
+    },
+    {
+      "row_id": "UI-FP-043",
+      "verdict": "DEMOTE",
+      "why": "carried generic proof/oracle; not row-specific"
+    },
+    {
+      "row_id": "UI-FP-044",
+      "verdict": "DEMOTE",
+      "why": "carried generic proof/oracle; not row-specific"
+    },
+    {
+      "row_id": "UI-FP-045",
+      "verdict": "DEMOTE",
+      "why": "carried generic proof/oracle; not row-specific"
+    },
+    {
+      "row_id": "UI-FP-046",
+      "verdict": "DEMOTE",
+      "why": "carried generic proof/oracle; not row-specific"
+    },
+    {
+      "row_id": "UI-FP-047",
+      "verdict": "DEMOTE",
+      "why": "carried generic proof/oracle; not row-specific"
+    },
+    {
+      "row_id": "UI-FP-049",
+      "verdict": "DEMOTE",
+      "why": "carried generic proof/oracle; not row-specific"
+    },
+    {
+      "row_id": "UI-FP-050",
+      "verdict": "DEMOTE",
+      "why": "carried generic proof/oracle; not row-specific"
+    },
+    {
+      "row_id": "UI-FP-051",
+      "verdict": "DEMOTE",
+      "why": "carried generic proof/oracle; not row-specific"
+    },
+    {
+      "row_id": "UI-FP-053",
+      "verdict": "DEMOTE",
+      "why": "carried generic proof/oracle; not row-specific"
+    },
+    {
+      "row_id": "UI-FP-056",
+      "verdict": "DEMOTE",
+      "why": "carried generic proof/oracle; not row-specific"
+    },
+    {
+      "row_id": "UI-FP-057",
+      "verdict": "DEMOTE",
+      "why": "carried generic proof/oracle; not row-specific"
+    },
+    {
+      "row_id": "UI-FP-058",
+      "verdict": "DEMOTE",
+      "why": "carried generic proof/oracle; not row-specific"
+    },
+    {
+      "row_id": "UI-FP-059",
+      "verdict": "DEMOTE",
+      "why": "carried generic proof/oracle; not row-specific"
+    },
+    {
+      "row_id": "UI-FP-061",
+      "verdict": "DEMOTE",
+      "why": "carried generic proof/oracle; not row-specific"
+    },
+    {
+      "row_id": "UI-FP-062",
+      "verdict": "DEMOTE",
+      "why": "carried generic proof/oracle; not row-specific"
+    },
+    {
+      "row_id": "UI-FP-063",
+      "verdict": "DEMOTE",
+      "why": "carried generic proof/oracle; not row-specific"
+    },
+    {
+      "row_id": "UI-FP-064",
+      "verdict": "DEMOTE",
+      "why": "carried generic proof/oracle; not row-specific"
+    },
+    {
+      "row_id": "UI-FP-065",
+      "verdict": "DEMOTE",
+      "why": "carried generic proof/oracle; not row-specific"
+    },
+    {
+      "row_id": "UI-FP-066",
+      "verdict": "DEMOTE",
+      "why": "carried generic proof/oracle; not row-specific"
+    },
+    {
+      "row_id": "UI-FP-067",
+      "verdict": "DEMOTE",
+      "why": "carried generic proof/oracle; not row-specific"
+    },
+    {
+      "row_id": "UI-FP-068",
+      "verdict": "DEMOTE",
+      "why": "carried generic proof/oracle; not row-specific"
+    },
+    {
+      "row_id": "UI-FP-069",
+      "verdict": "DEMOTE",
+      "why": "carried generic proof/oracle; not row-specific"
+    },
+    {
+      "row_id": "UI-FP-070",
+      "verdict": "DEMOTE",
+      "why": "carried generic proof/oracle; not row-specific"
+    },
+    {
+      "row_id": "UI-FP-071",
+      "verdict": "DEMOTE",
+      "why": "carried generic proof/oracle; not row-specific"
+    },
+    {
+      "row_id": "UI-FP-072",
+      "verdict": "DEMOTE",
+      "why": "carried generic proof/oracle; not row-specific"
+    },
+    {
+      "row_id": "UI-FP-073",
+      "verdict": "DEMOTE",
+      "why": "carried generic proof/oracle; not row-specific"
+    },
+    {
+      "row_id": "UI-FP-074",
+      "verdict": "DEMOTE",
+      "why": "carried generic proof/oracle; not row-specific"
+    },
+    {
+      "row_id": "UI-FP-075",
+      "verdict": "DEMOTE",
+      "why": "carried generic proof/oracle; not row-specific"
+    },
+    {
+      "row_id": "UI-FP-077",
+      "verdict": "DEMOTE",
+      "why": "carried generic proof/oracle; not row-specific"
+    },
+    {
+      "row_id": "UI-FP-080",
+      "verdict": "DEMOTE",
+      "why": "carried generic proof/oracle; not row-specific"
+    },
+    {
+      "row_id": "UI-FP-081",
+      "verdict": "DEMOTE",
+      "why": "carried generic proof/oracle; not row-specific"
+    },
+    {
+      "row_id": "UI-FP-082",
+      "verdict": "DEMOTE",
+      "why": "carried generic proof/oracle; not row-specific"
+    },
+    {
+      "row_id": "UI-FP-083",
+      "verdict": "DEMOTE",
+      "why": "carried generic proof/oracle; not row-specific"
+    },
+    {
+      "row_id": "UI-FP-085",
+      "verdict": "DEMOTE",
+      "why": "carried generic proof/oracle; not row-specific"
+    },
+    {
+      "row_id": "UI-FP-086",
+      "verdict": "DEMOTE",
+      "why": "carried generic proof/oracle; not row-specific"
+    },
+    {
+      "row_id": "UI-FP-087",
+      "verdict": "DEMOTE",
+      "why": "carried generic proof/oracle; not row-specific"
+    },
+    {
+      "row_id": "UI-FP-091",
+      "verdict": "DEMOTE",
+      "why": "carried generic proof/oracle; not row-specific"
+    },
+    {
+      "row_id": "UI-FP-092",
+      "verdict": "DEMOTE",
+      "why": "carried generic proof/oracle; not row-specific"
+    },
+    {
+      "row_id": "UI-FP-093",
+      "verdict": "DEMOTE",
+      "why": "carried generic proof/oracle; not row-specific"
+    },
+    {
+      "row_id": "UI-FP-094",
+      "verdict": "DEMOTE",
+      "why": "carried generic proof/oracle; not row-specific"
+    },
+    {
+      "row_id": "UI-FP-095",
+      "verdict": "DEMOTE",
+      "why": "carried generic proof/oracle; not row-specific"
+    },
+    {
+      "row_id": "UI-FP-096",
+      "verdict": "DEMOTE",
+      "why": "carried generic proof/oracle; not row-specific"
+    },
+    {
+      "row_id": "UI-FP-097",
+      "verdict": "DEMOTE",
+      "why": "carried generic proof/oracle; not row-specific"
+    },
+    {
+      "row_id": "UI-FP-098",
+      "verdict": "DEMOTE",
+      "why": "carried generic proof/oracle; not row-specific"
+    },
+    {
+      "row_id": "UI-FP-099",
+      "verdict": "DEMOTE",
+      "why": "carried generic proof/oracle; not row-specific"
+    },
+    {
+      "row_id": "UI-FP-100",
+      "verdict": "DEMOTE",
+      "why": "carried generic proof/oracle; not row-specific"
+    }
+  ],
+  "examples": [
+    {
+      "id": "UI-FP-031",
+      "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+      "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+      "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+      "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708"
+    },
+    {
+      "id": "UI-FP-032",
+      "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+      "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+      "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+      "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708"
+    },
+    {
+      "id": "UI-FP-033",
+      "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+      "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+      "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+      "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708"
+    }
+  ]
+}
