@@ -1,0 +1,220 @@
+{
+  "task_id": "t_7e04fba7",
+  "batch": "1/27",
+  "register_commit": "b142cf88d389e791160f691aac3d936852b99975",
+  "register_path": "certification/certification_matrix.json (origin/cert/local-main-b142cf8)",
+  "method": "Each verdict read the row's OWN committed artifact keyed to that row. PASS retained only where a row-keyed check exists AND a matching non-vacuous mutation control exists AND (where the register's execution_proof demands an independent oracle) the artifact drives the real engine. Predicates that cannot fail, self-set fixtures, pattern-match-only substrings, and PARTIAL artifacts are not passes.",
+  "engine_identity_note": "At the cited tested commit 43731b4f the engine files hash to Core.py sha256 2dfbd571012af67479ee7a2d9e6f1faac6ee5408722a092fb3625450cab51405 (8030 lines) and HL_Live_Copy_Service.py e2f04fa826958c73169bae2490a6ebb3ebfd09d9aecda513ef0d7bd8a10ec2c6 - both match the hashes recorded in the artifacts, so the artifacts were produced against the commit they cite. The branch head b142cf8 carries a DIFFERENT Core.py (b171ec8f...); the delta is env name-alias lines only, but no artifact is bound to the head build, so every verdict below is stated at 43731b4f.",
+  "rows": [
+    {
+      "row_id": "ENG-INV-01",
+      "verdict": "PASS",
+      "evidence_ref": "certification/results/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json#checks.ENG-INV-01 + #negative_tests.inv01_add_subprocess",
+      "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+      "why": "Row-keyed check NO_PROCESS_SPAWNS reports 0 spawns found and its own mutation control inv01_add_subprocess flips the same check to FAIL with 'spawns found after mutation: [(101, Popen)]', so the predicate is falsifiable and specific to this row. LIMIT: this is an AST census of the engine source, not the OS process-list half of the row's execution_proof."
+    },
+    {
+      "row_id": "ENG-INV-02",
+      "verdict": "PASS",
+      "evidence_ref": "certification/results/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json#checks.ENG-INV-02 + #negative_tests.inv02_add_second_order_site",
+      "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+      "why": "Row-keyed check ONE_PHYSICAL_ORDER_SITE finds one physical .order() site at Core.py:2703 and its mutation control inv02_add_second_order_site flips it to FAIL with two sites [2705, 2703]. The count would fail for any other row whose site inventory differs, so it is row-bound and non-vacuous."
+    },
+    {
+      "row_id": "ENG-INV-03",
+      "verdict": "FAIL",
+      "evidence_ref": "certification/results/ENG-INV-03-05_43731b4f.json (aggregate census only)",
+      "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+      "why": "The artifact carries one merged census with category totals (third_party_imports=0, persistent_stores=0, build4_imports=0, internal_imports=3) and no keyed per-row result and no per-row mutation, so no assertion in it would fail if this specific row's requirement were violated. The census/mutation script named by the accompanying report is not in the branch tree, so the claim cannot be re-derived. Missing: a row-keyed dependency-import census with its own failing mutation at this commit."
+    },
+    {
+      "row_id": "ENG-INV-04",
+      "verdict": "FAIL",
+      "evidence_ref": "certification/results/ENG-INV-03-05_43731b4f.json (aggregate census only)",
+      "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+      "why": "Same merged census. persistent_stores=0 is a category total shared with two other rows and has no row-keyed assertion and no row-specific mutation, so the 'no new authoritative persistent trading-state store' requirement is not distinguished by the artifact. The cited census script is absent from the tree. Missing: a row-keyed store-writer census with a failing mutation."
+    },
+    {
+      "row_id": "ENG-INV-05",
+      "verdict": "FAIL",
+      "evidence_ref": "certification/results/ENG-INV-03-05_43731b4f.json (aggregate census only)",
+      "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+      "why": "Same merged census. build4_imports=0 is an aggregate total with no row-keyed assertion and no row-specific mutation; nothing in the artifact would change if this row's 'no Build 4 control-plane/platform import' requirement were violated. Cited census script absent from the tree. Missing: a row-keyed Build-4 import census with a failing mutation."
+    },
+    {
+      "row_id": "ENG-INV-06",
+      "verdict": "PASS",
+      "evidence_ref": "certification/results/ENG-INV-06_oracle_t_2f95c7aa.py + ENG-INV-06_oracle_run_tested_43731b4.json + ENG-INV-06_oracle_run_head_b142cf8.json",
+      "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+      "why": "Re-earned by an oracle written for this row that does not import the engine: it walks every production .py in _archive/hl_stage2 and finds exactly two physical send sites - Core.py:2703 automated and HL_Live_Copy_Service.py:1036 reachable only behind the manual --confirm-send CLI - plus zero subprocess spawns and zero store connects. Appending a second .order() site flips the probe to FAIL (2 to 3), so it can fail; it is not the carried ENG-INV-01/02 sweep."
+    },
+    {
+      "row_id": "ENG-INV-07",
+      "verdict": "FAIL",
+      "evidence_ref": "certification/results/ENG-INV-07-09_runtime_43731b4f1f19.json#invariants.ENG-INV-07",
+      "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+      "why": "The row's artifact is overall_result=PARTIAL. Its per-wallet isolation checks are in-process self-tests over a DryRun service and its physical_testnet_fill is NOT_ESTABLISHED ('wallet 0x1110dd09... does not exist on testnet'), so the exchange-observable half of the row's execution_proof was never executed. The register had already recorded this row BLOCKED, not PASS; a PARTIAL self-test is not a row-bound pass."
+    },
+    {
+      "row_id": "ENG-INV-08",
+      "verdict": "FAIL",
+      "evidence_ref": "certification/results/ENG-INV-07-09_runtime_43731b4f1f19.json#invariants.ENG-INV-08",
+      "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+      "why": "overall_result=PARTIAL. The DEX-scope checks are symbol-resolution self-tests plus a 429 negative, and physical_testnet_fill is NOT_ESTABLISHED because the testnet wallet does not exist; no independent exchange read shows a builder/HIP-3 scope being reconciled. The register recorded BLOCKED. No row-bound pass exists."
+    },
+    {
+      "row_id": "ENG-INV-09",
+      "verdict": "FAIL",
+      "evidence_ref": "certification/results/ENG-INV-07-09_runtime_43731b4f1f19.json#invariants.ENG-INV-09",
+      "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+      "why": "overall_result=PARTIAL. The checks are in-process calls to ExchangeReconciler.compare_snapshot() returning LEDGER_EXCHANGE_NET_MISMATCH and a statement that the manual ledger was not auto-corrected; physical_testnet_fill is NOT_ESTABLISHED, so exchange truth was never actually outranking a local replay against the live exchange. Register recorded BLOCKED; no row-bound pass."
+    },
+    {
+      "row_id": "ENG-INV-10",
+      "verdict": "PASS",
+      "evidence_ref": "certification/results/ENG-INV-10-14_43731b4f.json#results.ENG-INV-10 + #negative_tests.inv10_no_settlement",
+      "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+      "why": "Four row-keyed checks: resolve_settlement() is defined at exchange_truth.py:L297 and is called from the engine at HL_Live_Copy_Service.py:L459 and L2549 (two real call sites), no ack-as-settlement string exists, and settlement references MASTER. The mutation inv10_no_settlement flips the row to FAIL, so the family is falsifiable. LIMIT: call-site and pattern evidence, not a live MASTER fill observation."
+    },
+    {
+      "row_id": "ENG-INV-11",
+      "verdict": "FAIL",
+      "evidence_ref": "certification/results/ENG-INV-10-14_43731b4f.json#results.ENG-INV-11",
+      "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+      "why": "The artifact's own row result is passed=false: 3 of 4 checks fail - no MASTER_ADDRESS constant, no get_fills/get_positions/get_balance calls found, and distinctness of MASTER vs signer unverified. A row whose own cited artifact reports failure cannot be a PASS. (The engine does expose identity wiring in exchange_truth.py:270-284 via HL_LIVE_HL_ACCOUNT_ADDRESS/SIGNER_ADDRESS, but no executed row-bound proof of it exists.)"
+    },
+    {
+      "row_id": "ENG-INV-12",
+      "verdict": "PASS",
+      "evidence_ref": "certification/results/ENG-INV-10-14_43731b4f.json#results.ENG-INV-12 + #negative_tests.inv12_no_delta,inv12_flatten_all",
+      "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+      "why": "Row-keyed checks find five convergence functions including convergence_order_for_coin()@L2599 and apply_signed_delta_to_position()@L2896, a real delta computation at Core.py:L513, no flatten-all pattern, and ownership/source gating at L913/L1166/L1788. Two dedicated mutations - no_delta and flatten_all - both flip the row to FAIL, so the 'never blindly flatten unrelated inventory' predicate can fail and is row-bound."
+    },
+    {
+      "row_id": "ENG-INV-13",
+      "verdict": "FAIL",
+      "evidence_ref": "certification/results/ENG-INV-10-14_43731b4f.json#results.ENG-INV-13 + #negative_tests.inv13_order_in_restart",
+      "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+      "why": "The row's own negative control is vacuous: inv13_order_in_restart records expected=FAIL, actual=PASS, non_vacuous=false - inserting an order into restart/recovery code does NOT make the check fail, so 'restart creates ZERO new trade authority' is not actually tested by the predicate that claims it. Also the 'Restart reads from external sources' check passes on getattr() call sites at L1770/L1776, which is not an external snapshot read."
+    },
+    {
+      "row_id": "ENG-INV-14",
+      "verdict": "FAIL",
+      "evidence_ref": "certification/results/ENG-INV-10-14_43731b4f.json#results.ENG-INV-14",
+      "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+      "why": "The artifact's own row result is passed=false on 'No automatic mainnet activation', which is the substance of the row. The cited hit lines (Core.py:L1412,L1413,L1430) are reconciliation-classification branches, not activation code, so the FAIL reason needs re-derivation - but either way this row has no valid row-bound PASS."
+    },
+    {
+      "row_id": "ENG-SEM-B1",
+      "verdict": "PASS",
+      "evidence_ref": "certification/results/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json#checks.SEM-B1 + #negative_tests.sem_b1_remove_fill_reference",
+      "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+      "why": "Three row-keyed executed checks: the intent carries the event's own authority (intent.fill.leader_fill_id=b1_fill_1), a lifecycle decision is produced (BLOCKED_OFF), and copy_size=0.0002 equals the derived expected 0.0002. The mutation sem_b1_remove_fill_reference flips the row to FAIL, so authority-from-event is falsifiable and specific."
+    },
+    {
+      "row_id": "ENG-SEM-B2",
+      "verdict": "PASS",
+      "evidence_ref": "certification/results/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json#checks.SEM-B2 + #negative_tests.sem_b2_remove_rebuild_flag",
+      "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+      "why": "Row-keyed rebuild-origin discrimination is executed both ways: a snapshot fill is marked rebuild_origin=true, a poll fill is not, and a flat snapshot mints no new authority. The paired mutation sem_b2_remove_rebuild_flag makes the row FAIL, so the predicate can fail and distinguishes this row's requirement."
+    },
+    {
+      "row_id": "ENG-SEM-B3",
+      "verdict": "PASS",
+      "evidence_ref": "certification/results/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json#checks.SEM-B3 + #negative_tests.sem_b3_replace_exchange_with_local",
+      "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+      "why": "Row-keyed fail-closed behaviour is observed, not asserted: with follower exposure unavailable the engine returns COPY_ACCOUNT_NOT_CONFIGURED and the unowned-inventory gate emits 'follower positions unavailable...; entries fail closed' rather than assuming zero. The mutation sem_b3_replace_exchange_with_local drives remaining master_account_net calls to 0 and flips the row to FAIL."
+    },
+    {
+      "row_id": "ENG-SEM-B4",
+      "verdict": "PASS",
+      "evidence_ref": "certification/results/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json#checks.SEM-B4 + #negative_tests.sem_b4_hide_divergence",
+      "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+      "why": "Row-keyed sleeve divergence is actually detected: SLEEVE_DIVERGENCE_DETECTED reports sleeve divergence=4.0, alongside NO_BASELINE_YET and a divergence result carrying ok/status/expected/master_net/tolerance. The mutation sem_b4_hide_divergence flips the row to FAIL. Note: the DIVERGENCE_DETECTED check itself passes with divergence=None (it passes via the NO_BASELINE branch), so the detection claim rests on the sleeve-divergence check."
+    },
+    {
+      "row_id": "ENG-001",
+      "verdict": "FAIL",
+      "evidence_ref": "certification/results/ENG-001-004_43731b4f.json#eng001_after_reduce,eng001_after_close",
+      "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+      "why": "The artifact's overall_result is FAIL (29 passed / 4 failed). Two of the failures are this row's own: eng001_after_reduce expected 0.7 got 0.0 and eng001_after_close expected 0.0 got -1.0 - repeated adds converge and then a reduce/close does not move the follower back toward the leader's sleeve. The product misses the requirement."
+    },
+    {
+      "row_id": "ENG-002",
+      "verdict": "FAIL",
+      "evidence_ref": "certification/results/ENG-001-004_43731b4f.json#eng002_partial_reduce,eng002_close",
+      "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+      "why": "overall_result=FAIL. This row's own checks fail: eng002_partial_reduce expected 1.2 got 0.0 and eng002_close expected 0.0 got -1.5, i.e. desired-minus-actual does not drive partial reduce or close correctly. The product misses the requirement."
+    },
+    {
+      "row_id": "ENG-003",
+      "verdict": "NOT_TESTED",
+      "evidence_ref": null,
+      "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+      "why": "The row is open decision OD-02 (fixed-mode intended semantics not ruled) and cites no artifact at all. Missing component: a ruled fixed-mode intent semantics plus an executed probe of fixed_notional() at Core.py:L1922 showing recovered-intent execution instead of fixed-notional-per-fill. No route exists until OD-02 is decided."
+    },
+    {
+      "row_id": "ENG-004",
+      "verdict": "PASS",
+      "evidence_ref": "certification/results/ENG-001-004_43731b4f.json#eng004_* + #eng004_neg_mutation_round_instead_of_floor,eng004_neg_mutation_wrong_sign,eng004_neg_positive_control + oracle_btc_szDecimals,oracle_eth_szDecimals",
+      "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+      "why": "Thirteen checks are keyed to this row and all pass, three of them dedicated negatives: round-instead-of-floor yields 0.12346 against the floor result 0.12345 and is rejected, wrong-sign flips -1.5 to 1.5 and is rejected, plus a positive control. The szDecimals half comes from the independent testnet meta endpoint (universe count=212, BTC=5, ETH=4), not from the engine. Floor/ceil, signed delta, LONG/SHORT/FLAT direction, limit-px formatting and no-unit-confusion are all covered. CORRECTION TO THE REGISTER: the register inherited FAIL from the shared file's overall_result=FAIL, but all four failing checks there are eng001_* and eng002_* - none is eng004_*. On its own keyed evidence the row meets the requirement."
+    },
+    {
+      "row_id": "ENG-005",
+      "verdict": "PASS",
+      "evidence_ref": "certification/results/ENG-005-009_43731b4f.json#ENG-005",
+      "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+      "why": "Six checks are keyed to this row and the two executed ones carry values: NET_SUM_SIGNED reports 'expected BTC net=1.0, got 1.0' and its negative control NET_ABS_MUTATION_FAILS shows a broken absolute-value aggregation yields 2.0 and is rejected. LIMIT: the 'opposing leaders net to ONE account-level desired' half is proven only by source-attribution checks (ENGINE_NETS_OPPOSING_LEADERS etc.), not by an executed opposing-leader scenario."
+    },
+    {
+      "row_id": "ENG-006",
+      "verdict": "PASS",
+      "evidence_ref": "certification/results/ENG-005-009_43731b4f.json#ENG-006",
+      "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+      "why": "Nine row-keyed checks over a live testnet info read: PERPDexs_AVAILABLE found 270 scopes including default, NON_DEFAULT_DEXES_EXIST found 269, and DEFAULT_ONLY_SUBSET confirms default-DEX positions are a strict subset of all-DEX positions - a falsifiable relation that would break if scope enumeration dropped builder DEXes. LIMIT: no HIP-3 position-level reconciliation was observed; the evidence is scope enumeration plus engine wiring."
+    },
+    {
+      "row_id": "ENG-007",
+      "verdict": "PASS",
+      "evidence_ref": "certification/results/ENG-005-009_43731b4f.json#ENG-007",
+      "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+      "why": "Twelve row-keyed checks and two executed behavioural controls that discriminate: RESTART_DEDUP_PREVENTS_REPLAY shows a duplicate fill_id rejected after restart, while RESTART_NO_PERSISTENCE_ALLOWS_REPLAY shows the same duplicate accepted once persistence is removed - i.e. the test can and does fail, and it isolates this row's restart-dedupe requirement."
+    },
+    {
+      "row_id": "ENG-008",
+      "verdict": "PASS",
+      "evidence_ref": "certification/results/ENG-005-009_43731b4f.json#ENG-008",
+      "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+      "why": "Nine row-keyed checks with an executed pair: UNOWNED_BLOCK_WHEN_DIFFER shows the engine blocks entry when exchange net differs from engine net, and UNOWNED_MUTATION_ALLOWS shows a mutated engine admitting entry under unowned inventory. That contrasting pair is falsifiable and specific to the unowned-inventory requirement."
+    },
+    {
+      "row_id": "ENG-009",
+      "verdict": "PASS",
+      "evidence_ref": "certification/results/ENG-005-009_43731b4f.json#ENG-009",
+      "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+      "why": "Eleven row-keyed checks including executed evidence that corrupt state lets a new fill be accepted (CORRUPT_STATE_ALLOWS_FILL), that fail-closed needs both the dedupe and exchange-truth layers (LAYERED_DEFENSE), and that dedupe/idempotency run before send. The corrupt-state observation is a real observed failure mode, not a source substring."
+    },
+    {
+      "row_id": "ENG-010",
+      "verdict": "PASS",
+      "evidence_ref": "certification/results/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json#checks.ENG-010 + #negative_tests.eng010_remove_fail_closed",
+      "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+      "why": "Three row-keyed executed checks: account-net unavailable returns ok=False with status ACCOUNT_NET_TRUTH_UNAVAILABLE (fail closed), the available path returns net=1.5, and a provider failure also returns unavailable rather than a fabricated net. The corrected harness accepts ONLY ACCOUNT_NET_TRUTH_UNAVAILABLE, and the mutation eng010_remove_fail_closed leaves 0 fail-closed patterns and flips the row to FAIL."
+    },
+    {
+      "row_id": "ENG-011",
+      "verdict": "FAIL",
+      "evidence_ref": "certification/results/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json#checks.ENG-011 (RESERVATION_SURVIVES_RELOAD)",
+      "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+      "why": "The durable-reservation half is masked and contradicted. The check computes survives = \"SOL\" in svc_obj2.in_flight or \"SOL\" in svc_obj.in_flight - the second disjunct is the object that just marked the reservation, so the assertion cannot fail - and its own detail reads 'in_flight after reload: []', i.e. the reservation did NOT survive reload. The in-flight suppression checks are sound, but the row's durable reservation requirement is not met."
+    },
+    {
+      "row_id": "ENG-012",
+      "verdict": "PASS",
+      "evidence_ref": "certification/results/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json#checks.ENG-012 + #negative_tests.eng012_remove_timing",
+      "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+      "why": "Three row-keyed checks driven by real engine code: _base_timing() on a constructed intent returns leader_fill_timestamp_ms, intent_created_at_ms and send_decision_started_ms, and the send result carries six timing keys including send_real_started_ms and symbol_resolve_started/finished. The mutation eng012_remove_timing leaves 0 timing references and flips the row to FAIL. LIMIT: instrumentation presence is proven, an actual measured latency value is not."
+    }
+  ]
+}
