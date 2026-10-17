@@ -703,6 +703,8 @@ SEND_ATTEMPT_FIELDS = [
     "enqueued_ms", "picked_up_ms", "process_started_ms", "prewarm_done_ms", "lock_acquired_ms", "intent_written_ms",
     "ownership_gate_started_ms", "ownership_gate_finished_ms", "liq_parity_started_ms", "liq_parity_finished_ms",
     "wire_validated_ms", "margin_mode_started_ms", "margin_mode_finished_ms", "pending_send_done_ms",
+    "standing_close_started_ms", "standing_close_finished_ms",
+    "close_plan_started_ms", "close_plan_finished_ms", "exchange_net_started_ms", "exchange_net_finished_ms",
 ]
 
 SEND_TIMING_FIELDS = [
@@ -715,6 +717,8 @@ SEND_TIMING_FIELDS = [
     "enqueued_ms", "picked_up_ms", "process_started_ms", "prewarm_done_ms", "lock_acquired_ms", "intent_written_ms",
     "ownership_gate_started_ms", "ownership_gate_finished_ms", "liq_parity_started_ms", "liq_parity_finished_ms",
     "wire_validated_ms", "margin_mode_started_ms", "margin_mode_finished_ms", "pending_send_done_ms",
+    "standing_close_started_ms", "standing_close_finished_ms",
+    "close_plan_started_ms", "close_plan_finished_ms", "exchange_net_started_ms", "exchange_net_finished_ms",
 ]
 
 STAGE_STAMP_KEYS = ("enqueued_ms", "picked_up_ms", "process_started_ms", "prewarm_done_ms", "lock_acquired_ms",
@@ -5866,7 +5870,12 @@ class SenderGateway:
             return True, size, ""
         key = canonical_coin_key(intent.fill.coin)
         delta = ManualLedger.signed_delta(intent.copy_side, abs(size or intent.copy_size))
-        ex_net, led_net = self._fresh_exchange_net(intent.fill.coin), self.ledger.coin_net(key)
+        # EXIT stamp: the fresh follower-account read inside the close plan was untimed (an HTTP round-trip
+        # that sat between wire_validated_ms and the next stamp with nothing accounting for it)
+        timing["exchange_net_started_ms"] = utc_now_ms()
+        ex_net = self._fresh_exchange_net(intent.fill.coin)
+        timing["exchange_net_finished_ms"] = utc_now_ms()
+        led_net = self.ledger.coin_net(key)
         if ex_net is None:  # always read the exchange itself: a stale snapshot could hide a hand-closed position
             return True, size, ""
         if ledger_may_lag:  # the ledger may not hold the part already filled: size from the exchange alone, never past flat
@@ -6421,7 +6430,10 @@ class SenderGateway:
         # EXIT/REDUCE closes (and any reduce_only_intended intent) MUST be reduce-only
         # so the exchange can never flip the position through flat. ENTRY/ADD = False.
         if lifecycle in {"EXIT", "REDUCE"}:
+            # EXIT stamp: withdrawing a standing recovery close is a cancel round-trip that used to be invisible
+            timing["standing_close_started_ms"] = utc_now_ms()
             wire_size, standing_block = self._withdraw_standing_close(exchange, intent, wire_size, sz_dec, timing)
+            timing["standing_close_finished_ms"] = utc_now_ms()
             if standing_block is not None:
                 return standing_block
         timing["margin_mode_started_ms"] = utc_now_ms()
@@ -6432,8 +6444,11 @@ class SenderGateway:
         use_reduce_only, close_size_planned, close_skip = (False, wire_size, "")
         if lifecycle in {"EXIT", "REDUCE"}:
             _min_n = self._effective_symbol_min_notional(resolved)
+            # EXIT stamp: the close plan reads the follower account fresh (a network call) before every close
+            timing["close_plan_started_ms"] = utc_now_ms()
             use_reduce_only, close_size_planned, close_skip = self._close_wire_plan(
                 intent, wire_size, sz_dec, lambda sz: abs(sz * limit_px) >= _min_n, timing)
+            timing["close_plan_finished_ms"] = utc_now_ms()
             if close_skip:
                 note = f"{close_skip}; intent_id={intent.intent_id}; no order sent"
                 repair = self._repair_ledger_if_exchange_flat(intent, "close skipped: already at target")
