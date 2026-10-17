@@ -1,0 +1,39 @@
+{
+  "card_id": "t_85d9fa61",
+  "verdict_scope": "All 13 requested rows are NOT_TESTED; no row-level UI predicate was evaluated against the registered build.",
+  "target": "http://127.0.0.1:8031/live-copy",
+  "process_binding": {
+    "pid": 8668,
+    "creation_time_local": "2026-10-15 10:28:40",
+    "creation_time_utc": "2026-10-15T09:28:40Z",
+    "command": "python.exe -m uvicorn HL_Copy_App_SSOT:app --host 127.0.0.1 --port 8031",
+    "register_commit": "b142cf88d389e791160f691aac3d936852b99975",
+    "register_commit_time": "2026-10-16T13:58:54+01:00",
+    "serving_commit": null,
+    "serving_content_hash": null,
+    "binding_result": "UNBOUND: register commit is later than process creation; disk HEAD does not identify loaded module; no verifiable process-loaded source or served-JS-to-register mapping was established.",
+    "runtime_reachability": "GET http://127.0.0.1:8031/live-copy returned HTTP 200, content-type text/html; charset=utf-8, content-length 87350 at 2026-10-17T10:24:44Z. This establishes reachability only, not build identity."
+  },
+  "environment_check": {
+    "interpreter": "C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe",
+    "interpreter_version": "3.11.9",
+    "playwright_import": "available",
+    "note": "Environment capability was verified; browser probes were intentionally not run because the live process cannot be bound to the required register build. No PLAYWRIGHT_BROWSERS_PATH override was set."
+  },
+  "blocker": "The requested certification target is the registered build, but PID 8668 predates register commit b142cf88. The served endpoint is reachable, but neither its loaded source nor served assets could be tied to that register build. Per task instructions, no synthetic page or unbound live page was used as a substitute.",
+  "rows": [
+    {"row_id":"UI-LCC-CARD-02","verdict":"NOT_TESTED","probe":"Would inspect rendered DOM at /live-copy for this row's registered-build card predicate; not run because process/build binding is unverified.","oracle":"Independent DOM/runtime observation on the identified registered build; unavailable while the serving build is unbound.","predicate_that_could_fail":"The expected row-specific card element/content is absent or inconsistent in the rendered DOM."},
+    {"row_id":"UI-LCC-CARD-03","verdict":"NOT_TESTED","probe":"Would inspect rendered DOM at /live-copy for this row's registered-build card predicate; not run because process/build binding is unverified.","oracle":"Independent DOM/runtime observation on the identified registered build; unavailable while the serving build is unbound.","predicate_that_could_fail":"The expected row-specific card element/content is absent or inconsistent in the rendered DOM."},
+    {"row_id":"UI-LCC-CARD-04","verdict":"NOT_TESTED","probe":"Would inspect rendered DOM at /live-copy for this row's registered-build card predicate; not run because process/build binding is unverified.","oracle":"Independent DOM/runtime observation on the identified registered build; unavailable while the serving build is unbound.","predicate_that_could_fail":"The expected row-specific card element/content is absent or inconsistent in the rendered DOM."},
+    {"row_id":"UI-LCC-CARD-05","verdict":"NOT_TESTED","probe":"Would inspect rendered DOM at /live-copy for this row's registered-build card predicate; not run because process/build binding is unverified.","oracle":"Independent DOM/runtime observation on the identified registered build; unavailable while the serving build is unbound.","predicate_that_could_fail":"The expected row-specific card element/content is absent or inconsistent in the rendered DOM."},
+    {"row_id":"UI-LCC-CARD-06","verdict":"NOT_TESTED","probe":"Would inspect rendered DOM at /live-copy for this row's registered-build card predicate; not run because process/build binding is unverified.","oracle":"Independent DOM/runtime observation on the identified registered build; unavailable while the serving build is unbound.","predicate_that_could_fail":"The expected row-specific card element/content is absent or inconsistent in the rendered DOM."},
+    {"row_id":"UI-SSOT-TOP-07","verdict":"NOT_TESTED","probe":"Would inspect rendered DOM at /live-copy for this row's registered-build top-bar predicate; not run because process/build binding is unverified.","oracle":"Independent DOM/runtime observation on the identified registered build; unavailable while the serving build is unbound.","predicate_that_could_fail":"The row's required top-bar label/value is missing or mislabelled in the rendered DOM."},
+    {"row_id":"UI-SSOT-TOP-09","verdict":"NOT_TESTED","probe":"Would inspect rendered DOM at /live-copy for this row's registered-build top-bar predicate; not run because process/build binding is unverified.","oracle":"Independent DOM/runtime observation on the identified registered build; unavailable while the serving build is unbound.","predicate_that_could_fail":"The row's required top-bar badge/state is missing or incorrect in the rendered DOM."},
+    {"row_id":"UI-SSOT-PAGE-01","verdict":"NOT_TESTED","probe":"Would inspect the rendered wallet-detail page at /live-copy for the registered-build predicate; not run because process/build binding is unverified.","oracle":"Independent DOM/runtime observation on the identified registered build; unavailable while the serving build is unbound.","predicate_that_could_fail":"The expected wallet-detail content/structure is absent or incorrect in the rendered page."},
+    {"row_id":"UI-SSOT-PAGE-13","verdict":"NOT_TESTED","probe":"Would inspect the rendered page and its runtime UI state for this row on the registered build; not run because process/build binding is unverified.","oracle":"Independent DOM/runtime observation on the identified registered build; unavailable while the serving build is unbound.","predicate_that_could_fail":"The required PAGE-13 content/state is absent or incorrect in the rendered DOM."},
+    {"row_id":"UI-SSOT-PAGE-14","verdict":"NOT_TESTED","probe":"Would inspect the rendered page and its runtime UI state for this row on the registered build; not run because process/build binding is unverified.","oracle":"Independent DOM/runtime observation on the identified registered build; unavailable while the serving build is unbound.","predicate_that_could_fail":"The required PAGE-14 content/state is absent or incorrect in the rendered DOM."},
+    {"row_id":"UI-SSOT-PAGE-15","verdict":"NOT_TESTED","probe":"Would inspect the rendered page and its runtime UI state for this row on the registered build; not run because process/build binding is unverified.","oracle":"Independent DOM/runtime observation on the identified registered build; unavailable while the serving build is unbound.","predicate_that_could_fail":"The required PAGE-15 content/state is absent or incorrect in the rendered DOM."},
+    {"row_id":"UI-TRUTH-003","verdict":"NOT_TESTED","probe":"Would inspect the rendered UI for the registered-build truth/display predicate; not run because process/build binding is unverified.","oracle":"Independent DOM/runtime observation on the identified registered build; unavailable while the serving build is unbound.","predicate_that_could_fail":"The required truth-tier/runtime-state assertion is missing or contradicted by the rendered DOM."},
+    {"row_id":"UI-TRUTH-005","verdict":"NOT_TESTED","probe":"Would inspect the rendered UI for the registered-build truth/display predicate; not run because process/build binding is unverified.","oracle":"Independent DOM/runtime observation on the identified registered build; unavailable while the serving build is unbound.","predicate_that_could_fail":"The required truth-tier/runtime-state assertion is missing or contradicted by the rendered DOM."}
+  ]
+}
