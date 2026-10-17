@@ -236,22 +236,32 @@ def main() -> None:
     rows = [r for r in c.read_csv_rows(c.RECONCILIATION_CSV) if r.get("exchange_order_id") == "78"]
     check("M5_FAILED_WITHDRAWAL_IS_CRITICAL_ON_SCREEN", rows and "MANUAL_REVIEW" in rows[-1]["action"], str(rows[-1:])[:300])
     check("M5_FAILED_WITHDRAWAL_MARKED_FOR_RETRY", gw.resting_entries()[0].get("withdraw_pending"))
+    check("M5_LATE_CANCEL_FILL_READ_PERSISTS", [r.get("oid") for r in gw.pending_withdrawn_late()] == ["79"],
+          str(gw.pending_withdrawn_late()))
 
     # the running engine withdraws before it handles the leader's reduce
+    gw._withdrawn_late = []  # the preceding gateway scenario is complete; isolate the engine-path fixture
+    c.atomic_write_json(c.WITHDRAWN_ENTRY_FILLS_FILE, [])
     c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": False, "global_controls": {}, "wallets": {
         LEADER: {"enabled": True, "mode": "LIVE", "copy_mode": "fixed", "fixed_notional": 1000}}})
     core = c.LiveCopyCore(source_csv=tmp / "none.csv")
     fake.cancel_reply = {"status": "ok", "response": {"type": "cancel", "data": {"statuses": ["success"]}}}
     core.sender._exchange_client_for_coin = lambda coin: (fake, "BTC")
     order = []
-    core.sender.cancel_resting_entries_against = (lambda real: lambda f: order.append("cancel") or real(f))(
-        core.sender.cancel_resting_entries_against)
+    core.sender.cancel_resting_entries_for_disarmed_close = (lambda real: lambda f, close: order.append("cancel") or real(f, close))(
+        core.sender.cancel_resting_entries_for_disarmed_close)
     core.sender.send_if_allowed = lambda intent, block="": order.append("send") or (False, "TEST_NO_SEND")
     core._append_send_terminal = lambda *a, **k: None
     check("M5_ENGINE_LOADED_THE_LIST", [r["oid"] for r in core.sender.resting_entries()] == ["78"])
-    core._process_leader_fill(fill("SELL"))
-    check("M5_ENGINE_WITHDRAWS_BEFORE_HANDLING_THE_REDUCE", order == ["cancel", "send"] and not core.sender.resting_entries(),
+    m5_close = fill("SELL")
+    m5_close.raw["dir"] = "Close Long"
+    core._process_leader_fill(m5_close)
+    check("M5_ENGINE_WITHDRAWS_BEFORE_HANDLING_THE_REDUCE", order == ["cancel"] and not core.sender.resting_entries(),
           f"{order} {core.sender.resting_entries()}")
+    check("M5_DISARMED_CLOSE_QUEUES_FILL_READ", [r.get("oid") for r in core.sender.pending_withdrawn_late()] == ["78"],
+          str(core.sender.pending_withdrawn_late()))
+    core.sender._withdrawn_late = []  # isolate M8's independent persisted cancel-race fixture
+    c.atomic_write_json(c.WITHDRAWN_ENTRY_FILLS_FILE, [])
 
     # ---- M8: sending switched off withdraws the engine's own resting entry limits (run 4 finding) ----------
     def m8_core(send_on):
@@ -280,7 +290,12 @@ def main() -> None:
           and sorted(o for _, o in fake.cancels[before:]) == [90, 91], str(fake.cancels[before:]))
     check("M8_SHOWN_ON_SCREEN", {r.get("exchange_order_id") for r in rows} >= {"90", "91"}
           and all(r.get("event") == "SEND_TERMINAL" for r in rows), str(rows[-2:])[:300])
-    check("M8_FILLS_OF_WITHDRAWN_LIMITS_OWNED", sorted(owned) == ["90", "91"], str(owned))
+    check("M8_OFF_SKIPS_WITHDRAWN_LIMIT_FILL_READ", not owned, str(owned))
+    check("M8_OFF_PERSISTS_EACH_CANCEL_BEFORE_ARMING", sorted(r.get("oid") for r in k.sender.pending_withdrawn_late()) == ["90", "91"])
+    k = m8_core(True)  # persisted cancel-race reads are drained after re-arming
+    k.run_cycle(use_source_csv=False)
+    check("M8_ARMED_CYCLE_OWNS_WITHDRAWN_LIMIT_FILLS", sorted(owned) == ["90", "91"], str(owned))
+    k = m8_core(False)  # subsequent retry scenarios intentionally exercise the OFF path
     k.sender._register_resting_entry(c.IntentBuilder(c.ConfigManager(), c.ManualLedger(path=tmp / "m8x.json")).build(fill("BUY")),
                                      "BTC", "93", 100.0, 1.0, "test")
     fake.cancel_reply = {"status": "err", "response": "rate limited"}
@@ -309,6 +324,8 @@ def main() -> None:
     check("M8_STALE_CLAIM_ROW_WITHDRAWN", not k2.sender.resting_entries())
     k2.stop()
     check("M8_ONLY_ITS_OWN_ORDER_IDS_CANCELLED", {o for _, o in fake.cancels[m8_start:]} == {90, 91, 93, 94, 95}, str(fake.cancels[m8_start:]))
+    k.sender._withdrawn_late = []
+    c.atomic_write_json(c.WITHDRAWN_ENTRY_FILLS_FILE, [])
     k.stop()
 
     # ---- M6: catch-up of an old gap -------------------------------------------------------------------
@@ -390,6 +407,8 @@ def main() -> None:
 
     # ---- R: independent review fixes ---------------------------------------------------------------------
     # R2 a resting limit that filled just before the leader closes: its fill is owned BEFORE the close is classified
+    c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": True, "global_controls": {"send_mode": "ON"}, "wallets": {
+        LEADER: {"enabled": True, "mode": "ON", "copy_mode": "fixed", "fixed_notional": 1000}}})
     core = c.LiveCopyCore(source_csv=tmp / "none.csv")
     fake = FakeExchange()
     fake.cancel_reply = {"status": "ok", "response": {"type": "cancel", "data": {"statuses": [
@@ -544,7 +563,8 @@ def main() -> None:
         c.LEADER_NETWORK = saved_leader
 
     # A3 a limit withdrawn at registration (leader already reduced): the engine owns its fill and shows a diff
-    config(marketable_bps=20)
+    c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": True, "global_controls": {"send_mode": "ON", "marketable_bps": 20}, "wallets": {
+        LEADER: {"enabled": True, "mode": "ON", "copy_mode": "fixed", "fixed_notional": 1000}}})
     core = c.LiveCopyCore(source_csv=tmp / "none.csv")
     fake = FakeExchange()
     fake.cancel_reply = {"status": "ok", "response": {"type": "cancel", "data": {"statuses": [
