@@ -1,0 +1,167 @@
+{
+  "audit": "PASS-row evidence provenance INC/LIFE/SET/TN",
+  "source": "uncovered_pass_ids in UNION_ARITHMETIC_V2_t_f0d76afe.json",
+  "register_commit": "b142cf88d389e791160f691aac3d936852b99975",
+  "summary": {
+    "audited": 31,
+    "KEEP": 0,
+    "DEMOTE": 31
+  },
+  "rows": [
+    {
+      "row_id": "INC-02",
+      "verdict": "DEMOTE",
+      "why": "Shared 138-row regression sweep; no row-bound incident replay/oracle cited."
+    },
+    {
+      "row_id": "INC-04",
+      "verdict": "DEMOTE",
+      "why": "Shared 138-row regression sweep; no row-bound incident replay/oracle cited."
+    },
+    {
+      "row_id": "INC-05",
+      "verdict": "DEMOTE",
+      "why": "Shared 138-row regression sweep; no row-bound incident replay/oracle cited."
+    },
+    {
+      "row_id": "INC-06",
+      "verdict": "DEMOTE",
+      "why": "Shared 138-row regression sweep; no row-bound incident replay/oracle cited."
+    },
+    {
+      "row_id": "INC-07",
+      "verdict": "DEMOTE",
+      "why": "Shared 138-row regression sweep; no row-bound incident replay/oracle cited."
+    },
+    {
+      "row_id": "INC-08",
+      "verdict": "DEMOTE",
+      "why": "Shared 138-row regression sweep; no row-bound incident replay/oracle cited."
+    },
+    {
+      "row_id": "INC-09",
+      "verdict": "DEMOTE",
+      "why": "Shared 138-row regression sweep; no row-bound incident replay/oracle cited."
+    },
+    {
+      "row_id": "INC-12",
+      "verdict": "DEMOTE",
+      "why": "Shared 138-row regression sweep; no row-bound incident replay/oracle cited."
+    },
+    {
+      "row_id": "INC-13",
+      "verdict": "DEMOTE",
+      "why": "UI correction checks unrelated to incident execution/oracle."
+    },
+    {
+      "row_id": "INC-14",
+      "verdict": "DEMOTE",
+      "why": "UI correction checks unrelated to incident execution/oracle."
+    },
+    {
+      "row_id": "INC-15",
+      "verdict": "DEMOTE",
+      "why": "UI correction checks unrelated to incident execution/oracle."
+    },
+    {
+      "row_id": "INC-16",
+      "verdict": "DEMOTE",
+      "why": "UI correction checks unrelated to incident execution/oracle."
+    },
+    {
+      "row_id": "INC-17",
+      "verdict": "DEMOTE",
+      "why": "UI correction checks unrelated to incident execution/oracle."
+    },
+    {
+      "row_id": "LIFE-001",
+      "verdict": "DEMOTE",
+      "why": "Shared area sweep lacks row-specific operator/process/exchange transition proof."
+    },
+    {
+      "row_id": "LIFE-002",
+      "verdict": "DEMOTE",
+      "why": "Shared area sweep lacks row-specific operator/process/exchange transition proof."
+    },
+    {
+      "row_id": "LIFE-003",
+      "verdict": "DEMOTE",
+      "why": "Shared area sweep lacks row-specific operator/process/exchange transition proof."
+    },
+    {
+      "row_id": "LIFE-004",
+      "verdict": "DEMOTE",
+      "why": "Shared area sweep lacks row-specific operator/process/exchange transition proof."
+    },
+    {
+      "row_id": "LIFE-005",
+      "verdict": "DEMOTE",
+      "why": "Shared area sweep lacks row-specific operator/process/exchange transition proof."
+    },
+    {
+      "row_id": "LIFE-006",
+      "verdict": "DEMOTE",
+      "why": "Shared area sweep lacks row-specific operator/process/exchange transition proof."
+    },
+    {
+      "row_id": "LIFE-007",
+      "verdict": "DEMOTE",
+      "why": "Shared area sweep lacks row-specific operator/process/exchange transition proof."
+    },
+    {
+      "row_id": "LIFE-008",
+      "verdict": "DEMOTE",
+      "why": "Shared area sweep lacks row-specific operator/process/exchange transition proof."
+    },
+    {
+      "row_id": "LIFE-009",
+      "verdict": "DEMOTE",
+      "why": "Shared area sweep lacks row-specific operator/process/exchange transition proof."
+    },
+    {
+      "row_id": "SET-001",
+      "verdict": "DEMOTE",
+      "why": "Shared area sweep lacks row-specific MASTER fills/state reconciliation proof."
+    },
+    {
+      "row_id": "SET-002",
+      "verdict": "DEMOTE",
+      "why": "Shared area sweep lacks row-specific MASTER fills/state reconciliation proof."
+    },
+    {
+      "row_id": "SET-003",
+      "verdict": "DEMOTE",
+      "why": "Shared area sweep lacks row-specific MASTER fills/state reconciliation proof."
+    },
+    {
+      "row_id": "SET-004",
+      "verdict": "DEMOTE",
+      "why": "Shared area sweep lacks row-specific MASTER fills/state reconciliation proof."
+    },
+    {
+      "row_id": "SET-005",
+      "verdict": "DEMOTE",
+      "why": "Shared area sweep lacks row-specific MASTER fills/state reconciliation proof."
+    },
+    {
+      "row_id": "SET-006",
+      "verdict": "DEMOTE",
+      "why": "Shared area sweep lacks row-specific MASTER fills/state reconciliation proof."
+    },
+    {
+      "row_id": "SET-007",
+      "verdict": "DEMOTE",
+      "why": "Shared area sweep lacks row-specific MASTER fills/state reconciliation proof."
+    },
+    {
+      "row_id": "SET-008",
+      "verdict": "DEMOTE",
+      "why": "Shared area sweep lacks row-specific MASTER fills/state reconciliation proof."
+    },
+    {
+      "row_id": "TN-F18",
+      "verdict": "DEMOTE",
+      "why": "Residual artifact reports other TN cases; no TN-F18 scenario/oracle evidence."
+    }
+  ]
+}
