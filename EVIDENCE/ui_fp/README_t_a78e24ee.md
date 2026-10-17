@@ -70,11 +70,30 @@ owner's step.
 
 ## Reproduce
 
+Run from the worktree root (one path segment only: the repo already **is** the worktree):
+
 ```
 cd C:/Users/wigmore/hyperliquid-build3-repair/.worktrees/t_a78e24ee
 export PLAYWRIGHT_BROWSERS_PATH=C:/Users/wigmore/AppData/Local/ms-playwright
 C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe EVIDENCE/ui_fp/scripts/probe_ui_fp_6rows_t_a78e24ee.py
 C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe EVIDENCE/ui_fp/scripts/make_artifact_t_a78e24ee.py
+```
+
+### Digest integrity (why the raw hash verifies against the commit)
+
+`core.autocrlf=true` on this host rewrites LF to CRLF on checkout, so a digest taken from the
+working-tree file would not match the committed blob. Two guards fix that:
+
+1. `EVIDENCE/ui_fp/.gitattributes` pins `*.json` to `text eol=lf`, so the working tree and the
+   blob are byte-identical for the captures.
+2. `make_artifact_t_a78e24ee.py` computes each published `file_sha256` from the **committed blob**
+   (`git cat-file blob HEAD:<path>`) and **aborts** if the on-disk raw capture disagrees with its blob.
+   It also emits `raw_digest_verification` with both digests and `verified_disk_equals_blob`.
+
+Verify a published digest against the commit, not the working tree:
+
+```
+git cat-file blob HEAD:EVIDENCE/ui_fp/raw/probe_t_a78e24ee_raw.json | sha256sum
 ```
 
 The first command writes `raw/probe_t_a78e24ee_raw.json`; the second regenerates the artifact **from**

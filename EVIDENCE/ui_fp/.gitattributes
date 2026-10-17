@@ -1,0 +1,5 @@
+# Evidence JSON must be byte-identical between the working tree and the committed blob,
+# so a published file_sha256 verifies against `git cat-file blob`.
+# Deterministic LF in both directions (overrides core.autocrlf on Windows).
+*.json text eol=lf
+raw/*.json text eol=lf

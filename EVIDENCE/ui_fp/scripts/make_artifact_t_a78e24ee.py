@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 '''Build the t_a78e24ee UI-FP artifact FROM the raw capture, so every number is derived.'
 '''
-import json, os, hashlib
+import json, os, hashlib, subprocess
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 BASE = os.path.normpath(os.path.join(HERE, '..'))
 RAW = os.path.join(BASE, 'raw', 'probe_t_a78e24ee_raw.json')
 OUT = os.path.join(BASE, 'F_UI_FP_030_041_048_052_054_055_t_a78e24ee.json')
 REPO = 'C:/Users/wigmore/hyperliquid-build3-repair/.worktrees/t_a78e24ee'
+GIT_REF = 'HEAD'
 
 
 def sha256(p):
@@ -25,9 +26,11 @@ SHA = sb['serving_ssot_sha256']
 BT = r['bind_tally']
 dom = r['dom']
 RAWREL = 'EVIDENCE/ui_fp/raw/probe_t_a78e24ee_raw.json'
-REPRO = ('cd %s/.worktrees/t_a78e24ee && export PLAYWRIGHT_BROWSERS_PATH=C:/Users/wigmore/AppData/Local/ms-playwright && '
+REPRO = ('cd %s && export PLAYWRIGHT_BROWSERS_PATH=C:/Users/wigmore/AppData/Local/ms-playwright && '
          'C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe '
-         'EVIDENCE/ui_fp/scripts/probe_ui_fp_6rows_t_a78e24ee.py' % REPO)
+         'EVIDENCE/ui_fp/scripts/probe_ui_fp_6rows_t_a78e24ee.py && '
+         'C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe '
+         'EVIDENCE/ui_fp/scripts/make_artifact_t_a78e24ee.py' % REPO)
 
 perf = {k.lower(): v for k, v in r['api_leader_perf'].items()}
 na_ok, zero_null = 0, 0
@@ -121,6 +124,45 @@ rows.append(dict(C, row_id='UI-FP-055',
     read_only_proof='requests_non_get == []; no POST issued.',
     why_partial_not_not_tested='Same standard as UI-FP-052.'))
 
+def blob_sha(rel):
+    '''sha256 of the COMMITTED blob for rel via `git cat-file blob <ref>:<rel>`.
+
+    Published digests must verify against the commit, not the autocrlf working-tree
+    copy; EVIDENCE/ui_fp/.gitattributes pins LF for *.json so the two agree.
+    '''
+    try:
+        out = subprocess.check_output(['git', '-C', REPO, 'cat-file', 'blob', '%s:%s' % (GIT_REF, rel)],
+                                      stderr=subprocess.DEVNULL)
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return None
+    return hashlib.sha256(out).hexdigest()
+
+
+def assert_raw_matches_blob():
+    '''Fail loudly if the published raw digest would not verify against the commit.'''
+    disk = sha256(os.path.join(REPO, RAWREL))
+    blob = blob_sha(RAWREL)
+    if blob is None:
+        print('WARN: no committed blob for %s at %s - raw digest is DISK-ONLY' % (RAWREL, GIT_REF))
+        return disk, None
+    if disk != blob:
+        raise SystemExit('RAW_DIGEST_MISMATCH: disk=%s blob=%s (autocrlf/EOL leak; check '
+                         'EVIDENCE/ui_fp/.gitattributes)' % (disk, blob))
+    print('raw digest verified against %s: %s' % (GIT_REF, disk))
+    return disk, blob
+
+
+def digest_entry(f):
+    '''Publish the digest that VERIFIES: the committed blob when available, else disk.'''
+    if f.endswith('F_UI_FP_030_041_048_052_054_055_t_a78e24ee.json'):
+        return 'SELF - this artifact; take the digest from the commit, not from this field'
+    b = blob_sha(f)
+    d = sha256(os.path.join(REPO, f)) if os.path.exists(os.path.join(REPO, f)) else None
+    return b or d or 'PENDING_THIS_COMMIT'
+
+
+RAW_DISK_SHA, RAW_BLOB_SHA = assert_raw_matches_blob()
+
 files = ['EVIDENCE/ui_fp/F_UI_FP_030_041_048_052_054_055_t_a78e24ee.json',
          'EVIDENCE/ui_fp/README_t_a78e24ee.md',
          'EVIDENCE/ui_fp/scripts/probe_ui_fp_6rows_t_a78e24ee.py',
@@ -143,7 +185,12 @@ art = {
     'read_only': 'read_only=true; engine_import=false; requests_non_get=[]; no POST/Save; Edge/CDP 9223 and the :8031 process untouched.',
     'register_note': 'main:certification/certification_matrix.json @ b142cf88 is NOT the UI target and its rows for these ids are NOT re-verified here; this artifact labels strictly against the serving build measured above. No matrix edit; overlay applied by the consolidation owner.',
     'files': files,
-    'file_sha256': {f: ('SELF - this artifact; take the digest from the commit, not from this field' if f.endswith('F_UI_FP_030_041_048_052_054_055_t_a78e24ee.json') else (sha256(os.path.join(REPO, f)) if os.path.exists(os.path.join(REPO, f)) else 'PENDING_THIS_COMMIT')) for f in files},
+    'file_sha256': {f: digest_entry(f) for f in files},
+    'raw_digest_verification': {
+        'path': RAWREL, 'git_ref': GIT_REF,
+        'disk_sha256': RAW_DISK_SHA, 'blob_sha256': RAW_BLOB_SHA,
+        'verified_disk_equals_blob': bool(RAW_BLOB_SHA) and RAW_DISK_SHA == RAW_BLOB_SHA,
+        'note': 'EVIDENCE/ui_fp/.gitattributes pins *.json to LF so a published digest verifies against `git cat-file blob`; the generator aborts on mismatch.'},
     'reproduce_all': REPRO,
     'rows': rows,
     'tally': {'PASS': 3, 'PARTIAL': 3, 'FAIL': 0, 'NOT_TESTED': 0},
@@ -152,7 +199,8 @@ art = {
     'bind_tally_raw': BT,
 }
 
-json.dump(art, open(OUT, 'w', encoding='utf-8'), indent=2, ensure_ascii=False)
+with open(OUT, 'w', encoding='utf-8', newline='\n') as _f:
+    json.dump(art, _f, indent=2, ensure_ascii=False)
 print('wrote', OUT)
 print('rows', len(rows), 'tally', art['tally'])
 for f in files:

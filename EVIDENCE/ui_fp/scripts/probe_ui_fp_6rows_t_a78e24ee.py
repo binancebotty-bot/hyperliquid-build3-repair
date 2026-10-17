@@ -197,7 +197,8 @@ def main():
                 res['norm_base_mismatch'] += 1; res['mismatch_detail'].append(['norm_base', w, nv[0], us.get('norm_base')])
     r['bind_tally'] = res
 
-    json.dump(r, open(OUT, 'w', encoding='utf-8'), indent=1, ensure_ascii=False)
+    with open(OUT, 'w', encoding='utf-8', newline='\n') as _f:
+        json.dump(r, _f, indent=1, ensure_ascii=False)
     print('wrote', OUT)
     print('serving_commit', r['serving_build']['serving_commit'])
     print('serving_ssot_sha256', r['serving_build']['serving_ssot_sha256'], 'matches_HEAD', r['serving_build']['worktree_matches_HEAD'])
