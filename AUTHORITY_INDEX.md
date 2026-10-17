@@ -116,3 +116,41 @@ reviewed. `t_70c69d13` (status regen) stays HELD.
 | date | change |
 |---|---|
 | 2026-10-16 | created — single entry point so workers resolve uncertainty from the repo, not from card-local detail or memory |
+
+---
+
+## STANDING RULE — every known task lives on the board (operator, 2026-10-17)
+
+**Nothing I know about may exist only in my head, in a chat message, or in a summary.** If I am aware of
+work that is not done, there must be a card for it, in a dispatchable state, before the turn ends.
+
+Why this is a rule and not a preference: the operator found the board showing `todo: 0` while 93
+outstanding register rows had no card at all. Work that has no card cannot be dispatched, cannot be
+counted, does not wake anyone, and silently becomes "not started" forever. Every gap in the board is a
+gap in the plan.
+
+The audit procedure is therefore:
+1. Enumerate the authoritative work list (`certification_matrix.json` outstanding rows, audit coverage,
+   gated items with a named owner).
+2. Diff it against cards in a live state — `todo`, `ready`, `running`, `blocked`, `review`, `triage`.
+3. Every row with no live card becomes a card **in the same turn**, with its lane and model in the title.
+4. A row may only be absent from the board if it is DONE with evidence, or closed with a recorded reason.
+
+### Card title convention (operator, 2026-10-17)
+
+Every new card carries its lane and model in the title:
+`B3-CERT OUTSTANDING [deepseek:deepseek-v4-flash] ENG/PRICE/RISK rows 1-24`.
+The board must show, without opening a card, which compute each task consumes — so lane balance and cost
+are visible at a glance rather than inferred from a database column.
+
+### Routing priority (operator, 2026-10-17)
+
+1. **`custom-deepseek-free` first — it is completely free** — pinned at its hard ceiling of 3 logins.
+2. **`openrouter`** — 1000 paid credits on the account; free `:free` models die at ~3 minutes, so use
+   paid models when a card needs to finish.
+3. **`openai-codex` (luna)** — credits available, and the highest measured completion rate (57 done).
+4. `gemini` / `nous` — free, but measured at 7 and 6 completions respectively: they run and rarely
+   finish. Filler capacity, never the backbone.
+
+**Success is measured by COMPLETIONS per lane, not by "is it running".** A lane with 6 cards running and
+7 ever completed is not working; it is churning.
