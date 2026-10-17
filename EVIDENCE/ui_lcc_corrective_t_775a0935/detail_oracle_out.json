@@ -1,0 +1,144 @@
+{
+ "frozen_hashes": {
+  "live_config.json": "e09e292c5922cf41e65e1c172e74b2f3b2af544e53e3dd8fed3dda1d1d7a6786",
+  "live_fills.csv": "81993f5a0d760a5cfdf337466c909d6d8bf643514e4eaefbd2dbaf88139f852c",
+  "send_attempts.csv": "0675a67471bd053628c615e9f2bbbd1bf8ec3bf86f673612d4d680d1e6852380"
+ },
+ "per_wallet": {
+  "0x010461c14e146ac35fe42271bdc1134ee31c703a": {
+   "replay_realized": -177.2275,
+   "replay_fees": 89.3879,
+   "complete": false,
+   "n_notes": 15,
+   "open_count": 96,
+   "manual_open_count": null,
+   "fill_rows": 14577
+  },
+  "0x1b232b41b0e75550c59288b99874e4a8142fbe21": {
+   "replay_realized": 0.0,
+   "replay_fees": 0.0,
+   "complete": true,
+   "n_notes": 0,
+   "open_count": 0,
+   "manual_open_count": null,
+   "fill_rows": 0
+  },
+  "0x31ca8395cf837de08b24da3f660e77761dfb974b": {
+   "replay_realized": -161.3377,
+   "replay_fees": 99.191,
+   "complete": false,
+   "n_notes": 18,
+   "open_count": 105,
+   "manual_open_count": null,
+   "fill_rows": 15850
+  },
+  "0x6ba889db7f923622d3548f621ecc2054b80c1817": {
+   "replay_realized": -51.9585,
+   "replay_fees": 23.3891,
+   "complete": false,
+   "n_notes": 1,
+   "open_count": 17,
+   "manual_open_count": null,
+   "fill_rows": 3117
+  },
+  "0x7019197d2b2ae7b44eee12a76015eb1fe94abd36": {
+   "replay_realized": -58.4612,
+   "replay_fees": 29.616,
+   "complete": false,
+   "n_notes": 3,
+   "open_count": 58,
+   "manual_open_count": null,
+   "fill_rows": 4202
+  },
+  "0x7717a7a245d9f950e586822b8c9b46863ed7bd7e": {
+   "replay_realized": -4.7905,
+   "replay_fees": 6.9721,
+   "complete": false,
+   "n_notes": 2,
+   "open_count": 70,
+   "manual_open_count": null,
+   "fill_rows": 1171
+  },
+  "0x936cf4fb95c30ce83f658b5bbb247e4bb381bb0f": {
+   "replay_realized": -13.8874,
+   "replay_fees": 12.0123,
+   "complete": true,
+   "n_notes": 0,
+   "open_count": 9,
+   "manual_open_count": null,
+   "fill_rows": 935
+  },
+  "0xc179e03922afe8fa9533d3f896338b9fb87ce0c8": {
+   "replay_realized": -13.135,
+   "replay_fees": 10.5543,
+   "complete": true,
+   "n_notes": 0,
+   "open_count": 2,
+   "manual_open_count": null,
+   "fill_rows": 617
+  },
+  "0xd4c1f7e8d876c4749228d515473d36f919583d1d": {
+   "replay_realized": -4.6023,
+   "replay_fees": 3.8606,
+   "complete": true,
+   "n_notes": 0,
+   "open_count": 12,
+   "manual_open_count": null,
+   "fill_rows": 482
+  },
+  "0xf5d81a135f756ca16544e53c20fc20643ec3ad53": {
+   "replay_realized": -47.3312,
+   "replay_fees": 61.5299,
+   "complete": false,
+   "n_notes": 4,
+   "open_count": 17,
+   "manual_open_count": null,
+   "fill_rows": 6679
+  },
+  "0x7bc5239180bea2255f4dd243d79481d39adee41e": {
+   "replay_realized": -0.317,
+   "replay_fees": 0.0789,
+   "complete": true,
+   "n_notes": 0,
+   "open_count": 0,
+   "manual_open_count": null,
+   "fill_rows": 15
+  },
+  "0x1f4ab7e9acebb8b591e74b81e34bebe8be9bc934": {
+   "replay_realized": -0.7217,
+   "replay_fees": 0.1794,
+   "complete": true,
+   "n_notes": 0,
+   "open_count": 0,
+   "manual_open_count": null,
+   "fill_rows": 25
+  },
+  "0xcbe834386b8ec9d8c50eaad48dacb83e8b42ddfc": {
+   "replay_realized": -1.1146,
+   "replay_fees": 0.083,
+   "complete": true,
+   "n_notes": 0,
+   "open_count": 0,
+   "manual_open_count": null,
+   "fill_rows": 15
+  },
+  "0x35519de6193f0e6581032d87236988629e35a281": {
+   "replay_realized": 0.0,
+   "replay_fees": 0.0,
+   "complete": true,
+   "n_notes": 0,
+   "open_count": 0,
+   "manual_open_count": null,
+   "fill_rows": 0
+  },
+  "0x833b99b27dac651d02080f5e220e929df891db06": {
+   "replay_realized": 0.0,
+   "replay_fees": 0.0,
+   "complete": true,
+   "n_notes": 0,
+   "open_count": 0,
+   "manual_open_count": null,
+   "fill_rows": 0
+  }
+ }
+}

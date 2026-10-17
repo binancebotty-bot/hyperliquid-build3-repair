@@ -1,0 +1,418 @@
+{
+ "url": "http://127.0.0.1:8031/live-copy",
+ "t0_utc": "2026-10-17T00:23:11Z",
+ "rows_rendered": 15,
+ "detail_W1": "A \u2014 Live Performance\nClosed: \u2014\nOpen: \u2014\nFees: $89.86\nNet: \u2014\nExposure: $2,022.13\nDD: \u2014\nMaxDD: \u2014\nPnL status: Partial record\nAttribution: ENGINE_LEDGER_SLEEVES_PARTIAL\nExchange closedPnl on matched orders: $-0.94\nCumulative rejects: 862; cumulative local blocks: 0; queued previews / would-send records: 0\nAXS: sleeve closed without a price (LEDGER_REPAIR_CLOSE); AZTEC: sleeve closed without a price (LEDGER_REPAIR_CLOSE); HYPER: sleeve closed without a price (LEDGER_REPAIR_CLOSE); INJ: sleeve closed without a price (LEDGER_REPAIR_CLOSE); JUP: sleeve closed without a price (LEDGER_REPAIR_CLOSE); LDO: sleeve closed without a price (LEDGER_REPAIR_CLOSE); ME: sleeve closed without a price (LEDGER_REPAIR_CLOSE); MORPHO: sleeve closed without a price (LEDGER_REPAIR_CLOSE); SAND: sleeve closed without a price (LEDGER_REPAIR_CLOSE); SPX: sleeve closed without a price (LEDGER_REPAIR_CLOSE); STX: sleeve closed without a price (LEDGER_REPAIR_CLOSE); SUPER: sleeve closed without a price (LEDGER_REPAIR_CLOSE); SUSHI: sleeve closed without a price (LEDGER_REPAIR_CLOSE); AR SIGN_CONFLICT_PENDING_RECONCILIATION; JTO SIGN_CONFLICT_PENDING_RECONCILIATION; SNX OWNED_LEDGER_UNSUPPORTED_BY_EXCHANGE\nB \u2014 Open Positions (96)\nCOIN\tSIDE\tSIZE\tENTRY PX\tMARK PX\tUNREALIZED PNL\tEXPOSURE\tEXCHANGE MATCH\n0G\tSHORT\t-62\t0.2467999239086904\t0.24655\t$0.02\t$15.29\tSHARED\nAAVE\tLONG\t0.03\t154.85\t154.45\t$-0.01\t$4.63\tSHARED\nACE\tSHORT\t-129.40000000000003\t0.16721144627699117\t0.16749999999999998\t$-0.04\t$21.67\tSHARED\nADA\tLONG\t106\t0.2260399065420561\t0.22515\t$-0.09\t$23.87\tSHARED\nALGO\tSHORT\t-291\t0.11574720290217663\t0.11488\t$0.25\t$33.43\tSHARED\nALT\tSHORT\t-414\t0.008319863101104951\t0.008314\t$0\t$3.44\tSHARED\nANIME\tLONG\t4550\t0.002931880047879184\t0.0029259999999999998\t$-0.03\t$13.31\tSHARED\nAPE\tLONG\t381.10000000000014\t0.1514876529922228\t0.15147\t$-0.01\t$57.73\tSHARED\nAR\tSHORT\t-6.86\t3.903039637096504\t3.9172000000000002\t\u2014\t$26.87\tSIGN_CONFLICT_PENDING_RECONCILIATION\nARB\tLONG\t2.100000000000017\t0.19192281708173298\t0.19129000000000002\t$-0\t$0.4\tSHARED\nAVNT\tLONG\t77\t0.11638323308270677\t0.11653000000000001\t$0.01\t$8.97\tSHARED\nAXS\tSHORT\t-7.2\t1.0581\t1.056\t$0.02\t$7.6\tSHARED\nAZTEC\tSHORT\t-1809\t0.01999326202321725\t0.019986\t$0.01\t$36.15\tSHARED\nBABY\tLONG\t990\t0.012129\t0.012172\t$0.04\t$12.05\tSHARED\nBANANA\tSHORT\t-0.2999999999999998\t3.6065465116279074\t3.60497\t$0\t$1.08\tSHARED\nBIGTIME\tSHORT\t-3541\t0.0072193975715431884\t0.007226000000000001\t$-0.02\t$25.59\tSHARED\nBIO\tLONG\t614\t0.025246749185667754\t0.02513\t$-0.07\t$15.43\tSHARED\nBLUR\tSHORT\t-851\t0.010712998433004042\t0.010522\t$0.16\t$8.95\tSHARED\nBNB\tLONG\t0.038\t722.053157894737\t720.8899999999999\t$-0.04\t$27.39\tSHARED\nBRETT\tSHORT\t-10798\t0.00481771846207958\t0.00483\t$-0.13\t$52.15\tSHARED\nCAKE\tSHORT\t-10.9\t2.1797816513761465\t2.1778\t$0.02\t$23.74\tSHARED\nCASHCAT\tLONG\t369\t0.11025498644986449\t0.10861\t$-0.61\t$40.08\tSHARED\nCC\tSHORT\t-953\t0.10358157649624412\t0.10347\t$0.11\t$98.61\tSHARED\nCHIP\tSHORT\t-4\t0.04586925\t0.046386\t$-0\t$0.19\tSHARED\nCOMP\tLONG\t0.09\t22.300333333333334\t22.233\t$-0.01\t$2\tSHARED\nDASH\tSHORT\t-0.24\t49.199\t49.255\t$-0.01\t$11.82\tSHARED\nDYDX\tSHORT\t-3.1\t0.1236316129032258\t0.12362000000000001\t$0\t$0.38\tSHARED\nDYM\tSHORT\t-3219\t0.01825460561149311\t0.018260000000000002\t$-0.02\t$58.78\tSHARED\nEIGEN\tLONG\t2.76\t0.2528\t0.25260000000000005\t$-0\t$0.7\tSHARED\nENS\tLONG\t0.76\t5.6875\t5.685199999999999\t$-0\t$4.32\tOWNED_FULLY_SUPPORTED\nETH\tLONG\t0.0228\t2415.266666666667\t2415.7\t$0.01\t$55.08\tSHARED\nFARTCOIN\tLONG\t130\t0.15357838461538462\t0.15325\t$-0.04\t$19.92\tSHARED\nFET\tLONG\t86\t0.19758767441860467\t0.19741\t$-0.02\t$16.98\tSHARED\nFOGO\tLONG\t3637\t0.004289233709100908\t0.004267\t$-0.08\t$15.52\tSHARED\nGALA\tSHORT\t-4409\t0.00203\t0.002031\t$-0\t$8.95\tSHARED\nGAS\tLONG\t24.599999999999998\t1.3022499515178638\t1.2999\t$-0.06\t$31.98\tSHARED\nGMT\tLONG\t3\t0.007791\t0.007759\t$-0\t$0.02\tSHARED\nGOAT\tLONG\t18\t0.01498\t0.014995000000000001\t$0\t$0.27\tSHARED\nGRAM\tLONG\t12\t1.3553583333333332\t1.3525\t$-0.03\t$16.23\tSHARED\nGRASS\tSHORT\t-114.50000000000007\t0.632649162311335\t0.6337700000000001\t$-0.13\t$72.57\tSHARED\nHEMI\tSHORT\t-2094\t0.005348\t0.005354\t$-0.01\t$11.21\tOWNED_FULLY_SUPPORTED\nHYPER\tLONG\t480\t0.06504908074222579\t0.064828\t$-0.11\t$31.12\tSHARED\nICP\tSHORT\t-0.5700000000000012\t3.022205723038545\t3.0124\t$0.01\t$1.72\tSHARED\nIMX\tLONG\t85.70000000000002\t0.16328836992012818\t0.16261\t$-0.06\t$13.94\tSHARED\nINJ\tLONG\t1.3\t8.7433\t8.6545\t$-0.12\t$11.25\tSHARED\nIO\tSHORT\t-78.6\t0.16110965648854966\t0.16105999999999998\t$0\t$12.66\tSHARED\nJTO\tLONG\t103\t0.4674451205875933\t0.46692\t\u2014\t$48.09\tSIGN_CONFLICT_PENDING_RECONCILIATION\nJUP\tLONG\t101\t0.3072714851485149\t0.305386\t$-0.19\t$30.84\tSHARED\nKAITO\tLONG\t185\t0.29492010410148695\t0.295391\t$0.09\t$54.65\tSHARED\nKBONK\tSHORT\t-2832\t0.003062909044972208\t0.0030570000000000003\t$0.02\t$8.66\tSHARED\nKNEIRO\tLONG\t100.1\t0.07684\t0.07652\t$-0.03\t$7.66\tOWNED_FULLY_SUPPORTED\nKPEPE\tSHORT\t-1613\t0.004046\t0.004016\t$0.05\t$6.48\tSHARED\nKSHIB\tLONG\t2312\t0.005087980968858131\t0.005071\t$-0.04\t$11.72\tSHARED\nLDO\tLONG\t54.19999999999999\t0.4008154138418337\t0.40093\t$0.01\t$21.73\tSHARED\nLIT\tSHORT\t-9\t3.196190909090909\tn/a\t\u2014\t$28.77\tSHARED\nME\tLONG\t5.7\t0.064\t0.06396\t$-0\t$0.36\tOWNED_FULLY_SUPPORTED\nMERL\tLONG\t511\t0.02733720931690313\t0.027323\t$-0.01\t$13.96\tSHARED\nMET\tLONG\t348\t0.3472170114942529\t0.35405000000000003\t$2.38\t$123.21\tOWNED_FULLY_SUPPORTED\nMON\tLONG\t434\t0.02285700709219858\t0.022805\t$-0.02\t$9.9\tSHARED\nMOVE\tSHORT\t-3111\t0.007816104468016716\t0.007814\t$0.01\t$24.31\tSHARED\nNEO\tSHORT\t-3.1599999999999997\t2.3477724683544303\t2.3447999999999998\t$0.01\t$7.41\tSHARED\nNIL\tSHORT\t-697\t0.08266164683837342\t0.08286199999999999\t$-0.14\t$57.75\tSHARED\nNXPC\tLONG\t15\t0.18117\t0.18093700000000001\t$-0\t$2.71\tSHARED\nORDI\tLONG\t0.08\t3.931500000000001\t3.925\t$-0\t$0.31\tSHARED\nPNUT\tSHORT\t-210.20000000000005\t0.0461215540622281\t0.04627\t$-0.03\t$9.73\tSHARED\nPOPCAT\tSHORT\t-257\t0.046630027237354085\t0.046653\t$-0.01\t$11.99\tSHARED\nPUMP\tLONG\t557\t0.00469\t0.004575\t$-0.06\t$2.55\tSHARED\nPYTH\tSHORT\t-128\t0.086492\t0.086344\t$0.02\t$11.05\tSHARED\nRENDER\tLONG\t7\t1.9248142857142856\t1.9207\t$-0.03\t$13.44\tSHARED\nREZ\tLONG\t12600\t0.0035932477210579568\t0.003603\t$0.12\t$45.4\tSHARED\nRSR\tSHORT\t-13100\t0.00192413669600662\t0.0019219999999999999\t$0.03\t$25.18\tSHARED\nRUNE\tLONG\t40.599999999999994\t0.6419016748768474\t0.64152\t$-0.02\t$26.05\tSHARED\nS\tLONG\t58\t0.05500989147286822\t0.055295000000000004\t$0.02\t$3.21\tSHARED\nSAND\tSHORT\t-221\t0.053884\t0.053914\t$-0.01\t$11.92\tSHARED\nSKY\tSHORT\t-287\t0.07098722009290998\t0.070994\t$-0\t$20.38\tSHARED\nSNX\tLONG\t114.39999999999999\t0.22481968803829755\t0.22419000000000003\t\u2014\t$25.65\tOWNED_LEDGER_UNSUPPORTED_BY_EXCHANGE\nSOL\tLONG\t0.11\t103.65\t103.9\t$0.03\t$11.43\tSHARED\nSPX\tSHORT\t-33.5\t0.35528\t0.35441\t$0.03\t$11.87\tSHARED\nSTABLE\tSHORT\t-410\t0.026448\t0.026405\t$0.02\t$10.83\tSHARED\nSTBL\tLONG\t481\t0.02495\t0.02492\t$-0.01\t$11.99\tSHARED\nSUI\tLONG\t18.700000000000003\t1.021394117647059\t1.0112999999999999\t$-0.19\t$18.91\tSHARED\nSUSHI\tLONG\t52.9\t0.22724\t0.22681999999999997\t$-0.02\t$12\tSHARED\nTRUMP\tSHORT\t-8.9\t1.8154685393258425\t1.81731\t$-0.02\t$16.17\tOWNED_FULLY_SUPPORTED\nUMA\tSHORT\t-30.5\t0.39292\t0.39289999999999997\t$0\t$11.98\tSHARED\nUSELESS\tLONG\t146\t0.16242\t0.16221\t$-0.03\t$23.68\tSHARED\nUSUAL\tLONG\t108\t0.010763\t0.010742\t$-0\t$1.16\tSHARED\nVIRTUAL\tLONG\t19.3\t0.6692420348820748\t0.6688000000000001\t$-0.01\t$12.91\tSHARED\nVVV\tSHORT\t-1.08\t22.81474074074074\t22.791\t$0.03\t$24.61\tSHARED\nW\tSHORT\t-474\t0.014349\t0.014378000000000002\t$-0.01\t$6.82\tSHARED\nWLD\tLONG\t288.1\t0.5149173574044031\t0.5151899999999999\t$0.08\t$148.43\tSHARED\nWLFI\tSHORT\t-179\t0.056957482760994875\t0.056880999999999994\t$0.01\t$10.18\tSHARED\nXMR\tSHORT\t-0.07\t559.8942857142856\t560.14\t$-0.02\t$39.21\tSHARED\nZETA\tLONG\t485.0999999999999\t0.043817094038973436\t0.04368\t$-0.07\t$21.19\tSHARED\nZK\tSHORT\t-1\t0.016517\t0.016497\t$0\t$0.02\tOWNED_FULLY_SUPPORTED\nZORA\tSHORT\t-12\t0.006696\t0.0067\t$-0\t$0.08\tSHARED\nZRO\tSHORT\t-3.8000000000000025\t2.0507974717021047\t1.9880000000000002\t$0.24\t$7.55\tSHARED\nC \u2014 Lead vs Copy / Friction\nTotal diff: $1.59\nAvg diff: $0.01\nAvg: 5.2bps\nWorst: 75.8bps\nFill-vs-limit avg: -14.5bps\nTIME\tCOIN\tSIDE\tLEADER/REF PX\tOUR FILL PX\tSIZE\tDIFF $\tDIFF BPS\tLIMIT PX\tFILL-VS-LIMIT BPS\tOID\n2026-10-17T00:23:11.7\u2026\tJTO\tSELL\t0.46693\t0.46654\t5\t$0\t8.35\t0.46589\t-13.95\t62922070592\n2026-10-17T00:23:09.7\u2026\tPOL\tBUY\t0.094189\t0.09421\t57\t$0\t2.23\t0.094367\t-16.64\t62922069021\n2026-10-17T00:23:05.5\u2026\tNIL\tSELL\t0.08297\t0.082782\t67\t$0.01\t22.66\t0.082707\t-9.07\t62922065798\n2026-10-17T00:23:05.4\u2026\tRSR\tSELL\t0.001921\t0.001922\t6246\t$-0.01\t-5.21\t0.001919\t-15.63\t62922065167\n2026-10-17T00:23:05.1\u2026\tME\tBUY\t0.06389\t0.064\t5.7\t$0\t17.22\t0.06402\t-3.12\t62922065015\n2026-10-17T00:23:03.0\u2026\tRUNE\tBUY\t0.641\t0.64178\t18.7\t$0.01\t12.17\t0.64287\t-16.96\t62922063211\n2026-10-17T00:23:01.5\u2026\tZETA\tBUY\t0.04363\t0.0437\t275\t$0.02\t16.04\t0.04376\t-13.71\t62922061584\n2026-10-17T00:23:00.0\u2026\tXAI\tBUY\t0.00862\t0.00863\t537.5\t$0.01\t11.6\t0.00863\t0\t62922060215\n2026-10-17T00:22:58.6\u2026\tCAKE\tSELL\t2.1765\t2.1778\t5.5\t$-0.01\t-5.97\t2.1741\t-17.02\t62922058833\n2026-10-17T00:22:58.8\u2026\tDYM\tSELL\t0.01827\t0.01826\t656.8\t$0.01\t5.47\t0.01824\t-10.96\t62922058899\n2026-10-17T00:22:56.9\u2026\tAPE\tBUY\t0.15163\t0.15161\t58.8\t$-0\t-1.32\t0.15184\t-15.15\t62922058014\n2026-10-17T00:22:48.0\u2026\tMERL\tBUY\t0.02731\t0.027323\t437\t$0.01\t4.76\t0.027359\t-13.16\t62922049548\n2026-10-17T00:22:44.3\u2026\tANIME\tBUY\t0.002922\t0.00293\t2010\t$0.02\t27.38\t0.002933\t-10.23\t62922045817\n2026-10-17T00:22:40.4\u2026\tHBAR\tSELL\t0.08346\t0.083399\t195\t$0.01\t7.31\t0.083257\t-17.06\t62922043673\n2026-10-17T00:22:39.8\u2026\tMOVE\tSELL\t0.007813\t0.007813\t1506\t$0\t0\t0.0078\t-16.67\t62922042851\n2026-10-17T00:22:38.4\u2026\tTRUMP\tSELL\t1.8183\t1.8159\t6.5\t$0.02\t13.2\t1.8134\t-13.79\t62922041531\n2026-10-17T00:22:31.3\u2026\tENS\tBUY\t5.6909\t5.6875\t0.76\t$-0\t-5.97\t5.6962\t-15.27\t62922036084\n2026-10-17T00:22:30.5\u2026\tCC\tSELL\t0.1035\t0.10346\t115\t$0\t3.86\t0.10335\t-10.64\t62922035311\n2026-10-17T00:22:30.2\u2026\tFET\tBUY\t0.1975\t0.1975\t60\t$0\t0\t0.1978\t-15.17\t62922034694\n2026-10-17T00:22:18.8\u2026\tAZTEC\tSELL\t0.019985\t0.019979\t9\t$0\t3\t0.019966\t-6.51\t62922023658\nD \u2014 Execution Audit\nFilled: 582\nExits: 0\nRecent rejects: 862\nRecent blocks: 0\nTIME\tCOIN\tSIDE\tSIZE @ PX\tPOS BEFORE\u2192AFTER\tOID\n2026-10-17T00:23:11.7\u2026\tJTO\tSELL\t5 @ 0.46654\t\u2014\t62922070592\n2026-10-17T00:23:09.7\u2026\tPOL\tBUY\t57 @ 0.09421\t\u2014\t62922069021\n2026-10-17T00:23:05.5\u2026\tNIL\tSELL\t67 @ 0.082782\t\u2014\t62922065798\n2026-10-17T00:23:05.4\u2026\tRSR\tSELL\t6246 @ 0.001922\t\u2014\t62922065167\n2026-10-17T00:23:05.1\u2026\tME\tBUY\t5.7 @ 0.064\t\u2014\t62922065015\n2026-10-17T00:23:03.0\u2026\tRUNE\tBUY\t18.7 @ 0.64178\t\u2014\t62922063211\n2026-10-17T00:23:01.5\u2026\tZETA\tBUY\t275 @ 0.0437\t\u2014\t62922061584\n2026-10-17T00:23:00.0\u2026\tXAI\tBUY\t537.5 @ 0.00863\t\u2014\t62922060215\n2026-10-17T00:22:58.6\u2026\tCAKE\tSELL\t5.5 @ 2.1778\t\u2014\t62922058833\n2026-10-17T00:22:58.8\u2026\tDYM\tSELL\t656.8 @ 0.01826\t\u2014\t62922058899\nE \u2014 Rejects & Blocks\nExchange rejected (12)\nTIME\tCOIN\tSIDE\tERROR\n2026-10-17T00:23:06.2\u2026\tRUNE\tBUY\tInsufficient margin to place order. asset=62\n2026-10-17T00:23:03.2\u2026\tTIA\tSELL\tInsufficient margin to place order. asset=42\n2026-10-17T00:22:58.4\u2026\tLAYER\tBUY\tInsufficient margin to place order. asset=159\n2026-10-17T00:22:59.0\u2026\tTIA\tSELL\tInsufficient margin to place order. asset=42\n2026-10-17T00:22:50.7\u2026\tINJ\tBUY\tInsufficient margin to place order. asset=26\nF \u2014 Recent Order Intents (4) CHIP ? \u2014 2026-10-17T00:23:12\u2026 \u00b7 CHIP ? \u2014 2026-10-17T00:23:10\u2026 \u00b7 XAI ? \u2014 2026-10-17T00:23:10\u2026 \u00b7 XAI ? \u2014 2026-10-17T00:23:09\u2026",
+ "dom_sha": "cd89282c0fbc6b21024259fd96259b2f6d17100a5b4d90075e59437bdb16f8f3",
+ "freeze_snapshot": {
+  "live_config.json": {
+   "sha256": "e09e292c5922cf41e65e1c172e74b2f3b2af544e53e3dd8fed3dda1d1d7a6786",
+   "bytes": 3652
+  },
+  "manual_live_positions.json": {
+   "sha256": "1c784a025b18f93aab9fd2b1fbc890b09c451319c4e58a169a9be5bd568bf96f",
+   "bytes": 557999
+  },
+  "append_only/live_fills.csv": {
+   "sha256": "a9b33380cdba447f23ace9ed9cad61257068ccee61f872319184af07830d0be5",
+   "bytes": 31408799
+  },
+  "_at": 1792196600.104641
+ },
+ "audit_ok": true,
+ "api_W1": {
+  "open_position_count": 96,
+  "fees": 89.8602,
+  "realized": null,
+  "filled_count": 582,
+  "n_open_list": 96,
+  "row_fees": 89.8602,
+  "row_open": 96
+ },
+ "api_open_positions_W1": [
+  {
+   "coin": "0G",
+   "signed_size": -62.0
+  },
+  {
+   "coin": "AAVE",
+   "signed_size": 0.03
+  },
+  {
+   "coin": "ACE",
+   "signed_size": -129.40000000000003
+  },
+  {
+   "coin": "ADA",
+   "signed_size": 106.0
+  },
+  {
+   "coin": "ALGO",
+   "signed_size": -291.0
+  },
+  {
+   "coin": "ALT",
+   "signed_size": -414.0
+  },
+  {
+   "coin": "ANIME",
+   "signed_size": 4550.0
+  },
+  {
+   "coin": "APE",
+   "signed_size": 381.10000000000014
+  },
+  {
+   "coin": "AR",
+   "signed_size": -6.86
+  },
+  {
+   "coin": "ARB",
+   "signed_size": 2.100000000000017
+  },
+  {
+   "coin": "AVNT",
+   "signed_size": 77.0
+  },
+  {
+   "coin": "AXS",
+   "signed_size": -7.2
+  },
+  {
+   "coin": "AZTEC",
+   "signed_size": -1809.0
+  },
+  {
+   "coin": "BABY",
+   "signed_size": 990.0
+  },
+  {
+   "coin": "BANANA",
+   "signed_size": -0.2999999999999998
+  },
+  {
+   "coin": "BIGTIME",
+   "signed_size": -3541.0
+  },
+  {
+   "coin": "BIO",
+   "signed_size": 614.0
+  },
+  {
+   "coin": "BLUR",
+   "signed_size": -851.0
+  },
+  {
+   "coin": "BNB",
+   "signed_size": 0.038
+  },
+  {
+   "coin": "BRETT",
+   "signed_size": -10798.0
+  },
+  {
+   "coin": "CAKE",
+   "signed_size": -10.9
+  },
+  {
+   "coin": "CASHCAT",
+   "signed_size": 369.0
+  },
+  {
+   "coin": "CC",
+   "signed_size": -953.0
+  },
+  {
+   "coin": "CHIP",
+   "signed_size": -4.0
+  },
+  {
+   "coin": "COMP",
+   "signed_size": 0.09
+  },
+  {
+   "coin": "DASH",
+   "signed_size": -0.24
+  },
+  {
+   "coin": "DYDX",
+   "signed_size": -3.1
+  },
+  {
+   "coin": "DYM",
+   "signed_size": -3219.0
+  },
+  {
+   "coin": "EIGEN",
+   "signed_size": 2.76
+  },
+  {
+   "coin": "ENS",
+   "signed_size": 0.76
+  },
+  {
+   "coin": "ETH",
+   "signed_size": 0.0228
+  },
+  {
+   "coin": "FARTCOIN",
+   "signed_size": 130.0
+  },
+  {
+   "coin": "FET",
+   "signed_size": 86.0
+  },
+  {
+   "coin": "FOGO",
+   "signed_size": 3637.0
+  },
+  {
+   "coin": "GALA",
+   "signed_size": -4409.0
+  },
+  {
+   "coin": "GAS",
+   "signed_size": 24.599999999999998
+  },
+  {
+   "coin": "GMT",
+   "signed_size": 3.0
+  },
+  {
+   "coin": "GOAT",
+   "signed_size": 18.0
+  },
+  {
+   "coin": "GRAM",
+   "signed_size": 12.0
+  },
+  {
+   "coin": "GRASS",
+   "signed_size": -114.50000000000007
+  },
+  {
+   "coin": "HEMI",
+   "signed_size": -2094.0
+  },
+  {
+   "coin": "HYPER",
+   "signed_size": 480.0
+  },
+  {
+   "coin": "ICP",
+   "signed_size": -0.5700000000000012
+  },
+  {
+   "coin": "IMX",
+   "signed_size": 85.70000000000002
+  },
+  {
+   "coin": "INJ",
+   "signed_size": 1.3
+  },
+  {
+   "coin": "IO",
+   "signed_size": -78.6
+  },
+  {
+   "coin": "JTO",
+   "signed_size": 103.0
+  },
+  {
+   "coin": "JUP",
+   "signed_size": 101.0
+  },
+  {
+   "coin": "KAITO",
+   "signed_size": 185.0
+  },
+  {
+   "coin": "KBONK",
+   "signed_size": -2832.0
+  },
+  {
+   "coin": "KNEIRO",
+   "signed_size": 100.1
+  },
+  {
+   "coin": "KPEPE",
+   "signed_size": -1613.0
+  },
+  {
+   "coin": "KSHIB",
+   "signed_size": 2312.0
+  },
+  {
+   "coin": "LDO",
+   "signed_size": 54.19999999999999
+  },
+  {
+   "coin": "LIT",
+   "signed_size": -9.0
+  },
+  {
+   "coin": "ME",
+   "signed_size": 5.7
+  },
+  {
+   "coin": "MERL",
+   "signed_size": 511.0
+  },
+  {
+   "coin": "MET",
+   "signed_size": 348.0
+  },
+  {
+   "coin": "MON",
+   "signed_size": 434.0
+  },
+  {
+   "coin": "MOVE",
+   "signed_size": -3111.0
+  },
+  {
+   "coin": "NEO",
+   "signed_size": -3.1599999999999997
+  },
+  {
+   "coin": "NIL",
+   "signed_size": -697.0
+  },
+  {
+   "coin": "NXPC",
+   "signed_size": 15.0
+  },
+  {
+   "coin": "ORDI",
+   "signed_size": 0.08
+  },
+  {
+   "coin": "PNUT",
+   "signed_size": -210.20000000000005
+  },
+  {
+   "coin": "POPCAT",
+   "signed_size": -257.0
+  },
+  {
+   "coin": "PUMP",
+   "signed_size": 557.0
+  },
+  {
+   "coin": "PYTH",
+   "signed_size": -128.0
+  },
+  {
+   "coin": "RENDER",
+   "signed_size": 7.0
+  },
+  {
+   "coin": "REZ",
+   "signed_size": 12600.0
+  },
+  {
+   "coin": "RSR",
+   "signed_size": -13100.0
+  },
+  {
+   "coin": "RUNE",
+   "signed_size": 40.599999999999994
+  },
+  {
+   "coin": "S",
+   "signed_size": 58.0
+  },
+  {
+   "coin": "SAND",
+   "signed_size": -221.0
+  },
+  {
+   "coin": "SKY",
+   "signed_size": -287.0
+  },
+  {
+   "coin": "SNX",
+   "signed_size": 114.39999999999999
+  },
+  {
+   "coin": "SOL",
+   "signed_size": 0.11
+  },
+  {
+   "coin": "SPX",
+   "signed_size": -33.5
+  },
+  {
+   "coin": "STABLE",
+   "signed_size": -410.0
+  },
+  {
+   "coin": "STBL",
+   "signed_size": 481.0
+  },
+  {
+   "coin": "SUI",
+   "signed_size": 18.700000000000003
+  },
+  {
+   "coin": "SUSHI",
+   "signed_size": 52.9
+  },
+  {
+   "coin": "TRUMP",
+   "signed_size": -8.9
+  },
+  {
+   "coin": "UMA",
+   "signed_size": -30.5
+  },
+  {
+   "coin": "USELESS",
+   "signed_size": 146.0
+  },
+  {
+   "coin": "USUAL",
+   "signed_size": 108.0
+  },
+  {
+   "coin": "VIRTUAL",
+   "signed_size": 19.3
+  },
+  {
+   "coin": "VVV",
+   "signed_size": -1.08
+  },
+  {
+   "coin": "W",
+   "signed_size": -474.0
+  },
+  {
+   "coin": "WLD",
+   "signed_size": 288.1
+  },
+  {
+   "coin": "WLFI",
+   "signed_size": -179.0
+  },
+  {
+   "coin": "XMR",
+   "signed_size": -0.07
+  },
+  {
+   "coin": "ZETA",
+   "signed_size": 485.0999999999999
+  },
+  {
+   "coin": "ZK",
+   "signed_size": -1.0
+  },
+  {
+   "coin": "ZORA",
+   "signed_size": -12.0
+  },
+  {
+   "coin": "ZRO",
+   "signed_size": -3.8000000000000025
+  }
+ ]
+}

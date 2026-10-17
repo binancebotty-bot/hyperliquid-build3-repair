@@ -1,0 +1,447 @@
+{
+ "freeze_t": 1792196531.5338342,
+ "rows": [
+  {
+   "w": "0x010461c14e146ac35fe42271bdc1134ee31c703a",
+   "mode": "LIVE",
+   "cm": "fixed",
+   "F": "12",
+   "N": "100",
+   "B": null,
+   "inp": [
+    "fixed_notional",
+    "norm_base"
+   ],
+   "btn": [
+    "save",
+    "clo",
+    "off",
+    "archive"
+   ],
+   "cells": [
+    "0x010461c1...1c703a Live",
+    "\u2014 partial",
+    "Websocket OK HOT10 shared socket active",
+    "Closed: \u2014 partial Open: \u2014 Fees: $89.71 Partial record shared 0G shared AAVE shared ACE shared ADA shared ALGO shared ALT shared ANIME shared APE shared AR shared ARB shared AVNT shared AXS shared AZTEC shared BABY shared BANANA shared BIGTIME shared BIO shared BLUR shared BNB shared BRETT shared CAKE shared CASHCAT shared CC shared CHIP shared COMP shared DASH shared DYDX shared DYM shared EIGEN shared ETH shared FARTCOIN shared FET shared FOGO shared GAS shared GMT shared GOAT shared GRAM shared GRASS shared HBAR shared HYPER shared ICP shared IMX shared INJ shared IO shared JTO shared JUP shared KAITO shared KBONK shared KPEPE shared KSHIB shared LDO shared LIT shared MERL shared MON shared MOVE shared NEO shared NIL shared NXPC shared ORDI shared PNUT shared POPCAT shared PUMP shared PYTH shared RENDER shared REZ shared RSR shared RUNE shared S shared SAND shared SKY shared SNX shared SOL shared SPX shared STABLE shared STBL shared SUI shared SUSHI shared UMA shared USELESS shared USUAL shared VIRTUAL shared VVV shared W shared WLD shared WLFI shared XAI shared XMR shared ZETA shared ZORA shared ZRO",
+    "Total: $1.48 Avg: $0 Avg bps: 4.9 Worst bps: 75.8",
+    "551 filled / 0 exits 895 recent rejects 2 recent blocks",
+    "Exposure: $1,959.3 Open pos: 97 DD: \u2014 MaxDD: \u2014",
+    "SKY BUY @",
+    "LIVE CLO OFF prop fixed F N Save CLO OFF Archive"
+   ]
+  },
+  {
+   "w": "0x1b232b41b0e75550c59288b99874e4a8142fbe21",
+   "mode": "LIVE",
+   "cm": "fixed",
+   "F": "12",
+   "N": "100",
+   "B": null,
+   "inp": [
+    "fixed_notional",
+    "norm_base"
+   ],
+   "btn": [
+    "save",
+    "clo",
+    "off",
+    "archive"
+   ],
+   "cells": [
+    "0x1b232b41...2fbe21 Live",
+    "\u2014",
+    "Websocket OK HOT10 shared socket active",
+    "Closed: \u2014 Open: $0 Fees: \u2014 No PnL yet",
+    "Total: n/a Avg: n/a Avg bps: n/a Worst bps: n/a",
+    "0 filled / 0 exits 0 recent rejects 0 recent blocks",
+    "Exposure: $0 Open pos: 0 DD: \u2014 MaxDD: \u2014",
+    "none yet",
+    "LIVE CLO OFF prop fixed F N Save CLO OFF Archive"
+   ]
+  },
+  {
+   "w": "0x31ca8395cf837de08b24da3f660e77761dfb974b",
+   "mode": "LIVE",
+   "cm": "fixed",
+   "F": "12",
+   "N": "100",
+   "B": null,
+   "inp": [
+    "fixed_notional",
+    "norm_base"
+   ],
+   "btn": [
+    "save",
+    "clo",
+    "off",
+    "archive"
+   ],
+   "cells": [
+    "0x31ca8395...fb974b Live",
+    "\u2014 partial",
+    "Websocket OK HOT10 shared socket active",
+    "Closed: \u2014 partial Open: \u2014 Fees: $99.4 Partial record shared 0G shared ACE shared AERO shared ALGO shared ALT shared ANIME shared APE shared APT shared AR shared ATOM shared AVAX shared AVNT shared BABY shared BANANA shared BIGTIME shared BIO shared BLUR shared BNB shared BRETT shared CAKE shared CASHCAT shared CHIP shared COMP shared DASH shared DOGE shared DYM shared EIGEN shared FARTCOIN shared FET shared FIL shared FOGO shared GAS shared GMT shared GOAT shared GRAM shared GRASS shared HBAR shared HYPER shared ICP shared IMX shared IO shared JTO shared JUP shared KBONK shared KPEPE shared KSHIB shared LDO shared LIT shared MANTA shared MEGA shared MERL shared MON shared MORPHO shared MOVE shared NEO shared NXPC shared ORDI shared PNUT shared POLYX shared PONS shared POPCAT shared PROVE shared PYTH shared RENDER shared RESOLV shared RSR shared RUNE shared S shared SAND shared SKR shared SKY shared STABLE shared STBL shared SUSHI shared SYRUP shared TAO shared TURBO shared UMA shared USELESS shared USUAL shared VIRTUAL shared W shared WLFI shared XAI shared XLM shared ZEN shared ZETA shared ZORA shared ZRO",
+    "Total: $1.1 Avg: $0 Avg bps: 4.3 Worst bps: 74.4",
+    "548 filled / 0 exits 1045 recent rejects 2 recent blocks",
+    "Exposure: $1,989.84 Open pos: 98 DD: \u2014 MaxDD: \u2014",
+    "UMA SELL @",
+    "LIVE CLO OFF prop fixed F N Save CLO OFF Archive"
+   ]
+  },
+  {
+   "w": "0x6ba889db7f923622d3548f621ecc2054b80c1817",
+   "mode": "LIVE",
+   "cm": "fixed",
+   "F": "12",
+   "N": "100",
+   "B": null,
+   "inp": [
+    "fixed_notional",
+    "norm_base"
+   ],
+   "btn": [
+    "save",
+    "clo",
+    "off",
+    "archive"
+   ],
+   "cells": [
+    "0x6ba889db...0c1817 Live",
+    "\u2014 partial",
+    "Websocket OK HOT10 shared socket active",
+    "Closed: \u2014 partial Open: \u2014 Fees: $23.51 Partial record shared ADA shared ARB shared AVAX shared BTC shared DOGE shared ETH shared ICP shared INJ shared JTO shared JUP shared LDO shared MON shared ONDO shared SOL shared SUI shared TAO shared VIRTUAL shared WLD shared ZRO",
+    "Total: $0.26 Avg: $0 Avg bps: 3.6 Worst bps: 80.8",
+    "122 filled / 0 exits 147 recent rejects 0 recent blocks",
+    "Exposure: $524.63 Open pos: 19 DD: \u2014 MaxDD: \u2014",
+    "ZRO BUY @",
+    "LIVE CLO OFF prop fixed F N Save CLO OFF Archive"
+   ]
+  },
+  {
+   "w": "0x7019197d2b2ae7b44eee12a76015eb1fe94abd36",
+   "mode": "LIVE",
+   "cm": "fixed",
+   "F": "12",
+   "N": "100",
+   "B": null,
+   "inp": [
+    "fixed_notional",
+    "norm_base"
+   ],
+   "btn": [
+    "save",
+    "clo",
+    "off",
+    "archive"
+   ],
+   "cells": [
+    "0x7019197d...4abd36 Live",
+    "\u2014 partial",
+    "Websocket OK HOT10 shared socket active",
+    "Closed: \u2014 partial Open: \u2014 Fees: $29.74 Partial record shared 0G shared 2Z shared AERO shared APE shared APT shared AR shared ARB shared ATOM shared AVNT shared AXS shared AZTEC shared BIGTIME shared BRETT shared BTC shared CASHCAT shared CC shared CHIP shared COMP shared DYM shared EIGEN shared ETH shared FARTCOIN shared FET shared FIL shared GRASS shared HBAR shared ICP shared INJ shared IO shared JTO shared JUP shared LIT shared MEGA shared MINA shared MON shared MORPHO shared NIL shared NXPC shared ONDO shared PNUT shared PONS shared PUMP shared RENDER shared REZ shared SKR shared SNX shared SPX shared STBL shared SUI shared SUSHI shared TAO shared TURBO shared USELESS shared VVV shared WLD shared WLFI shared XLM shared ZEN shared ZETA shared ZRO",
+    "Total: $0.48 Avg: $0.01 Avg bps: 11.9 Worst bps: 68.2",
+    "97 filled / 0 exits 171 recent rejects 0 recent blocks",
+    "Exposure: $1,258.63 Open pos: 62 DD: \u2014 MaxDD: \u2014",
+    "JUP BUY @",
+    "LIVE CLO OFF prop fixed F N Save CLO OFF Archive"
+   ]
+  },
+  {
+   "w": "0x7717a7a245d9f950e586822b8c9b46863ed7bd7e",
+   "mode": "LIVE",
+   "cm": "fixed",
+   "F": "12",
+   "N": "100",
+   "B": null,
+   "inp": [
+    "fixed_notional",
+    "norm_base"
+   ],
+   "btn": [
+    "save",
+    "clo",
+    "off",
+    "archive"
+   ],
+   "cells": [
+    "0x7717a7a2...d7bd7e Live",
+    "\u2014 partial",
+    "Websocket OK HOT10 shared socket active",
+    "Closed: \u2014 partial Open: \u2014 Fees: $6.98 Partial record shared 0G shared 2Z shared AERO shared ALGO shared APE shared ATOM shared AVAX shared AVNT shared AXS shared AZTEC shared BABY shared BNB shared BRETT shared CAKE shared CC shared CHIP shared DASH shared DOGE shared DYDX shared DYM shared FARTCOIN shared FOGO shared GAS shared GOAT shared GRAM shared GRASS shared HYPER shared INJ shared JUP shared KAITO shared KBONK shared KPEPE shared KSHIB shared LDO shared LIT shared MANTA shared MINA shared NEO shared NIL shared NXPC shared PNUT shared POLYX shared PONS shared PROVE shared RESOLV shared REZ shared RSR shared RUNE shared SKR shared STABLE shared STBL shared SUI shared SYRUP shared USELESS shared VVV shared W shared WLD shared XMR shared ZETA",
+    "Total: $0.32 Avg: $0.01 Avg bps: 15.8 Worst bps: 64",
+    "63 filled / 0 exits 428 recent rejects 2 recent blocks",
+    "Exposure: $1,975.89 Open pos: 69 DD: \u2014 MaxDD: \u2014",
+    "BTC SELL @",
+    "LIVE CLO OFF prop fixed F N Save CLO OFF Archive"
+   ]
+  },
+  {
+   "w": "0x936cf4fb95c30ce83f658b5bbb247e4bb381bb0f",
+   "mode": "LIVE",
+   "cm": "fixed",
+   "F": "12",
+   "N": "100",
+   "B": null,
+   "inp": [
+    "fixed_notional",
+    "norm_base"
+   ],
+   "btn": [
+    "save",
+    "clo",
+    "off",
+    "archive"
+   ],
+   "cells": [
+    "0x936cf4fb...81bb0f Live",
+    "\u2014",
+    "Websocket OK HOT10 shared socket active",
+    "Closed: $-13.89 Open: \u2014 Fees: $12.01 From engine ledger shared AERO shared BTC shared CASHCAT shared CC shared LIT shared NIL shared SUI shared VVV shared W",
+    "Total: $0.05 Avg: $0.03 Avg bps: 9.8 Worst bps: 11.9",
+    "8 filled / 0 exits 21 recent rejects 0 recent blocks",
+    "Exposure: $767.03 Open pos: 9 DD: $-27.95 MaxDD: $-28.23",
+    "EIGEN SELL @",
+    "LIVE CLO OFF prop fixed F N Save CLO OFF Archive"
+   ]
+  },
+  {
+   "w": "0xc179e03922afe8fa9533d3f896338b9fb87ce0c8",
+   "mode": "LIVE",
+   "cm": "fixed",
+   "F": "12",
+   "N": "100",
+   "B": null,
+   "inp": [
+    "fixed_notional",
+    "norm_base"
+   ],
+   "btn": [
+    "save",
+    "clo",
+    "off",
+    "archive"
+   ],
+   "cells": [
+    "0xc179e039...7ce0c8 Live",
+    "\u2212$23.73",
+    "Websocket OK HOT10 shared socket active",
+    "Closed: $-13.14 Open: $-0.04 Fees: $10.55 From engine ledger shared BTC shared SOL",
+    "Total: $-0.39 Avg: $-0.19 Avg bps: -9.7 Worst bps: 29.6",
+    "9 filled / 0 exits 24 recent rejects 0 recent blocks",
+    "Exposure: $29.97 Open pos: 2 DD: $-23.72 MaxDD: $-23.72",
+    "BTC SELL @",
+    "LIVE CLO OFF prop fixed F N Save CLO OFF Archive"
+   ]
+  },
+  {
+   "w": "0xd4c1f7e8d876c4749228d515473d36f919583d1d",
+   "mode": "LIVE",
+   "cm": "fixed",
+   "F": "12",
+   "N": "100",
+   "B": null,
+   "inp": [
+    "fixed_notional",
+    "norm_base"
+   ],
+   "btn": [
+    "save",
+    "clo",
+    "off",
+    "archive"
+   ],
+   "cells": [
+    "0xd4c1f7e8...583d1d Live",
+    "\u2014",
+    "Websocket OK HOT10 shared socket active",
+    "Closed: $-4.6 Open: \u2014 Fees: $3.87 From engine ledger shared ARB shared AVAX shared BNB shared BTC shared DOGE shared LIT shared NEAR shared PONS shared SUI shared TAO shared WLD shared WLFI",
+    "Total: $-0.08 Avg: $-0 Avg bps: -3.5 Worst bps: 32.6",
+    "36 filled / 0 exits 60 recent rejects 0 recent blocks",
+    "Exposure: $1,000.96 Open pos: 12 DD: $-18.32 MaxDD: $-20.08",
+    "WLD SELL @",
+    "LIVE CLO OFF prop fixed F N Save CLO OFF Archive"
+   ]
+  },
+  {
+   "w": "0xf5d81a135f756ca16544e53c20fc20643ec3ad53",
+   "mode": "LIVE",
+   "cm": "fixed",
+   "F": "12",
+   "N": "100",
+   "B": null,
+   "inp": [
+    "fixed_notional",
+    "norm_base"
+   ],
+   "btn": [
+    "save",
+    "clo",
+    "off",
+    "archive"
+   ],
+   "cells": [
+    "0xf5d81a13...c3ad53 Live",
+    "\u2014 partial",
+    "Websocket OK HOT10 shared socket active",
+    "Closed: \u2014 partial Open: \u2014 Fees: $61.69 Partial record shared AAVE shared ARB shared BTC shared DOGE shared ETH shared FARTCOIN shared KPEPE shared MEGA shared NEAR shared ONDO shared PONS shared SUI shared TAO shared USELESS shared VVV shared WLD",
+    "Total: $1.03 Avg: $0.01 Avg bps: 2.7 Worst bps: 83.5",
+    "231 filled / 0 exits 536 recent rejects 2 recent blocks",
+    "Exposure: $1,172.39 Open pos: 16 DD: \u2014 MaxDD: \u2014",
+    "KPEPE BUY @",
+    "LIVE CLO OFF prop fixed F N Save CLO OFF Archive"
+   ]
+  },
+  {
+   "w": "0x1f4ab7e9acebb8b591e74b81e34bebe8be9bc934",
+   "mode": "OFF",
+   "cm": "fixed",
+   "F": "12",
+   "N": "100",
+   "B": null,
+   "inp": [
+    "fixed_notional",
+    "norm_base"
+   ],
+   "btn": [
+    "save",
+    "clo",
+    "off",
+    "archive"
+   ],
+   "cells": [
+    "0x1f4ab7e9...9bc934 Off",
+    "\u2212$0.90",
+    "not followed",
+    "Closed: $-0.72 Open: $0 Fees: $0.18 From engine ledger",
+    "Total: n/a Avg: n/a Avg bps: n/a Worst bps: n/a",
+    "0 filled / 0 exits 0 recent rejects 0 recent blocks",
+    "Exposure: $0 Open pos: 0 DD: $-1 MaxDD: $-1",
+    "none yet",
+    "LIVE CLO OFF prop fixed F N Save CLO OFF Archive"
+   ]
+  },
+  {
+   "w": "0x35519de6193f0e6581032d87236988629e35a281",
+   "mode": "OFF",
+   "cm": "fixed",
+   "F": "12",
+   "N": "100",
+   "B": null,
+   "inp": [
+    "fixed_notional",
+    "norm_base"
+   ],
+   "btn": [
+    "save",
+    "clo",
+    "off",
+    "archive"
+   ],
+   "cells": [
+    "0x35519de6...35a281 Off",
+    "\u2014",
+    "not followed",
+    "Closed: \u2014 Open: $0 Fees: \u2014 No PnL yet",
+    "Total: n/a Avg: n/a Avg bps: n/a Worst bps: n/a",
+    "0 filled / 0 exits 0 recent rejects 0 recent blocks",
+    "Exposure: $0 Open pos: 0 DD: \u2014 MaxDD: \u2014",
+    "none yet",
+    "LIVE CLO OFF prop fixed F N Save CLO OFF Archive"
+   ]
+  },
+  {
+   "w": "0x7bc5239180bea2255f4dd243d79481d39adee41e",
+   "mode": "OFF",
+   "cm": "fixed",
+   "F": "12",
+   "N": "100",
+   "B": null,
+   "inp": [
+    "fixed_notional",
+    "norm_base"
+   ],
+   "btn": [
+    "save",
+    "clo",
+    "off",
+    "archive"
+   ],
+   "cells": [
+    "0x7bc52391...dee41e Off",
+    "\u2212$0.40",
+    "not followed",
+    "Closed: $-0.32 Open: $0 Fees: $0.08 From engine ledger",
+    "Total: n/a Avg: n/a Avg bps: n/a Worst bps: n/a",
+    "0 filled / 0 exits 0 recent rejects 0 recent blocks",
+    "Exposure: $0 Open pos: 0 DD: $-0.71 MaxDD: $-0.71",
+    "none yet",
+    "LIVE CLO OFF prop fixed F N Save CLO OFF Archive"
+   ]
+  },
+  {
+   "w": "0x833b99b27dac651d02080f5e220e929df891db06",
+   "mode": "OFF",
+   "cm": "fixed",
+   "F": "12",
+   "N": "100",
+   "B": null,
+   "inp": [
+    "fixed_notional",
+    "norm_base"
+   ],
+   "btn": [
+    "save",
+    "clo",
+    "off",
+    "archive"
+   ],
+   "cells": [
+    "0x833b99b2...91db06 Off",
+    "\u2014",
+    "not followed",
+    "Closed: \u2014 Open: $0 Fees: \u2014 No PnL yet",
+    "Total: n/a Avg: n/a Avg bps: n/a Worst bps: n/a",
+    "0 filled / 0 exits 0 recent rejects 0 recent blocks",
+    "Exposure: $0 Open pos: 0 DD: \u2014 MaxDD: \u2014",
+    "none yet",
+    "LIVE CLO OFF prop fixed F N Save CLO OFF Archive"
+   ]
+  },
+  {
+   "w": "0xcbe834386b8ec9d8c50eaad48dacb83e8b42ddfc",
+   "mode": "OFF",
+   "cm": "fixed",
+   "F": "12",
+   "N": "100",
+   "B": null,
+   "inp": [
+    "fixed_notional",
+    "norm_base"
+   ],
+   "btn": [
+    "save",
+    "clo",
+    "off",
+    "archive"
+   ],
+   "cells": [
+    "0xcbe83438...42ddfc Off",
+    "\u2212$1.20",
+    "not followed",
+    "Closed: $-1.11 Open: $0 Fees: $0.08 From engine ledger",
+    "Total: n/a Avg: n/a Avg bps: n/a Worst bps: n/a",
+    "0 filled / 0 exits 0 recent rejects 0 recent blocks",
+    "Exposure: $0 Open pos: 0 DD: $-1.24 MaxDD: $-1.85",
+    "none yet",
+    "LIVE CLO OFF prop fixed F N Save CLO OFF Archive"
+   ]
+  }
+ ],
+ "detail_W1": "A \u2014 Live Performance\nClosed: \u2014\nOpen: \u2014\nFees: $89.71\nNet: \u2014\nExposure: $1,959.3\nDD: \u2014\nMaxDD: \u2014\nPnL status: Partial record\nAttribution: ENGINE_LEDGER_SLEEVES_PARTIAL\nExchange closedPnl on matched orders: $-0.95\nCumulative rejects: 895; cumulative local blocks: 2; queued previews / would-send records: 0\nAXS: sleeve closed without a price (LEDGER_REPAIR_CLOSE); AZTEC: sleeve closed without a price (LEDGER_REPAIR_CLOSE); HYPER: sleeve closed without a price (LEDGER_REPAIR_CLOSE); INJ: sleeve closed without a price (LEDGER_REPAIR_CLOSE); JUP: sleeve closed without a price (LEDGER_REPAIR_CLOSE); LDO: sleeve closed without a price (LEDGER_REPAIR_CLOSE); ME: sleeve closed without a price (LEDGER_REPAIR_CLOSE); MORPHO: sleeve closed without a price (LEDGER_REPAIR_CLOSE); SAND: sleeve closed without a price (LEDGER_REPAIR_CLOSE); SPX: sleeve closed without a price (LEDGER_REPAIR_CLOSE); STX: sleeve closed without a price (LEDGER_REPAIR_CLOSE); SUPER: sleeve closed without a price (LEDGER_REPAIR_CLOSE); SUSHI: sleeve closed without a price (LEDGER_REPAIR_CLOSE); AR SIGN_CONFLICT_PENDING_RECONCILIATION; BANANA SIGN_CONFLICT_PENDING_RECONCILIATION; BLUR SIGN_CONFLICT_PENDING_RECONCILIATION; PENDLE EXTERNAL_FLAT_PENDING_RECONCILIATION; SNX OWNED_LEDGER_UNSUPPORTED_BY_EXCHANGE\nB \u2014 Open Positions (97)\nCOIN\tSIDE\tSIZE\tENTRY PX\tMARK PX\tUNREALIZED PNL\tEXPOSURE\tEXCHANGE MATCH\n0G\tSHORT\t-227\t0.2467999239086904\t0.24685\t$-0.01\t$56.04\tSHARED\nAAVE\tLONG\t0.03\t154.85\t154.6\t$-0.01\t$4.64\tSHARED\nACE\tSHORT\t-129.40000000000003\t0.16721144627699117\t0.16749999999999998\t$-0.04\t$21.67\tSHARED\nADA\tLONG\t106\t0.2260399065420561\t0.22526\t$-0.08\t$23.88\tSHARED\nALGO\tSHORT\t-291\t0.11574720290217663\t0.114949\t$0.23\t$33.45\tSHARED\nALT\tSHORT\t-414\t0.008319863101104951\t0.00832\t$-0\t$3.44\tSHARED\nANIME\tLONG\t2540\t0.002933367802303263\t0.002927\t$-0.02\t$7.43\tSHARED\nAPE\tLONG\t322.3000000000001\t0.1514653321605216\t0.15158\t$0.04\t$48.85\tSHARED\nAR\tSHORT\t-6.86\t3.903039637096504\t3.9198000000000004\t\u2014\t$26.89\tSIGN_CONFLICT_PENDING_RECONCILIATION\nARB\tLONG\t2.100000000000017\t0.19192281708173298\t0.19141999999999998\t$-0\t$0.4\tSHARED\nAVNT\tLONG\t77\t0.11638323308270677\t0.11658400000000001\t$0.02\t$8.98\tSHARED\nAXS\tSHORT\t-7.2\t1.0581\t1.056\t$0.02\t$7.6\tSHARED\nAZTEC\tSHORT\t-1800\t0.01999333333333333\t0.019985\t$0.02\t$35.97\tSHARED\nBABY\tLONG\t990\t0.012129\t0.012173\t$0.04\t$12.05\tSHARED\nBANANA\tSHORT\t-4.3\t3.6065465116279074\t3.6034\t\u2014\t$15.49\tSIGN_CONFLICT_PENDING_RECONCILIATION\nBIGTIME\tSHORT\t-3541\t0.0072193975715431884\t0.007229\t$-0.03\t$25.6\tSHARED\nBIO\tLONG\t614\t0.025246749185667754\t0.025131\t$-0.07\t$15.43\tSHARED\nBLUR\tSHORT\t-851\t0.010712998433004042\t0.010532999999999999\t\u2014\t$8.96\tSIGN_CONFLICT_PENDING_RECONCILIATION\nBNB\tLONG\t0.038\t722.053157894737\t720.9559999999999\t$-0.04\t$27.4\tSHARED\nBRETT\tSHORT\t-10798\t0.00481771846207958\t0.0048319999999999995\t$-0.15\t$52.18\tSHARED\nCAKE\tSHORT\t-5.4\t2.1818\t2.1788000000000003\t$0.02\t$11.77\tSHARED\nCASHCAT\tLONG\t369\t0.11025498644986449\t0.10866\t$-0.59\t$40.1\tSHARED\nCC\tSHORT\t-838\t0.1035982606216237\t0.103505\t$0.08\t$86.74\tSHARED\nCHIP\tSHORT\t-4\t0.04586925\t0.046385\t$-0\t$0.19\tSHARED\nCOMP\tLONG\t0.09\t22.300333333333334\t22.237000000000002\t$-0.01\t$2\tSHARED\nDASH\tSHORT\t-0.24\t49.199\t49.251999999999995\t$-0.01\t$11.82\tSHARED\nDYDX\tSHORT\t-3.1\t0.1236316129032258\t0.12362000000000001\t$0\t$0.38\tSHARED\nDYM\tSHORT\t-2562.2000000000003\t0.01825322280204368\t0.018279999999999998\t$-0.07\t$46.84\tSHARED\nEIGEN\tLONG\t2.76\t0.2528\t0.2527\t$-0\t$0.7\tSHARED\nETH\tLONG\t0.0228\t2415.266666666667\t2415.8\t$0.01\t$55.08\tSHARED\nFARTCOIN\tLONG\t130\t0.15357838461538462\t0.15338\t$-0.03\t$19.94\tSHARED\nFET\tLONG\t26\t0.19778999999999997\t0.19755\t$-0.01\t$5.14\tSHARED\nFOGO\tLONG\t3637\t0.004289233709100908\t0.004268\t$-0.08\t$15.52\tSHARED\nGAS\tLONG\t15.399999999999999\t1.3026979745025618\t1.30025\t$-0.04\t$20.02\tSHARED\nGMT\tLONG\t3\t0.007791\t0.00776\t$-0\t$0.02\tSHARED\nGOAT\tLONG\t18\t0.01498\t0.014988999999999999\t$0\t$0.27\tSHARED\nGRAM\tLONG\t12\t1.3553583333333332\t1.3525\t$-0.03\t$16.23\tSHARED\nGRASS\tSHORT\t-114.50000000000007\t0.632649162311335\t0.63386\t$-0.14\t$72.58\tSHARED\nHBAR\tLONG\t195\t0.08342426666666666\t0.083445\t$0\t$16.27\tSHARED\nHEMI\tSHORT\t-2094\t0.005348\t0.005354\t$-0.01\t$11.21\tOWNED_FULLY_SUPPORTED\nHYPER\tLONG\t480\t0.06504908074222579\t0.064905\t$-0.07\t$31.15\tSHARED\nICP\tSHORT\t-0.5700000000000012\t3.022205723038545\t3.0134000000000003\t$0.01\t$1.72\tSHARED\nIMX\tLONG\t85.70000000000002\t0.16328836992012818\t0.16271\t$-0.05\t$13.94\tSHARED\nINJ\tLONG\t1.3\t8.7433\t8.6648\t$-0.1\t$11.26\tSHARED\nIO\tSHORT\t-78.6\t0.16110965648854966\t0.16105\t$0\t$12.66\tSHARED\nJTO\tLONG\t103\t0.4674451205875933\t0.46692\t$-0.05\t$48.09\tSHARED\nJUP\tLONG\t101\t0.3072714851485149\t0.305738\t$-0.15\t$30.88\tSHARED\nKAITO\tLONG\t185\t0.29492010410148695\t0.29552\t$0.11\t$54.67\tSHARED\nKBONK\tSHORT\t-2832\t0.003062909044972208\t0.0030580000000000004\t$0.01\t$8.66\tSHARED\nKNEIRO\tLONG\t100.1\t0.07684\t0.07658\t$-0.03\t$7.67\tOWNED_FULLY_SUPPORTED\nKPEPE\tSHORT\t-1613\t0.004046\t0.0040160000000000005\t$0.05\t$6.48\tSHARED\nKSHIB\tLONG\t2308\t0.005088\t0.005076\t$-0.03\t$11.72\tSHARED\nLAYER\tLONG\t171\t0.068108\t0.06801700000000001\t$-0.02\t$11.63\tOWNED_FULLY_SUPPORTED\nLDO\tLONG\t54.19999999999999\t0.4008154138418337\t0.40089\t$0\t$21.73\tSHARED\nLIT\tSHORT\t-9\t3.196190909090909\tn/a\t\u2014\t$28.77\tSHARED\nMERL\tLONG\t74\t0.02742112109375\t0.027318000000000002\t$-0.01\t$2.02\tSHARED\nMET\tLONG\t348\t0.3472170114942529\t0.35405000000000003\t$2.38\t$123.21\tOWNED_FULLY_SUPPORTED\nMON\tLONG\t846\t0.02285700709219858\t0.02276\t$-0.08\t$19.26\tSHARED\nMOVE\tSHORT\t-1605\t0.007819017445482867\t0.007819000000000001\t$0\t$12.55\tSHARED\nNEO\tSHORT\t-3.03\t2.3479\t2.346\t$0.01\t$7.11\tSHARED\nNIL\tSHORT\t-492\t0.08262103627306155\t0.08267\t$-0.02\t$40.67\tSHARED\nNXPC\tLONG\t15\t0.18117\t0.18106999999999998\t$-0\t$2.72\tSHARED\nORDI\tLONG\t0.08\t3.931500000000001\tn/a\t\u2014\t$0.31\tSHARED\nPENDLE\tSHORT\t-5\t2.099\tn/a\t\u2014\t$10.5\tEXTERNAL_FLAT_PENDING_RECONCILIATION\nPNUT\tSHORT\t-210.20000000000005\t0.0461215540622281\t0.04628\t$-0.03\t$9.73\tSHARED\nPOPCAT\tSHORT\t-256\t0.04663\t0.046655999999999996\t$-0.01\t$11.94\tSHARED\nPUMP\tLONG\t557\t0.00469\t0.004576\t$-0.06\t$2.55\tSHARED\nPYTH\tSHORT\t-128\t0.086492\t0.086323\t$0.02\t$11.05\tSHARED\nRENDER\tLONG\t7\t1.9248142857142856\t1.9203899999999998\t$-0.03\t$13.44\tSHARED\nREZ\tLONG\t12600\t0.0035932477210579568\t0.003603\t$0.12\t$45.4\tSHARED\nRSR\tSHORT\t-6854\t0.0019260838514278847\t0.0019259999999999998\t$0\t$13.2\tSHARED\nRUNE\tLONG\t21.9\t0.6420055707762556\t0.6416\t$-0.01\t$14.05\tSHARED\nS\tLONG\t387\t0.05500989147286822\t0.055055\t$0.02\t$21.31\tSHARED\nSAND\tSHORT\t-221\t0.053884\t0.053907000000000004\t$-0.01\t$11.91\tSHARED\nSKY\tSHORT\t-287\t0.07098722009290998\t0.070977\t$0\t$20.37\tSHARED\nSNX\tLONG\t114.39999999999999\t0.22481968803829755\t0.22437\t\u2014\t$25.67\tOWNED_LEDGER_UNSUPPORTED_BY_EXCHANGE\nSOL\tLONG\t0.11\t103.65\t103.95\t$0.03\t$11.43\tSHARED\nSPX\tSHORT\t-33.7\t0.35528\t0.35420999999999997\t$0.04\t$11.94\tSHARED\nSTABLE\tSHORT\t-410\t0.026448\t0.026425\t$0.01\t$10.83\tSHARED\nSTBL\tLONG\t481\t0.02495\t0.024956\t$0\t$12\tSHARED\nSUI\tLONG\t18.700000000000003\t1.021394117647059\t1.0111999999999999\t$-0.19\t$18.91\tSHARED\nSUSHI\tLONG\t52.9\t0.22724\t0.22692\t$-0.02\t$12\tSHARED\nTRUMP\tSHORT\t-2.4\t1.8142999999999998\t1.81725\t$-0.01\t$4.36\tOWNED_FULLY_SUPPORTED\nUMA\tSHORT\t-30.5\t0.39292\t0.39294999999999997\t$-0\t$11.99\tSHARED\nUSELESS\tLONG\t73\t0.16258\t0.16212\t$-0.03\t$11.83\tSHARED\nUSUAL\tLONG\t108\t0.010763\t0.010741\t$-0\t$1.16\tSHARED\nVIRTUAL\tLONG\t19.3\t0.6692420348820748\t0.66912\t$-0\t$12.91\tSHARED\nVVV\tSHORT\t-1.08\t22.81474074074074\t22.798000000000002\t$0.02\t$24.62\tSHARED\nW\tSHORT\t-474\t0.014349\t0.014381\t$-0.02\t$6.82\tSHARED\nWLD\tLONG\t288.1\t0.5149173574044031\t0.51525\t$0.1\t$148.44\tSHARED\nWLFI\tSHORT\t-179\t0.056957482760994875\t0.056886\t$0.01\t$10.18\tSHARED\nXAI\tSHORT\t-537.5\t0.008607342308416492\t0.008620000000000001\t$-0.01\t$4.63\tSHARED\nXMR\tSHORT\t-0.07\t559.8942857142856\t560.23\t$-0.02\t$39.22\tSHARED\nZETA\tLONG\t210.09999999999994\t0.04397035848789154\t0.04369\t$-0.06\t$9.18\tSHARED\nZK\tSHORT\t-1\t0.016517\t0.016514\t$0\t$0.02\tOWNED_FULLY_SUPPORTED\nZORA\tSHORT\t-12\t0.006696\t0.0066960000000000006\t$-0\t$0.08\tSHARED\nZRO\tSHORT\t-3.8000000000000025\t2.0507974717021047\t1.99295\t$0.22\t$7.57\tSHARED\nC \u2014 Lead vs Copy / Friction\nTotal diff: $1.48\nAvg diff: $0\nAvg: 4.9bps\nWorst: 75.8bps\nFill-vs-limit avg: -14.5bps\nTIME\tCOIN\tSIDE\tLEADER/REF PX\tOUR FILL PX\tSIZE\tDIFF $\tDIFF BPS\tLIMIT PX\tFILL-VS-LIMIT BPS\tOID\n2026-10-17T00:22:00.1\u2026\tPENDLE\tBUY\t2.0991\t2.1026\t5\t$0.02\t16.67\t2.1051\t-11.88\t62922006826\n2026-10-17T00:21:50.4\u2026\tSKY\tBUY\t0.07085\t0.071019\t23\t$0\t23.85\t0.071129\t-15.46\t62921997936\n2026-10-17T00:21:46.2\u2026\tATOM\tSELL\t1.756\t1.7526\t27.25\t$0.09\t19.36\t1.7518\t-4.57\t62921994733\n2026-10-17T00:21:46.3\u2026\tSAND\tBUY\t0.053883\t0.053927\t1\t$0\t8.17\t0.053991\t-11.85\t62921994645\n2026-10-17T00:21:45.3\u2026\tADA\tSELL\t0.22459\t0.22516\t1\t$-0\t-25.38\t0.22486\t-13.34\t62921993336\n2026-10-17T00:21:38.4\u2026\tEIGEN\tBUY\t0.2526\t0.2528\t2.76\t$0\t7.92\t0.253\t-7.91\t62921986307\n2026-10-17T00:21:38.3\u2026\tMOVE\tSELL\t0.007821\t0.007818\t1534\t$0\t3.84\t0.007808\t-12.81\t62921986233\n2026-10-17T00:21:35.1\u2026\tDYDX\tSELL\t0.12389\t0.12362\t3\t$0\t21.79\t0.1235\t-9.72\t62921983585\n2026-10-17T00:21:34.2\u2026\tWLD\tBUY\t0.51471\t0.51539\t23.3\t$0.02\t13.21\t0.51618\t-15.3\t62921983390\n2026-10-17T00:21:32.2\u2026\tFARTCOIN\tBUY\t0.15442\t0.1535\t15.8\t$-0.01\t-59.58\t0.15366\t-10.41\t62921980607\n2026-10-17T00:21:31.4\u2026\tSTBL\tBUY\t0.024929\t0.02495\t481\t$0.01\t8.42\t0.024962\t-4.81\t62921980355\n2026-10-17T00:21:21.4\u2026\tKBONK\tBUY\t0.003058\t0.003059\t1108\t$0\t3.27\t0.003062\t-9.8\t62921971141\n2026-10-17T00:21:20.8\u2026\tLDO\tSELL\t0.40058\t0.40058\t45.7\t$0\t0\t0.39997\t-15.25\t62921970970\n2026-10-17T00:21:05.4\u2026\tCELO\tBUY\t0.085869\t0.08581\t204\t$-0.01\t-6.87\t0.085955\t-16.87\t62921956924\n2026-10-17T00:21:06.5\u2026\tKBONK\tBUY\t0.003059\t0.003059\t6\t$0\t0\t0.003062\t-9.8\t62921956919\n2026-10-17T00:21:00.0\u2026\tPOPCAT\tSELL\t0.04672\t0.04663\t256\t$0.02\t19.26\t0.04656\t-15.03\t62921952068\n2026-10-17T00:20:58.6\u2026\tPROVE\tBUY\t0.18865\t0.18874\t126\t$0.01\t4.77\t0.18907\t-17.45\t62921950264\n2026-10-17T00:20:53.7\u2026\tACE\tSELL\t0.1676\t0.1675\t53.64\t$0.01\t5.97\t0.1673\t-11.95\t62921946036\n2026-10-17T00:20:52.8\u2026\tHYPER\tBUY\t0.064923\t0.064949\t14\t$0\t4\t0.065049\t-15.37\t62921944704\n2026-10-17T00:20:52.8\u2026\tS\tBUY\t0.055009\t0.055042\t169\t$0.01\t6\t0.055119\t-13.97\t62921944703\nD \u2014 Execution Audit\nFilled: 551\nExits: 0\nRecent rejects: 895\nRecent blocks: 2\nTIME\tCOIN\tSIDE\tSIZE @ PX\tPOS BEFORE\u2192AFTER\tOID\n2026-10-17T00:22:00.1\u2026\tPENDLE\tBUY\t5 @ 2.1026\t\u2014\t62922006826\n2026-10-17T00:21:50.4\u2026\tSKY\tBUY\t23 @ 0.071019\t\u2014\t62921997936\n2026-10-17T00:21:46.2\u2026\tATOM\tSELL\t27.25 @ 1.7526\t\u2014\t62921994733\n2026-10-17T00:21:46.3\u2026\tSAND\tBUY\t1 @ 0.053927\t\u2014\t62921994645\n2026-10-17T00:21:45.3\u2026\tADA\tSELL\t1 @ 0.22516\t\u2014\t62921993336\n2026-10-17T00:21:38.4\u2026\tEIGEN\tBUY\t2.76 @ 0.2528\t\u2014\t62921986307\n2026-10-17T00:21:38.3\u2026\tMOVE\tSELL\t1534 @ 0.007818\t\u2014\t62921986233\n2026-10-17T00:21:35.1\u2026\tDYDX\tSELL\t3 @ 0.12362\t\u2014\t62921983585\n2026-10-17T00:21:34.2\u2026\tWLD\tBUY\t23.3 @ 0.51539\t\u2014\t62921983390\n2026-10-17T00:21:32.2\u2026\tFARTCOIN\tBUY\t15.8 @ 0.1535\t\u2014\t62921980607\nE \u2014 Rejects & Blocks\nExchange rejected (6)\nTIME\tCOIN\tSIDE\tERROR\n2026-10-17T00:21:59.9\u2026\tFET\tBUY\tInsufficient margin to place order. asset=52\n2026-10-17T00:21:39.4\u2026\tMINA\tBUY\tInsufficient margin to place order. asset=46\n2026-10-17T00:21:38.2\u2026\tSKY\tSELL\tInsufficient margin to place order. asset=185\n2026-10-17T00:21:38.4\u2026\tZETA\tBUY\tInsufficient margin to place order. asset=89\n2026-10-17T00:21:31.7\u2026\tOP\tBUY\tInsufficient margin to place order. asset=11\nLocal blocked (2)\nTIME\tCOIN\tSTATUS (REASON)\n2026-10-17T00:22:01.7\u2026\tNEO\tpending_send\n2026-10-17T00:22:00.1\u2026\tBANANA\tpending_send\nF \u2014 Recent Order Intents (7) NEO ? \u2014 2026-10-17T00:21:59\u2026 \u00b7 BANANA ? \u2014 2026-10-17T00:21:59\u2026 \u00b7 FET ? \u2014 2026-10-17T00:21:58\u2026 \u00b7 XAI ? \u2014 2026-10-17T00:21:58\u2026 \u00b7 PENDLE ? \u2014 2026-10-17T00:21:58\u2026 \u00b7 POL ? \u2014 2026-10-17T00:21:57\u2026 \u00b7 ETHFI ? \u2014 2026-10-17T00:21:57\u2026",
+ "dom_sha": "ab2c92c61c0ab155dd6795507277005a7ea35a552a669f65a95075ae2b5d3eef",
+ "frozen_sha": {
+  "live_config.json": "e09e292c5922cf41e65e1c172e74b2f3b2af544e53e3dd8fed3dda1d1d7a6786",
+  "manual_live_positions.json": "6089f1fa32b3ab71fc392bc4d53c3b6156f60db3ed510860426a52fdb019788b",
+  "live_fills.csv": "b4dc97af73627b26c099e8c54f7ec088f3c389bf09591ce508b0d179c8f9b129"
+ }
+}

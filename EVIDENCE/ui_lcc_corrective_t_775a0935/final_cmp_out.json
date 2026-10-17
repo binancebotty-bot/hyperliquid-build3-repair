@@ -1,0 +1,43 @@
+{
+ "wallet": "0x010461c14e146ac35fe42271bdc1134ee31c703a",
+ "truth_n": 96,
+ "api_n": 96,
+ "dom_n": 96,
+ "dom_header_n": 96,
+ "api_vs_truth": {
+  "only_truth": [],
+  "only_api": [],
+  "size_mismatch": [
+   {
+    "c": "JTO",
+    "t": 98.0,
+    "a": 103.0
+   },
+   {
+    "c": "USELESS",
+    "t": 73.0,
+    "a": 146.0
+   }
+  ]
+ },
+ "dom_vs_truth": {
+  "only_truth": [],
+  "only_dom": [],
+  "size_mismatch": [
+   {
+    "c": "JTO",
+    "t": 98.0,
+    "d": 103.0
+   },
+   {
+    "c": "USELESS",
+    "t": 73.0,
+    "d": 146.0
+   }
+  ]
+ },
+ "truth_fees_sum": 89.8602,
+ "truth_fill_rows": 14681,
+ "api_fees": 89.8602,
+ "dom_fees": "89.86"
+}

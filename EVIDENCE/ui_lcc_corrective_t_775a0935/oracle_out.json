@@ -1,0 +1,174 @@
+{
+ "live_config_wallets": 15,
+ "modes": {
+  "LIVE": 10,
+  "OFF": 5
+ },
+ "per_wallet": {
+  "0x010461c14e146ac35fe42271bdc1134ee31c703a": {
+   "cfg_mode": "LIVE",
+   "cfg_fixed_notional": 12,
+   "cfg_norm_base_present": false,
+   "cfg_norm_base": null,
+   "cfg_leader_equity_base_present": false,
+   "fills": 14543,
+   "filled_attempts": 14024,
+   "rejected_attempts": 6112,
+   "fees_sum": 89.2096
+  },
+  "0x1b232b41b0e75550c59288b99874e4a8142fbe21": {
+   "cfg_mode": "LIVE",
+   "cfg_fixed_notional": 12,
+   "cfg_norm_base_present": false,
+   "cfg_norm_base": null,
+   "cfg_leader_equity_base_present": false,
+   "fills": 0,
+   "filled_attempts": 0,
+   "rejected_attempts": 0,
+   "fees_sum": 0.0
+  },
+  "0x31ca8395cf837de08b24da3f660e77761dfb974b": {
+   "cfg_mode": "LIVE",
+   "cfg_fixed_notional": 12,
+   "cfg_norm_base_present": false,
+   "cfg_norm_base": null,
+   "cfg_leader_equity_base_present": false,
+   "fills": 15814,
+   "filled_attempts": 15356,
+   "rejected_attempts": 6417,
+   "fees_sum": 99.013
+  },
+  "0x6ba889db7f923622d3548f621ecc2054b80c1817": {
+   "cfg_mode": "LIVE",
+   "cfg_fixed_notional": 12,
+   "cfg_norm_base_present": false,
+   "cfg_norm_base": null,
+   "cfg_leader_equity_base_present": false,
+   "fills": 3111,
+   "filled_attempts": 2837,
+   "rejected_attempts": 1505,
+   "fees_sum": 23.3369
+  },
+  "0x7019197d2b2ae7b44eee12a76015eb1fe94abd36": {
+   "cfg_mode": "LIVE",
+   "cfg_fixed_notional": 12,
+   "cfg_norm_base_present": false,
+   "cfg_norm_base": null,
+   "cfg_leader_equity_base_present": false,
+   "fills": 4198,
+   "filled_attempts": 3825,
+   "rejected_attempts": 1435,
+   "fees_sum": 29.5959
+  },
+  "0x7717a7a245d9f950e586822b8c9b46863ed7bd7e": {
+   "cfg_mode": "LIVE",
+   "cfg_fixed_notional": 12,
+   "cfg_norm_base_present": false,
+   "cfg_norm_base": null,
+   "cfg_leader_equity_base_present": false,
+   "fills": 1171,
+   "filled_attempts": 962,
+   "rejected_attempts": 2257,
+   "fees_sum": 6.9721
+  },
+  "0x936cf4fb95c30ce83f658b5bbb247e4bb381bb0f": {
+   "cfg_mode": "LIVE",
+   "cfg_fixed_notional": 12,
+   "cfg_norm_base_present": false,
+   "cfg_norm_base": null,
+   "cfg_leader_equity_base_present": false,
+   "fills": 935,
+   "filled_attempts": 814,
+   "rejected_attempts": 1037,
+   "fees_sum": 12.0123
+  },
+  "0xc179e03922afe8fa9533d3f896338b9fb87ce0c8": {
+   "cfg_mode": "LIVE",
+   "cfg_fixed_notional": 12,
+   "cfg_norm_base_present": false,
+   "cfg_norm_base": null,
+   "cfg_leader_equity_base_present": false,
+   "fills": 617,
+   "filled_attempts": 559,
+   "rejected_attempts": 288,
+   "fees_sum": 10.5543
+  },
+  "0xd4c1f7e8d876c4749228d515473d36f919583d1d": {
+   "cfg_mode": "LIVE",
+   "cfg_fixed_notional": 12,
+   "cfg_norm_base_present": false,
+   "cfg_norm_base": null,
+   "cfg_leader_equity_base_present": false,
+   "fills": 481,
+   "filled_attempts": 399,
+   "rejected_attempts": 385,
+   "fees_sum": 3.8605
+  },
+  "0xf5d81a135f756ca16544e53c20fc20643ec3ad53": {
+   "cfg_mode": "LIVE",
+   "cfg_fixed_notional": 12,
+   "cfg_norm_base_present": false,
+   "cfg_norm_base": null,
+   "cfg_leader_equity_base_present": false,
+   "fills": 6667,
+   "filled_attempts": 6072,
+   "rejected_attempts": 7570,
+   "fees_sum": 61.4813
+  },
+  "0x7bc5239180bea2255f4dd243d79481d39adee41e": {
+   "cfg_mode": "OFF",
+   "cfg_fixed_notional": 12,
+   "cfg_norm_base_present": false,
+   "cfg_norm_base": null,
+   "cfg_leader_equity_base_present": false,
+   "fills": 15,
+   "filled_attempts": 13,
+   "rejected_attempts": 0,
+   "fees_sum": 0.0789
+  },
+  "0x1f4ab7e9acebb8b591e74b81e34bebe8be9bc934": {
+   "cfg_mode": "OFF",
+   "cfg_fixed_notional": 12,
+   "cfg_norm_base_present": false,
+   "cfg_norm_base": null,
+   "cfg_leader_equity_base_present": false,
+   "fills": 25,
+   "filled_attempts": 21,
+   "rejected_attempts": 1,
+   "fees_sum": 0.1794
+  },
+  "0xcbe834386b8ec9d8c50eaad48dacb83e8b42ddfc": {
+   "cfg_mode": "OFF",
+   "cfg_fixed_notional": 12,
+   "cfg_norm_base_present": false,
+   "cfg_norm_base": null,
+   "cfg_leader_equity_base_present": false,
+   "fills": 15,
+   "filled_attempts": 13,
+   "rejected_attempts": 1,
+   "fees_sum": 0.083
+  },
+  "0x35519de6193f0e6581032d87236988629e35a281": {
+   "cfg_mode": "OFF",
+   "cfg_fixed_notional": 12,
+   "cfg_norm_base_present": false,
+   "cfg_norm_base": null,
+   "cfg_leader_equity_base_present": false,
+   "fills": 0,
+   "filled_attempts": 0,
+   "rejected_attempts": 0,
+   "fees_sum": 0.0
+  },
+  "0x833b99b27dac651d02080f5e220e929df891db06": {
+   "cfg_mode": "OFF",
+   "cfg_fixed_notional": 12,
+   "cfg_norm_base_present": false,
+   "cfg_norm_base": null,
+   "cfg_leader_equity_base_present": false,
+   "fills": 0,
+   "filled_attempts": 0,
+   "rejected_attempts": 0,
+   "fees_sum": 0.0
+  }
+ }
+}
