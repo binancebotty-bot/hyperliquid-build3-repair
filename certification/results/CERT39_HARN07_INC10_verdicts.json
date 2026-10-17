@@ -1,0 +1,107 @@
+[
+  {
+    "row_id": "HARN-07",
+    "verdict": "BLOCKED",
+    "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
+    "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+    "why": "Available cited sweep is shared across rows and supplies no demonstrated row-specific assertion or mutation/replay control; therefore no PASS is earned. Row-specific execution remains unproven."
+  },
+  {
+    "row_id": "ENG-VAL-01",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "",
+    "tested_commit": "",
+    "why": "Required testnet engine\u2192order\u2192MASTER fill/position route is absent from available evidence; NOT_TESTED is limited to this missing route, not a tooling fault."
+  },
+  {
+    "row_id": "ENG-VAL-02",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "",
+    "tested_commit": "",
+    "why": "Required testnet engine\u2192order\u2192MASTER fill/position route is absent from available evidence; NOT_TESTED is limited to this missing route, not a tooling fault."
+  },
+  {
+    "row_id": "ENG-VAL-03",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "",
+    "tested_commit": "",
+    "why": "Required testnet engine\u2192order\u2192MASTER fill/position route is absent from available evidence; NOT_TESTED is limited to this missing route, not a tooling fault."
+  },
+  {
+    "row_id": "ENG-VAL-04",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "",
+    "tested_commit": "",
+    "why": "Required testnet engine\u2192order\u2192MASTER fill/position route is absent from available evidence; NOT_TESTED is limited to this missing route, not a tooling fault."
+  },
+  {
+    "row_id": "INC-01",
+    "verdict": "BLOCKED",
+    "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+    "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+    "why": "Prior regression artifact explicitly blocks this row; it does not demonstrate the required row-specific replay/testnet reproduction."
+  },
+  {
+    "row_id": "INC-02",
+    "verdict": "BLOCKED",
+    "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+    "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+    "why": "Available cited sweep is shared across rows and supplies no demonstrated row-specific assertion or mutation/replay control; therefore no PASS is earned. Row-specific execution remains unproven."
+  },
+  {
+    "row_id": "INC-03",
+    "verdict": "BLOCKED",
+    "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+    "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+    "why": "Prior regression artifact explicitly blocks this row; it does not demonstrate the required row-specific replay/testnet reproduction."
+  },
+  {
+    "row_id": "INC-04",
+    "verdict": "BLOCKED",
+    "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+    "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+    "why": "Available cited sweep is shared across rows and supplies no demonstrated row-specific assertion or mutation/replay control; therefore no PASS is earned. Row-specific execution remains unproven."
+  },
+  {
+    "row_id": "INC-05",
+    "verdict": "BLOCKED",
+    "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+    "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+    "why": "Available cited sweep is shared across rows and supplies no demonstrated row-specific assertion or mutation/replay control; therefore no PASS is earned. Row-specific execution remains unproven."
+  },
+  {
+    "row_id": "INC-06",
+    "verdict": "BLOCKED",
+    "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+    "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+    "why": "Available cited sweep is shared across rows and supplies no demonstrated row-specific assertion or mutation/replay control; therefore no PASS is earned. Row-specific execution remains unproven."
+  },
+  {
+    "row_id": "INC-07",
+    "verdict": "BLOCKED",
+    "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+    "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+    "why": "Available cited sweep is shared across rows and supplies no demonstrated row-specific assertion or mutation/replay control; therefore no PASS is earned. Row-specific execution remains unproven."
+  },
+  {
+    "row_id": "INC-08",
+    "verdict": "BLOCKED",
+    "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+    "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+    "why": "Available cited sweep is shared across rows and supplies no demonstrated row-specific assertion or mutation/replay control; therefore no PASS is earned. Row-specific execution remains unproven."
+  },
+  {
+    "row_id": "INC-09",
+    "verdict": "BLOCKED",
+    "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+    "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+    "why": "Available cited sweep is shared across rows and supplies no demonstrated row-specific assertion or mutation/replay control; therefore no PASS is earned. Row-specific execution remains unproven."
+  },
+  {
+    "row_id": "INC-10",
+    "verdict": "BLOCKED",
+    "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+    "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+    "why": "Prior regression artifact explicitly blocks this row; it does not demonstrate the required row-specific replay/testnet reproduction."
+  }
+]
