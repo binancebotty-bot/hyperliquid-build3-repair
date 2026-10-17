@@ -20,17 +20,25 @@
   ],
   "file_sha256": {
     "EVIDENCE/ui_fp/F_UI_FP_030_041_048_052_054_055_t_a78e24ee.json": "SELF - this artifact; take the digest from the commit, not from this field",
-    "EVIDENCE/ui_fp/README_t_a78e24ee.md": "845e0c5e79fdcec96d82d4d9a229037c27c35156a7e96984a218f2ce9e1e924b",
-    "EVIDENCE/ui_fp/scripts/probe_ui_fp_6rows_t_a78e24ee.py": "e8ed634c7b0f1f4776adbf1d5564c5487e02d27422a9d193af2c58326a45dacd",
-    "EVIDENCE/ui_fp/scripts/make_artifact_t_a78e24ee.py": "dd8f37cd2b93c19c79d215f0230e8b4405a5547baa88d79af1c8ef98f0ea5445",
-    "EVIDENCE/ui_fp/raw/probe_t_a78e24ee_raw.json": "5379bf47c22ed8ca1a1537f9aaf10d21f75ff0d06f7861992e923668907c5341"
+    "EVIDENCE/ui_fp/README_t_a78e24ee.md": "22580b383c39ea091a5505f6917d5c3e805b2f4aaba10524f27a5992b1c7ada1",
+    "EVIDENCE/ui_fp/scripts/probe_ui_fp_6rows_t_a78e24ee.py": "4e3272557967e3fe82f9838db158afa30d24dea28de7f5a48d956f010791b611",
+    "EVIDENCE/ui_fp/scripts/make_artifact_t_a78e24ee.py": "f13ab6ef76bb6e4054176cf92eeb000dfbfcda1d1f56a3ebb47e579fe8784460",
+    "EVIDENCE/ui_fp/raw/probe_t_a78e24ee_raw.json": "dc0b4c3e2c20518860baa0a5a30683facf2c71dc1fe7f26dcc33c9992fac7f7f"
   },
-  "reproduce_all": "cd C:/Users/wigmore/hyperliquid-build3-repair/.worktrees/t_a78e24ee/.worktrees/t_a78e24ee && export PLAYWRIGHT_BROWSERS_PATH=C:/Users/wigmore/AppData/Local/ms-playwright && C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe EVIDENCE/ui_fp/scripts/probe_ui_fp_6rows_t_a78e24ee.py",
+  "raw_digest_verification": {
+    "path": "EVIDENCE/ui_fp/raw/probe_t_a78e24ee_raw.json",
+    "git_ref": "HEAD",
+    "disk_sha256": "dc0b4c3e2c20518860baa0a5a30683facf2c71dc1fe7f26dcc33c9992fac7f7f",
+    "blob_sha256": "dc0b4c3e2c20518860baa0a5a30683facf2c71dc1fe7f26dcc33c9992fac7f7f",
+    "verified_disk_equals_blob": true,
+    "note": "EVIDENCE/ui_fp/.gitattributes pins *.json to LF so a published digest verifies against `git cat-file blob`; the generator aborts on mismatch."
+  },
+  "reproduce_all": "cd C:/Users/wigmore/hyperliquid-build3-repair/.worktrees/t_a78e24ee && export PLAYWRIGHT_BROWSERS_PATH=C:/Users/wigmore/AppData/Local/ms-playwright && C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe EVIDENCE/ui_fp/scripts/probe_ui_fp_6rows_t_a78e24ee.py && C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe EVIDENCE/ui_fp/scripts/make_artifact_t_a78e24ee.py",
   "rows": [
     {
       "serving_commit": "6cf5dcf671b791e8f833060458f00cb7bb7bcdb5",
       "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
-      "reproduces": "cd C:/Users/wigmore/hyperliquid-build3-repair/.worktrees/t_a78e24ee/.worktrees/t_a78e24ee && export PLAYWRIGHT_BROWSERS_PATH=C:/Users/wigmore/AppData/Local/ms-playwright && C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe EVIDENCE/ui_fp/scripts/probe_ui_fp_6rows_t_a78e24ee.py",
+      "reproduces": "cd C:/Users/wigmore/hyperliquid-build3-repair/.worktrees/t_a78e24ee && export PLAYWRIGHT_BROWSERS_PATH=C:/Users/wigmore/AppData/Local/ms-playwright && C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe EVIDENCE/ui_fp/scripts/probe_ui_fp_6rows_t_a78e24ee.py && C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe EVIDENCE/ui_fp/scripts/make_artifact_t_a78e24ee.py",
       "row_id": "UI-FP-030",
       "feature": "Graph controls: Graph range controls",
       "verdict": "PASS",
@@ -45,7 +53,7 @@
     {
       "serving_commit": "6cf5dcf671b791e8f833060458f00cb7bb7bcdb5",
       "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
-      "reproduces": "cd C:/Users/wigmore/hyperliquid-build3-repair/.worktrees/t_a78e24ee/.worktrees/t_a78e24ee && export PLAYWRIGHT_BROWSERS_PATH=C:/Users/wigmore/AppData/Local/ms-playwright && C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe EVIDENCE/ui_fp/scripts/probe_ui_fp_6rows_t_a78e24ee.py",
+      "reproduces": "cd C:/Users/wigmore/hyperliquid-build3-repair/.worktrees/t_a78e24ee && export PLAYWRIGHT_BROWSERS_PATH=C:/Users/wigmore/AppData/Local/ms-playwright && C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe EVIDENCE/ui_fp/scripts/probe_ui_fp_6rows_t_a78e24ee.py && C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe EVIDENCE/ui_fp/scripts/make_artifact_t_a78e24ee.py",
       "row_id": "UI-FP-041",
       "feature": "Live Copy Wallets row: Lead-copy avg bps",
       "verdict": "PASS",
@@ -60,7 +68,7 @@
     {
       "serving_commit": "6cf5dcf671b791e8f833060458f00cb7bb7bcdb5",
       "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
-      "reproduces": "cd C:/Users/wigmore/hyperliquid-build3-repair/.worktrees/t_a78e24ee/.worktrees/t_a78e24ee && export PLAYWRIGHT_BROWSERS_PATH=C:/Users/wigmore/AppData/Local/ms-playwright && C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe EVIDENCE/ui_fp/scripts/probe_ui_fp_6rows_t_a78e24ee.py",
+      "reproduces": "cd C:/Users/wigmore/hyperliquid-build3-repair/.worktrees/t_a78e24ee && export PLAYWRIGHT_BROWSERS_PATH=C:/Users/wigmore/AppData/Local/ms-playwright && C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe EVIDENCE/ui_fp/scripts/probe_ui_fp_6rows_t_a78e24ee.py && C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe EVIDENCE/ui_fp/scripts/make_artifact_t_a78e24ee.py",
       "row_id": "UI-FP-048",
       "feature": "Live Copy Wallets row: Open pos",
       "verdict": "PASS",
@@ -75,7 +83,7 @@
     {
       "serving_commit": "6cf5dcf671b791e8f833060458f00cb7bb7bcdb5",
       "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
-      "reproduces": "cd C:/Users/wigmore/hyperliquid-build3-repair/.worktrees/t_a78e24ee/.worktrees/t_a78e24ee && export PLAYWRIGHT_BROWSERS_PATH=C:/Users/wigmore/AppData/Local/ms-playwright && C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe EVIDENCE/ui_fp/scripts/probe_ui_fp_6rows_t_a78e24ee.py",
+      "reproduces": "cd C:/Users/wigmore/hyperliquid-build3-repair/.worktrees/t_a78e24ee && export PLAYWRIGHT_BROWSERS_PATH=C:/Users/wigmore/AppData/Local/ms-playwright && C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe EVIDENCE/ui_fp/scripts/probe_ui_fp_6rows_t_a78e24ee.py && C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe EVIDENCE/ui_fp/scripts/make_artifact_t_a78e24ee.py",
       "row_id": "UI-FP-052",
       "feature": "Live Copy Wallets row: Controls mode",
       "verdict": "PARTIAL",
@@ -91,7 +99,7 @@
     {
       "serving_commit": "6cf5dcf671b791e8f833060458f00cb7bb7bcdb5",
       "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
-      "reproduces": "cd C:/Users/wigmore/hyperliquid-build3-repair/.worktrees/t_a78e24ee/.worktrees/t_a78e24ee && export PLAYWRIGHT_BROWSERS_PATH=C:/Users/wigmore/AppData/Local/ms-playwright && C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe EVIDENCE/ui_fp/scripts/probe_ui_fp_6rows_t_a78e24ee.py",
+      "reproduces": "cd C:/Users/wigmore/hyperliquid-build3-repair/.worktrees/t_a78e24ee && export PLAYWRIGHT_BROWSERS_PATH=C:/Users/wigmore/AppData/Local/ms-playwright && C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe EVIDENCE/ui_fp/scripts/probe_ui_fp_6rows_t_a78e24ee.py && C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe EVIDENCE/ui_fp/scripts/make_artifact_t_a78e24ee.py",
       "row_id": "UI-FP-054",
       "feature": "Live Copy Wallets row: Controls fixed notional",
       "verdict": "PARTIAL",
@@ -107,7 +115,7 @@
     {
       "serving_commit": "6cf5dcf671b791e8f833060458f00cb7bb7bcdb5",
       "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
-      "reproduces": "cd C:/Users/wigmore/hyperliquid-build3-repair/.worktrees/t_a78e24ee/.worktrees/t_a78e24ee && export PLAYWRIGHT_BROWSERS_PATH=C:/Users/wigmore/AppData/Local/ms-playwright && C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe EVIDENCE/ui_fp/scripts/probe_ui_fp_6rows_t_a78e24ee.py",
+      "reproduces": "cd C:/Users/wigmore/hyperliquid-build3-repair/.worktrees/t_a78e24ee && export PLAYWRIGHT_BROWSERS_PATH=C:/Users/wigmore/AppData/Local/ms-playwright && C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe EVIDENCE/ui_fp/scripts/probe_ui_fp_6rows_t_a78e24ee.py && C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe EVIDENCE/ui_fp/scripts/make_artifact_t_a78e24ee.py",
       "row_id": "UI-FP-055",
       "feature": "Live Copy Wallets row: Controls norm base",
       "verdict": "PARTIAL",
