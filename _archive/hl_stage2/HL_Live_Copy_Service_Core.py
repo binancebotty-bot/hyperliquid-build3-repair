@@ -3276,6 +3276,12 @@ class DedupeStore:
                 self._jsonl_new_copy.append(fill_id)
             return True
 
+    def release_copy(self, fill_id: str) -> None:
+        """Forget an accepted copy fill that could not be matched yet, so a later read offers it again (its send row,
+        which carries the order id, is written only when the exchange reply arrives: replies take up to ~76 s on testnet)."""
+        with self._lock:
+            self.processed_copy.discard(fill_id)
+
     def baseline_copy_account(self, copy_fills: List[Dict[str, Any]]) -> int:
         with self._lock:
             return self._baseline_copy_account(copy_fills)
@@ -10644,6 +10650,21 @@ class LiveCopyCore:
         with self._copy_poll_lock:
             return self._copy_poll_once(summary, hot)
 
+    def _release_if_young_unmatched(self, raw_copy: Dict[str, Any], copy_id: str) -> None:
+        """A copy fill that matched nothing is offered again by later reads while it is young (HL_LIVE_COPY_UNMATCHED_RETRY_MS,
+        default 300 s = the sweep overlap): the send that placed it may still be waiting for its exchange reply, and only the
+        reply writes the order id the matcher needs. Before this, the first failed match consumed the fill for good and
+        the ledger never learned of it (J26: 13 of 20 coin gaps, exact to the unit). Matched or duplicate fills are not released."""
+        try:
+            retry_ms = int(fnum(os.getenv("HL_LIVE_COPY_UNMATCHED_RETRY_MS"), 300000))
+            if retry_ms <= 0 or copy_id in self.matcher.matched_copy_fill_ids:
+                return
+            fill_ms = int(fnum(raw_copy.get("timestamp_ms", raw_copy.get("time")), 0))
+            if fill_ms > 0 and utc_now_ms() - fill_ms < retry_ms:
+                self.dedupe.release_copy(copy_id)
+        except Exception as exc:
+            log_error("release_if_young_unmatched", exc)
+
     def _copy_poll_once(self, summary: CycleSummary, hot: bool) -> Dict[str, Any]:
         t0 = time.monotonic()
         copy_state = load_json(COPY_POLL_STATE_FILE, {})
@@ -10697,6 +10718,7 @@ class LiveCopyCore:
                     lags.append(max(0, utc_now_ms() - int(fnum(raw_copy.get("timestamp_ms", raw_copy.get("time")), 0))))
                 else:
                     summary.copy_fills_unmatched += 1
+                    self._release_if_young_unmatched(raw_copy, copy_id)
         else:
             now_ms = utc_now_ms()
             ready: List[Tuple[Dict[str, Any], str, str, int]] = []
@@ -10732,6 +10754,7 @@ class LiveCopyCore:
                         lags.append(max(0, utc_now_ms() - fill_ms))
                     else:
                         summary.copy_fills_unmatched += 1
+                        self._release_if_young_unmatched(raw_copy, copy_id)
         if copy_status == "COPY_ACCOUNT_POLLED":
             if sweep:
                 self._last_copy_sweep = time.monotonic()
