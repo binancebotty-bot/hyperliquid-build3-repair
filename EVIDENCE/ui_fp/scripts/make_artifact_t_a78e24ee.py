@@ -26,9 +26,17 @@ SHA = sb['serving_ssot_sha256']
 BT = r['bind_tally']
 dom = r['dom']
 RAWREL = 'EVIDENCE/ui_fp/raw/probe_t_a78e24ee_raw.json'
+# The chain must COMPLETE (exit 0). Two distinct reproductions, stated plainly:
+# the PROBE reproduces the live OBSERVATIONS (fresh GET-only run; the live series
+# moves between runs, so its capture legitimately differs from the committed one);
+# the GENERATOR reproduces the PUBLISHED ARTIFACT byte-identically, but only from
+# the FROZEN capture - hence the explicit `git checkout --` restore between them.
+# Without the restore the generator's own blob-equality guard (correctly) aborts on
+# the fresh live capture, so the documented command could not complete. That was the defect.
 REPRO = ('cd %s && export PLAYWRIGHT_BROWSERS_PATH=C:/Users/wigmore/AppData/Local/ms-playwright && '
          'C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe '
          'EVIDENCE/ui_fp/scripts/probe_ui_fp_6rows_t_a78e24ee.py && '
+         'git checkout -- EVIDENCE/ui_fp/raw/probe_t_a78e24ee_raw.json && '
          'C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe '
          'EVIDENCE/ui_fp/scripts/make_artifact_t_a78e24ee.py' % REPO)
 
@@ -146,8 +154,34 @@ def assert_raw_matches_blob():
         print('WARN: no committed blob for %s at %s - raw digest is DISK-ONLY' % (RAWREL, GIT_REF))
         return disk, None
     if disk != blob:
-        raise SystemExit('RAW_DIGEST_MISMATCH: disk=%s blob=%s (autocrlf/EOL leak; check '
-                         'EVIDENCE/ui_fp/.gitattributes)' % (disk, blob))
+        # Diagnose, do not misdiagnose. CR count 0 on both sides rules EOL out; the
+        # usual real cause is live-data drift: the probe just rewrote the capture with
+        # fresh observations. Restore the frozen capture (`git checkout -- <raw>`) if the
+        # goal is to republish the committed artifact.
+        def _cr_disk(pth):
+            try:
+                return open(pth, 'rb').read().count(b'\r')
+            except OSError:
+                return -1
+
+        def _cr_blob(rel):
+            try:
+                return subprocess.check_output(['git', '-C', REPO, 'cat-file', 'blob',
+                                                '%s:%s' % (GIT_REF, rel)],
+                                               stderr=subprocess.DEVNULL).count(b'\r')
+            except (subprocess.CalledProcessError, FileNotFoundError):
+                return -1
+
+        cr_disk = _cr_disk(os.path.join(REPO, RAWREL))
+        cr_blob = _cr_blob(RAWREL)
+        if cr_disk == 0 and cr_blob == 0:
+            cause = ('LIVE_DATA_DRIFT: the on-disk capture is NOT the frozen one that was committed. The probe rewrites '
+                     'this file on every run with fresh live observations; restore it with '
+                     '`git checkout -- %s` before republishing the artifact.' % RAWREL)
+        else:
+            cause = ('EOL_LEAK: CR present in the working-tree copy (check EVIDENCE/ui_fp/.gitattributes, '
+                     '*.json must be text eol=lf).')
+        raise SystemExit('RAW_DIGEST_MISMATCH: disk=%s blob=%s\n%s' % (disk, blob, cause))
     print('raw digest verified against %s: %s' % (GIT_REF, disk))
     return disk, blob
 
@@ -192,6 +226,14 @@ art = {
         'verified_disk_equals_blob': bool(RAW_BLOB_SHA) and RAW_DISK_SHA == RAW_BLOB_SHA,
         'note': 'EVIDENCE/ui_fp/.gitattributes pins *.json to LF so a published digest verifies against `git cat-file blob`; the generator aborts on mismatch.'},
     'reproduce_all': REPRO,
+    'reproduce_note': ('reproduce_all runs BOTH reproductions in sequence and EXITS 0. Leg 1 (probe) reproduces the live '
+                       'OBSERVATIONS: a fresh GET-only DOM/API run whose capture legitimately differs from the committed one '
+                       'because the exchange graph is a live growing series. Leg 2 (generator) reproduces the PUBLISHED '
+                       'ARTIFACT byte-identically, and only from the FROZEN capture - hence the `git checkout -- <raw>` '
+                       'restore between the legs. Running the generator against a fresh capture aborts by design '
+                       '(RAW_DIGEST_MISMATCH / LIVE_DATA_DRIFT); that abort is the guard working, not a defect.'),
+    'reproduce_artifact_only': ('cd %s && C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe '
+                                'EVIDENCE/ui_fp/scripts/make_artifact_t_a78e24ee.py   # from the COMMITTED capture; no probe' % REPO),
     'rows': rows,
     'tally': {'PASS': 3, 'PARTIAL': 3, 'FAIL': 0, 'NOT_TESTED': 0},
     'changed_register_rows': ['UI-FP-030', 'UI-FP-041', 'UI-FP-048', 'UI-FP-052', 'UI-FP-054', 'UI-FP-055'],

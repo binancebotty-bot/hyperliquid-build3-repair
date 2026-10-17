@@ -1,5 +1,10 @@
 # Evidence JSON must be byte-identical between the working tree and the committed blob,
 # so a published file_sha256 verifies against `git cat-file blob`.
 # Deterministic LF in both directions (overrides core.autocrlf on Windows).
+# Cover EVERY evidence file this card publishes, not just JSON: a reviewer who
+# re-checks-out the branch must get byte-identical files, or published file_sha256
+# values stop verifying against the commit (the Round-1 defect class).
 *.json text eol=lf
+*.py   text eol=lf
+*.md   text eol=lf
 raw/*.json text eol=lf

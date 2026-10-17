@@ -70,12 +70,34 @@ owner's step.
 
 ## Reproduce
 
+Two **distinct** reproductions, run in sequence by one command that **exits 0**:
+
+- **Leg 1 - the probe** reproduces the live **observations**: a fresh GET-only DOM/API run. Its
+  capture legitimately differs from the committed one, because the exchange graph is a live growing
+  series (the README's own "numbers that move" section is the proof).
+- **Leg 2 - the generator** reproduces the **published artifact** byte-identically, and only from the
+  **frozen** capture. Hence the explicit `git checkout --` restore between the legs.
+
 Run from the worktree root (one path segment only: the repo already **is** the worktree):
 
 ```
 cd C:/Users/wigmore/hyperliquid-build3-repair/.worktrees/t_a78e24ee
 export PLAYWRIGHT_BROWSERS_PATH=C:/Users/wigmore/AppData/Local/ms-playwright
 C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe EVIDENCE/ui_fp/scripts/probe_ui_fp_6rows_t_a78e24ee.py
+git checkout -- EVIDENCE/ui_fp/raw/probe_t_a78e24ee_raw.json
+C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe EVIDENCE/ui_fp/scripts/make_artifact_t_a78e24ee.py
+```
+
+This is the exact string published as `reproduce_all` in the artifact. The `git checkout --` restores
+the frozen capture after the probe overwrites it; without that restore the generator's own
+blob-equality guard **correctly** aborts (`RAW_DIGEST_MISMATCH` / `LIVE_DATA_DRIFT`) and the chain
+exits 1. The abort is the guard working, not a defect - and the guard's message now names live-data
+drift, not an EOL leak, when both sides have CR count 0.
+
+To reproduce **only the published artifact** (no probe, from the committed capture):
+
+```
+cd C:/Users/wigmore/hyperliquid-build3-repair/.worktrees/t_a78e24ee
 C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe EVIDENCE/ui_fp/scripts/make_artifact_t_a78e24ee.py
 ```
 
