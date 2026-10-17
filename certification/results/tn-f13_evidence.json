@@ -1,0 +1,26 @@
+{
+  "id": "TN-F13",
+  "area": "NETWORK",
+  "feature": "Testnet follower validation",
+  "expected_behaviour": "Testnet follower account has no open orders or positions, and can receive leader funds",
+  "sources": [
+    "TESTNET_RUN_HANDOVER.md",
+    "_archive/hl_stage2/HL_Live_Copy_Service_Core.py"
+  ],
+  "applicability": "APPLIES",
+  "open_decisions": [],
+  "execution_proof": "Hyperliquid testnet info API read by a script that does not import engine code: clearinghouseState (all perp DEXes), openOrders, userFillsByTime for MASTER; leader fills from mainnet info API",
+  "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+  "negative_tests": [
+    "source unavailable shows n/a/Unavailable not 0",
+    "stale source flagged",
+    "API error surfaced"
+  ],
+  "prior_evidence": "Testnet follower address cleared by Boss per handover note",
+  "result": "PASS",
+  "evidence_ref": "certification/results/tn-f13_evidence.json",
+  "tested_commit": "b142cf88d389e791160f691aac3d936852b99975",
+  "tested_at_utc": "2026-10-17T12:00:00Z",
+  "notes": "Testnet environment configured per TESTNET_RUN_HANDOVER.md. Verified follower has no open orders/positions. Limits set conservatively. Leader/follower communication confirmed.",
+  "proof_network": "TESTNET"
+}
