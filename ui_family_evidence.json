@@ -1,0 +1,533 @@
+{
+  "card_id": "t_06647fd2_ui_family",
+  "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+  "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+  "how_serving_build_was_established": "git rev-parse HEAD + sha256sum over SSOT in C:/Users/wigmore/trading_stack/hl-build3-testnet-cert-j28-89b3bc7/_archive/hl_stage2",
+  "oracle": "Live DOM extracted via Playwright from http://127.0.0.1:8031/live-copy; independent because it is the rendered UI served by the process, not a synthetic fixture.",
+  "files": [
+    "probe.py",
+    "dom_capture.json"
+  ],
+  "rows": [
+    {
+      "row_id": "UI-SSOT-CARD-1",
+      "verdict": "FAIL",
+      "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "executed_probe": "probe.py (captured DOM via Playwright)",
+      "independent_oracle": "Live DOM extracted via Playwright from http://127.0.0.1:8031/live-copy; independent because it is the rendered UI served by the process, not a synthetic fixture.",
+      "observed": "",
+      "reproduces": "C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe probe.py"
+    },
+    {
+      "row_id": "UI-SSOT-CARD-2",
+      "verdict": "FAIL",
+      "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "executed_probe": "probe.py (captured DOM via Playwright)",
+      "independent_oracle": "Live DOM extracted via Playwright from http://127.0.0.1:8031/live-copy; independent because it is the rendered UI served by the process, not a synthetic fixture.",
+      "observed": "",
+      "reproduces": "C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe probe.py"
+    },
+    {
+      "row_id": "UI-SSOT-CARD-3",
+      "verdict": "FAIL",
+      "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "executed_probe": "probe.py (captured DOM via Playwright)",
+      "independent_oracle": "Live DOM extracted via Playwright from http://127.0.0.1:8031/live-copy; independent because it is the rendered UI served by the process, not a synthetic fixture.",
+      "observed": "",
+      "reproduces": "C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe probe.py"
+    },
+    {
+      "row_id": "UI-SSOT-CARD-4",
+      "verdict": "FAIL",
+      "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "executed_probe": "probe.py (captured DOM via Playwright)",
+      "independent_oracle": "Live DOM extracted via Playwright from http://127.0.0.1:8031/live-copy; independent because it is the rendered UI served by the process, not a synthetic fixture.",
+      "observed": "",
+      "reproduces": "C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe probe.py"
+    },
+    {
+      "row_id": "UI-SSOT-CARD-5",
+      "verdict": "FAIL",
+      "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "executed_probe": "probe.py (captured DOM via Playwright)",
+      "independent_oracle": "Live DOM extracted via Playwright from http://127.0.0.1:8031/live-copy; independent because it is the rendered UI served by the process, not a synthetic fixture.",
+      "observed": "",
+      "reproduces": "C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe probe.py"
+    },
+    {
+      "row_id": "UI-SSOT-CARD-6",
+      "verdict": "FAIL",
+      "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "executed_probe": "probe.py (captured DOM via Playwright)",
+      "independent_oracle": "Live DOM extracted via Playwright from http://127.0.0.1:8031/live-copy; independent because it is the rendered UI served by the process, not a synthetic fixture.",
+      "observed": "",
+      "reproduces": "C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe probe.py"
+    },
+    {
+      "row_id": "UI-SSOT-CARD-7",
+      "verdict": "FAIL",
+      "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "executed_probe": "probe.py (captured DOM via Playwright)",
+      "independent_oracle": "Live DOM extracted via Playwright from http://127.0.0.1:8031/live-copy; independent because it is the rendered UI served by the process, not a synthetic fixture.",
+      "observed": "",
+      "reproduces": "C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe probe.py"
+    },
+    {
+      "row_id": "UI-SSOT-CARD-8",
+      "verdict": "FAIL",
+      "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "executed_probe": "probe.py (captured DOM via Playwright)",
+      "independent_oracle": "Live DOM extracted via Playwright from http://127.0.0.1:8031/live-copy; independent because it is the rendered UI served by the process, not a synthetic fixture.",
+      "observed": "",
+      "reproduces": "C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe probe.py"
+    },
+    {
+      "row_id": "UI-SSOT-CARD-9",
+      "verdict": "FAIL",
+      "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "executed_probe": "probe.py (captured DOM via Playwright)",
+      "independent_oracle": "Live DOM extracted via Playwright from http://127.0.0.1:8031/live-copy; independent because it is the rendered UI served by the process, not a synthetic fixture.",
+      "observed": "",
+      "reproduces": "C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe probe.py"
+    },
+    {
+      "row_id": "UI-SSOT-PAGE-2",
+      "verdict": "FAIL",
+      "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "executed_probe": "probe.py (captured DOM via Playwright)",
+      "independent_oracle": "Live DOM extracted via Playwright from http://127.0.0.1:8031/live-copy; independent because it is the rendered UI served by the process, not a synthetic fixture.",
+      "observed": "",
+      "reproduces": "C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe probe.py"
+    },
+    {
+      "row_id": "UI-SSOT-PAGE-3",
+      "verdict": "FAIL",
+      "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "executed_probe": "probe.py (captured DOM via Playwright)",
+      "independent_oracle": "Live DOM extracted via Playwright from http://127.0.0.1:8031/live-copy; independent because it is the rendered UI served by the process, not a synthetic fixture.",
+      "observed": "",
+      "reproduces": "C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe probe.py"
+    },
+    {
+      "row_id": "UI-SSOT-PAGE-4",
+      "verdict": "FAIL",
+      "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "executed_probe": "probe.py (captured DOM via Playwright)",
+      "independent_oracle": "Live DOM extracted via Playwright from http://127.0.0.1:8031/live-copy; independent because it is the rendered UI served by the process, not a synthetic fixture.",
+      "observed": "",
+      "reproduces": "C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe probe.py"
+    },
+    {
+      "row_id": "UI-SSOT-PAGE-5",
+      "verdict": "FAIL",
+      "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "executed_probe": "probe.py (captured DOM via Playwright)",
+      "independent_oracle": "Live DOM extracted via Playwright from http://127.0.0.1:8031/live-copy; independent because it is the rendered UI served by the process, not a synthetic fixture.",
+      "observed": "",
+      "reproduces": "C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe probe.py"
+    },
+    {
+      "row_id": "UI-SSOT-PAGE-6",
+      "verdict": "FAIL",
+      "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "executed_probe": "probe.py (captured DOM via Playwright)",
+      "independent_oracle": "Live DOM extracted via Playwright from http://127.0.0.1:8031/live-copy; independent because it is the rendered UI served by the process, not a synthetic fixture.",
+      "observed": "",
+      "reproduces": "C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe probe.py"
+    },
+    {
+      "row_id": "UI-SSOT-PAGE-7",
+      "verdict": "FAIL",
+      "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "executed_probe": "probe.py (captured DOM via Playwright)",
+      "independent_oracle": "Live DOM extracted via Playwright from http://127.0.0.1:8031/live-copy; independent because it is the rendered UI served by the process, not a synthetic fixture.",
+      "observed": "",
+      "reproduces": "C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe probe.py"
+    },
+    {
+      "row_id": "UI-SSOT-PAGE-8",
+      "verdict": "FAIL",
+      "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "executed_probe": "probe.py (captured DOM via Playwright)",
+      "independent_oracle": "Live DOM extracted via Playwright from http://127.0.0.1:8031/live-copy; independent because it is the rendered UI served by the process, not a synthetic fixture.",
+      "observed": "",
+      "reproduces": "C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe probe.py"
+    },
+    {
+      "row_id": "UI-SSOT-PAGE-9",
+      "verdict": "FAIL",
+      "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "executed_probe": "probe.py (captured DOM via Playwright)",
+      "independent_oracle": "Live DOM extracted via Playwright from http://127.0.0.1:8031/live-copy; independent because it is the rendered UI served by the process, not a synthetic fixture.",
+      "observed": "",
+      "reproduces": "C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe probe.py"
+    },
+    {
+      "row_id": "UI-SSOT-PAGE-10",
+      "verdict": "FAIL",
+      "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "executed_probe": "probe.py (captured DOM via Playwright)",
+      "independent_oracle": "Live DOM extracted via Playwright from http://127.0.0.1:8031/live-copy; independent because it is the rendered UI served by the process, not a synthetic fixture.",
+      "observed": "",
+      "reproduces": "C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe probe.py"
+    },
+    {
+      "row_id": "UI-SSOT-PAGE-12",
+      "verdict": "FAIL",
+      "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "executed_probe": "probe.py (captured DOM via Playwright)",
+      "independent_oracle": "Live DOM extracted via Playwright from http://127.0.0.1:8031/live-copy; independent because it is the rendered UI served by the process, not a synthetic fixture.",
+      "observed": "",
+      "reproduces": "C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe probe.py"
+    },
+    {
+      "row_id": "UI-SSOT-TBL-1",
+      "verdict": "FAIL",
+      "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "executed_probe": "probe.py (captured DOM via Playwright)",
+      "independent_oracle": "Live DOM extracted via Playwright from http://127.0.0.1:8031/live-copy; independent because it is the rendered UI served by the process, not a synthetic fixture.",
+      "observed": "",
+      "reproduces": "C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe probe.py"
+    },
+    {
+      "row_id": "UI-SSOT-TBL-2",
+      "verdict": "FAIL",
+      "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "executed_probe": "probe.py (captured DOM via Playwright)",
+      "independent_oracle": "Live DOM extracted via Playwright from http://127.0.0.1:8031/live-copy; independent because it is the rendered UI served by the process, not a synthetic fixture.",
+      "observed": "",
+      "reproduces": "C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe probe.py"
+    },
+    {
+      "row_id": "UI-SSOT-TBL-3",
+      "verdict": "FAIL",
+      "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "executed_probe": "probe.py (captured DOM via Playwright)",
+      "independent_oracle": "Live DOM extracted via Playwright from http://127.0.0.1:8031/live-copy; independent because it is the rendered UI served by the process, not a synthetic fixture.",
+      "observed": "",
+      "reproduces": "C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe probe.py"
+    },
+    {
+      "row_id": "UI-SSOT-TBL-4",
+      "verdict": "FAIL",
+      "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "executed_probe": "probe.py (captured DOM via Playwright)",
+      "independent_oracle": "Live DOM extracted via Playwright from http://127.0.0.1:8031/live-copy; independent because it is the rendered UI served by the process, not a synthetic fixture.",
+      "observed": "",
+      "reproduces": "C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe probe.py"
+    },
+    {
+      "row_id": "UI-SSOT-TBL-5",
+      "verdict": "FAIL",
+      "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "executed_probe": "probe.py (captured DOM via Playwright)",
+      "independent_oracle": "Live DOM extracted via Playwright from http://127.0.0.1:8031/live-copy; independent because it is the rendered UI served by the process, not a synthetic fixture.",
+      "observed": "",
+      "reproduces": "C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe probe.py"
+    },
+    {
+      "row_id": "UI-SSOT-TBL-6",
+      "verdict": "FAIL",
+      "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "executed_probe": "probe.py (captured DOM via Playwright)",
+      "independent_oracle": "Live DOM extracted via Playwright from http://127.0.0.1:8031/live-copy; independent because it is the rendered UI served by the process, not a synthetic fixture.",
+      "observed": "",
+      "reproduces": "C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe probe.py"
+    },
+    {
+      "row_id": "UI-SSOT-TBL-7",
+      "verdict": "FAIL",
+      "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "executed_probe": "probe.py (captured DOM via Playwright)",
+      "independent_oracle": "Live DOM extracted via Playwright from http://127.0.0.1:8031/live-copy; independent because it is the rendered UI served by the process, not a synthetic fixture.",
+      "observed": "",
+      "reproduces": "C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe probe.py"
+    },
+    {
+      "row_id": "UI-SSOT-TBL-8",
+      "verdict": "FAIL",
+      "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "executed_probe": "probe.py (captured DOM via Playwright)",
+      "independent_oracle": "Live DOM extracted via Playwright from http://127.0.0.1:8031/live-copy; independent because it is the rendered UI served by the process, not a synthetic fixture.",
+      "observed": "",
+      "reproduces": "C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe probe.py"
+    },
+    {
+      "row_id": "UI-SSOT-TBL-9",
+      "verdict": "FAIL",
+      "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "executed_probe": "probe.py (captured DOM via Playwright)",
+      "independent_oracle": "Live DOM extracted via Playwright from http://127.0.0.1:8031/live-copy; independent because it is the rendered UI served by the process, not a synthetic fixture.",
+      "observed": "",
+      "reproduces": "C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe probe.py"
+    },
+    {
+      "row_id": "UI-SSOT-TBL-10",
+      "verdict": "FAIL",
+      "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "executed_probe": "probe.py (captured DOM via Playwright)",
+      "independent_oracle": "Live DOM extracted via Playwright from http://127.0.0.1:8031/live-copy; independent because it is the rendered UI served by the process, not a synthetic fixture.",
+      "observed": "",
+      "reproduces": "C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe probe.py"
+    },
+    {
+      "row_id": "UI-SSOT-TBL-11",
+      "verdict": "FAIL",
+      "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "executed_probe": "probe.py (captured DOM via Playwright)",
+      "independent_oracle": "Live DOM extracted via Playwright from http://127.0.0.1:8031/live-copy; independent because it is the rendered UI served by the process, not a synthetic fixture.",
+      "observed": "",
+      "reproduces": "C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe probe.py"
+    },
+    {
+      "row_id": "UI-SSOT-TBL-12",
+      "verdict": "FAIL",
+      "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "executed_probe": "probe.py (captured DOM via Playwright)",
+      "independent_oracle": "Live DOM extracted via Playwright from http://127.0.0.1:8031/live-copy; independent because it is the rendered UI served by the process, not a synthetic fixture.",
+      "observed": "",
+      "reproduces": "C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe probe.py"
+    },
+    {
+      "row_id": "UI-SSOT-TBL-13",
+      "verdict": "FAIL",
+      "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "executed_probe": "probe.py (captured DOM via Playwright)",
+      "independent_oracle": "Live DOM extracted via Playwright from http://127.0.0.1:8031/live-copy; independent because it is the rendered UI served by the process, not a synthetic fixture.",
+      "observed": "",
+      "reproduces": "C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe probe.py"
+    },
+    {
+      "row_id": "UI-SSOT-TBL-14",
+      "verdict": "FAIL",
+      "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "executed_probe": "probe.py (captured DOM via Playwright)",
+      "independent_oracle": "Live DOM extracted via Playwright from http://127.0.0.1:8031/live-copy; independent because it is the rendered UI served by the process, not a synthetic fixture.",
+      "observed": "",
+      "reproduces": "C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe probe.py"
+    },
+    {
+      "row_id": "UI-SSOT-TBL-15",
+      "verdict": "FAIL",
+      "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "executed_probe": "probe.py (captured DOM via Playwright)",
+      "independent_oracle": "Live DOM extracted via Playwright from http://127.0.0.1:8031/live-copy; independent because it is the rendered UI served by the process, not a synthetic fixture.",
+      "observed": "",
+      "reproduces": "C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe probe.py"
+    },
+    {
+      "row_id": "UI-SSOT-TBL-16",
+      "verdict": "FAIL",
+      "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "executed_probe": "probe.py (captured DOM via Playwright)",
+      "independent_oracle": "Live DOM extracted via Playwright from http://127.0.0.1:8031/live-copy; independent because it is the rendered UI served by the process, not a synthetic fixture.",
+      "observed": "",
+      "reproduces": "C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe probe.py"
+    },
+    {
+      "row_id": "UI-SSOT-TBL-17",
+      "verdict": "FAIL",
+      "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "executed_probe": "probe.py (captured DOM via Playwright)",
+      "independent_oracle": "Live DOM extracted via Playwright from http://127.0.0.1:8031/live-copy; independent because it is the rendered UI served by the process, not a synthetic fixture.",
+      "observed": "",
+      "reproduces": "C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe probe.py"
+    },
+    {
+      "row_id": "UI-SSOT-TBL-18",
+      "verdict": "FAIL",
+      "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "executed_probe": "probe.py (captured DOM via Playwright)",
+      "independent_oracle": "Live DOM extracted via Playwright from http://127.0.0.1:8031/live-copy; independent because it is the rendered UI served by the process, not a synthetic fixture.",
+      "observed": "",
+      "reproduces": "C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe probe.py"
+    },
+    {
+      "row_id": "UI-SSOT-TBL-19",
+      "verdict": "FAIL",
+      "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "executed_probe": "probe.py (captured DOM via Playwright)",
+      "independent_oracle": "Live DOM extracted via Playwright from http://127.0.0.1:8031/live-copy; independent because it is the rendered UI served by the process, not a synthetic fixture.",
+      "observed": "",
+      "reproduces": "C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe probe.py"
+    },
+    {
+      "row_id": "UI-SSOT-TBL-20",
+      "verdict": "FAIL",
+      "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "executed_probe": "probe.py (captured DOM via Playwright)",
+      "independent_oracle": "Live DOM extracted via Playwright from http://127.0.0.1:8031/live-copy; independent because it is the rendered UI served by the process, not a synthetic fixture.",
+      "observed": "",
+      "reproduces": "C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe probe.py"
+    },
+    {
+      "row_id": "UI-SSOT-TBL-21",
+      "verdict": "FAIL",
+      "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "executed_probe": "probe.py (captured DOM via Playwright)",
+      "independent_oracle": "Live DOM extracted via Playwright from http://127.0.0.1:8031/live-copy; independent because it is the rendered UI served by the process, not a synthetic fixture.",
+      "observed": "",
+      "reproduces": "C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe probe.py"
+    },
+    {
+      "row_id": "UI-SSOT-TBL-22",
+      "verdict": "FAIL",
+      "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "executed_probe": "probe.py (captured DOM via Playwright)",
+      "independent_oracle": "Live DOM extracted via Playwright from http://127.0.0.1:8031/live-copy; independent because it is the rendered UI served by the process, not a synthetic fixture.",
+      "observed": "",
+      "reproduces": "C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe probe.py"
+    },
+    {
+      "row_id": "UI-SSOT-TBL-23",
+      "verdict": "FAIL",
+      "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "executed_probe": "probe.py (captured DOM via Playwright)",
+      "independent_oracle": "Live DOM extracted via Playwright from http://127.0.0.1:8031/live-copy; independent because it is the rendered UI served by the process, not a synthetic fixture.",
+      "observed": "",
+      "reproduces": "C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe probe.py"
+    },
+    {
+      "row_id": "UI-SSOT-TBL-24",
+      "verdict": "FAIL",
+      "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "executed_probe": "probe.py (captured DOM via Playwright)",
+      "independent_oracle": "Live DOM extracted via Playwright from http://127.0.0.1:8031/live-copy; independent because it is the rendered UI served by the process, not a synthetic fixture.",
+      "observed": "",
+      "reproduces": "C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe probe.py"
+    },
+    {
+      "row_id": "UI-SSOT-TOP-1",
+      "verdict": "FAIL",
+      "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "executed_probe": "probe.py (captured DOM via Playwright)",
+      "independent_oracle": "Live DOM extracted via Playwright from http://127.0.0.1:8031/live-copy; independent because it is the rendered UI served by the process, not a synthetic fixture.",
+      "observed": "",
+      "reproduces": "C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe probe.py"
+    },
+    {
+      "row_id": "UI-SSOT-TOP-2",
+      "verdict": "FAIL",
+      "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "executed_probe": "probe.py (captured DOM via Playwright)",
+      "independent_oracle": "Live DOM extracted via Playwright from http://127.0.0.1:8031/live-copy; independent because it is the rendered UI served by the process, not a synthetic fixture.",
+      "observed": "",
+      "reproduces": "C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe probe.py"
+    },
+    {
+      "row_id": "UI-SSOT-TOP-3",
+      "verdict": "FAIL",
+      "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "executed_probe": "probe.py (captured DOM via Playwright)",
+      "independent_oracle": "Live DOM extracted via Playwright from http://127.0.0.1:8031/live-copy; independent because it is the rendered UI served by the process, not a synthetic fixture.",
+      "observed": "",
+      "reproduces": "C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe probe.py"
+    },
+    {
+      "row_id": "UI-SSOT-TOP-4",
+      "verdict": "FAIL",
+      "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "executed_probe": "probe.py (captured DOM via Playwright)",
+      "independent_oracle": "Live DOM extracted via Playwright from http://127.0.0.1:8031/live-copy; independent because it is the rendered UI served by the process, not a synthetic fixture.",
+      "observed": "",
+      "reproduces": "C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe probe.py"
+    },
+    {
+      "row_id": "UI-SSOT-TOP-5",
+      "verdict": "FAIL",
+      "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "executed_probe": "probe.py (captured DOM via Playwright)",
+      "independent_oracle": "Live DOM extracted via Playwright from http://127.0.0.1:8031/live-copy; independent because it is the rendered UI served by the process, not a synthetic fixture.",
+      "observed": "",
+      "reproduces": "C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe probe.py"
+    },
+    {
+      "row_id": "UI-SSOT-TOP-8",
+      "verdict": "FAIL",
+      "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "executed_probe": "probe.py (captured DOM via Playwright)",
+      "independent_oracle": "Live DOM extracted via Playwright from http://127.0.0.1:8031/live-copy; independent because it is the rendered UI served by the process, not a synthetic fixture.",
+      "observed": "",
+      "reproduces": "C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe probe.py"
+    },
+    {
+      "row_id": "UI-TRUTH-001",
+      "verdict": "FAIL",
+      "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "executed_probe": "probe.py (captured DOM via Playwright)",
+      "independent_oracle": "Live DOM extracted via Playwright from http://127.0.0.1:8031/live-copy; independent because it is the rendered UI served by the process, not a synthetic fixture.",
+      "observed": "",
+      "reproduces": "C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe probe.py"
+    },
+    {
+      "row_id": "UI-TRUTH-002",
+      "verdict": "FAIL",
+      "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "executed_probe": "probe.py (captured DOM via Playwright)",
+      "independent_oracle": "Live DOM extracted via Playwright from http://127.0.0.1:8031/live-copy; independent because it is the rendered UI served by the process, not a synthetic fixture.",
+      "observed": "",
+      "reproduces": "C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe probe.py"
+    },
+    {
+      "row_id": "UI-TRUTH-004",
+      "verdict": "FAIL",
+      "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "executed_probe": "probe.py (captured DOM via Playwright)",
+      "independent_oracle": "Live DOM extracted via Playwright from http://127.0.0.1:8031/live-copy; independent because it is the rendered UI served by the process, not a synthetic fixture.",
+      "observed": "",
+      "reproduces": "C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe probe.py"
+    }
+  ]
+}
