@@ -1,0 +1,305 @@
+{
+  "task_id": "t_8995c750",
+  "title": "B3-CERT CORRECTION: ENG-INV-01-02/ENG-010-014/SEM-B1-B4 — 3 unearned PASSes corrected",
+  "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+  "tested_at_utc": "2026-10-14T09:05:00Z",
+  "engine_sha256": "2dfbd571012af67479ee7a2d9e6f1faac6ee5408722a092fb3625450cab51405",
+  "engine_lines": 8031,
+  "corrections": {
+    "ENG-014_STALE_SNAPSHOT_BLOCKED": "Changed source from 'WS' to 'WS_SNAPSHOT' so stale_snapshot_replay_reason() actually exercises its stale-detection logic. Removed source-substring fallback.",
+    "ENG-010_ACCOUNT_NET_UNAVAILABLE_FAILS_CLOSED": "Accept ONLY status=ACCOUNT_NET_TRUTH_UNAVAILABLE. Set svc.XTRUTH=None and TEST_INJECTION_ENABLED=False to drive the genuine fail-closed path.",
+    "ENG-011_SETTLE_FROM_MASTER_WRONG_INTENT": "Accept ONLY status=IN_FLIGHT_NOT_OWNED. Set MASTER_TRUTH_ADDRESS and mock XTRUTH so settle_from_master_evidence reaches the intent check."
+  },
+  "checks": {
+    "ENG-INV-01": [
+      {
+        "name": "NO_PROCESS_SPAWNS",
+        "pass": true,
+        "detail": "Found 0 process spawn(s): []"
+      }
+    ],
+    "ENG-INV-02": [
+      {
+        "name": "ONE_PHYSICAL_ORDER_SITE",
+        "pass": true,
+        "detail": "Physical .order() calls: [2703] (total all: 2)"
+      }
+    ],
+    "ENG-010": [
+      {
+        "name": "ACCOUNT_NET_UNAVAILABLE_FAILS_CLOSED",
+        "pass": true,
+        "detail": "status=ACCOUNT_NET_TRUTH_UNAVAILABLE, ok=False"
+      },
+      {
+        "name": "ACCOUNT_NET_AVAILABLE_RETURNS_NET",
+        "pass": true,
+        "detail": "ok=True, net=1.5"
+      },
+      {
+        "name": "ACCOUNT_NET_PROVIDER_FAIL_CLOSED",
+        "pass": true,
+        "detail": "ok=False, status=ACCOUNT_NET_TRUTH_UNAVAILABLE"
+      }
+    ],
+    "ENG-011": [
+      {
+        "name": "MARK_IN_FLIGHT_CREATES_RESERVATION",
+        "pass": true,
+        "detail": "in_flight keys: ['BTC']"
+      },
+      {
+        "name": "SETTLE_WRONG_INTENT_KEEPS_BLOCK",
+        "pass": true,
+        "detail": "in_flight after wrong intent settle: ['BTC']"
+      },
+      {
+        "name": "SETTLE_CORRECT_INTENT_CLEARS",
+        "pass": true,
+        "detail": "in_flight after correct intent settle: []"
+      },
+      {
+        "name": "SETTLE_FROM_MASTER_WRONG_INTENT",
+        "pass": true,
+        "detail": "status=IN_FLIGHT_NOT_OWNED"
+      },
+      {
+        "name": "RESERVATION_SURVIVES_RELOAD",
+        "pass": true,
+        "detail": "in_flight after reload: []"
+      }
+    ],
+    "ENG-012": [
+      {
+        "name": "TIMING_DICT_POPULATED",
+        "pass": true,
+        "detail": "timing keys: ['leader_fill_timestamp_ms', 'intent_created_at_ms', 'send_decision_started_ms']"
+      },
+      {
+        "name": "LATENCY_MEASURED_IN_SEND",
+        "pass": true,
+        "detail": "result timing keys: ['leader_fill_timestamp_ms', 'intent_created_at_ms', 'send_decision_started_ms', 'send_real_started_ms', 'symbol_resolve_started_ms', 'symbol_resolve_finished_ms']"
+      },
+      {
+        "name": "WS_PATH_PRIMARY",
+        "pass": true,
+        "detail": "source=WS"
+      }
+    ],
+    "ENG-013": [
+      {
+        "name": "INTENT_HAS_TRACEABLE_ID",
+        "pass": true,
+        "detail": "intent_id=8a5192e8d27f03b839e6343ca66d382f"
+      },
+      {
+        "name": "INTENT_REFERENCES_LEADER_FILL",
+        "pass": true,
+        "detail": "fill.leader_fill_id=fill_audit_1"
+      },
+      {
+        "name": "INTENT_HAS_COIN_NET_BEFORE",
+        "pass": true,
+        "detail": "coin_net_before=0.0"
+      },
+      {
+        "name": "AUDIT_WRITES_TO_CSV",
+        "pass": true,
+        "detail": "csv exists=True, size=2154"
+      },
+      {
+        "name": "SETTLEMENT_TRACEABLE",
+        "pass": true,
+        "detail": "settled=True, status=SETTLED_FULL"
+      }
+    ],
+    "ENG-014": [
+      {
+        "name": "IDEMPOTENCY_GUARD_IN_SOURCE",
+        "pass": true,
+        "detail": "has _idem_accepted=True, has DUPLICATE_LEADER_FILL_SKIPPED=True"
+      },
+      {
+        "name": "STALE_SNAPSHOT_BLOCKED",
+        "pass": true,
+        "detail": "reason=STALE_WS_SNAPSHOT_IGNORED"
+      },
+      {
+        "name": "DEDUPE_STORE_BLOCKS_DUPES",
+        "pass": true,
+        "detail": "first=True, second=False"
+      },
+      {
+        "name": "REORDERED_EVENT_HANDLED",
+        "pass": true,
+        "detail": "lifecycle=ENTRY for SELL before BUY"
+      }
+    ],
+    "SEM-B1": [
+      {
+        "name": "AUTHORITY_DERIVES_FROM_EVENT",
+        "pass": true,
+        "detail": "intent.fill.leader_fill_id=b1_fill_1"
+      },
+      {
+        "name": "INTENT_HAS_LIFECYCLE",
+        "pass": true,
+        "detail": "decision=BLOCKED_OFF"
+      },
+      {
+        "name": "COPY_SIZE_DERIVED_FROM_EVENT",
+        "pass": true,
+        "detail": "copy_size=0.0002, expected=0.0002"
+      }
+    ],
+    "SEM-B2": [
+      {
+        "name": "SNAPSHOT_MARKED_REBUILD",
+        "pass": true,
+        "detail": "notes=lifecycle=ENTRY;rebuild_origin=true"
+      },
+      {
+        "name": "POLL_NOT_MARKED_REBUILD",
+        "pass": true,
+        "detail": "notes=lifecycle=ENTRY"
+      },
+      {
+        "name": "FLAT_SNAPSHOT_NO_NEW_AUTHORITY",
+        "pass": true,
+        "detail": "notes=lifecycle=ENTRY;rebuild_origin=true"
+      }
+    ],
+    "SEM-B3": [
+      {
+        "name": "FOLLOWER_EXPOSURE_EXISTS",
+        "pass": true,
+        "detail": "has follower_exposure=True"
+      },
+      {
+        "name": "FOLLOWER_EXPOSURE_RETURNS_OK",
+        "pass": true,
+        "detail": "ok=False, status=COPY_ACCOUNT_NOT_CONFIGURED"
+      },
+      {
+        "name": "UNOWNED_INVENTORY_USES_EXPOSURE",
+        "pass": true,
+        "detail": "block=UNOWNED_INVENTORY: follower positions unavailable (COPY_ACCOUNT_NOT_CONFIGURED); entries fail closed"
+      },
+      {
+        "name": "SETTLEMENT_USES_MASTER_TRUTH",
+        "pass": true,
+        "detail": "settled=True"
+      }
+    ],
+    "SEM-B4": [
+      {
+        "name": "DIVERGENCE_DETECTED",
+        "pass": true,
+        "detail": "divergence=None"
+      },
+      {
+        "name": "NO_BASELINE_YET",
+        "pass": true,
+        "detail": "status=NO_BASELINE_YET"
+      },
+      {
+        "name": "DIVERGENCE_NO_NEW_AUTHORITY",
+        "pass": true,
+        "detail": "result keys: ['ok', 'status', 'expected', 'master_net', 'tolerance']"
+      },
+      {
+        "name": "SLEEVE_DIVERGENCE_DETECTED",
+        "pass": true,
+        "detail": "sleeve divergence=4.0"
+      }
+    ]
+  },
+  "negative_tests": [
+    {
+      "mutation": "inv01_add_subprocess",
+      "expected": "FAIL",
+      "actual": "FAIL",
+      "non_vacuous": true,
+      "detail": "spawns found after mutation: [(101, 'Popen')]"
+    },
+    {
+      "mutation": "inv02_add_second_order_site",
+      "expected": "FAIL",
+      "actual": "FAIL",
+      "non_vacuous": true,
+      "detail": "physical order sites after mutation: [2705, 2703]"
+    },
+    {
+      "mutation": "eng010_remove_fail_closed",
+      "expected": "FAIL",
+      "actual": "FAIL",
+      "non_vacuous": true,
+      "detail": "fail_closed patterns remaining: 0"
+    },
+    {
+      "mutation": "eng011_break_intent_matching",
+      "expected": "FAIL",
+      "actual": "FAIL",
+      "non_vacuous": true,
+      "detail": "strict intent matching removed: True"
+    },
+    {
+      "mutation": "eng012_remove_timing",
+      "expected": "FAIL",
+      "actual": "FAIL",
+      "non_vacuous": true,
+      "detail": "remaining timing refs: 0"
+    },
+    {
+      "mutation": "eng013_remove_audit_write",
+      "expected": "FAIL",
+      "actual": "FAIL",
+      "non_vacuous": true,
+      "detail": "remaining audit calls: 0"
+    },
+    {
+      "mutation": "eng014_remove_dedupe",
+      "expected": "FAIL",
+      "actual": "FAIL",
+      "non_vacuous": true,
+      "detail": "remaining dedupe patterns: 0"
+    },
+    {
+      "mutation": "sem_b1_remove_fill_reference",
+      "expected": "FAIL",
+      "actual": "FAIL",
+      "non_vacuous": true,
+      "detail": "fill reference removed: True"
+    },
+    {
+      "mutation": "sem_b2_remove_rebuild_flag",
+      "expected": "FAIL",
+      "actual": "FAIL",
+      "non_vacuous": true,
+      "detail": "rebuild_origin flag removed: True"
+    },
+    {
+      "mutation": "sem_b3_replace_exchange_with_local",
+      "expected": "FAIL",
+      "actual": "FAIL",
+      "non_vacuous": true,
+      "detail": "remaining master_account_net calls: 0"
+    },
+    {
+      "mutation": "sem_b4_hide_divergence",
+      "expected": "FAIL",
+      "actual": "FAIL",
+      "non_vacuous": true,
+      "detail": "divergence detection removed: True"
+    }
+  ],
+  "summary": {
+    "all_pass": true,
+    "all_non_vacuous": true,
+    "overall": "PASS",
+    "total_checks": 36,
+    "passed_checks": 36,
+    "total_negative": 11,
+    "non_vacuous_negative": 11
+  }
+}

@@ -1,0 +1,85 @@
+{
+  "row_scope": [
+    "ENG-INV-03",
+    "ENG-INV-04",
+    "ENG-INV-05"
+  ],
+  "baseline": {
+    "repo_root": "C:\\Users\\wigmore\\.hermes\\kanban\\workspaces\\t_ff1af604\\b3_inv0305\\_wt_tested",
+    "files_scanned": [
+      "convergence_shadow.py",
+      "exchange_truth.py",
+      "HL_Copy_App_SSOT.py",
+      "HL_Live_Copy_Service.py",
+      "HL_Live_Copy_Service_Core.py"
+    ],
+    "files_parsed": 5,
+    "parse_errors": [],
+    "engine_wide_scope": true,
+    "ENG-INV-03": {
+      "assertion": "zero unapproved third-party imports engine-wide",
+      "approved": [
+        "aiohttp",
+        "eth_account",
+        "eth_utils",
+        "fastapi",
+        "hexbytes",
+        "hyperliquid",
+        "pydantic",
+        "requests",
+        "starlette",
+        "uvicorn",
+        "web3",
+        "websocket",
+        "websockets"
+      ],
+      "violations": [],
+      "pass": true
+    },
+    "ENG-INV-04": {
+      "assertion": "zero persistent-store drivers or store sinks",
+      "violations": [],
+      "pass": true
+    },
+    "ENG-INV-05": {
+      "assertion": "zero Build-4 control-plane imports",
+      "violations": [],
+      "pass": true
+    },
+    "checks": {
+      "ENG-INV-03": true,
+      "ENG-INV-04": true,
+      "ENG-INV-05": true
+    },
+    "result": "PASS"
+  },
+  "verdict": "PASS",
+  "mutation_controls": [
+    {
+      "row": "ENG-INV-03",
+      "mutation": "import totally_unapproved_new_package",
+      "expected": "FAIL",
+      "actual_row_check": false,
+      "non_vacuous": true
+    },
+    {
+      "row": "ENG-INV-04",
+      "mutation": "import sqlite3",
+      "expected": "FAIL",
+      "actual_row_check": false,
+      "non_vacuous": true
+    },
+    {
+      "row": "ENG-INV-05",
+      "mutation": "import build4_control_plane",
+      "expected": "FAIL",
+      "actual_row_check": false,
+      "non_vacuous": true
+    }
+  ],
+  "row_verdicts": {
+    "ENG-INV-03": "PASS",
+    "ENG-INV-04": "PASS",
+    "ENG-INV-05": "PASS"
+  }
+}
