@@ -1,0 +1,107 @@
+[
+  {
+    "row_id": "UI-LCC-WS-02",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/UI_LCC_WS_02_16_8031.json",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "Current renders 'OFFLINE' on 10/10 rows while the same payload reports ws_status='WS_OK', worst_health_grade='OK', stale=False for all 10 wallets. Served per-wallet object carries only ['last_error', 'last_message_ms', 'stale', 'stale_ms'] (no current_status/effective_status/status), so renderHealth's fallback paints a healthy feed OFFLINE."
+  },
+  {
+    "row_id": "UI-LCC-WS-03",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/UI_LCC_WS_02_16_8031.json",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "Grade renders the em-dash default on 10/10 rows; current_health_grade/health_grade absent from served wallet object (['last_error', 'last_message_ms', 'stale', 'stale_ms']). ws_summary only has an aggregate worst_health_grade='OK', never per row."
+  },
+  {
+    "row_id": "UI-LCC-WS-04",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/UI_LCC_WS_02_16_8031.json",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "Thread renders 'down' on 10/10 rows while ws_summary.thread_alive=True and every wallet's last_message_ms advances (stale_ms 409..4370074). Per-wallet thread_alive/worker_thread_alive is absent, so the boolean default reads as a dead worker."
+  },
+  {
+    "row_id": "UI-LCC-WS-05",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/UI_LCC_WS_02_16_8031.json",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "Reconnect/min renders the constant default ['0.00'] on all 10 rows; reconnects_per_min is absent from the served object. ws_summary has total_reconnect_count=1 only, and the panel never divides it per wallet, so the cell cannot change when reconnects do."
+  },
+  {
+    "row_id": "UI-LCC-WS-06",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/UI_LCC_WS_02_16_8031.json",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "'Processed' renders the constant default on all 10 rows (['0']). The serving per-wallet object (['last_error', 'last_message_ms', 'stale', 'stale_ms']) never carries 'processed_count', so this cell cannot track the counter it names; the counters exist only in the engine snapshot builder, not in the file the UI and API actually serve."
+  },
+  {
+    "row_id": "UI-LCC-WS-07",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/UI_LCC_WS_02_16_8031.json",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "'Raw msg' renders the constant default on all 10 rows (['0']). The serving per-wallet object (['last_error', 'last_message_ms', 'stale', 'stale_ms']) never carries 'raw_message_count', so this cell cannot track the counter it names; the counters exist only in the engine snapshot builder, not in the file the UI and API actually serve."
+  },
+  {
+    "row_id": "UI-LCC-WS-08",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/UI_LCC_WS_02_16_8031.json",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "'Parsed' renders the constant default on all 10 rows (['0']). The serving per-wallet object (['last_error', 'last_message_ms', 'stale', 'stale_ms']) never carries 'parsed_fill_message_count', so this cell cannot track the counter it names; the counters exist only in the engine snapshot builder, not in the file the UI and API actually serve."
+  },
+  {
+    "row_id": "UI-LCC-WS-09",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/UI_LCC_WS_02_16_8031.json",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "'Snap seen' renders the constant default on all 10 rows (['0']). The serving per-wallet object (['last_error', 'last_message_ms', 'stale', 'stale_ms']) never carries 'snapshot_fill_seen_count', so this cell cannot track the counter it names; the counters exist only in the engine snapshot builder, not in the file the UI and API actually serve."
+  },
+  {
+    "row_id": "UI-LCC-WS-10",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/UI_LCC_WS_02_16_8031.json",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "'Snap recovered' renders the constant default on all 10 rows (['0']). The serving per-wallet object (['last_error', 'last_message_ms', 'stale', 'stale_ms']) never carries 'snapshot_fill_recovered_count', so this cell cannot track the counter it names; the counters exist only in the engine snapshot builder, not in the file the UI and API actually serve."
+  },
+  {
+    "row_id": "UI-LCC-WS-11",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/UI_LCC_WS_02_16_8031.json",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "'Ignored' renders the constant default on all 10 rows (['0']). The serving per-wallet object (['last_error', 'last_message_ms', 'stale', 'stale_ms']) never carries 'ignored_snapshot_count', so this cell cannot track the counter it names; the counters exist only in the engine snapshot builder, not in the file the UI and API actually serve."
+  },
+  {
+    "row_id": "UI-LCC-WS-12",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/UI_LCC_WS_02_16_8031.json",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "'Recent errors' renders the constant default on all 10 rows (['0']). The serving per-wallet object (['last_error', 'last_message_ms', 'stale', 'stale_ms']) never carries 'recent_error_count', so this cell cannot track the counter it names; the counters exist only in the engine snapshot builder, not in the file the UI and API actually serve."
+  },
+  {
+    "row_id": "UI-LCC-WS-13",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/UI_LCC_WS_02_16_8031.json",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "'Lifetime errors' renders the constant default on all 10 rows (['0']). The serving per-wallet object (['last_error', 'last_message_ms', 'stale', 'stale_ms']) never carries 'lifetime_error_count', so this cell cannot track the counter it names; the counters exist only in the engine snapshot builder, not in the file the UI and API actually serve."
+  },
+  {
+    "row_id": "UI-LCC-WS-14",
+    "verdict": "PASS",
+    "evidence_ref": "certification/results/UI_LCC_WS_02_16_8031.json",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "Stale ms cell equals the API's per-wallet stale_ms on 10/10 rows, value-for-value after sorting by wallet (['421', '4370074', '420', '5632', '414', '412', '13345', '77714', '422', '409'] vs ['421', '4370074', '420', '5632', '414', '412', '13345', '77714', '422', '409']; e.g. 421/421 and 4370074/4370074). Row-bound: the ten values are mutually distinct, so any wrong-wallet binding fails. Caveat, not a pass claim: per-wallet 'stale' was False for all 10 wallets at capture, so the stale-flag branch was not exercised."
+  },
+  {
+    "row_id": "UI-LCC-WS-15",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/UI_LCC_WS_02_16_8031.json",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "Data status renders the em-dash on 10/10 rows; data_status is absent from the served wallet object (['last_error', 'last_message_ms', 'stale', 'stale_ms']), so WAITING_FOR_DATA/LIVE/degraded can never appear even though ws_summary.ws_status='WS_OK' is available."
+  },
+  {
+    "row_id": "UI-LCC-WS-16",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/UI_LCC_WS_02_16_8031.json",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "Last close/error renders an empty string on 10/10 rows. Renderer reads last_error_repr/last_error/last_close_msg; the served object carries last_error only (['last_error', 'last_message_ms', 'stale', 'stale_ms']) and the serving health writer never emits last_close_msg, so no close/error can surface. Empty on every row is also not row-bound."
+  }
+]
