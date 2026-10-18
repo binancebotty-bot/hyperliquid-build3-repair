@@ -1,0 +1,3 @@
+# Shared-clone isolation rule
+
+Every Kanban card that needs to commit or push must create a dedicated shallow clone under that card's own workspace (for example, `<workspace>/b3-<task_id>`) and fetch/switch to the task's specified base ref there. The shared `C:/Users/wigmore/.hermes/cache/scratch/b3_clean` checkout is for read-only inspection only; do not edit, stage, commit, reset, clean, or branch-switch in it. Sharing a working tree lets concurrent tasks overwrite each other's branch/index state, and leftover conflict entries can prevent unrelated cards from committing. The existing checkout was observed dirty with unrelated work, so it was left untouched rather than risking another task's changes.
