@@ -1,0 +1,43 @@
+{
+  "reviewed_commit": "eb91d9a853c32584102845a1969ce21cd04755ce",
+  "base_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+  "verdict": "FAIL",
+  "checks": [
+    {
+      "id": 1,
+      "verdict": "PASS",
+      "finding": "In post-commit _archive/hl_stage2/HL_Live_Copy_Service_Core.py:10372-10376, OFF is checked before cancel_resting_entries_against (10384), withdrawn-fill read (10385), local build/prewarm (10388-10389). OFF path returns from _process_disarmed_leader_fill (10262-10320).",
+      "probe": "Ran test_core_disarmed_fast_path.py: 18 checks passed, including monkeypatches that raise if build, prewarm, legacy cancel, withdrawn-fill read, or send is reached."
+    },
+    {
+      "id": 2,
+      "verdict": "FAIL",
+      "finding": "TOCTOU remains. _process_leader_fill_inner reads send_mode_now()==OFF at 10372 and immediately commits the fill to the no-send path; arming can change to ON after that read and before/during _process_disarmed_leader_fill. That fill is deduped/processed and gets MASTER_REAL_ORDERS_OFF audit, but is never sent or retried. Conversely, when it reads ON then mode changes OFF during prewarm, the downstream send gate may block it; there is no coherent state snapshot/lock spanning the decision and send. The repeated check after deferred processing at 10375 narrows but does not eliminate this race. The supplied test does not mutate mode between check and side effects.",
+      "probe": "Static interleaving probe: pause immediately after the OFF predicate at 10372; atomically change config to ON; resume. Execution still calls _process_disarmed_leader_fill, dedupe.processed.add/accepts at 10280-10302, emits MASTER_REAL_ORDERS_OFF at 10304-10320, with no send attempt."
+    },
+    {
+      "id": 3,
+      "verdict": "PASS",
+      "finding": "For a non-deduped fill, the OFF fast path emits SEND_TERMINAL once for the primary fill and each merged fill id at 10308-10319, preserving leader_fill_id and MASTER_REAL_ORDERS_OFF reason. The test confirms five independent fills produce five rows.",
+      "probe": "Ran test_core_disarmed_fast_path.py; ONE_RECONCILIATION_ROW_PER_SKIPPED_FILL PASS."
+    },
+    {
+      "id": 4,
+      "verdict": "PASS_WITH_LIMITATION",
+      "finding": "Deferred canceled-entry fills persist through WITHDRAWN_ENTRY_FILLS_FILE and are read/acknowledged only after a successful COPY_ACCOUNT_POLLED result (see deferred queue methods and _process_deferred_withdrawn_entry_fills at 10625-10662). This addresses the cancellation-race fill queue. However, the test's resume check stubs _read_fills_of_withdrawn_limits to return an empty successful result, so it does not prove a real filled OID is owned, and there is no auditable evidence for the stated global UNRESOLVED=0 invariant across all skipped fills.",
+      "probe": "Ran test_core_disarmed_fast_path.py; WITHDRAWN_QUEUE_SURVIVES_RESTART_AND_DRAINS_WHEN_ARMED PASS; note the stubbed-empty-read limitation."
+    },
+    {
+      "id": 5,
+      "verdict": "FAIL",
+      "finding": "The OFF branch bypasses intent construction, local risk/ownership checks, and the normal ledger ownership/application logic. It does classify lifecycle under _send_lock and cancels a confirmed-close resting entry, but does not establish that all intended identity/ownership gates run before sending if arming changes concurrently; the time-of-check/time-of-use hole can route a fill to a no-send path based on stale mode. This is not safe to certify as preserving the gates under a concurrent transition.",
+      "probe": "Static path trace: mode predicate at 10372 precedes fast-path return; compare with armed path's blocked_locally/prewarm at 10388-10389 and send-gate path. No race-injection/ownership-gate test in added test file."
+    }
+  ],
+  "runtime": {
+    "test": "_archive/hl_stage2/test_core_disarmed_fast_path.py",
+    "result": "TOTAL=18 FAILED=0",
+    "network_safety": "offline test monkeypatches requests.post to raise; no engine state/config was modified outside the test's temporary audit directory"
+  },
+  "recommendation": "Do not approve until arming state and fill disposition are made coherent across the OFF decision and send boundary (e.g. versioned mode snapshot/revalidation with explicit retry/queue semantics), and add a deterministic race-injection test proving no silent drop/double send. Demonstrate actual deferred fill ownership and UNRESOLVED=0 with a real fixture/probe."
+}
