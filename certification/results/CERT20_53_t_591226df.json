@@ -1,0 +1,127 @@
+{
+  "task_id": "t_591226df",
+  "title": "CERT 20/53 UI-TRUTH-003..NET-003",
+  "tested_commit": "f4ee2bb18dc6781940772cb088e9a476585030e4",
+  "tested_at_utc": "2026-10-18T19:20:27Z",
+  "records": [
+    {
+      "row_id": "UI-TRUTH-003",
+      "verdict": "NOT_TESTED",
+      "evidence_ref": "/checks/UI-TRUTH-003",
+      "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "why": ":8031 unreachable at time of test (HTTP connection refused); no observation made; re-test when the Command Centre is serving."
+    },
+    {
+      "row_id": "UI-TRUTH-004",
+      "verdict": "NOT_TESTED",
+      "evidence_ref": "/checks/UI-TRUTH-004",
+      "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "why": ":8031 unreachable at time of test (HTTP connection refused); no observation made; re-test when the Command Centre is serving."
+    },
+    {
+      "row_id": "UI-TRUTH-005",
+      "verdict": "NOT_TESTED",
+      "evidence_ref": "/checks/UI-TRUTH-005",
+      "tested_commit": "f4ee2bb18dc6781940772cb088e9a476585030e4",
+      "why": "No row-specific lineage evidence was collected proving the serving UI is the historical HL_Copy_App_SSOT.py restoration rather than a rebuild; runtime binding to the claimed serving commit was unavailable."
+    },
+    {
+      "row_id": "LIFE-001",
+      "verdict": "FAIL",
+      "evidence_ref": "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json#/checks/LIFE-001:PROCESS_ALIVE",
+      "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+      "why": "The cited check establishes only that one process was alive; it does not exercise the documented single start command, UI launch, or a second start. The record's shared sweep cannot support the full launch requirement."
+    },
+    {
+      "row_id": "LIFE-002",
+      "verdict": "FAIL",
+      "evidence_ref": "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json#/checks/LIFE-002:STOP_KILLS_WS_THREAD",
+      "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+      "why": "The row-specific check proves a WS thread stops, not that stop leaves zero unresolved submissions or prevents orders during stop."
+    },
+    {
+      "row_id": "LIFE-003",
+      "verdict": "FAIL",
+      "evidence_ref": "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json#/checks/LIFE-003:RESTART_CONSTRUCTION_OK",
+      "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+      "why": "Construction after state persistence is not proof that restart recovers external truth with zero new authority; the required external-truth restart oracle is absent."
+    },
+    {
+      "row_id": "LIFE-004",
+      "verdict": "FAIL",
+      "evidence_ref": "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json#/checks/LIFE-004:STATUS_RETURNS_DICT",
+      "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+      "why": "The status check returned only created_at, status, counts, and ownership_gate; it does not establish process, mode, sending state, truth freshness, and one current blocker as required."
+    },
+    {
+      "row_id": "LIFE-005",
+      "verdict": "FAIL",
+      "evidence_ref": "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json#/checks/LIFE-005:ENGINE_HAS_VERSION_IDENTIFIABLE",
+      "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+      "why": "The check identifies a filename, not the exact source commit reported by both running engine and UI. The tested requirement explicitly forbids inferring identity."
+    },
+    {
+      "row_id": "LIFE-006",
+      "verdict": "FAIL",
+      "evidence_ref": "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json#/checks/LIFE-006:LIVE_START_MS_PERSISTS",
+      "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+      "why": "Persistent live_start_ms is not evidence that the old process was stopped and proven gone before new sends or that cutover avoids duplicate authority and replay."
+    },
+    {
+      "row_id": "LIFE-007",
+      "verdict": "FAIL",
+      "evidence_ref": "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json#/checks/LIFE-007:RECOVERY_STATE_PERSISTS",
+      "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+      "why": "Persisting recovery state does not prove restoration of a previous version with compatible state; no rollback/version-compatibility exercise is evidenced."
+    },
+    {
+      "row_id": "LIFE-008",
+      "verdict": "FAIL",
+      "evidence_ref": "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json#/checks/LIFE-008:CONFIG_LOADS_WALLETS",
+      "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+      "why": "Loading one wallet configuration does not test prior-version migration or fail-closed handling for live_config.json, wallet_gate.json, and SERVICE_STATE_FILE."
+    },
+    {
+      "row_id": "LIFE-009",
+      "verdict": "FAIL",
+      "evidence_ref": "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json#/checks/LIFE-009:INSTANCE_LOCK_PREVENTS_DOUBLE",
+      "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+      "why": "The duplicate-instance lock test is row-specific but does not test recovery after a crash into a non-sending/safe state or require operator action before resuming sends."
+    },
+    {
+      "row_id": "NET-001",
+      "verdict": "FAIL",
+      "evidence_ref": "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json#/checks/NET-001:MAINNET_ENV_MAINNET_ENDPOINTS",
+      "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+      "why": "The evidence records leader=follower=mainnet and a shared HL_INFO_URL; the register requires every follower-side endpoint to follow follower network configuration and no endpoint hard-coding. The evidence itself notes one info URL serves both leader and follower."
+    },
+    {
+      "row_id": "NET-002",
+      "verdict": "FAIL",
+      "evidence_ref": "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json#/checks/NET-002:SIGNER_DISTINCT_FROM_MASTER",
+      "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+      "why": "The fixture demonstrates distinct placeholder identities and a same-address rejection case, but does not establish valid configured key derivation, configured MASTER identity, or absence of arbitrary provider fallback for the tested runtime."
+    },
+    {
+      "row_id": "NET-003",
+      "verdict": "FAIL",
+      "evidence_ref": "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json#/checks/NET-003:INDEPENDENT_LEADER_MAINNET_FOLLOWER_TESTNET",
+      "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+      "why": "Although the row-specific check reports a mainnet leader and testnet follower, the same evidence says a single HL_INFO_URL serves both leader and follower reads; therefore independent network selection and the required certification split are not established end-to-end."
+    }
+  ],
+  "checks": {
+    "UI-TRUTH-003": {
+      "result": "NOT_TESTED",
+      "detail": "GET http://127.0.0.1:8031/ from Python urllib returned ConnectionRefusedError [WinError 10061]; no DOM or API payload could be captured."
+    },
+    "UI-TRUTH-004": {
+      "result": "NOT_TESTED",
+      "detail": "Same direct HTTP probe refused; required dashboard contents not observable."
+    },
+    "UI-TRUTH-005": {
+      "result": "NOT_TESTED",
+      "detail": "No UI runtime/serving-build lineage evidence obtained."
+    }
+  }
+}
