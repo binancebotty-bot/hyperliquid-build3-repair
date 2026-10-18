@@ -1,0 +1,92 @@
+[
+  {
+    "row_id": "UI-LCC-TAB-01",
+    "verdict": "PASS",
+    "probe": "Independent headless Playwright click on button[data-lc-tab=positions] against serving :8031; read active-tab set, visible-panel set, per-panel h3.",
+    "why": "Row-bound: active=[positions], visible=[positions], visible panel h3 'Real User Copy Positions' hits=1; all other panels display:none so a sibling row cannot produce this text. Row counts of all 11 tbody identical before/after."
+  },
+  {
+    "row_id": "UI-LCC-TAB-02",
+    "verdict": "PASS",
+    "probe": "Same detector on execqual, PLUS a mutation control stripping .active and setting the panel display:none.",
+    "why": "Row-bound: active=[execqual], visible=[execqual], unique h3 'Execution Quality' hits=1. Mutation control returned active=[] visible=[], proving the predicate CAN fail and is not vacuous."
+  },
+  {
+    "row_id": "UI-LCC-TAB-03",
+    "verdict": "PASS",
+    "probe": "Same detector on audit.",
+    "why": "Row-bound: active=[audit], visible=[audit], unique h3 'Order Intents / Audit' hits=1, other panels hidden, row counts unchanged."
+  },
+  {
+    "row_id": "UI-LCC-TAB-04",
+    "verdict": "PASS",
+    "probe": "Same detector on recon.",
+    "why": "Row-bound: active=[recon], visible=[recon], and the visible h3 is 'Ledger vs Exchange' - not the button label 'Reconciliation' - so it is keyed to the panel heading, not a label echo."
+  },
+  {
+    "row_id": "UI-LCC-TAB-05",
+    "verdict": "PASS",
+    "probe": "Same detector on ws.",
+    "why": "Row-bound: active=[ws], visible=[ws], unique h3 'WS Health Detail' hits=1; all 11 tbody row counts unchanged."
+  },
+  {
+    "row_id": "UI-LCC-ADD-01",
+    "verdict": "PASS",
+    "probe": "AUTHOR SAID NOT_TESTED. Disproved the premise: ran the SAME commit on an isolated instance (HL_LIVE_AUDIT_DIR=<ws>/iso_audit, HL_APP_PORT=8099), then POSTed an invalid and a valid wallet.",
+    "why": "Invalid POST {wallet:not-a-wallet} -> HTTP 400 {ok:false,error:'BAD_WALLET'} (visible rejection). Valid POST 0x1111..1111 -> 200 and persisted EXACTLY into isolated live_config.json. Both halves of the criterion met. The stated blocker 'no isolated test config available' is FALSE - the app derives the config path from HL_LIVE_AUDIT_DIR and the port from HL_APP_PORT."
+  },
+  {
+    "row_id": "UI-LCC-ADD-02",
+    "verdict": "PASS",
+    "probe": "Isolated-instance POST with mode='CLO'; read back the persisted file.",
+    "why": "Row-bound: persisted mode == 'CLO'. The form default is 'LIVE', so this is a genuine round-trip of the submitted value, not a default echo. Author's NOT_TESTED reason is false for the ADD-01 isolation reason."
+  },
+  {
+    "row_id": "UI-LCC-ADD-03",
+    "verdict": "PASS",
+    "probe": "Isolated-instance POST with copy_mode='proportional'; read back persisted file.",
+    "why": "Row-bound: persisted copy_mode == 'proportional'; form default is 'fixed', so the submitted value is what persisted."
+  },
+  {
+    "row_id": "UI-LCC-ADD-04",
+    "verdict": "PASS",
+    "probe": "Isolated-instance POST with norm_base='250'; read back persisted file.",
+    "why": "Row-bound: persisted norm_base == 250.0, distinct from the form default 100, so the submitted value persisted."
+  },
+  {
+    "row_id": "UI-LCC-ADD-05",
+    "verdict": "PASS",
+    "probe": "Isolated-instance POST with fixed_notional='7.5'; read back persisted file.",
+    "why": "Row-bound: persisted fixed_notional == 7.5, distinct from the form default 10."
+  },
+  {
+    "row_id": "UI-LCC-ADD-06",
+    "verdict": "FAIL",
+    "probe": "Enumerated rendered #lcAddForm fields on serving :8031; grepped served HTML and the backend payload normaliser for a leader-equity control.",
+    "why": "CONFIRMED FAIL. The modal exposes exactly wallet, mode, copy_mode, norm_base, fixed_notional. Served HTML contains 0 occurrences of 'Leader equity'. _normalise_live_wallet_payload hardcodes DEFAULT_LEADER_EQUITY and accepts no such key, so no payload can satisfy this row."
+  },
+  {
+    "row_id": "UI-LCC-ADD-07",
+    "verdict": "FAIL",
+    "probe": "Same enumeration; grep for 'Max diff' in served HTML and backend normaliser.",
+    "why": "CONFIRMED FAIL. No max-diff input in the modal; 0 occurrences of 'Max diff' in served HTML; max_close_adverse_diff_pct exists only as a global control, not a per-wallet add field."
+  },
+  {
+    "row_id": "UI-LCC-ADD-08",
+    "verdict": "FAIL",
+    "probe": "Same enumeration; grep for 'Daily loss' in served HTML and backend normaliser.",
+    "why": "CONFIRMED FAIL. No daily-loss input in the modal; 0 occurrences of 'Daily loss' in served HTML; max_daily_loss_usd exists only as a global control, not a per-wallet add field."
+  },
+  {
+    "row_id": "UI-LCC-ADD-09",
+    "verdict": "PASS",
+    "probe": "Independent cancel probe: opened the modal on :8031, attached a request listener filtered to add-wallet, clicked the [data-lc-close] Cancel control, re-read modal state.",
+    "why": "Row-bound: modal visible before=true, after=false, and the listener captured ZERO add-wallet requests. Specific to Cancel (distinct from Submit). Also observed the backdrop intercepts pointer events while open, confirming the modal is genuinely modal."
+  },
+  {
+    "row_id": "UI-LCC-ADD-10",
+    "verdict": "PASS",
+    "probe": "AUTHOR SAID NOT_TESTED. On the isolated instance: submitted invalid input (expect visible validation) and valid input (expect persistence), then read the on-disk live_config.json.",
+    "why": "Submit/persist IS exercisable without touching serving config. Invalid submit -> HTTP 400 error 'BAD_WALLET' and no wallet written; valid submit -> 200 {ok:true,wallet_count:1,active_wallets:1} with the exact submitted values on disk. Author's avoidance was unnecessary: the page contains NO order-sending code path at all (0 matches for place_order/_send_real/sdk order calls in HL_Copy_App_SSOT.py), so this endpoint could not place a trade even against a live config."
+  }
+]
