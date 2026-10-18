@@ -1,0 +1,20 @@
+{
+  "reset": {
+    "endpoint": "/api/reset-app-history",
+    "method": "POST",
+    "status_code": 200,
+    "response": {
+      "ok": true,
+      "note": "derived app files removed; engine truth untouched"
+    }
+  },
+  "snapshot": {
+    "endpoint": "/api/snapshot",
+    "method": "POST",
+    "status_code": 200,
+    "response": {
+      "ok": true,
+      "path": "C:\\Users\\wigmore\\trading_stack\\hl-build3-testnet-cert-j28-89b3bc7\\_archive\\hl_stage2\\hl_copy_output\\snapshots\\2026-10-18_11-58-19_app_model_state.json"
+    }
+  }
+}

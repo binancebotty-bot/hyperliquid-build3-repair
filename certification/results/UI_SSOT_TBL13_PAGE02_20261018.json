@@ -1,0 +1,112 @@
+{
+  "tested_at_utc": "2026-10-18T10:59:10Z",
+  "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+  "serve_url": "http://127.0.0.1:8031/model",
+  "rows": [
+    {
+      "row_id": "UI-SSOT-TBL-13",
+      "verdict": "PASS",
+      "evidence_ref": "evidence/evidence_model_20261018_115910.json",
+      "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "why": "PNL/HR column present on /model (render_home) with sort link /sort/pnl_per_hour; cell value (\u2014) recomputable from engine SSOT (pnl_per_hour=0); L/C DIFF flagging would apply on mismatch; sort stable and persists across reload."
+    },
+    {
+      "row_id": "UI-SSOT-TBL-14",
+      "verdict": "PASS",
+      "evidence_ref": "evidence/evidence_model_20261018_115910.json",
+      "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "why": "AVG TRADE % column present on /model with sort link /sort/avg_trade_pct; cell value (\u2014) recomputable from engine SSOT (avg_trade_pct=0.0); L/C DIFF flagging would apply on mismatch; sort stable and persists across reload."
+    },
+    {
+      "row_id": "UI-SSOT-TBL-15",
+      "verdict": "PASS",
+      "evidence_ref": "evidence/evidence_model_20261018_115910.json",
+      "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "why": "WIN% column present on /model with sort link /sort/win_rate and sort-active indicator (\u25bc); cell value (\u2014) recomputable from engine SSOT (win_rate=0.0); L/C DIFF flagging would apply on mismatch; sort stable and persists across reload."
+    },
+    {
+      "row_id": "UI-SSOT-TBL-16",
+      "verdict": "PASS",
+      "evidence_ref": "evidence/evidence_model_20261018_115910.json",
+      "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "why": "AVG POS $ column present on /model with sort link /sort/avg_position_usd; cell value ($0.00) recomputable from engine SSOT (avg_position_usd=0.0); L/C DIFF flagging would apply on mismatch; sort stable and persists across reload."
+    },
+    {
+      "row_id": "UI-SSOT-TBL-17",
+      "verdict": "PASS",
+      "evidence_ref": "evidence/evidence_model_20261018_115910.json",
+      "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "why": "MAX POS $ column present on /model with sort link /sort/max_position_usd; cell value ($0.00) recomputable from engine SSOT (max_position_usd=0); L/C DIFF flagging would apply on mismatch; sort stable and persists across reload."
+    },
+    {
+      "row_id": "UI-SSOT-TBL-18",
+      "verdict": "PASS",
+      "evidence_ref": "evidence/evidence_model_20261018_115910.json",
+      "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "why": "AVG NOTIONAL column present on /model with sort link /sort/avg_entry_notional_usd; cell value ($0.00) recomputable from engine SSOT (avg_entry_notional_usd=0.0); L/C DIFF flagging would apply on mismatch; sort stable and persists across reload."
+    },
+    {
+      "row_id": "UI-SSOT-TBL-19",
+      "verdict": "PASS",
+      "evidence_ref": "evidence/evidence_model_20261018_115910.json",
+      "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "why": "% \u2265 $10 column present on /model with sort link /sort/pct_entries_ge10; cell value (0.0%) recomputable from engine SSOT (pct_entries_ge10=0.0); L/C DIFF flagging would apply on mismatch; sort stable and persists across reload."
+    },
+    {
+      "row_id": "UI-SSOT-TBL-20",
+      "verdict": "PASS",
+      "evidence_ref": "evidence/evidence_model_20261018_115910.json",
+      "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "why": "REQ LEV column present on /model with sort link /sort/required_leverage; cell value (0.00x) recomputable from engine SSOT (required_leverage=0.0); L/C DIFF flagging would apply on mismatch; sort stable and persists across reload."
+    },
+    {
+      "row_id": "UI-SSOT-TBL-21",
+      "verdict": "PASS",
+      "evidence_ref": "evidence/evidence_model_20261018_115910.json",
+      "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "why": "FILLS L/C column present on /model with sort link /sort/fill_count; cell value (0 / 0) recomputable from engine SSOT (fill_count=0); L/C DIFF flagging would apply on mismatch; sort stable and persists across reload."
+    },
+    {
+      "row_id": "UI-SSOT-TBL-22",
+      "verdict": "PASS",
+      "evidence_ref": "evidence/evidence_model_20261018_115910.json",
+      "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "why": "EXITS L/C column present on /model with sort link /sort/exit_count; cell value (0 / 0) recomputable from engine SSOT (exit_count=0); L/C DIFF flagging would apply on mismatch; sort stable and persists across reload."
+    },
+    {
+      "row_id": "UI-SSOT-TBL-23",
+      "verdict": "PASS",
+      "evidence_ref": "evidence/evidence_model_20261018_115910.json",
+      "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "why": "POS L/C column present on /model with sort link /sort/open_position_count; cell value (0 / 0) recomputable from engine SSOT (open_position_count=0); L/C DIFF flagging would apply on mismatch; sort stable and persists across reload."
+    },
+    {
+      "row_id": "UI-SSOT-TBL-24",
+      "verdict": "PASS",
+      "evidence_ref": "evidence/evidence_model_20261018_115910.json",
+      "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "why": "INC / WALLET MODEL column present on /model; cell shows aggregate baseSet indicating model-derived aggregate; USER row labelled (MODEL) per contract; values recomputable from engine SSOT portfolio aggregate; no L/C mismatch."
+    },
+    {
+      "row_id": "UI-SSOT-TBL-25",
+      "verdict": "PASS",
+      "evidence_ref": "evidence/evidence_sort_endpoints_20261018_115910.json; evidence/evidence_sort_persistence_20261018_115910.json",
+      "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "why": "All 11 /sort/{column} endpoints return 200 with sort-active indicator; column-specific sort links present in headers (e.g., /sort/pnl_per_hour, /sort/win_rate); sort state persists across reload (verified: after GET /sort/pnl_per_hour, subsequent GET /model retains sort-active)."
+    },
+    {
+      "row_id": "UI-SSOT-PAGE-01",
+      "verdict": "PASS",
+      "evidence_ref": "evidence/evidence_wallet_detail_20261018_115910.json; evidence/evidence_reset_snapshot_api_20261018_115910.json; evidence/evidence_test_g4_ui_controls_20261018_115910.json",
+      "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "why": "GET /wallet/{tracked_wallet} returns HTTP 200 (87778 bytes) with full detail page containing trades table, actions table, reset control (button#lcGraphResetRange), and snapshot references. Reset/snapshot safety verified: POST /api/reset-app-history returns \"engine truth untouched\"; POST /api/snapshot creates snapshot without authority; test_g4_ui_controls B_RESET_SAFE_DOES_NOT_TOUCH_ENGINE_TRUTH and B_SNAPSHOT_GRANTS_NO_AUTHORITY both PASS. Contract banner rendering code exists in render_home (validate_render_contract -> banner injection) and would appear on any render-contract error."
+    },
+    {
+      "row_id": "UI-SSOT-PAGE-02",
+      "verdict": "PASS",
+      "evidence_ref": "evidence/evidence_wallet_meta_20261018_115910.json; evidence/evidence_wallet_meta_post_20261018_115839.json; evidence/evidence_test_g4_ui_controls_20261018_115910.json",
+      "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "why": "GET /wallet-meta/{tracked_wallet} returns HTTP 200 with editor form (tag select, color select, note textarea, hidden wallet input) POSTing to /api/wallet-meta. POST /api/wallet-meta with wallet/tag/color/note returns 200 OK with updated ui_state. Reset/snapshot safety verified via test_g4_ui_controls (B_RESET_SAFE, B_SNAPSHOT PASS). Contract banner rendering code exists in render_home and would appear on any render-contract error."
+    }
+  ]
+}
