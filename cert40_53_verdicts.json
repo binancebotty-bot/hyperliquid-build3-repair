@@ -18,90 +18,90 @@
     "verdict": "NOT_TESTED",
     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
-    "why": "No evidence: incident-specific assertion is absent from this generic UI artifact."
+    "why": "INC-13 requires proving the displayed target is governed by the target gate. DISPLAYED_TARGET_GATED and TARGET_GATE_VERIFIED test UI target-gating presence/verification, but do not reproduce the incident unauthorized-target condition or prove the actual gate blocks that target."
   },
   {
     "row_id": "INC-14",
     "verdict": "NOT_TESTED",
     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
-    "why": "No evidence: incident-specific assertion is absent from this generic UI artifact."
+    "why": "INC-14 requires that the incident cannot create or display a false budget. NO_FALSE_BUDGET checks the generic condition, but does not inject the incident state or establish that displayed budget derives from authoritative runtime values."
   },
   {
     "row_id": "INC-15",
     "verdict": "NOT_TESTED",
     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
-    "why": "No evidence: incident-specific assertion is absent from this generic UI artifact."
+    "why": "INC-15 requires close-only behavior while exposure remains open. CLOSE_ONLY_VISIBLE checks visibility and CLOSE_ONLY_WITH_EXPOSURE checks handling with exposure, but neither establishes the incident-time transition or safe exposure reduction without permitting new risk."
   },
   {
     "row_id": "INC-16",
     "verdict": "NOT_TESTED",
     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
-    "why": "No evidence: incident-specific assertion is absent from this generic UI artifact."
+    "why": "INC-16 requires the relevant mode transition to be visibly and correctly reflected. MODE_TRANSITION_VISIBLE checks visibility only; it does not establish that incident source and target modes and outcome match runtime state."
   },
   {
     "row_id": "INC-17",
     "verdict": "NOT_TESTED",
     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
-    "why": "No evidence: incident-specific assertion is absent from this generic UI artifact."
+    "why": "INC-17 requires the incident error to be surfaced. ERROR_SURFACED and ERROR_DISPLAYED check generic surfacing/display, but do not trigger the incident-specific error or prove the displayed error corresponds to the underlying failure and is actionable."
   },
   {
     "row_id": "INC-18",
-    "verdict": "FAIL",
+    "verdict": "NOT_TESTED",
     "evidence_ref": "",
     "tested_commit": "",
-    "why": "No evidence: incident-specific assertion is absent from this generic UI artifact."
+    "why": "INC-18 requires its incident-specific recovery/containment outcome. UI_CORRECTION has no INC-18 check; unrelated generic UI checks cannot establish that outcome. No evidence_ref or tested_commit is supplied, so FAIL is unsupported; mark NOT_TESTED pending row-specific evidence."
   },
   {
     "row_id": "UI-FP-001",
     "verdict": "NOT_TESTED",
     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
-    "why": "The artifact check is only that an element is absent; it does not bind this row\u2019s specified live_config source field to the rendered value (or independently recompute it)."
+    "why": "live_config.wallets (wallet count) must drive the rendered wallet-count header. LCWALLETCOUNT_ELEMENT/HEADER_FALLBACK test absence/fallback; they never supply a populated count and compare the display to it."
   },
   {
     "row_id": "UI-FP-002",
     "verdict": "NOT_TESTED",
     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
-    "why": "The artifact check is only that an element is absent; it does not bind this row\u2019s specified live_config source field to the rendered value (or independently recompute it)."
+    "why": "live_config mode/safety state must drive the rendered LIVE indicator. LIVE_ELEMENT/SAFETY_STRIP_FALLBACK test absence/fallback, not whether a configured LIVE value is accurately bound to the indicator."
   },
   {
     "row_id": "UI-FP-003",
     "verdict": "NOT_TESTED",
     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
-    "why": "The artifact check is only that an element is absent; it does not bind this row\u2019s specified live_config source field to the rendered value (or independently recompute it)."
+    "why": "live_config close-only state must drive the rendered CLO indicator. CLO_ELEMENT/WS_FALLBACK test absence and websocket fallback, not that configured close-only status controls the rendered value."
   },
   {
     "row_id": "UI-FP-004",
     "verdict": "NOT_TESTED",
     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
-    "why": "The artifact check is only that an element is absent; it does not bind this row\u2019s specified live_config source field to the rendered value (or independently recompute it)."
+    "why": "live_config OFF mode must drive the rendered OFF indicator. OFF_ELEMENT/NO_DATA_FALLBACK test absence/no-data behavior, not whether the OFF source value propagates to the indicator."
   },
   {
     "row_id": "UI-FP-005",
     "verdict": "NOT_TESTED",
     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
-    "why": "The artifact check is only that an element is absent; it does not bind this row\u2019s specified live_config source field to the rendered value (or independently recompute it)."
+    "why": "live_config auto-send setting must determine lcAutoSend. LCAUTOSEND_ELEMENT checks presence only; it does not vary the setting and assert the matching rendered value."
   },
   {
     "row_id": "UI-FP-006",
     "verdict": "NOT_TESTED",
     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
-    "why": "The artifact check is only that an element is absent; it does not bind this row\u2019s specified live_config source field to the rendered value (or independently recompute it)."
+    "why": "live_config websocket overall state must determine lcWsOverall. LCWSOVERALL_ELEMENT checks presence only; it neither binds a configured state nor independently verifies the displayed overall state."
   },
   {
     "row_id": "UI-FP-007",
     "verdict": "NOT_TESTED",
     "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
     "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
-    "why": "The artifact check is only that an element is absent; it does not bind this row\u2019s specified live_config source field to the rendered value (or independently recompute it)."
+    "why": "live_config real-orders setting must determine lcRealOrders. LCREALORDERS_ELEMENT checks presence only; it does not establish that the source setting matches the rendered value."
   }
 ]
