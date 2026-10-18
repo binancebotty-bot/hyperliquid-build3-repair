@@ -1,0 +1,275 @@
+{
+ "schema": "certification.batch.v1",
+ "card_id": "t_3319351b",
+ "register": "origin/cert/local-main-b142cf8:certification/certification_matrix.json",
+ "register_commit": "f4ee2bb18dc6781940772cb088e9a476585030e4",
+ "rows_requested": 15,
+ "rows_delivered": 15,
+ "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+ "tested_commit_date": "2026-10-17T07:18:14Z",
+ "serving_url": "http://127.0.0.1:8031/live-copy",
+ "serving_pid": 41124,
+ "serving_process_start_utc": "2026-10-18T22:15:14Z",
+ "served_script_body_sha256": "85f9c6a41a9511288a9f260c91b4f46079e31c2fe3208f22b9d84c310afe3f40",
+ "committed_ssot_sha256": "bb3a85e7b5867f17297412771ff94d99578352e7be9e175082810568461736aa",
+ "how_serving_build_was_established": "PROCESS RULE satisfied: the only listener answering /live-copy on 127.0.0.1:8031 is PID 41124 (pythonw.exe HL_Copy_App_SSOT.py) created 2026-10-18T22:15:14Z. Commit 89b3bc75 is dated 2026-10-17T07:18:14Z, so it PREDATES the process. Content binding: the 64545-byte script body in the live HTML (sha256 85f9c6a4...) occurs exactly once inside 89b3bc75:_archive/hl_stage2/HL_Copy_App_SSOT.py (blob sha256 bb3a85e7...). CARD DISCREPANCY: the card names PID 33368 started 2026-10-17T10:54:09Z; that process is gone. The live process today is PID 41124. The card served-commit claim (89b3bc75) still holds.",
+ "method": "Headless Chromium (Playwright, py3.11) against the live :8031 document; domcontentloaded then a readyState poll (networkidle never fires). Fixtures were injected into the probe instance audit dir so each rendered cell traces to one input field. Every check is a MUTATION CONTROL: the input carries a sentinel unique across the row, and the assertion is that the sentinel appears in THIS column.",
+ "execq_dom": {
+  "table_body": "#lcExecQualRows",
+  "headers": [
+   "Time",
+   "Wallet",
+   "Coin",
+   "Side",
+   "Status",
+   "Terminal state",
+   "Operator action",
+   "Reject category",
+   "OID",
+   "Fill avg px",
+   "Size",
+   "Pos before -> after",
+   "Leader->send ms",
+   "Total ms",
+   "Symbol ms",
+   "SDK ms",
+   "Exchange ms",
+   "Error"
+  ],
+  "header_count": 18,
+  "rendered_cells": [
+   "2026-10-19T00:00:07Z",
+   "0xSENTWALL...000001",
+   "SENTCOIN",
+   "SENTBUY",
+   "ACTIVE_LOCAL_BLOCK",
+   "SENTSTATUS",
+   "SENTTERMINAL",
+   "SENTOPERATOR",
+   "SENTREJECT",
+   "SENTOID9999",
+   "123.45",
+   "6.789",
+   "SENTPOSBEFORE -> SENTPOSAFTER",
+   "111",
+   "222",
+   "333",
+   "444",
+   "555",
+   "SENTERRORTEXT"
+  ],
+  "cell_count": 19,
+  "injected_sentinels": {
+   "time": "2026-10-19T00:00:07Z",
+   "leader_wallet": "0xSENTWALLET000000000000000000000000001",
+   "coin": "SENTCOIN",
+   "side": "SENTBUY",
+   "status": "SENTSTATUS",
+   "terminal_state": "SENTTERMINAL",
+   "operator_action": "SENTOPERATOR",
+   "reject_category": "SENTREJECT",
+   "oid": "SENTOID9999",
+   "fill_avg_px": "123.45",
+   "fill_size": "6.789",
+   "pos": "SENTPOSBEFORE -> SENTPOSAFTER",
+   "leader_ms": "111",
+   "total_ms": "222",
+   "symbol_ms": "333",
+   "sdk_ms": "444",
+   "exchange_ms": "555",
+   "error": "SENTERRORTEXT"
+  },
+  "finding": "Execution Quality renders 18 <th> but 19 <td> per row. From index 4 on every header sits over the cell to its LEFT: Status shows truth_state, Terminal state shows status, Operator action shows terminal_state, Reject category shows operator_action, OID shows reject_category, Fill avg px shows oid, and Error lands on exchange_call_ms with the real error in an unheaded 19th cell.",
+  "root_cause_ref": "_archive/hl_stage2/HL_Copy_App_SSOT.py:7636-7644 at 89b3bc75 - the row template emits a truth_state pill as an extra <td> between Side and Status that the thead (line 7156) does not declare."
+ },
+ "orphan_dom": {
+  "table_body": "#lcOrphanPositionRows",
+  "headers": [
+   "Coin",
+   "Unexplained size",
+   "Entry px",
+   "Mark px",
+   "Unrealized PnL",
+   "Status",
+   "Who manages it",
+   "Engine closes it?",
+   "Engine uses it?",
+   "Context"
+  ],
+  "rendered_rows": {
+   "SENTSHARE shared residual ledger 5.0 vs exchange 10.0": [
+    "SENTSHARE",
+    "5",
+    "111.11",
+    "222.22",
+    "-",
+    "Not opened by the engine - managed by you",
+    "You",
+    "No",
+    "No",
+    "exchange holds 10; leaders explain the rest"
+   ],
+   "SENTORP pure external orphan exchange 7.5": [
+    "SENTORP",
+    "7.5",
+    "101.11",
+    "202.22",
+    "$758.33",
+    "Not opened by the engine - managed by you",
+    "You",
+    "No",
+    "No",
+    "no engine order behind it"
+   ]
+  },
+  "injected_sentinels": {
+   "SENTORP": {
+    "signed_size": 7.5,
+    "entry_px": 101.11,
+    "mark_px": 202.22,
+    "unrealized_pnl": 758.325
+   },
+   "SENTSHARE": {
+    "signed_size": 10.0,
+    "entry_px": 111.11,
+    "mark_px": 222.22,
+    "unrealized_pnl": 777.77
+   },
+   "sleeves": "0xleaderaa..: +3.0 and 0xleaderbb..: +2.0 on SENTSHARE"
+  },
+  "note": "Orphan table columns ARE aligned (10 headers, 10 cells). The off-by-one defect is confined to Execution Quality."
+ },
+ "environment_caveat": "Fixtures were written to the certification probe instance audit dir (C:/Users/wigmore/.hermes/cache/scratch/serve89b3/run/audit), the data dir of the app answering :8031; the JSON fixtures used are recorded here so results reproduce.",
+ "summary": {
+  "PASS": 9,
+  "FAIL": 6,
+  "NOT_TESTED": 0
+ },
+ "demoted_from_register": [
+  "UI-FP-108",
+  "UI-FP-111",
+  "UI-FP-112"
+ ],
+ "rows": [
+  {
+   "row_id": "UI-FP-098",
+   "verdict": "PASS",
+   "evidence_ref": "certification/results/UI_FP_098_112_t_3319351b.json#orphan_dom",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "Orphan Mark px renders the row own exchange mark: injected SENTORP mark 202.22 rendered 202.22 while sibling SENTSHARE rendered 222.22 in the same column. Row-bound, cannot be shared.",
+   "probe": "Two coins with distinct marks; each rendered under its own coin."
+  },
+  {
+   "row_id": "UI-FP-099",
+   "verdict": "PASS",
+   "evidence_ref": "certification/results/UI_FP_098_112_t_3319351b.json#orphan_dom",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "Orphan Unrealized PnL renders the row own unrealizedPnl: injected 758.325 rendered $758.33 for SENTORP while the SENTSHARE row rendered an em dash. Row-bound with a real numeric format step.",
+   "probe": "Distinct upnl per coin; formatting proves a per-row conversion."
+  },
+  {
+   "row_id": "UI-FP-100",
+   "verdict": "PASS",
+   "evidence_ref": "certification/results/UI_FP_098_112_t_3319351b.json#orphan_dom",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "Orphan Status pill carries the row own ledger_vs_exchange in its title: SENTORP title ACCOUNT_LEVEL_ONLY / ORPHAN_EXCHANGE vs SENTSHARE title ACCOUNT_LEVEL_ONLY / ACCOUNT_LEVEL_ONLY / SHARED_SYMBOL_RESIDUAL -5.000000. CAVEAT: visible pill text is a fixed string; only the tooltip discriminates.",
+   "probe": "One external orphan vs one shared residual produced different title attributes."
+  },
+  {
+   "row_id": "UI-FP-101",
+   "verdict": "PASS",
+   "evidence_ref": "certification/results/UI_FP_098_112_t_3319351b.json#orphan_dom",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "Orphan Context is row-specific: SENTORP shows no engine order behind it (title NO SERVICE ORDER EVIDENCE; not adopted into ledger) vs SENTSHARE exchange holds 10; leaders explain the rest. CAVEAT: visible text is built in renderPositions(), not reconciliation_note verbatim.",
+   "probe": "Two provenances produced two different visible sentences."
+  },
+  {
+   "row_id": "UI-FP-102",
+   "verdict": "PASS",
+   "evidence_ref": "certification/results/UI_FP_098_112_t_3319351b.json#orphan_dom",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "Shared-symbol residual row is visible: two sleeves totalling +5.0 on SENTSHARE against exchange 10.0 rendered a SENTSHARE orphan row with unexplained size 5 and context exchange holds 10; leaders explain the rest. The ledger==exchange path correctly suppresses the row, so the predicate fails both ways.",
+   "probe": "Positive case rendered a row; the abs(diff)<=1e-8 suppression path produced none."
+  },
+  {
+   "row_id": "UI-FP-103",
+   "verdict": "PASS",
+   "evidence_ref": "certification/results/UI_FP_098_112_t_3319351b.json#execq_dom",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "Execution Quality Time (col 0) rendered the injected send_attempt time 2026-10-19T00:00:07Z verbatim. Col 0 is aligned; the shift starts at col 4.",
+   "probe": "Sentinel time rendered in col 0 only."
+  },
+  {
+   "row_id": "UI-FP-104",
+   "verdict": "PASS",
+   "evidence_ref": "certification/results/UI_FP_098_112_t_3319351b.json#execq_dom",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "Execution Quality Wallet (col 1) rendered the injected leader wallet shortened to 0xSENTWALL...000001 by shortWallet(). Col 1 is aligned.",
+   "probe": "Unique wallet string shortened in col 1 exactly."
+  },
+  {
+   "row_id": "UI-FP-105",
+   "verdict": "PASS",
+   "evidence_ref": "certification/results/UI_FP_098_112_t_3319351b.json#execq_dom",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "Execution Quality Coin (col 2) rendered the injected SENTCOIN, distinct from the orphan fixtures SENTORP/SENTSHARE used in the same session. Col 2 is aligned.",
+   "probe": "Sentinel coin rendered in col 2."
+  },
+  {
+   "row_id": "UI-FP-106",
+   "verdict": "PASS",
+   "evidence_ref": "certification/results/UI_FP_098_112_t_3319351b.json#execq_dom",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "Execution Quality Side (col 3) rendered the injected SENTBUY. Col 3 is the last aligned column before the shift.",
+   "probe": "Sentinel side rendered in col 3; cols 4+ proven shifted."
+  },
+  {
+   "row_id": "UI-FP-107",
+   "verdict": "FAIL",
+   "evidence_ref": "certification/results/UI_FP_098_112_t_3319351b.json#execq_dom",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "Execution Quality Status shows the WRONG field: with status=SENTSTATUS the Status header rendered ACTIVE_LOCAL_BLOCK (truth_state) and SENTSTATUS appeared under Terminal state. Execution Quality renders 18 <th> but 19 <td> per row. From index 4 on every header sits over the cell to its LEFT: Status shows truth_state, Terminal state shows status, Operator action shows terminal_state, Reject category shows operator_action, OID shows reject_category, Fill avg px shows oid, and Error lands on exchange_call_ms with the real error in an unheaded 19th cell.",
+   "probe": "Distinct sentinel per field: Status cell did not contain SENTSTATUS."
+  },
+  {
+   "row_id": "UI-FP-108",
+   "verdict": "FAIL",
+   "evidence_ref": "certification/results/UI_FP_098_112_t_3319351b.json#execq_dom",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "DEMOTED from register PASS. Terminal state shows the WRONG field: with terminal_state=SENTTERMINAL header 5 rendered SENTSTATUS and SENTTERMINAL appeared under Operator action. The register PASS came from a row-wide substring search that cannot fail. Execution Quality renders 18 <th> but 19 <td> per row. From index 4 on every header sits over the cell to its LEFT: Status shows truth_state, Terminal state shows status, Operator action shows terminal_state, Reject category shows operator_action, OID shows reject_category, Fill avg px shows oid, and Error lands on exchange_call_ms with the real error in an unheaded 19th cell.",
+   "probe": "Mutation control: the value for this column rendered one column right."
+  },
+  {
+   "row_id": "UI-FP-109",
+   "verdict": "FAIL",
+   "evidence_ref": "certification/results/UI_FP_098_112_t_3319351b.json#execq_dom",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "Operator action shows the WRONG field: with operator_action=SENTOPERATOR header 6 rendered SENTTERMINAL and SENTOPERATOR appeared under Reject category. The register reason (export element not found) was a tooling fault, not this defect. Execution Quality renders 18 <th> but 19 <td> per row. From index 4 on every header sits over the cell to its LEFT: Status shows truth_state, Terminal state shows status, Operator action shows terminal_state, Reject category shows operator_action, OID shows reject_category, Fill avg px shows oid, and Error lands on exchange_call_ms with the real error in an unheaded 19th cell.",
+   "probe": "Sentinel operator_action not under its header."
+  },
+  {
+   "row_id": "UI-FP-110",
+   "verdict": "FAIL",
+   "evidence_ref": "certification/results/UI_FP_098_112_t_3319351b.json#execq_dom",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "Reject category shows the WRONG field: with reject_category=SENTREJECT header 7 rendered SENTOPERATOR and SENTREJECT appeared under OID. Execution Quality renders 18 <th> but 19 <td> per row. From index 4 on every header sits over the cell to its LEFT: Status shows truth_state, Terminal state shows status, Operator action shows terminal_state, Reject category shows operator_action, OID shows reject_category, Fill avg px shows oid, and Error lands on exchange_call_ms with the real error in an unheaded 19th cell.",
+   "probe": "Sentinel reject_category not under its header."
+  },
+  {
+   "row_id": "UI-FP-111",
+   "verdict": "FAIL",
+   "evidence_ref": "certification/results/UI_FP_098_112_t_3319351b.json#execq_dom",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "DEMOTED from register PASS. OID shows the WRONG field: with oid=SENTOID9999 header 8 rendered SENTREJECT and SENTOID9999 appeared under Fill avg px. An operator reading OID reads a reject category. Execution Quality renders 18 <th> but 19 <td> per row. From index 4 on every header sits over the cell to its LEFT: Status shows truth_state, Terminal state shows status, Operator action shows terminal_state, Reject category shows operator_action, OID shows reject_category, Fill avg px shows oid, and Error lands on exchange_call_ms with the real error in an unheaded 19th cell.",
+   "probe": "Sentinel oid rendered one column right; row-wide search hid it."
+  },
+  {
+   "row_id": "UI-FP-112",
+   "verdict": "FAIL",
+   "evidence_ref": "certification/results/UI_FP_098_112_t_3319351b.json#execq_dom",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "DEMOTED from register PASS. Fill avg px shows the WRONG field: with fill_avg_px=123.45 header 9 rendered SENTOID9999 and 123.45 appeared under Size. The price column shows an order id. Execution Quality renders 18 <th> but 19 <td> per row. From index 4 on every header sits over the cell to its LEFT: Status shows truth_state, Terminal state shows status, Operator action shows terminal_state, Reject category shows operator_action, OID shows reject_category, Fill avg px shows oid, and Error lands on exchange_call_ms with the real error in an unheaded 19th cell.",
+   "probe": "Sentinel price rendered one column right; register PASS came from a row-wide substring."
+  }
+ ]
+}
