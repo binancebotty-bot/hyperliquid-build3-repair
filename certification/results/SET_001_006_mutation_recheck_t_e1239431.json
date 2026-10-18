@@ -1,0 +1,55 @@
+{
+  "task_id": "t_e1239431",
+  "source_artifact": "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json",
+  "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+  "rows": [
+    {
+      "row_id": "SET-001",
+      "verdict": "NOT_TESTED",
+      "evidence_ref": "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json",
+      "quoted_specificity": "expected_behaviour: In-flight remains blocking after API ACK until independent MASTER userFills plus resulting position prove fill, or terminal rejection proves no fill. Existing check detail: status=UNSETTLED, settled=False; status=SETTLEMENT_UNKNOWN.",
+      "mutation_controls": [],
+      "why": "No executable row-owned assertion or mutation harness is present in the cited artifact: it records pass=true and output strings only. I cannot alter just the ACK-versus-independent-settlement condition and run SET-001's own check to demonstrate FAIL, so a mutation control is NOT_TESTED."
+    },
+    {
+      "row_id": "SET-002",
+      "verdict": "NOT_TESTED",
+      "evidence_ref": "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json",
+      "quoted_specificity": "expected_behaviour: userFillsByTime queried per perp DEX scope with dex param; deterministic dedupe; missing scope fails closed. Existing check detail: status=SETTLED_FULL, filled=1.0 (MASTER_FULL_SETTLEMENT and MASTER_MULTI_SCOPE_SETTLEMENT).",
+      "mutation_controls": [],
+      "why": "The cited artifact has no runnable per-DEX query/dedupe/missing-scope assertion or mutation harness; it records pass=true and descriptive output only. I cannot perturb only SET-002's MASTER multi-scope settlement behavior and execute its own check to demonstrate FAIL; therefore NOT_TESTED."
+    },
+    {
+      "row_id": "SET-003",
+      "verdict": "NOT_TESTED",
+      "evidence_ref": "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json",
+      "quoted_specificity": "expected_behaviour: Clear requires exchange-derived terminal rejection plus post-attempt MASTER no-fill across all scopes; caller boolean alone forbidden. Existing check detail: status=TERMINAL_REJECT_NO_FILL.",
+      "mutation_controls": [],
+      "why": "The cited artifact contains no executable guard assertion distinguishing exchange-derived terminal rejection plus post-attempt all-scope no-fill from a caller boolean; it records pass=true and a status string only. No row-specific mutation can be run to flip SET-003's own check, so NOT_TESTED."
+    },
+    {
+      "row_id": "SET-004",
+      "verdict": "NOT_TESTED",
+      "evidence_ref": "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json",
+      "quoted_specificity": "expected_behaviour: Ownership advances only by confirmed fill; residual authorised delta remains; no duplicate quantity (TEST-005). Existing check detail: status=SETTLED_PARTIAL, filled=0.6, remaining=0.4.",
+      "mutation_controls": [],
+      "why": "The cited artifact records a partial-fill example but supplies no runnable ownership/remaining-delta/no-duplicate assertion or mutation harness. I cannot perturb only the partial-fill accounting condition and verify SET-004's own check fails; NOT_TESTED."
+    },
+    {
+      "row_id": "SET-005",
+      "verdict": "NOT_TESTED",
+      "evidence_ref": "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json",
+      "quoted_specificity": "expected_behaviour: Crash between send and oid persistence reconciles from started_ms + intent attributes and stays blocking if ambiguous. Existing check detail: status=UNSETTLED.",
+      "mutation_controls": [],
+      "why": "The cited artifact does not provide an executable crash-after-send/before-oid restart fixture, or a row-owned check bound to started_ms plus intent attributes; it records pass=true and status=UNSETTLED only. No isolated mutation can be run against SET-005's own check, so NOT_TESTED."
+    },
+    {
+      "row_id": "SET-006",
+      "verdict": "NOT_TESTED",
+      "evidence_ref": "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json",
+      "quoted_specificity": "expected_behaviour: MASTER net = unattributed baseline + confirmed engine-owned actual +/- unresolved reserved, within tolerance, before any convergence order. Existing check details: divergence=0.0, blocker=None; divergence=1.0, blocker=RECONCILIATION_DIVERGENCE.",
+      "mutation_controls": [],
+      "why": "The artifact records nominal and divergent output strings but has no runnable row-owned arithmetic/tolerance/pre-order gate assertion or mutation harness. I cannot change only the reconciliation equation or gate and execute SET-006's own check to establish FAIL; NOT_TESTED."
+    }
+  ]
+}
