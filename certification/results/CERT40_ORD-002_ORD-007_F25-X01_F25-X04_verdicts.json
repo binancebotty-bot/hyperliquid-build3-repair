@@ -1,0 +1,52 @@
+{
+  "task_id": "t_f47b67bd",
+  "rows": [
+    "ORD-002",
+    "ORD-003",
+    "ORD-004",
+    "ORD-005",
+    "ORD-006",
+    "ORD-007",
+    "F25-X01",
+    "F25-X02",
+    "F25-X03",
+    "F25-X04"
+  ],
+  "verdicts": {
+    "ORD-002": "PASS",
+    "ORD-003": "FAIL",
+    "ORD-004": "PASS",
+    "ORD-005": "PASS",
+    "ORD-006": "NOT_TESTED",
+    "ORD-007": "NOT_TESTED",
+    "F25-X01": "PASS",
+    "F25-X02": "PASS",
+    "F25-X03": "PASS",
+    "F25-X04": "PASS"
+  },
+  "evidence": {
+    "ORD-002": "No close fills crossed zero in 500 recent fills",
+    "ORD-003": "Found 132 entry fills below 10 USD; example: {'coin': 'MEGA', 'notional': 0.547, 'oid': 63002953298}",
+    "ORD-004": "All 500 recent fills have size exactly representable at asset szDecimals",
+    "ORD-005": "498 of 500 recent fills have cloid; each cloid unique and maps to single OID (no reuse)",
+    "ORD-006": "No clear pending_send with outcome in recent 1000 send_attempts tail; reservation may be working but not observable in recent window",
+    "ORD-007": "Live config missing one of HL_LIVE_AUTO_SEND_MAX_PER_RUN (None) or HL_LIVE_AUTO_SEND_WALLET (None)",
+    "F25-X01": "No evidence of F25 automatic fail observed in recent audit/exchange (must never happen)",
+    "F25-X02": "No evidence of F25 automatic fail observed in recent audit/exchange (must never happen)",
+    "F25-X03": "No evidence of F25 automatic fail observed in recent audit/exchange (must never happen)",
+    "F25-X04": "No evidence of F25 automatic fail observed in recent audit/exchange (must never happen)"
+  },
+  "generated_at": "2026-10-18T01:45:00Z",
+  "exchange_data": {
+    "n_fills": 2000,
+    "n_opens": 0,
+    "n_hists": 2000,
+    "mids_keys": [
+      "leader",
+      "follower",
+      "state_dir",
+      "follower_dexes",
+      "networks"
+    ]
+  }
+}
