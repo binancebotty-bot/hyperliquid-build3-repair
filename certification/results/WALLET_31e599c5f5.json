@@ -1,0 +1,52 @@
+{
+  "schema": "wallet-row-probe-result-v1",
+  "register_of_record": {
+    "ref": "main:certification/certification_matrix.json",
+    "commit": "47b898f354797f36a72148de17c0c98ef170c741",
+    "status_for_all_rows": "NOT_TESTED",
+    "applicability_for_all_rows": "OPEN_DECISION"
+  },
+  "checkout_commit": "31e599c5f58de686c9e74357079a85f03e23213a",
+  "serving_engine_commit": null,
+  "serving_engine_commit_note": "Not exposed by the live audit-summary response; no binding between the running UI process and a repository commit was established. The checkout commit is not asserted as the serving commit.",
+  "live_probe": {
+    "harness": "certification/results/probe_wallet_rows.py",
+    "ui": {"url": "http://127.0.0.1:8031/live-copy", "http_status": 200, "bytes": 87350},
+    "audit_oracle": {"url": "http://127.0.0.1:8031/api/live-audit-summary", "http_status": 200, "bytes": 108465},
+    "audit_oracle_timeout": false,
+    "audit_payload_commit_field": false
+  },
+  "rows": [
+    {
+      "id": "UI-WALLET-002", "source_status": "NOT_TESTED", "applicability": "OPEN_DECISION", "decision": "OD-13", "result": "BLOCKED_NOT_CERTIFIED",
+      "checks": {"live_ui_reachable": "PASS", "audit_endpoint_reachable": "PASS", "archive_action_to_config_write": "NOT_RUN", "running_engine_no_restart_and_testnet_effect": "NOT_RUN", "independent_exchange_oracle": "NOT_RUN", "negative_cases": "NOT_RUN"},
+      "negative_case_note": "Not run: invalid-address/duplicate/rejected-update/API-failure and exposure ownership cases require an approved isolated Testnet fixture; issuing destructive wallet mutations against the shared live service is unsafe while OD-13 is unresolved.",
+      "commit": null
+    },
+    {
+      "id": "UI-WALLET-006", "source_status": "NOT_TESTED", "applicability": "OPEN_DECISION", "decision": "OD-02", "result": "BLOCKED_NOT_CERTIFIED",
+      "checks": {"live_ui_reachable": "PASS", "audit_endpoint_reachable": "PASS", "copy_mode_persistence": "NOT_RUN", "running_engine_no_restart_and_testnet_sizing": "NOT_RUN", "independent_exchange_oracle": "NOT_RUN", "negative_cases": "NOT_RUN"},
+      "negative_case_note": "Not run: mode changes and sizing behavior depend on unresolved fixed-mode semantics (OD-02); no sanctioned isolated Testnet setup was identified.",
+      "commit": null
+    },
+    {
+      "id": "UI-WALLET-008", "source_status": "NOT_TESTED", "applicability": "OPEN_DECISION", "decision": "OD-02", "result": "BLOCKED_NOT_CERTIFIED",
+      "checks": {"live_ui_reachable": "PASS", "audit_endpoint_reachable": "PASS", "fixed_notional_persistence": "NOT_RUN", "running_engine_no_restart_and_testnet_sizing": "NOT_RUN", "independent_exchange_oracle": "NOT_RUN", "negative_cases": "NOT_RUN"},
+      "negative_case_note": "Not run: fixed_notional use is expressly conditional on OD-02; no isolated Testnet fixture was identified for persistence/restart/rejection/API-failure cases.",
+      "commit": null
+    },
+    {
+      "id": "UI-WALLET-014", "source_status": "NOT_TESTED", "applicability": "OPEN_DECISION", "decision": "OD-05", "result": "BLOCKED_NOT_CERTIFIED",
+      "checks": {"live_ui_reachable": "PASS", "audit_endpoint_reachable": "PASS", "both_mode_writer_mutations": "NOT_RUN", "effective_engine_mode_no_restart": "NOT_RUN", "independent_exchange_oracle": "NOT_RUN", "negative_cases": "NOT_RUN"},
+      "negative_case_note": "Not run: the canonical mode authority is unresolved (OD-05); mutating either writer on the shared live service could alter active authority.",
+      "commit": null
+    },
+    {
+      "id": "UI-WALLET-015", "source_status": "NOT_TESTED", "applicability": "OPEN_DECISION", "decision": "OD-13", "result": "BLOCKED_NOT_CERTIFIED",
+      "checks": {"live_ui_reachable": "PASS", "audit_endpoint_reachable": "PASS", "purge_action_and_loaded_file_removal": "NOT_RUN", "owned_exposure_safety": "NOT_RUN", "independent_exchange_oracle": "NOT_RUN", "negative_cases": "NOT_RUN"},
+      "negative_case_note": "Not run: purge is destructive and the owned-exposure safety rule remains unresolved (OD-13); no approved disposable Testnet wallet/fixture was supplied.",
+      "commit": null
+    }
+  ],
+  "overall": "No row certified; source statuses remain unchanged. Endpoint availability was proven, not the declared execution proof. No timeout occurred in this probe."
+}
