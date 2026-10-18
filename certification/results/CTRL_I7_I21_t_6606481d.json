@@ -1,0 +1,134 @@
+{
+  "tested_commit": "f4ee2bb18dc6781940772cb088e9a476585030e4",
+  "rows": [
+    {
+      "row_id": "CTRL-I7",
+      "verdict": "NOT_TESTED",
+      "evidence_ref": "certification/results/CTRL_I7_I21_t_6606481d.json#/rows/0",
+      "tested_commit": "f4ee2bb18dc6781940772cb088e9a476585030e4",
+      "why": "The requirement is Mission Control template invariant I7 (one logical message, one semantic execution), whose cited source is listed in the authoritative register as richard-mission-control-template/INVARIANTS.md in a separate local working tree. Discovery at tested commit f4ee2bb18dc6781940772cb088e9a476585030e4 enumerated 157 tracked paths and found no mission/template or serving/binding-named path. This only establishes absence from that snapshot; no runtime probe was run. NOT_TESTED because this exact component/route is absent from the tested Build 3 snapshot, not because of a tooling fault.",
+      "discovery_ref": "certification/results/CTRL_I7_I21_t_6606481d.json#/evidence_discovery"
+    },
+    {
+      "row_id": "CTRL-I8",
+      "verdict": "NOT_TESTED",
+      "evidence_ref": "certification/results/CTRL_I7_I21_t_6606481d.json#/rows/1",
+      "tested_commit": "f4ee2bb18dc6781940772cb088e9a476585030e4",
+      "why": "The requirement is Mission Control template invariant I8 (explicit route/type contract), whose cited source is listed in the authoritative register as richard-mission-control-template/INVARIANTS.md in a separate local working tree. Discovery at tested commit f4ee2bb18dc6781940772cb088e9a476585030e4 enumerated 157 tracked paths and found no mission/template or serving/binding-named path. This only establishes absence from that snapshot; no runtime probe was run. NOT_TESTED because this exact component/route is absent from the tested Build 3 snapshot, not because of a tooling fault.",
+      "discovery_ref": "certification/results/CTRL_I7_I21_t_6606481d.json#/evidence_discovery"
+    },
+    {
+      "row_id": "CTRL-I9",
+      "verdict": "NOT_TESTED",
+      "evidence_ref": "certification/results/CTRL_I7_I21_t_6606481d.json#/rows/2",
+      "tested_commit": "f4ee2bb18dc6781940772cb088e9a476585030e4",
+      "why": "The requirement is Mission Control template invariant I9 (one-shot consumer and singleton ownership), whose cited source is listed in the authoritative register as richard-mission-control-template/INVARIANTS.md in a separate local working tree. Discovery at tested commit f4ee2bb18dc6781940772cb088e9a476585030e4 enumerated 157 tracked paths and found no mission/template or serving/binding-named path. This only establishes absence from that snapshot; no runtime probe was run. NOT_TESTED because this exact component/route is absent from the tested Build 3 snapshot, not because of a tooling fault.",
+      "discovery_ref": "certification/results/CTRL_I7_I21_t_6606481d.json#/evidence_discovery"
+    },
+    {
+      "row_id": "CTRL-I10",
+      "verdict": "NOT_TESTED",
+      "evidence_ref": "certification/results/CTRL_I7_I21_t_6606481d.json#/rows/3",
+      "tested_commit": "f4ee2bb18dc6781940772cb088e9a476585030e4",
+      "why": "The requirement is Mission Control template invariant I10 (BUSY requires observable progress), whose cited source is listed in the authoritative register as richard-mission-control-template/INVARIANTS.md in a separate local working tree. Discovery at tested commit f4ee2bb18dc6781940772cb088e9a476585030e4 enumerated 157 tracked paths and found no mission/template or serving/binding-named path. This only establishes absence from that snapshot; no runtime probe was run. NOT_TESTED because this exact component/route is absent from the tested Build 3 snapshot, not because of a tooling fault.",
+      "discovery_ref": "certification/results/CTRL_I7_I21_t_6606481d.json#/evidence_discovery"
+    },
+    {
+      "row_id": "CTRL-I11",
+      "verdict": "NOT_TESTED",
+      "evidence_ref": "certification/results/CTRL_I7_I21_t_6606481d.json#/rows/4",
+      "tested_commit": "f4ee2bb18dc6781940772cb088e9a476585030e4",
+      "why": "The requirement is Mission Control template invariant I11 (stand-down request is never permission), whose cited source is listed in the authoritative register as richard-mission-control-template/INVARIANTS.md in a separate local working tree. Discovery at tested commit f4ee2bb18dc6781940772cb088e9a476585030e4 enumerated 157 tracked paths and found no mission/template or serving/binding-named path. This only establishes absence from that snapshot; no runtime probe was run. NOT_TESTED because this exact component/route is absent from the tested Build 3 snapshot, not because of a tooling fault.",
+      "discovery_ref": "certification/results/CTRL_I7_I21_t_6606481d.json#/evidence_discovery"
+    },
+    {
+      "row_id": "CTRL-I12",
+      "verdict": "NOT_TESTED",
+      "evidence_ref": "certification/results/CTRL_I7_I21_t_6606481d.json#/rows/5",
+      "tested_commit": "f4ee2bb18dc6781940772cb088e9a476585030e4",
+      "why": "The requirement is Mission Control template invariant I12 (awaiting ruling survives restart), whose cited source is listed in the authoritative register as richard-mission-control-template/INVARIANTS.md in a separate local working tree. Discovery at tested commit f4ee2bb18dc6781940772cb088e9a476585030e4 enumerated 157 tracked paths and found no mission/template or serving/binding-named path. This only establishes absence from that snapshot; no runtime probe was run. NOT_TESTED because this exact component/route is absent from the tested Build 3 snapshot, not because of a tooling fault.",
+      "discovery_ref": "certification/results/CTRL_I7_I21_t_6606481d.json#/evidence_discovery"
+    },
+    {
+      "row_id": "CTRL-I13",
+      "verdict": "NOT_TESTED",
+      "evidence_ref": "certification/results/CTRL_I7_I21_t_6606481d.json#/rows/6",
+      "tested_commit": "f4ee2bb18dc6781940772cb088e9a476585030e4",
+      "why": "The requirement is Mission Control template invariant I13 (Gate PASS wakes Architect), whose cited source is listed in the authoritative register as richard-mission-control-template/INVARIANTS.md in a separate local working tree. Discovery at tested commit f4ee2bb18dc6781940772cb088e9a476585030e4 enumerated 157 tracked paths and found no mission/template or serving/binding-named path. This only establishes absence from that snapshot; no runtime probe was run. NOT_TESTED because this exact component/route is absent from the tested Build 3 snapshot, not because of a tooling fault.",
+      "discovery_ref": "certification/results/CTRL_I7_I21_t_6606481d.json#/evidence_discovery"
+    },
+    {
+      "row_id": "CTRL-I14",
+      "verdict": "NOT_TESTED",
+      "evidence_ref": "certification/results/CTRL_I7_I21_t_6606481d.json#/rows/7",
+      "tested_commit": "f4ee2bb18dc6781940772cb088e9a476585030e4",
+      "why": "The requirement is Mission Control template invariant I14 (Controller closes tasks; Architect closes phases/projects), whose cited source is listed in the authoritative register as richard-mission-control-template/INVARIANTS.md in a separate local working tree. Discovery at tested commit f4ee2bb18dc6781940772cb088e9a476585030e4 enumerated 157 tracked paths and found no mission/template or serving/binding-named path. This only establishes absence from that snapshot; no runtime probe was run. NOT_TESTED because this exact component/route is absent from the tested Build 3 snapshot, not because of a tooling fault.",
+      "discovery_ref": "certification/results/CTRL_I7_I21_t_6606481d.json#/evidence_discovery"
+    },
+    {
+      "row_id": "CTRL-I15",
+      "verdict": "NOT_TESTED",
+      "evidence_ref": "certification/results/CTRL_I7_I21_t_6606481d.json#/rows/8",
+      "tested_commit": "f4ee2bb18dc6781940772cb088e9a476585030e4",
+      "why": "The requirement is Mission Control template invariant I15 (commit before review), whose cited source is listed in the authoritative register as richard-mission-control-template/INVARIANTS.md in a separate local working tree. Discovery at tested commit f4ee2bb18dc6781940772cb088e9a476585030e4 enumerated 157 tracked paths and found no mission/template or serving/binding-named path. This only establishes absence from that snapshot; no runtime probe was run. NOT_TESTED because this exact component/route is absent from the tested Build 3 snapshot, not because of a tooling fault.",
+      "discovery_ref": "certification/results/CTRL_I7_I21_t_6606481d.json#/evidence_discovery"
+    },
+    {
+      "row_id": "CTRL-I16",
+      "verdict": "NOT_TESTED",
+      "evidence_ref": "certification/results/CTRL_I7_I21_t_6606481d.json#/rows/9",
+      "tested_commit": "f4ee2bb18dc6781940772cb088e9a476585030e4",
+      "why": "The requirement is Mission Control template invariant I16 (Graphify mandatory where contracted), whose cited source is listed in the authoritative register as richard-mission-control-template/INVARIANTS.md in a separate local working tree. Discovery at tested commit f4ee2bb18dc6781940772cb088e9a476585030e4 enumerated 157 tracked paths and found no mission/template or serving/binding-named path. This only establishes absence from that snapshot; no runtime probe was run. NOT_TESTED because this exact component/route is absent from the tested Build 3 snapshot, not because of a tooling fault.",
+      "discovery_ref": "certification/results/CTRL_I7_I21_t_6606481d.json#/evidence_discovery"
+    },
+    {
+      "row_id": "CTRL-I17",
+      "verdict": "NOT_TESTED",
+      "evidence_ref": "certification/results/CTRL_I7_I21_t_6606481d.json#/rows/10",
+      "tested_commit": "f4ee2bb18dc6781940772cb088e9a476585030e4",
+      "why": "The requirement is Mission Control template invariant I17 (one writer), whose cited source is listed in the authoritative register as richard-mission-control-template/INVARIANTS.md in a separate local working tree. Discovery at tested commit f4ee2bb18dc6781940772cb088e9a476585030e4 enumerated 157 tracked paths and found no mission/template or serving/binding-named path. This only establishes absence from that snapshot; no runtime probe was run. NOT_TESTED because this exact component/route is absent from the tested Build 3 snapshot, not because of a tooling fault.",
+      "discovery_ref": "certification/results/CTRL_I7_I21_t_6606481d.json#/evidence_discovery"
+    },
+    {
+      "row_id": "CTRL-I18",
+      "verdict": "NOT_TESTED",
+      "evidence_ref": "certification/results/CTRL_I7_I21_t_6606481d.json#/rows/11",
+      "tested_commit": "f4ee2bb18dc6781940772cb088e9a476585030e4",
+      "why": "The requirement is Mission Control template invariant I18 (fail closed), whose cited source is listed in the authoritative register as richard-mission-control-template/INVARIANTS.md in a separate local working tree. Discovery at tested commit f4ee2bb18dc6781940772cb088e9a476585030e4 enumerated 157 tracked paths and found no mission/template or serving/binding-named path. This only establishes absence from that snapshot; no runtime probe was run. NOT_TESTED because this exact component/route is absent from the tested Build 3 snapshot, not because of a tooling fault.",
+      "discovery_ref": "certification/results/CTRL_I7_I21_t_6606481d.json#/evidence_discovery"
+    },
+    {
+      "row_id": "CTRL-I19",
+      "verdict": "NOT_TESTED",
+      "evidence_ref": "certification/results/CTRL_I7_I21_t_6606481d.json#/rows/12",
+      "tested_commit": "f4ee2bb18dc6781940772cb088e9a476585030e4",
+      "why": "The requirement is Mission Control template invariant I19 (event health is explicit), whose cited source is listed in the authoritative register as richard-mission-control-template/INVARIANTS.md in a separate local working tree. Discovery at tested commit f4ee2bb18dc6781940772cb088e9a476585030e4 enumerated 157 tracked paths and found no mission/template or serving/binding-named path. This only establishes absence from that snapshot; no runtime probe was run. NOT_TESTED because this exact component/route is absent from the tested Build 3 snapshot, not because of a tooling fault.",
+      "discovery_ref": "certification/results/CTRL_I7_I21_t_6606481d.json#/evidence_discovery"
+    },
+    {
+      "row_id": "CTRL-I20",
+      "verdict": "NOT_TESTED",
+      "evidence_ref": "certification/results/CTRL_I7_I21_t_6606481d.json#/rows/13",
+      "tested_commit": "f4ee2bb18dc6781940772cb088e9a476585030e4",
+      "why": "The requirement is Mission Control template invariant I20 (live provider push proof is required), whose cited source is listed in the authoritative register as richard-mission-control-template/INVARIANTS.md in a separate local working tree. Discovery at tested commit f4ee2bb18dc6781940772cb088e9a476585030e4 enumerated 157 tracked paths and found no mission/template or serving/binding-named path. This only establishes absence from that snapshot; no runtime probe was run. NOT_TESTED because this exact component/route is absent from the tested Build 3 snapshot, not because of a tooling fault.",
+      "discovery_ref": "certification/results/CTRL_I7_I21_t_6606481d.json#/evidence_discovery"
+    },
+    {
+      "row_id": "CTRL-I21",
+      "verdict": "NOT_TESTED",
+      "evidence_ref": "certification/results/CTRL_I7_I21_t_6606481d.json#/rows/14",
+      "tested_commit": "f4ee2bb18dc6781940772cb088e9a476585030e4",
+      "why": "The requirement is Mission Control template invariant I21 (new blocker admission is bounded), whose cited source is listed in the authoritative register as richard-mission-control-template/INVARIANTS.md in a separate local working tree. Discovery at tested commit f4ee2bb18dc6781940772cb088e9a476585030e4 enumerated 157 tracked paths and found no mission/template or serving/binding-named path. This only establishes absence from that snapshot; no runtime probe was run. NOT_TESTED because this exact component/route is absent from the tested Build 3 snapshot, not because of a tooling fault.",
+      "discovery_ref": "certification/results/CTRL_I7_I21_t_6606481d.json#/evidence_discovery"
+    }
+  ],
+  "evidence_discovery": {
+    "tested_commit": "f4ee2bb18dc6781940772cb088e9a476585030e4",
+    "authoritative_register": "certification/certification_matrix.json at tested_commit",
+    "register_observation": "CTRL-I7 through CTRL-I21 each name a richard-mission-control-template/INVARIANTS.md source in a separate local working tree; CTRL-I7 record explicitly identifies local working tree branch feature/generic-wake-controller at 5de53fa.",
+    "tree_probe": "git ls-tree -r --name-only f4ee2bb18dc6781940772cb088e9a476585030e4",
+    "tree_probe_result": "157 tracked paths; zero paths containing mission or template; zero paths containing serving or binding (case-insensitive). This is discovery evidence of absence from this snapshot only, not proof no source exists elsewhere.",
+    "binding_probe": "No tracked serving/binding-named path in the tested commit; no exercisable serving-build binding identified in that snapshot.",
+    "scope_limit": "No runtime/invariant probe was run; all 15 verdicts remain NOT_TESTED."
+  }
+}
