@@ -89,7 +89,7 @@
       "verdict": "PASS",
       "evidence_ref": "certification/results/TN_F04_rexec_evidence.json + certification/results/TN_F04_REXEC_harness.py + certification/results/TN_F04_REXEC_2a269ad226.json",
       "tested_commit": "2a269ad2260270fee844eedc2cc23545abc91dd0",
-      "probe": "RE-EXECUTED (redo of t_dc4b3ab7 / review t_7dc56d5d): engine obtained by `git archive 2a269ad` into an isolated tree with no .git; sha256 of _archive/hl_stage2/HL_Live_Copy_Service_Core.py = 2dfbd571012af67479ee7a2d9e6f1faac6ee5408722a092fb3625450cab51405, byte-equal to the artifact engine_sha256, 8030 lines. Harness certification/results/TN_F04_REXEC_harness.py (sha256 4e30924afb2f13d946bf636d3df8764270faca13f514efad77bf70a1a1aa1cd3) has NO monkeypatches (real follower_mid, real _unowned_inventory_block, real _pre_send_ownership_gate) and takes --repo/--out, so it runs against a copy instead of the live repo. Execution A on the committed tree: exit 0, 4/4 checks PASS, negative 1/1 PASS (TN-F04:REDUCE_USES_OWNED_SLEEVE copy_size=5.0 decision=EXIT_ALLOWED; TN-F04:FULL_CLOSE_TARGETS_OWNED_SLEEVE copy_size=5.0 decision=EXIT_ALLOWED). Row-bound mutation control, single line copy_size = round(abs(before), 8): (a) *0.5 -> copy_size=2.5, both sizing checks FAIL; (b) sizing from self._copy_notional()/fill.price (fixed_notional path) -> both sizing checks FAIL. Mutant engine hashes 7903126b5dff / f623c393fc2e. Live repo hyperliquid-build3-repair untouched (checkout git status clean apart from these two committed files).",
+      "probe": "RE-EXECUTED (redo of t_dc4b3ab7 / review t_7dc56d5d): engine obtained by `git archive 2a269ad` into an isolated tree with no .git; sha256 of _archive/hl_stage2/HL_Live_Copy_Service_Core.py = 2dfbd571012af67479ee7a2d9e6f1faac6ee5408722a092fb3625450cab51405, byte-equal to the artifact engine_sha256, 8030 lines. Harness certification/results/TN_F04_REXEC_harness.py (sha256 4f537200d9c769ae0e2a278e88623cc95a70ab967b4c2e6d180e54a942fa577a) has NO monkeypatches (real follower_mid, real _unowned_inventory_block, real _pre_send_ownership_gate) and takes --repo/--out, so it runs against a copy instead of the live repo. Execution A on the committed tree: exit 0, 4/4 checks PASS, negative 1/1 PASS (TN-F04:REDUCE_USES_OWNED_SLEEVE copy_size=5.0 decision=EXIT_ALLOWED; TN-F04:FULL_CLOSE_TARGETS_OWNED_SLEEVE copy_size=5.0 decision=EXIT_ALLOWED). Row-bound mutation control, single line copy_size = round(abs(before), 8): (a) *0.5 -> copy_size=2.5, both sizing checks FAIL; (b) sizing from self._copy_notional()/fill.price (fixed_notional path) -> both sizing checks FAIL. Mutant engine hashes 7903126b5dff / f623c393fc2e. Live repo hyperliquid-build3-repair untouched (checkout git status clean apart from these two committed files).",
       "why": "Row-bound by execution, not by binding alone: the committed engine passes the sizing assertions, and either a half-sleeve sizing or a config-notional sizing of the same line flips both TN-F04 sizing checks to FAIL while the two negatives stay green - so the checks measure the exit-sizing behaviour the row names, not the presence of a string. Honest caveats kept: TN-F04:REDUCE_USES_OWNED_SLEEVE accepts decision in {EXIT_ALLOWED, ENTRY_ALLOWED} (sizing exact, decision accept set wider than the name), and the row binds to the cited commit 2a269ad, not to branch HEAD whose worktree engine carries sha b171ec8f. Artifacts: certification/results/TN_F04_REXEC_harness.py, certification/results/TN_F04_rexec_evidence.json, certification/results/TN_F04_REXEC_2a269ad226.json.",
       "runtime_executed": true,
       "mutation_control": {
@@ -104,12 +104,18 @@
           "TN-F04:NEG_RESTART_PRESERVES_OWNED_SLEEVE": true
         }
       },
-      "harness_sha256": "4e30924afb2f13d946bf636d3df8764270faca13f514efad77bf70a1a1aa1cd3",
+      "harness_sha256": "4f537200d9c769ae0e2a278e88623cc95a70ab967b4c2e6d180e54a942fa577a",
       "artifact_sha256": {
-        "harness": "4e30924afb2f13d946bf636d3df8764270faca13f514efad77bf70a1a1aa1cd3",
+        "harness_blob_lf": "4f537200d9c769ae0e2a278e88623cc95a70ab967b4c2e6d180e54a942fa577a",
+        "harness_worktree_crlf": "4e30924afb2f13d946bf636d3df8764270faca13f514efad77bf70a1a1aa1cd3",
         "result_json": "2b8f4041a53388567986844d2cf6613b4ccfc7aa5f0a9fe8c6685c04dc8a8f96",
-        "evidence": "b50c869369eb790119a79384d20740615074138386f00dc70beb72e738815786"
-      }
+        "committed_blob_result": "f0b60d2f6872ebf4a77210d538de54b94bef46656281b81cabd246aab7cbc46c",
+        "evidence": "3b492121cb359f1812f3f9c8ab5c8238bb4ff4e96097c244cf94b121c6e47a5e",
+        "reproduction": "271df6449b4f8384a3cc939a82734b779c7600bca507bc9a320823071a950140"
+      },
+      "harness_sha256_worktree_crlf": "4e30924afb2f13d946bf636d3df8764270faca13f514efad77bf70a1a1aa1cd3",
+      "reproduced_from_committed_branch": true,
+      "reproduced_from_committed_blob": true
     },
     {
       "row_id": "TN-F05",
@@ -169,8 +175,13 @@
     ]
   },
   "artifact_sha256": {
-    "TN-F04_harness": "4e30924afb2f13d946bf636d3df8764270faca13f514efad77bf70a1a1aa1cd3",
-    "TN-F04_result": "2b8f4041a53388567986844d2cf6613b4ccfc7aa5f0a9fe8c6685c04dc8a8f96",
-    "TN-F04_evidence": "b50c869369eb790119a79384d20740615074138386f00dc70beb72e738815786"
+    "TN-F04": {
+      "harness_blob_lf": "4f537200d9c769ae0e2a278e88623cc95a70ab967b4c2e6d180e54a942fa577a",
+      "harness_worktree_crlf": "4e30924afb2f13d946bf636d3df8764270faca13f514efad77bf70a1a1aa1cd3",
+      "result_json": "2b8f4041a53388567986844d2cf6613b4ccfc7aa5f0a9fe8c6685c04dc8a8f96",
+      "committed_blob_result": "f0b60d2f6872ebf4a77210d538de54b94bef46656281b81cabd246aab7cbc46c",
+      "evidence": "3b492121cb359f1812f3f9c8ab5c8238bb4ff4e96097c244cf94b121c6e47a5e",
+      "reproduction": "271df6449b4f8384a3cc939a82734b779c7600bca507bc9a320823071a950140"
+    }
   }
 }

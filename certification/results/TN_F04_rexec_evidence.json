@@ -25,7 +25,11 @@
     "monkeypatches": "none",
     "args": "--repo <tree> --out <json>",
     "runs_tn_f04_only": true,
-    "docstring": "TN-F04 only; ENG-VAL rows explicitly out of scope"
+    "docstring": "TN-F04 only; ENG-VAL rows explicitly out of scope",
+    "sha256_committed_blob": "4f537200d9c769ae0e2a278e88623cc95a70ab967b4c2e6d180e54a942fa577a",
+    "sha256_worktree_crlf": "4e30924afb2f13d946bf636d3df8764270faca13f514efad77bf70a1a1aa1cd3",
+    "sha256_canonical": "4f537200d9c769ae0e2a278e88623cc95a70ab967b4c2e6d180e54a942fa577a",
+    "note_on_line_endings": "core.autocrlf=true on this host: worktree file is CRLF (different sha); the committed blob (LF) is canonical and was executed byte-exact from git cat-file."
   },
   "execution_A_committed": {
     "exit_code": 0,
@@ -178,5 +182,75 @@
     "Artifact cites engine sha 2dfbd571 (commit 2a269ad); branch HEAD worktree carries b171ec8f. Row is bound to the cited commit, not HEAD."
   ],
   "generated_at_utc": "2026-10-18T17:54:38Z",
-  "repeat_run_summary_identical": true
+  "repeat_run_summary_identical": true,
+  "reproduction_from_committed_branch": {
+    "branch_head": "3f0dfc51d3eeb1b53d0dd6287507ea7e29c565b2",
+    "extracted_from_git_archive_sha256": "4e30924afb2f13d946bf636d3df8764270faca13f514efad77bf70a1a1aa1cd3",
+    "reproduction_exit_code": 0,
+    "engine_tree_sha256": "2dfbd571012af67479ee7a2d9e6f1faac6ee5408722a092fb3625450cab51405",
+    "checks": {
+      "ENGINE_SHA256_MATCH": true,
+      "TN-F04:REDUCE_USES_OWNED_SLEEVE": true,
+      "TN-F04:FULL_CLOSE_TARGETS_OWNED_SLEEVE": true,
+      "TN-F04:NEG_RESTART_PRESERVES_OWNED_SLEEVE": true
+    }
+  },
+  "execution_B_exact_committed_blob": {
+    "harness_sha256": "4f537200d9c769ae0e2a278e88623cc95a70ab967b4c2e6d180e54a942fa577a",
+    "exit_code": 0,
+    "stdout": "============================================================\r\nENGINE_RESIDUAL certification harness\r\nCommit: 2a269ad2260270fee844eedc2cc23545abc91dd0\r\nEngine: 2dfbd571012af67479ee7a2d9e6f1faac6ee5408722a092fb3625450cab51405\r\n============================================================\r\n  CHECK::ENGINE_SHA256_MATCH::PASS\r\n\r\n=== TN-F04: Exit sizing proportional to owned quantity ===\r\n  CHECK::TN-F04:REDUCE_USES_OWNED_SLEEVE::PASS\r\n  CHECK::TN-F04:FULL_CLOSE_TARGETS_OWNED_SLEEVE::PASS\r\n  NEG::TN-F04:NEG_STALE_CAPITAL_NEVER_BLOCKS_EXIT::PASS\r\n  CHECK::TN-F04:NEG_RESTART_PRESERVES_OWNED_SLEEVE::PASS\r\n\r\n============================================================\r\nRESULT: 4/4 checks PASS\r\nNEGATIVE: 1/1 PASS\r\nOutput: C:\\Users\\wigmore\\.hermes\\kanban\\workspaces\\t_b0df04df\\run\\tn_f04_exact_committed_blob.json\r\n============================================================\r\n",
+    "result_json": {
+      "task_id": "t_b0df04df",
+      "title": "TN-F04 re-execution: exit sizing targets the owned sleeve (row-bound)",
+      "tested_commit": "2a269ad2260270fee844eedc2cc23545abc91dd0",
+      "tested_at_utc": "2026-10-18T18:02:41Z",
+      "engine_sha256": "2dfbd571012af67479ee7a2d9e6f1faac6ee5408722a092fb3625450cab51405",
+      "engine_lines": 8030,
+      "checks": {
+        "ENGINE_SHA256_MATCH": {
+          "pass": true,
+          "detail": ""
+        },
+        "TN-F04:REDUCE_USES_OWNED_SLEEVE": {
+          "pass": true,
+          "detail": ""
+        },
+        "TN-F04:FULL_CLOSE_TARGETS_OWNED_SLEEVE": {
+          "pass": true,
+          "detail": ""
+        },
+        "TN-F04:NEG_RESTART_PRESERVES_OWNED_SLEEVE": {
+          "pass": true,
+          "detail": ""
+        }
+      },
+      "negative_tests": {
+        "TN-F04:NEG_STALE_CAPITAL_NEVER_BLOCKS_EXIT": {
+          "pass": true,
+          "detail": ""
+        }
+      },
+      "summary": {
+        "total_rows": 5,
+        "rows": {
+          "APPLIES_PROPOSED": {
+            "count": 5,
+            "ids": [
+              "TN-F04",
+              "ENG-VAL-01",
+              "ENG-VAL-02",
+              "ENG-VAL-03",
+              "ENG-VAL-04"
+            ]
+          }
+        },
+        "total_checks": 4,
+        "passed_checks": 4,
+        "failed_checks": 0,
+        "total_negative_tests": 1,
+        "passed_negative_tests": 1,
+        "failed_negative_tests": 0
+      }
+    }
+  }
 }
