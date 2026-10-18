@@ -1,0 +1,16 @@
+{
+ "snap_A": {
+  "attempts": 20000,
+  "intents": 9382,
+  "fills": 500,
+  "oracle_identical": true,
+  "bytes": 28127156
+ },
+ "snap_B": {
+  "attempts": 20000,
+  "intents": 9413,
+  "fills": 500,
+  "oracle_identical": true,
+  "bytes": 28146196
+ }
+}
