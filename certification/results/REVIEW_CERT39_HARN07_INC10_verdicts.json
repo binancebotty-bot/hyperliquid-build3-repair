@@ -1,0 +1,92 @@
+[
+  {
+    "row_id": "HARN-07",
+    "verdict": "PASS",
+    "probe": "Checked CONTROL_fa9d9f55ff.json and found HARN-07 result: PASS",
+    "why": "The evidence shows this row passed in the control sweep, contradicting the BLOCKED verdict in the artifact under review"
+  },
+  {
+    "row_id": "ENG-VAL-01",
+    "verdict": "NOT_TESTED",
+    "probe": "Verified evidence_ref is empty and no testnet execution evidence in artifact",
+    "why": "Accepts the original justification that testnet route is absent; no evidence of testnet engine\u2192order\u2192MASTER fill/position route found"
+  },
+  {
+    "row_id": "ENG-VAL-02",
+    "verdict": "NOT_TESTED",
+    "probe": "Verified evidence_ref is empty and no testnet execution evidence in artifact",
+    "why": "Accepts the original justification that testnet route is absent; no evidence of testnet engine\u2192order\u2192MASTER fill/position route found"
+  },
+  {
+    "row_id": "ENG-VAL-03",
+    "verdict": "NOT_TESTED",
+    "probe": "Verified evidence_ref is empty and no testnet execution evidence in artifact",
+    "why": "Accepts the original justification that testnet route is absent; no evidence of testnet engine\u2192order\u2192MASTER fill/position route found"
+  },
+  {
+    "row_id": "ENG-VAL-04",
+    "verdict": "NOT_TESTED",
+    "probe": "Verified evidence_ref is empty and no testnet execution evidence in artifact",
+    "why": "Accepts the original justification that testnet route is absent; no evidence of testnet engine\u2192order\u2192MASTER fill/position route found"
+  },
+  {
+    "row_id": "INC-01",
+    "verdict": "BLOCKED",
+    "probe": "Checked REGRESSION_fa9d9f55ff.json and found INC-01 pass: false",
+    "why": "Confirms the original justification that regression artifact explicitly blocks this row; evidence shows failed status in regression sweep"
+  },
+  {
+    "row_id": "INC-02",
+    "verdict": "PASS",
+    "probe": "Checked REGRESSION_fa9d9f55ff.json and found INC-02 pass: true",
+    "why": "The evidence shows this row passed in the regression sweep, contradicting the BLOCKED verdict; also notes the justification in artifact is identical to other rows violating ROW-BOUND requirement"
+  },
+  {
+    "row_id": "INC-03",
+    "verdict": "BLOCKED",
+    "probe": "Checked REGRESSION_fa9d9f55ff.json and found INC-03 pass: false",
+    "why": "Confirms the original justification that regression artifact explicitly blocks this row; evidence shows failed status in regression sweep"
+  },
+  {
+    "row_id": "INC-04",
+    "verdict": "PASS",
+    "probe": "Checked REGRESSION_fa9d9f55ff.json and found INC-04 pass: true",
+    "why": "The evidence shows this row passed in the regression sweep, contradicting the BLOCKED verdict; also notes the justification in artifact is identical to other rows violating ROW-BOUND requirement"
+  },
+  {
+    "row_id": "INC-05",
+    "verdict": "PASS",
+    "probe": "Checked REGRESSION_fa9d9f55ff.json and found INC-05 pass: true",
+    "why": "The evidence shows this row passed in the regression sweep, contradicting the BLOCKED verdict; also notes the justification in artifact is identical to other rows violating ROW-BOUND requirement"
+  },
+  {
+    "row_id": "INC-06",
+    "verdict": "PASS",
+    "probe": "Checked REGRESSION_fa9d9f55ff.json and found INC-06 pass: true",
+    "why": "The evidence shows this row passed in the regression sweep, contradicting the BLOCKED verdict; also notes the justification in artifact is identical to other rows violating ROW-BOUND requirement"
+  },
+  {
+    "row_id": "INC-07",
+    "verdict": "PASS",
+    "probe": "Checked REGRESSION_fa9d9f55ff.json and found INC-07 pass: true",
+    "why": "The evidence shows this row passed in the regression sweep, contradicting the BLOCKED verdict; also notes the justification in artifact is identical to other rows violating ROW-BOUND requirement"
+  },
+  {
+    "row_id": "INC-08",
+    "verdict": "PASS",
+    "probe": "Checked REGRESSION_fa9d9f55ff.json and found INC-08 pass: true",
+    "why": "The evidence shows this row passed in the regression sweep, contradicting the BLOCKED verdict; also notes the justification in artifact is identical to other rows violating ROW-BOUND requirement"
+  },
+  {
+    "row_id": "INC-09",
+    "verdict": "PASS",
+    "probe": "Checked REGRESSION_fa9d9f55ff.json and found INC-09 pass: true",
+    "why": "The evidence shows this row passed in the regression sweep, contradicting the BLOCKED verdict; also notes the justification in artifact is identical to other rows violating ROW-BOUND requirement"
+  },
+  {
+    "row_id": "INC-10",
+    "verdict": "BLOCKED",
+    "probe": "Checked REGRESSION_fa9d9f55ff.json and found INC-10 pass: false",
+    "why": "Confirms the original justification that regression artifact explicitly blocks this row; evidence shows failed status in regression sweep"
+  }
+]
