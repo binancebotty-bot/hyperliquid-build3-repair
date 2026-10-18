@@ -1,0 +1,21 @@
+{
+  "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+  "tested_at_utc": "2026-10-18T21:45:00Z",
+  "result": "FAIL",
+  "production_order_call_sites": [
+    {
+      "file": "_archive/hl_stage2/HL_Live_Copy_Service_Core.py",
+      "line": 2703,
+      "call": "exchange.order(...)"
+    },
+    {
+      "file": "_archive/hl_stage2/HL_Live_Copy_Service.py",
+      "line": 1036,
+      "call": "exchange.order(...)",
+      "reachable_via": "main() --send-one-intent --confirm-send -> manual_send_one_intent:1124 -> send_hyperliquid_order:936 -> exchange.order:1036"
+    }
+  ],
+  "count": 2,
+  "criterion": "Exactly one physical production .order() call site.",
+  "conclusion": "FAIL: two reachable call sites."
+}
