@@ -3,8 +3,10 @@
 Task t_bb3dfa77 (redo of a56b8eb after review t_228fe60f).
 Probed instance: PID 26592, started 2026-10-18T10:33:44Z, cwd
 `C:/Users/wigmore/trading_stack/hl-build3-testnet-cert-j28-89b3bc7/_archive/hl_stage2`,
-serving HEAD 89b3bc7 (confirmed `git rev-parse HEAD` in that repo). NOT the
-33368 process cited by the original a56b8eb evidence.
+serving HEAD 89b3bc7 (confirmed `git rev-parse HEAD` in that repo; commit date
+2026-10-17T07:18:14Z, i.e. the commit predates the process start). NOT the 33368
+process cited by the original a56b8eb evidence. `_serving_process.json` records
+the PID, start time, exe, cmdline and cwd actually probed.
 
 ## The one structural point
 
@@ -19,6 +21,17 @@ This probe scores against the payload captured from inside the page
 immediately after render, and records the cross-snapshot number as an
 **unscored control**, so the reviewer's figures can be explained rather than
 argued about.
+
+## Scoring rule (changed this run)
+
+All three reconciliation comparisons are scored with a **keyed join on
+(coin, short_wallet, side)**, per the review directive that an unkeyed or
+positional comparison is a defect regardless of the number it produces.
+Positional zip is still computed and stored as `positional_ratio`, but it is a
+cross-check only and never decides a verdict.
+
+On this capture REC-04, REC-06 and REC-07 are **50/50 keyed**, with 0 duplicate
+source keys and identical row order.
 
 ## Reproducing
 
@@ -40,17 +53,22 @@ Helpers, all committed, all operating on that same capture:
 
 ## Why the reviewer saw 48/50 and 41/50
 
-Measured here (`snapshot_drift_control`): the payload is not stable between
-reads. Drift is intermittent - in one 2.6s window 0 of 50 manual values
-changed; the 35s drift probe produced different byte hashes with no row value
-changed. So a cross-snapshot join lands anywhere between 50/50 and 41/50
-depending on when it was taken. The number is a property of fetch timing, not
-of the render.
+Same DOM, a later fetch, a worse number. In the run committed here:
 
-`cross_snapshot_ratio` per row shows exactly that, and it is not a one-off:
-REC-06's keyed cross-check read 0/50 on one run and 50/50 on another of the
-same code against the same server - the same DOM, a different second fetch.
-That is the demonstration, not an anecdote.
+| row | keyed (same snapshot) | positional | cross-snapshot |
+|-----|----------------------|------------|----------------|
+| REC-04 | 50/50 | 50/50 | 50/50 |
+| REC-06 | 50/50 | 50/50 | 49/50 |
+| REC-07 | 50/50 | 50/50 | 46/50 |
+
+`snapshot_drift_control` records the mechanism: within that 2.6s window 1 of 50
+manual values and 4 of 50 exchange values changed, while `issue` did not change
+at all - and REC-04, the issue column, is the one that stayed 50/50. Drift is
+intermittent: an earlier window over the same code and server showed 0 of 50
+manual values changed, and the 35s drift probe produced different byte hashes
+with no row value changed at all. So a cross-snapshot join lands anywhere
+between 50/50 and 41/50 purely on fetch timing. The reviewer's 48/50 and 41/50
+are that effect at a longer gap, not cell mis-binding.
 
 ## What is genuinely wrong, and survives every join
 
@@ -77,11 +95,16 @@ so neither can distinguish a correct mapping from a constant. AUD-12 further
 cannot be re-measured at all here (`last_rows=[]`), and is kept PASS on
 construction only. Read both as "no counter-example found", not "proven".
 
-## A bug this run found and fixed
+## Two silent-zero bugs found and fixed in this run
 
-`keyed_hits` built a 3-tuple key (`coin, wallet, side`) while reading only 2
-DOM cells, so the third component never matched and REC-06's keyed cross-check
-silently scored 0/50. The `side` component is embedded in the ledger cell
-("SHORT -414"); the helper now takes it from the front of that cell. Same class
-of silent-zero defect the reviewer was right to distrust - which is why every
-check now carries an explicit comparator control that is proven to flip.
+1. `keyed_hits` built a 3-tuple key (`coin, wallet, side`) while reading only 2
+   DOM cells, so the third component never matched and REC-06's keyed
+   cross-check silently scored 0/50.
+2. The first fix then read the embedded `side` from the field's own cell, so
+   REC-04 (issue column) and REC-07 (exchange column) still scored 0/50 while
+   REC-06 passed - a bug that looked exactly like a finding. `side` is the
+   first token of the ledger column whatever field is being checked.
+
+Both were caught by recomputing the join over the committed capture instead of
+trusting the verdict. Every check now carries an explicit comparator control
+proven to flip, so a silent zero cannot pass as a result.
