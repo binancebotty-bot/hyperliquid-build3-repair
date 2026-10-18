@@ -1,7 +1,7 @@
 {
-  "captured_at_utc": "2026-10-18T18:19:38.875651+00:00",
+  "captured_at_utc": "2026-10-18T18:23:30.490879+00:00",
   "source": "http://127.0.0.1:8031/api/live-audit-summary (response body read by the page itself)",
-  "payload_sha256": "43f1362d76dbe71f47b8aa7b838bceea2f444e460ee5405aef8ec6934d965ff2",
+  "payload_sha256": "c0e3b27e3e346c87e6ec99560070310b92b0617a4d353c27366aed0081c1de08",
   "manual_reconciliation_rows": [
     {
       "severity": "OK",
@@ -69,8 +69,8 @@
       "coin": "2Z",
       "side": "SHORT",
       "issue": "SHARED_SYMBOL_SLEEVE_TRACKED",
-      "manual_signed_size": -388.0,
-      "exchange_signed_size": 104.0,
+      "manual_signed_size": -595.0,
+      "exchange_signed_size": -103.0,
       "last_intent_id": "",
       "last_oid": "",
       "last_updated_at": "",
@@ -85,7 +85,7 @@
       "side": "LONG",
       "issue": "SHARED_SYMBOL_SLEEVE_TRACKED",
       "manual_signed_size": 175.0,
-      "exchange_signed_size": 104.0,
+      "exchange_signed_size": -103.0,
       "last_intent_id": "",
       "last_oid": "",
       "last_updated_at": "",
@@ -100,7 +100,7 @@
       "side": "SHORT",
       "issue": "SHARED_SYMBOL_SLEEVE_TRACKED",
       "manual_signed_size": -414.0,
-      "exchange_signed_size": 104.0,
+      "exchange_signed_size": -103.0,
       "last_intent_id": "",
       "last_oid": "",
       "last_updated_at": "",
@@ -115,7 +115,7 @@
       "side": "LONG",
       "issue": "SHARED_SYMBOL_SLEEVE_TRACKED",
       "manual_signed_size": 731.0,
-      "exchange_signed_size": 104.0,
+      "exchange_signed_size": -103.0,
       "last_intent_id": "",
       "last_oid": "",
       "last_updated_at": "",
@@ -550,7 +550,7 @@
       "side": "LONG",
       "issue": "SHARED_SYMBOL_SLEEVE_TRACKED",
       "manual_signed_size": 60.599999999999994,
-      "exchange_signed_size": -15.4,
+      "exchange_signed_size": 14.4,
       "last_intent_id": "",
       "last_oid": "",
       "last_updated_at": "",
@@ -564,8 +564,8 @@
       "coin": "APE",
       "side": "SHORT",
       "issue": "SHARED_SYMBOL_SLEEVE_TRACKED",
-      "manual_signed_size": -156.50000000000006,
-      "exchange_signed_size": -15.4,
+      "manual_signed_size": -126.70000000000006,
+      "exchange_signed_size": 14.4,
       "last_intent_id": "",
       "last_oid": "",
       "last_updated_at": "",
@@ -580,7 +580,7 @@
       "side": "LONG",
       "issue": "SHARED_SYMBOL_SLEEVE_TRACKED",
       "manual_signed_size": 45.699999999999996,
-      "exchange_signed_size": -15.4,
+      "exchange_signed_size": 14.4,
       "last_intent_id": "",
       "last_oid": "",
       "last_updated_at": "",
@@ -595,7 +595,7 @@
       "side": "LONG",
       "issue": "SHARED_SYMBOL_SLEEVE_TRACKED",
       "manual_signed_size": 34.8,
-      "exchange_signed_size": -15.4,
+      "exchange_signed_size": 14.4,
       "last_intent_id": "",
       "last_oid": "",
       "last_updated_at": "",
@@ -715,7 +715,7 @@
       "side": "LONG",
       "issue": "SHARED_SYMBOL_SLEEVE_TRACKED",
       "manual_signed_size": 27.700000000000017,
-      "exchange_signed_size": -28.5,
+      "exchange_signed_size": 28.4,
       "last_intent_id": "",
       "last_oid": "",
       "last_updated_at": "",
@@ -730,7 +730,7 @@
       "side": "SHORT",
       "issue": "SHARED_SYMBOL_SLEEVE_TRACKED",
       "manual_signed_size": -4.299999999999985,
-      "exchange_signed_size": -28.5,
+      "exchange_signed_size": 28.4,
       "last_intent_id": "",
       "last_oid": "",
       "last_updated_at": "",
@@ -745,7 +745,7 @@
       "side": "LONG",
       "issue": "SHARED_SYMBOL_SLEEVE_TRACKED",
       "manual_signed_size": 1985.7000000000003,
-      "exchange_signed_size": -28.5,
+      "exchange_signed_size": 28.4,
       "last_intent_id": "",
       "last_oid": "",
       "last_updated_at": "",
@@ -758,704 +758,704 @@
   "manual_reconcile_required_counts": {},
   "recent_send_attempts": [
     {
-      "intent_id": "9ff203fc77003b2f697e0d51c5f09ccd",
+      "intent_id": "03380948a4638db50ce593f680fc4abb",
       "status": "ORDER_REJECTED",
-      "coin": "ZORA",
+      "coin": "ARB",
       "side": "SELL",
-      "created_at": "2026-10-18T18:17:58.499951+00:00"
+      "created_at": "2026-10-18T18:21:27.148096+00:00"
     },
     {
-      "intent_id": "f98e324497639a96426c6f5c0d02c01b",
+      "intent_id": "9835895e367e00e9278009f205f96c7a",
       "status": "ORDER_REJECTED",
-      "coin": "PEOPLE",
+      "coin": "GRASS",
       "side": "BUY",
-      "created_at": "2026-10-18T18:17:58.571296+00:00"
+      "created_at": "2026-10-18T18:21:28.175724+00:00"
     },
     {
-      "intent_id": "973d780d3957086dd982493603111e21",
+      "intent_id": "a31813819d29da88f1d1e4a737759478",
       "status": "ORDER_REJECTED",
-      "coin": "CC",
+      "coin": "ARB",
       "side": "SELL",
-      "created_at": "2026-10-18T18:17:58.856169+00:00"
+      "created_at": "2026-10-18T18:21:29.418496+00:00"
     },
     {
-      "intent_id": "b84cd4e0ad86ba6671a6141eb3fbb010",
+      "intent_id": "9aa374ec50fada08d9e2eb75476998e0",
       "status": "ORDER_REJECTED",
-      "coin": "ZEC",
+      "coin": "SKR",
       "side": "BUY",
-      "created_at": "2026-10-18T18:17:58.887679+00:00"
+      "created_at": "2026-10-18T18:21:29.510596+00:00"
     },
     {
-      "intent_id": "5583aac1e89489820fc2beffce5e8573",
-      "status": "ORDER_REJECTED",
-      "coin": "BLUR",
-      "side": "BUY",
-      "created_at": "2026-10-18T18:17:59.244961+00:00"
-    },
-    {
-      "intent_id": "2665505c19db763143f1475fc6779a6e",
-      "status": "ORDER_REJECTED",
-      "coin": "PUMP",
-      "side": "BUY",
-      "created_at": "2026-10-18T18:17:59.463868+00:00"
-    },
-    {
-      "intent_id": "3f7def6e53691c2536a57750dd2c7988",
-      "status": "ORDER_REJECTED",
-      "coin": "KSHIB",
-      "side": "SELL",
-      "created_at": "2026-10-18T18:17:59.650873+00:00"
-    },
-    {
-      "intent_id": "e150df5cba4e890998bbb0c04be41170",
-      "status": "ORDER_REJECTED",
-      "coin": "BTC",
-      "side": "BUY",
-      "created_at": "2026-10-18T18:18:00.240293+00:00"
-    },
-    {
-      "intent_id": "9eb68d186fb51c0a8ab7c61811aa92b2",
-      "status": "ORDER_REJECTED",
-      "coin": "ETH",
-      "side": "BUY",
-      "created_at": "2026-10-18T18:18:04.321160+00:00"
-    },
-    {
-      "intent_id": "b1aea5c19fbafd8a3c296df3c8b381ee",
-      "status": "ORDER_REJECTED",
-      "coin": "GMT",
-      "side": "BUY",
-      "created_at": "2026-10-18T18:18:04.372481+00:00"
-    },
-    {
-      "intent_id": "e6912ad0df0f32aa4312d8c0c8735a36",
+      "intent_id": "d574077f842c80d31453022f6072135b",
       "status": "ORDER_REJECTED",
       "coin": "IMX",
       "side": "BUY",
-      "created_at": "2026-10-18T18:18:04.529778+00:00"
+      "created_at": "2026-10-18T18:21:29.663825+00:00"
     },
     {
-      "intent_id": "21f37cbb46db6ad1b4f9fbf05a31638b",
-      "status": "ORDER_REJECTED",
-      "coin": "ZEC",
-      "side": "BUY",
-      "created_at": "2026-10-18T18:18:04.578417+00:00"
-    },
-    {
-      "intent_id": "4bf650214aeeaa5c278a2c079cef0bb6",
-      "status": "ORDER_REJECTED",
-      "coin": "STABLE",
-      "side": "BUY",
-      "created_at": "2026-10-18T18:18:04.835818+00:00"
-    },
-    {
-      "intent_id": "800c946132357be2c1e55b1eff0ffe9c",
-      "status": "ORDER_REJECTED",
-      "coin": "PUMP",
-      "side": "BUY",
-      "created_at": "2026-10-18T18:18:06.224497+00:00"
-    },
-    {
-      "intent_id": "3e8648d367dd36bfd312f049874bcde2",
-      "status": "ORDER_FILLED",
-      "coin": "AVAX",
-      "side": "BUY",
-      "created_at": "2026-10-18T18:18:04.986397+00:00"
-    },
-    {
-      "intent_id": "8a97dd4a953514556830cc07f0ef69d4",
-      "status": "ORDER_REJECTED",
-      "coin": "SOL",
-      "side": "BUY",
-      "created_at": "2026-10-18T18:18:05.194990+00:00"
-    },
-    {
-      "intent_id": "6a88ea892b7da7f06fcaff9a73423e96",
-      "status": "ORDER_REJECTED",
-      "coin": "NEAR",
-      "side": "BUY",
-      "created_at": "2026-10-18T18:18:07.870758+00:00"
-    },
-    {
-      "intent_id": "6b1e667e7db5f40863a1eff0e56cc89c",
-      "status": "ORDER_REJECTED",
-      "coin": "APEX",
-      "side": "SELL",
-      "created_at": "2026-10-18T18:18:06.010983+00:00"
-    },
-    {
-      "intent_id": "98ead342d647f2d8f39891ac57e01321",
-      "status": "ORDER_REJECTED",
-      "coin": "WLD",
-      "side": "SELL",
-      "created_at": "2026-10-18T18:18:06.156953+00:00"
-    },
-    {
-      "intent_id": "298ad1a9f4ddb5599f05c44339072c2e",
-      "status": "ORDER_REJECTED",
-      "coin": "SUI",
-      "side": "SELL",
-      "created_at": "2026-10-18T18:18:06.421911+00:00"
-    },
-    {
-      "intent_id": "2209f80e8d53a96183d1e17d9cac7940",
-      "status": "ORDER_REJECTED",
-      "coin": "KNEIRO",
-      "side": "BUY",
-      "created_at": "2026-10-18T18:18:06.327512+00:00"
-    },
-    {
-      "intent_id": "ac8d131a5a31350ecd7d2731e3526efe",
-      "status": "ORDER_REJECTED",
-      "coin": "ETH",
-      "side": "BUY",
-      "created_at": "2026-10-18T18:18:06.674971+00:00"
-    },
-    {
-      "intent_id": "cab86dae417f16004c110c506f879401",
-      "status": "ORDER_REJECTED",
-      "coin": "ZETA",
-      "side": "BUY",
-      "created_at": "2026-10-18T18:18:06.934737+00:00"
-    },
-    {
-      "intent_id": "d05555596e87991cc45706e1f4ae69ec",
-      "status": "ORDER_REJECTED",
-      "coin": "BTC",
-      "side": "BUY",
-      "created_at": "2026-10-18T18:18:06.984700+00:00"
-    },
-    {
-      "intent_id": "b90e12b2cb0f911be1753c43c78f4ad2",
-      "status": "ORDER_REJECTED",
-      "coin": "ZEC",
-      "side": "BUY",
-      "created_at": "2026-10-18T18:18:07.233909+00:00"
-    },
-    {
-      "intent_id": "afcd8e2602f70a1856c793976e990e75",
-      "status": "ORDER_REJECTED",
-      "coin": "MOODENG",
-      "side": "BUY",
-      "created_at": "2026-10-18T18:18:07.484637+00:00"
-    },
-    {
-      "intent_id": "a623afcba415a8ec2089fdd2135c2c5d",
-      "status": "ORDER_REJECTED",
-      "coin": "EIGEN",
-      "side": "BUY",
-      "created_at": "2026-10-18T18:18:07.689806+00:00"
-    },
-    {
-      "intent_id": "e46e6205f49a4e266e6c228412af96d6",
-      "status": "ORDER_REJECTED",
-      "coin": "LIT",
-      "side": "BUY",
-      "created_at": "2026-10-18T18:18:07.895842+00:00"
-    },
-    {
-      "intent_id": "df55180577f074a95287a821a5e487f6",
-      "status": "ORDER_REJECTED",
-      "coin": "ATOM",
-      "side": "BUY",
-      "created_at": "2026-10-18T18:18:08.259050+00:00"
-    },
-    {
-      "intent_id": "0e72c6b66d33041d7ebc58c50f66124d",
-      "status": "ORDER_REJECTED",
-      "coin": "ZRO",
-      "side": "SELL",
-      "created_at": "2026-10-18T18:18:08.362847+00:00"
-    },
-    {
-      "intent_id": "8f1b4fd21e152e770cf59e9e82bc582e",
-      "status": "ORDER_REJECTED",
-      "coin": "WLD",
-      "side": "SELL",
-      "created_at": "2026-10-18T18:18:08.416443+00:00"
-    },
-    {
-      "intent_id": "07a239ae650618ee4c2c11e6d989c8cf",
-      "status": "ORDER_REJECTED",
-      "coin": "RENDER",
-      "side": "BUY",
-      "created_at": "2026-10-18T18:18:08.564006+00:00"
-    },
-    {
-      "intent_id": "6434dc0c7fae4c5b3b3f893428fcc4f7",
-      "status": "ORDER_REJECTED",
-      "coin": "SUI",
-      "side": "SELL",
-      "created_at": "2026-10-18T18:18:08.365180+00:00"
-    },
-    {
-      "intent_id": "0a03a2d48f95fa81ba86a85e01beab6c",
-      "status": "ORDER_REJECTED",
-      "coin": "ZRO",
-      "side": "SELL",
-      "created_at": "2026-10-18T18:18:09.745628+00:00"
-    },
-    {
-      "intent_id": "3c6845eb79057107482fd682d86afd2f",
-      "status": "ORDER_REJECTED",
-      "coin": "AAVE",
-      "side": "BUY",
-      "created_at": "2026-10-18T18:18:10.247340+00:00"
-    },
-    {
-      "intent_id": "359b416981a788f007232d705a535fea",
-      "status": "ORDER_REJECTED",
-      "coin": "PONS",
-      "side": "SELL",
-      "created_at": "2026-10-18T18:18:12.250460+00:00"
-    },
-    {
-      "intent_id": "79ea03d5da78d9daed78f53d4da7bb00",
-      "status": "ORDER_REJECTED",
-      "coin": "LIT",
-      "side": "BUY",
-      "created_at": "2026-10-18T18:18:12.467635+00:00"
-    },
-    {
-      "intent_id": "ffb9c10cd74705cbfe423f417339673a",
-      "status": "ORDER_REJECTED",
-      "coin": "STABLE",
-      "side": "BUY",
-      "created_at": "2026-10-18T18:18:16.059862+00:00"
-    },
-    {
-      "intent_id": "4f1558502c3d6ea4e67b81c9a22a5712",
+      "intent_id": "6121bc540a82cde2570f7f80c2805bae",
       "status": "ORDER_REJECTED",
       "coin": "XPL",
-      "side": "SELL",
-      "created_at": "2026-10-18T18:18:16.108179+00:00"
-    },
-    {
-      "intent_id": "416e771b7f07a41b78549f32abfa8f43",
-      "status": "ORDER_REJECTED",
-      "coin": "SOL",
       "side": "BUY",
-      "created_at": "2026-10-18T18:18:16.103165+00:00"
+      "created_at": "2026-10-18T18:21:29.771304+00:00"
     },
     {
-      "intent_id": "bb648a8f92771b26f6979e2b8a30a926",
+      "intent_id": "7164e0fe268ae7183bbbd2775f6b460e",
       "status": "ORDER_REJECTED",
-      "coin": "ZRO",
+      "coin": "DASH",
       "side": "BUY",
-      "created_at": "2026-10-18T18:18:16.319744+00:00"
+      "created_at": "2026-10-18T18:21:29.825259+00:00"
     },
     {
-      "intent_id": "df26d1fb3543d9f6b90828005829f266",
+      "intent_id": "cd16e0e0063590f2aca45af14f32533b",
       "status": "ORDER_REJECTED",
-      "coin": "LAYER",
+      "coin": "ZEC",
       "side": "BUY",
-      "created_at": "2026-10-18T18:18:16.617006+00:00"
+      "created_at": "2026-10-18T18:21:30.068947+00:00"
     },
     {
-      "intent_id": "f49e56663b4eecbb1ebb9aca606d7b20",
-      "status": "ORDER_REJECTED",
-      "coin": "MOVE",
-      "side": "BUY",
-      "created_at": "2026-10-18T18:18:16.852398+00:00"
-    },
-    {
-      "intent_id": "1a94f408ce6716088384862f9927455d",
-      "status": "ORDER_REJECTED",
-      "coin": "MON",
-      "side": "BUY",
-      "created_at": "2026-10-18T18:18:17.082916+00:00"
-    },
-    {
-      "intent_id": "20cd00a9584ba1bbcb938dc7a389fd60",
-      "status": "ORDER_REJECTED",
-      "coin": "SUI",
-      "side": "SELL",
-      "created_at": "2026-10-18T18:18:17.082500+00:00"
-    },
-    {
-      "intent_id": "ea6958d30764a0f9a6a9b640afbc4fda",
-      "status": "ORDER_REJECTED",
-      "coin": "PUMP",
-      "side": "BUY",
-      "created_at": "2026-10-18T18:18:17.703360+00:00"
-    },
-    {
-      "intent_id": "3a913f8a67fbee5de6b30889dd00b940",
-      "status": "ORDER_REJECTED",
-      "coin": "ENS",
-      "side": "SELL",
-      "created_at": "2026-10-18T18:18:17.850531+00:00"
-    },
-    {
-      "intent_id": "c817a13dbb1d1571ea97a00cbbebe15f",
-      "status": "ORDER_REJECTED",
-      "coin": "ETH",
-      "side": "BUY",
-      "created_at": "2026-10-18T18:18:17.850934+00:00"
-    },
-    {
-      "intent_id": "a09e0e0e1eb362441f373e7c4b4eb146",
-      "status": "ORDER_REJECTED",
-      "coin": "MEGA",
-      "side": "SELL",
-      "created_at": "2026-10-18T18:18:18.276001+00:00"
-    },
-    {
-      "intent_id": "b893ce8885a40e1508ca0ee1d5334850",
-      "status": "ORDER_REJECTED",
-      "coin": "VIRTUAL",
-      "side": "SELL",
-      "created_at": "2026-10-18T18:18:19.336661+00:00"
-    },
-    {
-      "intent_id": "f351b6ec2b18ee10f1e86968e74ccb6f",
-      "status": "ORDER_REJECTED",
-      "coin": "ETH",
-      "side": "SELL",
-      "created_at": "2026-10-18T18:18:19.485187+00:00"
-    },
-    {
-      "intent_id": "91e35c01c1ded1b71a0e7a2a3e309290",
-      "status": "ORDER_REJECTED",
-      "coin": "MON",
-      "side": "SELL",
-      "created_at": "2026-10-18T18:18:19.897782+00:00"
-    },
-    {
-      "intent_id": "4821b52e43f0988278bca1262150ad22",
-      "status": "ORDER_REJECTED",
-      "coin": "USUAL",
-      "side": "SELL",
-      "created_at": "2026-10-18T18:18:19.946339+00:00"
-    },
-    {
-      "intent_id": "5843ef533ce265c2fe5021da5fb4f621",
-      "status": "ORDER_REJECTED",
-      "coin": "LIT",
-      "side": "BUY",
-      "created_at": "2026-10-18T18:18:20.216045+00:00"
-    },
-    {
-      "intent_id": "20d34421eba25cc5c1e795cec9cbbd35",
-      "status": "ORDER_REJECTED",
-      "coin": "ZETA",
-      "side": "SELL",
-      "created_at": "2026-10-18T18:18:20.217311+00:00"
-    },
-    {
-      "intent_id": "2cbc5637bf62b34aa47a495c83975f67",
+      "intent_id": "bb6dba3714e89b12a7daccf3fc8ade24",
       "status": "ORDER_REJECTED",
       "coin": "GRASS",
       "side": "SELL",
-      "created_at": "2026-10-18T18:18:20.216514+00:00"
+      "created_at": "2026-10-18T18:21:30.182623+00:00"
     },
     {
-      "intent_id": "42bf86deef361c08e560dcd25a522d83",
-      "status": "ORDER_REJECTED",
-      "coin": "USELESS",
-      "side": "SELL",
-      "created_at": "2026-10-18T18:18:20.872050+00:00"
-    },
-    {
-      "intent_id": "7198e156a3517914b688b30fb9a25035",
-      "status": "ORDER_REJECTED",
-      "coin": "XPL",
-      "side": "BUY",
-      "created_at": "2026-10-18T18:18:21.606120+00:00"
-    },
-    {
-      "intent_id": "953601615a1ca54a8f4b1d5fa9f48efd",
-      "status": "ORDER_REJECTED",
-      "coin": "ME",
-      "side": "SELL",
-      "created_at": "2026-10-18T18:18:21.689101+00:00"
-    },
-    {
-      "intent_id": "a19c8e5a8215629de5cafb609dbfb0b4",
-      "status": "ORDER_REJECTED",
-      "coin": "LIT",
-      "side": "BUY",
-      "created_at": "2026-10-18T18:18:21.793324+00:00"
-    },
-    {
-      "intent_id": "231e52c1c477008f5d51d38275ec7916",
-      "status": "ORDER_REJECTED",
-      "coin": "XPL",
-      "side": "BUY",
-      "created_at": "2026-10-18T18:18:23.781930+00:00"
-    },
-    {
-      "intent_id": "f32b7022d2fe5d9533be65a9a85a8518",
-      "status": "ORDER_REJECTED",
-      "coin": "FOGO",
-      "side": "SELL",
-      "created_at": "2026-10-18T18:18:24.196115+00:00"
-    },
-    {
-      "intent_id": "5d0a5191af2eaca753c7f5489f96ea6b",
-      "status": "ORDER_REJECTED",
-      "coin": "PUMP",
-      "side": "BUY",
-      "created_at": "2026-10-18T18:18:24.347337+00:00"
-    },
-    {
-      "intent_id": "45da1c22344c22b5909ba31f5cfdb185",
-      "status": "ORDER_REJECTED",
-      "coin": "AAVE",
-      "side": "SELL",
-      "created_at": "2026-10-18T18:18:24.345294+00:00"
-    },
-    {
-      "intent_id": "032a12aa12dd4f7e49ce7fd0ef708072",
-      "status": "ORDER_REJECTED",
-      "coin": "NEAR",
-      "side": "SELL",
-      "created_at": "2026-10-18T18:18:24.526709+00:00"
-    },
-    {
-      "intent_id": "c7316b459786c10dc1a88afa230e31c3",
-      "status": "ORDER_REJECTED",
-      "coin": "RENDER",
-      "side": "SELL",
-      "created_at": "2026-10-18T18:18:24.526315+00:00"
-    },
-    {
-      "intent_id": "a7b4aea0ed442bec9e6fa2689f486be5",
-      "status": "ORDER_REJECTED",
-      "coin": "AERO",
-      "side": "BUY",
-      "created_at": "2026-10-18T18:18:24.599942+00:00"
-    },
-    {
-      "intent_id": "9e88c8e030338bbe27cb39d7dfa9ce67",
-      "status": "ORDER_REJECTED",
-      "coin": "MERL",
-      "side": "SELL",
-      "created_at": "2026-10-18T18:18:24.859224+00:00"
-    },
-    {
-      "intent_id": "6600f469fa3d3da5f1d5456e703815a7",
-      "status": "ORDER_REJECTED",
-      "coin": "XPL",
-      "side": "SELL",
-      "created_at": "2026-10-18T18:18:24.858373+00:00"
-    },
-    {
-      "intent_id": "6f2c8a7b9807205b3920e74b963447d0",
-      "status": "ORDER_REJECTED",
-      "coin": "NEAR",
-      "side": "SELL",
-      "created_at": "2026-10-18T18:18:25.524817+00:00"
-    },
-    {
-      "intent_id": "710e5ec45cc7443ba06f0549885b67ce",
+      "intent_id": "5bc5b55db6b42811fd4a560372883091",
       "status": "ORDER_REJECTED",
       "coin": "ARB",
       "side": "SELL",
-      "created_at": "2026-10-18T18:18:43.473617+00:00"
+      "created_at": "2026-10-18T18:21:31.104411+00:00"
     },
     {
-      "intent_id": "cb9f9f8704aeb198bb75138f3a7427ed",
-      "status": "ORDER_REJECTED",
-      "coin": "NEAR",
-      "side": "BUY",
-      "created_at": "2026-10-18T18:18:44.624716+00:00"
-    },
-    {
-      "intent_id": "8f9cd63865d65e477f4d2cd91edc4c94",
-      "status": "ORDER_REJECTED",
-      "coin": "ANIME",
-      "side": "SELL",
-      "created_at": "2026-10-18T18:18:51.432432+00:00"
-    },
-    {
-      "intent_id": "6920f40108ed0e550d45cbe61f0fc48f",
-      "status": "ORDER_REJECTED",
-      "coin": "BNB",
-      "side": "SELL",
-      "created_at": "2026-10-18T18:18:52.542094+00:00"
-    },
-    {
-      "intent_id": "dd1a19881e8cd3c17d6349fc660c3d12",
+      "intent_id": "a410b8b857e1fa32df53e8b6128fb71e",
       "status": "ORDER_REJECTED",
       "coin": "ZEC",
       "side": "BUY",
-      "created_at": "2026-10-18T18:18:52.893756+00:00"
+      "created_at": "2026-10-18T18:21:31.361869+00:00"
     },
     {
-      "intent_id": "4c904418ab92ca9c851dc24956bd5f30",
+      "intent_id": "4a0f2da6980c1b63afab5f1e10984d06",
       "status": "ORDER_REJECTED",
-      "coin": "BANANA",
-      "side": "SELL",
-      "created_at": "2026-10-18T18:18:52.973135+00:00"
-    },
-    {
-      "intent_id": "d4d6555e57ffd453394552d3f82fef86",
-      "status": "ORDER_REJECTED",
-      "coin": "ORDI",
-      "side": "SELL",
-      "created_at": "2026-10-18T18:18:52.894478+00:00"
-    },
-    {
-      "intent_id": "8e0294d1699e82eb0ce26c9e9d9acdf9",
-      "status": "ORDER_REJECTED",
-      "coin": "FOGO",
-      "side": "SELL",
-      "created_at": "2026-10-18T18:18:52.894125+00:00"
-    },
-    {
-      "intent_id": "7b79c38191fc4970b3f58bb98b676dc5",
-      "status": "ORDER_REJECTED",
-      "coin": "KLUNC",
-      "side": "SELL",
-      "created_at": "2026-10-18T18:18:53.258523+00:00"
-    },
-    {
-      "intent_id": "0d09a5be5d7e05e447b51c88e2a63bb0",
-      "status": "ORDER_REJECTED",
-      "coin": "PUMP",
+      "coin": "LAYER",
       "side": "BUY",
-      "created_at": "2026-10-18T18:18:53.362293+00:00"
+      "created_at": "2026-10-18T18:21:31.464679+00:00"
     },
     {
-      "intent_id": "f819536198233c256d94dca97de3a8f5",
+      "intent_id": "8753b51956509ab106df09c7a90eb60d",
       "status": "ORDER_REJECTED",
-      "coin": "HEMI",
-      "side": "BUY",
-      "created_at": "2026-10-18T18:18:54.598864+00:00"
+      "coin": "AAVE",
+      "side": "SELL",
+      "created_at": "2026-10-18T18:21:31.771726+00:00"
     },
     {
-      "intent_id": "7b2abdcf8584ecbd26c6cc8789d9f480",
+      "intent_id": "f4f33f1eed7ce8b695f2cfe39f87f1b6",
       "status": "ORDER_REJECTED",
-      "coin": "TRUMP",
+      "coin": "GRASS",
       "side": "BUY",
-      "created_at": "2026-10-18T18:18:53.415841+00:00"
+      "created_at": "2026-10-18T18:21:31.872471+00:00"
     },
     {
-      "intent_id": "4a80ced41bd389574628738702e397bf",
+      "intent_id": "fb9f0b2bc7672b08992940347e57f46e",
+      "status": "ORDER_REJECTED",
+      "coin": "ZEC",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:21:32.837824+00:00"
+    },
+    {
+      "intent_id": "2888d1cd6036bdcc33949a3f76cb00d5",
+      "status": "ORDER_REJECTED",
+      "coin": "0G",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:21:32.956013+00:00"
+    },
+    {
+      "intent_id": "fe4de20c809102b1fb6c246c0046b822",
+      "status": "ORDER_REJECTED",
+      "coin": "BTC",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:21:33.164347+00:00"
+    },
+    {
+      "intent_id": "5e72d5203557bd239b3f8d400f590434",
+      "status": "ORDER_REJECTED",
+      "coin": "GRASS",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:21:35.612871+00:00"
+    },
+    {
+      "intent_id": "dde26543271bf38300c9cfb7727721d3",
+      "status": "ORDER_REJECTED",
+      "coin": "NEAR",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:21:38.133088+00:00"
+    },
+    {
+      "intent_id": "276ecdbd2f2e496009baef3a6b22834d",
       "status": "ORDER_REJECTED",
       "coin": "SUPER",
       "side": "SELL",
-      "created_at": "2026-10-18T18:18:53.561413+00:00"
+      "created_at": "2026-10-18T18:21:38.331628+00:00"
     },
     {
-      "intent_id": "06f1a970393b4acd03dfa108166494b5",
-      "status": "ORDER_REJECTED",
-      "coin": "BTC",
-      "side": "BUY",
-      "created_at": "2026-10-18T18:18:54.412003+00:00"
-    },
-    {
-      "intent_id": "44c12b4c8b34bfdb1e562a559a516ca4",
-      "status": "ORDER_REJECTED",
-      "coin": "PONS",
-      "side": "BUY",
-      "created_at": "2026-10-18T18:18:53.968183+00:00"
-    },
-    {
-      "intent_id": "949f977949718cae2b15c8f9b3edfc7c",
-      "status": "ORDER_REJECTED",
-      "coin": "LIT",
-      "side": "SELL",
-      "created_at": "2026-10-18T18:18:54.108464+00:00"
-    },
-    {
-      "intent_id": "c3e67ce41aac7c03685e901026b21a5e",
-      "status": "ORDER_REJECTED",
-      "coin": "KSHIB",
-      "side": "SELL",
-      "created_at": "2026-10-18T18:18:53.757172+00:00"
-    },
-    {
-      "intent_id": "7804d18ad828ffdb117dc8aaf298352b",
-      "status": "ORDER_REJECTED",
-      "coin": "GRASS",
-      "side": "BUY",
-      "created_at": "2026-10-18T18:18:54.174871+00:00"
-    },
-    {
-      "intent_id": "3f26f2b5763be7774939bc80025d075a",
-      "status": "ORDER_REJECTED",
-      "coin": "ENS",
-      "side": "SELL",
-      "created_at": "2026-10-18T18:18:54.599205+00:00"
-    },
-    {
-      "intent_id": "1d017f1b7970888b860d73437d5e804c",
+      "intent_id": "f8e9595ccdcf35f34e338668ec619e20",
       "status": "ORDER_REJECTED",
       "coin": "ARB",
       "side": "SELL",
-      "created_at": "2026-10-18T18:18:54.788370+00:00"
+      "created_at": "2026-10-18T18:21:38.336577+00:00"
     },
     {
-      "intent_id": "4854adb4a3e4c84f7877777a4ecaa934",
-      "status": "ORDER_REJECTED",
-      "coin": "JTO",
-      "side": "SELL",
-      "created_at": "2026-10-18T18:18:54.149383+00:00"
-    },
-    {
-      "intent_id": "3855ab80b8596402cb24f496cb33eb9a",
-      "status": "ORDER_REJECTED",
-      "coin": "ETH",
-      "side": "SELL",
-      "created_at": "2026-10-18T18:18:54.642703+00:00"
-    },
-    {
-      "intent_id": "869861bc7bad0bc3ea73eb7660a67403",
-      "status": "ORDER_REJECTED",
-      "coin": "LAYER",
-      "side": "BUY",
-      "created_at": "2026-10-18T18:18:55.510097+00:00"
-    },
-    {
-      "intent_id": "a6dde22d0506a664cfe15142ea9012fe",
+      "intent_id": "415a5e8ded1c1308b6fdda91d8f26584",
       "status": "ORDER_REJECTED",
       "coin": "ZEC",
       "side": "BUY",
-      "created_at": "2026-10-18T18:18:55.554881+00:00"
+      "created_at": "2026-10-18T18:21:38.897854+00:00"
     },
     {
-      "intent_id": "05d02dad428f5ff24fb95c316b13708f",
+      "intent_id": "e10c15b3f7a244d5b7fa77280fd4d458",
       "status": "ORDER_REJECTED",
-      "coin": "ORDI",
-      "side": "SELL",
-      "created_at": "2026-10-18T18:18:55.658010+00:00"
+      "coin": "ADA",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:21:39.000145+00:00"
     },
     {
-      "intent_id": "ea7534b0f939cb815daed053d6af5435",
-      "status": "pending_send",
+      "intent_id": "d7dc4308b3fbebe12061037a0c03dc87",
+      "status": "ORDER_REJECTED",
+      "coin": "GRASS",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:21:39.052780+00:00"
+    },
+    {
+      "intent_id": "a5704b8054cf8c9eecbe1a79e3b0443b",
+      "status": "ORDER_REJECTED",
+      "coin": "ARB",
+      "side": "SELL",
+      "created_at": "2026-10-18T18:21:39.360893+00:00"
+    },
+    {
+      "intent_id": "2018b31ac83bf0f2caacd7cfbeb62c4f",
+      "status": "ORDER_REJECTED",
+      "coin": "BTC",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:21:40.673992+00:00"
+    },
+    {
+      "intent_id": "4edc5ae5870c7c43de0aff19d62945ee",
+      "status": "ORDER_REJECTED",
+      "coin": "BIGTIME",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:21:42.789107+00:00"
+    },
+    {
+      "intent_id": "fcf0ff4272dc73169fe370d039fa7224",
+      "status": "ORDER_REJECTED",
+      "coin": "ZEC",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:21:45.337204+00:00"
+    },
+    {
+      "intent_id": "3e7642d75012f5d239acfffd029d9485",
+      "status": "ORDER_REJECTED",
+      "coin": "SUPER",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:21:49.512089+00:00"
+    },
+    {
+      "intent_id": "6e4cbd407e4ce62c6bf79c64d05fe376",
+      "status": "ORDER_REJECTED",
+      "coin": "WLFI",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:21:49.512630+00:00"
+    },
+    {
+      "intent_id": "15b540792f2677ae498835bc1edc08c4",
+      "status": "ORDER_REJECTED",
+      "coin": "EIGEN",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:21:55.080027+00:00"
+    },
+    {
+      "intent_id": "3a9ce410e0021771e595290e233bdd29",
+      "status": "ORDER_FILLED",
+      "coin": "LINEA",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:22:03.527242+00:00"
+    },
+    {
+      "intent_id": "503041cd986cee5804e445ac014cb40f",
+      "status": "ORDER_REJECTED",
+      "coin": "JTO",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:22:04.172155+00:00"
+    },
+    {
+      "intent_id": "00b120ba4b11db8d1f9ae06eefcf1f41",
+      "status": "ORDER_REJECTED",
+      "coin": "DOGE",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:21:58.901504+00:00"
+    },
+    {
+      "intent_id": "986d2eb15f81c3503930af9f0899b0d3",
+      "status": "ORDER_REJECTED",
+      "coin": "BTC",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:22:02.630654+00:00"
+    },
+    {
+      "intent_id": "098963d7ed317e1b100857fa6afcb520",
+      "status": "ORDER_FILLED",
+      "coin": "APE",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:22:04.792532+00:00"
+    },
+    {
+      "intent_id": "06145ee7d2823a22fb01078b4baae90f",
+      "status": "ORDER_REJECTED",
+      "coin": "BANANA",
+      "side": "SELL",
+      "created_at": "2026-10-18T18:22:02.663596+00:00"
+    },
+    {
+      "intent_id": "5a7567b30ea92db476a800e51d77233b",
+      "status": "ORDER_REJECTED",
+      "coin": "SAND",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:22:07.709685+00:00"
+    },
+    {
+      "intent_id": "c69b3185e3bf4f9cc58a474c02e12221",
+      "status": "ORDER_REJECTED",
+      "coin": "VVV",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:22:08.236475+00:00"
+    },
+    {
+      "intent_id": "b6985a4d8722a59dc6b1cb2fbeba5e9e",
+      "status": "ORDER_REJECTED",
+      "coin": "GRASS",
+      "side": "SELL",
+      "created_at": "2026-10-18T18:22:08.527351+00:00"
+    },
+    {
+      "intent_id": "9ec30f8ee323973e2f41c59b9d6be4c0",
+      "status": "ORDER_REJECTED",
+      "coin": "TAO",
+      "side": "SELL",
+      "created_at": "2026-10-18T18:22:08.567336+00:00"
+    },
+    {
+      "intent_id": "9760c7d29b2a27b0f1dd7e9bd4d49b67",
+      "status": "ORDER_REJECTED",
+      "coin": "AERO",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:22:08.730752+00:00"
+    },
+    {
+      "intent_id": "4fb9d04372efd8a59226b2edefc123b5",
+      "status": "ORDER_REJECTED",
+      "coin": "XPL",
+      "side": "SELL",
+      "created_at": "2026-10-18T18:22:09.511993+00:00"
+    },
+    {
+      "intent_id": "1a384a7bcf24f7041d1080efb446e394",
+      "status": "ORDER_REJECTED",
+      "coin": "AXS",
+      "side": "SELL",
+      "created_at": "2026-10-18T18:22:09.282793+00:00"
+    },
+    {
+      "intent_id": "e84074aea6af94834ccde08d868dbb35",
+      "status": "ORDER_REJECTED",
+      "coin": "ENS",
+      "side": "SELL",
+      "created_at": "2026-10-18T18:22:09.450379+00:00"
+    },
+    {
+      "intent_id": "66add1ae4ce6708d0e7c1a8b6f025d12",
+      "status": "ORDER_REJECTED",
+      "coin": "SKR",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:22:09.138724+00:00"
+    },
+    {
+      "intent_id": "ae8e80f7c29ee1cf8a07ded0f3beaade",
+      "status": "ORDER_REJECTED",
+      "coin": "AVAX",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:22:09.512405+00:00"
+    },
+    {
+      "intent_id": "10003a0d3fb462f4fe0fe1528f4f7e43",
+      "status": "ORDER_REJECTED",
+      "coin": "PONS",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:22:09.756415+00:00"
+    },
+    {
+      "intent_id": "cbc33c7d3d049b843eda261786b099d4",
+      "status": "ORDER_REJECTED",
+      "coin": "ZEC",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:22:09.758393+00:00"
+    },
+    {
+      "intent_id": "377abb3217b435abcefb5ca182347c31",
+      "status": "ORDER_REJECTED",
+      "coin": "SOL",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:22:09.801638+00:00"
+    },
+    {
+      "intent_id": "a39de870ac0581cd76289b7ba0b0dc1f",
+      "status": "ORDER_REJECTED",
+      "coin": "ETH",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:22:09.963134+00:00"
+    },
+    {
+      "intent_id": "07fcc2926e3435f2f09955908c6acee8",
+      "status": "ORDER_REJECTED",
+      "coin": "GRASS",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:22:11.024984+00:00"
+    },
+    {
+      "intent_id": "cc7e3a44b81bb44f52031b898727cc3d",
+      "status": "ORDER_REJECTED",
+      "coin": "PNUT",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:22:11.126465+00:00"
+    },
+    {
+      "intent_id": "9492872f4110a5e9dc244044cadbd911",
+      "status": "ORDER_REJECTED",
       "coin": "PUMP",
       "side": "BUY",
-      "created_at": "2026-10-18T18:18:54.456199+00:00"
+      "created_at": "2026-10-18T18:22:11.125943+00:00"
     },
     {
-      "intent_id": "10ffd546e1b302cf9363856120176ab1",
+      "intent_id": "b55de6a8d6bfd9c76e3da9383312100c",
+      "status": "ORDER_REJECTED",
+      "coin": "MON",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:22:11.243733+00:00"
+    },
+    {
+      "intent_id": "4f4658bcc27890ca65be08e493d5af01",
+      "status": "ORDER_REJECTED",
+      "coin": "NEO",
+      "side": "SELL",
+      "created_at": "2026-10-18T18:22:11.332378+00:00"
+    },
+    {
+      "intent_id": "775908bbce3478d676f968b0005a61a9",
+      "status": "ORDER_REJECTED",
+      "coin": "GRAM",
+      "side": "SELL",
+      "created_at": "2026-10-18T18:22:11.238319+00:00"
+    },
+    {
+      "intent_id": "c960eb3a5ce881730a4760176f839049",
+      "status": "ORDER_REJECTED",
+      "coin": "USELESS",
+      "side": "SELL",
+      "created_at": "2026-10-18T18:22:11.488714+00:00"
+    },
+    {
+      "intent_id": "29a10a6d4ca43f8e29dbef6a7a129efa",
+      "status": "ORDER_REJECTED",
+      "coin": "BIGTIME",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:22:11.787931+00:00"
+    },
+    {
+      "intent_id": "c85c867efea3cb5b1cdd6021e95494fa",
+      "status": "ORDER_REJECTED",
+      "coin": "SKY",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:22:12.105116+00:00"
+    },
+    {
+      "intent_id": "4a7d1d158b2dab0d898d2bbb35957e4e",
+      "status": "ORDER_REJECTED",
+      "coin": "MEME",
+      "side": "SELL",
+      "created_at": "2026-10-18T18:22:12.247786+00:00"
+    },
+    {
+      "intent_id": "167eaa886e9a8dba1df0b68256d14e3c",
+      "status": "ORDER_REJECTED",
+      "coin": "ETH",
+      "side": "SELL",
+      "created_at": "2026-10-18T18:22:12.479910+00:00"
+    },
+    {
+      "intent_id": "265a4927157de03c08d14f6c2bf8b9a4",
+      "status": "ORDER_REJECTED",
+      "coin": "BTC",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:22:13.682632+00:00"
+    },
+    {
+      "intent_id": "bff4c57136b4d397236ac8597ca747a0",
+      "status": "ORDER_REJECTED",
+      "coin": "ZEC",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:22:13.900266+00:00"
+    },
+    {
+      "intent_id": "976f8de5530e67eef9d796075c2a3c14",
+      "status": "ORDER_REJECTED",
+      "coin": "AXS",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:22:14.497158+00:00"
+    },
+    {
+      "intent_id": "82c94b8216135db5984051967c67cfa2",
+      "status": "ORDER_REJECTED",
+      "coin": "PROVE",
+      "side": "SELL",
+      "created_at": "2026-10-18T18:22:14.502822+00:00"
+    },
+    {
+      "intent_id": "1d1f38a7d0b7994fc460f9cf188bb631",
+      "status": "ORDER_REJECTED",
+      "coin": "BTC",
+      "side": "SELL",
+      "created_at": "2026-10-18T18:22:15.168974+00:00"
+    },
+    {
+      "intent_id": "490a83e980f17979cab5cf16c1f96520",
+      "status": "ORDER_REJECTED",
+      "coin": "AZTEC",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:22:15.533697+00:00"
+    },
+    {
+      "intent_id": "66772839fff1cd919035d2e17b063f0c",
+      "status": "ORDER_REJECTED",
+      "coin": "MON",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:22:17.845154+00:00"
+    },
+    {
+      "intent_id": "4dfccb0a8c47ee2cf849d61d76f3f7c3",
+      "status": "ORDER_REJECTED",
+      "coin": "GRASS",
+      "side": "SELL",
+      "created_at": "2026-10-18T18:22:22.490925+00:00"
+    },
+    {
+      "intent_id": "e8fe8bf60b6e99cda43dacb0a39bad74",
+      "status": "ORDER_REJECTED",
+      "coin": "ZEC",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:22:22.538363+00:00"
+    },
+    {
+      "intent_id": "0dac514a57f4b415ac488b8471351547",
+      "status": "ORDER_REJECTED",
+      "coin": "IMX",
+      "side": "SELL",
+      "created_at": "2026-10-18T18:22:23.605609+00:00"
+    },
+    {
+      "intent_id": "86cbdbe403cb48e4768e973747ee6e09",
+      "status": "ORDER_REJECTED",
+      "coin": "KSHIB",
+      "side": "SELL",
+      "created_at": "2026-10-18T18:22:24.024158+00:00"
+    },
+    {
+      "intent_id": "af57906eef8e14a6f43fe77ff6f7464f",
+      "status": "ORDER_REJECTED",
+      "coin": "ARB",
+      "side": "SELL",
+      "created_at": "2026-10-18T18:22:24.173347+00:00"
+    },
+    {
+      "intent_id": "31c3ff9509e4a6e13b1f9a85aa4aae4f",
+      "status": "ORDER_REJECTED",
+      "coin": "GRASS",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:22:24.528979+00:00"
+    },
+    {
+      "intent_id": "a0bc618597e4a117cfc8c131a1238e04",
+      "status": "ORDER_REJECTED",
+      "coin": "NEAR",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:22:24.626574+00:00"
+    },
+    {
+      "intent_id": "839c392ef5866be9b94f26f3f2793eb9",
+      "status": "ORDER_REJECTED",
+      "coin": "KBONK",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:22:24.678104+00:00"
+    },
+    {
+      "intent_id": "cb16df9727e4c63586d2f09f0c98a973",
+      "status": "ORDER_REJECTED",
+      "coin": "ZETA",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:22:24.791903+00:00"
+    },
+    {
+      "intent_id": "1ab904dcb1a6f49ddd66c9eba708f9ab",
+      "status": "ORDER_REJECTED",
+      "coin": "BTC",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:22:24.893061+00:00"
+    },
+    {
+      "intent_id": "809caabcb657fd15a20387f2f47dd1f5",
+      "status": "ORDER_REJECTED",
+      "coin": "MEGA",
+      "side": "SELL",
+      "created_at": "2026-10-18T18:22:24.946257+00:00"
+    },
+    {
+      "intent_id": "ac39f8995e42d8a66b189523894f1c4b",
+      "status": "ORDER_REJECTED",
+      "coin": "ATOM",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:22:25.059969+00:00"
+    },
+    {
+      "intent_id": "6874cc6e08f9030d5087295e5dbd9037",
+      "status": "ORDER_REJECTED",
+      "coin": "ZEC",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:22:26.123131+00:00"
+    },
+    {
+      "intent_id": "847846ef447d8e40ddbf655859a0fc33",
+      "status": "ORDER_REJECTED",
+      "coin": "GMT",
+      "side": "SELL",
+      "created_at": "2026-10-18T18:22:26.168920+00:00"
+    },
+    {
+      "intent_id": "6785ce70d4f30ad1c60187738552fefc",
+      "status": "ORDER_REJECTED",
+      "coin": "DASH",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:22:26.584042+00:00"
+    },
+    {
+      "intent_id": "a291447938966dc12c7e7ee76a80482a",
+      "status": "ORDER_REJECTED",
+      "coin": "PEOPLE",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:22:26.632049+00:00"
+    },
+    {
+      "intent_id": "c633bce4ede29cc3fd98bad3de0c0812",
+      "status": "ORDER_REJECTED",
+      "coin": "STABLE",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:22:26.779404+00:00"
+    },
+    {
+      "intent_id": "c38991208e0631132767e7282391fbda",
+      "status": "ORDER_REJECTED",
+      "coin": "ZK",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:22:27.150043+00:00"
+    },
+    {
+      "intent_id": "e2187b85910b4a56aee15f43a6ca3b80",
+      "status": "ORDER_REJECTED",
+      "coin": "RENDER",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:22:27.194190+00:00"
+    },
+    {
+      "intent_id": "9837822f12e26de1b6e6596534bc5901",
+      "status": "ORDER_REJECTED",
+      "coin": "IO",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:22:27.657842+00:00"
+    },
+    {
+      "intent_id": "bad5f10e221eee25e599ee072116d9e1",
+      "status": "ORDER_REJECTED",
+      "coin": "ETH",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:22:27.705949+00:00"
+    },
+    {
+      "intent_id": "7506c07ac364f79cec954211b083a0fe",
+      "status": "ORDER_REJECTED",
+      "coin": "BTC",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:22:27.985269+00:00"
+    },
+    {
+      "intent_id": "b6a8e85b6ce0e850233da026cc8313a2",
+      "status": "ORDER_REJECTED",
+      "coin": "SAND",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:22:27.984599+00:00"
+    },
+    {
+      "intent_id": "1ef6a546134dcc5da828aa2ddcaf86ea",
+      "status": "ORDER_REJECTED",
+      "coin": "PNUT",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:22:27.984144+00:00"
+    },
+    {
+      "intent_id": "d33a75f028d43b34c0c08f798e374e86",
+      "status": "ORDER_REJECTED",
+      "coin": "ARB",
+      "side": "SELL",
+      "created_at": "2026-10-18T18:22:28.096908+00:00"
+    },
+    {
+      "intent_id": "43753fe6cce05a7e1b9614e39304a739",
+      "status": "ORDER_REJECTED",
+      "coin": "SAND",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:22:43.136952+00:00"
+    },
+    {
+      "intent_id": "7c9a32d8541ace2eedc146d7776d80c3",
+      "status": "ORDER_REJECTED",
+      "coin": "ETH",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:22:47.473532+00:00"
+    },
+    {
+      "intent_id": "23086e70bc49f105bd317bab2a135312",
+      "status": "ORDER_REJECTED",
+      "coin": "NEAR",
+      "side": "SELL",
+      "created_at": "2026-10-18T18:22:47.772412+00:00"
+    },
+    {
+      "intent_id": "3cac20e3820f7cb0404857e5de106fd3",
       "status": "pending_send",
       "coin": "ZETA",
       "side": "SELL",
-      "created_at": "2026-10-18T18:18:55.148432+00:00"
+      "created_at": "2026-10-18T18:22:50.344691+00:00"
     },
     {
-      "intent_id": "77a42c0a206887a2f528a5ee5a802b1f",
+      "intent_id": "18527307ad27d0b332d441865fd991fd",
       "status": "pending_send",
-      "coin": "PONS",
-      "side": "BUY",
-      "created_at": "2026-10-18T18:18:55.207922+00:00"
-    },
-    {
-      "intent_id": "b422082daa22c45c860bad475c4b48e4",
-      "status": "pending_send",
-      "coin": "BTC",
+      "coin": "ARB",
       "side": "SELL",
-      "created_at": "2026-10-18T18:18:55.591000+00:00"
+      "created_at": "2026-10-18T18:22:50.394310+00:00"
     },
     {
-      "intent_id": "b6adbd18f09cbeac595b56ae8ab83164",
+      "intent_id": "d9dc9f982d8e04aa3cec6c5094dc16a0",
       "status": "pending_send",
-      "coin": "ETH",
+      "coin": "ATOM",
       "side": "BUY",
-      "created_at": "2026-10-18T18:18:55.723308+00:00"
+      "created_at": "2026-10-18T18:22:50.710185+00:00"
     }
   ],
   "rendered_recon_headers": [
@@ -1509,8 +1509,8 @@
       "2Z",
       "0x010461c1...1c703a",
       "SHARED_SYMBOL_SLEEVE_TRACKED",
-      "SHORT -388",
-      "104",
+      "SHORT -595",
+      "-103",
       "1"
     ],
     [
@@ -1519,7 +1519,7 @@
       "0x31ca8395...fb974b",
       "SHARED_SYMBOL_SLEEVE_TRACKED",
       "LONG 175",
-      "104",
+      "-103",
       "1"
     ],
     [
@@ -1528,7 +1528,7 @@
       "0x7019197d...4abd36",
       "SHARED_SYMBOL_SLEEVE_TRACKED",
       "SHORT -414",
-      "104",
+      "-103",
       "1"
     ],
     [
@@ -1537,7 +1537,7 @@
       "0x7717a7a2...d7bd7e",
       "SHARED_SYMBOL_SLEEVE_TRACKED",
       "LONG 731",
-      "104",
+      "-103",
       "1"
     ],
     [
@@ -1798,7 +1798,7 @@
       "0x010461c1...1c703a",
       "SHARED_SYMBOL_SLEEVE_TRACKED",
       "LONG 60.599999999999994",
-      "-15.4",
+      "14.4",
       "1"
     ],
     [
@@ -1806,8 +1806,8 @@
       "APE",
       "0x31ca8395...fb974b",
       "SHARED_SYMBOL_SLEEVE_TRACKED",
-      "SHORT -156.50000000000006",
-      "-15.4",
+      "SHORT -126.70000000000006",
+      "14.4",
       "1"
     ],
     [
@@ -1816,7 +1816,7 @@
       "0x7019197d...4abd36",
       "SHARED_SYMBOL_SLEEVE_TRACKED",
       "LONG 45.699999999999996",
-      "-15.4",
+      "14.4",
       "1"
     ],
     [
@@ -1825,7 +1825,7 @@
       "0x7717a7a2...d7bd7e",
       "SHARED_SYMBOL_SLEEVE_TRACKED",
       "LONG 34.8",
-      "-15.4",
+      "14.4",
       "1"
     ],
     [
@@ -1897,7 +1897,7 @@
       "0x010461c1...1c703a",
       "SHARED_SYMBOL_SLEEVE_TRACKED",
       "LONG 27.700000000000017",
-      "-28.5",
+      "28.4",
       "1"
     ],
     [
@@ -1906,7 +1906,7 @@
       "0x31ca8395...fb974b",
       "SHARED_SYMBOL_SLEEVE_TRACKED",
       "SHORT -4.299999999999985",
-      "-28.5",
+      "28.4",
       "1"
     ],
     [
@@ -1915,7 +1915,7 @@
       "0x6ba889db...0c1817",
       "SHARED_SYMBOL_SLEEVE_TRACKED",
       "LONG 1985.7000000000003",
-      "-28.5",
+      "28.4",
       "1"
     ]
   ],

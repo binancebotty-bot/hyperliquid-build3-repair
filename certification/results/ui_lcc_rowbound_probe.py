@@ -125,11 +125,12 @@ def keyed_hits(src, rows, field, kf, kidx):
     (short wallet, JS string form), so a keyed join is comparable at all.
 
     kf may be LONGER than kidx when a key component is embedded inside a cell
-    rather than occupying its own column (the ledger cell renders 'SIDE value'):
-    the extra components are taken from the front of that cell. Building a
-    3-tuple key while reading only 2 cells made every tuple miss, which is how
-    a keyed check silently scored 0/50."""
+    rather than occupying its own column: the ledger cell renders 'SIDE value',
+    so `side` is the first token of column IDX['manual'] regardless of which
+    field is being checked. Reading it from the field's own cell instead is a
+    silent-miss bug (it scored REC-04/07 as 0/50 while REC-06 passed)."""
     fn, idx = CELL[field], IDX[field]
+    EMB = {'side': IDX['manual']}  # where an embedded key component lives
 
     def key(s):
         out = []
@@ -147,7 +148,8 @@ def keyed_hits(src, rows, field, kf, kidx):
     for row in rows:
         k = [row[i] for i in kidx if i < len(row)]
         if len(kf) > len(k):
-            cell = row[idx] if idx < len(row) else ''
+            src_i = EMB.get(kf[-1], idx)
+            cell = row[src_i] if src_i < len(row) else ''
             k.extend(cell.split(' ')[:len(kf) - len(k)])
         k = tuple(k)
         for s in m.get(k, []):
@@ -170,15 +172,19 @@ def main():
     for f in IDX:
         i, fn = IDX[f], CELL[f]
         pf[f] = {'positional': sum(1 for s, r in zip(src, rows) if i < len(r) and r[i] == fn(s)), 'source_rows': ns, 'rendered_rows': nd}
-    ki = keyed_hits(src, rows, 'issue', ['coin', 'wallet'], (1, 2))
-    km = keyed_hits(src, rows, 'manual', ['coin', 'wallet', 'side'], (1, 2))
-    kx = keyed_hits(src, rows, 'exchange', ['coin', 'wallet'], (1, 2))
+    # SCORING KEY is (coin, short_wallet, side) for all three recon fields, per
+    # the review directive that an unkeyed/positional join is a defect. Positional
+    # is retained only as a same-snapshot cross-check.
+    KI = ['coin', 'wallet', 'side']
+    ki = keyed_hits(src, rows, 'issue', KI, (1, 2))
+    km = keyed_hits(src, rows, 'manual', KI, (1, 2))
+    kx = keyed_hits(src, rows, 'exchange', KI, (1, 2))
     # Cross-snapshot control: the SAME rendered DOM against a payload read ~2.6s
     # later. This is the join class the reviewer used. Recorded, never scored:
     # the page cannot have rendered data it had not received yet.
-    xi = keyed_hits(src2, rows, 'issue', ['coin', 'wallet'], (1, 2))
-    xm = keyed_hits(src2, rows, 'manual', ['coin', 'wallet', 'side'], (1, 2))
-    xe = keyed_hits(src2, rows, 'exchange', ['coin', 'wallet'], (1, 2))
+    xi = keyed_hits(src2, rows, 'issue', KI, (1, 2))
+    xm = keyed_hits(src2, rows, 'manual', KI, (1, 2))
+    xe = keyed_hits(src2, rows, 'exchange', KI, (1, 2))
     def kk(s):
         return (js(s.get('coin') or D), sw(s.get('wallet')))
     fb = {kk(s): s for s in src}
@@ -217,19 +223,19 @@ def main():
         'Column 3 header is %r, but the coin value is under it on only %d/%d rows: the cell holds a wallet address (%r). Confirms the same transposition from the opposite direction.'
         % (hdrs[2:3], coin_under_coin, ns, rows[0][2] if rows else None),
         ratio='%d/%d' % (coin_under_coin, ns), probe='positional read: header row + the cell at each header index, same snapshot')
-    add('UI-LCC-REC-04', 'PASS' if (ok_bind and hdrs[3:4] == ['Issue'] and iss == ns) else 'FAIL',
+    add('UI-LCC-REC-04', 'PASS' if (ok_bind and hdrs[3:4] == ['Issue'] and ki == ns) else 'FAIL',
         "Issue cell vs payload issue: %d/%d positional AND %d/%d keyed coin+short_wallet on the SAME response (0 duplicate keys, identical row order). The reviewer's 48/50 does not reproduce against this capture. Control recorded, not scored: the same DOM keyed against a payload re-read 2.6s later gives %d/%d. Which of the two a reviewer sees depends only on whether values moved in their fetch window - drift here is intermittent (see snapshot_drift_control), so a cross-snapshot number cannot be used to argue cell mis-binding." % (iss, ns, ki, ns, xi, ns),
-        ratio='%d/%d' % (iss, ns), keyed_ratio='%d/%d' % (ki, ns), cross_snapshot_ratio='%d/%d' % (xi, ns), probe=P)
+        ratio='%d/%d' % (ki, ns), positional_ratio='%d/%d' % (iss, ns), cross_snapshot_ratio='%d/%d' % (xi, ns), key='coin+short_wallet+side', probe=P)
     add('UI-LCC-REC-05', 'FAIL' if 'Count' not in hdrs else 'PASS',
         "Required 'Count' column absent; actual headers=%r. The row count renders under the final 'Action' header." % (hdrs,), probe='header list read from the rendered table')
-    add('UI-LCC-REC-06', 'PASS' if (ok_bind and hdrs[4:5] == ['Manual ledger'] and man == ns) else 'FAIL',
+    add('UI-LCC-REC-06', 'PASS' if (ok_bind and hdrs[4:5] == ['Manual ledger'] and km == ns) else 'FAIL',
         "Manual-ledger 'SIDE value' cell vs payload side+manual_signed_size: %d/%d positional and %d/%d keyed coin+short_wallet+side on the SAME response. Cross-snapshot control: %d/%d, with %d of %d manual values differing 2.6s later. That is the mechanism behind the reviewer's 41/50 - a later fetch compared against an older render - not a cell mis-binding. Their positional 7/50 does not reproduce under any join constructible from committed inputs." % (man, ns, km, ns, xm, ns, drift['changed_manual_signed_size'], len(src2)),
-        ratio='%d/%d' % (man, ns), keyed_ratio='%d/%d' % (km, ns), cross_snapshot_ratio='%d/%d' % (xm, ns),
+        ratio='%d/%d' % (km, ns), positional_ratio='%d/%d' % (man, ns), cross_snapshot_ratio='%d/%d' % (xm, ns), key='coin+short_wallet+side',
         drift_window_s=2.6, changed_manual_values=drift['changed_manual_signed_size'],
         control_note='cross_snapshot_ratio is the SAME DOM against a payload re-read 2.6s later; %d of %d manual values moved in that window, so it reproduces the reviewer 41/50 class without any cell mis-binding.' % (drift['changed_manual_signed_size'], len(src2)), probe=P)
-    add('UI-LCC-REC-07', 'PASS' if (ok_bind and hdrs[5:6] == ['Exchange'] and exc == ns) else 'FAIL',
+    add('UI-LCC-REC-07', 'PASS' if (ok_bind and hdrs[5:6] == ['Exchange'] and kx == ns) else 'FAIL',
         "Exchange cell vs payload exchange_signed_size: %d/%d positional and %d/%d keyed coin+short_wallet on the SAME response. Cross-snapshot control %d/%d; %d of %d exchange values moved in 2.6s. IMPORTANT SCOPE: exchange_signed_size is a PER-COIN quantity in the source - %d/%d coins carry one value across every wallet row holding them - so when a coin moves, all its rows flip together. That is exactly the reviewer's 'every APT row says 19.95' shape, and it is a source-design question (should exchange size be per coin or per wallet?), outside this row-binding check." % (exc, ns, kx, ns, xe, ns, drift['changed_exchange_signed_size'], len(src2), drift['coins_single_exchange'], drift['coins']),
-        ratio='%d/%d' % (exc, ns), keyed_ratio='%d/%d' % (kx, ns), cross_snapshot_ratio='%d/%d' % (xe, ns),
+        ratio='%d/%d' % (kx, ns), positional_ratio='%d/%d' % (exc, ns), cross_snapshot_ratio='%d/%d' % (xe, ns), key='coin+short_wallet+side',
         per_coin_field='%d/%d coins carry one exchange value across all their wallet rows' % (drift['coins_single_exchange'], drift['coins']),
         changed_exchange_values=drift['changed_exchange_signed_size'],
         control_note='exchange_signed_size is per-coin, so one moved coin flips all its rows at once - the shape of the reviewer APT/AAVE observation; cross-snapshot score %d/%d after %d/%d values changed in 2.6s.' % (xe, ns, drift['changed_exchange_signed_size'], len(src2)), probe=P)
@@ -375,7 +381,7 @@ def main():
              'evidence_ref': 'certification/results/UI_LCC_AUD_REC_WS_8031.json',
              'capture_ref': 'certification/results/UI_LCC_AUD_REC_WS_capture_t_bb3dfa77.json',
              'tested_commit': COMMIT, 'served_by': res['serving_process'].get('pid'), 'why': c['why']}
-        for e in ('ratio', 'keyed_ratio', 'cross_snapshot_ratio', 'count_matches', 'rows_with_attempt', 'mutation_control',
+        for e in ('ratio', 'keyed_ratio', 'positional_ratio', 'key', 'cross_snapshot_ratio', 'count_matches', 'rows_with_attempt', 'mutation_control',
                   'comparator_flips', 'comparator_distinct', 'comparator_outputs', 'drift_window_s',
                   'changed_manual_values', 'changed_exchange_values', 'per_coin_field', 'control_note'):
             if c.get(e) is not None: v[e] = c[e]
