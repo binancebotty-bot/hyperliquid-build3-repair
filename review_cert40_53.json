@@ -1,0 +1,100 @@
+{
+  "review_card": "t_8c2de538",
+  "reviewed_branch": "hermes/cert-40-53-inc11-uifp007-t_86fd9609",
+  "reviewed_commit": "a387123115d29c6f53a116711a112bf12fc2c510",
+  "artifact_under_review": "cert40_53_verdicts.json",
+  "overall_verdict": "FAIL",
+  "summary": "Evidence files exist and commits are valid, but 12 of 15 rows have non-row-bound justifications (identical text across rows). INC-18 is inconsistent with INC-13..17 (same text, different verdict).",
+  "rows": [
+    {
+      "row_id": "INC-11",
+      "verdict": "PASS",
+      "probe": "Checked evidence_ref exists on branch, tested_commit is valid, justification is row-bound (specific to process-death runtime evidence).",
+      "why": "Evidence exists, commit valid, justification specific to INC-11's concern about process-death."
+    },
+    {
+      "row_id": "INC-12",
+      "verdict": "PASS",
+      "probe": "Checked REGRESSION_fa9d9f55ff.json INC-12 check: tests SYMBOL_UNRESOLVED, not minimum-notional. Justification is row-bound.",
+      "why": "Evidence exists, commit valid, justification correctly identifies that the regression check tests unresolved-symbol handling, not ENTRY/ADD/EXIT minimum-notional behavior."
+    },
+    {
+      "row_id": "INC-13",
+      "verdict": "FAIL",
+      "probe": "Justification text 'No evidence: incident-specific assertion is absent from this generic UI artifact.' is IDENTICAL across INC-13, INC-14, INC-15, INC-16, INC-17. The UI_CORRECTION artifact DOES contain INC-13:DISPLAYED_TARGET_GATED and INC-13:TARGET_GATE_VERIFIED checks. Non-row-bound dismissal.",
+      "why": "Identical justification across 5 rows. The artifact contains INC-13 checks but they are dismissed with boilerplate that does not distinguish what INC-13 specifically requires vs its siblings."
+    },
+    {
+      "row_id": "INC-14",
+      "verdict": "FAIL",
+      "probe": "Same identical justification text as INC-13, INC-15, INC-16, INC-17. UI_CORRECTION contains INC-14:NO_FALSE_BUDGET check. Non-row-bound dismissal.",
+      "why": "Identical justification across 5 rows. No row-specific analysis of what INC-14 requires."
+    },
+    {
+      "row_id": "INC-15",
+      "verdict": "FAIL",
+      "probe": "Same identical justification text as INC-13, INC-14, INC-16, INC-17. UI_CORRECTION contains INC-15:CLOSE_ONLY_VISIBLE and INC-15:CLOSE_ONLY_WITH_EXPOSURE checks. Non-row-bound dismissal.",
+      "why": "Identical justification across 5 rows. No row-specific analysis of what INC-15 requires."
+    },
+    {
+      "row_id": "INC-16",
+      "verdict": "FAIL",
+      "probe": "Same identical justification text as INC-13, INC-14, INC-15, INC-17. UI_CORRECTION contains INC-16:MODE_TRANSITION_VISIBLE check. Non-row-bound dismissal.",
+      "why": "Identical justification across 5 rows. No row-specific analysis of what INC-16 requires."
+    },
+    {
+      "row_id": "INC-17",
+      "verdict": "FAIL",
+      "probe": "Same identical justification text as INC-13, INC-14, INC-15, INC-16. UI_CORRECTION contains INC-17:ERROR_SURFACED and INC-17:ERROR_DISPLAYED checks. Non-row-bound dismissal.",
+      "why": "Identical justification across 5 rows. No row-specific analysis of what INC-17 requires."
+    },
+    {
+      "row_id": "INC-18",
+      "verdict": "FAIL",
+      "probe": "Justification text is IDENTICAL to INC-13..17 ('No evidence: incident-specific assertion is absent from this generic UI artifact.') but verdict is FAIL instead of NOT_TESTED. evidence_ref and tested_commit are EMPTY. Inconsistent: same justification, different verdict, no evidence cited.",
+      "why": "Inconsistent with INC-13..17 (same text, different verdict). Empty evidence_ref and tested_commit. FAIL verdict with no evidence cited is unsupported."
+    },
+    {
+      "row_id": "UI-FP-001",
+      "verdict": "FAIL",
+      "probe": "Justification text 'The artifact check is only that an element is absent; it does not bind this row's specified live_config source field to the rendered value (or independently recompute it).' is IDENTICAL across UI-FP-001 through UI-FP-007. UI_CORRECTION contains UI-FP-001:LCWALLETCOUNT_ELEMENT and UI-FP-001:HEADER_FALLBACK checks. Non-row-bound dismissal.",
+      "why": "Identical justification across 7 rows. No row-specific analysis of what UI-FP-001 requires vs its siblings."
+    },
+    {
+      "row_id": "UI-FP-002",
+      "verdict": "FAIL",
+      "probe": "Same identical justification as UI-FP-001, 003-007. UI_CORRECTION contains UI-FP-002:LIVE_ELEMENT and UI-FP-002:SAFETY_STRIP_FALLBACK checks. Non-row-bound dismissal.",
+      "why": "Identical justification across 7 rows. No row-specific analysis."
+    },
+    {
+      "row_id": "UI-FP-003",
+      "verdict": "FAIL",
+      "probe": "Same identical justification as UI-FP-001, 002, 004-007. UI_CORRECTION contains UI-FP-003:CLO_ELEMENT and UI-FP-003:WS_FALLBACK checks. Non-row-bound dismissal.",
+      "why": "Identical justification across 7 rows. No row-specific analysis."
+    },
+    {
+      "row_id": "UI-FP-004",
+      "verdict": "FAIL",
+      "probe": "Same identical justification as UI-FP-001, 002, 003, 005-007. UI_CORRECTION contains UI-FP-004:OFF_ELEMENT and UI-FP-004:NO_DATA_FALLBACK checks. Non-row-bound dismissal.",
+      "why": "Identical justification across 7 rows. No row-specific analysis."
+    },
+    {
+      "row_id": "UI-FP-005",
+      "verdict": "FAIL",
+      "probe": "Same identical justification as UI-FP-001, 002, 003, 004, 006, 007. UI_CORRECTION contains UI-FP-005:LCAUTOSEND_ELEMENT check. Non-row-bound dismissal.",
+      "why": "Identical justification across 7 rows. No row-specific analysis."
+    },
+    {
+      "row_id": "UI-FP-006",
+      "verdict": "FAIL",
+      "probe": "Same identical justification as UI-FP-001, 002, 003, 004, 005, 007. UI_CORRECTION contains UI-FP-006:LCWSOVERALL_ELEMENT check. Non-row-bound dismissal.",
+      "why": "Identical justification across 7 rows. No row-specific analysis."
+    },
+    {
+      "row_id": "UI-FP-007",
+      "verdict": "FAIL",
+      "probe": "Same identical justification as UI-FP-001, 002, 003, 004, 005, 006. UI_CORRECTION contains UI-FP-007:LCREALORDERS_ELEMENT check. Non-row-bound dismissal.",
+      "why": "Identical justification across 7 rows. No row-specific analysis."
+    }
+  ]
+}
