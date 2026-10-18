@@ -1,0 +1,19 @@
+{
+  "row_id": "F25-X05",
+  "tested_commit": "b142cf88d389e791160f691aac3d936852b99975",
+  "path": "_archive/hl_stage2/HL_Live_Copy_Service.py",
+  "sha256": "e2f04fa826958c73169bae2490a6ebb3ebfd09d9aecda513ef0d7bd8a10ec2c6",
+  "bytes": 281821,
+  "lines": 5109,
+  "case_insensitive_literal_occurrences": {
+    "msvcrt": 0,
+    "fcntl": 0,
+    "instance.lock": 0,
+    "acquire_instance_lock": 0,
+    "CreateMutex": 0,
+    "lock_file": 0,
+    "lockfile": 0,
+    "PID": 1
+  },
+  "method": "Counts are case-insensitive literal substring occurrences in the exact file bytes decoded as UTF-8; source identity is pinned by commit and SHA-256. This census establishes absence of the listed lease primitives in the declared runtime; it does not claim the lone PID match is a lease."
+}
