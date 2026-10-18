@@ -1,0 +1,107 @@
+[
+  {
+    "row_id": "INC-11",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+    "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+    "why": "No process-death runtime evidence is bound to the rendered status. The correction artifact does not induce engine death or assert UI status changes."
+  },
+  {
+    "row_id": "INC-12",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+    "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+    "why": "Regression evidence is unrelated: its INC-12 check tests unresolved-symbol handling, not ENTRY/ADD/EXIT minimum-notional behavior."
+  },
+  {
+    "row_id": "INC-13",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+    "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+    "why": "No evidence: incident-specific assertion is absent from this generic UI artifact."
+  },
+  {
+    "row_id": "INC-14",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+    "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+    "why": "No evidence: incident-specific assertion is absent from this generic UI artifact."
+  },
+  {
+    "row_id": "INC-15",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+    "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+    "why": "No evidence: incident-specific assertion is absent from this generic UI artifact."
+  },
+  {
+    "row_id": "INC-16",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+    "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+    "why": "No evidence: incident-specific assertion is absent from this generic UI artifact."
+  },
+  {
+    "row_id": "INC-17",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+    "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+    "why": "No evidence: incident-specific assertion is absent from this generic UI artifact."
+  },
+  {
+    "row_id": "INC-18",
+    "verdict": "FAIL",
+    "evidence_ref": "",
+    "tested_commit": "",
+    "why": "No evidence: incident-specific assertion is absent from this generic UI artifact."
+  },
+  {
+    "row_id": "UI-FP-001",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+    "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+    "why": "The artifact check is only that an element is absent; it does not bind this row\u2019s specified live_config source field to the rendered value (or independently recompute it)."
+  },
+  {
+    "row_id": "UI-FP-002",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+    "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+    "why": "The artifact check is only that an element is absent; it does not bind this row\u2019s specified live_config source field to the rendered value (or independently recompute it)."
+  },
+  {
+    "row_id": "UI-FP-003",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+    "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+    "why": "The artifact check is only that an element is absent; it does not bind this row\u2019s specified live_config source field to the rendered value (or independently recompute it)."
+  },
+  {
+    "row_id": "UI-FP-004",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+    "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+    "why": "The artifact check is only that an element is absent; it does not bind this row\u2019s specified live_config source field to the rendered value (or independently recompute it)."
+  },
+  {
+    "row_id": "UI-FP-005",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+    "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+    "why": "The artifact check is only that an element is absent; it does not bind this row\u2019s specified live_config source field to the rendered value (or independently recompute it)."
+  },
+  {
+    "row_id": "UI-FP-006",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+    "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+    "why": "The artifact check is only that an element is absent; it does not bind this row\u2019s specified live_config source field to the rendered value (or independently recompute it)."
+  },
+  {
+    "row_id": "UI-FP-007",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+    "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+    "why": "The artifact check is only that an element is absent; it does not bind this row\u2019s specified live_config source field to the rendered value (or independently recompute it)."
+  }
+]
