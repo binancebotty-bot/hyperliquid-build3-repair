@@ -1,0 +1,102 @@
+{
+  "branch_reviewed": "hermes/cert-28-flogic003-fexc001-t_3b80f775",
+  "commit_reviewed": "05214f29fae43fbcd86ca41cdf96e539a46c5494",
+  "rows": [
+    {
+      "row_id": "F-LOGIC-003",
+      "verdict": "FAIL",
+      "probe": "Inspected copy_fill_id and cited checks: absent hash/tid uses synthesized stable_hash; no untrusted marker cited.",
+      "why": "Ambiguous identity is deduped but silently trusted, violating this row's absent-identity requirement."
+    },
+    {
+      "row_id": "F-LOGIC-004",
+      "verdict": "PASS",
+      "probe": "Inspected cited reduce-only mapping and check assertions distinguishing EXIT true from ENTRY false.",
+      "why": "EXIT wire semantics and no-flip checks are specific; full suite not independently rerun."
+    },
+    {
+      "row_id": "F-LOGIC-005",
+      "verdict": "PASS",
+      "probe": "Inspected cited Gate B and disposition evidence.",
+      "why": "DUST_BELOW_MIN_NOTIONAL, exchange_called false, and HOLD_DUST_OR_AGGREGATE specifically support this row; full suite not rerun."
+    },
+    {
+      "row_id": "F-LOGIC-006",
+      "verdict": "FAIL",
+      "probe": "Inspected cited close_size checks: sleeve 5.0 while account coin_net=2.0.",
+      "why": "Explicit numeric counterexample contradicts account-net sizing."
+    },
+    {
+      "row_id": "F-LOGIC-007",
+      "verdict": "FAIL",
+      "probe": "Inspected cited WS_DISABLED test and run_cycle gate.",
+      "why": "Disabled WS leaves wallet LIVE and intents written, contradicting the per-wallet health requirement."
+    },
+    {
+      "row_id": "F-LOGIC-008",
+      "verdict": "PASS",
+      "probe": "Inspected cited ExchangeReconciler paths and manual-only ZEC mismatch check.",
+      "why": "A live exchange snapshot compared to ledger yields a specific mismatch/action; full suite not rerun."
+    },
+    {
+      "row_id": "F-LOGIC-009",
+      "verdict": "FAIL",
+      "probe": "Inspected cited entry-gate list and mismatch references, which are limited to audit/reconciliation.",
+      "why": "No cited gate consumes LEDGER_EXCHANGE_NET_MISMATCH, so mismatch does not stop ENTRY/ADD."
+    },
+    {
+      "row_id": "F-LOGIC-010",
+      "verdict": "FAIL",
+      "probe": "Inspected cited single master-gate early return and absence of callsite enumeration test.",
+      "why": "A test of one early return cannot detect a new client call path bypassing it."
+    },
+    {
+      "row_id": "F-LOGIC-011",
+      "verdict": "FAIL",
+      "probe": "Inspected source paths and reported openOrders/refetch zero-hit findings; not independently rerun.",
+      "why": "No exchange open-orders read or per-event refetch is evidenced; cited mechanism absence supports FAIL."
+    },
+    {
+      "row_id": "F-LOGIC-012",
+      "verdict": "FAIL",
+      "probe": "Inspected cited zero-count truth_tier/freshness searches; not independently rerun.",
+      "why": "The cited engine/SSOT lack the required values, precluding enforcement based on them."
+    },
+    {
+      "row_id": "F-LOGIC-013",
+      "verdict": "PASS",
+      "probe": "Inspected cited self-test ranges for gate, exchange reconciliation, restart, replay.",
+      "why": "Distinct assertions map to named invariants; suite not independently rerun, so no independent execution claim."
+    },
+    {
+      "row_id": "F-LOGIC-014",
+      "verdict": "PASS",
+      "probe": "Inspected cited integrity-status implementation and classifications in checks 122-127.",
+      "why": "Persisted evidence/recovery states are row-specific; suite not independently rerun."
+    },
+    {
+      "row_id": "F-LOGIC-015",
+      "verdict": "FAIL",
+      "probe": "Checked reported direct probe: UNCLASSIFIED, SNAPSHOT_UNAVAILABLE, SNAPSHOT_SKIPPED, BLOCKED_SEND_UNCLASSIFIED -> GREEN.",
+      "why": "Explicit adverse inputs returning GREEN violate fail-closed classification."
+    },
+    {
+      "row_id": "F-LOGIC-016",
+      "verdict": "PASS",
+      "probe": "Inspected cited terminal-state mapping and no-send artifact assertions for auto-send disabled.",
+      "why": "Disabled state plus absence of send artifacts supports the specific no-false-live-copy claim; suite not rerun."
+    },
+    {
+      "row_id": "F-EXC-001",
+      "verdict": "FAIL",
+      "probe": "Checked cited unavailable/skipped snapshot classification and test where intent writing continues.",
+      "why": "Missing fresh exchange data can remain GREEN while intent flow continues, violating the fail-closed requirement."
+    }
+  ],
+  "summary": {
+    "rows": 15,
+    "PASS": 6,
+    "FAIL": 9,
+    "NOT_TESTED": 0
+  }
+}
