@@ -31,7 +31,7 @@ rows.append({
     'row_id': 'ENG-INV-01',
     'verdict': 'PASS',
     'quoted_evidence': {
-        'artifact': 'certification/results/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json',
+        'artifact': 'certification/eng_inv_01_02_06_reearn/cited/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json',
         'artifact_location': 'origin/cert/local-main-b142cf8',
         'artifact_key': "checks['ENG-INV-01']",
         'quote': json.dumps(A0102['checks']['ENG-INV-01'], ensure_ascii=False),
@@ -47,7 +47,7 @@ rows.append({
     'row_id': 'ENG-INV-02',
     'verdict': 'FAIL',
     'quoted_evidence': {
-        'artifact': 'certification/results/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json',
+        'artifact': 'certification/eng_inv_01_02_06_reearn/cited/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json',
         'artifact_location': 'origin/cert/local-main-b142cf8',
         'artifact_key': "checks['ENG-INV-02']",
         'quote': json.dumps(A0102['checks']['ENG-INV-02'], ensure_ascii=False),
@@ -64,7 +64,7 @@ rows.append({
     'row_id': 'ENG-INV-06',
     'verdict': 'PASS',
     'quoted_evidence': {
-        'artifact': 'certification/results/ENG-INV-06-09_43731b4.json',
+        'artifact': 'certification/eng_inv_01_02_06_reearn/cited/ENG-INV-06-09_43731b4.json',
         'artifact_location': 'origin/cert/local-main-b142cf8',
         'artifact_key': "invariants['ENG-INV-06']",
         'quote': json.dumps({'id': c06['id'], 'result': c06['result'], 'checks': c06['checks'], 'order_call_sites': c06['order_call_sites'], 'process_spawns': c06['process_spawns'], 'persistent_stores': c06['persistent_stores'], 'total_py_files_scanned': c06['total_py_files_scanned']}, ensure_ascii=False),

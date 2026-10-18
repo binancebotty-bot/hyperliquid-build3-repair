@@ -17,7 +17,7 @@
    "row_id": "ENG-INV-01",
    "verdict": "PASS",
    "quoted_evidence": {
-    "artifact": "certification/results/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json",
+    "artifact": "certification/eng_inv_01_02_06_reearn/cited/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json",
     "artifact_location": "origin/cert/local-main-b142cf8",
     "artifact_key": "checks['ENG-INV-01']",
     "quote": "[{\"name\": \"NO_PROCESS_SPAWNS\", \"pass\": true, \"detail\": \"Found 0 process spawn(s): []\"}]",
@@ -47,7 +47,7 @@
    "row_id": "ENG-INV-02",
    "verdict": "FAIL",
    "quoted_evidence": {
-    "artifact": "certification/results/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json",
+    "artifact": "certification/eng_inv_01_02_06_reearn/cited/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json",
     "artifact_location": "origin/cert/local-main-b142cf8",
     "artifact_key": "checks['ENG-INV-02']",
     "quote": "[{\"name\": \"ONE_PHYSICAL_ORDER_SITE\", \"pass\": true, \"detail\": \"Physical .order() calls: [2703] (total all: 2)\"}]",
@@ -84,7 +84,7 @@
    "row_id": "ENG-INV-06",
    "verdict": "PASS",
    "quoted_evidence": {
-    "artifact": "certification/results/ENG-INV-06-09_43731b4.json",
+    "artifact": "certification/eng_inv_01_02_06_reearn/cited/ENG-INV-06-09_43731b4.json",
     "artifact_location": "origin/cert/local-main-b142cf8",
     "artifact_key": "invariants['ENG-INV-06']",
     "quote": "{\"id\": \"ENG-INV-06\", \"result\": \"PASS\", \"checks\": {\"single_order_call_site\": true, \"no_process_spawns\": true, \"no_new_third_party_imports\": true, \"no_persistent_store\": true}, \"order_call_sites\": [{\"file\": \"_archive\\\\hl_stage2\\\\HL_Live_Copy_Service_Core.py\", \"line\": 2703, \"col\": 19}], \"process_spawns\": [], \"persistent_stores\": [], \"total_py_files_scanned\": 1}",
