@@ -1,0 +1,60 @@
+{
+  "artifact_type": "ui_cert_review_verdict",
+  "task_id": "t_4dc8822b",
+  "review_kind": "adversarial",
+  "author_branch": "hermes/cert-batch13-redo-t_91949b78",
+  "reviewed_commit": "cb5b34aad91317bdbefb1815b305495da3eb368d",
+  "reviewed_subject": "REDO: UI-SSOT-TBL-13..25, PAGE-01, PAGE-02 - corrected probe surface and evidence",
+  "serving_pid": 26592,
+  "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+  "overall_verdict": "FAIL",
+  "counts": { "PASS": 0, "FAIL": 15, "NOT_TESTED": 0 },
+  "blocking_findings": [
+    "EVIDENCE CHAIN BROKEN (criterion 1): all 15 rows cite evidence/*_20261018_115910.json and evidence_wallet_meta_post_20261018_115839.json. None of those 8 files exist at the reviewed commit cb5b34a; `git cat-file -e cb5b34a:<path>` returns MISS for every one. The only 2026-10-18 captures committed on that commit are the *_115817.json family (9 files). A cited-but-absent file is an automatic FAIL.",
+    "REDO NOT PUBLISHED: `git ls-remote --heads origin` lists 244 heads and none matches hermes/cert-batch13-redo-t_91949b78. The corrected artifact is local-only, so no reviewer or downstream consumer can resolve it from origin.",
+    "NOT ROW-BOUND (criterion 3): the live /model at serving commit 89b3bc7586 renders exactly one tbody row, the USER (MODEL) aggregate (2 `<tr` tokens = 1 thead + 1 tbody). load_engine_truth() returns {}, load_raw_fills() returns 0 fills, wallet_gate is empty, so there is no non-user wallet row. TBL-13..TBL-24 therefore cannot quote a per-row value that would fail for a sibling row; the earlier 'one substring probe relabelled 13 times' defect is masked by an empty dataset, not cured.",
+    "SORT PERSISTENCE NOT PROVEN ON /model (criterion 4): every one of the 11 /sort/<col> endpoints returns 200 with that column active, and ui_state.json ranking does mutate (exit_count desc->asc on a second hit). But /model is served from a cached HTML snapshot and still showed WIN% active after /sort/pnl_per_hour and after /sort/exit_count. The named surface does not reflect the persisted ranking, so 'same column still sort-active after reload' is unverified there."
+  ],
+  "controls_that_passed": [
+    "Surface is right: probes target /model (render_home), not /live-copy.",
+    "Mutation control reproduced by this reviewer: baseline render has no warning; injecting user_aggregate.alloc += 12345 yields 'CONTRACT WARNING (1 errors): user_aggregate alloc 12445.0000 != user_norm_base 100.0000'; injecting user_aggregate.lead.equity += 777 yields 'CONTRACT WARNING (1 errors): user_aggregate lead.equity 877.0000 != user_norm_base+pnl 100.0000'. The render contract is enforcing.",
+    "Tracked-wallet routing: /wallet/0x7ae3b08bb4e7b085c6db5d635b96bec9715e9205 = 200 / 87778 bytes with lcGraphResetRange; /wallet-meta/<same> = 200 / 2174 bytes with tag select, color select, note textarea, form action /api/wallet-meta; unknown wallet 0xdead... = 404, which is correct behaviour and is not scored as a product miss."
+  ],
+  "not_tested": [
+    "Reset/snapshot 'mutates no engine truth': the author's evidence_reset_snapshot_api_20261018_115910.json is absent and the committed 115817 stand-in records only request/response, no pre/post hashes. A snapshot POST returned 200 and wrote a file, but a concurrent background model-cache refresh rewrote app_model_state.json inside the same window (that one file failed sha256 re-check; every other derived file matched), so the change cannot be attributed to the endpoint. engine_truth.json does not exist on this host, so engine truth could not be perturbed or observed."
+  ],
+  "rows": [
+    { "row_id": "UI-SSOT-TBL-13", "verdict": "FAIL", "probe": "evidence_ref evidence/evidence_model_20261018_115910.json -> git cat-file -e cb5b34a: MISS. Live /model 22240 bytes, header 'PNL/HR' -> /sort/pnl_per_hour, 0 non-user rows.", "why": "Cited capture absent from the commit; no per-wallet PNL/HR cell exists to bind, only the USER row's em dash." },
+    { "row_id": "UI-SSOT-TBL-14", "verdict": "FAIL", "probe": "same absent ref. Live header 'AVG TRADE %' -> /sort/avg_trade_pct.", "why": "Absent evidence plus no bindable wallet row for AVG TRADE %." },
+    { "row_id": "UI-SSOT-TBL-15", "verdict": "FAIL", "probe": "same absent ref. Live 'WIN%' is the permanently active column on cached /model.", "why": "Absent evidence; and the active marker is frozen at WIN% regardless of requested sort, so a PASS cannot be distinguished from a stuck indicator." },
+    { "row_id": "UI-SSOT-TBL-16", "verdict": "FAIL", "probe": "same absent ref. Live 'AVG POS $' -> /sort/avg_position_usd.", "why": "Absent evidence; no wallet row to bind a dollar value." },
+    { "row_id": "UI-SSOT-TBL-17", "verdict": "FAIL", "probe": "same absent ref. Live 'MAX POS $' -> /sort/max_position_usd.", "why": "Absent evidence; no wallet row to bind a dollar value." },
+    { "row_id": "UI-SSOT-TBL-18", "verdict": "FAIL", "probe": "same absent ref. Live 'AVG NOTIONAL' -> /sort/avg_entry_notional_usd.", "why": "Absent evidence; no wallet row to bind a dollar value." },
+    { "row_id": "UI-SSOT-TBL-19", "verdict": "FAIL", "probe": "same absent ref. Live '% >= $10' -> /sort/pct_entries_ge10.", "why": "Absent evidence; no wallet row to bind a percentage." },
+    { "row_id": "UI-SSOT-TBL-20", "verdict": "FAIL", "probe": "same absent ref. Live 'REQ LEV' -> /sort/required_leverage.", "why": "Absent evidence; no wallet row to bind the leverage ratio." },
+    { "row_id": "UI-SSOT-TBL-21", "verdict": "FAIL", "probe": "same absent ref. Live 'FILLS L/C' -> /sort/fill_count.", "why": "Absent evidence; L/C agreement cannot be shown with no wallet row rendered." },
+    { "row_id": "UI-SSOT-TBL-22", "verdict": "FAIL", "probe": "same absent ref. Live 'EXITS L/C' -> /sort/exit_count.", "why": "Absent evidence; same missing wallet row." },
+    { "row_id": "UI-SSOT-TBL-23", "verdict": "FAIL", "probe": "same absent ref. Live 'POS L/C' -> /sort/open_position_count.", "why": "Absent evidence; same missing wallet row." },
+    { "row_id": "UI-SSOT-TBL-24", "verdict": "FAIL", "probe": "same absent ref. Live header 'INC / WALLET MODEL' present; the only row carries the 'USER (MODEL)' badge.", "why": "Label present, but the cited capture is absent and the aggregate claim rests on a single synthetic user row, so it is not independently reproducible." },
+    { "row_id": "UI-SSOT-TBL-25", "verdict": "FAIL", "probe": "evidence_sort_endpoints_20261018_115910.json and evidence_sort_persistence_20261018_115910.json both MISS at cb5b34a. Live: 11/11 /sort/<col> return 200 and each shows its own column active; /model remained WIN%-active after /sort/pnl_per_hour and after /sort/exit_count.", "why": "Endpoint presence is real; the required column-specific AND persistent proof fails because the served /model does not follow the persisted ranking." },
+    { "row_id": "UI-SSOT-PAGE-01", "verdict": "FAIL", "probe": "refs evidence_wallet_detail_20261018_115910.json, evidence_reset_snapshot_api_20261018_115910.json, evidence_test_g4_ui_controls_20261018_115910.json all MISS. Live GET /wallet/0x7ae3b08bb4e7b085c6db5d635b96bec9715e9205 = 200 / 87778 with lcGraphResetRange.", "why": "Product behaviour is fine on a tracked wallet, but every cited raw capture is absent from the commit, so the row's evidence does not resolve." },
+    { "row_id": "UI-SSOT-PAGE-02", "verdict": "FAIL", "probe": "refs evidence_wallet_meta_20261018_115910.json and evidence_wallet_meta_post_20261018_115839.json MISS. Live GET /wallet-meta/<tracked> = 200 / 2174 with tag, color, textarea, action /api/wallet-meta.", "why": "Editor and tracked-wallet routing verified live, but the POST round-trip capture the row relies on does not exist at the commit." }
+  ],
+  "author_evidence_audit": {
+    "refs_cited": 8,
+    "refs_present_at_reviewed_commit": 0,
+    "present_instead": [
+      "certification/evidence/evidence_engine_ssot_20261018_115817.json",
+      "certification/evidence/evidence_model_20261018_115817.json",
+      "certification/evidence/evidence_reset_snapshot_api_20261018_115817.json",
+      "certification/evidence/evidence_sort_endpoints_20261018_115817.json",
+      "certification/evidence/evidence_sort_persistence_20261018_115817.json",
+      "certification/evidence/evidence_test_g4_ui_controls_20261018_115817.json",
+      "certification/evidence/evidence_wallet_detail_20261018_115817.json",
+      "certification/evidence/evidence_wallet_meta_20261018_115817.json",
+      "certification/evidence/evidence_wallet_meta_post_20261018_115817.json"
+    ],
+    "note": "The 115817 captures are genuine (endpoint/status_code/content/serving_commit=89b3bc7586). The defect is purely that the committed verdict JSON points at 115910/115839 filenames that were never committed, so the artifact does not resolve to its own evidence."
+  },
+  "reviewer_captures": "certification/evidence/review_t_4dc8822b/"
+}

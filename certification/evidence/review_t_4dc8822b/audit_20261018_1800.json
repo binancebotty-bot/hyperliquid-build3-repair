@@ -1,0 +1,45 @@
+{
+  "probe": "review_evidence_audit",
+  "task_id": "t_4dc8822b",
+  "reviewed_commit": "cb5b34aad91317bdbefb1815b305495da3eb368d",
+  "serving_pid": 26592,
+  "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+  "ref_resolution": [
+    { "ref": "certification/evidence/evidence_model_20261018_115910.json", "exists_at_reviewed_commit": false },
+    { "ref": "certification/evidence/evidence_reset_snapshot_api_20261018_115910.json", "exists_at_reviewed_commit": false },
+    { "ref": "certification/evidence/evidence_sort_endpoints_20261018_115910.json", "exists_at_reviewed_commit": false },
+    { "ref": "certification/evidence/evidence_sort_persistence_20261018_115910.json", "exists_at_reviewed_commit": false },
+    { "ref": "certification/evidence/evidence_test_g4_ui_controls_20261018_115910.json", "exists_at_reviewed_commit": false },
+    { "ref": "certification/evidence/evidence_wallet_detail_20261018_115910.json", "exists_at_reviewed_commit": false },
+    { "ref": "certification/evidence/evidence_wallet_meta_20261018_115910.json", "exists_at_reviewed_commit": false },
+    { "ref": "certification/evidence/evidence_wallet_meta_post_20261018_115839.json", "exists_at_reviewed_commit": false }
+  ],
+  "author_branch": "hermes/cert-batch13-redo-t_91949b78",
+  "author_branch_published_on_origin": false,
+  "origin_head_count": 244,
+  "model_surface": {
+    "url": "http://127.0.0.1:8031/model",
+    "status": 200,
+    "bytes": 22240,
+    "tbody_row_count": 1,
+    "only_row_is": "USER (MODEL) aggregate",
+    "engine_truth_wallets": 0,
+    "raw_fills": 0,
+    "wallet_gate_keys": 0,
+    "contract_warning_present": false
+  },
+  "sort_endpoints": { "all_11_return_200": true, "all_11_show_own_column_active": true },
+  "sort_persistence_on_model": {
+    "after_default_load": "win_rate",
+    "after_GET_sort_pnl_per_hour": "win_rate",
+    "after_GET_sort_exit_count": "win_rate",
+    "verdict": "persisted ranking not reflected on the cached /model surface"
+  },
+  "wallet_probes": {
+    "tracked_wallet": "0x7ae3b08bb4e7b085c6db5d635b96bec9715e9205",
+    "wallet_detail": { "status": 200, "bytes": 87778, "has_lcGraphResetRange": true },
+    "wallet_meta": { "status": 200, "bytes": 2174, "has_tag_select": true, "has_color_select": true, "has_note_textarea": true, "form_action": "/api/wallet-meta" },
+    "unknown_wallet": { "status": 404, "note": "correct behaviour, not a product miss" }
+  },
+  "captured_at_utc": "2026-10-18T18:02:00Z"
+}

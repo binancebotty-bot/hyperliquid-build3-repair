@@ -1,0 +1,132 @@
+
+<!doctype html><html><head><meta charset="utf-8"><title>HL Copy Engine SSOT</title>
+<style>
+body{margin:0;background:#0d1117;color:#c9d1d9;font:12px Arial,Helvetica,sans-serif} a{color:#58a6ff;text-decoration:none} .top{display:flex;align-items:center;gap:12px;padding:8px 14px;border-bottom:1px solid #222;background:#090d12;position:sticky;top:0;z-index:4;box-shadow:0 2px 8px rgba(0,0,0,.25)} .live{background:#003d1f;color:#2ea043;border:1px solid #2ea043;border-radius:12px;padding:2px 8px;font-size:10px} .muted{color:#8b949e} input,select,button{background:#161b22;color:#c9d1d9;border:1px solid #30363d;border-radius:4px;padding:3px 8px} button{cursor:pointer}
+.cards{display:grid;grid-template-columns:repeat(10,minmax(120px,1fr));gap:8px;padding:10px 14px} .card{background:#161b22;border:1px solid #21262d;border-radius:8px;padding:9px;min-height:72px} .group-card .label{font-size:10px;color:#8b949e;margin-bottom:6px;border-bottom:1px solid #21262d;padding-bottom:4px} .metric-line{display:flex;justify-content:space-between;gap:8px;line-height:1.55} .metric-line span{color:#8b949e} .metric-line b{font-weight:700} .pos{color:#2ea043} .neg{color:#ff4d4f} .zero{color:#c9d1d9}
+.section{padding:0 14px 10px} .panel{background:#161b22;border:1px solid #21262d;border-radius:6px;padding:10px;margin-bottom:12px} .chart-wrap{position:relative;cursor:zoom-in} .chart-wrap.expanded{position:relative;z-index:20} .chart-wrap.expanded .chart{height:76vh} .chart{width:100%;height:260px;background:#151a21} .chart *{vector-effect:non-scaling-stroke} .pnl-line{fill:none;stroke:#2ea043;stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round} .realized-line{fill:none;stroke:#58a6ff;stroke-width:1.4;stroke-linejoin:round;stroke-linecap:round} .dd-line{fill:none;stroke:#ff4d4f;stroke-width:1.4;stroke-linejoin:round;stroke-linecap:round} .zero-line{stroke:#8b949e;stroke-width:1} .grid-line,.grid-vert{stroke:#21262d;stroke-width:1} .axis-label{fill:#8b949e;font-size:10px} .hit{fill:transparent;stroke:none;pointer-events:all} .crosshair{stroke:#8b949e;stroke-width:1;stroke-dasharray:3 3;pointer-events:none} .chart-dot{fill:#c9d1d9;stroke:#0d1117;stroke-width:1.2;pointer-events:none} .chart-tip{position:absolute;left:10px;top:10px;background:#0d1117;border:1px solid #30363d;border-radius:4px;padding:5px 7px;color:#c9d1d9;font-size:11px;pointer-events:none;box-shadow:0 4px 12px rgba(0,0,0,.35)} .chart-legend{display:flex;gap:10px;align-items:center;margin-top:6px} .legend-pnl{color:#2ea043} .legend-realized{color:#58a6ff} .legend-dd{color:#ff4d4f}
+.table-wrap{border:1px solid #21262d;border-radius:6px;background:#0d1117} table{width:100%;border-collapse:separate;border-spacing:0;font-size:11px} th{position:sticky;top:0;background:#21262d;color:#8b949e;text-align:right;padding:7px;border-bottom:1px solid #30363d;z-index:2} th:first-child,td:first-child{text-align:left} th.sort-active{background:#303a49;color:#fff;box-shadow:inset 0 -2px 0 #58a6ff} th.sort-active a{color:#fff} th a{display:block;color:#8b949e} td{padding:6px;border-bottom:1px solid #21262d;text-align:right;white-space:nowrap} tr:nth-child(even){background:#111820} tr.user{background:#071527} tr:hover{background:#1b2330} tr.excluded-row{}
+.sticky-wallet{position:sticky;left:0;z-index:3;background:inherit;min-width:132px;border-right:1px solid #30363d} th.sticky-wallet{z-index:4;background:#21262d} .sticky-wallet.wallet-color-blue{background:linear-gradient(90deg,rgba(88,166,255,.34),rgba(13,17,23,.96))!important;border-left:4px solid #58a6ff} .sticky-wallet.wallet-color-green{background:linear-gradient(90deg,rgba(46,160,67,.34),rgba(13,17,23,.96))!important;border-left:4px solid #2ea043} .sticky-wallet.wallet-color-yellow{background:linear-gradient(90deg,rgba(210,153,34,.36),rgba(13,17,23,.96))!important;border-left:4px solid #d29922} .sticky-wallet.wallet-color-red{background:linear-gradient(90deg,rgba(255,77,79,.34),rgba(13,17,23,.96))!important;border-left:4px solid #ff4d4f} .sticky-wallet.wallet-color-purple{background:linear-gradient(90deg,rgba(163,113,247,.34),rgba(13,17,23,.96))!important;border-left:4px solid #a371f7} .pair-lead{background:rgba(88,166,255,.045)} .pair-copy{background:rgba(46,160,67,.045)} .ops-group{background:rgba(210,153,34,.05)} .group-divider{border-right:2px solid #30363d!important} .badge{background:#0d419d;color:#fff;border-radius:3px;padding:1px 4px;font-size:9px} .wallet-tag{background:#30363d;color:#c9d1d9;border-radius:3px;padding:1px 4px;font-size:9px} .mode{background:#063d1f;color:#2ea043;border-radius:3px;padding:2px 6px} .wallet-cfg{display:inline-flex;gap:3px;margin-left:4px;align-items:center} .wallet-cfg input{width:48px;padding:1px 3px} .wallet-cfg select{width:70px;padding:1px 3px} .wallet-cfg button{padding:1px 4px} .inc-form{display:inline-flex;align-items:center;gap:2px;margin-right:6px} .inc-form input{padding:0;width:14px;height:14px} .purge-form{display:inline-flex;margin-left:4px;align-items:center} .purge-btn{border-color:#8b1d1d;background:#3a1111;color:#ff7b72;padding:1px 5px;font-size:10px} .inc-off{opacity:1} .controls-cell{min-width:315px;text-align:left} .small{font-size:11px;color:#8b949e} .missing{color:#6e7681!important} .selected-divider td{background:#0d1117;border-top:2px solid #58a6ff;border-bottom:1px solid #30363d;color:#8b949e;text-align:left;font-size:10px;letter-spacing:.04em;text-transform:uppercase;padding:6px 8px} .saving{opacity:.65} .saved-flash{color:#2ea043} .chart-empty{height:230px;display:flex;align-items:center;justify-content:center;color:#8b949e} @media(max-width:1300px){.cards{grid-template-columns:repeat(3,minmax(150px,1fr))}}
+</style></head><body><div class="top"><b>⚡ HL Copy Engine</b><span class="live">POLL</span><span class="muted">Updated: 2026-10-18T17:55:31.909893+00:00</span><form action="/api/ui-state" method="post" class="ajax-form" style="display:flex;gap:6px;align-items:center;margin:0"><span class="muted">Normalisation Base:</span><input name="norm_base" value="100.0" size="8"><span class="muted">Model mode:</span><select name="copy_mode"><option>proportional</option><option>fixed</option></select><span class="muted">Fixed $:</span><input name="fixed_notional" value="100.0" size="6"><span class="muted">Fee bps:</span><input name="fee_bps" value="5.0" size="5"><span class="muted">Copy friction bps:</span><input name="copy_friction_bps" value="0.0" size="5"><button>Set</button></form><span class="muted" title="what the engine actually uses for LIVE / close-only wallets">Engine sizing: 10 FIXED</span><span id="save-status" class="muted"></span><span style="margin-left:auto" class="muted">Auto refresh off</span></div><div class="cards"><div class="card group-card "><div class="label">ACCOUNT (EXCHANGE)</div><div class="metric-line"><span>EQUITY</span><b>+$235.83</b></div><div class="metric-line"><span>TESTNET</span><b title="0x7ae3b08bb4e7b085c6db5d635b96bec9715e9205">0x7ae3…9205</b></div></div><div class="card group-card "><div class="label">PNL</div><div class="metric-line"><span>LEAD</span><b class="zero">$0.00 (+0.00%)</b></div><div class="metric-line"><span>COPY</span><b class="zero">$0.00 (+0.00%)</b></div><div class="metric-line"><span>Δ</span><b class="zero">$0.00 (+0.00%)</b></div></div><div class="card group-card "><div class="label">REALISED</div><div class="metric-line"><span>LEAD</span><b class="zero">$0.00 (+0.00%)</b></div><div class="metric-line"><span>COPY</span><b class="zero">$0.00 (+0.00%)</b></div></div><div class="card group-card "><div class="label">UNREALISED</div><div class="metric-line"><span>LEAD</span><b class="zero">$0.00 (+0.00%)</b></div><div class="metric-line"><span>COPY</span><b class="zero">$0.00 (+0.00%)</b></div></div><div class="card group-card "><div class="label">DRAWDOWN</div><div class="metric-line"><span>LEAD DD</span><b class="zero">$0.00 (-0.00%)</b></div><div class="metric-line"><span>COPY DD</span><b class="zero">$0.00 (-0.00%)</b></div><div class="metric-line"><span>COPY MAX</span><b class="zero">$0.00 (-0.00%)</b></div></div><div class="card group-card "><div class="label">MAX DD</div><div class="metric-line"><span>LEAD</span><b class="zero">$0.00 (-0.00%)</b></div><div class="metric-line"><span>COPY</span><b class="zero">$0.00 (-0.00%)</b></div></div><div class="card group-card "><div class="label">EXPOSURE</div><div class="metric-line"><span>OPEN</span><b class="zero">$0.00</b></div><div class="metric-line"><span>MAX</span><b class="zero">$0.00</b></div><div class="metric-line"><span>BASE</span><b class="zero">0.00x / 0.00x</b></div></div><div class="card group-card "><div class="label">COPYABILITY</div><div class="metric-line"><span>AVG TRADE %</span><b class="zero">0.000%</b></div><div class="metric-line"><span>AVG TRADE $</span><b class="zero">$0.00</b></div><div class="metric-line"><span>AVG POS</span><b class="zero">$0.00</b></div><div class="metric-line"><span>REQ LEV</span><b class="zero">0.00x</b></div></div><div class="card group-card "><div class="label">ACTIVITY</div><div class="metric-line"><span>FILLS</span><b class="zero">0</b></div><div class="metric-line"><span>EXITS</span><b class="zero">0</b></div><div class="metric-line"><span>OPEN POS</span><b class="zero">0</b></div><div class="metric-line"><span>WIN</span><b class="zero">0.0%</b></div></div><div class="card group-card health-card"><div class="label">DB HEALTH</div><div class="metric-line"><span>🟢 OK</span><b class="zero">build 0.02s</b></div><div class="metric-line"><span>CACHE</span><b class="zero">19</b></div><div class="metric-line"><span>BUILDS</span><b class="zero">103</b></div></div></div><div class="section"><b>COMBINED PORTFOLIO — NON-USER WALLETS</b><div class="panel">
+    <div class="chart-wrap">
+      <svg class="chart" viewBox="0 0 1200 260" preserveAspectRatio="none">
+        <line x1="62" y1="226.0" x2="1182" y2="226.0" class="grid-line"/><text x="54" y="230.0" class="axis-label" text-anchor="end">-1.00</text><line x1="62" y1="174.0" x2="1182" y2="174.0" class="grid-line"/><text x="54" y="178.0" class="axis-label" text-anchor="end">-0.50</text><line x1="62" y1="122.0" x2="1182" y2="122.0" class="grid-line"/><text x="54" y="126.0" class="axis-label" text-anchor="end">+0.00</text><line x1="62" y1="70.0" x2="1182" y2="70.0" class="grid-line"/><text x="54" y="74.0" class="axis-label" text-anchor="end">+0.50</text><line x1="62" y1="18.0" x2="1182" y2="18.0" class="grid-line"/><text x="54" y="22.0" class="axis-label" text-anchor="end">+1.00</text><line x1="62.0" y1="18" x2="62.0" y2="226" class="grid-vert"/><text x="62.0" y="252" class="axis-label" text-anchor="middle">23:59</text><line x1="342.0" y1="18" x2="342.0" y2="226" class="grid-vert"/><text x="342.0" y="252" class="axis-label" text-anchor="middle">23:59</text><line x1="622.0" y1="18" x2="622.0" y2="226" class="grid-vert"/><text x="622.0" y="252" class="axis-label" text-anchor="middle">23:59</text><line x1="902.0" y1="18" x2="902.0" y2="226" class="grid-vert"/><text x="902.0" y="252" class="axis-label" text-anchor="middle">23:59</text><line x1="1182.0" y1="18" x2="1182.0" y2="226" class="grid-vert"/><text x="1182.0" y="252" class="axis-label" text-anchor="middle">00:00</text>
+        <line x1="62" y1="122.0" x2="1182" y2="122.0" class="zero-line"/>
+        <polyline points="62.0,122.0 1182.0,122.0" class="pnl-line"/>
+        <polyline points="62.0,122.0 1182.0,122.0" class="realized-line"/>
+        <polyline points="62.0,122.0 1182.0,122.0" class="dd-line"/>
+        <line id="chartCrossX" x1="62" y1="18" x2="62" y2="226" class="crosshair" style="display:none"/>
+        <circle id="chartDot" cx="62" cy="122.0" r="4" class="chart-dot" style="display:none"/>
+        <rect class="hit" x="62.0" y="18" width="560.0" height="208" data-x="62.0" data-y="122.0" data-label="1970-01-01T00:00:00+00:00 | PnL +0.0000 | Real +0.0000 | DD -0.0000 | Eq 0.0000"/><rect class="hit" x="622.0" y="18" width="560.0" height="208" data-x="1182.0" data-y="122.0" data-label="1970-01-01T00:00:00+00:00 | PnL +0.0000 | Real +0.0000 | DD -0.0000 | Eq 0.0000"/>
+      </svg>
+      <div class="chart-legend"><span class="legend-pnl">Copy PnL</span><span class="legend-realized">Realised</span><span class="legend-dd">Drawdown</span><span class="muted">Hover for values · click chart to expand</span></div>
+      <div id="chartTip" class="chart-tip" style="display:none"></div>
+    </div></div><div class="small">TRACKED WALLETS (10 followed: 10 LIVE, 0 close-only; 0 with copy history) — model derived in app from engine SSOT only. app-derived only; engine truth is not mutated</div><div class="table-wrap"><table><thead><tr><th class="sticky-wallet">WALLET</th><th class="pair-lead "><a href="/sort/lead_equity">LEAD EQ</a></th><th class="pair-copy group-divider "><a href="/sort/copy_equity">COPY EQ</a></th><th class="pair-lead "><a href="/sort/lead_real">LEAD REAL</a></th><th class="pair-copy group-divider "><a href="/sort/copy_real">COPY REAL</a></th><th class="pair-lead "><a href="/sort/lead_unreal">LEAD UNREAL</a></th><th class="pair-copy group-divider "><a href="/sort/copy_unreal">COPY UNREAL</a></th><th class="pair-lead "><a href="/sort/lead_dd">LEAD DD</a></th><th class="pair-copy group-divider "><a href="/sort/copy_dd">COPY DD</a></th><th class="pair-lead "><a href="/sort/lead_maxdd">LEAD MAXDD</a></th><th class="pair-copy group-divider "><a href="/sort/copy_maxdd">COPY MAXDD</a></th><th class="group-divider "><a href="/sort/delta">Δ $/%</a></th><th class=" "><a href="/sort/pnl_per_hour">PNL/HR</a></th><th class=" sort-active"><a href="/sort/avg_trade_pct">AVG TRADE % ▼</a></th><th class=" "><a href="/sort/win_rate">WIN%</a></th><th class=" "><a href="/sort/avg_position_usd">AVG POS $</a></th><th class=" "><a href="/sort/max_position_usd">MAX POS $</a></th><th class=" "><a href="/sort/avg_entry_notional_usd">AVG NOTIONAL</a></th><th class=" "><a href="/sort/pct_entries_ge10">% ≥ $10</a></th><th class=" "><a href="/sort/required_leverage">REQ LEV</a></th><th class="ops-group "><a href="/sort/fill_count">FILLS L/C</a></th><th class="ops-group "><a href="/sort/exit_count">EXITS L/C</a></th><th class="ops-group group-divider "><a href="/sort/open_position_count">POS L/C</a></th><th>INC / WALLET MODEL</th></tr></thead><tbody>
+    <tr class="user">
+      <td class="sticky-wallet" data-sort="0x7ae3b08bb4e7b085c6db5d635b96bec9715e9205"><a href="/wallet/0x7ae3b08bb4e7b085c6db5d635b96bec9715e9205">0x7ae3b0…5e9205</a> <span class='badge' title='analysis model, normalised to the aggregate base; the real account value is in the ACCOUNT card'>USER (MODEL)</span></td>
+      <td class="pair-lead zero" data-sort="0">+$100.00</td><td class="pair-copy group-divider zero" data-sort="0">+$100.00</td>
+      <td class="pair-lead zero" data-sort="0">$0.00 (+0.00%)</td><td class="pair-copy group-divider zero" data-sort="0">$0.00 (+0.00%)</td>
+      <td class="pair-lead zero" data-sort="0">$0.00 (+0.00%)</td><td class="pair-copy group-divider zero" data-sort="0">$0.00 (+0.00%)</td>
+      <td class="pair-lead zero" data-sort="-0">$0.00 (-0.00%)</td><td class="pair-copy group-divider zero" data-sort="-0">$0.00 (-0.00%)</td>
+      <td class="pair-lead zero" data-sort="-0">$0.00 (-0.00%)</td><td class="pair-copy group-divider zero" data-sort="-0">$0.00 (-0.00%)</td>
+      <td class="group-divider zero" data-sort="0">$0.00 (+0.00%)</td><td class="zero missing muted" data-sort="-999999999" data-field="pnl_per_hour">—</td>
+      <td class="zero missing muted" data-sort="-999999999" data-field="avg_trade_pct">—</td><td class="zero missing muted" data-sort="-999999999" data-field="win_rate">—</td>
+      <td class="zero" data-sort="0">$0.00</td><td class="zero" data-sort="0">$0.00</td>
+      <td class="zero" data-sort="0">$0.00</td><td class="zero" data-sort="0">0.0%</td><td class="zero" data-sort="0">0.00x</td>
+      <td class="ops-group " data-sort="0">0 / 0</td><td class="ops-group " data-sort="0">0 / 0</td><td class="ops-group group-divider " data-sort="0">0 / 0</td>
+      <td class="controls-cell "><form action="/api/ui-state" method="post" class="ajax-form user-base-form"><span class="small muted">aggregate base</span><input name="user_norm_base" value="100" size="5" title="aggregate normalisation base"><button title="set aggregate base">Set</button></form></td>
+    </tr></tbody></table></div></div>
+<script>(function(){
+let busyUntil=0;
+const status=document.getElementById('save-status');
+function saveViewState(){
+  const wrap=document.querySelector('.table-wrap');
+  try{sessionStorage.setItem('hlViewState',JSON.stringify({x:window.scrollX||0,y:window.scrollY||0,tableLeft:wrap?wrap.scrollLeft:0}));}catch(e){}
+}
+function restoreViewState(){
+  try{
+    const raw=sessionStorage.getItem('hlViewState'); if(!raw)return;
+    const s=JSON.parse(raw); const wrap=document.querySelector('.table-wrap');
+    if(wrap&&typeof s.tableLeft==='number')wrap.scrollLeft=s.tableLeft;
+    if(typeof s.x==='number'&&typeof s.y==='number')window.scrollTo(s.x,s.y);
+  }catch(e){}
+}
+restoreViewState();
+function markBusy(ms){busyUntil=Date.now()+(ms||12000);}
+function isBusy(){return Date.now()<busyUntil||document.activeElement&&['INPUT','SELECT','TEXTAREA'].includes(document.activeElement.tagName);}
+function flash(msg,cls){if(!status)return;status.textContent=msg;status.className=cls||'muted';setTimeout(()=>{status.textContent='';status.className='muted';},3500);}
+function numericText(txt){
+  const s=String(txt||'').replace(/[,+$%x]/g,' ').replace(/−/g,'-');
+  const m=s.match(/-?\d+(?:\.\d+)?/);
+  return m?parseFloat(m[0]):0;
+}
+function cellSortValue(row, idx, isWallet){
+  const cell=row.cells[idx]; if(!cell)return isWallet?'':0;
+  const raw=(cell.dataset&&cell.dataset.sort!==undefined)?cell.dataset.sort:cell.innerText;
+  return isWallet?String(raw||'').toLowerCase():numericText(raw);
+}
+function sortTableByHeader(link, direction){
+  const th=link.closest('th'); const table=link.closest('table'); if(!th||!table)return;
+  const idx=Array.from(th.parentElement.children).indexOf(th);
+  const tbody=table.tBodies[0]; const rows=Array.from(tbody.rows);
+  const userRows=rows.filter(r=>r.classList.contains('user'));
+  const dividerRows=rows.filter(r=>r.classList.contains('selected-divider'));
+  const includedRows=rows.filter(r=>!r.classList.contains('user')&&!r.classList.contains('selected-divider')&&!r.classList.contains('excluded-row'));
+  const otherRows=rows.filter(r=>!r.classList.contains('user')&&!r.classList.contains('selected-divider')&&r.classList.contains('excluded-row'));
+  const isWallet=(link.getAttribute('href')||'').endsWith('/wallet');
+  const sorter=(a,b)=>{
+    const av=cellSortValue(a,idx,isWallet), bv=cellSortValue(b,idx,isWallet);
+    if(isWallet){return direction==='asc'?av.localeCompare(bv):bv.localeCompare(av);}
+    return direction==='asc'?av-bv:bv-av;
+  };
+  includedRows.sort(sorter);
+  otherRows.sort(sorter);
+  tbody.replaceChildren(...userRows,...includedRows,...dividerRows,...otherRows);
+  table.querySelectorAll('th').forEach(h=>{h.classList.remove('sort-active'); const a=h.querySelector('a'); if(a&&a.dataset.baseLabel){a.textContent=a.dataset.baseLabel;}});
+  th.classList.add('sort-active');
+  if(!link.dataset.baseLabel) link.dataset.baseLabel=link.textContent.replace(/\s*[▲▼]$/,'');
+  link.textContent=link.dataset.baseLabel+(direction==='asc'?' ▲':' ▼');
+}
+
+document.addEventListener('focusin',e=>{if(e.target.matches('input,select,textarea'))markBusy(30000);});
+document.addEventListener('input',e=>{if(e.target.matches('input,select,textarea'))markBusy(30000);});
+document.addEventListener('change',e=>{if(e.target.matches('input,select,textarea'))markBusy(15000);});
+document.addEventListener('submit',async e=>{
+  const form=e.target;if(!form.matches('.ajax-form,.wallet-cfg,.inc-form,.purge-form'))return;
+  if(form.matches('.purge-form')){
+    const wallet=(new FormData(form).get('wallet')||'').toString();
+    const typed=prompt('Type full wallet address to permanently purge');
+    if(typed!==wallet){e.preventDefault();flash('purge cancelled','muted');return;}
+  }
+  e.preventDefault();markBusy(5000);form.classList.add('saving');
+  try{const r=await fetch(form.action,{method:'POST',body:new FormData(form),headers:{'X-Requested-With':'fetch'}});if(!r.ok)throw new Error('HTTP '+r.status);saveViewState();setTimeout(()=>location.reload(),150);}
+  catch(err){console.warn('save failed',err);flash('save failed','neg');}
+  finally{form.classList.remove('saving');restoreViewState();}
+});
+
+document.addEventListener('click',async e=>{
+  const sortLink=e.target.closest('th a[href^="/sort/"]');
+  if(sortLink){
+    e.preventDefault(); markBusy(2500);
+    const th=sortLink.closest('th');
+    const current=th.classList.contains('sort-active') && /▼\s*$/.test(sortLink.textContent) ? 'desc' : th.classList.contains('sort-active') ? 'asc' : '';
+    const next=current==='desc'?'asc':'desc';
+    saveViewState();sortTableByHeader(sortLink,next);restoreViewState();
+    try{await fetch(sortLink.getAttribute('href')+'?direction='+encodeURIComponent(next),{headers:{'X-Requested-With':'fetch'}});}catch(err){console.warn('sort save failed',err);}
+    return;
+  }
+  const wrap=e.target.closest('.chart-wrap');
+  if(wrap && !e.target.closest('.hit')){wrap.classList.toggle('expanded');}
+});
+
+document.addEventListener('mousemove',e=>{
+  const hit=e.target.closest('.hit'); const wrap=e.target.closest('.chart-wrap');
+  if(!wrap)return;
+  const tip=wrap.querySelector('.chart-tip'); const cross=wrap.querySelector('#chartCrossX'); const dot=wrap.querySelector('#chartDot');
+  if(!hit){if(tip)tip.style.display='none'; if(cross)cross.style.display='none'; if(dot)dot.style.display='none'; return;}
+  if(tip){tip.textContent=hit.dataset.label||''; tip.style.display='block'; tip.style.left=Math.min(e.offsetX+14, wrap.clientWidth-260)+'px'; tip.style.top='10px';}
+  if(cross){cross.setAttribute('x1',hit.dataset.x); cross.setAttribute('x2',hit.dataset.x); cross.style.display='block';}
+  if(dot){dot.setAttribute('cx',hit.dataset.x); dot.setAttribute('cy',hit.dataset.y); dot.style.display='block';}
+});
+
+// Auto refresh off: use browser refresh when needed.
+})();</script></body></html>
