@@ -1,0 +1,92 @@
+[
+  {
+    "row_id": "UI-SSOT-PAGE-03",
+    "verdict": "NOT_TESTED",
+    "probe": "Confirmed evidence exists and reviewed original test: EVIDENCE/UI19_probe.json#UI-SSOT-PAGE-03",
+    "why": "GET /api/state returned 200 JSON with state fields. This only establishes endpoint availability, not row-specific truth parity, rendering, negative cases, or mutation behavior; no row-bound semantic assertion was earned."
+  },
+  {
+    "row_id": "UI-SSOT-PAGE-04",
+    "verdict": "NOT_TESTED",
+    "probe": "Confirmed evidence exists and reviewed original test: EVIDENCE/UI19_probe.json#UI-SSOT-PAGE-04",
+    "why": "GET /api/metrics returned 200 JSON (wallets and portfolio). Response availability does not establish metric correctness against an independent oracle or rendered values."
+  },
+  {
+    "row_id": "UI-SSOT-PAGE-05",
+    "verdict": "NOT_TESTED",
+    "probe": "Confirmed evidence exists and reviewed original test: EVIDENCE/UI19_probe.json#UI-SSOT-PAGE-05",
+    "why": "GET /api/trades/{wallet} returned 200 [] for the user wallet. With no returned trades, this probe cannot establish endpoint/UI parity or distinguish a correct empty history from missing data."
+  },
+  {
+    "row_id": "UI-SSOT-PAGE-06",
+    "verdict": "FAIL",
+    "probe": "Verified that required evidence file(s) do not exist in commit 89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "Missing file: EVIDENCE/ui_fp_001_100/dom_capture.json"
+  },
+  {
+    "row_id": "UI-SSOT-PAGE-07",
+    "verdict": "NOT_TESTED",
+    "probe": "Confirmed evidence exists and reviewed original test: EVIDENCE/UI19_probe.json#UI-SSOT-PAGE-07",
+    "why": "GET /api/ui-state returned configuration JSON. No independent readback/control or rendered-state comparison was performed."
+  },
+  {
+    "row_id": "UI-SSOT-PAGE-08",
+    "verdict": "NOT_TESTED",
+    "probe": "Confirmed evidence exists and reviewed original test: EVIDENCE/UI19_probe.json#UI-SSOT-PAGE-08; GET /openapi.json",
+    "why": "The endpoint is POST-only (OpenAPI confirms); GET 405 is expected and not a product failure. POST would change normalization state, so it was not invoked. The required round-trip and parity remain untested."
+  },
+  {
+    "row_id": "UI-SSOT-PAGE-09",
+    "verdict": "NOT_TESTED",
+    "probe": "Confirmed evidence exists and reviewed original test: EVIDENCE/UI19_probe.json#UI-SSOT-PAGE-09; GET /openapi.json",
+    "why": "The endpoint is POST-only (OpenAPI confirms); reset-app-history is state-changing and was not invoked. GET 405 is not a product failure; safety/parity remains untested."
+  },
+  {
+    "row_id": "UI-SSOT-PAGE-10",
+    "verdict": "NOT_TESTED",
+    "probe": "Confirmed evidence exists and reviewed original test: EVIDENCE/UI19_probe.json#UI-SSOT-PAGE-10; GET /openapi.json",
+    "why": "The endpoint is POST-only (OpenAPI confirms); snapshot is state-changing and was not invoked. GET 405 is not a product failure; safety/parity remains untested."
+  },
+  {
+    "row_id": "UI-SSOT-PAGE-11",
+    "verdict": "NOT_TESTED",
+    "probe": "Confirmed evidence exists and reviewed original test: EVIDENCE/UI19_probe.json#UI-SSOT-PAGE-11",
+    "why": "GET /api/live-config returned 200 JSON with config and wallet counts. No row-bound rendered/API equivalence or independent truth check was performed."
+  },
+  {
+    "row_id": "UI-SSOT-PAGE-12",
+    "verdict": "NOT_TESTED",
+    "probe": "Confirmed evidence exists and reviewed original test: EVIDENCE/UI19_probe.json#UI-SSOT-PAGE-12",
+    "why": "GET /api/global-controls returned 200 JSON. Availability alone does not prove the specific global-control values are rendered consistently or that errors are surfaced."
+  },
+  {
+    "row_id": "UI-SSOT-PAGE-13",
+    "verdict": "NOT_TESTED",
+    "probe": "Confirmed evidence exists and reviewed original test: EVIDENCE/UI19_probe.json#UI-SSOT-PAGE-13",
+    "why": "GET /api/live-ws-health returned 200 JSON with health data. The response was not independently checked against rendered freshness/status; no row-bound semantic check was earned."
+  },
+  {
+    "row_id": "UI-SSOT-PAGE-14",
+    "verdict": "NOT_TESTED",
+    "probe": "Confirmed evidence exists and reviewed original test: EVIDENCE/UI19_audit_retry.json",
+    "why": "A retry succeeded (200, 3,479,548-byte JSON, 113,006 rows; retry details and reason-count distribution are recorded in the cited artifact). This establishes endpoint availability only; an independent oracle and rendered-summary parity were not checked, so no PASS or product FAIL was earned."
+  },
+  {
+    "row_id": "UI-SSOT-PAGE-15",
+    "verdict": "FAIL",
+    "probe": "Verified that required evidence file(s) do not exist in commit 89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "Missing file: EVIDENCE/ui_fp_001_100/dom_capture.json"
+  },
+  {
+    "row_id": "UI-TRUTH-001",
+    "verdict": "FAIL",
+    "probe": "Verified that required evidence file(s) do not exist in commit 89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "Missing file: EVIDENCE/ui_fp_001_100/dom_capture.json"
+  },
+  {
+    "row_id": "UI-TRUTH-002",
+    "verdict": "FAIL",
+    "probe": "Verified that required evidence file(s) do not exist in commit 89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "Missing file: EVIDENCE/ui_fp_001_100/dom_capture.json"
+  }
+]
