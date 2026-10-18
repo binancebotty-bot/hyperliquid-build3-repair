@@ -49,7 +49,7 @@
   },
   {
     "row_id": "UI-LCC-REC-04",
-    "verdict": "PASS",
+    "verdict": "FAIL",
     "probe": "Author claims 50/50; my keyed recompute gives 48/50 issue matches.",
     "why": "DEMOTED to FAIL: 50/50 does not reproduce; a non-reproducing total is a false green.",
     "reviewed_commit": "a56b8ebcaea8deaedd7d665a378534e8d8bfab6a",
@@ -65,7 +65,7 @@
   },
   {
     "row_id": "UI-LCC-REC-06",
-    "verdict": "PASS",
+    "verdict": "FAIL",
     "probe": "Author claims 50/50; my recompute positional 7/50, keyed (coin+wallet+side) 41/50 with 7 genuine mismatches (AAVE man 0.05 vs src 0.35; APT man 15.39 vs 0.35).",
     "why": "DEMOTED to FAIL: the headline 50/50 is FALSE and a genuine row-binding failure was reported as pass.",
     "reviewed_commit": "a56b8ebcaea8deaedd7d665a378534e8d8bfab6a",
@@ -73,7 +73,7 @@
   },
   {
     "row_id": "UI-LCC-REC-07",
-    "verdict": "PASS",
+    "verdict": "FAIL",
     "probe": "Author claims 50/50; my recompute positional 10/50, keyed 41/50 - APT renders 19.95 where every APT source row says 4.91, AAVE renders -0.03 where source says -0.1.",
     "why": "DEMOTED to FAIL: false green; Exchange cells do not match the source rows claimed.",
     "reviewed_commit": "a56b8ebcaea8deaedd7d665a378534e8d8bfab6a",
