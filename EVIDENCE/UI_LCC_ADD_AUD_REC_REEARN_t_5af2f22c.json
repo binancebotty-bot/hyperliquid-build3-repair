@@ -1,7 +1,7 @@
 {
   "card_id": "t_5af2f22c",
   "scope_source": "origin/hermes/union-arithmetic-v2-corrected-t_f0d76afe EVIDENCE/provenance/UNION_ARITHMETIC_V2_t_f0d76afe.json demoted_sources.slice3",
-  "scope_count": 30,
+  "scope_count": 31,
   "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
   "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
   "how_serving_build_was_established": "Prior independently recorded live-process check in task comments; not re-measured during this run. Process PID/start-time evidence must be reattached for final binding.",
@@ -377,6 +377,19 @@
     },
     {
       "row_id": "UI-LCC-REC-09",
+      "verdict": "NOT_TESTED",
+      "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "executed_probe": "No row-specific probe executed for this row.",
+      "independent_oracle": "Live rendered DOM at http://127.0.0.1:8031/live-copy; not captured/queried for this row in this run.",
+      "observed": "No row-specific runtime observation captured.",
+      "reproduces": "NOT_TESTED: per-row executable probe and raw capture are absent.",
+      "specificity_gap": "The exact sibling-distinguishing assertion for this row has not been quoted from its source row definition in the artifact.",
+      "mutation_control_gap": "No perturbation control was run to show this row\u2019s check flips to FAIL.",
+      "reason": "Re-earn incomplete: both required specificity proof and non-vacuity mutation control are absent. Prior process identity note alone is not row evidence."
+    },
+    {
+      "row_id": "UI-LCC-REC-10",
       "verdict": "NOT_TESTED",
       "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
       "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
