@@ -1,0 +1,31 @@
+{
+  "review_task_id": "t_b4b5609b",
+  "redo_task_id": "t_9caf2648",
+  "author_head": "120ec34e2d7572936e96782373c833ebfebe03de",
+  "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+  "process_rule": {
+    "commit_committed_at_utc": "2026-10-17T07:18:14Z",
+    "serving_process_started_at_utc": "2026-10-17T10:54:09Z",
+    "commit_predates_process": true,
+    "evidence_source": "prior review artifact on origin/review/cert6-ui-wallet-t_289e1d8a; not independently re-measured in this review"
+  },
+  "rows": [
+    {
+      "row_id": "UI-WALLET-003",
+      "verdict": "FAIL",
+      "probe": "Independent commit-object inspection confirmed _archive/hl_stage2/HL_Live_Copy_Service_Core.py contains the per-wallet last_leader_poll_cursor_ms and catch-up computation (lines 11016, 11109-11112); reviewed redo raw probe supplies frozen cursor and pre-enable fill, with missed_entry_decision take=true. Recomputed: cursor=1792316222911, fill=1792318022911, re-enable=1792319822911; start=max(cursor-30000, re-enable-604800000)=1792316192911, so fill is in interval. Mutation control: setting enabled-time cutoff beyond fill would suppress it; source has no such cutoff in inspected path. The execution result is inherited from redo evidence, not independently rerun here.",
+      "why": "The tested source's cursor/catch-up path permits replay of the pre-enable fill, and the supplied deterministic probe shows it becomes a take intent. The reviewed commit is the actual tested commit; prior review records that it predates the serving process. This reviewer did not independently rerun poll_wallets or validate live-process identity, so verdict relies on repeatable redo probe plus independent source/arithmetic inspection."
+    },
+    {
+      "row_id": "UI-WALLET-012",
+      "verdict": "FAIL",
+      "probe": "Independent commit-object inspection confirmed the archived UI source uses fnum on norm_raw/fixed_raw with the existing UI value as fallback only when parsing fails through its fallback parameter (lines 6922-6924); redo raw matrix records non-default fixtures: fixed_notional 42.0 + 'abc' -> 10, norm_base 250.0 + 'abc' -> 100. Mutation control: substituting valid numeric inputs should retain the submitted number; invalid input should be rejected/preserved to pass, but observed values reset to defaults. Route status-code evidence was not present in the inspected redo artifact and was not independently exercised; the config-changed condition alone violates the row.",
+      "why": "The normalisation result changes existing non-default configuration on invalid input. The row's unchanged-config requirement is falsified even without asserting an HTTP status. I did not independently invoke the route; the specific route-return code is therefore not claimed."
+    }
+  ],
+  "limitations": [
+    "The redo's poll-path execution/raw probe was inspected but not independently re-executed in this review run.",
+    "No route-level HTTP status was independently collected for UI-WALLET-012.",
+    "Serving process start time was taken from the prior review artifact rather than re-probed."
+  ]
+}
