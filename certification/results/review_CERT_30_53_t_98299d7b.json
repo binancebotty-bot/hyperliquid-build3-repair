@@ -1,0 +1,92 @@
+[
+  {
+    "row_id": "F-EXC-017",
+    "verdict": "FAIL",
+    "probe": "Resolved evidence_ref 'certification/results/REGRESSION_fa9d9f55ff.json#F-EXC-017'. Ran `git grep` count of F-EXC-017 in that file = 0; python reg['results'].get('F-EXC-017') = None. The cited file contains 138 rows but F-EXC-017 is absent. The register of record (cert/local-main-b142cf8) also lists F-EXC-017 evidence_ref as empty (open decision OD-11, applicability OPEN_DECISION).",
+    "why": "Rule 1 (cited evidence must exist) is an automatic FAIL for a citation whose anchor resolves to no row. The author's NOT_TESTED verdict VALUE is justified (OD-11, empty register evidence), but the artifact invents an evidence_ref anchor that does not exist in the cited file. The citation must be repaired or removed."
+  },
+  {
+    "row_id": "F-EXC-018",
+    "verdict": "PASS",
+    "probe": "Resolved evidence_ref REGRESSION_fa9d9f55ff.json#F-EXC-018: row present, results['F-EXC-018'] exists with check F-EXC-018_EXCHANGE_SAFE pass=true. Demoted from register PASS -> NOT_TESTED on row-bound grounds. Register F-EXC-018 expected_behaviour = ambiguous sleeve/local ownership -> account-net; the cited sweep check asserts 'unmatched copy fill writes reconciliation' / 'does not mutate ledger', a generic mock reconciliation assertion, not a reproduction of the ambiguous-ownership trigger. Demotion is consistent with the project standard (shared mock sweeps are not row-bound proof).",
+    "why": "Evidence resolves; the author's demotion to NOT_TESTED is the honest outcome because the cited sweep is a shared mock, not a testnet/replay row-bound proof of the ambiguous-ownership trigger. No vacuous-claims defect; the demotion matches the stated standard."
+  },
+  {
+    "row_id": "F-EXC-019",
+    "verdict": "PASS",
+    "probe": "Resolved evidence_ref -> row present; check F-EXC-019_EXCHANGE_SAFE pass=true, detail 'cutover: WS_CAPTURED post-cutover fill reaches mock send boundary; cutover: live_start_ms unchanged across restart'. That detail is byte-identical to F-EXC-019/020/018 shared boilerplate (also identical to F-VERIFY-003/005/006 'cutover: pre-cutover fill does not send' lines). The row's expected_behaviour is stale-snapshot sizing withheld pending refresh; no check asserts that. Demotion to NOT_TESTED is consistent with the standard.",
+    "why": "Citation resolves but evidence is shared boilerplate, not a row-specific stale-snapshot-size-withholding assertion; NOT_TESTED is the honest value."
+  },
+  {
+    "row_id": "F-EXC-020",
+    "verdict": "PASS",
+    "probe": "Resolved evidence_ref -> row present; check F-EXC-020_EXCHANGE_SAFE pass=true, detail 'symbol: FAKECOIN returns SYMBOL_UNRESOLVED exchange_called=False; symbol: unresolved coin does not mutate ledger'. Row expected_behaviour is fail-closed on unknown events; the asserted detail is about symbol resolution, not unknown-event handling. Demotion to NOT_TESTED is consistent with the standard.",
+    "why": "Citation resolves; sweep detail does not address the unknown-event fail-closed requirement; NOT_TESTED is honest."
+  },
+  {
+    "row_id": "F-UI-001",
+    "verdict": "NOT_TESTED",
+    "probe": "Evidence_ref REVIEW_UI_SSOT_TBL13_PAGE02_t_96a53e10.json#F-UI-001 does not resolve to that row: the cited file's rows are UI-SSOT-TBL-13..24, UI-SSOT-PAGE-01/02 (NO F-UI-00x ids; 0 occurrences of F-UI-001). That file's review_meta overall=REJECT and every row verdict=NOT_TESTED, so it cannot substantiate a FAIL. A real row-bound harness EXISTS at RHC_RESIDUAL_2a269ad.json (commit 2a269ad, 2026-10-14) with check F-UI-001:TRUTH_TIER_ON_ALL_CELLS pass=true + NEG_NO_MISSING_TRUTH_TIER, but that check asserts engine-state field presence (ws_status/send_block_reason/etc. non-None), NOT that each UI cell carries a truth-tier value (AUTHORITATIVE_EXCHANGE/LOCAL_LEDGER/LEADER_SIGNAL/DISPLAY_ONLY/STALE/BLOCKED/SKIPPED). Independent read-only GET http://127.0.0.1:8031/live-copy (200, 87350 bytes) contains 0 occurrences of AUTHORITATIVE_EXCHANGE/LOCAL_LEDGER/LEADER_SIGNAL/DISPLAY_ONLY/truth_tier/TRUTH_TIER. No DOM capture file for the live :8031 serving build was committed.",
+    "why": "Implementation claimed FAIL but produced no authoritative, row-bound DOM proof and cited an artifact that (a) contains no F-UI-001 row and (b) itself records NOT_TESTED. The author neither cited nor rebutted the existing RHC_RESIDUAL harness. The FAIL is not proven -> demoted to NOT_TESTED. This demotes the implementation's claimed FAIL, triggering re-queue."
+  },
+  {
+    "row_id": "F-UI-002",
+    "verdict": "NOT_TESTED",
+    "probe": "Same citation failure: REVIEW_UI_SSOT_TBL13_PAGE02_t_96a53e10.json contains no F-UI-002 (rows are UI-SSOT-TBL-13..PAGE-02). That review's own verdicts are NOT_TESTED. RHC_RESIDUAL_2a269ad.json F-UI-002:DATA_AGE_AND_SOURCE_VISIBLE passes on engine-state fields (last_copy_poll_age_ms numeric>=0, ws_stale_count present) and F-UI-002:NEG_STALE_AFFECTS_STATUS asserts WS_DEGRADED on mocked staleness; it does not verify the UI renders data age/source or that stale values affect the rendered status. Live /live-copy probe: 0 truth-tier tokens, stale present but only as engine data tokens (6).",
+    "why": "Cited evidence does not resolve to this row; cited artifact contradicts the FAIL (records NOT_TESTED); no row-bound DOM evidence; a weaker engine-state harness passes but does not test the UI requirement. FAIL not proven -> NOT_TESTED."
+  },
+  {
+    "row_id": "F-UI-003",
+    "verdict": "NOT_TESTED",
+    "probe": "Same citation failure: cited file has no F-UI-003. Review verdicts there are NOT_TESTED. RHC_RESIDUAL F-UI-003:GREEN_FROM_EXCHANGE_TRUTH passes but asserts integrity-count dict keys (COPIED_AND_RECONCILED/ACTIVE_RED) on engine state, not that the UI green/red derives only from GREEN-ONLY-001 at the rendered cell. F-UI-003:NEG_ENGINE_NARRATIVE_NOT_GREEN verifies ACTIVE_RED>0 on a forged send_attempt; a valid mutation control but against engine state, not rendered UI.",
+    "why": "Cited evidence absent for this row; cited artifact contradicts (NOT_TESTED); no rendered-UI row-bound proof; harness checks wrong layer (engine state). FAIL not proven -> NOT_TESTED."
+  },
+  {
+    "row_id": "F-VERIFY-001",
+    "verdict": "PASS",
+    "probe": "Resolved evidence_ref -> row present; check F-VERIFY-001_VERIFY_SOUND pass=true, detail 'exchange mismatch is reported; snapshot: status LEDGER_EXCHANGE_NET_MISMATCH'. Row expected_behaviour = label proof scope explicitly; plumbing proof is not exchange correctness. The sweep check does not assert proof-scope labeling, so the author's demotion from register PASS to NOT_TESTED is consistent with the standard (shared sweep, predicate does not cover the requirement).",
+    "why": "Citation resolves but sweep is shared boilerplate not addressing proof-scope labeling; NOT_TESTED is the honest demotion."
+  },
+  {
+    "row_id": "F-VERIFY-002",
+    "verdict": "PASS",
+    "probe": "Resolved evidence_ref -> row present; F-VERIFY-002_VERIFY_SOUND pass=true, detail IDENTICAL to F-VERIFY-007 ('exchange mismatch is reported; snapshot: status LEDGER_EXCHANGE_NET_MISMATCH'). Row expected_behaviour demands desired-vs-exchange-actual convergence assertion; sweep provides none. Demotion to NOT_TESTED consistent with standard.",
+    "why": "Citation resolves; identical detail shared with F-VERIFY-007 confirms a single shared observation relabelled; NOT_TESTED honest."
+  },
+  {
+    "row_id": "F-VERIFY-003",
+    "verdict": "PASS",
+    "probe": "Resolved evidence_ref -> row present; F-VERIFY-003_VERIFY_SOUND pass=true, detail 'cutover: pre-cutover fill does not send; live_start_ms unchanged across restart' — IDENTICAL to F-VERIFY-006 and sharing 2-of-3 lines with F-VERIFY-005. Row requires excluding implementation-confirmation tests from safety proof; sweep asserts none of that. Demotion consistent.",
+    "why": "Citation resolves; shared boilerplate does not address implementation-derived-test exclusion; NOT_TESTED honest."
+  },
+  {
+    "row_id": "F-VERIFY-004",
+    "verdict": "PASS",
+    "probe": "Resolved evidence_ref -> row present. Row requires invariant-oriented tests resisting weakened/stale tests; sweep provides row-named check only. Demotion to NOT_TESTED consistent with standard.",
+    "why": "Citation resolves; no row-specific invariant/weak-test-resistance evidence in shared sweep; NOT_TESTED honest."
+  },
+  {
+    "row_id": "F-VERIFY-005",
+    "verdict": "PASS",
+    "probe": "Resolved evidence_ref -> row present. Row requires the strong live-money test ladder (replay, lifecycle restarts, event faults, partial fills, gate dominance, shadow/canary, independent oracle); sweep is a mock/harness, provides none of those. Demotion consistent.",
+    "why": "Citation resolves; shared mock sweep cannot satisfy the live-money ladder; NOT_TESTED honest."
+  },
+  {
+    "row_id": "F-VERIFY-006",
+    "verdict": "PASS",
+    "probe": "Resolved evidence_ref -> row present. Row requires every conclusion to carry invariant-changed, proof path, live risk, unresolved blockers; sweep provides none. Demotion consistent.",
+    "why": "Citation resolves; shared sweep lacks the deterministic fulfilment gate record; NOT_TESTED honest."
+  },
+  {
+    "row_id": "F-VERIFY-007",
+    "verdict": "PASS",
+    "probe": "Resolved evidence_ref -> row present. Row demands continuous aggregate invariant (examples insufficient); sweep provides only row-named check. Demotion consistent.",
+    "why": "Citation resolves; shared sweep cannot establish aggregate invariant; NOT_TESTED honest."
+  },
+  {
+    "row_id": "F-VERIFY-008",
+    "verdict": "FAIL",
+    "probe": "Resolved evidence_ref 'certification/results/REGRESSION_fa9d9f55ff.json#F-VERIFY-008'. git grep count of F-VERIFY-008 in that file = 0; python reg['results'].get('F-VERIFY-008') = None. Row absent from cited file (138 rows present, this id not among them). Register of record lists F-VERIFY-008 with empty evidence_ref (open decision OD-11, applicability OPEN_DECISION).",
+    "why": "Rule 1 automatic FAIL: the cited evidence_ref anchor resolves to no row in the cited file. The NOT_TESTED verdict value is register-allowed (OD-11), but the artifact fabricates an anchor that does not exist in REGRESSION_fa9d9f55ff.json. Citation must be repaired."
+  }
+]
