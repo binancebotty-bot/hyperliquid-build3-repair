@@ -1,0 +1,12 @@
+{
+  "tested_commit": "43731b4f",
+  "tested_commit_full": "43731b4f1f19a56e835032dabf608a550f925717",
+  "scope": "_archive/hl_stage2 production Python files scanned by oracle",
+  "files": {
+    "convergence_shadow.py": "f63732d5f132cd7052e08f78c02d5434cf11167c7aaeceffc8084b1b96cc481d",
+    "exchange_truth.py": "6f841fd7e6a4d4b72c4a5c4c7390f88addb627602199c6a14cfa2851d849b6ff",
+    "HL_Copy_App_SSOT.py": "bb7b9cc399167db5abc3acc740196e871baadfba7df19edbc966c2f7178fdcc3",
+    "HL_Live_Copy_Service.py": "e2f04fa826958c73169bae2490a6ebb3ebfd09d9aecda513ef0d7bd8a10ec2c6",
+    "HL_Live_Copy_Service_Core.py": "2dfbd571012af67479ee7a2d9e6f1faac6ee5408722a092fb3625450cab51405"
+  }
+}
