@@ -1,0 +1,106 @@
+{
+  "review_task_id": "t_a67cf78b",
+  "reviewed_work_task_id": "t_0f1e6f84",
+  "reviewed_branch": "hermes/cert-batch3-t_0f1e6f84",
+  "reviewed_commit": "4bd74628c6064474f8ec0769d823f88b67524271",
+  "reviewed_artifact": "certification/results/CERT_BATCH3_t_0f1e6f84.json",
+  "reviewer_model": "meituan/longcat-2.5-preview:free (nous)",
+  "author_model": "gpt-6-luna (openai-codex)",
+  "reviewed_at_utc": "2026-10-18T00:00:00Z",
+  "rows_total": 15,
+  "verdict_counts": {"PASS": 14, "FAIL": 1},
+  "overall": "FAIL",
+  "overall_why": "14 of 15 rows stand. ORD-001 is rejected: its justification is fabricated. The row's 'why' states 'The row-specific check finds four exchange.order() call sites where architecture requires one physical order site'. That number is reproducible from nothing on the branch. The engine's real .order() call-site count is 1 (L2703 at the tested commit fefc2b04, L2715 at the batch head); repo-wide it is 2 (the second is the legacy HL_Live_Copy_Service.py). The four line numbers the claim traces to (L2726, L2843, L3350, L3379, carried in the matrix note) contain no order call in any version on the branch. The row's own cited evidence, ORDER_CORRECTION_fefc2b04.json, observed ZERO runtime exchange.order() calls and states 'one physical exchange.order() site confirmed at runtime'. So the batch's stated reason contradicts the very artifact it cites, and the 'product architecture failure' characterisation is unsupported. The FAIL letter happens to match the register and the cited evidence, but the claim as written is not backed by evidence and must be corrected.",
+  "rows": [
+    {
+      "row_id": "ENG-013",
+      "verdict": "PASS",
+      "probe": "Resolved the cited evidence_ref on the branch (git cat-file -e origin/hermes/cert-batch3-t_0f1e6f84:certification/results/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json -> EXISTS) and read the committed object. Confirmed the ENG-013 key holds exactly the five checks the 'why' names (INTENT_HAS_TRACEABLE_ID, INTENT_REFERENCES_LEADER_FILL, INTENT_HAS_COIN_NET_BEFORE, AUDIT_WRITES_TO_CSV, SETTLEMENT_TRACEABLE) and that no sibling row in that artifact carries them. Re-ran the non-vacuity check: negative test eng013_remove_audit_write reports expected=FAIL, actual=FAIL, non_vacuous=true, 'remaining audit calls: 0'.",
+      "why": "Evidence exists, is row-keyed, and the justification text maps one-to-one onto the row's own checks. The negative mutation flips the row to FAIL, so the predicate is falsifiable. Verdict PASS stands. Residual limit (already disclosed in the row's own 'why'): synthetic harness, not exchange execution."
+    },
+    {
+      "row_id": "ENG-014",
+      "verdict": "PASS",
+      "probe": "Read the committed corrected artifact. The corrections block records a real harness fix for this row: source changed 'WS' -> 'WS_SNAPSHOT' so stale_snapshot_replay_reason() actually exercises stale detection, and the source-substring fallback was removed. The row's STALE_SNAPSHOT_BLOCKED check reports a runtime reason string (reason=STALE_WS_SNAPSHOT_IGNORED), not a substring match. Re-ran non-vacuity: eng014_remove_dedupe expected=FAIL, actual=FAIL, non_vacuous=true, 'remaining dedupe patterns: 0'.",
+      "why": "This is the row the correction artifact was created to rescue, and the rescue is genuine: the check now reports an engine-emitted status rather than a source token. Row-keyed, falsifiable, and the 'why' matches the four ENG-014 checks. Verdict PASS stands. Note (not a rejection): one of the four checks, IDEMPOTENCY_GUARD_IN_SOURCE, is a source-presence check; it is supplementary to the three runtime checks and the row is earned by the runtime ones plus the non-vacuous dedupe mutation."
+    },
+    {
+      "row_id": "ENG-015",
+      "verdict": "PASS",
+      "probe": "Resolved certification/results/ENG-015-016-TNF17_43731b4f.json on the branch and read it. row_results.ENG-015 = PASS; 9/9 checks PASS; 3 mutations all non_vacuous, including ENG-015_negative_1 ('Removed sign-flip two-leg split; replaced with single crossing order') -> expected FAIL, actual FAIL, non_vacuous=true. Re-derived the totals from the committed object: 9 checks, 9 pass.",
+      "why": "Evidence exists, the row carries its own non-vacuous mutation, and the 'why' (sign-flip two-leg behaviour; mutation that removes the split fails) matches the committed mutation text. Distinct from the ENG-016 assertions. Verdict PASS stands."
+    },
+    {
+      "row_id": "ENG-016",
+      "verdict": "PASS",
+      "probe": "Same committed artifact: row_results.ENG-016 = PASS; ENG-016_NEGATIVE_unattributed_must_fail status PASS with detected=True; mutation ENG-016_negative_1 ('Removed unattributed_net subtraction from reconcile_sleeve') -> expected FAIL (divergence detected), actual FAIL, non_vacuous=true. Re-derived: 9 checks, 9 pass, 3/3 mutations non-vacuous.",
+      "why": "Evidence exists, the reconcile path is falsifiable by mutation, and the 'why' matches. Verdict PASS stands. The row's own 'why' correctly discloses that no live shared-account UI proof exists."
+    },
+    {
+      "row_id": "PRICE-001",
+      "verdict": "PASS",
+      "probe": "Tried to disprove the NOT_TESTED claim by searching the whole branch for coverage: git grep -l PRICE-001 over certification/* returns only the matrix, MASTER_PRODUCT_INVARIANTS, open_decisions, gen_matrix.py and this batch artifact - no certification result file. Read the matrix register of record: result=NOT_TESTED, evidence_ref empty, notes 'REFUSED: PRICING_fa9d9f55ff.json untracked, no harness, ORDER_FILLED unlabelled as double. Not consolidated.' The row's named oracle is 'Independent l2Book / allMids snapshot captured at decision time plus the exchange fill record', which is genuinely not established (follower wallet absent on testnet).",
+      "why": "Could not disprove the claim, so I say so explicitly rather than endorsing it silently. NOT_TESTED matches the register of record and the row's oracle is genuinely unearned. Disclosure, not a defect: the same branch carries committed gate-level runtime evidence for this row (PRICING_CORRECTION_fefc2b04.json, 12/12 gate checks, 7/7 non-vacuous negatives; PRICING_NT_fefc2b04.json records the row gate-ESTABLISHED / exchange-truth NOT_ESTABLISHED). The batch cites none of it. That evidence does not establish the row's named oracle, so NOT_TESTED stands - but a reader of the batch alone would not know gate-level evidence exists."
+    },
+    {
+      "row_id": "PRICE-002",
+      "verdict": "PASS",
+      "probe": "Same search: no certification result file on the branch covers PRICE-002. Matrix register: result=NOT_TESTED, evidence_ref empty, notes 'REFUSED: PRICING_fa9d9f55ff.json untracked, no harness, ORDER_FILLED unlabelled as double. Not consolidated.' Named oracle (independent l2Book/allMids + exchange fill) not established.",
+      "why": "Could not disprove. NOT_TESTED matches the register. Same un-cited gate-level evidence caveat as PRICE-001. Verdict stands."
+    },
+    {
+      "row_id": "PRICE-003",
+      "verdict": "PASS",
+      "probe": "git grep -l PRICE-003 over certification/* returns only the matrix, MASTER_PRODUCT_INVARIANTS, open_decisions, gen_matrix.py and this batch. No result artifact anywhere on the branch. Matrix: result=NOT_TESTED, evidence_ref empty, open_decisions=['OD-10'].",
+      "why": "No evidence exists to cite, so an empty evidence_ref is honest rather than a dangling citation. NOT_TESTED matches the register and the row is OPEN_DECISION (OD-10). Verdict stands."
+    },
+    {
+      "row_id": "PRICE-004",
+      "verdict": "PASS",
+      "probe": "git grep -l PRICE-004 over certification/* returns only the matrix/invariants/open_decisions/gen_matrix and this batch. No result artifact on the branch. Matrix: result=NOT_TESTED, open_decisions=['OD-10'].",
+      "why": "Could not disprove; no evidence exists and none is cited. NOT_TESTED matches the register. Verdict stands."
+    },
+    {
+      "row_id": "PRICE-005",
+      "verdict": "PASS",
+      "probe": "No certification result file on the branch covers PRICE-005 (only the matrix register and this batch). Matrix: result=NOT_TESTED, notes 'REFUSED: PRICING_fa9d9f55ff.json untracked, no harness, ORDER_FILLED unlabelled as double. Not consolidated.' Named oracle not established.",
+      "why": "Could not disprove. NOT_TESTED matches the register. Same un-cited committed gate-level evidence caveat as PRICE-001 (PRICING_CORRECTION_fefc2b04 covers PRICE-005; PRICING_NT_fefc2b04 records it gate-ESTABLISHED). Verdict stands."
+    },
+    {
+      "row_id": "PRICE-006",
+      "verdict": "PASS",
+      "probe": "No result artifact on the branch covers PRICE-006. Matrix: result=NOT_TESTED, evidence_ref empty. Named oracle not established.",
+      "why": "Could not disprove. NOT_TESTED matches the register. Same un-cited committed gate-level evidence caveat as PRICE-001. Verdict stands."
+    },
+    {
+      "row_id": "PRICE-007",
+      "verdict": "PASS",
+      "probe": "No result artifact on the branch covers PRICE-007. Matrix: result=NOT_TESTED, notes 'Source refs are to the legacy file ... Slippage ruled (Boss, 2026-10-09): unset marketable slippage defaults to 0.2%. | REFUSED: PRICING_fa9d9f55ff.json ...'. Named oracle not established.",
+      "why": "Could not disprove. NOT_TESTED matches the register. Same un-cited committed gate-level evidence caveat as PRICE-001. Verdict stands."
+    },
+    {
+      "row_id": "PRICE-008",
+      "verdict": "PASS",
+      "probe": "git grep -l PRICE-008 over certification/* returns only the matrix/invariants/open_decisions/gen_matrix and this batch. No result artifact on the branch. Matrix: result=NOT_TESTED, open_decisions=['OD-10'].",
+      "why": "No evidence exists and none is cited; NOT_TESTED matches the register. Verdict stands."
+    },
+    {
+      "row_id": "ORD-001",
+      "verdict": "FAIL",
+      "probe": "Three independent attempts to reproduce the row's justification number 'four exchange.order() call sites'. (1) AST census of the engine at the tested commit fefc2b04: exactly 1 call site, L2703. At the batch head 4bd7462: exactly 1, L2715. (2) Repo-wide AST census of all 39 .py files at the batch head: 2 call sites total (Core L2715, legacy HL_Live_Copy_Service.py L1036). (3) Textual census of '.order(' in Core: L2703 plus two docstring mentions (L4273, L4275) at fefc2b04 - no fourth real call. Then checked the four line numbers the claim traces to (L2726, L2843, L3350, L3379, carried in the matrix note 'Core has four exchange.order() call sites'): at fefc2b04 those lines are '(SEND_ATTEMPTS_CSV, SEND_ATTEMPT_FIELDS),', 'manual_net, exchange_net,', '}', 'if HLAccount is None or HLExchange is None:' - none is an order call; at the batch head they are a rate-limit if-statement, an EXIT/REDUCE comment, a SEND_NOT_ATTEMPTED_UNSUPPORTED_SYMBOL return and an operator_action string. Also checked the live working-tree Core: different file entirely (13027 lines, sha256 c5a40384), not the 7705-line/5bda57be the matrix cites, and its L2726/L2843/L3350/L3379 contain no order call either. Finally read the row's own cited evidence, ORDER_CORRECTION_fefc2b04.json: ORD-001 ONE_ORDER_CALL_PER_SEND_VIA_DOUBLE pass=false 'exchange.order() calls across 3 sends: 0 (expected 3)'; EXCHANGE_ORDER_INVOKED_ON_SEND_VIA_DOUBLE pass=false 'exchange.order() calls in _send_real: 0 (expected 1)'; notes 'one physical exchange.order() site confirmed at runtime (1 call per send)'; and its negative control ord001_add_second_order_site is marked non_vacuous=false ('normal calls: 0; mutated calls: 0').",
+      "why": "The row's 'why' asserts a specific, checkable finding - 'The row-specific check finds four exchange.order() call sites where architecture requires one physical order site ... This is a product architecture failure' - and that finding is not reproducible from anything on the branch. The engine has ONE physical order site, the cited evidence observed ZERO runtime calls and states one site, and the four line numbers the claim derives from contain no order call in any version on the branch. The justification is fabricated and directly contradicts the artifact the row cites. The FAIL letter matches the register and the cited evidence's own row verdict, but the stated reason for it is false, so the claim as written is rejected. Required correction: restate ORD-001 on what the evidence actually shows (runtime gate outcome against an in-process double that was never invoked - REAL_SENDER_NOT_CONFIGURED - plus the unestablished exchange-truth oracle), drop the 'four call sites' / 'product architecture failure' claim, and correct the matrix note that is the source of the fabricated census."
+    },
+    {
+      "row_id": "ORD-002",
+      "verdict": "PASS",
+      "probe": "Read the cited ORDER_CORRECTION_fefc2b04.json: ORD-002 checks_pass=1, checks_total=4, matching the 'why' claim 'earned only 1/4 checks'. Verified the four checks and their detail strings. Cross-checked the matrix register: result=FAIL, evidence_ref=ORDER_CORRECTION_fefc2b04.json, tested_commit=fefc2b04. The negative control ord002_remove_reduce_only_logic is disclosed as non_vacuous=false ('reduce_only with mutation: False; without: False'), so the row's falsifier is weak - but the row does not claim otherwise.",
+      "why": "Verdict FAIL matches both the register and the cited evidence, and the 'why' accurately reports the 1/4 figure and refuses to promote the in-process double to PASS. Verdict stands. Note (not a rejection): the 1/4 is driven by checks failing with exchange_called=False / REAL_SENDER_NOT_CONFIGURED, i.e. the double was never invoked, so the FAIL reflects an unproven gate rather than a demonstrated defect - the row's own text already frames it that way."
+    },
+    {
+      "row_id": "ORD-003",
+      "verdict": "PASS",
+      "probe": "git grep -l ORD-003 over certification/* returns only the matrix, MASTER_PRODUCT_INVARIANTS, open_decisions, gen_matrix.py and this batch. No result artifact on the branch. Matrix: result=NOT_TESTED, open_decisions=['OD-09'], notes 'Core: DEFAULT_MIN_NOTIONAL = env HL_LIVE_MIN_NOTIONAL, default 10 (L138); ... the minimum check at L2439 covers ENTRY/ADD only. Code-read, unconfirmed by run.'",
+      "why": "No evidence exists and none is cited; NOT_TESTED matches the register, and the 'why' correctly states that a code-read is not execution proof. Verdict stands."
+    }
+  ]
+}
