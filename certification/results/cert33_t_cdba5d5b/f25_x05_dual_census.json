@@ -1,0 +1,53 @@
+{
+  "row_id": "F25-X05",
+  "tested_commit": "b142cf88d389e791160f691aac3d936852b99975",
+  "register_control_state": {
+    "source_of_truth": {
+      "terminal_runtime_local_path": "_archive/hl_stage2/HL_Live_Copy_Service.py",
+      "planner_local_path": "_archive/hl_stage2/convergence_shadow.py",
+      "source_tracking_status": "TRACKED_BASELINE_VERIFIED"
+    }
+  },
+  "census": [
+    {
+      "label": "Core_engine",
+      "path": "_archive/hl_stage2/HL_Live_Copy_Service_Core.py",
+      "sha256": "b171ec8fef01ead5ed2fe4a4a075857b5b1a56e425bab8394440c7dbad57f2a0",
+      "bytes": 436982,
+      "lines": 8042,
+      "case_insensitive_literal_occurrences": {
+        "msvcrt": 3,
+        "fcntl": 4,
+        "instance.lock": 1,
+        "acquire_instance_lock": 2,
+        "CreateMutex": 0,
+        "lock_file": 0,
+        "lockfile": 0,
+        "PID": 20
+      }
+    },
+    {
+      "label": "Declared_runtime",
+      "path": "_archive/hl_stage2/HL_Live_Copy_Service.py",
+      "sha256": "e2f04fa826958c73169bae2490a6ebb3ebfd09d9aecda513ef0d7bd8a10ec2c6",
+      "bytes": 281821,
+      "lines": 5109,
+      "case_insensitive_literal_occurrences": {
+        "msvcrt": 0,
+        "fcntl": 0,
+        "instance.lock": 0,
+        "acquire_instance_lock": 0,
+        "CreateMutex": 0,
+        "lock_file": 0,
+        "lockfile": 0,
+        "PID": 1
+      }
+    }
+  ],
+  "method": "Counts are case-insensitive literal substring occurrences in the exact file bytes decoded as UTF-8; source identity is pinned by register commit b142cf88d389e791160f691aac3d936852b99975 and SHA-256. The register's CONTROL_STATE.json declares terminal_runtime_local_path = _archive/hl_stage2/HL_Live_Copy_Service.py as the authoritative runtime. This census establishes presence of lease primitives (msvcrt, fcntl, instance.lock, acquire_instance_lock) in the Core engine and their complete absence in the declared runtime.",
+  "notes": [
+    "Core engine PID count (20) includes occurrences in docstrings and comments, not lease-holder logic.",
+    "Declared runtime PID count (1) is a single occurrence in a comment, not a lease mechanism.",
+    "The register's source_sha256 map entries are tracked under a different path namespace (local-trading/Hyperliquid scanner/...); this census uses the CONTROL_STATE.json declared paths."
+  ]
+}

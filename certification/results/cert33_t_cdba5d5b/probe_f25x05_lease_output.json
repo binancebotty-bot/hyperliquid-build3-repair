@@ -1,0 +1,25 @@
+{
+  "row_id": "F25-X05",
+  "tested_commit": "b142cf88d389e791160f691aac3d936852b99975",
+  "probe_path": "certification/results/cert33_t_cdba5d5b/probe_f25x05_lease.py",
+  "probe_sha256": "sha256: to-be-filled-by-generator",
+  "execution": {
+    "engine_sha256": "b171ec8fef01ead5ed2fe4a4a075857b5b1a56e425bab8394440c7dbad57f2a0",
+    "fn_sha256": "c75f0c35677c68cc3c4a93a28bfddaa1d14cbda172ffc1fd2a08acd74c318617",
+    "holder": "HELD",
+    "second_start_while_held": "REFUSED INSTANCE_ALREADY_RUNNING: another engine holds C:\\Users\\wigmore\\.hermes\\cache\\scratch\\b3_clean\\_cert33\\lp",
+    "lockfile_exists": true,
+    "readable_while_held": false,
+    "stale_file_take": "ACQUIRED",
+    "fn_mentions_pid": false,
+    "fn_text": "\ndef acquire_instance_lock(state_dir: Path) -> None:\n    \"\"\"One running engine per state folder; the OS lock dies with the process, so it never goes stale.\"\"\"\n    global _INSTANCE_LOCK\n    Path(state_dir).mkdir(parents=True, exist_ok=True)\n    fh = open(Path(state_dir) / \"instance.lock\", \"a+\")\n    try:\n        if os.name == \"nt\":\n            import msvcrt\n            fh.seek(0)\n            msvcrt.locking(fh.fileno(), msvcrt.LK_NBLCK, 1)\n        else:\n            import fcntl\n            fcntl.flock(fh.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)\n    except OSError:\n        fh.close()\n        raise SystemExit(f\"INSTANCE_ALREADY_RUNNING: another engine holds {state_dir}\")\n    _INSTANCE_LOCK = fh\n",
+    "findings": [
+      "Core engine implements acquire_instance_lock() using OS byte-range lock (msvcrt.locking LK_NBLCK on Windows)",
+      "Function never reads a PID/holder file (fn_mentions_pid=false)",
+      "Live holder correctly refuses a second start (REFUSED INSTANCE_ALREADY_RUNNING)",
+      "Stale PID file (PID=999999) neither blocks nor misidentifies the holder (ACQUIRED; file not readable while genuinely locked)"
+    ]
+  },
+  "method": "Probe executed from committed script at certification/results/cert33_t_cdba5d5b/probe_f25x05_lease.py against the Core engine source at register commit b142cf88d389e791160f691aac3d936852b99975. The probe extracts the acquire_instance_lock function, executes it in a subprocess holder, then attempts a second acquisition, then tests stale-file behavior.",
+  "note": "The lock probe state directory was a temporary local path (_cert33/lp) and does not affect production state."
+}
