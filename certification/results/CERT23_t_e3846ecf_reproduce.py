@@ -56,7 +56,7 @@ OUT['inputs'] = {
     'engine_blob_matches_pinned': engine_sha == ENGINE_SHA,
     'mailbox_ref': MAILBOX,
     'mailbox_head': git('rev-parse', MAILBOX).strip(),
-    'script_sha256': hashlib.sha256(SELF.read_bytes()).hexdigest(),
+    'script_sha256': hashlib.sha256(SELF.read_bytes().replace(bytes([13, 10]), bytes([10]))).hexdigest(),
     'python': sys.version,
 }
 if engine_sha != ENGINE_SHA:

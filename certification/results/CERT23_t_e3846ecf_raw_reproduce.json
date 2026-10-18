@@ -1320,7 +1320,7 @@
   "mailbox_head": "97d8e350b0593ffb649d5ab7bfef5aea72edf0f2",
   "mailbox_ref": "origin/control-mailbox",
   "python": "3.11.9 (tags/v3.11.9:de54cf5, Apr  2 2024, 10:12:12) [MSC v.1938 64 bit (AMD64)]",
-  "script_sha256": "41f9fa89d77c9417c347a6235a5c255a61d300d7585c288770f691564940f21b",
+  "script_sha256": "f17e1bc5f8bf733619c8c07487af51645f9fec93ebb4c8be48f49c950b043f63",
   "tested_commit": "b142cf88d389e791160f691aac3d936852b99975"
  },
  "type_table": {
