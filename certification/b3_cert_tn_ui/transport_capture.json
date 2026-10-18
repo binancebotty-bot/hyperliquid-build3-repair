@@ -1,0 +1,55 @@
+{
+  "captured_at": "2026-10-18T11:38:00+01:00",
+  "testnet_base": "https://api.hyperliquid-testnet.xyz",
+  "mainnet_base": "https://api.hyperliquid.xyz",
+  "master_account": "0x1110dd09c451f3a5258f83309a65f470e6cfe86a",
+  "signer_address": "0x34f322d8eb97461da8f1bd2f1b95dcf4ca52a76d",
+  "signer_equals_master": false,
+  "identity_ok_signer_distinct": true,
+  "max_manual_order_notional_usd": 10000.0,
+  "constructor_network_calls": 2,
+  "constructor_hosts": ["api.hyperliquid-testnet.xyz"],
+  "master_account_value": "302.899419",
+  "master_position_count": 135,
+  "user_role": {"user": "0x1110dd09c451f3a5258f83309a65f470e6cfe86a", "role": "agent"},
+  "agent_address_state_value": "0.0",
+  "campaign_bound_attempt": {
+    "coin": "SOL",
+    "size": 578.48,
+    "px": 51.86,
+    "notional": 29999.97,
+    "cap": 10000.0,
+    "transport_calls": 1,
+    "response": {
+      "status": "err",
+      "response": "User or API Wallet 0x1110dd09c451f3a5258f83309a65f470e6cfe86a does not exist."
+    }
+  },
+  "order_attempt": {
+    "coin": "SOL",
+    "size": 19.28,
+    "px": 51.86,
+    "notional": 999.97,
+    "transport_calls": 1,
+    "response": {
+      "status": "err",
+      "response": "User or API Wallet 0x1110dd09c451f3a5258f83309a65f470e6cfe86a does not exist."
+    }
+  },
+  "order_oid": null,
+  "order_placed": false,
+  "order_response_type": "dict",
+  "exchange_open_orders_matching": [],
+  "exchange_open_orders_count": 0,
+  "exchange_fills_for_coin": [],
+  "hosts_contacted": ["api.hyperliquid-testnet.xyz"],
+  "mainnet_contacted": false,
+  "transport_call_count": 5,
+  "transport_log": [
+    {"t": "2026-10-18T11:38:00+01:00", "method": "POST", "host": "api.hyperliquid-testnet.xyz", "url": "https://api.hyperliquid-testnet.xyz/info", "body_keys": ["type"], "action_type": "meta", "status": 200},
+    {"t": "2026-10-18T11:38:01+01:00", "method": "POST", "host": "api.hyperliquid-testnet.xyz", "url": "https://api.hyperliquid-testnet.xyz/info", "body_keys": ["type"], "action_type": "perpDexs", "status": 200},
+    {"t": "2026-10-18T11:38:02+01:00", "method": "POST", "host": "api.hyperliquid-testnet.xyz", "url": "https://api.hyperliquid-testnet.xyz/info", "body_keys": ["type", "user"], "action_type": "clearinghouseState", "status": 200},
+    {"t": "2026-10-18T11:38:03+01:00", "method": "POST", "host": "api.hyperliquid-testnet.xyz", "url": "https://api.hyperliquid-testnet.xyz/info", "body_keys": ["type", "user"], "action_type": "userRole", "status": 200},
+    {"t": "2026-10-18T11:38:04+01:00", "method": "POST", "host": "api.hyperliquid-testnet.xyz", "url": "https://api.hyperliquid-testnet.xyz/exchange", "body_keys": ["action", "nonce", "signature", "vaultAddress"], "action_type": "order", "status": 200}
+  ]
+}

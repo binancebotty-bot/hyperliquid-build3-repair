@@ -1,0 +1,123 @@
+{
+  "verdicts": [
+    {
+      "row_id": "TN-F25",
+      "verdict": "NOT_TESTED",
+      "reason": "Deployment/control-plane identity verification requires comparing the running process's build to the reviewed commit. The serving process (PID 26592) runs from commit 89b3bc75, which is NEWER than the register of record (b142cf8). The register's certification matrix was authored against b142cf8, so the serving build has not been reviewed against these rows."
+    },
+    {
+      "row_id": "TN-F26",
+      "verdict": "NOT_TESTED",
+      "reason": "Allocation/risk-budget enforcement requires a live testnet order that exercises the allocation logic. The transport capture shows the order attempt was rejected by the exchange (account does not exist on testnet), so the allocation logic was never exercised."
+    },
+    {
+      "row_id": "TN-F27",
+      "verdict": "NOT_TESTED",
+      "reason": "Margin-state divergence without a fill requires a live testnet scenario where the leader's margin changes but no fill occurs. No such scenario was executed."
+    },
+    {
+      "row_id": "TN-PS1",
+      "verdict": "NOT_TESTED",
+      "reason": "Portfolio safety verification requires a live testnet order that exercises the risk/liquidation constraint checks. The transport capture shows the order was rejected before reaching the risk checks."
+    },
+    {
+      "row_id": "TN-T6",
+      "verdict": "PASS",
+      "reason": "Genuine transport capture confirms only api.hyperliquid-testnet.xyz was contacted. No mainnet endpoint was accessed. No fallback origin of any kind was used.",
+      "evidence": "certification/b3_cert_tn_ui/transport_capture.json: hosts_contacted=['api.hyperliquid-testnet.xyz'], mainnet_contacted=false"
+    },
+    {
+      "row_id": "TN-T7",
+      "verdict": "PASS",
+      "reason": "Code analysis confirms no production signer fallback exists. The signer is loaded exclusively from HL_LIVE_HL_PRIVATE_KEY with no fallback to any other key.",
+      "evidence": "certification/b3_cert_tn_ui/core_service.py: signer loaded from HL_LIVE_HL_PRIVATE_KEY only"
+    },
+    {
+      "row_id": "TN-T8",
+      "verdict": "PASS",
+      "reason": "Code analysis confirms no production sender fallback exists. The exchange client is constructed with a single base_url and no fallback sender.",
+      "evidence": "certification/b3_cert_tn_ui/core_service.py: Exchange constructed with base_url only"
+    },
+    {
+      "row_id": "TN-T9",
+      "verdict": "PASS",
+      "reason": "Code analysis confirms no production account fallback exists. The master account is loaded from HL_LIVE_HL_ACCOUNT_ADDRESS with no fallback.",
+      "evidence": "certification/b3_cert_tn_ui/core_service.py: master account from HL_LIVE_HL_ACCOUNT_ADDRESS only"
+    },
+    {
+      "row_id": "TN-T10",
+      "verdict": "PASS",
+      "reason": "Code analysis confirms no generic default endpoint. All endpoints are resolved from NETWORK_HOSTS dict with explicit network names.",
+      "evidence": "certification/b3_cert_tn_ui/exchange_truth.py: NETWORK_HOSTS = {'mainnet': ..., 'testnet': ...}, no default fallback"
+    },
+    {
+      "row_id": "TN-T11",
+      "verdict": "PASS",
+      "reason": "Code analysis confirms no alternate/unvalidated HTTP client path. Only requests.post is used for all exchange communication.",
+      "evidence": "certification/b3_cert_tn_ui/exchange_truth.py: only requests.post used, no alternate client"
+    },
+    {
+      "row_id": "TN-T12",
+      "verdict": "FAIL",
+      "reason": "Genuine transport capture shows the constructor made 2 network calls (meta + perpDexs) during initialization. This is NOT zero constructor-time pre-hardening network I/O.",
+      "evidence": "certification/b3_cert_tn_ui/transport_capture.json: constructor_network_calls=2, constructor_hosts=['api.hyperliquid-testnet.xyz']"
+    },
+    {
+      "row_id": "TN-T13",
+      "verdict": "NOT_TESTED",
+      "reason": "Session hardening before first use could not be verified from the available evidence. The constructor makes network calls, suggesting the session is used during construction, but the exact hardening sequence could not be determined."
+    },
+    {
+      "row_id": "TN-T14",
+      "verdict": "FAIL",
+      "reason": "Genuine transport capture shows the testnet account identity verification failed. The exchange rejected the order with 'User or API Wallet 0x1110dd09c451f3a5258f83309a65f470e6cfe86a does not exist.' The account was not verified against the resolved master.",
+      "evidence": "certification/b3_cert_tn_ui/transport_capture.json: order_response shows exchange rejection for non-existent account"
+    },
+    {
+      "row_id": "TN-T15",
+      "verdict": "PASS",
+      "reason": "Code analysis confirms only the testnet signer is loaded. The mainnet key is never loaded into the process.",
+      "evidence": "certification/b3_cert_tn_ui/core_service.py: HL_LIVE_HL_PRIVATE_KEY loaded once, no mainnet key"
+    },
+    {
+      "row_id": "TN-T16",
+      "verdict": "NOT_TESTED",
+      "reason": "Campaign bounds enforcement could not be verified. The bound attempt (3x notional) was rejected by the exchange due to non-existent account, not by the campaign bounds check. The bounds logic was never exercised."
+    },
+    {
+      "row_id": "TN-T17",
+      "verdict": "PASS",
+      "reason": "Code analysis confirms fail-closed behavior. NetworkConfigError is raised for unknown networks, mismatched endpoints, and invalid identities. Absent proof means refuse.",
+      "evidence": "certification/b3_cert_tn_ui/exchange_truth.py: NetworkConfigError raised for all invalid configurations"
+    },
+    {
+      "row_id": "INC-01",
+      "verdict": "FAIL",
+      "reason": "The positions table (lcPosRows) has 0 rendered rows despite 943 manual positions existing in the API response. Large exchange positions are not visible on the live-copy dashboard.",
+      "evidence": "certification/b3_cert_tn_ui/ui_serving_dom_capture.json: positions_rendered_row_count=0, manual_positions_total=943"
+    },
+    {
+      "row_id": "INC-03",
+      "verdict": "NOT_TESTED",
+      "reason": "Account vs engine position diff rendering could not be fully verified. The API shows 50 manual reconciliation rows, but the rendered DOM did not contain the reconciliation table rows in the captured snapshot."
+    },
+    {
+      "row_id": "UI-FP-167",
+      "verdict": "PASS",
+      "reason": "The WS Health Detail table renders a 'Thread' column with correct values from live_ws_health.json. All 10 wallets show 'down' (matching thread_alive=false from the API).",
+      "evidence": "certification/b3_cert_tn_ui/ui_serving_dom_capture.json: headers contain 'Thread', thread_cells=['down', 'down', ...]"
+    },
+    {
+      "row_id": "UI-FP-168",
+      "verdict": "PASS",
+      "reason": "The WS Health Detail table renders a 'Reconnect/min' column with default values (0.00) when the source key is absent. The column is present and shows the correct default.",
+      "evidence": "certification/b3_cert_tn_ui/ui_serving_dom_capture.json: headers contain 'Reconnect/min', reconnect_cells=['0.00', '0.00', ...]"
+    },
+    {
+      "row_id": "UI-FP-193",
+      "verdict": "FAIL",
+      "reason": "The 'leader_equity_base' control is not present in the rendered DOM. The served HTML does not mention it, no input fields exist for it, and the live-config API shows no wallet has this key. The control is not exposed in the UI.",
+      "evidence": "certification/b3_cert_tn_ui/ui_serving_dom_capture.json: served_html_mentions_leader_equity_base=false, dom_mentions_leader_equity_base=false, dom_leader_equity_inputs=[]"
+    }
+  ]
+}
