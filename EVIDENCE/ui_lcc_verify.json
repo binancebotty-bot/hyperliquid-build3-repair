@@ -1,0 +1,196 @@
+{
+ "t0": {
+  "headers": [
+   "WALLET",
+   "NET P&L",
+   "FEED",
+   "CLOSED / OPEN / FEES",
+   "LEAD↔COPY DIFF",
+   "EXECUTION",
+   "RISK / EXPOSURE",
+   "LAST FILL",
+   "CONTROLS"
+  ],
+  "hcells": 9,
+  "span": 9,
+  "rows": 16,
+  "hist": {
+   "9": 16
+  },
+  "s0": [
+   "0x010461c1...1c703a\nLive",
+   "— partial",
+   "Websocket OK\nHOT10 share",
+   "Closed: — partial\nOpen: ",
+   "Total: n/a\nAvg: n/a\nAvg ",
+   "1115 filled / 0 exits\n97",
+   "Exposure: $1,981.79\nOpen",
+   "ZEN BUY @",
+   "LIVE\nCLO\nOFF\nprop\nfixed\n"
+  ]
+ },
+ "t2": {
+  "headers": [
+   "WALLET",
+   "COIN",
+   "SIDE",
+   "SIGNED SIZE",
+   "AVG ENTRY",
+   "LEDGER/EXCHANGE",
+   "EXCHANGE SIZE",
+   "LAST COPY FILL",
+   "LAST UPDATED"
+  ],
+  "hcells": 9,
+  "span": 9,
+  "rows": 520,
+  "hist": {
+   "9": 520
+  },
+  "s0": [
+   "0x010461c1...1c703a",
+   "0G",
+   "SHORT",
+   "-32",
+   "0.23759273627099065",
+   "OWNED_COPY\nSHARED_SYMBOL",
+   "2",
+   "0x74b04f8c1ddca69a762a0…",
+   "—"
+  ]
+ },
+ "t3": {
+  "headers": [
+   "COIN",
+   "UNEXPLAINED SIZE",
+   "ENTRY PX",
+   "MARK PX",
+   "UNREALIZED PNL",
+   "STATUS",
+   "WHO MANAGES IT",
+   "ENGINE CLOSES IT?",
+   "ENGINE USES IT?",
+   "CONTEXT"
+  ],
+  "hcells": 10,
+  "span": 10,
+  "rows": 25,
+  "hist": {
+   "10": 25
+  },
+  "s0": [
+   "KAS",
+   "324",
+   "0.036365",
+   "0.035124999999999997",
+   "—",
+   "Not opened by the engine",
+   "You",
+   "No",
+   "No",
+   "no engine order behind i"
+  ]
+ },
+ "t4": {
+  "headers": [
+   "Time",
+   "Wallet",
+   "Coin",
+   "Side",
+   "Status",
+   "Terminal state",
+   "Operator action",
+   "Reject category",
+   "OID",
+   "Fill avg px",
+   "Size",
+   "Pos before -> after",
+   "Leader→send ms",
+   "Total ms",
+   "Symbol ms",
+   "SDK ms",
+   "Exchange ms",
+   "Error"
+  ],
+  "hcells": 18,
+  "span": 18,
+  "rows": 300,
+  "hist": {
+   "19": 300
+  },
+  "s0": [
+   "2026-10-18T13:10:26.6…",
+   "0xf5d81a13...c3ad53",
+   "VVV",
+   "SELL",
+   "ACTIVE_EXCHANGE_REJECT",
+   "ORDER_REJECTED",
+   "MISSED_ADD_INSUFFICIENT_",
+   "MISSED_ADD",
+   "INSUFFICIENT_MARGIN",
+   "—",
+   "—",
+   "—",
+   "-7.619999999999988 -> -8",
+   "1792329025249",
+   "1792329020140",
+   "6979",
+   "real exchange IOC attemp",
+   "0x56513cb639d698eaefa017",
+   "Insufficient margin to p"
+  ]
+ },
+ "t5": {
+  "headers": [
+   "Time",
+   "Wallet",
+   "Coin",
+   "Side",
+   "Source/Reason",
+   "Status",
+   "Decision",
+   "Decision reason",
+   "Suggested limit",
+   "Diff %",
+   "Manual?",
+   "Intent note",
+   "Real order result"
+  ],
+  "hcells": 13,
+  "span": 13,
+  "rows": 1,
+  "hist": {
+   "1": 1
+  },
+  "s0": [
+   "No audit rows found."
+  ]
+ },
+ "t9": {
+  "headers": [
+   "Severity",
+   "Wallet",
+   "Coin",
+   "Issue",
+   "Manual ledger",
+   "Exchange",
+   "Action"
+  ],
+  "hcells": 7,
+  "span": 7,
+  "rows": 50,
+  "hist": {
+   "7": 50
+  },
+  "s0": [
+   "OK",
+   "0G",
+   "0x010461c1...1c703a",
+   "SHARED_SYMBOL_SLEEVE_TRA",
+   "SHORT -32",
+   "2",
+   "1"
+  ]
+ },
+ "tables": 11
+}

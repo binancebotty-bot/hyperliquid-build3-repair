@@ -1,0 +1,22 @@
+{
+ "tracked": 16,
+ "auto": 10,
+ "wallets": 16,
+ "health": 10,
+ "audit_rows": 0,
+ "rows": 0,
+ "recon": 500,
+ "exq": 300,
+ "exq_total": 5000,
+ "orphans": 24,
+ "manual_total": 944,
+ "sends": {
+  "ORDER_FILLED": 78521,
+  "ORDER_RESTING": 9692,
+  "ORDER_REJECTED": 104765,
+  "EXCHANGE_ERROR": 210,
+  "pending_send": 33
+ },
+ "snap_status": "OK",
+ "at": "2026-10-18T12:57:59.451927+00:00"
+}
