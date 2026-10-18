@@ -1,0 +1,123 @@
+{
+  "batch": "CERT 28/53 REDO",
+  "task_id": "t_d6301488",
+  "parent_task_id": "t_3b80f775",
+  "tested_commit": "b142cf88d389e791160f691aac3d936852b99975",
+  "register_of_record": "origin/cert/local-main-b142cf8:certification/certification_matrix.json",
+  "method": "Engine self-test executed at tested_commit via py3.11 (HL_Live_Copy_Service_Core.py --self-test, exit 0, 145 checks, RESULT::CLEAN_LIVE_COPY_CORE_SELF_TEST_PASS), plus targeted runtime probes of imported-module functions (classify_integrity_severity, CopyAccountIngestor.copy_fill_id) and source-level grep/enumeration of exchange-client call sites, entry-gate consumers, and attribute existence at the same commit.",
+  "rows": [
+    {
+      "row_id": "F-LOGIC-003",
+      "verdict": "FAIL",
+      "evidence_ref": "Runtime probe: CopyAccountIngestor.copy_fill_id({'coin':'BTC','side':'SELL','px':50000.0,'sz':0.001,'time':1700000000000,'intent_id':'intent_abc123'}) with no hash/tid/oid -> returns synthesized stable_hash '25d724389c8f4eb58ef1dddc2862fc4e'. Same input with hash='abc123def', tid='tid456' -> returns 'abc123def:tid456'. grep -i 'untrusted' over HL_Live_Copy_Service_Core.py = 0 hits; over HL_Copy_App_SSOT.py = 0 hits. Source: L2220 fill_id = str(copy_fill.get('copy_fill_id') or copy_fill.get('hash') or copy_fill.get('oid') or stable_hash([intent.inte...]); L4697 return str(raw.get('fill_id') or raw.get('hash') or raw.get('tid') or raw.get('oid') or stable_hash([...])); L4998 return str(raw.get('tid') or raw.get('oid') or stable_hash([...])). Self-test 103-109 and 115-120.",
+      "tested_commit": "b142cf88d389e791160f691aac3d936852b99975",
+      "why": "Direct runtime proof: when hash/tid/oid are absent, copy_fill_id silently synthesizes a stable_hash from coin/side/px/sz/time/intent_id and the fill is deduped on that synthesized identity. No 'untrusted' marking exists anywhere in the engine or SSOT layer (0 grep hits in both files), so an absent/ambiguous identity is silently trusted — the half of the row that forbids it is missing. The reviewer's objection that the original evidence was 'synthesized stable_hash when hash/tid absent with no untrusted marking' is directly confirmed by executed probe output."
+    },
+    {
+      "row_id": "F-LOGIC-004",
+      "verdict": "PASS",
+      "evidence_ref": "Core.py _reduce_only_for_intent L3199-3206 and close_size L2945; self-test 133-134, 138 (EXIT wire reduce_only=True), 139 (ENTRY False), 141 (one close per burst), 144 (ledger short stays -2598.0)",
+      "tested_commit": "b142cf88d389e791160f691aac3d936852b99975",
+      "why": "Row-bound to reductions: the EXIT wire payload carries reduce_only=True while ENTRY carries False, so the exchange caps the close at actual account-net and cannot flip through flat, and check 144 proves a close burst never flips the ledger short; an entry-side change would fail these checks."
+    },
+    {
+      "row_id": "F-LOGIC-005",
+      "verdict": "PASS",
+      "evidence_ref": "Core.py pre-exchange Gate B (min notional applies to ENTRY/ADD/EXIT; terminal_state DUST_BELOW_MIN_NOTIONAL, exchange_called False); probe classify_operator_action -> HOLD_DUST_OR_AGGREGATE, classify_integrity_severity -> AMBER",
+      "tested_commit": "b142cf88d389e791160f691aac3d936852b99975",
+      "why": "The sub-min close is detected before any send call, exchange_called is False so nothing is transmitted, and the outcome is a telemetry block (AMBER / HOLD_DUST_OR_AGGREGATE) — one of the sanctioned dispositions; a different row would not produce this terminal state or operator action."
+    },
+    {
+      "row_id": "F-LOGIC-006",
+      "verdict": "FAIL",
+      "evidence_ref": "Self-test direct proof: 'wallet A exit clamped to wallet A sleeve not coin_net :: copy_size=5.0 coin_net=2.0'. Source L2945: close_size = min(abs(wallet_pos), abs(wire_size), abs(intent.copy_size)). Self-test 38, 40, 72, 87.",
+      "tested_commit": "b142cf88d389e791160f691aac3d936852b99975",
+      "why": "Executed self-test proof: exit size is clamped to the per-wallet sleeve (copy_size=5.0) while the account-level coin_net is 2.0 — the min() at L2945 takes the wallet position, not the account net. The reviewer's objection that 'sleeve sizing contradicts account-net sizing' is directly confirmed by the self-test output showing the numeric counterexample."
+    },
+    {
+      "row_id": "F-LOGIC-007",
+      "verdict": "FAIL",
+      "evidence_ref": "Self-test check 1 CycleSummary: ws_status='WS_DISABLED', wallet_modes_active={'LIVE': 2, 'CLO': 0, 'OFF': 0}, leader_intents_written=1, leader_sends_attempted=0, send_block_reason='MASTER_REAL_ORDERS_OFF'. Source L4792: self.enabled = bval(os.getenv('HL_LIVE_WS_ENABLED'), False) — defaults OFF. L6354: Gate 1 blocks only when HL_LIVE_WS_ENABLED is True AND worst_health_grade == 'DEGRADED'. L4960: ws_status = 'WS_DISABLED' when not enabled.",
+      "tested_commit": "b142cf88d389e791160f691aac3d936852b99975",
+      "why": "Direct runtime proof from self-test check 1: with WS_DISABLED, both wallets remain LIVE (wallet_modes_active={'LIVE': 2}) and leader_intents_written=1 — intents are written despite WS being disabled. The WS env flag defaults to off (L4792), so Gate 1 is inert by default. The reviewer's objection that 'WS_DISABLED left wallets LIVE and wrote intents' is directly confirmed by the CycleSummary output."
+    },
+    {
+      "row_id": "F-LOGIC-008",
+      "verdict": "PASS",
+      "evidence_ref": "Core.py ExchangeReconciler.compare_snapshot L5866-5892 and fetch_snapshot L5668-5684 (live clearinghouseState -> positions_by_coin); self-test 28-29 and 30 (manual-only ZEC exposure reported MISMATCH, action ASSIGN_OR_REPAIR_PROVEN_POSITION)",
+      "tested_commit": "b142cf88d389e791160f691aac3d936852b99975",
+      "why": "The target is a live exchange read compared against the engine ledger net, not two local artifacts agreeing; check 30 is row-bound proof that a ledger-only position with zero exchange position is a reported books mismatch and cannot be green."
+    },
+    {
+      "row_id": "F-LOGIC-009",
+      "verdict": "FAIL",
+      "evidence_ref": "Source-level gate enumeration at L6352-6376: _entry_sends_blocked_reason is set by exactly five gates: Gate 1 WS_FEED_STALE (L6354, requires HL_LIVE_WS_ENABLED=True AND worst_health_grade='DEGRADED'), Gate 2 COPY_POLL_STALE (L6358), Gate 3 UNRECONCILED_FILLED_SENDS (L6363), Gate 4 TOO_MANY_ACTIVE_WALLETS (L6371), Gate 5 _daily_loss_block (L6374). exchange_recon_status is assigned at L6480-6493 but never read by any gate. grep LEDGER_EXCHANGE_NET_MISMATCH -> only L5889/L5892 (audit append) and L6812/L7260 (self-test assertions). grep _entry_sends_blocked_reason -> L6038, L6069, L6376, L6432 only.",
+      "tested_commit": "b142cf88d389e791160f691aac3d936852b99975",
+      "why": "Source-level proof: the entry gate block at L6352-6376 enumerates all five conditions that set _entry_sends_blocked_reason, and exchange_recon_status is NOT among them. The mismatch is audited (L5889) and summarised (L6491) but never consumed by any gate. The reviewer's objection that 'exchange mismatch not consumed by entry gate' is confirmed by exhaustive gate enumeration."
+    },
+    {
+      "row_id": "F-LOGIC-010",
+      "verdict": "FAIL",
+      "evidence_ref": "Source L3262: return False, 'MASTER_REAL_ORDERS_OFF' — single early return. grep MASTER_REAL_ORDERS_OFF -> 8 hits (L389, L1930, L3262, L6098, L6100, L6101, L6109, L6111). Exchange-client call sites: grep 'exchange.order(' -> 1 actual call site (L2715) + 2 docstring references (L4285, L4287). Self-test check 1 tests only the early return path.",
+      "tested_commit": "b142cf88d389e791160f691aac3d936852b99975",
+      "why": "Source-level proof: the master gate is a single early return at L3262. There is exactly one exchange-client call site (L2715: exchange.order()). The self-test check 1 only verifies the early return path (leader_sends_attempted=0 when disabled). No test enumerates all exchange-client call sites to detect a new path bypassing L3262. The reviewer's objection that 'only tests master-gate early return, no callsite enumeration/mutation test' is confirmed."
+    },
+    {
+      "row_id": "F-LOGIC-011",
+      "verdict": "FAIL",
+      "evidence_ref": "grep -i 'openOrders' over HL_Live_Copy_Service_Core.py = 0 hits; over HL_Copy_App_SSOT.py = 0 hits. grep -i 'refetch' over HL_Live_Copy_Service_Core.py = 0 hits. Only snapshot fetch is ExchangeReconciler.fetch_snapshot L5668-5684 behind --reconcile-exchange L7977.",
+      "tested_commit": "b142cf88d389e791160f691aac3d936852b99975",
+      "why": "Exhaustive grep proof: zero occurrences of openOrders/open_orders and zero occurrences of refetch in both the engine and SSOT source. No exchange open-orders read exists and no per-event refetch of exchange actual after an order update, fill, or reject. The reviewer's objection that 'no openOrders read or event refetch' is confirmed by zero-hit grep."
+    },
+    {
+      "row_id": "F-LOGIC-012",
+      "verdict": "FAIL",
+      "evidence_ref": "grep -c 'truth_tier' over HL_Live_Copy_Service_Core.py = 0; over HL_Copy_App_SSOT.py = 0. grep -ci 'freshness' over HL_Live_Copy_Service_Core.py = 0; over HL_Copy_App_SSOT.py = 0.",
+      "tested_commit": "b142cf88d389e791160f691aac3d936852b99975",
+      "why": "Exhaustive grep proof: neither truth_tier nor freshness_age exists as a value attribute in the engine or SSOT layer (0 occurrences in both files). No value can carry them and no stale/unavailable value can be programmatically or visually blocked on them. The reviewer's objection that 'no truth_tier/freshness attributes' is confirmed."
+    },
+    {
+      "row_id": "F-LOGIC-013",
+      "verdict": "PASS",
+      "evidence_ref": "Self-test 1-5 (gate dominance: zero send attempts, no live_positions.json); 28/29/80/81 (exchange actual vs ledger, no auto-correct); 31-37 (restart/cutover: live_start_ms stable, wiped state rebuilds); 103-120 (duplicate and cross-process replay of copy fill and OID blocked without double mutation)",
+      "tested_commit": "b142cf88d389e791160f691aac3d936852b99975",
+      "why": "Each of the four named invariant families has an explicit, external assertion in the primary in-engine suite (exchange artefacts absent, exchange-vs-ledger comparison, state survival across restart, second identical event cannot move the ledger); a row outside these families could not satisfy them."
+    },
+    {
+      "row_id": "F-LOGIC-014",
+      "verdict": "PASS",
+      "evidence_ref": "Core.py build_live_integrity_status L1037-1090+ (recomputed from persisted sends/fills/recon, restart cutoff, hard-copy counts); self-test 122-127 (safety-gate, ownership-gate, no-position close, EXIT_RECOVERY_QUEUED, SDK-unavailable close, manual recovery all classified)",
+      "tested_commit": "b142cf88d389e791160f691aac3d936852b99975",
+      "why": "Health is a continuously recomputed account-level invariant over the audit CSVs plus the exchange snapshot with a restart boundary, and checks 122-127 exercise blocked and recovery states — no single successful send can produce a green."
+    },
+    {
+      "row_id": "F-LOGIC-015",
+      "verdict": "FAIL",
+      "evidence_ref": "Runtime probe at tested_commit: classify_integrity_severity('UNCLASSIFIED') -> GREEN; classify_integrity_severity('SNAPSHOT_UNAVAILABLE') -> GREEN; classify_integrity_severity('SNAPSHOT_SKIPPED') -> GREEN; classify_integrity_severity('BLOCKED_SEND_UNCLASSIFIED') -> GREEN; classify_integrity_severity('UNKNOWN') -> RED. Only literal UNKNOWN returns RED. Source L1449-1451 sets UNCLASSIFIED when no hard-copy outcome applies.",
+      "tested_commit": "b142cf88d389e791160f691aac3d936852b99975",
+      "why": "Direct runtime proof: executed probe shows UNCLASSIFIED, SNAPSHOT_UNAVAILABLE, SNAPSHOT_SKIPPED, and BLOCKED_SEND_UNCLASSIFIED all return GREEN — only UNKNOWN returns RED. Unclassified and unavailable classifications are published green instead of failing closed. The reviewer's objection that these states 'classified GREEN' is directly confirmed by executed probe output."
+    },
+    {
+      "row_id": "F-LOGIC-016",
+      "verdict": "PASS",
+      "evidence_ref": "Probe classify_terminal_state(MASTER_REAL_ORDERS_OFF, MASTER_REAL_ORDERS_OFF, ENTRY, False) -> SEND_NOT_ATTEMPTED_AUTO_SEND_DISABLED; mapping Core.py L388-389; self-test 2-5 (intent written, zero send_attempt rows, no live_positions.json, no would_send_orders.csv)",
+      "tested_commit": "b142cf88d389e791160f691aac3d936852b99975",
+      "why": "The disabled gate yields the explicit state SEND_NOT_ATTEMPTED_AUTO_SEND_DISABLED and checks 2-5 prove that in that state no send attempt and no live-position artefact is produced, so nothing can be claimed as live copy."
+    },
+    {
+      "row_id": "F-EXC-001",
+      "verdict": "FAIL",
+      "evidence_ref": "Runtime probe: classify_integrity_severity('SNAPSHOT_UNAVAILABLE') -> GREEN; classify_integrity_severity('SNAPSHOT_SKIPPED') -> GREEN. Self-test check 1 CycleSummary: exchange_recon_status='SNAPSHOT_SKIPPED', wallet_modes_active={'LIVE': 2}, leader_intents_written=1. fetch_snapshot L5668-5684 returns ({}, SNAPSHOT_UNAVAILABLE) on failure. No entry gate consumes exchange_recon_status (L6352-6376).",
+      "tested_commit": "b142cf88d389e791160f691aac3d936852b99975",
+      "why": "Direct runtime proof: self-test check 1 shows exchange_recon_status='SNAPSHOT_SKIPPED' with wallets LIVE and leader_intents_written=1 — on a skipped/failed fresh exchange read, the engine neither blocks the wallet nor goes red. classify_integrity_severity returns GREEN for both SNAPSHOT_UNAVAILABLE and SNAPSHOT_SKIPPED. The reviewer's objection that 'missing fresh snapshot can remain GREEN while intents continue' is directly confirmed by executed probe output."
+    }
+  ],
+  "summary": {
+    "rows": 15,
+    "PASS": 6,
+    "FAIL": 9,
+    "NOT_TESTED": 0,
+    "passing": ["F-LOGIC-004", "F-LOGIC-005", "F-LOGIC-008", "F-LOGIC-013", "F-LOGIC-014", "F-LOGIC-016"],
+    "failing": ["F-LOGIC-003", "F-LOGIC-006", "F-LOGIC-007", "F-LOGIC-009", "F-LOGIC-010", "F-LOGIC-011", "F-LOGIC-012", "F-LOGIC-015", "F-EXC-001"]
+  }
+}
