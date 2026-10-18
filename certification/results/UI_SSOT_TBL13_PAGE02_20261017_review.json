@@ -1,0 +1,34 @@
+{
+  "review_of_commit": "3e59b358e45a12a592b90c8577b2c54faa087a6b",
+  "branch_head_at_review": "a56b8ebcaea8deaedd7d665a378534e8d8bfab6a",
+  "reviewed_at_utc": "2026-10-18T01:35:00Z",
+  "reviewer_probes": {
+    "live_copy_get": "HTTP 200, 87350 bytes from http://127.0.0.1:8031/live-copy",
+    "sort_route": "/sort/wallet HTTP 200 22200B; /sort/pnl HTTP 200 (22200B class)",
+    "sort_links_in_live_copy": 0,
+    "wallet_route": "/wallet/0x0000000000000000000000000000000000000000 HTTP 404",
+    "wallet_meta_route": "/wallet-meta/0x0000000000000000000000000000000000000000 HTTP 200, 2174 bytes editor HTML",
+    "process_rule": "serving_commit 89b3bc75 committed 2026-10-17T07:18:14Z; serving PID 33368 started 2026-10-17T10:54:09Z -> commit predates process start (LEGIT)",
+    "mutation_control": "injecting the literal label into a copy of the fetched HTML flips the per-label counter 0->1, so the label predicate is non-vacuous",
+    "evidence_ref_resolution": "all 15 evidence_ref values resolve to certification/results/UI_SSOT_TBL13_PAGE02_20261017.json on the branch (self-citation: exists, but circular; no probe script committed for these 15 rows)"
+  },
+  "rows": [
+    {"row_id":"UI-SSOT-TBL-13","verdict":"FAIL","probe":"case-insensitive count of 'PNL/HR' in live /live-copy HTML = 0; injection control flips to 1","why":"Claim reproduced independently: label absent from served page, so analytics column/sort cannot be claimed."},
+    {"row_id":"UI-SSOT-TBL-14","verdict":"FAIL","probe":"count of 'AVG TRADE %' = 0; injection control flips to 1","why":"Row-specific label absent from served page; FAIL reproduced."},
+    {"row_id":"UI-SSOT-TBL-15","verdict":"FAIL","probe":"count of 'WIN%' = 0; injection control flips to 1","why":"Row-specific label absent from served page; FAIL reproduced."},
+    {"row_id":"UI-SSOT-TBL-16","verdict":"FAIL","probe":"count of 'AVG POS $' = 0; injection control flips to 1","why":"Row-specific label absent from served page; FAIL reproduced."},
+    {"row_id":"UI-SSOT-TBL-17","verdict":"FAIL","probe":"count of 'MAX POS $' = 0; injection control flips to 1","why":"Row-specific label absent from served page; FAIL reproduced."},
+    {"row_id":"UI-SSOT-TBL-18","verdict":"FAIL","probe":"count of 'AVG NOTIONAL' = 0; injection control flips to 1","why":"Row-specific label absent from served page; FAIL reproduced."},
+    {"row_id":"UI-SSOT-TBL-19","verdict":"FAIL","probe":"count of '% >= $10' = 0; injection control flips to 1","why":"Row-specific label absent from served page; FAIL reproduced."},
+    {"row_id":"UI-SSOT-TBL-20","verdict":"FAIL","probe":"count of 'REQ LEV' = 0; injection control flips to 1","why":"Row-specific label absent from served page; FAIL reproduced."},
+    {"row_id":"UI-SSOT-TBL-21","verdict":"FAIL","probe":"count of 'FILLS L/C' = 0; injection control flips to 1","why":"Row-specific label absent from served page; FAIL reproduced."},
+    {"row_id":"UI-SSOT-TBL-22","verdict":"FAIL","probe":"count of 'EXITS L/C' = 0; injection control flips to 1","why":"Row-specific label absent from served page; FAIL reproduced."},
+    {"row_id":"UI-SSOT-TBL-23","verdict":"FAIL","probe":"count of 'POS L/C' = 0; injection control flips to 1","why":"Row-specific label absent from served page; FAIL reproduced."},
+    {"row_id":"UI-SSOT-TBL-24","verdict":"FAIL","probe":"count of 'INC / WALLET MODEL' = 0; injection control flips to 1","why":"Row-specific label absent from served page; FAIL reproduced."},
+    {"row_id":"UI-SSOT-TBL-25","verdict":"FAIL","probe":"'/sort/' link count in /live-copy = 0; BUT /sort/wallet and /sort/pnl both HTTP 200 with 22KB body","why":"Verdict FAIL upheld only on the rendered-page-control reading: no sort control/link is rendered in /live-copy. The artifact's wording overstates this - the /sort/{column} ROUTE exists and returns 200, and the artifact's own sentence says label=True while concluding absence. Justification must be corrected; the UI-side FAIL stands."},
+    {"row_id":"UI-SSOT-PAGE-01","verdict":"FAIL","probe":"GET /wallet/0x0000000000000000000000000000000000000000 -> HTTP 404 (final URL unchanged)","why":"Wallet detail page not served; FAIL reproduced exactly."},
+    {"row_id":"UI-SSOT-PAGE-02","verdict":"FAIL","probe":"GET /wallet-meta/0x000...0000 -> HTTP 200, 2174 bytes editor HTML; no evidence of reset/snapshot no-engine-truth side effects or error-banner contract","why":"Read-only route probe only; required safety behaviours undemonstrated, so PASS would overstate. FAIL upheld."}
+  ],
+  "summary": {"PASS": 0, "FAIL": 15, "demoted": 0, "inflated": 0},
+  "overall": "PASS - no inflated verdict; two documentation defects flagged (self-citing evidence_ref with no committed probe script; TBL-25 contradictory wording vs a live 200 sort route)."
+}
