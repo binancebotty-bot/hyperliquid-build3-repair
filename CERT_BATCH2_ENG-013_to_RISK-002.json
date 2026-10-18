@@ -6,8 +6,8 @@
  "generated_by": "default/deepseek-v4-flash-thinking-nosearch",
  "counts": {
   "PASS": 6,
-  "FAIL": 10,
-  "NOT_TESTED": 8,
+  "FAIL": 9,
+  "NOT_TESTED": 9,
   "BLOCKED": 6
  },
  "standard": "PASS only on row-bound evidence asserting this row's own execution_proof/independent_oracle; shared sweeps, source substrings and predicates that cannot fail are not counted.",
@@ -43,51 +43,51 @@
   {
    "row_id": "PRICE-001",
    "verdict": "FAIL",
-   "evidence_ref": "C:/Users/wigmore/.hermes/cache/scratch/b3_clean/_art_PRICING_CORRECTION_2d29211148.json",
-   "tested_commit": "UNBOUND: invalid tested_commit 2d29211148fefc2b04261c734bb32c767d2cc4a91095e65843",
-   "why": "No admissible evidence at the register commit: git ls-tree origin/cert/local-main-b142cf8 -- certification/results lists NO PRICING artifact, and the working-tree copy cites tested_commit 2d29211148fefc2b04261c734bb32c767d2cc4a91095e65843 which is not a git object (cat-file: Not a valid object name). That artifact self-reports overall FAIL, 3/13 checks pass. On the merits ENTRY_PRICED_FROM_FOLLOWER_MID is not established: the only priced attempt gives limit=100.2 against its own expected 50100.0 (follower_mid*20bps) and follower_mid returns 0.0 on a fresh cache, so entry pricing from follower mid is unproven."
+   "evidence_ref": "certification/results/PRICING_CORRECTION_2d29211148.json",
+   "tested_commit": "b142cf88",
+   "why": "Committed row evidence is available at the register commit (the artifact is present in its tree). Its PRICE-001 row has checks_pass=0/checks_total=0, and the global runtime checks show ENTRY_PRICED_FROM_FOLLOWER_MID_VIA_DOUBLE failed: limit=100.2 versus expected=50100.0. This supports a gate-logic failure, not exchange-truth evidence; the artifact explicitly says exchange truth is NOT_ESTABLISHED. The artifact-level tested_commit value 2d29211148fefc2b04261c734bb32c767d2cc4a91095e65843 is not a git object, so evidence is bound to the artifact as committed at register commit b142cf88, not to that claimed tested commit."
   },
   {
    "row_id": "PRICE-002",
    "verdict": "FAIL",
-   "evidence_ref": "C:/Users/wigmore/.hermes/cache/scratch/b3_clean/_art_PRICING_CORRECTION_2d29211148.json",
-   "tested_commit": "UNBOUND: invalid tested_commit 2d29211148fefc2b04261c734bb32c767d2cc4a91095e65843",
-   "why": "No admissible evidence at the register commit: git ls-tree origin/cert/local-main-b142cf8 -- certification/results lists NO PRICING artifact, and the working-tree copy cites tested_commit 2d29211148fefc2b04261c734bb32c767d2cc4a91095e65843 which is not a git object (cat-file: Not a valid object name). That artifact self-reports overall FAIL, 3/13 checks pass. Follower-mid TTL cache is contradicted by the only measurement: FRESH_MID_RETURNED_FROM_CACHE and WITHIN_TTL_RETURNS_CACHED both return 0.0. Not merely untested - the fresh/within-TTL requirement fails."
+   "evidence_ref": "certification/results/PRICING_CORRECTION_2d29211148.json",
+   "tested_commit": "b142cf88",
+   "why": "Committed row evidence is present at the register commit, but the artifact records 0/0 row-level checks. The global checks FRESH_MID_RETURNED_FROM_CACHE_VIA_DOUBLE and WITHIN_TTL_RETURNS_CACHED_VIA_DOUBLE both fail (first/second and third/fourth are 0.0), while stale-to-zero checks pass. This is evidence of a gate-logic failure only; exchange truth is explicitly NOT_ESTABLISHED. The artifact tested_commit is not a git object; bind only to its committed presence at b142cf88."
   },
   {
    "row_id": "PRICE-003",
    "verdict": "BLOCKED",
    "evidence_ref": "certification/certification_matrix.json",
    "tested_commit": "b142cf88",
-   "why": "Register applicability is OPEN_DECISION on OD-10, so the approved worst-price bound itself is unruled and cannot be certified. Evidence position: no PRICING artifact exists at b142cf8."
+   "why": "The register marks applicability OPEN_DECISION with OD-10 for the approved entry-price bound. The committed pricing artifact does not provide row-level checks for PRICE-003 (0/0), and its other global checks cannot establish the unresolved approved bound. Blocked on OD-10; no claim that no pricing artifact exists."
   },
   {
    "row_id": "PRICE-004",
    "verdict": "BLOCKED",
    "evidence_ref": "certification/certification_matrix.json",
    "tested_commit": "b142cf88",
-   "why": "OPEN_DECISION on OD-10 (what counts as an unacceptable entry price is unruled), so \"no order, target preserved, later valid price executes once\" cannot be judged. No PRICING artifact at b142cf8."
+   "why": "The register marks applicability OPEN_DECISION with OD-10 for PRICE_WAIT acceptance semantics. The committed pricing artifact has no PRICE-004 row and no row-level checks (0/0); its unrelated global checks do not establish preservation and exactly-once execution. Blocked on OD-10; no claim that no pricing artifact exists."
   },
   {
    "row_id": "PRICE-005",
    "verdict": "FAIL",
-   "evidence_ref": "C:/Users/wigmore/.hermes/cache/scratch/b3_clean/_art_PRICING_CORRECTION_2d29211148.json",
-   "tested_commit": "UNBOUND: invalid tested_commit 2d29211148fefc2b04261c734bb32c767d2cc4a91095e65843",
-   "why": "No admissible evidence at the register commit: git ls-tree origin/cert/local-main-b142cf8 -- certification/results lists NO PRICING artifact, and the working-tree copy cites tested_commit 2d29211148fefc2b04261c734bb32c767d2cc4a91095e65843 which is not a git object (cat-file: Not a valid object name). That artifact self-reports overall FAIL, 3/13 checks pass. Product miss recorded by its own checks: REDUCE_NOT_BLOCKED_BY_ENTRY_PROTECTION, EXIT_NOT_BLOCKED_BY_ENTRY_PROTECTION and ENTRY_BLOCK_REASON_IGNORED_FOR_REDUCE all return ok=False/status=INTENT_NOT_SEND_ALLOWED - exits ARE trapped by entry protection."
+   "evidence_ref": "certification/results/PRICING_CORRECTION_2d29211148.json",
+   "tested_commit": "b142cf88",
+   "why": "Committed artifact is present at the register commit and labels exchange truth NOT_ESTABLISHED; row-level checks are 0/0. Its global runtime checks specifically fail REDUCE_NOT_BLOCKED_BY_ENTRY_PROTECTION_VIA_DOUBLE, EXIT_NOT_BLOCKED_BY_ENTRY_PROTECTION_VIA_DOUBLE, and ENTRY_BLOCK_REASON_IGNORED_FOR_REDUCE_VIA_DOUBLE (all INTENT_NOT_SEND_ALLOWED), evidence of gate-logic failure. It does not prove exchange execution. Its artifact tested_commit is invalid as a git object; binding is to artifact presence at b142cf88."
   },
   {
    "row_id": "PRICE-006",
    "verdict": "FAIL",
-   "evidence_ref": "C:/Users/wigmore/.hermes/cache/scratch/b3_clean/_art_PRICING_CORRECTION_2d29211148.json",
-   "tested_commit": "UNBOUND: invalid tested_commit 2d29211148fefc2b04261c734bb32c767d2cc4a91095e65843",
-   "why": "No admissible evidence at the register commit: git ls-tree origin/cert/local-main-b142cf8 -- certification/results lists NO PRICING artifact, and the working-tree copy cites tested_commit 2d29211148fefc2b04261c734bb32c767d2cc4a91095e65843 which is not a git object (cat-file: Not a valid object name). That artifact self-reports overall FAIL, 3/13 checks pass. Close adverse-diff gate does not work as specified: measured adverse 99.80% against max_close_adverse_diff_pct=0.25% still fills (ok=True, ORDER_FILLED), and the diff is computed from a wrong reference (limit=99.80 vs expected 49900.00)."
+   "evidence_ref": "certification/results/PRICING_CORRECTION_2d29211148.json",
+   "tested_commit": "b142cf88",
+   "why": "Committed artifact is present at the register commit; row-level checks are 0/0 and exchange truth is explicitly NOT_ESTABLISHED. Global checks show ADVERSE_DIFF_COMPUTED_VS_FOLLOWER_MID_VIA_DOUBLE failed (limit=99.80 vs expected=49900.00) and close adverse-limit negative tests incorrectly return ORDER_FILLED. This supports a gate-logic failure, not exchange-truth proof. Artifact tested_commit is not a git object; bind to committed artifact at b142cf88."
   },
   {
    "row_id": "PRICE-007",
-   "verdict": "FAIL",
-   "evidence_ref": "C:/Users/wigmore/.hermes/cache/scratch/b3_clean/_art_PRICING_CORRECTION_2d29211148.json",
-   "tested_commit": "UNBOUND: invalid tested_commit 2d29211148fefc2b04261c734bb32c767d2cc4a91095e65843",
-   "why": "No admissible evidence at the register commit: git ls-tree origin/cert/local-main-b142cf8 -- certification/results lists NO PRICING artifact, and the working-tree copy cites tested_commit 2d29211148fefc2b04261c734bb32c767d2cc4a91095e65843 which is not a git object (cat-file: Not a valid object name). That artifact self-reports overall FAIL, 3/13 checks pass. Slippage is not applied to the wire price: BUY limit=100.20 and SELL limit=99.80 against expected mid*20bps of 50100.00/49900.00. Only the default-value read (20.0 bps) passes, which is a constant check that would pass for any row."
+   "verdict": "NOT_TESTED",
+   "evidence_ref": "certification/results/PRICING_CORRECTION_2d29211148.json",
+   "tested_commit": "b142cf88",
+   "why": "Committed artifact is present at the register commit, but it tests/defaults 20 bps (0.2%) while the matrix expectation is marketable offset default 5 bps. The passing DEFAULT_SLIPPAGE_0_2_PERCENT_VIA_DOUBLE check therefore does not test PRICE-007 expected behavior; its BUY/SELL calculations also use the 20 bps expectation. Row-level checks are 0/0 and there is no valid PRICE-007 execution proof. Do not treat the 20 bps result as evidence for the 5 bps default."
   },
   {
    "row_id": "PRICE-008",
