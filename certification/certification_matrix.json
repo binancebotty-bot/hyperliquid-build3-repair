@@ -1673,32 +1673,32 @@
   },
   {
    "id": "ORD-001",
-   "area": "ORDER",
-   "feature": "Single sender / single gate",
-   "expected_behaviour": "Every exchange-client order call is dominated by one disable switch and one sender (TEST-007).",
-   "sources": [
-    "ARCH inv2",
-    "FAILURES ARCH-009",
-    "FAILURES TEST-007",
-    "GUT I08",
-    "HL_Live_Copy_Service_Core.py (7,705-line, sha256 5bda57be)"
-   ],
-   "applicability": "APPLIES",
-   "open_decisions": [],
-   "execution_proof": "Planner delta -> order payload as signed (size, side, reduce_only, tif, cloid, asset id) -> exchange response",
-   "independent_oracle": "Exchange order status / userFills for the cloid/oid; asset meta from the same network's info API",
-   "negative_tests": [
-    "exchange reject",
-    "below minimum notional",
-    "size rounds to zero",
-    "unknown asset"
-   ],
-   "prior_evidence": "",
-   "result": "FAIL",
-   "evidence_ref": "certification/results/ORDER_CORRECTION_fefc2b04.json",
-   "tested_commit": "fefc2b04261c734bb32c767d2cc4a91095e65843",
-   "tested_at_utc": "2026-10-14T13:02:08.351679+00:00",
-   "notes": "Core has four exchange.order() call sites (L2726, L2843, L3350, L3379) behind one gate (L4036). ARCH requires one physical order site; the repair must reconcile this. Code-read, unconfirmed by run. | REFUSED: ORDER_fa9d9f55ff.json used source-substring check + fake-fill PASS. ORDER_CORRECTION harness broken (9/24). Not consolidated. | Consolidate #3 (t_dc69fe0c): folded from committed ORDER_CORRECTION_fefc2b04.json at its OWN verdict. Checks earned by the engine real runtime gate vs an IN-PROCESS exchange double; the row independent oracle (exchange order status/userFills) is NOT_ESTABLISHED because the follower wallet does not exist on testnet (D-002). Own verdict=FAIL (3/5 checks)."
+     "area": "ORDER",
+     "feature": "Single sender / single gate",
+     "expected_behaviour": "Every exchange-client order call is dominated by one disable switch and one sender (TEST-007).",
+     "sources": [
+       "ARCH inv2",
+       "FAILURES ARCH-009",
+       "FAILURES TEST-007",
+       "GUT I08",
+       "HL_Live_Copy_Service_Core.py (7,705-line, sha256 5bda57be)"
+     ],
+     "applicability": "APPLIES",
+     "open_decisions": [],
+     "execution_proof": "Planner delta -> order payload as signed (size, side, reduce_only, tif, cloid, asset id) -> exchange response",
+     "independent_oracle": "Exchange order status / userFills for the cloid/oid; asset meta from the same network's info API",
+     "negative_tests": [
+       "exchange reject",
+       "below minimum notional",
+       "size rounds to zero",
+       "unknown asset"
+     ],
+     "prior_evidence": "",
+     "result": "FAIL",
+     "evidence_ref": "certification/results/ORDER_CORRECTION_fefc2b04.json",
+     "tested_commit": "fefc2b04261c734bb32c767d2cc4a91095e65843",
+     "tested_at_utc": "2026-10-14T13:02:08.351679+00:00",
+     "notes": "Core has one physical exchange.order() call site at L2703 (tested commit fefc2b04); repo-wide there are 2 call sites. The row's exchange-truth oracle (Exchange order status / userFills for the cloid/oid) is NOT achievable on testnet because the follower wallet does not exist there (D-002). The runtime gate checks against the in-process double were not earned (the double recorded 0 exchange.order() calls; send path blocked with status=REAL_SENDER_NOT_CONFIGURED). Own verdict=FAIL (3/5 checks). | REFUSED: ORDER_fa9d9f55ff.json used source-substring check + fake-fill PASS. ORDER_CORRECTION harness broken (9/24). Not consolidated. | Consolidate #3 (t_dc69fe0c): folded from committed ORDER_CORRECTION_fefc2b04.json at its OWN verdict."
   },
   {
    "id": "ORD-002",

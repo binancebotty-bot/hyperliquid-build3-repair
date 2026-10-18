@@ -84,12 +84,12 @@
     "why": "Exact missing component: testnet close adverse-diff configured behavior and exchange exit outcome. OD-10 remains open; no qualifying evidence."
   },
   {
-    "row_id": "ORD-001",
-    "verdict": "FAIL",
-    "evidence_ref": "certification/results/ORDER_CORRECTION_fefc2b04.json",
-    "tested_commit": "fefc2b04261c734bb32c767d2cc4a91095e65843",
-    "why": "The row-specific check finds four exchange.order() call sites where architecture requires one physical order site; independent exchange oracle is separately not established. This is a product architecture failure, not PASS."
-  },
+      "row_id": "ORD-001",
+      "verdict": "FAIL",
+      "evidence_ref": "certification/results/ORDER_CORRECTION_fefc2b04.json",
+      "tested_commit": "fefc2b04261c734bb32c767d2cc4a91095e65843",
+      "why": "The row's exchange-truth oracle (Exchange order status / userFills for the cloid/oid) is NOT achievable on testnet because the follower wallet does not exist there, and the runtime gate checks against the in-process double were not earned (the double recorded 0 exchange.order() calls; the send path was blocked with status=REAL_SENDER_NOT_CONFIGURED). The engine has one physical exchange.order() call site at L2703 (tested commit fefc2b04); repo-wide there are 2 call sites. Independent exchange oracle not established."
+    },
   {
     "row_id": "ORD-002",
     "verdict": "FAIL",
