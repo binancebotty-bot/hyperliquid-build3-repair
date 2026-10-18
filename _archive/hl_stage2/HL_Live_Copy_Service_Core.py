@@ -10715,6 +10715,15 @@ class LiveCopyCore:
                 if bval(os.getenv("HL_LIVE_POLL_ALL_ACTIVE"), True)
                 else list(self.wallets))
 
+    def _write_deduped_audit_row(self, fill) -> None:
+        self.audit.append_reconciliation(
+            "SEND_TERMINAL", "COLLAPSED_STALE", leader_wallet=fill.leader_wallet,
+            leader_fill_id=fill.leader_fill_id, coin=fill.coin, action="NO_ACTION_DEDUPED_POLL_FILL",
+            terminal_state="COLLAPSED_STALE", engine_can_send="False",
+            notes=(f"deduplicated in poll dispatch; row written so the fill is never invisible: "
+                   f"{fill.side} {fill.size} @ {fill.price} at {fill.timestamp_ms}"),
+        )
+
     def run_cycle(self, use_source_csv: bool = True, poll_live: bool = False, poll_copy: bool = False, reconcile_exchange: bool = False) -> CycleSummary:
         # HOT_CONFIG_RELOAD_WINAGENT: reload live_config/wallet_gate each cycle so UI/control changes affect a running core.
         try:
@@ -10947,6 +10956,7 @@ class LiveCopyCore:
                     continue
                 if self._already_handled(fill):  # run 3: thousands of re-read fills per cycle starved the loop
                     summary.leader_fills_deduped += 1
+                    self._write_deduped_audit_row(fill)
                     continue
                 if self.async_dispatch:  # loop mode: sends run on the workers, never in this loop
                     with self._queued_lock:
