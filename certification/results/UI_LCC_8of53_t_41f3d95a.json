@@ -1,0 +1,126 @@
+{
+ "batch": "CERT 8/53",
+ "task_id": "t_41f3d95a",
+ "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+ "tested_commit_committed_at": "2026-10-17T07:18:14Z",
+ "tested_at_utc": "2026-10-18T22:13:59.913822+00:00",
+ "serving_process": "ABSENT - nothing listens on 127.0.0.1:8031 at test time (netstat: 0 matches, curl HTTP=000). The task brief's PID 33368 / :8031 claim is STALE. Evidence is therefore bound to the SOURCE ARTIFACT at commit 89b3bc75 rendered headlessly, not to a live served process.",
+ "render_method": "py3.11 + Playwright headless Chromium; navigated to domcontentloaded then polled document.readyState==\"complete\" (networkidle never fires). Product functions renderCards/renderGraph/renderTopStatus extracted VERBATIM from the commit's source and executed in-page against controlled payloads.",
+ "source_artifact": "_archive/hl_stage2/HL_Copy_App_SSOT.py",
+ "source_artifact_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+ "non_vacuity_controls": [
+  "card payload mutation A->B moved every value cell (card_mutation)",
+  "all-unavailable payload: 4 of 5 cards degrade to em-dash, Live Exposure stays \"$0\" (all_unavailable)",
+  "filterScale replaced by identity: 3 -> 10 points (range_mutation_control.differs=true)",
+  "graph mode/scale matrix produced distinct subtitles from one dataset",
+  "status strip populated vs empty payload produced different Last fill/reject text"
+ ],
+ "prior_evidence_assessment": "The previously cited certification/results/UI_CORRECTION_2d29211.json is VACUOUS for these rows: its check() helper records pass:true while the detail string says \"not found\" (e.g. RENDER_HOME:WALLET_ADDRESS_BOUND pass=true detail=\"Wallet address from state not found in rendered HTML\"; UI-LCC-GRAPH-01:ACCOUNT_MODE_BTN pass=true detail=\"account mode button not found\"). 441 checks with no mutation control. It is retained on disk but is NOT used as row evidence here.",
+ "rows": [
+  {
+   "row_id": "UI-LCC-CARD-02",
+   "verdict": "PASS",
+   "evidence_ref": "certification/results/UI_LCC_8of53_t_41f3d95a.json",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "Executed renderCards() in headless Chromium on render_live_copy_control_panel() from commit 89b3bc75. Card \"Open positions P&L (unrealised)\" bound to exchange_account_snapshot.unrealized_pnl: payload A (123.45) -> \"$123.45\", payload B (-1.5) -> \"$-1.5\" (card_mutation A/B). Row-bound: flipping only unrealized_pnl moves only this cell. Unavailable -> em-dash with title \"exchange not readable\" (all_unavailable), never a numeric 0. NOTE literal fallback token is an em-dash not the string \"n/a\"; honest non-numeric, flagged not failed. Engine->exchange provenance is the engine rows' scope."
+  },
+  {
+   "row_id": "UI-LCC-CARD-03",
+   "verdict": "PASS",
+   "evidence_ref": "certification/results/UI_LCC_8of53_t_41f3d95a.json",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "Card \"Closed P&L (realised)\" bound to pnl_tally.closed_pnl (with start_ms suffix), else exchange_account_snapshot.realized_pnl_selected. Payload A -42.0 -> \"$-42.00 since 2023-11-14T22:13:20Z\"; payload B 11.0 -> \"$11.00 since ...\" (card_mutation). Unavailable -> em-dash. Row-bound: independent of unrealized field."
+  },
+  {
+   "row_id": "UI-LCC-CARD-04",
+   "verdict": "PASS",
+   "evidence_ref": "certification/results/UI_LCC_8of53_t_41f3d95a.json",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "Card \"Open Positions\" bound to (exchange_account_snapshot.open_positions||[]).length. Payload A with 2 positions -> \"2\"; payload B with [] -> \"0\" (card_mutation). Unavailable -> em-dash (all_unavailable), so a real 0 (empty list, available=true) is distinguished from unavailable. Row-bound by position-list cardinality."
+  },
+  {
+   "row_id": "UI-LCC-CARD-05",
+   "verdict": "FAIL",
+   "evidence_ref": "certification/results/UI_LCC_8of53_t_41f3d95a.json",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "Product genuinely misses the row. renderCards() line: `const expVal=manual.manual_live_exposure_estimate||0; const exp='$'+Number(expVal).toLocaleString(...)`. Three defects, all proven in executed DOM: (1) when the source is absent the card renders \"$0\" (all_unavailable -> Live Exposure=$0) i.e. a FALSE ZERO, exactly what the row's negative test forbids; every sibling card degrades to an em-dash, this one does not. (2) the value is the manual estimate manual_live_exposure_estimate, not exchange truth, and (3) it is NOT labelled as a manual estimate anywhere in the card (card label is the bare string \"Live Exposure\"). The row explicitly requires \"must be labelled or replaced by exchange truth\"."
+  },
+  {
+   "row_id": "UI-LCC-CARD-06",
+   "verdict": "FAIL",
+   "evidence_ref": "certification/results/UI_LCC_8of53_t_41f3d95a.json",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "Product genuinely misses the specified card. #lcRealCards is built from a 5-entry cards[] array in renderCards(); executed DOM shows labels [Portfolio Value, Open positions P&L (unrealised), Closed P&L (realised), Open Positions, Live Exposure] and card_labels_contain_lastfill_lastreject = {has_last_fill:false}. The product's own source comment relocates it: \"Last fill / last reject live once, in the Live Copy Status strip above\". The value IS surfaced elsewhere (renderTopStatus -> \"Last fill=BTC B 0.5\", empty -> em-dash, probe5) so data is not lost, but the Real Account card specified by this row does not exist."
+  },
+  {
+   "row_id": "UI-LCC-CARD-07",
+   "verdict": "FAIL",
+   "evidence_ref": "certification/results/UI_LCC_8of53_t_41f3d95a.json",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "Same defect class as CARD-06. No \"Last Reject\" card in #lcRealCards (has_last_reject:false, executed DOM). renderTopStatus does render \"Last reject=DOGE IOC_NO_IMMEDIATE_MATCH\" and degrades to an em-dash when absent (probe5), so the value exists in the status strip, but the Real Account card this row specifies is absent."
+  },
+  {
+   "row_id": "UI-LCC-GRAPH-01",
+   "verdict": "PASS",
+   "evidence_ref": "certification/results/UI_LCC_8of53_t_41f3d95a.json",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "Account mode proven by executing renderGraph() with mode=account: subtitle \"Exchange account graph. ALL range - 2 portfolio pts, 0 realized fills.\" and legend label \"Total account PnL / portfolio value change\" (or \"Clearinghouse value change (fallback)\" when no unified_portfolio_value), and it additionally populates Realized PnL + Drawdown series which the wallet modes do not. Row-bound: sibling modes produce different subtitles/series. Button present as <button data-lc-graph-mode=\"account\">Account</button> in executed DOM."
+  },
+  {
+   "row_id": "UI-LCC-GRAPH-02",
+   "verdict": "PASS",
+   "evidence_ref": "certification/results/UI_LCC_8of53_t_41f3d95a.json",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "Mode=wallet_pnl -> subtitle \"Selected wallet live PnL. ALL range, 2 live data points.\" reading live_leader_performance[wallet].pnl_series (probe3 graph_behavior.wallet_subtitle). Distinct from account and exposure outputs in the same run. Button present: <button data-lc-graph-mode=\"wallet_pnl\">Selected Wallet PnL</button>."
+  },
+  {
+   "row_id": "UI-LCC-GRAPH-03",
+   "verdict": "PASS",
+   "evidence_ref": "certification/results/UI_LCC_8of53_t_41f3d95a.json",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "Mode=exposure -> subtitle \"Selected wallet exposure. ALL range, 2 live data points.\" reading exposure_series, and shows the explicit empty message \"Click a wallet row to chart it.\" when no wallet is selected (renderGraph source + probe3). Distinct output from GRAPH-02 in the same executed run. Button present: data-lc-graph-mode=\"exposure\"."
+  },
+  {
+   "row_id": "UI-LCC-GRAPH-04",
+   "verdict": "PASS",
+   "evidence_ref": "certification/results/UI_LCC_8of53_t_41f3d95a.json",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "Scale 1d is load-bearing, not decorative. Same 4-point series spanning 10 days: ALL -> \"4 live data points\", 7D -> \"3 live data points\", 1D -> \"Not enough points in selected range (1D).\" (probe3 scale_filter). Row-bound: the three scales yield three different results from one dataset. Button present: data-lc-graph-scale=\"1d\">1D."
+  },
+  {
+   "row_id": "UI-LCC-GRAPH-05",
+   "verdict": "PASS",
+   "evidence_ref": "certification/results/UI_LCC_8of53_t_41f3d95a.json",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "7D window proven to filter: 4-point 10-day series -> \"7D range, 3 live data points\", vs ALL 4 and 1D 0 (probe3 scale_filter.d7). Row-bound and independent of the 1D/ALL results."
+  },
+  {
+   "row_id": "UI-LCC-GRAPH-06",
+   "verdict": "PASS",
+   "evidence_ref": "certification/results/UI_LCC_8of53_t_41f3d95a.json",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "ALL scale proven to disable range filtering: same series -> \"ALL range, 4 live data points\" while 7D gave 3 and 1D gave 0 (probe3 scale_filter.all). Button ships with class \"active\" (data-lc-graph-scale=\"all\">ALL) matching the default lcGraphScale='all'."
+  },
+  {
+   "row_id": "UI-LCC-GRAPH-07",
+   "verdict": "PASS",
+   "evidence_ref": "certification/results/UI_LCC_8of53_t_41f3d95a.json",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "Start datetime is a real, wired control. Executed DOM: <input id=\"lcGraphStart\" type=\"datetime-local\">. Setting value 2026-06-05T00:00:00 and clicking the real #lcGraphApplyRange button changed the rendered range label to \"05/06/2026, 00:00:00 to now\" and refiltered the series (probe4 range_wiring.after_start_apply). Row-bound: the label and point count respond to THIS input only; the end value was still empty in that step."
+  },
+  {
+   "row_id": "UI-LCC-GRAPH-08",
+   "verdict": "PASS",
+   "evidence_ref": "certification/results/UI_LCC_8of53_t_41f3d95a.json",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "End datetime wired: with start set, setting #lcGraphEnd=2026-06-07T00:00:00 and applying produced \"05/06/2026, 00:00:00 to 07/06/2026, 00:00:00\" (probe4 after_end_apply), a bounded window rather than \"to now\". Row-bound: the end boundary is what changed the label."
+  },
+  {
+   "row_id": "UI-LCC-GRAPH-09",
+   "verdict": "PASS",
+   "evidence_ref": "certification/results/UI_LCC_8of53_t_41f3d95a.json",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "Apply is a live handler, not an inert button. Executed click on the real #lcGraphApplyRange produced a state transition to a custom range and a re-render (probe3 apply_click clicked=true; probe4 custom window applied). Non-vacuity mutation control: replacing filterScale with an identity function on the same fixed custom range changed the subtitle from \"3 live data points\" to \"10 live data points\" (probe4 range_mutation_control differs=true) - so the range filter the Apply button drives is genuinely load-bearing."
+  }
+ ]
+}

@@ -1,0 +1,147 @@
+{
+ "probe3": {
+  "card_mutation": {
+   "A": [
+    "Portfolio Value (MAINNET)=$9,999.99",
+    "Open positions P&L (unrealised)=$123.45",
+    "Closed P&L (realised)=$-42.00 since 2023-11-14T22:13:20.000Z",
+    "Open Positions=2",
+    "Live Exposure=$777"
+   ],
+   "B": [
+    "Portfolio Value (MAINNET)=$1.00",
+    "Open positions P&L (unrealised)=$-1.5",
+    "Closed P&L (realised)=$11.00 since 2023-11-14T22:13:20.000Z",
+    "Open Positions=0",
+    "Live Exposure=$3"
+   ]
+  },
+  "card_labels_contain_lastfill_lastreject": {
+   "has_last_fill": false,
+   "has_last_reject": false,
+   "text": "Portfolio Value (MAINNET)$1.00Open positions P&L (unrealised)$-1.5Closed P&L (realised)$11.00 since 2023-11-14T22:13:20.000ZOpen Positions0Live Exposure$3"
+  },
+  "truth_status_has_lastfill_reject": "present",
+  "graph_behavior": {
+   "account_subtitle": "Exchange account graph. ALL range \u2014 2 portfolio pts, 0 realized fills.",
+   "wallet_subtitle": "Selected wallet live PnL. ALL range, 2 live data points.",
+   "exposure_subtitle": "Selected wallet exposure. ALL range, 2 live data points.",
+   "empty_subtitle": "Not enough points in selected range (ALL)."
+  },
+  "scale_filter": {
+   "all": "Selected wallet live PnL. ALL range, 4 live data points.",
+   "d7": "Selected wallet live PnL. 7D range, 3 live data points.",
+   "d1": "Not enough points in selected range (1D)."
+  },
+  "apply_click": {
+   "clicked": true,
+   "subtitle": "Not enough points in selected range (start to now)."
+  }
+ },
+ "probe4": {
+  "range_wiring": {
+   "all": "Selected wallet live PnL. ALL range, 10 live data points.",
+   "after_start_apply": "Not enough points in selected range (05/06/2026, 00:00:00 to now).",
+   "start_used": null,
+   "after_end_apply": "Not enough points in selected range (05/06/2026, 00:00:00 to 07/06/2026, 00:00:00).",
+   "end_used": null,
+   "custom_marker": "all"
+  },
+  "range_mutation_control": {
+   "real": "Selected wallet live PnL. 05/06/2026, 01:00:00 to 07/06/2026, 01:00:00 range, 3 live data points.",
+   "mutant": "Selected wallet live PnL. 05/06/2026, 01:00:00 to 07/06/2026, 01:00:00 range, 10 live data points.",
+   "differs": true
+  }
+ },
+ "probe5": {
+  "status": {
+   "with_data": [
+    "Health=OK",
+    "Leader feed=WS",
+    "Follower account read=Reading (normal)",
+    "Wallets=2 live / 3 followed",
+    "Last send=\u2014",
+    "Last fill=BTC B 0.5",
+    "Last reject=DOGE IOC_NO_IMMEDIATE_MATCH",
+    "Last latency warning=\u2014"
+   ],
+   "empty": [
+    "Health=OK",
+    "Leader feed=WS",
+    "Follower account read=Reading (normal)",
+    "Wallets=0 live / 0 followed",
+    "Last send=\u2014",
+    "Last fill=\u2014",
+    "Last reject=\u2014",
+    "Last latency warning=\u2014"
+   ]
+  }
+ },
+ "dom_probe": {
+  "readyState": "complete",
+  "container_lcRealCards": "DIV",
+  "btn_mode_account": "BUTTON|Account",
+  "btn_mode_wallet_pnl": "BUTTON|Selected Wallet PnL",
+  "btn_mode_exposure": "BUTTON|Exposure",
+  "btn_scale_1d": "BUTTON|1D",
+  "btn_scale_7d": "BUTTON|7D",
+  "btn_scale_all": "BUTTON|ALL",
+  "el_lcGraphStart": "INPUT type=datetime-local",
+  "el_lcGraphEnd": "INPUT type=datetime-local",
+  "el_lcGraphApplyRange": "BUTTON type=button",
+  "el_lcEquityChart": "svg type=",
+  "renderCards_executed": {
+   "err": "ReferenceError: renderCards is not defined"
+  }
+ },
+ "card_probe": {
+  "with_data": {
+   "cards": [
+    {
+     "label": "Portfolio Value (MAINNET)",
+     "value": "$9,999.99"
+    },
+    {
+     "label": "Open positions P&L (unrealised)",
+     "value": "$123.45"
+    },
+    {
+     "label": "Closed P&L (realised)",
+     "value": "$-42.00 since 2023-11-14T22:13:20.000Z"
+    },
+    {
+     "label": "Open Positions",
+     "value": "2"
+    },
+    {
+     "label": "Live Exposure",
+     "value": "$777"
+    }
+   ]
+  },
+  "all_unavailable": {
+   "cards": [
+    {
+     "label": "Portfolio Value ()",
+     "value": "\u2014"
+    },
+    {
+     "label": "Open positions P&L (unrealised)",
+     "value": "\u2014"
+    },
+    {
+     "label": "Closed P&L (realised)",
+     "value": "\u2014"
+    },
+    {
+     "label": "Open Positions",
+     "value": "\u2014"
+    },
+    {
+     "label": "Live Exposure",
+     "value": "$0"
+    }
+   ]
+  }
+ }
+}
