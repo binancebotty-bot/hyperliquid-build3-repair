@@ -1,0 +1,111 @@
+{
+  "review_task": "t_17569171",
+  "reviewed_branch": "hermes/cert-b4-i09-i23-t_6feea192",
+  "reviewed_head": "c31ac87df33846e24184fc842d004be13206263c",
+  "register_branch": "certification/certification_matrix.json",
+  "register_results": "11 PASS (evidence=REGRESSION_fa9d9f55ff.json, tested=fa9d9f55ff) + 4 NOT_TESTED (open decisions)",
+  "implementer_verdicts": "11 FAIL + 4 NOT_TESTED",
+  "implementer_tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+  "register_tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+  "commit_binding_legitimate": false,
+  "commit_binding_finding": "Implementer used tested_commit 89b3bc7, which is NOT the register's tested_commit (fa9d9f55ff). 89b3bc7 is a main-branch source commit, NOT on the certification branch, and appears nowhere else on the branch except in the verdicts file itself. The engine sha256 at 89b3bc7 (d4f083ca...) differs from the evidence's engine sha256 (2dfbd571...).",
+  "evidence_exists_on_branch": true,
+  "evidence_path": "certification/results/REGRESSION_fa9d9f55ff.json",
+  "evidence_committed_at": "530cda6 (ancestor of branch HEAD c31ac87)",
+  "engine_sha256_verified": true,
+  "engine_sha256": "2dfbd571012af67479ee7a2d9e6f1faac6ee5408722a092fb3625450cab51405",
+  "rows": [
+    {
+      "row_id": "B4-I09",
+      "verdict": "FAIL",
+      "probe": "Checked if evidence exists on branch at register's tested_commit fa9d9f55ff: EXISTS (committed at 530cda6). Engine sha256 matches. BUT evidence is static (category=static, 1 check 'I09_RUNTIME_SSOT', empty detail), NOT the runtime testnet/replay required by execution_proof. Required Build 4 test files (test_runtime_identity.py, test_handover_state_snapshot.py, test_runtime_live_identity_wiring.py) all MISSING from repo. Matrix notes: 'Build 4 runtime/active path does not exist in Build 3.'",
+      "why": "Evidence exists on branch but is STATIC, not the RUNTIME testnet/replay required by execution_proof ('Reproduce the historical trigger condition on testnet or recorded replay'). All 3 required Build 4 test files are MISSING from the repo. The implementer's tested_commit (89b3bc7) is WRONG — should be fa9d9f55ff per the register. The implementer falsely claimed the evidence was 'absent from tested commit 89b3bc7' — the evidence is present on the branch at the correct tested_commit."
+    },
+    {
+      "row_id": "B4-I10",
+      "verdict": "FAIL",
+      "probe": "Evidence exists at fa9d9f55ff (engine sha256 verified). Check 'I10_FAILURE_ISOLATION' is static, empty detail. Required Build 4 tests (test_info_client_transient_survival.py, test_operational_incident_protections.py, test_product_gate_symbol_resolution.py) all MISSING. Not runtime testnet/replay.",
+      "why": "Evidence is static (not runtime testnet/replay). Required Build 4 test files missing from repo. Implementer used wrong tested_commit (89b3bc7 vs register's fa9d9f55ff). Evidence EXISTS on branch, contrary to implementer's 'absent' claim."
+    },
+    {
+      "row_id": "B4-I11",
+      "verdict": "FAIL",
+      "probe": "Evidence exists at fa9d9f55ff (engine sha256 verified). Check 'I11_SLEEVE_SURVIVAL' is static, empty detail. Required Build 4 tests (test_runtime_sleeve_ownership_integration.py, test_sleeve_ownership_ledger.py, test_flat_reset_ownership_boundary.py, test_live_ownership_reconciliation_hold.py) all MISSING. Not runtime testnet/replay.",
+      "why": "Evidence is static (not runtime testnet/replay). Required Build 4 test files missing from repo. Implementer used wrong tested_commit (89b3bc7 vs register's fa9d9f55ff). Evidence EXISTS on branch, contrary to implementer's 'absent' claim."
+    },
+    {
+      "row_id": "B4-I12",
+      "verdict": "NOT_TESTED",
+      "probe": "Row ABSENT from REGRESSION file. No evidence_ref in register. Open decision OD-05 (mode semantics). Required Build 4 tests (test_close_only_contract.py, test_paper_trading.py, etc.) all MISSING. No testnet execution route.",
+      "why": "Cannot disprove NOT_TESTED. Row has no evidence, depends on open decision OD-05, and no testnet execution route exists. Implementer's NOT_TESTED is correct."
+    },
+    {
+      "row_id": "B4-I13",
+      "verdict": "NOT_TESTED",
+      "probe": "Row ABSENT from REGRESSION file. No evidence_ref in register. Open decision OD-09 (preserve sizing). Required Build 4 tests (test_8014_proportional_live_sizing.py, test_sub_minimum_contract.py, etc.) all MISSING. No testnet sizing/risk execution route.",
+      "why": "Cannot disprove NOT_TESTED. Row has no evidence, depends on open decision OD-09, and no testnet sizing/risk execution route exists. Implementer's NOT_TESTED is correct."
+    },
+    {
+      "row_id": "B4-I14",
+      "verdict": "FAIL",
+      "probe": "Evidence exists at fa9d9f55ff (engine sha256 verified). Check 'I14_FOLLOWER_FILL_EXCLUSION' is static, empty detail. Required Build 4 tests (test_follower_fill_authority_poisoning.py, test_handover_live_fill_ownership_compare.py) both MISSING. Not runtime testnet/replay.",
+      "why": "Evidence is static (not runtime testnet/replay). Required Build 4 test files missing from repo. Implementer used wrong tested_commit (89b3bc7 vs register's fa9d9f55ff). Evidence EXISTS on branch, contrary to implementer's 'absent' claim."
+    },
+    {
+      "row_id": "B4-I15",
+      "verdict": "FAIL",
+      "probe": "Evidence exists at fa9d9f55ff (engine sha256 verified). Check 'I15_REAL_MARGIN_TRUTH' is static, empty detail. Required Build 4 tests (test_unified_maintenance_margin_invariant.py, test_builder_dex_margin_policy_lifecycle.py, etc.) all MISSING. Not runtime testnet/replay.",
+      "why": "Evidence is static (not runtime testnet/replay). Required Build 4 test files missing from repo. Implementer used wrong tested_commit (89b3bc7 vs register's fa9d9f55ff). Evidence EXISTS on branch, contrary to implementer's 'absent' claim."
+    },
+    {
+      "row_id": "B4-I16",
+      "verdict": "FAIL",
+      "probe": "Evidence exists at fa9d9f55ff (engine sha256 verified). Check 'I16_DIAGNOSTICS_NON_BLOCKING' has detail 'self-test passed=144, failed=0' — this is from the self_test, not from runtime testnet/replay. Required Build 4 tests (test_certification_is_diagnostic_only.py, test_operational_safety_invariants.py) both MISSING.",
+      "why": "Evidence is static (self-test result, not runtime testnet/replay). Required Build 4 test files missing from repo. Implementer used wrong tested_commit (89b3bc7 vs register's fa9d9f55ff). Evidence EXISTS on branch, contrary to implementer's 'absent' claim."
+    },
+    {
+      "row_id": "B4-I17",
+      "verdict": "FAIL",
+      "probe": "Evidence exists at fa9d9f55ff (engine sha256 verified). Check 'I17_WALLET_ADD_BASELINE' is static, empty detail. Required Build 4 tests (test_ui_config_change_audit.py, test_operator_flat_reset_rebaseline.py) both MISSING. Not runtime testnet/replay.",
+      "why": "Evidence is static (not runtime testnet/replay). Required Build 4 test files missing from repo. Implementer used wrong tested_commit (89b3bc7 vs register's fa9d9f55ff). Evidence EXISTS on branch, contrary to implementer's 'absent' claim."
+    },
+    {
+      "row_id": "B4-I18",
+      "verdict": "FAIL",
+      "probe": "Evidence exists at fa9d9f55ff (engine sha256 verified). Check 'I18_WALLET_REMOVE_NO_ORPHAN' is static, empty detail. Required Build 4 tests (test_ui_wallet_ownership_truth.py, test_flat_reset_closure_boundary.py) both MISSING. Not runtime testnet/replay. Open decision OD-13 also pending.",
+      "why": "Evidence is static (not runtime testnet/replay). Required Build 4 test files missing from repo. Open decision OD-13 also pending. Implementer used wrong tested_commit (89b3bc7 vs register's fa9d9f55ff). Evidence EXISTS on branch, contrary to implementer's 'absent' claim."
+    },
+    {
+      "row_id": "B4-I19",
+      "verdict": "FAIL",
+      "probe": "Evidence exists at fa9d9f55ff (engine sha256 verified). Check 'I19_HOT_RELOAD' has detail 'found 2 hot reload patterns' — this is a static code-pattern search, NOT runtime testnet/replay. Required Build 4 tests (test_ui_config_change_audit.py, test_control_transaction_atomicity.py) both MISSING.",
+      "why": "Evidence is static (code-pattern search result, not runtime testnet/replay). Required Build 4 test files missing from repo. Implementer used wrong tested_commit (89b3bc7 vs register's fa9d9f55ff). Evidence EXISTS on branch, contrary to implementer's 'absent' claim."
+    },
+    {
+      "row_id": "B4-I20",
+      "verdict": "NOT_TESTED",
+      "probe": "Row ABSENT from REGRESSION file. No evidence_ref in register. Open decision OD-10 (entry price bound). Required Build 4 tests (test_delayed_entry_gate.py, test_delayed_entry_safety_integration.py) both MISSING. No exchange oracle/testnet execution route.",
+      "why": "Cannot disprove NOT_TESTED. Row has no evidence, depends on open decision OD-10, and no exchange oracle/testnet execution route exists. Implementer's NOT_TESTED is correct."
+    },
+    {
+      "row_id": "B4-I21",
+      "verdict": "NOT_TESTED",
+      "probe": "Row ABSENT from REGRESSION file. No evidence_ref in register. Open decision OD-10 (price wait). Required Build 4 test (test_delayed_entry_safety_integration.py) MISSING. No testnet delayed-entry execution route.",
+      "why": "Cannot disprove NOT_TESTED. Row has no evidence, depends on open decision OD-10, and no testnet delayed-entry execution route exists. Implementer's NOT_TESTED is correct."
+    },
+    {
+      "row_id": "B4-I22",
+      "verdict": "FAIL",
+      "probe": "Evidence exists at fa9d9f55ff (engine sha256 verified). Check 'I22_REDUCTION_NOT_TRAPPED' is static, empty detail. Required Build 4 tests (test_canary_exit_authority.py, test_close_only_contract.py) both MISSING. Not runtime testnet/replay.",
+      "why": "Evidence is static (not runtime testnet/replay). Required Build 4 test files missing from repo. Implementer used wrong tested_commit (89b3bc7 vs register's fa9d9f55ff). Evidence EXISTS on branch, contrary to implementer's 'absent' claim."
+    },
+    {
+      "row_id": "B4-I23",
+      "verdict": "FAIL",
+      "probe": "Evidence exists at fa9d9f55ff (engine sha256 verified). Check 'I23_PARTIAL_FILL' is static, empty detail. Required Build 4 tests (test_live_event_lifecycle_exactly_once.py, test_runtime_sleeve_ownership_integration.py) both MISSING. Not runtime testnet/replay.",
+      "why": "Evidence is static (not runtime testnet/replay). Required Build 4 test files missing from repo. Implementer used wrong tested_commit (89b3bc7 vs register's fa9d9f55ff). Evidence EXISTS on branch, contrary to implementer's 'absent' claim."
+    }
+  ],
+  "overall_verdict": "FAIL",
+  "summary": "11 FAIL + 4 NOT_TESTED. The implementer's verdicts are CORRECT in outcome (FAIL for 11 rows, NOT_TESTED for 4 rows) but FLAWED in reasoning: (1) wrong tested_commit (89b3bc7 vs register's fa9d9f55ff) — 89b3bc7 is a main-branch commit NOT on the certification branch, appears nowhere else on the branch; (2) false 'evidence absent' claim — the evidence EXISTS on the branch at the register's correct tested_commit (fa9d9f55ff, committed at 530cda6); (3) non-row-bound justification — the 'why' text is nearly identical across all 11 FAIL rows. The REAL reason for FAIL: the evidence is STATIC (category=static, 1 check per row, empty detail), NOT the runtime testnet/replay required by the matrix's execution_proof ('Reproduce the historical trigger condition on testnet or recorded replay'). All 28 required Build 4 test files are MISSING from the repo. The matrix notes acknowledge 'Build 4 runtime/active path does not exist in Build 3.' The 4 NOT_TESTED rows (B4-I12, I13, I20, I21) are correctly NOT_TESTED — absent from evidence, depend on open decisions (OD-05, OD-09, OD-10), and I cannot disprove their NOT_TESTED status."
+}
