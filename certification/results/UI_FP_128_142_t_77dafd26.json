@@ -1,0 +1,41 @@
+{
+  "schema": "b3_ui_fp_verdicts_v1",
+  "batch": "UI-FP-128..UI-FP-142",
+  "source_register_commit": "f4ee2bb18dc6781940772cb088e9a476585030e4",
+  "tested_commit": null,
+  "serving_process": {
+    "port": 8031,
+    "pid": 40212,
+    "started_at_epoch": 1792354762.4897983,
+    "cwd": "C:\\Users\\wigmore\\.hermes\\kanban\\workspaces\\t_fd5d3d4c\\serve\\_archive\\hl_stage2",
+    "command": "python.exe -m uvicorn HL_Copy_App_SSOT:app --host 127.0.0.1 --port 8031",
+    "binding": "UNVERIFIED: process cwd is not inside a Git worktree; cannot bind rendered DOM to a serving commit"
+  },
+  "runtime_observation": {
+    "captured_from": "http://127.0.0.1:8031/live-copy via headless Chromium / Playwright; DOMContentLoaded then readyState complete",
+    "audit_table_headers": ["Time", "Wallet", "Coin", "Side", "Source/Reason", "Status", "Decision", "Decision reason", "Suggested limit", "Diff %", "Manual?", "Intent note", "Real order result"],
+    "audit_table_rows": 3,
+    "reconciliation_actionable_headers": ["Event", "Status", "Action", "Reject category", "Terminal state", "Coin", "Wallet", "Intent", "Notes"],
+    "reconciliation_actionable_rows": 0,
+    "reconciliation_warning_rows": 0,
+    "live_copy_json_rows": 3,
+    "api_state_updated_at": "2026-10-18T20:37:17.739535+00:00"
+  },
+  "verdicts": [
+    {"row_id":"UI-FP-128","verdict":"NOT_TESTED","evidence_ref":"runtime_observation.audit_table_headers; serving-process binding unverified","tested_commit":null,"why":"The live DOM exposes the Decision reason column, but this server process's working directory is not a Git worktree, so its rendered field cannot be bound to a tested product commit as required."},
+    {"row_id":"UI-FP-129","verdict":"NOT_TESTED","evidence_ref":"runtime_observation.audit_table_headers; serving-process binding unverified","tested_commit":null,"why":"The live DOM exposes the Suggested limit column, but this server process's working directory is not a Git worktree, so its rendered field cannot be bound to a tested product commit as required."},
+    {"row_id":"UI-FP-130","verdict":"NOT_TESTED","evidence_ref":"runtime_observation.audit_table_headers; serving-process binding unverified","tested_commit":null,"why":"The live DOM exposes the Diff % column, but this server process's working directory is not a Git worktree, so its rendered field cannot be bound to a tested product commit as required."},
+    {"row_id":"UI-FP-131","verdict":"NOT_TESTED","evidence_ref":"runtime_observation.audit_table_headers; serving-process binding unverified","tested_commit":null,"why":"The live DOM exposes the Manual? column, but this server process's working directory is not a Git worktree, so its rendered field cannot be bound to a tested product commit as required."},
+    {"row_id":"UI-FP-132","verdict":"NOT_TESTED","evidence_ref":"runtime_observation.audit_table_headers; serving-process binding unverified","tested_commit":null,"why":"The live DOM exposes the Intent note column, but this server process's working directory is not a Git worktree, so its rendered field cannot be bound to a tested product commit as required."},
+    {"row_id":"UI-FP-133","verdict":"NOT_TESTED","evidence_ref":"runtime_observation.audit_table_headers; serving-process binding unverified","tested_commit":null,"why":"The live DOM exposes the Real order result column, but this server process's working directory is not a Git worktree, so its rendered field cannot be bound to a tested product commit as required."},
+    {"row_id":"UI-FP-134","verdict":"NOT_TESTED","evidence_ref":"runtime_observation.reconciliation_actionable_headers; serving-process binding unverified","tested_commit":null,"why":"The rendered reconciliation table has an Event column, but it contains zero data rows; the source-backed Event value cannot be tested or commit-bound."},
+    {"row_id":"UI-FP-135","verdict":"NOT_TESTED","evidence_ref":"runtime_observation.reconciliation_actionable_headers; serving-process binding unverified","tested_commit":null,"why":"The rendered reconciliation table has a Status column, but it contains zero data rows; the source-backed Status value cannot be tested or commit-bound."},
+    {"row_id":"UI-FP-136","verdict":"NOT_TESTED","evidence_ref":"runtime_observation.reconciliation_actionable_headers; serving-process binding unverified","tested_commit":null,"why":"The rendered reconciliation table has an Action column, but it contains zero data rows; the source-backed Action value cannot be tested or commit-bound."},
+    {"row_id":"UI-FP-137","verdict":"NOT_TESTED","evidence_ref":"runtime_observation.reconciliation_actionable_headers; serving-process binding unverified","tested_commit":null,"why":"The rendered reconciliation table has a Reject category column, but it contains zero data rows; the source-backed Reject category value cannot be tested or commit-bound."},
+    {"row_id":"UI-FP-138","verdict":"NOT_TESTED","evidence_ref":"runtime_observation.reconciliation_actionable_headers; serving-process binding unverified","tested_commit":null,"why":"The rendered reconciliation table has a Terminal state column, but it contains zero data rows; the source-backed Terminal state value cannot be tested or commit-bound."},
+    {"row_id":"UI-FP-139","verdict":"NOT_TESTED","evidence_ref":"runtime_observation.reconciliation_actionable_headers; serving-process binding unverified","tested_commit":null,"why":"The rendered reconciliation table has a Coin column, but it contains zero data rows; the source-backed Coin value cannot be tested or commit-bound."},
+    {"row_id":"UI-FP-140","verdict":"NOT_TESTED","evidence_ref":"runtime_observation.reconciliation_actionable_headers; serving-process binding unverified","tested_commit":null,"why":"The rendered reconciliation table has a Wallet column, but it contains zero data rows; the source-backed Wallet value cannot be tested or commit-bound."},
+    {"row_id":"UI-FP-141","verdict":"NOT_TESTED","evidence_ref":"runtime_observation.reconciliation_actionable_headers; serving-process binding unverified","tested_commit":null,"why":"The rendered reconciliation table has an Intent column, but it contains zero data rows; the source-backed Intent value cannot be tested or commit-bound."},
+    {"row_id":"UI-FP-142","verdict":"NOT_TESTED","evidence_ref":"runtime_observation.reconciliation_actionable_headers; serving-process binding unverified","tested_commit":null,"why":"The rendered reconciliation table has a Notes column, but it contains zero data rows; the source-backed Notes value cannot be tested or commit-bound."}
+  ]
+}
