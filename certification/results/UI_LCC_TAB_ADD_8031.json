@@ -1,0 +1,156 @@
+{
+  "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+  "serving_process": {
+    "pid": 33368,
+    "started_at_utc": "2026-10-17T10:54:09.552605+00:00",
+    "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762"
+  },
+  "url": "http://127.0.0.1:8031/live-copy",
+  "captured_at_utc": "2026-10-18T11:13:00.462030+00:00",
+  "page_status": 200,
+  "tab_results": [
+    {
+      "row_id": "UI-LCC-TAB-01",
+      "label": "Real Copy Positions",
+      "active": true,
+      "matching_panels": [
+        {
+          "text": "Real User Copy Positions",
+          "panel_display": "block"
+        }
+      ],
+      "table_body_row_counts_unchanged": true
+    },
+    {
+      "row_id": "UI-LCC-TAB-02",
+      "label": "Execution Quality",
+      "active": true,
+      "matching_panels": [
+        {
+          "text": "Execution Quality",
+          "panel_display": "block"
+        }
+      ],
+      "table_body_row_counts_unchanged": true
+    },
+    {
+      "row_id": "UI-LCC-TAB-03",
+      "label": "Order Intents / Audit",
+      "active": true,
+      "matching_panels": [
+        {
+          "text": "Order Intents / Audit",
+          "panel_display": "block"
+        }
+      ],
+      "table_body_row_counts_unchanged": true
+    },
+    {
+      "row_id": "UI-LCC-TAB-04",
+      "label": "Reconciliation",
+      "active": true,
+      "matching_panels": [
+        {
+          "text": "Ledger vs Exchange",
+          "panel_display": "block"
+        }
+      ],
+      "table_body_row_counts_unchanged": true
+    },
+    {
+      "row_id": "UI-LCC-TAB-05",
+      "label": "WS Health",
+      "active": true,
+      "matching_panels": [
+        {
+          "text": "WS Health Detail",
+          "panel_display": "block"
+        }
+      ],
+      "table_body_row_counts_unchanged": true
+    }
+  ],
+  "table_body_row_counts_before": [
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "form_fields": [
+    {
+      "name": "wallet",
+      "tag": "INPUT",
+      "type": "text",
+      "value": "",
+      "label": "WALLET ADDRESS",
+      "options": null
+    },
+    {
+      "name": "mode",
+      "tag": "SELECT",
+      "type": "select-one",
+      "value": "LIVE",
+      "label": "INITIAL MODE\nLIVE\nCLO\nOFF",
+      "options": [
+        "LIVE",
+        "CLO",
+        "OFF"
+      ]
+    },
+    {
+      "name": "copy_mode",
+      "tag": "SELECT",
+      "type": "select-one",
+      "value": "fixed",
+      "label": "COPY MODEL\nfixed\nproportional",
+      "options": [
+        "fixed",
+        "proportional"
+      ]
+    },
+    {
+      "name": "norm_base",
+      "tag": "INPUT",
+      "type": "text",
+      "value": "100",
+      "label": "NORM BASE",
+      "options": null
+    },
+    {
+      "name": "fixed_notional",
+      "tag": "INPUT",
+      "type": "text",
+      "value": "10",
+      "label": "FIXED NOTIONAL",
+      "options": null
+    }
+  ],
+  "cancel": {
+    "modal_present_before": true,
+    "modal_present_after": false,
+    "wallet_count_text_before": "\n0 / 10\nLeader feed:\n\u2014\nRefresh\nG",
+    "wallet_count_text_after": "\n0 / 10\nLeader feed:\n\u2014\nRefresh\nG"
+  },
+  "api_responses": [
+    {
+      "path": "/api/live-config",
+      "status": 200
+    },
+    {
+      "path": "/api/live-ws-health",
+      "status": 200
+    },
+    {
+      "path": "/api/global-controls",
+      "status": 200
+    }
+  ],
+  "safety": "No submit button clicked and no config mutation attempted."
+}
