@@ -1,0 +1,122 @@
+[
+  {
+    "row_id": "UI-LCC-AUD-11",
+    "verdict": "FAIL",
+    "probe": "probe.py:35 predicate is add(name,False,detail) - a literal, no measurement. Re-probed live :8031 at 2026-10-18T12:40Z: Manual? cells empty, manual_reconcile_required_counts={}.",
+    "why": "FAIL verdict is correct for the product, but the check is VACUOUS - it would report FAIL even if the flag rendered. Not row-bound.",
+    "reviewed_commit": "a56b8ebcaea8deaedd7d665a378534e8d8bfab6a",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762"
+  },
+  {
+    "row_id": "UI-LCC-AUD-12",
+    "verdict": "PASS",
+    "probe": "probe.py:36-42 genuine per-row compare with legacy-note translation and 60-char truncation; no counter-example found. NOT reproducible today: live audit table holds 1 row and last_rows=[] (serving instance changed).",
+    "why": "Row-bound in construction. Explicitly UNREPRODUCED rather than independently confirmed.",
+    "reviewed_commit": "a56b8ebcaea8deaedd7d665a378534e8d8bfab6a",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762"
+  },
+  {
+    "row_id": "UI-LCC-AUD-13",
+    "verdict": "FAIL",
+    "probe": "probe.py:43-50 reports 10/10 matched while also reporting 0 attempts among rows, so the matching branch is the NO_SEND_ATTEMPT fallback and no real send was ever exercised.",
+    "why": "FAIL stands, but the check is SELF-VACUOUS and the detail text is internally contradictory.",
+    "reviewed_commit": "a56b8ebcaea8deaedd7d665a378534e8d8bfab6a",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762"
+  },
+  {
+    "row_id": "UI-LCC-REC-01",
+    "verdict": "PASS",
+    "probe": "Recomputed live manual_reconciliation_rows[:50] vs live DOM lcReconRows: severity 50/50.",
+    "why": "Reproduces. Weak-but-real: all 50 source severities are OK, so no non-OK row distinguishes the predicate.",
+    "reviewed_commit": "a56b8ebcaea8deaedd7d665a378534e8d8bfab6a",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762"
+  },
+  {
+    "row_id": "UI-LCC-REC-02",
+    "verdict": "FAIL",
+    "probe": "live DOM header[1]=Wallet but value[1]=0G (coin); header[2]=Coin but value[2]=0x010461c1...1c703a (wallet).",
+    "why": "Confirmed product defect: Wallet/Coin cells transposed against their headers.",
+    "reviewed_commit": "a56b8ebcaea8deaedd7d665a378534e8d8bfab6a",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762"
+  },
+  {
+    "row_id": "UI-LCC-REC-03",
+    "verdict": "FAIL",
+    "probe": "Same capture: col3 labelled Coin holds wallet addresses; source coin renders in col2.",
+    "why": "Confirmed from both directions.",
+    "reviewed_commit": "a56b8ebcaea8deaedd7d665a378534e8d8bfab6a",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762"
+  },
+  {
+    "row_id": "UI-LCC-REC-04",
+    "verdict": "PASS",
+    "probe": "Author claims 50/50; my keyed recompute gives 48/50 issue matches.",
+    "why": "DEMOTED to FAIL: 50/50 does not reproduce; a non-reproducing total is a false green.",
+    "reviewed_commit": "a56b8ebcaea8deaedd7d665a378534e8d8bfab6a",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762"
+  },
+  {
+    "row_id": "UI-LCC-REC-05",
+    "verdict": "FAIL",
+    "probe": "live DOM headers lack Count; final cell equals str(source count) on 50/50 rows.",
+    "why": "Confirmed: Count is rendered as the Action column.",
+    "reviewed_commit": "a56b8ebcaea8deaedd7d665a378534e8d8bfab6a",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762"
+  },
+  {
+    "row_id": "UI-LCC-REC-06",
+    "verdict": "PASS",
+    "probe": "Author claims 50/50; my recompute positional 7/50, keyed (coin+wallet+side) 41/50 with 7 genuine mismatches (AAVE man 0.05 vs src 0.35; APT man 15.39 vs 0.35).",
+    "why": "DEMOTED to FAIL: the headline 50/50 is FALSE and a genuine row-binding failure was reported as pass.",
+    "reviewed_commit": "a56b8ebcaea8deaedd7d665a378534e8d8bfab6a",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762"
+  },
+  {
+    "row_id": "UI-LCC-REC-07",
+    "verdict": "PASS",
+    "probe": "Author claims 50/50; my recompute positional 10/50, keyed 41/50 - APT renders 19.95 where every APT source row says 4.91, AAVE renders -0.03 where source says -0.1.",
+    "why": "DEMOTED to FAIL: false green; Exchange cells do not match the source rows claimed.",
+    "reviewed_commit": "a56b8ebcaea8deaedd7d665a378534e8d8bfab6a",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762"
+  },
+  {
+    "row_id": "UI-LCC-REC-08",
+    "verdict": "FAIL",
+    "probe": "live DOM headers lack Last intent; source carries last_intent_id.",
+    "why": "Confirmed absent.",
+    "reviewed_commit": "a56b8ebcaea8deaedd7d665a378534e8d8bfab6a",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762"
+  },
+  {
+    "row_id": "UI-LCC-REC-09",
+    "verdict": "FAIL",
+    "probe": "live DOM headers lack Last oid; source carries last_oid.",
+    "why": "Confirmed absent.",
+    "reviewed_commit": "a56b8ebcaea8deaedd7d665a378534e8d8bfab6a",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762"
+  },
+  {
+    "row_id": "UI-LCC-REC-10",
+    "verdict": "FAIL",
+    "probe": "live DOM headers lack Last updated; source carries last_updated_at.",
+    "why": "Confirmed absent.",
+    "reviewed_commit": "a56b8ebcaea8deaedd7d665a378534e8d8bfab6a",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762"
+  },
+  {
+    "row_id": "UI-LCC-REC-11",
+    "verdict": "FAIL",
+    "probe": "live DOM Action column holds str(source count) on 50/50 rows; source exposes action_available only.",
+    "why": "Confirmed: Action renders the count, not an action.",
+    "reviewed_commit": "a56b8ebcaea8deaedd7d665a378534e8d8bfab6a",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762"
+  },
+  {
+    "row_id": "UI-LCC-WS-01",
+    "verdict": "PASS",
+    "probe": "live health.wallets (10 keys) vs live DOM lcHealthRows: sorted short-wallet list equals rendered col1 exactly, 10/10, header[0]=Wallet.",
+    "why": "Reproduces exactly; row-bound - a missing, extra, or misordered wallet flips it.",
+    "reviewed_commit": "a56b8ebcaea8deaedd7d665a378534e8d8bfab6a",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762"
+  }
+]
