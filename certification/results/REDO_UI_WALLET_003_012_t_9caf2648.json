@@ -1,0 +1,23 @@
+{
+  "redo_task_id": "t_9caf2648",
+  "reviewer_task_id": "t_289e1d8a",
+  "reviewed_branch": "hermes/cert6-ui-wallet-t_4b8fc417",
+  "reviewed_head": "6c6222603a01680aefbbec4ff0ab77cf3c9a586c",
+  "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+  "branch": "hermes/redo-ui-wallet-003-012-t_9caf2648",
+  "rows": [
+    {
+      "row_id": "UI-WALLET-003",
+      "verdict": "FAIL",
+      "probe": "Deterministic probe on fresh git-archive tree (89b3bc7586) under py3.11. Simulated cursor freeze: wallet OFF for 1h, leader fill 30min after cursor froze. On re-enable, _start = max(cursor - 30000, now - 604800000) = 1792316192911 (3630s replay window). fill_during_off_at (1792318022911) is within [start, now]: True. missed_entry_decision(BUY, leader=100, market=100, follower=100, tol=50bps) returns take=True. already_closed_late_entries only suppresses when leader went flat LATER in SAME batch; a fill 30min before re-enable with no subsequent close is NOT suppressed.",
+      "why": "DEMOTED from PASS. The frozen per-wallet leader-poll cursor (L11014-11018 loads it, L11115-11118 skips OFF wallets via continue BEFORE cursor advances) causes a 7-day replay window on re-enable (L11119). A leader entry opened while OFF falls within this window and is taken by missed_entry_decision (L361) if price is within tolerance. No enabled_at/copied_since/no_catchup/warm_start filter exists. Product defect: setting LIVE after being OFF copies historical leader entries instead of only new ones."
+    },
+    {
+      "row_id": "UI-WALLET-012",
+      "verdict": "FAIL",
+      "probe": "Deterministic probe on fresh git-archive tree (89b3bc7586) under py3.11. Called _normalise_live_wallet_payload with existing values NOT equal to hardcoded defaults: (1) existing fixed_notional=42.0, payload fixed_notional='abc' -> stored 10 (NOT 42). (2) existing norm_base=250.0, payload norm_base='abc' -> stored 100 (NOT 250). (3) existing fixed_notional=42.0, payload='' -> stored 10. (4) existing norm_base=250.0, payload=None -> stored 100. (5) existing fixed_notional=42.0, payload=-5 -> stored 0.01 (clamped). (6) existing norm_base=250.0, payload=-5 -> stored 1.0 (clamped).",
+      "why": "DEMOTED from PASS. Root cause HL_Copy_App_SSOT.py L1016-1017: fnum(payload.get(k, base.get(k, DEFAULT)), DEFAULT) collapses an unparseable payload value to DEFAULT and never consults base because the payload key is present. A non-numeric field silently rewrites the stored setting to a hardcoded default (10 or 100), so config is NOT unchanged and no error reaches the operator. The author's original fixture used existing fixed_notional=10, numerically identical to the fallback default, masking the defect."
+    }
+  ],
+  "raw_probe_output": "certification/results/REDO_UI_WALLET_003_012_t_9caf2648_probe_results.json"
+}

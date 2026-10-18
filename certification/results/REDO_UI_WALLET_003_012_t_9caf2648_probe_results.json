@@ -1,0 +1,87 @@
+{
+  "probe_012": {
+    "description": "UI-WALLET-012: non-numeric input handling",
+    "results": [
+      {
+        "name": "fixed_notional: existing=42.0, payload='abc'",
+        "field": "fixed_notional",
+        "existing": 42.0,
+        "payload_value": "abc",
+        "stored": 10,
+        "preserved": false,
+        "reset_to_default": true
+      },
+      {
+        "name": "norm_base: existing=250.0, payload='abc'",
+        "field": "norm_base",
+        "existing": 250.0,
+        "payload_value": "abc",
+        "stored": 100,
+        "preserved": false,
+        "reset_to_default": true
+      },
+      {
+        "name": "fixed_notional: existing=42.0, payload='' (empty string)",
+        "field": "fixed_notional",
+        "existing": 42.0,
+        "payload_value": "",
+        "stored": 10,
+        "preserved": false,
+        "reset_to_default": true
+      },
+      {
+        "name": "norm_base: existing=250.0, payload=None",
+        "field": "norm_base",
+        "existing": 250.0,
+        "payload_value": null,
+        "stored": 100,
+        "preserved": false,
+        "reset_to_default": true
+      },
+      {
+        "name": "fixed_notional: existing=42.0, payload=-5 (negative)",
+        "field": "fixed_notional",
+        "existing": 42.0,
+        "payload_value": -5,
+        "stored": 0.01,
+        "preserved": false,
+        "reset_to_default": false
+      },
+      {
+        "name": "norm_base: existing=250.0, payload=-5 (negative)",
+        "field": "norm_base",
+        "existing": 250.0,
+        "payload_value": -5,
+        "stored": 1.0,
+        "preserved": false,
+        "reset_to_default": false
+      }
+    ],
+    "any_reset_to_default": true,
+    "any_preserved": false
+  },
+  "probe_003": {
+    "description": "UI-WALLET-003: cursor freeze and replay window",
+    "constants": {
+      "LEADER_POLL_OVERLAP_MS": 30000,
+      "POLL_WINDOW_MS": 86400000,
+      "HL_LIVE_POLL_MAX_CATCHUP_MS": 604800000
+    },
+    "scenario": {
+      "cursor_frozen_at": 1792316222911,
+      "fill_during_off_at": 1792318022911,
+      "re_enable_at": 1792319822911,
+      "start": 1792316192911,
+      "fill_in_window": true,
+      "missed_entry_decision": {
+        "ok": true,
+        "take": true,
+        "adverse_bps": 0.0,
+        "desired_px": 100.0,
+        "cap_px": 100.49999999999999,
+        "leader_px": 100.0,
+        "market_px": 100.0
+      }
+    }
+  }
+}
