@@ -1,0 +1,53 @@
+{
+  "task_id": "t_b0df04df",
+  "title": "TN-F04 re-execution: exit sizing targets the owned sleeve (row-bound)",
+  "tested_commit": "2a269ad2260270fee844eedc2cc23545abc91dd0",
+  "tested_at_utc": "2026-10-18T17:56:53Z",
+  "engine_sha256": "2dfbd571012af67479ee7a2d9e6f1faac6ee5408722a092fb3625450cab51405",
+  "engine_lines": 8030,
+  "checks": {
+    "ENGINE_SHA256_MATCH": {
+      "pass": true,
+      "detail": ""
+    },
+    "TN-F04:REDUCE_USES_OWNED_SLEEVE": {
+      "pass": true,
+      "detail": ""
+    },
+    "TN-F04:FULL_CLOSE_TARGETS_OWNED_SLEEVE": {
+      "pass": true,
+      "detail": ""
+    },
+    "TN-F04:NEG_RESTART_PRESERVES_OWNED_SLEEVE": {
+      "pass": true,
+      "detail": ""
+    }
+  },
+  "negative_tests": {
+    "TN-F04:NEG_STALE_CAPITAL_NEVER_BLOCKS_EXIT": {
+      "pass": true,
+      "detail": ""
+    }
+  },
+  "summary": {
+    "total_rows": 5,
+    "rows": {
+      "APPLIES_PROPOSED": {
+        "count": 5,
+        "ids": [
+          "TN-F04",
+          "ENG-VAL-01",
+          "ENG-VAL-02",
+          "ENG-VAL-03",
+          "ENG-VAL-04"
+        ]
+      }
+    },
+    "total_checks": 4,
+    "passed_checks": 4,
+    "failed_checks": 0,
+    "total_negative_tests": 1,
+    "passed_negative_tests": 1,
+    "failed_negative_tests": 0
+  }
+}

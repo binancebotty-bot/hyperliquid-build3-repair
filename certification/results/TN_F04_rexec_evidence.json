@@ -1,0 +1,182 @@
+{
+  "task_id": "t_b0df04df",
+  "parent_implementation": "t_dc4b3ab7",
+  "review_that_rejected": "t_7dc56d5d",
+  "row": "TN-F04",
+  "branch": "hermes/cert-34-done04-tn-f08-t_dc4b3ab7",
+  "repo_head_at_run": "70b03db31ee659f96873dec93883586015f403ba",
+  "method": "git archive 2a269ad -> isolated tree (no .git, live repo untouched); engine hash verified; harness executed on committed code + 2 single-line mutants",
+  "engine": {
+    "path": "_archive/hl_stage2/HL_Live_Copy_Service_Core.py",
+    "committed_commit": "2a269ad2260270fee844eedc2cc23545abc91dd0",
+    "committed_sha256": "2dfbd571012af67479ee7a2d9e6f1faac6ee5408722a092fb3625450cab51405",
+    "isolated_tree_sha256": "2dfbd571012af67479ee7a2d9e6f1faac6ee5408722a092fb3625450cab51405",
+    "byte_equal": false,
+    "lines": 8030,
+    "register_base_engine_sha256": "b171ec8fef01ead5ed2fe4a4a075857b5b1a56e425bab8394440c7dbad57f2a0",
+    "branch_head_worktree_sha256": "b171ec8fef01ead5ed2fe4a4a075857b5b1a56e425bab8394440c7dbad57f2a0",
+    "byte_equal_to_artifact": true,
+    "branch_head_worktree_differs": true,
+    "note": "Row bound to the cited commit 2a269ad. Branch HEAD worktree carries a different engine sha, so this PASS does not transfer to HEAD."
+  },
+  "harness": {
+    "path": "certification/results/TN_F04_REXEC_harness.py",
+    "sha256": "4e30924afb2f13d946bf636d3df8764270faca13f514efad77bf70a1a1aa1cd3",
+    "monkeypatches": "none",
+    "args": "--repo <tree> --out <json>",
+    "runs_tn_f04_only": true,
+    "docstring": "TN-F04 only; ENG-VAL rows explicitly out of scope"
+  },
+  "execution_A_committed": {
+    "exit_code": 0,
+    "stdout": "============================================================\r\nENGINE_RESIDUAL certification harness\r\nCommit: 2a269ad2260270fee844eedc2cc23545abc91dd0\r\nEngine: 2dfbd571012af67479ee7a2d9e6f1faac6ee5408722a092fb3625450cab51405\r\n============================================================\r\n  CHECK::ENGINE_SHA256_MATCH::PASS\r\n\r\n=== TN-F04: Exit sizing proportional to owned quantity ===\r\n  CHECK::TN-F04:REDUCE_USES_OWNED_SLEEVE::PASS\r\n  CHECK::TN-F04:FULL_CLOSE_TARGETS_OWNED_SLEEVE::PASS\r\n  NEG::TN-F04:NEG_STALE_CAPITAL_NEVER_BLOCKS_EXIT::PASS\r\n  CHECK::TN-F04:NEG_RESTART_PRESERVES_OWNED_SLEEVE::PASS\r\n\r\n============================================================\r\nRESULT: 4/4 checks PASS\r\nNEGATIVE: 1/1 PASS\r\nOutput: C:\\Users\\wigmore\\.hermes\\kanban\\workspaces\\t_b0df04df\\run\\tn_f04_commit.json\r\n============================================================\r\n",
+    "stderr": "",
+    "result_json": {
+      "task_id": "t_b0df04df",
+      "title": "TN-F04 re-execution: exit sizing targets the owned sleeve (row-bound)",
+      "tested_commit": "2a269ad2260270fee844eedc2cc23545abc91dd0",
+      "tested_at_utc": "2026-10-18T17:56:53Z",
+      "engine_sha256": "2dfbd571012af67479ee7a2d9e6f1faac6ee5408722a092fb3625450cab51405",
+      "engine_lines": 8030,
+      "checks": {
+        "ENGINE_SHA256_MATCH": {
+          "pass": true,
+          "detail": ""
+        },
+        "TN-F04:REDUCE_USES_OWNED_SLEEVE": {
+          "pass": true,
+          "detail": ""
+        },
+        "TN-F04:FULL_CLOSE_TARGETS_OWNED_SLEEVE": {
+          "pass": true,
+          "detail": ""
+        },
+        "TN-F04:NEG_RESTART_PRESERVES_OWNED_SLEEVE": {
+          "pass": true,
+          "detail": ""
+        }
+      },
+      "negative_tests": {
+        "TN-F04:NEG_STALE_CAPITAL_NEVER_BLOCKS_EXIT": {
+          "pass": true,
+          "detail": ""
+        }
+      },
+      "summary": {
+        "total_rows": 5,
+        "rows": {
+          "APPLIES_PROPOSED": {
+            "count": 5,
+            "ids": [
+              "TN-F04",
+              "ENG-VAL-01",
+              "ENG-VAL-02",
+              "ENG-VAL-03",
+              "ENG-VAL-04"
+            ]
+          }
+        },
+        "total_checks": 4,
+        "passed_checks": 4,
+        "failed_checks": 0,
+        "total_negative_tests": 1,
+        "passed_negative_tests": 1,
+        "failed_negative_tests": 0
+      }
+    }
+  },
+  "mutation_controls": [
+    {
+      "label": "half_sleeve",
+      "mutation": {
+        "old": "copy_size = round(abs(before), 8)",
+        "new": "copy_size = round(abs(before) * 0.5, 8)"
+      },
+      "mutant_engine_sha256": "7903126b5dffcbbc17c465e9f311a7efb5571aa9c626a3ba5ee2d2a0f8c9c179",
+      "exit_code": 1,
+      "checks": {
+        "ENGINE_SHA256_MATCH": {
+          "pass": false,
+          "detail": "expected=2dfbd571012af67479ee7a2d9e6f1faac6ee5408722a092fb3625450cab51405 actual=7903126b5dffcbbc17c465e9f311a7efb5571aa9c626a3ba5ee2d2a0f8c9c179"
+        },
+        "TN-F04:REDUCE_USES_OWNED_SLEEVE": {
+          "pass": false,
+          "detail": "copy_size=2.5 decision=EXIT_ALLOWED reason=EXIT"
+        },
+        "TN-F04:FULL_CLOSE_TARGETS_OWNED_SLEEVE": {
+          "pass": false,
+          "detail": "copy_size=2.5 decision=EXIT_ALLOWED"
+        },
+        "TN-F04:NEG_RESTART_PRESERVES_OWNED_SLEEVE": {
+          "pass": true,
+          "detail": ""
+        }
+      },
+      "negative_tests": {
+        "TN-F04:NEG_STALE_CAPITAL_NEVER_BLOCKS_EXIT": {
+          "pass": true,
+          "detail": ""
+        }
+      },
+      "stdout": "============================================================\r\nENGINE_RESIDUAL certification harness\r\nCommit: 2a269ad2260270fee844eedc2cc23545abc91dd0\r\nEngine: 7903126b5dffcbbc17c465e9f311a7efb5571aa9c626a3ba5ee2d2a0f8c9c179\r\n============================================================\r\n  CHECK::ENGINE_SHA256_MATCH::FAIL | expected=2dfbd571012af67479ee7a2d9e6f1faac6ee5408722a092fb3625450cab51405 actual=7903126b5dffcbbc17c465e9f311a7efb5571aa9c626a3ba5ee2d2a0f8c9c179\r\n\r\n=== TN-F04: Exit sizing proportional to owned quantity ===\r\n  CHECK::TN-F04:REDUCE_USES_OWNED_SLEEVE::FAIL | copy_size=2.5 decision=EXIT_ALLOWED reason=EXIT\r\n  CHECK::TN-F04:FULL_CLOSE_TARGETS_OWNED_SLEEVE::FAIL | copy_size=2.5 decision=EXIT_ALLOWED\r\n  NEG::TN-F04:NEG_STALE_CAPITAL_NEVER_BLOCKS_EXIT::PASS\r\n  CHECK::TN-F04:NEG_RESTART_PRESERVES_OWNED_SLEEVE::PASS\r\n\r\n============================================================\r\nRESULT: 1/4 checks PASS\r\nNEGATIVE: 1/1 PASS\r\nFAILED CHECKS:\r\n  ENGINE_SHA256_MATCH: expected=2dfbd571012af67479ee7a2d9e6f1faac6ee5408722a092fb3625450cab51405 actual=7903126b5dffcbbc17c465e9f311a7efb5571aa9c626a3ba5ee2d2a0f8c9c179\r\n  TN-F04:REDUCE_USES_OWNED_SLEEVE: copy_size=2.5 decision=EXIT_ALLOWED reason=EXIT\r\n  TN-F04:FULL_CLOSE_TARGETS_OWNED_SLEEVE: copy_size=2.5 decision=EXIT_ALLOWED\r\nOutput: C:\\Users\\wigmore\\.hermes\\kanban\\workspaces\\t_b0df04df\\run\\tn_f04_mut_half_sleeve.json\r\n============================================================\r\n",
+      "stderr": ""
+    },
+    {
+      "label": "config_notional",
+      "mutation": {
+        "old": "copy_size = round(abs(before), 8)",
+        "new": "copy_size = round(self._copy_notional(wallet, fill) / fill.price, 8)"
+      },
+      "mutant_engine_sha256": "f623c393fc2eef83776a9cdcfa94bf010a382693e87c686ecb8b495f688c663e",
+      "exit_code": 1,
+      "checks": {
+        "ENGINE_SHA256_MATCH": {
+          "pass": false,
+          "detail": "expected=2dfbd571012af67479ee7a2d9e6f1faac6ee5408722a092fb3625450cab51405 actual=f623c393fc2eef83776a9cdcfa94bf010a382693e87c686ecb8b495f688c663e"
+        },
+        "TN-F04:REDUCE_USES_OWNED_SLEEVE": {
+          "pass": false,
+          "detail": "copy_size=10.0 decision=EXIT_ALLOWED reason=EXIT"
+        },
+        "TN-F04:FULL_CLOSE_TARGETS_OWNED_SLEEVE": {
+          "pass": false,
+          "detail": "copy_size=10.0 decision=EXIT_ALLOWED"
+        },
+        "TN-F04:NEG_RESTART_PRESERVES_OWNED_SLEEVE": {
+          "pass": true,
+          "detail": ""
+        }
+      },
+      "negative_tests": {
+        "TN-F04:NEG_STALE_CAPITAL_NEVER_BLOCKS_EXIT": {
+          "pass": false,
+          "detail": "decision=MANUAL_REVIEW reason=leader equity unavailable; proportional copy not sized"
+        }
+      },
+      "stdout": "============================================================\r\nENGINE_RESIDUAL certification harness\r\nCommit: 2a269ad2260270fee844eedc2cc23545abc91dd0\r\nEngine: f623c393fc2eef83776a9cdcfa94bf010a382693e87c686ecb8b495f688c663e\r\n============================================================\r\n  CHECK::ENGINE_SHA256_MATCH::FAIL | expected=2dfbd571012af67479ee7a2d9e6f1faac6ee5408722a092fb3625450cab51405 actual=f623c393fc2eef83776a9cdcfa94bf010a382693e87c686ecb8b495f688c663e\r\n\r\n=== TN-F04: Exit sizing proportional to owned quantity ===\r\n  CHECK::TN-F04:REDUCE_USES_OWNED_SLEEVE::FAIL | copy_size=10.0 decision=EXIT_ALLOWED reason=EXIT\r\n  CHECK::TN-F04:FULL_CLOSE_TARGETS_OWNED_SLEEVE::FAIL | copy_size=10.0 decision=EXIT_ALLOWED\r\n  NEG::TN-F04:NEG_STALE_CAPITAL_NEVER_BLOCKS_EXIT::FAIL | decision=MANUAL_REVIEW reason=leader equity unavailable; proportional copy not sized\r\n  CHECK::TN-F04:NEG_RESTART_PRESERVES_OWNED_SLEEVE::PASS\r\n\r\n============================================================\r\nRESULT: 1/4 checks PASS\r\nNEGATIVE: 0/1 PASS\r\nFAILED CHECKS:\r\n  ENGINE_SHA256_MATCH: expected=2dfbd571012af67479ee7a2d9e6f1faac6ee5408722a092fb3625450cab51405 actual=f623c393fc2eef83776a9cdcfa94bf010a382693e87c686ecb8b495f688c663e\r\n  TN-F04:REDUCE_USES_OWNED_SLEEVE: copy_size=10.0 decision=EXIT_ALLOWED reason=EXIT\r\n  TN-F04:FULL_CLOSE_TARGETS_OWNED_SLEEVE: copy_size=10.0 decision=EXIT_ALLOWED\r\nFAILED NEGATIVE TESTS:\r\n  TN-F04:NEG_STALE_CAPITAL_NEVER_BLOCKS_EXIT: decision=MANUAL_REVIEW reason=leader equity unavailable; proportional copy not sized\r\nOutput: C:\\Users\\wigmore\\.hermes\\kanban\\workspaces\\t_b0df04df\\run\\tn_f04_mut_config_notional.json\r\n============================================================\r\n",
+      "stderr": ""
+    }
+  ],
+  "row_bound": {
+    "claim": "EXIT sizing = abs(engine-owned sleeve), independent of fixed_notional and leader fill size",
+    "observed": {
+      "half_sleeve": {
+        "TN-F04:REDUCE_USES_OWNED_SLEEVE": false,
+        "TN-F04:FULL_CLOSE_TARGETS_OWNED_SLEEVE": false,
+        "TN-F04:NEG_RESTART_PRESERVES_OWNED_SLEEVE": true
+      },
+      "config_notional": {
+        "TN-F04:REDUCE_USES_OWNED_SLEEVE": false,
+        "TN-F04:FULL_CLOSE_TARGETS_OWNED_SLEEVE": false,
+        "TN-F04:NEG_RESTART_PRESERVES_OWNED_SLEEVE": true
+      }
+    }
+  },
+  "live_repo_touched": false,
+  "caveats": [
+    "TN-F04:REDUCE_USES_OWNED_SLEEVE accepts decision in {EXIT_ALLOWED, ENTRY_ALLOWED}; sizing assertion exact, decision accept set wider than the name implies.",
+    "Artifact cites engine sha 2dfbd571 (commit 2a269ad); branch HEAD worktree carries b171ec8f. Row is bound to the cited commit, not HEAD."
+  ],
+  "generated_at_utc": "2026-10-18T17:54:38Z",
+  "repeat_run_summary_identical": true
+}
