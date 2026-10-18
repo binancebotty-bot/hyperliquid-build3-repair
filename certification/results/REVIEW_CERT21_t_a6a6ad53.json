@@ -1,0 +1,142 @@
+{
+ "review_card": "t_a6a6ad53",
+ "reviewed_card": "t_76bff4bb",
+ "reviewed_branch": "hermes/cert-21-net-health-ctrl-i1-i6-t_76bff4bb",
+ "reviewed_head": "9f26a022a81a1a5cbb953f6233e7a3fb17df91b7",
+ "author_reported_head": "9f26a022a81a1a5cbb953f6233e7a3fb17df91b7",
+ "head_matches_author": true,
+ "reviewer_model": "deepseek-v4-flash-thinking-nosearch (review lane t_a6a6ad53)",
+ "artifact_reviewed": "certification/results/CERT21_ROWS_t_76bff4bb.json @ 9f26a02 (10391 bytes)",
+ "register": "origin/cert/local-main-b142cf8",
+ "register_tip_observed": "f4ee2bb18dc6781940772cb088e9a476585030e4",
+ "rows": [
+  {
+   "row_id": "NET-006",
+   "verdict": "FAIL",
+   "probe": "Resolved every BASE_DIR-anchored path in the tested engine and asked which are per-network vs shared: grep -n 'BASE_DIR /' engine.py; sed -n '60,70p;110,140p'; grep -n MANUAL_WALLETS_FILE (read at 1954-1958); grep -c cloid = 0.",
+   "why": "DEMOTED from author PASS. The author justification covers only AUDIT_DIR/instance-lock, and that half is TRUE (engine.py:107 _NETWORK_AUDIT_DIR is per-FOLLOWER_NETWORK, 111 honours HL_LIVE_AUDIT_DIR, 7933/7987 acquire_instance_lock(AUDIT_DIR)). But the row also forbids sharing credentials, config files and order identity, and those are NOT isolated: ENV_FILE defaults to BASE_DIR.parent/hl_stage2.env (engine.py:65-66) and is loaded unconditionally at import (line 94) with NO network component in the path, so a mainnet-follower and a testnet-follower started from the same checkout read the SAME credential file; MANUAL_WALLETS_FILE is BASE_DIR/manual_wallets.txt (137) and is READ at runtime by ConfigManager.wallets() (1954-1958) when config carries no wallets, again identical for both networks; WALLET_GATE_FILE/UI_STATE_FILE are also BASE_DIR-anchored (138-139). Order identity is not namespaced at all: grep -c cloid engine.py = 0. The row text (without sharing ... credentials) is therefore violated even though locks and state files are correctly separated."
+  },
+  {
+   "row_id": "NET-007",
+   "verdict": "FAIL",
+   "probe": "Read the actual check detail, not the row name: NET_LIFE_SETTLE checks[NET-007:CERT_LEADER_MAINNET_FOLLOWER_TESTNET] -> detail 'cert: leader=mainnet, follower=testnet'; compared with the NET-003 pair which carry the same shape.",
+   "why": "UPHELD FAIL. The check asserts topology only and its detail is the same kind of statement as NET-003 two checks (leader=mainnet, follower=testnet). exchange_truth.resolve_networks() maps a network NAME to a host; it never reads a leader address, never verifies an active third-party leader, and no leader fill in the artifact is attributed to a real mainnet wallet. A synthetic mainnet-labelled leader passes this check identically, so it cannot test 'no synthetic or self-controlled leader'."
+  },
+  {
+   "row_id": "NET-004",
+   "verdict": "FAIL",
+   "probe": "Counted the two required artefacts directly in the tested commit: grep -c MAINNET_WRITE_ACTIONS engine.py = 0; grep -c 'authorised_by|authorized_by' engine.py = 0; inspected send_if_allowed 3243-3252 (single env/config boolean).",
+   "why": "UPHELD FAIL. Row needs (a) an authorisation RECORD and (b) MAINNET_WRITE_ACTIONS=0. Neither exists in the product: no write-action counter symbol anywhere, no authorisation field, no record in the register. The only evidence is one configuration equality (auto_send_enabled false) plus 'return False, MASTER_REAL_ORDERS_OFF'. Product miss, not a tooling gap."
+  },
+  {
+   "row_id": "NET-005",
+   "verdict": "NOT_TESTED",
+   "probe": "Tried to bind the certified SHA to a serving mainnet process: looked for a deployed digest / process binding in artifact and register; also found the register branch ships a DIFFERENT engine file than the certified commit (see cross_findings).",
+   "why": "UPHELD NOT_TESTED. The check hashes a local file (sha256=2dfbd571... re-derived identical at fa9d9f55 and fefc2b04). That proves one source, not that the exact SHA serves on mainnet. No mainnet process, deployed-artefact digest or exchange-side identity is cited. I cannot disprove the claim because no probe for it exists anywhere in the branch - recorded as untested, not as a pass."
+  },
+  {
+   "row_id": "HEALTH-001",
+   "verdict": "FAIL",
+   "probe": "grep -c HL_LIVE_WS_STALE_MS engine.py = 0; found the real threshold at 4924 HL_LIVE_WS_SUBSCRIBED_STALE_MS default 4*60*60*1000; reproduced the consequence on live capture files.",
+   "why": "UPHELD FAIL, code half proven twice. The register demands per-wallet staleness flagged above HL_LIVE_WS_STALE_MS=30000. The tested commit has ZERO occurrences of that name; write_health compares against a 4-HOUR default. Consequence reproduced independently of the author citation: .hermes/cache/scratch/sA_gz/live_ws_health.json (created 2026-10-17T13:22:01Z) shows wallet 0x1b232b41b0e75550c59288b99874e4a8142fbe21 with stale_ms=1799068 (29.9 min) and stale=false; .../hl_live_copy_audit/live_ws_health.json (2026-10-09) shows four wallets at ~593960 ms (9.9 min) all stale=false. A 30 s threshold must flag every one. NOTE ON THE AUTHOR CITATION: the runtime path they gave (C:/Users/wigmore/.hermes/hl_live_copy_audit/live_ws_health.json) does not exist and their stale_ms=7967947 was not reproducible; the row verdict is unchanged because the code default alone proves the miss."
+  },
+  {
+   "row_id": "HEALTH-002",
+   "verdict": "FAIL",
+   "probe": "Ran the committed harness end-to-end from a fresh materialisation of the register branch (10/10 PASS reproduced), then ran a 4-mutant mutation control; separately traced WHICH poll the field measures: grep -n last_copy_poll_ms engine.py; sed -n '6421-6425p;6455-6475p'.",
+   "why": "DEMOTED from author PASS. The harness is genuinely non-vacuous - I mutated the engine and every check flipped to FAIL: M1 rename last_copy_poll_age_ms -> 'ASSERT: not found in SERVICE_STATE_FILE'; M2 flip the comparison -> 'Expected COPY_POLL_STALE, got \"\"'; M3 drop the increment -> 'network_errors should be > 0, got 0'; M4 force send_block_reason empty -> 'Expected MASTER_REAL_ORDERS_OFF'. Tooling sound. The PASS still fails the ROW: the row asks for the age of the last MASTER truth read and for staleness to BLOCK SIZING. The measured field is last_copy_poll_ms, set after poll_copy_account_fills() - the FOLLOWER copy-account poll (6423 cursor, 6457 stamp) - not a master-truth read; master truth is the snapshot refresh stamped in last_exchange_snapshot_refresh_ms (6459-6467), whose age is never surfaced. The gate it exercises (6348 -> _entry_sends_blocked_reason) blocks only ENTRY/ADD lifecycle sends at send_if_allowed 3251-3254; sizing is never consulted. Right test, wrong subject."
+  },
+  {
+   "row_id": "HEALTH-003",
+   "verdict": "FAIL",
+   "probe": "Asked whether the blocking reason the row names is reachable and published: grep -c FIXED_MODE_AUTHORITY_HOLD engine.py = 0; grep -c ACCOUNT_NET_TRUTH_UNAVAILABLE engine.py = 0; enumerated the state payload (5899-5935) and every use of _entry_sends_blocked_reason (6026, 6057, 6364, 6420).",
+   "why": "DEMOTED from author PASS. The harness checks that CycleSummary.send_block_reason reads MASTER_REAL_ORDERS_OFF when auto-send is off and empty when on - that pair is real and mutation-sensitive, but it reports the AUTO-SEND FLAG, not the blocking reason. The row own examples (FIXED_MODE_AUTHORITY_HOLD, ACCOUNT_NET_TRUTH_UNAVAILABLE) occur ZERO times in the engine. The real cycle-level block reason lives in self._entry_sends_blocked_reason (WS_FEED_STALE, COPY_POLL_STALE, UNRECONCILED_FILLED_SENDS, TOO_MANY_ACTIVE_WALLETS, DAILY_LOSS_*) and is NEVER written into the state payload - the payload is asdict(summary) plus fixed keys, and CycleSummary has no such field. An operator reading live_service_state.json cannot see why entries are blocked."
+  },
+  {
+   "row_id": "HEALTH-004",
+   "verdict": "FAIL",
+   "probe": "Read both checks and tested whether a counter can distinguish per-key from global: harness 240-300; grep -n network_errors engine.py (1889, 6390, 6475).",
+   "why": "UPHELD FAIL. network_errors is a scalar that increments on any poll failure (6390, 6475) and is never keyed by wallet/coin. Neither check induces a per-key block, shows a sibling key still trading, nor enumerates the five account-wide hazards. A counter that cannot fail the per-key property does not test local failure isolation."
+  },
+  {
+   "row_id": "HEALTH-005",
+   "verdict": "NOT_TESTED",
+   "probe": "Inspected all 10 checks in HEALTH_CORRECTION_fefc2b04.json for any that runs diagnostics alongside an execution delta.",
+   "why": "UPHELD NOT_TESTED. All ten checks are HEALTH-002/003/004 and TN-F15 freshness probes; none juxtaposes certification/UI/Graphify/watchdog diagnostics with a legitimate execution delta. The gap is named exactly and I cannot disprove the claim because nothing probes it."
+  },
+  {
+   "row_id": "CTRL-I1",
+   "verdict": "FAIL",
+   "probe": "Recomputed the check-name/detail sets over all 53 control rows: Counter over checks[1:] and over the row-named checks[0]; printed I1 first check.",
+   "why": "UPHELD FAIL, numbers reproduce. 53 distinct full check-lists, exactly 1 distinct checks[1:] list of size 23 - the other 23 checks are byte-identical in every one of the 53 rows (FOUR_LEG_PROOF, GATE0/1/2_PASS, ...). I1 only row-named check AUTHORITY_IS_LOGICAL_ROLE_PROVENANCE carries detail 'Gate0: BINDING_AUTHORITY=PASS' - a pointer to Gate0 boilerplate. The row oracle (control-mailbox git log with exact SHAs plus a consumer receipt) is never joined to I1."
+  },
+  {
+   "row_id": "CTRL-I2",
+   "verdict": "FAIL",
+   "probe": "Same recomputation; read I2 first check detail and looked for a channel inventory or an absence proof.",
+   "why": "UPHELD FAIL. ONE_CANONICAL_PROJECT_ROLE_CHANNEL = 'Gate0: BINDING_AUTHORITY=PASS proves canonical channel' restates the row. No enumeration of channels and no proof a second channel is absent. The 23 supporting checks are shared verbatim with all 52 other rows, so nothing in I2 is row-bound."
+  },
+  {
+   "row_id": "CTRL-I3",
+   "verdict": "FAIL",
+   "probe": "Same recomputation; searched I3 check detail for a SHA, path or re-derivable command.",
+   "why": "UPHELD FAIL. GIT_IS_DURABLE_TRUTH = 'All evidence on origin/control-mailbox branch; chat is interface only' - a summary sentence with no SHA, no path and no re-derivable command. The row git-log plus durable-receipt oracle is never exercised; the supporting 23 checks are the carried set."
+  },
+  {
+   "row_id": "CTRL-I4",
+   "verdict": "FAIL",
+   "probe": "Same recomputation; looked for the discriminating negative (a delivery with no push, or a poll-only path failing).",
+   "why": "UPHELD FAIL. EVENT_PUSH_IS_NORMAL_DELIVERY_TRIGGER = 'Control-mailbox uses event-push delivery; no polling' is an architectural assertion. No negative case exists; the remaining 23 checks are identical across all 53 rows."
+  },
+  {
+   "row_id": "CTRL-I5",
+   "verdict": "FAIL",
+   "probe": "Independently re-resolved the cited mailbox commit and counted trees: git rev-parse 8dbb947...^{commit} OK; git ls-tree -r --name-only 8dbb947 | grep -c '^control_mailbox/' = 275; origin/control-mailbox tip 97d8e350 -> 282.",
+   "why": "UPHELD FAIL, and the author numbers reproduce exactly. The check detail (git fetch proves remote ref; fetch failure would detect absence) describes what WOULD happen. The absence branch is untested and the cited commit demonstrably EXISTS with 275 paths (tip has 282), so the absence case cannot have been exercised."
+  },
+  {
+   "row_id": "CTRL-I6",
+   "verdict": "FAIL",
+   "probe": "Same recomputation; looked for deposit-without-receipt and delivered-but-unread probes in artifact and mailbox.",
+   "why": "UPHELD FAIL. DEPOSIT_IS_NOT_SEND_DELIVERY_IS_NOT_CONSUMPTION is discharged by 'Gate0: BINDING_AUTHORITY=PASS proves semantic consumption' - a pointer at the very distinction this project has repeatedly burned itself on. Neither discriminating probe exists. The 23 supporting checks are carried across all 53 rows."
+  }
+ ],
+ "summary": {
+  "rows_total": 15,
+  "pass": 0,
+  "fail": 13,
+  "not_tested": 2,
+  "author_claimed": {
+   "PASS": 3,
+   "FAIL": 10,
+   "NOT_TESTED": 2
+  },
+  "demoted_below_author": [
+   "NET-006",
+   "HEALTH-002",
+   "HEALTH-003"
+  ],
+  "upheld_author": [
+   "NET-007",
+   "NET-004",
+   "NET-005",
+   "HEALTH-001",
+   "HEALTH-004",
+   "HEALTH-005",
+   "CTRL-I1",
+   "CTRL-I2",
+   "CTRL-I3",
+   "CTRL-I4",
+   "CTRL-I5",
+   "CTRL-I6"
+  ]
+ },
+ "cross_findings": [
+  "REGISTER-BRANCH ENGINE IS NOT THE CERTIFIED ENGINE: git cat-file origin/cert/local-main-b142cf8:_archive/hl_stage2/HL_Live_Copy_Service_Core.py | sha256sum = b171ec8fef01ead5ed2fe4a4a075857b5b1a56e425bab8394440c7dbad57f2a0, but the certified commit fa9d9f55 blob = 2dfbd571012af67479ee7a2d9e6f1faac6ee5408722a092fb3625450cab51405. git diff shows 13 insertions / 1 deletion (an ENV_NAME_ALIASES block). The author engine_sha256 is correct FOR THE COMMIT, but anyone opening the file on the register branch reads a different program than the one certified.",
+  "AUTHOR CITATION DEFECT (non-outcome-changing): the HEALTH-001 runtime reference C:/Users/wigmore/.hermes/hl_live_copy_audit/live_ws_health.json does not exist; the value stale_ms=7967947 was not reproducible. HEALTH-001 remains FAIL on the code half, which I proved independently.",
+  "REGISTER DRIFT CHECK CLEAN: all 15 row records are byte-identical between b142cf8 and the branch tip f4ee2bb (recomputed, 0 differing rows), so the author ref-name note is accurate and does not affect verdicts.",
+  "NET-006 failing half is narrow and fixable: the instance lock and state dirs ARE per-network; only the BASE_DIR-anchored credentials file (hl_stage2.env) and manual_wallets.txt are shared. A per-network env file and per-network manual-wallets path close it."
+ ],
+ "overall_verdict": "FAIL",
+ "method_note": "Every row was decided from the committed object at 9f26a02 and from the register branch, not from the author summary. Harness results were reproduced by re-running the committed harness on a fresh copy (10/10 PASS), and its non-vacuity was established by a 4-mutant control that flipped each attacked check to FAIL."
+}
