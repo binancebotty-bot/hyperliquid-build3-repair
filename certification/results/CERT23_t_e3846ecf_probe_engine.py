@@ -1,7 +1,7 @@
 import os, sys, json, shutil
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, os.environ.get('CERT23_ENGINE_DIR') or str(Path(__file__).resolve().parent))
 import engine as E
 
 WALLET = '0x' + '1' * 40

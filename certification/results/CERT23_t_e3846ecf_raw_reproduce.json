@@ -1,0 +1,1337 @@
+{
+ "B4-I01": {
+  "control_works": "n/a",
+  "measured": {
+   "fixed_sleeves": {},
+   "leader_event_positions": {},
+   "pre_baseline_result": {
+    "processed": false,
+    "reason": "BASELINE_CREATED_FROM_WS"
+   },
+   "processed_ids": []
+  },
+  "mutation_control": {
+   "baseline_ts_ms": 500,
+   "control_works": true,
+   "predicate_non_vacuous": true,
+   "processed_ids": [
+    "f1"
+   ],
+   "same_fill_result": {
+    "processed": true,
+    "reason": "LIVE_WS_DETECTED"
+   }
+  }
+ },
+ "B4-I02": {
+  "control_works": "n/a",
+  "measured": {
+   "after_fixed_sleeves": {},
+   "after_leader_event_positions": {},
+   "restart_leader_event_positions": {},
+   "stale_fill_result": {
+    "processed": false,
+    "reason": "WS_BEFORE_BASELINE"
+   }
+  }
+ },
+ "B4-I03": {
+  "control_works": "n/a",
+  "measured": {
+   "acceptances_of_dup1": 1,
+   "one_logical_stream": true,
+   "rest_result": null,
+   "ws_result": {
+    "processed": true,
+    "reason": "LIVE_WS_DETECTED"
+   }
+  }
+ },
+ "B4-I04": {
+  "control_works": "n/a",
+  "measured": {
+   "inflation_ratio": 3.0,
+   "net_equals_missed": false,
+   "one_net_event_same_magnitude_slices": 1,
+   "three_missed_increases_slices": 3
+  }
+ },
+ "B4-I05": {
+  "control_works": "n/a",
+  "measured": {
+   "engine_429_occurrences": 0,
+   "engine_retry_after_occurrences": 0,
+   "event_consumed_on_truth_failure": true,
+   "exception": null,
+   "leader_event_positions": {
+    "0x1111111111111111111111111111111111111111::BTC": 1.0
+   },
+   "master_truth_address": "",
+   "processed_ids": [
+    "g1"
+   ],
+   "reconciliation_rows_mentioning_event": 1
+  }
+ },
+ "B4-I06": {
+  "control_works": "n/a",
+  "measured": {
+   "call_has_client_id_kwarg": false,
+   "client_order_id_occurrences": 0,
+   "cloid_occurrences": 0,
+   "exchange_order_call_sites": 1,
+   "exchange_order_call_text": "exchange.order( canonical_coin, side == \"BUY\", wire_size, wire_limit_px, {\"limit\": {\"tif\": \"Ioc\"}}, reduce_only=reduce_only, )"
+  },
+  "mutation_control": {
+   "control_works": true,
+   "injected": "cloid=\"mut\" as first argument of exchange.order(",
+   "mutated_call_has_kwarg": true,
+   "mutated_cloid_occurrences": 1
+  }
+ },
+ "B4-I07": {
+  "control_works": "n/a",
+  "measured": {
+   "order_call_line": 1036,
+   "presend_follower_truth_present": false,
+   "repo_wide_follower_truth_call_count": 0,
+   "send_caller_function": {
+    "end": 1433,
+    "follower_truth_calls": [],
+    "position_before_source_lines": [
+     "position_before = fnum((positions.get(coin_key) or {}).get(\"signed_size\")) if isinstance(positions.get(coin_key), dict) else 0.0",
+     "if position_before == 0:"
+    ],
+    "positions_source_lines": [
+     "positions = load_manual_live_positions()"
+    ],
+    "start": 1124
+   },
+   "send_function": {
+    "end": 1123,
+    "follower_truth_calls": [],
+    "start": 936
+   }
+  },
+  "mutation_control": {
+   "control_works": true,
+   "detector_finds_truth_in_mutated_caller_scope": [
+    "info.user"
+   ],
+   "injected": "info.user_state(...) replacing the local load_manual_live_positions() read in the send caller scope",
+   "injection_point_found": true
+  }
+ },
+ "B4-I08": {
+  "control_works": "n/a",
+  "measured": {
+   "any_exclusion_primitive": false,
+   "lease_contexts": [
+    "\"\"\"ONLY wallets with a VALID attributed sleeve ledger are released from the hold. A wallet with no entry, or ",
+    "OLD. Returning 0.0 for everything would silently release fixed mode to a zero-desired-net path (false green) --",
+    "ntent_id: str, terminal_status: str) -> None: \"\"\"Release the in-flight reservation ONLY for its own intent and ",
+    " acc[\"source_fill_ids\"] = [] acc[\"released_at\"] = utc_now_iso() return True, total,"
+   ],
+   "lease_occurrences": 4,
+   "order_call_sites": 1,
+   "token_counts": {
+    "CreateMutex": 0,
+    "already running": 0,
+    "fcntl": 0,
+    "fence": 0,
+    "filelock": 0,
+    "lock_file": 0,
+    "lockfile": 0,
+    "msvcrt": 0,
+    "pidfile": 0,
+    "portalocker": 0,
+    "singleton": 0
+   }
+  },
+  "mutation_control": {
+   "control_works": true,
+   "injected": "import msvcrt + _sender_fence() using msvcrt.locking appended to source",
+   "mutated_token_counts_nonzero": {
+    "fence": 1,
+    "msvcrt": 2
+   }
+  }
+ },
+ "CTRL-EVID": {
+  "control_works": "n/a",
+  "measured": {
+   "field_matrix": {
+    "COMMIT_SHA": {
+     "in_handoff": [
+      {
+       "id": "B3-C2H-DELIVERY-HARDENING-RR1-REPLY-1",
+       "type": "RESPONSE"
+      },
+      {
+       "id": "B3-C2H-DELIVERY-HARDENING-RR2-REPLY-1",
+       "type": "RESPONSE"
+      },
+      {
+       "id": "B3-C2H-DELIVERY-HARDENING-AMEND-F-REPLY-1",
+       "type": "RESPONSE"
+      },
+      {
+       "id": "B3-C2H-DUPLICATE-REPLAY-ACK-1",
+       "type": "STATUS"
+      },
+      {
+       "id": "B3-C2H-G3-HOLD-CONFIRM-1",
+       "type": "STATUS"
+      },
+      {
+       "id": "B3-C2H-REALIGN-CFF93B-ACK-1",
+       "type": "RESULT"
+      }
+     ],
+     "in_handoff_count": 6,
+     "outside_handoff": [
+      {
+       "id": "B3-C2H-G0-REMAINDER-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2A-GATE0-PASS-1",
+       "type": "GATE_STATUS_TRANSITION"
+      },
+      {
+       "id": "B3-C2H-G1-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2A-G1-PASS-1",
+       "type": "GATE_STATUS_TRANSITION"
+      },
+      {
+       "id": "B3-C2H-G2-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-G2-FAIL-1",
+       "type": "RULING"
+      },
+      {
+       "id": "B3-C2A-G2-AUTHORITY-CONFLICT-1",
+       "type": "ESCALATION"
+      },
+      {
+       "id": "B3-C2H-G2-CORRECTION-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-G2-CORRECTION-FAIL-2",
+       "type": "RULING"
+      },
+      {
+       "id": "B3-C2A-G2-SCOPE-ESCALATION-2",
+       "type": "ESCALATION"
+      },
+      {
+       "id": "B3-C2H-G2-FINAL-CORRECTION-2",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-G2-FINAL-FAIL-3",
+       "type": "RULING"
+      },
+      {
+       "id": "B3-C2A-G2-FINAL-AUDIT-ESCALATION-3",
+       "type": "ESCALATION"
+      },
+      {
+       "id": "B3-C2H-G2-FINAL-AUDIT-CORRECTION-3",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-G2-EVIDENCE-CORRECTION-4",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2A-G2-PASS-1",
+       "type": "GATE_STATUS_TRANSITION"
+      },
+      {
+       "id": "B3-C2H-G3-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-G3-FAIL-1",
+       "type": "RULING"
+      },
+      {
+       "id": "B3-C2A-G3-AUTHORITY-SCOPE-ESCALATION-1",
+       "type": "ESCALATION"
+      },
+      {
+       "id": "B3-C2H-G3-CORRECTION-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2A-G3-TRIPWIRE-ESCALATION-2",
+       "type": "ESCALATION"
+      },
+      {
+       "id": "B3-C2A-G3-FINAL-BLOCKER-3",
+       "type": "ESCALATION"
+      },
+      {
+       "id": "B3-C2H-MD-P0-HOLD-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-P0-BIND-BUILD3-INGRESS-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-INGRESS-RESULT-1",
+       "type": "NOTIFICATION"
+      },
+      {
+       "id": "B3-C2H-P0-INGRESS-PARTIAL-RULING-1",
+       "type": "RULING"
+      },
+      {
+       "id": "B3-A2H-ROLE-RESET-P0-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-P0-C2H-LATENCY-TRACE-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-Z9-DURABLE-TRANSCRIPT-READER-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-Z9-DERIVE-DURABLE-READER-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-Z9-DECOUPLE-PROGRESS-FROM-EXIT-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-Z9-STAMP-CONFIRMED-REENTRY-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-Z9-CORRELATE-WAKE-TO-TURNSTART-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-Z9-USE-TURNCONTEXT-CORRELATION-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-P0-CANONICAL-PICKUP-PROOF-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-P0-FIX-UNSEEN-PUSH-CONSUMER-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-A2H-MINIMAL-CONTROL-LOOP-FREEZE-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-MINIMAL-RESUME-GATE-2",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-GRAPHIFY-THEN-G3-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-MINIMAL-RESUME-GATE-3B",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-MINIMAL-RESUME-GATE-3B",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-MINIMAL-RESUME-GATE-3B",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-MINIMAL-RESUME-GATE-3B",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-G3-DURABLE-CLOBBER-RESUME-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2A-G3-PASS-ARCHITECT-GATE-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2A-G3-PASS-ARCHITECT-GATE-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-DELIVER-PENDING-ARCHITECT-GATE-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-GRAPHIFY-REFRESH-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-G4-EVIDENCE-RECOVERY-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2A-G4-AUTHORITY-ESCALATION-1",
+       "type": "ESCALATION"
+      },
+      {
+       "id": "B3-C2H-G4-LOCATE-ARCHIVED-UI-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-G4-LOCATE-ORIGINAL-HL_STAGE2-UI-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-DELIVER-G4-ARCHITECT-RULING-REQUEST-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-G4-IMPLEMENT-8014-SLEEVES-ORIGINAL-UI-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-RECOVER-WAKE-G4-IMPLEMENT-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-G4-EVIDENCE-CORRECTION-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-P0-HERMES-CONTROLLER-ONLY-FINAL-READ-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-SIMPLIFY-HERMES-REPORTING-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-G4-RESPONSE2-RULING-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-G4-C1-GLOBAL-ORDER-CAP-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-G4-C1-FLIP-CAP-CORRECTION-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-G4-C1-PLANNER-CAP-CORRECTION-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-G4-C1-AGGREGATE-CAP-PROOF-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-G4-C2A-MARK-SOURCE-INVENTORY-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2A-G4-F3-MARK-AUTHORITY-RULING-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-G4-C2A-PASS-AWAIT-ARCHITECT-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-BOOT-85392E-ALIGNMENT-DISPOSITION-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-HANDOVER-CONTROL-DISPOSITION-B2C1E2-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-HANDOVER-RECEIVER-FINAL-ALIGN-B2C1E2-1",
+       "type": "DIRECTIVE"
+      }
+     ],
+     "outside_handoff_count": 69,
+     "total_envelopes_carrying": 75
+    },
+    "FILES_CHANGED": {
+     "in_handoff": [],
+     "in_handoff_count": 0,
+     "outside_handoff": [
+      {
+       "id": "B3-C2A-G2-SCOPE-ESCALATION-2",
+       "type": "ESCALATION"
+      },
+      {
+       "id": "B3-C2H-WAKE-REALIGN-1",
+       "type": "RULING"
+      },
+      {
+       "id": "B3-C2H-P0-FIX-UNSEEN-PUSH-CONSUMER-1",
+       "type": "DIRECTIVE"
+      }
+     ],
+     "outside_handoff_count": 3,
+     "total_envelopes_carrying": 3
+    },
+    "LOC": {
+     "in_handoff": [],
+     "in_handoff_count": 0,
+     "outside_handoff": [
+      {
+       "id": "B3-C2H-G2-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-G2-CORRECTION-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-G2-CORRECTION-FAIL-2",
+       "type": "RULING"
+      },
+      {
+       "id": "B3-C2A-G2-SCOPE-ESCALATION-2",
+       "type": "ESCALATION"
+      },
+      {
+       "id": "B3-C2H-G2-FINAL-CORRECTION-2",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-G2-FINAL-FAIL-3",
+       "type": "RULING"
+      },
+      {
+       "id": "B3-C2A-G2-FINAL-AUDIT-ESCALATION-3",
+       "type": "ESCALATION"
+      },
+      {
+       "id": "B3-C2A-G2-PASS-1",
+       "type": "GATE_STATUS_TRANSITION"
+      },
+      {
+       "id": "B3-C2H-G3-TRIPWIRE-HOLD-1",
+       "type": "RULING"
+      },
+      {
+       "id": "B3-C2A-G3-TRIPWIRE-ESCALATION-2",
+       "type": "ESCALATION"
+      },
+      {
+       "id": "B3-C2A-G4-8014-SLICE-SEMANTICS-RULING-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-G4-IMPLEMENT-8014-SLEEVES-ORIGINAL-UI-1",
+       "type": "DIRECTIVE"
+      }
+     ],
+     "outside_handoff_count": 12,
+     "total_envelopes_carrying": 12
+    },
+    "OUTPUT": {
+     "in_handoff": [
+      {
+       "id": "B3-C2H-G3-HOLD-CONFIRM-1",
+       "type": "STATUS"
+      }
+     ],
+     "in_handoff_count": 1,
+     "outside_handoff": [
+      {
+       "id": "B3-C2H-G2-FINAL-AUDIT-CORRECTION-3",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-G2-EVIDENCE-CORRECTION-4",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-MD-P0-HOLD-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-Z9-USE-TURNCONTEXT-CORRELATION-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2A-G3-PASS-ARCHITECT-GATE-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2A-G3-PASS-ARCHITECT-GATE-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-GRAPHIFY-REFRESH-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-G4-EVIDENCE-RECOVERY-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-G4-LOCATE-ORIGINAL-HL_STAGE2-UI-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-G4-AUTHENTICATE-ORIGINAL-UI-FIXED-MODEL-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-G4-IMPLEMENT-8014-SLEEVES-ORIGINAL-UI-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-G4-C1-GLOBAL-ORDER-CAP-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-G4-C1-FLIP-CAP-CORRECTION-1",
+       "type": "DIRECTIVE"
+      }
+     ],
+     "outside_handoff_count": 13,
+     "total_envelopes_carrying": 14
+    },
+    "STAND_DOWN_REQUEST": {
+     "in_handoff": [
+      {
+       "id": "B3-C2H-DELIVERY-HARDENING-RR1-REPLY-1",
+       "type": "RESPONSE"
+      }
+     ],
+     "in_handoff_count": 1,
+     "outside_handoff": [
+      {
+       "id": "B3-C2H-G0-REMAINDER-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-G1-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-G2-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-G2-CORRECTION-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-G2-FINAL-CORRECTION-2",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-G2-FINAL-AUDIT-CORRECTION-3",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-G2-EVIDENCE-CORRECTION-4",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-G3-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-G3-CORRECTION-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-P0-BIND-BUILD3-INGRESS-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-INGRESS-RESULT-1",
+       "type": "NOTIFICATION"
+      },
+      {
+       "id": "B3-C2H-P0-INGRESS-PARTIAL-RULING-1",
+       "type": "RULING"
+      },
+      {
+       "id": "B3-C2H-P0-C2H-LATENCY-TRACE-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-Z9-DURABLE-TRANSCRIPT-READER-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-Z9-DERIVE-DURABLE-READER-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-Z9-DECOUPLE-PROGRESS-FROM-EXIT-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-Z9-STAMP-CONFIRMED-REENTRY-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-Z9-CORRELATE-WAKE-TO-TURNSTART-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-Z9-USE-TURNCONTEXT-CORRELATION-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-Z9-WAKE-ARCHITECT-RULING-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "PVB2-CARRIER-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "PVB2-CARRIER-2",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-P0-FIX-UNSEEN-PUSH-CONSUMER-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-A2H-MINIMAL-CONTROL-LOOP-FREEZE-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-MINIMAL-RESUME-GATE-2",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-GRAPHIFY-THEN-G3-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-G3-DURABLE-CLOBBER-RESUME-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-G4-IMPLEMENT-8014-SLEEVES-ORIGINAL-UI-1",
+       "type": "DIRECTIVE"
+      }
+     ],
+     "outside_handoff_count": 28,
+     "total_envelopes_carrying": 29
+    },
+    "TASK_ID": {
+     "in_handoff": [
+      {
+       "id": "B3-C2A-ACK-1",
+       "type": "ACK"
+      },
+      {
+       "id": "B3-C2H-DELIVERY-HARDENING-RR1-REPLY-1",
+       "type": "RESPONSE"
+      },
+      {
+       "id": "B3-A2H-DELIVERY-HARDENING-RR1-REPLY-1",
+       "type": "RESPONSE"
+      },
+      {
+       "id": "B3-C2H-DELIVERY-HARDENING-RR2-REPLY-1",
+       "type": "RESPONSE"
+      },
+      {
+       "id": "B3-A2H-DELIVERY-HARDENING-RR2-REPLY-1",
+       "type": "RESPONSE"
+      },
+      {
+       "id": "B3-C2H-DELIVERY-HARDENING-MD-ROUTE-CORRECTION-1",
+       "type": "STATUS"
+      },
+      {
+       "id": "B3-C2H-G3-TRIPWIRE-ACK-STATUS-1",
+       "type": "STATUS"
+      },
+      {
+       "id": "B3-C2H-DELIVERY-HARDENING-AMEND-F-REPLY-1",
+       "type": "RESPONSE"
+      },
+      {
+       "id": "B3-A2H-DELIVERY-HARDENING-AMEND-F-REPLY-1",
+       "type": "RESPONSE"
+      },
+      {
+       "id": "B3-C2H-DUPLICATE-REPLAY-ACK-1",
+       "type": "STATUS"
+      },
+      {
+       "id": "B3-C2H-G3-HOLD-CONFIRM-1",
+       "type": "STATUS"
+      }
+     ],
+     "in_handoff_count": 11,
+     "outside_handoff": [
+      {
+       "id": "B3-A2B-M1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-A2B-M2",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-A2B-RULING-1",
+       "type": "RULING"
+      },
+      {
+       "id": "B3-C2H-G0-REMAINDER-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2A-GATE0-PASS-1",
+       "type": "GATE_STATUS_TRANSITION"
+      },
+      {
+       "id": "B3-C2H-G1-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2A-G1-PASS-1",
+       "type": "GATE_STATUS_TRANSITION"
+      },
+      {
+       "id": "B3-C2H-G2-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-G2-FAIL-1",
+       "type": "RULING"
+      },
+      {
+       "id": "B3-C2A-G2-AUTHORITY-CONFLICT-1",
+       "type": "ESCALATION"
+      },
+      {
+       "id": "B3-C2H-G2-TRANSPORT-HOLD-1",
+       "type": "RULING"
+      },
+      {
+       "id": "B3-C2H-G2-CORRECTION-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-G2-CORRECTION-FAIL-2",
+       "type": "RULING"
+      },
+      {
+       "id": "B3-C2A-G2-SCOPE-ESCALATION-2",
+       "type": "ESCALATION"
+      },
+      {
+       "id": "B3-C2H-G2-FINAL-CORRECTION-2",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-G2-FINAL-FAIL-3",
+       "type": "RULING"
+      },
+      {
+       "id": "B3-C2A-G2-FINAL-AUDIT-ESCALATION-3",
+       "type": "ESCALATION"
+      },
+      {
+       "id": "B3-C2H-G2-FINAL-AUDIT-CORRECTION-3",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-G2-EVIDENCE-CORRECTION-4",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2A-G2-PASS-1",
+       "type": "GATE_STATUS_TRANSITION"
+      },
+      {
+       "id": "B3-C2H-G3-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-G3-FAIL-1",
+       "type": "RULING"
+      },
+      {
+       "id": "B3-C2A-G3-AUTHORITY-SCOPE-ESCALATION-1",
+       "type": "ESCALATION"
+      },
+      {
+       "id": "B3-C2H-G3-CORRECTION-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-G3-TRIPWIRE-HOLD-1",
+       "type": "RULING"
+      },
+      {
+       "id": "B3-C2A-G3-TRIPWIRE-ESCALATION-2",
+       "type": "ESCALATION"
+      },
+      {
+       "id": "B3-C2H-G3-FINAL-FAIL-2",
+       "type": "RULING"
+      },
+      {
+       "id": "B3-C2A-G3-FINAL-BLOCKER-3",
+       "type": "ESCALATION"
+      },
+      {
+       "id": "B3-C2H-MD-P0-HOLD-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-P0-BIND-BUILD3-INGRESS-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-P0-INGRESS-PARTIAL-RULING-1",
+       "type": "RULING"
+      },
+      {
+       "id": "B3-C2H-WAKE-REALIGN-1",
+       "type": "RULING"
+      },
+      {
+       "id": "B3-A2H-ROLE-RESET-P0-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-P0-C2H-LATENCY-TRACE-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-REENTRY-TRACE-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-Z9-DURABLE-TRANSCRIPT-READER-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-Z9-DERIVE-DURABLE-READER-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-Z9-DECOUPLE-PROGRESS-FROM-EXIT-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-Z9-STAMP-CONFIRMED-REENTRY-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-Z9-CORRELATE-WAKE-TO-TURNSTART-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-Z9-USE-TURNCONTEXT-CORRELATION-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-Z9-CORRELATION-BLOCKER-WAIT-1",
+       "type": "RULING"
+      },
+      {
+       "id": "B3-C2H-Z9-WAKE-ARCHITECT-RULING-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-Z9-AUTHORITY-ESCALATED-NO-GUI-1",
+       "type": "RULING"
+      },
+      {
+       "id": "B3-C2H-Z9-WATCHER-DISCLOSURE-RULING-1",
+       "type": "RULING"
+      },
+      {
+       "id": "B3-C2H-P0-CANONICAL-PICKUP-PROOF-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-P0-FIX-UNSEEN-PUSH-CONSUMER-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-A2H-MINIMAL-CONTROL-LOOP-FREEZE-1",
+       "type": "DIRECTIVE"
+      }
+     ],
+     "outside_handoff_count": 48,
+     "total_envelopes_carrying": 59
+    },
+    "TESTS": {
+     "in_handoff": [
+      {
+       "id": "B3-C2H-DELIVERY-HARDENING-RR1-REPLY-1",
+       "type": "RESPONSE"
+      },
+      {
+       "id": "B3-C2H-DELIVERY-HARDENING-RR2-REPLY-1",
+       "type": "RESPONSE"
+      }
+     ],
+     "in_handoff_count": 2,
+     "outside_handoff": [
+      {
+       "id": "B3-C2H-G2-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-G2-CORRECTION-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-G2-CORRECTION-FAIL-2",
+       "type": "RULING"
+      },
+      {
+       "id": "B3-C2H-G2-FINAL-CORRECTION-2",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-G2-FINAL-AUDIT-CORRECTION-3",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-G2-EVIDENCE-CORRECTION-4",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2A-G2-PASS-1",
+       "type": "GATE_STATUS_TRANSITION"
+      },
+      {
+       "id": "B3-C2H-G3-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-G3-FAIL-1",
+       "type": "RULING"
+      },
+      {
+       "id": "B3-C2H-G3-CORRECTION-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2A-G3-TRIPWIRE-ESCALATION-2",
+       "type": "ESCALATION"
+      },
+      {
+       "id": "B3-C2H-Z9-DECOUPLE-PROGRESS-FROM-EXIT-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-Z9-USE-TURNCONTEXT-CORRELATION-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-GRAPHIFY-THEN-G3-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-G4-EVIDENCE-RECOVERY-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2A-G4-AUTHORITY-ESCALATION-1",
+       "type": "ESCALATION"
+      },
+      {
+       "id": "B3-C2H-G4-LOCATE-ORIGINAL-HL_STAGE2-UI-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-G4-IMPLEMENT-8014-SLEEVES-ORIGINAL-UI-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-G4-EVIDENCE-CORRECTION-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-G4-RESPONSE2-RULING-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-G4-C1-GLOBAL-ORDER-CAP-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-G4-C1-PLANNER-CAP-CORRECTION-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-HANDOVER-CONTROL-DISPOSITION-B2C1E2-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-HANDOVER-RECEIVER-FINAL-ALIGN-B2C1E2-1",
+       "type": "DIRECTIVE"
+      }
+     ],
+     "outside_handoff_count": 24,
+     "total_envelopes_carrying": 26
+    },
+    "UNCERTAINTY": {
+     "in_handoff": [],
+     "in_handoff_count": 0,
+     "outside_handoff": [
+      {
+       "id": "B3-C2H-G3-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-C2H-G3-CORRECTION-1",
+       "type": "DIRECTIVE"
+      },
+      {
+       "id": "B3-A2H-MINIMAL-CONTROL-LOOP-FREEZE-1",
+       "type": "DIRECTIVE"
+      }
+     ],
+     "outside_handoff_count": 3,
+     "total_envelopes_carrying": 3
+    }
+   },
+   "fields_absent_everywhere": [],
+   "fields_absent_on_all_handoffs": [
+    "FILES_CHANGED",
+    "LOC",
+    "UNCERTAINTY"
+   ],
+   "fields_present_only_outside_handoffs": [
+    "FILES_CHANGED",
+    "LOC",
+    "UNCERTAINTY"
+   ],
+   "handoff_count": 12,
+   "handoff_definition": "TYPE in ('RESPONSE', 'RESULT', 'STATUS', 'ACK')",
+   "handoff_type_counts": {
+    "ACK": 1,
+    "RESPONSE": 6,
+    "RESULT": 1,
+    "STATUS": 4
+   }
+  }
+ },
+ "CTRL-HWM": {
+  "control_works": "n/a",
+  "measured": {
+   "control_state_loaders_in_python": [],
+   "delta_days_repo_minus_mailbox": 6.8035,
+   "loader_count": 0,
+   "mailbox_head": "97d8e350b0593ffb649d5ab7bfef5aea72edf0f2",
+   "mailbox_state": {
+    "adjudication_disposition_present": false,
+    "adjudication_entries": 0,
+    "adjudication_invalidated": 0,
+    "blob_sha": "b4651376115ba67632329ac3d429bcd3521d84af",
+    "has_adjudication_log": false,
+    "ref": "origin/control-mailbox",
+    "top_level_keys": 19,
+    "updated_utc": "2026-10-07T18:55:00Z"
+   },
+   "python_files_naming_control_state": [
+    "b142cf88d389e791160f691aac3d936852b99975:certification/gen_matrix.py"
+   ],
+   "repo_state": {
+    "adjudication_disposition_present": true,
+    "adjudication_entries": 5,
+    "adjudication_invalidated": 5,
+    "blob_sha": "1dc415b609712211c338bf73be72b9aa986a9092",
+    "has_adjudication_log": true,
+    "ref": "b142cf88d389e791160f691aac3d936852b99975",
+    "top_level_keys": 35,
+    "updated_utc": "2026-10-14T14:12:00Z"
+   },
+   "staler_copy": "origin/control-mailbox"
+  }
+ },
+ "CTRL-I22": {
+  "control_works": "n/a",
+  "measured": {
+   "authority_by_type": {
+    "DIRECTIVE": 37,
+    "ESCALATION": 1,
+    "RESULT": 1
+   },
+   "authority_types_are_notification": false,
+   "control_works": true,
+   "envelopes_carrying_authority": 39,
+   "mutation_control": {
+    "flagged_ids": [
+     "B3-C2H-INGRESS-RESULT-1"
+    ],
+    "injected_into_all_notifications": 1,
+    "negative_control": {
+     "flagged_after_strip": false,
+     "message_id": "PVB2-CARRIER-2"
+    }
+   },
+   "notification_count": 1,
+   "notification_detail": [
+    {
+     "authority": null,
+     "directive_id": "B3-C2H-P0-BIND-BUILD3-INGRESS-1",
+     "keys": [
+      "BINDING_VERSION",
+      "BODY",
+      "CREATED_AT_UTC",
+      "DIRECTIVE_ID",
+      "FROM",
+      "MESSAGE_ID",
+      "PAYLOAD_DIGEST",
+      "PROJECT_ID",
+      "SCHEMA_VERSION",
+      "SEQUENCE",
+      "TO",
+      "TYPE"
+     ],
+     "message_id": "B3-C2H-INGRESS-RESULT-1",
+     "path": "control_mailbox/inbox/2026-10-08T09-14-28Z-B3-C2H-INGRESS-RESULT-1.json"
+    }
+   ],
+   "type_table_enumerated": {
+    "ACK": 1,
+    "DIRECTIVE": 66,
+    "ESCALATION": 7,
+    "GATE_STATUS_TRANSITION": 3,
+    "NOTIFICATION": 1,
+    "RESPONSE": 6,
+    "RESULT": 1,
+    "RULING": 13,
+    "STATUS": 4
+   },
+   "types_total": 9
+  }
+ },
+ "CTRL-I23": {
+  "control_works": "n/a",
+  "measured": {
+   "authority_distinct": 31,
+   "authority_occurrences": 39,
+   "authority_values": [
+    "ARCHITECT_COMMAND_6060195161_CONTROLLER_RULING_6062206639",
+    "ARCHITECT_G3_PASS_GRAPHIFY_RULING_12fa6197",
+    "B3-A2C-G3-PASS-GRAPHIFY-RULING-1",
+    "B3-A2C-G4-8014-SLICE-SEMANTICS-RULING-1",
+    "BUILD3_COMMISSION_AND_CONTINUE_1",
+    "CONTROLLER_ADJUDICATES_C2A_PASS",
+    "CONTROLLER_C1_SOURCE_AND_TEST_REVIEW",
+    "CONTROLLER_C1_SOURCE_REVIEW",
+    "CONTROLLER_DISPOSITION_AFTER_ARCHITECT_SEQ65",
+    "CONTROLLER_ESCALATION_ARCHITECT_F3",
+    "CONTROLLER_G3_PASS_6065132657",
+    "CONTROLLER_G4_AUTHORITY_ESCALATION_DFA7AE42",
+    "CONTROLLER_G4_C1_OFFLINE_PASS",
+    "CONTROLLER_G4_EVIDENCE_REVIEW",
+    "CONTROLLER_G4_F7_CODE_REVIEW",
+    "CONTROLLER_G4_ONE_BOUNDED_TASK",
+    "CONTROLLER_G4_ORIGINAL_SOURCE_EVIDENCE_REVIEW",
+    "CONTROLLER_REVIEW_ARCHITECT_G4",
+    "CONTROLLER_TRANSPORT_RECOVERY_AFTER_NO_CONSUMPTION_EVIDENCE",
+    "GLOBAL_MD_ESCALATION_6065872233",
+    "PROJECT_CONTROLLER_REVIEW_ARCHITECT_G4",
+    "RICHARD_AUTHORITY_BOUNDARY_CORRECTION",
+    "RICHARD_CLEARED_ARCHITECT_COMPOSER",
+    "RICHARD_HUMAN_AUTHORITY",
+    "RICHARD_HUMAN_AUTHORITY_CLARIFICATION",
+    "RICHARD_OPERATOR_BOOTSTRAP_CONTROLLER_GENERATION2",
+    "RICHARD_OPERATOR_EXACT_BUILD3_ARCHIVE_ROOT",
+    "RICHARD_OPERATOR_LOCAL_ARCHIVE_LOCATION_HINT",
+    "RICHARD_OPERATOR_REALIGNMENT_ONLY_AFTER_ARCHITECT_SEQ70",
+    "RICHARD_OPERATOR_REQUEST_AND_ARCHITECT_SEQ67_SEQ68",
+    "company-control-v1"
+   ],
+   "control_works": true,
+   "mutation_control": {
+    "injected_values": [
+     "gpt-6-astra",
+     "claude-sonnet-4"
+    ],
+    "matches": [
+     "claude-sonnet-4",
+     "gpt-6-astra"
+    ]
+   },
+   "real_model_or_provider_matches": [],
+   "value_occurrence_counts": {
+    "ARCHITECT_COMMAND_6060195161_CONTROLLER_RULING_6062206639": 1,
+    "ARCHITECT_G3_PASS_GRAPHIFY_RULING_12fa6197": 1,
+    "B3-A2C-G3-PASS-GRAPHIFY-RULING-1": 1,
+    "B3-A2C-G4-8014-SLICE-SEMANTICS-RULING-1": 1,
+    "BUILD3_COMMISSION_AND_CONTINUE_1": 8,
+    "CONTROLLER_ADJUDICATES_C2A_PASS": 1,
+    "CONTROLLER_C1_SOURCE_AND_TEST_REVIEW": 1,
+    "CONTROLLER_C1_SOURCE_REVIEW": 1,
+    "CONTROLLER_DISPOSITION_AFTER_ARCHITECT_SEQ65": 1,
+    "CONTROLLER_ESCALATION_ARCHITECT_F3": 1,
+    "CONTROLLER_G3_PASS_6065132657": 2,
+    "CONTROLLER_G4_AUTHORITY_ESCALATION_DFA7AE42": 1,
+    "CONTROLLER_G4_C1_OFFLINE_PASS": 1,
+    "CONTROLLER_G4_EVIDENCE_REVIEW": 1,
+    "CONTROLLER_G4_F7_CODE_REVIEW": 1,
+    "CONTROLLER_G4_ONE_BOUNDED_TASK": 1,
+    "CONTROLLER_G4_ORIGINAL_SOURCE_EVIDENCE_REVIEW": 1,
+    "CONTROLLER_REVIEW_ARCHITECT_G4": 1,
+    "CONTROLLER_TRANSPORT_RECOVERY_AFTER_NO_CONSUMPTION_EVIDENCE": 1,
+    "GLOBAL_MD_ESCALATION_6065872233": 1,
+    "PROJECT_CONTROLLER_REVIEW_ARCHITECT_G4": 1,
+    "RICHARD_AUTHORITY_BOUNDARY_CORRECTION": 1,
+    "RICHARD_CLEARED_ARCHITECT_COMPOSER": 1,
+    "RICHARD_HUMAN_AUTHORITY": 1,
+    "RICHARD_HUMAN_AUTHORITY_CLARIFICATION": 1,
+    "RICHARD_OPERATOR_BOOTSTRAP_CONTROLLER_GENERATION2": 1,
+    "RICHARD_OPERATOR_EXACT_BUILD3_ARCHIVE_ROOT": 1,
+    "RICHARD_OPERATOR_LOCAL_ARCHIVE_LOCATION_HINT": 1,
+    "RICHARD_OPERATOR_REALIGNMENT_ONLY_AFTER_ARCHITECT_SEQ70": 1,
+    "RICHARD_OPERATOR_REQUEST_AND_ARCHITECT_SEQ67_SEQ68": 1,
+    "company-control-v1": 1
+   }
+  }
+ },
+ "inputs": {
+  "engine_blob_matches_pinned": true,
+  "engine_blob_sha256": "e2f04fa826958c73169bae2490a6ebb3ebfd09d9aecda513ef0d7bd8a10ec2c6",
+  "engine_path": "_archive/hl_stage2/HL_Live_Copy_Service.py",
+  "envelope_count": 102,
+  "mailbox_head": "97d8e350b0593ffb649d5ab7bfef5aea72edf0f2",
+  "mailbox_ref": "origin/control-mailbox",
+  "python": "3.11.9 (tags/v3.11.9:de54cf5, Apr  2 2024, 10:12:12) [MSC v.1938 64 bit (AMD64)]",
+  "script_sha256": "41f9fa89d77c9417c347a6235a5c255a61d300d7585c288770f691564940f21b",
+  "tested_commit": "b142cf88d389e791160f691aac3d936852b99975"
+ },
+ "type_table": {
+  "ACK": 1,
+  "DIRECTIVE": 66,
+  "ESCALATION": 7,
+  "GATE_STATUS_TRANSITION": 3,
+  "NOTIFICATION": 1,
+  "RESPONSE": 6,
+  "RESULT": 1,
+  "RULING": 13,
+  "STATUS": 4
+ }
+}
