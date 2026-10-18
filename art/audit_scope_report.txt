@@ -1,0 +1,50 @@
+TOTAL 134
+EMPTY-DETAIL 29
+B4-I01 B4-I02 B4-I03 B4-I04 B4-I05 B4-I06 B4-I07 B4-I08 B4-I09 B4-I10 B4-I11 B4-I14 B4-I15 B4-I17 B4-I18 B4-I22 B4-I23 B4-I24 B4-I25 F-CLAIM-01 F-CLAIM-02 F-CLAIM-03 F-CLAIM-04 F-CLAIM-05 F-CLAIM-06 F-CLAIM-07 F-CLAIM-08 F-GREEN-ONLY-001 F-PRODUCT-002
+SHARED-DETAIL GROUPS 22
+29 | 
+     B4-I01 B4-I02 B4-I03 B4-I04 B4-I05 B4-I06 B4-I07 B4-I08 B4-I09 B4-I10 B4-I11 B4-I14 B4-I15 B4-I17 B4-I18 B4-I22 B4-I23 B4-I24 B4-I25 F-CLAIM-01 F-CLAIM-02 F-CLAIM-03 F-CLAIM-04 F-CLAIM-05 F-CLAIM-06 F-CLAIM-07 F-CLAIM-08 F-GREEN-ONLY-001 F-PRODUCT-002
+11 | (row-bound checks in RISK json)
+     RISK-001 RISK-002 RISK-003 RISK-004 RISK-005 RISK-006 RISK-007 RISK-008 RISK-014 RISK-015 RISK-016
+8 | passed: ['exchange mismatch is reported', 'snapshot: status LEDGER_EXCHANGE_NET_MISMATCH']
+     F-ARCH-004 F-EXC-003 F-LOGIC-008 F-LOGIC-009 F-LOGIC-014 F-VERIFY-001 F-VERIFY-002 F-VERIFY-007
+6 | passed: ['wallet conflict: A long B short isolated', 'wallet conflict: coin_net = sum of sleeves']
+     B4-R18 F-ARCH-012 F-EXC-005 F-LOGIC-001 F-TEST-002 F-TEST-006
+5 | passed: ['master gate disabled keeps leader_sends_attempted zero', 'no send_attempt row when auto-send disabled']
+     B4-R14 F-EXC-013 F-LOGIC-010 F-LOGIC-016 F-TEST-007
+4 | passed: ['symbol: FAKECOIN returns SYMBOL_UNRESOLVED exchange_called=False', 'symbol: unresolved FAKECOIN writes zero se
+     B4-R12 F-EXC-002 F-EXC-008 F-LOGIC-005
+4 | passed: ['dedupe: first apply writes exactly one live_fill row', 'dedupe: ledger not double-mutated by duplicate copy_fi
+     B4-R22 F-EXC-004 F-LOGIC-011 F-TEST-005
+4 | passed: ['cutover: pre-cutover fill does not send', 'cutover: live_start_ms unchanged across restart']
+     F-LOGIC-013 F-PROCESS-002 F-VERIFY-003 F-VERIFY-006
+3 | passed: ['dedupe: duplicate copy_fill_id blocked', 'OID dedupe: second OID-matched apply blocked by xproc marker']
+     B4-R09 F-EXC-010 F-LOGIC-003
+3 | passed: ['cutover: live_start_ms unchanged across restart', 'cutover: wiped state creates fresh live_start_ms']
+     B4-R11 F-ARCH-011 F-TEST-003
+3 | passed: ['snapshot: fresh ledger never auto-corrected', 'snapshot: status LEDGER_EXCHANGE_NET_MISMATCH']
+     F-ARCH-002 F-ARCH-007 F-LOGIC-012
+3 | passed: ['cutover: WS_CAPTURED post-cutover fill reaches mock send boundary', 'cutover: post-cutover fill reaches mock s
+     F-ARCH-003 F-EXC-009 F-LOGIC-002
+3 | passed: ['cutover: WS_CAPTURED post-cutover fill reaches mock send boundary', 'cutover: live_start_ms unchanged across r
+     F-EXC-011 F-EXC-019 F-LOGIC-007
+3 | passed: ['symbol: FAKECOIN returns SYMBOL_UNRESOLVED exchange_called=False', 'symbol: unresolved coin does not mutate le
+     F-EXC-012 F-EXC-020 F-LOGIC-015
+2 | passed: ['cutover: pre-cutover fill does not send', 'cutover: pre-cutover fill writes intent']
+     B4-R01 F-ARCH-013
+2 | passed: ['cutover: live_start_ms unchanged across restart', 'cutover: live_start_ms set on first construction']
+     B4-R15 F-ARCH-014
+2 | passed: ['master gate disabled keeps leader_sends_attempted zero', 'order intent written with auto-send disabled']
+     B4-R16 F-EXC-014
+2 | passed: ['reduce-only helper: EXIT intent -> True', 'wire: EXIT real send passes reduce_only=True to exchange.order']
+     B4-R24 F-EXC-007
+2 | passed: ['real sender: mocked exchange writes one REAL_IOC send_attempt', 'guard: exactly one real close sent for the bu
+     F-ARCH-005 F-ARCH-009
+2 | passed: ['wallet conflict: coin_net = sum of sleeves', 'wallet conflict: exit clamped to A sleeve not coin_net']
+     F-ARCH-008 F-LOGIC-006
+2 | passed: ['close lifecycle: EXIT_RECOVERY_QUEUED becomes EXIT_RECOVERY_ACTIVE', 'close lifecycle: manual exit recovery on
+     F-ARCH-010 F-EXC-015
+2 | passed: ['cutover: live_start_ms set on first construction', 'cutover: wiped state creates fresh live_start_ms']
+     F-ARCH-015 F-PROCESS-001
+CHECKNAME-COLLISIONS
+11 | (see RISK json checks) | RISK-001 RISK-002 RISK-003 RISK-004 RISK-005 RISK-006 RISK-007 RISK-008 RISK-014 RISK-015 RISK-016
