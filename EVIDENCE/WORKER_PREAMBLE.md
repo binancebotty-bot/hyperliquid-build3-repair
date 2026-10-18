@@ -38,3 +38,8 @@ need.
 **WHEN YOU CANNOT DO SOMETHING**
 Say so plainly with the attempt you made. Do not fabricate, do not approximate a number, do not pass a check you
 could not run.
+
+**CONTEXT PROTOCOL**
+- Read `STATE.md` for current truth; read `RETRACTIONS.md` for withdrawn claims. The thread is history, not state.
+- Recompute any count you are given from the file. If a stated count disagrees with the file, the file wins.
+- `EVIDENCE/CONTEXT_PROTOCOL.md` has the details.
