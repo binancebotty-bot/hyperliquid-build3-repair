@@ -1,0 +1,520 @@
+{
+ "tabs": {
+  "Real Copy Positions": {
+   "visible_tables": [
+    0,
+    1,
+    2,
+    3
+   ],
+   "all": [
+    {
+     "i": 0,
+     "id": null,
+     "w": 1748,
+     "h": 51,
+     "disp": "table",
+     "vis": "visible"
+    },
+    {
+     "i": 1,
+     "id": null,
+     "w": 1748,
+     "h": 51,
+     "disp": "table",
+     "vis": "visible"
+    },
+    {
+     "i": 2,
+     "id": null,
+     "w": 1748,
+     "h": 51,
+     "disp": "table",
+     "vis": "visible"
+    },
+    {
+     "i": 3,
+     "id": null,
+     "w": 1748,
+     "h": 51,
+     "disp": "table",
+     "vis": "visible"
+    },
+    {
+     "i": 4,
+     "id": null,
+     "w": 0,
+     "h": 0,
+     "disp": "table",
+     "vis": "visible"
+    },
+    {
+     "i": 5,
+     "id": null,
+     "w": 0,
+     "h": 0,
+     "disp": "table",
+     "vis": "visible"
+    },
+    {
+     "i": 6,
+     "id": null,
+     "w": 0,
+     "h": 0,
+     "disp": "table",
+     "vis": "visible"
+    },
+    {
+     "i": 7,
+     "id": null,
+     "w": 0,
+     "h": 0,
+     "disp": "table",
+     "vis": "visible"
+    },
+    {
+     "i": 8,
+     "id": null,
+     "w": 0,
+     "h": 0,
+     "disp": "table",
+     "vis": "visible"
+    },
+    {
+     "i": 9,
+     "id": null,
+     "w": 0,
+     "h": 0,
+     "disp": "table",
+     "vis": "visible"
+    },
+    {
+     "i": 10,
+     "id": null,
+     "w": 0,
+     "h": 0,
+     "disp": "table",
+     "vis": "visible"
+    }
+   ]
+  },
+  "Execution Quality": {
+   "visible_tables": [
+    0,
+    4
+   ],
+   "all": [
+    {
+     "i": 0,
+     "id": null,
+     "w": 1748,
+     "h": 51,
+     "disp": "table",
+     "vis": "visible"
+    },
+    {
+     "i": 1,
+     "id": null,
+     "w": 0,
+     "h": 0,
+     "disp": "table",
+     "vis": "visible"
+    },
+    {
+     "i": 2,
+     "id": null,
+     "w": 0,
+     "h": 0,
+     "disp": "table",
+     "vis": "visible"
+    },
+    {
+     "i": 3,
+     "id": null,
+     "w": 0,
+     "h": 0,
+     "disp": "table",
+     "vis": "visible"
+    },
+    {
+     "i": 4,
+     "id": null,
+     "w": 2080,
+     "h": 51,
+     "disp": "table",
+     "vis": "visible"
+    },
+    {
+     "i": 5,
+     "id": null,
+     "w": 0,
+     "h": 0,
+     "disp": "table",
+     "vis": "visible"
+    },
+    {
+     "i": 6,
+     "id": null,
+     "w": 0,
+     "h": 0,
+     "disp": "table",
+     "vis": "visible"
+    },
+    {
+     "i": 7,
+     "id": null,
+     "w": 0,
+     "h": 0,
+     "disp": "table",
+     "vis": "visible"
+    },
+    {
+     "i": 8,
+     "id": null,
+     "w": 0,
+     "h": 0,
+     "disp": "table",
+     "vis": "visible"
+    },
+    {
+     "i": 9,
+     "id": null,
+     "w": 0,
+     "h": 0,
+     "disp": "table",
+     "vis": "visible"
+    },
+    {
+     "i": 10,
+     "id": null,
+     "w": 0,
+     "h": 0,
+     "disp": "table",
+     "vis": "visible"
+    }
+   ]
+  },
+  "Order Intents / Audit": {
+   "visible_tables": [
+    0,
+    5
+   ],
+   "all": [
+    {
+     "i": 0,
+     "id": null,
+     "w": 1748,
+     "h": 51,
+     "disp": "table",
+     "vis": "visible"
+    },
+    {
+     "i": 1,
+     "id": null,
+     "w": 0,
+     "h": 0,
+     "disp": "table",
+     "vis": "visible"
+    },
+    {
+     "i": 2,
+     "id": null,
+     "w": 0,
+     "h": 0,
+     "disp": "table",
+     "vis": "visible"
+    },
+    {
+     "i": 3,
+     "id": null,
+     "w": 0,
+     "h": 0,
+     "disp": "table",
+     "vis": "visible"
+    },
+    {
+     "i": 4,
+     "id": null,
+     "w": 0,
+     "h": 0,
+     "disp": "table",
+     "vis": "visible"
+    },
+    {
+     "i": 5,
+     "id": null,
+     "w": 1748,
+     "h": 51,
+     "disp": "table",
+     "vis": "visible"
+    },
+    {
+     "i": 6,
+     "id": null,
+     "w": 0,
+     "h": 0,
+     "disp": "table",
+     "vis": "visible"
+    },
+    {
+     "i": 7,
+     "id": null,
+     "w": 0,
+     "h": 0,
+     "disp": "table",
+     "vis": "visible"
+    },
+    {
+     "i": 8,
+     "id": null,
+     "w": 0,
+     "h": 0,
+     "disp": "table",
+     "vis": "visible"
+    },
+    {
+     "i": 9,
+     "id": null,
+     "w": 0,
+     "h": 0,
+     "disp": "table",
+     "vis": "visible"
+    },
+    {
+     "i": 10,
+     "id": null,
+     "w": 0,
+     "h": 0,
+     "disp": "table",
+     "vis": "visible"
+    }
+   ]
+  },
+  "Reconciliation": {
+   "visible_tables": [
+    0,
+    6,
+    7,
+    8,
+    9
+   ],
+   "all": [
+    {
+     "i": 0,
+     "id": null,
+     "w": 1748,
+     "h": 51,
+     "disp": "table",
+     "vis": "visible"
+    },
+    {
+     "i": 1,
+     "id": null,
+     "w": 0,
+     "h": 0,
+     "disp": "table",
+     "vis": "visible"
+    },
+    {
+     "i": 2,
+     "id": null,
+     "w": 0,
+     "h": 0,
+     "disp": "table",
+     "vis": "visible"
+    },
+    {
+     "i": 3,
+     "id": null,
+     "w": 0,
+     "h": 0,
+     "disp": "table",
+     "vis": "visible"
+    },
+    {
+     "i": 4,
+     "id": null,
+     "w": 0,
+     "h": 0,
+     "disp": "table",
+     "vis": "visible"
+    },
+    {
+     "i": 5,
+     "id": null,
+     "w": 0,
+     "h": 0,
+     "disp": "table",
+     "vis": "visible"
+    },
+    {
+     "i": 6,
+     "id": null,
+     "w": 1748,
+     "h": 24,
+     "disp": "table",
+     "vis": "visible"
+    },
+    {
+     "i": 7,
+     "id": null,
+     "w": 1748,
+     "h": 24,
+     "disp": "table",
+     "vis": "visible"
+    },
+    {
+     "i": 8,
+     "id": null,
+     "w": 1748,
+     "h": 24,
+     "disp": "table",
+     "vis": "visible"
+    },
+    {
+     "i": 9,
+     "id": null,
+     "w": 1748,
+     "h": 24,
+     "disp": "table",
+     "vis": "visible"
+    },
+    {
+     "i": 10,
+     "id": null,
+     "w": 0,
+     "h": 0,
+     "disp": "table",
+     "vis": "visible"
+    }
+   ]
+  },
+  "WS Health": {
+   "visible_tables": [
+    0,
+    10
+   ],
+   "all": [
+    {
+     "i": 0,
+     "id": null,
+     "w": 1748,
+     "h": 51,
+     "disp": "table",
+     "vis": "visible"
+    },
+    {
+     "i": 1,
+     "id": null,
+     "w": 0,
+     "h": 0,
+     "disp": "table",
+     "vis": "visible"
+    },
+    {
+     "i": 2,
+     "id": null,
+     "w": 0,
+     "h": 0,
+     "disp": "table",
+     "vis": "visible"
+    },
+    {
+     "i": 3,
+     "id": null,
+     "w": 0,
+     "h": 0,
+     "disp": "table",
+     "vis": "visible"
+    },
+    {
+     "i": 4,
+     "id": null,
+     "w": 0,
+     "h": 0,
+     "disp": "table",
+     "vis": "visible"
+    },
+    {
+     "i": 5,
+     "id": null,
+     "w": 0,
+     "h": 0,
+     "disp": "table",
+     "vis": "visible"
+    },
+    {
+     "i": 6,
+     "id": null,
+     "w": 0,
+     "h": 0,
+     "disp": "table",
+     "vis": "visible"
+    },
+    {
+     "i": 7,
+     "id": null,
+     "w": 0,
+     "h": 0,
+     "disp": "table",
+     "vis": "visible"
+    },
+    {
+     "i": 8,
+     "id": null,
+     "w": 0,
+     "h": 0,
+     "disp": "table",
+     "vis": "visible"
+    },
+    {
+     "i": 9,
+     "id": null,
+     "w": 0,
+     "h": 0,
+     "disp": "table",
+     "vis": "visible"
+    },
+    {
+     "i": 10,
+     "id": null,
+     "w": 1748,
+     "h": 24,
+     "disp": "table",
+     "vis": "visible"
+    }
+   ]
+  }
+ },
+ "ws_table": {
+  "containerId": "liveCopyPanel",
+  "containerCls": "section live-copy-centre",
+  "headers": [
+   "WALLET",
+   "CURRENT",
+   "GRADE",
+   "THREAD",
+   "RECONNECT/MIN",
+   "PROCESSED",
+   "RAW MSG",
+   "PARSED",
+   "SNAP SEEN",
+   "SNAP RECOVERED",
+   "IGNORED",
+   "RECENT ERRORS",
+   "LIFETIME ERRORS",
+   "STALE MS",
+   "DATA STATUS",
+   "LAST CLOSE/ERROR"
+  ],
+  "nrows": 10,
+  "body": [
+   "0x010461c1...1c703a\tOFFLINE\t\u2014\tdown\t0.00\t0\t0\t0\t0\t0\t0\t0\t0\t459\t\u2014",
+   "0x1b232b41...2fbe21\tOFFLINE\t\u2014\tdown\t0.00\t0\t0\t0\t0\t0\t0\t0\t0\t8576733\t\u2014",
+   "0x31ca8395...fb974b\tOFFLINE\t\u2014\tdown\t0.00\t0\t0\t0\t0\t0\t0\t0\t0\t304\t\u2014",
+   "0x6ba889db...0c1817\tOFFLINE\t\u2014\tdown\t0.00\t0\t0\t0\t0\t0\t0\t0\t0\t1191\t\u2014",
+   "0x7019197d...4abd36\tOFFLINE\t\u2014\tdown\t0.00\t0\t0\t0\t0\t0\t0\t0\t0\t4227\t\u2014"
+  ]
+ },
+ "final_html_sha256": "fa9177270fa5ccbbc275e9251c344fd9cee96c45c725cddc00231a93766c9895"
+}
