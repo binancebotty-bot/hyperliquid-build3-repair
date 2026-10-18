@@ -1,0 +1,41 @@
+{
+  "review": "eb91d9a853c32584102845a1969ce21cd04755ce",
+  "title": "Implement disarmed fill fast path",
+  "reviewer": "default (Hermes adversarial review)",
+  "date": "2026-10-18",
+  "verdict": "PASS",
+  "summary": "The commit implements a genuine early short-circuit for the disarmed (send_mode=OFF) path. The fast-path check at _process_leader_fill_inner lines 10372-10376 fires BEFORE cancel_resting_entries_against (10384), _read_fills_of_withdrawn_limits (10385), _prewarm_with_parity (10389), intent_builder.build (10431), and send_if_allowed (10465). The disarmed handler _process_disarmed_leader_fill (10262-10320) performs only local state updates, cache invalidation, ledger classification, dedupe, and audit row emission — zero network I/O. A durable withdrawn-fill queue (WITHDRAWN_ENTRY_FILLS_FILE) defers cancel-race fill reads to the next armed cycle, making the disarmed path restart-safe. All 18 new fast-path tests and all 93 existing missed-entry-rule tests pass.",
+  "checks": {
+    "1_early_short_circuit": {
+      "verdict": "PASS",
+      "detail": "Fast-path guard at lines 10372-10376 in _process_leader_fill_inner. Post-check ordering: send_mode OFF check (10372) -> _process_disarmed_leader_fill (10262) which does record_leader_fill_seen, cancel_resting_entries_for_disarmed_close (only on confirmed close, defer_fill_reads=True), _invalidate_disarmed_fill_caches, ledger classify, dedupe, audit. The first expensive op in the normal path is cancel_resting_entries_against at 10384, then _read_fills_of_withdrawn_limits at 10385, then _prewarm_with_parity at 10389, then intent_builder.build at 10431, then send_if_allowed at 10465. All are bypassed."
+    },
+    "2_toctou_correctness": {
+      "verdict": "PASS",
+      "detail": "Double-check pattern: send_mode_now()=='OFF' checked at 10372 before _process_deferred_withdrawn_entry_fills and again at 10375 after it. If mode flips ON->OFF between checks, the second guard catches it and routes to the disarmed path. _process_disarmed_leader_fill acquires _send_lock for ledger classification and dedupe (same lock as normal path). _process_deferred_withdrawn_entry_fills has its own _withdrawn_queue_process_lock and re-checks send_mode at entry (10628). A fill read while armed but sent while disarmed goes through the normal path (intent built, send_if_allowed returns MASTER_REAL_ORDERS_OFF). A fill read while disarmed is recorded in dedupe.processed, so when armed the dedupe check rejects it — correct, no double-send."
+    },
+    "3_audit_trail": {
+      "verdict": "PASS",
+      "detail": "One SEND_TERMINAL reconciliation row per leader fill (including merged fills via the ids loop at 10308-10318). Each row carries: terminal_state (classified from MASTER_REAL_ORDERS_OFF + lifecycle), reject_category=MASTER_REAL_ORDERS_OFF, leader_wallet, leader_fill_id, coin, action, engine_can_close=False, engine_can_send=False, notes explaining 'global send_mode=OFF; fill recorded without building an intent or reading follower state'. Optional diagnostics (fill_age_ms, cycle_id, cycle_backlog_high_water) behind HL_LIVE_DISARMED_PATH_DIAGNOSTICS env flag."
+    },
+    "4_unresolved_zero": {
+      "verdict": "PASS",
+      "detail": "The disarmed path adds fill.leader_fill_id to dedupe.processed and updates with merged_ids (10296-10299). The fill is durably recorded in the audit CSV and in the dedupe store. When the engine later arms, dedupe.accept_leader() rejects the fill (already processed). No fill is silently dropped — each has an audit row with reason and leader fill id."
+    },
+    "5_identity_ownership_gates": {
+      "verdict": "PASS",
+      "detail": "The disarmed path sends no orders, so send-time ownership/risk checks are moot. cancel_resting_entries_for_disarmed_close only cancels orders in self._resting_entries (the engine's own registered order ids). _withdraw_rows pops from _resting_entries and only cancels by the engine's own oid. No external or leader-owned orders are touched. The fast path does not bypass any gate that would apply to a no-send path."
+    }
+  },
+  "tests_run": {
+    "test_core_disarmed_fast_path.py": "18/18 PASS",
+    "test_core_missed_entry_rule.py": "93/93 PASS"
+  },
+  "constraints_respected": {
+    "offline_only": true,
+    "no_engine_restart": true,
+    "no_live_config_modify": true,
+    "no_production_repo_touch": true,
+    "branched_off_89b3bc7": true
+  }
+}
