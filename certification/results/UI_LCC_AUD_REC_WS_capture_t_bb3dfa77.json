@@ -1,0 +1,1951 @@
+{
+  "captured_at_utc": "2026-10-18T18:19:38.875651+00:00",
+  "source": "http://127.0.0.1:8031/api/live-audit-summary (response body read by the page itself)",
+  "payload_sha256": "43f1362d76dbe71f47b8aa7b838bceea2f444e460ee5405aef8ec6934d965ff2",
+  "manual_reconciliation_rows": [
+    {
+      "severity": "OK",
+      "wallet": "0x010461c14e146ac35fe42271bdc1134ee31c703a",
+      "coin": "0G",
+      "side": "SHORT",
+      "issue": "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "manual_signed_size": -96.0,
+      "exchange_signed_size": -3.0,
+      "last_intent_id": "",
+      "last_oid": "",
+      "last_updated_at": "",
+      "latest_error": "shared symbol: sleeve tracked; exchange is netted at account level",
+      "count": 1,
+      "action_available": false
+    },
+    {
+      "severity": "OK",
+      "wallet": "0x31ca8395cf837de08b24da3f660e77761dfb974b",
+      "coin": "0G",
+      "side": "LONG",
+      "issue": "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "manual_signed_size": 33.0,
+      "exchange_signed_size": -3.0,
+      "last_intent_id": "",
+      "last_oid": "",
+      "last_updated_at": "",
+      "latest_error": "shared symbol: sleeve tracked; exchange is netted at account level",
+      "count": 1,
+      "action_available": false
+    },
+    {
+      "severity": "OK",
+      "wallet": "0x7019197d2b2ae7b44eee12a76015eb1fe94abd36",
+      "coin": "0G",
+      "side": "LONG",
+      "issue": "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "manual_signed_size": 48.0,
+      "exchange_signed_size": -3.0,
+      "last_intent_id": "",
+      "last_oid": "",
+      "last_updated_at": "",
+      "latest_error": "shared symbol: sleeve tracked; exchange is netted at account level",
+      "count": 1,
+      "action_available": false
+    },
+    {
+      "severity": "OK",
+      "wallet": "0x7717a7a245d9f950e586822b8c9b46863ed7bd7e",
+      "coin": "0G",
+      "side": "LONG",
+      "issue": "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "manual_signed_size": 12.0,
+      "exchange_signed_size": -3.0,
+      "last_intent_id": "",
+      "last_oid": "",
+      "last_updated_at": "",
+      "latest_error": "shared symbol: sleeve tracked; exchange is netted at account level",
+      "count": 1,
+      "action_available": false
+    },
+    {
+      "severity": "OK",
+      "wallet": "0x010461c14e146ac35fe42271bdc1134ee31c703a",
+      "coin": "2Z",
+      "side": "SHORT",
+      "issue": "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "manual_signed_size": -388.0,
+      "exchange_signed_size": 104.0,
+      "last_intent_id": "",
+      "last_oid": "",
+      "last_updated_at": "",
+      "latest_error": "shared symbol: sleeve tracked; exchange is netted at account level",
+      "count": 1,
+      "action_available": false
+    },
+    {
+      "severity": "OK",
+      "wallet": "0x31ca8395cf837de08b24da3f660e77761dfb974b",
+      "coin": "2Z",
+      "side": "LONG",
+      "issue": "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "manual_signed_size": 175.0,
+      "exchange_signed_size": 104.0,
+      "last_intent_id": "",
+      "last_oid": "",
+      "last_updated_at": "",
+      "latest_error": "shared symbol: sleeve tracked; exchange is netted at account level",
+      "count": 1,
+      "action_available": false
+    },
+    {
+      "severity": "OK",
+      "wallet": "0x7019197d2b2ae7b44eee12a76015eb1fe94abd36",
+      "coin": "2Z",
+      "side": "SHORT",
+      "issue": "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "manual_signed_size": -414.0,
+      "exchange_signed_size": 104.0,
+      "last_intent_id": "",
+      "last_oid": "",
+      "last_updated_at": "",
+      "latest_error": "shared symbol: sleeve tracked; exchange is netted at account level",
+      "count": 1,
+      "action_available": false
+    },
+    {
+      "severity": "OK",
+      "wallet": "0x7717a7a245d9f950e586822b8c9b46863ed7bd7e",
+      "coin": "2Z",
+      "side": "LONG",
+      "issue": "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "manual_signed_size": 731.0,
+      "exchange_signed_size": 104.0,
+      "last_intent_id": "",
+      "last_oid": "",
+      "last_updated_at": "",
+      "latest_error": "shared symbol: sleeve tracked; exchange is netted at account level",
+      "count": 1,
+      "action_available": false
+    },
+    {
+      "severity": "OK",
+      "wallet": "0x010461c14e146ac35fe42271bdc1134ee31c703a",
+      "coin": "AAVE",
+      "side": "LONG",
+      "issue": "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "manual_signed_size": 0.07,
+      "exchange_signed_size": 0.0,
+      "last_intent_id": "",
+      "last_oid": "",
+      "last_updated_at": "",
+      "latest_error": "shared symbol: sleeve tracked; exchange is netted at account level",
+      "count": 1,
+      "action_available": false
+    },
+    {
+      "severity": "OK",
+      "wallet": "0x31ca8395cf837de08b24da3f660e77761dfb974b",
+      "coin": "AAVE",
+      "side": "SHORT",
+      "issue": "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "manual_signed_size": -0.09000000000000001,
+      "exchange_signed_size": 0.0,
+      "last_intent_id": "",
+      "last_oid": "",
+      "last_updated_at": "",
+      "latest_error": "shared symbol: sleeve tracked; exchange is netted at account level",
+      "count": 1,
+      "action_available": false
+    },
+    {
+      "severity": "OK",
+      "wallet": "0x7019197d2b2ae7b44eee12a76015eb1fe94abd36",
+      "coin": "AAVE",
+      "side": "SHORT",
+      "issue": "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "manual_signed_size": -0.02,
+      "exchange_signed_size": 0.0,
+      "last_intent_id": "",
+      "last_oid": "",
+      "last_updated_at": "",
+      "latest_error": "shared symbol: sleeve tracked; exchange is netted at account level",
+      "count": 1,
+      "action_available": false
+    },
+    {
+      "severity": "OK",
+      "wallet": "0x7717a7a245d9f950e586822b8c9b46863ed7bd7e",
+      "coin": "AAVE",
+      "side": "LONG",
+      "issue": "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "manual_signed_size": 0.11,
+      "exchange_signed_size": 0.0,
+      "last_intent_id": "",
+      "last_oid": "",
+      "last_updated_at": "",
+      "latest_error": "shared symbol: sleeve tracked; exchange is netted at account level",
+      "count": 1,
+      "action_available": false
+    },
+    {
+      "severity": "OK",
+      "wallet": "0xf5d81a135f756ca16544e53c20fc20643ec3ad53",
+      "coin": "AAVE",
+      "side": "SHORT",
+      "issue": "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "manual_signed_size": -0.07,
+      "exchange_signed_size": 0.0,
+      "last_intent_id": "",
+      "last_oid": "",
+      "last_updated_at": "",
+      "latest_error": "shared symbol: sleeve tracked; exchange is netted at account level",
+      "count": 1,
+      "action_available": false
+    },
+    {
+      "severity": "OK",
+      "wallet": "0x010461c14e146ac35fe42271bdc1134ee31c703a",
+      "coin": "ACE",
+      "side": "SHORT",
+      "issue": "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "manual_signed_size": -63.380000000000024,
+      "exchange_signed_size": 1.4,
+      "last_intent_id": "",
+      "last_oid": "",
+      "last_updated_at": "",
+      "latest_error": "shared symbol: sleeve tracked; exchange is netted at account level",
+      "count": 1,
+      "action_available": false
+    },
+    {
+      "severity": "OK",
+      "wallet": "0x31ca8395cf837de08b24da3f660e77761dfb974b",
+      "coin": "ACE",
+      "side": "LONG",
+      "issue": "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "manual_signed_size": 64.77999999999999,
+      "exchange_signed_size": 1.4,
+      "last_intent_id": "",
+      "last_oid": "",
+      "last_updated_at": "",
+      "latest_error": "shared symbol: sleeve tracked; exchange is netted at account level",
+      "count": 1,
+      "action_available": false
+    },
+    {
+      "severity": "OK",
+      "wallet": "0x010461c14e146ac35fe42271bdc1134ee31c703a",
+      "coin": "ADA",
+      "side": "LONG",
+      "issue": "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "manual_signed_size": 41.0,
+      "exchange_signed_size": 0.0,
+      "last_intent_id": "",
+      "last_oid": "",
+      "last_updated_at": "",
+      "latest_error": "shared symbol: sleeve tracked; exchange is netted at account level",
+      "count": 1,
+      "action_available": false
+    },
+    {
+      "severity": "OK",
+      "wallet": "0x31ca8395cf837de08b24da3f660e77761dfb974b",
+      "coin": "ADA",
+      "side": "SHORT",
+      "issue": "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "manual_signed_size": -115.0,
+      "exchange_signed_size": 0.0,
+      "last_intent_id": "",
+      "last_oid": "",
+      "last_updated_at": "",
+      "latest_error": "shared symbol: sleeve tracked; exchange is netted at account level",
+      "count": 1,
+      "action_available": false
+    },
+    {
+      "severity": "OK",
+      "wallet": "0x6ba889db7f923622d3548f621ecc2054b80c1817",
+      "coin": "ADA",
+      "side": "LONG",
+      "issue": "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "manual_signed_size": 74.0,
+      "exchange_signed_size": 0.0,
+      "last_intent_id": "",
+      "last_oid": "",
+      "last_updated_at": "",
+      "latest_error": "shared symbol: sleeve tracked; exchange is netted at account level",
+      "count": 1,
+      "action_available": false
+    },
+    {
+      "severity": "OK",
+      "wallet": "0x010461c14e146ac35fe42271bdc1134ee31c703a",
+      "coin": "AERO",
+      "side": "LONG",
+      "issue": "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "manual_signed_size": 21.0,
+      "exchange_signed_size": 0.0,
+      "last_intent_id": "",
+      "last_oid": "",
+      "last_updated_at": "",
+      "latest_error": "shared symbol: sleeve tracked; exchange is netted at account level",
+      "count": 1,
+      "action_available": false
+    },
+    {
+      "severity": "OK",
+      "wallet": "0x31ca8395cf837de08b24da3f660e77761dfb974b",
+      "coin": "AERO",
+      "side": "LONG",
+      "issue": "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "manual_signed_size": 23.0,
+      "exchange_signed_size": 0.0,
+      "last_intent_id": "",
+      "last_oid": "",
+      "last_updated_at": "",
+      "latest_error": "shared symbol: sleeve tracked; exchange is netted at account level",
+      "count": 1,
+      "action_available": false
+    },
+    {
+      "severity": "OK",
+      "wallet": "0x7019197d2b2ae7b44eee12a76015eb1fe94abd36",
+      "coin": "AERO",
+      "side": "LONG",
+      "issue": "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "manual_signed_size": 167.0,
+      "exchange_signed_size": 0.0,
+      "last_intent_id": "",
+      "last_oid": "",
+      "last_updated_at": "",
+      "latest_error": "shared symbol: sleeve tracked; exchange is netted at account level",
+      "count": 1,
+      "action_available": false
+    },
+    {
+      "severity": "OK",
+      "wallet": "0x7717a7a245d9f950e586822b8c9b46863ed7bd7e",
+      "coin": "AERO",
+      "side": "SHORT",
+      "issue": "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "manual_signed_size": -170.0,
+      "exchange_signed_size": 0.0,
+      "last_intent_id": "",
+      "last_oid": "",
+      "last_updated_at": "",
+      "latest_error": "shared symbol: sleeve tracked; exchange is netted at account level",
+      "count": 1,
+      "action_available": false
+    },
+    {
+      "severity": "OK",
+      "wallet": "0x936cf4fb95c30ce83f658b5bbb247e4bb381bb0f",
+      "coin": "AERO",
+      "side": "SHORT",
+      "issue": "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "manual_signed_size": -41.0,
+      "exchange_signed_size": 0.0,
+      "last_intent_id": "",
+      "last_oid": "",
+      "last_updated_at": "",
+      "latest_error": "shared symbol: sleeve tracked; exchange is netted at account level",
+      "count": 1,
+      "action_available": false
+    },
+    {
+      "severity": "OK",
+      "wallet": "0x010461c14e146ac35fe42271bdc1134ee31c703a",
+      "coin": "AIXBT",
+      "side": "LONG",
+      "issue": "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "manual_signed_size": 498.0,
+      "exchange_signed_size": 60.0,
+      "last_intent_id": "",
+      "last_oid": "",
+      "last_updated_at": "",
+      "latest_error": "shared symbol: sleeve tracked; exchange is netted at account level",
+      "count": 1,
+      "action_available": false
+    },
+    {
+      "severity": "OK",
+      "wallet": "0x31ca8395cf837de08b24da3f660e77761dfb974b",
+      "coin": "AIXBT",
+      "side": "SHORT",
+      "issue": "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "manual_signed_size": -580.0,
+      "exchange_signed_size": 60.0,
+      "last_intent_id": "",
+      "last_oid": "",
+      "last_updated_at": "",
+      "latest_error": "shared symbol: sleeve tracked; exchange is netted at account level",
+      "count": 1,
+      "action_available": false
+    },
+    {
+      "severity": "OK",
+      "wallet": "0x7019197d2b2ae7b44eee12a76015eb1fe94abd36",
+      "coin": "AIXBT",
+      "side": "LONG",
+      "issue": "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "manual_signed_size": 545.0,
+      "exchange_signed_size": 60.0,
+      "last_intent_id": "",
+      "last_oid": "",
+      "last_updated_at": "",
+      "latest_error": "shared symbol: sleeve tracked; exchange is netted at account level",
+      "count": 1,
+      "action_available": false
+    },
+    {
+      "severity": "OK",
+      "wallet": "0x7717a7a245d9f950e586822b8c9b46863ed7bd7e",
+      "coin": "AIXBT",
+      "side": "SHORT",
+      "issue": "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "manual_signed_size": -403.0,
+      "exchange_signed_size": 60.0,
+      "last_intent_id": "",
+      "last_oid": "",
+      "last_updated_at": "",
+      "latest_error": "shared symbol: sleeve tracked; exchange is netted at account level",
+      "count": 1,
+      "action_available": false
+    },
+    {
+      "severity": "OK",
+      "wallet": "0x010461c14e146ac35fe42271bdc1134ee31c703a",
+      "coin": "ALGO",
+      "side": "SHORT",
+      "issue": "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "manual_signed_size": -1205.0,
+      "exchange_signed_size": 6.0,
+      "last_intent_id": "",
+      "last_oid": "",
+      "last_updated_at": "",
+      "latest_error": "shared symbol: sleeve tracked; exchange is netted at account level",
+      "count": 1,
+      "action_available": false
+    },
+    {
+      "severity": "OK",
+      "wallet": "0x31ca8395cf837de08b24da3f660e77761dfb974b",
+      "coin": "ALGO",
+      "side": "LONG",
+      "issue": "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "manual_signed_size": 65.0,
+      "exchange_signed_size": 6.0,
+      "last_intent_id": "",
+      "last_oid": "",
+      "last_updated_at": "",
+      "latest_error": "shared symbol: sleeve tracked; exchange is netted at account level",
+      "count": 1,
+      "action_available": false
+    },
+    {
+      "severity": "OK",
+      "wallet": "0x7717a7a245d9f950e586822b8c9b46863ed7bd7e",
+      "coin": "ALGO",
+      "side": "LONG",
+      "issue": "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "manual_signed_size": 1146.0,
+      "exchange_signed_size": 6.0,
+      "last_intent_id": "",
+      "last_oid": "",
+      "last_updated_at": "",
+      "latest_error": "shared symbol: sleeve tracked; exchange is netted at account level",
+      "count": 1,
+      "action_available": false
+    },
+    {
+      "severity": "OK",
+      "wallet": "0x010461c14e146ac35fe42271bdc1134ee31c703a",
+      "coin": "ALT",
+      "side": "LONG",
+      "issue": "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "manual_signed_size": 1511.0,
+      "exchange_signed_size": 477.0,
+      "last_intent_id": "",
+      "last_oid": "",
+      "last_updated_at": "",
+      "latest_error": "shared symbol: sleeve tracked; exchange is netted at account level",
+      "count": 1,
+      "action_available": false
+    },
+    {
+      "severity": "OK",
+      "wallet": "0x31ca8395cf837de08b24da3f660e77761dfb974b",
+      "coin": "ALT",
+      "side": "SHORT",
+      "issue": "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "manual_signed_size": -1077.0,
+      "exchange_signed_size": 477.0,
+      "last_intent_id": "",
+      "last_oid": "",
+      "last_updated_at": "",
+      "latest_error": "shared symbol: sleeve tracked; exchange is netted at account level",
+      "count": 1,
+      "action_available": false
+    },
+    {
+      "severity": "OK",
+      "wallet": "0x7019197d2b2ae7b44eee12a76015eb1fe94abd36",
+      "coin": "ALT",
+      "side": "SHORT",
+      "issue": "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "manual_signed_size": -2.0,
+      "exchange_signed_size": 477.0,
+      "last_intent_id": "",
+      "last_oid": "",
+      "last_updated_at": "",
+      "latest_error": "shared symbol: sleeve tracked; exchange is netted at account level",
+      "count": 1,
+      "action_available": false
+    },
+    {
+      "severity": "OK",
+      "wallet": "0x7717a7a245d9f950e586822b8c9b46863ed7bd7e",
+      "coin": "ALT",
+      "side": "LONG",
+      "issue": "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "manual_signed_size": 45.0,
+      "exchange_signed_size": 477.0,
+      "last_intent_id": "",
+      "last_oid": "",
+      "last_updated_at": "",
+      "latest_error": "shared symbol: sleeve tracked; exchange is netted at account level",
+      "count": 1,
+      "action_available": false
+    },
+    {
+      "severity": "OK",
+      "wallet": "0x010461c14e146ac35fe42271bdc1134ee31c703a",
+      "coin": "ANIME",
+      "side": "LONG",
+      "issue": "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "manual_signed_size": 1776.0,
+      "exchange_signed_size": -238.0,
+      "last_intent_id": "",
+      "last_oid": "",
+      "last_updated_at": "",
+      "latest_error": "shared symbol: sleeve tracked; exchange is netted at account level",
+      "count": 1,
+      "action_available": false
+    },
+    {
+      "severity": "OK",
+      "wallet": "0x31ca8395cf837de08b24da3f660e77761dfb974b",
+      "coin": "ANIME",
+      "side": "SHORT",
+      "issue": "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "manual_signed_size": -2014.0,
+      "exchange_signed_size": -238.0,
+      "last_intent_id": "",
+      "last_oid": "",
+      "last_updated_at": "",
+      "latest_error": "shared symbol: sleeve tracked; exchange is netted at account level",
+      "count": 1,
+      "action_available": false
+    },
+    {
+      "severity": "OK",
+      "wallet": "0x010461c14e146ac35fe42271bdc1134ee31c703a",
+      "coin": "APE",
+      "side": "LONG",
+      "issue": "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "manual_signed_size": 60.599999999999994,
+      "exchange_signed_size": -15.4,
+      "last_intent_id": "",
+      "last_oid": "",
+      "last_updated_at": "",
+      "latest_error": "shared symbol: sleeve tracked; exchange is netted at account level",
+      "count": 1,
+      "action_available": false
+    },
+    {
+      "severity": "OK",
+      "wallet": "0x31ca8395cf837de08b24da3f660e77761dfb974b",
+      "coin": "APE",
+      "side": "SHORT",
+      "issue": "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "manual_signed_size": -156.50000000000006,
+      "exchange_signed_size": -15.4,
+      "last_intent_id": "",
+      "last_oid": "",
+      "last_updated_at": "",
+      "latest_error": "shared symbol: sleeve tracked; exchange is netted at account level",
+      "count": 1,
+      "action_available": false
+    },
+    {
+      "severity": "OK",
+      "wallet": "0x7019197d2b2ae7b44eee12a76015eb1fe94abd36",
+      "coin": "APE",
+      "side": "LONG",
+      "issue": "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "manual_signed_size": 45.699999999999996,
+      "exchange_signed_size": -15.4,
+      "last_intent_id": "",
+      "last_oid": "",
+      "last_updated_at": "",
+      "latest_error": "shared symbol: sleeve tracked; exchange is netted at account level",
+      "count": 1,
+      "action_available": false
+    },
+    {
+      "severity": "OK",
+      "wallet": "0x7717a7a245d9f950e586822b8c9b46863ed7bd7e",
+      "coin": "APE",
+      "side": "LONG",
+      "issue": "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "manual_signed_size": 34.8,
+      "exchange_signed_size": -15.4,
+      "last_intent_id": "",
+      "last_oid": "",
+      "last_updated_at": "",
+      "latest_error": "shared symbol: sleeve tracked; exchange is netted at account level",
+      "count": 1,
+      "action_available": false
+    },
+    {
+      "severity": "OK",
+      "wallet": "0x010461c14e146ac35fe42271bdc1134ee31c703a",
+      "coin": "APT",
+      "side": "LONG",
+      "issue": "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "manual_signed_size": 2.249999999999993,
+      "exchange_signed_size": -7.14,
+      "last_intent_id": "",
+      "last_oid": "",
+      "last_updated_at": "",
+      "latest_error": "shared symbol: sleeve tracked; exchange is netted at account level",
+      "count": 1,
+      "action_available": false
+    },
+    {
+      "severity": "OK",
+      "wallet": "0x31ca8395cf837de08b24da3f660e77761dfb974b",
+      "coin": "APT",
+      "side": "SHORT",
+      "issue": "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "manual_signed_size": -25.080000000000005,
+      "exchange_signed_size": -7.14,
+      "last_intent_id": "",
+      "last_oid": "",
+      "last_updated_at": "",
+      "latest_error": "shared symbol: sleeve tracked; exchange is netted at account level",
+      "count": 1,
+      "action_available": false
+    },
+    {
+      "severity": "OK",
+      "wallet": "0x7019197d2b2ae7b44eee12a76015eb1fe94abd36",
+      "coin": "APT",
+      "side": "LONG",
+      "issue": "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "manual_signed_size": 5.039999999999999,
+      "exchange_signed_size": -7.14,
+      "last_intent_id": "",
+      "last_oid": "",
+      "last_updated_at": "",
+      "latest_error": "shared symbol: sleeve tracked; exchange is netted at account level",
+      "count": 1,
+      "action_available": false
+    },
+    {
+      "severity": "OK",
+      "wallet": "0x7717a7a245d9f950e586822b8c9b46863ed7bd7e",
+      "coin": "APT",
+      "side": "LONG",
+      "issue": "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "manual_signed_size": 10.650000000000002,
+      "exchange_signed_size": -7.14,
+      "last_intent_id": "",
+      "last_oid": "",
+      "last_updated_at": "",
+      "latest_error": "shared symbol: sleeve tracked; exchange is netted at account level",
+      "count": 1,
+      "action_available": false
+    },
+    {
+      "severity": "OK",
+      "wallet": "0x010461c14e146ac35fe42271bdc1134ee31c703a",
+      "coin": "AR",
+      "side": "SHORT",
+      "issue": "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "manual_signed_size": -6.86,
+      "exchange_signed_size": 0.73,
+      "last_intent_id": "",
+      "last_oid": "",
+      "last_updated_at": "",
+      "latest_error": "shared symbol: sleeve tracked; exchange is netted at account level",
+      "count": 1,
+      "action_available": false
+    },
+    {
+      "severity": "OK",
+      "wallet": "0x31ca8395cf837de08b24da3f660e77761dfb974b",
+      "coin": "AR",
+      "side": "LONG",
+      "issue": "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "manual_signed_size": 3.05,
+      "exchange_signed_size": 0.73,
+      "last_intent_id": "",
+      "last_oid": "",
+      "last_updated_at": "",
+      "latest_error": "shared symbol: sleeve tracked; exchange is netted at account level",
+      "count": 1,
+      "action_available": false
+    },
+    {
+      "severity": "OK",
+      "wallet": "0x7019197d2b2ae7b44eee12a76015eb1fe94abd36",
+      "coin": "AR",
+      "side": "LONG",
+      "issue": "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "manual_signed_size": 3.07,
+      "exchange_signed_size": 0.73,
+      "last_intent_id": "",
+      "last_oid": "",
+      "last_updated_at": "",
+      "latest_error": "shared symbol: sleeve tracked; exchange is netted at account level",
+      "count": 1,
+      "action_available": false
+    },
+    {
+      "severity": "OK",
+      "wallet": "0x010461c14e146ac35fe42271bdc1134ee31c703a",
+      "coin": "ARB",
+      "side": "LONG",
+      "issue": "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "manual_signed_size": 27.700000000000017,
+      "exchange_signed_size": -28.5,
+      "last_intent_id": "",
+      "last_oid": "",
+      "last_updated_at": "",
+      "latest_error": "shared symbol: sleeve tracked; exchange is netted at account level",
+      "count": 1,
+      "action_available": false
+    },
+    {
+      "severity": "OK",
+      "wallet": "0x31ca8395cf837de08b24da3f660e77761dfb974b",
+      "coin": "ARB",
+      "side": "SHORT",
+      "issue": "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "manual_signed_size": -4.299999999999985,
+      "exchange_signed_size": -28.5,
+      "last_intent_id": "",
+      "last_oid": "",
+      "last_updated_at": "",
+      "latest_error": "shared symbol: sleeve tracked; exchange is netted at account level",
+      "count": 1,
+      "action_available": false
+    },
+    {
+      "severity": "OK",
+      "wallet": "0x6ba889db7f923622d3548f621ecc2054b80c1817",
+      "coin": "ARB",
+      "side": "LONG",
+      "issue": "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "manual_signed_size": 1985.7000000000003,
+      "exchange_signed_size": -28.5,
+      "last_intent_id": "",
+      "last_oid": "",
+      "last_updated_at": "",
+      "latest_error": "shared symbol: sleeve tracked; exchange is netted at account level",
+      "count": 1,
+      "action_available": false
+    }
+  ],
+  "last_rows": [],
+  "manual_reconcile_required_counts": {},
+  "recent_send_attempts": [
+    {
+      "intent_id": "9ff203fc77003b2f697e0d51c5f09ccd",
+      "status": "ORDER_REJECTED",
+      "coin": "ZORA",
+      "side": "SELL",
+      "created_at": "2026-10-18T18:17:58.499951+00:00"
+    },
+    {
+      "intent_id": "f98e324497639a96426c6f5c0d02c01b",
+      "status": "ORDER_REJECTED",
+      "coin": "PEOPLE",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:17:58.571296+00:00"
+    },
+    {
+      "intent_id": "973d780d3957086dd982493603111e21",
+      "status": "ORDER_REJECTED",
+      "coin": "CC",
+      "side": "SELL",
+      "created_at": "2026-10-18T18:17:58.856169+00:00"
+    },
+    {
+      "intent_id": "b84cd4e0ad86ba6671a6141eb3fbb010",
+      "status": "ORDER_REJECTED",
+      "coin": "ZEC",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:17:58.887679+00:00"
+    },
+    {
+      "intent_id": "5583aac1e89489820fc2beffce5e8573",
+      "status": "ORDER_REJECTED",
+      "coin": "BLUR",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:17:59.244961+00:00"
+    },
+    {
+      "intent_id": "2665505c19db763143f1475fc6779a6e",
+      "status": "ORDER_REJECTED",
+      "coin": "PUMP",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:17:59.463868+00:00"
+    },
+    {
+      "intent_id": "3f7def6e53691c2536a57750dd2c7988",
+      "status": "ORDER_REJECTED",
+      "coin": "KSHIB",
+      "side": "SELL",
+      "created_at": "2026-10-18T18:17:59.650873+00:00"
+    },
+    {
+      "intent_id": "e150df5cba4e890998bbb0c04be41170",
+      "status": "ORDER_REJECTED",
+      "coin": "BTC",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:18:00.240293+00:00"
+    },
+    {
+      "intent_id": "9eb68d186fb51c0a8ab7c61811aa92b2",
+      "status": "ORDER_REJECTED",
+      "coin": "ETH",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:18:04.321160+00:00"
+    },
+    {
+      "intent_id": "b1aea5c19fbafd8a3c296df3c8b381ee",
+      "status": "ORDER_REJECTED",
+      "coin": "GMT",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:18:04.372481+00:00"
+    },
+    {
+      "intent_id": "e6912ad0df0f32aa4312d8c0c8735a36",
+      "status": "ORDER_REJECTED",
+      "coin": "IMX",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:18:04.529778+00:00"
+    },
+    {
+      "intent_id": "21f37cbb46db6ad1b4f9fbf05a31638b",
+      "status": "ORDER_REJECTED",
+      "coin": "ZEC",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:18:04.578417+00:00"
+    },
+    {
+      "intent_id": "4bf650214aeeaa5c278a2c079cef0bb6",
+      "status": "ORDER_REJECTED",
+      "coin": "STABLE",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:18:04.835818+00:00"
+    },
+    {
+      "intent_id": "800c946132357be2c1e55b1eff0ffe9c",
+      "status": "ORDER_REJECTED",
+      "coin": "PUMP",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:18:06.224497+00:00"
+    },
+    {
+      "intent_id": "3e8648d367dd36bfd312f049874bcde2",
+      "status": "ORDER_FILLED",
+      "coin": "AVAX",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:18:04.986397+00:00"
+    },
+    {
+      "intent_id": "8a97dd4a953514556830cc07f0ef69d4",
+      "status": "ORDER_REJECTED",
+      "coin": "SOL",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:18:05.194990+00:00"
+    },
+    {
+      "intent_id": "6a88ea892b7da7f06fcaff9a73423e96",
+      "status": "ORDER_REJECTED",
+      "coin": "NEAR",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:18:07.870758+00:00"
+    },
+    {
+      "intent_id": "6b1e667e7db5f40863a1eff0e56cc89c",
+      "status": "ORDER_REJECTED",
+      "coin": "APEX",
+      "side": "SELL",
+      "created_at": "2026-10-18T18:18:06.010983+00:00"
+    },
+    {
+      "intent_id": "98ead342d647f2d8f39891ac57e01321",
+      "status": "ORDER_REJECTED",
+      "coin": "WLD",
+      "side": "SELL",
+      "created_at": "2026-10-18T18:18:06.156953+00:00"
+    },
+    {
+      "intent_id": "298ad1a9f4ddb5599f05c44339072c2e",
+      "status": "ORDER_REJECTED",
+      "coin": "SUI",
+      "side": "SELL",
+      "created_at": "2026-10-18T18:18:06.421911+00:00"
+    },
+    {
+      "intent_id": "2209f80e8d53a96183d1e17d9cac7940",
+      "status": "ORDER_REJECTED",
+      "coin": "KNEIRO",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:18:06.327512+00:00"
+    },
+    {
+      "intent_id": "ac8d131a5a31350ecd7d2731e3526efe",
+      "status": "ORDER_REJECTED",
+      "coin": "ETH",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:18:06.674971+00:00"
+    },
+    {
+      "intent_id": "cab86dae417f16004c110c506f879401",
+      "status": "ORDER_REJECTED",
+      "coin": "ZETA",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:18:06.934737+00:00"
+    },
+    {
+      "intent_id": "d05555596e87991cc45706e1f4ae69ec",
+      "status": "ORDER_REJECTED",
+      "coin": "BTC",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:18:06.984700+00:00"
+    },
+    {
+      "intent_id": "b90e12b2cb0f911be1753c43c78f4ad2",
+      "status": "ORDER_REJECTED",
+      "coin": "ZEC",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:18:07.233909+00:00"
+    },
+    {
+      "intent_id": "afcd8e2602f70a1856c793976e990e75",
+      "status": "ORDER_REJECTED",
+      "coin": "MOODENG",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:18:07.484637+00:00"
+    },
+    {
+      "intent_id": "a623afcba415a8ec2089fdd2135c2c5d",
+      "status": "ORDER_REJECTED",
+      "coin": "EIGEN",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:18:07.689806+00:00"
+    },
+    {
+      "intent_id": "e46e6205f49a4e266e6c228412af96d6",
+      "status": "ORDER_REJECTED",
+      "coin": "LIT",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:18:07.895842+00:00"
+    },
+    {
+      "intent_id": "df55180577f074a95287a821a5e487f6",
+      "status": "ORDER_REJECTED",
+      "coin": "ATOM",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:18:08.259050+00:00"
+    },
+    {
+      "intent_id": "0e72c6b66d33041d7ebc58c50f66124d",
+      "status": "ORDER_REJECTED",
+      "coin": "ZRO",
+      "side": "SELL",
+      "created_at": "2026-10-18T18:18:08.362847+00:00"
+    },
+    {
+      "intent_id": "8f1b4fd21e152e770cf59e9e82bc582e",
+      "status": "ORDER_REJECTED",
+      "coin": "WLD",
+      "side": "SELL",
+      "created_at": "2026-10-18T18:18:08.416443+00:00"
+    },
+    {
+      "intent_id": "07a239ae650618ee4c2c11e6d989c8cf",
+      "status": "ORDER_REJECTED",
+      "coin": "RENDER",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:18:08.564006+00:00"
+    },
+    {
+      "intent_id": "6434dc0c7fae4c5b3b3f893428fcc4f7",
+      "status": "ORDER_REJECTED",
+      "coin": "SUI",
+      "side": "SELL",
+      "created_at": "2026-10-18T18:18:08.365180+00:00"
+    },
+    {
+      "intent_id": "0a03a2d48f95fa81ba86a85e01beab6c",
+      "status": "ORDER_REJECTED",
+      "coin": "ZRO",
+      "side": "SELL",
+      "created_at": "2026-10-18T18:18:09.745628+00:00"
+    },
+    {
+      "intent_id": "3c6845eb79057107482fd682d86afd2f",
+      "status": "ORDER_REJECTED",
+      "coin": "AAVE",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:18:10.247340+00:00"
+    },
+    {
+      "intent_id": "359b416981a788f007232d705a535fea",
+      "status": "ORDER_REJECTED",
+      "coin": "PONS",
+      "side": "SELL",
+      "created_at": "2026-10-18T18:18:12.250460+00:00"
+    },
+    {
+      "intent_id": "79ea03d5da78d9daed78f53d4da7bb00",
+      "status": "ORDER_REJECTED",
+      "coin": "LIT",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:18:12.467635+00:00"
+    },
+    {
+      "intent_id": "ffb9c10cd74705cbfe423f417339673a",
+      "status": "ORDER_REJECTED",
+      "coin": "STABLE",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:18:16.059862+00:00"
+    },
+    {
+      "intent_id": "4f1558502c3d6ea4e67b81c9a22a5712",
+      "status": "ORDER_REJECTED",
+      "coin": "XPL",
+      "side": "SELL",
+      "created_at": "2026-10-18T18:18:16.108179+00:00"
+    },
+    {
+      "intent_id": "416e771b7f07a41b78549f32abfa8f43",
+      "status": "ORDER_REJECTED",
+      "coin": "SOL",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:18:16.103165+00:00"
+    },
+    {
+      "intent_id": "bb648a8f92771b26f6979e2b8a30a926",
+      "status": "ORDER_REJECTED",
+      "coin": "ZRO",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:18:16.319744+00:00"
+    },
+    {
+      "intent_id": "df26d1fb3543d9f6b90828005829f266",
+      "status": "ORDER_REJECTED",
+      "coin": "LAYER",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:18:16.617006+00:00"
+    },
+    {
+      "intent_id": "f49e56663b4eecbb1ebb9aca606d7b20",
+      "status": "ORDER_REJECTED",
+      "coin": "MOVE",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:18:16.852398+00:00"
+    },
+    {
+      "intent_id": "1a94f408ce6716088384862f9927455d",
+      "status": "ORDER_REJECTED",
+      "coin": "MON",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:18:17.082916+00:00"
+    },
+    {
+      "intent_id": "20cd00a9584ba1bbcb938dc7a389fd60",
+      "status": "ORDER_REJECTED",
+      "coin": "SUI",
+      "side": "SELL",
+      "created_at": "2026-10-18T18:18:17.082500+00:00"
+    },
+    {
+      "intent_id": "ea6958d30764a0f9a6a9b640afbc4fda",
+      "status": "ORDER_REJECTED",
+      "coin": "PUMP",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:18:17.703360+00:00"
+    },
+    {
+      "intent_id": "3a913f8a67fbee5de6b30889dd00b940",
+      "status": "ORDER_REJECTED",
+      "coin": "ENS",
+      "side": "SELL",
+      "created_at": "2026-10-18T18:18:17.850531+00:00"
+    },
+    {
+      "intent_id": "c817a13dbb1d1571ea97a00cbbebe15f",
+      "status": "ORDER_REJECTED",
+      "coin": "ETH",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:18:17.850934+00:00"
+    },
+    {
+      "intent_id": "a09e0e0e1eb362441f373e7c4b4eb146",
+      "status": "ORDER_REJECTED",
+      "coin": "MEGA",
+      "side": "SELL",
+      "created_at": "2026-10-18T18:18:18.276001+00:00"
+    },
+    {
+      "intent_id": "b893ce8885a40e1508ca0ee1d5334850",
+      "status": "ORDER_REJECTED",
+      "coin": "VIRTUAL",
+      "side": "SELL",
+      "created_at": "2026-10-18T18:18:19.336661+00:00"
+    },
+    {
+      "intent_id": "f351b6ec2b18ee10f1e86968e74ccb6f",
+      "status": "ORDER_REJECTED",
+      "coin": "ETH",
+      "side": "SELL",
+      "created_at": "2026-10-18T18:18:19.485187+00:00"
+    },
+    {
+      "intent_id": "91e35c01c1ded1b71a0e7a2a3e309290",
+      "status": "ORDER_REJECTED",
+      "coin": "MON",
+      "side": "SELL",
+      "created_at": "2026-10-18T18:18:19.897782+00:00"
+    },
+    {
+      "intent_id": "4821b52e43f0988278bca1262150ad22",
+      "status": "ORDER_REJECTED",
+      "coin": "USUAL",
+      "side": "SELL",
+      "created_at": "2026-10-18T18:18:19.946339+00:00"
+    },
+    {
+      "intent_id": "5843ef533ce265c2fe5021da5fb4f621",
+      "status": "ORDER_REJECTED",
+      "coin": "LIT",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:18:20.216045+00:00"
+    },
+    {
+      "intent_id": "20d34421eba25cc5c1e795cec9cbbd35",
+      "status": "ORDER_REJECTED",
+      "coin": "ZETA",
+      "side": "SELL",
+      "created_at": "2026-10-18T18:18:20.217311+00:00"
+    },
+    {
+      "intent_id": "2cbc5637bf62b34aa47a495c83975f67",
+      "status": "ORDER_REJECTED",
+      "coin": "GRASS",
+      "side": "SELL",
+      "created_at": "2026-10-18T18:18:20.216514+00:00"
+    },
+    {
+      "intent_id": "42bf86deef361c08e560dcd25a522d83",
+      "status": "ORDER_REJECTED",
+      "coin": "USELESS",
+      "side": "SELL",
+      "created_at": "2026-10-18T18:18:20.872050+00:00"
+    },
+    {
+      "intent_id": "7198e156a3517914b688b30fb9a25035",
+      "status": "ORDER_REJECTED",
+      "coin": "XPL",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:18:21.606120+00:00"
+    },
+    {
+      "intent_id": "953601615a1ca54a8f4b1d5fa9f48efd",
+      "status": "ORDER_REJECTED",
+      "coin": "ME",
+      "side": "SELL",
+      "created_at": "2026-10-18T18:18:21.689101+00:00"
+    },
+    {
+      "intent_id": "a19c8e5a8215629de5cafb609dbfb0b4",
+      "status": "ORDER_REJECTED",
+      "coin": "LIT",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:18:21.793324+00:00"
+    },
+    {
+      "intent_id": "231e52c1c477008f5d51d38275ec7916",
+      "status": "ORDER_REJECTED",
+      "coin": "XPL",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:18:23.781930+00:00"
+    },
+    {
+      "intent_id": "f32b7022d2fe5d9533be65a9a85a8518",
+      "status": "ORDER_REJECTED",
+      "coin": "FOGO",
+      "side": "SELL",
+      "created_at": "2026-10-18T18:18:24.196115+00:00"
+    },
+    {
+      "intent_id": "5d0a5191af2eaca753c7f5489f96ea6b",
+      "status": "ORDER_REJECTED",
+      "coin": "PUMP",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:18:24.347337+00:00"
+    },
+    {
+      "intent_id": "45da1c22344c22b5909ba31f5cfdb185",
+      "status": "ORDER_REJECTED",
+      "coin": "AAVE",
+      "side": "SELL",
+      "created_at": "2026-10-18T18:18:24.345294+00:00"
+    },
+    {
+      "intent_id": "032a12aa12dd4f7e49ce7fd0ef708072",
+      "status": "ORDER_REJECTED",
+      "coin": "NEAR",
+      "side": "SELL",
+      "created_at": "2026-10-18T18:18:24.526709+00:00"
+    },
+    {
+      "intent_id": "c7316b459786c10dc1a88afa230e31c3",
+      "status": "ORDER_REJECTED",
+      "coin": "RENDER",
+      "side": "SELL",
+      "created_at": "2026-10-18T18:18:24.526315+00:00"
+    },
+    {
+      "intent_id": "a7b4aea0ed442bec9e6fa2689f486be5",
+      "status": "ORDER_REJECTED",
+      "coin": "AERO",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:18:24.599942+00:00"
+    },
+    {
+      "intent_id": "9e88c8e030338bbe27cb39d7dfa9ce67",
+      "status": "ORDER_REJECTED",
+      "coin": "MERL",
+      "side": "SELL",
+      "created_at": "2026-10-18T18:18:24.859224+00:00"
+    },
+    {
+      "intent_id": "6600f469fa3d3da5f1d5456e703815a7",
+      "status": "ORDER_REJECTED",
+      "coin": "XPL",
+      "side": "SELL",
+      "created_at": "2026-10-18T18:18:24.858373+00:00"
+    },
+    {
+      "intent_id": "6f2c8a7b9807205b3920e74b963447d0",
+      "status": "ORDER_REJECTED",
+      "coin": "NEAR",
+      "side": "SELL",
+      "created_at": "2026-10-18T18:18:25.524817+00:00"
+    },
+    {
+      "intent_id": "710e5ec45cc7443ba06f0549885b67ce",
+      "status": "ORDER_REJECTED",
+      "coin": "ARB",
+      "side": "SELL",
+      "created_at": "2026-10-18T18:18:43.473617+00:00"
+    },
+    {
+      "intent_id": "cb9f9f8704aeb198bb75138f3a7427ed",
+      "status": "ORDER_REJECTED",
+      "coin": "NEAR",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:18:44.624716+00:00"
+    },
+    {
+      "intent_id": "8f9cd63865d65e477f4d2cd91edc4c94",
+      "status": "ORDER_REJECTED",
+      "coin": "ANIME",
+      "side": "SELL",
+      "created_at": "2026-10-18T18:18:51.432432+00:00"
+    },
+    {
+      "intent_id": "6920f40108ed0e550d45cbe61f0fc48f",
+      "status": "ORDER_REJECTED",
+      "coin": "BNB",
+      "side": "SELL",
+      "created_at": "2026-10-18T18:18:52.542094+00:00"
+    },
+    {
+      "intent_id": "dd1a19881e8cd3c17d6349fc660c3d12",
+      "status": "ORDER_REJECTED",
+      "coin": "ZEC",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:18:52.893756+00:00"
+    },
+    {
+      "intent_id": "4c904418ab92ca9c851dc24956bd5f30",
+      "status": "ORDER_REJECTED",
+      "coin": "BANANA",
+      "side": "SELL",
+      "created_at": "2026-10-18T18:18:52.973135+00:00"
+    },
+    {
+      "intent_id": "d4d6555e57ffd453394552d3f82fef86",
+      "status": "ORDER_REJECTED",
+      "coin": "ORDI",
+      "side": "SELL",
+      "created_at": "2026-10-18T18:18:52.894478+00:00"
+    },
+    {
+      "intent_id": "8e0294d1699e82eb0ce26c9e9d9acdf9",
+      "status": "ORDER_REJECTED",
+      "coin": "FOGO",
+      "side": "SELL",
+      "created_at": "2026-10-18T18:18:52.894125+00:00"
+    },
+    {
+      "intent_id": "7b79c38191fc4970b3f58bb98b676dc5",
+      "status": "ORDER_REJECTED",
+      "coin": "KLUNC",
+      "side": "SELL",
+      "created_at": "2026-10-18T18:18:53.258523+00:00"
+    },
+    {
+      "intent_id": "0d09a5be5d7e05e447b51c88e2a63bb0",
+      "status": "ORDER_REJECTED",
+      "coin": "PUMP",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:18:53.362293+00:00"
+    },
+    {
+      "intent_id": "f819536198233c256d94dca97de3a8f5",
+      "status": "ORDER_REJECTED",
+      "coin": "HEMI",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:18:54.598864+00:00"
+    },
+    {
+      "intent_id": "7b2abdcf8584ecbd26c6cc8789d9f480",
+      "status": "ORDER_REJECTED",
+      "coin": "TRUMP",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:18:53.415841+00:00"
+    },
+    {
+      "intent_id": "4a80ced41bd389574628738702e397bf",
+      "status": "ORDER_REJECTED",
+      "coin": "SUPER",
+      "side": "SELL",
+      "created_at": "2026-10-18T18:18:53.561413+00:00"
+    },
+    {
+      "intent_id": "06f1a970393b4acd03dfa108166494b5",
+      "status": "ORDER_REJECTED",
+      "coin": "BTC",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:18:54.412003+00:00"
+    },
+    {
+      "intent_id": "44c12b4c8b34bfdb1e562a559a516ca4",
+      "status": "ORDER_REJECTED",
+      "coin": "PONS",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:18:53.968183+00:00"
+    },
+    {
+      "intent_id": "949f977949718cae2b15c8f9b3edfc7c",
+      "status": "ORDER_REJECTED",
+      "coin": "LIT",
+      "side": "SELL",
+      "created_at": "2026-10-18T18:18:54.108464+00:00"
+    },
+    {
+      "intent_id": "c3e67ce41aac7c03685e901026b21a5e",
+      "status": "ORDER_REJECTED",
+      "coin": "KSHIB",
+      "side": "SELL",
+      "created_at": "2026-10-18T18:18:53.757172+00:00"
+    },
+    {
+      "intent_id": "7804d18ad828ffdb117dc8aaf298352b",
+      "status": "ORDER_REJECTED",
+      "coin": "GRASS",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:18:54.174871+00:00"
+    },
+    {
+      "intent_id": "3f26f2b5763be7774939bc80025d075a",
+      "status": "ORDER_REJECTED",
+      "coin": "ENS",
+      "side": "SELL",
+      "created_at": "2026-10-18T18:18:54.599205+00:00"
+    },
+    {
+      "intent_id": "1d017f1b7970888b860d73437d5e804c",
+      "status": "ORDER_REJECTED",
+      "coin": "ARB",
+      "side": "SELL",
+      "created_at": "2026-10-18T18:18:54.788370+00:00"
+    },
+    {
+      "intent_id": "4854adb4a3e4c84f7877777a4ecaa934",
+      "status": "ORDER_REJECTED",
+      "coin": "JTO",
+      "side": "SELL",
+      "created_at": "2026-10-18T18:18:54.149383+00:00"
+    },
+    {
+      "intent_id": "3855ab80b8596402cb24f496cb33eb9a",
+      "status": "ORDER_REJECTED",
+      "coin": "ETH",
+      "side": "SELL",
+      "created_at": "2026-10-18T18:18:54.642703+00:00"
+    },
+    {
+      "intent_id": "869861bc7bad0bc3ea73eb7660a67403",
+      "status": "ORDER_REJECTED",
+      "coin": "LAYER",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:18:55.510097+00:00"
+    },
+    {
+      "intent_id": "a6dde22d0506a664cfe15142ea9012fe",
+      "status": "ORDER_REJECTED",
+      "coin": "ZEC",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:18:55.554881+00:00"
+    },
+    {
+      "intent_id": "05d02dad428f5ff24fb95c316b13708f",
+      "status": "ORDER_REJECTED",
+      "coin": "ORDI",
+      "side": "SELL",
+      "created_at": "2026-10-18T18:18:55.658010+00:00"
+    },
+    {
+      "intent_id": "ea7534b0f939cb815daed053d6af5435",
+      "status": "pending_send",
+      "coin": "PUMP",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:18:54.456199+00:00"
+    },
+    {
+      "intent_id": "10ffd546e1b302cf9363856120176ab1",
+      "status": "pending_send",
+      "coin": "ZETA",
+      "side": "SELL",
+      "created_at": "2026-10-18T18:18:55.148432+00:00"
+    },
+    {
+      "intent_id": "77a42c0a206887a2f528a5ee5a802b1f",
+      "status": "pending_send",
+      "coin": "PONS",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:18:55.207922+00:00"
+    },
+    {
+      "intent_id": "b422082daa22c45c860bad475c4b48e4",
+      "status": "pending_send",
+      "coin": "BTC",
+      "side": "SELL",
+      "created_at": "2026-10-18T18:18:55.591000+00:00"
+    },
+    {
+      "intent_id": "b6adbd18f09cbeac595b56ae8ab83164",
+      "status": "pending_send",
+      "coin": "ETH",
+      "side": "BUY",
+      "created_at": "2026-10-18T18:18:55.723308+00:00"
+    }
+  ],
+  "rendered_recon_headers": [
+    "Severity",
+    "Wallet",
+    "Coin",
+    "Issue",
+    "Manual ledger",
+    "Exchange",
+    "Action"
+  ],
+  "rendered_recon_rows": [
+    [
+      "OK",
+      "0G",
+      "0x010461c1...1c703a",
+      "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "SHORT -96",
+      "-3",
+      "1"
+    ],
+    [
+      "OK",
+      "0G",
+      "0x31ca8395...fb974b",
+      "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "LONG 33",
+      "-3",
+      "1"
+    ],
+    [
+      "OK",
+      "0G",
+      "0x7019197d...4abd36",
+      "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "LONG 48",
+      "-3",
+      "1"
+    ],
+    [
+      "OK",
+      "0G",
+      "0x7717a7a2...d7bd7e",
+      "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "LONG 12",
+      "-3",
+      "1"
+    ],
+    [
+      "OK",
+      "2Z",
+      "0x010461c1...1c703a",
+      "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "SHORT -388",
+      "104",
+      "1"
+    ],
+    [
+      "OK",
+      "2Z",
+      "0x31ca8395...fb974b",
+      "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "LONG 175",
+      "104",
+      "1"
+    ],
+    [
+      "OK",
+      "2Z",
+      "0x7019197d...4abd36",
+      "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "SHORT -414",
+      "104",
+      "1"
+    ],
+    [
+      "OK",
+      "2Z",
+      "0x7717a7a2...d7bd7e",
+      "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "LONG 731",
+      "104",
+      "1"
+    ],
+    [
+      "OK",
+      "AAVE",
+      "0x010461c1...1c703a",
+      "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "LONG 0.07",
+      "0",
+      "1"
+    ],
+    [
+      "OK",
+      "AAVE",
+      "0x31ca8395...fb974b",
+      "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "SHORT -0.09000000000000001",
+      "0",
+      "1"
+    ],
+    [
+      "OK",
+      "AAVE",
+      "0x7019197d...4abd36",
+      "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "SHORT -0.02",
+      "0",
+      "1"
+    ],
+    [
+      "OK",
+      "AAVE",
+      "0x7717a7a2...d7bd7e",
+      "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "LONG 0.11",
+      "0",
+      "1"
+    ],
+    [
+      "OK",
+      "AAVE",
+      "0xf5d81a13...c3ad53",
+      "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "SHORT -0.07",
+      "0",
+      "1"
+    ],
+    [
+      "OK",
+      "ACE",
+      "0x010461c1...1c703a",
+      "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "SHORT -63.380000000000024",
+      "1.4",
+      "1"
+    ],
+    [
+      "OK",
+      "ACE",
+      "0x31ca8395...fb974b",
+      "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "LONG 64.77999999999999",
+      "1.4",
+      "1"
+    ],
+    [
+      "OK",
+      "ADA",
+      "0x010461c1...1c703a",
+      "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "LONG 41",
+      "0",
+      "1"
+    ],
+    [
+      "OK",
+      "ADA",
+      "0x31ca8395...fb974b",
+      "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "SHORT -115",
+      "0",
+      "1"
+    ],
+    [
+      "OK",
+      "ADA",
+      "0x6ba889db...0c1817",
+      "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "LONG 74",
+      "0",
+      "1"
+    ],
+    [
+      "OK",
+      "AERO",
+      "0x010461c1...1c703a",
+      "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "LONG 21",
+      "0",
+      "1"
+    ],
+    [
+      "OK",
+      "AERO",
+      "0x31ca8395...fb974b",
+      "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "LONG 23",
+      "0",
+      "1"
+    ],
+    [
+      "OK",
+      "AERO",
+      "0x7019197d...4abd36",
+      "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "LONG 167",
+      "0",
+      "1"
+    ],
+    [
+      "OK",
+      "AERO",
+      "0x7717a7a2...d7bd7e",
+      "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "SHORT -170",
+      "0",
+      "1"
+    ],
+    [
+      "OK",
+      "AERO",
+      "0x936cf4fb...81bb0f",
+      "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "SHORT -41",
+      "0",
+      "1"
+    ],
+    [
+      "OK",
+      "AIXBT",
+      "0x010461c1...1c703a",
+      "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "LONG 498",
+      "60",
+      "1"
+    ],
+    [
+      "OK",
+      "AIXBT",
+      "0x31ca8395...fb974b",
+      "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "SHORT -580",
+      "60",
+      "1"
+    ],
+    [
+      "OK",
+      "AIXBT",
+      "0x7019197d...4abd36",
+      "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "LONG 545",
+      "60",
+      "1"
+    ],
+    [
+      "OK",
+      "AIXBT",
+      "0x7717a7a2...d7bd7e",
+      "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "SHORT -403",
+      "60",
+      "1"
+    ],
+    [
+      "OK",
+      "ALGO",
+      "0x010461c1...1c703a",
+      "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "SHORT -1205",
+      "6",
+      "1"
+    ],
+    [
+      "OK",
+      "ALGO",
+      "0x31ca8395...fb974b",
+      "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "LONG 65",
+      "6",
+      "1"
+    ],
+    [
+      "OK",
+      "ALGO",
+      "0x7717a7a2...d7bd7e",
+      "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "LONG 1146",
+      "6",
+      "1"
+    ],
+    [
+      "OK",
+      "ALT",
+      "0x010461c1...1c703a",
+      "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "LONG 1511",
+      "477",
+      "1"
+    ],
+    [
+      "OK",
+      "ALT",
+      "0x31ca8395...fb974b",
+      "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "SHORT -1077",
+      "477",
+      "1"
+    ],
+    [
+      "OK",
+      "ALT",
+      "0x7019197d...4abd36",
+      "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "SHORT -2",
+      "477",
+      "1"
+    ],
+    [
+      "OK",
+      "ALT",
+      "0x7717a7a2...d7bd7e",
+      "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "LONG 45",
+      "477",
+      "1"
+    ],
+    [
+      "OK",
+      "ANIME",
+      "0x010461c1...1c703a",
+      "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "LONG 1776",
+      "-238",
+      "1"
+    ],
+    [
+      "OK",
+      "ANIME",
+      "0x31ca8395...fb974b",
+      "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "SHORT -2014",
+      "-238",
+      "1"
+    ],
+    [
+      "OK",
+      "APE",
+      "0x010461c1...1c703a",
+      "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "LONG 60.599999999999994",
+      "-15.4",
+      "1"
+    ],
+    [
+      "OK",
+      "APE",
+      "0x31ca8395...fb974b",
+      "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "SHORT -156.50000000000006",
+      "-15.4",
+      "1"
+    ],
+    [
+      "OK",
+      "APE",
+      "0x7019197d...4abd36",
+      "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "LONG 45.699999999999996",
+      "-15.4",
+      "1"
+    ],
+    [
+      "OK",
+      "APE",
+      "0x7717a7a2...d7bd7e",
+      "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "LONG 34.8",
+      "-15.4",
+      "1"
+    ],
+    [
+      "OK",
+      "APT",
+      "0x010461c1...1c703a",
+      "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "LONG 2.249999999999993",
+      "-7.14",
+      "1"
+    ],
+    [
+      "OK",
+      "APT",
+      "0x31ca8395...fb974b",
+      "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "SHORT -25.080000000000005",
+      "-7.14",
+      "1"
+    ],
+    [
+      "OK",
+      "APT",
+      "0x7019197d...4abd36",
+      "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "LONG 5.039999999999999",
+      "-7.14",
+      "1"
+    ],
+    [
+      "OK",
+      "APT",
+      "0x7717a7a2...d7bd7e",
+      "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "LONG 10.650000000000002",
+      "-7.14",
+      "1"
+    ],
+    [
+      "OK",
+      "AR",
+      "0x010461c1...1c703a",
+      "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "SHORT -6.86",
+      "0.73",
+      "1"
+    ],
+    [
+      "OK",
+      "AR",
+      "0x31ca8395...fb974b",
+      "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "LONG 3.05",
+      "0.73",
+      "1"
+    ],
+    [
+      "OK",
+      "AR",
+      "0x7019197d...4abd36",
+      "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "LONG 3.07",
+      "0.73",
+      "1"
+    ],
+    [
+      "OK",
+      "ARB",
+      "0x010461c1...1c703a",
+      "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "LONG 27.700000000000017",
+      "-28.5",
+      "1"
+    ],
+    [
+      "OK",
+      "ARB",
+      "0x31ca8395...fb974b",
+      "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "SHORT -4.299999999999985",
+      "-28.5",
+      "1"
+    ],
+    [
+      "OK",
+      "ARB",
+      "0x6ba889db...0c1817",
+      "SHARED_SYMBOL_SLEEVE_TRACKED",
+      "LONG 1985.7000000000003",
+      "-28.5",
+      "1"
+    ]
+  ],
+  "rendered_audit_rows": [
+    [
+      "No audit rows found."
+    ]
+  ],
+  "health_wallets": [
+    "0x010461c14e146ac35fe42271bdc1134ee31c703a",
+    "0x1b232b41b0e75550c59288b99874e4a8142fbe21",
+    "0x31ca8395cf837de08b24da3f660e77761dfb974b",
+    "0x6ba889db7f923622d3548f621ecc2054b80c1817",
+    "0x7019197d2b2ae7b44eee12a76015eb1fe94abd36",
+    "0x7717a7a245d9f950e586822b8c9b46863ed7bd7e",
+    "0x936cf4fb95c30ce83f658b5bbb247e4bb381bb0f",
+    "0xc179e03922afe8fa9533d3f896338b9fb87ce0c8",
+    "0xd4c1f7e8d876c4749228d515473d36f919583d1d",
+    "0xf5d81a135f756ca16544e53c20fc20643ec3ad53"
+  ],
+  "rendered_health_rows": [
+    "0x010461c1...1c703a",
+    "0x1b232b41...2fbe21",
+    "0x31ca8395...fb974b",
+    "0x6ba889db...0c1817",
+    "0x7019197d...4abd36",
+    "0x7717a7a2...d7bd7e",
+    "0x936cf4fb...81bb0f",
+    "0xc179e039...7ce0c8",
+    "0xd4c1f7e8...583d1d",
+    "0xf5d81a13...c3ad53"
+  ]
+}

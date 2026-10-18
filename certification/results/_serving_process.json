@@ -1,0 +1,8 @@
+{
+  "pid": 26592,
+  "started_at_utc": "2026-10-18T10:33:44.022999+00:00",
+  "exe": "C:\\Users\\wigmore\\AppData\\Local\\Python\\bin\\python.exe",
+  "cmdline": "C:\\Users\\wigmore\\AppData\\Local\\Python\\bin\\python.exe HL_Copy_App_SSOT.py",
+  "cwd": "C:\\Users\\wigmore\\trading_stack\\hl-build3-testnet-cert-j28-89b3bc7\\_archive\\hl_stage2",
+  "note": "probed instance for this redo; NOT the 33368 process cited by the original a56b8eb evidence"
+}

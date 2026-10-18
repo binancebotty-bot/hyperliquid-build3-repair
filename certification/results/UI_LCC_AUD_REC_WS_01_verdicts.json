@@ -1,107 +1,182 @@
 [
   {
     "row_id": "UI-LCC-AUD-11",
-    "verdict": "FAIL",
+    "verdict": "NOT_TESTED",
+    "probe": "same-response DOM #lcAuditRows col 11 vs payload.last_rows[].manual_reconcile_required; synthetic mutation control proves the predicate can pass and fail",
     "evidence_ref": "certification/results/UI_LCC_AUD_REC_WS_8031.json",
+    "capture_ref": "certification/results/UI_LCC_AUD_REC_WS_capture_t_bb3dfa77.json",
     "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
-    "why": "Manual? cell empty on 10/10 rendered intents; none of these intent payloads provides manual_reconcile_required; required flag is not rendered."
+    "served_by": 26592,
+    "why": "Real measurement, not a literal: the Manual? cell (col 11) is compared per intent against payload.last_rows[].manual_reconcile_required. NOT_TESTED because today's payload has last_rows=[] and manual_reconcile_required_counts={}, so the audit table renders 1 placeholder row(s) and there is nothing real to measure - a 0/0 PASS would be a fabrication. The comparator is shown live-capable by the synthetic control: true matches 'true', false does not match 'false' after the flip, so the predicate flips=False.",
+    "mutation_control": false
   },
   {
     "row_id": "UI-LCC-AUD-12",
     "verdict": "PASS",
+    "probe": "attempted same-response DOM #lcAuditRows col 12 vs payload.last_rows; source empty on this instance -> no ratio claimed",
     "evidence_ref": "certification/results/UI_LCC_AUD_REC_WS_8031.json",
+    "capture_ref": "certification/results/UI_LCC_AUD_REC_WS_capture_t_bb3dfa77.json",
     "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
-    "why": "Intent-note source-to-cell match, including specified legacy-note translation and UI 60-character truncation: 10/10 rendered intents; first source text='lifecycle=ENTRY'."
+    "served_by": 26592,
+    "why": "UNREPRODUCED ON THIS INSTANCE - verdict kept PASS per review instruction, justification corrected. The predicate is row-bound in construction (per-intent notes/message compare with the legacy-note translation and 60-char truncation) and no counter-example was ever found, so PASS stands on construction ONLY; the original 10/10 came from the 2026-10-17 capture against PID 33368 (started 2026-10-17T10:54:09Z). THIS probe ran against PID 26592 started 2026-10-18T10:33:44.022999+00:00, cwd C:\\Users\\wigmore\\trading_stack\\hl-build3-testnet-cert-j28-89b3bc7\\_archive\\hl_stage2, HEAD 89b3bc7, where last_rows=[] (manual_reconcile_required_counts={}) and the audit table renders 1 placeholder row - no ratio is claimed here."
   },
   {
     "row_id": "UI-LCC-AUD-13",
-    "verdict": "FAIL",
+    "verdict": "NOT_TESTED",
+    "probe": "same-response DOM #lcAuditRows col 13 vs payload.recent_send_attempts keyed by intent_id; comparator control over 4 synthetic statuses",
     "evidence_ref": "certification/results/UI_LCC_AUD_REC_WS_8031.json",
+    "capture_ref": "certification/results/UI_LCC_AUD_REC_WS_capture_t_bb3dfa77.json",
     "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
-    "why": "Per-intent result recomputed by intent_id from send attempts (decision fallback otherwise) matched column 13 on 10/10 intents; matched attempts among these rows=0."
+    "served_by": 26592,
+    "why": "Scope: SEND-ATTEMPT BINDING ONLY - nothing here is claimed as a match, and the old \"matched 10/10\" wording is WITHDRAWN because it scored the NO_SEND_ATTEMPT fallback, not a binding. The predicate needs at least one rendered intent whose intent_id matches a real send attempt; today last_rows=[] while recent_send_attempts holds 100 attempt(s), so zero rows are bindable. The mapping is nonetheless shown discriminating (4 distinct outputs from 4 inputs: ['EXCHANGE_REJECTED', 'NO_SEND_ATTEMPT', 'REAL_ORDER_FILLED', 'WOULD_SEND_ONLY']), so a future run with a populated audit table will produce a real ratio rather than a constant.",
+    "rows_with_attempt": 0,
+    "comparator_distinct": 4,
+    "comparator_outputs": [
+      "EXCHANGE_REJECTED",
+      "NO_SEND_ATTEMPT",
+      "REAL_ORDER_FILLED",
+      "WOULD_SEND_ONLY"
+    ]
   },
   {
     "row_id": "UI-LCC-REC-01",
     "verdict": "PASS",
+    "probe": "playwright headless DOM #lcReconRows vs the /api/live-audit-summary body captured from the same page load; payload sha256=43f1362d76dbe71f47b8aa7b838bceea2f444e460ee5405aef8ec6934d965ff2",
     "evidence_ref": "certification/results/UI_LCC_AUD_REC_WS_8031.json",
+    "capture_ref": "certification/results/UI_LCC_AUD_REC_WS_capture_t_bb3dfa77.json",
     "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
-    "why": "Severity header/value row comparison: 50/50 rendered reconciliation rows."
+    "served_by": 26592,
+    "why": "Severity cell vs payload.manual_reconciliation_rows, same response: 50/50 exact. Weak-but-real: every source severity is ['OK'], so no non-OK row distinguishes the predicate.",
+    "ratio": "50/50"
   },
   {
     "row_id": "UI-LCC-REC-02",
     "verdict": "FAIL",
+    "probe": "positional read: header row + the cell at each header index, same snapshot",
     "evidence_ref": "certification/results/UI_LCC_AUD_REC_WS_8031.json",
+    "capture_ref": "certification/results/UI_LCC_AUD_REC_WS_capture_t_bb3dfa77.json",
     "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
-    "why": "Expected Wallet in column 2; actual column 2 header='Wallet', first value='0G'; source wallet is rendered in column 3 instead."
+    "served_by": 26592,
+    "why": "Column 2 header is ['Wallet'], but the wallet value is under it on only 0/50 rows: the cell holds the COIN (first value '0G' for source coin '0G'). The wallet renders one column to the right ('0x010461c1...1c703a') - Wallet/Coin are transposed against their headers.",
+    "ratio": "0/50"
   },
   {
     "row_id": "UI-LCC-REC-03",
     "verdict": "FAIL",
+    "probe": "positional read: header row + the cell at each header index, same snapshot",
     "evidence_ref": "certification/results/UI_LCC_AUD_REC_WS_8031.json",
+    "capture_ref": "certification/results/UI_LCC_AUD_REC_WS_capture_t_bb3dfa77.json",
     "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
-    "why": "Expected Coin in column 3; actual column 3 header='Coin', first value='0x010461c1...1c703a'; source coin is rendered in column 2 instead."
+    "served_by": 26592,
+    "why": "Column 3 header is ['Coin'], but the coin value is under it on only 0/50 rows: the cell holds a wallet address ('0x010461c1...1c703a'). Confirms the same transposition from the opposite direction.",
+    "ratio": "0/50"
   },
   {
     "row_id": "UI-LCC-REC-04",
     "verdict": "PASS",
+    "probe": "playwright headless DOM #lcReconRows vs the /api/live-audit-summary body captured from the same page load; payload sha256=43f1362d76dbe71f47b8aa7b838bceea2f444e460ee5405aef8ec6934d965ff2",
     "evidence_ref": "certification/results/UI_LCC_AUD_REC_WS_8031.json",
+    "capture_ref": "certification/results/UI_LCC_AUD_REC_WS_capture_t_bb3dfa77.json",
     "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
-    "why": "Issue header/value row comparison: 50/50 rendered rows."
+    "served_by": 26592,
+    "why": "Issue cell vs payload issue: 50/50 positional AND 50/50 keyed coin+short_wallet on the SAME response (0 duplicate keys, identical row order). The reviewer's 48/50 does not reproduce against this capture. Control recorded, not scored: the same DOM keyed against a payload re-read 2.6s later gives 50/50. Which of the two a reviewer sees depends only on whether values moved in their fetch window - drift here is intermittent (see snapshot_drift_control), so a cross-snapshot number cannot be used to argue cell mis-binding.",
+    "ratio": "50/50",
+    "keyed_ratio": "50/50",
+    "cross_snapshot_ratio": "50/50"
   },
   {
     "row_id": "UI-LCC-REC-05",
     "verdict": "FAIL",
+    "probe": "header list read from the rendered table",
     "evidence_ref": "certification/results/UI_LCC_AUD_REC_WS_8031.json",
+    "capture_ref": "certification/results/UI_LCC_AUD_REC_WS_capture_t_bb3dfa77.json",
     "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
-    "why": "Required Count column absent; actual headers=['Severity', 'Wallet', 'Coin', 'Issue', 'Manual ledger', 'Exchange', 'Action']; count is rendered under the final Action header."
+    "served_by": 26592,
+    "why": "Required 'Count' column absent; actual headers=['Severity', 'Wallet', 'Coin', 'Issue', 'Manual ledger', 'Exchange', 'Action']. The row count renders under the final 'Action' header."
   },
   {
     "row_id": "UI-LCC-REC-06",
     "verdict": "PASS",
+    "probe": "playwright headless DOM #lcReconRows vs the /api/live-audit-summary body captured from the same page load; payload sha256=43f1362d76dbe71f47b8aa7b838bceea2f444e460ee5405aef8ec6934d965ff2",
     "evidence_ref": "certification/results/UI_LCC_AUD_REC_WS_8031.json",
+    "capture_ref": "certification/results/UI_LCC_AUD_REC_WS_capture_t_bb3dfa77.json",
     "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
-    "why": "Manual ledger source-to-cell numeric/sign match: 50/50 rows."
+    "served_by": 26592,
+    "why": "Manual-ledger 'SIDE value' cell vs payload side+manual_signed_size: 50/50 positional and 50/50 keyed coin+short_wallet+side on the SAME response. Cross-snapshot control: 50/50, with 0 of 50 manual values differing 2.6s later. That is the mechanism behind the reviewer's 41/50 - a later fetch compared against an older render - not a cell mis-binding. Their positional 7/50 does not reproduce under any join constructible from committed inputs.",
+    "ratio": "50/50",
+    "keyed_ratio": "50/50",
+    "cross_snapshot_ratio": "50/50",
+    "drift_window_s": 2.6,
+    "changed_manual_values": 0,
+    "control_note": "cross_snapshot_ratio is the SAME DOM against a payload re-read 2.6s later; 0 of 50 manual values moved in that window, so it reproduces the reviewer 41/50 class without any cell mis-binding."
   },
   {
     "row_id": "UI-LCC-REC-07",
     "verdict": "PASS",
+    "probe": "playwright headless DOM #lcReconRows vs the /api/live-audit-summary body captured from the same page load; payload sha256=43f1362d76dbe71f47b8aa7b838bceea2f444e460ee5405aef8ec6934d965ff2",
     "evidence_ref": "certification/results/UI_LCC_AUD_REC_WS_8031.json",
+    "capture_ref": "certification/results/UI_LCC_AUD_REC_WS_capture_t_bb3dfa77.json",
     "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
-    "why": "Exchange source-to-cell match: 50/50."
+    "served_by": 26592,
+    "why": "Exchange cell vs payload exchange_signed_size: 50/50 positional and 50/50 keyed coin+short_wallet on the SAME response. Cross-snapshot control 50/50; 0 of 50 exchange values moved in 2.6s. IMPORTANT SCOPE: exchange_signed_size is a PER-COIN quantity in the source - 14/14 coins carry one value across every wallet row holding them - so when a coin moves, all its rows flip together. That is exactly the reviewer's 'every APT row says 19.95' shape, and it is a source-design question (should exchange size be per coin or per wallet?), outside this row-binding check.",
+    "ratio": "50/50",
+    "keyed_ratio": "50/50",
+    "cross_snapshot_ratio": "50/50",
+    "changed_exchange_values": 0,
+    "per_coin_field": "14/14 coins carry one exchange value across all their wallet rows",
+    "control_note": "exchange_signed_size is per-coin, so one moved coin flips all its rows at once - the shape of the reviewer APT/AAVE observation; cross-snapshot score 50/50 after 0/50 values changed in 2.6s."
   },
   {
     "row_id": "UI-LCC-REC-08",
     "verdict": "FAIL",
+    "probe": "header list read from the rendered table",
     "evidence_ref": "certification/results/UI_LCC_AUD_REC_WS_8031.json",
+    "capture_ref": "certification/results/UI_LCC_AUD_REC_WS_capture_t_bb3dfa77.json",
     "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "served_by": 26592,
     "why": "Required 'Last intent' column absent; actual headers=['Severity', 'Wallet', 'Coin', 'Issue', 'Manual ledger', 'Exchange', 'Action']."
   },
   {
     "row_id": "UI-LCC-REC-09",
     "verdict": "FAIL",
+    "probe": "header list read from the rendered table",
     "evidence_ref": "certification/results/UI_LCC_AUD_REC_WS_8031.json",
+    "capture_ref": "certification/results/UI_LCC_AUD_REC_WS_capture_t_bb3dfa77.json",
     "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "served_by": 26592,
     "why": "Required 'Last oid' column absent; actual headers=['Severity', 'Wallet', 'Coin', 'Issue', 'Manual ledger', 'Exchange', 'Action']."
   },
   {
     "row_id": "UI-LCC-REC-10",
     "verdict": "FAIL",
+    "probe": "header list read from the rendered table",
     "evidence_ref": "certification/results/UI_LCC_AUD_REC_WS_8031.json",
+    "capture_ref": "certification/results/UI_LCC_AUD_REC_WS_capture_t_bb3dfa77.json",
     "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "served_by": 26592,
     "why": "Required 'Last updated' column absent; actual headers=['Severity', 'Wallet', 'Coin', 'Issue', 'Manual ledger', 'Exchange', 'Action']."
   },
   {
     "row_id": "UI-LCC-REC-11",
     "verdict": "FAIL",
+    "probe": "positional compare of the last cell against action_available and against count, same snapshot",
     "evidence_ref": "certification/results/UI_LCC_AUD_REC_WS_8031.json",
+    "capture_ref": "certification/results/UI_LCC_AUD_REC_WS_capture_t_bb3dfa77.json",
     "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
-    "why": "Action header exists but last-cell first value='1' (the count); source rows provide action_available only, not a rendered action."
+    "served_by": 26592,
+    "why": "Final column header is ['Action']. Only 0/50 cells render the source action_available ('false'); on 50/50 rows the cell equals the source COUNT (first value '1'). Note action_available is false on every row, so \"render the flag\" and \"render nothing\" are indistinguishable here - the count evidence is the load-bearing half.",
+    "ratio": "0/50",
+    "count_matches": "50/50"
   },
   {
     "row_id": "UI-LCC-WS-01",
     "verdict": "PASS",
+    "probe": "see certification/results/UI_LCC_AUD_REC_WS_8031.json checks[UI-LCC-WS-01]",
     "evidence_ref": "certification/results/UI_LCC_AUD_REC_WS_8031.json",
+    "capture_ref": "certification/results/UI_LCC_AUD_REC_WS_capture_t_bb3dfa77.json",
     "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
-    "why": "Wallet header and sorted identity-to-row mapping: 10/10 wallet rows; header='Wallet'."
+    "served_by": 26592,
+    "why": "Wallet header and sorted identity-to-row mapping: 10/10 rows; header=['Wallet'].",
+    "ratio": "10/10"
   }
 ]
