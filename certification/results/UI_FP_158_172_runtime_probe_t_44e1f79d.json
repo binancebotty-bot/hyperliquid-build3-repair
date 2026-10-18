@@ -1,0 +1,13 @@
+{
+  "task_id":"t_44e1f79d",
+  "tested_commit":"89b3bc7586bf328df336fc9ea721cee212617762",
+  "serving_process_binding":"Per task brief, PID 33368 started 2026-10-17T10:54:09Z and serves this commit; commit timestamp 2026-10-17T07:18:14Z predates process start.",
+  "probe_time_utc":"2026-10-18T20:37:45Z",
+  "base_url":"http://127.0.0.1:8031",
+  "observations":{
+    "reconciliation_api":{"request":"GET /api/reconciliation","status":404,"response":{"detail":"Not Found"}},
+    "live_ws_health":{"request":"GET /api/live-ws-health","status":200,"response":{"ok":true,"health":{"enabled":false,"overall":"OFFLINE","wallets":{}}}},
+    "dashboard":{"request":"GET /live-copy","status":200,"content_type":"text/html; charset=utf-8","content_length":87350,"detail":"Serving route reachable; source-data payloads above show missing reconciliation route and offline/empty WS health data."}
+  },
+  "scope_note":"This is runtime output from the serving UI endpoints, not a render-time DOM capture. It establishes the missing reconciliation route and the empty offline health payload; it does not claim a successful row-specific DOM assertion."
+}
