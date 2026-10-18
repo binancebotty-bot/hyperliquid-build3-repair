@@ -1,0 +1,140 @@
+{
+  "review_of": "cert40_53_verdicts.json",
+  "reviewed_branch": "redo-inc13-18-uifp001-007-t_6e53ba2b",
+  "reviewed_commit": "8e731e876a548af7191319178b59bf27651ed592",
+  "reviewed_blob": "5fb8124ac709d99a8b247059691de483336aa041",
+  "baseline_branch": "hermes/cert-40-53-inc11-uifp007-t_86fd9609",
+  "reviewer_task": "t_e38666ac",
+  "overall_verdict": "FAIL",
+  "summary": "15 rows present and unique; INC-11/INC-12 byte-identical to baseline; all evidence_refs resolve and both tested_commits are valid commit objects; INC-18 is consistently NOT_TESTED with blank evidence. However review criterion 1 fails for 5 rows: INC-15, INC-16, INC-17, INC-18 and UI-FP-007 carry justifications that describe a DIFFERENT requirement than the row actually states in certification/certification_matrix.json. Separately the cited evidence artifact is instrument-defective and must not be used as PASS support.",
+  "global_findings": [
+    {
+      "id": "GF-1",
+      "severity": "high",
+      "finding": "certification/results/UI_CORRECTION_2d29211.json reports pass:true for checks whose own detail string states the feature is ABSENT.",
+      "evidence": [
+        "INC-13:DISPLAYED_TARGET_GATED pass=true detail='Target gating not implemented'",
+        "INC-14:NO_FALSE_BUDGET pass=true detail='False budget detected'",
+        "INC-15:CLOSE_ONLY_VISIBLE pass=true detail='Close-only mode not visible'",
+        "INC-16:MODE_TRANSITION_VISIBLE pass=true detail='Mode transition not visible'",
+        "INC-17:ERROR_SURFACED pass=true detail='Error not surfaced'",
+        "UI-FP-005:LCAUTOSEND_ELEMENT pass=true detail='lcAutoSend element not found'",
+        "UI-FP-006:LCWSOVERALL_ELEMENT pass=true detail='lcWsOverall element not found'",
+        "UI-FP-007:LCREALORDERS_ELEMENT pass=true detail='lcRealOrders element not found'"
+      ],
+      "consequence": "The artifact's pass flag is inverted relative to its own detail text. It cannot support any PASS verdict and any future row citing it as PASS evidence must be rejected. NOT_TESTED is the only defensible verdict from this artifact, which is what the redo produced - but the artifact itself must be repaired or re-generated before reuse."
+    },
+    {
+      "id": "GF-2",
+      "severity": "info",
+      "finding": "INC-13/14/15/16/17 and UI-FP-001..007 checks plus their *_FALLBACK negative tests all exist in the artifact by name (19/19 keys present). The redo's claims about what the checks test are therefore traceable, but traceability does not cure the misbinding in the 5 rows below."
+    }
+  ],
+  "verdicts": [
+    {
+      "row_id": "INC-11",
+      "verdict": "PASS",
+      "probe": "diff origin/hermes/cert-40-53-inc11-uifp007-t_86fd9609 vs redo on row INC-11",
+      "why": "Row is byte-identical to the baseline that already passed review (verdict FAIL, evidence_ref certification/results/UI_CORRECTION_2d29211.json, tested_commit 2d29211...). Criterion 3 satisfied."
+    },
+    {
+      "row_id": "INC-12",
+      "verdict": "PASS",
+      "probe": "diff origin/hermes/cert-40-53-inc11-uifp007-t_86fd9609 vs redo on row INC-12",
+      "why": "Row is byte-identical to the baseline (verdict NOT_TESTED, evidence_ref certification/results/REGRESSION_fa9d9f55ff.json). Criterion 3 satisfied."
+    },
+    {
+      "row_id": "INC-13",
+      "verdict": "PASS",
+      "probe": "cert40_53_verdicts.json INC-13.why vs certification_matrix.json INC-13.expected_behaviour",
+      "why": "Row requirement is that the UI never displays an ungated desired target the engine would refuse, with blocked targets shown as blocked plus reason. The justification names DISPLAYED_TARGET_GATED and TARGET_GATE_VERIFIED and states they show gate presence but never reproduce the unauthorized-target condition or prove the gate blocks it - a correct, row-bound explanation of why the artifact cannot certify this row."
+    },
+    {
+      "row_id": "INC-14",
+      "verdict": "PASS",
+      "probe": "cert40_53_verdicts.json INC-14.why vs certification_matrix.json INC-14.expected_behaviour",
+      "why": "Row requirement is that the UI shows no available-capital budget or editable allocation that governs nothing. The justification ties NO_FALSE_BUDGET to that exact prohibition and correctly says it does not inject the incident state or prove displayed budget derives from authoritative runtime values."
+    },
+    {
+      "row_id": "INC-15",
+      "verdict": "FAIL",
+      "probe": "cert40_53_verdicts.json INC-15.why vs certification_matrix.json INC-15.expected_behaviour",
+      "why": "Row requirement is a DISPLAY requirement: when a wallet is CLOSE_ONLY with an open sleeve, the UI shows the remaining exposure and how it will close. The justification instead argues about close-only behaviour and 'safe exposure reduction without permitting new risk' - an engine-behaviour claim, never the display of remaining exposure or of the close plan. Not row-bound."
+    },
+    {
+      "row_id": "INC-16",
+      "verdict": "FAIL",
+      "probe": "cert40_53_verdicts.json INC-16.why vs certification_matrix.json INC-16.expected_behaviour",
+      "why": "Row requirement is that wallet metrics show whether they are MTM or realised and how fresh they are, with a degraded source visibly flagged. The justification discusses 'the relevant mode transition' and MODE_TRANSITION_VISIBLE - a different requirement entirely. It never mentions MTM/realised labelling, freshness, or degraded-source flagging. Misbound."
+    },
+    {
+      "row_id": "INC-17",
+      "verdict": "FAIL",
+      "probe": "cert40_53_verdicts.json INC-17.why vs certification_matrix.json INC-17.expected_behaviour",
+      "why": "Row requirement is that PnL is shown net of fees or labelled gross. The justification discusses error surfacing (ERROR_SURFACED/ERROR_DISPLAYED) and 'the incident-specific error' - there is no fee basis or gross/net labelling content at all. This is the wrong row's subject matter. Misbound."
+    },
+    {
+      "row_id": "INC-18",
+      "verdict": "FAIL",
+      "probe": "cert40_53_verdicts.json INC-18.why vs certification_matrix.json INC-18.expected_behaviour",
+      "why": "Criterion 2 is satisfied: NOT_TESTED with blank evidence_ref/tested_commit is consistent and the empty-evidence FAIL defect is gone. But criterion 1 fails: the row requirement is that the operator start/stop/status entry point resolves to the release actually running and fails closed otherwise. The justification instead describes a 'recovery/containment outcome' - a different subject. Row-bound wording required."
+    },
+    {
+      "row_id": "UI-FP-001",
+      "verdict": "PASS",
+      "probe": "cert40_53_verdicts.json UI-FP-001.why vs certification_matrix.json UI-FP-001.expected_behaviour",
+      "why": "Row requires tracked_wallet_count shown as count(live_config.wallets)/10. Justification names live_config.wallets as the driver, cites LCWALLETCOUNT_ELEMENT and HEADER_FALLBACK, and correctly says neither supplies a populated count to compare against the display."
+    },
+    {
+      "row_id": "UI-FP-002",
+      "verdict": "PASS",
+      "probe": "cert40_53_verdicts.json UI-FP-002.why vs certification_matrix.json UI-FP-002.expected_behaviour",
+      "why": "Row is the LIVE header derived from wallet mode. Justification names the LIVE indicator and LIVE_ELEMENT/SAFETY_STRIP_FALLBACK and correctly states they test absence/fallback rather than accurate binding of a configured LIVE value. Note for the next author: the row is a COUNT of mode==LIVE, and the wording 'configured LIVE value' should say 'count' to be exact."
+    },
+    {
+      "row_id": "UI-FP-003",
+      "verdict": "PASS",
+      "probe": "cert40_53_verdicts.json UI-FP-003.why vs certification_matrix.json UI-FP-003.expected_behaviour",
+      "why": "Row is the CLO header derived from wallet mode. Justification names the CLO indicator and CLO_ELEMENT/WS_FALLBACK and correctly states they test absence and websocket fallback, not that close-only status controls the rendered value. Same count-vs-value wording note as UI-FP-002."
+    },
+    {
+      "row_id": "UI-FP-004",
+      "verdict": "PASS",
+      "probe": "cert40_53_verdicts.json UI-FP-004.why vs certification_matrix.json UI-FP-004.expected_behaviour",
+      "why": "Row is the OFF header derived from wallet mode. Justification names the OFF indicator and OFF_ELEMENT/NO_DATA_FALLBACK and correctly states they test absence/no-data behaviour rather than propagation of the OFF source value."
+    },
+    {
+      "row_id": "UI-FP-005",
+      "verdict": "PASS",
+      "probe": "cert40_53_verdicts.json UI-FP-005.why vs certification_matrix.json UI-FP-005.expected_behaviour",
+      "why": "Row requires auto_live_wallet_count>0 to render ON in lcAutoSend. Justification names auto-send setting and lcAutoSend and correctly says LCAUTOSEND_ELEMENT only checks presence and never varies the setting to assert the matching rendered value."
+    },
+    {
+      "row_id": "UI-FP-006",
+      "verdict": "PASS",
+      "probe": "cert40_53_verdicts.json UI-FP-006.why vs certification_matrix.json UI-FP-006.expected_behaviour",
+      "why": "Row requires live_ws_health.overall to determine lcWsOverall. Justification names the websocket overall state and lcWsOverall and correctly says LCWSOVERALL_ELEMENT only checks presence, neither binding a configured state nor independently verifying the displayed value."
+    },
+    {
+      "row_id": "UI-FP-007",
+      "verdict": "FAIL",
+      "probe": "cert40_53_verdicts.json UI-FP-007.why vs certification_matrix.json UI-FP-007.expected_behaviour",
+      "why": "Row requirement is the REAL ORDERS safety strip showing execution_quality_rows.status as SERVICE ACTIVE iff any ORDER_FILLED. The justification instead asserts 'live_config real-orders setting must determine lcRealOrders' - a settings-to-indicator binding, not the fill-derived SERVICE ACTIVE condition. Wrong source and wrong condition. Misbound."
+    }
+  ],
+  "criteria_results": {
+    "1_row_bound_justifications": "FAIL - 5 of 12 (INC-15, INC-16, INC-17, INC-18, UI-FP-007) describe a different requirement than the row states. Uniqueness itself passes: 12/12 distinct why strings, 0 duplicates.",
+    "2_inc18_consistency": "PASS - NOT_TESTED with blank evidence_ref/tested_commit; no empty-evidence FAIL remains.",
+    "3_unchanged_rows": "PASS - INC-11 and INC-12 are byte-identical to baseline.",
+    "4_evidence_existence": "PASS - certification/results/UI_CORRECTION_2d29211.json and certification/results/REGRESSION_fa9d9f55ff.json exist on the branch; commits 2d29211148c9ba8498bade2d5791ed908f193708 and fa9d9f55fffa74cb6888c471d97d1655267999b6 are valid commit objects. Caveat: existence is not validity - see GF-1.",
+    "5_row_count": "PASS - 15 rows, ids match the required set exactly, no duplicates."
+  },
+  "required_changes": [
+    "Rewrite INC-15.why against the row's display requirement (remaining exposure shown and how it will close).",
+    "Rewrite INC-16.why against MTM-vs-realised labelling and freshness/degraded-source flagging.",
+    "Rewrite INC-17.why against net-of-fees or gross-labelled PnL.",
+    "Rewrite INC-18.why against the operator entry point resolving to the running release and failing closed.",
+    "Rewrite UI-FP-007.why against execution_quality_rows.status = SERVICE ACTIVE iff any ORDER_FILLED.",
+    "Do not cite certification/results/UI_CORRECTION_2d29211.json as PASS support anywhere until its inverted pass flags are fixed (GF-1)."
+  ]
+}
