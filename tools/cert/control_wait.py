@@ -1,7 +1,7 @@
 """Refuse to let a controller post go unanswered. Exits NON-ZERO while a reply is outstanding.
 
-Why this exists: "do not stand down after escalating" has been written in memory, in AGENTS.md and in skills for days and
-has failed repeatedly because PROSE IS SKIPPABLE. This makes the state one command with an exit code I cannot talk past.
+Why this exists: "do not stand down after escalating" has been in memory, AGENTS.md and skills for days and has failed
+repeatedly because PROSE IS SKIPPABLE. This makes the state one command with an exit code that cannot be talked past.
 
     python tools/cert/control_wait.py
 
@@ -9,12 +9,9 @@ has failed repeatedly because PROSE IS SKIPPABLE. This makes the state one comma
     exit 2   N post(s) still unanswered               -> DO NOT END THE TURN; keep working
     exit 3   state unknown (no token / check failed)  -> treat as unanswered; do not end the turn
 
-Storage is ~/.hermes/state/controller_posts_pending.json, a LIST of entries:
-
-    {"ref": "#81 6270956704", "note": "...", "posted_at": <epoch>, "answered": false}
-
-`ref` carries the issue number and the comment id that was posted. An entry counts as answered when `answered` is true OR a
-foreign comment newer than that id now exists on the issue.
+Comparison is by TIMESTAMP, not id: pending entries record `posted_at` (epoch), and an entry counts as answered when a
+foreign comment exists on that issue with created_at later than that epoch. Comment ids are not stored by
+`pending_post.py --add`, so comparing ids silently reports posted=0 for every row and proves nothing.
 """
 from __future__ import annotations
 
@@ -23,6 +20,7 @@ import re
 import sys
 import time
 import urllib.request
+from datetime import datetime, timezone
 from pathlib import Path
 
 HOME = Path(r"C:/Users/wigmore/.hermes")
@@ -30,7 +28,7 @@ PENDING = HOME / "state" / "controller_posts_pending.json"
 MINE = HOME / "state" / "my_comment_ids.json"
 ENV = HOME / ".env"
 REPO = "binancebotty-bot/hyperliquid-build3-repair"
-REF_RE = re.compile(r"#(\d+)\s+(\d{6,})")
+REF_RE = re.compile(r"#(\d+)")
 
 
 def token() -> str | None:
@@ -48,7 +46,7 @@ def get(url: str, tok: str):
     return json.load(urllib.request.urlopen(req, timeout=25))
 
 
-def newest_foreign(tok: str) -> dict[str, int]:
+def newest_foreign_ts(tok: str) -> dict[str, float]:
     mine = set(json.loads(MINE.read_text(encoding="utf-8"))) if MINE.is_file() else set()
     out = {}
     for num in (81, 3):
@@ -56,8 +54,16 @@ def newest_foreign(tok: str) -> dict[str, int]:
         meta = get(base, tok)
         pages = max(1, (int(meta.get("comments") or 0) + 99) // 100)
         data = get(f"{base}/comments?per_page=100&page={pages}", tok)
-        foreign = [c for c in data if c["id"] not in mine]
-        out[str(num)] = max([c["id"] for c in foreign], default=0)
+        newest = 0.0
+        for c in data:
+            if c["id"] in mine:
+                continue
+            try:
+                ts = datetime.strptime(c["created_at"], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc).timestamp()
+            except Exception:
+                continue
+            newest = max(newest, ts)
+        out[str(num)] = newest
     return out
 
 
@@ -91,34 +97,32 @@ def main() -> int:
 
     open_posts = [p for p in posts if not p.get("answered")]
     if not open_posts:
-        print("CONTROL_WAIT  REPLY_CONSUMED - no outstanding controller posts (%d total, all answered)" % len(posts))
+        print("CONTROL_WAIT  REPLY_CONSUMED - all %d controller posts answered" % len(posts))
         return 0
 
     tok = token()
     if not tok:
-        print("CONTROL_WAIT  UNKNOWN - no GitHub token; cannot verify. Treat as unanswered.")
+        print("CONTROL_WAIT  UNKNOWN - no GitHub token; treat as unanswered")
         return 3
     try:
-        newest = newest_foreign(tok)
+        newest = newest_foreign_ts(tok)
     except Exception as exc:
-        print("CONTROL_WAIT  UNKNOWN - reply check failed: %r. Treat as unanswered." % (exc,))
+        print("CONTROL_WAIT  UNKNOWN - reply check failed: %r; treat as unanswered" % (exc,))
         return 3
 
-    outstanding = []
     now = time.time()
+    outstanding = []
     for p in open_posts:
         m = REF_RE.search(str(p.get("ref", "")))
-        issue, posted_id = (m.group(1), int(m.group(2))) if m else ("81", 0)
-        nid = newest.get(issue, 0)
-        if posted_id and nid > posted_id:
+        issue = m.group(1) if m else "81"
+        posted_at = float(p.get("posted_at") or 0)
+        if newest.get(issue, 0.0) > posted_at:
             p["answered"] = True
             p["answered_at"] = int(now)
             continue
-        age = ""
-        if p.get("posted_at"):
-            age = "%dm" % int((now - float(p["posted_at"])) / 60)
-        outstanding.append({"ref": p.get("ref"), "issue": issue, "posted": posted_id,
-                            "newest": nid, "age": age, "note": p.get("note", "")})
+        outstanding.append({"ref": p.get("ref"), "issue": issue,
+                            "age": "%dm" % int((now - posted_at) / 60) if posted_at else "?",
+                            "note": p.get("note", "")})
     save(posts)
 
     if "--json" in sys.argv:
@@ -128,13 +132,12 @@ def main() -> int:
     else:
         print("CONTROL_WAIT  OUTSTANDING %d - DO NOT END THE TURN" % len(outstanding))
         for o in outstanding:
-            print("   #%s %-30s posted=%s newest=%s age=%s" %
-                  (o["issue"], str(o["ref"])[-11:], o["posted"], o["newest"], o["age"]))
+            print("   #%s age=%-5s %s" % (o["issue"], o["age"], str(o["ref"])[:46]))
             if o["note"]:
                 print("      %s" % str(o["note"])[:110])
         print("")
-        print("  Keep working: dispatch, verify an artifact, or repair a card body. A turn that ends here is the")
-        print("  silent-drop failure the operator has flagged repeatedly.")
+        print("  Keep working: dispatch, verify an artifact, repair a card. Ending the turn here is the silent-drop")
+        print("  failure the operator has flagged repeatedly.")
     return 0 if not outstanding else 2
 
 
