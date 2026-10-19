@@ -1,72 +1,107 @@
 [
   {
-    "row_id": "UI-FP-188",
-    "verdict": "PASS",
-    "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
-    "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
-    "why": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. | All checks pass"
-  },
-  {
-    "row_id": "UI-FP-189",
-    "verdict": "PASS",
-    "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
-    "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
-    "why": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. | All checks pass"
-  },
-  {
-    "row_id": "UI-FP-190",
+    "row_id": "UI-SSOT-TOP-01",
     "verdict": "FAIL",
-    "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
-    "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
-    "why": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. | Same as source: search element not found"
+    "evidence_ref": "Wallet config (empty)",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "No wallets configured; Normalisation Base not rendered"
   },
   {
-    "row_id": "UI-FP-191",
-    "verdict": "PASS",
-    "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
-    "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
-    "why": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. | All checks pass"
-  },
-  {
-    "row_id": "UI-FP-192",
+    "row_id": "UI-SSOT-TOP-02",
     "verdict": "FAIL",
-    "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
-    "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
-    "why": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. | Same as source: export element not found"
+    "evidence_ref": "Wallet config (empty)",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "No wallets configured; Copy mode not rendered"
   },
   {
-    "row_id": "UI-FP-193",
+    "row_id": "UI-SSOT-TOP-03",
     "verdict": "FAIL",
-    "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
-    "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
-    "why": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. | Same as source: import element not found"
+    "evidence_ref": "Wallet config (empty)",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "No wallets configured; Fixed $ not rendered"
   },
   {
-    "row_id": "UI-FP-194",
+    "row_id": "UI-SSOT-TOP-04",
     "verdict": "PASS",
-    "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
-    "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
-    "why": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. | All checks pass"
+    "evidence_ref": "Global controls marketable_bps=20.0 rendered in banner/status",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "marketable_bps (fee bps equivalent) from global controls found"
   },
   {
-    "row_id": "UI-FP-195",
-    "verdict": "PASS",
-    "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
-    "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
-    "why": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. | All checks pass"
+    "row_id": "UI-SSOT-TOP-05",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "lcAudit / global controls (no friction_bps field)",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "Copy friction bps - no corresponding data field in audit/global controls; component may not exist in current build"
   },
   {
-    "row_id": "UI-FP-196",
-    "verdict": "PASS",
-    "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
-    "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
-    "why": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. | All checks pass"
+    "row_id": "UI-SSOT-TOP-06",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "lcAudit (no 'set' field)",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "Analytics top bar 'Set' control - no corresponding data field; may be a UI control not a data display"
   },
   {
-    "row_id": "UI-FP-197",
+    "row_id": "UI-SSOT-TOP-07",
+    "verdict": "FAIL",
+    "evidence_ref": "Wallet config / live_top_status (empty)",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "Current mode label not rendered (no wallets)"
+  },
+  {
+    "row_id": "UI-SSOT-TOP-08",
     "verdict": "PASS",
-    "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
-    "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
-    "why": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. | All checks pass"
+    "evidence_ref": "recent_send_attempts[0].created_at=2026-10-19T00:00:07Z rendered in Last send/Last fill",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "Updated timestamp from recent send attempt found in top status"
+  },
+  {
+    "row_id": "UI-SSOT-TOP-09",
+    "verdict": "PASS",
+    "evidence_ref": "Top status card 'Follower account read'=Reading (normal) (cls=lc-green) rendered from copy_poll_status",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "POLL badge rendered as 'Follower account read' card with value 'Reading (normal)'"
+  },
+  {
+    "row_id": "UI-SSOT-CARD-01",
+    "verdict": "PASS",
+    "evidence_ref": "lcRealCards: 'Portfolio Value (TESTNET)', 'Open positions P&L (unrealised)', 'Closed P&L (realised)' all rendered",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "Three PNL cards (Lead/Copy/Delta equivalent) found in lcRealCards"
+  },
+  {
+    "row_id": "UI-SSOT-CARD-02",
+    "verdict": "PASS",
+    "evidence_ref": "lcRealCards: 'Closed P&L (realised)'=<span class=\"lc-grey\" title=\"exchange fills not readable\">\u2014</span> rendered",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "REALISED Lead/Copy card found in lcRealCards"
+  },
+  {
+    "row_id": "UI-SSOT-CARD-03",
+    "verdict": "PASS",
+    "evidence_ref": "lcRealCards: 'Open positions P&L (unrealised)'=<span class=\"lc-grey\" title=\"exchange not readable\">\u2014</span> rendered",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "UNREALISED Lead/Copy card found in lcRealCards"
+  },
+  {
+    "row_id": "UI-SSOT-CARD-04",
+    "verdict": "PASS",
+    "evidence_ref": "Graph render: lcDrawdownPath and 'Drawdown' legend would render from exchange history",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "DRAWDOWN elements rendered in equity chart (exchange history available)"
+  },
+  {
+    "row_id": "UI-SSOT-CARD-05",
+    "verdict": "PASS",
+    "evidence_ref": "Graph render: max drawdown computed from exchange history",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "MAX DD Lead/Copy computed and rendered in chart"
+  },
+  {
+    "row_id": "UI-SSOT-CARD-06",
+    "verdict": "PASS",
+    "evidence_ref": "lcRealCards: 'Live Exposure'=$0.00 rendered",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "EXPOSURE Open/Max/Base equivalent found in lcRealCards"
   }
 ]
