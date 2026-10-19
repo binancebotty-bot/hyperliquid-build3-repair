@@ -190,3 +190,33 @@ Also observed, current working tree: `bb7b9cc3…` (`_archive/hl_stage2/HL_Copy_
 - **The register of record is `origin/main` (832 rows).** The 790-row cert branch is evidence only.
 - **A results merge never changes `source_sha256`.** Any change to the source declaration is its own commit, with its
   own review and a stated reason.
+
+## Why `origin/main` reads as all NOT_TESTED — the overlay is not on it
+
+Verified 2026-10-19:
+
+| ref | `certification/results/apply_verified_results.py` |
+|---|---|
+| `origin/main` (819050c, 832 rows) | **ABSENT** |
+| `origin/cert/local-main-b142cf8` (790 rows) | PRESENT |
+| local `HEAD` / `main` (47b898f, 790 rows) | PRESENT |
+| `oc/ledger-fix-v2` | ABSENT |
+| `hermes/t_23fc77ee` | ABSENT |
+
+**`origin/main` is raw `gen_matrix.py` output with no overlay applied.** That is why it shows PASS 4 / FAIL 2 /
+NOT_TESTED 826: those are the generator's own defaults, not a certification result. The 579 PASS exist only where the
+overlay has been run — the cert branch.
+
+### Consequences
+
+1. **Overlay verdicts are literals in that file.** They are not read from result files; `run` cannot change one, only
+   `edit` can. The controller authorised a reviewed one-line edit for ENG-INV-02 (comment `6263261285`).
+2. **Any overlay edit must branch from `origin/cert/local-main-b142cf8`**, because that is the only ref carrying the file.
+3. **A merge to `main` must include the overlay itself**, or the published register will revert to all-NOT_TESTED the
+   moment it is regenerated. This is a structural part of the merge, not a detail.
+4. Rows can only be corrected through reviewed edits to that file — there is no data-driven path.
+
+### Evidence check
+
+All 18 verdict literals in the overlay reference an evidence file that **exists in the working tree**. No orphan
+literals found in that file at this time.
