@@ -1,0 +1,7 @@
+[
+  {"row_id":"F-EXC-017","verdict":"PASS","probe":"git grep -F -c F-EXC-017 FETCH_HEAD -- certification/open_decisions.json => 2 matches; OD-11 record present at line 193.","why":"Redo artifact cites certification/open_decisions.json (not the dead regression anchor), keeps NOT_TESTED, and explains OD-11 leaves the requirement unresolved."},
+  {"row_id":"F-VERIFY-008","verdict":"PASS","probe":"git grep -F -c F-VERIFY-008 FETCH_HEAD -- certification/open_decisions.json => 2 matches; OD-11 record present at line 193.","why":"Redo artifact cites certification/open_decisions.json (not the dead regression anchor), keeps NOT_TESTED, and explains OD-11 leaves the requirement unresolved."},
+  {"row_id":"F-UI-001","verdict":"PASS","probe":"Redo artifact row has evidence_ref=null (1 exact row match); no prohibited REVIEW_UI_SSOT_TBL13_PAGE02 citation.","why":"Honest NOT_TESTED; no unsupported FAIL/PASS claim and no fabricated rendered-cell evidence."},
+  {"row_id":"F-UI-002","verdict":"PASS","probe":"Redo artifact row has evidence_ref=null (1 exact row match); no prohibited REVIEW_UI_SSOT_TBL13_PAGE02 citation.","why":"Honest NOT_TESTED; no unsupported FAIL/PASS claim and no fabricated rendered-cell evidence."},
+  {"row_id":"F-UI-003","verdict":"PASS","probe":"Redo artifact row has evidence_ref=null (1 exact row match); no prohibited REVIEW_UI_SSOT_TBL13_PAGE02 citation.","why":"Honest NOT_TESTED; no unsupported FAIL/PASS claim and no fabricated rendered-cell evidence."}
+]
