@@ -1,0 +1,152 @@
+[
+  {
+    "row_id": "HEALTH-001",
+    "result": "NOT_TESTED",
+    "evidence_ref": "origin/main 819050c6018ab3264cfe911f927e1f97ff0f979b; workspace probe only (no runtime artifact)",
+    "why": "Probe: inspected this isolated origin/main clone (git ls-files for *.env, *.pcap, *capture* returned no files); no live engine/testnet session or exchange capture is supplied here. Required induced run and independent oracle cannot be executed from this workspace. Row-specific required proof: Induced condition (WS drop, stale truth, API error) -> engine state -> UI indicator within stated latency"
+  },
+  {
+    "row_id": "HEALTH-002",
+    "result": "NOT_TESTED",
+    "evidence_ref": "origin/main 819050c6018ab3264cfe911f927e1f97ff0f979b; workspace probe only (no runtime artifact)",
+    "why": "Probe: inspected this isolated origin/main clone (git ls-files for *.env, *.pcap, *capture* returned no files); no live engine/testnet session or exchange capture is supplied here. Required induced run and independent oracle cannot be executed from this workspace. Row-specific required proof: Induced condition (WS drop, stale truth, API error) -> engine state -> UI indicator within stated latency"
+  },
+  {
+    "row_id": "HEALTH-003",
+    "result": "NOT_TESTED",
+    "evidence_ref": "origin/main 819050c6018ab3264cfe911f927e1f97ff0f979b; workspace probe only (no runtime artifact)",
+    "why": "Probe: inspected this isolated origin/main clone (git ls-files for *.env, *.pcap, *capture* returned no files); no live engine/testnet session or exchange capture is supplied here. Required induced run and independent oracle cannot be executed from this workspace. Row-specific required proof: Induced condition (WS drop, stale truth, API error) -> engine state -> UI indicator within stated latency"
+  },
+  {
+    "row_id": "HEALTH-004",
+    "result": "NOT_TESTED",
+    "evidence_ref": "origin/main 819050c6018ab3264cfe911f927e1f97ff0f979b; workspace probe only (no runtime artifact)",
+    "why": "Probe: inspected this isolated origin/main clone (git ls-files for *.env, *.pcap, *capture* returned no files); no live engine/testnet session or exchange capture is supplied here. Required induced run and independent oracle cannot be executed from this workspace. Row-specific required proof: Induced condition (WS drop, stale truth, API error) -> engine state -> UI indicator within stated latency"
+  },
+  {
+    "row_id": "HEALTH-005",
+    "result": "NOT_TESTED",
+    "evidence_ref": "origin/main 819050c6018ab3264cfe911f927e1f97ff0f979b; workspace probe only (no runtime artifact)",
+    "why": "Probe: inspected this isolated origin/main clone (git ls-files for *.env, *.pcap, *capture* returned no files); no live engine/testnet session or exchange capture is supplied here. Required induced run and independent oracle cannot be executed from this workspace. Row-specific required proof: Induced condition (WS drop, stale truth, API error) -> engine state -> UI indicator within stated latency"
+  },
+  {
+    "row_id": "INC-11",
+    "result": "NOT_TESTED",
+    "evidence_ref": "origin/main 819050c6018ab3264cfe911f927e1f97ff0f979b; workspace probe only (no runtime artifact)",
+    "why": "Probe: inspected this isolated origin/main clone (git ls-files for *.env, *.pcap, *capture* returned no files); no live engine/testnet session or exchange capture is supplied here. Required induced run and independent oracle cannot be executed from this workspace. Row-specific required proof: Induced condition (WS drop, stale truth, API error) -> engine state -> UI indicator within stated latency"
+  },
+  {
+    "row_id": "NET-001",
+    "result": "NOT_TESTED",
+    "evidence_ref": "origin/main 819050c6018ab3264cfe911f927e1f97ff0f979b; workspace probe only (no runtime artifact)",
+    "why": "Probe: inspected this isolated origin/main clone (git ls-files for *.env, *.pcap, *capture* returned no files); no live engine/testnet session or exchange capture is supplied here. Required induced run and independent oracle cannot be executed from this workspace. Row-specific required proof: Configuration (env/credentials) -> endpoints actually contacted (captured) -> identities used for signing and for truth reads"
+  },
+  {
+    "row_id": "NET-002",
+    "result": "NOT_TESTED",
+    "evidence_ref": "origin/main 819050c6018ab3264cfe911f927e1f97ff0f979b; workspace probe only (no runtime artifact)",
+    "why": "Probe: inspected this isolated origin/main clone (git ls-files for *.env, *.pcap, *capture* returned no files); no live engine/testnet session or exchange capture is supplied here. Required induced run and independent oracle cannot be executed from this workspace. Row-specific required proof: Configuration (env/credentials) -> endpoints actually contacted (captured) -> identities used for signing and for truth reads"
+  },
+  {
+    "row_id": "NET-003",
+    "result": "NOT_TESTED",
+    "evidence_ref": "origin/main 819050c6018ab3264cfe911f927e1f97ff0f979b; workspace probe only (no runtime artifact)",
+    "why": "Probe: inspected this isolated origin/main clone (git ls-files for *.env, *.pcap, *capture* returned no files); no live engine/testnet session or exchange capture is supplied here. Required induced run and independent oracle cannot be executed from this workspace. Row-specific required proof: Configuration (env/credentials) -> endpoints actually contacted (captured) -> identities used for signing and for truth reads"
+  },
+  {
+    "row_id": "NET-004",
+    "result": "NOT_TESTED",
+    "evidence_ref": "origin/main 819050c6018ab3264cfe911f927e1f97ff0f979b; workspace probe only (no runtime artifact)",
+    "why": "Probe: inspected this isolated origin/main clone (git ls-files for *.env, *.pcap, *capture* returned no files); no live engine/testnet session or exchange capture is supplied here. Required induced run and independent oracle cannot be executed from this workspace. Row-specific required proof: Configuration (env/credentials) -> endpoints actually contacted (captured) -> identities used for signing and for truth reads"
+  },
+  {
+    "row_id": "NET-005",
+    "result": "NOT_TESTED",
+    "evidence_ref": "origin/main 819050c6018ab3264cfe911f927e1f97ff0f979b; workspace probe only (no runtime artifact)",
+    "why": "Probe: inspected this isolated origin/main clone (git ls-files for *.env, *.pcap, *capture* returned no files); no live engine/testnet session or exchange capture is supplied here. Required induced run and independent oracle cannot be executed from this workspace. Row-specific required proof: Configuration (env/credentials) -> endpoints actually contacted (captured) -> identities used for signing and for truth reads"
+  },
+  {
+    "row_id": "NET-006",
+    "result": "NOT_TESTED",
+    "evidence_ref": "origin/main 819050c6018ab3264cfe911f927e1f97ff0f979b; workspace probe only (no runtime artifact)",
+    "why": "Probe: inspected this isolated origin/main clone (git ls-files for *.env, *.pcap, *capture* returned no files); no live engine/testnet session or exchange capture is supplied here. Required induced run and independent oracle cannot be executed from this workspace. Row-specific required proof: Configuration (env/credentials) -> endpoints actually contacted (captured) -> identities used for signing and for truth reads"
+  },
+  {
+    "row_id": "NET-007",
+    "result": "NOT_TESTED",
+    "evidence_ref": "origin/main 819050c6018ab3264cfe911f927e1f97ff0f979b; workspace probe only (no runtime artifact)",
+    "why": "Probe: inspected this isolated origin/main clone (git ls-files for *.env, *.pcap, *capture* returned no files); no live engine/testnet session or exchange capture is supplied here. Required induced run and independent oracle cannot be executed from this workspace. Row-specific required proof: Configuration (env/credentials) -> endpoints actually contacted (captured) -> identities used for signing and for truth reads"
+  },
+  {
+    "row_id": "TN-A1",
+    "result": "NOT_TESTED",
+    "evidence_ref": "origin/main 819050c6018ab3264cfe911f927e1f97ff0f979b; workspace probe only (no runtime artifact)",
+    "why": "Probe: inspected this isolated origin/main clone (git ls-files for *.env, *.pcap, *capture* returned no files); no live engine/testnet session or exchange capture is supplied here. Required induced run and independent oracle cannot be executed from this workspace. Row-specific required proof: Unit/integration test feeding the hostile origin to the real client path"
+  },
+  {
+    "row_id": "TN-A2",
+    "result": "NOT_TESTED",
+    "evidence_ref": "origin/main 819050c6018ab3264cfe911f927e1f97ff0f979b; workspace probe only (no runtime artifact)",
+    "why": "Probe: inspected this isolated origin/main clone (git ls-files for *.env, *.pcap, *capture* returned no files); no live engine/testnet session or exchange capture is supplied here. Required induced run and independent oracle cannot be executed from this workspace. Row-specific required proof: Unit/integration test feeding the hostile origin to the real client path"
+  },
+  {
+    "row_id": "TN-A3",
+    "result": "NOT_TESTED",
+    "evidence_ref": "origin/main 819050c6018ab3264cfe911f927e1f97ff0f979b; workspace probe only (no runtime artifact)",
+    "why": "Probe: inspected this isolated origin/main clone (git ls-files for *.env, *.pcap, *capture* returned no files); no live engine/testnet session or exchange capture is supplied here. Required induced run and independent oracle cannot be executed from this workspace. Row-specific required proof: Unit/integration test feeding the hostile origin to the real client path"
+  },
+  {
+    "row_id": "TN-A4",
+    "result": "NOT_TESTED",
+    "evidence_ref": "origin/main 819050c6018ab3264cfe911f927e1f97ff0f979b; workspace probe only (no runtime artifact)",
+    "why": "Probe: inspected this isolated origin/main clone (git ls-files for *.env, *.pcap, *capture* returned no files); no live engine/testnet session or exchange capture is supplied here. Required induced run and independent oracle cannot be executed from this workspace. Row-specific required proof: Unit/integration test feeding the hostile origin to the real client path"
+  },
+  {
+    "row_id": "TN-A5",
+    "result": "NOT_TESTED",
+    "evidence_ref": "origin/main 819050c6018ab3264cfe911f927e1f97ff0f979b; workspace probe only (no runtime artifact)",
+    "why": "Probe: inspected this isolated origin/main clone (git ls-files for *.env, *.pcap, *capture* returned no files); no live engine/testnet session or exchange capture is supplied here. Required induced run and independent oracle cannot be executed from this workspace. Row-specific required proof: Unit/integration test feeding the hostile origin to the real client path"
+  },
+  {
+    "row_id": "TN-A6",
+    "result": "NOT_TESTED",
+    "evidence_ref": "origin/main 819050c6018ab3264cfe911f927e1f97ff0f979b; workspace probe only (no runtime artifact)",
+    "why": "Probe: inspected this isolated origin/main clone (git ls-files for *.env, *.pcap, *capture* returned no files); no live engine/testnet session or exchange capture is supplied here. Required induced run and independent oracle cannot be executed from this workspace. Row-specific required proof: Unit/integration test feeding the hostile origin to the real client path"
+  },
+  {
+    "row_id": "TN-A7",
+    "result": "NOT_TESTED",
+    "evidence_ref": "origin/main 819050c6018ab3264cfe911f927e1f97ff0f979b; workspace probe only (no runtime artifact)",
+    "why": "Probe: inspected this isolated origin/main clone (git ls-files for *.env, *.pcap, *capture* returned no files); no live engine/testnet session or exchange capture is supplied here. Required induced run and independent oracle cannot be executed from this workspace. Row-specific required proof: Unit/integration test feeding the hostile origin to the real client path"
+  },
+  {
+    "row_id": "TN-A8",
+    "result": "NOT_TESTED",
+    "evidence_ref": "origin/main 819050c6018ab3264cfe911f927e1f97ff0f979b; workspace probe only (no runtime artifact)",
+    "why": "Probe: inspected this isolated origin/main clone (git ls-files for *.env, *.pcap, *capture* returned no files); no live engine/testnet session or exchange capture is supplied here. Required induced run and independent oracle cannot be executed from this workspace. Row-specific required proof: Unit/integration test feeding the hostile origin to the real client path"
+  },
+  {
+    "row_id": "TN-F15",
+    "result": "NOT_TESTED",
+    "evidence_ref": "origin/main 819050c6018ab3264cfe911f927e1f97ff0f979b; workspace probe only (no runtime artifact)",
+    "why": "Probe: inspected this isolated origin/main clone (git ls-files for *.env, *.pcap, *capture* returned no files); no live engine/testnet session or exchange capture is supplied here. Required induced run and independent oracle cannot be executed from this workspace. Row-specific required proof: Predeclared Phase 6T-style scenario on testnet through the production engine path only (no direct exchange.order); evidence per class with exchange parity"
+  },
+  {
+    "row_id": "TN-F24",
+    "result": "NOT_TESTED",
+    "evidence_ref": "origin/main 819050c6018ab3264cfe911f927e1f97ff0f979b; workspace probe only (no runtime artifact)",
+    "why": "Probe: inspected this isolated origin/main clone (git ls-files for *.env, *.pcap, *capture* returned no files); no live engine/testnet session or exchange capture is supplied here. Required induced run and independent oracle cannot be executed from this workspace. Row-specific required proof: Predeclared Phase 6T-style scenario on testnet through the production engine path only (no direct exchange.order); evidence per class with exchange parity"
+  },
+  {
+    "row_id": "TN-T1",
+    "result": "NOT_TESTED",
+    "evidence_ref": "origin/main 819050c6018ab3264cfe911f927e1f97ff0f979b; workspace probe only (no runtime artifact)",
+    "why": "Probe: inspected this isolated origin/main clone (git ls-files for *.env, *.pcap, *capture* returned no files); no live engine/testnet session or exchange capture is supplied here. Required induced run and independent oracle cannot be executed from this workspace. Row-specific required proof: Configuration (env/credentials) -> endpoints actually contacted (captured) -> identities used for signing and for truth reads"
+  },
+  {
+    "row_id": "TN-T10",
+    "result": "NOT_TESTED",
+    "evidence_ref": "origin/main 819050c6018ab3264cfe911f927e1f97ff0f979b; workspace probe only (no runtime artifact)",
+    "why": "Probe: inspected this isolated origin/main clone (git ls-files for *.env, *.pcap, *capture* returned no files); no live engine/testnet session or exchange capture is supplied here. Required induced run and independent oracle cannot be executed from this workspace. Row-specific required proof: Configuration (env/credentials) -> endpoints actually contacted (captured) -> identities used for signing and for truth reads"
+  }
+]
