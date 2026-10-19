@@ -1,0 +1,107 @@
+[
+  {
+    "row_id": "TN-F09",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/NLS_RESIDUAL_2a269ad226.json",
+    "tested_commit": "2a269ad2260270fee844eedc2cc23545abc91dd0",
+    "why": "Row TN-F09 (HIP-3 / builder-DEX symbol exactness) measured FAIL: 4/5 checks, 1/2 negatives. The failing positive is LOAD_PRESERVES_DEX_PREFIX = pass:false, detail \"FAIL: sdk_coin=None\" - a stored builder-DEX coin loses its xyz: prefix when loaded. The failing negative is NEG_NO_DOUBLE_PREFIX = pass:false, detail \"NEG-FAIL: sdk_coin=\" (empty sdk_coin). Sibling rows F10/F11 do not execute LOAD_PRESERVES_DEX_PREFIX or NEG_NO_DOUBLE_PREFIX at all, so this text cannot justify them. [src NLS_RESIDUAL_2a269ad226.json @2a269ad2]"
+  },
+  {
+    "row_id": "TN-F10",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/NLS_RESIDUAL_2a269ad226.json",
+    "tested_commit": "2a269ad2260270fee844eedc2cc23545abc91dd0",
+    "why": "Row TN-F10 (ambiguous submission / 429 storm resolved from exchange truth) measured FAIL: 3/4 checks. The failing positive is RATE_LIMIT_RECOVERY_ATTEMPTED = pass:false, detail \"FAIL: result=none\" - the engine returned no recovery result, i.e. it never resolved the ambiguous send from exchange truth. Its other checks passed (RATE_LIMIT_COOLDOWN_SET \"cooldown=1791980796246\", NO_DUPLICATES_FROM_429 \"deduped=1\"). No sibling row runs RATE_LIMIT_RECOVERY_ATTEMPTED. [src NLS_RESIDUAL_2a269ad226.json @2a269ad2]"
+  },
+  {
+    "row_id": "TN-F11",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/NLS_RESIDUAL_2a269ad226.json",
+    "tested_commit": "2a269ad2260270fee844eedc2cc23545abc91dd0",
+    "why": "Row TN-F11 (ownership attribution never fails open) measured FAIL: 2/4 checks, 0/2 negatives failing. Both failing positives are ownership-gate probes: MISSING_AUDIT_PROOF_BLOCKS = pass:false, detail \"FAIL: ok=False status=OWNERSHIP_GATE_NO_MATCHING_WALLET_SLEEVE\"; and SIGN_CONFLICT_BLOCKS = pass:false, detail \"FAIL: ok=False status=OWNERSHIP_GATE_NO_MATCHING_WALLET_SLEEVE\" - both return the NO_MATCHING_WALLET_SLEEVE status where the row requires a distinct audit-proof / sign-conflict block, i.e. the gate does not discriminate those cases. Contrast the passing sibling probe in the same row: MISSING_EXCHANGE_PROOF_BLOCKS detail \"ok=False status=OWNERSHIP_GATE_MISSING_EXCHANGE_PROOF\". No other row executes MISSING_AUDIT_PROOF_BLOCKS or SIGN_CONFLICT_BLOCKS. [src NLS_RESIDUAL_2a269ad226.json @2a269ad2]"
+  },
+  {
+    "row_id": "TN-F12",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/NLS_RESIDUAL_2a269ad226.json",
+    "tested_commit": "2a269ad2260270fee844eedc2cc23545abc91dd0",
+    "why": "Row TN-F12 (outside-tolerance divergence surfaced for manual reconciliation) measured FAIL: 3/3 positives passed but 1/2 negatives failed. The failing negative is NEG_INVALID_MARK_FAILS_CLOSED = pass:false, detail \"NEG-FAIL: ok=True\" - an invalid mark was accepted (ok=True) instead of failing closed. The row did earn its positives: DIVERGENCE_SURFACED \"result=yes\" and OUTSIDE_TOLERANCE_NO_AUTO_CLOSE \"real_orders=0\". NEG_INVALID_MARK_FAILS_CLOSED is executed only for TN-F12. [src NLS_RESIDUAL_2a269ad226.json @2a269ad2]"
+  },
+  {
+    "row_id": "TN-F13",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": null,
+    "tested_commit": null,
+    "why": "\"No-blind-catch-up equals B2. The $30-at-mark tolerance value is OD-24.\". The absent component is the reconciliation-tolerance route itself: the $30-at-mark tolerance that within/outside-tolerance and NEG_INVALID_MARK_FAILS_CLOSED must be measured against is open decision OD-24 (register open_decisions [\"OD-24\"]), so no tolerance value is fixed for any probe to run against. This is a genuinely absent route, not a tooling fault. [src register@f4ee2bb1]"
+  },
+  {
+    "row_id": "TN-F14",
+    "verdict": "BLOCKED",
+    "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+    "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+    "why": "Row TN-F14 is blocked in its own evidence file: the UI_CORRECTION blocked array entry for this row reads \"Requires live testnet scenario with UI control that looks real but does not govern\" (the UI control in this scenario must look real yet not govern runtime). The file's 441 rendered checks and 23/23 negative tests are shared UI render assertions and do NOT cover this row, so they cannot be cited in its favour. F22/F23 carry different blocked reasons, so this text cannot justify them. [src UI_CORRECTION_2d29211.json @2d292111]"
+  },
+  {
+    "row_id": "TN-F15",
+    "verdict": "PASS",
+    "evidence_ref": "certification/results/HEALTH_CORRECTION_fefc2b04.json",
+    "tested_commit": "fefc2b04261c734bb32c767d2cc4a91095e65843",
+    "why": "Row TN-F15 (watchdog predicate matches the engine's own freshness budget) measured PASS: 10/10 checks. Its two row-bound checks are TN-F15:FRESHNESS_BUDGET_GATE_FIRES = pass:true, detail \"freshness gate fired: _entry_sends_blocked_reason=COPY_POLL_STALE\"; and TN-F15:NEG:FRESHNESS_BUDGET_GATE_NOT_FIRES = pass:true, detail \"freshness gate not fired: _entry_sends_blocked_reason='' (correct)\". The pair is a live fire / no-fire on the freshness gate, so it can fail - and it is keyed to TN-F15 only; F16/F21 run risk-gate probes instead. [src HEALTH_CORRECTION_fefc2b04.json @fefc2b04]"
+  },
+  {
+    "row_id": "TN-F16",
+    "verdict": "PASS",
+    "evidence_ref": "certification/results/RISK_fa9d9f55.json",
+    "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+    "why": "Row TN-F16 measured PASS inside a 30/30-check, 20/20-negative risk-gate run; its own row-keyed check is \"TN-F16:NO_FOLLOWER_PRICE_ENTRY_REFUSED\" = pass:true (the harness records an empty detail string for this check, so the row binding is the check NAME, not prose). Supporting same-behaviour check \"RISK-014:NO_FOLLOWER_PRICE_FAILS_CLOSED\" = pass:true. A sibling cannot borrow this: the other row in this batch is bound to the different check \"TN-F21:CLOSE_NOT_TRAPPED_BY_OPEN_SAFETY\", which this row does not execute. [src RISK_fa9d9f55.json @fa9d9f55]"
+  },
+  {
+    "row_id": "TN-F17",
+    "verdict": "PASS",
+    "evidence_ref": "certification/results/ENG-015-016-TNF17_43731b4f.json",
+    "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+    "why": "Row TN-F17 (trade direction only from a genuine leader fill, never a position snapshot) measured PASS, and unlike a shared sweep it carries three distinct TN-F17-only probes plus its own mutation control: TN-F17_POSITIVE_direction_from_position detail \"rc=0\"; TN-F17_STATIC_direction_from_position detail \"direction_from_size=True uses_size=True planner_authoritative=True\"; TN-F17_NEGATIVE_direction_must_fail detail \"rc=1 test_failed=True\"; and mutation \"direction_from_size always returns LONG regardless of position\" on _tmp_tnf17_mutated.py expected FAIL / actual FAIL (non_vacuous=true), which shows the probe can fail. ENG-015 and ENG-016 mutations are separate ids and cannot justify TN-F17. [src ENG-015-016-TNF17_43731b4f.json @43731b4f]"
+  },
+  {
+    "row_id": "TN-F18",
+    "verdict": "PASS",
+    "evidence_ref": "certification/results/NLS_RESIDUAL_2a269ad226.json",
+    "tested_commit": "2a269ad2260270fee844eedc2cc23545abc91dd0",
+    "why": "Row TN-F18 (fills keyed by exchange identity, processed exactly once) measured PASS: 9/9 checks and 2/2 negatives. Row-bound quotes from its own checks: MATCH_BY_OID=\"matched=True\"; DUPLICATE_COPY_BLOCKED=\"matched=False\"; OUT_OF_ORDER_DEDUPED=\"reprocessed\"; and negatives NEG_WS_DUPLICATE_DEDUPED=\"deduped=1\". These dedupe/identity probes exist only in TN-F18 - F09..F12/F19 do not execute MATCH_BY_OID or DUPLICATE_COPY_BLOCKED. [src NLS_RESIDUAL_2a269ad226.json @2a269ad2]"
+  },
+  {
+    "row_id": "TN-F19",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/NLS_RESIDUAL_2a269ad226.json",
+    "tested_commit": "2a269ad2260270fee844eedc2cc23545abc91dd0",
+    "why": "Row TN-F19 (STARTUP_UNINTENDED_ORDERS = 0 at every boundary) measured FAIL: 5/6 checks, 1/3 negatives. The failing positive is MOCK_START_NO_REAL_ORDERS = pass:false, detail \"FAIL: mock_sent=0\" - the mock start produced mock_sent=0, so the boundary probe never exercised a real send. The failing negative is NEG_SECOND_START_DEDUPED = pass:false, detail \"NEG-FAIL: deduped=0\" - a second start was not deduped. Sibling rows do not run MOCK_START_NO_REAL_ORDERS or NEG_SECOND_START_DEDUPED. [src NLS_RESIDUAL_2a269ad226.json @2a269ad2]"
+  },
+  {
+    "row_id": "TN-F20",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": null,
+    "tested_commit": null,
+    "why": "No committed probe exists for TN-F20: the register record at f4ee2bb1 carries result NOT_TESTED with an EMPTY evidence_ref and EMPTY tested_commit, applicability ADAPTED_PROPOSED, open decision [\"OD-12\"], and notes \"Build 3 mechanism is one process + one .order() site.\". The absent component is a sender lease / fencing mechanism: Build 3 has one process and one .order() site, so there is no lease holder to fence and no scenario that can be run against it until OD-12 rules the adapted mechanism. Genuinely absent route, not a tooling fault. [src register@f4ee2bb1]"
+  },
+  {
+    "row_id": "TN-F21",
+    "verdict": "PASS",
+    "evidence_ref": "certification/results/RISK_fa9d9f55.json",
+    "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+    "why": "Row TN-F21 measured PASS inside a 30/30-check, 20/20-negative risk-gate run; its own row-keyed check is \"TN-F21:CLOSE_NOT_TRAPPED_BY_OPEN_SAFETY\" = pass:true (the harness records an empty detail string for this check, so the row binding is the check NAME, not prose). Supporting same-behaviour check \"RISK-015:CLOSE_NEVER_BLOCKED_BY_ENTRY_CONTROLS\" = pass:true. A sibling cannot borrow this: the other row in this batch is bound to the different check \"TN-F16:NO_FOLLOWER_PRICE_ENTRY_REFUSED\", which this row does not execute. [src RISK_fa9d9f55.json @fa9d9f55]"
+  },
+  {
+    "row_id": "TN-F22",
+    "verdict": "BLOCKED",
+    "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+    "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+    "why": "Row TN-F22 is blocked in its own evidence file: the UI_CORRECTION blocked array entry for this row reads \"Requires live testnet scenario with UI minimum/config authority confusion test\" (the scenario tests whether the UI minimum comes from the authoritative execution config). The file's 441 rendered checks and 23/23 negative tests are shared UI render assertions and do NOT cover this row, so they cannot be cited in its favour. F22/F23 carry different blocked reasons, so this text cannot justify them. [src UI_CORRECTION_2d29211.json @2d292111]"
+  },
+  {
+    "row_id": "TN-F23",
+    "verdict": "BLOCKED",
+    "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+    "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+    "why": "Row TN-F23 is blocked in its own evidence file: the UI_CORRECTION blocked array entry for this row reads \"Requires live testnet scenario with UI account/position/open-order/render test\" (the scenario tests multi-DEX account/position/open-order/risk truth rendering). The file's 441 rendered checks and 23/23 negative tests are shared UI render assertions and do NOT cover this row, so they cannot be cited in its favour. F22/F23 carry different blocked reasons, so this text cannot justify them. [src UI_CORRECTION_2d29211.json @2d292111]"
+  }
+]
