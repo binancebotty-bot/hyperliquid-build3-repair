@@ -1,0 +1,439 @@
+Live Copy Command Centre
+Wallets:
+4 / 10
+LIVE 4
+CLO 0
+OFF 0
+Real order sending:
+OFF
+WS:
+WS_OK
+Refresh
+Global Controls
+Add wallet
+REAL ORDERS: APP DISABLED
+restart required for WS subscription changes
+Loaded
+Live Copy Status
+LIVE INTEGRITY
+RED
+missing append-only audit proof files: send_attempts.csv,live_fills.csv; hard_copy_active_red; audit_proof_missing
+WS
+WS_OK
+shared HOT10 status
+COPY POLL
+COPY_ACCOUNT_POLLED
+copy-account polling
+MASTER REAL ORDERS
+ON
+global real-order switch
+WALLETS
+4 active / 4 subscribed
+LIVE/CLO vs WS
+LAST SEND
+—
+LAST FILL
+—
+LAST REJECT
+—
+LAST LATENCY WARNING
+—
+Real Account
+PORTFOLIO VALUE
+Unavailable
+UNREALIZED PNL
+n/a
+REALIZED PNL
+Unavailable
+OPEN POSITIONS
+n/a
+LIVE EXPOSURE
+$0
+LAST FILL
+none yet
+LAST REJECT
+none
+Live Account / Wallet PnL
+
+Not enough points in selected range (ALL).
+
+Account
+Selected Wallet PnL
+Exposure
+1D
+7D
+ALL
+Apply
+Reset
+Total PnL
+Realized PnL
+Drawdown
+Live Copy Wallets
+
+Configured wallets from live_config.json. Click a row for real copy details for that leader.
+
+WALLET	MODE / HEALTH	LIVE PNL	LEAD↔COPY DIFF	EXECUTION	RISK / EXPOSURE	LAST FILL	CONTROLS
+
+0x599d75c7...e62d09
+TRACKED
+	
+LIVE
+COPYING
+SHARED_WS_OK
+HOT10 shared socket active
+	
+R: n/a
+U: n/a
+Net: n/a
+No PnL yet
+	
+Total: n/a
+Avg: n/a
+Avg bps: n/a
+Worst bps: n/a
+	
+0 filled / 0 exits
+0 recent rejects
+0 recent blocks
+	
+Exposure: $0
+Open pos: 0
+DD: UNKNOWN/NOT_PROVEN
+MaxDD: UNKNOWN/NOT_PROVEN
+	none yet	
+LIVE
+CLO
+OFF
+prop
+fixed
+F
+N
+B
+Save
+CLO
+OFF
+Archive
+
+
+0x9757fe36...04d75c
+TRACKED
+	
+LIVE
+COPYING
+SHARED_WS_OK
+HOT10 shared socket active
+	
+R: n/a
+U: n/a
+Net: n/a
+No PnL yet
+	
+Total: n/a
+Avg: n/a
+Avg bps: n/a
+Worst bps: n/a
+	
+0 filled / 0 exits
+0 recent rejects
+0 recent blocks
+	
+Exposure: $0
+Open pos: 0
+DD: UNKNOWN/NOT_PROVEN
+MaxDD: UNKNOWN/NOT_PROVEN
+	none yet	
+LIVE
+CLO
+OFF
+prop
+fixed
+F
+N
+B
+Save
+CLO
+OFF
+Archive
+
+
+0xe4c0f755...0ed02d
+TRACKED
+	
+LIVE
+COPYING
+SHARED_WS_OK
+HOT10 shared socket active
+	
+R: n/a
+U: n/a
+Net: n/a
+No PnL yet
+	
+Total: n/a
+Avg: n/a
+Avg bps: n/a
+Worst bps: n/a
+	
+0 filled / 0 exits
+0 recent rejects
+0 recent blocks
+	
+Exposure: $0
+Open pos: 0
+DD: UNKNOWN/NOT_PROVEN
+MaxDD: UNKNOWN/NOT_PROVEN
+	none yet	
+LIVE
+CLO
+OFF
+prop
+fixed
+F
+N
+B
+Save
+CLO
+OFF
+Archive
+
+
+0xf7bfa3a7...acf123
+TRACKED
+	
+LIVE
+COPYING
+SHARED_WS_OK
+HOT10 shared socket active
+	
+R: n/a
+U: n/a
+Net: n/a
+No PnL yet
+	
+Total: n/a
+Avg: n/a
+Avg bps: n/a
+Worst bps: n/a
+	
+0 filled / 0 exits
+0 recent rejects
+0 recent blocks
+	
+Exposure: $0
+Open pos: 0
+DD: UNKNOWN/NOT_PROVEN
+MaxDD: UNKNOWN/NOT_PROVEN
+	none yet	
+LIVE
+CLO
+OFF
+prop
+fixed
+F
+N
+B
+Save
+CLO
+OFF
+Archive
+Real Copy Positions
+Execution Quality
+Order Intents / Audit
+Reconciliation
+WS Health
+Real User Copy Positions
+
+Manual ledger vs real exchange account. All sizes signed (positive = long, negative = short). Exchange data requires HL_LIVE_HL_ACCOUNT_ADDRESS configured.
+
+OWNED COPY POSITIONS
+WALLET	COIN	SIDE	SIGNED SIZE	AVG ENTRY	LEDGER/EXCHANGE	EXCHANGE SIZE	LAST COPY FILL	LAST UPDATED
+No owned copy sleeves in manual_live_positions.json.
+ACCOUNT-LEVEL / ORPHAN EXCHANGE — USER-MANAGED
+COIN	EXCHANGE SIZE	ENTRY PX	MARK PX	UNREALIZED PNL	STATUS	USER OWNER	ENGINE CLOSE?	ENGINE SLEEVE?	CONTEXT
+No account-level orphan exchange positions.
+
+--- RENDERED TABLES ---
+WALLET	MODE / HEALTH	LIVE PNL	LEAD↔COPY DIFF	EXECUTION	RISK / EXPOSURE	LAST FILL	CONTROLS
+
+0x599d75c7...e62d09
+TRACKED
+	
+LIVE
+COPYING
+SHARED_WS_OK
+HOT10 shared socket active
+	
+R: n/a
+U: n/a
+Net: n/a
+No PnL yet
+	
+Total: n/a
+Avg: n/a
+Avg bps: n/a
+Worst bps: n/a
+	
+0 filled / 0 exits
+0 recent rejects
+0 recent blocks
+	
+Exposure: $0
+Open pos: 0
+DD: UNKNOWN/NOT_PROVEN
+MaxDD: UNKNOWN/NOT_PROVEN
+	none yet	
+LIVE
+CLO
+OFF
+prop
+fixed
+F
+N
+B
+Save
+CLO
+OFF
+Archive
+
+
+0x9757fe36...04d75c
+TRACKED
+	
+LIVE
+COPYING
+SHARED_WS_OK
+HOT10 shared socket active
+	
+R: n/a
+U: n/a
+Net: n/a
+No PnL yet
+	
+Total: n/a
+Avg: n/a
+Avg bps: n/a
+Worst bps: n/a
+	
+0 filled / 0 exits
+0 recent rejects
+0 recent blocks
+	
+Exposure: $0
+Open pos: 0
+DD: UNKNOWN/NOT_PROVEN
+MaxDD: UNKNOWN/NOT_PROVEN
+	none yet	
+LIVE
+CLO
+OFF
+prop
+fixed
+F
+N
+B
+Save
+CLO
+OFF
+Archive
+
+
+0xe4c0f755...0ed02d
+TRACKED
+	
+LIVE
+COPYING
+SHARED_WS_OK
+HOT10 shared socket active
+	
+R: n/a
+U: n/a
+Net: n/a
+No PnL yet
+	
+Total: n/a
+Avg: n/a
+Avg bps: n/a
+Worst bps: n/a
+	
+0 filled / 0 exits
+0 recent rejects
+0 recent blocks
+	
+Exposure: $0
+Open pos: 0
+DD: UNKNOWN/NOT_PROVEN
+MaxDD: UNKNOWN/NOT_PROVEN
+	none yet	
+LIVE
+CLO
+OFF
+prop
+fixed
+F
+N
+B
+Save
+CLO
+OFF
+Archive
+
+
+0xf7bfa3a7...acf123
+TRACKED
+	
+LIVE
+COPYING
+SHARED_WS_OK
+HOT10 shared socket active
+	
+R: n/a
+U: n/a
+Net: n/a
+No PnL yet
+	
+Total: n/a
+Avg: n/a
+Avg bps: n/a
+Worst bps: n/a
+	
+0 filled / 0 exits
+0 recent rejects
+0 recent blocks
+	
+Exposure: $0
+Open pos: 0
+DD: UNKNOWN/NOT_PROVEN
+MaxDD: UNKNOWN/NOT_PROVEN
+	none yet	
+LIVE
+CLO
+OFF
+prop
+fixed
+F
+N
+B
+Save
+CLO
+OFF
+Archive
+
+WALLET	COIN	SIDE	SIGNED SIZE	AVG ENTRY	LEDGER/EXCHANGE	EXCHANGE SIZE	LAST COPY FILL	LAST UPDATED
+No owned copy sleeves in manual_live_positions.json.
+
+COIN	EXCHANGE SIZE	ENTRY PX	MARK PX	UNREALIZED PNL	STATUS	USER OWNER	ENGINE CLOSE?	ENGINE SLEEVE?	CONTEXT
+No account-level orphan exchange positions.
+
+TimeWalletCoinSideStatusTerminal stateOperator actionReject categoryOIDFill avg pxSizePos before -> afterLeader→send msTotal msSymbol msSDK msExchange msErrorNo execution data. Real fills appear here after send_attempts.csv is populated.
+
+TimeWalletCoinSideSource/ReasonStatusDecisionDecision reasonSuggested limitDiff %Manual?Intent noteReal order result2026-10-09T14:48:58.366311+00:000xf7bfa3a7...acf123BTCPOLLmax total exposure exceeded——lifecycle=ENTRYNO_SEND_ATTEMPT2026-10-09T14:48:58.336416+00:000xf7bfa3a7...acf123BTCPOLLmax total exposure exceeded——lifecycle=ENTRYNO_SEND_ATTEMPT2026-10-09T14:48:58.290877+00:000xf7bfa3a7...acf123BTCPOLLmax total exposure exceeded——lifecycle=ENTRYNO_SEND_ATTEMPT2026-10-09T14:48:58.232318+00:000xe4c0f755...0ed02dHYPEPOLLmax total exposure exceeded——lifecycle=ENTRYNO_SEND_ATTEMPT2026-10-09T14:48:58.211600+00:000xe4c0f755...0ed02dHYPEPOLLmax total exposure exceeded——lifecycle=ENTRYNO_SEND_ATTEMPT2026-10-09T14:48:58.186229+00:000xe4c0f755...0ed02dHYPEPOLLmax total exposure exceeded——lifecycle=ENTRYNO_SEND_ATTEMPT2026-10-09T14:48:58.172296+00:000xe4c0f755...0ed02dHYPEPOLLmax total exposure exceeded——lifecycle=ENTRYNO_SEND_ATTEMPT2026-10-09T14:48:58.155802+00:000xe4c0f755...0ed02dPUMPPOLLmax total exposure exceeded——lifecycle=ENTRYNO_SEND_ATTEMPT2026-10-09T14:48:58.137813+00:000xe4c0f755...0ed02dPUMPPOLLmax total exposure exceeded——lifecycle=ENTRYNO_SEND_ATTEMPT2026-10-09T14:48:58.125097+00:000xe4c0f755...0ed02dPUMPPOLLmax total exposure exceeded——lifecycle=ENTRYNO_SEND_ATTEMPT
+
+EventStatusActionReject categoryTerminal stateCoinWalletIntentNotesNo actionable critical terminal items.
+
+EventStatusActionReject categoryTerminal stateCoinWalletIntentNotesNo terminal warnings.
+
+StatusWalletCoinIntentIssueNo legacy terminal-state gaps.
+
+SeverityWalletCoinIssueManual ledgerExchangeActionNo account-level orphan context.
+
+WalletCurrentGradeThreadReconnect/minProcessedRaw msgParsedSnap seenSnap recoveredIgnoredRecent errorsLifetime errorsStale msData statusLast close/error0x599d75c7...e62d09OFFLINE—down0.0000000000593963—0x9757fe36...04d75cOFFLINE—down0.0000000000593957—0xe4c0f755...0ed02dOFFLINE—down0.0000000000594182—0xf7bfa3a7...acf123OFFLINE—down0.0000000000593959—
