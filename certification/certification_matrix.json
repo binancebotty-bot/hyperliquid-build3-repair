@@ -3291,12 +3291,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_FP_LCC_redo_t_a7eaf165.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "OD-21 decided: re-pointed to the certified 13 May UI.",
-   "proof_network": "TESTNET"
+   "notes": "UI capture on the measured :8023 build (card t_a7eaf165, DOM snapshot EVIDENCE/ui_snapshot_8023/). Selector: #lcWalletCount -> value: 4 / 10. Provenance: ['HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) render_live_copy_control_panel header', 'ARCH Full scope 2', 'ARCH Full scope 6', 'FAILURES UI-001..003']",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-LCC-HDR-02",
@@ -3319,12 +3322,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_FP_LCC_redo_t_a7eaf165.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "OD-21 decided: re-pointed to the certified 13 May UI.",
-   "proof_network": "TESTNET"
+   "notes": "UI capture on the measured :8023 build (card t_a7eaf165, DOM snapshot EVIDENCE/ui_snapshot_8023/). Selector: #lcModeCounts -> value: LIVE 4\nCLO 0\nOFF 0. Provenance: ['HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) render_live_copy_control_panel header', 'ARCH Full scope 2', 'ARCH Full scope 6', 'FAILURES UI-001..003']",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-LCC-HDR-03",
@@ -3347,12 +3353,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_FP_LCC_redo_t_a7eaf165.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "OD-21 decided: re-pointed to the certified 13 May UI.",
-   "proof_network": "TESTNET"
+   "notes": "UI capture on the measured :8023 build (card t_a7eaf165, DOM snapshot EVIDENCE/ui_snapshot_8023/). Selector: #lcAutoSend -> value: Real order sending:\nOFF. Provenance: ['HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) render_live_copy_control_panel header', 'ARCH Full scope 2', 'ARCH Full scope 6', 'FAILURES UI-001..003']",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-LCC-HDR-04",
@@ -3375,12 +3384,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_FP_LCC_redo_t_a7eaf165.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "OD-21 decided: re-pointed to the certified 13 May UI.",
-   "proof_network": "TESTNET"
+   "notes": "UI capture on the measured :8023 build (card t_a7eaf165, DOM snapshot EVIDENCE/ui_snapshot_8023/). Selector: #lcWsOverall -> value: WS_OK. Provenance: ['HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) render_live_copy_control_panel header', 'ARCH Full scope 2', 'ARCH Full scope 6', 'FAILURES UI-001..003']",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-LCC-HDR-05",
@@ -3403,12 +3415,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_FP_LCC_redo_t_a7eaf165.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "OD-21 decided: re-pointed to the certified 13 May UI.",
-   "proof_network": "TESTNET"
+   "notes": "UI capture on the measured :8023 build (card t_a7eaf165, DOM snapshot EVIDENCE/ui_snapshot_8023/). Selector: #lcRealOrders -> value: REAL ORDERS: APP DISABLED. Provenance: ['HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) render_live_copy_control_panel header', 'ARCH Full scope 2', 'ARCH Full scope 6', 'FAILURES UI-001..003']",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-LCC-HDR-06",
@@ -3431,12 +3446,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_FP_LCC_redo_t_a7eaf165.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "OD-21 decided: re-pointed to the certified 13 May UI.",
-   "proof_network": "TESTNET"
+   "notes": "UI capture on the measured :8023 build (card t_a7eaf165, DOM snapshot EVIDENCE/ui_snapshot_8023/). Selector: #lcStatus -> value: Loaded. Provenance: ['HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) render_live_copy_control_panel header', 'ARCH Full scope 2', 'ARCH Full scope 6', 'FAILURES UI-001..003']",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-LCC-BTN-01",
@@ -3879,12 +3897,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "FAIL",
+   "evidence_ref": "certification/results/UI_FP_LCC_redo_t_a7eaf165.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "OD-21 decided: re-pointed to the certified 13 May UI.",
-   "proof_network": "TESTNET"
+   "notes": "UI capture on the measured :8023 build (card t_a7eaf165, DOM snapshot EVIDENCE/ui_snapshot_8023/). Selector: [data-lc-graph-scale=1d] -> value: None. Provenance: ['HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) renderGraph', 'ARCH Full scope 2', 'ARCH Full scope 6', 'FAILURES UI-001..003']",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-LCC-GRAPH-05",
@@ -16674,12 +16695,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_FP_LCC_redo_t_a7eaf165.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
-   "proof_network": "TESTNET"
+   "notes": "UI capture on the measured :8023 build (card t_a7eaf165, DOM snapshot EVIDENCE/ui_snapshot_8023/). Selector: #lcWalletCount -> value: 4 / 10. Provenance: ['local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv']",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-FP-002",
@@ -16699,12 +16723,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_FP_LCC_redo_t_a7eaf165.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
-   "proof_network": "TESTNET"
+   "notes": "UI capture on the measured :8023 build (card t_a7eaf165, DOM snapshot EVIDENCE/ui_snapshot_8023/). Selector: #lcModeCounts -> value: LIVE 4. Provenance: ['local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv']",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-FP-003",
@@ -16724,12 +16751,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_FP_LCC_redo_t_a7eaf165.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
-   "proof_network": "TESTNET"
+   "notes": "UI capture on the measured :8023 build (card t_a7eaf165, DOM snapshot EVIDENCE/ui_snapshot_8023/). Selector: #lcModeCounts -> value: CLO 0. Provenance: ['local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv']",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-FP-004",
@@ -16749,12 +16779,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_FP_LCC_redo_t_a7eaf165.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
-   "proof_network": "TESTNET"
+   "notes": "UI capture on the measured :8023 build (card t_a7eaf165, DOM snapshot EVIDENCE/ui_snapshot_8023/). Selector: #lcModeCounts -> value: OFF 0. Provenance: ['local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv']",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-FP-005",
@@ -16774,12 +16807,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_FP_LCC_redo_t_a7eaf165.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
-   "proof_network": "TESTNET"
+   "notes": "UI capture on the measured :8023 build (card t_a7eaf165, DOM snapshot EVIDENCE/ui_snapshot_8023/). Selector: #lcAutoSend -> value: OFF. Provenance: ['local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv']",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-FP-006",
@@ -16799,12 +16835,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_FP_LCC_redo_t_a7eaf165.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
-   "proof_network": "TESTNET"
+   "notes": "UI capture on the measured :8023 build (card t_a7eaf165, DOM snapshot EVIDENCE/ui_snapshot_8023/). Selector: #lcWsOverall -> value: WS_OK. Provenance: ['local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv']",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-FP-007",
@@ -16824,12 +16863,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_FP_LCC_redo_t_a7eaf165.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
-   "proof_network": "TESTNET"
+   "notes": "UI capture on the measured :8023 build (card t_a7eaf165, DOM snapshot EVIDENCE/ui_snapshot_8023/). Selector: #lcRealOrders -> value: APP DISABLED. Provenance: ['local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv']",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-FP-008",
@@ -16849,12 +16891,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_FP_LCC_redo_t_a7eaf165.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
-   "proof_network": "TESTNET"
+   "notes": "UI capture on the measured :8023 build (card t_a7eaf165, DOM snapshot EVIDENCE/ui_snapshot_8023/). Selector: .lc-safety-strip .lc-muted -> value: restart required for WS subscription changes. Provenance: ['local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv']",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-FP-009",
@@ -16874,12 +16919,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_FP_LCC_redo_t_a7eaf165.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
-   "proof_network": "TESTNET"
+   "notes": "UI capture on the measured :8023 build (card t_a7eaf165, DOM snapshot EVIDENCE/ui_snapshot_8023/). Selector: #lcTruthStatus .lc-stat-strip .lc-stat-card -> value: RED. Provenance: ['local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv']",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-FP-010",
@@ -16899,12 +16947,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_FP_LCC_redo_t_a7eaf165.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
-   "proof_network": "TESTNET"
+   "notes": "UI capture on the measured :8023 build (card t_a7eaf165, DOM snapshot EVIDENCE/ui_snapshot_8023/). Selector: #lcTruthStatus .lc-stat-strip .lc-stat-card -> value: WS_OK. Provenance: ['local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv']",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-FP-011",
@@ -16924,12 +16975,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_FP_LCC_redo_t_a7eaf165.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
-   "proof_network": "TESTNET"
+   "notes": "UI capture on the measured :8023 build (card t_a7eaf165, DOM snapshot EVIDENCE/ui_snapshot_8023/). Selector: #lcTruthStatus .lc-stat-strip .lc-stat-card -> value: COPY_ACCOUNT_POLLED. Provenance: ['local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv']",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-FP-012",
@@ -16949,12 +17003,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_FP_LCC_redo_t_a7eaf165.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
-   "proof_network": "TESTNET"
+   "notes": "UI capture on the measured :8023 build (card t_a7eaf165, DOM snapshot EVIDENCE/ui_snapshot_8023/). Selector: #lcTruthStatus .lc-stat-strip .lc-stat-card -> value: ON. Provenance: ['local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv']",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-FP-013",
@@ -16974,12 +17031,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_FP_LCC_redo_t_a7eaf165.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
-   "proof_network": "TESTNET"
+   "notes": "UI capture on the measured :8023 build (card t_a7eaf165, DOM snapshot EVIDENCE/ui_snapshot_8023/). Selector: #lcTruthStatus .lc-stat-strip .lc-stat-card -> value: 4 active / 4 subscribed. Provenance: ['local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv']",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-FP-014",
@@ -17074,12 +17134,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_FP_LCC_redo_t_a7eaf165.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
-   "proof_network": "TESTNET"
+   "notes": "UI capture on the measured :8023 build (card t_a7eaf165, DOM snapshot EVIDENCE/ui_snapshot_8023/). Selector: #lcTruthStatus .lc-stat-strip .lc-stat-card -> value: —. Provenance: ['local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv']",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-FP-018",
@@ -17349,12 +17412,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: FAIL (visible graph mode exists but _build_live_leader_performance currently emits empty pnl_series)",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "FAIL",
+   "evidence_ref": "certification/results/UI_FP_LCC_redo_t_a7eaf165.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
-   "proof_network": "TESTNET"
+   "notes": "UI capture on the measured :8023 build (card t_a7eaf165, DOM snapshot EVIDENCE/ui_snapshot_8023/). Selector: #lcExchangePath -> value: None. Provenance: ['local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv']",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-FP-029",
@@ -17874,12 +17940,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: FAIL (wallet DD fields render n/a when source series is absent, not UNKNOWN/NOT_PROVEN)",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "FAIL",
+   "evidence_ref": "certification/results/UI_FP_LCC_redo_t_a7eaf165.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
-   "proof_network": "TESTNET"
+   "notes": "UI capture on the measured :8023 build (card t_a7eaf165, DOM snapshot EVIDENCE/ui_snapshot_8023/). Selector: #lcWalletRows tr:nth-child(1) td:nth-child(7) -> value: None. Provenance: ['local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv']",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-FP-050",
@@ -17899,12 +17968,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: FAIL (wallet DD fields render n/a when source series is absent, not UNKNOWN/NOT_PROVEN)",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "FAIL",
+   "evidence_ref": "certification/results/UI_FP_LCC_redo_t_a7eaf165.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
-   "proof_network": "TESTNET"
+   "notes": "UI capture on the measured :8023 build (card t_a7eaf165, DOM snapshot EVIDENCE/ui_snapshot_8023/). Selector: #lcWalletRows tr:nth-child(1) td:nth-child(7) -> value: None. Provenance: ['local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv']",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-FP-051",

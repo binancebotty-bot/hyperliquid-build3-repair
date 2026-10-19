@@ -1,0 +1,2611 @@
+{
+  "card_id": "t_a7eaf165",
+  "serving_source_path": "C:\\Users\\wigmore\\trading_stack\\build3-live-screen-0513-view\\hl_stage2\\HL_Copy_App_SSOT.py",
+  "serving_source_sha256": "fad19d220d7af13d48a3eec664c56a32b31624d671b00e2f80ec2dc9062a29b0",
+  "source_mtime_local": "2026-05-13T08:18:03.636387+01:00",
+  "listener": "127.0.0.1:8023 PID 15760",
+  "listener_start_local": "2026-10-19T08:40:25.674000+01:00",
+  "attribution": "PASS: source mtime predates listener start; corrected process rule applied. Runtime DOM fetched 200 from live listener.",
+  "evidence_limits": [
+    "Serving instance append_only/ contains 2 files; send_attempts.csv and live_fills.csv are absent, so state-changing rows requiring them remain NOT_TESTED.",
+    "Richer audit CSV set is located under a different instance and was not substituted.",
+    "No actions or writes were sent to the live app."
+  ],
+  "rows": [
+    {
+      "row_id": "UI-FP-001",
+      "class": "UI",
+      "selector": "#lcWalletCount",
+      "value": "4 / 10",
+      "engine_or_audit_source": [
+        "local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+      ],
+      "verdict": "PASS",
+      "reason": "DOM selector '#lcWalletCount' value '4 / 10'; matched provenance CSV line 2: Wallets header / Header / Safety; formula: count(live_config.wallets) / 10; recorded fixture verdict PASS.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Shows tracked_wallet_count from live_config.json/live_ws_health.json/live_audit_summary as count(live_config.wallets) / 10 (provenance LIVE_SERVICE_STATE; rows HEADER; can affect send: NO; execution truth: NO).",
+      "value_capture_status": "Captured runtime DOM value",
+      "provenance_match": {
+        "csv_line": 2,
+        "FIELD_NAME": "Wallets header",
+        "UI_LOCATION": "Header / Safety",
+        "SOURCE_FUNCTION": "render",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "live_config.json/live_ws_health.json/live_audit_summary",
+        "SOURCE_KEY_OR_COLUMN": "tracked_wallet_count",
+        "FORMULA": "count(live_config.wallets) / 10",
+        "PROVENANCE_TYPE": "LIVE_SERVICE_STATE",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      },
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-FP-002",
+      "class": "UI",
+      "selector": "#lcModeCounts",
+      "value": "LIVE 4",
+      "engine_or_audit_source": [
+        "local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+      ],
+      "verdict": "PASS",
+      "reason": "DOM selector '#lcModeCounts' value 'LIVE 4'; matched provenance CSV line 3: LIVE mode count / Header / Safety; formula: count mode == LIVE; recorded fixture verdict PASS.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Shows live_config.wallets[].mode from live_config.json/live_ws_health.json/live_audit_summary as count mode == LIVE (provenance APP_DERIVED; rows HEADER; can affect send: NO; execution truth: NO).",
+      "value_capture_status": "Captured runtime DOM value",
+      "provenance_match": {
+        "csv_line": 3,
+        "FIELD_NAME": "LIVE mode count",
+        "UI_LOCATION": "Header / Safety",
+        "SOURCE_FUNCTION": "render",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "live_config.json/live_ws_health.json/live_audit_summary",
+        "SOURCE_KEY_OR_COLUMN": "live_config.wallets[].mode",
+        "FORMULA": "count mode == LIVE",
+        "PROVENANCE_TYPE": "APP_DERIVED",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      },
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-FP-003",
+      "class": "UI",
+      "selector": "#lcModeCounts",
+      "value": "CLO 0",
+      "engine_or_audit_source": [
+        "local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+      ],
+      "verdict": "PASS",
+      "reason": "DOM selector '#lcModeCounts' value 'CLO 0'; matched provenance CSV line 4: CLO mode count / Header / Safety; formula: count mode == CLO; recorded fixture verdict PASS.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Shows live_config.wallets[].mode from live_config.json/live_ws_health.json/live_audit_summary as count mode == CLO (provenance APP_DERIVED; rows HEADER; can affect send: NO; execution truth: NO).",
+      "value_capture_status": "Captured runtime DOM value",
+      "provenance_match": {
+        "csv_line": 4,
+        "FIELD_NAME": "CLO mode count",
+        "UI_LOCATION": "Header / Safety",
+        "SOURCE_FUNCTION": "render",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "live_config.json/live_ws_health.json/live_audit_summary",
+        "SOURCE_KEY_OR_COLUMN": "live_config.wallets[].mode",
+        "FORMULA": "count mode == CLO",
+        "PROVENANCE_TYPE": "APP_DERIVED",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      },
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-FP-004",
+      "class": "UI",
+      "selector": "#lcModeCounts",
+      "value": "OFF 0",
+      "engine_or_audit_source": [
+        "local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+      ],
+      "verdict": "PASS",
+      "reason": "DOM selector '#lcModeCounts' value 'OFF 0'; matched provenance CSV line 5: OFF mode count / Header / Safety; formula: count mode == OFF; recorded fixture verdict PASS.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Shows live_config.wallets[].mode from live_config.json/live_ws_health.json/live_audit_summary as count mode == OFF (provenance APP_DERIVED; rows HEADER; can affect send: NO; execution truth: NO).",
+      "value_capture_status": "Captured runtime DOM value",
+      "provenance_match": {
+        "csv_line": 5,
+        "FIELD_NAME": "OFF mode count",
+        "UI_LOCATION": "Header / Safety",
+        "SOURCE_FUNCTION": "render",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "live_config.json/live_ws_health.json/live_audit_summary",
+        "SOURCE_KEY_OR_COLUMN": "live_config.wallets[].mode",
+        "FORMULA": "count mode == OFF",
+        "PROVENANCE_TYPE": "APP_DERIVED",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      },
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-FP-005",
+      "class": "UI",
+      "selector": "#lcAutoSend",
+      "value": "OFF",
+      "engine_or_audit_source": [
+        "local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+      ],
+      "verdict": "PASS",
+      "reason": "DOM selector '#lcAutoSend' value 'OFF'; matched provenance CSV line 6: Real order sending header / Header / Safety; formula: ON iff auto_live_wallet_count > 0; recorded fixture verdict PASS.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Shows auto_live_wallet_count from live_config.json/live_ws_health.json/live_audit_summary as ON iff auto_live_wallet_count > 0 (provenance APP_DERIVED; rows HEADER; can affect send: NO; execution truth: NO).",
+      "value_capture_status": "Captured runtime DOM value",
+      "provenance_match": {
+        "csv_line": 6,
+        "FIELD_NAME": "Real order sending header",
+        "UI_LOCATION": "Header / Safety",
+        "SOURCE_FUNCTION": "render",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "live_config.json/live_ws_health.json/live_audit_summary",
+        "SOURCE_KEY_OR_COLUMN": "auto_live_wallet_count",
+        "FORMULA": "ON iff auto_live_wallet_count > 0",
+        "PROVENANCE_TYPE": "APP_DERIVED",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      },
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-FP-006",
+      "class": "UI",
+      "selector": "#lcWsOverall",
+      "value": "WS_OK",
+      "engine_or_audit_source": [
+        "local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+      ],
+      "verdict": "PASS",
+      "reason": "DOM selector '#lcWsOverall' value 'WS_OK'; matched provenance CSV line 7: WS header / Header / Safety; formula: overall WS health label; recorded fixture verdict PASS.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Shows live_ws_health.overall from live_config.json/live_ws_health.json/live_audit_summary as overall WS health label (provenance LIVE_SERVICE_STATE; rows HEADER; can affect send: NO; execution truth: NO).",
+      "value_capture_status": "Captured runtime DOM value",
+      "provenance_match": {
+        "csv_line": 7,
+        "FIELD_NAME": "WS header",
+        "UI_LOCATION": "Header / Safety",
+        "SOURCE_FUNCTION": "render",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "live_config.json/live_ws_health.json/live_audit_summary",
+        "SOURCE_KEY_OR_COLUMN": "live_ws_health.overall",
+        "FORMULA": "overall WS health label",
+        "PROVENANCE_TYPE": "LIVE_SERVICE_STATE",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      },
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-FP-007",
+      "class": "UI",
+      "selector": "#lcRealOrders",
+      "value": "APP DISABLED",
+      "engine_or_audit_source": [
+        "local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+      ],
+      "verdict": "PASS",
+      "reason": "DOM selector '#lcRealOrders' value 'APP DISABLED'; matched provenance CSV line 8: REAL ORDERS safety strip / Header / Safety; formula: SERVICE ACTIVE iff any ORDER_FILLED; recorded fixture verdict PASS.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Shows execution_quality_rows.status from live_config.json/live_ws_health.json/live_audit_summary as SERVICE ACTIVE iff any ORDER_FILLED (provenance APP_DERIVED; rows HEADER; can affect send: NO; execution truth: NO).",
+      "value_capture_status": "Captured runtime DOM value",
+      "provenance_match": {
+        "csv_line": 8,
+        "FIELD_NAME": "REAL ORDERS safety strip",
+        "UI_LOCATION": "Header / Safety",
+        "SOURCE_FUNCTION": "render",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "live_config.json/live_ws_health.json/live_audit_summary",
+        "SOURCE_KEY_OR_COLUMN": "execution_quality_rows.status",
+        "FORMULA": "SERVICE ACTIVE iff any ORDER_FILLED",
+        "PROVENANCE_TYPE": "APP_DERIVED",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      },
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-FP-008",
+      "class": "UI",
+      "selector": ".lc-safety-strip .lc-muted",
+      "value": "restart required for WS subscription changes",
+      "engine_or_audit_source": [
+        "local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+      ],
+      "verdict": "PASS",
+      "reason": "DOM selector '.lc-safety-strip .lc-muted' value 'restart required for WS subscription changes'; matched provenance CSV line 9: Restart caveat / Header / Safety; formula: static warning; recorded fixture verdict PASS.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Shows static_text from live_config.json/live_ws_health.json/live_audit_summary as static warning (provenance UI_STATE; rows HEADER; can affect send: NO; execution truth: NO).",
+      "value_capture_status": "Captured runtime DOM value",
+      "provenance_match": {
+        "csv_line": 9,
+        "FIELD_NAME": "Restart caveat",
+        "UI_LOCATION": "Header / Safety",
+        "SOURCE_FUNCTION": "render",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "live_config.json/live_ws_health.json/live_audit_summary",
+        "SOURCE_KEY_OR_COLUMN": "static_text",
+        "FORMULA": "static warning",
+        "PROVENANCE_TYPE": "UI_STATE",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      },
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-FP-009",
+      "class": "UI",
+      "selector": "#lcTruthStatus .lc-stat-strip .lc-stat-card",
+      "value": "RED",
+      "engine_or_audit_source": [
+        "local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+      ],
+      "verdict": "PASS",
+      "reason": "DOM selector '#lcTruthStatus .lc-stat-strip .lc-stat-card' value 'RED'; matched provenance CSV line 10: LIVE INTEGRITY / Live Copy Status cards; formula: status from live_integrity_status.json; recorded fixture verdict PASS.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Shows live_top_status.integrity_status from live_integrity_status.json/live_service_state.json/append_only/*.csv as status from live_integrity_status.json (provenance LIVE_SERVICE_STATE; rows HEADER; can affect send: NO; execution truth: NO).",
+      "value_capture_status": "Captured runtime DOM value",
+      "provenance_match": {
+        "csv_line": 10,
+        "FIELD_NAME": "LIVE INTEGRITY",
+        "UI_LOCATION": "Live Copy Status cards",
+        "SOURCE_FUNCTION": "renderTopStatus",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "live_integrity_status.json/live_service_state.json/append_only/*.csv",
+        "SOURCE_KEY_OR_COLUMN": "live_top_status.integrity_status",
+        "FORMULA": "status from live_integrity_status.json",
+        "PROVENANCE_TYPE": "LIVE_SERVICE_STATE",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      },
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-FP-010",
+      "class": "UI",
+      "selector": "#lcTruthStatus .lc-stat-strip .lc-stat-card",
+      "value": "WS_OK",
+      "engine_or_audit_source": [
+        "local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+      ],
+      "verdict": "PASS",
+      "reason": "DOM selector '#lcTruthStatus .lc-stat-strip .lc-stat-card' value 'WS_OK'; matched provenance CSV line 11: WS status / Live Copy Status cards; formula: service ws_status; recorded fixture verdict PASS.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Shows live_top_status.ws_status from live_integrity_status.json/live_service_state.json/append_only/*.csv as service ws_status (provenance LIVE_SERVICE_STATE; rows HEADER; can affect send: NO; execution truth: NO).",
+      "value_capture_status": "Captured runtime DOM value",
+      "provenance_match": {
+        "csv_line": 11,
+        "FIELD_NAME": "WS status",
+        "UI_LOCATION": "Live Copy Status cards",
+        "SOURCE_FUNCTION": "renderTopStatus",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "live_integrity_status.json/live_service_state.json/append_only/*.csv",
+        "SOURCE_KEY_OR_COLUMN": "live_top_status.ws_status",
+        "FORMULA": "service ws_status",
+        "PROVENANCE_TYPE": "LIVE_SERVICE_STATE",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      },
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-FP-011",
+      "class": "UI",
+      "selector": "#lcTruthStatus .lc-stat-strip .lc-stat-card",
+      "value": "COPY_ACCOUNT_POLLED",
+      "engine_or_audit_source": [
+        "local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+      ],
+      "verdict": "PASS",
+      "reason": "DOM selector '#lcTruthStatus .lc-stat-strip .lc-stat-card' value 'COPY_ACCOUNT_POLLED'; matched provenance CSV line 12: Copy Poll / Live Copy Status cards; formula: service copy_account_status; recorded fixture verdict PASS.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Shows live_top_status.copy_poll_status from live_integrity_status.json/live_service_state.json/append_only/*.csv as service copy_account_status (provenance LIVE_SERVICE_STATE; rows HEADER; can affect send: NO; execution truth: NO).",
+      "value_capture_status": "Captured runtime DOM value",
+      "provenance_match": {
+        "csv_line": 12,
+        "FIELD_NAME": "Copy Poll",
+        "UI_LOCATION": "Live Copy Status cards",
+        "SOURCE_FUNCTION": "renderTopStatus",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "live_integrity_status.json/live_service_state.json/append_only/*.csv",
+        "SOURCE_KEY_OR_COLUMN": "live_top_status.copy_poll_status",
+        "FORMULA": "service copy_account_status",
+        "PROVENANCE_TYPE": "LIVE_SERVICE_STATE",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      },
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-FP-012",
+      "class": "UI",
+      "selector": "#lcTruthStatus .lc-stat-strip .lc-stat-card",
+      "value": "ON",
+      "engine_or_audit_source": [
+        "local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+      ],
+      "verdict": "PASS",
+      "reason": "DOM selector '#lcTruthStatus .lc-stat-strip .lc-stat-card' value 'ON'; matched provenance CSV line 13: MASTER REAL ORDERS / Live Copy Status cards; formula: master real order switch; recorded fixture verdict PASS.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Shows live_top_status.master_real_orders from live_integrity_status.json/live_service_state.json/append_only/*.csv as master real order switch (provenance LIVE_SERVICE_STATE; rows HEADER; can affect send: NO; execution truth: YES).",
+      "value_capture_status": "Captured runtime DOM value",
+      "provenance_match": {
+        "csv_line": 13,
+        "FIELD_NAME": "MASTER REAL ORDERS",
+        "UI_LOCATION": "Live Copy Status cards",
+        "SOURCE_FUNCTION": "renderTopStatus",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "live_integrity_status.json/live_service_state.json/append_only/*.csv",
+        "SOURCE_KEY_OR_COLUMN": "live_top_status.master_real_orders",
+        "FORMULA": "master real order switch",
+        "PROVENANCE_TYPE": "LIVE_SERVICE_STATE",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      },
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-FP-013",
+      "class": "UI",
+      "selector": "#lcTruthStatus .lc-stat-strip .lc-stat-card",
+      "value": "4 active / 4 subscribed",
+      "engine_or_audit_source": [
+        "local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+      ],
+      "verdict": "PASS",
+      "reason": "DOM selector '#lcTruthStatus .lc-stat-strip .lc-stat-card' value '4 active / 4 subscribed'; matched provenance CSV line 14: Active/subscribed wallets / Live Copy Status cards; formula: active wallet count / subscribed count; recorded fixture verdict PASS.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Shows live_top_status.active_wallets/subscribed_wallets from live_integrity_status.json/live_service_state.json/append_only/*.csv as active wallet count / subscribed count (provenance LIVE_SERVICE_STATE; rows HEADER; can affect send: NO; execution truth: NO).",
+      "value_capture_status": "Captured runtime DOM value",
+      "provenance_match": {
+        "csv_line": 14,
+        "FIELD_NAME": "Active/subscribed wallets",
+        "UI_LOCATION": "Live Copy Status cards",
+        "SOURCE_FUNCTION": "renderTopStatus",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "live_integrity_status.json/live_service_state.json/append_only/*.csv",
+        "SOURCE_KEY_OR_COLUMN": "live_top_status.active_wallets/subscribed_wallets",
+        "FORMULA": "active wallet count / subscribed count",
+        "PROVENANCE_TYPE": "LIVE_SERVICE_STATE",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      },
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-FP-014",
+      "class": "UI",
+      "selector": "#lcTruthStatus .lc-stat-strip .lc-stat-card",
+      "value": "—",
+      "engine_or_audit_source": [
+        "local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+      ],
+      "verdict": "NOT_TESTED",
+      "reason": "Requires send_attempts.csv / live_fills.csv (and where applicable order_intents.csv), absent from this serving instance's append_only/ (2 files present); richer CSV set belongs to a different instance.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Shows live_top_status.last_send from live_integrity_status.json/live_service_state.json/append_only/*.csv as latest send_attempt row (provenance ENGINE_TRUTH; rows HEADER; can affect send: NO; execution truth: YES).",
+      "value_capture_status": "Captured runtime DOM value",
+      "provenance_match": {
+        "csv_line": 15,
+        "FIELD_NAME": "Last send",
+        "UI_LOCATION": "Live Copy Status cards",
+        "SOURCE_FUNCTION": "renderTopStatus",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "live_integrity_status.json/live_service_state.json/append_only/*.csv",
+        "SOURCE_KEY_OR_COLUMN": "live_top_status.last_send",
+        "FORMULA": "latest send_attempt row",
+        "PROVENANCE_TYPE": "ENGINE_TRUTH",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      },
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-FP-015",
+      "class": "UI",
+      "selector": "#lcTruthStatus .lc-stat-strip .lc-stat-card",
+      "value": "—",
+      "engine_or_audit_source": [
+        "local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+      ],
+      "verdict": "NOT_TESTED",
+      "reason": "Requires send_attempts.csv / live_fills.csv (and where applicable order_intents.csv), absent from this serving instance's append_only/ (2 files present); richer CSV set belongs to a different instance.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Shows live_top_status.last_fill from live_integrity_status.json/live_service_state.json/append_only/*.csv as latest live_fill row (provenance MANUAL_LEDGER; rows HEADER; can affect send: NO; execution truth: NO).",
+      "value_capture_status": "Captured runtime DOM value",
+      "provenance_match": {
+        "csv_line": 16,
+        "FIELD_NAME": "Last fill",
+        "UI_LOCATION": "Live Copy Status cards",
+        "SOURCE_FUNCTION": "renderTopStatus",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "live_integrity_status.json/live_service_state.json/append_only/*.csv",
+        "SOURCE_KEY_OR_COLUMN": "live_top_status.last_fill",
+        "FORMULA": "latest live_fill row",
+        "PROVENANCE_TYPE": "MANUAL_LEDGER",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      },
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-FP-016",
+      "class": "UI",
+      "selector": "#lcTruthStatus .lc-stat-strip .lc-stat-card",
+      "value": "—",
+      "engine_or_audit_source": [
+        "local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+      ],
+      "verdict": "NOT_TESTED",
+      "reason": "Requires send_attempts.csv / live_fills.csv (and where applicable order_intents.csv), absent from this serving instance's append_only/ (2 files present); richer CSV set belongs to a different instance.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Shows live_top_status.last_reject from live_integrity_status.json/live_service_state.json/append_only/*.csv as latest rejected send_attempt row (provenance ENGINE_TRUTH; rows HEADER; can affect send: NO; execution truth: YES).",
+      "value_capture_status": "Captured runtime DOM value",
+      "provenance_match": {
+        "csv_line": 17,
+        "FIELD_NAME": "Last reject",
+        "UI_LOCATION": "Live Copy Status cards",
+        "SOURCE_FUNCTION": "renderTopStatus",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "live_integrity_status.json/live_service_state.json/append_only/*.csv",
+        "SOURCE_KEY_OR_COLUMN": "live_top_status.last_reject",
+        "FORMULA": "latest rejected send_attempt row",
+        "PROVENANCE_TYPE": "ENGINE_TRUTH",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      },
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-FP-017",
+      "class": "UI",
+      "selector": "#lcTruthStatus .lc-stat-strip .lc-stat-card",
+      "value": "—",
+      "engine_or_audit_source": [
+        "local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+      ],
+      "verdict": "PASS",
+      "reason": "DOM selector '#lcTruthStatus .lc-stat-strip .lc-stat-card' value '—'; matched provenance CSV line 18: Last latency warning / Live Copy Status cards; formula: latest SEND_LATENCY_WARN reconciliation row; recorded fixture verdict PASS.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Shows live_top_status.last_latency_warning from live_integrity_status.json/live_service_state.json/append_only/*.csv as latest SEND_LATENCY_WARN reconciliation row (provenance ENGINE_TRUTH; rows HEADER; can affect send: NO; execution truth: NO).",
+      "value_capture_status": "Captured runtime DOM value",
+      "provenance_match": {
+        "csv_line": 18,
+        "FIELD_NAME": "Last latency warning",
+        "UI_LOCATION": "Live Copy Status cards",
+        "SOURCE_FUNCTION": "renderTopStatus",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "live_integrity_status.json/live_service_state.json/append_only/*.csv",
+        "SOURCE_KEY_OR_COLUMN": "live_top_status.last_latency_warning",
+        "FORMULA": "latest SEND_LATENCY_WARN reconciliation row",
+        "PROVENANCE_TYPE": "ENGINE_TRUTH",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      },
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-FP-018",
+      "class": "UI",
+      "selector": "#lcRealCards .lc-stat-strip .lc-stat-card",
+      "value": null,
+      "engine_or_audit_source": [
+        "local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+      ],
+      "verdict": "NOT_TESTED",
+      "reason": "No resolved DOM value in capture for selector '#lcRealCards .lc-stat-strip .lc-stat-card'; matching provenance CSV line 19 (Portfolio Value) gives formula exchange unified portfolio value, but no DOM value exists to compare.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Shows exchange_account_snapshot.unified_portfolio_value from exchange_account_snapshot.json/manual_live_positions.json/append_only/send_attempts.csv as exchange unified portfolio value (provenance EXCHANGE_ACCOUNT; rows HEADER; can affect send: NO; execution truth: NO).",
+      "value_capture_status": "Not independently resolved; see row-specific reason",
+      "provenance_match": {
+        "csv_line": 19,
+        "FIELD_NAME": "Portfolio Value",
+        "UI_LOCATION": "Real Account cards",
+        "SOURCE_FUNCTION": "renderCards",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "exchange_account_snapshot.json/manual_live_positions.json/append_only/send_attempts.csv",
+        "SOURCE_KEY_OR_COLUMN": "exchange_account_snapshot.unified_portfolio_value",
+        "FORMULA": "exchange unified portfolio value",
+        "PROVENANCE_TYPE": "EXCHANGE_ACCOUNT",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      },
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-FP-019",
+      "class": "UI",
+      "selector": "#lcRealCards .lc-stat-strip .lc-stat-card",
+      "value": null,
+      "engine_or_audit_source": [
+        "local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+      ],
+      "verdict": "NOT_TESTED",
+      "reason": "No resolved DOM value in capture for selector '#lcRealCards .lc-stat-strip .lc-stat-card'; matching provenance CSV line 20 (Unrealized PnL) gives formula sum(assetPositions.position.unrealizedPnl), but no DOM value exists to compare.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Shows exchange_account_snapshot.unrealized_pnl from exchange_account_snapshot.json/manual_live_positions.json/append_only/send_attempts.csv as sum(assetPositions.position.unrealizedPnl) (provenance EXCHANGE_ACCOUNT; rows HEADER; can affect send: NO; execution truth: NO).",
+      "value_capture_status": "Not independently resolved; see row-specific reason",
+      "provenance_match": {
+        "csv_line": 20,
+        "FIELD_NAME": "Unrealized PnL",
+        "UI_LOCATION": "Real Account cards",
+        "SOURCE_FUNCTION": "renderCards",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "exchange_account_snapshot.json/manual_live_positions.json/append_only/send_attempts.csv",
+        "SOURCE_KEY_OR_COLUMN": "exchange_account_snapshot.unrealized_pnl",
+        "FORMULA": "sum(assetPositions.position.unrealizedPnl)",
+        "PROVENANCE_TYPE": "EXCHANGE_ACCOUNT",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      },
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-FP-020",
+      "class": "UI",
+      "selector": "#lcRealCards .lc-stat-strip .lc-stat-card",
+      "value": null,
+      "engine_or_audit_source": [
+        "local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+      ],
+      "verdict": "NOT_TESTED",
+      "reason": "No resolved DOM value in capture for selector '#lcRealCards .lc-stat-strip .lc-stat-card'; matching provenance CSV line 21 (Realized PnL) gives formula sum actual user closedPnl for selected window, but no DOM value exists to compare.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Shows exchange_account_snapshot.realized_pnl_selected from exchange_account_snapshot.json/manual_live_positions.json/append_only/send_attempts.csv as sum actual user closedPnl for selected window (provenance EXCHANGE_ACCOUNT; rows HEADER; can affect send: NO; execution truth: NO).",
+      "value_capture_status": "Not independently resolved; see row-specific reason",
+      "provenance_match": {
+        "csv_line": 21,
+        "FIELD_NAME": "Realized PnL",
+        "UI_LOCATION": "Real Account cards",
+        "SOURCE_FUNCTION": "renderCards",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "exchange_account_snapshot.json/manual_live_positions.json/append_only/send_attempts.csv",
+        "SOURCE_KEY_OR_COLUMN": "exchange_account_snapshot.realized_pnl_selected",
+        "FORMULA": "sum actual user closedPnl for selected window",
+        "PROVENANCE_TYPE": "EXCHANGE_ACCOUNT",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      },
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-FP-021",
+      "class": "UI",
+      "selector": "#lcRealCards .lc-stat-strip .lc-stat-card",
+      "value": null,
+      "engine_or_audit_source": [
+        "local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+      ],
+      "verdict": "NOT_TESTED",
+      "reason": "No resolved DOM value in capture for selector '#lcRealCards .lc-stat-strip .lc-stat-card'; matching provenance CSV line 22 (Open Positions) gives formula count exchange open positions, but no DOM value exists to compare.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Shows exchange_account_snapshot.open_positions from exchange_account_snapshot.json/manual_live_positions.json/append_only/send_attempts.csv as count exchange open positions (provenance EXCHANGE_ACCOUNT; rows HEADER; can affect send: NO; execution truth: NO).",
+      "value_capture_status": "Not independently resolved; see row-specific reason",
+      "provenance_match": {
+        "csv_line": 22,
+        "FIELD_NAME": "Open Positions",
+        "UI_LOCATION": "Real Account cards",
+        "SOURCE_FUNCTION": "renderCards",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "exchange_account_snapshot.json/manual_live_positions.json/append_only/send_attempts.csv",
+        "SOURCE_KEY_OR_COLUMN": "exchange_account_snapshot.open_positions",
+        "FORMULA": "count exchange open positions",
+        "PROVENANCE_TYPE": "EXCHANGE_ACCOUNT",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      },
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-FP-022",
+      "class": "UI",
+      "selector": "#lcRealCards .lc-stat-strip .lc-stat-card",
+      "value": null,
+      "engine_or_audit_source": [
+        "local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+      ],
+      "verdict": "NOT_TESTED",
+      "reason": "No resolved DOM value in capture for selector '#lcRealCards .lc-stat-strip .lc-stat-card'; matching provenance CSV line 23 (Live Exposure) gives formula sum manual sleeves abs(size)*price estimate, but no DOM value exists to compare.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Shows manual_live_summary.manual_live_exposure_estimate from exchange_account_snapshot.json/manual_live_positions.json/append_only/send_attempts.csv as sum manual sleeves abs(size)*price estimate (provenance MANUAL_LEDGER; rows HEADER; can affect send: NO; execution truth: NO).",
+      "value_capture_status": "Not independently resolved; see row-specific reason",
+      "provenance_match": {
+        "csv_line": 23,
+        "FIELD_NAME": "Live Exposure",
+        "UI_LOCATION": "Real Account cards",
+        "SOURCE_FUNCTION": "renderCards",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "exchange_account_snapshot.json/manual_live_positions.json/append_only/send_attempts.csv",
+        "SOURCE_KEY_OR_COLUMN": "manual_live_summary.manual_live_exposure_estimate",
+        "FORMULA": "sum manual sleeves abs(size)*price estimate",
+        "PROVENANCE_TYPE": "MANUAL_LEDGER",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      },
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-FP-023",
+      "class": "UI",
+      "selector": "#lcRealCards .lc-stat-strip .lc-stat-card",
+      "value": null,
+      "engine_or_audit_source": [
+        "local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+      ],
+      "verdict": "NOT_TESTED",
+      "reason": "No resolved DOM value in capture for selector '#lcRealCards .lc-stat-strip .lc-stat-card'; matching provenance CSV line 24 (Last Fill) gives formula latest ORDER_FILLED send_attempt, but no DOM value exists to compare.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Shows manual_live_summary.last_filled_manual_order from exchange_account_snapshot.json/manual_live_positions.json/append_only/send_attempts.csv as latest ORDER_FILLED send_attempt (provenance ENGINE_TRUTH; rows HEADER; can affect send: NO; execution truth: NO).",
+      "value_capture_status": "Not independently resolved; see row-specific reason",
+      "provenance_match": {
+        "csv_line": 24,
+        "FIELD_NAME": "Last Fill",
+        "UI_LOCATION": "Real Account cards",
+        "SOURCE_FUNCTION": "renderCards",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "exchange_account_snapshot.json/manual_live_positions.json/append_only/send_attempts.csv",
+        "SOURCE_KEY_OR_COLUMN": "manual_live_summary.last_filled_manual_order",
+        "FORMULA": "latest ORDER_FILLED send_attempt",
+        "PROVENANCE_TYPE": "ENGINE_TRUTH",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      },
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-FP-024",
+      "class": "UI",
+      "selector": "#lcRealCards .lc-stat-strip .lc-stat-card",
+      "value": null,
+      "engine_or_audit_source": [
+        "local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+      ],
+      "verdict": "NOT_TESTED",
+      "reason": "No resolved DOM value in capture for selector '#lcRealCards .lc-stat-strip .lc-stat-card'; matching provenance CSV line 25 (Last Reject) gives formula latest rejected send_attempt, but no DOM value exists to compare.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Shows manual_live_summary.last_rejected_manual_order from exchange_account_snapshot.json/manual_live_positions.json/append_only/send_attempts.csv as latest rejected send_attempt (provenance ENGINE_TRUTH; rows HEADER; can affect send: NO; execution truth: NO).",
+      "value_capture_status": "Not independently resolved; see row-specific reason",
+      "provenance_match": {
+        "csv_line": 25,
+        "FIELD_NAME": "Last Reject",
+        "UI_LOCATION": "Real Account cards",
+        "SOURCE_FUNCTION": "renderCards",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "exchange_account_snapshot.json/manual_live_positions.json/append_only/send_attempts.csv",
+        "SOURCE_KEY_OR_COLUMN": "manual_live_summary.last_rejected_manual_order",
+        "FORMULA": "latest rejected send_attempt",
+        "PROVENANCE_TYPE": "ENGINE_TRUTH",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      },
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-FP-025",
+      "class": "UI",
+      "selector": "#lcExchangePath",
+      "value": null,
+      "engine_or_audit_source": [
+        "local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+      ],
+      "verdict": "NOT_TESTED",
+      "reason": "No resolved DOM value in capture for selector '#lcExchangePath'; matching provenance CSV line 26 (Account graph total PnL) gives formula point.value = unified_portfolio_value - first_visible_unified_portfolio_value, but no DOM value exists to compare.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Shows exchange_account_history[].unified_portfolio_value from exchange_account_history.json as point.value = unified_portfolio_value - first_visible_unified_portfolio_value (provenance EXCHANGE_ACCOUNT; rows GRAPH; can affect send: NO; execution truth: NO).",
+      "value_capture_status": "Not independently resolved; see row-specific reason",
+      "provenance_match": {
+        "csv_line": 26,
+        "FIELD_NAME": "Account graph total PnL",
+        "UI_LOCATION": "Graph",
+        "SOURCE_FUNCTION": "renderGraph",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "exchange_account_history.json",
+        "SOURCE_KEY_OR_COLUMN": "exchange_account_history[].unified_portfolio_value",
+        "FORMULA": "point.value = unified_portfolio_value - first_visible_unified_portfolio_value",
+        "PROVENANCE_TYPE": "EXCHANGE_ACCOUNT",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      },
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-FP-026",
+      "class": "UI",
+      "selector": "#lcRealizedPath",
+      "value": null,
+      "engine_or_audit_source": [
+        "local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+      ],
+      "verdict": "NOT_TESTED",
+      "reason": "No resolved DOM value in capture for selector '#lcRealizedPath'; matching provenance CSV line 27 (Account graph realized PnL) gives formula EXCHANGE_ACCOUNT, but no DOM value exists to compare.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Shows closedPnl cumulative over selected range minus baseline from live_graph.realized_pnl_points as EXCHANGE_ACCOUNT (provenance GRAPH; rows HEADER; can affect send: NO; execution truth: NO).",
+      "value_capture_status": "Not independently resolved; see row-specific reason",
+      "provenance_match": {
+        "csv_line": 27,
+        "FIELD_NAME": "Account graph realized PnL",
+        "UI_LOCATION": "Graph",
+        "SOURCE_FUNCTION": "renderGraph",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "live_graph.realized_pnl_points",
+        "SOURCE_KEY_OR_COLUMN": "closedPnl cumulative over selected range minus baseline",
+        "FORMULA": "EXCHANGE_ACCOUNT",
+        "PROVENANCE_TYPE": "GRAPH",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      },
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-FP-027",
+      "class": "UI",
+      "selector": "#lcDrawdownPath",
+      "value": null,
+      "engine_or_audit_source": [
+        "local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+      ],
+      "verdict": "NOT_TESTED",
+      "reason": "No resolved DOM value in capture for selector '#lcDrawdownPath'; matching provenance CSV line 28 (Account graph drawdown) gives formula drawdown = value - running_peak(value), but no DOM value exists to compare.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Shows derived from account_points from exchange_account_history.json as drawdown = value - running_peak(value) (provenance APP_DERIVED; rows GRAPH; can affect send: NO; execution truth: NO).",
+      "value_capture_status": "Not independently resolved; see row-specific reason",
+      "provenance_match": {
+        "csv_line": 28,
+        "FIELD_NAME": "Account graph drawdown",
+        "UI_LOCATION": "Graph",
+        "SOURCE_FUNCTION": "renderGraph",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "exchange_account_history.json",
+        "SOURCE_KEY_OR_COLUMN": "derived from account_points",
+        "FORMULA": "drawdown = value - running_peak(value)",
+        "PROVENANCE_TYPE": "APP_DERIVED",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      },
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-FP-028",
+      "class": "UI",
+      "selector": "#lcExchangePath",
+      "value": null,
+      "engine_or_audit_source": [
+        "local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+      ],
+      "verdict": "FAIL",
+      "reason": "Provenance CSV line 29 (Selected wallet PnL graph, Graph) records FAIL: visible graph mode exists but _build_live_leader_performance currently emits empty pnl_series. DOM selector '#lcExchangePath' value None.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Shows selected wallet pnl_series from live_leader_performance[wallet].pnl_series as APP_DERIVED (provenance GRAPH; rows HEADER; can affect send: NO; execution truth: NO).",
+      "value_capture_status": "Not independently resolved; see row-specific reason",
+      "provenance_match": {
+        "csv_line": 29,
+        "FIELD_NAME": "Selected wallet PnL graph",
+        "UI_LOCATION": "Graph",
+        "SOURCE_FUNCTION": "renderGraph",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "live_leader_performance[wallet].pnl_series",
+        "SOURCE_KEY_OR_COLUMN": "selected wallet pnl_series",
+        "FORMULA": "APP_DERIVED",
+        "PROVENANCE_TYPE": "GRAPH",
+        "PASS_FAIL_NOT_PROVEN": "FAIL",
+        "FAIL_REASON": "visible graph mode exists but _build_live_leader_performance currently emits empty pnl_series"
+      },
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-FP-029",
+      "class": "UI",
+      "selector": "#lcExchangePath",
+      "value": null,
+      "engine_or_audit_source": [
+        "local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+      ],
+      "verdict": "NOT_TESTED",
+      "reason": "No resolved DOM value in capture for selector '#lcExchangePath'; matching provenance CSV line 30 (Selected wallet exposure graph) gives formula MANUAL_LEDGER, but no DOM value exists to compare.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Shows selected wallet current_exposure points from live_leader_performance[wallet].exposure_series as MANUAL_LEDGER (provenance GRAPH; rows HEADER; can affect send: NO; execution truth: NO).",
+      "value_capture_status": "Not independently resolved; see row-specific reason",
+      "provenance_match": {
+        "csv_line": 30,
+        "FIELD_NAME": "Selected wallet exposure graph",
+        "UI_LOCATION": "Graph",
+        "SOURCE_FUNCTION": "renderGraph",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "live_leader_performance[wallet].exposure_series",
+        "SOURCE_KEY_OR_COLUMN": "selected wallet current_exposure points",
+        "FORMULA": "MANUAL_LEDGER",
+        "PROVENANCE_TYPE": "GRAPH",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      },
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-FP-030",
+      "class": "UI",
+      "selector": ".lc-chart-controls",
+      "value": null,
+      "engine_or_audit_source": [
+        "local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+      ],
+      "verdict": "NOT_TESTED",
+      "reason": "No resolved DOM value in capture for selector '.lc-chart-controls'; matching provenance CSV line 31 (Graph range controls) gives formula filters points by selected time range, but no DOM value exists to compare.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Shows lcGraphScale/start/end from UI state only as filters points by selected time range (provenance UI_STATE; rows CONTROL; can affect send: NO; execution truth: NO).",
+      "value_capture_status": "Not independently resolved; see row-specific reason",
+      "provenance_match": {
+        "csv_line": 31,
+        "FIELD_NAME": "Graph range controls",
+        "UI_LOCATION": "Graph controls",
+        "SOURCE_FUNCTION": "renderGraph",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "UI state only",
+        "SOURCE_KEY_OR_COLUMN": "lcGraphScale/start/end",
+        "FORMULA": "filters points by selected time range",
+        "PROVENANCE_TYPE": "UI_STATE",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      },
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-FP-031",
+      "class": "UI",
+      "selector": "#lcWalletRows tr:nth-child(1) td:nth-child(1)",
+      "value": null,
+      "engine_or_audit_source": [
+        "local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+      ],
+      "verdict": "NOT_TESTED",
+      "reason": "No resolved DOM value in capture for selector '#lcWalletRows tr:nth-child(1) td:nth-child(1)'; matching provenance CSV line 32 (Wallet) gives formula shortWallet(live_config wallet key), but no DOM value exists to compare.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Shows wallet from live_config.json/manual_live_positions.json/append_only/send_attempts.csv/live_ws_health.json as shortWallet(live_config wallet key) (provenance LIVE_SERVICE_STATE; rows OWNED_COPY; can affect send: NO; execution truth: NO).",
+      "value_capture_status": "Not independently resolved; see row-specific reason",
+      "provenance_match": {
+        "csv_line": 32,
+        "FIELD_NAME": "Wallet",
+        "UI_LOCATION": "Live Copy Wallets row",
+        "SOURCE_FUNCTION": "_build_live_wallet_rows/renderWallets",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "live_config.json/manual_live_positions.json/append_only/send_attempts.csv/live_ws_health.json",
+        "SOURCE_KEY_OR_COLUMN": "wallet",
+        "FORMULA": "shortWallet(live_config wallet key)",
+        "PROVENANCE_TYPE": "LIVE_SERVICE_STATE",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      },
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-FP-032",
+      "class": "UI",
+      "selector": "#lcWalletRows tr:nth-child(1) td:nth-child(1)",
+      "value": null,
+      "engine_or_audit_source": [
+        "local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+      ],
+      "verdict": "NOT_TESTED",
+      "reason": "No resolved DOM value in capture for selector '#lcWalletRows tr:nth-child(1) td:nth-child(1)'; matching provenance CSV line 33 (Mode) gives formula normalized live_config mode, but no DOM value exists to compare.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Shows mode from live_config.json/manual_live_positions.json/append_only/send_attempts.csv/live_ws_health.json as normalized live_config mode (provenance LIVE_SERVICE_STATE; rows OWNED_COPY; can affect send: NO; execution truth: NO).",
+      "value_capture_status": "Not independently resolved; see row-specific reason",
+      "provenance_match": {
+        "csv_line": 33,
+        "FIELD_NAME": "Mode",
+        "UI_LOCATION": "Live Copy Wallets row",
+        "SOURCE_FUNCTION": "_build_live_wallet_rows/renderWallets",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "live_config.json/manual_live_positions.json/append_only/send_attempts.csv/live_ws_health.json",
+        "SOURCE_KEY_OR_COLUMN": "mode",
+        "FORMULA": "normalized live_config mode",
+        "PROVENANCE_TYPE": "LIVE_SERVICE_STATE",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      },
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-FP-033",
+      "class": "UI",
+      "selector": "#lcWalletRows tr:nth-child(1) td:nth-child(1)",
+      "value": null,
+      "engine_or_audit_source": [
+        "local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+      ],
+      "verdict": "NOT_TESTED",
+      "reason": "No resolved DOM value in capture for selector '#lcWalletRows tr:nth-child(1) td:nth-child(1)'; matching provenance CSV line 34 (Eligibility) gives formula mode/service_eligible derived label, but no DOM value exists to compare.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Shows eligibility from live_config.json/manual_live_positions.json/append_only/send_attempts.csv/live_ws_health.json as mode/service_eligible derived label (provenance APP_DERIVED; rows OWNED_COPY; can affect send: NO; execution truth: NO).",
+      "value_capture_status": "Not independently resolved; see row-specific reason",
+      "provenance_match": {
+        "csv_line": 34,
+        "FIELD_NAME": "Eligibility",
+        "UI_LOCATION": "Live Copy Wallets row",
+        "SOURCE_FUNCTION": "_build_live_wallet_rows/renderWallets",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "live_config.json/manual_live_positions.json/append_only/send_attempts.csv/live_ws_health.json",
+        "SOURCE_KEY_OR_COLUMN": "eligibility",
+        "FORMULA": "mode/service_eligible derived label",
+        "PROVENANCE_TYPE": "APP_DERIVED",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      },
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-FP-034",
+      "class": "UI",
+      "selector": "#lcWalletRows tr:nth-child(1) td:nth-child(2)",
+      "value": null,
+      "engine_or_audit_source": [
+        "local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+      ],
+      "verdict": "NOT_TESTED",
+      "reason": "No resolved DOM value in capture for selector '#lcWalletRows tr:nth-child(1) td:nth-child(2)'; matching provenance CSV line 35 (Connection pill) gives formula WS health or shared socket status, but no DOM value exists to compare.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Shows ws_state from live_config.json/manual_live_positions.json/append_only/send_attempts.csv/live_ws_health.json as WS health or shared socket status (provenance LIVE_SERVICE_STATE; rows OWNED_COPY; can affect send: NO; execution truth: NO).",
+      "value_capture_status": "Not independently resolved; see row-specific reason",
+      "provenance_match": {
+        "csv_line": 35,
+        "FIELD_NAME": "Connection pill",
+        "UI_LOCATION": "Live Copy Wallets row",
+        "SOURCE_FUNCTION": "_build_live_wallet_rows/renderWallets",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "live_config.json/manual_live_positions.json/append_only/send_attempts.csv/live_ws_health.json",
+        "SOURCE_KEY_OR_COLUMN": "ws_state",
+        "FORMULA": "WS health or shared socket status",
+        "PROVENANCE_TYPE": "LIVE_SERVICE_STATE",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      },
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-FP-035",
+      "class": "UI",
+      "selector": "#lcWalletRows tr:nth-child(1) td:nth-child(2)",
+      "value": null,
+      "engine_or_audit_source": [
+        "local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+      ],
+      "verdict": "NOT_TESTED",
+      "reason": "No resolved DOM value in capture for selector '#lcWalletRows tr:nth-child(1) td:nth-child(2)'; matching provenance CSV line 36 (Live PnL realized) gives formula wallet perf realized if exactly attributable else None, but no DOM value exists to compare.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Shows realized_pnl from live_config.json/manual_live_positions.json/append_only/send_attempts.csv/live_ws_health.json as wallet perf realized if exactly attributable else None (provenance APP_DERIVED; rows OWNED_COPY; can affect send: NO; execution truth: NO).",
+      "value_capture_status": "Not independently resolved; see row-specific reason",
+      "provenance_match": {
+        "csv_line": 36,
+        "FIELD_NAME": "Live PnL realized",
+        "UI_LOCATION": "Live Copy Wallets row",
+        "SOURCE_FUNCTION": "_build_live_wallet_rows/renderWallets",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "live_config.json/manual_live_positions.json/append_only/send_attempts.csv/live_ws_health.json",
+        "SOURCE_KEY_OR_COLUMN": "realized_pnl",
+        "FORMULA": "wallet perf realized if exactly attributable else None",
+        "PROVENANCE_TYPE": "APP_DERIVED",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      },
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-FP-036",
+      "class": "UI",
+      "selector": "#lcWalletRows tr:nth-child(1) td:nth-child(2)",
+      "value": null,
+      "engine_or_audit_source": [
+        "local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+      ],
+      "verdict": "NOT_TESTED",
+      "reason": "No resolved DOM value in capture for selector '#lcWalletRows tr:nth-child(1) td:nth-child(2)'; matching provenance CSV line 37 (Live PnL unrealized) gives formula owned sleeve unrealized when safe, never account-only/shared, but no DOM value exists to compare.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Shows unrealized_pnl from live_config.json/manual_live_positions.json/append_only/send_attempts.csv/live_ws_health.json as owned sleeve unrealized when safe, never account-only/shared (provenance MANUAL_LEDGER; rows OWNED_COPY; can affect send: NO; execution truth: NO).",
+      "value_capture_status": "Not independently resolved; see row-specific reason",
+      "provenance_match": {
+        "csv_line": 37,
+        "FIELD_NAME": "Live PnL unrealized",
+        "UI_LOCATION": "Live Copy Wallets row",
+        "SOURCE_FUNCTION": "_build_live_wallet_rows/renderWallets",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "live_config.json/manual_live_positions.json/append_only/send_attempts.csv/live_ws_health.json",
+        "SOURCE_KEY_OR_COLUMN": "unrealized_pnl",
+        "FORMULA": "owned sleeve unrealized when safe, never account-only/shared",
+        "PROVENANCE_TYPE": "MANUAL_LEDGER",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      },
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-FP-037",
+      "class": "UI",
+      "selector": "#lcWalletRows tr:nth-child(1) td:nth-child(3)",
+      "value": null,
+      "engine_or_audit_source": [
+        "local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+      ],
+      "verdict": "NOT_TESTED",
+      "reason": "No resolved DOM value in capture for selector '#lcWalletRows tr:nth-child(1) td:nth-child(3)'; matching provenance CSV line 38 (Live PnL net) gives formula realized + unrealized when safe, but no DOM value exists to compare.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Shows net_pnl from live_config.json/manual_live_positions.json/append_only/send_attempts.csv/live_ws_health.json as realized + unrealized when safe (provenance APP_DERIVED; rows OWNED_COPY; can affect send: NO; execution truth: NO).",
+      "value_capture_status": "Not independently resolved; see row-specific reason",
+      "provenance_match": {
+        "csv_line": 38,
+        "FIELD_NAME": "Live PnL net",
+        "UI_LOCATION": "Live Copy Wallets row",
+        "SOURCE_FUNCTION": "_build_live_wallet_rows/renderWallets",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "live_config.json/manual_live_positions.json/append_only/send_attempts.csv/live_ws_health.json",
+        "SOURCE_KEY_OR_COLUMN": "net_pnl",
+        "FORMULA": "realized + unrealized when safe",
+        "PROVENANCE_TYPE": "APP_DERIVED",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      },
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-FP-038",
+      "class": "UI",
+      "selector": "#lcWalletRows tr:nth-child(1) td:nth-child(3)",
+      "value": null,
+      "engine_or_audit_source": [
+        "local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+      ],
+      "verdict": "NOT_TESTED",
+      "reason": "No resolved DOM value in capture for selector '#lcWalletRows tr:nth-child(1) td:nth-child(3)'; matching provenance CSV line 39 (PnL status) gives formula provenance/status label, but no DOM value exists to compare.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Shows pnl_status_label from live_config.json/manual_live_positions.json/append_only/send_attempts.csv/live_ws_health.json as provenance/status label (provenance APP_DERIVED; rows OWNED_COPY; can affect send: NO; execution truth: NO).",
+      "value_capture_status": "Not independently resolved; see row-specific reason",
+      "provenance_match": {
+        "csv_line": 39,
+        "FIELD_NAME": "PnL status",
+        "UI_LOCATION": "Live Copy Wallets row",
+        "SOURCE_FUNCTION": "_build_live_wallet_rows/renderWallets",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "live_config.json/manual_live_positions.json/append_only/send_attempts.csv/live_ws_health.json",
+        "SOURCE_KEY_OR_COLUMN": "pnl_status_label",
+        "FORMULA": "provenance/status label",
+        "PROVENANCE_TYPE": "APP_DERIVED",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      },
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-FP-039",
+      "class": "UI",
+      "selector": "#lcWalletRows tr:nth-child(1) td:nth-child(3)",
+      "value": null,
+      "engine_or_audit_source": [
+        "local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+      ],
+      "verdict": "NOT_TESTED",
+      "reason": "No resolved DOM value in capture for selector '#lcWalletRows tr:nth-child(1) td:nth-child(3)'; matching provenance CSV line 40 (Lead-copy total diff) gives formula sum copy fill price - leader reference price per fill, but no DOM value exists to compare.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Shows total_diff_usd from live_config.json/manual_live_positions.json/append_only/send_attempts.csv/live_ws_health.json as sum copy fill price - leader reference price per fill (provenance APP_DERIVED; rows OWNED_COPY; can affect send: NO; execution truth: NO).",
+      "value_capture_status": "Not independently resolved; see row-specific reason",
+      "provenance_match": {
+        "csv_line": 40,
+        "FIELD_NAME": "Lead-copy total diff",
+        "UI_LOCATION": "Live Copy Wallets row",
+        "SOURCE_FUNCTION": "_build_live_wallet_rows/renderWallets",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "live_config.json/manual_live_positions.json/append_only/send_attempts.csv/live_ws_health.json",
+        "SOURCE_KEY_OR_COLUMN": "total_diff_usd",
+        "FORMULA": "sum copy fill price - leader reference price per fill",
+        "PROVENANCE_TYPE": "APP_DERIVED",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      },
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-FP-040",
+      "class": "UI",
+      "selector": "#lcWalletRows tr:nth-child(1) td:nth-child(4)",
+      "value": null,
+      "engine_or_audit_source": [
+        "local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+      ],
+      "verdict": "NOT_TESTED",
+      "reason": "No resolved DOM value in capture for selector '#lcWalletRows tr:nth-child(1) td:nth-child(4)'; matching provenance CSV line 41 (Lead-copy avg diff) gives formula avg per-fill diff_usd, but no DOM value exists to compare.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Shows avg_diff_usd from live_config.json/manual_live_positions.json/append_only/send_attempts.csv/live_ws_health.json as avg per-fill diff_usd (provenance APP_DERIVED; rows OWNED_COPY; can affect send: NO; execution truth: NO).",
+      "value_capture_status": "Not independently resolved; see row-specific reason",
+      "provenance_match": {
+        "csv_line": 41,
+        "FIELD_NAME": "Lead-copy avg diff",
+        "UI_LOCATION": "Live Copy Wallets row",
+        "SOURCE_FUNCTION": "_build_live_wallet_rows/renderWallets",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "live_config.json/manual_live_positions.json/append_only/send_attempts.csv/live_ws_health.json",
+        "SOURCE_KEY_OR_COLUMN": "avg_diff_usd",
+        "FORMULA": "avg per-fill diff_usd",
+        "PROVENANCE_TYPE": "APP_DERIVED",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      },
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-FP-041",
+      "class": "UI",
+      "selector": "#lcWalletRows tr:nth-child(1) td:nth-child(4)",
+      "value": null,
+      "engine_or_audit_source": [
+        "local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+      ],
+      "verdict": "NOT_TESTED",
+      "reason": "No resolved DOM value in capture for selector '#lcWalletRows tr:nth-child(1) td:nth-child(4)'; matching provenance CSV line 42 (Lead-copy avg bps) gives formula avg leader-vs-copy bps, but no DOM value exists to compare.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Shows avg_diff_bps from live_config.json/manual_live_positions.json/append_only/send_attempts.csv/live_ws_health.json as avg leader-vs-copy bps (provenance APP_DERIVED; rows OWNED_COPY; can affect send: NO; execution truth: NO).",
+      "value_capture_status": "Not independently resolved; see row-specific reason",
+      "provenance_match": {
+        "csv_line": 42,
+        "FIELD_NAME": "Lead-copy avg bps",
+        "UI_LOCATION": "Live Copy Wallets row",
+        "SOURCE_FUNCTION": "_build_live_wallet_rows/renderWallets",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "live_config.json/manual_live_positions.json/append_only/send_attempts.csv/live_ws_health.json",
+        "SOURCE_KEY_OR_COLUMN": "avg_diff_bps",
+        "FORMULA": "avg leader-vs-copy bps",
+        "PROVENANCE_TYPE": "APP_DERIVED",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      },
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-FP-042",
+      "class": "UI",
+      "selector": "#lcWalletRows tr:nth-child(1) td:nth-child(4)",
+      "value": null,
+      "engine_or_audit_source": [
+        "local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+      ],
+      "verdict": "NOT_TESTED",
+      "reason": "No resolved DOM value in capture for selector '#lcWalletRows tr:nth-child(1) td:nth-child(4)'; matching provenance CSV line 43 (Lead-copy worst bps) gives formula max leader-vs-copy bps, but no DOM value exists to compare.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Shows worst_diff_bps from live_config.json/manual_live_positions.json/append_only/send_attempts.csv/live_ws_health.json as max leader-vs-copy bps (provenance APP_DERIVED; rows OWNED_COPY; can affect send: NO; execution truth: NO).",
+      "value_capture_status": "Not independently resolved; see row-specific reason",
+      "provenance_match": {
+        "csv_line": 43,
+        "FIELD_NAME": "Lead-copy worst bps",
+        "UI_LOCATION": "Live Copy Wallets row",
+        "SOURCE_FUNCTION": "_build_live_wallet_rows/renderWallets",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "live_config.json/manual_live_positions.json/append_only/send_attempts.csv/live_ws_health.json",
+        "SOURCE_KEY_OR_COLUMN": "worst_diff_bps",
+        "FORMULA": "max leader-vs-copy bps",
+        "PROVENANCE_TYPE": "APP_DERIVED",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      },
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-FP-043",
+      "class": "UI",
+      "selector": "#lcWalletRows tr:nth-child(1) td:nth-child(5)",
+      "value": null,
+      "engine_or_audit_source": [
+        "local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+      ],
+      "verdict": "NOT_TESTED",
+      "reason": "No resolved DOM value in capture for selector '#lcWalletRows tr:nth-child(1) td:nth-child(5)'; matching provenance CSV line 44 (Filled count) gives formula count wallet ORDER_FILLED send_attempt rows, but no DOM value exists to compare.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Shows filled_count from live_config.json/manual_live_positions.json/append_only/send_attempts.csv/live_ws_health.json as count wallet ORDER_FILLED send_attempt rows (provenance ENGINE_TRUTH; rows OWNED_COPY; can affect send: NO; execution truth: YES).",
+      "value_capture_status": "Not independently resolved; see row-specific reason",
+      "provenance_match": {
+        "csv_line": 44,
+        "FIELD_NAME": "Filled count",
+        "UI_LOCATION": "Live Copy Wallets row",
+        "SOURCE_FUNCTION": "_build_live_wallet_rows/renderWallets",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "live_config.json/manual_live_positions.json/append_only/send_attempts.csv/live_ws_health.json",
+        "SOURCE_KEY_OR_COLUMN": "filled_count",
+        "FORMULA": "count wallet ORDER_FILLED send_attempt rows",
+        "PROVENANCE_TYPE": "ENGINE_TRUTH",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      },
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-FP-044",
+      "class": "UI",
+      "selector": "#lcWalletRows tr:nth-child(1) td:nth-child(5)",
+      "value": null,
+      "engine_or_audit_source": [
+        "local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+      ],
+      "verdict": "NOT_TESTED",
+      "reason": "No resolved DOM value in capture for selector '#lcWalletRows tr:nth-child(1) td:nth-child(5)'; matching provenance CSV line 45 (Exit count) gives formula filled attempts reducing/exit, but no DOM value exists to compare.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Shows exits_count from live_config.json/manual_live_positions.json/append_only/send_attempts.csv/live_ws_health.json as filled attempts reducing/exit (provenance ENGINE_TRUTH; rows OWNED_COPY; can affect send: NO; execution truth: YES).",
+      "value_capture_status": "Not independently resolved; see row-specific reason",
+      "provenance_match": {
+        "csv_line": 45,
+        "FIELD_NAME": "Exit count",
+        "UI_LOCATION": "Live Copy Wallets row",
+        "SOURCE_FUNCTION": "_build_live_wallet_rows/renderWallets",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "live_config.json/manual_live_positions.json/append_only/send_attempts.csv/live_ws_health.json",
+        "SOURCE_KEY_OR_COLUMN": "exits_count",
+        "FORMULA": "filled attempts reducing/exit",
+        "PROVENANCE_TYPE": "ENGINE_TRUTH",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      },
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-FP-045",
+      "class": "UI",
+      "selector": "#lcWalletRows tr:nth-child(1) td:nth-child(5)",
+      "value": null,
+      "engine_or_audit_source": [
+        "local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+      ],
+      "verdict": "NOT_TESTED",
+      "reason": "No resolved DOM value in capture for selector '#lcWalletRows tr:nth-child(1) td:nth-child(5)'; matching provenance CSV line 46 (Recent rejects) gives formula recent ORDER_REJECTED count, but no DOM value exists to compare.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Shows recent_reject_count from live_config.json/manual_live_positions.json/append_only/send_attempts.csv/live_ws_health.json as recent ORDER_REJECTED count (provenance ENGINE_TRUTH; rows OWNED_COPY; can affect send: NO; execution truth: YES).",
+      "value_capture_status": "Not independently resolved; see row-specific reason",
+      "provenance_match": {
+        "csv_line": 46,
+        "FIELD_NAME": "Recent rejects",
+        "UI_LOCATION": "Live Copy Wallets row",
+        "SOURCE_FUNCTION": "_build_live_wallet_rows/renderWallets",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "live_config.json/manual_live_positions.json/append_only/send_attempts.csv/live_ws_health.json",
+        "SOURCE_KEY_OR_COLUMN": "recent_reject_count",
+        "FORMULA": "recent ORDER_REJECTED count",
+        "PROVENANCE_TYPE": "ENGINE_TRUTH",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      },
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-FP-046",
+      "class": "UI",
+      "selector": "#lcWalletRows tr:nth-child(1) td:nth-child(6)",
+      "value": null,
+      "engine_or_audit_source": [
+        "local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+      ],
+      "verdict": "NOT_TESTED",
+      "reason": "No resolved DOM value in capture for selector '#lcWalletRows tr:nth-child(1) td:nth-child(6)'; matching provenance CSV line 47 (Recent blocks) gives formula recent local block count, but no DOM value exists to compare.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Shows recent_block_count from live_config.json/manual_live_positions.json/append_only/send_attempts.csv/live_ws_health.json as recent local block count (provenance ENGINE_TRUTH; rows OWNED_COPY; can affect send: NO; execution truth: YES).",
+      "value_capture_status": "Not independently resolved; see row-specific reason",
+      "provenance_match": {
+        "csv_line": 47,
+        "FIELD_NAME": "Recent blocks",
+        "UI_LOCATION": "Live Copy Wallets row",
+        "SOURCE_FUNCTION": "_build_live_wallet_rows/renderWallets",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "live_config.json/manual_live_positions.json/append_only/send_attempts.csv/live_ws_health.json",
+        "SOURCE_KEY_OR_COLUMN": "recent_block_count",
+        "FORMULA": "recent local block count",
+        "PROVENANCE_TYPE": "ENGINE_TRUTH",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      },
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-FP-047",
+      "class": "UI",
+      "selector": "#lcWalletRows tr:nth-child(1) td:nth-child(6)",
+      "value": null,
+      "engine_or_audit_source": [
+        "local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+      ],
+      "verdict": "NOT_TESTED",
+      "reason": "No resolved DOM value in capture for selector '#lcWalletRows tr:nth-child(1) td:nth-child(6)'; matching provenance CSV line 48 (Exposure) gives formula manual wallet sleeves exposure only, but no DOM value exists to compare.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Shows current_exposure from live_config.json/manual_live_positions.json/append_only/send_attempts.csv/live_ws_health.json as manual wallet sleeves exposure only (provenance MANUAL_LEDGER; rows OWNED_COPY; can affect send: NO; execution truth: NO).",
+      "value_capture_status": "Not independently resolved; see row-specific reason",
+      "provenance_match": {
+        "csv_line": 48,
+        "FIELD_NAME": "Exposure",
+        "UI_LOCATION": "Live Copy Wallets row",
+        "SOURCE_FUNCTION": "_build_live_wallet_rows/renderWallets",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "live_config.json/manual_live_positions.json/append_only/send_attempts.csv/live_ws_health.json",
+        "SOURCE_KEY_OR_COLUMN": "current_exposure",
+        "FORMULA": "manual wallet sleeves exposure only",
+        "PROVENANCE_TYPE": "MANUAL_LEDGER",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      },
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-FP-048",
+      "class": "UI",
+      "selector": "#lcWalletRows tr:nth-child(1) td:nth-child(6)",
+      "value": null,
+      "engine_or_audit_source": [
+        "local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+      ],
+      "verdict": "NOT_TESTED",
+      "reason": "No resolved DOM value in capture for selector '#lcWalletRows tr:nth-child(1) td:nth-child(6)'; matching provenance CSV line 49 (Open pos) gives formula count nonzero manual wallet sleeves, but no DOM value exists to compare.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Shows open_position_count from live_config.json/manual_live_positions.json/append_only/send_attempts.csv/live_ws_health.json as count nonzero manual wallet sleeves (provenance MANUAL_LEDGER; rows OWNED_COPY; can affect send: NO; execution truth: NO).",
+      "value_capture_status": "Not independently resolved; see row-specific reason",
+      "provenance_match": {
+        "csv_line": 49,
+        "FIELD_NAME": "Open pos",
+        "UI_LOCATION": "Live Copy Wallets row",
+        "SOURCE_FUNCTION": "_build_live_wallet_rows/renderWallets",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "live_config.json/manual_live_positions.json/append_only/send_attempts.csv/live_ws_health.json",
+        "SOURCE_KEY_OR_COLUMN": "open_position_count",
+        "FORMULA": "count nonzero manual wallet sleeves",
+        "PROVENANCE_TYPE": "MANUAL_LEDGER",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      },
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-FP-049",
+      "class": "UI",
+      "selector": "#lcWalletRows tr:nth-child(1) td:nth-child(7)",
+      "value": null,
+      "engine_or_audit_source": [
+        "local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+      ],
+      "verdict": "FAIL",
+      "reason": "Provenance CSV line 50 (DD, Live Copy Wallets row) records FAIL: wallet DD fields render n/a when source series is absent, not UNKNOWN/NOT_PROVEN. DOM selector '#lcWalletRows tr:nth-child(1) td:nth-child(7)' value None.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Shows drawdown from live_config.json/manual_live_positions.json/append_only/send_attempts.csv/live_ws_health.json as wallet pnl_series drawdown, None when account-only/shared (provenance APP_DERIVED; rows OWNED_COPY; can affect send: NO; execution truth: NO).",
+      "value_capture_status": "Not independently resolved; see row-specific reason",
+      "provenance_match": {
+        "csv_line": 50,
+        "FIELD_NAME": "DD",
+        "UI_LOCATION": "Live Copy Wallets row",
+        "SOURCE_FUNCTION": "_build_live_wallet_rows/renderWallets",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "live_config.json/manual_live_positions.json/append_only/send_attempts.csv/live_ws_health.json",
+        "SOURCE_KEY_OR_COLUMN": "drawdown",
+        "FORMULA": "wallet pnl_series drawdown, None when account-only/shared",
+        "PROVENANCE_TYPE": "APP_DERIVED",
+        "PASS_FAIL_NOT_PROVEN": "FAIL",
+        "FAIL_REASON": "wallet DD fields render n/a when source series is absent, not UNKNOWN/NOT_PROVEN"
+      },
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-FP-050",
+      "class": "UI",
+      "selector": "#lcWalletRows tr:nth-child(1) td:nth-child(7)",
+      "value": null,
+      "engine_or_audit_source": [
+        "local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+      ],
+      "verdict": "FAIL",
+      "reason": "Provenance CSV line 51 (MaxDD, Live Copy Wallets row) records FAIL: wallet DD fields render n/a when source series is absent, not UNKNOWN/NOT_PROVEN. DOM selector '#lcWalletRows tr:nth-child(1) td:nth-child(7)' value None.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Shows max_drawdown from live_config.json/manual_live_positions.json/append_only/send_attempts.csv/live_ws_health.json as min wallet pnl_series drawdown, None when account-only/shared (provenance APP_DERIVED; rows OWNED_COPY; can affect send: NO; execution truth: NO).",
+      "value_capture_status": "Not independently resolved; see row-specific reason",
+      "provenance_match": {
+        "csv_line": 51,
+        "FIELD_NAME": "MaxDD",
+        "UI_LOCATION": "Live Copy Wallets row",
+        "SOURCE_FUNCTION": "_build_live_wallet_rows/renderWallets",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "live_config.json/manual_live_positions.json/append_only/send_attempts.csv/live_ws_health.json",
+        "SOURCE_KEY_OR_COLUMN": "max_drawdown",
+        "FORMULA": "min wallet pnl_series drawdown, None when account-only/shared",
+        "PROVENANCE_TYPE": "APP_DERIVED",
+        "PASS_FAIL_NOT_PROVEN": "FAIL",
+        "FAIL_REASON": "wallet DD fields render n/a when source series is absent, not UNKNOWN/NOT_PROVEN"
+      },
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-LCC-HDR-01",
+      "class": "UI",
+      "selector": "#lcWalletCount",
+      "value": "4 / 10",
+      "engine_or_audit_source": [
+        "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) render_live_copy_control_panel header",
+        "ARCH Full scope 2",
+        "ARCH Full scope 6",
+        "FAILURES UI-001..003"
+      ],
+      "verdict": "PASS",
+      "reason": "DOM selector '#lcWalletCount' value '4 / 10'; matched provenance CSV line 2: Wallets header / Header / Safety; formula: count(live_config.wallets) / 10; recorded fixture verdict PASS.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Shows engine truth (configured/eligible wallets, auto-send env state, WS health aggregate); unknown -> n/a/OFFLINE, never green.",
+      "value_capture_status": "Captured runtime DOM value",
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv",
+      "provenance_match": {
+        "csv_line": 2,
+        "FIELD_NAME": "Wallets header",
+        "UI_LOCATION": "Header / Safety",
+        "SOURCE_FUNCTION": "render",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "live_config.json/live_ws_health.json/live_audit_summary",
+        "SOURCE_KEY_OR_COLUMN": "tracked_wallet_count",
+        "FORMULA": "count(live_config.wallets) / 10",
+        "PROVENANCE_TYPE": "LIVE_SERVICE_STATE",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      }
+    },
+    {
+      "row_id": "UI-LCC-HDR-02",
+      "class": "UI",
+      "selector": "#lcModeCounts",
+      "value": "LIVE 4\nCLO 0\nOFF 0",
+      "engine_or_audit_source": [
+        "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) render_live_copy_control_panel header",
+        "ARCH Full scope 2",
+        "ARCH Full scope 6",
+        "FAILURES UI-001..003"
+      ],
+      "verdict": "PASS",
+      "reason": "DOM selector '#lcModeCounts' value 'LIVE 4\\nCLO 0\\nOFF 0'; matched provenance CSV line 3: LIVE mode count / Header / Safety; formula: count mode == LIVE; recorded fixture verdict PASS.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Shows engine truth (configured/eligible wallets, auto-send env state, WS health aggregate); unknown -> n/a/OFFLINE, never green.",
+      "value_capture_status": "Captured runtime DOM value",
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv",
+      "provenance_match": {
+        "csv_line": 3,
+        "FIELD_NAME": "LIVE mode count",
+        "UI_LOCATION": "Header / Safety",
+        "SOURCE_FUNCTION": "render",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "live_config.json/live_ws_health.json/live_audit_summary",
+        "SOURCE_KEY_OR_COLUMN": "live_config.wallets[].mode",
+        "FORMULA": "count mode == LIVE",
+        "PROVENANCE_TYPE": "APP_DERIVED",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      }
+    },
+    {
+      "row_id": "UI-LCC-HDR-03",
+      "class": "UI",
+      "selector": "#lcAutoSend",
+      "value": "Real order sending:\nOFF",
+      "engine_or_audit_source": [
+        "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) render_live_copy_control_panel header",
+        "ARCH Full scope 2",
+        "ARCH Full scope 6",
+        "FAILURES UI-001..003"
+      ],
+      "verdict": "PASS",
+      "reason": "DOM selector '#lcAutoSend' value 'Real order sending:\\nOFF'; matched provenance CSV line 4: CLO mode count / Header / Safety; formula: count mode == CLO; recorded fixture verdict PASS.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Shows engine truth (configured/eligible wallets, auto-send env state, WS health aggregate); unknown -> n/a/OFFLINE, never green.",
+      "value_capture_status": "Captured runtime DOM value",
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv",
+      "provenance_match": {
+        "csv_line": 4,
+        "FIELD_NAME": "CLO mode count",
+        "UI_LOCATION": "Header / Safety",
+        "SOURCE_FUNCTION": "render",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "live_config.json/live_ws_health.json/live_audit_summary",
+        "SOURCE_KEY_OR_COLUMN": "live_config.wallets[].mode",
+        "FORMULA": "count mode == CLO",
+        "PROVENANCE_TYPE": "APP_DERIVED",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      }
+    },
+    {
+      "row_id": "UI-LCC-HDR-04",
+      "class": "UI",
+      "selector": "#lcWsOverall",
+      "value": "WS_OK",
+      "engine_or_audit_source": [
+        "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) render_live_copy_control_panel header",
+        "ARCH Full scope 2",
+        "ARCH Full scope 6",
+        "FAILURES UI-001..003"
+      ],
+      "verdict": "PASS",
+      "reason": "DOM selector '#lcWsOverall' value 'WS_OK'; matched provenance CSV line 5: OFF mode count / Header / Safety; formula: count mode == OFF; recorded fixture verdict PASS.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Shows engine truth (configured/eligible wallets, auto-send env state, WS health aggregate); unknown -> n/a/OFFLINE, never green.",
+      "value_capture_status": "Captured runtime DOM value",
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv",
+      "provenance_match": {
+        "csv_line": 5,
+        "FIELD_NAME": "OFF mode count",
+        "UI_LOCATION": "Header / Safety",
+        "SOURCE_FUNCTION": "render",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "live_config.json/live_ws_health.json/live_audit_summary",
+        "SOURCE_KEY_OR_COLUMN": "live_config.wallets[].mode",
+        "FORMULA": "count mode == OFF",
+        "PROVENANCE_TYPE": "APP_DERIVED",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      }
+    },
+    {
+      "row_id": "UI-LCC-HDR-05",
+      "class": "UI",
+      "selector": "#lcRealOrders",
+      "value": "REAL ORDERS: APP DISABLED",
+      "engine_or_audit_source": [
+        "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) render_live_copy_control_panel header",
+        "ARCH Full scope 2",
+        "ARCH Full scope 6",
+        "FAILURES UI-001..003"
+      ],
+      "verdict": "PASS",
+      "reason": "DOM selector '#lcRealOrders' value 'REAL ORDERS: APP DISABLED'; matched provenance CSV line 6: Real order sending header / Header / Safety; formula: ON iff auto_live_wallet_count > 0; recorded fixture verdict PASS.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Shows engine truth (configured/eligible wallets, auto-send env state, WS health aggregate); unknown -> n/a/OFFLINE, never green.",
+      "value_capture_status": "Captured runtime DOM value",
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv",
+      "provenance_match": {
+        "csv_line": 6,
+        "FIELD_NAME": "Real order sending header",
+        "UI_LOCATION": "Header / Safety",
+        "SOURCE_FUNCTION": "render",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "live_config.json/live_ws_health.json/live_audit_summary",
+        "SOURCE_KEY_OR_COLUMN": "auto_live_wallet_count",
+        "FORMULA": "ON iff auto_live_wallet_count > 0",
+        "PROVENANCE_TYPE": "APP_DERIVED",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      }
+    },
+    {
+      "row_id": "UI-LCC-HDR-06",
+      "class": "UI",
+      "selector": "#lcStatus",
+      "value": "Loaded",
+      "engine_or_audit_source": [
+        "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) render_live_copy_control_panel header",
+        "ARCH Full scope 2",
+        "ARCH Full scope 6",
+        "FAILURES UI-001..003"
+      ],
+      "verdict": "PASS",
+      "reason": "DOM selector '#lcStatus' value 'Loaded'; matched provenance CSV line 7: WS header / Header / Safety; formula: overall WS health label; recorded fixture verdict PASS.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Shows engine truth (configured/eligible wallets, auto-send env state, WS health aggregate); unknown -> n/a/OFFLINE, never green.",
+      "value_capture_status": "Captured runtime DOM value",
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv",
+      "provenance_match": {
+        "csv_line": 7,
+        "FIELD_NAME": "WS header",
+        "UI_LOCATION": "Header / Safety",
+        "SOURCE_FUNCTION": "render",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "live_config.json/live_ws_health.json/live_audit_summary",
+        "SOURCE_KEY_OR_COLUMN": "live_ws_health.overall",
+        "FORMULA": "overall WS health label",
+        "PROVENANCE_TYPE": "LIVE_SERVICE_STATE",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      }
+    },
+    {
+      "row_id": "UI-LCC-BTN-01",
+      "class": "UI",
+      "selector": "#lcRefresh",
+      "value": null,
+      "engine_or_audit_source": [
+        "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) render_live_copy_control_panel header-actions",
+        "ARCH Full scope 2",
+        "ARCH Full scope 6",
+        "FAILURES UI-001..003"
+      ],
+      "verdict": "NOT_TESTED",
+      "reason": "State-changing control or table action cannot be verified by DOM alone; no write was sent to the live app.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Button performs exactly its action; errors are shown in lcStatus/lcGcStatus.",
+      "value_capture_status": "Not independently resolved; see row-specific reason",
+      "provenance_match": null,
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-LCC-BTN-02",
+      "class": "UI",
+      "selector": "#lcGcToggle",
+      "value": null,
+      "engine_or_audit_source": [
+        "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) render_live_copy_control_panel header-actions",
+        "ARCH Full scope 2",
+        "ARCH Full scope 6",
+        "FAILURES UI-001..003"
+      ],
+      "verdict": "NOT_TESTED",
+      "reason": "State-changing control or table action cannot be verified by DOM alone; no write was sent to the live app.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Button performs exactly its action; errors are shown in lcStatus/lcGcStatus.",
+      "value_capture_status": "Not independently resolved; see row-specific reason",
+      "provenance_match": null,
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-LCC-BTN-03",
+      "class": "UI",
+      "selector": "[data-lc-modal=lcWalletModal]",
+      "value": null,
+      "engine_or_audit_source": [
+        "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) render_live_copy_control_panel header-actions",
+        "ARCH Full scope 2",
+        "ARCH Full scope 6",
+        "FAILURES UI-001..003"
+      ],
+      "verdict": "NOT_TESTED",
+      "reason": "State-changing control or table action cannot be verified by DOM alone; no write was sent to the live app.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Button performs exactly its action; errors are shown in lcStatus/lcGcStatus.",
+      "value_capture_status": "Not independently resolved; see row-specific reason",
+      "provenance_match": null,
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-LCC-BTN-04",
+      "class": "UI",
+      "selector": "#lcGcClose",
+      "value": null,
+      "engine_or_audit_source": [
+        "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) render_live_copy_control_panel header-actions",
+        "ARCH Full scope 2",
+        "ARCH Full scope 6",
+        "FAILURES UI-001..003"
+      ],
+      "verdict": "NOT_TESTED",
+      "reason": "State-changing control or table action cannot be verified by DOM alone; no write was sent to the live app.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Button performs exactly its action; errors are shown in lcStatus/lcGcStatus.",
+      "value_capture_status": "Not independently resolved; see row-specific reason",
+      "provenance_match": null,
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-LCC-BTN-05",
+      "class": "UI",
+      "selector": "#lcGcSave",
+      "value": null,
+      "engine_or_audit_source": [
+        "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) render_live_copy_control_panel header-actions",
+        "ARCH Full scope 2",
+        "ARCH Full scope 6",
+        "FAILURES UI-001..003"
+      ],
+      "verdict": "NOT_TESTED",
+      "reason": "State-changing control or table action cannot be verified by DOM alone; no write was sent to the live app.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Button performs exactly its action; errors are shown in lcStatus/lcGcStatus.",
+      "value_capture_status": "Not independently resolved; see row-specific reason",
+      "provenance_match": null,
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-LCC-CARD-01",
+      "class": "UI",
+      "selector": "#lcRealCards [data-card-label=Portfolio Value]",
+      "value": "Unavailable",
+      "engine_or_audit_source": [
+        "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) renderCards",
+        "ARCH Full scope 2",
+        "ARCH Full scope 6",
+        "FAILURES UI-001..003"
+      ],
+      "verdict": "NOT_TESTED",
+      "reason": "Requires send_attempts.csv / live_fills.csv (and where applicable order_intents.csv), absent from this serving instance's append_only/ (2 files present); richer CSV set belongs to a different instance.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Value equals MASTER exchange truth at snapshot time (Live Exposure currently from manual_live_exposure_estimate — must be labelled or replaced by exchange truth); unavailable -> 'Unavailable'/'n/a'.",
+      "value_capture_status": "Captured runtime DOM value",
+      "provenance_match": {
+        "csv_line": 19,
+        "FIELD_NAME": "Portfolio Value",
+        "UI_LOCATION": "Real Account cards",
+        "SOURCE_FUNCTION": "renderCards",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "exchange_account_snapshot.json/manual_live_positions.json/append_only/send_attempts.csv",
+        "SOURCE_KEY_OR_COLUMN": "exchange_account_snapshot.unified_portfolio_value",
+        "FORMULA": "exchange unified portfolio value",
+        "PROVENANCE_TYPE": "EXCHANGE_ACCOUNT",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      },
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-LCC-CARD-02",
+      "class": "UI",
+      "selector": "#lcRealCards [data-card-label=Unrealized PnL]",
+      "value": "n/a",
+      "engine_or_audit_source": [
+        "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) renderCards",
+        "ARCH Full scope 2",
+        "ARCH Full scope 6",
+        "FAILURES UI-001..003"
+      ],
+      "verdict": "NOT_TESTED",
+      "reason": "Requires send_attempts.csv / live_fills.csv (and where applicable order_intents.csv), absent from this serving instance's append_only/ (2 files present); richer CSV set belongs to a different instance.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Value equals MASTER exchange truth at snapshot time (Live Exposure currently from manual_live_exposure_estimate — must be labelled or replaced by exchange truth); unavailable -> 'Unavailable'/'n/a'.",
+      "value_capture_status": "Captured runtime DOM value",
+      "provenance_match": {
+        "csv_line": 20,
+        "FIELD_NAME": "Unrealized PnL",
+        "UI_LOCATION": "Real Account cards",
+        "SOURCE_FUNCTION": "renderCards",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "exchange_account_snapshot.json/manual_live_positions.json/append_only/send_attempts.csv",
+        "SOURCE_KEY_OR_COLUMN": "exchange_account_snapshot.unrealized_pnl",
+        "FORMULA": "sum(assetPositions.position.unrealizedPnl)",
+        "PROVENANCE_TYPE": "EXCHANGE_ACCOUNT",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      },
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-LCC-CARD-03",
+      "class": "UI",
+      "selector": "#lcRealCards [data-card-label=Realized PnL]",
+      "value": "Unavailable",
+      "engine_or_audit_source": [
+        "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) renderCards",
+        "ARCH Full scope 2",
+        "ARCH Full scope 6",
+        "FAILURES UI-001..003"
+      ],
+      "verdict": "NOT_TESTED",
+      "reason": "Requires send_attempts.csv / live_fills.csv (and where applicable order_intents.csv), absent from this serving instance's append_only/ (2 files present); richer CSV set belongs to a different instance.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Value equals MASTER exchange truth at snapshot time (Live Exposure currently from manual_live_exposure_estimate — must be labelled or replaced by exchange truth); unavailable -> 'Unavailable'/'n/a'.",
+      "value_capture_status": "Captured runtime DOM value",
+      "provenance_match": {
+        "csv_line": 21,
+        "FIELD_NAME": "Realized PnL",
+        "UI_LOCATION": "Real Account cards",
+        "SOURCE_FUNCTION": "renderCards",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "exchange_account_snapshot.json/manual_live_positions.json/append_only/send_attempts.csv",
+        "SOURCE_KEY_OR_COLUMN": "exchange_account_snapshot.realized_pnl_selected",
+        "FORMULA": "sum actual user closedPnl for selected window",
+        "PROVENANCE_TYPE": "EXCHANGE_ACCOUNT",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      },
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-LCC-CARD-04",
+      "class": "UI",
+      "selector": "#lcRealCards [data-card-label=Open Positions]",
+      "value": "n/a",
+      "engine_or_audit_source": [
+        "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) renderCards",
+        "ARCH Full scope 2",
+        "ARCH Full scope 6",
+        "FAILURES UI-001..003"
+      ],
+      "verdict": "NOT_TESTED",
+      "reason": "Requires send_attempts.csv / live_fills.csv (and where applicable order_intents.csv), absent from this serving instance's append_only/ (2 files present); richer CSV set belongs to a different instance.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Value equals MASTER exchange truth at snapshot time (Live Exposure currently from manual_live_exposure_estimate — must be labelled or replaced by exchange truth); unavailable -> 'Unavailable'/'n/a'.",
+      "value_capture_status": "Captured runtime DOM value",
+      "provenance_match": {
+        "csv_line": 22,
+        "FIELD_NAME": "Open Positions",
+        "UI_LOCATION": "Real Account cards",
+        "SOURCE_FUNCTION": "renderCards",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "exchange_account_snapshot.json/manual_live_positions.json/append_only/send_attempts.csv",
+        "SOURCE_KEY_OR_COLUMN": "exchange_account_snapshot.open_positions",
+        "FORMULA": "count exchange open positions",
+        "PROVENANCE_TYPE": "EXCHANGE_ACCOUNT",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      },
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-LCC-CARD-05",
+      "class": "UI",
+      "selector": "#lcRealCards [data-card-label=Live Exposure]",
+      "value": null,
+      "engine_or_audit_source": [
+        "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) renderCards",
+        "ARCH Full scope 2",
+        "ARCH Full scope 6",
+        "FAILURES UI-001..003"
+      ],
+      "verdict": "NOT_TESTED",
+      "reason": "No resolved DOM value in capture for selector '#lcRealCards [data-card-label=Live Exposure]'; matching provenance CSV line 23 (Live Exposure) gives formula sum manual sleeves abs(size)*price estimate, but no DOM value exists to compare.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Value equals MASTER exchange truth at snapshot time (Live Exposure currently from manual_live_exposure_estimate — must be labelled or replaced by exchange truth); unavailable -> 'Unavailable'/'n/a'.",
+      "value_capture_status": "Not independently resolved; see row-specific reason",
+      "provenance_match": {
+        "csv_line": 23,
+        "FIELD_NAME": "Live Exposure",
+        "UI_LOCATION": "Real Account cards",
+        "SOURCE_FUNCTION": "renderCards",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "exchange_account_snapshot.json/manual_live_positions.json/append_only/send_attempts.csv",
+        "SOURCE_KEY_OR_COLUMN": "manual_live_summary.manual_live_exposure_estimate",
+        "FORMULA": "sum manual sleeves abs(size)*price estimate",
+        "PROVENANCE_TYPE": "MANUAL_LEDGER",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      },
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-LCC-CARD-06",
+      "class": "UI",
+      "selector": "#lcRealCards [data-card-label=Last Fill]",
+      "value": "none yet",
+      "engine_or_audit_source": [
+        "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) renderCards",
+        "ARCH Full scope 2",
+        "ARCH Full scope 6",
+        "FAILURES UI-001..003"
+      ],
+      "verdict": "NOT_TESTED",
+      "reason": "Requires send_attempts.csv / live_fills.csv (and where applicable order_intents.csv), absent from this serving instance's append_only/ (2 files present); richer CSV set belongs to a different instance.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Value equals MASTER exchange truth at snapshot time (Live Exposure currently from manual_live_exposure_estimate — must be labelled or replaced by exchange truth); unavailable -> 'Unavailable'/'n/a'.",
+      "value_capture_status": "Captured runtime DOM value",
+      "provenance_match": {
+        "csv_line": 24,
+        "FIELD_NAME": "Last Fill",
+        "UI_LOCATION": "Real Account cards",
+        "SOURCE_FUNCTION": "renderCards",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "exchange_account_snapshot.json/manual_live_positions.json/append_only/send_attempts.csv",
+        "SOURCE_KEY_OR_COLUMN": "manual_live_summary.last_filled_manual_order",
+        "FORMULA": "latest ORDER_FILLED send_attempt",
+        "PROVENANCE_TYPE": "ENGINE_TRUTH",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      },
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-LCC-CARD-07",
+      "class": "UI",
+      "selector": "#lcRealCards [data-card-label=Last Reject]",
+      "value": "none",
+      "engine_or_audit_source": [
+        "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) renderCards",
+        "ARCH Full scope 2",
+        "ARCH Full scope 6",
+        "FAILURES UI-001..003"
+      ],
+      "verdict": "NOT_TESTED",
+      "reason": "Requires send_attempts.csv / live_fills.csv (and where applicable order_intents.csv), absent from this serving instance's append_only/ (2 files present); richer CSV set belongs to a different instance.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Value equals MASTER exchange truth at snapshot time (Live Exposure currently from manual_live_exposure_estimate — must be labelled or replaced by exchange truth); unavailable -> 'Unavailable'/'n/a'.",
+      "value_capture_status": "Captured runtime DOM value",
+      "provenance_match": {
+        "csv_line": 25,
+        "FIELD_NAME": "Last Reject",
+        "UI_LOCATION": "Real Account cards",
+        "SOURCE_FUNCTION": "renderCards",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "exchange_account_snapshot.json/manual_live_positions.json/append_only/send_attempts.csv",
+        "SOURCE_KEY_OR_COLUMN": "manual_live_summary.last_rejected_manual_order",
+        "FORMULA": "latest rejected send_attempt",
+        "PROVENANCE_TYPE": "ENGINE_TRUTH",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      },
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-LCC-GRAPH-01",
+      "class": "UI",
+      "selector": "[data-lc-graph-mode=account]",
+      "value": null,
+      "engine_or_audit_source": [
+        "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) renderGraph",
+        "ARCH Full scope 2",
+        "ARCH Full scope 6",
+        "FAILURES UI-001..003"
+      ],
+      "verdict": "NOT_TESTED",
+      "reason": "No resolved DOM value in capture for selector '[data-lc-graph-mode=account]'; matching provenance CSV line 26 (Account graph total PnL) gives formula point.value = unified_portfolio_value - first_visible_unified_portfolio_value, but no DOM value exists to compare.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Series derive from exchange account history (unified_portfolio_value, else clearinghouse fallback, labelled) and user closedPnl; ranges filter correctly; <2 points shows the explicit message.",
+      "value_capture_status": "Not independently resolved; see row-specific reason",
+      "provenance_match": {
+        "csv_line": 26,
+        "FIELD_NAME": "Account graph total PnL",
+        "UI_LOCATION": "Graph",
+        "SOURCE_FUNCTION": "renderGraph",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "exchange_account_history.json",
+        "SOURCE_KEY_OR_COLUMN": "exchange_account_history[].unified_portfolio_value",
+        "FORMULA": "point.value = unified_portfolio_value - first_visible_unified_portfolio_value",
+        "PROVENANCE_TYPE": "EXCHANGE_ACCOUNT",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      },
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-LCC-GRAPH-02",
+      "class": "UI",
+      "selector": "[data-lc-graph-mode=wallet_pnl]",
+      "value": null,
+      "engine_or_audit_source": [
+        "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) renderGraph",
+        "ARCH Full scope 2",
+        "ARCH Full scope 6",
+        "FAILURES UI-001..003"
+      ],
+      "verdict": "NOT_TESTED",
+      "reason": "No resolved DOM value in capture for selector '[data-lc-graph-mode=wallet_pnl]'; matching provenance CSV line 27 (Account graph realized PnL) gives formula EXCHANGE_ACCOUNT, but no DOM value exists to compare.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Series derive from exchange account history (unified_portfolio_value, else clearinghouse fallback, labelled) and user closedPnl; ranges filter correctly; <2 points shows the explicit message.",
+      "value_capture_status": "Not independently resolved; see row-specific reason",
+      "provenance_match": {
+        "csv_line": 27,
+        "FIELD_NAME": "Account graph realized PnL",
+        "UI_LOCATION": "Graph",
+        "SOURCE_FUNCTION": "renderGraph",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "live_graph.realized_pnl_points",
+        "SOURCE_KEY_OR_COLUMN": "closedPnl cumulative over selected range minus baseline",
+        "FORMULA": "EXCHANGE_ACCOUNT",
+        "PROVENANCE_TYPE": "GRAPH",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      },
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-LCC-GRAPH-03",
+      "class": "UI",
+      "selector": "[data-lc-graph-mode=exposure]",
+      "value": null,
+      "engine_or_audit_source": [
+        "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) renderGraph",
+        "ARCH Full scope 2",
+        "ARCH Full scope 6",
+        "FAILURES UI-001..003"
+      ],
+      "verdict": "NOT_TESTED",
+      "reason": "No resolved DOM value in capture for selector '[data-lc-graph-mode=exposure]'; matching provenance CSV line 28 (Account graph drawdown) gives formula drawdown = value - running_peak(value), but no DOM value exists to compare.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Series derive from exchange account history (unified_portfolio_value, else clearinghouse fallback, labelled) and user closedPnl; ranges filter correctly; <2 points shows the explicit message.",
+      "value_capture_status": "Not independently resolved; see row-specific reason",
+      "provenance_match": {
+        "csv_line": 28,
+        "FIELD_NAME": "Account graph drawdown",
+        "UI_LOCATION": "Graph",
+        "SOURCE_FUNCTION": "renderGraph",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "exchange_account_history.json",
+        "SOURCE_KEY_OR_COLUMN": "derived from account_points",
+        "FORMULA": "drawdown = value - running_peak(value)",
+        "PROVENANCE_TYPE": "APP_DERIVED",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      },
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-LCC-GRAPH-04",
+      "class": "UI",
+      "selector": "[data-lc-graph-scale=1d]",
+      "value": null,
+      "engine_or_audit_source": [
+        "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) renderGraph",
+        "ARCH Full scope 2",
+        "ARCH Full scope 6",
+        "FAILURES UI-001..003"
+      ],
+      "verdict": "FAIL",
+      "reason": "Provenance CSV line 29 (Selected wallet PnL graph, Graph) records FAIL: visible graph mode exists but _build_live_leader_performance currently emits empty pnl_series. DOM selector '[data-lc-graph-scale=1d]' value None.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Series derive from exchange account history (unified_portfolio_value, else clearinghouse fallback, labelled) and user closedPnl; ranges filter correctly; <2 points shows the explicit message.",
+      "value_capture_status": "Not independently resolved; see row-specific reason",
+      "provenance_match": {
+        "csv_line": 29,
+        "FIELD_NAME": "Selected wallet PnL graph",
+        "UI_LOCATION": "Graph",
+        "SOURCE_FUNCTION": "renderGraph",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "live_leader_performance[wallet].pnl_series",
+        "SOURCE_KEY_OR_COLUMN": "selected wallet pnl_series",
+        "FORMULA": "APP_DERIVED",
+        "PROVENANCE_TYPE": "GRAPH",
+        "PASS_FAIL_NOT_PROVEN": "FAIL",
+        "FAIL_REASON": "visible graph mode exists but _build_live_leader_performance currently emits empty pnl_series"
+      },
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-LCC-GRAPH-05",
+      "class": "UI",
+      "selector": "[data-lc-graph-scale=7d]",
+      "value": null,
+      "engine_or_audit_source": [
+        "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) renderGraph",
+        "ARCH Full scope 2",
+        "ARCH Full scope 6",
+        "FAILURES UI-001..003"
+      ],
+      "verdict": "NOT_TESTED",
+      "reason": "No resolved DOM value in capture for selector '[data-lc-graph-scale=7d]'; matching provenance CSV line 30 (Selected wallet exposure graph) gives formula MANUAL_LEDGER, but no DOM value exists to compare.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Series derive from exchange account history (unified_portfolio_value, else clearinghouse fallback, labelled) and user closedPnl; ranges filter correctly; <2 points shows the explicit message.",
+      "value_capture_status": "Not independently resolved; see row-specific reason",
+      "provenance_match": {
+        "csv_line": 30,
+        "FIELD_NAME": "Selected wallet exposure graph",
+        "UI_LOCATION": "Graph",
+        "SOURCE_FUNCTION": "renderGraph",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "live_leader_performance[wallet].exposure_series",
+        "SOURCE_KEY_OR_COLUMN": "selected wallet current_exposure points",
+        "FORMULA": "MANUAL_LEDGER",
+        "PROVENANCE_TYPE": "GRAPH",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      },
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-LCC-GRAPH-06",
+      "class": "UI",
+      "selector": "[data-lc-graph-scale=all]",
+      "value": null,
+      "engine_or_audit_source": [
+        "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) renderGraph",
+        "ARCH Full scope 2",
+        "ARCH Full scope 6",
+        "FAILURES UI-001..003"
+      ],
+      "verdict": "NOT_TESTED",
+      "reason": "No resolved DOM value in capture for selector '[data-lc-graph-scale=all]'; matching provenance CSV line 31 (Graph range controls) gives formula filters points by selected time range, but no DOM value exists to compare.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Series derive from exchange account history (unified_portfolio_value, else clearinghouse fallback, labelled) and user closedPnl; ranges filter correctly; <2 points shows the explicit message.",
+      "value_capture_status": "Not independently resolved; see row-specific reason",
+      "provenance_match": {
+        "csv_line": 31,
+        "FIELD_NAME": "Graph range controls",
+        "UI_LOCATION": "Graph controls",
+        "SOURCE_FUNCTION": "renderGraph",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "UI state only",
+        "SOURCE_KEY_OR_COLUMN": "lcGraphScale/start/end",
+        "FORMULA": "filters points by selected time range",
+        "PROVENANCE_TYPE": "UI_STATE",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      },
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-LCC-GRAPH-07",
+      "class": "UI",
+      "selector": "#lcGraphStart",
+      "value": null,
+      "engine_or_audit_source": [
+        "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) renderGraph",
+        "ARCH Full scope 2",
+        "ARCH Full scope 6",
+        "FAILURES UI-001..003"
+      ],
+      "verdict": "NOT_TESTED",
+      "reason": "No resolved DOM value in capture for selector '#lcGraphStart'; matching provenance CSV line 31 (Graph range controls) gives formula filters points by selected time range, but no DOM value exists to compare.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Series derive from exchange account history (unified_portfolio_value, else clearinghouse fallback, labelled) and user closedPnl; ranges filter correctly; <2 points shows the explicit message.",
+      "value_capture_status": "Not independently resolved; see row-specific reason",
+      "provenance_match": {
+        "csv_line": 31,
+        "FIELD_NAME": "Graph range controls",
+        "UI_LOCATION": "Graph controls",
+        "SOURCE_FUNCTION": "renderGraph",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "UI state only",
+        "SOURCE_KEY_OR_COLUMN": "lcGraphScale/start/end",
+        "FORMULA": "filters points by selected time range",
+        "PROVENANCE_TYPE": "UI_STATE",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      },
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-LCC-GRAPH-08",
+      "class": "UI",
+      "selector": "#lcGraphEnd",
+      "value": null,
+      "engine_or_audit_source": [
+        "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) renderGraph",
+        "ARCH Full scope 2",
+        "ARCH Full scope 6",
+        "FAILURES UI-001..003"
+      ],
+      "verdict": "NOT_TESTED",
+      "reason": "No resolved DOM value in capture for selector '#lcGraphEnd'; matching provenance CSV line 31 (Graph range controls) gives formula filters points by selected time range, but no DOM value exists to compare.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Series derive from exchange account history (unified_portfolio_value, else clearinghouse fallback, labelled) and user closedPnl; ranges filter correctly; <2 points shows the explicit message.",
+      "value_capture_status": "Not independently resolved; see row-specific reason",
+      "provenance_match": {
+        "csv_line": 31,
+        "FIELD_NAME": "Graph range controls",
+        "UI_LOCATION": "Graph controls",
+        "SOURCE_FUNCTION": "renderGraph",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "UI state only",
+        "SOURCE_KEY_OR_COLUMN": "lcGraphScale/start/end",
+        "FORMULA": "filters points by selected time range",
+        "PROVENANCE_TYPE": "UI_STATE",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      },
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-LCC-GRAPH-09",
+      "class": "UI",
+      "selector": "#lcGraphApplyRange",
+      "value": null,
+      "engine_or_audit_source": [
+        "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) renderGraph",
+        "ARCH Full scope 2",
+        "ARCH Full scope 6",
+        "FAILURES UI-001..003"
+      ],
+      "verdict": "NOT_TESTED",
+      "reason": "No resolved DOM value in capture for selector '#lcGraphApplyRange'; matching provenance CSV line 31 (Graph range controls) gives formula filters points by selected time range, but no DOM value exists to compare.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Series derive from exchange account history (unified_portfolio_value, else clearinghouse fallback, labelled) and user closedPnl; ranges filter correctly; <2 points shows the explicit message.",
+      "value_capture_status": "Not independently resolved; see row-specific reason",
+      "provenance_match": {
+        "csv_line": 31,
+        "FIELD_NAME": "Graph range controls",
+        "UI_LOCATION": "Graph controls",
+        "SOURCE_FUNCTION": "renderGraph",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "UI state only",
+        "SOURCE_KEY_OR_COLUMN": "lcGraphScale/start/end",
+        "FORMULA": "filters points by selected time range",
+        "PROVENANCE_TYPE": "UI_STATE",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      },
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-LCC-GRAPH-10",
+      "class": "UI",
+      "selector": "#lcGraphResetRange",
+      "value": null,
+      "engine_or_audit_source": [
+        "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) renderGraph",
+        "ARCH Full scope 2",
+        "ARCH Full scope 6",
+        "FAILURES UI-001..003"
+      ],
+      "verdict": "NOT_TESTED",
+      "reason": "No resolved DOM value in capture for selector '#lcGraphResetRange'; matching provenance CSV line 31 (Graph range controls) gives formula filters points by selected time range, but no DOM value exists to compare.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Series derive from exchange account history (unified_portfolio_value, else clearinghouse fallback, labelled) and user closedPnl; ranges filter correctly; <2 points shows the explicit message.",
+      "value_capture_status": "Not independently resolved; see row-specific reason",
+      "provenance_match": {
+        "csv_line": 31,
+        "FIELD_NAME": "Graph range controls",
+        "UI_LOCATION": "Graph controls",
+        "SOURCE_FUNCTION": "renderGraph",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "UI state only",
+        "SOURCE_KEY_OR_COLUMN": "lcGraphScale/start/end",
+        "FORMULA": "filters points by selected time range",
+        "PROVENANCE_TYPE": "UI_STATE",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      },
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-LCC-GRAPH-11",
+      "class": "UI",
+      "selector": "#lcExchangePath",
+      "value": null,
+      "engine_or_audit_source": [
+        "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) renderGraph",
+        "ARCH Full scope 2",
+        "ARCH Full scope 6",
+        "FAILURES UI-001..003"
+      ],
+      "verdict": "NOT_TESTED",
+      "reason": "No resolved DOM value in capture for selector '#lcExchangePath'; matching provenance CSV line 31 (Graph range controls) gives formula filters points by selected time range, but no DOM value exists to compare.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Series derive from exchange account history (unified_portfolio_value, else clearinghouse fallback, labelled) and user closedPnl; ranges filter correctly; <2 points shows the explicit message.",
+      "value_capture_status": "Not independently resolved; see row-specific reason",
+      "provenance_match": {
+        "csv_line": 31,
+        "FIELD_NAME": "Graph range controls",
+        "UI_LOCATION": "Graph controls",
+        "SOURCE_FUNCTION": "renderGraph",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "UI state only",
+        "SOURCE_KEY_OR_COLUMN": "lcGraphScale/start/end",
+        "FORMULA": "filters points by selected time range",
+        "PROVENANCE_TYPE": "UI_STATE",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      },
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-LCC-GRAPH-12",
+      "class": "UI",
+      "selector": "#lcRealizedPath",
+      "value": null,
+      "engine_or_audit_source": [
+        "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) renderGraph",
+        "ARCH Full scope 2",
+        "ARCH Full scope 6",
+        "FAILURES UI-001..003"
+      ],
+      "verdict": "NOT_TESTED",
+      "reason": "No resolved DOM value in capture for selector '#lcRealizedPath'; matching provenance CSV line 31 (Graph range controls) gives formula filters points by selected time range, but no DOM value exists to compare.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Series derive from exchange account history (unified_portfolio_value, else clearinghouse fallback, labelled) and user closedPnl; ranges filter correctly; <2 points shows the explicit message.",
+      "value_capture_status": "Not independently resolved; see row-specific reason",
+      "provenance_match": {
+        "csv_line": 31,
+        "FIELD_NAME": "Graph range controls",
+        "UI_LOCATION": "Graph controls",
+        "SOURCE_FUNCTION": "renderGraph",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "UI state only",
+        "SOURCE_KEY_OR_COLUMN": "lcGraphScale/start/end",
+        "FORMULA": "filters points by selected time range",
+        "PROVENANCE_TYPE": "UI_STATE",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      },
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-LCC-GRAPH-13",
+      "class": "UI",
+      "selector": "#lcDrawdownPath",
+      "value": null,
+      "engine_or_audit_source": [
+        "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) renderGraph",
+        "ARCH Full scope 2",
+        "ARCH Full scope 6",
+        "FAILURES UI-001..003"
+      ],
+      "verdict": "NOT_TESTED",
+      "reason": "No resolved DOM value in capture for selector '#lcDrawdownPath'; matching provenance CSV line 31 (Graph range controls) gives formula filters points by selected time range, but no DOM value exists to compare.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Series derive from exchange account history (unified_portfolio_value, else clearinghouse fallback, labelled) and user closedPnl; ranges filter correctly; <2 points shows the explicit message.",
+      "value_capture_status": "Not independently resolved; see row-specific reason",
+      "provenance_match": {
+        "csv_line": 31,
+        "FIELD_NAME": "Graph range controls",
+        "UI_LOCATION": "Graph controls",
+        "SOURCE_FUNCTION": "renderGraph",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "UI state only",
+        "SOURCE_KEY_OR_COLUMN": "lcGraphScale/start/end",
+        "FORMULA": "filters points by selected time range",
+        "PROVENANCE_TYPE": "UI_STATE",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      },
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-LCC-GRAPH-14",
+      "class": "UI",
+      "selector": "#lcYMax/#lcYMid/#lcYMin",
+      "value": null,
+      "engine_or_audit_source": [
+        "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) renderGraph",
+        "ARCH Full scope 2",
+        "ARCH Full scope 6",
+        "FAILURES UI-001..003"
+      ],
+      "verdict": "NOT_TESTED",
+      "reason": "No resolved DOM value in capture for selector '#lcYMax/#lcYMid/#lcYMin'; matching provenance CSV line 31 (Graph range controls) gives formula filters points by selected time range, but no DOM value exists to compare.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Series derive from exchange account history (unified_portfolio_value, else clearinghouse fallback, labelled) and user closedPnl; ranges filter correctly; <2 points shows the explicit message.",
+      "value_capture_status": "Not independently resolved; see row-specific reason",
+      "provenance_match": {
+        "csv_line": 31,
+        "FIELD_NAME": "Graph range controls",
+        "UI_LOCATION": "Graph controls",
+        "SOURCE_FUNCTION": "renderGraph",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "UI state only",
+        "SOURCE_KEY_OR_COLUMN": "lcGraphScale/start/end",
+        "FORMULA": "filters points by selected time range",
+        "PROVENANCE_TYPE": "UI_STATE",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      },
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-LCC-GRAPH-15",
+      "class": "UI",
+      "selector": "#lcXAxisTicks",
+      "value": null,
+      "engine_or_audit_source": [
+        "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) renderGraph",
+        "ARCH Full scope 2",
+        "ARCH Full scope 6",
+        "FAILURES UI-001..003"
+      ],
+      "verdict": "NOT_TESTED",
+      "reason": "No resolved DOM value in capture for selector '#lcXAxisTicks'; matching provenance CSV line 31 (Graph range controls) gives formula filters points by selected time range, but no DOM value exists to compare.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Series derive from exchange account history (unified_portfolio_value, else clearinghouse fallback, labelled) and user closedPnl; ranges filter correctly; <2 points shows the explicit message.",
+      "value_capture_status": "Not independently resolved; see row-specific reason",
+      "provenance_match": {
+        "csv_line": 31,
+        "FIELD_NAME": "Graph range controls",
+        "UI_LOCATION": "Graph controls",
+        "SOURCE_FUNCTION": "renderGraph",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "UI state only",
+        "SOURCE_KEY_OR_COLUMN": "lcGraphScale/start/end",
+        "FORMULA": "filters points by selected time range",
+        "PROVENANCE_TYPE": "UI_STATE",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      },
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-LCC-GRAPH-16",
+      "class": "UI",
+      "selector": "#lcGraphSubtitle",
+      "value": null,
+      "engine_or_audit_source": [
+        "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) renderGraph",
+        "ARCH Full scope 2",
+        "ARCH Full scope 6",
+        "FAILURES UI-001..003"
+      ],
+      "verdict": "NOT_TESTED",
+      "reason": "No resolved DOM value in capture for selector '#lcGraphSubtitle'; matching provenance CSV line 31 (Graph range controls) gives formula filters points by selected time range, but no DOM value exists to compare.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Series derive from exchange account history (unified_portfolio_value, else clearinghouse fallback, labelled) and user closedPnl; ranges filter correctly; <2 points shows the explicit message.",
+      "value_capture_status": "Not independently resolved; see row-specific reason",
+      "provenance_match": {
+        "csv_line": 31,
+        "FIELD_NAME": "Graph range controls",
+        "UI_LOCATION": "Graph controls",
+        "SOURCE_FUNCTION": "renderGraph",
+        "SOURCE_FILE": "HL_Copy_App_SSOT.py",
+        "SOURCE_DATA_FILE": "UI state only",
+        "SOURCE_KEY_OR_COLUMN": "lcGraphScale/start/end",
+        "FORMULA": "filters points by selected time range",
+        "PROVENANCE_TYPE": "UI_STATE",
+        "PASS_FAIL_NOT_PROVEN": "PASS",
+        "FAIL_REASON": ""
+      },
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-LCC-WTBL-01",
+      "class": "UI",
+      "selector": "#lcWalletRows tr:nth-child(1) td:nth-child(1)",
+      "value": null,
+      "engine_or_audit_source": [
+        "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) renderWallets",
+        "ARCH Full scope 2",
+        "ARCH Full scope 6",
+        "FAILURES UI-001..003"
+      ],
+      "verdict": "NOT_TESTED",
+      "reason": "State-changing control or table action cannot be verified by DOM alone; no write was sent to the live app.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Each value matches engine/exchange truth for that wallet; controls write live_config.json and the engine applies them.",
+      "value_capture_status": "Not independently resolved; see row-specific reason",
+      "provenance_match": null,
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-LCC-WTBL-02",
+      "class": "UI",
+      "selector": "#lcWalletRows tr:nth-child(1) td:nth-child(2)",
+      "value": null,
+      "engine_or_audit_source": [
+        "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) renderWallets",
+        "ARCH Full scope 2",
+        "ARCH Full scope 6",
+        "FAILURES UI-001..003"
+      ],
+      "verdict": "NOT_TESTED",
+      "reason": "State-changing control or table action cannot be verified by DOM alone; no write was sent to the live app.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Each value matches engine/exchange truth for that wallet; controls write live_config.json and the engine applies them.",
+      "value_capture_status": "Not independently resolved; see row-specific reason",
+      "provenance_match": null,
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-LCC-WTBL-03",
+      "class": "UI",
+      "selector": "#lcWalletRows tr:nth-child(1) td:nth-child(3)",
+      "value": null,
+      "engine_or_audit_source": [
+        "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) renderWallets",
+        "ARCH Full scope 2",
+        "ARCH Full scope 6",
+        "FAILURES UI-001..003"
+      ],
+      "verdict": "NOT_TESTED",
+      "reason": "State-changing control or table action cannot be verified by DOM alone; no write was sent to the live app.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Each value matches engine/exchange truth for that wallet; controls write live_config.json and the engine applies them.",
+      "value_capture_status": "Not independently resolved; see row-specific reason",
+      "provenance_match": null,
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-LCC-WTBL-04",
+      "class": "UI",
+      "selector": "#lcWalletRows tr:nth-child(1) td:nth-child(4)",
+      "value": null,
+      "engine_or_audit_source": [
+        "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) renderWallets",
+        "ARCH Full scope 2",
+        "ARCH Full scope 6",
+        "FAILURES UI-001..003"
+      ],
+      "verdict": "NOT_TESTED",
+      "reason": "State-changing control or table action cannot be verified by DOM alone; no write was sent to the live app.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Each value matches engine/exchange truth for that wallet; controls write live_config.json and the engine applies them.",
+      "value_capture_status": "Not independently resolved; see row-specific reason",
+      "provenance_match": null,
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-LCC-WTBL-05",
+      "class": "UI",
+      "selector": "#lcWalletRows tr:nth-child(1) td:nth-child(5)",
+      "value": null,
+      "engine_or_audit_source": [
+        "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) renderWallets",
+        "ARCH Full scope 2",
+        "ARCH Full scope 6",
+        "FAILURES UI-001..003"
+      ],
+      "verdict": "NOT_TESTED",
+      "reason": "State-changing control or table action cannot be verified by DOM alone; no write was sent to the live app.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Each value matches engine/exchange truth for that wallet; controls write live_config.json and the engine applies them.",
+      "value_capture_status": "Not independently resolved; see row-specific reason",
+      "provenance_match": null,
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-LCC-WTBL-06",
+      "class": "UI",
+      "selector": "#lcWalletRows tr:nth-child(1) td:nth-child(6)",
+      "value": null,
+      "engine_or_audit_source": [
+        "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) renderWallets",
+        "ARCH Full scope 2",
+        "ARCH Full scope 6",
+        "FAILURES UI-001..003"
+      ],
+      "verdict": "NOT_TESTED",
+      "reason": "State-changing control or table action cannot be verified by DOM alone; no write was sent to the live app.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Each value matches engine/exchange truth for that wallet; controls write live_config.json and the engine applies them.",
+      "value_capture_status": "Not independently resolved; see row-specific reason",
+      "provenance_match": null,
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-LCC-WTBL-07",
+      "class": "UI",
+      "selector": "#lcWalletRows tr:nth-child(1) td:nth-child(7)",
+      "value": null,
+      "engine_or_audit_source": [
+        "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) renderWallets",
+        "ARCH Full scope 2",
+        "ARCH Full scope 6",
+        "FAILURES UI-001..003"
+      ],
+      "verdict": "NOT_TESTED",
+      "reason": "State-changing control or table action cannot be verified by DOM alone; no write was sent to the live app.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Each value matches engine/exchange truth for that wallet; controls write live_config.json and the engine applies them.",
+      "value_capture_status": "Not independently resolved; see row-specific reason",
+      "provenance_match": null,
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-LCC-WTBL-08",
+      "class": "UI",
+      "selector": "#lcWalletRows tr:nth-child(1) td:nth-child(8)",
+      "value": null,
+      "engine_or_audit_source": [
+        "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) renderWallets",
+        "ARCH Full scope 2",
+        "ARCH Full scope 6",
+        "FAILURES UI-001..003"
+      ],
+      "verdict": "NOT_TESTED",
+      "reason": "State-changing control or table action cannot be verified by DOM alone; no write was sent to the live app.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Each value matches engine/exchange truth for that wallet; controls write live_config.json and the engine applies them.",
+      "value_capture_status": "Not independently resolved; see row-specific reason",
+      "provenance_match": null,
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-LCC-WTBL-09",
+      "class": "UI",
+      "selector": "#lcWalletRows tr:nth-child(1) td:nth-child(9)",
+      "value": null,
+      "engine_or_audit_source": [
+        "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) renderWallets",
+        "ARCH Full scope 2",
+        "ARCH Full scope 6",
+        "FAILURES UI-001..003"
+      ],
+      "verdict": "NOT_TESTED",
+      "reason": "State-changing control or table action cannot be verified by DOM alone; no write was sent to the live app.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Each value matches engine/exchange truth for that wallet; controls write live_config.json and the engine applies them.",
+      "value_capture_status": "Not independently resolved; see row-specific reason",
+      "provenance_match": null,
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    },
+    {
+      "row_id": "UI-LCC-WTBL-10",
+      "class": "UI",
+      "selector": "#lcWalletRows tr:nth-child(1) td:nth-child(10)",
+      "value": null,
+      "engine_or_audit_source": [
+        "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) renderWallets",
+        "ARCH Full scope 2",
+        "ARCH Full scope 6",
+        "FAILURES UI-001..003"
+      ],
+      "verdict": "NOT_TESTED",
+      "reason": "State-changing control or table action cannot be verified by DOM alone; no write was sent to the live app.",
+      "dom_capture": "dom_capture.json",
+      "expected_behaviour": "Each value matches engine/exchange truth for that wallet; controls write live_config.json and the engine applies them.",
+      "value_capture_status": "Not independently resolved; see row-specific reason",
+      "provenance_match": null,
+      "evidence_source_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv"
+    }
+  ],
+  "summary": {
+    "total": 94,
+    "PASS": 20,
+    "NOT_TESTED": 70,
+    "FAIL": 4
+  },
+  "provenance_csv": {
+    "path": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv",
+    "bytes": 50682,
+    "line_count": 198
+  }
+}
