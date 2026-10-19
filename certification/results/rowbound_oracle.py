@@ -1,6 +1,8 @@
 import ast, json, pathlib, shutil, subprocess, sys, tempfile
 ENTRY = ('HL_Live_Copy_Service_Core', 'HL_Live_Copy_Service', 'HL_Copy_App_SSOT')
-DEFAULT_BASELINE = '43731b4f1f19a56e835032dabf608a550f925717'
+# Fixed, reviewed historical certification baseline; never derive this from the evaluated revision.
+DEPENDENCY_BASELINE_REF = '43731b4f1f19a56e835032dabf608a550f925717'
+DEFAULT_BASELINE = DEPENDENCY_BASELINE_REF
 STORES = {'sqlite3','psycopg','psycopg2','pymysql','MySQLdb','redis','shelve','dbm','sqlalchemy','peewee','pymongo','motor','lmdb','rocksdb','tinydb','zodb'}
 B4 = {'build4','b4','mission_control','missioncontrol','control_plane','controlplane','gate_root','b4_gate','hl_prod_base','hyperliquid_build4'}
 B4_PREFIX = ('build4_','b4_','mission_control_')
@@ -124,10 +126,25 @@ def row05(trees, names):
 
 def load_approved(root):
     p = pathlib.Path(root)/'certification'/'approved_dependencies.json'
+    if not p.is_file():
+        raise FileNotFoundError('APPROVAL_RECORD_MISSING: %s' % p)
     try:
-        return set(json.loads(p.read_text(encoding='utf-8-sig')).get('approved') or [])
-    except Exception:
-        return set()
+        record = json.loads(p.read_text(encoding='utf-8-sig'))
+    except (OSError, json.JSONDecodeError) as e:
+        raise ValueError('APPROVAL_RECORD_INVALID: %s' % e) from e
+    if not isinstance(record, dict) or not isinstance(record.get('approved'), list):
+        raise ValueError('APPROVAL_RECORD_INVALID: expected object with approved list')
+    approved = set()
+    for item in record['approved']:
+        if not isinstance(item, dict) or not item.get('module') or item.get('approved') is not True:
+            raise ValueError('APPROVAL_RECORD_INVALID: each approval needs module and approved=true')
+        # Baseline presence is sufficient approval for the no-NEW-dependency invariant.
+        baseline_approved = item.get('baseline_ref') == DEPENDENCY_BASELINE_REF and item.get('approval_basis') and item.get('evidence')
+        decision_approved = item.get('approval_basis') and item.get('date') and item.get('architecture_decision_ref')
+        if not (baseline_approved or decision_approved):
+            raise ValueError('APPROVAL_RECORD_INVALID: approval requires pinned baseline provenance or dated Architecture decision for %s' % item.get('module'))
+        approved.add(item['module'])
+    return approved
 
 def baseline_deps(root, rev, stdlib):
     if not rev:
@@ -202,15 +219,19 @@ def mutate(root, row, rev):
                 return {'row': row, 'non_vacuous': False, 'error': 'no core file'}
             tgt = c[0]
         tgt.write_text(tgt.read_text(encoding='utf-8') + '\n' + MUT[row], encoding='utf-8')
+        baseline_checks = scan(root, rev)['checks']
         got = scan(dest, rev)['checks']
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
     sib = [r for r in ROWS if r != row]
-    return {'row': row, 'mutation': MUT[row], 'results_all_rows': got,
-            'this_row_red': got[row] is False,
+    sibling_unchanged = all(got[s] == baseline_checks[s] for s in sib)
+    row_transitioned_to_red = baseline_checks[row] is True and got[row] is False
+    return {'row': row, 'mutation': MUT[row], 'baseline_results_all_rows': baseline_checks,
+            'results_all_rows': got, 'this_row_red': row_transitioned_to_red,
+            'siblings_unchanged_from_baseline': sibling_unchanged,
             'siblings_green': all(got[s] for s in sib),
             'sibling_detail': {s: got[s] for s in sib},
-            'non_vacuous': got[row] is False and all(got[s] for s in sib)}
+            'non_vacuous': row_transitioned_to_red and sibling_unchanged}
 
 def main():
     if len(sys.argv) < 2:

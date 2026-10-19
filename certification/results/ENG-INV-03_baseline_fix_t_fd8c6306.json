@@ -1,0 +1,206 @@
+{
+  "task_id": "t_fd8c6306",
+  "tested_commit": "2a8faba34b24601c7f34a2fa7776d7c9c9ca4e77",
+  "baseline_ref": "43731b4f1f19a56e835032dabf608a550f925717",
+  "baseline_rationale": "Fixed prior certified commit used by the existing oracle; constant is independent of evaluated HEAD and cannot drift with the candidate.",
+  "approval_record_schema": {
+    "approved": "baseline-present modules with approved=true, baseline_ref, approval_basis, and import evidence; baseline presence is the approval basis",
+    "pending": "unresolved modules are never treated as approved"
+  },
+  "proofs": {
+    "1_unapproved_injected_import_red": {
+      "pass": true,
+      "raw_output": {
+        "file": "HL_Live_Copy_Service_Core.py",
+        "line": 13061,
+        "module": "totally_unapproved_new_package",
+        "kind": "import"
+      }
+    },
+    "2_approval_path_green": {
+      "pass": true,
+      "raw_output": {
+        "oracle_exit_code": 0,
+        "verdict": "PASS",
+        "row_verdicts": {
+          "ENG-INV-03": "PASS",
+          "ENG-INV-04": "PASS",
+          "ENG-INV-05": "PASS"
+        },
+        "ENG-INV-03_new_unapproved": [],
+        "approved_test_module": "totally_unapproved_new_package",
+        "injected_module_present_in_engine_closure": true,
+        "fixture_only_psutil_approval": true,
+        "fixture_scope": "temporary approval record only; production approved_dependencies.json unchanged",
+        "fixture_decision_ref": "TEST-FIXTURE-NOT-A-REAL-DECISION"
+      }
+    },
+    "3_missing_file_fails_closed": {
+      "pass": true,
+      "raw_output": "FileNotFoundError: APPROVAL_RECORD_MISSING"
+    },
+    "4_psutil_red_at_current_main": {
+      "pass": true,
+      "raw_output": {
+        "file": "headroom.py",
+        "line": 48,
+        "module": "psutil",
+        "kind": "import"
+      },
+      "cli_verdict": "FAIL",
+      "row_verdicts": {
+        "ENG-INV-03": "FAIL",
+        "ENG-INV-04": "PASS",
+        "ENG-INV-05": "PASS"
+      }
+    },
+    "5_siblings_and_mutation_controls": {
+      "pass": true,
+      "overall_candidate_result": "FAIL",
+      "row_verdicts": {
+        "ENG-INV-03": "FAIL",
+        "ENG-INV-04": "PASS",
+        "ENG-INV-05": "PASS"
+      },
+      "mutation_controls": [
+        {
+          "row": "ENG-INV-03",
+          "mutation": "import totally_unapproved_new_package",
+          "baseline_results_all_rows": {
+            "ENG-INV-03": false,
+            "ENG-INV-04": true,
+            "ENG-INV-05": true
+          },
+          "results_all_rows": {
+            "ENG-INV-03": false,
+            "ENG-INV-04": true,
+            "ENG-INV-05": true
+          },
+          "this_row_red": false,
+          "siblings_unchanged_from_baseline": true,
+          "siblings_green": true,
+          "sibling_detail": {
+            "ENG-INV-04": true,
+            "ENG-INV-05": true
+          },
+          "non_vacuous": false
+        },
+        {
+          "row": "ENG-INV-04",
+          "mutation": "import sqlite3\n_CONN = sqlite3.connect(\"authoritative_positions.db\")",
+          "baseline_results_all_rows": {
+            "ENG-INV-03": false,
+            "ENG-INV-04": true,
+            "ENG-INV-05": true
+          },
+          "results_all_rows": {
+            "ENG-INV-03": false,
+            "ENG-INV-04": false,
+            "ENG-INV-05": true
+          },
+          "this_row_red": true,
+          "siblings_unchanged_from_baseline": true,
+          "siblings_green": false,
+          "sibling_detail": {
+            "ENG-INV-03": false,
+            "ENG-INV-05": true
+          },
+          "non_vacuous": true
+        },
+        {
+          "row": "ENG-INV-05",
+          "mutation": "import build4_control_plane",
+          "baseline_results_all_rows": {
+            "ENG-INV-03": false,
+            "ENG-INV-04": true,
+            "ENG-INV-05": true
+          },
+          "results_all_rows": {
+            "ENG-INV-03": false,
+            "ENG-INV-04": true,
+            "ENG-INV-05": false
+          },
+          "this_row_red": true,
+          "siblings_unchanged_from_baseline": true,
+          "siblings_green": false,
+          "sibling_detail": {
+            "ENG-INV-03": false,
+            "ENG-INV-04": true
+          },
+          "non_vacuous": true
+        }
+      ],
+      "isolated_green_fixture_run": {
+        "fixture_only_psutil_approval": true,
+        "fixture_ref": "TEST-FIXTURE-NOT-A-REAL-DECISION",
+        "fixture_scope": "temporary approval record used only for mutation validation; production record unchanged",
+        "raw_output": {
+          "baseline_results_all_rows": {
+            "ENG-INV-03": true,
+            "ENG-INV-04": true,
+            "ENG-INV-05": true
+          },
+          "ENG-INV-03_mutation_results": {
+            "ENG-INV-03": false,
+            "ENG-INV-04": true,
+            "ENG-INV-05": true
+          },
+          "pass_to_fail": true,
+          "siblings_unchanged": true,
+          "mutation": "import totally_unapproved_new_package",
+          "non_vacuous": true
+        },
+        "oracle_exit_code": 0
+      },
+      "pass_to_fail_verified": true,
+      "claim_note": "Mutation controls now mark row red only for a PASS-to-FAIL transition. ENG-INV-03 production mutation is correctly vacuous; separate fixture PASS-to-FAIL remains the behavioral proof. ENG-INV-04/05 preserve sibling baseline values.",
+      "production_mutate_raw_observation": {
+        "oracle_exit_code": 1,
+        "verdict": "FAIL",
+        "row_verdicts": {
+          "ENG-INV-03": "FAIL",
+          "ENG-INV-04": "PASS",
+          "ENG-INV-05": "PASS"
+        },
+        "ENG-INV-03_mutation_control_as_emitted": {
+          "row": "ENG-INV-03",
+          "mutation": "import totally_unapproved_new_package",
+          "baseline_results_all_rows": {
+            "ENG-INV-03": false,
+            "ENG-INV-04": true,
+            "ENG-INV-05": true
+          },
+          "results_all_rows": {
+            "ENG-INV-03": false,
+            "ENG-INV-04": true,
+            "ENG-INV-05": true
+          },
+          "this_row_red": false,
+          "siblings_unchanged_from_baseline": true,
+          "siblings_green": true,
+          "sibling_detail": {
+            "ENG-INV-04": true,
+            "ENG-INV-05": true
+          },
+          "non_vacuous": false
+        },
+        "interpretation": "Production ENG-INV-03 remains false before and after because psutil already violates it; corrected oracle reports this_row_red=false and non_vacuous=false."
+      }
+    }
+  },
+  "psutil_status": "UNAPPROVED \u2014 RED as expected, pending Architect ruling (t_40aef13a)",
+  "approval_record_complete": true,
+  "what_is_pending": "Only psutil remains pending Architect ruling; baseline-present third-party dependencies are recorded as approved by their presence at the pinned baseline.",
+  "claim_boundary": "Current candidate reports ENG-INV-03 FAIL solely because psutil is absent at the pinned baseline and remains unapproved; baseline-present modules are clean.",
+  "verification": {
+    "python": "3.11.9",
+    "py_compile": "PASS",
+    "git_diff_check": "PASS",
+    "isolated_psutil_fixture_mutation": "PASS; oracle exit 0; ENG-INV-03 PASS-to-FAIL, siblings remain PASS",
+    "isolated_approval_path_green": "PASS; oracle exit 0, all three rows PASS with temporary fixture-only psutil approval plus injected module approval"
+  },
+  "origin_main_tested_target": "86555d5 (origin/main before candidate commit)",
+  "tested_candidate_commit": "2624cb45173dad9ba0160817a3de17132826f1a6",
+  "artifact_commit_note": "This JSON is committed in this candidate history; exact final artifact commit is recorded by the delivery HEAD.txt alongside the generated patch/bundle.",
+  "completion_boundary": "Fixed baseline and fail-closed approval record are complete; ENG-INV-03 production row remains FAIL/non-vacuous=false due to psutil; isolated approval-path proof demonstrates GREEN."
+}

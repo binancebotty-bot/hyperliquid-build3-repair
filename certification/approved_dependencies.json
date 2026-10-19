@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "baseline_ref": "43731b4f1f19a56e835032dabf608a550f925717",
+  "baseline_note": "Modules present at the pinned baseline are approved as not new dependencies; provenance is the baseline itself.",
+  "approved": [
+    {
+      "module": "eth_account",
+      "approved": true,
+      "approval_basis": "present at the pinned baseline ref 43731b4f1f19a56e835032dabf608a550f925717; not a new dependency",
+      "baseline_ref": "43731b4f1f19a56e835032dabf608a550f925717",
+      "evidence": "import at baseline tree; module listed in ENG-INV-03 at_baseline"
+    },
+    {
+      "module": "fastapi",
+      "approved": true,
+      "approval_basis": "present at the pinned baseline ref 43731b4f1f19a56e835032dabf608a550f925717; not a new dependency",
+      "baseline_ref": "43731b4f1f19a56e835032dabf608a550f925717",
+      "evidence": "import at baseline tree; module listed in ENG-INV-03 at_baseline"
+    },
+    {
+      "module": "hyperliquid",
+      "approved": true,
+      "approval_basis": "present at the pinned baseline ref 43731b4f1f19a56e835032dabf608a550f925717; not a new dependency",
+      "baseline_ref": "43731b4f1f19a56e835032dabf608a550f925717",
+      "evidence": "import at baseline tree; module listed in ENG-INV-03 at_baseline"
+    },
+    {
+      "module": "requests",
+      "approved": true,
+      "approval_basis": "present at the pinned baseline ref 43731b4f1f19a56e835032dabf608a550f925717; not a new dependency",
+      "baseline_ref": "43731b4f1f19a56e835032dabf608a550f925717",
+      "evidence": "import at baseline tree; module listed in ENG-INV-03 at_baseline"
+    },
+    {
+      "module": "uvicorn",
+      "approved": true,
+      "approval_basis": "present at the pinned baseline ref 43731b4f1f19a56e835032dabf608a550f925717; not a new dependency",
+      "baseline_ref": "43731b4f1f19a56e835032dabf608a550f925717",
+      "evidence": "import at baseline tree; module listed in ENG-INV-03 at_baseline"
+    },
+    {
+      "module": "websocket",
+      "approved": true,
+      "approval_basis": "present at the pinned baseline ref 43731b4f1f19a56e835032dabf608a550f925717; not a new dependency",
+      "baseline_ref": "43731b4f1f19a56e835032dabf608a550f925717",
+      "evidence": "import at baseline tree; module listed in ENG-INV-03 at_baseline"
+    }
+  ],
+  "pending": [
+    {
+      "module": "psutil",
+      "approved": false,
+      "approval_basis": null,
+      "status": "PENDING_ARCHITECT_RULING",
+      "evidence": "_archive/hl_stage2/headroom.py:48; absent at baseline; ruling in t_40aef13a"
+    }
+  ]
+}
