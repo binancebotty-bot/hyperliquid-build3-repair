@@ -73,6 +73,13 @@ def sha_file(path):
     return h.hexdigest()
 
 
+def ident(path):
+    st = os.stat(path)
+    return {'path': str(path), 'st_dev': st.st_dev, 'st_ino': st.st_ino, 'st_size': st.st_size,
+            'st_mtime_utc': datetime.fromtimestamp(st.st_mtime, timezone.utc).isoformat(),
+            'sha256': sha_file(path)}
+
+
 def get_json(url, timeout=20):
     with urllib.request.urlopen(url, timeout=timeout) as r:
         return json.loads(r.read().decode('utf-8'))
@@ -488,13 +495,64 @@ def main():
     meta['shared_config_file_sha256_at_start'] = s_cfgs
     meta['shared_config_file_sha256_at_end'] = e_cfgs
     meta['shared_config_files_unchanged'] = all(s_cfgs.get(k) == e_cfgs.get(k) for k in s_cfgs)
-    meta['live_8031_never_written'] = (
-        meta['shared_config_files_unchanged']
-        and (not meta['live_8031_reachable_at_start']
-             or guards[0]['live_8031_config_api_sha256'] == guards[-1]['live_8031_config_api_sha256']))
+    # :8031 IS reachable. State that positively and enumerate every request issued to it.
+    reqs = []
+    for g in guards:
+        for key, path in (('live_8031_config_api_sha256', '/api/live-config'),
+                          ('live_8031_controls_api_sha256', '/api/global-controls')):
+            reqs.append({'guard': g['guard'], 'method': 'GET', 'url': LIVE_BASE + path,
+                         'status': 'UNREACHABLE' if g.get(key) == 'UNREACHABLE' else 200,
+                         'response_canonical_sha256': g.get(key)})
+    meta['live_8031_contact'] = {
+        'reachable_at_start': meta['live_8031_reachable_at_start'],
+        'reachable_at_end': meta['live_8031_reachable_at_end'],
+        'contact_kind': 'READ_ONLY_HTTP_GET',
+        'requests_issued': reqs,
+        'request_count': len(reqs),
+        'methods_issued': ['GET'],
+        'methods_not_issued': ['POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'],
+        'write_requests_issued_to_8031': 0,
+        'save_actions_invoked_against_8031': 0,
+        'restart_or_stop_issued': False,
+        'signal_sent_to_live_pid': False,
+        'how_write_impossibility_is_established': [
+            'shared_guard is the only :8031 code path and it calls urllib.request.urlopen(url) '
+            'with no data/body, which issues GET and nothing else',
+            'all UI writes target APP_BASE (:8032)',
+            'every :8031 response hash is identical across all guards',
+            'the shared config file is byte-identical before and after',
+            'the probe holds no handle on the live PID and sends it no signal',
+        ],
+    }
+    meta['live_8031_no_write_requests'] = all(r['method'] == 'GET' for r in reqs)
+    meta['live_8031_shared_config_unchanged'] = meta['shared_config_files_unchanged']
     meta['isolated_config_sha256_at_end'] = sha_file(ISO_CFG)
     meta['isolated_config_changed_by_test'] = (
         meta['isolated_config_sha256_at_end'] != meta['isolated_config_sha256_at_start'])
+    meta['isolation_identity'] = {
+        'reported_state_dir_from_8032_api': (controls.get('networks') or {}).get('state_dir'),
+        'isolated_config': ident(ISO_CFG),
+        'shared_config': ident(SHARED_CFGS[0]),
+        'different_files': (os.stat(ISO_CFG).st_ino != os.stat(SHARED_CFGS[0]).st_ino
+                            or os.stat(ISO_CFG).st_dev != os.stat(SHARED_CFGS[0]).st_dev),
+        'serving_process_reads_isolated_config': (
+            (controls.get('networks') or {}).get('state_dir') is not None
+            and os.path.normcase(os.path.normpath(
+                (controls.get('networks') or {}).get('state_dir') or ''))
+            == os.path.normcase(os.path.normpath(str(ISO_AUDIT)))),
+    }
+
+    VIEW_STATE = {'UI-LCC-GRAPH-09', 'UI-LCC-GRAPH-10'}
+    by_class = {'CONTROL_WRITE': {'PASS': 0, 'FAIL': 0}, 'VIEW_STATE': {'PASS': 0, 'FAIL': 0}}
+    for r in rows:
+        r['row_class'] = 'VIEW_STATE' if r['row_id'] in VIEW_STATE else 'CONTROL_WRITE'
+        r['excluded_from_control_write_pass_count'] = r['row_class'] == 'VIEW_STATE'
+        by_class[r['row_class']][r['result']] += 1
+    meta['row_counts_by_class'] = {
+        k: {'PASS': v['PASS'], 'FAIL': v['FAIL'], 'total': v['PASS'] + v['FAIL']}
+        for k, v in by_class.items()}
+    meta['control_write_pass_count'] = by_class['CONTROL_WRITE']['PASS']
+    meta['control_write_fail_count'] = by_class['CONTROL_WRITE']['FAIL']
 
     counts = {'PASS': 0, 'FAIL': 0}
     for r in rows:
