@@ -1,0 +1,148 @@
+{
+  "task_id": "t_93b3c988",
+  "title": "[openrouter] Certify ORDER rows ORD-001..008 and TN-F05",
+  "tested_commit": "31e599c5f58de686c9e74357079a85f03e23213a",
+  "tested_at_utc": "2026-10-19T01:25:00Z",
+  "engine_sha256": "PENDING_ENGINE_SHA256",
+  "engine_lines": "PENDING_ENGINE_LINES",
+  "checks": {
+    "ORD-001": [
+      {
+        "name": "SINGLE_SENDER_SINGLE_GATE",
+        "pass": false,
+        "detail": "NOT_TESTED: testnet engine process not running; no live order submission to verify single sender/gate. MISSING_ROUTE: running testnet engine with auto_send_enabled=true and HL_LIVE_AUDIT_DIR pointed at testnet audit directory."
+      }
+    ],
+    "ORD-002": [
+      {
+        "name": "REDUCE_ONLY_CORRECTNESS",
+        "pass": false,
+        "detail": "NOT_TESTED: testnet engine process not running; no live order submission to verify reduce_only behavior. MISSING_ROUTE: running testnet engine with auto_send_enabled=true and HL_LIVE_AUDIT_DIR pointed at testnet audit directory."
+      }
+    ],
+    "ORD-003": [
+      {
+        "name": "MINIMUM_NOTIONAL_BLOCKED",
+        "pass": false,
+        "detail": "NOT_TESTED: testnet engine process not running; no live order submission to verify minimum notional gate. MISSING_ROUTE: running testnet engine with auto_send_enabled=true and HL_LIVE_AUDIT_DIR pointed at testnet audit directory."
+      }
+    ],
+    "ORD-004": [
+      {
+        "name": "SIZE_ROUNDING_CORRECT",
+        "pass": false,
+        "detail": "NOT_TESTED: testnet engine process not running; no live order submission to verify size rounding to szDecimals. MISSING_ROUTE: running testnet engine with auto_send_enabled=true and HL_LIVE_AUDIT_DIR pointed at testnet audit directory."
+      }
+    ],
+    "ORD-005": [
+      {
+        "name": "EXACTLY_ONCE_EXECUTION_IDENTITY",
+        "pass": false,
+        "detail": "NOT_TESTED: testnet engine process not running; no live order submission to verify deterministic execution identity. MISSING_ROUTE: running testnet engine with auto_send_enabled=true and HL_LIVE_AUDIT_DIR pointed at testnet audit directory."
+      }
+    ],
+    "ORD-006": [
+      {
+        "name": "PRE_SEND_RESERVATION_PERSISTED",
+        "pass": false,
+        "detail": "NOT_TESTED: testnet engine process not running; no live order submission to verify pre-send reservation in SERVICE_STATE_FILE. MISSING_ROUTE: running testnet engine with auto_send_enabled=true and HL_LIVE_AUDIT_DIR pointed at testnet audit directory."
+      }
+    ],
+    "ORD-007": [
+      {
+        "name": "PER_RUN_SEND_LIMIT_ENFORCED",
+        "pass": false,
+        "detail": "NOT_TESTED: testnet engine process not running; no live order submission to verify HL_LIVE_AUTO_SEND_MAX_PER_RUN and HL_LIVE_AUTO_SEND_WALLET. MISSING_ROUTE: running testnet engine with auto_send_enabled=true and HL_LIVE_AUDIT_DIR pointed at testnet audit directory."
+      }
+    ],
+    "ORD-008": [
+      {
+        "name": "EXCHANGE_PREFLIGHT_REJECTION",
+        "pass": false,
+        "detail": "NOT_TESTED: testnet engine process not running; no live order submission to verify exchange preflight rejection. MISSING_ROUTE: running testnet engine with auto_send_enabled=true and HL_LIVE_AUDIT_DIR pointed at testnet audit directory."
+      }
+    ],
+    "TN-F05": [
+      {
+        "name": "PHASE_6T_TESTNET_SCENARIO",
+        "pass": false,
+        "detail": "NOT_TESTED: testnet engine process not running; no live Phase 6T-style scenario execution. MISSING_ROUTE: running testnet engine with auto_send_enabled=true and HL_LIVE_AUDIT_DIR pointed at testnet audit directory."
+      }
+    ]
+  },
+  "negative_tests": [
+    {
+      "mutation": "ord001_missing_runtime",
+      "expected": "FAIL",
+      "actual": "NOT_TESTED",
+      "non_vacuous": false,
+      "detail": "Cannot exercise negative test (exchange reject, below minimum notional, size rounds to zero, unknown asset) without running testnet engine."
+    },
+    {
+      "mutation": "ord002_missing_runtime",
+      "expected": "FAIL",
+      "actual": "NOT_TESTED",
+      "non_vacuous": false,
+      "detail": "Cannot exercise negative test without running testnet engine."
+    },
+    {
+      "mutation": "ord003_missing_runtime",
+      "expected": "FAIL",
+      "actual": "NOT_TESTED",
+      "non_vacuous": false,
+      "detail": "Cannot exercise negative test without running testnet engine."
+    },
+    {
+      "mutation": "ord004_missing_runtime",
+      "expected": "FAIL",
+      "actual": "NOT_TESTED",
+      "non_vacuous": false,
+      "detail": "Cannot exercise negative test without running testnet engine."
+    },
+    {
+      "mutation": "ord005_missing_runtime",
+      "expected": "FAIL",
+      "actual": "NOT_TESTED",
+      "non_vacuous": false,
+      "detail": "Cannot exercise negative test without running testnet engine."
+    },
+    {
+      "mutation": "ord006_missing_runtime",
+      "expected": "FAIL",
+      "actual": "NOT_TESTED",
+      "non_vacuous": false,
+      "detail": "Cannot exercise negative test without running testnet engine."
+    },
+    {
+      "mutation": "ord007_missing_runtime",
+      "expected": "FAIL",
+      "actual": "NOT_TESTED",
+      "non_vacuous": false,
+      "detail": "Cannot exercise negative test without running testnet engine."
+    },
+    {
+      "mutation": "ord008_missing_runtime",
+      "expected": "FAIL",
+      "actual": "NOT_TESTED",
+      "non_vacuous": false,
+      "detail": "Cannot exercise negative test without running testnet engine."
+    },
+    {
+      "mutation": "tnf05_missing_runtime",
+      "expected": "FAIL",
+      "actual": "NOT_TESTED",
+      "non_vacuous": false,
+      "detail": "Cannot exercise negative test without running testnet engine."
+    }
+  ],
+  "summary": {
+    "all_pass": false,
+    "all_non_vacuous": false,
+    "overall": "NOT_TESTED",
+    "total_checks": 9,
+    "passed_checks": 0,
+    "total_negative": 9,
+    "non_vacuous_negative": 0,
+    "note": "All rows NOT_TESTED because the required testnet transport runtime (running engine process with auto_send_enabled=true, HL_LIVE_AUDIT_DIR=/c/Users/wigmore/trading_stack/hl-build3-testnet-cert/_archive/hl_stage2/hl_live_copy_audit_testnet, HL_LEADER_NETWORK=testnet, HL_FOLLOWER_NETWORK=testnet) is not running. No authorization was provided to start the engine and submit testnet orders."
+  }
+}
