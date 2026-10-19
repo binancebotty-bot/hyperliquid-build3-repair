@@ -815,8 +815,31 @@ def repair_live_config_consistency(config: Dict[str, Any]) -> bool:
     return changed
 
 
+def _live_wallet_number(payload: Dict[str, Any], base: Dict[str, Any], key: str,
+                         default: float, minimum: float, error_code: str) -> float:
+    """Persist an add-wallet numeric field verbatim. A genuinely invalid value (blank,
+    non-numeric, non-finite, or below the floor) is refused; it is never coerced to the
+    default, because a coerced value cannot be told apart from an untouched field."""
+    if key in payload:
+        raw = payload[key]
+        if isinstance(raw, str) and not raw.strip():
+            raise ValueError(error_code)
+    else:
+        raw = base.get(key, default)
+    try:
+        value = float(raw)
+    except (TypeError, ValueError):
+        raise ValueError(error_code)
+    if not math.isfinite(value) or value < minimum:
+        raise ValueError(error_code)
+    return value
+
+
 def _normalise_live_wallet_payload(payload: Dict[str, Any], existing: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     base = dict(existing or {})
+    if "daily_loss" in payload and "daily_loss_limit" not in payload:
+        payload = dict(payload)
+        payload["daily_loss_limit"] = payload["daily_loss"]
     mode_default = base.get("mode", "OFF") if existing is not None else "OFF"
     mode = str(payload.get("mode", mode_default)).upper()
     if mode not in {"LIVE", "CLO", "OFF"}:
@@ -830,9 +853,9 @@ def _normalise_live_wallet_payload(payload: Dict[str, Any], existing: Optional[D
         "copy_mode": copy_mode,
         "norm_base": max(1.0, fnum(payload.get("norm_base", base.get("norm_base", 100)), 100)),
         "fixed_notional": max(0.01, fnum(payload.get("fixed_notional", base.get("fixed_notional", 10)), 10)),
-        "leader_equity_base": max(1.0, fnum(payload.get("leader_equity_base", base.get("leader_equity_base", 10000)), 10000)),
-        "max_diff_pct": max(0.0, fnum(payload.get("max_diff_pct", base.get("max_diff_pct", 0.1)), 0.1)),
-        "daily_loss_limit": max(0.0, fnum(payload.get("daily_loss_limit", base.get("daily_loss_limit", 0)), 0)),
+        "leader_equity_base": _live_wallet_number(payload, base, "leader_equity_base", 10000.0, 1.0, "BAD_LEADER_EQUITY_BASE"),
+        "max_diff_pct": _live_wallet_number(payload, base, "max_diff_pct", 0.1, 0.0, "BAD_MAX_DIFF_PCT"),
+        "daily_loss_limit": _live_wallet_number(payload, base, "daily_loss_limit", 0.0, 0.0, "BAD_DAILY_LOSS"),
         "enabled": enabled,
     }
     for key, value in base.items():
@@ -5593,9 +5616,9 @@ def render_live_copy_control_panel() -> str:
         <label>Copy model<select name="copy_mode"><option value="proportional">proportional</option><option value="fixed">fixed</option></select></label>
         <label>Norm base<input name="norm_base" value="100"></label>
         <label>Fixed notional<input name="fixed_notional" value="10"></label>
-        <input name="leader_equity_base" type="hidden" value="10000">
+        <label>Leader equity base<input name="leader_equity_base" value="10000"></label>
         <label>Max diff %<input name="max_diff_pct" value="0.1"></label>
-        <input name="daily_loss_limit" type="hidden" value="0">
+        <label>Daily loss<input name="daily_loss" value="0"></label>
       </div>
       <div class="lc-modal-actions"><button type="button" data-lc-close>Cancel</button><button type="submit">Add wallet</button></div>
     </form>
