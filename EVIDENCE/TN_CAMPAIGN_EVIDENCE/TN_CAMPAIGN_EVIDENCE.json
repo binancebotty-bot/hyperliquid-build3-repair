@@ -1,0 +1,198 @@
+{
+ "card_id": "t_9c795ece",
+ "title": "TN campaign evidence — per-campaign proof or NOT_TESTED",
+ "register_of_record": "origin/cert/local-main-b142cf8",
+ "register_branch_tip_verified": "f4ee2bb18dc6781940772cb088e9a476585030e4 (2026-10-18T12:29:02+01:00)",
+ "register_records": 790,
+ "matrix_branch_edited": "origin/main at 819050c6018ab3264cfe911f927e1f97ff0f979b (832 records)",
+ "note_on_branch_choice": "The register branch cert/local-main-b142cf8 carries 790 records and is where the nine TN-CAMP PASS rows actually live; origin/main already carries NOT_TESTED for all 62 TN rows. The edits in this branch are applied to origin/main, the tree this card instructed the clone to start from, so the demotion is durable on main and the per-row reasons travel with it. All register-side measurements below were taken from the verified register tip, not from main.",
+ "register_result_file": "certification/results/CONTROL_fa9d9f55ff.json",
+ "branch": "hermes/tn-campaign-evidence",
+ "base_commit": "819050c6018ab3264cfe911f927e1f97ff0f979b",
+ "generated_at_utc": "2026-10-19T08:30:00Z",
+
+ "the_defect": {
+  "finding": "The nine TN-CAMP PASS rows all cite one file, certification/results/CONTROL_fa9d9f55ff.json, and that file's per-row entries do not contain campaign-specific evidence.",
+  "measurement_1": "Each of the 53 rows in CONTROL_fa9d9f55ff.json carries exactly 24 checks. The same 23 trailing checks are present, in the same order, with the same names and the same detail strings, in all 53 rows: 1 distinct tail hash across 53 rows.",
+  "measurement_2": "76 distinct check names appear in the file. 53 of them appear exactly once (the row-named head check). 23 appear 53 times (the shared tail).",
+  "measurement_3": "The register's notes field for all nine TN-CAMP rows is a single identical string, repeated verbatim: 'Control-surface semantics proof: 52/53 rows PASS (DONE-10 FAIL excluded). 40/40 focused tests PASS.' One distinct value across nine rows.",
+  "measurement_4": "None of the nine TN-CAMP row entries contains an order id, fill id, cloid, transaction hash or exchange order id. TN-CAMP-05 is the only row whose text mentions cloid/oid at all, and it does so as a description of what cleanup would touch, not as an identifier observed in a campaign.",
+  "measurement_5": "No TN-CAMP row entry contains a campaign identifier, campaign manifest, campaign window, bound declaration or scenario id.",
+  "conclusion": "The row-named head check for each TN-CAMP row is a name, not a proof. Its detail string is carried boilerplate shared with 52 other rows, and the remaining 23 checks are byte-identical across all 53 rows. The citation would be identical for any row, which is the same defect class that demoted 301 rows. The PASS therefore rests on a shared semantics report, not on per-campaign evidence."
+ },
+
+ "can_per_campaign_evidence_be_produced_from_the_audit": {
+  "question": "Does the testnet append-only audit on disk support a per-campaign extraction?",
+  "probe": "EVIDENCE/TN_CAMPAIGN_EVIDENCE/probe_campaign_dimension.py",
+  "probe_result": "EVIDENCE/TN_CAMPAIGN_EVIDENCE/campaign_dimension_result.json",
+  "probe_method": "Read-only. Streamed the header line and row count of each of the three audit CSVs. Never wrote to the audit directory. Tokens searched: campaign, camp_id, campaign_id, run_id, batch_id, manifest_id, scenario, scenario_id, phase6t.",
+  "files_inspected": [
+   {"file": "live_fills.csv", "columns": 22, "rows": 102147, "campaign_columns_found": []},
+   {"file": "send_attempts.csv", "columns": 67, "rows": 563937, "campaign_columns_found": []},
+   {"file": "order_intents.csv", "columns": 29, "rows": 55143, "campaign_columns_found": []}
+  ],
+  "total_rows_inspected": 721227,
+  "verdict": "PER_CAMPAIGN_EXTRACTION_NOT_POSSIBLE",
+  "reason": "No file in the testnet append-only audit carries any campaign identifier column. The audit keys orders and fills by intent_id, exchange_order_id, cloid and sleeve_id only. There is no way to attribute an order or a fill to TN-CAMP-01..09, no way to recover the campaign bounds, and no campaign window to diff against. The campaign manifest that TN-CAMP-01 requires is not in the register tree at all: the register commit contains zero files matching campaign or Phase-6T naming."
+ },
+
+ "supplementary_rate_limit_inventory": {
+  "note": "Produced because TN-F24 is about rate-limit behaviour and the audit can be counted, even though it cannot certify a predeclared 429 campaign.",
+  "probe": "EVIDENCE/TN_CAMPAIGN_EVIDENCE/probe_rate_limit_evidence.py",
+  "probe_result": "EVIDENCE/TN_CAMPAIGN_EVIDENCE/rate_limit_result.json",
+  "rows_scanned": 564293,
+  "rows_mentioning_429_or_rate_limit": 48906,
+  "reject_category_RATE_LIMIT_OR_TIMEOUT": 67,
+  "why_this_is_not_a_TN_F24_pass": "F24 requires a predeclared scenario proving request weight is budgeted so background/UI reads cannot starve execution (1200 WU/min split across build, background, execution, SSOT and UI). A count of rows that mention 429 shows rate limiting occurred; it does not show the weight budget was enforced, because the audit carries no weight accounting. This inventory is recorded as a known gap, not as a pass."
+ },
+
+ "rows": [
+  {
+   "row_id": "TN-CAMP-01",
+   "previous_result": "PASS",
+   "verdict": "NOT_TESTED",
+   "previous_evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
+   "evidence_ref": "EVIDENCE/TN_CAMPAIGN_EVIDENCE/TN_CAMPAIGN_EVIDENCE.json",
+   "tested_commit": "",
+   "why": "TN-CAMP-01 asks whether campaign bounds are declared and committed before the first order and never changed after seeing results. The cited check is BOUNDS_FROZEN_BEFORE_FIRST_ORDER, but its detail is 'Gate0 PASS: PRODUCT_LOGIC_CHANGED=NO' - a product-logic no-change assertion that has nothing to do with campaign bounds, and the identical string is carried by 52 other rows. There is no committed campaign manifest to cite: the register tree contains no campaign-named file, and the append-only audit has no campaign column. The proof required by this row is a manifest in git history plus exchange order/fill history for that campaign window; neither exists. Verdict recorded as NOT_TESTED because there is no campaign-specific evidence; existing citation is a shared semantics report."
+  },
+  {
+   "row_id": "TN-CAMP-02",
+   "previous_result": "PASS",
+   "verdict": "NOT_TESTED",
+   "previous_evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
+   "evidence_ref": "EVIDENCE/TN_CAMPAIGN_EVIDENCE/TN_CAMPAIGN_EVIDENCE.json",
+   "tested_commit": "",
+   "why": "TN-CAMP-02 asks whether the testnet follower starts flat, or whether pre-existing inventory is recorded and excluded from every count. The cited check is FLAT_START_OR_INVENTORY_EXCLUDED with detail 'Engine starts from MASTER exchange truth; pre-existing inventory excluded'. That is a statement about engine start-up semantics, not an observation of a follower account at a campaign start, and it carries no account address, no position list and no timestamp. The audit cannot supply the missing part: it has no campaign column, so no start-of-campaign boundary exists to measure inventory against. Verdict recorded as NOT_TESTED because there is no campaign-specific evidence; existing citation is a shared semantics report."
+  },
+  {
+   "row_id": "TN-CAMP-03",
+   "previous_result": "PASS",
+   "verdict": "NOT_TESTED",
+   "previous_evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
+   "evidence_ref": "EVIDENCE/TN_CAMPAIGN_EVIDENCE/TN_CAMPAIGN_EVIDENCE.json",
+   "tested_commit": "",
+   "why": "TN-CAMP-03 asks whether markets come from a captured testnet universe snapshot and anything else is refused. The cited check is MARKET_ALLOWLIST with detail 'Engine uses captured testnet universe snapshot'. No snapshot file is cited, no hash of a snapshot is given, and no refused symbol is named, so the claim cannot be reproduced or falsified. A genuine pass would cite the snapshot artifact and at least one coin that the snapshot excludes and the engine refused. The append-only audit cannot supply the refusal side either, because refused-before-send rows are not attributable to a campaign. Verdict recorded as NOT_TESTED because there is no campaign-specific evidence; existing citation is a shared semantics report."
+  },
+  {
+   "row_id": "TN-CAMP-04",
+   "previous_result": "PASS",
+   "verdict": "NOT_TESTED",
+   "previous_evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
+   "evidence_ref": "EVIDENCE/TN_CAMPAIGN_EVIDENCE/TN_CAMPAIGN_EVIDENCE.json",
+   "tested_commit": "",
+   "why": "TN-CAMP-04 asks whether an ambiguous submission stops the campaign until it is resolved from exchange truth. The cited check is AMBIGUOUS_SUBMISSION_STOPS_CAMPAIGN with detail 'B3-C2H-G2-TRANSPORT-HOLD-1: ambiguous submission stops campaign'. That is a control-mailbox transport hold reference, not a testnet order event: it names a transport state, not an exchange order id, not a resolved fill and not a campaign that halted. No order in the audit can be tied to it because the audit has no campaign column. Verdict recorded as NOT_TESTED because there is no campaign-specific evidence; existing citation is a shared semantics report."
+  },
+  {
+   "row_id": "TN-CAMP-05",
+   "previous_result": "PASS",
+   "verdict": "NOT_TESTED",
+   "previous_evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
+   "evidence_ref": "EVIDENCE/TN_CAMPAIGN_EVIDENCE/TN_CAMPAIGN_EVIDENCE.json",
+   "tested_commit": "",
+   "why": "TN-CAMP-05 asks whether cleanup touches only objects the campaign created, identified by recorded cloid/oid. The cited check is CLEANUP_SCOPE_LIMITED with detail 'Cleanup only touches campaign-created objects with recorded cloid/oid'. This is the one TN-CAMP row whose text mentions cloid/oid, but it mentions them as the rule cleanup would follow, not as identifiers actually observed. No cloid, no oid, no cleanup order and no surviving foreign object is named anywhere in the row entry. The audit cannot close the gap: its 67-column send_attempts.csv has a cloid column, but without a campaign dimension the cleanup set cannot be distinguished from ordinary trading. Verdict recorded as NOT_TESTED because there is no campaign-specific evidence; existing citation is a shared semantics report."
+  },
+  {
+   "row_id": "TN-CAMP-06",
+   "previous_result": "PASS",
+   "verdict": "NOT_TESTED",
+   "previous_evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
+   "evidence_ref": "EVIDENCE/TN_CAMPAIGN_EVIDENCE/TN_CAMPAIGN_EVIDENCE.json",
+   "tested_commit": "",
+   "why": "TN-CAMP-06 asks whether predeclared abort conditions (bound breach, unexpected order, identity mismatch, leak) halt sending immediately. The cited check is ABORT_CONDITIONS_PREDECLARED with detail 'G2 PASS: 40/40 tests including abort conditions'. A test-count summary is not an abort: it names no condition from the four the row lists, shows no halt, and cites no timestamp at which sending stopped. None of the four named conditions is exercised in the row entry. Verdict recorded as NOT_TESTED because there is no campaign-specific evidence; existing citation is a shared semantics report."
+  },
+  {
+   "row_id": "TN-CAMP-07",
+   "previous_result": "PASS",
+   "verdict": "NOT_TESTED",
+   "previous_evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
+   "evidence_ref": "EVIDENCE/TN_CAMPAIGN_EVIDENCE/TN_CAMPAIGN_EVIDENCE.json",
+   "tested_commit": "",
+   "why": "TN-CAMP-07 asks whether interpreter, SDK version, commit and config hashes are recorded with the evidence. The cited check is PROOF_ENVIRONMENT_IDENTITY_RECORDED with detail 'Engine SHA256=2dfbd571012af674...; commit=fa9d9f55ff'. It records an engine hash and a commit, but names no interpreter, no SDK version and no config hash - three of the four things the row requires. A partial identity record is not a pass for a row whose text lists all four. Verdict recorded as NOT_TESTED because there is no campaign-specific evidence; existing citation is a shared semantics report."
+  },
+  {
+   "row_id": "TN-CAMP-08",
+   "previous_result": "PASS",
+   "verdict": "NOT_TESTED",
+   "previous_evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
+   "evidence_ref": "EVIDENCE/TN_CAMPAIGN_EVIDENCE/TN_CAMPAIGN_EVIDENCE.json",
+   "tested_commit": "",
+   "why": "TN-CAMP-08 asks whether each scenario class passes only with exchange-parity evidence, nothing passes by inference, and FAILs are kept permanently. The cited check is PER_CLASS_EXCHANGE_PARITY with detail 'G2 PASS: exchange-parity evidence for each scenario class'. No scenario class is named, no exchange response is quoted, no order id or fill id appears, and no retained FAIL is identified. This row is the exact inverse of its own requirement: it passes by inference, on a summary sentence, with no exchange-parity artifact behind it. Verdict recorded as NOT_TESTED because there is no campaign-specific evidence; existing citation is a shared semantics report."
+  },
+  {
+   "row_id": "TN-CAMP-09",
+   "previous_result": "PASS",
+   "verdict": "NOT_TESTED",
+   "previous_evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
+   "evidence_ref": "EVIDENCE/TN_CAMPAIGN_EVIDENCE/TN_CAMPAIGN_EVIDENCE.json",
+   "tested_commit": "",
+   "why": "TN-CAMP-09 asks whether anything testnet cannot exercise (for example XYZ HIP-3 markets) is listed and verified on mainnet before mainnet certification. The cited check is TESTNET_COVERAGE_GAPS_LISTED with detail 'HIP-3/builder DEX gaps documented in ARCHITECTURE.md'. Documentation of a gap is not verification of it on mainnet, and the register's own note for this row already concedes that the coverage gaps are by definition proven on mainnet. No mainnet verification is cited, because none can be performed from this lane. Verdict recorded as NOT_TESTED because there is no campaign-specific evidence; existing citation is a shared semantics report."
+  },
+  {
+   "row_id": "TN-F24",
+   "previous_result": "NOT_TESTED",
+   "verdict": "NOT_TESTED",
+   "previous_evidence_ref": "",
+   "evidence_ref": "",
+   "tested_commit": "",
+   "why": "TN-F24 asks whether request weight is budgeted so background and UI reads cannot starve execution, on the Build 4 model of 1200 WU/min split across build, background, execution, SSOT and UI. No executed campaign exists for it. A supporting inventory was produced from the append-only audit: 564293 send attempts scanned, 48906 rows mentioning 429 or rate limit, and reject_category RATE_LIMIT_OR_TIMEOUT on 67 attempts. That shows rate limiting occurs; it does not show a weight budget was enforced, because the audit carries no weight accounting and no per-class allocation. The register's own applicability is ADAPTED_PROPOSED under OD-24, so the budget split the row asserts is not yet ruled. Verdict remains NOT_TESTED; the inventory is recorded in this artifact as a known gap, not converted into a pass."
+  },
+  {
+   "row_id": "TN-F25",
+   "previous_result": "NOT_TESTED",
+   "verdict": "NOT_TESTED",
+   "previous_evidence_ref": "",
+   "evidence_ref": "",
+   "tested_commit": "",
+   "why": "TN-F25 asks whether the running process, release and commit are provably the reviewed ones. The register entry cites no evidence and points only at 'See F25-P/X records'. Those records are not in the register tree: origin/cert/local-main-b142cf8 contains zero files matching campaign or Phase-6T naming, and no proofs directory. The row's own applicability is ADAPTED_PROPOSED under OD-12, so the mechanism the row would bind to is not yet ruled. The missing component is a launcher and release-pointer identity surface bound to a running process; no such artifact is reachable from this register. Verdict remains NOT_TESTED."
+  },
+  {
+   "row_id": "TN-F26",
+   "previous_result": "NOT_TESTED",
+   "verdict": "NOT_TESTED",
+   "previous_evidence_ref": "",
+   "evidence_ref": "",
+   "tested_commit": "",
+   "why": "TN-F26 asks whether allocation is a sizing basis rather than a cumulative budget under Reading A, so that safe exact orders are not rejected merely for exceeding the capital basis. The register entry cites no evidence, and its applicability is OPEN_DECISION under OD-22: the reading itself is not ruled, so no probe could assert against it without choosing the answer the open decision exists to make. The missing component is the OD-22 ruling. Verdict remains NOT_TESTED."
+  },
+  {
+   "row_id": "TN-F27",
+   "previous_result": "NOT_TESTED",
+   "verdict": "NOT_TESTED",
+   "previous_evidence_ref": "",
+   "evidence_ref": "",
+   "tested_commit": "",
+   "why": "TN-F27 asks whether a leader margin or leverage change without a fill is treated as risk authority only and never as a trade. The register entry cites no evidence, and its applicability is OPEN_DECISION under OD-23. The seven sub-scenarios the protocol defines (F27.1 to F27.7) each require a staged leader margin mutation observed by a running follower; no such staging exists and the append-only audit records no margin-change events at all, only orders and fills. The missing components are the OD-23 ruling and a margin-event capture. Verdict remains NOT_TESTED."
+  },
+  {
+   "row_id": "TN-PS1",
+   "previous_result": "NOT_TESTED",
+   "verdict": "NOT_TESTED",
+   "previous_evidence_ref": "",
+   "evidence_ref": "",
+   "tested_commit": "",
+   "why": "TN-PS1 asks whether every OPEN and INCREASE needs both exact sizing and a projected post-trade portfolio inside every risk and liquidation constraint, with unsafe orders blocked whole and never resized. The register entry cites no evidence and is OPEN_DECISION under OD-23. The protocol document INVARIANT_PS1_PORTFOLIO_SAFETY.md states the invariant and its two conditions, but a statement of an invariant is not an execution of it: no projected post-trade portfolio is computed, no block decision is recorded against a projected breach, and no negative test shows a resize being refused. The missing component is an executed post-trade projection probe. Verdict remains NOT_TESTED."
+  },
+  {
+   "row_id": "TN-T1",
+   "previous_result": "NOT_TESTED",
+   "verdict": "NOT_TESTED",
+   "previous_evidence_ref": "",
+   "evidence_ref": "",
+   "tested_commit": "",
+   "why": "TN-T1 asks whether the exact Testnet origin is parsed and component-checked. The register entry cites no evidence and is APPLIES_PROPOSED under OD-08. A related artifact exists in the register tree, certification/results/B3-TESTNET-ACCEPT.json, which records endpoint https://api.hyperliquid-testnet.xyz/info with endpoint_netloc_verified true and a differential control distinguishing a real account from an empty one. It was not adopted as this row's evidence for three reasons: it is a read-only account probe rather than a transport origin check, it asserts netloc only and not the full component parse the row names, and its tested_commit c3c56d4f is not an ancestor of the register commit so the build it ran against cannot be bound. The row is therefore left NOT_TESTED, with this artifact recorded as the nearest candidate evidence and the exact gap stated."
+  }
+ ],
+
+ "summary": {
+  "rows_examined": 15,
+  "previous_pass": 9,
+  "previous_not_tested": 6,
+  "now_pass": 0,
+  "now_fail": 0,
+  "now_not_tested": 15,
+  "campaign_rows_demoted": 9,
+  "demotion_reason": "no campaign-specific evidence; existing citation is a shared semantics report",
+  "note": "No row was promoted. Nine PASS rows resting on a shared report were demoted to NOT_TESTED with per-row reasons. The six rows already NOT_TESTED were kept NOT_TESTED and given per-row reasons naming the exact missing component. No campaign identifier, order id, fill id or exchange event was invented."
+ }
+}

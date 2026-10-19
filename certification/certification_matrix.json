@@ -14842,10 +14842,10 @@
    ],
    "prior_evidence": "",
    "result": "NOT_TESTED",
-   "evidence_ref": "",
+   "evidence_ref": "EVIDENCE/TN_CAMPAIGN_EVIDENCE/TN_CAMPAIGN_EVIDENCE.json",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": "",
+   "notes": "TN-CAMPAIGN-EVIDENCE: OD-24 unresolved; audit shows 67 RATE_LIMIT_OR_TIMEOUT attempts but carries no weight accounting",
    "proof_network": "TESTNET"
   },
   {
@@ -14870,10 +14870,10 @@
    ],
    "prior_evidence": "",
    "result": "NOT_TESTED",
-   "evidence_ref": "",
+   "evidence_ref": "EVIDENCE/TN_CAMPAIGN_EVIDENCE/TN_CAMPAIGN_EVIDENCE.json",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": "See F25-P/X records.",
+   "notes": "See F25-P/X records. | TN-CAMPAIGN-EVIDENCE: no launcher/release-pointer identity surface reachable from the register; OD-12 unresolved",
    "proof_network": "TESTNET"
   },
   {
@@ -14901,10 +14901,10 @@
    ],
    "prior_evidence": "",
    "result": "NOT_TESTED",
-   "evidence_ref": "",
+   "evidence_ref": "EVIDENCE/TN_CAMPAIGN_EVIDENCE/TN_CAMPAIGN_EVIDENCE.json",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": "",
+   "notes": "TN-CAMPAIGN-EVIDENCE: OD-22 unresolved; the reading the row asserts is not yet ruled",
    "proof_network": "TESTNET"
   },
   {
@@ -14931,10 +14931,10 @@
    ],
    "prior_evidence": "",
    "result": "NOT_TESTED",
-   "evidence_ref": "",
+   "evidence_ref": "EVIDENCE/TN_CAMPAIGN_EVIDENCE/TN_CAMPAIGN_EVIDENCE.json",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": "",
+   "notes": "TN-CAMPAIGN-EVIDENCE: OD-23 unresolved and no margin-event capture exists; audit records orders and fills only",
    "proof_network": "TESTNET"
   },
   {
@@ -14961,10 +14961,10 @@
    ],
    "prior_evidence": "",
    "result": "NOT_TESTED",
-   "evidence_ref": "",
+   "evidence_ref": "EVIDENCE/TN_CAMPAIGN_EVIDENCE/TN_CAMPAIGN_EVIDENCE.json",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": "",
+   "notes": "TN-CAMPAIGN-EVIDENCE: invariant stated in a document but no post-trade projection probe executed; OD-23 unresolved",
    "proof_network": "TESTNET"
   },
   {
@@ -14990,10 +14990,10 @@
    ],
    "prior_evidence": "",
    "result": "NOT_TESTED",
-   "evidence_ref": "",
+   "evidence_ref": "EVIDENCE/TN_CAMPAIGN_EVIDENCE/TN_CAMPAIGN_EVIDENCE.json",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": "",
+   "notes": "TN-CAMPAIGN-EVIDENCE: no campaign-specific evidence; existing citation is a shared semantics report. no campaign manifest committed before the first order; cited check is a product-logic no-change assertion",
    "proof_network": "TESTNET"
   },
   {
@@ -15019,10 +15019,10 @@
    ],
    "prior_evidence": "",
    "result": "NOT_TESTED",
-   "evidence_ref": "",
+   "evidence_ref": "EVIDENCE/TN_CAMPAIGN_EVIDENCE/TN_CAMPAIGN_EVIDENCE.json",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": "",
+   "notes": "TN-CAMPAIGN-EVIDENCE: no campaign-specific evidence; existing citation is a shared semantics report. no follower account observed at a campaign start; cited check states engine start-up semantics only",
    "proof_network": "TESTNET"
   },
   {
@@ -15048,10 +15048,10 @@
    ],
    "prior_evidence": "",
    "result": "NOT_TESTED",
-   "evidence_ref": "",
+   "evidence_ref": "EVIDENCE/TN_CAMPAIGN_EVIDENCE/TN_CAMPAIGN_EVIDENCE.json",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": "",
+   "notes": "TN-CAMPAIGN-EVIDENCE: no campaign-specific evidence; existing citation is a shared semantics report. no universe snapshot artifact cited and no refused symbol named",
    "proof_network": "TESTNET"
   },
   {
@@ -15077,10 +15077,10 @@
    ],
    "prior_evidence": "",
    "result": "NOT_TESTED",
-   "evidence_ref": "",
+   "evidence_ref": "EVIDENCE/TN_CAMPAIGN_EVIDENCE/TN_CAMPAIGN_EVIDENCE.json",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": "",
+   "notes": "TN-CAMPAIGN-EVIDENCE: no campaign-specific evidence; existing citation is a shared semantics report. cited check is a control-mailbox transport hold, not a testnet order event",
    "proof_network": "TESTNET"
   },
   {
@@ -15106,10 +15106,10 @@
    ],
    "prior_evidence": "",
    "result": "NOT_TESTED",
-   "evidence_ref": "",
+   "evidence_ref": "EVIDENCE/TN_CAMPAIGN_EVIDENCE/TN_CAMPAIGN_EVIDENCE.json",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": "",
+   "notes": "TN-CAMPAIGN-EVIDENCE: no campaign-specific evidence; existing citation is a shared semantics report. cloid/oid named as a cleanup rule only; no observed identifier",
    "proof_network": "TESTNET"
   },
   {
@@ -15135,10 +15135,10 @@
    ],
    "prior_evidence": "",
    "result": "NOT_TESTED",
-   "evidence_ref": "",
+   "evidence_ref": "EVIDENCE/TN_CAMPAIGN_EVIDENCE/TN_CAMPAIGN_EVIDENCE.json",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": "",
+   "notes": "TN-CAMPAIGN-EVIDENCE: no campaign-specific evidence; existing citation is a shared semantics report. cited check is a test-count summary; no abort condition exercised, no halt timestamp",
    "proof_network": "TESTNET"
   },
   {
@@ -15164,10 +15164,10 @@
    ],
    "prior_evidence": "",
    "result": "NOT_TESTED",
-   "evidence_ref": "",
+   "evidence_ref": "EVIDENCE/TN_CAMPAIGN_EVIDENCE/TN_CAMPAIGN_EVIDENCE.json",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": "",
+   "notes": "TN-CAMPAIGN-EVIDENCE: no campaign-specific evidence; existing citation is a shared semantics report. identity record names engine hash and commit only; interpreter, SDK version and config hash absent",
    "proof_network": "TESTNET"
   },
   {
@@ -15193,10 +15193,10 @@
    ],
    "prior_evidence": "",
    "result": "NOT_TESTED",
-   "evidence_ref": "",
+   "evidence_ref": "EVIDENCE/TN_CAMPAIGN_EVIDENCE/TN_CAMPAIGN_EVIDENCE.json",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": "",
+   "notes": "TN-CAMPAIGN-EVIDENCE: no campaign-specific evidence; existing citation is a shared semantics report. no scenario class named and no exchange response quoted; row passes by the inference it forbids",
    "proof_network": "TESTNET"
   },
   {
@@ -15222,10 +15222,10 @@
    ],
    "prior_evidence": "",
    "result": "NOT_TESTED",
-   "evidence_ref": "",
+   "evidence_ref": "EVIDENCE/TN_CAMPAIGN_EVIDENCE/TN_CAMPAIGN_EVIDENCE.json",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": "Mainnet proof required: the testnet coverage gaps are by definition proven on mainnet.",
+   "notes": "Mainnet proof required: the testnet coverage gaps are by definition proven on mainnet. | TN-CAMPAIGN-EVIDENCE: no campaign-specific evidence; existing citation is a shared semantics report. gaps documented only; no mainnet verification cited",
    "proof_network": "MAINNET"
   },
   {
@@ -15249,10 +15249,10 @@
    ],
    "prior_evidence": "",
    "result": "NOT_TESTED",
-   "evidence_ref": "",
+   "evidence_ref": "EVIDENCE/TN_CAMPAIGN_EVIDENCE/TN_CAMPAIGN_EVIDENCE.json",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": "",
+   "notes": "TN-CAMPAIGN-EVIDENCE: nearest candidate B3-TESTNET-ACCEPT.json is a read-only account probe whose commit is not an ancestor of the register",
    "proof_network": "TESTNET"
   },
   {

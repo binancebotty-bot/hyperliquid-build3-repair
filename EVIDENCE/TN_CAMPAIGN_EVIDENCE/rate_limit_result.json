@@ -1,0 +1,58 @@
+{
+ "audit_dir": "C:/Users/wigmore/trading_stack/hl-build3-testnet-cert/_archive/hl_stage2/hl_live_copy_audit_testnet/append_only",
+ "purpose": "factual inventory of rate-limit / 429 evidence in the testnet audit",
+ "scans": [
+  {
+   "file": "send_attempts.csv",
+   "exists": true,
+   "rows_scanned": 564293,
+   "rows_mentioning_429_or_rate_limit": 48906,
+   "value_counts": {
+    "status": {
+     "pending_send": 268203,
+     "ORDER_REJECTED": 186853,
+     "ORDER_FILLED": 99093,
+     "ORDER_RESTING": 9876,
+     "EXCHANGE_ERROR": 268
+    },
+    "reject_category": {
+     "INSUFFICIENT_MARGIN": 160614,
+     "EXCHANGE_REJECTED_UNKNOWN": 15882,
+     "IOC_NO_IMMEDIATE_MATCH": 9216,
+     "PRICE_OR_TICK_REJECTED": 782,
+     "REDUCE_ONLY_REJECTED": 459,
+     "SIZE_OR_NOTIONAL_REJECTED": 101,
+     "RATE_LIMIT_OR_TIMEOUT": 67
+    },
+    "terminal_state": {
+     "PENDING_SEND": 268203,
+     "FILLED_AWAITING_COPY_POLL": 99093,
+     "MISSED_ADD_INSUFFICIENT_MARGIN": 78012,
+     "CLOSE_REJECTED_INSUFFICIENT_MARGIN": 56516,
+     "MISSED_ENTRY_LIMIT_REJECTED": 15597,
+     "MISSED_ENTRY_EXCHANGE_REJECTED_UNKNOWN": 14069,
+     "MISSED_ENTRY_INSUFFICIENT_MARGIN": 12091,
+     "ENTRY_LIMIT_RESTING_PRICE_MOVED": 8654
+    },
+    "latency_classification": {
+     "SLOW_QUEUE_WAIT": 187150,
+     "SLOW_EXCHANGE_CALL": 95093,
+     "SLOW_UNKNOWN": 7167,
+     "SLOW_LEADER_TO_INTENT": 5382,
+     "SLOW_SDK_CLIENT": 69,
+     "SLOW_SYMBOL_RESOLVE": 3
+    },
+    "error": {
+     "Too many abstraction operations. Automated users should manually manage collateral.": 78880,
+     "Trading is halted.": 14560,
+     "Insufficient margin to place order. asset=54": 3641,
+     "Insufficient margin to place order. asset=179": 3024,
+     "Insufficient margin to place order. asset=3": 2960,
+     "Insufficient margin to place order. asset=4": 2907,
+     "Order could not immediately match against any resting orders. asset=54": 2688,
+     "Insufficient margin to place order. asset=15": 2317
+    }
+   }
+  }
+ ]
+}
