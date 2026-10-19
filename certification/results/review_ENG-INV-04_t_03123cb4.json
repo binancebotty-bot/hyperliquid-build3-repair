@@ -10,5 +10,5 @@
  "artifact_sha256": "86afb9b5efa6258302b0a7e305d5f3bd77c7cb7f9b56bd4554d02efe80d356a7",
  "derived_from": "certification/results/review_ENG_INV_03_04_05_t_03123cb4.json",
  "derived_from_sha256": "2c758c075c1e0ff356a310cde9148622b9c11448bc7edd9151b0d7f42a6cdd51",
- "derivation": "Per-row record split out of the reviewer's batch artifact so the completion gate's per-row verdict check can read it. The batch record's overall verdict is FAIL because ENG-INV-03 fails; that overall verdict cannot attest the rows that passed. No verdict, verifier or tested_commit was altered in this split."
+ "derivation": "Per-row record split out of the reviewer's batch artifact so the completion gate's per-row verdict check can read it. The batch record's overall verdict is FAIL because ENG-INV-03 fails; an overall-FAIL record cannot attest the rows that passed. No verdict, verifier or tested_commit was altered."
 }
