@@ -1,0 +1,112 @@
+{
+  "task_id": "t_831ec221",
+  "review_kind": "INDEPENDENT_ADVERSARIAL_REVIEW",
+  "reviewer_edited_implementation": false,
+  "reviewed_branch": "codex/eng-inv02-one-order-site",
+  "reviewed_commit": "621a06c2459b43c564874a8377d00576ffe098d9",
+  "reviewed_against_base": "origin/main",
+  "ls_remote_heads": "621a06c2459b43c564874a8377d00576ffe098d9 refs/heads/codex/eng-inv02-one-order-site",
+  "branch_exists_on_remote": true,
+  "remote_tip_equals_reviewed_commit": true,
+  "changed_files_vs_main": [
+    "_archive/hl_stage2/HL_Live_Copy_Service.py",
+    "_archive/hl_stage2/test_g2_copy_correctness.py",
+    "_archive/hl_stage2/test_g3_exchange_truth.py",
+    "_archive/hl_stage2/test_single_exchange_order_callsite.py"
+  ],
+  "core_file_touched": false,
+  "certification_tree_touched": false,
+  "overall_verdict": "FAIL_INCOMPLETE",
+  "overall_why": "The ENG-INV-02 source change is real, correct on the bytes, and its guard is non-vacuous, but the corrective card required deliverables are absent: no census script or JSON output under certification/results, no before/after reachability census, register untouched so ENG-INV-02 remains NOT_TESTED, and the sibling ENG-INV-01/06 corrective scope is not carried on this branch.",
+  "rows": [
+    {
+      "row_id": "ENG-INV-02",
+      "verdict": "SOURCE_CHANGE_PASS_CARD_DELIVERABLE_FAIL",
+      "probe": "AST census of _archive/hl_stage2: origin/main has exactly 2 Call nodes to exchange.order -> HL_Live_Copy_Service.py:1036 and HL_Live_Copy_Service_Core.py:4204. Branch commit 621a06c has exactly 1 -> HL_Live_Copy_Service_Core.py:4204. send_hyperliquid_order() in the legacy module now returns {ok:False,status:LEGACY_DIRECT_SENDER_DISABLED} before any credential/SDK exchange construction; the Exchange(...).order(...) body is deleted. Shim re-verified via py_compile: COMPILE_OK. Negative control: the shipped guard test fails on origin/main with AssertionError 2 != 1 listing both sites, and passes on 621a06c (Ran 1 test, OK).",
+      "why": "The single-order-site invariant is materially satisfied at the source level and the claim is falsifiable on a pre-change tree. It still cannot close the row: the card requires the census script and its JSON output committed under certification/results (none exist), and a before/after reachability proof rather than an in-file string check; certification/certification_matrix.csv is byte-identical to origin/main so ENG-INV-02 is still NOT_TESTED in the register of record."
+    },
+    {
+      "row_id": "ENG-INV-02-GUARD",
+      "verdict": "PARTIAL_PASS",
+      "probe": "Mutation battery against test_single_exchange_order_callsite.py (AST walk over STAGE2.rglob, matches Call func Attribute attr=order value Name id=exchange): (A) new file with bare exchange.order under stage2 -> FAILED as required; (B) docstring-only mention -> OK, correctly not counted, matching the card 7038 exclusion; (C) second site in a new SUBDIRECTORY under _archive/hl_stage2 -> FAILED as required, rglob covers subdirs; (D) attribute-qualified self.exchange.order appended to HL_Live_Copy_Service.py -> OK, NOT detected.",
+      "why": "The guard is non-vacuous for the exact regression it was written against and correctly ignores docstrings, but its AST predicate only matches a bare Name node exchange. A re-introduced site written as self.exchange.order or module.exchange.order evades it while still being a real physical call site. The guard scan root is the stage2 tree only, so it cannot police a site placed elsewhere in the repo."
+    },
+    {
+      "row_id": "REACHABILITY_PROOF",
+      "verdict": "FAIL",
+      "probe": "No call-graph walk and no committed before/after census artifact exists on the branch; the only retirement evidence is the deleted function body plus a status string. Reachability was instead established by the reviewer: grep for importers of the legacy module finds only _archive/hl_stage2/test_g3_exchange_truth.py (test-only); the legacy module sole order path is main --send-one-intent --confirm-send -> manual_send_one_intent -> send_hyperliquid_order; nobody in the repo launches that CLI. Core main at HL_Live_Copy_Service_Core.py:12845 is the surviving production entry.",
+      "why": "The card said a count of exchange.order occurrences is not the proof the census needs, reachability is the claim. The branch ships no reachability analysis and never committed the required census script plus JSON output, so the reviewer had to do the producer work. The retired path is indeed not production-reachable, but that is the reviewer finding, not the branch deliverable."
+    },
+    {
+      "row_id": "ENG-INV-01",
+      "verdict": "FAIL_NOT_ADDRESSED",
+      "probe": "No runtime evidence on the branch: zero files in certification changed (git diff --stat origin/main..621a06c -- certification is empty), no process-count / PID / process start-time probe, no honest BLOCKED verdict recorded. certification_matrix.csv line 2 (ENG-INV-01) is byte-identical to origin/main and still NOT_TESTED.",
+      "why": "The corrective scope asked for the ENG-INV-01 runtime/PID/start-time requirement or an honest BLOCKED. Neither exists. One process cannot be proven from a source diff and the branch does not even state that limitation."
+    },
+    {
+      "row_id": "ENG-INV-06",
+      "verdict": "FAIL_NOT_ADDRESSED",
+      "probe": "No five-file order-site census and no all-files re-derivation on 621a06c. Full-tree grep on the branch finds exchange.order only at HL_Live_Copy_Service_Core.py:4204 as a call, plus docstring/comment mentions at Core 7038/7040 and string mentions inside tests and certification/gen_matrix.py.",
+      "why": "ENG-INV-06 recorded failure is that its cited artifact scanned one file and reported a single site against a two-site census. Nothing on this branch re-derives a whole-repo census, so ENG-INV-06 cannot move off FAIL."
+    },
+    {
+      "row_id": "ENG-INV-03",
+      "verdict": "NO_EVIDENCE_ON_BRANCH",
+      "probe": "Changed-file list contains no dependency manifest change: no requirements/pyproject/lock diff vs origin/main.",
+      "why": "The branch neither introduces a dependency, which is good, nor supplies row-bound evidence for the row; it is outside this branch implemented scope."
+    },
+    {
+      "row_id": "ENG-INV-04",
+      "verdict": "NO_EVIDENCE_ON_BRANCH",
+      "probe": "Persistence code unchanged; the branch adds no new state store. grep for persist_unresolved_send and sqlite in the legacy module is unchanged by this commit.",
+      "why": "No persistence-detection probe is shipped, so the no-new-authoritative-store claim is untested here even though the diff plausibly respects it."
+    },
+    {
+      "row_id": "ENG-INV-13",
+      "verdict": "NO_EVIDENCE_ON_BRANCH",
+      "probe": "Lineage fail-closed code _lineage_checkpoint_valid and leader_event_checkpoint is present and untouched in HL_Live_Copy_Service.py around L1945-1975; the branch does not exercise it.",
+      "why": "The branch is a one-site retirement, not a lineage repair; there is no lineage fail-closed evidence artifact in the diff."
+    },
+    {
+      "row_id": "ENG-INV-14",
+      "verdict": "FAIL_STILL_OPEN",
+      "probe": "exchange_truth.py:36 resolve_networks() still derives the follower purely from HL_FOLLOWER_NETWORK and validates only that URL overrides match the selected host; grep for richard and APPROVAL and approval_token and MAINNET_APPROVED across exchange_truth.py and HL_Live_Copy_Service_Core.py returns zero matches. Setting HL_FOLLOWER_NETWORK=mainnet switches the follower with no approval token.",
+      "why": "The mainnet approval gate is still absent on the reviewed commit. The branch does not claim to fix it and the register row remains open. This is the human-authority gate and must not be silently treated as covered by the order-site work."
+    },
+    {
+      "row_id": "REGISTER_RECONCILIATION",
+      "verdict": "FAIL",
+      "probe": "git diff --stat origin/main 621a06c -- certification is empty. ENG-INV-02 row text on the branch is identical to origin/main with result NOT_TESTED.",
+      "why": "A corrective branch that leaves the register of record untouched cannot be reconciled: no row moved, no evidence_ref added, nothing for the apply/overlay step to consume. The card explicitly required register reconciliation."
+    },
+    {
+      "row_id": "ACCEPTED_ROWS_UNCHANGED",
+      "verdict": "PASS",
+      "probe": "No file under certification/ or EVIDENCE/ is modified by 621a06c; the only touched paths are the four _archive/hl_stage2 files. Prior PASS rows therefore cannot have been disturbed.",
+      "why": "Preservation requirement met, trivially, because the change never enters the certification tree."
+    },
+    {
+      "row_id": "TESTS",
+      "verdict": "PASS",
+      "probe": "On 621a06c: test_single_exchange_order_callsite.py OK (1 test); test_g2_copy_correctness.py all RESULT lines PASS incl. G2_SINGLE_ORDER_CALL_SITE_PASS, no FAIL lines; test_g3_exchange_truth.py all RESULT lines PASS incl. G3_SINGLE_ORDER_SITE_PASS, no FAIL lines; test_core_engine_gaps.py TOTAL=23 FAILED=0. Negative control: guard test on origin/main FAILED (2 != 1).",
+      "why": "Existing order-submission coverage still passes and the new guard is demonstrably red on the pre-change tree, so it is not a tautology."
+    },
+    {
+      "row_id": "ARTIFACT_DELIVERABLE",
+      "verdict": "FAIL",
+      "probe": "git ls-tree -r --name-only 621a06c -- certification/results shows the same 7 files as origin/main; no new census script, no census JSON, no row verdict artifact was added by this branch.",
+      "why": "The card required the census script and its JSON output committed under certification/results. Nothing was delivered there, so the claim lives only in a test file assertion strings and in the commit message."
+    }
+  ],
+  "required_changes": [
+    "Commit the AST census script and its JSON output under certification/results, showing the two origin/main sites and the single post-change site, with the exact command used.",
+    "Add the before/after reachability argument (entry points walked, importers found) to that artifact instead of resting the proof on an in-file string check.",
+    "Widen the guard AST predicate to any attribute chain whose final attr is order on an object named exchange, and assert the scan root set explicitly, so self.exchange.order cannot re-enter undetected.",
+    "Record ENG-INV-01 as an honest BLOCKED with the reason that one-process cannot be proven from a source diff and no PID/start-time probe was run, or ship the probe.",
+    "Reconcile the register: update the ENG-INV-02 row evidence_ref and result through the existing apply/overlay path rather than editing certification_matrix.json ad hoc."
+  ],
+  "delivery": {
+    "push_from_review_host": "FAILED - git push --dry-run exits with unable to get password from user (no stored credentials, interactivity disabled). Reviewed commit was already on the remote; this review artifact is delivered as patch plus bundle plus card attachment.",
+    "reviewer_branch": "review/eng-inv-02-independent (local, on top of 621a06c)"
+  }
+}
