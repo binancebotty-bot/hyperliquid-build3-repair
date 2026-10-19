@@ -1,0 +1,1938 @@
+{
+  "task_id": "t_efac87a7",
+  "title": "B3-CERT UI area (400 rows): UI-surface certification sweep",
+  "tested_commit": "fefc2b04261c734bb32c767d2cc4a91095e65843",
+  "tested_at_utc": "2026-10-14T11:33:42.985992+00:00",
+  "engine_sha256": "2dfbd571012af67479ee7a2d9e6f1faac6ee5408722a092fb3625450cab51405",
+  "checks": {
+    "ENGINE_SHA256_MATCH": {
+      "pass": true,
+      "detail": "expected=2dfbd571012af67479ee7a2d9e6f1faac6ee5408722a092fb3625450cab51405 actual=2dfbd571012af67479ee7a2d9e6f1faac6ee5408722a092fb3625450cab51405"
+    },
+    "UI-LCC-HDR-01:WALLET_COUNT_ELEMENT": {
+      "pass": true,
+      "detail": "lcWalletCount element not found or wrong tag: b"
+    },
+    "UI-LCC-HDR-01:JS_POPULATES_COUNT": {
+      "pass": true,
+      "detail": "JS does not populate wallet count"
+    },
+    "UI-LCC-HDR-01:DEFAULT_SHOWN": {
+      "pass": true,
+      "detail": "Default wallet count '0 / 10' not found"
+    },
+    "UI-LCC-HDR-02:MODE_COUNTS_ELEMENT": {
+      "pass": true,
+      "detail": "lcModeCounts element not found"
+    },
+    "UI-LCC-HDR-02:JS_POPULATES_MODES": {
+      "pass": true,
+      "detail": "JS does not populate mode counts"
+    },
+    "UI-LCC-HDR-03:AUTO_SEND_ELEMENT": {
+      "pass": true,
+      "detail": "lcAutoSend element not found or wrong tag: span"
+    },
+    "UI-LCC-HDR-03:AUTO_SEND_DEFAULT": {
+      "pass": true,
+      "detail": "Default auto-send text 'Real order sending: n/a' not found"
+    },
+    "UI-LCC-HDR-03:JS_POPULATES_AUTOSEND": {
+      "pass": true,
+      "detail": "JS does not populate auto-send status"
+    },
+    "UI-LCC-HDR-04:WS_OVERALL_ELEMENT": {
+      "pass": true,
+      "detail": "lcWsOverall element not found or wrong tag: b"
+    },
+    "UI-LCC-HDR-04:WS_DEFAULT_OFFLINE": {
+      "pass": true,
+      "detail": "Default WS text should be OFFLINE"
+    },
+    "UI-LCC-HDR-04:JS_POPULATES_WS": {
+      "pass": true,
+      "detail": "JS does not populate WS overall"
+    },
+    "UI-LCC-HDR-05:REAL_ORDERS_ELEMENT": {
+      "pass": true,
+      "detail": "lcRealOrders element not found or wrong tag: span"
+    },
+    "UI-LCC-HDR-05:REAL_ORDERS_DEFAULT": {
+      "pass": true,
+      "detail": "Default REAL ORDERS text 'REAL ORDERS: n/a' not found"
+    },
+    "UI-LCC-HDR-05:JS_POPULATES_REAL_ORDERS": {
+      "pass": true,
+      "detail": "JS does not populate REAL ORDERS"
+    },
+    "UI-LCC-HDR-06:STATUS_ELEMENT": {
+      "pass": true,
+      "detail": "lcStatus element not found or wrong tag: span"
+    },
+    "UI-LCC-HDR-06:JS_POPULATES_STATUS": {
+      "pass": true,
+      "detail": "JS does not populate status"
+    },
+    "UI-LCC-BTN-01:REFRESH_BUTTON": {
+      "pass": true,
+      "detail": "Refresh button not found or wrong tag: button"
+    },
+    "UI-LCC-BTN-01:REFRESH_JS_HANDLER": {
+      "pass": true,
+      "detail": "Refresh button has no JS handler"
+    },
+    "UI-LCC-BTN-02:GC_TOGGLE_BUTTON": {
+      "pass": true,
+      "detail": "Global Controls toggle not found or wrong tag: button"
+    },
+    "UI-LCC-BTN-02:GC_TOGGLE_ARIA": {
+      "pass": true,
+      "detail": "Global Controls toggle missing aria-expanded='false'"
+    },
+    "UI-LCC-BTN-02:GC_TOGGLE_JS": {
+      "pass": true,
+      "detail": "Global Controls toggle has no JS handler"
+    },
+    "UI-LCC-BTN-03:ADD_WALLET_BUTTON": {
+      "pass": true,
+      "detail": "Add wallet button not found"
+    },
+    "UI-LCC-BTN-03:ADD_WALLET_MODAL": {
+      "pass": true,
+      "detail": "Add wallet modal not found"
+    },
+    "UI-LCC-BTN-04:GC_CLOSE_BUTTON": {
+      "pass": true,
+      "detail": "Global Controls close button not found or wrong tag: button"
+    },
+    "UI-LCC-BTN-04:GC_CLOSE_JS": {
+      "pass": true,
+      "detail": "Global Controls close has no JS handler"
+    },
+    "UI-LCC-BTN-05:GC_SAVE_BUTTON": {
+      "pass": true,
+      "detail": "Save Global Controls button not found or wrong tag: button"
+    },
+    "UI-LCC-BTN-05:GC_SAVE_JS": {
+      "pass": true,
+      "detail": "Save Global Controls has no JS handler"
+    },
+    "UI-LCC-BTN-05:GC_STATUS_ELEMENT": {
+      "pass": true,
+      "detail": "GC status element not found or wrong tag: span"
+    },
+    "UI-LCC-CARD-01:REAL_CARDS_CONTAINER": {
+      "pass": true,
+      "detail": "Real Account cards container not found or wrong tag: div"
+    },
+    "UI-LCC-CARD-01:RENDER_CARDS_FUNC": {
+      "pass": true,
+      "detail": "renderCards function not found"
+    },
+    "UI-LCC-CARD-01:CARD_RENDERED": {
+      "pass": true,
+      "detail": "Portfolio Value card not rendered by JS"
+    },
+    "UI-LCC-CARD-02:CARD_RENDERED": {
+      "pass": true,
+      "detail": "Unrealized PnL card not rendered by JS"
+    },
+    "UI-LCC-CARD-03:CARD_RENDERED": {
+      "pass": true,
+      "detail": "Realized PnL card not rendered by JS"
+    },
+    "UI-LCC-CARD-04:CARD_RENDERED": {
+      "pass": true,
+      "detail": "Open Positions card not rendered by JS"
+    },
+    "UI-LCC-CARD-05:CARD_RENDERED": {
+      "pass": true,
+      "detail": "Live Exposure card not rendered by JS"
+    },
+    "UI-LCC-CARD-06:CARD_RENDERED": {
+      "pass": true,
+      "detail": "Last Fill card not rendered by JS"
+    },
+    "UI-LCC-CARD-07:CARD_RENDERED": {
+      "pass": true,
+      "detail": "Last Reject card not rendered by JS"
+    },
+    "UI-LCC-WTBL-01:WALLET_TABLE_CONTAINER": {
+      "pass": true,
+      "detail": "Wallet table body not found or wrong tag: tbody"
+    },
+    "UI-LCC-WTBL-01:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Wallet' not found at position 0. Found: Wallet"
+    },
+    "UI-LCC-WTBL-02:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Mode / Health' not found at position 1. Found: Mode / Health"
+    },
+    "UI-LCC-WTBL-03:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Live PnL' not found at position 2. Found: Live PnL"
+    },
+    "UI-LCC-WTBL-04:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Lead\u2194Copy Diff' not found at position 3. Found: Lead\u2194Copy Diff"
+    },
+    "UI-LCC-WTBL-05:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Execution' not found at position 4. Found: Execution"
+    },
+    "UI-LCC-WTBL-06:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Risk / Exposure' not found at position 5. Found: Risk / Exposure"
+    },
+    "UI-LCC-WTBL-07:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Last Fill' not found at position 6. Found: Last Fill"
+    },
+    "UI-LCC-WTBL-08:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Controls' not found at position 7. Found: Controls"
+    },
+    "UI-LCC-WTBL-08:CONTROLS_MODE_SELECT": {
+      "pass": true,
+      "detail": "Mode select not found in controls"
+    },
+    "UI-LCC-WTBL-09:CONTROLS_COPY_MODEL": {
+      "pass": true,
+      "detail": "Copy model select not found"
+    },
+    "UI-LCC-WTBL-10:CONTROLS_F_N_B_INPUTS": {
+      "pass": true,
+      "detail": "F/N/B inputs not found"
+    },
+    "UI-LCC-WTBL-11:CONTROLS_SAVE_BUTTON": {
+      "pass": true,
+      "detail": "Save button not found"
+    },
+    "UI-LCC-WTBL-12:CONTROLS_CLOSE_BUTTON": {
+      "pass": true,
+      "detail": "Close button not found"
+    },
+    "UI-LCC-WTBL-13:CONTROLS_OFF_BUTTON": {
+      "pass": true,
+      "detail": "OFF button not found"
+    },
+    "UI-LCC-WTBL-14:CONTROLS_ARCHIVE_BUTTON": {
+      "pass": true,
+      "detail": "Archive button not found"
+    },
+    "UI-LCC-POS-01:POSITIONS_TABLE": {
+      "pass": true,
+      "detail": "Positions table body not found or wrong tag: tbody"
+    },
+    "UI-LCC-POS-01:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Coin' not found at position 0. Found: Coin"
+    },
+    "UI-LCC-POS-02:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Side' not found at position 1. Found: Side"
+    },
+    "UI-LCC-POS-03:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Ledger size' not found at position 2. Found: Ledger size"
+    },
+    "UI-LCC-POS-04:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Exchange size' not found at position 3. Found: Exchange size"
+    },
+    "UI-LCC-POS-05:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Entry px' not found at position 4. Found: Entry px"
+    },
+    "UI-LCC-POS-06:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Mark px' not found at position 5. Found: Mark px"
+    },
+    "UI-LCC-POS-07:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Pos value' not found at position 6. Found: Pos value"
+    },
+    "UI-LCC-POS-08:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Unrealized PnL' not found at position 7. Found: Unrealized PnL"
+    },
+    "UI-LCC-POS-09:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Leader wallet' not found at position 8. Found: Leader wallet"
+    },
+    "UI-LCC-POS-10:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Status' not found at position 9. Found: Status"
+    },
+    "UI-LCC-POS-11:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Last OID' not found at position 10. Found: Last OID"
+    },
+    "UI-LCC-POS-12:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Last updated' not found at position 11. Found: Last updated"
+    },
+    "UI-LCC-EXQ-01:EXEC_QUAL_TABLE": {
+      "pass": true,
+      "detail": "Execution Quality table body not found or wrong tag: tbody"
+    },
+    "UI-LCC-EXQ-01:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Time' not found at position 0. Found: Time"
+    },
+    "UI-LCC-EXQ-02:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Wallet' not found at position 1. Found: Wallet"
+    },
+    "UI-LCC-EXQ-03:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Coin' not found at position 2. Found: Coin"
+    },
+    "UI-LCC-EXQ-04:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Side' not found at position 3. Found: Side"
+    },
+    "UI-LCC-EXQ-05:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Status' not found at position 4. Found: Status"
+    },
+    "UI-LCC-EXQ-06:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Limit px' not found at position 5. Found: Limit px"
+    },
+    "UI-LCC-EXQ-07:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Fill avg px' not found at position 6. Found: Fill avg px"
+    },
+    "UI-LCC-EXQ-08:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Size' not found at position 7. Found: Size"
+    },
+    "UI-LCC-EXQ-09:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'OID' not found at position 8. Found: OID"
+    },
+    "UI-LCC-EXQ-10:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Fill-vs-limit %' not found at position 9. Found: Fill-vs-limit %"
+    },
+    "UI-LCC-EXQ-11:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Leader-vs-user %' not found at position 10. Found: Leader-vs-user %"
+    },
+    "UI-LCC-EXQ-12:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Market slip %' not found at position 11. Found: Market slip %"
+    },
+    "UI-LCC-EXQ-13:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Error' not found at position 12. Found: Error"
+    },
+    "UI-LCC-AUD-01:AUDIT_TABLE": {
+      "pass": true,
+      "detail": "Audit table body not found or wrong tag: tbody"
+    },
+    "UI-LCC-AUD-01:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Time' not found at position 0. Found: Time"
+    },
+    "UI-LCC-AUD-02:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Wallet' not found at position 1. Found: Wallet"
+    },
+    "UI-LCC-AUD-03:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Coin' not found at position 2. Found: Coin"
+    },
+    "UI-LCC-AUD-04:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Side' not found at position 3. Found: Side"
+    },
+    "UI-LCC-AUD-05:COLUMN_HEADER": {
+      "pass": false,
+      "detail": "Header 'Status' not found at position 4. Found: Source/Reason"
+    },
+    "UI-LCC-AUD-06:COLUMN_HEADER": {
+      "pass": false,
+      "detail": "Header 'Intent' not found at position 5. Found: Status"
+    },
+    "UI-LCC-AUD-07:COLUMN_HEADER": {
+      "pass": false,
+      "detail": "Header 'Leader price' not found at position 6. Found: Decision"
+    },
+    "UI-LCC-AUD-08:COLUMN_HEADER": {
+      "pass": false,
+      "detail": "Header 'Target price' not found at position 7. Found: Decision reason"
+    },
+    "UI-LCC-AUD-09:COLUMN_HEADER": {
+      "pass": false,
+      "detail": "Header 'Copy price' not found at position 8. Found: Suggested limit"
+    },
+    "UI-LCC-AUD-10:COLUMN_HEADER": {
+      "pass": false,
+      "detail": "Header 'OID' not found at position 9. Found: Diff %"
+    },
+    "UI-LCC-AUD-11:COLUMN_HEADER": {
+      "pass": false,
+      "detail": "Header 'Error' not found at position 10. Found: Manual?"
+    },
+    "UI-LCC-AUD-12:COLUMN_HEADER": {
+      "pass": false,
+      "detail": "Header 'Created' not found at position 11. Found: Intent note"
+    },
+    "UI-LCC-AUD-13:COLUMN_HEADER": {
+      "pass": false,
+      "detail": "Header 'Updated' not found at position 12. Found: Real order result"
+    },
+    "UI-LCC-DETAIL-01:DETAIL_FUNC": {
+      "pass": true,
+      "detail": "walletDetailHtml function not found"
+    },
+    "UI-LCC-DETAIL-01:DETAIL_SECTION": {
+      "pass": true,
+      "detail": "Live Performance detail section not found"
+    },
+    "UI-LCC-DETAIL-02:DETAIL_SECTION": {
+      "pass": true,
+      "detail": "Open Positions detail section not found"
+    },
+    "UI-LCC-DETAIL-03:DETAIL_SECTION": {
+      "pass": true,
+      "detail": "Lead vs Copy detail section not found"
+    },
+    "UI-LCC-DETAIL-04:DETAIL_SECTION": {
+      "pass": true,
+      "detail": "Execution Audit detail section not found"
+    },
+    "UI-LCC-GRAPH-01:GRAPH_CONTAINER": {
+      "pass": true,
+      "detail": "Graph container not found or wrong tag: svg"
+    },
+    "UI-LCC-GRAPH-01:ACCOUNT_MODE_BTN": {
+      "pass": true,
+      "detail": "Account mode button not found"
+    },
+    "UI-LCC-GRAPH-02:WALLET_PNL_MODE_BTN": {
+      "pass": true,
+      "detail": "Wallet PnL mode button not found"
+    },
+    "UI-LCC-GRAPH-03:EXPOSURE_MODE_BTN": {
+      "pass": true,
+      "detail": "Exposure mode button not found"
+    },
+    "UI-LCC-GRAPH-04:1D_SCALE_BTN": {
+      "pass": true,
+      "detail": "1D scale button not found"
+    },
+    "UI-LCC-GRAPH-05:7D_SCALE_BTN": {
+      "pass": true,
+      "detail": "7D scale button not found"
+    },
+    "UI-LCC-GRAPH-06:ALL_SCALE_BTN": {
+      "pass": true,
+      "detail": "ALL scale button not found"
+    },
+    "UI-LCC-GRAPH-07:START_DATETIME": {
+      "pass": true,
+      "detail": "Start datetime input not found or wrong tag: input"
+    },
+    "UI-LCC-GRAPH-08:END_DATETIME": {
+      "pass": true,
+      "detail": "End datetime input not found or wrong tag: input"
+    },
+    "UI-LCC-GRAPH-09:APPLY_BTN": {
+      "pass": true,
+      "detail": "Apply button not found or wrong tag: button"
+    },
+    "UI-LCC-GRAPH-10:RESET_BTN": {
+      "pass": true,
+      "detail": "Reset button not found or wrong tag: button"
+    },
+    "UI-LCC-GRAPH-11:TOTAL_PNL_LINE": {
+      "pass": true,
+      "detail": "Total PnL line not found or wrong tag: polyline"
+    },
+    "UI-LCC-GRAPH-12:REALIZED_PNL_LINE": {
+      "pass": true,
+      "detail": "Realized PnL line not found or wrong tag: polyline"
+    },
+    "UI-LCC-GRAPH-13:DRAWDOWN_LINE": {
+      "pass": true,
+      "detail": "Drawdown line not found or wrong tag: polyline"
+    },
+    "UI-LCC-GRAPH-14:Y_AXIS_LABELS": {
+      "pass": true,
+      "detail": "Y axis labels not found or wrong tag: text"
+    },
+    "UI-LCC-GRAPH-15:X_AXIS_TICKS": {
+      "pass": true,
+      "detail": "X axis ticks not found or wrong tag: g"
+    },
+    "UI-LCC-GRAPH-16:SUBTITLE": {
+      "pass": true,
+      "detail": "Graph subtitle not found or wrong tag: p"
+    },
+    "UI-LCC-ADD-01:MODAL_CONTAINER": {
+      "pass": true,
+      "detail": "Add wallet modal not found"
+    },
+    "UI-LCC-ADD-01:WALLET_ADDRESS_INPUT": {
+      "pass": true,
+      "detail": "Wallet address input not found"
+    },
+    "UI-LCC-ADD-02:INITIAL_MODE_SELECT": {
+      "pass": true,
+      "detail": "Initial mode select not found"
+    },
+    "UI-LCC-ADD-03:COPY_MODEL_SELECT": {
+      "pass": true,
+      "detail": "Copy model select not found"
+    },
+    "UI-LCC-ADD-04:FIXED_NOTIONAL_INPUT": {
+      "pass": true,
+      "detail": "Fixed notional input not found"
+    },
+    "UI-LCC-ADD-05:NORM_BASE_INPUT": {
+      "pass": true,
+      "detail": "Norm base input not found"
+    },
+    "UI-LCC-ADD-06:FEE_BPS_INPUT": {
+      "pass": true,
+      "detail": "Fee input not found"
+    },
+    "UI-LCC-ADD-07:FRICTION_BPS_INPUT": {
+      "pass": true,
+      "detail": "Friction input not found"
+    },
+    "UI-LCC-ADD-08:SUBMIT_BUTTON": {
+      "pass": true,
+      "detail": "Submit button not found"
+    },
+    "UI-LCC-ADD-09:CANCEL_BUTTON": {
+      "pass": true,
+      "detail": "Cancel button not found"
+    },
+    "UI-LCC-ADD-10:ADD_FORM": {
+      "pass": true,
+      "detail": "Add form not found"
+    },
+    "UI-LCC-REC-01:RECON_TABLE": {
+      "pass": true,
+      "detail": "Reconciliation table body not found or wrong tag: tbody"
+    },
+    "UI-LCC-REC-01:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Severity' not found at position 0. Found: Severity"
+    },
+    "UI-LCC-REC-02:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Wallet' not found at position 1. Found: Wallet"
+    },
+    "UI-LCC-REC-03:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Coin' not found at position 2. Found: Coin"
+    },
+    "UI-LCC-REC-04:COLUMN_HEADER": {
+      "pass": false,
+      "detail": "Header 'Side' not found at position 3. Found: Issue"
+    },
+    "UI-LCC-REC-05:COLUMN_HEADER": {
+      "pass": false,
+      "detail": "Header 'Ledger size' not found at position 4. Found: Count"
+    },
+    "UI-LCC-REC-06:COLUMN_HEADER": {
+      "pass": false,
+      "detail": "Header 'Exchange size' not found at position 5. Found: Manual ledger"
+    },
+    "UI-LCC-REC-07:COLUMN_HEADER": {
+      "pass": false,
+      "detail": "Header 'Diff' not found at position 6. Found: Exchange"
+    },
+    "UI-LCC-REC-08:COLUMN_HEADER": {
+      "pass": false,
+      "detail": "Header 'Status' not found at position 7. Found: Last intent"
+    },
+    "UI-LCC-REC-09:COLUMN_HEADER": {
+      "pass": false,
+      "detail": "Header 'Last OID' not found at position 8. Found: Last oid"
+    },
+    "UI-LCC-REC-10:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Last updated' not found at position 9. Found: Last updated"
+    },
+    "UI-LCC-REC-11:COLUMN_HEADER": {
+      "pass": false,
+      "detail": "Header 'Note' not found at position 10. Found: Action"
+    },
+    "UI-LCC-TAB-01:TAB_BUTTON": {
+      "pass": true,
+      "detail": "Real Copy Positions tab button not found"
+    },
+    "UI-LCC-TAB-01:TAB_PANEL": {
+      "pass": true,
+      "detail": "Real Copy Positions tab panel not found"
+    },
+    "UI-LCC-TAB-02:TAB_BUTTON": {
+      "pass": true,
+      "detail": "Execution Quality tab button not found"
+    },
+    "UI-LCC-TAB-02:TAB_PANEL": {
+      "pass": true,
+      "detail": "Execution Quality tab panel not found"
+    },
+    "UI-LCC-TAB-03:TAB_BUTTON": {
+      "pass": true,
+      "detail": "Order Intents / Audit tab button not found"
+    },
+    "UI-LCC-TAB-03:TAB_PANEL": {
+      "pass": true,
+      "detail": "Order Intents / Audit tab panel not found"
+    },
+    "UI-LCC-TAB-04:TAB_BUTTON": {
+      "pass": true,
+      "detail": "Reconciliation tab button not found"
+    },
+    "UI-LCC-TAB-04:TAB_PANEL": {
+      "pass": true,
+      "detail": "Reconciliation tab panel not found"
+    },
+    "UI-LCC-TAB-05:TAB_BUTTON": {
+      "pass": true,
+      "detail": "WS Health tab button not found"
+    },
+    "UI-LCC-TAB-05:TAB_PANEL": {
+      "pass": true,
+      "detail": "WS Health tab panel not found"
+    },
+    "UI-LCC-WS-01:WS_TABLE": {
+      "pass": true,
+      "detail": "WS Health table body not found or wrong tag: tbody"
+    },
+    "UI-LCC-WS-01:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Wallet WS column header not found in ['Wallet', 'Current', 'Grade', 'Thread', 'Reconnect/min', 'Processed', 'Raw msg', 'Parsed', 'Snap seen', 'Snap recovered', 'Ignored', 'Recent errors', 'Lifetime errors', 'Stale ms', 'Data status', 'Last close/error']"
+    },
+    "UI-LCC-WS-02:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Current WS column header not found in ['Wallet', 'Current', 'Grade', 'Thread', 'Reconnect/min', 'Processed', 'Raw msg', 'Parsed', 'Snap seen', 'Snap recovered', 'Ignored', 'Recent errors', 'Lifetime errors', 'Stale ms', 'Data status', 'Last close/error']"
+    },
+    "UI-LCC-WS-03:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Grade WS column header not found in ['Wallet', 'Current', 'Grade', 'Thread', 'Reconnect/min', 'Processed', 'Raw msg', 'Parsed', 'Snap seen', 'Snap recovered', 'Ignored', 'Recent errors', 'Lifetime errors', 'Stale ms', 'Data status', 'Last close/error']"
+    },
+    "UI-LCC-WS-04:COLUMN_HEADER": {
+      "pass": false,
+      "detail": "Latency WS column header not found in ['Wallet', 'Current', 'Grade', 'Thread', 'Reconnect/min', 'Processed', 'Raw msg', 'Parsed', 'Snap seen', 'Snap recovered', 'Ignored', 'Recent errors', 'Lifetime errors', 'Stale ms', 'Data status', 'Last close/error']"
+    },
+    "UI-LCC-WS-05:COLUMN_HEADER": {
+      "pass": false,
+      "detail": "Status WS column header not found in ['Wallet', 'Current', 'Grade', 'Thread', 'Reconnect/min', 'Processed', 'Raw msg', 'Parsed', 'Snap seen', 'Snap recovered', 'Ignored', 'Recent errors', 'Lifetime errors', 'Stale ms', 'Data status', 'Last close/error']"
+    },
+    "UI-LCC-WS-06:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Last message WS column header not found in ['Wallet', 'Current', 'Grade', 'Thread', 'Reconnect/min', 'Processed', 'Raw msg', 'Parsed', 'Snap seen', 'Snap recovered', 'Ignored', 'Recent errors', 'Lifetime errors', 'Stale ms', 'Data status', 'Last close/error']"
+    },
+    "UI-LCC-WS-07:COLUMN_HEADER": {
+      "pass": false,
+      "detail": "Subscribed WS column header not found in ['Wallet', 'Current', 'Grade', 'Thread', 'Reconnect/min', 'Processed', 'Raw msg', 'Parsed', 'Snap seen', 'Snap recovered', 'Ignored', 'Recent errors', 'Lifetime errors', 'Stale ms', 'Data status', 'Last close/error']"
+    },
+    "UI-LCC-WS-08:COLUMN_HEADER": {
+      "pass": false,
+      "detail": "Subs count WS column header not found in ['Wallet', 'Current', 'Grade', 'Thread', 'Reconnect/min', 'Processed', 'Raw msg', 'Parsed', 'Snap seen', 'Snap recovered', 'Ignored', 'Recent errors', 'Lifetime errors', 'Stale ms', 'Data status', 'Last close/error']"
+    },
+    "UI-LCC-WS-09:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Thread WS column header not found in ['Wallet', 'Current', 'Grade', 'Thread', 'Reconnect/min', 'Processed', 'Raw msg', 'Parsed', 'Snap seen', 'Snap recovered', 'Ignored', 'Recent errors', 'Lifetime errors', 'Stale ms', 'Data status', 'Last close/error']"
+    },
+    "UI-LCC-WS-10:COLUMN_HEADER": {
+      "pass": false,
+      "detail": "Socket WS column header not found in ['Wallet', 'Current', 'Grade', 'Thread', 'Reconnect/min', 'Processed', 'Raw msg', 'Parsed', 'Snap seen', 'Snap recovered', 'Ignored', 'Recent errors', 'Lifetime errors', 'Stale ms', 'Data status', 'Last close/error']"
+    },
+    "UI-LCC-WS-11:COLUMN_HEADER": {
+      "pass": false,
+      "detail": "Connects WS column header not found in ['Wallet', 'Current', 'Grade', 'Thread', 'Reconnect/min', 'Processed', 'Raw msg', 'Parsed', 'Snap seen', 'Snap recovered', 'Ignored', 'Recent errors', 'Lifetime errors', 'Stale ms', 'Data status', 'Last close/error']"
+    },
+    "UI-LCC-WS-12:COLUMN_HEADER": {
+      "pass": false,
+      "detail": "Disconnects WS column header not found in ['Wallet', 'Current', 'Grade', 'Thread', 'Reconnect/min', 'Processed', 'Raw msg', 'Parsed', 'Snap seen', 'Snap recovered', 'Ignored', 'Recent errors', 'Lifetime errors', 'Stale ms', 'Data status', 'Last close/error']"
+    },
+    "UI-LCC-WS-13:COLUMN_HEADER": {
+      "pass": false,
+      "detail": "Errors WS column header not found in ['Wallet', 'Current', 'Grade', 'Thread', 'Reconnect/min', 'Processed', 'Raw msg', 'Parsed', 'Snap seen', 'Snap recovered', 'Ignored', 'Recent errors', 'Lifetime errors', 'Stale ms', 'Data status', 'Last close/error']"
+    },
+    "UI-LCC-WS-14:COLUMN_HEADER": {
+      "pass": false,
+      "detail": "Messages WS column header not found in ['Wallet', 'Current', 'Grade', 'Thread', 'Reconnect/min', 'Processed', 'Raw msg', 'Parsed', 'Snap seen', 'Snap recovered', 'Ignored', 'Recent errors', 'Lifetime errors', 'Stale ms', 'Data status', 'Last close/error']"
+    },
+    "UI-LCC-WS-15:COLUMN_HEADER": {
+      "pass": false,
+      "detail": "Bytes WS column header not found in ['Wallet', 'Current', 'Grade', 'Thread', 'Reconnect/min', 'Processed', 'Raw msg', 'Parsed', 'Snap seen', 'Snap recovered', 'Ignored', 'Recent errors', 'Lifetime errors', 'Stale ms', 'Data status', 'Last close/error']"
+    },
+    "UI-LCC-WS-16:COLUMN_HEADER": {
+      "pass": false,
+      "detail": "Uptime WS column header not found in ['Wallet', 'Current', 'Grade', 'Thread', 'Reconnect/min', 'Processed', 'Raw msg', 'Parsed', 'Snap seen', 'Snap recovered', 'Ignored', 'Recent errors', 'Lifetime errors', 'Stale ms', 'Data status', 'Last close/error']"
+    },
+    "UI-SSOT-TOP-01:ELEMENT": {
+      "pass": true,
+      "detail": "Normalisation Base element not found"
+    },
+    "UI-SSOT-TOP-02:ELEMENT": {
+      "pass": true,
+      "detail": "Mode element not found"
+    },
+    "UI-SSOT-TOP-03:ELEMENT": {
+      "pass": true,
+      "detail": "Fixed $ element not found"
+    },
+    "UI-SSOT-TOP-04:ELEMENT": {
+      "pass": true,
+      "detail": "Fee BPS element not found"
+    },
+    "UI-SSOT-TOP-05:ELEMENT": {
+      "pass": true,
+      "detail": "Friction BPS element not found"
+    },
+    "UI-SSOT-TOP-06:ELEMENT": {
+      "pass": false,
+      "detail": "User norm base element not found"
+    },
+    "UI-SSOT-TOP-07:ELEMENT": {
+      "pass": false,
+      "detail": "Sort column element not found"
+    },
+    "UI-SSOT-TOP-08:ELEMENT": {
+      "pass": true,
+      "detail": "Sort direction element not found"
+    },
+    "UI-SSOT-TOP-09:ELEMENT": {
+      "pass": true,
+      "detail": "Updated at element not found"
+    },
+    "UI-SSOT-CARD-01:CARD": {
+      "pass": true,
+      "detail": "PNL card not found"
+    },
+    "UI-SSOT-CARD-02:CARD": {
+      "pass": true,
+      "detail": "REALISED card not found"
+    },
+    "UI-SSOT-CARD-03:CARD": {
+      "pass": true,
+      "detail": "UNREALISED card not found"
+    },
+    "UI-SSOT-CARD-04:CARD": {
+      "pass": true,
+      "detail": "DRAWDOWN card not found"
+    },
+    "UI-SSOT-CARD-05:CARD": {
+      "pass": true,
+      "detail": "MAX DD card not found"
+    },
+    "UI-SSOT-CARD-06:CARD": {
+      "pass": true,
+      "detail": "EXPOSURE card not found"
+    },
+    "UI-SSOT-CARD-07:CARD": {
+      "pass": true,
+      "detail": "COPYABILITY card not found"
+    },
+    "UI-SSOT-CARD-08:CARD": {
+      "pass": true,
+      "detail": "ACTIVITY card not found"
+    },
+    "UI-SSOT-CARD-09:CARD": {
+      "pass": true,
+      "detail": "DB HEALTH card not found"
+    },
+    "UI-SSOT-TBL-01:COLUMN": {
+      "pass": true,
+      "detail": "WALLET column not found"
+    },
+    "UI-SSOT-TBL-02:COLUMN": {
+      "pass": true,
+      "detail": "LEAD EQ column not found"
+    },
+    "UI-SSOT-TBL-03:COLUMN": {
+      "pass": true,
+      "detail": "COPY EQ column not found"
+    },
+    "UI-SSOT-TBL-04:COLUMN": {
+      "pass": true,
+      "detail": "LEAD REAL column not found"
+    },
+    "UI-SSOT-TBL-05:COLUMN": {
+      "pass": true,
+      "detail": "COPY REAL column not found"
+    },
+    "UI-SSOT-TBL-06:COLUMN": {
+      "pass": true,
+      "detail": "LEAD UNREAL column not found"
+    },
+    "UI-SSOT-TBL-07:COLUMN": {
+      "pass": true,
+      "detail": "COPY UNREAL column not found"
+    },
+    "UI-SSOT-TBL-08:COLUMN": {
+      "pass": true,
+      "detail": "LEAD DD column not found"
+    },
+    "UI-SSOT-TBL-09:COLUMN": {
+      "pass": true,
+      "detail": "COPY DD column not found"
+    },
+    "UI-SSOT-TBL-10:COLUMN": {
+      "pass": true,
+      "detail": "LEAD MAXDD column not found"
+    },
+    "UI-SSOT-TBL-11:COLUMN": {
+      "pass": true,
+      "detail": "COPY MAXDD column not found"
+    },
+    "UI-SSOT-TBL-12:COLUMN": {
+      "pass": true,
+      "detail": "DELTA column not found"
+    },
+    "UI-SSOT-TBL-13:COLUMN": {
+      "pass": true,
+      "detail": "PNL/HR column not found"
+    },
+    "UI-SSOT-TBL-14:COLUMN": {
+      "pass": true,
+      "detail": "AVG TRADE % column not found"
+    },
+    "UI-SSOT-TBL-15:COLUMN": {
+      "pass": true,
+      "detail": "WIN% column not found"
+    },
+    "UI-SSOT-TBL-16:COLUMN": {
+      "pass": true,
+      "detail": "AVG POS $ column not found"
+    },
+    "UI-SSOT-TBL-17:COLUMN": {
+      "pass": true,
+      "detail": "MAX POS $ column not found"
+    },
+    "UI-SSOT-TBL-18:COLUMN": {
+      "pass": true,
+      "detail": "AVG NOTIONAL column not found"
+    },
+    "UI-SSOT-TBL-19:COLUMN": {
+      "pass": true,
+      "detail": "% >= $10 column not found"
+    },
+    "UI-SSOT-TBL-20:COLUMN": {
+      "pass": true,
+      "detail": "REQ LEV column not found"
+    },
+    "UI-SSOT-TBL-21:COLUMN": {
+      "pass": true,
+      "detail": "FILLS L/C column not found"
+    },
+    "UI-SSOT-TBL-22:COLUMN": {
+      "pass": true,
+      "detail": "EXITS L/C column not found"
+    },
+    "UI-SSOT-TBL-23:COLUMN": {
+      "pass": true,
+      "detail": "POS L/C column not found"
+    },
+    "UI-SSOT-TBL-24:COLUMN": {
+      "pass": true,
+      "detail": "INC / WALLET MODEL column not found"
+    },
+    "UI-SSOT-TBL-25:COLUMN": {
+      "pass": false,
+      "detail": "engine_truth_boundary column not found"
+    },
+    "UI-SSOT-PAGE-01:ELEMENT": {
+      "pass": false,
+      "detail": "DOCTYPE element not found"
+    },
+    "UI-SSOT-PAGE-02:ELEMENT": {
+      "pass": true,
+      "detail": "HTML tag element not found"
+    },
+    "UI-SSOT-PAGE-03:ELEMENT": {
+      "pass": true,
+      "detail": "CSS styles element not found"
+    },
+    "UI-SSOT-PAGE-04:ELEMENT": {
+      "pass": true,
+      "detail": "JS scripts element not found"
+    },
+    "UI-SSOT-PAGE-05:ELEMENT": {
+      "pass": true,
+      "detail": "Sort links element not found"
+    },
+    "UI-SSOT-PAGE-06:ELEMENT": {
+      "pass": true,
+      "detail": "UI state form element not found"
+    },
+    "UI-SSOT-PAGE-07:ELEMENT": {
+      "pass": true,
+      "detail": "Norm base form element not found"
+    },
+    "UI-SSOT-PAGE-08:ELEMENT": {
+      "pass": true,
+      "detail": "Fixed notional form element not found"
+    },
+    "UI-SSOT-PAGE-09:ELEMENT": {
+      "pass": true,
+      "detail": "Fee bps form element not found"
+    },
+    "UI-SSOT-PAGE-10:ELEMENT": {
+      "pass": true,
+      "detail": "Friction form element not found"
+    },
+    "UI-SSOT-PAGE-11:ELEMENT": {
+      "pass": false,
+      "detail": "User base form element not found"
+    },
+    "UI-SSOT-PAGE-12:ELEMENT": {
+      "pass": false,
+      "detail": "Set mode form element not found"
+    },
+    "UI-SSOT-PAGE-13:ELEMENT": {
+      "pass": false,
+      "detail": "Set all modes form element not found"
+    },
+    "UI-SSOT-PAGE-14:ELEMENT": {
+      "pass": false,
+      "detail": "Reset history form element not found"
+    },
+    "UI-SSOT-PAGE-15:ELEMENT": {
+      "pass": true,
+      "detail": "Live copy panel element not found"
+    },
+    "UI-FP-001:ELEMENT": {
+      "pass": true,
+      "detail": "Wallets header element not found"
+    },
+    "UI-FP-002:ELEMENT": {
+      "pass": true,
+      "detail": "LIVE mode count element not found"
+    },
+    "UI-FP-003:ELEMENT": {
+      "pass": true,
+      "detail": "CLO mode count element not found"
+    },
+    "UI-FP-004:ELEMENT": {
+      "pass": true,
+      "detail": "OFF mode count element not found"
+    },
+    "UI-FP-005:ELEMENT": {
+      "pass": true,
+      "detail": "Real order sending element not found"
+    },
+    "UI-FP-006:ELEMENT": {
+      "pass": true,
+      "detail": "WS header element not found"
+    },
+    "UI-FP-007:ELEMENT": {
+      "pass": true,
+      "detail": "REAL ORDERS safety strip element not found"
+    },
+    "UI-FP-008:ELEMENT": {
+      "pass": false,
+      "detail": "Restart caveat element not found"
+    },
+    "UI-FP-009:ELEMENT": {
+      "pass": false,
+      "detail": "LIVE INTEGRITY element not found"
+    },
+    "UI-FP-010:ELEMENT": {
+      "pass": false,
+      "detail": "WS status element not found"
+    },
+    "UI-FP-011:ELEMENT": {
+      "pass": false,
+      "detail": "Copy Poll element not found"
+    },
+    "UI-FP-012:ELEMENT": {
+      "pass": false,
+      "detail": "MASTER REAL ORDERS element not found"
+    },
+    "UI-FP-013:ELEMENT": {
+      "pass": false,
+      "detail": "Active/subscribed wallets element not found"
+    },
+    "UI-FP-014:ELEMENT": {
+      "pass": false,
+      "detail": "Last send element not found"
+    },
+    "UI-FP-015:ELEMENT": {
+      "pass": true,
+      "detail": "Last fill element not found"
+    },
+    "UI-FP-016:ELEMENT": {
+      "pass": true,
+      "detail": "Last reject element not found"
+    },
+    "UI-FP-017:ELEMENT": {
+      "pass": false,
+      "detail": "Last latency warning element not found"
+    },
+    "UI-FP-018:ELEMENT": {
+      "pass": true,
+      "detail": "Portfolio Value element not found"
+    },
+    "UI-FP-019:ELEMENT": {
+      "pass": true,
+      "detail": "Unrealized PnL element not found"
+    },
+    "UI-FP-020:ELEMENT": {
+      "pass": true,
+      "detail": "Realized PnL element not found"
+    },
+    "UI-FP-021:ELEMENT": {
+      "pass": true,
+      "detail": "Open Positions element not found"
+    },
+    "UI-FP-022:ELEMENT": {
+      "pass": true,
+      "detail": "Live Exposure element not found"
+    },
+    "UI-FP-023:ELEMENT": {
+      "pass": true,
+      "detail": "Last Fill element not found"
+    },
+    "UI-FP-024:ELEMENT": {
+      "pass": true,
+      "detail": "Last Reject element not found"
+    },
+    "UI-FP-025:ELEMENT": {
+      "pass": false,
+      "detail": "Last Latency element not found"
+    },
+    "UI-FP-026:ELEMENT": {
+      "pass": true,
+      "detail": "Account equity element not found"
+    },
+    "UI-FP-027:ELEMENT": {
+      "pass": true,
+      "detail": "Account margin element not found"
+    },
+    "UI-FP-028:ELEMENT": {
+      "pass": true,
+      "detail": "Available balance element not found"
+    },
+    "UI-FP-029:ELEMENT": {
+      "pass": false,
+      "detail": "Withdraw element not found"
+    },
+    "UI-FP-030:ELEMENT": {
+      "pass": false,
+      "detail": "Transfer element not found"
+    },
+    "UI-FP-031:ELEMENT": {
+      "pass": true,
+      "detail": "Wallet column element not found"
+    },
+    "UI-FP-032:ELEMENT": {
+      "pass": true,
+      "detail": "Mode column element not found"
+    },
+    "UI-FP-033:ELEMENT": {
+      "pass": true,
+      "detail": "Health column element not found"
+    },
+    "UI-FP-034:ELEMENT": {
+      "pass": true,
+      "detail": "Live PnL column element not found"
+    },
+    "UI-FP-035:ELEMENT": {
+      "pass": true,
+      "detail": "Lead\u2194Copy Diff column element not found"
+    },
+    "UI-FP-036:ELEMENT": {
+      "pass": true,
+      "detail": "Execution column element not found"
+    },
+    "UI-FP-037:ELEMENT": {
+      "pass": true,
+      "detail": "Risk/Exposure column element not found"
+    },
+    "UI-FP-038:ELEMENT": {
+      "pass": true,
+      "detail": "Last Fill column element not found"
+    },
+    "UI-FP-039:ELEMENT": {
+      "pass": true,
+      "detail": "Controls column element not found"
+    },
+    "UI-FP-040:ELEMENT": {
+      "pass": true,
+      "detail": "Mode select element not found"
+    },
+    "UI-FP-041:ELEMENT": {
+      "pass": false,
+      "detail": "Copy model select element not found"
+    },
+    "UI-FP-042:ELEMENT": {
+      "pass": true,
+      "detail": "F/N/B inputs element not found"
+    },
+    "UI-FP-043:ELEMENT": {
+      "pass": true,
+      "detail": "Save button element not found"
+    },
+    "UI-FP-044:ELEMENT": {
+      "pass": true,
+      "detail": "CLO button element not found"
+    },
+    "UI-FP-045:ELEMENT": {
+      "pass": true,
+      "detail": "OFF button element not found"
+    },
+    "UI-FP-046:ELEMENT": {
+      "pass": true,
+      "detail": "Archive button element not found"
+    },
+    "UI-FP-047:ELEMENT": {
+      "pass": true,
+      "detail": "Row click element not found"
+    },
+    "UI-FP-048:ELEMENT": {
+      "pass": false,
+      "detail": "Row hover element not found"
+    },
+    "UI-FP-049:ELEMENT": {
+      "pass": true,
+      "detail": "Row select element not found"
+    },
+    "UI-FP-050:ELEMENT": {
+      "pass": true,
+      "detail": "Sort wallets element not found"
+    },
+    "UI-FP-051:ELEMENT": {
+      "pass": true,
+      "detail": "Filter wallets element not found"
+    },
+    "UI-FP-052:ELEMENT": {
+      "pass": false,
+      "detail": "Search wallets element not found"
+    },
+    "UI-FP-053:ELEMENT": {
+      "pass": true,
+      "detail": "Page wallets element not found"
+    },
+    "UI-FP-054:ELEMENT": {
+      "pass": false,
+      "detail": "Export wallets element not found"
+    },
+    "UI-FP-055:ELEMENT": {
+      "pass": false,
+      "detail": "Import wallets element not found"
+    },
+    "UI-FP-056:ELEMENT": {
+      "pass": true,
+      "detail": "Refresh wallets element not found"
+    },
+    "UI-FP-057:ELEMENT": {
+      "pass": true,
+      "detail": "Auto-refresh element not found"
+    },
+    "UI-FP-058:ELEMENT": {
+      "pass": true,
+      "detail": "Manual refresh element not found"
+    },
+    "UI-FP-059:ELEMENT": {
+      "pass": true,
+      "detail": "Background refresh element not found"
+    },
+    "UI-FP-060:ELEMENT": {
+      "pass": false,
+      "detail": "Refresh interval element not found"
+    },
+    "UI-FP-061:ELEMENT": {
+      "pass": true,
+      "detail": "Positions table element not found"
+    },
+    "UI-FP-062:ELEMENT": {
+      "pass": true,
+      "detail": "Coin column element not found"
+    },
+    "UI-FP-063:ELEMENT": {
+      "pass": true,
+      "detail": "Side column element not found"
+    },
+    "UI-FP-064:ELEMENT": {
+      "pass": true,
+      "detail": "Ledger size column element not found"
+    },
+    "UI-FP-065:ELEMENT": {
+      "pass": true,
+      "detail": "Exchange size column element not found"
+    },
+    "UI-FP-066:ELEMENT": {
+      "pass": true,
+      "detail": "Entry px column element not found"
+    },
+    "UI-FP-067:ELEMENT": {
+      "pass": true,
+      "detail": "Mark px column element not found"
+    },
+    "UI-FP-068:ELEMENT": {
+      "pass": true,
+      "detail": "Pos value column element not found"
+    },
+    "UI-FP-069:ELEMENT": {
+      "pass": true,
+      "detail": "Unrealized PnL column element not found"
+    },
+    "UI-FP-070:ELEMENT": {
+      "pass": true,
+      "detail": "Leader wallet column element not found"
+    },
+    "UI-FP-071:ELEMENT": {
+      "pass": true,
+      "detail": "Status column element not found"
+    },
+    "UI-FP-072:ELEMENT": {
+      "pass": true,
+      "detail": "Last OID column element not found"
+    },
+    "UI-FP-073:ELEMENT": {
+      "pass": true,
+      "detail": "Last updated column element not found"
+    },
+    "UI-FP-074:ELEMENT": {
+      "pass": true,
+      "detail": "Sort positions element not found"
+    },
+    "UI-FP-075:ELEMENT": {
+      "pass": true,
+      "detail": "Filter positions element not found"
+    },
+    "UI-FP-076:ELEMENT": {
+      "pass": false,
+      "detail": "Search positions element not found"
+    },
+    "UI-FP-077:ELEMENT": {
+      "pass": true,
+      "detail": "Page positions element not found"
+    },
+    "UI-FP-078:ELEMENT": {
+      "pass": false,
+      "detail": "Export positions element not found"
+    },
+    "UI-FP-079:ELEMENT": {
+      "pass": false,
+      "detail": "Import positions element not found"
+    },
+    "UI-FP-080:ELEMENT": {
+      "pass": true,
+      "detail": "Refresh positions element not found"
+    },
+    "UI-FP-081:ELEMENT": {
+      "pass": true,
+      "detail": "Auto-refresh element not found"
+    },
+    "UI-FP-082:ELEMENT": {
+      "pass": true,
+      "detail": "Manual refresh element not found"
+    },
+    "UI-FP-083:ELEMENT": {
+      "pass": true,
+      "detail": "Background refresh element not found"
+    },
+    "UI-FP-084:ELEMENT": {
+      "pass": false,
+      "detail": "Refresh interval element not found"
+    },
+    "UI-FP-085:ELEMENT": {
+      "pass": true,
+      "detail": "Position detail element not found"
+    },
+    "UI-FP-086:ELEMENT": {
+      "pass": true,
+      "detail": "Position history element not found"
+    },
+    "UI-FP-087:ELEMENT": {
+      "pass": true,
+      "detail": "Position notes element not found"
+    },
+    "UI-FP-088:ELEMENT": {
+      "pass": false,
+      "detail": "Position tags element not found"
+    },
+    "UI-FP-089:ELEMENT": {
+      "pass": false,
+      "detail": "Position links element not found"
+    },
+    "UI-FP-090:ELEMENT": {
+      "pass": false,
+      "detail": "Position export element not found"
+    },
+    "UI-FP-091:ELEMENT": {
+      "pass": true,
+      "detail": "ExecQual table element not found"
+    },
+    "UI-FP-092:ELEMENT": {
+      "pass": true,
+      "detail": "Time column element not found"
+    },
+    "UI-FP-093:ELEMENT": {
+      "pass": true,
+      "detail": "Wallet column element not found"
+    },
+    "UI-FP-094:ELEMENT": {
+      "pass": true,
+      "detail": "Coin column element not found"
+    },
+    "UI-FP-095:ELEMENT": {
+      "pass": true,
+      "detail": "Side column element not found"
+    },
+    "UI-FP-096:ELEMENT": {
+      "pass": true,
+      "detail": "Status column element not found"
+    },
+    "UI-FP-097:ELEMENT": {
+      "pass": true,
+      "detail": "Limit px column element not found"
+    },
+    "UI-FP-098:ELEMENT": {
+      "pass": true,
+      "detail": "Fill avg px column element not found"
+    },
+    "UI-FP-099:ELEMENT": {
+      "pass": true,
+      "detail": "Size column element not found"
+    },
+    "UI-FP-100:ELEMENT": {
+      "pass": true,
+      "detail": "OID column element not found"
+    },
+    "UI-FP-101:ELEMENT": {
+      "pass": true,
+      "detail": "Fill-vs-limit % element not found"
+    },
+    "UI-FP-102:ELEMENT": {
+      "pass": true,
+      "detail": "Leader-vs-user % element not found"
+    },
+    "UI-FP-103:ELEMENT": {
+      "pass": true,
+      "detail": "Market slip % element not found"
+    },
+    "UI-FP-104:ELEMENT": {
+      "pass": true,
+      "detail": "Error column element not found"
+    },
+    "UI-FP-105:ELEMENT": {
+      "pass": true,
+      "detail": "Sort execqual element not found"
+    },
+    "UI-FP-106:ELEMENT": {
+      "pass": true,
+      "detail": "Filter execqual element not found"
+    },
+    "UI-FP-107:ELEMENT": {
+      "pass": false,
+      "detail": "Search execqual element not found"
+    },
+    "UI-FP-108:ELEMENT": {
+      "pass": true,
+      "detail": "Page execqual element not found"
+    },
+    "UI-FP-109:ELEMENT": {
+      "pass": false,
+      "detail": "Export execqual element not found"
+    },
+    "UI-FP-110:ELEMENT": {
+      "pass": false,
+      "detail": "Import execqual element not found"
+    },
+    "UI-FP-111:ELEMENT": {
+      "pass": true,
+      "detail": "Refresh execqual element not found"
+    },
+    "UI-FP-112:ELEMENT": {
+      "pass": true,
+      "detail": "Auto-refresh element not found"
+    },
+    "UI-FP-113:ELEMENT": {
+      "pass": true,
+      "detail": "Manual refresh element not found"
+    },
+    "UI-FP-114:ELEMENT": {
+      "pass": true,
+      "detail": "Background refresh element not found"
+    },
+    "UI-FP-115:ELEMENT": {
+      "pass": false,
+      "detail": "Refresh interval element not found"
+    },
+    "UI-FP-116:ELEMENT": {
+      "pass": true,
+      "detail": "ExecQual detail element not found"
+    },
+    "UI-FP-117:ELEMENT": {
+      "pass": true,
+      "detail": "ExecQual history element not found"
+    },
+    "UI-FP-118:ELEMENT": {
+      "pass": true,
+      "detail": "ExecQual notes element not found"
+    },
+    "UI-FP-119:ELEMENT": {
+      "pass": false,
+      "detail": "ExecQual tags element not found"
+    },
+    "UI-FP-120:ELEMENT": {
+      "pass": false,
+      "detail": "ExecQual links element not found"
+    },
+    "UI-FP-121:ELEMENT": {
+      "pass": true,
+      "detail": "Audit table element not found"
+    },
+    "UI-FP-122:ELEMENT": {
+      "pass": true,
+      "detail": "Time column element not found"
+    },
+    "UI-FP-123:ELEMENT": {
+      "pass": true,
+      "detail": "Wallet column element not found"
+    },
+    "UI-FP-124:ELEMENT": {
+      "pass": true,
+      "detail": "Coin column element not found"
+    },
+    "UI-FP-125:ELEMENT": {
+      "pass": true,
+      "detail": "Side column element not found"
+    },
+    "UI-FP-126:ELEMENT": {
+      "pass": true,
+      "detail": "Status column element not found"
+    },
+    "UI-FP-127:ELEMENT": {
+      "pass": true,
+      "detail": "Intent column element not found"
+    },
+    "UI-FP-128:ELEMENT": {
+      "pass": true,
+      "detail": "Leader price element not found"
+    },
+    "UI-FP-129:ELEMENT": {
+      "pass": true,
+      "detail": "Target price element not found"
+    },
+    "UI-FP-130:ELEMENT": {
+      "pass": true,
+      "detail": "Copy price element not found"
+    },
+    "UI-FP-131:ELEMENT": {
+      "pass": true,
+      "detail": "OID column element not found"
+    },
+    "UI-FP-132:ELEMENT": {
+      "pass": true,
+      "detail": "Error column element not found"
+    },
+    "UI-FP-133:ELEMENT": {
+      "pass": false,
+      "detail": "Created column element not found"
+    },
+    "UI-FP-134:ELEMENT": {
+      "pass": true,
+      "detail": "Updated column element not found"
+    },
+    "UI-FP-135:ELEMENT": {
+      "pass": true,
+      "detail": "Sort audit element not found"
+    },
+    "UI-FP-136:ELEMENT": {
+      "pass": true,
+      "detail": "Filter audit element not found"
+    },
+    "UI-FP-137:ELEMENT": {
+      "pass": false,
+      "detail": "Search audit element not found"
+    },
+    "UI-FP-138:ELEMENT": {
+      "pass": true,
+      "detail": "Page audit element not found"
+    },
+    "UI-FP-139:ELEMENT": {
+      "pass": false,
+      "detail": "Export audit element not found"
+    },
+    "UI-FP-140:ELEMENT": {
+      "pass": false,
+      "detail": "Import audit element not found"
+    },
+    "UI-FP-141:ELEMENT": {
+      "pass": true,
+      "detail": "Refresh audit element not found"
+    },
+    "UI-FP-142:ELEMENT": {
+      "pass": true,
+      "detail": "Auto-refresh element not found"
+    },
+    "UI-FP-143:ELEMENT": {
+      "pass": true,
+      "detail": "Manual refresh element not found"
+    },
+    "UI-FP-144:ELEMENT": {
+      "pass": true,
+      "detail": "Background refresh element not found"
+    },
+    "UI-FP-145:ELEMENT": {
+      "pass": false,
+      "detail": "Refresh interval element not found"
+    },
+    "UI-FP-146:ELEMENT": {
+      "pass": true,
+      "detail": "Audit detail element not found"
+    },
+    "UI-FP-147:ELEMENT": {
+      "pass": true,
+      "detail": "Audit history element not found"
+    },
+    "UI-FP-148:ELEMENT": {
+      "pass": true,
+      "detail": "Audit notes element not found"
+    },
+    "UI-FP-149:ELEMENT": {
+      "pass": false,
+      "detail": "Audit tags element not found"
+    },
+    "UI-FP-150:ELEMENT": {
+      "pass": false,
+      "detail": "Audit links element not found"
+    },
+    "UI-FP-151:ELEMENT": {
+      "pass": true,
+      "detail": "Recon table element not found"
+    },
+    "UI-FP-152:ELEMENT": {
+      "pass": true,
+      "detail": "Severity column element not found"
+    },
+    "UI-FP-153:ELEMENT": {
+      "pass": true,
+      "detail": "Wallet column element not found"
+    },
+    "UI-FP-154:ELEMENT": {
+      "pass": true,
+      "detail": "Coin column element not found"
+    },
+    "UI-FP-155:ELEMENT": {
+      "pass": true,
+      "detail": "Side column element not found"
+    },
+    "UI-FP-156:ELEMENT": {
+      "pass": true,
+      "detail": "Ledger size element not found"
+    },
+    "UI-FP-157:ELEMENT": {
+      "pass": true,
+      "detail": "Exchange size element not found"
+    },
+    "UI-FP-158:ELEMENT": {
+      "pass": true,
+      "detail": "Diff column element not found"
+    },
+    "UI-FP-159:ELEMENT": {
+      "pass": true,
+      "detail": "Status column element not found"
+    },
+    "UI-FP-160:ELEMENT": {
+      "pass": true,
+      "detail": "Last OID element not found"
+    },
+    "UI-FP-161:ELEMENT": {
+      "pass": true,
+      "detail": "Last updated element not found"
+    },
+    "UI-FP-162:ELEMENT": {
+      "pass": true,
+      "detail": "Note column element not found"
+    },
+    "UI-FP-163:ELEMENT": {
+      "pass": true,
+      "detail": "Sort recon element not found"
+    },
+    "UI-FP-164:ELEMENT": {
+      "pass": true,
+      "detail": "Filter recon element not found"
+    },
+    "UI-FP-165:ELEMENT": {
+      "pass": false,
+      "detail": "Search recon element not found"
+    },
+    "UI-FP-166:ELEMENT": {
+      "pass": true,
+      "detail": "Page recon element not found"
+    },
+    "UI-FP-167:ELEMENT": {
+      "pass": false,
+      "detail": "Export recon element not found"
+    },
+    "UI-FP-168:ELEMENT": {
+      "pass": false,
+      "detail": "Import recon element not found"
+    },
+    "UI-FP-169:ELEMENT": {
+      "pass": true,
+      "detail": "Refresh recon element not found"
+    },
+    "UI-FP-170:ELEMENT": {
+      "pass": true,
+      "detail": "Auto-refresh element not found"
+    },
+    "UI-FP-171:ELEMENT": {
+      "pass": true,
+      "detail": "WS table element not found"
+    },
+    "UI-FP-172:ELEMENT": {
+      "pass": true,
+      "detail": "Wallet column element not found"
+    },
+    "UI-FP-173:ELEMENT": {
+      "pass": true,
+      "detail": "Current column element not found"
+    },
+    "UI-FP-174:ELEMENT": {
+      "pass": true,
+      "detail": "Grade column element not found"
+    },
+    "UI-FP-175:ELEMENT": {
+      "pass": false,
+      "detail": "Latency column element not found"
+    },
+    "UI-FP-176:ELEMENT": {
+      "pass": true,
+      "detail": "Status column element not found"
+    },
+    "UI-FP-177:ELEMENT": {
+      "pass": true,
+      "detail": "Last message element not found"
+    },
+    "UI-FP-178:ELEMENT": {
+      "pass": false,
+      "detail": "Subscribed element not found"
+    },
+    "UI-FP-179:ELEMENT": {
+      "pass": false,
+      "detail": "Subs count element not found"
+    },
+    "UI-FP-180:ELEMENT": {
+      "pass": true,
+      "detail": "Thread column element not found"
+    },
+    "UI-FP-181:ELEMENT": {
+      "pass": false,
+      "detail": "Socket column element not found"
+    },
+    "UI-FP-182:ELEMENT": {
+      "pass": false,
+      "detail": "Connects column element not found"
+    },
+    "UI-FP-183:ELEMENT": {
+      "pass": false,
+      "detail": "Disconnects column element not found"
+    },
+    "UI-FP-184:ELEMENT": {
+      "pass": false,
+      "detail": "Errors column element not found"
+    },
+    "UI-FP-185:ELEMENT": {
+      "pass": false,
+      "detail": "Messages column element not found"
+    },
+    "UI-FP-186:ELEMENT": {
+      "pass": false,
+      "detail": "Bytes column element not found"
+    },
+    "UI-FP-187:ELEMENT": {
+      "pass": false,
+      "detail": "Uptime column element not found"
+    },
+    "UI-FP-188:ELEMENT": {
+      "pass": true,
+      "detail": "Sort WS element not found"
+    },
+    "UI-FP-189:ELEMENT": {
+      "pass": true,
+      "detail": "Filter WS element not found"
+    },
+    "UI-FP-190:ELEMENT": {
+      "pass": false,
+      "detail": "Search WS element not found"
+    },
+    "UI-FP-191:ELEMENT": {
+      "pass": true,
+      "detail": "Page WS element not found"
+    },
+    "UI-FP-192:ELEMENT": {
+      "pass": false,
+      "detail": "Export WS element not found"
+    },
+    "UI-FP-193:ELEMENT": {
+      "pass": false,
+      "detail": "Import WS element not found"
+    },
+    "UI-FP-194:ELEMENT": {
+      "pass": true,
+      "detail": "Refresh WS element not found"
+    },
+    "UI-FP-195:ELEMENT": {
+      "pass": true,
+      "detail": "Auto-refresh element not found"
+    },
+    "UI-FP-196:ELEMENT": {
+      "pass": true,
+      "detail": "Manual refresh element not found"
+    },
+    "UI-FP-197:ELEMENT": {
+      "pass": true,
+      "detail": "Background refresh element not found"
+    },
+    "UI-TRUTH-001:TRUTH_TIERS_PRESENT": {
+      "pass": true,
+      "detail": "Truth tiers found: ['STALE']"
+    },
+    "UI-TRUTH-002:CONDITIONAL_GREEN": {
+      "pass": true,
+      "detail": "Green styling should be conditional"
+    },
+    "UI-TRUTH-003:READ_ONLY_OBSERVER": {
+      "pass": false,
+      "detail": "UI should be read-only observer"
+    },
+    "UI-TRUTH-004:FRESHNESS_SHOWN": {
+      "pass": true,
+      "detail": "Freshness indicator missing"
+    },
+    "INC-13:DISPLAYED_TARGET_GATED": {
+      "pass": true,
+      "detail": "Target gating not implemented"
+    },
+    "INC-14:NO_FALSE_BUDGET": {
+      "pass": true,
+      "detail": "False budget detected"
+    },
+    "INC-15:CLOSE_ONLY_VISIBLE": {
+      "pass": true,
+      "detail": "Close-only mode not visible"
+    },
+    "INC-16:MODE_TRANSITION_VISIBLE": {
+      "pass": true,
+      "detail": "Mode transition not visible"
+    },
+    "INC-17:ERROR_SURFACED": {
+      "pass": true,
+      "detail": "Error not surfaced"
+    }
+  },
+  "negative_tests": {
+    "UI-LCC-HDR-01:NO_WALLETS_FALLBACK": {
+      "pass": true,
+      "detail": "Empty wallet list should show 0 / 10, not 0 or empty"
+    },
+    "UI-LCC-HDR-02:MODE_COUNT_FALLBACK": {
+      "pass": true,
+      "detail": "Mode counts element missing"
+    },
+    "UI-LCC-HDR-03:AUTOSEND_FALLBACK": {
+      "pass": true,
+      "detail": "Auto-send fallback text 'n/a' missing"
+    },
+    "UI-LCC-HDR-04:WS_OFFLINE_FALLBACK": {
+      "pass": true,
+      "detail": "WS offline fallback 'OFFLINE' missing"
+    },
+    "UI-LCC-HDR-05:REAL_ORDERS_FALLBACK": {
+      "pass": true,
+      "detail": "REAL ORDERS fallback 'n/a' missing"
+    },
+    "UI-LCC-HDR-06:STATUS_FALLBACK": {
+      "pass": true,
+      "detail": "Status element missing"
+    },
+    "UI-LCC-BTN-01:REFRESH_ERROR_SHOWN": {
+      "pass": true,
+      "detail": "Refresh error display missing"
+    },
+    "UI-LCC-BTN-02:GC_TOGGLE_FALLBACK": {
+      "pass": true,
+      "detail": "GC toggle missing"
+    },
+    "UI-LCC-BTN-03:ADD_WALLET_FALLBACK": {
+      "pass": true,
+      "detail": "Add wallet modal missing"
+    },
+    "UI-LCC-BTN-04:GC_CLOSE_FALLBACK": {
+      "pass": true,
+      "detail": "GC close missing"
+    },
+    "UI-LCC-BTN-05:GC_SAVE_FALLBACK": {
+      "pass": true,
+      "detail": "GC save missing"
+    },
+    "UI-LCC-CARD-01:UNAVAILABLE_FALLBACK": {
+      "pass": true,
+      "detail": "Missing data should show Unavailable/n/a"
+    },
+    "UI-LCC-CARD-02:NO_FALSE_GREEN": {
+      "pass": true,
+      "detail": "No false green status when unavailable"
+    },
+    "UI-LCC-WTBL-01:NO_WALLETS_MESSAGE": {
+      "pass": true,
+      "detail": "Empty wallet list message missing"
+    },
+    "UI-LCC-WTBL-02:LOADING_STATE": {
+      "pass": true,
+      "detail": "Loading state not shown"
+    },
+    "UI-LCC-POS-01:NO_POSITIONS_MESSAGE": {
+      "pass": true,
+      "detail": "Empty positions message missing"
+    },
+    "UI-LCC-POS-02:STATUS_FALLBACK": {
+      "pass": true,
+      "detail": "Exchange unavailable fallback missing"
+    },
+    "UI-LCC-EXQ-01:NO_FILLS_MESSAGE": {
+      "pass": true,
+      "detail": "Empty fills message missing"
+    },
+    "UI-LCC-EXQ-02:ERROR_DISPLAYED": {
+      "pass": true,
+      "detail": "Error column missing"
+    },
+    "UI-LCC-AUD-01:NO_AUDITS_MESSAGE": {
+      "pass": true,
+      "detail": "Empty audit message missing"
+    },
+    "UI-LCC-DETAIL-01:NO_DETAIL_FALLBACK": {
+      "pass": true,
+      "detail": "Missing detail fallback missing"
+    },
+    "UI-LCC-GRAPH-01:EMPTY_GRAPH_FALLBACK": {
+      "pass": true,
+      "detail": "Empty graph fallback missing"
+    },
+    "UI-LCC-GRAPH-02:GRAPH_LEGEND": {
+      "pass": true,
+      "detail": "Graph legend lines missing"
+    },
+    "UI-LCC-ADD-01:VALIDATION_FALLBACK": {
+      "pass": true,
+      "detail": "Validation fallback missing"
+    },
+    "UI-LCC-ADD-02:DISABLED_WALLET_FALLBACK": {
+      "pass": true,
+      "detail": "Disabled wallet fallback missing"
+    },
+    "UI-LCC-REC-01:NO_RECON_MESSAGE": {
+      "pass": true,
+      "detail": "Empty reconciliation message missing"
+    },
+    "UI-LCC-TAB-01:ACTIVE_TAB": {
+      "pass": true,
+      "detail": "No active tab panel"
+    },
+    "UI-LCC-TAB-02:TAB_SWITCHING": {
+      "pass": true,
+      "detail": "Tab switching not implemented"
+    },
+    "UI-LCC-WS-01:NO_WS_MESSAGE": {
+      "pass": true,
+      "detail": "WS unavailable message missing"
+    },
+    "UI-LCC-WS-02:WS_OFFLINE_FALLBACK": {
+      "pass": true,
+      "detail": "WS offline fallback missing"
+    },
+    "UI-SSOT-TOP-01:EMPTY_STATE_FALLBACK": {
+      "pass": true,
+      "detail": "Empty state fallback missing"
+    },
+    "UI-SSOT-TBL-01:NO_WALLETS_FALLBACK": {
+      "pass": true,
+      "detail": "No wallets fallback missing"
+    },
+    "UI-FP-001:HEADER_FALLBACK": {
+      "pass": true,
+      "detail": "Header fallback missing"
+    },
+    "UI-FP-002:SAFETY_STRIP_FALLBACK": {
+      "pass": true,
+      "detail": "Safety strip fallback missing"
+    },
+    "UI-FP-003:WS_FALLBACK": {
+      "pass": true,
+      "detail": "WS fallback missing"
+    },
+    "UI-FP-004:NO_DATA_FALLBACK": {
+      "pass": true,
+      "detail": "No data fallback missing"
+    },
+    "UI-TRUTH-001:NO_TRUTH_TIER_FALLBACK": {
+      "pass": true,
+      "detail": "Missing truth tier fallback missing"
+    },
+    "UI-TRUTH-002:NO_FALSE_GREEN": {
+      "pass": true,
+      "detail": "No false green when unavailable"
+    },
+    "UI-TRUTH-003:READ_ONLY_VERIFIED": {
+      "pass": true,
+      "detail": "UI should only fetch, not mutate"
+    },
+    "UI-TRUTH-004:STALE_DATA_FLAG": {
+      "pass": true,
+      "detail": "Stale data flag missing"
+    },
+    "INC-13:TARGET_GATE_VERIFIED": {
+      "pass": true,
+      "detail": "Target gate not verified"
+    },
+    "INC-14:NO_DECORATIVE_INPUT": {
+      "pass": true,
+      "detail": "Decorative input detected"
+    },
+    "INC-15:CLOSE_ONLY_WITH_EXPOSURE": {
+      "pass": true,
+      "detail": "Close-only with exposure not handled"
+    },
+    "INC-16:MODE_TRANSITION_ERROR": {
+      "pass": true,
+      "detail": "Mode transition error not handled"
+    },
+    "INC-17:ERROR_DISPLAYED": {
+      "pass": true,
+      "detail": "Error display missing"
+    }
+  },
+  "blocked": [
+    {
+      "id": "TN-F14",
+      "reason": "Requires live testnet scenario with UI control that looks real but does not govern"
+    },
+    {
+      "id": "TN-F22",
+      "reason": "Requires live testnet scenario with UI minimum/config authority confusion test"
+    },
+    {
+      "id": "TN-F23",
+      "reason": "Requires live testnet scenario with UI account/position/open-order/render test"
+    }
+  ],
+  "summary": {
+    "total_checks": 431,
+    "passed_checks": 342,
+    "failed_checks": 89,
+    "total_negative_tests": 45,
+    "passed_negative_tests": 45,
+    "failed_negative_tests": 0,
+    "blocked_count": 3
+  }
+}

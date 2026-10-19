@@ -1,0 +1,121 @@
+{
+  "certification": "ENG-015-016-TNF17",
+  "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+  "tested_at_utc": "2026-10-14T05:22:23.067602+00:00",
+  "file_info": {
+    "convergence_shadow.py": {
+      "path": "C:\\Users\\wigmore\\hyperliquid-build3-repair\\_archive\\hl_stage2\\convergence_shadow.py",
+      "sha256": "f63732d5f132cd7052e08f78c02d5434cf11167c7aaeceffc8084b1b96cc481d",
+      "lines": 250
+    },
+    "exchange_truth.py": {
+      "path": "C:\\Users\\wigmore\\hyperliquid-build3-repair\\_archive\\hl_stage2\\exchange_truth.py",
+      "sha256": "6f841fd7e6a4d4b72c4a5c4c7390f88addb627602199c6a14cfa2851d849b6ff",
+      "lines": 340
+    },
+    "HL_Live_Copy_Service_Core.py": {
+      "path": "C:\\Users\\wigmore\\hyperliquid-build3-repair\\_archive\\hl_stage2\\HL_Live_Copy_Service_Core.py",
+      "sha256": "2dfbd571012af67479ee7a2d9e6f1faac6ee5408722a092fb3625450cab51405",
+      "lines": 8030
+    },
+    "HL_Live_Copy_Service.py": {
+      "path": "C:\\Users\\wigmore\\hyperliquid-build3-repair\\_archive\\hl_stage2\\HL_Live_Copy_Service.py",
+      "sha256": "e2f04fa826958c73169bae2490a6ebb3ebfd09d9aecda513ef0d7bd8a10ec2c6",
+      "lines": 5109
+    },
+    "test_g2_copy_correctness.py": {
+      "path": "C:\\Users\\wigmore\\hyperliquid-build3-repair\\_archive\\hl_stage2\\test_g2_copy_correctness.py",
+      "sha256": "16fcfd54fc7b77f51e2b593d3f7e0522bf71bb517f342746e87e275979650594",
+      "lines": 415
+    },
+    "test_g3_exchange_truth.py": {
+      "path": "C:\\Users\\wigmore\\hyperliquid-build3-repair\\_archive\\hl_stage2\\test_g3_exchange_truth.py",
+      "sha256": "fa9696c5188d1ef5ed786ea3a530e6b14ae8ed7f1e55a1dac91d2eeb02c353b1",
+      "lines": 331
+    },
+    "test_g4_fixed_slices.py": {
+      "path": "C:\\Users\\wigmore\\hyperliquid-build3-repair\\_archive\\hl_stage2\\test_g4_fixed_slices.py",
+      "sha256": "c2dc9fd110fb06265b49165d55d9c8f0fdddaa7f34a2071ce2ea7e5e4e52f12c",
+      "lines": 161
+    }
+  },
+  "checks": [
+    {
+      "name": "ENG-015_POSITIVE_convergence_shadow_selftest",
+      "status": "PASS",
+      "detail": "rc=0 disaster=True invariant=True idempotent=True sign_flip_leg1=True sign_flip_leg2=True"
+    },
+    {
+      "name": "ENG-016_POSITIVE_reconcile_sleeve_excludes_unattributed",
+      "status": "PASS",
+      "detail": "rc=0"
+    },
+    {
+      "name": "TN-F17_POSITIVE_direction_from_position",
+      "status": "PASS",
+      "detail": "rc=0"
+    },
+    {
+      "name": "ENG-015_STATIC_sign_flip_two_leg_code",
+      "status": "PASS",
+      "detail": "sign_flip_block=True reduce_only=True pending_open=True invariant_doc=True"
+    },
+    {
+      "name": "ENG-016_STATIC_unattributed_attribution_only",
+      "status": "PASS",
+      "detail": "has_unattributed=True attribution_only=True reconcile=True"
+    },
+    {
+      "name": "TN-F17_STATIC_direction_from_position",
+      "status": "PASS",
+      "detail": "direction_from_size=True uses_size=True planner_authoritative=True"
+    },
+    {
+      "name": "ENG-015_NEGATIVE_sign_flip_must_fail",
+      "status": "PASS",
+      "detail": "rc=1 selftest_fail=True sign_flip_fail=True"
+    },
+    {
+      "name": "ENG-016_NEGATIVE_unattributed_must_fail",
+      "status": "PASS",
+      "detail": "rc=0 detected=True"
+    },
+    {
+      "name": "TN-F17_NEGATIVE_direction_must_fail",
+      "status": "PASS",
+      "detail": "rc=1 test_failed=True"
+    }
+  ],
+  "mutations": [
+    {
+      "id": "ENG-015_negative_1",
+      "mutation": "Removed sign-flip two-leg split; replaced with single crossing order",
+      "file": "_tmp_eng015_mutated.py",
+      "expected": "FAIL",
+      "actual": "FAIL",
+      "non_vacuous": true
+    },
+    {
+      "id": "ENG-016_negative_1",
+      "mutation": "Removed unattributed_net subtraction from reconcile_sleeve",
+      "file": "_tmp_eng016_mutated.py",
+      "expected": "FAIL (divergence detected)",
+      "actual": "FAIL",
+      "non_vacuous": true
+    },
+    {
+      "id": "TN-F17_negative_1",
+      "mutation": "direction_from_size always returns LONG regardless of position",
+      "file": "_tmp_tnf17_mutated.py",
+      "expected": "FAIL",
+      "actual": "FAIL",
+      "non_vacuous": true
+    }
+  ],
+  "row_results": {
+    "ENG-015": "PASS",
+    "ENG-016": "PASS",
+    "TN-F17": "PASS"
+  },
+  "verdict": "PASS"
+}

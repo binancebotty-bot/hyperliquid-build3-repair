@@ -1,0 +1,134 @@
+{
+  "harness": "RHC_RESIDUAL_harness_2a269ad.py",
+  "tested_commit": "2a269ad2260270fee844eedc2cc23545abc91dd0",
+  "tested_at_utc": "2026-10-14T11:37:50Z",
+  "engine_sha256": "2dfbd571012af67479ee7a2d9e6f1faac6ee5408722a092fb3625450cab51405",
+  "engine_lines": 8030,
+  "total_checks": 12,
+  "passed": 12,
+  "failed": 0,
+  "negative_tests": {
+    "total": 11,
+    "passed": 11,
+    "failed": 0
+  },
+  "checks": [
+    {
+      "name": "ENGINE_SHA256_MATCH",
+      "pass": true,
+      "detail": "expected=2dfbd571012af67479ee7a2d9e6f1faac6ee5408722a092fb3625450cab51405 actual=2dfbd571012af67479ee7a2d9e6f1faac6ee5408722a092fb3625450cab51405"
+    },
+    {
+      "name": "F-EXC-016:UI_VALUE_NOT_AUTHORITATIVE",
+      "pass": true,
+      "detail": "WS disabled -> ws_grade=DISABLED (non-authoritative)"
+    },
+    {
+      "name": "F-UI-001:TRUTH_TIER_ON_ALL_CELLS",
+      "pass": true,
+      "detail": "All 5 UI fields carry truth values"
+    },
+    {
+      "name": "F-UI-002:DATA_AGE_AND_SOURCE_VISIBLE",
+      "pass": true,
+      "detail": "last_copy_poll_age_ms=0, ws_stale_count=0"
+    },
+    {
+      "name": "F-UI-003:GREEN_FROM_EXCHANGE_TRUTH",
+      "pass": true,
+      "detail": "Integrity counts: COPIED_AND_RECONCILED=0, ACTIVE_RED=0"
+    },
+    {
+      "name": "INC-01:ALL_POSITIONS_VISIBLE",
+      "pass": true,
+      "detail": "All 3 positions captured: recon_status=LEDGER_EXCHANGE_NET_MISMATCH"
+    },
+    {
+      "name": "INC-03:DIVERGENCE_SURFACED",
+      "pass": true,
+      "detail": "Divergence detected: 1 recon rows"
+    },
+    {
+      "name": "INC-10:UNPROVEN_SEND_IS_ACTIVE_RED",
+      "pass": true,
+      "detail": "Unproven send -> ACTIVE_RED=1"
+    },
+    {
+      "name": "HEALTH-001:WS_STATE_VISIBLE",
+      "pass": true,
+      "detail": "WS state visible: status=WS_OK, reconnects=3"
+    },
+    {
+      "name": "HEALTH-005:DIAGNOSTICS_NEVER_BLOCK",
+      "pass": true,
+      "detail": "Diagnostics ran, then cycle completed: intents=1"
+    },
+    {
+      "name": "INC-11:ENGINE_DEATH_VISIBLE",
+      "pass": true,
+      "detail": "Engine liveness: process_id=37588"
+    },
+    {
+      "name": "DONE-10:HUMAN_DECISION_ROUTED",
+      "pass": true,
+      "detail": "control-mailbox branch exists with control_mailbox/ structure"
+    }
+  ],
+  "negative_tests_detail": [
+    {
+      "name": "F-EXC-016:NEG_WS_ACTIVE_AUTHORITATIVE",
+      "pass": true,
+      "detail": "WS active -> ws_grade=OK, ws_status=WS_OK (authoritative)"
+    },
+    {
+      "name": "F-UI-001:NEG_NO_MISSING_TRUTH_TIER",
+      "pass": true,
+      "detail": "All 5 required UI fields present and non-null"
+    },
+    {
+      "name": "F-UI-002:NEG_STALE_AFFECTS_STATUS",
+      "pass": true,
+      "detail": "Stale WS -> ws_status=WS_DEGRADED, stale_count=1"
+    },
+    {
+      "name": "F-UI-003:NEG_ENGINE_NARRATIVE_NOT_GREEN",
+      "pass": true,
+      "detail": "Unproven send -> ACTIVE_RED=1 (not green)"
+    },
+    {
+      "name": "INC-01:NEG_NO_PHANTOM_POSITIONS",
+      "pass": true,
+      "detail": "No phantom positions: only verified exchange positions shown"
+    },
+    {
+      "name": "INC-03:NEG_NO_FALSE_DIVERGENCE",
+      "pass": true,
+      "detail": "No divergence for matching positions (1 recon rows)"
+    },
+    {
+      "name": "INC-10:NEG_PROVEN_SEND_NOT_ACTIVE_RED",
+      "pass": true,
+      "detail": "Proven send -> COPIED_AND_RECONCILED=1, ACTIVE_RED=0"
+    },
+    {
+      "name": "HEALTH-001:NEG_STALE_FLAGGED",
+      "pass": true,
+      "detail": "Stale WS -> ws_stale_count=1, grade=DEGRADED"
+    },
+    {
+      "name": "HEALTH-005:NEG_DIAGNOSTICS_SURFACE_NOT_BLOCK",
+      "pass": true,
+      "detail": "Diagnostics did not block: intents=1"
+    },
+    {
+      "name": "INC-11:NEG_STALE_STATE_DETECTABLE",
+      "pass": true,
+      "detail": "Stale state detected: age=3600008ms"
+    },
+    {
+      "name": "DONE-10:NEG_NO_AUTO_LIVE",
+      "pass": true,
+      "detail": "No auto-LIVE: default_network=''"
+    }
+  ]
+}

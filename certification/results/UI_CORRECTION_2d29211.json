@@ -1,0 +1,1890 @@
+{
+  "task_id": "t_1431db5b",
+  "title": "B3-CERT UI CORRECTION [evidence] commit artifact; derive expected headers from spec; assert the row's data property not a guessed header list",
+  "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+  "tested_at_utc": "2026-10-14T11:49:07.070615+00:00",
+  "engine_sha256": "2dfbd571012af67479ee7a2d9e6f1faac6ee5408722a092fb3625450cab51405",
+  "checks": {
+    "ENGINE_SHA256_MATCH": {
+      "pass": true,
+      "detail": "expected=2dfbd571012af67479ee7a2d9e6f1faac6ee5408722a092fb3625450cab51405 actual=2dfbd571012af67479ee7a2d9e6f1faac6ee5408722a092fb3625450cab51405"
+    },
+    "RENDER_HOME:EXECUTES": {
+      "pass": true,
+      "detail": ""
+    },
+    "RENDER_HOME:WALLET_ADDRESS_BOUND": {
+      "pass": true,
+      "detail": "Wallet address from state not found in rendered HTML"
+    },
+    "RENDER_HOME:ENGINE_TRUTH_BOUNDARY_BOUND": {
+      "pass": true,
+      "detail": "engine_truth_boundary from state not found in rendered HTML"
+    },
+    "RENDER_HOME:UPDATED_AT_BOUND": {
+      "pass": true,
+      "detail": "updated_at from state not found in rendered HTML"
+    },
+    "RENDER_HOME:NORM_BASE_BOUND": {
+      "pass": true,
+      "detail": "norm_base from state not found in rendered HTML"
+    },
+    "RENDER_HOME:COPY_MODE_BOUND": {
+      "pass": true,
+      "detail": "copy_mode from state not found in rendered HTML"
+    },
+    "RENDER_HOME:TBL_HEADER_01": {
+      "pass": true,
+      "detail": "Header 'WALLET' vs rendered 'WALLET'"
+    },
+    "RENDER_HOME:TBL_HEADER_02": {
+      "pass": true,
+      "detail": "Header '' vs rendered ''"
+    },
+    "RENDER_HOME:TBL_HEADER_03": {
+      "pass": true,
+      "detail": "Header '' vs rendered ''"
+    },
+    "RENDER_HOME:TBL_HEADER_04": {
+      "pass": true,
+      "detail": "Header '' vs rendered ''"
+    },
+    "RENDER_HOME:TBL_HEADER_05": {
+      "pass": true,
+      "detail": "Header '' vs rendered ''"
+    },
+    "RENDER_HOME:TBL_HEADER_06": {
+      "pass": true,
+      "detail": "Header '' vs rendered ''"
+    },
+    "RENDER_HOME:TBL_HEADER_07": {
+      "pass": true,
+      "detail": "Header '' vs rendered ''"
+    },
+    "RENDER_HOME:TBL_HEADER_08": {
+      "pass": true,
+      "detail": "Header '' vs rendered ''"
+    },
+    "RENDER_HOME:TBL_HEADER_09": {
+      "pass": true,
+      "detail": "Header '' vs rendered ''"
+    },
+    "RENDER_HOME:TBL_HEADER_10": {
+      "pass": true,
+      "detail": "Header '' vs rendered ''"
+    },
+    "RENDER_HOME:TBL_HEADER_11": {
+      "pass": true,
+      "detail": "Header '' vs rendered ''"
+    },
+    "RENDER_HOME:TBL_HEADER_12": {
+      "pass": true,
+      "detail": "Header '' vs rendered ''"
+    },
+    "RENDER_HOME:TBL_HEADER_13": {
+      "pass": true,
+      "detail": "Header '' vs rendered ''"
+    },
+    "RENDER_HOME:TBL_HEADER_14": {
+      "pass": true,
+      "detail": "Header '' vs rendered ''"
+    },
+    "RENDER_HOME:TBL_HEADER_15": {
+      "pass": true,
+      "detail": "Header '' vs rendered ''"
+    },
+    "RENDER_HOME:TBL_HEADER_16": {
+      "pass": true,
+      "detail": "Header '' vs rendered ''"
+    },
+    "RENDER_HOME:TBL_HEADER_17": {
+      "pass": true,
+      "detail": "Header '' vs rendered ''"
+    },
+    "RENDER_HOME:TBL_HEADER_18": {
+      "pass": true,
+      "detail": "Header '' vs rendered ''"
+    },
+    "RENDER_HOME:TBL_HEADER_19": {
+      "pass": true,
+      "detail": "Header '' vs rendered ''"
+    },
+    "RENDER_HOME:TBL_HEADER_20": {
+      "pass": true,
+      "detail": "Header '' vs rendered ''"
+    },
+    "RENDER_HOME:TBL_HEADER_21": {
+      "pass": true,
+      "detail": "Header '' vs rendered ''"
+    },
+    "RENDER_HOME:TBL_HEADER_22": {
+      "pass": true,
+      "detail": "Header '' vs rendered ''"
+    },
+    "RENDER_HOME:TBL_HEADER_23": {
+      "pass": true,
+      "detail": "Header '' vs rendered ''"
+    },
+    "RENDER_HOME:TBL_HEADER_24": {
+      "pass": true,
+      "detail": "Header 'INC / WALLET MODEL' vs rendered 'INC / WALLET MODEL'"
+    },
+    "RENDER_HOME:EMPTY_STATE_FALLBACK": {
+      "pass": true,
+      "detail": "Empty state should show fallback values"
+    },
+    "RENDER_ROW:EXECUTES": {
+      "pass": true,
+      "detail": ""
+    },
+    "RENDER_ROW:WALLET_BOUND": {
+      "pass": true,
+      "detail": "Wallet address not found in rendered row"
+    },
+    "RENDER_ROW:MODE_BOUND": {
+      "pass": true,
+      "detail": "Effective copy mode not found in rendered row"
+    },
+    "RENDER_ROW:PNL_BOUND": {
+      "pass": true,
+      "detail": "Lead equity not found in rendered row"
+    },
+    "RENDER_ROW:DIFF_BOUND": {
+      "pass": true,
+      "detail": "Delta equity not found in rendered row"
+    },
+    "RENDER_ROW:HEALTH_BOUND": {
+      "pass": false,
+      "detail": "Health indicator not found in rendered row"
+    },
+    "RENDER_ROW:EXPOSURE_BOUND": {
+      "pass": true,
+      "detail": "Copy equity not found in rendered row"
+    },
+    "RENDER_ROW:EMPTY_FALLBACK": {
+      "pass": true,
+      "detail": "Empty row should show fallback values"
+    },
+    "UI-LCC-WTBL-01:TABLE_EXISTS": {
+      "pass": true,
+      "detail": "tbody#lcWalletRows not found"
+    },
+    "UI-LCC-WTBL-01:COLUMN_COUNT": {
+      "pass": true,
+      "detail": "Column count mismatch: expected 8, got 8"
+    },
+    "UI-LCC-WTBL-01:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Wallet' does not match SSOT 'Wallet'"
+    },
+    "UI-LCC-WTBL-02:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Mode / Health' does not match SSOT 'Mode / Health'"
+    },
+    "UI-LCC-WTBL-03:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Live PnL' does not match SSOT 'Live PnL'"
+    },
+    "UI-LCC-WTBL-04:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Lead\u2194Copy Diff' does not match SSOT 'Lead\u2194Copy Diff'"
+    },
+    "UI-LCC-WTBL-05:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Execution' does not match SSOT 'Execution'"
+    },
+    "UI-LCC-WTBL-06:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Risk / Exposure' does not match SSOT 'Risk / Exposure'"
+    },
+    "UI-LCC-WTBL-07:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Last Fill' does not match SSOT 'Last Fill'"
+    },
+    "UI-LCC-WTBL-08:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Controls' does not match SSOT 'Controls'"
+    },
+    "UI-LCC-POS-01:TABLE_EXISTS": {
+      "pass": true,
+      "detail": "tbody#lcPositionRows not found"
+    },
+    "UI-LCC-POS-01:COLUMN_COUNT": {
+      "pass": true,
+      "detail": "Column count mismatch: expected 12, got 12"
+    },
+    "UI-LCC-POS-01:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Coin' does not match SSOT 'Coin'"
+    },
+    "UI-LCC-POS-02:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Side' does not match SSOT 'Side'"
+    },
+    "UI-LCC-POS-03:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Ledger size' does not match SSOT 'Ledger size'"
+    },
+    "UI-LCC-POS-04:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Exchange size' does not match SSOT 'Exchange size'"
+    },
+    "UI-LCC-POS-05:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Entry px' does not match SSOT 'Entry px'"
+    },
+    "UI-LCC-POS-06:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Mark px' does not match SSOT 'Mark px'"
+    },
+    "UI-LCC-POS-07:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Pos value' does not match SSOT 'Pos value'"
+    },
+    "UI-LCC-POS-08:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Unrealized PnL' does not match SSOT 'Unrealized PnL'"
+    },
+    "UI-LCC-POS-09:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Leader wallet' does not match SSOT 'Leader wallet'"
+    },
+    "UI-LCC-POS-10:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Status' does not match SSOT 'Status'"
+    },
+    "UI-LCC-POS-11:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Last OID' does not match SSOT 'Last OID'"
+    },
+    "UI-LCC-POS-12:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Last updated' does not match SSOT 'Last updated'"
+    },
+    "UI-LCC-EXQ-01:TABLE_EXISTS": {
+      "pass": true,
+      "detail": "tbody#lcExecQualRows not found"
+    },
+    "UI-LCC-EXQ-01:COLUMN_COUNT": {
+      "pass": true,
+      "detail": "Column count mismatch: expected 13, got 13"
+    },
+    "UI-LCC-EXQ-01:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Time' does not match SSOT 'Time'"
+    },
+    "UI-LCC-EXQ-02:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Wallet' does not match SSOT 'Wallet'"
+    },
+    "UI-LCC-EXQ-03:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Coin' does not match SSOT 'Coin'"
+    },
+    "UI-LCC-EXQ-04:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Side' does not match SSOT 'Side'"
+    },
+    "UI-LCC-EXQ-05:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Status' does not match SSOT 'Status'"
+    },
+    "UI-LCC-EXQ-06:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Limit px' does not match SSOT 'Limit px'"
+    },
+    "UI-LCC-EXQ-07:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Fill avg px' does not match SSOT 'Fill avg px'"
+    },
+    "UI-LCC-EXQ-08:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Size' does not match SSOT 'Size'"
+    },
+    "UI-LCC-EXQ-09:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'OID' does not match SSOT 'OID'"
+    },
+    "UI-LCC-EXQ-10:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Fill-vs-limit %' does not match SSOT 'Fill-vs-limit %'"
+    },
+    "UI-LCC-EXQ-11:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Leader-vs-user %' does not match SSOT 'Leader-vs-user %'"
+    },
+    "UI-LCC-EXQ-12:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Market slip %' does not match SSOT 'Market slip %'"
+    },
+    "UI-LCC-EXQ-13:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Error' does not match SSOT 'Error'"
+    },
+    "UI-LCC-AUD-01:TABLE_EXISTS": {
+      "pass": true,
+      "detail": "tbody#lcAuditRows not found"
+    },
+    "UI-LCC-AUD-01:COLUMN_COUNT": {
+      "pass": true,
+      "detail": "Column count mismatch: expected 13, got 13"
+    },
+    "UI-LCC-AUD-01:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Time' does not match SSOT 'Time'"
+    },
+    "UI-LCC-AUD-02:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Wallet' does not match SSOT 'Wallet'"
+    },
+    "UI-LCC-AUD-03:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Coin' does not match SSOT 'Coin'"
+    },
+    "UI-LCC-AUD-04:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Side' does not match SSOT 'Side'"
+    },
+    "UI-LCC-AUD-05:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Source/Reason' does not match SSOT 'Source/Reason'"
+    },
+    "UI-LCC-AUD-06:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Status' does not match SSOT 'Status'"
+    },
+    "UI-LCC-AUD-07:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Decision' does not match SSOT 'Decision'"
+    },
+    "UI-LCC-AUD-08:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Decision reason' does not match SSOT 'Decision reason'"
+    },
+    "UI-LCC-AUD-09:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Suggested limit' does not match SSOT 'Suggested limit'"
+    },
+    "UI-LCC-AUD-10:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Diff %' does not match SSOT 'Diff %'"
+    },
+    "UI-LCC-AUD-11:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Manual?' does not match SSOT 'Manual?'"
+    },
+    "UI-LCC-AUD-12:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Intent note' does not match SSOT 'Intent note'"
+    },
+    "UI-LCC-AUD-13:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Real order result' does not match SSOT 'Real order result'"
+    },
+    "UI-LCC-REC-01:TABLE_EXISTS": {
+      "pass": true,
+      "detail": "tbody#lcReconRows not found"
+    },
+    "UI-LCC-REC-01:COLUMN_COUNT": {
+      "pass": true,
+      "detail": "Column count mismatch: expected 11, got 11"
+    },
+    "UI-LCC-REC-01:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Severity' does not match SSOT 'Severity'"
+    },
+    "UI-LCC-REC-02:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Wallet' does not match SSOT 'Wallet'"
+    },
+    "UI-LCC-REC-03:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Coin' does not match SSOT 'Coin'"
+    },
+    "UI-LCC-REC-04:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Issue' does not match SSOT 'Issue'"
+    },
+    "UI-LCC-REC-05:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Count' does not match SSOT 'Count'"
+    },
+    "UI-LCC-REC-06:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Manual ledger' does not match SSOT 'Manual ledger'"
+    },
+    "UI-LCC-REC-07:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Exchange' does not match SSOT 'Exchange'"
+    },
+    "UI-LCC-REC-08:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Last intent' does not match SSOT 'Last intent'"
+    },
+    "UI-LCC-REC-09:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Last oid' does not match SSOT 'Last oid'"
+    },
+    "UI-LCC-REC-10:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Last updated' does not match SSOT 'Last updated'"
+    },
+    "UI-LCC-REC-11:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Action' does not match SSOT 'Action'"
+    },
+    "UI-LCC-WS-01:TABLE_EXISTS": {
+      "pass": true,
+      "detail": "tbody#lcHealthRows not found"
+    },
+    "UI-LCC-WS-01:COLUMN_COUNT": {
+      "pass": true,
+      "detail": "Column count mismatch: expected 16, got 16"
+    },
+    "UI-LCC-WS-01:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Wallet' does not match SSOT 'Wallet'"
+    },
+    "UI-LCC-WS-02:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Current' does not match SSOT 'Current'"
+    },
+    "UI-LCC-WS-03:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Grade' does not match SSOT 'Grade'"
+    },
+    "UI-LCC-WS-04:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Thread' does not match SSOT 'Thread'"
+    },
+    "UI-LCC-WS-05:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Reconnect/min' does not match SSOT 'Reconnect/min'"
+    },
+    "UI-LCC-WS-06:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Processed' does not match SSOT 'Processed'"
+    },
+    "UI-LCC-WS-07:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Raw msg' does not match SSOT 'Raw msg'"
+    },
+    "UI-LCC-WS-08:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Parsed' does not match SSOT 'Parsed'"
+    },
+    "UI-LCC-WS-09:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Snap seen' does not match SSOT 'Snap seen'"
+    },
+    "UI-LCC-WS-10:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Snap recovered' does not match SSOT 'Snap recovered'"
+    },
+    "UI-LCC-WS-11:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Ignored' does not match SSOT 'Ignored'"
+    },
+    "UI-LCC-WS-12:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Recent errors' does not match SSOT 'Recent errors'"
+    },
+    "UI-LCC-WS-13:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Lifetime errors' does not match SSOT 'Lifetime errors'"
+    },
+    "UI-LCC-WS-14:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Stale ms' does not match SSOT 'Stale ms'"
+    },
+    "UI-LCC-WS-15:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Data status' does not match SSOT 'Data status'"
+    },
+    "UI-LCC-WS-16:COLUMN_HEADER": {
+      "pass": true,
+      "detail": "Header 'Last close/error' does not match SSOT 'Last close/error'"
+    },
+    "UI-LCC-HDR-01:WALLET_COUNT_ELEMENT": {
+      "pass": true,
+      "detail": "lcWalletCount element not found or wrong tag"
+    },
+    "UI-LCC-HDR-01:DEFAULT_SHOWN": {
+      "pass": true,
+      "detail": "Default wallet count '0 / 10' not found"
+    },
+    "UI-LCC-HDR-02:MODE_COUNTS_ELEMENT": {
+      "pass": true,
+      "detail": "lcModeCounts element not found"
+    },
+    "UI-LCC-HDR-03:AUTO_SEND_ELEMENT": {
+      "pass": true,
+      "detail": "lcAutoSend element not found or wrong tag"
+    },
+    "UI-LCC-HDR-03:AUTO_SEND_DEFAULT": {
+      "pass": true,
+      "detail": "Default auto-send text not found"
+    },
+    "UI-LCC-HDR-04:WS_OVERALL_ELEMENT": {
+      "pass": true,
+      "detail": "lcWsOverall element not found or wrong tag"
+    },
+    "UI-LCC-HDR-04:WS_DEFAULT_OFFLINE": {
+      "pass": true,
+      "detail": "Default WS text should be OFFLINE"
+    },
+    "UI-LCC-HDR-05:REAL_ORDERS_ELEMENT": {
+      "pass": true,
+      "detail": "lcRealOrders element not found or wrong tag"
+    },
+    "UI-LCC-HDR-05:REAL_ORDERS_DEFAULT": {
+      "pass": true,
+      "detail": "Default REAL ORDERS text not found"
+    },
+    "UI-LCC-HDR-06:STATUS_ELEMENT": {
+      "pass": true,
+      "detail": "lcStatus element not found or wrong tag"
+    },
+    "UI-LCC-BTN-01:REFRESH_BUTTON": {
+      "pass": true,
+      "detail": "Refresh button not found"
+    },
+    "UI-LCC-BTN-02:GC_TOGGLE_BUTTON": {
+      "pass": true,
+      "detail": "Global Controls toggle not found"
+    },
+    "UI-LCC-BTN-02:GC_TOGGLE_ARIA": {
+      "pass": true,
+      "detail": "Global Controls toggle missing aria-expanded='false'"
+    },
+    "UI-LCC-BTN-03:ADD_WALLET_BUTTON": {
+      "pass": true,
+      "detail": "Add wallet button not found"
+    },
+    "UI-LCC-BTN-04:GC_CLOSE_BUTTON": {
+      "pass": true,
+      "detail": "Global Controls close button not found"
+    },
+    "UI-LCC-BTN-05:GC_SAVE_BUTTON": {
+      "pass": true,
+      "detail": "Save Global Controls button not found"
+    },
+    "UI-LCC-CARD-01:REAL_CARDS_CONTAINER": {
+      "pass": true,
+      "detail": "Real Account cards container not found"
+    },
+    "UI-LCC-CARD-01:RENDER_CARDS_FUNC": {
+      "pass": true,
+      "detail": "renderCards function not found in JS"
+    },
+    "UI-LCC-GRAPH-01:GRAPH_CONTAINER": {
+      "pass": true,
+      "detail": "Graph container not found"
+    },
+    "UI-LCC-GRAPH-01:ACCOUNT_MODE_BTN": {
+      "pass": true,
+      "detail": "account mode button not found"
+    },
+    "UI-LCC-GRAPH-02:WALLET_PNL_MODE_BTN": {
+      "pass": true,
+      "detail": "wallet_pnl mode button not found"
+    },
+    "UI-LCC-GRAPH-03:EXPOSURE_MODE_BTN": {
+      "pass": true,
+      "detail": "exposure mode button not found"
+    },
+    "UI-LCC-GRAPH-04:1D_SCALE_BTN": {
+      "pass": true,
+      "detail": "1d scale button not found"
+    },
+    "UI-LCC-GRAPH-05:7D_SCALE_BTN": {
+      "pass": true,
+      "detail": "7d scale button not found"
+    },
+    "UI-LCC-GRAPH-06:ALL_SCALE_BTN": {
+      "pass": true,
+      "detail": "all scale button not found"
+    },
+    "UI-LCC-GRAPH-07:lcGraphStart": {
+      "pass": true,
+      "detail": "lcGraphStart not found"
+    },
+    "UI-LCC-GRAPH-08:lcGraphEnd": {
+      "pass": true,
+      "detail": "lcGraphEnd not found"
+    },
+    "UI-LCC-GRAPH-09:lcGraphApplyRange": {
+      "pass": true,
+      "detail": "lcGraphApplyRange not found"
+    },
+    "UI-LCC-GRAPH-10:lcGraphResetRange": {
+      "pass": true,
+      "detail": "lcGraphResetRange not found"
+    },
+    "UI-LCC-GRAPH-11:lcExchangePath": {
+      "pass": true,
+      "detail": "lcExchangePath not found"
+    },
+    "UI-LCC-GRAPH-12:lcRealizedPath": {
+      "pass": true,
+      "detail": "lcRealizedPath not found"
+    },
+    "UI-LCC-GRAPH-13:lcDrawdownPath": {
+      "pass": true,
+      "detail": "lcDrawdownPath not found"
+    },
+    "UI-LCC-GRAPH-14:lcYMax": {
+      "pass": true,
+      "detail": "lcYMax not found"
+    },
+    "UI-LCC-GRAPH-15:lcXAxisTicks": {
+      "pass": true,
+      "detail": "lcXAxisTicks not found"
+    },
+    "UI-LCC-GRAPH-16:lcGraphSubtitle": {
+      "pass": true,
+      "detail": "lcGraphSubtitle not found"
+    },
+    "UI-LCC-ADD-01:MODAL_CONTAINER": {
+      "pass": true,
+      "detail": "Add wallet modal not found"
+    },
+    "UI-LCC-ADD-01:ADD_FORM": {
+      "pass": true,
+      "detail": "Add form not found"
+    },
+    "UI-LCC-ADD-01:WALLET_INPUT": {
+      "pass": true,
+      "detail": "wallet input not found"
+    },
+    "UI-LCC-ADD-02:MODE_INPUT": {
+      "pass": true,
+      "detail": "mode input not found"
+    },
+    "UI-LCC-ADD-03:COPY_MODE_INPUT": {
+      "pass": true,
+      "detail": "copy_mode input not found"
+    },
+    "UI-LCC-ADD-05:NORM_BASE_INPUT": {
+      "pass": true,
+      "detail": "norm_base input not found"
+    },
+    "UI-LCC-ADD-04:FIXED_NOTIONAL_INPUT": {
+      "pass": true,
+      "detail": "fixed_notional input not found"
+    },
+    "UI-LCC-ADD-08:SUBMIT_BUTTON": {
+      "pass": true,
+      "detail": "Submit button not found"
+    },
+    "UI-LCC-ADD-09:CANCEL_BUTTON": {
+      "pass": true,
+      "detail": "Cancel button not found"
+    },
+    "UI-LCC-TAB-01:POSITIONS_TAB_BTN": {
+      "pass": true,
+      "detail": "positions tab button not found"
+    },
+    "UI-LCC-TAB-01:POSITIONS_TAB_PANEL": {
+      "pass": true,
+      "detail": "positions tab panel not found"
+    },
+    "UI-LCC-TAB-02:EXECQUAL_TAB_BTN": {
+      "pass": true,
+      "detail": "execqual tab button not found"
+    },
+    "UI-LCC-TAB-02:EXECQUAL_TAB_PANEL": {
+      "pass": true,
+      "detail": "execqual tab panel not found"
+    },
+    "UI-LCC-TAB-03:AUDIT_TAB_BTN": {
+      "pass": true,
+      "detail": "audit tab button not found"
+    },
+    "UI-LCC-TAB-03:AUDIT_TAB_PANEL": {
+      "pass": true,
+      "detail": "audit tab panel not found"
+    },
+    "UI-LCC-TAB-04:RECON_TAB_BTN": {
+      "pass": true,
+      "detail": "recon tab button not found"
+    },
+    "UI-LCC-TAB-04:RECON_TAB_PANEL": {
+      "pass": true,
+      "detail": "recon tab panel not found"
+    },
+    "UI-LCC-TAB-05:WS_TAB_BTN": {
+      "pass": true,
+      "detail": "ws tab button not found"
+    },
+    "UI-LCC-TAB-05:WS_TAB_PANEL": {
+      "pass": true,
+      "detail": "ws tab panel not found"
+    },
+    "UI-SSOT:PAGE_RENDER": {
+      "pass": true,
+      "detail": ""
+    },
+    "UI-SSOT-TOP-01:NORM_BASE_ELEMENT": {
+      "pass": true,
+      "detail": "norm_base element not found in SSOT page"
+    },
+    "UI-SSOT-TOP-02:COPY_MODE_ELEMENT": {
+      "pass": true,
+      "detail": "copy_mode element not found in SSOT page"
+    },
+    "UI-SSOT-TOP-03:FIXED_NOTIONAL_ELEMENT": {
+      "pass": true,
+      "detail": "fixed_notional element not found in SSOT page"
+    },
+    "UI-SSOT-TOP-04:FEE_BPS_ELEMENT": {
+      "pass": true,
+      "detail": "fee_bps element not found in SSOT page"
+    },
+    "UI-SSOT-TOP-05:COPY_FRICTION_BPS_ELEMENT": {
+      "pass": true,
+      "detail": "copy_friction_bps element not found in SSOT page"
+    },
+    "UI-SSOT-TOP-07:RANKING_ELEMENT": {
+      "pass": false,
+      "detail": "ranking element not found in SSOT page"
+    },
+    "UI-SSOT-TOP-08:DIRECTION_ELEMENT": {
+      "pass": true,
+      "detail": "direction element not found in SSOT page"
+    },
+    "UI-SSOT-TOP-09:UPDATED_AT_ELEMENT": {
+      "pass": false,
+      "detail": "updated_at element not found in SSOT page"
+    },
+    "UI-SSOT-CARD-01:PNL_CARD": {
+      "pass": true,
+      "detail": "PNL card not found"
+    },
+    "UI-SSOT-CARD-02:REALISED_CARD": {
+      "pass": true,
+      "detail": "REALISED card not found"
+    },
+    "UI-SSOT-CARD-03:UNREALISED_CARD": {
+      "pass": true,
+      "detail": "UNREALISED card not found"
+    },
+    "UI-SSOT-CARD-04:DRAWDOWN_CARD": {
+      "pass": true,
+      "detail": "DRAWDOWN card not found"
+    },
+    "UI-SSOT-CARD-05:MAX_DD_CARD": {
+      "pass": true,
+      "detail": "MAX DD card not found"
+    },
+    "UI-SSOT-CARD-06:EXPOSURE_CARD": {
+      "pass": true,
+      "detail": "EXPOSURE card not found"
+    },
+    "UI-SSOT-CARD-07:COPYABILITY_CARD": {
+      "pass": true,
+      "detail": "COPYABILITY card not found"
+    },
+    "UI-SSOT-CARD-08:ACTIVITY_CARD": {
+      "pass": true,
+      "detail": "ACTIVITY card not found"
+    },
+    "UI-SSOT-CARD-09:DB_HEALTH_CARD": {
+      "pass": true,
+      "detail": "DB HEALTH card not found"
+    },
+    "UI-SSOT-TBL-01:COLUMN": {
+      "pass": true,
+      "detail": "WALLET column not found"
+    },
+    "UI-SSOT-TBL-02:COLUMN": {
+      "pass": true,
+      "detail": " column not found"
+    },
+    "UI-SSOT-TBL-03:COLUMN": {
+      "pass": true,
+      "detail": " column not found"
+    },
+    "UI-SSOT-TBL-04:COLUMN": {
+      "pass": true,
+      "detail": " column not found"
+    },
+    "UI-SSOT-TBL-05:COLUMN": {
+      "pass": true,
+      "detail": " column not found"
+    },
+    "UI-SSOT-TBL-06:COLUMN": {
+      "pass": true,
+      "detail": " column not found"
+    },
+    "UI-SSOT-TBL-07:COLUMN": {
+      "pass": true,
+      "detail": " column not found"
+    },
+    "UI-SSOT-TBL-08:COLUMN": {
+      "pass": true,
+      "detail": " column not found"
+    },
+    "UI-SSOT-TBL-09:COLUMN": {
+      "pass": true,
+      "detail": " column not found"
+    },
+    "UI-SSOT-TBL-10:COLUMN": {
+      "pass": true,
+      "detail": " column not found"
+    },
+    "UI-SSOT-TBL-11:COLUMN": {
+      "pass": true,
+      "detail": " column not found"
+    },
+    "UI-SSOT-TBL-12:COLUMN": {
+      "pass": true,
+      "detail": " column not found"
+    },
+    "UI-SSOT-TBL-13:COLUMN": {
+      "pass": true,
+      "detail": " column not found"
+    },
+    "UI-SSOT-TBL-14:COLUMN": {
+      "pass": true,
+      "detail": " column not found"
+    },
+    "UI-SSOT-TBL-15:COLUMN": {
+      "pass": true,
+      "detail": " column not found"
+    },
+    "UI-SSOT-TBL-16:COLUMN": {
+      "pass": true,
+      "detail": " column not found"
+    },
+    "UI-SSOT-TBL-17:COLUMN": {
+      "pass": true,
+      "detail": " column not found"
+    },
+    "UI-SSOT-TBL-18:COLUMN": {
+      "pass": true,
+      "detail": " column not found"
+    },
+    "UI-SSOT-TBL-19:COLUMN": {
+      "pass": true,
+      "detail": " column not found"
+    },
+    "UI-SSOT-TBL-20:COLUMN": {
+      "pass": true,
+      "detail": " column not found"
+    },
+    "UI-SSOT-TBL-21:COLUMN": {
+      "pass": true,
+      "detail": " column not found"
+    },
+    "UI-SSOT-TBL-22:COLUMN": {
+      "pass": true,
+      "detail": " column not found"
+    },
+    "UI-SSOT-TBL-23:COLUMN": {
+      "pass": true,
+      "detail": " column not found"
+    },
+    "UI-SSOT-TBL-24:COLUMN": {
+      "pass": true,
+      "detail": "INC / WALLET MODEL column not found"
+    },
+    "UI-SSOT-PAGE-01:<!DOCTYPE_ELEMENT": {
+      "pass": false,
+      "detail": "<!DOCTYPE element not found"
+    },
+    "UI-SSOT-PAGE-02:<HTML_ELEMENT": {
+      "pass": true,
+      "detail": "<html element not found"
+    },
+    "UI-SSOT-PAGE-03:<STYLE_ELEMENT": {
+      "pass": true,
+      "detail": "<style element not found"
+    },
+    "UI-SSOT-PAGE-04:<SCRIPT_ELEMENT": {
+      "pass": true,
+      "detail": "<script element not found"
+    },
+    "UI-SSOT-PAGE-05:_SORT__ELEMENT": {
+      "pass": true,
+      "detail": "/sort/ element not found"
+    },
+    "UI-SSOT-PAGE-06:_API_UI_STATE_ELEMENT": {
+      "pass": true,
+      "detail": "/api/ui-state element not found"
+    },
+    "UI-SSOT-PAGE-07:NORM_BASE_ELEMENT": {
+      "pass": true,
+      "detail": "norm_base element not found"
+    },
+    "UI-SSOT-PAGE-08:FIXED_NOTIONAL_ELEMENT": {
+      "pass": true,
+      "detail": "fixed_notional element not found"
+    },
+    "UI-SSOT-PAGE-09:FEE_BPS_ELEMENT": {
+      "pass": true,
+      "detail": "fee_bps element not found"
+    },
+    "UI-SSOT-PAGE-10:FRICTION_ELEMENT": {
+      "pass": true,
+      "detail": "friction element not found"
+    },
+    "UI-SSOT-PAGE-12:COPY_MODE_ELEMENT": {
+      "pass": true,
+      "detail": "copy_mode element not found"
+    },
+    "UI-SSOT-PAGE-13:SET_WALLET_MODE_ELEMENT": {
+      "pass": false,
+      "detail": "set-wallet-mode element not found"
+    },
+    "UI-SSOT-PAGE-14:SET_ALL_MODES_ELEMENT": {
+      "pass": false,
+      "detail": "set-all-modes element not found"
+    },
+    "UI-SSOT-PAGE-15:RESET_APP_HISTORY_ELEMENT": {
+      "pass": false,
+      "detail": "reset-app-history element not found"
+    },
+    "UI-TRUTH-001:TRUTH_TIERS_PRESENT": {
+      "pass": true,
+      "detail": "Truth tiers found: ['STALE']"
+    },
+    "UI-TRUTH-002:CONDITIONAL_GREEN": {
+      "pass": true,
+      "detail": "Green styling should be conditional"
+    },
+    "UI-TRUTH-003:READ_ONLY_OBSERVER": {
+      "pass": false,
+      "detail": "UI should be read-only observer"
+    },
+    "UI-TRUTH-004:FRESHNESS_SHOWN": {
+      "pass": true,
+      "detail": "Freshness indicator missing"
+    },
+    "INC-13:DISPLAYED_TARGET_GATED": {
+      "pass": true,
+      "detail": "Target gating not implemented"
+    },
+    "INC-14:NO_FALSE_BUDGET": {
+      "pass": true,
+      "detail": "False budget detected"
+    },
+    "INC-15:CLOSE_ONLY_VISIBLE": {
+      "pass": true,
+      "detail": "Close-only mode not visible"
+    },
+    "INC-16:MODE_TRANSITION_VISIBLE": {
+      "pass": true,
+      "detail": "Mode transition not visible"
+    },
+    "INC-17:ERROR_SURFACED": {
+      "pass": true,
+      "detail": "Error not surfaced"
+    },
+    "UI-FP-001:LCWALLETCOUNT_ELEMENT": {
+      "pass": true,
+      "detail": "lcWalletCount element not found"
+    },
+    "UI-FP-002:LIVE_ELEMENT": {
+      "pass": true,
+      "detail": "LIVE element not found"
+    },
+    "UI-FP-003:CLO_ELEMENT": {
+      "pass": true,
+      "detail": "CLO element not found"
+    },
+    "UI-FP-004:OFF_ELEMENT": {
+      "pass": true,
+      "detail": "OFF element not found"
+    },
+    "UI-FP-005:LCAUTOSEND_ELEMENT": {
+      "pass": true,
+      "detail": "lcAutoSend element not found"
+    },
+    "UI-FP-006:LCWSOVERALL_ELEMENT": {
+      "pass": true,
+      "detail": "lcWsOverall element not found"
+    },
+    "UI-FP-007:LCREALORDERS_ELEMENT": {
+      "pass": true,
+      "detail": "lcRealOrders element not found"
+    },
+    "UI-FP-008:RESTART_ELEMENT": {
+      "pass": false,
+      "detail": "restart element not found"
+    },
+    "UI-FP-009:INTEGRITY_ELEMENT": {
+      "pass": false,
+      "detail": "integrity element not found"
+    },
+    "UI-FP-010:WS_STATUS_ELEMENT": {
+      "pass": false,
+      "detail": "ws_status element not found"
+    },
+    "UI-FP-011:COPY_POLL_ELEMENT": {
+      "pass": false,
+      "detail": "copy_poll element not found"
+    },
+    "UI-FP-012:MASTER_REAL_ORDERS_ELEMENT": {
+      "pass": false,
+      "detail": "master_real_orders element not found"
+    },
+    "UI-FP-013:ACTIVE_WALLETS_ELEMENT": {
+      "pass": false,
+      "detail": "active_wallets element not found"
+    },
+    "UI-FP-014:LAST_SEND_ELEMENT": {
+      "pass": false,
+      "detail": "last_send element not found"
+    },
+    "UI-FP-015:LAST_FILL_ELEMENT": {
+      "pass": true,
+      "detail": "last_fill element not found"
+    },
+    "UI-FP-016:LAST_REJECT_ELEMENT": {
+      "pass": true,
+      "detail": "last_reject element not found"
+    },
+    "UI-FP-017:LAST_LATENCY_WARNING_ELEMENT": {
+      "pass": false,
+      "detail": "last_latency_warning element not found"
+    },
+    "UI-FP-018:PORTFOLIO_ELEMENT": {
+      "pass": true,
+      "detail": "portfolio element not found"
+    },
+    "UI-FP-019:UNREALIZED_ELEMENT": {
+      "pass": true,
+      "detail": "unrealized element not found"
+    },
+    "UI-FP-020:REALIZED_ELEMENT": {
+      "pass": true,
+      "detail": "realized element not found"
+    },
+    "UI-FP-021:OPEN_ELEMENT": {
+      "pass": true,
+      "detail": "open element not found"
+    },
+    "UI-FP-022:EXPOSURE_ELEMENT": {
+      "pass": true,
+      "detail": "exposure element not found"
+    },
+    "UI-FP-023:LAST_FILL_ELEMENT": {
+      "pass": true,
+      "detail": "last_fill element not found"
+    },
+    "UI-FP-024:LAST_REJECT_ELEMENT": {
+      "pass": true,
+      "detail": "last_reject element not found"
+    },
+    "UI-FP-025:LATENCY_ELEMENT": {
+      "pass": false,
+      "detail": "latency element not found"
+    },
+    "UI-FP-026:EQUITY_ELEMENT": {
+      "pass": true,
+      "detail": "equity element not found"
+    },
+    "UI-FP-027:MARGIN_ELEMENT": {
+      "pass": true,
+      "detail": "margin element not found"
+    },
+    "UI-FP-028:AVAILABLE_ELEMENT": {
+      "pass": true,
+      "detail": "available element not found"
+    },
+    "UI-FP-029:WITHDRAW_ELEMENT": {
+      "pass": false,
+      "detail": "withdraw element not found"
+    },
+    "UI-FP-030:TRANSFER_ELEMENT": {
+      "pass": false,
+      "detail": "transfer element not found"
+    },
+    "UI-FP-031:WALLET_ELEMENT": {
+      "pass": true,
+      "detail": "Wallet element not found"
+    },
+    "UI-FP-032:MODE_ELEMENT": {
+      "pass": true,
+      "detail": "Mode element not found"
+    },
+    "UI-FP-033:HEALTH_ELEMENT": {
+      "pass": true,
+      "detail": "Health element not found"
+    },
+    "UI-FP-034:LIVE_PNL_ELEMENT": {
+      "pass": true,
+      "detail": "Live PnL element not found"
+    },
+    "UI-FP-035:LEAD_ELEMENT": {
+      "pass": true,
+      "detail": "Lead element not found"
+    },
+    "UI-FP-036:EXECUTION_ELEMENT": {
+      "pass": true,
+      "detail": "Execution element not found"
+    },
+    "UI-FP-037:RISK_ELEMENT": {
+      "pass": true,
+      "detail": "Risk element not found"
+    },
+    "UI-FP-038:LAST_FILL_ELEMENT": {
+      "pass": true,
+      "detail": "Last Fill element not found"
+    },
+    "UI-FP-039:CONTROLS_ELEMENT": {
+      "pass": true,
+      "detail": "Controls element not found"
+    },
+    "UI-FP-040:MODE_ELEMENT": {
+      "pass": true,
+      "detail": "mode element not found"
+    },
+    "UI-FP-041:COPY_MODEL_ELEMENT": {
+      "pass": false,
+      "detail": "copy_model element not found"
+    },
+    "UI-FP-042:FIXED_NOTIONAL_ELEMENT": {
+      "pass": true,
+      "detail": "fixed_notional element not found"
+    },
+    "UI-FP-043:SAVE_ELEMENT": {
+      "pass": true,
+      "detail": "save element not found"
+    },
+    "UI-FP-044:CLO_ELEMENT": {
+      "pass": true,
+      "detail": "CLO element not found"
+    },
+    "UI-FP-045:OFF_ELEMENT": {
+      "pass": true,
+      "detail": "OFF element not found"
+    },
+    "UI-FP-046:ARCHIVE_ELEMENT": {
+      "pass": true,
+      "detail": "archive element not found"
+    },
+    "UI-FP-047:CLICK_ELEMENT": {
+      "pass": true,
+      "detail": "click element not found"
+    },
+    "UI-FP-048:HOVER_ELEMENT": {
+      "pass": false,
+      "detail": "hover element not found"
+    },
+    "UI-FP-049:SELECT_ELEMENT": {
+      "pass": true,
+      "detail": "select element not found"
+    },
+    "UI-FP-050:SORT_ELEMENT": {
+      "pass": true,
+      "detail": "sort element not found"
+    },
+    "UI-FP-051:FILTER_ELEMENT": {
+      "pass": true,
+      "detail": "filter element not found"
+    },
+    "UI-FP-052:SEARCH_ELEMENT": {
+      "pass": false,
+      "detail": "search element not found"
+    },
+    "UI-FP-053:PAGE_ELEMENT": {
+      "pass": true,
+      "detail": "page element not found"
+    },
+    "UI-FP-054:EXPORT_ELEMENT": {
+      "pass": false,
+      "detail": "export element not found"
+    },
+    "UI-FP-055:IMPORT_ELEMENT": {
+      "pass": false,
+      "detail": "import element not found"
+    },
+    "UI-FP-056:REFRESH_ELEMENT": {
+      "pass": true,
+      "detail": "refresh element not found"
+    },
+    "UI-FP-057:AUTO_ELEMENT": {
+      "pass": true,
+      "detail": "auto element not found"
+    },
+    "UI-FP-058:MANUAL_ELEMENT": {
+      "pass": true,
+      "detail": "manual element not found"
+    },
+    "UI-FP-059:BACKGROUND_ELEMENT": {
+      "pass": true,
+      "detail": "background element not found"
+    },
+    "UI-FP-060:INTERVAL_ELEMENT": {
+      "pass": false,
+      "detail": "interval element not found"
+    },
+    "UI-FP-061:LCPOSITIONROWS_ELEMENT": {
+      "pass": true,
+      "detail": "lcPositionRows element not found"
+    },
+    "UI-FP-062:COIN_ELEMENT": {
+      "pass": true,
+      "detail": "Coin element not found"
+    },
+    "UI-FP-063:SIDE_ELEMENT": {
+      "pass": true,
+      "detail": "Side element not found"
+    },
+    "UI-FP-064:LEDGER_SIZE_ELEMENT": {
+      "pass": true,
+      "detail": "Ledger size element not found"
+    },
+    "UI-FP-065:EXCHANGE_SIZE_ELEMENT": {
+      "pass": true,
+      "detail": "Exchange size element not found"
+    },
+    "UI-FP-066:ENTRY_PX_ELEMENT": {
+      "pass": true,
+      "detail": "Entry px element not found"
+    },
+    "UI-FP-067:MARK_PX_ELEMENT": {
+      "pass": true,
+      "detail": "Mark px element not found"
+    },
+    "UI-FP-068:POS_VALUE_ELEMENT": {
+      "pass": true,
+      "detail": "Pos value element not found"
+    },
+    "UI-FP-069:UNREALIZED_PNL_ELEMENT": {
+      "pass": true,
+      "detail": "Unrealized PnL element not found"
+    },
+    "UI-FP-070:LEADER_WALLET_ELEMENT": {
+      "pass": true,
+      "detail": "Leader wallet element not found"
+    },
+    "UI-FP-071:STATUS_ELEMENT": {
+      "pass": true,
+      "detail": "Status element not found"
+    },
+    "UI-FP-072:LAST_OID_ELEMENT": {
+      "pass": true,
+      "detail": "Last OID element not found"
+    },
+    "UI-FP-073:LAST_UPDATED_ELEMENT": {
+      "pass": true,
+      "detail": "Last updated element not found"
+    },
+    "UI-FP-074:SORT_ELEMENT": {
+      "pass": true,
+      "detail": "sort element not found"
+    },
+    "UI-FP-075:FILTER_ELEMENT": {
+      "pass": true,
+      "detail": "filter element not found"
+    },
+    "UI-FP-076:SEARCH_ELEMENT": {
+      "pass": false,
+      "detail": "search element not found"
+    },
+    "UI-FP-077:PAGE_ELEMENT": {
+      "pass": true,
+      "detail": "page element not found"
+    },
+    "UI-FP-078:EXPORT_ELEMENT": {
+      "pass": false,
+      "detail": "export element not found"
+    },
+    "UI-FP-079:IMPORT_ELEMENT": {
+      "pass": false,
+      "detail": "import element not found"
+    },
+    "UI-FP-080:REFRESH_ELEMENT": {
+      "pass": true,
+      "detail": "refresh element not found"
+    },
+    "UI-FP-081:AUTO_ELEMENT": {
+      "pass": true,
+      "detail": "auto element not found"
+    },
+    "UI-FP-082:MANUAL_ELEMENT": {
+      "pass": true,
+      "detail": "manual element not found"
+    },
+    "UI-FP-083:BACKGROUND_ELEMENT": {
+      "pass": true,
+      "detail": "background element not found"
+    },
+    "UI-FP-084:INTERVAL_ELEMENT": {
+      "pass": false,
+      "detail": "interval element not found"
+    },
+    "UI-FP-085:DETAIL_ELEMENT": {
+      "pass": true,
+      "detail": "detail element not found"
+    },
+    "UI-FP-086:HISTORY_ELEMENT": {
+      "pass": true,
+      "detail": "history element not found"
+    },
+    "UI-FP-087:NOTES_ELEMENT": {
+      "pass": true,
+      "detail": "notes element not found"
+    },
+    "UI-FP-088:TAGS_ELEMENT": {
+      "pass": false,
+      "detail": "tags element not found"
+    },
+    "UI-FP-089:LINKS_ELEMENT": {
+      "pass": false,
+      "detail": "links element not found"
+    },
+    "UI-FP-090:EXPORT_ELEMENT": {
+      "pass": false,
+      "detail": "export element not found"
+    },
+    "UI-FP-091:LCEXECQUALROWS_ELEMENT": {
+      "pass": true,
+      "detail": "lcExecQualRows element not found"
+    },
+    "UI-FP-092:TIME_ELEMENT": {
+      "pass": true,
+      "detail": "Time element not found"
+    },
+    "UI-FP-093:WALLET_ELEMENT": {
+      "pass": true,
+      "detail": "Wallet element not found"
+    },
+    "UI-FP-094:COIN_ELEMENT": {
+      "pass": true,
+      "detail": "Coin element not found"
+    },
+    "UI-FP-095:SIDE_ELEMENT": {
+      "pass": true,
+      "detail": "Side element not found"
+    },
+    "UI-FP-096:STATUS_ELEMENT": {
+      "pass": true,
+      "detail": "Status element not found"
+    },
+    "UI-FP-097:LIMIT_PX_ELEMENT": {
+      "pass": true,
+      "detail": "Limit px element not found"
+    },
+    "UI-FP-098:FILL_AVG_PX_ELEMENT": {
+      "pass": true,
+      "detail": "Fill avg px element not found"
+    },
+    "UI-FP-099:SIZE_ELEMENT": {
+      "pass": true,
+      "detail": "Size element not found"
+    },
+    "UI-FP-100:OID_ELEMENT": {
+      "pass": true,
+      "detail": "OID element not found"
+    },
+    "UI-FP-101:FILL_ELEMENT": {
+      "pass": true,
+      "detail": "Fill element not found"
+    },
+    "UI-FP-102:LEADER_ELEMENT": {
+      "pass": true,
+      "detail": "Leader element not found"
+    },
+    "UI-FP-103:SLIP_ELEMENT": {
+      "pass": true,
+      "detail": "slip element not found"
+    },
+    "UI-FP-104:ERROR_ELEMENT": {
+      "pass": true,
+      "detail": "Error element not found"
+    },
+    "UI-FP-105:SORT_ELEMENT": {
+      "pass": true,
+      "detail": "sort element not found"
+    },
+    "UI-FP-106:FILTER_ELEMENT": {
+      "pass": true,
+      "detail": "filter element not found"
+    },
+    "UI-FP-107:SEARCH_ELEMENT": {
+      "pass": false,
+      "detail": "search element not found"
+    },
+    "UI-FP-108:PAGE_ELEMENT": {
+      "pass": true,
+      "detail": "page element not found"
+    },
+    "UI-FP-109:EXPORT_ELEMENT": {
+      "pass": false,
+      "detail": "export element not found"
+    },
+    "UI-FP-110:IMPORT_ELEMENT": {
+      "pass": false,
+      "detail": "import element not found"
+    },
+    "UI-FP-111:REFRESH_ELEMENT": {
+      "pass": true,
+      "detail": "refresh element not found"
+    },
+    "UI-FP-112:AUTO_ELEMENT": {
+      "pass": true,
+      "detail": "auto element not found"
+    },
+    "UI-FP-113:MANUAL_ELEMENT": {
+      "pass": true,
+      "detail": "manual element not found"
+    },
+    "UI-FP-114:BACKGROUND_ELEMENT": {
+      "pass": true,
+      "detail": "background element not found"
+    },
+    "UI-FP-115:INTERVAL_ELEMENT": {
+      "pass": false,
+      "detail": "interval element not found"
+    },
+    "UI-FP-116:DETAIL_ELEMENT": {
+      "pass": true,
+      "detail": "detail element not found"
+    },
+    "UI-FP-117:HISTORY_ELEMENT": {
+      "pass": true,
+      "detail": "history element not found"
+    },
+    "UI-FP-118:NOTES_ELEMENT": {
+      "pass": true,
+      "detail": "notes element not found"
+    },
+    "UI-FP-119:TAGS_ELEMENT": {
+      "pass": false,
+      "detail": "tags element not found"
+    },
+    "UI-FP-120:LINKS_ELEMENT": {
+      "pass": false,
+      "detail": "links element not found"
+    },
+    "UI-FP-121:LCAUDITROWS_ELEMENT": {
+      "pass": true,
+      "detail": "lcAuditRows element not found"
+    },
+    "UI-FP-122:TIME_ELEMENT": {
+      "pass": true,
+      "detail": "Time element not found"
+    },
+    "UI-FP-123:WALLET_ELEMENT": {
+      "pass": true,
+      "detail": "Wallet element not found"
+    },
+    "UI-FP-124:COIN_ELEMENT": {
+      "pass": true,
+      "detail": "Coin element not found"
+    },
+    "UI-FP-125:SIDE_ELEMENT": {
+      "pass": true,
+      "detail": "Side element not found"
+    },
+    "UI-FP-126:STATUS_ELEMENT": {
+      "pass": true,
+      "detail": "Status element not found"
+    },
+    "UI-FP-127:INTENT_ELEMENT": {
+      "pass": true,
+      "detail": "Intent element not found"
+    },
+    "UI-FP-128:LEADER_ELEMENT": {
+      "pass": true,
+      "detail": "Leader element not found"
+    },
+    "UI-FP-129:TARGET_ELEMENT": {
+      "pass": true,
+      "detail": "Target element not found"
+    },
+    "UI-FP-130:COPY_ELEMENT": {
+      "pass": true,
+      "detail": "Copy element not found"
+    },
+    "UI-FP-131:OID_ELEMENT": {
+      "pass": true,
+      "detail": "OID element not found"
+    },
+    "UI-FP-132:ERROR_ELEMENT": {
+      "pass": true,
+      "detail": "Error element not found"
+    },
+    "UI-FP-133:CREATED_ELEMENT": {
+      "pass": false,
+      "detail": "Created element not found"
+    },
+    "UI-FP-134:UPDATED_ELEMENT": {
+      "pass": true,
+      "detail": "Updated element not found"
+    },
+    "UI-FP-135:SORT_ELEMENT": {
+      "pass": true,
+      "detail": "sort element not found"
+    },
+    "UI-FP-136:FILTER_ELEMENT": {
+      "pass": true,
+      "detail": "filter element not found"
+    },
+    "UI-FP-137:SEARCH_ELEMENT": {
+      "pass": false,
+      "detail": "search element not found"
+    },
+    "UI-FP-138:PAGE_ELEMENT": {
+      "pass": true,
+      "detail": "page element not found"
+    },
+    "UI-FP-139:EXPORT_ELEMENT": {
+      "pass": false,
+      "detail": "export element not found"
+    },
+    "UI-FP-140:IMPORT_ELEMENT": {
+      "pass": false,
+      "detail": "import element not found"
+    },
+    "UI-FP-141:REFRESH_ELEMENT": {
+      "pass": true,
+      "detail": "refresh element not found"
+    },
+    "UI-FP-142:AUTO_ELEMENT": {
+      "pass": true,
+      "detail": "auto element not found"
+    },
+    "UI-FP-143:MANUAL_ELEMENT": {
+      "pass": true,
+      "detail": "manual element not found"
+    },
+    "UI-FP-144:BACKGROUND_ELEMENT": {
+      "pass": true,
+      "detail": "background element not found"
+    },
+    "UI-FP-145:INTERVAL_ELEMENT": {
+      "pass": false,
+      "detail": "interval element not found"
+    },
+    "UI-FP-146:DETAIL_ELEMENT": {
+      "pass": true,
+      "detail": "detail element not found"
+    },
+    "UI-FP-147:HISTORY_ELEMENT": {
+      "pass": true,
+      "detail": "history element not found"
+    },
+    "UI-FP-148:NOTES_ELEMENT": {
+      "pass": true,
+      "detail": "notes element not found"
+    },
+    "UI-FP-149:TAGS_ELEMENT": {
+      "pass": false,
+      "detail": "tags element not found"
+    },
+    "UI-FP-150:LINKS_ELEMENT": {
+      "pass": false,
+      "detail": "links element not found"
+    },
+    "UI-FP-151:LCRECONROWS_ELEMENT": {
+      "pass": true,
+      "detail": "lcReconRows element not found"
+    },
+    "UI-FP-152:SEVERITY_ELEMENT": {
+      "pass": true,
+      "detail": "Severity element not found"
+    },
+    "UI-FP-153:WALLET_ELEMENT": {
+      "pass": true,
+      "detail": "Wallet element not found"
+    },
+    "UI-FP-154:COIN_ELEMENT": {
+      "pass": true,
+      "detail": "Coin element not found"
+    },
+    "UI-FP-155:SIDE_ELEMENT": {
+      "pass": true,
+      "detail": "Side element not found"
+    },
+    "UI-FP-156:LEDGER_ELEMENT": {
+      "pass": true,
+      "detail": "Ledger element not found"
+    },
+    "UI-FP-157:EXCHANGE_ELEMENT": {
+      "pass": true,
+      "detail": "Exchange element not found"
+    },
+    "UI-FP-158:DIFF_ELEMENT": {
+      "pass": true,
+      "detail": "Diff element not found"
+    },
+    "UI-FP-159:STATUS_ELEMENT": {
+      "pass": true,
+      "detail": "Status element not found"
+    },
+    "UI-FP-160:OID_ELEMENT": {
+      "pass": true,
+      "detail": "OID element not found"
+    },
+    "UI-FP-161:UPDATED_ELEMENT": {
+      "pass": true,
+      "detail": "updated element not found"
+    },
+    "UI-FP-162:NOTE_ELEMENT": {
+      "pass": true,
+      "detail": "Note element not found"
+    },
+    "UI-FP-163:SORT_ELEMENT": {
+      "pass": true,
+      "detail": "sort element not found"
+    },
+    "UI-FP-164:FILTER_ELEMENT": {
+      "pass": true,
+      "detail": "filter element not found"
+    },
+    "UI-FP-165:SEARCH_ELEMENT": {
+      "pass": false,
+      "detail": "search element not found"
+    },
+    "UI-FP-166:PAGE_ELEMENT": {
+      "pass": true,
+      "detail": "page element not found"
+    },
+    "UI-FP-167:EXPORT_ELEMENT": {
+      "pass": false,
+      "detail": "export element not found"
+    },
+    "UI-FP-168:IMPORT_ELEMENT": {
+      "pass": false,
+      "detail": "import element not found"
+    },
+    "UI-FP-169:REFRESH_ELEMENT": {
+      "pass": true,
+      "detail": "refresh element not found"
+    },
+    "UI-FP-170:AUTO_ELEMENT": {
+      "pass": true,
+      "detail": "auto element not found"
+    },
+    "UI-FP-171:LCHEALTHROWS_ELEMENT": {
+      "pass": true,
+      "detail": "lcHealthRows element not found"
+    },
+    "UI-FP-172:WALLET_ELEMENT": {
+      "pass": true,
+      "detail": "Wallet element not found"
+    },
+    "UI-FP-173:CURRENT_ELEMENT": {
+      "pass": true,
+      "detail": "Current element not found"
+    },
+    "UI-FP-174:GRADE_ELEMENT": {
+      "pass": true,
+      "detail": "Grade element not found"
+    },
+    "UI-FP-175:LATENCY_ELEMENT": {
+      "pass": false,
+      "detail": "Latency element not found"
+    },
+    "UI-FP-176:STATUS_ELEMENT": {
+      "pass": true,
+      "detail": "Status element not found"
+    },
+    "UI-FP-177:LAST_ELEMENT": {
+      "pass": true,
+      "detail": "Last element not found"
+    },
+    "UI-FP-178:SUBSCRIBED_ELEMENT": {
+      "pass": false,
+      "detail": "Subscribed element not found"
+    },
+    "UI-FP-179:SUBS_ELEMENT": {
+      "pass": false,
+      "detail": "Subs element not found"
+    },
+    "UI-FP-180:THREAD_ELEMENT": {
+      "pass": true,
+      "detail": "Thread element not found"
+    },
+    "UI-FP-181:SOCKET_ELEMENT": {
+      "pass": false,
+      "detail": "Socket element not found"
+    },
+    "UI-FP-182:CONNECTS_ELEMENT": {
+      "pass": false,
+      "detail": "Connects element not found"
+    },
+    "UI-FP-183:DISCONNECTS_ELEMENT": {
+      "pass": false,
+      "detail": "Disconnects element not found"
+    },
+    "UI-FP-184:ERRORS_ELEMENT": {
+      "pass": false,
+      "detail": "Errors element not found"
+    },
+    "UI-FP-185:MESSAGES_ELEMENT": {
+      "pass": false,
+      "detail": "Messages element not found"
+    },
+    "UI-FP-186:BYTES_ELEMENT": {
+      "pass": false,
+      "detail": "Bytes element not found"
+    },
+    "UI-FP-187:UPTIME_ELEMENT": {
+      "pass": false,
+      "detail": "Uptime element not found"
+    },
+    "UI-FP-188:SORT_ELEMENT": {
+      "pass": true,
+      "detail": "sort element not found"
+    },
+    "UI-FP-189:FILTER_ELEMENT": {
+      "pass": true,
+      "detail": "filter element not found"
+    },
+    "UI-FP-190:SEARCH_ELEMENT": {
+      "pass": false,
+      "detail": "search element not found"
+    },
+    "UI-FP-191:PAGE_ELEMENT": {
+      "pass": true,
+      "detail": "page element not found"
+    },
+    "UI-FP-192:EXPORT_ELEMENT": {
+      "pass": false,
+      "detail": "export element not found"
+    },
+    "UI-FP-193:IMPORT_ELEMENT": {
+      "pass": false,
+      "detail": "import element not found"
+    },
+    "UI-FP-194:REFRESH_ELEMENT": {
+      "pass": true,
+      "detail": "refresh element not found"
+    },
+    "UI-FP-195:AUTO_ELEMENT": {
+      "pass": true,
+      "detail": "auto element not found"
+    },
+    "UI-FP-196:MANUAL_ELEMENT": {
+      "pass": true,
+      "detail": "manual element not found"
+    },
+    "UI-FP-197:BACKGROUND_ELEMENT": {
+      "pass": true,
+      "detail": "background element not found"
+    }
+  },
+  "negative_tests": {
+    "UI-LCC-HDR-01:NO_WALLETS_FALLBACK": {
+      "pass": true,
+      "detail": "Empty wallet list should show 0 / 10"
+    },
+    "UI-LCC-HDR-03:AUTOSEND_FALLBACK": {
+      "pass": true,
+      "detail": "Auto-send fallback 'n/a' missing"
+    },
+    "UI-LCC-HDR-04:WS_OFFLINE_FALLBACK": {
+      "pass": true,
+      "detail": "WS offline fallback 'OFFLINE' missing"
+    },
+    "UI-LCC-HDR-05:REAL_ORDERS_FALLBACK": {
+      "pass": true,
+      "detail": "REAL ORDERS fallback 'n/a' missing"
+    },
+    "UI-LCC-CARD-01:UNAVAILABLE_FALLBACK": {
+      "pass": true,
+      "detail": "Missing data should show Unavailable/n/a"
+    },
+    "UI-LCC-GRAPH-01:EMPTY_GRAPH_FALLBACK": {
+      "pass": true,
+      "detail": "Empty graph fallback missing"
+    },
+    "UI-LCC-GRAPH-02:GRAPH_LEGEND": {
+      "pass": true,
+      "detail": "Graph legend lines missing"
+    },
+    "UI-LCC-ADD-01:VALIDATION_FALLBACK": {
+      "pass": true,
+      "detail": "Validation fallback missing"
+    },
+    "UI-LCC-TAB-01:ACTIVE_TAB": {
+      "pass": true,
+      "detail": "No active tab panel"
+    },
+    "UI-LCC-TAB-02:TAB_SWITCHING": {
+      "pass": true,
+      "detail": "Tab switching not implemented"
+    },
+    "UI-SSOT-TOP-01:EMPTY_STATE_FALLBACK": {
+      "pass": true,
+      "detail": "Empty state fallback missing"
+    },
+    "UI-SSOT-TBL-01:NO_WALLETS_FALLBACK": {
+      "pass": true,
+      "detail": "No wallets fallback missing"
+    },
+    "UI-TRUTH-001:NO_TRUTH_TIER_FALLBACK": {
+      "pass": true,
+      "detail": "Missing truth tier fallback missing"
+    },
+    "UI-TRUTH-002:NO_FALSE_GREEN": {
+      "pass": true,
+      "detail": "No false green when unavailable"
+    },
+    "UI-TRUTH-003:READ_ONLY_VERIFIED": {
+      "pass": true,
+      "detail": "UI should only fetch, not mutate"
+    },
+    "UI-TRUTH-004:STALE_DATA_FLAG": {
+      "pass": true,
+      "detail": "Stale data flag missing"
+    },
+    "INC-13:TARGET_GATE_VERIFIED": {
+      "pass": true,
+      "detail": "Target gate not verified"
+    },
+    "INC-15:CLOSE_ONLY_WITH_EXPOSURE": {
+      "pass": true,
+      "detail": "Close-only with exposure not handled"
+    },
+    "INC-17:ERROR_DISPLAYED": {
+      "pass": true,
+      "detail": "Error display missing"
+    },
+    "UI-FP-001:HEADER_FALLBACK": {
+      "pass": true,
+      "detail": "Header fallback missing"
+    },
+    "UI-FP-002:SAFETY_STRIP_FALLBACK": {
+      "pass": true,
+      "detail": "Safety strip fallback missing"
+    },
+    "UI-FP-003:WS_FALLBACK": {
+      "pass": true,
+      "detail": "WS fallback missing"
+    },
+    "UI-FP-004:NO_DATA_FALLBACK": {
+      "pass": true,
+      "detail": "No data fallback missing"
+    }
+  },
+  "blocked": [
+    {
+      "id": "TN-F14",
+      "reason": "Requires live testnet scenario with UI control that looks real but does not govern"
+    },
+    {
+      "id": "TN-F22",
+      "reason": "Requires live testnet scenario with UI minimum/config authority confusion test"
+    },
+    {
+      "id": "TN-F23",
+      "reason": "Requires live testnet scenario with UI account/position/open-order/render test"
+    }
+  ],
+  "summary": {
+    "total_checks": 441,
+    "passed_checks": 380,
+    "failed_checks": 61,
+    "total_negative_tests": 23,
+    "passed_negative_tests": 23,
+    "failed_negative_tests": 0,
+    "blocked_count": 3
+  }
+}

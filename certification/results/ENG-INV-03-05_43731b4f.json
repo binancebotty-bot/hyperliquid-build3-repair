@@ -1,0 +1,52 @@
+{
+  "census": "ENG-INV-03-05 CORRECTED",
+  "repo_root": "C:\\Users\\wigmore\\hyperliquid-build3-repair",
+  "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+  "file_info": {
+    "_archive/hl_stage2/HL_Live_Copy_Service_Core.py": {
+      "sha256": "2dfbd571012af67479ee7a2d9e6f1faac6ee5408722a092fb3625450cab51405",
+      "lines": 8030,
+      "bytes": 436322
+    },
+    "_archive/hl_stage2/HL_Live_Copy_Service.py": {
+      "sha256": "e2f04fa826958c73169bae2490a6ebb3ebfd09d9aecda513ef0d7bd8a10ec2c6",
+      "lines": 5109,
+      "bytes": 281821
+    }
+  },
+  "totals": {
+    "third_party_imports": 0,
+    "persistent_stores": 0,
+    "build4_imports": 0,
+    "internal_imports": 3
+  },
+  "findings": {
+    "_archive/hl_stage2/HL_Live_Copy_Service_Core.py": {
+      "third_party_imports": [],
+      "persistent_stores": [],
+      "build4_imports": [],
+      "internal_imports": [
+        [
+          101,
+          "exchange_truth"
+        ]
+      ]
+    },
+    "_archive/hl_stage2/HL_Live_Copy_Service.py": {
+      "third_party_imports": [],
+      "persistent_stores": [],
+      "build4_imports": [],
+      "internal_imports": [
+        [
+          136,
+          "convergence_shadow"
+        ],
+        [
+          814,
+          "exchange_truth"
+        ]
+      ]
+    }
+  },
+  "verdict": "PASS"
+}

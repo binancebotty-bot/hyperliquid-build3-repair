@@ -1,0 +1,24 @@
+{
+  "card_id": "t_ef2d2737",
+  "test_a": {
+    "same_dir_second_acquirer_raw_output": "REFUSED: INSTANCE_ALREADY_RUNNING: another engine holds C:\\Users\\wigmore\\AppData\\Local\\Temp\\eng_inv01_g0_eb_a4\\A\n",
+    "child_returncode": 23,
+    "stderr": "",
+    "release_then_reacquire_raw_output": "ACQUIRED after release"
+  },
+  "test_b": {
+    "different_dir_second_acquirer_raw_output": "ACQUIRED\n",
+    "child_returncode": 0,
+    "stderr": "",
+    "first_directory_holder": "ACQUIRED and retained while child acquired directory B"
+  },
+  "semantics": "per-directory",
+  "requirement_conflict": {
+    "expected_behaviour": "One process.",
+    "implemented_behaviour": "one engine per state folder; the OS lock dies with the process, so it never goes stale.",
+    "code": "def acquire_instance_lock(state_dir: Path) -> None:\n    Path(state_dir).mkdir(parents=True, exist_ok=True)\n    fh = open(Path(state_dir) / \"instance.lock\", \"a+\")\n    if os.name == \"nt\":\n        import msvcrt\n        fh.seek(0)\n        msvcrt.locking(fh.fileno(), msvcrt.LK_NBLCK, 1)\n    except OSError:\n        fh.close()\n        raise SystemExit(f\"INSTANCE_ALREADY_RUNNING: another engine holds {state_dir}\")",
+    "finding": "Different state/audit directories both acquire successfully; this function does not enforce a global one-process invariant."
+  },
+  "verdict": "NOT_TESTED",
+  "limits": "Windows 11, Python 3.11.9, local temporary filesystem. Separate child processes showed the same-directory attempt was refused while the parent retained its lock, while a different-directory attempt succeeded; this is evidence of OS-enforced byte-range locking on this tested filesystem, not proof for network, unusual, or otherwise advisory-lock-weak filesystems. Importing the module to obtain the real function completed and did not start the engine; no live process, listener, or live append_only directory was touched."
+}

@@ -1,0 +1,454 @@
+{
+  "task_id": "t_21311bd2",
+  "title": "B3-CERT NETWORK + LIFECYCLE + SETTLE areas (24 rows)",
+  "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+  "tested_at_utc": "2026-10-14T09:55:08Z",
+  "engine_sha256": "2dfbd571012af67479ee7a2d9e6f1faac6ee5408722a092fb3625450cab51405",
+  "engine_lines": 8030,
+  "checks": {
+    "NET-001:MAINNET_ENV_MAINNET_ENDPOINTS": {
+      "category": "NETWORK",
+      "row_id": "NET-001",
+      "check_name": "MAINNET_ENV_MAINNET_ENDPOINTS",
+      "pass": true,
+      "detail": "leader=mainnet, follower=mainnet"
+    },
+    "NET-001:MAINNET_ENDPOINT_HOSTNAME": {
+      "category": "NETWORK",
+      "row_id": "NET-001",
+      "check_name": "MAINNET_ENDPOINT_HOSTNAME",
+      "pass": true,
+      "detail": "follower_info=https://api.hyperliquid.xyz/info"
+    },
+    "NET-001:TESTNET_ENV_TESTNET_ENDPOINTS": {
+      "category": "NETWORK",
+      "row_id": "NET-001",
+      "check_name": "TESTNET_ENV_TESTNET_ENDPOINTS",
+      "pass": true,
+      "detail": "leader=testnet, follower=testnet"
+    },
+    "NET-002:SIGNER_DISTINCT_FROM_MASTER": {
+      "category": "NETWORK",
+      "row_id": "NET-002",
+      "check_name": "SIGNER_DISTINCT_FROM_MASTER",
+      "pass": true,
+      "detail": "signer=0xaaaaaaaa... master=0xbbbbbbbb..."
+    },
+    "NET-002:SAME_SIGNER_MASTER_REJECTED": {
+      "category": "NETWORK",
+      "row_id": "NET-002",
+      "check_name": "SAME_SIGNER_MASTER_REJECTED",
+      "pass": true,
+      "detail": "identity_ok(signer, signer) must be False"
+    },
+    "NET-002:INVALID_SIGNER_REJECTED": {
+      "category": "NETWORK",
+      "row_id": "NET-002",
+      "check_name": "INVALID_SIGNER_REJECTED",
+      "pass": true,
+      "detail": "identity_ok('not_an_address', master) must be False"
+    },
+    "NET-003:INDEPENDENT_LEADER_MAINNET_FOLLOWER_TESTNET": {
+      "category": "NETWORK",
+      "row_id": "NET-003",
+      "check_name": "INDEPENDENT_LEADER_MAINNET_FOLLOWER_TESTNET",
+      "pass": true,
+      "detail": "leader=mainnet, follower=testnet"
+    },
+    "NET-003:INDEPENDENT_LEADER_TESTNET_FOLLOWER_MAINNET": {
+      "category": "NETWORK",
+      "row_id": "NET-003",
+      "check_name": "INDEPENDENT_LEADER_TESTNET_FOLLOWER_MAINNET",
+      "pass": true,
+      "detail": "leader=testnet, follower=mainnet"
+    },
+    "NET-004:AUTO_SEND_DISABLED_GATE": {
+      "category": "NETWORK",
+      "row_id": "NET-004",
+      "check_name": "AUTO_SEND_DISABLED_GATE",
+      "pass": true,
+      "detail": "HL_LIVE_AUTO_SEND_ENABLED=0"
+    },
+    "NET-005:SINGLE_ENGINE_SHA": {
+      "category": "NETWORK",
+      "row_id": "NET-005",
+      "check_name": "SINGLE_ENGINE_SHA",
+      "pass": true,
+      "detail": "sha256=2dfbd571012af67479ee7a2d9e6f1faac6ee5408722a092fb3625450cab51405"
+    },
+    "NET-006:BOTH_NETWORKS_CONFIGURABLE": {
+      "category": "NETWORK",
+      "row_id": "NET-006",
+      "check_name": "BOTH_NETWORKS_CONFIGURABLE",
+      "pass": true,
+      "detail": "mainnet_leader=mainnet, testnet_leader=testnet"
+    },
+    "NET-007:CERT_LEADER_MAINNET_FOLLOWER_TESTNET": {
+      "category": "NETWORK",
+      "row_id": "NET-007",
+      "check_name": "CERT_LEADER_MAINNET_FOLLOWER_TESTNET",
+      "pass": true,
+      "detail": "cert: leader=mainnet, follower=testnet"
+    },
+    "LIFE-001:INSTANCE_LOCK_ACQUIRED": {
+      "category": "LIFECYCLE",
+      "row_id": "LIFE-001",
+      "check_name": "INSTANCE_LOCK_ACQUIRED",
+      "pass": true,
+      "detail": "instance.lock exists: True"
+    },
+    "LIFE-001:ENGINE_CONSTRUCTS": {
+      "category": "LIFECYCLE",
+      "row_id": "LIFE-001",
+      "check_name": "ENGINE_CONSTRUCTS",
+      "pass": true,
+      "detail": "LiveCopyCore constructed successfully"
+    },
+    "LIFE-001:ENGINE_HAS_COMPONENTS": {
+      "category": "LIFECYCLE",
+      "row_id": "LIFE-001",
+      "check_name": "ENGINE_HAS_COMPONENTS",
+      "pass": true,
+      "detail": "ledger=ManualLedger, dedupe=DedupeStore"
+    },
+    "LIFE-001:PROCESS_ALIVE": {
+      "category": "LIFECYCLE",
+      "row_id": "LIFE-001",
+      "check_name": "PROCESS_ALIVE",
+      "pass": true,
+      "detail": "PID=35084"
+    },
+    "LIFE-002:WS_THREAD_RUNNING": {
+      "category": "LIFECYCLE",
+      "row_id": "LIFE-002",
+      "check_name": "WS_THREAD_RUNNING",
+      "pass": true,
+      "detail": "WS thread alive: True"
+    },
+    "LIFE-002:STOP_KILLS_WS_THREAD": {
+      "category": "LIFECYCLE",
+      "row_id": "LIFE-002",
+      "check_name": "STOP_KILLS_WS_THREAD",
+      "pass": true,
+      "detail": "WS heartbeat thread dead after stop: True"
+    },
+    "LIFE-003:FIRST_CONSTRUCTION_OK": {
+      "category": "LIFECYCLE",
+      "row_id": "LIFE-003",
+      "check_name": "FIRST_CONSTRUCTION_OK",
+      "pass": true,
+      "detail": "First LiveCopyCore constructed"
+    },
+    "LIFE-003:RESTART_CONSTRUCTION_OK": {
+      "category": "LIFECYCLE",
+      "row_id": "LIFE-003",
+      "check_name": "RESTART_CONSTRUCTION_OK",
+      "pass": true,
+      "detail": "Second LiveCopyCore constructed after state persist"
+    },
+    "LIFE-004:STATUS_RETURNS_DICT": {
+      "category": "LIFECYCLE",
+      "row_id": "LIFE-004",
+      "check_name": "STATUS_RETURNS_DICT",
+      "pass": true,
+      "detail": "status keys: ['created_at', 'created_at_ms', 'status', 'counts', 'ownership_gate']"
+    },
+    "LIFE-004:STATUS_HAS_COUNTS": {
+      "category": "LIFECYCLE",
+      "row_id": "LIFE-004",
+      "check_name": "STATUS_HAS_COUNTS",
+      "pass": true,
+      "detail": "has counts: True"
+    },
+    "LIFE-005:ENGINE_HAS_VERSION_IDENTIFIABLE": {
+      "category": "LIFECYCLE",
+      "row_id": "LIFE-005",
+      "check_name": "ENGINE_HAS_VERSION_IDENTIFIABLE",
+      "pass": true,
+      "detail": "engine file: HL_Live_Copy_Service_Core.py"
+    },
+    "LIFE-005:PROCESS_START_TIME_RECORDED": {
+      "category": "LIFECYCLE",
+      "row_id": "LIFE-005",
+      "check_name": "PROCESS_START_TIME_RECORDED",
+      "pass": true,
+      "detail": "PROCESS_STARTED_AT_MS=1791971708642"
+    },
+    "LIFE-006:LIVE_START_MS_SET": {
+      "category": "LIFECYCLE",
+      "row_id": "LIFE-006",
+      "check_name": "LIVE_START_MS_SET",
+      "pass": true,
+      "detail": "live_start_ms=1791971710007"
+    },
+    "LIFE-006:LIVE_START_MS_PERSISTS": {
+      "category": "LIFECYCLE",
+      "row_id": "LIFE-006",
+      "check_name": "LIVE_START_MS_PERSISTS",
+      "pass": true,
+      "detail": "t1=1791971710007, t2=1791971710007"
+    },
+    "LIFE-007:RECOVERY_FIRST_CONSTRUCTION": {
+      "category": "LIFECYCLE",
+      "row_id": "LIFE-007",
+      "check_name": "RECOVERY_FIRST_CONSTRUCTION",
+      "pass": true,
+      "detail": "live_start_ms=1"
+    },
+    "LIFE-007:RECOVERY_STATE_PERSISTS": {
+      "category": "LIFECYCLE",
+      "row_id": "LIFE-007",
+      "check_name": "RECOVERY_STATE_PERSISTS",
+      "pass": true,
+      "detail": "live_start_ms=1 (should be 1 from persisted state)"
+    },
+    "LIFE-008:CONFIG_LOADS_WALLETS": {
+      "category": "LIFECYCLE",
+      "row_id": "LIFE-008",
+      "check_name": "CONFIG_LOADS_WALLETS",
+      "pass": true,
+      "detail": "wallets loaded: 1"
+    },
+    "LIFE-008:CONFIG_AUTO_SEND": {
+      "category": "LIFECYCLE",
+      "row_id": "LIFE-008",
+      "check_name": "CONFIG_AUTO_SEND",
+      "pass": true,
+      "detail": "auto_send_enabled=False"
+    },
+    "LIFE-008:CONFIG_EMPTY_WALLETS_OK": {
+      "category": "LIFECYCLE",
+      "row_id": "LIFE-008",
+      "check_name": "CONFIG_EMPTY_WALLETS_OK",
+      "pass": true,
+      "detail": "wallets type: <class 'dict'>"
+    },
+    "LIFE-009:INSTANCE_LOCK_PREVENTS_DOUBLE": {
+      "category": "LIFECYCLE",
+      "row_id": "LIFE-009",
+      "check_name": "INSTANCE_LOCK_PREVENTS_DOUBLE",
+      "pass": true,
+      "detail": "Correctly refused: INSTANCE_ALREADY_RUNNING: another engine holds C:\\Users\\wigmore\\AppData\\Local\\Temp\\b3cert_life_2czh50ze\\audit9"
+    },
+    "SET-001:ACK_NOT_SETTLEMENT": {
+      "category": "SETTLE",
+      "row_id": "SET-001",
+      "check_name": "ACK_NOT_SETTLEMENT",
+      "pass": true,
+      "detail": "status=UNSETTLED, settled=False"
+    },
+    "SET-001:ACK_NO_PROOF_UNKNOWN": {
+      "category": "SETTLE",
+      "row_id": "SET-001",
+      "check_name": "ACK_NO_PROOF_UNKNOWN",
+      "pass": true,
+      "detail": "status=SETTLEMENT_UNKNOWN"
+    },
+    "SET-002:MASTER_FULL_SETTLEMENT": {
+      "category": "SETTLE",
+      "row_id": "SET-002",
+      "check_name": "MASTER_FULL_SETTLEMENT",
+      "pass": true,
+      "detail": "status=SETTLED_FULL, filled=1.0"
+    },
+    "SET-002:MASTER_MULTI_SCOPE_SETTLEMENT": {
+      "category": "SETTLE",
+      "row_id": "SET-002",
+      "check_name": "MASTER_MULTI_SCOPE_SETTLEMENT",
+      "pass": true,
+      "detail": "status=SETTLED_FULL, filled=1.0"
+    },
+    "SET-003:TERMINAL_REJECT_SETTLES": {
+      "category": "SETTLE",
+      "row_id": "SET-003",
+      "check_name": "TERMINAL_REJECT_SETTLES",
+      "pass": true,
+      "detail": "status=TERMINAL_REJECT_NO_FILL"
+    },
+    "SET-004:PARTIAL_FILL_SETTLES": {
+      "category": "SETTLE",
+      "row_id": "SET-004",
+      "check_name": "PARTIAL_FILL_SETTLES",
+      "pass": true,
+      "detail": "status=SETTLED_PARTIAL, filled=0.6, remaining=0.4"
+    },
+    "SET-005:CRASH_BEFORE_OID_UNSETTLED": {
+      "category": "SETTLE",
+      "row_id": "SET-005",
+      "check_name": "CRASH_BEFORE_OID_UNSETTLED",
+      "pass": true,
+      "detail": "status=UNSETTLED"
+    },
+    "SET-006:RECONCILIATION_NO_DIVERGENCE_OK": {
+      "category": "SETTLE",
+      "row_id": "SET-006",
+      "check_name": "RECONCILIATION_NO_DIVERGENCE_OK",
+      "pass": true,
+      "detail": "divergence=0.0, blocker=None"
+    },
+    "SET-006:RECONCILIATION_DIVERGENCE_BLOCKED": {
+      "category": "SETTLE",
+      "row_id": "SET-006",
+      "check_name": "RECONCILIATION_DIVERGENCE_BLOCKED",
+      "pass": true,
+      "detail": "divergence=1.0, blocker=RECONCILIATION_DIVERGENCE"
+    },
+    "SET-007:TESTNET_ENDPOINTS_RESOLVE": {
+      "category": "SETTLE",
+      "row_id": "SET-007",
+      "check_name": "TESTNET_ENDPOINTS_RESOLVE",
+      "pass": true,
+      "detail": "follower=testnet"
+    },
+    "SET-007:TESTNET_HOSTNAME_CORRECT": {
+      "category": "SETTLE",
+      "row_id": "SET-007",
+      "check_name": "TESTNET_HOSTNAME_CORRECT",
+      "pass": true,
+      "detail": "follower_info=https://api.hyperliquid-testnet.xyz/info"
+    },
+    "SET-008:CERT_TOPOLOGY_LEADER_MAINNET_FOLLOWER_TESTNET": {
+      "category": "SETTLE",
+      "row_id": "SET-008",
+      "check_name": "CERT_TOPOLOGY_LEADER_MAINNET_FOLLOWER_TESTNET",
+      "pass": true,
+      "detail": "leader=mainnet, follower=testnet"
+    },
+    "SET-008:NETWORK_STAMP_BINDS": {
+      "category": "SETTLE",
+      "row_id": "SET-008",
+      "check_name": "NETWORK_STAMP_BINDS",
+      "pass": true,
+      "detail": "stamp={'leader': 'mainnet', 'follower': 'testnet'}"
+    }
+  },
+  "negative_tests": {
+    "NET-001:NEG:UNKNOWN_NETWORK_REJECTED": {
+      "category": "NETWORK",
+      "row_id": "NET-001",
+      "test_name": "UNKNOWN_NETWORK_REJECTED",
+      "pass": true,
+      "detail": "Correctly raised: UNKNOWN_NETWORK:'unknown' (expected one of ['mainnet', 'testnet'])"
+    },
+    "NET-002:NEG:SAME_ADDR_REJECTED": {
+      "category": "NETWORK",
+      "row_id": "NET-002",
+      "test_name": "SAME_ADDR_REJECTED",
+      "pass": true,
+      "detail": "identity_ok(master, master) must be False"
+    },
+    "LIFE-001:NEG:AUTO_SEND_DISABLED_ZERO_SENDS": {
+      "category": "LIFECYCLE",
+      "row_id": "LIFE-001",
+      "test_name": "AUTO_SEND_DISABLED_ZERO_SENDS",
+      "pass": true,
+      "detail": "auto_send_enabled=False (must be False when HL_LIVE_AUTO_SEND_ENABLED=0)"
+    },
+    "LIFE-002:NEG:STOP_EVENT_SET": {
+      "category": "LIFECYCLE",
+      "row_id": "LIFE-002",
+      "test_name": "STOP_EVENT_SET",
+      "pass": true,
+      "detail": "hot_stop_event set: True"
+    },
+    "LIFE-003:NEG:RESTART_PERSISTS_STATE": {
+      "category": "LIFECYCLE",
+      "row_id": "LIFE-003",
+      "test_name": "RESTART_PERSISTS_STATE",
+      "pass": true,
+      "detail": "live_start_ms=1791971709954"
+    },
+    "LIFE-006:NEG:WIPED_STATE_FRESH_LIVE_START": {
+      "category": "LIFECYCLE",
+      "row_id": "LIFE-006",
+      "test_name": "WIPED_STATE_FRESH_LIVE_START",
+      "pass": true,
+      "detail": "t3=1791971710039 (should be fresh, != t1=1791971710007)"
+    },
+    "LIFE-007:NEG:STATE_FILE_PERSISTS": {
+      "category": "LIFECYCLE",
+      "row_id": "LIFE-007",
+      "test_name": "STATE_FILE_PERSISTS",
+      "pass": true,
+      "detail": "state file exists: True"
+    },
+    "LIFE-009:NEG:DIFFERENT_DIR_ALLOWED": {
+      "category": "LIFECYCLE",
+      "row_id": "LIFE-009",
+      "test_name": "DIFFERENT_DIR_ALLOWED",
+      "pass": true,
+      "detail": "Different state dir correctly allowed"
+    },
+    "SET-003:NEG:INCOMPLETE_REJECT_EVIDENCE_BLOCKS": {
+      "category": "SETTLE",
+      "row_id": "SET-003",
+      "test_name": "INCOMPLETE_REJECT_EVIDENCE_BLOCKS",
+      "pass": true,
+      "detail": "status=SETTLEMENT_UNKNOWN (must be UNKNOWN, not REJECTED)"
+    },
+    "SET-004:NEG:FULL_FILL_NOT_PARTIAL": {
+      "category": "SETTLE",
+      "row_id": "SET-004",
+      "test_name": "FULL_FILL_NOT_PARTIAL",
+      "pass": true,
+      "detail": "status=SETTLED_FULL (must be FULL, not PARTIAL)"
+    },
+    "SET-008:NEG:NETWORK_STAMP_MISMATCH_REJECTED": {
+      "category": "SETTLE",
+      "row_id": "SET-008",
+      "test_name": "NETWORK_STAMP_MISMATCH_REJECTED",
+      "pass": true,
+      "detail": "Correctly raised: NETWORK_STAMP_MISMATCH:C:\\Users\\wigmore\\AppData\\Local\\Temp\\b3cert_life_2czh50ze\\stamp_test\\network.json is {'leader': 'mainnet', 'follower': 'testnet'} but this instance is {'leader': 'testnet', 'follower': 'testnet'}"
+    }
+  },
+  "summary": {
+    "total_rows": 24,
+    "rows": {
+      "NETWORK": {
+        "count": 7,
+        "ids": [
+          "NET-001",
+          "NET-002",
+          "NET-003",
+          "NET-004",
+          "NET-005",
+          "NET-006",
+          "NET-007"
+        ]
+      },
+      "LIFECYCLE": {
+        "count": 9,
+        "ids": [
+          "LIFE-001",
+          "LIFE-002",
+          "LIFE-003",
+          "LIFE-004",
+          "LIFE-005",
+          "LIFE-006",
+          "LIFE-007",
+          "LIFE-008",
+          "LIFE-009"
+        ]
+      },
+      "SETTLE": {
+        "count": 8,
+        "ids": [
+          "SET-001",
+          "SET-002",
+          "SET-003",
+          "SET-004",
+          "SET-005",
+          "SET-006",
+          "SET-007",
+          "SET-008"
+        ]
+      }
+    },
+    "total_checks": 45,
+    "passed_checks": 45,
+    "failed_checks": 0,
+    "total_negative_tests": 11,
+    "passed_negative_tests": 11,
+    "failed_negative_tests": 0
+  }
+}

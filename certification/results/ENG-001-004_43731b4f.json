@@ -1,0 +1,214 @@
+{
+  "commit": "43731b4f1f19a56e835032dabf608a550f925717",
+  "timestamp": "2026-10-14T06:50:38Z",
+  "total_checks": 33,
+  "passed": 29,
+  "failed": 4,
+  "overall_result": "FAIL",
+  "checks": [
+    {
+      "check": "eng001_convergence_after_10_adds",
+      "expected": 1.0,
+      "actual": 0.9999999999999999,
+      "pass": true
+    },
+    {
+      "check": "eng001_after_reduce",
+      "expected": 0.7,
+      "actual": 0.0,
+      "pass": false
+    },
+    {
+      "check": "eng001_after_close",
+      "expected": 0.0,
+      "actual": -1.0,
+      "pass": false
+    },
+    {
+      "check": "eng001_no_fixed_notional_minted",
+      "expected": "proportional sizing (copy_size = leader_size * norm_base/leader_equity)",
+      "actual": "copy_size per fill = 0.1 (should be 0.1)",
+      "pass": true
+    },
+    {
+      "check": "eng002_open_position",
+      "expected": 1.0,
+      "actual": 1.0,
+      "pass": true
+    },
+    {
+      "check": "eng002_add_position",
+      "expected": 1.5,
+      "actual": 1.5,
+      "pass": true
+    },
+    {
+      "check": "eng002_partial_reduce",
+      "expected": 1.2,
+      "actual": 0.0,
+      "pass": false
+    },
+    {
+      "check": "eng002_close",
+      "expected": 0.0,
+      "actual": -1.5,
+      "pass": false
+    },
+    {
+      "check": "eng002_proportional_formula",
+      "expected": "copy_notional = leader_notional * norm_base/leader_equity",
+      "actual": "copy_notional=2000.0, leader_notional=2000.0, ratio=1.0000",
+      "pass": true
+    },
+    {
+      "check": "eng004_floor_wire_size_btc",
+      "expected": 0.12345,
+      "actual": 0.12345,
+      "pass": true
+    },
+    {
+      "check": "eng004_ceil_wire_size_btc",
+      "expected": 0.12346,
+      "actual": 0.12346,
+      "pass": true
+    },
+    {
+      "check": "eng004_floor_wire_size_eth",
+      "expected": 1.2345,
+      "actual": 1.2345,
+      "pass": true
+    },
+    {
+      "check": "eng004_ceil_wire_size_eth",
+      "expected": 1.2346,
+      "actual": 1.2346,
+      "pass": true
+    },
+    {
+      "check": "eng004_floor_wire_size_integer",
+      "expected": 10.0,
+      "actual": 10.0,
+      "pass": true
+    },
+    {
+      "check": "eng004_ceil_wire_size_integer",
+      "expected": 11.0,
+      "actual": 11.0,
+      "pass": true
+    },
+    {
+      "check": "eng004_signed_delta_buy",
+      "expected": 1.5,
+      "actual": 1.5,
+      "pass": true
+    },
+    {
+      "check": "eng004_signed_delta_sell",
+      "expected": -1.5,
+      "actual": -1.5,
+      "pass": true
+    },
+    {
+      "check": "eng004_direction_long",
+      "expected": "LONG",
+      "actual": "LONG",
+      "pass": true
+    },
+    {
+      "check": "eng004_direction_short",
+      "expected": "SHORT",
+      "actual": "SHORT",
+      "pass": true
+    },
+    {
+      "check": "eng004_direction_flat",
+      "expected": "FLAT",
+      "actual": "FLAT",
+      "pass": true
+    },
+    {
+      "check": "eng004_format_limit_px",
+      "expected": "price formatted to <=1 decimal place and <=5 sig figs",
+      "actual": 50123.0,
+      "pass": true
+    },
+    {
+      "check": "eng004_no_unit_confusion",
+      "expected": "copy_size in coins (~0.5), copy_notional in USD (~25000)",
+      "actual": "copy_size=0.5, copy_notional=25000.0",
+      "pass": true
+    },
+    {
+      "check": "eng001_neg_positive_control",
+      "expected": 0.1,
+      "actual": 0.1,
+      "pass": true
+    },
+    {
+      "check": "eng001_neg_mutation_fixed_notional",
+      "expected": "copy_size != 0.1 (mutated sizing)",
+      "actual": 0.02,
+      "pass": true
+    },
+    {
+      "check": "eng001_neg_mutation_block_all",
+      "expected": "decision != ENTRY_ALLOWED",
+      "actual": "BLOCKED_OFF",
+      "pass": true
+    },
+    {
+      "check": "eng002_neg_positive_control",
+      "expected": 2000.0,
+      "actual": 2000.0,
+      "pass": true
+    },
+    {
+      "check": "eng002_neg_mutation_wrong_equity",
+      "expected": "copy_notional != 2000 (mutated equity)",
+      "actual": 4000.0,
+      "pass": true
+    },
+    {
+      "check": "eng004_neg_positive_control",
+      "expected": 0.12345,
+      "actual": 0.12345,
+      "pass": true
+    },
+    {
+      "check": "eng004_neg_mutation_round_instead_of_floor",
+      "expected": "mutated result != floor result",
+      "actual": 0.12346,
+      "pass": true
+    },
+    {
+      "check": "eng004_neg_mutation_wrong_sign",
+      "expected": "mutated delta != -1.5",
+      "actual": 1.5,
+      "pass": true
+    },
+    {
+      "check": "oracle_meta_endpoint",
+      "expected": "returns universe with szDecimals",
+      "actual": "universe count=212",
+      "pass": true
+    },
+    {
+      "check": "oracle_btc_szDecimals",
+      "expected": "BTC szDecimals > 0",
+      "actual": {
+        "BTC": 5,
+        "ETH": 4
+      },
+      "pass": true
+    },
+    {
+      "check": "oracle_eth_szDecimals",
+      "expected": "ETH szDecimals > 0",
+      "actual": {
+        "BTC": 5,
+        "ETH": 4
+      },
+      "pass": true
+    }
+  ]
+}

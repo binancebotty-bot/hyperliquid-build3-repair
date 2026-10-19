@@ -1,0 +1,169 @@
+{
+  "checks": [
+    {
+      "detail": {
+        "path": "C:\\Users\\wigmore\\trading_stack\\hl-prod-base\\.env.testnet",
+        "source_names": [
+          "HL_TESTNET_ACCOUNT_ADDRESS",
+          "HL_TESTNET_AGENT_PRIVATE_KEY"
+        ]
+      },
+      "name": "prod_env_read_not_copied",
+      "pass": true
+    },
+    {
+      "detail": {
+        "aliases": {
+          "HL_TESTNET_ACCOUNT_ADDRESS": "HL_LIVE_HL_ACCOUNT_ADDRESS",
+          "HL_TESTNET_AGENT_PRIVATE_KEY": "HL_LIVE_HL_PRIVATE_KEY"
+        },
+        "canonical_present": {
+          "HL_LIVE_HL_ACCOUNT_ADDRESS": true,
+          "HL_LIVE_HL_PRIVATE_KEY": true
+        }
+      },
+      "name": "name_map_publishes_canonical_names",
+      "pass": true
+    },
+    {
+      "detail": {
+        "canonical_from_osenv": true
+      },
+      "name": "os_environ_wins_over_alias",
+      "pass": true
+    },
+    {
+      "detail": {
+        "master": "0x7ae3b08bb4e7b085c6db5d635b96bec9715e9205",
+        "signer": "0x34F322d8EB97461dA8f1bd2F1b95dcf4Ca52A76D",
+        "status": "OK"
+      },
+      "name": "identity_ok_distinct",
+      "pass": true
+    },
+    {
+      "detail": {
+        "detail": "invalid or non-distinct MASTER/signer identity",
+        "status": "IDENTITY_INVALID"
+      },
+      "name": "NEG_non_distinct_identity_rejected",
+      "pass": true
+    },
+    {
+      "detail": {
+        "follower": "testnet",
+        "leader": "mainnet"
+      },
+      "name": "follower_is_testnet",
+      "pass": true
+    },
+    {
+      "detail": {
+        "follower_exchange": "https://api.hyperliquid-testnet.xyz/exchange",
+        "follower_info": "https://api.hyperliquid-testnet.xyz/info"
+      },
+      "name": "endpoint_netlocs_match",
+      "pass": true
+    },
+    {
+      "detail": {
+        "follower_base": "https://api.hyperliquid-testnet.xyz"
+      },
+      "name": "no_mainnet_on_follower",
+      "pass": true
+    },
+    {
+      "detail": {
+        "error": "NETWORK_ENDPOINT_MISMATCH:HL_LIVE_ORDER_ENDPOINT=https://api.hyperliquid.xyz/exchange but testnet selected"
+      },
+      "name": "NEG_wrong_network_endpoint_rejected",
+      "pass": true
+    },
+    {
+      "detail": {
+        "error": "NETWORK_STAMP_MISMATCH:C:\\Users\\wigmore\\AppData\\Local\\Temp\\envmap_stamp_nen8pv1j\\network.json is {'leader': 'mainnet', 'follower': 'testnet'} but this instance is {'leader': 'mainnet', 'follower': 'mainnet'}"
+      },
+      "name": "NEG_state_dir_network_stamp_mismatch_rejected",
+      "pass": true
+    },
+    {
+      "detail": {
+        "HLAccount_is_None": false,
+        "HLExchange_is_None": false,
+        "guard": "_send_real L3380 returns SDK_UNAVAILABLE iff HLAccount/HLExchange is None"
+      },
+      "name": "py311_sdk_available_sendreal_gate_false",
+      "pass": true
+    },
+    {
+      "detail": {
+        "account_present": true,
+        "private_key_present": true
+      },
+      "name": "core_loaded_name_map_into_environ",
+      "pass": true
+    },
+    {
+      "detail": {
+        "exchange_url": "https://api.hyperliquid-testnet.xyz/exchange",
+        "follower": "testnet",
+        "leader": "mainnet"
+      },
+      "name": "core_follower_network_testnet",
+      "pass": true
+    },
+    {
+      "detail": {
+        "py311_ok": true,
+        "py314_err": "ModuleNotFoundError: No module named 'hyperliquid'",
+        "py314_ok": false
+      },
+      "name": "differential_py311_has_sdk_py314_does_not",
+      "pass": true
+    }
+  ],
+  "endpoint_netlocs": {
+    "follower_exchange": "https://api.hyperliquid-testnet.xyz/exchange",
+    "follower_info": "https://api.hyperliquid-testnet.xyz/info"
+  },
+  "engine_sha256": {
+    "_archive/hl_stage2/HL_Live_Copy_Service_Core.py": "b171ec8fef01ead5ed2fe4a4a075857b5b1a56e425bab8394440c7dbad57f2a0",
+    "_archive/hl_stage2/exchange_truth.py": "a3486cb1ee87e9b87af3366aa60f12328ce4eeb5fcca6fe8b66cb5c3741eca6d"
+  },
+  "env_file_path": "C:\\Users\\wigmore\\trading_stack\\hl-prod-base\\.env.testnet",
+  "env_file_sha256": "4df9475350a2b6a1d8a3539a65749cf32f5f8c909f7981d059a617714914b236",
+  "env_file_source_names": [
+    "HL_TESTNET_ACCOUNT_ADDRESS",
+    "HL_TESTNET_AGENT_PRIVATE_KEY"
+  ],
+  "follower_network": "testnet",
+  "identity": {
+    "master": "0x7ae3b08bb4e7b085c6db5d635b96bec9715e9205",
+    "signer": "0x34F322d8EB97461dA8f1bd2F1b95dcf4Ca52A76D",
+    "status": "OK"
+  },
+  "negative_tests": {
+    "non_distinct_identity": {
+      "rejected": true,
+      "status": "IDENTITY_INVALID"
+    },
+    "state_dir_network_stamp_mismatch": {
+      "error": "NETWORK_STAMP_MISMATCH:C:\\Users\\wigmore\\AppData\\Local\\Temp\\envmap_stamp_nen8pv1j\\network.json is {'leader': 'mainnet', 'follower': 'testnet'} but this instance is {'leader': 'mainnet', 'follower': 'mainnet'}",
+      "rejected": true
+    },
+    "wrong_network_endpoint": {
+      "error": "NETWORK_ENDPOINT_MISMATCH:HL_LIVE_ORDER_ENDPOINT=https://api.hyperliquid.xyz/exchange but testnet selected",
+      "rejected": true
+    }
+  },
+  "orders_placed": false,
+  "passed": true,
+  "python": {
+    "evidence_runner": "3.11.9",
+    "hermes_py": "3.14 (no SDK)",
+    "sdk_py": "3.11"
+  },
+  "task": "t_ce3bb91a",
+  "tested_commit": "52a16149e370732bb3162d69cb2f9ce4a43509bb",
+  "title": "B3-ENV-MAP repoint HL_LIVE_ENV_FILE; bounded NAME-MAP; fail-closed identity/network"
+}

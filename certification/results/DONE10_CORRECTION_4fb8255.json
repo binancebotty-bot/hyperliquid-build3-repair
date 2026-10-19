@@ -1,0 +1,40 @@
+{
+  "harness": "DONE10_CORRECTION_harness_4fb8255.py",
+  "tested_commit": "4fb8255354180189f813524786ede44700312071",
+  "tested_at_utc": "2026-10-14T11:51:48Z",
+  "engine_sha256": "2dfbd571012af67479ee7a2d9e6f1faac6ee5408722a092fb3625450cab51405",
+  "done10_verdict": "BLOCKED",
+  "done10_reason": "No recorded human LIVE/mainnet decision found in control mailbox or EVIDENCE/DECISIONS.md. Transport exists but is not a human ruling.",
+  "total_checks": 3,
+  "passed": 3,
+  "failed": 0,
+  "negative_tests": {
+    "total": 1,
+    "passed": 1,
+    "failed": 0
+  },
+  "checks": [
+    {
+      "name": "ENGINE_SHA256_MATCH",
+      "pass": true,
+      "detail": "sha256=2dfbd571012a... (unchanged)"
+    },
+    {
+      "name": "MAILBOX_TRANSPORT_EXISTS",
+      "pass": true,
+      "detail": "control-mailbox branch + control_mailbox/ structure exist (transport)"
+    },
+    {
+      "name": "DONE-10:BLOCKED_ON_HUMAN_DECISION",
+      "pass": true,
+      "detail": "BLOCKED: No recorded human LIVE/mainnet decision. Searched 102 control-mailbox messages + EVIDENCE/DECISIONS.md. Transport exists but no operator ruling."
+    }
+  ],
+  "negative_tests_detail": [
+    {
+      "name": "DONE-10:NEG_NO_AUTO_LIVE",
+      "pass": true,
+      "detail": "No auto-LIVE: default_network=''"
+    }
+  ]
+}

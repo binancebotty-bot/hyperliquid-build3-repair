@@ -1,0 +1,207 @@
+{
+  "task_id": "t_cbc66550",
+  "title": "B3-CERT HEALTH area (7 rows): health/heartbeat semantics proof",
+  "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+  "tested_at_utc": "2026-10-14T10:34:16Z",
+  "engine_sha256": "2dfbd571012af67479ee7a2d9e6f1faac6ee5408722a092fb3625450cab51405",
+  "total_checks": 39,
+  "passed": 39,
+  "failed": 0,
+  "checks": [
+    {
+      "name": "HEALTH-001:WS_HEALTH_PAYLOAD_HAS_PER_WALLET",
+      "pass": true,
+      "detail": "wallets=True, summary=True, stale=True, reconnect=True"
+    },
+    {
+      "name": "HEALTH-001:WS_HEALTH_FILE_WRITTEN",
+      "pass": true,
+      "detail": "health_file exists: True"
+    },
+    {
+      "name": "HEALTH-001:WS_STATUS_VALID",
+      "pass": true,
+      "detail": "ws_status=WS_DEGRADED"
+    },
+    {
+      "name": "HEALTH-001:HEALTH_GRADE_PRESENT",
+      "pass": true,
+      "detail": "grade=DEGRADED"
+    },
+    {
+      "name": "HEALTH-001:NEG:DISABLED_WS_REPORTS_DISABLED",
+      "pass": true,
+      "detail": "disabled_status=WS_DISABLED"
+    },
+    {
+      "name": "HEALTH-001:NEG:STALE_WALLET_COUNTED",
+      "pass": true,
+      "detail": "stale_count=2, reconnect_count=5"
+    },
+    {
+      "name": "HEALTH-002:CYCLE_SUMMARY_HAS_AGE_FIELD",
+      "pass": true,
+      "detail": "has last_copy_poll_age_ms: True"
+    },
+    {
+      "name": "HEALTH-002:AGE_IN_WRITE_PATH",
+      "pass": true,
+      "detail": "last_copy_poll_age_ms referenced in source: True"
+    },
+    {
+      "name": "HEALTH-002:COPY_POLL_STALE_GATE_EXISTS",
+      "pass": true,
+      "detail": "COPY_POLL_STALE=True, age_comparison=True"
+    },
+    {
+      "name": "HEALTH-002:GATE_EVALUATED_IN_CYCLE",
+      "pass": true,
+      "detail": "gate assignment in cycle: True"
+    },
+    {
+      "name": "HEALTH-002:NEG:AGE_THRESHOLD_COMPARISON_EXISTS",
+      "pass": true,
+      "detail": "threshold comparison in source: True"
+    },
+    {
+      "name": "HEALTH-003:SEND_BLOCK_REASON_IN_STATE",
+      "pass": true,
+      "detail": "send_block_reason in source: True"
+    },
+    {
+      "name": "HEALTH-003:ENTRY_BLOCK_REASON_ASSIGNED",
+      "pass": true,
+      "detail": "entry_sends_blocked_reason assignment: True"
+    },
+    {
+      "name": "HEALTH-003:BLOCK_PASSED_TO_PROCESS",
+      "pass": true,
+      "detail": "block passed to _process_leader_fill: True"
+    },
+    {
+      "name": "HEALTH-003:KNOWN_BLOCKERS_EXIST",
+      "pass": true,
+      "detail": "blockers found: ['WS_FEED_STALE', 'COPY_POLL_STALE', 'UNRECONCILED_FILLED_SENDS', 'TOO_MANY_ACTIVE_WALLETS']"
+    },
+    {
+      "name": "HEALTH-003:BLOCK_IN_PAYLOAD",
+      "pass": true,
+      "detail": "block in payload: True"
+    },
+    {
+      "name": "HEALTH-003:NEG:BLOCK_CHAIN_COMPLETE",
+      "pass": true,
+      "detail": "complete chain: True"
+    },
+    {
+      "name": "HEALTH-004:NETWORK_ERRORS_COUNTER",
+      "pass": true,
+      "detail": "network_errors in source: True"
+    },
+    {
+      "name": "HEALTH-004:PER_WALLET_ERROR_INCREMENT",
+      "pass": true,
+      "detail": "per-wallet error increment: True"
+    },
+    {
+      "name": "HEALTH-004:GLOBAL_STOPS_IDENTIFIABLE",
+      "pass": true,
+      "detail": "found 6 global stops: ['WS_FEED_STALE', 'COPY_POLL_STALE', 'UNRECONCILED_FILLED_SENDS', 'TOO_MANY_ACTIVE_WALLETS', 'DAILY_LOSS_LIMIT_REACHED', 'DAILY_LOSS_UNREADABLE']"
+    },
+    {
+      "name": "HEALTH-004:BLOCK_IS_ACCOUNT_WIDE",
+      "pass": true,
+      "detail": "block is account-wide: True"
+    },
+    {
+      "name": "HEALTH-004:PER_WALLET_ERROR_NOT_GLOBAL_BLOCK",
+      "pass": true,
+      "detail": "per-wallet error uses counter not block: True"
+    },
+    {
+      "name": "HEALTH-004:NEG:ERROR_DOES_NOT_ABORT_LOOP",
+      "pass": true,
+      "detail": "error handling allows loop continuation: True"
+    },
+    {
+      "name": "HEALTH-005:BLOCK_ASSIGNMENTS_ONLY_FROM_GATES",
+      "pass": true,
+      "detail": "block values: ['WS_FEED_STALE', 'COPY_POLL_STALE', 'UNRECONCILED_FILLED_SENDS', 'TOO_MANY_ACTIVE_WALLETS']"
+    },
+    {
+      "name": "HEALTH-005:BLOCK_SET_ONLY_IN_CYCLE",
+      "pass": true,
+      "detail": "blocks set in run_cycle: ['WS_FEED_STALE', 'COPY_POLL_STALE', 'UNRECONCILED_FILLED_SENDS', 'TOO_MANY_ACTIVE_WALLETS']"
+    },
+    {
+      "name": "HEALTH:005:NO_DIAGNOSTIC_BLOCK_REASONS",
+      "pass": true,
+      "detail": "diagnostic block reasons found: False"
+    },
+    {
+      "name": "HEALTH-005:SEND_PATH_INDEPENDENT_OF_DIAGNOSTICS",
+      "pass": true,
+      "detail": "send path checks diagnostics: False"
+    },
+    {
+      "name": "HEALTH-005:NEG:ALL_BLOCKS_FROM_KNOWN_GATES",
+      "pass": true,
+      "detail": "all blocks from known gates: True"
+    },
+    {
+      "name": "TN-F15:FRESHNESS_BUDGET_EXISTS",
+      "pass": true,
+      "detail": "COPY_POLL_ENTRY_BLOCK_MS in source: True"
+    },
+    {
+      "name": "TN-F15:GATE_USES_BUDGET",
+      "pass": true,
+      "detail": "age > budget comparison: True"
+    },
+    {
+      "name": "TN-F15:SINGLE_FRESHNESS_CHECK",
+      "pass": true,
+      "detail": "freshness checks found: 1"
+    },
+    {
+      "name": "TN-F15:FAIL_CLOSED_GATE",
+      "pass": true,
+      "detail": "fail-closed gate: True"
+    },
+    {
+      "name": "TN-F15:NEG:NOT_EQUAL_COMPARISON",
+      "pass": true,
+      "detail": "strict greater-than: True"
+    },
+    {
+      "name": "INC-11:PROCESS_ID_PUBLISHED",
+      "pass": true,
+      "detail": "process_id in state: True"
+    },
+    {
+      "name": "INC-11:PROCESS_ID_READ_BACK",
+      "pass": true,
+      "detail": "process_id read back: True"
+    },
+    {
+      "name": "INC-11:TIMESTAMP_FOR_LIVENESS",
+      "pass": true,
+      "detail": "timestamps for liveness: True"
+    },
+    {
+      "name": "INC-11:PROCESS_ID_AVAILABLE_FOR_CHECK",
+      "pass": true,
+      "detail": "process_id available for liveness check: True"
+    },
+    {
+      "name": "INC-11:FATAL_IDENTITY_RECORDED",
+      "pass": true,
+      "detail": "fatal error records identity: True"
+    },
+    {
+      "name": "INC-11:NEG:STALE_PROCESS_DETECTABLE",
+      "pass": true,
+      "detail": "stale process detection mechanism: True"
+    }
+  ]
+}
