@@ -1,0 +1,232 @@
+{
+  "card": "t_17ffed38",
+  "matrix_state_on_origin_main": {
+    "RISK-006": {
+      "applicability": "APPLIES",
+      "open_decisions": "OD-06 | OD-10",
+      "proof_network": "MAINNET",
+      "result": "NOT_TESTED"
+    },
+    "RISK-010": {
+      "applicability": "OPEN_DECISION",
+      "open_decisions": "OD-10",
+      "proof_network": "MAINNET",
+      "result": "NOT_TESTED"
+    },
+    "RISK-011": {
+      "applicability": "OPEN_DECISION",
+      "open_decisions": "OD-14",
+      "proof_network": "TESTNET",
+      "result": "NOT_TESTED"
+    },
+    "RISK-015": {
+      "applicability": "APPLIES",
+      "open_decisions": "",
+      "proof_network": "TESTNET",
+      "result": "NOT_TESTED"
+    },
+    "RISK-016": {
+      "applicability": "APPLIES",
+      "open_decisions": "",
+      "proof_network": "TESTNET",
+      "result": "NOT_TESTED"
+    },
+    "TN-PS1": {
+      "applicability": "OPEN_DECISION",
+      "open_decisions": "OD-23",
+      "proof_network": "TESTNET",
+      "result": "NOT_TESTED"
+    }
+  },
+  "mode": "offline ACTIVE/CONTROL probe; no orders, no engine start, temp dirs only",
+  "rows": {
+    "RISK-006": {
+      "active": {
+        "call": "ConfigManager().max_close_adverse_diff_pct() readers for saved 0.5 / 50 / 0, then _send_real(EXIT SELL 1 BTC, leader px 80, follower mid 100 -> 20% adverse)",
+        "file_line": "HL_Live_Copy_Service_Core.py:3094-3095 reader; :6048 selection; :6106-6118 enforcement",
+        "observed": {
+          "detail": "close limit 80.0 vs follower price 100.0 is 20.0000% adverse > 0.5%; intent_id=i-EXIT",
+          "order_calls": 0,
+          "reader_saved_0": 0.0,
+          "reader_saved_0.5": 0.5,
+          "reader_saved_50": 50.0,
+          "send_0.5": [
+            false,
+            "SEND_NOT_ATTEMPTED_CLOSE_ADVERSE_DIFF",
+            "CLOSE_ADVERSE_DIFF_TOO_LARGE",
+            "CLOSE_ADVERSE_DIFF_TOO_LARGE",
+            false
+          ]
+        }
+      },
+      "control": {
+        "call": "same close with saved max_close_adverse_diff_pct=50 (non-default)",
+        "observed": {
+          "note": "20% adverse passes ONLY because the saved 50 is read; the module constant 0.25 would have blocked",
+          "order_calls": 1,
+          "send": [
+            true,
+            "ORDER_FILLED"
+          ]
+        },
+        "verdict": "ACCEPTED"
+      },
+      "id": "RISK-006",
+      "note": "Missing/0 = OFF is the UI meaning (:3095); DEFAULT_MAX_CLOSE_ADVERSE_DIFF_PCT=0.25 (:507) is not used by the reader, so a saved non-default value is the sole source of truth. Gate applies to lifecycle EXIT only (:6048); REDUCE is unbounded by it.",
+      "verdict": "PASS"
+    },
+    "RISK-010": {
+      "active": {
+        "call": "count max_diff_pct readers in Core; inspect SSOT wallet save for the key",
+        "file_line": "HL_Copy_App_SSOT.py:987; no occurrence in HL_Live_Copy_Service_Core.py",
+        "observed": "engine never reads it and the UI drops it on save",
+        "required": "per-wallet max_diff_pct enforced as the entry price bound at decision time",
+        "trigger": "wallet max_diff_pct set in live_config.json; entry price far from leader fill"
+      },
+      "control": {
+        "call": "save wallet with max_diff_pct=5 then price an ENTRY beyond that bound",
+        "observed": {
+          "bound_enforced": false
+        },
+        "verdict": "NOT_REJECTED"
+      },
+      "id": "RISK-010",
+      "verdict": "FAIL"
+    },
+    "RISK-011": {
+      "active": {
+        "call": "_enforce_live_copy_cap with 10 service-eligible wallets (mode LIVE + enabled)",
+        "file_line": "HL_Copy_App_SSOT.py:1036-1038",
+        "observed": {
+          "result": "accepted",
+          "service_eligible": "normalize_live_wallet_config().service_eligible"
+        }
+      },
+      "control": {
+        "call": "POST /api/live-config/add-wallet for an 11th LIVE wallet",
+        "observed": {
+          "direct_error": "MAX_WALLETS_EXCEEDED",
+          "error": "MAX_WALLETS_EXCEEDED",
+          "file_unchanged": true,
+          "status": 400
+        },
+        "verdict": "REJECTED"
+      },
+      "id": "RISK-011",
+      "note": "Config/UI layer earns the row exactly. Engine side MAX_WALLETS (env HL_LIVE_WS_MAX_WALLETS, default 10) only bounds WS slots; poll_wallets() REST-polls every active leader, so no fill is lost. Not exercised (needs a running engine).",
+      "verdict": "PASS"
+    },
+    "RISK-015": {
+      "active": {
+        "call": "send_if_allowed(ENTRY) with global_controls.send_mode=CLOSE; enumerate all UI control endpoints",
+        "file_line": "Core:5834-5835; SSOT @app routes 7930-8093",
+        "observed": {
+          "close_or_send_endpoints": [],
+          "conversion_code_refs": 0,
+          "endpoints": [
+            "/",
+            "/api/admin/purge-wallet",
+            "/api/equity/{wallet}",
+            "/api/global-controls",
+            "/api/live-audit-summary",
+            "/api/live-config",
+            "/api/live-config/add-wallet",
+            "/api/live-config/remove-wallet",
+            "/api/live-config/set-mode",
+            "/api/live-config/set-wallet",
+            "/api/live-copy-summary",
+            "/api/live-ws-health",
+            "/api/metrics",
+            "/api/model-cache-status",
+            "/api/norm",
+            "/api/reset-app-history",
+            "/api/set-all-modes",
+            "/api/set-wallet-mode",
+            "/api/snapshot",
+            "/api/state",
+            "/api/trades/{wallet}",
+            "/api/ui-state",
+            "/api/wallet-config",
+            "/api/wallet-include",
+            "/api/wallet-meta",
+            "/legacy-model",
+            "/live-copy",
+            "/live-copy.json",
+            "/model",
+            "/sort/{column}",
+            "/wallet-meta/{wallet}",
+            "/wallet/{wallet}"
+          ],
+          "entry": [
+            false,
+            "ENTRY_BLOCKED_GLOBAL_CLOSE_ONLY"
+          ],
+          "exchange_order_sites": 1
+        }
+      },
+      "control": {
+        "call": "send_if_allowed(EXIT) - explicit lifecycle=EXIT intent - with the same CLOSE switch",
+        "observed": {
+          "close": [
+            true,
+            "MOCK_ORDER_SENT"
+          ]
+        },
+        "verdict": "EXPLICIT_INTENT_WORKS"
+      },
+      "id": "RISK-015",
+      "note": "No control closes a position: the UI exposes only live-config/global-controls CRUD, and the single exchange.order call site is reached only from leader-fill intents. The engine has no conversion code at all, so no control can bypass one; the single-sender is that one call site plus the exchange-order lock.",
+      "verdict": "PASS"
+    },
+    "RISK-016": {
+      "active": {
+        "call": "search every production path for HL_LIVE_MAX_MANUAL_ORDER_NOTIONAL_USD and for a manual-send entry point",
+        "file_line": "Core: 0 refs; SSOT:1803 display only; legacy HL_Live_Copy_Service.py:130,983-989",
+        "observed": "enforced only in the retired legacy script; the certified Core service has no manual send",
+        "required": "wire the cap into the production manual path, or re-scope RISK-016 to the legacy path",
+        "trigger": "manual order above $25"
+      },
+      "control": {
+        "call": "manual send above the cap through the production service",
+        "observed": "no such path exists in Core or the SSOT UI",
+        "verdict": "CANNOT_EXERCISE"
+      },
+      "id": "RISK-016",
+      "verdict": "NOT_TESTED"
+    },
+    "TN-PS1": {
+      "active": {
+        "call": "send_if_allowed(ENTRY) with a provable projected post-trade liquidation (reported BTC liq 50, mark 100)",
+        "file_line": "Core:4100-4118, 4357-4395, 5870-5877",
+        "observed": {
+          "gate": "liq_parity_block Core:5870-5877",
+          "projection": "project_liquidation_px(account_value, maint, now_signed, now_signed+delta, mark, max_lev)",
+          "projection_def": "Core:4100-4118",
+          "send": [
+            true,
+            "MOCK_ORDER_SENT"
+          ]
+        }
+      },
+      "control": {
+        "call": "same ENTRY with the projection unprovable; and a zero-size wire order",
+        "observed": {
+          "no_projection": [
+            false,
+            "LIQ_PARITY_BLOCKED"
+          ],
+          "zero_size_gate": [
+            false,
+            "SEND_NOT_ATTEMPTED_INVALID_SIZE"
+          ]
+        },
+        "verdict": "REJECTED"
+      },
+      "id": "TN-PS1",
+      "note": "Both halves required: exact sizing survives the final wire gate (Gate C rejects wire_size 0) AND the projected post-trade portfolio check must pass; an unprovable projection blocks the order whole (no resize).",
+      "verdict": "PASS"
+    }
+  },
+  "tested_commit": "76dfaa26ba22ee28188be0e5e7bf1b1d0915c576",
+  "tested_ref": "origin/main"
+}

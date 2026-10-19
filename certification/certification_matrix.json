@@ -2433,12 +2433,15 @@
     "rejected save"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/RISK_TNPS1_t_17ffed38.json",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": "Core: max_close_adverse_diff_pct has an accessor (L1942) but is only reported in status (L5675); no enforcement was found. Code-read of the 2 Jun backup, unconfirmed by run; PRs #4/#6/#7 (merged at main 114e8b4) changed this code, so re-check there. Earlier note (legacy file, superseded base): The engine reads global_controls only in global_order_cap (L2696-2716). The close guard uses the per-wallet key max_close_adverse_diff_pct else env HL_LIVE_MAX_CLOSE_ADVERSE_DIFF_PCT (L1162), not this global value. Inferred from source search; must be confirmed by execution. OD-21 decided: re-pointed to the certified 13 May UI. Mainnet proof required: control enforcement is testable on testnet; adverse-diff outcome needs a liquid book.",
-   "proof_network": "MAINNET"
+   "notes": "PASS with ACTIVE/CONTROL (card t_17ffed38). Active: ConfigManager().max_close_adverse_diff_pct() readers for saved 0.5 / 50 / 0, then _send_real(EXIT SELL 1 BTC, leader px 80, follower mid 100 -> 20% adverse). Control: same close with saved max_close_adverse_diff_pct=50 (non-default).",
+   "proof_network": "MAINNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "RISK-007",
@@ -2573,12 +2576,15 @@
     "rejected save"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
+   "result": "FAIL",
+   "evidence_ref": "certification/results/RISK_TNPS1_t_17ffed38.json",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": "Source refs are to the legacy file; re-derive against HL_Live_Copy_Service_Core.py (7,705-line, sha256 5bda57be). OD-21 decided: re-pointed to the certified 13 May UI. Mainnet proof required: per-wallet price bound needs a liquid book.",
-   "proof_network": "MAINNET"
+   "notes": "GENUINE DEFECT (card t_17ffed38). Observed: engine never reads it and the UI drops it on save. Required: per-wallet max_diff_pct enforced as the entry price bound at decision time. File: HL_Copy_App_SSOT.py:987; no occurrence in HL_Live_Copy_Service_Core.py. Trigger: wallet max_diff_pct set in live_config.json; entry price far from leader fill. Control: save wallet with max_diff_pct=5 then price an ENTRY beyond that bound -> {'bound_enforced': False}.",
+   "proof_network": "MAINNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "RISK-011",
@@ -2605,12 +2611,15 @@
     "rejected save"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/RISK_TNPS1_t_17ffed38.json",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": "Core: MAX_WALLETS (env HL_LIVE_WS_MAX_WALLETS, default 10, L145) truncates the leader WS subscription list (L4537, L5757, L6052). A wallet beyond the 10th would be silently unsubscribed rather than rejected. Code-read of the 2 Jun backup, unconfirmed by run; PRs #4/#6/#7 (merged at main 114e8b4) changed this code, so re-check there. OD-21 decided: re-pointed to the certified 13 May UI.",
-   "proof_network": "TESTNET"
+   "notes": "PASS with ACTIVE/CONTROL (card t_17ffed38). Active: _enforce_live_copy_cap with 10 service-eligible wallets (mode LIVE + enabled). Control: POST /api/live-config/add-wallet for an 11th LIVE wallet.",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "RISK-012",
@@ -2734,12 +2743,15 @@
     "rejected save"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/RISK_TNPS1_t_17ffed38.json",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": "",
-   "proof_network": "TESTNET"
+   "notes": "PASS with ACTIVE/CONTROL (card t_17ffed38). Active: send_if_allowed(ENTRY) with global_controls.send_mode=CLOSE; enumerate all UI control endpoints. Control: send_if_allowed(EXIT) - explicit lifecycle=EXIT intent - with the same CLOSE switch.",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "RISK-016",
@@ -15140,12 +15152,15 @@
     "rejected save"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/RISK_TNPS1_t_17ffed38.json",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": "",
-   "proof_network": "TESTNET"
+   "notes": "PASS with ACTIVE/CONTROL (card t_17ffed38). Active: send_if_allowed(ENTRY) with a provable projected post-trade liquidation (reported BTC liq 50, mark 100). Control: same ENTRY with the projection unprovable; and a zero-size wire order.",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "TN-CAMP-01",
