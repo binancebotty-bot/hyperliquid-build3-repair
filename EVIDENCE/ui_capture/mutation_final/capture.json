@@ -1,0 +1,1778 @@
+{
+  "harness": "tools/ui_capture_harness.py",
+  "version": "1.0.0",
+  "started_at": "2026-10-19T09:44:46+0100",
+  "url": "http://127.0.0.1:8033/",
+  "port": 8033,
+  "python": "C:\\Users\\wigmore\\AppData\\Local\\Programs\\Python\\Python311\\python.exe",
+  "playwright_browsers_path": "C:/Users/wigmore/AppData/Local/ms-playwright",
+  "capture_mode": "ISOLATED_MUTATION_CONTROL",
+  "serving_process": {
+    "port": 8033,
+    "pid": 46648,
+    "start_time": "2026-10-19T09:42:59.3187700+01:00",
+    "command_line": "C:\\Users\\wigmore\\AppData\\Local\\Programs\\Python\\Python311\\pythonw.exe C:/Users/wigmore/.hermes/cache/scratch/uicap/inst/HL_Copy_App_SSOT.py",
+    "ssot_path": "C:\\Users\\wigmore\\.hermes\\cache\\scratch\\uicap\\inst\\HL_Copy_App_SSOT.py",
+    "ssot_sha256": "b45ff9af2182944a1fabd98b6369d0ad7dd7d215062abec3bdc20dfd75e9e7c2",
+    "method": "Get-NetTCPConnection owning PID -> Win32_Process start/cmdline -> sha256 of SSOT on cmdline",
+    "declared_serve_path": "C:\\Users\\wigmore\\.hermes\\cache\\scratch\\uicap\\inst\\HL_Copy_App_SSOT.py",
+    "declared_serve_path_sha256": "b45ff9af2182944a1fabd98b6369d0ad7dd7d215062abec3bdc20dfd75e9e7c2",
+    "declared_matches_process": true
+  },
+  "baseline": {
+    "url": "http://127.0.0.1:8033/",
+    "title": "HL Copy Engine SSOT",
+    "captured_at_ms": 1792399490805,
+    "contract_warning_present": false,
+    "contract_warning_text": null,
+    "tables": [
+      {
+        "table_index": 0,
+        "id": null,
+        "head": [
+          {
+            "full_key": null,
+            "rendered_label": "WALLET",
+            "title_attr": null,
+            "sort_href": null,
+            "class_name": "sticky-wallet"
+          },
+          {
+            "full_key": "lead_equity",
+            "rendered_label": "LEAD EQ",
+            "title_attr": null,
+            "sort_href": "/sort/lead_equity",
+            "class_name": "pair-lead"
+          },
+          {
+            "full_key": "copy_equity",
+            "rendered_label": "COPY EQ",
+            "title_attr": null,
+            "sort_href": "/sort/copy_equity",
+            "class_name": "pair-copy group-divider"
+          },
+          {
+            "full_key": "lead_real",
+            "rendered_label": "LEAD REAL",
+            "title_attr": null,
+            "sort_href": "/sort/lead_real",
+            "class_name": "pair-lead"
+          },
+          {
+            "full_key": "copy_real",
+            "rendered_label": "COPY REAL",
+            "title_attr": null,
+            "sort_href": "/sort/copy_real",
+            "class_name": "pair-copy group-divider"
+          },
+          {
+            "full_key": "lead_unreal",
+            "rendered_label": "LEAD UNREAL",
+            "title_attr": null,
+            "sort_href": "/sort/lead_unreal",
+            "class_name": "pair-lead"
+          },
+          {
+            "full_key": "copy_unreal",
+            "rendered_label": "COPY UNREAL",
+            "title_attr": null,
+            "sort_href": "/sort/copy_unreal",
+            "class_name": "pair-copy group-divider"
+          },
+          {
+            "full_key": "lead_dd",
+            "rendered_label": "LEAD DD",
+            "title_attr": null,
+            "sort_href": "/sort/lead_dd",
+            "class_name": "pair-lead"
+          },
+          {
+            "full_key": "copy_dd",
+            "rendered_label": "COPY DD",
+            "title_attr": null,
+            "sort_href": "/sort/copy_dd",
+            "class_name": "pair-copy group-divider"
+          },
+          {
+            "full_key": "lead_maxdd",
+            "rendered_label": "LEAD MAXDD",
+            "title_attr": null,
+            "sort_href": "/sort/lead_maxdd",
+            "class_name": "pair-lead"
+          },
+          {
+            "full_key": "copy_maxdd",
+            "rendered_label": "COPY MAXDD",
+            "title_attr": null,
+            "sort_href": "/sort/copy_maxdd",
+            "class_name": "pair-copy group-divider"
+          },
+          {
+            "full_key": "delta",
+            "rendered_label": "\u0394 $/%",
+            "title_attr": null,
+            "sort_href": "/sort/delta",
+            "class_name": "group-divider"
+          },
+          {
+            "full_key": "pnl_per_hour",
+            "rendered_label": "PNL/HR",
+            "title_attr": null,
+            "sort_href": "/sort/pnl_per_hour",
+            "class_name": ""
+          },
+          {
+            "full_key": "avg_trade_pct",
+            "rendered_label": "AVG TRADE %",
+            "title_attr": null,
+            "sort_href": "/sort/avg_trade_pct",
+            "class_name": ""
+          },
+          {
+            "full_key": "win_rate",
+            "rendered_label": "WIN%",
+            "title_attr": null,
+            "sort_href": "/sort/win_rate",
+            "class_name": ""
+          },
+          {
+            "full_key": "avg_position_usd",
+            "rendered_label": "AVG POS $",
+            "title_attr": null,
+            "sort_href": "/sort/avg_position_usd",
+            "class_name": ""
+          },
+          {
+            "full_key": "max_position_usd",
+            "rendered_label": "MAX POS $",
+            "title_attr": null,
+            "sort_href": "/sort/max_position_usd",
+            "class_name": ""
+          },
+          {
+            "full_key": "avg_entry_notional_usd",
+            "rendered_label": "AVG NOTIONAL",
+            "title_attr": null,
+            "sort_href": "/sort/avg_entry_notional_usd",
+            "class_name": ""
+          },
+          {
+            "full_key": "pct_entries_ge10",
+            "rendered_label": "% \u2265 $10 \u25b2",
+            "title_attr": null,
+            "sort_href": "/sort/pct_entries_ge10",
+            "class_name": "sort-active"
+          },
+          {
+            "full_key": "required_leverage",
+            "rendered_label": "REQ LEV",
+            "title_attr": null,
+            "sort_href": "/sort/required_leverage",
+            "class_name": ""
+          },
+          {
+            "full_key": "fill_count",
+            "rendered_label": "FILLS L/C",
+            "title_attr": null,
+            "sort_href": "/sort/fill_count",
+            "class_name": "ops-group"
+          },
+          {
+            "full_key": "exit_count",
+            "rendered_label": "EXITS L/C",
+            "title_attr": null,
+            "sort_href": "/sort/exit_count",
+            "class_name": "ops-group"
+          },
+          {
+            "full_key": "open_position_count",
+            "rendered_label": "POS L/C",
+            "title_attr": null,
+            "sort_href": "/sort/open_position_count",
+            "class_name": "ops-group group-divider"
+          },
+          {
+            "full_key": null,
+            "rendered_label": "INC / WALLET MODEL",
+            "title_attr": null,
+            "sort_href": null,
+            "class_name": null
+          }
+        ],
+        "rows": [
+          {
+            "row_index": 0,
+            "class_name": "user",
+            "cells": [
+              {
+                "rendered_text": "0x7ae3b0\u20265e9205 USER",
+                "title_attr": null,
+                "aria_label_attr": null,
+                "underlying_value": "0x7ae3b08bb4e7b085c6db5d635b96bec9715e9205",
+                "data_sort": "0x7ae3b08bb4e7b085c6db5d635b96bec9715e9205",
+                "class_name": "sticky-wallet",
+                "scroll_width": 146,
+                "client_width": 146,
+                "css_truncated": false,
+                "nested_truncated_node": {
+                  "rendered": "0x7ae3b0\u20265e9205",
+                  "title": null,
+                  "aria": null,
+                  "scroll_width": 0,
+                  "client_width": 0
+                }
+              },
+              {
+                "rendered_text": "+$100.00",
+                "title_attr": null,
+                "aria_label_attr": null,
+                "underlying_value": "+$100.00",
+                "data_sort": 0,
+                "class_name": "pair-lead zero",
+                "scroll_width": 58,
+                "client_width": 58,
+                "css_truncated": false,
+                "nested_truncated_node": null
+              },
+              {
+                "rendered_text": "+$100.00",
+                "title_attr": null,
+                "aria_label_attr": null,
+                "underlying_value": "+$100.00",
+                "data_sort": 0,
+                "class_name": "pair-copy group-divider zero",
+                "scroll_width": 58,
+                "client_width": 58,
+                "css_truncated": false,
+                "nested_truncated_node": null
+              },
+              {
+                "rendered_text": "$0.00 (+0.00%)",
+                "title_attr": null,
+                "aria_label_attr": null,
+                "underlying_value": "$0.00 (+0.00%)",
+                "data_sort": 0,
+                "class_name": "pair-lead zero",
+                "scroll_width": 88,
+                "client_width": 88,
+                "css_truncated": false,
+                "nested_truncated_node": null
+              },
+              {
+                "rendered_text": "$0.00 (+0.00%)",
+                "title_attr": null,
+                "aria_label_attr": null,
+                "underlying_value": "$0.00 (+0.00%)",
+                "data_sort": 0,
+                "class_name": "pair-copy group-divider zero",
+                "scroll_width": 88,
+                "client_width": 88,
+                "css_truncated": false,
+                "nested_truncated_node": null
+              },
+              {
+                "rendered_text": "$0.00 (+0.00%)",
+                "title_attr": null,
+                "aria_label_attr": null,
+                "underlying_value": "$0.00 (+0.00%)",
+                "data_sort": 0,
+                "class_name": "pair-lead zero",
+                "scroll_width": 88,
+                "client_width": 88,
+                "css_truncated": false,
+                "nested_truncated_node": null
+              },
+              {
+                "rendered_text": "$0.00 (+0.00%)",
+                "title_attr": null,
+                "aria_label_attr": null,
+                "underlying_value": "$0.00 (+0.00%)",
+                "data_sort": 0,
+                "class_name": "pair-copy group-divider zero",
+                "scroll_width": 88,
+                "client_width": 88,
+                "css_truncated": false,
+                "nested_truncated_node": null
+              },
+              {
+                "rendered_text": "$0.00 (-0.00%)",
+                "title_attr": null,
+                "aria_label_attr": null,
+                "underlying_value": "$0.00 (-0.00%)",
+                "data_sort": -0.0,
+                "class_name": "pair-lead zero",
+                "scroll_width": 85,
+                "client_width": 85,
+                "css_truncated": false,
+                "nested_truncated_node": null
+              },
+              {
+                "rendered_text": "$0.00 (-0.00%)",
+                "title_attr": null,
+                "aria_label_attr": null,
+                "underlying_value": "$0.00 (-0.00%)",
+                "data_sort": -0.0,
+                "class_name": "pair-copy group-divider zero",
+                "scroll_width": 85,
+                "client_width": 85,
+                "css_truncated": false,
+                "nested_truncated_node": null
+              },
+              {
+                "rendered_text": "$0.00 (-0.00%)",
+                "title_attr": null,
+                "aria_label_attr": null,
+                "underlying_value": "$0.00 (-0.00%)",
+                "data_sort": -0.0,
+                "class_name": "pair-lead zero",
+                "scroll_width": 85,
+                "client_width": 85,
+                "css_truncated": false,
+                "nested_truncated_node": null
+              },
+              {
+                "rendered_text": "$0.00 (-0.00%)",
+                "title_attr": null,
+                "aria_label_attr": null,
+                "underlying_value": "$0.00 (-0.00%)",
+                "data_sort": -0.0,
+                "class_name": "pair-copy group-divider zero",
+                "scroll_width": 85,
+                "client_width": 85,
+                "css_truncated": false,
+                "nested_truncated_node": null
+              },
+              {
+                "rendered_text": "$0.00 (+0.00%)",
+                "title_attr": null,
+                "aria_label_attr": null,
+                "underlying_value": "$0.00 (+0.00%)",
+                "data_sort": 0,
+                "class_name": "group-divider zero",
+                "scroll_width": 88,
+                "client_width": 88,
+                "css_truncated": false,
+                "nested_truncated_node": null
+              },
+              {
+                "rendered_text": "\u2014",
+                "title_attr": null,
+                "aria_label_attr": null,
+                "underlying_value": "\u2014",
+                "data_sort": -999999999,
+                "class_name": "zero missing muted",
+                "scroll_width": 55,
+                "client_width": 55,
+                "css_truncated": false,
+                "nested_truncated_node": null
+              },
+              {
+                "rendered_text": "\u2014",
+                "title_attr": null,
+                "aria_label_attr": null,
+                "underlying_value": "\u2014",
+                "data_sort": -999999999,
+                "class_name": "zero missing muted",
+                "scroll_width": 52,
+                "client_width": 52,
+                "css_truncated": false,
+                "nested_truncated_node": null
+              },
+              {
+                "rendered_text": "\u2014",
+                "title_attr": null,
+                "aria_label_attr": null,
+                "underlying_value": "\u2014",
+                "data_sort": -999999999,
+                "class_name": "zero missing muted",
+                "scroll_width": 45,
+                "client_width": 45,
+                "css_truncated": false,
+                "nested_truncated_node": null
+              },
+              {
+                "rendered_text": "$0.00",
+                "title_attr": null,
+                "aria_label_attr": null,
+                "underlying_value": "$0.00",
+                "data_sort": 0,
+                "class_name": "zero",
+                "scroll_width": 40,
+                "client_width": 40,
+                "css_truncated": false,
+                "nested_truncated_node": null
+              },
+              {
+                "rendered_text": "$0.00",
+                "title_attr": null,
+                "aria_label_attr": null,
+                "underlying_value": "$0.00",
+                "data_sort": 0,
+                "class_name": "zero",
+                "scroll_width": 40,
+                "client_width": 40,
+                "css_truncated": false,
+                "nested_truncated_node": null
+              },
+              {
+                "rendered_text": "$0.00",
+                "title_attr": null,
+                "aria_label_attr": null,
+                "underlying_value": "$0.00",
+                "data_sort": 0,
+                "class_name": "zero",
+                "scroll_width": 71,
+                "client_width": 71,
+                "css_truncated": false,
+                "nested_truncated_node": null
+              },
+              {
+                "rendered_text": "0.0%",
+                "title_attr": null,
+                "aria_label_attr": null,
+                "underlying_value": "0.0%",
+                "data_sort": 0,
+                "class_name": "zero",
+                "scroll_width": 37,
+                "client_width": 37,
+                "css_truncated": false,
+                "nested_truncated_node": null
+              },
+              {
+                "rendered_text": "0.00x",
+                "title_attr": null,
+                "aria_label_attr": null,
+                "underlying_value": "0.00x",
+                "data_sort": 0,
+                "class_name": "zero",
+                "scroll_width": 39,
+                "client_width": 39,
+                "css_truncated": false,
+                "nested_truncated_node": null
+              },
+              {
+                "rendered_text": "0 / 0",
+                "title_attr": null,
+                "aria_label_attr": null,
+                "underlying_value": "0 / 0",
+                "data_sort": 0,
+                "class_name": "ops-group",
+                "scroll_width": 45,
+                "client_width": 45,
+                "css_truncated": false,
+                "nested_truncated_node": null
+              },
+              {
+                "rendered_text": "0 / 0",
+                "title_attr": null,
+                "aria_label_attr": null,
+                "underlying_value": "0 / 0",
+                "data_sort": 0,
+                "class_name": "ops-group",
+                "scroll_width": 46,
+                "client_width": 46,
+                "css_truncated": false,
+                "nested_truncated_node": null
+              },
+              {
+                "rendered_text": "0 / 0",
+                "title_attr": null,
+                "aria_label_attr": null,
+                "underlying_value": "0 / 0",
+                "data_sort": 0,
+                "class_name": "ops-group group-divider",
+                "scroll_width": 37,
+                "client_width": 37,
+                "css_truncated": false,
+                "nested_truncated_node": null
+              },
+              {
+                "rendered_text": "aggregate baseSet",
+                "title_attr": null,
+                "aria_label_attr": null,
+                "underlying_value": "aggregate baseSet",
+                "data_sort": null,
+                "class_name": "controls-cell",
+                "scroll_width": 327,
+                "client_width": 327,
+                "css_truncated": false,
+                "nested_truncated_node": null
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "inputs": [
+      {
+        "id": null,
+        "name": "norm_base",
+        "type": null,
+        "value": "100.0",
+        "title_attr": null,
+        "checked": null
+      },
+      {
+        "id": null,
+        "name": "copy_mode",
+        "type": null,
+        "value": "proportional",
+        "title_attr": null,
+        "checked": null
+      },
+      {
+        "id": null,
+        "name": "fixed_notional",
+        "type": null,
+        "value": "100.0",
+        "title_attr": null,
+        "checked": null
+      },
+      {
+        "id": null,
+        "name": "fee_bps",
+        "type": null,
+        "value": "5.0",
+        "title_attr": null,
+        "checked": null
+      },
+      {
+        "id": null,
+        "name": "copy_friction_bps",
+        "type": null,
+        "value": "0.0",
+        "title_attr": null,
+        "checked": null
+      },
+      {
+        "id": null,
+        "name": "user_norm_base",
+        "type": null,
+        "value": "100",
+        "title_attr": "aggregate normalisation base",
+        "checked": null
+      }
+    ],
+    "http_status": 200,
+    "served_html_sha256": "8a95becce62e41d7ad74695f83dc8d55c659ded632b947d323c63e49f61c3ef8",
+    "served_html_path": "C:\\Users\\wigmore\\.hermes\\kanban\\workspaces\\t_a7c0515c\\repo\\EVIDENCE\\ui_capture\\mutation_final\\dom_baseline.html",
+    "served_html_bytes": 21850
+  },
+  "key_integrity": {
+    "all_header_keys": [
+      "lead_equity",
+      "copy_equity",
+      "lead_real",
+      "copy_real",
+      "lead_unreal",
+      "copy_unreal",
+      "lead_dd",
+      "copy_dd",
+      "lead_maxdd",
+      "copy_maxdd",
+      "delta",
+      "pnl_per_hour",
+      "avg_trade_pct",
+      "win_rate",
+      "avg_position_usd",
+      "max_position_usd",
+      "avg_entry_notional_usd",
+      "pct_entries_ge10",
+      "required_leverage",
+      "fill_count",
+      "exit_count",
+      "open_position_count"
+    ],
+    "expected_keys": {
+      "pct_entries_ge10": {
+        "present_full": true,
+        "also_seen_as_prefix": []
+      }
+    },
+    "truncated_forms_present": [],
+    "all_expected_present_full": true,
+    "no_truncated_prefixes": true
+  },
+  "truncation_check": {
+    "cells_examined": 24,
+    "cells_clipped": 1,
+    "cells_recovered_from_attributes": 1,
+    "clipped": [
+      {
+        "table": 0,
+        "row": 0,
+        "column": "col0",
+        "rendered_text": "0x7ae3b0\u20265e9205 USER",
+        "underlying_value": "0x7ae3b08bb4e7b085c6db5d635b96bec9715e9205",
+        "title_attr": null,
+        "aria_label_attr": null,
+        "scroll_width": 146,
+        "client_width": 146,
+        "nested": {
+          "rendered": "0x7ae3b0\u20265e9205",
+          "title": null,
+          "aria": null,
+          "scroll_width": 0,
+          "client_width": 0
+        }
+      }
+    ],
+    "recovered": [
+      {
+        "table": 0,
+        "row": 0,
+        "column": "col0",
+        "rendered_text": "0x7ae3b0\u20265e9205 USER",
+        "underlying_value": "0x7ae3b08bb4e7b085c6db5d635b96bec9715e9205",
+        "title_attr": null,
+        "aria_label_attr": null,
+        "scroll_width": 146,
+        "client_width": 146,
+        "nested": {
+          "rendered": "0x7ae3b0\u20265e9205",
+          "title": null,
+          "aria": null,
+          "scroll_width": 0,
+          "client_width": 0
+        }
+      }
+    ]
+  },
+  "metric_focus": {
+    "pct_entries_ge10": {
+      "full_key": "pct_entries_ge10",
+      "header": {
+        "full_key": "pct_entries_ge10",
+        "rendered_label": "% \u2265 $10 \u25b2",
+        "title_attr": null,
+        "sort_href": "/sort/pct_entries_ge10",
+        "class_name": "sort-active"
+      },
+      "cells": [
+        {
+          "row_index": 0,
+          "row_class": "user",
+          "rendered_text": "0.0%",
+          "underlying_value": "0.0%",
+          "data_sort": 0,
+          "css_truncated": false
+        }
+      ]
+    }
+  },
+  "bumped": {
+    "url": "http://127.0.0.1:8033/",
+    "title": "HL Copy Engine SSOT",
+    "captured_at_ms": 1792399493678,
+    "contract_warning_present": false,
+    "contract_warning_text": null,
+    "tables": [
+      {
+        "table_index": 0,
+        "id": null,
+        "head": [
+          {
+            "full_key": null,
+            "rendered_label": "WALLET",
+            "title_attr": null,
+            "sort_href": null,
+            "class_name": "sticky-wallet"
+          },
+          {
+            "full_key": "lead_equity",
+            "rendered_label": "LEAD EQ",
+            "title_attr": null,
+            "sort_href": "/sort/lead_equity",
+            "class_name": "pair-lead"
+          },
+          {
+            "full_key": "copy_equity",
+            "rendered_label": "COPY EQ",
+            "title_attr": null,
+            "sort_href": "/sort/copy_equity",
+            "class_name": "pair-copy group-divider"
+          },
+          {
+            "full_key": "lead_real",
+            "rendered_label": "LEAD REAL",
+            "title_attr": null,
+            "sort_href": "/sort/lead_real",
+            "class_name": "pair-lead"
+          },
+          {
+            "full_key": "copy_real",
+            "rendered_label": "COPY REAL",
+            "title_attr": null,
+            "sort_href": "/sort/copy_real",
+            "class_name": "pair-copy group-divider"
+          },
+          {
+            "full_key": "lead_unreal",
+            "rendered_label": "LEAD UNREAL",
+            "title_attr": null,
+            "sort_href": "/sort/lead_unreal",
+            "class_name": "pair-lead"
+          },
+          {
+            "full_key": "copy_unreal",
+            "rendered_label": "COPY UNREAL",
+            "title_attr": null,
+            "sort_href": "/sort/copy_unreal",
+            "class_name": "pair-copy group-divider"
+          },
+          {
+            "full_key": "lead_dd",
+            "rendered_label": "LEAD DD",
+            "title_attr": null,
+            "sort_href": "/sort/lead_dd",
+            "class_name": "pair-lead"
+          },
+          {
+            "full_key": "copy_dd",
+            "rendered_label": "COPY DD",
+            "title_attr": null,
+            "sort_href": "/sort/copy_dd",
+            "class_name": "pair-copy group-divider"
+          },
+          {
+            "full_key": "lead_maxdd",
+            "rendered_label": "LEAD MAXDD",
+            "title_attr": null,
+            "sort_href": "/sort/lead_maxdd",
+            "class_name": "pair-lead"
+          },
+          {
+            "full_key": "copy_maxdd",
+            "rendered_label": "COPY MAXDD",
+            "title_attr": null,
+            "sort_href": "/sort/copy_maxdd",
+            "class_name": "pair-copy group-divider"
+          },
+          {
+            "full_key": "delta",
+            "rendered_label": "\u0394 $/%",
+            "title_attr": null,
+            "sort_href": "/sort/delta",
+            "class_name": "group-divider"
+          },
+          {
+            "full_key": "pnl_per_hour",
+            "rendered_label": "PNL/HR",
+            "title_attr": null,
+            "sort_href": "/sort/pnl_per_hour",
+            "class_name": ""
+          },
+          {
+            "full_key": "avg_trade_pct",
+            "rendered_label": "AVG TRADE %",
+            "title_attr": null,
+            "sort_href": "/sort/avg_trade_pct",
+            "class_name": ""
+          },
+          {
+            "full_key": "win_rate",
+            "rendered_label": "WIN%",
+            "title_attr": null,
+            "sort_href": "/sort/win_rate",
+            "class_name": ""
+          },
+          {
+            "full_key": "avg_position_usd",
+            "rendered_label": "AVG POS $",
+            "title_attr": null,
+            "sort_href": "/sort/avg_position_usd",
+            "class_name": ""
+          },
+          {
+            "full_key": "max_position_usd",
+            "rendered_label": "MAX POS $",
+            "title_attr": null,
+            "sort_href": "/sort/max_position_usd",
+            "class_name": ""
+          },
+          {
+            "full_key": "avg_entry_notional_usd",
+            "rendered_label": "AVG NOTIONAL",
+            "title_attr": null,
+            "sort_href": "/sort/avg_entry_notional_usd",
+            "class_name": ""
+          },
+          {
+            "full_key": "pct_entries_ge10",
+            "rendered_label": "% \u2265 $10 \u25b2",
+            "title_attr": null,
+            "sort_href": "/sort/pct_entries_ge10",
+            "class_name": "sort-active"
+          },
+          {
+            "full_key": "required_leverage",
+            "rendered_label": "REQ LEV",
+            "title_attr": null,
+            "sort_href": "/sort/required_leverage",
+            "class_name": ""
+          },
+          {
+            "full_key": "fill_count",
+            "rendered_label": "FILLS L/C",
+            "title_attr": null,
+            "sort_href": "/sort/fill_count",
+            "class_name": "ops-group"
+          },
+          {
+            "full_key": "exit_count",
+            "rendered_label": "EXITS L/C",
+            "title_attr": null,
+            "sort_href": "/sort/exit_count",
+            "class_name": "ops-group"
+          },
+          {
+            "full_key": "open_position_count",
+            "rendered_label": "POS L/C",
+            "title_attr": null,
+            "sort_href": "/sort/open_position_count",
+            "class_name": "ops-group group-divider"
+          },
+          {
+            "full_key": null,
+            "rendered_label": "INC / WALLET MODEL",
+            "title_attr": null,
+            "sort_href": null,
+            "class_name": null
+          }
+        ],
+        "rows": [
+          {
+            "row_index": 0,
+            "class_name": "user",
+            "cells": [
+              {
+                "rendered_text": "0x7ae3b0\u20265e9205 USER",
+                "title_attr": null,
+                "aria_label_attr": null,
+                "underlying_value": "0x7ae3b08bb4e7b085c6db5d635b96bec9715e9205",
+                "data_sort": "0x7ae3b08bb4e7b085c6db5d635b96bec9715e9205",
+                "class_name": "sticky-wallet",
+                "scroll_width": 146,
+                "client_width": 146,
+                "css_truncated": false,
+                "nested_truncated_node": {
+                  "rendered": "0x7ae3b0\u20265e9205",
+                  "title": null,
+                  "aria": null,
+                  "scroll_width": 0,
+                  "client_width": 0
+                }
+              },
+              {
+                "rendered_text": "+$100.00",
+                "title_attr": null,
+                "aria_label_attr": null,
+                "underlying_value": "+$100.00",
+                "data_sort": 0,
+                "class_name": "pair-lead zero",
+                "scroll_width": 58,
+                "client_width": 58,
+                "css_truncated": false,
+                "nested_truncated_node": null
+              },
+              {
+                "rendered_text": "+$100.00",
+                "title_attr": null,
+                "aria_label_attr": null,
+                "underlying_value": "+$100.00",
+                "data_sort": 0,
+                "class_name": "pair-copy group-divider zero",
+                "scroll_width": 58,
+                "client_width": 58,
+                "css_truncated": false,
+                "nested_truncated_node": null
+              },
+              {
+                "rendered_text": "$0.00 (+0.00%)",
+                "title_attr": null,
+                "aria_label_attr": null,
+                "underlying_value": "$0.00 (+0.00%)",
+                "data_sort": 0,
+                "class_name": "pair-lead zero",
+                "scroll_width": 88,
+                "client_width": 88,
+                "css_truncated": false,
+                "nested_truncated_node": null
+              },
+              {
+                "rendered_text": "$0.00 (+0.00%)",
+                "title_attr": null,
+                "aria_label_attr": null,
+                "underlying_value": "$0.00 (+0.00%)",
+                "data_sort": 0,
+                "class_name": "pair-copy group-divider zero",
+                "scroll_width": 88,
+                "client_width": 88,
+                "css_truncated": false,
+                "nested_truncated_node": null
+              },
+              {
+                "rendered_text": "$0.00 (+0.00%)",
+                "title_attr": null,
+                "aria_label_attr": null,
+                "underlying_value": "$0.00 (+0.00%)",
+                "data_sort": 0,
+                "class_name": "pair-lead zero",
+                "scroll_width": 88,
+                "client_width": 88,
+                "css_truncated": false,
+                "nested_truncated_node": null
+              },
+              {
+                "rendered_text": "$0.00 (+0.00%)",
+                "title_attr": null,
+                "aria_label_attr": null,
+                "underlying_value": "$0.00 (+0.00%)",
+                "data_sort": 0,
+                "class_name": "pair-copy group-divider zero",
+                "scroll_width": 88,
+                "client_width": 88,
+                "css_truncated": false,
+                "nested_truncated_node": null
+              },
+              {
+                "rendered_text": "$0.00 (-0.00%)",
+                "title_attr": null,
+                "aria_label_attr": null,
+                "underlying_value": "$0.00 (-0.00%)",
+                "data_sort": -0.0,
+                "class_name": "pair-lead zero",
+                "scroll_width": 85,
+                "client_width": 85,
+                "css_truncated": false,
+                "nested_truncated_node": null
+              },
+              {
+                "rendered_text": "$0.00 (-0.00%)",
+                "title_attr": null,
+                "aria_label_attr": null,
+                "underlying_value": "$0.00 (-0.00%)",
+                "data_sort": -0.0,
+                "class_name": "pair-copy group-divider zero",
+                "scroll_width": 85,
+                "client_width": 85,
+                "css_truncated": false,
+                "nested_truncated_node": null
+              },
+              {
+                "rendered_text": "$0.00 (-0.00%)",
+                "title_attr": null,
+                "aria_label_attr": null,
+                "underlying_value": "$0.00 (-0.00%)",
+                "data_sort": -0.0,
+                "class_name": "pair-lead zero",
+                "scroll_width": 85,
+                "client_width": 85,
+                "css_truncated": false,
+                "nested_truncated_node": null
+              },
+              {
+                "rendered_text": "$0.00 (-0.00%)",
+                "title_attr": null,
+                "aria_label_attr": null,
+                "underlying_value": "$0.00 (-0.00%)",
+                "data_sort": -0.0,
+                "class_name": "pair-copy group-divider zero",
+                "scroll_width": 85,
+                "client_width": 85,
+                "css_truncated": false,
+                "nested_truncated_node": null
+              },
+              {
+                "rendered_text": "$0.00 (+0.00%)",
+                "title_attr": null,
+                "aria_label_attr": null,
+                "underlying_value": "$0.00 (+0.00%)",
+                "data_sort": 0,
+                "class_name": "group-divider zero",
+                "scroll_width": 88,
+                "client_width": 88,
+                "css_truncated": false,
+                "nested_truncated_node": null
+              },
+              {
+                "rendered_text": "\u2014",
+                "title_attr": null,
+                "aria_label_attr": null,
+                "underlying_value": "\u2014",
+                "data_sort": -999999999,
+                "class_name": "zero missing muted",
+                "scroll_width": 55,
+                "client_width": 55,
+                "css_truncated": false,
+                "nested_truncated_node": null
+              },
+              {
+                "rendered_text": "\u2014",
+                "title_attr": null,
+                "aria_label_attr": null,
+                "underlying_value": "\u2014",
+                "data_sort": -999999999,
+                "class_name": "zero missing muted",
+                "scroll_width": 52,
+                "client_width": 52,
+                "css_truncated": false,
+                "nested_truncated_node": null
+              },
+              {
+                "rendered_text": "\u2014",
+                "title_attr": null,
+                "aria_label_attr": null,
+                "underlying_value": "\u2014",
+                "data_sort": -999999999,
+                "class_name": "zero missing muted",
+                "scroll_width": 45,
+                "client_width": 45,
+                "css_truncated": false,
+                "nested_truncated_node": null
+              },
+              {
+                "rendered_text": "$0.00",
+                "title_attr": null,
+                "aria_label_attr": null,
+                "underlying_value": "$0.00",
+                "data_sort": 0,
+                "class_name": "zero",
+                "scroll_width": 40,
+                "client_width": 40,
+                "css_truncated": false,
+                "nested_truncated_node": null
+              },
+              {
+                "rendered_text": "$0.00",
+                "title_attr": null,
+                "aria_label_attr": null,
+                "underlying_value": "$0.00",
+                "data_sort": 0,
+                "class_name": "zero",
+                "scroll_width": 40,
+                "client_width": 40,
+                "css_truncated": false,
+                "nested_truncated_node": null
+              },
+              {
+                "rendered_text": "$0.00",
+                "title_attr": null,
+                "aria_label_attr": null,
+                "underlying_value": "$0.00",
+                "data_sort": 0,
+                "class_name": "zero",
+                "scroll_width": 71,
+                "client_width": 71,
+                "css_truncated": false,
+                "nested_truncated_node": null
+              },
+              {
+                "rendered_text": "0.0%",
+                "title_attr": null,
+                "aria_label_attr": null,
+                "underlying_value": "0.0%",
+                "data_sort": 0,
+                "class_name": "zero",
+                "scroll_width": 37,
+                "client_width": 37,
+                "css_truncated": false,
+                "nested_truncated_node": null
+              },
+              {
+                "rendered_text": "0.00x",
+                "title_attr": null,
+                "aria_label_attr": null,
+                "underlying_value": "0.00x",
+                "data_sort": 0,
+                "class_name": "zero",
+                "scroll_width": 39,
+                "client_width": 39,
+                "css_truncated": false,
+                "nested_truncated_node": null
+              },
+              {
+                "rendered_text": "0 / 0",
+                "title_attr": null,
+                "aria_label_attr": null,
+                "underlying_value": "0 / 0",
+                "data_sort": 0,
+                "class_name": "ops-group",
+                "scroll_width": 45,
+                "client_width": 45,
+                "css_truncated": false,
+                "nested_truncated_node": null
+              },
+              {
+                "rendered_text": "0 / 0",
+                "title_attr": null,
+                "aria_label_attr": null,
+                "underlying_value": "0 / 0",
+                "data_sort": 0,
+                "class_name": "ops-group",
+                "scroll_width": 46,
+                "client_width": 46,
+                "css_truncated": false,
+                "nested_truncated_node": null
+              },
+              {
+                "rendered_text": "0 / 0",
+                "title_attr": null,
+                "aria_label_attr": null,
+                "underlying_value": "0 / 0",
+                "data_sort": 0,
+                "class_name": "ops-group group-divider",
+                "scroll_width": 37,
+                "client_width": 37,
+                "css_truncated": false,
+                "nested_truncated_node": null
+              },
+              {
+                "rendered_text": "aggregate baseSet",
+                "title_attr": null,
+                "aria_label_attr": null,
+                "underlying_value": "aggregate baseSet",
+                "data_sort": null,
+                "class_name": "controls-cell",
+                "scroll_width": 327,
+                "client_width": 327,
+                "css_truncated": false,
+                "nested_truncated_node": null
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "inputs": [
+      {
+        "id": null,
+        "name": "norm_base",
+        "type": null,
+        "value": "100.0",
+        "title_attr": null,
+        "checked": null
+      },
+      {
+        "id": null,
+        "name": "copy_mode",
+        "type": null,
+        "value": "proportional",
+        "title_attr": null,
+        "checked": null
+      },
+      {
+        "id": null,
+        "name": "fixed_notional",
+        "type": null,
+        "value": "100.0",
+        "title_attr": null,
+        "checked": null
+      },
+      {
+        "id": null,
+        "name": "fee_bps",
+        "type": null,
+        "value": "12.0",
+        "title_attr": null,
+        "checked": null
+      },
+      {
+        "id": null,
+        "name": "copy_friction_bps",
+        "type": null,
+        "value": "0.0",
+        "title_attr": null,
+        "checked": null
+      },
+      {
+        "id": null,
+        "name": "user_norm_base",
+        "type": null,
+        "value": "100",
+        "title_attr": "aggregate normalisation base",
+        "checked": null
+      }
+    ],
+    "http_status": 200,
+    "served_html_sha256": "be696c246fdc61a747dc2f1324756522a46d0e1e9b97b989e998a6ac37c869a0",
+    "served_html_path": "C:\\Users\\wigmore\\.hermes\\kanban\\workspaces\\t_a7c0515c\\repo\\EVIDENCE\\ui_capture\\mutation_final\\dom_bumped.html",
+    "served_html_bytes": 21851
+  },
+  "restored": {
+    "url": "http://127.0.0.1:8033/",
+    "title": "HL Copy Engine SSOT",
+    "captured_at_ms": 1792399496525,
+    "contract_warning_present": false,
+    "contract_warning_text": null,
+    "tables": [
+      {
+        "table_index": 0,
+        "id": null,
+        "head": [
+          {
+            "full_key": null,
+            "rendered_label": "WALLET",
+            "title_attr": null,
+            "sort_href": null,
+            "class_name": "sticky-wallet"
+          },
+          {
+            "full_key": "lead_equity",
+            "rendered_label": "LEAD EQ",
+            "title_attr": null,
+            "sort_href": "/sort/lead_equity",
+            "class_name": "pair-lead"
+          },
+          {
+            "full_key": "copy_equity",
+            "rendered_label": "COPY EQ",
+            "title_attr": null,
+            "sort_href": "/sort/copy_equity",
+            "class_name": "pair-copy group-divider"
+          },
+          {
+            "full_key": "lead_real",
+            "rendered_label": "LEAD REAL",
+            "title_attr": null,
+            "sort_href": "/sort/lead_real",
+            "class_name": "pair-lead"
+          },
+          {
+            "full_key": "copy_real",
+            "rendered_label": "COPY REAL",
+            "title_attr": null,
+            "sort_href": "/sort/copy_real",
+            "class_name": "pair-copy group-divider"
+          },
+          {
+            "full_key": "lead_unreal",
+            "rendered_label": "LEAD UNREAL",
+            "title_attr": null,
+            "sort_href": "/sort/lead_unreal",
+            "class_name": "pair-lead"
+          },
+          {
+            "full_key": "copy_unreal",
+            "rendered_label": "COPY UNREAL",
+            "title_attr": null,
+            "sort_href": "/sort/copy_unreal",
+            "class_name": "pair-copy group-divider"
+          },
+          {
+            "full_key": "lead_dd",
+            "rendered_label": "LEAD DD",
+            "title_attr": null,
+            "sort_href": "/sort/lead_dd",
+            "class_name": "pair-lead"
+          },
+          {
+            "full_key": "copy_dd",
+            "rendered_label": "COPY DD",
+            "title_attr": null,
+            "sort_href": "/sort/copy_dd",
+            "class_name": "pair-copy group-divider"
+          },
+          {
+            "full_key": "lead_maxdd",
+            "rendered_label": "LEAD MAXDD",
+            "title_attr": null,
+            "sort_href": "/sort/lead_maxdd",
+            "class_name": "pair-lead"
+          },
+          {
+            "full_key": "copy_maxdd",
+            "rendered_label": "COPY MAXDD",
+            "title_attr": null,
+            "sort_href": "/sort/copy_maxdd",
+            "class_name": "pair-copy group-divider"
+          },
+          {
+            "full_key": "delta",
+            "rendered_label": "\u0394 $/%",
+            "title_attr": null,
+            "sort_href": "/sort/delta",
+            "class_name": "group-divider"
+          },
+          {
+            "full_key": "pnl_per_hour",
+            "rendered_label": "PNL/HR",
+            "title_attr": null,
+            "sort_href": "/sort/pnl_per_hour",
+            "class_name": ""
+          },
+          {
+            "full_key": "avg_trade_pct",
+            "rendered_label": "AVG TRADE %",
+            "title_attr": null,
+            "sort_href": "/sort/avg_trade_pct",
+            "class_name": ""
+          },
+          {
+            "full_key": "win_rate",
+            "rendered_label": "WIN%",
+            "title_attr": null,
+            "sort_href": "/sort/win_rate",
+            "class_name": ""
+          },
+          {
+            "full_key": "avg_position_usd",
+            "rendered_label": "AVG POS $",
+            "title_attr": null,
+            "sort_href": "/sort/avg_position_usd",
+            "class_name": ""
+          },
+          {
+            "full_key": "max_position_usd",
+            "rendered_label": "MAX POS $",
+            "title_attr": null,
+            "sort_href": "/sort/max_position_usd",
+            "class_name": ""
+          },
+          {
+            "full_key": "avg_entry_notional_usd",
+            "rendered_label": "AVG NOTIONAL",
+            "title_attr": null,
+            "sort_href": "/sort/avg_entry_notional_usd",
+            "class_name": ""
+          },
+          {
+            "full_key": "pct_entries_ge10",
+            "rendered_label": "% \u2265 $10 \u25b2",
+            "title_attr": null,
+            "sort_href": "/sort/pct_entries_ge10",
+            "class_name": "sort-active"
+          },
+          {
+            "full_key": "required_leverage",
+            "rendered_label": "REQ LEV",
+            "title_attr": null,
+            "sort_href": "/sort/required_leverage",
+            "class_name": ""
+          },
+          {
+            "full_key": "fill_count",
+            "rendered_label": "FILLS L/C",
+            "title_attr": null,
+            "sort_href": "/sort/fill_count",
+            "class_name": "ops-group"
+          },
+          {
+            "full_key": "exit_count",
+            "rendered_label": "EXITS L/C",
+            "title_attr": null,
+            "sort_href": "/sort/exit_count",
+            "class_name": "ops-group"
+          },
+          {
+            "full_key": "open_position_count",
+            "rendered_label": "POS L/C",
+            "title_attr": null,
+            "sort_href": "/sort/open_position_count",
+            "class_name": "ops-group group-divider"
+          },
+          {
+            "full_key": null,
+            "rendered_label": "INC / WALLET MODEL",
+            "title_attr": null,
+            "sort_href": null,
+            "class_name": null
+          }
+        ],
+        "rows": [
+          {
+            "row_index": 0,
+            "class_name": "user",
+            "cells": [
+              {
+                "rendered_text": "0x7ae3b0\u20265e9205 USER",
+                "title_attr": null,
+                "aria_label_attr": null,
+                "underlying_value": "0x7ae3b08bb4e7b085c6db5d635b96bec9715e9205",
+                "data_sort": "0x7ae3b08bb4e7b085c6db5d635b96bec9715e9205",
+                "class_name": "sticky-wallet",
+                "scroll_width": 146,
+                "client_width": 146,
+                "css_truncated": false,
+                "nested_truncated_node": {
+                  "rendered": "0x7ae3b0\u20265e9205",
+                  "title": null,
+                  "aria": null,
+                  "scroll_width": 0,
+                  "client_width": 0
+                }
+              },
+              {
+                "rendered_text": "+$100.00",
+                "title_attr": null,
+                "aria_label_attr": null,
+                "underlying_value": "+$100.00",
+                "data_sort": 0,
+                "class_name": "pair-lead zero",
+                "scroll_width": 58,
+                "client_width": 58,
+                "css_truncated": false,
+                "nested_truncated_node": null
+              },
+              {
+                "rendered_text": "+$100.00",
+                "title_attr": null,
+                "aria_label_attr": null,
+                "underlying_value": "+$100.00",
+                "data_sort": 0,
+                "class_name": "pair-copy group-divider zero",
+                "scroll_width": 58,
+                "client_width": 58,
+                "css_truncated": false,
+                "nested_truncated_node": null
+              },
+              {
+                "rendered_text": "$0.00 (+0.00%)",
+                "title_attr": null,
+                "aria_label_attr": null,
+                "underlying_value": "$0.00 (+0.00%)",
+                "data_sort": 0,
+                "class_name": "pair-lead zero",
+                "scroll_width": 88,
+                "client_width": 88,
+                "css_truncated": false,
+                "nested_truncated_node": null
+              },
+              {
+                "rendered_text": "$0.00 (+0.00%)",
+                "title_attr": null,
+                "aria_label_attr": null,
+                "underlying_value": "$0.00 (+0.00%)",
+                "data_sort": 0,
+                "class_name": "pair-copy group-divider zero",
+                "scroll_width": 88,
+                "client_width": 88,
+                "css_truncated": false,
+                "nested_truncated_node": null
+              },
+              {
+                "rendered_text": "$0.00 (+0.00%)",
+                "title_attr": null,
+                "aria_label_attr": null,
+                "underlying_value": "$0.00 (+0.00%)",
+                "data_sort": 0,
+                "class_name": "pair-lead zero",
+                "scroll_width": 88,
+                "client_width": 88,
+                "css_truncated": false,
+                "nested_truncated_node": null
+              },
+              {
+                "rendered_text": "$0.00 (+0.00%)",
+                "title_attr": null,
+                "aria_label_attr": null,
+                "underlying_value": "$0.00 (+0.00%)",
+                "data_sort": 0,
+                "class_name": "pair-copy group-divider zero",
+                "scroll_width": 88,
+                "client_width": 88,
+                "css_truncated": false,
+                "nested_truncated_node": null
+              },
+              {
+                "rendered_text": "$0.00 (-0.00%)",
+                "title_attr": null,
+                "aria_label_attr": null,
+                "underlying_value": "$0.00 (-0.00%)",
+                "data_sort": -0.0,
+                "class_name": "pair-lead zero",
+                "scroll_width": 85,
+                "client_width": 85,
+                "css_truncated": false,
+                "nested_truncated_node": null
+              },
+              {
+                "rendered_text": "$0.00 (-0.00%)",
+                "title_attr": null,
+                "aria_label_attr": null,
+                "underlying_value": "$0.00 (-0.00%)",
+                "data_sort": -0.0,
+                "class_name": "pair-copy group-divider zero",
+                "scroll_width": 85,
+                "client_width": 85,
+                "css_truncated": false,
+                "nested_truncated_node": null
+              },
+              {
+                "rendered_text": "$0.00 (-0.00%)",
+                "title_attr": null,
+                "aria_label_attr": null,
+                "underlying_value": "$0.00 (-0.00%)",
+                "data_sort": -0.0,
+                "class_name": "pair-lead zero",
+                "scroll_width": 85,
+                "client_width": 85,
+                "css_truncated": false,
+                "nested_truncated_node": null
+              },
+              {
+                "rendered_text": "$0.00 (-0.00%)",
+                "title_attr": null,
+                "aria_label_attr": null,
+                "underlying_value": "$0.00 (-0.00%)",
+                "data_sort": -0.0,
+                "class_name": "pair-copy group-divider zero",
+                "scroll_width": 85,
+                "client_width": 85,
+                "css_truncated": false,
+                "nested_truncated_node": null
+              },
+              {
+                "rendered_text": "$0.00 (+0.00%)",
+                "title_attr": null,
+                "aria_label_attr": null,
+                "underlying_value": "$0.00 (+0.00%)",
+                "data_sort": 0,
+                "class_name": "group-divider zero",
+                "scroll_width": 88,
+                "client_width": 88,
+                "css_truncated": false,
+                "nested_truncated_node": null
+              },
+              {
+                "rendered_text": "\u2014",
+                "title_attr": null,
+                "aria_label_attr": null,
+                "underlying_value": "\u2014",
+                "data_sort": -999999999,
+                "class_name": "zero missing muted",
+                "scroll_width": 55,
+                "client_width": 55,
+                "css_truncated": false,
+                "nested_truncated_node": null
+              },
+              {
+                "rendered_text": "\u2014",
+                "title_attr": null,
+                "aria_label_attr": null,
+                "underlying_value": "\u2014",
+                "data_sort": -999999999,
+                "class_name": "zero missing muted",
+                "scroll_width": 52,
+                "client_width": 52,
+                "css_truncated": false,
+                "nested_truncated_node": null
+              },
+              {
+                "rendered_text": "\u2014",
+                "title_attr": null,
+                "aria_label_attr": null,
+                "underlying_value": "\u2014",
+                "data_sort": -999999999,
+                "class_name": "zero missing muted",
+                "scroll_width": 45,
+                "client_width": 45,
+                "css_truncated": false,
+                "nested_truncated_node": null
+              },
+              {
+                "rendered_text": "$0.00",
+                "title_attr": null,
+                "aria_label_attr": null,
+                "underlying_value": "$0.00",
+                "data_sort": 0,
+                "class_name": "zero",
+                "scroll_width": 40,
+                "client_width": 40,
+                "css_truncated": false,
+                "nested_truncated_node": null
+              },
+              {
+                "rendered_text": "$0.00",
+                "title_attr": null,
+                "aria_label_attr": null,
+                "underlying_value": "$0.00",
+                "data_sort": 0,
+                "class_name": "zero",
+                "scroll_width": 40,
+                "client_width": 40,
+                "css_truncated": false,
+                "nested_truncated_node": null
+              },
+              {
+                "rendered_text": "$0.00",
+                "title_attr": null,
+                "aria_label_attr": null,
+                "underlying_value": "$0.00",
+                "data_sort": 0,
+                "class_name": "zero",
+                "scroll_width": 71,
+                "client_width": 71,
+                "css_truncated": false,
+                "nested_truncated_node": null
+              },
+              {
+                "rendered_text": "0.0%",
+                "title_attr": null,
+                "aria_label_attr": null,
+                "underlying_value": "0.0%",
+                "data_sort": 0,
+                "class_name": "zero",
+                "scroll_width": 37,
+                "client_width": 37,
+                "css_truncated": false,
+                "nested_truncated_node": null
+              },
+              {
+                "rendered_text": "0.00x",
+                "title_attr": null,
+                "aria_label_attr": null,
+                "underlying_value": "0.00x",
+                "data_sort": 0,
+                "class_name": "zero",
+                "scroll_width": 39,
+                "client_width": 39,
+                "css_truncated": false,
+                "nested_truncated_node": null
+              },
+              {
+                "rendered_text": "0 / 0",
+                "title_attr": null,
+                "aria_label_attr": null,
+                "underlying_value": "0 / 0",
+                "data_sort": 0,
+                "class_name": "ops-group",
+                "scroll_width": 45,
+                "client_width": 45,
+                "css_truncated": false,
+                "nested_truncated_node": null
+              },
+              {
+                "rendered_text": "0 / 0",
+                "title_attr": null,
+                "aria_label_attr": null,
+                "underlying_value": "0 / 0",
+                "data_sort": 0,
+                "class_name": "ops-group",
+                "scroll_width": 46,
+                "client_width": 46,
+                "css_truncated": false,
+                "nested_truncated_node": null
+              },
+              {
+                "rendered_text": "0 / 0",
+                "title_attr": null,
+                "aria_label_attr": null,
+                "underlying_value": "0 / 0",
+                "data_sort": 0,
+                "class_name": "ops-group group-divider",
+                "scroll_width": 37,
+                "client_width": 37,
+                "css_truncated": false,
+                "nested_truncated_node": null
+              },
+              {
+                "rendered_text": "aggregate baseSet",
+                "title_attr": null,
+                "aria_label_attr": null,
+                "underlying_value": "aggregate baseSet",
+                "data_sort": null,
+                "class_name": "controls-cell",
+                "scroll_width": 327,
+                "client_width": 327,
+                "css_truncated": false,
+                "nested_truncated_node": null
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "inputs": [
+      {
+        "id": null,
+        "name": "norm_base",
+        "type": null,
+        "value": "100.0",
+        "title_attr": null,
+        "checked": null
+      },
+      {
+        "id": null,
+        "name": "copy_mode",
+        "type": null,
+        "value": "proportional",
+        "title_attr": null,
+        "checked": null
+      },
+      {
+        "id": null,
+        "name": "fixed_notional",
+        "type": null,
+        "value": "100.0",
+        "title_attr": null,
+        "checked": null
+      },
+      {
+        "id": null,
+        "name": "fee_bps",
+        "type": null,
+        "value": "5.0",
+        "title_attr": null,
+        "checked": null
+      },
+      {
+        "id": null,
+        "name": "copy_friction_bps",
+        "type": null,
+        "value": "0.0",
+        "title_attr": null,
+        "checked": null
+      },
+      {
+        "id": null,
+        "name": "user_norm_base",
+        "type": null,
+        "value": "100",
+        "title_attr": "aggregate normalisation base",
+        "checked": null
+      }
+    ],
+    "http_status": 200,
+    "served_html_sha256": "1fef674d26b1478e1c41150416a42b74ee0faef073b9ddf7d56a6c3d697e8946",
+    "served_html_path": "C:\\Users\\wigmore\\.hermes\\kanban\\workspaces\\t_a7c0515c\\repo\\EVIDENCE\\ui_capture\\mutation_final\\dom_restored.html",
+    "served_html_bytes": 21850
+  },
+  "mutation_control": {
+    "requested": true,
+    "verdict": "PASS",
+    "notes": [
+      "bump observed in the capture and fully reverted by the restore"
+    ],
+    "steps": [
+      {
+        "step": "baseline",
+        "value": 5.0
+      },
+      {
+        "step": "bumped",
+        "value": 12.0,
+        "diff_keys": [
+          "input.fee_bps"
+        ]
+      },
+      {
+        "step": "restored",
+        "residual_keys": []
+      }
+    ],
+    "bump_diff_count": 1,
+    "restore_residual_count": 0,
+    "bump_diff": {
+      "input.fee_bps": {
+        "baseline": "5.0",
+        "other": "12.0"
+      }
+    },
+    "restore_residual": {},
+    "config_file": "C:\\Users\\wigmore\\.hermes\\cache\\scratch\\uicap\\inst\\ui_state.json",
+    "config_sha256_before": "4f285ca49d74bbe5ac8367f3cf09783d723a4065b9272bb3f28849c6da8307c5",
+    "config_sha256_after_restore": "4f285ca49d74bbe5ac8367f3cf09783d723a4065b9272bb3f28849c6da8307c5"
+  },
+  "finished_at": "2026-10-19T09:44:56+0100"
+}
