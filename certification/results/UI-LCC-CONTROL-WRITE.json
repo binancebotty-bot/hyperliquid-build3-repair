@@ -223,7 +223,7 @@
         "st_dev": 2695698498,
         "st_ino": 1970324841820080,
         "st_size": 743,
-        "st_mtime_utc": "2026-10-19T07:47:46.866139+00:00",
+        "st_mtime_utc": "2026-10-19T07:52:13.976191+00:00",
         "sha256": "f266bff7075ed07418ec1f7ad7f272c1e8af4b68144ae40a73928bc074ca9073",
         "sha256_at_start_recorded_by_run": "21664462f16ee4eddd972461311b8e8f5a9f57a1a5180b29aa663961e23ec9b3",
         "sha256_at_end_recorded_by_run": "f266bff7075ed07418ec1f7ad7f272c1e8af4b68144ae40a73928bc074ca9073"
@@ -247,7 +247,7 @@
           "st_dev": 2695698498,
           "st_ino": 1970324841820080,
           "st_size": 743,
-          "st_mtime_utc": "2026-10-19T07:37:49.460989+00:00",
+          "st_mtime_utc": "2026-10-19T07:51:37.146870+00:00",
           "sha256": "f266bff7075ed07418ec1f7ad7f272c1e8af4b68144ae40a73928bc074ca9073"
         },
         "after_baseline_write": {
@@ -255,7 +255,7 @@
           "st_dev": 2695698498,
           "st_ino": 1970324841820080,
           "st_size": 105,
-          "st_mtime_utc": "2026-10-19T07:47:46.865639+00:00",
+          "st_mtime_utc": "2026-10-19T07:52:13.976191+00:00",
           "sha256": "21664462f16ee4eddd972461311b8e8f5a9f57a1a5180b29aa663961e23ec9b3"
         },
         "after_restore": {
@@ -263,7 +263,7 @@
           "st_dev": 2695698498,
           "st_ino": 1970324841820080,
           "st_size": 743,
-          "st_mtime_utc": "2026-10-19T07:47:46.866139+00:00",
+          "st_mtime_utc": "2026-10-19T07:52:13.976191+00:00",
           "sha256": "f266bff7075ed07418ec1f7ad7f272c1e8af4b68144ae40a73928bc074ca9073"
         },
         "inode_stable_across_write": true,
@@ -307,7 +307,13 @@
           "marketable_slippage_off": false,
           "close_adverse_diff_off": false
         },
-        "api_8032_global_controls_matches_isolated_file": false,
+        "api_8032_derived_only_fields": [
+          "close_adverse_diff_off",
+          "marketable_slippage_off",
+          "marketable_slippage_pct"
+        ],
+        "api_8032_global_controls_matches_isolated_file": true,
+        "api_8032_global_controls_match_basis": "every key stored in the isolated live_config.json is served with an identical value by :8032; the API additionally exposes derived fields (marketable_slippage_pct, marketable_slippage_off, close_adverse_diff_off) that are not persisted in the file",
         "isolated_config_archived_wallets": [
           "0x1111111111111111111111111111111111111111"
         ],
@@ -330,7 +336,8 @@
         "api_8032_live_config_canonical_sha256": "1c3c36ba4a95f137c6ba141884b56035389be929d677a7211bc6197f826d2da5",
         "api_8031_live_config_canonical_sha256": "63e281d41012e82348142873aa1cedcf6c5901b8506be7617d8541ee9ecef399",
         "api_8032_differs_from_api_8031": true,
-        "api_8031_matches_shared_file_controls": false,
+        "api_8031_matches_shared_file_controls": true,
+        "api_8031_match_basis": "every key stored in the shared live_config.json is served with an identical value by :8031 (the API adds the same three derived fields as :8032)",
         "requests_issued_for_this_check": [
           {
             "method": "GET",
@@ -378,7 +385,7 @@
     "control_write_fail_count": 1,
     "amendment": {
       "card": "t_d1279a57",
-      "amended_at_utc": "2026-10-19T07:47:46.922202+00:00",
+      "amended_at_utc": "2026-10-19T07:52:14.011227+00:00",
       "rows_changed": [],
       "changed": [
         "meta.live_8031_contact added",

@@ -173,8 +173,15 @@ meta['isolation_identity'] = {
         'state_dir_returned_by_8032': reported_dir,
         'isolated_config_global_controls': iso_file.get('global_controls'),
         'api_8032_global_controls_file_section': (iso_gc.get('global_controls') or None),
-        'api_8032_global_controls_matches_isolated_file': (
-            (iso_gc.get('global_controls') or {}) == (iso_file.get('global_controls') or {})),
+        'api_8032_derived_only_fields': sorted(
+            set(iso_gc.get('global_controls') or {}) - set(iso_file.get('global_controls') or {})),
+        'api_8032_global_controls_matches_isolated_file': all(
+            (iso_gc.get('global_controls') or {}).get(k) == v
+            for k, v in (iso_file.get('global_controls') or {}).items()),
+        'api_8032_global_controls_match_basis': 'every key stored in the isolated live_config.json '
+            'is served with an identical value by :8032; the API additionally exposes derived '
+            'fields (marketable_slippage_pct, marketable_slippage_off, close_adverse_diff_off) '
+            'that are not persisted in the file',
         'isolated_config_archived_wallets': sorted((iso_file.get('archived_wallets') or {}).keys()),
         'shared_config_global_controls': shared_file.get('global_controls'),
         'isolated_and_shared_global_controls_differ': (
@@ -182,8 +189,11 @@ meta['isolation_identity'] = {
         'api_8032_live_config_canonical_sha256': canon(iso_api),
         'api_8031_live_config_canonical_sha256': canon(live_api),
         'api_8032_differs_from_api_8031': canon(iso_api) != canon(live_api),
-        'api_8031_matches_shared_file_controls': (
-            (live_gc.get('global_controls') or {}) == (shared_file.get('global_controls') or {})),
+        'api_8031_matches_shared_file_controls': all(
+            (live_gc.get('global_controls') or {}).get(k) == v
+            for k, v in (shared_file.get('global_controls') or {}).items()),
+        'api_8031_match_basis': 'every key stored in the shared live_config.json is served with an '
+            'identical value by :8031 (the API adds the same three derived fields as :8032)',
         'requests_issued_for_this_check': [
             {'method': 'GET', 'url': ISO_BASE + '/api/live-config', 'status': status_iso},
             {'method': 'GET', 'url': ISO_BASE + '/api/global-controls', 'status': status_gc},
