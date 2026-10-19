@@ -293,6 +293,29 @@ def main() -> int:
             punch.append("%s card prep: %s" % (r_["id"], ", ".join(miss)))
     out.append("CARD PREP %d active card(s) with a gap" % gaps)
 
+    # ---- WATCH: is anyone listening to what I posted? ------------------------
+    watch_lock = Path(r"C:/Users/wigmore/.hermes/state/kanban_notify_watch.lock")
+    pending_f = Path(r"C:/Users/wigmore/.hermes/state/controller_posts_pending.json")
+    lock_age = (now - watch_lock.stat().st_mtime) if watch_lock.exists() else None
+    alive = lock_age is not None and lock_age < 120
+    try:
+        pending = [p for p in json.loads(pending_f.read_text(encoding="utf-8")) if not p.get("answered")]
+    except Exception:
+        pending = []
+    out.append("")
+    out.append("WATCH     watcher %s%s   pending controller posts=%d" %
+               ("ALIVE" if alive else "NOT ARMED",
+                "" if lock_age is None else " (lock %s)" % ago(now - lock_age),
+                len(pending)))
+    if not alive:
+        punch.append("WATCHER NOT ARMED - nothing will wake me; relaunch kanban_notify_watch.py --exit-on-event")
+    for p in pending:
+        out.append("          awaiting reply: %s  %s  %s" %
+                   (p.get("ref", "?"), ago(p.get("posted_at")), p.get("note", "")))
+    if pending and not alive:
+        punch.append("%d post(s) awaiting a reply with NO watcher armed - the request cannot be received"
+                     % len(pending))
+
     # ---- PUNCH ---------------------------------------------------------------
     out.append("")
     if punch:
