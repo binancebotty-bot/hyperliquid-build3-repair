@@ -1,0 +1,107 @@
+[
+  {
+    "row_id": "B4-R13",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "register:certification/certification_matrix.json#records/B4-R13; repository census: origin/cert/local-main-b142cf8",
+    "tested_commit": "",
+    "why": "The assigned acceptance route is absent: this checkout contains no hyperliquid-build4/GUT_CONTRACT.md or failure reproduction harness, and the referenced B4 testnet engine/runtime is unavailable here. The register's row-specific requirement is: Must not recur: watchdog changes authority from stale predicate A generic Build3/archive source or shared sweep cannot prove this Build4 regression; no product verdict is inferred."
+  },
+  {
+    "row_id": "B4-R14",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "register:certification/certification_matrix.json#records/B4-R14; repository census: origin/cert/local-main-b142cf8",
+    "tested_commit": "",
+    "why": "The assigned acceptance route is absent: this checkout contains no hyperliquid-build4/GUT_CONTRACT.md or failure reproduction harness, and the referenced B4 testnet engine/runtime is unavailable here. The register's row-specific requirement is: Must not recur: certification/repo/Proof/UI diagnostic blocks execution A generic Build3/archive source or shared sweep cannot prove this Build4 regression; no product verdict is inferred."
+  },
+  {
+    "row_id": "B4-R15",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "register:certification/certification_matrix.json#records/B4-R15; repository census: origin/cert/local-main-b142cf8",
+    "tested_commit": "",
+    "why": "The assigned acceptance route is absent: this checkout contains no hyperliquid-build4/GUT_CONTRACT.md or failure reproduction harness, and the referenced B4 testnet engine/runtime is unavailable here. The register's row-specific requirement is: Must not recur: stale candidate/shadow overwrites canonical active state A generic Build3/archive source or shared sweep cannot prove this Build4 regression; no product verdict is inferred."
+  },
+  {
+    "row_id": "B4-R16",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "register:certification/certification_matrix.json#records/B4-R16; repository census: origin/cert/local-main-b142cf8",
+    "tested_commit": "",
+    "why": "The assigned acceptance route is absent: this checkout contains no hyperliquid-build4/GUT_CONTRACT.md or failure reproduction harness, and the referenced B4 testnet engine/runtime is unavailable here. The register's row-specific requirement is: Must not recur: mutable `global_state`/config hash creates operational veto A generic Build3/archive source or shared sweep cannot prove this Build4 regression; no product verdict is inferred."
+  },
+  {
+    "row_id": "B4-R17",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "register:certification/certification_matrix.json#records/B4-R17; repository census: origin/cert/local-main-b142cf8",
+    "tested_commit": "",
+    "why": "The assigned acceptance route is absent: this checkout contains no hyperliquid-build4/GUT_CONTRACT.md or failure reproduction harness, and the referenced B4 testnet engine/runtime is unavailable here. The register's row-specific requirement is: Must not recur: OFF/`mark_pending_historical` loses unevaluated events A generic Build3/archive source or shared sweep cannot prove this Build4 regression; no product verdict is inferred."
+  },
+  {
+    "row_id": "B4-R18",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "register:certification/certification_matrix.json#records/B4-R18; repository census: origin/cert/local-main-b142cf8",
+    "tested_commit": "",
+    "why": "The assigned acceptance route is absent: this checkout contains no hyperliquid-build4/GUT_CONTRACT.md or failure reproduction harness, and the referenced B4 testnet engine/runtime is unavailable here. The register's row-specific requirement is: Must not recur: one bad leader key globally stalls others A generic Build3/archive source or shared sweep cannot prove this Build4 regression; no product verdict is inferred."
+  },
+  {
+    "row_id": "B4-R19",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "register:certification/certification_matrix.json#records/B4-R19; repository census: origin/cert/local-main-b142cf8",
+    "tested_commit": "",
+    "why": "The assigned acceptance route is absent: this checkout contains no hyperliquid-build4/GUT_CONTRACT.md or failure reproduction harness, and the referenced B4 testnet engine/runtime is unavailable here. The register's row-specific requirement is: Must not recur: wallet add causes historical catch-up A generic Build3/archive source or shared sweep cannot prove this Build4 regression; no product verdict is inferred."
+  },
+  {
+    "row_id": "B4-R20",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "register:certification/certification_matrix.json#records/B4-R20; repository census: origin/cert/local-main-b142cf8",
+    "tested_commit": "",
+    "why": "The assigned acceptance route is absent: this checkout contains no hyperliquid-build4/GUT_CONTRACT.md or failure reproduction harness, and the referenced B4 testnet engine/runtime is unavailable here. The register's row-specific requirement is: Must not recur: wallet remove/config change orphans owned sleeve A generic Build3/archive source or shared sweep cannot prove this Build4 regression; no product verdict is inferred."
+  },
+  {
+    "row_id": "B4-R21",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "register:certification/certification_matrix.json#records/B4-R21; repository census: origin/cert/local-main-b142cf8",
+    "tested_commit": "",
+    "why": "The assigned acceptance route is absent: this checkout contains no hyperliquid-build4/GUT_CONTRACT.md or failure reproduction harness, and the referenced B4 testnet engine/runtime is unavailable here. The register's row-specific requirement is: Must not recur: delayed pending entry executes at materially worse price A generic Build3/archive source or shared sweep cannot prove this Build4 regression; no product verdict is inferred."
+  },
+  {
+    "row_id": "B4-R22",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "register:certification/certification_matrix.json#records/B4-R22; repository census: origin/cert/local-main-b142cf8",
+    "tested_commit": "",
+    "why": "The assigned acceptance route is absent: this checkout contains no hyperliquid-build4/GUT_CONTRACT.md or failure reproduction harness, and the referenced B4 testnet engine/runtime is unavailable here. The register's row-specific requirement is: Must not recur: partial fill causes duplicate/resubmission quantity error A generic Build3/archive source or shared sweep cannot prove this Build4 regression; no product verdict is inferred."
+  },
+  {
+    "row_id": "B4-R23",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "register:certification/certification_matrix.json#records/B4-R23; repository census: origin/cert/local-main-b142cf8",
+    "tested_commit": "",
+    "why": "The assigned acceptance route is absent: this checkout contains no hyperliquid-build4/GUT_CONTRACT.md or failure reproduction harness, and the referenced B4 testnet engine/runtime is unavailable here. The register's row-specific requirement is: Must not recur: multiple missed events replayed instead of netted A generic Build3/archive source or shared sweep cannot prove this Build4 regression; no product verdict is inferred."
+  },
+  {
+    "row_id": "B4-R24",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "register:certification/certification_matrix.json#records/B4-R24; repository census: origin/cert/local-main-b142cf8",
+    "tested_commit": "",
+    "why": "The assigned acceptance route is absent: this checkout contains no hyperliquid-build4/GUT_CONTRACT.md or failure reproduction harness, and the referenced B4 testnet engine/runtime is unavailable here. The register's row-specific requirement is: Must not recur: reduction/close blocked by entry protection A generic Build3/archive source or shared sweep cannot prove this Build4 regression; no product verdict is inferred."
+  },
+  {
+    "row_id": "B4-R25",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "register:certification/certification_matrix.json#records/B4-R25; repository census: origin/cert/local-main-b142cf8",
+    "tested_commit": "",
+    "why": "The assigned acceptance route is absent: this checkout contains no hyperliquid-build4/GUT_CONTRACT.md or failure reproduction harness, and the referenced B4 testnet engine/runtime is unavailable here. The register's row-specific requirement is: Must not recur: margin parser works only when follower already owns symbol A generic Build3/archive source or shared sweep cannot prove this Build4 regression; no product verdict is inferred."
+  },
+  {
+    "row_id": "F-ARCH-001",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "register:certification/certification_matrix.json#records/F-ARCH-001; repository census: origin/cert/local-main-b142cf8",
+    "tested_commit": "",
+    "why": "The assigned acceptance route is absent: this checkout contains no hyperliquid-build4/GUT_CONTRACT.md or failure reproduction harness, and the referenced B4 testnet engine/runtime is unavailable here. The register's row-specific requirement is: Only exchange state may define actual_position. All other state is explanatory or display-only. A generic Build3/archive source or shared sweep cannot prove this Build4 regression; no product verdict is inferred."
+  },
+  {
+    "row_id": "F-ARCH-002",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "register:certification/certification_matrix.json#records/F-ARCH-002; repository census: origin/cert/local-main-b142cf8",
+    "tested_commit": "",
+    "why": "The assigned acceptance route is absent: this checkout contains no hyperliquid-build4/GUT_CONTRACT.md or failure reproduction harness, and the referenced B4 testnet engine/runtime is unavailable here. The register's row-specific requirement is: Make the engine a stateless reconciler: fetch exchange state every cycle, compute desired, diff, act, refetch. A generic Build3/archive source or shared sweep cannot prove this Build4 regression; no product verdict is inferred."
+  }
+]
