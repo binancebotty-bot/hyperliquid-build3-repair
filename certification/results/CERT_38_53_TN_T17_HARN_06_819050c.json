@@ -1,0 +1,107 @@
+[
+ {
+  "row_id": "TN-T17",
+  "verdict": "PASS",
+  "evidence_ref": "_archive/hl_stage2/exchange_truth.py -> network_endpoints/resolve_networks; fresh py3.11 run 2026-10-19",
+  "tested_commit": "819050c6018ab3264cfe911f927e1f97ff0f979b",
+  "why": "Row-bound runtime proof: resolve_networks with HL_FOLLOWER_NETWORK=devnet raises UNKNOWN_NETWORK (expected one of mainnet/testnet); a blank leader network falls back to the canonical default. Absent proof cannot select a non-canonical host, so the default is fail-closed. The predicate is specific to the resolve path and cannot pass for another row evidence."
+ },
+ {
+  "row_id": "TN-A1",
+  "verdict": "PASS",
+  "evidence_ref": "_archive/hl_stage2/exchange_truth.py -> resolve_networks legacy-URL netloc equality; fresh run",
+  "tested_commit": "819050c6018ab3264cfe911f927e1f97ff0f979b",
+  "why": "Runtime: HL_INFO_URL=https://api.hyperliquid-testnet.xyz.evil.example/info with follower=testnet raises NETWORK_ENDPOINT_MISMATCH. Suffix-confusion origin rejected because netloc must EQUAL the canonical host, not merely contain it."
+ },
+ {
+  "row_id": "TN-A2",
+  "verdict": "PASS",
+  "evidence_ref": "_archive/hl_stage2/exchange_truth.py -> resolve_networks legacy-URL netloc equality; fresh run",
+  "tested_commit": "819050c6018ab3264cfe911f927e1f97ff0f979b",
+  "why": "Runtime: HL_INFO_URL=https://evil.example/?next=api.hyperliquid-testnet.xyz raises NETWORK_ENDPOINT_MISMATCH - a query string carrying the expected host cannot smuggle the origin."
+ },
+ {
+  "row_id": "TN-A3",
+  "verdict": "PASS",
+  "evidence_ref": "_archive/hl_stage2/exchange_truth.py -> resolve_networks legacy-URL netloc equality; fresh run",
+  "tested_commit": "819050c6018ab3264cfe911f927e1f97ff0f979b",
+  "why": "Runtime: HL_INFO_URL=https://user:pw@api.hyperliquid-testnet.xyz@evil.example/info raises NETWORK_ENDPOINT_MISMATCH; urlparse yields netloc evil.example so the userinfo/multi-at form is rejected."
+ },
+ {
+  "row_id": "TN-A4",
+  "verdict": "PASS",
+  "evidence_ref": "_archive/hl_stage2/exchange_truth.py -> resolve_networks legacy-URL netloc equality; fresh run",
+  "tested_commit": "819050c6018ab3264cfe911f927e1f97ff0f979b",
+  "why": "Runtime: HL_INFO_URL=https://api.hyperliquid%2Dtestnet.xyz/info raises NETWORK_ENDPOINT_MISMATCH - the percent-encoded authority does not normalise to the canonical netloc."
+ },
+ {
+  "row_id": "TN-A5",
+  "verdict": "PASS",
+  "evidence_ref": "_archive/hl_stage2/exchange_truth.py -> resolve_networks legacy-URL netloc equality; fresh run",
+  "tested_commit": "819050c6018ab3264cfe911f927e1f97ff0f979b",
+  "why": "Runtime: both https://127.0.0.1/info and https://[::1]/info raise NETWORK_ENDPOINT_MISMATCH; raw-IP and IPv6-literal authorities are refused because netloc must equal the canonical hostname."
+ },
+ {
+  "row_id": "TN-A6",
+  "verdict": "PASS",
+  "evidence_ref": "_archive/hl_stage2/exchange_truth.py -> resolve_networks legacy-URL netloc equality; fresh run",
+  "tested_commit": "819050c6018ab3264cfe911f927e1f97ff0f979b",
+  "why": "Runtime: https://api.hyperliquid-testnet.xy + U+017A/info (unicode confusable for z) raises NETWORK_ENDPOINT_MISMATCH; the confusable does not compare equal to the ASCII netloc."
+ },
+ {
+  "row_id": "TN-A7",
+  "verdict": "FAIL",
+  "evidence_ref": "_archive/hl_stage2/exchange_truth.py -> http_post (requests.Session.post), live 307 harness; fresh run",
+  "tested_commit": "819050c6018ab3264cfe911f927e1f97ff0f979b",
+  "why": "Product genuinely misses it. Local harness: POST to 127.0.0.1:18080 returned 307 with Location 127.0.0.1:18081/info; http_post followed the redirect and the foreign origin received the POST (origin_hits=1, foreign_origin_hits=1, status=200). No allow_redirects anywhere in the repo, so requests default True applies and a 307/308 re-POSTs the body onto another origin. Requirement is REFUSE."
+ },
+ {
+  "row_id": "TN-A8",
+  "verdict": "FAIL",
+  "evidence_ref": "_archive/hl_stage2/exchange_truth.py and _archive/hl_stage2/HL_Live_Copy_Service_Core.py L6482/L6196 -> hyperliquid.info.Info.__init__; live SDK probe",
+  "tested_commit": "819050c6018ab3264cfe911f927e1f97ff0f979b",
+  "why": "Product genuinely misses it. Info.__init__ issued 2 requests before any hardening (spotMeta then meta) with API.post instrumented. The engine constructs that client (Exchange(...) -> Info(base_url,...)) in _get_exchange_client at L6482 and at L6196 on the send path, so the unhardened requests exist. Requirement is MUST NOT EXIST."
+ },
+ {
+  "row_id": "HARN-01",
+  "verdict": "FAIL",
+  "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json (PASS at fa9d9f55) re-checked at HEAD 819050c6018ab3264cfe911f927e1f97ff0f979b",
+  "tested_commit": "819050c6018ab3264cfe911f927e1f97ff0f979b",
+  "why": "Prior PASS is not row-bound at this commit. Its only row-specific check is a 9-script scan (Scanned 9 scripts; direct .order() calls: []) that does not cover the executable set; a repo scan at HEAD finds a further physical order call at _archive/hl_stage2/HL_Live_Copy_Service.py:1036 and .order() calls in test fakes (test_core_missed_entry_rule.py, test_core_run4_fixes.py). The other 23 checks are identical boilerplate across every CONTROL row and cannot fail for this row."
+ },
+ {
+  "row_id": "HARN-02",
+  "verdict": "FAIL",
+  "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json (PASS at fa9d9f55) re-checked at HEAD 819050c6018ab3264cfe911f927e1f97ff0f979b",
+  "tested_commit": "819050c6018ab3264cfe911f927e1f97ff0f979b",
+  "why": "PASS rests on Engine has exactly 1 physical .order() call site - the Core engine only. The row requires the census to cover every executable file including proofs, tests, scripts and archives on the run path; at HEAD the census excludes HL_Live_Copy_Service.py (L1036), tools/, and the test fakes. The coverage claim is wider than the evidence."
+ },
+ {
+  "row_id": "HARN-03",
+  "verdict": "PASS",
+  "evidence_ref": "_archive/hl_stage2/HL_Live_Copy_Service_Core.py L112-116/L4194/L12899 + _archive/hl_stage2/exchange_truth.py -> resolve_networks; live py3.11 run TOTAL=62 FAILED=0",
+  "tested_commit": "819050c6018ab3264cfe911f927e1f97ff0f979b",
+  "why": "Row-bound runtime proof at HEAD: one engine process derives LEADER/FOLLOWER from resolve_networks and only injected endpoints/credentials differ (probe N5: testnet follower + mainnet leader -> testnet exchange/info, mainnet ws, folder hl_live_copy_audit_testnet; mainnet follower -> historical folder). L4194 refuses mainnet orders unless --confirm-mainnet-follower, the single injection point for the write credential."
+ },
+ {
+  "row_id": "HARN-04",
+  "verdict": "PASS",
+  "evidence_ref": "_archive/hl_stage2/HL_Live_Copy_Service_Core.py signing-key path + repo-wide leak scan at HEAD",
+  "tested_commit": "819050c6018ab3264cfe911f927e1f97ff0f979b",
+  "why": "Row-bound: repo-wide scan of EVIDENCE/, certification/ and _archive/hl_stage2/evidence/ for 64-hex private-key material returns zero hits; the key is read only from HL_LIVE_HL_PRIVATE_KEY and never placed in argv, and the argv records (L1025, L8950) carry flags not secrets."
+ },
+ {
+  "row_id": "HARN-05",
+  "verdict": "FAIL",
+  "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json (PASS at fa9d9f55) re-checked at HEAD 819050c6018ab3264cfe911f927e1f97ff0f979b",
+  "tested_commit": "819050c6018ab3264cfe911f927e1f97ff0f979b",
+  "why": "The row check (All gate PASS envelopes reference exact commit SHAs and test results from execution) is a shared envelope-level sweep identical across all CONTROL rows and does not bind to HARN-05. The artifact also overclaims: _archive/hl_stage2/HL_Live_Copy_Service_Core.py L12138 has a self-test check written as ... or True, a predicate that cannot fail, so the evidence does not state only what ran."
+ },
+ {
+  "row_id": "HARN-06",
+  "verdict": "FAIL",
+  "evidence_ref": "_archive/hl_stage2/HL_Live_Copy_Service_Core.py L3018/L3021/L3024/L3075/L3079/L3082/L3093 + /api/global-controls POST path; re-checked at HEAD",
+  "tested_commit": "819050c6018ab3264cfe911f927e1f97ff0f979b",
+  "why": "Row demands a per-endpoint list of fields the engine READS versus fields ACCEPTED BUT IGNORED, with any ignored field raised as a finding. No such census artifact exists at HEAD; the prior PASS asserts Engine processes all UI write endpoint fields; no ignored fields as a bare boolean with no per-field inventory, so the claim is unsupported."
+ }
+]
