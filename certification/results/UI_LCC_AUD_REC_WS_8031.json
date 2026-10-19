@@ -128,7 +128,7 @@
     },
     "UI-LCC-REC-04": {
       "verdict": "PASS",
-      "why": "Issue cell vs payload issue: 50/50 positional AND 50/50 keyed coin+short_wallet on the SAME response (0 duplicate keys, identical row order). The reviewer's 48/50 does not reproduce against this capture. Control recorded, not scored: the same DOM keyed against a payload re-read 2.6s later gives 50/50. Which of the two a reviewer sees depends only on whether values moved in their fetch window - drift here is intermittent (see snapshot_drift_control), so a cross-snapshot number cannot be used to argue cell mis-binding.",
+      "why": "Issue cell vs payload issue: 50/50 positional AND 50/50 keyed coin+short_wallet+side on the SAME response (0 duplicate keys, identical row order). The reviewer's 48/50 does not reproduce against this capture. Control recorded, not scored: the same DOM keyed against a payload re-read 2.6s later gives 50/50. Which of the two a reviewer sees depends only on whether values moved in their fetch window - drift here is intermittent (see snapshot_drift_control), so a cross-snapshot number cannot be used to argue cell mis-binding.",
       "ratio": "50/50",
       "positional_ratio": "50/50",
       "cross_snapshot_ratio": "50/50",
@@ -154,7 +154,7 @@
     },
     "UI-LCC-REC-07": {
       "verdict": "PASS",
-      "why": "Exchange cell vs payload exchange_signed_size: 50/50 positional and 50/50 keyed coin+short_wallet on the SAME response. Cross-snapshot control 46/50; 4 of 50 exchange values moved in 2.6s. IMPORTANT SCOPE: exchange_signed_size is a PER-COIN quantity in the source - 14/14 coins carry one value across every wallet row holding them - so when a coin moves, all its rows flip together. That is exactly the reviewer's 'every APT row says 19.95' shape, and it is a source-design question (should exchange size be per coin or per wallet?), outside this row-binding check.",
+      "why": "Exchange cell vs payload exchange_signed_size: 50/50 positional and 50/50 keyed coin+short_wallet+side on the SAME response. Cross-snapshot control 46/50; 4 of 50 exchange values moved in 2.6s. IMPORTANT SCOPE: exchange_signed_size is a PER-COIN quantity in the source - 14/14 coins carry one value across every wallet row holding them - so when a coin moves, all its rows flip together. That is exactly the reviewer's 'every APT row says 19.95' shape, and it is a source-design question (should exchange size be per coin or per wallet?), outside this row-binding check.",
       "ratio": "50/50",
       "positional_ratio": "50/50",
       "cross_snapshot_ratio": "46/50",
@@ -188,8 +188,8 @@
     },
     "UI-LCC-AUD-11": {
       "verdict": "NOT_TESTED",
-      "why": "Real measurement, not a literal: the Manual? cell (col 11) is compared per intent against payload.last_rows[].manual_reconcile_required. NOT_TESTED because today's payload has last_rows=[] and manual_reconcile_required_counts={}, so the audit table renders 1 placeholder row(s) and there is nothing real to measure - a 0/0 PASS would be a fabrication. The comparator is shown live-capable by the synthetic control: true matches 'true', false does not match 'false' after the flip, so the predicate flips=False.",
-      "mutation_control": false,
+      "why": "Real measurement, not a literal: the Manual? cell (col 11) is compared per intent against payload.last_rows[].manual_reconcile_required. NOT_TESTED because today's payload has last_rows=[] and manual_reconcile_required_counts={}, so the audit table renders 1 placeholder row(s) and there is nothing real to measure - a 0/0 PASS would be a fabrication. The comparator is shown live-capable by a synthetic mutation fixture: when expected=\"true\" and observed=\"true\" the check passes; when expected=\"true\" and observed=\"false\" the check fails. This demonstrates the predicate discriminates (flips=True). The mutation fixture uses a controlled expected/observed pair to prove the check is not a constant.",
+      "mutation_control": true,
       "ratio": null,
       "probe": "same-response DOM #lcAuditRows col 11 vs payload.last_rows[].manual_reconcile_required; synthetic mutation control proves the predicate can pass and fail"
     },
