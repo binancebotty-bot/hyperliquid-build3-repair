@@ -1,0 +1,21 @@
+{
+  "purpose": "Runtime availability evidence for blocked UI-FP-038..UI-FP-052 certification",
+  "target": "http://127.0.0.1:8031/ and http://127.0.0.1:8031/api/status",
+  "expected_listener_pid_from_task": 33368,
+  "expected_serving_commit_from_task": "89b3bc7586bf328df336fc9ea721cee212617762",
+  "probes": [
+    {
+      "command": "curl -sS --max-time 5 http://127.0.0.1:8031/",
+      "result": "curl: (7) Failed to connect to 127.0.0.1 port 8031 after 2043 ms: Could not connect to server"
+    },
+    {
+      "command": "curl -sS --max-time 5 http://127.0.0.1:8031/api/status",
+      "result": "curl: (7) Failed to connect to 127.0.0.1 port 8031 after 2057 ms: Could not connect to server"
+    },
+    {
+      "command": "tasklist /FI \"PID eq 33368\" /FO LIST",
+      "result": "INFO: No tasks are running which match the specified criteria."
+    }
+  ],
+  "interpretation": "No UI process or API response was available to render or bind the row assertions to the claimed serving build. No product behavior is inferred. BLOCKED is used rather than NOT_TESTED because this is an environment/runtime availability failure, not a missing product route."
+}
