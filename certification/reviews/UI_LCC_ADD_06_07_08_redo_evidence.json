@@ -1,0 +1,393 @@
+{
+  "card": "t_02892846",
+  "parent_card": "t_b56d9da5",
+  "purpose": "REDO of UI-LCC-ADD-06/07/08 with row-bound evidence on an isolated instance",
+  "branch": "redo/ui-lcc-add-060708-t_02892846",
+  "tested_commit": "33d8eeea6dadacaf8558b167f3c7a16176b342e2",
+  "generated_at_utc": "2026-10-19T01:23:10.093699+00:00",
+  "process_rule": {
+    "pid": 37048,
+    "port": 8099,
+    "started_local": "2026-10-19 01:49:24",
+    "cmdline": "python.exe -c \"import sys;sys.path.insert(0,'.');import HL_Copy_App_SSOT as m; ... uvicorn.run('HL_Copy_App_SSOT:app', host='127.0.0.1', port=8099)\"",
+    "cwd_source_file_mtime_local": "2026-10-19 01:32:39",
+    "commit_time_local": "2026-10-19 01:33:17 +0100",
+    "commit_predates_process_start": true,
+    "source_blob_at_commit": "a01001fcc33b1606250ae9a70e02dd86de229ecd",
+    "source_blob_on_disk": "a01001fcc33b1606250ae9a70e02dd86de229ecd",
+    "source_blob_identical": true
+  },
+  "isolated_instance": {
+    "port": 8099,
+    "audit_dir": "C:\\Users\\wigmore\\.hermes\\kanban\\workspaces\\t_02892846\\iso_audit",
+    "live_config_path": "C:\\Users\\wigmore\\.hermes\\kanban\\workspaces\\t_02892846\\iso_audit\\live_config.json",
+    "network_stamp": {
+      "leader": "mainnet",
+      "follower": "testnet"
+    },
+    "serving_instance_8031_untouched": true,
+    "serving_instance_8031_note": "PID 41124 on :8031 was never posted to; every mutation went to :8099 with HL_LIVE_AUDIT_DIR=iso_audit. No live_config.json outside the workspace changed."
+  },
+  "form_controls_rendered": [
+    "wallet",
+    "mode",
+    "copy_mode",
+    "norm_base",
+    "fixed_notional",
+    "leader_equity_base",
+    "max_diff_pct",
+    "daily_loss"
+  ],
+  "dom_html_occurrences": {
+    "Leader equity base": 1,
+    "Max diff %": 1,
+    "Daily loss": 1,
+    "id=\"lcAddForm\"": 1,
+    "name=\"leader_equity_base\"": 2,
+    "name=\"max_diff_pct\"": 2,
+    "name=\"daily_loss\"": 1
+  },
+  "rows": [
+    {
+      "row_id": "UI-LCC-ADD-06",
+      "verdict": "PASS",
+      "control_label": "Leader equity base",
+      "form_field_name": "leader_equity_base",
+      "persisted_config_key": "leader_equity_base",
+      "why": "Add Wallet modal (#lcAddForm) renders a labelled 'Leader equity base' input named 'leader_equity_base' (2 occurrence of that name attribute in the served DOM). Submitting the form persisted leader_equity_base=12345.0 into iso_audit/live_config.json for wallet 0x00000000000000000000000000000000000000a6 (HTTP 200). The submitted value 12345 differs from the form default 10000.0 and round-trips exactly (persisted_equals_submitted=true). This value is field-unique: a sibling-field-only submission would persist max_diff_pct=0.37 and daily_loss_limit=456.0 while leaving leader_equity_base at its default 10000.0, so it cannot produce 12345.0 here.",
+      "unique_persisted_value": 12345.0,
+      "sibling_values_that_would_fail_this_row": {
+        "max_diff_pct": 0.37,
+        "daily_loss_limit": 456.0,
+        "leader_equity_base": 10000.0
+      },
+      "evidence_refs": [
+        "certification/reviews/UI_LCC_ADD_06_07_08_redo_evidence.json#/rows/0",
+        "certification/reviews/UI_LCC_ADD_06_07_08_redo_evidence.json#/isolated_instance"
+      ],
+      "tested_commit": "33d8eeea6dadacaf8558b167f3c7a16176b342e2"
+    },
+    {
+      "row_id": "UI-LCC-ADD-07",
+      "verdict": "PASS",
+      "control_label": "Max diff %",
+      "form_field_name": "max_diff_pct",
+      "persisted_config_key": "max_diff_pct",
+      "why": "Add Wallet modal (#lcAddForm) renders a labelled 'Max diff %' input named 'max_diff_pct' (2 occurrence of that name attribute in the served DOM). Submitting the form persisted max_diff_pct=0.37 into iso_audit/live_config.json for wallet 0x00000000000000000000000000000000000000a7 (HTTP 200). The submitted value 0.37 differs from the form default 0.1 and round-trips exactly (persisted_equals_submitted=true). This value is field-unique: a sibling-field-only submission would persist leader_equity_base=12345.0 and daily_loss_limit=456.0 while leaving max_diff_pct at its default 0.1, so it cannot produce 0.37 here.",
+      "unique_persisted_value": 0.37,
+      "sibling_values_that_would_fail_this_row": {
+        "leader_equity_base": 12345.0,
+        "daily_loss_limit": 456.0,
+        "max_diff_pct": 0.1
+      },
+      "evidence_refs": [
+        "certification/reviews/UI_LCC_ADD_06_07_08_redo_evidence.json#/rows/1",
+        "certification/reviews/UI_LCC_ADD_06_07_08_redo_evidence.json#/isolated_instance"
+      ],
+      "tested_commit": "33d8eeea6dadacaf8558b167f3c7a16176b342e2"
+    },
+    {
+      "row_id": "UI-LCC-ADD-08",
+      "verdict": "PASS",
+      "control_label": "Daily loss",
+      "form_field_name": "daily_loss",
+      "persisted_config_key": "daily_loss_limit",
+      "why": "Add Wallet modal (#lcAddForm) renders a labelled 'Daily loss' input named 'daily_loss' (1 occurrence of that name attribute in the served DOM). Submitting the form persisted daily_loss_limit=456.0 into iso_audit/live_config.json for wallet 0x00000000000000000000000000000000000000a8 (HTTP 200). The submitted value 456 differs from the form default 0.0 and round-trips exactly (persisted_equals_submitted=true). This value is field-unique: a sibling-field-only submission would persist leader_equity_base=12345.0 and max_diff_pct=0.37 while leaving daily_loss_limit at its default 0.0, so it cannot produce 456.0 here.",
+      "unique_persisted_value": 456.0,
+      "sibling_values_that_would_fail_this_row": {
+        "leader_equity_base": 12345.0,
+        "max_diff_pct": 0.37,
+        "daily_loss_limit": 0.0
+      },
+      "evidence_refs": [
+        "certification/reviews/UI_LCC_ADD_06_07_08_redo_evidence.json#/rows/2",
+        "certification/reviews/UI_LCC_ADD_06_07_08_redo_evidence.json#/isolated_instance"
+      ],
+      "tested_commit": "33d8eeea6dadacaf8558b167f3c7a16176b342e2"
+    },
+    {
+      "row_id": "UI-LCC-TAB-01",
+      "verdict": "PASS",
+      "kind": "regression",
+      "why": "On the same isolated instance, clicking the 'Real Copy Positions' tab set it active and revealed the unique 'Real User Copy Positions Manual ledger vs real exchange acco...' panel (display=block, no other tab panel visible); table-body row counts before=[1, 1, 1, 1, 1, 1] after=[1, 1, 1, 1, 1, 1] unchanged.",
+      "dom_evidence": {
+        "active": true,
+        "panel_found": true,
+        "panel_display": "block",
+        "panel_text_head": "Real User Copy Positions Manual ledger vs real exchange account. All sizes signed (positive = long, negative = short). Exchange data requires HL_LIVE_HL_ACCOUNT",
+        "other_visible_panels": 0,
+        "table_body_row_counts_before": [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        "table_body_row_counts_after": [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        "table_body_row_counts_unchanged": true
+      },
+      "tested_commit": "33d8eeea6dadacaf8558b167f3c7a16176b342e2"
+    },
+    {
+      "row_id": "UI-LCC-TAB-02",
+      "verdict": "PASS",
+      "kind": "regression",
+      "why": "On the same isolated instance, clicking the 'Execution Quality' tab set it active and revealed the unique 'Execution Quality Real fill quality from send_attempts.csv j...' panel (display=block, no other tab panel visible); table-body row counts before=[1, 1, 1, 1, 1, 1] after=[1, 1, 1, 1, 1, 1] unchanged.",
+      "dom_evidence": {
+        "active": true,
+        "panel_found": true,
+        "panel_display": "block",
+        "panel_text_head": "Execution Quality Real fill quality from send_attempts.csv joined to order_intents.csv. Leader-vs-user bps requires reference price from intent. Filled: 0 Excha",
+        "other_visible_panels": 0,
+        "table_body_row_counts_before": [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        "table_body_row_counts_after": [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        "table_body_row_counts_unchanged": true
+      },
+      "tested_commit": "33d8eeea6dadacaf8558b167f3c7a16176b342e2"
+    },
+    {
+      "row_id": "UI-LCC-TAB-03",
+      "verdict": "PASS",
+      "kind": "regression",
+      "why": "On the same isolated instance, clicking the 'Order Intents / Audit' tab set it active and revealed the unique 'Order Intents / Audit WS fast path: 0 Exits/reduce: 0 Late c...' panel (display=block, no other tab panel visible); table-body row counts before=[1, 1, 1, 1, 1, 1] after=[1, 1, 1, 1, 1, 1] unchanged.",
+      "dom_evidence": {
+        "active": true,
+        "panel_found": true,
+        "panel_display": "block",
+        "panel_text_head": "Order Intents / Audit WS fast path: 0 Exits/reduce: 0 Late copy: 0 Do not copy: 0 Manual review: 0 Quote unavail: 0 Recent order warnings: 0 TIME WALLET COIN SI",
+        "other_visible_panels": 0,
+        "table_body_row_counts_before": [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        "table_body_row_counts_after": [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        "table_body_row_counts_unchanged": true
+      },
+      "tested_commit": "33d8eeea6dadacaf8558b167f3c7a16176b342e2"
+    },
+    {
+      "row_id": "UI-LCC-TAB-04",
+      "verdict": "PASS",
+      "kind": "regression",
+      "why": "On the same isolated instance, clicking the 'Reconciliation' tab set it active and revealed the unique 'Ledger vs Exchange SEVERITY WALLET COIN ISSUE COUNT MANUAL L...' panel (display=block, no other tab panel visible); table-body row counts before=[1, 1, 1, 1, 1, 1] after=[1, 1, 1, 1, 1, 1] unchanged.",
+      "dom_evidence": {
+        "active": true,
+        "panel_found": true,
+        "panel_display": "block",
+        "panel_text_head": "Ledger vs Exchange SEVERITY WALLET COIN ISSUE COUNT MANUAL LEDGER EXCHANGE LAST INTENT LAST OID LAST UPDATED ACTION No reconciliation issues.",
+        "other_visible_panels": 0,
+        "table_body_row_counts_before": [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        "table_body_row_counts_after": [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        "table_body_row_counts_unchanged": true
+      },
+      "tested_commit": "33d8eeea6dadacaf8558b167f3c7a16176b342e2"
+    },
+    {
+      "row_id": "UI-LCC-TAB-05",
+      "verdict": "PASS",
+      "kind": "regression",
+      "why": "On the same isolated instance, clicking the 'WS Health' tab set it active and revealed the unique 'WS Health Detail WALLET CURRENT GRADE THREAD RECONNECT/MIN P...' panel (display=block, no other tab panel visible); table-body row counts before=[1, 1, 1, 1, 1, 1] after=[1, 1, 1, 1, 1, 1] unchanged.",
+      "dom_evidence": {
+        "active": true,
+        "panel_found": true,
+        "panel_display": "block",
+        "panel_text_head": "WS Health Detail WALLET CURRENT GRADE THREAD RECONNECT/MIN PROCESSED RAW MSG PARSED SNAP SEEN SNAP RECOVERED IGNORED RECENT ERRORS LIFETIME ERRORS STALE MS DATA",
+        "other_visible_panels": 0,
+        "table_body_row_counts_before": [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        "table_body_row_counts_after": [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        "table_body_row_counts_unchanged": true
+      },
+      "tested_commit": "33d8eeea6dadacaf8558b167f3c7a16176b342e2"
+    },
+    {
+      "row_id": "UI-LCC-ADD-01",
+      "verdict": "PASS",
+      "kind": "regression",
+      "why": "Wallet address field persisted exactly through the form: POST /api/live-config/add-wallet with wallet=0x00000000000000000000000000000000000000b1 returned HTTP 200 and that exact key appears in iso_audit/live_config.json. Invalid address 'not-a-wallet' was refused with HTTP 400 {\"ok\": false, \"error\": \"BAD_WALLET\"} and added no wallet key (before==after).",
+      "dom_evidence": {
+        "submitted_wallet": "0x00000000000000000000000000000000000000b1",
+        "valid_http_status": 200,
+        "invalid_submitted": "not-a-wallet",
+        "invalid_http_status": 400,
+        "invalid_response_body": {
+          "ok": false,
+          "error": "BAD_WALLET"
+        },
+        "wallet_persisted_exactly": true,
+        "invalid_refused": true,
+        "invalid_not_persisted": true
+      },
+      "tested_commit": "33d8eeea6dadacaf8558b167f3c7a16176b342e2"
+    },
+    {
+      "row_id": "UI-LCC-ADD-02",
+      "verdict": "PASS",
+      "kind": "regression",
+      "why": "mode submitted as OFF through #lcAddForm persisted as OFF for wallet 0x00000000000000000000000000000000000000a2 (HTTP 200); form default LIVE, differs_from_default=True.",
+      "dom_evidence": {
+        "wallet": "0x00000000000000000000000000000000000000a2",
+        "field": "mode",
+        "submitted_value": "OFF",
+        "persisted_value": "OFF",
+        "form_default": "LIVE",
+        "http_status": 200,
+        "persisted_equals_submitted": true,
+        "submitted_differs_from_default": true
+      },
+      "tested_commit": "33d8eeea6dadacaf8558b167f3c7a16176b342e2"
+    },
+    {
+      "row_id": "UI-LCC-ADD-03",
+      "verdict": "PASS",
+      "kind": "regression",
+      "why": "copy_mode submitted as fixed through #lcAddForm persisted as fixed for wallet 0x00000000000000000000000000000000000000a3 (HTTP 200); form default proportional, differs_from_default=True.",
+      "dom_evidence": {
+        "wallet": "0x00000000000000000000000000000000000000a3",
+        "field": "copy_mode",
+        "submitted_value": "fixed",
+        "persisted_value": "fixed",
+        "form_default": "proportional",
+        "http_status": 200,
+        "persisted_equals_submitted": true,
+        "submitted_differs_from_default": true
+      },
+      "tested_commit": "33d8eeea6dadacaf8558b167f3c7a16176b342e2"
+    },
+    {
+      "row_id": "UI-LCC-ADD-04",
+      "verdict": "PASS",
+      "kind": "regression",
+      "why": "norm_base submitted as 250 through #lcAddForm persisted as 250.0 for wallet 0x00000000000000000000000000000000000000a4 (HTTP 200); form default 100.0, differs_from_default=True.",
+      "dom_evidence": {
+        "wallet": "0x00000000000000000000000000000000000000a4",
+        "field": "norm_base",
+        "submitted_value": "250",
+        "persisted_value": 250.0,
+        "form_default": 100.0,
+        "http_status": 200,
+        "persisted_equals_submitted": true,
+        "submitted_differs_from_default": true
+      },
+      "tested_commit": "33d8eeea6dadacaf8558b167f3c7a16176b342e2"
+    },
+    {
+      "row_id": "UI-LCC-ADD-05",
+      "verdict": "PASS",
+      "kind": "regression",
+      "why": "fixed_notional submitted as 37 through #lcAddForm persisted as 37.0 for wallet 0x00000000000000000000000000000000000000a5 (HTTP 200); form default 10.0, differs_from_default=True.",
+      "dom_evidence": {
+        "wallet": "0x00000000000000000000000000000000000000a5",
+        "field": "fixed_notional",
+        "submitted_value": "37",
+        "persisted_value": 37.0,
+        "form_default": 10.0,
+        "http_status": 200,
+        "persisted_equals_submitted": true,
+        "submitted_differs_from_default": true
+      },
+      "tested_commit": "33d8eeea6dadacaf8558b167f3c7a16176b342e2"
+    },
+    {
+      "row_id": "UI-LCC-ADD-09",
+      "verdict": "PASS",
+      "kind": "regression",
+      "why": "Cancel on the open Add Wallet modal closed it (display=none, aria-hidden=true) with wallet_count 8->8 unchanged, 0 add-wallet requests fired, and the cancel wallet was not persisted.",
+      "dom_evidence": {
+        "row_id": "UI-LCC-ADD-09",
+        "modal_active_after_cancel": false,
+        "modal_display_after_cancel": "none",
+        "modal_aria_hidden_after_cancel": "true",
+        "wallet_count_before": 8,
+        "wallet_count_after": 8,
+        "wallet_count_unchanged": true,
+        "add_wallet_requests_during_cancel": 0,
+        "cancel_wallet_absent": true
+      },
+      "tested_commit": "33d8eeea6dadacaf8558b167f3c7a16176b342e2"
+    }
+  ],
+  "summary": {
+    "total": 14,
+    "PASS": 14,
+    "FAIL": 0,
+    "fixed_rows": [
+      "UI-LCC-ADD-06",
+      "UI-LCC-ADD-07",
+      "UI-LCC-ADD-08"
+    ],
+    "regression_rows": [
+      "UI-LCC-TAB-01",
+      "UI-LCC-TAB-02",
+      "UI-LCC-TAB-03",
+      "UI-LCC-TAB-04",
+      "UI-LCC-TAB-05",
+      "UI-LCC-ADD-01",
+      "UI-LCC-ADD-02",
+      "UI-LCC-ADD-03",
+      "UI-LCC-ADD-04",
+      "UI-LCC-ADD-05",
+      "UI-LCC-ADD-09"
+    ]
+  }
+}
