@@ -1,0 +1,127 @@
+{
+ "meta": {
+  "card": "t_23fc77ee",
+  "batch": "CERT 7/53 UI-WALLET-017..UI-LCC-CARD-01 (15 rows)",
+  "register_of_record": "origin/cert/local-main-b142cf8:certification/certification_matrix.json",
+  "register_commit": "f4ee2bb18dc6781940772cb088e9a476585030e4",
+  "register_sha256": "86b2237fe95f88ca9eb758fb42ddbdf3efdaef71e56f79a10e2d2635f44f341a",
+  "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+  "serving_script_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+  "evidence_artifact": "certification/results/UI_CERT_t_23fc77ee_probe_89b3bc7.json",
+  "evidence_artifact_sha256": "1ec68ccb5cb1235e7e989a856496059eb677d4dd97607d16a3700e66a2786021",
+  "app_base": "http://127.0.0.1:8032",
+  "standard": "row-bound only; shared sweeps and unfailable predicates rejected",
+  "counts": {
+   "PASS": 12,
+   "FAIL": 1,
+   "NOT_TESTED": 2
+  }
+ },
+ "rows": [
+  {
+   "row_id": "UI-WALLET-017",
+   "verdict": "PASS",
+   "evidence_ref": "certification/results/UI_CERT_t_23fc77ee_probe_89b3bc7.json#runs.display_only_and_flip_tests.w017_b",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "Submitted the real /wallet-meta/{wallet} editor form on the commit-bound instance (tag=risk, color=red, note=row017-display-only-proof). After reload the same form returns tag=risk/color=red/note=row017-display-only-proof and ui_state.wallet_meta[wallet] holds exactly that row (persist), while live_config.json sha256 was byte-identical before and after (f199111a5bccf65acf4389df32867b0351c66ab53b22e28102528001f5a794fc) and the wallet does not appear in live_config at all (display-only). The assertion binds tag/colour/note specifically, so it would fail for a different row."
+  },
+  {
+   "row_id": "UI-WALLET-018",
+   "verdict": "PASS",
+   "evidence_ref": "certification/results/UI_CERT_t_23fc77ee_probe_89b3bc7.json#runs.ui_core.wallet018",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "Add of an EXISTING wallet returned ok with exactly one key present for that address (dup_key_count=1) instead of a second record; then archive moved it to archived_wallets and out of wallets; then re-add returned ok, removed it from archived_wallets and restored the SAME record, evidenced by the archived_at timestamp (2026-10-19T08:41:43.372289+00:00) and the previously set fixed_notional=99.0 surviving the round trip - a freshly created record could not carry archived_at."
+  },
+  {
+   "row_id": "UI-WALLET-019",
+   "verdict": "NOT_TESTED",
+   "evidence_ref": "certification/results/UI_CERT_t_23fc77ee_probe_89b3bc7.json#runs.ui_core.wallet019",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "Route genuinely absent: HL_Live_Copy_Service.py as the WS/poll health producer. The isolated :8032 instance has no running engine (health text: \"Stopped: the engine is not running (no engine status found)\"), /api/live-ws-health returns enabled=false, wallets={} and the follower account is ACCOUNT_ADDRESS_UNAVAILABLE, so no per-wallet WS subscription, poll coverage or freshness can be produced or aged. Observed, not scored: a wallet set to LIVE is reported live_wallets=1 while subscribed_wallets=0, ws_subscription=NOT_SUBSCRIBED and no per-wallet block (send_block_reason=MASTER_REAL_ORDERS_OFF only) - this is the polling-mode path, so it neither proves nor disproves the WS-coverage block the row requires."
+  },
+  {
+   "row_id": "UI-LCC-HDR-01",
+   "verdict": "PASS",
+   "evidence_ref": "certification/results/UI_CERT_t_23fc77ee_probe_89b3bc7.json#runs.ui_core.hdr_loaded.hdr01_walletcount",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "With 3 configured wallets (2 LIVE, 1 OFF) the bound DOM pill #lcWalletCount read exactly \"3 / 10\". Independent oracle: a direct read of /api/live-config returned 3 wallet entries. The count is derived from live-config only (tracked=Object.values(lcConfig.wallets).length) and the value discriminates this row (it changes with the configured set). Caveat recorded, not hidden: after all four source APIs were aborted the pill kept the last known \"3 / 10\" with no stale marker, while the status line went lc-bad."
+  },
+  {
+   "row_id": "UI-LCC-HDR-02",
+   "verdict": "PASS",
+   "evidence_ref": "certification/results/UI_CERT_t_23fc77ee_probe_89b3bc7.json#runs.ui_core.hdr_loaded.hdr02_modecounts",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "#lcModeCounts rendered \"Live wallets: 2 / Close-only wallets: 0 / Off: 1\" for a config independently tallied as LIVE=2, CLO=0, OFF=1 from /api/live-config. The three counts are computed per mode in the browser from the config map, so a wrong mode tally would break the assertion."
+  },
+  {
+   "row_id": "UI-LCC-HDR-03",
+   "verdict": "PASS",
+   "evidence_ref": "certification/results/UI_CERT_t_23fc77ee_probe_89b3bc7.json#runs.display_only_and_flip_tests.hdr03_master_true",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "Sending cell is bound to the master switch field specifically. Intercepting /api/live-audit-summary and setting only master_real_orders_enabled=true produced #lcBannerSending = \"ON\" / lc-green / title \"real orders are being sent\"; setting it false produced \"OFF\" / lc-grey / \"sending is switched off (a choice, not a fault)\"; the unmodified payload (master=false) also produced OFF. See also hdr03_master_false and hdr03_control_autosend_only in the same artifact: one field flipped the cell in both directions, and the untouched case did not."
+  },
+  {
+   "row_id": "UI-LCC-HDR-04",
+   "verdict": "PASS",
+   "evidence_ref": "certification/results/UI_CERT_t_23fc77ee_probe_89b3bc7.json#runs.ws_aggregate_flip_tests.ws_ok",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "Leader-feed pill bound to live_top_status.ws_status. Payload-controlled results: ws_status=WS_OK & ws_enabled=true -> \"Websocket OK\" / lc-green; ws_status=DEGRADED -> \"Websocket degraded\" / lc-amber; ws_status=POLLING & ws_enabled=false -> \"Polling (normal)\" / lc-grey; ws_status=OFFLINE & ws_enabled=true -> \"Websocket degraded\" / lc-amber. Unknown/offline never renders green, matching the row negative test. Same artifact keys ws_degraded / ws_polling / ws_offline."
+  },
+  {
+   "row_id": "UI-LCC-HDR-05",
+   "verdict": "FAIL",
+   "evidence_ref": "certification/results/UI_CERT_t_23fc77ee_probe_89b3bc7.json#runs.display_only_and_flip_tests.hdr05",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "The REAL ORDERS safety pill does not exist at the tested commit. In the commit-bound rendered page #lcRealOrders resolves to no element and the document contains zero occurrences of the text \"REAL ORDERS\"; the header pills are only Wallets / Live wallets / Close-only wallets / Off / Leader feed, and the header buttons are Refresh, Global Controls, Add wallet, close, Save Global Controls. grep of HL_Copy_App_SSOT.py at 89b3bc7 returns 0 matches for \"REAL ORDERS\". The pill exists only in the uncommitted working tree served on :8031, so it cannot be credited to any commit."
+  },
+  {
+   "row_id": "UI-LCC-HDR-06",
+   "verdict": "PASS",
+   "evidence_ref": "certification/results/UI_CERT_t_23fc77ee_probe_89b3bc7.json#runs.ui_core.btn01",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "Status line reflects the load outcome in both directions. A normal Refresh left #lcStatus = \"Loaded\" with class lc-status lc-ok; after aborting all four sources (/api/live-config, /api/live-ws-health, /api/live-audit-summary, /api/global-controls) and refreshing, #lcStatus = \"Failed to fetch\" with class lc-status lc-bad; after un-aborting and refreshing it returned to \"Loaded\" / lc-ok. See runs.ui_core.failclosed.status and runs.ui_core.recovered.status."
+  },
+  {
+   "row_id": "UI-LCC-BTN-01",
+   "verdict": "PASS",
+   "evidence_ref": "certification/results/UI_CERT_t_23fc77ee_probe_89b3bc7.json#runs.ui_core.btn01",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "Refresh performs exactly its own action: one click issued exactly the four expected requests (/api/live-config, /api/live-ws-health, /api/live-audit-summary, /api/global-controls - captured from the network layer, no others), completed in 5.05 s, set #lcStatus to \"Loaded\" and re-rendered #lcWalletCount. The same key records the error path where those requests fail and lcStatus turns lc-bad."
+  },
+  {
+   "row_id": "UI-LCC-BTN-02",
+   "verdict": "PASS",
+   "evidence_ref": "certification/results/UI_CERT_t_23fc77ee_probe_89b3bc7.json#runs.ui_core.btn02",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "Global Controls toggle is a pure show/hide: first click set #lcGlobalControlsPanel aria-hidden=false and class \"lc-gc-popover active\"; second click restored aria-hidden=true and class \"lc-gc-popover\"; zero additional /api requests were observed across both clicks. Contrast with BTN-05, which writes config."
+  },
+  {
+   "row_id": "UI-LCC-BTN-03",
+   "verdict": "PASS",
+   "evidence_ref": "certification/results/UI_CERT_t_23fc77ee_probe_89b3bc7.json#runs.ui_core.btn03",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "Add wallet button opens the modal it names: clicking [data-lc-modal=\"lcWalletModal\"] set #lcWalletModal aria-hidden=false with class \"lc-modal-backdrop active\" and exposed exactly the add-wallet fields (wallet, mode, copy_mode, norm_base, fixed_notional); the modal own close button returned aria-hidden=true. No submit was issued, so no config write is claimed."
+  },
+  {
+   "row_id": "UI-LCC-BTN-04",
+   "verdict": "PASS",
+   "evidence_ref": "certification/results/UI_CERT_t_23fc77ee_probe_89b3bc7.json#runs.ui_core.btn04",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "Global Controls close button performs only its own action: the popover was opened (aria-hidden=false), then #lcGcClose set it to aria-hidden=true. This is the close control specifically, separate from the toggle in BTN-02."
+  },
+  {
+   "row_id": "UI-LCC-BTN-05",
+   "verdict": "PASS",
+   "evidence_ref": "certification/results/UI_CERT_t_23fc77ee_probe_89b3bc7.json#runs.ui_core.btn05",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "Save Global Controls persists the fields it owns and reports success. Opened the popover, set Max per-order notional=123.45 and Max daily loss=7, clicked #lcGcSave: #lcGcStatus = \"Saved\" / lc-status lc-ok, and the isolated config then reported max_order_notional_usd 123.45 (previously 99.0) and max_daily_loss_usd 7.0 while unrelated fields were untouched (max_total 1234.5, allowlist BTC,ETH, blocklist DOGE). Negative input -5 was clamped to 0.0 on persist rather than stored negative. Restored afterwards."
+  },
+  {
+   "row_id": "UI-LCC-CARD-01",
+   "verdict": "NOT_TESTED",
+   "evidence_ref": "certification/results/UI_CERT_t_23fc77ee_probe_89b3bc7.json#runs.ui_core.cards_loaded",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "Route genuinely absent: the exchange oracle behind _follower_account_value(). On the isolated :8032 instance /api/live-audit-summary returns follower_account = {ok:false, reason:\"ACCOUNT_ADDRESS_UNAVAILABLE\"} and exchange_account_snapshot.available=false, so there is no MASTER exchange truth at snapshot time to compare the Portfolio Value cell against. Observed, not scored: the card renders the label \"PORTFOLIO VALUE (TESTNET)\" with a grey em-dash and the reason carried in the element title, which is the documented fail-closed shape, but the literal \"Unavailable\"/\"n/a\" token from the row text is not used."
+  }
+ ]
+}

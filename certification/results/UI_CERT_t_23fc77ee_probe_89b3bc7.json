@@ -1,0 +1,880 @@
+{
+ "meta": {
+  "app_base": "http://127.0.0.1:8032",
+  "card": "t_23fc77ee",
+  "engine_running": false,
+  "engine_state": "no engine status found -> engine not running on the isolated instance",
+  "generated_at_utc": "2026-10-19T08:45:35Z",
+  "isolated_instance": true,
+  "negative_control_used": "payload interception of /api/live-audit-summary and /api/live-ws-health (route.fulfill) to flip ONE field at a time, plus route.abort() to make every source unavailable",
+  "network": {
+   "follower": "testnet",
+   "leader": "mainnet"
+  },
+  "probe": "t23fc77ee_ui_rows_v1",
+  "provenance_method": "git show <commit>:_archive/hl_stage2/HL_Copy_App_SSOT.py | sha256 == sha256 of the file the serving process loaded (verified this run)",
+  "rejected_binding": {
+   "candidate": "http://127.0.0.1:8031 (PID 26336)",
+   "commit_89b3bc7_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+   "reason": ":8031 renders a REAL ORDERS pill and lacks #lcBannerSending; those are properties of the UNCOMMITTED working tree (sha256 b45ff9af2182...) and are absent from every commit of HL_Copy_App_SSOT.py. :8031 is NOT bindable to any commit and was used read-only for that comparison only.",
+   "working_tree_sha256": "b45ff9af2182944a1fabd98b6369d0ad7dd7d215062abec3bdc20dfd75e9e7c2"
+  },
+  "render": "chromium 145 headless, domcontentloaded + readyState poll (networkidle never fires) + settle",
+  "serving_binding_type": "content_sha256",
+  "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+  "serving_commit_committed_at": "2026-10-17T07:18:14+00:00",
+  "serving_pid": 30580,
+  "serving_process_start_from_pid": true,
+  "serving_process_start_utc": "2026-10-18T18:43:11Z",
+  "serving_script_path": "C:\\Users\\wigmore\\trading_stack\\hl-build3-testnet-cert-8032\\_archive\\hl_stage2\\HL_Copy_App_SSOT.py",
+  "serving_script_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+  "serving_workspace_git_head": "89b3bc7586bf328df336fc9ea721cee212617762",
+  "state_dir_isolated": true
+ },
+ "runs": {
+  "display_only_and_flip_tests": {
+   "hdr03_control_autosend_only": {
+    "sending": {
+     "cls": "value lc-grey",
+     "text": "OFF",
+     "title": "sending is switched off (a choice, not a fault)"
+    },
+    "status": {
+     "cls": "lc-status lc-ok",
+     "text": "Loaded",
+     "title": ""
+    },
+    "ws": {
+     "cls": "lc-grey",
+     "text": "Polling (normal)",
+     "title": ""
+    }
+   },
+   "hdr03_master_false": {
+    "sending": {
+     "cls": "value lc-grey",
+     "text": "OFF",
+     "title": "sending is switched off (a choice, not a fault)"
+    },
+    "status": {
+     "cls": "lc-status lc-ok",
+     "text": "Loaded",
+     "title": ""
+    },
+    "ws": {
+     "cls": "lc-grey",
+     "text": "Polling (normal)",
+     "title": ""
+    }
+   },
+   "hdr03_master_true": {
+    "sending": {
+     "cls": "value lc-green",
+     "text": "ON",
+     "title": "real orders are being sent"
+    },
+    "status": {
+     "cls": "lc-status lc-ok",
+     "text": "Loaded",
+     "title": ""
+    },
+    "ws": {
+     "cls": "lc-grey",
+     "text": "Polling (normal)",
+     "title": ""
+    }
+   },
+   "hdr04_ws_degraded": {
+    "sending": {
+     "cls": "value lc-grey",
+     "text": "OFF",
+     "title": "sending is switched off (a choice, not a fault)"
+    },
+    "status": {
+     "cls": "lc-status lc-ok",
+     "text": "Loaded",
+     "title": ""
+    },
+    "ws": {
+     "cls": "lc-grey",
+     "text": "Polling (normal)",
+     "title": ""
+    }
+   },
+   "hdr04_ws_disabled": {
+    "sending": {
+     "cls": "value lc-grey",
+     "text": "OFF",
+     "title": "sending is switched off (a choice, not a fault)"
+    },
+    "status": {
+     "cls": "lc-status lc-ok",
+     "text": "Loaded",
+     "title": ""
+    },
+    "ws": {
+     "cls": "lc-grey",
+     "text": "Polling (normal)",
+     "title": ""
+    }
+   },
+   "hdr04_ws_ok": {
+    "sending": {
+     "cls": "value lc-grey",
+     "text": "OFF",
+     "title": "sending is switched off (a choice, not a fault)"
+    },
+    "status": {
+     "cls": "lc-status lc-ok",
+     "text": "Loaded",
+     "title": ""
+    },
+    "ws": {
+     "cls": "lc-grey",
+     "text": "Polling (normal)",
+     "title": ""
+    }
+   },
+   "hdr05": {
+    "any_REAL_ORDERS_text": true,
+    "header_buttons": [
+     "Refresh",
+     "Global Controls",
+     "Add wallet",
+     "close",
+     "Save Global Controls"
+    ],
+    "header_pills": [
+     "Wallets:\n3 / 10",
+     "Live wallets: 0\nClose-only wallets: 0\nOff: 3",
+     "Live wallets: 0",
+     "Close-only wallets: 0",
+     "Off: 3",
+     "Leader feed:\nPolling (normal)"
+    ],
+    "selector_lcRealOrders": false
+   },
+   "w017_b": {
+    "cfg_sha_after": "f199111a5bccf65acf4389df32867b0351c66ab53b22e28102528001f5a794fc",
+    "cfg_sha_before": "f199111a5bccf65acf4389df32867b0351c66ab53b22e28102528001f5a794fc",
+    "cfg_unchanged": true,
+    "form": {
+     "color": "red",
+     "note": "row017-display-only-proof",
+     "tag": "risk"
+    },
+    "live_config_wallet_entry": "WALLET_NOT_IN_CONFIG",
+    "saved_banner": true,
+    "ui_state_row": {
+     "color": "red",
+     "note": "row017-display-only-proof",
+     "tag": "risk"
+    }
+   }
+  },
+  "ui_core": {
+   "baseline": {
+    "archived": [
+     "0x1111111111111111111111111111111111111111"
+    ],
+    "auto_send": false,
+    "wallets": [
+     "0x2222222222222222222222222222222222222222",
+     "0x3333333333333333333333333333333333333333",
+     "0x4444444444444444444444444444444444444444"
+    ]
+   },
+   "btn01": {
+    "api_calls": [
+     "/api/live-config",
+     "/api/live-ws-health",
+     "/api/live-audit-summary",
+     "/api/global-controls"
+    ],
+    "seconds": 5.05,
+    "status": {
+     "cls": "lc-status lc-ok",
+     "text": "Loaded",
+     "title": ""
+    },
+    "walletcount_after": {
+     "cls": "",
+     "text": "3 / 10",
+     "title": ""
+    }
+   },
+   "btn02": {
+    "after_close": [
+     "true",
+     "lc-gc-popover"
+    ],
+    "after_open": [
+     "false",
+     "lc-gc-popover active",
+     false
+    ]
+   },
+   "btn03": {
+    "fields": [
+     "wallet",
+     "mode",
+     "copy_mode",
+     "norm_base",
+     "fixed_notional"
+    ],
+    "modal": [
+     "false",
+     "lc-modal-backdrop active"
+    ],
+    "modal_after_its_own_close_button": "true"
+   },
+   "btn04": {
+    "after": "true",
+    "before": "false"
+   },
+   "btn05": {
+    "after": {
+     "max_daily_loss_usd": 7.0,
+     "max_order_notional_usd": 123.45
+    },
+    "before": {
+     "max_daily_loss_usd": 7.0,
+     "max_order_notional_usd": 99.0
+    },
+    "gc_status_dom": {
+     "cls": "lc-status lc-ok",
+     "text": "Saved",
+     "title": ""
+    },
+    "negative_input": {
+     "dom_status": {
+      "cls": "lc-status lc-ok",
+      "text": "Saved",
+      "title": ""
+     },
+     "persisted": 0.0
+    },
+    "page_errors": [],
+    "restored": {
+     "close_adverse_diff_off": false,
+     "marketable_bps": 35.0,
+     "marketable_slippage_off": false,
+     "marketable_slippage_pct": 0.35,
+     "max_asset_directional_exposure_usd": 55.5,
+     "max_close_adverse_diff_pct": 1.5,
+     "max_daily_loss_usd": 7.0,
+     "max_order_notional_usd": 99.0,
+     "max_total_live_exposure_usd": 1234.5,
+     "max_wallet_exposure_usd": 3.25,
+     "symbol_allowlist": [
+      "BTC",
+      "ETH"
+     ],
+     "symbol_blocklist": [
+      "DOGE"
+     ]
+    },
+    "status_line": {
+     "cls": "lc-status lc-ok",
+     "text": "Loaded",
+     "title": ""
+    }
+   },
+   "cards_loaded": [
+    [
+     "PORTFOLIO VALUE (TESTNET)",
+     "\u2014",
+     "value ",
+     ""
+    ],
+    [
+     "OPEN POSITIONS P&L (UNREALISED)",
+     "\u2014",
+     "value ",
+     ""
+    ],
+    [
+     "CLOSED P&L (REALISED)",
+     "\u2014",
+     "value ",
+     ""
+    ],
+    [
+     "OPEN POSITIONS",
+     "\u2014",
+     "value ",
+     ""
+    ],
+    [
+     "LIVE EXPOSURE",
+     "$0",
+     "value ",
+     ""
+    ]
+   ],
+   "failclosed": {
+    "modecounts": {
+     "cls": "",
+     "text": "Live wallets: 2\nClose-only wallets: 0\nOff: 1",
+     "title": ""
+    },
+    "sending": {
+     "cls": "value lc-grey",
+     "text": "OFF",
+     "title": "sending is switched off (a choice, not a fault)"
+    },
+    "status": {
+     "cls": "lc-status lc-bad",
+     "text": "Failed to fetch",
+     "title": ""
+    },
+    "walletcount": {
+     "cls": "",
+     "text": "3 / 10",
+     "title": ""
+    },
+    "ws": {
+     "cls": "lc-grey",
+     "text": "Polling (normal)",
+     "title": ""
+    }
+   },
+   "final_config": {
+    "wallets": [
+     "0x2222222222222222222222222222222222222222",
+     "0x3333333333333333333333333333333333333333",
+     "0x4444444444444444444444444444444444444444"
+    ]
+   },
+   "hdr_loaded": {
+    "hdr01_walletcount": {
+     "cls": "",
+     "text": "3 / 10",
+     "title": ""
+    },
+    "hdr02_modecounts": {
+     "cls": "",
+     "text": "Live wallets: 2\nClose-only wallets: 0\nOff: 1",
+     "title": ""
+    },
+    "hdr03_sending": {
+     "cls": "value lc-grey",
+     "text": "OFF",
+     "title": "sending is switched off (a choice, not a fault)"
+    },
+    "hdr04_ws": {
+     "cls": "lc-grey",
+     "text": "Polling (normal)",
+     "title": ""
+    },
+    "hdr05_realorders": null,
+    "hdr06_status": {
+     "cls": "lc-status lc-ok",
+     "text": "Loaded",
+     "title": ""
+    }
+   },
+   "oracle": {
+    "auto_send_enabled": false,
+    "follower_account": {
+     "ok": false,
+     "reason": "ACCOUNT_ADDRESS_UNAVAILABLE"
+    },
+    "follower_network": "testnet",
+    "live_wallets": 2,
+    "manual_exposure": 0,
+    "master_real_orders_enabled": false,
+    "modes": {
+     "LIVE": 2,
+     "OFF": 1
+    },
+    "snap_available": false,
+    "status_banner": {
+     "account_value": null,
+     "account_value_reason": "ACCOUNT_ADDRESS_UNAVAILABLE",
+     "follower_network": "testnet",
+     "health": {
+      "engine_heartbeat_ms": 0,
+      "integrity_status": "UNKNOWN",
+      "level": "red",
+      "technical": [
+       "integrity gate: UNKNOWN (no integrity file)",
+       "integrity: RUN INTEGRITY GATE"
+      ],
+      "text": "Stopped: the engine is not running (no engine status found)"
+     },
+     "live_wallets": 2,
+     "net_pnl_partial": false,
+     "net_pnl_reason": "no account history recorded yet",
+     "net_pnl_since_start": null,
+     "net_pnl_start_time": "",
+     "open_positions": null,
+     "resting_orders": null,
+     "sending": "OFF"
+    },
+    "subscribed_wallets": 0,
+    "top_master": false,
+    "wallet_count": 3,
+    "ws_enabled": false,
+    "ws_overall": "OFFLINE",
+    "ws_status": null,
+    "ws_wallet_count": 0
+   },
+   "page_errors": [],
+   "recovered": {
+    "sending": {
+     "cls": "value lc-grey",
+     "text": "OFF",
+     "title": "sending is switched off (a choice, not a fault)"
+    },
+    "status": {
+     "cls": "lc-status lc-ok",
+     "text": "Loaded",
+     "title": ""
+    },
+    "walletcount": {
+     "cls": "",
+     "text": "3 / 10",
+     "title": ""
+    }
+   },
+   "wallet017": {
+    "form_after_reload": {
+     "color": "blue",
+     "note": "probe-t23fc77ee-017",
+     "tag": "watch"
+    },
+    "live_config_unchanged": false,
+    "page_errors": [],
+    "saved_banner": true,
+    "ui_state_row": {
+     "color": "blue",
+     "note": "probe-t23fc77ee-017",
+     "tag": "watch"
+    }
+   },
+   "wallet018": {
+    "after_readd_archived": [
+     "0x1111111111111111111111111111111111111111"
+    ],
+    "after_readd_wallet_entry": {
+     "archived_at": "2026-10-19T08:41:43.372289+00:00",
+     "copy_mode": "fixed",
+     "enabled": false,
+     "fixed_notional": 99.0,
+     "mode": "OFF",
+     "norm_base": 100.0
+    },
+    "archive_metadata_preserved": true,
+    "archived_after_archive": [
+     "0x1111111111111111111111111111111111111111",
+     "0x2222222222222222222222222222222222222222"
+    ],
+    "dup_add_fixed_notional_applied": 99.0,
+    "dup_add_ok": true,
+    "dup_add_status": 200,
+    "dup_key_count": 1,
+    "present_in_wallets_after_archive": false,
+    "readd_ok": true,
+    "readd_status": 200
+   },
+   "wallet019": {
+    "live_wallets_top": 1,
+    "row": {
+     "blocked_reason": null,
+     "eligibility": "COPYING",
+     "feed_status": null,
+     "health": null,
+     "mode": "LIVE",
+     "wallet": "0x3333333333333333333333333333333333333333",
+     "ws_subscription": "NOT_SUBSCRIBED"
+    },
+    "send_block_reason": "MASTER_REAL_ORDERS_OFF",
+    "subscribed_wallets_top": 0,
+    "ws_health_wallets": []
+   }
+  },
+  "ws_aggregate_flip_tests": {
+   "real_top_status_now": {
+    "effective_real_orders_enabled": false,
+    "live_wallets": 0,
+    "send_block_reason": "MASTER_REAL_ORDERS_OFF",
+    "subscribed_wallets": 0,
+    "wallet_modes_active": {},
+    "ws_enabled": false,
+    "ws_status": "POLLING"
+   },
+   "row_keys": [
+    "attribution_quality",
+    "avg_diff_bps",
+    "avg_diff_usd",
+    "avg_fill_bps",
+    "avg_leader_bps",
+    "confirmed_realized_pnl",
+    "conn_detail",
+    "conn_status",
+    "copy_fill_price",
+    "copy_mode",
+    "current_exposure",
+    "data_quality",
+    "data_quality_notes",
+    "drawdown",
+    "drawdown_reason",
+    "dry_run_fill_count",
+    "dry_run_realized_pnl",
+    "effective_wallet_action",
+    "eligibility",
+    "enabled",
+    "exchange_rejected_count",
+    "exits_count",
+    "fees",
+    "fill_vs_limit_avg_bps",
+    "fill_vs_limit_worst_bps",
+    "filled_count",
+    "fixed_notional",
+    "last_fill",
+    "last_intent_coin",
+    "last_intent_coin_side",
+    "last_intent_side",
+    "last_intent_time",
+    "last_send",
+    "last_terminal_state",
+    "last_ws_intent_at",
+    "lead_reference_price",
+    "live_dd",
+    "live_equity_effect",
+    "live_net_pnl",
+    "live_realized_pnl",
+    "live_unrealized_pnl",
+    "local_blocked_count",
+    "matched_closed_pnl_fill_count",
+    "matched_exchange_fill_count",
+    "max_drawdown",
+    "max_exposure",
+    "mode",
+    "mode_label",
+    "net_pnl",
+    "net_pnl_reason",
+    "norm_base",
+    "open_coins",
+    "open_exposure",
+    "open_position_count",
+    "open_positions",
+    "pnl_partial",
+    "pnl_status",
+    "pnl_status_label",
+    "preview_count",
+    "preview_label",
+    "realized_complete",
+    "realized_match_status",
+    "realized_pnl",
+    "realized_reason",
+    "recent_block_count",
+    "recent_reject_count",
+    "rejected_count",
+    "service_eligibility_reason",
+    "service_eligible",
+    "shared_coins",
+    "total_diff_usd",
+    "unrealized_pnl",
+    "unrealized_reason",
+    "wallet",
+    "worst_diff_bps",
+    "worst_fill_bps",
+    "ws_intent_count",
+    "ws_reason",
+    "ws_state",
+    "ws_subscription"
+   ],
+   "wallet_rows_full": [
+    {
+     "attribution_quality": "N/A",
+     "avg_diff_bps": null,
+     "avg_diff_usd": null,
+     "avg_fill_bps": null,
+     "avg_leader_bps": null,
+     "confirmed_realized_pnl": null,
+     "conn_detail": "",
+     "conn_status": "COPY DISABLED",
+     "copy_fill_price": null,
+     "copy_mode": "fixed",
+     "current_exposure": 0.0,
+     "data_quality": "no fills yet",
+     "data_quality_notes": "no fills yet",
+     "drawdown": null,
+     "drawdown_reason": "no trades copied for this wallet yet",
+     "dry_run_fill_count": 0,
+     "dry_run_realized_pnl": 0.0,
+     "effective_wallet_action": "WALLET_OFF",
+     "eligibility": "DISABLED",
+     "enabled": false,
+     "exchange_rejected_count": 0,
+     "exits_count": 0,
+     "fees": null,
+     "fill_vs_limit_avg_bps": null,
+     "fill_vs_limit_worst_bps": null,
+     "filled_count": 0,
+     "fixed_notional": 99.0,
+     "last_intent_coin": "",
+     "last_intent_coin_side": "",
+     "last_intent_side": "",
+     "last_intent_time": "",
+     "last_terminal_state": "",
+     "last_ws_intent_at": "",
+     "lead_reference_price": null,
+     "live_dd": null,
+     "live_equity_effect": null,
+     "live_net_pnl": null,
+     "live_realized_pnl": null,
+     "live_unrealized_pnl": 0.0,
+     "local_blocked_count": 0,
+     "matched_closed_pnl_fill_count": 0,
+     "matched_exchange_fill_count": 0,
+     "max_drawdown": null,
+     "max_exposure": null,
+     "mode": "OFF",
+     "mode_label": "Off",
+     "net_pnl": null,
+     "net_pnl_reason": "no trades copied for this wallet yet",
+     "norm_base": 100.0,
+     "open_exposure": 0.0,
+     "open_position_count": 0,
+     "pnl_partial": false,
+     "pnl_status": "N/A",
+     "pnl_status_label": "No PnL yet",
+     "preview_count": 0,
+     "preview_label": "Queued previews / would-send records",
+     "realized_complete": null,
+     "realized_match_status": "NO_MATCHED_EXCHANGE_CLOSED_PNL",
+     "realized_pnl": null,
+     "realized_reason": "no trades copied for this wallet yet",
+     "recent_block_count": 0,
+     "recent_reject_count": 0,
+     "rejected_count": 0,
+     "service_eligibility_reason": "MODE_OFF",
+     "service_eligible": false,
+     "total_diff_usd": null,
+     "unrealized_pnl": 0.0,
+     "unrealized_reason": "",
+     "wallet": "0x2222222222222222222222222222222222222222",
+     "worst_diff_bps": null,
+     "worst_fill_bps": null,
+     "ws_intent_count": 0,
+     "ws_reason": "",
+     "ws_state": "COPY DISABLED",
+     "ws_subscription": "NOT_SUBSCRIBED"
+    },
+    {
+     "attribution_quality": "N/A",
+     "avg_diff_bps": null,
+     "avg_diff_usd": null,
+     "avg_fill_bps": null,
+     "avg_leader_bps": null,
+     "confirmed_realized_pnl": null,
+     "conn_detail": "",
+     "conn_status": "COPY DISABLED",
+     "copy_fill_price": null,
+     "copy_mode": "fixed",
+     "current_exposure": 0.0,
+     "data_quality": "no fills yet",
+     "data_quality_notes": "no fills yet",
+     "drawdown": null,
+     "drawdown_reason": "no trades copied for this wallet yet",
+     "dry_run_fill_count": 0,
+     "dry_run_realized_pnl": 0.0,
+     "effective_wallet_action": "WALLET_OFF",
+     "eligibility": "DISABLED",
+     "enabled": false,
+     "exchange_rejected_count": 0,
+     "exits_count": 0,
+     "fees": null,
+     "fill_vs_limit_avg_bps": null,
+     "fill_vs_limit_worst_bps": null,
+     "filled_count": 0,
+     "fixed_notional": 20.0,
+     "last_intent_coin": "",
+     "last_intent_coin_side": "",
+     "last_intent_side": "",
+     "last_intent_time": "",
+     "last_terminal_state": "",
+     "last_ws_intent_at": "",
+     "lead_reference_price": null,
+     "live_dd": null,
+     "live_equity_effect": null,
+     "live_net_pnl": null,
+     "live_realized_pnl": null,
+     "live_unrealized_pnl": 0.0,
+     "local_blocked_count": 0,
+     "matched_closed_pnl_fill_count": 0,
+     "matched_exchange_fill_count": 0,
+     "max_drawdown": null,
+     "max_exposure": null,
+     "mode": "OFF",
+     "mode_label": "Off",
+     "net_pnl": null,
+     "net_pnl_reason": "no trades copied for this wallet yet",
+     "norm_base": 100.0,
+     "open_exposure": 0.0,
+     "open_position_count": 0,
+     "pnl_partial": false,
+     "pnl_status": "N/A",
+     "pnl_status_label": "No PnL yet",
+     "preview_count": 0,
+     "preview_label": "Queued previews / would-send records",
+     "realized_complete": null,
+     "realized_match_status": "NO_MATCHED_EXCHANGE_CLOSED_PNL",
+     "realized_pnl": null,
+     "realized_reason": "no trades copied for this wallet yet",
+     "recent_block_count": 0,
+     "recent_reject_count": 0,
+     "rejected_count": 0,
+     "service_eligibility_reason": "MODE_OFF",
+     "service_eligible": false,
+     "total_diff_usd": null,
+     "unrealized_pnl": 0.0,
+     "unrealized_reason": "",
+     "wallet": "0x3333333333333333333333333333333333333333",
+     "worst_diff_bps": null,
+     "worst_fill_bps": null,
+     "ws_intent_count": 0,
+     "ws_reason": "",
+     "ws_state": "COPY DISABLED",
+     "ws_subscription": "NOT_SUBSCRIBED"
+    },
+    {
+     "attribution_quality": "N/A",
+     "avg_diff_bps": null,
+     "avg_diff_usd": null,
+     "avg_fill_bps": null,
+     "avg_leader_bps": null,
+     "confirmed_realized_pnl": null,
+     "conn_detail": "",
+     "conn_status": "COPY DISABLED",
+     "copy_fill_price": null,
+     "copy_mode": "fixed",
+     "current_exposure": 0.0,
+     "data_quality": "no fills yet",
+     "data_quality_notes": "no fills yet",
+     "drawdown": null,
+     "drawdown_reason": "no trades copied for this wallet yet",
+     "dry_run_fill_count": 0,
+     "dry_run_realized_pnl": 0.0,
+     "effective_wallet_action": "WALLET_OFF",
+     "eligibility": "DISABLED",
+     "enabled": false,
+     "exchange_rejected_count": 0,
+     "exits_count": 0,
+     "fees": null,
+     "fill_vs_limit_avg_bps": null,
+     "fill_vs_limit_worst_bps": null,
+     "filled_count": 0,
+     "fixed_notional": 30.0,
+     "last_intent_coin": "",
+     "last_intent_coin_side": "",
+     "last_intent_side": "",
+     "last_intent_time": "",
+     "last_terminal_state": "",
+     "last_ws_intent_at": "",
+     "lead_reference_price": null,
+     "live_dd": null,
+     "live_equity_effect": null,
+     "live_net_pnl": null,
+     "live_realized_pnl": null,
+     "live_unrealized_pnl": 0.0,
+     "local_blocked_count": 0,
+     "matched_closed_pnl_fill_count": 0,
+     "matched_exchange_fill_count": 0,
+     "max_drawdown": null,
+     "max_exposure": null,
+     "mode": "OFF",
+     "mode_label": "Off",
+     "net_pnl": null,
+     "net_pnl_reason": "no trades copied for this wallet yet",
+     "norm_base": 100.0,
+     "open_exposure": 0.0,
+     "open_position_count": 0,
+     "pnl_partial": false,
+     "pnl_status": "N/A",
+     "pnl_status_label": "No PnL yet",
+     "preview_count": 0,
+     "preview_label": "Queued previews / would-send records",
+     "realized_complete": null,
+     "realized_match_status": "NO_MATCHED_EXCHANGE_CLOSED_PNL",
+     "realized_pnl": null,
+     "realized_reason": "no trades copied for this wallet yet",
+     "recent_block_count": 0,
+     "recent_reject_count": 0,
+     "rejected_count": 0,
+     "service_eligibility_reason": "MODE_OFF",
+     "service_eligible": false,
+     "total_diff_usd": null,
+     "unrealized_pnl": 0.0,
+     "unrealized_reason": "",
+     "wallet": "0x4444444444444444444444444444444444444444",
+     "worst_diff_bps": null,
+     "worst_fill_bps": null,
+     "ws_intent_count": 0,
+     "ws_reason": "",
+     "ws_state": "COPY DISABLED",
+     "ws_subscription": "NOT_SUBSCRIBED"
+    }
+   ],
+   "ws_degraded": {
+    "feed_pill": {
+     "cls": "lc-pill",
+     "text": "Leader feed:\nWebsocket degraded"
+    },
+    "sending": {
+     "cls": "value lc-grey",
+     "text": "OFF"
+    },
+    "ws_pill": {
+     "cls": "lc-amber",
+     "text": "Websocket degraded"
+    }
+   },
+   "ws_offline": {
+    "feed_pill": {
+     "cls": "lc-pill",
+     "text": "Leader feed:\nWebsocket degraded"
+    },
+    "sending": {
+     "cls": "value lc-grey",
+     "text": "OFF"
+    },
+    "ws_pill": {
+     "cls": "lc-amber",
+     "text": "Websocket degraded"
+    }
+   },
+   "ws_ok": {
+    "feed_pill": {
+     "cls": "lc-pill",
+     "text": "Leader feed:\nWebsocket OK"
+    },
+    "sending": {
+     "cls": "value lc-grey",
+     "text": "OFF"
+    },
+    "ws_pill": {
+     "cls": "lc-green",
+     "text": "Websocket OK"
+    }
+   },
+   "ws_polling": {
+    "feed_pill": {
+     "cls": "lc-pill",
+     "text": "Leader feed:\nPolling (normal)"
+    },
+    "sending": {
+     "cls": "value lc-grey",
+     "text": "OFF"
+    },
+    "ws_pill": {
+     "cls": "lc-grey",
+     "text": "Polling (normal)"
+    }
+   }
+  }
+ }
+}
