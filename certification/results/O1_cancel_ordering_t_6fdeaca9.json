@@ -1,0 +1,122 @@
+{
+ "row_id": "O1_EXACTLY_ONE_EXCHANGE_CANCEL_CALL",
+ "card": "t_6fdeaca9",
+ "subject": "test_core_engine_gaps.py O1 cancel assertion: presence -> ordering (reserve before any wait, cancel last)",
+ "repo": "binancebotty-bot/hyperliquid-build3-repair",
+ "base_commit_reviewed": "e312a12b7faa6dd2b9e4e04cf6bb04f34286488a",
+ "base_commit_note": "e312a12 is the commit the independent review FAILed on. The assertion is applied on top of e312a12 so the review finding is fixed rather than lost.",
+ "tested_commit": "2a41697376e1a8bd4b6ba051083da7da692df162",
+ "python": "3.11.9 (C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe)",
+ "verdict": "PASS",
+ "why": "The reviewed assertion tested presence only (\"_reserve_exchange_order_slot(\" in cancel_body) and therefore passed a reservation-after-sleep regression. The replacement compares byte offsets inside _cancel_order: reserve < sleep < cancel. The single exchange.cancel() count assertion is retained unchanged; the new check is added (24 checks, was 23) and nothing else in the suite is weakened.",
+ "assertion_diff": "diff --git a/_archive/hl_stage2/test_core_engine_gaps.py b/_archive/hl_stage2/test_core_engine_gaps.py\nindex 69f02da..bae0447 100644\n--- a/_archive/hl_stage2/test_core_engine_gaps.py\n+++ b/_archive/hl_stage2/test_core_engine_gaps.py\n@@ -81,6 +81,22 @@ def main() -> None:\n     cancel_body = src.split(\"def _cancel_order(\", 1)[1].split(\"\\n    def \", 1)[0]\n     check(\"O1_EXACTLY_ONE_EXCHANGE_CANCEL_CALL\", len(re.findall(r\"exchange\\.cancel\\(\", src)) == 1\n           and \"exchange.cancel(\" in cancel_body and \"_reserve_exchange_order_slot(\" in cancel_body)\n+    # ORDERING, not presence: a cancel may not WAIT for its slot before reserving it. Reserve first, then\n+    # (only if the slot makes us wait) sleep, then the ONE physical cancel last. Presence alone passed a\n+    # reservation-after-sleep regression - the exact bug this invariant exists to prevent.\n+    i_res = cancel_body.find(\"_reserve_exchange_order_slot(\")\n+    i_can = cancel_body.find(\"exchange.cancel(\")\n+    i_slp = cancel_body.find(\"time.sleep(\")\n+    if i_res < 0 or i_can < 0:\n+        ord_ok, ord_br = False, \"MISSING_CALL\"\n+    elif i_slp < 0:\n+        ord_ok, ord_br = i_res < i_can, \"NO_WAIT_FAST_PATH\"\n+    else:\n+        ord_ok, ord_br = i_res < i_slp < i_can, \"WAIT_THEN_CANCEL\"\n+    print(\"ORDERING::%s reserve_at=%d sleep_at=%d cancel_at=%d\" % (ord_br, i_res, i_slp, i_can))\n+    check(\"O1_CANCEL_RESERVES_SLOT_BEFORE_ANY_WAIT_AND_CANCELS_LAST\", ord_ok,\n+          \"%s not ordered reserve<sleep<cancel: reserve_at=%d sleep_at=%d cancel_at=%d\"\n+          % (ord_br, i_res, i_slp, i_can))\n \n     class FakeExchange:\n         def __init__(self):\n",
+ "assertion_summary": {
+  "WAIT_THEN_CANCEL": "time.sleep( present -> assert reserve_at < sleep_at < cancel_at",
+  "NO_WAIT_FAST_PATH": "time.sleep( absent -> assert reserve_at < cancel_at only; branch named on the ORDERING:: line",
+  "MISSING_CALL": "no reserve or no cancel in the body -> explicit FAIL, never a silent skip",
+  "retained": "O1_EXACTLY_ONE_EXCHANGE_CANCEL_CALL (single exchange.cancel() in the whole source, unchanged)",
+  "observability": "every run prints ORDERING::<branch> reserve_at=.. sleep_at=.. cancel_at=.. so the branch taken is in the raw log"
+ },
+ "code_under_test": {
+  "file": "_archive/hl_stage2/HL_Live_Copy_Service_Core.py",
+  "symbol": "SenderGateway._cancel_order",
+  "body": [
+   "slot_ms = self._reserve_exchange_order_slot()",
+   "delay_ms = max(0, slot_ms - utc_now_ms())",
+   "if delay_ms:",
+   "    time.sleep(min(5.0, delay_ms / 1000.0))",
+   "return exchange.cancel(sdk_coin, int(oid))"
+  ],
+  "conclusion": "PRODUCTION CODE IS CORRECT AND UNMODIFIED. Only the TEST changed in this card."
+ },
+ "control_states": [
+  {
+   "state": "S1_ORIGINAL",
+   "description": "committed HEAD: reservation precedes the sleep",
+   "scratch_copy": false,
+   "expected": "PASS",
+   "exit_code": 0,
+   "result_line": "RESULT::O1_CANCEL_RESERVES_SLOT_BEFORE_ANY_WAIT_AND_CANCELS_LAST_PASS",
+   "ordering_line": "ORDERING::WAIT_THEN_CANCEL reserve_at=181 sleep_at=295 cancel_at=350",
+   "total_line": "TOTAL=24 FAILED=0"
+  },
+  {
+   "state": "S2_RESERVATION_AFTER_SLEEP",
+   "description": "mutation: reservation moved BELOW time.sleep(...) in a scratch copy of the committed tree",
+   "scratch_copy": true,
+   "expected": "FAIL",
+   "exit_code": 1,
+   "result_line": "RESULT::O1_CANCEL_RESERVES_SLOT_BEFORE_ANY_WAIT_AND_CANCELS_LAST_FAIL | WAIT_THEN_CANCEL not ordered reserve<sleep<cancel: reserve_at=226 sleep_at=187 cancel_at=272",
+   "ordering_line": "ORDERING::WAIT_THEN_CANCEL reserve_at=226 sleep_at=187 cancel_at=272",
+   "total_line": "TOTAL=24 FAILED=1"
+  },
+  {
+   "state": "S3_RESTORED",
+   "description": "mutation reverted byte-for-byte (RESTORED_BYTES_EQUAL=True in the same process)",
+   "scratch_copy": false,
+   "expected": "PASS",
+   "exit_code": 0,
+   "result_line": "RESULT::O1_CANCEL_RESERVES_SLOT_BEFORE_ANY_WAIT_AND_CANCELS_LAST_PASS",
+   "ordering_line": "ORDERING::WAIT_THEN_CANCEL reserve_at=181 sleep_at=295 cancel_at=350",
+   "total_line": "TOTAL=24 FAILED=0"
+  }
+ ],
+ "branch_coverage_controls": [
+  {
+   "state": "NO_WAIT_FAST_PATH",
+   "description": "scratch copy: body reduced to reserve + cancel, no time.sleep(",
+   "result_line": "RESULT::O1_CANCEL_RESERVES_SLOT_BEFORE_ANY_WAIT_AND_CANCELS_LAST_PASS",
+   "ordering_line": "ORDERING::NO_WAIT_FAST_PATH reserve_at=171 sleep_at=-1 cancel_at=217",
+   "exit_code": 0,
+   "note": "the absent-sleep path must not fail - the branch is named in the log"
+  },
+  {
+   "state": "FAST_PATH_MISSING_RESERVE",
+   "description": "scratch copy: no-wait body with the reservation deleted",
+   "result_line": "RESULT::O1_CANCEL_RESERVES_SLOT_BEFORE_ANY_WAIT_AND_CANCELS_LAST_FAIL | MISSING_CALL not ordered reserve<sleep<cancel: reserve_at=-1 sleep_at=-1 cancel_at=173",
+   "ordering_line": "ORDERING::MISSING_CALL reserve_at=-1 sleep_at=-1 cancel_at=173",
+   "exit_code": 1,
+   "note": "the fast-path branch is not vacuous: a missing reservation fails explicitly"
+  }
+ ],
+ "non_vacuity": {
+  "can_fail_on_the_bug_it_exists_for": true,
+  "proof": "S2 moves exactly the reviewed defect (reservation after the wait) into an otherwise identical tree and the suite goes 24/0 -> 24/1 with the ordering named"
+ },
+ "sibling_suites": [
+  {
+   "suite": "test_core_engine_gaps.py",
+   "result": "TOTAL=24 FAILED=0"
+  },
+  {
+   "suite": "test_g4_order_cap.py",
+   "result": "TOTAL=16 FAILED=0"
+  },
+  {
+   "suite": "test_g4_intake_sleeves.py",
+   "result": "TOTAL=14 FAILED=0"
+  },
+  {
+   "suite": "test_single_exchange_order_callsite.py",
+   "result": "exit 0"
+  }
+ ],
+ "raw_log_excerpt": [
+  "GOOD_BLOCK_COUNT=1",
+  "=== S1_ORIGINAL exit=0",
+  "ORDERING::WAIT_THEN_CANCEL reserve_at=181 sleep_at=295 cancel_at=350",
+  "RESULT::O1_CANCEL_RESERVES_SLOT_BEFORE_ANY_WAIT_AND_CANCELS_LAST_PASS",
+  "TOTAL=24 FAILED=0",
+  "=== S2_RESERVATION_AFTER_SLEEP exit=1",
+  "ORDERING::WAIT_THEN_CANCEL reserve_at=226 sleep_at=187 cancel_at=272",
+  "RESULT::O1_CANCEL_RESERVES_SLOT_BEFORE_ANY_WAIT_AND_CANCELS_LAST_FAIL | WAIT_THEN_CANCEL not ordered reserve<sleep<cancel: reserve_at=226 sleep_at=187 cancel_at=272",
+  "TOTAL=24 FAILED=1",
+  "RESTORED_BYTES_EQUAL=True",
+  "=== S3_RESTORED exit=0",
+  "ORDERING::WAIT_THEN_CANCEL reserve_at=181 sleep_at=295 cancel_at=350",
+  "RESULT::O1_CANCEL_RESERVES_SLOT_BEFORE_ANY_WAIT_AND_CANCELS_LAST_PASS",
+  "TOTAL=24 FAILED=0"
+ ],
+ "claim_boundary": "Static source-ordering assertion over the one cancel site. It proves the TEST now distinguishes reserve-before-wait from reservation-after-wait; it is NOT runtime order evidence from a live exchange cancel and no order was placed by this card.",
+ "matrix_edited": false
+}
