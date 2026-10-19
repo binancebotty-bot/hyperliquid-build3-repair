@@ -1,0 +1,107 @@
+[
+  {
+    "row_id": "UI-FP-143",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "certification/results/UI_FP_143_157_t_9050aeaf.json#UI-FP-143",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "The row-specific 'Event' claim was not tested: the pinned serving process PID 33368 is absent (ProcessLookupError), and the reachable :8031 response (HTTP 200, /live-copy, 87,350 bytes) cannot be bound to the declared serving commit/state directory. Without that serving-build binding, rendered Event evidence cannot be attributed to tested commit 89b3bc7586bf328df336fc9ea721cee212617762. Exact missing component: serving-build binding."
+  },
+  {
+    "row_id": "UI-FP-144",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "certification/results/UI_FP_143_157_t_9050aeaf.json#UI-FP-144",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "The row-specific 'Status' claim was not tested: the pinned serving process PID 33368 is absent (ProcessLookupError), and the reachable :8031 response (HTTP 200, /live-copy, 87,350 bytes) cannot be bound to the declared serving commit/state directory. Without that serving-build binding, rendered Status evidence cannot be attributed to tested commit 89b3bc7586bf328df336fc9ea721cee212617762. Exact missing component: serving-build binding."
+  },
+  {
+    "row_id": "UI-FP-145",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "certification/results/UI_FP_143_157_t_9050aeaf.json#UI-FP-145",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "The row-specific 'Action' claim was not tested: the pinned serving process PID 33368 is absent (ProcessLookupError), and the reachable :8031 response (HTTP 200, /live-copy, 87,350 bytes) cannot be bound to the declared serving commit/state directory. Without that serving-build binding, rendered Action evidence cannot be attributed to tested commit 89b3bc7586bf328df336fc9ea721cee212617762. Exact missing component: serving-build binding."
+  },
+  {
+    "row_id": "UI-FP-146",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "certification/results/UI_FP_143_157_t_9050aeaf.json#UI-FP-146",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "The row-specific 'Reject category' claim was not tested: the pinned serving process PID 33368 is absent (ProcessLookupError), and the reachable :8031 response (HTTP 200, /live-copy, 87,350 bytes) cannot be bound to the declared serving commit/state directory. Without that serving-build binding, rendered Reject category evidence cannot be attributed to tested commit 89b3bc7586bf328df336fc9ea721cee212617762. Exact missing component: serving-build binding."
+  },
+  {
+    "row_id": "UI-FP-147",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "certification/results/UI_FP_143_157_t_9050aeaf.json#UI-FP-147",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "The row-specific 'Terminal state' claim was not tested: the pinned serving process PID 33368 is absent (ProcessLookupError), and the reachable :8031 response (HTTP 200, /live-copy, 87,350 bytes) cannot be bound to the declared serving commit/state directory. Without that serving-build binding, rendered Terminal state evidence cannot be attributed to tested commit 89b3bc7586bf328df336fc9ea721cee212617762. Exact missing component: serving-build binding."
+  },
+  {
+    "row_id": "UI-FP-148",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "certification/results/UI_FP_143_157_t_9050aeaf.json#UI-FP-148",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "The row-specific 'Coin' claim was not tested: the pinned serving process PID 33368 is absent (ProcessLookupError), and the reachable :8031 response (HTTP 200, /live-copy, 87,350 bytes) cannot be bound to the declared serving commit/state directory. Without that serving-build binding, rendered Coin evidence cannot be attributed to tested commit 89b3bc7586bf328df336fc9ea721cee212617762. Exact missing component: serving-build binding."
+  },
+  {
+    "row_id": "UI-FP-149",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "certification/results/UI_FP_143_157_t_9050aeaf.json#UI-FP-149",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "The row-specific 'Wallet' claim was not tested: the pinned serving process PID 33368 is absent (ProcessLookupError), and the reachable :8031 response (HTTP 200, /live-copy, 87,350 bytes) cannot be bound to the declared serving commit/state directory. Without that serving-build binding, rendered Wallet evidence cannot be attributed to tested commit 89b3bc7586bf328df336fc9ea721cee212617762. Exact missing component: serving-build binding."
+  },
+  {
+    "row_id": "UI-FP-150",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "certification/results/UI_FP_143_157_t_9050aeaf.json#UI-FP-150",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "The row-specific 'Intent' claim was not tested: the pinned serving process PID 33368 is absent (ProcessLookupError), and the reachable :8031 response (HTTP 200, /live-copy, 87,350 bytes) cannot be bound to the declared serving commit/state directory. Without that serving-build binding, rendered Intent evidence cannot be attributed to tested commit 89b3bc7586bf328df336fc9ea721cee212617762. Exact missing component: serving-build binding."
+  },
+  {
+    "row_id": "UI-FP-151",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "certification/results/UI_FP_143_157_t_9050aeaf.json#UI-FP-151",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "The row-specific 'Notes' claim was not tested: the pinned serving process PID 33368 is absent (ProcessLookupError), and the reachable :8031 response (HTTP 200, /live-copy, 87,350 bytes) cannot be bound to the declared serving commit/state directory. Without that serving-build binding, rendered Notes evidence cannot be attributed to tested commit 89b3bc7586bf328df336fc9ea721cee212617762. Exact missing component: serving-build binding."
+  },
+  {
+    "row_id": "UI-FP-152",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "certification/results/UI_FP_143_157_t_9050aeaf.json#UI-FP-152",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "The row-specific 'Status' claim was not tested: the pinned serving process PID 33368 is absent (ProcessLookupError), and the reachable :8031 response (HTTP 200, /live-copy, 87,350 bytes) cannot be bound to the declared serving commit/state directory. Without that serving-build binding, rendered Status evidence cannot be attributed to tested commit 89b3bc7586bf328df336fc9ea721cee212617762. Exact missing component: serving-build binding."
+  },
+  {
+    "row_id": "UI-FP-153",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "certification/results/UI_FP_143_157_t_9050aeaf.json#UI-FP-153",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "The row-specific 'Wallet' claim was not tested: the pinned serving process PID 33368 is absent (ProcessLookupError), and the reachable :8031 response (HTTP 200, /live-copy, 87,350 bytes) cannot be bound to the declared serving commit/state directory. Without that serving-build binding, rendered Wallet evidence cannot be attributed to tested commit 89b3bc7586bf328df336fc9ea721cee212617762. Exact missing component: serving-build binding."
+  },
+  {
+    "row_id": "UI-FP-154",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "certification/results/UI_FP_143_157_t_9050aeaf.json#UI-FP-154",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "The row-specific 'Coin' claim was not tested: the pinned serving process PID 33368 is absent (ProcessLookupError), and the reachable :8031 response (HTTP 200, /live-copy, 87,350 bytes) cannot be bound to the declared serving commit/state directory. Without that serving-build binding, rendered Coin evidence cannot be attributed to tested commit 89b3bc7586bf328df336fc9ea721cee212617762. Exact missing component: serving-build binding."
+  },
+  {
+    "row_id": "UI-FP-155",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "certification/results/UI_FP_143_157_t_9050aeaf.json#UI-FP-155",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "The row-specific 'Intent' claim was not tested: the pinned serving process PID 33368 is absent (ProcessLookupError), and the reachable :8031 response (HTTP 200, /live-copy, 87,350 bytes) cannot be bound to the declared serving commit/state directory. Without that serving-build binding, rendered Intent evidence cannot be attributed to tested commit 89b3bc7586bf328df336fc9ea721cee212617762. Exact missing component: serving-build binding."
+  },
+  {
+    "row_id": "UI-FP-156",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "certification/results/UI_FP_143_157_t_9050aeaf.json#UI-FP-156",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "The row-specific 'Issue' claim was not tested: the pinned serving process PID 33368 is absent (ProcessLookupError), and the reachable :8031 response (HTTP 200, /live-copy, 87,350 bytes) cannot be bound to the declared serving commit/state directory. Without that serving-build binding, rendered Issue evidence cannot be attributed to tested commit 89b3bc7586bf328df336fc9ea721cee212617762. Exact missing component: serving-build binding."
+  },
+  {
+    "row_id": "UI-FP-157",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "certification/results/UI_FP_143_157_t_9050aeaf.json#UI-FP-157",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "The row-specific 'Severity' claim was not tested: the pinned serving process PID 33368 is absent (ProcessLookupError), and the reachable :8031 response (HTTP 200, /live-copy, 87,350 bytes) cannot be bound to the declared serving commit/state directory. Without that serving-build binding, rendered Severity evidence cannot be attributed to tested commit 89b3bc7586bf328df336fc9ea721cee212617762. Exact missing component: serving-build binding."
+  }
+]
