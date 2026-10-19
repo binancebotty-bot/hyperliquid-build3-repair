@@ -4523,12 +4523,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_LCC_batch2_t_ab26571b.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "OD-21 decided: re-pointed to the certified 13 May UI.",
-   "proof_network": "TESTNET"
+   "notes": "UI-LCC captured against the LIVE serving build: http://127.0.0.1:8023/live-copy, HTTP 200, serving PID 15760 started 2026-10-19T08:40:25+01:00, source HL_Copy_App_SSOT.py sha256 fad19d220d7af13d. Selector: #lcWalletRows tr.lc-wallet-row td button[data-act=\"save\"] -> value: button \"Save\" x4. Source chain: HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) renderWallets L6590 -> POST /api/live-config/set-wallet L7150 -> _save_live_copy_config",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-LCC-WTBL-12",
@@ -4551,12 +4554,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_LCC_batch2_t_ab26571b.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "OD-21 decided: re-pointed to the certified 13 May UI.",
-   "proof_network": "TESTNET"
+   "notes": "UI-LCC captured against the LIVE serving build: http://127.0.0.1:8023/live-copy, HTTP 200, serving PID 15760 started 2026-10-19T08:40:25+01:00, source HL_Copy_App_SSOT.py sha256 fad19d220d7af13d. Selector: #lcWalletRows tr.lc-wallet-row td button[data-act=\"clo\"] -> value: button \"CLO\" x4. Source chain: HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) L6590 -> POST /api/live-config/set-mode {mode:CLO} L7201",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-LCC-WTBL-13",
@@ -4579,12 +4585,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_LCC_batch2_t_ab26571b.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "OD-21 decided: re-pointed to the certified 13 May UI.",
-   "proof_network": "TESTNET"
+   "notes": "UI-LCC captured against the LIVE serving build: http://127.0.0.1:8023/live-copy, HTTP 200, serving PID 15760 started 2026-10-19T08:40:25+01:00, source HL_Copy_App_SSOT.py sha256 fad19d220d7af13d. Selector: #lcWalletRows tr.lc-wallet-row td button[data-act=\"off\"] -> value: button \"OFF\" x4. Source chain: HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) L6590 -> POST /api/live-config/set-mode {mode:OFF} L7201",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-LCC-WTBL-14",
@@ -4607,12 +4616,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_LCC_batch2_t_ab26571b.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "OD-21 decided: re-pointed to the certified 13 May UI.",
-   "proof_network": "TESTNET"
+   "notes": "UI-LCC captured against the LIVE serving build: http://127.0.0.1:8023/live-copy, HTTP 200, serving PID 15760 started 2026-10-19T08:40:25+01:00, source HL_Copy_App_SSOT.py sha256 fad19d220d7af13d. Selector: #lcWalletRows tr.lc-wallet-row td button[data-act=\"archive\"] -> value: button \"Archive\" x4, class lc-danger. Source chain: HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) L6590 -> POST /api/live-config/remove-wallet {archive:true} L7174; confirm \"Archive removes from config only. Audit/history preserved.\"",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-LCC-DETAIL-01",
@@ -4929,12 +4941,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "FAIL",
+   "evidence_ref": "certification/results/UI_LCC_batch2_t_ab26571b.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "OD-21 decided: element(s) ['lcPositionRows'] not found in the certified 13 May UI; requirement void. The 13 May positions tab splits OWNED COPY and ACCOUNT-LEVEL rows; its fields are certified by the UI-FP 'Real User Copy Positions' records.",
-   "proof_network": "TESTNET"
+   "notes": "UI-LCC captured against the LIVE serving build: http://127.0.0.1:8023/live-copy, HTTP 200, serving PID 15760 started 2026-10-19T08:40:25+01:00, source HL_Copy_App_SSOT.py sha256 fad19d220d7af13d. Selector: no selector -> value: no Pos value / position-value column in either position table. Source chain: HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) renderPositions; grep \"Pos value\" = 0 hits in UI source and DOM",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-LCC-POS-08",
@@ -5049,12 +5064,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "FAIL",
+   "evidence_ref": "certification/results/UI_LCC_batch2_t_ab26571b.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "OD-21 decided: element(s) ['lcPositionRows'] not found in the certified 13 May UI; requirement void. The 13 May positions tab splits OWNED COPY and ACCOUNT-LEVEL rows; its fields are certified by the UI-FP 'Real User Copy Positions' records.",
-   "proof_network": "TESTNET"
+   "notes": "UI-LCC captured against the LIVE serving build: http://127.0.0.1:8023/live-copy, HTTP 200, serving PID 15760 started 2026-10-19T08:40:25+01:00, source HL_Copy_App_SSOT.py sha256 fad19d220d7af13d. Selector: no selector -> value: no Last OID column in either position table. Source chain: HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) renderPositions; grep \"Last OID\" = 0 hits in UI source and DOM",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-LCC-POS-12",
@@ -5247,12 +5265,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "FAIL",
+   "evidence_ref": "certification/results/UI_LCC_batch2_t_ab26571b.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "OD-01 ruled (Boss, 2026-10-09): OPEN/INCREASE/FLIP are priced from a fresh follower-market mid at most 5 s old; with no fresh mid no order is sent. OD-21 decided: re-pointed to the certified 13 May UI.",
-   "proof_network": "TESTNET"
+   "notes": "UI-LCC captured against the LIVE serving build: http://127.0.0.1:8023/live-copy, HTTP 200, serving PID 15760 started 2026-10-19T08:40:25+01:00, source HL_Copy_App_SSOT.py sha256 fad19d220d7af13d. Selector: no selector -> value: no Limit px column; header sequence is Time, Wallet, Coin, Side, Status, Termina. Source chain: HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) L6335 thead + DOM",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-LCC-EXQ-07",
@@ -5359,12 +5380,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "FAIL",
+   "evidence_ref": "certification/results/UI_LCC_batch2_t_ab26571b.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "OD-01 ruled (Boss, 2026-10-09): OPEN/INCREASE/FLIP are priced from a fresh follower-market mid at most 5 s old; with no fresh mid no order is sent. OD-21 decided: re-pointed to the certified 13 May UI. Mainnet proof required: fill-vs-limit % is not meaningful on illiquid testnet books.",
-   "proof_network": "MAINNET"
+   "notes": "UI-LCC captured against the LIVE serving build: http://127.0.0.1:8023/live-copy, HTTP 200, serving PID 15760 started 2026-10-19T08:40:25+01:00, source HL_Copy_App_SSOT.py sha256 fad19d220d7af13d. Selector: no selector -> value: no per-row fill-vs-limit percentage column; only aggregate chip \"Avg fill-vs-lim. Source chain: HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) thead + #lcExecQualChips DOM",
+   "proof_network": "MAINNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-LCC-EXQ-11",
@@ -5387,12 +5411,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "FAIL",
+   "evidence_ref": "certification/results/UI_LCC_batch2_t_ab26571b.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "OD-01 ruled (Boss, 2026-10-09): OPEN/INCREASE/FLIP are priced from a fresh follower-market mid at most 5 s old; with no fresh mid no order is sent. OD-21 decided: re-pointed to the certified 13 May UI. Mainnet proof required: leader-vs-user % is not meaningful on illiquid testnet books.",
-   "proof_network": "MAINNET"
+   "notes": "UI-LCC captured against the LIVE serving build: http://127.0.0.1:8023/live-copy, HTTP 200, serving PID 15760 started 2026-10-19T08:40:25+01:00, source HL_Copy_App_SSOT.py sha256 fad19d220d7af13d. Selector: no selector -> value: no leader-vs-user percentage column and no chip exposing it. Source chain: HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) thead + chips DOM",
+   "proof_network": "MAINNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-LCC-EXQ-12",
@@ -5415,12 +5442,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "FAIL",
+   "evidence_ref": "certification/results/UI_LCC_batch2_t_ab26571b.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "OD-01 ruled (Boss, 2026-10-09): OPEN/INCREASE/FLIP are priced from a fresh follower-market mid at most 5 s old; with no fresh mid no order is sent. OD-21 decided: re-pointed to the certified 13 May UI. Mainnet proof required: market slip % is not meaningful on illiquid testnet books.",
-   "proof_network": "MAINNET"
+   "notes": "UI-LCC captured against the LIVE serving build: http://127.0.0.1:8023/live-copy, HTTP 200, serving PID 15760 started 2026-10-19T08:40:25+01:00, source HL_Copy_App_SSOT.py sha256 fad19d220d7af13d. Selector: no selector -> value: no market-slip percentage column and no chip exposing it. Source chain: HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) thead + chips DOM",
+   "proof_network": "MAINNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-LCC-EXQ-13",
@@ -5471,12 +5501,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_LCC_batch2_t_ab26571b.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "OD-21 decided: re-pointed to the certified 13 May UI.",
-   "proof_network": "TESTNET"
+   "notes": "UI-LCC captured against the LIVE serving build: http://127.0.0.1:8023/live-copy, HTTP 200, serving PID 15760 started 2026-10-19T08:40:25+01:00, source HL_Copy_App_SSOT.py sha256 fad19d220d7af13d. Selector: #lcAuditRows tr[1] td[1] -> value: 2026-10-09T14:48:58.366311+00:00. Source chain: order_intents.csv row created_at=2026-10-09T14:48:58.366311+00:00 (final data line); template td1 = first(r,[created_at,timestamp_iso,time])",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-LCC-AUD-02",
@@ -5499,12 +5532,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_LCC_batch2_t_ab26571b.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "OD-21 decided: re-pointed to the certified 13 May UI.",
-   "proof_network": "TESTNET"
+   "notes": "UI-LCC captured against the LIVE serving build: http://127.0.0.1:8023/live-copy, HTTP 200, serving PID 15760 started 2026-10-19T08:40:25+01:00, source HL_Copy_App_SSOT.py sha256 fad19d220d7af13d. Selector: #lcAuditRows tr[1] td[2] -> value: 0xf7bfa3a7...acf123 (shortWallet of 0xf7bfa3a7067624b913381f39c1e21ad9aeacf123). Source chain: order_intents.csv row created_at=2026-10-09T14:48:58.366311+00:00 (final data line) leader_wallet",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-LCC-AUD-03",
@@ -5527,12 +5563,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_LCC_batch2_t_ab26571b.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "OD-21 decided: re-pointed to the certified 13 May UI.",
-   "proof_network": "TESTNET"
+   "notes": "UI-LCC captured against the LIVE serving build: http://127.0.0.1:8023/live-copy, HTTP 200, serving PID 15760 started 2026-10-19T08:40:25+01:00, source HL_Copy_App_SSOT.py sha256 fad19d220d7af13d. Selector: #lcAuditRows tr[1] td[3] -> value: BTC. Source chain: order_intents.csv row created_at=2026-10-09T14:48:58.366311+00:00 (final data line) coin",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-LCC-AUD-04",
@@ -5555,12 +5594,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "FAIL",
+   "evidence_ref": "certification/results/UI_LCC_batch2_t_ab26571b.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "OD-21 decided: re-pointed to the certified 13 May UI.",
-   "proof_network": "TESTNET"
+   "notes": "UI-LCC captured against the LIVE serving build: http://127.0.0.1:8023/live-copy, HTTP 200, serving PID 15760 started 2026-10-19T08:40:25+01:00, source HL_Copy_App_SSOT.py sha256 fad19d220d7af13d. Selector: #lcAuditRows tr[1] td[4] -> value: blank cell on every displayed row. Source chain: order_intents.csv row created_at=2026-10-09T14:48:58.366311+00:00 (final data line) has leader_side=SELL and copy_side=SELL; renderer reads first(r,[side]) which is not a CSV column",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-LCC-AUD-05",
@@ -5583,12 +5625,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_LCC_batch2_t_ab26571b.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "OD-21 decided: re-pointed to the certified 13 May UI.",
-   "proof_network": "TESTNET"
+   "notes": "UI-LCC captured against the LIVE serving build: http://127.0.0.1:8023/live-copy, HTTP 200, serving PID 15760 started 2026-10-19T08:40:25+01:00, source HL_Copy_App_SSOT.py sha256 fad19d220d7af13d. Selector: #lcAuditRows tr[1] td[5] -> value: \"POLL\" with secondary line \"max total exposure exceeded\". Source chain: order_intents.csv row created_at=2026-10-09T14:48:58.366311+00:00 (final data line) source=POLL, reason=max total exposure exceeded",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-LCC-AUD-06",
@@ -5611,12 +5656,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "FAIL",
+   "evidence_ref": "certification/results/UI_LCC_batch2_t_ab26571b.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "OD-21 decided: re-pointed to the certified 13 May UI.",
-   "proof_network": "TESTNET"
+   "notes": "UI-LCC captured against the LIVE serving build: http://127.0.0.1:8023/live-copy, HTTP 200, serving PID 15760 started 2026-10-19T08:40:25+01:00, source HL_Copy_App_SSOT.py sha256 fad19d220d7af13d. Selector: #lcAuditRows tr[1] td[6] -> value: em-dash on every displayed row. Source chain: order_intents.csv row created_at=2026-10-09T14:48:58.366311+00:00 (final data line) has no status column; renderer reads first(r,[status])",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-LCC-AUD-07",
@@ -5639,12 +5687,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "FAIL",
+   "evidence_ref": "certification/results/UI_LCC_batch2_t_ab26571b.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "OD-21 decided: re-pointed to the certified 13 May UI.",
-   "proof_network": "TESTNET"
+   "notes": "UI-LCC captured against the LIVE serving build: http://127.0.0.1:8023/live-copy, HTTP 200, serving PID 15760 started 2026-10-19T08:40:25+01:00, source HL_Copy_App_SSOT.py sha256 fad19d220d7af13d. Selector: #lcAuditRows tr[1] td[7] -> value: em-dash, while the source row has decision=SEND_BLOCKED_RISK. Source chain: order_intents.csv row created_at=2026-10-09T14:48:58.366311+00:00 (final data line) decision; renderer reads first(r,[execution_decision])",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-LCC-AUD-08",
@@ -5667,12 +5718,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "FAIL",
+   "evidence_ref": "certification/results/UI_LCC_batch2_t_ab26571b.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "OD-21 decided: re-pointed to the certified 13 May UI.",
-   "proof_network": "TESTNET"
+   "notes": "UI-LCC captured against the LIVE serving build: http://127.0.0.1:8023/live-copy, HTTP 200, serving PID 15760 started 2026-10-19T08:40:25+01:00, source HL_Copy_App_SSOT.py sha256 fad19d220d7af13d. Selector: #lcAuditRows tr[1] td[8] -> value: blank on every displayed row. Source chain: order_intents.csv row created_at=2026-10-09T14:48:58.366311+00:00 (final data line) has no decision_reason column",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-LCC-AUD-09",
@@ -5695,12 +5749,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "FAIL",
+   "evidence_ref": "certification/results/UI_LCC_batch2_t_ab26571b.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "OD-21 decided: re-pointed to the certified 13 May UI.",
-   "proof_network": "TESTNET"
+   "notes": "UI-LCC captured against the LIVE serving build: http://127.0.0.1:8023/live-copy, HTTP 200, serving PID 15760 started 2026-10-19T08:40:25+01:00, source HL_Copy_App_SSOT.py sha256 fad19d220d7af13d. Selector: #lcAuditRows tr[1] td[9] -> value: blank on every displayed row. Source chain: order_intents.csv row created_at=2026-10-09T14:48:58.366311+00:00 (final data line) has no suggested_limit_price or target_price column",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-LCC-AUD-10",
@@ -5723,12 +5780,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "FAIL",
+   "evidence_ref": "certification/results/UI_LCC_batch2_t_ab26571b.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "OD-21 decided: re-pointed to the certified 13 May UI.",
-   "proof_network": "TESTNET"
+   "notes": "UI-LCC captured against the LIVE serving build: http://127.0.0.1:8023/live-copy, HTTP 200, serving PID 15760 started 2026-10-19T08:40:25+01:00, source HL_Copy_App_SSOT.py sha256 fad19d220d7af13d. Selector: #lcAuditRows tr[1] td[10] -> value: blank on every displayed row. Source chain: order_intents.csv row created_at=2026-10-09T14:48:58.366311+00:00 (final data line) carries max_close_adverse_diff_pct; renderer reads adverse_diff_pct/diff_pct/real_diff_pct/price_diff_pct",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-LCC-AUD-11",
@@ -5751,12 +5811,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "FAIL",
+   "evidence_ref": "certification/results/UI_LCC_batch2_t_ab26571b.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "OD-21 decided: re-pointed to the certified 13 May UI.",
-   "proof_network": "TESTNET"
+   "notes": "UI-LCC captured against the LIVE serving build: http://127.0.0.1:8023/live-copy, HTTP 200, serving PID 15760 started 2026-10-19T08:40:25+01:00, source HL_Copy_App_SSOT.py sha256 fad19d220d7af13d. Selector: #lcAuditRows tr[1] td[11] -> value: blank on every displayed row. Source chain: order_intents.csv row created_at=2026-10-09T14:48:58.366311+00:00 (final data line) has no manual_reconcile_required column (that field lives in reconciliation.csv)",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-LCC-AUD-12",
