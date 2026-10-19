@@ -1,0 +1,17 @@
+{
+ "stale": {
+  "banner": "HEALTH Stopped: the engine has not reported for 15 min details under Technical detail LEADER FEED Websocket OK websocket FOLLOWER ACCOUNT READ \u2014 WALLETS 1 live / 2 followed live + close-only are followed LAST SEND \u2014 LAST FILL \u2014 LAST REJECT \u2014 LAST LATENCY WARNING \u2014",
+  "status": {
+   "text": "Loaded",
+   "cls": "lc-status lc-ok"
+  }
+ },
+ "stale_pid": 48476,
+ "api_error": {
+  "banner": "",
+  "status": {
+   "text": "Failed to fetch",
+   "cls": "lc-status lc-bad"
+  }
+ }
+}

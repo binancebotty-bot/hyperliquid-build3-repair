@@ -1,0 +1,140 @@
+{
+ "base": "http://127.0.0.1:8121",
+ "oracle_ok": false,
+ "dom": {
+  "subtitle": "Not enough points in selected range (ALL).",
+  "exchangePath": "",
+  "realizedPath": "",
+  "drawdownPath": "",
+  "ymax": "",
+  "ymid": "",
+  "ymin": "",
+  "ticks": [],
+  "thead": [
+   "Wallet",
+   "Net P&L",
+   "Feed",
+   "Closed / Open / Fees",
+   "Lead\u2194Copy Diff",
+   "Execution",
+   "Risk / Exposure",
+   "Last Fill",
+   "Controls"
+  ],
+  "rows": [
+   {
+    "wallet": "0x1111111111111111111111111111111111111111",
+    "cells": [
+     "0x11111111...111111 Live",
+     "\u2212$0.61",
+     "Websocket OK HOT10 shared socket active",
+     "Closed: $0 Open: $0 Fees: $0.61 From engine ledger",
+     "Total: n/a Avg: n/a Avg bps: n/a Worst bps: n/a",
+     "2 filled / 0 exits 0 recent rejects 0 recent blocks",
+     "Exposure: $0 Open pos: 0 DD: \u2014 MaxDD: \u2014",
+     "BTC BUY 0.010 @",
+     "LIVE CLO OFF prop fixed F N Save CLO OFF Archive"
+    ],
+    "controls": {
+     "mode": "LIVE",
+     "copy": "fixed",
+     "fixed": "10",
+     "norm": "100",
+     "buttons": [
+      "Save",
+      "CLO",
+      "OFF",
+      "Archive"
+     ]
+    }
+   },
+   {
+    "wallet": "0x2222222222222222222222222222222222222222",
+    "cells": [
+     "0x22222222...222222 Close-only",
+     "\u2212$0.31",
+     "Websocket OK HOT10 shared socket active",
+     "Closed: $0 Open: $0 Fees: $0.31 From engine ledger",
+     "Total: n/a Avg: n/a Avg bps: n/a Worst bps: n/a",
+     "1 filled / 0 exits 0 recent rejects 0 recent blocks",
+     "Exposure: $0 Open pos: 0 DD: \u2014 MaxDD: \u2014",
+     "BTC SELL 0.005 @",
+     "LIVE CLO OFF prop fixed F N Save CLO OFF Archive"
+    ],
+    "controls": {
+     "mode": "CLO",
+     "copy": "proportional",
+     "fixed": "42.5",
+     "norm": "250",
+     "buttons": [
+      "Save",
+      "CLO",
+      "OFF",
+      "Archive"
+     ]
+    }
+   },
+   {
+    "wallet": "0x3333333333333333333333333333333333333333",
+    "cells": [
+     "0x33333333...333333 Off",
+     "\u2014",
+     "not followed",
+     "Closed: \u2014 Open: $0 Fees: \u2014 No PnL yet",
+     "Total: n/a Avg: n/a Avg bps: n/a Worst bps: n/a",
+     "0 filled / 0 exits 0 recent rejects 0 recent blocks",
+     "Exposure: $0 Open pos: 0 DD: \u2014 MaxDD: \u2014",
+     "none yet",
+     "LIVE CLO OFF prop fixed F N Save CLO OFF Archive"
+    ],
+    "controls": {
+     "mode": "OFF",
+     "copy": "fixed",
+     "fixed": "7.25",
+     "norm": "133.5",
+     "buttons": [
+      "Save",
+      "CLO",
+      "OFF",
+      "Archive"
+     ]
+    }
+   }
+  ],
+  "zeroLine": "280"
+ },
+ "reset": {
+  "baseline_sub": "Not enough points in selected range (ALL).",
+  "baseline_active": [
+   "all"
+  ],
+  "baseline_npts": 0,
+  "after7d_sub": "Not enough points in selected range (7D).",
+  "after7d_active": [
+   "7d"
+  ],
+  "after7d_npts": 0,
+  "afterApply_sub": "Not enough points in selected range (18/10/2026, 00:00:00 to 18/10/2026, 12:00:00).",
+  "afterApply_active": [],
+  "afterApply_npts": 0,
+  "afterReset_sub": "Not enough points in selected range (ALL).",
+  "afterReset_active": [
+   "all"
+  ],
+  "afterReset_npts": 0,
+  "afterReset_start": "",
+  "afterReset_end": ""
+ },
+ "dom_after_reset": {
+  "points": "",
+  "sub": "Not enough points in selected range (ALL).",
+  "npts": 0
+ },
+ "requests": [
+  "http://127.0.0.1:8121/live-copy",
+  "http://127.0.0.1:8121/api/live-config",
+  "http://127.0.0.1:8121/api/live-ws-health",
+  "http://127.0.0.1:8121/api/live-audit-summary",
+  "http://127.0.0.1:8121/api/global-controls"
+ ]
+}

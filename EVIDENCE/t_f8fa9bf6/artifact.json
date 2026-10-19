@@ -1,0 +1,201 @@
+{
+ "card_id": "t_f8fa9bf6",
+ "title": "REDO UI-LCC-GRAPH-10..16, WTBL-01, WTBL-04..08 - row-bound re-certification",
+ "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+ "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+ "how_serving_build_was_established": "Instance on :8119 launched from the worktree src89 at C:/Users/wigmore/.hermes/kanban/workspaces/t_f8fa9bf6/src89 (git rev-parse HEAD = 89b3bc7586bf328df336fc9ea721cee212617762, committed 2026-10-17T07:18:14Z); sha256sum of its _archive/hl_stage2/HL_Copy_App_SSOT.py = 658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2; process start 2026-10-19T03:27:13Z (PID 45628, Get-Process StartTime) is AFTER the commit date, so the arithmetic check passes. Served /live-copy bytes sha256 = a5420e8ca4a0f468ae79578344539bfb24afa49a730479d6a9b479eecc86d981 (87,350 bytes).",
+ "oracle": "probe.py::expected_series - re-derives the graph series from the /api/live-audit-summary payload with no import of HL_Copy_App_SSOT.py; wallet table oracles re-derive from the engine CSV inputs (append_only/send_attempts.csv, order_intents.csv, live_fills.csv) and from the live_config.json copy, all read directly",
+ "files": [
+  "EVIDENCE/t_f8fa9bf6/probe.py",
+  "EVIDENCE/t_f8fa9bf6/probe_f8fa9bf6.json",
+  "EVIDENCE/t_f8fa9bf6/probe_short_f8.json",
+  "EVIDENCE/t_f8fa9bf6/evidence_f8.py",
+  "EVIDENCE/t_f8fa9bf6/final_evidence.json",
+  "EVIDENCE/t_f8fa9bf6/neg_f8.py",
+  "EVIDENCE/t_f8fa9bf6/neg_evidence.json",
+  "EVIDENCE/t_f8fa9bf6/launch.py",
+  "EVIDENCE/t_f8fa9bf6/seed2.py"
+ ],
+ "isolated_instances": {
+  "8119": "full fixture (iso_full)",
+  "8121": "short history (iso_short), used for write test",
+  "8122": "stale service state (iso_stale)"
+ },
+ "negative_tests": {
+  "source unavailable shows n/a/Unavailable not 0": {
+   "probe": "short instance :8121 with a 1-point exchange_account_history -> graph must show the explicit message, not a zero line",
+   "observed": {
+    "subtitle": "Not enough points in selected range (ALL).",
+    "points_attr": "",
+    "ymax": "",
+    "tick_children": 0
+   },
+   "verdict": "PASS"
+  },
+  "stale source flagged": {
+   "probe": "isolated :8122 with live_service_state.json last_state_write_ms 15 min old -> #lcTruthStatus health card",
+   "observed": "HEALTH Stopped: the engine has not reported for 15 min details under Technical detail LEADER FEED Websocket OK websocket FOLLOWER ACCOUNT READ \u2014 WALLETS 1 live / 2 followed live + close-only are follo",
+   "verdict": "PASS"
+  },
+  "API error surfaced": {
+   "probe": "isolated :8121, Playwright route abort of /api/live-audit-summary -> #lcStatus",
+   "observed": {
+    "text": "Failed to fetch",
+    "cls": "lc-status lc-bad"
+   },
+   "verdict": "PASS"
+  }
+ },
+ "rows": [
+  {
+   "row_id": "UI-LCC-GRAPH-10",
+   "verdict": "PASS",
+   "executed_probe": "headless Playwright on :8119 /live-copy -> RESET_JS: read subtitle/active-scale/point-count, click 7d, set custom range 2026-10-18T00:00..12:00 + Apply, click Reset",
+   "observed": "{\"baseline\": [\"Exchange account graph. ALL range \u2014 6 portfolio pts, 3 realized fills.\", [\"all\"], 6], \"after_7d\": [\"Exchange account graph. 7D range \u2014 6 portfolio pts, 3 realized fills.\", [\"7d\"], 6], \"after_apply\": [\"Exchange account graph. 18/10/2026, 00:00:00 to 18/10/2026, 12:00:00 range \u2014 3 portfolio pts, 1 realized fills.\", [], 3], \"after_reset\": [\"Exchange account graph. ALL range \u2014 6 portfolio pts, 3 realized fills.\", [\"all\"], 6], \"after_reset_inputs\": [\"\", \"\"]}",
+   "reproduces": "C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe EVIDENCE/t_f8fa9bf6/evidence_f8.py (after C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe EVIDENCE/t_f8fa9bf6/probe.py http://127.0.0.1:8119 probe_f8fa9bf6.json)",
+   "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+   "independent_oracle": "probe.py::expected_series - re-derives the graph series from the /api/live-audit-summary payload with no import of HL_Copy_App_SSOT.py; wallet table oracles re-derive from the engine CSV inputs (append_only/send_attempts.csv, order_intents.csv, live_fills.csv) and from the live_config.json copy, all read directly"
+  },
+  {
+   "row_id": "UI-LCC-GRAPH-11",
+   "verdict": "PASS",
+   "executed_probe": "DOM getAttribute(points) of #lcExchangePath vs oracle line() over the recomputed account series",
+   "observed": "{\"points\": 6, \"path_compare\": {\"n\": 6, \"max_abs_delta\": 0.0}}",
+   "reproduces": "C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe EVIDENCE/t_f8fa9bf6/evidence_f8.py (after C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe EVIDENCE/t_f8fa9bf6/probe.py http://127.0.0.1:8119 probe_f8fa9bf6.json)",
+   "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+   "independent_oracle": "probe.py::expected_series - re-derives the graph series from the /api/live-audit-summary payload with no import of HL_Copy_App_SSOT.py; wallet table oracles re-derive from the engine CSV inputs (append_only/send_attempts.csv, order_intents.csv, live_fills.csv) and from the live_config.json copy, all read directly"
+  },
+  {
+   "row_id": "UI-LCC-GRAPH-12",
+   "verdict": "PASS",
+   "executed_probe": "DOM points of #lcRealizedPath vs oracle realized series built from live_graph.realized_pnl_points",
+   "observed": "{\"fills_in_range\": 3, \"path_compare\": {\"n\": 5, \"max_abs_delta\": 0.0}}",
+   "reproduces": "C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe EVIDENCE/t_f8fa9bf6/evidence_f8.py (after C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe EVIDENCE/t_f8fa9bf6/probe.py http://127.0.0.1:8119 probe_f8fa9bf6.json)",
+   "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+   "independent_oracle": "probe.py::expected_series - re-derives the graph series from the /api/live-audit-summary payload with no import of HL_Copy_App_SSOT.py; wallet table oracles re-derive from the engine CSV inputs (append_only/send_attempts.csv, order_intents.csv, live_fills.csv) and from the live_config.json copy, all read directly"
+  },
+  {
+   "row_id": "UI-LCC-GRAPH-13",
+   "verdict": "PASS",
+   "executed_probe": "DOM points of #lcDrawdownPath vs oracle running-peak drawdown of the account series",
+   "observed": "{\"path_compare\": {\"n\": 6, \"max_abs_delta\": 0.0}}",
+   "reproduces": "C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe EVIDENCE/t_f8fa9bf6/evidence_f8.py (after C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe EVIDENCE/t_f8fa9bf6/probe.py http://127.0.0.1:8119 probe_f8fa9bf6.json)",
+   "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+   "independent_oracle": "probe.py::expected_series - re-derives the graph series from the /api/live-audit-summary payload with no import of HL_Copy_App_SSOT.py; wallet table oracles re-derive from the engine CSV inputs (append_only/send_attempts.csv, order_intents.csv, live_fills.csv) and from the live_config.json copy, all read directly"
+  },
+  {
+   "row_id": "UI-LCC-GRAPH-14",
+   "verdict": "PASS",
+   "executed_probe": "textContent of #lcYMax/#lcYMid/#lcYMin vs oracle fmtAxisMoney of the recomputed ymin/ymax",
+   "observed": "{\"dom\": [\"$690.2\", \"$224.9\", \"-$240.3\"], \"oracle\": [\"$690.2\", \"$224.9\", \"-$240.3\"], \"match\": true}",
+   "reproduces": "C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe EVIDENCE/t_f8fa9bf6/evidence_f8.py (after C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe EVIDENCE/t_f8fa9bf6/probe.py http://127.0.0.1:8119 probe_f8fa9bf6.json)",
+   "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+   "independent_oracle": "probe.py::expected_series - re-derives the graph series from the /api/live-audit-summary payload with no import of HL_Copy_App_SSOT.py; wallet table oracles re-derive from the engine CSV inputs (append_only/send_attempts.csv, order_intents.csv, live_fills.csv) and from the live_config.json copy, all read directly"
+  },
+  {
+   "row_id": "UI-LCC-GRAPH-15",
+   "verdict": "PASS",
+   "executed_probe": "children of #lcXAxisTicks: x1 of each <line> vs the 5 equally spaced x positions of the oracle time span; labels vs tickLabel(ts)",
+   "observed": "{\"n_line\": 5, \"labels\": [\"06:06\", \"09:35\", \"13:03\", \"16:31\", \"20:00\"], \"x\": [\"58\", \"287.5\", \"517\", \"746.5\", \"976\"], \"expected_x\": [58.0, 287.5, 517.0, 746.5, 976.0]}",
+   "reproduces": "C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe EVIDENCE/t_f8fa9bf6/evidence_f8.py (after C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe EVIDENCE/t_f8fa9bf6/probe.py http://127.0.0.1:8119 probe_f8fa9bf6.json)",
+   "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+   "independent_oracle": "probe.py::expected_series - re-derives the graph series from the /api/live-audit-summary payload with no import of HL_Copy_App_SSOT.py; wallet table oracles re-derive from the engine CSV inputs (append_only/send_attempts.csv, order_intents.csv, live_fills.csv) and from the live_config.json copy, all read directly"
+  },
+  {
+   "row_id": "UI-LCC-GRAPH-16",
+   "verdict": "PASS",
+   "executed_probe": "#lcGraphSubtitle textContent vs oracle point/fill counts; plus empty/short instance message",
+   "observed": "{\"subtitle\": \"Exchange account graph. ALL range \u2014 6 portfolio pts, 3 realized fills.\", \"oracle_points\": 6, \"oracle_fills\": 3, \"empty_instance\": {\"subtitle\": \"Not enough points in selected range (ALL).\", \"points\": \"\", \"ymax\": \"\", \"ticks\": 0, \"oracle_ok\": false}}",
+   "reproduces": "C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe EVIDENCE/t_f8fa9bf6/evidence_f8.py (after C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe EVIDENCE/t_f8fa9bf6/probe.py http://127.0.0.1:8119 probe_f8fa9bf6.json)",
+   "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+   "independent_oracle": "probe.py::expected_series - re-derives the graph series from the /api/live-audit-summary payload with no import of HL_Copy_App_SSOT.py; wallet table oracles re-derive from the engine CSV inputs (append_only/send_attempts.csv, order_intents.csv, live_fills.csv) and from the live_config.json copy, all read directly"
+  },
+  {
+   "row_id": "UI-LCC-WTBL-01",
+   "verdict": "PASS",
+   "executed_probe": "row cells[0] per wallet vs live_config.json wallet list + mode (short wallet + mode pill)",
+   "observed": "[{\"wallet\": \"0x1111111111111111111111111111111111111111\", \"cell0\": \"0x11111111...111111 Live\", \"config_mode\": \"LIVE\"}, {\"wallet\": \"0x2222222222222222222222222222222222222222\", \"cell0\": \"0x22222222...222222 Close-only\", \"config_mode\": \"CLO\"}, {\"wallet\": \"0x3333333333333333333333333333333333333333\", \"cell0\": \"0x33333333...333333 Off\", \"config_mode\": \"OFF\"}]",
+   "reproduces": "C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe EVIDENCE/t_f8fa9bf6/evidence_f8.py (after C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe EVIDENCE/t_f8fa9bf6/probe.py http://127.0.0.1:8119 probe_f8fa9bf6.json)",
+   "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+   "independent_oracle": "probe.py::expected_series - re-derives the graph series from the /api/live-audit-summary payload with no import of HL_Copy_App_SSOT.py; wallet table oracles re-derive from the engine CSV inputs (append_only/send_attempts.csv, order_intents.csv, live_fills.csv) and from the live_config.json copy, all read directly"
+  },
+  {
+   "row_id": "UI-LCC-WTBL-04",
+   "verdict": "PASS",
+   "executed_probe": "row cells[4] vs independent recompute of diff usd/bps from send_attempts.csv exchange_response + order_intents.csv leader_price",
+   "observed": "{\"fills\": [{\"attempt\": \"a-101\", \"coin\": \"BTC\", \"side\": \"BUY\", \"fill\": 61000.5, \"leader\": 60900.0, \"size\": 0.01, \"diff_usd\": 1.005, \"bps\": 16.5}, {\"attempt\": \"a-102\", \"coin\": \"ETH\", \"side\": \"SELL\", \"fill\": 2450.25, \"leader\": 2460.0, \"size\": 0.2, \"diff_usd\": 1.95, \"bps\": 39.63}], \"oracle\": [2.955, 1.4775, 28.1, 39.6], \"dom_cell\": \"Total: $2.96 Avg: $1.48 Avg bps: 28.1 Worst bps: 39.6\"}",
+   "reproduces": "C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe EVIDENCE/t_f8fa9bf6/evidence_f8.py (after C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe EVIDENCE/t_f8fa9bf6/probe.py http://127.0.0.1:8119 probe_f8fa9bf6.json)",
+   "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+   "independent_oracle": "probe.py::expected_series - re-derives the graph series from the /api/live-audit-summary payload with no import of HL_Copy_App_SSOT.py; wallet table oracles re-derive from the engine CSV inputs (append_only/send_attempts.csv, order_intents.csv, live_fills.csv) and from the live_config.json copy, all read directly"
+  },
+  {
+   "row_id": "UI-LCC-WTBL-05",
+   "verdict": "PASS",
+   "executed_probe": "row cells[5] vs counts from send_attempts.csv (ORDER_FILLED, reduce_only_sent=true, ORDER_REJECTED within the 1h recent window)",
+   "observed": "{\"oracle\": {\"filled\": 2, \"exits\": 1, \"rejects_total\": 1, \"dom_cell\": \"2 filled / 1 exits 0 recent rejects 0 recent blocks\"}, \"dom_cell\": \"2 filled / 1 exits 0 recent rejects 0 recent blocks\", \"note\": \"the only fixture reject is 2026-10-18T11:00Z, >1h old, so recent rejects/blocks are 0\"}",
+   "reproduces": "C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe EVIDENCE/t_f8fa9bf6/evidence_f8.py (after C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe EVIDENCE/t_f8fa9bf6/probe.py http://127.0.0.1:8119 probe_f8fa9bf6.json)",
+   "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+   "independent_oracle": "probe.py::expected_series - re-derives the graph series from the /api/live-audit-summary payload with no import of HL_Copy_App_SSOT.py; wallet table oracles re-derive from the engine CSV inputs (append_only/send_attempts.csv, order_intents.csv, live_fills.csv) and from the live_config.json copy, all read directly"
+  },
+  {
+   "row_id": "UI-LCC-WTBL-06",
+   "verdict": "PASS",
+   "executed_probe": "row cells[6] vs independent replay of live_fills.csv (avg-cost sleeves, fees) for DD/MaxDD; exposure/open-pos from the engine ledger sleeves (manual_live_positions.json, empty in this fixture)",
+   "observed": "{\"oracle\": {\"realized\": 1.995, \"fees\": 1.42, \"net\": 0.575, \"series\": [-0.61, 0.775, 0.575], \"drawdown\": -0.2, \"max_drawdown\": -0.2, \"open\": {\"ETH\": -0.2}, \"dom_cell\": \"Exposure: $0 Open pos: 0 DD: $-0.2 MaxDD: $-0.2\"}, \"dom_cell\": \"Exposure: $0 Open pos: 0 DD: $-0.2 MaxDD: $-0.2\", \"open_position_source\": \"manual_live_positions.json by_wallet = {} -> 0\", \"manual_ledger\": {\"by_wallet\": {}, \"by_coin\": {}}}",
+   "reproduces": "C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe EVIDENCE/t_f8fa9bf6/evidence_f8.py (after C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe EVIDENCE/t_f8fa9bf6/probe.py http://127.0.0.1:8119 probe_f8fa9bf6.json)",
+   "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+   "independent_oracle": "probe.py::expected_series - re-derives the graph series from the /api/live-audit-summary payload with no import of HL_Copy_App_SSOT.py; wallet table oracles re-derive from the engine CSV inputs (append_only/send_attempts.csv, order_intents.csv, live_fills.csv) and from the live_config.json copy, all read directly"
+  },
+  {
+   "row_id": "UI-LCC-WTBL-07",
+   "verdict": "FAIL",
+   "executed_probe": "row cells[7] vs the API last_fill object for the same wallet",
+   "observed": "{\"dom_cell\": \"ETH SELL @\", \"api_last_fill\": {\"leader_wallet\": \"0x1111111111111111111111111111111111111111\", \"coin\": \"ETH\", \"side\": \"SELL\", \"fill_size\": \"0.20\", \"fill_price\": \"2450.25\", \"fee\": \"0.20\", \"created_at\": \"2026-10-18T10:30:00Z\", \"intent_id\": \"i-102\", \"copy_fill_id\": \"cf-103\", \"wallet_position_before\": \"\"}, \"finding\": \"the cell renders \\\"ETH SELL @\\\" with empty size/price/time: the API last_fill row (from live_fills.csv) carries fill_size/fill_price/created_at but renderWallets reads lf.size/lf.avg_px/lf.time, so size, price and timestamp never render\"}",
+   "reproduces": "C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe EVIDENCE/t_f8fa9bf6/evidence_f8.py (after C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe EVIDENCE/t_f8fa9bf6/probe.py http://127.0.0.1:8119 probe_f8fa9bf6.json)",
+   "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+   "independent_oracle": "probe.py::expected_series - re-derives the graph series from the /api/live-audit-summary payload with no import of HL_Copy_App_SSOT.py; wallet table oracles re-derive from the engine CSV inputs (append_only/send_attempts.csv, order_intents.csv, live_fills.csv) and from the live_config.json copy, all read directly"
+  },
+  {
+   "row_id": "UI-LCC-WTBL-08",
+   "verdict": "PASS",
+   "executed_probe": "isolated instance :8121 (config COPY iso_short/live_config.json): POST /api/live-config/set-mode OFF->CLO, read the file directly, re-read /api/live-audit-summary without restart, then restore OFF",
+   "observed": "{\"config_path\": \"C:\\\\Users\\\\wigmore\\\\.hermes\\\\kanban\\\\workspaces\\\\t_f8fa9bf6\\\\iso_short\\\\live_config.json\", \"port\": 8121, \"before_file\": \"OFF\", \"post\": {\"status\": 200, \"body\": {\"ok\": true, \"config\": {\"wallets\": {\"0x1111111111111111111111111111111111111111\": {\"mode\": \"LIVE\", \"copy_mode\": \"fixed\", \"norm_base\": 100.0, \"fixed_notional\": 10.0, \"added_at\": \"2026-10-15T00:00:00Z\", \"enabled\": true}, \"0x2222222222222222222222222222222222222222\": {\"mode\": \"CLO\", \"copy_mode\": \"proportional\", \"norm_base\": 250.0, \"fixed_notional\": 42.5, \"added_at\": \"2026-10-15T00:00:01Z\", \"enabled\": true}, \"0x3333333333333333333333333333333333333333\": {\"mode\": \"CLO\", \"copy_mode\": \"fixed\", \"norm_base\": 133.5, \"fixed_notional\": 7.25, \"enabled\": true, \"added_at\": \"2026-10-15T00:00:02Z\"}}, \"archived_wallets\": {}, \"global_controls\": {\"max_total_live_exposure_usd\": 0.0, \"max_asset_directional_exposure_usd\": 0.0, \"max_daily_loss_usd\": 0.0, \"max_wallet_exposure_usd\": 0.0, \"max_order_notional_usd\": 0.0, \"marketable_bps\": 20.0, \"max_close_adverse_diff_pct\": 0.0, \"symbol_allowlist\": [], \"symbol_blocklist\": []}}, \"wallet_count\": 3, \"active_wallets\": 3, \"max_wallets\": 10}}, \"after_file\": \"CLO\", \"api_mode_no_restart\": [\"CLO\"], \"restore\": {\"status\": 200, \"body\": {\"ok\": true, \"config\": {\"archived_wallets\": {}, \"global_controls\": {\"max_total_live_exposure_usd\": 0.0, \"max_asset_directional_exposure_usd\": 0.0, \"max_daily_loss_usd\": 0.0, \"max_wallet_exposure_usd\": 0.0, \"max_order_notional_usd\": 0.0, \"marketable_bps\": 20.0, \"max_close_adverse_diff_pct\": 0.0, \"symbol_allowlist\": [], \"symbol_blocklist\": []}, \"wallets\": {\"0x1111111111111111111111111111111111111111\": {\"added_at\": \"2026-10-15T00:00:00Z\", \"copy_mode\": \"fixed\", \"enabled\": true, \"fixed_notional\": 10.0, \"mode\": \"LIVE\", \"norm_base\": 100.0}, \"0x2222222222222222222222222222222222222222\": {\"added_at\": \"2026-10-15T00:00:01Z\", \"copy_mode\": \"proportional\", \"enabled\": true, \"fixed_notional\": 42.5, \"mode\": \"CLO\", \"norm_base\": 250.0}, \"0x3333333333333333333333333333333333333333\": {\"mode\": \"OFF\", \"copy_mode\": \"fixed\", \"norm_base\": 133.5, \"fixed_notional\": 7.25, \"enabled\": false, \"added_at\": \"2026-10-15T00:00:02Z\"}}}, \"wallet_count\": 3, \"active_wallets\": 2, \"max_wallets\": 10}}, \"restored_file\": \"OFF\"}",
+   "reproduces": "C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe EVIDENCE/t_f8fa9bf6/evidence_f8.py (after C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe EVIDENCE/t_f8fa9bf6/probe.py http://127.0.0.1:8119 probe_f8fa9bf6.json)",
+   "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+   "independent_oracle": "probe.py::expected_series - re-derives the graph series from the /api/live-audit-summary payload with no import of HL_Copy_App_SSOT.py; wallet table oracles re-derive from the engine CSV inputs (append_only/send_attempts.csv, order_intents.csv, live_fills.csv) and from the live_config.json copy, all read directly"
+  },
+  {
+   "row_id": "UI-LCC-WTBL-02",
+   "verdict": "FAIL",
+   "executed_probe": "thead th text vs the matrix column spec (Mode / Health)",
+   "observed": "{\"thead\": [\"Wallet\", \"Net P&L\", \"Feed\", \"Closed / Open / Fees\", \"Lead\u2194Copy Diff\", \"Execution\", \"Risk / Exposure\", \"Last Fill\", \"Controls\"], \"expected_header\": \"Mode / Health\", \"observed_header\": \"Feed\", \"finding\": \"column 3 is headed \\\"Feed\\\" (feed/WS pill) while the register requires \\\"Mode / Health\\\"; the mode pill lives in column 1, so the required header does not exist\"}",
+   "reproduces": "C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe EVIDENCE/t_f8fa9bf6/evidence_f8.py (after C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe EVIDENCE/t_f8fa9bf6/probe.py http://127.0.0.1:8119 probe_f8fa9bf6.json)",
+   "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+   "independent_oracle": "probe.py::expected_series - re-derives the graph series from the /api/live-audit-summary payload with no import of HL_Copy_App_SSOT.py; wallet table oracles re-derive from the engine CSV inputs (append_only/send_attempts.csv, order_intents.csv, live_fills.csv) and from the live_config.json copy, all read directly"
+  },
+  {
+   "row_id": "UI-LCC-WTBL-03",
+   "verdict": "FAIL",
+   "executed_probe": "thead th text vs the matrix column spec (Live PnL)",
+   "observed": "{\"thead\": [\"Wallet\", \"Net P&L\", \"Feed\", \"Closed / Open / Fees\", \"Lead\u2194Copy Diff\", \"Execution\", \"Risk / Exposure\", \"Last Fill\", \"Controls\"], \"expected_header\": \"Live PnL\", \"observed_header\": \"Net P&L\", \"finding\": \"column 2 is headed \\\"Net P&L\\\"; the register requires \\\"Live PnL R/U/Net + PnL status\\\"\"}",
+   "reproduces": "C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe EVIDENCE/t_f8fa9bf6/evidence_f8.py (after C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe EVIDENCE/t_f8fa9bf6/probe.py http://127.0.0.1:8119 probe_f8fa9bf6.json)",
+   "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+   "independent_oracle": "probe.py::expected_series - re-derives the graph series from the /api/live-audit-summary payload with no import of HL_Copy_App_SSOT.py; wallet table oracles re-derive from the engine CSV inputs (append_only/send_attempts.csv, order_intents.csv, live_fills.csv) and from the live_config.json copy, all read directly"
+  }
+ ]
+}

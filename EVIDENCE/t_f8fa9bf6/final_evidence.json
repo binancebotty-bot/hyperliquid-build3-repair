@@ -1,0 +1,503 @@
+{
+ "graph": {
+  "axis": {
+   "dom": [
+    "$690.2",
+    "$224.9",
+    "-$240.3"
+   ],
+   "oracle": [
+    "$690.2",
+    "$224.9",
+    "-$240.3"
+   ],
+   "match": true
+  },
+  "exchange_path": {
+   "n": 6,
+   "max_abs_delta": 0.0
+  },
+  "realized_path": {
+   "n": 5,
+   "max_abs_delta": 0.0
+  },
+  "drawdown_path": {
+   "n": 6,
+   "max_abs_delta": 0.0
+  },
+  "subtitle": "Exchange account graph. ALL range \u2014 6 portfolio pts, 3 realized fills.",
+  "points": 6,
+  "fills": 3,
+  "ticks": {
+   "n_line": 5,
+   "labels": [
+    "06:06",
+    "09:35",
+    "13:03",
+    "16:31",
+    "20:00"
+   ],
+   "x": [
+    "58",
+    "287.5",
+    "517",
+    "746.5",
+    "976"
+   ],
+   "expected_x": [
+    58.0,
+    287.5,
+    517.0,
+    746.5,
+    976.0
+   ]
+  },
+  "reset": {
+   "baseline_sub": "Exchange account graph. ALL range \u2014 6 portfolio pts, 3 realized fills.",
+   "baseline_active": [
+    "all"
+   ],
+   "baseline_npts": 6,
+   "after7d_sub": "Exchange account graph. 7D range \u2014 6 portfolio pts, 3 realized fills.",
+   "after7d_active": [
+    "7d"
+   ],
+   "after7d_npts": 6,
+   "afterApply_sub": "Exchange account graph. 18/10/2026, 00:00:00 to 18/10/2026, 12:00:00 range \u2014 3 portfolio pts, 1 realized fills.",
+   "afterApply_active": [],
+   "afterApply_npts": 3,
+   "afterReset_sub": "Exchange account graph. ALL range \u2014 6 portfolio pts, 3 realized fills.",
+   "afterReset_active": [
+    "all"
+   ],
+   "afterReset_npts": 6,
+   "afterReset_start": "",
+   "afterReset_end": ""
+  },
+  "empty_instance": {
+   "subtitle": "Not enough points in selected range (ALL).",
+   "points": "",
+   "ymax": "",
+   "ticks": 0,
+   "oracle_ok": false
+  }
+ },
+ "exec": {
+  "filled": 2,
+  "exits": 1,
+  "rejects_total": 1,
+  "dom_cell": "2 filled / 1 exits 0 recent rejects 0 recent blocks"
+ },
+ "risk": {
+  "realized": 1.995,
+  "fees": 1.42,
+  "net": 0.575,
+  "series": [
+   -0.61,
+   0.775,
+   0.575
+  ],
+  "drawdown": -0.2,
+  "max_drawdown": -0.2,
+  "open": {
+   "ETH": -0.2
+  },
+  "dom_cell": "Exposure: $0 Open pos: 0 DD: $-0.2 MaxDD: $-0.2"
+ },
+ "diff": {
+  "fills": [
+   {
+    "attempt": "a-101",
+    "coin": "BTC",
+    "side": "BUY",
+    "fill": 61000.5,
+    "leader": 60900.0,
+    "size": 0.01,
+    "diff_usd": 1.005,
+    "bps": 16.5
+   },
+   {
+    "attempt": "a-102",
+    "coin": "ETH",
+    "side": "SELL",
+    "fill": 2450.25,
+    "leader": 2460.0,
+    "size": 0.2,
+    "diff_usd": 1.95,
+    "bps": 39.63
+   }
+  ],
+  "total": 2.955,
+  "avg": 1.4775,
+  "avg_bps": 28.1,
+  "worst_bps": 39.6,
+  "dom_cell": "Total: $2.96 Avg: $1.48 Avg bps: 28.1 Worst bps: 39.6"
+ },
+ "wallets": [
+  {
+   "wallet": "0x1111111111111111111111111111111111111111",
+   "cells": [
+    "0x11111111...111111 Live",
+    "+$0.58",
+    "Websocket OK HOT10 shared socket active",
+    "Closed: $2 Open: $0 Fees: $1.42 From engine ledger",
+    "Total: $2.96 Avg: $1.48 Avg bps: 28.1 Worst bps: 39.6",
+    "2 filled / 1 exits 0 recent rejects 0 recent blocks",
+    "Exposure: $0 Open pos: 0 DD: $-0.2 MaxDD: $-0.2",
+    "ETH SELL @",
+    "LIVE CLO OFF prop fixed F N Save CLO OFF Archive"
+   ],
+   "controls": {
+    "mode": "LIVE",
+    "copy": "fixed",
+    "fixed": "10",
+    "norm": "100",
+    "buttons": [
+     "Save",
+     "CLO",
+     "OFF",
+     "Archive"
+    ]
+   }
+  },
+  {
+   "wallet": "0x2222222222222222222222222222222222222222",
+   "cells": [
+    "0x22222222...222222 Close-only",
+    "\u2212$0.15",
+    "Websocket OK HOT10 shared socket active",
+    "Closed: $0 Open: $0 Fees: $0.15 From engine ledger",
+    "Total: $-0.5 Avg: $-0.5 Avg bps: -16.2 Worst bps: -16.2",
+    "1 filled / 1 exits 0 recent rejects 0 recent blocks",
+    "Exposure: $0 Open pos: 0 DD: $0 MaxDD: $0",
+    "BTC SELL @",
+    "LIVE CLO OFF prop fixed F N Save CLO OFF Archive"
+   ],
+   "controls": {
+    "mode": "CLO",
+    "copy": "proportional",
+    "fixed": "42.5",
+    "norm": "250",
+    "buttons": [
+     "Save",
+     "CLO",
+     "OFF",
+     "Archive"
+    ]
+   }
+  },
+  {
+   "wallet": "0x3333333333333333333333333333333333333333",
+   "cells": [
+    "0x33333333...333333 Off",
+    "\u2014",
+    "not followed",
+    "Closed: \u2014 Open: $0 Fees: \u2014 No PnL yet",
+    "Total: n/a Avg: n/a Avg bps: n/a Worst bps: n/a",
+    "0 filled / 0 exits 0 recent rejects 0 recent blocks",
+    "Exposure: $0 Open pos: 0 DD: \u2014 MaxDD: \u2014",
+    "none yet",
+    "LIVE CLO OFF prop fixed F N Save CLO OFF Archive"
+   ],
+   "controls": {
+    "mode": "OFF",
+    "copy": "fixed",
+    "fixed": "7.25",
+    "norm": "133.5",
+    "buttons": [
+     "Save",
+     "CLO",
+     "OFF",
+     "Archive"
+    ]
+   }
+  }
+ ],
+ "thead": [
+  "Wallet",
+  "Net P&L",
+  "Feed",
+  "Closed / Open / Fees",
+  "Lead\u2194Copy Diff",
+  "Execution",
+  "Risk / Exposure",
+  "Last Fill",
+  "Controls"
+ ],
+ "api_rows": [
+  {
+   "wallet": "0x1111111111111111111111111111111111111111",
+   "mode": "LIVE",
+   "mode_label": "Live",
+   "net_pnl": 0.575,
+   "realized_pnl": 1.995,
+   "unrealized_pnl": 0.0,
+   "fees": 1.42,
+   "total_diff_usd": 2.955,
+   "avg_diff_usd": 1.4775,
+   "avg_diff_bps": 28.1,
+   "worst_diff_bps": 39.6,
+   "filled_count": 2,
+   "exits_count": 1,
+   "recent_reject_count": 0,
+   "recent_block_count": 0,
+   "current_exposure": 0.0,
+   "open_position_count": 0,
+   "drawdown": -0.2,
+   "max_drawdown": -0.2,
+   "last_fill": {
+    "leader_wallet": "0x1111111111111111111111111111111111111111",
+    "coin": "ETH",
+    "side": "SELL",
+    "fill_size": "0.20",
+    "fill_price": "2450.25",
+    "fee": "0.20",
+    "created_at": "2026-10-18T10:30:00Z",
+    "intent_id": "i-102",
+    "copy_fill_id": "cf-103",
+    "wallet_position_before": ""
+   },
+   "pnl_status": "LEDGER",
+   "pnl_status_label": "From engine ledger",
+   "copy_mode": "fixed",
+   "norm_base": 100.0,
+   "fixed_notional": 10.0,
+   "ws_state": "SHARED_WS_OK"
+  },
+  {
+   "wallet": "0x2222222222222222222222222222222222222222",
+   "mode": "CLO",
+   "mode_label": "Close-only",
+   "net_pnl": -0.15,
+   "realized_pnl": 0.0,
+   "unrealized_pnl": 0.0,
+   "fees": 0.15,
+   "total_diff_usd": -0.5,
+   "avg_diff_usd": -0.5,
+   "avg_diff_bps": -16.2,
+   "worst_diff_bps": -16.2,
+   "filled_count": 1,
+   "exits_count": 1,
+   "recent_reject_count": 0,
+   "recent_block_count": 0,
+   "current_exposure": 0.0,
+   "open_position_count": 0,
+   "drawdown": 0.0,
+   "max_drawdown": 0.0,
+   "last_fill": {
+    "leader_wallet": "0x2222222222222222222222222222222222222222",
+    "coin": "BTC",
+    "side": "SELL",
+    "fill_size": "0.005",
+    "fill_price": "62000.0",
+    "fee": "0.15",
+    "created_at": "2026-10-18T13:00:00Z",
+    "intent_id": "i-201",
+    "copy_fill_id": "cf-201",
+    "wallet_position_before": ""
+   },
+   "pnl_status": "LEDGER",
+   "pnl_status_label": "From engine ledger",
+   "copy_mode": "proportional",
+   "norm_base": 250.0,
+   "fixed_notional": 42.5,
+   "ws_state": "SHARED_WS_OK"
+  },
+  {
+   "wallet": "0x3333333333333333333333333333333333333333",
+   "mode": "OFF",
+   "mode_label": "Off",
+   "net_pnl": null,
+   "realized_pnl": null,
+   "unrealized_pnl": 0.0,
+   "fees": null,
+   "total_diff_usd": null,
+   "avg_diff_usd": null,
+   "avg_diff_bps": null,
+   "worst_diff_bps": null,
+   "filled_count": 0,
+   "exits_count": 0,
+   "recent_reject_count": 0,
+   "recent_block_count": 0,
+   "current_exposure": 0.0,
+   "open_position_count": 0,
+   "drawdown": null,
+   "max_drawdown": null,
+   "last_fill": {},
+   "pnl_status": "N/A",
+   "pnl_status_label": "No PnL yet",
+   "copy_mode": "fixed",
+   "norm_base": 133.5,
+   "fixed_notional": 7.25,
+   "ws_state": "COPY DISABLED"
+  }
+ ],
+ "config": {
+  "wallets": {
+   "0x1111111111111111111111111111111111111111": {
+    "mode": "LIVE",
+    "copy_mode": "fixed",
+    "norm_base": 100.0,
+    "fixed_notional": 10.0,
+    "added_at": "2026-10-15T00:00:00Z"
+   },
+   "0x2222222222222222222222222222222222222222": {
+    "mode": "CLO",
+    "copy_mode": "proportional",
+    "norm_base": 250.0,
+    "fixed_notional": 42.5,
+    "added_at": "2026-10-15T00:00:01Z"
+   },
+   "0x3333333333333333333333333333333333333333": {
+    "mode": "OFF",
+    "copy_mode": "fixed",
+    "norm_base": 133.5,
+    "fixed_notional": 7.25,
+    "added_at": "2026-10-15T00:00:02Z"
+   }
+  },
+  "archived_wallets": {},
+  "global_controls": {
+   "max_total_live_exposure_usd": 0.0,
+   "max_asset_directional_exposure_usd": 0.0,
+   "max_daily_loss_usd": 0.0,
+   "max_wallet_exposure_usd": 0.0,
+   "max_order_notional_usd": 0.0,
+   "marketable_bps": 20.0,
+   "max_close_adverse_diff_pct": 0.0,
+   "symbol_allowlist": [],
+   "symbol_blocklist": []
+  }
+ },
+ "ws_health": {
+  "ws_summary": {
+   "ws_status": "WS_OK",
+   "socket_open": true,
+   "thread_alive": true
+  },
+  "wallets": {
+   "0x1111111111111111111111111111111111111111": {
+    "conn_status": "SHARED_WS_OK",
+    "ws_state": "SHARED_WS_OK",
+    "ws_reason": "shared HOT10 socket"
+   },
+   "0x2222222222222222222222222222222222222222": {
+    "conn_status": "POLLING",
+    "ws_state": "POLLING",
+    "ws_reason": "close-only poll"
+   },
+   "0x3333333333333333333333333333333333333333": {
+    "conn_status": "",
+    "ws_state": ""
+   }
+  }
+ },
+ "write_test": {
+  "config_path": "C:\\Users\\wigmore\\.hermes\\kanban\\workspaces\\t_f8fa9bf6\\iso_short\\live_config.json",
+  "port": 8121,
+  "before": "OFF",
+  "post": {
+   "status": 200,
+   "body": {
+    "ok": true,
+    "config": {
+     "wallets": {
+      "0x1111111111111111111111111111111111111111": {
+       "mode": "LIVE",
+       "copy_mode": "fixed",
+       "norm_base": 100.0,
+       "fixed_notional": 10.0,
+       "added_at": "2026-10-15T00:00:00Z",
+       "enabled": true
+      },
+      "0x2222222222222222222222222222222222222222": {
+       "mode": "CLO",
+       "copy_mode": "proportional",
+       "norm_base": 250.0,
+       "fixed_notional": 42.5,
+       "added_at": "2026-10-15T00:00:01Z",
+       "enabled": true
+      },
+      "0x3333333333333333333333333333333333333333": {
+       "mode": "CLO",
+       "copy_mode": "fixed",
+       "norm_base": 133.5,
+       "fixed_notional": 7.25,
+       "enabled": true,
+       "added_at": "2026-10-15T00:00:02Z"
+      }
+     },
+     "archived_wallets": {},
+     "global_controls": {
+      "max_total_live_exposure_usd": 0.0,
+      "max_asset_directional_exposure_usd": 0.0,
+      "max_daily_loss_usd": 0.0,
+      "max_wallet_exposure_usd": 0.0,
+      "max_order_notional_usd": 0.0,
+      "marketable_bps": 20.0,
+      "max_close_adverse_diff_pct": 0.0,
+      "symbol_allowlist": [],
+      "symbol_blocklist": []
+     }
+    },
+    "wallet_count": 3,
+    "active_wallets": 3,
+    "max_wallets": 10
+   }
+  },
+  "after_file": "CLO",
+  "api_mode_no_restart": [
+   "CLO"
+  ],
+  "restore": {
+   "status": 200,
+   "body": {
+    "ok": true,
+    "config": {
+     "archived_wallets": {},
+     "global_controls": {
+      "max_total_live_exposure_usd": 0.0,
+      "max_asset_directional_exposure_usd": 0.0,
+      "max_daily_loss_usd": 0.0,
+      "max_wallet_exposure_usd": 0.0,
+      "max_order_notional_usd": 0.0,
+      "marketable_bps": 20.0,
+      "max_close_adverse_diff_pct": 0.0,
+      "symbol_allowlist": [],
+      "symbol_blocklist": []
+     },
+     "wallets": {
+      "0x1111111111111111111111111111111111111111": {
+       "added_at": "2026-10-15T00:00:00Z",
+       "copy_mode": "fixed",
+       "enabled": true,
+       "fixed_notional": 10.0,
+       "mode": "LIVE",
+       "norm_base": 100.0
+      },
+      "0x2222222222222222222222222222222222222222": {
+       "added_at": "2026-10-15T00:00:01Z",
+       "copy_mode": "proportional",
+       "enabled": true,
+       "fixed_notional": 42.5,
+       "mode": "CLO",
+       "norm_base": 250.0
+      },
+      "0x3333333333333333333333333333333333333333": {
+       "mode": "OFF",
+       "copy_mode": "fixed",
+       "norm_base": 133.5,
+       "fixed_notional": 7.25,
+       "enabled": false,
+       "added_at": "2026-10-15T00:00:02Z"
+      }
+     }
+    },
+    "wallet_count": 3,
+    "active_wallets": 2,
+    "max_wallets": 10
+   }
+  },
+  "restored_file": "OFF"
+ }
+}

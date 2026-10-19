@@ -1,0 +1,286 @@
+{
+ "base": "http://127.0.0.1:8119",
+ "oracle_ok": true,
+ "oracle": {
+  "points": [
+   {
+    "ts": 1792300000000.0,
+    "value": 0.0
+   },
+   {
+    "ts": 1792310000000.0,
+    "value": 250.5
+   },
+   {
+    "ts": 1792320000000.0,
+    "value": 100.25
+   },
+   {
+    "ts": 1792330000000.0,
+    "value": 400.75
+   },
+   {
+    "ts": 1792340000000.0,
+    "value": 300.5
+   },
+   {
+    "ts": 1792350000000.0,
+    "value": 600.125
+   }
+  ],
+  "realized": [
+   {
+    "ts": 1792300000000.0,
+    "value": 0.0
+   },
+   {
+    "ts": 1792305000000.0,
+    "value": 12.5
+   },
+   {
+    "ts": 1792325000000.0,
+    "value": 8.25
+   },
+   {
+    "ts": 1792345000000.0,
+    "value": 39.0
+   },
+   {
+    "ts": 1792350000000.0,
+    "value": 39.0
+   }
+  ],
+  "drawdown": [
+   {
+    "ts": 1792300000000.0,
+    "value": 0.0
+   },
+   {
+    "ts": 1792310000000.0,
+    "value": 0.0
+   },
+   {
+    "ts": 1792320000000.0,
+    "value": -150.25
+   },
+   {
+    "ts": 1792330000000.0,
+    "value": 0.0
+   },
+   {
+    "ts": 1792340000000.0,
+    "value": -100.25
+   },
+   {
+    "ts": 1792350000000.0,
+    "value": 0.0
+   }
+  ],
+  "exchange_pts": "58.0,213.8873359019415 241.60000000000002,144.96695738152428 425.20000000000005,186.30542793119568 608.8,103.62848683185285 792.4000000000001,131.21039480259867 976.0,48.774193548387046",
+  "realized_pts": "58.0,213.8873359019415 149.8,210.4481952572101 517.0,211.61750307641876 884.2,203.15721709037953 976.0,203.15721709037953",
+  "drawdown_pts": "58.0,213.8873359019415 241.60000000000002,213.8873359019415 425.20000000000005,255.2258064516129 608.8,213.8873359019415 792.4000000000001,241.46924387268731 976.0,213.8873359019415",
+  "ymax": "$690.2",
+  "ymid": "$224.9",
+  "ymin": "-$240.3",
+  "n_points": 6,
+  "n_fills": 3,
+  "min_ts": 1792300000000.0,
+  "max_ts": 1792350000000.0,
+  "tick_ts": [
+   1792300000000.0,
+   1792312500000.0,
+   1792325000000.0,
+   1792337500000.0,
+   1792350000000.0
+  ],
+  "realized_final": 39.0,
+  "drawdown_final": 0.0
+ },
+ "dom": {
+  "subtitle": "Exchange account graph. ALL range \u2014 6 portfolio pts, 3 realized fills.",
+  "exchangePath": "58,213.8873359019415 241.60000000000002,144.96695738152428 425.20000000000005,186.30542793119568 608.8,103.62848683185285 792.4000000000001,131.21039480259867 976,48.774193548387046",
+  "realizedPath": "58,213.8873359019415 149.8,210.4481952572101 517,211.61750307641876 884.2,203.15721709037953 976,203.15721709037953",
+  "drawdownPath": "58,213.8873359019415 241.60000000000002,213.8873359019415 425.20000000000005,255.2258064516129 608.8,213.8873359019415 792.4000000000001,241.46924387268731 976,213.8873359019415",
+  "ymax": "$690.2",
+  "ymid": "$224.9",
+  "ymin": "-$240.3",
+  "ticks": [
+   {
+    "tag": "line",
+    "text": "",
+    "x": "58"
+   },
+   {
+    "tag": "text",
+    "text": "06:06",
+    "x": "58"
+   },
+   {
+    "tag": "line",
+    "text": "",
+    "x": "287.5"
+   },
+   {
+    "tag": "text",
+    "text": "09:35",
+    "x": "287.5"
+   },
+   {
+    "tag": "line",
+    "text": "",
+    "x": "517"
+   },
+   {
+    "tag": "text",
+    "text": "13:03",
+    "x": "517"
+   },
+   {
+    "tag": "line",
+    "text": "",
+    "x": "746.5"
+   },
+   {
+    "tag": "text",
+    "text": "16:31",
+    "x": "746.5"
+   },
+   {
+    "tag": "line",
+    "text": "",
+    "x": "976"
+   },
+   {
+    "tag": "text",
+    "text": "20:00",
+    "x": "976"
+   }
+  ],
+  "thead": [
+   "Wallet",
+   "Net P&L",
+   "Feed",
+   "Closed / Open / Fees",
+   "Lead\u2194Copy Diff",
+   "Execution",
+   "Risk / Exposure",
+   "Last Fill",
+   "Controls"
+  ],
+  "rows": [
+   {
+    "wallet": "0x1111111111111111111111111111111111111111",
+    "cells": [
+     "0x11111111...111111 Live",
+     "+$0.58",
+     "Websocket OK HOT10 shared socket active",
+     "Closed: $2 Open: $0 Fees: $1.42 From engine ledger",
+     "Total: $2.96 Avg: $1.48 Avg bps: 28.1 Worst bps: 39.6",
+     "2 filled / 1 exits 0 recent rejects 0 recent blocks",
+     "Exposure: $0 Open pos: 0 DD: $-0.2 MaxDD: $-0.2",
+     "ETH SELL @",
+     "LIVE CLO OFF prop fixed F N Save CLO OFF Archive"
+    ],
+    "controls": {
+     "mode": "LIVE",
+     "copy": "fixed",
+     "fixed": "10",
+     "norm": "100",
+     "buttons": [
+      "Save",
+      "CLO",
+      "OFF",
+      "Archive"
+     ]
+    }
+   },
+   {
+    "wallet": "0x2222222222222222222222222222222222222222",
+    "cells": [
+     "0x22222222...222222 Close-only",
+     "\u2212$0.15",
+     "Websocket OK HOT10 shared socket active",
+     "Closed: $0 Open: $0 Fees: $0.15 From engine ledger",
+     "Total: $-0.5 Avg: $-0.5 Avg bps: -16.2 Worst bps: -16.2",
+     "1 filled / 1 exits 0 recent rejects 0 recent blocks",
+     "Exposure: $0 Open pos: 0 DD: $0 MaxDD: $0",
+     "BTC SELL @",
+     "LIVE CLO OFF prop fixed F N Save CLO OFF Archive"
+    ],
+    "controls": {
+     "mode": "CLO",
+     "copy": "proportional",
+     "fixed": "42.5",
+     "norm": "250",
+     "buttons": [
+      "Save",
+      "CLO",
+      "OFF",
+      "Archive"
+     ]
+    }
+   },
+   {
+    "wallet": "0x3333333333333333333333333333333333333333",
+    "cells": [
+     "0x33333333...333333 Off",
+     "\u2014",
+     "not followed",
+     "Closed: \u2014 Open: $0 Fees: \u2014 No PnL yet",
+     "Total: n/a Avg: n/a Avg bps: n/a Worst bps: n/a",
+     "0 filled / 0 exits 0 recent rejects 0 recent blocks",
+     "Exposure: $0 Open pos: 0 DD: \u2014 MaxDD: \u2014",
+     "none yet",
+     "LIVE CLO OFF prop fixed F N Save CLO OFF Archive"
+    ],
+    "controls": {
+     "mode": "OFF",
+     "copy": "fixed",
+     "fixed": "7.25",
+     "norm": "133.5",
+     "buttons": [
+      "Save",
+      "CLO",
+      "OFF",
+      "Archive"
+     ]
+    }
+   }
+  ],
+  "zeroLine": "213.8873359019415"
+ },
+ "reset": {
+  "baseline_sub": "Exchange account graph. ALL range \u2014 6 portfolio pts, 3 realized fills.",
+  "baseline_active": [
+   "all"
+  ],
+  "baseline_npts": 6,
+  "after7d_sub": "Exchange account graph. 7D range \u2014 6 portfolio pts, 3 realized fills.",
+  "after7d_active": [
+   "7d"
+  ],
+  "after7d_npts": 6,
+  "afterApply_sub": "Exchange account graph. 18/10/2026, 00:00:00 to 18/10/2026, 12:00:00 range \u2014 3 portfolio pts, 1 realized fills.",
+  "afterApply_active": [],
+  "afterApply_npts": 3,
+  "afterReset_sub": "Exchange account graph. ALL range \u2014 6 portfolio pts, 3 realized fills.",
+  "afterReset_active": [
+   "all"
+  ],
+  "afterReset_npts": 6,
+  "afterReset_start": "",
+  "afterReset_end": ""
+ },
+ "dom_after_reset": {
+  "points": "58,213.8873359019415 241.60000000000002,144.96695738152428 425.20000000000005,186.30542793119568 608.8,103.62848683185285 792.4000000000001,131.21039480259867 976,48.774193548387046",
+  "sub": "Exchange account graph. ALL range \u2014 6 portfolio pts, 3 realized fills.",
+  "npts": 6
+ },
+ "requests": [
+  "http://127.0.0.1:8119/live-copy",
+  "http://127.0.0.1:8119/api/live-config",
+  "http://127.0.0.1:8119/api/live-ws-health",
+  "http://127.0.0.1:8119/api/live-audit-summary",
+  "http://127.0.0.1:8119/api/global-controls"
+ ]
+}
