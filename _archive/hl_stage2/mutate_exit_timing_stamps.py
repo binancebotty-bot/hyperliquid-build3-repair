@@ -127,7 +127,10 @@ def is_assertion_failure(code, out, err, stamp, mutation):
         target = 'CLOSE_PLAN_STAMP_EMITTED' if mutation == 'DELETE' else 'CLOSE_PLAN_STAMP_RESPONDS_TO_SLOW_PLAN'
     else:
         target = 'EXCHANGE_NET_STAMP_EMITTED' if mutation == 'DELETE' else 'EXCHANGE_NET_STAMP_RESPONDS_TO_SLOW_ACCOUNT_READ'
-    return 'FAILED: ' + target in output
+    if mutation == 'DELETE':
+        return 'FAILED: ' + target in output
+    ordered = target.split('_RESPONDS_TO_')[0] + '_ORDERED'
+    return ('FAILED: ' + target in output or 'FAILED: ' + ordered in output)
 
 def main():
     # Start from the original module in the worktree
@@ -150,12 +153,12 @@ def main():
             with open(mod_path, 'w', encoding='utf-8') as f:
                 f.write(mutated)
             code, out, err = run_test_with_module(tmp, test_path)
-            if code == 0:
-                failures.append(f"DELETE_{stamp} unexpectedly PASSED")
+            if not is_assertion_failure(code, out, err, stamp, 'DELETE'):
+                failures.append(f"DELETE_{stamp} did not fail for the expected assertion")
                 print(f"STDOUT:\n{out}", file=sys.stderr)
                 print(f"STDERR:\n{err}", file=sys.stderr)
             else:
-                print(f"DELETE_{stamp} FAILED as expected (exit {code}); " + ' | '.join(line.strip() for line in out.splitlines() if 'FAIL ' in line or 'FAILED:' in line), flush=True)
+                print(f"DELETE_{stamp} failed on the expected assertion (exit {code}); " + ' | '.join(line.strip() for line in out.splitlines() if 'FAILED:' in line), flush=True)
 
         print(f"\n=== Testing PIN_{stamp}_CONST ===", flush=True)
         with tempfile.TemporaryDirectory() as tmp:
@@ -172,10 +175,12 @@ def main():
                 print(f"STDOUT:\n{out}", file=sys.stderr)
                 print(f"STDERR:\n{err}", file=sys.stderr)
             else:
-                details = ' | '.join(line.strip() for line in out.splitlines() if 'FAIL ' in line or 'FAILED:' in line)
-                if not details:
-                    details = 'NO_ASSERTION_FAILURE; stderr=' + err.strip()
-                print(f"PIN_{stamp}_CONST FAILED as expected (exit {code}); " + details, flush=True)
+                if not is_assertion_failure(code, out, err, stamp, 'PIN'):
+                    failures.append(f"PIN_{stamp}_CONST did not fail for the expected assertion")
+                    details = 'NO_EXPECTED_ASSERTION_FAILURE; stdout=' + out.strip() + '; stderr=' + err.strip()
+                else:
+                    details = ' | '.join(line.strip() for line in out.splitlines() if 'FAILED:' in line)
+                print(f"PIN_{stamp}_CONST assertion failure verified (exit {code}); " + details, flush=True)
 
     if failures:
         print("\n=== MUTATION TEST FAILURES ===", file=sys.stderr)
