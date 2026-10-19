@@ -1,0 +1,880 @@
+{
+ "card_id": "t_cbb9fb32",
+ "captured_at_utc": "2026-10-19T10:49:03.912391+00:00",
+ "pointer_form": "certification/results/UI-FP-113-127.json#/rows/<row_id>",
+ "serving_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+ "serving_commit_date": "2026-10-09T14:11:59Z",
+ "serving_checkout_dirty": true,
+ "serving_ssot_sha256": "b45ff9af2182944a1fabd98b6369d0ad7dd7d215062abec3bdc20dfd75e9e7c2",
+ "serving_html_sha256": "f7e21c05a7dee3677beec87d3773b8440b1fb9c505477378a268bd81387117b9",
+ "serving_process": {
+  "port": 8023,
+  "pid": "15760",
+  "start_time": "2026-10-19T08:40:25.6745941+01:00"
+ },
+ "serving_binding": "SERVED_HTML_SHA256:f7e21c05a7dee3677beec87d3773b8440b1fb9c505477378a268bd81387117b9 (authoritative: bytes the process returns) + SSOT:b45ff9af2182944a1fabd98b6369d0ad7dd7d215062abec3bdc20dfd75e9e7c2",
+ "how_serving_build_was_established": "netstat -ano | grep :8023 -> LISTEN pid 15760; that PID started 2026-10-19T08:40:25.6745941+01:00. Its command line is \"python -m uvicorn HL_Copy_App_SSOT:app --port 8023\" launched from the _archive/hl_stage2 checkout, whose HEAD is 43731b4f1f19a56e835032dabf608a550f925717 (committed 2026-10-09T14:11:59Z - BEFORE the process start, so the date arithmetic the schema requires holds). That checkout's HL_Copy_App_SSOT.py is dirty against the committed blob, so no commit is claimed as THE serving build: the binding is the served HTML sha256 f7e21c05a7dee3677beec87d3773b8440b1fb9c505477378a268bd81387117b9 plus the served SSOT content sha256 b45ff9af2182944a1fabd98b6369d0ad7dd7d215062abec3bdc20dfd75e9e7c2 (file mtime 2026-10-18 21:19, also before the process start).",
+ "served_row_templates": {
+  "why": "the per-row renderer rule for every row below is quoted from these served template lines, so the rule cannot drift from the build that actually rendered the page",
+  "audit_table": "root.querySelector('#lcAuditRows').innerHTML=rows.map(r=>{const iid=String(r.intent_id||'');const attempt=iid?sendByIntent[iid]:null;const execDec=String(r.execution_decision||'');let realRes='NO_SEND_ATTEMPT';if(attempt){const st=String(attempt.status||'');realRes=st==='ORDER_FILLED'?'REAL_ORDER_FILLED':st==='ORDER_REJECTED'?'EXCHANGE_REJECTED':st||'NO_SEND_ATTEMPT';}else if(execDec==='WOULD_PLACE_IOC_LIMIT'){realRes='WOULD_SEND_ONLY';}const rawNote=first(r,['notes','message']);const displayNote=rawNote&&rawNote.indexOf('dry-run simulated fill')!==-1?'legacy intent note: leader WS fill detected; check real order result':rawNote;const rrCls=realRes==='REAL_ORDER_FILLED'?'lc-green':realRes==='EXCHANGE_REJECTED'?'lc-red':realRes==='WOULD_SEND_ONLY'?'lc-amber':'lc-muted';return `<tr><td>${h(first(r,['created_at','timestamp_iso','time']))}</td><td class=\"lc-wallet\">${h(shortWallet(first(r,['leader_wallet','wallet'])))}</td><td>${h(first(r,['coin','asset']))}</td><td>${h(first(r,['side']))}</td><td><div class=\"lc-cell-stack\"><span>${h(sourceOf(r))}</span><span class=\"lc-muted\">${tiny(first(r,['reason']),32)}</span></div></td><td>${pill(first(r,['status'])||'—')}</td><td>${decisionPill(first(r,['execution_decision'])||'—')}</td><td>${tiny(first(r,['decision_reason']),34)}</td><td>${h(first(r,['suggested_limit_price','target_price']))}</td><td>${h(first(r,['adverse_diff_pct','diff_pct','real_diff_pct','price_diff_pct']))}</td><td>${h(first(r,['manual_reconcile_required']))}</td><td title=\"${h(displayNote)}\">${tiny(displayNote,60)}</td><td><span class=\"lc-pill ${rrCls}\">${h(realRes)}</span></td></tr>`;}).join('')||'<tr><td colspan=\"13\">No audit rows found.</td></tr>';",
+  "exec_table": "root.querySelector('#lcExecQualRows').innerHTML=rows.map(r=>{\nconst st=String(r.status||'—');\nconst term=String(r.terminal_state||'');\nconst stCls=terminalCls(term||st);\nconst truth=String(r.truth_state||'');\nconst rawTerm=String(r.raw_terminal_state||'');\nconst pos=(r.wallet_position_before!=null&&r.wallet_position_before!==''&&r.wallet_position_after!=null&&r.wallet_position_after!=='')?`${h(r.wallet_position_before)} -> ${h(r.wallet_position_after)}`:'—';\nconst ms=v=>v!=null&&v!==''?h(v):'—';\nreturn `<tr><td>${tiny(r.time||'—',22)}</td><td class=\"lc-wallet\">${h(r.leader_wallet?shortWallet(r.leader_wallet):'—')}</td><td>${h(r.coin||'—')}</td><td>${h(r.side||'—')}</td><td><span class=\"lc-pill ${truthCls(truth)}\">${h(truth||'—')}</span></td><td><span class=\"lc-pill ${stCls}\">${h(st)}</span></td><td><span class=\"lc-pill ${terminalCls(term)}\" title=\"${h(rawTerm?('raw: '+rawTerm):'')}\">${h(term||'—')}</span></td><td>${h(r.operator_action||'—')}</td><td>${h(r.reject_category||'—')}</td><td class=\"lc-wallet\">${r.oid?tiny(String(r.oid),18):'—'}</td><td>${r.fill_avg_px!=null?h(r.fill_avg_px):'—'}</td><td>${r.fill_size!=null?h(r.fill_size):'—'}</td><td>${pos}</td><td>${ms(r.leader_to_send_attempt_ms)}</td><td>${ms(r.send_total_ms)}</td><td>${ms(r.symbol_resolve_ms)}</td><td>${ms(r.sdk_client_ms)}</td><td>${ms(r.exchange_call_ms)}</td><td title=\"${h(r.error||'')}\">${tiny(r.error||'',28)}</td></tr>`;"
+ },
+ "renderer_extract": {
+  "served_ssot_total_lines": 6408,
+  "markers": {
+   "function first(": {
+    "lines": [
+     5670
+    ],
+    "code": {
+     "5670": "function first(row,keys){for(const k of keys){if(row&&row[k]!=null&&row[k]!=='')return row[k];}return '';}"
+    }
+   },
+   "function tiny(": {
+    "lines": [
+     5675
+    ],
+    "code": {
+     "5675": "function tiny(v,n){const s=String(v==null?'':v);return h(s.length>n?s.slice(0,n-1)+'…':s);}"
+    }
+   },
+   "function shortWallet(": {
+    "lines": [
+     5671
+    ],
+    "code": {
+     "5671": "function shortWallet(w){return String(w||'').length>18?String(w).slice(0,10)+'...'+String(w).slice(-6):String(w||'');}"
+    }
+   },
+   "function sourceOf(": {
+    "lines": [
+     5679
+    ],
+    "code": {
+     "5679": "function sourceOf(r){return first(r,['source','fill_source'])||String(first(r,['reason'])).replace('LIVE_','').replace('_DETECTED','')||'—';}"
+    }
+   },
+   "querySelector('#lcAuditRows')": {
+    "lines": [
+     5983
+    ],
+    "code": {
+     "5983": " root.querySelector('#lcAuditRows').innerHTML=rows.map(r=>{const iid=String(r.intent_id||'');const attempt=iid?sendByIntent[iid]:null;const execDec=String(r.execution_decision||'');let realRes='NO_SEND_ATTEMPT';if(attempt){const st=String(attempt.status||'');realRes=st==='ORDER_FILLED'?'REAL_ORDER_FILLED':st==='ORDER_REJECTED'?'EXCHANGE_REJECTED':st||'NO_SEND_ATTEMPT';}else if(execDec==='WOULD_PLACE_IOC_LIMIT'){realRes='WOULD_SEND_ONLY';}const rawNote=first(r,['notes','message']);const displayNote=rawNote&&rawNote.indexOf('dry-run simulated fill')!==-1?'legacy intent note: leader WS fill detected; check real order result':rawNote;const rrCls=realRes==='REAL_ORDER_FILLED'?'lc-green':realRes==='EXCHANGE_REJECTED'?'lc-red':realRes==='WOULD_SEND_ONLY'?'lc-amber':'lc-muted';return `<tr><td>${h(first(r,['created_at','timestamp_iso','time']))}</td><td class=\"lc-wallet\">${h(shortWallet(first(r,['leader_wallet','wallet'])))}</td><td>${h(first(r,['coin','asset']))}</td><td>${h(first(r,['side']))}</td><td><div class=\"lc-cell-stack\"><span>${h(sourceOf(r))}</span><span class=\"lc-muted\">${tiny(first(r,['reason']),32)}</span></div></td><td>${pill(first(r,['status'])||'—')}</td><td>${decisionPill(first(r,['execution_decision'])||'—')}</td><td>${tiny(first(r,['decision_reason']),34)}</td><td>${h(first(r,['suggested_limit_price','target_price']))}</td><td>${h(first(r,['adverse_diff_pct','diff_pct','real_diff_pct','price_diff_pct']))}</td><td>${h(first(r,['manual_reconcile_required']))}</td><td title=\"${h(displayNote)}\">${tiny(displayNote,60)}</td><td><span class=\"lc-pill ${rrCls}\">${h(realRes)}</span></td></tr>`;}).join('')||'<tr><td colspan=\"13\">No audit rows found.</td></tr>';"
+    }
+   }
+  },
+  "why": "the expected cell value is recomputed by re-implementing the page's own rule (first/tiny/shortWallet/sourceOf) from the ledger row; these are the exact served lines that rule was taken from"
+ },
+ "oracle": "rendered cells come from headless Chromium against the live process; expected values are recomputed from order_intents.csv (stdlib csv) and GET /api/live-audit-summary (stdlib urllib), neither of which imports HL_Copy_App_SSOT.py or any engine module",
+ "binding": {
+  "dom_index": 0,
+  "api_index": 199,
+  "ledger_csv_path": "C:/Users/wigmore/trading_stack/hl-build3-testnet-cert/_archive/hl_stage2/hl_live_copy_audit_testnet_run2_20261009T1457Z/append_only/order_intents.csv",
+  "ledger_csv_line": 2764,
+  "intent_id": "c392495b6de915cd25778a8a438cb68a",
+  "created_at": "2026-10-09T14:48:58.366311+00:00",
+  "rule": "DOM tr[i].td[0] == API audit_rows[j].created_at, and that record's intent_id+created_at == ledger CSV line (both fields must match)"
+ },
+ "counts": {
+  "audit_rows_api": 200,
+  "audit_rows_rendered": 10,
+  "last_rows_api": 20,
+  "execution_quality_rows_api": 0,
+  "exec_rows_rendered": 1
+ },
+ "files": [
+  "certification/results/UI-FP-113-127.json",
+  "certification/results/UI-FP-113-127_dom_capture.json",
+  "certification/results/UI-FP-113-127_api_snapshot.json",
+  "certification/results/UI-FP-113-127_ledger_row.json",
+  "certification/results/UI-FP-113-127_probe.py",
+  "certification/results/UI-FP-113-127_verify_refs.py"
+ ],
+ "file_sha256": {
+  "UI-FP-113-127_dom_capture.json": "8f3ef34547b5568a8ecfbb3b6bdc7957026253f88a403b09930ef9410107d950",
+  "UI-FP-113-127_api_snapshot.json": "fa435f0665a9e3419831cef60f6a7702f2aa445cba77d00d442e0a36bdd5aa4f",
+  "UI-FP-113-127_ledger_row.json": "e34d19545c0937bc4fc1292f888f81de9e7375abef877b1e00178ccd71b65ba7"
+ },
+ "verdicts": {
+  "UI-FP-121": "PASS",
+  "UI-FP-122": "PASS",
+  "UI-FP-123": "PASS",
+  "UI-FP-124": "FAIL",
+  "UI-FP-125": "PASS",
+  "UI-FP-126": "NOT_TESTED",
+  "UI-FP-127": "FAIL",
+  "UI-FP-113": "NOT_TESTED",
+  "UI-FP-114": "NOT_TESTED",
+  "UI-FP-115": "NOT_TESTED",
+  "UI-FP-116": "NOT_TESTED",
+  "UI-FP-117": "NOT_TESTED",
+  "UI-FP-118": "NOT_TESTED",
+  "UI-FP-119": "NOT_TESTED",
+  "UI-FP-120": "NOT_TESTED"
+ },
+ "rows": {
+  "UI-FP-121": {
+   "row_id": "UI-FP-121",
+   "table": "Order Intents / Audit (#lcAuditRows)",
+   "column": "Time",
+   "column_index": 0,
+   "column_present_in_rendered_dom": true,
+   "verdict": "PASS",
+   "verdict_reason": "first() over created_at/timestamp_iso/time",
+   "renderer_rule": "first(r,['created_at','timestamp_iso','time'])",
+   "matrix_requirement": {
+    "id": "UI-FP-121",
+    "area": "UI",
+    "feature": "Order Intents / Audit table: Time",
+    "expected_behaviour": "Shows Time from append_only/order_intents.csv + send_attempts.csv as direct intent/send join field (provenance ENGINE_TRUTH; rows HEADER; can affect send: NO; execution truth: YES).",
+    "applicability": "APPLIES",
+    "proof_network": "TESTNET",
+    "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+    "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+    "negative_tests": [
+     "source unavailable shows n/a/Unavailable not 0",
+     "stale source flagged",
+     "API error surfaced"
+    ]
+   },
+   "served_rule_fragment": "<td>${h(first(r,['created_at','timestamp_iso','time']))}</td>",
+   "serving_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+   "serving_commit_date": "2026-10-09T14:11:59Z",
+   "serving_ssot_sha256": "b45ff9af2182944a1fabd98b6369d0ad7dd7d215062abec3bdc20dfd75e9e7c2",
+   "serving_html_sha256": "f7e21c05a7dee3677beec87d3773b8440b1fb9c505477378a268bd81387117b9",
+   "evidence_ref": "certification/results/UI-FP-113-127.json#/rows/UI-FP-121",
+   "observed": {
+    "rendered_cell_text": "2026-10-09T14:48:58.366311+00:00",
+    "rendered_cell_spans": [],
+    "rule_output": "2026-10-09T14:48:58.366311+00:00",
+    "match": true,
+    "dom_pointer": "UI-FP-113-127_dom_capture.json#/audit_rows/0",
+    "dom_cell_pointer": "UI-FP-113-127_dom_capture.json#/audit_rows/0/innerText/0",
+    "api_pointer": "UI-FP-113-127_api_snapshot.json#/audit_rows/0",
+    "api_field_pointer": "UI-FP-113-127_api_snapshot.json#/audit_rows/0",
+    "ledger_pointer": "UI-FP-113-127_ledger_row.json#/row",
+    "ledger_line": 2764,
+    "binding": "DOM tr[0].td[0] == API audit_rows[199].created_at == ledger line 2764 (intent_id c392495b6de915cd25778a8a438cb68a)"
+   },
+   "executed_probe": "probe -> GET /api/live-audit-summary + Playwright DOM read of #lcAuditRows; cell recomputed from ledger line 2764",
+   "independent_oracle": "order_intents.csv line 2764 read with stdlib csv (no engine import) + the page's own first()/tiny()/shortWallet() rule quoted from SSOT line refs in dom_capture/renderer",
+   "reproduces": "python3.11 certification/results/UI-FP-113-127_probe.py"
+  },
+  "UI-FP-122": {
+   "row_id": "UI-FP-122",
+   "table": "Order Intents / Audit (#lcAuditRows)",
+   "column": "Wallet",
+   "column_index": 1,
+   "column_present_in_rendered_dom": true,
+   "verdict": "PASS",
+   "verdict_reason": "shortWallet(): slice(0,10)+'...'+slice(-6)",
+   "renderer_rule": "shortWallet(first(r,['leader_wallet','wallet']))",
+   "matrix_requirement": {
+    "id": "UI-FP-122",
+    "area": "UI",
+    "feature": "Order Intents / Audit table: Wallet",
+    "expected_behaviour": "Shows Wallet from append_only/order_intents.csv + send_attempts.csv as direct intent/send join field (provenance ENGINE_TRUTH; rows HEADER; can affect send: NO; execution truth: YES).",
+    "applicability": "APPLIES",
+    "proof_network": "TESTNET",
+    "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+    "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+    "negative_tests": [
+     "source unavailable shows n/a/Unavailable not 0",
+     "stale source flagged",
+     "API error surfaced"
+    ]
+   },
+   "served_rule_fragment": "<td class=\"lc-wallet\">${h(shortWallet(first(r,['leader_wallet','wallet'])))}</td>",
+   "serving_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+   "serving_commit_date": "2026-10-09T14:11:59Z",
+   "serving_ssot_sha256": "b45ff9af2182944a1fabd98b6369d0ad7dd7d215062abec3bdc20dfd75e9e7c2",
+   "serving_html_sha256": "f7e21c05a7dee3677beec87d3773b8440b1fb9c505477378a268bd81387117b9",
+   "evidence_ref": "certification/results/UI-FP-113-127.json#/rows/UI-FP-122",
+   "observed": {
+    "rendered_cell_text": "0xf7bfa3a7...acf123",
+    "rendered_cell_spans": [],
+    "rule_output": "0xf7bfa3a7...acf123",
+    "match": true,
+    "dom_pointer": "UI-FP-113-127_dom_capture.json#/audit_rows/0",
+    "dom_cell_pointer": "UI-FP-113-127_dom_capture.json#/audit_rows/0/innerText/1",
+    "api_pointer": "UI-FP-113-127_api_snapshot.json#/audit_rows/0",
+    "api_field_pointer": "UI-FP-113-127_api_snapshot.json#/audit_rows/0",
+    "ledger_pointer": "UI-FP-113-127_ledger_row.json#/row",
+    "ledger_line": 2764,
+    "binding": "DOM tr[0].td[0] == API audit_rows[199].created_at == ledger line 2764 (intent_id c392495b6de915cd25778a8a438cb68a)"
+   },
+   "executed_probe": "probe -> GET /api/live-audit-summary + Playwright DOM read of #lcAuditRows; cell recomputed from ledger line 2764",
+   "independent_oracle": "order_intents.csv line 2764 read with stdlib csv (no engine import) + the page's own first()/tiny()/shortWallet() rule quoted from SSOT line refs in dom_capture/renderer",
+   "reproduces": "python3.11 certification/results/UI-FP-113-127_probe.py"
+  },
+  "UI-FP-123": {
+   "row_id": "UI-FP-123",
+   "table": "Order Intents / Audit (#lcAuditRows)",
+   "column": "Coin",
+   "column_index": 2,
+   "column_present_in_rendered_dom": true,
+   "verdict": "PASS",
+   "verdict_reason": "first() over coin/asset",
+   "renderer_rule": "first(r,['coin','asset'])",
+   "matrix_requirement": {
+    "id": "UI-FP-123",
+    "area": "UI",
+    "feature": "Order Intents / Audit table: Coin",
+    "expected_behaviour": "Shows Coin from append_only/order_intents.csv + send_attempts.csv as direct intent/send join field (provenance ENGINE_TRUTH; rows HEADER; can affect send: NO; execution truth: YES).",
+    "applicability": "APPLIES",
+    "proof_network": "TESTNET",
+    "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+    "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+    "negative_tests": [
+     "source unavailable shows n/a/Unavailable not 0",
+     "stale source flagged",
+     "API error surfaced"
+    ]
+   },
+   "served_rule_fragment": "<td>${h(first(r,['coin','asset']))}</td>",
+   "serving_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+   "serving_commit_date": "2026-10-09T14:11:59Z",
+   "serving_ssot_sha256": "b45ff9af2182944a1fabd98b6369d0ad7dd7d215062abec3bdc20dfd75e9e7c2",
+   "serving_html_sha256": "f7e21c05a7dee3677beec87d3773b8440b1fb9c505477378a268bd81387117b9",
+   "evidence_ref": "certification/results/UI-FP-113-127.json#/rows/UI-FP-123",
+   "observed": {
+    "rendered_cell_text": "BTC",
+    "rendered_cell_spans": [],
+    "rule_output": "BTC",
+    "match": true,
+    "dom_pointer": "UI-FP-113-127_dom_capture.json#/audit_rows/0",
+    "dom_cell_pointer": "UI-FP-113-127_dom_capture.json#/audit_rows/0/innerText/2",
+    "api_pointer": "UI-FP-113-127_api_snapshot.json#/audit_rows/0",
+    "api_field_pointer": "UI-FP-113-127_api_snapshot.json#/audit_rows/0",
+    "ledger_pointer": "UI-FP-113-127_ledger_row.json#/row",
+    "ledger_line": 2764,
+    "binding": "DOM tr[0].td[0] == API audit_rows[199].created_at == ledger line 2764 (intent_id c392495b6de915cd25778a8a438cb68a)"
+   },
+   "executed_probe": "probe -> GET /api/live-audit-summary + Playwright DOM read of #lcAuditRows; cell recomputed from ledger line 2764",
+   "independent_oracle": "order_intents.csv line 2764 read with stdlib csv (no engine import) + the page's own first()/tiny()/shortWallet() rule quoted from SSOT line refs in dom_capture/renderer",
+   "reproduces": "python3.11 certification/results/UI-FP-113-127_probe.py"
+  },
+  "UI-FP-124": {
+   "row_id": "UI-FP-124",
+   "table": "Order Intents / Audit (#lcAuditRows)",
+   "column": "Side",
+   "column_index": 3,
+   "column_present_in_rendered_dom": true,
+   "verdict": "FAIL",
+   "verdict_reason": "cell is blank while the truth records leader_side='SELL' copy_side='SELL'; the rule reads r.side only and neither the ledger nor the API payload has a side key, so this column can never display the side",
+   "renderer_rule": "first(r,['side'])",
+   "matrix_requirement": {
+    "id": "UI-FP-124",
+    "area": "UI",
+    "feature": "Order Intents / Audit table: Side",
+    "expected_behaviour": "Shows Side from append_only/order_intents.csv + send_attempts.csv as direct intent/send join field (provenance ENGINE_TRUTH; rows HEADER; can affect send: NO; execution truth: YES).",
+    "applicability": "APPLIES",
+    "proof_network": "TESTNET",
+    "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+    "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+    "negative_tests": [
+     "source unavailable shows n/a/Unavailable not 0",
+     "stale source flagged",
+     "API error surfaced"
+    ]
+   },
+   "served_rule_fragment": "<td>${h(first(r,['side']))}</td>",
+   "serving_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+   "serving_commit_date": "2026-10-09T14:11:59Z",
+   "serving_ssot_sha256": "b45ff9af2182944a1fabd98b6369d0ad7dd7d215062abec3bdc20dfd75e9e7c2",
+   "serving_html_sha256": "f7e21c05a7dee3677beec87d3773b8440b1fb9c505477378a268bd81387117b9",
+   "evidence_ref": "certification/results/UI-FP-113-127.json#/rows/UI-FP-124",
+   "observed": {
+    "rendered_cell_text": "",
+    "rendered_cell_spans": [],
+    "rule_output": "",
+    "match": true,
+    "dom_pointer": "UI-FP-113-127_dom_capture.json#/audit_rows/0",
+    "dom_cell_pointer": "UI-FP-113-127_dom_capture.json#/audit_rows/0/innerText/3",
+    "api_pointer": "UI-FP-113-127_api_snapshot.json#/audit_rows/0",
+    "api_field_pointer": "UI-FP-113-127_api_snapshot.json#/audit_rows/0",
+    "ledger_pointer": "UI-FP-113-127_ledger_row.json#/row",
+    "ledger_line": 2764,
+    "binding": "DOM tr[0].td[0] == API audit_rows[199].created_at == ledger line 2764 (intent_id c392495b6de915cd25778a8a438cb68a)"
+   },
+   "executed_probe": "probe -> GET /api/live-audit-summary + Playwright DOM read of #lcAuditRows; cell recomputed from ledger line 2764",
+   "independent_oracle": "order_intents.csv line 2764 read with stdlib csv (no engine import) + the page's own first()/tiny()/shortWallet() rule quoted from SSOT line refs in dom_capture/renderer",
+   "reproduces": "python3.11 certification/results/UI-FP-113-127_probe.py"
+  },
+  "UI-FP-125": {
+   "row_id": "UI-FP-125",
+   "table": "Order Intents / Audit (#lcAuditRows)",
+   "column": "Source/Reason",
+   "column_index": 4,
+   "column_present_in_rendered_dom": true,
+   "verdict": "PASS",
+   "verdict_reason": "two stacked spans: sourceOf(r) then tiny(reason,32)",
+   "renderer_rule": "sourceOf(r) + tiny(first(r,['reason']),32) stacked in .lc-cell-stack",
+   "matrix_requirement": {
+    "id": "UI-FP-125",
+    "area": "UI",
+    "feature": "Order Intents / Audit table: Source/Reason",
+    "expected_behaviour": "Shows Source/Reason from append_only/order_intents.csv + send_attempts.csv as direct intent/send join field (provenance ENGINE_TRUTH; rows HEADER; can affect send: NO; execution truth: YES).",
+    "applicability": "APPLIES",
+    "proof_network": "TESTNET",
+    "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+    "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+    "negative_tests": [
+     "source unavailable shows n/a/Unavailable not 0",
+     "stale source flagged",
+     "API error surfaced"
+    ]
+   },
+   "served_rule_fragment": "<td><div class=\"lc-cell-stack\"><span>${h(sourceOf(r))}</span><span class=\"lc-muted\">${tiny(first(r,['reason']),32)}</span></div></td>",
+   "serving_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+   "serving_commit_date": "2026-10-09T14:11:59Z",
+   "serving_ssot_sha256": "b45ff9af2182944a1fabd98b6369d0ad7dd7d215062abec3bdc20dfd75e9e7c2",
+   "serving_html_sha256": "f7e21c05a7dee3677beec87d3773b8440b1fb9c505477378a268bd81387117b9",
+   "evidence_ref": "certification/results/UI-FP-113-127.json#/rows/UI-FP-125",
+   "observed": {
+    "rendered_cell_text": "POLLmax total exposure exceeded",
+    "rendered_cell_spans": [
+     "POLL",
+     "max total exposure exceeded"
+    ],
+    "rule_output": [
+     "POLL",
+     "max total exposure exceeded"
+    ],
+    "match": true,
+    "dom_pointer": "UI-FP-113-127_dom_capture.json#/audit_rows/0",
+    "dom_cell_pointer": "UI-FP-113-127_dom_capture.json#/audit_rows/0/innerText/4",
+    "api_pointer": "UI-FP-113-127_api_snapshot.json#/audit_rows/0",
+    "api_field_pointer": "UI-FP-113-127_api_snapshot.json#/audit_rows/0",
+    "ledger_pointer": "UI-FP-113-127_ledger_row.json#/row",
+    "ledger_line": 2764,
+    "binding": "DOM tr[0].td[0] == API audit_rows[199].created_at == ledger line 2764 (intent_id c392495b6de915cd25778a8a438cb68a)"
+   },
+   "executed_probe": "probe -> GET /api/live-audit-summary + Playwright DOM read of #lcAuditRows; cell recomputed from ledger line 2764",
+   "independent_oracle": "order_intents.csv line 2764 read with stdlib csv (no engine import) + the page's own first()/tiny()/shortWallet() rule quoted from SSOT line refs in dom_capture/renderer",
+   "reproduces": "python3.11 certification/results/UI-FP-113-127_probe.py"
+  },
+  "UI-FP-126": {
+   "row_id": "UI-FP-126",
+   "table": "Order Intents / Audit (#lcAuditRows)",
+   "column": "Status",
+   "column_index": 5,
+   "column_present_in_rendered_dom": true,
+   "verdict": "NOT_TESTED",
+   "verdict_reason": "no status value exists in the truth source for this intent (decision='SEND_BLOCKED_RISK', never sent); the cell renders the documented fallback and no positive case is available on this run",
+   "renderer_rule": "pill(first(r,['status'])||'—')",
+   "matrix_requirement": {
+    "id": "UI-FP-126",
+    "area": "UI",
+    "feature": "Order Intents / Audit table: Status",
+    "expected_behaviour": "Shows Status from append_only/order_intents.csv + send_attempts.csv as direct intent/send join field (provenance ENGINE_TRUTH; rows HEADER; can affect send: NO; execution truth: YES).",
+    "applicability": "APPLIES",
+    "proof_network": "TESTNET",
+    "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+    "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+    "negative_tests": [
+     "source unavailable shows n/a/Unavailable not 0",
+     "stale source flagged",
+     "API error surfaced"
+    ]
+   },
+   "served_rule_fragment": "<td>${pill(first(r,['status'])||'—')}</td>",
+   "serving_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+   "serving_commit_date": "2026-10-09T14:11:59Z",
+   "serving_ssot_sha256": "b45ff9af2182944a1fabd98b6369d0ad7dd7d215062abec3bdc20dfd75e9e7c2",
+   "serving_html_sha256": "f7e21c05a7dee3677beec87d3773b8440b1fb9c505477378a268bd81387117b9",
+   "evidence_ref": "certification/results/UI-FP-113-127.json#/rows/UI-FP-126",
+   "observed": {
+    "rendered_cell_text": "—",
+    "rendered_cell_spans": [
+     "—"
+    ],
+    "rule_output": "—",
+    "match": true,
+    "dom_pointer": "UI-FP-113-127_dom_capture.json#/audit_rows/0",
+    "dom_cell_pointer": "UI-FP-113-127_dom_capture.json#/audit_rows/0/innerText/5",
+    "api_pointer": "UI-FP-113-127_api_snapshot.json#/audit_rows/0",
+    "api_field_pointer": "UI-FP-113-127_api_snapshot.json#/audit_rows/0",
+    "ledger_pointer": "UI-FP-113-127_ledger_row.json#/row",
+    "ledger_line": 2764,
+    "binding": "DOM tr[0].td[0] == API audit_rows[199].created_at == ledger line 2764 (intent_id c392495b6de915cd25778a8a438cb68a)"
+   },
+   "executed_probe": "probe -> GET /api/live-audit-summary + Playwright DOM read of #lcAuditRows; cell recomputed from ledger line 2764",
+   "independent_oracle": "order_intents.csv line 2764 read with stdlib csv (no engine import) + the page's own first()/tiny()/shortWallet() rule quoted from SSOT line refs in dom_capture/renderer",
+   "reproduces": "python3.11 certification/results/UI-FP-113-127_probe.py"
+  },
+  "UI-FP-127": {
+   "row_id": "UI-FP-127",
+   "table": "Order Intents / Audit (#lcAuditRows)",
+   "column": "Decision",
+   "column_index": 6,
+   "column_present_in_rendered_dom": true,
+   "verdict": "FAIL",
+   "verdict_reason": "the truth records decision='SEND_BLOCKED_RISK' but the Decision cell renders '—': the render rule reads first(r,['execution_decision']) and neither the ledger CSV nor the API payload carries that key, so the recorded decision is never displayed",
+   "renderer_rule": "decisionPill(first(r,['execution_decision'])||'—')",
+   "matrix_requirement": {
+    "id": "UI-FP-127",
+    "area": "UI",
+    "feature": "Order Intents / Audit table: Decision",
+    "expected_behaviour": "Shows Decision from append_only/order_intents.csv + send_attempts.csv as direct intent/send join field (provenance ENGINE_TRUTH; rows HEADER; can affect send: NO; execution truth: YES).",
+    "applicability": "APPLIES",
+    "proof_network": "TESTNET",
+    "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+    "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+    "negative_tests": [
+     "source unavailable shows n/a/Unavailable not 0",
+     "stale source flagged",
+     "API error surfaced"
+    ]
+   },
+   "served_rule_fragment": "<td>${decisionPill(first(r,['execution_decision'])||'—')}</td>",
+   "serving_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+   "serving_commit_date": "2026-10-09T14:11:59Z",
+   "serving_ssot_sha256": "b45ff9af2182944a1fabd98b6369d0ad7dd7d215062abec3bdc20dfd75e9e7c2",
+   "serving_html_sha256": "f7e21c05a7dee3677beec87d3773b8440b1fb9c505477378a268bd81387117b9",
+   "evidence_ref": "certification/results/UI-FP-113-127.json#/rows/UI-FP-127",
+   "observed": {
+    "rendered_cell_text": "—",
+    "rendered_cell_spans": [
+     "—"
+    ],
+    "rule_output": "—",
+    "match": true,
+    "dom_pointer": "UI-FP-113-127_dom_capture.json#/audit_rows/0",
+    "dom_cell_pointer": "UI-FP-113-127_dom_capture.json#/audit_rows/0/innerText/6",
+    "api_pointer": "UI-FP-113-127_api_snapshot.json#/audit_rows/0",
+    "api_field_pointer": "UI-FP-113-127_api_snapshot.json#/audit_rows/0",
+    "ledger_pointer": "UI-FP-113-127_ledger_row.json#/row",
+    "ledger_line": 2764,
+    "binding": "DOM tr[0].td[0] == API audit_rows[199].created_at == ledger line 2764 (intent_id c392495b6de915cd25778a8a438cb68a)"
+   },
+   "executed_probe": "probe -> GET /api/live-audit-summary + Playwright DOM read of #lcAuditRows; cell recomputed from ledger line 2764",
+   "independent_oracle": "order_intents.csv line 2764 read with stdlib csv (no engine import) + the page's own first()/tiny()/shortWallet() rule quoted from SSOT line refs in dom_capture/renderer",
+   "reproduces": "python3.11 certification/results/UI-FP-113-127_probe.py"
+  },
+  "UI-FP-113": {
+   "row_id": "UI-FP-113",
+   "table": "Execution Quality (#lcExecQualRows)",
+   "column": "Size",
+   "column_index": 11,
+   "column_present_in_rendered_dom": false,
+   "verdict": "NOT_TESTED",
+   "verdict_reason": "no execution row exists to bind: GET /api/live-audit-summary returns execution_quality_rows=[] (0 rows) and the served audit dir has no send_attempts.csv, so truth->API->render cannot be exercised for fill size; the table renders only its sentinel row",
+   "renderer_rule": "page maps API execution_quality_rows into #lcExecQualRows",
+   "matrix_requirement": {
+    "id": "UI-FP-113",
+    "area": "UI",
+    "feature": "Execution Quality table: Size",
+    "expected_behaviour": "Shows Size from append_only/send_attempts.csv + live_fills.csv as direct send_attempt/live_fill field or latency delta (provenance ENGINE_TRUTH; rows HEADER; can affect send: NO; execution truth: YES).",
+    "applicability": "APPLIES",
+    "proof_network": "TESTNET",
+    "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+    "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+    "negative_tests": [
+     "source unavailable shows n/a/Unavailable not 0",
+     "stale source flagged",
+     "API error surfaced"
+    ]
+   },
+   "served_rule_fragment": "<td>${r.fill_size!=null?h(r.fill_size):'—'}</td>",
+   "serving_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+   "serving_commit_date": "2026-10-09T14:11:59Z",
+   "serving_ssot_sha256": "b45ff9af2182944a1fabd98b6369d0ad7dd7d215062abec3bdc20dfd75e9e7c2",
+   "serving_html_sha256": "f7e21c05a7dee3677beec87d3773b8440b1fb9c505477378a268bd81387117b9",
+   "evidence_ref": "certification/results/UI-FP-113-127.json#/rows/UI-FP-113",
+   "observed": {
+    "rendered_tbody_rows": [
+     [
+      "No execution data. Real fills appear here after send_attempts.csv is populated."
+     ]
+    ],
+    "rendered_sentinel_text": "No execution data. Real fills appear here after send_attempts.csv is populated.",
+    "api_execution_quality_rows_count": 0,
+    "api_pointer": "UI-FP-113-127_api_snapshot.json#/execution_quality_rows",
+    "api_counts_pointer": "UI-FP-113-127_api_snapshot.json#/counts",
+    "dom_pointer": "UI-FP-113-127_dom_capture.json#/exec_rows",
+    "served_audit_dir": "C:/Users/wigmore/trading_stack/hl-build3-testnet-cert/_archive/hl_stage2/hl_live_copy_audit_testnet_run2_20261009T1457Z",
+    "served_append_only_files": [
+     "order_intents.csv",
+     "reconciliation.csv"
+    ],
+    "send_attempts_csv_present": false,
+    "negative_test_note": "source unavailable is surfaced as the sentinel text above, not as a 0/empty numeric cell"
+   },
+   "executed_probe": "probe -> GET /api/live-audit-summary (execution_quality_rows) + Playwright DOM read of #lcExecQualRows + directory listing of the served append_only dir",
+   "independent_oracle": "the served API payload and the served append_only directory listing, both read with stdlib only (no engine import)",
+   "reproduces": "python3.11 certification/results/UI-FP-113-127_probe.py"
+  },
+  "UI-FP-114": {
+   "row_id": "UI-FP-114",
+   "table": "Execution Quality (#lcExecQualRows)",
+   "column": "Pos before -> after",
+   "column_index": 12,
+   "column_present_in_rendered_dom": false,
+   "verdict": "NOT_TESTED",
+   "verdict_reason": "no execution row exists to bind: GET /api/live-audit-summary returns execution_quality_rows=[] (0 rows) and the served audit dir has no send_attempts.csv, so truth->API->render cannot be exercised for position before/after; the table renders only its sentinel row",
+   "renderer_rule": "page maps API execution_quality_rows into #lcExecQualRows",
+   "matrix_requirement": {
+    "id": "UI-FP-114",
+    "area": "UI",
+    "feature": "Execution Quality table: Pos before -> after",
+    "expected_behaviour": "Shows Pos before -> after from append_only/send_attempts.csv + live_fills.csv as direct send_attempt/live_fill field or latency delta (provenance ENGINE_TRUTH; rows HEADER; can affect send: NO; execution truth: YES).",
+    "applicability": "APPLIES",
+    "proof_network": "TESTNET",
+    "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+    "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+    "negative_tests": [
+     "source unavailable shows n/a/Unavailable not 0",
+     "stale source flagged",
+     "API error surfaced"
+    ]
+   },
+   "served_rule_fragment": "<td>${pos}</td>",
+   "serving_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+   "serving_commit_date": "2026-10-09T14:11:59Z",
+   "serving_ssot_sha256": "b45ff9af2182944a1fabd98b6369d0ad7dd7d215062abec3bdc20dfd75e9e7c2",
+   "serving_html_sha256": "f7e21c05a7dee3677beec87d3773b8440b1fb9c505477378a268bd81387117b9",
+   "evidence_ref": "certification/results/UI-FP-113-127.json#/rows/UI-FP-114",
+   "observed": {
+    "rendered_tbody_rows": [
+     [
+      "No execution data. Real fills appear here after send_attempts.csv is populated."
+     ]
+    ],
+    "rendered_sentinel_text": "No execution data. Real fills appear here after send_attempts.csv is populated.",
+    "api_execution_quality_rows_count": 0,
+    "api_pointer": "UI-FP-113-127_api_snapshot.json#/execution_quality_rows",
+    "api_counts_pointer": "UI-FP-113-127_api_snapshot.json#/counts",
+    "dom_pointer": "UI-FP-113-127_dom_capture.json#/exec_rows",
+    "served_audit_dir": "C:/Users/wigmore/trading_stack/hl-build3-testnet-cert/_archive/hl_stage2/hl_live_copy_audit_testnet_run2_20261009T1457Z",
+    "served_append_only_files": [
+     "order_intents.csv",
+     "reconciliation.csv"
+    ],
+    "send_attempts_csv_present": false,
+    "negative_test_note": "source unavailable is surfaced as the sentinel text above, not as a 0/empty numeric cell"
+   },
+   "executed_probe": "probe -> GET /api/live-audit-summary (execution_quality_rows) + Playwright DOM read of #lcExecQualRows + directory listing of the served append_only dir",
+   "independent_oracle": "the served API payload and the served append_only directory listing, both read with stdlib only (no engine import)",
+   "reproduces": "python3.11 certification/results/UI-FP-113-127_probe.py"
+  },
+  "UI-FP-115": {
+   "row_id": "UI-FP-115",
+   "table": "Execution Quality (#lcExecQualRows)",
+   "column": "Leader→send ms",
+   "column_index": 13,
+   "column_present_in_rendered_dom": false,
+   "verdict": "NOT_TESTED",
+   "verdict_reason": "no execution row exists to bind: GET /api/live-audit-summary returns execution_quality_rows=[] (0 rows) and the served audit dir has no send_attempts.csv, so truth->API->render cannot be exercised for leader-to-send latency; the table renders only its sentinel row",
+   "renderer_rule": "page maps API execution_quality_rows into #lcExecQualRows",
+   "matrix_requirement": {
+    "id": "UI-FP-115",
+    "area": "UI",
+    "feature": "Execution Quality table: Leader?send ms",
+    "expected_behaviour": "Shows Leader?send ms from append_only/send_attempts.csv + live_fills.csv as direct send_attempt/live_fill field or latency delta (provenance ENGINE_TRUTH; rows HEADER; can affect send: NO; execution truth: YES).",
+    "applicability": "APPLIES",
+    "proof_network": "TESTNET",
+    "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+    "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+    "negative_tests": [
+     "source unavailable shows n/a/Unavailable not 0",
+     "stale source flagged",
+     "API error surfaced"
+    ]
+   },
+   "served_rule_fragment": "<td>${ms(r.leader_to_send_attempt_ms)}</td>",
+   "serving_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+   "serving_commit_date": "2026-10-09T14:11:59Z",
+   "serving_ssot_sha256": "b45ff9af2182944a1fabd98b6369d0ad7dd7d215062abec3bdc20dfd75e9e7c2",
+   "serving_html_sha256": "f7e21c05a7dee3677beec87d3773b8440b1fb9c505477378a268bd81387117b9",
+   "evidence_ref": "certification/results/UI-FP-113-127.json#/rows/UI-FP-115",
+   "observed": {
+    "rendered_tbody_rows": [
+     [
+      "No execution data. Real fills appear here after send_attempts.csv is populated."
+     ]
+    ],
+    "rendered_sentinel_text": "No execution data. Real fills appear here after send_attempts.csv is populated.",
+    "api_execution_quality_rows_count": 0,
+    "api_pointer": "UI-FP-113-127_api_snapshot.json#/execution_quality_rows",
+    "api_counts_pointer": "UI-FP-113-127_api_snapshot.json#/counts",
+    "dom_pointer": "UI-FP-113-127_dom_capture.json#/exec_rows",
+    "served_audit_dir": "C:/Users/wigmore/trading_stack/hl-build3-testnet-cert/_archive/hl_stage2/hl_live_copy_audit_testnet_run2_20261009T1457Z",
+    "served_append_only_files": [
+     "order_intents.csv",
+     "reconciliation.csv"
+    ],
+    "send_attempts_csv_present": false,
+    "negative_test_note": "source unavailable is surfaced as the sentinel text above, not as a 0/empty numeric cell"
+   },
+   "executed_probe": "probe -> GET /api/live-audit-summary (execution_quality_rows) + Playwright DOM read of #lcExecQualRows + directory listing of the served append_only dir",
+   "independent_oracle": "the served API payload and the served append_only directory listing, both read with stdlib only (no engine import)",
+   "reproduces": "python3.11 certification/results/UI-FP-113-127_probe.py"
+  },
+  "UI-FP-116": {
+   "row_id": "UI-FP-116",
+   "table": "Execution Quality (#lcExecQualRows)",
+   "column": "Total ms",
+   "column_index": 14,
+   "column_present_in_rendered_dom": false,
+   "verdict": "NOT_TESTED",
+   "verdict_reason": "no execution row exists to bind: GET /api/live-audit-summary returns execution_quality_rows=[] (0 rows) and the served audit dir has no send_attempts.csv, so truth->API->render cannot be exercised for total latency; the table renders only its sentinel row",
+   "renderer_rule": "page maps API execution_quality_rows into #lcExecQualRows",
+   "matrix_requirement": {
+    "id": "UI-FP-116",
+    "area": "UI",
+    "feature": "Execution Quality table: Total ms",
+    "expected_behaviour": "Shows Total ms from append_only/send_attempts.csv + live_fills.csv as direct send_attempt/live_fill field or latency delta (provenance ENGINE_TRUTH; rows HEADER; can affect send: NO; execution truth: YES).",
+    "applicability": "APPLIES",
+    "proof_network": "TESTNET",
+    "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+    "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+    "negative_tests": [
+     "source unavailable shows n/a/Unavailable not 0",
+     "stale source flagged",
+     "API error surfaced"
+    ]
+   },
+   "served_rule_fragment": "<td>${ms(r.send_total_ms)}</td>",
+   "serving_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+   "serving_commit_date": "2026-10-09T14:11:59Z",
+   "serving_ssot_sha256": "b45ff9af2182944a1fabd98b6369d0ad7dd7d215062abec3bdc20dfd75e9e7c2",
+   "serving_html_sha256": "f7e21c05a7dee3677beec87d3773b8440b1fb9c505477378a268bd81387117b9",
+   "evidence_ref": "certification/results/UI-FP-113-127.json#/rows/UI-FP-116",
+   "observed": {
+    "rendered_tbody_rows": [
+     [
+      "No execution data. Real fills appear here after send_attempts.csv is populated."
+     ]
+    ],
+    "rendered_sentinel_text": "No execution data. Real fills appear here after send_attempts.csv is populated.",
+    "api_execution_quality_rows_count": 0,
+    "api_pointer": "UI-FP-113-127_api_snapshot.json#/execution_quality_rows",
+    "api_counts_pointer": "UI-FP-113-127_api_snapshot.json#/counts",
+    "dom_pointer": "UI-FP-113-127_dom_capture.json#/exec_rows",
+    "served_audit_dir": "C:/Users/wigmore/trading_stack/hl-build3-testnet-cert/_archive/hl_stage2/hl_live_copy_audit_testnet_run2_20261009T1457Z",
+    "served_append_only_files": [
+     "order_intents.csv",
+     "reconciliation.csv"
+    ],
+    "send_attempts_csv_present": false,
+    "negative_test_note": "source unavailable is surfaced as the sentinel text above, not as a 0/empty numeric cell"
+   },
+   "executed_probe": "probe -> GET /api/live-audit-summary (execution_quality_rows) + Playwright DOM read of #lcExecQualRows + directory listing of the served append_only dir",
+   "independent_oracle": "the served API payload and the served append_only directory listing, both read with stdlib only (no engine import)",
+   "reproduces": "python3.11 certification/results/UI-FP-113-127_probe.py"
+  },
+  "UI-FP-117": {
+   "row_id": "UI-FP-117",
+   "table": "Execution Quality (#lcExecQualRows)",
+   "column": "Symbol ms",
+   "column_index": 15,
+   "column_present_in_rendered_dom": false,
+   "verdict": "NOT_TESTED",
+   "verdict_reason": "no execution row exists to bind: GET /api/live-audit-summary returns execution_quality_rows=[] (0 rows) and the served audit dir has no send_attempts.csv, so truth->API->render cannot be exercised for symbol resolve latency; the table renders only its sentinel row",
+   "renderer_rule": "page maps API execution_quality_rows into #lcExecQualRows",
+   "matrix_requirement": {
+    "id": "UI-FP-117",
+    "area": "UI",
+    "feature": "Execution Quality table: Symbol ms",
+    "expected_behaviour": "Shows Symbol ms from append_only/send_attempts.csv + live_fills.csv as direct send_attempt/live_fill field or latency delta (provenance ENGINE_TRUTH; rows HEADER; can affect send: NO; execution truth: YES).",
+    "applicability": "APPLIES",
+    "proof_network": "TESTNET",
+    "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+    "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+    "negative_tests": [
+     "source unavailable shows n/a/Unavailable not 0",
+     "stale source flagged",
+     "API error surfaced"
+    ]
+   },
+   "served_rule_fragment": "<td>${ms(r.symbol_resolve_ms)}</td>",
+   "serving_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+   "serving_commit_date": "2026-10-09T14:11:59Z",
+   "serving_ssot_sha256": "b45ff9af2182944a1fabd98b6369d0ad7dd7d215062abec3bdc20dfd75e9e7c2",
+   "serving_html_sha256": "f7e21c05a7dee3677beec87d3773b8440b1fb9c505477378a268bd81387117b9",
+   "evidence_ref": "certification/results/UI-FP-113-127.json#/rows/UI-FP-117",
+   "observed": {
+    "rendered_tbody_rows": [
+     [
+      "No execution data. Real fills appear here after send_attempts.csv is populated."
+     ]
+    ],
+    "rendered_sentinel_text": "No execution data. Real fills appear here after send_attempts.csv is populated.",
+    "api_execution_quality_rows_count": 0,
+    "api_pointer": "UI-FP-113-127_api_snapshot.json#/execution_quality_rows",
+    "api_counts_pointer": "UI-FP-113-127_api_snapshot.json#/counts",
+    "dom_pointer": "UI-FP-113-127_dom_capture.json#/exec_rows",
+    "served_audit_dir": "C:/Users/wigmore/trading_stack/hl-build3-testnet-cert/_archive/hl_stage2/hl_live_copy_audit_testnet_run2_20261009T1457Z",
+    "served_append_only_files": [
+     "order_intents.csv",
+     "reconciliation.csv"
+    ],
+    "send_attempts_csv_present": false,
+    "negative_test_note": "source unavailable is surfaced as the sentinel text above, not as a 0/empty numeric cell"
+   },
+   "executed_probe": "probe -> GET /api/live-audit-summary (execution_quality_rows) + Playwright DOM read of #lcExecQualRows + directory listing of the served append_only dir",
+   "independent_oracle": "the served API payload and the served append_only directory listing, both read with stdlib only (no engine import)",
+   "reproduces": "python3.11 certification/results/UI-FP-113-127_probe.py"
+  },
+  "UI-FP-118": {
+   "row_id": "UI-FP-118",
+   "table": "Execution Quality (#lcExecQualRows)",
+   "column": "SDK ms",
+   "column_index": 16,
+   "column_present_in_rendered_dom": false,
+   "verdict": "NOT_TESTED",
+   "verdict_reason": "no execution row exists to bind: GET /api/live-audit-summary returns execution_quality_rows=[] (0 rows) and the served audit dir has no send_attempts.csv, so truth->API->render cannot be exercised for sdk latency; the table renders only its sentinel row",
+   "renderer_rule": "page maps API execution_quality_rows into #lcExecQualRows",
+   "matrix_requirement": {
+    "id": "UI-FP-118",
+    "area": "UI",
+    "feature": "Execution Quality table: SDK ms",
+    "expected_behaviour": "Shows SDK ms from append_only/send_attempts.csv + live_fills.csv as direct send_attempt/live_fill field or latency delta (provenance ENGINE_TRUTH; rows HEADER; can affect send: NO; execution truth: YES).",
+    "applicability": "APPLIES",
+    "proof_network": "TESTNET",
+    "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+    "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+    "negative_tests": [
+     "source unavailable shows n/a/Unavailable not 0",
+     "stale source flagged",
+     "API error surfaced"
+    ]
+   },
+   "served_rule_fragment": "<td>${ms(r.sdk_client_ms)}</td>",
+   "serving_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+   "serving_commit_date": "2026-10-09T14:11:59Z",
+   "serving_ssot_sha256": "b45ff9af2182944a1fabd98b6369d0ad7dd7d215062abec3bdc20dfd75e9e7c2",
+   "serving_html_sha256": "f7e21c05a7dee3677beec87d3773b8440b1fb9c505477378a268bd81387117b9",
+   "evidence_ref": "certification/results/UI-FP-113-127.json#/rows/UI-FP-118",
+   "observed": {
+    "rendered_tbody_rows": [
+     [
+      "No execution data. Real fills appear here after send_attempts.csv is populated."
+     ]
+    ],
+    "rendered_sentinel_text": "No execution data. Real fills appear here after send_attempts.csv is populated.",
+    "api_execution_quality_rows_count": 0,
+    "api_pointer": "UI-FP-113-127_api_snapshot.json#/execution_quality_rows",
+    "api_counts_pointer": "UI-FP-113-127_api_snapshot.json#/counts",
+    "dom_pointer": "UI-FP-113-127_dom_capture.json#/exec_rows",
+    "served_audit_dir": "C:/Users/wigmore/trading_stack/hl-build3-testnet-cert/_archive/hl_stage2/hl_live_copy_audit_testnet_run2_20261009T1457Z",
+    "served_append_only_files": [
+     "order_intents.csv",
+     "reconciliation.csv"
+    ],
+    "send_attempts_csv_present": false,
+    "negative_test_note": "source unavailable is surfaced as the sentinel text above, not as a 0/empty numeric cell"
+   },
+   "executed_probe": "probe -> GET /api/live-audit-summary (execution_quality_rows) + Playwright DOM read of #lcExecQualRows + directory listing of the served append_only dir",
+   "independent_oracle": "the served API payload and the served append_only directory listing, both read with stdlib only (no engine import)",
+   "reproduces": "python3.11 certification/results/UI-FP-113-127_probe.py"
+  },
+  "UI-FP-119": {
+   "row_id": "UI-FP-119",
+   "table": "Execution Quality (#lcExecQualRows)",
+   "column": "Exchange ms",
+   "column_index": 17,
+   "column_present_in_rendered_dom": false,
+   "verdict": "NOT_TESTED",
+   "verdict_reason": "no execution row exists to bind: GET /api/live-audit-summary returns execution_quality_rows=[] (0 rows) and the served audit dir has no send_attempts.csv, so truth->API->render cannot be exercised for exchange latency; the table renders only its sentinel row",
+   "renderer_rule": "page maps API execution_quality_rows into #lcExecQualRows",
+   "matrix_requirement": {
+    "id": "UI-FP-119",
+    "area": "UI",
+    "feature": "Execution Quality table: Exchange ms",
+    "expected_behaviour": "Shows Exchange ms from append_only/send_attempts.csv + live_fills.csv as direct send_attempt/live_fill field or latency delta (provenance ENGINE_TRUTH; rows HEADER; can affect send: NO; execution truth: YES).",
+    "applicability": "APPLIES",
+    "proof_network": "TESTNET",
+    "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+    "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+    "negative_tests": [
+     "source unavailable shows n/a/Unavailable not 0",
+     "stale source flagged",
+     "API error surfaced"
+    ]
+   },
+   "served_rule_fragment": "<td>${ms(r.exchange_call_ms)}</td>",
+   "serving_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+   "serving_commit_date": "2026-10-09T14:11:59Z",
+   "serving_ssot_sha256": "b45ff9af2182944a1fabd98b6369d0ad7dd7d215062abec3bdc20dfd75e9e7c2",
+   "serving_html_sha256": "f7e21c05a7dee3677beec87d3773b8440b1fb9c505477378a268bd81387117b9",
+   "evidence_ref": "certification/results/UI-FP-113-127.json#/rows/UI-FP-119",
+   "observed": {
+    "rendered_tbody_rows": [
+     [
+      "No execution data. Real fills appear here after send_attempts.csv is populated."
+     ]
+    ],
+    "rendered_sentinel_text": "No execution data. Real fills appear here after send_attempts.csv is populated.",
+    "api_execution_quality_rows_count": 0,
+    "api_pointer": "UI-FP-113-127_api_snapshot.json#/execution_quality_rows",
+    "api_counts_pointer": "UI-FP-113-127_api_snapshot.json#/counts",
+    "dom_pointer": "UI-FP-113-127_dom_capture.json#/exec_rows",
+    "served_audit_dir": "C:/Users/wigmore/trading_stack/hl-build3-testnet-cert/_archive/hl_stage2/hl_live_copy_audit_testnet_run2_20261009T1457Z",
+    "served_append_only_files": [
+     "order_intents.csv",
+     "reconciliation.csv"
+    ],
+    "send_attempts_csv_present": false,
+    "negative_test_note": "source unavailable is surfaced as the sentinel text above, not as a 0/empty numeric cell"
+   },
+   "executed_probe": "probe -> GET /api/live-audit-summary (execution_quality_rows) + Playwright DOM read of #lcExecQualRows + directory listing of the served append_only dir",
+   "independent_oracle": "the served API payload and the served append_only directory listing, both read with stdlib only (no engine import)",
+   "reproduces": "python3.11 certification/results/UI-FP-113-127_probe.py"
+  },
+  "UI-FP-120": {
+   "row_id": "UI-FP-120",
+   "table": "Execution Quality (#lcExecQualRows)",
+   "column": "Error",
+   "column_index": 18,
+   "column_present_in_rendered_dom": false,
+   "verdict": "NOT_TESTED",
+   "verdict_reason": "no execution row exists to bind: GET /api/live-audit-summary returns execution_quality_rows=[] (0 rows) and the served audit dir has no send_attempts.csv, so truth->API->render cannot be exercised for reject/error text; the table renders only its sentinel row",
+   "renderer_rule": "page maps API execution_quality_rows into #lcExecQualRows",
+   "matrix_requirement": {
+    "id": "UI-FP-120",
+    "area": "UI",
+    "feature": "Execution Quality table: Error",
+    "expected_behaviour": "Shows Error from append_only/send_attempts.csv + live_fills.csv as direct send_attempt/live_fill field or latency delta (provenance ENGINE_TRUTH; rows HEADER; can affect send: NO; execution truth: YES).",
+    "applicability": "APPLIES",
+    "proof_network": "TESTNET",
+    "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+    "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+    "negative_tests": [
+     "source unavailable shows n/a/Unavailable not 0",
+     "stale source flagged",
+     "API error surfaced"
+    ]
+   },
+   "served_rule_fragment": "<td title=\"${h(r.error||'')}\">${tiny(r.error||'',28)}</td>",
+   "serving_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+   "serving_commit_date": "2026-10-09T14:11:59Z",
+   "serving_ssot_sha256": "b45ff9af2182944a1fabd98b6369d0ad7dd7d215062abec3bdc20dfd75e9e7c2",
+   "serving_html_sha256": "f7e21c05a7dee3677beec87d3773b8440b1fb9c505477378a268bd81387117b9",
+   "evidence_ref": "certification/results/UI-FP-113-127.json#/rows/UI-FP-120",
+   "observed": {
+    "rendered_tbody_rows": [
+     [
+      "No execution data. Real fills appear here after send_attempts.csv is populated."
+     ]
+    ],
+    "rendered_sentinel_text": "No execution data. Real fills appear here after send_attempts.csv is populated.",
+    "api_execution_quality_rows_count": 0,
+    "api_pointer": "UI-FP-113-127_api_snapshot.json#/execution_quality_rows",
+    "api_counts_pointer": "UI-FP-113-127_api_snapshot.json#/counts",
+    "dom_pointer": "UI-FP-113-127_dom_capture.json#/exec_rows",
+    "served_audit_dir": "C:/Users/wigmore/trading_stack/hl-build3-testnet-cert/_archive/hl_stage2/hl_live_copy_audit_testnet_run2_20261009T1457Z",
+    "served_append_only_files": [
+     "order_intents.csv",
+     "reconciliation.csv"
+    ],
+    "send_attempts_csv_present": false,
+    "negative_test_note": "source unavailable is surfaced as the sentinel text above, not as a 0/empty numeric cell"
+   },
+   "executed_probe": "probe -> GET /api/live-audit-summary (execution_quality_rows) + Playwright DOM read of #lcExecQualRows + directory listing of the served append_only dir",
+   "independent_oracle": "the served API payload and the served append_only directory listing, both read with stdlib only (no engine import)",
+   "reproduces": "python3.11 certification/results/UI-FP-113-127_probe.py"
+  }
+ }
+}
