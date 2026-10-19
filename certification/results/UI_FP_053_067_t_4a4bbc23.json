@@ -1,0 +1,107 @@
+[
+  {
+    "row_id": "UI-FP-053",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/UI_FP_053_067_runtime_t_4a4bbc23.json#row_checks[UI-FP-053]",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "API wallets={} and DOM wallet table says no wallets; copy_mode exists only in hidden Add Wallet form, not a row control"
+  },
+  {
+    "row_id": "UI-FP-054",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/UI_FP_053_067_runtime_t_4a4bbc23.json#row_checks[UI-FP-054]",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "API wallets={} and DOM wallet table says no wallets; fixed_notional exists only in hidden Add Wallet form, not a row control"
+  },
+  {
+    "row_id": "UI-FP-055",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/UI_FP_053_067_runtime_t_4a4bbc23.json#row_checks[UI-FP-055]",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "API wallets={} and DOM wallet table says no wallets; norm_base exists only in hidden Add Wallet form, not a row control"
+  },
+  {
+    "row_id": "UI-FP-056",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/UI_FP_053_067_runtime_t_4a4bbc23.json#row_checks[UI-FP-056]",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "API wallets={} and DOM wallet table says no wallets; no wallet-specific leader_equity_base control is rendered"
+  },
+  {
+    "row_id": "UI-FP-057",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/UI_FP_053_067_runtime_t_4a4bbc23.json#row_checks[UI-FP-057]",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "API wallets={} and DOM wallet table says no wallets; no wallet detail row is available to render live_realized_pnl"
+  },
+  {
+    "row_id": "UI-FP-058",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/UI_FP_053_067_runtime_t_4a4bbc23.json#row_checks[UI-FP-058]",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "API wallets={} and DOM wallet table says no wallets; no wallet detail row is available to render live_unrealized_pnl"
+  },
+  {
+    "row_id": "UI-FP-059",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/UI_FP_053_067_runtime_t_4a4bbc23.json#row_checks[UI-FP-059]",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "API wallets={} and DOM wallet table says no wallets; no wallet detail row is available to render live_net_pnl"
+  },
+  {
+    "row_id": "UI-FP-060",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/UI_FP_053_067_runtime_t_4a4bbc23.json#row_checks[UI-FP-060]",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "API wallets={} and DOM wallet table says no wallets; no wallet detail row is available to render wallet current_exposure"
+  },
+  {
+    "row_id": "UI-FP-061",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/UI_FP_053_067_runtime_t_4a4bbc23.json#row_checks[UI-FP-061]",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "API wallets={} and DOM wallet table says no wallets; no wallet detail row is available to render wallet drawdown"
+  },
+  {
+    "row_id": "UI-FP-062",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/UI_FP_053_067_runtime_t_4a4bbc23.json#row_checks[UI-FP-062]",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "API wallets={} and DOM wallet table says no wallets; no wallet detail row is available to render wallet max_drawdown"
+  },
+  {
+    "row_id": "UI-FP-063",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/UI_FP_053_067_runtime_t_4a4bbc23.json#row_checks[UI-FP-063]",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "API wallets={} and DOM wallet table says no wallets; no wallet detail row is available to render pnl_status_label"
+  },
+  {
+    "row_id": "UI-FP-064",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/UI_FP_053_067_runtime_t_4a4bbc23.json#row_checks[UI-FP-064]",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "API wallets={} and DOM wallet table says no wallets; no wallet detail row is available to render attribution_quality"
+  },
+  {
+    "row_id": "UI-FP-065",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/UI_FP_053_067_runtime_t_4a4bbc23.json#row_checks[UI-FP-065]",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "API wallets={} and DOM wallet table says no wallets; no wallet detail row is available to render confirmed realized-match fields"
+  },
+  {
+    "row_id": "UI-FP-066",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/UI_FP_053_067_runtime_t_4a4bbc23.json#row_checks[UI-FP-066]",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "API wallets={} and DOM wallet table says no wallets; no wallet detail row is available to render counts"
+  },
+  {
+    "row_id": "UI-FP-067",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/UI_FP_053_067_runtime_t_4a4bbc23.json#row_checks[UI-FP-067]",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "API wallets={} and DOM wallet table says no wallets; no expanded wallet detail B row to bind coin values to a configured wallet"
+  }
+]

@@ -1,0 +1,37 @@
+{
+  "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+  "server": "http://127.0.0.1:8031/live-copy",
+  "server_process_pid": 33368,
+  "process_started_at": "2026-10-17T10:54:09Z",
+  "runtime_observations": {
+    "page_title": "Live Copy Dashboard",
+    "api_endpoint": "/api/live-config",
+    "api_status": 200,
+    "api_config_wallets": {},
+    "api_wallet_count": 0,
+    "dom_wallet_count": "0 / 10",
+    "dom_wallet_rows": "No live-copy wallets configured.",
+    "wallet_modal_fields": ["mode", "copy_mode", "norm_base", "fixed_notional"],
+    "wallet_modal_visible": false,
+    "manual_open_position_table_rows": ["0xleaderaa...aaaaaa SENTSHARE LONG 3 100", "0xleaderbb...bbbbbb SENTSHARE LONG 2 90"],
+    "engine_state": "Stopped: the engine is not running (no engine status found)"
+  },
+  "row_checks": [
+    {"row_id":"UI-FP-053","expected_field":"wallet row copy_mode control","observed":"API wallets={} and DOM wallet table says no wallets; copy_mode exists only in hidden Add Wallet form, not a row control","verdict":"FAIL"},
+    {"row_id":"UI-FP-054","expected_field":"wallet row fixed_notional control","observed":"API wallets={} and DOM wallet table says no wallets; fixed_notional exists only in hidden Add Wallet form, not a row control","verdict":"FAIL"},
+    {"row_id":"UI-FP-055","expected_field":"wallet row norm_base control","observed":"API wallets={} and DOM wallet table says no wallets; norm_base exists only in hidden Add Wallet form, not a row control","verdict":"FAIL"},
+    {"row_id":"UI-FP-056","expected_field":"wallet row leader_equity_base control","observed":"API wallets={} and DOM wallet table says no wallets; no wallet-specific leader_equity_base control is rendered","verdict":"FAIL"},
+    {"row_id":"UI-FP-057","expected_field":"expanded wallet detail live_realized_pnl","observed":"API wallets={} and DOM wallet table says no wallets; no wallet detail row is available to render live_realized_pnl","verdict":"FAIL"},
+    {"row_id":"UI-FP-058","expected_field":"expanded wallet detail live_unrealized_pnl","observed":"API wallets={} and DOM wallet table says no wallets; no wallet detail row is available to render live_unrealized_pnl","verdict":"FAIL"},
+    {"row_id":"UI-FP-059","expected_field":"expanded wallet detail live_net_pnl","observed":"API wallets={} and DOM wallet table says no wallets; no wallet detail row is available to render live_net_pnl","verdict":"FAIL"},
+    {"row_id":"UI-FP-060","expected_field":"expanded wallet detail current_exposure","observed":"API wallets={} and DOM wallet table says no wallets; no wallet detail row is available to render wallet current_exposure","verdict":"FAIL"},
+    {"row_id":"UI-FP-061","expected_field":"expanded wallet detail drawdown","observed":"API wallets={} and DOM wallet table says no wallets; no wallet detail row is available to render wallet drawdown","verdict":"FAIL"},
+    {"row_id":"UI-FP-062","expected_field":"expanded wallet detail max_drawdown","observed":"API wallets={} and DOM wallet table says no wallets; no wallet detail row is available to render wallet max_drawdown","verdict":"FAIL"},
+    {"row_id":"UI-FP-063","expected_field":"expanded wallet detail pnl_status_label","observed":"API wallets={} and DOM wallet table says no wallets; no wallet detail row is available to render pnl_status_label","verdict":"FAIL"},
+    {"row_id":"UI-FP-064","expected_field":"expanded wallet detail attribution_quality","observed":"API wallets={} and DOM wallet table says no wallets; no wallet detail row is available to render attribution_quality","verdict":"FAIL"},
+    {"row_id":"UI-FP-065","expected_field":"expanded wallet detail confirmed_realized_pnl/realized_match_status","observed":"API wallets={} and DOM wallet table says no wallets; no wallet detail row is available to render confirmed realized-match fields","verdict":"FAIL"},
+    {"row_id":"UI-FP-066","expected_field":"expanded wallet detail exchange_rejected_count/local_blocked_count/preview_count","observed":"API wallets={} and DOM wallet table says no wallets; no wallet detail row is available to render counts","verdict":"FAIL"},
+    {"row_id":"UI-FP-067","expected_field":"expanded wallet detail current_open_positions[].coin","observed":"API wallets={} and DOM wallet table says no wallets; no expanded wallet detail B row to bind coin values to a configured wallet","verdict":"FAIL"}
+  ],
+  "limitation": "This is a direct runtime observation of the serving UI with the API's actual empty-wallet configuration, not a seeded wallet scenario. It proves the exact expected wallet-row/detail fields are not present in this served state; it does not prove how those fields behave for a configured wallet. No configuration or trading state was modified."
+}
