@@ -1,0 +1,87 @@
+{
+  "artifact": "UI_LCC_ADD_REVIEW_t_3fbcc42b.json",
+  "review_task": "t_3fbcc42b",
+  "reviewed_task": "t_59fd560c",
+  "reviewed_branch": "ui-lcc-add-redo-t_59fd560c",
+  "reviewed_commit": "6eba88b23bb3b7da9179389d945bae4e4a736b5d",
+  "generated_at_utc": "2026-10-19T02:55:52Z",
+  "overall_verdict": "PASS",
+  "checks": {
+    "evidence_refs_exist_on_branch": {
+      "verdict": "PASS",
+      "detail": "All 5 committed paths exist at 6eba88b: certification/results/UI_LCC_ADD_01_02_03_04_05_10_isolated_t_59fd560c.json, UI_LCC_ADD_rows_isolated_t_59fd560c.raw.json, add10_submit_ok.png, add10_bad_wallet.png, add10_nonnum.png. The kanban attachments were read back and equal the committed blobs modulo CRLF line endings (normalized byte compare true)."
+    },
+    "row_bound": {
+      "verdict": "PASS",
+      "detail": "Each row posts a distinct non-default value into a distinct wallet key, and each row's why-text names that row's own value and the observed sha transition; the 6 why strings are distinct (distinct_why=6). The raw JSON carries per-row posted_payload, wallets_before/after and iso_config_after_row so each assertion fails for a sibling row that leaves the field at default."
+    },
+    "not_vacuous": {
+      "verdict": "PASS",
+      "detail": "POST payload, post-write file content (iso_config_after_row) and the sha of the isolated live_config.json are all present; each field moves to a non-default value (wallet 0xa01.., mode CLO, copy_mode proportional, norm_base 213.5, fixed_notional 73.25) and the file sha changes on every row. A static or unwired control could not produce these deltas."
+    },
+    "isolation": {
+      "verdict": "PASS",
+      "detail": "serving :8031 was untouched: requests_to_8031 is empty, probe_targets is only http://127.0.0.1:8101, every ui_log entry targets 127.0.0.1:8101, and the :8031 /api/live-config response sha is identical before and after (40c95a9e... both). No POST to 8031 anywhere in the artifact."
+    },
+    "add10_both_requirements": {
+      "verdict": "PASS",
+      "detail": "persisting_submit shows form_defaults_seen {mode LIVE, copy_mode fixed, norm_base 100, fixed_notional 10}, DOM-sent values all non-default, wallet count 5->6, new wallet 0xf10f.. persisted with mode CLO, copy_mode proportional, norm_base 250.0, fixed_notional 55.0. invalid_input_malformed_wallet shows status_text 'BAD_WALLET' in status_class 'lc-status lc-bad' with file_unchanged true and wallets_unchanged true."
+    },
+    "numbers_reproduce": {
+      "verdict": "PASS",
+      "detail": "Recomputed from the committed JSON: rows len 6, ids 01/02/03/04/05/10, verdicts all PASS -> PASS 6 FAIL 0, matching declared row_count 6 and verdict_counts. Raw artifact also reports rows 6 / PASS 6 / FAIL 0."
+    },
+    "process_rule": {
+      "verdict": "PASS",
+      "detail": "tested commit 89b3bc7 committed 2026-10-17T07:18:14Z predates the isolated process start 2026-10-19T02:28:25Z (PID 38096, port 8101); the process start timestamp is corroborated by the workspace iso_final3_start_utc.txt and the uvicorn startup line in iso_final3.log."
+    },
+    "remote_head": {
+      "verdict": "PASS",
+      "detail": "git ls-remote --heads origin ui-lcc-add-redo-t_59fd560c returns 6eba88b23bb3b7da9179389d945bae4e4a736b5d, matching the reviewed commit."
+    }
+  },
+  "adversarial_notes": [
+    "The reviewed commit is not an ancestor of the earlier re-earn branch head c634df6 - it was rebuilt on 1217b85. That is acceptable because the artifact names tested_commit 89b3bc7 explicitly and the worktree repo_89b3 is at exactly 89b3bc7 with no dirty tracked files; branch ancestry is not a stated requirement of this card.",
+    "The ADD-10 persisting submit leaves the modal open and surfaces status_text \"Cannot read properties of null (reading 'reset')\". The reset error is cosmetic (the wallet WAS persisted, wallet count 5->6, sha changed) and does not invalidate the row, but it is a real UI defect and is recorded here rather than suppressed.",
+    "NON_NUMERIC_NORM_BASE_SILENTLY_COERCED is confirmed against the committed raw artifact: norm_base 'abc' returns 200 and persists 100. Not disqualifying for ADD-10 because the row requirement is met by the BAD_WALLET path, but it is a validation gap worth a follow-up card.",
+    "Rows 01-05 were exercised by direct HTTP POST to /api/live-config/add-wallet, not through the browser form; ADD-10 alone covers the real form path. The card asked for persisted round-trip per row and one real-form submit, so this split is within scope."
+  ],
+  "rows": [
+    {
+      "row_id": "UI-LCC-ADD-01",
+      "verdict": "PASS",
+      "probe": "POST /api/live-config/add-wallet on isolated http://127.0.0.1:8101 (commit 6eba88b, raw row UI-LCC-ADD-01)",
+      "why": "Unique-to-this-row persisted value: wallet key 0xa01a01a01a01a01a01a01a01a01a01a01a01a01a appears in wallets_after having been absent in wallets_before, with mode LIVE/copy_mode fixed/norm_base 100.0/fixed_notional 10.0; iso sha ABSENT -> 31d5bb415336. A sibling row writes a different wallet key and never writes 0xa01, so this assertion fails for them."
+    },
+    {
+      "row_id": "UI-LCC-ADD-02",
+      "verdict": "PASS",
+      "probe": "POST /api/live-config/add-wallet on isolated http://127.0.0.1:8101 (commit 6eba88b, raw row UI-LCC-ADD-02)",
+      "why": "Unique-to-this-row persisted value: mode='CLO' inside wallet 0xb02b02b02b02b02b02b02b02b02b02b02b02b02b, while every other entry keeps mode LIVE except the ADD-10 wallet; sha 31d5bb415336 -> ef40dabd0b5a. Siblings post mode at the default LIVE, so mode=CLO under 0xb02b fails for them."
+    },
+    {
+      "row_id": "UI-LCC-ADD-03",
+      "verdict": "PASS",
+      "probe": "POST /api/live-config/add-wallet on isolated http://127.0.0.1:8101 (commit 6eba88b, raw row UI-LCC-ADD-03)",
+      "why": "Unique-to-this-row persisted value: copy_mode='proportional' inside wallet 0xc03c03c03c03c03c03c03c03c03c03c03c03c03c while 0xa01/0xb02/0xd04/0xe05 remain 'fixed'; sha ef40dabd0b5a -> e1e1667f5747. Siblings post copy_mode fixed, so this fails for them."
+    },
+    {
+      "row_id": "UI-LCC-ADD-04",
+      "verdict": "PASS",
+      "probe": "POST /api/live-config/add-wallet on isolated http://127.0.0.1:8101 (commit 6eba88b, raw row UI-LCC-ADD-04)",
+      "why": "Unique-to-this-row persisted value: norm_base=213.5 inside wallet 0xd04d04d04d04d04d04d04d04d04d04d04d04d04d, a value used by no other wallet; sha e1e1667f5747 -> 1fbb18daa1c8. Siblings post norm_base 100, so norm_base=213.5 fails for them."
+    },
+    {
+      "row_id": "UI-LCC-ADD-05",
+      "verdict": "PASS",
+      "probe": "POST /api/live-config/add-wallet on isolated http://127.0.0.1:8101 (commit 6eba88b, raw row UI-LCC-ADD-05)",
+      "why": "Unique-to-this-row persisted value: fixed_notional=73.25 inside wallet 0xe05e05e05e05e05e05e05e05e05e05e05e05e05e, a value used by no other wallet; sha 1fbb18daa1c8 -> 615e4b59c7dc. Siblings post fixed_notional 10, so 73.25 fails for them."
+    },
+    {
+      "row_id": "UI-LCC-ADD-10",
+      "verdict": "PASS",
+      "probe": "Playwright submit of #lcAddForm on isolated http://127.0.0.1:8101 - valid submit, malformed address, non-numeric norm_base (commit 6eba88b, raw row UI-LCC-ADD-10)",
+      "why": "Persisting submit: form_defaults_seen LIVE/fixed/100/10, DOM sent 0xf10f10f10f10f10f10f10f10f10f10f10f10f10f/CLO/proportional/250/55, wallets 5 -> 6, persisted entry mode CLO, copy_mode proportional, norm_base 250.0, fixed_notional 55.0, sha 615e4b59c7dc -> b3633a6b9ec1. Visible validation error: status_text 'BAD_WALLET' in class 'lc-status lc-bad' with file_unchanged true and wallets_unchanged true, i.e. the malformed address was rejected without touching the file. A sibling row cannot produce this new wallet key or this error text."
+    }
+  ]
+}
