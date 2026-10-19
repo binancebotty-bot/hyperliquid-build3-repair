@@ -7975,7 +7975,9 @@ async def set_global_controls(req: Request):
     try:
         body = await req.json()
         config = _load_live_copy_config()
-        config["global_controls"] = _normalise_global_controls(body)
+        kept = {k: v for k, v in (config.get("global_controls") or {}).items() if k not in _GLOBAL_CONTROLS_DEFAULTS and k != "marketable_slippage_pct"}
+        submitted = {k: v for k, v in body.items() if k in _GLOBAL_CONTROLS_DEFAULTS or k == "marketable_slippage_pct"} if isinstance(body, dict) else {}
+        config["global_controls"] = {**kept, **_normalise_global_controls(submitted)}
         _save_live_copy_config(config)
         return JSONResponse({"ok": True, "global_controls": _global_controls_for_ui(config["global_controls"])})
     except Exception as exc:
