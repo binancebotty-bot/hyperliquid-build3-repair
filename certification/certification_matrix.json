@@ -1636,11 +1636,11 @@
     "price moves past bound before send"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/probe_reearn_results.json",
+   "tested_commit": "333d818d8423476c9a7ef6f39e20d712c447c64f",
    "tested_at_utc": "",
-   "notes": "",
+   "notes": "Earned by the ACTIVE/CONTROL probe in certification/results/probe_reearn_results.json (card t_99472e6c). Each check asserts this row's exact (decision, reason) tuple against a control differing only in that row's own value. Checks: close_bypasses_entry_min_notional_and_caps. Engine sha256 1a1daf81861f726f. Not independently attested: verified/verifier/review_ref are deliberately unset.",
    "proof_network": "TESTNET"
   },
   {
@@ -1689,11 +1689,11 @@
     "price moves past bound before send"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/probe_reearn_results.json",
+   "tested_commit": "333d818d8423476c9a7ef6f39e20d712c447c64f",
    "tested_at_utc": "",
-   "notes": "Source refs are to the legacy file; re-derive against HL_Live_Copy_Service_Core.py (7,705-line, sha256 5bda57be). Slippage ruled (Boss, 2026-10-09): unset marketable slippage defaults to 0.2%. OD-21 decided: re-pointed to the certified 13 May UI. Mainnet proof required: slippage default 0.2% can be applied on testnet; its effect on fills needs a liquid book.",
+   "notes": "Earned by the ACTIVE/CONTROL probe in certification/results/probe_reearn_results.json (card t_99472e6c). Each check asserts this row's exact (decision, reason) tuple against a control differing only in that row's own value. Checks: slippage_alone_flips_max_order_verdict. Engine sha256 1a1daf81861f726f. Not independently attested: verified/verifier/review_ref are deliberately unset.",
    "proof_network": "MAINNET"
   },
   {
@@ -1775,11 +1775,11 @@
     "unknown asset"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/probe_reearn_results.json",
+   "tested_commit": "333d818d8423476c9a7ef6f39e20d712c447c64f",
    "tested_at_utc": "",
-   "notes": "",
+   "notes": "Earned by the ACTIVE/CONTROL probe in certification/results/probe_reearn_results.json (card t_99472e6c). Each check asserts this row's exact (decision, reason) tuple against a control differing only in that row's own value. Checks: reduce_only_is_set_on_closes_and_never_on_opens. Engine sha256 1a1daf81861f726f. Not independently attested: verified/verifier/review_ref are deliberately unset.",
    "proof_network": "TESTNET"
   },
   {
@@ -1807,11 +1807,11 @@
     "unknown asset"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/probe_reearn_results.json",
+   "tested_commit": "333d818d8423476c9a7ef6f39e20d712c447c64f",
    "tested_at_utc": "",
-   "notes": "Core: DEFAULT_MIN_NOTIONAL = env HL_LIVE_MIN_NOTIONAL, default 10 (L138); global min_notional read at L1926; the minimum check at L2439 covers ENTRY/ADD only. Code-read of the 2 Jun backup, unconfirmed by run; PRs #4/#6/#7 (merged at main 114e8b4) changed this code, so re-check there.",
+   "notes": "Earned by the ACTIVE/CONTROL probe in certification/results/probe_reearn_results.json (card t_99472e6c). Each check asserts this row's exact (decision, reason) tuple against a control differing only in that row's own value. Checks: min_notional_blocks_entry_under_the_configured_floor. Engine sha256 1a1daf81861f726f. Not independently attested: verified/verifier/review_ref are deliberately unset.",
    "proof_network": "TESTNET"
   },
   {
@@ -1835,11 +1835,11 @@
     "unknown asset"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/probe_reearn_results.json",
+   "tested_commit": "333d818d8423476c9a7ef6f39e20d712c447c64f",
    "tested_at_utc": "",
-   "notes": "",
+   "notes": "Earned by the ACTIVE/CONTROL probe in certification/results/probe_reearn_results.json (card t_99472e6c). Each check asserts this row's exact (decision, reason) tuple against a control differing only in that row's own value. Checks: wire_size_floors_then_ceils_at_symbol_precision. Engine sha256 1a1daf81861f726f. Not independently attested: verified/verifier/review_ref are deliberately unset.",
    "proof_network": "TESTNET"
   },
   {
@@ -1862,11 +1862,11 @@
     "unknown asset"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/probe_reearn_results.json",
+   "tested_commit": "333d818d8423476c9a7ef6f39e20d712c447c64f",
    "tested_at_utc": "",
-   "notes": "",
+   "notes": "Earned by the ACTIVE/CONTROL probe in certification/results/probe_reearn_results.json (card t_99472e6c). Each check asserts this row's exact (decision, reason) tuple against a control differing only in that row's own value. Checks: cloid_is_a_deterministic_function_of_the_intent_id. Engine sha256 1a1daf81861f726f. Not independently attested: verified/verifier/review_ref are deliberately unset.",
    "proof_network": "TESTNET"
   },
   {
@@ -2218,11 +2218,11 @@
     "rejected save"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/probe_reearn_results.json",
+   "tested_commit": "333d818d8423476c9a7ef6f39e20d712c447c64f",
    "tested_at_utc": "",
-   "notes": "Core: max_total_live_exposure_usd has an accessor (L1929) but no caller was found, so it is not enforced. Code-read of the 2 Jun backup, unconfirmed by run; PRs #4/#6/#7 (merged at main 114e8b4) changed this code, so re-check there. Earlier note (legacy file, superseded base): Source census at Build 3 main 5599415: key has NO reader in HL_Live_Copy_Service.py (0 occurrences); the UI saves it but the engine does not enforce it. Inferred from source search; must be confirmed by execution. OD-21 decided: re-pointed to the certified 13 May UI.",
+   "notes": "Earned by the ACTIVE/CONTROL probe in certification/results/probe_reearn_results.json (card t_99472e6c). Each check asserts this row's exact (decision, reason) tuple against a control differing only in that row's own value. Checks: total_cap_refuses_order_when_remaining_allowance_below_min; total_cap_sizes_down_to_remaining_allowance. Engine sha256 1a1daf81861f726f. Not independently attested: verified/verifier/review_ref are deliberately unset.",
    "proof_network": "TESTNET"
   },
   {
@@ -2252,11 +2252,11 @@
     "rejected save"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/probe_reearn_results.json",
+   "tested_commit": "333d818d8423476c9a7ef6f39e20d712c447c64f",
    "tested_at_utc": "",
-   "notes": "Core: max_asset_directional_exposure_usd is not referenced. Code-read of the 2 Jun backup, unconfirmed by run; PRs #4/#6/#7 (merged at main 114e8b4) changed this code, so re-check there. Earlier note (legacy file, superseded base): Source census at Build 3 main 5599415: key has NO reader in HL_Live_Copy_Service.py (0 occurrences); the UI saves it but the engine does not enforce it. Inferred from source search; must be confirmed by execution. OD-21 decided: re-pointed to the certified 13 May UI.",
+   "notes": "Earned by the ACTIVE/CONTROL probe in certification/results/probe_reearn_results.json (card t_99472e6c). Each check asserts this row's exact (decision, reason) tuple against a control differing only in that row's own value. Checks: asset_cap_blocks_the_side_that_grows_the_net_only; asset_cap_control_is_the_cap_itself; asset_cap_sizes_down_to_remaining_directional_room. Engine sha256 1a1daf81861f726f. Not independently attested: verified/verifier/review_ref are deliberately unset.",
    "proof_network": "TESTNET"
   },
   {
@@ -2286,11 +2286,11 @@
     "rejected save"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/probe_reearn_results.json",
+   "tested_commit": "333d818d8423476c9a7ef6f39e20d712c447c64f",
    "tested_at_utc": "",
-   "notes": "Core: max_wallet_exposure_usd read at L1931 (per-wallet value overrides the global one) and used at L2444. Code-read of the 2 Jun backup, unconfirmed by run; PRs #4/#6/#7 (merged at main 114e8b4) changed this code, so re-check there. Earlier note (legacy file, superseded base): Source census at Build 3 main 5599415: key has NO reader in HL_Live_Copy_Service.py (0 occurrences); the UI saves it but the engine does not enforce it. Inferred from source search; must be confirmed by execution. OD-21 decided: re-pointed to the certified 13 May UI.",
+   "notes": "Earned by the ACTIVE/CONTROL probe in certification/results/probe_reearn_results.json (card t_99472e6c). Each check asserts this row's exact (decision, reason) tuple against a control differing only in that row's own value. Checks: wallet_exposure_cap_uses_ledger_plus_resting. Engine sha256 1a1daf81861f726f. Not independently attested: verified/verifier/review_ref are deliberately unset.",
    "proof_network": "TESTNET"
   },
   {
@@ -2318,11 +2318,11 @@
     "rejected save"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/probe_reearn_results.json",
+   "tested_commit": "333d818d8423476c9a7ef6f39e20d712c447c64f",
    "tested_at_utc": "",
-   "notes": "Core: max_order_notional_usd read at L1935 and enforced at L2441 and L3250. Code-read of the 2 Jun backup, unconfirmed by run; PRs #4/#6/#7 (merged at main 114e8b4) changed this code, so re-check there. OD-21 decided: re-pointed to the certified 13 May UI. Prior evidence void: 'test_g4_order_cap.py (unit, in-process) for max_order_notional_usd' ran against the superseded UI file.",
+   "notes": "Earned by the ACTIVE/CONTROL probe in certification/results/probe_reearn_results.json (card t_99472e6c). Each check asserts this row's exact (decision, reason) tuple against a control differing only in that row's own value. Checks: max_order_notional_blocks_oversized_single_order. Engine sha256 1a1daf81861f726f. Not independently attested: verified/verifier/review_ref are deliberately unset.",
    "proof_network": "TESTNET"
   },
   {
@@ -2353,11 +2353,11 @@
     "rejected save"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/probe_reearn_results.json",
+   "tested_commit": "333d818d8423476c9a7ef6f39e20d712c447c64f",
    "tested_at_utc": "",
-   "notes": "Core: marketable_bps read at L1939 (default env HL_LIVE_MARKETABLE_BPS = 25) and used for pricing at L3210. Code-read of the 2 Jun backup, unconfirmed by run; PRs #4/#6/#7 (merged at main 114e8b4) changed this code, so re-check there. Earlier note (legacy file, superseded base): The engine reads global_controls only in global_order_cap (L2696-2716). Auto-send uses env HL_LIVE_AUTO_SEND_MARKETABLE_BPS (L2863), not this saved value. Inferred from source search; must be confirmed by execution. Slippage ruled (Boss, 2026-10-09): unset marketable slippage defaults to 0.2%. OD-21 decided: re-pointed to the certified 13 May UI. Mainnet proof required: control enforcement is testable on testnet; slippage outcome needs a liquid book.",
+   "notes": "Earned by the ACTIVE/CONTROL probe in certification/results/probe_reearn_results.json (card t_99472e6c). Each check asserts this row's exact (decision, reason) tuple against a control differing only in that row's own value. Checks: marketable_bps_moves_the_valuation_price. Engine sha256 1a1daf81861f726f. Not independently attested: verified/verifier/review_ref are deliberately unset.",
    "proof_network": "MAINNET"
   },
   {
@@ -2422,11 +2422,11 @@
     "rejected save"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/probe_reearn_results.json",
+   "tested_commit": "333d818d8423476c9a7ef6f39e20d712c447c64f",
    "tested_at_utc": "",
-   "notes": "Core: symbol_allowlist (also allow_symbols / allowlist) read at L1944 and applied at L2430. Code-read of the 2 Jun backup, unconfirmed by run; PRs #4/#6/#7 (merged at main 114e8b4) changed this code, so re-check there. Earlier note (legacy file, superseded base): Source census at Build 3 main 5599415: key has NO reader in HL_Live_Copy_Service.py (0 occurrences); the UI saves it but the engine does not enforce it. Inferred from source search; must be confirmed by execution. OD-21 decided: re-pointed to the certified 13 May UI.",
+   "notes": "Earned by the ACTIVE/CONTROL probe in certification/results/probe_reearn_results.json (card t_99472e6c). Each check asserts this row's exact (decision, reason) tuple against a control differing only in that row's own value. Checks: allowlist_refuses_symbol_outside_the_list_only. Engine sha256 1a1daf81861f726f. Not independently attested: verified/verifier/review_ref are deliberately unset.",
    "proof_network": "TESTNET"
   },
   {
@@ -2456,11 +2456,11 @@
     "rejected save"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/probe_reearn_results.json",
+   "tested_commit": "333d818d8423476c9a7ef6f39e20d712c447c64f",
    "tested_at_utc": "",
-   "notes": "Core: symbol_blocklist (also block_symbols / blocklist) read at L1944 and applied at L2430. Code-read of the 2 Jun backup, unconfirmed by run; PRs #4/#6/#7 (merged at main 114e8b4) changed this code, so re-check there. Earlier note (legacy file, superseded base): Source census at Build 3 main 5599415: key has NO reader in HL_Live_Copy_Service.py (0 occurrences); the UI saves it but the engine does not enforce it. Inferred from source search; must be confirmed by execution. OD-21 decided: re-pointed to the certified 13 May UI.",
+   "notes": "Earned by the ACTIVE/CONTROL probe in certification/results/probe_reearn_results.json (card t_99472e6c). Each check asserts this row's exact (decision, reason) tuple against a control differing only in that row's own value. Checks: blocklist_refuses_the_named_symbol_only; blocklist_never_traps_an_open_sleeve. Engine sha256 1a1daf81861f726f. Not independently attested: verified/verifier/review_ref are deliberately unset.",
    "proof_network": "TESTNET"
   },
   {
@@ -2488,11 +2488,11 @@
     "rejected save"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/probe_reearn_results.json",
+   "tested_commit": "333d818d8423476c9a7ef6f39e20d712c447c64f",
    "tested_at_utc": "",
-   "notes": "Core: daily loss is not referenced anywhere. Code-read of the 2 Jun backup, unconfirmed by run; PRs #4/#6/#7 (merged at main 114e8b4) changed this code, so re-check there. OD-21 decided: re-pointed to the certified 13 May UI.",
+   "notes": "Earned by the ACTIVE/CONTROL probe in certification/results/probe_reearn_results.json (card t_99472e6c). Each check asserts this row's exact (decision, reason) tuple against a control differing only in that row's own value. Checks: daily_loss_limit_blocks_at_the_configured_loss; daily_loss_unreadable_fails_closed. Engine sha256 1a1daf81861f726f. Not independently attested: verified/verifier/review_ref are deliberately unset.",
    "proof_network": "TESTNET"
   },
   {
@@ -2583,11 +2583,11 @@
     "rejected save"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/probe_reearn_results.json",
+   "tested_commit": "333d818d8423476c9a7ef6f39e20d712c447c64f",
    "tested_at_utc": "",
-   "notes": "",
+   "notes": "Earned by the ACTIVE/CONTROL probe in certification/results/probe_reearn_results.json (card t_99472e6c). Each check asserts this row's exact (decision, reason) tuple against a control differing only in that row's own value. Checks: safe_stop_off_on_disk_is_read_as_off. Engine sha256 1a1daf81861f726f. Not independently attested: verified/verifier/review_ref are deliberately unset.",
    "proof_network": "TESTNET"
   },
   {
@@ -2646,11 +2646,11 @@
     "rejected save"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/probe_reearn_results.json",
+   "tested_commit": "333d818d8423476c9a7ef6f39e20d712c447c64f",
    "tested_at_utc": "",
-   "notes": "",
+   "notes": "Earned by the ACTIVE/CONTROL probe in certification/results/probe_reearn_results.json (card t_99472e6c). Each check asserts this row's exact (decision, reason) tuple against a control differing only in that row's own value. Checks: unreadable_exposure_fails_closed_only_under_a_cap; unreadable_resting_limits_fail_closed. Engine sha256 1a1daf81861f726f. Not independently attested: verified/verifier/review_ref are deliberately unset.",
    "proof_network": "TESTNET"
   },
   {
