@@ -634,7 +634,10 @@
    "tested_commit": "621a06c2459b43c564874a8377d00576ffe098d9",
    "tested_at_utc": "2026-10-18T21:45:00Z",
    "notes": "Moved FAIL -> PASS by census at 621a06c2459b: exactly one reachable production exchange.order() call site remains (Core:4204); the legacy sender at HL_Live_Copy_Service.py:1036 was retired in 621a06c and now fails closed. AST census, not grep. Regression guard test_single_exchange_order_callsite.py fails if a second site reappears or the site moves out of Core.",
-   "proof_network": "TESTNET"
+   "proof_network": "TESTNET",
+   "verified": true,
+   "verifier": "gemini:2.5-flash (task t_26696bfa)",
+   "review_ref": "certification/results/review_ENG-INV-02-06_t_26696bfa.json"
   },
   {
    "id": "ENG-INV-03",
@@ -731,7 +734,10 @@
    "tested_commit": "621a06c2459b43c564874a8377d00576ffe098d9",
    "tested_at_utc": "2026-10-14T05:00:01Z",
    "notes": "Moved FAIL -> PASS by census at 621a06c2459b: exactly one reachable production exchange.order() call site remains (Core:4204); the legacy sender at HL_Live_Copy_Service.py:1036 was retired in 621a06c and now fails closed. AST census, not grep. Regression guard test_single_exchange_order_callsite.py fails if a second site reappears or the site moves out of Core.",
-   "proof_network": "TESTNET"
+   "proof_network": "TESTNET",
+   "verified": true,
+   "verifier": "gemini:2.5-flash (task t_26696bfa)",
+   "review_ref": "certification/results/review_ENG-INV-02-06_t_26696bfa.json"
   },
   {
    "id": "ENG-INV-07",
