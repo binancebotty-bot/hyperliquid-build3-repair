@@ -1,0 +1,409 @@
+{
+  "task_id": "t_77f54693",
+  "tested_commit": "819050c6018ab3264cfe911f927e1f97ff0f979b",
+  "tested_at_utc": "2026-10-19T10:07:54.432307+00:00",
+  "source": "certification/certification_matrix.json at origin/main",
+  "result": "NOT_TESTED",
+  "verdicts": [
+    {
+      "id": "PRICE-001",
+      "result": "NOT_TESTED",
+      "execution_proof": "Leader event -> price source actually consulted (logged with timestamp/age) -> order limit price on the wire -> fill price",
+      "probe": "Inspected the row-specific proof and oracle fields in the canonical origin/main matrix; enumerated all 6 existing certification/results/*.json evidence files and inspected their check indexes. No check entry among those artifacts establishes this row's complete required chain.",
+      "evidence_files_reviewed": [
+        "certification/results/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json",
+        "certification/results/ENG-INV-02_two_site_census_43731b4f.json",
+        "certification/results/ENG-INV-03-05_oracle_run_head_b142cf8.json",
+        "certification/results/ENG-INV-03-05_oracle_run_tested_43731b4f.json",
+        "certification/results/ENG-INV-03-05_resolution_t_ff1af604.json",
+        "certification/results/ENG-INV-06-09_43731b4.json"
+      ],
+      "blocker": "Required evidence is not available in this clone: Leader event -> price source actually consulted (logged with timestamp/age) -> order limit price on the wire -> fill price. No runtime session/capture plus independent oracle for this row was present in the inspected result artifacts.",
+      "neighbor_discriminator": "This verdict is bound to PRICE-001 and its exact required proof chain: Leader event -> price source actually consulted (logged with timestamp/age) -> order limit price on the wire -> fill price; an adjacent row has a different row ID and/or required chain, so this inventory finding alone cannot settle it."
+    },
+    {
+      "id": "PRICE-002",
+      "result": "NOT_TESTED",
+      "execution_proof": "Leader event -> price source actually consulted (logged with timestamp/age) -> order limit price on the wire -> fill price",
+      "probe": "Inspected the row-specific proof and oracle fields in the canonical origin/main matrix; enumerated all 6 existing certification/results/*.json evidence files and inspected their check indexes. No check entry among those artifacts establishes this row's complete required chain.",
+      "evidence_files_reviewed": [
+        "certification/results/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json",
+        "certification/results/ENG-INV-02_two_site_census_43731b4f.json",
+        "certification/results/ENG-INV-03-05_oracle_run_head_b142cf8.json",
+        "certification/results/ENG-INV-03-05_oracle_run_tested_43731b4f.json",
+        "certification/results/ENG-INV-03-05_resolution_t_ff1af604.json",
+        "certification/results/ENG-INV-06-09_43731b4.json"
+      ],
+      "blocker": "Required evidence is not available in this clone: Leader event -> price source actually consulted (logged with timestamp/age) -> order limit price on the wire -> fill price. No runtime session/capture plus independent oracle for this row was present in the inspected result artifacts.",
+      "neighbor_discriminator": "This verdict is bound to PRICE-002 and its exact required proof chain: Leader event -> price source actually consulted (logged with timestamp/age) -> order limit price on the wire -> fill price; an adjacent row has a different row ID and/or required chain, so this inventory finding alone cannot settle it."
+    },
+    {
+      "id": "PRICE-005",
+      "result": "NOT_TESTED",
+      "execution_proof": "Leader event -> price source actually consulted (logged with timestamp/age) -> order limit price on the wire -> fill price",
+      "probe": "Inspected the row-specific proof and oracle fields in the canonical origin/main matrix; enumerated all 6 existing certification/results/*.json evidence files and inspected their check indexes. No check entry among those artifacts establishes this row's complete required chain.",
+      "evidence_files_reviewed": [
+        "certification/results/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json",
+        "certification/results/ENG-INV-02_two_site_census_43731b4f.json",
+        "certification/results/ENG-INV-03-05_oracle_run_head_b142cf8.json",
+        "certification/results/ENG-INV-03-05_oracle_run_tested_43731b4f.json",
+        "certification/results/ENG-INV-03-05_resolution_t_ff1af604.json",
+        "certification/results/ENG-INV-06-09_43731b4.json"
+      ],
+      "blocker": "Required evidence is not available in this clone: Leader event -> price source actually consulted (logged with timestamp/age) -> order limit price on the wire -> fill price. No runtime session/capture plus independent oracle for this row was present in the inspected result artifacts.",
+      "neighbor_discriminator": "This verdict is bound to PRICE-005 and its exact required proof chain: Leader event -> price source actually consulted (logged with timestamp/age) -> order limit price on the wire -> fill price; an adjacent row has a different row ID and/or required chain, so this inventory finding alone cannot settle it."
+    },
+    {
+      "id": "PRICE-006",
+      "result": "NOT_TESTED",
+      "execution_proof": "Leader event -> price source actually consulted (logged with timestamp/age) -> order limit price on the wire -> fill price",
+      "probe": "Inspected the row-specific proof and oracle fields in the canonical origin/main matrix; enumerated all 6 existing certification/results/*.json evidence files and inspected their check indexes. No check entry among those artifacts establishes this row's complete required chain.",
+      "evidence_files_reviewed": [
+        "certification/results/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json",
+        "certification/results/ENG-INV-02_two_site_census_43731b4f.json",
+        "certification/results/ENG-INV-03-05_oracle_run_head_b142cf8.json",
+        "certification/results/ENG-INV-03-05_oracle_run_tested_43731b4f.json",
+        "certification/results/ENG-INV-03-05_resolution_t_ff1af604.json",
+        "certification/results/ENG-INV-06-09_43731b4.json"
+      ],
+      "blocker": "Required evidence is not available in this clone: Leader event -> price source actually consulted (logged with timestamp/age) -> order limit price on the wire -> fill price. No runtime session/capture plus independent oracle for this row was present in the inspected result artifacts.",
+      "neighbor_discriminator": "This verdict is bound to PRICE-006 and its exact required proof chain: Leader event -> price source actually consulted (logged with timestamp/age) -> order limit price on the wire -> fill price; an adjacent row has a different row ID and/or required chain, so this inventory finding alone cannot settle it."
+    },
+    {
+      "id": "PRICE-007",
+      "result": "NOT_TESTED",
+      "execution_proof": "Leader event -> price source actually consulted (logged with timestamp/age) -> order limit price on the wire -> fill price",
+      "probe": "Inspected the row-specific proof and oracle fields in the canonical origin/main matrix; enumerated all 6 existing certification/results/*.json evidence files and inspected their check indexes. No check entry among those artifacts establishes this row's complete required chain.",
+      "evidence_files_reviewed": [
+        "certification/results/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json",
+        "certification/results/ENG-INV-02_two_site_census_43731b4f.json",
+        "certification/results/ENG-INV-03-05_oracle_run_head_b142cf8.json",
+        "certification/results/ENG-INV-03-05_oracle_run_tested_43731b4f.json",
+        "certification/results/ENG-INV-03-05_resolution_t_ff1af604.json",
+        "certification/results/ENG-INV-06-09_43731b4.json"
+      ],
+      "blocker": "Required evidence is not available in this clone: Leader event -> price source actually consulted (logged with timestamp/age) -> order limit price on the wire -> fill price. No runtime session/capture plus independent oracle for this row was present in the inspected result artifacts.",
+      "neighbor_discriminator": "This verdict is bound to PRICE-007 and its exact required proof chain: Leader event -> price source actually consulted (logged with timestamp/age) -> order limit price on the wire -> fill price; an adjacent row has a different row ID and/or required chain, so this inventory finding alone cannot settle it."
+    },
+    {
+      "id": "ORD-001",
+      "result": "NOT_TESTED",
+      "execution_proof": "Planner delta -> order payload as signed (size, side, reduce_only, tif, cloid, asset id) -> exchange response",
+      "probe": "Inspected the row-specific proof and oracle fields in the canonical origin/main matrix; enumerated all 6 existing certification/results/*.json evidence files and inspected their check indexes. No check entry among those artifacts establishes this row's complete required chain.",
+      "evidence_files_reviewed": [
+        "certification/results/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json",
+        "certification/results/ENG-INV-02_two_site_census_43731b4f.json",
+        "certification/results/ENG-INV-03-05_oracle_run_head_b142cf8.json",
+        "certification/results/ENG-INV-03-05_oracle_run_tested_43731b4f.json",
+        "certification/results/ENG-INV-03-05_resolution_t_ff1af604.json",
+        "certification/results/ENG-INV-06-09_43731b4.json"
+      ],
+      "blocker": "Required evidence is not available in this clone: Planner delta -> order payload as signed (size, side, reduce_only, tif, cloid, asset id) -> exchange response. No runtime session/capture plus independent oracle for this row was present in the inspected result artifacts.",
+      "neighbor_discriminator": "This verdict is bound to ORD-001 and its exact required proof chain: Planner delta -> order payload as signed (size, side, reduce_only, tif, cloid, asset id) -> exchange response; an adjacent row has a different row ID and/or required chain, so this inventory finding alone cannot settle it."
+    },
+    {
+      "id": "ORD-002",
+      "result": "NOT_TESTED",
+      "execution_proof": "Planner delta -> order payload as signed (size, side, reduce_only, tif, cloid, asset id) -> exchange response",
+      "probe": "Inspected the row-specific proof and oracle fields in the canonical origin/main matrix; enumerated all 6 existing certification/results/*.json evidence files and inspected their check indexes. No check entry among those artifacts establishes this row's complete required chain.",
+      "evidence_files_reviewed": [
+        "certification/results/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json",
+        "certification/results/ENG-INV-02_two_site_census_43731b4f.json",
+        "certification/results/ENG-INV-03-05_oracle_run_head_b142cf8.json",
+        "certification/results/ENG-INV-03-05_oracle_run_tested_43731b4f.json",
+        "certification/results/ENG-INV-03-05_resolution_t_ff1af604.json",
+        "certification/results/ENG-INV-06-09_43731b4.json"
+      ],
+      "blocker": "Required evidence is not available in this clone: Planner delta -> order payload as signed (size, side, reduce_only, tif, cloid, asset id) -> exchange response. No runtime session/capture plus independent oracle for this row was present in the inspected result artifacts.",
+      "neighbor_discriminator": "This verdict is bound to ORD-002 and its exact required proof chain: Planner delta -> order payload as signed (size, side, reduce_only, tif, cloid, asset id) -> exchange response; an adjacent row has a different row ID and/or required chain, so this inventory finding alone cannot settle it."
+    },
+    {
+      "id": "ORD-005",
+      "result": "NOT_TESTED",
+      "execution_proof": "Planner delta -> order payload as signed (size, side, reduce_only, tif, cloid, asset id) -> exchange response",
+      "probe": "Inspected the row-specific proof and oracle fields in the canonical origin/main matrix; enumerated all 6 existing certification/results/*.json evidence files and inspected their check indexes. No check entry among those artifacts establishes this row's complete required chain.",
+      "evidence_files_reviewed": [
+        "certification/results/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json",
+        "certification/results/ENG-INV-02_two_site_census_43731b4f.json",
+        "certification/results/ENG-INV-03-05_oracle_run_head_b142cf8.json",
+        "certification/results/ENG-INV-03-05_oracle_run_tested_43731b4f.json",
+        "certification/results/ENG-INV-03-05_resolution_t_ff1af604.json",
+        "certification/results/ENG-INV-06-09_43731b4.json"
+      ],
+      "blocker": "Required evidence is not available in this clone: Planner delta -> order payload as signed (size, side, reduce_only, tif, cloid, asset id) -> exchange response. No runtime session/capture plus independent oracle for this row was present in the inspected result artifacts.",
+      "neighbor_discriminator": "This verdict is bound to ORD-005 and its exact required proof chain: Planner delta -> order payload as signed (size, side, reduce_only, tif, cloid, asset id) -> exchange response; an adjacent row has a different row ID and/or required chain, so this inventory finding alone cannot settle it."
+    },
+    {
+      "id": "ORD-006",
+      "result": "NOT_TESTED",
+      "execution_proof": "Planner delta -> order payload as signed (size, side, reduce_only, tif, cloid, asset id) -> exchange response",
+      "probe": "Inspected the row-specific proof and oracle fields in the canonical origin/main matrix; enumerated all 6 existing certification/results/*.json evidence files and inspected their check indexes. No check entry among those artifacts establishes this row's complete required chain.",
+      "evidence_files_reviewed": [
+        "certification/results/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json",
+        "certification/results/ENG-INV-02_two_site_census_43731b4f.json",
+        "certification/results/ENG-INV-03-05_oracle_run_head_b142cf8.json",
+        "certification/results/ENG-INV-03-05_oracle_run_tested_43731b4f.json",
+        "certification/results/ENG-INV-03-05_resolution_t_ff1af604.json",
+        "certification/results/ENG-INV-06-09_43731b4.json"
+      ],
+      "blocker": "Required evidence is not available in this clone: Planner delta -> order payload as signed (size, side, reduce_only, tif, cloid, asset id) -> exchange response. No runtime session/capture plus independent oracle for this row was present in the inspected result artifacts.",
+      "neighbor_discriminator": "This verdict is bound to ORD-006 and its exact required proof chain: Planner delta -> order payload as signed (size, side, reduce_only, tif, cloid, asset id) -> exchange response; an adjacent row has a different row ID and/or required chain, so this inventory finding alone cannot settle it."
+    },
+    {
+      "id": "ORD-008",
+      "result": "NOT_TESTED",
+      "execution_proof": "Planner delta -> order payload as signed (size, side, reduce_only, tif, cloid, asset id) -> exchange response",
+      "probe": "Inspected the row-specific proof and oracle fields in the canonical origin/main matrix; enumerated all 6 existing certification/results/*.json evidence files and inspected their check indexes. No check entry among those artifacts establishes this row's complete required chain.",
+      "evidence_files_reviewed": [
+        "certification/results/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json",
+        "certification/results/ENG-INV-02_two_site_census_43731b4f.json",
+        "certification/results/ENG-INV-03-05_oracle_run_head_b142cf8.json",
+        "certification/results/ENG-INV-03-05_oracle_run_tested_43731b4f.json",
+        "certification/results/ENG-INV-03-05_resolution_t_ff1af604.json",
+        "certification/results/ENG-INV-06-09_43731b4.json"
+      ],
+      "blocker": "Required evidence is not available in this clone: Planner delta -> order payload as signed (size, side, reduce_only, tif, cloid, asset id) -> exchange response. No runtime session/capture plus independent oracle for this row was present in the inspected result artifacts.",
+      "neighbor_discriminator": "This verdict is bound to ORD-008 and its exact required proof chain: Planner delta -> order payload as signed (size, side, reduce_only, tif, cloid, asset id) -> exchange response; an adjacent row has a different row ID and/or required chain, so this inventory finding alone cannot settle it."
+    },
+    {
+      "id": "ORD-009",
+      "result": "NOT_TESTED",
+      "execution_proof": "Start the engine against the follower network -> userRole read for the signer -> start allowed/refused; inject a signer rejection on send -> terminal state, sending stopped, UI alert and Critical diffs",
+      "probe": "Inspected the row-specific proof and oracle fields in the canonical origin/main matrix; enumerated all 6 existing certification/results/*.json evidence files and inspected their check indexes. No check entry among those artifacts establishes this row's complete required chain.",
+      "evidence_files_reviewed": [
+        "certification/results/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json",
+        "certification/results/ENG-INV-02_two_site_census_43731b4f.json",
+        "certification/results/ENG-INV-03-05_oracle_run_head_b142cf8.json",
+        "certification/results/ENG-INV-03-05_oracle_run_tested_43731b4f.json",
+        "certification/results/ENG-INV-03-05_resolution_t_ff1af604.json",
+        "certification/results/ENG-INV-06-09_43731b4.json"
+      ],
+      "blocker": "Required evidence is not available in this clone: Start the engine against the follower network -> userRole read for the signer -> start allowed/refused; inject a signer rejection on send -> terminal state, sending stopped, UI alert and Critical diffs. No runtime session/capture plus independent oracle for this row was present in the inspected result artifacts.",
+      "neighbor_discriminator": "This verdict is bound to ORD-009 and its exact required proof chain: Start the engine against the follower network -> userRole read for the signer -> start allowed/refused; inject a signer rejection on send -> terminal state, sending stopped, UI alert and Critical diffs; an adjacent row has a different row ID and/or required chain, so this inventory finding alone cannot settle it."
+    },
+    {
+      "id": "SET-001",
+      "result": "NOT_TESTED",
+      "execution_proof": "Sender response -> in-flight reservation in SERVICE_STATE_FILE -> MASTER userFills + clearinghouseState across all DEX scopes -> reservation cleared",
+      "probe": "Inspected the row-specific proof and oracle fields in the canonical origin/main matrix; enumerated all 6 existing certification/results/*.json evidence files and inspected their check indexes. No check entry among those artifacts establishes this row's complete required chain.",
+      "evidence_files_reviewed": [
+        "certification/results/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json",
+        "certification/results/ENG-INV-02_two_site_census_43731b4f.json",
+        "certification/results/ENG-INV-03-05_oracle_run_head_b142cf8.json",
+        "certification/results/ENG-INV-03-05_oracle_run_tested_43731b4f.json",
+        "certification/results/ENG-INV-03-05_resolution_t_ff1af604.json",
+        "certification/results/ENG-INV-06-09_43731b4.json"
+      ],
+      "blocker": "Required evidence is not available in this clone: Sender response -> in-flight reservation in SERVICE_STATE_FILE -> MASTER userFills + clearinghouseState across all DEX scopes -> reservation cleared. No runtime session/capture plus independent oracle for this row was present in the inspected result artifacts.",
+      "neighbor_discriminator": "This verdict is bound to SET-001 and its exact required proof chain: Sender response -> in-flight reservation in SERVICE_STATE_FILE -> MASTER userFills + clearinghouseState across all DEX scopes -> reservation cleared; an adjacent row has a different row ID and/or required chain, so this inventory finding alone cannot settle it."
+    },
+    {
+      "id": "SET-002",
+      "result": "NOT_TESTED",
+      "execution_proof": "Sender response -> in-flight reservation in SERVICE_STATE_FILE -> MASTER userFills + clearinghouseState across all DEX scopes -> reservation cleared",
+      "probe": "Inspected the row-specific proof and oracle fields in the canonical origin/main matrix; enumerated all 6 existing certification/results/*.json evidence files and inspected their check indexes. No check entry among those artifacts establishes this row's complete required chain.",
+      "evidence_files_reviewed": [
+        "certification/results/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json",
+        "certification/results/ENG-INV-02_two_site_census_43731b4f.json",
+        "certification/results/ENG-INV-03-05_oracle_run_head_b142cf8.json",
+        "certification/results/ENG-INV-03-05_oracle_run_tested_43731b4f.json",
+        "certification/results/ENG-INV-03-05_resolution_t_ff1af604.json",
+        "certification/results/ENG-INV-06-09_43731b4.json"
+      ],
+      "blocker": "Required evidence is not available in this clone: Sender response -> in-flight reservation in SERVICE_STATE_FILE -> MASTER userFills + clearinghouseState across all DEX scopes -> reservation cleared. No runtime session/capture plus independent oracle for this row was present in the inspected result artifacts.",
+      "neighbor_discriminator": "This verdict is bound to SET-002 and its exact required proof chain: Sender response -> in-flight reservation in SERVICE_STATE_FILE -> MASTER userFills + clearinghouseState across all DEX scopes -> reservation cleared; an adjacent row has a different row ID and/or required chain, so this inventory finding alone cannot settle it."
+    },
+    {
+      "id": "SET-003",
+      "result": "NOT_TESTED",
+      "execution_proof": "Sender response -> in-flight reservation in SERVICE_STATE_FILE -> MASTER userFills + clearinghouseState across all DEX scopes -> reservation cleared",
+      "probe": "Inspected the row-specific proof and oracle fields in the canonical origin/main matrix; enumerated all 6 existing certification/results/*.json evidence files and inspected their check indexes. No check entry among those artifacts establishes this row's complete required chain.",
+      "evidence_files_reviewed": [
+        "certification/results/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json",
+        "certification/results/ENG-INV-02_two_site_census_43731b4f.json",
+        "certification/results/ENG-INV-03-05_oracle_run_head_b142cf8.json",
+        "certification/results/ENG-INV-03-05_oracle_run_tested_43731b4f.json",
+        "certification/results/ENG-INV-03-05_resolution_t_ff1af604.json",
+        "certification/results/ENG-INV-06-09_43731b4.json"
+      ],
+      "blocker": "Required evidence is not available in this clone: Sender response -> in-flight reservation in SERVICE_STATE_FILE -> MASTER userFills + clearinghouseState across all DEX scopes -> reservation cleared. No runtime session/capture plus independent oracle for this row was present in the inspected result artifacts.",
+      "neighbor_discriminator": "This verdict is bound to SET-003 and its exact required proof chain: Sender response -> in-flight reservation in SERVICE_STATE_FILE -> MASTER userFills + clearinghouseState across all DEX scopes -> reservation cleared; an adjacent row has a different row ID and/or required chain, so this inventory finding alone cannot settle it."
+    },
+    {
+      "id": "SET-004",
+      "result": "NOT_TESTED",
+      "execution_proof": "Sender response -> in-flight reservation in SERVICE_STATE_FILE -> MASTER userFills + clearinghouseState across all DEX scopes -> reservation cleared",
+      "probe": "Inspected the row-specific proof and oracle fields in the canonical origin/main matrix; enumerated all 6 existing certification/results/*.json evidence files and inspected their check indexes. No check entry among those artifacts establishes this row's complete required chain.",
+      "evidence_files_reviewed": [
+        "certification/results/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json",
+        "certification/results/ENG-INV-02_two_site_census_43731b4f.json",
+        "certification/results/ENG-INV-03-05_oracle_run_head_b142cf8.json",
+        "certification/results/ENG-INV-03-05_oracle_run_tested_43731b4f.json",
+        "certification/results/ENG-INV-03-05_resolution_t_ff1af604.json",
+        "certification/results/ENG-INV-06-09_43731b4.json"
+      ],
+      "blocker": "Required evidence is not available in this clone: Sender response -> in-flight reservation in SERVICE_STATE_FILE -> MASTER userFills + clearinghouseState across all DEX scopes -> reservation cleared. No runtime session/capture plus independent oracle for this row was present in the inspected result artifacts.",
+      "neighbor_discriminator": "This verdict is bound to SET-004 and its exact required proof chain: Sender response -> in-flight reservation in SERVICE_STATE_FILE -> MASTER userFills + clearinghouseState across all DEX scopes -> reservation cleared; an adjacent row has a different row ID and/or required chain, so this inventory finding alone cannot settle it."
+    },
+    {
+      "id": "SET-005",
+      "result": "NOT_TESTED",
+      "execution_proof": "Sender response -> in-flight reservation in SERVICE_STATE_FILE -> MASTER userFills + clearinghouseState across all DEX scopes -> reservation cleared",
+      "probe": "Inspected the row-specific proof and oracle fields in the canonical origin/main matrix; enumerated all 6 existing certification/results/*.json evidence files and inspected their check indexes. No check entry among those artifacts establishes this row's complete required chain.",
+      "evidence_files_reviewed": [
+        "certification/results/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json",
+        "certification/results/ENG-INV-02_two_site_census_43731b4f.json",
+        "certification/results/ENG-INV-03-05_oracle_run_head_b142cf8.json",
+        "certification/results/ENG-INV-03-05_oracle_run_tested_43731b4f.json",
+        "certification/results/ENG-INV-03-05_resolution_t_ff1af604.json",
+        "certification/results/ENG-INV-06-09_43731b4.json"
+      ],
+      "blocker": "Required evidence is not available in this clone: Sender response -> in-flight reservation in SERVICE_STATE_FILE -> MASTER userFills + clearinghouseState across all DEX scopes -> reservation cleared. No runtime session/capture plus independent oracle for this row was present in the inspected result artifacts.",
+      "neighbor_discriminator": "This verdict is bound to SET-005 and its exact required proof chain: Sender response -> in-flight reservation in SERVICE_STATE_FILE -> MASTER userFills + clearinghouseState across all DEX scopes -> reservation cleared; an adjacent row has a different row ID and/or required chain, so this inventory finding alone cannot settle it."
+    },
+    {
+      "id": "SET-006",
+      "result": "NOT_TESTED",
+      "execution_proof": "Sender response -> in-flight reservation in SERVICE_STATE_FILE -> MASTER userFills + clearinghouseState across all DEX scopes -> reservation cleared",
+      "probe": "Inspected the row-specific proof and oracle fields in the canonical origin/main matrix; enumerated all 6 existing certification/results/*.json evidence files and inspected their check indexes. No check entry among those artifacts establishes this row's complete required chain.",
+      "evidence_files_reviewed": [
+        "certification/results/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json",
+        "certification/results/ENG-INV-02_two_site_census_43731b4f.json",
+        "certification/results/ENG-INV-03-05_oracle_run_head_b142cf8.json",
+        "certification/results/ENG-INV-03-05_oracle_run_tested_43731b4f.json",
+        "certification/results/ENG-INV-03-05_resolution_t_ff1af604.json",
+        "certification/results/ENG-INV-06-09_43731b4.json"
+      ],
+      "blocker": "Required evidence is not available in this clone: Sender response -> in-flight reservation in SERVICE_STATE_FILE -> MASTER userFills + clearinghouseState across all DEX scopes -> reservation cleared. No runtime session/capture plus independent oracle for this row was present in the inspected result artifacts.",
+      "neighbor_discriminator": "This verdict is bound to SET-006 and its exact required proof chain: Sender response -> in-flight reservation in SERVICE_STATE_FILE -> MASTER userFills + clearinghouseState across all DEX scopes -> reservation cleared; an adjacent row has a different row ID and/or required chain, so this inventory finding alone cannot settle it."
+    },
+    {
+      "id": "SET-007",
+      "result": "NOT_TESTED",
+      "execution_proof": "Sender response -> in-flight reservation in SERVICE_STATE_FILE -> MASTER userFills + clearinghouseState across all DEX scopes -> reservation cleared",
+      "probe": "Inspected the row-specific proof and oracle fields in the canonical origin/main matrix; enumerated all 6 existing certification/results/*.json evidence files and inspected their check indexes. No check entry among those artifacts establishes this row's complete required chain.",
+      "evidence_files_reviewed": [
+        "certification/results/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json",
+        "certification/results/ENG-INV-02_two_site_census_43731b4f.json",
+        "certification/results/ENG-INV-03-05_oracle_run_head_b142cf8.json",
+        "certification/results/ENG-INV-03-05_oracle_run_tested_43731b4f.json",
+        "certification/results/ENG-INV-03-05_resolution_t_ff1af604.json",
+        "certification/results/ENG-INV-06-09_43731b4.json"
+      ],
+      "blocker": "Required evidence is not available in this clone: Sender response -> in-flight reservation in SERVICE_STATE_FILE -> MASTER userFills + clearinghouseState across all DEX scopes -> reservation cleared. No runtime session/capture plus independent oracle for this row was present in the inspected result artifacts.",
+      "neighbor_discriminator": "This verdict is bound to SET-007 and its exact required proof chain: Sender response -> in-flight reservation in SERVICE_STATE_FILE -> MASTER userFills + clearinghouseState across all DEX scopes -> reservation cleared; an adjacent row has a different row ID and/or required chain, so this inventory finding alone cannot settle it."
+    },
+    {
+      "id": "SET-008",
+      "result": "NOT_TESTED",
+      "execution_proof": "Sender response -> in-flight reservation in SERVICE_STATE_FILE -> MASTER userFills + clearinghouseState across all DEX scopes -> reservation cleared",
+      "probe": "Inspected the row-specific proof and oracle fields in the canonical origin/main matrix; enumerated all 6 existing certification/results/*.json evidence files and inspected their check indexes. No check entry among those artifacts establishes this row's complete required chain.",
+      "evidence_files_reviewed": [
+        "certification/results/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json",
+        "certification/results/ENG-INV-02_two_site_census_43731b4f.json",
+        "certification/results/ENG-INV-03-05_oracle_run_head_b142cf8.json",
+        "certification/results/ENG-INV-03-05_oracle_run_tested_43731b4f.json",
+        "certification/results/ENG-INV-03-05_resolution_t_ff1af604.json",
+        "certification/results/ENG-INV-06-09_43731b4.json"
+      ],
+      "blocker": "Required evidence is not available in this clone: Sender response -> in-flight reservation in SERVICE_STATE_FILE -> MASTER userFills + clearinghouseState across all DEX scopes -> reservation cleared. No runtime session/capture plus independent oracle for this row was present in the inspected result artifacts.",
+      "neighbor_discriminator": "This verdict is bound to SET-008 and its exact required proof chain: Sender response -> in-flight reservation in SERVICE_STATE_FILE -> MASTER userFills + clearinghouseState across all DEX scopes -> reservation cleared; an adjacent row has a different row ID and/or required chain, so this inventory finding alone cannot settle it."
+    },
+    {
+      "id": "RISK-004",
+      "result": "NOT_TESTED",
+      "execution_proof": "UI/config value -> live_config.json -> engine read at decision time -> block/allow recorded in order_intents with reason -> exchange shows (no) order",
+      "probe": "Inspected the row-specific proof and oracle fields in the canonical origin/main matrix; enumerated all 6 existing certification/results/*.json evidence files and inspected their check indexes. No check entry among those artifacts establishes this row's complete required chain.",
+      "evidence_files_reviewed": [
+        "certification/results/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json",
+        "certification/results/ENG-INV-02_two_site_census_43731b4f.json",
+        "certification/results/ENG-INV-03-05_oracle_run_head_b142cf8.json",
+        "certification/results/ENG-INV-03-05_oracle_run_tested_43731b4f.json",
+        "certification/results/ENG-INV-03-05_resolution_t_ff1af604.json",
+        "certification/results/ENG-INV-06-09_43731b4.json"
+      ],
+      "blocker": "Required evidence is not available in this clone: UI/config value -> live_config.json -> engine read at decision time -> block/allow recorded in order_intents with reason -> exchange shows (no) order. No runtime session/capture plus independent oracle for this row was present in the inspected result artifacts.",
+      "neighbor_discriminator": "This verdict is bound to RISK-004 and its exact required proof chain: UI/config value -> live_config.json -> engine read at decision time -> block/allow recorded in order_intents with reason -> exchange shows (no) order; an adjacent row has a different row ID and/or required chain, so this inventory finding alone cannot settle it."
+    },
+    {
+      "id": "RISK-014",
+      "result": "NOT_TESTED",
+      "execution_proof": "UI/config value -> live_config.json -> engine read at decision time -> block/allow recorded in order_intents with reason -> exchange shows (no) order",
+      "probe": "Inspected the row-specific proof and oracle fields in the canonical origin/main matrix; enumerated all 6 existing certification/results/*.json evidence files and inspected their check indexes. No check entry among those artifacts establishes this row's complete required chain.",
+      "evidence_files_reviewed": [
+        "certification/results/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json",
+        "certification/results/ENG-INV-02_two_site_census_43731b4f.json",
+        "certification/results/ENG-INV-03-05_oracle_run_head_b142cf8.json",
+        "certification/results/ENG-INV-03-05_oracle_run_tested_43731b4f.json",
+        "certification/results/ENG-INV-03-05_resolution_t_ff1af604.json",
+        "certification/results/ENG-INV-06-09_43731b4.json"
+      ],
+      "blocker": "Required evidence is not available in this clone: UI/config value -> live_config.json -> engine read at decision time -> block/allow recorded in order_intents with reason -> exchange shows (no) order. No runtime session/capture plus independent oracle for this row was present in the inspected result artifacts.",
+      "neighbor_discriminator": "This verdict is bound to RISK-014 and its exact required proof chain: UI/config value -> live_config.json -> engine read at decision time -> block/allow recorded in order_intents with reason -> exchange shows (no) order; an adjacent row has a different row ID and/or required chain, so this inventory finding alone cannot settle it."
+    },
+    {
+      "id": "RISK-015",
+      "result": "NOT_TESTED",
+      "execution_proof": "UI/config value -> live_config.json -> engine read at decision time -> block/allow recorded in order_intents with reason -> exchange shows (no) order",
+      "probe": "Inspected the row-specific proof and oracle fields in the canonical origin/main matrix; enumerated all 6 existing certification/results/*.json evidence files and inspected their check indexes. No check entry among those artifacts establishes this row's complete required chain.",
+      "evidence_files_reviewed": [
+        "certification/results/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json",
+        "certification/results/ENG-INV-02_two_site_census_43731b4f.json",
+        "certification/results/ENG-INV-03-05_oracle_run_head_b142cf8.json",
+        "certification/results/ENG-INV-03-05_oracle_run_tested_43731b4f.json",
+        "certification/results/ENG-INV-03-05_resolution_t_ff1af604.json",
+        "certification/results/ENG-INV-06-09_43731b4.json"
+      ],
+      "blocker": "Required evidence is not available in this clone: UI/config value -> live_config.json -> engine read at decision time -> block/allow recorded in order_intents with reason -> exchange shows (no) order. No runtime session/capture plus independent oracle for this row was present in the inspected result artifacts.",
+      "neighbor_discriminator": "This verdict is bound to RISK-015 and its exact required proof chain: UI/config value -> live_config.json -> engine read at decision time -> block/allow recorded in order_intents with reason -> exchange shows (no) order; an adjacent row has a different row ID and/or required chain, so this inventory finding alone cannot settle it."
+    },
+    {
+      "id": "RISK-016",
+      "result": "NOT_TESTED",
+      "execution_proof": "UI/config value -> live_config.json -> engine read at decision time -> block/allow recorded in order_intents with reason -> exchange shows (no) order",
+      "probe": "Inspected the row-specific proof and oracle fields in the canonical origin/main matrix; enumerated all 6 existing certification/results/*.json evidence files and inspected their check indexes. No check entry among those artifacts establishes this row's complete required chain.",
+      "evidence_files_reviewed": [
+        "certification/results/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json",
+        "certification/results/ENG-INV-02_two_site_census_43731b4f.json",
+        "certification/results/ENG-INV-03-05_oracle_run_head_b142cf8.json",
+        "certification/results/ENG-INV-03-05_oracle_run_tested_43731b4f.json",
+        "certification/results/ENG-INV-03-05_resolution_t_ff1af604.json",
+        "certification/results/ENG-INV-06-09_43731b4.json"
+      ],
+      "blocker": "Required evidence is not available in this clone: UI/config value -> live_config.json -> engine read at decision time -> block/allow recorded in order_intents with reason -> exchange shows (no) order. No runtime session/capture plus independent oracle for this row was present in the inspected result artifacts.",
+      "neighbor_discriminator": "This verdict is bound to RISK-016 and its exact required proof chain: UI/config value -> live_config.json -> engine read at decision time -> block/allow recorded in order_intents with reason -> exchange shows (no) order; an adjacent row has a different row ID and/or required chain, so this inventory finding alone cannot settle it."
+    },
+    {
+      "id": "UI-LCC-HDR-01",
+      "result": "NOT_TESTED",
+      "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+      "probe": "Inspected the row-specific proof and oracle fields in the canonical origin/main matrix; enumerated all 6 existing certification/results/*.json evidence files and inspected their check indexes. No check entry among those artifacts establishes this row's complete required chain.",
+      "evidence_files_reviewed": [
+        "certification/results/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json",
+        "certification/results/ENG-INV-02_two_site_census_43731b4f.json",
+        "certification/results/ENG-INV-03-05_oracle_run_head_b142cf8.json",
+        "certification/results/ENG-INV-03-05_oracle_run_tested_43731b4f.json",
+        "certification/results/ENG-INV-03-05_resolution_t_ff1af604.json",
+        "certification/results/ENG-INV-06-09_43731b4.json"
+      ],
+      "blocker": "Required evidence is not available in this clone: Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture). No runtime session/capture plus independent oracle for this row was present in the inspected result artifacts.",
+      "neighbor_discriminator": "This verdict is bound to UI-LCC-HDR-01 and its exact required proof chain: Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture); an adjacent row has a different row ID and/or required chain, so this inventory finding alone cannot settle it."
+    },
+    {
+      "id": "UI-LCC-HDR-02",
+      "result": "NOT_TESTED",
+      "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+      "probe": "Inspected the row-specific proof and oracle fields in the canonical origin/main matrix; enumerated all 6 existing certification/results/*.json evidence files and inspected their check indexes. No check entry among those artifacts establishes this row's complete required chain.",
+      "evidence_files_reviewed": [
+        "certification/results/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json",
+        "certification/results/ENG-INV-02_two_site_census_43731b4f.json",
+        "certification/results/ENG-INV-03-05_oracle_run_head_b142cf8.json",
+        "certification/results/ENG-INV-03-05_oracle_run_tested_43731b4f.json",
+        "certification/results/ENG-INV-03-05_resolution_t_ff1af604.json",
+        "certification/results/ENG-INV-06-09_43731b4.json"
+      ],
+      "blocker": "Required evidence is not available in this clone: Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture). No runtime session/capture plus independent oracle for this row was present in the inspected result artifacts.",
+      "neighbor_discriminator": "This verdict is bound to UI-LCC-HDR-02 and its exact required proof chain: Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture); an adjacent row has a different row ID and/or required chain, so this inventory finding alone cannot settle it."
+    }
+  ]
+}
