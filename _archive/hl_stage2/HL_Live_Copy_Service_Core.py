@@ -4193,8 +4193,10 @@ class SenderGateway:
         # different workers overlap (run 3: one ~3.5 s call at a time capped the engine near one order per 3.5 s).
         if FOLLOWER_NETWORK == "mainnet" and not MAINNET_ORDERS_CONFIRMED:
             raise RuntimeError("MAINNET_FOLLOWER_NOT_CONFIRMED: mainnet order refused without --confirm-mainnet-follower")
-        with self._exchange_order_lock:
-            self._wait_exchange_order_slot()
+        slot_ms = self._reserve_exchange_order_slot()
+        delay_ms = max(0, slot_ms - utc_now_ms())
+        if delay_ms:
+            time.sleep(min(5.0, delay_ms / 1000.0))
         if timing is not None and started_key:
             timing[started_key] = utc_now_ms()
         order_kwargs: Dict[str, Any] = {"reduce_only": reduce_only}
@@ -4226,8 +4228,10 @@ class SenderGateway:
 
     def _cancel_order(self, exchange: Any, sdk_coin: str, oid: str) -> Any:
         """The ONE physical exchange cancel call: missed-entry limits the leader no longer supports."""
-        with self._exchange_order_lock:
-            self._wait_exchange_order_slot()
+        slot_ms = self._reserve_exchange_order_slot()
+        delay_ms = max(0, slot_ms - utc_now_ms())
+        if delay_ms:
+            time.sleep(min(5.0, delay_ms / 1000.0))
         return exchange.cancel(sdk_coin, int(oid))
 
     def _is_isolated_only(self, coin: Any) -> bool:
@@ -4955,13 +4959,18 @@ class SenderGateway:
             "order_type": "REAL_GTC_MISSED_ENTRY_LIMIT", "reduce_only_sent": False, "notes": note,
         }
 
-    def _wait_exchange_order_slot(self) -> None:
+    def _reserve_exchange_order_slot(self) -> int:
+        """Reserve a monotonic exchange-call slot; callers wait after this method releases the lock."""
         min_gap_ms = max(0, int(fnum(os.getenv("HL_LIVE_MIN_EXCHANGE_ORDER_GAP_MS"), 250)))
         now_ms = utc_now_ms()
-        wait_until = max(self._last_exchange_order_ms + min_gap_ms, self._exchange_rate_limit_cooldown_until_ms)
-        if wait_until > now_ms:
-            time.sleep(min(5.0, (wait_until - now_ms) / 1000.0))
-        self._last_exchange_order_ms = utc_now_ms()
+        with self._exchange_order_lock:
+            slot_ms = max(
+                self._last_exchange_order_ms + min_gap_ms,
+                self._exchange_rate_limit_cooldown_until_ms,
+                now_ms,
+            )
+            self._last_exchange_order_ms = max(self._last_exchange_order_ms, slot_ms)
+        return slot_ms
 
     def _note_exchange_rate_limit(self, error_text: str) -> None:
         if classify_reject_category(error_text, None) != "RATE_LIMIT_OR_TIMEOUT":
