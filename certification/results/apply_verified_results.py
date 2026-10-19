@@ -91,7 +91,7 @@ V = {
     "ENG-INV-13": ("FAIL", E10, "2026-10-14T07:40:45Z", F10),
     "ENG-INV-14": ("FAIL", E10, "2026-10-14T07:40:45Z", F10),
     "ENG-INV-01": ("PASS", E11, "2026-10-14T09:05:00Z", P11),
-    "ENG-INV-02": ("PASS", E11, "2026-10-14T09:05:00Z", P11),
+    "ENG-INV-02": ("FAIL", "certification/results/ENG-INV-02_two_site_census_43731b4f.json", "2026-10-18T21:45:00Z", "Two-site census FAIL: single_order_call_site = false; two reachable production exchange.order() sites at HL_Live_Copy_Service_Core.py:2703 and HL_Live_Copy_Service.py:1036 (reachable via manual_send_one_intent -> send_hyperliquid_order)."),
     "ENG-010": ("PASS", E11, "2026-10-14T09:05:00Z", P11),
     "ENG-011": ("PASS", E11, "2026-10-14T09:05:00Z", P11),
     "ENG-012": ("PASS", E11, "2026-10-14T09:05:00Z", P11),
