@@ -1,0 +1,71 @@
+{
+  "batch": "UI-FP-038..UI-FP-052",
+  "captured_at_utc": "2026-10-19T08:52:28.213970+00:00",
+  "note": "Fresh read-only recapture after 2026-10-19T08:34:35Z. No POST/mutation performed. Source hashes bind the exact on-disk serving source copies; process identity/start/cwd and config paths are recorded. Config file hashes are evidence metadata only. Config payload contents and wallet identifiers intentionally omitted. Neither capture is a Git commit identity.",
+  "captures": [
+    {
+      "port": 8023,
+      "url": "http://127.0.0.1:8023/live-copy",
+      "pid": 15760,
+      "source": "C:\\Users\\wigmore\\trading_stack\\hl-build3-testnet-cert-evidence\\build3_live_screen_0513_8023_instance_20261019T074010Z\\HL_Copy_App_SSOT.py",
+      "config": "C:\\Users\\wigmore\\trading_stack\\hl-build3-testnet-cert-evidence\\build3_live_screen_0513_8023_instance_20261019T074010Z\\hl_live_copy_audit\\live_config.json",
+      "status": 200,
+      "title": "Live Copy Dashboard",
+      "served_sha256": "fad19d220d7af13d48a3eec664c56a32b31624d671b00e2f80ec2dc9062a29b0",
+      "source_exists": true,
+      "pid_create_time_utc": "2026-10-19T07:40:25.674594+00:00",
+      "cmdline": [
+        "C:\\Users\\wigmore\\AppData\\Local\\Python\\bin\\python.exe",
+        "-m",
+        "uvicorn",
+        "HL_Copy_App_SSOT:app",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "8023"
+      ],
+      "cwd": "C:\\Users\\wigmore\\trading_stack\\hl-build3-testnet-cert-evidence\\build3_live_screen_0513_8023_instance_20261019T074010Z",
+      "config_exists": true,
+      "config_sha256": "a07e6cd78cb23c29bb6eaca69900ef7dfbbec49dfcc5ce10d6029b7bec75a13f",
+      "live_config_get_status": 200,
+      "live_config_fields": [
+        "archived_wallets",
+        "auto_send_enabled",
+        "global_controls",
+        "wallets"
+      ],
+      "audit_summary_get_status": 200,
+      "ws_health_get_status": 200,
+      "mutating_route_get_statuses": {
+        "/api/live-config/set-mode": 405,
+        "/api/live-config/set-wallet": 405
+      }
+    },
+    {
+      "port": 8031,
+      "url": "http://127.0.0.1:8031/",
+      "pid": 26336,
+      "source": "C:\\Users\\wigmore\\trading_stack\\hl-build3-testnet-cert\\_archive\\hl_stage2\\HL_Copy_App_SSOT.py",
+      "config": "UNRESOLVED: runtime HL_LIVE_AUDIT_DIR (env file is access-denied); source default is BASE_DIR / hl_live_copy_audit[_<follower_network>]",
+      "status": 200,
+      "title": "HL Copy Engine SSOT",
+      "served_sha256": "b45ff9af2182944a1fabd98b6369d0ad7dd7d215062abec3bdc20dfd75e9e7c2",
+      "source_exists": true,
+      "pid_create_time_utc": "2026-10-19T07:34:35.232821+00:00",
+      "cmdline": [
+        "C:\\Users\\wigmore\\AppData\\Local\\Python\\bin\\python.exe",
+        "C:\\Users\\wigmore\\trading_stack\\hl-build3-testnet-cert\\_archive\\hl_stage2\\HL_Copy_App_SSOT.py"
+      ],
+      "cwd": "C:\\Users\\wigmore\\trading_stack\\hl-build3-testnet-cert\\_archive\\hl_stage2",
+      "config_exists": false,
+      "config_sha256": null,
+      "ui_state_get_status": 200
+    }
+  ],
+  "route_observations": {
+    "8023_live_copy": "HTTP 200, title Live Copy Dashboard",
+    "8031_root": "HTTP 200, title HL Copy Engine SSOT",
+    "8031_live_copy": "HTTP 404 (route moved; not used as absent-evidence basis)"
+  },
+  "row_probe_limit": "HTTP/static evidence did not establish rendered per-wallet cell values joined to an independent oracle. All 15 row assertions therefore remain NOT_TESTED, not BLOCKED or PASS/FAIL. Mutation/vacuity: mutation endpoints were probed by GET only (405); no POST. Row 052 deliberately not exercised because that would change live config."
+}

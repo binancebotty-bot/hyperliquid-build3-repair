@@ -1,0 +1,172 @@
+{
+  "batch": "UI-FP-038..UI-FP-052",
+  "status": "NOT_TESTED",
+  "tested_commit": null,
+  "rows": [
+    {
+      "row_id": "UI-FP-038",
+      "feature": "Live Copy Wallets row: PnL status",
+      "assertion": "Shows pnl_status_label from live_config.json/manual_live_positions.json/append_only/send_attempts.csv/live_ws_health.json as provenance/status label (provenance APP_DERIVED; rows OWNED_COPY; can affect send: NO; execution truth: NO).",
+      "verdict": "NOT_TESTED",
+      "reason": "NOT_TESTED: serving page and content hash are bound, but this run did not obtain a browser-rendered DOM row value joined to an independent contemporaneous source oracle; API/static template presence alone cannot prove the expected field/value.",
+      "evidence_ref": "certification/results/UI_FP_038_052_runtime_probe.json",
+      "tested_commit": null,
+      "tested_at_utc": "2026-10-19T08:52:28.213970+00:00"
+    },
+    {
+      "row_id": "UI-FP-039",
+      "feature": "Live Copy Wallets row: Lead-copy total diff",
+      "assertion": "Shows total_diff_usd from live_config.json/manual_live_positions.json/append_only/send_attempts.csv/live_ws_health.json as sum copy fill price - leader reference price per fill (provenance APP_DERIVED; rows OWNED_COPY; can affect send: NO; execution truth: NO).",
+      "verdict": "NOT_TESTED",
+      "reason": "NOT_TESTED: serving page and content hash are bound, but this run did not obtain a browser-rendered DOM row value joined to an independent contemporaneous source oracle; API/static template presence alone cannot prove the expected field/value.",
+      "evidence_ref": "certification/results/UI_FP_038_052_runtime_probe.json",
+      "tested_commit": null,
+      "tested_at_utc": "2026-10-19T08:52:28.213970+00:00"
+    },
+    {
+      "row_id": "UI-FP-040",
+      "feature": "Live Copy Wallets row: Lead-copy avg diff",
+      "assertion": "Shows avg_diff_usd from live_config.json/manual_live_positions.json/append_only/send_attempts.csv/live_ws_health.json as avg per-fill diff_usd (provenance APP_DERIVED; rows OWNED_COPY; can affect send: NO; execution truth: NO).",
+      "verdict": "NOT_TESTED",
+      "reason": "NOT_TESTED: serving page and content hash are bound, but this run did not obtain a browser-rendered DOM row value joined to an independent contemporaneous source oracle; API/static template presence alone cannot prove the expected field/value.",
+      "evidence_ref": "certification/results/UI_FP_038_052_runtime_probe.json",
+      "tested_commit": null,
+      "tested_at_utc": "2026-10-19T08:52:28.213970+00:00"
+    },
+    {
+      "row_id": "UI-FP-041",
+      "feature": "Live Copy Wallets row: Lead-copy avg bps",
+      "assertion": "Shows avg_diff_bps from live_config.json/manual_live_positions.json/append_only/send_attempts.csv/live_ws_health.json as avg leader-vs-copy bps (provenance APP_DERIVED; rows OWNED_COPY; can affect send: NO; execution truth: NO).",
+      "verdict": "NOT_TESTED",
+      "reason": "NOT_TESTED: serving page and content hash are bound, but this run did not obtain a browser-rendered DOM row value joined to an independent contemporaneous source oracle; API/static template presence alone cannot prove the expected field/value.",
+      "evidence_ref": "certification/results/UI_FP_038_052_runtime_probe.json",
+      "tested_commit": null,
+      "tested_at_utc": "2026-10-19T08:52:28.213970+00:00"
+    },
+    {
+      "row_id": "UI-FP-042",
+      "feature": "Live Copy Wallets row: Lead-copy worst bps",
+      "assertion": "Shows worst_diff_bps from live_config.json/manual_live_positions.json/append_only/send_attempts.csv/live_ws_health.json as max leader-vs-copy bps (provenance APP_DERIVED; rows OWNED_COPY; can affect send: NO; execution truth: NO).",
+      "verdict": "NOT_TESTED",
+      "reason": "NOT_TESTED: serving page and content hash are bound, but this run did not obtain a browser-rendered DOM row value joined to an independent contemporaneous source oracle; API/static template presence alone cannot prove the expected field/value.",
+      "evidence_ref": "certification/results/UI_FP_038_052_runtime_probe.json",
+      "tested_commit": null,
+      "tested_at_utc": "2026-10-19T08:52:28.213970+00:00"
+    },
+    {
+      "row_id": "UI-FP-043",
+      "feature": "Live Copy Wallets row: Filled count",
+      "assertion": "Shows filled_count from live_config.json/manual_live_positions.json/append_only/send_attempts.csv/live_ws_health.json as count wallet ORDER_FILLED send_attempt rows (provenance ENGINE_TRUTH; rows OWNED_COPY; can affect send: NO; execution truth: YES).",
+      "verdict": "NOT_TESTED",
+      "reason": "NOT_TESTED: serving page and content hash are bound, but this run did not obtain a browser-rendered DOM row value joined to an independent contemporaneous source oracle; API/static template presence alone cannot prove the expected field/value.",
+      "evidence_ref": "certification/results/UI_FP_038_052_runtime_probe.json",
+      "tested_commit": null,
+      "tested_at_utc": "2026-10-19T08:52:28.213970+00:00"
+    },
+    {
+      "row_id": "UI-FP-044",
+      "feature": "Live Copy Wallets row: Exit count",
+      "assertion": "Shows exits_count from live_config.json/manual_live_positions.json/append_only/send_attempts.csv/live_ws_health.json as filled attempts reducing/exit (provenance ENGINE_TRUTH; rows OWNED_COPY; can affect send: NO; execution truth: YES).",
+      "verdict": "NOT_TESTED",
+      "reason": "NOT_TESTED: serving page and content hash are bound, but this run did not obtain a browser-rendered DOM row value joined to an independent contemporaneous source oracle; API/static template presence alone cannot prove the expected field/value.",
+      "evidence_ref": "certification/results/UI_FP_038_052_runtime_probe.json",
+      "tested_commit": null,
+      "tested_at_utc": "2026-10-19T08:52:28.213970+00:00"
+    },
+    {
+      "row_id": "UI-FP-045",
+      "feature": "Live Copy Wallets row: Recent rejects",
+      "assertion": "Shows recent_reject_count from live_config.json/manual_live_positions.json/append_only/send_attempts.csv/live_ws_health.json as recent ORDER_REJECTED count (provenance ENGINE_TRUTH; rows OWNED_COPY; can affect send: NO; execution truth: YES).",
+      "verdict": "NOT_TESTED",
+      "reason": "NOT_TESTED: serving page and content hash are bound, but this run did not obtain a browser-rendered DOM row value joined to an independent contemporaneous source oracle; API/static template presence alone cannot prove the expected field/value.",
+      "evidence_ref": "certification/results/UI_FP_038_052_runtime_probe.json",
+      "tested_commit": null,
+      "tested_at_utc": "2026-10-19T08:52:28.213970+00:00"
+    },
+    {
+      "row_id": "UI-FP-046",
+      "feature": "Live Copy Wallets row: Recent blocks",
+      "assertion": "Shows recent_block_count from live_config.json/manual_live_positions.json/append_only/send_attempts.csv/live_ws_health.json as recent local block count (provenance ENGINE_TRUTH; rows OWNED_COPY; can affect send: NO; execution truth: YES).",
+      "verdict": "NOT_TESTED",
+      "reason": "NOT_TESTED: serving page and content hash are bound, but this run did not obtain a browser-rendered DOM row value joined to an independent contemporaneous source oracle; API/static template presence alone cannot prove the expected field/value.",
+      "evidence_ref": "certification/results/UI_FP_038_052_runtime_probe.json",
+      "tested_commit": null,
+      "tested_at_utc": "2026-10-19T08:52:28.213970+00:00"
+    },
+    {
+      "row_id": "UI-FP-047",
+      "feature": "Live Copy Wallets row: Exposure",
+      "assertion": "Shows current_exposure from live_config.json/manual_live_positions.json/append_only/send_attempts.csv/live_ws_health.json as manual wallet sleeves exposure only (provenance MANUAL_LEDGER; rows OWNED_COPY; can affect send: NO; execution truth: NO).",
+      "verdict": "NOT_TESTED",
+      "reason": "NOT_TESTED: serving page and content hash are bound, but this run did not obtain a browser-rendered DOM row value joined to an independent contemporaneous source oracle; API/static template presence alone cannot prove the expected field/value.",
+      "evidence_ref": "certification/results/UI_FP_038_052_runtime_probe.json",
+      "tested_commit": null,
+      "tested_at_utc": "2026-10-19T08:52:28.213970+00:00"
+    },
+    {
+      "row_id": "UI-FP-048",
+      "feature": "Live Copy Wallets row: Open pos",
+      "assertion": "Shows open_position_count from live_config.json/manual_live_positions.json/append_only/send_attempts.csv/live_ws_health.json as count nonzero manual wallet sleeves (provenance MANUAL_LEDGER; rows OWNED_COPY; can affect send: NO; execution truth: NO).",
+      "verdict": "NOT_TESTED",
+      "reason": "NOT_TESTED: serving page and content hash are bound, but this run did not obtain a browser-rendered DOM row value joined to an independent contemporaneous source oracle; API/static template presence alone cannot prove the expected field/value.",
+      "evidence_ref": "certification/results/UI_FP_038_052_runtime_probe.json",
+      "tested_commit": null,
+      "tested_at_utc": "2026-10-19T08:52:28.213970+00:00"
+    },
+    {
+      "row_id": "UI-FP-049",
+      "feature": "Live Copy Wallets row: DD",
+      "assertion": "Shows drawdown from live_config.json/manual_live_positions.json/append_only/send_attempts.csv/live_ws_health.json as wallet pnl_series drawdown, None when account-only/shared (provenance APP_DERIVED; rows OWNED_COPY; can affect send: NO; execution truth: NO).",
+      "verdict": "NOT_TESTED",
+      "reason": "NOT_TESTED: serving page and content hash are bound, but this run did not obtain a browser-rendered DOM row value joined to an independent contemporaneous source oracle; API/static template presence alone cannot prove the expected field/value.",
+      "evidence_ref": "certification/results/UI_FP_038_052_runtime_probe.json",
+      "tested_commit": null,
+      "tested_at_utc": "2026-10-19T08:52:28.213970+00:00"
+    },
+    {
+      "row_id": "UI-FP-050",
+      "feature": "Live Copy Wallets row: MaxDD",
+      "assertion": "Shows max_drawdown from live_config.json/manual_live_positions.json/append_only/send_attempts.csv/live_ws_health.json as min wallet pnl_series drawdown, None when account-only/shared (provenance APP_DERIVED; rows OWNED_COPY; can affect send: NO; execution truth: NO).",
+      "verdict": "NOT_TESTED",
+      "reason": "NOT_TESTED: serving page and content hash are bound, but this run did not obtain a browser-rendered DOM row value joined to an independent contemporaneous source oracle; API/static template presence alone cannot prove the expected field/value.",
+      "evidence_ref": "certification/results/UI_FP_038_052_runtime_probe.json",
+      "tested_commit": null,
+      "tested_at_utc": "2026-10-19T08:52:28.213970+00:00"
+    },
+    {
+      "row_id": "UI-FP-051",
+      "feature": "Live Copy Wallets row: Last fill",
+      "assertion": "Shows last_fill from live_config.json/manual_live_positions.json/append_only/send_attempts.csv/live_ws_health.json as latest live_fill row for wallet (provenance MANUAL_LEDGER; rows OWNED_COPY; can affect send: NO; execution truth: NO).",
+      "verdict": "NOT_TESTED",
+      "reason": "NOT_TESTED: serving page and content hash are bound, but this run did not obtain a browser-rendered DOM row value joined to an independent contemporaneous source oracle; API/static template presence alone cannot prove the expected field/value.",
+      "evidence_ref": "certification/results/UI_FP_038_052_runtime_probe.json",
+      "tested_commit": null,
+      "tested_at_utc": "2026-10-19T08:52:28.213970+00:00"
+    },
+    {
+      "row_id": "UI-FP-052",
+      "feature": "Live Copy Wallets row: Controls mode",
+      "assertion": "Shows mode select from live_config.json/manual_live_positions.json/append_only/send_attempts.csv/live_ws_health.json as POST /api/live-config set-wallet/set-mode (provenance UI_STATE; rows CONTROL; can affect send: YES; execution truth: YES).",
+      "verdict": "NOT_TESTED",
+      "reason": "NOT_TESTED: DOM exposes wallet mode controls and GET endpoints responded, but exercising set-mode/set-wallet requires POST and mutates live configuration; no mutation or rollback was authorized, and no non-mutating validation endpoint proves persisted control behavior.",
+      "evidence_ref": "certification/results/UI_FP_038_052_runtime_probe.json",
+      "tested_commit": null,
+      "tested_at_utc": "2026-10-19T08:52:28.213970+00:00"
+    }
+  ],
+  "vacuity_check": {
+    "expected_rows": 15,
+    "actual_rows": 15,
+    "unique_row_ids": 15,
+    "all_have_individual_assertion": true,
+    "all_have_individual_reason": true,
+    "result": "PASS: exactly 15 distinct register rows; no blanket BLOCKED verdict."
+  },
+  "mutation_check": {
+    "mutating_calls": 0,
+    "read_only_GET_to_mutating_routes_returned_405": true,
+    "result": "PASS: no state-changing request sent; control mutation left untested."
+  },
+  "tested_at_utc": "2026-10-19T08:52:28.213970+00:00",
+  "runtime_evidence": "certification/results/UI_FP_038_052_runtime_probe.json"
+}
