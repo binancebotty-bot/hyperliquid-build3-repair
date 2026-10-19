@@ -66,7 +66,16 @@ def plan(side, size, ex, lag, mode="ON", min_ok=lambda s: True):
     me._reduce_only_for_intent = lambda i: True
     me._fresh_exchange_net = lambda coin: ex
     me._floor_wire_size = lambda s, d: round(s, d)
-    intent = SimpleNamespace(fill=SimpleNamespace(leader_wallet="0xw", coin="BTC"), copy_side=side, copy_size=size)
+    # unreadable-net hold helpers (real gateway methods): readable nets here never reach them
+    me._net_read_ms = {}
+    me._exit_hold = None
+    me._exit_hold_lock = threading.RLock()
+    me._net_unreadable_reason = lambda coin, key, net: c.SenderGateway._net_unreadable_reason(me, coin, key, net)
+    me._net_read_age_ms = lambda coin: c.SenderGateway._net_read_age_ms(me, coin)
+    me._hold_exit_unreadable_net = lambda i, reason, sz, timing=None: None
+    me._take_exit_hold_replay = lambda i, key, net: False
+    me._exit_hold_key = lambda i: "test-sleeve"
+    intent = SimpleNamespace(intent_id="test-intent", sleeve_id="test-sleeve", fill=SimpleNamespace(leader_wallet="0xw", coin="BTC", leader_fill_id="f-test"), copy_side=side, copy_size=size)
     return c.SenderGateway._close_wire_plan(me, intent, size, 3, min_ok, None, lag)
 check("LAG_SIZES_FROM_EXCHANGE_ONLY", plan("SELL", 6.0, 4.0, True) == (False, 4.0, ""))
 check("LAG_NOTHING_TO_CLOSE_SKIPS", plan("SELL", 6.0, 0.0, True)[1] == 0.0 and plan("SELL", 6.0, -3.0, True)[1] == 0.0)

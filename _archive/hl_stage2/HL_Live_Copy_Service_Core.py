@@ -132,6 +132,11 @@ MANUAL_LIVE_POSITIONS_FILE = AUDIT_DIR / "manual_live_positions.json"
 EXCHANGE_ACCOUNT_SNAPSHOT_FILE = AUDIT_DIR / "exchange_account_snapshot.json"
 RESTING_ENTRY_ORDERS_FILE = AUDIT_DIR / "resting_entry_orders.json"  # missed-entry limits resting at the leader's price
 STANDING_CLOSES_FILE = AUDIT_DIR / "standing_recovery_closes.json"  # reduce-only recovery closes resting, by sleeve
+# An unreadable or stale follower net HOLDS the exit, never guesses reduce_only (controller ruling 6278357071):
+# a row naming the reason, ONE alert per wallet per window, and a replay marker for when the net is readable again.
+EXIT_HOLD_REGISTRY_FILE = AUDIT_DIR / "exit_held_unreadable_net.json"  # held closes + alert dedupe + replay markers
+EXIT_HOLD_ALERTS_FILE = AUDIT_DIR / "exit_hold_alerts.jsonl"  # alert channel: one JSONL row per wallet per window
+EXIT_HOLD_SKIP_PREFIX = "HELD_NET_UNREADABLE"  # planner skip marker: a held exit, never a close-at-target
 EXCHANGE_ACCOUNT_SNAPSHOT_APP_FILE = AUDIT_DIR / "exchange_account_snapshot_app.json"
 LIVE_INTEGRITY_STATUS_FILE = AUDIT_DIR / "live_integrity_status.json"
 ASSET_UNIVERSE_SNAPSHOT_FILE = AUDIT_DIR / "asset_universe_snapshot.json"
@@ -4172,6 +4177,10 @@ class SenderGateway:
             if isinstance(_row, dict):
                 _row.pop("withdrawing", None)  # an in-memory claim; a stop mid-withdrawal must not leave it set
         self._resting_lock = threading.RLock()  # WS hot-path and cycle threads both touch the resting list
+        # unreadable/stale follower net => HOLD the exit; newest successful net read per coin + the held-exit registry
+        self._net_read_ms: Dict[str, int] = {}
+        self._exit_hold: Optional[Dict[str, Any]] = None  # lazily loaded from EXIT_HOLD_REGISTRY_FILE
+        self._exit_hold_lock = threading.RLock()
         self._standing_closes: Dict[str, Dict[str, Any]] = load_json(STANDING_CLOSES_FILE, {}) or {}
         self._leader_side_seen_ms: Dict[Tuple[str, str, str], int] = {}  # newest leader fill per wallet/coin/side
         self._withdrawn_late: List[Dict[str, Any]] = []  # withdrawn at registration: the core must own their fills
@@ -5367,6 +5376,13 @@ class SenderGateway:
             except Exception as exc:
                 log_error("standing_close_min_notional", exc)
             _ro, _sz, _skip = self._close_wire_plan(intent, close_size, sz_dec, _min_n, None, ledger_may_lag=remainder is not None)
+            if _skip.startswith(EXIT_HOLD_SKIP_PREFIX):  # held, not at target: the planner already wrote the hold row
+                self.audit.append_reconciliation(
+                    "EXIT_RECOVERY", "STANDING_CLOSE_HELD_NET_UNREADABLE", leader_wallet=intent.fill.leader_wallet,
+                    leader_fill_id=intent.fill.leader_fill_id, intent_id=intent.intent_id, coin=intent.fill.coin,
+                    action="NO_STANDING_CLOSE_HELD", terminal_state="STANDING_CLOSE_HELD_NET_UNREADABLE",
+                    engine_can_send="False", notes=_skip)
+                return
             if _skip:  # nothing to leave standing (the target is reached or there is nothing left to close): say so
                 self.audit.append_reconciliation(
                     "EXIT_RECOVERY", "STANDING_CLOSE_NOT_PLACED", leader_wallet=intent.fill.leader_wallet,
@@ -5689,10 +5705,184 @@ class SenderGateway:
                                         info_url=HL_INFO_URL, timeout=HTTP_TIMEOUT_SEC)
             if not exp.get("ok"):
                 return None
+            stamps = getattr(self, "_net_read_ms", None)
+            if isinstance(stamps, dict):  # freshness clock for the stale-net hold; never blocks the read
+                stamps[key] = utc_now_ms()
             return sum(fnum(v.get("net"), 0.0) for k, v in (exp.get("by_coin") or {}).items() if canonical_coin_key(k) == key)
         except Exception as exc:
             log_error("fresh_exchange_net", exc)
             return None
+
+    def _net_read_age_ms(self, coin: str) -> Optional[int]:
+        """How old the newest successful follower-net read for this coin is, or None when there is none."""
+        stamps = getattr(self, '_net_read_ms', None) or {}
+        ms = stamps.get(canonical_coin_key(coin))
+        try:
+            return None if not ms else max(0, utc_now_ms() - int(ms))
+        except Exception:
+            return None
+
+    def _net_unreadable_reason(self, coin: str, key: str, ex_net: Optional[float]) -> str:
+        """Why the follower net cannot be trusted this cycle ('' when it can). Unreadable OR too old are both
+        absence of evidence: neither may ever become a guessed reduce_only flag."""
+        if ex_net is None:
+            return (EXIT_HOLD_SKIP_PREFIX + ': the follower account net in ' + str(key) + ' could not be read from the '
+                    'exchange; the exit is held this cycle (no reduce_only guess, no order sent)')
+        max_age = int(fnum(os.getenv('HL_LIVE_NET_READ_MAX_AGE_MS'), 0))
+        age = self._net_read_age_ms(coin)
+        if max_age > 0 and age is not None and age > max_age:
+            return (EXIT_HOLD_SKIP_PREFIX + '_STALE: the follower net read for ' + str(key) + ' is ' + str(age) +
+                    'ms old (max ' + str(max_age) + 'ms); the exit is held this cycle')
+        return ''
+
+    def _exit_hold_key(self, intent: Intent) -> str:
+        sleeve = str(getattr(intent, 'sleeve_id', '') or '')
+        if sleeve:
+            return sleeve
+        return str(intent.fill.leader_wallet or '') + ':' + str(intent.fill.coin or '')
+
+    def _exit_hold_state(self) -> Dict[str, Any]:
+        """The held-exit registry (held closes, per-wallet alert marks, replay markers), loaded once per run."""
+        state = self.__dict__.get('_exit_hold')
+        if not isinstance(state, dict):
+            try:
+                state = load_json(EXIT_HOLD_REGISTRY_FILE, {}) or {}
+            except Exception as exc:
+                log_error('exit_hold_registry_load', exc)
+                state = {}
+            if not isinstance(state, dict):
+                state = {}
+        for name in ('held', 'alerts', 'replays'):
+            if not isinstance(state.get(name), dict):
+                state[name] = {}
+        self._exit_hold = state
+        return state
+
+    def _exit_hold_save(self) -> None:
+        try:
+            with getattr(self, '_exit_hold_lock', threading.RLock()):
+                atomic_write_json(EXIT_HOLD_REGISTRY_FILE, self._exit_hold_state())
+        except Exception as exc:  # never block a decision on the registry file: the hold itself already stands
+            log_error('exit_hold_registry_save', exc)
+
+    def _alert_exit_held(self, intent: Intent, reason: str, coin: str, hold_size: float) -> bool:
+        """ONE alert per wallet per window (HL_LIVE_EXIT_HOLD_ALERT_WINDOW_MS, default 1 h).
+
+        Transport: an explicit terminal/JSONL alert row in EXIT_HOLD_ALERTS_FILE plus a per-wallet dedupe mark in the
+        held-exit registry. No notifier is built or assumed here (controller ruling 6278357071): a real alert channel
+        would need a tailer on that JSONL file (or a hook on append_csv) to deliver it to a human."""
+        wallet = str(intent.fill.leader_wallet or '')
+        now = utc_now_ms()
+        window = max(0, int(fnum(os.getenv('HL_LIVE_EXIT_HOLD_ALERT_WINDOW_MS'), 3600000)))
+        state = self._exit_hold_state()
+        with getattr(self, '_exit_hold_lock', threading.RLock()):
+            marks = state['alerts']
+            rec = marks.get(wallet) if isinstance(marks.get(wallet), dict) else {}
+            last = int(fnum(rec.get('last_alert_ms'), 0))
+            if last and window and now - last < window:
+                rec['suppressed'] = int(fnum(rec.get('suppressed'), 0)) + 1
+                rec['last_suppressed_ms'] = now
+                marks[wallet] = rec
+                self._exit_hold_save()
+                return False
+            marks[wallet] = {
+                'last_alert_ms': now, 'coin': coin, 'reason': reason, 'intent_id': intent.intent_id,
+                'sleeve_id': self._exit_hold_key(intent), 'window_ms': window,
+                'count': int(fnum(rec.get('count'), 0)) + 1,
+                'suppressed': int(fnum(rec.get('suppressed'), 0)),
+            }
+            self._exit_hold_save()
+        row = {
+            'created_at': utc_now_iso(), 'created_at_ms': now, 'alert': 'EXIT_HELD_NET_UNREADABLE',
+            'severity': 'HIGH', 'wallet': wallet, 'sleeve_id': self._exit_hold_key(intent),
+            'intent_id': str(intent.intent_id or ''), 'leader_fill_id': str(intent.fill.leader_fill_id or ''),
+            'coin': coin, 'side': str(intent.copy_side or ''), 'held_size': hold_size, 'reason': reason,
+            'dedupe_key': 'wallet:' + wallet, 'window_ms': window, 'replay_pending': True,
+            'transport': 'JSONL terminal alert row (EXIT_HOLD_ALERTS_FILE); needs a tailer to reach a human',
+        }
+        try:
+            path = EXIT_HOLD_ALERTS_FILE
+            lock = _lock_for(path)
+            with lock:
+                path.parent.mkdir(parents=True, exist_ok=True)
+                with path.open('a', encoding='utf-8') as fh:
+                    fh.write(json.dumps(row, default=str) + '\n')
+                    fh.flush()
+        except Exception as exc:
+            log_error('exit_hold_alert_write', exc)
+        return True
+
+    def _hold_exit_unreadable_net(self, intent: Intent, reason: str, size: float,
+                                  timing: Optional[Dict[str, Any]] = None) -> None:
+        """Hold one close for this cycle because the follower net is unreadable/stale: row naming the reason, one
+        alert per wallet per window, and a replay marker so the close is re-planned when the net is readable again."""
+        key = canonical_coin_key(intent.fill.coin)
+        sid = self._exit_hold_key(intent)
+        now = utc_now_ms()
+        hold_size = abs(fnum(size, fnum(getattr(intent, 'copy_size', 0.0), 0.0)))
+        state = self._exit_hold_state()
+        with getattr(self, '_exit_hold_lock', threading.RLock()):
+            prev = state['held'].get(sid) if isinstance(state['held'].get(sid), dict) else {}
+            state['held'][sid] = {
+                'sleeve_id': sid, 'intent_id': str(intent.intent_id or ''),
+                'leader_fill_id': str(intent.fill.leader_fill_id or ''),
+                'leader_wallet': str(intent.fill.leader_wallet or ''), 'coin': key,
+                'side': str(intent.copy_side or ''), 'held_size': hold_size,
+                'first_held_ms': int(fnum(prev.get('first_held_ms'), now)) or now, 'last_held_ms': now,
+                'hold_count': int(fnum(prev.get('hold_count'), 0)) + 1, 'reason': reason,
+                'replay_pending': True,
+            }
+            self._exit_hold_save()
+        alerted = self._alert_exit_held(intent, reason, key, hold_size)
+        audit = getattr(self, 'audit', None)
+        if audit is None:
+            return
+        try:
+            audit.append_reconciliation(
+                'EXIT_HOLD', 'HELD_NET_UNREADABLE',
+                leader_wallet=intent.fill.leader_wallet, leader_fill_id=intent.fill.leader_fill_id,
+                intent_id=intent.intent_id, coin=key, action='NO_SEND_HELD_NET_UNREADABLE',
+                reject_category='EXCHANGE_NET_UNREADABLE', terminal_state='HELD_NET_UNREADABLE',
+                engine_can_close='True', engine_can_send='False',
+                notes=('hold_reason=' + reason + '; sleeve_id=' + sid + '; held_size=' + str(hold_size) +
+                       '; replay_pending=True; alert_emitted=' + str(alerted) +
+                       '; absence of evidence never becomes reduce_only=True'),
+            )
+        except Exception as exc:
+            log_error('exit_hold_row', exc)
+
+    def _take_exit_hold_replay(self, intent: Intent, key: str, ex_net: float) -> bool:
+        """The net is readable again: mark the held close replayed EXACTLY ONCE and let this cycle plan it normally."""
+        sid = self._exit_hold_key(intent)
+        state = self._exit_hold_state()
+        with getattr(self, '_exit_hold_lock', threading.RLock()):
+            rec = state['held'].pop(sid, None)
+            if not isinstance(rec, dict):
+                return False
+            now = utc_now_ms()
+            state['replays'][sid] = {
+                'replayed_ms': now, 'sleeve_id': sid, 'held_intent_id': str(rec.get('intent_id') or ''),
+                'current_intent_id': str(intent.intent_id or ''), 'held_count': rec.get('hold_count'),
+                'hold_ms': max(0, now - int(fnum(rec.get('first_held_ms'), now))), 'exchange_net': ex_net,
+                'coin': key,
+            }
+            self._exit_hold_save()
+        audit = getattr(self, 'audit', None)
+        if audit is not None:
+            try:
+                audit.append_reconciliation(
+                    'EXIT_HOLD_REPLAY', 'EXIT_HOLD_REPLAYED',
+                    leader_wallet=intent.fill.leader_wallet, leader_fill_id=intent.fill.leader_fill_id,
+                    intent_id=intent.intent_id, coin=key, exchange_net=ex_net,
+                    action='REPLAY_HELD_CLOSE', terminal_state='EXIT_HOLD_REPLAYED',
+                    engine_can_close='True', engine_can_send='True',
+                    notes=('the held close is replayed once: the follower net is readable again (net=' + str(ex_net) +
+                           '); sleeve_id=' + sid + '; held_intent_id=' + str(rec.get('intent_id') or '') +
+                           '; replay_marker_written=True; this cycle is planned and sent normally'),
+                )
+            except Exception as exc:
+                log_error('exit_hold_replay_row', exc)
+        return True
 
     def _close_wire_plan(self, intent: Intent, size: float, sz_dec: Optional[int], min_notional_ok: Any = None,
                          timing: Optional[Dict[str, Any]] = None, ledger_may_lag: bool = False) -> Tuple[bool, float, str]:
@@ -5717,8 +5907,15 @@ class SenderGateway:
         key = canonical_coin_key(intent.fill.coin)
         delta = ManualLedger.signed_delta(intent.copy_side, abs(size or intent.copy_size))
         ex_net, led_net = self._fresh_exchange_net(intent.fill.coin), self.ledger.coin_net(key)
-        if ex_net is None:  # always read the exchange itself: a stale snapshot could hide a hand-closed position
-            return True, size, ""
+        # Absence of evidence must never produce reduce_only=True (controller ruling 6278357071): an unreadable or
+        # stale follower net HOLDS this close (skip_reason set) instead of guessing the flag, and leaves a replay
+        # marker so the close is re-planned the moment the net is readable again - never an orphan position.
+        hold_reason = self._net_unreadable_reason(intent.fill.coin, key, ex_net)
+        if hold_reason:
+            self._hold_exit_unreadable_net(intent, hold_reason, size, timing)
+            return False, 0.0, hold_reason
+        if self._take_exit_hold_replay(intent, key, ex_net):  # readable again: replay exactly once
+            led_net = self.ledger.coin_net(key)
         if ledger_may_lag:  # the ledger may not hold the part already filled: size from the exchange alone, never past flat
             if ex_net * delta >= 0 or abs(ex_net) <= POSITION_EPSILON:
                 return False, 0.0, f"exchange net {ex_net} has nothing left to close in the direction of this close ({delta})"
@@ -6271,6 +6468,15 @@ class SenderGateway:
             _min_n = self._effective_symbol_min_notional(resolved)
             use_reduce_only, close_size_planned, close_skip = self._close_wire_plan(
                 intent, wire_size, sz_dec, lambda sz: abs(sz * limit_px) >= _min_n, timing)
+            if close_skip.startswith(EXIT_HOLD_SKIP_PREFIX):  # held, not at target: the planner wrote the hold row
+                return False, "SEND_NOT_ATTEMPTED_HELD_NET_UNREADABLE", {
+                    "status": "HELD_NET_UNREADABLE", "error": "", "exchange_response": {}, "oid": "",
+                    "exchange_called": False, "write_reconciliation": True,
+                    "notes": f"{close_skip}; intent_id={intent.intent_id}; no order sent",
+                    "reject_category": "EXCHANGE_NET_UNREADABLE",
+                    "terminal_state": "HELD_NET_UNREADABLE", "operator_action": "NO_SEND_HELD_NET_UNREADABLE",
+                    "manual_net": intent.coin_net_before, "exchange_net": "", "hold_reason": close_skip,
+                    "timing": timing}
             if close_skip:
                 note = f"{close_skip}; intent_id={intent.intent_id}; no order sent"
                 repair = self._repair_ledger_if_exchange_flat(intent, "close skipped: already at target")
@@ -9643,6 +9849,14 @@ class LiveCopyCore:
                     "blocked before exchange.order"
                 ),
             )
+        elif send_status == "SEND_NOT_ATTEMPTED_HELD_NET_UNREADABLE":
+            self.audit.append_reconciliation(
+                "EXIT_HOLD", "HELD_NET_UNREADABLE",
+                leader_wallet=fill.leader_wallet, leader_fill_id=fill.leader_fill_id, intent_id=intent.intent_id,
+                coin=canonical_coin_key(fill.coin), manual_net=intent.coin_net_before, exchange_net="",
+                action="NO_SEND_HELD_NET_UNREADABLE", reject_category="EXCHANGE_NET_UNREADABLE",
+                terminal_state="HELD_NET_UNREADABLE", engine_can_close="True", engine_can_send="False",
+                notes=str(result.get("notes") or result.get("hold_reason") or "exit held: follower net unreadable"))
         elif send_status == "SEND_NOT_ATTEMPTED_CLOSE_AT_TARGET":
             self.audit.append_reconciliation(
                 "SEND_TERMINAL", "CLOSE_ALREADY_AT_TARGET",

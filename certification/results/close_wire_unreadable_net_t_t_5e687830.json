@@ -1,0 +1,51 @@
+{
+  "task": "t_5e687830",
+  "title": "Hold exits when the exchange net is unreadable (hold + row + one alert + replay)",
+  "base_commit": "822691d8787fe48074396c909bedca051ee834da",
+  "base_ref": "origin/main",
+  "commit": "recorded in HEAD.txt beside this patch (a file cannot contain the hash of the commit that adds it); patch committed on top of base_commit",
+  "ruling": "controller comment 6278357071 (22:02Z): hold, replay and alert; absence of evidence must never produce reduce_only=True; implement at planner level so both callers inherit it",
+  "gap": {
+    "function": "_close_wire_plan (SenderGateway)",
+    "file": "_archive/hl_stage2/HL_Live_Copy_Service_Core.py",
+    "line_at_base": "5719-5721 at origin/main 822691d; planner head at line 5887 after this patch",
+    "current_behavior": "ex_net = self._fresh_exchange_net(coin); if ex_net is None: return True, size, \"\" -- an unreadable follower net silently produced reduce_only=True and the close was SENT with a guessed flag. No row named the unreadable net, no alert, and nothing retried the close later.",
+    "second_caller_affected": "standing-close recovery (~:5369 at base) calls the same planner and only treated a non-empty skip_reason as CLOSE_AT_TARGET, so a guessed reduce-only recovery close could be placed through that path too.",
+    "direct_evidence_cited_by_controller": "intent 2da6c228bcc4b9b06a326746b1871ec3 in order_intents.20261019.2.csv (16:01:51.959849Z) carries reduce_only_intended=true with reduce_only_sent_planned=false; the same row reconciles EXIT_RECOVERY/STANDING_CLOSE_NOT_PLACED at 16:02:10.070528Z and the planned close was SELL 4,678 against a 125 fill (partial IOC left most of the close unsent). Read-only; no order placed to reproduce it."
+  },
+  "fix": {
+    "scope": "planner level only (_close_wire_plan / _fresh_exchange_net boundary) so BOTH call sites inherit it in one place",
+    "changes": [
+      "New planner step _net_unreadable_reason(coin, key, ex_net): '' when the net is readable and fresh, else a reason starting with EXIT_HOLD_SKIP_PREFIX ('HELD_NET_UNREADABLE' / 'HELD_NET_UNREADABLE_STALE') when the read failed or the newest successful read is older than HL_LIVE_NET_READ_MAX_AGE_MS (default 0 = off, freshness opt-in).",
+      "On a hold the planner returns (False, 0.0, reason): no order, and the guessed reduce_only=True path is gone. The hold writes EXIT_HOLD/HELD_NET_UNREADABLE to reconciliation.csv naming the reason, records the held close in EXIT_HOLD_REGISTRY_FILE (exit_held_unreadable_net.json) with replay_pending=True, and emits ONE alert per wallet per window (HL_LIVE_EXIT_HOLD_ALERT_WINDOW_MS, default 1h) as a JSONL terminal alert row in EXIT_HOLD_ALERTS_FILE with a per-wallet dedupe mark in the registry.",
+      "_fresh_exchange_net records the newest successful read time per coin (_net_read_ms); failures never advance it, so staleness is measured from evidence, not from attempts.",
+      "Replay: the next time the planner sees the same sleeve with a readable net, _take_exit_hold_replay pops the hold, writes an EXIT_HOLD_REPLAY/EXIT_HOLD_REPLAYED row plus a replay marker, and the close is then sized and sent by the normal path exactly once.",
+      "Primary caller: a close_skip starting with the hold prefix returns SEND_NOT_ATTEMPTED_HELD_NET_UNREADABLE with write_reconciliation=True (deliberately NOT through _repair_ledger_if_exchange_flat, which would mutate the ledger on an unreadable account); the send-terminal branch writes EXIT_HOLD/HELD_NET_UNREADABLE.",
+      "Standing-close caller: a hold skip writes EXIT_RECOVERY/STANDING_CLOSE_HELD_NET_UNREADABLE and returns without placing the recovery order (previously reported as STANDING_CLOSE_NOT_PLACED)."
+    ],
+    "alert_channel_choice": "No notifier was searched for, built or assumed (ruling item 2). The alert is an explicit terminal/JSONL alert row with a per-wallet-per-window dedupe marker; a real alert channel would need a tailer on exit_hold_alerts.jsonl (or a hook on append_csv) to deliver those rows to a human."
+  },
+  "invariant_untouched": {
+    "statement": "The readable-net path is unchanged in behaviour: sizing from the follower net target, sleeve-netting closes that legitimately INCREASE follower exposure and are sent WITHOUT reduce_only, normal reducing closes, dust closes, HL_LIVE_CLOSE_TO_TARGET off, ledger_may_lag and the min-notional trim all behave exactly as before.",
+    "certification_reference": "certification/MASTER_PRODUCT_INVARIANTS_AND_CERTIFICATION.md:233 (a leader reduction may require the follower to increase exposure because other leaders net against it; such closes are sent without reduce-only, sized from the follower net target)",
+    "not_implemented_here": "the readable-net arithmetic rule (opposing AND wire_size <= abs(net) -> reduce_only=True) is a separate card, t_d7b25219; no opposing-side block was added and no exchange-rejection handling changed"
+  },
+  "tests": {
+    "new_suite": "_archive/hl_stage2/test_core_exit_hold_unreadable_net.py",
+    "run_command": "cd _archive/hl_stage2 && HL_LIVE_ENV_FILE=/nonexistent python -u test_core_exit_hold_unreadable_net.py",
+    "result": "TOTAL=20 FAILED=0",
+    "neting_close_still_sent": "PASS - readable net, ledger 5 / exchange 5, SELL 10 -> (False, 10.0, '') sent without reduce_only (exposure legitimately increases); no hold row, no alert",
+    "normal_close_still_sent": "PASS - readable net 10/10 close sent (False, 10.0, ''); dust close (True, 0.01, '') and HL_LIVE_CLOSE_TO_TARGET=false (True, 10.0, '') unchanged",
+    "unreadable_net_holds": "PASS - unreadable net -> (False, 0.0, 'HELD_NET_UNREADABLE: ...'): not sent; exactly one EXIT_HOLD/HELD_NET_UNREADABLE row naming 'could not be read'; exactly one alert JSONL row; registry holds s1 with replay_pending=True; a second unreadable episode in the same window (different coin, same wallet) produces NO second alert (suppressed counter >= 1)",
+    "stale_net_holds": "PASS - HL_LIVE_NET_READ_MAX_AGE_MS=1000 with a 60s-old read -> held with '_STALE' reason and one alert",
+    "replay": "PASS - net readable again -> EXIT_HOLD_REPLAY row written once, replay marker recorded, hold entry cleared, close then sent normally; a following readable plan does not replay again",
+    "revert_makes_red": "PASS - revert_control.py copies _archive/hl_stage2 to scratch, restores ONLY the pre-fix 'return True, size, \"\"' line in the copy, and runs the new suite against it: REVERTED_TEST_EXIT=1 with FAIL UNREADABLE_NET_HOLDS (True, 10.0, '') / FAIL UNREADABLE_NET_ROW_NAMES_REASON [] / FAIL UNREADABLE_NET_ROW_TERMINAL [] / FAIL UNREADABLE_NET_ONE_ALERT 0. The working tree was not modified by the control.",
+    "existing_suites": {
+      "test_core_close_to_target.py": "TOTAL=21 FAILED=0 - one assertion intentionally updated: UNREADABLE_EXCHANGE_FALLS_BACK_REDUCE_ONLY -> UNREADABLE_EXCHANGE_HOLDS_NOT_SENDS (the behaviour this card changes); the probe binds the real hold helpers",
+      "test_core_standing_close_guard.py": "TOTAL=20 FAILED=0 - probe binds the real hold helpers; assertions unchanged",
+      "test_core_reduce_only_repair.py": "TOTAL=5 FAILED=0"
+    },
+    "isolation": "no engine started, no exchange call, no network: the exchange net is injected by replacing _fresh_exchange_net; alert/registry files redirect to a temp dir; HL_LIVE_ENV_FILE=/nonexistent"
+  },
+  "claim_boundary": "Code-read and unit-level proof only, on origin/main 822691d. This does NOT establish that the historical rejected-exit flood or the cited LINEA row (intent 2da6c228...) was caused by this path, and it does not certify the live engine. No order was placed, no exchange call was made, live append_only/ was not written, the matrix was not edited and nothing was pushed. The stale-net guard is off by default (HL_LIVE_NET_READ_MAX_AGE_MS=0) until an operator picks a window. The alert is a JSONL row, not a delivered notification."
+}
