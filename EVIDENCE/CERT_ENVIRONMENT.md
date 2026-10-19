@@ -94,3 +94,31 @@ The serving process **restarted at 2026-10-19T08:34:35+01:00**, PID 41124 → **
 
 **Any UI capture made before 08:34 is stale.** Record the PID and start time with every capture, and request `/`,
 not `/live-copy`.
+
+## UI source binding — RESOLVED 2026-10-19 (controller ruling + independent confirmation)
+
+**Content-hash binding is the standard.** Two live surfaces, two different sources, both legitimate for different rows:
+
+| | **:8023** | **:8031** |
+|---|---|---|
+| title | `Live Copy Dashboard` | `HL Copy Engine SSOT` |
+| PID | 15760 (started 08:40:25 +01:00) | 26336 (restarted 08:34:35 +01:00) |
+| served sha256 | **`fad19d220d7af13d…`** | `b45ff9af2182944a…` |
+| source path | `trading_stack/build3-live-screen-0513-view/hl_stage2/HL_Copy_App_SSOT.py` | `trading_stack/hl-build3-testnet-cert/_archive/hl_stage2/HL_Copy_App_SSOT.py` |
+| command | `python -m uvicorn HL_Copy_App_SSOT:app --host 127.0.0.1 --port 8023` | `HL_Copy_App_SSOT.py` |
+| `/live-copy` | **200** | **404** (route moved to `/`) |
+
+**`:8023` serves `fad19d22…` — the exact hash the register declares in `source_sha256` and cites in 254 rows.** Verified by
+hashing both candidate files, not by trusting the port.
+
+### Rules for every UI row
+
+1. **Bind to the surface that actually serves the source the row names.** Rows declaring `fad19d22…` test against
+   **`:8023`** (PID 15760). Rows testing the archived copy test against **`:8031`** (PID 26336, `/`, not `/live-copy`).
+2. Record **all four** with every capture: served sha256, PID, process start time, config path.
+3. **Do NOT start `:8031` from the 13 May tree** — it would change what a live surface serves.
+4. **Do NOT rewrite the 254 citations wholesale.** Re-label only rows whose cited hash differs from what they were
+   actually tested against — those are the mislabelled ones.
+5. Any capture taken before the 08:34 restart is stale. Re-capture.
+
+A 404 from `/live-copy` on `:8031` is a moved route, not missing evidence.
