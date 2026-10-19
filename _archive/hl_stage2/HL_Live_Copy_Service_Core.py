@@ -9292,6 +9292,11 @@ class LiveCopyCore:
             self.dedupe.live_start_ms = utc_now_ms()
         self.wallets = self.cfg.stream_wallets()
         self._send_lock = TimedLock()  # held for local ledger/intent work only: no network call under it (run 5)
+        # Arm-decision lock: held only across a cheap send-mode read and the in-memory dedupe/ledger
+        # marking -- never across a network call. The OFF decision and the instant a fill becomes
+        # unrecoverable are both checked against the same arm token under it, so an arming between
+        # them is seen instead of the fill being silently consumed.
+        self._arm_decision_lock = threading.Lock()
         # PRE-SEND IDEMPOTENCY GUARD â€" plain Lock (not RLock), so re-entrancy from the
         # same thread is also blocked.  Seeded from SEND_ATTEMPTS_CSV on startup so
         # restarts and cross-instance races are caught without network access.
@@ -10259,9 +10264,60 @@ class LiveCopyCore:
                 notes=f"{type(exc).__name__}: {str(exc)[:300]}; "
                       + ("the error came after the exchange call may have started: check the exchange" if past_send else "retries exhausted"))
 
+    def _arm_generation(self) -> Any:
+        # A token for the sending arm state: any arming or disarming moves it, so a decision can tell
+        # whether the state it was taken under still holds where the fill would become irreversible.
+        mode = self.cfg.send_mode_now()
+        if mode != 'OFF':
+            return (str(mode), 0)
+        try:
+            return ('OFF', int(self.cfg._mtime()))
+        except Exception:
+            return ('OFF', 0)
+
+    def _hold_deferred_disarmed_fill(self, fill: LeaderFill) -> None:
+        # Hold a fill whose disarmed decision raced an arming. NEVER terminalised here: the held-fill
+        # scheduler re-offers it to the armed path; only a pass that still sees OFF writes the row.
+        key = self._guard_key(fill)
+        merged = [str(i) for i in ((fill.raw or {}).get('merged_fill_ids') or []) if i]
+        with self._idem_lock:
+            self._idem_accepted.discard(key)
+            for _mid in merged:
+                self._idem_accepted.discard(_mid)
+        with self.dedupe._lock:
+            self.dedupe.processed.discard(str(fill.leader_fill_id))
+            for _mid in merged:
+                self.dedupe.processed.discard(_mid)
+        self.__dict__.setdefault('_handled_ids', {}).pop(str(fill.leader_fill_id), None)
+        try:
+            self.audit.append_reconciliation(
+                'REPLAY_DEFERRED', 'REPLAY_DEFERRED_DISARMED_RACE', leader_wallet=fill.leader_wallet,
+                leader_fill_id=fill.leader_fill_id, coin=fill.coin, action='RETRY_AS_ARMED',
+                terminal_state='REPLAY_DEFERRED_DISARMED_RACE', engine_can_send='False',
+                notes='send_mode changed between the OFF decision and the point the fill would have been '
+                      'recorded as skipped; held and re-offered to the armed path, never silently dropped',
+                **self._disarmed_diagnostic_fields(fill),
+            )
+            self._rows_for_held_siblings(fill, 'REPLAY_DEFERRED_DISARMED_RACE')
+        except Exception as exc:
+            log_error('defer_disarmed_row', exc)
+        delay = max(0.5, fnum(os.getenv('HL_LIVE_DEFER_RETRY_SEC'), 5.0))
+        with self._deferred_lock:
+            self._deferred[key] = (fill, time.monotonic() + delay)
+            self.__dict__.setdefault('_deferred_kind', {})[key] = 'disarmed'
+            if self._deferred_thread is None or not self._deferred_thread.is_alive():
+                self._deferred_thread = threading.Thread(target=self._deferred_loop, daemon=True, name='HLCore-deferred')
+                self._deferred_thread.start()
+
     def _process_disarmed_leader_fill(self, fill: LeaderFill, summary: Optional[CycleSummary],
-                                      merged_ids: List[str]) -> Tuple[bool, str, Optional[Intent]]:
-        """Record a fill while globally OFF without intent, prewarm, or follower-read work."""
+                                      merged_ids: List[str], arm_decision: Any = None) -> Tuple[bool, str, Optional[Intent]]:
+        """Record a fill while globally OFF without intent, prewarm, or follower-read work.
+
+        arm_decision is the arm token read when this fill was decided to be OFF. Before the fill is
+        recorded as skipped the token is re-read under _arm_decision_lock: if sending was armed meanwhile
+        the fill is NOT skipped -- its disarmed bookkeeping is rolled back and it is held for the armed
+        path. That is the fix for the OFF-to-ON TOCTOU; without it the fill was consumed silently.
+        """
         converge = str(fill.source or "").upper() == "CONVERGE"
         if not converge:
             self.sender.record_leader_fill_seen(fill)
@@ -10300,6 +10356,14 @@ class LiveCopyCore:
             with self.dedupe._lock:
                 self.dedupe.processed.add(fill.leader_fill_id)
                 self.dedupe.processed.update(merged_ids)
+
+        # TOCTOU gate: past this line the fill is unrecoverable. Re-read the arm token under the
+        # arm-decision lock; if it moved, do not record the fill as skipped -- hold it for the armed path.
+        with self._arm_decision_lock:
+            _arm_now = self._arm_generation()
+        if arm_decision is not None and _arm_now != arm_decision:
+            self._hold_deferred_disarmed_fill(fill)
+            return False, 'DISARMED_DEFERRED_ARM_MOVED', None
 
         terminal_state = classify_terminal_state(
             "MASTER_REAL_ORDERS_OFF", "MASTER_REAL_ORDERS_OFF", lifecycle, False)
@@ -10369,11 +10433,21 @@ class LiveCopyCore:
             merged_ids = [str(i) for i in ((fill.raw or {}).get("merged_fill_ids") or []) if i]
             self._idem_accepted.update(merged_ids)  # the fills merged into this copy are handled by it
 
-        if self.cfg.send_mode_now() == "OFF":
-            return self._process_disarmed_leader_fill(fill, summary, merged_ids)
+        # The arm token is read with the OFF decision and re-checked where the fill would become
+        # unrecoverable (see _process_disarmed_leader_fill): an arming in between defers the fill.
+        with self._arm_decision_lock:
+            _arm_decision = self._arm_generation()
+        if _arm_decision[0] == 'OFF':
+            return self._process_disarmed_leader_fill(fill, summary, merged_ids, _arm_decision)
+
         self._process_deferred_withdrawn_entry_fills()
-        if self.cfg.send_mode_now() == "OFF":
-            return self._process_disarmed_leader_fill(fill, summary, merged_ids)
+        # The arm token is read with the OFF decision and re-checked where the fill would become
+        # unrecoverable (see _process_disarmed_leader_fill): an arming in between defers the fill.
+        with self._arm_decision_lock:
+            _arm_decision = self._arm_generation()
+        if _arm_decision[0] == 'OFF':
+            return self._process_disarmed_leader_fill(fill, summary, merged_ids, _arm_decision)
+
 
         # A resting missed-entry limit the leader no longer supports is withdrawn, and any fill it got is owned by
         # the ledger, BEFORE this fill is classified: the leader's close must find that position. The cancel and the
@@ -10576,6 +10650,11 @@ class LiveCopyCore:
                     busy = k in self._queued_keys
                 if busy:
                     continue  # the worker that held it has not released its slot yet: stay held, try next round
+                _kind = str(self.__dict__.setdefault('_deferred_kind', {}).pop(k, 'truth'))
+                if _kind == 'disarmed':
+                    # Rolled back when it was held; the fill is a NEW decision now. Truth-held fills keep
+                    # their guard on purpose: a re-dispatch there would be a second attempt past the guard.
+                    self.__dict__.setdefault('_handled_ids', {}).pop(str(f.leader_fill_id), None)
                 try:
                     self._dispatch_fill(f)
                 except Exception as exc:
