@@ -1,0 +1,431 @@
+{
+  "meta": {
+    "card": "t_931d2d8d",
+    "probe": "ui_lcc_control_write_v3",
+    "generated_at_utc": "2026-10-19T07:37:02.764059+00:00",
+    "app_base": "http://127.0.0.1:8032",
+    "serving_binding_type": "content_sha256",
+    "serving_script_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+    "serving_script_path": "C:\\Users\\wigmore\\trading_stack\\hl-build3-testnet-cert-8032\\_archive\\hl_stage2\\HL_Copy_App_SSOT.py",
+    "serving_pid": 30580,
+    "serving_process_start_utc": "2026-10-18T18:43:11Z",
+    "serving_process_start_from_pid": true,
+    "serving_workspace": "C:\\Users\\wigmore\\trading_stack\\hl-build3-testnet-cert-8032\\_archive\\hl_stage2",
+    "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "serving_commit_committed_at": "2026-10-17T07:18:14+00:00",
+    "isolated_audit_dir": "C:\\Users\\wigmore\\trading_stack\\hl-build3-testnet-cert-8032\\_isolated_8032\\audit",
+    "isolated_config_path": "C:\\Users\\wigmore\\trading_stack\\hl-build3-testnet-cert-8032\\_isolated_8032\\audit\\live_config.json",
+    "isolated_config_sha256_before_baseline_reset": "bb2419ec4c1b0b6ab77d202138fa0276573ffef7201000eece4345f53f6075a7",
+    "isolated_config_sha256_at_start": "21664462f16ee4eddd972461311b8e8f5a9f57a1a5180b29aa663961e23ec9b3",
+    "isolated_8032_controls_at_start": {
+      "ok": true,
+      "global_controls": {
+        "max_total_live_exposure_usd": 0.0,
+        "max_asset_directional_exposure_usd": 0.0,
+        "max_daily_loss_usd": 0.0,
+        "max_wallet_exposure_usd": 0.0,
+        "max_order_notional_usd": 0.0,
+        "marketable_bps": 20.0,
+        "max_close_adverse_diff_pct": 0.0,
+        "symbol_allowlist": [],
+        "symbol_blocklist": [],
+        "marketable_slippage_pct": 0.2,
+        "marketable_slippage_off": false,
+        "close_adverse_diff_off": true
+      },
+      "networks": {
+        "leader": "mainnet",
+        "follower": "testnet",
+        "state_dir": "C:\\Users\\wigmore\\trading_stack\\hl-build3-testnet-cert-8032\\_isolated_8032\\audit",
+        "follower_dexes": [
+          "default"
+        ]
+      }
+    },
+    "isolated_8032_state_dir_claim": "C:\\Users\\wigmore\\trading_stack\\hl-build3-testnet-cert-8032\\_isolated_8032\\audit",
+    "shared_config_guard_at_start": {
+      "guard": "start",
+      "shared_configs": {
+        "C:\\Users\\wigmore\\trading_stack\\hl-build3-testnet-cert\\_archive\\hl_stage2\\hl_live_copy_audit_testnet\\live_config.json": "26ee7636adddab0bc95dbee2620fc8dabcafd7107e0fad3d406c949744bf2437",
+        "C:\\Users\\wigmore\\trading_stack\\hl-build3-testnet-cert-8032\\_archive\\hl_stage2\\hl_live_copy_audit_testnet\\live_config.json": "ABSENT"
+      },
+      "live_8031_config_api_sha256": "63e281d41012e82348142873aa1cedcf6c5901b8506be7617d8541ee9ecef399",
+      "live_8031_controls_api_sha256": "ba99504437c75e7b902f460da695b65af31aaa6631ffefec742bfba14c1089f7"
+    },
+    "shared_config_paths_hashed": [
+      "C:\\Users\\wigmore\\trading_stack\\hl-build3-testnet-cert\\_archive\\hl_stage2\\hl_live_copy_audit_testnet\\live_config.json",
+      "C:\\Users\\wigmore\\trading_stack\\hl-build3-testnet-cert-8032\\_archive\\hl_stage2\\hl_live_copy_audit_testnet\\live_config.json"
+    ],
+    "live_8031_reachable_at_start": true,
+    "process_rule_ok": true,
+    "page_errors": [],
+    "overlays_cleared_after_add_row": 1,
+    "shared_config_guards": [
+      {
+        "guard": "start",
+        "shared_configs": {
+          "C:\\Users\\wigmore\\trading_stack\\hl-build3-testnet-cert\\_archive\\hl_stage2\\hl_live_copy_audit_testnet\\live_config.json": "26ee7636adddab0bc95dbee2620fc8dabcafd7107e0fad3d406c949744bf2437",
+          "C:\\Users\\wigmore\\trading_stack\\hl-build3-testnet-cert-8032\\_archive\\hl_stage2\\hl_live_copy_audit_testnet\\live_config.json": "ABSENT"
+        },
+        "live_8031_config_api_sha256": "63e281d41012e82348142873aa1cedcf6c5901b8506be7617d8541ee9ecef399",
+        "live_8031_controls_api_sha256": "ba99504437c75e7b902f460da695b65af31aaa6631ffefec742bfba14c1089f7"
+      },
+      {
+        "guard": "before-global-controls-write",
+        "shared_configs": {
+          "C:\\Users\\wigmore\\trading_stack\\hl-build3-testnet-cert\\_archive\\hl_stage2\\hl_live_copy_audit_testnet\\live_config.json": "26ee7636adddab0bc95dbee2620fc8dabcafd7107e0fad3d406c949744bf2437",
+          "C:\\Users\\wigmore\\trading_stack\\hl-build3-testnet-cert-8032\\_archive\\hl_stage2\\hl_live_copy_audit_testnet\\live_config.json": "ABSENT"
+        },
+        "live_8031_config_api_sha256": "63e281d41012e82348142873aa1cedcf6c5901b8506be7617d8541ee9ecef399",
+        "live_8031_controls_api_sha256": "ba99504437c75e7b902f460da695b65af31aaa6631ffefec742bfba14c1089f7"
+      },
+      {
+        "guard": "after-global-controls-write",
+        "shared_configs": {
+          "C:\\Users\\wigmore\\trading_stack\\hl-build3-testnet-cert\\_archive\\hl_stage2\\hl_live_copy_audit_testnet\\live_config.json": "26ee7636adddab0bc95dbee2620fc8dabcafd7107e0fad3d406c949744bf2437",
+          "C:\\Users\\wigmore\\trading_stack\\hl-build3-testnet-cert-8032\\_archive\\hl_stage2\\hl_live_copy_audit_testnet\\live_config.json": "ABSENT"
+        },
+        "live_8031_config_api_sha256": "63e281d41012e82348142873aa1cedcf6c5901b8506be7617d8541ee9ecef399",
+        "live_8031_controls_api_sha256": "ba99504437c75e7b902f460da695b65af31aaa6631ffefec742bfba14c1089f7"
+      },
+      {
+        "guard": "after-writes",
+        "shared_configs": {
+          "C:\\Users\\wigmore\\trading_stack\\hl-build3-testnet-cert\\_archive\\hl_stage2\\hl_live_copy_audit_testnet\\live_config.json": "26ee7636adddab0bc95dbee2620fc8dabcafd7107e0fad3d406c949744bf2437",
+          "C:\\Users\\wigmore\\trading_stack\\hl-build3-testnet-cert-8032\\_archive\\hl_stage2\\hl_live_copy_audit_testnet\\live_config.json": "ABSENT"
+        },
+        "live_8031_config_api_sha256": "63e281d41012e82348142873aa1cedcf6c5901b8506be7617d8541ee9ecef399",
+        "live_8031_controls_api_sha256": "ba99504437c75e7b902f460da695b65af31aaa6631ffefec742bfba14c1089f7"
+      }
+    ],
+    "live_8031_reachable_at_end": true,
+    "shared_config_file_sha256_at_start": {
+      "C:\\Users\\wigmore\\trading_stack\\hl-build3-testnet-cert\\_archive\\hl_stage2\\hl_live_copy_audit_testnet\\live_config.json": "26ee7636adddab0bc95dbee2620fc8dabcafd7107e0fad3d406c949744bf2437",
+      "C:\\Users\\wigmore\\trading_stack\\hl-build3-testnet-cert-8032\\_archive\\hl_stage2\\hl_live_copy_audit_testnet\\live_config.json": "ABSENT"
+    },
+    "shared_config_file_sha256_at_end": {
+      "C:\\Users\\wigmore\\trading_stack\\hl-build3-testnet-cert\\_archive\\hl_stage2\\hl_live_copy_audit_testnet\\live_config.json": "26ee7636adddab0bc95dbee2620fc8dabcafd7107e0fad3d406c949744bf2437",
+      "C:\\Users\\wigmore\\trading_stack\\hl-build3-testnet-cert-8032\\_archive\\hl_stage2\\hl_live_copy_audit_testnet\\live_config.json": "ABSENT"
+    },
+    "shared_config_files_unchanged": true,
+    "live_8031_never_written": true,
+    "isolated_config_sha256_at_end": "f266bff7075ed07418ec1f7ad7f272c1e8af4b68144ae40a73928bc074ca9073",
+    "isolated_config_changed_by_test": true,
+    "row_counts": {
+      "PASS": 8,
+      "FAIL": 1
+    }
+  },
+  "rows": [
+    {
+      "row_id": "UI-LCC-ADD-10",
+      "check": "Add-wallet modal submit persists the wallet to the isolated live_config.json AND closes the modal with SAVED",
+      "before": {
+        "wallets_has_test_wallet": false,
+        "wallet_count": 0
+      },
+      "after": {
+        "wallets_has_test_wallet": true,
+        "wallet_entry": {
+          "copy_mode": "fixed",
+          "enabled": false,
+          "fixed_notional": 10.0,
+          "mode": "OFF",
+          "norm_base": 100.0
+        },
+        "wallet_count": 1
+      },
+      "predicate": "absent before AND present after AND mode==OFF AND fixed_notional==10 AND modal closed AND status SAVED",
+      "dom_evidence": {
+        "modal_active_after_submit": true,
+        "status_text": "Cannot read properties of null (reading 'reset')",
+        "wallet_rows": [],
+        "page_errors_since_submit": []
+      },
+      "result": "FAIL",
+      "tested_at_utc": "2026-10-19T07:37:11.747281+00:00",
+      "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "serving_script_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "app_base": "http://127.0.0.1:8032",
+      "proof_network": "TESTNET",
+      "backend_persisted": true
+    },
+    {
+      "row_id": "UI-LCC-ADD-10-neg",
+      "check": "Invalid wallet address is rejected with a visible error and no config write",
+      "before": {
+        "wallets": [
+          "0x1111111111111111111111111111111111111111"
+        ]
+      },
+      "after": {
+        "wallets": [
+          "0x1111111111111111111111111111111111111111"
+        ]
+      },
+      "predicate": "status is an error (BAD/INVALID) with class lc-bad AND wallets map byte-identical",
+      "dom_evidence": {
+        "status_text": "BAD_WALLET",
+        "status_class": "lc-status lc-bad",
+        "page_errors_since_submit": []
+      },
+      "result": "PASS",
+      "tested_at_utc": "2026-10-19T07:37:18.492706+00:00",
+      "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "serving_script_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "app_base": "http://127.0.0.1:8032",
+      "proof_network": "TESTNET"
+    },
+    {
+      "row_id": "UI-LCC-WTBL-11",
+      "check": "Wallet-row Save writes the edited F/N/mode to the isolated live_config.json",
+      "before": {
+        "wallet_entry": {
+          "copy_mode": "fixed",
+          "enabled": false,
+          "fixed_notional": 10.0,
+          "mode": "OFF",
+          "norm_base": 100.0
+        }
+      },
+      "after": {
+        "wallet_entry": {
+          "copy_mode": "fixed",
+          "enabled": true,
+          "fixed_notional": 25.0,
+          "mode": "LIVE",
+          "norm_base": 150.0
+        },
+        "config_sha256": "b1ab2237452c844ad910f17694848838a6787748490933a5f42a82e044bbf221"
+      },
+      "predicate": "fixed_notional 10->25 AND norm_base 100->150 AND mode OFF->LIVE AND enabled true AND status SAVED",
+      "dom_evidence": {
+        "status_text": "Updated: 0x11111111...111111 -> SAVED",
+        "row_text": "0x11111111...111111\nLive\n\t—\t\nPolling (normal)\n\t\nClosed: —\nOpen: $0\nFees: —\nNo PnL yet\n\t\nTotal: n/a\nAvg: n/a\nAvg bps: n/a\nWorst bps: n/a\n\t\n0 filled / 0 exits\n0 recent rejects\n0 recent blocks\n\t\nExposure: $0\nOpen pos: 0\nDD: —\nMaxDD: —\n\tnone yet\t\nLIVE\nCLO\nOFF\nprop\nfixed\nF\nN\nSave\nCLO\nOFF\nArchive"
+      },
+      "result": "PASS",
+      "tested_at_utc": "2026-10-19T07:37:25.165269+00:00",
+      "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "serving_script_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "app_base": "http://127.0.0.1:8032",
+      "proof_network": "TESTNET"
+    },
+    {
+      "row_id": "UI-LCC-WTBL-12",
+      "check": "Wallet-row CLO sets mode CLO (enabled, closes only) in the isolated config",
+      "before": {
+        "wallet_entry": {
+          "copy_mode": "fixed",
+          "enabled": true,
+          "fixed_notional": 25.0,
+          "mode": "LIVE",
+          "norm_base": 150.0
+        }
+      },
+      "after": {
+        "wallet_entry": {
+          "copy_mode": "fixed",
+          "enabled": true,
+          "fixed_notional": 25.0,
+          "mode": "CLO",
+          "norm_base": 150.0
+        }
+      },
+      "predicate": "mode LIVE->CLO AND enabled true AND status mentions CLO",
+      "dom_evidence": {
+        "status_text": "Updated: 0x11111111...111111 -> CLO"
+      },
+      "result": "PASS",
+      "tested_at_utc": "2026-10-19T07:37:31.745766+00:00",
+      "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "serving_script_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "app_base": "http://127.0.0.1:8032",
+      "proof_network": "TESTNET"
+    },
+    {
+      "row_id": "UI-LCC-WTBL-13",
+      "check": "Wallet-row OFF sets mode OFF (disabled) in the isolated config",
+      "before": {
+        "wallet_entry": {
+          "copy_mode": "fixed",
+          "enabled": true,
+          "fixed_notional": 25.0,
+          "mode": "CLO",
+          "norm_base": 150.0
+        }
+      },
+      "after": {
+        "wallet_entry": {
+          "copy_mode": "fixed",
+          "enabled": false,
+          "fixed_notional": 25.0,
+          "mode": "OFF",
+          "norm_base": 150.0
+        }
+      },
+      "predicate": "mode CLO->OFF AND enabled false AND status mentions OFF",
+      "dom_evidence": {
+        "status_text": "Updated: 0x11111111...111111 -> OFF"
+      },
+      "result": "PASS",
+      "tested_at_utc": "2026-10-19T07:37:38.344204+00:00",
+      "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "serving_script_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "app_base": "http://127.0.0.1:8032",
+      "proof_network": "TESTNET"
+    },
+    {
+      "row_id": "UI-LCC-WTBL-14",
+      "check": "Wallet-row Archive moves the wallet from wallets{} to archived_wallets{} with archived_at",
+      "before": {
+        "in_wallets": true,
+        "in_archived": false
+      },
+      "after": {
+        "in_wallets": false,
+        "archived_entry": {
+          "mode": "OFF",
+          "enabled": false,
+          "archived_at": "2026-10-19T07:37:41.425229+00:00"
+        }
+      },
+      "predicate": "wallets entry gone AND archived_wallets entry present with mode OFF and archived_at AND row disappeared",
+      "dom_evidence": {
+        "status_text": "Updated: 0x11111111...111111 -> ARCHIVED",
+        "wallet_rows_after": []
+      },
+      "result": "PASS",
+      "tested_at_utc": "2026-10-19T07:37:45.447973+00:00",
+      "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "serving_script_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "app_base": "http://127.0.0.1:8032",
+      "proof_network": "TESTNET"
+    },
+    {
+      "row_id": "UI-LCC-BTN-05",
+      "check": "Save Global Controls persists every form field to the isolated live_config.json and the API agrees",
+      "before": {
+        "global_controls": {
+          "marketable_bps": 20.0,
+          "max_asset_directional_exposure_usd": 0.0,
+          "max_close_adverse_diff_pct": 0.0,
+          "max_daily_loss_usd": 0.0,
+          "max_order_notional_usd": 0.0,
+          "max_total_live_exposure_usd": 0.0,
+          "max_wallet_exposure_usd": 0.0,
+          "symbol_allowlist": [],
+          "symbol_blocklist": []
+        }
+      },
+      "after": {
+        "global_controls_file": {
+          "marketable_bps": 35.0,
+          "max_asset_directional_exposure_usd": 55.5,
+          "max_close_adverse_diff_pct": 1.5,
+          "max_daily_loss_usd": 7.0,
+          "max_order_notional_usd": 99.0,
+          "max_total_live_exposure_usd": 1234.5,
+          "max_wallet_exposure_usd": 3.25,
+          "symbol_allowlist": [
+            "BTC",
+            "ETH"
+          ],
+          "symbol_blocklist": [
+            "DOGE"
+          ]
+        },
+        "global_controls_api": {
+          "max_total_live_exposure_usd": 1234.5,
+          "max_asset_directional_exposure_usd": 55.5,
+          "max_daily_loss_usd": 7.0,
+          "max_wallet_exposure_usd": 3.25,
+          "max_order_notional_usd": 99.0,
+          "marketable_bps": 35.0,
+          "max_close_adverse_diff_pct": 1.5,
+          "symbol_allowlist": [
+            "BTC",
+            "ETH"
+          ],
+          "symbol_blocklist": [
+            "DOGE"
+          ],
+          "marketable_slippage_pct": 0.35,
+          "marketable_slippage_off": false,
+          "close_adverse_diff_off": false
+        },
+        "config_sha256": "f266bff7075ed07418ec1f7ad7f272c1e8af4b68144ae40a73928bc074ca9073"
+      },
+      "predicate": "all 9 fields round-trip (1234.5/55.5/7/3.25/99/0.35->35bps/1.5/[BTC,ETH]/[DOGE]) AND status says Saved",
+      "dom_evidence": {
+        "status_text": "Saved",
+        "status_class": "lc-status lc-ok"
+      },
+      "result": "PASS",
+      "tested_at_utc": "2026-10-19T07:37:53.473132+00:00",
+      "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "serving_script_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "app_base": "http://127.0.0.1:8032",
+      "proof_network": "TESTNET"
+    },
+    {
+      "row_id": "UI-LCC-GRAPH-09",
+      "check": "Graph Apply switches to the custom start/end range and re-renders the subtitle",
+      "before": {
+        "subtitle": "Not enough points in selected range (ALL).",
+        "active_scale_buttons": [
+          "all"
+        ]
+      },
+      "after": {
+        "subtitle": "Not enough points in selected range (01/10/2026, 00:00:00 to 15/10/2026, 00:00:00).",
+        "active_scale_buttons": []
+      },
+      "predicate": "subtitle changes AND shows <start> to <end> AND no scale button remains active",
+      "dom_evidence": {
+        "subtitle_before": "Not enough points in selected range (ALL).",
+        "subtitle": "Not enough points in selected range (01/10/2026, 00:00:00 to 15/10/2026, 00:00:00).",
+        "active_scale_buttons_before": [
+          "all"
+        ],
+        "active_scale_buttons": [],
+        "start_value": "2026-10-01T00:00",
+        "end_value": "2026-10-15T00:00"
+      },
+      "result": "PASS",
+      "tested_at_utc": "2026-10-19T07:37:59.140414+00:00",
+      "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "serving_script_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "app_base": "http://127.0.0.1:8032",
+      "proof_network": "TESTNET"
+    },
+    {
+      "row_id": "UI-LCC-GRAPH-10",
+      "check": "Graph Reset returns to the ALL range, clears both datetime inputs and re-activates ALL",
+      "before": {
+        "subtitle": "Not enough points in selected range (01/10/2026, 00:00:00 to 15/10/2026, 00:00:00)."
+      },
+      "after": {
+        "subtitle": "Not enough points in selected range (ALL).",
+        "active_scale_buttons": [
+          "all"
+        ]
+      },
+      "predicate": "ALL button active alone AND start/end inputs empty AND subtitle range label changed back to ALL",
+      "dom_evidence": {
+        "subtitle_before": "Not enough points in selected range (01/10/2026, 00:00:00 to 15/10/2026, 00:00:00).",
+        "subtitle": "Not enough points in selected range (ALL).",
+        "active_scale_buttons": [
+          "all"
+        ],
+        "start_value": "",
+        "end_value": ""
+      },
+      "result": "PASS",
+      "tested_at_utc": "2026-10-19T07:38:01.673906+00:00",
+      "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "serving_script_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "app_base": "http://127.0.0.1:8032",
+      "proof_network": "TESTNET"
+    }
+  ]
+}
