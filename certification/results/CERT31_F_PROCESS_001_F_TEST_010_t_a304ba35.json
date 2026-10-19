@@ -1,0 +1,107 @@
+[
+  {
+    "row_id": "F-PROCESS-001",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+    "tested_commit": null,
+    "why": "PASS evidence checks cutover timestamps, not accountable ownership; no row-specific governance probe"
+  },
+  {
+    "row_id": "F-PROCESS-002",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+    "tested_commit": null,
+    "why": "PASS evidence checks cutover fill/restart, not freeze/rebuild after foundation declared unsuitable"
+  },
+  {
+    "row_id": "F-PROCESS-003",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+    "tested_commit": null,
+    "why": "PASS evidence checks cutover/master gate, not feature-work blocking after truth failure"
+  },
+  {
+    "row_id": "F-PRODUCT-001",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": null,
+    "tested_commit": null,
+    "why": "No wallet-selection/realised-PnL-bias execution route or independent oracle evidenced in the regression artifact"
+  },
+  {
+    "row_id": "F-PRODUCT-002",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+    "tested_commit": null,
+    "why": "Evidence contains only PROD002_EVIDENCE_TIER with empty detail; no recommendation-specific payload or mutation showing fact/position-truth confusion"
+  },
+  {
+    "row_id": "F-TEST-001",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": null,
+    "tested_commit": null,
+    "why": "Recorded-production-replay route is absent from the cited regression package; no production capture/replay oracle"
+  },
+  {
+    "row_id": "F-TEST-002",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+    "tested_commit": null,
+    "why": "Evidence concerns wallet conflict/coin-net, not 100 repeated same-direction ADD fills or exposure cap"
+  },
+  {
+    "row_id": "F-TEST-003",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+    "tested_commit": null,
+    "why": "Evidence concerns live_start_ms initialization/restart, not crash recovery at each of six send/fill/reject/cancel lifecycle points"
+  },
+  {
+    "row_id": "F-TEST-004",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+    "tested_commit": null,
+    "why": "Evidence concerns duplicate copy_fill_id ledger mutation, not dropped/reordered WS event convergence"
+  },
+  {
+    "row_id": "F-TEST-005",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+    "tested_commit": null,
+    "why": "Evidence concerns duplicate fill ledger rows, not partial-fill refetch and residual-delta convergence"
+  },
+  {
+    "row_id": "F-TEST-006",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+    "tested_commit": null,
+    "why": "Evidence concerns wallet conflict/coin-net, but no concurrent opposing leaders with exchange account-net target probe"
+  },
+  {
+    "row_id": "F-TEST-007",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+    "tested_commit": null,
+    "why": "Evidence checks disabled master gate against leader_sends_attempted/no send_attempt row, not dominance over every exchange-client order call"
+  },
+  {
+    "row_id": "F-TEST-008",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+    "tested_commit": null,
+    "why": "Evidence checks quiet WS health/restart timestamp, not multi-day live shadow observation with zero orders"
+  },
+  {
+    "row_id": "F-TEST-009",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
+    "tested_commit": null,
+    "why": "Evidence concerns wallet conflict/ledger short, not tiny-capital capped canary, flip/duplicate-close/drift controls"
+  },
+  {
+    "row_id": "F-TEST-010",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": null,
+    "tested_commit": null,
+    "why": "Independent exchange oracle route is absent from the cited regression package"
+  }
+]
