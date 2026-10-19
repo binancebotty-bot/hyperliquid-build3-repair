@@ -187,9 +187,23 @@ def main() -> None:
           f"prop {prop_before}->{prop_after} fixed={fixed_pos}")
 
     # ---------- 8) exactly one physical exchange order site preserved ----------
-    src = Path(svcmod.__file__).read_text(encoding="utf-8", errors="replace")
-    sites = [ln for ln in src.splitlines() if ".order(" in ln and "exchange" in ln.lower()]
-    check("C1_SINGLE_EXCHANGE_ORDER_SITE", len(sites) == 1, f"sites={len(sites)}")
+    # ---------- 8) exactly one physical exchange order site, now in Core ----------
+    # The legacy sender (HL_Live_Copy_Service.py) was retired in 621a06c, so it must contain ZERO order sites and the
+    # single site now lives in Core. Asserting "one site in the legacy file" was pinning the shape of the pre-621a06c
+    # implementation, not the invariant. Matching guard: test_single_exchange_order_callsite.py (AST, whole tree).
+    import ast as _ast
+
+    def _exchange_order_calls(_p):
+        _tree = _ast.parse(_p.read_text(encoding="utf-8-sig"), filename=str(_p))
+        return [n for n in _ast.walk(_tree)
+                if isinstance(n, _ast.Call) and isinstance(n.func, _ast.Attribute)
+                and n.func.attr == "order" and isinstance(n.func.value, _ast.Name)
+                and n.func.value.id == "exchange"]
+
+    _legacy_calls = _exchange_order_calls(Path(svcmod.__file__))
+    _core_calls = _exchange_order_calls(Path(svcmod.__file__).with_name("HL_Live_Copy_Service_Core.py"))
+    check("C1_SINGLE_EXCHANGE_ORDER_SITE", len(_legacy_calls) == 0 and len(_core_calls) == 1,
+          f"legacy={len(_legacy_calls)} core={len(_core_calls)}")
 
     # ---------- 9) GENUINE FLIP under a positive cap below fixed_notional ----------
     # Controller B3-C2H-G4-C1-FLIP-CAP-CORRECTION-1: a flip reduces absolute leader magnitude but

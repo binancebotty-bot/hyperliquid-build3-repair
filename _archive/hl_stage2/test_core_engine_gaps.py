@@ -80,7 +80,23 @@ def main() -> None:
     check("O1_ALL_SIX_ORDER_SITES_USE_IT", src.count("self._place_order(") == 6, str(src.count("self._place_order(")))
     cancel_body = src.split("def _cancel_order(", 1)[1].split("\n    def ", 1)[0]
     check("O1_EXACTLY_ONE_EXCHANGE_CANCEL_CALL", len(re.findall(r"exchange\.cancel\(", src)) == 1
-          and "exchange.cancel(" in cancel_body and "_exchange_order_lock" in cancel_body)
+          and "exchange.cancel(" in cancel_body and "_reserve_exchange_order_slot(" in cancel_body)
+    # ORDERING, not presence: a cancel may not WAIT for its slot before reserving it. Reserve first, then
+    # (only if the slot makes us wait) sleep, then the ONE physical cancel last. Presence alone passed a
+    # reservation-after-sleep regression - the exact bug this invariant exists to prevent.
+    i_res = cancel_body.find("_reserve_exchange_order_slot(")
+    i_can = cancel_body.find("exchange.cancel(")
+    i_slp = cancel_body.find("time.sleep(")
+    if i_res < 0 or i_can < 0:
+        ord_ok, ord_br = False, "MISSING_CALL"
+    elif i_slp < 0:
+        ord_ok, ord_br = i_res < i_can, "NO_WAIT_FAST_PATH"
+    else:
+        ord_ok, ord_br = i_res < i_slp < i_can, "WAIT_THEN_CANCEL"
+    print("ORDERING::%s reserve_at=%d sleep_at=%d cancel_at=%d" % (ord_br, i_res, i_slp, i_can))
+    check("O1_CANCEL_RESERVES_SLOT_BEFORE_ANY_WAIT_AND_CANCELS_LAST", ord_ok,
+          "%s not ordered reserve<sleep<cancel: reserve_at=%d sleep_at=%d cancel_at=%d"
+          % (ord_br, i_res, i_slp, i_can))
 
     class FakeExchange:
         def __init__(self):

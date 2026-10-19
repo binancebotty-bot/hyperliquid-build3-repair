@@ -134,9 +134,21 @@ def main() -> None:
     close_pos = float(svcD.get_position("0xfixed", COIN).get("signed_size") or 0.0)
     check("D_FIXED_CLOSE_FLATTENS_TO_ZERO", abs(close_pos) < 1e-9, f"close={close_pos}")
 
-    src = Path(svcmod.__file__).read_text(encoding="utf-8", errors="replace")
-    order_sites = [ln for ln in src.splitlines() if ".order(" in ln and "exchange" in ln.lower()]
-    check("D_SINGLE_EXCHANGE_ORDER_SITE", len(order_sites) == 1, f"sites={len(order_sites)}")
+    # The legacy sender was retired in 621a06c: zero order sites there, exactly one in Core. The pre-621a06c form of
+    # this check pinned the implementation shape rather than the invariant. AST guard: test_single_exchange_order_callsite.py.
+    import ast as _ast
+
+    def _exchange_order_calls(_p):
+        _tree = _ast.parse(_p.read_text(encoding="utf-8-sig"), filename=str(_p))
+        return [n for n in _ast.walk(_tree)
+                if isinstance(n, _ast.Call) and isinstance(n.func, _ast.Attribute)
+                and n.func.attr == "order" and isinstance(n.func.value, _ast.Name)
+                and n.func.value.id == "exchange"]
+
+    _legacy_calls = _exchange_order_calls(Path(svcmod.__file__))
+    _core_calls = _exchange_order_calls(Path(svcmod.__file__).with_name("HL_Live_Copy_Service_Core.py"))
+    check("D_SINGLE_EXCHANGE_ORDER_SITE", len(_legacy_calls) == 0 and len(_core_calls) == 1,
+          f"legacy={len(_legacy_calls)} core={len(_core_calls)}")
 
     # ============ LEDGER INTEGRITY: malformed entries must FAIL CLOSED ============
     def authority_for(entry):
