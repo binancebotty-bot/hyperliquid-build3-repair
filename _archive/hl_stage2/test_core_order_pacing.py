@@ -56,7 +56,9 @@ def run():
     assert not errors, errors
     observed = [(b[0]-a[0])/1e6 for a,b in zip(ex.calls, ex.calls[1:])]
     assert len(ex.calls) == 32
-    assert min(observed) >= 80, min(observed)
+    # Enforce the requested invariant at the exchange.order boundary; do not
+    # soften the threshold for scheduler jitter or millisecond clock quantization.
+    assert min(observed) >= 100, min(observed)
     max_hold = max(lock.samples)
     assert max_hold < 1000, max_hold
 
