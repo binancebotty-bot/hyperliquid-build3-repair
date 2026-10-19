@@ -604,12 +604,15 @@
     "census run against a deliberately mutated copy must FAIL (non-vacuous)"
    ],
    "prior_evidence": "",
-   "result": "PASS",
-   "evidence_ref": "certification/results/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json",
-   "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+   "result": "NOT_TESTED",
+   "evidence_ref": "certification/results/ENG-INV-01_one_process_t_25bebbc7.json",
+   "tested_commit": "1e311f1f027f7065c39aba9ed646579d3ac786b2",
    "tested_at_utc": "2026-10-14T09:05:00Z",
-   "notes": "Row-bound re-earn (t_ff1af604): Runtime+static PASS: 36/36 checks; 11/11 non-vacuous negatives; engine sha256 verified; drives REAL engine symbols. | CORRECTED runtime+static PASS: 36/36 checks; 11/11 non-vacuous negatives; engine sha256 verified. Corrections: ENG-014 uses source=WS_SNAPSHOT (not WS) so stale_snapshot_replay_reason() actually exercises stale-detection; ENG-010 accepts ONLY ACCOUNT_NET_TRUTH_UNAVAILABLE (not IDENTITY_INVALID); ENG-011 accepts ONLY IN_FLIGHT_NOT_OWNED (not ACCOUNT_NET_TRUTH_UNAVAILABLE). Prior artifact had 3 unearned PASSes via widened accept sets + source-substring fallback. | CORRECTED runtime+static PASS: 36/36 checks; 11/11 non-vacuous negatives; engine sha256 verified. Corrections: ENG-014 uses source=WS_SNAPSHOT (not WS) so stale_snapshot_replay_reason() actually exercises stale-detection; ENG-010 accepts ONLY ACCOUNT_NET_TRUTH_UNAVAILABLE (not IDENTITY_INVALID); ENG-011 accepts ONLY IN_FLIGHT_NOT_OWNED (not ACCOUNT_NET_TRUTH_UNAVAILABLE). Prior artifact had 3 unearned PASSes via widened accept sets + source-substring fallback. | CORRECTED runtime+static PASS: 36/36 checks; 11/11 non-vacuous negatives; engine sha256 verified. Corrections: ENG-014 uses source=WS_SNAPSHOT (not WS) so stale_snapshot_replay_reason() actually exercises stale-detection; ENG-010 accepts ONLY ACCOUNT_NET_TRUTH_UNAVAILABLE (not IDENTITY_INVALID); ENG-011 accepts ONLY IN_FLIGHT_NOT_OWNED (not ACCOUNT_NET_TRUTH_UNAVAILABLE). Prior artifact had 3 unearned PASSes via widened accept sets + source-substring fallback. | CORRECTED runtime+static PASS: 36/36 checks; 11/11 non-vacuous negatives; engine sha256 verified. Corrections: ENG-014 uses source=WS_SNAPSHOT (not WS) so stale_snapshot_replay_reason() actually exercises stale-detection; ENG-010 accepts ONLY ACCOUNT_NET_TRUTH_UNAVAILABLE (not IDENTITY_INVALID); ENG-011 accepts ONLY IN_FLIGHT_NOT_OWNED (not ACCOUNT_NET_TRUTH_UNAVAILABLE). Prior artifact had 3 unearned PASSes via widened accept sets + source-substring fallback. | CORRECTED runtime+static PASS: 36/36 checks; 11/11 non-vacuous negatives; engine sha256 verified. Corrections: ENG-014 uses source=WS_SNAPSHOT (not WS) so stale_snapshot_replay_reason() actually exercises stale-detection; ENG-010 accepts ONLY ACCOUNT_NET_TRUTH_UNAVAILABLE (not IDENTITY_INVALID); ENG-011 accepts ONLY IN_FLIGHT_NOT_OWNED (not ACCOUNT_NET_TRUTH_UNAVAILABLE). Prior artifact had 3 unearned PASSes via widened accept sets + source-substring fallback.",
-   "proof_network": "TESTNET"
+   "notes": "DEMOTED PASS -> NOT_TESTED per the stricter-verdict rule. Card t_25bebbc7 measured one live engine process (PID 44952) with TCP corroboration, but did not perform the two-instance negative control, so 'one process' is observed at one moment rather than proven. Static census supporting only (1 order site at Core:4206). Limit: The live process observation found one Python process executing HL_Live_Copy_Service_Core.py (PID 44952), with TCP activity corroborating liveness. Windows process enumeration is known unreliable here, and no isolated two-instance harness exists. No second engine was started, to avoid disturbing the live engine or risking shared configuration, port, or ledger use. Therefore the required negative c",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "ENG-INV-02",
