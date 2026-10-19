@@ -1,0 +1,107 @@
+[
+  {
+    "row_id": "TN-F09",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/NLS_RESIDUAL_2a269ad226.json",
+    "tested_commit": "2a269ad2260270fee844eedc2cc23545abc91dd0",
+    "why": "Transcribed from the authoritative certification register at base commit f4ee2bb18dc6781940772cb088e9a476585030e4; prior committed evidence only, not a fresh probe in this run. See the row-specific evidence_ref and tested_commit. BLOCKED/NOT_TESTED retained as recorded."
+  },
+  {
+    "row_id": "TN-F10",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/NLS_RESIDUAL_2a269ad226.json",
+    "tested_commit": "2a269ad2260270fee844eedc2cc23545abc91dd0",
+    "why": "Transcribed from the authoritative certification register at base commit f4ee2bb18dc6781940772cb088e9a476585030e4; prior committed evidence only, not a fresh probe in this run. See the row-specific evidence_ref and tested_commit. BLOCKED/NOT_TESTED retained as recorded."
+  },
+  {
+    "row_id": "TN-F11",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/NLS_RESIDUAL_2a269ad226.json",
+    "tested_commit": "2a269ad2260270fee844eedc2cc23545abc91dd0",
+    "why": "Transcribed from the authoritative certification register at base commit f4ee2bb18dc6781940772cb088e9a476585030e4; prior committed evidence only, not a fresh probe in this run. See the row-specific evidence_ref and tested_commit. BLOCKED/NOT_TESTED retained as recorded."
+  },
+  {
+    "row_id": "TN-F12",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/NLS_RESIDUAL_2a269ad226.json",
+    "tested_commit": "2a269ad2260270fee844eedc2cc23545abc91dd0",
+    "why": "Transcribed from the authoritative certification register at base commit f4ee2bb18dc6781940772cb088e9a476585030e4; prior committed evidence only, not a fresh probe in this run. See the row-specific evidence_ref and tested_commit. BLOCKED/NOT_TESTED retained as recorded."
+  },
+  {
+    "row_id": "TN-F13",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": null,
+    "tested_commit": null,
+    "why": "Transcribed from the authoritative certification register at base commit f4ee2bb18dc6781940772cb088e9a476585030e4; prior committed evidence only, not a fresh probe in this run. See the row-specific evidence_ref and tested_commit. BLOCKED/NOT_TESTED retained as recorded."
+  },
+  {
+    "row_id": "TN-F14",
+    "verdict": "BLOCKED",
+    "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+    "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+    "why": "Transcribed from the authoritative certification register at base commit f4ee2bb18dc6781940772cb088e9a476585030e4; prior committed evidence only, not a fresh probe in this run. See the row-specific evidence_ref and tested_commit. BLOCKED/NOT_TESTED retained as recorded."
+  },
+  {
+    "row_id": "TN-F15",
+    "verdict": "PASS",
+    "evidence_ref": "certification/results/HEALTH_CORRECTION_fefc2b04.json",
+    "tested_commit": "fefc2b04261c734bb32c767d2cc4a91095e65843",
+    "why": "Transcribed from the authoritative certification register at base commit f4ee2bb18dc6781940772cb088e9a476585030e4; prior committed evidence only, not a fresh probe in this run. See the row-specific evidence_ref and tested_commit. BLOCKED/NOT_TESTED retained as recorded."
+  },
+  {
+    "row_id": "TN-F16",
+    "verdict": "PASS",
+    "evidence_ref": "certification/results/RISK_fa9d9f55.json",
+    "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+    "why": "Transcribed from the authoritative certification register at base commit f4ee2bb18dc6781940772cb088e9a476585030e4; prior committed evidence only, not a fresh probe in this run. See the row-specific evidence_ref and tested_commit. BLOCKED/NOT_TESTED retained as recorded."
+  },
+  {
+    "row_id": "TN-F17",
+    "verdict": "PASS",
+    "evidence_ref": "certification/results/ENG-015-016-TNF17_43731b4f.json",
+    "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+    "why": "Transcribed from the authoritative certification register at base commit f4ee2bb18dc6781940772cb088e9a476585030e4; prior committed evidence only, not a fresh probe in this run. See the row-specific evidence_ref and tested_commit. BLOCKED/NOT_TESTED retained as recorded."
+  },
+  {
+    "row_id": "TN-F18",
+    "verdict": "PASS",
+    "evidence_ref": "certification/results/NLS_RESIDUAL_2a269ad226.json",
+    "tested_commit": "2a269ad2260270fee844eedc2cc23545abc91dd0",
+    "why": "Transcribed from the authoritative certification register at base commit f4ee2bb18dc6781940772cb088e9a476585030e4; prior committed evidence only, not a fresh probe in this run. See the row-specific evidence_ref and tested_commit. BLOCKED/NOT_TESTED retained as recorded."
+  },
+  {
+    "row_id": "TN-F19",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/NLS_RESIDUAL_2a269ad226.json",
+    "tested_commit": "2a269ad2260270fee844eedc2cc23545abc91dd0",
+    "why": "Transcribed from the authoritative certification register at base commit f4ee2bb18dc6781940772cb088e9a476585030e4; prior committed evidence only, not a fresh probe in this run. See the row-specific evidence_ref and tested_commit. BLOCKED/NOT_TESTED retained as recorded."
+  },
+  {
+    "row_id": "TN-F20",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": null,
+    "tested_commit": null,
+    "why": "Transcribed from the authoritative certification register at base commit f4ee2bb18dc6781940772cb088e9a476585030e4; prior committed evidence only, not a fresh probe in this run. See the row-specific evidence_ref and tested_commit. BLOCKED/NOT_TESTED retained as recorded."
+  },
+  {
+    "row_id": "TN-F21",
+    "verdict": "PASS",
+    "evidence_ref": "certification/results/RISK_fa9d9f55.json",
+    "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+    "why": "Transcribed from the authoritative certification register at base commit f4ee2bb18dc6781940772cb088e9a476585030e4; prior committed evidence only, not a fresh probe in this run. See the row-specific evidence_ref and tested_commit. BLOCKED/NOT_TESTED retained as recorded."
+  },
+  {
+    "row_id": "TN-F22",
+    "verdict": "BLOCKED",
+    "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+    "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+    "why": "Transcribed from the authoritative certification register at base commit f4ee2bb18dc6781940772cb088e9a476585030e4; prior committed evidence only, not a fresh probe in this run. See the row-specific evidence_ref and tested_commit. BLOCKED/NOT_TESTED retained as recorded."
+  },
+  {
+    "row_id": "TN-F23",
+    "verdict": "BLOCKED",
+    "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+    "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+    "why": "Transcribed from the authoritative certification register at base commit f4ee2bb18dc6781940772cb088e9a476585030e4; prior committed evidence only, not a fresh probe in this run. See the row-specific evidence_ref and tested_commit. BLOCKED/NOT_TESTED retained as recorded."
+  }
+]
