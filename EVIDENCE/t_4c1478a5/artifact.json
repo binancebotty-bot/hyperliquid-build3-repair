@@ -1,0 +1,243 @@
+{
+ "card_id": "t_4c1478a5",
+ "title": "CERT 41/53 UI-FP-008..UI-FP-022 (15 rows) - row-bound re-certification",
+ "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+ "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+ "register_commit": "f4ee2bb18dc6781940772cb088e9a476585030e4 (branch cert/local-main-b142cf8)",
+ "how_serving_build_was_established": "The task-named oracle (port 8031, PID 33368) is GONE: curl to http://127.0.0.1:8031/live-copy returns 000 and netstat shows zero listeners on 8031; tasklist for PID 33368 reports 'No tasks are running'. The serving build was therefore re-established from the same commit rather than assumed: `git archive 89b3bc7 _archive/hl_stage2` extracted to work/src89, sha256sum of its _archive/hl_stage2/HL_Copy_App_SSOT.py = 658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2 (byte-identical to the SSOT hash cited in the schema file), and git log -1 --format=%cI 89b3bc7 = 2026-10-17T07:18:14Z. Two isolated instances were launched from that tree (ports 8131/8132) with process start 2026-10-19T05:26Z, which is AFTER the commit date, so the arithmetic check passes: the commit predates the process.",
+ "oracle": "Differential two-fixture oracle with no import of HL_Copy_App_SSOT.py. Two audit directories were seeded with the SAME schema and DIFFERENT values (iso_A vs iso_B) for the exact source field of each row, then two independent instances of the same build were rendered headless and the DOM compared. A row only PASSes if the rendered cell changes when its own source field changes and keeps the other rows' values distinct - i.e. the assertion would FAIL for a different row. Expected values for the Real Account cards are recomputed independently from the raw fixture inputs (sum(signed_size * mark_px) for exposure) rather than read back from the app.",
+ "negative_tests": {
+  "UI-FP-018 field is NOT the rendered source": {
+   "probe": "exchange_account_snapshot_app.json unified_portfolio_value set to 12345.67 in iso_A and 99999.99 in iso_B (fresh fetched_at_ms so the app cache accepts it)",
+   "observed": "API payload reports unified_portfolio_value 12345.67 / 99999.99, but the DOM card 'Portfolio Value (TESTNET)' renders the em-dash in BOTH instances; the card is bound to follower_account.ok (portfolio endpoint), which is ACCOUNT_ADDRESS_UNAVAILABLE in both fixtures",
+   "verdict": "the cell cannot be driven by the row's named field"
+  },
+  "UI-FP-013 subscribed_wallets has no DOM surface": {
+   "probe": "live_top_status.subscribed_wallets = 1 in both, active_wallets = 2 (A) vs 1 (B)",
+   "observed": "Wallets card renders '2 live / 2 followed' vs '1 live / 1 followed' - the followed number tracks active_wallets, not subscribed_wallets; a grep of the build shows subscribed_wallets is never read by any render function",
+   "verdict": "subscribed count is not displayed"
+  },
+  "UI-FP-009 integrity has no status card": {
+   "probe": "live_integrity_status.status OK (A) vs RED (B)",
+   "observed": "No card in #lcTruthStatus carries integrity; the value only appears as the text 'integrity gate: OK' / 'integrity gate: RED' inside the always-present Technical detail list",
+   "verdict": "displayed only in technical detail, not as a header/status card"
+  }
+ },
+ "files": [
+  "EVIDENCE/t_4c1478a5/artifact.json",
+  "EVIDENCE/t_4c1478a5/fixture_build.py",
+  "EVIDENCE/t_4c1478a5/launch.py",
+  "EVIDENCE/t_4c1478a5/iso.env",
+  "EVIDENCE/t_4c1478a5/probe.py",
+  "EVIDENCE/t_4c1478a5/probe2.py",
+  "EVIDENCE/t_4c1478a5/contrast.py",
+  "EVIDENCE/t_4c1478a5/probe_A.json",
+  "EVIDENCE/t_4c1478a5/probe_B.json",
+  "EVIDENCE/t_4c1478a5/probe2_A.json",
+  "EVIDENCE/t_4c1478a5/probe2_B.json"
+ ],
+ "reproduces": "py311: python fixture_build.py A <dirA>; python fixture_build.py B <dirB>; python launch.py <dirA> 8131 iso_A.log; python launch.py <dirB> 8132 iso_B.log; python probe.py http://127.0.0.1:8131 probe_A.json; python probe.py http://127.0.0.1:8132 probe_B.json; python probe2.py http://127.0.0.1:8131 probe2_A.json; python probe2.py http://127.0.0.1:8132 probe2_B.json; python contrast.py",
+ "rows": [
+  {
+   "row_id": "UI-FP-008",
+   "verdict": "PASS",
+   "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+   "executed_probe": "iso_A: ws_health.wallets={W1} vs live_config wallets {W1,W2} -> ws_restart_needed=true; iso_B: subscribed set equals wanted set -> false. Headless render of /live-copy, read #lcRestartNote.hidden and its text.",
+   "independent_oracle": "restart flag recomputed by the fixture from set(ws wallets) != set(service_eligible config wallets)",
+   "observed": "A: {\"hidden\": false, \"text\": \"Restart the engine to follow the changed wallet list (its websocket feed subscribes once at start).\"} ; B: {\"hidden\": true}. Payload ws_restart_needed true/false matches.",
+   "reproduces": "probe.py -> probe_A.json/probe_B.json key dom.restart_note",
+   "evidence_ref": "EVIDENCE/t_4c1478a5/artifact.json",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "A: {\"hidden\": false, \"text\": \"Restart the engine to follow the changed wallet list (its websocket feed subscribes once at start).\"} ; B: {\"hidden\": true}. Payload ws_restart_needed true/false matches. | oracle: restart flag recomputed by the fixture from set(ws wallets) != set(service_eligible config wallets) | probe: iso_A: ws_health.wallets={W1} vs live_config wallets {W1,W2} -> ws_restart_needed=true; iso_B: subscribed set equals wanted set -> false. Headless render of /live-copy, read #lcRestartNote.hidden and its text."
+  },
+  {
+   "row_id": "UI-FP-009",
+   "verdict": "PARTIAL",
+   "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+   "executed_probe": "iso_A live_integrity_status.status=OK; iso_B status=RED with reasons=[FIXTURE_RED]. Read #lcTruthStatus cards and #lcHealthTechBody list items.",
+   "independent_oracle": "fixture-authored integrity file; the rendered text must equal the file's status",
+   "observed": "A technical_detail=[\"integrity gate: OK\",\"copy_account_status: POLLED_OK\"] ; B technical_detail=[\"integrity gate: RED\",\"integrity: FIXTURE_RED\",\"copy_account_status: STALE\"]. live_top_status.integrity_status = OK / RED in the payload. NO card in #lcTruthStatus carries the integrity status - it is surfaced only inside the Technical detail list (8 cards: Health, Leader feed, Follower account read, Wallets, Last send, Last fill, Last reject, Last latency warning).",
+   "reproduces": "probe.py -> api.live_top_status.integrity_status ; probe2.py -> technical_detail",
+   "evidence_ref": "EVIDENCE/t_4c1478a5/artifact.json",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "A technical_detail=[\"integrity gate: OK\",\"copy_account_status: POLLED_OK\"] ; B technical_detail=[\"integrity gate: RED\",\"integrity: FIXTURE_RED\",\"copy_account_status: STALE\"]. live_top_status.integrity_status = OK / RED in the payload. NO card in #lcTruthStatus carries the integrity status - it is surfaced only inside the Technical detail list (8 cards: Health, Leader feed, Follower account read, Wallets, Last send, Last fill, Last reject, Last latency warning). | oracle: fixture-authored integrity file; the rendered text must equal the file's status | probe: iso_A live_integrity_status.status=OK; iso_B status=RED with reasons=[FIXTURE_RED]. Read #lcTruthStatus cards and #lcHealthTechBody list items."
+  },
+  {
+   "row_id": "UI-FP-010",
+   "verdict": "PASS",
+   "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+   "executed_probe": "iso_A live_ws_health ws_summary.ws_status=WS_OK socket_open=true thread_alive=true ; iso_B ws_status=DOWN socket_open=false thread_alive=false. Read the 'Leader feed' card and #lcWsOverall pill.",
+   "independent_oracle": "fixture ws_health file; _build_live_top_status maps WS_OK+open+alive -> WS_OK else DOWN, and feedLabel renders it",
+   "observed": "A: Leader feed = 'Websocket OK' (sub 'websocket'), pill #lcWsOverall = 'Websocket OK' ; B: 'Websocket degraded'. Payload ws_status = WS_OK / DOWN.",
+   "reproduces": "probe.py -> dom.truth_status[1], dom.ws_overall",
+   "evidence_ref": "EVIDENCE/t_4c1478a5/artifact.json",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "A: Leader feed = 'Websocket OK' (sub 'websocket'), pill #lcWsOverall = 'Websocket OK' ; B: 'Websocket degraded'. Payload ws_status = WS_OK / DOWN. | oracle: fixture ws_health file; _build_live_top_status maps WS_OK+open+alive -> WS_OK else DOWN, and feedLabel renders it | probe: iso_A live_ws_health ws_summary.ws_status=WS_OK socket_open=true thread_alive=true ; iso_B ws_status=DOWN socket_open=false thread_alive=false. Read the 'Leader feed' card and #lcWsOverall pill."
+  },
+  {
+   "row_id": "UI-FP-011",
+   "verdict": "PASS",
+   "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+   "executed_probe": "iso_A live_service_state.copy_account_status=POLLED_OK ; iso_B=STALE. Read the 'Follower account read' card.",
+   "independent_oracle": "fixture service-state file; pollOk is computed from POLLED/BASELINED/MATCH substrings in the rendered JS",
+   "observed": "A: 'Reading (normal)' (green branch, POLLED_OK) ; B: 'stale' (the raw lowercased status). Payload copy_poll_status = POLLED_OK / STALE.",
+   "reproduces": "probe.py -> dom.truth_status[2]",
+   "evidence_ref": "EVIDENCE/t_4c1478a5/artifact.json",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "A: 'Reading (normal)' (green branch, POLLED_OK) ; B: 'stale' (the raw lowercased status). Payload copy_poll_status = POLLED_OK / STALE. | oracle: fixture service-state file; pollOk is computed from POLLED/BASELINED/MATCH substrings in the rendered JS | probe: iso_A live_service_state.copy_account_status=POLLED_OK ; iso_B=STALE. Read the 'Follower account read' card."
+  },
+  {
+   "row_id": "UI-FP-012",
+   "verdict": "PASS",
+   "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+   "executed_probe": "iso_A live_config.global_controls.send_mode=ON ; iso_B=OFF. Read the Sending banner (#lcBannerSending) and payload master_real_orders.",
+   "independent_oracle": "fixture live_config send_mode -> _send_mode -> _master_switch_on (OFF/CLOSE/ON)",
+   "observed": "A: banner Sending='ON' (title 'real orders are being sent'), payload master_real_orders='ON', master_real_orders_enabled=true ; B: 'OFF', master_real_orders='OFF', enabled=false. The banner reads the top-level lcAudit.master_real_orders_enabled, which the payload builder sets from live_top_status.master_real_orders_enabled.",
+   "reproduces": "probe.py -> dom.banner_sending, api.live_top_status.master_real_orders",
+   "evidence_ref": "EVIDENCE/t_4c1478a5/artifact.json",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "A: banner Sending='ON' (title 'real orders are being sent'), payload master_real_orders='ON', master_real_orders_enabled=true ; B: 'OFF', master_real_orders='OFF', enabled=false. The banner reads the top-level lcAudit.master_real_orders_enabled, which the payload builder sets from live_top_status.master_real_orders_enabled. | oracle: fixture live_config send_mode -> _send_mode -> _master_switch_on (OFF/CLOSE/ON) | probe: iso_A live_config.global_controls.send_mode=ON ; iso_B=OFF. Read the Sending banner (#lcBannerSending) and payload master_real_orders."
+  },
+  {
+   "row_id": "UI-FP-013",
+   "verdict": "PARTIAL",
+   "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+   "executed_probe": "iso_A wallets W1=LIVE, W2=LIVE ; iso_B W1=LIVE, W2=OFF. ws_health.wallet_count=1 in both. Read the 'Wallets' card and the header #lcWalletCount pill.",
+   "independent_oracle": "fixture wallet config -> normalize_live_wallet_config service_eligible; active_wallets counts LIVE|CLO and enabled",
+   "observed": "A: 'Wallets' = '2 live / 2 followed' ; B: '1 live / 1 followed'. Payload active_wallets 2 vs 1, live_wallets 2 vs 1, subscribed_wallets 1 in BOTH (so it cannot be the source of the changing number). A grep of the build shows subscribed_wallets appears only in _build_live_top_status - no render function reads it - so the subscribed/subscribed-wallet count the row names has NO DOM surface; only the active-wallet count is displayed.",
+   "reproduces": "probe.py -> dom.truth_status[3], api.live_top_status.active_wallets/subscribed_wallets",
+   "evidence_ref": "EVIDENCE/t_4c1478a5/artifact.json",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "A: 'Wallets' = '2 live / 2 followed' ; B: '1 live / 1 followed'. Payload active_wallets 2 vs 1, live_wallets 2 vs 1, subscribed_wallets 1 in BOTH (so it cannot be the source of the changing number). A grep of the build shows subscribed_wallets appears only in _build_live_top_status - no render function reads it - so the subscribed/subscribed-wallet count the row names has NO DOM surface; only the active-wallet count is displayed. | oracle: fixture wallet config -> normalize_live_wallet_config service_eligible; active_wallets counts LIVE|CLO and enabled | probe: iso_A wallets W1=LIVE, W2=LIVE ; iso_B W1=LIVE, W2=OFF. ws_health.wallet_count=1 in both. Read the 'Wallets' card and the header #lcWalletCount pill."
+  },
+  {
+   "row_id": "UI-FP-014",
+   "verdict": "PASS",
+   "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+   "executed_probe": "iso_A newest send_attempts row = a-102 ETH ORDER_REJECTED ; iso_B adds a later a-103 BTC ORDER_FILLED as the newest row. Read the 'Last send' card (live_top_status.last_send = send_attempts[-1]).",
+   "independent_oracle": "fixture CSV order; last_send is the last row of append_only/send_attempts.csv",
+   "observed": "A: 'Last send' = 'ETH ORDER_REJECTED' (sub 'REJECTED') ; B: 'BTC ORDER_FILLED' (sub 'FILLED'). Payload last_send.coin/status = ETH/ORDER_REJECTED and BTC/ORDER_FILLED.",
+   "reproduces": "probe.py -> dom.truth_status[4], api.last_send",
+   "evidence_ref": "EVIDENCE/t_4c1478a5/artifact.json",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "A: 'Last send' = 'ETH ORDER_REJECTED' (sub 'REJECTED') ; B: 'BTC ORDER_FILLED' (sub 'FILLED'). Payload last_send.coin/status = ETH/ORDER_REJECTED and BTC/ORDER_FILLED. | oracle: fixture CSV order; last_send is the last row of append_only/send_attempts.csv | probe: iso_A newest send_attempts row = a-102 ETH ORDER_REJECTED ; iso_B adds a later a-103 BTC ORDER_FILLED as the newest row. Read the 'Last send' card (live_top_status.last_send = send_attempts[-1])."
+  },
+  {
+   "row_id": "UI-FP-015",
+   "verdict": "PASS",
+   "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+   "executed_probe": "iso_A live_fills.csv newest row = ETH SELL 0.2 @2450.25 ; iso_B = BTC BUY 0.01 @61200. Read the 'Last fill' card.",
+   "independent_oracle": "fixture append_only/live_fills.csv last row (live_top_status.last_fill = live_fills[-1])",
+   "observed": "A: 'Last fill' = 'ETH SELL 0.2' sub '2026-10-18T10:30:00Z' ; B: 'BTC BUY 0.01' sub same timestamp. Payload last_fill coin/side/fill_size agree.",
+   "reproduces": "probe.py -> dom.truth_status[5], api.last_fill",
+   "evidence_ref": "EVIDENCE/t_4c1478a5/artifact.json",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "A: 'Last fill' = 'ETH SELL 0.2' sub '2026-10-18T10:30:00Z' ; B: 'BTC BUY 0.01' sub same timestamp. Payload last_fill coin/side/fill_size agree. | oracle: fixture append_only/live_fills.csv last row (live_top_status.last_fill = live_fills[-1]) | probe: iso_A live_fills.csv newest row = ETH SELL 0.2 @2450.25 ; iso_B = BTC BUY 0.01 @61200. Read the 'Last fill' card."
+  },
+  {
+   "row_id": "UI-FP-016",
+   "verdict": "PASS",
+   "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+   "executed_probe": "iso_A rejected row = ETH MARGIN ; iso_B rejected row = DOGE PRICE_BAND. Read the 'Last reject' card (live_top_status.last_reject = latest row with status ORDER_REJECTED).",
+   "independent_oracle": "fixture CSV: the newest row whose status is ORDER_REJECTED",
+   "observed": "A: 'Last reject' = 'ETH MARGIN' sub 'MARGIN' ; B: 'DOGE PRICE_BAND' sub 'PRICE_BAND'.",
+   "reproduces": "probe.py -> dom.truth_status[6], api.last_reject",
+   "evidence_ref": "EVIDENCE/t_4c1478a5/artifact.json",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "A: 'Last reject' = 'ETH MARGIN' sub 'MARGIN' ; B: 'DOGE PRICE_BAND' sub 'PRICE_BAND'. | oracle: fixture CSV: the newest row whose status is ORDER_REJECTED | probe: iso_A rejected row = ETH MARGIN ; iso_B rejected row = DOGE PRICE_BAND. Read the 'Last reject' card (live_top_status.last_reject = latest row with status ORDER_REJECTED)."
+  },
+  {
+   "row_id": "UI-FP-017",
+   "verdict": "PASS",
+   "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+   "executed_probe": "iso_A reconciliation.csv contains event=SEND_LATENCY_WARN notes=LAT_A ; iso_B notes=LAT_B. Read the 'Last latency warning' card (live_top_status.last_latency_warning = latest row with event SEND_LATENCY_WARN).",
+   "independent_oracle": "fixture append_only/reconciliation.csv, newest SEND_LATENCY_WARN row",
+   "observed": "A: 'Last latency warning' = 'LAT_A' sub '2026-10-18T12:00:00Z' ; B: 'LAT_B' same timestamp. Payload last_latency_warning.notes = LAT_A / LAT_B.",
+   "reproduces": "probe.py -> dom.truth_status[7], api.last_latency_warning",
+   "evidence_ref": "EVIDENCE/t_4c1478a5/artifact.json",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "A: 'Last latency warning' = 'LAT_A' sub '2026-10-18T12:00:00Z' ; B: 'LAT_B' same timestamp. Payload last_latency_warning.notes = LAT_A / LAT_B. | oracle: fixture append_only/reconciliation.csv, newest SEND_LATENCY_WARN row | probe: iso_A reconciliation.csv contains event=SEND_LATENCY_WARN notes=LAT_A ; iso_B notes=LAT_B. Read the 'Last latency warning' card (live_top_status.last_latency_warning = latest row with event SEND_LATENCY_WARN)."
+  },
+  {
+   "row_id": "UI-FP-018",
+   "verdict": "FAIL",
+   "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+   "executed_probe": "iso_A exchange_account_snapshot_app.json unified_portfolio_value=12345.67 ; iso_B=99999.99 (both with a fresh fetched_at_ms and all cache-gate keys present so _fetch_exchange_account_snapshot returns the file verbatim). Read the 'Portfolio Value (TESTNET)' card.",
+   "independent_oracle": "fixture snapshot file; the card must equal unified_portfolio_value",
+   "observed": "Payload confirms the field differs (snapshot.unified_portfolio_value = 12345.67 vs 99999.99, available=true), but the DOM card renders the em-dash (title 'unavailable') in BOTH instances. renderCards computes the card from `lcAudit.follower_account` (the portfolio endpoint), NOT from exchange_account_snapshot.unified_portfolio_value; follower_account is ACCOUNT_ADDRESS_UNAVAILABLE in both. Changing the row's named field produces NO change in the rendered cell - the displayed value is not the row's field.",
+   "reproduces": "probe.py -> dom.real_cards[0] vs api.snapshot.unified_portfolio_value",
+   "evidence_ref": "EVIDENCE/t_4c1478a5/artifact.json",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "Payload confirms the field differs (snapshot.unified_portfolio_value = 12345.67 vs 99999.99, available=true), but the DOM card renders the em-dash (title 'unavailable') in BOTH instances. renderCards computes the card from `lcAudit.follower_account` (the portfolio endpoint), NOT from exchange_account_snapshot.unified_portfolio_value; follower_account is ACCOUNT_ADDRESS_UNAVAILABLE in both. Changing the row's named field produces NO change in the rendered cell - the displayed value is not the row's field. | oracle: fixture snapshot file; the card must equal unified_portfolio_value | probe: iso_A exchange_account_snapshot_app.json unified_portfolio_value=12345.67 ; iso_B=99999.99 (both with a fresh fetched_at_ms and all cache-gate keys present so _fetch_exchange_account_snapshot returns the file verbatim). Read the 'Portfolio Value (TESTNET)' card."
+  },
+  {
+   "row_id": "UI-FP-019",
+   "verdict": "PASS",
+   "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+   "executed_probe": "iso_A snapshot.unrealized_pnl=42.5 ; iso_B=-7.25. Read the 'Open positions P&L (unrealised)' card.",
+   "independent_oracle": "fixture snapshot field (declared source sum(assetPositions.position.unrealizedPnl))",
+   "observed": "A: '$42.5' ; B: '$-7.25'. Payload snapshot.unrealized_pnl matches exactly.",
+   "reproduces": "probe.py -> dom.real_cards[1], api.snapshot.unrealized_pnl",
+   "evidence_ref": "EVIDENCE/t_4c1478a5/artifact.json",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "A: '$42.5' ; B: '$-7.25'. Payload snapshot.unrealized_pnl matches exactly. | oracle: fixture snapshot field (declared source sum(assetPositions.position.unrealizedPnl)) | probe: iso_A snapshot.unrealized_pnl=42.5 ; iso_B=-7.25. Read the 'Open positions P&L (unrealised)' card."
+  },
+  {
+   "row_id": "UI-FP-020",
+   "verdict": "PASS",
+   "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+   "executed_probe": "iso_A snapshot.realized_pnl_selected=12.34 label 'fixture window' ; iso_B=55.5 same label. Read the 'Closed P&L (realised)' card.",
+   "independent_oracle": "fixture snapshot field (fallback branch when pnl_tally is unavailable)",
+   "observed": "A: '$12.34 fixture window' ; B: '$55.5 fixture window'. Payload snapshot.realized_pnl_selected matches.",
+   "reproduces": "probe.py -> dom.real_cards[2], api.snapshot.realized_pnl_selected",
+   "evidence_ref": "EVIDENCE/t_4c1478a5/artifact.json",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "A: '$12.34 fixture window' ; B: '$55.5 fixture window'. Payload snapshot.realized_pnl_selected matches. | oracle: fixture snapshot field (fallback branch when pnl_tally is unavailable) | probe: iso_A snapshot.realized_pnl_selected=12.34 label 'fixture window' ; iso_B=55.5 same label. Read the 'Closed P&L (realised)' card."
+  },
+  {
+   "row_id": "UI-FP-021",
+   "verdict": "PASS",
+   "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+   "executed_probe": "iso_A snapshot.open_positions=[BTC] ; iso_B=[ETH,SOL]. Read the 'Open Positions' card and the banner #lcBannerOpen.",
+   "independent_oracle": "fixture snapshot: len(open_positions) = 1 vs 2",
+   "observed": "A: card 'Open Positions'='1', banner open='1' ; B: card='2', banner open='2'. Payload snapshot.open_positions lengths 1 and 2.",
+   "reproduces": "probe.py -> dom.real_cards[3], dom.banner_open",
+   "evidence_ref": "EVIDENCE/t_4c1478a5/artifact.json",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "A: card 'Open Positions'='1', banner open='1' ; B: card='2', banner open='2'. Payload snapshot.open_positions lengths 1 and 2. | oracle: fixture snapshot: len(open_positions) = 1 vs 2 | probe: iso_A snapshot.open_positions=[BTC] ; iso_B=[ETH,SOL]. Read the 'Open Positions' card and the banner #lcBannerOpen."
+  },
+  {
+   "row_id": "UI-FP-022",
+   "verdict": "PASS",
+   "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+   "executed_probe": "iso_A manual_live_positions by_wallet W1.BTC signed_size=0.5 with mark_px 60000 -> expected 30000 ; iso_B W1.ETH signed_size=2.0 with mark_px 2500 -> expected 5000. Read the 'Live Exposure' card.",
+   "independent_oracle": "independent recomputation: sum(abs(signed_size) * mark_px) over the fixture sleeves = 0.5*60000 = 30000 and 2.0*2500 = 5000",
+   "observed": "A: 'Live Exposure' = '$30,000' ; B: '$5,000'. Payload manual_live_summary.manual_live_exposure_estimate = 30000.0 and 5000.0. Both match the independently computed numbers.",
+   "reproduces": "probe.py -> dom.real_cards[4], api.manual_live_exposure_estimate",
+   "evidence_ref": "EVIDENCE/t_4c1478a5/artifact.json",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "A: 'Live Exposure' = '$30,000' ; B: '$5,000'. Payload manual_live_summary.manual_live_exposure_estimate = 30000.0 and 5000.0. Both match the independently computed numbers. | oracle: independent recomputation: sum(abs(signed_size) * mark_px) over the fixture sleeves = 0.5*60000 = 30000 and 2.0*2500 = 5000 | probe: iso_A manual_live_positions by_wallet W1.BTC signed_size=0.5 with mark_px 60000 -> expected 30000 ; iso_B W1.ETH signed_size=2.0 with mark_px 2500 -> expected 5000. Read the 'Live Exposure' card."
+  }
+ ],
+ "row_count": 15,
+ "verdict_counts": {
+  "PASS": 12,
+  "PARTIAL": 2,
+  "FAIL": 1
+ }
+}

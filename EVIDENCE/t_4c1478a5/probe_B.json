@@ -1,0 +1,253 @@
+{
+ "base": "http://127.0.0.1:8132",
+ "dom": {
+  "truth_status": [
+   {
+    "label": "Health",
+    "value": "Needs a look: see the Reconciliation tab",
+    "title": ""
+   },
+   {
+    "label": "Leader feed",
+    "value": "Websocket degraded",
+    "title": ""
+   },
+   {
+    "label": "Follower account read",
+    "value": "stale",
+    "title": ""
+   },
+   {
+    "label": "Wallets",
+    "value": "1 live / 1 followed",
+    "title": ""
+   },
+   {
+    "label": "Last send",
+    "value": "BTC ORDER_FILLED",
+    "title": ""
+   },
+   {
+    "label": "Last fill",
+    "value": "BTC BUY 0.01",
+    "title": ""
+   },
+   {
+    "label": "Last reject",
+    "value": "DOGE PRICE_BAND",
+    "title": ""
+   },
+   {
+    "label": "Last latency warning",
+    "value": "LAT_B",
+    "title": ""
+   }
+  ],
+  "real_cards": [
+   {
+    "label": "Portfolio Value (TESTNET)",
+    "value": "\u2014",
+    "title": ""
+   },
+   {
+    "label": "Open positions P&L (unrealised)",
+    "value": "$-7.25",
+    "title": ""
+   },
+   {
+    "label": "Closed P&L (realised)",
+    "value": "$55.5 fixture window",
+    "title": ""
+   },
+   {
+    "label": "Open Positions",
+    "value": "2",
+    "title": ""
+   },
+   {
+    "label": "Live Exposure",
+    "value": "$5,000",
+    "title": ""
+   }
+  ],
+  "restart_note": {
+   "text": "Restart the engine to follow the changed wallet list (its websocket feed subscribes once at start).",
+   "hidden": true
+  },
+  "banner_sending": {
+   "text": "OFF",
+   "hidden": false
+  },
+  "banner_acct": {
+   "text": "\u2014",
+   "hidden": false
+  },
+  "banner_health": {
+   "text": "Needs a look: see the Reconciliation tab",
+   "hidden": false
+  },
+  "banner_open": {
+   "text": "2",
+   "hidden": false
+  },
+  "ws_overall": {
+   "text": "Websocket degraded",
+   "hidden": false
+  },
+  "wallet_count": {
+   "text": "2 / 10",
+   "hidden": false
+  },
+  "have_panel": true
+ },
+ "api": {
+  "live_top_status": {
+   "integrity_status": "RED",
+   "integrity_available": true,
+   "ws_status": "DOWN",
+   "ws_restart_needed": false,
+   "copy_poll_status": "STALE",
+   "master_real_orders": "OFF",
+   "sending": "OFF",
+   "active_wallets": 1,
+   "subscribed_wallets": 1,
+   "live_wallets": 1,
+   "health": {
+    "level": "amber",
+    "text": "Needs a look: see the Reconciliation tab",
+    "technical": [
+     "integrity gate: RED",
+     "integrity: FIXTURE_RED",
+     "copy_account_status: STALE"
+    ],
+    "integrity_status": "RED",
+    "engine_heartbeat_ms": 1792385253692
+   }
+  },
+  "last_send": {
+   "created_at": "2026-10-18T12:00:00Z",
+   "created_at_ms": "",
+   "attempt_id": "a-103",
+   "intent_id": "",
+   "leader_fill_id": "",
+   "leader_wallet": "0x1111111111111111111111111111111111111111",
+   "coin": "BTC",
+   "side": "BUY",
+   "order_type": "",
+   "limit_price": "",
+   "copy_size": "",
+   "copy_notional": "",
+   "reduce_only_sent": "",
+   "sleeve_id": "",
+   "position_id": "",
+   "wallet_position_before": "",
+   "wallet_position_after_expected": "",
+   "coin_net_before": "",
+   "coin_net_after_expected": "",
+   "status": "ORDER_FILLED",
+   "exchange_response": "{\"fill_avg_px\": 61500.0, \"fill_size\": 0.02}",
+   "exchange_order_id": "900103",
+   "error": "",
+   "reject_category": "",
+   "terminal_state": "FILLED",
+   "operator_action": "",
+   "latency_classification": "",
+   "ws_received_ms": "",
+   "leader_fill_timestamp_ms": "",
+   "intent_created_at_ms": "",
+   "send_decision_started_ms": "",
+   "send_real_started_ms": "",
+   "symbol_resolve_started_ms": "",
+   "symbol_resolve_finished_ms": "",
+   "sdk_client_started_ms": "",
+   "sdk_client_finished_ms": "",
+   "exchange_call_ms": "",
+   "notes": "",
+   "fill_avg_px": 61500.0,
+   "fill_size": 0.02,
+   "actual_side": "BUY",
+   "oid": "900103"
+  },
+  "last_fill": {
+   "leader_wallet": "0x1111111111111111111111111111111111111111",
+   "coin": "BTC",
+   "side": "BUY",
+   "fill_size": "0.01",
+   "fill_price": "61200.0",
+   "fee": "0.61",
+   "created_at": "2026-10-18T10:30:00Z",
+   "intent_id": "i-102",
+   "copy_fill_id": "cf-103",
+   "wallet_position_before": "0.2"
+  },
+  "last_reject": {
+   "created_at": "2026-10-18T11:00:00Z",
+   "created_at_ms": "",
+   "attempt_id": "a-102",
+   "intent_id": "",
+   "leader_fill_id": "",
+   "leader_wallet": "0x1111111111111111111111111111111111111111",
+   "coin": "DOGE",
+   "side": "SELL",
+   "order_type": "",
+   "limit_price": "",
+   "copy_size": "",
+   "copy_notional": "",
+   "reduce_only_sent": "",
+   "sleeve_id": "",
+   "position_id": "",
+   "wallet_position_before": "",
+   "wallet_position_after_expected": "",
+   "coin_net_before": "",
+   "coin_net_after_expected": "",
+   "status": "ORDER_REJECTED",
+   "exchange_response": "",
+   "exchange_order_id": "",
+   "error": "",
+   "reject_category": "PRICE_BAND",
+   "terminal_state": "REJECTED",
+   "operator_action": "",
+   "latency_classification": "",
+   "ws_received_ms": "",
+   "leader_fill_timestamp_ms": "",
+   "intent_created_at_ms": "",
+   "send_decision_started_ms": "",
+   "send_real_started_ms": "",
+   "symbol_resolve_started_ms": "",
+   "symbol_resolve_finished_ms": "",
+   "sdk_client_started_ms": "",
+   "sdk_client_finished_ms": "",
+   "exchange_call_ms": "",
+   "notes": ""
+  },
+  "last_latency_warning": {
+   "created_at": "2026-10-18T12:00:00Z",
+   "created_at_ms": "",
+   "event": "SEND_LATENCY_WARN",
+   "status": "WARN",
+   "notes": "LAT_B",
+   "wallet": "0x1111111111111111111111111111111111111111",
+   "coin": "BTC"
+  },
+  "snapshot": {
+   "available": true,
+   "unified_portfolio_value": 99999.99,
+   "unrealized_pnl": -7.25,
+   "realized_pnl_selected": 55.5,
+   "open_positions": [
+    {
+     "coin": "ETH"
+    },
+    {
+     "coin": "SOL"
+    }
+   ],
+   "open_positions_count": null
+  },
+  "follower_account": {
+   "ok": false,
+   "reason": "ACCOUNT_ADDRESS_UNAVAILABLE"
+  },
+  "manual_live_exposure_estimate": 5000.0
+ }
+}

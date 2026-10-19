@@ -16843,11 +16843,11 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
+   "result": "PASS",
+   "evidence_ref": "EVIDENCE/t_4c1478a5/artifact.json",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "tested_at_utc": "2026-10-19T05:50:00Z",
+   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id. | ROWBOUND t_4c1478a5: differential two-fixture DOM probe on serving build 89b3bc7; row verdict PASS -> register PASS. A: {\"hidden\": false, \"text\": \"Restart the engine to follow the changed wallet list (its websocket feed subscribes once at start).\"} ; B: {\"hidden\": true}. Payload ws_restart_needed true/false matches.",
    "proof_network": "TESTNET"
   },
   {
@@ -16869,10 +16869,10 @@
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
    "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
+   "evidence_ref": "EVIDENCE/t_4c1478a5/artifact.json",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "tested_at_utc": "2026-10-19T05:50:00Z",
+   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id. | ROWBOUND t_4c1478a5: differential two-fixture DOM probe on serving build 89b3bc7; row verdict PARTIAL -> register NOT_TESTED. A technical_detail=[\"integrity gate: OK\",\"copy_account_status: POLLED_OK\"] ; B technical_detail=[\"integrity gate: RED\",\"integrity: FIXTURE_RED\",\"copy_account_status: STALE\"]. live_top_status.integrity",
    "proof_network": "TESTNET"
   },
   {
@@ -16893,11 +16893,11 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
+   "result": "PASS",
+   "evidence_ref": "EVIDENCE/t_4c1478a5/artifact.json",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "tested_at_utc": "2026-10-19T05:50:00Z",
+   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id. | ROWBOUND t_4c1478a5: differential two-fixture DOM probe on serving build 89b3bc7; row verdict PASS -> register PASS. A: Leader feed = 'Websocket OK' (sub 'websocket'), pill #lcWsOverall = 'Websocket OK' ; B: 'Websocket degraded'. Payload ws_status = WS_OK / DOWN.",
    "proof_network": "TESTNET"
   },
   {
@@ -16918,11 +16918,11 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
+   "result": "PASS",
+   "evidence_ref": "EVIDENCE/t_4c1478a5/artifact.json",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "tested_at_utc": "2026-10-19T05:50:00Z",
+   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id. | ROWBOUND t_4c1478a5: differential two-fixture DOM probe on serving build 89b3bc7; row verdict PASS -> register PASS. A: 'Reading (normal)' (green branch, POLLED_OK) ; B: 'stale' (the raw lowercased status). Payload copy_poll_status = POLLED_OK / STALE.",
    "proof_network": "TESTNET"
   },
   {
@@ -16943,11 +16943,11 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
+   "result": "PASS",
+   "evidence_ref": "EVIDENCE/t_4c1478a5/artifact.json",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "tested_at_utc": "2026-10-19T05:50:00Z",
+   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id. | ROWBOUND t_4c1478a5: differential two-fixture DOM probe on serving build 89b3bc7; row verdict PASS -> register PASS. A: banner Sending='ON' (title 'real orders are being sent'), payload master_real_orders='ON', master_real_orders_enabled=true ; B: 'OFF', master_real_orders='OFF', enabled=false. The banner reads the ",
    "proof_network": "TESTNET"
   },
   {
@@ -16969,10 +16969,10 @@
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
    "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
+   "evidence_ref": "EVIDENCE/t_4c1478a5/artifact.json",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "tested_at_utc": "2026-10-19T05:50:00Z",
+   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id. | ROWBOUND t_4c1478a5: differential two-fixture DOM probe on serving build 89b3bc7; row verdict PARTIAL -> register NOT_TESTED. A: 'Wallets' = '2 live / 2 followed' ; B: '1 live / 1 followed'. Payload active_wallets 2 vs 1, live_wallets 2 vs 1, subscribed_wallets 1 in BOTH (so it cannot be the source of the changing number). A",
    "proof_network": "TESTNET"
   },
   {
@@ -16993,11 +16993,11 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
+   "result": "PASS",
+   "evidence_ref": "EVIDENCE/t_4c1478a5/artifact.json",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "tested_at_utc": "2026-10-19T05:50:00Z",
+   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id. | ROWBOUND t_4c1478a5: differential two-fixture DOM probe on serving build 89b3bc7; row verdict PASS -> register PASS. A: 'Last send' = 'ETH ORDER_REJECTED' (sub 'REJECTED') ; B: 'BTC ORDER_FILLED' (sub 'FILLED'). Payload last_send.coin/status = ETH/ORDER_REJECTED and BTC/ORDER_FILLED.",
    "proof_network": "TESTNET"
   },
   {
@@ -17018,11 +17018,11 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
+   "result": "PASS",
+   "evidence_ref": "EVIDENCE/t_4c1478a5/artifact.json",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "tested_at_utc": "2026-10-19T05:50:00Z",
+   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id. | ROWBOUND t_4c1478a5: differential two-fixture DOM probe on serving build 89b3bc7; row verdict PASS -> register PASS. A: 'Last fill' = 'ETH SELL 0.2' sub '2026-10-18T10:30:00Z' ; B: 'BTC BUY 0.01' sub same timestamp. Payload last_fill coin/side/fill_size agree.",
    "proof_network": "TESTNET"
   },
   {
@@ -17043,11 +17043,11 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
+   "result": "PASS",
+   "evidence_ref": "EVIDENCE/t_4c1478a5/artifact.json",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "tested_at_utc": "2026-10-19T05:50:00Z",
+   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id. | ROWBOUND t_4c1478a5: differential two-fixture DOM probe on serving build 89b3bc7; row verdict PASS -> register PASS. A: 'Last reject' = 'ETH MARGIN' sub 'MARGIN' ; B: 'DOGE PRICE_BAND' sub 'PRICE_BAND'.",
    "proof_network": "TESTNET"
   },
   {
@@ -17068,11 +17068,11 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
+   "result": "PASS",
+   "evidence_ref": "EVIDENCE/t_4c1478a5/artifact.json",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "tested_at_utc": "2026-10-19T05:50:00Z",
+   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id. | ROWBOUND t_4c1478a5: differential two-fixture DOM probe on serving build 89b3bc7; row verdict PASS -> register PASS. A: 'Last latency warning' = 'LAT_A' sub '2026-10-18T12:00:00Z' ; B: 'LAT_B' same timestamp. Payload last_latency_warning.notes = LAT_A / LAT_B.",
    "proof_network": "TESTNET"
   },
   {
@@ -17093,11 +17093,11 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
+   "result": "FAIL",
+   "evidence_ref": "EVIDENCE/t_4c1478a5/artifact.json",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "tested_at_utc": "2026-10-19T05:50:00Z",
+   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id. | ROWBOUND t_4c1478a5: differential two-fixture DOM probe on serving build 89b3bc7; row verdict FAIL -> register FAIL. Payload confirms the field differs (snapshot.unified_portfolio_value = 12345.67 vs 99999.99, available=true), but the DOM card renders the em-dash (title 'unavailable') in BOTH instances. renderCards ",
    "proof_network": "TESTNET"
   },
   {
@@ -17118,11 +17118,11 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
+   "result": "PASS",
+   "evidence_ref": "EVIDENCE/t_4c1478a5/artifact.json",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "tested_at_utc": "2026-10-19T05:50:00Z",
+   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id. | ROWBOUND t_4c1478a5: differential two-fixture DOM probe on serving build 89b3bc7; row verdict PASS -> register PASS. A: '$42.5' ; B: '$-7.25'. Payload snapshot.unrealized_pnl matches exactly.",
    "proof_network": "TESTNET"
   },
   {
@@ -17143,11 +17143,11 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
+   "result": "PASS",
+   "evidence_ref": "EVIDENCE/t_4c1478a5/artifact.json",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "tested_at_utc": "2026-10-19T05:50:00Z",
+   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id. | ROWBOUND t_4c1478a5: differential two-fixture DOM probe on serving build 89b3bc7; row verdict PASS -> register PASS. A: '$12.34 fixture window' ; B: '$55.5 fixture window'. Payload snapshot.realized_pnl_selected matches.",
    "proof_network": "TESTNET"
   },
   {
@@ -17168,11 +17168,11 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
+   "result": "PASS",
+   "evidence_ref": "EVIDENCE/t_4c1478a5/artifact.json",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "tested_at_utc": "2026-10-19T05:50:00Z",
+   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id. | ROWBOUND t_4c1478a5: differential two-fixture DOM probe on serving build 89b3bc7; row verdict PASS -> register PASS. A: card 'Open Positions'='1', banner open='1' ; B: card='2', banner open='2'. Payload snapshot.open_positions lengths 1 and 2.",
    "proof_network": "TESTNET"
   },
   {
@@ -17193,11 +17193,11 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
+   "result": "PASS",
+   "evidence_ref": "EVIDENCE/t_4c1478a5/artifact.json",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "tested_at_utc": "2026-10-19T05:50:00Z",
+   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id. | ROWBOUND t_4c1478a5: differential two-fixture DOM probe on serving build 89b3bc7; row verdict PASS -> register PASS. A: 'Live Exposure' = '$30,000' ; B: '$5,000'. Payload manual_live_summary.manual_live_exposure_estimate = 30000.0 and 5000.0. Both match the independently computed numbers.",
    "proof_network": "TESTNET"
   },
   {

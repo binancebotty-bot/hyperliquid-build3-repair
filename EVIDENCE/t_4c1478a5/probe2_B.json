@@ -1,0 +1,51 @@
+{
+ "technical_detail": [
+  "integrity gate: RED",
+  "integrity: FIXTURE_RED",
+  "copy_account_status: STALE"
+ ],
+ "cards": [
+  {
+   "label": "Health",
+   "value": "Needs a look: see the Reconciliation tab",
+   "sub": "details under Technical detail"
+  },
+  {
+   "label": "Leader feed",
+   "value": "Websocket degraded",
+   "sub": "websocket"
+  },
+  {
+   "label": "Follower account read",
+   "value": "stale",
+   "sub": ""
+  },
+  {
+   "label": "Wallets",
+   "value": "1 live / 1 followed",
+   "sub": "live + close-only are followed"
+  },
+  {
+   "label": "Last send",
+   "value": "BTC ORDER_FILLED",
+   "sub": "FILLED"
+  },
+  {
+   "label": "Last fill",
+   "value": "BTC BUY 0.01",
+   "sub": "2026-10-18T10:30:00Z"
+  },
+  {
+   "label": "Last reject",
+   "value": "DOGE PRICE_BAND",
+   "sub": "PRICE_BAND"
+  },
+  {
+   "label": "Last latency warning",
+   "value": "LAT_B",
+   "sub": "2026-10-18T12:00:00Z"
+  }
+ ],
+ "tech_open": true,
+ "body_has_integrity": false
+}

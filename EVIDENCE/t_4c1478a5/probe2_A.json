@@ -1,0 +1,50 @@
+{
+ "technical_detail": [
+  "integrity gate: OK",
+  "copy_account_status: POLLED_OK"
+ ],
+ "cards": [
+  {
+   "label": "Health",
+   "value": "Healthy",
+   "sub": "details under Technical detail"
+  },
+  {
+   "label": "Leader feed",
+   "value": "Websocket OK",
+   "sub": "websocket"
+  },
+  {
+   "label": "Follower account read",
+   "value": "Reading (normal)",
+   "sub": ""
+  },
+  {
+   "label": "Wallets",
+   "value": "2 live / 2 followed",
+   "sub": "live + close-only are followed"
+  },
+  {
+   "label": "Last send",
+   "value": "ETH ORDER_REJECTED",
+   "sub": "REJECTED"
+  },
+  {
+   "label": "Last fill",
+   "value": "ETH SELL 0.2",
+   "sub": "2026-10-18T10:30:00Z"
+  },
+  {
+   "label": "Last reject",
+   "value": "ETH MARGIN",
+   "sub": "MARGIN"
+  },
+  {
+   "label": "Last latency warning",
+   "value": "LAT_A",
+   "sub": "2026-10-18T12:00:00Z"
+  }
+ ],
+ "tech_open": true,
+ "body_has_integrity": false
+}
