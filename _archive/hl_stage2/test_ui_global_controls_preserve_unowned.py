@@ -44,6 +44,7 @@ def main() -> int:
             "follower_leverage": 99,
             "liq_parity": False,
             "custom_runtime_flag": "overwrite-attempt",
+            "marketable_slippage_pct": 0.75,
         })
 
     written = json.loads(config_path.read_text(encoding="utf-8"))
@@ -54,6 +55,7 @@ def main() -> int:
         "follower_leverage_preserved": controls.get("follower_leverage") == 7,
         "liq_parity_preserved": controls.get("liq_parity") is True,
         "unknown_runtime_flag_preserved": controls.get("custom_runtime_flag") == "keep-existing",
+        "form_owned_slippage_alias_applied": float(controls.get("marketable_bps") or 0.0) == 75.0,
         "form_owned_value_changed": float(controls.get("max_order_notional_usd") or 0.0) == 1250.0,
     }
     for name, passed in checks.items():
