@@ -1,0 +1,92 @@
+[
+  {
+    "row_id": "UI-FP-143",
+    "verdict": "FAIL",
+    "probe": "evidence_ref resolves to self (fragment in same file); no independent evidence exists for 'Event' claim",
+    "why": "Self-referential citation is automatic FAIL per review rules. Justification is boilerplate shared across 15 rows."
+  },
+  {
+    "row_id": "UI-FP-144",
+    "verdict": "FAIL",
+    "probe": "evidence_ref resolves to self (fragment in same file); no independent evidence exists for 'Status' claim",
+    "why": "Self-referential citation is automatic FAIL per review rules. Justification is boilerplate shared across 15 rows."
+  },
+  {
+    "row_id": "UI-FP-145",
+    "verdict": "FAIL",
+    "probe": "evidence_ref resolves to self (fragment in same file); no independent evidence exists for 'Action' claim",
+    "why": "Self-referential citation is automatic FAIL per review rules. Justification is boilerplate shared across 15 rows."
+  },
+  {
+    "row_id": "UI-FP-146",
+    "verdict": "FAIL",
+    "probe": "evidence_ref resolves to self (fragment in same file); no independent evidence exists for 'Reject category' claim",
+    "why": "Self-referential citation is automatic FAIL per review rules. Justification is boilerplate shared across 15 rows."
+  },
+  {
+    "row_id": "UI-FP-147",
+    "verdict": "FAIL",
+    "probe": "evidence_ref resolves to self (fragment in same file); no independent evidence exists for 'Terminal state' claim",
+    "why": "Self-referential citation is automatic FAIL per review rules. Justification is boilerplate shared across 15 rows."
+  },
+  {
+    "row_id": "UI-FP-148",
+    "verdict": "FAIL",
+    "probe": "evidence_ref resolves to self (fragment in same file); no independent evidence exists for 'Coin' claim",
+    "why": "Self-referential citation is automatic FAIL per review rules. Justification is boilerplate shared across 15 rows."
+  },
+  {
+    "row_id": "UI-FP-149",
+    "verdict": "FAIL",
+    "probe": "evidence_ref resolves to self (fragment in same file); no independent evidence exists for 'Wallet' claim",
+    "why": "Self-referential citation is automatic FAIL per review rules. Justification is boilerplate shared across 15 rows."
+  },
+  {
+    "row_id": "UI-FP-150",
+    "verdict": "FAIL",
+    "probe": "evidence_ref resolves to self (fragment in same file); no independent evidence exists for 'Intent' claim",
+    "why": "Self-referential citation is automatic FAIL per review rules. Justification is boilerplate shared across 15 rows."
+  },
+  {
+    "row_id": "UI-FP-151",
+    "verdict": "FAIL",
+    "probe": "evidence_ref resolves to self (fragment in same file); no independent evidence exists for 'Notes' claim",
+    "why": "Self-referential citation is automatic FAIL per review rules. Justification is boilerplate shared across 15 rows."
+  },
+  {
+    "row_id": "UI-FP-152",
+    "verdict": "FAIL",
+    "probe": "evidence_ref resolves to self (fragment in same file); no independent evidence exists for 'Status' claim",
+    "why": "Self-referential citation is automatic FAIL per review rules. Justification is boilerplate shared across 15 rows."
+  },
+  {
+    "row_id": "UI-FP-153",
+    "verdict": "FAIL",
+    "probe": "evidence_ref resolves to self (fragment in same file); no independent evidence exists for 'Wallet' claim",
+    "why": "Self-referential citation is automatic FAIL per review rules. Justification is boilerplate shared across 15 rows."
+  },
+  {
+    "row_id": "UI-FP-154",
+    "verdict": "FAIL",
+    "probe": "evidence_ref resolves to self (fragment in same file); no independent evidence exists for 'Coin' claim",
+    "why": "Self-referential citation is automatic FAIL per review rules. Justification is boilerplate shared across 15 rows."
+  },
+  {
+    "row_id": "UI-FP-155",
+    "verdict": "FAIL",
+    "probe": "evidence_ref resolves to self (fragment in same file); no independent evidence exists for 'Intent' claim",
+    "why": "Self-referential citation is automatic FAIL per review rules. Justification is boilerplate shared across 15 rows."
+  },
+  {
+    "row_id": "UI-FP-156",
+    "verdict": "FAIL",
+    "probe": "evidence_ref resolves to self (fragment in same file); no independent evidence exists for 'Issue' claim",
+    "why": "Self-referential citation is automatic FAIL per review rules. Justification is boilerplate shared across 15 rows."
+  },
+  {
+    "row_id": "UI-FP-157",
+    "verdict": "FAIL",
+    "probe": "evidence_ref resolves to self (fragment in same file); no independent evidence exists for 'Severity' claim",
+    "why": "Self-referential citation is automatic FAIL per review rules. Justification is boilerplate shared across 15 rows."
+  }
+]
