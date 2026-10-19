@@ -1,0 +1,54 @@
+{
+  "review_card": "t_47c3a17c",
+  "reviewed_card": "t_a304ba35",
+  "branch": "cert-31-53-fprocess-ftest-t_a304ba35",
+  "remote_ref": "refs/heads/cert-31-53-fprocess-ftest-t_a304ba35",
+  "remote_head": "606671351b9ba6deb60b22c50cb291a542c736ad",
+  "artifact": "certification/results/CERT31_F_PROCESS_001_F_TEST_010_t_a304ba35.json",
+  "register_of_record": "origin/cert/local-main-b142cf8 (f4ee2bb) certification/certification_matrix.json, 790 records",
+  "row_scope_confirmed": true,
+  "rows_in_register": 15,
+  "rows_in_artifact": 15,
+  "unique_row_ids": 15,
+  "duplicate_or_extra_ids": [],
+  "rows": [
+    {"row_id": "F-PROCESS-001", "verdict": "PASS", "probe": "Read register expected_behaviour (accountable ownership) then the cited regression check F-PROCESS-001_PROCESS_SOUND; its only two detail strings are cutover: live_start_ms set on first construction / wiped state creates fresh live_start_ms.", "why": "NOT_TESTED is correct and row-bound: a live_start_ms timestamp check cannot prove one accountable owner. Stricter verdict (NOT_TESTED) beats register PASS. Unique why-text."},
+    {"row_id": "F-PROCESS-002", "verdict": "PASS", "probe": "Compared expected_behaviour (freeze patching / rebuild around exchange-truth reconciler) against cited check details cutover: pre-cutover fill does not send / live_start_ms unchanged across restart.", "why": "NOT_TESTED correct: the cited check measures cutover restart semantics, nothing about freezing work after a foundation is declared unsuitable. Unique why-text."},
+    {"row_id": "F-PROCESS-003", "verdict": "PASS", "probe": "Expected_behaviour = truth failures block all non-reconciler feature work; cited details = cutover pre-cutover fill no send / master gate disabled keeps leader_sends_attempted zero.", "why": "NOT_TESTED correct: master-gate send suppression is a runtime control, not a process rule that blocks feature work after a truth failure. Unique why-text."},
+    {"row_id": "F-PRODUCT-001", "verdict": "PASS", "probe": "Attempted to resolve evidence_ref: null. Grepped all 138 keys of REGRESSION_fa9d9f55ff.json - F-PRODUCT-001 is genuinely absent (grep count 0).", "why": "NOT_TESTED correct and consistent with the null evidence_ref (no false citation). Register itself lists this row NOT_TESTED with empty evidence_ref, so no conflict here."},
+    {"row_id": "F-PRODUCT-002", "verdict": "PASS", "probe": "Read the cited entry: single check PROD002_EVIDENCE_TIER, pass=true, detail empty string. Also confirmed register has no negative test beyond the shared generic list.", "why": "NOT_TESTED correct: an empty-detail, self-asserting evidence-tier check is vacuous - it would pass for any recommendation payload. Row-bound why-text names the empty detail explicitly."},
+    {"row_id": "F-TEST-001", "verdict": "PASS", "probe": "evidence_ref null; grepped the regression artifact for F-TEST-001 - absent (count 0). Verified no recorded-production-replay file exists in the cited package.", "why": "NOT_TESTED correct, and register agrees (NOT_TESTED, empty ref). No missing-citation defect: the row does not cite a file it cannot resolve."},
+    {"row_id": "F-TEST-002", "verdict": "PASS", "probe": "Expected = 100 same-direction ADDs vs exposure cap; cited check F-TEST-002_TEST_COVERAGE details = wallet conflict: A long B short isolated / coin_net = sum of sleeves.", "why": "NOT_TESTED correct - the cited assertions are wallet-conflict isolation, not repeated-ADD exposure. Note the register's own check name/detail are mismatched to the row, which strengthens the demotion."},
+    {"row_id": "F-TEST-003", "verdict": "PASS", "probe": "Expected = crash/restart at six distinct lifecycle points (before send, after send, partial fill, full fill, reject, cancel); cited details = live_start_ms unchanged across restart / wiped state creates fresh live_start_ms.", "why": "NOT_TESTED correct: two live_start_ms assertions do not exercise six kill points. Unique why-text names the six points."},
+    {"row_id": "F-TEST-004", "verdict": "PASS", "probe": "Expected = convergence after WS drop/duplication/reordering; cited details = dedupe: duplicate copy_fill_id blocked / ledger not double-mutated.", "why": "NOT_TESTED correct: duplicate-id idempotency is not loss/reorder convergence. Mutation-control note: the dedupe check could be flipped by removing the guard, but that proves dedupe only, not this row."},
+    {"row_id": "F-TEST-005", "verdict": "PASS", "probe": "Expected = partial-fill refetch and residual-delta convergence; cited details = dedupe: first apply writes exactly one live_fill row / ledger not double-mutated by duplicate copy_fill_id.", "why": "NOT_TESTED correct: single-apply dedupe is not partial-fill residual convergence. Unique why-text."},
+    {"row_id": "F-TEST-006", "verdict": "PASS", "probe": "Expected = per-leader sleeves never override one account-net target; cited details = wallet conflict: A long B short isolated / coin_net = sum of sleeves.", "why": "NOT_TESTED correct, and row-bound: the cited checks assert sleeve isolation and coin_net summation, but no concurrent opposing leaders driving one account-net target. Distinct from the F-TEST-002 why-text."},
+    {"row_id": "F-TEST-007", "verdict": "PASS", "probe": "Expected = every exchange-client order call dominated by one disable switch; cited details = master gate disabled keeps leader_sends_attempted zero / no send_attempt row when auto-send disabled.", "why": "NOT_TESTED correct: two negative-path observations cannot prove dominance over every order call site. Unique why-text."},
+    {"row_id": "F-TEST-008", "verdict": "PASS", "probe": "Expected = multi-day live shadow with zero orders; cited details = subscribed wallet quiet 3 min -> WS_OK not DEGRADED / live_start_ms unchanged across restart.", "why": "NOT_TESTED correct: a 3-minute quiet window is not multi-day shadow observation. Unique why-text."},
+    {"row_id": "F-TEST-009", "verdict": "PASS", "probe": "Expected = tiny-capital capped canary with flip/duplicate-close/drift controls; cited details = wallet conflict: A long B short isolated / safety: ledger short never flipped by sends.", "why": "NOT_TESTED correct: no canary run, no flip/duplicate-close/drift control cited. Unique why-text."},
+    {"row_id": "F-TEST-010", "verdict": "PASS", "probe": "evidence_ref null; grepped the regression artifact for F-TEST-010 - absent (count 0).", "why": "NOT_TESTED correct, matches register (NOT_TESTED, empty ref)."}
+  ],
+  "probes_run": [
+    "git ls-remote --heads origin cert-31-53-fprocess-ftest-t_a304ba35 -> 606671351b9ba6deb60b22c50cb291a542c736ad (matches implementer-reported head)",
+    "git diff --name-only HEAD^ HEAD -> exactly one file, certification/results/CERT31_F_PROCESS_001_F_TEST_010_t_a304ba35.json (no collateral edits)",
+    "git cat-file -e <branch>:certification/results/REGRESSION_fa9d9f55ff.json -> YES (every non-null evidence_ref resolves on the branch)",
+    "git cat-file -e <branch>:EVIDENCE/UI_CERT_ARTIFACT_SCHEMA.md -> YES",
+    "json load of artifact -> 15 rows, 15 unique row_ids, 15 distinct why strings, all verdict NOT_TESTED, all tested_commit null",
+    "grep of REGRESSION_fa9d9f55ff.json for each row id -> F-PRODUCT-001, F-TEST-001, F-TEST-010 absent (count 0), matching their null evidence_ref; the other 12 present",
+    "register of record certification/certification_matrix.json -> 790 records, all 15 row ids present, none missing",
+    "recomputed regression totals: total_rows 138 == len(results) 138; pass 131 == recomputed 131; pass+fail+blocked = 138 (numbers reproduce)",
+    "process rule: tested_commit fa9d9f55... exists as a commit but is NOT an ancestor of the register branch and NOT an ancestor of the review branch; no serving build is claimed for these rows (tested_commit null), so no serving-commit binding is asserted and none can be invalid.",
+    "row-boundness test: all 15 why strings differ and each names the register's expected_behaviour against the actual check detail string - no copy-paste justification"
+  ],
+  "conflicts_with_register": [
+    "Register claims PASS for F-PROCESS-001, F-PROCESS-002, F-PROCESS-003, F-PRODUCT-002, F-TEST-002, F-TEST-003, F-TEST-004, F-TEST-005, F-TEST-006, F-TEST-007, F-TEST-008, F-TEST-009 (12 rows).",
+    "The stricter verdict (NOT_TESTED) holds on conflict, so the register's PASS for those 12 rows is unsupported by the cited regression package.",
+    "Register agrees with NOT_TESTED for F-PRODUCT-001, F-TEST-001, F-TEST-010."
+  ],
+  "what_i_could_not_disprove": [
+    "I did not re-execute the regression harness; I verified its committed JSON self-consistency and that each cited check name/detail exists as quoted. If the harness itself fabricated those detail strings, that is a defect in REGRESSION_fa9d9f55ff.json, not in this artifact.",
+    "I did not attempt to prove any of the 15 rows is actually testable in the current tree; NOT_TESTED claims only that the cited evidence does not assert the row behaviour, which I confirmed by reading the check detail text."
+  ],
+  "overall_verdict": "PASS",
+  "failed_rows": []
+}
