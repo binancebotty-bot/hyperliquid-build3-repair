@@ -59,3 +59,16 @@ Every card must carry the absolute form:
 
 `D` begins with `C:/`. Not `trading_stack/`, not a path relative to the repo. This is on top of the earlier rule that the
 drop folder is a plain directory with no git in it.
+
+## NEVER tell a worker to fetch a branch you have not pushed (twice today)
+
+Two cards blocked with "the requested origin branch is missing": `eng-inv-01/global-guard` and `hermes/cert-claims-ruleB`.
+Both times the commit existed locally and the card body named it confidently. Both times the worker was right to refuse.
+
+**Rule: after committing a branch for a card, `git ls-remote origin | grep <branch>` before writing the card body.** A local
+commit is not a published ref, and a worker clones the remote.
+
+    git -C <clone> push origin <sha>:refs/heads/<branch>
+    git ls-remote origin | grep <branch>        # must print the sha you expect
+
+If the grep is empty, the card is unrunnable — fix it before dispatching, not after the worker blocks.
