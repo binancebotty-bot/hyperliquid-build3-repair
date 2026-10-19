@@ -27,3 +27,34 @@ source_commit         = null
 
 Re-verify the hash at test time — if it has changed, the process was restarted and the capture must be re-taken.
 Do not ask for a commit that cannot exist, and do not invent one.
+
+## The matrix's UI source EXISTS — located 2026-10-19
+
+The matrix declares `source_sha256["hyperliquid-build3-repair/HL_Copy_App_SSOT_20260513.py"] =
+fad19d220d7af13d48a3eec664c56a32b31624d671b00e2f80ec2dc9062a29b0`, referenced by 254 rows. No file in the git repo
+matched it, which blocked UI certification.
+
+**It was not missing — it is on disk, outside version control:**
+
+| field | value |
+|---|---|
+| path | `C:\Users\wigmore\trading_stack\build3-live-screen-0513-view\hl_stage2\HL_Copy_App_SSOT.py` |
+| sha256 | `fad19d220d7af13d48a3eec664c56a32b31624d671b00e2f80ec2dc9062a29b0` — **exact match to the matrix** |
+| mtime | 2026-05-13 08:18:03 (matches the "13 May" label) |
+| git | **not a repository** |
+| sibling | `ui_8023.log` — this tree was served on port 8023 |
+
+## Three distinct files, do not conflate them
+
+```
+fad19d22…  build3-live-screen-0513-view/hl_stage2/            <- what the REGISTER certifies
+4574ca72…  hyperliquid-build3-repair/_archive/hl_stage2/      <- what the REPO holds
+b45ff9af…  hl-build3-testnet-cert/_archive/hl_stage2/         <- what :8031 ACTUALLY SERVES
+```
+
+**Consequence:** a capture of the live `:8031` page certifies the app that is running (`b45ff9af`), not the source the
+register names (`fad19d22`). To certify UI rows against the register, the app must be started from
+`build3-live-screen-0513-view` — or the register's `source_sha256` must be corrected to the file actually served.
+
+Until one of those happens, no UI row can be bound to its declared source. Do not certify against `:8031` as-is and
+call it a register row.
