@@ -1,0 +1,51 @@
+{
+  "task_id": "t_cb641f57",
+  "verifier": "gpt-6-luna / t_cb641f57",
+  "reviewed_origin_main": "e82a3d6ada57a43cc52d7b7fa1e29871b116a703",
+  "rows": {
+    "ENG-INV-01": {
+      "verdict": "NOT_TESTED",
+      "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+      "evidence": "certification/results/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json#checks.ENG-INV-01",
+      "assertion_checked": "NO_PROCESS_SPAWNS reports zero process spawns and negative_tests records inv01_add_subprocess -> FAIL with a detected Popen.",
+      "gap": "The register's proof also requires a runtime process count. This artifact has no runtime process-count result, and its tested engine snapshot is commit 43731b4f rather than the reviewed origin/main snapshot. No attestation issued."
+    },
+    "ENG-INV-03": {
+      "verdict": "FAIL",
+      "tested_commit": null,
+      "evidence": "certification/results/ENG-INV-03-05_oracle_run_tested_43731b4f.json#baseline.ENG-INV-03",
+      "assertion_checked": "Zero unapproved third-party imports, dedicated ENG-INV-03 predicate. Mutation control import totally_unapproved_new_package is row-specific and recorded non-vacuous.",
+      "break_attempt": "Re-ran committed oracle on the exact reviewed origin/main checkout with --mutate: baseline ENG-INV-03 failed due to psutil imports in bench_memory_profile.py:37, headroom.py:48, tools_memory_profile.py:45. Its mutation control also failed as expected. The stored run's baseline lists only five engine files and lacks tested_commit; current checkout census scans ten files, so tested lineage/scope conflicts with current main.",
+      "evidence_path_note": "The Python oracle is the procedure and is not required as a second evidence path. Cite the run JSON only, with this row anchor; cite the .py separately only when documenting the instrument."
+    },
+    "ENG-INV-04": {
+      "verdict": "NOT_TESTED",
+      "tested_commit": null,
+      "evidence": "certification/results/ENG-INV-03-05_oracle_run_tested_43731b4f.json#baseline.ENG-INV-04",
+      "assertion_checked": "Zero persistent-store drivers or store sinks, separate row predicate. Stored mutation control imports sqlite3 and records actual_row_check=false/non_vacuous=true.",
+      "gap": "The stored baseline's five-file scan and lack of tested_commit do not bind it to reviewed origin/main. Re-run against current main reported no store violations, but that run was not persisted as the original artifact's tested commit, so no attestation issued. The Python oracle should be cited separately only as instrument documentation, not concatenated into evidence_ref."
+    },
+    "ENG-INV-05": {
+      "verdict": "NOT_TESTED",
+      "tested_commit": null,
+      "evidence": "certification/results/ENG-INV-03-05_oracle_run_tested_43731b4f.json#baseline.ENG-INV-05",
+      "assertion_checked": "Zero Build-4 control-plane imports, separate row predicate. Stored mutation control imports build4_control_plane and records actual_row_check=false/non_vacuous=true.",
+      "gap": "The stored baseline's five-file scan and lack of tested_commit do not bind it to reviewed origin/main. Re-run against current main reported no Build-4 imports, but that run was not persisted as the original artifact's tested commit, so no attestation issued. The Python oracle should be cited separately only as instrument documentation, not concatenated into evidence_ref."
+    }
+  },
+  "rerun_census": {
+    "command": "python tools/cert/census_order_sites.py origin/main",
+    "origin_main": "e82a3d6ada57a43cc52d7b7fa1e29871b116a703",
+    "output": "convergence_shadow.py 0; exchange_truth.py 0; HL_Copy_App_SSOT.py 0; HL_Live_Copy_Service.py 0; HL_Live_Copy_Service_Core.py 1 call site [4206]; TOTAL 1; single_order_call_site=true",
+    "discrepancy": "The task prompt predicted line 4204; actual census on origin/main reports line 4206. The count is one, but the asserted line is stale."
+  },
+  "oracle_rerun": {
+    "command": "python certification/results/ENG-INV-03-05_oracle_t_ff1af604.py . --mutate",
+    "files_scanned": 10,
+    "files_parsed": 10,
+    "parse_errors": [],
+    "baseline": {"ENG-INV-03": false, "ENG-INV-04": true, "ENG-INV-05": true},
+    "mutations": {"ENG-INV-03": "non_vacuous=true; actual_row_check=false", "ENG-INV-04": "non_vacuous=true; actual_row_check=false", "ENG-INV-05": "non_vacuous=true; actual_row_check=false"},
+    "overall": "FAIL"
+  }
+}
