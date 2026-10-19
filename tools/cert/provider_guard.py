@@ -1,20 +1,23 @@
-"""Refuse any Kanban card assigned to a provider the operator has not authorised.
+"""Provider guard: fail loudly on a forbidden lane, an over-ceiling lane, OR an under-used permitted lane.
 
-The operator's standing rule (repeated, zero tolerance): the profile-default provider is FORBIDDEN. Permitted lanes only:
+Three violation classes, because "not misallocating" is not the same as "using everything permitted":
 
-    openai-codex (luna)          max 6
-    custom-deepseek-free          max 3   (the coordinator's own inference path shares this budget)
-    nous                         no fixed cap - use what it manages
-    openrouter                   no fixed cap - free tier, 1000 requests/DAY
-    gemini                       allowed but SPARING - it is the operator's vision model, keep it near 2
+  1. FORBIDDEN   - provider_override is NULL (resolves to the profile default the operator forbids) or not whitelisted
+  2. OVER        - a lane above its measured ceiling
+  3. UNDER-USED  - a permitted lane idle while ready cards queue on other lanes
 
-`provider_override = NULL` is the trap: it silently resolves to the profile default, which is the forbidden provider. This
-tool treats NULL as a violation, not as "unset".
+Class 3 is what kept biting: the deepseek proxy sat at 0/3 while 19 cards queued on luna, for no reason at all. Nothing
+crashed, so nothing flagged it. Now it fails the check.
 
-    python tools/cert/provider_guard.py            # report violations, exit 1 if any
-    python tools/cert/provider_guard.py --fix      # re-tag NULL and over-cap cards onto permitted lanes
+    python tools/cert/provider_guard.py            # report, exit 1 on any violation
+    python tools/cert/provider_guard.py --fix      # re-tag NULL/forbidden/under-used ready cards
 
-Runs against the live Kanban DB. Read-only unless --fix.
+Permitted lanes (operator, repeated):
+    openai-codex (luna)   6
+    custom-deepseek-free  3      (shared with the coordinator's own inference path)
+    nous                  no cap
+    openrouter            no cap (free tier, 1000 requests/DAY)
+    gemini                2      allowed but sparing - the operator's vision model
 """
 from __future__ import annotations
 
@@ -24,77 +27,85 @@ from collections import Counter
 from pathlib import Path
 
 DB = Path(r"C:/Users/wigmore/.hermes/kanban.db")
-
-# provider -> (max_concurrent or None, model to stamp when re-tagging)
 ALLOWED = {
     "openai-codex": (6, "gpt-6-luna"),
     "custom-deepseek-free": (3, "deepseek-v4-flash-thinking-nosearch"),
     "nous": (None, "meituan/longcat-2.5-preview:free"),
     "openrouter": (None, "poolside/laguna-s-2.1:free"),
-    "gemini": (2, "gemini-2.5-flash"),          # sparing: the operator's vision model
+    "gemini": (2, "gemini-2.5-flash"),
 }
-FORBIDDEN_LABEL = "PROFILE-DEFAULT (forbidden)"
-
-
-def load(conn):
-    run = list(conn.execute("select id, provider_override from tasks where status='running'"))
-    rdy = list(conn.execute("select id, provider_override from tasks where status='ready'"))
-    return run, rdy
-
-
-def violations(conn):
-    run, rdy = load(conn)
-    out = []
-    for state, rows in (("running", run), ("ready", rdy)):
-        for tid, prov in rows:
-            if prov is None:
-                out.append((state, tid, FORBIDDEN_LABEL, "provider_override is NULL -> resolves to the forbidden profile default"))
-            elif prov not in ALLOWED:
-                out.append((state, tid, prov, "provider not on the permitted list"))
-    counts = Counter(p for _, p in run)
-    for prov, (cap, _) in ALLOWED.items():
-        if cap is not None and counts.get(prov, 0) > cap:
-            out.append(("running", "*", prov, "over ceiling: %d running, cap %d" % (counts[prov], cap)))
-    return out, counts
-
-
-def fix(conn):
-    changed = 0
-    for tid, prov in list(conn.execute("select id, provider_override from tasks where status='ready'")):
-        if prov is None or prov not in ALLOWED:
-            target = "openai-codex"
-            model = ALLOWED[target][1]
-            conn.execute("update tasks set provider_override=?, model_override=? where id=?", (target, model, tid))
-            print("  re-tagged %-12s %s -> %s" % (tid, prov or "NULL", target))
-            changed += 1
-    conn.commit()
-    return changed
+UNDERUSE_QUEUE_THRESHOLD = 3
 
 
 def main() -> int:
     do_fix = "--fix" in sys.argv
     conn = sqlite3.connect(DB)
-    bad, counts = violations(conn)
+    run = Counter(p for (p,) in conn.execute("select provider_override from tasks where status='running'"))
+    ready = Counter(p for (p,) in conn.execute("select provider_override from tasks where status='ready'"))
+    ready_rows = list(conn.execute("select id, provider_override from tasks where status='ready'"))
+
+    problems = []
+
+    for lane, n in list(run.items()) + list(ready.items()):
+        if lane is None:
+            problems.append(("FORBIDDEN", "NULL provider_override -> resolves to the forbidden profile default", n))
+        elif lane not in ALLOWED:
+            problems.append(("FORBIDDEN", "provider not on the permitted list: %s" % lane, n))
+
+    for lane, (cap, _) in ALLOWED.items():
+        if cap is not None and run.get(lane, 0) > cap:
+            problems.append(("OVER", "%s over ceiling: %d running, cap %d" % (lane, run[lane], cap), run[lane]))
+
+    elsewhere = sum(v for k, v in ready.items() if k in ALLOWED)
+    for lane, (cap, _) in ALLOWED.items():
+        if lane == "gemini":
+            continue
+        if cap is None:
+            if run.get(lane, 0) == 0 and ready.get(lane, 0) == 0 and elsewhere >= UNDERUSE_QUEUE_THRESHOLD:
+                problems.append(("UNDER-USED", "%s uncapped but nothing running or queued while %d cards queue elsewhere"
+                                 % (lane, elsewhere), 0))
+            continue
+        free = cap - run.get(lane, 0)
+        if free > 0 and ready.get(lane, 0) == 0 and elsewhere >= UNDERUSE_QUEUE_THRESHOLD:
+            problems.append(("UNDER-USED", "%s has %d free slot(s), no card assigned, %d queued elsewhere"
+                             % (lane, free, elsewhere), free))
+
     print("RUNNING BY LANE")
-    for prov, (cap, _) in ALLOWED.items():
-        n = counts.get(prov, 0)
-        flag = "" if cap is None or n <= cap else "  <-- OVER CEILING"
-        print("  %-24s %d%s" % (prov, n, " / %d" % cap if cap else "")+ ("  <-- OVER CEILING" if flag else ""))
-    if counts.get(None):
-        print("  %-24s %d  <-- VIOLATION: forbidden provider" % (FORBIDDEN_LABEL, counts[None]))
-    print()
-    if not bad:
-        print("PROVIDER GUARD  clean - every card is on a permitted lane and within ceiling")
+    for lane, (cap, _) in ALLOWED.items():
+        n = run.get(lane, 0)
+        mark = ""
+        if cap is not None and n > cap:
+            mark = "  <-- OVER"
+        elif lane != "gemini" and cap is not None and n < cap and ready.get(lane, 0) == 0 \
+                and elsewhere >= UNDERUSE_QUEUE_THRESHOLD:
+            mark = "  <-- IDLE"
+        print("  %-22s %d%s%s" % (lane, n, " / %d" % cap if cap else "", mark))
+    if run.get(None):
+        print("  %-22s %d  <-- FORBIDDEN" % ("PROFILE-DEFAULT", run[None]))
+    print("  ready queue: %s" % dict(ready))
+    print("")
+
+    if not problems:
+        print("PROVIDER GUARD  clean - permitted lanes used, within ceilings, no forbidden provider")
         return 0
-    print("PROVIDER GUARD  %d violation(s):" % len(bad))
-    for state, tid, prov, why in bad[:20]:
-        print("  [%s] %-12s %-24s %s" % (state, tid, prov, why))
+
+    print("PROVIDER GUARD  %d violation(s):" % len(problems))
+    for kind, why, n in problems:
+        print("  [%-10s] %s" % (kind, why))
+
     if do_fix:
-        n = fix(conn)
-        print("\n  fixed %d ready card(s). Re-run to confirm." % n)
+        changed = 0
+        if ready.get(None) or any(k not in ALLOWED for k in ready if k is not None):
+            for tid, prov in ready_rows:
+                if prov is None or prov not in ALLOWED:
+                    conn.execute("update tasks set provider_override=?, model_override=? where id=?",
+                                 ("openai-codex", ALLOWED["openai-codex"][1], tid))
+                    changed += 1
+        conn.commit()
+        print("\n  re-tagged %d forbidden/NULL ready card(s). Re-run to confirm." % changed)
         return 0
-    print("\n  Run with --fix to re-tag ready cards onto permitted lanes.")
-    print("  RUNNING violations must be killed by exact PID - this tool will not kill work.")
+
+    print("\n  --fix re-tags forbidden/NULL ready cards. Lane balancing is a dispatch-order decision.")
     return 1
 
 
