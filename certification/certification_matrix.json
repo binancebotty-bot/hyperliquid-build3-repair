@@ -657,11 +657,14 @@
    ],
    "prior_evidence": "",
    "result": "PASS",
-   "evidence_ref": "certification/results/ENG-INV-03-05_oracle_t_ff1af604.py + certification/results/ENG-INV-03-05_oracle_run_tested_43731b4f.json#baseline.ENG-INV-03 + #mutation_controls[ENG-INV-03]",
+   "evidence_ref": "certification/results/ENG_INV_03_04_05_rowbound_t_d67de338.json",
    "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
    "tested_at_utc": "2026-10-17T11:15:00Z",
-   "notes": "Row-bound re-earn (t_ff1af604): Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports. | Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports. | Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports. | Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports. | Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports. | Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports. | Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports. | Row-bound re-earn (t_ff1af604): Row-bound; replaces demoted aggregate ENG-INV-03-05_43731b4f.json (demoted because one blob covered three ids with no per-row assertion). Dedicated AST oracle walks all 5 production engine files and reports this row under its own key: zero unapproved third-party imports. Non-vacuous: appending 'import totally_unapproved_new_package' to a copy of the Core engine flips only ENG-INV-03 to FAIL.",
-   "proof_network": "TESTNET"
+   "notes": "Row-bound proof (card t_d67de338, PASS -> PASS). Invariant: No NEW third-party runtime dependency is introduced without Architect approval. [ARCHITECTURE.md line 48 (3. No new dependency without Archit]. Check: Parse the AST of every file in the engine import closure. A module counts as a third-part | consolidated from: hermes/apply-control-rows, hermes/apply-earned-16, hermes/apply-lcc-b2, hermes/apply-route-truth, hermes/apply-ui-fp3, hermes/apply-ui94, hermes/eng-inv-030405-rowbound, hermes/eng-inv01-demote",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "ENG-INV-04",
@@ -682,11 +685,14 @@
    ],
    "prior_evidence": "",
    "result": "PASS",
-   "evidence_ref": "certification/results/ENG-INV-03-05_oracle_t_ff1af604.py + certification/results/ENG-INV-03-05_oracle_run_tested_43731b4f.json#baseline.ENG-INV-04 + #mutation_controls[ENG-INV-04]",
+   "evidence_ref": "certification/results/ENG_INV_03_04_05_rowbound_t_d67de338.json",
    "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
    "tested_at_utc": "2026-10-17T11:15:00Z",
-   "notes": "Row-bound re-earn (t_ff1af604): Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports. | Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports. | Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports. | Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports. | Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports. | Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports. | Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports. | Row-bound re-earn (t_ff1af604): Row-bound. Zero authoritative persistent-store imports engine-wide plus zero store sinks. Only .dump site is exchange_truth.py:108 json.dump of a network-stamp config, excluded as not a store. Instrument note: an earlier revision wrongly FAILed here because sqlite3/dbm/shelve are stdlib and the stdlib skip ran before store classification, making the check vacuous; fixed, and the committed run records the fixed instrument. Non-vacuous: appending 'import sqlite3' flips only ENG-INV-04.",
-   "proof_network": "TESTNET"
+   "notes": "Row-bound proof (card t_d67de338, PASS -> PASS). Invariant: The engine does not create or import an authoritative persistent trading-state store. [ARCHITECTURE.md line 49 (4. No new authoritative persistent ]. Check: Parse the AST of the engine import closure and fail on any persistent-store driver  | consolidated from: hermes/apply-control-rows, hermes/apply-earned-16, hermes/apply-lcc-b2, hermes/apply-route-truth, hermes/apply-ui-fp3, hermes/apply-ui94, hermes/eng-inv-030405-rowbound, hermes/eng-inv01-demote",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "ENG-INV-05",
@@ -706,11 +712,14 @@
    ],
    "prior_evidence": "",
    "result": "PASS",
-   "evidence_ref": "certification/results/ENG-INV-03-05_oracle_t_ff1af604.py + certification/results/ENG-INV-03-05_oracle_run_tested_43731b4f.json#baseline.ENG-INV-05 + #mutation_controls[ENG-INV-05]",
+   "evidence_ref": "certification/results/ENG_INV_03_04_05_rowbound_t_d67de338.json",
    "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
    "tested_at_utc": "2026-10-17T11:15:00Z",
-   "notes": "Row-bound re-earn (t_ff1af604): Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports. | Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports. | Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports. | Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports. | Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports. | Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports. | Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports. | Row-bound re-earn (t_ff1af604): Row-bound. Zero Build-4 control-plane/platform imports engine-wide. Non-vacuous: appending 'import build4_control_plane' flips only ENG-INV-05.",
-   "proof_network": "TESTNET"
+   "notes": "Row-bound proof (card t_d67de338, PASS -> PASS). Invariant: The engine does not import the Build-4 control plane or platform. [ARCHITECTURE.md line 50 (5. No Build 4 control-plane/platfor]. Check: Parse the AST of the engine import closure and fail on any static or dynamic import whose top-level mod | consolidated from: hermes/apply-control-rows, hermes/apply-earned-16, hermes/apply-lcc-b2, hermes/apply-route-truth, hermes/apply-ui-fp3, hermes/apply-ui94, hermes/eng-inv-030405-rowbound, hermes/eng-inv01-demote",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "ENG-INV-06",
@@ -1636,12 +1645,15 @@
     "price moves past bound before send"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/probe_reearn_results.json",
+   "tested_commit": "333d818d8423476c9a7ef6f39e20d712c447c64f",
    "tested_at_utc": "",
-   "notes": "",
-   "proof_network": "TESTNET"
+   "notes": "Earned by the ACTIVE/CONTROL probe in certification/results/probe_reearn_results.json (card t_99472e6c). Each check asserts this row's exact (decision, reason) tuple against a control differing only in that row's own value. Checks: close_bypasses_entry_min_notional_and_caps. Engine sha256 1a1daf8186 | consolidated from: hermes/apply-earned-16",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "PRICE-006",
@@ -1689,12 +1701,15 @@
     "price moves past bound before send"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/probe_reearn_results.json",
+   "tested_commit": "333d818d8423476c9a7ef6f39e20d712c447c64f",
    "tested_at_utc": "",
-   "notes": "Source refs are to the legacy file; re-derive against HL_Live_Copy_Service_Core.py (7,705-line, sha256 5bda57be). Slippage ruled (Boss, 2026-10-09): unset marketable slippage defaults to 0.2%. OD-21 decided: re-pointed to the certified 13 May UI. Mainnet proof required: slippage default 0.2% can be applied on testnet; its effect on fills needs a liquid book.",
-   "proof_network": "MAINNET"
+   "notes": "Earned by the ACTIVE/CONTROL probe in certification/results/probe_reearn_results.json (card t_99472e6c). Each check asserts this row's exact (decision, reason) tuple against a control differing only in that row's own value. Checks: slippage_alone_flips_max_order_verdict. Engine sha256 1a1daf81861f72 | consolidated from: hermes/apply-earned-16",
+   "proof_network": "MAINNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "PRICE-008",
@@ -1775,12 +1790,15 @@
     "unknown asset"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/probe_reearn_results.json",
+   "tested_commit": "333d818d8423476c9a7ef6f39e20d712c447c64f",
    "tested_at_utc": "",
-   "notes": "",
-   "proof_network": "TESTNET"
+   "notes": "Earned by the ACTIVE/CONTROL probe in certification/results/probe_reearn_results.json (card t_99472e6c). Each check asserts this row's exact (decision, reason) tuple against a control differing only in that row's own value. Checks: reduce_only_is_set_on_closes_and_never_on_opens. Engine sha256 1a1da | consolidated from: hermes/apply-earned-16",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "ORD-003",
@@ -1807,12 +1825,15 @@
     "unknown asset"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/probe_reearn_results.json",
+   "tested_commit": "333d818d8423476c9a7ef6f39e20d712c447c64f",
    "tested_at_utc": "",
-   "notes": "Core: DEFAULT_MIN_NOTIONAL = env HL_LIVE_MIN_NOTIONAL, default 10 (L138); global min_notional read at L1926; the minimum check at L2439 covers ENTRY/ADD only. Code-read of the 2 Jun backup, unconfirmed by run; PRs #4/#6/#7 (merged at main 114e8b4) changed this code, so re-check there.",
-   "proof_network": "TESTNET"
+   "notes": "Earned by the ACTIVE/CONTROL probe in certification/results/probe_reearn_results.json (card t_99472e6c). Each check asserts this row's exact (decision, reason) tuple against a control differing only in that row's own value. Checks: min_notional_blocks_entry_under_the_configured_floor. Engine sha256  | consolidated from: hermes/apply-earned-16",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "ORD-004",
@@ -1835,12 +1856,15 @@
     "unknown asset"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/probe_reearn_results.json",
+   "tested_commit": "333d818d8423476c9a7ef6f39e20d712c447c64f",
    "tested_at_utc": "",
-   "notes": "",
-   "proof_network": "TESTNET"
+   "notes": "Earned by the ACTIVE/CONTROL probe in certification/results/probe_reearn_results.json (card t_99472e6c). Each check asserts this row's exact (decision, reason) tuple against a control differing only in that row's own value. Checks: wire_size_floors_then_ceils_at_symbol_precision. Engine sha256 1a1da | consolidated from: hermes/apply-earned-16",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "ORD-005",
@@ -1862,12 +1886,15 @@
     "unknown asset"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/probe_reearn_results.json",
+   "tested_commit": "333d818d8423476c9a7ef6f39e20d712c447c64f",
    "tested_at_utc": "",
-   "notes": "",
-   "proof_network": "TESTNET"
+   "notes": "Earned by the ACTIVE/CONTROL probe in certification/results/probe_reearn_results.json (card t_99472e6c). Each check asserts this row's exact (decision, reason) tuple against a control differing only in that row's own value. Checks: cloid_is_a_deterministic_function_of_the_intent_id. Engine sha256 1a | consolidated from: hermes/apply-earned-16",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "ORD-006",
@@ -2218,12 +2245,15 @@
     "rejected save"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/probe_reearn_results.json",
+   "tested_commit": "333d818d8423476c9a7ef6f39e20d712c447c64f",
    "tested_at_utc": "",
-   "notes": "Core: max_total_live_exposure_usd has an accessor (L1929) but no caller was found, so it is not enforced. Code-read of the 2 Jun backup, unconfirmed by run; PRs #4/#6/#7 (merged at main 114e8b4) changed this code, so re-check there. Earlier note (legacy file, superseded base): Source census at Build 3 main 5599415: key has NO reader in HL_Live_Copy_Service.py (0 occurrences); the UI saves it but the engine does not enforce it. Inferred from source search; must be confirmed by execution. OD-21 decided: re-pointed to the certified 13 May UI.",
-   "proof_network": "TESTNET"
+   "notes": "Earned by the ACTIVE/CONTROL probe in certification/results/probe_reearn_results.json (card t_99472e6c). Each check asserts this row's exact (decision, reason) tuple against a control differing only in that row's own value. Checks: total_cap_refuses_order_when_remaining_allowance_below_min; total_ca | consolidated from: hermes/apply-earned-16",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "RISK-002",
@@ -2252,12 +2282,15 @@
     "rejected save"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/probe_reearn_results.json",
+   "tested_commit": "333d818d8423476c9a7ef6f39e20d712c447c64f",
    "tested_at_utc": "",
-   "notes": "Core: max_asset_directional_exposure_usd is not referenced. Code-read of the 2 Jun backup, unconfirmed by run; PRs #4/#6/#7 (merged at main 114e8b4) changed this code, so re-check there. Earlier note (legacy file, superseded base): Source census at Build 3 main 5599415: key has NO reader in HL_Live_Copy_Service.py (0 occurrences); the UI saves it but the engine does not enforce it. Inferred from source search; must be confirmed by execution. OD-21 decided: re-pointed to the certified 13 May UI.",
-   "proof_network": "TESTNET"
+   "notes": "Earned by the ACTIVE/CONTROL probe in certification/results/probe_reearn_results.json (card t_99472e6c). Each check asserts this row's exact (decision, reason) tuple against a control differing only in that row's own value. Checks: asset_cap_blocks_the_side_that_grows_the_net_only; asset_cap_control | consolidated from: hermes/apply-earned-16",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "RISK-003",
@@ -2286,12 +2319,15 @@
     "rejected save"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/probe_reearn_results.json",
+   "tested_commit": "333d818d8423476c9a7ef6f39e20d712c447c64f",
    "tested_at_utc": "",
-   "notes": "Core: max_wallet_exposure_usd read at L1931 (per-wallet value overrides the global one) and used at L2444. Code-read of the 2 Jun backup, unconfirmed by run; PRs #4/#6/#7 (merged at main 114e8b4) changed this code, so re-check there. Earlier note (legacy file, superseded base): Source census at Build 3 main 5599415: key has NO reader in HL_Live_Copy_Service.py (0 occurrences); the UI saves it but the engine does not enforce it. Inferred from source search; must be confirmed by execution. OD-21 decided: re-pointed to the certified 13 May UI.",
-   "proof_network": "TESTNET"
+   "notes": "Earned by the ACTIVE/CONTROL probe in certification/results/probe_reearn_results.json (card t_99472e6c). Each check asserts this row's exact (decision, reason) tuple against a control differing only in that row's own value. Checks: wallet_exposure_cap_uses_ledger_plus_resting. Engine sha256 1a1daf81 | consolidated from: hermes/apply-earned-16",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "RISK-004",
@@ -2318,12 +2354,15 @@
     "rejected save"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/probe_reearn_results.json",
+   "tested_commit": "333d818d8423476c9a7ef6f39e20d712c447c64f",
    "tested_at_utc": "",
-   "notes": "Core: max_order_notional_usd read at L1935 and enforced at L2441 and L3250. Code-read of the 2 Jun backup, unconfirmed by run; PRs #4/#6/#7 (merged at main 114e8b4) changed this code, so re-check there. OD-21 decided: re-pointed to the certified 13 May UI. Prior evidence void: 'test_g4_order_cap.py (unit, in-process) for max_order_notional_usd' ran against the superseded UI file.",
-   "proof_network": "TESTNET"
+   "notes": "Earned by the ACTIVE/CONTROL probe in certification/results/probe_reearn_results.json (card t_99472e6c). Each check asserts this row's exact (decision, reason) tuple against a control differing only in that row's own value. Checks: max_order_notional_blocks_oversized_single_order. Engine sha256 1a1d | consolidated from: hermes/apply-earned-16",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "RISK-005",
@@ -2353,12 +2392,15 @@
     "rejected save"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/probe_reearn_results.json",
+   "tested_commit": "333d818d8423476c9a7ef6f39e20d712c447c64f",
    "tested_at_utc": "",
-   "notes": "Core: marketable_bps read at L1939 (default env HL_LIVE_MARKETABLE_BPS = 25) and used for pricing at L3210. Code-read of the 2 Jun backup, unconfirmed by run; PRs #4/#6/#7 (merged at main 114e8b4) changed this code, so re-check there. Earlier note (legacy file, superseded base): The engine reads global_controls only in global_order_cap (L2696-2716). Auto-send uses env HL_LIVE_AUTO_SEND_MARKETABLE_BPS (L2863), not this saved value. Inferred from source search; must be confirmed by execution. Slippage ruled (Boss, 2026-10-09): unset marketable slippage defaults to 0.2%. OD-21 decided: re-pointed to the certified 13 May UI. Mainnet proof required: control enforcement is testable on testnet; slippage outcome needs a liquid book.",
-   "proof_network": "MAINNET"
+   "notes": "Earned by the ACTIVE/CONTROL probe in certification/results/probe_reearn_results.json (card t_99472e6c). Each check asserts this row's exact (decision, reason) tuple against a control differing only in that row's own value. Checks: marketable_bps_moves_the_valuation_price. Engine sha256 1a1daf81861f | consolidated from: hermes/apply-earned-16",
+   "proof_network": "MAINNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "RISK-006",
@@ -2422,12 +2464,15 @@
     "rejected save"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/probe_reearn_results.json",
+   "tested_commit": "333d818d8423476c9a7ef6f39e20d712c447c64f",
    "tested_at_utc": "",
-   "notes": "Core: symbol_allowlist (also allow_symbols / allowlist) read at L1944 and applied at L2430. Code-read of the 2 Jun backup, unconfirmed by run; PRs #4/#6/#7 (merged at main 114e8b4) changed this code, so re-check there. Earlier note (legacy file, superseded base): Source census at Build 3 main 5599415: key has NO reader in HL_Live_Copy_Service.py (0 occurrences); the UI saves it but the engine does not enforce it. Inferred from source search; must be confirmed by execution. OD-21 decided: re-pointed to the certified 13 May UI.",
-   "proof_network": "TESTNET"
+   "notes": "Earned by the ACTIVE/CONTROL probe in certification/results/probe_reearn_results.json (card t_99472e6c). Each check asserts this row's exact (decision, reason) tuple against a control differing only in that row's own value. Checks: allowlist_refuses_symbol_outside_the_list_only. Engine sha256 1a1daf | consolidated from: hermes/apply-earned-16",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "RISK-008",
@@ -2456,12 +2501,15 @@
     "rejected save"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/probe_reearn_results.json",
+   "tested_commit": "333d818d8423476c9a7ef6f39e20d712c447c64f",
    "tested_at_utc": "",
-   "notes": "Core: symbol_blocklist (also block_symbols / blocklist) read at L1944 and applied at L2430. Code-read of the 2 Jun backup, unconfirmed by run; PRs #4/#6/#7 (merged at main 114e8b4) changed this code, so re-check there. Earlier note (legacy file, superseded base): Source census at Build 3 main 5599415: key has NO reader in HL_Live_Copy_Service.py (0 occurrences); the UI saves it but the engine does not enforce it. Inferred from source search; must be confirmed by execution. OD-21 decided: re-pointed to the certified 13 May UI.",
-   "proof_network": "TESTNET"
+   "notes": "Earned by the ACTIVE/CONTROL probe in certification/results/probe_reearn_results.json (card t_99472e6c). Each check asserts this row's exact (decision, reason) tuple against a control differing only in that row's own value. Checks: blocklist_refuses_the_named_symbol_only; blocklist_never_traps_an_op | consolidated from: hermes/apply-earned-16",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "RISK-009",
@@ -2488,12 +2536,15 @@
     "rejected save"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/probe_reearn_results.json",
+   "tested_commit": "333d818d8423476c9a7ef6f39e20d712c447c64f",
    "tested_at_utc": "",
-   "notes": "Core: daily loss is not referenced anywhere. Code-read of the 2 Jun backup, unconfirmed by run; PRs #4/#6/#7 (merged at main 114e8b4) changed this code, so re-check there. OD-21 decided: re-pointed to the certified 13 May UI.",
-   "proof_network": "TESTNET"
+   "notes": "Earned by the ACTIVE/CONTROL probe in certification/results/probe_reearn_results.json (card t_99472e6c). Each check asserts this row's exact (decision, reason) tuple against a control differing only in that row's own value. Checks: daily_loss_limit_blocks_at_the_configured_loss; daily_loss_unreadabl | consolidated from: hermes/apply-earned-16",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "RISK-010",
@@ -2583,12 +2634,15 @@
     "rejected save"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/probe_reearn_results.json",
+   "tested_commit": "333d818d8423476c9a7ef6f39e20d712c447c64f",
    "tested_at_utc": "",
-   "notes": "",
-   "proof_network": "TESTNET"
+   "notes": "Earned by the ACTIVE/CONTROL probe in certification/results/probe_reearn_results.json (card t_99472e6c). Each check asserts this row's exact (decision, reason) tuple against a control differing only in that row's own value. Checks: safe_stop_off_on_disk_is_read_as_off. Engine sha256 1a1daf81861f726f | consolidated from: hermes/apply-earned-16",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "RISK-013",
@@ -2646,12 +2700,15 @@
     "rejected save"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/probe_reearn_results.json",
+   "tested_commit": "333d818d8423476c9a7ef6f39e20d712c447c64f",
    "tested_at_utc": "",
-   "notes": "",
-   "proof_network": "TESTNET"
+   "notes": "Earned by the ACTIVE/CONTROL probe in certification/results/probe_reearn_results.json (card t_99472e6c). Each check asserts this row's exact (decision, reason) tuple against a control differing only in that row's own value. Checks: unreadable_exposure_fails_closed_only_under_a_cap; unreadable_restin | consolidated from: hermes/apply-earned-16",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "RISK-015",
@@ -3291,12 +3348,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_FP_LCC_redo_t_a7eaf165.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "OD-21 decided: re-pointed to the certified 13 May UI.",
-   "proof_network": "TESTNET"
+   "notes": "UI capture on the measured :8023 build (card t_a7eaf165, DOM snapshot EVIDENCE/ui_snapshot_8023/). Selector: #lcWalletCount -> value: 4 / 10. Provenance: ['HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) render_live_copy_control_panel header', 'ARCH Full scope 2', 'ARCH Full scope 6', 'FAILURES UI-001 | consolidated from: hermes/apply-ui94",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-LCC-HDR-02",
@@ -3319,12 +3379,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_FP_LCC_redo_t_a7eaf165.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "OD-21 decided: re-pointed to the certified 13 May UI.",
-   "proof_network": "TESTNET"
+   "notes": "UI capture on the measured :8023 build (card t_a7eaf165, DOM snapshot EVIDENCE/ui_snapshot_8023/). Selector: #lcModeCounts -> value: LIVE 4\nCLO 0\nOFF 0. Provenance: ['HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) render_live_copy_control_panel header', 'ARCH Full scope 2', 'ARCH Full scope 6', 'FAIL | consolidated from: hermes/apply-ui94",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-LCC-HDR-03",
@@ -3347,12 +3410,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_FP_LCC_redo_t_a7eaf165.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "OD-21 decided: re-pointed to the certified 13 May UI.",
-   "proof_network": "TESTNET"
+   "notes": "UI capture on the measured :8023 build (card t_a7eaf165, DOM snapshot EVIDENCE/ui_snapshot_8023/). Selector: #lcAutoSend -> value: Real order sending:\nOFF. Provenance: ['HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) render_live_copy_control_panel header', 'ARCH Full scope 2', 'ARCH Full scope 6', 'F | consolidated from: hermes/apply-ui94",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-LCC-HDR-04",
@@ -3375,12 +3441,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_FP_LCC_redo_t_a7eaf165.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "OD-21 decided: re-pointed to the certified 13 May UI.",
-   "proof_network": "TESTNET"
+   "notes": "UI capture on the measured :8023 build (card t_a7eaf165, DOM snapshot EVIDENCE/ui_snapshot_8023/). Selector: #lcWsOverall -> value: WS_OK. Provenance: ['HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) render_live_copy_control_panel header', 'ARCH Full scope 2', 'ARCH Full scope 6', 'FAILURES UI-001..0 | consolidated from: hermes/apply-ui94",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-LCC-HDR-05",
@@ -3403,12 +3472,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_FP_LCC_redo_t_a7eaf165.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "OD-21 decided: re-pointed to the certified 13 May UI.",
-   "proof_network": "TESTNET"
+   "notes": "UI capture on the measured :8023 build (card t_a7eaf165, DOM snapshot EVIDENCE/ui_snapshot_8023/). Selector: #lcRealOrders -> value: REAL ORDERS: APP DISABLED. Provenance: ['HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) render_live_copy_control_panel header', 'ARCH Full scope 2', 'ARCH Full scope 6' | consolidated from: hermes/apply-ui94",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-LCC-HDR-06",
@@ -3431,12 +3503,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_FP_LCC_redo_t_a7eaf165.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "OD-21 decided: re-pointed to the certified 13 May UI.",
-   "proof_network": "TESTNET"
+   "notes": "UI capture on the measured :8023 build (card t_a7eaf165, DOM snapshot EVIDENCE/ui_snapshot_8023/). Selector: #lcStatus -> value: Loaded. Provenance: ['HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) render_live_copy_control_panel header', 'ARCH Full scope 2', 'ARCH Full scope 6', 'FAILURES UI-001..003 | consolidated from: hermes/apply-ui94",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-LCC-BTN-01",
@@ -3879,12 +3954,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "FAIL",
+   "evidence_ref": "certification/results/UI_FP_LCC_redo_t_a7eaf165.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "OD-21 decided: re-pointed to the certified 13 May UI.",
-   "proof_network": "TESTNET"
+   "notes": "UI capture on the measured :8023 build (card t_a7eaf165, DOM snapshot EVIDENCE/ui_snapshot_8023/). Selector: [data-lc-graph-scale=1d] -> value: None. Provenance: ['HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) renderGraph', 'ARCH Full scope 2', 'ARCH Full scope 6', 'FAILURES UI-001..003'] | consolidated from: hermes/apply-ui94",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-LCC-GRAPH-05",
@@ -4523,12 +4601,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_LCC_batch2_t_ab26571b.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "OD-21 decided: re-pointed to the certified 13 May UI.",
-   "proof_network": "TESTNET"
+   "notes": "UI-LCC captured against the LIVE serving build: http://127.0.0.1:8023/live-copy, HTTP 200, serving PID 15760 started 2026-10-19T08:40:25+01:00, source HL_Copy_App_SSOT.py sha256 fad19d220d7af13d. Selector: #lcWalletRows tr.lc-wallet-row td button[data-act=\"save\"] -> value: button \"Save\" x4. Source c | consolidated from: hermes/apply-lcc-b2",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-LCC-WTBL-12",
@@ -4551,12 +4632,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_LCC_batch2_t_ab26571b.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "OD-21 decided: re-pointed to the certified 13 May UI.",
-   "proof_network": "TESTNET"
+   "notes": "UI-LCC captured against the LIVE serving build: http://127.0.0.1:8023/live-copy, HTTP 200, serving PID 15760 started 2026-10-19T08:40:25+01:00, source HL_Copy_App_SSOT.py sha256 fad19d220d7af13d. Selector: #lcWalletRows tr.lc-wallet-row td button[data-act=\"clo\"] -> value: button \"CLO\" x4. Source cha | consolidated from: hermes/apply-lcc-b2",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-LCC-WTBL-13",
@@ -4579,12 +4663,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_LCC_batch2_t_ab26571b.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "OD-21 decided: re-pointed to the certified 13 May UI.",
-   "proof_network": "TESTNET"
+   "notes": "UI-LCC captured against the LIVE serving build: http://127.0.0.1:8023/live-copy, HTTP 200, serving PID 15760 started 2026-10-19T08:40:25+01:00, source HL_Copy_App_SSOT.py sha256 fad19d220d7af13d. Selector: #lcWalletRows tr.lc-wallet-row td button[data-act=\"off\"] -> value: button \"OFF\" x4. Source cha | consolidated from: hermes/apply-lcc-b2",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-LCC-WTBL-14",
@@ -4607,12 +4694,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_LCC_batch2_t_ab26571b.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "OD-21 decided: re-pointed to the certified 13 May UI.",
-   "proof_network": "TESTNET"
+   "notes": "UI-LCC captured against the LIVE serving build: http://127.0.0.1:8023/live-copy, HTTP 200, serving PID 15760 started 2026-10-19T08:40:25+01:00, source HL_Copy_App_SSOT.py sha256 fad19d220d7af13d. Selector: #lcWalletRows tr.lc-wallet-row td button[data-act=\"archive\"] -> value: button \"Archive\" x4, cl | consolidated from: hermes/apply-lcc-b2",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-LCC-DETAIL-01",
@@ -4929,12 +5019,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "FAIL",
+   "evidence_ref": "certification/results/UI_LCC_batch2_t_ab26571b.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "OD-21 decided: element(s) ['lcPositionRows'] not found in the certified 13 May UI; requirement void. The 13 May positions tab splits OWNED COPY and ACCOUNT-LEVEL rows; its fields are certified by the UI-FP 'Real User Copy Positions' records.",
-   "proof_network": "TESTNET"
+   "notes": "UI-LCC captured against the LIVE serving build: http://127.0.0.1:8023/live-copy, HTTP 200, serving PID 15760 started 2026-10-19T08:40:25+01:00, source HL_Copy_App_SSOT.py sha256 fad19d220d7af13d. Selector: no selector -> value: no Pos value / position-value column in either position table. Source ch | consolidated from: hermes/apply-lcc-b2",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-LCC-POS-08",
@@ -5049,12 +5142,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "FAIL",
+   "evidence_ref": "certification/results/UI_LCC_batch2_t_ab26571b.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "OD-21 decided: element(s) ['lcPositionRows'] not found in the certified 13 May UI; requirement void. The 13 May positions tab splits OWNED COPY and ACCOUNT-LEVEL rows; its fields are certified by the UI-FP 'Real User Copy Positions' records.",
-   "proof_network": "TESTNET"
+   "notes": "UI-LCC captured against the LIVE serving build: http://127.0.0.1:8023/live-copy, HTTP 200, serving PID 15760 started 2026-10-19T08:40:25+01:00, source HL_Copy_App_SSOT.py sha256 fad19d220d7af13d. Selector: no selector -> value: no Last OID column in either position table. Source chain: HL_Copy_App_S | consolidated from: hermes/apply-lcc-b2",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-LCC-POS-12",
@@ -5247,12 +5343,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "FAIL",
+   "evidence_ref": "certification/results/UI_LCC_batch2_t_ab26571b.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "OD-01 ruled (Boss, 2026-10-09): OPEN/INCREASE/FLIP are priced from a fresh follower-market mid at most 5 s old; with no fresh mid no order is sent. OD-21 decided: re-pointed to the certified 13 May UI.",
-   "proof_network": "TESTNET"
+   "notes": "UI-LCC captured against the LIVE serving build: http://127.0.0.1:8023/live-copy, HTTP 200, serving PID 15760 started 2026-10-19T08:40:25+01:00, source HL_Copy_App_SSOT.py sha256 fad19d220d7af13d. Selector: no selector -> value: no Limit px column; header sequence is Time, Wallet, Coin, Side, Status, | consolidated from: hermes/apply-lcc-b2",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-LCC-EXQ-07",
@@ -5359,12 +5458,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "FAIL",
+   "evidence_ref": "certification/results/UI_LCC_batch2_t_ab26571b.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "OD-01 ruled (Boss, 2026-10-09): OPEN/INCREASE/FLIP are priced from a fresh follower-market mid at most 5 s old; with no fresh mid no order is sent. OD-21 decided: re-pointed to the certified 13 May UI. Mainnet proof required: fill-vs-limit % is not meaningful on illiquid testnet books.",
-   "proof_network": "MAINNET"
+   "notes": "UI-LCC captured against the LIVE serving build: http://127.0.0.1:8023/live-copy, HTTP 200, serving PID 15760 started 2026-10-19T08:40:25+01:00, source HL_Copy_App_SSOT.py sha256 fad19d220d7af13d. Selector: no selector -> value: no per-row fill-vs-limit percentage column; only aggregate chip \"Avg fil | consolidated from: hermes/apply-lcc-b2",
+   "proof_network": "MAINNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-LCC-EXQ-11",
@@ -5387,12 +5489,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "FAIL",
+   "evidence_ref": "certification/results/UI_LCC_batch2_t_ab26571b.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "OD-01 ruled (Boss, 2026-10-09): OPEN/INCREASE/FLIP are priced from a fresh follower-market mid at most 5 s old; with no fresh mid no order is sent. OD-21 decided: re-pointed to the certified 13 May UI. Mainnet proof required: leader-vs-user % is not meaningful on illiquid testnet books.",
-   "proof_network": "MAINNET"
+   "notes": "UI-LCC captured against the LIVE serving build: http://127.0.0.1:8023/live-copy, HTTP 200, serving PID 15760 started 2026-10-19T08:40:25+01:00, source HL_Copy_App_SSOT.py sha256 fad19d220d7af13d. Selector: no selector -> value: no leader-vs-user percentage column and no chip exposing it. Source chai | consolidated from: hermes/apply-lcc-b2",
+   "proof_network": "MAINNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-LCC-EXQ-12",
@@ -5415,12 +5520,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "FAIL",
+   "evidence_ref": "certification/results/UI_LCC_batch2_t_ab26571b.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "OD-01 ruled (Boss, 2026-10-09): OPEN/INCREASE/FLIP are priced from a fresh follower-market mid at most 5 s old; with no fresh mid no order is sent. OD-21 decided: re-pointed to the certified 13 May UI. Mainnet proof required: market slip % is not meaningful on illiquid testnet books.",
-   "proof_network": "MAINNET"
+   "notes": "UI-LCC captured against the LIVE serving build: http://127.0.0.1:8023/live-copy, HTTP 200, serving PID 15760 started 2026-10-19T08:40:25+01:00, source HL_Copy_App_SSOT.py sha256 fad19d220d7af13d. Selector: no selector -> value: no market-slip percentage column and no chip exposing it. Source chain:  | consolidated from: hermes/apply-lcc-b2",
+   "proof_network": "MAINNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-LCC-EXQ-13",
@@ -5471,12 +5579,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_LCC_batch2_t_ab26571b.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "OD-21 decided: re-pointed to the certified 13 May UI.",
-   "proof_network": "TESTNET"
+   "notes": "UI-LCC captured against the LIVE serving build: http://127.0.0.1:8023/live-copy, HTTP 200, serving PID 15760 started 2026-10-19T08:40:25+01:00, source HL_Copy_App_SSOT.py sha256 fad19d220d7af13d. Selector: #lcAuditRows tr[1] td[1] -> value: 2026-10-09T14:48:58.366311+00:00. Source chain: order_inten | consolidated from: hermes/apply-lcc-b2",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-LCC-AUD-02",
@@ -5499,12 +5610,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_LCC_batch2_t_ab26571b.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "OD-21 decided: re-pointed to the certified 13 May UI.",
-   "proof_network": "TESTNET"
+   "notes": "UI-LCC captured against the LIVE serving build: http://127.0.0.1:8023/live-copy, HTTP 200, serving PID 15760 started 2026-10-19T08:40:25+01:00, source HL_Copy_App_SSOT.py sha256 fad19d220d7af13d. Selector: #lcAuditRows tr[1] td[2] -> value: 0xf7bfa3a7...acf123 (shortWallet of 0xf7bfa3a7067624b913381 | consolidated from: hermes/apply-lcc-b2",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-LCC-AUD-03",
@@ -5527,12 +5641,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_LCC_batch2_t_ab26571b.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "OD-21 decided: re-pointed to the certified 13 May UI.",
-   "proof_network": "TESTNET"
+   "notes": "UI-LCC captured against the LIVE serving build: http://127.0.0.1:8023/live-copy, HTTP 200, serving PID 15760 started 2026-10-19T08:40:25+01:00, source HL_Copy_App_SSOT.py sha256 fad19d220d7af13d. Selector: #lcAuditRows tr[1] td[3] -> value: BTC. Source chain: order_intents.csv row created_at=2026-10 | consolidated from: hermes/apply-lcc-b2",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-LCC-AUD-04",
@@ -5555,12 +5672,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "FAIL",
+   "evidence_ref": "certification/results/UI_LCC_batch2_t_ab26571b.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "OD-21 decided: re-pointed to the certified 13 May UI.",
-   "proof_network": "TESTNET"
+   "notes": "UI-LCC captured against the LIVE serving build: http://127.0.0.1:8023/live-copy, HTTP 200, serving PID 15760 started 2026-10-19T08:40:25+01:00, source HL_Copy_App_SSOT.py sha256 fad19d220d7af13d. Selector: #lcAuditRows tr[1] td[4] -> value: blank cell on every displayed row. Source chain: order_inte | consolidated from: hermes/apply-lcc-b2",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-LCC-AUD-05",
@@ -5583,12 +5703,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_LCC_batch2_t_ab26571b.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "OD-21 decided: re-pointed to the certified 13 May UI.",
-   "proof_network": "TESTNET"
+   "notes": "UI-LCC captured against the LIVE serving build: http://127.0.0.1:8023/live-copy, HTTP 200, serving PID 15760 started 2026-10-19T08:40:25+01:00, source HL_Copy_App_SSOT.py sha256 fad19d220d7af13d. Selector: #lcAuditRows tr[1] td[5] -> value: \"POLL\" with secondary line \"max total exposure exceeded\". S | consolidated from: hermes/apply-lcc-b2",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-LCC-AUD-06",
@@ -5611,12 +5734,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "FAIL",
+   "evidence_ref": "certification/results/UI_LCC_batch2_t_ab26571b.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "OD-21 decided: re-pointed to the certified 13 May UI.",
-   "proof_network": "TESTNET"
+   "notes": "UI-LCC captured against the LIVE serving build: http://127.0.0.1:8023/live-copy, HTTP 200, serving PID 15760 started 2026-10-19T08:40:25+01:00, source HL_Copy_App_SSOT.py sha256 fad19d220d7af13d. Selector: #lcAuditRows tr[1] td[6] -> value: em-dash on every displayed row. Source chain: order_intents | consolidated from: hermes/apply-lcc-b2",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-LCC-AUD-07",
@@ -5639,12 +5765,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "FAIL",
+   "evidence_ref": "certification/results/UI_LCC_batch2_t_ab26571b.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "OD-21 decided: re-pointed to the certified 13 May UI.",
-   "proof_network": "TESTNET"
+   "notes": "UI-LCC captured against the LIVE serving build: http://127.0.0.1:8023/live-copy, HTTP 200, serving PID 15760 started 2026-10-19T08:40:25+01:00, source HL_Copy_App_SSOT.py sha256 fad19d220d7af13d. Selector: #lcAuditRows tr[1] td[7] -> value: em-dash, while the source row has decision=SEND_BLOCKED_RIS | consolidated from: hermes/apply-lcc-b2",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-LCC-AUD-08",
@@ -5667,12 +5796,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "FAIL",
+   "evidence_ref": "certification/results/UI_LCC_batch2_t_ab26571b.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "OD-21 decided: re-pointed to the certified 13 May UI.",
-   "proof_network": "TESTNET"
+   "notes": "UI-LCC captured against the LIVE serving build: http://127.0.0.1:8023/live-copy, HTTP 200, serving PID 15760 started 2026-10-19T08:40:25+01:00, source HL_Copy_App_SSOT.py sha256 fad19d220d7af13d. Selector: #lcAuditRows tr[1] td[8] -> value: blank on every displayed row. Source chain: order_intents.c | consolidated from: hermes/apply-lcc-b2",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-LCC-AUD-09",
@@ -5695,12 +5827,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "FAIL",
+   "evidence_ref": "certification/results/UI_LCC_batch2_t_ab26571b.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "OD-21 decided: re-pointed to the certified 13 May UI.",
-   "proof_network": "TESTNET"
+   "notes": "UI-LCC captured against the LIVE serving build: http://127.0.0.1:8023/live-copy, HTTP 200, serving PID 15760 started 2026-10-19T08:40:25+01:00, source HL_Copy_App_SSOT.py sha256 fad19d220d7af13d. Selector: #lcAuditRows tr[1] td[9] -> value: blank on every displayed row. Source chain: order_intents.c | consolidated from: hermes/apply-lcc-b2",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-LCC-AUD-10",
@@ -5723,12 +5858,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "FAIL",
+   "evidence_ref": "certification/results/UI_LCC_batch2_t_ab26571b.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "OD-21 decided: re-pointed to the certified 13 May UI.",
-   "proof_network": "TESTNET"
+   "notes": "UI-LCC captured against the LIVE serving build: http://127.0.0.1:8023/live-copy, HTTP 200, serving PID 15760 started 2026-10-19T08:40:25+01:00, source HL_Copy_App_SSOT.py sha256 fad19d220d7af13d. Selector: #lcAuditRows tr[1] td[10] -> value: blank on every displayed row. Source chain: order_intents. | consolidated from: hermes/apply-lcc-b2",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-LCC-AUD-11",
@@ -5751,12 +5889,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "FAIL",
+   "evidence_ref": "certification/results/UI_LCC_batch2_t_ab26571b.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "OD-21 decided: re-pointed to the certified 13 May UI.",
-   "proof_network": "TESTNET"
+   "notes": "UI-LCC captured against the LIVE serving build: http://127.0.0.1:8023/live-copy, HTTP 200, serving PID 15760 started 2026-10-19T08:40:25+01:00, source HL_Copy_App_SSOT.py sha256 fad19d220d7af13d. Selector: #lcAuditRows tr[1] td[11] -> value: blank on every displayed row. Source chain: order_intents. | consolidated from: hermes/apply-lcc-b2",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-LCC-AUD-12",
@@ -8750,12 +8891,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "FAIL",
+   "evidence_ref": "certification/results/UI_ROUTE_TRUTH_t_cfcad924.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "",
-   "proof_network": "TESTNET"
+   "notes": "UI route/truth probe on :8023 (card t_cfcad924): ['Grep of served module fad19d22 for AUTHORITATIVE_EXCHANGE|LOCAL_LEDGER|LEADER_SIGNAL|DISPLAY_ONLY|SKIPPED: 0 matches - tier vocabulary absent from the served UI source.', 'Rendered HTML of / and /live-copy contains non | consolidated from: hermes/apply-route-truth",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-TRUTH-002",
@@ -8777,12 +8921,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "FAIL",
+   "evidence_ref": "certification/results/UI_ROUTE_TRUTH_t_cfcad924.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "",
-   "proof_network": "TESTNET"
+   "notes": "UI route/truth probe on :8023 (card t_cfcad924): ['No GREEN-ONLY-001 gate and no master-gate function in served source (0 matches).', 'Green assigned by JS string matching: pill() -> lc-green for OPEN/LIVE/OK/GOOD/ACTIVE; integCls GREEN; wsCls WS_OK.', 'Counter-example | consolidated from: hermes/apply-route-truth",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-TRUTH-003",
@@ -8804,12 +8951,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_ROUTE_TRUTH_t_cfcad924.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "",
-   "proof_network": "TESTNET"
+   "notes": "UI route/truth probe on :8023 (card t_cfcad924): ['Module docstring lines 4-10: reads engine SSOT only; never mutates engine truth.', 'Grep for hyperliquid import, place_order, market_open, usd_class_transfer, submit_order, /exchange: 0 matches - no order path exists.' | consolidated from: hermes/apply-route-truth",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-TRUTH-004",
@@ -8832,12 +8982,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "FAIL",
+   "evidence_ref": "certification/results/UI_ROUTE_TRUTH_t_cfcad924.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "",
-   "proof_network": "TESTNET"
+   "notes": "UI route/truth probe on :8023 (card t_cfcad924): ['At-a-glance surface exists only on /live-copy (74,062 bytes server HTML; it contains the JS that builds the status cards, and / and /model at 21,730 bytes do not). Correction to my first draft: the cards are built CLIE | consolidated from: hermes/apply-route-truth",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-TRUTH-005",
@@ -8857,12 +9010,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_ROUTE_TRUTH_t_cfcad924.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "",
-   "proof_network": "TESTNET"
+   "notes": "UI route/truth probe on :8023 (card t_cfcad924): ['PID 15760 runs uvicorn HL_Copy_App_SSOT:app on 127.0.0.1:8023, started 2026-10-19T08:40:25+01:00.', 'Served module mtime 2026-05-13T08:18:03+01:00, sha256 fad19d22... = matrix-declared hash.', 'Process start postdates  | consolidated from: hermes/apply-route-truth",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "LIFE-001",
@@ -9471,12 +9627,15 @@
     "stale remote ref"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/CTRL_probe2_t_967fad56.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "origin/control-mailbox carries a different INVARIANTS.md (A1-A17); see OD-15.",
-   "proof_network": "TESTNET"
+   "notes": "Earned offline by the ACTIVE/CONTROL probe in certification/results/CTRL_probe2_t_967fad56.json (card t_967fad56), bound against the real control-plane modules (envelope.py, push_gate.py) and the durable carrier origin/control-mailbox. Checks: authority_from_fields_not_path. verified/verifier/review | consolidated from: hermes/apply-control-rows",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "CTRL-I2",
@@ -9527,12 +9686,15 @@
     "stale remote ref"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/CTRL_probe2_t_967fad56.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "origin/control-mailbox carries a different INVARIANTS.md (A1-A17); see OD-15.",
-   "proof_network": "TESTNET"
+   "notes": "Earned offline by the ACTIVE/CONTROL probe in certification/results/CTRL_probe2_t_967fad56.json (card t_967fad56), bound against the real control-plane modules (envelope.py, push_gate.py) and the durable carrier origin/control-mailbox. Checks: ruling_recoverable_from_git. verified/verifier/review_re | consolidated from: hermes/apply-control-rows",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "CTRL-I4",
@@ -10168,12 +10330,15 @@
     "stale remote ref"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/CTRL_probe2_t_967fad56.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "",
-   "proof_network": "TESTNET"
+   "notes": "Earned offline by the ACTIVE/CONTROL probe in certification/results/CTRL_probe2_t_967fad56.json (card t_967fad56), bound against the real control-plane modules (envelope.py, push_gate.py) and the durable carrier origin/control-mailbox. Checks: no_gate_truth_from_local_state. verified/verifier/review | consolidated from: hermes/apply-control-rows",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "CTRL-EVID",
@@ -10194,12 +10359,15 @@
     "stale remote ref"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
+   "result": "FAIL",
+   "evidence_ref": "certification/results/CTRL_probe3_t_967fad56.py",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": "",
-   "proof_network": "TESTNET"
+   "notes": "Earned offline by CTRL_probe3_t_967fad56 (card t_967fad56), run against origin/control-mailbox (280 envelopes). handoff_carries_full_evidence_set: of 118 handoff envelopes on origin/control-mailbox, 0 carry all 8 required evidence fields (TASK_ID, COMMIT_SHA, FILES_CHANGED, LOC, TESTS, OUTPUTS, UNCE | consolidated from: hermes/apply-control-rows",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "CTRL-ESC",
@@ -10220,12 +10388,15 @@
     "stale remote ref"
    ],
    "prior_evidence": "G3 one-gate exception: 400 gross additions accepted (CONTROL_STATE scope_budget)",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
+   "result": "FAIL",
+   "evidence_ref": "certification/results/CTRL_probe3_t_967fad56.py",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": "",
-   "proof_network": "TESTNET"
+   "notes": "Earned offline by CTRL_probe3_t_967fad56 (card t_967fad56), run against origin/control-mailbox (280 envelopes). escalation_type_traverses_gate: 7 ESCALATION envelopes exist on the carrier; the gate allowlist admits 1. A tripwire evaluator (LOC/files/process/dependency/send-path/repeat-failure) does  | consolidated from: hermes/apply-control-rows",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "B4-I01",
@@ -16674,12 +16845,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_FP_LCC_redo_t_a7eaf165.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
-   "proof_network": "TESTNET"
+   "notes": "UI capture on the measured :8023 build (card t_a7eaf165, DOM snapshot EVIDENCE/ui_snapshot_8023/). Selector: #lcWalletCount -> value: 4 / 10. Provenance: ['local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv'] | consolidated from: hermes/apply-ui94",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-FP-002",
@@ -16699,12 +16873,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_FP_LCC_redo_t_a7eaf165.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
-   "proof_network": "TESTNET"
+   "notes": "UI capture on the measured :8023 build (card t_a7eaf165, DOM snapshot EVIDENCE/ui_snapshot_8023/). Selector: #lcModeCounts -> value: LIVE 4. Provenance: ['local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv'] | consolidated from: hermes/apply-ui94",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-FP-003",
@@ -16724,12 +16901,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_FP_LCC_redo_t_a7eaf165.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
-   "proof_network": "TESTNET"
+   "notes": "UI capture on the measured :8023 build (card t_a7eaf165, DOM snapshot EVIDENCE/ui_snapshot_8023/). Selector: #lcModeCounts -> value: CLO 0. Provenance: ['local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv'] | consolidated from: hermes/apply-ui94",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-FP-004",
@@ -16749,12 +16929,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_FP_LCC_redo_t_a7eaf165.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
-   "proof_network": "TESTNET"
+   "notes": "UI capture on the measured :8023 build (card t_a7eaf165, DOM snapshot EVIDENCE/ui_snapshot_8023/). Selector: #lcModeCounts -> value: OFF 0. Provenance: ['local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv'] | consolidated from: hermes/apply-ui94",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-FP-005",
@@ -16774,12 +16957,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_FP_LCC_redo_t_a7eaf165.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
-   "proof_network": "TESTNET"
+   "notes": "UI capture on the measured :8023 build (card t_a7eaf165, DOM snapshot EVIDENCE/ui_snapshot_8023/). Selector: #lcAutoSend -> value: OFF. Provenance: ['local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv'] | consolidated from: hermes/apply-ui94",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-FP-006",
@@ -16799,12 +16985,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_FP_LCC_redo_t_a7eaf165.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
-   "proof_network": "TESTNET"
+   "notes": "UI capture on the measured :8023 build (card t_a7eaf165, DOM snapshot EVIDENCE/ui_snapshot_8023/). Selector: #lcWsOverall -> value: WS_OK. Provenance: ['local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv'] | consolidated from: hermes/apply-ui94",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-FP-007",
@@ -16824,12 +17013,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_FP_LCC_redo_t_a7eaf165.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
-   "proof_network": "TESTNET"
+   "notes": "UI capture on the measured :8023 build (card t_a7eaf165, DOM snapshot EVIDENCE/ui_snapshot_8023/). Selector: #lcRealOrders -> value: APP DISABLED. Provenance: ['local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv'] | consolidated from: hermes/apply-ui94",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-FP-008",
@@ -16849,12 +17041,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_FP_LCC_redo_t_a7eaf165.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
-   "proof_network": "TESTNET"
+   "notes": "UI capture on the measured :8023 build (card t_a7eaf165, DOM snapshot EVIDENCE/ui_snapshot_8023/). Selector: .lc-safety-strip .lc-muted -> value: restart required for WS subscription changes. Provenance: ['local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_ | consolidated from: hermes/apply-ui94",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-FP-009",
@@ -16874,12 +17069,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_FP_LCC_redo_t_a7eaf165.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
-   "proof_network": "TESTNET"
+   "notes": "UI capture on the measured :8023 build (card t_a7eaf165, DOM snapshot EVIDENCE/ui_snapshot_8023/). Selector: #lcTruthStatus .lc-stat-strip .lc-stat-card -> value: RED. Provenance: ['local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv'] | consolidated from: hermes/apply-ui94",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-FP-010",
@@ -16899,12 +17097,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_FP_LCC_redo_t_a7eaf165.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
-   "proof_network": "TESTNET"
+   "notes": "UI capture on the measured :8023 build (card t_a7eaf165, DOM snapshot EVIDENCE/ui_snapshot_8023/). Selector: #lcTruthStatus .lc-stat-strip .lc-stat-card -> value: WS_OK. Provenance: ['local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv'] | consolidated from: hermes/apply-ui94",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-FP-011",
@@ -16924,12 +17125,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_FP_LCC_redo_t_a7eaf165.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
-   "proof_network": "TESTNET"
+   "notes": "UI capture on the measured :8023 build (card t_a7eaf165, DOM snapshot EVIDENCE/ui_snapshot_8023/). Selector: #lcTruthStatus .lc-stat-strip .lc-stat-card -> value: COPY_ACCOUNT_POLLED. Provenance: ['local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511 | consolidated from: hermes/apply-ui94",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-FP-012",
@@ -16949,12 +17153,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_FP_LCC_redo_t_a7eaf165.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
-   "proof_network": "TESTNET"
+   "notes": "UI capture on the measured :8023 build (card t_a7eaf165, DOM snapshot EVIDENCE/ui_snapshot_8023/). Selector: #lcTruthStatus .lc-stat-strip .lc-stat-card -> value: ON. Provenance: ['local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv'] | consolidated from: hermes/apply-ui94",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-FP-013",
@@ -16974,12 +17181,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_FP_LCC_redo_t_a7eaf165.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
-   "proof_network": "TESTNET"
+   "notes": "UI capture on the measured :8023 build (card t_a7eaf165, DOM snapshot EVIDENCE/ui_snapshot_8023/). Selector: #lcTruthStatus .lc-stat-strip .lc-stat-card -> value: 4 active / 4 subscribed. Provenance: ['local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_2026 | consolidated from: hermes/apply-ui94",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-FP-014",
@@ -17074,12 +17284,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_FP_LCC_redo_t_a7eaf165.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
-   "proof_network": "TESTNET"
+   "notes": "UI capture on the measured :8023 build (card t_a7eaf165, DOM snapshot EVIDENCE/ui_snapshot_8023/). Selector: #lcTruthStatus .lc-stat-strip .lc-stat-card -> value: —. Provenance: ['local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv'] | consolidated from: hermes/apply-ui94",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-FP-018",
@@ -17349,12 +17562,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: FAIL (visible graph mode exists but _build_live_leader_performance currently emits empty pnl_series)",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "FAIL",
+   "evidence_ref": "certification/results/UI_FP_LCC_redo_t_a7eaf165.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
-   "proof_network": "TESTNET"
+   "notes": "UI capture on the measured :8023 build (card t_a7eaf165, DOM snapshot EVIDENCE/ui_snapshot_8023/). Selector: #lcExchangePath -> value: None. Provenance: ['local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv'] | consolidated from: hermes/apply-ui94",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-FP-029",
@@ -17874,12 +18090,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: FAIL (wallet DD fields render n/a when source series is absent, not UNKNOWN/NOT_PROVEN)",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "FAIL",
+   "evidence_ref": "certification/results/UI_FP_LCC_redo_t_a7eaf165.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
-   "proof_network": "TESTNET"
+   "notes": "UI capture on the measured :8023 build (card t_a7eaf165, DOM snapshot EVIDENCE/ui_snapshot_8023/). Selector: #lcWalletRows tr:nth-child(1) td:nth-child(7) -> value: None. Provenance: ['local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv'] | consolidated from: hermes/apply-ui94",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-FP-050",
@@ -17899,12 +18118,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: FAIL (wallet DD fields render n/a when source series is absent, not UNKNOWN/NOT_PROVEN)",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "FAIL",
+   "evidence_ref": "certification/results/UI_FP_LCC_redo_t_a7eaf165.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
-   "proof_network": "TESTNET"
+   "notes": "UI capture on the measured :8023 build (card t_a7eaf165, DOM snapshot EVIDENCE/ui_snapshot_8023/). Selector: #lcWalletRows tr:nth-child(1) td:nth-child(7) -> value: None. Provenance: ['local-trading/Hyperliquid scanner/_archive/hl_stage2/acceptance_reports/dashboard_field_proof_20260511_124846.csv'] | consolidated from: hermes/apply-ui94",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-FP-051",
@@ -19674,12 +19896,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_FP_batch3_t_t_356f8e3a.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
-   "proof_network": "TESTNET"
+   "notes": "UI-FP captured against the measured serving build on :8023 (serving_commit NOT_A_GIT_CH, SSOT sha256 fad19d220d7af13d). Selector: #lcAuditRows tr:first-child td:nth-child(1) -> value: 2026-10-09T14:48:58.366311+00:00. Engine chain: None.  | consolidated from: hermes/apply-ui-fp3",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-FP-122",
@@ -19699,12 +19924,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_FP_batch3_t_t_356f8e3a.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
-   "proof_network": "TESTNET"
+   "notes": "UI-FP captured against the measured serving build on :8023 (serving_commit NOT_A_GIT_CH, SSOT sha256 fad19d220d7af13d). Selector: #lcAuditRows tr:first-child td:nth-child(2) -> value: 0xf7bfa3a7...acf123. Engine chain: None.  | consolidated from: hermes/apply-ui-fp3",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-FP-123",
@@ -19724,12 +19952,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_FP_batch3_t_t_356f8e3a.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
-   "proof_network": "TESTNET"
+   "notes": "UI-FP captured against the measured serving build on :8023 (serving_commit NOT_A_GIT_CH, SSOT sha256 fad19d220d7af13d). Selector: #lcAuditRows tr:first-child td:nth-child(3) -> value: BTC. Engine chain: None.  | consolidated from: hermes/apply-ui-fp3",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-FP-124",
@@ -19749,12 +19980,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "FAIL",
+   "evidence_ref": "certification/results/UI_FP_batch3_t_t_356f8e3a.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
-   "proof_network": "TESTNET"
+   "notes": "UI-FP captured against the measured serving build on :8023 (serving_commit NOT_A_GIT_CH, SSOT sha256 fad19d220d7af13d). Selector: #lcAuditRows tr:first-child td:nth-child(4) -> value: empty string (renders zero-width; not an em dash). Engine chain: None.  | consolidated from: hermes/apply-ui-fp3",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-FP-125",
@@ -19774,12 +20008,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_FP_batch3_t_t_356f8e3a.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
-   "proof_network": "TESTNET"
+   "notes": "UI-FP captured against the measured serving build on :8023 (serving_commit NOT_A_GIT_CH, SSOT sha256 fad19d220d7af13d). Selector: #lcAuditRows tr:first-child td:nth-child(5) -> value: POLL / max total exposure exceeded. Engine chain: None.  | consolidated from: hermes/apply-ui-fp3",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-FP-126",
@@ -19799,12 +20036,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "FAIL",
+   "evidence_ref": "certification/results/UI_FP_batch3_t_t_356f8e3a.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
-   "proof_network": "TESTNET"
+   "notes": "UI-FP captured against the measured serving build on :8023 (serving_commit NOT_A_GIT_CH, SSOT sha256 fad19d220d7af13d). Selector: #lcAuditRows tr:first-child td:nth-child(6) -> value: — (em-dash placeholder). Engine chain: None.  | consolidated from: hermes/apply-ui-fp3",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-FP-127",
@@ -19824,12 +20064,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "FAIL",
+   "evidence_ref": "certification/results/UI_FP_batch3_t_t_356f8e3a.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
-   "proof_network": "TESTNET"
+   "notes": "UI-FP captured against the measured serving build on :8023 (serving_commit NOT_A_GIT_CH, SSOT sha256 fad19d220d7af13d). Selector: #lcAuditRows tr:first-child td:nth-child(7) -> value: — (em-dash placeholder). Engine chain: None.  | consolidated from: hermes/apply-ui-fp3",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-FP-128",
@@ -19849,12 +20092,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "FAIL",
+   "evidence_ref": "certification/results/UI_FP_batch3_t_t_356f8e3a.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
-   "proof_network": "TESTNET"
+   "notes": "UI-FP captured against the measured serving build on :8023 (serving_commit NOT_A_GIT_CH, SSOT sha256 fad19d220d7af13d). Selector: #lcAuditRows tr:first-child td:nth-child(8) -> value: empty string. Engine chain: None.  | consolidated from: hermes/apply-ui-fp3",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-FP-129",
@@ -19874,12 +20120,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "FAIL",
+   "evidence_ref": "certification/results/UI_FP_batch3_t_t_356f8e3a.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
-   "proof_network": "TESTNET"
+   "notes": "UI-FP captured against the measured serving build on :8023 (serving_commit NOT_A_GIT_CH, SSOT sha256 fad19d220d7af13d). Selector: #lcAuditRows tr:first-child td:nth-child(9) -> value: empty string. Engine chain: None.  | consolidated from: hermes/apply-ui-fp3",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-FP-130",
@@ -19899,12 +20148,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "FAIL",
+   "evidence_ref": "certification/results/UI_FP_batch3_t_t_356f8e3a.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
-   "proof_network": "TESTNET"
+   "notes": "UI-FP captured against the measured serving build on :8023 (serving_commit NOT_A_GIT_CH, SSOT sha256 fad19d220d7af13d). Selector: #lcAuditRows tr:first-child td:nth-child(10) -> value: empty string. Engine chain: None.  | consolidated from: hermes/apply-ui-fp3",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-FP-131",
@@ -19924,12 +20176,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "FAIL",
+   "evidence_ref": "certification/results/UI_FP_batch3_t_t_356f8e3a.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
-   "proof_network": "TESTNET"
+   "notes": "UI-FP captured against the measured serving build on :8023 (serving_commit NOT_A_GIT_CH, SSOT sha256 fad19d220d7af13d). Selector: #lcAuditRows tr:first-child td:nth-child(11) -> value: empty string. Engine chain: None.  | consolidated from: hermes/apply-ui-fp3",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-FP-132",
@@ -19949,12 +20204,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_FP_batch3_t_t_356f8e3a.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
-   "proof_network": "TESTNET"
+   "notes": "UI-FP captured against the measured serving build on :8023 (serving_commit NOT_A_GIT_CH, SSOT sha256 fad19d220d7af13d). Selector: #lcAuditRows tr:first-child td:nth-child(12) -> value: lifecycle=ENTRY. Engine chain: None.  | consolidated from: hermes/apply-ui-fp3",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-FP-133",
@@ -19974,12 +20232,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_FP_batch3_t_t_356f8e3a.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
-   "proof_network": "TESTNET"
+   "notes": "UI-FP captured against the measured serving build on :8023 (serving_commit NOT_A_GIT_CH, SSOT sha256 fad19d220d7af13d). Selector: #lcAuditRows tr:first-child td:nth-child(13) -> value: NO_SEND_ATTEMPT. Engine chain: None.  | consolidated from: hermes/apply-ui-fp3",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-FP-134",
@@ -21770,12 +22031,15 @@
     "concurrent write"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_ROUTE_TRUTH_t_cfcad924.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "",
-   "proof_network": "TESTNET"
+   "notes": "UI route/truth probe on :8023 (card t_cfcad924): GET / -> http://127.0.0.1:8023/, HTTP 200, text/html; charset=utf-8 | consolidated from: hermes/apply-route-truth",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-ROUTE-02",
@@ -21796,12 +22060,15 @@
     "concurrent write"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_ROUTE_TRUTH_t_cfcad924.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "",
-   "proof_network": "TESTNET"
+   "notes": "UI route/truth probe on :8023 (card t_cfcad924): GET /model -> http://127.0.0.1:8023/model, HTTP 200, text/html; charset=utf-8 | consolidated from: hermes/apply-route-truth",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-ROUTE-03",
@@ -21822,12 +22089,15 @@
     "concurrent write"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_ROUTE_TRUTH_t_cfcad924.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "",
-   "proof_network": "TESTNET"
+   "notes": "UI route/truth probe on :8023 (card t_cfcad924): GET /legacy-model -> http://127.0.0.1:8023/legacy-model, HTTP 200, text/html; charset=utf-8 | consolidated from: hermes/apply-route-truth",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-ROUTE-04",
@@ -21848,12 +22118,15 @@
     "concurrent write"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_ROUTE_TRUTH_t_cfcad924.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "",
-   "proof_network": "TESTNET"
+   "notes": "UI route/truth probe on :8023 (card t_cfcad924): GET /api/model-cache-status -> http://127.0.0.1:8023/api/model-cache-status, HTTP 200, application/json | consolidated from: hermes/apply-route-truth",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-ROUTE-05",
@@ -21874,12 +22147,15 @@
     "concurrent write"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_ROUTE_TRUTH_t_cfcad924.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "",
-   "proof_network": "TESTNET"
+   "notes": "UI route/truth probe on :8023 (card t_cfcad924): GET /api/state -> http://127.0.0.1:8023/api/state, HTTP 200, application/json | consolidated from: hermes/apply-route-truth",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-ROUTE-06",
@@ -21900,12 +22176,15 @@
     "concurrent write"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_ROUTE_TRUTH_t_cfcad924.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "",
-   "proof_network": "TESTNET"
+   "notes": "UI route/truth probe on :8023 (card t_cfcad924): GET /api/metrics -> http://127.0.0.1:8023/api/metrics, HTTP 200, application/json | consolidated from: hermes/apply-route-truth",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-ROUTE-07",
@@ -21926,12 +22205,15 @@
     "concurrent write"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_ROUTE_TRUTH_t_cfcad924.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "",
-   "proof_network": "TESTNET"
+   "notes": "UI route/truth probe on :8023 (card t_cfcad924): GET /api/trades/{wallet} -> http://127.0.0.1:8023/api/trades/0x7ae3b08bb4e7b085c6db5d635b96bec9715e9205, HTTP 200, application/json | consolidated from: hermes/apply-route-truth",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-ROUTE-08",
@@ -21952,12 +22234,15 @@
     "concurrent write"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_ROUTE_TRUTH_t_cfcad924.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "",
-   "proof_network": "TESTNET"
+   "notes": "UI route/truth probe on :8023 (card t_cfcad924): GET /api/equity/{wallet} -> http://127.0.0.1:8023/api/equity/0x7ae3b08bb4e7b085c6db5d635b96bec9715e9205, HTTP 200, application/json | consolidated from: hermes/apply-route-truth",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-ROUTE-09",
@@ -22030,12 +22315,15 @@
     "concurrent write"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_ROUTE_TRUTH_t_cfcad924.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "",
-   "proof_network": "TESTNET"
+   "notes": "UI route/truth probe on :8023 (card t_cfcad924): GET /wallet-meta/{wallet} -> http://127.0.0.1:8023/wallet-meta/0x7ae3b08bb4e7b085c6db5d635b96bec9715e9205, HTTP 200, text/html; charset=utf-8 | consolidated from: hermes/apply-route-truth",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-ROUTE-12",
@@ -22108,12 +22396,15 @@
     "concurrent write"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_ROUTE_TRUTH_t_cfcad924.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "",
-   "proof_network": "TESTNET"
+   "notes": "UI route/truth probe on :8023 (card t_cfcad924): GET /wallet/{wallet} -> http://127.0.0.1:8023/wallet/0x7ae3b08bb4e7b085c6db5d635b96bec9715e9205, HTTP 200, text/html; charset=utf-8 | consolidated from: hermes/apply-route-truth",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-ROUTE-15",
@@ -22134,12 +22425,15 @@
     "concurrent write"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_ROUTE_TRUTH_t_cfcad924.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "",
-   "proof_network": "TESTNET"
+   "notes": "UI route/truth probe on :8023 (card t_cfcad924): GET /api/ui-state -> http://127.0.0.1:8023/api/ui-state, HTTP 200, application/json | consolidated from: hermes/apply-route-truth",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-ROUTE-16",
@@ -22316,12 +22610,15 @@
     "concurrent write"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_ROUTE_TRUTH_t_cfcad924.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "",
-   "proof_network": "TESTNET"
+   "notes": "UI route/truth probe on :8023 (card t_cfcad924): GET /sort/{column} -> http://127.0.0.1:8023/sort/wallet, HTTP 200, text/html; charset=utf-8 | consolidated from: hermes/apply-route-truth",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-ROUTE-23",
@@ -22342,12 +22639,15 @@
     "concurrent write"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_ROUTE_TRUTH_t_cfcad924.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "",
-   "proof_network": "TESTNET"
+   "notes": "UI route/truth probe on :8023 (card t_cfcad924): GET /api/live-config -> http://127.0.0.1:8023/api/live-config, HTTP 200, application/json | consolidated from: hermes/apply-route-truth",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-ROUTE-24",
@@ -22368,12 +22668,15 @@
     "concurrent write"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_ROUTE_TRUTH_t_cfcad924.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "",
-   "proof_network": "TESTNET"
+   "notes": "UI route/truth probe on :8023 (card t_cfcad924): GET /live-copy -> http://127.0.0.1:8023/live-copy, HTTP 200, text/html; charset=utf-8 | consolidated from: hermes/apply-route-truth",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-ROUTE-25",
@@ -22394,12 +22697,15 @@
     "concurrent write"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_ROUTE_TRUTH_t_cfcad924.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "",
-   "proof_network": "TESTNET"
+   "notes": "UI route/truth probe on :8023 (card t_cfcad924): GET /live-copy.json -> http://127.0.0.1:8023/live-copy.json, HTTP 200, application/json | consolidated from: hermes/apply-route-truth",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-ROUTE-26",
@@ -22420,12 +22726,15 @@
     "concurrent write"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_ROUTE_TRUTH_t_cfcad924.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "",
-   "proof_network": "TESTNET"
+   "notes": "UI route/truth probe on :8023 (card t_cfcad924): GET /api/live-copy-summary -> http://127.0.0.1:8023/api/live-copy-summary, HTTP 200, application/json | consolidated from: hermes/apply-route-truth",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-ROUTE-27",
@@ -22446,12 +22755,15 @@
     "concurrent write"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_ROUTE_TRUTH_t_cfcad924.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "",
-   "proof_network": "TESTNET"
+   "notes": "UI route/truth probe on :8023 (card t_cfcad924): GET /api/global-controls -> http://127.0.0.1:8023/api/global-controls, HTTP 200, application/json | consolidated from: hermes/apply-route-truth",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-ROUTE-28",
@@ -22498,12 +22810,15 @@
     "concurrent write"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_ROUTE_TRUTH_t_cfcad924.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "",
-   "proof_network": "TESTNET"
+   "notes": "UI route/truth probe on :8023 (card t_cfcad924): GET /api/live-ws-health -> http://127.0.0.1:8023/api/live-ws-health, HTTP 200, application/json | consolidated from: hermes/apply-route-truth",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-ROUTE-30",
@@ -22524,12 +22839,15 @@
     "concurrent write"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_ROUTE_TRUTH_t_cfcad924.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "",
-   "proof_network": "TESTNET"
+   "notes": "UI route/truth probe on :8023 (card t_cfcad924): GET /api/live-audit-summary -> http://127.0.0.1:8023/api/live-audit-summary, HTTP 200, application/json | consolidated from: hermes/apply-route-truth",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-ROUTE-31",

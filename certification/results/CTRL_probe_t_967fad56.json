@@ -1,0 +1,165 @@
+{
+ "card": "t_967fad56",
+ "subjects": {
+  "envelope.py": {
+   "path": "C:\\Users\\wigmore\\.hermes\\state\\projects\\hyperliquid-build3-repair\\lane-artifacts\\minimal_transport\\envelope.py",
+   "sha256": "0cceff3286b2dcbeea7089baf7c782d7e355db7d961412834c330a95aac827cc"
+  },
+  "push_gate.py": {
+   "path": "C:\\Users\\wigmore\\.hermes\\state\\projects\\hyperliquid-build3-repair\\lane-artifacts\\minimal_transport\\push_gate.py",
+   "sha256": "0a45dc8a0f40ee150b838b49ecf4c0f71c3ca0a8956fecae5c188bc5a7974510"
+  },
+  "HL_Live_Copy_Service_Core.py": {
+   "sha256": "9072aa592331424acbf51cdb5b4246408bb282bb15b57e35787c6843890668e4",
+   "note": "engine scanned for control-plane symbols; none present -> CONTROL rows are not engine rows"
+  }
+ },
+ "checks": [
+  {
+   "row": "CTRL-I4",
+   "check": "push_ref_exactness",
+   "verdict": "PASS",
+   "active": "accepted=False reason=WRONG_REF",
+   "control": "accepted=True reason=CONTROL_ENVELOPES_PRESENT n=1",
+   "detail": ""
+  },
+  {
+   "row": "CTRL-I4",
+   "check": "deletion_not_authority",
+   "verdict": "PASS",
+   "active": "accepted=False reason=DELETION_NOT_AUTHORITY",
+   "control": "accepted=True reason=CONTROL_ENVELOPES_PRESENT",
+   "detail": ""
+  },
+  {
+   "row": "CTRL-I4",
+   "check": "wrong_project_no_wake",
+   "verdict": "PASS",
+   "active": "accepted=False reason=WRONG_PROJECT",
+   "control": "accepted=True reason=CONTROL_ENVELOPES_PRESENT",
+   "detail": ""
+  },
+  {
+   "row": "CTRL-I6",
+   "check": "deposit_is_not_consumption",
+   "verdict": "PASS",
+   "active": "file_deposited_only=NEW",
+   "control": "after_consume=REPLAY",
+   "detail": ""
+  },
+  {
+   "row": "CTRL-I7",
+   "check": "duplicate_delivery_no_second_effect",
+   "verdict": "PASS",
+   "active": "applied_effects=1 ledger_records=1",
+   "control": "first=NEW second=REPLAY records=1",
+   "detail": ""
+  },
+  {
+   "row": "CTRL-I7",
+   "check": "identity_collision_fails_closed",
+   "verdict": "PASS",
+   "active": "classify=CONFLICT records=1",
+   "control": "classify=REPLAY records=1",
+   "detail": ""
+  },
+  {
+   "row": "CTRL-I8",
+   "check": "unsupported_type_fails_loudly",
+   "verdict": "PASS",
+   "active": "error=INVALID_TYPE:GOSSIP",
+   "control": "error=None valid_types=['DIRECTIVE', 'STATUS', 'RESULT', 'REQUEST', 'BLOCKER', 'ACK', 'NOTIFICATION']",
+   "detail": ""
+  },
+  {
+   "row": "CTRL-I8",
+   "check": "type_allowlist_not_digest_forgeable",
+   "verdict": "PASS",
+   "active": "error=INVALID_TYPE:GOSSIP",
+   "control": "error=None",
+   "detail": ""
+  },
+  {
+   "row": "CTRL-I18",
+   "check": "tampered_payload_fails_closed",
+   "verdict": "PASS",
+   "active": "error=DIGEST_MISMATCH traversal_is_control=False",
+   "control": "error=None path=control_mailbox/reviewer/20261019T115334Z-MSG-I18.json",
+   "detail": ""
+  },
+  {
+   "row": "CTRL-I18",
+   "check": "malformed_not_json_fails_closed",
+   "verdict": "PASS",
+   "active": "error=NOT_JSON",
+   "control": "error=None",
+   "detail": ""
+  },
+  {
+   "row": "CTRL-I18",
+   "check": "missing_fields_fails_closed",
+   "verdict": "PASS",
+   "active": "error=MISSING_FIELDS",
+   "control": "error=None",
+   "detail": ""
+  },
+  {
+   "row": "CTRL-I18",
+   "check": "bad_directory_rejected",
+   "verdict": "PASS",
+   "active": "directory=evil rejected",
+   "control": "directory=reviewer",
+   "detail": ""
+  },
+  {
+   "row": "CTRL-I2",
+   "check": "role_to_single_canonical_directory",
+   "verdict": "PASS",
+   "active": "collision=False",
+   "control": "mapping={\"gpt:project-architect\": \"architect\", \"gpt:reviewer-controller\": \"reviewer\", \"hermes:implementation-owner\": \"hermes\"}",
+   "detail": ""
+  },
+  {
+   "row": "CTRL-I9",
+   "check": "multi_file_push_deterministic_order",
+   "verdict": "PASS",
+   "active": "order=['20261019T115334Z-MSG-I9-c.json', '20261019T115334Z-MSG-I9-b.json', '20261019T115334Z-MSG-I9-a.json']",
+   "control": "order=['20261019T115334Z-MSG-I9-a.json', '20261019T115334Z-MSG-I9-b.json', '20261019T115334Z-MSG-I9-c.json']",
+   "detail": ""
+  },
+  {
+   "row": "CTRL-I9",
+   "check": "same_message_twice_collapses",
+   "verdict": "PASS",
+   "active": "raw_envelopes=2",
+   "control": "raw=2 deduped=1",
+   "detail": ""
+  },
+  {
+   "row": "CTRL-EVID",
+   "check": "handoff_evidence_completeness",
+   "verdict": "FAIL",
+   "active": "envelopes_missing_evidence=277 e.g. control_mailbox/inbox/2026-10-07T21-07-08Z-B3-A2B-M1.json",
+   "control": "envelopes_carrying_evidence=0 e.g. None",
+   "detail": "tokens=['TASK_ID', 'COMMIT_SHA', 'FILES_CHANGED', 'LOC', 'TESTS', 'OUTPUTS', 'UNCERTAINTY', 'STAND_DOWN_REQUEST'] total_envelopes=280"
+  }
+ ],
+ "failures": [
+  "CTRL-EVID::handoff_evidence_completeness"
+ ],
+ "summary": {
+  "checks": 16,
+  "pass": 15,
+  "fail": 1,
+  "rows_touched": [
+   "CTRL-EVID",
+   "CTRL-I18",
+   "CTRL-I2",
+   "CTRL-I4",
+   "CTRL-I6",
+   "CTRL-I7",
+   "CTRL-I8",
+   "CTRL-I9"
+  ]
+ }
+}

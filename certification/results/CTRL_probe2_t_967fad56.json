@@ -1,0 +1,171 @@
+{
+ "card": "t_967fad56",
+ "part": 2,
+ "checks": [
+  {
+   "row": "CTRL-I1",
+   "check": "authority_from_fields_not_path",
+   "verdict": "PASS",
+   "active": "path_dir=reviewer field_target=gpt:project-architect routed=architect",
+   "control": "identical bytes keep target=gpt:project-architect source=hermes:implementation-owner",
+   "detail": "reviewer_path=control_mailbox/reviewer/20261019T115945Z-MSG-I1.json field_path=control_mailbox/architect/20261019T115945Z-MSG-I1.json"
+  },
+  {
+   "row": "CTRL-I3",
+   "check": "ruling_recoverable_from_git",
+   "verdict": "PASS",
+   "active": "carrier_only message_id=B3-C2A-GATE0-PASS-1 commit=b3bfb7dfc2da resolves=True",
+   "control": "fabricated_commit=000000000000 resolves=False",
+   "detail": "envelope=control_mailbox/inbox/2026-10-07T21-20-00Z-B3-C2A-GATE0-PASS-1.json"
+  },
+  {
+   "row": "CTRL-HWM",
+   "check": "no_gate_truth_from_local_state",
+   "verdict": "PASS",
+   "active": "bait consumer flagged at lines [4] (scanner is live)",
+   "control": "py files scanned=114, actual readers of CONTROL_STATE.json=0, offenders={}",
+   "detail": ""
+  },
+  {
+   "row": "CTRL-BIND",
+   "check": "cannot_bind_offline",
+   "verdict": "NOT_TESTED",
+   "active": "NOT_TESTED: row applicability is OPEN_DECISION (OD-03 controller_uuid_dispute); an open decision cannot be certified",
+   "control": "n/a",
+   "detail": ""
+  },
+  {
+   "row": "CTRL-ESC",
+   "check": "cannot_bind_offline",
+   "verdict": "NOT_TESTED",
+   "active": "NOT_TESTED: census found no ARCHITECT_REVIEW_REQUIRED / tripwire evaluation in the certified tree; escalation is a protocol duty with no executable control",
+   "control": "n/a",
+   "detail": ""
+  },
+  {
+   "row": "CTRL-GATE0",
+   "check": "cannot_bind_offline",
+   "verdict": "NOT_TESTED",
+   "active": "NOT_TESTED: requires a real provider PUSH event on refs/heads/control-mailbox plus a correlated wake/consumption receipt; not synthesizable offline",
+   "control": "n/a",
+   "detail": ""
+  },
+  {
+   "row": "CTRL-I10",
+   "check": "cannot_bind_offline",
+   "verdict": "NOT_TESTED",
+   "active": "NOT_TESTED: BUSY/progress detection is a controller-side liveness duty",
+   "control": "n/a",
+   "detail": ""
+  },
+  {
+   "row": "CTRL-I11",
+   "check": "cannot_bind_offline",
+   "verdict": "NOT_TESTED",
+   "active": "NOT_TESTED: stand-down lifecycle is an agent protocol duty",
+   "control": "n/a",
+   "detail": ""
+  },
+  {
+   "row": "CTRL-I12",
+   "check": "cannot_bind_offline",
+   "verdict": "NOT_TESTED",
+   "active": "NOT_TESTED: awaiting-ruling restart persistence is harness state",
+   "control": "n/a",
+   "detail": ""
+  },
+  {
+   "row": "CTRL-I13",
+   "check": "cannot_bind_offline",
+   "verdict": "NOT_TESTED",
+   "active": "NOT_TESTED: gate-PASS architect wake is a harness/transport duty",
+   "control": "n/a",
+   "detail": ""
+  },
+  {
+   "row": "CTRL-I14",
+   "check": "cannot_bind_offline",
+   "verdict": "NOT_TESTED",
+   "active": "NOT_TESTED: controller-closes-tasks is an authority rule",
+   "control": "n/a",
+   "detail": ""
+  },
+  {
+   "row": "CTRL-I15",
+   "check": "cannot_bind_offline",
+   "verdict": "NOT_TESTED",
+   "active": "NOT_TESTED: commit-before-review is a handoff duty, verifiable only against a live handoff",
+   "control": "n/a",
+   "detail": ""
+  },
+  {
+   "row": "CTRL-I16",
+   "check": "cannot_bind_offline",
+   "verdict": "NOT_TESTED",
+   "active": "NOT_TESTED: graphify freshness is checked by an external tool not in this repository",
+   "control": "n/a",
+   "detail": ""
+  },
+  {
+   "row": "CTRL-I17",
+   "check": "cannot_bind_offline",
+   "verdict": "NOT_TESTED",
+   "active": "NOT_TESTED: one-writer is an authority rule",
+   "control": "n/a",
+   "detail": ""
+  },
+  {
+   "row": "CTRL-I19",
+   "check": "cannot_bind_offline",
+   "verdict": "NOT_TESTED",
+   "active": "NOT_TESTED: EVENT_INGRESS health flag is produced by the live ingress",
+   "control": "n/a",
+   "detail": ""
+  },
+  {
+   "row": "CTRL-I20",
+   "check": "cannot_bind_offline",
+   "verdict": "NOT_TESTED",
+   "active": "NOT_TESTED: live provider push proof requires a real delivery event",
+   "control": "n/a",
+   "detail": ""
+  },
+  {
+   "row": "CTRL-I21",
+   "check": "cannot_bind_offline",
+   "verdict": "NOT_TESTED",
+   "active": "NOT_TESTED: blocker-admission rules are review duties",
+   "control": "n/a",
+   "detail": ""
+  },
+  {
+   "row": "CTRL-I22",
+   "check": "cannot_bind_offline",
+   "verdict": "NOT_TESTED",
+   "active": "NOT_TESTED: notification-is-not-authority holds by absence of any notification path; absence alone is not a positive control",
+   "control": "n/a",
+   "detail": ""
+  },
+  {
+   "row": "CTRL-I23",
+   "check": "cannot_bind_offline",
+   "verdict": "NOT_TESTED",
+   "active": "NOT_TESTED: model/provider routing is a binding-registry field",
+   "control": "n/a",
+   "detail": ""
+  },
+  {
+   "row": "CTRL-I5",
+   "check": "cannot_bind_offline",
+   "verdict": "NOT_TESTED",
+   "active": "NOT_TESTED: remote-ref absence proof lives in the consumer fetch path, which is not in this repository",
+   "control": "n/a",
+   "detail": ""
+  }
+ ],
+ "failures": [],
+ "subjects": {
+  "envelope.py": "c7bb6a02aca7dc7057d96984065252abbdf156ae28695a8915cf80b49b4c2fab",
+  "push_gate.py": "7f5e24e3374e8e6611bb2e8fb05d81b205e0db7fc034161ba4c2814393dd91ce"
+ }
+}
