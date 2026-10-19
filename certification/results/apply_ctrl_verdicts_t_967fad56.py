@@ -25,7 +25,7 @@ SUBJECTS = ("envelope.py sha256 0cceff3286b2dcbeea7089baf7c782d7e355db7d96141283
 
 PASS_ROWS = {
     "CTRL-I1": (P2, "CTRL-I1::authority_from_fields_not_path",
-                "authority comes from envelope FROM/TO fields: bytes filed under control_mailbox/reviewer/ still resolve to the architect target, and identical bytes on any surface keep the same source/target/digest"),
+                "authority comes from envelope FROM/TO fields: bytes filed under control_mailbox/reviewer/ still resolve to the architect target, and identical bytes on any surface keep the same source/target/digest. Scope limit: this binds the routing rule in the transport, not the full authority chain (operator -> architect -> controller -> owner), which has no executable representation here"),
     "CTRL-I2": (P1, "CTRL-I2::role_to_single_canonical_directory",
                 "hermes/reviewer/architect resolve to three distinct canonical directories"),
     "CTRL-I3": (P2, "CTRL-I3::ruling_recoverable_from_git",
@@ -43,7 +43,7 @@ PASS_ROWS = {
     "CTRL-I18": (P1, "CTRL-I18::tampered_payload_fails_closed + malformed_not_json + missing_fields + bad_directory",
                  "tampered payload, path traversal, non-JSON, missing fields and a non-allowlisted directory all fail closed"),
     "CTRL-HWM": (P2, "CTRL-HWM::no_gate_truth_from_local_state",
-                 "the reader-detector is live on a bait consumer and finds 0 actual readers of a local CONTROL_STATE.json among 114 tracked .py files"),
+                 "the reader-detector is live on a bait consumer and finds 0 actual readers of a local CONTROL_STATE.json among the 114 tracked .py files. Scope limit: the scan is static and Python-only; a non-Python consumer (shell, PowerShell, plugin) is not covered by this check"),
 }
 
 FAIL_ROWS = {
