@@ -53,7 +53,7 @@
     },
     "_archive/hl_stage2/HL_Live_Copy_Service_Core.py": {
       "exchange_order_sites": [
-        {"line": 4204, "col": 19, "receiver": "exchange"}
+        {"line": 2703, "col": 19, "receiver": "exchange"}
       ],
       "unapproved_third_party_imports": [],
       "build4_imports": [],
@@ -79,5 +79,5 @@
     "no_persistent_store": true
   },
   "eng_inv_06_verdict": "FAIL",
-  "verdict_reason": "FAIL: single_order_call_site=false — two reachable production exchange.order() call sites found across the five engine files (HL_Live_Copy_Service.py:1036 and HL_Live_Copy_Service_Core.py:4204). This confirms the ENG-INV-02 two-site census and disproves the one-file census artifact (ENG-INV-06-09_43731b4.json) which scanned only one file and reported single_order_call_site=true."
+  "verdict_reason": "FAIL: single_order_call_site=false — two reachable production exchange.order() call sites found across the five engine files (HL_Live_Copy_Service.py:1036 and HL_Live_Copy_Service_Core.py:2703). This confirms the ENG-INV-02 two-site census and disproves the one-file census artifact (ENG-INV-06-09_43731b4.json) which scanned only one file and reported single_order_call_site=true."
 }
