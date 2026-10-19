@@ -1,0 +1,166 @@
+{
+  "artifact": "UI_LCC_ADD_01_02_03_04_05_10_isolated_t_59fd560c.json",
+  "task": "t_59fd560c",
+  "generated_at_utc": "2026-10-19T02:30:26Z",
+  "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+  "branch_under_test": "re-earn-ui-lcc-89b3bc75",
+  "branch_head_at_test": "c634df6b6dc084b15214a0bd7e54770cdeb184d8",
+  "process_rule": {
+    "rule": "tested commit predates the isolated process start",
+    "tested_commit_committed_at": "2026-10-17T07:18:14Z",
+    "isolated_process_start_utc": "2026-10-19T02:28:25Z",
+    "isolated_process_pid": 38096,
+    "isolated_process_port": 8101,
+    "satisfied": true
+  },
+  "isolated_instance": {
+    "url": "http://127.0.0.1:8101",
+    "audit_dir": "C:\\Users\\wigmore\\.hermes\\kanban\\workspaces\\t_59fd560c\\iso_final3",
+    "env_file": "C:\\Users\\wigmore\\.hermes\\kanban\\workspaces\\t_59fd560c\\iso_final3.env",
+    "env": {
+      "HL_LEADER_NETWORK": "mainnet",
+      "HL_FOLLOWER_NETWORK": "testnet",
+      "HL_APP_PORT": "8101",
+      "HL_LIVE_ENV_FILE": "C:\\Users\\wigmore\\.hermes\\kanban\\workspaces\\t_59fd560c\\iso_final3.env"
+    },
+    "module": "HL_Copy_App_SSOT.py at tested commit 89b3bc7 (worktree repo_89b3)",
+    "isolation_mechanism": "HL_LIVE_AUDIT_DIR + HL_APP_PORT supplied via HL_LIVE_ENV_FILE, no code change"
+  },
+  "serving_instance": {
+    "url": "http://127.0.0.1:8031",
+    "pid": 41124,
+    "policy": "never POSTed to, never written"
+  },
+  "isolation_proof": {
+    "serve_8031_sha_before": "40c95a9ea0ec17d4201fd04a102f20e7e23ba0a6b81a66b9ac341ed2aa7bc4d3",
+    "serve_8031_sha_after": "40c95a9ea0ec17d4201fd04a102f20e7e23ba0a6b81a66b9ac341ed2aa7bc4d3",
+    "serve_8031_identical": true,
+    "serve_8031_wallets_unchanged": true,
+    "requests_to_8031": [],
+    "probe_targets": [
+      "http://127.0.0.1:8101"
+    ]
+  },
+  "iso_config_sha_before_all": "ABSENT",
+  "iso_config_sha_after_all": "b0ee9a66aa36508456e5d99464d9ce1370811afa92ada7ee54ec18ef90584a26",
+  "iso_final_config": {
+    "archived_wallets": {},
+    "global_controls": {
+      "marketable_bps": 20.0,
+      "max_asset_directional_exposure_usd": 0.0,
+      "max_close_adverse_diff_pct": 0.0,
+      "max_daily_loss_usd": 0.0,
+      "max_order_notional_usd": 0.0,
+      "max_total_live_exposure_usd": 0.0,
+      "max_wallet_exposure_usd": 0.0,
+      "symbol_allowlist": [],
+      "symbol_blocklist": []
+    },
+    "wallets": {
+      "0xa01a01a01a01a01a01a01a01a01a01a01a01a01a": {
+        "copy_mode": "fixed",
+        "enabled": true,
+        "fixed_notional": 10.0,
+        "mode": "LIVE",
+        "norm_base": 100.0
+      },
+      "0xb02b02b02b02b02b02b02b02b02b02b02b02b02b": {
+        "copy_mode": "fixed",
+        "enabled": true,
+        "fixed_notional": 10.0,
+        "mode": "CLO",
+        "norm_base": 100.0
+      },
+      "0xbad0bad0bad0bad0bad0bad0bad0bad0bad0bad0": {
+        "copy_mode": "proportional",
+        "enabled": true,
+        "fixed_notional": 55.0,
+        "mode": "CLO",
+        "norm_base": 100
+      },
+      "0xc03c03c03c03c03c03c03c03c03c03c03c03c03c": {
+        "copy_mode": "proportional",
+        "enabled": true,
+        "fixed_notional": 10.0,
+        "mode": "LIVE",
+        "norm_base": 100.0
+      },
+      "0xd04d04d04d04d04d04d04d04d04d04d04d04d04d": {
+        "copy_mode": "fixed",
+        "enabled": true,
+        "fixed_notional": 10.0,
+        "mode": "LIVE",
+        "norm_base": 213.5
+      },
+      "0xe05e05e05e05e05e05e05e05e05e05e05e05e05e": {
+        "copy_mode": "fixed",
+        "enabled": true,
+        "fixed_notional": 73.25,
+        "mode": "LIVE",
+        "norm_base": 100.0
+      },
+      "0xf10f10f10f10f10f10f10f10f10f10f10f10f10f": {
+        "copy_mode": "proportional",
+        "enabled": true,
+        "fixed_notional": 55.0,
+        "mode": "CLO",
+        "norm_base": 250.0
+      }
+    }
+  },
+  "row_count": 6,
+  "verdict_counts": {
+    "PASS": 6,
+    "FAIL": 0
+  },
+  "secondary_finding": {
+    "row": "UI-LCC-ADD-10",
+    "finding": "NON_NUMERIC_NORM_BASE_SILENTLY_COERCED",
+    "detail": "submitting norm_base=abc returns 200 and persists norm_base=100 instead of raising a visible error",
+    "row_verdict_impact": "none - the row requirement (a persisting submit AND a visible validation error for invalid input) is met by the BAD_WALLET path"
+  },
+  "rows": [
+    {
+      "row_id": "UI-LCC-ADD-01",
+      "verdict": "PASS",
+      "probe": "POST /api/live-config/add-wallet against isolated instance http://127.0.0.1:8101, row UI-LCC-ADD-01",
+      "why": "Row-specific probe: POST /api/live-config/add-wallet with ONLY wallet moved off the modal default (value=0xa01a01a01a01a01a01a01a01a01a01a01a01a01a; sibling controls held at defaults {\"copy_mode\": \"fixed\", \"fixed_notional\": \"10\", \"mode\": \"LIVE\", \"norm_base\": \"100\"}). Persisted entry 0xa01a01a01a01a01a01a01a01a01a01a01a01a01a shows wallet='0xa01a01a01a01a01a01a01a01a01a01a01a01a01a' (expected '0xa01a01a01a01a01a01a01a01a01a01a01a01a01a'); config sha ABSENT -> 31d5bb415336. This assertion would FAIL for any sibling row because each sibling keeps wallet at its default and writes a different wallet key."
+    },
+    {
+      "row_id": "UI-LCC-ADD-02",
+      "verdict": "PASS",
+      "probe": "POST /api/live-config/add-wallet against isolated instance http://127.0.0.1:8101, row UI-LCC-ADD-02",
+      "why": "Row-specific probe: POST /api/live-config/add-wallet with ONLY mode moved off the modal default (value=CLO; sibling controls held at defaults {\"copy_mode\": \"fixed\", \"fixed_notional\": \"10\", \"norm_base\": \"100\", \"wallet\": \"0xb02b02b02b02b02b02b02b02b02b02b02b02b02b\"}). Persisted entry 0xb02b02b02b02b02b02b02b02b02b02b02b02b02b shows mode='CLO' (expected 'CLO'); config sha 31d5bb415336 -> ef40dabd0b5a. This assertion would FAIL for any sibling row because each sibling keeps mode at its default and writes a different wallet key."
+    },
+    {
+      "row_id": "UI-LCC-ADD-03",
+      "verdict": "PASS",
+      "probe": "POST /api/live-config/add-wallet against isolated instance http://127.0.0.1:8101, row UI-LCC-ADD-03",
+      "why": "Row-specific probe: POST /api/live-config/add-wallet with ONLY copy_mode moved off the modal default (value=proportional; sibling controls held at defaults {\"fixed_notional\": \"10\", \"mode\": \"LIVE\", \"norm_base\": \"100\", \"wallet\": \"0xc03c03c03c03c03c03c03c03c03c03c03c03c03c\"}). Persisted entry 0xc03c03c03c03c03c03c03c03c03c03c03c03c03c shows copy_mode='proportional' (expected 'proportional'); config sha ef40dabd0b5a -> e1e1667f5747. This assertion would FAIL for any sibling row because each sibling keeps copy_mode at its default and writes a different wallet key."
+    },
+    {
+      "row_id": "UI-LCC-ADD-04",
+      "verdict": "PASS",
+      "probe": "POST /api/live-config/add-wallet against isolated instance http://127.0.0.1:8101, row UI-LCC-ADD-04",
+      "why": "Row-specific probe: POST /api/live-config/add-wallet with ONLY norm_base moved off the modal default (value=213.5; sibling controls held at defaults {\"copy_mode\": \"fixed\", \"fixed_notional\": \"10\", \"mode\": \"LIVE\", \"wallet\": \"0xd04d04d04d04d04d04d04d04d04d04d04d04d04d\"}). Persisted entry 0xd04d04d04d04d04d04d04d04d04d04d04d04d04d shows norm_base=213.5 (expected 213.5); config sha e1e1667f5747 -> 1fbb18daa1c8. This assertion would FAIL for any sibling row because each sibling keeps norm_base at its default and writes a different wallet key."
+    },
+    {
+      "row_id": "UI-LCC-ADD-05",
+      "verdict": "PASS",
+      "probe": "POST /api/live-config/add-wallet against isolated instance http://127.0.0.1:8101, row UI-LCC-ADD-05",
+      "why": "Row-specific probe: POST /api/live-config/add-wallet with ONLY fixed_notional moved off the modal default (value=73.25; sibling controls held at defaults {\"copy_mode\": \"fixed\", \"mode\": \"LIVE\", \"norm_base\": \"100\", \"wallet\": \"0xe05e05e05e05e05e05e05e05e05e05e05e05e05e\"}). Persisted entry 0xe05e05e05e05e05e05e05e05e05e05e05e05e05e shows fixed_notional=73.25 (expected 73.25); config sha 1fbb18daa1c8 -> 615e4b59c7dc. This assertion would FAIL for any sibling row because each sibling keeps fixed_notional at its default and writes a different wallet key."
+    },
+    {
+      "row_id": "UI-LCC-ADD-10",
+      "verdict": "PASS",
+      "probe": "Playwright submit of #lcAddForm on isolated http://127.0.0.1:8101: one valid, one malformed address, one non-numeric norm_base",
+      "why": "Add-wallet submit through the real #lcAddForm on the isolated instance persisted a NEW wallet 0xf10f10f10f10f10f10f10f10f10f10f10f10f10f with distinct values mode=CLO, copy_mode=proportional, norm_base=250.0, fixed_notional=55.0 (config sha 615e4b59c7dc -> b3633a6b9ec1, wallet count 5 -> 6), and an invalid input was rejected with the visible error text 'BAD_WALLET' in class 'lc-status lc-bad' with the config file byte-identical (True). Secondary finding: a non-numeric norm_base (abc) is NOT rejected - it is silently coerced to 100."
+    }
+  ],
+  "raw_evidence": "certification/results/UI_LCC_ADD_rows_isolated_t_59fd560c.raw.json",
+  "screenshots": [
+    "add10_submit_ok.png",
+    "add10_bad_wallet.png",
+    "add10_nonnum.png"
+  ]
+}

@@ -1,0 +1,688 @@
+{
+  "artifact": "UI_LCC_ADD_rows_isolated_t_59fd560c.json",
+  "generated_at_utc": "2026-10-19T02:29:04Z",
+  "isolated_instance": {
+    "url": "http://127.0.0.1:8101",
+    "audit_dir": "C:\\Users\\wigmore\\.hermes\\kanban\\workspaces\\t_59fd560c\\iso_final3",
+    "env_file": "C:\\Users\\wigmore\\.hermes\\kanban\\workspaces\\t_59fd560c\\iso_final3.env"
+  },
+  "serving_instance": {
+    "url": "http://127.0.0.1:8031",
+    "pid": 41124,
+    "policy": "never POSTed to"
+  },
+  "rows": [
+    {
+      "row_id": "UI-LCC-ADD-01",
+      "probe": "POST /api/live-config/add-wallet against isolated instance http://127.0.0.1:8101, row UI-LCC-ADD-01",
+      "field_under_test": "wallet",
+      "value_under_test": "0xa01a01a01a01a01a01a01a01a01a01a01a01a01a",
+      "sibling_control_values": {
+        "mode": "LIVE",
+        "copy_mode": "fixed",
+        "norm_base": "100",
+        "fixed_notional": "10"
+      },
+      "posted_payload": {
+        "mode": "LIVE",
+        "copy_mode": "fixed",
+        "norm_base": "100",
+        "fixed_notional": "10",
+        "wallet": "0xa01a01a01a01a01a01a01a01a01a01a01a01a01a"
+      },
+      "http_status": 200,
+      "iso_config_sha_before": "ABSENT",
+      "iso_config_sha_after": "31d5bb415336f3151e52d08da3c65b3eb37ccd257218e8e323ff6f77f9a46d2e",
+      "wallets_before": [],
+      "wallets_after": [
+        "0xa01a01a01a01a01a01a01a01a01a01a01a01a01a"
+      ],
+      "persisted_entry": {
+        "copy_mode": "fixed",
+        "enabled": true,
+        "fixed_notional": 10.0,
+        "mode": "LIVE",
+        "norm_base": 100.0
+      },
+      "persisted_value_of_this_field": "0xa01a01a01a01a01a01a01a01a01a01a01a01a01a",
+      "expected_persisted_value": "0xa01a01a01a01a01a01a01a01a01a01a01a01a01a",
+      "sibling_controls_persisted_correctly": true,
+      "iso_config_after_row": {
+        "archived_wallets": {},
+        "global_controls": {
+          "marketable_bps": 20.0,
+          "max_asset_directional_exposure_usd": 0.0,
+          "max_close_adverse_diff_pct": 0.0,
+          "max_daily_loss_usd": 0.0,
+          "max_order_notional_usd": 0.0,
+          "max_total_live_exposure_usd": 0.0,
+          "max_wallet_exposure_usd": 0.0,
+          "symbol_allowlist": [],
+          "symbol_blocklist": []
+        },
+        "wallets": {
+          "0xa01a01a01a01a01a01a01a01a01a01a01a01a01a": {
+            "copy_mode": "fixed",
+            "enabled": true,
+            "fixed_notional": 10.0,
+            "mode": "LIVE",
+            "norm_base": 100.0
+          }
+        }
+      },
+      "verdict": "PASS"
+    },
+    {
+      "row_id": "UI-LCC-ADD-02",
+      "probe": "POST /api/live-config/add-wallet against isolated instance http://127.0.0.1:8101, row UI-LCC-ADD-02",
+      "field_under_test": "mode",
+      "value_under_test": "CLO",
+      "sibling_control_values": {
+        "copy_mode": "fixed",
+        "norm_base": "100",
+        "fixed_notional": "10",
+        "wallet": "0xb02b02b02b02b02b02b02b02b02b02b02b02b02b"
+      },
+      "posted_payload": {
+        "mode": "CLO",
+        "copy_mode": "fixed",
+        "norm_base": "100",
+        "fixed_notional": "10",
+        "wallet": "0xb02b02b02b02b02b02b02b02b02b02b02b02b02b"
+      },
+      "http_status": 200,
+      "iso_config_sha_before": "31d5bb415336f3151e52d08da3c65b3eb37ccd257218e8e323ff6f77f9a46d2e",
+      "iso_config_sha_after": "ef40dabd0b5a089781b28e5ce7ec7c5ab67f58520f779cc3c4ae67b91c83b994",
+      "wallets_before": [
+        "0xa01a01a01a01a01a01a01a01a01a01a01a01a01a"
+      ],
+      "wallets_after": [
+        "0xa01a01a01a01a01a01a01a01a01a01a01a01a01a",
+        "0xb02b02b02b02b02b02b02b02b02b02b02b02b02b"
+      ],
+      "persisted_entry": {
+        "copy_mode": "fixed",
+        "enabled": true,
+        "fixed_notional": 10.0,
+        "mode": "CLO",
+        "norm_base": 100.0
+      },
+      "persisted_value_of_this_field": "CLO",
+      "expected_persisted_value": "CLO",
+      "sibling_controls_persisted_correctly": true,
+      "iso_config_after_row": {
+        "archived_wallets": {},
+        "global_controls": {
+          "marketable_bps": 20.0,
+          "max_asset_directional_exposure_usd": 0.0,
+          "max_close_adverse_diff_pct": 0.0,
+          "max_daily_loss_usd": 0.0,
+          "max_order_notional_usd": 0.0,
+          "max_total_live_exposure_usd": 0.0,
+          "max_wallet_exposure_usd": 0.0,
+          "symbol_allowlist": [],
+          "symbol_blocklist": []
+        },
+        "wallets": {
+          "0xa01a01a01a01a01a01a01a01a01a01a01a01a01a": {
+            "copy_mode": "fixed",
+            "enabled": true,
+            "fixed_notional": 10.0,
+            "mode": "LIVE",
+            "norm_base": 100.0
+          },
+          "0xb02b02b02b02b02b02b02b02b02b02b02b02b02b": {
+            "copy_mode": "fixed",
+            "enabled": true,
+            "fixed_notional": 10.0,
+            "mode": "CLO",
+            "norm_base": 100.0
+          }
+        }
+      },
+      "verdict": "PASS"
+    },
+    {
+      "row_id": "UI-LCC-ADD-03",
+      "probe": "POST /api/live-config/add-wallet against isolated instance http://127.0.0.1:8101, row UI-LCC-ADD-03",
+      "field_under_test": "copy_mode",
+      "value_under_test": "proportional",
+      "sibling_control_values": {
+        "mode": "LIVE",
+        "norm_base": "100",
+        "fixed_notional": "10",
+        "wallet": "0xc03c03c03c03c03c03c03c03c03c03c03c03c03c"
+      },
+      "posted_payload": {
+        "mode": "LIVE",
+        "copy_mode": "proportional",
+        "norm_base": "100",
+        "fixed_notional": "10",
+        "wallet": "0xc03c03c03c03c03c03c03c03c03c03c03c03c03c"
+      },
+      "http_status": 200,
+      "iso_config_sha_before": "ef40dabd0b5a089781b28e5ce7ec7c5ab67f58520f779cc3c4ae67b91c83b994",
+      "iso_config_sha_after": "e1e1667f57475adcaf802ceaa15aac47275d2bdda6d5e84883a87c6a7c900d3e",
+      "wallets_before": [
+        "0xa01a01a01a01a01a01a01a01a01a01a01a01a01a",
+        "0xb02b02b02b02b02b02b02b02b02b02b02b02b02b"
+      ],
+      "wallets_after": [
+        "0xa01a01a01a01a01a01a01a01a01a01a01a01a01a",
+        "0xb02b02b02b02b02b02b02b02b02b02b02b02b02b",
+        "0xc03c03c03c03c03c03c03c03c03c03c03c03c03c"
+      ],
+      "persisted_entry": {
+        "copy_mode": "proportional",
+        "enabled": true,
+        "fixed_notional": 10.0,
+        "mode": "LIVE",
+        "norm_base": 100.0
+      },
+      "persisted_value_of_this_field": "proportional",
+      "expected_persisted_value": "proportional",
+      "sibling_controls_persisted_correctly": true,
+      "iso_config_after_row": {
+        "archived_wallets": {},
+        "global_controls": {
+          "marketable_bps": 20.0,
+          "max_asset_directional_exposure_usd": 0.0,
+          "max_close_adverse_diff_pct": 0.0,
+          "max_daily_loss_usd": 0.0,
+          "max_order_notional_usd": 0.0,
+          "max_total_live_exposure_usd": 0.0,
+          "max_wallet_exposure_usd": 0.0,
+          "symbol_allowlist": [],
+          "symbol_blocklist": []
+        },
+        "wallets": {
+          "0xa01a01a01a01a01a01a01a01a01a01a01a01a01a": {
+            "copy_mode": "fixed",
+            "enabled": true,
+            "fixed_notional": 10.0,
+            "mode": "LIVE",
+            "norm_base": 100.0
+          },
+          "0xb02b02b02b02b02b02b02b02b02b02b02b02b02b": {
+            "copy_mode": "fixed",
+            "enabled": true,
+            "fixed_notional": 10.0,
+            "mode": "CLO",
+            "norm_base": 100.0
+          },
+          "0xc03c03c03c03c03c03c03c03c03c03c03c03c03c": {
+            "copy_mode": "proportional",
+            "enabled": true,
+            "fixed_notional": 10.0,
+            "mode": "LIVE",
+            "norm_base": 100.0
+          }
+        }
+      },
+      "verdict": "PASS"
+    },
+    {
+      "row_id": "UI-LCC-ADD-04",
+      "probe": "POST /api/live-config/add-wallet against isolated instance http://127.0.0.1:8101, row UI-LCC-ADD-04",
+      "field_under_test": "norm_base",
+      "value_under_test": "213.5",
+      "sibling_control_values": {
+        "mode": "LIVE",
+        "copy_mode": "fixed",
+        "fixed_notional": "10",
+        "wallet": "0xd04d04d04d04d04d04d04d04d04d04d04d04d04d"
+      },
+      "posted_payload": {
+        "mode": "LIVE",
+        "copy_mode": "fixed",
+        "norm_base": "213.5",
+        "fixed_notional": "10",
+        "wallet": "0xd04d04d04d04d04d04d04d04d04d04d04d04d04d"
+      },
+      "http_status": 200,
+      "iso_config_sha_before": "e1e1667f57475adcaf802ceaa15aac47275d2bdda6d5e84883a87c6a7c900d3e",
+      "iso_config_sha_after": "1fbb18daa1c8cdb4ea67cf9f36654ff669d6eb19ed0496fb32fd283877a717d7",
+      "wallets_before": [
+        "0xa01a01a01a01a01a01a01a01a01a01a01a01a01a",
+        "0xb02b02b02b02b02b02b02b02b02b02b02b02b02b",
+        "0xc03c03c03c03c03c03c03c03c03c03c03c03c03c"
+      ],
+      "wallets_after": [
+        "0xa01a01a01a01a01a01a01a01a01a01a01a01a01a",
+        "0xb02b02b02b02b02b02b02b02b02b02b02b02b02b",
+        "0xc03c03c03c03c03c03c03c03c03c03c03c03c03c",
+        "0xd04d04d04d04d04d04d04d04d04d04d04d04d04d"
+      ],
+      "persisted_entry": {
+        "copy_mode": "fixed",
+        "enabled": true,
+        "fixed_notional": 10.0,
+        "mode": "LIVE",
+        "norm_base": 213.5
+      },
+      "persisted_value_of_this_field": 213.5,
+      "expected_persisted_value": 213.5,
+      "sibling_controls_persisted_correctly": true,
+      "iso_config_after_row": {
+        "archived_wallets": {},
+        "global_controls": {
+          "marketable_bps": 20.0,
+          "max_asset_directional_exposure_usd": 0.0,
+          "max_close_adverse_diff_pct": 0.0,
+          "max_daily_loss_usd": 0.0,
+          "max_order_notional_usd": 0.0,
+          "max_total_live_exposure_usd": 0.0,
+          "max_wallet_exposure_usd": 0.0,
+          "symbol_allowlist": [],
+          "symbol_blocklist": []
+        },
+        "wallets": {
+          "0xa01a01a01a01a01a01a01a01a01a01a01a01a01a": {
+            "copy_mode": "fixed",
+            "enabled": true,
+            "fixed_notional": 10.0,
+            "mode": "LIVE",
+            "norm_base": 100.0
+          },
+          "0xb02b02b02b02b02b02b02b02b02b02b02b02b02b": {
+            "copy_mode": "fixed",
+            "enabled": true,
+            "fixed_notional": 10.0,
+            "mode": "CLO",
+            "norm_base": 100.0
+          },
+          "0xc03c03c03c03c03c03c03c03c03c03c03c03c03c": {
+            "copy_mode": "proportional",
+            "enabled": true,
+            "fixed_notional": 10.0,
+            "mode": "LIVE",
+            "norm_base": 100.0
+          },
+          "0xd04d04d04d04d04d04d04d04d04d04d04d04d04d": {
+            "copy_mode": "fixed",
+            "enabled": true,
+            "fixed_notional": 10.0,
+            "mode": "LIVE",
+            "norm_base": 213.5
+          }
+        }
+      },
+      "verdict": "PASS"
+    },
+    {
+      "row_id": "UI-LCC-ADD-05",
+      "probe": "POST /api/live-config/add-wallet against isolated instance http://127.0.0.1:8101, row UI-LCC-ADD-05",
+      "field_under_test": "fixed_notional",
+      "value_under_test": "73.25",
+      "sibling_control_values": {
+        "mode": "LIVE",
+        "copy_mode": "fixed",
+        "norm_base": "100",
+        "wallet": "0xe05e05e05e05e05e05e05e05e05e05e05e05e05e"
+      },
+      "posted_payload": {
+        "mode": "LIVE",
+        "copy_mode": "fixed",
+        "norm_base": "100",
+        "fixed_notional": "73.25",
+        "wallet": "0xe05e05e05e05e05e05e05e05e05e05e05e05e05e"
+      },
+      "http_status": 200,
+      "iso_config_sha_before": "1fbb18daa1c8cdb4ea67cf9f36654ff669d6eb19ed0496fb32fd283877a717d7",
+      "iso_config_sha_after": "615e4b59c7dc7a18d5edfcc49a9332c01f3008112278097d1eb5fc4fc8a9a8af",
+      "wallets_before": [
+        "0xa01a01a01a01a01a01a01a01a01a01a01a01a01a",
+        "0xb02b02b02b02b02b02b02b02b02b02b02b02b02b",
+        "0xc03c03c03c03c03c03c03c03c03c03c03c03c03c",
+        "0xd04d04d04d04d04d04d04d04d04d04d04d04d04d"
+      ],
+      "wallets_after": [
+        "0xa01a01a01a01a01a01a01a01a01a01a01a01a01a",
+        "0xb02b02b02b02b02b02b02b02b02b02b02b02b02b",
+        "0xc03c03c03c03c03c03c03c03c03c03c03c03c03c",
+        "0xd04d04d04d04d04d04d04d04d04d04d04d04d04d",
+        "0xe05e05e05e05e05e05e05e05e05e05e05e05e05e"
+      ],
+      "persisted_entry": {
+        "copy_mode": "fixed",
+        "enabled": true,
+        "fixed_notional": 73.25,
+        "mode": "LIVE",
+        "norm_base": 100.0
+      },
+      "persisted_value_of_this_field": 73.25,
+      "expected_persisted_value": 73.25,
+      "sibling_controls_persisted_correctly": true,
+      "iso_config_after_row": {
+        "archived_wallets": {},
+        "global_controls": {
+          "marketable_bps": 20.0,
+          "max_asset_directional_exposure_usd": 0.0,
+          "max_close_adverse_diff_pct": 0.0,
+          "max_daily_loss_usd": 0.0,
+          "max_order_notional_usd": 0.0,
+          "max_total_live_exposure_usd": 0.0,
+          "max_wallet_exposure_usd": 0.0,
+          "symbol_allowlist": [],
+          "symbol_blocklist": []
+        },
+        "wallets": {
+          "0xa01a01a01a01a01a01a01a01a01a01a01a01a01a": {
+            "copy_mode": "fixed",
+            "enabled": true,
+            "fixed_notional": 10.0,
+            "mode": "LIVE",
+            "norm_base": 100.0
+          },
+          "0xb02b02b02b02b02b02b02b02b02b02b02b02b02b": {
+            "copy_mode": "fixed",
+            "enabled": true,
+            "fixed_notional": 10.0,
+            "mode": "CLO",
+            "norm_base": 100.0
+          },
+          "0xc03c03c03c03c03c03c03c03c03c03c03c03c03c": {
+            "copy_mode": "proportional",
+            "enabled": true,
+            "fixed_notional": 10.0,
+            "mode": "LIVE",
+            "norm_base": 100.0
+          },
+          "0xd04d04d04d04d04d04d04d04d04d04d04d04d04d": {
+            "copy_mode": "fixed",
+            "enabled": true,
+            "fixed_notional": 10.0,
+            "mode": "LIVE",
+            "norm_base": 213.5
+          },
+          "0xe05e05e05e05e05e05e05e05e05e05e05e05e05e": {
+            "copy_mode": "fixed",
+            "enabled": true,
+            "fixed_notional": 73.25,
+            "mode": "LIVE",
+            "norm_base": 100.0
+          }
+        }
+      },
+      "verdict": "PASS"
+    },
+    {
+      "row_id": "UI-LCC-ADD-10",
+      "probe": "Playwright submit of #lcAddForm on isolated http://127.0.0.1:8101: one valid, one malformed address, one non-numeric norm_base",
+      "persisting_submit": {
+        "sent_from_dom": {
+          "wallet": "0xf10f10f10f10f10f10f10f10f10f10f10f10f10f",
+          "mode": "CLO",
+          "copy_mode": "proportional",
+          "norm_base": "250",
+          "fixed_notional": "55"
+        },
+        "form_defaults_seen": {
+          "mode": "LIVE",
+          "copy_mode": "fixed",
+          "norm_base": "100",
+          "fixed_notional": "10"
+        },
+        "iso_config_sha_before": "615e4b59c7dc7a18d5edfcc49a9332c01f3008112278097d1eb5fc4fc8a9a8af",
+        "iso_config_sha_after": "b3633a6b9ec1547839196f18474fc7c46bd5c3720258643b37bb81867c6a4db0",
+        "wallets_before": [
+          "0xa01a01a01a01a01a01a01a01a01a01a01a01a01a",
+          "0xb02b02b02b02b02b02b02b02b02b02b02b02b02b",
+          "0xc03c03c03c03c03c03c03c03c03c03c03c03c03c",
+          "0xd04d04d04d04d04d04d04d04d04d04d04d04d04d",
+          "0xe05e05e05e05e05e05e05e05e05e05e05e05e05e"
+        ],
+        "wallets_after": [
+          "0xa01a01a01a01a01a01a01a01a01a01a01a01a01a",
+          "0xb02b02b02b02b02b02b02b02b02b02b02b02b02b",
+          "0xc03c03c03c03c03c03c03c03c03c03c03c03c03c",
+          "0xd04d04d04d04d04d04d04d04d04d04d04d04d04d",
+          "0xe05e05e05e05e05e05e05e05e05e05e05e05e05e",
+          "0xf10f10f10f10f10f10f10f10f10f10f10f10f10f"
+        ],
+        "persisted_entry": {
+          "copy_mode": "proportional",
+          "enabled": true,
+          "fixed_notional": 55.0,
+          "mode": "CLO",
+          "norm_base": 250.0
+        },
+        "status_text": "Cannot read properties of null (reading 'reset')",
+        "status_class": "lc-status lc-bad",
+        "modal_closed": false,
+        "screenshot": "add10_submit_ok.png",
+        "value_persisted": true
+      },
+      "invalid_input_malformed_wallet": {
+        "sent_from_dom": {
+          "wallet": "0xdeadbeef",
+          "mode": "CLO",
+          "copy_mode": "proportional",
+          "norm_base": "250",
+          "fixed_notional": "55"
+        },
+        "status_text": "BAD_WALLET",
+        "status_class": "lc-status lc-bad",
+        "modal_still_open": true,
+        "iso_sha_before": "b3633a6b9ec1547839196f18474fc7c46bd5c3720258643b37bb81867c6a4db0",
+        "iso_sha_after": "b3633a6b9ec1547839196f18474fc7c46bd5c3720258643b37bb81867c6a4db0",
+        "file_unchanged": true,
+        "wallets_unchanged": true,
+        "screenshot": "add10_bad_wallet.png",
+        "rejected_with_visible_error": true
+      },
+      "invalid_input_non_numeric_norm_base": {
+        "sent_from_dom": {
+          "wallet": "0xbad0bad0bad0bad0bad0bad0bad0bad0bad0bad0",
+          "mode": "CLO",
+          "copy_mode": "proportional",
+          "norm_base": "abc",
+          "fixed_notional": "55"
+        },
+        "status_text": "Cannot read properties of null (reading 'reset')",
+        "status_class": "lc-status lc-bad",
+        "persisted_entry": {
+          "copy_mode": "proportional",
+          "enabled": true,
+          "fixed_notional": 55.0,
+          "mode": "CLO",
+          "norm_base": 100
+        },
+        "file_unchanged": false,
+        "rejected_with_visible_error": false,
+        "observation": "NOT rejected: input accepted and coerced, norm_base persisted as 100",
+        "screenshot": "add10_nonnum.png"
+      },
+      "verdict": "PASS",
+      "secondary_finding_non_numeric_norm_base": "silently coerced instead of rejected"
+    }
+  ],
+  "http_log": [
+    {
+      "row": "UI-LCC-ADD-01",
+      "url": "http://127.0.0.1:8101/api/live-config/add-wallet",
+      "method": "POST",
+      "payload": {
+        "mode": "LIVE",
+        "copy_mode": "fixed",
+        "norm_base": "100",
+        "fixed_notional": "10",
+        "wallet": "0xa01a01a01a01a01a01a01a01a01a01a01a01a01a"
+      },
+      "status": 200,
+      "response_head": "{\"ok\":true,\"config\":{\"wallets\":{\"0xa01a01a01a01a01a01a01a01a01a01a01a01a01a\":{\"mode\":\"LIVE\",\"copy_mode\":\"fixed\",\"norm_base\":100.0,\"fixed_notional\":10.0,\"enabled\":true}},\"archived_wallets\":{},\"global_controls\":{\"max_total_live_exposure_usd\":0.0,\"max_asset_directional_exposure_usd\":0.0,\"max_daily_loss_usd\":0.0,\"max_wallet_exposure_usd\":0.0,\"max_order_notional_usd\":0.0,\"marketable_bps\":20.0,\"max_close_adverse_diff_pct\":0.0,\"symbol_allowlist\":[],\"symbol_blocklist\":[]}},\"wallet_count\":1,\"active_wallets\":1,\"max_wallets\":10}"
+    },
+    {
+      "row": "UI-LCC-ADD-02",
+      "url": "http://127.0.0.1:8101/api/live-config/add-wallet",
+      "method": "POST",
+      "payload": {
+        "mode": "CLO",
+        "copy_mode": "fixed",
+        "norm_base": "100",
+        "fixed_notional": "10",
+        "wallet": "0xb02b02b02b02b02b02b02b02b02b02b02b02b02b"
+      },
+      "status": 200,
+      "response_head": "{\"ok\":true,\"config\":{\"archived_wallets\":{},\"global_controls\":{\"max_total_live_exposure_usd\":0.0,\"max_asset_directional_exposure_usd\":0.0,\"max_daily_loss_usd\":0.0,\"max_wallet_exposure_usd\":0.0,\"max_order_notional_usd\":0.0,\"marketable_bps\":20.0,\"max_close_adverse_diff_pct\":0.0,\"symbol_allowlist\":[],\"symbol_blocklist\":[]},\"wallets\":{\"0xa01a01a01a01a01a01a01a01a01a01a01a01a01a\":{\"copy_mode\":\"fixed\",\"enabled\":true,\"fixed_notional\":10.0,\"mode\":\"LIVE\",\"norm_base\":100.0},\"0xb02b02b02b02b02b02b02b02b02b02b02b02b02b\":{\"mode\":\"CLO\",\"copy_mode\":\"fixed\",\"norm_base\":100.0,\"fixed_notional\":10.0,\"enabled\":tru"
+    },
+    {
+      "row": "UI-LCC-ADD-03",
+      "url": "http://127.0.0.1:8101/api/live-config/add-wallet",
+      "method": "POST",
+      "payload": {
+        "mode": "LIVE",
+        "copy_mode": "proportional",
+        "norm_base": "100",
+        "fixed_notional": "10",
+        "wallet": "0xc03c03c03c03c03c03c03c03c03c03c03c03c03c"
+      },
+      "status": 200,
+      "response_head": "{\"ok\":true,\"config\":{\"archived_wallets\":{},\"global_controls\":{\"max_total_live_exposure_usd\":0.0,\"max_asset_directional_exposure_usd\":0.0,\"max_daily_loss_usd\":0.0,\"max_wallet_exposure_usd\":0.0,\"max_order_notional_usd\":0.0,\"marketable_bps\":20.0,\"max_close_adverse_diff_pct\":0.0,\"symbol_allowlist\":[],\"symbol_blocklist\":[]},\"wallets\":{\"0xa01a01a01a01a01a01a01a01a01a01a01a01a01a\":{\"copy_mode\":\"fixed\",\"enabled\":true,\"fixed_notional\":10.0,\"mode\":\"LIVE\",\"norm_base\":100.0},\"0xb02b02b02b02b02b02b02b02b02b02b02b02b02b\":{\"copy_mode\":\"fixed\",\"enabled\":true,\"fixed_notional\":10.0,\"mode\":\"CLO\",\"norm_base\":100."
+    },
+    {
+      "row": "UI-LCC-ADD-04",
+      "url": "http://127.0.0.1:8101/api/live-config/add-wallet",
+      "method": "POST",
+      "payload": {
+        "mode": "LIVE",
+        "copy_mode": "fixed",
+        "norm_base": "213.5",
+        "fixed_notional": "10",
+        "wallet": "0xd04d04d04d04d04d04d04d04d04d04d04d04d04d"
+      },
+      "status": 200,
+      "response_head": "{\"ok\":true,\"config\":{\"archived_wallets\":{},\"global_controls\":{\"max_total_live_exposure_usd\":0.0,\"max_asset_directional_exposure_usd\":0.0,\"max_daily_loss_usd\":0.0,\"max_wallet_exposure_usd\":0.0,\"max_order_notional_usd\":0.0,\"marketable_bps\":20.0,\"max_close_adverse_diff_pct\":0.0,\"symbol_allowlist\":[],\"symbol_blocklist\":[]},\"wallets\":{\"0xa01a01a01a01a01a01a01a01a01a01a01a01a01a\":{\"copy_mode\":\"fixed\",\"enabled\":true,\"fixed_notional\":10.0,\"mode\":\"LIVE\",\"norm_base\":100.0},\"0xb02b02b02b02b02b02b02b02b02b02b02b02b02b\":{\"copy_mode\":\"fixed\",\"enabled\":true,\"fixed_notional\":10.0,\"mode\":\"CLO\",\"norm_base\":100."
+    },
+    {
+      "row": "UI-LCC-ADD-05",
+      "url": "http://127.0.0.1:8101/api/live-config/add-wallet",
+      "method": "POST",
+      "payload": {
+        "mode": "LIVE",
+        "copy_mode": "fixed",
+        "norm_base": "100",
+        "fixed_notional": "73.25",
+        "wallet": "0xe05e05e05e05e05e05e05e05e05e05e05e05e05e"
+      },
+      "status": 200,
+      "response_head": "{\"ok\":true,\"config\":{\"archived_wallets\":{},\"global_controls\":{\"max_total_live_exposure_usd\":0.0,\"max_asset_directional_exposure_usd\":0.0,\"max_daily_loss_usd\":0.0,\"max_wallet_exposure_usd\":0.0,\"max_order_notional_usd\":0.0,\"marketable_bps\":20.0,\"max_close_adverse_diff_pct\":0.0,\"symbol_allowlist\":[],\"symbol_blocklist\":[]},\"wallets\":{\"0xa01a01a01a01a01a01a01a01a01a01a01a01a01a\":{\"copy_mode\":\"fixed\",\"enabled\":true,\"fixed_notional\":10.0,\"mode\":\"LIVE\",\"norm_base\":100.0},\"0xb02b02b02b02b02b02b02b02b02b02b02b02b02b\":{\"copy_mode\":\"fixed\",\"enabled\":true,\"fixed_notional\":10.0,\"mode\":\"CLO\",\"norm_base\":100."
+    }
+  ],
+  "serve_8031_sha_before": "40c95a9ea0ec17d4201fd04a102f20e7e23ba0a6b81a66b9ac341ed2aa7bc4d3",
+  "serve_8031_wallets_before": [],
+  "iso_sha_before_all": "ABSENT",
+  "serve_8031_sha_after": "40c95a9ea0ec17d4201fd04a102f20e7e23ba0a6b81a66b9ac341ed2aa7bc4d3",
+  "serve_8031_wallets_after": [],
+  "ui_log": [
+    {
+      "url": "http://127.0.0.1:8101/api/live-config",
+      "method": "GET",
+      "status": 200,
+      "post": null,
+      "resp": "{\"ok\":true,\"config\":{\"archived_wallets\":{},\"global_controls\":{\"max_total_live_exposure_usd\":0.0,\"max_asset_directional_exposure_usd\":0.0,\"max_daily_loss_usd\":0.0,\"max_wallet_exposure_usd\":0.0,\"max_order_notional_usd\":0.0,\"marketable_bps\":20.0,\"max_close_adverse_diff_pct\":0.0,\"symbol_allowlist\":[],\"symbol_blocklist\":[]},\"wallets\":{\"0xa01a01a01a01a01a01a01a01a01a01a01a01a01a\":{\"copy_mode\":\"fixed\",\"enabled\":true,\"fixed_notional\":10.0,\"mode\":\"LIVE\",\"norm_base\":100.0},\"0xb02b02b02b02b02b02b02b02b02b02b02b02b02b\":{\"copy_mode\":\"fixed\",\"enabled\":true,\"fixed_notional\":10.0,\"mode\":\"CLO\",\"norm_base\":100.0},\"0xc03c03c03c03c03c03c03c03c03c03c03c03c03c\":{\"copy_mode\":\"proportional\",\"enabled\":true,\"fixed_notional\":10.0,\"mode\":\"LIVE\",\"norm_base\":100.0},\"0xd04d04d04d04d04d04d04d04d04d04d04d04d04d\":{\"copy_mo"
+    },
+    {
+      "url": "http://127.0.0.1:8101/api/live-config/add-wallet",
+      "method": "POST",
+      "status": 200,
+      "post": "{\"wallet\":\"0xf10f10f10f10f10f10f10f10f10f10f10f10f10f\",\"mode\":\"CLO\",\"copy_mode\":\"proportional\",\"norm_base\":\"250\",\"fixed_notional\":\"55\"}",
+      "resp": "{\"ok\":true,\"config\":{\"archived_wallets\":{},\"global_controls\":{\"max_total_live_exposure_usd\":0.0,\"max_asset_directional_exposure_usd\":0.0,\"max_daily_loss_usd\":0.0,\"max_wallet_exposure_usd\":0.0,\"max_order_notional_usd\":0.0,\"marketable_bps\":20.0,\"max_close_adverse_diff_pct\":0.0,\"symbol_allowlist\":[],\"symbol_blocklist\":[]},\"wallets\":{\"0xa01a01a01a01a01a01a01a01a01a01a01a01a01a\":{\"copy_mode\":\"fixed\",\"enabled\":true,\"fixed_notional\":10.0,\"mode\":\"LIVE\",\"norm_base\":100.0},\"0xb02b02b02b02b02b02b02b02b02b02b02b02b02b\":{\"copy_mode\":\"fixed\",\"enabled\":true,\"fixed_notional\":10.0,\"mode\":\"CLO\",\"norm_base\":100.0},\"0xc03c03c03c03c03c03c03c03c03c03c03c03c03c\":{\"copy_mode\":\"proportional\",\"enabled\":true,\"fixed_notional\":10.0,\"mode\":\"LIVE\",\"norm_base\":100.0},\"0xd04d04d04d04d04d04d04d04d04d04d04d04d04d\":{\"copy_mo"
+    },
+    {
+      "url": "http://127.0.0.1:8101/api/live-config/add-wallet",
+      "method": "POST",
+      "status": 400,
+      "post": "{\"wallet\":\"0xdeadbeef\",\"mode\":\"CLO\",\"copy_mode\":\"proportional\",\"norm_base\":\"250\",\"fixed_notional\":\"55\"}",
+      "resp": "{\"ok\":false,\"error\":\"BAD_WALLET\"}"
+    },
+    {
+      "url": "http://127.0.0.1:8101/api/live-config/add-wallet",
+      "method": "POST",
+      "status": 200,
+      "post": "{\"wallet\":\"0xbad0bad0bad0bad0bad0bad0bad0bad0bad0bad0\",\"mode\":\"CLO\",\"copy_mode\":\"proportional\",\"norm_base\":\"abc\",\"fixed_notional\":\"55\"}",
+      "resp": "{\"ok\":true,\"config\":{\"archived_wallets\":{},\"global_controls\":{\"max_total_live_exposure_usd\":0.0,\"max_asset_directional_exposure_usd\":0.0,\"max_daily_loss_usd\":0.0,\"max_wallet_exposure_usd\":0.0,\"max_order_notional_usd\":0.0,\"marketable_bps\":20.0,\"max_close_adverse_diff_pct\":0.0,\"symbol_allowlist\":[],\"symbol_blocklist\":[]},\"wallets\":{\"0xa01a01a01a01a01a01a01a01a01a01a01a01a01a\":{\"copy_mode\":\"fixed\",\"enabled\":true,\"fixed_notional\":10.0,\"mode\":\"LIVE\",\"norm_base\":100.0},\"0xb02b02b02b02b02b02b02b02b02b02b02b02b02b\":{\"copy_mode\":\"fixed\",\"enabled\":true,\"fixed_notional\":10.0,\"mode\":\"CLO\",\"norm_base\":100.0},\"0xc03c03c03c03c03c03c03c03c03c03c03c03c03c\":{\"copy_mode\":\"proportional\",\"enabled\":true,\"fixed_notional\":10.0,\"mode\":\"LIVE\",\"norm_base\":100.0},\"0xd04d04d04d04d04d04d04d04d04d04d04d04d04d\":{\"copy_mo"
+    }
+  ],
+  "iso_sha_after_all": "b0ee9a66aa36508456e5d99464d9ce1370811afa92ada7ee54ec18ef90584a26",
+  "iso_final_config": {
+    "archived_wallets": {},
+    "global_controls": {
+      "marketable_bps": 20.0,
+      "max_asset_directional_exposure_usd": 0.0,
+      "max_close_adverse_diff_pct": 0.0,
+      "max_daily_loss_usd": 0.0,
+      "max_order_notional_usd": 0.0,
+      "max_total_live_exposure_usd": 0.0,
+      "max_wallet_exposure_usd": 0.0,
+      "symbol_allowlist": [],
+      "symbol_blocklist": []
+    },
+    "wallets": {
+      "0xa01a01a01a01a01a01a01a01a01a01a01a01a01a": {
+        "copy_mode": "fixed",
+        "enabled": true,
+        "fixed_notional": 10.0,
+        "mode": "LIVE",
+        "norm_base": 100.0
+      },
+      "0xb02b02b02b02b02b02b02b02b02b02b02b02b02b": {
+        "copy_mode": "fixed",
+        "enabled": true,
+        "fixed_notional": 10.0,
+        "mode": "CLO",
+        "norm_base": 100.0
+      },
+      "0xbad0bad0bad0bad0bad0bad0bad0bad0bad0bad0": {
+        "copy_mode": "proportional",
+        "enabled": true,
+        "fixed_notional": 55.0,
+        "mode": "CLO",
+        "norm_base": 100
+      },
+      "0xc03c03c03c03c03c03c03c03c03c03c03c03c03c": {
+        "copy_mode": "proportional",
+        "enabled": true,
+        "fixed_notional": 10.0,
+        "mode": "LIVE",
+        "norm_base": 100.0
+      },
+      "0xd04d04d04d04d04d04d04d04d04d04d04d04d04d": {
+        "copy_mode": "fixed",
+        "enabled": true,
+        "fixed_notional": 10.0,
+        "mode": "LIVE",
+        "norm_base": 213.5
+      },
+      "0xe05e05e05e05e05e05e05e05e05e05e05e05e05e": {
+        "copy_mode": "fixed",
+        "enabled": true,
+        "fixed_notional": 73.25,
+        "mode": "LIVE",
+        "norm_base": 100.0
+      },
+      "0xf10f10f10f10f10f10f10f10f10f10f10f10f10f": {
+        "copy_mode": "proportional",
+        "enabled": true,
+        "fixed_notional": 55.0,
+        "mode": "CLO",
+        "norm_base": 250.0
+      }
+    }
+  },
+  "isolation": {
+    "serve_8031_sha_before": "40c95a9ea0ec17d4201fd04a102f20e7e23ba0a6b81a66b9ac341ed2aa7bc4d3",
+    "serve_8031_sha_after": "40c95a9ea0ec17d4201fd04a102f20e7e23ba0a6b81a66b9ac341ed2aa7bc4d3",
+    "serve_8031_identical": true,
+    "serve_8031_wallets_unchanged": true,
+    "requests_to_8031": [],
+    "probe_targets": [
+      "http://127.0.0.1:8101"
+    ]
+  },
+  "summary": {
+    "rows": 6,
+    "PASS": 6,
+    "FAIL": 0
+  }
+}
