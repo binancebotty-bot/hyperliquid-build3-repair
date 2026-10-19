@@ -1,0 +1,14 @@
+{
+ "requirement_id": "ENG-INV-05",
+ "verifier": "custom:deepseek-v4-flash-thinking-nosearch (task t_03123cb4)",
+ "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+ "evidence": "certification/results/ENG_INV_03_04_05_rowbound_t_d67de338.json",
+ "verdict": "PASS",
+ "reviewer_task": "t_03123cb4",
+ "finding": "Row-bound predicate holds; no defect found.",
+ "oracle_sha256": "811287acdce78275ab2dd679b1ecb2e6f3ed1a38307730adbd91ae2920306b56",
+ "artifact_sha256": "86afb9b5efa6258302b0a7e305d5f3bd77c7cb7f9b56bd4554d02efe80d356a7",
+ "derived_from": "certification/results/review_ENG_INV_03_04_05_t_03123cb4.json",
+ "derived_from_sha256": "2c758c075c1e0ff356a310cde9148622b9c11448bc7edd9151b0d7f42a6cdd51",
+ "derivation": "Per-row record split out of the reviewer's batch artifact so the completion gate's per-row verdict check can read it. The batch record's overall verdict is FAIL because ENG-INV-03 fails; that overall verdict cannot attest the rows that passed. No verdict, verifier or tested_commit was altered in this split."
+}

@@ -616,7 +616,8 @@
    "cert_claimed": "PASS",
    "cert_ref": "origin/cert/local-main-b142cf8",
    "cert_evidence": "certification/results/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json",
-   "tier": 1
+   "tier": 1,
+   "evidence": "certification/results/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json"
   },
   {
    "id": "ENG-INV-02",
@@ -645,7 +646,8 @@
    "verified": true,
    "verifier": "gemini:2.5-flash (task t_26696bfa)",
    "review_ref": "certification/results/review_ENG-INV-02-06_t_26696bfa.json",
-   "tier": 1
+   "tier": 1,
+   "evidence": "certification/results/ENG-INV-02-06_single_order_site_census.json"
   },
   {
    "id": "ENG-INV-03",
@@ -676,7 +678,8 @@
    "cert_claimed": "PASS",
    "cert_ref": "origin/cert/local-main-b142cf8",
    "cert_evidence": "certification/results/ENG-INV-03-05_43731b4f.json",
-   "tier": 1
+   "tier": 1,
+   "evidence": "certification/results/ENG_INV_03_04_05_rowbound_t_d67de338.json"
   },
   {
    "id": "ENG-INV-04",
@@ -708,7 +711,8 @@
    "cert_claimed": "PASS",
    "cert_ref": "origin/cert/local-main-b142cf8",
    "cert_evidence": "certification/results/ENG-INV-03-05_43731b4f.json",
-   "tier": 1
+   "tier": 1,
+   "evidence": "certification/results/ENG_INV_03_04_05_rowbound_t_d67de338.json"
   },
   {
    "id": "ENG-INV-05",
@@ -739,7 +743,8 @@
    "cert_claimed": "PASS",
    "cert_ref": "origin/cert/local-main-b142cf8",
    "cert_evidence": "certification/results/ENG-INV-03-05_43731b4f.json",
-   "tier": 1
+   "tier": 1,
+   "evidence": "certification/results/ENG_INV_03_04_05_rowbound_t_d67de338.json"
   },
   {
    "id": "ENG-INV-06",
@@ -767,7 +772,8 @@
    "verified": true,
    "verifier": "gemini:2.5-flash (task t_26696bfa)",
    "review_ref": "certification/results/review_ENG-INV-02-06_t_26696bfa.json",
-   "tier": 1
+   "tier": 1,
+   "evidence": "certification/results/ENG-INV-02-06_single_order_site_census.json"
   },
   {
    "id": "ENG-INV-07",
@@ -800,7 +806,8 @@
    "review_ref": null,
    "cert_claimed": "BLOCKED",
    "cert_ref": "origin/cert/local-main-b142cf8",
-   "tier": 1
+   "tier": 1,
+   "evidence": "certification/results/ENG_INV_07_08_gaps_t_t_288bc477.json"
   },
   {
    "id": "ENG-INV-08",
@@ -832,7 +839,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 1
+   "tier": 1,
+   "evidence": "certification/results/ENG-INV-07-09_runtime_43731b4f1f19.json"
   },
   {
    "id": "ENG-INV-09",
@@ -861,7 +869,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/ENG-INV-07-09_runtime_43731b4f1f19.json",
    "proof_network": "TESTNET",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/ENG-INV-07-09_runtime_43731b4f1f19.json"
   },
   {
    "id": "ENG-INV-10",
@@ -922,7 +931,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/ENG-INV-10-14_43731b4f.json",
    "proof_network": "TESTNET",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/ENG-INV-10-14_43731b4f.json"
   },
   {
    "id": "ENG-INV-12",
@@ -983,7 +993,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/ENG-INV-10-14_43731b4f.json",
    "proof_network": "TESTNET",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/ENG-INV-10-14_43731b4f.json"
   },
   {
    "id": "ENG-INV-14",
@@ -1012,7 +1023,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/ENG-INV-10-14_43731b4f.json",
    "proof_network": "TESTNET",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/ENG-INV-10-14_43731b4f.json"
   },
   {
    "id": "ENG-SEM-B1",
@@ -1162,7 +1174,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/ENG-001-004_43731b4f.json",
    "proof_network": "TESTNET",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/ENG-001-004_43731b4f.json"
   },
   {
    "id": "ENG-002",
@@ -1190,7 +1203,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/ENG-001-004_43731b4f.json",
    "proof_network": "TESTNET",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/ENG-001-004_43731b4f.json"
   },
   {
    "id": "ENG-003",
@@ -1249,7 +1263,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/ENG-001-004_43731b4f.json",
    "proof_network": "TESTNET",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/ENG-001-004_43731b4f.json"
   },
   {
    "id": "ENG-005",
@@ -1771,7 +1786,8 @@
    "review_ref": null,
    "cert_claimed": "NOT_TESTED",
    "cert_ref": "origin/cert/local-main-b142cf8",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/probe_reearn_results.json"
   },
   {
    "id": "PRICE-006",
@@ -1831,7 +1847,8 @@
    "review_ref": null,
    "cert_claimed": "NOT_TESTED",
    "cert_ref": "origin/cert/local-main-b142cf8",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/probe_reearn_results.json"
   },
   {
    "id": "PRICE-008",
@@ -1892,7 +1909,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/ORDER_CORRECTION_fefc2b04.json",
    "proof_network": "TESTNET",
-   "tier": 1
+   "tier": 1,
+   "evidence": "certification/results/ORDER_CORRECTION_fefc2b04.json"
   },
   {
    "id": "ORD-002",
@@ -1923,7 +1941,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 1
+   "tier": 1,
+   "evidence": "certification/results/ORDER_CORRECTION_fefc2b04.json"
   },
   {
    "id": "ORD-003",
@@ -1961,7 +1980,8 @@
    "review_ref": null,
    "cert_claimed": "NOT_TESTED",
    "cert_ref": "origin/cert/local-main-b142cf8",
-   "tier": 1
+   "tier": 1,
+   "evidence": "certification/results/probe_reearn_results.json"
   },
   {
    "id": "ORD-004",
@@ -1995,7 +2015,8 @@
    "review_ref": null,
    "cert_claimed": "NOT_TESTED",
    "cert_ref": "origin/cert/local-main-b142cf8",
-   "tier": 1
+   "tier": 1,
+   "evidence": "certification/results/probe_reearn_results.json"
   },
   {
    "id": "ORD-005",
@@ -2028,7 +2049,8 @@
    "review_ref": null,
    "cert_claimed": "NOT_TESTED",
    "cert_ref": "origin/cert/local-main-b142cf8",
-   "tier": 1
+   "tier": 1,
+   "evidence": "certification/results/probe_reearn_results.json"
   },
   {
    "id": "ORD-006",
@@ -2055,7 +2077,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/ORDER_CORRECTION_fefc2b04.json",
    "proof_network": "TESTNET",
-   "tier": 1
+   "tier": 1,
+   "evidence": "certification/results/ORDER_CORRECTION_fefc2b04.json"
   },
   {
    "id": "ORD-007",
@@ -2112,7 +2135,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/ORDER_CORRECTION_fefc2b04.json",
    "proof_network": "TESTNET",
-   "tier": 1
+   "tier": 1,
+   "evidence": "certification/results/ORDER_CORRECTION_fefc2b04.json"
   },
   {
    "id": "ORD-009",
@@ -2424,7 +2448,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 1
+   "tier": 1,
+   "evidence": "certification/results/probe_reearn_results.json"
   },
   {
    "id": "RISK-002",
@@ -2462,7 +2487,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 1
+   "tier": 1,
+   "evidence": "certification/results/probe_reearn_results.json"
   },
   {
    "id": "RISK-003",
@@ -2500,7 +2526,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 1
+   "tier": 1,
+   "evidence": "certification/results/probe_reearn_results.json"
   },
   {
    "id": "RISK-004",
@@ -2536,7 +2563,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 1
+   "tier": 1,
+   "evidence": "certification/results/probe_reearn_results.json"
   },
   {
    "id": "RISK-005",
@@ -2575,7 +2603,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 1
+   "tier": 1,
+   "evidence": "certification/results/probe_reearn_results.json"
   },
   {
    "id": "RISK-006",
@@ -2614,7 +2643,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 1
+   "tier": 1,
+   "evidence": "certification/results/RISK_TNPS1_t_17ffed38.json"
   },
   {
    "id": "RISK-007",
@@ -2652,7 +2682,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 1
+   "tier": 1,
+   "evidence": "certification/results/probe_reearn_results.json"
   },
   {
    "id": "RISK-008",
@@ -2690,7 +2721,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 1
+   "tier": 1,
+   "evidence": "certification/results/probe_reearn_results.json"
   },
   {
    "id": "RISK-009",
@@ -2728,7 +2760,8 @@
    "review_ref": null,
    "cert_claimed": "NOT_TESTED",
    "cert_ref": "origin/cert/local-main-b142cf8",
-   "tier": 1
+   "tier": 1,
+   "evidence": "certification/results/probe_reearn_results.json"
   },
   {
    "id": "RISK-010",
@@ -2763,7 +2796,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 1
+   "tier": 1,
+   "evidence": "certification/results/RISK-010_fix_t_ecb22179.json"
   },
   {
    "id": "RISK-011",
@@ -2801,7 +2835,8 @@
    "review_ref": null,
    "cert_claimed": "NOT_TESTED",
    "cert_ref": "origin/cert/local-main-b142cf8",
-   "tier": 1
+   "tier": 1,
+   "evidence": "certification/results/RISK_TNPS1_t_17ffed38.json"
   },
   {
    "id": "RISK-012",
@@ -2839,7 +2874,8 @@
    "review_ref": null,
    "cert_claimed": "NOT_TESTED",
    "cert_ref": "origin/cert/local-main-b142cf8",
-   "tier": 1
+   "tier": 1,
+   "evidence": "certification/results/probe_reearn_results.json"
   },
   {
    "id": "RISK-013",
@@ -2907,7 +2943,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 1
+   "tier": 1,
+   "evidence": "certification/results/probe_reearn_results.json"
   },
   {
    "id": "RISK-015",
@@ -2939,7 +2976,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 1
+   "tier": 1,
+   "evidence": "certification/results/RISK_TNPS1_t_17ffed38.json"
   },
   {
    "id": "RISK-016",
@@ -3625,7 +3663,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_FP_LCC_redo_t_a7eaf165.json"
   },
   {
    "id": "UI-LCC-HDR-02",
@@ -3657,7 +3696,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_FP_LCC_redo_t_a7eaf165.json"
   },
   {
    "id": "UI-LCC-HDR-03",
@@ -3689,7 +3729,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_FP_LCC_redo_t_a7eaf165.json"
   },
   {
    "id": "UI-LCC-HDR-04",
@@ -3721,7 +3762,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_FP_LCC_redo_t_a7eaf165.json"
   },
   {
    "id": "UI-LCC-HDR-05",
@@ -3753,7 +3795,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_FP_LCC_redo_t_a7eaf165.json"
   },
   {
    "id": "UI-LCC-HDR-06",
@@ -3785,7 +3828,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_FP_LCC_redo_t_a7eaf165.json"
   },
   {
    "id": "UI-LCC-BTN-01",
@@ -4279,7 +4323,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_FP_LCC_redo_t_a7eaf165.json"
   },
   {
    "id": "UI-LCC-GRAPH-05",
@@ -5011,7 +5056,8 @@
    "review_ref": null,
    "cert_claimed": "NOT_TESTED",
    "cert_ref": "origin/cert/local-main-b142cf8",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_LCC_batch2_t_ab26571b.json"
   },
   {
    "id": "UI-LCC-WTBL-12",
@@ -5045,7 +5091,8 @@
    "review_ref": null,
    "cert_claimed": "NOT_TESTED",
    "cert_ref": "origin/cert/local-main-b142cf8",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_LCC_batch2_t_ab26571b.json"
   },
   {
    "id": "UI-LCC-WTBL-13",
@@ -5079,7 +5126,8 @@
    "review_ref": null,
    "cert_claimed": "NOT_TESTED",
    "cert_ref": "origin/cert/local-main-b142cf8",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_LCC_batch2_t_ab26571b.json"
   },
   {
    "id": "UI-LCC-WTBL-14",
@@ -5113,7 +5161,8 @@
    "review_ref": null,
    "cert_claimed": "NOT_TESTED",
    "cert_ref": "origin/cert/local-main-b142cf8",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_LCC_batch2_t_ab26571b.json"
   },
   {
    "id": "UI-LCC-DETAIL-01",
@@ -5467,7 +5516,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_LCC_batch2_t_ab26571b.json"
   },
   {
    "id": "UI-LCC-POS-08",
@@ -5603,7 +5653,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_LCC_batch2_t_ab26571b.json"
   },
   {
    "id": "UI-LCC-POS-12",
@@ -5829,7 +5880,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_LCC_batch2_t_ab26571b.json"
   },
   {
    "id": "UI-LCC-EXQ-07",
@@ -5957,7 +6009,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_LCC_batch2_t_ab26571b.json"
   },
   {
    "id": "UI-LCC-EXQ-11",
@@ -5989,7 +6042,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_LCC_batch2_t_ab26571b.json"
   },
   {
    "id": "UI-LCC-EXQ-12",
@@ -6021,7 +6075,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_LCC_batch2_t_ab26571b.json"
   },
   {
    "id": "UI-LCC-EXQ-13",
@@ -6085,7 +6140,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_LCC_batch2_t_ab26571b.json"
   },
   {
    "id": "UI-LCC-AUD-02",
@@ -6117,7 +6173,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_LCC_batch2_t_ab26571b.json"
   },
   {
    "id": "UI-LCC-AUD-03",
@@ -6149,7 +6206,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_LCC_batch2_t_ab26571b.json"
   },
   {
    "id": "UI-LCC-AUD-04",
@@ -6181,7 +6239,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_LCC_batch2_t_ab26571b.json"
   },
   {
    "id": "UI-LCC-AUD-05",
@@ -6213,7 +6272,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_LCC_batch2_t_ab26571b.json"
   },
   {
    "id": "UI-LCC-AUD-06",
@@ -6245,7 +6305,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_LCC_batch2_t_ab26571b.json"
   },
   {
    "id": "UI-LCC-AUD-07",
@@ -6277,7 +6338,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_LCC_batch2_t_ab26571b.json"
   },
   {
    "id": "UI-LCC-AUD-08",
@@ -6309,7 +6371,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_LCC_batch2_t_ab26571b.json"
   },
   {
    "id": "UI-LCC-AUD-09",
@@ -6341,7 +6404,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_LCC_batch2_t_ab26571b.json"
   },
   {
    "id": "UI-LCC-AUD-10",
@@ -6373,7 +6437,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_LCC_batch2_t_ab26571b.json"
   },
   {
    "id": "UI-LCC-AUD-11",
@@ -6405,7 +6470,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_LCC_batch2_t_ab26571b.json"
   },
   {
    "id": "UI-LCC-AUD-12",
@@ -8066,7 +8132,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/UI_CORRECTION_2d29211.json",
    "proof_network": "TESTNET",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_CORRECTION_2d29211.json"
   },
   {
    "id": "UI-SSOT-TOP-08",
@@ -8131,7 +8198,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/UI_CORRECTION_2d29211.json",
    "proof_network": "TESTNET",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_CORRECTION_2d29211.json"
   },
   {
    "id": "UI-SSOT-CARD-01",
@@ -9313,7 +9381,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/UI_CORRECTION_2d29211.json",
    "proof_network": "TESTNET",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_CORRECTION_2d29211.json"
   },
   {
    "id": "UI-SSOT-PAGE-02",
@@ -9691,7 +9760,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/UI_CORRECTION_2d29211.json",
    "proof_network": "TESTNET",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_CORRECTION_2d29211.json"
   },
   {
    "id": "UI-SSOT-PAGE-14",
@@ -9720,7 +9790,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/UI_CORRECTION_2d29211.json",
    "proof_network": "TESTNET",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_CORRECTION_2d29211.json"
   },
   {
    "id": "UI-SSOT-PAGE-15",
@@ -9749,7 +9820,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/UI_CORRECTION_2d29211.json",
    "proof_network": "TESTNET",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_CORRECTION_2d29211.json"
   },
   {
    "id": "UI-TRUTH-001",
@@ -9780,7 +9852,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_ROUTE_TRUTH_t_cfcad924.json"
   },
   {
    "id": "UI-TRUTH-002",
@@ -9811,7 +9884,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_ROUTE_TRUTH_t_cfcad924.json"
   },
   {
    "id": "UI-TRUTH-003",
@@ -9842,7 +9916,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_CORRECTION_2d29211.json"
   },
   {
    "id": "UI-TRUTH-004",
@@ -9874,7 +9949,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_ROUTE_TRUTH_t_cfcad924.json"
   },
   {
    "id": "UI-TRUTH-005",
@@ -9905,7 +9981,8 @@
    "review_ref": null,
    "cert_claimed": "NOT_TESTED",
    "cert_ref": "origin/cert/local-main-b142cf8",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_ROUTE_TRUTH_t_cfcad924.json"
   },
   {
    "id": "LIFE-001",
@@ -10601,7 +10678,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/CTRL_probe2_t_967fad56.json"
   },
   {
    "id": "CTRL-I2",
@@ -10665,7 +10743,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/CTRL_probe2_t_967fad56.json"
   },
   {
    "id": "CTRL-I4",
@@ -11395,7 +11474,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/CTRL_probe2_t_967fad56.json"
   },
   {
    "id": "CTRL-EVID",
@@ -11425,7 +11505,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/CTRL_probe3_t_967fad56.py"
   },
   {
    "id": "CTRL-ESC",
@@ -11455,7 +11536,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/CTRL_probe3_t_967fad56.py"
   },
   {
    "id": "B4-I01",
@@ -14097,7 +14179,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/REGRESSION_fa9d9f55ff.json",
    "proof_network": "TESTNET",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/REGRESSION_fa9d9f55ff.json"
   },
   {
    "id": "F-EXC-017",
@@ -14228,7 +14311,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/REGRESSION_fa9d9f55ff.json",
    "proof_network": "TESTNET",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/REGRESSION_fa9d9f55ff.json"
   },
   {
    "id": "F-UI-002",
@@ -14252,7 +14336,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/REGRESSION_fa9d9f55ff.json",
    "proof_network": "TESTNET",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/REGRESSION_fa9d9f55ff.json"
   },
   {
    "id": "F-UI-003",
@@ -14276,7 +14361,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/REGRESSION_fa9d9f55ff.json",
    "proof_network": "TESTNET",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/REGRESSION_fa9d9f55ff.json"
   },
   {
    "id": "F-VERIFY-001",
@@ -16120,7 +16206,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/ORDER_CORRECTION_fefc2b04.json",
    "proof_network": "TESTNET",
-   "tier": 1
+   "tier": 1,
+   "evidence": "certification/results/ORDER_CORRECTION_fefc2b04.json"
   },
   {
    "id": "TN-F06",
@@ -16248,7 +16335,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/NLS_RESIDUAL_2a269ad226.json",
    "proof_network": "MAINNET",
-   "tier": 1
+   "tier": 1,
+   "evidence": "certification/results/NLS_RESIDUAL_2a269ad226.json"
   },
   {
    "id": "TN-F10",
@@ -16276,7 +16364,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/NLS_RESIDUAL_2a269ad226.json",
    "proof_network": "TESTNET",
-   "tier": 1
+   "tier": 1,
+   "evidence": "certification/results/NLS_RESIDUAL_2a269ad226.json"
   },
   {
    "id": "TN-F11",
@@ -16303,7 +16392,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/NLS_RESIDUAL_2a269ad226.json",
    "proof_network": "TESTNET",
-   "tier": 1
+   "tier": 1,
+   "evidence": "certification/results/NLS_RESIDUAL_2a269ad226.json"
   },
   {
    "id": "TN-F12",
@@ -16330,7 +16420,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/NLS_RESIDUAL_2a269ad226.json",
    "proof_network": "TESTNET",
-   "tier": 1
+   "tier": 1,
+   "evidence": "certification/results/NLS_RESIDUAL_2a269ad226.json"
   },
   {
    "id": "TN-F13",
@@ -16390,7 +16481,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/UI_CORRECTION_2d29211.json",
    "proof_network": "TESTNET",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_CORRECTION_2d29211.json"
   },
   {
    "id": "TN-F15",
@@ -16541,7 +16633,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/NLS_RESIDUAL_2a269ad226.json",
    "proof_network": "TESTNET",
-   "tier": 1
+   "tier": 1,
+   "evidence": "certification/results/NLS_RESIDUAL_2a269ad226.json"
   },
   {
    "id": "TN-F20",
@@ -16630,7 +16723,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/UI_CORRECTION_2d29211.json",
    "proof_network": "TESTNET",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_CORRECTION_2d29211.json"
   },
   {
    "id": "TN-F23",
@@ -16657,7 +16751,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/UI_CORRECTION_2d29211.json",
    "proof_network": "TESTNET",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_CORRECTION_2d29211.json"
   },
   {
    "id": "TN-F24",
@@ -16813,7 +16908,8 @@
    "review_ref": null,
    "cert_claimed": "NOT_TESTED",
    "cert_ref": "origin/cert/local-main-b142cf8",
-   "tier": 1
+   "tier": 1,
+   "evidence": "certification/results/RISK_TNPS1_t_17ffed38.json"
   },
   {
    "id": "TN-CAMP-01",
@@ -18167,7 +18263,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/REGRESSION_fa9d9f55ff.json",
    "proof_network": "TESTNET",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/REGRESSION_fa9d9f55ff.json"
   },
   {
    "id": "INC-02",
@@ -18218,7 +18315,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/REGRESSION_fa9d9f55ff.json",
    "proof_network": "TESTNET",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/REGRESSION_fa9d9f55ff.json"
   },
   {
    "id": "INC-04",
@@ -18406,7 +18504,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/REGRESSION_fa9d9f55ff.json",
    "proof_network": "TESTNET",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/REGRESSION_fa9d9f55ff.json"
   },
   {
    "id": "INC-11",
@@ -18675,7 +18774,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_FP_LCC_redo_t_a7eaf165.json"
   },
   {
    "id": "UI-FP-002",
@@ -18704,7 +18804,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_FP_LCC_redo_t_a7eaf165.json"
   },
   {
    "id": "UI-FP-003",
@@ -18733,7 +18834,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_FP_LCC_redo_t_a7eaf165.json"
   },
   {
    "id": "UI-FP-004",
@@ -18762,7 +18864,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_FP_LCC_redo_t_a7eaf165.json"
   },
   {
    "id": "UI-FP-005",
@@ -18791,7 +18894,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_FP_LCC_redo_t_a7eaf165.json"
   },
   {
    "id": "UI-FP-006",
@@ -18820,7 +18924,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_FP_LCC_redo_t_a7eaf165.json"
   },
   {
    "id": "UI-FP-007",
@@ -18849,7 +18954,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_FP_LCC_redo_t_a7eaf165.json"
   },
   {
    "id": "UI-FP-008",
@@ -18878,7 +18984,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_CORRECTION_2d29211.json"
   },
   {
    "id": "UI-FP-009",
@@ -18907,7 +19014,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_CORRECTION_2d29211.json"
   },
   {
    "id": "UI-FP-010",
@@ -18936,7 +19044,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_CORRECTION_2d29211.json"
   },
   {
    "id": "UI-FP-011",
@@ -18965,7 +19074,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_CORRECTION_2d29211.json"
   },
   {
    "id": "UI-FP-012",
@@ -18994,7 +19104,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_CORRECTION_2d29211.json"
   },
   {
    "id": "UI-FP-013",
@@ -19023,7 +19134,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_CORRECTION_2d29211.json"
   },
   {
    "id": "UI-FP-014",
@@ -19049,7 +19161,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/UI_CORRECTION_2d29211.json",
    "proof_network": "TESTNET",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_CORRECTION_2d29211.json"
   },
   {
    "id": "UI-FP-015",
@@ -19136,7 +19249,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_CORRECTION_2d29211.json"
   },
   {
    "id": "UI-FP-018",
@@ -19365,7 +19479,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/UI_CORRECTION_2d29211.json",
    "proof_network": "TESTNET",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_CORRECTION_2d29211.json"
   },
   {
    "id": "UI-FP-026",
@@ -19452,7 +19567,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_FP_LCC_redo_t_a7eaf165.json"
   },
   {
    "id": "UI-FP-029",
@@ -19478,7 +19594,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/UI_CORRECTION_2d29211.json",
    "proof_network": "TESTNET",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_CORRECTION_2d29211.json"
   },
   {
    "id": "UI-FP-030",
@@ -19504,7 +19621,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/UI_CORRECTION_2d29211.json",
    "proof_network": "TESTNET",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_CORRECTION_2d29211.json"
   },
   {
    "id": "UI-FP-031",
@@ -19820,7 +19938,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/UI_CORRECTION_2d29211.json",
    "proof_network": "TESTNET",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_CORRECTION_2d29211.json"
   },
   {
    "id": "UI-FP-042",
@@ -20020,7 +20139,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/UI_CORRECTION_2d29211.json",
    "proof_network": "TESTNET",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_CORRECTION_2d29211.json"
   },
   {
    "id": "UI-FP-049",
@@ -20049,7 +20169,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_FP_LCC_redo_t_a7eaf165.json"
   },
   {
    "id": "UI-FP-050",
@@ -20078,7 +20199,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_FP_LCC_redo_t_a7eaf165.json"
   },
   {
    "id": "UI-FP-051",
@@ -20133,7 +20255,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/UI_CORRECTION_2d29211.json",
    "proof_network": "TESTNET",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_CORRECTION_2d29211.json"
   },
   {
    "id": "UI-FP-053",
@@ -20188,7 +20311,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/UI_CORRECTION_2d29211.json",
    "proof_network": "TESTNET",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_CORRECTION_2d29211.json"
   },
   {
    "id": "UI-FP-055",
@@ -20214,7 +20338,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/UI_CORRECTION_2d29211.json",
    "proof_network": "TESTNET",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_CORRECTION_2d29211.json"
   },
   {
    "id": "UI-FP-056",
@@ -20356,7 +20481,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/UI_CORRECTION_2d29211.json",
    "proof_network": "TESTNET",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_CORRECTION_2d29211.json"
   },
   {
    "id": "UI-FP-061",
@@ -20817,7 +20943,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/UI_CORRECTION_2d29211.json",
    "proof_network": "TESTNET",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_CORRECTION_2d29211.json"
   },
   {
    "id": "UI-FP-077",
@@ -20872,7 +20999,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/UI_CORRECTION_2d29211.json",
    "proof_network": "TESTNET",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_CORRECTION_2d29211.json"
   },
   {
    "id": "UI-FP-079",
@@ -20898,7 +21026,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/UI_CORRECTION_2d29211.json",
    "proof_network": "TESTNET",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_CORRECTION_2d29211.json"
   },
   {
    "id": "UI-FP-080",
@@ -21040,7 +21169,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/UI_CORRECTION_2d29211.json",
    "proof_network": "TESTNET",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_CORRECTION_2d29211.json"
   },
   {
    "id": "UI-FP-085",
@@ -21153,7 +21283,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/UI_CORRECTION_2d29211.json",
    "proof_network": "TESTNET",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_CORRECTION_2d29211.json"
   },
   {
    "id": "UI-FP-089",
@@ -21179,7 +21310,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/UI_CORRECTION_2d29211.json",
    "proof_network": "TESTNET",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_CORRECTION_2d29211.json"
   },
   {
    "id": "UI-FP-090",
@@ -21205,7 +21337,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/UI_CORRECTION_2d29211.json",
    "proof_network": "TESTNET",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_CORRECTION_2d29211.json"
   },
   {
    "id": "UI-FP-091",
@@ -21695,7 +21828,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/UI_CORRECTION_2d29211.json",
    "proof_network": "TESTNET",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_CORRECTION_2d29211.json"
   },
   {
    "id": "UI-FP-108",
@@ -21750,7 +21884,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/UI_CORRECTION_2d29211.json",
    "proof_network": "TESTNET",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_CORRECTION_2d29211.json"
   },
   {
    "id": "UI-FP-110",
@@ -21776,7 +21911,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/UI_CORRECTION_2d29211.json",
    "proof_network": "TESTNET",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_CORRECTION_2d29211.json"
   },
   {
    "id": "UI-FP-111",
@@ -21918,7 +22054,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/UI_CORRECTION_2d29211.json",
    "proof_network": "TESTNET",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_CORRECTION_2d29211.json"
   },
   {
    "id": "UI-FP-116",
@@ -22031,7 +22168,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/UI_CORRECTION_2d29211.json",
    "proof_network": "TESTNET",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_CORRECTION_2d29211.json"
   },
   {
    "id": "UI-FP-120",
@@ -22057,7 +22195,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/UI_CORRECTION_2d29211.json",
    "proof_network": "TESTNET",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_CORRECTION_2d29211.json"
   },
   {
    "id": "UI-FP-121",
@@ -22086,7 +22225,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_FP_batch3_t_t_356f8e3a.json"
   },
   {
    "id": "UI-FP-122",
@@ -22115,7 +22255,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_FP_batch3_t_t_356f8e3a.json"
   },
   {
    "id": "UI-FP-123",
@@ -22144,7 +22285,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_FP_batch3_t_t_356f8e3a.json"
   },
   {
    "id": "UI-FP-124",
@@ -22173,7 +22315,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_FP_batch3_t_t_356f8e3a.json"
   },
   {
    "id": "UI-FP-125",
@@ -22202,7 +22345,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_FP_batch3_t_t_356f8e3a.json"
   },
   {
    "id": "UI-FP-126",
@@ -22231,7 +22375,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_FP_batch3_t_t_356f8e3a.json"
   },
   {
    "id": "UI-FP-127",
@@ -22260,7 +22405,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_FP_batch3_t_t_356f8e3a.json"
   },
   {
    "id": "UI-FP-128",
@@ -22289,7 +22435,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_FP_batch3_t_t_356f8e3a.json"
   },
   {
    "id": "UI-FP-129",
@@ -22318,7 +22465,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_FP_batch3_t_t_356f8e3a.json"
   },
   {
    "id": "UI-FP-130",
@@ -22347,7 +22495,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_FP_batch3_t_t_356f8e3a.json"
   },
   {
    "id": "UI-FP-131",
@@ -22376,7 +22525,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_FP_batch3_t_t_356f8e3a.json"
   },
   {
    "id": "UI-FP-132",
@@ -22405,7 +22555,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_FP_batch3_t_t_356f8e3a.json"
   },
   {
    "id": "UI-FP-133",
@@ -22434,7 +22585,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_CORRECTION_2d29211.json"
   },
   {
    "id": "UI-FP-134",
@@ -22547,7 +22699,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/UI_CORRECTION_2d29211.json",
    "proof_network": "TESTNET",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_CORRECTION_2d29211.json"
   },
   {
    "id": "UI-FP-138",
@@ -22602,7 +22755,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/UI_CORRECTION_2d29211.json",
    "proof_network": "TESTNET",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_CORRECTION_2d29211.json"
   },
   {
    "id": "UI-FP-140",
@@ -22628,7 +22782,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/UI_CORRECTION_2d29211.json",
    "proof_network": "TESTNET",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_CORRECTION_2d29211.json"
   },
   {
    "id": "UI-FP-141",
@@ -22770,7 +22925,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/UI_CORRECTION_2d29211.json",
    "proof_network": "TESTNET",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_CORRECTION_2d29211.json"
   },
   {
    "id": "UI-FP-146",
@@ -22883,7 +23039,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/UI_CORRECTION_2d29211.json",
    "proof_network": "TESTNET",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_CORRECTION_2d29211.json"
   },
   {
    "id": "UI-FP-150",
@@ -22909,7 +23066,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/UI_CORRECTION_2d29211.json",
    "proof_network": "TESTNET",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_CORRECTION_2d29211.json"
   },
   {
    "id": "UI-FP-151",
@@ -23341,7 +23499,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/UI_CORRECTION_2d29211.json",
    "proof_network": "TESTNET",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_CORRECTION_2d29211.json"
   },
   {
    "id": "UI-FP-166",
@@ -23396,7 +23555,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/UI_CORRECTION_2d29211.json",
    "proof_network": "TESTNET",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_CORRECTION_2d29211.json"
   },
   {
    "id": "UI-FP-168",
@@ -23422,7 +23582,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/UI_CORRECTION_2d29211.json",
    "proof_network": "TESTNET",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_CORRECTION_2d29211.json"
   },
   {
    "id": "UI-FP-169",
@@ -23622,7 +23783,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/UI_CORRECTION_2d29211.json",
    "proof_network": "TESTNET",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_CORRECTION_2d29211.json"
   },
   {
    "id": "UI-FP-176",
@@ -23706,7 +23868,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/UI_CORRECTION_2d29211.json",
    "proof_network": "TESTNET",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_CORRECTION_2d29211.json"
   },
   {
    "id": "UI-FP-179",
@@ -23732,7 +23895,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/UI_CORRECTION_2d29211.json",
    "proof_network": "TESTNET",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_CORRECTION_2d29211.json"
   },
   {
    "id": "UI-FP-180",
@@ -23787,7 +23951,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/UI_CORRECTION_2d29211.json",
    "proof_network": "TESTNET",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_CORRECTION_2d29211.json"
   },
   {
    "id": "UI-FP-182",
@@ -23813,7 +23978,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/UI_CORRECTION_2d29211.json",
    "proof_network": "TESTNET",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_CORRECTION_2d29211.json"
   },
   {
    "id": "UI-FP-183",
@@ -23839,7 +24005,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/UI_CORRECTION_2d29211.json",
    "proof_network": "TESTNET",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_CORRECTION_2d29211.json"
   },
   {
    "id": "UI-FP-184",
@@ -23865,7 +24032,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/UI_CORRECTION_2d29211.json",
    "proof_network": "TESTNET",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_CORRECTION_2d29211.json"
   },
   {
    "id": "UI-FP-185",
@@ -23891,7 +24059,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/UI_CORRECTION_2d29211.json",
    "proof_network": "TESTNET",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_CORRECTION_2d29211.json"
   },
   {
    "id": "UI-FP-186",
@@ -23917,7 +24086,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/UI_CORRECTION_2d29211.json",
    "proof_network": "TESTNET",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_CORRECTION_2d29211.json"
   },
   {
    "id": "UI-FP-187",
@@ -23943,7 +24113,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/UI_CORRECTION_2d29211.json",
    "proof_network": "TESTNET",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_CORRECTION_2d29211.json"
   },
   {
    "id": "UI-FP-188",
@@ -24027,7 +24198,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/UI_CORRECTION_2d29211.json",
    "proof_network": "TESTNET",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_CORRECTION_2d29211.json"
   },
   {
    "id": "UI-FP-191",
@@ -24082,7 +24254,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/UI_CORRECTION_2d29211.json",
    "proof_network": "TESTNET",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_CORRECTION_2d29211.json"
   },
   {
    "id": "UI-FP-193",
@@ -24108,7 +24281,8 @@
    "tested_at_utc": "",
    "notes": "Imported from origin/cert/local-main-b142cf8 (ruling 6271455053/6271877892): failures are conservative, stricter wins. Cert artifact: certification/results/UI_CORRECTION_2d29211.json",
    "proof_network": "TESTNET",
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_CORRECTION_2d29211.json"
   },
   {
    "id": "UI-FP-194",
@@ -24430,7 +24604,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_ROUTE_TRUTH_t_cfcad924.json"
   },
   {
    "id": "UI-ROUTE-02",
@@ -24460,7 +24635,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_ROUTE_TRUTH_t_cfcad924.json"
   },
   {
    "id": "UI-ROUTE-03",
@@ -24490,7 +24666,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_ROUTE_TRUTH_t_cfcad924.json"
   },
   {
    "id": "UI-ROUTE-04",
@@ -24520,7 +24697,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_ROUTE_TRUTH_t_cfcad924.json"
   },
   {
    "id": "UI-ROUTE-05",
@@ -24550,7 +24728,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_ROUTE_TRUTH_t_cfcad924.json"
   },
   {
    "id": "UI-ROUTE-06",
@@ -24580,7 +24759,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_ROUTE_TRUTH_t_cfcad924.json"
   },
   {
    "id": "UI-ROUTE-07",
@@ -24610,7 +24790,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_ROUTE_TRUTH_t_cfcad924.json"
   },
   {
    "id": "UI-ROUTE-08",
@@ -24640,7 +24821,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_ROUTE_TRUTH_t_cfcad924.json"
   },
   {
    "id": "UI-ROUTE-09",
@@ -24724,7 +24906,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_ROUTE_TRUTH_t_cfcad924.json"
   },
   {
    "id": "UI-ROUTE-12",
@@ -24808,7 +24991,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_ROUTE_TRUTH_t_cfcad924.json"
   },
   {
    "id": "UI-ROUTE-15",
@@ -24838,7 +25022,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_ROUTE_TRUTH_t_cfcad924.json"
   },
   {
    "id": "UI-ROUTE-16",
@@ -25030,7 +25215,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_ROUTE_TRUTH_t_cfcad924.json"
   },
   {
    "id": "UI-ROUTE-23",
@@ -25060,7 +25246,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_ROUTE_TRUTH_t_cfcad924.json"
   },
   {
    "id": "UI-ROUTE-24",
@@ -25090,7 +25277,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_ROUTE_TRUTH_t_cfcad924.json"
   },
   {
    "id": "UI-ROUTE-25",
@@ -25120,7 +25308,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_ROUTE_TRUTH_t_cfcad924.json"
   },
   {
    "id": "UI-ROUTE-26",
@@ -25150,7 +25339,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_ROUTE_TRUTH_t_cfcad924.json"
   },
   {
    "id": "UI-ROUTE-27",
@@ -25180,7 +25370,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_ROUTE_TRUTH_t_cfcad924.json"
   },
   {
    "id": "UI-ROUTE-28",
@@ -25237,7 +25428,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_ROUTE_TRUTH_t_cfcad924.json"
   },
   {
    "id": "UI-ROUTE-30",
@@ -25267,7 +25459,8 @@
    "verified": null,
    "verifier": null,
    "review_ref": null,
-   "tier": 2
+   "tier": 2,
+   "evidence": "certification/results/UI_ROUTE_TRUTH_t_cfcad924.json"
   },
   {
    "id": "UI-ROUTE-31",
