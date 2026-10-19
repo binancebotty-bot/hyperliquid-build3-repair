@@ -727,10 +727,10 @@
    ],
    "prior_evidence": "",
    "result": "FAIL",
-   "evidence_ref": "certification/results/ENG-INV-06-09_43731b4.json",
+   "evidence_ref": "certification/results/ENG-INV-06_five_file_census_1792368349.json",
    "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
    "tested_at_utc": "2026-10-14T05:00:01Z",
-   "notes": "FAIL: existing cited census is not a valid one-file-wide verification. The artifact certification/results/ENG-INV-06-09_43731b4.json reports total_py_files_scanned=1 and single_order_call_site=true; the latter is disproved by the two-site census at certification/results/ENG-INV-02_two_site_census_43731b4f.json. This card did not re-derive the predicate across all five engine files.",
+   "notes": "FAIL: the five-file census reports two reachable production exchange.order() sites at HL_Live_Copy_Service.py:1036 and HL_Live_Copy_Service_Core.py:4204, disproving the one-file census artifact (ENG-INV-06-09_43731b4.json). Source cross-check: in tested commit 43731b4f1f19a56e835032dabf608a550f925717, first site is _archive/hl_stage2/HL_Live_Copy_Service.py:1036; the second exchange.order() is _archive/hl_stage2/HL_Live_Copy_Service_Core.py:2703, not line 4204 (which is learned_at).",
    "proof_network": "TESTNET"
   },
   {
