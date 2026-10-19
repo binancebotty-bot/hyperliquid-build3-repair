@@ -783,11 +783,11 @@
     "duplicate/reordered event"
    ],
    "prior_evidence": "",
-   "result": "PASS",
+   "result": "FAIL",
    "evidence_ref": "certification/results/ENG_INV_07_08_gaps_t_t_288bc477.json",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": "PASS with negative control (card t_288bc477): same coin, two wallets, desired net for one does not contaminate the other. Control: {\"historical_same_coin_two_wallets\": {\"coin\": \"ZRO\", \"wallet_A\": {\"addr\": \"0x010461c14e146ac35fe42271bdc1134e | cert claims BLOCKED but the controller ruled this verdict stands (6271877892).",
+   "notes": "FAIL on independent review t_d0a0c07f. The historical join WAS verified (intent c99fc47b..., leader fill 0x328d037d..., send order, 11.8 size match). Isolation was NOT: the cited harness output and control scripts were unavailable, and the ZRO comparison is two separate exits rather than a controlled two-wallet test. A PASS cannot rest on an isolation claim that was never exercised. Previously: PASS.",
    "proof_network": "TESTNET",
    "verified": null,
    "verifier": null,
