@@ -1,0 +1,107 @@
+[
+  {
+    "row_id": "B4-I09",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "none",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "The previously cited REGRESSION_fa9d9f55ff.json is absent from tested commit 89b3bc7586bf328df336fc9ea721cee212617762 (added in later commit 530cda6). No row-specific testnet evidence for runtime/active authority (test_runtime_identity.py, test_handover_state_snapshot.py, test_runtime_live_identity_wiring.py) was verified at this commit. Absence of proof supports NOT_TESTED, not a demonstrated product failure."
+  },
+  {
+    "row_id": "B4-I10",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "none",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "The previously cited REGRESSION_fa9d9f55ff.json is absent from tested commit 89b3bc7586bf328df336fc9ea721cee212617762. No row-specific negative control establishing isolation of unrelated leaders (test_info_client_transient_survival.py, test_operational_incident_protections.py, test_product_gate_symbol_resolution.py) was verified at this commit. Absence of proof supports NOT_TESTED."
+  },
+  {
+    "row_id": "B4-I11",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "none",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "The previously cited REGRESSION_fa9d9f55ff.json is absent from tested commit 89b3bc7586bf328df336fc9ea721cee212617762. No row-specific proof of retaining and managing follower-owned exposure (test_runtime_sleeve_ownership_integration.py, test_sleeve_ownership_ledger.py, test_flat_reset_ownership_boundary.py, test_live_ownership_reconciliation_hold.py) was verified at this commit. Absence of proof supports NOT_TESTED."
+  },
+  {
+    "row_id": "B4-I12",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "none",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "The certified materials examined do not provide an exchange-backed testnet engine route proving the four mode send boundaries and zero-order mode transition. Exact absent component: Build-4 testnet exchange execution route. Open decision OD-05 affects applicability."
+  },
+  {
+    "row_id": "B4-I13",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "none",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "No verified testnet sizing/risk execution route was available to test the stated USD 30 minimum and USD 12 execution buffer against actual sizing mathematics. Exact absent component: Build-4 testnet sizing/exchange execution route. Open decision OD-09 affects applicability."
+  },
+  {
+    "row_id": "B4-I14",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "none",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "The previously cited REGRESSION_fa9d9f55ff.json is absent from tested commit 89b3bc7586bf328df336fc9ea721cee212617762. No row-specific poisoned-follower-fill test result (test_follower_fill_authority_poisoning.py, test_handover_live_fill_ownership_compare.py) was verified at this commit. Absence of proof supports NOT_TESTED."
+  },
+  {
+    "row_id": "B4-I15",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "none",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "The previously cited REGRESSION_fa9d9f55ff.json is absent from tested commit 89b3bc7586bf328df336fc9ea721cee212617762. No row-bound proof of supported-flat versus unsupported-market margin handling (test_unified_maintenance_margin_invariant.py, test_builder_dex_margin_policy_lifecycle.py, test_unified_position_open_account_truth_incident.py, test_match_snapshot_symbol.py) was verified at this commit. Absence of proof supports NOT_TESTED."
+  },
+  {
+    "row_id": "B4-I16",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "none",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "The previously cited REGRESSION_fa9d9f55ff.json is absent from tested commit 89b3bc7586bf328df336fc9ea721cee212617762. No row-specific proof that diagnostics cannot block execution (test_certification_is_diagnostic_only.py, test_operational_safety_invariants.py) was verified at this commit. Absence of proof supports NOT_TESTED."
+  },
+  {
+    "row_id": "B4-I17",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "none",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "The previously cited REGRESSION_fa9d9f55ff.json is absent from tested commit 89b3bc7586bf328df336fc9ea721cee212617762. No row-bound onboarding baseline/no-catch-up negative control (test_ui_config_change_audit.py, test_operator_flat_reset_rebaseline.py) was verified at this commit. Absence of proof supports NOT_TESTED."
+  },
+  {
+    "row_id": "B4-I18",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "none",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "The previously cited REGRESSION_fa9d9f55ff.json is absent from tested commit 89b3bc7586bf328df336fc9ea721cee212617762. No row-specific ownership tombstone and close-management proof (test_ui_wallet_ownership_truth.py, test_flat_reset_ownership_boundary.py) was verified at this commit. Absence of proof supports NOT_TESTED. Open decision OD-13 affects applicability."
+  },
+  {
+    "row_id": "B4-I19",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "none",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "The previously cited REGRESSION_fa9d9f55ff.json is absent from tested commit 89b3bc7586bf328df336fc9ea721cee212617762. No row-bound proof of wallet-list hot reload without release or restart (test_ui_config_change_audit.py, test_control_transaction_atomicity.py) was verified at this commit. Absence of proof supports NOT_TESTED."
+  },
+  {
+    "row_id": "B4-I20",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "none",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "No verified exchange oracle/testnet execution route was available to validate order-level adverse-price limits. Exact absent component: Build-4 exchange order oracle/testnet execution route. Proof network MAINNET required. Open decision OD-10 affects applicability."
+  },
+  {
+    "row_id": "B4-I21",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "none",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "No verified testnet execution route was available to validate PRICE_WAIT, retained event target, supersession, and exactly-once execution. Exact absent component: Build-4 testnet delayed-entry execution route. Proof network MAINNET required. Open decision OD-10 affects applicability."
+  },
+  {
+    "row_id": "B4-I22",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "none",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "The previously cited REGRESSION_fa9d9f55ff.json is absent from tested commit 89b3bc7586bf328df336fc9ea721cee212617762. No row-specific proof that entry-price protection preserves legitimate exits (test_canary_exit_authority.py, test_close_only_contract.py) was verified at this commit. Absence of proof supports NOT_TESTED."
+  },
+  {
+    "row_id": "B4-I23",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "none",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "The previously cited REGRESSION_fa9d9f55ff.json is absent from tested commit 89b3bc7586bf328df336fc9ea721cee212617762. No row-bound confirmed-fill/residual-delta proof (test_live_event_lifecycle_exactly_once.py, test_runtime_sleeve_ownership_integration.py) was verified at this commit. Absence of proof supports NOT_TESTED."
+  }
+]
