@@ -1,0 +1,172 @@
+{
+  "captured_at_utc": "2026-10-19T08:49:30.189792+00:00",
+  "url": "http://127.0.0.1:8031/",
+  "title": "HL Copy Engine SSOT",
+  "table_count": 1,
+  "body_text": "\u26a1 HL Copy Engine\nPOLL\nUpdated: 2026-10-19T08:49:26.518661+00:00\nNormalisation Base:\nMode:\nproportional\nfixed\nFixed $:\nFee bps:\nCopy friction bps:\nSet\nCurrent: PROPORTIONAL\nAuto refresh off\nPNL\nLEAD\n$0.00 (+0.00%)\nCOPY\n$0.00 (+0.00%)\n\u0394\n$0.00 (+0.00%)\nREALISED\nLEAD\n$0.00 (+0.00%)\nCOPY\n$0.00 (+0.00%)\nUNREALISED\nLEAD\n$0.00 (+0.00%)\nCOPY\n$0.00 (+0.00%)\nDRAWDOWN\nLEAD DD\n$0.00 (-0.00%)\nCOPY DD\n$0.00 (-0.00%)\nCOPY MAX\n$0.00 (-0.00%)\nMAX DD\nLEAD\n$0.00 (-0.00%)\nCOPY\n$0.00 (-0.00%)\nEXPOSURE\nOPEN\n$0.00\nMAX\n$0.00\nBASE\n0.00x / 0.00x\nCOPYABILITY\nAVG TRADE %\n0.000%\nAVG TRADE $\n$0.00\nAVG POS\n$0.00\nREQ LEV\n0.00x\nACTIVITY\nFILLS\n0\nEXITS\n0\nOPEN POS\n0\nWIN\n0.0%\nDB HEALTH\n\ud83d\udfe2 OK\nbuild 0.03s\nCACHE\n10\nBUILDS\n41\nCOMBINED PORTFOLIO \u2014 NON-USER WALLETS\n-1.00\n-0.50\n+0.00\n+0.50\n+1.00\n23:59\n23:59\n23:59\n23:59\n00:00\nCopy PnL\nRealised\nDrawdown\nHover for values \u00b7 click chart to expand\nTRACKED WALLETS (0) \u2014 model derived in app from engine SSOT only. app-derived only; engine truth is not mutated\nWALLET\t\nLEAD EQ\n\t\nCOPY EQ\n\t\nLEAD REAL\n\t\nCOPY REAL\n\t\nLEAD UNREAL\n\t\nCOPY UNREAL\n\t\nLEAD DD\n\t\nCOPY DD\n\t\nLEAD MAXDD\n\t\nCOPY MAXDD\n\t\n\u0394 $/%\n\t\nPNL/HR\n\t\nAVG TRADE %\n\t\nWIN%\n\t\nAVG POS $\n\t\nMAX POS $\n\t\nAVG NOTIONAL\n\t\n% \u2265 $10 \u25b2\n\t\nREQ LEV\n\t\nFILLS L/C\n\t\nEXITS L/C\n\t\nPOS L/C\n\tINC / WALLET MODEL\n0x7ae3b0\u20265e9205 USER\t+$100.00\t+$100.00\t$0.00 (+0.00%)\t$0.00 (+0.00%)\t$0.00 (+0.00%)\t$0.00 (+0.00%)\t$0.00 (-0.00%)\t$0.00 (-0.00%)\t$0.00 (-0.00%)\t$0.00 (-0.00%)\t$0.00 (+0.00%)\t\u2014\t\u2014\t\u2014\t$0.00\t$0.00\t$0.00\t0.0%\t0.00x\t0 / 0\t0 / 0\t0 / 0\t\naggregate baseSet",
+  "register_ref": "origin/main",
+  "rows": [
+    {
+      "id": "UI-WALLET-001",
+      "feature": "Add a leader wallet",
+      "execution_proof": "UI action -> live_config.json / wallet_gate.json write -> running engine reads it (no restart) -> testnet behaviour",
+      "rendered_page_satisfies_execution_proof": false,
+      "result": "NOT_TESTED",
+      "reason": "Rendered DOM capture shows TRACKED WALLETS (0) and only the USER account row; it does not show this wallet behavior or execute the row-specific UI write, persisted config/wallet_gate change, running-engine/Testnet effect, independent exchange oracle, or listed negative tests. No row mutation was attempted."
+    },
+    {
+      "id": "UI-WALLET-002",
+      "feature": "Remove / archive a leader wallet",
+      "execution_proof": "UI action -> live_config.json / wallet_gate.json write -> running engine reads it (no restart) -> testnet behaviour",
+      "rendered_page_satisfies_execution_proof": false,
+      "result": "NOT_TESTED",
+      "reason": "Rendered DOM capture shows TRACKED WALLETS (0) and only the USER account row; it does not show this wallet behavior or execute the row-specific UI write, persisted config/wallet_gate change, running-engine/Testnet effect, independent exchange oracle, or listed negative tests. No row mutation was attempted."
+    },
+    {
+      "id": "UI-WALLET-003",
+      "feature": "Enable a leader wallet (LIVE)",
+      "execution_proof": "UI action -> live_config.json / wallet_gate.json write -> running engine reads it (no restart) -> testnet behaviour",
+      "rendered_page_satisfies_execution_proof": false,
+      "result": "NOT_TESTED",
+      "reason": "Rendered DOM capture shows TRACKED WALLETS (0) and only the USER account row; it does not show this wallet behavior or execute the row-specific UI write, persisted config/wallet_gate change, running-engine/Testnet effect, independent exchange oracle, or listed negative tests. No row mutation was attempted."
+    },
+    {
+      "id": "UI-WALLET-004",
+      "feature": "Disable a leader wallet",
+      "execution_proof": "UI action -> config -> running engine -> testnet behaviour",
+      "rendered_page_satisfies_execution_proof": false,
+      "result": "NOT_TESTED",
+      "reason": "Rendered DOM capture shows TRACKED WALLETS (0) and only the USER account row; it does not show this wallet behavior or execute the row-specific UI write, persisted config/wallet_gate change, running-engine/Testnet effect, independent exchange oracle, or listed negative tests. No row mutation was attempted."
+    },
+    {
+      "id": "UI-WALLET-005",
+      "feature": "Close-only a leader wallet (CLO)",
+      "execution_proof": "UI action -> live_config.json / wallet_gate.json write -> running engine reads it (no restart) -> testnet behaviour",
+      "rendered_page_satisfies_execution_proof": false,
+      "result": "NOT_TESTED",
+      "reason": "Rendered DOM capture shows TRACKED WALLETS (0) and only the USER account row; it does not show this wallet behavior or execute the row-specific UI write, persisted config/wallet_gate change, running-engine/Testnet effect, independent exchange oracle, or listed negative tests. No row mutation was attempted."
+    },
+    {
+      "id": "UI-WALLET-006",
+      "feature": "Copy model proportional/fixed",
+      "execution_proof": "UI action -> live_config.json / wallet_gate.json write -> running engine reads it (no restart) -> testnet behaviour",
+      "rendered_page_satisfies_execution_proof": false,
+      "result": "NOT_TESTED",
+      "reason": "Rendered DOM capture shows TRACKED WALLETS (0) and only the USER account row; it does not show this wallet behavior or execute the row-specific UI write, persisted config/wallet_gate change, running-engine/Testnet effect, independent exchange oracle, or listed negative tests. No row mutation was attempted."
+    },
+    {
+      "id": "UI-WALLET-007",
+      "feature": "Norm base (N)",
+      "execution_proof": "UI action -> live_config.json / wallet_gate.json write -> running engine reads it (no restart) -> testnet behaviour",
+      "rendered_page_satisfies_execution_proof": false,
+      "result": "NOT_TESTED",
+      "reason": "Rendered DOM capture shows TRACKED WALLETS (0) and only the USER account row; it does not show this wallet behavior or execute the row-specific UI write, persisted config/wallet_gate change, running-engine/Testnet effect, independent exchange oracle, or listed negative tests. No row mutation was attempted."
+    },
+    {
+      "id": "UI-WALLET-008",
+      "feature": "Fixed notional (F)",
+      "execution_proof": "UI action -> live_config.json / wallet_gate.json write -> running engine reads it (no restart) -> testnet behaviour",
+      "rendered_page_satisfies_execution_proof": false,
+      "result": "NOT_TESTED",
+      "reason": "Rendered DOM capture shows TRACKED WALLETS (0) and only the USER account row; it does not show this wallet behavior or execute the row-specific UI write, persisted config/wallet_gate change, running-engine/Testnet effect, independent exchange oracle, or listed negative tests. No row mutation was attempted."
+    },
+    {
+      "id": "UI-WALLET-009",
+      "feature": "Leader equity base (B)",
+      "execution_proof": "UI action -> live_config.json / wallet_gate.json write -> running engine reads it (no restart) -> testnet behaviour",
+      "rendered_page_satisfies_execution_proof": false,
+      "result": "NOT_TESTED",
+      "reason": "Rendered DOM capture shows TRACKED WALLETS (0) and only the USER account row; it does not show this wallet behavior or execute the row-specific UI write, persisted config/wallet_gate change, running-engine/Testnet effect, independent exchange oracle, or listed negative tests. No row mutation was attempted."
+    },
+    {
+      "id": "UI-WALLET-010",
+      "feature": "Wallet status and position/target representation",
+      "execution_proof": "UI action -> live_config.json / wallet_gate.json write -> running engine reads it (no restart) -> testnet behaviour",
+      "rendered_page_satisfies_execution_proof": false,
+      "result": "NOT_TESTED",
+      "reason": "Rendered DOM capture shows TRACKED WALLETS (0) and only the USER account row; it does not show this wallet behavior or execute the row-specific UI write, persisted config/wallet_gate change, running-engine/Testnet effect, independent exchange oracle, or listed negative tests. No row mutation was attempted."
+    },
+    {
+      "id": "UI-WALLET-011",
+      "feature": "Persistence and restart",
+      "execution_proof": "UI action -> live_config.json / wallet_gate.json write -> running engine reads it (no restart) -> testnet behaviour",
+      "rendered_page_satisfies_execution_proof": false,
+      "result": "NOT_TESTED",
+      "reason": "Rendered DOM capture shows TRACKED WALLETS (0) and only the USER account row; it does not show this wallet behavior or execute the row-specific UI write, persisted config/wallet_gate change, running-engine/Testnet effect, independent exchange oracle, or listed negative tests. No row mutation was attempted."
+    },
+    {
+      "id": "UI-WALLET-012",
+      "feature": "Invalid input handling",
+      "execution_proof": "UI action -> live_config.json / wallet_gate.json write -> running engine reads it (no restart) -> testnet behaviour",
+      "rendered_page_satisfies_execution_proof": false,
+      "result": "NOT_TESTED",
+      "reason": "Rendered DOM capture shows TRACKED WALLETS (0) and only the USER account row; it does not show this wallet behavior or execute the row-specific UI write, persisted config/wallet_gate change, running-engine/Testnet effect, independent exchange oracle, or listed negative tests. No row mutation was attempted."
+    },
+    {
+      "id": "UI-WALLET-013",
+      "feature": "USER/account wallet can never be enabled",
+      "execution_proof": "UI action -> live_config.json / wallet_gate.json write -> running engine reads it (no restart) -> testnet behaviour",
+      "rendered_page_satisfies_execution_proof": false,
+      "result": "NOT_TESTED",
+      "reason": "Rendered DOM capture shows TRACKED WALLETS (0) and only the USER account row; it does not show this wallet behavior or execute the row-specific UI write, persisted config/wallet_gate change, running-engine/Testnet effect, independent exchange oracle, or listed negative tests. No row mutation was attempted."
+    },
+    {
+      "id": "UI-WALLET-014",
+      "feature": "Two mode writers agree",
+      "execution_proof": "UI action -> live_config.json / wallet_gate.json write -> running engine reads it (no restart) -> testnet behaviour",
+      "rendered_page_satisfies_execution_proof": false,
+      "result": "NOT_TESTED",
+      "reason": "Rendered DOM capture shows TRACKED WALLETS (0) and only the USER account row; it does not show this wallet behavior or execute the row-specific UI write, persisted config/wallet_gate change, running-engine/Testnet effect, independent exchange oracle, or listed negative tests. No row mutation was attempted."
+    },
+    {
+      "id": "UI-WALLET-015",
+      "feature": "PURGE (admin)",
+      "execution_proof": "UI action -> live_config.json / wallet_gate.json write -> running engine reads it (no restart) -> testnet behaviour",
+      "rendered_page_satisfies_execution_proof": false,
+      "result": "NOT_TESTED",
+      "reason": "Rendered DOM capture shows TRACKED WALLETS (0) and only the USER account row; it does not show this wallet behavior or execute the row-specific UI write, persisted config/wallet_gate change, running-engine/Testnet effect, independent exchange oracle, or listed negative tests. No row mutation was attempted."
+    },
+    {
+      "id": "UI-WALLET-016",
+      "feature": "Include in portfolio (INC)",
+      "execution_proof": "UI action -> live_config.json / wallet_gate.json write -> running engine reads it (no restart) -> testnet behaviour",
+      "rendered_page_satisfies_execution_proof": false,
+      "result": "NOT_TESTED",
+      "reason": "Rendered DOM capture shows TRACKED WALLETS (0) and only the USER account row; it does not show this wallet behavior or execute the row-specific UI write, persisted config/wallet_gate change, running-engine/Testnet effect, independent exchange oracle, or listed negative tests. No row mutation was attempted."
+    },
+    {
+      "id": "UI-WALLET-017",
+      "feature": "Wallet meta (tag/colour/note)",
+      "execution_proof": "UI action -> live_config.json / wallet_gate.json write -> running engine reads it (no restart) -> testnet behaviour",
+      "rendered_page_satisfies_execution_proof": false,
+      "result": "NOT_TESTED",
+      "reason": "Rendered DOM capture shows TRACKED WALLETS (0) and only the USER account row; it does not show this wallet behavior or execute the row-specific UI write, persisted config/wallet_gate change, running-engine/Testnet effect, independent exchange oracle, or listed negative tests. No row mutation was attempted."
+    },
+    {
+      "id": "UI-WALLET-018",
+      "feature": "Duplicate add / re-add archived",
+      "execution_proof": "UI action -> live_config.json / wallet_gate.json write -> running engine reads it (no restart) -> testnet behaviour",
+      "rendered_page_satisfies_execution_proof": false,
+      "result": "NOT_TESTED",
+      "reason": "Rendered DOM capture shows TRACKED WALLETS (0) and only the USER account row; it does not show this wallet behavior or execute the row-specific UI write, persisted config/wallet_gate change, running-engine/Testnet effect, independent exchange oracle, or listed negative tests. No row mutation was attempted."
+    },
+    {
+      "id": "UI-WALLET-019",
+      "feature": "Wallet subscription coverage",
+      "execution_proof": "UI action -> live_config.json / wallet_gate.json write -> running engine reads it (no restart) -> testnet behaviour",
+      "rendered_page_satisfies_execution_proof": false,
+      "result": "NOT_TESTED",
+      "reason": "Rendered DOM capture shows TRACKED WALLETS (0) and only the USER account row; it does not show this wallet behavior or execute the row-specific UI write, persisted config/wallet_gate change, running-engine/Testnet effect, independent exchange oracle, or listed negative tests. No row mutation was attempted."
+    }
+  ],
+  "binding": {
+    "served_sha256_expected_from_task": "b45ff9af2182944a1fabd98b6369d0ad7dd7d215062abec3bdc20dfd75e9e7c2",
+    "served_sha256_verified": false,
+    "listener_pid_netstat": "26336",
+    "process_start_expected_from_task": "2026-10-19T08:34:35",
+    "process_start_verified": false,
+    "config_path_expected_from_task": "C:/Users/wigmore/trading_stack/hl-build3-testnet-cert/_archive/hl_stage2/",
+    "config_path_verified": false
+  },
+  "capture_notes": "Fresh Playwright-rendered DOM at :8031/. Only zero tracked wallets and the USER account row were rendered. Binding items marked expected are task-provided, not independently verified; no unsafe control mutation performed."
+}

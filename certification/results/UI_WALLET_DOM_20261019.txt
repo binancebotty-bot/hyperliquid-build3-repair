@@ -1,0 +1,137 @@
+⚡ HL Copy Engine
+POLL
+Updated: 2026-10-19T08:49:26.518661+00:00
+Normalisation Base:
+Mode:
+proportional
+fixed
+Fixed $:
+Fee bps:
+Copy friction bps:
+Set
+Current: PROPORTIONAL
+Auto refresh off
+PNL
+LEAD
+$0.00 (+0.00%)
+COPY
+$0.00 (+0.00%)
+Δ
+$0.00 (+0.00%)
+REALISED
+LEAD
+$0.00 (+0.00%)
+COPY
+$0.00 (+0.00%)
+UNREALISED
+LEAD
+$0.00 (+0.00%)
+COPY
+$0.00 (+0.00%)
+DRAWDOWN
+LEAD DD
+$0.00 (-0.00%)
+COPY DD
+$0.00 (-0.00%)
+COPY MAX
+$0.00 (-0.00%)
+MAX DD
+LEAD
+$0.00 (-0.00%)
+COPY
+$0.00 (-0.00%)
+EXPOSURE
+OPEN
+$0.00
+MAX
+$0.00
+BASE
+0.00x / 0.00x
+COPYABILITY
+AVG TRADE %
+0.000%
+AVG TRADE $
+$0.00
+AVG POS
+$0.00
+REQ LEV
+0.00x
+ACTIVITY
+FILLS
+0
+EXITS
+0
+OPEN POS
+0
+WIN
+0.0%
+DB HEALTH
+🟢 OK
+build 0.03s
+CACHE
+10
+BUILDS
+41
+COMBINED PORTFOLIO — NON-USER WALLETS
+-1.00
+-0.50
++0.00
++0.50
++1.00
+23:59
+23:59
+23:59
+23:59
+00:00
+Copy PnL
+Realised
+Drawdown
+Hover for values · click chart to expand
+TRACKED WALLETS (0) — model derived in app from engine SSOT only. app-derived only; engine truth is not mutated
+WALLET	
+LEAD EQ
+	
+COPY EQ
+	
+LEAD REAL
+	
+COPY REAL
+	
+LEAD UNREAL
+	
+COPY UNREAL
+	
+LEAD DD
+	
+COPY DD
+	
+LEAD MAXDD
+	
+COPY MAXDD
+	
+Δ $/%
+	
+PNL/HR
+	
+AVG TRADE %
+	
+WIN%
+	
+AVG POS $
+	
+MAX POS $
+	
+AVG NOTIONAL
+	
+% ≥ $10 ▲
+	
+REQ LEV
+	
+FILLS L/C
+	
+EXITS L/C
+	
+POS L/C
+	INC / WALLET MODEL
+0x7ae3b0…5e9205 USER	+$100.00	+$100.00	$0.00 (+0.00%)	$0.00 (+0.00%)	$0.00 (+0.00%)	$0.00 (+0.00%)	$0.00 (-0.00%)	$0.00 (-0.00%)	$0.00 (-0.00%)	$0.00 (-0.00%)	$0.00 (+0.00%)	—	—	—	$0.00	$0.00	$0.00	0.0%	0.00x	0 / 0	0 / 0	0 / 0	
+aggregate baseSet
