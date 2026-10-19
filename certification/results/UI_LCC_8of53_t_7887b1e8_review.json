@@ -1,0 +1,17 @@
+[
+  {"row_id":"UI-LCC-CARD-02","verdict":"PASS","probe":"probe3.card_mutation; card_probe.with_data/all_unavailable","why":"Row-specific text names Open positions P&L (unrealised), its A/B values, and its unavailable em-dash behavior. The probe artifact exists, but the submitted evidence_ref does not point to it; verdict is supported by the committed probe payload on inspection."},
+  {"row_id":"UI-LCC-CARD-03","verdict":"PASS","probe":"probe3.card_mutation; card_probe.with_data/all_unavailable","why":"Closed P&L (realised) changes from -42 to 11 and has a distinct start-time suffix. Evidence ref is only the summary JSON, not the probe file."},
+  {"row_id":"UI-LCC-CARD-04","verdict":"PASS","probe":"probe3.card_mutation; card_probe.with_data/all_unavailable","why":"Open Positions is 2 versus 0, with unavailable em-dash; cardinality-specific observation. Evidence ref is only the summary JSON."},
+  {"row_id":"UI-LCC-CARD-05","verdict":"FAIL","probe":"card_probe.all_unavailable","why":"Live Exposure remains $0 when all data unavailable, unlike sibling cards. Summary also quotes manual_live_exposure_estimate||0 and bare label; probe artifact itself exists but is not cited by evidence_ref."},
+  {"row_id":"UI-LCC-CARD-06","verdict":"FAIL","probe":"probe3.card_labels_contain_lastfill_lastreject; probe5.status","why":"#lcRealCards lacks Last fill (has_last_fill=false); probe5 shows it in the status strip, not the requested card."},
+  {"row_id":"UI-LCC-CARD-07","verdict":"FAIL","probe":"probe3.card_labels_contain_lastfill_lastreject; probe5.status","why":"#lcRealCards lacks Last Reject (has_last_reject=false); probe5 shows status-strip output only."},
+  {"row_id":"UI-LCC-GRAPH-01","verdict":"PASS","probe":"probe3.graph_behavior.account_subtitle; dom_probe.btn_mode_account","why":"Account mode has account-specific subtitle and button; distinct from wallet/exposure modes."},
+  {"row_id":"UI-LCC-GRAPH-02","verdict":"PASS","probe":"probe3.graph_behavior.wallet_subtitle; dom_probe.btn_mode_wallet_pnl","why":"Selected wallet live PnL subtitle and mode button are explicitly observed."},
+  {"row_id":"UI-LCC-GRAPH-03","verdict":"PASS","probe":"probe3.graph_behavior.exposure_subtitle; dom_probe.btn_mode_exposure","why":"Selected wallet exposure subtitle and exposure control explicitly observed."},
+  {"row_id":"UI-LCC-GRAPH-04","verdict":"PASS","probe":"probe3.scale_filter.d1","why":"1D filter produces not-enough-points from the stated series; source says identity mutant expands 3 to 10 points."},
+  {"row_id":"UI-LCC-GRAPH-05","verdict":"PASS","probe":"probe3.scale_filter.d7","why":"7D keeps 3 points, distinct from ALL 4 and 1D empty."},
+  {"row_id":"UI-LCC-GRAPH-06","verdict":"PASS","probe":"probe3.scale_filter.all","why":"ALL retains all 4 points and differs from the two bounded scales."},
+  {"row_id":"UI-LCC-GRAPH-07","verdict":"PASS","probe":"probe4.range_wiring.after_start_apply","why":"Start datetime changes the displayed lower boundary to 05/06/2026, 00:00:00; note start_used=null means internal value not independently reported."},
+  {"row_id":"UI-LCC-GRAPH-08","verdict":"PASS","probe":"probe4.range_wiring.after_end_apply","why":"End datetime changes the displayed upper boundary to 07/06/2026, 00:00:00; end_used=null limits internal-state proof."},
+  {"row_id":"UI-LCC-GRAPH-09","verdict":"PASS","probe":"probe4.range_mutation_control; probe3.apply_click","why":"Apply click is reported and range filter mutation changes 3 points to 10, a non-vacuity control."}
+]
