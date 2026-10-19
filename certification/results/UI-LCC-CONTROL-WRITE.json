@@ -2,6 +2,12 @@
   "meta": {
     "card": "t_931d2d8d",
     "probe": "ui_lcc_control_write_v3",
+    "note": {
+      "what_was_tested": "The UI-LCC control-write rows were exercised against the isolated :8032 instance ONLY (PID 30580, serving commit 89b3bc7, process start 2026-10-18T18:43:11Z), which reads and writes its own _isolated_8032/audit/live_config.json.",
+      "what_was_observed": "The live :8031 instance WAS REACHABLE throughout the run: live_8031_reachable_at_start=true and live_8031_reachable_at_end=true. It was never written to.",
+      "how_it_was_proven": "Four guard pairs (start, before-global-controls-write, after-global-controls-write, after-writes) each recorded identical live :8031 API hashes before and after the test - config API sha256 63e281d4..., controls API sha256 ba995044... - with shared_config_files_unchanged=true. Identical hashes across all four guards are the proof of never-written.",
+      "isolation_claim": "NONE. This artifact makes no claim that :8031 was isolated, absent or unreachable. The true and only claim is live_8031_never_written=true. The earlier completion summary wording (no listener on :8031) was wrong and is not repeated here."
+    },
     "generated_at_utc": "2026-10-19T07:37:02.764059+00:00",
     "app_base": "http://127.0.0.1:8032",
     "serving_binding_type": "content_sha256",
@@ -201,7 +207,7 @@
       "predicate": "fixed_notional 10->25 AND norm_base 100->150 AND mode OFF->LIVE AND enabled true AND status SAVED",
       "dom_evidence": {
         "status_text": "Updated: 0x11111111...111111 -> SAVED",
-        "row_text": "0x11111111...111111\nLive\n\t—\t\nPolling (normal)\n\t\nClosed: —\nOpen: $0\nFees: —\nNo PnL yet\n\t\nTotal: n/a\nAvg: n/a\nAvg bps: n/a\nWorst bps: n/a\n\t\n0 filled / 0 exits\n0 recent rejects\n0 recent blocks\n\t\nExposure: $0\nOpen pos: 0\nDD: —\nMaxDD: —\n\tnone yet\t\nLIVE\nCLO\nOFF\nprop\nfixed\nF\nN\nSave\nCLO\nOFF\nArchive"
+        "row_text": "0x11111111...111111\nLive\n\t\u2014\t\nPolling (normal)\n\t\nClosed: \u2014\nOpen: $0\nFees: \u2014\nNo PnL yet\n\t\nTotal: n/a\nAvg: n/a\nAvg bps: n/a\nWorst bps: n/a\n\t\n0 filled / 0 exits\n0 recent rejects\n0 recent blocks\n\t\nExposure: $0\nOpen pos: 0\nDD: \u2014\nMaxDD: \u2014\n\tnone yet\t\nLIVE\nCLO\nOFF\nprop\nfixed\nF\nN\nSave\nCLO\nOFF\nArchive"
       },
       "result": "PASS",
       "tested_at_utc": "2026-10-19T07:37:25.165269+00:00",
