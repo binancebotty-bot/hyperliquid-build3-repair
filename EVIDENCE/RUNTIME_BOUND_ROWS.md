@@ -84,3 +84,43 @@ A row is only earned by evidence bound to **that row's** proof. A soak or verifi
 the engine generally is not row-bound evidence; the artifact must let a reader answer "did *this* row's
 assertion hold" without re-running the whole thing. Where an aggregate run does cover a row, cite the
 specific check inside it.
+
+---
+
+## CORRECTION (2026-10-19) — "runtime-bound" did not mean "not testable"
+
+This file groups 191 rows whose proof text mentions executed / live / testnet / runtime evidence, and the intake cards
+that hit them returned NOT_TESTED on the grounds that no such evidence exists in a clone. **That reasoning conflates two
+different things**, and the skill `certification-row-bound-reearn` documents the seam that closes the gap:
+
+*Needing runtime behaviour* is not the same as *needing a running engine*. `HL_Live_Copy_Service_Core` can be imported
+and driven **in-process**:
+
+    sys.path.insert(0, str(CORE.parent))
+    os.environ.update({"HL_LIVE_AUDIT_DIR": tempfile.mkdtemp(), "HL_LIVE_ENV_FILE": "nonexistent",
+                       "HL_LIVE_MOCK_SEND": "0"})
+    import HL_Live_Copy_Service_Core as c
+    c.follower_mid = lambda coin: 100.0        # pin the price so assertions are exact
+
+with a stubbed exchange. That exercises risk caps, send gates and decision branches without a live engine, a testnet
+credential or a soak run.
+
+### What this changes
+
+Rows whose proof is a **decision-branch / cap / gate assertion** are testable offline by a worker card. Rows whose proof
+is genuinely an **exchange-side outcome** (a fill, a tx hash, exchange/userFills parity) are not — those still need
+Codex's soak and verifier output.
+
+So the 191 is not one bucket. It splits again, and **the split must be measured per row against the row's own
+`execution_proof`, not inferred from keyword matches.** This file's grouping is a starting point, not a verdict on
+testability.
+
+### The method that earns a row
+
+A row is only earned when the check **would fail for a different row**. The skill's shape:
+
+- **ACTIVE** — config that trips this row's control; expect this row's exact (decision, reason) tuple.
+- **CONTROL** — identical except this row's own control value is neutralised; expect ENTRY_ALLOWED / ''.
+
+Assert both. Name every check after its row. That pairing is what makes the evidence row-bound rather than generic — the
+defect that got the earlier batches rejected.
