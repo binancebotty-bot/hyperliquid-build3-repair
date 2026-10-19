@@ -1,0 +1,81 @@
+{
+ "verifier": "custom:deepseek-v4-flash-thinking-nosearch (task t_03123cb4)",
+ "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+ "evidence": "certification/results/ENG_INV_03_04_05_rowbound_t_d67de338.json",
+ "verdict": "FAIL",
+ "reviewed_ref": "hermes/eng-inv-030405-rowbound @ 1801c97",
+ "reviewer_task": "t_03123cb4",
+ "independence": {
+  "clone": "git clone https://github.com/binancebotty-bot/hyperliquid-build3-repair (no --depth, no --filter)",
+  "commit_reachable_from_main": true,
+  "oracle_sha256_reviewed": "811287acdce78275ab2dd679b1ecb2e6f3ed1a38307730adbd91ae2920306b56",
+  "oracle_sha256_matches_branch_copy": true,
+  "artifact_sha256_reviewed": "86afb9b5efa6258302b0a7e305d5f3bd77c7cb7f9b56bd4554d02efe80d356a7",
+  "artifact_sha256_matches_branch_copy": true
+ },
+ "invariant_source_check": {
+  "ARCHITECTURE.md:48": "3. No new dependency without Architect approval. -> ENG-INV-03 (row mapping correct)",
+  "ARCHITECTURE.md:49": "4. No new authoritative persistent trading-state store. -> ENG-INV-04 (row mapping correct)",
+  "ARCHITECTURE.md:50": "5. No Build 4 control-plane/platform import. -> ENG-INV-05 (row mapping correct)"
+ },
+ "baseline_check": {
+  "approved_dependencies_file_present": false,
+  "approved_dependencies_file_search": "no file named approved_dependencies.json exists in the repo at 43731b4, at the reviewed branch, or at origin/main; the oracle falls back to an empty approved set",
+  "where_the_baseline_actually_comes_from": "rowbound_oracle.py baseline_deps(root, rev) -> git ls-tree/git show of _archive/hl_stage2/*.py at rev=43731b4, i.e. the SAME commit under test",
+  "artifact_declares": "baseline_for_delta = 43731b4f1f19a56e835032dabf608a550f925717 (same commit: the row forbids NEW dependencies, so present-at-baseline is the correct comparator)",
+  "baseline_list_measured": ["eth_account", "fastapi", "hyperliquid", "requests", "uvicorn", "websocket"],
+  "finding": "the baseline is the tested tree itself, so the delta is empty by construction at 43731b4; this is exactly the vacuity-by-construction case the card told me to test for. None of the six third-party modules present in the engine closure carries an approval record, and the empty approved set is never applied as a check, so the row cannot fail on the certified commit."
+ },
+ "rerun": {
+  "clean_tree_at_43731b4": {
+   "command": "python certification/results/rowbound_oracle.py . --baseline 43731b4 --mutate (worktree at 43731b4, oracle sha 811287ac)",
+   "verdict": "PASS",
+   "baseline_checks": {"ENG-INV-03": true, "ENG-INV-04": true, "ENG-INV-05": true},
+   "engine_closure": ["HL_Copy_App_SSOT.py", "HL_Live_Copy_Service.py", "HL_Live_Copy_Service_Core.py", "convergence_shadow.py", "exchange_truth.py"],
+   "scope_ok": true
+  },
+  "origin_main_188af22": {
+   "command": "python certification/results/rowbound_oracle.py . --baseline 43731b4 (worktree at origin/main 188af22bab229c782b2a1adc39e1158a1bf4d6a2)",
+   "verdict": "FAIL",
+   "baseline_checks": {"ENG-INV-03": false, "ENG-INV-04": true, "ENG-INV-05": true},
+   "violations": [{"file": "headroom.py", "line": 48, "module": "psutil", "kind": "import"}],
+   "note": "headroom.py does not exist at 43731b4 (git cat-file -e 43731b4:_archive/hl_stage2/headroom.py -> absent); psutil is declared in no requirements/pyproject/setup file on the branch. The current-main red is a TRUE finding about main, not an oracle defect."
+  }
+ },
+ "per_row": {
+  "ENG-INV-03": {
+   "verdict": "FAIL",
+   "mutation": "import totally_unapproved_new_package",
+   "baseline_map_at_43731b4": {"ENG-INV-03": true, "ENG-INV-04": true, "ENG-INV-05": true},
+   "results_all_rows_after_mutation": {"ENG-INV-03": false, "ENG-INV-04": true, "ENG-INV-05": true},
+   "this_row_red": true,
+   "siblings_green": true,
+   "non_vacuous_control": true,
+   "reason_for_fail": "The mutation control is row-bound and I reproduced it, but the PASS the artifact certifies is vacuous by construction: the dependency baseline is computed from the same commit that is under test, and no approval record exists to compare against. The row therefore cannot fail on 43731b4 no matter which unapproved third-party modules the engine imports. The mutation only proves the predicate can see an APPENDED import; it does not make the certified PASS informative."
+  },
+  "ENG-INV-04": {
+   "verdict": "PASS",
+   "mutation": "import sqlite3 + sqlite3.connect('authoritative_positions.db')",
+   "baseline_map_at_43731b4": {"ENG-INV-03": true, "ENG-INV-04": true, "ENG-INV-05": true},
+   "results_all_rows_after_mutation": {"ENG-INV-03": true, "ENG-INV-04": false, "ENG-INV-05": true},
+   "this_row_red": true,
+   "siblings_green": true,
+   "non_vacuous_control": true,
+   "reason_for_pass": "Absolute predicate (no baseline involved). I reproduced one-row-red independently; zero store drivers and zero store sinks in the engine closure at 43731b4."
+  },
+  "ENG-INV-05": {
+   "verdict": "PASS",
+   "mutation": "import build4_control_plane",
+   "baseline_map_at_43731b4": {"ENG-INV-03": true, "ENG-INV-04": true, "ENG-INV-05": true},
+   "results_all_rows_after_mutation": {"ENG-INV-03": true, "ENG-INV-04": true, "ENG-INV-05": false},
+   "this_row_red": true,
+   "siblings_green": true,
+   "non_vacuous_control": true,
+   "reason_for_pass": "Absolute predicate. I reproduced one-row-red independently; zero Build-4 namespace imports (static or dynamic) in the engine closure at 43731b4."
+  }
+ },
+ "disjointness_summary": "All three mutations reddened exactly one row and left both siblings green, reproduced by me on a clean worktree at 43731b4. Row-boundness of the three predicates holds; the FAIL on ENG-INV-03 is a baseline/provenance defect, not a disjointness defect.",
+ "inherited_caveat_statement": "The artifact's verdicts are measured at 43731b4f1f19a56e835032dabf608a550f925717, not at current main. The difference matters for ENG-INV-03 only: at current main the same oracle reports RED because _archive/hl_stage2/headroom.py:48 imports psutil (absent at 43731b4, undeclared in any dependency file, not in any approval record). The artifact discloses this in its notes and I confirm it is accurate. It does not repair the vacuous baseline at the certified commit; if anything it shows why a self-baseline is dangerous, since the row would read PASS on a commit where six unapproved third-party modules are present and only turns red when a seventh appears later.",
+ "matrix_not_edited": true,
+ "proofs_not_edited": true
+}
