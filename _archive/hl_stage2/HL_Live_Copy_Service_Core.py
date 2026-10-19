@@ -4193,8 +4193,15 @@ class SenderGateway:
         # different workers overlap (run 3: one ~3.5 s call at a time capped the engine near one order per 3.5 s).
         if FOLLOWER_NETWORK == "mainnet" and not MAINNET_ORDERS_CONFIRMED:
             raise RuntimeError("MAINNET_FOLLOWER_NOT_CONFIRMED: mainnet order refused without --confirm-mainnet-follower")
+        min_gap_ms = max(0, int(fnum(os.getenv("HL_LIVE_MIN_EXCHANGE_ORDER_GAP_MS"), 250)))
+        now_ms = utc_now_ms()
         with self._exchange_order_lock:
-            self._wait_exchange_order_slot()
+            slot_ms = max(self._last_exchange_order_ms + min_gap_ms,
+                          self._exchange_rate_limit_cooldown_until_ms, now_ms)
+            self._last_exchange_order_ms = slot_ms
+        delay_ms = max(0, slot_ms - utc_now_ms())
+        if delay_ms:
+            time.sleep(min(5.0, delay_ms / 1000.0))
         if timing is not None and started_key:
             timing[started_key] = utc_now_ms()
         order_kwargs: Dict[str, Any] = {"reduce_only": reduce_only}
