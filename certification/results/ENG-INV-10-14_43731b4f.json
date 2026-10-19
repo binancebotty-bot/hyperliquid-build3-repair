@@ -1,0 +1,223 @@
+{
+  "task_id": "t_3f6df1ce",
+  "title": "B3-CERT-ENG-INV-10-14 [evidence] Non-vacuous static census: invariants 10-14",
+  "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+  "file_info": {
+    "HL_Live_Copy_Service_Core.py": {
+      "sha256": "2dfbd571012af67479ee7a2d9e6f1faac6ee5408722a092fb3625450cab51405",
+      "line_count": 8030,
+      "size_bytes": 436322
+    },
+    "HL_Live_Copy_Service.py": {
+      "sha256": "e2f04fa826958c73169bae2490a6ebb3ebfd09d9aecda513ef0d7bd8a10ec2c6",
+      "line_count": 5109,
+      "size_bytes": 281821
+    },
+    "HL_Copy_App_SSOT.py": {
+      "sha256": "bb7b9cc399167db5abc3acc740196e871baadfba7df19edbc966c2f7178fdcc3",
+      "line_count": 6360,
+      "size_bytes": 381610
+    },
+    "convergence_shadow.py": {
+      "sha256": "f63732d5f132cd7052e08f78c02d5434cf11167c7aaeceffc8084b1b96cc481d",
+      "line_count": 250,
+      "size_bytes": 12773
+    },
+    "exchange_truth.py": {
+      "sha256": "6f841fd7e6a4d4b72c4a5c4c7390f88addb627602199c6a14cfa2851d849b6ff",
+      "line_count": 340,
+      "size_bytes": 19615
+    }
+  },
+  "results": {
+    "ENG-INV-10": {
+      "id": "ENG-INV-10",
+      "name": "API ack is not settlement; physical sends require MASTER fill/position verification",
+      "passed": true,
+      "checks": [
+        {
+          "name": "resolve_settlement() defined",
+          "pass": true,
+          "detail": "exchange_truth.py L297"
+        },
+        {
+          "name": "resolve_settlement() called from engine",
+          "pass": true,
+          "detail": "2 call(s): HL_Live_Copy_Service.py:L459, HL_Live_Copy_Service.py:L2549"
+        },
+        {
+          "name": "No ack-as-settlement pattern",
+          "pass": true,
+          "detail": "No strings treating ack as settlement"
+        },
+        {
+          "name": "Settlement verification uses MASTER account",
+          "pass": true,
+          "detail": "exchange_truth.py references MASTER (12 occurrences)"
+        }
+      ],
+      "evidence": []
+    },
+    "ENG-INV-11": {
+      "id": "ENG-INV-11",
+      "name": "MASTER/trading account and API signer are distinct identities; balance/fills/positions verified on MASTER",
+      "passed": false,
+      "checks": [
+        {
+          "name": "MASTER address constant defined",
+          "pass": false,
+          "detail": "No MASTER_ADDRESS constant found"
+        },
+        {
+          "name": "Signer key/address constant defined",
+          "pass": true,
+          "detail": "Found: exchange_truth.py:L274"
+        },
+        {
+          "name": "Balance/fills/positions queries use MASTER address",
+          "pass": false,
+          "detail": "No get_fills/get_positions/get_balance calls found"
+        },
+        {
+          "name": "MASTER != SIGNER (distinct identities)",
+          "pass": false,
+          "detail": "Cannot verify distinct identities"
+        }
+      ],
+      "evidence": []
+    },
+    "ENG-INV-12": {
+      "id": "ENG-INV-12",
+      "name": "Convergence orders move actual toward desired and never blindly flatten unrelated pre-existing inventory",
+      "passed": true,
+      "checks": [
+        {
+          "name": "Convergence/delta function defined",
+          "pass": true,
+          "detail": "Found 5 function(s): HL_Live_Copy_Service.py:trade_delta_from_side()@L1442, HL_Live_Copy_Service.py:convergence_order_for_coin()@L2599, HL_Live_Copy_Service.py:convergence_notional_for_fill()@L2625, HL_Live_Copy_Service.py:apply_signed_delta_to_position()@L2896, convergence_shadow.py:compute_convergence_order()@L58"
+        },
+        {
+          "name": "Delta computation found",
+          "pass": true,
+          "detail": "Found: HL_Live_Copy_Service.py:L513: delta = ..."
+        },
+        {
+          "name": "No 'flatten all' pattern",
+          "pass": true,
+          "detail": "No flatten-all or close-all patterns found"
+        },
+        {
+          "name": "Convergence checks position ownership/source",
+          "pass": true,
+          "detail": "Found: HL_Live_Copy_Service.py:L913, HL_Live_Copy_Service.py:L1166, HL_Live_Copy_Service.py:L1788"
+        }
+      ],
+      "evidence": []
+    },
+    "ENG-INV-13": {
+      "id": "ENG-INV-13",
+      "name": "Restart/recovery establishes truth from fresh external snapshots for verification/reconciliation only; creates ZERO new trade authority",
+      "passed": true,
+      "checks": [
+        {
+          "name": "Restart/recovery functions defined",
+          "pass": true,
+          "detail": "Found 5 function(s): HL_Live_Copy_Service.py:should_recover_ws_snapshot_fill()@L1768, HL_Live_Copy_Service.py:write_ws_health_initial()@L3509, HL_Live_Copy_Service.py:__init__()@L804, HL_Live_Copy_Service.py:__init__()@L2099, HL_Live_Copy_Service.py:__init__()@L3553"
+        },
+        {
+          "name": "No .order() calls in restart/recovery",
+          "pass": true,
+          "detail": "No .order() calls in restart/recovery functions (checked 1 total order calls)"
+        },
+        {
+          "name": "Restart reads from external sources",
+          "pass": true,
+          "detail": "Found: HL_Live_Copy_Service.py:should_recover_ws_snapshot_fill() calls getattr()@L1776, HL_Live_Copy_Service.py:should_recover_ws_snapshot_fill() calls getattr()@L1770"
+        },
+        {
+          "name": "Restart creates ZERO new trade authority",
+          "pass": true,
+          "detail": "No new trade authority creation in restart/recovery code"
+        }
+      ],
+      "evidence": []
+    },
+    "ENG-INV-14": {
+      "id": "ENG-INV-14",
+      "name": "No mainnet/LIVE activation without explicit Richard approval",
+      "passed": false,
+      "checks": [
+        {
+          "name": "LIVE activation code exists",
+          "pass": true,
+          "detail": "Found: 15 comparison(s)"
+        },
+        {
+          "name": "LIVE activation requires approval",
+          "pass": true,
+          "detail": "Found: 9 approval check(s), 2 Richard/operator reference(s)"
+        },
+        {
+          "name": "No automatic mainnet activation",
+          "pass": false,
+          "detail": "Found auto-activation patterns: HL_Live_Copy_Service.py:L1413, HL_Live_Copy_Service.py:L1412, HL_Live_Copy_Service.py:L1430"
+        },
+        {
+          "name": "Mainnet network explicitly configured",
+          "pass": true,
+          "detail": "Found: exchange_truth.py:NETWORK_HOSTS@L17, exchange_truth.py:NETWORK_STAMP_FILE@L19, exchange_truth.py:NETWORKS@L92"
+        }
+      ],
+      "evidence": []
+    }
+  },
+  "negative_tests": [
+    {
+      "mutation": "inv10_no_settlement",
+      "expected": "FAIL",
+      "actual": "FAIL",
+      "non_vacuous": true,
+      "detail": "Check passed=False after mutation (expected FAIL)"
+    },
+    {
+      "mutation": "inv11_same_identity",
+      "expected": "FAIL",
+      "actual": "FAIL",
+      "non_vacuous": true,
+      "detail": "Check passed=False after mutation (expected FAIL)"
+    },
+    {
+      "mutation": "inv12_no_delta",
+      "expected": "FAIL",
+      "actual": "FAIL",
+      "non_vacuous": true,
+      "detail": "Check passed=False after mutation (expected FAIL)"
+    },
+    {
+      "mutation": "inv12_flatten_all",
+      "expected": "FAIL",
+      "actual": "FAIL",
+      "non_vacuous": true,
+      "detail": "Check passed=False after mutation (expected FAIL)"
+    },
+    {
+      "mutation": "inv13_order_in_restart",
+      "expected": "FAIL",
+      "actual": "PASS",
+      "non_vacuous": false,
+      "detail": "Check passed=True after mutation (expected FAIL)"
+    },
+    {
+      "mutation": "inv14_no_approval",
+      "expected": "FAIL",
+      "actual": "FAIL",
+      "non_vacuous": true,
+      "detail": "Check passed=False after mutation (expected FAIL)"
+    }
+  ],
+  "summary": {
+    "all_pass": false,
+    "all_non_vacuous": false,
+    "overall": "FAIL"
+  }
+}

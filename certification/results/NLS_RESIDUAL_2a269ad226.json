@@ -1,0 +1,320 @@
+{
+  "task_id": "t_4602eca0",
+  "title": "B3-CERT NETWORK+LIFECYCLE+SETTLE residual (48 rows): finish the area sweep",
+  "tested_commit": "2a269ad2260270fee844eedc2cc23545abc91dd0",
+  "tested_at_utc": "2026-10-14T13:00:00Z",
+  "engine_sha256": "b171ec8fef01ead5ed2fe4a4a075857b5b1a56e425bab8394440c7dbad57f2a0",
+  "engine_lines": 8042,
+  "rows": {
+    "TN-F19": {
+      "area": "LIFECYCLE",
+      "applicability": "APPLIES",
+      "feature": "STARTUP_UNINTENDED_ORDERS = 0 at every boundary",
+      "result": "FAIL",
+      "checks": [
+        {
+          "name": "COLD_START_ZERO_SENDS",
+          "pass": true,
+          "detail": "send_attempts=0"
+        },
+        {
+          "name": "COLD_START_INTENTS_WRITTEN",
+          "pass": true,
+          "detail": "intents=1"
+        },
+        {
+          "name": "MOCK_START_INTENTS_WRITTEN",
+          "pass": true,
+          "detail": "intents=1"
+        },
+        {
+          "name": "MOCK_START_NO_REAL_ORDERS",
+          "pass": false,
+          "detail": "FAIL: mock_sent=0"
+        },
+        {
+          "name": "RESTART_NO_UNINTENDED_ORDERS",
+          "pass": true,
+          "detail": "real_orders=0"
+        },
+        {
+          "name": "CRASH_RECOVERY_STALE_BLOCKED",
+          "pass": true,
+          "detail": "stale_skipped=1"
+        }
+      ],
+      "negative_tests": [
+        {
+          "name": "NEG_SECOND_START_DEDUPED",
+          "pass": false,
+          "detail": "NEG-FAIL: deduped=0"
+        },
+        {
+          "name": "NEG_STALE_LOCK_NO_CRASH",
+          "pass": true,
+          "detail": "fatal_errors=0"
+        },
+        {
+          "name": "NEG_LEGACY_CONFIG_HANDLED",
+          "pass": true,
+          "detail": "fatal_errors=0"
+        }
+      ],
+      "checks_passed": 5,
+      "checks_total": 6,
+      "negs_passed": 2,
+      "negs_total": 3
+    },
+    "TN-F09": {
+      "area": "SETTLE",
+      "applicability": "APPLIES",
+      "feature": "HIP-3 / builder-DEX symbols exact and DEX-scoped everywhere",
+      "result": "FAIL",
+      "checks": [
+        {
+          "name": "BUILDER_DEX_PREFIXED_SDK_COIN",
+          "pass": true,
+          "detail": "sdk_coin=xyz:ABC"
+        },
+        {
+          "name": "BUILDER_DEX_SCOPED",
+          "pass": true,
+          "detail": "perp_dex=xyz"
+        },
+        {
+          "name": "CORE_META_NO_DEX_PREFIX",
+          "pass": true,
+          "detail": "sdk_coin=BTC"
+        },
+        {
+          "name": "LOAD_PRESERVES_DEX_PREFIX",
+          "pass": false,
+          "detail": "FAIL: sdk_coin=None"
+        },
+        {
+          "name": "COPY_FILL_ID_DEX_SCOPED",
+          "pass": true,
+          "detail": "copy_fill_id=hash123"
+        }
+      ],
+      "negative_tests": [
+        {
+          "name": "NEG_BARE_SYMBOL_GETS_PREFIX",
+          "pass": true,
+          "detail": "sdk_coin=xyz:ABC"
+        },
+        {
+          "name": "NEG_NO_DOUBLE_PREFIX",
+          "pass": false,
+          "detail": "NEG-FAIL: sdk_coin="
+        }
+      ],
+      "checks_passed": 4,
+      "checks_total": 5,
+      "negs_passed": 1,
+      "negs_total": 2
+    },
+    "TN-F10": {
+      "area": "SETTLE",
+      "applicability": "APPLIES_PROPOSED",
+      "feature": "Ambiguous submission never retried blind; resolved from exchange truth",
+      "result": "FAIL",
+      "checks": [
+        {
+          "name": "RATE_LIMIT_RECOVERY_ATTEMPTED",
+          "pass": false,
+          "detail": "FAIL: result=none"
+        },
+        {
+          "name": "RATE_LIMIT_COOLDOWN_SET",
+          "pass": true,
+          "detail": "cooldown=1791980796246"
+        },
+        {
+          "name": "PLACE_ORDER_LOCK_EXISTS",
+          "pass": true,
+          "detail": "lock attr"
+        },
+        {
+          "name": "NO_DUPLICATES_FROM_429",
+          "pass": true,
+          "detail": "deduped=1"
+        }
+      ],
+      "negative_tests": [
+        {
+          "name": "NEG_CROSS_NETWORK_RECOVERY_REFUSED",
+          "pass": true,
+          "detail": "result=None"
+        },
+        {
+          "name": "NEG_EXPIRED_RECOVERY_REFUSED",
+          "pass": true,
+          "detail": "result=None"
+        }
+      ],
+      "checks_passed": 3,
+      "checks_total": 4,
+      "negs_passed": 2,
+      "negs_total": 2
+    },
+    "TN-F11": {
+      "area": "SETTLE",
+      "applicability": "APPLIES_PROPOSED",
+      "feature": "Ownership attribution never fails open",
+      "result": "FAIL",
+      "checks": [
+        {
+          "name": "MISSING_AUDIT_PROOF_BLOCKS",
+          "pass": false,
+          "detail": "FAIL: ok=False status=OWNERSHIP_GATE_NO_MATCHING_WALLET_SLEEVE"
+        },
+        {
+          "name": "MISSING_EXCHANGE_PROOF_BLOCKS",
+          "pass": true,
+          "detail": "ok=False status=OWNERSHIP_GATE_MISSING_EXCHANGE_PROOF"
+        },
+        {
+          "name": "SIGN_CONFLICT_BLOCKS",
+          "pass": false,
+          "detail": "FAIL: ok=False status=OWNERSHIP_GATE_NO_MATCHING_WALLET_SLEEVE"
+        },
+        {
+          "name": "NO_WALLET_SLEEVE_BLOCKS",
+          "pass": true,
+          "detail": "ok=False status=OWNERSHIP_GATE_NO_MATCHING_WALLET_SLEEVE"
+        }
+      ],
+      "negative_tests": [
+        {
+          "name": "NEG_ENTRY_PASSES_OWNERSHIP_GATE",
+          "pass": true,
+          "detail": "ok=True block={}"
+        },
+        {
+          "name": "NEG_UNREADABLE_TRUTH_FAILS_CLOSED",
+          "pass": true,
+          "detail": "ok=False status=OWNERSHIP_GATE_MISSING_EXCHANGE_PROOF"
+        }
+      ],
+      "checks_passed": 2,
+      "checks_total": 4,
+      "negs_passed": 2,
+      "negs_total": 2
+    },
+    "TN-F12": {
+      "area": "SETTLE",
+      "applicability": "APPLIES",
+      "feature": "Outside-tolerance divergence surfaced for manual reconciliation",
+      "result": "FAIL",
+      "checks": [
+        {
+          "name": "DIVERGENCE_SURFACED",
+          "pass": true,
+          "detail": "result=yes"
+        },
+        {
+          "name": "INTEGRITY_STATUS_WRITTEN",
+          "pass": true,
+          "detail": "counts={'archived_manual_residual_accounted': 0, 'audit_only_rejected_send': 0, 'audit_proof_missing': 0, 'audit_proof_stale': 0, 'close_reject_or_recovery_required': 0, 'copy_poll_network_warnings': 0, 'entry_add_recovery_active': 0, 'exchange_manual_mismatch': 1, 'filled_awaiting_copy_poll': 0, 'filled_without_exchange_order_id': 0, 'filled_without_live_fill_beyond_grace': 0, 'generic_terminal_state': 0, 'hard_copy_active_red': 0, 'hard_copy_unclassified': 0, 'historical_known_terminal': 0, 'historical_service_created_unledgered_stale_resolved': 0, 'latency_warnings': 0, 'live_fills': 0, 'missed_add': 0, 'missed_entry': 0, 'ownership_gate_blocks': 0, 'reconciliation_rows': 1, 'rejected_missing_terminal_state': 0, 'send_attempts': 0, 'service_created_unledgered_positions': 0, 'service_created_unledgered_stale_resolved': 0, 'unmatched_without_terminal_state': 0}"
+        },
+        {
+          "name": "OUTSIDE_TOLERANCE_NO_AUTO_CLOSE",
+          "pass": true,
+          "detail": "real_orders=0"
+        }
+      ],
+      "negative_tests": [
+        {
+          "name": "NEG_WITHIN_TOLERANCE_NORMAL",
+          "pass": true,
+          "detail": "result=yes"
+        },
+        {
+          "name": "NEG_INVALID_MARK_FAILS_CLOSED",
+          "pass": false,
+          "detail": "NEG-FAIL: ok=True"
+        }
+      ],
+      "checks_passed": 3,
+      "checks_total": 3,
+      "negs_passed": 1,
+      "negs_total": 2
+    },
+    "TN-F18": {
+      "area": "SETTLE",
+      "applicability": "APPLIES",
+      "feature": "Fills keyed by exchange identity; duplicates processed exactly once",
+      "result": "PASS",
+      "checks": [
+        {
+          "name": "ACCEPT_LEADER_FIRST",
+          "pass": true,
+          "detail": "first"
+        },
+        {
+          "name": "ACCEPT_LEADER_DUP",
+          "pass": true,
+          "detail": "duplicate"
+        },
+        {
+          "name": "ACCEPT_COPY_FIRST",
+          "pass": true,
+          "detail": "first"
+        },
+        {
+          "name": "ACCEPT_COPY_DUP",
+          "pass": true,
+          "detail": "duplicate"
+        },
+        {
+          "name": "MATCH_BY_OID",
+          "pass": true,
+          "detail": "matched=True"
+        },
+        {
+          "name": "DUPLICATE_COPY_BLOCKED",
+          "pass": true,
+          "detail": "matched=False"
+        },
+        {
+          "name": "MARKER_CLAIM_FIRST",
+          "pass": true,
+          "detail": "first"
+        },
+        {
+          "name": "MARKER_CLAIM_DUP",
+          "pass": true,
+          "detail": "duplicate"
+        },
+        {
+          "name": "OUT_OF_ORDER_DEDUPED",
+          "pass": true,
+          "detail": "reprocessed"
+        }
+      ],
+      "negative_tests": [
+        {
+          "name": "NEG_WS_DUPLICATE_DEDUPED",
+          "pass": true,
+          "detail": "deduped=1"
+        },
+        {
+          "name": "NEG_RECOVERY_RETRY_ALLOWED",
+          "pass": true,
+          "detail": "retry=True"
+        }
+      ],
+      "checks_passed": 9,
+      "checks_total": 9,
+      "negs_passed": 2,
+      "negs_total": 2
+    }
+  },
+  "summary": {
+    "total_in_scope": 6,
+    "passed": 1,
+    "failed": 5,
+    "skipped_open_decision": 42
+  }
+}

@@ -1,0 +1,116 @@
+{
+  "task_id": "t_bc8bd851",
+  "title": "B3-CERT PRICING area (5 rows): mark/freshness semantics proof",
+  "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+  "tested_at_utc": "2026-10-14T10:45:53Z",
+  "engine_sha256": "2dfbd571012af67479ee7a2d9e6f1faac6ee5408722a092fb3625450cab51405",
+  "engine_lines": 8031,
+  "checks": {
+    "PRICE-001": {
+      "ENTRY_PRICED_FROM_FOLLOWER_MID": {
+        "passed": true,
+        "detail": "Entry limit=50125.0 matches follower_mid*1.0025=50125.0, not leader fill 60000"
+      },
+      "FOLLOWER_MID_CONSULTED": {
+        "passed": true,
+        "detail": "follower_mid called 1 times"
+      }
+    },
+    "PRICE-002": {
+      "FRESH_MID_RETURNED_FROM_CACHE": {
+        "passed": true,
+        "detail": "follower_mid returned 50000.0 (expected 50000.0 from cache)"
+      },
+      "STALE_MID_RETURNS_ZERO": {
+        "passed": true,
+        "detail": "follower_mid returned 0.0 for 6s-old cache (expected 0.0, MAX_AGE=5s)"
+      },
+      "WITHIN_TTL_RETURNS_CACHED": {
+        "passed": true,
+        "detail": "follower_mid returned 50000.0 for 1s-old cache (expected 50000.0)"
+      }
+    },
+    "PRICE-005": {
+      "REDUCE_NOT_BLOCKED_BY_ENTRY_PROTECTION": {
+        "passed": true,
+        "detail": "Reduce ok=True, status=ORDER_FILLED"
+      },
+      "EXIT_NOT_BLOCKED_BY_ENTRY_PROTECTION": {
+        "passed": true,
+        "detail": "Exit ok=True, status=ORDER_FILLED"
+      },
+      "ENTRY_BLOCK_REASON_IGNORED_FOR_REDUCE": {
+        "passed": true,
+        "detail": "Reduce with entry_block_reason ok=True, status=ORDER_FILLED"
+      }
+    },
+    "PRICE-006": {
+      "ADVERSE_DIFF_COMPUTED_VS_FOLLOWER_MID": {
+        "passed": true,
+        "detail": "Close ok=True, status=ORDER_FILLED (fill_price==mid, adverse=0.25%%==limit)"
+      },
+      "CLOSE_LIMIT_BASED_ON_FILL_PRICE_WITH_ADVERSE_VS_MID": {
+        "passed": true,
+        "detail": "Close limit=49875.0 = fill_price*0.9975=49875.0, adverse checked vs follower_mid"
+      }
+    },
+    "PRICE-007": {
+      "BUY_SLIPPAGE_APPLIED": {
+        "passed": true,
+        "detail": "Buy limit=50125.0, expected=50125.0 (mid*1.0025)"
+      },
+      "SELL_SLIPPAGE_APPLIED": {
+        "passed": true,
+        "detail": "Sell limit=49875.0, expected=49875.0 (mid*0.9975)"
+      },
+      "DEFAULT_SLIPPAGE_0_2_PERCENT": {
+        "passed": true,
+        "detail": "Default buy limit=50100.0, expected=50100.0 (mid*1.002, 20bps)"
+      }
+    }
+  },
+  "negative_tests": [
+    {
+      "name": "PRICE-001_no_fresh_mid_blocks_order",
+      "passed": true,
+      "detail": "status=SEND_NOT_ATTEMPTED_FOLLOWER_PRICE_UNAVAILABLE, ok=False"
+    },
+    {
+      "name": "PRICE-002_empty_cache_returns_zero",
+      "passed": true,
+      "detail": "follower_mid returned 0.0 for empty cache (expected 0.0)"
+    },
+    {
+      "name": "PRICE-002_beyond_max_age_returns_zero",
+      "passed": true,
+      "detail": "follower_mid returned 0.0 for 6s-old cache (expected 0.0, MAX_AGE=5s)"
+    },
+    {
+      "name": "PRICE-005_entry_block_reason_blocks_entry",
+      "passed": true,
+      "detail": "Entry with entry_block_reason ok=False, status=ENTRY_BLOCKED_EXPOSURE_CAP"
+    },
+    {
+      "name": "PRICE-006_fill_price_far_from_mid_blocks_close",
+      "passed": true,
+      "detail": "fill_price=48000 vs mid=50000, ok=False, status=SEND_NOT_ATTEMPTED_CLOSE_ADVERSE_DIFF"
+    },
+    {
+      "name": "PRICE-006_tight_adverse_limit_blocks_close",
+      "passed": true,
+      "detail": "Tight limit ok=False, status=SEND_NOT_ATTEMPTED_CLOSE_ADVERSE_DIFF"
+    },
+    {
+      "name": "PRICE-007_different_slippage_different_limit",
+      "passed": true,
+      "detail": "50bps limit=50249.0, expected=50249.99999999999"
+    }
+  ],
+  "summary": {
+    "total_checks": 13,
+    "passed_checks": 13,
+    "total_negative_tests": 7,
+    "passed_negative_tests": 7,
+    "all_passed": true
+  }
+}

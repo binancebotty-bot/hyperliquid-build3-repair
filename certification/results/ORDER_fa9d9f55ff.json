@@ -1,0 +1,200 @@
+{
+  "task_id": "t_cb4ff07a",
+  "title": "B3-CERT ORDER area (6 rows): order-path semantics proof",
+  "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+  "tested_at_utc": "2026-10-14T10:38:46Z",
+  "engine_sha256": "2dfbd571012af67479ee7a2d9e6f1faac6ee5408722a092fb3625450cab51405",
+  "engine_lines": 8031,
+  "checks": {
+    "ORD-001": [
+      {
+        "name": "ONE_PHYSICAL_ORDER_SITE",
+        "pass": true,
+        "detail": "Physical .order() calls: [2703] (total all: 1)"
+      },
+      {
+        "name": "AUTO_SEND_DISABLED_BLOCKS_ALL",
+        "pass": true,
+        "detail": "ok=False, status=MASTER_REAL_ORDERS_OFF"
+      },
+      {
+        "name": "NO_EXCHANGE_CALL_WHEN_DISABLED",
+        "pass": true,
+        "detail": "exchange calls: 0"
+      },
+      {
+        "name": "PLACE_ORDER_CONTAINS_EXCHANGE_CALL",
+        "pass": true,
+        "detail": "_place_order contains .order(): True"
+      }
+    ],
+    "ORD-002": [
+      {
+        "name": "EXIT_SENDS_REDUCE_ONLY",
+        "pass": true,
+        "detail": "exchange_called=True, reduce_only_sent=True"
+      },
+      {
+        "name": "ENTRY_SENDS_NO_REDUCE_ONLY",
+        "pass": true,
+        "detail": "exchange_called=True, reduce_only_sent=False"
+      },
+      {
+        "name": "REDUCE_ONLY_FOR_INTENT_CORRECT",
+        "pass": true,
+        "detail": "exit=True, entry=False"
+      },
+      {
+        "name": "REDUCE_ONLY_CANNOT_FLIP",
+        "pass": true,
+        "detail": "EXIT reduce_only=True (True means position cannot flip)"
+      }
+    ],
+    "ORD-005": [
+      {
+        "name": "DEDUPE_STORE_BLOCKS_DUPES",
+        "pass": true,
+        "detail": "first=True, second=False"
+      },
+      {
+        "name": "DIFFERENT_FILLS_ACCEPTED",
+        "pass": true,
+        "detail": "third fill accepted=True"
+      },
+      {
+        "name": "INTENT_ID_DETERMINISTIC",
+        "pass": true,
+        "detail": "intent1=bc069f579796ce751f434ffb546ba6d9, intent2=bc069f579796ce751f434ffb546ba6d9"
+      },
+      {
+        "name": "SAME_FILL_SAME_INTENT_ID",
+        "pass": true,
+        "detail": "Both intents from fill_det_1: bc069f579796ce751f434ffb546ba6d9"
+      }
+    ],
+    "ORD-006": [
+      {
+        "name": "NO_RESERVATION_BEFORE_SEND",
+        "pass": true,
+        "detail": "Reservation before send: False"
+      },
+      {
+        "name": "RESERVATION_CREATED_ON_SEND",
+        "pass": true,
+        "detail": "Reservation after send: True"
+      },
+      {
+        "name": "RESERVATION_HAS_INTENT_ID",
+        "pass": true,
+        "detail": "intent_id=intent_1791974327381"
+      },
+      {
+        "name": "RESERVATION_SURVIVES_ACK",
+        "pass": true,
+        "detail": "Reservation survives ACK: True"
+      },
+      {
+        "name": "RESERVATION_CLEARED_NO_EXCHANGE",
+        "pass": true,
+        "detail": "Reservation after blocked send: False"
+      }
+    ],
+    "ORD-008": [
+      {
+        "name": "BELOW_MIN_NOTIONAL_BLOCKED",
+        "pass": true,
+        "detail": "exchange_called=False, status=SEND_NOT_ATTEMPTED_BELOW_MIN_NOTIONAL"
+      },
+      {
+        "name": "INVALID_SIZE_BLOCKED",
+        "pass": true,
+        "detail": "exchange_called=False, status=SEND_NOT_ATTEMPTED_INVALID_SIZE"
+      },
+      {
+        "name": "UNKNOWN_ASSET_BLOCKED",
+        "pass": true,
+        "detail": "exchange_called=False, status=REAL_SENDER_NOT_CONFIGURED"
+      },
+      {
+        "name": "VALID_ORDER_PASSES_PREFLIGHT",
+        "pass": true,
+        "detail": "exchange_called=True, status=ORDER_FILLED"
+      }
+    ],
+    "TN-F05": [
+      {
+        "name": "SUB_MIN_ENTRY_BLOCKED",
+        "pass": true,
+        "detail": "exchange_called=False, status=SEND_NOT_ATTEMPTED_INVALID_SIZE"
+      },
+      {
+        "name": "EFFECTIVE_MIN_CORRECT",
+        "pass": true,
+        "detail": "effective_min=10.0, default_min=10.0"
+      },
+      {
+        "name": "ABOVE_MIN_ENTRY_PASSES",
+        "pass": true,
+        "detail": "exchange_called=True, status=ORDER_FILLED"
+      },
+      {
+        "name": "MIN_NOTIONAL_ALL_LIFECYCLES",
+        "pass": true,
+        "detail": "Gate B applies to ENTRY, ADD, and EXIT: True"
+      }
+    ]
+  },
+  "negative_tests": [
+    {
+      "mutation": "ord001_add_second_order_site",
+      "expected": "FAIL",
+      "actual": "FAIL",
+      "non_vacuous": true,
+      "detail": "physical order sites after mutation: [2703, 2703]"
+    },
+    {
+      "mutation": "ord002_remove_reduce_only_logic",
+      "expected": "FAIL",
+      "actual": "FAIL",
+      "non_vacuous": true,
+      "detail": "reduce_only logic removed: True"
+    },
+    {
+      "mutation": "ord005_remove_dedupe",
+      "expected": "FAIL",
+      "actual": "FAIL",
+      "non_vacuous": true,
+      "detail": "dedupe check removed: True"
+    },
+    {
+      "mutation": "ord006_remove_reservation",
+      "expected": "FAIL",
+      "actual": "FAIL",
+      "non_vacuous": true,
+      "detail": "reservation marking removed: True"
+    },
+    {
+      "mutation": "ord008_remove_min_notional_gate",
+      "expected": "FAIL",
+      "actual": "FAIL",
+      "non_vacuous": true,
+      "detail": "min notional gate removed: True"
+    },
+    {
+      "mutation": "tnf05_remove_effective_min",
+      "expected": "FAIL",
+      "actual": "FAIL",
+      "non_vacuous": true,
+      "detail": "effective_min calculation removed: True"
+    }
+  ],
+  "summary": {
+    "all_pass": true,
+    "all_non_vacuous": true,
+    "overall": "PASS",
+    "total_checks": 25,
+    "passed_checks": 25,
+    "total_negative": 6,
+    "non_vacuous_negative": 6
+  }
+}

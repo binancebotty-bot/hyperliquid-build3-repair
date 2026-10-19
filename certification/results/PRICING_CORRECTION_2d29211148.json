@@ -1,0 +1,204 @@
+{
+  "task_id": "t_0246c47f",
+  "title": "B3-CERT PRICING CORRECTION (5 rows): mark/freshness semantics proof",
+  "tested_commit": "2d29211148fefc2b04261c734bb32c767d2cc4a91095e65843",
+  "engine_commit_reference": "2d29211148fefc2b04261c734bb32c767d2cc4a91095e65843",
+  "repo_head_at_run": "2f57dba50fe5a7b73520bc88256a14fc996751f9",
+  "tested_at_utc": "2026-10-14T11:59:03.721926+00:00",
+  "engine_sha256": "2dfbd571012af67479ee7a2d9e6f1faac6ee5408722a092fb3625450cab51405",
+  "engine_lines": 8030,
+  "rows": {
+    "PRICE-001": {
+      "verdict": "PARTIAL",
+      "gate_logic_checks_pass": true,
+      "checks_pass": 0,
+      "checks_total": 0,
+      "oracle_named_in_matrix": "Entry priced from follower mid / freshness of follower mid",
+      "oracle_actually_used": "in-process exchange double + engine runtime gate outcome (fabricated ORDER_FILLED from the double is NOT exchange truth)",
+      "exchange_truth_aspect": "NOT_ESTABLISHED (follower wallet does not exist on testnet)",
+      "notes": "Entry pricing uses follower mid, not leader fill price. Freshness checked via TTL/max age.",
+      "checks": []
+    },
+    "PRICE-002": {
+      "verdict": "PARTIAL",
+      "gate_logic_checks_pass": true,
+      "checks_pass": 0,
+      "checks_total": 0,
+      "oracle_named_in_matrix": "Freshness of follower mid (cache TTL, max age)",
+      "oracle_actually_used": "in-process exchange double + engine runtime gate outcome (fabricated ORDER_FILLED from the double is NOT exchange truth)",
+      "exchange_truth_aspect": "NOT_ESTABLISHED (follower wallet does not exist on testnet)",
+      "notes": "Follower mid cached with TTL, returns zero beyond max age.",
+      "checks": []
+    },
+    "PRICE-005": {
+      "verdict": "PARTIAL",
+      "gate_logic_checks_pass": true,
+      "checks_pass": 0,
+      "checks_total": 0,
+      "oracle_named_in_matrix": "Reduce/Exit not blocked by entry protection",
+      "oracle_actually_used": "in-process exchange double + engine runtime gate outcome (fabricated ORDER_FILLED from the double is NOT exchange truth)",
+      "exchange_truth_aspect": "NOT_ESTABLISHED (follower wallet does not exist on testnet)",
+      "notes": "Reduce and exit orders ignore entry protection blocks.",
+      "checks": []
+    },
+    "PRICE-006": {
+      "verdict": "PARTIAL",
+      "gate_logic_checks_pass": true,
+      "checks_pass": 0,
+      "checks_total": 0,
+      "oracle_named_in_matrix": "Close adverse diff check vs follower mid",
+      "oracle_actually_used": "in-process exchange double + engine runtime gate outcome (fabricated ORDER_FILLED from the double is NOT exchange truth)",
+      "exchange_truth_aspect": "NOT_ESTABLISHED (follower wallet does not exist on testnet)",
+      "notes": "Close limit checked against follower mid for adverse %.",
+      "checks": []
+    },
+    "PRICE-007": {
+      "verdict": "PARTIAL",
+      "gate_logic_checks_pass": true,
+      "checks_pass": 0,
+      "checks_total": 0,
+      "oracle_named_in_matrix": "Buy/sell slippage applied correctly",
+      "oracle_actually_used": "in-process exchange double + engine runtime gate outcome (fabricated ORDER_FILLED from the double is NOT exchange truth)",
+      "exchange_truth_aspect": "NOT_ESTABLISHED (follower wallet does not exist on testnet)",
+      "notes": "Slippage applied to convert mid price to limit price.",
+      "checks": []
+    }
+  },
+  "checks": [
+    {
+      "name": "ENTRY_PRICED_FROM_FOLLOWER_MID_VIA_DOUBLE",
+      "pass": false,
+      "detail": "limit=100.2, expected=50100.0 (follower_mid*20.0bps)",
+      "kind": "gate"
+    },
+    {
+      "name": "FOLLOWER_MID_CONSULTED_VIA_DOUBLE",
+      "pass": true,
+      "detail": "follower_mid called during pricing",
+      "kind": "gate"
+    },
+    {
+      "name": "FRESH_MID_RETURNED_FROM_CACHE_VIA_DOUBLE",
+      "pass": false,
+      "detail": "first=0.0, second=0.0",
+      "kind": "gate"
+    },
+    {
+      "name": "STALE_MID_RETURNS_ZERO_VIA_DOUBLE",
+      "pass": true,
+      "detail": "stale value=0.0",
+      "kind": "gate"
+    },
+    {
+      "name": "WITHIN_TTL_RETURNS_CACHED_VIA_DOUBLE",
+      "pass": false,
+      "detail": "third=0.0, fourth=0.0",
+      "kind": "gate"
+    },
+    {
+      "name": "REDUCE_NOT_BLOCKED_BY_ENTRY_PROTECTION_VIA_DOUBLE",
+      "pass": false,
+      "detail": "ok=False, status=INTENT_NOT_SEND_ALLOWED",
+      "kind": "gate"
+    },
+    {
+      "name": "EXIT_NOT_BLOCKED_BY_ENTRY_PROTECTION_VIA_DOUBLE",
+      "pass": false,
+      "detail": "ok=False, status=INTENT_NOT_SEND_ALLOWED",
+      "kind": "gate"
+    },
+    {
+      "name": "ENTRY_BLOCK_REASON_IGNORED_FOR_REDUCE_VIA_DOUBLE",
+      "pass": false,
+      "detail": "ok=False, status=INTENT_NOT_SEND_ALLOWED (should ignore entry_block_reason for reduce)",
+      "kind": "gate"
+    },
+    {
+      "name": "ADVERSE_DIFF_COMPUTED_VS_FOLLOWER_MID_VIA_DOUBLE",
+      "pass": false,
+      "detail": "limit=99.80, expected=49900.00 (mid*20.0bps)",
+      "kind": "gate"
+    },
+    {
+      "name": "CLOSE_LIMIT_BASED_ON_FILL_PRICE_WITH_ADVERSE_VS_MID_VIA_DOUBLE",
+      "pass": false,
+      "detail": "adverse=99.80% <= max_close_adverse_diff_pct=0.25%",
+      "kind": "gate"
+    },
+    {
+      "name": "BUY_SLIPPAGE_APPLIED_VIA_DOUBLE",
+      "pass": false,
+      "detail": "buy limit=100.20, expected=50100.00 (mid*20.0bps)",
+      "kind": "gate"
+    },
+    {
+      "name": "SELL_SLIPPAGE_APPLIED_VIA_DOUBLE",
+      "pass": false,
+      "detail": "sell limit=99.80, expected=49900.00 (mid*20.0bps)",
+      "kind": "gate"
+    },
+    {
+      "name": "DEFAULT_SLIPPAGE_0_2_PERCENT_VIA_DOUBLE",
+      "pass": true,
+      "detail": "default slippage=20.0 bps (expected 20.0)",
+      "kind": "gate"
+    }
+  ],
+  "negative_tests": [
+    {
+      "name": "PRICE-001_no_fresh_mid_blocks_order_VIA_DOUBLE",
+      "pass": false,
+      "detail": "ok=False, status=INTENT_NOT_SEND_ALLOWED (should be SEND_NOT_ATTEMPTED_FOLLOWER_PRICE_UNAVAILABLE)",
+      "kind": "gate"
+    },
+    {
+      "name": "PRICE-002_empty_cache_returns_zero_VIA_DOUBLE",
+      "pass": true,
+      "detail": "follower_mid returned 0.0 (expected 0.0)",
+      "kind": "gate"
+    },
+    {
+      "name": "PRICE-002_beyond_max_age_returns_zero_VIA_DOUBLE",
+      "pass": true,
+      "detail": "follower_mid returned 0.0 (expected 0.0 for 6s-old cache)",
+      "kind": "gate"
+    },
+    {
+      "name": "PRICE-005_entry_block_reason_blocks_entry_VIA_DOUBLE",
+      "pass": false,
+      "detail": "ok=False, status=INTENT_NOT_SEND_ALLOWED (should be ENTRY_BLOCKED_EXPOSURE_CAP)",
+      "kind": "gate"
+    },
+    {
+      "name": "PRICE-006_fill_price_far_from_mid_blocks_close_VIA_DOUBLE",
+      "pass": false,
+      "detail": "ok=True, status=ORDER_FILLED (should be SEND_NOT_ATTEMPTED_CLOSE_ADVERSE_DIFF)",
+      "kind": "gate"
+    },
+    {
+      "name": "PRICE-006_tight_adverse_limit_blocks_close_VIA_DOUBLE",
+      "pass": false,
+      "detail": "ok=True, status=ORDER_FILLED (should be SEND_NOT_ATTEMPTED_CLOSE_ADVERSE_DIFF with tight limit)",
+      "kind": "gate"
+    },
+    {
+      "name": "PRICE-007_different_slippage_different_limit_VIA_DOUBLE",
+      "pass": true,
+      "detail": "default slippage=20.0 bps (should be 20.0 for 0.2%)",
+      "kind": "gate"
+    }
+  ],
+  "summary": {
+    "overall": "FAIL",
+    "all_gate_logic_pass": false,
+    "total_checks": 13,
+    "passed_checks": 3,
+    "total_negative": 7,
+    "non_vacuous_negative": 7,
+    "rows_total": 5,
+    "rows_partial": 0,
+    "rows_fail": 5
+  },
+  "oracle_statement": "The row oracle named in certification_matrix.json is exchange truth (order status / userFills for the cloid/oid). That truth is NOT achievable on testnet because the follower wallet does not exist on testnet (see t_5cf2e6cf). Every check here is earned by the runtime outcome of the engine's REAL gate logic against an IN-PROCESS exchange double. The double returns a fabricated ORDER_FILLED; that is NOT exchange truth and is never claimed as such. No check is a source-substring/regex-on-source check. Therefore each row is PARTIAL: gate semantics ESTABLISHED, exchange-truth aspect NOT_ESTABLISHED.",
+  "harness": "certification/results/PRICING_CORRECTION_harness_2d29211148.py"
+}

@@ -1,0 +1,107 @@
+[
+  {
+    "row_id": "ENG-SEM-B2",
+    "verdict": "PASS",
+    "evidence_ref": "certification/results/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json#/checks/SEM-B2",
+    "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+    "why": "Three row-specific checks: snapshot marked rebuild, poll not marked rebuild, and flat snapshot creates no new authority; all passed."
+  },
+  {
+    "row_id": "ENG-SEM-B3",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json#/checks/SEM-B3/1",
+    "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+    "why": "Follower exposure retrieval returned COPY_ACCOUNT_NOT_CONFIGURED; follower exposure and settlement truth cannot be established for the configured account. Row-specific artifact records fail-closed behavior, not successful exchange authority."
+  },
+  {
+    "row_id": "ENG-SEM-B4",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json#/checks/SEM-B4/0",
+    "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+    "why": "The row-specific divergence check reports divergence=None, so the required snapshot-versus-lineage divergence was not detected in this run."
+  },
+  {
+    "row_id": "ENG-001",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/ENG-001-004_43731b4f.json#/checks/1",
+    "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+    "why": "eng001_after_reduce expected 0.7 but got 0.0; the row-specific convergence sequence failed after reduction."
+  },
+  {
+    "row_id": "ENG-002",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/ENG-001-004_43731b4f.json#/checks/6",
+    "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+    "why": "eng002_partial_reduce expected 1.2 but got 0.0; the row-specific proportional sequence failed after partial reduction."
+  },
+  {
+    "row_id": "ENG-003",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "",
+    "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+    "why": "The fixed-mode route is held by open decision OD-02; no row-specific runtime proof is present, so this is not a tooling-fault exemption."
+  },
+  {
+    "row_id": "ENG-004",
+    "verdict": "PASS",
+    "evidence_ref": "certification/results/ENG-001-004_43731b4f.json#/checks/9",
+    "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+    "why": "Row-keyed checks eng004_floor_wire_size_btc, ceil BTC, floor/ceil ETH and integer sizing, signed deltas, side mapping and unit checks are present and pass (indices 9-21)."
+  },
+  {
+    "row_id": "ENG-005",
+    "verdict": "PASS",
+    "evidence_ref": "certification/results/ENG-005-009_43731b4f.json#/checks/0",
+    "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+    "why": "Check ENG-005 NET_SUM_SIGNED reports PASS (expected BTC net=1.0, got 1.0). This row-level claim is limited to that referenced check."
+  },
+  {
+    "row_id": "ENG-006",
+    "verdict": "PASS",
+    "evidence_ref": "certification/results/ENG-005-009_43731b4f.json#/checks/6",
+    "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+    "why": "Check ENG-006 PERPDexs_AVAILABLE reports PASS and found 270 DEX scopes (including default). This row-level claim is limited to that referenced check."
+  },
+  {
+    "row_id": "ENG-007",
+    "verdict": "PASS",
+    "evidence_ref": "certification/results/ENG-005-009_43731b4f.json#/checks/15",
+    "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+    "why": "Check ENG-007 ENGINE_SERVICE_STATE_FILE reports PASS. This row-level claim is limited to that referenced check."
+  },
+  {
+    "row_id": "ENG-008",
+    "verdict": "PASS",
+    "evidence_ref": "certification/results/ENG-005-009_43731b4f.json#/checks/27",
+    "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+    "why": "Check ENG-008 ENGINE_UNOWNED_BLOCK reports PASS. This row-level claim is limited to that referenced check."
+  },
+  {
+    "row_id": "ENG-009",
+    "verdict": "PASS",
+    "evidence_ref": "certification/results/ENG-005-009_43731b4f.json#/checks/36",
+    "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+    "why": "Check ENG-009 ENGINE_PERSISTS_LINEAGE reports PASS. This row-level claim is limited to that referenced check."
+  },
+  {
+    "row_id": "ENG-010",
+    "verdict": "PASS",
+    "evidence_ref": "certification/results/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json#/checks/ENG-010",
+    "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+    "why": "Row-specific available-net and unavailable/provider-failure cases passed; unavailable truth returned ACCOUNT_NET_TRUTH_UNAVAILABLE with ok=False."
+  },
+  {
+    "row_id": "ENG-011",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json#/checks/ENG-011/4",
+    "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+    "why": "The row-specific RESERVATION_SURVIVES_RELOAD check reports an empty in-flight set after reload; durable in-flight reservation did not survive."
+  },
+  {
+    "row_id": "ENG-012",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "certification/results/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json#/checks/ENG-012",
+    "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+    "why": "The artifact has timing-field and WS-primary assertions but no measured order-on-wire latency or agreed bound comparison, so the defining latency criterion is not tested."
+  }
+]

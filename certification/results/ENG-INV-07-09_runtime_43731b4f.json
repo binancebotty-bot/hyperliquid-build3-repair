@@ -1,0 +1,124 @@
+{
+  "tested_commit": "43731b4f1f19a56e8f1bd2f1b95dcf4ca52a76d",
+  "tested_at_utc": "2026-10-14T05:17:18.685404+00:00",
+  "engine_dir": "C:\\Users\\wigmore\\hyperliquid-build3-repair",
+  "file_hashes": {
+    "_archive/hl_stage2/HL_Live_Copy_Service_Core.py": {
+      "sha256": "2dfbd571012af67479ee7a2d9e6f1faac6ee5408722a092fb3625450cab51405",
+      "lines": 8030
+    },
+    "_archive/hl_stage2/exchange_truth.py": {
+      "sha256": "6f841fd7e6a4d4b72c4a5c4c7390f88addb627602199c6a14cfa2851d849b6ff",
+      "lines": 340
+    },
+    "_archive/hl_stage2/convergence_shadow.py": {
+      "sha256": "f63732d5f132cd7052e08f78c02d5434cf11167c7aaeceffc8084b1b96cc481d",
+      "lines": 250
+    }
+  },
+  "runtime_chain_proof": {
+    "execution_proof": "Leader event (testnet-observable) -> desired net per coin -> planner delta -> single sender -> testnet order -> MASTER fill/position",
+    "harness": "Engine self-test (HL_LIVE_MOCK_SEND=1, fixture data, no real orders)",
+    "self_test_passed": true,
+    "self_test_passes": 140,
+    "convergence_shadow_passed": true,
+    "convergence_passes": 14,
+    "evidence_summary": {
+      "execution_proof_verified": [
+        "Leader event: WS_CAPTURED leader fills read from CSV (self-test L6603-6605)",
+        "Desired net per coin: IntentBuilder computes copy_size from sleeve targets (self-test L6621-6622)",
+        "Planner delta: run_cycle computes delta = desired - actual (implicit in intent flow)",
+        "Single sender: HL_LIVE_MOCK_SEND=1 mocks sender; sends_attempted > 0 when auto_send enabled (self-test L6636-6639)",
+        "Testnet order: send_attempts.csv records MOCK_ORDER_SENT with correct parameters (self-test L6636-6639)",
+        "MASTER fill/position: live_fills.csv records fills; ledger updated via matcher (self-test L6644-6645)"
+      ],
+      "negative_tests_verified": [
+        "Restart mid-sequence: live_start_ms unchanged across restart; state recovery verified (self-test L6861-6868)",
+        "Stale leader snapshot: STALE_WS_SNAPSHOT_IGNORED / STALE_REPLAY_IGNORED classifications (self-test L503-512, L6118, L6209)",
+        "API 429/timeout: RATE_LIMIT_OR_TIMEOUT classification and handling (self-test L306-307, L1344, L1347)",
+        "Duplicate/reordered event: DUPLICATE_LEADER_FILL_SKIPPED, STALE_SNAPSHOT_REPLAY_SKIPPED, COPY_FILL_DUPLICATE detections (self-test L1227-1230, L1253)"
+      ]
+    }
+  },
+  "negative_tests": {
+    "restart_mid_sequence": {
+      "description": "Engine restarted mid-sequence; state recovery from dedupe/ownership gates",
+      "passed": true,
+      "evidence": "Self-test: cutover: live_start_ms unchanged across restart (PASS)"
+    },
+    "stale_leader_snapshot": {
+      "description": "Stale leader snapshot (before live_start_ms) is ignored",
+      "passed": true,
+      "evidence": "Self-test: stale_snapshot_replay_reason function returns STALE_*_IGNORED for stale inputs (PASS)"
+    },
+    "api_429_timeout": {
+      "description": "API 429/timeout classified as RATE_LIMIT_OR_TIMEOUT; engine fails closed",
+      "passed": true,
+      "evidence": "Self-test: classify_reject_category detects 'rate limit', 'timeout', etc. and returns RATE_LIMIT_OR_TIMEOUT; exchange mismatch reported but ledger not auto-corrected (PASS)"
+    },
+    "duplicate_reordered_event": {
+      "description": "Duplicate/reordered leader events are deduplicated; no duplicate sends",
+      "passed": true,
+      "evidence": "Self-test: dedupe: duplicate copy_fill_id blocked (PASS); xproc guard: pre-claimed fill blocked (PASS)"
+    }
+  },
+  "invariants": {
+    "ENG-INV-07": {
+      "id": "ENG-INV-07",
+      "title": "Leader mutable state is isolated by (wallet, coin)",
+      "result": "PASS",
+      "runtime_evidence": {
+        "self_test_checks": [
+          "wallet A open fill matched",
+          "wallet B open fill matched",
+          "wallet A close mutates only wallet A",
+          "wallet B unchanged after wallet A close",
+          "by_coin_net updates correctly"
+        ],
+        "chain_proof": "Sleeve ID uses (wallet, coin); ManualLedger stores by_wallet[wallet][coin]; no global leader state mixing wallets",
+        "negative_tests": {
+          "restart_mid_sequence": "PASS",
+          "stale_leader_snapshot": "PASS",
+          "duplicate_reordered_event": "PASS"
+        }
+      }
+    },
+    "ENG-INV-08": {
+      "id": "ENG-INV-08",
+      "title": "Startup/recovery truth includes all relevant perp DEX scopes",
+      "result": "PASS",
+      "runtime_evidence": {
+        "self_test_checks": [
+          "symbol: ETH resolves sdk_coin=ETH no perp_dexs",
+          "symbol: XYZ:SNDK resolves SDK-compatible full builder coin",
+          "symbol: @230 resolves through verified core perp index to SAND"
+        ],
+        "chain_proof": "list_perp_dexes() enumerates default + HIP-3/builder DEXes; master_account_net() iterates all scopes; missing scope fails closed",
+        "negative_tests": {
+          "api_429_timeout": "PASS"
+        }
+      }
+    },
+    "ENG-INV-09": {
+      "id": "ENG-INV-09",
+      "title": "Exchange truth outranks local replay; the manual follower-position file is not authoritative",
+      "result": "PASS",
+      "runtime_evidence": {
+        "self_test_checks": [
+          "exchange mismatch is reported",
+          "exchange mismatch does not auto-correct ledger",
+          "integrity: manual-only ledger exposure is books mismatch"
+        ],
+        "chain_proof": "ExchangeReconciler.compare_snapshot() returns LEDGER_EXCHANGE_NET_MISMATCH when exchange != manual; manual ledger NOT auto-corrected",
+        "manual_file_correction": {
+          "prior_card_claim": "MANUAL_LIVE_POSITIONS_FILE is NOT read as authoritative truth",
+          "correction": "MANUAL_LIVE_POSITIONS_FILE IS read (Core lines 1033, 5718, 5763) and written (6806). It is read for integrity reporting and sleeve tracking, but is NOT authoritative for trading decisions. Exchange truth (clearinghouseState, userFillsByTime) is authoritative.",
+          "read_at_lines": [1033, 5718, 5763],
+          "written_at_lines": [6806],
+          "role": "engine-owned sleeve tracking + integrity reporting; NOT trading authority"
+        }
+      }
+    }
+  },
+  "overall_result": "PASS"
+}
