@@ -247,6 +247,10 @@ def main() -> int:
         out.append("          %-12s %-4s %-8s %s" %
                    (r_["id"], ago(ts), verdict.split(":")[0][:8],
                     (r_["title"] or "")[:44]))
+        # Every blocked card needs a DECISION, not just a record. Anything not positively identified as an external
+        # dependency I cannot influence goes on the punch list, including unclassified ("?") blocks.
+        if not verdict.startswith("external"):
+            punch.append("%s is blocked (%s) - %s" % (r_["id"], verdict[:26], (reason[:80].replace(chr(10), " ") or "no reason recorded")))
     for tid, reason in releasable:
         punch.append("%s is blocked but %s" % (tid, RELEASABLE and next(
             l for rx, l in RELEASABLE if rx.search(reason))))
@@ -255,13 +259,14 @@ def main() -> int:
     review = by_status.get("review", [])
     out.append("")
     out.append("REVIEW    %d" % len(review))
-    reviewers = [r_ for r_ in rows if re.search(r"\breview", (r_["title"] or ""), re.I)
-                 and r_["status"] in ("ready", "running")]
-    if review and not reviewers:
-        punch.append("%d card(s) in review with NO independent reviewer raised - they would self-review" % len(review))
+    # A card in review is WORK STOPPED until a verdict is applied. Counting "any card with REVIEW in its title" as a
+    # reviewer is wrong: unrelated review cards make it look staffed while these sit. Flag every one.
     for r_ in review:
-        out.append("          %-12s assignee=%-10s %s" %
-                   (r_["id"], r_.get("assignee") or "-", (r_["title"] or "")[:44]))
+        out.append("          %-12s %-4s %s" % (r_["id"], ago(parse_ts(r_.get("started_at"))), (r_["title"] or "")[:44]))
+    if review:
+        punch.append("%d card(s) in review - apply the verdict (pass->done, fail->redo card) or raise its reviewer; "
+                     "a review that returned a verdict and was never applied is indistinguishable from no review"
+                     % len(review))
 
     # ---- TRIAGE --------------------------------------------------------------
     triage = by_status.get("triage", [])
