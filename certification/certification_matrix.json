@@ -13802,11 +13802,11 @@
     "rejected save"
    ],
    "prior_evidence": "",
-   "result": "PASS",
-   "evidence_ref": "certification/results/RISK_fa9d9f55.json",
-   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
-   "tested_at_utc": "2026-10-14T10:49:15Z",
-   "notes": "Phase 3B added a post-sizing clamp (Layer 1) - the pattern F6 forbids. Build 4 values 10k/50k/100k/100 are OD-24. | Risk-gate semantics proof: 3 APPLIES_PROPOSED rows PASS, 30/30 checks PASS, 20/20 non-vacuous negative tests PASS. | Risk-gate semantics proof: 3 APPLIES_PROPOSED rows PASS, 30/30 checks PASS, 20/20 non-vacuous negative tests PASS. | Risk-gate semantics proof: 3 APPLIES_PROPOSED rows PASS, 30/30 checks PASS, 20/20 non-vacuous negative tests PASS."
+   "result": "NOT_TESTED",
+   "evidence_ref": "EVIDENCE/TN_CAMPAIGN_EVIDENCE/TN_CAMPAIGN_EVIDENCE.json",
+   "tested_commit": "",
+   "tested_at_utc": "",
+   "notes": "TN-CAMPAIGN-EVIDENCE: no campaign-specific evidence. Citation is a shared risk-gate semantics report covering 14 rows; it has a row-keyed check name but every check has an empty detail and names no scenario, order or fill outcome. Required proof is a predeclared testnet scenario with exchange parity."
   },
   {
    "id": "TN-F07",
@@ -14073,11 +14073,11 @@
     "rejected save"
    ],
    "prior_evidence": "",
-   "result": "PASS",
-   "evidence_ref": "certification/results/RISK_fa9d9f55.json",
-   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
-   "tested_at_utc": "2026-10-14T10:49:15Z",
-   "notes": "OD-01 ruled (Boss, 2026-10-09): OPEN/INCREASE/FLIP are priced from a fresh follower-market mid at most 5 s old; with no fresh mid no order is sent. | Risk-gate semantics proof: 3 APPLIES_PROPOSED rows PASS, 30/30 checks PASS, 20/20 non-vacuous negative tests PASS. | Risk-gate semantics proof: 3 APPLIES_PROPOSED rows PASS, 30/30 checks PASS, 20/20 non-vacuous negative tests PASS. | Risk-gate semantics proof: 3 APPLIES_PROPOSED rows PASS, 30/30 checks PASS, 20/20 non-vacuous negative tests PASS."
+   "result": "NOT_TESTED",
+   "evidence_ref": "EVIDENCE/TN_CAMPAIGN_EVIDENCE/TN_CAMPAIGN_EVIDENCE.json",
+   "tested_commit": "",
+   "tested_at_utc": "",
+   "notes": "TN-CAMPAIGN-EVIDENCE: no campaign-specific evidence. Citation is a shared risk-gate semantics report covering 14 rows; it has a row-keyed check name but every check has an empty detail and names no scenario, order or fill outcome. Required proof is a predeclared testnet scenario with exchange parity."
   },
   {
    "id": "TN-F17",
@@ -14203,11 +14203,11 @@
     "rejected save"
    ],
    "prior_evidence": "",
-   "result": "PASS",
-   "evidence_ref": "certification/results/RISK_fa9d9f55.json",
-   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
-   "tested_at_utc": "2026-10-14T10:49:15Z",
-   "notes": "Risk-gate semantics proof: 3 APPLIES_PROPOSED rows PASS, 30/30 checks PASS, 20/20 non-vacuous negative tests PASS. | Risk-gate semantics proof: 3 APPLIES_PROPOSED rows PASS, 30/30 checks PASS, 20/20 non-vacuous negative tests PASS. | Risk-gate semantics proof: 3 APPLIES_PROPOSED rows PASS, 30/30 checks PASS, 20/20 non-vacuous negative tests PASS."
+   "result": "NOT_TESTED",
+   "evidence_ref": "EVIDENCE/TN_CAMPAIGN_EVIDENCE/TN_CAMPAIGN_EVIDENCE.json",
+   "tested_commit": "",
+   "tested_at_utc": "",
+   "notes": "TN-CAMPAIGN-EVIDENCE: no campaign-specific evidence. Citation is a shared risk-gate semantics report covering 14 rows; it has a row-keyed check name but every check has an empty detail and names no scenario, order or fill outcome. Required proof is a predeclared testnet scenario with exchange parity."
   },
   {
    "id": "TN-F22",
@@ -14281,10 +14281,10 @@
    ],
    "prior_evidence": "",
    "result": "NOT_TESTED",
-   "evidence_ref": "",
+   "evidence_ref": "EVIDENCE/TN_CAMPAIGN_EVIDENCE/TN_CAMPAIGN_EVIDENCE.json",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": ""
+   "notes": "TN-CAMPAIGN-EVIDENCE: not tested. No evidence existed: no evidence_ref, no tested_commit, no campaign/order/fill record. Needs a predeclared testnet scenario or a documented unblock."
   },
   {
    "id": "TN-F25",
@@ -14308,10 +14308,10 @@
    ],
    "prior_evidence": "",
    "result": "NOT_TESTED",
-   "evidence_ref": "",
+   "evidence_ref": "EVIDENCE/TN_CAMPAIGN_EVIDENCE/TN_CAMPAIGN_EVIDENCE.json",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": "See F25-P/X records."
+   "notes": "TN-CAMPAIGN-EVIDENCE: not tested. No evidence existed: no evidence_ref, no tested_commit, no campaign/order/fill record. Needs a predeclared testnet scenario or a documented unblock."
   },
   {
    "id": "TN-F26",
@@ -14338,10 +14338,10 @@
    ],
    "prior_evidence": "",
    "result": "NOT_TESTED",
-   "evidence_ref": "",
+   "evidence_ref": "EVIDENCE/TN_CAMPAIGN_EVIDENCE/TN_CAMPAIGN_EVIDENCE.json",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": ""
+   "notes": "TN-CAMPAIGN-EVIDENCE: not tested. No evidence existed: no evidence_ref, no tested_commit, no campaign/order/fill record. Needs a predeclared testnet scenario or a documented unblock."
   },
   {
    "id": "TN-F27",
@@ -14367,10 +14367,10 @@
    ],
    "prior_evidence": "",
    "result": "NOT_TESTED",
-   "evidence_ref": "",
+   "evidence_ref": "EVIDENCE/TN_CAMPAIGN_EVIDENCE/TN_CAMPAIGN_EVIDENCE.json",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": ""
+   "notes": "TN-CAMPAIGN-EVIDENCE: not tested. No evidence existed: no evidence_ref, no tested_commit, no campaign/order/fill record. Needs a predeclared testnet scenario or a documented unblock."
   },
   {
    "id": "TN-PS1",
@@ -14396,10 +14396,10 @@
    ],
    "prior_evidence": "",
    "result": "NOT_TESTED",
-   "evidence_ref": "",
+   "evidence_ref": "EVIDENCE/TN_CAMPAIGN_EVIDENCE/TN_CAMPAIGN_EVIDENCE.json",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": ""
+   "notes": "TN-CAMPAIGN-EVIDENCE: not tested. No evidence existed: no evidence_ref, no tested_commit, no campaign/order/fill record. Needs a predeclared testnet scenario or a documented unblock."
   },
   {
    "id": "TN-CAMP-01",
@@ -14423,11 +14423,11 @@
     "stale remote ref"
    ],
    "prior_evidence": "",
-   "result": "PASS",
-   "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
-   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
-   "tested_at_utc": "2026-10-14T10:08:39Z",
-   "notes": "Control-surface semantics proof: 52/53 rows PASS (DONE-10 FAIL excluded). 40/40 focused tests PASS. | Control-surface semantics proof: 52/53 rows PASS (DONE-10 FAIL excluded). 40/40 focused tests PASS. | Control-surface semantics proof: 52/53 rows PASS (DONE-10 FAIL excluded). 40/40 focused tests PASS."
+   "result": "NOT_TESTED",
+   "evidence_ref": "EVIDENCE/TN_CAMPAIGN_EVIDENCE/TN_CAMPAIGN_EVIDENCE.json",
+   "tested_commit": "",
+   "tested_at_utc": "",
+   "notes": "TN-CAMPAIGN-EVIDENCE: no campaign-specific evidence. Citation is the shared control-surface semantics report: 23 of its 24 checks are identical across all nine TN-CAMP rows and the 24th differs only in check NAME, not in any campaign outcome. No campaign manifest exists in the tree and the PHASE_6T_C protocol files named as sources are absent (0 local-trading/, 0 PHASE_6T files). Requires a committed campaign manifest plus exchange order/fill history for the campaign window."
   },
   {
    "id": "TN-CAMP-02",
@@ -14451,11 +14451,11 @@
     "stale remote ref"
    ],
    "prior_evidence": "",
-   "result": "PASS",
-   "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
-   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
-   "tested_at_utc": "2026-10-14T10:08:39Z",
-   "notes": "Control-surface semantics proof: 52/53 rows PASS (DONE-10 FAIL excluded). 40/40 focused tests PASS. | Control-surface semantics proof: 52/53 rows PASS (DONE-10 FAIL excluded). 40/40 focused tests PASS. | Control-surface semantics proof: 52/53 rows PASS (DONE-10 FAIL excluded). 40/40 focused tests PASS."
+   "result": "NOT_TESTED",
+   "evidence_ref": "EVIDENCE/TN_CAMPAIGN_EVIDENCE/TN_CAMPAIGN_EVIDENCE.json",
+   "tested_commit": "",
+   "tested_at_utc": "",
+   "notes": "TN-CAMPAIGN-EVIDENCE: no campaign-specific evidence. Citation is the shared control-surface semantics report: 23 of its 24 checks are identical across all nine TN-CAMP rows and the 24th differs only in check NAME, not in any campaign outcome. No campaign manifest exists in the tree and the PHASE_6T_C protocol files named as sources are absent (0 local-trading/, 0 PHASE_6T files). Requires a committed campaign manifest plus exchange order/fill history for the campaign window."
   },
   {
    "id": "TN-CAMP-03",
@@ -14479,11 +14479,11 @@
     "stale remote ref"
    ],
    "prior_evidence": "",
-   "result": "PASS",
-   "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
-   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
-   "tested_at_utc": "2026-10-14T10:08:39Z",
-   "notes": "Control-surface semantics proof: 52/53 rows PASS (DONE-10 FAIL excluded). 40/40 focused tests PASS. | Control-surface semantics proof: 52/53 rows PASS (DONE-10 FAIL excluded). 40/40 focused tests PASS. | Control-surface semantics proof: 52/53 rows PASS (DONE-10 FAIL excluded). 40/40 focused tests PASS."
+   "result": "NOT_TESTED",
+   "evidence_ref": "EVIDENCE/TN_CAMPAIGN_EVIDENCE/TN_CAMPAIGN_EVIDENCE.json",
+   "tested_commit": "",
+   "tested_at_utc": "",
+   "notes": "TN-CAMPAIGN-EVIDENCE: no campaign-specific evidence. Citation is the shared control-surface semantics report: 23 of its 24 checks are identical across all nine TN-CAMP rows and the 24th differs only in check NAME, not in any campaign outcome. No campaign manifest exists in the tree and the PHASE_6T_C protocol files named as sources are absent (0 local-trading/, 0 PHASE_6T files). Requires a committed campaign manifest plus exchange order/fill history for the campaign window."
   },
   {
    "id": "TN-CAMP-04",
@@ -14507,11 +14507,11 @@
     "stale remote ref"
    ],
    "prior_evidence": "",
-   "result": "PASS",
-   "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
-   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
-   "tested_at_utc": "2026-10-14T10:08:39Z",
-   "notes": "Control-surface semantics proof: 52/53 rows PASS (DONE-10 FAIL excluded). 40/40 focused tests PASS. | Control-surface semantics proof: 52/53 rows PASS (DONE-10 FAIL excluded). 40/40 focused tests PASS. | Control-surface semantics proof: 52/53 rows PASS (DONE-10 FAIL excluded). 40/40 focused tests PASS."
+   "result": "NOT_TESTED",
+   "evidence_ref": "EVIDENCE/TN_CAMPAIGN_EVIDENCE/TN_CAMPAIGN_EVIDENCE.json",
+   "tested_commit": "",
+   "tested_at_utc": "",
+   "notes": "TN-CAMPAIGN-EVIDENCE: no campaign-specific evidence. Citation is the shared control-surface semantics report: 23 of its 24 checks are identical across all nine TN-CAMP rows and the 24th differs only in check NAME, not in any campaign outcome. No campaign manifest exists in the tree and the PHASE_6T_C protocol files named as sources are absent (0 local-trading/, 0 PHASE_6T files). Requires a committed campaign manifest plus exchange order/fill history for the campaign window."
   },
   {
    "id": "TN-CAMP-05",
@@ -14535,11 +14535,11 @@
     "stale remote ref"
    ],
    "prior_evidence": "",
-   "result": "PASS",
-   "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
-   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
-   "tested_at_utc": "2026-10-14T10:08:39Z",
-   "notes": "Control-surface semantics proof: 52/53 rows PASS (DONE-10 FAIL excluded). 40/40 focused tests PASS. | Control-surface semantics proof: 52/53 rows PASS (DONE-10 FAIL excluded). 40/40 focused tests PASS. | Control-surface semantics proof: 52/53 rows PASS (DONE-10 FAIL excluded). 40/40 focused tests PASS."
+   "result": "NOT_TESTED",
+   "evidence_ref": "EVIDENCE/TN_CAMPAIGN_EVIDENCE/TN_CAMPAIGN_EVIDENCE.json",
+   "tested_commit": "",
+   "tested_at_utc": "",
+   "notes": "TN-CAMPAIGN-EVIDENCE: no campaign-specific evidence. Citation is the shared control-surface semantics report: 23 of its 24 checks are identical across all nine TN-CAMP rows and the 24th differs only in check NAME, not in any campaign outcome. No campaign manifest exists in the tree and the PHASE_6T_C protocol files named as sources are absent (0 local-trading/, 0 PHASE_6T files). Requires a committed campaign manifest plus exchange order/fill history for the campaign window."
   },
   {
    "id": "TN-CAMP-06",
@@ -14563,11 +14563,11 @@
     "stale remote ref"
    ],
    "prior_evidence": "",
-   "result": "PASS",
-   "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
-   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
-   "tested_at_utc": "2026-10-14T10:08:39Z",
-   "notes": "Control-surface semantics proof: 52/53 rows PASS (DONE-10 FAIL excluded). 40/40 focused tests PASS. | Control-surface semantics proof: 52/53 rows PASS (DONE-10 FAIL excluded). 40/40 focused tests PASS. | Control-surface semantics proof: 52/53 rows PASS (DONE-10 FAIL excluded). 40/40 focused tests PASS."
+   "result": "NOT_TESTED",
+   "evidence_ref": "EVIDENCE/TN_CAMPAIGN_EVIDENCE/TN_CAMPAIGN_EVIDENCE.json",
+   "tested_commit": "",
+   "tested_at_utc": "",
+   "notes": "TN-CAMPAIGN-EVIDENCE: no campaign-specific evidence. Citation is the shared control-surface semantics report: 23 of its 24 checks are identical across all nine TN-CAMP rows and the 24th differs only in check NAME, not in any campaign outcome. No campaign manifest exists in the tree and the PHASE_6T_C protocol files named as sources are absent (0 local-trading/, 0 PHASE_6T files). Requires a committed campaign manifest plus exchange order/fill history for the campaign window."
   },
   {
    "id": "TN-CAMP-07",
@@ -14591,11 +14591,11 @@
     "stale remote ref"
    ],
    "prior_evidence": "",
-   "result": "PASS",
-   "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
-   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
-   "tested_at_utc": "2026-10-14T10:08:39Z",
-   "notes": "Control-surface semantics proof: 52/53 rows PASS (DONE-10 FAIL excluded). 40/40 focused tests PASS. | Control-surface semantics proof: 52/53 rows PASS (DONE-10 FAIL excluded). 40/40 focused tests PASS. | Control-surface semantics proof: 52/53 rows PASS (DONE-10 FAIL excluded). 40/40 focused tests PASS."
+   "result": "NOT_TESTED",
+   "evidence_ref": "EVIDENCE/TN_CAMPAIGN_EVIDENCE/TN_CAMPAIGN_EVIDENCE.json",
+   "tested_commit": "",
+   "tested_at_utc": "",
+   "notes": "TN-CAMPAIGN-EVIDENCE: no campaign-specific evidence. Citation is the shared control-surface semantics report: 23 of its 24 checks are identical across all nine TN-CAMP rows and the 24th differs only in check NAME, not in any campaign outcome. No campaign manifest exists in the tree and the PHASE_6T_C protocol files named as sources are absent (0 local-trading/, 0 PHASE_6T files). Requires a committed campaign manifest plus exchange order/fill history for the campaign window."
   },
   {
    "id": "TN-CAMP-08",
@@ -14619,11 +14619,11 @@
     "stale remote ref"
    ],
    "prior_evidence": "",
-   "result": "PASS",
-   "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
-   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
-   "tested_at_utc": "2026-10-14T10:08:39Z",
-   "notes": "Control-surface semantics proof: 52/53 rows PASS (DONE-10 FAIL excluded). 40/40 focused tests PASS. | Control-surface semantics proof: 52/53 rows PASS (DONE-10 FAIL excluded). 40/40 focused tests PASS. | Control-surface semantics proof: 52/53 rows PASS (DONE-10 FAIL excluded). 40/40 focused tests PASS."
+   "result": "NOT_TESTED",
+   "evidence_ref": "EVIDENCE/TN_CAMPAIGN_EVIDENCE/TN_CAMPAIGN_EVIDENCE.json",
+   "tested_commit": "",
+   "tested_at_utc": "",
+   "notes": "TN-CAMPAIGN-EVIDENCE: no campaign-specific evidence. Citation is the shared control-surface semantics report: 23 of its 24 checks are identical across all nine TN-CAMP rows and the 24th differs only in check NAME, not in any campaign outcome. No campaign manifest exists in the tree and the PHASE_6T_C protocol files named as sources are absent (0 local-trading/, 0 PHASE_6T files). Requires a committed campaign manifest plus exchange order/fill history for the campaign window."
   },
   {
    "id": "TN-CAMP-09",
@@ -14647,11 +14647,11 @@
     "stale remote ref"
    ],
    "prior_evidence": "",
-   "result": "PASS",
-   "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
-   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
-   "tested_at_utc": "2026-10-14T10:08:39Z",
-   "notes": "Control-surface semantics proof: 52/53 rows PASS (DONE-10 FAIL excluded). 40/40 focused tests PASS. | Control-surface semantics proof: 52/53 rows PASS (DONE-10 FAIL excluded). 40/40 focused tests PASS. | Control-surface semantics proof: 52/53 rows PASS (DONE-10 FAIL excluded). 40/40 focused tests PASS."
+   "result": "NOT_TESTED",
+   "evidence_ref": "EVIDENCE/TN_CAMPAIGN_EVIDENCE/TN_CAMPAIGN_EVIDENCE.json",
+   "tested_commit": "",
+   "tested_at_utc": "",
+   "notes": "TN-CAMPAIGN-EVIDENCE: no campaign-specific evidence. Citation is the shared control-surface semantics report: 23 of its 24 checks are identical across all nine TN-CAMP rows and the 24th differs only in check NAME, not in any campaign outcome. No campaign manifest exists in the tree and the PHASE_6T_C protocol files named as sources are absent (0 local-trading/, 0 PHASE_6T files). Requires a committed campaign manifest plus exchange order/fill history for the campaign window."
   },
   {
    "id": "TN-T1",
@@ -14674,10 +14674,10 @@
    ],
    "prior_evidence": "",
    "result": "NOT_TESTED",
-   "evidence_ref": "",
+   "evidence_ref": "EVIDENCE/TN_CAMPAIGN_EVIDENCE/TN_CAMPAIGN_EVIDENCE.json",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": ""
+   "notes": "TN-CAMPAIGN-EVIDENCE: not tested. No evidence existed: no evidence_ref, no tested_commit, no campaign/order/fill record. Needs a predeclared testnet scenario or a documented unblock."
   },
   {
    "id": "TN-T2",

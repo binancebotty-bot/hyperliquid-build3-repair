@@ -1,0 +1,391 @@
+{
+ "matrix_measured": "certification/certification_matrix.json",
+ "result_root": "certification/results",
+ "row_specific_definition": "cited artifact contains an entry keyed by the row id AND that entry names a campaign/order/fill identifier",
+ "rows": {
+  "TN-CAMP-01": {
+   "campaign_or_order_identifiers": [
+    "B3-C2A-G1-PASS-1",
+    "B3-C2A-G2-PASS-1",
+    "B3-C2A-GATE0-PASS-1",
+    "B3-C2H-G2-TRANSPORT-HOLD-1",
+    "B3-TEST-FOREIGN-PROJECT",
+    "B3-TEST-WRONG-RECIPIENT"
+   ],
+   "cited_file_exists": true,
+   "cited_path_checked": "certification/results\\CONTROL_fa9d9f55ff.json",
+   "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
+   "present_in_matrix": true,
+   "reason": "row-keyed entry naming: B3-C2A-G1-PASS-1, B3-C2A-G2-PASS-1, B3-C2A-GATE0-PASS-1, B3-C2H-G2-TRANSPORT-HOLD-1, B3-TEST-FOREIGN-PROJECT, B3-TEST-WRONG-RECIPIENT",
+   "result": "PASS",
+   "row_keyed_entries": [
+    "TN-CAMP-01"
+   ],
+   "row_specific_evidence": true,
+   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6"
+  },
+  "TN-CAMP-02": {
+   "campaign_or_order_identifiers": [
+    "B3-C2A-G1-PASS-1",
+    "B3-C2A-G2-PASS-1",
+    "B3-C2A-GATE0-PASS-1",
+    "B3-C2H-G2-TRANSPORT-HOLD-1",
+    "B3-TEST-FOREIGN-PROJECT",
+    "B3-TEST-WRONG-RECIPIENT"
+   ],
+   "cited_file_exists": true,
+   "cited_path_checked": "certification/results\\CONTROL_fa9d9f55ff.json",
+   "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
+   "present_in_matrix": true,
+   "reason": "row-keyed entry naming: B3-C2A-G1-PASS-1, B3-C2A-G2-PASS-1, B3-C2A-GATE0-PASS-1, B3-C2H-G2-TRANSPORT-HOLD-1, B3-TEST-FOREIGN-PROJECT, B3-TEST-WRONG-RECIPIENT",
+   "result": "PASS",
+   "row_keyed_entries": [
+    "TN-CAMP-02"
+   ],
+   "row_specific_evidence": true,
+   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6"
+  },
+  "TN-CAMP-03": {
+   "campaign_or_order_identifiers": [
+    "B3-C2A-G1-PASS-1",
+    "B3-C2A-G2-PASS-1",
+    "B3-C2A-GATE0-PASS-1",
+    "B3-C2H-G2-TRANSPORT-HOLD-1",
+    "B3-TEST-FOREIGN-PROJECT",
+    "B3-TEST-WRONG-RECIPIENT"
+   ],
+   "cited_file_exists": true,
+   "cited_path_checked": "certification/results\\CONTROL_fa9d9f55ff.json",
+   "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
+   "present_in_matrix": true,
+   "reason": "row-keyed entry naming: B3-C2A-G1-PASS-1, B3-C2A-G2-PASS-1, B3-C2A-GATE0-PASS-1, B3-C2H-G2-TRANSPORT-HOLD-1, B3-TEST-FOREIGN-PROJECT, B3-TEST-WRONG-RECIPIENT",
+   "result": "PASS",
+   "row_keyed_entries": [
+    "TN-CAMP-03"
+   ],
+   "row_specific_evidence": true,
+   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6"
+  },
+  "TN-CAMP-04": {
+   "campaign_or_order_identifiers": [
+    "B3-C2A-G1-PASS-1",
+    "B3-C2A-G2-PASS-1",
+    "B3-C2A-GATE0-PASS-1",
+    "B3-C2H-G2-TRANSPORT-HOLD-1",
+    "B3-TEST-FOREIGN-PROJECT",
+    "B3-TEST-WRONG-RECIPIENT"
+   ],
+   "cited_file_exists": true,
+   "cited_path_checked": "certification/results\\CONTROL_fa9d9f55ff.json",
+   "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
+   "present_in_matrix": true,
+   "reason": "row-keyed entry naming: B3-C2A-G1-PASS-1, B3-C2A-G2-PASS-1, B3-C2A-GATE0-PASS-1, B3-C2H-G2-TRANSPORT-HOLD-1, B3-TEST-FOREIGN-PROJECT, B3-TEST-WRONG-RECIPIENT",
+   "result": "PASS",
+   "row_keyed_entries": [
+    "TN-CAMP-04"
+   ],
+   "row_specific_evidence": true,
+   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6"
+  },
+  "TN-CAMP-05": {
+   "campaign_or_order_identifiers": [
+    "B3-C2A-G1-PASS-1",
+    "B3-C2A-G2-PASS-1",
+    "B3-C2A-GATE0-PASS-1",
+    "B3-C2H-G2-TRANSPORT-HOLD-1",
+    "B3-TEST-FOREIGN-PROJECT",
+    "B3-TEST-WRONG-RECIPIENT",
+    "cloid",
+    "oid"
+   ],
+   "cited_file_exists": true,
+   "cited_path_checked": "certification/results\\CONTROL_fa9d9f55ff.json",
+   "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
+   "present_in_matrix": true,
+   "reason": "row-keyed entry naming: B3-C2A-G1-PASS-1, B3-C2A-G2-PASS-1, B3-C2A-GATE0-PASS-1, B3-C2H-G2-TRANSPORT-HOLD-1, B3-TEST-FOREIGN-PROJECT, B3-TEST-WRONG-RECIPIENT, cloid, oid",
+   "result": "PASS",
+   "row_keyed_entries": [
+    "TN-CAMP-05"
+   ],
+   "row_specific_evidence": true,
+   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6"
+  },
+  "TN-CAMP-06": {
+   "campaign_or_order_identifiers": [
+    "B3-C2A-G1-PASS-1",
+    "B3-C2A-G2-PASS-1",
+    "B3-C2A-GATE0-PASS-1",
+    "B3-C2H-G2-TRANSPORT-HOLD-1",
+    "B3-TEST-FOREIGN-PROJECT",
+    "B3-TEST-WRONG-RECIPIENT"
+   ],
+   "cited_file_exists": true,
+   "cited_path_checked": "certification/results\\CONTROL_fa9d9f55ff.json",
+   "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
+   "present_in_matrix": true,
+   "reason": "row-keyed entry naming: B3-C2A-G1-PASS-1, B3-C2A-G2-PASS-1, B3-C2A-GATE0-PASS-1, B3-C2H-G2-TRANSPORT-HOLD-1, B3-TEST-FOREIGN-PROJECT, B3-TEST-WRONG-RECIPIENT",
+   "result": "PASS",
+   "row_keyed_entries": [
+    "TN-CAMP-06"
+   ],
+   "row_specific_evidence": true,
+   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6"
+  },
+  "TN-CAMP-07": {
+   "campaign_or_order_identifiers": [
+    "B3-C2A-G1-PASS-1",
+    "B3-C2A-G2-PASS-1",
+    "B3-C2A-GATE0-PASS-1",
+    "B3-C2H-G2-TRANSPORT-HOLD-1",
+    "B3-TEST-FOREIGN-PROJECT",
+    "B3-TEST-WRONG-RECIPIENT"
+   ],
+   "cited_file_exists": true,
+   "cited_path_checked": "certification/results\\CONTROL_fa9d9f55ff.json",
+   "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
+   "present_in_matrix": true,
+   "reason": "row-keyed entry naming: B3-C2A-G1-PASS-1, B3-C2A-G2-PASS-1, B3-C2A-GATE0-PASS-1, B3-C2H-G2-TRANSPORT-HOLD-1, B3-TEST-FOREIGN-PROJECT, B3-TEST-WRONG-RECIPIENT",
+   "result": "PASS",
+   "row_keyed_entries": [
+    "TN-CAMP-07"
+   ],
+   "row_specific_evidence": true,
+   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6"
+  },
+  "TN-CAMP-08": {
+   "campaign_or_order_identifiers": [
+    "B3-C2A-G1-PASS-1",
+    "B3-C2A-G2-PASS-1",
+    "B3-C2A-GATE0-PASS-1",
+    "B3-C2H-G2-TRANSPORT-HOLD-1",
+    "B3-TEST-FOREIGN-PROJECT",
+    "B3-TEST-WRONG-RECIPIENT"
+   ],
+   "cited_file_exists": true,
+   "cited_path_checked": "certification/results\\CONTROL_fa9d9f55ff.json",
+   "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
+   "present_in_matrix": true,
+   "reason": "row-keyed entry naming: B3-C2A-G1-PASS-1, B3-C2A-G2-PASS-1, B3-C2A-GATE0-PASS-1, B3-C2H-G2-TRANSPORT-HOLD-1, B3-TEST-FOREIGN-PROJECT, B3-TEST-WRONG-RECIPIENT",
+   "result": "PASS",
+   "row_keyed_entries": [
+    "TN-CAMP-08"
+   ],
+   "row_specific_evidence": true,
+   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6"
+  },
+  "TN-CAMP-09": {
+   "campaign_or_order_identifiers": [
+    "B3-C2A-G1-PASS-1",
+    "B3-C2A-G2-PASS-1",
+    "B3-C2A-GATE0-PASS-1",
+    "B3-C2H-G2-TRANSPORT-HOLD-1",
+    "B3-TEST-FOREIGN-PROJECT",
+    "B3-TEST-WRONG-RECIPIENT"
+   ],
+   "cited_file_exists": true,
+   "cited_path_checked": "certification/results\\CONTROL_fa9d9f55ff.json",
+   "evidence_ref": "certification/results/CONTROL_fa9d9f55ff.json",
+   "present_in_matrix": true,
+   "reason": "row-keyed entry naming: B3-C2A-G1-PASS-1, B3-C2A-G2-PASS-1, B3-C2A-GATE0-PASS-1, B3-C2H-G2-TRANSPORT-HOLD-1, B3-TEST-FOREIGN-PROJECT, B3-TEST-WRONG-RECIPIENT",
+   "result": "PASS",
+   "row_keyed_entries": [
+    "TN-CAMP-09"
+   ],
+   "row_specific_evidence": true,
+   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6"
+  },
+  "TN-F06": {
+   "campaign_or_order_identifiers": [],
+   "cited_file_exists": true,
+   "cited_path_checked": "certification/results\\RISK_fa9d9f55.json",
+   "evidence_ref": "certification/results/RISK_fa9d9f55.json",
+   "present_in_matrix": true,
+   "reason": "cited artifact has a row-keyed entry but it names no campaign/order/fill identifier",
+   "result": "PASS",
+   "row_keyed_entries": [
+    "TN-F06:LIMIT_BLOCKS_NOT_CLAMPS"
+   ],
+   "row_specific_evidence": false,
+   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6"
+  },
+  "TN-F16": {
+   "campaign_or_order_identifiers": [],
+   "cited_file_exists": true,
+   "cited_path_checked": "certification/results\\RISK_fa9d9f55.json",
+   "evidence_ref": "certification/results/RISK_fa9d9f55.json",
+   "present_in_matrix": true,
+   "reason": "cited artifact has a row-keyed entry but it names no campaign/order/fill identifier",
+   "result": "PASS",
+   "row_keyed_entries": [
+    "TN-F16:NO_FOLLOWER_PRICE_ENTRY_REFUSED"
+   ],
+   "row_specific_evidence": false,
+   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6"
+  },
+  "TN-F21": {
+   "campaign_or_order_identifiers": [],
+   "cited_file_exists": true,
+   "cited_path_checked": "certification/results\\RISK_fa9d9f55.json",
+   "evidence_ref": "certification/results/RISK_fa9d9f55.json",
+   "present_in_matrix": true,
+   "reason": "cited artifact has a row-keyed entry but it names no campaign/order/fill identifier",
+   "result": "PASS",
+   "row_keyed_entries": [
+    "TN-F21:CLOSE_NOT_TRAPPED_BY_OPEN_SAFETY"
+   ],
+   "row_specific_evidence": false,
+   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6"
+  },
+  "TN-F24": {
+   "campaign_or_order_identifiers": [],
+   "cited_file_exists": false,
+   "evidence_ref": "",
+   "present_in_matrix": true,
+   "reason": "no evidence_ref at all",
+   "result": "NOT_TESTED",
+   "row_keyed_entries": [],
+   "row_specific_evidence": false,
+   "tested_commit": ""
+  },
+  "TN-F25": {
+   "campaign_or_order_identifiers": [],
+   "cited_file_exists": false,
+   "evidence_ref": "",
+   "present_in_matrix": true,
+   "reason": "no evidence_ref at all",
+   "result": "NOT_TESTED",
+   "row_keyed_entries": [],
+   "row_specific_evidence": false,
+   "tested_commit": ""
+  },
+  "TN-F26": {
+   "campaign_or_order_identifiers": [],
+   "cited_file_exists": false,
+   "evidence_ref": "",
+   "present_in_matrix": true,
+   "reason": "no evidence_ref at all",
+   "result": "NOT_TESTED",
+   "row_keyed_entries": [],
+   "row_specific_evidence": false,
+   "tested_commit": ""
+  },
+  "TN-F27": {
+   "campaign_or_order_identifiers": [],
+   "cited_file_exists": false,
+   "evidence_ref": "",
+   "present_in_matrix": true,
+   "reason": "no evidence_ref at all",
+   "result": "NOT_TESTED",
+   "row_keyed_entries": [],
+   "row_specific_evidence": false,
+   "tested_commit": ""
+  },
+  "TN-PS1": {
+   "campaign_or_order_identifiers": [],
+   "cited_file_exists": false,
+   "evidence_ref": "",
+   "present_in_matrix": true,
+   "reason": "no evidence_ref at all",
+   "result": "NOT_TESTED",
+   "row_keyed_entries": [],
+   "row_specific_evidence": false,
+   "tested_commit": ""
+  },
+  "TN-T1": {
+   "campaign_or_order_identifiers": [],
+   "cited_file_exists": false,
+   "evidence_ref": "",
+   "present_in_matrix": true,
+   "reason": "no evidence_ref at all",
+   "result": "NOT_TESTED",
+   "row_keyed_entries": [],
+   "row_specific_evidence": false,
+   "tested_commit": ""
+  }
+ },
+ "task_id": "t_9c795ece",
+ "tn_camp_shared_checks": {
+  "per_row_check_count": {
+   "TN-CAMP-01": 24,
+   "TN-CAMP-02": 24,
+   "TN-CAMP-03": 24,
+   "TN-CAMP-04": 24,
+   "TN-CAMP-05": 24,
+   "TN-CAMP-06": 24,
+   "TN-CAMP-07": 24,
+   "TN-CAMP-08": 24,
+   "TN-CAMP-09": 24
+  },
+  "row_unique_checks": {
+   "TN-CAMP-01": [
+    "BOUNDS_FROZEN_BEFORE_FIRST_ORDER"
+   ],
+   "TN-CAMP-02": [
+    "FLAT_START_OR_INVENTORY_EXCLUDED"
+   ],
+   "TN-CAMP-03": [
+    "MARKET_ALLOWLIST"
+   ],
+   "TN-CAMP-04": [
+    "AMBIGUOUS_SUBMISSION_STOPS_CAMPAIGN"
+   ],
+   "TN-CAMP-05": [
+    "CLEANUP_SCOPE_LIMITED"
+   ],
+   "TN-CAMP-06": [
+    "ABORT_CONDITIONS_PREDECLARED"
+   ],
+   "TN-CAMP-07": [
+    "PROOF_ENVIRONMENT_IDENTITY_RECORDED"
+   ],
+   "TN-CAMP-08": [
+    "PER_CLASS_EXCHANGE_PARITY"
+   ],
+   "TN-CAMP-09": [
+    "TESTNET_COVERAGE_GAPS_LISTED"
+   ]
+  },
+  "rows": [
+   "TN-CAMP-01",
+   "TN-CAMP-02",
+   "TN-CAMP-03",
+   "TN-CAMP-04",
+   "TN-CAMP-05",
+   "TN-CAMP-06",
+   "TN-CAMP-07",
+   "TN-CAMP-08",
+   "TN-CAMP-09"
+  ],
+  "shared_by_all_nine": [
+   "ARCHITECT_RR1_RATIFIED",
+   "ARCHITECT_RR2_RATIFIED",
+   "BINDING_AUTHORITY_PASS",
+   "DELIVERY_HARDENING_RR1_RATIFIED",
+   "DELIVERY_HARDENING_RR2_RATIFIED",
+   "DUPLICATE_DELIVERY_PREVENTED",
+   "ENVELOPE_DEPOSIT_WAKE_CONSUME_TRANSITION",
+   "EVERY_HANDOFF_HAS_COMMIT_SHA",
+   "EVERY_HANDOFF_HAS_FILES_CHANGED",
+   "EVERY_HANDOFF_HAS_STAND_DOWN_REQUEST",
+   "FOREIGN_PROJECT_FAIL_CLOSED",
+   "FOUR_LEG_PROOF",
+   "GATE0_PASS",
+   "GATE1_PASS",
+   "GATE2_PASS",
+   "KEY_ENVELOPES_HAVE_TASK_ID",
+   "MD_ROUTE_CORRECTION",
+   "NO_RICHARD_RELAY",
+   "RESTART_AWAITING_RULING_SURVIVES",
+   "RESTART_REPLAY_EXACTLY_ONCE",
+   "REST_API_CALLS_ZERO",
+   "STALE_REMOTE_REF_DETECTED",
+   "WRONG_BINDING_FAIL_CLOSED"
+  ],
+  "shared_count": 23,
+  "union_count": 32
+ },
+ "verdict_counts": {
+  "row_specific_false": 9,
+  "row_specific_true": 9
+ }
+}

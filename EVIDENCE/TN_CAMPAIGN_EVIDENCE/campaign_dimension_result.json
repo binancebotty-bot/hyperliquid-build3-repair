@@ -1,0 +1,506 @@
+{
+ "task_id": "t_9c795ece",
+ "audit_dir": "C:/Users/wigmore/trading_stack/hl-build3-testnet-cert/_archive/hl_stage2/hl_live_copy_audit_testnet/append_only",
+ "files_scanned": 26,
+ "total_data_rows_in_audit": 6407012,
+ "files_with_a_campaign_column": [],
+ "campaign_dimension_present": false,
+ "verdict": "NO_CAMPAIGN_DIMENSION",
+ "interpretation": "No column in any audit file names a campaign, scenario or manifest, and no run/campaign identifier repeats in the data. The audit records individual send attempts and fills; it cannot be re-cut per campaign without an external mapping that does not exist in the repo. So per-campaign evidence for TN-CAMP-01..09 cannot be produced from this data, and inventing campaign ids would be fabrication.",
+ "files": [
+  {
+   "file": "core_fatal_errors.csv",
+   "bytes": 2884,
+   "header_read": true,
+   "column_count": 8,
+   "campaign_columns": [],
+   "campaign_token_hits_in_first_256k": {
+    "campaign": 0,
+    "scenario": 0,
+    "manifest": 0,
+    "phase_6t": 0,
+    "phase6t": 0,
+    "b3-c2a": 0,
+    "b3-c2h": 0,
+    "b3-test": 0
+   },
+   "data_rows": 36,
+   "data_rows_counted_by": "newline count minus header"
+  },
+  {
+   "file": "errors.csv",
+   "bytes": 66714167,
+   "header_read": true,
+   "column_count": 6,
+   "campaign_columns": [],
+   "campaign_token_hits_in_first_256k": {
+    "campaign": 0,
+    "scenario": 0,
+    "manifest": 0,
+    "phase_6t": 0,
+    "phase6t": 0,
+    "b3-c2a": 0,
+    "b3-c2h": 0,
+    "b3-test": 0
+   },
+   "data_rows": 1265971,
+   "data_rows_counted_by": "newline count minus header"
+  },
+  {
+   "file": "live_fills.csv",
+   "bytes": 67540213,
+   "header_read": true,
+   "column_count": 22,
+   "campaign_columns": [],
+   "campaign_token_hits_in_first_256k": {
+    "campaign": 0,
+    "scenario": 0,
+    "manifest": 0,
+    "phase_6t": 0,
+    "phase6t": 0,
+    "b3-c2a": 0,
+    "b3-c2h": 0,
+    "b3-test": 0
+   },
+   "data_rows": 102371,
+   "data_rows_counted_by": "newline count minus header"
+  },
+  {
+   "file": "order_intents.20261014.1.csv",
+   "bytes": 104857840,
+   "header_read": true,
+   "column_count": 29,
+   "campaign_columns": [],
+   "campaign_token_hits_in_first_256k": {
+    "campaign": 0,
+    "scenario": 0,
+    "manifest": 0,
+    "phase_6t": 0,
+    "phase6t": 0,
+    "b3-c2a": 0,
+    "b3-c2h": 0,
+    "b3-test": 0
+   },
+   "data_rows": 214348,
+   "data_rows_counted_by": "newline count minus header"
+  },
+  {
+   "file": "order_intents.20261015.1.csv",
+   "bytes": 104857721,
+   "header_read": true,
+   "column_count": 29,
+   "campaign_columns": [],
+   "campaign_token_hits_in_first_256k": {
+    "campaign": 0,
+    "scenario": 0,
+    "manifest": 0,
+    "phase_6t": 0,
+    "phase6t": 0,
+    "b3-c2a": 0,
+    "b3-c2h": 0,
+    "b3-test": 0
+   },
+   "data_rows": 214226,
+   "data_rows_counted_by": "newline count minus header"
+  },
+  {
+   "file": "order_intents.20261015.2.csv",
+   "bytes": 104857827,
+   "header_read": true,
+   "column_count": 29,
+   "campaign_columns": [],
+   "campaign_token_hits_in_first_256k": {
+    "campaign": 0,
+    "scenario": 0,
+    "manifest": 0,
+    "phase_6t": 0,
+    "phase6t": 0,
+    "b3-c2a": 0,
+    "b3-c2h": 0,
+    "b3-test": 0
+   },
+   "data_rows": 196503,
+   "data_rows_counted_by": "newline count minus header"
+  },
+  {
+   "file": "order_intents.20261015.3.csv",
+   "bytes": 104857946,
+   "header_read": true,
+   "column_count": 29,
+   "campaign_columns": [],
+   "campaign_token_hits_in_first_256k": {
+    "campaign": 0,
+    "scenario": 0,
+    "manifest": 0,
+    "phase_6t": 0,
+    "phase6t": 0,
+    "b3-c2a": 0,
+    "b3-c2h": 0,
+    "b3-test": 0
+   },
+   "data_rows": 207570,
+   "data_rows_counted_by": "newline count minus header"
+  },
+  {
+   "file": "order_intents.20261016.1.csv",
+   "bytes": 104857659,
+   "header_read": true,
+   "column_count": 29,
+   "campaign_columns": [],
+   "campaign_token_hits_in_first_256k": {
+    "campaign": 0,
+    "scenario": 0,
+    "manifest": 0,
+    "phase_6t": 0,
+    "phase6t": 0,
+    "b3-c2a": 0,
+    "b3-c2h": 0,
+    "b3-test": 0
+   },
+   "data_rows": 205963,
+   "data_rows_counted_by": "newline count minus header"
+  },
+  {
+   "file": "order_intents.20261016.2.csv",
+   "bytes": 104857774,
+   "header_read": true,
+   "column_count": 29,
+   "campaign_columns": [],
+   "campaign_token_hits_in_first_256k": {
+    "campaign": 0,
+    "scenario": 0,
+    "manifest": 0,
+    "phase_6t": 0,
+    "phase6t": 0,
+    "b3-c2a": 0,
+    "b3-c2h": 0,
+    "b3-test": 0
+   },
+   "data_rows": 178581,
+   "data_rows_counted_by": "newline count minus header"
+  },
+  {
+   "file": "order_intents.20261017.1.csv",
+   "bytes": 104857862,
+   "header_read": true,
+   "column_count": 29,
+   "campaign_columns": [],
+   "campaign_token_hits_in_first_256k": {
+    "campaign": 0,
+    "scenario": 0,
+    "manifest": 0,
+    "phase_6t": 0,
+    "phase6t": 0,
+    "b3-c2a": 0,
+    "b3-c2h": 0,
+    "b3-test": 0
+   },
+   "data_rows": 202108,
+   "data_rows_counted_by": "newline count minus header"
+  },
+  {
+   "file": "order_intents.20261017.2.csv",
+   "bytes": 104857677,
+   "header_read": true,
+   "column_count": 29,
+   "campaign_columns": [],
+   "campaign_token_hits_in_first_256k": {
+    "campaign": 0,
+    "scenario": 0,
+    "manifest": 0,
+    "phase_6t": 0,
+    "phase6t": 0,
+    "b3-c2a": 0,
+    "b3-c2h": 0,
+    "b3-test": 0
+   },
+   "data_rows": 200643,
+   "data_rows_counted_by": "newline count minus header"
+  },
+  {
+   "file": "order_intents.20261018.1.csv",
+   "bytes": 104857702,
+   "header_read": true,
+   "column_count": 29,
+   "campaign_columns": [],
+   "campaign_token_hits_in_first_256k": {
+    "campaign": 0,
+    "scenario": 0,
+    "manifest": 0,
+    "phase_6t": 0,
+    "phase6t": 0,
+    "b3-c2a": 0,
+    "b3-c2h": 0,
+    "b3-test": 0
+   },
+   "data_rows": 182024,
+   "data_rows_counted_by": "newline count minus header"
+  },
+  {
+   "file": "order_intents.20261019.1.csv",
+   "bytes": 104857739,
+   "header_read": true,
+   "column_count": 29,
+   "campaign_columns": [],
+   "campaign_token_hits_in_first_256k": {
+    "campaign": 0,
+    "scenario": 0,
+    "manifest": 0,
+    "phase_6t": 0,
+    "phase6t": 0,
+    "b3-c2a": 0,
+    "b3-c2h": 0,
+    "b3-test": 0
+   },
+   "data_rows": 193999,
+   "data_rows_counted_by": "newline count minus header"
+  },
+  {
+   "file": "order_intents.csv",
+   "bytes": 31566022,
+   "header_read": true,
+   "column_count": 29,
+   "campaign_columns": [],
+   "campaign_token_hits_in_first_256k": {
+    "campaign": 0,
+    "scenario": 0,
+    "manifest": 0,
+    "phase_6t": 0,
+    "phase6t": 0,
+    "b3-c2a": 0,
+    "b3-c2h": 0,
+    "b3-test": 0
+   },
+   "data_rows": 59586,
+   "data_rows_counted_by": "newline count minus header"
+  },
+  {
+   "file": "reconciliation.20261016.2.csv",
+   "bytes": 104857873,
+   "header_read": true,
+   "column_count": 18,
+   "campaign_columns": [],
+   "campaign_token_hits_in_first_256k": {
+    "campaign": 0,
+    "scenario": 0,
+    "manifest": 0,
+    "phase_6t": 0,
+    "phase6t": 0,
+    "b3-c2a": 0,
+    "b3-c2h": 0,
+    "b3-test": 0
+   },
+   "data_rows": 247289,
+   "data_rows_counted_by": "newline count minus header"
+  },
+  {
+   "file": "reconciliation.20261016.3.csv",
+   "bytes": 104857870,
+   "header_read": true,
+   "column_count": 18,
+   "campaign_columns": [],
+   "campaign_token_hits_in_first_256k": {
+    "campaign": 0,
+    "scenario": 0,
+    "manifest": 0,
+    "phase_6t": 0,
+    "phase6t": 0,
+    "b3-c2a": 0,
+    "b3-c2h": 0,
+    "b3-test": 0
+   },
+   "data_rows": 268932,
+   "data_rows_counted_by": "newline count minus header"
+  },
+  {
+   "file": "reconciliation.20261016.4.csv",
+   "bytes": 104857950,
+   "header_read": true,
+   "column_count": 18,
+   "campaign_columns": [],
+   "campaign_token_hits_in_first_256k": {
+    "campaign": 0,
+    "scenario": 0,
+    "manifest": 0,
+    "phase_6t": 0,
+    "phase6t": 0,
+    "b3-c2a": 0,
+    "b3-c2h": 0,
+    "b3-test": 0
+   },
+   "data_rows": 224839,
+   "data_rows_counted_by": "newline count minus header"
+  },
+  {
+   "file": "reconciliation.20261017.1.csv",
+   "bytes": 104857932,
+   "header_read": true,
+   "column_count": 18,
+   "campaign_columns": [],
+   "campaign_token_hits_in_first_256k": {
+    "campaign": 0,
+    "scenario": 0,
+    "manifest": 0,
+    "phase_6t": 0,
+    "phase6t": 0,
+    "b3-c2a": 0,
+    "b3-c2h": 0,
+    "b3-test": 0
+   },
+   "data_rows": 212221,
+   "data_rows_counted_by": "newline count minus header"
+  },
+  {
+   "file": "reconciliation.20261017.2.csv",
+   "bytes": 104857739,
+   "header_read": true,
+   "column_count": 18,
+   "campaign_columns": [],
+   "campaign_token_hits_in_first_256k": {
+    "campaign": 0,
+    "scenario": 0,
+    "manifest": 0,
+    "phase_6t": 0,
+    "phase6t": 0,
+    "b3-c2a": 0,
+    "b3-c2h": 0,
+    "b3-test": 0
+   },
+   "data_rows": 206806,
+   "data_rows_counted_by": "newline count minus header"
+  },
+  {
+   "file": "reconciliation.20261017.3.csv",
+   "bytes": 104858075,
+   "header_read": true,
+   "column_count": 18,
+   "campaign_columns": [],
+   "campaign_token_hits_in_first_256k": {
+    "campaign": 0,
+    "scenario": 0,
+    "manifest": 0,
+    "phase_6t": 0,
+    "phase6t": 0,
+    "b3-c2a": 0,
+    "b3-c2h": 0,
+    "b3-test": 0
+   },
+   "data_rows": 200903,
+   "data_rows_counted_by": "newline count minus header"
+  },
+  {
+   "file": "reconciliation.20261018.1.csv",
+   "bytes": 104857639,
+   "header_read": true,
+   "column_count": 18,
+   "campaign_columns": [],
+   "campaign_token_hits_in_first_256k": {
+    "campaign": 0,
+    "scenario": 0,
+    "manifest": 0,
+    "phase_6t": 0,
+    "phase6t": 0,
+    "b3-c2a": 0,
+    "b3-c2h": 0,
+    "b3-test": 0
+   },
+   "data_rows": 217774,
+   "data_rows_counted_by": "newline count minus header"
+  },
+  {
+   "file": "reconciliation.20261018.2.csv",
+   "bytes": 104857780,
+   "header_read": true,
+   "column_count": 18,
+   "campaign_columns": [],
+   "campaign_token_hits_in_first_256k": {
+    "campaign": 0,
+    "scenario": 0,
+    "manifest": 0,
+    "phase_6t": 0,
+    "phase6t": 0,
+    "b3-c2a": 0,
+    "b3-c2h": 0,
+    "b3-test": 0
+   },
+   "data_rows": 220206,
+   "data_rows_counted_by": "newline count minus header"
+  },
+  {
+   "file": "reconciliation.20261018.3.csv",
+   "bytes": 104858089,
+   "header_read": true,
+   "column_count": 18,
+   "campaign_columns": [],
+   "campaign_token_hits_in_first_256k": {
+    "campaign": 0,
+    "scenario": 0,
+    "manifest": 0,
+    "phase_6t": 0,
+    "phase6t": 0,
+    "b3-c2a": 0,
+    "b3-c2h": 0,
+    "b3-test": 0
+   },
+   "data_rows": 207641,
+   "data_rows_counted_by": "newline count minus header"
+  },
+  {
+   "file": "reconciliation.20261019.1.csv",
+   "bytes": 104860803,
+   "header_read": true,
+   "column_count": 18,
+   "campaign_columns": [],
+   "campaign_token_hits_in_first_256k": {
+    "campaign": 0,
+    "scenario": 0,
+    "manifest": 0,
+    "phase_6t": 0,
+    "phase6t": 0,
+    "b3-c2a": 0,
+    "b3-c2h": 0,
+    "b3-test": 0
+   },
+   "data_rows": 205969,
+   "data_rows_counted_by": "newline count minus header"
+  },
+  {
+   "file": "reconciliation.csv",
+   "bytes": 103278129,
+   "header_read": true,
+   "column_count": 18,
+   "campaign_columns": [],
+   "campaign_token_hits_in_first_256k": {
+    "campaign": 0,
+    "scenario": 0,
+    "manifest": 0,
+    "phase_6t": 0,
+    "phase6t": 0,
+    "b3-c2a": 0,
+    "b3-c2h": 0,
+    "b3-test": 0
+   },
+   "data_rows": 204044,
+   "data_rows_counted_by": "newline count minus header"
+  },
+  {
+   "file": "send_attempts.csv",
+   "bytes": 606946181,
+   "header_read": true,
+   "column_count": 67,
+   "campaign_columns": [],
+   "campaign_token_hits_in_first_256k": {
+    "campaign": 0,
+    "scenario": 0,
+    "manifest": 0,
+    "phase_6t": 0,
+    "phase6t": 0,
+    "b3-c2a": 0,
+    "b3-c2h": 0,
+    "b3-test": 0
+   },
+   "data_rows": 566459,
+   "data_rows_counted_by": "newline count minus header"
+  }
+ ]
+}
