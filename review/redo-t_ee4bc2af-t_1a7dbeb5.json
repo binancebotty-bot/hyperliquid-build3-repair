@@ -1,0 +1,62 @@
+[
+  {
+    "check": "1. Read the ACTUAL pushed register, not the summary",
+    "verdict": "PASS",
+    "probe": "git fetch origin; git ls-remote --heads origin cert/withdraw-b4r13-farch002-t_ee4bc2af -> 8d82bd3ed6beb6a4d79eb3238cdaf7d7240f6e91; git log --oneline -1 -> '8d82bd3 cert: withdraw 15 B4 regression PASS rows'; register read via git show 8d82bd3:certification/certification_matrix.json (dumped to base.json/head.json) rather than from the implementer summary.",
+    "why": "Branch exists on the remote at the exact commit the implementer reported; all comparisons below were computed from the committed blobs, not from the handoff text."
+  },
+  {
+    "check": "2a. Exactly 15 rows changed - a 16th row changed = FAIL",
+    "verdict": "PASS",
+    "probe": "Full 790-record id-keyed diff of f4ee2bb (register of record, = b142cf8 content) vs 8d82bd3: changed ids = ['B4-R13','B4-R14','B4-R15','B4-R16','B4-R17','B4-R18','B4-R19','B4-R20','B4-R21','B4-R22','B4-R23','B4-R24','B4-R25','F-ARCH-001','F-ARCH-002']; record count 790/790, id sets identical, no added/removed rows. CSV parsed independently: 791 lines both sides, header identical, exactly 15 differing rows, same 15 ids.",
+    "why": "The changed-id set is exactly the requested 15 - no 16th row, no row insertion, no reordering; the derived CSV carries the identical 15-row delta."
+  },
+  {
+    "check": "2b. Any of the 15 still PASS = FAIL",
+    "verdict": "PASS",
+    "probe": "result field per target in 8d82bd3: all 15 = NOT_TESTED. Base results for the same 15 were all PASS. Whole-register histogram f4ee2bb -> 8d82bd3: PASS 579 -> 564 (-15), NOT_TESTED 122 -> 137 (+15), BLOCKED 13 -> 13, FAIL 76 -> 76.",
+    "why": "Every target left PASS and the register totals move by exactly 15 in each affected bucket, so the withdrawal is complete and self-consistent."
+  },
+  {
+    "check": "2c. Any of the 15 still citing REGRESSION_fa9d9f55ff.json = FAIL",
+    "verdict": "PASS",
+    "probe": "Per-row token scan for 'REGRESSION_fa9d9f55ff' over evidence_ref and tested_commit of all 15 head records: evidence_ref false, tested_commit false for all 15. evidence_ref now carries 'MISSING_BUILD4_ROUTE: hyperliquid-build4/GUT_CONTRACT.md section D Rxx -> <row execution_proof>' (R13..R25) and 'MISSING_BUILD4_ROUTE: hyperliquid-build4/FAILURES.md ARCH-00x -> ...' (F-ARCH-001/002); tested_commit and tested_at_utc cleared to empty.",
+    "why": "No live citation of the Build3-archive sweep remains in any evidence-bearing field. The token still appears only inside the appended WITHDRAWN rationale in notes, which names the superseded artifact explicitly - that is the required audit trail, not a citation."
+  },
+  {
+    "check": "3. Diff every field on the 15 rows - no silent edits to expected_behaviour, tested_commit, sources",
+    "verdict": "PASS",
+    "probe": "Field-by-field comparison of all 15 records (JSON) and all 16 CSV columns: only result, evidence_ref, tested_commit, tested_at_utc, notes differ (CSV mirrors result via evidence_ref/notes columns). expected_behaviour, sources, area, feature, applicability, open_decisions, execution_proof, independent_oracle, negative_tests, prior_evidence are byte-identical on every one of the 15. Top-level JSON keys other than 'records' unchanged (schema, generated_by, result_values, applicability_values, open_decisions_field, source_sha256).",
+    "why": "The mutation is confined to the verdict fields and the audit note; row identity, requirement text, provenance and test design are untouched."
+  },
+  {
+    "check": "4. certification/results/CERT26_53_B4R13_FARCH002_verdicts.json not modified (blob 22ad40d3...)",
+    "verdict": "PASS",
+    "probe": "git rev-parse 8d82bd3:certification/results/CERT26_53_B4R13_FARCH002_verdicts.json -> 22ad40d3b88317b20f62a063645892794c0ffd64. The same path on origin/cert/b4-r13-farch002-t_9ae5b28d also resolves to 22ad40d3. The file is ABSENT at the base refs f4ee2bb and b142cf8 (git rev-parse: 'path does not exist'), i.e. the reviewed commit ADDS it, and the diff of f4ee2bb..8d82bd3 shows it as 107 inserted lines with 0 deletions.",
+    "why": "The artifact content is byte-identical to the implementer's certified blob (22ad40d3), so it was carried across unchanged. Note for the record: the card's premise that it pre-existed on the base branch was false - it does not exist at f4ee2bb, so 'unchanged' here means 'added with identical bytes', not 'edited in place'. No modification of its content occurred either way."
+  },
+  {
+    "check": "5. No row flipped to FAIL without a stated product defect",
+    "verdict": "PASS",
+    "probe": "Compared the full FAIL id set before/after: identical (76 rows both sides). flips_to_fail = []. All 15 targets landed on NOT_TESTED, none on FAIL.",
+    "why": "An absent Build4 route was correctly recorded as NOT_TESTED, not as a product defect, exactly as the card required."
+  },
+  {
+    "check": "6. Branch is genuinely pushed",
+    "verdict": "PASS",
+    "probe": "git ls-remote --heads origin cert/withdraw-b4r13-farch002-t_ee4bc2af -> 8d82bd3ed6beb6a4d79eb3238cdaf7d7240f6e91 refs/heads/cert/withdraw-b4r13-farch002-t_ee4bc2af, matching the commit under review after a fresh git fetch.",
+    "why": "The reviewed commit is the actual remote tip of the branch, not a local-only object."
+  },
+  {
+    "check": "7. Extra probe - branch scope / stray commits",
+    "verdict": "PASS",
+    "probe": "Commit parent of 8d82bd3 is 01a6284 ('Add UI_CERT_ARTIFACT_SCHEMA.md'), which is an empty diff against the base tip f4ee2bb. True delta f4ee2bb..8d82bd3 = exactly 3 paths (certification_matrix.json, certification_matrix.csv, results/CERT26_53_B4R13_FARCH002_verdicts.json); no other path touched.",
+    "why": "The intermediate commit is a no-op graft, so the branch introduces only the register withdrawal plus the untouched verdict artifact - no smuggled changes."
+  },
+  {
+    "check": "OVERALL",
+    "verdict": "PASS",
+    "probe": "All eight checks above executed against origin blobs at 8d82bd3.",
+    "why": "The 15 false PASS rows are genuinely withdrawn to NOT_TESTED with a named Build4 route, the mutation is confined to the intended fields and rows, the verdict artifact is byte-identical to 22ad40d3, and the branch is pushed. No further REDO card is raised."
+  }
+]
