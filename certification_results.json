@@ -1,0 +1,72 @@
+[
+  {
+    "row_id": "UI-FP-188",
+    "verdict": "PASS",
+    "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+    "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+    "why": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. | All checks pass"
+  },
+  {
+    "row_id": "UI-FP-189",
+    "verdict": "PASS",
+    "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+    "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+    "why": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. | All checks pass"
+  },
+  {
+    "row_id": "UI-FP-190",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+    "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+    "why": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. | Same as source: search element not found"
+  },
+  {
+    "row_id": "UI-FP-191",
+    "verdict": "PASS",
+    "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+    "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+    "why": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. | All checks pass"
+  },
+  {
+    "row_id": "UI-FP-192",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+    "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+    "why": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. | Same as source: export element not found"
+  },
+  {
+    "row_id": "UI-FP-193",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+    "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+    "why": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. | Same as source: import element not found"
+  },
+  {
+    "row_id": "UI-FP-194",
+    "verdict": "PASS",
+    "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+    "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+    "why": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. | All checks pass"
+  },
+  {
+    "row_id": "UI-FP-195",
+    "verdict": "PASS",
+    "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+    "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+    "why": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. | All checks pass"
+  },
+  {
+    "row_id": "UI-FP-196",
+    "verdict": "PASS",
+    "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+    "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+    "why": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. | All checks pass"
+  },
+  {
+    "row_id": "UI-FP-197",
+    "verdict": "PASS",
+    "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+    "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+    "why": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. | All checks pass"
+  }
+]
