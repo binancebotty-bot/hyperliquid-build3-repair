@@ -1,0 +1,92 @@
+[
+  {
+    "row_id": "UI-LCC-GRAPH-10",
+    "verdict": "NOT_TESTED",
+    "probe": "Compared submitted observation against the row-specific expected_behaviour, execution_proof, independent_oracle, and negative_tests in origin/cert/local-main-b142cf8:certification/certification_matrix.json; checked evidence_ref for resolvable repository paths.",
+    "why": "Only button text Reset; no evidence of requested graph reset behavior or execution proof. Exact serving UI observation exists but this certification run lacks the required evidence, so the PASS is unsupported; absence is not established as an unavailable route."
+  },
+  {
+    "row_id": "UI-LCC-GRAPH-11",
+    "verdict": "NOT_TESTED",
+    "probe": "Compared submitted observation against the row-specific expected_behaviour, execution_proof, independent_oracle, and negative_tests in origin/cert/local-main-b142cf8:certification/certification_matrix.json; checked evidence_ref for resolvable repository paths.",
+    "why": "Empty points attribute proves no plotted series, not exchange-derived Total PnL. Exact serving UI observation exists but this certification run lacks the required evidence, so the PASS is unsupported; absence is not established as an unavailable route."
+  },
+  {
+    "row_id": "UI-LCC-GRAPH-12",
+    "verdict": "NOT_TESTED",
+    "probe": "Compared submitted observation against the row-specific expected_behaviour, execution_proof, independent_oracle, and negative_tests in origin/cert/local-main-b142cf8:certification/certification_matrix.json; checked evidence_ref for resolvable repository paths.",
+    "why": "Empty points attribute proves no plotted realized PnL series. Exact serving UI observation exists but this certification run lacks the required evidence, so the PASS is unsupported; absence is not established as an unavailable route."
+  },
+  {
+    "row_id": "UI-LCC-GRAPH-13",
+    "verdict": "NOT_TESTED",
+    "probe": "Compared submitted observation against the row-specific expected_behaviour, execution_proof, independent_oracle, and negative_tests in origin/cert/local-main-b142cf8:certification/certification_matrix.json; checked evidence_ref for resolvable repository paths.",
+    "why": "Empty points attribute proves no plotted drawdown series. Exact serving UI observation exists but this certification run lacks the required evidence, so the PASS is unsupported; absence is not established as an unavailable route."
+  },
+  {
+    "row_id": "UI-LCC-GRAPH-14",
+    "verdict": "NOT_TESTED",
+    "probe": "Compared submitted observation against the row-specific expected_behaviour, execution_proof, independent_oracle, and negative_tests in origin/cert/local-main-b142cf8:certification/certification_matrix.json; checked evidence_ref for resolvable repository paths.",
+    "why": "All axis labels empty; no evidence of expected values or correct rendering. Exact serving UI observation exists but this certification run lacks the required evidence, so the PASS is unsupported; absence is not established as an unavailable route."
+  },
+  {
+    "row_id": "UI-LCC-GRAPH-15",
+    "verdict": "NOT_TESTED",
+    "probe": "Compared submitted observation against the row-specific expected_behaviour, execution_proof, independent_oracle, and negative_tests in origin/cert/local-main-b142cf8:certification/certification_matrix.json; checked evidence_ref for resolvable repository paths.",
+    "why": "Zero ticks proves no x-axis tick behavior; no range/filter test. Exact serving UI observation exists but this certification run lacks the required evidence, so the PASS is unsupported; absence is not established as an unavailable route."
+  },
+  {
+    "row_id": "UI-LCC-GRAPH-16",
+    "verdict": "NOT_TESTED",
+    "probe": "Compared submitted observation against the row-specific expected_behaviour, execution_proof, independent_oracle, and negative_tests in origin/cert/local-main-b142cf8:certification/certification_matrix.json; checked evidence_ref for resolvable repository paths.",
+    "why": "Empty-state subtitle only; does not prove data path, range filtering, or negative tests. Exact serving UI observation exists but this certification run lacks the required evidence, so the PASS is unsupported; absence is not established as an unavailable route."
+  },
+  {
+    "row_id": "UI-LCC-WTBL-01",
+    "verdict": "NOT_TESTED",
+    "probe": "Compared submitted observation against the row-specific expected_behaviour, execution_proof, independent_oracle, and negative_tests in origin/cert/local-main-b142cf8:certification/certification_matrix.json; checked evidence_ref for resolvable repository paths.",
+    "why": "Empty wallet table; header alone does not prove wallet data or controls. Exact serving UI observation exists but this certification run lacks the required evidence, so the PASS is unsupported; absence is not established as an unavailable route."
+  },
+  {
+    "row_id": "UI-LCC-WTBL-02",
+    "verdict": "FAIL",
+    "probe": "Compared submitted observation against the row-specific expected_behaviour, execution_proof, independent_oracle, and negative_tests in origin/cert/local-main-b142cf8:certification/certification_matrix.json; checked evidence_ref for resolvable repository paths.",
+    "why": "Header shows 'Feed' but certification matrix expects 'Mode / Health' - ROW-BOUND mismatch; product mismatch corroborates failure"
+  },
+  {
+    "row_id": "UI-LCC-WTBL-03",
+    "verdict": "FAIL",
+    "probe": "Compared submitted observation against the row-specific expected_behaviour, execution_proof, independent_oracle, and negative_tests in origin/cert/local-main-b142cf8:certification/certification_matrix.json; checked evidence_ref for resolvable repository paths.",
+    "why": "Header shows 'Net P&L' but certification matrix expects 'Live PnL' - ROW-BOUND mismatch; product mismatch corroborates failure"
+  },
+  {
+    "row_id": "UI-LCC-WTBL-04",
+    "verdict": "NOT_TESTED",
+    "probe": "Compared submitted observation against the row-specific expected_behaviour, execution_proof, independent_oracle, and negative_tests in origin/cert/local-main-b142cf8:certification/certification_matrix.json; checked evidence_ref for resolvable repository paths.",
+    "why": "Header string alone does not prove per-wallet lead/copy diff values from engine truth. Exact serving UI observation exists but this certification run lacks the required evidence, so the PASS is unsupported; absence is not established as an unavailable route."
+  },
+  {
+    "row_id": "UI-LCC-WTBL-05",
+    "verdict": "NOT_TESTED",
+    "probe": "Compared submitted observation against the row-specific expected_behaviour, execution_proof, independent_oracle, and negative_tests in origin/cert/local-main-b142cf8:certification/certification_matrix.json; checked evidence_ref for resolvable repository paths.",
+    "why": "Header string alone does not prove execution values or exchange truth. Exact serving UI observation exists but this certification run lacks the required evidence, so the PASS is unsupported; absence is not established as an unavailable route."
+  },
+  {
+    "row_id": "UI-LCC-WTBL-06",
+    "verdict": "NOT_TESTED",
+    "probe": "Compared submitted observation against the row-specific expected_behaviour, execution_proof, independent_oracle, and negative_tests in origin/cert/local-main-b142cf8:certification/certification_matrix.json; checked evidence_ref for resolvable repository paths.",
+    "why": "Header string alone does not prove risk/exposure values. Exact serving UI observation exists but this certification run lacks the required evidence, so the PASS is unsupported; absence is not established as an unavailable route."
+  },
+  {
+    "row_id": "UI-LCC-WTBL-07",
+    "verdict": "NOT_TESTED",
+    "probe": "Compared submitted observation against the row-specific expected_behaviour, execution_proof, independent_oracle, and negative_tests in origin/cert/local-main-b142cf8:certification/certification_matrix.json; checked evidence_ref for resolvable repository paths.",
+    "why": "Header string alone does not prove last-fill data. Exact serving UI observation exists but this certification run lacks the required evidence, so the PASS is unsupported; absence is not established as an unavailable route."
+  },
+  {
+    "row_id": "UI-LCC-WTBL-08",
+    "verdict": "NOT_TESTED",
+    "probe": "Compared submitted observation against the row-specific expected_behaviour, execution_proof, independent_oracle, and negative_tests in origin/cert/local-main-b142cf8:certification/certification_matrix.json; checked evidence_ref for resolvable repository paths.",
+    "why": "Header string alone does not prove controls write/apply behavior. Exact serving UI observation exists but this certification run lacks the required evidence, so the PASS is unsupported; absence is not established as an unavailable route."
+  }
+]
