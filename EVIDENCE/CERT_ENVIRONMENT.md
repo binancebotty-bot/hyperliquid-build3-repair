@@ -164,3 +164,29 @@ already written into it. Changing ENG-INV-02 to FAIL requires editing that file,
 
 Combined with `gen_matrix.py` being unrunnable, the register is **frozen for corrections** on this host: it can be
 published as-is, but it cannot be rebuilt and its verdicts cannot be revised.
+
+## The six hashes, with provenance (ruling item 4, 2026-10-19)
+
+Every distinct state of `HL_Copy_App_SSOT.py` found on this host, and where each comes from. **`c0f9e508` resolves to
+no file, so no row may rely on it.**
+
+| hash | provenance | resolves to a file? |
+|---|---|---|
+| `fad19d22…` | `trading_stack/build3-live-screen-0513-view/hl_stage2/HL_Copy_App_SSOT.py` — the 13 May tree, never committed; **served by `:8023` (PID 15760)** | **yes**, on disk |
+| `658ec8e3…` | the file **at `tested_commit 89b3bc7`**, `_archive/hl_stage2/HL_Copy_App_SSOT.py` | yes, via git |
+| `c0f9e508…` | **declared by the cert-branch register** (`cert/local-main-b142cf8`) | **NO — matches nothing on this box** |
+| `7468ab51…` | the file at the cert branch's **own HEAD**, `_archive/hl_stage2/` | yes, via git |
+| `4574ca72…` | the file at **`origin/main`**, `_archive/hl_stage2/` | yes, via git |
+| `b45ff9af…` | `trading_stack/hl-build3-testnet-cert/_archive/hl_stage2/` — **served by `:8031` (PID 26336)** | **yes**, on disk |
+
+Also observed, current working tree: `bb7b9cc3…` (`_archive/hl_stage2/HL_Copy_App_SSOT.py`).
+
+### Binding rules (ruling items 3 and 5)
+
+- **UI rows bind to the content hash actually served at capture time**: `b45ff9af` on `:8031 `/``, `fad19d22` on
+  `:8023 /live-copy`.
+- **Do not reconcile old rows against `89b3bc7` or the `658ec8e3` file** — neither is the served surface, and captures
+  taken before the 08:34:35 restart are stale.
+- **The register of record is `origin/main` (832 rows).** The 790-row cert branch is evidence only.
+- **A results merge never changes `source_sha256`.** Any change to the source declaration is its own commit, with its
+  own review and a stated reason.
