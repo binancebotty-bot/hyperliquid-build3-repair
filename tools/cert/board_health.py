@@ -289,9 +289,12 @@ def main() -> int:
             miss.append("clone")
         if "git show main:" in b:
             miss.append("stale-main")
-        if ("playwright" in b or "ui-" in b) and "python311" not in b:
+        # NOTE: "ui-" also matches UI-LCC-* ROW IDS, which are evidence-assessment work, not browser capture. Only a
+        # card that actually drives a browser needs the 3.11 path and the netstat liveness command.
+        ui_browser = ("playwright" in b or "selenium" in b or "dom capture" in b)
+        if ui_browser and "python311" not in b:
             miss.append("py311")
-        if ("playwright" in b or "ui-" in b) and "netstat" not in b:
+        if ui_browser and "netstat" not in b:
             miss.append("netstat")
         if miss:
             gaps += 1
