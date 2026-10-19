@@ -9465,11 +9465,11 @@
     "stale remote ref"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "origin/control-mailbox carries a different INVARIANTS.md (A1-A17); see OD-15.",
+   "result": "PASS",
+   "evidence_ref": "certification/results/CTRL_probe2_t_967fad56.json",
+   "tested_commit": "545a7bbbe74b74281995418bcc933743eaee78aa",
+   "tested_at_utc": "2026-10-19T12:00:00Z",
+   "notes": "Offline ACTIVE/CONTROL probe CTRL-I1::authority_from_fields_not_path. authority comes from envelope FROM/TO fields: bytes filed under control_mailbox/reviewer/ still resolve to the architect target, and identical bytes on any surface keep the same source/target/digest. Subjects: envelope.py sha256 0cceff3286b2dcbeea7089baf7c782d7e355db7d961412834c330a95aac827cc, push_gate.py sha256 0a45dc8a0f40ee150b838b49ecf4c0f71c3ca0a8956fecae5c188bc5a7974510; HL_Live_Copy_Service_Core.py sha256 9072aa592331424acbf51cdb5b4246408bb282bb15b57e35787c6843890668e4 contains none of these control-plane symbols, so CONTROL rows bind to the control-plane modules, not the engine.",
    "proof_network": "TESTNET"
   },
   {
@@ -9493,11 +9493,11 @@
     "stale remote ref"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "origin/control-mailbox carries a different INVARIANTS.md (A1-A17); see OD-15.",
+   "result": "PASS",
+   "evidence_ref": "certification/results/CTRL_probe_t_967fad56.json",
+   "tested_commit": "545a7bbbe74b74281995418bcc933743eaee78aa",
+   "tested_at_utc": "2026-10-19T12:00:00Z",
+   "notes": "Offline ACTIVE/CONTROL probe CTRL-I2::role_to_single_canonical_directory. hermes/reviewer/architect resolve to three distinct canonical directories. Subjects: envelope.py sha256 0cceff3286b2dcbeea7089baf7c782d7e355db7d961412834c330a95aac827cc, push_gate.py sha256 0a45dc8a0f40ee150b838b49ecf4c0f71c3ca0a8956fecae5c188bc5a7974510; HL_Live_Copy_Service_Core.py sha256 9072aa592331424acbf51cdb5b4246408bb282bb15b57e35787c6843890668e4 contains none of these control-plane symbols, so CONTROL rows bind to the control-plane modules, not the engine.",
    "proof_network": "TESTNET"
   },
   {
@@ -9521,11 +9521,11 @@
     "stale remote ref"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "origin/control-mailbox carries a different INVARIANTS.md (A1-A17); see OD-15.",
+   "result": "PASS",
+   "evidence_ref": "certification/results/CTRL_probe2_t_967fad56.json",
+   "tested_commit": "545a7bbbe74b74281995418bcc933743eaee78aa",
+   "tested_at_utc": "2026-10-19T12:00:00Z",
+   "notes": "Offline ACTIVE/CONTROL probe CTRL-I3::ruling_recoverable_from_git. a ruling is recoverable from the carrier alone (message_id B3-C2A-GATE0-PASS-1 plus a commit that resolves in git); a fabricated SHA does not resolve. Subjects: envelope.py sha256 0cceff3286b2dcbeea7089baf7c782d7e355db7d961412834c330a95aac827cc, push_gate.py sha256 0a45dc8a0f40ee150b838b49ecf4c0f71c3ca0a8956fecae5c188bc5a7974510; HL_Live_Copy_Service_Core.py sha256 9072aa592331424acbf51cdb5b4246408bb282bb15b57e35787c6843890668e4 contains none of these control-plane symbols, so CONTROL rows bind to the control-plane modules, not the engine.",
    "proof_network": "TESTNET"
   },
   {
@@ -9549,11 +9549,11 @@
     "stale remote ref"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "origin/control-mailbox carries a different INVARIANTS.md (A1-A17); see OD-15.",
+   "result": "PASS",
+   "evidence_ref": "certification/results/CTRL_probe_t_967fad56.json",
+   "tested_commit": "545a7bbbe74b74281995418bcc933743eaee78aa",
+   "tested_at_utc": "2026-10-19T12:00:00Z",
+   "notes": "Offline ACTIVE/CONTROL probe CTRL-I4::push_ref_exactness + deletion_not_authority + wrong_project_no_wake. the gate accepts only refs/heads/control-mailbox on the right project; deletions and foreign projects grant no authority. Subjects: envelope.py sha256 0cceff3286b2dcbeea7089baf7c782d7e355db7d961412834c330a95aac827cc, push_gate.py sha256 0a45dc8a0f40ee150b838b49ecf4c0f71c3ca0a8956fecae5c188bc5a7974510; HL_Live_Copy_Service_Core.py sha256 9072aa592331424acbf51cdb5b4246408bb282bb15b57e35787c6843890668e4 contains none of these control-plane symbols, so CONTROL rows bind to the control-plane modules, not the engine.",
    "proof_network": "TESTNET"
   },
   {
@@ -9581,7 +9581,7 @@
    "evidence_ref": "",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": "origin/control-mailbox carries a different INVARIANTS.md (A1-A17); see OD-15.",
+   "notes": "CTRL-I5::cannot_bind_offline -- remote-ref absence proof lives in the consumer fetch path, which is not in this repository.",
    "proof_network": "TESTNET"
   },
   {
@@ -9605,11 +9605,11 @@
     "stale remote ref"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "origin/control-mailbox carries a different INVARIANTS.md (A1-A17); see OD-15.",
+   "result": "PASS",
+   "evidence_ref": "certification/results/CTRL_probe_t_967fad56.json",
+   "tested_commit": "545a7bbbe74b74281995418bcc933743eaee78aa",
+   "tested_at_utc": "2026-10-19T12:00:00Z",
+   "notes": "Offline ACTIVE/CONTROL probe CTRL-I6::deposit_is_not_consumption. a deposited envelope classifies NEW until consumed and REPLAY afterwards. Subjects: envelope.py sha256 0cceff3286b2dcbeea7089baf7c782d7e355db7d961412834c330a95aac827cc, push_gate.py sha256 0a45dc8a0f40ee150b838b49ecf4c0f71c3ca0a8956fecae5c188bc5a7974510; HL_Live_Copy_Service_Core.py sha256 9072aa592331424acbf51cdb5b4246408bb282bb15b57e35787c6843890668e4 contains none of these control-plane symbols, so CONTROL rows bind to the control-plane modules, not the engine.",
    "proof_network": "TESTNET"
   },
   {
@@ -9633,11 +9633,11 @@
     "stale remote ref"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "origin/control-mailbox carries a different INVARIANTS.md (A1-A17); see OD-15.",
+   "result": "PASS",
+   "evidence_ref": "certification/results/CTRL_probe_t_967fad56.json",
+   "tested_commit": "545a7bbbe74b74281995418bcc933743eaee78aa",
+   "tested_at_utc": "2026-10-19T12:00:00Z",
+   "notes": "Offline ACTIVE/CONTROL probe CTRL-I7::duplicate_delivery_no_second_effect + identity_collision_fails_closed. duplicate delivery yields REPLAY with exactly one ledger record; same MESSAGE_ID with different payload yields CONFLICT. Subjects: envelope.py sha256 0cceff3286b2dcbeea7089baf7c782d7e355db7d961412834c330a95aac827cc, push_gate.py sha256 0a45dc8a0f40ee150b838b49ecf4c0f71c3ca0a8956fecae5c188bc5a7974510; HL_Live_Copy_Service_Core.py sha256 9072aa592331424acbf51cdb5b4246408bb282bb15b57e35787c6843890668e4 contains none of these control-plane symbols, so CONTROL rows bind to the control-plane modules, not the engine.",
    "proof_network": "TESTNET"
   },
   {
@@ -9661,11 +9661,11 @@
     "stale remote ref"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "origin/control-mailbox carries a different INVARIANTS.md (A1-A17); see OD-15.",
+   "result": "PASS",
+   "evidence_ref": "certification/results/CTRL_probe_t_967fad56.json",
+   "tested_commit": "545a7bbbe74b74281995418bcc933743eaee78aa",
+   "tested_at_utc": "2026-10-19T12:00:00Z",
+   "notes": "Offline ACTIVE/CONTROL probe CTRL-I8::unsupported_type_fails_loudly + type_allowlist_not_digest_forgeable. an unsupported TYPE raises INVALID_TYPE even when the attacker recomputes the digest. Subjects: envelope.py sha256 0cceff3286b2dcbeea7089baf7c782d7e355db7d961412834c330a95aac827cc, push_gate.py sha256 0a45dc8a0f40ee150b838b49ecf4c0f71c3ca0a8956fecae5c188bc5a7974510; HL_Live_Copy_Service_Core.py sha256 9072aa592331424acbf51cdb5b4246408bb282bb15b57e35787c6843890668e4 contains none of these control-plane symbols, so CONTROL rows bind to the control-plane modules, not the engine.",
    "proof_network": "TESTNET"
   },
   {
@@ -9689,11 +9689,11 @@
     "stale remote ref"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "origin/control-mailbox carries a different INVARIANTS.md (A1-A17); see OD-15.",
+   "result": "PASS",
+   "evidence_ref": "certification/results/CTRL_probe_t_967fad56.json",
+   "tested_commit": "545a7bbbe74b74281995418bcc933743eaee78aa",
+   "tested_at_utc": "2026-10-19T12:00:00Z",
+   "notes": "Offline ACTIVE/CONTROL probe CTRL-I9::multi_file_push_deterministic_order + same_message_twice_collapses. several eligible files in one push are processed in deterministic lexical order; a repeated MESSAGE_ID collapses to one. Subjects: envelope.py sha256 0cceff3286b2dcbeea7089baf7c782d7e355db7d961412834c330a95aac827cc, push_gate.py sha256 0a45dc8a0f40ee150b838b49ecf4c0f71c3ca0a8956fecae5c188bc5a7974510; HL_Live_Copy_Service_Core.py sha256 9072aa592331424acbf51cdb5b4246408bb282bb15b57e35787c6843890668e4 contains none of these control-plane symbols, so CONTROL rows bind to the control-plane modules, not the engine.",
    "proof_network": "TESTNET"
   },
   {
@@ -9721,7 +9721,7 @@
    "evidence_ref": "",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": "origin/control-mailbox carries a different INVARIANTS.md (A1-A17); see OD-15.",
+   "notes": "CTRL-I10::cannot_bind_offline -- BUSY/progress detection is a controller-side liveness duty; no implementation in the certified tree.",
    "proof_network": "TESTNET"
   },
   {
@@ -9749,7 +9749,7 @@
    "evidence_ref": "",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": "origin/control-mailbox carries a different INVARIANTS.md (A1-A17); see OD-15.",
+   "notes": "CTRL-I11::cannot_bind_offline -- stand-down lifecycle is an agent protocol duty; no implementation in the certified tree.",
    "proof_network": "TESTNET"
   },
   {
@@ -9777,7 +9777,7 @@
    "evidence_ref": "",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": "origin/control-mailbox carries a different INVARIANTS.md (A1-A17); see OD-15.",
+   "notes": "CTRL-I12::cannot_bind_offline -- awaiting-ruling restart persistence is harness state, not in this repository.",
    "proof_network": "TESTNET"
   },
   {
@@ -9805,7 +9805,7 @@
    "evidence_ref": "",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": "origin/control-mailbox carries a different INVARIANTS.md (A1-A17); see OD-15.",
+   "notes": "CTRL-I13::cannot_bind_offline -- gate-PASS architect wake is a harness/transport duty.",
    "proof_network": "TESTNET"
   },
   {
@@ -9833,7 +9833,7 @@
    "evidence_ref": "",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": "origin/control-mailbox carries a different INVARIANTS.md (A1-A17); see OD-15.",
+   "notes": "CTRL-I14::cannot_bind_offline -- controller-closes-tasks is an authority rule with no executable control.",
    "proof_network": "TESTNET"
   },
   {
@@ -9861,7 +9861,7 @@
    "evidence_ref": "",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": "origin/control-mailbox carries a different INVARIANTS.md (A1-A17); see OD-15.",
+   "notes": "CTRL-I15::cannot_bind_offline -- commit-before-review is a handoff duty, verifiable only against a live handoff.",
    "proof_network": "TESTNET"
   },
   {
@@ -9889,7 +9889,7 @@
    "evidence_ref": "",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": "origin/control-mailbox carries a different INVARIANTS.md (A1-A17); see OD-15.",
+   "notes": "CTRL-I16::cannot_bind_offline -- graphify freshness is checked by an external tool not in this repository.",
    "proof_network": "TESTNET"
   },
   {
@@ -9917,7 +9917,7 @@
    "evidence_ref": "",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": "origin/control-mailbox carries a different INVARIANTS.md (A1-A17); see OD-15.",
+   "notes": "CTRL-I17::cannot_bind_offline -- one-writer is an authority rule with no executable control.",
    "proof_network": "TESTNET"
   },
   {
@@ -9941,11 +9941,11 @@
     "stale remote ref"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "origin/control-mailbox carries a different INVARIANTS.md (A1-A17); see OD-15.",
+   "result": "PASS",
+   "evidence_ref": "certification/results/CTRL_probe_t_967fad56.json",
+   "tested_commit": "545a7bbbe74b74281995418bcc933743eaee78aa",
+   "tested_at_utc": "2026-10-19T12:00:00Z",
+   "notes": "Offline ACTIVE/CONTROL probe CTRL-I18::tampered_payload_fails_closed + malformed_not_json + missing_fields + bad_directory. tampered payload, path traversal, non-JSON, missing fields and a non-allowlisted directory all fail closed. Subjects: envelope.py sha256 0cceff3286b2dcbeea7089baf7c782d7e355db7d961412834c330a95aac827cc, push_gate.py sha256 0a45dc8a0f40ee150b838b49ecf4c0f71c3ca0a8956fecae5c188bc5a7974510; HL_Live_Copy_Service_Core.py sha256 9072aa592331424acbf51cdb5b4246408bb282bb15b57e35787c6843890668e4 contains none of these control-plane symbols, so CONTROL rows bind to the control-plane modules, not the engine.",
    "proof_network": "TESTNET"
   },
   {
@@ -9973,7 +9973,7 @@
    "evidence_ref": "",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": "origin/control-mailbox carries a different INVARIANTS.md (A1-A17); see OD-15.",
+   "notes": "CTRL-I19::cannot_bind_offline -- EVENT_INGRESS health is produced by the live ingress, not by these modules.",
    "proof_network": "TESTNET"
   },
   {
@@ -10001,7 +10001,7 @@
    "evidence_ref": "",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": "origin/control-mailbox carries a different INVARIANTS.md (A1-A17); see OD-15.",
+   "notes": "CTRL-I20::cannot_bind_offline -- live provider push proof requires a real delivery event.",
    "proof_network": "TESTNET"
   },
   {
@@ -10029,7 +10029,7 @@
    "evidence_ref": "",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": "origin/control-mailbox carries a different INVARIANTS.md (A1-A17); see OD-15.",
+   "notes": "CTRL-I21::cannot_bind_offline -- blocker-admission rules are review duties.",
    "proof_network": "TESTNET"
   },
   {
@@ -10057,7 +10057,7 @@
    "evidence_ref": "",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": "origin/control-mailbox carries a different INVARIANTS.md (A1-A17); see OD-15.",
+   "notes": "CTRL-I22::cannot_bind_offline -- notification-is-not-authority holds by absence of any notification path in these modules; absence alone is not a positive control.",
    "proof_network": "TESTNET"
   },
   {
@@ -10085,7 +10085,7 @@
    "evidence_ref": "",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": "origin/control-mailbox carries a different INVARIANTS.md (A1-A17); see OD-15.",
+   "notes": "CTRL-I23::cannot_bind_offline -- model/provider routing is a binding-registry field, not code.",
    "proof_network": "TESTNET"
   },
   {
@@ -10112,7 +10112,7 @@
    "evidence_ref": "",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": "",
+   "notes": "CTRL-GATE0::cannot_bind_offline -- needs a real provider PUSH event on refs/heads/control-mailbox plus a correlated wake/consumption receipt. The carrier holds 280 envelope files, but no push event and no consumer receipt can be produced offline.",
    "proof_network": "TESTNET"
   },
   {
@@ -10140,7 +10140,7 @@
    "evidence_ref": "",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": "",
+   "notes": "CTRL-BIND::cannot_bind_offline -- applicability is OPEN_DECISION (OD-03 controller_uuid_dispute: CONTROL_STATE names 6ac6427b..., CONTROL_CONTRACT names 6ac7a51f...). An open decision cannot be certified by a worker.",
    "proof_network": "TESTNET"
   },
   {
@@ -10162,11 +10162,11 @@
     "stale remote ref"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/CTRL_probe2_t_967fad56.json",
+   "tested_commit": "545a7bbbe74b74281995418bcc933743eaee78aa",
+   "tested_at_utc": "2026-10-19T12:00:00Z",
+   "notes": "Offline ACTIVE/CONTROL probe CTRL-HWM::no_gate_truth_from_local_state. the reader-detector is live on a bait consumer and finds 0 actual readers of a local CONTROL_STATE.json among 114 tracked .py files. Subjects: envelope.py sha256 0cceff3286b2dcbeea7089baf7c782d7e355db7d961412834c330a95aac827cc, push_gate.py sha256 0a45dc8a0f40ee150b838b49ecf4c0f71c3ca0a8956fecae5c188bc5a7974510; HL_Live_Copy_Service_Core.py sha256 9072aa592331424acbf51cdb5b4246408bb282bb15b57e35787c6843890668e4 contains none of these control-plane symbols, so CONTROL rows bind to the control-plane modules, not the engine.",
    "proof_network": "TESTNET"
   },
   {
@@ -10188,11 +10188,11 @@
     "stale remote ref"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "",
+   "result": "FAIL",
+   "evidence_ref": "certification/results/CTRL_carrier_census_t_967fad56.json",
+   "tested_commit": "545a7bbbe74b74281995418bcc933743eaee78aa",
+   "tested_at_utc": "2026-10-19T12:00:00Z",
+   "notes": "Offline carrier-level probe. CTRL-EVID::handoff_carries_full_evidence_set -- of 118 handoff-typed envelopes (RESULT/STATUS/NOTIFICATION) on origin/control-mailbox, 0 carry all 8 required evidence fields; the best carries 5/8. Per-token presence: LOC 199, TASK_ID 111, STAND_DOWN_REQUEST 104, TESTS 65, COMMIT_SHA 40, FILES_CHANGED 8, OUTPUTS 2, UNCERTAINTY 0.",
    "proof_network": "TESTNET"
   },
   {
@@ -10214,11 +10214,11 @@
     "stale remote ref"
    ],
    "prior_evidence": "G3 one-gate exception: 400 gross additions accepted (CONTROL_STATE scope_budget)",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "",
+   "result": "FAIL",
+   "evidence_ref": "certification/results/CTRL_carrier_census_t_967fad56.json",
+   "tested_commit": "545a7bbbe74b74281995418bcc933743eaee78aa",
+   "tested_at_utc": "2026-10-19T12:00:00Z",
+   "notes": "Offline carrier-level probe. CTRL-ESC::escalation_type_traverses_gate + escalation_tripwire_present -- 7 ESCALATION envelopes exist on the carrier, but 1 (B3-C2A-G4-AUTHORITY-ESCALATION-1) is rejected by the gate type allowlist, and no tripwire evaluator (LOC / production files / second process / new dependency / persistent store / second send path / repeat gate failure) exists anywhere in the certified tree. Escalation can be raised but cannot traverse the governed path.",
    "proof_network": "TESTNET"
   },
   {

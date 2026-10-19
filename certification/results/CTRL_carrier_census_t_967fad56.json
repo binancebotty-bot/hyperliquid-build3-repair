@@ -1,0 +1,49 @@
+{
+ "card": "t_967fad56",
+ "part": 3,
+ "census": {
+  "carrier_ref": "origin/control-mailbox",
+  "envelope_files": 280,
+  "v1_shaped_envelopes": 277,
+  "gate_valid": 57,
+  "gate_rejected": {
+   "MISSING_FIELDS": 183,
+   "DIGEST_MISMATCH": 35,
+   "INVALID_TYPE": 2,
+   "other": 0
+  },
+  "handoff_envelopes": 118,
+  "escalation_envelopes": 7
+ },
+ "checks": [
+  {
+   "row": "CTRL-ESC",
+   "check": "escalation_type_traverses_gate",
+   "verdict": "FAIL",
+   "active": "ESCALATION envelopes on carrier=7, rejected by gate allowlist=1 (['control_mailbox/inbox/2026-10-08T17-51-00Z-B3-C2A-G4-AUTHORITY-ESCALATION-1.json'])",
+   "control": "gate allowlist=['DIRECTIVE', 'STATUS', 'RESULT', 'REQUEST', 'BLOCKER', 'ACK', 'NOTIFICATION']",
+   "detail": "escalation_message_ids=['B3-C2A-G2-AUTHORITY-CONFLICT-1', 'B3-C2A-G2-SCOPE-ESCALATION-2', 'B3-C2A-G2-FINAL-AUDIT-ESCALATION-3', 'B3-C2A-G3-AUTHORITY-SCOPE-ESCALATION-1', 'B3-C2A-G3-TRIPWIRE-ESCALATION-2', 'B3-C2A-G3-FINAL-BLOCKER-3']"
+  },
+  {
+   "row": "CTRL-ESC",
+   "check": "escalation_tripwire_present",
+   "verdict": "FAIL",
+   "active": "no tripwire evaluator (LOC/files/process/dependency/send-path/repeat-failure) exists in the certified tree; only a manual CONTROL_STATE scope_budget exception records escalation",
+   "control": "n/a",
+   "detail": "control_mailbox ESCALATION envelopes=7 are requests, not evaluated tripwires"
+  },
+  {
+   "row": "CTRL-EVID",
+   "check": "handoff_carries_full_evidence_set",
+   "verdict": "FAIL",
+   "active": "handoff envelopes=118, carrying all 8 evidence fields=0, best=5/8 (B3-H2C-PVB2-PROBE-ROLE_KEY-DEFECT-FIXED-1)",
+   "control": "required=['TASK_ID', 'COMMIT_SHA', 'FILES_CHANGED', 'LOC', 'TESTS', 'OUTPUTS', 'UNCERTAINTY', 'STAND_DOWN_REQUEST']",
+   "detail": "per-token presence={\"COMMIT_SHA\": 22, \"FILES_CHANGED\": 7, \"LOC\": 83, \"OUTPUTS\": 0, \"STAND_DOWN_REQUEST\": 60, \"TASK_ID\": 19, \"TESTS\": 25, \"UNCERTAINTY\": 0}"
+  }
+ ],
+ "failures": [
+  "CTRL-ESC::escalation_type_traverses_gate",
+  "CTRL-ESC::escalation_tripwire_present",
+  "CTRL-EVID::handoff_carries_full_evidence_set"
+ ]
+}
