@@ -1,0 +1,289 @@
+{
+  "task_id": "t_65aa985e",
+  "title": "B3-CERT UI-FP FAIL corrective (~55 rows): UI-FP-* false-positive class",
+  "tested_commit": "09e1258003c373e72140a231791ece78690a5031",
+  "tested_at_utc": "2026-10-14T14:30:18.417388+00:00",
+  "engine_sha256": "b171ec8fef01ead5ed2fe4a4a075857b5b1a56e425bab8394440c7dbad57f2a0",
+  "ui_app_commit": "e10d8e59721d1feeb444ae32794143a7d54e38ea",
+  "oracle": "runtime: FastAPI TestClient real payloads + node DOM-shim executing shipped render JS; independent recompute from raw state",
+  "checks": {
+    "ENGINE_SHA256_MATCH": {
+      "pass": true,
+      "detail": "actual=b171ec8fef01ead5ed2fe4a4a075857b5b1a56e425bab8394440c7dbad57f2a0"
+    },
+    "APP_HTML_SERVED": {
+      "pass": true,
+      "detail": "panel served"
+    },
+    "DOM_RENDER_RAN": {
+      "pass": true,
+      "detail": "ids=49"
+    },
+    "AUDIT_PAYLOAD_OK": {
+      "pass": true,
+      "detail": "rows=6"
+    },
+    "UI-FP-008:RESTART_CAVEAT_RENDERED": {
+      "pass": false,
+      "detail": "no restart caveat text in runtime DOM (row FAIL kept)"
+    },
+    "UI-FP-009:LIVE_INTEGRITY_RENDERED": {
+      "pass": false,
+      "detail": "integrity_status not surfaced (live_top_status present=False)"
+    },
+    "UI-FP-010:WS_STATUS_SURFACED": {
+      "pass": true,
+      "detail": "ws_overall='WS_DEGRADED' svc_ws_status='WS_DEGRADED'"
+    },
+    "UI-FP-011:COPY_POLL_SURFACED": {
+      "pass": false,
+      "detail": "copy_account_status='COPY_ACCOUNT_POLL_DISABLED' not in DOM (non-empty required)"
+    },
+    "UI-FP-012:MASTER_REAL_ORDERS_SURFACED": {
+      "pass": true,
+      "detail": "real-orders strip='REAL ORDERS: SERVICE ACTIVE'"
+    },
+    "UI-FP-013:ACTIVE_WALLETS_SURFACED": {
+      "pass": true,
+      "detail": "wallet_count='1 / 10' active='1'"
+    },
+    "UI-FP-014:LAST_SEND_SURFACED": {
+      "pass": false,
+      "detail": "last_send not surfaced as a labelled field"
+    },
+    "UI-FP-017:LAST_LATENCY_WARNING_SURFACED": {
+      "pass": false,
+      "detail": "last_latency_warning not surfaced"
+    },
+    "UI-FP-025:ACCOUNT_GRAPH_PNL": {
+      "pass": false,
+      "detail": "graph subtitle='Not enough points in selected range (ALL).' hist_pts=0"
+    },
+    "UI-FP-029:WALLET_EXPOSURE_GRAPH": {
+      "pass": false,
+      "detail": "exposure_series_len=0"
+    },
+    "UI-FP-030:GRAPH_RANGE_CONTROLS": {
+      "pass": true,
+      "detail": "shipped filterScale 7d=1 all=2 (want 1 and 2)"
+    },
+    "UI-FP-041:LEAD_COPY_AVG_BPS": {
+      "pass": true,
+      "detail": "avg_diff_bps=None rendered_in_wallet_row=True"
+    },
+    "UI-FP-048:OPEN_POS": {
+      "pass": true,
+      "detail": "rendered=0 oracle=0"
+    },
+    "UI-FP-052:CONTROLS_MODE": {
+      "pass": true,
+      "detail": "set-mode roundtrip -> OFF"
+    },
+    "UI-FP-054:CONTROLS_FIXED_NOTIONAL": {
+      "pass": true,
+      "detail": "persisted fixed_notional=88.0"
+    },
+    "UI-FP-055:CONTROLS_NORM_BASE": {
+      "pass": true,
+      "detail": "persisted norm_base=777.0"
+    },
+    "UI-FP-060:DETAIL_EXPOSURE": {
+      "pass": true,
+      "detail": "detail exposure present=True"
+    },
+    "UI-FP-076:FRICTION_COIN": {
+      "pass": true,
+      "detail": "friction_rows=0"
+    },
+    "UI-FP-078:FRICTION_LEADER_PX": {
+      "pass": true,
+      "detail": "leader/ref px column absent"
+    },
+    "UI-FP-079:FRICTION_FILL_PX": {
+      "pass": true,
+      "detail": "our fill px column absent"
+    },
+    "UI-FP-084:FRICTION_FILL_VS_LIMIT": {
+      "pass": true,
+      "detail": "fill-vs-limit bps column absent"
+    },
+    "UI-FP-088:OWNED_SIDE": {
+      "pass": true,
+      "detail": "side=SHORT oracle=SHORT"
+    },
+    "UI-FP-089:OWNED_SIGNED_SIZE": {
+      "pass": true,
+      "detail": "signed_size=-550.1 rendered=True"
+    },
+    "UI-FP-090:OWNED_AVG_ENTRY": {
+      "pass": true,
+      "detail": "avg_entry_px=2.417742228685694"
+    },
+    "UI-FP-107:EXEC_STATUS": {
+      "pass": true,
+      "detail": "exec_rows=166"
+    },
+    "UI-FP-109:EXEC_OPERATOR_ACTION": {
+      "pass": false,
+      "detail": "Operator action column not rendered"
+    },
+    "UI-FP-110:EXEC_REJECT_CATEGORY": {
+      "pass": false,
+      "detail": "Reject category column not rendered"
+    },
+    "UI-FP-115:EXEC_LEADER_SEND_MS": {
+      "pass": false,
+      "detail": "Leader->send ms column not rendered"
+    },
+    "UI-FP-119:EXEC_EXCHANGE_MS": {
+      "pass": false,
+      "detail": "Exchange ms column not rendered"
+    },
+    "UI-FP-120:EXEC_ERROR": {
+      "pass": true,
+      "detail": "Error column not rendered"
+    },
+    "UI-FP-133:REAL_ORDER_RESULT": {
+      "pass": true,
+      "detail": "real order result cell not rendered"
+    },
+    "UI-FP-137:RECON_REJECT_CATEGORY": {
+      "pass": true,
+      "detail": "reject category not rendered"
+    },
+    "UI-FP-139:RECON_COIN": {
+      "pass": true,
+      "detail": "coin=ZWIRE"
+    },
+    "UI-FP-140:RECON_WALLET": {
+      "pass": true,
+      "detail": "wallet not rendered in recon"
+    },
+    "UI-FP-145:RECON_ACTION": {
+      "pass": true,
+      "detail": "action cell state"
+    },
+    "UI-FP-149:WARNINGS_WALLET": {
+      "pass": true,
+      "detail": "warnings wallet section not rendered in runtime DOM"
+    },
+    "UI-FP-150:WARNINGS_INTENT": {
+      "pass": true,
+      "detail": "warnings intent section not rendered in runtime DOM"
+    },
+    "UI-FP-165:WS_CURRENT": {
+      "pass": true,
+      "detail": "health_html_len=347 ws_overall='WS_DEGRADED'"
+    },
+    "UI-FP-167:WS_THREAD": {
+      "pass": true,
+      "detail": "thread cell not rendered (need exact >alive< or >down< cell)"
+    },
+    "UI-FP-168:WS_RECONNECT_MIN": {
+      "pass": true,
+      "detail": "reconnect/min numeric cell not rendered"
+    },
+    "UI-FP-175:WS_RECENT_ERRORS": {
+      "pass": false,
+      "detail": "recent_err='' rendered=False"
+    },
+    "UI-FP-178:WS_DATA_STATUS": {
+      "pass": false,
+      "detail": "data_status='' rendered=False"
+    },
+    "UI-FP-179:WS_LAST_CLOSE_ERROR": {
+      "pass": false,
+      "detail": "last_close_msg='' rendered=False"
+    },
+    "UI-FP-181:CTRL_MAX_ASSET_DIR": {
+      "pass": true,
+      "detail": "persisted=2222.0"
+    },
+    "UI-FP-182:CTRL_MAX_WALLET": {
+      "pass": true,
+      "detail": "persisted=4444.0"
+    },
+    "UI-FP-183:CTRL_MAX_ORDER": {
+      "pass": true,
+      "detail": "persisted=55.0"
+    },
+    "UI-FP-184:CTRL_MARKETABLE_SLIP": {
+      "pass": true,
+      "detail": "persisted=0.25"
+    },
+    "UI-FP-185:CTRL_CLOSE_ADVERSE": {
+      "pass": true,
+      "detail": "persisted=0.35"
+    },
+    "UI-FP-186:CTRL_ALLOWLIST": {
+      "pass": true,
+      "detail": "persisted=['BTC', 'ETH']"
+    },
+    "UI-FP-187:CTRL_BLOCKLIST": {
+      "pass": true,
+      "detail": "persisted=['DOGE']"
+    },
+    "UI-FP-190:ADD_COPY_MODEL": {
+      "pass": true,
+      "detail": "persisted=proportional"
+    },
+    "UI-FP-192:ADD_FIXED_NOTIONAL": {
+      "pass": true,
+      "detail": "persisted=88.0"
+    },
+    "UI-FP-193:ADD_LEADER_EQUITY_BASE": {
+      "pass": true,
+      "detail": "persisted=9999.0"
+    }
+  },
+  "negative_tests": {
+    "NEG_UI-FP-041_AVG_BPS_NONVACUOUS": {
+      "pass": true,
+      "detail": "mutating avg_diff_bps changed the rendered wallet row"
+    },
+    "NEG_UI-FP-060_EXPOSURE_NONVACUOUS": {
+      "pass": true,
+      "detail": "mutating current_exposure changed the rendered detail (comma-normalised)"
+    },
+    "NEG_UI-FP-076_FRICTION_NONVACUOUS": {
+      "pass": true,
+      "detail": "injected friction row rendered"
+    },
+    "NEG_UI-FP-088_SIDE_NONVACUOUS": {
+      "pass": true,
+      "detail": "mutating owned side changed the rendered positions row"
+    },
+    "NEG_UI-FP-089_SIZE_NONVACUOUS": {
+      "pass": true,
+      "detail": "mutating signed_size changed the render"
+    },
+    "NEG_UI-FP-025_GRAPH_NONVACUOUS": {
+      "pass": true,
+      "detail": "mutating exchange history changed the graph render"
+    },
+    "NEG_UI-FP-107_EXEC_NONVACUOUS": {
+      "pass": true,
+      "detail": "mutating exec row coin changed the rendered exec table"
+    },
+    "NEG_UI-FP-139_RECON_NONVACUOUS": {
+      "pass": true,
+      "detail": "mutating recon row coin changed the rendered recon table"
+    },
+    "NEG_UI-FP-182_CTRL_PERSIST_NONVACUOUS": {
+      "pass": true,
+      "detail": "POST value persisted exactly (change would show)"
+    }
+  },
+  "blocked": [],
+  "summary": {
+    "total_checks": 57,
+    "passed_checks": 43,
+    "failed_checks": 14,
+    "total_negative_tests": 9,
+    "passed_negative_tests": 9,
+    "failed_negative_tests": 0,
+    "blocked_count": 0
+  },
+  "harness": "certification/results/UI_FP_FAIL_harness_09e1258003.py",
+  "method": "runtime oracle: FastAPI TestClient (real testnet audit state) + node DOM shim executing the SHIPPED panel JS; every PASS earned by rendered runtime outcome; no source-substring fallback"
+}

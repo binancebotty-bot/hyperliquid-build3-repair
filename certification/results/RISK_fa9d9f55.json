@@ -1,0 +1,247 @@
+{
+  "task_id": "t_d3193494",
+  "title": "B3-CERT RISK area (14 rows): risk-gate semantics proof",
+  "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+  "tested_at_utc": "2026-10-14T10:49:15Z",
+  "engine_sha256": "2dfbd571012af67479ee7a2d9e6f1faac6ee5408722a092fb3625450cab51405",
+  "engine_lines": 8030,
+  "checks": {
+    "ENGINE_SHA256_MATCH": {
+      "pass": true,
+      "detail": ""
+    },
+    "RISK-001:TOTAL_CAP_BLOCKS_EXCEEDING": {
+      "pass": true,
+      "detail": ""
+    },
+    "RISK-001:TOTAL_CAP_WITHIN_ALLOWED": {
+      "pass": true,
+      "detail": ""
+    },
+    "RISK-002:ASSET_CAP_BLOCKS": {
+      "pass": true,
+      "detail": ""
+    },
+    "RISK-002:ASSET_NET_DIRECTION_ALLOWED": {
+      "pass": true,
+      "detail": ""
+    },
+    "RISK-003:WALLET_CAP_BLOCKS": {
+      "pass": true,
+      "detail": ""
+    },
+    "RISK-003:WALLET_CAP_WITHIN_ALLOWED": {
+      "pass": true,
+      "detail": ""
+    },
+    "RISK-004:ORDER_CAP_BLOCKS": {
+      "pass": true,
+      "detail": ""
+    },
+    "RISK-004:ORDER_CAP_WITHIN_ALLOWED": {
+      "pass": true,
+      "detail": ""
+    },
+    "RISK-005:MISSING_SLIPPAGE_DEFAULT_20BPS": {
+      "pass": true,
+      "detail": ""
+    },
+    "RISK-005:EXPLICIT_ZERO_STAYS_ZERO": {
+      "pass": true,
+      "detail": ""
+    },
+    "RISK-005:CUSTOM_VALUE_READ": {
+      "pass": true,
+      "detail": ""
+    },
+    "RISK-005:NEG_BLANK_IS_ZERO": {
+      "pass": true,
+      "detail": ""
+    },
+    "RISK-005:NEG_NEGATIVE_CLAMPED_ZERO": {
+      "pass": true,
+      "detail": ""
+    },
+    "RISK-006:MISSING_CLOSE_DIFF_IS_OFF": {
+      "pass": true,
+      "detail": ""
+    },
+    "RISK-006:CUSTOM_VALUE_READ": {
+      "pass": true,
+      "detail": ""
+    },
+    "RISK-006:NEG_BLANK_IS_OFF": {
+      "pass": true,
+      "detail": ""
+    },
+    "RISK-006:NEG_NEGATIVE_IS_OFF": {
+      "pass": true,
+      "detail": ""
+    },
+    "RISK-007:ALLOWLIST_BLOCKS_OTHERS": {
+      "pass": true,
+      "detail": ""
+    },
+    "RISK-007:ALLOWLISTED_PASSES": {
+      "pass": true,
+      "detail": ""
+    },
+    "RISK-007:EMPTY_ALLOWLIST_ALL_ALLOWED": {
+      "pass": true,
+      "detail": ""
+    },
+    "RISK-008:BLOCKLIST_BLOCKS": {
+      "pass": true,
+      "detail": ""
+    },
+    "RISK-008:BLOCKLIST_OTHERS_PASS": {
+      "pass": true,
+      "detail": ""
+    },
+    "RISK-014:NO_FOLLOWER_PRICE_FAILS_CLOSED": {
+      "pass": true,
+      "detail": ""
+    },
+    "RISK-014:EXCHANGE_UNAVAILABLE_FAILS_CLOSED": {
+      "pass": true,
+      "detail": ""
+    },
+    "RISK-015:CLOSE_NEVER_BLOCKED_BY_ENTRY_CONTROLS": {
+      "pass": true,
+      "detail": ""
+    },
+    "RISK-016:ORDER_CAP_CONFIG_READ": {
+      "pass": true,
+      "detail": ""
+    },
+    "TN-F06:LIMIT_BLOCKS_NOT_CLAMPS": {
+      "pass": true,
+      "detail": ""
+    },
+    "TN-F16:NO_FOLLOWER_PRICE_ENTRY_REFUSED": {
+      "pass": true,
+      "detail": ""
+    },
+    "TN-F21:CLOSE_NOT_TRAPPED_BY_OPEN_SAFETY": {
+      "pass": true,
+      "detail": ""
+    }
+  },
+  "negative_tests": {
+    "RISK-001:NEG_BLANK_DISABLED": {
+      "pass": true,
+      "detail": ""
+    },
+    "RISK-001:NEG_ZERO_DISABLED": {
+      "pass": true,
+      "detail": ""
+    },
+    "RISK-001:NEG_NEGATIVE_DISABLED": {
+      "pass": true,
+      "detail": ""
+    },
+    "RISK-001:NEG_NONNUMERIC_DISABLED": {
+      "pass": true,
+      "detail": ""
+    },
+    "RISK-001:NEG_VALUE_CHANGE_TAKES_EFFECT": {
+      "pass": true,
+      "detail": ""
+    },
+    "RISK-001:NEG_EXCHANGE_DOWN_FAILS_CLOSED": {
+      "pass": true,
+      "detail": ""
+    },
+    "RISK-002:NEG_BLANK_DISABLED": {
+      "pass": true,
+      "detail": ""
+    },
+    "RISK-002:NEG_ZERO_DISABLED": {
+      "pass": true,
+      "detail": ""
+    },
+    "RISK-002:NEG_NEGATIVE_DISABLED": {
+      "pass": true,
+      "detail": ""
+    },
+    "RISK-002:NEG_NONNUMERIC_DISABLED": {
+      "pass": true,
+      "detail": ""
+    },
+    "RISK-003:NEG_BLANK_DISABLED": {
+      "pass": true,
+      "detail": ""
+    },
+    "RISK-003:NEG_ZERO_DISABLED": {
+      "pass": true,
+      "detail": ""
+    },
+    "RISK-003:NEG_NEGATIVE_DISABLED": {
+      "pass": true,
+      "detail": ""
+    },
+    "RISK-003:NEG_NONNUMERIC_DISABLED": {
+      "pass": true,
+      "detail": ""
+    },
+    "RISK-004:NEG_BLANK_DISABLED": {
+      "pass": true,
+      "detail": ""
+    },
+    "RISK-004:NEG_ZERO_DISABLED": {
+      "pass": true,
+      "detail": ""
+    },
+    "RISK-004:NEG_NEGATIVE_DISABLED": {
+      "pass": true,
+      "detail": ""
+    },
+    "RISK-004:NEG_NONNUMERIC_DISABLED": {
+      "pass": true,
+      "detail": ""
+    },
+    "RISK-007:NEG_BLANK_NO_RESTRICTION": {
+      "pass": true,
+      "detail": ""
+    },
+    "RISK-008:NEG_BLANK_NO_RESTRICTION": {
+      "pass": true,
+      "detail": ""
+    }
+  },
+  "summary": {
+    "total_rows": 14,
+    "rows": {
+      "APPLIES": {
+        "count": 11,
+        "ids": [
+          "RISK-001",
+          "RISK-002",
+          "RISK-003",
+          "RISK-004",
+          "RISK-005",
+          "RISK-006",
+          "RISK-007",
+          "RISK-008",
+          "RISK-014",
+          "RISK-015",
+          "RISK-016"
+        ]
+      },
+      "APPLIES_PROPOSED": {
+        "count": 3,
+        "ids": [
+          "TN-F06",
+          "TN-F16",
+          "TN-F21"
+        ]
+      }
+    },
+    "total_checks": 30,
+    "passed_checks": 30,
+    "failed_checks": 0,
+    "total_negative_tests": 20,
+    "passed_negative_tests": 20,
+    "failed_negative_tests": 0
+  }
+}

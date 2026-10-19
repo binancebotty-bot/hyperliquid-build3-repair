@@ -1,0 +1,60 @@
+{
+  "harness": "HEALTH_CORRECTION_harness_fefc2b04.py",
+  "tested_commit": "fefc2b04261c734bb32c767d2cc4a91095e65843",
+  "engine_sha256": "2dfbd571012af67479ee7a2d9e6f1faac6ee5408722a092fb3625450cab51405",
+  "total_checks": 10,
+  "passed": 10,
+  "failed": 0,
+  "checks": [
+    {
+      "name": "HEALTH-002:AGE_IN_WRITE_PATH",
+      "pass": true,
+      "detail": "last_copy_poll_age_ms=120018 present in SERVICE_STATE_FILE"
+    },
+    {
+      "name": "HEALTH-002:NEG:AGE_IN_WRITE_PATH_ZERO_WITHOUT_PRIOR",
+      "pass": true,
+      "detail": "last_copy_poll_age_ms=0 (correctly zero with no prior poll)"
+    },
+    {
+      "name": "HEALTH-002:NEG:AGE_THRESHOLD_COMPARISON_FIRES",
+      "pass": true,
+      "detail": "gate fired: _entry_sends_blocked_reason=COPY_POLL_STALE"
+    },
+    {
+      "name": "HEALTH-002:NEG:AGE_THRESHOLD_COMPARISON_NOT_FIRES",
+      "pass": true,
+      "detail": "gate not fired: _entry_sends_blocked_reason='' (correct)"
+    },
+    {
+      "name": "HEALTH-003:SEND_BLOCK_REASON_IN_STATE",
+      "pass": true,
+      "detail": "send_block_reason=MASTER_REAL_ORDERS_OFF present in SERVICE_STATE_FILE"
+    },
+    {
+      "name": "HEALTH-003:NEG:SEND_BLOCK_REASON_EMPTY_WHEN_ENABLED",
+      "pass": true,
+      "detail": "send_block_reason='' (correctly empty with auto_send enabled)"
+    },
+    {
+      "name": "HEALTH-004:NETWORK_ERRORS_COUNTER_INCREMENTS",
+      "pass": true,
+      "detail": "network_errors=1 (incremented on poll failure)"
+    },
+    {
+      "name": "HEALTH-004:NEG:NETWORK_ERRORS_ZERO_ON_SUCCESS",
+      "pass": true,
+      "detail": "network_errors=0 (correctly zero on poll success)"
+    },
+    {
+      "name": "TN-F15:FRESHNESS_BUDGET_GATE_FIRES",
+      "pass": true,
+      "detail": "freshness gate fired: _entry_sends_blocked_reason=COPY_POLL_STALE"
+    },
+    {
+      "name": "TN-F15:NEG:FRESHNESS_BUDGET_GATE_NOT_FIRES",
+      "pass": true,
+      "detail": "freshness gate not fired: _entry_sends_blocked_reason='' (correct)"
+    }
+  ]
+}

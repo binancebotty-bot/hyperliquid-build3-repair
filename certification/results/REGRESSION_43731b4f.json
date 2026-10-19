@@ -1,0 +1,735 @@
+{
+  "task": "B3-CERT-REGRESSION CORRECTION [evidence] rerun in hyperliquid-build3-repair @43731b4",
+  "repo_root": "C:/Users/wigmore/hyperliquid-build3-repair",
+  "engine": "C:/Users/wigmore/hyperliquid-build3-repair\\_archive/hl_stage2/HL_Live_Copy_Service_Core.py",
+  "engine_sha256": "2dfbd571012af67479ee7a2d9e6f1faac6ee5408722a092fb3625450cab51405",
+  "engine_lines": 8030,
+  "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+  "tested_at_utc": "2026-10-14T05:31:53.120400+00:00",
+  "total_rows": 23,
+  "static_rows": 19,
+  "ui_visibility_rows": 4,
+  "results": {
+    "B4-I02": {
+      "feature": "Build 4 I02 NO_POSITION_CATCHUP",
+      "expected_behaviour": "Startup, restart, handover, rebaseline, current leader position and truth recovery create zero trade authority. - Tests: test_new_events_only_authority.py, test_build4_startup_authority.py, test_quiescence_migration_bypass.py - Prevents: R01, R19; ARCH-011 (restart depended on local replay).",
+      "category": "static",
+      "startup_functions": [
+        "__post_init__",
+        "__init__",
+        "__init__",
+        "__init__",
+        "__init__",
+        "__init__",
+        "__init__",
+        "__init__",
+        "__init__",
+        "__init__",
+        "__init__",
+        "__init__"
+      ],
+      "order_calls_in_startup": [],
+      "zero_authority_patterns": [
+        {
+          "line": 1570,
+          "text": "# is valid when no order was sent or filled in the active window."
+        },
+        {
+          "line": 3420,
+          "text": "# leader's fill price; a stale or missing mid means no order. Cross-network, every order is."
+        },
+        {
+          "line": 3429,
+          "text": "# based on the follower's own fresh price; no follower price -> no order (a close goes RED)"
+        },
+        {
+          "line": 5929,
+          "text": "\"budget_exceeded_note\": \"cycle_timing_only \u2014 not a financial cap; applies no order blocks\","
+        }
+      ],
+      "pass": true
+    },
+    "B4-I07": {
+      "feature": "Build 4 I07 FRESH_SEND_TIME_TRUTH",
+      "expected_behaviour": "Immediately before exchange send, obtain fresh authenticated follower truth required for that order. Exchange truth outranks local/UI state. - Tests: test_unified_account_truth.py, test_account_truth_refresher.py, test_actual_position_retry.py, test_unified_position_open_account_truth_incident.py - Prevents: R06, R07; ROOT-001, EXC-001, EXC-002, EXC-019.",
+      "category": "static",
+      "truth_refresh_patterns": [
+        {
+          "line": 96,
+          "text": "# Leader feed and follower account networks are chosen independently (exchange_truth.resolve_networks):"
+        },
+        {
+          "line": 101,
+          "text": "import exchange_truth as _XNET  # noqa: E402"
+        },
+        {
+          "line": 2513,
+          "text": "\"\"\"Total and per-asset directional caps against follower exchange truth; \"\" when allowed.\"\"\""
+        },
+        {
+          "line": 2658,
+          "text": "# total / per-asset caps use follower EXCHANGE truth (all DEX scopes), not the local ledger"
+        },
+        {
+          "line": 7862,
+          "text": "reconciliation.csv agree with exchange truth."
+        }
+      ],
+      "send_functions": [
+        "classify_send_lifecycle",
+        "send_terminal_state",
+        "send_allowed",
+        "auto_send_enabled",
+        "send_block_reason",
+        "append_send_attempt",
+        "_place_order",
+        "_pre_send_ownership_gate",
+        "send_if_allowed",
+        "_send_real",
+        "_intent_from_send_attempt",
+        "_hot_send_loop",
+        "_append_send_terminal",
+        "_mock_real_send_ok",
+        "_mock_real_send_sdk_unavail",
+        "_g_send",
+        "send"
+      ],
+      "truth_calls": [
+        "refresh_asset_universe"
+      ],
+      "pass": true
+    },
+    "B4-I23": {
+      "feature": "Build 4 I23 PARTIAL_FILL",
+      "expected_behaviour": "Ownership advances only by confirmed fill. Residual authorised delta remains. - Tests: test_live_event_lifecycle_exactly_once.py, test_runtime_sleeve_ownership_integration.py - Prevents: R22; LOGIC-011, EXC-004.",
+      "category": "static",
+      "fill_patterns": [
+        {
+          "line": 145,
+          "text": "HL_INFO_URL = NETWORKS[\"follower\"][\"info\"]          # follower: meta, mids, copy fills, clearinghouseState"
+        },
+        {
+          "line": 242,
+          "text": "\"created_at\", \"created_at_ms\", \"copy_fill_id\", \"intent_id\", \"leader_fill_id\", \"leader_wallet\","
+        },
+        {
+          "line": 250,
+          "text": "\"copy_fill_id\", \"coin\", \"manual_net\", \"exchange_net\", \"action\", \"reject_category\", \"terminal_state\","
+        },
+        {
+          "line": 920,
+          "text": "\"hash\": str(raw.get(\"hash\") or raw.get(\"copy_fill_id\") or \"\"),"
+        },
+        {
+          "line": 1027,
+          "text": "pending_grace_ms = int(os.getenv(\"HL_LIVE_COPY_FILL_PENDING_GRACE_MS\", \"600000\"))"
+        },
+        {
+          "line": 1321,
+          "text": "and any(str(p.get(\"event\") or \"\").strip().upper() == \"COPY_FILL\" for p in row_recon)"
+        },
+        {
+          "line": 1324,
+          "text": "reason = \"intent has live_fills row and COPY_FILL reconciliation proof\""
+        },
+        {
+          "line": 1535,
+          "text": "if r.get(\"status\") == \"COPY_FILL_UNMATCHED\" and \"terminal_state=\" not in str(r.get(\"notes\") or \"\") and not r.get(\"terminal_state\")"
+        },
+        {
+          "line": 1799,
+          "text": "def normalise_copy_fill_side(raw: Any) -> str:"
+        },
+        {
+          "line": 1874,
+          "text": "copy_fills_seen: int = 0"
+        }
+      ],
+      "ownership_functions": [
+        "xyz_fill_after_position",
+        "update_xyz_position_state_from_fills",
+        "normalise_copy_fill_side",
+        "claim_copy_fill_process_marker",
+        "repair_recovery_copy_fills",
+        "_has_ownership_gate_terminal_proof",
+        "apply_copy_fill",
+        "append_live_fill",
+        "append_live_fill_repair_close",
+        "_is_leader_close_fill",
+        "_ownership_gate_block",
+        "_pre_send_ownership_gate",
+        "stable_leader_fill_id",
+        "parse_fill",
+        "poll_hyperliquid_fills",
+        "copy_fill_id",
+        "poll_copy_account_fills",
+        "copy_fill_id",
+        "_copy_fill_oid",
+        "_apply_oid_matched_copy_fill",
+        "_xyz_durable_state_matches_flat_fill",
+        "_try_apply_proven_xyz_flat_close",
+        "match_and_apply",
+        "_compute_xyz_net_from_fills",
+        "_enqueue_hot_ws_fill",
+        "_process_leader_fill",
+        "poll_copy_account_fills"
+      ],
+      "pass": true
+    },
+    "B4-I24": {
+      "feature": "Build 4 I24 RECOVERY_CREATES_ZERO_AUTHORITY",
+      "expected_behaviour": "Restart/handover/recovery/config reload itself creates no order. - Tests: test_build4_startup_authority.py, test_quiescence_migration_bypass.py, test_handover_zero_counts.py, test_runtime_survival_disposable.py - Prevents: ARCH-010, EXC-015 (recovery direct send).",
+      "category": "static",
+      "recovery_functions": [
+        "repair_recovery_copy_fills",
+        "_close_recovery_terminal",
+        "_exit_recovery_exists",
+        "_queue_exit_recovery_if_needed",
+        "_entry_add_rate_limit_recovery",
+        "_load_recovery_oid_index",
+        "_missed_exit_recovery_candidates"
+      ],
+      "order_calls_in_recovery": [
+        {
+          "function": "_queue_exit_recovery_if_needed",
+          "call": "_place_order",
+          "closes_existing": true,
+          "retries_existing_intent": true,
+          "creates_new_position": false
+        },
+        {
+          "function": "_entry_add_rate_limit_recovery",
+          "call": "_place_order",
+          "closes_existing": false,
+          "retries_existing_intent": true,
+          "creates_new_position": false
+        }
+      ],
+      "zero_patterns": [],
+      "pass": true
+    },
+    "B4-I25": {
+      "feature": "Build 4 I25 UNATTRIBUTED_EXPOSURE",
+      "expected_behaviour": "If fresh exchange truth contains exposure that Build-4 cannot attribute to a canonical owned sleeve or to a known manual/external classification, normal copy execution must not blindly alter that exposure. Fail closed for the affected symbol only; unrelated symbols continue (I10).",
+      "category": "static",
+      "fail_closed_patterns": [
+        {
+          "line": 2472,
+          "text": "def _unowned_inventory_block(self, fill: LeaderFill) -> str:"
+        },
+        {
+          "line": 2478,
+          "text": "if now - self._coin_activity.get(coin, 0) <= int(fnum(os.getenv(\"HL_LIVE_UNOWNED_SETTLE_SEC\"), 10.0) * 1000):"
+        },
+        {
+          "line": 2479,
+          "text": "return \"\" if self._coin_clean.get(coin) else f\"UNOWNED_INVENTORY: {coin} not yet verified clean\""
+        },
+        {
+          "line": 2482,
+          "text": "return f\"UNOWNED_INVENTORY: follower positions unavailable ({exp.get('status')}); entries fail closed\""
+        },
+        {
+          "line": 2487,
+          "text": "f\"UNOWNED_INVENTORY: {coin} exchange net {ex_net} != engine-owned net {own}; entries blocked\")"
+        },
+        {
+          "line": 2521,
+          "text": "return f\"follower exposure unavailable ({exp.get('status')}); entries fail closed while a cap is set\""
+        },
+        {
+          "line": 2655,
+          "text": "unowned = self._unowned_inventory_block(fill)"
+        },
+        {
+          "line": 2656,
+          "text": "if unowned:"
+        },
+        {
+          "line": 2657,
+          "text": "return \"SEND_BLOCKED_RISK\", unowned"
+        }
+      ],
+      "pass": true
+    },
+    "F-GREEN-ONLY-001": {
+      "feature": "Canonical green condition",
+      "expected_behaviour": "Green only when fresh exchange actual == independently computed desired within tolerance, all open orders accounted, every send path under one master gate.",
+      "category": "static",
+      "gate_patterns": [
+        {
+          "line": 13,
+          "text": "- HL_LIVE_AUTO_SEND_ENABLED=0 is a hard master gate: no automatic send calls,"
+        },
+        {
+          "line": 138,
+          "text": "WALLET_GATE_FILE = BASE_DIR / \"wallet_gate.json\""
+        },
+        {
+          "line": 251,
+          "text": "\"exchange_order_id\", \"engine_can_close\", \"engine_can_send\", \"notes\","
+        },
+        {
+          "line": 378,
+          "text": "# Final-gate blocks: notional dust, raw/unresolved asset, invalid size/price"
+        },
+        {
+          "line": 454,
+          "text": "return \"HOLD_DUST_OR_AGGREGATE\""
+        },
+        {
+          "line": 492,
+          "text": "if state.startswith(\"OWNERSHIP_GATE_\") or state in {\"MOCK_ORDER_SUPPRESSED\"}:"
+        },
+        {
+          "line": 1147,
+          "text": "copy_required_decisions = {\"ENTRY_ALLOWED\", \"ADD_ALLOWED\", \"SEND_ALLOWED\", \"EXIT_ALLOWED\", \"REDUCE_ALLOWED\"}"
+        },
+        {
+          "line": 1160,
+          "text": "\"VALID_BLOCKED_BY_SAFETY_GATE\": 0,"
+        },
+        {
+          "line": 1161,
+          "text": "\"VALID_BLOCKED_BY_OWNERSHIP_GATE\": 0,"
+        },
+        {
+          "line": 1162,
+          "text": "\"VALID_BLOCKED_BY_SYMBOL_GATE\": 0,"
+        }
+      ],
+      "pass": true
+    },
+    "F-CLAIM-01": {
+      "feature": "Forbidden claim",
+      "expected_behaviour": "Never accepted as evidence: 'GREEN because unit tests passed'",
+      "category": "static",
+      "unit_test_refs": [
+        {
+          "line": 7757,
+          "text": "print(\"RESULT::CLEAN_LIVE_COPY_CORE_SELF_TEST_PASS\")"
+        }
+      ],
+      "pass": true
+    },
+    "F-CLAIM-02": {
+      "feature": "Forbidden claim",
+      "expected_behaviour": "Never accepted as evidence: 'GREEN because local ledger reconciled'",
+      "category": "static",
+      "ledger_refs": [
+        {
+          "line": 2658,
+          "text": "# total / per-asset caps use follower EXCHANGE truth (all DEX scopes), not the local ledger"
+        }
+      ],
+      "pass": true
+    },
+    "F-CLAIM-03": {
+      "feature": "Forbidden claim",
+      "expected_behaviour": "Never accepted as evidence: 'GREEN because WS event was seen'",
+      "category": "static",
+      "ws_refs": [],
+      "pass": true
+    },
+    "F-CLAIM-04": {
+      "feature": "Forbidden claim",
+      "expected_behaviour": "Never accepted as evidence: 'GREEN because order/fill row exists'",
+      "category": "static",
+      "row_refs": [
+        {
+          "line": 897,
+          "text": "fill window is not proof of flat. Hyperliquid fill rows include startPosition,"
+        },
+        {
+          "line": 7400,
+          "text": "_check(\"dedupe: first apply writes exactly one live_fill row\","
+        },
+        {
+          "line": 7409,
+          "text": "_check(\"dedupe: duplicate does NOT append second live_fill row\","
+        }
+      ],
+      "pass": true
+    },
+    "F-CLAIM-05": {
+      "feature": "Forbidden claim",
+      "expected_behaviour": "Never accepted as evidence: 'GREEN because dashboard row is clean'",
+      "category": "ui-visibility",
+      "pass": null,
+      "reason": "UI-visibility row: requires live dashboard verification"
+    },
+    "F-CLAIM-06": {
+      "feature": "Forbidden claim",
+      "expected_behaviour": "Never accepted as evidence: 'GREEN because one copied example worked'",
+      "category": "static",
+      "pass": true,
+      "reason": "Static check: no single-example evidence pattern in code"
+    },
+    "F-CLAIM-07": {
+      "feature": "Forbidden claim",
+      "expected_behaviour": "Never accepted as evidence: 'SAFE because auto_send is disabled'",
+      "category": "static",
+      "auto_send_refs": [
+        {
+          "line": 13,
+          "text": "- HL_LIVE_AUTO_SEND_ENABLED=0 is a hard master gate: no automatic send calls,"
+        },
+        {
+          "line": 376,
+          "text": "\"AUTO_SEND_DISABLED\": \"SEND_NOT_ATTEMPTED_AUTO_SEND_DISABLED\","
+        },
+        {
+          "line": 377,
+          "text": "\"MASTER_REAL_ORDERS_OFF\": \"SEND_NOT_ATTEMPTED_AUTO_SEND_DISABLED\","
+        },
+        {
+          "line": 451,
+          "text": "if terminal_state in {\"SEND_NOT_ATTEMPTED_WIRE_SIZE_ZERO\", \"SEND_NOT_ATTEMPTED_AUTO_SEND_DISABLED\"}:"
+        },
+        {
+          "line": 1864,
+          "text": "auto_send_enabled: bool = False"
+        }
+      ],
+      "pass": true
+    },
+    "F-CLAIM-08": {
+      "feature": "Forbidden claim",
+      "expected_behaviour": "Never accepted as evidence: 'SAFE because recovery handles it'",
+      "category": "static",
+      "recovery_safety_refs": [
+        {
+          "line": 3021,
+          "text": "action=\"NO_SEND_RECOVERY_SAFETY_BLOCK\","
+        },
+        {
+          "line": 3022,
+          "text": "reject_category=str(unsafe.get(\"reject_category\") or \"ENTRY_RECOVERY_SAFETY_BLOCK\"),"
+        },
+        {
+          "line": 3023,
+          "text": "terminal_state=str(unsafe.get(\"terminal_state\") or unsafe.get(\"status\") or \"ENTRY_RECOVERY_SAFETY_BLOCK\"),"
+        },
+        {
+          "line": 3025,
+          "text": "notes=f\"lifecycle={lifecycle}; recovery safety block={unsafe}; initial_error={initial_error}\","
+        }
+      ],
+      "pass": true
+    },
+    "INC-01": {
+      "feature": "Large exchange position visible",
+      "expected_behaviour": "Every follower exchange position, of any size and DEX, appears on the live-copy dashboard.",
+      "category": "ui-visibility",
+      "pass": null,
+      "reason": "UI-visibility row: requires live dashboard verification"
+    },
+    "INC-02": {
+      "feature": "Shared-symbol exposure counted",
+      "expected_behaviour": "Wallet exposure includes abs(size) x mark for shared-symbol sleeve rows; no row reports exposure as None while a position exists.",
+      "category": "static",
+      "exposure_patterns": [
+        {
+          "line": 7,
+          "text": "- One orchestrator, isolated wallet sleeves."
+        },
+        {
+          "line": 149,
+          "text": "EXPOSURE_FETCHER = None  # test seam for follower exposure reads; production uses HTTP"
+        },
+        {
+          "line": 183,
+          "text": "exp = _XNET.master_exposure(normalise_wallet(USER_WALLET), dexes, fetcher=EXPOSURE_FETCHER,"
+        },
+        {
+          "line": 213,
+          "text": "\"sleeve_id\", \"position_id\", \"position_direction_before\", \"wallet_position_before\","
+        },
+        {
+          "line": 221,
+          "text": "\"sleeve_id\", \"position_id\", \"wallet_position_before\", \"wallet_position_after_expected\","
+        },
+        {
+          "line": 243,
+          "text": "\"sleeve_id\", \"position_id\", \"coin\", \"side\", \"fill_price\", \"fill_size\", \"fill_notional\","
+        },
+        {
+          "line": 978,
+          "text": "if include_zero or abs(size) > POSITION_EPSILON:"
+        },
+        {
+          "line": 979,
+          "text": "out[canonical_coin_key(coin)] = 0.0 if abs(size) <= POSITION_EPSILON else size"
+        },
+        {
+          "line": 1116,
+          "text": "def _manual_sleeve_exists(wallet: str, coin: str) -> bool:"
+        },
+        {
+          "line": 1121,
+          "text": "for raw_coin, sleeve in wallet_map.items():"
+        }
+      ],
+      "pass": true
+    },
+    "INC-03": {
+      "feature": "Account vs engine position diff surfaced",
+      "expected_behaviour": "The account panel shows exchange positions by coin directly; any engine-vs-account difference is shown as a divergence.",
+      "category": "ui-visibility",
+      "pass": null,
+      "reason": "UI-visibility row: requires live dashboard verification"
+    },
+    "INC-04": {
+      "feature": "Ledger rows unsupported by exchange",
+      "expected_behaviour": "Ledger positions the exchange does not support are flagged (LEDGER_UNSUPPORTED_BY_EXCHANGE), never shown as owned exposure.",
+      "category": "static",
+      "unsupported_patterns": [
+        {
+          "line": 304,
+          "text": "if \"unknown asset\" in msg or \"invalid asset\" in msg or \"delisted\" in msg or \"asset unavailable\" in msg or \"unsupported asset\" in msg:"
+        },
+        {
+          "line": 356,
+          "text": "if status == \"SEND_NOT_ATTEMPTED_UNSUPPORTED_SYMBOL\" or category == \"UNSUPPORTED_SYMBOL_OR_METADATA\":"
+        },
+        {
+          "line": 357,
+          "text": "return \"UNSUPPORTED_SYMBOL_OR_METADATA\""
+        },
+        {
+          "line": 429,
+          "text": "if terminal_state == \"UNSUPPORTED_SYMBOL_OR_METADATA\":"
+        },
+        {
+          "line": 430,
+          "text": "return \"NO_SEND_UNSUPPORTED_SYMBOL\""
+        },
+        {
+          "line": 1209,
+          "text": "\"UNSUPPORTED_SYMBOL_OR_METADATA\","
+        },
+        {
+          "line": 1210,
+          "text": "\"SEND_NOT_ATTEMPTED_UNSUPPORTED_SYMBOL\","
+        },
+        {
+          "line": 1249,
+          "text": "if terms & symbol_terms or reject_category in {\"UNSUPPORTED_SYMBOL_OR_METADATA\", \"SPOT_MARKET_SKIPPED\"}:"
+        },
+        {
+          "line": 3338,
+          "text": "return False, \"SEND_NOT_ATTEMPTED_UNSUPPORTED_SYMBOL\", {"
+        },
+        {
+          "line": 3346,
+          "text": "\"reject_category\": \"UNSUPPORTED_SYMBOL_OR_METADATA\","
+        }
+      ],
+      "pass": true
+    },
+    "INC-05": {
+      "feature": "External and residual exposure categorised",
+      "expected_behaviour": "External/unowned and residual account-level exposure are categorised and never adopted as copy sleeves.",
+      "category": "static",
+      "categorization_patterns": [
+        {
+          "line": 223,
+          "text": "\"error\", \"reject_category\", \"terminal_state\", \"operator_action\", \"latency_classification\","
+        },
+        {
+          "line": 250,
+          "text": "\"copy_fill_id\", \"coin\", \"manual_net\", \"exchange_net\", \"action\", \"reject_category\", \"terminal_state\","
+        },
+        {
+          "line": 294,
+          "text": "def classify_reject_category(error_text: str = \"\", exchange_response: Any = None) -> str:"
+        },
+        {
+          "line": 315,
+          "text": "def reject_category_from_text(text: str) -> str:"
+        },
+        {
+          "line": 316,
+          "text": "return classify_reject_category(text, None)"
+        },
+        {
+          "line": 347,
+          "text": "def classify_terminal_state(status: str, reject_category: str = \"\", lifecycle: str = \"UNKNOWN_LIFECYCLE\", exchange_called: bool = True) -> str:"
+        },
+        {
+          "line": 349,
+          "text": "category = str(reject_category or \"\").upper()"
+        },
+        {
+          "line": 354,
+          "text": "if status == \"SPOT_MARKET_SKIPPED\" or category == \"SPOT_MARKET_SKIPPED\":"
+        },
+        {
+          "line": 356,
+          "text": "if status == \"SEND_NOT_ATTEMPTED_UNSUPPORTED_SYMBOL\" or category == \"UNSUPPORTED_SYMBOL_OR_METADATA\":"
+        },
+        {
+          "line": 384,
+          "text": "return pre.get(category or status, \"SEND_OUTCOME_REVIEW_REQUIRED\")"
+        }
+      ],
+      "pass": true
+    },
+    "INC-06": {
+      "feature": "No duplicate live fills",
+      "expected_behaviour": "Each cloid/oid maps to its fills exactly once; each post-restart oid has exactly one fill record.",
+      "category": "static",
+      "dedup_patterns": [
+        {
+          "line": 831,
+          "text": "for key in (\"exchange_order_id\", \"oid\", \"order_id\", \"orderId\"):"
+        },
+        {
+          "line": 919,
+          "text": "\"oid\": str(raw.get(\"oid\") or raw.get(\"exchange_order_id\") or \"\"),"
+        },
+        {
+          "line": 939,
+          "text": "\"oid\": str(obs.get(\"oid\") or \"\"),"
+        },
+        {
+          "line": 990,
+          "text": "live_oids = {row_exchange_order_id(row) for row in live_fills if row_exchange_order_id(row)}"
+        },
+        {
+          "line": 996,
+          "text": "info = evidence.setdefault(coin, {\"filled_oids\": set(), \"live_oids\": set(), \"missing_filled_oids\": [], \"live_net\": 0.0, \"live_fill_count\": 0, \"filled_send_count\": 0})"
+        },
+        {
+          "line": 997,
+          "text": "oid = row_exchange_order_id(row)"
+        },
+        {
+          "line": 998,
+          "text": "if oid:"
+        },
+        {
+          "line": 999,
+          "text": "info[\"live_oids\"].add(oid)"
+        },
+        {
+          "line": 1008,
+          "text": "info = evidence.setdefault(coin, {\"filled_oids\": set(), \"live_oids\": set(), \"missing_filled_oids\": [], \"live_net\": 0.0, \"live_fill_count\": 0, \"filled_send_count\": 0})"
+        },
+        {
+          "line": 1010,
+          "text": "oid = row_exchange_order_id(row)"
+        }
+      ],
+      "pass": true
+    },
+    "INC-07": {
+      "feature": "HIP-3 namespace consistent",
+      "expected_behaviour": "A HIP-3 symbol uses one namespace form (e.g. XYZ:BRENTOIL) across positions, prices, audit and UI.",
+      "category": "static",
+      "hip3_patterns": [
+        {
+          "line": 158,
+          "text": "\"\"\"Fresh follower-network mid for `coin`, default DEX and every HIP-3 DEX (allMids per DEX)."
+        },
+        {
+          "line": 858,
+          "text": "if not coin.startswith(\"XYZ:\"):"
+        },
+        {
+          "line": 910,
+          "text": "if not coin.startswith(\"XYZ:\"):"
+        },
+        {
+          "line": 1616,
+          "text": "if coin_key.startswith(\"XYZ:\") and coin_key not in exchange_positions and coin_key not in xyz_known:"
+        },
+        {
+          "line": 2490,
+          "text": "\"\"\"Follower account exposure from the FOLLOWER exchange over every perp DEX scope (HIP-3"
+        },
+        {
+          "line": 5469,
+          "text": "if not coin.startswith(\"XYZ:\"):"
+        },
+        {
+          "line": 5687,
+          "text": "if not coin_raw.lower().startswith(\"xyz:\"):"
+        },
+        {
+          "line": 5711,
+          "text": "positions closed outside the fill window (e.g. XYZ:GOLD)."
+        },
+        {
+          "line": 6742,
+          "text": "_xyz_sleeve = _xyz_leak_ledger.sleeve(_xyz_wallet, \"XYZ:CL\")"
+        },
+        {
+          "line": 6751,
+          "text": "_xyz_leak_ledger.save(touched_sleeves=[(_xyz_wallet, \"XYZ:CL\")])"
+        }
+      ],
+      "pass": true
+    },
+    "INC-09": {
+      "feature": "Unknown spot/asset meta fails closed",
+      "expected_behaviour": "A coin whose meta cannot be resolved (e.g. @230, @150) is refused and surfaced, never sent.",
+      "category": "static",
+      "meta_patterns": [
+        {
+          "line": 145,
+          "text": "HL_INFO_URL = NETWORKS[\"follower\"][\"info\"]          # follower: meta, mids, copy fills, clearinghouseState"
+        },
+        {
+          "line": 356,
+          "text": "if status == \"SEND_NOT_ATTEMPTED_UNSUPPORTED_SYMBOL\" or category == \"UNSUPPORTED_SYMBOL_OR_METADATA\":"
+        },
+        {
+          "line": 357,
+          "text": "return \"UNSUPPORTED_SYMBOL_OR_METADATA\""
+        },
+        {
+          "line": 362,
+          "text": "\"META_UNAVAILABLE\": \"SEND_NOT_ATTEMPTED_SYMBOL_UNRESOLVED\","
+        },
+        {
+          "line": 429,
+          "text": "if terminal_state == \"UNSUPPORTED_SYMBOL_OR_METADATA\":"
+        },
+        {
+          "line": 1209,
+          "text": "\"UNSUPPORTED_SYMBOL_OR_METADATA\","
+        },
+        {
+          "line": 1249,
+          "text": "if terms & symbol_terms or reject_category in {\"UNSUPPORTED_SYMBOL_OR_METADATA\", \"SPOT_MARKET_SKIPPED\"}:"
+        },
+        {
+          "line": 2482,
+          "text": "return f\"UNOWNED_INVENTORY: follower positions unavailable ({exp.get('status')}); entries fail closed\""
+        },
+        {
+          "line": 2521,
+          "text": "return f\"follower exposure unavailable ({exp.get('status')}); entries fail closed while a cap is set\""
+        },
+        {
+          "line": 2593,
+          "text": "normally \u00e2\u20ac\" we never block on ambiguous metadata."
+        }
+      ],
+      "pass": true
+    },
+    "INC-10": {
+      "feature": "Unproven send is ACTIVE_RED",
+      "expected_behaviour": "A send attempt that is not proven copied and reconciled is classified ACTIVE_RED and shown until resolved.",
+      "category": "ui-visibility",
+      "pass": null,
+      "reason": "UI-visibility row: requires live dashboard verification"
+    }
+  },
+  "summary": {
+    "pass": 19,
+    "fail": 0,
+    "blocked": 4
+  }
+}
