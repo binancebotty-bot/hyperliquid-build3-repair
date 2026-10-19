@@ -1,0 +1,107 @@
+[
+  {
+    "row_id": "F-GREEN-ONLY-001",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "Matrix evidence_ref points to shared regression sweep (REGRESSION_fa9d9f55ff.json, 138 rows) - NOT row-bound for F-GREEN-ONLY-001. No row-bound evidence route exists for canonical green condition (fresh exchange actual == independently computed desired, all open orders accounted, one master gate) in current Build-3 deployment at 89b3bc7."
+  },
+  {
+    "row_id": "F25-P01",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "Build-3 lifecycle mechanism (launcher/builder/pointer/sender_lease system) GENUINELY ABSENT - OD-12 open decision: 'no Build 3 document in the source set names the canonical start command, lock or version source'. Build-4 F25 mechanism cannot be imported. Cannot test 'launcher Status works against real running production' because the mechanism does not exist in Build-3 deployment at 89b3bc7."
+  },
+  {
+    "row_id": "F25-P02",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "Build-3 lifecycle mechanism (launcher/builder/pointer/sender_lease system) GENUINELY ABSENT - OD-12 open decision: 'no Build 3 document in the source set names the canonical start command, lock or version source'. Build-4 F25 mechanism cannot be imported. Cannot test 'stale pointers cannot masquerade as running truth' because the mechanism does not exist in Build-3 deployment at 89b3bc7."
+  },
+  {
+    "row_id": "F25-P03",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "Build-3 lifecycle mechanism (launcher/builder/pointer/sender_lease system) GENUINELY ABSENT - OD-12 open decision: 'no Build 3 document in the source set names the canonical start command, lock or version source'. Build-4 F25 mechanism cannot be imported. Cannot test 'missing manifest fields fail visibly' because the mechanism does not exist in Build-3 deployment at 89b3bc7."
+  },
+  {
+    "row_id": "F25-P04",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "Build-3 lifecycle mechanism (launcher/builder/pointer/sender_lease system) GENUINELY ABSENT - OD-12 open decision: 'no Build 3 document in the source set names the canonical start command, lock or version source'. Build-4 F25 mechanism cannot be imported. Cannot test 'builder and launcher share ONE schema' because the mechanism does not exist in Build-3 deployment at 89b3bc7."
+  },
+  {
+    "row_id": "F25-P05",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "Build-3 lifecycle mechanism (launcher/builder/pointer/sender_lease system) GENUINELY ABSENT - OD-12 open decision: 'no Build 3 document in the source set names the canonical start command, lock or version source'. Build-4 F25 mechanism cannot be imported. Cannot test 'legacy unbound releases report SOURCE_COMMIT=UNPROVEN' because the mechanism does not exist in Build-3 deployment at 89b3bc7."
+  },
+  {
+    "row_id": "F25-P06",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "Build-3 lifecycle mechanism (launcher/builder/pointer/sender_lease system) GENUINELY ABSENT - OD-12 open decision: 'no Build 3 document in the source set names the canonical start command, lock or version source'. Build-4 F25 mechanism cannot be imported. Cannot test 'final releases are commit-bound' because the mechanism does not exist in Build-3 deployment at 89b3bc7."
+  },
+  {
+    "row_id": "F25-P07",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "Build-3 lifecycle mechanism (launcher/builder/pointer/sender_lease system) GENUINELY ABSENT - OD-12 open decision: 'no Build 3 document in the source set names the canonical start command, lock or version source'. Build-4 F25 mechanism cannot be imported. Cannot test 'pointer promotion is atomic' because the mechanism does not exist in Build-3 deployment at 89b3bc7."
+  },
+  {
+    "row_id": "F25-P08",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "Build-3 lifecycle mechanism (launcher/builder/pointer/sender_lease system) GENUINELY ABSENT - OD-12 open decision: 'no Build 3 document in the source set names the canonical start command, lock or version source'. Build-4 F25 mechanism cannot be imported. Cannot test 'pointer target exists and matches the intended release' because the mechanism does not exist in Build-3 deployment at 89b3bc7."
+  },
+  {
+    "row_id": "F25-P09",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "Build-3 lifecycle mechanism (launcher/builder/pointer/sender_lease system) GENUINELY ABSENT - OD-12 open decision: 'no Build 3 document in the source set names the canonical start command, lock or version source'. Build-4 F25 mechanism cannot be imported. Cannot test 'sender lease holder and selected release cannot silently disagree' because the mechanism does not exist in Build-3 deployment at 89b3bc7."
+  },
+  {
+    "row_id": "F25-P10",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "Build-3 lifecycle mechanism (launcher/builder/pointer/sender_lease system) GENUINELY ABSENT - OD-12 open decision: 'no Build 3 document in the source set names the canonical start command, lock or version source'. Build-4 F25 mechanism cannot be imported. Cannot test 'UI/runtime/deployment identity traces back to the exact reviewed Git commit' because the mechanism does not exist in Build-3 deployment at 89b3bc7."
+  },
+  {
+    "row_id": "F25-X01",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "Build-3 lifecycle mechanism (launcher/builder/pointer/sender_lease system) GENUINELY ABSENT - OD-12 open decision: 'no Build 3 document in the source set names the canonical start command, lock or version source'. Build-4 F25 mechanism cannot be imported. Cannot test 'Must never happen: a source_commit is inferred, backfilled, or derived from a directory name' because the mechanism does not exist in Build-3 deployment at 89b3bc7."
+  },
+  {
+    "row_id": "F25-X02",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "Build-3 lifecycle mechanism (launcher/builder/pointer/sender_lease system) GENUINELY ABSENT - OD-12 open decision: 'no Build 3 document in the source set names the canonical start command, lock or version source'. Build-4 F25 mechanism cannot be imported. Cannot test 'Must never happen: a pointer is hand-edited rather than atomically promoted' because the mechanism does not exist in Build-3 deployment at 89b3bc7."
+  },
+  {
+    "row_id": "F25-X03",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "Build-3 lifecycle mechanism (launcher/builder/pointer/sender_lease system) GENUINELY ABSENT - OD-12 open decision: 'no Build 3 document in the source set names the canonical start command, lock or version source'. Build-4 F25 mechanism cannot be imported. Cannot test 'Must never happen: a pointer claims a proven commit the release does not carry' because the mechanism does not exist in Build-3 deployment at 89b3bc7."
+  },
+  {
+    "row_id": "F25-X04",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "Build-3 lifecycle mechanism (launcher/builder/pointer/sender_lease system) GENUINELY ABSENT - OD-12 open decision: 'no Build 3 document in the source set names the canonical start command, lock or version source'. Build-4 F25 mechanism cannot be imported. Cannot test 'Must never happen: a release is promoted while another deployment holds the sender lease' because the mechanism does not exist in Build-3 deployment at 89b3bc7."
+  }
+]
