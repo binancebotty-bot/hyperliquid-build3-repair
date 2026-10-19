@@ -1,0 +1,47 @@
+{
+  "check_id": "REVIEW-ORD001-REDO-t_b752700d",
+  "reviewer_model": "deepseek-v4-flash-thinking-nosearch (independent of REDO author)",
+  "repo": "binancebotty-bot/hyperliquid-build3-repair",
+  "branch_reviewed": "hermes/cert-batch3-t_cece0703-ord001-fix",
+  "head_sha_reviewed": "21712d0dd111ea25c3b84a5f381e5ab15e62f113",
+  "parent_base": "4bd74628c6064474f8ec0769d823f88b67524271",
+  "overall_verdict": "PASS",
+  "checks": [
+    {
+      "check_id": "C1-fabricated-census-removed",
+      "verdict": "PASS",
+      "probe": "grep -iE 'four |L2726|L2843|L3350|L3379|product architecture' on the REDO tree for BOTH changed files (CERT_BATCH3_t_0f1e6f84.json and certification_matrix.json) -> zero hits (exit 1 on both). Full field-level diff of the ORD-001 row shows the old why replaced, not appended to.",
+      "why": "Neither the 'four exchange.order() call sites' census, nor any of the four line numbers, nor the 'product architecture failure' phrasing survives anywhere in either artifact."
+    },
+    {
+      "check_id": "C2-replacement-backed-by-cited-evidence",
+      "verdict": "PASS",
+      "probe": "git show <head>:certification/results/ORDER_CORRECTION_fefc2b04.json compared field-by-field against the new ORD-001 why.",
+      "why": "The new why asserts (a) exchange-truth oracle NOT achievable on testnet because the follower wallet does not exist -> matches oracle_statement and every row's exchange_truth_aspect='NOT_ESTABLISHED (follower wallet does not exist on testnet)'; (b) double recorded 0 exchange.order() calls -> matches ORD-001 checks ONE_ORDER_CALL_PER_SEND_VIA_DOUBLE ('calls across 3 sends: 0') and EXCHANGE_ORDER_INVOKED_ON_SEND_VIA_DOUBLE ('0 (expected 1)'); (c) verdict stays FAIL 3/5 -> matches checks_pass=3/checks_total=5. Minor precision caveat, not a defect: the literal status string REAL_SENDER_NOT_CONFIGURED appears in this file's ORD-008 / TN-F05 checks rather than in ORD-001's own check details, so attributing that exact status to the ORD-001 send path is a cross-row inference from the same committed artifact. The substantive claim (send path never reached the exchange; 0 order calls) is directly carried by ORD-001's own checks."
+    },
+    {
+      "check_id": "C3-other-14-rows-unchanged",
+      "verdict": "PASS",
+      "probe": "git diff --numstat and git diff -w --stat base..head; JSON-level zip comparison of every row object in CERT_BATCH3_t_0f1e6f84.json and of all 790 records in certification_matrix.json.",
+      "why": "Only two files differ. Whitespace-insensitive the change is 1 line per file. Row-level comparison: exactly one row differs (ORD-001) and only in its 'why' field ('all_other_rows_identical True'); row order unchanged. Matrix comparison across all 790 records: exactly one record differs (ORD-001) and only in its 'notes' field. NOTE: the committed diff also reformats the ORD-001 object's leading indentation in both files (spaces 1->3), which shows up as 26/26 and 6/6 numstat lines; that is the same single JSON object, not a content change to other rows."
+    },
+    {
+      "check_id": "C4-counts-reproduce",
+      "verdict": "PASS",
+      "probe": "python json load of the head artifact: len(rows), len(set(row_id)), Counter(verdict).",
+      "why": "15 rows, 15 unique row_ids, verdicts {'PASS': 4, 'NOT_TESTED': 9, 'FAIL': 2} - identical to the numbers claimed and to the base commit. ORD-001's own verdict remains FAIL."
+    },
+    {
+      "check_id": "C5-matrix-note-corrected-with-reproducible-census",
+      "verdict": "PASS",
+      "probe": "Diffed certification_matrix.json ORD-001 notes base vs head; then independently re-ran the call-site census at the tested commit fefc2b04 on _archive/hl_stage2/HL_Live_Copy_Service_Core.py and repo-wide over non-test .py files; and read the four disputed line numbers.",
+      "why": "The matrix note WAS corrected (author did not decline): it now reads 'one physical exchange.order() call site at L2703 (tested commit fefc2b04); repo-wide there are 2 call sites' and the four line numbers (L2726, L2843, L3350, L3379) are gone. I independently reproduced the census: Core.py has exactly one real call - L2703 'return exchange.order(...)' - the other two grep hits in that file are docstring mentions (L4273/L4275), and repo-wide over non-test sources the only second real call is _archive/hl_stage2/HL_Live_Copy_Service.py:1036. So 1 in the engine, 2 repo-wide is correct. I also confirmed L2726 ('(SEND_ATTEMPTS_CSV, SEND_ATTEMPT_FIELDS),'), L2843 ('manual_net, exchange_net,'), L3350 ('}') and L3379 ('if HLAccount is None or HLExchange is None:') contain no order call, which is what made the original claim fabricated."
+    }
+  ],
+  "cannot_disprove": "I did not attempt to re-run the ORDER_CORRECTION harness at fefc2b04, so I neither confirm nor deny the 3/5 check outcome itself - the review is scoped to whether the REDO's replacement text matches that committed evidence file, which it does. I also did not verify that fefc2b04 is the correct/only commit the row should bind to; the REDO preserved the pre-existing tested_commit and evidence_ref unchanged.",
+  "further_corrective_card_required": false,
+  "corrective_card_id": null,
+  "evidence_artifacts": [
+    "certification/results/REVIEW_ORD001_redo_t_b752700d.json"
+  ]
+}
