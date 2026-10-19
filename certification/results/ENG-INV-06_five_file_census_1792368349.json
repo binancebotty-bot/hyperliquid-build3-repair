@@ -1,0 +1,83 @@
+{
+  "census_type": "ENG-INV-06 five-file re-derivation",
+  "criterion": "Static source census at the certified commit (AST scan for .order( call sites, imports, process spawns, file writers) plus runtime process count",
+  "criterion_source": "certification_matrix.json ENG-INV-06 execution_proof field",
+  "five_engine_files_source": "ENG-INV-03 baseline (certification/results/ENG-INV-03-05_oracle_run_tested_43731b4f.json baseline.files_scanned) — Dedicated AST oracle walks all 5 production engine files",
+  "five_engine_files": [
+    "_archive/hl_stage2/convergence_shadow.py",
+    "_archive/hl_stage2/exchange_truth.py",
+    "_archive/hl_stage2/HL_Copy_App_SSOT.py",
+    "_archive/hl_stage2/HL_Live_Copy_Service.py",
+    "_archive/hl_stage2/HL_Live_Copy_Service_Core.py"
+  ],
+  "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+  "tested_at_utc": "2026-10-19T00:00:00Z",
+  "per_file_results": {
+    "_archive/hl_stage2/convergence_shadow.py": {
+      "exchange_order_sites": [],
+      "unapproved_third_party_imports": [],
+      "build4_imports": [],
+      "store_driver_imports": [],
+      "process_spawns": [],
+      "persistent_store_sinks": [],
+      "verdict": "PASS"
+    },
+    "_archive/hl_stage2/exchange_truth.py": {
+      "exchange_order_sites": [],
+      "unapproved_third_party_imports": [],
+      "build4_imports": [],
+      "store_driver_imports": [],
+      "process_spawns": [],
+      "persistent_store_sinks": [],
+      "verdict": "PASS"
+    },
+    "_archive/hl_stage2/HL_Copy_App_SSOT.py": {
+      "exchange_order_sites": [],
+      "unapproved_third_party_imports": [],
+      "build4_imports": [],
+      "store_driver_imports": [],
+      "process_spawns": [],
+      "persistent_store_sinks": [],
+      "verdict": "PASS"
+    },
+    "_archive/hl_stage2/HL_Live_Copy_Service.py": {
+      "exchange_order_sites": [
+        {"line": 1036, "col": 19, "receiver": "exchange"}
+      ],
+      "unapproved_third_party_imports": [],
+      "build4_imports": [],
+      "store_driver_imports": [],
+      "process_spawns": [],
+      "persistent_store_sinks": [],
+      "verdict": "FAIL (order site)"
+    },
+    "_archive/hl_stage2/HL_Live_Copy_Service_Core.py": {
+      "exchange_order_sites": [
+        {"line": 4204, "col": 19, "receiver": "exchange"}
+      ],
+      "unapproved_third_party_imports": [],
+      "build4_imports": [],
+      "store_driver_imports": [],
+      "process_spawns": [],
+      "persistent_store_sinks": [],
+      "verdict": "FAIL (order site)"
+    }
+  },
+  "aggregate_findings": {
+    "total_exchange_order_sites": 2,
+    "files_with_order_sites": 2,
+    "unapproved_third_party_imports": 0,
+    "build4_imports": 0,
+    "store_driver_imports": 0,
+    "process_spawns": 0,
+    "persistent_store_sinks": 0
+  },
+  "checks": {
+    "single_order_call_site": false,
+    "no_process_spawns": true,
+    "no_new_third_party_imports": true,
+    "no_persistent_store": true
+  },
+  "eng_inv_06_verdict": "FAIL",
+  "verdict_reason": "FAIL: single_order_call_site=false — two reachable production exchange.order() call sites found across the five engine files (HL_Live_Copy_Service.py:1036 and HL_Live_Copy_Service_Core.py:4204). This confirms the ENG-INV-02 two-site census and disproves the one-file census artifact (ENG-INV-06-09_43731b4.json) which scanned only one file and reported single_order_call_site=true."
+}
