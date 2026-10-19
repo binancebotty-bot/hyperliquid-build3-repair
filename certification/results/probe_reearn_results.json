@@ -1,0 +1,263 @@
+{
+ "checks": [
+  {
+   "check": "total_cap_refuses_order_when_remaining_allowance_below_min",
+   "detail": "active=('SEND_BLOCKED_RISK', 'max total exposure exceeded') want ('SEND_BLOCKED_RISK', 'max total exposure exceeded'); control=('ENTRY_ALLOWED', 'ENTRY') want ('ENTRY_ALLOWED', 'ENTRY')",
+   "pass": true,
+   "row": "RISK-001"
+  },
+  {
+   "check": "total_cap_sizes_down_to_remaining_allowance",
+   "detail": "active=('', 0.666667) want ('', 0.666667); control=('', 1.0) want ('', 1.0)",
+   "pass": true,
+   "row": "RISK-001"
+  },
+  {
+   "check": "asset_cap_blocks_the_side_that_grows_the_net_only",
+   "detail": "active=('SEND_BLOCKED_RISK', 'max asset directional exposure exceeded') want ('SEND_BLOCKED_RISK', 'max asset directional exposure exceeded'); control=('ENTRY_ALLOWED', 'ENTRY') want ('ENTRY_ALLOWED', 'ENTRY')",
+   "pass": true,
+   "row": "RISK-002"
+  },
+  {
+   "check": "asset_cap_control_is_the_cap_itself",
+   "detail": "active=('SEND_BLOCKED_RISK', 'max asset directional exposure exceeded') want ('SEND_BLOCKED_RISK', 'max asset directional exposure exceeded'); control=('ENTRY_ALLOWED', 'ENTRY') want ('ENTRY_ALLOWED', 'ENTRY')",
+   "pass": true,
+   "row": "RISK-002"
+  },
+  {
+   "check": "asset_cap_sizes_down_to_remaining_directional_room",
+   "detail": "active=('', 0.5) want ('', 0.5); control=('', 1.0) want ('', 1.0)",
+   "pass": true,
+   "row": "RISK-002"
+  },
+  {
+   "check": "wallet_exposure_cap_uses_ledger_plus_resting",
+   "detail": "active=('SEND_BLOCKED_RISK', 'max wallet exposure exceeded') want ('SEND_BLOCKED_RISK', 'max wallet exposure exceeded'); control=('ENTRY_ALLOWED', 'ENTRY') want ('ENTRY_ALLOWED', 'ENTRY')",
+   "pass": true,
+   "row": "RISK-003"
+  },
+  {
+   "check": "max_order_notional_blocks_oversized_single_order",
+   "detail": "active=('SEND_BLOCKED_RISK', 'max order notional exceeded') want ('SEND_BLOCKED_RISK', 'max order notional exceeded'); control=('ENTRY_ALLOWED', 'ENTRY') want ('ENTRY_ALLOWED', 'ENTRY')",
+   "pass": true,
+   "row": "RISK-004"
+  },
+  {
+   "check": "marketable_bps_moves_the_valuation_price",
+   "detail": "active=101.0 want 101.0; control=100.0 want 100.0",
+   "pass": true,
+   "row": "RISK-005"
+  },
+  {
+   "check": "slippage_alone_flips_max_order_verdict",
+   "detail": "active=('SEND_BLOCKED_RISK', 'max order notional exceeded') want ('SEND_BLOCKED_RISK', 'max order notional exceeded'); control=('ENTRY_ALLOWED', 'ENTRY') want ('ENTRY_ALLOWED', 'ENTRY')",
+   "pass": true,
+   "row": "PRICE-007"
+  },
+  {
+   "check": "allowlist_refuses_symbol_outside_the_list_only",
+   "detail": "active=('SYMBOL_UNAVAILABLE', 'SYMBOL_NOT_ALLOWED') want ('SYMBOL_UNAVAILABLE', 'SYMBOL_NOT_ALLOWED'); control=('ENTRY_ALLOWED', 'ENTRY') want ('ENTRY_ALLOWED', 'ENTRY')",
+   "pass": true,
+   "row": "RISK-007"
+  },
+  {
+   "check": "blocklist_refuses_the_named_symbol_only",
+   "detail": "active=('SYMBOL_UNAVAILABLE', 'SYMBOL_BLOCKED') want ('SYMBOL_UNAVAILABLE', 'SYMBOL_BLOCKED'); control=('ENTRY_ALLOWED', 'ENTRY') want ('ENTRY_ALLOWED', 'ENTRY')",
+   "pass": true,
+   "row": "RISK-008"
+  },
+  {
+   "check": "blocklist_never_traps_an_open_sleeve",
+   "detail": "active=('EXIT_ALLOWED', 'EXIT') want ('EXIT_ALLOWED', 'EXIT'); control=('EXIT_ALLOWED', 'EXIT') want ('EXIT_ALLOWED', 'EXIT')",
+   "pass": true,
+   "row": "RISK-008"
+  },
+  {
+   "check": "unreadable_exposure_fails_closed_only_under_a_cap",
+   "detail": "active=('SEND_BLOCKED_RISK', 'follower exposure unavailable (UNAVAILABLE); entries fail closed while a cap is set') want ('SEND_BLOCKED_RISK', 'follower exposure unavailable (UNAVAILABLE); entries fail closed while a cap is set'); control=('ENTRY_ALLOWED', 'ENTRY') want ('ENTRY_ALLOWED', 'ENTRY')",
+   "pass": true,
+   "row": "RISK-014"
+  },
+  {
+   "check": "unreadable_resting_limits_fail_closed",
+   "detail": "active=('SEND_BLOCKED_RISK', 'resting limits unreadable; entries fail closed while a cap is set') want ('SEND_BLOCKED_RISK', 'resting limits unreadable; entries fail closed while a cap is set'); control=('ENTRY_ALLOWED', 'ENTRY') want ('ENTRY_ALLOWED', 'ENTRY')",
+   "pass": true,
+   "row": "RISK-014"
+  },
+  {
+   "check": "safe_stop_off_on_disk_is_read_as_off",
+   "detail": "active='OFF' want 'OFF'; control='ON' want 'ON'",
+   "pass": true,
+   "row": "RISK-012"
+  },
+  {
+   "check": "close_bypasses_entry_min_notional_and_caps",
+   "detail": "active=('EXIT_ALLOWED', 'EXIT') want ('EXIT_ALLOWED', 'EXIT'); control=('BELOW_MIN_NOTIONAL', 'entry/add notional below minimum') want ('BELOW_MIN_NOTIONAL', 'entry/add notional below minimum')",
+   "pass": true,
+   "row": "PRICE-005"
+  },
+  {
+   "check": "min_notional_blocks_entry_under_the_configured_floor",
+   "detail": "active=('BELOW_MIN_NOTIONAL', 'entry/add notional below minimum') want ('BELOW_MIN_NOTIONAL', 'entry/add notional below minimum'); control=('ENTRY_ALLOWED', 'ENTRY') want ('ENTRY_ALLOWED', 'ENTRY')",
+   "pass": true,
+   "row": "ORD-003"
+  },
+  {
+   "check": "wire_size_floors_then_ceils_at_symbol_precision",
+   "detail": "active=(0.123, 0.124, 0.12) want (0.123, 0.124, 0.12); control=(0.123, 0.124, 0.12) want (0.123, 0.124, 0.12)",
+   "pass": true,
+   "row": "ORD-004"
+  },
+  {
+   "check": "cloid_is_a_deterministic_function_of_the_intent_id",
+   "detail": "active=(True, True, 34) want (True, True, 34); control=(True, False, 0) want (True, False, 0)",
+   "pass": true,
+   "row": "ORD-005"
+  },
+  {
+   "check": "reduce_only_is_set_on_closes_and_never_on_opens",
+   "detail": "active=(True, True, False, False) want (True, True, False, False); control=(False, False, True, True) want (False, False, True, True)",
+   "pass": true,
+   "row": "ORD-002"
+  },
+  {
+   "check": "daily_loss_limit_blocks_at_the_configured_loss",
+   "detail": "active='DAILY_LOSS_LIMIT_REACHED' want 'DAILY_LOSS_LIMIT_REACHED'; control='' want ''",
+   "pass": true,
+   "row": "RISK-009"
+  },
+  {
+   "check": "daily_loss_unreadable_fails_closed",
+   "detail": "active='DAILY_LOSS_UNREADABLE' want 'DAILY_LOSS_UNREADABLE'; control='' want ''",
+   "pass": true,
+   "row": "RISK-009"
+  }
+ ],
+ "engine": {
+  "path": "repo/_archive/hl_stage2/HL_Live_Copy_Service_Core.py",
+  "sha256": "1a1daf81861f726fb2f00066ca5a5314b423ec8766af665def2096adcd93a564"
+ },
+ "method": "per row: ACTIVE case + CONTROL case differing only in that row's own control value; exact block reason asserted",
+ "rows": {
+  "ORD-002": {
+   "checks": [
+    "reduce_only_is_set_on_closes_and_never_on_opens"
+   ],
+   "pass": true,
+   "verdict": "PASS"
+  },
+  "ORD-003": {
+   "checks": [
+    "min_notional_blocks_entry_under_the_configured_floor"
+   ],
+   "pass": true,
+   "verdict": "PASS"
+  },
+  "ORD-004": {
+   "checks": [
+    "wire_size_floors_then_ceils_at_symbol_precision"
+   ],
+   "pass": true,
+   "verdict": "PASS"
+  },
+  "ORD-005": {
+   "checks": [
+    "cloid_is_a_deterministic_function_of_the_intent_id"
+   ],
+   "pass": true,
+   "verdict": "PASS"
+  },
+  "PRICE-005": {
+   "checks": [
+    "close_bypasses_entry_min_notional_and_caps"
+   ],
+   "pass": true,
+   "verdict": "PASS"
+  },
+  "PRICE-007": {
+   "checks": [
+    "slippage_alone_flips_max_order_verdict"
+   ],
+   "pass": true,
+   "verdict": "PASS"
+  },
+  "RISK-001": {
+   "checks": [
+    "total_cap_refuses_order_when_remaining_allowance_below_min",
+    "total_cap_sizes_down_to_remaining_allowance"
+   ],
+   "pass": true,
+   "verdict": "PASS"
+  },
+  "RISK-002": {
+   "checks": [
+    "asset_cap_blocks_the_side_that_grows_the_net_only",
+    "asset_cap_control_is_the_cap_itself",
+    "asset_cap_sizes_down_to_remaining_directional_room"
+   ],
+   "pass": true,
+   "verdict": "PASS"
+  },
+  "RISK-003": {
+   "checks": [
+    "wallet_exposure_cap_uses_ledger_plus_resting"
+   ],
+   "pass": true,
+   "verdict": "PASS"
+  },
+  "RISK-004": {
+   "checks": [
+    "max_order_notional_blocks_oversized_single_order"
+   ],
+   "pass": true,
+   "verdict": "PASS"
+  },
+  "RISK-005": {
+   "checks": [
+    "marketable_bps_moves_the_valuation_price"
+   ],
+   "pass": true,
+   "verdict": "PASS"
+  },
+  "RISK-007": {
+   "checks": [
+    "allowlist_refuses_symbol_outside_the_list_only"
+   ],
+   "pass": true,
+   "verdict": "PASS"
+  },
+  "RISK-008": {
+   "checks": [
+    "blocklist_refuses_the_named_symbol_only",
+    "blocklist_never_traps_an_open_sleeve"
+   ],
+   "pass": true,
+   "verdict": "PASS"
+  },
+  "RISK-009": {
+   "checks": [
+    "daily_loss_limit_blocks_at_the_configured_loss",
+    "daily_loss_unreadable_fails_closed"
+   ],
+   "pass": true,
+   "verdict": "PASS"
+  },
+  "RISK-012": {
+   "checks": [
+    "safe_stop_off_on_disk_is_read_as_off"
+   ],
+   "pass": true,
+   "verdict": "PASS"
+  },
+  "RISK-014": {
+   "checks": [
+    "unreadable_exposure_fails_closed_only_under_a_cap",
+    "unreadable_resting_limits_fail_closed"
+   ],
+   "pass": true,
+   "verdict": "PASS"
+  }
+ },
+ "schema": "reearn-row-probes/1",
+ "task": "t_99472e6c"
+}
