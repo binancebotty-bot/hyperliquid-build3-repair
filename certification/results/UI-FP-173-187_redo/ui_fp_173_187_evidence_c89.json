@@ -1,0 +1,565 @@
+{
+  "tag": "c89",
+  "app_dir": "C:\\Users\\wigmore\\.hermes\\kanban\\workspaces\\t_1c4509ec\\iso\\app89",
+  "port": 8042,
+  "state_dir": "C:\\Users\\wigmore\\.hermes\\kanban\\workspaces\\t_1c4509ec\\iso\\run\\audit_c89",
+  "app_file_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+  "rows": {
+    "UI-FP-180": {
+      "kind": "control",
+      "expected": 12500.5,
+      "posted_raw": 12500.5,
+      "api_value": 12500.5,
+      "dom_input_id": "gcMaxTotal",
+      "dom_input_value": "12500.5",
+      "want_dom": "12500.5",
+      "checks": {
+        "post_normalised": true,
+        "get_roundtrip": true,
+        "disk_persisted": true,
+        "dom_input_shows_value": true
+      },
+      "pass": true,
+      "provenance": "POST /api/global-controls -> live_config.json -> GET /api/global-controls -> #gcMaxTotal.value"
+    },
+    "UI-FP-181": {
+      "kind": "control",
+      "expected": 2500.0,
+      "posted_raw": 2500,
+      "api_value": 2500.0,
+      "dom_input_id": "gcMaxDir",
+      "dom_input_value": "2500",
+      "want_dom": "2500",
+      "checks": {
+        "post_normalised": true,
+        "get_roundtrip": true,
+        "disk_persisted": true,
+        "dom_input_shows_value": true
+      },
+      "pass": true,
+      "provenance": "POST /api/global-controls -> live_config.json -> GET /api/global-controls -> #gcMaxDir.value"
+    },
+    "UI-FP-182": {
+      "kind": "control",
+      "expected": 750.25,
+      "posted_raw": 750.25,
+      "api_value": 750.25,
+      "dom_input_id": "gcMaxWallet",
+      "dom_input_value": "750.25",
+      "want_dom": "750.25",
+      "checks": {
+        "post_normalised": true,
+        "get_roundtrip": true,
+        "disk_persisted": true,
+        "dom_input_shows_value": true
+      },
+      "pass": true,
+      "provenance": "POST /api/global-controls -> live_config.json -> GET /api/global-controls -> #gcMaxWallet.value"
+    },
+    "UI-FP-183": {
+      "kind": "control",
+      "expected": 50.5,
+      "posted_raw": "50.5",
+      "api_value": 50.5,
+      "dom_input_id": "gcMaxOrder",
+      "dom_input_value": "50.5",
+      "want_dom": "50.5",
+      "checks": {
+        "post_normalised": true,
+        "get_roundtrip": true,
+        "disk_persisted": true,
+        "dom_input_shows_value": true
+      },
+      "pass": true,
+      "provenance": "POST /api/global-controls -> live_config.json -> GET /api/global-controls -> #gcMaxOrder.value"
+    },
+    "UI-FP-184": {
+      "kind": "control",
+      "expected": 0.35,
+      "posted_raw": 0.35,
+      "api_value": 35.0,
+      "dom_input_id": "gcMktPct",
+      "dom_input_value": "0.35",
+      "want_dom": "0.35",
+      "checks": {
+        "post_normalised": true,
+        "get_roundtrip": true,
+        "disk_persisted": true,
+        "dom_input_shows_value": true
+      },
+      "pass": true,
+      "provenance": "POST /api/global-controls -> live_config.json -> GET /api/global-controls -> #gcMktPct.value"
+    },
+    "UI-FP-185": {
+      "kind": "control",
+      "expected": 0.12,
+      "posted_raw": "0.1200",
+      "api_value": 0.12,
+      "dom_input_id": "gcCloseAdv",
+      "dom_input_value": "0.12",
+      "want_dom": "0.12",
+      "checks": {
+        "post_normalised": true,
+        "get_roundtrip": true,
+        "disk_persisted": true,
+        "dom_input_shows_value": true
+      },
+      "pass": true,
+      "provenance": "POST /api/global-controls -> live_config.json -> GET /api/global-controls -> #gcCloseAdv.value"
+    },
+    "UI-FP-186": {
+      "kind": "control",
+      "expected": [
+        "BTC",
+        "ETH",
+        "SOL"
+      ],
+      "posted_raw": [
+        "btc",
+        " eth ",
+        "Sol"
+      ],
+      "api_value": [
+        "BTC",
+        "ETH",
+        "SOL"
+      ],
+      "dom_input_id": "gcAllowlist",
+      "dom_input_value": "BTC,ETH,SOL",
+      "want_dom": "BTC,ETH,SOL",
+      "checks": {
+        "post_normalised": true,
+        "get_roundtrip": true,
+        "disk_persisted": true,
+        "dom_input_shows_value": true
+      },
+      "pass": true,
+      "provenance": "POST /api/global-controls -> live_config.json -> GET /api/global-controls -> #gcAllowlist.value"
+    },
+    "UI-FP-187": {
+      "kind": "control",
+      "expected": [
+        "DOGE",
+        "XRP"
+      ],
+      "posted_raw": [
+        "doge",
+        " xrp"
+      ],
+      "api_value": [
+        "DOGE",
+        "XRP"
+      ],
+      "dom_input_id": "gcBlocklist",
+      "dom_input_value": "DOGE,XRP",
+      "want_dom": "DOGE,XRP",
+      "checks": {
+        "post_normalised": true,
+        "get_roundtrip": true,
+        "disk_persisted": true,
+        "dom_input_shows_value": true
+      },
+      "pass": true,
+      "provenance": "POST /api/global-controls -> live_config.json -> GET /api/global-controls -> #gcBlocklist.value"
+    },
+    "UI-FP-173": {
+      "kind": "health",
+      "source_field": "snapshot_fill_recovered_count",
+      "source_value": 710173,
+      "header": "Snap recovered",
+      "api_value": 710173,
+      "dom_cell": "710173",
+      "neighbour_cell": "1",
+      "checks": {
+        "api_matches_source_file": true,
+        "dom_cell_matches_source_value": true,
+        "row_bound_not_neighbour_value": true
+      },
+      "pass": true,
+      "dom_capture": "iso/ev/dom_health_c89_fixture.html",
+      "provenance": "live_ws_health.json wallets[0x1111111111111111111111111111111111111730].snapshot_fill_recovered_count -> GET /api/live-ws-health -> Snap recovered cell in #lcHealthRows"
+    },
+    "UI-FP-174": {
+      "kind": "health",
+      "source_field": "ignored_snapshot_count",
+      "source_value": 710174,
+      "header": "Ignored",
+      "api_value": 710174,
+      "dom_cell": "710174",
+      "neighbour_cell": "2",
+      "checks": {
+        "api_matches_source_file": true,
+        "dom_cell_matches_source_value": true,
+        "row_bound_not_neighbour_value": true
+      },
+      "pass": true,
+      "dom_capture": "iso/ev/dom_health_c89_fixture.html",
+      "provenance": "live_ws_health.json wallets[0x1111111111111111111111111111111111111730].ignored_snapshot_count -> GET /api/live-ws-health -> Ignored cell in #lcHealthRows"
+    },
+    "UI-FP-175": {
+      "kind": "health",
+      "source_field": "recent_error_count",
+      "source_value": 710175,
+      "header": "Recent errors",
+      "api_value": 710175,
+      "dom_cell": "710175",
+      "neighbour_cell": "4",
+      "checks": {
+        "api_matches_source_file": true,
+        "dom_cell_matches_source_value": true,
+        "row_bound_not_neighbour_value": true
+      },
+      "pass": true,
+      "dom_capture": "iso/ev/dom_health_c89_fixture.html",
+      "provenance": "live_ws_health.json wallets[0x1111111111111111111111111111111111111730].recent_error_count -> GET /api/live-ws-health -> Recent errors cell in #lcHealthRows"
+    },
+    "UI-FP-176": {
+      "kind": "health",
+      "source_field": "lifetime_error_count",
+      "source_value": 710176,
+      "header": "Lifetime errors",
+      "api_value": 710176,
+      "dom_cell": "710176",
+      "neighbour_cell": "5",
+      "checks": {
+        "api_matches_source_file": true,
+        "dom_cell_matches_source_value": true,
+        "row_bound_not_neighbour_value": true
+      },
+      "pass": true,
+      "dom_capture": "iso/ev/dom_health_c89_fixture.html",
+      "provenance": "live_ws_health.json wallets[0x1111111111111111111111111111111111111730].lifetime_error_count -> GET /api/live-ws-health -> Lifetime errors cell in #lcHealthRows"
+    },
+    "UI-FP-177": {
+      "kind": "health",
+      "source_field": "stale_ms",
+      "source_value": 710177,
+      "header": "Stale ms",
+      "api_value": 710177,
+      "dom_cell": "710177",
+      "neighbour_cell": "6",
+      "checks": {
+        "api_matches_source_file": true,
+        "dom_cell_matches_source_value": true,
+        "row_bound_not_neighbour_value": true
+      },
+      "pass": true,
+      "dom_capture": "iso/ev/dom_health_c89_fixture.html",
+      "provenance": "live_ws_health.json wallets[0x1111111111111111111111111111111111111730].stale_ms -> GET /api/live-ws-health -> Stale ms cell in #lcHealthRows"
+    },
+    "UI-FP-178": {
+      "kind": "health",
+      "source_field": "data_status",
+      "source_value": "DS178_LIVE_OK",
+      "header": "Data status",
+      "api_value": "DS178_LIVE_OK",
+      "dom_cell": "DS178_LIVE_OK",
+      "neighbour_cell": "DS178_OTHER",
+      "checks": {
+        "api_matches_source_file": true,
+        "dom_cell_matches_source_value": true,
+        "row_bound_not_neighbour_value": true
+      },
+      "pass": true,
+      "dom_capture": "iso/ev/dom_health_c89_fixture.html",
+      "provenance": "live_ws_health.json wallets[0x1111111111111111111111111111111111111730].data_status -> GET /api/live-ws-health -> Data status cell in #lcHealthRows"
+    },
+    "UI-FP-179": {
+      "kind": "health",
+      "source_field": "last_close_msg",
+      "source_value": "LC179 close sentinel",
+      "header": "Last close/error",
+      "api_value": "LC179 close sentinel",
+      "dom_cell": "LC179 close sentinel",
+      "neighbour_cell": "LC179 other wallet",
+      "checks": {
+        "api_matches_source_file": true,
+        "dom_cell_matches_source_value": true,
+        "row_bound_not_neighbour_value": true
+      },
+      "pass": true,
+      "dom_capture": "iso/ev/dom_health_c89_fixture.html",
+      "provenance": "live_ws_health.json wallets[0x1111111111111111111111111111111111111730].last_close_msg -> GET /api/live-ws-health -> Last close/error cell in #lcHealthRows"
+    }
+  },
+  "controls_negative": {
+    "minus5_clamped_to_zero": true,
+    "unknown_key_not_persisted": false
+  },
+  "controls_post_response": {
+    "max_total_live_exposure_usd": 12500.5,
+    "max_asset_directional_exposure_usd": 2500.0,
+    "max_daily_loss_usd": 900.0,
+    "max_wallet_exposure_usd": 750.25,
+    "max_order_notional_usd": 50.5,
+    "marketable_bps": 35.0,
+    "max_close_adverse_diff_pct": 0.12,
+    "symbol_allowlist": [
+      "BTC",
+      "ETH",
+      "SOL"
+    ],
+    "symbol_blocklist": [
+      "DOGE",
+      "XRP"
+    ],
+    "follower_leverage": 7,
+    "liq_parity": true,
+    "send_mode": "CLOSE",
+    "unknown_key": 123,
+    "marketable_slippage_pct": 0.35,
+    "marketable_slippage_off": false,
+    "close_adverse_diff_off": false
+  },
+  "controls_get": {
+    "max_total_live_exposure_usd": 12500.5,
+    "max_asset_directional_exposure_usd": 2500.0,
+    "max_daily_loss_usd": 900.0,
+    "max_wallet_exposure_usd": 750.25,
+    "max_order_notional_usd": 50.5,
+    "marketable_bps": 35.0,
+    "max_close_adverse_diff_pct": 0.12,
+    "symbol_allowlist": [
+      "BTC",
+      "ETH",
+      "SOL"
+    ],
+    "symbol_blocklist": [
+      "DOGE",
+      "XRP"
+    ],
+    "follower_leverage": 7,
+    "liq_parity": true,
+    "send_mode": "CLOSE",
+    "unknown_key": 123,
+    "marketable_slippage_pct": 0.35,
+    "marketable_slippage_off": false,
+    "close_adverse_diff_off": false
+  },
+  "controls_disk": {
+    "follower_leverage": 7,
+    "liq_parity": true,
+    "marketable_bps": 35.0,
+    "max_asset_directional_exposure_usd": 2500.0,
+    "max_close_adverse_diff_pct": 0.12,
+    "max_daily_loss_usd": 900.0,
+    "max_order_notional_usd": 50.5,
+    "max_total_live_exposure_usd": 12500.5,
+    "max_wallet_exposure_usd": 750.25,
+    "send_mode": "CLOSE",
+    "symbol_allowlist": [
+      "BTC",
+      "ETH",
+      "SOL"
+    ],
+    "symbol_blocklist": [
+      "DOGE",
+      "XRP"
+    ],
+    "unknown_key": 123
+  },
+  "config_sha_after_post": "765cc5707561fcc4fa1faf4b0d53a859d6e391f3a7a47ca0d2cdb6e7602ce6ef",
+  "unowned_keys_after_ui_save": {
+    "send_mode": "CLOSE",
+    "follower_leverage": 7,
+    "liq_parity": true
+  },
+  "passthrough": {
+    "seeded": {
+      "send_mode": "CLOSE",
+      "follower_leverage": 7,
+      "liq_parity": true
+    },
+    "after": {
+      "send_mode": "CLOSE",
+      "follower_leverage": 7,
+      "liq_parity": true
+    },
+    "all_preserved": true
+  },
+  "gc_input_values": {
+    "gcMaxTotal": "12500.5",
+    "gcMaxDir": "2500",
+    "gcMaxWallet": "750.25",
+    "gcMaxOrder": "50.5",
+    "gcMktPct": "0.35",
+    "gcCloseAdv": "0.12",
+    "gcAllowlist": "BTC,ETH,SOL",
+    "gcBlocklist": "DOGE,XRP"
+  },
+  "health_fixture_sha256": "6e1130ed8415d17691e1725dd8489f089f54cf07013fa73f3117502a1e94ef4a",
+  "health_fixture_wallets": {
+    "0x1111111111111111111111111111111111111730": {
+      "snapshot_fill_seen_count": 710170,
+      "snapshot_fill_recovered_count": 710173,
+      "ignored_snapshot_count": 710174,
+      "recent_error_count": 710175,
+      "lifetime_error_count": 710176,
+      "stale_ms": 710177,
+      "data_status": "DS178_LIVE_OK",
+      "last_close_msg": "LC179 close sentinel"
+    },
+    "0x2222222222222222222222222222222222221740": {
+      "snapshot_fill_seen_count": 3,
+      "snapshot_fill_recovered_count": 1,
+      "ignored_snapshot_count": 2,
+      "recent_error_count": 4,
+      "lifetime_error_count": 5,
+      "stale_ms": 6,
+      "data_status": "DS178_OTHER",
+      "last_close_msg": "LC179 other wallet"
+    }
+  },
+  "health_api_wallets": {
+    "0x1111111111111111111111111111111111111730": {
+      "snapshot_fill_seen_count": 710170,
+      "snapshot_fill_recovered_count": 710173,
+      "ignored_snapshot_count": 710174,
+      "recent_error_count": 710175,
+      "lifetime_error_count": 710176,
+      "stale_ms": 710177,
+      "data_status": "DS178_LIVE_OK",
+      "last_close_msg": "LC179 close sentinel",
+      "last_message_ms": 1792400000000,
+      "stale": false
+    },
+    "0x2222222222222222222222222222222222221740": {
+      "snapshot_fill_seen_count": 3,
+      "snapshot_fill_recovered_count": 1,
+      "ignored_snapshot_count": 2,
+      "recent_error_count": 4,
+      "lifetime_error_count": 5,
+      "stale_ms": 6,
+      "data_status": "DS178_OTHER",
+      "last_close_msg": "LC179 other wallet",
+      "last_message_ms": 1792390000000,
+      "stale": false
+    }
+  },
+  "health_table_headers": [
+    "Wallet",
+    "Current",
+    "Grade",
+    "Thread",
+    "Reconnect/min",
+    "Processed",
+    "Raw msg",
+    "Parsed",
+    "Snap seen",
+    "Snap recovered",
+    "Ignored",
+    "Recent errors",
+    "Lifetime errors",
+    "Stale ms",
+    "Data status",
+    "Last close/error"
+  ],
+  "health_table_rows": [
+    {
+      "Wallet": "0x11111111...111730",
+      "Current": "OFFLINE",
+      "Grade": "\u2014",
+      "Thread": "down",
+      "Reconnect/min": "0.00",
+      "Processed": "0",
+      "Raw msg": "0",
+      "Parsed": "0",
+      "Snap seen": "710170",
+      "Snap recovered": "710173",
+      "Ignored": "710174",
+      "Recent errors": "710175",
+      "Lifetime errors": "710176",
+      "Stale ms": "710177",
+      "Data status": "DS178_LIVE_OK",
+      "Last close/error": "LC179 close sentinel"
+    },
+    {
+      "Wallet": "0x22222222...221740",
+      "Current": "OFFLINE",
+      "Grade": "\u2014",
+      "Thread": "down",
+      "Reconnect/min": "0.00",
+      "Processed": "0",
+      "Raw msg": "0",
+      "Parsed": "0",
+      "Snap seen": "3",
+      "Snap recovered": "1",
+      "Ignored": "2",
+      "Recent errors": "4",
+      "Lifetime errors": "5",
+      "Stale ms": "6",
+      "Data status": "DS178_OTHER",
+      "Last close/error": "LC179 other wallet"
+    }
+  ],
+  "negative_source_unavailable": {
+    "rows": [
+      {
+        "Wallet": "WS service not running or no wallet health file found.",
+        "Current": null,
+        "Grade": null,
+        "Thread": null,
+        "Reconnect/min": null,
+        "Processed": null,
+        "Raw msg": null,
+        "Parsed": null,
+        "Snap seen": null,
+        "Snap recovered": null,
+        "Ignored": null,
+        "Recent errors": null,
+        "Lifetime errors": null,
+        "Stale ms": null,
+        "Data status": null,
+        "Last close/error": null
+      }
+    ],
+    "shows_unavailable_not_zero": true
+  },
+  "negative_malformed_source": {
+    "rows": [
+      {
+        "Wallet": "WS service not running or no wallet health file found.",
+        "Current": null,
+        "Grade": null,
+        "Thread": null,
+        "Reconnect/min": null,
+        "Processed": null,
+        "Raw msg": null,
+        "Parsed": null,
+        "Snap seen": null,
+        "Snap recovered": null,
+        "Ignored": null,
+        "Recent errors": null,
+        "Lifetime errors": null,
+        "Stale ms": null,
+        "Data status": null,
+        "Last close/error": null
+      }
+    ],
+    "no_traceback_or_zero": true
+  },
+  "negative_stale_flagged": {
+    "row": {
+      "Wallet": "0x11111111...111730",
+      "Current": "STALE / current idle",
+      "Grade": "\u2014",
+      "Thread": "alive",
+      "Reconnect/min": "0.00",
+      "Processed": "0",
+      "Raw msg": "0",
+      "Parsed": "0",
+      "Snap seen": "710170",
+      "Snap recovered": "710173",
+      "Ignored": "710174",
+      "Recent errors": "710175",
+      "Lifetime errors": "710176",
+      "Stale ms": "710177",
+      "Data status": "DS178_LIVE_OK",
+      "Last close/error": "LC179 close sentinel"
+    },
+    "stale_ms_cell": "710177",
+    "flagged": true
+  },
+  "pass_count": 15,
+  "row_count": 15
+}
