@@ -53,35 +53,35 @@
     "verdict": "PASS",
     "evidence_ref": "certification/results/ENG-005-009_43731b4f.json#/checks/0",
     "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
-    "why": "Row-keyed NET_SUM_SIGNED check passed (expected BTC net=1.0, got 1.0)."
+    "why": "Check ENG-005 NET_SUM_SIGNED reports PASS (expected BTC net=1.0, got 1.0). This row-level claim is limited to that referenced check."
   },
   {
     "row_id": "ENG-006",
     "verdict": "PASS",
     "evidence_ref": "certification/results/ENG-005-009_43731b4f.json#/checks/6",
     "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
-    "why": "Row-keyed PERPDexs_AVAILABLE check passed (found 270 DEX scopes including default)."
+    "why": "Check ENG-006 PERPDexs_AVAILABLE reports PASS and found 270 DEX scopes (including default). This row-level claim is limited to that referenced check."
   },
   {
     "row_id": "ENG-007",
     "verdict": "PASS",
     "evidence_ref": "certification/results/ENG-005-009_43731b4f.json#/checks/15",
     "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
-    "why": "Row-keyed ENGINE_SERVICE_STATE_FILE check passed."
+    "why": "Check ENG-007 ENGINE_SERVICE_STATE_FILE reports PASS. This row-level claim is limited to that referenced check."
   },
   {
     "row_id": "ENG-008",
     "verdict": "PASS",
     "evidence_ref": "certification/results/ENG-005-009_43731b4f.json#/checks/27",
     "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
-    "why": "Row-keyed ENGINE_UNOWNED_BLOCK check passed."
+    "why": "Check ENG-008 ENGINE_UNOWNED_BLOCK reports PASS. This row-level claim is limited to that referenced check."
   },
   {
     "row_id": "ENG-009",
     "verdict": "PASS",
     "evidence_ref": "certification/results/ENG-005-009_43731b4f.json#/checks/36",
     "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
-    "why": "Row-keyed ENGINE_PERSISTS_LINEAGE check passed."
+    "why": "Check ENG-009 ENGINE_PERSISTS_LINEAGE reports PASS. This row-level claim is limited to that referenced check."
   },
   {
     "row_id": "ENG-010",
