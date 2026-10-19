@@ -1,0 +1,107 @@
+[
+  {
+    "row_id": "ORD-004",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "",
+    "tested_commit": "",
+    "why": "OPEN_DECISION OD-08 blocks certification; no evidence route exists for size rounding until OD-08 is ruled"
+  },
+  {
+    "row_id": "ORD-005",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "certification/results/ORDER_CORRECTION_fefc2b04.json",
+    "tested_commit": "fefc2b04261c734bb32c767d2cc4a91095e65843",
+    "why": "ORDER_CORRECTION harness broken (9/24 checks); not consolidated; evidence shows PARTIAL (4 checks) not PASS; independent oracle route absent (testnet wallet D-002)"
+  },
+  {
+    "row_id": "ORD-006",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/ORDER_CORRECTION_fefc2b04.json",
+    "tested_commit": "fefc2b04261c734bb32c767d2cc4a91095e65843",
+    "why": "Evidence shows FAIL (7/8 checks); pre-send reservation not implemented; independent oracle (exchange order status/userFills) NOT_ESTABLISHED because follower wallet does not exist on testnet (D-002)"
+  },
+  {
+    "row_id": "ORD-007",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "",
+    "tested_commit": "",
+    "why": "OPEN_DECISION OD-16 blocks certification; source refs point to legacy file requiring re-derivation against HL_Live_Copy_Service_Core.py; no evidence route exists"
+  },
+  {
+    "row_id": "ORD-008",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/ORDER_CORRECTION_fefc2b04.json",
+    "tested_commit": "fefc2b04261c734bb32c767d2cc4a91095e65843",
+    "why": "Evidence shows FAIL (1/4 checks); exchange preflight not implemented; independent oracle (exchange order status/userFills) NOT_ESTABLISHED because follower wallet does not exist on testnet (D-002)"
+  },
+  {
+    "row_id": "SET-001",
+    "verdict": "PASS",
+    "evidence_ref": "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json (checks: SET-001:ACK_NOT_SETTLEMENT, SET-001:ACK_NO_PROOF_UNKNOWN)",
+    "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+    "why": "Row-bound evidence: 2 specific checks for SET-001 both PASS; ACK_NOT_SETTLEMENT and ACK_NO_PROOF_UNKNOWN assert behavior specific to this row; 11/11 negative tests PASS including SET-003:NEG:INCOMPLETE_REJECT_EVIDENCE_BLOCKS"
+  },
+  {
+    "row_id": "SET-002",
+    "verdict": "PASS",
+    "evidence_ref": "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json (checks: SET-002:MASTER_FULL_SETTLEMENT, SET-002:MASTER_MULTI_SCOPE_SETTLEMENT)",
+    "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+    "why": "Row-bound evidence: 2 specific checks for SET-002 both PASS; MASTER_FULL_SETTLEMENT and MASTER_MULTI_SCOPE_SETTLEMENT assert behavior specific to this row; multi-scope DEX settlement verified"
+  },
+  {
+    "row_id": "SET-003",
+    "verdict": "PASS",
+    "evidence_ref": "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json (checks: SET-003:TERMINAL_REJECT_SETTLES)",
+    "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+    "why": "Row-bound evidence: 1 specific check for SET-003 PASS; TERMINAL_REJECT_SETTLES asserts behavior specific to this row; negative test SET-003:NEG:INCOMPLETE_REJECT_EVIDENCE_BLOCKS PASS (must be UNKNOWN not REJECTED)"
+  },
+  {
+    "row_id": "SET-004",
+    "verdict": "PASS",
+    "evidence_ref": "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json (checks: SET-004:PARTIAL_FILL_SETTLES)",
+    "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+    "why": "Row-bound evidence: 1 specific check for SET-004 PASS; PARTIAL_FILL_SETTLES asserts behavior specific to this row (filled=0.6, remaining=0.4); negative test SET-004:NEG:FULL_FILL_NOT_PARTIAL PASS"
+  },
+  {
+    "row_id": "SET-005",
+    "verdict": "PASS",
+    "evidence_ref": "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json (checks: SET-005:CRASH_BEFORE_OID_UNSETTLED)",
+    "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+    "why": "Row-bound evidence: 1 specific check for SET-005 PASS; CRASH_BEFORE_OID_UNSETTLED asserts behavior specific to this row (status=UNSETTLED after crash before oid persistence)"
+  },
+  {
+    "row_id": "SET-006",
+    "verdict": "PASS",
+    "evidence_ref": "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json (checks: SET-006:RECONCILIATION_NO_DIVERGENCE_OK, SET-006:RECONCILIATION_DIVERGENCE_BLOCKED)",
+    "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+    "why": "Row-bound evidence: 2 specific checks for SET-006 both PASS; RECONCILIATION_NO_DIVERGENCE_OK (divergence=0.0) and RECONCILIATION_DIVERGENCE_BLOCKED (divergence=1.0) assert behavior specific to this row"
+  },
+  {
+    "row_id": "SET-007",
+    "verdict": "PASS",
+    "evidence_ref": "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json (checks: SET-007:TESTNET_ENDPOINTS_RESOLVE, SET-007:TESTNET_HOSTNAME_CORRECT)",
+    "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+    "why": "Row-bound evidence: 2 specific checks for SET-007 both PASS; TESTNET_ENDPOINTS_RESOLVE and TESTNET_HOSTNAME_CORRECT assert testnet certification topology specific to this row; negative test SET-008:NEG:NETWORK_STAMP_MISMATCH_REJECTED PASS"
+  },
+  {
+    "row_id": "SET-008",
+    "verdict": "PASS",
+    "evidence_ref": "certification/results/NET_LIFE_SETTLE_fa9d9f55ff.json (checks: SET-008:CERT_TOPOLOGY_LEADER_MAINNET_FOLLOWER_TESTNET, SET-008:NETWORK_STAMP_BINDS)",
+    "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+    "why": "Row-bound evidence: 2 specific checks for SET-008 both PASS; CERT_TOPOLOGY_LEADER_MAINNET_FOLLOWER_TESTNET and NETWORK_STAMP_BINDS assert testnet entry/exit certification topology specific to this row"
+  },
+  {
+    "row_id": "RISK-001",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/RISK_fa9d9f55.json (checks: RISK-001:TOTAL_CAP_BLOCKS_EXCEEDING, RISK-001:TOTAL_CAP_WITHIN_ALLOWED)",
+    "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+    "why": "Evidence checks PASS but register notes state: 'max_total_live_exposure_usd has an accessor (L1929) but no caller was found, so it is not enforced. Code-read, unconfirmed by run.' Product genuinely misses enforcement; harness checks test config reading not engine enforcement"
+  },
+  {
+    "row_id": "RISK-002",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/RISK_fa9d9f55.json (checks: RISK-002:ASSET_CAP_BLOCKS, RISK-002:ASSET_NET_DIRECTION_ALLOWED)",
+    "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+    "why": "Evidence checks PASS but register notes state: 'max_asset_directional_exposure_usd is not referenced. Code-read, unconfirmed by run.' Product genuinely misses enforcement; control not referenced in engine runtime"
+  }
+]
