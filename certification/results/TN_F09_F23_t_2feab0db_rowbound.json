@@ -1,0 +1,107 @@
+[
+  {
+    "row_id": "TN-F09",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/NLS_RESIDUAL_2a269ad226.json",
+    "tested_commit": "2a269ad2260270fee844eedc2cc23545abc91dd0",
+    "why": "TN-F09 asks whether a HIP-3 builder-DEX symbol survives storage and reload byte-exact. It fails on both of its own name-unique probes: LOAD_PRESERVES_DEX_PREFIX returns pass:false with detail \"FAIL: sdk_coin=None\", i.e. the coin comes back with no sdk_coin at all after load, and its guard NEG_NO_DOUBLE_PREFIX returns pass:false with detail \"NEG-FAIL: sdk_coin=\", so a malformed doubled prefix is answered with an empty symbol instead of a refusal. Both strings name the prefix defect directly. No sibling row in this batch executes either check: TN-F10 measures 429 recovery, TN-F11 the ownership gate, TN-F12 tolerance, TN-F18 fill identity and TN-F19 start-up boundaries, so none of them could carry this text. Row counters: 4/5 checks and 1/2 negatives. Source: NLS_RESIDUAL_2a269ad226.json @2a269ad2."
+  },
+  {
+    "row_id": "TN-F10",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/NLS_RESIDUAL_2a269ad226.json",
+    "tested_commit": "2a269ad2260270fee844eedc2cc23545abc91dd0",
+    "why": "TN-F10 asks whether an ambiguous submission during a 429 storm is resolved from exchange truth. Exactly one probe decides it, and it is TN-F10-keyed: RATE_LIMIT_RECOVERY_ATTEMPTED returns pass:false with detail \"FAIL: result=none\" -- the engine produced no recovery result, so nothing was reconciled against the exchange after the ambiguous send. The row proves the failure is localised rather than global, because its neighbouring probes do produce output: RATE_LIMIT_COOLDOWN_SET reads \"cooldown=1791980796246\" and NO_DUPLICATES_FROM_429 reads \"deduped=1\". A sibling cannot borrow this verdict: no other row executes RATE_LIMIT_RECOVERY_ATTEMPTED. Row counters: 3/4 checks. Source: NLS_RESIDUAL_2a269ad226.json @2a269ad2."
+  },
+  {
+    "row_id": "TN-F11",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/NLS_RESIDUAL_2a269ad226.json",
+    "tested_commit": "2a269ad2260270fee844eedc2cc23545abc91dd0",
+    "why": "TN-F11 asks whether ownership attribution can fail open. Two of its four probes fail, and the diagnosis is discrimination rather than a blanket refusal: MISSING_AUDIT_PROOF_BLOCKS returns pass:false with detail \"FAIL: ok=False status=OWNERSHIP_GATE_NO_MATCHING_WALLET_SLEEVE\" and SIGN_CONFLICT_BLOCKS returns pass:false with detail \"FAIL: ok=False status=OWNERSHIP_GATE_NO_MATCHING_WALLET_SLEEVE\". Both emit the same NO_MATCHING_WALLET_SLEEVE status where two distinct refusal reasons were required. The in-row control that proves the gate can be specific is MISSING_EXCHANGE_PROOF_BLOCKS, which reports \"ok=False status=OWNERSHIP_GATE_MISSING_EXCHANGE_PROOF\" -- a status of its own. Those three check names appear only under TN-F11, so no sibling row can stand on this text. Row counters: 2/4 checks, 2/2 negatives. Source: NLS_RESIDUAL_2a269ad226.json @2a269ad2."
+  },
+  {
+    "row_id": "TN-F12",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/NLS_RESIDUAL_2a269ad226.json",
+    "tested_commit": "2a269ad2260270fee844eedc2cc23545abc91dd0",
+    "why": "TN-F12 asks whether an out-of-tolerance divergence is surfaced and left alone for manual reconciliation. Its positives are all earned -- DIVERGENCE_SURFACED reads \"result=yes\" and OUTSIDE_TOLERANCE_NO_AUTO_CLOSE reads \"real_orders=0\" -- and the verdict still fails because one negative does not hold: NEG_INVALID_MARK_FAILS_CLOSED returns pass:false with detail \"NEG-FAIL: ok=True\". A bad oracle mark was accepted instead of being refused, so the reconciliation path cannot be trusted with a corrupt price. NEG_INVALID_MARK_FAILS_CLOSED is executed only under TN-F12, which is also why the missing tolerance constant sits in TN-F13 while this row is a measured failure. Row counters: 3/3 checks, 1/2 negatives. Source: NLS_RESIDUAL_2a269ad226.json @2a269ad2."
+  },
+  {
+    "row_id": "TN-F13",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "certification/certification_matrix.json@8dc0e1ab",
+    "tested_commit": null,
+    "why": "TN-F13 is recorded NOT_TESTED with no evidence file, and the absence is specific: its register record carries evidence_ref = no evidence_ref is recorded and tested_commit = no tested_commit is recorded, applicability APPLIES, and notes \"No-blind-catch-up equals B2. The $30-at-mark tolerance value is OD-24.\". The missing component is a constant, not a mechanism: every within/outside-tolerance assertion needs the at-mark tolerance figure, and that figure is still ruled by open decision [\"OD-24\"], so no probe can assert against it. Contrast TN-F20, the other NOT_TESTED row, which is missing a fencing mechanism under OD-12 and is applicability ADAPTED_PROPOSED -- a different absence with a different decision id. Source: certification_matrix.json @8dc0e1ab."
+  },
+  {
+    "row_id": "TN-F14",
+    "verdict": "BLOCKED",
+    "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+    "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+    "why": "TN-F14 is BLOCKED, and the blocking statement is its own entry in the evidence file: \"Requires live testnet scenario with UI control that looks real but does not govern\". That names a scenario which must not exist yet -- a control that renders as real while not governing runtime -- so there is no executable probe for the row. The file does carry 441 checks and 23 negative tests, but they are generic UI render assertions and none of them governs anything, so they cannot be cited in this row's favour. The sibling blocked entries are different scenarios: TN-F22 is \"Requires live testnet scenario with UI minimum/config authority confusion test\" and TN-F23 is \"Requires live testnet scenario with UI account/position/open-order/render test\". Source: UI_CORRECTION_2d29211.json @2d292111."
+  },
+  {
+    "row_id": "TN-F15",
+    "verdict": "PASS",
+    "evidence_ref": "certification/results/HEALTH_CORRECTION_fefc2b04.json",
+    "tested_commit": "fefc2b04261c734bb32c767d2cc4a91095e65843",
+    "why": "TN-F15 asks whether the watchdog predicate uses the engine's own freshness budget, and it is decided by a bidirectional pair keyed to this row: TN-F15:FRESHNESS_BUDGET_GATE_FIRES returns pass:true with detail \"freshness gate fired: _entry_sends_blocked_reason=COPY_POLL_STALE\", and TN-F15:NEG:FRESHNESS_BUDGET_GATE_NOT_FIRES returns pass:true with detail \"freshness gate not fired: _entry_sends_blocked_reason='' (correct)\". Because one half requires the gate to fire on stale data and the other requires it not to fire on fresh data, a predicate that always fired or never fired would break one of them -- the pass is non-vacuous. No sibling row in this batch reads this file: TN-F16 and TN-F21 are decided by risk-gate probes in RISK_fa9d9f55. Row counters: 10/10 checks, 0 failures. Source: HEALTH_CORRECTION_fefc2b04.json @fefc2b04."
+  },
+  {
+    "row_id": "TN-F16",
+    "verdict": "PASS",
+    "evidence_ref": "certification/results/RISK_fa9d9f55.json",
+    "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+    "why": "TN-F16 asks whether an entry is refused when the follower price cannot be taken, and its result hangs on one row-keyed check: \"TN-F16:NO_FOLLOWER_PRICE_ENTRY_REFUSED\" is pass:true. This harness records an empty detail string for that check, so the binding is the check NAME rather than quoted prose, and the name itself states the assertion: entry refused rather than sent on a guessed follower price. Corroboration from the same sweep: \"RISK-014:NO_FOLLOWER_PRICE_FAILS_CLOSED\" is also pass:true. The other row this batch takes from this file is TN-F21, bound to \"TN-F21:CLOSE_NOT_TRAPPED_BY_OPEN_SAFETY\", which TN-F16 does not execute. Sweep size: 30/30 checks, 20 negatives. Source: RISK_fa9d9f55.json @fa9d9f55."
+  },
+  {
+    "row_id": "TN-F17",
+    "verdict": "PASS",
+    "evidence_ref": "certification/results/ENG-015-016-TNF17_43731b4f.json",
+    "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+    "why": "TN-F17 asks whether trade direction can come only from a genuine leader fill and never from a position snapshot. It is the only row here with its own mutation control. Three TN-F17-keyed probes pass: TN-F17_POSITIVE_direction_from_position detail \"rc=0\"; TN-F17_STATIC_direction_from_position detail \"direction_from_size=True uses_size=True planner_authoritative=True\"; TN-F17_NEGATIVE_direction_must_fail detail \"rc=1 test_failed=True\". The mutation is what makes those non-vacuous: \"direction_from_size always returns LONG regardless of position\" was applied to _tmp_tnf17_mutated.py, expected FAIL and actually returned FAIL, non_vacuous=true -- deliberately breaking direction derivation loses the pass. The other two mutations in this file, ENG-015_negative_1 and ENG-016_negative_1, cover different features and cannot justify TN-F17. Source: ENG-015-016-TNF17_43731b4f.json @43731b4f."
+  },
+  {
+    "row_id": "TN-F18",
+    "verdict": "PASS",
+    "evidence_ref": "certification/results/NLS_RESIDUAL_2a269ad226.json",
+    "tested_commit": "2a269ad2260270fee844eedc2cc23545abc91dd0",
+    "why": "TN-F18 asks whether fills are keyed by exchange identity and processed exactly once, and it passes on four probes that no sibling row runs: MATCH_BY_OID = \"matched=True\" (an exchange id matched a local order), DUPLICATE_COPY_BLOCKED = \"matched=False\" (a repeated fill did not match and was therefore not copied twice), OUT_OF_ORDER_DEDUPED = \"reprocessed\", and the negative NEG_WS_DUPLICATE_DEDUPED = \"deduped=1\". The counterpart is TN-F19 in the same file: it fails MOCK_START_NO_REAL_ORDERS, a probe TN-F18 never executes, so the two rows cannot substitute for each other. Row counters: 9/9 checks, 2/2 negatives. Source: NLS_RESIDUAL_2a269ad226.json @2a269ad2."
+  },
+  {
+    "row_id": "TN-F19",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/NLS_RESIDUAL_2a269ad226.json",
+    "tested_commit": "2a269ad2260270fee844eedc2cc23545abc91dd0",
+    "why": "TN-F19 asks whether a start-up can emit unintended orders at any boundary, and it fails twice on its own probes. MOCK_START_NO_REAL_ORDERS returns pass:false with detail \"FAIL: mock_sent=0\": the mock start sent nothing, so the boundary was never actually exercised and the row cannot certify zero unintended orders from a vacuous run. Independently, NEG_SECOND_START_DEDUPED returns pass:false with detail \"NEG-FAIL: deduped=0\", so a second start is not deduplicated. Neither name is executed by TN-F18, which is the other start-adjacent row and passes on differently named identity probes. Row counters: 5/6 checks, 2/3 negatives. Source: NLS_RESIDUAL_2a269ad226.json @2a269ad2."
+  },
+  {
+    "row_id": "TN-F20",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "certification/certification_matrix.json@8dc0e1ab",
+    "tested_commit": null,
+    "why": "TN-F20 has never been probed, and the reason is architectural rather than procedural. Its certification-matrix record shows applicability ADAPTED_PROPOSED, open decision [\"OD-12\"], and the note \"Build 3 mechanism is one process + one .order() site.\". Because Build 3 runs one process holding the single .order() call site, there is no second lease holder for a fence to exclude, and until OD-12 rules what the adapted mechanism is no scenario can be staged at all. Contrast TN-F13, the other NOT_TESTED row, which is short of a tolerance constant under OD-24 and is applicability APPLIES -- a live requirement rather than an adaptation. Source: certification_matrix.json @8dc0e1ab."
+  },
+  {
+    "row_id": "TN-F21",
+    "verdict": "PASS",
+    "evidence_ref": "certification/results/RISK_fa9d9f55.json",
+    "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
+    "why": "TN-F21 asks whether a close can be trapped behind an entry-side safety control, and its result hangs on one row-keyed check: \"TN-F21:CLOSE_NOT_TRAPPED_BY_OPEN_SAFETY\" is pass:true. The harness stores an empty detail for it, so the row binding is the check NAME, and that name states the assertion: exits are not blocked by entry controls. Corroboration from the same sweep: \"RISK-015:CLOSE_NEVER_BLOCKED_BY_ENTRY_CONTROLS\" is also pass:true. The sibling row taken from this file is TN-F16, bound to \"TN-F16:NO_FOLLOWER_PRICE_ENTRY_REFUSED\", a check TN-F21 does not execute. Sweep size: 30/30 checks, 20 negatives. Source: RISK_fa9d9f55.json @fa9d9f55."
+  },
+  {
+    "row_id": "TN-F22",
+    "verdict": "BLOCKED",
+    "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+    "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+    "why": "TN-F22 is BLOCKED on an authority-confusion scenario, quoted from its own entry: \"Requires live testnet scenario with UI minimum/config authority confusion test\". The row needs the UI minimum compared against the authoritative execution config, i.e. a live disagreement between display and control, so no amount of render assertion can settle it -- the 441 checks and 23 negative tests in this file never compare a displayed value to the governing config. Its sibling blocked entries are different questions again: TN-F14 is \"Requires live testnet scenario with UI control that looks real but does not govern\" and TN-F23 is \"Requires live testnet scenario with UI account/position/open-order/render test\". Source: UI_CORRECTION_2d29211.json @2d292111."
+  },
+  {
+    "row_id": "TN-F23",
+    "verdict": "BLOCKED",
+    "evidence_ref": "certification/results/UI_CORRECTION_2d29211.json",
+    "tested_commit": "2d29211148c9ba8498bade2d5791ed908f193708",
+    "why": "TN-F23 is BLOCKED on a rendering-truth scenario, quoted from its own entry: \"Requires live testnet scenario with UI account/position/open-order/render test\". The row requires multi-DEX account, position, open-order and risk state to be rendered against live exchange truth, which is a binding requirement: no render assertion in this file ever ties a displayed number to exchange state, so the 441 checks and 23 negative tests here are silent on it. The other blocked rows ask different questions -- TN-F14 asks for \"Requires live testnet scenario with UI control that looks real but does not govern\" and TN-F22 for \"Requires live testnet scenario with UI minimum/config authority confusion test\". Source: UI_CORRECTION_2d29211.json @2d292111."
+  }
+]
