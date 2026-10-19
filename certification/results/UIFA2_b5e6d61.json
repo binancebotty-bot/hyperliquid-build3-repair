@@ -1,0 +1,386 @@
+{
+  "schema": "hl_certification_matrix_v1",
+  "generated_by": "UIFA2 certification script",
+  "result_values": [
+    "NOT_TESTED",
+    "PASS",
+    "FAIL",
+    "BLOCKED"
+  ],
+  "records": [
+    {
+      "id": "UI-FP-008",
+      "feature": "Header / Safety: Restart caveat",
+      "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+      "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+      "negative_tests": [
+        "source unavailable shows n/a/Unavailable not 0",
+        "stale source flagged",
+        "API error surfaced"
+      ],
+      "build_commit": "b5e6d61",
+      "build_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "checked_at_utc": "2026-10-19T00:03:47.749262+00:00",
+      "result": "NOT_TESTED",
+      "reason": "no rendered-DOM route",
+      "live_ui_reachable": true,
+      "live_ui_apis_checked": {
+        "/api/live-config": "OK",
+        "/api/live-audit-summary": "OK",
+        "/api/live-ws-health": "OK"
+      }
+    },
+    {
+      "id": "UI-FP-009",
+      "feature": "Live Copy Status cards: LIVE INTEGRITY",
+      "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+      "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+      "negative_tests": [
+        "source unavailable shows n/a/Unavailable not 0",
+        "stale source flagged",
+        "API error surfaced"
+      ],
+      "build_commit": "b5e6d61",
+      "build_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "checked_at_utc": "2026-10-19T00:03:47.749306+00:00",
+      "result": "NOT_TESTED",
+      "reason": "no rendered-DOM route",
+      "live_ui_reachable": true,
+      "live_ui_apis_checked": {
+        "/api/live-config": "OK",
+        "/api/live-audit-summary": "OK",
+        "/api/live-ws-health": "OK"
+      }
+    },
+    {
+      "id": "UI-FP-010",
+      "feature": "Live Copy Status cards: WS status",
+      "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+      "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+      "negative_tests": [
+        "source unavailable shows n/a/Unavailable not 0",
+        "stale source flagged",
+        "API error surfaced"
+      ],
+      "build_commit": "b5e6d61",
+      "build_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "checked_at_utc": "2026-10-19T00:03:47.749325+00:00",
+      "result": "NOT_TESTED",
+      "reason": "no rendered-DOM route",
+      "live_ui_reachable": true,
+      "live_ui_apis_checked": {
+        "/api/live-config": "OK",
+        "/api/live-audit-summary": "OK",
+        "/api/live-ws-health": "OK"
+      }
+    },
+    {
+      "id": "UI-FP-011",
+      "feature": "Live Copy Status cards: Copy Poll",
+      "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+      "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+      "negative_tests": [
+        "source unavailable shows n/a/Unavailable not 0",
+        "stale source flagged",
+        "API error surfaced"
+      ],
+      "build_commit": "b5e6d61",
+      "build_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "checked_at_utc": "2026-10-19T00:03:47.749342+00:00",
+      "result": "NOT_TESTED",
+      "reason": "no rendered-DOM route",
+      "live_ui_reachable": true,
+      "live_ui_apis_checked": {
+        "/api/live-config": "OK",
+        "/api/live-audit-summary": "OK",
+        "/api/live-ws-health": "OK"
+      }
+    },
+    {
+      "id": "UI-FP-012",
+      "feature": "Live Copy Status cards: MASTER REAL ORDERS",
+      "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+      "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+      "negative_tests": [
+        "source unavailable shows n/a/Unavailable not 0",
+        "stale source flagged",
+        "API error surfaced"
+      ],
+      "build_commit": "b5e6d61",
+      "build_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "checked_at_utc": "2026-10-19T00:03:47.749356+00:00",
+      "result": "NOT_TESTED",
+      "reason": "no rendered-DOM route",
+      "live_ui_reachable": true,
+      "live_ui_apis_checked": {
+        "/api/live-config": "OK",
+        "/api/live-audit-summary": "OK",
+        "/api/live-ws-health": "OK"
+      }
+    },
+    {
+      "id": "UI-FP-013",
+      "feature": "Live Copy Status cards: Active/subscribed wallets",
+      "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+      "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+      "negative_tests": [
+        "source unavailable shows n/a/Unavailable not 0",
+        "stale source flagged",
+        "API error surfaced"
+      ],
+      "build_commit": "b5e6d61",
+      "build_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "checked_at_utc": "2026-10-19T00:03:47.749368+00:00",
+      "result": "NOT_TESTED",
+      "reason": "no rendered-DOM route",
+      "live_ui_reachable": true,
+      "live_ui_apis_checked": {
+        "/api/live-config": "OK",
+        "/api/live-audit-summary": "OK",
+        "/api/live-ws-health": "OK"
+      }
+    },
+    {
+      "id": "UI-FP-014",
+      "feature": "Live Copy Status cards: Last send",
+      "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+      "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+      "negative_tests": [
+        "source unavailable shows n/a/Unavailable not 0",
+        "stale source flagged",
+        "API error surfaced"
+      ],
+      "build_commit": "b5e6d61",
+      "build_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "checked_at_utc": "2026-10-19T00:03:47.749382+00:00",
+      "result": "NOT_TESTED",
+      "reason": "no rendered-DOM route",
+      "live_ui_reachable": true,
+      "live_ui_apis_checked": {
+        "/api/live-config": "OK",
+        "/api/live-audit-summary": "OK",
+        "/api/live-ws-health": "OK"
+      }
+    },
+    {
+      "id": "UI-FP-017",
+      "feature": "Live Copy Status cards: Last latency warning",
+      "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+      "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+      "negative_tests": [
+        "source unavailable shows n/a/Unavailable not 0",
+        "stale source flagged",
+        "API error surfaced"
+      ],
+      "build_commit": "b5e6d61",
+      "build_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "checked_at_utc": "2026-10-19T00:03:47.749395+00:00",
+      "result": "NOT_TESTED",
+      "reason": "no rendered-DOM route",
+      "live_ui_reachable": true,
+      "live_ui_apis_checked": {
+        "/api/live-config": "OK",
+        "/api/live-audit-summary": "OK",
+        "/api/live-ws-health": "OK"
+      }
+    },
+    {
+      "id": "UI-FP-025",
+      "feature": "Graph: Account graph total PnL",
+      "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+      "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+      "negative_tests": [
+        "source unavailable shows n/a/Unavailable not 0",
+        "stale source flagged",
+        "API error surfaced"
+      ],
+      "build_commit": "b5e6d61",
+      "build_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "checked_at_utc": "2026-10-19T00:03:47.749406+00:00",
+      "result": "NOT_TESTED",
+      "reason": "no rendered-DOM route",
+      "live_ui_reachable": true,
+      "live_ui_apis_checked": {
+        "/api/live-config": "OK",
+        "/api/live-audit-summary": "OK",
+        "/api/live-ws-health": "OK"
+      }
+    },
+    {
+      "id": "UI-FP-029",
+      "feature": "Graph: Selected wallet exposure graph",
+      "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+      "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+      "negative_tests": [
+        "source unavailable shows n/a/Unavailable not 0",
+        "stale source flagged",
+        "API error surfaced"
+      ],
+      "build_commit": "b5e6d61",
+      "build_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "checked_at_utc": "2026-10-19T00:03:47.749414+00:00",
+      "result": "NOT_TESTED",
+      "reason": "no rendered-DOM route",
+      "live_ui_reachable": true,
+      "live_ui_apis_checked": {
+        "/api/live-config": "OK",
+        "/api/live-audit-summary": "OK",
+        "/api/live-ws-health": "OK"
+      }
+    },
+    {
+      "id": "UI-FP-030",
+      "feature": "Graph controls: Graph range controls",
+      "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+      "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+      "negative_tests": [
+        "source unavailable shows n/a/Unavailable not 0",
+        "stale source flagged",
+        "API error surfaced"
+      ],
+      "build_commit": "b5e6d61",
+      "build_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "checked_at_utc": "2026-10-19T00:03:47.749433+00:00",
+      "result": "NOT_TESTED",
+      "reason": "no rendered-DOM route",
+      "live_ui_reachable": true,
+      "live_ui_apis_checked": {
+        "/api/live-config": "OK",
+        "/api/live-audit-summary": "OK",
+        "/api/live-ws-health": "OK"
+      }
+    },
+    {
+      "id": "UI-FP-041",
+      "feature": "Live Copy Wallets row: Lead-copy avg bps",
+      "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+      "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+      "negative_tests": [
+        "source unavailable shows n/a/Unavailable not 0",
+        "stale source flagged",
+        "API error surfaced"
+      ],
+      "build_commit": "b5e6d61",
+      "build_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "checked_at_utc": "2026-10-19T00:03:47.749440+00:00",
+      "result": "NOT_TESTED",
+      "reason": "no rendered-DOM route",
+      "live_ui_reachable": true,
+      "live_ui_apis_checked": {
+        "/api/live-config": "OK",
+        "/api/live-audit-summary": "OK",
+        "/api/live-ws-health": "OK"
+      }
+    },
+    {
+      "id": "UI-FP-048",
+      "feature": "Live Copy Wallets row: Open pos",
+      "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+      "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+      "negative_tests": [
+        "source unavailable shows n/a/Unavailable not 0",
+        "stale source flagged",
+        "API error surfaced"
+      ],
+      "build_commit": "b5e6d61",
+      "build_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "checked_at_utc": "2026-10-19T00:03:47.749447+00:00",
+      "result": "NOT_TESTED",
+      "reason": "no rendered-DOM route",
+      "live_ui_reachable": true,
+      "live_ui_apis_checked": {
+        "/api/live-config": "OK",
+        "/api/live-audit-summary": "OK",
+        "/api/live-ws-health": "OK"
+      }
+    },
+    {
+      "id": "UI-FP-052",
+      "feature": "Live Copy Wallets row: Controls mode",
+      "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+      "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+      "negative_tests": [
+        "source unavailable shows n/a/Unavailable not 0",
+        "stale source flagged",
+        "API error surfaced"
+      ],
+      "build_commit": "b5e6d61",
+      "build_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "checked_at_utc": "2026-10-19T00:03:47.749454+00:00",
+      "result": "NOT_TESTED",
+      "reason": "no rendered-DOM route",
+      "live_ui_reachable": true,
+      "live_ui_apis_checked": {
+        "/api/live-config": "OK",
+        "/api/live-audit-summary": "OK",
+        "/api/live-ws-health": "OK"
+      }
+    },
+    {
+      "id": "UI-FP-054",
+      "feature": "Live Copy Wallets row: Controls fixed notional",
+      "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+      "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+      "negative_tests": [
+        "source unavailable shows n/a/Unavailable not 0",
+        "stale source flagged",
+        "API error surfaced"
+      ],
+      "build_commit": "b5e6d61",
+      "build_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "checked_at_utc": "2026-10-19T00:03:47.749460+00:00",
+      "result": "NOT_TESTED",
+      "reason": "no rendered-DOM route",
+      "live_ui_reachable": true,
+      "live_ui_apis_checked": {
+        "/api/live-config": "OK",
+        "/api/live-audit-summary": "OK",
+        "/api/live-ws-health": "OK"
+      }
+    },
+    {
+      "id": "UI-FP-055",
+      "feature": "Live Copy Wallets row: Controls norm base",
+      "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+      "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+      "negative_tests": [
+        "source unavailable shows n/a/Unavailable not 0",
+        "stale source flagged",
+        "API error surfaced"
+      ],
+      "build_commit": "b5e6d61",
+      "build_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "checked_at_utc": "2026-10-19T00:03:47.749469+00:00",
+      "result": "NOT_TESTED",
+      "reason": "no rendered-DOM route",
+      "live_ui_reachable": true,
+      "live_ui_apis_checked": {
+        "/api/live-config": "OK",
+        "/api/live-audit-summary": "OK",
+        "/api/live-ws-health": "OK"
+      }
+    },
+    {
+      "id": "UI-FP-060",
+      "feature": "Wallet expanded detail A: Detail exposure",
+      "execution_proof": "Engine/exchange truth at time T -> API endpoint payload -> rendered cell text at time T (DOM capture)",
+      "independent_oracle": "Independent read of the same exchange/engine truth recomputed by a script that does not import HL_Copy_App_SSOT.py",
+      "negative_tests": [
+        "source unavailable shows n/a/Unavailable not 0",
+        "stale source flagged",
+        "API error surfaced"
+      ],
+      "build_commit": "b5e6d61",
+      "build_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+      "checked_at_utc": "2026-10-19T00:03:47.749480+00:00",
+      "result": "NOT_TESTED",
+      "reason": "no rendered-DOM route",
+      "live_ui_reachable": true,
+      "live_ui_apis_checked": {
+        "/api/live-config": "OK",
+        "/api/live-audit-summary": "OK",
+        "/api/live-ws-health": "OK"
+      }
+    }
+  ]
+}
