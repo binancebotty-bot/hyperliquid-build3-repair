@@ -87,12 +87,28 @@ def pin_stamp_pair(src, stamp):
         i += 1
     return ''.join(out)
 
-def run_test_with_module(module_dir):
+def delete_stamp_pair(src, stamp):
+    target = f'timing["{stamp}"] = utc_now_ms()'
+    return ''.join(line for line in src.splitlines(keepends=True) if line.strip() != target)
+
+def pin_stamp_pair(src, stamp):
+    target = f'timing["{stamp}"] = utc_now_ms()'
+    out = []
+    for line in src.splitlines(keepends=True):
+        if line.strip() == target:
+            indent = line[:len(line) - len(line.lstrip())]
+            out.append(indent + f'timing["{stamp}"] = 0' + '\n')
+        else:
+            out.append(line)
+    return ''.join(out)
+
+def run_test_with_module(module_dir, test_path):
     env = os.environ.copy()
     env['HL_EXIT_STAMP_MODULE_DIR'] = module_dir
-    # Use the same python that runs this script
+    # The test stays in the source tree; cwd is the isolated mutation directory.
+    # Pass its absolute path so Python does not look for a missing test there.
     result = subprocess.run(
-        [sys.executable, '-u', TEST],
+        [sys.executable, '-u', test_path],
         cwd=module_dir,
         env=env,
         capture_output=True,
@@ -101,10 +117,23 @@ def run_test_with_module(module_dir):
     )
     return result.returncode, result.stdout, result.stderr
 
+def is_assertion_failure(code, out, err, stamp, mutation):
+    output = out + '\\n' + err
+    if code == 0 or 'FAILED:' not in output or ' checks, ' not in output:
+        return False
+    if stamp.startswith('standing_close'):
+        target = 'STANDING_CLOSE_STAMP_EMITTED' if mutation == 'DELETE' else 'STANDING_CLOSE_STAMP_RESPONDS_TO_SLOW_CANCEL'
+    elif stamp.startswith('close_plan'):
+        target = 'CLOSE_PLAN_STAMP_EMITTED' if mutation == 'DELETE' else 'CLOSE_PLAN_STAMP_RESPONDS_TO_SLOW_PLAN'
+    else:
+        target = 'EXCHANGE_NET_STAMP_EMITTED' if mutation == 'DELETE' else 'EXCHANGE_NET_STAMP_RESPONDS_TO_SLOW_ACCOUNT_READ'
+    return 'FAILED: ' + target in output
+
 def main():
     # Start from the original module in the worktree
     orig_dir = os.path.dirname(os.path.abspath(__file__))
     orig_module = os.path.join(orig_dir, MODULE)
+    test_path = os.path.join(orig_dir, TEST)
     if not os.path.exists(orig_module):
         print(f"ERROR: {orig_module} not found", file=sys.stderr)
         sys.exit(1)
@@ -120,13 +149,13 @@ def main():
             mutated = delete_stamp_pair(src, stamp)
             with open(mod_path, 'w', encoding='utf-8') as f:
                 f.write(mutated)
-            code, out, err = run_test_with_module(tmp)
+            code, out, err = run_test_with_module(tmp, test_path)
             if code == 0:
                 failures.append(f"DELETE_{stamp} unexpectedly PASSED")
                 print(f"STDOUT:\n{out}", file=sys.stderr)
                 print(f"STDERR:\n{err}", file=sys.stderr)
             else:
-                print(f"DELETE_{stamp} FAILED as expected (exit {code})", flush=True)
+                print(f"DELETE_{stamp} FAILED as expected (exit {code}); " + ' | '.join(line.strip() for line in out.splitlines() if 'FAIL ' in line or 'FAILED:' in line), flush=True)
 
         print(f"\n=== Testing PIN_{stamp}_CONST ===", flush=True)
         with tempfile.TemporaryDirectory() as tmp:
@@ -137,13 +166,16 @@ def main():
             mutated = pin_stamp_pair(src, stamp)
             with open(mod_path, 'w', encoding='utf-8') as f:
                 f.write(mutated)
-            code, out, err = run_test_with_module(tmp)
+            code, out, err = run_test_with_module(tmp, test_path)
             if code == 0:
                 failures.append(f"PIN_{stamp}_CONST unexpectedly PASSED")
                 print(f"STDOUT:\n{out}", file=sys.stderr)
                 print(f"STDERR:\n{err}", file=sys.stderr)
             else:
-                print(f"PIN_{stamp}_CONST FAILED as expected (exit {code})", flush=True)
+                details = ' | '.join(line.strip() for line in out.splitlines() if 'FAIL ' in line or 'FAILED:' in line)
+                if not details:
+                    details = 'NO_ASSERTION_FAILURE; stderr=' + err.strip()
+                print(f"PIN_{stamp}_CONST FAILED as expected (exit {code}); " + details, flush=True)
 
     if failures:
         print("\n=== MUTATION TEST FAILURES ===", file=sys.stderr)
