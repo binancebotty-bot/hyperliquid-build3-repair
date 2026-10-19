@@ -1,0 +1,31 @@
+{
+  "requirement": "ENG-INV-01",
+  "tested_commit": "1e311f1f027f7065c39aba9ed646579d3ac786b2",
+  "evidence": "certification/results/ENG-INV-01_one_process_t_25bebbc7.json",
+  "verifier": null,
+  "measurements": {
+    "method": "Read-only Windows Win32_Process/CIM enumeration filtered to the engine script and Python executable, corroborated by TCP sockets owned by the identified PID. The measurement was of a live engine, not a controlled start.",
+    "one_running": {
+      "count": 1,
+      "process_id": 44952,
+      "executable": "C:\\Users\\wigmore\\AppData\\Local\\Python\\bin\\python.exe",
+      "command_line": "C:\\Users\\wigmore\\AppData\\Local\\Python\\bin\\python.exe C:/Users/wigmore/trading_stack/hl-build3-engine-pacing-1e311f/_archive/hl_stage2/HL_Live_Copy_Service_Core.py --ws --loop --interval 10 --poll-live --poll-copy",
+      "started_at_local": "2026-10-19 13:21:22",
+      "runtime_checkout_commit": "1e311f1f027f7065c39aba9ed646579d3ac786b2",
+      "independent_signal": "Get-NetTCPConnection -OwningProcess 44952 returned established TCP connections (including remote port 443), corroborating that PID 44952 was active. This proves liveness of that identified process; it is not a single-instance lock and does not independently establish a total process count."
+    },
+    "two_attempted": {
+      "performed": false,
+      "result": "NOT_PERFORMED"
+    },
+    "static_order_site_census": {
+      "source_commit": "e82a3d6ada57a43cc52d7b7fa1e29871b116a703",
+      "result": "PASS_SUPPORTING_ONLY",
+      "command": "python tools/cert/census_order_sites.py origin/main",
+      "summary": "HL_Live_Copy_Service_Core.py: 1 order call site at line 4206; total production call sites: 1.",
+      "claim_boundary": "This source-bound census proves one order call site, not one runtime process."
+    }
+  },
+  "verdict": "NOT_TESTED",
+  "limits": "The live process observation found one Python process executing HL_Live_Copy_Service_Core.py (PID 44952), with TCP activity corroborating liveness. Windows process enumeration is known unreliable here, and no isolated two-instance harness exists. No second engine was started, to avoid disturbing the live engine or risking shared configuration, port, or ledger use. Therefore the required negative control was not performed and the expected behaviour 'One process.' is NOT_TESTED, not PASS. A safe harness must use a scratch copy, a separate configuration directory, a distinct port, and a separate ledger, with any required credentials/network activity disabled."
+}

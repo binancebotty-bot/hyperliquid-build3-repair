@@ -598,11 +598,14 @@
     "census run against a deliberately mutated copy must FAIL (non-vacuous)"
    ],
    "prior_evidence": "",
-   "result": "PASS",
-   "evidence_ref": "certification/results/ENG-INV-01-02_ENG-010-014_SEM-B1-B4_corrected_43731b4f.json",
+   "result": "NOT_TESTED",
+   "evidence_ref": "certification/results/ENG-INV-01_one_process_t_25bebbc7.json",
    "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
    "tested_at_utc": "2026-10-14T09:05:00Z",
-   "notes": "Runtime+static PASS: 36/36 checks; 11/11 non-vacuous negatives; engine sha256 verified; drives REAL engine symbols. | CORRECTED runtime+static PASS: 36/36 checks; 11/11 non-vacuous negatives; engine sha256 verified. Corrections: ENG-014 uses source=WS_SNAPSHOT (not WS) so stale_snapshot_replay_reason() actually exercises stale-detection; ENG-010 accepts ONLY ACCOUNT_NET_TRUTH_UNAVAILABLE (not IDENTITY_INVALID); ENG-011 accepts ONLY IN_FLIGHT_NOT_OWNED (not ACCOUNT_NET_TRUTH_UNAVAILABLE). Prior artifact had 3 unearned PASSes via widened accept sets + source-substring fallback. | CORRECTED runtime+static PASS: 36/36 checks; 11/11 non-vacuous negatives; engine sha256 verified. Corrections: ENG-014 uses source=WS_SNAPSHOT (not WS) so stale_snapshot_replay_reason() actually exercises stale-detection; ENG-010 accepts ONLY ACCOUNT_NET_TRUTH_UNAVAILABLE (not IDENTITY_INVALID); ENG-011 accepts ONLY IN_FLIGHT_NOT_OWNED (not ACCOUNT_NET_TRUTH_UNAVAILABLE). Prior artifact had 3 unearned PASSes via widened accept sets + source-substring fallback. | CORRECTED runtime+static PASS: 36/36 checks; 11/11 non-vacuous negatives; engine sha256 verified. Corrections: ENG-014 uses source=WS_SNAPSHOT (not WS) so stale_snapshot_replay_reason() actually exercises stale-detection; ENG-010 accepts ONLY ACCOUNT_NET_TRUTH_UNAVAILABLE (not IDENTITY_INVALID); ENG-011 accepts ONLY IN_FLIGHT_NOT_OWNED (not ACCOUNT_NET_TRUTH_UNAVAILABLE). Prior artifact had 3 unearned PASSes via widened accept sets + source-substring fallback. | CORRECTED runtime+static PASS: 36/36 checks; 11/11 non-vacuous negatives; engine sha256 verified. Corrections: ENG-014 uses source=WS_SNAPSHOT (not WS) so stale_snapshot_replay_reason() actually exercises stale-detection; ENG-010 accepts ONLY ACCOUNT_NET_TRUTH_UNAVAILABLE (not IDENTITY_INVALID); ENG-011 accepts ONLY IN_FLIGHT_NOT_OWNED (not ACCOUNT_NET_TRUTH_UNAVAILABLE). Prior artifact had 3 unearned PASSes via widened accept sets + source-substring fallback. | CORRECTED runtime+static PASS: 36/36 checks; 11/11 non-vacuous negatives; engine sha256 verified. Corrections: ENG-014 uses source=WS_SNAPSHOT (not WS) so stale_snapshot_replay_reason() actually exercises stale-detection; ENG-010 accepts ONLY ACCOUNT_NET_TRUTH_UNAVAILABLE (not IDENTITY_INVALID); ENG-011 accepts ONLY IN_FLIGHT_NOT_OWNED (not ACCOUNT_NET_TRUTH_UNAVAILABLE). Prior artifact had 3 unearned PASSes via widened accept sets + source-substring fallback."
+   "notes": "NOT_TESTED per worker artifact t_25bebbc7: one live engine process observed (PID 44952, TCP corroborated) but the two-instance negative control was NOT performed, so one-process behaviour is unproven. Static census supporting-only (1 order site, Core:4206).",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "ENG-INV-02",
@@ -649,10 +652,10 @@
    ],
    "prior_evidence": "",
    "result": "PASS",
-   "evidence_ref": "certification/results/ENG-INV-03-05_43731b4f.json",
+   "evidence_ref": "certification/results/ENG_INV_03_04_05_rowbound_t_d67de338.json",
    "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
    "tested_at_utc": "2026-10-14T05:00:00Z",
-   "notes": "Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports. | Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports. | Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports. | Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports. | Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports. | Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports. | Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports."
+   "notes": "PASS on row-bound proof t_d67de338: invariant from ARCHITECTURE.md, row-specific AST predicate, control turns only this row red (siblings_green=true, non_vacuous=true). Awaiting independent attestation."
   },
   {
    "id": "ENG-INV-04",
@@ -673,10 +676,10 @@
    ],
    "prior_evidence": "",
    "result": "PASS",
-   "evidence_ref": "certification/results/ENG-INV-03-05_43731b4f.json",
+   "evidence_ref": "certification/results/ENG_INV_03_04_05_rowbound_t_d67de338.json",
    "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
    "tested_at_utc": "2026-10-14T05:00:00Z",
-   "notes": "Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports. | Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports. | Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports. | Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports. | Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports. | Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports. | Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports."
+   "notes": "PASS on row-bound proof t_d67de338: invariant from ARCHITECTURE.md, row-specific AST predicate, control turns only this row red (siblings_green=true, non_vacuous=true). Awaiting independent attestation."
   },
   {
    "id": "ENG-INV-05",
@@ -696,10 +699,10 @@
    ],
    "prior_evidence": "",
    "result": "PASS",
-   "evidence_ref": "certification/results/ENG-INV-03-05_43731b4f.json",
+   "evidence_ref": "certification/results/ENG_INV_03_04_05_rowbound_t_d67de338.json",
    "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
    "tested_at_utc": "2026-10-14T05:00:00Z",
-   "notes": "Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports. | Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports. | Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports. | Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports. | Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports. | Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports. | Census PASS: 0 third-party imports, 0 persistent stores, 0 Build-4 imports."
+   "notes": "PASS on row-bound proof t_d67de338: invariant from ARCHITECTURE.md, row-specific AST predicate, control turns only this row red (siblings_green=true, non_vacuous=true). Awaiting independent attestation."
   },
   {
    "id": "ENG-INV-06",
