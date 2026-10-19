@@ -58,3 +58,23 @@ register names (`fad19d22`). To certify UI rows against the register, the app mu
 
 Until one of those happens, no UI row can be bound to its declared source. Do not certify against `:8031` as-is and
 call it a register row.
+
+## :8032 isolated instance (found running 2026-10-19)
+
+A second, isolated Command Centre instance exists. It is the fixture the control-write cards required.
+
+| field | value |
+|---|---|
+| endpoint | `http://127.0.0.1:8032` |
+| PID | 30580 |
+| command | `python -m uvicorn HL_Copy_App_SSOT:app --host 127.0.0.1 --port 8032` |
+| started | 2026-10-18T19:43:11+01:00 |
+| workspace | `C:\Users\wigmore\trading_stack\hl-build3-testnet-cert-8032\_archive\hl_stage2` |
+| served source sha256 | `658ec8e31eb96d70…` — **different** from live `:8031`'s `b45ff9af2182944a…` |
+| controls | `/api/global-controls` returns `{"ok":true,...}` with all limits `0.0` (fresh state) |
+
+**Isolation evidence:** separate workspace tree, different served source hash, zeroed controls. Control-write tests
+run against this instance, never against `:8031`.
+
+**Every control test must record the live config's sha256 before and after.** If it changes, the test mutated live
+configuration and that is a defect, not a pass.
