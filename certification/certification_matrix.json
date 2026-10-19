@@ -8750,12 +8750,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "FAIL",
+   "evidence_ref": "certification/results/UI_ROUTE_TRUTH_t_cfcad924.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "",
-   "proof_network": "TESTNET"
+   "notes": "UI route/truth probe on :8023 (card t_cfcad924): ['Grep of served module fad19d22 for AUTHORITATIVE_EXCHANGE|LOCAL_LEDGER|LEADER_SIGNAL|DISPLAY_ONLY|SKIPPED: 0 matches - tier vocabulary absent from the served UI source.', 'Rendered HTML of / and /live-copy contains non",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-TRUTH-002",
@@ -8777,12 +8780,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "FAIL",
+   "evidence_ref": "certification/results/UI_ROUTE_TRUTH_t_cfcad924.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "",
-   "proof_network": "TESTNET"
+   "notes": "UI route/truth probe on :8023 (card t_cfcad924): ['No GREEN-ONLY-001 gate and no master-gate function in served source (0 matches).', 'Green assigned by JS string matching: pill() -> lc-green for OPEN/LIVE/OK/GOOD/ACTIVE; integCls GREEN; wsCls WS_OK.', 'Counter-example",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-TRUTH-003",
@@ -8804,12 +8810,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_ROUTE_TRUTH_t_cfcad924.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "",
-   "proof_network": "TESTNET"
+   "notes": "UI route/truth probe on :8023 (card t_cfcad924): ['Module docstring lines 4-10: reads engine SSOT only; never mutates engine truth.', 'Grep for hyperliquid import, place_order, market_open, usd_class_transfer, submit_order, /exchange: 0 matches - no order path exists.'",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-TRUTH-004",
@@ -8832,12 +8841,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "FAIL",
+   "evidence_ref": "certification/results/UI_ROUTE_TRUTH_t_cfcad924.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "",
-   "proof_network": "TESTNET"
+   "notes": "UI route/truth probe on :8023 (card t_cfcad924): ['At-a-glance surface exists only on /live-copy (74,062 bytes server HTML; it contains the JS that builds the status cards, and / and /model at 21,730 bytes do not). Correction to my first draft: the cards are built CLIE",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-TRUTH-005",
@@ -8857,12 +8869,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_ROUTE_TRUTH_t_cfcad924.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "",
-   "proof_network": "TESTNET"
+   "notes": "UI route/truth probe on :8023 (card t_cfcad924): ['PID 15760 runs uvicorn HL_Copy_App_SSOT:app on 127.0.0.1:8023, started 2026-10-19T08:40:25+01:00.', 'Served module mtime 2026-05-13T08:18:03+01:00, sha256 fad19d22... = matrix-declared hash.', 'Process start postdates ",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "LIFE-001",
@@ -21770,12 +21785,15 @@
     "concurrent write"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_ROUTE_TRUTH_t_cfcad924.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "",
-   "proof_network": "TESTNET"
+   "notes": "UI route/truth probe on :8023 (card t_cfcad924): GET / -> http://127.0.0.1:8023/, HTTP 200, text/html; charset=utf-8",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-ROUTE-02",
@@ -21796,12 +21814,15 @@
     "concurrent write"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_ROUTE_TRUTH_t_cfcad924.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "",
-   "proof_network": "TESTNET"
+   "notes": "UI route/truth probe on :8023 (card t_cfcad924): GET /model -> http://127.0.0.1:8023/model, HTTP 200, text/html; charset=utf-8",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-ROUTE-03",
@@ -21822,12 +21843,15 @@
     "concurrent write"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_ROUTE_TRUTH_t_cfcad924.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "",
-   "proof_network": "TESTNET"
+   "notes": "UI route/truth probe on :8023 (card t_cfcad924): GET /legacy-model -> http://127.0.0.1:8023/legacy-model, HTTP 200, text/html; charset=utf-8",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-ROUTE-04",
@@ -21848,12 +21872,15 @@
     "concurrent write"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_ROUTE_TRUTH_t_cfcad924.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "",
-   "proof_network": "TESTNET"
+   "notes": "UI route/truth probe on :8023 (card t_cfcad924): GET /api/model-cache-status -> http://127.0.0.1:8023/api/model-cache-status, HTTP 200, application/json",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-ROUTE-05",
@@ -21874,12 +21901,15 @@
     "concurrent write"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_ROUTE_TRUTH_t_cfcad924.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "",
-   "proof_network": "TESTNET"
+   "notes": "UI route/truth probe on :8023 (card t_cfcad924): GET /api/state -> http://127.0.0.1:8023/api/state, HTTP 200, application/json",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-ROUTE-06",
@@ -21900,12 +21930,15 @@
     "concurrent write"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_ROUTE_TRUTH_t_cfcad924.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "",
-   "proof_network": "TESTNET"
+   "notes": "UI route/truth probe on :8023 (card t_cfcad924): GET /api/metrics -> http://127.0.0.1:8023/api/metrics, HTTP 200, application/json",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-ROUTE-07",
@@ -21926,12 +21959,15 @@
     "concurrent write"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_ROUTE_TRUTH_t_cfcad924.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "",
-   "proof_network": "TESTNET"
+   "notes": "UI route/truth probe on :8023 (card t_cfcad924): GET /api/trades/{wallet} -> http://127.0.0.1:8023/api/trades/0x7ae3b08bb4e7b085c6db5d635b96bec9715e9205, HTTP 200, application/json",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-ROUTE-08",
@@ -21952,12 +21988,15 @@
     "concurrent write"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_ROUTE_TRUTH_t_cfcad924.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "",
-   "proof_network": "TESTNET"
+   "notes": "UI route/truth probe on :8023 (card t_cfcad924): GET /api/equity/{wallet} -> http://127.0.0.1:8023/api/equity/0x7ae3b08bb4e7b085c6db5d635b96bec9715e9205, HTTP 200, application/json",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-ROUTE-09",
@@ -22030,12 +22069,15 @@
     "concurrent write"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_ROUTE_TRUTH_t_cfcad924.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "",
-   "proof_network": "TESTNET"
+   "notes": "UI route/truth probe on :8023 (card t_cfcad924): GET /wallet-meta/{wallet} -> http://127.0.0.1:8023/wallet-meta/0x7ae3b08bb4e7b085c6db5d635b96bec9715e9205, HTTP 200, text/html; charset=utf-8",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-ROUTE-12",
@@ -22108,12 +22150,15 @@
     "concurrent write"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_ROUTE_TRUTH_t_cfcad924.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "",
-   "proof_network": "TESTNET"
+   "notes": "UI route/truth probe on :8023 (card t_cfcad924): GET /wallet/{wallet} -> http://127.0.0.1:8023/wallet/0x7ae3b08bb4e7b085c6db5d635b96bec9715e9205, HTTP 200, text/html; charset=utf-8",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-ROUTE-15",
@@ -22134,12 +22179,15 @@
     "concurrent write"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_ROUTE_TRUTH_t_cfcad924.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "",
-   "proof_network": "TESTNET"
+   "notes": "UI route/truth probe on :8023 (card t_cfcad924): GET /api/ui-state -> http://127.0.0.1:8023/api/ui-state, HTTP 200, application/json",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-ROUTE-16",
@@ -22316,12 +22364,15 @@
     "concurrent write"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_ROUTE_TRUTH_t_cfcad924.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "",
-   "proof_network": "TESTNET"
+   "notes": "UI route/truth probe on :8023 (card t_cfcad924): GET /sort/{column} -> http://127.0.0.1:8023/sort/wallet, HTTP 200, text/html; charset=utf-8",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-ROUTE-23",
@@ -22342,12 +22393,15 @@
     "concurrent write"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_ROUTE_TRUTH_t_cfcad924.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "",
-   "proof_network": "TESTNET"
+   "notes": "UI route/truth probe on :8023 (card t_cfcad924): GET /api/live-config -> http://127.0.0.1:8023/api/live-config, HTTP 200, application/json",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-ROUTE-24",
@@ -22368,12 +22422,15 @@
     "concurrent write"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_ROUTE_TRUTH_t_cfcad924.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "",
-   "proof_network": "TESTNET"
+   "notes": "UI route/truth probe on :8023 (card t_cfcad924): GET /live-copy -> http://127.0.0.1:8023/live-copy, HTTP 200, text/html; charset=utf-8",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-ROUTE-25",
@@ -22394,12 +22451,15 @@
     "concurrent write"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_ROUTE_TRUTH_t_cfcad924.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "",
-   "proof_network": "TESTNET"
+   "notes": "UI route/truth probe on :8023 (card t_cfcad924): GET /live-copy.json -> http://127.0.0.1:8023/live-copy.json, HTTP 200, application/json",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-ROUTE-26",
@@ -22420,12 +22480,15 @@
     "concurrent write"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_ROUTE_TRUTH_t_cfcad924.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "",
-   "proof_network": "TESTNET"
+   "notes": "UI route/truth probe on :8023 (card t_cfcad924): GET /api/live-copy-summary -> http://127.0.0.1:8023/api/live-copy-summary, HTTP 200, application/json",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-ROUTE-27",
@@ -22446,12 +22509,15 @@
     "concurrent write"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_ROUTE_TRUTH_t_cfcad924.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "",
-   "proof_network": "TESTNET"
+   "notes": "UI route/truth probe on :8023 (card t_cfcad924): GET /api/global-controls -> http://127.0.0.1:8023/api/global-controls, HTTP 200, application/json",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-ROUTE-28",
@@ -22498,12 +22564,15 @@
     "concurrent write"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_ROUTE_TRUTH_t_cfcad924.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "",
-   "proof_network": "TESTNET"
+   "notes": "UI route/truth probe on :8023 (card t_cfcad924): GET /api/live-ws-health -> http://127.0.0.1:8023/api/live-ws-health, HTTP 200, application/json",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-ROUTE-30",
@@ -22524,12 +22593,15 @@
     "concurrent write"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_ROUTE_TRUTH_t_cfcad924.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "",
-   "proof_network": "TESTNET"
+   "notes": "UI route/truth probe on :8023 (card t_cfcad924): GET /api/live-audit-summary -> http://127.0.0.1:8023/api/live-audit-summary, HTTP 200, application/json",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-ROUTE-31",
