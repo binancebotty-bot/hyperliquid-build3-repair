@@ -65,11 +65,12 @@
    },
    "Coin": {
     "col": 2,
-    "agree": 293,
+    "agree": 300,
     "of": 300,
-    "contradict": 7,
+    "contradict": 0,
     "cross37": 13,
-    "cross37_of": 300
+    "cross37_of": 300,
+    "note": "corrected from 293/300. The earlier figure compared the rendered cell against the un-elided string; with the same normalisation used for every other cell the rendered cell equals payload coin on 300/300 rows (13/300 at the +37 control)."
    },
    "Side": {
     "col": 3,
@@ -85,7 +86,8 @@
     "of": 300,
     "contradict": 300,
     "cross37": 0,
-    "cross37_of": 300
+    "cross37_of": 300,
+    "note": "measured against the DECLARED payload field of the same name; the rendered cell actually sits one column to the right and carries the field given in rendered_cell_to_payload_field"
    },
    "Terminal state": {
     "col": 5,
@@ -93,7 +95,8 @@
     "of": 300,
     "contradict": 300,
     "cross37": 0,
-    "cross37_of": 300
+    "cross37_of": 300,
+    "note": "measured against the DECLARED payload field of the same name; the rendered cell actually sits one column to the right and carries the field given in rendered_cell_to_payload_field"
    },
    "Operator action": {
     "col": 6,
@@ -101,7 +104,8 @@
     "of": 300,
     "contradict": 297,
     "cross37": 0,
-    "cross37_of": 300
+    "cross37_of": 300,
+    "note": "measured against the DECLARED payload field of the same name; the rendered cell actually sits one column to the right and carries the field given in rendered_cell_to_payload_field"
    },
    "Reject category": {
     "col": 7,
@@ -109,7 +113,8 @@
     "of": 284,
     "contradict": 284,
     "cross37": 0,
-    "cross37_of": 268
+    "cross37_of": 268,
+    "note": "measured against the DECLARED payload field of the same name; the rendered cell actually sits one column to the right and carries the field given in rendered_cell_to_payload_field"
    },
    "OID": {
     "col": 8,
@@ -117,7 +122,8 @@
     "of": 16,
     "contradict": 16,
     "cross37": 0,
-    "cross37_of": 0
+    "cross37_of": 0,
+    "note": "measured against the DECLARED payload field of the same name; the rendered cell actually sits one column to the right and carries the field given in rendered_cell_to_payload_field"
    },
    "Fill avg px": {
     "col": 9,
@@ -125,7 +131,8 @@
     "of": 16,
     "contradict": 16,
     "cross37": 0,
-    "cross37_of": 0
+    "cross37_of": 0,
+    "note": "measured against the DECLARED payload field of the same name; the rendered cell actually sits one column to the right and carries the field given in rendered_cell_to_payload_field"
    },
    "Size": {
     "col": 10,
@@ -133,89 +140,279 @@
     "of": 16,
     "contradict": 16,
     "cross37": 0,
-    "cross37_of": 0
+    "cross37_of": 0,
+    "note": "measured against the DECLARED payload field of the same name; the rendered cell actually sits one column to the right and carries the field given in rendered_cell_to_payload_field"
    }
   },
   "rendered_cell_to_payload_field": {
    "0": {
     "header": "Time",
+    "declared_header_index": 0,
     "carries": {
      "time": 300
-    }
+    },
+    "agree": 300,
+    "of": 300,
+    "contradict": 0,
+    "cross37": 0,
+    "cross37_of": 300,
+    "agree_strict": 0,
+    "matching": "string equality with a 21-char prefix of the ISO timestamp plus U+2026"
    },
    "1": {
     "header": "Wallet",
+    "declared_header_index": 1,
     "carries": {
      "leader_wallet": 300
-    }
+    },
+    "agree": 300,
+    "of": 300,
+    "contradict": 0,
+    "cross37": 64,
+    "cross37_of": 300,
+    "agree_strict": 0,
+    "matching": "head...tail equality (0x head 10 chars, tail 6 chars)"
    },
    "2": {
     "header": "Coin",
+    "declared_header_index": 2,
     "carries": {
-     "coin": 293
-    }
+     "coin": 300
+    },
+    "agree": 300,
+    "of": 300,
+    "contradict": 0,
+    "cross37": 13,
+    "cross37_of": 300,
+    "agree_strict": 300,
+    "matching": "string equality"
    },
    "3": {
     "header": "Side",
+    "declared_header_index": 3,
     "carries": {
      "side": 300
-    }
+    },
+    "agree": 300,
+    "of": 300,
+    "contradict": 0,
+    "cross37": 158,
+    "cross37_of": 300,
+    "agree_strict": 300,
+    "matching": "string equality"
    },
    "4": {
-    "header": "Status",
+    "header": null,
+    "declared_header_index": null,
     "carries": {
-     "terminal_state": 16
-    }
+     "truth_state": 300
+    },
+    "agree": 300,
+    "of": 300,
+    "contradict": 0,
+    "cross37": 268,
+    "cross37_of": 300,
+    "agree_strict": 300,
+    "matching": "string equality - UNDECLARED cell",
+    "note": "UNDECLARED cell (reconciliation chip). This single insertion is what displaces every declared column from Status onward by one cell."
    },
    "5": {
-    "header": "Terminal state",
+    "header": "Status",
+    "declared_header_index": 4,
     "carries": {
      "status": 300
-    }
+    },
+    "agree": 300,
+    "of": 300,
+    "contradict": 0,
+    "cross37": 268,
+    "cross37_of": 300,
+    "agree_strict": 300,
+    "matching": "string equality"
    },
    "6": {
-    "header": "Operator action",
+    "header": "Terminal state",
+    "declared_header_index": 5,
     "carries": {
-     "terminal_state": 300,
-     "operator_action": 3
-    }
+     "terminal_state": 300
+    },
+    "agree": 300,
+    "of": 300,
+    "contradict": 0,
+    "cross37": 103,
+    "cross37_of": 300,
+    "agree_strict": 300,
+    "matching": "string equality"
    },
    "7": {
-    "header": "Reject category",
+    "header": "Operator action",
+    "declared_header_index": 6,
     "carries": {
-     "operator_action": 300,
-     "terminal_state": 148
-    }
+     "operator_action": 300
+    },
+    "agree": 300,
+    "of": 300,
+    "contradict": 0,
+    "cross37": 104,
+    "cross37_of": 300,
+    "agree_strict": 300,
+    "matching": "string equality"
    },
    "8": {
-    "header": "OID",
+    "header": "Reject category",
+    "declared_header_index": 7,
     "carries": {
-     "reject_category": 284
-    }
+     "reject_category": 300
+    },
+    "agree": 300,
+    "of": 300,
+    "contradict": 0,
+    "cross37": 210,
+    "cross37_of": 300,
+    "agree_strict": 300,
+    "matching": "string equality"
    },
    "9": {
-    "header": "Fill avg px",
+    "header": "OID",
+    "declared_header_index": 8,
     "carries": {
-     "oid": 16
-    }
+     "oid": 300
+    },
+    "agree": 300,
+    "of": 300,
+    "contradict": 0,
+    "cross37": 268,
+    "cross37_of": 300,
+    "agree_strict": 300,
+    "matching": "string equality; empty oid renders as U+2014"
    },
    "10": {
-    "header": "Size",
+    "header": "Fill avg px",
+    "declared_header_index": 9,
     "carries": {
-     "fill_avg_px": 16
-    }
+     "fill_avg_px": 300
+    },
+    "agree": 300,
+    "of": 300,
+    "contradict": 0,
+    "cross37": 268,
+    "cross37_of": 300,
+    "agree_strict": 300,
+    "matching": "string equality; null renders as U+2014"
    },
    "11": {
-    "header": "Pos before -> after",
+    "header": "Size",
+    "declared_header_index": 10,
     "carries": {
-     "fill_size": 16
-    }
+     "fill_size": 300
+    },
+    "agree": 300,
+    "of": 300,
+    "contradict": 0,
+    "cross37": 268,
+    "cross37_of": 300,
+    "agree_strict": 299,
+    "matching": "numeric equality (row 126 renders 8e-05 as 0.00008)",
+    "note": "strict string equality 299/300: row 126 renders 8e-05 as 0.00008 (same number, different formatting)"
+   },
+   "12": {
+    "header": "Pos before -> after",
+    "declared_header_index": 11,
+    "carries": {
+     "POS": 300
+    },
+    "agree": 300,
+    "of": 300,
+    "contradict": 0,
+    "cross37": 1,
+    "cross37_of": 300,
+    "agree_strict": 300,
+    "matching": "positional equality on \"wallet_position_before -> wallet_position_after\""
+   },
+   "13": {
+    "header": "Leader\u2192send ms",
+    "declared_header_index": 12,
+    "carries": {
+     "leader_to_send_attempt_ms": 300
+    },
+    "agree": 300,
+    "of": 300,
+    "contradict": 0,
+    "cross37": 0,
+    "cross37_of": 300,
+    "agree_strict": 300,
+    "matching": "string equality"
    },
    "14": {
-    "header": "Symbol ms",
+    "header": "Total ms",
+    "declared_header_index": 13,
     "carries": {
-     "time": 1
-    }
+     "send_total_ms": 300
+    },
+    "agree": 300,
+    "of": 300,
+    "contradict": 0,
+    "cross37": 0,
+    "cross37_of": 300,
+    "agree_strict": 300,
+    "matching": "string equality"
+   },
+   "15": {
+    "header": "Symbol ms",
+    "declared_header_index": 14,
+    "carries": {
+     "symbol_resolve_ms": 300
+    },
+    "agree": 300,
+    "of": 300,
+    "contradict": 0,
+    "cross37": 296,
+    "cross37_of": 300,
+    "agree_strict": 300,
+    "matching": "string equality"
+   },
+   "16": {
+    "header": "SDK ms",
+    "declared_header_index": 15,
+    "carries": {
+     "sdk_client_ms": 300
+    },
+    "agree": 300,
+    "of": 300,
+    "contradict": 0,
+    "cross37": 292,
+    "cross37_of": 300,
+    "agree_strict": 300,
+    "matching": "string equality"
+   },
+   "17": {
+    "header": "Exchange ms",
+    "declared_header_index": 16,
+    "carries": {
+     "exchange_call_ms": 300
+    },
+    "agree": 300,
+    "of": 300,
+    "contradict": 0,
+    "cross37": 0,
+    "cross37_of": 300,
+    "agree_strict": 300,
+    "matching": "string equality"
+   },
+   "18": {
+    "header": "Error",
+    "declared_header_index": 17,
+    "carries": {
+     "error": 284
+    },
+    "agree": 284,
+    "of": 300,
+    "contradict": 16,
+    "cross37": 197,
+    "cross37_of": 300,
+    "agree_strict": 34,
+    "matching": "string equality with a prefix ending in U+2026",
+    "note": "the 16 rows whose rendered cell is EMPTY correspond to payload rows where error is the empty string (the UI renders no placeholder there), so agreement is 284/300 rather than 300/300; on the 284 rows with a non-empty error the elided prefix matches 284/300 and the +37 mutation control gives 197/300"
    }
   },
   "limit_px_nonnull": 300,
@@ -257,7 +454,69 @@
     "upnl": 0,
     "pv": 0
    }
-  }
+  },
+  "layout_model": {
+   "summary": "Execution Quality declares 18 headers but renders 19 cells per row. Cells 0-3 sit under their declared headers. One UNDECLARED cell at index 4 carries truth_state. Every declared header from Status (header index 4) onward is therefore rendered ONE CELL TO THE RIGHT: declared header h is drawn at cell h+1 for h>=4. The declared columns are displaced RIGHT by one, never left. limit_px is rendered in no cell although it is non-null on 300/300 payload rows. The payload is complete; the render is displaced.",
+   "declared_headers": 18,
+   "cells_per_row": 19,
+   "undeclared_cell_index": 4,
+   "undeclared_cell_carries": "truth_state",
+   "rule": "rendered_cell_index = declared_header_index for header_index<=3; rendered_cell_index = declared_header_index+1 for header_index>=4",
+   "declared_header_to_rendered_cell": {
+    "Time": 0,
+    "Wallet": 1,
+    "Coin": 2,
+    "Side": 3,
+    "Status": 5,
+    "Terminal state": 6,
+    "Operator action": 7,
+    "Reject category": 8,
+    "OID": 9,
+    "Fill avg px": 10,
+    "Size": 11,
+    "Pos before -> after": 12,
+    "Leader\u2192send ms": 13,
+    "Total ms": 14,
+    "Symbol ms": 15,
+    "SDK ms": 16,
+    "Exchange ms": 17,
+    "Error": 18
+   },
+   "not_rendered_fields": [
+    "limit_px"
+   ],
+   "limit_px_nonnull_payload_rows": 300,
+   "cell18_note": "the 19th cell exists because of the undeclared chip, not because of an extra trailing column"
+  },
+  "time_elision_disclosure": {
+   "cell": 0,
+   "rendered_cell_length_chars": [
+    22
+   ],
+   "rendered_is_elided": true,
+   "prefix_length_chars": 21,
+   "exact_string_equality": 0,
+   "prefix_agreement": 300,
+   "prefix_cross37": 0,
+   "prefix_unique_against_payload": 253,
+   "rows_in_ambiguous_prefix_groups": 47,
+   "distinct_payload_timestamps": 300,
+   "distinct_rendered_prefixes": 275,
+   "time_plus_wallet_joint_unique": 290,
+   "note": "The Time cell is ELIDED: every one of the 300 rows renders a 22-character cell made of a 21-character prefix of the ISO timestamp plus U+2026. Exact string equality with the payload timestamp is therefore 0/300. Agreement is measured on that 21-character prefix: 300/300 against the same row and 0/300 at the +37 mutation control. The prefix ALONE is not unique: 253/300 rows have a prefix that matches exactly one payload timestamp while 47 rows fall into groups of 2-4 events sharing the same 100 ms window (all 300 payload timestamps are distinct, and a 24-character prefix would be unique on 300/300). Combining the Time prefix with the elided Wallet head...tail raises uniqueness to 290/300, and Wallet alone already agrees 300/300 with only 64/300 at the +37 control, so row binding does not depend on Time prefix uniqueness. This is recorded as measured; the task-card wording \"unique on 300/300 rows\" is not supported by the committed payload."
+  },
+  "corrections": [
+   "cell 4 carries truth_state (300/300 vs payload[k].truth_state; only 16/300 vs terminal_state) - previously recorded as terminal_state",
+   "cell 5 carries status, cell 6 terminal_state, cell 7 operator_action, cell 8 reject_category, cell 9 oid, cell 10 fill_avg_px, cell 11 fill_size - previously described as a LEFT-neighbour shift, which is wrong: the undeclared chip displaces declared columns to the RIGHT",
+   "keys 12 (POS wallet_position_before -> wallet_position_after, 300/300) and 13 (leader_to_send_attempt_ms, 300/300) added - previously absent",
+   "cell 14 carries send_total_ms (300/300), not time (0/300 exact) - corrected",
+   "keys 15-18 added: symbol_resolve_ms 300/300, sdk_client_ms 300/300, exchange_call_ms 300/300, error 284/300 (the 16 misses are rows where the payload error is empty and the UI renders an empty cell)",
+   "UI-LCC-EXQ-03 coin agreement is 300/300, not 293/300",
+   "UI-LCC-EXQ-01 why now discloses the 22-character Time elision (exact 0/300; 21-char prefix 300/300; prefix unique on 253/300; Time+Wallet joint unique 290/300; +37 control 0/300)",
+   "UI-LCC-EXQ-05/07/08 why text now state that cell 4 carries truth_state and that declared columns are displaced RIGHT by one from Status onward",
+   "no verdict was changed: 5 PASS / 10 FAIL / 0 NOT_TESTED"
+  ],
+  "binding_note": "binding[] measures each DECLARED header against the payload field of the same name, so it documents the displacement rather than the actual binding. The actual binding of each rendered cell is rendered_cell_to_payload_field: cell 4 is undeclared and carries truth_state, and declared header h>=4 is drawn at cell h+1."
  },
  "artifacts": [
   "certification/results/UI_LCC_POS06_EXQ08_evidence.json",
@@ -319,7 +578,7 @@
    "verdict": "PASS",
    "evidence_ref": "certification/results/UI_LCC_POS06_EXQ08_evidence.json",
    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
-   "why": "Time column (index 0 of ['Time', 'Wallet', 'Coin', 'Side', 'Status', 'Terminal state', 'Operator action', 'Reject category', 'OID', 'Fill avg px', 'Size', 'Pos before -> after', 'Leader\u2192send ms', 'Total ms', 'Symbol ms', 'SDK ms', 'Exchange ms', 'Error']) renders THIS row time on 300/300 rows (0 contradictions); the rendered value comes from that row and would change with any other row. Time and Wallet are the row identity: Time agrees 300/300 with 0/300 cross-row matches and Wallet 300/300 with only 64/300, so DOM row k is payload row k."
+   "why": "Time column (index 0 of [\"Time\", \"Wallet\", \"Coin\", \"Side\", \"Status\", \"Terminal state\", \"Operator action\", \"Reject category\", \"OID\", \"Fill avg px\", \"Size\", \"Pos before -> after\", \"Leader\\u2192send ms\", \"Total ms\", \"Symbol ms\", \"SDK ms\", \"Exchange ms\", \"Error\"]) renders THIS row time on 300/300 rows (0 contradictions) and 0/300 at the +37 control. DISCLOSURE: the Time cell is ELIDED to 22 characters (a 21-character prefix plus U+2026), so exact string equality with the payload timestamp is 0/300; agreement is measured on that 21-character prefix, which is unique against the payload on only 253/300 rows (Time prefix plus the elided wallet head...tail: 290/300). Time and Wallet are the row identity: Wallet agrees 300/300 with only 64/300 cross-row matches. The Time cell is a 21-character prefix plus U+2026 and agrees 300/300 with 0/300 at the +37 control, but that prefix is unique on only 253/300 rows, so identity rests on Wallet and row order, not on Time prefix uniqueness."
   },
   {
    "row_id": "UI-LCC-EXQ-02",
@@ -333,7 +592,7 @@
    "verdict": "PASS",
    "evidence_ref": "certification/results/UI_LCC_POS06_EXQ08_evidence.json",
    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
-   "why": "Coin column (index 2 of ['Time', 'Wallet', 'Coin', 'Side', 'Status', 'Terminal state', 'Operator action', 'Reject category', 'OID', 'Fill avg px', 'Size', 'Pos before -> after', 'Leader\u2192send ms', 'Total ms', 'Symbol ms', 'SDK ms', 'Exchange ms', 'Error']) renders THIS row coin on 293/300 rows (7 contradictions); the rendered value comes from that row and would change with any other row. Time and Wallet are the row identity: Time agrees 300/300 with 0/300 cross-row matches and Wallet 300/300 with only 64/300, so DOM row k is payload row k."
+   "why": "Coin column (index 2 of [\"Time\", \"Wallet\", \"Coin\", \"Side\", \"Status\", \"Terminal state\", \"Operator action\", \"Reject category\", \"OID\", \"Fill avg px\", \"Size\", \"Pos before -> after\", \"Leader\\u2192send ms\", \"Total ms\", \"Symbol ms\", \"SDK ms\", \"Exchange ms\", \"Error\"]) renders THIS row coin on 300/300 rows (0 contradictions; 13/300 at the +37 control). This corrects an earlier 293/300 figure, which compared the rendered cell against the un-elided string; with the same normalisation used for every other cell the agreement is 300/300. Time and Wallet are the row identity: Wallet agrees 300/300 with only 64/300 cross-row matches. The Time cell is a 21-character prefix plus U+2026 and agrees 300/300 with 0/300 at the +37 control, but that prefix is unique on only 253/300 rows, so identity rests on Wallet and row order, not on Time prefix uniqueness."
   },
   {
    "row_id": "UI-LCC-EXQ-04",
@@ -347,28 +606,28 @@
    "verdict": "FAIL",
    "evidence_ref": "certification/results/UI_LCC_POS06_EXQ08_evidence.json",
    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
-   "why": "Status column (index 4 of ['Time', 'Wallet', 'Coin', 'Side', 'Status', 'Terminal state', 'Operator action', 'Reject category', 'OID', 'Fill avg px', 'Size', 'Pos before -> after', 'Leader\u2192send ms', 'Total ms', 'Symbol ms', 'SDK ms', 'Exchange ms', 'Error']) does not render status: only 0/300 rows agree (300 contradictions) and the cell actually carries the terminal_state of the same row. Time and Wallet are the row identity: Time agrees 300/300 with 0/300 cross-row matches and Wallet 300/300 with only 64/300, so DOM row k is payload row k. Execution Quality declares 18 headers but renders 19 cells per row: the undeclared chip occupies index 4, so every declared column from Status onward carries its LEFT NEIGHBOUR payload field (rendered cell -> payload field: {\"4\": [\"terminal_state\"], \"5\": [\"status\"], \"6\": [\"terminal_state\"], \"7\": [\"operator_action\"], \"8\": [\"reject_category\"], \"9\": [\"oid\"], \"10\": [\"fill_avg_px\"], \"11\": [\"fill_size\"], \"14\": [\"time\"]}). Nothing is missing from the payload; the columns are shifted by one."
+   "why": "Status column (index 4 of [\"Time\", \"Wallet\", \"Coin\", \"Side\", \"Status\", \"Terminal state\", \"Operator action\", \"Reject category\", \"OID\", \"Fill avg px\", \"Size\", \"Pos before -> after\", \"Leader\\u2192send ms\", \"Total ms\", \"Symbol ms\", \"SDK ms\", \"Exchange ms\", \"Error\"]) does not render status: only 0/300 rows agree (300 contradictions) and the cell actually carries the truth_state of the same row (300/300; it matches terminal_state on only 16/300). Time and Wallet are the row identity: Wallet agrees 300/300 with only 64/300 cross-row matches. The Time cell is a 21-character prefix plus U+2026 and agrees 300/300 with 0/300 at the +37 control, but that prefix is unique on only 253/300 rows, so identity rests on Wallet and row order, not on Time prefix uniqueness. Execution Quality declares 18 headers but renders 19 cells per row. Cells 0-3 sit under their declared headers. One UNDECLARED cell at index 4 carries truth_state. Every declared header from Status (header index 4) onward is therefore rendered ONE CELL TO THE RIGHT: declared header h is drawn at cell h+1 for h>=4. The declared columns are displaced RIGHT by one, never left. limit_px is rendered in no cell although it is non-null on 300/300 payload rows. The payload is complete; the render is displaced. Nothing is missing from the payload; the declared columns are displaced one cell to the RIGHT."
   },
   {
    "row_id": "UI-LCC-EXQ-06",
    "verdict": "FAIL",
    "evidence_ref": "certification/results/UI_LCC_POS06_EXQ08_evidence.json",
    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
-   "why": "The Limit px column is not rendered at all: the table headers are ['Time', 'Wallet', 'Coin', 'Side', 'Status', 'Terminal state', 'Operator action', 'Reject category', 'OID', 'Fill avg px', 'Size', 'Pos before -> after', 'Leader\u2192send ms', 'Total ms', 'Symbol ms', 'SDK ms', 'Exchange ms', 'Error'] (18 columns) and no Limit px header exists although payload limit_px is non-null on 300/300 rows. Execution Quality declares 18 headers but renders 19 cells per row: the undeclared chip occupies index 4, so every declared column from Status onward carries its LEFT NEIGHBOUR payload field (rendered cell -> payload field: {\"4\": [\"terminal_state\"], \"5\": [\"status\"], \"6\": [\"terminal_state\"], \"7\": [\"operator_action\"], \"8\": [\"reject_category\"], \"9\": [\"oid\"], \"10\": [\"fill_avg_px\"], \"11\": [\"fill_size\"], \"14\": [\"time\"]}). Nothing is missing from the payload; the columns are shifted by one."
+   "why": "The Limit px column is not rendered at all: the table headers are [\"Time\", \"Wallet\", \"Coin\", \"Side\", \"Status\", \"Terminal state\", \"Operator action\", \"Reject category\", \"OID\", \"Fill avg px\", \"Size\", \"Pos before -> after\", \"Leader\\u2192send ms\", \"Total ms\", \"Symbol ms\", \"SDK ms\", \"Exchange ms\", \"Error\"] and no cell of the 19 carries limit_px, although limit_px is non-null on 300/300 payload rows. Time and Wallet are the row identity: Wallet agrees 300/300 with only 64/300 cross-row matches. The Time cell is a 21-character prefix plus U+2026 and agrees 300/300 with 0/300 at the +37 control, but that prefix is unique on only 253/300 rows, so identity rests on Wallet and row order, not on Time prefix uniqueness. Execution Quality declares 18 headers but renders 19 cells per row. Cells 0-3 sit under their declared headers. One UNDECLARED cell at index 4 carries truth_state. Every declared header from Status (header index 4) onward is therefore rendered ONE CELL TO THE RIGHT: declared header h is drawn at cell h+1 for h>=4. The declared columns are displaced RIGHT by one, never left. limit_px is rendered in no cell although it is non-null on 300/300 payload rows. The payload is complete; the render is displaced."
   },
   {
    "row_id": "UI-LCC-EXQ-07",
    "verdict": "FAIL",
    "evidence_ref": "certification/results/UI_LCC_POS06_EXQ08_evidence.json",
    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
-   "why": "Fill avg px column (index 9 of ['Time', 'Wallet', 'Coin', 'Side', 'Status', 'Terminal state', 'Operator action', 'Reject category', 'OID', 'Fill avg px', 'Size', 'Pos before -> after', 'Leader\u2192send ms', 'Total ms', 'Symbol ms', 'SDK ms', 'Exchange ms', 'Error']) does not render fill_avg_px: only 0/16 rows agree (16 contradictions) and the cell actually carries the oid of the same row. Time and Wallet are the row identity: Time agrees 300/300 with 0/300 cross-row matches and Wallet 300/300 with only 64/300, so DOM row k is payload row k. Execution Quality declares 18 headers but renders 19 cells per row: the undeclared chip occupies index 4, so every declared column from Status onward carries its LEFT NEIGHBOUR payload field (rendered cell -> payload field: {\"4\": [\"terminal_state\"], \"5\": [\"status\"], \"6\": [\"terminal_state\"], \"7\": [\"operator_action\"], \"8\": [\"reject_category\"], \"9\": [\"oid\"], \"10\": [\"fill_avg_px\"], \"11\": [\"fill_size\"], \"14\": [\"time\"]}). Nothing is missing from the payload; the columns are shifted by one."
+   "why": "Fill avg px column (index 9 of [\"Time\", \"Wallet\", \"Coin\", \"Side\", \"Status\", \"Terminal state\", \"Operator action\", \"Reject category\", \"OID\", \"Fill avg px\", \"Size\", \"Pos before -> after\", \"Leader\\u2192send ms\", \"Total ms\", \"Symbol ms\", \"SDK ms\", \"Exchange ms\", \"Error\"]) does not render fill_avg_px: only 0/16 rows agree (16 contradictions) and the cell actually carries the oid of the same row (300/300 including the U+2014 placeholder for an empty oid; 16/16 where oid is non-empty). Time and Wallet are the row identity: Wallet agrees 300/300 with only 64/300 cross-row matches. The Time cell is a 21-character prefix plus U+2026 and agrees 300/300 with 0/300 at the +37 control, but that prefix is unique on only 253/300 rows, so identity rests on Wallet and row order, not on Time prefix uniqueness. Execution Quality declares 18 headers but renders 19 cells per row. Cells 0-3 sit under their declared headers. One UNDECLARED cell at index 4 carries truth_state. Every declared header from Status (header index 4) onward is therefore rendered ONE CELL TO THE RIGHT: declared header h is drawn at cell h+1 for h>=4. The declared columns are displaced RIGHT by one, never left. limit_px is rendered in no cell although it is non-null on 300/300 payload rows. The payload is complete; the render is displaced. Nothing is missing from the payload; the declared columns are displaced one cell to the RIGHT."
   },
   {
    "row_id": "UI-LCC-EXQ-08",
    "verdict": "FAIL",
    "evidence_ref": "certification/results/UI_LCC_POS06_EXQ08_evidence.json",
    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
-   "why": "Size column (index 10 of ['Time', 'Wallet', 'Coin', 'Side', 'Status', 'Terminal state', 'Operator action', 'Reject category', 'OID', 'Fill avg px', 'Size', 'Pos before -> after', 'Leader\u2192send ms', 'Total ms', 'Symbol ms', 'SDK ms', 'Exchange ms', 'Error']) does not render fill_size: only 0/16 rows agree (16 contradictions) and the cell actually carries the fill_avg_px of the same row. Time and Wallet are the row identity: Time agrees 300/300 with 0/300 cross-row matches and Wallet 300/300 with only 64/300, so DOM row k is payload row k. Execution Quality declares 18 headers but renders 19 cells per row: the undeclared chip occupies index 4, so every declared column from Status onward carries its LEFT NEIGHBOUR payload field (rendered cell -> payload field: {\"4\": [\"terminal_state\"], \"5\": [\"status\"], \"6\": [\"terminal_state\"], \"7\": [\"operator_action\"], \"8\": [\"reject_category\"], \"9\": [\"oid\"], \"10\": [\"fill_avg_px\"], \"11\": [\"fill_size\"], \"14\": [\"time\"]}). Nothing is missing from the payload; the columns are shifted by one."
+   "why": "Size column (index 10 of [\"Time\", \"Wallet\", \"Coin\", \"Side\", \"Status\", \"Terminal state\", \"Operator action\", \"Reject category\", \"OID\", \"Fill avg px\", \"Size\", \"Pos before -> after\", \"Leader\\u2192send ms\", \"Total ms\", \"Symbol ms\", \"SDK ms\", \"Exchange ms\", \"Error\"]) does not render fill_size: only 0/16 rows agree (16 contradictions) and the cell actually carries the fill_avg_px of the same row (300/300 including the U+2014 placeholder; 16/16 where fill_avg_px is non-null). Time and Wallet are the row identity: Wallet agrees 300/300 with only 64/300 cross-row matches. The Time cell is a 21-character prefix plus U+2026 and agrees 300/300 with 0/300 at the +37 control, but that prefix is unique on only 253/300 rows, so identity rests on Wallet and row order, not on Time prefix uniqueness. Execution Quality declares 18 headers but renders 19 cells per row. Cells 0-3 sit under their declared headers. One UNDECLARED cell at index 4 carries truth_state. Every declared header from Status (header index 4) onward is therefore rendered ONE CELL TO THE RIGHT: declared header h is drawn at cell h+1 for h>=4. The declared columns are displaced RIGHT by one, never left. limit_px is rendered in no cell although it is non-null on 300/300 payload rows. The payload is complete; the render is displaced. Nothing is missing from the payload; the declared columns are displaced one cell to the RIGHT."
   }
  ],
  "verdict_counts": {
