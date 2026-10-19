@@ -1,0 +1,399 @@
+{
+ "source": "http://127.0.0.1:8023/live-copy",
+ "title": "\ud83d\udc34 Live Copy Dashboard",
+ "html_bytes": 94384,
+ "html_sha256": "fb54932b0aba66b1ddee66db23dce25b00d1048081c5af9f52c3ab3d2d2ec6ca",
+ "captured_by": "coordinator (browser_exec) - workers have no browser access",
+ "note": "Raw DOM snapshot. Values here are as rendered at capture time; they still need chaining to the engine source line to be evidence.",
+ "table_count": 15,
+ "tables": [
+  {
+   "id": null,
+   "headers": [
+    "Wallet",
+    "Mode / Health",
+    "Live PnL",
+    "Lead\u2194Copy Diff",
+    "Execution",
+    "Risk / Exposure",
+    "Last Fill",
+    "Controls"
+   ],
+   "header_count": 8,
+   "body_rows": 4,
+   "first_row": [
+    "0x599d75c7...e62d09TRACKED",
+    "LIVECOPYINGSHARED_WS_OKHOT10 shared socket active",
+    "R: n/aU: n/aNet: n/aNo PnL yet",
+    "Total: n/aAvg: n/aAvg bps: n/aWorst bps: n/a",
+    "0 filled / 0 exits0 recent rejects0 recent blocks",
+    "Exposure: $0Open pos: 0DD: UNKNOWN/NOT_PROVENMaxDD: UNKNOWN/NOT_PROVEN",
+    "none yet",
+    "LIVECLOOFFpropfixedFNBSaveCLOOFFArchive"
+   ]
+  },
+  {
+   "id": null,
+   "headers": [
+    "Wallet",
+    "Coin",
+    "Side",
+    "Signed size",
+    "Avg entry",
+    "Ledger/exchange",
+    "Exchange size",
+    "Last copy fill",
+    "Last updated"
+   ],
+   "header_count": 9,
+   "body_rows": 1,
+   "first_row": [
+    "No owned copy sleeves in manual_live_positions.json."
+   ]
+  },
+  {
+   "id": null,
+   "headers": [
+    "Coin",
+    "Exchange size",
+    "Entry px",
+    "Mark px",
+    "Unrealized PnL",
+    "Status",
+    "User owner",
+    "Engine close?",
+    "Engine sleeve?",
+    "Context"
+   ],
+   "header_count": 10,
+   "body_rows": 1,
+   "first_row": [
+    "No account-level orphan exchange positions."
+   ]
+  },
+  {
+   "id": null,
+   "headers": [
+    "Time",
+    "Wallet",
+    "Coin",
+    "Side",
+    "Status",
+    "Terminal state",
+    "Operator action",
+    "Reject category",
+    "OID",
+    "Fill avg px",
+    "Size",
+    "Pos before -&gt; after",
+    "Leader\u2192send ms",
+    "Total ms",
+    "Symbol ms",
+    "SDK ms",
+    "Exchange ms",
+    "Error"
+   ],
+   "header_count": 18,
+   "body_rows": 1,
+   "first_row": [
+    "No execution data. Real fills appear here after send_attempts.csv is populated."
+   ]
+  },
+  {
+   "id": null,
+   "headers": [
+    "Time",
+    "Wallet",
+    "Coin",
+    "Side",
+    "Source/Reason",
+    "Status",
+    "Decision",
+    "Decision reason",
+    "Suggested limit",
+    "Diff %",
+    "Manual?",
+    "Intent note",
+    "Real order result"
+   ],
+   "header_count": 13,
+   "body_rows": 10,
+   "first_row": [
+    "2026-10-09T14:48:58.366311+00:00",
+    "0xf7bfa3a7...acf123",
+    "BTC",
+    "",
+    "POLLmax total exposure exceeded",
+    "\u2014",
+    "\u2014",
+    "",
+    "",
+    "",
+    "",
+    "lifecycle=ENTRY"
+   ]
+  },
+  {
+   "id": null,
+   "headers": [
+    "Event",
+    "Status",
+    "Action",
+    "Reject category",
+    "Terminal state",
+    "Coin",
+    "Wallet",
+    "Intent",
+    "Notes"
+   ],
+   "header_count": 9,
+   "body_rows": 1,
+   "first_row": [
+    "No actionable critical terminal items."
+   ]
+  },
+  {
+   "id": null,
+   "headers": [
+    "Event",
+    "Status",
+    "Action",
+    "Reject category",
+    "Terminal state",
+    "Coin",
+    "Wallet",
+    "Intent",
+    "Notes"
+   ],
+   "header_count": 9,
+   "body_rows": 1,
+   "first_row": [
+    "No terminal warnings."
+   ]
+  },
+  {
+   "id": "lcReconLegacyRows",
+   "headers": [
+    "Status",
+    "Wallet",
+    "Coin",
+    "Intent",
+    "Issue"
+   ],
+   "header_count": 5,
+   "body_rows": 1,
+   "first_row": [
+    "No legacy terminal-state gaps."
+   ]
+  },
+  {
+   "id": "lcReconRows",
+   "headers": [
+    "Severity",
+    "Wallet",
+    "Coin",
+    "Issue",
+    "Manual ledger",
+    "Exchange",
+    "Action"
+   ],
+   "header_count": 7,
+   "body_rows": 1,
+   "first_row": [
+    "No account-level orphan context."
+   ]
+  },
+  {
+   "id": null,
+   "headers": [
+    "Wallet",
+    "Current",
+    "Grade",
+    "Thread",
+    "Reconnect/min",
+    "Processed",
+    "Raw msg",
+    "Parsed",
+    "Snap seen",
+    "Snap recovered",
+    "Ignored",
+    "Recent errors",
+    "Lifetime errors",
+    "Stale ms",
+    "Data status",
+    "Last close/error"
+   ],
+   "header_count": 16,
+   "body_rows": 4,
+   "first_row": [
+    "0x599d75c7...e62d09",
+    "OFFLINE",
+    "\u2014",
+    "down",
+    "0.00",
+    "0",
+    "0",
+    "0",
+    "0",
+    "0",
+    "0",
+    "0"
+   ]
+  },
+  {
+   "id": null,
+   "headers": [
+    "Coin",
+    "Side",
+    "Size",
+    "Entry px",
+    "Mark px",
+    "Unrealized PnL",
+    "Exposure",
+    "Exchange match"
+   ],
+   "header_count": 8,
+   "body_rows": 1,
+   "first_row": [
+    "${h(p.coin)}",
+    "${pill(p.side||'\u2014',p.side||'')}",
+    "0?'lc-pos':'lc-neg'}\">${h(p.signed_size)}",
+    "${p.entry_px!=null?h(p.entry_px):'n/a'}",
+    "${p.mark_px!=null?h(p.mark_px):'n/a'}",
+    "${moneyFmt(p.unrealized_pnl)||'n/a'}",
+    "${moneyFmt(p.exposure)||'n/a'}",
+    "${h(p.exchange_match||'?')}"
+   ]
+  },
+  {
+   "id": null,
+   "headers": [
+    "Time",
+    "Coin",
+    "Side",
+    "Leader/ref px",
+    "Our fill px",
+    "Size",
+    "Diff $",
+    "Diff bps",
+    "Limit px",
+    "Fill-vs-limit bps",
+    "OID"
+   ],
+   "header_count": 11,
+   "body_rows": 1,
+   "first_row": [
+    "${tiny(r.time||'\u2014',22)}",
+    "${h(r.coin||'\u2014')}",
+    "${h(r.side||'\u2014')}",
+    "${r.leader_reference_px!=null?h(r.leader_reference_px):'n/a'}",
+    "${r.copy_fill_px!=null?h(r.copy_fill_px):'n/a'}",
+    "${r.size!=null?h(r.size):'n/a'}",
+    "${moneyFmt(r.diff_usd)||'n/a'}",
+    "${r.diff_bps!=null?h(r.diff_bps):'n/a'}",
+    "${r.limit_px!=null?h(r.limit_px):'n/a'}",
+    "${r.fill_vs_limit_bps!=null?h(r.fill_vs_limit_bps):'n/a'}",
+    "${r.oid?tiny(String(r.oid),18):'n/a'}"
+   ]
+  },
+  {
+   "id": null,
+   "headers": [
+    "Time",
+    "Coin",
+    "Side",
+    "Size @ Px",
+    "Pos before\u2192after",
+    "OID"
+   ],
+   "header_count": 6,
+   "body_rows": 1,
+   "first_row": [
+    "${tiny(a.created_at||'\u2014',22)}",
+    "${h(a.coin||'\u2014')}",
+    "${h(a.actual_side||a.side||'\u2014')}",
+    "${fill}",
+    "${pm}",
+    "${a.oid?tiny(String(a.oid),18):'n/a'}"
+   ]
+  },
+  {
+   "id": null,
+   "headers": [
+    "Time",
+    "Coin",
+    "Side",
+    "Error"
+   ],
+   "header_count": 4,
+   "body_rows": 1,
+   "first_row": [
+    "${tiny(a.created_at||'\u2014',22)}",
+    "${h(a.coin||'\u2014')}",
+    "${h(a.actual_side||a.side||'\u2014')}",
+    "${tiny(a.error||'',50)}"
+   ]
+  },
+  {
+   "id": null,
+   "headers": [
+    "Time",
+    "Coin",
+    "Status (reason)"
+   ],
+   "header_count": 3,
+   "body_rows": 1,
+   "first_row": [
+    "${tiny(a.created_at||'\u2014',22)}",
+    "${h(a.coin||'\u2014')}",
+    "${h(a.status||'\u2014')}"
+   ]
+  }
+ ],
+ "lc_element_ids": [
+  "lcAddForm",
+  "lcAuditRows",
+  "lcAutoSend",
+  "lcDrawdownPath",
+  "lcEquityChart",
+  "lcExchangeFill",
+  "lcExchangePath",
+  "lcExecQualChips",
+  "lcExecQualRows",
+  "lcGcClose",
+  "lcGcForm",
+  "lcGcSave",
+  "lcGcStatus",
+  "lcGcToggle",
+  "lcGlobalControlsPanel",
+  "lcGraphApplyRange",
+  "lcGraphEnd",
+  "lcGraphResetRange",
+  "lcGraphStart",
+  "lcGraphSubtitle",
+  "lcHealthRows",
+  "lcModeCounts",
+  "lcOrphanPositionRows",
+  "lcOwnedPositionRows",
+  "lcRealCards",
+  "lcRealOrders",
+  "lcRealizedPath",
+  "lcReconCriticalRows",
+  "lcReconLegacyRows",
+  "lcReconRows",
+  "lcReconWarningRows",
+  "lcRefresh",
+  "lcSourceChips",
+  "lcStatus",
+  "lcTruthStatus",
+  "lcWalletCount",
+  "lcWalletModal",
+  "lcWalletRows",
+  "lcWsOverall",
+  "lcXAxisTicks",
+  "lcYMax",
+  "lcYMid",
+  "lcYMin",
+  "lcZeroLine"
+ ]
+}
