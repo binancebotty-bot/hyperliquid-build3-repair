@@ -78,3 +78,19 @@ run against this instance, never against `:8031`.
 
 **Every control test must record the live config's sha256 before and after.** If it changes, the test mutated live
 configuration and that is a defect, not a pass.
+
+## :8031 route change and restart (2026-10-19 08:34)
+
+The UI route moved to the root. **`/live-copy` now returns HTTP 404 — do not use it.**
+
+| path | status |
+|---|---|
+| `/` | **200 — serves "HL Copy Engine SSOT" (full HTML + styles)** |
+| `/live-copy`, `/live-copy/`, `/live_copy`, `/livecopy`, `/dashboard`, `/panel`, `/copy`, `/api/live-copy`, `/api/wallets`, `/wallets` | 404 |
+| `/api/global-controls` | 200 |
+
+The serving process **restarted at 2026-10-19T08:34:35+01:00**, PID 41124 → **26336**. Served source hash unchanged
+(`b45ff9af2182944a…`), file mtime 2026-10-18 21:19:57 — the file predates the process start, so the process rule holds.
+
+**Any UI capture made before 08:34 is stale.** Record the PID and start time with every capture, and request `/`,
+not `/live-copy`.
