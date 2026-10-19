@@ -1,0 +1,410 @@
+{
+  "card": "t_ab26571b",
+  "batch": "UI-LCC rows 45-88 of 132",
+  "generated_at_utc": "2026-10-19T13:25:00Z",
+  "method": "Rendered DOM capture of the serving build on :8023, chained to the engine source line, with append-only row citation for behavioural assertions (card method steps 1-4).",
+  "surface": {
+    "url": "http://127.0.0.1:8023/live-copy",
+    "http_status": 200,
+    "html_bytes": 74235,
+    "serving_pid": 15760,
+    "serving_cmdline": "python.exe -m uvicorn HL_Copy_App_SSOT:app --host 127.0.0.1 --port 8023",
+    "serving_pid_start": "2026-10-19T08:40:25+01:00",
+    "source_file": "C:/Users/wigmore/trading_stack/build3-live-screen-0513-view/hl_stage2/HL_Copy_App_SSOT.py",
+    "source_mtime": "2026-05-13T08:18:03+01:00",
+    "source_sha256": "fad19d220d7af13d48a3eec664c56a32b31624d671b00e2f80ec2dc9062a29b0",
+    "pid_predates_file_mtime": false,
+    "pid_predates_check_note": "The serving PID started 2026-10-19 08:40, AFTER the source mtime (2026-05-13). The card wording inverts the check. Load-bearing facts: file sha256 equals the certified fad19d22 hash cited in the matrix sources, and PID 15760 is the sole listener on :8023 launched from that directory.",
+    "live_copy_route": "200 - the card said 404; the route serves the control panel today",
+    "append_only_dir": "C:/Users/wigmore/trading_stack/build3-live-screen-0513-view/hl_stage2/hl_live_copy_audit/append_only",
+    "append_only_present": [
+      "order_intents.csv (2763 data rows)",
+      "reconciliation.csv (379 data rows)"
+    ],
+    "append_only_absent": [
+      "send_attempts.csv",
+      "live_fills.csv",
+      "errors.csv"
+    ],
+    "integrity_banner": "LIVE INTEGRITY RED - missing append-only audit proof files: send_attempts.csv,live_fills.csv; hard_copy_active_red; audit_proof_missing",
+    "exchange_snapshot": "UNAVAILABLE (ACCOUNT_ADDRESS_UNAVAILABLE, updated 2026-10-09T15:05:08Z)"
+  },
+  "cross_cutting_findings": [
+    {
+      "finding": "EXQ_COLUMN_COUNT_MISMATCH",
+      "detail": "Execution Quality thead declares 18 th; the row template emits 19 td (an extra unlabelled truth-state cell between Side and Status). Every column from Status onward is shifted one cell right of its header.",
+      "evidence": "th=18 (source L6335 + DOM), td=19 (source L6737 template)"
+    },
+    {
+      "finding": "EXEC_QUAL_ROWS_EMPTY",
+      "detail": "lcExecQualRows renders \"No execution data. Real fills appear here after send_attempts.csv is populated.\" send_attempts.csv and live_fills.csv do not exist in append_only/.",
+      "evidence": "DOM #lcExecQualRows innerText; ls append_only/"
+    },
+    {
+      "finding": "AUDIT_KEY_MAPPING_DEFECT",
+      "detail": "lcAuditRows is fed only from order_intents.csv (29 columns, none named side/status/execution_decision/decision_reason/suggested_limit_price/adverse_diff_pct/manual_reconcile_required). 6 of 11 audit columns therefore render blank or em-dash on all 200 displayed rows, while the same facts exist under other column names (leader_side, copy_side, decision, max_close_adverse_diff_pct).",
+      "evidence": "order_intents.csv header vs template L6761"
+    }
+  ],
+  "summary": {
+    "rows": 44,
+    "PASS": 8,
+    "FAIL": 13,
+    "NOT_TESTED": 23,
+    "BLOCKED": 0
+  },
+  "records": [
+    {
+      "id": "UI-LCC-WTBL-11",
+      "selector": "#lcWalletRows tr.lc-wallet-row td button[data-act=\"save\"]",
+      "value": "button \"Save\" x4",
+      "source": "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) renderWallets L6590 -> POST /api/live-config/set-wallet L7150 -> _save_live_copy_config",
+      "verdict": "PASS",
+      "notes": "All 4 rendered wallet rows carry the control; handler L6834 posts to the live-config API. Click NOT exercised (card forbids config mutation), so persistence is source-proven, not run-proven."
+    },
+    {
+      "id": "UI-LCC-WTBL-12",
+      "selector": "#lcWalletRows tr.lc-wallet-row td button[data-act=\"clo\"]",
+      "value": "button \"CLO\" x4",
+      "source": "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) L6590 -> POST /api/live-config/set-mode {mode:CLO} L7201",
+      "verdict": "PASS",
+      "notes": "All 4 rendered wallet rows carry the control; handler L6834 posts to the live-config API. Click NOT exercised (card forbids config mutation), so persistence is source-proven, not run-proven."
+    },
+    {
+      "id": "UI-LCC-WTBL-13",
+      "selector": "#lcWalletRows tr.lc-wallet-row td button[data-act=\"off\"]",
+      "value": "button \"OFF\" x4",
+      "source": "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) L6590 -> POST /api/live-config/set-mode {mode:OFF} L7201",
+      "verdict": "PASS",
+      "notes": "All 4 rendered wallet rows carry the control; handler L6834 posts to the live-config API. Click NOT exercised (card forbids config mutation), so persistence is source-proven, not run-proven."
+    },
+    {
+      "id": "UI-LCC-WTBL-14",
+      "selector": "#lcWalletRows tr.lc-wallet-row td button[data-act=\"archive\"]",
+      "value": "button \"Archive\" x4, class lc-danger",
+      "source": "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) L6590 -> POST /api/live-config/remove-wallet {archive:true} L7174; confirm \"Archive removes from config only. Audit/history preserved.\"",
+      "verdict": "PASS",
+      "notes": "Archived wallets go to config[archived_wallets] and are restorable via set-wallet L7156-7158, matching the preserved-history claim."
+    },
+    {
+      "id": "UI-LCC-DETAIL-01",
+      "selector": "#lcdet-0x599d75c7e9dc0d8e9006d60a54c3ddcb12e62d09 section A",
+      "value": "Realized n/a; Unrealized n/a; Net n/a; Exposure $0; DD UNKNOWN/NOT_PROVEN; PnL status \"No PnL yet\"; Attribution N/A; Confirmed realized match \"n/a (NO_MATCHED_EXCHANGE_CLOSED_PNL)\"; no fills yet",
+      "source": "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) walletDetailHtml L6595",
+      "verdict": "NOT_TESTED",
+      "notes": "Section renders with all required fields, but zero fills and exchange snapshot UNAVAILABLE mean leader-vs-exchange attribution cannot be established."
+    },
+    {
+      "id": "UI-LCC-DETAIL-02",
+      "selector": "#lcdet-0x599d75c7e9dc0d8e9006d60a54c3ddcb12e62d09 section B thead",
+      "value": "B - Open Positions (0) \"no open positions\"; columns Coin/Side/Size/Entry px/Mark px/Unrealized PnL/Exposure/Exchange match",
+      "source": "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) L6627-6631",
+      "verdict": "NOT_TESTED",
+      "notes": "All eight required fields are declared in the section-B header (source-verified). No position rows exist to compare against the exchange."
+    },
+    {
+      "id": "UI-LCC-DETAIL-03",
+      "selector": "#lcdet-0x599d75c7e9dc0d8e9006d60a54c3ddcb12e62d09 section C",
+      "value": "C - Lead vs Copy / Friction: Total diff n/a; Avg diff n/a; \"reference/fill comparison unavailable\"",
+      "source": "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) L6636+",
+      "verdict": "NOT_TESTED",
+      "notes": "Friction derives from send attempts vs fills; neither file exists, so the comparison is explicitly unavailable."
+    },
+    {
+      "id": "UI-LCC-DETAIL-04",
+      "selector": "#lcdet-0x599d75c7e9dc0d8e9006d60a54c3ddcb12e62d09 section D",
+      "value": "D - Execution Audit: Filled 0; Exits 0; Recent rejects 0; Recent blocks 0; \"no real copied fills yet\"",
+      "source": "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) walletDetailHtml",
+      "verdict": "NOT_TESTED",
+      "notes": "Section present and consistent with the empty execution-quality tab; no execution evidence to certify."
+    },
+    {
+      "id": "UI-LCC-POS-01",
+      "selector": "#lcOwnedPositionRows thead th[2] / #lcOrphanPositionRows thead th[1]",
+      "value": "header COIN in both tables",
+      "source": "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) renderPositions; DOM",
+      "verdict": "NOT_TESTED",
+      "notes": "Table renders but is in its empty state (\"No owned copy sleeves in manual_live_positions.json.\" / \"No account-level orphan exchange positions.\"), so no cell value can be resolved or compared to clearinghouseState."
+    },
+    {
+      "id": "UI-LCC-POS-02",
+      "selector": "#lcOwnedPositionRows thead th[3]",
+      "value": "header SIDE (owned table only)",
+      "source": "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) DOM",
+      "verdict": "NOT_TESTED",
+      "notes": "Table renders but is in its empty state (\"No owned copy sleeves in manual_live_positions.json.\" / \"No account-level orphan exchange positions.\"), so no cell value can be resolved or compared to clearinghouseState. No side column on the account-level table."
+    },
+    {
+      "id": "UI-LCC-POS-03",
+      "selector": "#lcOwnedPositionRows thead th[4] and th[6]",
+      "value": "headers SIGNED SIZE and LEDGER/EXCHANGE",
+      "source": "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) DOM",
+      "verdict": "NOT_TESTED",
+      "notes": "Table renders but is in its empty state (\"No owned copy sleeves in manual_live_positions.json.\" / \"No account-level orphan exchange positions.\"), so no cell value can be resolved or compared to clearinghouseState."
+    },
+    {
+      "id": "UI-LCC-POS-04",
+      "selector": "#lcOwnedPositionRows thead th[7]",
+      "value": "header EXCHANGE SIZE",
+      "source": "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) DOM",
+      "verdict": "NOT_TESTED",
+      "notes": "Table renders but is in its empty state (\"No owned copy sleeves in manual_live_positions.json.\" / \"No account-level orphan exchange positions.\"), so no cell value can be resolved or compared to clearinghouseState. Equality with MASTER clearinghouseState is additionally blocked: exchange_account_snapshot status UNAVAILABLE."
+    },
+    {
+      "id": "UI-LCC-POS-05",
+      "selector": "#lcOwnedPositionRows th[5] / #lcOrphanPositionRows th[3]",
+      "value": "headers AVG ENTRY and ENTRY PX",
+      "source": "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) DOM",
+      "verdict": "NOT_TESTED",
+      "notes": "Table renders but is in its empty state (\"No owned copy sleeves in manual_live_positions.json.\" / \"No account-level orphan exchange positions.\"), so no cell value can be resolved or compared to clearinghouseState."
+    },
+    {
+      "id": "UI-LCC-POS-06",
+      "selector": "#lcOrphanPositionRows thead th[4]",
+      "value": "header MARK PX (account-level table only)",
+      "source": "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) DOM",
+      "verdict": "NOT_TESTED",
+      "notes": "Table renders but is in its empty state (\"No owned copy sleeves in manual_live_positions.json.\" / \"No account-level orphan exchange positions.\"), so no cell value can be resolved or compared to clearinghouseState. The owned table has no mark-price column."
+    },
+    {
+      "id": "UI-LCC-POS-07",
+      "selector": "no selector",
+      "value": "no Pos value / position-value column in either position table",
+      "source": "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) renderPositions; grep \"Pos value\" = 0 hits in UI source and DOM",
+      "verdict": "FAIL",
+      "notes": "The required column does not exist in the certified 13 May UI."
+    },
+    {
+      "id": "UI-LCC-POS-08",
+      "selector": "#lcOrphanPositionRows thead th[5]",
+      "value": "header UNREALIZED PNL",
+      "source": "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) DOM",
+      "verdict": "NOT_TESTED",
+      "notes": "Table renders but is in its empty state (\"No owned copy sleeves in manual_live_positions.json.\" / \"No account-level orphan exchange positions.\"), so no cell value can be resolved or compared to clearinghouseState."
+    },
+    {
+      "id": "UI-LCC-POS-09",
+      "selector": "#lcOwnedPositionRows thead th[1]",
+      "value": "header WALLET (per-leader row label)",
+      "source": "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) DOM",
+      "verdict": "NOT_TESTED",
+      "notes": "Table renders but is in its empty state (\"No owned copy sleeves in manual_live_positions.json.\" / \"No account-level orphan exchange positions.\"), so no cell value can be resolved or compared to clearinghouseState."
+    },
+    {
+      "id": "UI-LCC-POS-10",
+      "selector": "#lcOrphanPositionRows thead th[6]",
+      "value": "header STATUS",
+      "source": "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) DOM",
+      "verdict": "NOT_TESTED",
+      "notes": "Table renders but is in its empty state (\"No owned copy sleeves in manual_live_positions.json.\" / \"No account-level orphan exchange positions.\"), so no cell value can be resolved or compared to clearinghouseState."
+    },
+    {
+      "id": "UI-LCC-POS-11",
+      "selector": "no selector",
+      "value": "no Last OID column in either position table",
+      "source": "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) renderPositions; grep \"Last OID\" = 0 hits in UI source and DOM",
+      "verdict": "FAIL",
+      "notes": "The required column does not exist in the certified 13 May UI."
+    },
+    {
+      "id": "UI-LCC-POS-12",
+      "selector": "#lcOwnedPositionRows thead th[9]",
+      "value": "header LAST UPDATED",
+      "source": "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) DOM",
+      "verdict": "NOT_TESTED",
+      "notes": "Table renders but is in its empty state (\"No owned copy sleeves in manual_live_positions.json.\" / \"No account-level orphan exchange positions.\"), so no cell value can be resolved or compared to clearinghouseState."
+    },
+    {
+      "id": "UI-LCC-EXQ-01",
+      "selector": "#lcExecQualRows thead th[1]",
+      "value": "header Time",
+      "source": "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) L6335; DOM",
+      "verdict": "NOT_TESTED",
+      "notes": "Header column exists, but the table is empty (\"No execution data. Real fills appear here after send_attempts.csv is populated.\") because send_attempts.csv and live_fills.csv are absent, so no row value can be captured."
+    },
+    {
+      "id": "UI-LCC-EXQ-02",
+      "selector": "thead th[2]",
+      "value": "header Wallet",
+      "source": "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) DOM",
+      "verdict": "NOT_TESTED",
+      "notes": "Header column exists, but the table is empty (\"No execution data. Real fills appear here after send_attempts.csv is populated.\") because send_attempts.csv and live_fills.csv are absent, so no row value can be captured."
+    },
+    {
+      "id": "UI-LCC-EXQ-03",
+      "selector": "thead th[3]",
+      "value": "header Coin",
+      "source": "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) DOM",
+      "verdict": "NOT_TESTED",
+      "notes": "Header column exists, but the table is empty (\"No execution data. Real fills appear here after send_attempts.csv is populated.\") because send_attempts.csv and live_fills.csv are absent, so no row value can be captured."
+    },
+    {
+      "id": "UI-LCC-EXQ-04",
+      "selector": "thead th[4]",
+      "value": "header Side",
+      "source": "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) DOM",
+      "verdict": "NOT_TESTED",
+      "notes": "Header column exists, but the table is empty (\"No execution data. Real fills appear here after send_attempts.csv is populated.\") because send_attempts.csv and live_fills.csv are absent, so no row value can be captured."
+    },
+    {
+      "id": "UI-LCC-EXQ-05",
+      "selector": "thead th[5]",
+      "value": "header Status",
+      "source": "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) DOM",
+      "verdict": "NOT_TESTED",
+      "notes": "Header column exists, but the table is empty (\"No execution data. Real fills appear here after send_attempts.csv is populated.\") because send_attempts.csv and live_fills.csv are absent, so no row value can be captured. Status is also misaligned with its data cell (18 th vs 19 td)."
+    },
+    {
+      "id": "UI-LCC-EXQ-06",
+      "selector": "no selector",
+      "value": "no Limit px column; header sequence is Time, Wallet, Coin, Side, Status, Terminal state, Operator action, Reject category, OID, Fill avg px, Size, Pos before -> after, Leader->send ms, Total ms, Symbol ms, SDK ms, Exchange ms, Error",
+      "source": "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) L6335 thead + DOM",
+      "verdict": "FAIL",
+      "notes": "The required limit-price column is not rendered at all."
+    },
+    {
+      "id": "UI-LCC-EXQ-07",
+      "selector": "thead th[10]",
+      "value": "header Fill avg px",
+      "source": "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) DOM",
+      "verdict": "NOT_TESTED",
+      "notes": "Header column exists, but the table is empty (\"No execution data. Real fills appear here after send_attempts.csv is populated.\") because send_attempts.csv and live_fills.csv are absent, so no row value can be captured."
+    },
+    {
+      "id": "UI-LCC-EXQ-08",
+      "selector": "thead th[11]",
+      "value": "header Size",
+      "source": "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) DOM",
+      "verdict": "NOT_TESTED",
+      "notes": "Header column exists, but the table is empty (\"No execution data. Real fills appear here after send_attempts.csv is populated.\") because send_attempts.csv and live_fills.csv are absent, so no row value can be captured."
+    },
+    {
+      "id": "UI-LCC-EXQ-09",
+      "selector": "thead th[9]",
+      "value": "header OID",
+      "source": "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) DOM",
+      "verdict": "NOT_TESTED",
+      "notes": "Header column exists, but the table is empty (\"No execution data. Real fills appear here after send_attempts.csv is populated.\") because send_attempts.csv and live_fills.csv are absent, so no row value can be captured."
+    },
+    {
+      "id": "UI-LCC-EXQ-10",
+      "selector": "no selector",
+      "value": "no per-row fill-vs-limit percentage column; only aggregate chip \"Avg fill-vs-limit: n/a\"",
+      "source": "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) thead + #lcExecQualChips DOM",
+      "verdict": "FAIL",
+      "notes": "The required per-row percentage is not rendered as a column."
+    },
+    {
+      "id": "UI-LCC-EXQ-11",
+      "selector": "no selector",
+      "value": "no leader-vs-user percentage column and no chip exposing it",
+      "source": "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) thead + chips DOM",
+      "verdict": "FAIL",
+      "notes": "The required column is absent."
+    },
+    {
+      "id": "UI-LCC-EXQ-12",
+      "selector": "no selector",
+      "value": "no market-slip percentage column and no chip exposing it",
+      "source": "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) thead + chips DOM",
+      "verdict": "FAIL",
+      "notes": "The required column is absent."
+    },
+    {
+      "id": "UI-LCC-EXQ-13",
+      "selector": "thead th[18]",
+      "value": "header Error",
+      "source": "HL_Copy_App_SSOT.py (13 May, sha256 fad19d22) DOM",
+      "verdict": "NOT_TESTED",
+      "notes": "Header column exists, but the table is empty (\"No execution data. Real fills appear here after send_attempts.csv is populated.\") because send_attempts.csv and live_fills.csv are absent, so no row value can be captured. The extra unlabelled td shifts the data cells."
+    },
+    {
+      "id": "UI-LCC-AUD-01",
+      "selector": "#lcAuditRows tr[1] td[1]",
+      "value": "2026-10-09T14:48:58.366311+00:00",
+      "source": "order_intents.csv row created_at=2026-10-09T14:48:58.366311+00:00 (final data line); template td1 = first(r,[created_at,timestamp_iso,time])",
+      "verdict": "PASS",
+      "notes": ""
+    },
+    {
+      "id": "UI-LCC-AUD-02",
+      "selector": "#lcAuditRows tr[1] td[2]",
+      "value": "0xf7bfa3a7...acf123 (shortWallet of 0xf7bfa3a7067624b913381f39c1e21ad9aeacf123)",
+      "source": "order_intents.csv row created_at=2026-10-09T14:48:58.366311+00:00 (final data line) leader_wallet",
+      "verdict": "PASS",
+      "notes": ""
+    },
+    {
+      "id": "UI-LCC-AUD-03",
+      "selector": "#lcAuditRows tr[1] td[3]",
+      "value": "BTC",
+      "source": "order_intents.csv row created_at=2026-10-09T14:48:58.366311+00:00 (final data line) coin",
+      "verdict": "PASS",
+      "notes": ""
+    },
+    {
+      "id": "UI-LCC-AUD-04",
+      "selector": "#lcAuditRows tr[1] td[4]",
+      "value": "blank cell on every displayed row",
+      "source": "order_intents.csv row created_at=2026-10-09T14:48:58.366311+00:00 (final data line) has leader_side=SELL and copy_side=SELL; renderer reads first(r,[side]) which is not a CSV column",
+      "verdict": "FAIL",
+      "notes": "The side exists in the source row but is never displayed because the renderer reads a non-existent key."
+    },
+    {
+      "id": "UI-LCC-AUD-05",
+      "selector": "#lcAuditRows tr[1] td[5]",
+      "value": "\"POLL\" with secondary line \"max total exposure exceeded\"",
+      "source": "order_intents.csv row created_at=2026-10-09T14:48:58.366311+00:00 (final data line) source=POLL, reason=max total exposure exceeded",
+      "verdict": "PASS",
+      "notes": ""
+    },
+    {
+      "id": "UI-LCC-AUD-06",
+      "selector": "#lcAuditRows tr[1] td[6]",
+      "value": "em-dash on every displayed row",
+      "source": "order_intents.csv row created_at=2026-10-09T14:48:58.366311+00:00 (final data line) has no status column; renderer reads first(r,[status])",
+      "verdict": "FAIL",
+      "notes": "Every intent is displayed without a status, so \"shown with its real order result\" is not met."
+    },
+    {
+      "id": "UI-LCC-AUD-07",
+      "selector": "#lcAuditRows tr[1] td[7]",
+      "value": "em-dash, while the source row has decision=SEND_BLOCKED_RISK",
+      "source": "order_intents.csv row created_at=2026-10-09T14:48:58.366311+00:00 (final data line) decision; renderer reads first(r,[execution_decision])",
+      "verdict": "FAIL",
+      "notes": "The real decision exists in the append-only row and is not shown."
+    },
+    {
+      "id": "UI-LCC-AUD-08",
+      "selector": "#lcAuditRows tr[1] td[8]",
+      "value": "blank on every displayed row",
+      "source": "order_intents.csv row created_at=2026-10-09T14:48:58.366311+00:00 (final data line) has no decision_reason column",
+      "verdict": "FAIL",
+      "notes": "No decision reason can ever render from this source."
+    },
+    {
+      "id": "UI-LCC-AUD-09",
+      "selector": "#lcAuditRows tr[1] td[9]",
+      "value": "blank on every displayed row",
+      "source": "order_intents.csv row created_at=2026-10-09T14:48:58.366311+00:00 (final data line) has no suggested_limit_price or target_price column",
+      "verdict": "FAIL",
+      "notes": "Suggested limit never displayed."
+    },
+    {
+      "id": "UI-LCC-AUD-10",
+      "selector": "#lcAuditRows tr[1] td[10]",
+      "value": "blank on every displayed row",
+      "source": "order_intents.csv row created_at=2026-10-09T14:48:58.366311+00:00 (final data line) carries max_close_adverse_diff_pct; renderer reads adverse_diff_pct/diff_pct/real_diff_pct/price_diff_pct",
+      "verdict": "FAIL",
+      "notes": "A diff percentage exists under another column name and is never displayed."
+    },
+    {
+      "id": "UI-LCC-AUD-11",
+      "selector": "#lcAuditRows tr[1] td[11]",
+      "value": "blank on every displayed row",
+      "source": "order_intents.csv row created_at=2026-10-09T14:48:58.366311+00:00 (final data line) has no manual_reconcile_required column (that field lives in reconciliation.csv)",
+      "verdict": "FAIL",
+      "notes": "The manual flag cannot render from order_intents.csv."
+    }
+  ]
+}
