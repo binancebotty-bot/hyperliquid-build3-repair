@@ -1,0 +1,480 @@
+{
+ "captured_at_utc": "2026-10-19T10:49:03.912391+00:00",
+ "url": "http://127.0.0.1:8023/live-copy",
+ "http_status": 200,
+ "selectors": {
+  "exec": "#lcExecQualRows (tbody rows of the Execution Quality table)",
+  "audit": "#lcAuditRows (tbody rows of the Order Intents / Audit table)"
+ },
+ "note": "innerText is the flattened cell text; spans is the list of per-span texts inside that cell (the Source/Reason cell stacks two spans, so innerText loses the separator)",
+ "title": "Live Copy Dashboard",
+ "ready": "complete",
+ "exec_heads": [
+  "Time",
+  "Wallet",
+  "Coin",
+  "Side",
+  "Status",
+  "Terminal state",
+  "Operator action",
+  "Reject category",
+  "OID",
+  "Fill avg px",
+  "Size",
+  "Pos before -> after",
+  "Leader→send ms",
+  "Total ms",
+  "Symbol ms",
+  "SDK ms",
+  "Exchange ms",
+  "Error"
+ ],
+ "exec_rows": [
+  {
+   "innerText": [
+    "No execution data. Real fills appear here after send_attempts.csv is populated."
+   ],
+   "spans": [
+    []
+   ],
+   "tds": 1
+  }
+ ],
+ "audit_heads": [
+  "Time",
+  "Wallet",
+  "Coin",
+  "Side",
+  "Source/Reason",
+  "Status",
+  "Decision",
+  "Decision reason",
+  "Suggested limit",
+  "Diff %",
+  "Manual?",
+  "Intent note",
+  "Real order result"
+ ],
+ "audit_rows": [
+  {
+   "innerText": [
+    "2026-10-09T14:48:58.366311+00:00",
+    "0xf7bfa3a7...acf123",
+    "BTC",
+    "",
+    "POLLmax total exposure exceeded",
+    "—",
+    "—",
+    "",
+    "",
+    "",
+    "",
+    "lifecycle=ENTRY",
+    "NO_SEND_ATTEMPT"
+   ],
+   "spans": [
+    [],
+    [],
+    [],
+    [],
+    [
+     "POLL",
+     "max total exposure exceeded"
+    ],
+    [
+     "—"
+    ],
+    [
+     "—"
+    ],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [
+     "NO_SEND_ATTEMPT"
+    ]
+   ],
+   "tds": 13
+  },
+  {
+   "innerText": [
+    "2026-10-09T14:48:58.336416+00:00",
+    "0xf7bfa3a7...acf123",
+    "BTC",
+    "",
+    "POLLmax total exposure exceeded",
+    "—",
+    "—",
+    "",
+    "",
+    "",
+    "",
+    "lifecycle=ENTRY",
+    "NO_SEND_ATTEMPT"
+   ],
+   "spans": [
+    [],
+    [],
+    [],
+    [],
+    [
+     "POLL",
+     "max total exposure exceeded"
+    ],
+    [
+     "—"
+    ],
+    [
+     "—"
+    ],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [
+     "NO_SEND_ATTEMPT"
+    ]
+   ],
+   "tds": 13
+  },
+  {
+   "innerText": [
+    "2026-10-09T14:48:58.290877+00:00",
+    "0xf7bfa3a7...acf123",
+    "BTC",
+    "",
+    "POLLmax total exposure exceeded",
+    "—",
+    "—",
+    "",
+    "",
+    "",
+    "",
+    "lifecycle=ENTRY",
+    "NO_SEND_ATTEMPT"
+   ],
+   "spans": [
+    [],
+    [],
+    [],
+    [],
+    [
+     "POLL",
+     "max total exposure exceeded"
+    ],
+    [
+     "—"
+    ],
+    [
+     "—"
+    ],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [
+     "NO_SEND_ATTEMPT"
+    ]
+   ],
+   "tds": 13
+  },
+  {
+   "innerText": [
+    "2026-10-09T14:48:58.232318+00:00",
+    "0xe4c0f755...0ed02d",
+    "HYPE",
+    "",
+    "POLLmax total exposure exceeded",
+    "—",
+    "—",
+    "",
+    "",
+    "",
+    "",
+    "lifecycle=ENTRY",
+    "NO_SEND_ATTEMPT"
+   ],
+   "spans": [
+    [],
+    [],
+    [],
+    [],
+    [
+     "POLL",
+     "max total exposure exceeded"
+    ],
+    [
+     "—"
+    ],
+    [
+     "—"
+    ],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [
+     "NO_SEND_ATTEMPT"
+    ]
+   ],
+   "tds": 13
+  },
+  {
+   "innerText": [
+    "2026-10-09T14:48:58.211600+00:00",
+    "0xe4c0f755...0ed02d",
+    "HYPE",
+    "",
+    "POLLmax total exposure exceeded",
+    "—",
+    "—",
+    "",
+    "",
+    "",
+    "",
+    "lifecycle=ENTRY",
+    "NO_SEND_ATTEMPT"
+   ],
+   "spans": [
+    [],
+    [],
+    [],
+    [],
+    [
+     "POLL",
+     "max total exposure exceeded"
+    ],
+    [
+     "—"
+    ],
+    [
+     "—"
+    ],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [
+     "NO_SEND_ATTEMPT"
+    ]
+   ],
+   "tds": 13
+  },
+  {
+   "innerText": [
+    "2026-10-09T14:48:58.186229+00:00",
+    "0xe4c0f755...0ed02d",
+    "HYPE",
+    "",
+    "POLLmax total exposure exceeded",
+    "—",
+    "—",
+    "",
+    "",
+    "",
+    "",
+    "lifecycle=ENTRY",
+    "NO_SEND_ATTEMPT"
+   ],
+   "spans": [
+    [],
+    [],
+    [],
+    [],
+    [
+     "POLL",
+     "max total exposure exceeded"
+    ],
+    [
+     "—"
+    ],
+    [
+     "—"
+    ],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [
+     "NO_SEND_ATTEMPT"
+    ]
+   ],
+   "tds": 13
+  },
+  {
+   "innerText": [
+    "2026-10-09T14:48:58.172296+00:00",
+    "0xe4c0f755...0ed02d",
+    "HYPE",
+    "",
+    "POLLmax total exposure exceeded",
+    "—",
+    "—",
+    "",
+    "",
+    "",
+    "",
+    "lifecycle=ENTRY",
+    "NO_SEND_ATTEMPT"
+   ],
+   "spans": [
+    [],
+    [],
+    [],
+    [],
+    [
+     "POLL",
+     "max total exposure exceeded"
+    ],
+    [
+     "—"
+    ],
+    [
+     "—"
+    ],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [
+     "NO_SEND_ATTEMPT"
+    ]
+   ],
+   "tds": 13
+  },
+  {
+   "innerText": [
+    "2026-10-09T14:48:58.155802+00:00",
+    "0xe4c0f755...0ed02d",
+    "PUMP",
+    "",
+    "POLLmax total exposure exceeded",
+    "—",
+    "—",
+    "",
+    "",
+    "",
+    "",
+    "lifecycle=ENTRY",
+    "NO_SEND_ATTEMPT"
+   ],
+   "spans": [
+    [],
+    [],
+    [],
+    [],
+    [
+     "POLL",
+     "max total exposure exceeded"
+    ],
+    [
+     "—"
+    ],
+    [
+     "—"
+    ],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [
+     "NO_SEND_ATTEMPT"
+    ]
+   ],
+   "tds": 13
+  },
+  {
+   "innerText": [
+    "2026-10-09T14:48:58.137813+00:00",
+    "0xe4c0f755...0ed02d",
+    "PUMP",
+    "",
+    "POLLmax total exposure exceeded",
+    "—",
+    "—",
+    "",
+    "",
+    "",
+    "",
+    "lifecycle=ENTRY",
+    "NO_SEND_ATTEMPT"
+   ],
+   "spans": [
+    [],
+    [],
+    [],
+    [],
+    [
+     "POLL",
+     "max total exposure exceeded"
+    ],
+    [
+     "—"
+    ],
+    [
+     "—"
+    ],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [
+     "NO_SEND_ATTEMPT"
+    ]
+   ],
+   "tds": 13
+  },
+  {
+   "innerText": [
+    "2026-10-09T14:48:58.125097+00:00",
+    "0xe4c0f755...0ed02d",
+    "PUMP",
+    "",
+    "POLLmax total exposure exceeded",
+    "—",
+    "—",
+    "",
+    "",
+    "",
+    "",
+    "lifecycle=ENTRY",
+    "NO_SEND_ATTEMPT"
+   ],
+   "spans": [
+    [],
+    [],
+    [],
+    [],
+    [
+     "POLL",
+     "max total exposure exceeded"
+    ],
+    [
+     "—"
+    ],
+    [
+     "—"
+    ],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [
+     "NO_SEND_ATTEMPT"
+    ]
+   ],
+   "tds": 13
+  }
+ ]
+}

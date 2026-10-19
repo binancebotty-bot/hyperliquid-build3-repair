@@ -19469,10 +19469,10 @@
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
    "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
+   "evidence_ref": "certification/results/UI-FP-113-127.json#/rows/UI-FP-113",
+   "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717 (serving checkout HEAD, dirty - bound by served HTML sha256 f7e21c05a7dee3677beec87d3773b8440b1fb9c505477378a268bd81387117b9)",
+   "tested_at_utc": "2026-10-19T10:49:03.912391+00:00",
+   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id. | row-bound certification 2026-10-19T10:49:03.912391+00:00: no execution row exists to bind: GET /api/live-audit-summary returns execution_quality_rows=[] (0 rows) and the served audit dir has no send_attempts.csv, so truth->API->render cannot be exercised for fill size; the table renders only its sentinel row. Column 'Size' (index 11) of Execution Quality (#lcExecQualRows); binding None",
    "proof_network": "TESTNET"
   },
   {
@@ -19494,10 +19494,10 @@
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
    "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
+   "evidence_ref": "certification/results/UI-FP-113-127.json#/rows/UI-FP-114",
+   "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717 (serving checkout HEAD, dirty - bound by served HTML sha256 f7e21c05a7dee3677beec87d3773b8440b1fb9c505477378a268bd81387117b9)",
+   "tested_at_utc": "2026-10-19T10:49:03.912391+00:00",
+   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id. | row-bound certification 2026-10-19T10:49:03.912391+00:00: no execution row exists to bind: GET /api/live-audit-summary returns execution_quality_rows=[] (0 rows) and the served audit dir has no send_attempts.csv, so truth->API->render cannot be exercised for position before/after; the table renders only its sentinel row. Column 'Pos before -> after' (index 12) of Execution Quality (#lcExecQualRows); binding None",
    "proof_network": "TESTNET"
   },
   {
@@ -19519,10 +19519,10 @@
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
    "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
+   "evidence_ref": "certification/results/UI-FP-113-127.json#/rows/UI-FP-115",
+   "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717 (serving checkout HEAD, dirty - bound by served HTML sha256 f7e21c05a7dee3677beec87d3773b8440b1fb9c505477378a268bd81387117b9)",
+   "tested_at_utc": "2026-10-19T10:49:03.912391+00:00",
+   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id. | row-bound certification 2026-10-19T10:49:03.912391+00:00: no execution row exists to bind: GET /api/live-audit-summary returns execution_quality_rows=[] (0 rows) and the served audit dir has no send_attempts.csv, so truth->API->render cannot be exercised for leader-to-send latency; the table renders only its sentinel row. Column 'Leader→send ms' (index 13) of Execution Quality (#lcExecQualRows); binding None",
    "proof_network": "TESTNET"
   },
   {
@@ -19544,10 +19544,10 @@
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
    "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
+   "evidence_ref": "certification/results/UI-FP-113-127.json#/rows/UI-FP-116",
+   "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717 (serving checkout HEAD, dirty - bound by served HTML sha256 f7e21c05a7dee3677beec87d3773b8440b1fb9c505477378a268bd81387117b9)",
+   "tested_at_utc": "2026-10-19T10:49:03.912391+00:00",
+   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id. | row-bound certification 2026-10-19T10:49:03.912391+00:00: no execution row exists to bind: GET /api/live-audit-summary returns execution_quality_rows=[] (0 rows) and the served audit dir has no send_attempts.csv, so truth->API->render cannot be exercised for total latency; the table renders only its sentinel row. Column 'Total ms' (index 14) of Execution Quality (#lcExecQualRows); binding None",
    "proof_network": "TESTNET"
   },
   {
@@ -19569,10 +19569,10 @@
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
    "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
+   "evidence_ref": "certification/results/UI-FP-113-127.json#/rows/UI-FP-117",
+   "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717 (serving checkout HEAD, dirty - bound by served HTML sha256 f7e21c05a7dee3677beec87d3773b8440b1fb9c505477378a268bd81387117b9)",
+   "tested_at_utc": "2026-10-19T10:49:03.912391+00:00",
+   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id. | row-bound certification 2026-10-19T10:49:03.912391+00:00: no execution row exists to bind: GET /api/live-audit-summary returns execution_quality_rows=[] (0 rows) and the served audit dir has no send_attempts.csv, so truth->API->render cannot be exercised for symbol resolve latency; the table renders only its sentinel row. Column 'Symbol ms' (index 15) of Execution Quality (#lcExecQualRows); binding None",
    "proof_network": "TESTNET"
   },
   {
@@ -19594,10 +19594,10 @@
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
    "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
+   "evidence_ref": "certification/results/UI-FP-113-127.json#/rows/UI-FP-118",
+   "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717 (serving checkout HEAD, dirty - bound by served HTML sha256 f7e21c05a7dee3677beec87d3773b8440b1fb9c505477378a268bd81387117b9)",
+   "tested_at_utc": "2026-10-19T10:49:03.912391+00:00",
+   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id. | row-bound certification 2026-10-19T10:49:03.912391+00:00: no execution row exists to bind: GET /api/live-audit-summary returns execution_quality_rows=[] (0 rows) and the served audit dir has no send_attempts.csv, so truth->API->render cannot be exercised for sdk latency; the table renders only its sentinel row. Column 'SDK ms' (index 16) of Execution Quality (#lcExecQualRows); binding None",
    "proof_network": "TESTNET"
   },
   {
@@ -19619,10 +19619,10 @@
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
    "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
+   "evidence_ref": "certification/results/UI-FP-113-127.json#/rows/UI-FP-119",
+   "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717 (serving checkout HEAD, dirty - bound by served HTML sha256 f7e21c05a7dee3677beec87d3773b8440b1fb9c505477378a268bd81387117b9)",
+   "tested_at_utc": "2026-10-19T10:49:03.912391+00:00",
+   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id. | row-bound certification 2026-10-19T10:49:03.912391+00:00: no execution row exists to bind: GET /api/live-audit-summary returns execution_quality_rows=[] (0 rows) and the served audit dir has no send_attempts.csv, so truth->API->render cannot be exercised for exchange latency; the table renders only its sentinel row. Column 'Exchange ms' (index 17) of Execution Quality (#lcExecQualRows); binding None",
    "proof_network": "TESTNET"
   },
   {
@@ -19644,10 +19644,10 @@
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
    "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
+   "evidence_ref": "certification/results/UI-FP-113-127.json#/rows/UI-FP-120",
+   "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717 (serving checkout HEAD, dirty - bound by served HTML sha256 f7e21c05a7dee3677beec87d3773b8440b1fb9c505477378a268bd81387117b9)",
+   "tested_at_utc": "2026-10-19T10:49:03.912391+00:00",
+   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id. | row-bound certification 2026-10-19T10:49:03.912391+00:00: no execution row exists to bind: GET /api/live-audit-summary returns execution_quality_rows=[] (0 rows) and the served audit dir has no send_attempts.csv, so truth->API->render cannot be exercised for reject/error text; the table renders only its sentinel row. Column 'Error' (index 18) of Execution Quality (#lcExecQualRows); binding None",
    "proof_network": "TESTNET"
   },
   {
@@ -19668,11 +19668,11 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI-FP-113-127.json#/rows/UI-FP-121",
+   "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717 (serving checkout HEAD, dirty - bound by served HTML sha256 f7e21c05a7dee3677beec87d3773b8440b1fb9c505477378a268bd81387117b9)",
+   "tested_at_utc": "2026-10-19T10:49:03.912391+00:00",
+   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id. | row-bound certification 2026-10-19T10:49:03.912391+00:00: first() over created_at/timestamp_iso/time. Column 'Time' (index 0) of Order Intents / Audit (#lcAuditRows); binding DOM tr[0].td[0] == API audit_rows[199].created_at == ledger line 2764 (intent_id c392495b6de915cd25778a8a438cb68a)",
    "proof_network": "TESTNET"
   },
   {
@@ -19693,11 +19693,11 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI-FP-113-127.json#/rows/UI-FP-122",
+   "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717 (serving checkout HEAD, dirty - bound by served HTML sha256 f7e21c05a7dee3677beec87d3773b8440b1fb9c505477378a268bd81387117b9)",
+   "tested_at_utc": "2026-10-19T10:49:03.912391+00:00",
+   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id. | row-bound certification 2026-10-19T10:49:03.912391+00:00: shortWallet(): slice(0,10)+'...'+slice(-6). Column 'Wallet' (index 1) of Order Intents / Audit (#lcAuditRows); binding DOM tr[0].td[0] == API audit_rows[199].created_at == ledger line 2764 (intent_id c392495b6de915cd25778a8a438cb68a)",
    "proof_network": "TESTNET"
   },
   {
@@ -19718,11 +19718,11 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI-FP-113-127.json#/rows/UI-FP-123",
+   "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717 (serving checkout HEAD, dirty - bound by served HTML sha256 f7e21c05a7dee3677beec87d3773b8440b1fb9c505477378a268bd81387117b9)",
+   "tested_at_utc": "2026-10-19T10:49:03.912391+00:00",
+   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id. | row-bound certification 2026-10-19T10:49:03.912391+00:00: first() over coin/asset. Column 'Coin' (index 2) of Order Intents / Audit (#lcAuditRows); binding DOM tr[0].td[0] == API audit_rows[199].created_at == ledger line 2764 (intent_id c392495b6de915cd25778a8a438cb68a)",
    "proof_network": "TESTNET"
   },
   {
@@ -19743,11 +19743,11 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
+   "result": "FAIL",
+   "evidence_ref": "certification/results/UI-FP-113-127.json#/rows/UI-FP-124",
+   "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717 (serving checkout HEAD, dirty - bound by served HTML sha256 f7e21c05a7dee3677beec87d3773b8440b1fb9c505477378a268bd81387117b9)",
+   "tested_at_utc": "2026-10-19T10:49:03.912391+00:00",
+   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id. | row-bound certification 2026-10-19T10:49:03.912391+00:00: cell is blank while the truth records leader_side='SELL' copy_side='SELL'; the rule reads r.side only and neither the ledger nor the API payload has a side key, so this column can never display the side. Column 'Side' (index 3) of Order Intents / Audit (#lcAuditRows); binding DOM tr[0].td[0] == API audit_rows[199].created_at == ledger line 2764 (intent_id c392495b6de915cd25778a8a438cb68a)",
    "proof_network": "TESTNET"
   },
   {
@@ -19768,11 +19768,11 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI-FP-113-127.json#/rows/UI-FP-125",
+   "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717 (serving checkout HEAD, dirty - bound by served HTML sha256 f7e21c05a7dee3677beec87d3773b8440b1fb9c505477378a268bd81387117b9)",
+   "tested_at_utc": "2026-10-19T10:49:03.912391+00:00",
+   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id. | row-bound certification 2026-10-19T10:49:03.912391+00:00: two stacked spans: sourceOf(r) then tiny(reason,32). Column 'Source/Reason' (index 4) of Order Intents / Audit (#lcAuditRows); binding DOM tr[0].td[0] == API audit_rows[199].created_at == ledger line 2764 (intent_id c392495b6de915cd25778a8a438cb68a)",
    "proof_network": "TESTNET"
   },
   {
@@ -19794,10 +19794,10 @@
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
    "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
+   "evidence_ref": "certification/results/UI-FP-113-127.json#/rows/UI-FP-126",
+   "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717 (serving checkout HEAD, dirty - bound by served HTML sha256 f7e21c05a7dee3677beec87d3773b8440b1fb9c505477378a268bd81387117b9)",
+   "tested_at_utc": "2026-10-19T10:49:03.912391+00:00",
+   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id. | row-bound certification 2026-10-19T10:49:03.912391+00:00: no status value exists in the truth source for this intent (decision='SEND_BLOCKED_RISK', never sent); the cell renders the documented fallback and no positive case is available on this run. Column 'Status' (index 5) of Order Intents / Audit (#lcAuditRows); binding DOM tr[0].td[0] == API audit_rows[199].created_at == ledger line 2764 (intent_id c392495b6de915cd25778a8a438cb68a)",
    "proof_network": "TESTNET"
   },
   {
@@ -19818,11 +19818,11 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
+   "result": "FAIL",
+   "evidence_ref": "certification/results/UI-FP-113-127.json#/rows/UI-FP-127",
+   "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717 (serving checkout HEAD, dirty - bound by served HTML sha256 f7e21c05a7dee3677beec87d3773b8440b1fb9c505477378a268bd81387117b9)",
+   "tested_at_utc": "2026-10-19T10:49:03.912391+00:00",
+   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id. | row-bound certification 2026-10-19T10:49:03.912391+00:00: the truth records decision='SEND_BLOCKED_RISK' but the Decision cell renders '—': the render rule reads first(r,['execution_decision']) and neither the ledger CSV nor the API payload carries that key, so the recorded decision is never displayed. Column 'Decision' (index 6) of Order Intents / Audit (#lcAuditRows); binding DOM tr[0].td[0] == API audit_rows[199].created_at == ledger line 2764 (intent_id c392495b6de915cd25778a8a438cb68a)",
    "proof_network": "TESTNET"
   },
   {

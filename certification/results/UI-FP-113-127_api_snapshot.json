@@ -1,0 +1,67 @@
+{
+ "captured_at_utc": "2026-10-19T10:49:03.912391+00:00",
+ "endpoint": "http://127.0.0.1:8023/api/live-audit-summary",
+ "http_status": 200,
+ "counts": {
+  "rows": 2763,
+  "audit_rows": 200,
+  "last_rows": 20,
+  "execution_quality_rows": 0,
+  "recent_send_attempts": 0,
+  "send_attempt_counts": {}
+ },
+ "bound_audit_index": 199,
+ "bound_audit_created_at": "2026-10-09T14:48:58.366311+00:00",
+ "audit_rows": [
+  {
+   "created_at": "2026-10-09T14:48:58.366311+00:00",
+   "created_at_ms": "1791557338366",
+   "intent_id": "c392495b6de915cd25778a8a438cb68a",
+   "leader_fill_id": "0xbe4d6610f46f78a0bfc704462fe3be0203d800f68f62977262161163b363528b",
+   "leader_wallet": "0xf7bfa3a7067624b913381f39c1e21ad9aeacf123",
+   "source": "POLL",
+   "coin": "BTC",
+   "leader_side": "SELL",
+   "copy_side": "SELL",
+   "leader_price": "82829.0",
+   "leader_size": "0.00321",
+   "leader_notional": "265.88109000000003",
+   "copy_size": "0.00014488",
+   "copy_notional": "12.0",
+   "wallet_mode": "ON",
+   "copy_mode": "fixed",
+   "decision": "SEND_BLOCKED_RISK",
+   "reason": "max total exposure exceeded",
+   "sleeve_id": "0xf7bfa3a7067624b913381f39c1e21ad9aeacf123::BTC",
+   "position_id": "0xf7bfa3a7067624b913381f39c1e21ad9aeacf123::BTC::SHORT::c392495b6de915cd25778a8a438cb68a",
+   "position_direction_before": "FLAT",
+   "wallet_position_before": "0.0",
+   "coin_net_before": "0.0",
+   "reduce_only_intended": "False",
+   "reduce_only_sent_planned": "False",
+   "marketable_bps": "",
+   "max_close_adverse_diff_pct": "",
+   "min_notional": "",
+   "notes": "lifecycle=ENTRY"
+  }
+ ],
+ "audit_rows_index_map": {
+  "0": 199
+ },
+ "execution_quality_rows": [],
+ "execution_quality_summary": {
+  "filled_count": 0,
+  "exchange_rejected_count": 0,
+  "local_blocked_count": 0,
+  "active_red_count": 0,
+  "active_amber_count": 0,
+  "historical_count": 0,
+  "adopted_reconciled_count": 0,
+  "preview_count": 0,
+  "avg_fill_vs_limit_bps": null,
+  "worst_fill_vs_limit_bps": null,
+  "avg_leader_vs_user_bps": null,
+  "last_fill": {}
+ },
+ "recent_send_attempts": []
+}
