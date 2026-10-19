@@ -122,3 +122,45 @@ hashing both candidate files, not by trusting the port.
 5. Any capture taken before the 08:34 restart is stale. Re-capture.
 
 A 404 from `/live-copy` on `:8031` is a moved route, not missing evidence.
+
+## Register regeneration: missing inputs (recorded so no card rediscovers it)
+
+`certification/gen_matrix.py` line 11:
+
+    SRC = Path(os.environ.get("HL_CERT_SOURCE_DOCS", "/mnt/project-files/source-docs"))
+
+It reads four documents from a `source-docs` tree that mirrors the repos. On this host:
+
+| input | status |
+|---|---|
+| `hyperliquid-build3-repair/PRODUCT_SEMANTICS.md` | present |
+| `richard-mission-control-template/INVARIANTS.md` | present |
+| `hyperliquid-build4/GUT_CONTRACT.md` | **MISSING** |
+| `hyperliquid-build4/FAILURES.md` | **MISSING** |
+
+**No `source-docs` directory exists anywhere on this box.** The mirror was never reconstructed for this environment.
+
+### CORRECTION — the six `GUT_CONTRACT.md` copies are identical, not divergent
+
+I reported earlier that six candidate copies existed **with different hashes**. That was wrong. All six hash to
+**`71dffee1932040ef`**:
+
+    b4-hotfix-standalone  b4-verify-clean  b4_11r266
+    b4_epoch_candidate_20261007  b4_hotfix_clone  b4_kpepe_clean_20261007
+
+So there is no version ambiguity for that file. `FAILURES.md` is still absent everywhere and its version is unestablished.
+Which copy is authoritative remains a decision for whoever built the register — do not guess.
+
+### The overlay cannot change a verdict
+
+`certification/results/apply_verified_results.py` assigns verdicts from a **hardcoded dict**, not from the evidence JSON.
+Line 94, on every ref including the cert branch:
+
+    "ENG-INV-02": ("PASS", E11, "2026-10-14T09:05:00Z", P11),
+
+The only `json.load` in the script (line 731) reads `certification_matrix.json` itself; no result file sets a row
+verdict. Therefore **no row verdict can be changed by running the overlay** — it can only re-apply the verdicts
+already written into it. Changing ENG-INV-02 to FAIL requires editing that file, which is expressly prohibited.
+
+Combined with `gen_matrix.py` being unrunnable, the register is **frozen for corrections** on this host: it can be
+published as-is, but it cannot be rebuilt and its verdicts cannot be revised.
