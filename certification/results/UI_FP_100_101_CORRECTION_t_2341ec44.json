@@ -84,9 +84,11 @@
      "SENTSHARE_shortfall": "Engine records exceed the exchange — check Reconciliation"
     },
     "row_binding_proof": "In ONE render the two rows carry different title attributes (SENTORP = ACCOUNT_LEVEL_ONLY / ORPHAN_EXCHANGE; SENTSHARE = ACCOUNT_LEVEL_ONLY / ACCOUNT_LEVEL_ONLY / SHARED_SYMBOL_RESIDUAL -5.000000), and the SENTSHARE string becomes -3.000000 then +4.000000 when only the injected exchange total changes 10 -> 8 -> 1. It is bound to that row input, not shared text.",
-    "why_partial": "The register names a BADGE, i.e. what the operator reads. The visible pill text is a fixed string identical across orphan rows; the literal ledger_vs_exchange / provenance string appears only as the Status cell title attribute (hover tooltip). The value is rendered per row and row-bound, but it is not shown as a badge. The register also says the value comes from exchange_account_snapshot.json, whereas the app derives ledger_vs_exchange itself from positions_by_coin plus classification. PARTIAL, not PASS."
+    "why_partial": "The register names a BADGE, i.e. what the operator reads. The visible pill text is a fixed string identical across orphan rows; the literal ledger_vs_exchange / provenance string appears only as the Status cell title attribute (hover tooltip). The value is rendered per row and row-bound, but it is not shown as a badge. The register also says the value comes from exchange_account_snapshot.json, whereas the app derives ledger_vs_exchange itself from positions_by_coin plus classification. PARTIAL, not PASS.",
+    "title_vs_visible_summary": "Exact row-bound value is present only as the Status cell title attribute; the on-row pill text is a fixed string shared by all orphan rows, so the badge requirement is not met."
    },
-   "reproduces": "cd C:/Users/wigmore/.hermes/cache/scratch/t2341_probe && C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe final_probe.py"
+   "reproduces": "cd C:/Users/wigmore/.hermes/cache/scratch/t2341_probe && C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe final_probe.py",
+   "residual_risk": "If a hover tooltip counts as a badge, this row is PASS; the register says badge, so PARTIAL is conservative."
   },
   {
    "row_id": "UI-FP-101",
@@ -147,7 +149,9 @@
     },
     "why_pass": "The register asks for reconciliation_note shown as a NO OWNED SLEEVE / explanation. The note is rendered verbatim as the Context cell title, and the visible text is a row-specific explanation proven to follow the app rule from injected inputs, with every branch exercised. The corrected artifact asserted PASS without supplying these values; this artifact supplies the exact injected note values and the exact mapping, which is what the reviewer required."
    },
-   "reproduces": "cd C:/Users/wigmore/.hermes/cache/scratch/t2341_probe && C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe final_probe.py"
+   "reproduces": "cd C:/Users/wigmore/.hermes/cache/scratch/t2341_probe && C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe final_probe.py",
+   "cross_row_consistency_with_100": "UI-FP-100 names a BADGE the operator reads, so a hover-only title is not that artifact -> PARTIAL. UI-FP-101 names an explanation and no visible widget; the note is verbatim in the cell title and the visible text is a row-specific explanation from the same row input. Same rule, different register wording.",
+   "residual_risk": "If the reviewer reads UI-FP-101 as also requiring on-row visible text, it becomes PARTIAL on the same basis as 100."
   }
  ],
  "negative_tests": {
@@ -168,5 +172,23 @@
    "instrument_caveat": "The app rewrote the injected UNAVAILABLE snapshot during the call (fixture_sha_before != fixture_sha_after, see unavailable_verified.json); the UNAVAILABLE status the renderer consumed came from the app own fail path, so the rendered message is attributable to the app, not to the fixture."
   }
  },
- "scope_statement": "Only UI-FP-100 and UI-FP-101 are corrected here. No other verdict from 75ab1e9 is asserted or changed."
+ "scope_statement": "Only UI-FP-100 and UI-FP-101 are corrected here. No other verdict from 75ab1e9 is asserted or changed.",
+ "publishing": {
+  "repo": "binancebotty-bot/hyperliquid-build3-repair",
+  "branch": "hermes/t_2341ec44",
+  "remote_head": "c468f975d5e688416a6a76e17839dda0f04952d9",
+  "note": "remote_head is the commit on this branch carrying this file; later commits are additive self-review revisions of the same two rows",
+  "source_branch_untouched": "origin/cert-47-53-ui-fp-098-112-t_3319351b @ 75ab1e96682dabbdf7418592ac15b3608ea8f78b"
+ },
+ "internal_adversarial_review": {
+  "performed_by": "implementer second pass before publishing",
+  "checks": [
+   "each of base/shortfall/total8 holds two different row titles in one render (ORPHAN_EXCHANGE vs SHARED_SYMBOL_RESIDUAL -5/-3/+4)",
+   "only the injected exchange total changes 10->8->1 and visible Context text follows",
+   "injected reconciliation_note appears verbatim as the Context title in every mode",
+   "UNAVAILABLE mode recorded as out-of-scope defect, not folded in",
+   "searched for a visible-badge reading of UI-FP-100 and found none"
+  ],
+  "verdict": "no change to either verdict"
+ }
 }
