@@ -1,0 +1,107 @@
+[
+  {
+    "row_id": "UI-LCC-GRAPH-10",
+    "verdict": "PASS",
+    "evidence_ref": "{\"exists\": true, \"text\": \"Reset\"}",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "Reset button found with text 'Reset'"
+  },
+  {
+    "row_id": "UI-LCC-GRAPH-11",
+    "verdict": "PASS",
+    "evidence_ref": "{\"exists\": true, \"stroke\": \"#3fb950\", \"points\": \"\"}",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "Total PnL line (lcExchangePath) exists with correct stroke #3fb950, points=''"
+  },
+  {
+    "row_id": "UI-LCC-GRAPH-12",
+    "verdict": "PASS",
+    "evidence_ref": "{\"exists\": true, \"stroke\": \"#58a6ff\", \"points\": \"\"}",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "Realized PnL line (lcRealizedPath) exists with correct stroke #58a6ff, points=''"
+  },
+  {
+    "row_id": "UI-LCC-GRAPH-13",
+    "verdict": "PASS",
+    "evidence_ref": "{\"exists\": true, \"stroke\": \"#ff5263\", \"points\": \"\"}",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "Drawdown line (lcDrawdownPath) exists with correct stroke #ff5263, points=''"
+  },
+  {
+    "row_id": "UI-LCC-GRAPH-14",
+    "verdict": "PASS",
+    "evidence_ref": "{\"ymax_exists\": true, \"ymax\": \"\", \"ymid_exists\": true, \"ymid\": \"\", \"ymin_exists\": true, \"ymin\": \"\"}",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "Y-axis label elements (lcYMax, lcYMid, lcYMin) all exist in SVG; text content empty due to no data (correct empty-state)"
+  },
+  {
+    "row_id": "UI-LCC-GRAPH-15",
+    "verdict": "PASS",
+    "evidence_ref": "{\"exists\": true, \"children\": 0}",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "X-axis ticks group (lcXAxisTicks) exists with 0 child elements"
+  },
+  {
+    "row_id": "UI-LCC-GRAPH-16",
+    "verdict": "PASS",
+    "evidence_ref": "{\"exists\": true, \"text\": \"Not enough points in selected range (ALL).\"}",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "Subtitle (lcGraphSubtitle) shows correct empty-state message: 'Not enough points in selected range (ALL).'"
+  },
+  {
+    "row_id": "UI-LCC-WTBL-01",
+    "verdict": "PASS",
+    "evidence_ref": "{\"tbody_exists\": true, \"tbody_html_preview\": \"<tr><td colspan=\\\"9\\\">No live-copy wallets configured.</td></tr>\", \"header_text\": \"WALLET\"}",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "Wallet table body (lcWalletRows) exists, Wallet header text='WALLET'"
+  },
+  {
+    "row_id": "UI-LCC-WTBL-02",
+    "verdict": "FAIL",
+    "evidence_ref": "{\"header_text\": \"FEED\"}",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "Header shows 'Feed' but certification matrix expects 'Mode / Health' - ROW-BOUND mismatch"
+  },
+  {
+    "row_id": "UI-LCC-WTBL-03",
+    "verdict": "FAIL",
+    "evidence_ref": "{\"header_text\": \"NET P&L\"}",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "Header shows 'Net P&L' but certification matrix expects 'Live PnL' - ROW-BOUND mismatch"
+  },
+  {
+    "row_id": "UI-LCC-WTBL-04",
+    "verdict": "PASS",
+    "evidence_ref": "{\"header_text\": \"LEAD\\u2194COPY DIFF\"}",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "Lead↔Copy Diff header found: 'LEAD↔COPY DIFF'"
+  },
+  {
+    "row_id": "UI-LCC-WTBL-05",
+    "verdict": "PASS",
+    "evidence_ref": "{\"header_text\": \"EXECUTION\"}",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "Execution header found with correct text: 'EXECUTION'"
+  },
+  {
+    "row_id": "UI-LCC-WTBL-06",
+    "verdict": "PASS",
+    "evidence_ref": "{\"header_text\": \"RISK / EXPOSURE\"}",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "Risk / Exposure header found: 'RISK / EXPOSURE'"
+  },
+  {
+    "row_id": "UI-LCC-WTBL-07",
+    "verdict": "PASS",
+    "evidence_ref": "{\"header_text\": \"LAST FILL\"}",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "Last Fill header found with correct text: 'LAST FILL'"
+  },
+  {
+    "row_id": "UI-LCC-WTBL-08",
+    "verdict": "PASS",
+    "evidence_ref": "{\"header_text\": \"CONTROLS\"}",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "Controls header found with correct text: 'CONTROLS'"
+  }
+]
