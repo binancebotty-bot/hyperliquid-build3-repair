@@ -771,12 +771,15 @@
     "duplicate/reordered event"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/ENG_INV_07_08_gaps_t_t_288bc477.json",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": "",
-   "proof_network": "TESTNET"
+   "notes": "PASS with negative control (card t_288bc477): same coin, two wallets, desired net for one does not contaminate the other. Control: {\"historical_same_coin_two_wallets\": {\"coin\": \"ZRO\", \"wallet_A\": {\"addr\": \"0x010461c14e146ac35fe42271bdc1134ee31c703a\", \"intent_line\": 6018, \"position_before\": 11.8, \"coin_net_before\": 17.7, \"desired_net\": 0.0, \"send_oid\": \"62278977888\"}, \"wallet_B\": {\"addr\": ",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "ENG-INV-08",
@@ -799,12 +802,15 @@
     "duplicate/reordered event"
    ],
    "prior_evidence": "G3 PASS (B3-C2A-G3-PASS-ARCHITECT-GATE-1, correction 4a41f33) covers inv 8-13 at unit level; not testnet-certified",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
+   "result": "FAIL",
+   "evidence_ref": "certification/results/ENG_INV_07_08_gaps_t_t_288bc477.json",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": "",
-   "proof_network": "TESTNET"
+   "notes": "GENUINE DEFECT (card t_288bc477). all-scope reading is proven and three controls fail closed, but a perp DEX that held a follower position and then vanishes from perpDexs is silently dropped: its cached reading is deleted, it can never be stale, and the sweep reports ok=True with an empty gate, so the position becomes invisible to exposure caps and ENG-016 while entries continue. | reproduction: python harness4.py repo out4.json -> RESULT::C_HELD_SCOPE_VANISHING_FROM_ENUM_FAILS_CLOSED_FAIL | repair direction: treat a vanished DEX whose last reading listed a position as SCOPE_UNAVAILABLE, or re-read it once before dropping the reading; extend the shrink guard to deletions of held DEXes. Not implemented here.",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "ENG-INV-09",

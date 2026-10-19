@@ -1,0 +1,85 @@
+{
+  "card": "t_288bc477",
+  "row": "ENG-INV-07/08",
+  "engine_commit": "76dfaa2",
+  "method": "offline harnesses against the live engine modules in _archive/hl_stage2; no orders, no engine start, temp audit dirs only",
+  "evidence": {
+    "audit_tree": "trading_stack/hl-build3-testnet-cert-evidence/run4/snapshot_20261009T2245Z_pre_run5/state/append_only (read-only)",
+    "live_state": "trading_stack/hl-build3-testnet-cert/_archive/hl_stage2/hl_live_copy_audit_testnet (read-only)",
+    "workspace_harnesses": ["harness.py -> out.json", "harness4.py -> out4.json"]
+  },
+  "rows": {
+    "ENG-INV-07": {
+      "requirement": "Leader mutable state is isolated by (wallet, coin).",
+      "gap_given": "no verified desired-net / event-specific planner-output join, and no negative control",
+      "join": {
+        "leader_fill_id": "0x328d037d21096c213406044632df830203990062bc0c8af3d655aecfe00d460b",
+        "intent_id": "c99fc47b5f690188325cbcda545f13a7",
+        "leader_wallet": "0x010461c14e146ac35fe42271bdc1134ee31c703a",
+        "coin": "ZRO",
+        "join_key": "intent_id (cross-checked by leader_fill_id)",
+        "ledger_lines": {
+          "order_intents.csv": 6018,
+          "send_attempts.csv": 32,
+          "live_fills.csv": 28,
+          "reconciliation.csv": 3315
+        },
+        "planner_state": {"wallet_position_before": 11.8, "coin_net_before": 17.7, "sleeve_id": "0x010461c14e146ac35fe42271bdc1134ee31c703a::ZRO"},
+        "planner_delta": {"lifecycle": "EXIT", "decision": "EXIT_ALLOWED", "copy_notional": 23.79588, "copy_size": 11.8, "desired_net_after": 0.0, "coin_net_after_expected": 5.9},
+        "send": {"copy_size": 11.8, "sent_equals_planner_delta": true, "exchange_order_id": "62278977888", "status": "ORDER_FILLED", "filled_totalSz": 11.8, "avgPx": 2.0158, "master_copy_fill_size": 11.8},
+        "why_exit_is_clean": "minimum-notional uplift applies to ENTRY/ADD only (engine 6132-6172), so an exit send is exactly the planner delta"
+      },
+      "negative_control": {
+        "historical_same_coin_two_wallets": {
+          "coin": "ZRO",
+          "wallet_A": {"addr": "0x010461c14e146ac35fe42271bdc1134ee31c703a", "intent_line": 6018, "position_before": 11.8, "coin_net_before": 17.7, "desired_net": 0.0, "send_oid": "62278977888"},
+          "wallet_B": {"addr": "0x6ba889db7f923622d3548f621ecc2054b80c1817", "intent_line": 6265, "intent_id": "458683f98b84ec772ae0ec832b174a87", "position_before": 5.9, "coin_net_before": 0.0, "desired_net": -5.9, "send_oid": "62279044595", "copy_size": 5.9, "live_fills_line": 74},
+          "different_desired_net": true,
+          "contamination_observed": false,
+          "gap": "the two events are 66 s apart, not simultaneous"
+        },
+        "live_isolation_experiment": {
+          "harness": "harness.py / out.json",
+          "wallets": ["0x010461c14e146ac35fe42271bdc1134ee31c703a", "0x31ca8395cf837de08b24da3f660e77761dfb974b"],
+          "coin": "PAXG",
+          "A_W1": {"position_before": 0.0, "copy_size": 0.00286068, "decision": "ENTRY_ALLOWED"},
+          "B_W2": {"position_before": -0.003, "copy_size": 0.00285049, "decision": "ENTRY_ALLOWED"},
+          "control_mutate_W2_only": {"W2": -9.5, "W1_size_before": 0.00286068, "W1_size_after": 0.00286068, "W1_position_after": 0.0, "result": "W1 invariant"},
+          "control_mutate_W1": {"W1": 0.05, "W1_position_after": 0.05, "W1_size_after": 0.05, "result": "W1 sensitive"},
+          "checks": "I1,I2,I2b,I3,I4 all PASS (out.json 14/14)"
+        }
+      },
+      "verdict": "PASS",
+      "verdict_basis": "planner output joined by identifier across four ledger files; sent size == planner delta exactly; same coin on two wallets yields different desired nets with mutation controls proving isolation both ways"
+    },
+    "ENG-INV-08": {
+      "requirement": "Startup/recovery truth includes all relevant perp DEX scopes; missing required scope fails closed.",
+      "gap_given": "no all-scope startup/recovery evidence, no missing-scope negative control",
+      "scopes_enumerated": {
+        "account": "0x7ae3b08bb4e7b085c6db5d635b96bec9715e9205",
+        "source": "live scope_dex_cache.json + scope_sweep_state.json",
+        "dex_count_including_default": 273,
+        "outside_scope_count": 272,
+        "named_sample": ["KNETIQ", "TOON", "VOLMEX", "ab", "abcd"],
+        "hip3_present": true,
+        "observed_shrink": "273 -> 272 between two sweeps the same day"
+      },
+      "all_scope_read": {
+        "harness": "harness4.py / out4.json",
+        "check_A": "PASS - 271/271 out-of-scope DEXes read, held KNETIQ:FOO discovered, gate empty",
+        "real_cross_check": "scope_sweep_state.json ok=true outside_count=272 retried_failures=0; cache holds 271-272 per-DEX readings incl. real held xyz positions (XYZ:HOOD, XYZ:LLY, XYZ:MSTR)"
+      },
+      "negative_controls": [
+        {"case": "B one DEX read fails", "result": "PASS fails closed (SCOPE_UNAVAILABLE, gate SCOPE_SWEEP_PENDING)"},
+        {"case": "D empty enumeration", "result": "PASS fails closed (DEX_ENUM_UNAVAILABLE)"},
+        {"case": "E enumeration shrinks to a third", "result": "PASS not trusted (DEX_ENUM_UNAVAILABLE)"},
+        {"case": "C held DEX vanishes from enumeration", "result": "FAIL - opens", "observed": {"first_ok": true, "first_held": ["KNETIQ:FOO"], "second_ok": true, "second_held": [], "gate_after": "", "cache_kept_held_dex": false}, "engine_lines": "10320-10321 cache.pop for DEXes not in outside; 10366-10367 stale check iterates only the current enumeration; 10376 ok result publishes no gap"}
+      ],
+      "verdict": "FAIL",
+      "verdict_basis": "all-scope reading is proven and three controls fail closed, but a perp DEX that held a follower position and then vanishes from perpDexs is silently dropped: its cached reading is deleted, it can never be stale, and the sweep reports ok=True with an empty gate, so the position becomes invisible to exposure caps and ENG-016 while entries continue.",
+      "reproduction": "python harness4.py repo out4.json -> RESULT::C_HELD_SCOPE_VANISHING_FROM_ENUM_FAILS_CLOSED_FAIL",
+      "repair_direction": "treat a vanished DEX whose last reading listed a position as SCOPE_UNAVAILABLE, or re-read it once before dropping the reading; extend the shrink guard to deletions of held DEXes. Not implemented here."
+    }
+  },
+  "summary": {"ENG-INV-07": "PASS", "ENG-INV-08": "FAIL", "matrix_edited": false, "orders_sent": false}
+}
