@@ -1,0 +1,282 @@
+{
+ "auditHeaders": [
+  "TIME",
+  "WALLET",
+  "COIN",
+  "SIDE",
+  "SOURCE/REASON",
+  "STATUS",
+  "DECISION",
+  "DECISION REASON",
+  "SUGGESTED LIMIT",
+  "DIFF %",
+  "MANUAL?",
+  "INTENT NOTE",
+  "REAL ORDER RESULT"
+ ],
+ "auditRows": [
+  [
+   "2026-10-09T14:48:58.366311+00:00",
+   "0xf7bfa3a7...acf123",
+   "BTC",
+   "",
+   "POLL\nmax total exposure exceeded",
+   "\u2014",
+   "\u2014",
+   "",
+   "",
+   "",
+   "",
+   "lifecycle=ENTRY",
+   "NO_SEND_ATTEMPT"
+  ],
+  [
+   "2026-10-09T14:48:58.336416+00:00",
+   "0xf7bfa3a7...acf123",
+   "BTC",
+   "",
+   "POLL\nmax total exposure exceeded",
+   "\u2014",
+   "\u2014",
+   "",
+   "",
+   "",
+   "",
+   "lifecycle=ENTRY",
+   "NO_SEND_ATTEMPT"
+  ],
+  [
+   "2026-10-09T14:48:58.290877+00:00",
+   "0xf7bfa3a7...acf123",
+   "BTC",
+   "",
+   "POLL\nmax total exposure exceeded",
+   "\u2014",
+   "\u2014",
+   "",
+   "",
+   "",
+   "",
+   "lifecycle=ENTRY",
+   "NO_SEND_ATTEMPT"
+  ],
+  [
+   "2026-10-09T14:48:58.232318+00:00",
+   "0xe4c0f755...0ed02d",
+   "HYPE",
+   "",
+   "POLL\nmax total exposure exceeded",
+   "\u2014",
+   "\u2014",
+   "",
+   "",
+   "",
+   "",
+   "lifecycle=ENTRY",
+   "NO_SEND_ATTEMPT"
+  ],
+  [
+   "2026-10-09T14:48:58.211600+00:00",
+   "0xe4c0f755...0ed02d",
+   "HYPE",
+   "",
+   "POLL\nmax total exposure exceeded",
+   "\u2014",
+   "\u2014",
+   "",
+   "",
+   "",
+   "",
+   "lifecycle=ENTRY",
+   "NO_SEND_ATTEMPT"
+  ],
+  [
+   "2026-10-09T14:48:58.186229+00:00",
+   "0xe4c0f755...0ed02d",
+   "HYPE",
+   "",
+   "POLL\nmax total exposure exceeded",
+   "\u2014",
+   "\u2014",
+   "",
+   "",
+   "",
+   "",
+   "lifecycle=ENTRY",
+   "NO_SEND_ATTEMPT"
+  ],
+  [
+   "2026-10-09T14:48:58.172296+00:00",
+   "0xe4c0f755...0ed02d",
+   "HYPE",
+   "",
+   "POLL\nmax total exposure exceeded",
+   "\u2014",
+   "\u2014",
+   "",
+   "",
+   "",
+   "",
+   "lifecycle=ENTRY",
+   "NO_SEND_ATTEMPT"
+  ],
+  [
+   "2026-10-09T14:48:58.155802+00:00",
+   "0xe4c0f755...0ed02d",
+   "PUMP",
+   "",
+   "POLL\nmax total exposure exceeded",
+   "\u2014",
+   "\u2014",
+   "",
+   "",
+   "",
+   "",
+   "lifecycle=ENTRY",
+   "NO_SEND_ATTEMPT"
+  ],
+  [
+   "2026-10-09T14:48:58.137813+00:00",
+   "0xe4c0f755...0ed02d",
+   "PUMP",
+   "",
+   "POLL\nmax total exposure exceeded",
+   "\u2014",
+   "\u2014",
+   "",
+   "",
+   "",
+   "",
+   "lifecycle=ENTRY",
+   "NO_SEND_ATTEMPT"
+  ],
+  [
+   "2026-10-09T14:48:58.125097+00:00",
+   "0xe4c0f755...0ed02d",
+   "PUMP",
+   "",
+   "POLL\nmax total exposure exceeded",
+   "\u2014",
+   "\u2014",
+   "",
+   "",
+   "",
+   "",
+   "lifecycle=ENTRY",
+   "NO_SEND_ATTEMPT"
+  ]
+ ],
+ "execHeaders": [
+  "Time",
+  "Wallet",
+  "Coin",
+  "Side",
+  "Status",
+  "Terminal state",
+  "Operator action",
+  "Reject category",
+  "OID",
+  "Fill avg px",
+  "Size",
+  "Pos before -> after",
+  "Leader\u2192send ms",
+  "Total ms",
+  "Symbol ms",
+  "SDK ms",
+  "Exchange ms",
+  "Error"
+ ],
+ "execRows": [
+  [
+   "No execution data. Real fills appear here after send_attempts.csv is populated."
+  ]
+ ],
+ "ownedRows": [
+  [
+   "No owned copy sleeves in manual_live_positions.json."
+  ]
+ ],
+ "orphanRows": [
+  [
+   "No account-level orphan exchange positions."
+  ]
+ ],
+ "orphanHeaders": [
+  [
+   "Wallet",
+   "Coin",
+   "Side",
+   "Signed size",
+   "Avg entry",
+   "Ledger/exchange",
+   "Exchange size",
+   "Last copy fill",
+   "Last updated"
+  ],
+  [
+   "Coin",
+   "Exchange size",
+   "Entry px",
+   "Mark px",
+   "Unrealized PnL",
+   "Status",
+   "User owner",
+   "Engine close?",
+   "Engine sleeve?",
+   "Context"
+  ]
+ ],
+ "critHeaders": [
+  [
+   "Event",
+   "Status",
+   "Action",
+   "Reject category",
+   "Terminal state",
+   "Coin",
+   "Wallet",
+   "Intent",
+   "Notes"
+  ],
+  [
+   "Event",
+   "Status",
+   "Action",
+   "Reject category",
+   "Terminal state",
+   "Coin",
+   "Wallet",
+   "Intent",
+   "Notes"
+  ],
+  [
+   "Status",
+   "Wallet",
+   "Coin",
+   "Intent",
+   "Issue"
+  ],
+  [
+   "Severity",
+   "Wallet",
+   "Coin",
+   "Issue",
+   "Manual ledger",
+   "Exchange",
+   "Action"
+  ]
+ ],
+ "critRows": [
+  [
+   "No actionable critical terminal items."
+  ]
+ ],
+ "warnRows": [
+  [
+   "No terminal warnings."
+  ]
+ ],
+ "chipsExec": "Active red: 0Active amber: 0Adopted / reconciled: 0Historical separated: 0Filled: 0Exchange rejected: 0Local blocked: 0Queued previews / would-send records: 0Avg fill-vs-limit: n/aWorst fill-vs-limit: n/aLast fill: none",
+ "chipsAudit": "WS fast path:\n0\nExits/reduce:\n0\nLate copy:\n0\nDo not copy:\n0\nManual review:\n0\nQuote unavail:\n0\nRecent order warnings:\n0",
+ "realOrders": "REAL ORDERS: APP DISABLED"
+}

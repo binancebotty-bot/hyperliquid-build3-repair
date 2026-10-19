@@ -19674,12 +19674,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_FP_batch3_t_t_356f8e3a.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
-   "proof_network": "TESTNET"
+   "notes": "UI-FP captured against the measured serving build on :8023 (serving_commit NOT_A_GIT_CH, SSOT sha256 fad19d220d7af13d). Selector: #lcAuditRows tr:first-child td:nth-child(1) -> value: 2026-10-09T14:48:58.366311+00:00. Engine chain: None. ",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-FP-122",
@@ -19699,12 +19702,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_FP_batch3_t_t_356f8e3a.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
-   "proof_network": "TESTNET"
+   "notes": "UI-FP captured against the measured serving build on :8023 (serving_commit NOT_A_GIT_CH, SSOT sha256 fad19d220d7af13d). Selector: #lcAuditRows tr:first-child td:nth-child(2) -> value: 0xf7bfa3a7...acf123. Engine chain: None. ",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-FP-123",
@@ -19724,12 +19730,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_FP_batch3_t_t_356f8e3a.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
-   "proof_network": "TESTNET"
+   "notes": "UI-FP captured against the measured serving build on :8023 (serving_commit NOT_A_GIT_CH, SSOT sha256 fad19d220d7af13d). Selector: #lcAuditRows tr:first-child td:nth-child(3) -> value: BTC. Engine chain: None. ",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-FP-124",
@@ -19749,12 +19758,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "FAIL",
+   "evidence_ref": "certification/results/UI_FP_batch3_t_t_356f8e3a.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
-   "proof_network": "TESTNET"
+   "notes": "UI-FP captured against the measured serving build on :8023 (serving_commit NOT_A_GIT_CH, SSOT sha256 fad19d220d7af13d). Selector: #lcAuditRows tr:first-child td:nth-child(4) -> value: empty string (renders zero-width; not an em dash). Engine chain: None. ",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-FP-125",
@@ -19774,12 +19786,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_FP_batch3_t_t_356f8e3a.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
-   "proof_network": "TESTNET"
+   "notes": "UI-FP captured against the measured serving build on :8023 (serving_commit NOT_A_GIT_CH, SSOT sha256 fad19d220d7af13d). Selector: #lcAuditRows tr:first-child td:nth-child(5) -> value: POLL / max total exposure exceeded. Engine chain: None. ",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-FP-126",
@@ -19799,12 +19814,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "FAIL",
+   "evidence_ref": "certification/results/UI_FP_batch3_t_t_356f8e3a.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
-   "proof_network": "TESTNET"
+   "notes": "UI-FP captured against the measured serving build on :8023 (serving_commit NOT_A_GIT_CH, SSOT sha256 fad19d220d7af13d). Selector: #lcAuditRows tr:first-child td:nth-child(6) -> value: — (em-dash placeholder). Engine chain: None. ",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-FP-127",
@@ -19824,12 +19842,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "FAIL",
+   "evidence_ref": "certification/results/UI_FP_batch3_t_t_356f8e3a.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
-   "proof_network": "TESTNET"
+   "notes": "UI-FP captured against the measured serving build on :8023 (serving_commit NOT_A_GIT_CH, SSOT sha256 fad19d220d7af13d). Selector: #lcAuditRows tr:first-child td:nth-child(7) -> value: — (em-dash placeholder). Engine chain: None. ",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-FP-128",
@@ -19849,12 +19870,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "FAIL",
+   "evidence_ref": "certification/results/UI_FP_batch3_t_t_356f8e3a.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
-   "proof_network": "TESTNET"
+   "notes": "UI-FP captured against the measured serving build on :8023 (serving_commit NOT_A_GIT_CH, SSOT sha256 fad19d220d7af13d). Selector: #lcAuditRows tr:first-child td:nth-child(8) -> value: empty string. Engine chain: None. ",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-FP-129",
@@ -19874,12 +19898,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "FAIL",
+   "evidence_ref": "certification/results/UI_FP_batch3_t_t_356f8e3a.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
-   "proof_network": "TESTNET"
+   "notes": "UI-FP captured against the measured serving build on :8023 (serving_commit NOT_A_GIT_CH, SSOT sha256 fad19d220d7af13d). Selector: #lcAuditRows tr:first-child td:nth-child(9) -> value: empty string. Engine chain: None. ",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-FP-130",
@@ -19899,12 +19926,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "FAIL",
+   "evidence_ref": "certification/results/UI_FP_batch3_t_t_356f8e3a.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
-   "proof_network": "TESTNET"
+   "notes": "UI-FP captured against the measured serving build on :8023 (serving_commit NOT_A_GIT_CH, SSOT sha256 fad19d220d7af13d). Selector: #lcAuditRows tr:first-child td:nth-child(10) -> value: empty string. Engine chain: None. ",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-FP-131",
@@ -19924,12 +19954,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "FAIL",
+   "evidence_ref": "certification/results/UI_FP_batch3_t_t_356f8e3a.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
-   "proof_network": "TESTNET"
+   "notes": "UI-FP captured against the measured serving build on :8023 (serving_commit NOT_A_GIT_CH, SSOT sha256 fad19d220d7af13d). Selector: #lcAuditRows tr:first-child td:nth-child(11) -> value: empty string. Engine chain: None. ",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-FP-132",
@@ -19949,12 +19982,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_FP_batch3_t_t_356f8e3a.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
-   "proof_network": "TESTNET"
+   "notes": "UI-FP captured against the measured serving build on :8023 (serving_commit NOT_A_GIT_CH, SSOT sha256 fad19d220d7af13d). Selector: #lcAuditRows tr:first-child td:nth-child(12) -> value: lifecycle=ENTRY. Engine chain: None. ",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-FP-133",
@@ -19974,12 +20010,15 @@
     "API error surfaced"
    ],
    "prior_evidence": "2026-05-11 field proof: PASS",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/UI_FP_batch3_t_t_356f8e3a.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "Field-level baseline; may overlap UI-LCC-*/UI-SSOT-* cells. OD-21 decided: certify against the 13 May UI. Elements named only in the 11 May proof (lcCoreChip, lcWsChip, lcStatsBanner, ACCOUNT-LEVEL ORPHAN section) are absent from the 13 May file; the field must be found by its data, not its element id.",
-   "proof_network": "TESTNET"
+   "notes": "UI-FP captured against the measured serving build on :8023 (serving_commit NOT_A_GIT_CH, SSOT sha256 fad19d220d7af13d). Selector: #lcAuditRows tr:first-child td:nth-child(13) -> value: NO_SEND_ATTEMPT. Engine chain: None. ",
+   "proof_network": "TESTNET",
+   "verified": null,
+   "verifier": null,
+   "review_ref": null
   },
   {
    "id": "UI-FP-134",

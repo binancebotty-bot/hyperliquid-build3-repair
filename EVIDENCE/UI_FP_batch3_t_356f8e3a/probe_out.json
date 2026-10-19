@@ -1,0 +1,168 @@
+{
+  "api_counts": {
+    "execution_quality_rows": 0,
+    "last_rows": 20,
+    "legacy_terminal_rows": 0,
+    "manual_reconciliation_rows": 0,
+    "orphan_exchange_positions": 0,
+    "owned_copy_positions": 0,
+    "real_copy_positions": 0,
+    "recent_send_attempts": 0,
+    "reconciliation_rows": 379,
+    "send_terminal_rows": 0
+  },
+  "append_only": {
+    "live_fills.csv": {
+      "bytes": 0,
+      "exists": false
+    },
+    "order_intents.csv": {
+      "bytes": 1462139,
+      "exists": true
+    },
+    "reconciliation.csv": {
+      "bytes": 135330,
+      "exists": true
+    },
+    "send_attempts.csv": {
+      "bytes": 0,
+      "exists": false
+    }
+  },
+  "assertions": {
+    "audit_rows_rendered": 10,
+    "exchange_snapshot_available": false,
+    "exec_columns_match": false,
+    "exec_rows_present": false,
+    "live_fills_file_exists": false,
+    "orphan_rows_present": false,
+    "owned_rows_present": false,
+    "send_attempts_file_exists": false,
+    "terminal_rows_present": false
+  },
+  "audit_field_presence": {
+    "adverse_diff_pct": false,
+    "decision_reason": false,
+    "diff_pct": false,
+    "execution_decision": false,
+    "manual_reconcile_required": false,
+    "price_diff_pct": false,
+    "real_diff_pct": false,
+    "side": false,
+    "status": false,
+    "suggested_limit_price": false,
+    "target_price": false
+  },
+  "cross_check_csv_prev": [
+    "2026-10-09T14:48:58.336416+00:00",
+    "0xf7bfa3a7...acf123",
+    "BTC",
+    "POLL"
+  ],
+  "cross_check_row1": [
+    "2026-10-09T14:48:58.336416+00:00",
+    "0xf7bfa3a7...acf123",
+    "BTC",
+    "",
+    "POLL\nmax total exposure exceeded",
+    "\u2014",
+    "\u2014",
+    "",
+    "",
+    "",
+    "",
+    "lifecycle=ENTRY",
+    "NO_SEND_ATTEMPT"
+  ],
+  "dom_auditHeaders": 13,
+  "dom_auditRows": 10,
+  "dom_audit_first_row": [
+    "2026-10-09T14:48:58.366311+00:00",
+    "0xf7bfa3a7...acf123",
+    "BTC",
+    "",
+    "POLL\nmax total exposure exceeded",
+    "\u2014",
+    "\u2014",
+    "",
+    "",
+    "",
+    "",
+    "lifecycle=ENTRY",
+    "NO_SEND_ATTEMPT"
+  ],
+  "dom_chipsExec": "Active red: 0Active amber: 0Adopted / reconciled: 0Historical separated: 0Filled: 0Exchange rejected: 0Local blocked: 0Queued previews / would-send records: 0Avg fill-vs-limit: n/aWorst fill-vs-limit: n/aLast fill: none",
+  "dom_critRows": 1,
+  "dom_execHeaders": 18,
+  "dom_execRows": 1,
+  "dom_orphanRows": 1,
+  "dom_ownedRows": 1,
+  "dom_realOrders": "REAL ORDERS: APP DISABLED",
+  "dom_warnRows": 1,
+  "engine_lines": {
+    "api_live_audit_summary": 7100,
+    "audit_summary_builder": 997,
+    "exec_rows_builder": 2860,
+    "last_rows_cap_20": 1038,
+    "orphan_gate_exchange_available": 2641,
+    "owned_row_type": 2647,
+    "render_audit_last10": 6749,
+    "render_audit_row_template": 6761,
+    "render_exec_row_template": 6737,
+    "render_recon_critical": 6768,
+    "render_recon_warning": 6769,
+    "terminal_row_filter": 1088
+  },
+  "exchange_snapshot": {
+    "available": false,
+    "ok": false,
+    "reason": "ACCOUNT_ADDRESS_UNAVAILABLE",
+    "status": "UNAVAILABLE"
+  },
+  "exec_template_source_offset": 55977,
+  "exec_template_td_count": 19,
+  "order_intents_columns": [
+    "created_at",
+    "created_at_ms",
+    "intent_id",
+    "leader_fill_id",
+    "leader_wallet",
+    "source",
+    "coin",
+    "leader_side",
+    "copy_side",
+    "leader_price",
+    "leader_size",
+    "leader_notional",
+    "copy_size",
+    "copy_notional",
+    "wallet_mode",
+    "copy_mode",
+    "decision",
+    "reason",
+    "sleeve_id",
+    "position_id",
+    "position_direction_before",
+    "wallet_position_before",
+    "coin_net_before",
+    "reduce_only_intended",
+    "reduce_only_sent_planned",
+    "marketable_bps",
+    "max_close_adverse_diff_pct",
+    "min_notional",
+    "notes"
+  ],
+  "order_intents_rows": 2763,
+  "reconciliation_event_counts": {
+    "COPY_ACCOUNT_BASELINE": 1,
+    "DUPLICATE_LEADER_FILL_SKIPPED": 180,
+    "EXCHANGE_RECON": 78,
+    "STALE_SNAPSHOT_REPLAY_SKIPPED": 120
+  },
+  "send_terminal_event_rows": 0,
+  "serving_pid": 15760,
+  "serving_pid_start_utc": "2026-10-19T07:40:25.6745941Z",
+  "serving_ssot_mtime": 1778656683.6363866,
+  "serving_ssot_path": "C:/Users/wigmore/trading_stack/hl-build3-testnet-cert-evidence/build3_live_screen_0513_8023_instance_20261019T074010Z\\HL_Copy_App_SSOT.py",
+  "serving_ssot_sha256": "fad19d220d7af13d48a3eec664c56a32b31624d671b00e2f80ec2dc9062a29b0"
+}
