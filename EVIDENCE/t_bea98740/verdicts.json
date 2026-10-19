@@ -1,0 +1,45 @@
+{
+ "review_card": "t_bea98740",
+ "reviewed_card": "t_4c1478a5",
+ "reviewed_branch": "hermes/t_4c1478a5",
+ "reviewed_commit": "7e1c9a27bed8052fe3866757b338a728dfe26f94",
+ "head_matches_report": true,
+ "serving_commit_claimed": "89b3bc7586bf328df336fc9ea721cee212617762",
+ "serving_ssot_sha256_claimed": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+ "serving_commit_verification": "PASS. git cat-file -t 89b3bc7 = commit, committed 2026-10-17T07:18:14Z. sha256 of its _archive/hl_stage2/HL_Copy_App_SSOT.py = 658ec8e3...86c2, byte-identical to the claim and to the schema-declared serving SSOT. b5e6d613 (the schema's named serving commit) is an ANCESTOR of 89b3bc7 and carries the SAME SSOT bytes, so citing 89b3bc7 is a legitimate newer point on the same lineage, not a wrong-build citation.",
+ "process_rule_check": "PASS_WITH_CAVEAT. Commit date 2026-10-17T07:18:14Z precedes the claimed process start 2026-10-19T05:26Z, so the arithmetic holds. The start time is author-reported: PIDs 40928/29672 are killed and ports 8131/8132 dead, so I could not re-measure it. I could not disprove it and I do not silently endorse it.",
+ "evidence_refs_resolution": "PASS. All 12 cited files exist at 7e1c9a2 under EVIDENCE/t_4c1478a5/ (artifact.json, contrast.py, fixture_build.py, iso.env, launch.py, probe.py, probe2.py, probe_A.json, probe_B.json, probe2_A.json, probe2_B.json). Zero missing citations.",
+ "row_binding_check": "PASS. 15/15 distinct executed_probe, 15/15 distinct observed, 15/15 distinct why. No shared boilerplate.",
+ "mutation_control_check": "PASS. The differential oracle produced non-PASS for the three rows whose DOM surface was absent (018 FAIL, 009/013 PARTIAL) while returning PASS where it was present. A vacuous predicate could not have yielded those three.",
+ "numbers_reproduce": "PASS. git diff --numstat 7e1c9a2^ 7e1c9a2 -- certification/certification_matrix.json = 73/73 with 15 hunks. Exactly 15 of 832 records differ. Artifact verdicts recount to 12 PASS / 2 PARTIAL / 1 FAIL.",
+ "defects": [
+  {"id": "D-1", "severity": "metadata", "row_impact": "none", "title": "register_commit/register_branch citation is wrong", "detail": "Handoff cites register_branch=cert/local-main-b142cf8, register_commit=f4ee2bb. But f4ee2bb is NOT an ancestor of hermes/t_4c1478a5, and its matrix holds 790 records that disagree across this range (UI-FP-008 FAIL, UI-FP-018 PASS). The matrix actually patched is main's (parent 819050c = origin/main tip, 832 records). The DATA is defensible; the CITATION is false."},
+  {"id": "D-2", "severity": "hotspot", "row_impact": "none", "title": "certification/certification_matrix.json is per-card parallel-edit churn", "detail": "This card rewrites 15 records in a shared 832-record JSON that sibling cert branches also edit; the author already hit 4280/5792 revert churn once. Flagged for orchestrator decomposition."}
+ ],
+ "rows": [
+  {"row_id": "UI-FP-008", "verdict": "PASS", "probe": "#lcRestartNote A hidden=false / B hidden=true; SSOT 7397 rn.hidden=!st.ws_restart_needed; payload ws_restart_needed true/false.", "why": "UPHELD. Visibility flips with its own field and B legitimately suppresses it. Shares a fixture mutation with 013 but asserts a different element."},
+  {"row_id": "UI-FP-009", "verdict": "PARTIAL", "probe": "Enumerated renderTopStatus() cards in SSOT 89b3bc7: Health, Leader feed, Follower account read, Wallets, Last send, Last fill, Last reject, Last latency warning. No integrity card exists; integrity appears only inside Technical detail.", "why": "UPHELD. PARTIAL is correct and conservative; confirmed in source, not only in DOM."},
+  {"row_id": "UI-FP-010", "verdict": "PASS", "probe": "Leader feed card + #lcWsOverall: A WS_OK -> Websocket OK, B DOWN -> Websocket degraded; feedLabel maps ws_status.", "why": "UPHELD. Distinct row-specific text both ways; siblings did not move."},
+  {"row_id": "UI-FP-011", "verdict": "PASS", "probe": "Follower account read card: A POLLED_OK -> Reading (normal), B STALE -> stale.", "why": "UPHELD. Two distinct rendered branches from the row's own field."},
+  {"row_id": "UI-FP-012", "verdict": "PASS", "probe": "#lcBannerSending + payload master_real_orders: A ON/true, B OFF/false.", "why": "UPHELD. The banner going OFF in B rules out a constant. Caveat: the probe shows the two flags co-varying rather than proving the exact hop."},
+  {"row_id": "UI-FP-013", "verdict": "PARTIAL", "probe": "SSOT 7369 builds the card as live_wallets + active_wallets; subscribed_wallets exists only in _build_live_top_status (1266/1290) and no render function reads it. Payload subscribed_wallets=1 in BOTH fixtures while the card changed 2/2 -> 1/1.", "why": "UPHELD. The row names active/subscribed; only active is rendered. Constant subscribed_wallets across both fixtures is a clean negative control."},
+  {"row_id": "UI-FP-014", "verdict": "PASS", "probe": "Last send card: A ETH ORDER_REJECTED, B BTC ORDER_FILLED; matches payload last_send.", "why": "UPHELD. Distinct coin+status per fixture."},
+  {"row_id": "UI-FP-015", "verdict": "PASS", "probe": "Last fill card: A ETH SELL 0.2, B BTC BUY 0.01; matches live_fills newest row and payload.", "why": "UPHELD. Distinct coin/side/size."},
+  {"row_id": "UI-FP-016", "verdict": "PASS", "probe": "Last reject card: A ETH MARGIN, B DOGE PRICE_BAND; matches payload last_reject.", "why": "UPHELD. Distinct reject_category per fixture."},
+  {"row_id": "UI-FP-017", "verdict": "PASS", "probe": "Last latency warning card: A LAT_A, B LAT_B from reconciliation.csv SEND_LATENCY_WARN notes.", "why": "UPHELD. Distinct notes string per fixture."},
+  {"row_id": "UI-FP-018", "verdict": "FAIL", "probe": "unified_portfolio_value 12345.67 (A) vs 99999.99 (B) with fresh fetched_at_ms; payload confirms both and available=true, but the DOM card renders the em-dash in BOTH. SSOT renderCards(): const fa=lcAudit.follower_account; unified=fa.ok? ... : em-dash. The card is sourced from follower_account, never from exchange_account_snapshot.unified_portfolio_value.", "why": "UPHELD and root cause confirmed in the certified source, not only the DOM. Genuine FAIL: the row's named field cannot drive the cell."},
+  {"row_id": "UI-FP-019", "verdict": "PASS", "probe": "Open positions P&L card: A $42.5, B $-7.25; payload unrealized_pnl matches.", "why": "UPHELD. Negative value in B exercises both formatting paths."},
+  {"row_id": "UI-FP-020", "verdict": "PASS", "probe": "Closed P&L card: A $12.34 fixture window, B $55.5 same label.", "why": "UPHELD. Distinct values, label carried through."},
+  {"row_id": "UI-FP-021", "verdict": "PASS", "probe": "Open Positions card and #lcBannerOpen: A 1/1, B 2/2; payload open_positions lengths 1 and 2.", "why": "UPHELD. Two independent DOM surfaces agree with payload and each other."},
+  {"row_id": "UI-FP-022", "verdict": "PASS", "probe": "Live Exposure card: A $30,000 (0.5 x 60000), B $5,000 (2.0 x 2500); expected values recomputed by the reviewer from raw fixture inputs.", "why": "UPHELD. Strongest row: independent recomputation matches both fixtures."}
+ ],
+ "verdict_counts": {"PASS": 12, "PARTIAL": 2, "FAIL": 1},
+ "rows_upheld": 15,
+ "rows_demoted": 0,
+ "overall_verdict": "PASS - all 15 row verdicts upheld; two non-row defects recorded. No REDO card required because no row demoted below the implementation's claim.",
+ "not_proven": [
+  "The 2026-10-19T05:26Z process start time is unverifiable after the instances were killed; arithmetic satisfied, start time author-reported.",
+  "That the executed src89 tree was byte-identical to 89b3bc7 - plausible and consistent, but the runtime tree is not committed.",
+  "Clean-checkout reproducibility: probe.py and launch.py hardcode WS=C:/Users/wigmore/.hermes/kanban/workspaces/t_4c1478a5/work, so a fresh reviewer must edit two paths before replay. Fixtures do regenerate from fixture_build.py."
+ ]
+}
