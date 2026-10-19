@@ -1,0 +1,107 @@
+[
+  {
+    "row_id": "UI-FP-173",
+    "verdict": "PASS",
+    "evidence_ref": "health_header:Snap recovered=found",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "WS Health table header 'Snap recovered' present in rendered DOM"
+  },
+  {
+    "row_id": "UI-FP-174",
+    "verdict": "PASS",
+    "evidence_ref": "health_header:Ignored=found",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "WS Health table header 'Ignored' present in rendered DOM"
+  },
+  {
+    "row_id": "UI-FP-175",
+    "verdict": "PASS",
+    "evidence_ref": "health_header:Recent errors=found",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "WS Health table header 'Recent errors' present in rendered DOM"
+  },
+  {
+    "row_id": "UI-FP-176",
+    "verdict": "PASS",
+    "evidence_ref": "health_header:Lifetime errors=found",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "WS Health table header 'Lifetime errors' present in rendered DOM"
+  },
+  {
+    "row_id": "UI-FP-177",
+    "verdict": "PASS",
+    "evidence_ref": "health_header:Stale ms=found",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "WS Health table header 'Stale ms' present in rendered DOM"
+  },
+  {
+    "row_id": "UI-FP-178",
+    "verdict": "PASS",
+    "evidence_ref": "health_header:Data status=found",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "WS Health table header 'Data status' present in rendered DOM"
+  },
+  {
+    "row_id": "UI-FP-179",
+    "verdict": "PASS",
+    "evidence_ref": "health_header:Last close/error=found",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "WS Health table header 'Last close/error' present in rendered DOM"
+  },
+  {
+    "row_id": "UI-FP-180",
+    "verdict": "PASS",
+    "evidence_ref": "gc_input:gcMaxTotal=found",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "Global Controls input 'gcMaxTotal' (Max total live exposure) present in rendered DOM"
+  },
+  {
+    "row_id": "UI-FP-181",
+    "verdict": "PASS",
+    "evidence_ref": "gc_input:gcMaxDir=found",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "Global Controls input 'gcMaxDir' (Max per-asset directional exposure) present in rendered DOM"
+  },
+  {
+    "row_id": "UI-FP-182",
+    "verdict": "PASS",
+    "evidence_ref": "gc_input:gcMaxWallet=found",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "Global Controls input 'gcMaxWallet' (Max per-wallet exposure) present in rendered DOM"
+  },
+  {
+    "row_id": "UI-FP-183",
+    "verdict": "PASS",
+    "evidence_ref": "gc_input:gcMaxOrder=found",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "Global Controls input 'gcMaxOrder' (Max per-order notional) present in rendered DOM"
+  },
+  {
+    "row_id": "UI-FP-184",
+    "verdict": "PASS",
+    "evidence_ref": "gc_input:gcMktPct=found",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "Global Controls input 'gcMktPct' (Marketable slippage %) present in rendered DOM"
+  },
+  {
+    "row_id": "UI-FP-185",
+    "verdict": "PASS",
+    "evidence_ref": "gc_input:gcCloseAdv=found",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "Global Controls input 'gcCloseAdv' (Adverse close diff %) present in rendered DOM"
+  },
+  {
+    "row_id": "UI-FP-186",
+    "verdict": "PASS",
+    "evidence_ref": "gc_input:gcAllowlist=found",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "Global Controls input 'gcAllowlist' (Symbol allowlist) present in rendered DOM"
+  },
+  {
+    "row_id": "UI-FP-187",
+    "verdict": "PASS",
+    "evidence_ref": "gc_input:gcBlocklist=found",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "Global Controls input 'gcBlocklist' (Symbol blocklist) present in rendered DOM"
+  }
+]
