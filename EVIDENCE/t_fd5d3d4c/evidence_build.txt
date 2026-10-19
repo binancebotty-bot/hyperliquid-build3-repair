@@ -1,0 +1,35 @@
+UTC=2026-10-19T04:52:12Z
+--- serving probes
+8031=000
+8097=200
+8399=200
+--- page sha
+a5420e8ca4a0f468ae79578344539bfb24afa49a730479d6a9b479eecc86d981 *srv8097.html
+a5420e8ca4a0f468ae79578344539bfb24afa49a730479d6a9b479eecc86d981 *iso8399.html
+--- SSOT sha
+658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2 *HL_Copy_App_SSOT.py
+--- SSOT sha at commit 89b3bc7
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 *-
+--- commit meta
+--- B-input absence
+0
+--- commit meta 89b3bc7
+89b3bc7586bf328df336fc9ea721cee212617762|2026-10-17T07:18:14Z|Copy-fill release: survive a restart, space and cap the retries, skip liquidation fills
+--- SSOT sha at 89b3bc7
+658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2 *-
+--- running :8399 PID + cmdline
+At line:1 char:101
++ ... Name='python.exe' or Name='pythonw.exe'" | Where-Object { --- running ...
++                                                                  ~
+Missing expression after unary operator '-'.
+At line:1 char:102
++ ... thon.exe' or Name='pythonw.exe'" | Where-Object { --- running :8399 P ...
++                                                           ~~~~~~~
+Unexpected token 'running' in expression or statement.
+At line:1 char:100
++ ... Name='python.exe' or Name='pythonw.exe'" | Where-Object { --- running ...
++                                                                 ~
+The '--' operator works only on variables or on properties.
+    + CategoryInfo          : ParserError: (:) [], ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : MissingExpressionAfterOperator
+ 

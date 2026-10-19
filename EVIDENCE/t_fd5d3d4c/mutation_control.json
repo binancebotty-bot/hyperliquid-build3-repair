@@ -1,0 +1,100 @@
+{
+ "utc": "2026-10-19T04:48:25Z",
+ "baseline": [
+  {
+   "wallet": "0x1111111111111111111111111111111111111111",
+   "fixed_notional": "25",
+   "norm_base": "250",
+   "mode": "LIVE",
+   "copy_mode": "proportional"
+  },
+  {
+   "wallet": "0x2222222222222222222222222222222222222222",
+   "fixed_notional": "77",
+   "norm_base": "900",
+   "mode": "CLO",
+   "copy_mode": "fixed"
+  }
+ ],
+ "mutated": [
+  {
+   "wallet": "0x1111111111111111111111111111111111111111",
+   "fixed_notional": "11.5",
+   "norm_base": "480",
+   "mode": "LIVE",
+   "copy_mode": "proportional"
+  },
+  {
+   "wallet": "0x2222222222222222222222222222222222222222",
+   "fixed_notional": "1234",
+   "norm_base": "55",
+   "mode": "LIVE",
+   "copy_mode": "fixed"
+  }
+ ],
+ "restored": [
+  {
+   "wallet": "0x1111111111111111111111111111111111111111",
+   "fixed_notional": "25",
+   "norm_base": "250",
+   "mode": "LIVE",
+   "copy_mode": "proportional"
+  },
+  {
+   "wallet": "0x2222222222222222222222222222222222222222",
+   "fixed_notional": "77",
+   "norm_base": "900",
+   "mode": "CLO",
+   "copy_mode": "fixed"
+  }
+ ],
+ "mutation_checks": [
+  {
+   "wallet": "0x2222222222222222222222222222222222222222",
+   "field": "fixed_notional",
+   "baseline": "77",
+   "mutated": "1234",
+   "changed": true,
+   "expected_mutated": "1234",
+   "matches_expected": true
+  },
+  {
+   "wallet": "0x2222222222222222222222222222222222222222",
+   "field": "norm_base",
+   "baseline": "900",
+   "mutated": "55",
+   "changed": true,
+   "expected_mutated": "55",
+   "matches_expected": true
+  },
+  {
+   "wallet": "0x2222222222222222222222222222222222222222",
+   "field": "mode",
+   "baseline": "CLO",
+   "mutated": "LIVE",
+   "changed": true,
+   "expected_mutated": "LIVE",
+   "matches_expected": true
+  },
+  {
+   "wallet": "0x1111111111111111111111111111111111111111",
+   "field": "fixed_notional",
+   "baseline": "25",
+   "mutated": "11.5",
+   "changed": true,
+   "expected_mutated": "11.5",
+   "matches_expected": true
+  },
+  {
+   "wallet": "0x1111111111111111111111111111111111111111",
+   "field": "norm_base",
+   "baseline": "250",
+   "mutated": "480",
+   "changed": true,
+   "expected_mutated": "480",
+   "matches_expected": true
+  }
+ ],
+ "CONTROL_NON_VACUOUS": true,
+ "restored_matches_baseline": true
+}

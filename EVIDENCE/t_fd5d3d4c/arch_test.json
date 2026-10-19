@@ -1,0 +1,28 @@
+{
+ "base": "http://127.0.0.1:8399/",
+ "utc": "2026-10-19T04:46:39Z",
+ "before_W1": {
+  "mode": "LIVE",
+  "copy_mode": "proportional",
+  "norm_base": 250.0,
+  "fixed_notional": 25.0,
+  "enabled": true
+ },
+ "after_W1": null,
+ "after_W2": {
+  "copy_mode": "fixed",
+  "enabled": true,
+  "fixed_notional": 77.0,
+  "mode": "CLO",
+  "norm_base": 900.0
+ },
+ "archived_before": [],
+ "archived_after": [
+  "0x1111111111111111111111111111111111111111"
+ ],
+ "status": "Updated: 0x11111111...111111 -> ARCHIVED",
+ "row_count_after": 1,
+ "rows_after": [
+  "0x2222222222222222222222222222222222222222"
+ ]
+}

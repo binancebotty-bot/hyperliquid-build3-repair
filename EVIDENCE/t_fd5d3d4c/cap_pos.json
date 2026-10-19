@@ -1,0 +1,1888 @@
+{
+ "base": "http://127.0.0.1:8399/",
+ "utc": "2026-10-19T04:50:33Z",
+ "wallet_row_controls": {
+  "wallet": "0x1111111111111111111111111111111111111111",
+  "cells": [
+   "0x11111111...111111\nLive",
+   "—",
+   "Polling (normal)",
+   "Closed: —\nOpen: —\nFees: —\nNo PnL yet",
+   "Total: n/a\nAvg: n/a\nAvg bps: n/a\nWorst bps: n/a",
+   "0 filled / 0 exits\n0 recent rejects\n0 recent blocks",
+   "Exposure: $753.18\nOpen pos: 1\nDD: —\nMaxDD: —",
+   "none yet",
+   "LIVE\nCLO\nOFF\nprop\nfixed\nF\nN\nSave\nCLO\nOFF\nArchive"
+  ],
+  "controls": [
+   {
+    "tag": "SELECT",
+    "name": "mode",
+    "type": null,
+    "value": "LIVE",
+    "opts": [
+     "LIVE",
+     "CLO",
+     "OFF"
+    ],
+    "act": null,
+    "text": "LIVE\nCLO\nOFF"
+   },
+   {
+    "tag": "SELECT",
+    "name": "copy_mode",
+    "type": null,
+    "value": "proportional",
+    "opts": [
+     "proportional",
+     "fixed"
+    ],
+    "act": null,
+    "text": "prop\nfixed"
+   },
+   {
+    "tag": "INPUT",
+    "name": "fixed_notional",
+    "type": null,
+    "value": "25",
+    "opts": null,
+    "act": null,
+    "text": ""
+   },
+   {
+    "tag": "INPUT",
+    "name": "norm_base",
+    "type": null,
+    "value": "250",
+    "opts": null,
+    "act": null,
+    "text": ""
+   },
+   {
+    "tag": "BUTTON",
+    "name": null,
+    "type": "button",
+    "value": "",
+    "opts": null,
+    "act": "save",
+    "text": "Save"
+   },
+   {
+    "tag": "BUTTON",
+    "name": null,
+    "type": "button",
+    "value": "",
+    "opts": null,
+    "act": "clo",
+    "text": "CLO"
+   },
+   {
+    "tag": "BUTTON",
+    "name": null,
+    "type": "button",
+    "value": "",
+    "opts": null,
+    "act": "off",
+    "text": "OFF"
+   },
+   {
+    "tag": "BUTTON",
+    "name": null,
+    "type": "button",
+    "value": "",
+    "opts": null,
+    "act": "archive",
+    "text": "Archive"
+   }
+  ]
+ },
+ "panels": [
+  {
+   "table_id": null,
+   "heads": [
+    "WALLET",
+    "NET P&L",
+    "FEED",
+    "CLOSED / OPEN / FEES",
+    "LEAD↔COPY DIFF",
+    "EXECUTION",
+    "RISK / EXPOSURE",
+    "LAST FILL",
+    "CONTROLS"
+   ],
+   "nrows": 2,
+   "rows": [
+    [
+     "0x11111111...111111\nLive",
+     "—",
+     "Polling (normal)",
+     "Closed: —\nOpen: —\nFees: —\nNo PnL yet",
+     "Total: n/a\nAvg: n/a\nAvg bps: n/a\nWorst bps: n/a",
+     "0 filled / 0 exits\n0 recent rejects\n0 recent blocks",
+     "Exposure: $753.18\nOpen pos: 1\nDD: —\nMaxDD: —",
+     "none yet",
+     "LIVE\nCLO\nOFF\nprop\nfixed\nF\nN\nSave\nCLO\nOFF\nArchive"
+    ],
+    [
+     "0x22222222...222222\nClose-only",
+     "—",
+     "Polling (normal)",
+     "Closed: —\nOpen: —\nFees: —\nNo PnL yet",
+     "Total: n/a\nAvg: n/a\nAvg bps: n/a\nWorst bps: n/a",
+     "0 filled / 0 exits\n0 recent rejects\n0 recent blocks",
+     "Exposure: $1,120.28\nOpen pos: 1\nDD: —\nMaxDD: —",
+     "none yet",
+     "LIVE\nCLO\nOFF\nprop\nfixed\nF\nN\nSave\nCLO\nOFF\nArchive"
+    ]
+   ]
+  },
+  {
+   "table_id": null,
+   "heads": [
+    "COIN",
+    "LEDGER NET (SUM OF LEADERS)",
+    "EXCHANGE NET",
+    "LEDGER/EXCHANGE",
+    "WHICH LEADER HOLDS WHAT"
+   ],
+   "nrows": 2,
+   "rows": [
+    [
+     "BTC",
+     "0.0123",
+     "—",
+     "EXCHANGE_UNAVAILABLE",
+     "0x11111111...111111: +0.0123"
+    ],
+    [
+     "ETH",
+     "-0.456",
+     "—",
+     "EXCHANGE_UNAVAILABLE",
+     "0x22222222...222222: -0.456"
+    ]
+   ]
+  },
+  {
+   "table_id": null,
+   "heads": [
+    "WALLET",
+    "COIN",
+    "SIDE",
+    "SIGNED SIZE",
+    "AVG ENTRY",
+    "LEDGER/EXCHANGE",
+    "EXCHANGE SIZE",
+    "LAST COPY FILL",
+    "LAST UPDATED"
+   ],
+   "nrows": 2,
+   "rows": [
+    [
+     "0x11111111...111111",
+     "BTC",
+     "LONG",
+     "0.0123",
+     "61234.5",
+     "OWNED_COPY\nEXCHANGE_UNAVAILABLE",
+     "—",
+     "oid-btc-111",
+     "2026-10-19T04:10:00Z"
+    ],
+    [
+     "0x22222222...222222",
+     "ETH",
+     "SHORT",
+     "-0.456",
+     "2456.75",
+     "OWNED_COPY\nEXCHANGE_UNAVAILABLE",
+     "—",
+     "oid-eth-222",
+     "2026-10-19T03:40:00Z"
+    ]
+   ]
+  },
+  {
+   "table_id": null,
+   "heads": [
+    "COIN",
+    "UNEXPLAINED SIZE",
+    "ENTRY PX",
+    "MARK PX",
+    "UNREALIZED PNL",
+    "STATUS",
+    "WHO MANAGES IT",
+    "ENGINE CLOSES IT?",
+    "ENGINE USES IT?",
+    "CONTEXT"
+   ],
+   "nrows": 1,
+   "rows": [
+    [
+     "None — every exchange position is explained by the engine."
+    ]
+   ]
+  },
+  {
+   "table_id": null,
+   "heads": [
+    "Time",
+    "Wallet",
+    "Coin",
+    "Side",
+    "Status",
+    "Terminal state",
+    "Operator action",
+    "Reject category",
+    "OID",
+    "Fill avg px",
+    "Size",
+    "Pos before -> after",
+    "Leader→send ms",
+    "Total ms",
+    "Symbol ms",
+    "SDK ms",
+    "Exchange ms",
+    "Error"
+   ],
+   "nrows": 1,
+   "rows": [
+    [
+     "No execution data. Real fills appear here after send_attempts.csv is populated."
+    ]
+   ]
+  },
+  {
+   "table_id": null,
+   "heads": [
+    "Time",
+    "Wallet",
+    "Coin",
+    "Side",
+    "Source/Reason",
+    "Status",
+    "Decision",
+    "Decision reason",
+    "Suggested limit",
+    "Diff %",
+    "Manual?",
+    "Intent note",
+    "Real order result"
+   ],
+   "nrows": 1,
+   "rows": [
+    [
+     "No audit rows found."
+    ]
+   ]
+  },
+  {
+   "table_id": null,
+   "heads": [
+    "Event",
+    "Status",
+    "Action",
+    "Reject category",
+    "Terminal state",
+    "Coin",
+    "Wallet",
+    "Intent",
+    "Notes"
+   ],
+   "nrows": 1,
+   "rows": [
+    [
+     "No actionable critical terminal items."
+    ]
+   ]
+  },
+  {
+   "table_id": null,
+   "heads": [
+    "Event",
+    "Status",
+    "Action",
+    "Reject category",
+    "Terminal state",
+    "Coin",
+    "Wallet",
+    "Intent",
+    "Notes"
+   ],
+   "nrows": 1,
+   "rows": [
+    [
+     "No terminal warnings."
+    ]
+   ]
+  },
+  {
+   "table_id": null,
+   "heads": [
+    "Status",
+    "Wallet",
+    "Coin",
+    "Intent",
+    "Issue"
+   ],
+   "nrows": 1,
+   "rows": [
+    [
+     "No legacy terminal-state gaps."
+    ]
+   ]
+  },
+  {
+   "table_id": null,
+   "heads": [
+    "Severity",
+    "Wallet",
+    "Coin",
+    "Issue",
+    "Manual ledger",
+    "Exchange",
+    "Action"
+   ],
+   "nrows": 2,
+   "rows": [
+    [
+     "INFO",
+     "BTC",
+     "0x11111111...111111",
+     "EXCHANGE_UNAVAILABLE",
+     "LONG 0.0123",
+     "n/a",
+     "1"
+    ],
+    [
+     "INFO",
+     "ETH",
+     "0x22222222...222222",
+     "EXCHANGE_UNAVAILABLE",
+     "SHORT -0.456",
+     "n/a",
+     "1"
+    ]
+   ]
+  },
+  {
+   "table_id": null,
+   "heads": [
+    "Wallet",
+    "Current",
+    "Grade",
+    "Thread",
+    "Reconnect/min",
+    "Processed",
+    "Raw msg",
+    "Parsed",
+    "Snap seen",
+    "Snap recovered",
+    "Ignored",
+    "Recent errors",
+    "Lifetime errors",
+    "Stale ms",
+    "Data status",
+    "Last close/error"
+   ],
+   "nrows": 1,
+   "rows": [
+    [
+     "WS service not running or no wallet health file found."
+    ]
+   ]
+  }
+ ],
+ "tabs": [
+  "positions",
+  "execqual",
+  "audit",
+  "recon",
+  "ws"
+ ],
+ "tab_positions": [
+  {
+   "table_id": null,
+   "heads": [
+    "WALLET",
+    "NET P&L",
+    "FEED",
+    "CLOSED / OPEN / FEES",
+    "LEAD↔COPY DIFF",
+    "EXECUTION",
+    "RISK / EXPOSURE",
+    "LAST FILL",
+    "CONTROLS"
+   ],
+   "nrows": 2,
+   "rows": [
+    [
+     "0x11111111...111111\nLive",
+     "—",
+     "Polling (normal)",
+     "Closed: —\nOpen: —\nFees: —\nNo PnL yet",
+     "Total: n/a\nAvg: n/a\nAvg bps: n/a\nWorst bps: n/a",
+     "0 filled / 0 exits\n0 recent rejects\n0 recent blocks",
+     "Exposure: $753.18\nOpen pos: 1\nDD: —\nMaxDD: —",
+     "none yet",
+     "LIVE\nCLO\nOFF\nprop\nfixed\nF\nN\nSave\nCLO\nOFF\nArchive"
+    ],
+    [
+     "0x22222222...222222\nClose-only",
+     "—",
+     "Polling (normal)",
+     "Closed: —\nOpen: —\nFees: —\nNo PnL yet",
+     "Total: n/a\nAvg: n/a\nAvg bps: n/a\nWorst bps: n/a",
+     "0 filled / 0 exits\n0 recent rejects\n0 recent blocks",
+     "Exposure: $1,120.28\nOpen pos: 1\nDD: —\nMaxDD: —",
+     "none yet",
+     "LIVE\nCLO\nOFF\nprop\nfixed\nF\nN\nSave\nCLO\nOFF\nArchive"
+    ]
+   ]
+  },
+  {
+   "table_id": null,
+   "heads": [
+    "COIN",
+    "LEDGER NET (SUM OF LEADERS)",
+    "EXCHANGE NET",
+    "LEDGER/EXCHANGE",
+    "WHICH LEADER HOLDS WHAT"
+   ],
+   "nrows": 2,
+   "rows": [
+    [
+     "BTC",
+     "0.0123",
+     "—",
+     "EXCHANGE_UNAVAILABLE",
+     "0x11111111...111111: +0.0123"
+    ],
+    [
+     "ETH",
+     "-0.456",
+     "—",
+     "EXCHANGE_UNAVAILABLE",
+     "0x22222222...222222: -0.456"
+    ]
+   ]
+  },
+  {
+   "table_id": null,
+   "heads": [
+    "WALLET",
+    "COIN",
+    "SIDE",
+    "SIGNED SIZE",
+    "AVG ENTRY",
+    "LEDGER/EXCHANGE",
+    "EXCHANGE SIZE",
+    "LAST COPY FILL",
+    "LAST UPDATED"
+   ],
+   "nrows": 2,
+   "rows": [
+    [
+     "0x11111111...111111",
+     "BTC",
+     "LONG",
+     "0.0123",
+     "61234.5",
+     "OWNED_COPY\nEXCHANGE_UNAVAILABLE",
+     "—",
+     "oid-btc-111",
+     "2026-10-19T04:10:00Z"
+    ],
+    [
+     "0x22222222...222222",
+     "ETH",
+     "SHORT",
+     "-0.456",
+     "2456.75",
+     "OWNED_COPY\nEXCHANGE_UNAVAILABLE",
+     "—",
+     "oid-eth-222",
+     "2026-10-19T03:40:00Z"
+    ]
+   ]
+  },
+  {
+   "table_id": null,
+   "heads": [
+    "COIN",
+    "UNEXPLAINED SIZE",
+    "ENTRY PX",
+    "MARK PX",
+    "UNREALIZED PNL",
+    "STATUS",
+    "WHO MANAGES IT",
+    "ENGINE CLOSES IT?",
+    "ENGINE USES IT?",
+    "CONTEXT"
+   ],
+   "nrows": 1,
+   "rows": [
+    [
+     "None — every exchange position is explained by the engine."
+    ]
+   ]
+  },
+  {
+   "table_id": null,
+   "heads": [
+    "Time",
+    "Wallet",
+    "Coin",
+    "Side",
+    "Status",
+    "Terminal state",
+    "Operator action",
+    "Reject category",
+    "OID",
+    "Fill avg px",
+    "Size",
+    "Pos before -> after",
+    "Leader→send ms",
+    "Total ms",
+    "Symbol ms",
+    "SDK ms",
+    "Exchange ms",
+    "Error"
+   ],
+   "nrows": 1,
+   "rows": [
+    [
+     "No execution data. Real fills appear here after send_attempts.csv is populated."
+    ]
+   ]
+  },
+  {
+   "table_id": null,
+   "heads": [
+    "Time",
+    "Wallet",
+    "Coin",
+    "Side",
+    "Source/Reason",
+    "Status",
+    "Decision",
+    "Decision reason",
+    "Suggested limit",
+    "Diff %",
+    "Manual?",
+    "Intent note",
+    "Real order result"
+   ],
+   "nrows": 1,
+   "rows": [
+    [
+     "No audit rows found."
+    ]
+   ]
+  },
+  {
+   "table_id": null,
+   "heads": [
+    "Event",
+    "Status",
+    "Action",
+    "Reject category",
+    "Terminal state",
+    "Coin",
+    "Wallet",
+    "Intent",
+    "Notes"
+   ],
+   "nrows": 1,
+   "rows": [
+    [
+     "No actionable critical terminal items."
+    ]
+   ]
+  },
+  {
+   "table_id": null,
+   "heads": [
+    "Event",
+    "Status",
+    "Action",
+    "Reject category",
+    "Terminal state",
+    "Coin",
+    "Wallet",
+    "Intent",
+    "Notes"
+   ],
+   "nrows": 1,
+   "rows": [
+    [
+     "No terminal warnings."
+    ]
+   ]
+  },
+  {
+   "table_id": null,
+   "heads": [
+    "Status",
+    "Wallet",
+    "Coin",
+    "Intent",
+    "Issue"
+   ],
+   "nrows": 1,
+   "rows": [
+    [
+     "No legacy terminal-state gaps."
+    ]
+   ]
+  },
+  {
+   "table_id": null,
+   "heads": [
+    "Severity",
+    "Wallet",
+    "Coin",
+    "Issue",
+    "Manual ledger",
+    "Exchange",
+    "Action"
+   ],
+   "nrows": 2,
+   "rows": [
+    [
+     "INFO",
+     "BTC",
+     "0x11111111...111111",
+     "EXCHANGE_UNAVAILABLE",
+     "LONG 0.0123",
+     "n/a",
+     "1"
+    ],
+    [
+     "INFO",
+     "ETH",
+     "0x22222222...222222",
+     "EXCHANGE_UNAVAILABLE",
+     "SHORT -0.456",
+     "n/a",
+     "1"
+    ]
+   ]
+  },
+  {
+   "table_id": null,
+   "heads": [
+    "Wallet",
+    "Current",
+    "Grade",
+    "Thread",
+    "Reconnect/min",
+    "Processed",
+    "Raw msg",
+    "Parsed",
+    "Snap seen",
+    "Snap recovered",
+    "Ignored",
+    "Recent errors",
+    "Lifetime errors",
+    "Stale ms",
+    "Data status",
+    "Last close/error"
+   ],
+   "nrows": 1,
+   "rows": [
+    [
+     "WS service not running or no wallet health file found."
+    ]
+   ]
+  }
+ ],
+ "tab_execqual": [
+  {
+   "table_id": null,
+   "heads": [
+    "WALLET",
+    "NET P&L",
+    "FEED",
+    "CLOSED / OPEN / FEES",
+    "LEAD↔COPY DIFF",
+    "EXECUTION",
+    "RISK / EXPOSURE",
+    "LAST FILL",
+    "CONTROLS"
+   ],
+   "nrows": 2,
+   "rows": [
+    [
+     "0x11111111...111111\nLive",
+     "—",
+     "Polling (normal)",
+     "Closed: —\nOpen: —\nFees: —\nNo PnL yet",
+     "Total: n/a\nAvg: n/a\nAvg bps: n/a\nWorst bps: n/a",
+     "0 filled / 0 exits\n0 recent rejects\n0 recent blocks",
+     "Exposure: $753.18\nOpen pos: 1\nDD: —\nMaxDD: —",
+     "none yet",
+     "LIVE\nCLO\nOFF\nprop\nfixed\nF\nN\nSave\nCLO\nOFF\nArchive"
+    ],
+    [
+     "0x22222222...222222\nClose-only",
+     "—",
+     "Polling (normal)",
+     "Closed: —\nOpen: —\nFees: —\nNo PnL yet",
+     "Total: n/a\nAvg: n/a\nAvg bps: n/a\nWorst bps: n/a",
+     "0 filled / 0 exits\n0 recent rejects\n0 recent blocks",
+     "Exposure: $1,120.28\nOpen pos: 1\nDD: —\nMaxDD: —",
+     "none yet",
+     "LIVE\nCLO\nOFF\nprop\nfixed\nF\nN\nSave\nCLO\nOFF\nArchive"
+    ]
+   ]
+  },
+  {
+   "table_id": null,
+   "heads": [
+    "Coin",
+    "Ledger net (sum of leaders)",
+    "Exchange net",
+    "Ledger/exchange",
+    "Which leader holds what"
+   ],
+   "nrows": 2,
+   "rows": [
+    [
+     "BTC",
+     "0.0123",
+     "—",
+     "EXCHANGE_UNAVAILABLE",
+     "0x11111111...111111: +0.0123"
+    ],
+    [
+     "ETH",
+     "-0.456",
+     "—",
+     "EXCHANGE_UNAVAILABLE",
+     "0x22222222...222222: -0.456"
+    ]
+   ]
+  },
+  {
+   "table_id": null,
+   "heads": [
+    "Wallet",
+    "Coin",
+    "Side",
+    "Signed size",
+    "Avg entry",
+    "Ledger/exchange",
+    "Exchange size",
+    "Last copy fill",
+    "Last updated"
+   ],
+   "nrows": 2,
+   "rows": [
+    [
+     "0x11111111...111111",
+     "BTC",
+     "LONG",
+     "0.0123",
+     "61234.5",
+     "OWNED_COPYEXCHANGE_UNAVAILABLE",
+     "—",
+     "oid-btc-111",
+     "2026-10-19T04:10:00Z"
+    ],
+    [
+     "0x22222222...222222",
+     "ETH",
+     "SHORT",
+     "-0.456",
+     "2456.75",
+     "OWNED_COPYEXCHANGE_UNAVAILABLE",
+     "—",
+     "oid-eth-222",
+     "2026-10-19T03:40:00Z"
+    ]
+   ]
+  },
+  {
+   "table_id": null,
+   "heads": [
+    "Coin",
+    "Unexplained size",
+    "Entry px",
+    "Mark px",
+    "Unrealized PnL",
+    "Status",
+    "Who manages it",
+    "Engine closes it?",
+    "Engine uses it?",
+    "Context"
+   ],
+   "nrows": 1,
+   "rows": [
+    [
+     "None — every exchange position is explained by the engine."
+    ]
+   ]
+  },
+  {
+   "table_id": null,
+   "heads": [
+    "TIME",
+    "WALLET",
+    "COIN",
+    "SIDE",
+    "STATUS",
+    "TERMINAL STATE",
+    "OPERATOR ACTION",
+    "REJECT CATEGORY",
+    "OID",
+    "FILL AVG PX",
+    "SIZE",
+    "POS BEFORE -> AFTER",
+    "LEADER→SEND MS",
+    "TOTAL MS",
+    "SYMBOL MS",
+    "SDK MS",
+    "EXCHANGE MS",
+    "ERROR"
+   ],
+   "nrows": 1,
+   "rows": [
+    [
+     "No execution data. Real fills appear here after send_attempts.csv is populated."
+    ]
+   ]
+  },
+  {
+   "table_id": null,
+   "heads": [
+    "Time",
+    "Wallet",
+    "Coin",
+    "Side",
+    "Source/Reason",
+    "Status",
+    "Decision",
+    "Decision reason",
+    "Suggested limit",
+    "Diff %",
+    "Manual?",
+    "Intent note",
+    "Real order result"
+   ],
+   "nrows": 1,
+   "rows": [
+    [
+     "No audit rows found."
+    ]
+   ]
+  },
+  {
+   "table_id": null,
+   "heads": [
+    "Event",
+    "Status",
+    "Action",
+    "Reject category",
+    "Terminal state",
+    "Coin",
+    "Wallet",
+    "Intent",
+    "Notes"
+   ],
+   "nrows": 1,
+   "rows": [
+    [
+     "No actionable critical terminal items."
+    ]
+   ]
+  },
+  {
+   "table_id": null,
+   "heads": [
+    "Event",
+    "Status",
+    "Action",
+    "Reject category",
+    "Terminal state",
+    "Coin",
+    "Wallet",
+    "Intent",
+    "Notes"
+   ],
+   "nrows": 1,
+   "rows": [
+    [
+     "No terminal warnings."
+    ]
+   ]
+  },
+  {
+   "table_id": null,
+   "heads": [
+    "Status",
+    "Wallet",
+    "Coin",
+    "Intent",
+    "Issue"
+   ],
+   "nrows": 1,
+   "rows": [
+    [
+     "No legacy terminal-state gaps."
+    ]
+   ]
+  },
+  {
+   "table_id": null,
+   "heads": [
+    "Severity",
+    "Wallet",
+    "Coin",
+    "Issue",
+    "Manual ledger",
+    "Exchange",
+    "Action"
+   ],
+   "nrows": 2,
+   "rows": [
+    [
+     "INFO",
+     "BTC",
+     "0x11111111...111111",
+     "EXCHANGE_UNAVAILABLE",
+     "LONG 0.0123",
+     "n/a",
+     "1"
+    ],
+    [
+     "INFO",
+     "ETH",
+     "0x22222222...222222",
+     "EXCHANGE_UNAVAILABLE",
+     "SHORT -0.456",
+     "n/a",
+     "1"
+    ]
+   ]
+  },
+  {
+   "table_id": null,
+   "heads": [
+    "Wallet",
+    "Current",
+    "Grade",
+    "Thread",
+    "Reconnect/min",
+    "Processed",
+    "Raw msg",
+    "Parsed",
+    "Snap seen",
+    "Snap recovered",
+    "Ignored",
+    "Recent errors",
+    "Lifetime errors",
+    "Stale ms",
+    "Data status",
+    "Last close/error"
+   ],
+   "nrows": 1,
+   "rows": [
+    [
+     "WS service not running or no wallet health file found."
+    ]
+   ]
+  }
+ ],
+ "tab_audit": [
+  {
+   "table_id": null,
+   "heads": [
+    "WALLET",
+    "NET P&L",
+    "FEED",
+    "CLOSED / OPEN / FEES",
+    "LEAD↔COPY DIFF",
+    "EXECUTION",
+    "RISK / EXPOSURE",
+    "LAST FILL",
+    "CONTROLS"
+   ],
+   "nrows": 2,
+   "rows": [
+    [
+     "0x11111111...111111\nLive",
+     "—",
+     "Polling (normal)",
+     "Closed: —\nOpen: —\nFees: —\nNo PnL yet",
+     "Total: n/a\nAvg: n/a\nAvg bps: n/a\nWorst bps: n/a",
+     "0 filled / 0 exits\n0 recent rejects\n0 recent blocks",
+     "Exposure: $753.18\nOpen pos: 1\nDD: —\nMaxDD: —",
+     "none yet",
+     "LIVE\nCLO\nOFF\nprop\nfixed\nF\nN\nSave\nCLO\nOFF\nArchive"
+    ],
+    [
+     "0x22222222...222222\nClose-only",
+     "—",
+     "Polling (normal)",
+     "Closed: —\nOpen: —\nFees: —\nNo PnL yet",
+     "Total: n/a\nAvg: n/a\nAvg bps: n/a\nWorst bps: n/a",
+     "0 filled / 0 exits\n0 recent rejects\n0 recent blocks",
+     "Exposure: $1,120.28\nOpen pos: 1\nDD: —\nMaxDD: —",
+     "none yet",
+     "LIVE\nCLO\nOFF\nprop\nfixed\nF\nN\nSave\nCLO\nOFF\nArchive"
+    ]
+   ]
+  },
+  {
+   "table_id": null,
+   "heads": [
+    "Coin",
+    "Ledger net (sum of leaders)",
+    "Exchange net",
+    "Ledger/exchange",
+    "Which leader holds what"
+   ],
+   "nrows": 2,
+   "rows": [
+    [
+     "BTC",
+     "0.0123",
+     "—",
+     "EXCHANGE_UNAVAILABLE",
+     "0x11111111...111111: +0.0123"
+    ],
+    [
+     "ETH",
+     "-0.456",
+     "—",
+     "EXCHANGE_UNAVAILABLE",
+     "0x22222222...222222: -0.456"
+    ]
+   ]
+  },
+  {
+   "table_id": null,
+   "heads": [
+    "Wallet",
+    "Coin",
+    "Side",
+    "Signed size",
+    "Avg entry",
+    "Ledger/exchange",
+    "Exchange size",
+    "Last copy fill",
+    "Last updated"
+   ],
+   "nrows": 2,
+   "rows": [
+    [
+     "0x11111111...111111",
+     "BTC",
+     "LONG",
+     "0.0123",
+     "61234.5",
+     "OWNED_COPYEXCHANGE_UNAVAILABLE",
+     "—",
+     "oid-btc-111",
+     "2026-10-19T04:10:00Z"
+    ],
+    [
+     "0x22222222...222222",
+     "ETH",
+     "SHORT",
+     "-0.456",
+     "2456.75",
+     "OWNED_COPYEXCHANGE_UNAVAILABLE",
+     "—",
+     "oid-eth-222",
+     "2026-10-19T03:40:00Z"
+    ]
+   ]
+  },
+  {
+   "table_id": null,
+   "heads": [
+    "Coin",
+    "Unexplained size",
+    "Entry px",
+    "Mark px",
+    "Unrealized PnL",
+    "Status",
+    "Who manages it",
+    "Engine closes it?",
+    "Engine uses it?",
+    "Context"
+   ],
+   "nrows": 1,
+   "rows": [
+    [
+     "None — every exchange position is explained by the engine."
+    ]
+   ]
+  },
+  {
+   "table_id": null,
+   "heads": [
+    "Time",
+    "Wallet",
+    "Coin",
+    "Side",
+    "Status",
+    "Terminal state",
+    "Operator action",
+    "Reject category",
+    "OID",
+    "Fill avg px",
+    "Size",
+    "Pos before -> after",
+    "Leader→send ms",
+    "Total ms",
+    "Symbol ms",
+    "SDK ms",
+    "Exchange ms",
+    "Error"
+   ],
+   "nrows": 1,
+   "rows": [
+    [
+     "No execution data. Real fills appear here after send_attempts.csv is populated."
+    ]
+   ]
+  },
+  {
+   "table_id": null,
+   "heads": [
+    "TIME",
+    "WALLET",
+    "COIN",
+    "SIDE",
+    "SOURCE/REASON",
+    "STATUS",
+    "DECISION",
+    "DECISION REASON",
+    "SUGGESTED LIMIT",
+    "DIFF %",
+    "MANUAL?",
+    "INTENT NOTE",
+    "REAL ORDER RESULT"
+   ],
+   "nrows": 1,
+   "rows": [
+    [
+     "No audit rows found."
+    ]
+   ]
+  },
+  {
+   "table_id": null,
+   "heads": [
+    "Event",
+    "Status",
+    "Action",
+    "Reject category",
+    "Terminal state",
+    "Coin",
+    "Wallet",
+    "Intent",
+    "Notes"
+   ],
+   "nrows": 1,
+   "rows": [
+    [
+     "No actionable critical terminal items."
+    ]
+   ]
+  },
+  {
+   "table_id": null,
+   "heads": [
+    "Event",
+    "Status",
+    "Action",
+    "Reject category",
+    "Terminal state",
+    "Coin",
+    "Wallet",
+    "Intent",
+    "Notes"
+   ],
+   "nrows": 1,
+   "rows": [
+    [
+     "No terminal warnings."
+    ]
+   ]
+  },
+  {
+   "table_id": null,
+   "heads": [
+    "Status",
+    "Wallet",
+    "Coin",
+    "Intent",
+    "Issue"
+   ],
+   "nrows": 1,
+   "rows": [
+    [
+     "No legacy terminal-state gaps."
+    ]
+   ]
+  },
+  {
+   "table_id": null,
+   "heads": [
+    "Severity",
+    "Wallet",
+    "Coin",
+    "Issue",
+    "Manual ledger",
+    "Exchange",
+    "Action"
+   ],
+   "nrows": 2,
+   "rows": [
+    [
+     "INFO",
+     "BTC",
+     "0x11111111...111111",
+     "EXCHANGE_UNAVAILABLE",
+     "LONG 0.0123",
+     "n/a",
+     "1"
+    ],
+    [
+     "INFO",
+     "ETH",
+     "0x22222222...222222",
+     "EXCHANGE_UNAVAILABLE",
+     "SHORT -0.456",
+     "n/a",
+     "1"
+    ]
+   ]
+  },
+  {
+   "table_id": null,
+   "heads": [
+    "Wallet",
+    "Current",
+    "Grade",
+    "Thread",
+    "Reconnect/min",
+    "Processed",
+    "Raw msg",
+    "Parsed",
+    "Snap seen",
+    "Snap recovered",
+    "Ignored",
+    "Recent errors",
+    "Lifetime errors",
+    "Stale ms",
+    "Data status",
+    "Last close/error"
+   ],
+   "nrows": 1,
+   "rows": [
+    [
+     "WS service not running or no wallet health file found."
+    ]
+   ]
+  }
+ ],
+ "tab_recon": [
+  {
+   "table_id": null,
+   "heads": [
+    "WALLET",
+    "NET P&L",
+    "FEED",
+    "CLOSED / OPEN / FEES",
+    "LEAD↔COPY DIFF",
+    "EXECUTION",
+    "RISK / EXPOSURE",
+    "LAST FILL",
+    "CONTROLS"
+   ],
+   "nrows": 2,
+   "rows": [
+    [
+     "0x11111111...111111\nLive",
+     "—",
+     "Polling (normal)",
+     "Closed: —\nOpen: —\nFees: —\nNo PnL yet",
+     "Total: n/a\nAvg: n/a\nAvg bps: n/a\nWorst bps: n/a",
+     "0 filled / 0 exits\n0 recent rejects\n0 recent blocks",
+     "Exposure: $753.18\nOpen pos: 1\nDD: —\nMaxDD: —",
+     "none yet",
+     "LIVE\nCLO\nOFF\nprop\nfixed\nF\nN\nSave\nCLO\nOFF\nArchive"
+    ],
+    [
+     "0x22222222...222222\nClose-only",
+     "—",
+     "Polling (normal)",
+     "Closed: —\nOpen: —\nFees: —\nNo PnL yet",
+     "Total: n/a\nAvg: n/a\nAvg bps: n/a\nWorst bps: n/a",
+     "0 filled / 0 exits\n0 recent rejects\n0 recent blocks",
+     "Exposure: $1,120.28\nOpen pos: 1\nDD: —\nMaxDD: —",
+     "none yet",
+     "LIVE\nCLO\nOFF\nprop\nfixed\nF\nN\nSave\nCLO\nOFF\nArchive"
+    ]
+   ]
+  },
+  {
+   "table_id": null,
+   "heads": [
+    "Coin",
+    "Ledger net (sum of leaders)",
+    "Exchange net",
+    "Ledger/exchange",
+    "Which leader holds what"
+   ],
+   "nrows": 2,
+   "rows": [
+    [
+     "BTC",
+     "0.0123",
+     "—",
+     "EXCHANGE_UNAVAILABLE",
+     "0x11111111...111111: +0.0123"
+    ],
+    [
+     "ETH",
+     "-0.456",
+     "—",
+     "EXCHANGE_UNAVAILABLE",
+     "0x22222222...222222: -0.456"
+    ]
+   ]
+  },
+  {
+   "table_id": null,
+   "heads": [
+    "Wallet",
+    "Coin",
+    "Side",
+    "Signed size",
+    "Avg entry",
+    "Ledger/exchange",
+    "Exchange size",
+    "Last copy fill",
+    "Last updated"
+   ],
+   "nrows": 2,
+   "rows": [
+    [
+     "0x11111111...111111",
+     "BTC",
+     "LONG",
+     "0.0123",
+     "61234.5",
+     "OWNED_COPYEXCHANGE_UNAVAILABLE",
+     "—",
+     "oid-btc-111",
+     "2026-10-19T04:10:00Z"
+    ],
+    [
+     "0x22222222...222222",
+     "ETH",
+     "SHORT",
+     "-0.456",
+     "2456.75",
+     "OWNED_COPYEXCHANGE_UNAVAILABLE",
+     "—",
+     "oid-eth-222",
+     "2026-10-19T03:40:00Z"
+    ]
+   ]
+  },
+  {
+   "table_id": null,
+   "heads": [
+    "Coin",
+    "Unexplained size",
+    "Entry px",
+    "Mark px",
+    "Unrealized PnL",
+    "Status",
+    "Who manages it",
+    "Engine closes it?",
+    "Engine uses it?",
+    "Context"
+   ],
+   "nrows": 1,
+   "rows": [
+    [
+     "None — every exchange position is explained by the engine."
+    ]
+   ]
+  },
+  {
+   "table_id": null,
+   "heads": [
+    "Time",
+    "Wallet",
+    "Coin",
+    "Side",
+    "Status",
+    "Terminal state",
+    "Operator action",
+    "Reject category",
+    "OID",
+    "Fill avg px",
+    "Size",
+    "Pos before -> after",
+    "Leader→send ms",
+    "Total ms",
+    "Symbol ms",
+    "SDK ms",
+    "Exchange ms",
+    "Error"
+   ],
+   "nrows": 1,
+   "rows": [
+    [
+     "No execution data. Real fills appear here after send_attempts.csv is populated."
+    ]
+   ]
+  },
+  {
+   "table_id": null,
+   "heads": [
+    "Time",
+    "Wallet",
+    "Coin",
+    "Side",
+    "Source/Reason",
+    "Status",
+    "Decision",
+    "Decision reason",
+    "Suggested limit",
+    "Diff %",
+    "Manual?",
+    "Intent note",
+    "Real order result"
+   ],
+   "nrows": 1,
+   "rows": [
+    [
+     "No audit rows found."
+    ]
+   ]
+  },
+  {
+   "table_id": null,
+   "heads": [
+    "EVENT",
+    "STATUS",
+    "ACTION",
+    "REJECT CATEGORY",
+    "TERMINAL STATE",
+    "COIN",
+    "WALLET",
+    "INTENT",
+    "NOTES"
+   ],
+   "nrows": 1,
+   "rows": [
+    [
+     "No actionable critical terminal items."
+    ]
+   ]
+  },
+  {
+   "table_id": null,
+   "heads": [
+    "EVENT",
+    "STATUS",
+    "ACTION",
+    "REJECT CATEGORY",
+    "TERMINAL STATE",
+    "COIN",
+    "WALLET",
+    "INTENT",
+    "NOTES"
+   ],
+   "nrows": 1,
+   "rows": [
+    [
+     "No terminal warnings."
+    ]
+   ]
+  },
+  {
+   "table_id": null,
+   "heads": [
+    "STATUS",
+    "WALLET",
+    "COIN",
+    "INTENT",
+    "ISSUE"
+   ],
+   "nrows": 1,
+   "rows": [
+    [
+     "No legacy terminal-state gaps."
+    ]
+   ]
+  },
+  {
+   "table_id": null,
+   "heads": [
+    "SEVERITY",
+    "WALLET",
+    "COIN",
+    "ISSUE",
+    "MANUAL LEDGER",
+    "EXCHANGE",
+    "ACTION"
+   ],
+   "nrows": 2,
+   "rows": [
+    [
+     "INFO",
+     "BTC",
+     "0x11111111...111111",
+     "EXCHANGE_UNAVAILABLE",
+     "LONG 0.0123",
+     "n/a",
+     "1"
+    ],
+    [
+     "INFO",
+     "ETH",
+     "0x22222222...222222",
+     "EXCHANGE_UNAVAILABLE",
+     "SHORT -0.456",
+     "n/a",
+     "1"
+    ]
+   ]
+  },
+  {
+   "table_id": null,
+   "heads": [
+    "Wallet",
+    "Current",
+    "Grade",
+    "Thread",
+    "Reconnect/min",
+    "Processed",
+    "Raw msg",
+    "Parsed",
+    "Snap seen",
+    "Snap recovered",
+    "Ignored",
+    "Recent errors",
+    "Lifetime errors",
+    "Stale ms",
+    "Data status",
+    "Last close/error"
+   ],
+   "nrows": 1,
+   "rows": [
+    [
+     "WS service not running or no wallet health file found."
+    ]
+   ]
+  }
+ ],
+ "tab_ws": [
+  {
+   "table_id": null,
+   "heads": [
+    "WALLET",
+    "NET P&L",
+    "FEED",
+    "CLOSED / OPEN / FEES",
+    "LEAD↔COPY DIFF",
+    "EXECUTION",
+    "RISK / EXPOSURE",
+    "LAST FILL",
+    "CONTROLS"
+   ],
+   "nrows": 2,
+   "rows": [
+    [
+     "0x11111111...111111\nLive",
+     "—",
+     "Polling (normal)",
+     "Closed: —\nOpen: —\nFees: —\nNo PnL yet",
+     "Total: n/a\nAvg: n/a\nAvg bps: n/a\nWorst bps: n/a",
+     "0 filled / 0 exits\n0 recent rejects\n0 recent blocks",
+     "Exposure: $753.18\nOpen pos: 1\nDD: —\nMaxDD: —",
+     "none yet",
+     "LIVE\nCLO\nOFF\nprop\nfixed\nF\nN\nSave\nCLO\nOFF\nArchive"
+    ],
+    [
+     "0x22222222...222222\nClose-only",
+     "—",
+     "Polling (normal)",
+     "Closed: —\nOpen: —\nFees: —\nNo PnL yet",
+     "Total: n/a\nAvg: n/a\nAvg bps: n/a\nWorst bps: n/a",
+     "0 filled / 0 exits\n0 recent rejects\n0 recent blocks",
+     "Exposure: $1,120.28\nOpen pos: 1\nDD: —\nMaxDD: —",
+     "none yet",
+     "LIVE\nCLO\nOFF\nprop\nfixed\nF\nN\nSave\nCLO\nOFF\nArchive"
+    ]
+   ]
+  },
+  {
+   "table_id": null,
+   "heads": [
+    "Coin",
+    "Ledger net (sum of leaders)",
+    "Exchange net",
+    "Ledger/exchange",
+    "Which leader holds what"
+   ],
+   "nrows": 2,
+   "rows": [
+    [
+     "BTC",
+     "0.0123",
+     "—",
+     "EXCHANGE_UNAVAILABLE",
+     "0x11111111...111111: +0.0123"
+    ],
+    [
+     "ETH",
+     "-0.456",
+     "—",
+     "EXCHANGE_UNAVAILABLE",
+     "0x22222222...222222: -0.456"
+    ]
+   ]
+  },
+  {
+   "table_id": null,
+   "heads": [
+    "Wallet",
+    "Coin",
+    "Side",
+    "Signed size",
+    "Avg entry",
+    "Ledger/exchange",
+    "Exchange size",
+    "Last copy fill",
+    "Last updated"
+   ],
+   "nrows": 2,
+   "rows": [
+    [
+     "0x11111111...111111",
+     "BTC",
+     "LONG",
+     "0.0123",
+     "61234.5",
+     "OWNED_COPYEXCHANGE_UNAVAILABLE",
+     "—",
+     "oid-btc-111",
+     "2026-10-19T04:10:00Z"
+    ],
+    [
+     "0x22222222...222222",
+     "ETH",
+     "SHORT",
+     "-0.456",
+     "2456.75",
+     "OWNED_COPYEXCHANGE_UNAVAILABLE",
+     "—",
+     "oid-eth-222",
+     "2026-10-19T03:40:00Z"
+    ]
+   ]
+  },
+  {
+   "table_id": null,
+   "heads": [
+    "Coin",
+    "Unexplained size",
+    "Entry px",
+    "Mark px",
+    "Unrealized PnL",
+    "Status",
+    "Who manages it",
+    "Engine closes it?",
+    "Engine uses it?",
+    "Context"
+   ],
+   "nrows": 1,
+   "rows": [
+    [
+     "None — every exchange position is explained by the engine."
+    ]
+   ]
+  },
+  {
+   "table_id": null,
+   "heads": [
+    "Time",
+    "Wallet",
+    "Coin",
+    "Side",
+    "Status",
+    "Terminal state",
+    "Operator action",
+    "Reject category",
+    "OID",
+    "Fill avg px",
+    "Size",
+    "Pos before -> after",
+    "Leader→send ms",
+    "Total ms",
+    "Symbol ms",
+    "SDK ms",
+    "Exchange ms",
+    "Error"
+   ],
+   "nrows": 1,
+   "rows": [
+    [
+     "No execution data. Real fills appear here after send_attempts.csv is populated."
+    ]
+   ]
+  },
+  {
+   "table_id": null,
+   "heads": [
+    "Time",
+    "Wallet",
+    "Coin",
+    "Side",
+    "Source/Reason",
+    "Status",
+    "Decision",
+    "Decision reason",
+    "Suggested limit",
+    "Diff %",
+    "Manual?",
+    "Intent note",
+    "Real order result"
+   ],
+   "nrows": 1,
+   "rows": [
+    [
+     "No audit rows found."
+    ]
+   ]
+  },
+  {
+   "table_id": null,
+   "heads": [
+    "Event",
+    "Status",
+    "Action",
+    "Reject category",
+    "Terminal state",
+    "Coin",
+    "Wallet",
+    "Intent",
+    "Notes"
+   ],
+   "nrows": 1,
+   "rows": [
+    [
+     "No actionable critical terminal items."
+    ]
+   ]
+  },
+  {
+   "table_id": null,
+   "heads": [
+    "Event",
+    "Status",
+    "Action",
+    "Reject category",
+    "Terminal state",
+    "Coin",
+    "Wallet",
+    "Intent",
+    "Notes"
+   ],
+   "nrows": 1,
+   "rows": [
+    [
+     "No terminal warnings."
+    ]
+   ]
+  },
+  {
+   "table_id": null,
+   "heads": [
+    "Status",
+    "Wallet",
+    "Coin",
+    "Intent",
+    "Issue"
+   ],
+   "nrows": 1,
+   "rows": [
+    [
+     "No legacy terminal-state gaps."
+    ]
+   ]
+  },
+  {
+   "table_id": null,
+   "heads": [
+    "Severity",
+    "Wallet",
+    "Coin",
+    "Issue",
+    "Manual ledger",
+    "Exchange",
+    "Action"
+   ],
+   "nrows": 2,
+   "rows": [
+    [
+     "INFO",
+     "BTC",
+     "0x11111111...111111",
+     "EXCHANGE_UNAVAILABLE",
+     "LONG 0.0123",
+     "n/a",
+     "1"
+    ],
+    [
+     "INFO",
+     "ETH",
+     "0x22222222...222222",
+     "EXCHANGE_UNAVAILABLE",
+     "SHORT -0.456",
+     "n/a",
+     "1"
+    ]
+   ]
+  },
+  {
+   "table_id": null,
+   "heads": [
+    "WALLET",
+    "CURRENT",
+    "GRADE",
+    "THREAD",
+    "RECONNECT/MIN",
+    "PROCESSED",
+    "RAW MSG",
+    "PARSED",
+    "SNAP SEEN",
+    "SNAP RECOVERED",
+    "IGNORED",
+    "RECENT ERRORS",
+    "LIFETIME ERRORS",
+    "STALE MS",
+    "DATA STATUS",
+    "LAST CLOSE/ERROR"
+   ],
+   "nrows": 1,
+   "rows": [
+    [
+     "WS service not running or no wallet health file found."
+    ]
+   ]
+  }
+ ]
+}

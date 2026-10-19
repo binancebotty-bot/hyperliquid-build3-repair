@@ -1,0 +1,118 @@
+{
+ "card_id": "t_fd5d3d4c",
+ "batch": "CERT 10/53 UI-LCC-WTBL-09..UI-LCC-POS-05 (15 rows)",
+ "register_of_record": "origin/cert/local-main-b142cf8:certification/certification_matrix.json (1139388 bytes, 790 records)",
+ "serving_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+ "serving_commit_committed_at": "2026-10-17T07:18:14Z",
+ "serving_ssot_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+ "how_serving_build_was_established": "Port 8031 (the task's cited listener) REFUSED connections at 2026-10-19T04:52:12Z (curl http_code=000), so the cited PID 33368 binding is dead. Two live /live-copy surfaces answered: 127.0.0.1:8097 (200) and the isolated instance 127.0.0.1:8399 (200) launched from the b3_clean checkout. Their /live-copy HTML is byte-identical (sha256 a5420e8ca4a0f468ae79578344539bfb24afa49a730479d6a9b479eecc86d981 for both), and the SSOT that serves it has sha256 658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2, which is exactly the blob of _archive/hl_stage2/HL_Copy_App_SSOT.py at commit 89b3bc7586bf328df336fc9ea721cee212617762 (measured with git show <commit>:<path> | sha256sum, not copied from any doc). All rows below were rendered against that build.",
+ "instrument": "headless Chromium via playwright (py3.11), domcontentloaded + readyState poll, dialog auto-accept, isolated instance 127.0.0.1:8399 with HL_LIVE_AUDIT_DIR=C:/Users/wigmore/.hermes/cache/scratch/ui89/audit so live_config.json / manual_live_positions.json / append_only CSVs are the app's real inputs.",
+ "instrument_control": "mutation_control.json: 5/5 tracked fields (W1/W2 fixed_notional, norm_base, mode) changed in the DOM exactly when the on-disk config was mutated and reverted, and the restored render was identical to baseline (CONTROL_NON_VACUOUS=true, restored_matches_baseline=true). The capture is therefore not reading a cached/vacuous render.",
+ "rows": [
+  {
+   "row_id": "UI-LCC-WTBL-09",
+   "verdict": "PASS",
+   "evidence_ref": "EVIDENCE/t_fd5d3d4c/final_probe.json (select_options=[proportional,fixed], copy_mode_before_W2=fixed -> copy_mode_after_W2=proportional, status='Updated: 0x2222...222222 -> SAVED'); EVIDENCE/t_fd5d3d4c/cap_pos.json (row control inventory: select name=copy_mode with both options per wallet)",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "The copy-model select is per-wallet and its value is live, not decorative: changing only W2's select from 'fixed' to 'proportional' and pressing Save rewrote live_config.json wallets[W2].copy_mode to 'proportional' while W1 stayed 'proportional' with unchanged numbers. Row-bound: it asserts THIS row's control writes THIS wallet's field; a different WTBL row (e.g. the Archive button) would not produce a copy_mode write. Note: the write to live_config.json (the engine's input) is proven; engine consumption is not exercised in the isolated instance."
+  },
+  {
+   "row_id": "UI-LCC-WTBL-10",
+   "verdict": "FAIL",
+   "evidence_ref": "EVIDENCE/t_fd5d3d4c/cap_pos.json (input_names_first_row=[mode,copy_mode,fixed_notional,norm_base]; F_N_labels contains only 'F' and 'N'); EVIDENCE/t_fd5d3d4c/fn_save.json (has_user_norm_base_control=false); EVIDENCE/t_fd5d3d4c/evidence_build.txt (grep -c user_norm_base over the served /live-copy HTML = 0)",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "Register expects the row to carry F/N/B inputs; the served build carries only two of the three. The wallet row's full control inventory is mode, copy_mode, fixed_notional, norm_base and its rendered inline labels are exactly 'F' and 'N' - there is no third (B) input, and the string user_norm_base does not appear anywhere in the served page. B (the user/base normalisation input the SSOT does still read at save_ui_state/effective_wallet_ui level) is therefore not settable from this table. Row-bound: the absence is specific to this row's control set and would fail for WTBL-09, whose control is present."
+  },
+  {
+   "row_id": "UI-LCC-WTBL-11",
+   "verdict": "PASS",
+   "evidence_ref": "EVIDENCE/t_fd5d3d4c/fn_save.json (before_W2 fixed_notional=77.0 norm_base=900.0 -> after_W2 fixed_notional=321.75 norm_base=640.0, after_W1_untouched unchanged at 25.0/250.0, status 'Updated: 0x2222...222222 -> SAVED', rerender_W2 F=321.75 N=640 after a full page reload)",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "Save persisted the exact edited values for the edited wallet only and the values survive a reload, i.e. they come from disk and not from the form. Row-bound: the assertion is on this row's Save action writing both F and N for W2 while leaving W1 untouched; a different action button does not write these fields."
+  },
+  {
+   "row_id": "UI-LCC-WTBL-12",
+   "verdict": "PASS",
+   "evidence_ref": "EVIDENCE/t_fd5d3d4c/clo_off.json (mode_before_W1=LIVE, mode_after_clo_W1=CLO, status_clo='Updated: 0x1111...111111 -> CLO', badge_after_clo='0x11111111...111111 Close-only')",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "The CLO button moved the target wallet from LIVE to CLO in live_config.json and the row badge re-rendered from 'Live' to 'Close-only'. Row-bound: it names THIS wallet's mode transition (LIVE->CLO) and the rendered badge text for that wallet; the OFF row produces a different target state."
+  },
+  {
+   "row_id": "UI-LCC-WTBL-13",
+   "verdict": "PASS",
+   "evidence_ref": "EVIDENCE/t_fd5d3d4c/clo_off.json (mode_after_off_W1=OFF, status_off='Updated: 0x1111...111111 -> OFF', mode_after_off_W2 stays CLO; all_controls shows the off button present per wallet)",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "The OFF button wrote mode=OFF for the clicked wallet only, with the confirmation text naming that wallet, and the sibling wallet's mode was left at CLO. Row-bound: the observed transition CLO->OFF for W1 with W2 unchanged is specific to this row's control; a shared sweep would not distinguish which wallet was written. (Note: the post-click badge readback landed on the row that had reordered to first position, i.e. W2 - the discriminating evidence for this row is the live_config.json value plus the wallet-named status line.)"
+  },
+  {
+   "row_id": "UI-LCC-WTBL-14",
+   "verdict": "PASS",
+   "evidence_ref": "EVIDENCE/t_fd5d3d4c/arch_test.json (before_W1 present -> after_W1=null, archived_before=[] -> archived_after=[0x1111...], status='Updated: 0x1111...111111 -> ARCHIVED', row_count_after=1, rows_after=[0x2222...])",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "Archive (confirm dialog auto-accepted) removed exactly the clicked wallet from wallets{}, moved it into archived_wallets{}, and the table dropped from 2 rows to 1 with the sibling wallet still rendered. Row-bound: it asserts removal of a named wallet plus the config-move semantics of this specific control; no other row's control produces an archived_wallets entry."
+  },
+  {
+   "row_id": "UI-LCC-DETAIL-01",
+   "verdict": "PASS",
+   "evidence_ref": "EVIDENCE/t_fd5d3d4c/final_probe.json (details: 'A - Live Performance ... Exposure: $753.18' for 0x1111 and 'Exposure: $1,120.28' for 0x2222, with Closed/Open/Fees/Net/DD/MaxDD reasons, 'PnL status: No PnL yet', 'Attribution: N/A', 'Exchange closedPnl on matched orders: -', 'Cumulative rejects: 0; cumulative local blocks: 0')",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "Per-wallet section A rendered from each leader's own ledger sleeve and the exposure figure is arithmetically row-bound to that wallet: 0.0123 x 61234.5 = 753.18 for the BTC sleeve and 0.456 x 2456.75 = 1120.28 for the ETH sleeve (mark price unavailable, so the app used entry - and said so). Unknowns render as '-'/'N/A' with a reason rather than 0, satisfying the unavailable-source negative test for this row."
+  },
+  {
+   "row_id": "UI-LCC-DETAIL-02",
+   "verdict": "PASS",
+   "evidence_ref": "EVIDENCE/t_fd5d3d4c/final_probe.json (details: 'B - Open Positions (1)' with header COIN/SIDE/SIZE/ENTRY PX/MARK PX/UNREALIZED PNL/EXPOSURE/EXCHANGE MATCH and rows 'BTC LONG 0.0123 61234.5 n/a - $753.18 EXCHANGE_UNAVAILABLE' and 'ETH SHORT -0.456 2456.75 n/a - $1,120.28 EXCHANGE_UNAVAILABLE')",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "Section B renders the full eight-column position table per wallet, and each wallet shows only its own sleeve (W1 -> BTC long 0.0123, W2 -> ETH short -0.456) with the ledger entry price carried through. The exchange-dependent cells are explicitly marked unavailable (mark 'n/a', uPnL '-', EXCHANGE MATCH pill EXCHANGE_UNAVAILABLE) instead of being rendered as 0. Row-bound: the coin/side/size triple would be wrong if the section were merged across wallets or column-shifted."
+  },
+  {
+   "row_id": "UI-LCC-DETAIL-03",
+   "verdict": "PASS",
+   "evidence_ref": "EVIDENCE/t_fd5d3d4c/final_probe.json (details: 'C - Lead vs Copy / Friction / Total diff: n/a / Avg diff: n/a / reference/fill comparison unavailable' for both wallets)",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "Section C exists and, with no friction fills available, renders the explicit unavailable path - 'Total diff: n/a', 'Avg diff: n/a' and the sentence 'reference/fill comparison unavailable' - rather than a zero diff that would read as perfect slippage. Row-bound: this is the C section's own empty-state contract, and it fails for a different row's section (A/D/E/F each have distinct empty-state text captured in the same file)."
+  },
+  {
+   "row_id": "UI-LCC-DETAIL-04",
+   "verdict": "PASS",
+   "evidence_ref": "EVIDENCE/t_fd5d3d4c/final_probe.json (details: 'D - Execution Audit / Filled: 0 / Exits: 0 / Recent rejects: 0 / Recent blocks: 0 / no real copied fills yet')",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "Section D renders its four counters from the send-attempt record and, with no send_attempts.csv rows present, states the reason ('no real copied fills yet') instead of implying clean execution. Row-bound: the section, its counter set and its empty-state sentence are D-specific; the sibling sections in the same capture carry different labels, so a misplaced or shared component would fail here."
+  },
+  {
+   "row_id": "UI-LCC-POS-01",
+   "verdict": "PASS",
+   "evidence_ref": "EVIDENCE/t_fd5d3d4c/cap_pos.json (Real Copy Positions table headers WALLET/COIN/SIDE/SIGNED SIZE/AVG ENTRY/LEDGER|EXCHANGE/EXCHANGE SIZE/LAST COPY FILL/LAST UPDATED; rows 0x1111...->BTC, 0x2222...->ETH)",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "The COIN column renders the coin of each leader's own sleeve and stays aligned with its wallet row (BTC on the 0x1111 row, ETH on the 0x2222 row). Row-bound: the two seeded sleeves hold different coins, so a column misalignment or a coin read from the wrong sleeve would be visible; it also anchors the remaining POS rows to the correct row identity."
+  },
+  {
+   "row_id": "UI-LCC-POS-02",
+   "verdict": "PASS",
+   "evidence_ref": "EVIDENCE/t_fd5d3d4c/cap_pos.json (BTC row SIDE=LONG for signed size +0.0123; ETH row SIDE=SHORT for signed size -0.456)",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "Side is derived from the sign of the ledger sleeve and both polarities are exercised in the same render: +0.0123 -> LONG and -0.456 -> SHORT. Row-bound: a hard-coded side or a lost sign would break one of the two rows, so this cannot pass vacuously from a single sample."
+  },
+  {
+   "row_id": "UI-LCC-POS-03",
+   "verdict": "PASS",
+   "evidence_ref": "EVIDENCE/t_fd5d3d4c/cap_pos.json (SIGNED SIZE 0.0123 and -0.456) vs seeded inputs in EVIDENCE/t_fd5d3d4c/seed3.py (0.0123 / -0.456) and the ledger-net table row 'BTC 0.0123' / 'ETH -0.456'",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "The ledger size column reproduces the exact seeded sleeve values, including the negative sign, and agrees with the independent ledger-net summary table rendered on the same page. Row-bound: exact numeric equality per wallet (0.0123 vs -0.456) would fail on a wrong column, a wrong wallet or a rounded/absolute value."
+  },
+  {
+   "row_id": "UI-LCC-POS-04",
+   "verdict": "NOT_TESTED",
+   "evidence_ref": "EVIDENCE/t_fd5d3d4c/cap_pos.json (EXCHANGE SIZE column renders '-' for both rows and LEDGER/EXCHANGE renders EXCHANGE_UNAVAILABLE); EVIDENCE/t_fd5d3d4c/evidence_build.txt (isolated instance has no exchange snapshot file)",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "This row's assertion is equality between the Exchange size column and the MASTER clearinghouseState, and that oracle is genuinely absent: the isolated app instance has no exchange_account_snapshot_app.json and no reachable Hyperliquid MASTER clearinghouseState read (component: Hyperliquid info API clearinghouseState for the follower account, which is not wired in this isolated render), so the column can only show '-'. The app's behaviour on that absence is correct and is captured (EXCHANGE_UNAVAILABLE, not 0), but that negative path is shared with the other POS rows and therefore cannot certify this row. Not a tooling fault: the probe is complete and re-runnable, the exchange truth simply is not available here."
+  },
+  {
+   "row_id": "UI-LCC-POS-05",
+   "verdict": "NOT_TESTED",
+   "evidence_ref": "EVIDENCE/t_fd5d3d4c/cap_pos.json (AVG ENTRY renders the ledger entries 61234.5 for BTC and 2456.75 for ETH; EXCHANGE SIZE '-', LEDGER/EXCHANGE EXCHANGE_UNAVAILABLE)",
+   "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+   "why": "The row's contract is that the entry-price column equals the exchange entry price. What the build actually renders in that position is the engine ledger average entry (61234.5 / 2456.75, matching the seeded ledger), while exchange entry px is unavailable - component: Hyperliquid MASTER clearinghouseState entryPx via exchange_account_snapshot_app.json, absent in this isolated instance. Certifying equality with exchange truth is therefore not possible here, and I will not pass a ledger number as if it were the exchange number."
+  }
+ ]
+}

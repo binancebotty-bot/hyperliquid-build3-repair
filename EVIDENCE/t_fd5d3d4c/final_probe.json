@@ -1,0 +1,16 @@
+{
+ "base": "http://127.0.0.1:8399/",
+ "utc": "2026-10-19T04:47:26Z",
+ "copy_mode_before_W2": "fixed",
+ "select_options": [
+  "proportional",
+  "fixed"
+ ],
+ "copy_mode_after_W2": "proportional",
+ "copy_mode_after_W1": "proportional",
+ "status_copy_mode": "Updated: 0x22222222...222222 -> SAVED",
+ "details": {
+  "0x1111111111111111111111111111111111111111": "A — Live Performance\nClosed: —\nOpen: —\nFees: —\nNet: —\nExposure: $753.18\nDD: —\nMaxDD: —\nPnL status: No PnL yet\nAttribution: N/A\nExchange closedPnl on matched orders: —\nCumulative rejects: 0; cumulative local blocks: 0; queued previews / would-send records: 0\nno fills yet\nB — Open Positions (1)\nCOIN\tSIDE\tSIZE\tENTRY PX\tMARK PX\tUNREALIZED PNL\tEXPOSURE\tEXCHANGE MATCH\nBTC\tLONG\t0.0123\t61234.5\tn/a\t—\t$753.18\tEXCHANGE_UNAVAILABLE\nC — Lead vs Copy / Friction\nTotal diff: n/a\nAvg diff: n/a\nreference/fill comparison unavailable\nD — Execution Audit\nFilled: 0\nExits: 0\nRecent rejects: 0\nRecent blocks: 0\nno real copied fills yet\nE — Rejects & Blocks none\nF — Recent Order Intents (0) none in recent window",
+  "0x2222222222222222222222222222222222222222": "A — Live Performance\nClosed: —\nOpen: —\nFees: —\nNet: —\nExposure: $1,120.28\nDD: —\nMaxDD: —\nPnL status: No PnL yet\nAttribution: N/A\nExchange closedPnl on matched orders: —\nCumulative rejects: 0; cumulative local blocks: 0; queued previews / would-send records: 0\nno fills yet\nB — Open Positions (1)\nCOIN\tSIDE\tSIZE\tENTRY PX\tMARK PX\tUNREALIZED PNL\tEXPOSURE\tEXCHANGE MATCH\nETH\tSHORT\t-0.456\t2456.75\tn/a\t—\t$1,120.28\tEXCHANGE_UNAVAILABLE\nC — Lead vs Copy / Friction\nTotal diff: n/a\nAvg diff: n/a\nreference/fill comparison unavailable\nD — Execution Audit\nFilled: 0\nExits: 0\nRecent rejects: 0\nRecent blocks: 0\nno real copied fills yet\nE — Rejects & Blocks none\nF — Recent Order Intents (0) none in recent window"
+ }
+}
