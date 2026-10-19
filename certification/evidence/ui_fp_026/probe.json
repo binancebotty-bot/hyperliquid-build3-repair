@@ -1,0 +1,41 @@
+{
+ "row_id": "UI-FP-026",
+ "feature": "Graph: Account graph realized PnL",
+ "expected_behaviour": "Shows closedPnl cumulative over selected range minus baseline from live_graph.realized_pnl_points as EXCHANGE_ACCOUNT (provenance GRAPH; rows HEADER; can affect send: NO; execution truth: NO).",
+ "verdict": "PASS",
+ "probe": "GET :8150 SVG #lcRealizedPath@points; cumulative closedPnl over range",
+ "observed": {
+  "dom_points": "58,225.73271889400922 287.5,213.93548387096774 517,216.8847926267281 746.5,199.1889400921659 976,199.1889400921659",
+  "fills_in_range": [
+   [
+    1792131405943,
+    20.0
+   ],
+   [
+    1792217805943,
+    -5.0
+   ],
+   [
+    1792304205943,
+    30.0
+   ]
+  ],
+  "cumulative": 45.0
+ },
+ "independent_oracle": {
+  "recomputed_points": "58.00,225.7327 287.50,213.9355 517.00,216.8848 746.50,199.1889 976.00,199.1889",
+  "match": true
+ },
+ "negative_test": "regA (0 realized fills) subtitle \"0 realized fills\" and no fabricated curve",
+ "sibling_distinction": "regA \"0 realized fills\" vs regE \"3 realized fills\"",
+ "why_row_specific": "Path steps at exactly the closedPnl timestamps (+20,-5,+30) ending at +45 cumulative.",
+ "harness": {
+  "service_port_8031_pid": 47848,
+  "service_proc_start": "2026-10-19T06:15:28+01:00",
+  "serving_code_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+  "serving_commit": "b5e6d613de36e3020ac28ba2317e6571a5c37e9b",
+  "serving_commit_time": "2026-10-16T22:37:14Z",
+  "commit_predates_process": true,
+  "probe_instances": "isolated uvicorn instances on 127.0.0.1:8147..8151 running the same HL_Copy_App_SSOT.py bytes with fixture-specific hl_live_copy_audit dirs"
+ }
+}

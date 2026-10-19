@@ -1,0 +1,29 @@
+{
+ "row_id": "UI-FP-024",
+ "feature": "Real Account cards: Last Reject",
+ "expected_behaviour": "Shows manual_live_summary.last_rejected_manual_order from exchange_account_snapshot.json/manual_live_positions.json/append_only/send_attempts.csv as latest rejected send_attempt (provenance ENGINE_TRUTH; rows HEADER; can affect send: NO; execution truth: NO).",
+ "verdict": "PASS",
+ "probe": "GET :8150 (regE) DOM #lcRealCards; GET :8151 (regM); GET :8148 (regB)",
+ "observed": {
+  "regE_last_reject_card": "ETH SELL ORDER_REJECTED",
+  "regM_last_reject_card": "none",
+  "regB_last_reject_card": "DOGE SELL ORDER_REJECTED"
+ },
+ "independent_oracle": {
+  "expected_text": "ETH SELL ORDER_REJECTED",
+  "source": "send_attempts.csv latest ORDER_REJECTED (independent)",
+  "match": true
+ },
+ "negative_test": "regM (no send_attempts.csv) renders \"none\"; regN snapshot outage does not change this card",
+ "sibling_distinction": "regB (DOGE SELL) vs regE (ETH SELL) - different reject rows give different text",
+ "why_row_specific": "Card equals latest ORDER_REJECTED row (ETH SELL, attempt a-202, terminal REJECTED) and is empty-safe when the CSV is absent.",
+ "harness": {
+  "service_port_8031_pid": 47848,
+  "service_proc_start": "2026-10-19T06:15:28+01:00",
+  "serving_code_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+  "serving_commit": "b5e6d613de36e3020ac28ba2317e6571a5c37e9b",
+  "serving_commit_time": "2026-10-16T22:37:14Z",
+  "commit_predates_process": true,
+  "probe_instances": "isolated uvicorn instances on 127.0.0.1:8147..8151 running the same HL_Copy_App_SSOT.py bytes with fixture-specific hl_live_copy_audit dirs"
+ }
+}

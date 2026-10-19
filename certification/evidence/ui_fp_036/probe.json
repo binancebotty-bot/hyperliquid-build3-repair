@@ -1,0 +1,29 @@
+{
+ "row_id": "UI-FP-036",
+ "feature": "Live Copy Wallets row: Live PnL unrealized",
+ "expected_behaviour": "Shows unrealized_pnl from live_config.json/manual_live_positions.json/append_only/send_attempts.csv/live_ws_health.json as owned sleeve unrealized when safe, never account-only/shared (provenance MANUAL_LEDGER; rows OWNED_COPY; can affect send: NO; execution truth: NO).",
+ "verdict": "PASS",
+ "probe": "GET :8150 (owned sleeve vs exchange mark) and :8149 (snapshot unavailable)",
+ "observed": {
+  "regE_pnl_cell": "R: $20\nU: $1,000\nNet: $1,020\nExact closed PnL",
+  "regN_pnl_cell": "R: n/a\nU: n/a\nNet: n/a\nAccount-level only",
+  "regA_pnl_cell": "R: n/a\nU: n/a\nNet: n/a\nAccount-level only"
+ },
+ "independent_oracle": {
+  "oracle_unrealized": 1000.0,
+  "formula": "(mark 62000 - entry 60000) * signed 0.5",
+  "match": true
+ },
+ "negative_test": "Unavailable snapshot shows U: n/a rather than 0; account-level fixture also n/a",
+ "sibling_distinction": "Only the fixture with exchange positions shows $1,000; others n/a",
+ "why_row_specific": "The $1,000 equals independently computed owned-sleeve unrealized and is withheld when the snapshot is unavailable or attribution is account-level.",
+ "harness": {
+  "service_port_8031_pid": 47848,
+  "service_proc_start": "2026-10-19T06:15:28+01:00",
+  "serving_code_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+  "serving_commit": "b5e6d613de36e3020ac28ba2317e6571a5c37e9b",
+  "serving_commit_time": "2026-10-16T22:37:14Z",
+  "commit_predates_process": true,
+  "probe_instances": "isolated uvicorn instances on 127.0.0.1:8147..8151 running the same HL_Copy_App_SSOT.py bytes with fixture-specific hl_live_copy_audit dirs"
+ }
+}

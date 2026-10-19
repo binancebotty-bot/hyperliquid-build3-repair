@@ -1,0 +1,33 @@
+{
+ "row_id": "UI-FP-031",
+ "feature": "Live Copy Wallets row: Wallet",
+ "expected_behaviour": "Shows wallet from live_config.json/manual_live_positions.json/append_only/send_attempts.csv/live_ws_health.json as shortWallet(live_config wallet key) (provenance LIVE_SERVICE_STATE; rows OWNED_COPY; can affect send: NO; execution truth: NO).",
+ "verdict": "PASS",
+ "probe": "GET :8150 and :8148 rows #lcWalletRows tr.lc-wallet-row",
+ "observed": {
+  "regE_row0": "0x11111111...111111\nTRACKED",
+  "regB_row0": "0x11111111...111111\nTRACKED",
+  "regB_row1": "0x22222222...222222\nTRACKED",
+  "wallet_keys": [
+   "0x1111111111111111111111111111111111111111",
+   "0x2222222222222222222222222222222222222222"
+  ]
+ },
+ "independent_oracle": {
+  "expected_row0": "0x11111111...111111",
+  "expected_row1": "0x22222222...222222",
+  "match": true
+ },
+ "negative_test": "A wallet with no data still renders its own short address, not blank or another wallet",
+ "sibling_distinction": "Two sibling rows render two distinct short addresses in the same table",
+ "why_row_specific": "Each row displays its own shortWallet(live_config key), matching the config keys read independently.",
+ "harness": {
+  "service_port_8031_pid": 47848,
+  "service_proc_start": "2026-10-19T06:15:28+01:00",
+  "serving_code_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+  "serving_commit": "b5e6d613de36e3020ac28ba2317e6571a5c37e9b",
+  "serving_commit_time": "2026-10-16T22:37:14Z",
+  "commit_predates_process": true,
+  "probe_instances": "isolated uvicorn instances on 127.0.0.1:8147..8151 running the same HL_Copy_App_SSOT.py bytes with fixture-specific hl_live_copy_audit dirs"
+ }
+}

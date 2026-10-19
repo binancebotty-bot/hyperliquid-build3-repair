@@ -1,0 +1,29 @@
+{
+ "row_id": "UI-FP-023",
+ "feature": "Real Account cards: Last Fill",
+ "expected_behaviour": "Shows manual_live_summary.last_filled_manual_order from exchange_account_snapshot.json/manual_live_positions.json/append_only/send_attempts.csv as latest ORDER_FILLED send_attempt (provenance ENGINE_TRUTH; rows HEADER; can affect send: NO; execution truth: NO).",
+ "verdict": "PASS",
+ "probe": "GET 127.0.0.1:8150/live-copy (regE) DOM #lcRealCards; GET :8151 (regM, send_attempts.csv deleted); GET :8148 (regB)",
+ "observed": {
+  "regE_last_fill_card": "BTC BUY 0.01 @ 61000",
+  "regM_last_fill_card": "none yet",
+  "regB_last_fill_card": "SOL BUY 0.01 @ 150"
+ },
+ "independent_oracle": {
+  "expected_text": "BTC BUY 0.01 @ 61000",
+  "source": "send_attempts.csv latest ORDER_FILLED (independent csv.DictReader)",
+  "match": true
+ },
+ "negative_test": "regM (send_attempts.csv removed) renders \"none yet\" - not 0, not a stale fill",
+ "sibling_distinction": "regB (SOL) renders \"SOL BUY 0.01 @ 150\" vs regE \"BTC BUY 0.01 @ 61000\"",
+ "why_row_specific": "Card text equals latest ORDER_FILLED send_attempt (BTC BUY 0.01 @ 61000, attempt a-201, oid 900201) read independently from CSV, and becomes \"none yet\" when that CSV is absent.",
+ "harness": {
+  "service_port_8031_pid": 47848,
+  "service_proc_start": "2026-10-19T06:15:28+01:00",
+  "serving_code_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+  "serving_commit": "b5e6d613de36e3020ac28ba2317e6571a5c37e9b",
+  "serving_commit_time": "2026-10-16T22:37:14Z",
+  "commit_predates_process": true,
+  "probe_instances": "isolated uvicorn instances on 127.0.0.1:8147..8151 running the same HL_Copy_App_SSOT.py bytes with fixture-specific hl_live_copy_audit dirs"
+ }
+}

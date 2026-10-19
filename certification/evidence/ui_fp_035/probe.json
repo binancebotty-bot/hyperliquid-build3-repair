@@ -1,0 +1,29 @@
+{
+ "row_id": "UI-FP-035",
+ "feature": "Live Copy Wallets row: Live PnL realized",
+ "expected_behaviour": "Shows realized_pnl from live_config.json/manual_live_positions.json/append_only/send_attempts.csv/live_ws_health.json as wallet perf realized if exactly attributable else None (provenance APP_DERIVED; rows OWNED_COPY; can affect send: NO; execution truth: NO).",
+ "verdict": "PASS",
+ "probe": "GET :8150 (EXACT realized), :8141 regA (account-level only), :8149 regN (snapshot unavailable)",
+ "observed": {
+  "regE_pnl_cell": "R: $20\nU: $1,000\nNet: $1,020\nExact closed PnL",
+  "regA_pnl_cell": "R: n/a\nU: n/a\nNet: n/a\nAccount-level only",
+  "regN_pnl_cell": "R: n/a\nU: n/a\nNet: n/a\nAccount-level only"
+ },
+ "independent_oracle": {
+  "realized": 20.0,
+  "attribution": "EXACT_ID_EXCHANGE_CLOSED_PNL",
+  "match": true
+ },
+ "negative_test": "Account-level or unavailable snapshot shows n/a, not a number",
+ "sibling_distinction": "regE shows $20 exact; regA/regN show n/a in the same cell",
+ "why_row_specific": "Realized PnL shown only for the exactly-attributed wallet ($20, matched closedPnl oid 900201) and suppressed to n/a otherwise.",
+ "harness": {
+  "service_port_8031_pid": 47848,
+  "service_proc_start": "2026-10-19T06:15:28+01:00",
+  "serving_code_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+  "serving_commit": "b5e6d613de36e3020ac28ba2317e6571a5c37e9b",
+  "serving_commit_time": "2026-10-16T22:37:14Z",
+  "commit_predates_process": true,
+  "probe_instances": "isolated uvicorn instances on 127.0.0.1:8147..8151 running the same HL_Copy_App_SSOT.py bytes with fixture-specific hl_live_copy_audit dirs"
+ }
+}

@@ -1,0 +1,29 @@
+{
+ "row_id": "UI-FP-037",
+ "feature": "Live Copy Wallets row: Live PnL net",
+ "expected_behaviour": "Shows net_pnl from live_config.json/manual_live_positions.json/append_only/send_attempts.csv/live_ws_health.json as realized + unrealized when safe (provenance APP_DERIVED; rows OWNED_COPY; can affect send: NO; execution truth: NO).",
+ "verdict": "PASS",
+ "probe": "GET :8150 and :8149 net PnL field of the same cell",
+ "observed": {
+  "regE_pnl_cell": "R: $20\nU: $1,000\nNet: $1,020\nExact closed PnL",
+  "regN_pnl_cell": "R: n/a\nU: n/a\nNet: n/a\nAccount-level only"
+ },
+ "independent_oracle": {
+  "realized": 20.0,
+  "unrealized": 1000.0,
+  "net": 1020.0,
+  "match": true
+ },
+ "negative_test": "Unavailable snapshot shows Net: n/a, not $0",
+ "sibling_distinction": "Net appears only where both components are safe ($20 + $1,000 = $1,020)",
+ "why_row_specific": "Net equals realized+unrealized for the exact fixture and is suppressed when either component is unsafe.",
+ "harness": {
+  "service_port_8031_pid": 47848,
+  "service_proc_start": "2026-10-19T06:15:28+01:00",
+  "serving_code_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+  "serving_commit": "b5e6d613de36e3020ac28ba2317e6571a5c37e9b",
+  "serving_commit_time": "2026-10-16T22:37:14Z",
+  "commit_predates_process": true,
+  "probe_instances": "isolated uvicorn instances on 127.0.0.1:8147..8151 running the same HL_Copy_App_SSOT.py bytes with fixture-specific hl_live_copy_audit dirs"
+ }
+}

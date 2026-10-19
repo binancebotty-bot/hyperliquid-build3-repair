@@ -1,0 +1,176 @@
+{
+ "schema": "ui_fp_row_probe.v1",
+ "card": "t_bae1ce13",
+ "generated_at_utc": "2026-10-19T06:23:22Z",
+ "rows_requested": [
+  "UI-FP-023",
+  "UI-FP-024",
+  "UI-FP-025",
+  "UI-FP-026",
+  "UI-FP-027",
+  "UI-FP-028",
+  "UI-FP-029",
+  "UI-FP-030",
+  "UI-FP-031",
+  "UI-FP-032",
+  "UI-FP-033",
+  "UI-FP-034",
+  "UI-FP-035",
+  "UI-FP-036",
+  "UI-FP-037"
+ ],
+ "serving_evidence": {
+  "service_url": "http://127.0.0.1:8031/live-copy",
+  "pid": 47848,
+  "process_start_local": "2026-10-19T06:15:28+01:00",
+  "executable": "C:\\Users\\wigmore\\AppData\\Local\\Programs\\Python\\Python311\\python.exe",
+  "cmdline": "serve_app.py",
+  "serving_code_path": "_archive/hl_stage2/HL_Copy_App_SSOT.py",
+  "serving_code_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+  "matching_commit": "b5e6d613de36e3020ac28ba2317e6571a5c37e9b",
+  "matching_commit_time_utc": "2026-10-16T22:37:14Z",
+  "commit_predates_process_start": true,
+  "note": "The :8031 instance currently reports exchange_snapshot_status=UNAVAILABLE for its own data dir, so product behaviour was exercised on isolated instances (:8147..:8151) running identical code bytes (same sha256) with per-fixture data dirs; each probe record names its port and fixture."
+ },
+ "verdict_counts": {
+  "PASS": 13,
+  "NOT_TESTED": 2
+ },
+ "rows": [
+  {
+   "row_id": "UI-FP-023",
+   "verdict": "PASS",
+   "evidence_ref": "certification/evidence/ui_fp_023/probe.json",
+   "probe": "GET 127.0.0.1:8150/live-copy (regE) DOM #lcRealCards; GET :8151 (regM, send_attempts.csv deleted); GET :8148 (regB)",
+   "oracle_match": true,
+   "why_row_specific": "Card text equals latest ORDER_FILLED send_attempt (BTC BUY 0.01 @ 61000, attempt a-201, oid 900201) read independently from CSV, and becomes \"none yet\" when that CSV is absent.",
+   "tested_commit": "b5e6d613de36e3020ac28ba2317e6571a5c37e9b"
+  },
+  {
+   "row_id": "UI-FP-024",
+   "verdict": "PASS",
+   "evidence_ref": "certification/evidence/ui_fp_024/probe.json",
+   "probe": "GET :8150 (regE) DOM #lcRealCards; GET :8151 (regM); GET :8148 (regB)",
+   "oracle_match": true,
+   "why_row_specific": "Card equals latest ORDER_REJECTED row (ETH SELL, attempt a-202, terminal REJECTED) and is empty-safe when the CSV is absent.",
+   "tested_commit": "b5e6d613de36e3020ac28ba2317e6571a5c37e9b"
+  },
+  {
+   "row_id": "UI-FP-025",
+   "verdict": "PASS",
+   "evidence_ref": "certification/evidence/ui_fp_025/probe.json",
+   "probe": "GET :8150 SVG #lcExchangePath@points; recomputed from exchange_account_history.json",
+   "oracle_match": true,
+   "why_row_specific": "All 5 plotted y-values equal value-first_visible mapped through the observed axis.",
+   "tested_commit": "b5e6d613de36e3020ac28ba2317e6571a5c37e9b"
+  },
+  {
+   "row_id": "UI-FP-026",
+   "verdict": "PASS",
+   "evidence_ref": "certification/evidence/ui_fp_026/probe.json",
+   "probe": "GET :8150 SVG #lcRealizedPath@points; cumulative closedPnl over range",
+   "oracle_match": true,
+   "why_row_specific": "Path steps at exactly the closedPnl timestamps (+20,-5,+30) ending at +45 cumulative.",
+   "tested_commit": "b5e6d613de36e3020ac28ba2317e6571a5c37e9b"
+  },
+  {
+   "row_id": "UI-FP-027",
+   "verdict": "PASS",
+   "evidence_ref": "certification/evidence/ui_fp_027/probe.json",
+   "probe": "GET :8150 SVG #lcDrawdownPath@points; value - running peak",
+   "oracle_match": true,
+   "why_row_specific": "Every drawdown point equals pnl minus running peak; the -50 trough follows the 10100 peak.",
+   "tested_commit": "b5e6d613de36e3020ac28ba2317e6571a5c37e9b"
+  },
+  {
+   "row_id": "UI-FP-028",
+   "verdict": "NOT_TESTED",
+   "evidence_ref": "certification/evidence/ui_fp_028/probe.json",
+   "probe": "GET :8150: click [data-lc-graph-mode=wallet_pnl], then click row 0 and row 1 on :8148 (two-wallet fixture)",
+   "oracle_match": false,
+   "why_row_specific": "NOT_TESTED rather than FAIL: live_leader_performance[].pnl_series is empty in every fixture, so a per-wallet curve cannot be demonstrated; the empty state itself renders honestly.",
+   "tested_commit": "b5e6d613de36e3020ac28ba2317e6571a5c37e9b"
+  },
+  {
+   "row_id": "UI-FP-029",
+   "verdict": "NOT_TESTED",
+   "evidence_ref": "certification/evidence/ui_fp_029/probe.json",
+   "probe": "GET :8150: click [data-lc-graph-mode=exposure]",
+   "oracle_match": false,
+   "why_row_specific": "NOT_TESTED: exposure_series is a single current-value point in this build, so a multi-point exposure curve is never produced.",
+   "tested_commit": "b5e6d613de36e3020ac28ba2317e6571a5c37e9b"
+  },
+  {
+   "row_id": "UI-FP-030",
+   "verdict": "PASS",
+   "evidence_ref": "certification/evidence/ui_fp_030/probe.json",
+   "probe": "GET :8150: set #lcGraphStart=2026-10-16T00:00, #lcGraphEnd=2026-10-16T12:00, click #lcGraphApplyRange",
+   "oracle_match": true,
+   "why_row_specific": "Applied control state is echoed in #lcGraphSubtitle with the exact selected window and the plotted path changes, proving filtering.",
+   "tested_commit": "b5e6d613de36e3020ac28ba2317e6571a5c37e9b"
+  },
+  {
+   "row_id": "UI-FP-031",
+   "verdict": "PASS",
+   "evidence_ref": "certification/evidence/ui_fp_031/probe.json",
+   "probe": "GET :8150 and :8148 rows #lcWalletRows tr.lc-wallet-row",
+   "oracle_match": true,
+   "why_row_specific": "Each row displays its own shortWallet(live_config key), matching the config keys read independently.",
+   "tested_commit": "b5e6d613de36e3020ac28ba2317e6571a5c37e9b"
+  },
+  {
+   "row_id": "UI-FP-032",
+   "verdict": "PASS",
+   "evidence_ref": "certification/evidence/ui_fp_032/probe.json",
+   "probe": "GET :8150 (LIVE) and :8148 (CLO+OFF) mode cell",
+   "oracle_match": true,
+   "why_row_specific": "Row mode label equals the fixture live_config mode with no cross-row bleed.",
+   "tested_commit": "b5e6d613de36e3020ac28ba2317e6571a5c37e9b"
+  },
+  {
+   "row_id": "UI-FP-033",
+   "verdict": "PASS",
+   "evidence_ref": "certification/evidence/ui_fp_033/probe.json",
+   "probe": "GET :8150 and :8148 eligibility sub-label of the mode cell",
+   "oracle_match": true,
+   "why_row_specific": "Eligibility text derives from mode+service_eligible per row: COPYING / CLOSE ONLY / DISABLED.",
+   "tested_commit": "b5e6d613de36e3020ac28ba2317e6571a5c37e9b"
+  },
+  {
+   "row_id": "UI-FP-034",
+   "verdict": "PASS",
+   "evidence_ref": "certification/evidence/ui_fp_034/probe.json",
+   "probe": "GET :8150 (WS_OK), :8148 (OFFLINE/STALE), :8149 (live_ws_health.json deleted)",
+   "oracle_match": true,
+   "why_row_specific": "Pill reflects live_ws_health current_status per wallet and degrades to NO WS HEALTH with an explicit reason when absent.",
+   "tested_commit": "b5e6d613de36e3020ac28ba2317e6571a5c37e9b"
+  },
+  {
+   "row_id": "UI-FP-035",
+   "verdict": "PASS",
+   "evidence_ref": "certification/evidence/ui_fp_035/probe.json",
+   "probe": "GET :8150 (EXACT realized), :8141 regA (account-level only), :8149 regN (snapshot unavailable)",
+   "oracle_match": true,
+   "why_row_specific": "Realized PnL shown only for the exactly-attributed wallet ($20, matched closedPnl oid 900201) and suppressed to n/a otherwise.",
+   "tested_commit": "b5e6d613de36e3020ac28ba2317e6571a5c37e9b"
+  },
+  {
+   "row_id": "UI-FP-036",
+   "verdict": "PASS",
+   "evidence_ref": "certification/evidence/ui_fp_036/probe.json",
+   "probe": "GET :8150 (owned sleeve vs exchange mark) and :8149 (snapshot unavailable)",
+   "oracle_match": true,
+   "why_row_specific": "The $1,000 equals independently computed owned-sleeve unrealized and is withheld when the snapshot is unavailable or attribution is account-level.",
+   "tested_commit": "b5e6d613de36e3020ac28ba2317e6571a5c37e9b"
+  },
+  {
+   "row_id": "UI-FP-037",
+   "verdict": "PASS",
+   "evidence_ref": "certification/evidence/ui_fp_037/probe.json",
+   "probe": "GET :8150 and :8149 net PnL field of the same cell",
+   "oracle_match": true,
+   "why_row_specific": "Net equals realized+unrealized for the exact fixture and is suppressed when either component is unsafe.",
+   "tested_commit": "b5e6d613de36e3020ac28ba2317e6571a5c37e9b"
+  }
+ ]
+}

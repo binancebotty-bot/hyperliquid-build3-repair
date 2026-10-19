@@ -1,0 +1,34 @@
+{
+ "row_id": "UI-FP-032",
+ "feature": "Live Copy Wallets row: Mode",
+ "expected_behaviour": "Shows mode from live_config.json/manual_live_positions.json/append_only/send_attempts.csv/live_ws_health.json as normalized live_config mode (provenance LIVE_SERVICE_STATE; rows OWNED_COPY; can affect send: NO; execution truth: NO).",
+ "verdict": "PASS",
+ "probe": "GET :8150 (LIVE) and :8148 (CLO+OFF) mode cell",
+ "observed": {
+  "regE_row0_mode_cell": "LIVE\nCOPYING\nWS_OK\nGOOD",
+  "regB_row0_mode_cell": "CLO\nCLOSE ONLY\nOFFLINE\nSTALE",
+  "regB_row1_mode_cell": "OFF\nDISABLED\nCOPY DISABLED"
+ },
+ "independent_oracle": {
+  "config": {
+   "regE": "LIVE",
+   "regB": [
+    "CLO",
+    "OFF"
+   ]
+  },
+  "match": true
+ },
+ "negative_test": "An OFF wallet shows OFF/DISABLED rather than inheriting LIVE styling",
+ "sibling_distinction": "CLO, OFF and LIVE render three different mode labels in the same column",
+ "why_row_specific": "Row mode label equals the fixture live_config mode with no cross-row bleed.",
+ "harness": {
+  "service_port_8031_pid": 47848,
+  "service_proc_start": "2026-10-19T06:15:28+01:00",
+  "serving_code_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+  "serving_commit": "b5e6d613de36e3020ac28ba2317e6571a5c37e9b",
+  "serving_commit_time": "2026-10-16T22:37:14Z",
+  "commit_predates_process": true,
+  "probe_instances": "isolated uvicorn instances on 127.0.0.1:8147..8151 running the same HL_Copy_App_SSOT.py bytes with fixture-specific hl_live_copy_audit dirs"
+ }
+}

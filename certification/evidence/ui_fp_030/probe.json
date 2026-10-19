@@ -1,0 +1,29 @@
+{
+ "row_id": "UI-FP-030",
+ "feature": "Graph controls: Graph range controls",
+ "expected_behaviour": "Shows lcGraphScale/start/end from UI state only as filters points by selected time range (provenance UI_STATE; rows CONTROL; can affect send: NO; execution truth: NO).",
+ "verdict": "PASS",
+ "probe": "GET :8150: set #lcGraphStart=2026-10-16T00:00, #lcGraphEnd=2026-10-16T12:00, click #lcGraphApplyRange",
+ "observed": {
+  "all_range_subtitle": "Exchange account graph. ALL range — 5 portfolio pts, 3 realized fills.",
+  "narrow_range_subtitle": "Not enough points in selected range (16/10/2026, 00:00:00 to 16/10/2026, 12:00:00).",
+  "narrow_path_points": ""
+ },
+ "independent_oracle": {
+  "range_label_contains_selection": true,
+  "path_changed_or_cleared": true,
+  "match": true
+ },
+ "negative_test": "Insufficient range reports the range and clears the curve instead of drawing stale points",
+ "sibling_distinction": "Applying a different range changes subtitle and path versus ALL",
+ "why_row_specific": "Applied control state is echoed in #lcGraphSubtitle with the exact selected window and the plotted path changes, proving filtering.",
+ "harness": {
+  "service_port_8031_pid": 47848,
+  "service_proc_start": "2026-10-19T06:15:28+01:00",
+  "serving_code_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+  "serving_commit": "b5e6d613de36e3020ac28ba2317e6571a5c37e9b",
+  "serving_commit_time": "2026-10-16T22:37:14Z",
+  "commit_predates_process": true,
+  "probe_instances": "isolated uvicorn instances on 127.0.0.1:8147..8151 running the same HL_Copy_App_SSOT.py bytes with fixture-specific hl_live_copy_audit dirs"
+ }
+}

@@ -1,0 +1,45 @@
+{
+ "row_id": "UI-FP-025",
+ "feature": "Graph: Account graph total PnL",
+ "expected_behaviour": "Shows exchange_account_history[].unified_portfolio_value from exchange_account_history.json as point.value = unified_portfolio_value - first_visible_unified_portfolio_value (provenance EXCHANGE_ACCOUNT; rows GRAPH; can affect send: NO; execution truth: NO).",
+ "verdict": "PASS",
+ "probe": "GET :8150 SVG #lcExchangePath@points; recomputed from exchange_account_history.json",
+ "observed": {
+  "dom_points": "58,225.73271889400922 287.5,166.74654377880182 517,196.23963133640552 746.5,107.76036866359448 976,48.7741935483871",
+  "ymax_ymid_ymin": [
+   "$342",
+   "$125",
+   "-$92"
+  ]
+ },
+ "independent_oracle": {
+  "recomputed_points": "58.00,225.7327 287.50,166.7465 517.00,196.2396 746.50,107.7604 976.00,48.7742",
+  "portfolio_values": [
+   10000.0,
+   10100.0,
+   10050.0,
+   10200.0,
+   10300.0
+  ],
+  "pnl_vs_first_visible": [
+   0.0,
+   100.0,
+   50.0,
+   200.0,
+   300.0
+  ],
+  "match": true
+ },
+ "negative_test": "regN (snapshot unavailable + history deleted) shows Unavailable / Not enough points, never a flat 0 line",
+ "sibling_distinction": "regA (4 pts) axis $112/$50/-$12 vs regE $342/$125/-$92",
+ "why_row_specific": "All 5 plotted y-values equal value-first_visible mapped through the observed axis.",
+ "harness": {
+  "service_port_8031_pid": 47848,
+  "service_proc_start": "2026-10-19T06:15:28+01:00",
+  "serving_code_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+  "serving_commit": "b5e6d613de36e3020ac28ba2317e6571a5c37e9b",
+  "serving_commit_time": "2026-10-16T22:37:14Z",
+  "commit_predates_process": true,
+  "probe_instances": "isolated uvicorn instances on 127.0.0.1:8147..8151 running the same HL_Copy_App_SSOT.py bytes with fixture-specific hl_live_copy_audit dirs"
+ }
+}

@@ -1,0 +1,33 @@
+{
+ "row_id": "UI-FP-027",
+ "feature": "Graph: Account graph drawdown",
+ "expected_behaviour": "Shows derived from account_points from exchange_account_history.json as drawdown = value - running_peak(value) (provenance APP_DERIVED; rows GRAPH; can affect send: NO; execution truth: NO).",
+ "verdict": "PASS",
+ "probe": "GET :8150 SVG #lcDrawdownPath@points; value - running peak",
+ "observed": {
+  "dom_points": "58,225.73271889400922 287.5,225.73271889400922 517,255.2258064516129 746.5,225.73271889400922 976,225.73271889400922",
+  "drawdown_values": [
+   0.0,
+   0.0,
+   -50.0,
+   0.0,
+   0.0
+  ]
+ },
+ "independent_oracle": {
+  "recomputed_points": "58.00,225.7327 287.50,225.7327 517.00,255.2258 746.50,225.7327 976.00,225.7327",
+  "match": true
+ },
+ "negative_test": "regN (no history) renders no drawdown path plus honest Not enough points label",
+ "sibling_distinction": "regA drawdown stays 0 (monotonic) vs regE dips to -50 then recovers",
+ "why_row_specific": "Every drawdown point equals pnl minus running peak; the -50 trough follows the 10100 peak.",
+ "harness": {
+  "service_port_8031_pid": 47848,
+  "service_proc_start": "2026-10-19T06:15:28+01:00",
+  "serving_code_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+  "serving_commit": "b5e6d613de36e3020ac28ba2317e6571a5c37e9b",
+  "serving_commit_time": "2026-10-16T22:37:14Z",
+  "commit_predates_process": true,
+  "probe_instances": "isolated uvicorn instances on 127.0.0.1:8147..8151 running the same HL_Copy_App_SSOT.py bytes with fixture-specific hl_live_copy_audit dirs"
+ }
+}

@@ -1,0 +1,30 @@
+{
+ "row_id": "UI-FP-028",
+ "feature": "Graph: Selected wallet PnL graph",
+ "expected_behaviour": "Shows selected wallet pnl_series from live_leader_performance[wallet].pnl_series as APP_DERIVED (provenance GRAPH; rows HEADER; can affect send: NO; execution truth: NO).",
+ "verdict": "NOT_TESTED",
+ "probe": "GET :8150: click [data-lc-graph-mode=wallet_pnl], then click row 0 and row 1 on :8148 (two-wallet fixture)",
+ "observed": {
+  "regE_subtitle_no_selection": "UNKNOWN/NOT_PROVEN: no wallet pnl_series available",
+  "regB_after_row0": "UNKNOWN/NOT_PROVEN: no wallet pnl_series available",
+  "regB_after_row1": "UNKNOWN/NOT_PROVEN: no wallet pnl_series available",
+  "pnl_series_len": 0
+ },
+ "independent_oracle": {
+  "source_len": 0,
+  "note": "build declares pnl_points at line 3116 but never appends to it",
+  "match": false
+ },
+ "negative_test": "Empty source renders UNKNOWN/NOT_PROVEN instead of a fabricated 0 line",
+ "sibling_distinction": "Both sibling wallets produce identical UNKNOWN/NOT_PROVEN text - row-bound distinction impossible with an empty series",
+ "why_row_specific": "NOT_TESTED rather than FAIL: live_leader_performance[].pnl_series is empty in every fixture, so a per-wallet curve cannot be demonstrated; the empty state itself renders honestly.",
+ "harness": {
+  "service_port_8031_pid": 47848,
+  "service_proc_start": "2026-10-19T06:15:28+01:00",
+  "serving_code_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+  "serving_commit": "b5e6d613de36e3020ac28ba2317e6571a5c37e9b",
+  "serving_commit_time": "2026-10-16T22:37:14Z",
+  "commit_predates_process": true,
+  "probe_instances": "isolated uvicorn instances on 127.0.0.1:8147..8151 running the same HL_Copy_App_SSOT.py bytes with fixture-specific hl_live_copy_audit dirs"
+ }
+}

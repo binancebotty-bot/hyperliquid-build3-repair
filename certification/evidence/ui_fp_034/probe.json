@@ -1,0 +1,29 @@
+{
+ "row_id": "UI-FP-034",
+ "feature": "Live Copy Wallets row: Connection pill",
+ "expected_behaviour": "Shows ws_state from live_config.json/manual_live_positions.json/append_only/send_attempts.csv/live_ws_health.json as WS health or shared socket status (provenance LIVE_SERVICE_STATE; rows OWNED_COPY; can affect send: NO; execution truth: NO).",
+ "verdict": "PASS",
+ "probe": "GET :8150 (WS_OK), :8148 (OFFLINE/STALE), :8149 (live_ws_health.json deleted)",
+ "observed": {
+  "regE": "LIVE\nCOPYING\nWS_OK\nGOOD",
+  "regB_row0": "CLO\nCLOSE ONLY\nOFFLINE\nSTALE",
+  "regB_row1": "OFF\nDISABLED\nCOPY DISABLED",
+  "regN_no_ws_health_file": "LIVE\nCOPYING\nNO WS HEALTH\nservice not reporting this wallet"
+ },
+ "independent_oracle": {
+  "match": true,
+  "note": "regN pill reads NO WS HEALTH / service not reporting this wallet"
+ },
+ "negative_test": "Missing ws health file yields NO WS HEALTH with a reason, never a fabricated WS_OK",
+ "sibling_distinction": "WS_OK, OFFLINE/STALE, COPY DISABLED and NO WS HEALTH all observed across fixtures",
+ "why_row_specific": "Pill reflects live_ws_health current_status per wallet and degrades to NO WS HEALTH with an explicit reason when absent.",
+ "harness": {
+  "service_port_8031_pid": 47848,
+  "service_proc_start": "2026-10-19T06:15:28+01:00",
+  "serving_code_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+  "serving_commit": "b5e6d613de36e3020ac28ba2317e6571a5c37e9b",
+  "serving_commit_time": "2026-10-16T22:37:14Z",
+  "commit_predates_process": true,
+  "probe_instances": "isolated uvicorn instances on 127.0.0.1:8147..8151 running the same HL_Copy_App_SSOT.py bytes with fixture-specific hl_live_copy_audit dirs"
+ }
+}

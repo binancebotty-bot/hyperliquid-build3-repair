@@ -1,0 +1,28 @@
+{
+ "row_id": "UI-FP-033",
+ "feature": "Live Copy Wallets row: Eligibility",
+ "expected_behaviour": "Shows eligibility from live_config.json/manual_live_positions.json/append_only/send_attempts.csv/live_ws_health.json as mode/service_eligible derived label (provenance APP_DERIVED; rows OWNED_COPY; can affect send: NO; execution truth: NO).",
+ "verdict": "PASS",
+ "probe": "GET :8150 and :8148 eligibility sub-label of the mode cell",
+ "observed": {
+  "regE": "LIVE\nCOPYING\nWS_OK\nGOOD",
+  "regB_row0": "CLO\nCLOSE ONLY\nOFFLINE\nSTALE",
+  "regB_row1": "OFF\nDISABLED\nCOPY DISABLED"
+ },
+ "independent_oracle": {
+  "derivation": "LIVE+eligible->COPYING, CLO+eligible->CLOSE ONLY, else DISABLED",
+  "match": true
+ },
+ "negative_test": "OFF wallet labelled DISABLED, not COPYING, so ineligible rows cannot look active",
+ "sibling_distinction": "Three distinct eligibility labels across rows",
+ "why_row_specific": "Eligibility text derives from mode+service_eligible per row: COPYING / CLOSE ONLY / DISABLED.",
+ "harness": {
+  "service_port_8031_pid": 47848,
+  "service_proc_start": "2026-10-19T06:15:28+01:00",
+  "serving_code_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+  "serving_commit": "b5e6d613de36e3020ac28ba2317e6571a5c37e9b",
+  "serving_commit_time": "2026-10-16T22:37:14Z",
+  "commit_predates_process": true,
+  "probe_instances": "isolated uvicorn instances on 127.0.0.1:8147..8151 running the same HL_Copy_App_SSOT.py bytes with fixture-specific hl_live_copy_audit dirs"
+ }
+}
