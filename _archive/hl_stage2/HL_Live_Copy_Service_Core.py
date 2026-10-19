@@ -41,6 +41,7 @@ import sys
 import threading
 import time
 import traceback
+import tempfile
 from dataclasses import asdict, dataclass, field
 from decimal import Decimal, ROUND_FLOOR, ROUND_CEILING, InvalidOperation
 import collections
@@ -12832,6 +12833,76 @@ def repair_adopt_oids(oids: List[str], start_ms: Optional[int] = None, dry_run: 
 _INSTANCE_LOCK = None
 
 
+_GLOBAL_INSTANCE_LOCK = None
+
+
+def _global_instance_lock_path() -> Path:
+    """Machine-wide location for the single-engine lock (never inside a state folder)."""
+    override = str(os.getenv("HL_LIVE_GLOBAL_LOCK_FILE") or "").strip()
+    if override:
+        return Path(override)
+    base = str(os.getenv("LOCALAPPDATA") or os.getenv("XDG_STATE_HOME") or tempfile.gettempdir())
+    return Path(base) / "HL_Live_Copy_Service_Core" / "engine-global.lock"
+
+
+def _global_holder_path(lock_path: Path) -> Path:
+    """Sidecar record of the holder. The lock file itself is byte-locked and cannot be read
+    by a refused process, so the holder identity is published next to it."""
+    return lock_path.with_name(lock_path.name + ".holder.json")
+
+
+def acquire_global_instance_lock(state_dir: Path | None = None) -> None:
+    """One running engine per MACHINE, in addition to one engine per state folder.
+
+    A single machine-wide lock file is held by byte-range lock for the process lifetime, so it
+    dies with the process and never goes stale. A second engine anywhere on the machine is
+    refused, and the refusal names the recorded holder. Guard only: no trading, sizing, sending
+    or gating logic reads this state.
+    """
+    global _GLOBAL_INSTANCE_LOCK
+    lock_path = _global_instance_lock_path()
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    fh = open(lock_path, "a+")
+    try:
+        if os.name == "nt":
+            import msvcrt
+            fh.seek(0)
+            msvcrt.locking(fh.fileno(), msvcrt.LK_NBLCK, 1)
+        else:
+            import fcntl
+            fcntl.flock(fh.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        holder = "holder unknown"
+        try:
+            raw = _global_holder_path(lock_path).read_text(encoding="utf-8")
+            info = json.loads(raw) if raw.strip().startswith("{") else {}
+            holder = "holder pid=%s state_dir=%s started_at=%s script=%s" % (
+                info.get("pid"), info.get("state_dir"), info.get("started_at"),
+                info.get("script"))
+        except Exception:
+            pass
+        finally:
+            fh.close()
+        raise SystemExit(
+            "INSTANCE_ALREADY_RUNNING_GLOBAL: another engine process holds the machine-wide "
+            "engine lock %s (%s). Only one engine may run per machine." % (lock_path, holder))
+    try:
+        payload = json.dumps({
+            "pid": os.getpid(),
+            "state_dir": str(state_dir) if state_dir is not None else "",
+            "started_at": datetime.now(timezone.utc).isoformat(),
+            "script": str(SCRIPT_FILE),
+        }, sort_keys=True)
+        fh.seek(0)
+        fh.truncate()
+        fh.write(payload)
+        fh.flush()
+        _global_holder_path(lock_path).write_text(payload, encoding="utf-8")
+    except Exception:
+        pass
+    _GLOBAL_INSTANCE_LOCK = fh
+
+
 def acquire_instance_lock(state_dir: Path) -> None:
     """One running engine per state folder; the OS lock dies with the process, so it never goes stale."""
     global _INSTANCE_LOCK
@@ -12917,6 +12988,7 @@ def main() -> None:
         _refusal = _XNET.stamp_state_refusal(AUDIT_DIR)
         if _refusal:  # never adopt a ledger or send history this engine did not create on this network
             raise SystemExit(f"{_refusal}. Use a fresh state folder (HL_LIVE_AUDIT_DIR); never resume another run's state.")
+        acquire_global_instance_lock(AUDIT_DIR)  # machine-wide: one engine per machine, not just per state folder
         acquire_instance_lock(AUDIT_DIR)
         install_core_attribution_hooks()
         _key = sender_key_check()
