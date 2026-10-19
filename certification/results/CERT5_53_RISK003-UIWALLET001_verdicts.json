@@ -1,0 +1,128 @@
+{
+ "metadata": {
+  "batch": "CERT 5/53 RISK-003..RISK-016 + UI-WALLET-001",
+  "task": "t_82832a6d",
+  "register_of_record": "origin/cert/local-main-b142cf8:certification/certification_matrix.json",
+  "tested_commit": "b142cf8",
+  "tested_engine": "C:/Users/wigmore/.hermes/cache/scratch/b3_clean/_cert_run/_archive/hl_stage2/HL_Live_Copy_Service_Core.py",
+  "tested_engine_sha256": "b171ec8fef01ead5ed2fe4a4a075857b5b1a56e425bab8394440c7dbad57f2a0",
+  "tested_engine_lines": 8042,
+  "serving_ui": "http://127.0.0.1:8031 commit 89b3bc7586bf328df336fc9ea721cee212617762 (PID 33368, started 2026-10-17T10:54:09Z)",
+  "rerun_artifact": "_cert_run/certification/results/RISK_b142cf8.json (30/30 checks, 20/20 negatives)",
+  "prior_evidence_note": "Register cites RISK_fa9d9f55.json / WALLET_fa9d9f55ff.json (commit fa9d9f55, engine sha 2dfbd571, 2026-10-14). fa9d9f55 is NOT an ancestor of b142cf8; the engine diff between them is only the ENV_NAME_ALIASES block, so risk semantics carry - but every PASS below was nevertheless re-earned by re-running the committed harness certification/results/RISK_harness_fa9d9f55ff.py against the b142cf8 engine. UI-WALLET-001 was NOT carried: its stored evidence contains no baseline/replay check and runtime probe contradicts the row.",
+  "method": "Registered execution_proof demands UI/config -> live_config.json -> engine decision -> order_intents reason -> exchange. Harness path (live_config -> IntentBuilder decision) plus UI render at :8031 verified. No testnet execution was possible for this batch (no testnet engine route bound), so no claim rests on exchange order/fill observation; the exposure-oracle clause is unproven for all rows and is disclosed rather than assumed.",
+  "tally": {
+   "PASS": 8,
+   "FAIL": 5,
+   "NOT_TESTED": 2,
+   "total": 15
+  }
+ },
+ "rows": [
+  {
+   "row_id": "RISK-003",
+   "verdict": "PASS",
+   "evidence_ref": "certification/results/RISK_harness_fa9d9f55ff.py :: RISK-003:WALLET_CAP_BLOCKS + WALLET_CAP_WITHIN_ALLOWED + 4 NEG_*; rerun artifact RISK_b142cf8.json",
+   "tested_commit": "b142cf8",
+   "why": "Row-bound: same config and fill, only max_wallet_exposure_usd differs -> SEND_BLOCKED_RISK 'max wallet exposure exceeded' vs ENTRY_ALLOWED; blank/zero/negative/non-numeric each disable the control."
+  },
+  {
+   "row_id": "RISK-004",
+   "verdict": "PASS",
+   "evidence_ref": "RISK_harness_fa9d9f55ff.py :: RISK-004:ORDER_CAP_BLOCKS + WITHIN_ALLOWED + 4 NEG_*; close clause via RISK-015 with max_order_notional_usd=1 -> EXIT_ALLOWED",
+   "tested_commit": "b142cf8",
+   "why": "Row-bound pair proves the cap blocks an oversized entry and allows a within-cap entry, and that the same control set to 1 does not block a reduce/close."
+  },
+  {
+   "row_id": "RISK-005",
+   "verdict": "PASS",
+   "evidence_ref": "RISK_harness_fa9d9f55ff.py :: RISK-005:MISSING_SLIPPAGE_DEFAULT_20BPS / EXPLICIT_ZERO_STAYS_ZERO / CUSTOM_VALUE_READ / NEG_BLANK_IS_ZERO / NEG_NEGATIVE_CLAMPED_ZERO; engine b142cf8 L2028-2029 UI pct->bps, L2482/L3426 priced limit",
+   "tested_commit": "b142cf8",
+   "why": "Row-bound getter semantics: missing=20.0 bps, explicit 0 stays 0, 50 -> 50.0, blank -> 0.0, negative clamped; UI percent conversion and priced-limit use read at same commit."
+  },
+  {
+   "row_id": "RISK-006",
+   "verdict": "PASS",
+   "evidence_ref": "RISK_harness_fa9d9f55ff.py :: RISK-006:MISSING_CLOSE_DIFF_IS_OFF / CUSTOM_VALUE_READ / NEG_BLANK_IS_OFF / NEG_NEGATIVE_IS_OFF; engine L3429-3462 applied only on lifecycle EXIT",
+   "tested_commit": "b142cf8",
+   "why": "Row-bound: percentage read with 0/missing = OFF and negative clamped to 0, and the engine applies it only on EXIT so entries are never gated by it."
+  },
+  {
+   "row_id": "RISK-007",
+   "verdict": "PASS",
+   "evidence_ref": "RISK_harness_fa9d9f55ff.py :: RISK-007:ALLOWLIST_BLOCKS_OTHERS (SYMBOL_NOT_ALLOWED) / ALLOWLISTED_PASSES / EMPTY_ALLOWLIST_ALL_ALLOWED / NEG_BLANK_NO_RESTRICTION",
+   "tested_commit": "b142cf8",
+   "why": "Row-bound: ['ETH'] blocks a BTC fill with the allowlist reason, ['ETH','BTC'] allows it, [] allows all - fails for any other row's control."
+  },
+  {
+   "row_id": "RISK-008",
+   "verdict": "PASS",
+   "evidence_ref": "RISK_harness_fa9d9f55ff.py :: RISK-008:BLOCKLIST_BLOCKS (SYMBOL_BLOCKED) / BLOCKLIST_OTHERS_PASS / NEG_BLANK_NO_RESTRICTION",
+   "tested_commit": "b142cf8",
+   "why": "Row-bound: ['BTC'] blocks the BTC fill with SYMBOL_BLOCKED while ['ETH'] lets the same fill through."
+  },
+  {
+   "row_id": "RISK-009",
+   "verdict": "FAIL",
+   "evidence_ref": "engine b142cf8 HL_Live_Copy_Service_Core.py: daily_loss_limit 0 occurrences; only account-wide max_daily_loss_usd (L2004, _daily_loss_block L6301-6315); UI :8031 field gcMaxDailyLoss is the global one",
+   "tested_commit": "b142cf8",
+   "why": "The row accepts enforcement OR a display-only label. Neither exists per-wallet: the only daily-loss gate is account-wide (DAILY_LOSS_LIMIT_REACHED / DAILY_LOSS_UNREADABLE), the Add-wallet modal exposes wallet/norm_base/fixed_notional only, and nothing is labelled display-only. Per-wallet daily_loss_limit survives only in the legacy HL_Copy_App_SSOT.py."
+  },
+  {
+   "row_id": "RISK-010",
+   "verdict": "FAIL",
+   "evidence_ref": "engine b142cf8: max_diff_pct 0 occurrences; rendered :8031 add-wallet fields = wallet, norm_base, fixed_notional",
+   "tested_commit": "b142cf8",
+   "why": "No per-wallet max diff percent exists as an entry price bound in the certified engine, and the serving UI has no field to set it. max_diff_pct appears only in the legacy HL_Copy_App_SSOT.py and HL_Live_Copy_Service.py."
+  },
+  {
+   "row_id": "RISK-011",
+   "verdict": "FAIL",
+   "evidence_ref": "engine b142cf8: MAX_WALLETS=10 (HL_LIVE_WS_MAX_WALLETS) L211; refusal reason TOO_MANY_ACTIVE_WALLETS at L6371 (cycle gate) and L8001 (SystemExit); MAX_WALLETS_EXCEEDED 0 occurrences in Core, only legacy SSOT L869",
+   "tested_commit": "b142cf8",
+   "why": "The cap of 10 is real and refused-never-dropped, but the row contract is not met: there is no add-time rejection carrying MAX_WALLETS_EXCEEDED and no evidence the 11th add leaves config unchanged. The add path lives outside the certified engine."
+  },
+  {
+   "row_id": "RISK-012",
+   "verdict": "NOT_TESTED",
+   "evidence_ref": "serving UI commit 89b3bc7 rendered at :8031: POST /api/global-controls and /api/live-config/{add-wallet,remove-wallet,set-mode,set-wallet} - no safe-stop route; engine master gate auto_send_enabled L1919-1930",
+   "tested_commit": "89b3bc7",
+   "why": "Genuinely absent route: the operator control surface exposes no account-wide safe-stop action and no acknowledgement path, so one-operator-action plus engine-ack plus zero-orders cannot be exercised. An engine-side master gate exists but is not wired to an operator action here."
+  },
+  {
+   "row_id": "RISK-013",
+   "verdict": "FAIL",
+   "evidence_ref": "runtime probe at b142cf8: exchange_truth.claim_network_stamp mainnet/testnet then a second claim with a different pair raises NETWORK_STAMP_MISMATCH (separation PASS); engine has no paper/dry-run send mode (paper 0 occurrences; --dry-run only for repair_recovery_copy_fills)",
+   "tested_commit": "b142cf8",
+   "why": "Testnet/mainnet separation is proven, but the row also requires dry-run/paper to send nothing and a mode change to create zero orders. No paper mode exists in the engine, so that clause genuinely fails."
+  },
+  {
+   "row_id": "RISK-014",
+   "verdict": "PASS",
+   "evidence_ref": "RISK_harness_fa9d9f55ff.py :: RISK-014:NO_FOLLOWER_PRICE_FAILS_CLOSED + RISK-014:EXCHANGE_UNAVAILABLE_FAILS_CLOSED (rerun at b142cf8)",
+   "tested_commit": "b142cf8",
+   "why": "Row-bound fail-closed: mid=0 gives SEND_BLOCKED_RISK no-fresh-follower, and a raising exchange fetcher with the cap set gives SEND_BLOCKED_RISK unavailable - uncertainty is never treated as green."
+  },
+  {
+   "row_id": "RISK-015",
+   "verdict": "PASS",
+   "evidence_ref": "RISK_harness_fa9d9f55ff.py :: RISK-015:CLOSE_NEVER_BLOCKED_BY_ENTRY_CONTROLS (symbol_blocklist BTC, allowlist ETH, all four dollar caps = 1, SELL close -> EXIT_ALLOWED)",
+   "tested_commit": "b142cf8",
+   "why": "Row-bound: every entry control set to its most restrictive value at once and a close of an owned sleeve is still allowed, so the control set cannot trap a close."
+  },
+  {
+   "row_id": "RISK-016",
+   "verdict": "NOT_TESTED",
+   "evidence_ref": "RISK_harness_fa9d9f55ff.py :: RISK-016:ORDER_CAP_CONFIG_READ reads ConfigManager().max_order_notional() (global max_order_notional_usd = RISK-004 control); HL_LIVE_MAX_MANUAL_ORDER_NOTIONAL_USD 0 occurrences in HL_Live_Copy_Service_Core.py, defined only in HL_Live_Copy_Service.py L130",
+   "tested_commit": "b142cf8",
+   "why": "Route genuinely absent from the certified engine module: HL_LIVE_MAX_MANUAL_ORDER_NOTIONAL_USD is defined and used only in HL_Live_Copy_Service.py (L130, manual cap at L981-1311), not in HL_Live_Copy_Service_Core.py (0 occurrences), and the register's cited check RISK-016:ORDER_CAP_CONFIG_READ actually reads ConfigManager().max_order_notional() i.e. the global max_order_notional_usd (RISK-004). So the manual cap could not be exercised against the certified engine and its PASS was mis-bound."
+  },
+  {
+   "row_id": "UI-WALLET-001",
+   "verdict": "FAIL",
+   "evidence_ref": "runtime probe at b142cf8 (probe_new_wallet.py): a wallet with no cursor requests start=now-86400000-300000, end=now (LOOKBACK_HOURS 24.08) and returns fills as POLL_OK; pre-cutover guard is dedupe.live_start_ms (L6290) set once per state dir at first construction (L6008-6009); UI :8031 modal renders (button data-lc-modal lcWalletModal -> #lcWalletModal.active, fields wallet, norm_base, fixed_notional)",
+   "tested_commit": "b142cf8",
+   "why": "The add-wallet UI exists and hot-reloads, but baseline-at-onboarding with no historical replay is not implemented and is contradicted by runtime evidence: a newly added wallet starts with cursor 0, backfills a full 24h window, and live_start_ms (the only pre-cutover guard) predates the add, so those historical fills are processed as new. The register WALLET_fa9d9f55ff.json contains no baseline/replay check (only add, enable, hot-reload, invalid-address), so its PASS was unearned."
+  }
+ ]
+}
