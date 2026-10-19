@@ -1,0 +1,92 @@
+[
+  {
+    "row_id": "B4-R13",
+    "verdict": "NOT_TESTED",
+    "probe": "Resolved the row citation on cert/b4-r13-farch002-t_9ae5b28d tip 2df834b: certification/certification_matrix.json and certification/results/REGRESSION_fa9d9f55ff.json both exist and the latter contains this row id. Tried to promote to PASS from the register-of-record evidence and failed: the cited assertions are 'cutover: live_start_ms unchanged across restart' (also cited by B4-R15) and 'cutover: WS_CAPTURED post-cutover fill reaches mock send boundary' (also cited by B4-R23); neither names a watchdog nor a stale predicate, so the predicate would not fail for a sibling row. Engine binding checked independently: git show fa9d9f55:_archive/hl_stage2/HL_Live_Copy_Service_Core.py hashes to 2dfbd571012af67479ee7a2d9e6f1faac6ee5408722a092fb3625450cab51405 at 8030 lines, exactly as the evidence claims - honest binding, but to the Build3 archive engine, not Build4.",
+    "why": "NOT_TESTED upheld; the author reason survives the probe (no hyperliquid-build4 tree, no GUT_CONTRACT.md, no committed producer for REGRESSION_*.json anywhere on origin). Extra defect: the register of record records PASS for this row off a Build3-archive sweep that cannot prove a Build4 regression, and two of its assertion strings are duplicated with sibling rows, so the per-row predicate is not row-bound. Register PASS must be withdrawn and the row re-earned on a Build4 route, or demoted to FAIL if the product genuinely misses it."
+  },
+  {
+    "row_id": "B4-R14",
+    "verdict": "NOT_TESTED",
+    "probe": "Same route test as B4-R13. Promotion blocked: 'master gate disabled keeps leader_sends_attempted zero' is duplicated with B4-R16 and says nothing about a diagnostic blocking execution, which is what R14 forbids.",
+    "why": "NOT_TESTED upheld; route genuinely absent. Register PASS rests on a non-row-bound Build3-archive sweep and must be withdrawn; re-earn on Build4 or demote to FAIL."
+  },
+  {
+    "row_id": "B4-R15",
+    "verdict": "NOT_TESTED",
+    "probe": "Same route test. Promotion blocked: 'cutover: live_start_ms unchanged across restart' is duplicated with B4-R13, and nothing in the row detail mentions a stale candidate/shadow overwriting canonical active state.",
+    "why": "NOT_TESTED upheld; route genuinely absent. Register PASS is non-row-bound and Build3-sourced; withdraw and re-earn on Build4."
+  },
+  {
+    "row_id": "B4-R16",
+    "verdict": "NOT_TESTED",
+    "probe": "Same route test. Promotion blocked: 'master gate disabled keeps leader_sends_attempted zero' is duplicated with B4-R14; the second assertion covers auto-send disabled, not the mutable global_state/config hash veto the row forbids.",
+    "why": "NOT_TESTED upheld; route genuinely absent. Register PASS is non-row-bound and Build3-sourced; withdraw and re-earn on Build4."
+  },
+  {
+    "row_id": "B4-R17",
+    "verdict": "NOT_TESTED",
+    "probe": "Same route test. Promotion blocked: 'copy account first poll baselines historical fills' is duplicated with B4-R19; nothing asserts that OFF/mark_pending_historical preserves unevaluated events.",
+    "why": "NOT_TESTED upheld; route genuinely absent. Register PASS is non-row-bound and Build3-sourced; withdraw and re-earn on Build4."
+  },
+  {
+    "row_id": "B4-R18",
+    "verdict": "NOT_TESTED",
+    "probe": "Same route test. Promotion blocked: the two assertions cover wallet-conflict isolation and coin_net summation, not one bad leader key globally stalling other leaders.",
+    "why": "NOT_TESTED upheld; route genuinely absent. Register PASS is Build3-sourced and does not address the R18 failure mode; withdraw and re-earn on Build4."
+  },
+  {
+    "row_id": "B4-R19",
+    "verdict": "NOT_TESTED",
+    "probe": "Same route test. This is the closest match in the batch (baseline-instead-of-catch-up plus wiped-state live_start_ms), but 'copy account first poll baselines historical fills' is duplicated with B4-R17 and the harness producing the evidence is not committed.",
+    "why": "NOT_TESTED upheld; route genuinely absent (no committed producer, Build3 archive engine only). Register PASS must be withdrawn; re-earn on Build4."
+  },
+  {
+    "row_id": "B4-R20",
+    "verdict": "NOT_TESTED",
+    "probe": "Same route test. Promotion blocked: assertions cover wallet-B invariance after a wallet-A close/exit intent, not orphaning of an owned sleeve on wallet removal or config change.",
+    "why": "NOT_TESTED upheld; route genuinely absent. Register PASS is Build3-sourced and off-target for R20; withdraw and re-earn on Build4."
+  },
+  {
+    "row_id": "B4-R21",
+    "verdict": "NOT_TESTED",
+    "probe": "Same route test. Promotion blocked: assertions cover REAL_IOC write and reduce_only=False on ENTRY, not a delayed pending entry executing at materially worse price.",
+    "why": "NOT_TESTED upheld; route genuinely absent. Register PASS is Build3-sourced and off-target for R21; withdraw and re-earn on Build4."
+  },
+  {
+    "row_id": "B4-R22",
+    "verdict": "NOT_TESTED",
+    "probe": "Same route test. Promotion blocked: assertions cover dedupe on copy_fill_id, not a partial fill causing duplicate/resubmitted quantity error.",
+    "why": "NOT_TESTED upheld; route genuinely absent. Register PASS is Build3-sourced and off-target for R22; withdraw and re-earn on Build4."
+  },
+  {
+    "row_id": "B4-R23",
+    "verdict": "NOT_TESTED",
+    "probe": "Same route test. Promotion blocked: 'cutover: WS_CAPTURED post-cutover fill reaches mock send boundary' is duplicated with B4-R13; nothing asserts that multiple missed events are netted rather than replayed.",
+    "why": "NOT_TESTED upheld; route genuinely absent. Register PASS is non-row-bound and Build3-sourced; withdraw and re-earn on Build4."
+  },
+  {
+    "row_id": "B4-R24",
+    "verdict": "NOT_TESTED",
+    "probe": "Same route test. Substantively on point (reduce-only helper returns True for EXIT intent; EXIT real send passes reduce_only=True to exchange.order), but the harness that produced it is not committed and the tested engine is the Build3 archive blob, so the result cannot be re-run or bound to a Build4 serving build.",
+    "why": "NOT_TESTED upheld for the binding reason, not for lack of intent: the assertion is row-bound but unreproducible. Register PASS must be withdrawn until a committed Build4 harness reproduces it."
+  },
+  {
+    "row_id": "B4-R25",
+    "verdict": "NOT_TESTED",
+    "probe": "Same route test. Promotion blocked: assertions cover symbol/perp-index resolution (ETH without perp_dexs; @230 to SAND), not the margin parser working only when the follower already owns the symbol.",
+    "why": "NOT_TESTED upheld; route genuinely absent. Register PASS is Build3-sourced and off-target for R25; withdraw and re-earn on Build4."
+  },
+  {
+    "row_id": "F-ARCH-001",
+    "verdict": "NOT_TESTED",
+    "probe": "Same route test. Substantively on point (exchange mismatch reported; ledger not auto-corrected), but no committed harness and the tested engine is the Build3 archive blob, so the claim cannot be re-run nor bound to a Build4 serving build.",
+    "why": "NOT_TESTED upheld for the binding reason. Register PASS must be withdrawn until a committed Build4 harness reproduces it."
+  },
+  {
+    "row_id": "F-ARCH-002",
+    "verdict": "NOT_TESTED",
+    "probe": "Same route test. Promotion blocked on two counts: the assertions show mismatch reporting and a status string, not the stateless fetch-diff-act-refetch cycle the row requires; and the harness is uncommitted on a Build3 archive engine.",
+    "why": "NOT_TESTED upheld; route genuinely absent and the cited evidence does not exercise the required behaviour. Register PASS must be withdrawn; re-earn on Build4 or demote to FAIL."
+  }
+]
