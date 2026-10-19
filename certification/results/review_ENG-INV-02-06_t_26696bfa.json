@@ -1,0 +1,12 @@
+{
+ "verifier": "gemini:2.5-flash (task t_26696bfa)",
+ "tested_commit": "621a06c2459b43c564874a8377d00576ffe098d9",
+ "evidence": "certification/results/ENG-INV-02-06_single_order_site_census.json",
+ "verdict": "PASS",
+ "review_ref": "certification/results/review_ENG-INV-02-06_t_26696bfa.json",
+ "reviewed_ref": "hermes/eng-inv-02-06-pass @ bbef45d",
+ "reviewer_task": "t_26696bfa",
+ "what_was_checked": "Matrix diff changes only ENG-INV-02 and ENG-INV-06 (8 insertions / 8 deletions); register remains 832 rows; the committed AST census artifact resolves to tested commit 621a06c and reports the sole Core:4204 call site; the regression guard failed under an injected second-site probe as required.",
+ "author_was_independent": true,
+ "note": "Recorded by the coordinator from the reviewer's own PASS verdict. The reviewer ran on gemini, a different provider and model from the author. No review record exists for ENG-INV-01/03/04/05 because no independent review of those rows took place."
+}
