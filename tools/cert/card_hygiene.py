@@ -34,6 +34,7 @@ LANES = {
 
 CLONE_BLOCK = """## CLONE - do this first (anonymous clone works; no credential needed)
 
+    rm -rf repo                       # a previous run may have left one; this is not a failure
     git -c credential.helper= clone %s repo
     cd repo && git fetch origin && git checkout -B work origin/main
     git rev-parse --short HEAD        # record this; it is your tested_commit
@@ -41,6 +42,9 @@ CLONE_BLOCK = """## CLONE - do this first (anonymous clone works; no credential 
 The repository is public. If a clone prompts for credentials the host helper is interfering - the
 `-c credential.helper=` above disables it for that one command. Do NOT reuse a shared checkout on this
 host (`b3_clean`, `merge_*`, `verify_*`, `hl-build3-main-*`): several are stale and others dirty.
+
+If `repo` already exists from an earlier attempt, `rm -rf` it and clone fresh - do not block on a
+non-empty directory, and do not inspect or reuse its contents.
 
 """ % CLONE_URL
 
