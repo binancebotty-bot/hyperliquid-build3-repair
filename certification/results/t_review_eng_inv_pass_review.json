@@ -1,0 +1,33 @@
+{
+  "reviewed_commit": "bbef45d",
+  "base": "origin/main",
+  "matrix_diff": {
+    "files": ["certification/certification_matrix.json"],
+    "changed_rows": ["ENG-INV-02", "ENG-INV-06"],
+    "numstat": "8 insertions, 8 deletions",
+    "fields": ["result", "evidence_ref", "tested_commit", "notes"],
+    "whole_file_reformat": false
+  },
+  "row_counts": {"before": 832, "after": 832},
+  "independent_census": {
+    "command": "python tools/cert/census_order_sites.py origin/main",
+    "output": "TOTAL production call sites 1; single_order_call_site = true; HL_Live_Copy_Service_Core.py:4204",
+    "method": "AST walk over Call(Attribute(Name('exchange'), 'order'))",
+    "artifact_path": "certification/results/ENG-INV-02-06_single_order_site_census.json",
+    "artifact_exists": true,
+    "artifact_tested_commit": "621a06c2459b43c564874a8377d00576ffe098d9",
+    "artifact_verdict": "PASS",
+    "artifact_single_order_call_site": true
+  },
+  "reachability": {
+    "legacy_sender": "_archive/hl_stage2/HL_Live_Copy_Service.py",
+    "legacy_entrypoint": "manual_send_one_intent returns LEGACY_DIRECT_SENDER_DISABLED; no exchange.order call",
+    "production_importers": 0,
+    "test_importers": 6,
+    "guard_normal_run": "PASS (1 test)",
+    "adversarial_attempt": "Added temporary AST call in a second file under _archive/hl_stage2 and ran the guard",
+    "adversarial_result": "Guard failed as required: found two sites, probe file line 1 and Core line 4204; exit 1. Probe removed afterward."
+  },
+  "superseded_fail_branch": "No indication it is being merged alongside this reviewed branch in the inspected diff/status.",
+  "verdict": "PASS"
+}
