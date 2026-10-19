@@ -1,0 +1,149 @@
+{
+  "schema": "hl_certification_verdicts_v1",
+  "task": "t_1967d757",
+  "title": "CERT 25/53 B4-I24..B4-R12 (15 rows)",
+  "register_of_record": "git show origin/cert/local-main-b142cf8:certification/certification_matrix.json",
+  "register_commit": "f4ee2bb18dc6781940772cb088e9a476585030e4",
+  "engine_path": "_archive/hl_stage2/HL_Live_Copy_Service_Core.py",
+  "engine_sha256": "b171ec8fef01ead5ed2fe4a4a075857b5b1a56e425bab8394440c7dbad57f2a0",
+  "method": {
+    "adjudication_rule": "PASS only where the cited evidence asserts a property specific to THIS row that would fail for a different row. Evidence bound to another row subject is FAIL (not proven), never NOT_TESTED; NOT_TESTED is reserved for a genuinely absent route.",
+    "rerun": "Engine exported from the register base commit and run under Python 3.11.9 with a scrubbed environment (env -u PYTHONPATH -u PYTHONHOME) and an isolated HL_LIVE_AUDIT_DIR: HL_Live_Copy_Service_Core.py --self-test -> EXIT=0, 147 PASS, 0 FAIL, RESULT::CLEAN_LIVE_COPY_CORE_SELF_TEST_PASS.",
+    "engine_delta_from_artifact": "REGRESSION_fa9d9f55ff.json was produced at fa9d9f55ff. fa9d9f55ff is NOT an ancestor of the register base; the only engine difference is 13 added lines of ENV_NAME_ALIASES name mapping in load_env_file() - no order, authority, dedupe, sizing or truth-path logic touched.",
+    "shared_artifact_caveat": "All 12 REGRESSION rows cite one artifact. Per-row checks are named B4-Rxx_REGRESSION_ABSENT, but 9 of the 12 carry a passed: [...] detail drawn from a shared self-test pool whose subjects are other rows. That is the carried-boilerplate failure mode and it is why those rows are demoted."
+  },
+  "rows": [
+    {
+      "row_id": "B4-I24",
+      "verdict": "PASS",
+      "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json#/results/B4-I24/order_calls_in_recovery",
+      "tested_commit": "f4ee2bb18dc6781940772cb088e9a476585030e4",
+      "why": "Row-bound structured census, not a substring sweep: it enumerates the 7 named recovery entry points (repair_recovery_copy_fills, _queue_exit_recovery_if_needed, _entry_add_rate_limit_recovery, _exit_recovery_exists, _close_recovery_terminal, _load_recovery_oid_index, _missed_exit_recovery_candidates) and records that the only two _place_order call sites inside recovery carry creates_new_position=false (one closes an existing position reduce-only, one retries an existing intent). It would fail for a different row: any recovery path that opened a new position flips creates_new_position and the census stops supporting the row. Reproduced at base: the recovery entry points exist with the same call shape, and the recovery block returns early when not intent.reduce_only_intended or when an EXIT_RECOVERY row already exists."
+    },
+    {
+      "row_id": "B4-I25",
+      "verdict": "PASS",
+      "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json#/results/B4-I25/fail_closed_patterns",
+      "tested_commit": "f4ee2bb18dc6781940772cb088e9a476585030e4",
+      "why": "Line-anchored to the actual fail-closed gate for unattributed exposure: _unowned_inventory_block() at engine lines 2478-2490 at base, whose records include UNOWNED_INVENTORY: <coin> exchange net != engine-owned net; entries blocked and the follower-positions-unavailable fail-closed branch. That is exactly the row requirement: refuse to alter exposure it cannot attribute, per coin only, so unrelated symbols continue (I10). A different row does not resolve to _unowned_inventory_block, and the gate is per-coin by construction (canonical_coin_key scoping plus a per-coin _coin_clean map)."
+    },
+    {
+      "row_id": "B4-I26",
+      "verdict": "NOT_TESTED",
+      "evidence_ref": "_archive/hl_stage2/convergence_shadow.py#L2-L8",
+      "tested_commit": "f4ee2bb18dc6781940772cb088e9a476585030e4",
+      "why": "Absent route, named exactly: the certified tree has no runtime independent oracle wired into the engine decision. The one artefact that computes independently - _archive/hl_stage2/convergence_shadow.py - declares itself SHADOW / OFFLINE ONLY, sends no orders and imports no Core, and grep shows zero imports of convergence_shadow from HL_Live_Copy_Service_Core.py. So an independent check cannot presently disagree-and-fail-closed at decision time; the missing component is a runtime oracle comparator inside HL_Live_Copy_Service_Core. The register already carried NOT_TESTED with an empty evidence_ref, consistent with this finding."
+    },
+    {
+      "row_id": "B4-R01",
+      "verdict": "FAIL",
+      "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json#/results/B4-R01/checks/0/detail",
+      "tested_commit": "f4ee2bb18dc6781940772cb088e9a476585030e4",
+      "why": "Requirement: seed/current-position authorised-target convergence must not recur. The cited detail is cutover: pre-cutover fill does not send plus cutover: pre-cutover fill writes intent - cutover send authority, a different subject. Nothing bound to this row asserts convergence: the string converge has 0 occurrences in the engine at base, and the only convergence planner in the tree is the offline convergence_shadow.py which the engine never imports. Not proven."
+    },
+    {
+      "row_id": "B4-R02",
+      "verdict": "FAIL",
+      "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json#/results/B4-R02/checks/0/detail",
+      "tested_commit": "f4ee2bb18dc6781940772cb088e9a476585030e4",
+      "why": "Requirement: a follower fill must not enter leader event authority. The cited detail is copy fill fallback matches by coin/side/time plus unmatched copy fill writes reconciliation - follower-fill matching and reconciliation writing, not the leader/follower event-authority boundary the row is about. Different subject, so the check cannot fail for this row."
+    },
+    {
+      "row_id": "B4-R03",
+      "verdict": "FAIL",
+      "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json#/results/B4-R03/checks/0/detail",
+      "tested_commit": "f4ee2bb18dc6781940772cb088e9a476585030e4",
+      "why": "Requirement: a global cursor/barrier must not delay unrelated events. The cited detail is cutover: pre-cutover fill writes intent plus cutover: post-cutover fill reaches mock send boundary - cutover boundary behaviour again. No check bound to this row asserts anything about a global cursor/barrier or about an unrelated event being delayed while another is held. Not proven."
+    },
+    {
+      "row_id": "B4-R04",
+      "verdict": "FAIL",
+      "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json#/results/B4-R04/checks/0/detail",
+      "tested_commit": "f4ee2bb18dc6781940772cb088e9a476585030e4",
+      "why": "Requirement: no false BLOCKED_CROSS_MARGIN_UNAVAILABLE on flat supported markets. The cited detail is symbol: ETH resolves sdk_coin=ETH no perp_dexs plus symbol: @9999 raw index outside core perp universe skipped - symbol resolution. Stronger: CROSS_MARGIN has 0 occurrences in the engine and 0 in the tree's .py files, so the named failure state does not exist in the certified product and the claimed regression can be demonstrated in neither direction. Not proven."
+    },
+    {
+      "row_id": "B4-R05",
+      "verdict": "FAIL",
+      "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json#/results/B4-R05/checks/0/detail",
+      "tested_commit": "f4ee2bb18dc6781940772cb088e9a476585030e4",
+      "why": "Requirement: assetPositions wrapper parsing must not regress. The product does implement it - _archive/hl_stage2/exchange_truth.py lines 175-204 require an assetPositions list and return SCOPE_UNAVAILABLE otherwise, and the engine reads assetPositions at lines 2755/2765/5745/6553 - but the cited evidence asserts symbol resolution (ETH resolves sdk_coin=ETH; XYZ:SNDK resolves sdk-compatible full builder coin), which would pass identically for another row and proves nothing about wrapper parsing. FAIL is on unproven evidence, not on a missing feature."
+    },
+    {
+      "row_id": "B4-R06",
+      "verdict": "FAIL",
+      "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json#/results/B4-R06/checks/0/detail",
+      "tested_commit": "f4ee2bb18dc6781940772cb088e9a476585030e4",
+      "why": "Requirement: account truth must not be blocked by timestamp identity. The cited detail is real sender: mocked exchange writes one REAL_IOC send_attempt plus send_attempt has exchange_order_id test-oid-1 - the send path and its order-id capture, not account-truth freshness or timestamp identity. Different subject, so the check would pass unchanged for another row. Not proven."
+    },
+    {
+      "row_id": "B4-R07",
+      "verdict": "FAIL",
+      "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json#/results/B4-R07/checks/0/detail",
+      "tested_commit": "f4ee2bb18dc6781940772cb088e9a476585030e4",
+      "why": "Requirement: account truth must not be blocked by a volatile balance comparison. The cited detail is the same real-sender pair as B4-R06 (writes one REAL_IOC send_attempt; order_type is REAL_IOC) - a second row riding one shared observation, and it is about send typing rather than balance comparison. Not proven."
+    },
+    {
+      "row_id": "B4-R08",
+      "verdict": "FAIL",
+      "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json#/results/B4-R08/checks/0/detail",
+      "tested_commit": "f4ee2bb18dc6781940772cb088e9a476585030e4",
+      "why": "Requirement: a transient 429 must not lose or consume an event. The cited detail is copy account checkpoint survives service_state clobber plus dedupe: duplicate copy_fill_id blocked - checkpoint persistence and dedupe, neither of which exercises a 429. The engine does contain a 429 path (classify_reject_category rate-limit detection, and _entry_add_rate_limit_recovery recording retry_after_429=true with an age ceiling), but no check bound to this row asserts that the event survives the retry. Not proven."
+    },
+    {
+      "row_id": "B4-R09",
+      "verdict": "PASS",
+      "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json#/results/B4-R09/checks/0/detail",
+      "tested_commit": "f4ee2bb18dc6781940772cb088e9a476585030e4",
+      "why": "On-subject and row-bound: a duplicate WS/REST logical event must not double-apply. The cited detail is dedupe: duplicate copy_fill_id blocked together with OID dedupe: second OID-matched apply blocked by xproc marker - literally the duplicate-logical-event case, naming the copy_fill_id and OID identity paths. Reproduced at the register base: PASS dedupe: duplicate copy_fill_id blocked (returns False); PASS dedupe: ledger not double-mutated by duplicate copy_fill_id :: pos=0.001 (unchanged); PASS OID dedupe: second OID-matched apply blocked by xproc marker (returns False); PASS OID dedupe: ledger not double-mutated by second OID match :: pos=0.1. Non-vacuous: the first apply in each pair returns True and does mutate."
+    },
+    {
+      "row_id": "B4-R10",
+      "verdict": "PASS",
+      "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json#/results/B4-R10/checks/0/detail",
+      "tested_commit": "f4ee2bb18dc6781940772cb088e9a476585030e4",
+      "why": "On-subject and row-bound: an ambiguous submission must not create a duplicate order. The cited detail is dedupe: duplicate is audit-only (reconciliation COPY_FILL_DUPLICATE written) plus xproc: CALL2 returns False (duplicate blocked by file marker) - the cross-process duplicate guard, i.e. exactly the ambiguous-submission risk. Reproduced at base: the COPY_FILL_DUPLICATE reconciliation row is emitted with notes duplicate copy fill ignored ... reason=ALREADY_MATCHED, and PASS xproc: CALL2 returns False (duplicate blocked by file marker). Non-vacuous: CALL1 in the same test returns True, so the marker check can fail."
+    },
+    {
+      "row_id": "B4-R11",
+      "verdict": "PASS",
+      "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json#/results/B4-R11/checks/0/detail",
+      "tested_commit": "f4ee2bb18dc6781940772cb088e9a476585030e4",
+      "why": "Restart-specific and row-bound: the pair cutover: live_start_ms unchanged across restart plus cutover: wiped state creates fresh live_start_ms asserts that a restart re-enters the SAME cutover epoch instead of re-baselining state - the mechanism by which a restart would re-execute already-processed leader events. A different row does not turn on live_start_ms persistence. Reproduced at base: PASS cutover: live_start_ms unchanged across restart :: t1=1792378809769 t2=1792378809769 and PASS cutover: wiped state creates fresh live_start_ms. The pair is non-vacuous: the second check shows the value does change when state is genuinely wiped."
+    },
+    {
+      "row_id": "B4-R12",
+      "verdict": "FAIL",
+      "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json#/results/B4-R12/checks/0/detail",
+      "tested_commit": "f4ee2bb18dc6781940772cb088e9a476585030e4",
+      "why": "Requirement: a sub-minimum (below minimum notional) state must not create target authority. The cited detail is symbol: FAKECOIN returns SYMBOL_UNRESOLVED exchange_called=False plus unresolved FAKECOIN writes zero send_attempts - unresolved-symbol refusal, a different subject. The engine does carry a min-notional path (DUST_BELOW_MIN_NOTIONAL, 6 occurrences, plus size-floor and sleeve-clamp checks), but no check bound to this row asserts that a sub-minimum state yields no target authority. Not proven."
+    }
+  ],
+  "summary": {
+    "total": 15,
+    "pass": 5,
+    "fail": 9,
+    "not_tested": 1,
+    "pass_rows": [
+      "B4-I24",
+      "B4-I25",
+      "B4-R09",
+      "B4-R10",
+      "B4-R11"
+    ],
+    "fail_rows": [
+      "B4-R01",
+      "B4-R02",
+      "B4-R03",
+      "B4-R04",
+      "B4-R05",
+      "B4-R06",
+      "B4-R07",
+      "B4-R08",
+      "B4-R12"
+    ],
+    "not_tested_rows": [
+      "B4-I26"
+    ]
+  }
+}
