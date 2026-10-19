@@ -1,0 +1,92 @@
+[
+  {
+    "row_id": "UI-LCC-WTBL-09",
+    "verdict": "PASS",
+    "probe": "Change W2 copy_mode only; inspect saved config and ensure W1 unchanged.",
+    "why": "The copy-model select is per-wallet and its value is live, not decorative: changing only W2's select from 'fixed' to 'proportional' and pressing Save rewrote live_config.json wallets[W2].copy_mode to 'proportional' while W1 stayed 'proportional' with unchanged numbers. Row-bound: it asserts THIS row's control writes THIS wallet's field; a different WTBL row (e.g. the Archive button) would not produce a copy_mode write. Note: the write to live_config.json (the engine's input) is proven; engine consumption is not exercised in the isolated instance. Independent review: cited evidence paths were present in the committed tree; exact content reviewed at b31edbf9b2f80037e1c6adb225bca0bc99d45e4b. "
+  },
+  {
+    "row_id": "UI-LCC-WTBL-10",
+    "verdict": "FAIL",
+    "probe": "Inspect live control inventory; check register-required B input is actually rendered.",
+    "why": "Register expects the row to carry F/N/B inputs; the served build carries only two of the three. The wallet row's full control inventory is mode, copy_mode, fixed_notional, norm_base and its rendered inline labels are exactly 'F' and 'N' - there is no third (B) input, and the string user_norm_base does not appear anywhere in the served page. B (the user/base normalisation input the SSOT does still read at save_ui_state/effective_wallet_ui level) is therefore not settable from this table. Row-bound: the absence is specific to this row's control set and would fail for WTBL-09, whose control is present. Independent review: cited evidence paths were present in the committed tree; exact content reviewed at b31edbf9b2f80037e1c6adb225bca0bc99d45e4b. "
+  },
+  {
+    "row_id": "UI-LCC-WTBL-11",
+    "verdict": "PASS",
+    "probe": "Mutate W2 F/N, save, reload, and compare W1 for unintended edits.",
+    "why": "Save persisted the exact edited values for the edited wallet only and the values survive a reload, i.e. they come from disk and not from the form. Row-bound: the assertion is on this row's Save action writing both F and N for W2 while leaving W1 untouched; a different action button does not write these fields. Independent review: cited evidence paths were present in the committed tree; exact content reviewed at b31edbf9b2f80037e1c6adb225bca0bc99d45e4b. "
+  },
+  {
+    "row_id": "UI-LCC-WTBL-12",
+    "verdict": "PASS",
+    "probe": "Change W1 LIVE to CLO and inspect config plus target badge.",
+    "why": "The CLO button moved the target wallet from LIVE to CLO in live_config.json and the row badge re-rendered from 'Live' to 'Close-only'. Row-bound: it names THIS wallet's mode transition (LIVE->CLO) and the rendered badge text for that wallet; the OFF row produces a different target state. Independent review: cited evidence paths were present in the committed tree; exact content reviewed at b31edbf9b2f80037e1c6adb225bca0bc99d45e4b. "
+  },
+  {
+    "row_id": "UI-LCC-WTBL-13",
+    "verdict": "PASS",
+    "probe": "Change W1 to OFF; verify W2 remains CLO; badge order caveat noted.",
+    "why": "The OFF button wrote mode=OFF for the clicked wallet only, with the confirmation text naming that wallet, and the sibling wallet's mode was left at CLO. Row-bound: the observed transition CLO->OFF for W1 with W2 unchanged is specific to this row's control; a shared sweep would not distinguish which wallet was written. (Note: the post-click badge readback landed on the row that had reordered to first position, i.e. W2 - the discriminating evidence for this row is the live_config.json value plus the wallet-named status line.) Independent review: cited evidence paths were present in the committed tree; exact content reviewed at b31edbf9b2f80037e1c6adb225bca0bc99d45e4b. "
+  },
+  {
+    "row_id": "UI-LCC-WTBL-14",
+    "verdict": "PASS",
+    "probe": "Archive W1; verify wallet removed, archived record added, W2 remains.",
+    "why": "Archive (confirm dialog auto-accepted) removed exactly the clicked wallet from wallets{}, moved it into archived_wallets{}, and the table dropped from 2 rows to 1 with the sibling wallet still rendered. Row-bound: it asserts removal of a named wallet plus the config-move semantics of this specific control; no other row's control produces an archived_wallets entry. Independent review: cited evidence paths were present in the committed tree; exact content reviewed at b31edbf9b2f80037e1c6adb225bca0bc99d45e4b. "
+  },
+  {
+    "row_id": "UI-LCC-DETAIL-01",
+    "verdict": "PASS",
+    "probe": "Compare each wallet exposure against its own ledger size\u00d7entry; check unavailable fields stay nonnumeric.",
+    "why": "Per-wallet section A rendered from each leader's own ledger sleeve and the exposure figure is arithmetically row-bound to that wallet: 0.0123 x 61234.5 = 753.18 for the BTC sleeve and 0.456 x 2456.75 = 1120.28 for the ETH sleeve (mark price unavailable, so the app used entry - and said so). Unknowns render as '-'/'N/A' with a reason rather than 0, satisfying the unavailable-source negative test for this row. Independent review: cited evidence paths were present in the committed tree; exact content reviewed at b31edbf9b2f80037e1c6adb225bca0bc99d45e4b. "
+  },
+  {
+    "row_id": "UI-LCC-DETAIL-02",
+    "verdict": "PASS",
+    "probe": "Compare wallet-specific coin/side/size/entry and unavailable exchange cells.",
+    "why": "Section B renders the full eight-column position table per wallet, and each wallet shows only its own sleeve (W1 -> BTC long 0.0123, W2 -> ETH short -0.456) with the ledger entry price carried through. The exchange-dependent cells are explicitly marked unavailable (mark 'n/a', uPnL '-', EXCHANGE MATCH pill EXCHANGE_UNAVAILABLE) instead of being rendered as 0. Row-bound: the coin/side/size triple would be wrong if the section were merged across wallets or column-shifted. Independent review: cited evidence paths were present in the committed tree; exact content reviewed at b31edbf9b2f80037e1c6adb225bca0bc99d45e4b. "
+  },
+  {
+    "row_id": "UI-LCC-DETAIL-03",
+    "verdict": "PASS",
+    "probe": "With no fills, check C-specific n/a empty state, not zero slippage.",
+    "why": "Section C exists and, with no friction fills available, renders the explicit unavailable path - 'Total diff: n/a', 'Avg diff: n/a' and the sentence 'reference/fill comparison unavailable' - rather than a zero diff that would read as perfect slippage. Row-bound: this is the C section's own empty-state contract, and it fails for a different row's section (A/D/E/F each have distinct empty-state text captured in the same file). Independent review: cited evidence paths were present in the committed tree; exact content reviewed at b31edbf9b2f80037e1c6adb225bca0bc99d45e4b. "
+  },
+  {
+    "row_id": "UI-LCC-DETAIL-04",
+    "verdict": "PASS",
+    "probe": "With no sends, check D counters and D-specific no-real-fills message.",
+    "why": "Section D renders its four counters from the send-attempt record and, with no send_attempts.csv rows present, states the reason ('no real copied fills yet') instead of implying clean execution. Row-bound: the section, its counter set and its empty-state sentence are D-specific; the sibling sections in the same capture carry different labels, so a misplaced or shared component would fail here. Independent review: cited evidence paths were present in the committed tree; exact content reviewed at b31edbf9b2f80037e1c6adb225bca0bc99d45e4b. "
+  },
+  {
+    "row_id": "UI-LCC-POS-01",
+    "verdict": "PASS",
+    "probe": "Cross-check wallet-to-coin mapping against seeded separate BTC and ETH sleeves.",
+    "why": "The COIN column renders the coin of each leader's own sleeve and stays aligned with its wallet row (BTC on the 0x1111 row, ETH on the 0x2222 row). Row-bound: the two seeded sleeves hold different coins, so a column misalignment or a coin read from the wrong sleeve would be visible; it also anchors the remaining POS rows to the correct row identity. Independent review: cited evidence paths were present in the committed tree; exact content reviewed at b31edbf9b2f80037e1c6adb225bca0bc99d45e4b. "
+  },
+  {
+    "row_id": "UI-LCC-POS-02",
+    "verdict": "PASS",
+    "probe": "Exercise positive and negative sizes and verify LONG/SHORT polarity.",
+    "why": "Side is derived from the sign of the ledger sleeve and both polarities are exercised in the same render: +0.0123 -> LONG and -0.456 -> SHORT. Row-bound: a hard-coded side or a lost sign would break one of the two rows, so this cannot pass vacuously from a single sample. Independent review: cited evidence paths were present in the committed tree; exact content reviewed at b31edbf9b2f80037e1c6adb225bca0bc99d45e4b. "
+  },
+  {
+    "row_id": "UI-LCC-POS-03",
+    "verdict": "PASS",
+    "probe": "Compare signed sizes against seed inputs and ledger-net rows.",
+    "why": "The ledger size column reproduces the exact seeded sleeve values, including the negative sign, and agrees with the independent ledger-net summary table rendered on the same page. Row-bound: exact numeric equality per wallet (0.0123 vs -0.456) would fail on a wrong column, a wrong wallet or a rounded/absolute value. Independent review: cited evidence paths were present in the committed tree; exact content reviewed at b31edbf9b2f80037e1c6adb225bca0bc99d45e4b. "
+  },
+  {
+    "row_id": "UI-LCC-POS-04",
+    "verdict": "NOT_TESTED",
+    "probe": "Check for MASTER clearinghouseState oracle; isolated snapshot absent, exchange size is dash.",
+    "why": "This row's assertion is equality between the Exchange size column and the MASTER clearinghouseState, and that oracle is genuinely absent: the isolated app instance has no exchange_account_snapshot_app.json and no reachable Hyperliquid MASTER clearinghouseState read (component: Hyperliquid info API clearinghouseState for the follower account, which is not wired in this isolated render), so the column can only show '-'. The app's behaviour on that absence is correct and is captured (EXCHANGE_UNAVAILABLE, not 0), but that negative path is shared with the other POS rows and therefore cannot certify this row. Not a tooling fault: the probe is complete and re-runnable, the exchange truth simply is not available here. Independent review: cited evidence paths were present in the committed tree; exact content reviewed at b31edbf9b2f80037e1c6adb225bca0bc99d45e4b. The claimed live exchange comparison remains unproved."
+  },
+  {
+    "row_id": "UI-LCC-POS-05",
+    "verdict": "NOT_TESTED",
+    "probe": "Check exchange entryPx oracle; isolated snapshot absent; displayed entry is ledger-derived.",
+    "why": "The row's contract is that the entry-price column equals the exchange entry price. What the build actually renders in that position is the engine ledger average entry (61234.5 / 2456.75, matching the seeded ledger), while exchange entry px is unavailable - component: Hyperliquid MASTER clearinghouseState entryPx via exchange_account_snapshot_app.json, absent in this isolated instance. Certifying equality with exchange truth is therefore not possible here, and I will not pass a ledger number as if it were the exchange number. Independent review: cited evidence paths were present in the committed tree; exact content reviewed at b31edbf9b2f80037e1c6adb225bca0bc99d45e4b. The claimed live exchange comparison remains unproved."
+  }
+]
