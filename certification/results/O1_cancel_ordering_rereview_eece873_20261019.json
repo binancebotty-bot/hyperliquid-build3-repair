@@ -1,0 +1,35 @@
+{
+  "row_id": "O1_CANCEL_RESERVES_SLOT_BEFORE_ANY_WAIT_AND_CANCELS_LAST",
+  "review": "Independent re-review of the corrected ordering assertion",
+  "repository": "binancebotty-bot/hyperliquid-build3-repair",
+  "reviewer": "Codex",
+  "reviewed_commit": "eece87374b9d1535d87ef3339003b48ac9543884",
+  "base_commit": "e312a12b7faa6dd2b9e4e04cf6bb04f34286488a",
+  "reviewed_at_utc": "2026-10-19T14:37:40Z",
+  "environment": {
+    "os": "Windows",
+    "python": "3.11.9",
+    "checkout": "clean detached worktree at reviewed_commit",
+    "network_and_orders": "offline test only; no exchange request or order"
+  },
+  "baseline": {
+    "command": "python _archive/hl_stage2/test_core_engine_gaps.py",
+    "exit_code": 0,
+    "quoted_output": [
+      "ORDERING::WAIT_THEN_CANCEL reserve_at=181 sleep_at=295 cancel_at=350",
+      "RESULT::O1_CANCEL_RESERVES_SLOT_BEFORE_ANY_WAIT_AND_CANCELS_LAST_PASS",
+      "TOTAL=24 FAILED=0"
+    ]
+  },
+  "mutation_control": {
+    "mutation": "In an isolated scratch copy only, moved _reserve_exchange_order_slot() below the wait and reran the unchanged test file. The reviewed worktree files were not edited.",
+    "exit_code": 1,
+    "quoted_output": [
+      "ORDERING::WAIT_THEN_CANCEL reserve_at=275 sleep_at=212 cancel_at=321",
+      "RESULT::O1_CANCEL_RESERVES_SLOT_BEFORE_ANY_WAIT_AND_CANCELS_LAST_FAIL | WAIT_THEN_CANCEL not ordered reserve<sleep<cancel: reserve_at=275 sleep_at=212 cancel_at=321",
+      "TOTAL=24 FAILED=1"
+    ]
+  },
+  "verdict": "PASS",
+  "claim_boundary": "The updated check detects reservation-after-wait in the static _cancel_order source ordering. It is not runtime evidence from a live exchange cancellation."
+}
