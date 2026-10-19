@@ -1,0 +1,107 @@
+[
+  {
+    "row_id": "UI-FP-113",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "certification/results/UI-FP-113-127_live_dom_capture.json#UI-FP-113",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "UI cell Size is present in the served table, but the capture reports engine stopped (no engine status found) and provides no current engine/exchange truth to bind this row-specific value. The required truth-to-API-to-render check therefore could not run; this is the exact unavailable component: running Build-3 testnet engine truth source."
+  },
+  {
+    "row_id": "UI-FP-114",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "certification/results/UI-FP-113-127_live_dom_capture.json#UI-FP-114",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "UI cell Pos before -> after is present in the served table, but the capture reports engine stopped (no engine status found) and provides no current engine/exchange truth to bind this row-specific value. The required truth-to-API-to-render check therefore could not run; this is the exact unavailable component: running Build-3 testnet engine truth source."
+  },
+  {
+    "row_id": "UI-FP-115",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "certification/results/UI-FP-113-127_live_dom_capture.json#UI-FP-115",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "UI cell Leader→send ms is present in the served table, but the capture reports engine stopped (no engine status found) and provides no current engine/exchange truth to bind this row-specific value. The required truth-to-API-to-render check therefore could not run; this is the exact unavailable component: running Build-3 testnet engine truth source."
+  },
+  {
+    "row_id": "UI-FP-116",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "certification/results/UI-FP-113-127_live_dom_capture.json#UI-FP-116",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "UI cell Total ms is present in the served table, but the capture reports engine stopped (no engine status found) and provides no current engine/exchange truth to bind this row-specific value. The required truth-to-API-to-render check therefore could not run; this is the exact unavailable component: running Build-3 testnet engine truth source."
+  },
+  {
+    "row_id": "UI-FP-117",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "certification/results/UI-FP-113-127_live_dom_capture.json#UI-FP-117",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "UI cell Symbol ms is present in the served table, but the capture reports engine stopped (no engine status found) and provides no current engine/exchange truth to bind this row-specific value. The required truth-to-API-to-render check therefore could not run; this is the exact unavailable component: running Build-3 testnet engine truth source."
+  },
+  {
+    "row_id": "UI-FP-118",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "certification/results/UI-FP-113-127_live_dom_capture.json#UI-FP-118",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "UI cell SDK ms is present in the served table, but the capture reports engine stopped (no engine status found) and provides no current engine/exchange truth to bind this row-specific value. The required truth-to-API-to-render check therefore could not run; this is the exact unavailable component: running Build-3 testnet engine truth source."
+  },
+  {
+    "row_id": "UI-FP-119",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "certification/results/UI-FP-113-127_live_dom_capture.json#UI-FP-119",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "UI cell Exchange ms is present in the served table, but the capture reports engine stopped (no engine status found) and provides no current engine/exchange truth to bind this row-specific value. The required truth-to-API-to-render check therefore could not run; this is the exact unavailable component: running Build-3 testnet engine truth source."
+  },
+  {
+    "row_id": "UI-FP-120",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "certification/results/UI-FP-113-127_live_dom_capture.json#UI-FP-120",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "UI cell Error is present in the served table, but the capture reports engine stopped (no engine status found) and provides no current engine/exchange truth to bind this row-specific value. The required truth-to-API-to-render check therefore could not run; this is the exact unavailable component: running Build-3 testnet engine truth source."
+  },
+  {
+    "row_id": "UI-FP-121",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "certification/results/UI-FP-113-127_live_dom_capture.json#UI-FP-121",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "UI cell Time is present in the served table, but the capture reports engine stopped (no engine status found) and provides no current engine/exchange truth to bind this row-specific value. The required truth-to-API-to-render check therefore could not run; this is the exact unavailable component: running Build-3 testnet engine truth source."
+  },
+  {
+    "row_id": "UI-FP-122",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "certification/results/UI-FP-113-127_live_dom_capture.json#UI-FP-122",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "UI cell Wallet is present in the served table, but the capture reports engine stopped (no engine status found) and provides no current engine/exchange truth to bind this row-specific value. The required truth-to-API-to-render check therefore could not run; this is the exact unavailable component: running Build-3 testnet engine truth source."
+  },
+  {
+    "row_id": "UI-FP-123",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "certification/results/UI-FP-113-127_live_dom_capture.json#UI-FP-123",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "UI cell Coin is present in the served table, but the capture reports engine stopped (no engine status found) and provides no current engine/exchange truth to bind this row-specific value. The required truth-to-API-to-render check therefore could not run; this is the exact unavailable component: running Build-3 testnet engine truth source."
+  },
+  {
+    "row_id": "UI-FP-124",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "certification/results/UI-FP-113-127_live_dom_capture.json#UI-FP-124",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "UI cell Side is present in the served table, but the capture reports engine stopped (no engine status found) and provides no current engine/exchange truth to bind this row-specific value. The required truth-to-API-to-render check therefore could not run; this is the exact unavailable component: running Build-3 testnet engine truth source."
+  },
+  {
+    "row_id": "UI-FP-125",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "certification/results/UI-FP-113-127_live_dom_capture.json#UI-FP-125",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "UI cell Source/Reason is present in the served table, but the capture reports engine stopped (no engine status found) and provides no current engine/exchange truth to bind this row-specific value. The required truth-to-API-to-render check therefore could not run; this is the exact unavailable component: running Build-3 testnet engine truth source."
+  },
+  {
+    "row_id": "UI-FP-126",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "certification/results/UI-FP-113-127_live_dom_capture.json#UI-FP-126",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "UI cell Status is present in the served table, but the capture reports engine stopped (no engine status found) and provides no current engine/exchange truth to bind this row-specific value. The required truth-to-API-to-render check therefore could not run; this is the exact unavailable component: running Build-3 testnet engine truth source."
+  },
+  {
+    "row_id": "UI-FP-127",
+    "verdict": "NOT_TESTED",
+    "evidence_ref": "certification/results/UI-FP-113-127_live_dom_capture.json#UI-FP-127",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "UI cell Decision is present in the served table, but the capture reports engine stopped (no engine status found) and provides no current engine/exchange truth to bind this row-specific value. The required truth-to-API-to-render check therefore could not run; this is the exact unavailable component: running Build-3 testnet engine truth source."
+  }
+]

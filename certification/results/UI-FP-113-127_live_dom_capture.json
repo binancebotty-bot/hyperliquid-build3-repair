@@ -1,0 +1,278 @@
+{
+  "captured_at_utc": "2026-10-19T00:19:23.312935+00:00",
+  "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+  "browser": "Chromium headless via Python 3.11 Playwright",
+  "capture": {
+    "title": "Live Copy Dashboard",
+    "url": "http://127.0.0.1:8031/live-copy",
+    "state": "complete",
+    "tables": [
+      {
+        "headers": [
+          "WALLET",
+          "NET P&L",
+          "FEED",
+          "CLOSED / OPEN / FEES",
+          "LEAD↔COPY DIFF",
+          "EXECUTION",
+          "RISK / EXPOSURE",
+          "LAST FILL",
+          "CONTROLS"
+        ],
+        "rows": [
+          [
+            "No live-copy wallets configured."
+          ]
+        ]
+      },
+      {
+        "headers": [
+          "COIN",
+          "LEDGER NET (SUM OF LEADERS)",
+          "EXCHANGE NET",
+          "LEDGER/EXCHANGE",
+          "WHICH LEADER HOLDS WHAT"
+        ],
+        "rows": [
+          [
+            "SENTSHARE",
+            "5",
+            "—",
+            "EXCHANGE_UNAVAILABLE",
+            "0xleaderaa...aaaaaa: +3 0xleaderbb...bbbbbb: +2"
+          ]
+        ]
+      },
+      {
+        "headers": [
+          "WALLET",
+          "COIN",
+          "SIDE",
+          "SIGNED SIZE",
+          "AVG ENTRY",
+          "LEDGER/EXCHANGE",
+          "EXCHANGE SIZE",
+          "LAST COPY FILL",
+          "LAST UPDATED"
+        ],
+        "rows": [
+          [
+            "0xleaderaa...aaaaaa",
+            "SENTSHARE",
+            "LONG",
+            "3",
+            "100",
+            "OWNED_COPY\nEXCHANGE_UNAVAILABLE",
+            "—",
+            "SLEEVEOID1",
+            "2026-10-19T00:00:00Z"
+          ],
+          [
+            "0xleaderbb...bbbbbb",
+            "SENTSHARE",
+            "LONG",
+            "2",
+            "90",
+            "OWNED_COPY\nEXCHANGE_UNAVAILABLE",
+            "—",
+            "SLEEVEOID2",
+            "2026-10-19T00:00:01Z"
+          ]
+        ]
+      },
+      {
+        "headers": [
+          "COIN",
+          "UNEXPLAINED SIZE",
+          "ENTRY PX",
+          "MARK PX",
+          "UNREALIZED PNL",
+          "STATUS",
+          "WHO MANAGES IT",
+          "ENGINE CLOSES IT?",
+          "ENGINE USES IT?",
+          "CONTEXT"
+        ],
+        "rows": [
+          [
+            "None — every exchange position is explained by the engine."
+          ]
+        ]
+      },
+      {
+        "headers": [
+          "Time",
+          "Wallet",
+          "Coin",
+          "Side",
+          "Status",
+          "Terminal state",
+          "Operator action",
+          "Reject category",
+          "OID",
+          "Fill avg px",
+          "Size",
+          "Pos before -> after",
+          "Leader→send ms",
+          "Total ms",
+          "Symbol ms",
+          "SDK ms",
+          "Exchange ms",
+          "Error"
+        ],
+        "rows": [
+          [
+            "2026-10-19T00:00:07Z",
+            "0xSENTWALL...000001",
+            "SENTCOIN",
+            "SENTBUY",
+            "HISTORICAL_LOCAL_BLOCK",
+            "SENTSTATUS",
+            "SENTTERMINAL",
+            "SENTOPERATOR",
+            "SENTREJECT",
+            "SENTOID9999",
+            "123.45",
+            "6.789",
+            "SENTPOSBEFORE -> SENTPOSAFTER",
+            "111",
+            "222",
+            "333",
+            "444",
+            "555",
+            "SENTERRORTEXT"
+          ]
+        ]
+      },
+      {
+        "headers": [
+          "Time",
+          "Wallet",
+          "Coin",
+          "Side",
+          "Source/Reason",
+          "Status",
+          "Decision",
+          "Decision reason",
+          "Suggested limit",
+          "Diff %",
+          "Manual?",
+          "Intent note",
+          "Real order result"
+        ],
+        "rows": [
+          [
+            "No audit rows found."
+          ]
+        ]
+      },
+      {
+        "headers": [
+          "Event",
+          "Status",
+          "Action",
+          "Reject category",
+          "Terminal state",
+          "Coin",
+          "Wallet",
+          "Intent",
+          "Notes"
+        ],
+        "rows": [
+          [
+            "No actionable critical terminal items."
+          ]
+        ]
+      },
+      {
+        "headers": [
+          "Event",
+          "Status",
+          "Action",
+          "Reject category",
+          "Terminal state",
+          "Coin",
+          "Wallet",
+          "Intent",
+          "Notes"
+        ],
+        "rows": [
+          [
+            "No terminal warnings."
+          ]
+        ]
+      },
+      {
+        "headers": [
+          "Status",
+          "Wallet",
+          "Coin",
+          "Intent",
+          "Issue"
+        ],
+        "rows": [
+          [
+            "No legacy terminal-state gaps."
+          ]
+        ]
+      },
+      {
+        "headers": [
+          "Severity",
+          "Wallet",
+          "Coin",
+          "Issue",
+          "Manual ledger",
+          "Exchange",
+          "Action"
+        ],
+        "rows": [
+          [
+            "INFO",
+            "SENTSHARE",
+            "0xleaderaa...aaaaaa",
+            "EXCHANGE_UNAVAILABLE",
+            "LONG 3",
+            "n/a",
+            "1"
+          ],
+          [
+            "INFO",
+            "SENTSHARE",
+            "0xleaderbb...bbbbbb",
+            "EXCHANGE_UNAVAILABLE",
+            "LONG 2",
+            "n/a",
+            "1"
+          ]
+        ]
+      },
+      {
+        "headers": [
+          "Wallet",
+          "Current",
+          "Grade",
+          "Thread",
+          "Reconnect/min",
+          "Processed",
+          "Raw msg",
+          "Parsed",
+          "Snap seen",
+          "Snap recovered",
+          "Ignored",
+          "Recent errors",
+          "Lifetime errors",
+          "Stale ms",
+          "Data status",
+          "Last close/error"
+        ],
+        "rows": [
+          [
+            "WS service not running or no wallet health file found."
+          ]
+        ]
+      }
+    ],
+    "status": true
+  }
+}
