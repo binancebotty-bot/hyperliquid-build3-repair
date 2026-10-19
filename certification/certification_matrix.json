@@ -9471,11 +9471,11 @@
     "stale remote ref"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/CTRL_probe2_t_967fad56.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "origin/control-mailbox carries a different INVARIANTS.md (A1-A17); see OD-15.",
+   "notes": "Earned offline by the ACTIVE/CONTROL probe in certification/results/CTRL_probe2_t_967fad56.json (card t_967fad56), bound against the real control-plane modules (envelope.py, push_gate.py) and the durable carrier origin/control-mailbox. Checks: authority_from_fields_not_path. verified/verifier/review_ref deliberately unset - attestation requires an independent review.",
    "proof_network": "TESTNET"
   },
   {
@@ -9527,11 +9527,11 @@
     "stale remote ref"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/CTRL_probe2_t_967fad56.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "origin/control-mailbox carries a different INVARIANTS.md (A1-A17); see OD-15.",
+   "notes": "Earned offline by the ACTIVE/CONTROL probe in certification/results/CTRL_probe2_t_967fad56.json (card t_967fad56), bound against the real control-plane modules (envelope.py, push_gate.py) and the durable carrier origin/control-mailbox. Checks: ruling_recoverable_from_git. verified/verifier/review_ref deliberately unset - attestation requires an independent review.",
    "proof_network": "TESTNET"
   },
   {
@@ -10168,11 +10168,11 @@
     "stale remote ref"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/CTRL_probe2_t_967fad56.json",
+   "tested_commit": "e82a3d6",
    "tested_at_utc": "",
-   "notes": "",
+   "notes": "Earned offline by the ACTIVE/CONTROL probe in certification/results/CTRL_probe2_t_967fad56.json (card t_967fad56), bound against the real control-plane modules (envelope.py, push_gate.py) and the durable carrier origin/control-mailbox. Checks: no_gate_truth_from_local_state. verified/verifier/review_ref deliberately unset - attestation requires an independent review.",
    "proof_network": "TESTNET"
   },
   {
@@ -10194,11 +10194,11 @@
     "stale remote ref"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
+   "result": "FAIL",
+   "evidence_ref": "certification/results/CTRL_probe3_t_967fad56.py",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": "",
+   "notes": "Earned offline by CTRL_probe3_t_967fad56 (card t_967fad56), run against origin/control-mailbox (280 envelopes). handoff_carries_full_evidence_set: of 118 handoff envelopes on origin/control-mailbox, 0 carry all 8 required evidence fields (TASK_ID, COMMIT_SHA, FILES_CHANGED, LOC, TESTS, OUTPUTS, UNCERTAINTY, STAND_DOWN_REQUEST); the best carries 5 of 8. verified/verifier/review_ref unset - attestation requires an independent review.",
    "proof_network": "TESTNET"
   },
   {
@@ -10220,11 +10220,11 @@
     "stale remote ref"
    ],
    "prior_evidence": "G3 one-gate exception: 400 gross additions accepted (CONTROL_STATE scope_budget)",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
+   "result": "FAIL",
+   "evidence_ref": "certification/results/CTRL_probe3_t_967fad56.py",
    "tested_commit": "",
    "tested_at_utc": "",
-   "notes": "",
+   "notes": "Earned offline by CTRL_probe3_t_967fad56 (card t_967fad56), run against origin/control-mailbox (280 envelopes). escalation_type_traverses_gate: 7 ESCALATION envelopes exist on the carrier; the gate allowlist admits 1. A tripwire evaluator (LOC/files/process/dependency/send-path/repeat-failure) does not exist in the certified tree - only a manual CONTROL_STATE scope_budget exception. verified/verifier/review_ref unset - attestation requires an independent review.",
    "proof_network": "TESTNET"
   },
   {
