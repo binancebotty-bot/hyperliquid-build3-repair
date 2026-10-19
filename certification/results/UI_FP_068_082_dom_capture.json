@@ -10,7 +10,7 @@
         "NET P&L",
         "FEED",
         "CLOSED / OPEN / FEES",
-        "LEAD\u2194COPY DIFF",
+        "LEAD↔COPY DIFF",
         "EXECUTION",
         "RISK / EXPOSURE",
         "LAST FILL",
@@ -36,7 +36,7 @@
         [
           "SENTSHARE",
           "5",
-          "\u2014",
+          "—",
           "EXCHANGE_UNAVAILABLE",
           "0xleaderaa...aaaaaa: +3 0xleaderbb...bbbbbb: +2"
         ]
@@ -64,7 +64,7 @@
           "3",
           "100",
           "OWNED_COPY\nEXCHANGE_UNAVAILABLE",
-          "\u2014",
+          "—",
           "SLEEVEOID1",
           "2026-10-19T00:00:00Z"
         ],
@@ -75,7 +75,7 @@
           "2",
           "90",
           "OWNED_COPY\nEXCHANGE_UNAVAILABLE",
-          "\u2014",
+          "—",
           "SLEEVEOID2",
           "2026-10-19T00:00:01Z"
         ]
@@ -98,7 +98,7 @@
       ],
       "rows": [
         [
-          "None \u2014 every exchange position is explained by the engine."
+          "None — every exchange position is explained by the engine."
         ]
       ]
     },
@@ -118,7 +118,7 @@
         "Fill avg px",
         "Size",
         "Pos before -> after",
-        "Leader\u2192send ms",
+        "Leader→send ms",
         "Total ms",
         "Symbol ms",
         "SDK ms",
@@ -304,5 +304,67 @@
       "exists": false
     }
   ],
-  "text": "Live Copy Command Centre\nWallets:\n0 / 10\nLive wallets: 0\nClose-only wallets: 0\nOff: 0\nLeader feed:\nPolling (normal)\nRefresh\nGlobal Controls\nAdd wallet\nACCOUNT VALUE (TESTNET)\n\u2014\nSENDING\nOFF\nHEALTH\nStopped: the engine is not running (no engine status found)\nACCOUNT CHANGE SINCE 18 OCT, 01:25\n\u2014\nOPEN POSITIONS\n\u2014\nTechnical detail\nLoaded\nDoes the P&L add up?\n\nStart value to now, from the exchange: every fill and funding payment in the window is counted.\n\nStart value (18 Oct, 01:25, earliest record; )\n\u2014\nActual change (now \u2014)\n\u2014\naccount value now is unavailable on the same basis as the start record\nLive Copy Status\nHEALTH\nStopped: the engine is not running (no engine status found)\ndetails under Technical detail\nLEADER FEED\nPolling (normal)\nthe engine polls each leader\nFOLLOWER ACCOUNT READ\n\u2014\nWALLETS\n0 live / 0 followed\nlive + close-only are followed\nLAST SEND\nSENTCOIN SENTSTATUS\nSENTTERMINAL\nLAST FILL\n\u2014\nLAST REJECT\n\u2014\nLAST LATENCY WARNING\n\u2014\nReal Account\nPORTFOLIO VALUE (TESTNET)\n\u2014\nOPEN POSITIONS P&L (UNREALISED)\n\u2014\nCLOSED P&L (REALISED)\n\u2014\nOPEN POSITIONS\n\u2014\nLIVE EXPOSURE\n$0\nLive Account / Wallet PnL\n\nNot enough points in selected range (ALL).\n\nAccount\nSelected Wallet PnL\nExposure\n1D\n7D\nALL\nApply\nReset\nTotal PnL\nRealized PnL\nDrawdown\nLive Copy Wallets\n\nConfigured wallets from live_config.json. Click a row for real copy details for that leader.\n\nWALLET\tNET P&L\tFEED\tCLOSED / OPEN / FEES\tLEAD\u2194COPY DIFF\tEXECUTION\tRISK / EXPOSURE\tLAST FILL\tCONTROLS\nNo live-copy wallets configured.\nReal Copy Positions\nExecution Quality\nOrder Intents / Audit\nReconciliation\nWS Health\nReal User Copy Positions\n\nManual ledger vs real exchange account. All sizes signed (positive = long, negative = short). Exchange data requires HL_LIVE_HL_ACCOUNT_ADDRESS configured.\n\nNET BY COIN \u2014 ONE SHARED ACCOUNT (leaders net like the exchange)\nCOIN\tLEDGER NET (SUM OF LEADERS)\tEXCHANGE NET\tLEDGER/EXCHANGE\tWHICH LEADER HOLDS WHAT\nSENTSHARE\t5\t\u2014\tEXCHANGE_UNAVAILABLE\t0xleaderaa...aaaaaa: +3 0xleaderbb...bbbbbb: +2\nOWNED COPY POSITIONS\nWALLET\tCOIN\tSIDE\tSIGNED SIZE\tAVG ENTRY\tLEDGER/EXCHANGE\tEXCHANGE SIZE\tLAST COPY FILL\tLAST UPDATED\n0xleaderaa...aaaaaa\tSENTSHARE\tLONG\t3\t100\t\nOWNED_COPY\nEXCHANGE_UNAVAILABLE\n\t\u2014\tSLEEVEOID1\t2026-10-19T00:00:00Z\n0xleaderbb...bbbbbb\tSENTSHARE\tLONG\t2\t90\t\nOWNED_COPY\nEXCHANGE_UNAVAILABLE\n\t\u2014\tSLEEVEOID2\t2026-10-19T00:00:01Z\nPOSITIONS NOT OPENED BY THE ENGINE\nCOIN\tUNEXPLAINED SIZE\tENTRY PX\tMARK PX\tUNREALIZED PNL\tSTATUS\tWHO MANAGES IT\tENGINE CLOSES IT?\tENGINE USES IT?\tCONTEXT\nNone \u2014 every exchange position is explained by the engine."
+  "text": "Live Copy Command Centre\nWallets:\n0 / 10\nLive wallets: 0\nClose-only wallets: 0\nOff: 0\nLeader feed:\nPolling (normal)\nRefresh\nGlobal Controls\nAdd wallet\nACCOUNT VALUE (TESTNET)\n—\nSENDING\nOFF\nHEALTH\nStopped: the engine is not running (no engine status found)\nACCOUNT CHANGE SINCE 18 OCT, 01:25\n—\nOPEN POSITIONS\n—\nTechnical detail\nLoaded\nDoes the P&L add up?\n\nStart value to now, from the exchange: every fill and funding payment in the window is counted.\n\nStart value (18 Oct, 01:25, earliest record; )\n—\nActual change (now —)\n—\naccount value now is unavailable on the same basis as the start record\nLive Copy Status\nHEALTH\nStopped: the engine is not running (no engine status found)\ndetails under Technical detail\nLEADER FEED\nPolling (normal)\nthe engine polls each leader\nFOLLOWER ACCOUNT READ\n—\nWALLETS\n0 live / 0 followed\nlive + close-only are followed\nLAST SEND\nSENTCOIN SENTSTATUS\nSENTTERMINAL\nLAST FILL\n—\nLAST REJECT\n—\nLAST LATENCY WARNING\n—\nReal Account\nPORTFOLIO VALUE (TESTNET)\n—\nOPEN POSITIONS P&L (UNREALISED)\n—\nCLOSED P&L (REALISED)\n—\nOPEN POSITIONS\n—\nLIVE EXPOSURE\n$0\nLive Account / Wallet PnL\n\nNot enough points in selected range (ALL).\n\nAccount\nSelected Wallet PnL\nExposure\n1D\n7D\nALL\nApply\nReset\nTotal PnL\nRealized PnL\nDrawdown\nLive Copy Wallets\n\nConfigured wallets from live_config.json. Click a row for real copy details for that leader.\n\nWALLET\tNET P&L\tFEED\tCLOSED / OPEN / FEES\tLEAD↔COPY DIFF\tEXECUTION\tRISK / EXPOSURE\tLAST FILL\tCONTROLS\nNo live-copy wallets configured.\nReal Copy Positions\nExecution Quality\nOrder Intents / Audit\nReconciliation\nWS Health\nReal User Copy Positions\n\nManual ledger vs real exchange account. All sizes signed (positive = long, negative = short). Exchange data requires HL_LIVE_HL_ACCOUNT_ADDRESS configured.\n\nNET BY COIN — ONE SHARED ACCOUNT (leaders net like the exchange)\nCOIN\tLEDGER NET (SUM OF LEADERS)\tEXCHANGE NET\tLEDGER/EXCHANGE\tWHICH LEADER HOLDS WHAT\nSENTSHARE\t5\t—\tEXCHANGE_UNAVAILABLE\t0xleaderaa...aaaaaa: +3 0xleaderbb...bbbbbb: +2\nOWNED COPY POSITIONS\nWALLET\tCOIN\tSIDE\tSIGNED SIZE\tAVG ENTRY\tLEDGER/EXCHANGE\tEXCHANGE SIZE\tLAST COPY FILL\tLAST UPDATED\n0xleaderaa...aaaaaa\tSENTSHARE\tLONG\t3\t100\t\nOWNED_COPY\nEXCHANGE_UNAVAILABLE\n\t—\tSLEEVEOID1\t2026-10-19T00:00:00Z\n0xleaderbb...bbbbbb\tSENTSHARE\tLONG\t2\t90\t\nOWNED_COPY\nEXCHANGE_UNAVAILABLE\n\t—\tSLEEVEOID2\t2026-10-19T00:00:01Z\nPOSITIONS NOT OPENED BY THE ENGINE\nCOIN\tUNEXPLAINED SIZE\tENTRY PX\tMARK PX\tUNREALIZED PNL\tSTATUS\tWHO MANAGES IT\tENGINE CLOSES IT?\tENGINE USES IT?\tCONTEXT\nNone — every exchange position is explained by the engine.",
+  "evidence": {
+    "UI-FP-068": {
+      "json_pointer": "#/tables/2/rows/0/2",
+      "observed": "LONG"
+    },
+    "UI-FP-069": {
+      "json_pointer": "#/tables/2/rows/0/3",
+      "observed": "3"
+    },
+    "UI-FP-070": {
+      "json_pointer": "#/tables/2/rows/0/4",
+      "observed": "100"
+    },
+    "UI-FP-071": {
+      "json_pointer": "#/tables/2/rows/0/5",
+      "observed": "OWNED_COPY\nEXCHANGE_UNAVAILABLE"
+    },
+    "UI-FP-072": {
+      "json_pointer": "#/tables/2/rows/1/6",
+      "observed": "—"
+    },
+    "UI-FP-073": {
+      "json_pointer": "#/tables/2/rows/1/7",
+      "observed": "SLEEVEOID2"
+    },
+    "UI-FP-074": {
+      "json_pointer": "#/tables/2/rows/1/8",
+      "observed": "2026-10-19T00:00:01Z"
+    },
+    "UI-FP-075": {
+      "json_pointer": "#/targetIds/2",
+      "observed": "lcFrictionRows exists=false; no friction-fill detail table is captured"
+    },
+    "UI-FP-076": {
+      "json_pointer": "#/targetIds/2",
+      "observed": "lcFrictionRows exists=false; no friction-fill detail table is captured"
+    },
+    "UI-FP-077": {
+      "json_pointer": "#/targetIds/2",
+      "observed": "lcFrictionRows exists=false; no friction-fill detail table is captured"
+    },
+    "UI-FP-078": {
+      "json_pointer": "#/targetIds/2",
+      "observed": "lcFrictionRows exists=false; no friction-fill detail table is captured"
+    },
+    "UI-FP-079": {
+      "json_pointer": "#/targetIds/2",
+      "observed": "lcFrictionRows exists=false; no friction-fill detail table is captured"
+    },
+    "UI-FP-080": {
+      "json_pointer": "#/targetIds/2",
+      "observed": "lcFrictionRows exists=false; no friction-fill detail table is captured"
+    },
+    "UI-FP-081": {
+      "json_pointer": "#/targetIds/2",
+      "observed": "lcFrictionRows exists=false; no friction-fill detail table is captured"
+    },
+    "UI-FP-082": {
+      "json_pointer": "#/targetIds/2",
+      "observed": "lcFrictionRows exists=false; no friction-fill detail table is captured"
+    }
+  }
 }
