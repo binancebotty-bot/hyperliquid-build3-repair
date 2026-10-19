@@ -69,6 +69,8 @@ def run():
     # A prior 99.616 ms reading against a 100 ms gap is sub-ms rounding between
     # integer slot arithmetic and wall-clock call time; allow only 2 ms here.
     assert min(observed) >= 98, min(observed)
+    strict_32 = all(ex.calls[i][1] < ex.calls[i+1][1] for i in range(len(ex.calls)-1))
+    assert strict_32, ex.calls
     max_hold = max(lock.samples)
     assert max_hold < 1000, max_hold
 
@@ -111,6 +113,7 @@ def run():
     for t in ts: t.join(5)
     assert len(waited) == 8
     strict = all(ex3.calls[i][1] < ex3.calls[i+1][1] for i in range(len(ex3.calls)-1))
+    assert strict, ex3.calls
     print('RESULT::pacing_32_count=%d min_spacing_ms=%.3f' % (len(observed)+1, min(observed)))
     print('RESULT::reserved_slot_min_spacing_ms=%d' % min(reserved_deltas))
     print('RESULT::max_lock_hold_us=%.3f' % max_hold)
