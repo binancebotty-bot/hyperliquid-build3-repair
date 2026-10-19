@@ -599,10 +599,10 @@
    ],
    "prior_evidence": "",
    "result": "NOT_TESTED",
-   "evidence_ref": "certification/results/ENG-INV-01_one_process_t_25bebbc7.json",
+   "evidence_ref": "certification/results/ENG-INV-01_lock_semantics_t_t_ef2d2737.json",
    "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
    "tested_at_utc": "2026-10-14T09:05:00Z",
-   "notes": "NOT_TESTED per worker artifact t_25bebbc7: one live engine process observed (PID 44952, TCP corroborated) but the two-instance negative control was NOT performed, so one-process behaviour is unproven. Static census supporting-only (1 order site, Core:4206).",
+   "notes": "NOT_TESTED - REQUIREMENT CONFLICT. The single-instance guard is real and OS-enforced: a same-directory second acquirer was refused (child rc=23, 'INSTANCE_ALREADY_RUNNING: another engine holds <dir>'), and reacquisition after release succeeded. But it is PER-DIRECTORY: while one holder retained directory A, a separate process acquired directory B cleanly (child rc=0). The register's expected_behaviour says 'One process.', which is stricter than the implemented 'one engine per state folder'. The row is not passed on the narrower invariant. Pending a ruling on which is authoritative. Limit: Windows 11 / local filesystem; not proof for network or advisory-locking filesystems.",
    "verified": null,
    "verifier": null,
    "review_ref": null
