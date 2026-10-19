@@ -137,3 +137,23 @@ Check the committed object.
 If your probe cannot run because of the environment above, **fix the environment**. Do not record
 `NOT_TESTED` for a tooling failure — that understates the product and is as misleading as a false PASS.
 Reserve `NOT_TESTED` for a genuine product-side or decision-side gap, and name it exactly.
+
+## THE PROCESS RULE — stated correctly (an inverted version was issued in cards and refused 152 rows)
+
+A served page is attributable to a source file **when the file's mtime PREDATES the listener's start time**. The process
+started after the file was last written, so it necessarily loaded that content.
+
+    file mtime  2026-05-13 08:18:03        <- written first
+    PID 15760   started 2026-10-19 08:40:25 <- started later, therefore loaded it   => ATTRIBUTABLE
+
+Issued inverted as "the serving PID must predate the file's mtime" this rule disqualifies every healthy process, because
+a live process is almost always younger than the code it runs. Three UI cards applied the inverted form faithfully and
+returned 152 rows NOT_TESTED for a reason that does not exist.
+
+Correct check:
+
+    python -c "import os,datetime as d; p=os.path.getmtime(PATH); print(d.datetime.fromtimestamp(p))"
+    # listener start time must be GREATER than the file mtime
+
+A checkout hash is still not the serving build — but a hash mismatch means you are looking at the wrong FILE, not that
+the process is unattributable.
