@@ -72,7 +72,7 @@
    "verdict": "FAIL",
    "evidence_ref": "certification/results/UI_CERT_t_23fc77ee_probe_89b3bc7.json#runs.display_only_and_flip_tests.hdr05",
    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
-   "why": "The REAL ORDERS safety pill does not exist at the tested commit. In the commit-bound rendered page #lcRealOrders resolves to no element and the document contains zero occurrences of the text \"REAL ORDERS\"; the header pills are only Wallets / Live wallets / Close-only wallets / Off / Leader feed, and the header buttons are Refresh, Global Controls, Add wallet, close, Save Global Controls. grep of HL_Copy_App_SSOT.py at 89b3bc7 returns 0 matches for \"REAL ORDERS\". The pill exists only in the uncommitted working tree served on :8031, so it cannot be credited to any commit."
+   "why": "FAIL on commit-bound instance only: the available probe fields do not prove a REAL ORDERS pill. Its broad any_REAL_ORDERS_text=true is unexplained by the artifact (no raw DOM/text match is recorded), while selector_lcRealOrders=false, runs.ui_core.hdr_loaded.hdr05_realorders=null, and the captured header_pills list contains no REAL ORDERS pill. The committed source at tested_commit 89b3bc7586bf328df336fc9ea721cee212617762 has no REAL ORDERS / lcRealOrders pill markup (the source grep yielded only the separate sending banner phrase). Therefore the text boolean is not sufficient evidence to overturn FAIL; this is not a fresh rerun, and the commit-bound artifact is a third surface, distinct from served hashes b45ff9af (:8031 /) and fad19d22 (:8023 /live-copy)."
   },
   {
    "row_id": "UI-LCC-HDR-06",
