@@ -202,9 +202,9 @@ def main():
                                       recording_method="t", raw={}), cfg)
     check("planner still converges on the injected ACTUAL", abs(float(s3.get_position("0xw1", "BTC")["signed_size"])) > 0, str(s3.get_position("0xw1", "BTC")))
 
-    print("\n=== L) single physical order site ===")
+    print("\n=== L) legacy module has no physical order site ===")
     src = (Path(__file__).parent / "HL_Live_Copy_Service.py").read_text(encoding="utf-8", errors="replace")
-    check("exactly one exchange.order() call site", src.count("exchange.order(") == 1, str(src.count("exchange.order(")))
+    check("legacy module has no exchange.order() call site", "exchange.order(" not in src, str(src.count("exchange.order(")))
 
     print("\n=== A2) production has NO account-net fallback; runtime identity separation ===")
     reset_master()
@@ -297,9 +297,9 @@ def main():
           abs(float(revived.account_net_actual("BTC").get("net")) - 3.0) < 1e-9,
           str(revived.account_net_actual("BTC")))
 
-    print("\n=== L2) order-site invariant after the correction ===")
+    print("\n=== L2) legacy order-site invariant after the correction ===")
     src2 = (Path(__file__).parent / "HL_Live_Copy_Service.py").read_text(encoding="utf-8", errors="replace")
-    check("L2) exactly one physical exchange.order() site still", src2.count("exchange.order(") == 1, str(src2.count("exchange.order(")))
+    check("L2) legacy module remains free of exchange.order()", "exchange.order(" not in src2, str(src2.count("exchange.order(")))
 
     print("\n=== CL) durable in-flight checkpoint is never clobbered by persist() ===")
     tmpc = Path(tempfile.mkdtemp(prefix="g3_clob_"))

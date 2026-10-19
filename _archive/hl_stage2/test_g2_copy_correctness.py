@@ -174,10 +174,10 @@ def main() -> None:
     check("actual == desired -> NONE (no order minted)",
           sizing.get("ok") and sizing["order"].action == "NONE", str(sizing.get("order")))
 
-    print("\n=== t6) exactly one physical .order() call site ===")
+    print("\n=== t6) legacy sender has no physical .order() call site ===")
     src = (HERE / "HL_Live_Copy_Service.py").read_text(encoding="utf-8", errors="replace")
-    check("exactly one '.order(' call site", src.count(".order(") == 1, f"count={src.count('.order(')}")
-    check("that call site is exchange.order(...)", src.count("exchange.order(") == 1)
+    check("legacy module has no direct .order() call site", ".order(" not in src,
+          f"found {src.count('.order(')} .order() references")
 
     print("\n=== t7) sign flip: planner side preserved, first leg only flattens ===")
     svc7 = fresh()

@@ -933,194 +933,24 @@ def _is_reduce_only_full_close_bypass(
     return True
 
 
-def send_hyperliquid_order(payload: Dict[str, Any], marketable_bps: float = 0.0, use_current_quote: bool = False, max_notional: Optional[float] = None) -> Dict[str, Any]:
-    coin = str(payload.get("coin", "")).upper().strip()
-    side = str(payload.get("side", "")).upper().strip()
-    size = fnum(payload.get("copy_size"))
-    limit_px = fnum(payload.get("limit_price"))
-    reduce_only = bool(payload.get("reduce_only"))
-    marketable_bps = fnum(marketable_bps)
-    if marketable_bps < 0:
-        return {"ok": False, "status": "MARKETABLE_BPS_INVALID", "marketable_bps": marketable_bps}
-    if marketable_bps > 20:
-        return {"ok": False, "status": "MARKETABLE_BPS_TOO_HIGH", "marketable_bps": marketable_bps}
-    adjusted_limit_px = limit_px
-    if marketable_bps > 0:
-        multiplier = 1 + (marketable_bps / 10000.0) if side == "BUY" else 1 - (marketable_bps / 10000.0)
-        adjusted_limit_px = limit_px * multiplier
-    _sym = resolve_hl_perp_symbol(coin)
-    if not _sym.get("ok"):
-        _sym = resolve_hl_perp_symbol(coin, force_refresh=True)
-    if not _sym.get("ok"):
-        return {
-            "ok": False, "coin": coin, "side": side,
-            "status": _sym.get("status", "SYMBOL_UNAVAILABLE"),
-            "error": str(_sym.get("error", "")),
-            "meta_available": _sym.get("meta_available", False),
-            "reason": str(_sym.get("reason", "")),
-            "refreshed": _sym.get("refreshed", True),
-            "source": _sym.get("source", "fresh"),
-            "size": size, "limit_price": limit_px, "marketable_bps": marketable_bps,
-            "adjusted_limit_price": adjusted_limit_px, "original_size": size,
-            "original_limit_price": limit_px, "reduce_only": reduce_only,
-            "use_current_quote": bool(use_current_quote),
-            "price_source": payload.get("price_source", "intent_price"),
-            "current_quote_price": payload.get("current_quote_price", ""),
-        }
-    canonical_coin = str(_sym.get("canonical_coin") or coin)
-    private_key = os.getenv("HL_LIVE_HL_PRIVATE_KEY", "").strip()
-    if not private_key:
-        return {"ok": False, "status": "CREDENTIALS_MISSING"}
-    try:
-        from eth_account import Account  # type: ignore
-        from hyperliquid.exchange import Exchange  # type: ignore
-    except Exception as exc:
-        return {"ok": False, "status": "SDK_UNAVAILABLE", "error": repr(exc)}
-
-    try:
-        _effective_max_notional = max_notional if max_notional is not None else LIVE_MAX_MANUAL_ORDER_NOTIONAL_USD
-        prepared = prepare_hl_order_numbers(canonical_coin, size, adjusted_limit_px, _effective_max_notional)
-        if prepared.get("status") == "MIN_NOTIONAL_AFTER_ROUNDING":
-            _bwire = fnum(prepared.get("wire_size", 0))
-            _binc = fnum(prepared.get("size_increment") or "0.001")
-            if _is_reduce_only_full_close_bypass(payload, _bwire, _binc, reduce_only):
-                prepared = {
-                    **prepared,
-                    "ok": True,
-                    "min_notional_bypass": True,
-                    "min_notional_bypass_reason": "EXACT_REDUCE_ONLY_FULL_CLOSE",
-                }
-        cap_context = {
-            "copy_mode": payload.get("copy_mode", ""),
-            "fixed_notional": payload.get("fixed_notional", ""),
-            "intended_notional": payload.get("intended_notional", payload.get("copy_notional", "")),
-            "max_notional_used": _effective_max_notional,
-            "global_max_notional": payload.get("global_max_notional", LIVE_MAX_MANUAL_ORDER_NOTIONAL_USD),
-            "cap_source": payload.get("cap_source", "manual_open_cap" if max_notional is not None else "env_fallback"),
-            "notional_cap_reason": payload.get("notional_cap_reason", ""),
-        }
-        if not prepared.get("ok"):
-            _out = {
-                "ok": False,
-                "coin": coin,
-                "canonical_coin": canonical_coin,
-                "side": side,
-                "order_type": payload.get("order_type", "IOC_LIMIT"),
-                "reduce_only": reduce_only,
-                "marketable_bps": marketable_bps,
-                "adjusted_limit_price": adjusted_limit_px,
-                "original_price": limit_px,
-                "rounded_price": prepared.get("rounded_price", prepared.get("wire_limit_price")),
-                "original_size": size,
-                "rounded_size": prepared.get("rounded_size", prepared.get("wire_size")),
-                "tick_info": {
-                    "szDecimals": prepared.get("szDecimals"),
-                    "size_increment": prepared.get("size_increment"),
-                    "price_max_decimals": prepared.get("price_max_decimals"),
-                },
-                **cap_context,
-                **prepared,
-            }
-            if prepared.get("status") == "MAX_NOTIONAL_EXCEEDED":
-                _out["wire_notional"] = prepared.get("wire_notional", prepared.get("copy_notional"))
-                _out["notional_cap_reason"] = payload.get("notional_cap_reason") or "manual_open_cap"
-            return _out
-        wire_size = fnum(prepared.get("wire_size"))
-        wire_limit_px = fnum(prepared.get("wire_limit_price"))
-        account = Account.from_key(private_key)
-        base_url = str(LIVE_ORDER_ENDPOINT or "").strip() or "https://api.hyperliquid.xyz/exchange"
-        if base_url.endswith("/exchange"):
-            base_url = base_url[: -len("/exchange")]
-        account_address = os.getenv("HL_LIVE_HL_ACCOUNT_ADDRESS", "").strip() or None
-        exchange = Exchange(account, base_url=base_url, account_address=account_address)
-        response = exchange.order(
-            canonical_coin,
-            side == "BUY",
-            wire_size,
-            wire_limit_px,
-            {"limit": {"tif": "Ioc"}},
-            reduce_only=reduce_only,
-        )
-        parsed_status = parse_hl_order_status(response)
-        return {
-            "ok": bool(parsed_status.get("ok")),
-            "status": parsed_status.get("status", "ORDER_UNKNOWN"),
-            "response": response,
-            "fill_avg_px": parsed_status.get("fill_avg_px", ""),
-            "fill_size": parsed_status.get("fill_size", ""),
-            "oid": parsed_status.get("oid", ""),
-            "error": parsed_status.get("error", ""),
-            "coin": coin,
-            "canonical_coin": canonical_coin,
-            "side": side,
-            "size": wire_size,
-            "limit_price": wire_limit_px,
-            "marketable_bps": marketable_bps,
-            "adjusted_limit_price": adjusted_limit_px,
-            "use_current_quote": bool(use_current_quote),
-            "price_source": payload.get("price_source", "intent_price"),
-            "current_quote_price": payload.get("current_quote_price", ""),
-            "szDecimals": prepared.get("szDecimals"),
-            "original_size": prepared.get("original_size"),
-            "wire_size": prepared.get("wire_size"),
-            "original_limit_price": limit_px,
-            "wire_limit_price": prepared.get("wire_limit_price"),
-            "wire_notional": prepared.get("wire_notional"),
-            "reduce_only": reduce_only,
-            "min_notional_bypass": prepared.get("min_notional_bypass", False),
-            "min_notional_bypass_reason": prepared.get("min_notional_bypass_reason", ""),
-            "position_before": payload.get("position_before", ""),
-            "close_position": payload.get("close_position", ""),
-            "size_source": payload.get("size_source", ""),
-            **cap_context,
-        }
-    except Exception as exc:
-        if isinstance(exc, KeyError):
-            _exc_repr = repr(exc).upper()
-            if canonical_coin.upper() in _exc_repr or coin in _exc_repr:
-                _reason = "coin not in Hyperliquid perp universe / SDK asset map"
-                return {
-                    "ok": False,
-                    "status": "SDK_SYMBOL_MAP_UNAVAILABLE",
-                    "coin": coin,
-                    "canonical_coin": canonical_coin,
-                    "side": side,
-                    "error": _reason,
-                    "meta_available": True,
-                    "meta_present": True,
-                    "sdk_map_present": False,
-                    "refreshed": _sym.get("refreshed", False),
-                    "reason": _reason,
-                    "size": size,
-                    "limit_price": limit_px,
-                    "marketable_bps": marketable_bps,
-                    "adjusted_limit_price": adjusted_limit_px,
-                    "use_current_quote": bool(use_current_quote),
-                    "price_source": payload.get("price_source", "intent_price"),
-                    "current_quote_price": payload.get("current_quote_price", ""),
-                    "original_size": size,
-                    "original_limit_price": limit_px,
-                    "reduce_only": reduce_only,
-                }
-        return {
-            "ok": False,
-            "status": "ORDER_REJECTED",
-            "error": repr(exc),
-            "coin": coin,
-            "side": side,
-            "size": size,
-            "limit_price": limit_px,
-            "marketable_bps": marketable_bps,
-            "adjusted_limit_price": adjusted_limit_px,
-            "use_current_quote": bool(use_current_quote),
-            "price_source": payload.get("price_source", "intent_price"),
-            "current_quote_price": payload.get("current_quote_price", ""),
-            "original_size": size,
-            "original_limit_price": limit_px,
-            "reduce_only": reduce_only,
-        }
-
-
+def send_hyperliquid_order(
+    payload: Dict[str, Any],
+    marketable_bps: float = 0.0,
+    use_current_quote: bool = False,
+    max_notional: Optional[float] = None,
+) -> Dict[str, Any]:
+    """Fail closed: live order submission is owned by the Core sender only."""
+    return {
+        "ok": False,
+        "status": "LEGACY_DIRECT_SENDER_DISABLED",
+        "error": "Legacy direct sender retired; live orders use HL_Live_Copy_Service_Core.py.",
+        "coin": str(payload.get("coin", "")).upper().strip(),
+        "side": str(payload.get("side", "")).upper().strip(),
+        "size": fnum(payload.get("copy_size")),
+        "limit_price": fnum(payload.get("limit_price")),
+        "marketable_bps": fnum(marketable_bps),
+        "use_current_quote": bool(use_current_quote),
+    }
 def manual_send_one_intent(intent_id: str, confirm_send: bool, marketable_bps: float = 0.0, close_position: bool = False, use_current_quote: bool = False, auto_live: bool = False, auto_send_wallet: str = "", planner_side: str = "") -> Dict[str, Any]:
     ensure_csv_schema(SEND_ATTEMPTS_CSV, SEND_ATTEMPT_FIELDS)
     row = load_would_send_order(intent_id)
@@ -4861,8 +4691,8 @@ def self_test() -> bool:
                 sdk_result = send_hyperliquid_order({"coin": "BTC", "side": "BUY", "order_type": "IOC_LIMIT", "limit_price": 100.0, "copy_size": 0.01, "copy_notional": 1.0, "reduce_only": False})
             finally:
                 builtins.__import__ = real_import
-            if sdk_result.get("status") != "SDK_UNAVAILABLE":
-                raise AssertionError(f"forced SDK unavailable path returned unexpected status: {sdk_result}")
+            if sdk_result.get("status") != "LEGACY_DIRECT_SENDER_DISABLED":
+                raise AssertionError(f"legacy sender should fail closed: {sdk_result}")
             if count_csv_data_rows(SEND_ATTEMPTS_CSV) < 3:
                 raise AssertionError("send attempts ledger did not record manual send attempts")
 
