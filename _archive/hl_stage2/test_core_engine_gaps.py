@@ -80,7 +80,7 @@ def main() -> None:
     check("O1_ALL_SIX_ORDER_SITES_USE_IT", src.count("self._place_order(") == 6, str(src.count("self._place_order(")))
     cancel_body = src.split("def _cancel_order(", 1)[1].split("\n    def ", 1)[0]
     check("O1_EXACTLY_ONE_EXCHANGE_CANCEL_CALL", len(re.findall(r"exchange\.cancel\(", src)) == 1
-          and "exchange.cancel(" in cancel_body and "_exchange_order_lock" in cancel_body)
+          and "exchange.cancel(" in cancel_body and "_reserve_exchange_order_slot(" in cancel_body)
 
     class FakeExchange:
         def __init__(self):
