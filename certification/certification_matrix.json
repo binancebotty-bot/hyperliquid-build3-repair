@@ -10714,11 +10714,11 @@
     "restart at each lifecycle point"
    ],
    "prior_evidence": "Build 4 coverage PARTIAL: `test_operational_safety_invariants.py`",
-   "result": "PASS",
-   "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
-   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
-   "tested_at_utc": "2026-10-14T09:53:11Z",
-   "notes": "Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified."
+   "result": "NOT_TESTED",
+   "evidence_ref": "MISSING_BUILD4_ROUTE: hyperliquid-build4/GUT_CONTRACT.md §D R13 -> Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+   "tested_commit": "",
+   "tested_at_utc": "",
+   "notes": "Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | WITHDRAWN 2026-10-19 (t_ee4bc2af): prior PASS derived from the Build3-archive sweep certification/results/REGRESSION_fa9d9f55ff.json, which binds to the archived Build3 engine and is not row-bound Build4 evidence."
   },
   {
    "id": "B4-R14",
@@ -10736,11 +10736,11 @@
     "restart at each lifecycle point"
    ],
    "prior_evidence": "Build 4 coverage COVERED: `test_certification_is_diagnostic_only.py`",
-   "result": "PASS",
-   "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
-   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
-   "tested_at_utc": "2026-10-14T09:53:11Z",
-   "notes": "Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified."
+   "result": "NOT_TESTED",
+   "evidence_ref": "MISSING_BUILD4_ROUTE: hyperliquid-build4/GUT_CONTRACT.md §D R14 -> Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+   "tested_commit": "",
+   "tested_at_utc": "",
+   "notes": "Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | WITHDRAWN 2026-10-19 (t_ee4bc2af): prior PASS derived from the Build3-archive sweep certification/results/REGRESSION_fa9d9f55ff.json, which binds to the archived Build3 engine and is not row-bound Build4 evidence."
   },
   {
    "id": "B4-R15",
@@ -10758,11 +10758,11 @@
     "restart at each lifecycle point"
    ],
    "prior_evidence": "Build 4 coverage COVERED: `test_handover_state_snapshot.py`",
-   "result": "PASS",
-   "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
-   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
-   "tested_at_utc": "2026-10-14T09:53:11Z",
-   "notes": "Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified."
+   "result": "NOT_TESTED",
+   "evidence_ref": "MISSING_BUILD4_ROUTE: hyperliquid-build4/GUT_CONTRACT.md §D R15 -> Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+   "tested_commit": "",
+   "tested_at_utc": "",
+   "notes": "Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | WITHDRAWN 2026-10-19 (t_ee4bc2af): prior PASS derived from the Build3-archive sweep certification/results/REGRESSION_fa9d9f55ff.json, which binds to the archived Build3 engine and is not row-bound Build4 evidence."
   },
   {
    "id": "B4-R16",
@@ -10780,11 +10780,11 @@
     "restart at each lifecycle point"
    ],
    "prior_evidence": "Build 4 coverage GAP: —",
-   "result": "PASS",
-   "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
-   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
-   "tested_at_utc": "2026-10-14T09:53:11Z",
-   "notes": "Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified."
+   "result": "NOT_TESTED",
+   "evidence_ref": "MISSING_BUILD4_ROUTE: hyperliquid-build4/GUT_CONTRACT.md §D R16 -> Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+   "tested_commit": "",
+   "tested_at_utc": "",
+   "notes": "Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | WITHDRAWN 2026-10-19 (t_ee4bc2af): prior PASS derived from the Build3-archive sweep certification/results/REGRESSION_fa9d9f55ff.json, which binds to the archived Build3 engine and is not row-bound Build4 evidence."
   },
   {
    "id": "B4-R17",
@@ -10802,11 +10802,11 @@
     "restart at each lifecycle point"
    ],
    "prior_evidence": "Build 4 coverage PARTIAL: `test_no_silently_lost_actionable_row.py`",
-   "result": "PASS",
-   "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
-   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
-   "tested_at_utc": "2026-10-14T09:53:11Z",
-   "notes": "Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified."
+   "result": "NOT_TESTED",
+   "evidence_ref": "MISSING_BUILD4_ROUTE: hyperliquid-build4/GUT_CONTRACT.md §D R17 -> Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+   "tested_commit": "",
+   "tested_at_utc": "",
+   "notes": "Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | WITHDRAWN 2026-10-19 (t_ee4bc2af): prior PASS derived from the Build3-archive sweep certification/results/REGRESSION_fa9d9f55ff.json, which binds to the archived Build3 engine and is not row-bound Build4 evidence."
   },
   {
    "id": "B4-R18",
@@ -10824,11 +10824,11 @@
     "restart at each lifecycle point"
    ],
    "prior_evidence": "Build 4 coverage PARTIAL: `test_info_client_transient_survival.py`",
-   "result": "PASS",
-   "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
-   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
-   "tested_at_utc": "2026-10-14T09:53:11Z",
-   "notes": "Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified."
+   "result": "NOT_TESTED",
+   "evidence_ref": "MISSING_BUILD4_ROUTE: hyperliquid-build4/GUT_CONTRACT.md §D R18 -> Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+   "tested_commit": "",
+   "tested_at_utc": "",
+   "notes": "Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | WITHDRAWN 2026-10-19 (t_ee4bc2af): prior PASS derived from the Build3-archive sweep certification/results/REGRESSION_fa9d9f55ff.json, which binds to the archived Build3 engine and is not row-bound Build4 evidence."
   },
   {
    "id": "B4-R19",
@@ -10846,11 +10846,11 @@
     "restart at each lifecycle point"
    ],
    "prior_evidence": "Build 4 coverage PARTIAL: `test_new_events_only_authority.py`",
-   "result": "PASS",
-   "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
-   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
-   "tested_at_utc": "2026-10-14T09:53:11Z",
-   "notes": "Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified."
+   "result": "NOT_TESTED",
+   "evidence_ref": "MISSING_BUILD4_ROUTE: hyperliquid-build4/GUT_CONTRACT.md §D R19 -> Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+   "tested_commit": "",
+   "tested_at_utc": "",
+   "notes": "Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | WITHDRAWN 2026-10-19 (t_ee4bc2af): prior PASS derived from the Build3-archive sweep certification/results/REGRESSION_fa9d9f55ff.json, which binds to the archived Build3 engine and is not row-bound Build4 evidence."
   },
   {
    "id": "B4-R20",
@@ -10868,11 +10868,11 @@
     "restart at each lifecycle point"
    ],
    "prior_evidence": "Build 4 coverage COVERED: `test_flat_reset_ownership_boundary.py`",
-   "result": "PASS",
-   "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
-   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
-   "tested_at_utc": "2026-10-14T09:53:11Z",
-   "notes": "Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified."
+   "result": "NOT_TESTED",
+   "evidence_ref": "MISSING_BUILD4_ROUTE: hyperliquid-build4/GUT_CONTRACT.md §D R20 -> Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+   "tested_commit": "",
+   "tested_at_utc": "",
+   "notes": "Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | WITHDRAWN 2026-10-19 (t_ee4bc2af): prior PASS derived from the Build3-archive sweep certification/results/REGRESSION_fa9d9f55ff.json, which binds to the archived Build3 engine and is not row-bound Build4 evidence."
   },
   {
    "id": "B4-R21",
@@ -10890,11 +10890,11 @@
     "restart at each lifecycle point"
    ],
    "prior_evidence": "Build 4 coverage THIN: `test_delayed_entry_gate.py` (36 LOC)",
-   "result": "PASS",
-   "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
-   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
-   "tested_at_utc": "2026-10-14T09:53:11Z",
-   "notes": "Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified."
+   "result": "NOT_TESTED",
+   "evidence_ref": "MISSING_BUILD4_ROUTE: hyperliquid-build4/GUT_CONTRACT.md §D R21 -> Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+   "tested_commit": "",
+   "tested_at_utc": "",
+   "notes": "Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | WITHDRAWN 2026-10-19 (t_ee4bc2af): prior PASS derived from the Build3-archive sweep certification/results/REGRESSION_fa9d9f55ff.json, which binds to the archived Build3 engine and is not row-bound Build4 evidence."
   },
   {
    "id": "B4-R22",
@@ -10912,11 +10912,11 @@
     "restart at each lifecycle point"
    ],
    "prior_evidence": "Build 4 coverage PARTIAL: `test_live_event_lifecycle_exactly_once.py`",
-   "result": "PASS",
-   "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
-   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
-   "tested_at_utc": "2026-10-14T09:53:11Z",
-   "notes": "Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified."
+   "result": "NOT_TESTED",
+   "evidence_ref": "MISSING_BUILD4_ROUTE: hyperliquid-build4/GUT_CONTRACT.md §D R22 -> Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+   "tested_commit": "",
+   "tested_at_utc": "",
+   "notes": "Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | WITHDRAWN 2026-10-19 (t_ee4bc2af): prior PASS derived from the Build3-archive sweep certification/results/REGRESSION_fa9d9f55ff.json, which binds to the archived Build3 engine and is not row-bound Build4 evidence."
   },
   {
    "id": "B4-R23",
@@ -10934,11 +10934,11 @@
     "restart at each lifecycle point"
    ],
    "prior_evidence": "Build 4 coverage PARTIAL: `test_new_events_only_authority.py`",
-   "result": "PASS",
-   "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
-   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
-   "tested_at_utc": "2026-10-14T09:53:11Z",
-   "notes": "Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified."
+   "result": "NOT_TESTED",
+   "evidence_ref": "MISSING_BUILD4_ROUTE: hyperliquid-build4/GUT_CONTRACT.md §D R23 -> Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+   "tested_commit": "",
+   "tested_at_utc": "",
+   "notes": "Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | WITHDRAWN 2026-10-19 (t_ee4bc2af): prior PASS derived from the Build3-archive sweep certification/results/REGRESSION_fa9d9f55ff.json, which binds to the archived Build3 engine and is not row-bound Build4 evidence."
   },
   {
    "id": "B4-R24",
@@ -10956,11 +10956,11 @@
     "restart at each lifecycle point"
    ],
    "prior_evidence": "Build 4 coverage PARTIAL: `test_canary_exit_authority.py`",
-   "result": "PASS",
-   "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
-   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
-   "tested_at_utc": "2026-10-14T09:53:11Z",
-   "notes": "Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified."
+   "result": "NOT_TESTED",
+   "evidence_ref": "MISSING_BUILD4_ROUTE: hyperliquid-build4/GUT_CONTRACT.md §D R24 -> Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+   "tested_commit": "",
+   "tested_at_utc": "",
+   "notes": "Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | WITHDRAWN 2026-10-19 (t_ee4bc2af): prior PASS derived from the Build3-archive sweep certification/results/REGRESSION_fa9d9f55ff.json, which binds to the archived Build3 engine and is not row-bound Build4 evidence."
   },
   {
    "id": "B4-R25",
@@ -10978,11 +10978,11 @@
     "restart at each lifecycle point"
    ],
    "prior_evidence": "Build 4 coverage COVERED: `test_builder_dex_margin_policy_lifecycle.py`",
-   "result": "PASS",
-   "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
-   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
-   "tested_at_utc": "2026-10-14T09:53:11Z",
-   "notes": "Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified."
+   "result": "NOT_TESTED",
+   "evidence_ref": "MISSING_BUILD4_ROUTE: hyperliquid-build4/GUT_CONTRACT.md §D R25 -> Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+   "tested_commit": "",
+   "tested_at_utc": "",
+   "notes": "Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | WITHDRAWN 2026-10-19 (t_ee4bc2af): prior PASS derived from the Build3-archive sweep certification/results/REGRESSION_fa9d9f55ff.json, which binds to the archived Build3 engine and is not row-bound Build4 evidence."
   },
   {
    "id": "F-ARCH-001",
@@ -11000,11 +11000,11 @@
     "restart at each lifecycle point"
    ],
    "prior_evidence": "",
-   "result": "PASS",
-   "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
-   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
-   "tested_at_utc": "2026-10-14T09:53:11Z",
-   "notes": "Trigger/failure: Legacy core ledger, shadow replay book, dashboard portfolio, and real exchange state all represented position truth. | Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified."
+   "result": "NOT_TESTED",
+   "evidence_ref": "MISSING_BUILD4_ROUTE: hyperliquid-build4/FAILURES.md ARCH-001 -> Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+   "tested_commit": "",
+   "tested_at_utc": "",
+   "notes": "Trigger/failure: Legacy core ledger, shadow replay book, dashboard portfolio, and real exchange state all represented position truth. | Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | WITHDRAWN 2026-10-19 (t_ee4bc2af): prior PASS derived from the Build3-archive sweep certification/results/REGRESSION_fa9d9f55ff.json, which binds to the archived Build3 engine and is not row-bound Build4 evidence."
   },
   {
    "id": "F-ARCH-002",
@@ -11022,11 +11022,11 @@
     "restart at each lifecycle point"
    ],
    "prior_evidence": "",
-   "result": "PASS",
-   "evidence_ref": "certification/results/REGRESSION_fa9d9f55ff.json",
-   "tested_commit": "fa9d9f55fffa74cb6888c471d97d1655267999b6",
-   "tested_at_utc": "2026-10-14T09:53:11Z",
-   "notes": "Trigger/failure: The engine carried local position truth across cycles and tried to keep that book correct. | Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified."
+   "result": "NOT_TESTED",
+   "evidence_ref": "MISSING_BUILD4_ROUTE: hyperliquid-build4/FAILURES.md ARCH-002 -> Reproduce the historical trigger condition on testnet or recorded replay -> assert the failure cannot occur",
+   "tested_commit": "",
+   "tested_at_utc": "",
+   "notes": "Trigger/failure: The engine carried local position truth across cycles and tried to keep that book correct. | Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | Regression sweep: 131/138 rows PASS (7 blocked/fail excluded). Engine sha256 2dfbd57 verified. | WITHDRAWN 2026-10-19 (t_ee4bc2af): prior PASS derived from the Build3-archive sweep certification/results/REGRESSION_fa9d9f55ff.json, which binds to the archived Build3 engine and is not row-bound Build4 evidence."
   },
   {
    "id": "F-ARCH-003",
