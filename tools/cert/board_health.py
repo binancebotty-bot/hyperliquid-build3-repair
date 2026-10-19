@@ -235,11 +235,15 @@ def main() -> int:
                 reason = ""
             ts = parse_ts(ev["created_at"])
         verdict = "external" if EXTERNAL.search(reason) else "needs a decision"
-        for rx, label in RELEASABLE:
-            if rx.search(reason):
-                verdict = "RELEASABLE: " + label
-                releasable.append((r_["id"], reason))
-                break
+        # A card explicitly parked as needs_input is not releasable, whatever its last block event said.
+        if r_.get("block_kind") == "needs_input":
+            verdict = "needs_input (parked)"
+        else:
+            for rx, label in RELEASABLE:
+                if rx.search(reason):
+                    verdict = "RELEASABLE: " + label
+                    releasable.append((r_["id"], reason))
+                    break
         out.append("          %-12s %-4s %-8s %s" %
                    (r_["id"], ago(ts), verdict.split(":")[0][:8],
                     (r_["title"] or "")[:44]))
