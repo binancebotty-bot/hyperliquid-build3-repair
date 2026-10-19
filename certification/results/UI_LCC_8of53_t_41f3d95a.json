@@ -20,107 +20,217 @@
   {
    "row_id": "UI-LCC-CARD-02",
    "verdict": "PASS",
-   "evidence_ref": "certification/results/UI_LCC_8of53_t_41f3d95a.json",
+   "evidence_ref": "certification/results/UI_LCC_8of53_t_41f3d95a_probes.json#probe3.card_mutation.A[1]",
    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
-   "why": "Executed renderCards() in headless Chromium on render_live_copy_control_panel() from commit 89b3bc75. Card \"Open positions P&L (unrealised)\" bound to exchange_account_snapshot.unrealized_pnl: payload A (123.45) -> \"$123.45\", payload B (-1.5) -> \"$-1.5\" (card_mutation A/B). Row-bound: flipping only unrealized_pnl moves only this cell. Unavailable -> em-dash with title \"exchange not readable\" (all_unavailable), never a numeric 0. NOTE literal fallback token is an em-dash not the string \"n/a\"; honest non-numeric, flagged not failed. Engine->exchange provenance is the engine rows' scope."
+   "why": "Real Account card cell \"Open positions P&L (unrealised)\" tracks the unrealised-PnL payload in the executed DOM: mutation A (123.45) renders \"$123.45\" (probe3.card_mutation.A[1]) and mutation B (-1.5) renders \"$-1.5\" (probe3.card_mutation.B[1]); flipping only that field moves only this cell. Unavailable source degrades to an em-dash, not a numeric 0 (card_probe.all_unavailable.cards[1]). Scope note: the literal fallback token observed is an em-dash, not the string \"n/a\"; a title/aria explanation of unavailability was NOT captured by this probe and is not claimed here.",
+   "evidence_keys": [
+    "probe3.card_mutation.A[1]",
+    "probe3.card_mutation.B[1]",
+    "card_probe.all_unavailable.cards[1]"
+   ],
+   "evidence_artifact": "certification/results/UI_LCC_8of53_t_41f3d95a_probes.json"
   },
   {
    "row_id": "UI-LCC-CARD-03",
    "verdict": "PASS",
-   "evidence_ref": "certification/results/UI_LCC_8of53_t_41f3d95a.json",
+   "evidence_ref": "certification/results/UI_LCC_8of53_t_41f3d95a_probes.json#probe3.card_mutation.A[2]",
    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
-   "why": "Card \"Closed P&L (realised)\" bound to pnl_tally.closed_pnl (with start_ms suffix), else exchange_account_snapshot.realized_pnl_selected. Payload A -42.0 -> \"$-42.00 since 2023-11-14T22:13:20Z\"; payload B 11.0 -> \"$11.00 since ...\" (card_mutation). Unavailable -> em-dash. Row-bound: independent of unrealized field."
+   "why": "Card \"Closed P&L (realised)\" tracks the realised-PnL payload with a since-timestamp suffix: A (-42.0) renders \"$-42.00 since 2023-11-14T22:13:20.000Z\" (probe3.card_mutation.A[2]) and B (11.0) renders \"$11.00 since ...\" (probe3.card_mutation.B[2]). Unavailable source degrades to an em-dash (card_probe.all_unavailable.cards[2]). Row-bound: the mutation that moved this cell is the closed-P&L field, independent of the unrealised cell above.",
+   "evidence_keys": [
+    "probe3.card_mutation.A[2]",
+    "probe3.card_mutation.B[2]",
+    "card_probe.all_unavailable.cards[2]"
+   ],
+   "evidence_artifact": "certification/results/UI_LCC_8of53_t_41f3d95a_probes.json"
   },
   {
    "row_id": "UI-LCC-CARD-04",
    "verdict": "PASS",
-   "evidence_ref": "certification/results/UI_LCC_8of53_t_41f3d95a.json",
+   "evidence_ref": "certification/results/UI_LCC_8of53_t_41f3d95a_probes.json#probe3.card_mutation.A[3]",
    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
-   "why": "Card \"Open Positions\" bound to (exchange_account_snapshot.open_positions||[]).length. Payload A with 2 positions -> \"2\"; payload B with [] -> \"0\" (card_mutation). Unavailable -> em-dash (all_unavailable), so a real 0 (empty list, available=true) is distinguished from unavailable. Row-bound by position-list cardinality."
+   "why": "Card \"Open Positions\" tracks position-list cardinality: mutation A (2 positions) renders \"2\" (probe3.card_mutation.A[3]) and mutation B (empty list) renders \"0\" (probe3.card_mutation.B[3]). A genuine zero from an empty-but-available list is distinguishable from an unavailable source, which renders an em-dash (card_probe.all_unavailable.cards[3]). Row-bound by cardinality alone.",
+   "evidence_keys": [
+    "probe3.card_mutation.A[3]",
+    "probe3.card_mutation.B[3]",
+    "card_probe.all_unavailable.cards[3]"
+   ],
+   "evidence_artifact": "certification/results/UI_LCC_8of53_t_41f3d95a_probes.json"
   },
   {
    "row_id": "UI-LCC-CARD-05",
    "verdict": "FAIL",
-   "evidence_ref": "certification/results/UI_LCC_8of53_t_41f3d95a.json",
+   "evidence_ref": "certification/results/UI_LCC_8of53_t_41f3d95a_probes.json#card_probe.all_unavailable.cards[4]",
    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
-   "why": "Product genuinely misses the row. renderCards() line: `const expVal=manual.manual_live_exposure_estimate||0; const exp='$'+Number(expVal).toLocaleString(...)`. Three defects, all proven in executed DOM: (1) when the source is absent the card renders \"$0\" (all_unavailable -> Live Exposure=$0) i.e. a FALSE ZERO, exactly what the row's negative test forbids; every sibling card degrades to an em-dash, this one does not. (2) the value is the manual estimate manual_live_exposure_estimate, not exchange truth, and (3) it is NOT labelled as a manual estimate anywhere in the card (card label is the bare string \"Live Exposure\"). The row explicitly requires \"must be labelled or replaced by exchange truth\"."
+   "why": "Executed DOM proves the false-zero defect the row forbids: with every source unavailable, all four sibling cards degrade to an em-dash (e.g. card_probe.all_unavailable.cards[0].value = em-dash) while \"Live Exposure\" still renders \"$0\" (card_probe.all_unavailable.cards[4]) - a fabricated numeric zero, not an honest unavailable state. The card value does move with the manual payload (with_data \"$777\", mutation B \"$3\"), and the rendered label is the bare string \"Live Exposure\" with no manual-estimate qualifier (card_probe.with_data.cards[4].label). Secondary, NOT probe-derived: a source read of the rendering path shows the value is manual_live_exposure_estimate defaulted with ||0; that provenance is recorded as source-read context only and is not counted as probe evidence here.",
+   "evidence_keys": [
+    "card_probe.all_unavailable.cards[4]",
+    "card_probe.all_unavailable.cards[0]",
+    "card_probe.with_data.cards[4]",
+    "probe3.card_mutation.B[4]"
+   ],
+   "evidence_artifact": "certification/results/UI_LCC_8of53_t_41f3d95a_probes.json"
   },
   {
    "row_id": "UI-LCC-CARD-06",
    "verdict": "FAIL",
-   "evidence_ref": "certification/results/UI_LCC_8of53_t_41f3d95a.json",
+   "evidence_ref": "certification/results/UI_LCC_8of53_t_41f3d95a_probes.json#probe3.card_labels_contain_lastfill_lastreject.has_last_fill",
    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
-   "why": "Product genuinely misses the specified card. #lcRealCards is built from a 5-entry cards[] array in renderCards(); executed DOM shows labels [Portfolio Value, Open positions P&L (unrealised), Closed P&L (realised), Open Positions, Live Exposure] and card_labels_contain_lastfill_lastreject = {has_last_fill:false}. The product's own source comment relocates it: \"Last fill / last reject live once, in the Live Copy Status strip above\". The value IS surfaced elsewhere (renderTopStatus -> \"Last fill=BTC B 0.5\", empty -> em-dash, probe5) so data is not lost, but the Real Account card specified by this row does not exist."
+   "why": "The specified Last Fill card does not exist: the rendered Real Account card container has has_last_fill=false and its full text enumerates only five labels (Portfolio Value, Open positions P&L, Closed P&L, Open Positions, Live Exposure) - probe3.card_labels_contain_lastfill_lastreject. The value is not lost, it is relocated: the status strip renders \"Last fill=BTC B 0.5\" with data (probe5.status.with_data[5]) and degrades to an em-dash when absent (probe5.status.empty[5]). FAIL is on the specified card existing, not on data availability.",
+   "evidence_keys": [
+    "probe3.card_labels_contain_lastfill_lastreject.has_last_fill",
+    "probe3.card_labels_contain_lastfill_lastreject.text",
+    "probe5.status.with_data[5]",
+    "probe5.status.empty[5]"
+   ],
+   "evidence_artifact": "certification/results/UI_LCC_8of53_t_41f3d95a_probes.json"
   },
   {
    "row_id": "UI-LCC-CARD-07",
    "verdict": "FAIL",
-   "evidence_ref": "certification/results/UI_LCC_8of53_t_41f3d95a.json",
+   "evidence_ref": "certification/results/UI_LCC_8of53_t_41f3d95a_probes.json#probe3.card_labels_contain_lastfill_lastreject.has_last_reject",
    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
-   "why": "Same defect class as CARD-06. No \"Last Reject\" card in #lcRealCards (has_last_reject:false, executed DOM). renderTopStatus does render \"Last reject=DOGE IOC_NO_IMMEDIATE_MATCH\" and degrades to an em-dash when absent (probe5), so the value exists in the status strip, but the Real Account card this row specifies is absent."
+   "why": "Same defect class as CARD-06: no Last Reject card in the Real Account card container (has_last_reject=false, and the enumerated label text contains no such card) - probe3.card_labels_contain_lastfill_lastreject. The value exists only in the status strip: \"Last reject=DOGE IOC_NO_IMMEDIATE_MATCH\" (probe5.status.with_data[6]), em-dash when absent (probe5.status.empty[6]).",
+   "evidence_keys": [
+    "probe3.card_labels_contain_lastfill_lastreject.has_last_reject",
+    "probe3.card_labels_contain_lastfill_lastreject.text",
+    "probe5.status.with_data[6]",
+    "probe5.status.empty[6]"
+   ],
+   "evidence_artifact": "certification/results/UI_LCC_8of53_t_41f3d95a_probes.json"
   },
   {
    "row_id": "UI-LCC-GRAPH-01",
    "verdict": "PASS",
-   "evidence_ref": "certification/results/UI_LCC_8of53_t_41f3d95a.json",
+   "evidence_ref": "certification/results/UI_LCC_8of53_t_41f3d95a_probes.json#probe3.graph_behavior.account_subtitle",
    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
-   "why": "Account mode proven by executing renderGraph() with mode=account: subtitle \"Exchange account graph. ALL range - 2 portfolio pts, 0 realized fills.\" and legend label \"Total account PnL / portfolio value change\" (or \"Clearinghouse value change (fallback)\" when no unified_portfolio_value), and it additionally populates Realized PnL + Drawdown series which the wallet modes do not. Row-bound: sibling modes produce different subtitles/series. Button present as <button data-lc-graph-mode=\"account\">Account</button> in executed DOM."
+   "why": "Account mode is proven by its own rendered subtitle \"Exchange account graph. ALL range - 2 portfolio pts, 0 realized fills.\" (probe3.graph_behavior.account_subtitle), which is distinct from the wallet-PnL and exposure subtitles produced in the same run (probe3.graph_behavior.wallet_subtitle / .exposure_subtitle) - so the three modes are not aliases of one another. The control ships in the executed DOM as a button labelled \"Account\" (dom_probe.btn_mode_account). Scope note: extra series beyond the subtitle text (e.g. realised-PnL/drawdown traces) were NOT captured by this probe and are not claimed.",
+   "evidence_keys": [
+    "probe3.graph_behavior.account_subtitle",
+    "probe3.graph_behavior.wallet_subtitle",
+    "probe3.graph_behavior.exposure_subtitle",
+    "dom_probe.btn_mode_account"
+   ],
+   "evidence_artifact": "certification/results/UI_LCC_8of53_t_41f3d95a_probes.json"
   },
   {
    "row_id": "UI-LCC-GRAPH-02",
    "verdict": "PASS",
-   "evidence_ref": "certification/results/UI_LCC_8of53_t_41f3d95a.json",
+   "evidence_ref": "certification/results/UI_LCC_8of53_t_41f3d95a_probes.json#probe3.graph_behavior.wallet_subtitle",
    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
-   "why": "Mode=wallet_pnl -> subtitle \"Selected wallet live PnL. ALL range, 2 live data points.\" reading live_leader_performance[wallet].pnl_series (probe3 graph_behavior.wallet_subtitle). Distinct from account and exposure outputs in the same run. Button present: <button data-lc-graph-mode=\"wallet_pnl\">Selected Wallet PnL</button>."
+   "why": "Selected-wallet PnL mode renders its own subtitle \"Selected wallet live PnL. ALL range, 2 live data points.\" (probe3.graph_behavior.wallet_subtitle), distinct from the account and exposure subtitles in the same executed run, so the mode is not an alias. Control present in DOM: button \"Selected Wallet PnL\" (dom_probe.btn_mode_wallet_pnl).",
+   "evidence_keys": [
+    "probe3.graph_behavior.wallet_subtitle",
+    "probe3.graph_behavior.account_subtitle",
+    "probe3.graph_behavior.exposure_subtitle",
+    "dom_probe.btn_mode_wallet_pnl"
+   ],
+   "evidence_artifact": "certification/results/UI_LCC_8of53_t_41f3d95a_probes.json"
   },
   {
    "row_id": "UI-LCC-GRAPH-03",
    "verdict": "PASS",
-   "evidence_ref": "certification/results/UI_LCC_8of53_t_41f3d95a.json",
+   "evidence_ref": "certification/results/UI_LCC_8of53_t_41f3d95a_probes.json#probe3.graph_behavior.exposure_subtitle",
    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
-   "why": "Mode=exposure -> subtitle \"Selected wallet exposure. ALL range, 2 live data points.\" reading exposure_series, and shows the explicit empty message \"Click a wallet row to chart it.\" when no wallet is selected (renderGraph source + probe3). Distinct output from GRAPH-02 in the same executed run. Button present: data-lc-graph-mode=\"exposure\"."
+   "why": "Exposure mode renders its own subtitle \"Selected wallet exposure. ALL range, 2 live data points.\" (probe3.graph_behavior.exposure_subtitle), distinct from the wallet-PnL subtitle in the same run, so the mode is genuinely separate. Control present in DOM: button \"Exposure\" (dom_probe.btn_mode_exposure). Scope note: a separate no-wallet-selected empty message was NOT captured by this probe (the only empty-state string recorded is probe3.graph_behavior.empty_subtitle for the generic no-points case) and is not claimed.",
+   "evidence_keys": [
+    "probe3.graph_behavior.exposure_subtitle",
+    "probe3.graph_behavior.wallet_subtitle",
+    "dom_probe.btn_mode_exposure"
+   ],
+   "evidence_artifact": "certification/results/UI_LCC_8of53_t_41f3d95a_probes.json"
   },
   {
    "row_id": "UI-LCC-GRAPH-04",
    "verdict": "PASS",
-   "evidence_ref": "certification/results/UI_LCC_8of53_t_41f3d95a.json",
+   "evidence_ref": "certification/results/UI_LCC_8of53_t_41f3d95a_probes.json#probe3.scale_filter.all",
    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
-   "why": "Scale 1d is load-bearing, not decorative. Same 4-point series spanning 10 days: ALL -> \"4 live data points\", 7D -> \"3 live data points\", 1D -> \"Not enough points in selected range (1D).\" (probe3 scale_filter). Row-bound: the three scales yield three different results from one dataset. Button present: data-lc-graph-scale=\"1d\">1D."
+   "why": "1D scale is load-bearing on one fixed dataset: ALL range reports 4 live data points, 7D reports 3, and 1D reports \"Not enough points in selected range (1D).\" (probe3.scale_filter.all / .d7 / .d1). Three different outcomes from one series proves the scale selection actually filters. Control present in DOM: button \"1D\" (dom_probe.btn_scale_1d).",
+   "evidence_keys": [
+    "probe3.scale_filter.all",
+    "probe3.scale_filter.d7",
+    "probe3.scale_filter.d1",
+    "dom_probe.btn_scale_1d"
+   ],
+   "evidence_artifact": "certification/results/UI_LCC_8of53_t_41f3d95a_probes.json"
   },
   {
    "row_id": "UI-LCC-GRAPH-05",
    "verdict": "PASS",
-   "evidence_ref": "certification/results/UI_LCC_8of53_t_41f3d95a.json",
+   "evidence_ref": "certification/results/UI_LCC_8of53_t_41f3d95a_probes.json#probe3.scale_filter.d7",
    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
-   "why": "7D window proven to filter: 4-point 10-day series -> \"7D range, 3 live data points\", vs ALL 4 and 1D 0 (probe3 scale_filter.d7). Row-bound and independent of the 1D/ALL results."
+   "why": "7D window filters independently: same dataset gives 3 live data points under 7D versus 4 under ALL (probe3.scale_filter.d7 vs .all), so the 7D boundary removes a point rather than being decorative. Control present in DOM: button \"7D\" (dom_probe.btn_scale_7d).",
+   "evidence_keys": [
+    "probe3.scale_filter.d7",
+    "probe3.scale_filter.all",
+    "dom_probe.btn_scale_7d"
+   ],
+   "evidence_artifact": "certification/results/UI_LCC_8of53_t_41f3d95a_probes.json"
   },
   {
    "row_id": "UI-LCC-GRAPH-06",
    "verdict": "PASS",
-   "evidence_ref": "certification/results/UI_LCC_8of53_t_41f3d95a.json",
+   "evidence_ref": "certification/results/UI_LCC_8of53_t_41f3d95a_probes.json#dom_probe.btn_scale_all",
    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
-   "why": "ALL scale proven to disable range filtering: same series -> \"ALL range, 4 live data points\" while 7D gave 3 and 1D gave 0 (probe3 scale_filter.all). Button ships with class \"active\" (data-lc-graph-scale=\"all\">ALL) matching the default lcGraphScale='all'."
+   "why": "ALL disables range filtering: the same series reports 4 live data points under ALL while 7D gives 3 and 1D gives 0 (probe3.scale_filter.all / .d7 / .d1). Control present in DOM: button \"ALL\" (dom_probe.btn_scale_all).",
+   "evidence_keys": [
+    "dom_probe.btn_scale_all",
+    "probe3.scale_filter.all",
+    "probe3.scale_filter.d7",
+    "probe3.scale_filter.d1"
+   ],
+   "evidence_artifact": "certification/results/UI_LCC_8of53_t_41f3d95a_probes.json"
   },
   {
    "row_id": "UI-LCC-GRAPH-07",
    "verdict": "PASS",
-   "evidence_ref": "certification/results/UI_LCC_8of53_t_41f3d95a.json",
+   "evidence_ref": "certification/results/UI_LCC_8of53_t_41f3d95a_probes.json#probe4.range_wiring.after_start_apply",
    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
-   "why": "Start datetime is a real, wired control. Executed DOM: <input id=\"lcGraphStart\" type=\"datetime-local\">. Setting value 2026-06-05T00:00:00 and clicking the real #lcGraphApplyRange button changed the rendered range label to \"05/06/2026, 00:00:00 to now\" and refiltered the series (probe4 range_wiring.after_start_apply). Row-bound: the label and point count respond to THIS input only; the end value was still empty in that step."
+   "why": "Start datetime is a real, wired control. The executed DOM contains a datetime-local input (dom_probe.el_lcGraphStart) and an Apply button (dom_probe.el_lcGraphApplyRange). Setting the start value and clicking Apply changed the rendered range window from \"ALL range\" to \"05/06/2026, 00:00:00 to now\" (probe4.range_wiring.after_start_apply vs .all) - the window text is driven by THIS input. Honest scope: for that window the chart reported \"Not enough points in selected range\", so this probe proves the start control drives the range window; it does not by itself prove a populated refilter, which the mutation control in UI-LCC-GRAPH-09 does establish.",
+   "evidence_keys": [
+    "probe4.range_wiring.after_start_apply",
+    "probe4.range_wiring.all",
+    "dom_probe.el_lcGraphStart",
+    "dom_probe.el_lcGraphApplyRange"
+   ],
+   "evidence_artifact": "certification/results/UI_LCC_8of53_t_41f3d95a_probes.json"
   },
   {
    "row_id": "UI-LCC-GRAPH-08",
    "verdict": "PASS",
-   "evidence_ref": "certification/results/UI_LCC_8of53_t_41f3d95a.json",
+   "evidence_ref": "certification/results/UI_LCC_8of53_t_41f3d95a_probes.json#probe4.range_wiring.after_end_apply",
    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
-   "why": "End datetime wired: with start set, setting #lcGraphEnd=2026-06-07T00:00:00 and applying produced \"05/06/2026, 00:00:00 to 07/06/2026, 00:00:00\" (probe4 after_end_apply), a bounded window rather than \"to now\". Row-bound: the end boundary is what changed the label."
+   "why": "End datetime is wired: with the start already applied, setting the end value and applying produced the bounded window \"05/06/2026, 00:00:00 to 07/06/2026, 00:00:00\" (probe4.range_wiring.after_end_apply) instead of the open-ended \"... to now\" (probe4.range_wiring.after_start_apply). The end boundary is exactly what changed the window text. Control present in DOM: datetime-local input (dom_probe.el_lcGraphEnd). Honest scope: that bounded window returned \"Not enough points\", so a populated bounded series is not claimed.",
+   "evidence_keys": [
+    "probe4.range_wiring.after_end_apply",
+    "probe4.range_wiring.after_start_apply",
+    "dom_probe.el_lcGraphEnd"
+   ],
+   "evidence_artifact": "certification/results/UI_LCC_8of53_t_41f3d95a_probes.json"
   },
   {
    "row_id": "UI-LCC-GRAPH-09",
    "verdict": "PASS",
-   "evidence_ref": "certification/results/UI_LCC_8of53_t_41f3d95a.json",
+   "evidence_ref": "certification/results/UI_LCC_8of53_t_41f3d95a_probes.json#probe3.apply_click.clicked",
    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
-   "why": "Apply is a live handler, not an inert button. Executed click on the real #lcGraphApplyRange produced a state transition to a custom range and a re-render (probe3 apply_click clicked=true; probe4 custom window applied). Non-vacuity mutation control: replacing filterScale with an identity function on the same fixed custom range changed the subtitle from \"3 live data points\" to \"10 live data points\" (probe4 range_mutation_control differs=true) - so the range filter the Apply button drives is genuinely load-bearing."
+   "why": "Apply is a live handler, not an inert button: an executed click registered (probe3.apply_click.clicked=true) and the graph re-rendered to the new range state, changing the subtitle to a start-to-now window (probe3.apply_click.subtitle). The range filter it drives is load-bearing, proven by a mutation control on a fixed custom window: real filter yields 3 live data points, identity-replacement mutant yields 10, differs=true (probe4.range_mutation_control.real / .mutant / .differs).",
+   "evidence_keys": [
+    "probe3.apply_click.clicked",
+    "probe3.apply_click.subtitle",
+    "probe4.range_mutation_control.real",
+    "probe4.range_mutation_control.mutant",
+    "probe4.range_mutation_control.differs"
+   ],
+   "evidence_artifact": "certification/results/UI_LCC_8of53_t_41f3d95a_probes.json"
   }
+ ],
+ "evidence_ref_convention": "evidence_ref = certification/results/UI_LCC_8of53_t_41f3d95a_probes.json#<json path>; evidence_keys lists every probe location the row relies on. Every path is resolvable in the committed probes artifact (verified by rebind_refs.py resolve()).",
+ "evidence_refs_rebound_at_utc": "2026-10-19T01:53:21.014554+00:00",
+ "evidence_refs_rebound_by_task": "t_c4fc4465",
+ "probe_caveats": [
+  "dom_probe.renderCards_executed.err = ReferenceError: renderCards is not defined - one in-page invocation attempt failed, so no row claims \"executed renderCards()\"; card claims cite the rendered card DOM (card_probe.with_data / .all_unavailable) instead.",
+  "CARD-02 fallback token is an em-dash, not the literal string \"n/a\"; no aria/title explanation is captured.",
+  "GRAPH-03 no-wallet empty message not captured by the probe; only the generic no-points string exists.",
+  "GRAPH-07/08 prove the range inputs drive the window text; the windows probed returned \"Not enough points\", so populated series are not claimed (GRAPH-09 mutation control covers filter load-bearing).",
+  "CARD-05 manual-estimate provenance comes from a source read, not the probe; the probe proves the false \"$0\" and the unqualified label."
  ]
 }
