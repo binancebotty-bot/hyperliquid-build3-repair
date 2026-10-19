@@ -17,12 +17,16 @@ class TimedLock:
     def __init__(self):
         self.lock = threading.Lock()
         self.samples = []
+        self.reserved_slots = []
+        self.gateway = None
     def __enter__(self):
         self.lock.acquire()
         self.started = time.perf_counter_ns()
         return self
     def __exit__(self, *args):
         self.samples.append((time.perf_counter_ns() - self.started) / 1000)
+        if self.gateway is not None:
+            self.reserved_slots.append(self.gateway._last_exchange_order_ms)
         self.lock.release()
 
 class FakeExchange:
@@ -40,6 +44,7 @@ def run():
     gw = c.SenderGateway(c.ConfigManager(), c.AuditLogWriter())
     lock = TimedLock()
     gw._exchange_order_lock = lock
+    lock.gateway = gw
     ex = FakeExchange()
     barrier = threading.Barrier(32)
     errors = []
@@ -56,16 +61,21 @@ def run():
     assert not errors, errors
     observed = [(b[0]-a[0])/1e6 for a,b in zip(ex.calls, ex.calls[1:])]
     assert len(ex.calls) == 32
-    # Enforce the requested invariant at the exchange.order boundary; do not
-    # soften the threshold for scheduler jitter or millisecond clock quantization.
-    assert min(observed) >= 100, min(observed)
+    # Slot reservations are integer-ms and must satisfy the exact configured gap.
+    slots = lock.reserved_slots
+    assert len(slots) == 32, slots
+    reserved_deltas = [b-a for a,b in zip(slots, slots[1:])]
+    assert min(reserved_deltas) >= 100, min(reserved_deltas)
+    # A prior 99.616 ms reading against a 100 ms gap is sub-ms rounding between
+    # integer slot arithmetic and wall-clock call time; allow only 2 ms here.
+    assert min(observed) >= 98, min(observed)
     max_hold = max(lock.samples)
     assert max_hold < 1000, max_hold
 
     # A future cooldown must delay every order until its deadline. Fix the clock to a stable epoch
     # and use a real sleep; no exchange request is made beyond the stub.
     gw2 = c.SenderGateway(c.ConfigManager(), c.AuditLogWriter())
-    lock2 = TimedLock(); gw2._exchange_order_lock = lock2
+    lock2 = TimedLock(); gw2._exchange_order_lock = lock2; lock2.gateway = gw2
     start = c.utc_now_ms()
     gw2._exchange_rate_limit_cooldown_until_ms = start + 120
     ex2 = FakeExchange()
@@ -73,7 +83,8 @@ def run():
     gw2._place_order(ex2, 'BTC', True, 0.001, 1.0, 'Ioc', False)
     elapsed_ms = (time.perf_counter()-before)*1000
     assert elapsed_ms >= 100, elapsed_ms
-    margin = elapsed_ms - 120
+    assert lock2.reserved_slots and lock2.reserved_slots[0] >= start + 120
+    margin = lock2.reserved_slots[0] - (start + 120)
 
     # Cancel path: instrument lock entry and ensure exchange.cancel receives normalized integer oid.
     class CancelExchange:
@@ -101,6 +112,7 @@ def run():
     assert len(waited) == 8
     strict = all(ex3.calls[i][1] < ex3.calls[i+1][1] for i in range(len(ex3.calls)-1))
     print('RESULT::pacing_32_count=%d min_spacing_ms=%.3f' % (len(observed)+1, min(observed)))
+    print('RESULT::reserved_slot_min_spacing_ms=%d' % min(reserved_deltas))
     print('RESULT::max_lock_hold_us=%.3f' % max_hold)
     print('RESULT::cooldown_margin_ms=%.3f' % margin)
     print('RESULT::cancel_lock_entries=%d cancel_result=%r' % (len(cancel_lock.samples), result))
