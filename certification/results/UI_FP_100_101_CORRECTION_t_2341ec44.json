@@ -176,9 +176,9 @@
  "publishing": {
   "repo": "binancebotty-bot/hyperliquid-build3-repair",
   "branch": "hermes/t_2341ec44",
-  "remote_head": "c468f975d5e688416a6a76e17839dda0f04952d9",
   "note": "remote_head is the commit on this branch carrying this file; later commits are additive self-review revisions of the same two rows",
-  "source_branch_untouched": "origin/cert-47-53-ui-fp-098-112-t_3319351b @ 75ab1e96682dabbdf7418592ac15b3608ea8f78b"
+  "source_branch_untouched": "origin/cert-47-53-ui-fp-098-112-t_3319351b @ 75ab1e96682dabbdf7418592ac15b3608ea8f78b",
+  "remote_head_rule": "The file is carried by the tip of branch hermes/t_2341ec44. Evidence commit is c468f975d5e688416a6a76e17839dda0f04952d9; later commits on the branch only add this block to this one file and do not change either verdict."
  },
  "internal_adversarial_review": {
   "performed_by": "implementer second pass before publishing",
