@@ -1,0 +1,120 @@
+{
+  "declared_engine_sha256": "1a1daf81861f726fb2f00066ca5a5314b423ec8766af665def2096adcd93a564",
+  "matches_commit": "621a06c2459b43c564874a8377d00576ffe098d9",
+  "register_claim": {
+    "tested_commit": "333d818d",
+    "core_blob": "9072aa592331424acbf51cdb5b4246408bb282bb15b57e35787c6843890668e4"
+  },
+  "verdict": "ARTIFACT_STALE",
+  "rows": [
+    {
+      "id": "ORD-003",
+      "register_commit": "333d818d",
+      "artifact_commit": "621a06c",
+      "corrective": "NOT_TESTED for claimed revision until re-earned against 333d818d; do not alter matrix in this audit"
+    },
+    {
+      "id": "ORD-004",
+      "register_commit": "333d818d",
+      "artifact_commit": "621a06c",
+      "corrective": "NOT_TESTED for claimed revision until re-earned against 333d818d; do not alter matrix in this audit"
+    },
+    {
+      "id": "ORD-005",
+      "register_commit": "333d818d",
+      "artifact_commit": "621a06c",
+      "corrective": "NOT_TESTED for claimed revision until re-earned against 333d818d; do not alter matrix in this audit"
+    },
+    {
+      "id": "RISK-001",
+      "register_commit": "333d818d",
+      "artifact_commit": "621a06c",
+      "corrective": "NOT_TESTED for claimed revision until re-earned against 333d818d; do not alter matrix in this audit"
+    },
+    {
+      "id": "RISK-002",
+      "register_commit": "333d818d",
+      "artifact_commit": "621a06c",
+      "corrective": "NOT_TESTED for claimed revision until re-earned against 333d818d; do not alter matrix in this audit"
+    },
+    {
+      "id": "RISK-003",
+      "register_commit": "333d818d",
+      "artifact_commit": "621a06c",
+      "corrective": "NOT_TESTED for claimed revision until re-earned against 333d818d; do not alter matrix in this audit"
+    },
+    {
+      "id": "RISK-004",
+      "register_commit": "333d818d",
+      "artifact_commit": "621a06c",
+      "corrective": "NOT_TESTED for claimed revision until re-earned against 333d818d; do not alter matrix in this audit"
+    },
+    {
+      "id": "RISK-005",
+      "register_commit": "333d818d",
+      "artifact_commit": "621a06c",
+      "corrective": "NOT_TESTED for claimed revision until re-earned against 333d818d; do not alter matrix in this audit"
+    },
+    {
+      "id": "RISK-007",
+      "register_commit": "333d818d",
+      "artifact_commit": "621a06c",
+      "corrective": "NOT_TESTED for claimed revision until re-earned against 333d818d; do not alter matrix in this audit"
+    },
+    {
+      "id": "RISK-008",
+      "register_commit": "333d818d",
+      "artifact_commit": "621a06c",
+      "corrective": "NOT_TESTED for claimed revision until re-earned against 333d818d; do not alter matrix in this audit"
+    },
+    {
+      "id": "RISK-009",
+      "register_commit": "333d818d",
+      "artifact_commit": "621a06c",
+      "corrective": "NOT_TESTED for claimed revision until re-earned against 333d818d; do not alter matrix in this audit"
+    },
+    {
+      "id": "RISK-012",
+      "register_commit": "333d818d",
+      "artifact_commit": "621a06c",
+      "corrective": "NOT_TESTED for claimed revision until re-earned against 333d818d; do not alter matrix in this audit"
+    },
+    {
+      "id": "RISK-014",
+      "register_commit": "333d818d",
+      "artifact_commit": "621a06c",
+      "corrective": "NOT_TESTED for claimed revision until re-earned against 333d818d; do not alter matrix in this audit"
+    }
+  ],
+  "probe_import_path": {
+    "file": "certification/results/probe_reearn.py",
+    "line": 7,
+    "reads_working_tree": true,
+    "line_text": "CORE = HERE / 'repo' / '_archive' / 'hl_stage2' / 'HL_Live_Copy_Service_Core.py'"
+  },
+  "probe_fixable": {
+    "yes_no": "YES, with redesign",
+    "how": "Use git show <commit>:<Core path> to materialize that committed blob into an isolated temporary module directory, then import it; assert its SHA-256 equals the requested commit blob before executing. Current probe imports from working-tree repo directory, so no safe one-line commit pin exists without arranging isolated import precedence."
+  },
+  "carried_findings": {
+    "vacuous_controls": [
+      "ORD-004 (identical active/control outputs)",
+      "RISK-008",
+      "RISK-012",
+      "RISK-015"
+    ],
+    "wrong_network_class": [
+      "RISK-005",
+      "RISK-006 (require mainnet-follower run; this artifact cannot support PASS)"
+    ],
+    "open_decisions": [
+      "ORD-003",
+      "ORD-004",
+      "RISK-009",
+      "RISK-011",
+      "RISK-012",
+      "TN-PS1"
+    ]
+  },
+  "claim_boundary": "Verified artifact engine digest equals Core blob at 621a06c and differs from Core blob at register commit 333d818d. Probe imports working-tree file. The evidence is stale for cited revision; this audit makes no matrix changes and does not certify runtime behavior."
+}
