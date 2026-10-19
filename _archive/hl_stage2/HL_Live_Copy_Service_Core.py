@@ -11118,6 +11118,14 @@ class LiveCopyCore:
                     _cursor = max(_leader_poll_cursors.get(w, 0), self._held_read_cursor.get(w, 0))
                     _start = (max(_cursor - LEADER_POLL_OVERLAP_MS, now - _catchup_ms)
                               if _cursor > 0 else max(0, now - POLL_WINDOW_MS - POLL_OVERLAP_MS))
+                    # UI-WALLET-003: pre-enable cutoff. A wallet left OFF keeps a frozen cursor,
+                    # so on re-enable _start falls back to the whole catch-up window and replays
+                    # leader fills from while it was disabled. Never read earlier than enable time.
+                    _enabled_at_raw = self.cfg.wallet_cfg(w).get("enabled_at")
+                    if _enabled_at_raw not in (None, ""):
+                        _enabled_at = int(fnum(_enabled_at_raw, 0))
+                        if _enabled_at > 0:
+                            _start = max(_start, _enabled_at)
                     if _cursor > 0 and _cursor - LEADER_POLL_OVERLAP_MS < now - _catchup_ms:
                         self.audit.append_reconciliation(
                             "SEND_TERMINAL", "LEADER_HISTORY_GAP", leader_wallet=w,

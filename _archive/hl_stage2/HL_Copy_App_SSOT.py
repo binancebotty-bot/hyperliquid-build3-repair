@@ -1000,6 +1000,26 @@ def repair_live_config_consistency(config: Dict[str, Any]) -> bool:
 ENGINE_IGNORED_WALLET_KEYS = ("leader_equity_base", "max_diff_pct", "daily_loss_limit")
 
 
+def _safe_parse_fnum(payload: Dict[str, Any], key: str, existing_value: Optional[float], default: float) -> float:
+    """Numeric field reader that refuses to silently reset a configured value.
+
+    An absent, null or blank key keeps the stored value. A key that is PRESENT but not a
+    finite number raises BAD_<KEY>, so the route rejects the request instead of quietly
+    falling back to the hardcoded default (which used to turn fixed_notional 42 into 10
+    and norm_base 250 into 100)."""
+    if key not in payload:
+        return existing_value if existing_value is not None else default
+    val = payload[key]
+    if val is None or (isinstance(val, str) and not val.strip()):
+        return existing_value if existing_value is not None else default
+    try:
+        x = float(val)
+    except (TypeError, ValueError):
+        raise ValueError("BAD_" + key.upper())
+    if not math.isfinite(x):
+        raise ValueError("BAD_" + key.upper())
+    return x
+
 def _normalise_live_wallet_payload(payload: Dict[str, Any], existing: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     base = dict(existing or {})
     mode_default = base.get("mode", "OFF") if existing is not None else "OFF"
@@ -1013,13 +1033,21 @@ def _normalise_live_wallet_payload(payload: Dict[str, Any], existing: Optional[D
     out = {
         "mode": mode,
         "copy_mode": copy_mode,
-        "norm_base": max(1.0, fnum(payload.get("norm_base", base.get("norm_base", 100)), 100)),
-        "fixed_notional": max(0.01, fnum(payload.get("fixed_notional", base.get("fixed_notional", 10)), 10)),
+        "norm_base": max(1.0, _safe_parse_fnum(payload, "norm_base", base.get("norm_base"), 100)),
+        "fixed_notional": max(0.01, _safe_parse_fnum(payload, "fixed_notional", base.get("fixed_notional"), 10)),
         "enabled": enabled,
     }
     for key, value in base.items():
         if key not in out and key not in ENGINE_IGNORED_WALLET_KEYS:
             out[key] = value
+    # UI-WALLET-003: stamp when the wallet left OFF so the leader poll cannot replay fills
+    # from while it was disabled. Applied after the copy-back, so a stale enabled_at in an
+    # old config is never resurrected onto a wallet that is now OFF.
+    prev_mode = str(base.get("mode", "OFF")).upper()
+    if mode == "OFF":
+        out.pop("enabled_at", None)
+    elif prev_mode == "OFF" or not isinstance(out.get("enabled_at"), int):
+        out["enabled_at"] = int(time.time() * 1000)
     return out
 
 
