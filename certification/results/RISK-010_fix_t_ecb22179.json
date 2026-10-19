@@ -1,0 +1,110 @@
+{
+  "card": "t_ecb22179",
+  "row": "RISK-010",
+  "title": "max_diff_pct retired from the UI, not enforced in the engine",
+  "mode": "offline; no orders, no engine start, no append_only writes, no matrix edits",
+  "tested_ref": "origin/main",
+  "base_commit": "afc5d1361be82910eaeafffe11842c0592481359",
+  "decision_reading": {
+    "choice": "RETIRE",
+    "question_1": "The bound is not supposed to exist per wallet. OD-10 records the entry price bound as ONE bound per order, enforced from Global Controls marketable_bps at the send decision; the per-wallet variant still awaits an Architect ruling against Build 4 I20 0%.",
+    "evidence": [
+      "OD-10 open_decisions.json: the entry price bound (Build 4 I20 0% vs Build 3 max_diff_pct) is still open; Build 3 has per-wallet max_diff_pct default 0.1 and marketable offset 5.",
+      "OD-06: boss ruled global controls must all function; OD-10 defers the entry price bound to that same surface.",
+      "HL_Live_Copy_Service_Core.py: ZERO code occurrences of max_diff_pct. The enforced bound is marketable_bps (Core:6045 mult, Core:6076 missed_entry_decision cap_px, Core:6106 close adverse gate), proven by test_core_missed_entry_rule M1/M2.",
+      "Matrix applicability RISK-010 = OPEN_DECISION on OD-10, owner Architect; per-wallet engine code would pre-empt an open architectural decision."
+    ],
+    "why_retire": "Enforcing would invent an unauthorised per-wallet bound in a second place competing with the global marketable_bps bound OD-10 already places at the send decision. Retiring removes the false assurance without changing enforced risk behaviour."
+  },
+  "question_2": {
+    "claim": "the UI drops max_diff_pct on save",
+    "verdict": "TRUE and already deliberate",
+    "evidence": "HL_Copy_App_SSOT.py:987 ENGINE_IGNORED_WALLET_KEYS includes max_diff_pct; :1008 the normaliser drops it. Introduced by 741aa2d (2026-10-09) a day after the 13 May screen was restored verbatim at 91e9980; test_core_dex_scope_and_ui_truth U5 pins it.",
+    "consequence": "The save path was already correct, so no save fix was needed. The missing last mile was disk state: a hand-written value stayed on disk and read as a live bound. This card closes that."
+  },
+  "diff": {
+    "file": "_archive/hl_stage2/HL_Copy_App_SSOT.py",
+    "stat": "1 file changed, 15 insertions(+), 0 deletions(-)",
+    "hunks": [
+      "comment above ENGINE_IGNORED_WALLET_KEYS recording the OD-10 retirement, which bound is actually enforced, and that the key returns only together with the Core reader AND the panel input in one change",
+      "repair_live_config_consistency(): pop every ENGINE_IGNORED_WALLET_KEYS member from a wallet config and report changed=True, so a retired key already on disk is removed instead of lingering as a live-looking bound"
+    ],
+    "line_endings": "File is CRLF; the edit was applied at BYTE level with a roundtrip assertion nl.join(split)==original, because a text-mode rewrite produced 420/405 of pure line-ending churn. Final diff is 15 insertions, 0 deletions."
+  },
+  "proofs": {
+    "harness": "_archive/hl_stage2/test_risk010_retired_bound.py -- 15 checks, real SenderGateway._send_real with a fake exchange and no network, plus the real FastAPI save route via TestClient",
+    "result": "TOTAL=15 FAILED=0",
+    "active": {
+      "call": "wallet carries stale max_diff_pct=5 (and 0.001) in live_config.json; leader fill 100.0, follower mid 100.1, marketable_bps=20",
+      "observed": "ORDER_FILLED with one exchange call -- the stale per-wallet value gates nothing, neither loosening nor tightening",
+      "checks": [
+        "R2_STALE_MAX_DIFF_PCT_DOES_NOT_BLOCK_A_WITHIN_BOUND_ENTRY_PASS",
+        "R2_A_TIGHT_STALE_VALUE_IS_INERT_TOO_PASS"
+      ]
+    },
+    "control": {
+      "call": "same wallet with max_diff_pct=5, entry beyond the enforced bound: leader 100.0, follower mid 101.0, marketable_bps=20 (0.2%)",
+      "observed": "no IOC priced beyond 100.2; every exchange call <= 100.0*1.002; the order rests at the leader price and the difference is named",
+      "checks": [
+        "R3_ENTRY_BEYOND_ENFORCED_BOUND_NOT_MARKET_COPIED_PASS",
+        "R3_NO_FILL_PRICE_BEYOND_LEADER_PLUS_TOLERANCE_PASS",
+        "R3_BOUND_DIFF_IS_NAMED_AND_SHOWN_PASS"
+      ],
+      "note": "The refusing bound is Global Controls marketable_bps (the OD-10 bound), not max_diff_pct."
+    },
+    "round_trip": {
+      "call": "POST /api/live-config/add-wallet with max_diff_pct=5, daily_loss_limit=7, leader_equity_base=5000, then read live_config.json back",
+      "observed": "200 ok; max_diff_pct absent from the saved wallet and from the response config; fixed_notional=12 and mode=LIVE survived",
+      "checks": [
+        "R4_MAX_DIFF_PCT_NOT_PERSISTED_PASS",
+        "R4_OTHER_KEYS_STILL_SAVED_PASS",
+        "R4_ROUTE_RESPONSE_ALSO_CLEAN_PASS"
+      ]
+    },
+    "disk_repair": {
+      "call": "hand-write max_diff_pct=5 into live_config.json, then _load_live_copy_config() + repair_live_config_consistency()",
+      "observed": "key present before (precondition asserted), repair returned changed=True, key absent after",
+      "checks": [
+        "R4_PRECONDITION_HAND_WRITTEN_KEY_IS_ON_DISK_PASS",
+        "R4_LOAD_REPAIR_REPORTS_THE_REMOVAL_PASS",
+        "R4_HAND_WRITTEN_KEY_IS_REMOVED_PASS"
+      ]
+    },
+    "census": {
+      "checks": [
+        "R1_UI_RETIRES_MAX_DIFF_PCT_PASS",
+        "R1_UI_PANEL_OFFERS_NO_MAX_DIFF_FIELD_PASS",
+        "R1_CORE_NEVER_READS_IT_PASS"
+      ],
+      "detail": "ENGINE_IGNORED_WALLET_KEYS contains max_diff_pct; render_live_copy_control_panel() has no name=max_diff_pct; a line census of the Core finds zero non-comment code lines matching max_diff_pct"
+    }
+  },
+  "regression_sweep": {
+    "test_core_dex_scope_and_ui_truth.py": "TOTAL=41 FAILED=0",
+    "test_core_missed_entry_rule.py": "TOTAL=89 FAILED=0",
+    "test_core_network_and_global_controls.py": "TOTAL=62 FAILED=0",
+    "test_core_engine_gaps.py": "TOTAL=24 FAILED=1 PRE-EXISTING",
+    "pre_existing_detail": "W2_ELEVEN_ACTIVE_WALLETS_REFUSED_AT_START fails because a live engine holds the single-writer lock (hl_live_copy_audit_testnet). Proven not mine by re-running with this diff stashed: identical FAIL."
+  },
+  "claim_boundary": {
+    "does_prove": "The per-wallet max_diff_pct key is not read by the Core, not offered by the panel, not persisted by the real save route, and is actively removed from a config that still carries it. The bound that IS enforced (Global Controls marketable_bps) refuses an entry priced beyond it before the exchange, on the engine real send path.",
+    "does_not_prove": [
+      "that a per-wallet bound is the wrong product decision -- OD-10 is open and owned by the Architect; this card takes the only reading the decisions currently support and records the return path",
+      "any behaviour against a real exchange: the send path ran with a fake exchange client and no network",
+      "that no other UI field shares this failure shape -- only max_diff_pct was examined",
+      "that the live production live_config.json has been repaired -- the repair runs on the next load in the real app, which was not started"
+    ],
+    "not_changed": [
+      "no matrix edits",
+      "no append_only writes",
+      "no engine start",
+      "no orders",
+      "no change to Global Controls or any enforced risk gate"
+    ]
+  },
+  "delivery": {
+    "patch": "worker_patches/t_ecb22179/work.patch",
+    "bundle": "worker_patches/t_ecb22179/work.bundle",
+    "head": "worker_patches/t_ecb22179/HEAD.txt"
+  }
+}
