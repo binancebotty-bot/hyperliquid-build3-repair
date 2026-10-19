@@ -1,0 +1,18 @@
+{
+ "fixture_sha_before": "fe619f56989240c0c7dd00d78e06bcf0fd33aaa09e8b8616707018af04a6f0c1",
+ "fixture_sha_after": "d0604d3ee6663ff95f95fc730a05580fc8299efbd9f057834fe768b1b5eef0c6",
+ "fixture_survived": false,
+ "api_exchange_snapshot_status": "UNAVAILABLE",
+ "api_snapshot_status_field": "UNAVAILABLE",
+ "api_snapshot_reason": "ACCOUNT_ADDRESS_UNAVAILABLE",
+ "api_snapshot_available": false,
+ "api_orphan_count": 0,
+ "dom": {
+  "n_rows": 1,
+  "rows": [
+   [
+    "None — every exchange position is explained by the engine."
+   ]
+  ]
+ }
+}
