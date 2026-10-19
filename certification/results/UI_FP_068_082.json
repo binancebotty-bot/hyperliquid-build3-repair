@@ -1,0 +1,107 @@
+[
+  {
+    "row_id": "UI-FP-068",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/UI_FP_068_082_dom_capture.json#UI-FP-068",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "The page has no expanded-wallet detail row exposing current_open_positions[].side. The wallet list says no live-copy wallets configured; rendered owned-position rows do not provide the specified Open Positions side field."
+  },
+  {
+    "row_id": "UI-FP-069",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/UI_FP_068_082_dom_capture.json#UI-FP-069",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "The specified expanded-detail Open size value is not exposed: the only signed-size field is a different manual-ledger table, not current_open_positions[].signed_size in the wallet detail."
+  },
+  {
+    "row_id": "UI-FP-070",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/UI_FP_068_082_dom_capture.json#UI-FP-070",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "No expanded wallet detail renders the expected current_open_positions[].entry_px value. The owned-position table's Avg Entry is not the specified expanded detail field and does not meet the UI row contract."
+  },
+  {
+    "row_id": "UI-FP-071",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/UI_FP_068_082_dom_capture.json#UI-FP-071",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "No wallet detail exposes current_open_positions[].mark_px; the rendered owned-position table has no Mark px column."
+  },
+  {
+    "row_id": "UI-FP-072",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/UI_FP_068_082_dom_capture.json#UI-FP-072",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "No wallet detail exposes current_open_positions[].unrealized_pnl; the rendered owned-position table has no unrealized-PnL field."
+  },
+  {
+    "row_id": "UI-FP-073",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/UI_FP_068_082_dom_capture.json#UI-FP-073",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "No wallet detail exposes current_open_positions[].exposure; the rendered owned-position table has no exposure field."
+  },
+  {
+    "row_id": "UI-FP-074",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/UI_FP_068_082_dom_capture.json#UI-FP-074",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "No wallet detail exposes current_open_positions[].exchange_match; the owned-position table's Ledger/Exchange status is not the requested expanded-detail classification field."
+  },
+  {
+    "row_id": "UI-FP-075",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/UI_FP_068_082_dom_capture.json#UI-FP-075",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "The UI does not render friction_fills[].time from send_attempt.created_at; no friction-fill detail view or time cell is present."
+  },
+  {
+    "row_id": "UI-FP-076",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/UI_FP_068_082_dom_capture.json#UI-FP-076",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "The UI does not render friction_fills[].coin from send_attempt.coin; no friction-fill detail view or coin cell is present."
+  },
+  {
+    "row_id": "UI-FP-077",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/UI_FP_068_082_dom_capture.json#UI-FP-077",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "The UI does not render friction_fills[].side from send_attempt side; no friction-fill detail view or friction-side cell is present."
+  },
+  {
+    "row_id": "UI-FP-078",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/UI_FP_068_082_dom_capture.json#UI-FP-078",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "The UI does not render friction_fills[].leader_reference_px from intent leader_price/target/limit; no friction-fill detail view or leader-reference-price cell is present."
+  },
+  {
+    "row_id": "UI-FP-079",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/UI_FP_068_082_dom_capture.json#UI-FP-079",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "The UI does not render friction_fills[].copy_fill_px from send_attempt.fill_avg_px; no friction-fill detail view or copy-fill-price cell is present."
+  },
+  {
+    "row_id": "UI-FP-080",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/UI_FP_068_082_dom_capture.json#UI-FP-080",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "The UI does not render friction_fills[].size from send_attempt.fill_size; no friction-fill detail view or friction-size cell is present."
+  },
+  {
+    "row_id": "UI-FP-081",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/UI_FP_068_082_dom_capture.json#UI-FP-081",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "The UI does not render friction_fills[].diff_usd computed from copy fill, leader reference and side; no friction-fill detail view or diff-dollar cell is present."
+  },
+  {
+    "row_id": "UI-FP-082",
+    "verdict": "FAIL",
+    "evidence_ref": "certification/results/UI_FP_068_082_dom_capture.json#UI-FP-082",
+    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+    "why": "The UI does not render friction_fills[].diff_bps side-adjusted versus leader; no friction-fill detail view or diff-bps cell is present."
+  }
+]
