@@ -1,0 +1,116 @@
+{
+  "rows": [
+    {
+      "row_id": "UI-FP-023",
+      "verdict": "BLOCKED",
+      "evidence_ref": "certification/results/UI_FP_023_037_runtime_unavailable.json#UI-FP-023",
+      "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "why": "Row-specific UI assertion not evaluated: expected UI behavior is Real Account cards: Last Fill (Shows manual_live_summary.last_filled_manual_order from exchange_account_snapshot.json/manual_live_positions.json/append_only/send_attempts.csv as latest ORDER_FILLED send_attempt (provenance ENGINE_TRUTH; rows HEADER; can affect send: NO; execution truth: NO).) but the task-specified service at http://127.0.0.1:8031 was unreachable (curl connection refused). This is a runtime/tooling availability blocker, not a product FAIL or NOT_TESTED result."
+    },
+    {
+      "row_id": "UI-FP-024",
+      "verdict": "BLOCKED",
+      "evidence_ref": "certification/results/UI_FP_023_037_runtime_unavailable.json#UI-FP-024",
+      "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "why": "Row-specific UI assertion not evaluated: expected UI behavior is Real Account cards: Last Reject (Shows manual_live_summary.last_rejected_manual_order from exchange_account_snapshot.json/manual_live_positions.json/append_only/send_attempts.csv as latest rejected send_attempt (provenance ENGINE_TRUTH; rows HEADER; can affect send: NO; execution truth: NO).) but the task-specified service at http://127.0.0.1:8031 was unreachable (curl connection refused). This is a runtime/tooling availability blocker, not a product FAIL or NOT_TESTED result."
+    },
+    {
+      "row_id": "UI-FP-025",
+      "verdict": "BLOCKED",
+      "evidence_ref": "certification/results/UI_FP_023_037_runtime_unavailable.json#UI-FP-025",
+      "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "why": "Row-specific UI assertion not evaluated: expected UI behavior is Graph: Account graph total PnL (Shows exchange_account_history[].unified_portfolio_value from exchange_account_history.json as point.value = unified_portfolio_value - first_visible_unified_portfolio_value (provenance EXCHANGE_ACCOUNT; rows GRAPH; can affect send: NO; execution truth: NO).) but the task-specified service at http://127.0.0.1:8031 was unreachable (curl connection refused). This is a runtime/tooling availability blocker, not a product FAIL or NOT_TESTED result."
+    },
+    {
+      "row_id": "UI-FP-026",
+      "verdict": "BLOCKED",
+      "evidence_ref": "certification/results/UI_FP_023_037_runtime_unavailable.json#UI-FP-026",
+      "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "why": "Row-specific UI assertion not evaluated: expected UI behavior is Graph: Account graph realized PnL (Shows closedPnl cumulative over selected range minus baseline from live_graph.realized_pnl_points as EXCHANGE_ACCOUNT (provenance GRAPH; rows HEADER; can affect send: NO; execution truth: NO).) but the task-specified service at http://127.0.0.1:8031 was unreachable (curl connection refused). This is a runtime/tooling availability blocker, not a product FAIL or NOT_TESTED result."
+    },
+    {
+      "row_id": "UI-FP-027",
+      "verdict": "BLOCKED",
+      "evidence_ref": "certification/results/UI_FP_023_037_runtime_unavailable.json#UI-FP-027",
+      "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "why": "Row-specific UI assertion not evaluated: expected UI behavior is Graph: Account graph drawdown (Shows derived from account_points from exchange_account_history.json as drawdown = value - running_peak(value) (provenance APP_DERIVED; rows GRAPH; can affect send: NO; execution truth: NO).) but the task-specified service at http://127.0.0.1:8031 was unreachable (curl connection refused). This is a runtime/tooling availability blocker, not a product FAIL or NOT_TESTED result."
+    },
+    {
+      "row_id": "UI-FP-028",
+      "verdict": "BLOCKED",
+      "evidence_ref": "certification/results/UI_FP_023_037_runtime_unavailable.json#UI-FP-028",
+      "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "why": "Row-specific UI assertion not evaluated: expected UI behavior is Graph: Selected wallet PnL graph (Shows selected wallet pnl_series from live_leader_performance[wallet].pnl_series as APP_DERIVED (provenance GRAPH; rows HEADER; can affect send: NO; execution truth: NO).) but the task-specified service at http://127.0.0.1:8031 was unreachable (curl connection refused). This is a runtime/tooling availability blocker, not a product FAIL or NOT_TESTED result."
+    },
+    {
+      "row_id": "UI-FP-029",
+      "verdict": "BLOCKED",
+      "evidence_ref": "certification/results/UI_FP_023_037_runtime_unavailable.json#UI-FP-029",
+      "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "why": "Row-specific UI assertion not evaluated: expected UI behavior is Graph: Selected wallet exposure graph (Shows selected wallet current_exposure points from live_leader_performance[wallet].exposure_series as MANUAL_LEDGER (provenance GRAPH; rows HEADER; can affect send: NO; execution truth: NO).) but the task-specified service at http://127.0.0.1:8031 was unreachable (curl connection refused). This is a runtime/tooling availability blocker, not a product FAIL or NOT_TESTED result."
+    },
+    {
+      "row_id": "UI-FP-030",
+      "verdict": "BLOCKED",
+      "evidence_ref": "certification/results/UI_FP_023_037_runtime_unavailable.json#UI-FP-030",
+      "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "why": "Row-specific UI assertion not evaluated: expected UI behavior is Graph controls: Graph range controls (Shows lcGraphScale/start/end from UI state only as filters points by selected time range (provenance UI_STATE; rows CONTROL; can affect send: NO; execution truth: NO).) but the task-specified service at http://127.0.0.1:8031 was unreachable (curl connection refused). This is a runtime/tooling availability blocker, not a product FAIL or NOT_TESTED result."
+    },
+    {
+      "row_id": "UI-FP-031",
+      "verdict": "BLOCKED",
+      "evidence_ref": "certification/results/UI_FP_023_037_runtime_unavailable.json#UI-FP-031",
+      "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "why": "Row-specific UI assertion not evaluated: expected UI behavior is Live Copy Wallets row: Wallet (Shows wallet from live_config.json/manual_live_positions.json/append_only/send_attempts.csv/live_ws_health.json as shortWallet(live_config wallet key) (provenance LIVE_SERVICE_STATE; rows OWNED_COPY; can affect send: NO; execution truth: NO).) but the task-specified service at http://127.0.0.1:8031 was unreachable (curl connection refused). This is a runtime/tooling availability blocker, not a product FAIL or NOT_TESTED result."
+    },
+    {
+      "row_id": "UI-FP-032",
+      "verdict": "BLOCKED",
+      "evidence_ref": "certification/results/UI_FP_023_037_runtime_unavailable.json#UI-FP-032",
+      "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "why": "Row-specific UI assertion not evaluated: expected UI behavior is Live Copy Wallets row: Mode (Shows mode from live_config.json/manual_live_positions.json/append_only/send_attempts.csv/live_ws_health.json as normalized live_config mode (provenance LIVE_SERVICE_STATE; rows OWNED_COPY; can affect send: NO; execution truth: NO).) but the task-specified service at http://127.0.0.1:8031 was unreachable (curl connection refused). This is a runtime/tooling availability blocker, not a product FAIL or NOT_TESTED result."
+    },
+    {
+      "row_id": "UI-FP-033",
+      "verdict": "BLOCKED",
+      "evidence_ref": "certification/results/UI_FP_023_037_runtime_unavailable.json#UI-FP-033",
+      "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "why": "Row-specific UI assertion not evaluated: expected UI behavior is Live Copy Wallets row: Eligibility (Shows eligibility from live_config.json/manual_live_positions.json/append_only/send_attempts.csv/live_ws_health.json as mode/service_eligible derived label (provenance APP_DERIVED; rows OWNED_COPY; can affect send: NO; execution truth: NO).) but the task-specified service at http://127.0.0.1:8031 was unreachable (curl connection refused). This is a runtime/tooling availability blocker, not a product FAIL or NOT_TESTED result."
+    },
+    {
+      "row_id": "UI-FP-034",
+      "verdict": "BLOCKED",
+      "evidence_ref": "certification/results/UI_FP_023_037_runtime_unavailable.json#UI-FP-034",
+      "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "why": "Row-specific UI assertion not evaluated: expected UI behavior is Live Copy Wallets row: Connection pill (Shows ws_state from live_config.json/manual_live_positions.json/append_only/send_attempts.csv/live_ws_health.json as WS health or shared socket status (provenance LIVE_SERVICE_STATE; rows OWNED_COPY; can affect send: NO; execution truth: NO).) but the task-specified service at http://127.0.0.1:8031 was unreachable (curl connection refused). This is a runtime/tooling availability blocker, not a product FAIL or NOT_TESTED result."
+    },
+    {
+      "row_id": "UI-FP-035",
+      "verdict": "BLOCKED",
+      "evidence_ref": "certification/results/UI_FP_023_037_runtime_unavailable.json#UI-FP-035",
+      "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "why": "Row-specific UI assertion not evaluated: expected UI behavior is Live Copy Wallets row: Live PnL realized (Shows realized_pnl from live_config.json/manual_live_positions.json/append_only/send_attempts.csv/live_ws_health.json as wallet perf realized if exactly attributable else None (provenance APP_DERIVED; rows OWNED_COPY; can affect send: NO; execution truth: NO).) but the task-specified service at http://127.0.0.1:8031 was unreachable (curl connection refused). This is a runtime/tooling availability blocker, not a product FAIL or NOT_TESTED result."
+    },
+    {
+      "row_id": "UI-FP-036",
+      "verdict": "BLOCKED",
+      "evidence_ref": "certification/results/UI_FP_023_037_runtime_unavailable.json#UI-FP-036",
+      "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "why": "Row-specific UI assertion not evaluated: expected UI behavior is Live Copy Wallets row: Live PnL unrealized (Shows unrealized_pnl from live_config.json/manual_live_positions.json/append_only/send_attempts.csv/live_ws_health.json as owned sleeve unrealized when safe, never account-only/shared (provenance MANUAL_LEDGER; rows OWNED_COPY; can affect send: NO; execution truth: NO).) but the task-specified service at http://127.0.0.1:8031 was unreachable (curl connection refused). This is a runtime/tooling availability blocker, not a product FAIL or NOT_TESTED result."
+    },
+    {
+      "row_id": "UI-FP-037",
+      "verdict": "BLOCKED",
+      "evidence_ref": "certification/results/UI_FP_023_037_runtime_unavailable.json#UI-FP-037",
+      "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+      "why": "Row-specific UI assertion not evaluated: expected UI behavior is Live Copy Wallets row: Live PnL net (Shows net_pnl from live_config.json/manual_live_positions.json/append_only/send_attempts.csv/live_ws_health.json as realized + unrealized when safe (provenance APP_DERIVED; rows OWNED_COPY; can affect send: NO; execution truth: NO).) but the task-specified service at http://127.0.0.1:8031 was unreachable (curl connection refused). This is a runtime/tooling availability blocker, not a product FAIL or NOT_TESTED result."
+    }
+  ],
+  "runtime_check": {
+    "url": "http://127.0.0.1:8031/",
+    "result": "connection refused",
+    "declared_pid": 33368,
+    "declared_commit": "89b3bc7586bf328df336fc9ea721cee212617762"
+  },
+  "note": "No row verdict was inferred from the generic prior evidence; retry row-bound rendering when the service is reachable."
+}
