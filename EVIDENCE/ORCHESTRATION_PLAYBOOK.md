@@ -42,3 +42,20 @@ Rules:
 The general form: when a card blocks on "the artifact/commit is absent", verify against the remote first. Three blocks
 today were phantom absences caused by an inadequate local instrument — a shallow clone, a dirty checkout, a single-ref
 bundle — not by anything missing from the repository.
+
+## DELIVERY — paths must be ABSOLUTE (cost two runs)
+
+A relative delivery path is resolved against the worker's clone, not the folder intended, so `git bundle create` fails
+creating its `.lock` in a directory that does not exist:
+
+    cd <clone> && git bundle create "trading_stack/.../work.bundle" HEAD
+      -> fatal: Unable to create '<clone>/trading_stack/.../work.bundle.lock': No such file or directory
+    cd <clone> && git bundle create "C:/Users/wigmore/trading_stack/.../work.bundle" HEAD
+      -> created, 3,176,871 bytes
+
+Every card must carry the absolute form:
+
+    D=C:/Users/wigmore/trading_stack/hl-build3-testnet-cert-evidence/worker_patches/<CARD_ID>
+
+`D` begins with `C:/`. Not `trading_stack/`, not a path relative to the repo. This is on top of the earlier rule that the
+drop folder is a plain directory with no git in it.
