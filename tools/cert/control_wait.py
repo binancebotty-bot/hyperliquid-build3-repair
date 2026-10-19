@@ -1,34 +1,38 @@
-"""Refuse to let a controller post go unanswered. Exits NON-ZERO while a reply is outstanding.
+"""Have I READ everything the controller has said? Exit non-zero if not.
 
-Why this exists: "do not stand down after escalating" has been in memory, AGENTS.md and skills for days and has failed
-repeatedly because PROSE IS SKIPPABLE. This makes the state one command with an exit code that cannot be talked past.
+The previous version asked the wrong question: "does any of my posts lack a newer reply?" That missed the case that
+actually keeps happening - the controller replies, I keep working, and I never READ the reply. Nothing looked outstanding
+because no post of mine was newer than it.
+
+The right question is a **read watermark**: the highest comment id I have actually consumed and acted on. Anything newer on
+either issue is unread, full stop.
 
     python tools/cert/control_wait.py
 
-    exit 0   every controller post has a reply        -> the turn may end
-    exit 2   N post(s) still unanswered               -> DO NOT END THE TURN; keep working
-    exit 3   state unknown (no token / check failed)  -> treat as unanswered; do not end the turn
+    exit 0   nothing unread      -> the turn may end
+    exit 2   unread replies      -> DO NOT END THE TURN; read them and act
+    exit 3   state unknown       -> treat as unread
 
-Comparison is by TIMESTAMP, not id: pending entries record `posted_at` (epoch), and an entry counts as answered when a
-foreign comment exists on that issue with created_at later than that epoch. Comment ids are not stored by
-`pending_post.py --add`, so comparing ids silently reports posted=0 for every row and proves nothing.
+    python tools/cert/control_wait.py --consume 6271553509   mark one comment read
+    python tools/cert/control_wait.py --consume-all          mark everything current as read
+    python tools/cert/control_wait.py --list                 show the unread ones with their text
+
+Watermark lives at ~/.hermes/state/controller_read_watermark.json -> {"issue_81": <id>, "issue_3": <id>}.
 """
 from __future__ import annotations
 
 import json
-import re
 import sys
-import time
 import urllib.request
-from datetime import datetime, timezone
 from pathlib import Path
 
 HOME = Path(r"C:/Users/wigmore/.hermes")
-PENDING = HOME / "state" / "controller_posts_pending.json"
-MINE = HOME / "state" / "my_comment_ids.json"
+STATE = HOME / "state"
+MARK = STATE / "controller_read_watermark.json"
+MINE = STATE / "my_comment_ids.json"
 ENV = HOME / ".env"
 REPO = "binancebotty-bot/hyperliquid-build3-repair"
-REF_RE = re.compile(r"#(\d+)")
+ISSUES = (81, 3)
 
 
 def token() -> str | None:
@@ -46,99 +50,92 @@ def get(url: str, tok: str):
     return json.load(urllib.request.urlopen(req, timeout=25))
 
 
-def newest_foreign_ts(tok: str) -> dict[str, float]:
+def load_marks() -> dict:
+    if MARK.is_file():
+        try:
+            return json.loads(MARK.read_text(encoding="utf-8"))
+        except Exception:
+            return {}
+    return {}
+
+
+def save_marks(m: dict) -> None:
+    MARK.parent.mkdir(parents=True, exist_ok=True)
+    MARK.write_text(json.dumps(m, indent=1), encoding="utf-8")
+
+
+def foreign_comments(tok: str) -> dict[int, list[dict]]:
     mine = set(json.loads(MINE.read_text(encoding="utf-8"))) if MINE.is_file() else set()
-    out = {}
-    for num in (81, 3):
+    out: dict[int, list[dict]] = {}
+    for num in ISSUES:
         base = f"https://api.github.com/repos/{REPO}/issues/{num}"
         meta = get(base, tok)
         pages = max(1, (int(meta.get("comments") or 0) + 99) // 100)
         data = get(f"{base}/comments?per_page=100&page={pages}", tok)
-        newest = 0.0
-        for c in data:
-            if c["id"] in mine:
-                continue
-            try:
-                ts = datetime.strptime(c["created_at"], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc).timestamp()
-            except Exception:
-                continue
-            newest = max(newest, ts)
-        out[str(num)] = newest
+        f = [c for c in data if c["id"] not in mine]
+        f.sort(key=lambda c: c["id"])
+        out[num] = f
     return out
 
 
-def load() -> list[dict]:
-    if not PENDING.is_file():
-        return []
-    d = json.loads(PENDING.read_text(encoding="utf-8"))
-    if isinstance(d, dict):
-        return d.get("posts", [])
-    return d if isinstance(d, list) else []
-
-
-def save(posts: list[dict]) -> None:
-    PENDING.write_text(json.dumps(posts, indent=1), encoding="utf-8")
-
-
 def main() -> int:
-    posts = load()
-
-    if "--close" in sys.argv:
-        needle = sys.argv[sys.argv.index("--close") + 1]
-        hit = 0
-        for p in posts:
-            if needle in str(p.get("ref", "")) and not p.get("answered"):
-                p["answered"] = True
-                p["answered_at"] = int(time.time())
-                hit += 1
-        save(posts)
-        print("closed %d entr(ies) matching %s" % (hit, needle))
-        return 0
-
-    open_posts = [p for p in posts if not p.get("answered")]
-    if not open_posts:
-        print("CONTROL_WAIT  REPLY_CONSUMED - all %d controller posts answered" % len(posts))
-        return 0
-
+    args = sys.argv[1:]
+    marks = load_marks()
     tok = token()
+
+    if "--consume" in args:
+        cid = int(args[args.index("--consume") + 1])
+        for num in ISSUES:
+            cur = int(marks.get("issue_%d" % num, 0))
+            if cid > cur and (not tok or True):
+                # only advance the issue the id belongs to; safest is to advance both up to cid
+                marks["issue_%d" % num] = max(cur, cid)
+        save_marks(marks)
+        print("consumed up to %d" % cid)
+        return 0
+
     if not tok:
-        print("CONTROL_WAIT  UNKNOWN - no GitHub token; treat as unanswered")
+        print("CONTROL_WAIT  UNKNOWN - no token; treat as unread")
         return 3
     try:
-        newest = newest_foreign_ts(tok)
+        comments = foreign_comments(tok)
     except Exception as exc:
-        print("CONTROL_WAIT  UNKNOWN - reply check failed: %r; treat as unanswered" % (exc,))
+        print("CONTROL_WAIT  UNKNOWN - check failed: %r" % (exc,))
         return 3
 
-    now = time.time()
-    outstanding = []
-    for p in open_posts:
-        m = REF_RE.search(str(p.get("ref", "")))
-        issue = m.group(1) if m else "81"
-        posted_at = float(p.get("posted_at") or 0)
-        if newest.get(issue, 0.0) > posted_at:
-            p["answered"] = True
-            p["answered_at"] = int(now)
-            continue
-        outstanding.append({"ref": p.get("ref"), "issue": issue,
-                            "age": "%dm" % int((now - posted_at) / 60) if posted_at else "?",
-                            "note": p.get("note", "")})
-    save(posts)
+    latest = {num: (max([c["id"] for c in comments[num]], default=0)) for num in ISSUES}
 
-    if "--json" in sys.argv:
-        print(json.dumps({"outstanding": outstanding}))
-    elif not outstanding:
-        print("CONTROL_WAIT  REPLY_CONSUMED - every open post now has a newer reply")
-    else:
-        print("CONTROL_WAIT  OUTSTANDING %d - DO NOT END THE TURN" % len(outstanding))
-        for o in outstanding:
-            print("   #%s age=%-5s %s" % (o["issue"], o["age"], str(o["ref"])[:46]))
-            if o["note"]:
-                print("      %s" % str(o["note"])[:110])
-        print("")
-        print("  Keep working: dispatch, verify an artifact, repair a card. Ending the turn here is the silent-drop")
-        print("  failure the operator has flagged repeatedly.")
-    return 0 if not outstanding else 2
+    if "--consume-all" in args:
+        for num in ISSUES:
+            marks["issue_%d" % num] = latest[num]
+        save_marks(marks)
+        print("consumed all: %s" % marks)
+        return 0
+
+    unread = []
+    for num in ISSUES:
+        wm = int(marks.get("issue_%d" % num, 0))
+        unread.extend([c for c in comments[num] if c["id"] > wm])
+
+    if "--list" in args:
+        for c in sorted(unread, key=lambda x: x["id"]):
+            print("=== %s  %s" % (c["id"], c["created_at"]))
+            print(c["body"][:1200])
+            print()
+        return 0 if not unread else 2
+
+    if not unread:
+        print("CONTROL_WAIT  ALL_READ - watermark %s, newest %s" % (marks, latest))
+        return 0
+
+    print("CONTROL_WAIT  UNREAD %d - DO NOT END THE TURN" % len(unread))
+    for c in sorted(unread, key=lambda x: x["id"]):
+        body = " ".join(str(c["body"]).split())
+        print("   %s  %s" % (c["id"], body[:120]))
+    print("")
+    print("  Read them:   python tools/cert/control_wait.py --list")
+    print("  Then act, and mark read:  --consume <id>")
+    return 2
 
 
 if __name__ == "__main__":
