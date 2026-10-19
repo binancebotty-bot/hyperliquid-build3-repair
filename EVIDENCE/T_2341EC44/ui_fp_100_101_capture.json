@@ -1,0 +1,491 @@
+[
+ {
+  "mode": "base",
+  "fixture_written": {
+   "ok": true,
+   "available": true,
+   "status": "OK",
+   "updated_at": "2026-10-19T12:00:00Z",
+   "fetched_at_ms": 1792401234766,
+   "account_value_source": "probe_fixture",
+   "raw_total_usd_source": "probe_fixture",
+   "spot_account_source": "probe_fixture",
+   "realized_pnl_since_baseline_source": "probe_fixture",
+   "realized_pnl_selected_source": "probe_fixture",
+   "realized_fills_paging": {},
+   "positions_by_coin": {
+    "SENTORP": {
+     "coin": "SENTORP",
+     "signed_size": 7.5,
+     "position_value": 1516.65,
+     "entry_px": 101.11,
+     "mark_px": 202.22,
+     "unrealized_pnl": 758.325,
+     "margin_used": 0.0
+    },
+    "SENTSHARE": {
+     "coin": "SENTSHARE",
+     "signed_size": 10.0,
+     "position_value": 2222.2,
+     "entry_px": 111.11,
+     "mark_px": 222.22,
+     "unrealized_pnl": 777.77,
+     "margin_used": 0.0
+    }
+   }
+  },
+  "api": {
+   "exchange_snapshot_status": "OK",
+   "cache_hit": false,
+   "orphan_rows": [
+    {
+     "coin": "SENTSHARE",
+     "ledger_vs_exchange": "ACCOUNT_LEVEL_ONLY / SHARED_SYMBOL_RESIDUAL -5.000000",
+     "provenance": "ACCOUNT_LEVEL_ONLY",
+     "orphan_classification": "SHARED_SYMBOL_RESIDUAL",
+     "reconciliation_note": "aggregate shared-symbol residual; account-level only, never wallet-owned",
+     "exchange_signed_size": 5.0,
+     "exchange_total_size": 10.0,
+     "signed_size": 5.0,
+     "engine_shortfall": false
+    },
+    {
+     "coin": "SENTORP",
+     "ledger_vs_exchange": "ORPHAN_EXCHANGE",
+     "provenance": null,
+     "orphan_classification": "EXTERNAL_ORPHAN_UNOWNED",
+     "reconciliation_note": "NO SERVICE ORDER EVIDENCE; not adopted into ledger",
+     "exchange_signed_size": 7.5,
+     "exchange_total_size": null,
+     "signed_size": null,
+     "engine_shortfall": null
+    }
+   ]
+  },
+  "dom": {
+   "heads": [
+    "COIN",
+    "UNEXPLAINED SIZE",
+    "ENTRY PX",
+    "MARK PX",
+    "UNREALIZED PNL",
+    "STATUS",
+    "WHO MANAGES IT",
+    "ENGINE CLOSES IT?",
+    "ENGINE USES IT?",
+    "CONTEXT"
+   ],
+   "n_heads": 10,
+   "n_rows": 2,
+   "rows": [
+    {
+     "coin": "SENTSHARE",
+     "n_cells": 10,
+     "cells": [
+      "SENTSHARE",
+      "5",
+      "111.11",
+      "222.22",
+      "—",
+      "Not opened by the engine — managed by you",
+      "You",
+      "No",
+      "No",
+      "exchange holds 10; leaders explain the rest"
+     ],
+     "td6_status_title_attr": "ACCOUNT_LEVEL_ONLY / ACCOUNT_LEVEL_ONLY / SHARED_SYMBOL_RESIDUAL -5.000000",
+     "td6_pill_visible_text": "Not opened by the engine — managed by you",
+     "td10_context_visible_text": "exchange holds 10; leaders explain the rest",
+     "td10_context_title_attr": "aggregate shared-symbol residual; account-level only, never wallet-owned"
+    },
+    {
+     "coin": "SENTORP",
+     "n_cells": 10,
+     "cells": [
+      "SENTORP",
+      "7.5",
+      "101.11",
+      "202.22",
+      "$758.33",
+      "Not opened by the engine — managed by you",
+      "You",
+      "No",
+      "No",
+      "no engine order behind it"
+     ],
+     "td6_status_title_attr": "ACCOUNT_LEVEL_ONLY / ORPHAN_EXCHANGE",
+     "td6_pill_visible_text": "Not opened by the engine — managed by you",
+     "td10_context_visible_text": "no engine order behind it",
+     "td10_context_title_attr": "NO SERVICE ORDER EVIDENCE; not adopted into ledger"
+    }
+   ],
+   "url": "http://127.0.0.1:8037/live-copy",
+   "title": "Live Copy Dashboard"
+  }
+ },
+ {
+  "mode": "total8",
+  "fixture_written": {
+   "ok": true,
+   "available": true,
+   "status": "OK",
+   "updated_at": "2026-10-19T12:00:00Z",
+   "fetched_at_ms": 1792401234766,
+   "account_value_source": "probe_fixture",
+   "raw_total_usd_source": "probe_fixture",
+   "spot_account_source": "probe_fixture",
+   "realized_pnl_since_baseline_source": "probe_fixture",
+   "realized_pnl_selected_source": "probe_fixture",
+   "realized_fills_paging": {},
+   "positions_by_coin": {
+    "SENTORP": {
+     "coin": "SENTORP",
+     "signed_size": 7.5,
+     "position_value": 1516.65,
+     "entry_px": 101.11,
+     "mark_px": 202.22,
+     "unrealized_pnl": 758.325,
+     "margin_used": 0.0
+    },
+    "SENTSHARE": {
+     "coin": "SENTSHARE",
+     "signed_size": 8.0,
+     "position_value": 1777.76,
+     "entry_px": 111.11,
+     "mark_px": 222.22,
+     "unrealized_pnl": 777.77,
+     "margin_used": 0.0
+    }
+   }
+  },
+  "api": {
+   "exchange_snapshot_status": "OK",
+   "cache_hit": false,
+   "orphan_rows": [
+    {
+     "coin": "SENTSHARE",
+     "ledger_vs_exchange": "ACCOUNT_LEVEL_ONLY / SHARED_SYMBOL_RESIDUAL -3.000000",
+     "provenance": "ACCOUNT_LEVEL_ONLY",
+     "orphan_classification": "SHARED_SYMBOL_RESIDUAL",
+     "reconciliation_note": "aggregate shared-symbol residual; account-level only, never wallet-owned",
+     "exchange_signed_size": 3.0,
+     "exchange_total_size": 8.0,
+     "signed_size": 5.0,
+     "engine_shortfall": false
+    },
+    {
+     "coin": "SENTORP",
+     "ledger_vs_exchange": "ORPHAN_EXCHANGE",
+     "provenance": null,
+     "orphan_classification": "EXTERNAL_ORPHAN_UNOWNED",
+     "reconciliation_note": "NO SERVICE ORDER EVIDENCE; not adopted into ledger",
+     "exchange_signed_size": 7.5,
+     "exchange_total_size": null,
+     "signed_size": null,
+     "engine_shortfall": null
+    }
+   ]
+  },
+  "dom": {
+   "heads": [
+    "COIN",
+    "UNEXPLAINED SIZE",
+    "ENTRY PX",
+    "MARK PX",
+    "UNREALIZED PNL",
+    "STATUS",
+    "WHO MANAGES IT",
+    "ENGINE CLOSES IT?",
+    "ENGINE USES IT?",
+    "CONTEXT"
+   ],
+   "n_heads": 10,
+   "n_rows": 2,
+   "rows": [
+    {
+     "coin": "SENTSHARE",
+     "n_cells": 10,
+     "cells": [
+      "SENTSHARE",
+      "3",
+      "111.11",
+      "222.22",
+      "—",
+      "Not opened by the engine — managed by you",
+      "You",
+      "No",
+      "No",
+      "exchange holds 8; leaders explain the rest"
+     ],
+     "td6_status_title_attr": "ACCOUNT_LEVEL_ONLY / ACCOUNT_LEVEL_ONLY / SHARED_SYMBOL_RESIDUAL -3.000000",
+     "td6_pill_visible_text": "Not opened by the engine — managed by you",
+     "td10_context_visible_text": "exchange holds 8; leaders explain the rest",
+     "td10_context_title_attr": "aggregate shared-symbol residual; account-level only, never wallet-owned"
+    },
+    {
+     "coin": "SENTORP",
+     "n_cells": 10,
+     "cells": [
+      "SENTORP",
+      "7.5",
+      "101.11",
+      "202.22",
+      "$758.33",
+      "Not opened by the engine — managed by you",
+      "You",
+      "No",
+      "No",
+      "no engine order behind it"
+     ],
+     "td6_status_title_attr": "ACCOUNT_LEVEL_ONLY / ORPHAN_EXCHANGE",
+     "td6_pill_visible_text": "Not opened by the engine — managed by you",
+     "td10_context_visible_text": "no engine order behind it",
+     "td10_context_title_attr": "NO SERVICE ORDER EVIDENCE; not adopted into ledger"
+    }
+   ],
+   "url": "http://127.0.0.1:8037/live-copy",
+   "title": "Live Copy Dashboard"
+  }
+ },
+ {
+  "mode": "shortfall",
+  "fixture_written": {
+   "ok": true,
+   "available": true,
+   "status": "OK",
+   "updated_at": "2026-10-19T12:00:00Z",
+   "fetched_at_ms": 1792401234766,
+   "account_value_source": "probe_fixture",
+   "raw_total_usd_source": "probe_fixture",
+   "spot_account_source": "probe_fixture",
+   "realized_pnl_since_baseline_source": "probe_fixture",
+   "realized_pnl_selected_source": "probe_fixture",
+   "realized_fills_paging": {},
+   "positions_by_coin": {
+    "SENTORP": {
+     "coin": "SENTORP",
+     "signed_size": 7.5,
+     "position_value": 1516.65,
+     "entry_px": 101.11,
+     "mark_px": 202.22,
+     "unrealized_pnl": 758.325,
+     "margin_used": 0.0
+    },
+    "SENTSHARE": {
+     "coin": "SENTSHARE",
+     "signed_size": 1.0,
+     "position_value": 222.22,
+     "entry_px": 111.11,
+     "mark_px": 222.22,
+     "unrealized_pnl": 77.77,
+     "margin_used": 0.0
+    }
+   }
+  },
+  "api": {
+   "exchange_snapshot_status": "OK",
+   "cache_hit": false,
+   "orphan_rows": [
+    {
+     "coin": "SENTSHARE",
+     "ledger_vs_exchange": "ACCOUNT_LEVEL_ONLY / SHARED_SYMBOL_RESIDUAL +4.000000",
+     "provenance": "ACCOUNT_LEVEL_ONLY",
+     "orphan_classification": "SHARED_SYMBOL_RESIDUAL",
+     "reconciliation_note": "aggregate shared-symbol residual; account-level only, never wallet-owned",
+     "exchange_signed_size": -4.0,
+     "exchange_total_size": 1.0,
+     "signed_size": 5.0,
+     "engine_shortfall": true
+    },
+    {
+     "coin": "SENTORP",
+     "ledger_vs_exchange": "ORPHAN_EXCHANGE",
+     "provenance": null,
+     "orphan_classification": "EXTERNAL_ORPHAN_UNOWNED",
+     "reconciliation_note": "NO SERVICE ORDER EVIDENCE; not adopted into ledger",
+     "exchange_signed_size": 7.5,
+     "exchange_total_size": null,
+     "signed_size": null,
+     "engine_shortfall": null
+    }
+   ]
+  },
+  "dom": {
+   "heads": [
+    "COIN",
+    "UNEXPLAINED SIZE",
+    "ENTRY PX",
+    "MARK PX",
+    "UNREALIZED PNL",
+    "STATUS",
+    "WHO MANAGES IT",
+    "ENGINE CLOSES IT?",
+    "ENGINE USES IT?",
+    "CONTEXT"
+   ],
+   "n_heads": 10,
+   "n_rows": 2,
+   "rows": [
+    {
+     "coin": "SENTSHARE",
+     "n_cells": 10,
+     "cells": [
+      "SENTSHARE",
+      "-4",
+      "111.11",
+      "222.22",
+      "—",
+      "Engine records exceed the exchange — check Reconciliation",
+      "Check",
+      "No",
+      "No",
+      "exchange holds 1; the leaders' records add up to 5"
+     ],
+     "td6_status_title_attr": "ACCOUNT_LEVEL_ONLY / ACCOUNT_LEVEL_ONLY / SHARED_SYMBOL_RESIDUAL +4.000000",
+     "td6_pill_visible_text": "Engine records exceed the exchange — check Reconciliation",
+     "td10_context_visible_text": "exchange holds 1; the leaders' records add up to 5",
+     "td10_context_title_attr": "aggregate shared-symbol residual; account-level only, never wallet-owned"
+    },
+    {
+     "coin": "SENTORP",
+     "n_cells": 10,
+     "cells": [
+      "SENTORP",
+      "7.5",
+      "101.11",
+      "202.22",
+      "$758.33",
+      "Not opened by the engine — managed by you",
+      "You",
+      "No",
+      "No",
+      "no engine order behind it"
+     ],
+     "td6_status_title_attr": "ACCOUNT_LEVEL_ONLY / ORPHAN_EXCHANGE",
+     "td6_pill_visible_text": "Not opened by the engine — managed by you",
+     "td10_context_visible_text": "no engine order behind it",
+     "td10_context_title_attr": "NO SERVICE ORDER EVIDENCE; not adopted into ledger"
+    }
+   ],
+   "url": "http://127.0.0.1:8037/live-copy",
+   "title": "Live Copy Dashboard"
+  }
+ },
+ {
+  "mode": "orphan_only",
+  "fixture_written": {
+   "ok": true,
+   "available": true,
+   "status": "OK",
+   "updated_at": "2026-10-19T12:00:00Z",
+   "fetched_at_ms": 1792401234766,
+   "account_value_source": "probe_fixture",
+   "raw_total_usd_source": "probe_fixture",
+   "spot_account_source": "probe_fixture",
+   "realized_pnl_since_baseline_source": "probe_fixture",
+   "realized_pnl_selected_source": "probe_fixture",
+   "realized_fills_paging": {},
+   "positions_by_coin": {
+    "SENTORP": {
+     "coin": "SENTORP",
+     "signed_size": 7.5,
+     "position_value": 1516.65,
+     "entry_px": 101.11,
+     "mark_px": 202.22,
+     "unrealized_pnl": 758.325,
+     "margin_used": 0.0
+    }
+   }
+  },
+  "api": {
+   "exchange_snapshot_status": "UNAVAILABLE",
+   "cache_hit": false,
+   "orphan_rows": []
+  },
+  "dom": {
+   "heads": [
+    "COIN",
+    "UNEXPLAINED SIZE",
+    "ENTRY PX",
+    "MARK PX",
+    "UNREALIZED PNL",
+    "STATUS",
+    "WHO MANAGES IT",
+    "ENGINE CLOSES IT?",
+    "ENGINE USES IT?",
+    "CONTEXT"
+   ],
+   "n_heads": 10,
+   "n_rows": 1,
+   "rows": [
+    {
+     "coin": "None — every exchange position is explained by the engine.",
+     "n_cells": 1,
+     "cells": [
+      "None — every exchange position is explained by the engine."
+     ],
+     "td6_status_title_attr": null,
+     "td6_pill_visible_text": null,
+     "td10_context_visible_text": null,
+     "td10_context_title_attr": null
+    }
+   ],
+   "url": "http://127.0.0.1:8037/live-copy",
+   "title": "Live Copy Dashboard"
+  }
+ },
+ {
+  "mode": "unavailable",
+  "fixture_written": {
+   "ok": false,
+   "available": false,
+   "status": "UNAVAILABLE",
+   "updated_at": "2026-10-19T12:00:00Z",
+   "fetched_at_ms": 1792401234766,
+   "account_value_source": "probe_fixture",
+   "raw_total_usd_source": "probe_fixture",
+   "spot_account_source": "probe_fixture",
+   "realized_pnl_since_baseline_source": "probe_fixture",
+   "realized_pnl_selected_source": "probe_fixture",
+   "realized_fills_paging": {},
+   "positions_by_coin": {},
+   "reason": "ACCOUNT_ADDRESS_UNAVAILABLE"
+  },
+  "api": {
+   "exchange_snapshot_status": "UNAVAILABLE",
+   "cache_hit": false,
+   "orphan_rows": []
+  },
+  "dom": {
+   "heads": [
+    "COIN",
+    "UNEXPLAINED SIZE",
+    "ENTRY PX",
+    "MARK PX",
+    "UNREALIZED PNL",
+    "STATUS",
+    "WHO MANAGES IT",
+    "ENGINE CLOSES IT?",
+    "ENGINE USES IT?",
+    "CONTEXT"
+   ],
+   "n_heads": 10,
+   "n_rows": 1,
+   "rows": [
+    {
+     "coin": "None — every exchange position is explained by the engine.",
+     "n_cells": 1,
+     "cells": [
+      "None — every exchange position is explained by the engine."
+     ],
+     "td6_status_title_attr": null,
+     "td6_pill_visible_text": null,
+     "td10_context_visible_text": null,
+     "td10_context_title_attr": null
+    }
+   ],
+   "url": "http://127.0.0.1:8037/live-copy",
+   "title": "Live Copy Dashboard"
+  }
+ }
+]

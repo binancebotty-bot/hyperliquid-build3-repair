@@ -1,0 +1,172 @@
+{
+ "schema": "certification.correction.v1",
+ "card_id": "t_2341ec44",
+ "corrects": {
+  "artifact": "certification/results/UI_FP_098_112_t_3319351b.json",
+  "branch": "origin/cert-47-53-ui-fp-098-112-t_3319351b",
+  "head_sha": "75ab1e96682dabbdf7418592ac15b3608ea8f78b",
+  "rows_corrected": [
+   "UI-FP-100",
+   "UI-FP-101"
+  ],
+  "branch_untouched": true
+ },
+ "tested_build": {
+  "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+  "tested_commit_date": "2026-10-17T07:18:14Z",
+  "serving_ssot_sha256_measured": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
+  "how_established": "The :8031 instance used by 75ab1e9 no longer serves /live-copy (HTTP 404, listener PID 26336 answers a different page), so it was not reused. The exact committed build 89b3bc75 was extracted with git archive 89b3bc75 _archive/hl_stage2 and launched isolated on :8037 with its own audit dir. Measured SSOT sha256 in the running tree (658ec8e3...) equals the sha256 of 89b3bc75:_archive/hl_stage2/HL_Copy_App_SSOT.py.",
+  "process_rule_check": {
+   "probe_process_pid": 45060,
+   "probe_process_start_local": "2026-10-19 10:03:36",
+   "commit_date_utc": "2026-10-17T07:18:14Z",
+   "commit_predates_process": true,
+   "content_binding": "sha256 of running SSOT == sha256 of that file in commit 89b3bc75"
+  },
+  "isolated_probe_instance": {
+   "url": "http://127.0.0.1:8037/live-copy",
+   "audit_dir": "C:/Users/wigmore/.hermes/cache/scratch/t2341_probe/run/audit",
+   "leader_network": "mainnet",
+   "follower_network": "testnet",
+   "notes": "No wallet keys and no account address in the probe env, so the app own exchange fetch always fails ACCOUNT_ADDRESS_UNAVAILABLE. The app accepts an injected snapshot only while it is fresh (15s window) and rewrites it after that; each capture therefore writes the fixture, waits 3.2s for the 2s audit cache, reads /api/live-audit-summary and renders the DOM immediately. That the fixture was consumed (not the app rewrite) is proved by the captured values themselves: the API and the DOM both show the injected SENTORP 7.5 and the injected SENTSHARE totals 10 / 8 / 1, which cannot come from a failed fetch. A separate mode (fixture written, then left past the window) did flip to UNAVAILABLE, which is what established the 15s rewrite behaviour and is recorded here rather than hidden."
+  }
+ },
+ "method": {
+  "oracle": "Two independent sides per row: (a) the /api/live-audit-summary JSON the renderer consumes, and (b) the rendered DOM read by headless Chromium (Playwright, py3.11) from #lcOrphanPositionRows. Neither side derives from the other.",
+  "mutation_control": "Fixtures are injected in the exact schema the app itself writes (positions_by_coin -> signed_size / entry_px / mark_px / unrealized_pnl). Each value is unique across the row set and the same code path is re-run with the value changed, so a rendered string can only appear if it is bound to that row input.",
+  "fixture_schema_note": "An earlier attempt used raw Hyperliquid clearinghouse keys (szi/markPx); the app overwrites snapshots it considers stale or off-schema, so raw keys are silently dropped. Every capture below uses the app-written schema and was verified to survive the rendering call.",
+  "cache_note": "The app caches the audit summary for 2s in-process; each capture waits 3.2s and records cache_hit=false."
+ },
+ "files": [
+  "EVIDENCE/T_2341EC44/final_probe.py",
+  "EVIDENCE/T_2341EC44/ui_fp_100_101_capture.json",
+  "EVIDENCE/T_2341EC44/verify_unavail.py",
+  "EVIDENCE/T_2341EC44/unavailable_verified.json",
+  "EVIDENCE/T_2341EC44/dom_base.html",
+  "EVIDENCE/T_2341EC44/dom_total8.html",
+  "EVIDENCE/T_2341EC44/dom_shortfall.html",
+  "EVIDENCE/T_2341EC44/dom_unavailable.html"
+ ],
+ "rows": [
+  {
+   "row_id": "UI-FP-100",
+   "register_expected_behaviour": "Shows ledger_vs_exchange from exchange_account_snapshot.json as ACCOUNT_LEVEL_ONLY / ORPHAN_EXCHANGE badge",
+   "verdict": "PARTIAL",
+   "previous_verdict": "PASS",
+   "executed_probe": "final_probe.py modes base,total8,shortfall (headless Chromium vs :8037/live-copy + /api/live-audit-summary)",
+   "independent_oracle": "orphan_exchange_positions[*].provenance and .ledger_vs_exchange vs the rendered Status cell",
+   "observed": {
+    "exact_injected_api_values": {
+     "SENTORP": {
+      "provenance": null,
+      "ledger_vs_exchange": "ORPHAN_EXCHANGE"
+     },
+     "SENTSHARE_base": {
+      "provenance": "ACCOUNT_LEVEL_ONLY",
+      "ledger_vs_exchange": "ACCOUNT_LEVEL_ONLY / SHARED_SYMBOL_RESIDUAL -5.000000"
+     },
+     "SENTSHARE_total8": {
+      "ledger_vs_exchange": "ACCOUNT_LEVEL_ONLY / SHARED_SYMBOL_RESIDUAL -3.000000"
+     },
+     "SENTSHARE_shortfall": {
+      "ledger_vs_exchange": "ACCOUNT_LEVEL_ONLY / SHARED_SYMBOL_RESIDUAL +4.000000"
+     }
+    },
+    "rendered_status_cell_title_attribute": {
+     "SENTORP": "ACCOUNT_LEVEL_ONLY / ORPHAN_EXCHANGE",
+     "SENTSHARE_base": "ACCOUNT_LEVEL_ONLY / ACCOUNT_LEVEL_ONLY / SHARED_SYMBOL_RESIDUAL -5.000000",
+     "SENTSHARE_total8": "ACCOUNT_LEVEL_ONLY / ACCOUNT_LEVEL_ONLY / SHARED_SYMBOL_RESIDUAL -3.000000",
+     "SENTSHARE_shortfall": "ACCOUNT_LEVEL_ONLY / ACCOUNT_LEVEL_ONLY / SHARED_SYMBOL_RESIDUAL +4.000000"
+    },
+    "rendered_status_pill_visible_text": {
+     "SENTORP": "Not opened by the engine — managed by you",
+     "SENTSHARE_base": "Not opened by the engine — managed by you",
+     "SENTSHARE_shortfall": "Engine records exceed the exchange — check Reconciliation"
+    },
+    "row_binding_proof": "In ONE render the two rows carry different title attributes (SENTORP = ACCOUNT_LEVEL_ONLY / ORPHAN_EXCHANGE; SENTSHARE = ACCOUNT_LEVEL_ONLY / ACCOUNT_LEVEL_ONLY / SHARED_SYMBOL_RESIDUAL -5.000000), and the SENTSHARE string becomes -3.000000 then +4.000000 when only the injected exchange total changes 10 -> 8 -> 1. It is bound to that row input, not shared text.",
+    "why_partial": "The register names a BADGE, i.e. what the operator reads. The visible pill text is a fixed string identical across orphan rows; the literal ledger_vs_exchange / provenance string appears only as the Status cell title attribute (hover tooltip). The value is rendered per row and row-bound, but it is not shown as a badge. The register also says the value comes from exchange_account_snapshot.json, whereas the app derives ledger_vs_exchange itself from positions_by_coin plus classification. PARTIAL, not PASS."
+   },
+   "reproduces": "cd C:/Users/wigmore/.hermes/cache/scratch/t2341_probe && C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe final_probe.py"
+  },
+  {
+   "row_id": "UI-FP-101",
+   "register_expected_behaviour": "Shows reconciliation_note from exchange_account_snapshot.json as NO OWNED SLEEVE/explanation",
+   "verdict": "PASS",
+   "previous_verdict": "PASS (assertion was unsupported)",
+   "executed_probe": "final_probe.py modes base,total8,shortfall",
+   "independent_oracle": "orphan_exchange_positions[*].reconciliation_note, exchange_total_size, signed_size, engine_shortfall vs the rendered Context cell text and title",
+   "observed": {
+    "exact_injected_note_values_and_rendered_result": [
+     {
+      "row": "SENTORP",
+      "api_reconciliation_note": "NO SERVICE ORDER EVIDENCE; not adopted into ledger",
+      "rendered_context_visible_text": "no engine order behind it",
+      "rendered_context_title_attribute": "NO SERVICE ORDER EVIDENCE; not adopted into ledger",
+      "note_equals_title_attr": true
+     },
+     {
+      "row": "SENTSHARE base (exchange total 10)",
+      "api_reconciliation_note": "aggregate shared-symbol residual; account-level only, never wallet-owned",
+      "api_exchange_total_size": 10.0,
+      "rendered_context_visible_text": "exchange holds 10; leaders explain the rest",
+      "rendered_context_title_attribute": "aggregate shared-symbol residual; account-level only, never wallet-owned",
+      "note_equals_title_attr": true
+     },
+     {
+      "row": "SENTSHARE mutation (exchange total 8)",
+      "api_reconciliation_note": "aggregate shared-symbol residual; account-level only, never wallet-owned",
+      "api_exchange_total_size": 8.0,
+      "rendered_context_visible_text": "exchange holds 8; leaders explain the rest",
+      "rendered_context_title_attribute": "aggregate shared-symbol residual; account-level only, never wallet-owned"
+     },
+     {
+      "row": "SENTSHARE mutation (exchange total 1, engine_shortfall true)",
+      "api_reconciliation_note": "aggregate shared-symbol residual; account-level only, never wallet-owned",
+      "api_engine_shortfall": true,
+      "api_signed_size": 5.0,
+      "api_exchange_total_size": 1.0,
+      "rendered_context_visible_text": "exchange holds 1; the leaders' records add up to 5",
+      "rendered_context_title_attribute": "aggregate shared-symbol residual; account-level only, never wallet-owned"
+     }
+    ],
+    "exact_mapping_demonstrated": {
+     "source_fields": [
+      "coin",
+      "reconciliation_note",
+      "exchange_total_size",
+      "signed_size",
+      "engine_shortfall"
+     ],
+     "rule_from_code": "renderPositions() Context cell = engine_shortfall ? \"exchange holds \"+exchange_total_size+\"; the leaders records add up to \"+signed_size : (exchange_total_size != null ? \"exchange holds \"+exchange_total_size+\"; leaders explain the rest\" : \"no engine order behind it\"), and reconciliation_note goes verbatim into the cell title attribute.",
+     "verification": [
+      "SENTORP: exchange_total_size null -> visible \"no engine order behind it\"; title equals the exact injected note \"NO SERVICE ORDER EVIDENCE; not adopted into ledger\".",
+      "SENTSHARE base: exchange_total_size 10 -> visible \"exchange holds 10; leaders explain the rest\"; title equals \"aggregate shared-symbol residual; account-level only, never wallet-owned\".",
+      "SENTSHARE total8: only the injected total changed 10 -> 8 -> visible becomes \"exchange holds 8; leaders explain the rest\".",
+      "SENTSHARE shortfall: total 1 < ledger net 5 -> engine_shortfall true -> visible \"exchange holds 1; the leaders records add up to 5\", the other branch of the same rule."
+     ]
+    },
+    "why_pass": "The register asks for reconciliation_note shown as a NO OWNED SLEEVE / explanation. The note is rendered verbatim as the Context cell title, and the visible text is a row-specific explanation proven to follow the app rule from injected inputs, with every branch exercised. The corrected artifact asserted PASS without supplying these values; this artifact supplies the exact injected note values and the exact mapping, which is what the reviewer required."
+   },
+   "reproduces": "cd C:/Users/wigmore/.hermes/cache/scratch/t2341_probe && C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe final_probe.py"
+  }
+ ],
+ "negative_tests": {
+  "source_unavailable": {
+   "how": "Injected an UNAVAILABLE snapshot (available=false, reason=ACCOUNT_ADDRESS_UNAVAILABLE) and rendered the page.",
+   "api": {
+    "status": "UNAVAILABLE",
+    "reason": "ACCOUNT_ADDRESS_UNAVAILABLE",
+    "available": false,
+    "orphan_count": 0
+   },
+   "rendered_rows": [
+    [
+     "None — every exchange position is explained by the engine."
+    ]
+   ],
+   "finding": "DEFECT, out of scope for these two rows: with the exchange source UNAVAILABLE the orphan table renders \"None - every exchange position is explained by the engine.\", i.e. it shows a positive all-clear when the source could not be read. Raised as a separate finding, not folded into UI-FP-100/101.",
+   "instrument_caveat": "The app rewrote the injected UNAVAILABLE snapshot during the call (fixture_sha_before != fixture_sha_after, see unavailable_verified.json); the UNAVAILABLE status the renderer consumed came from the app own fail path, so the rendered message is attributable to the app, not to the fixture."
+  }
+ },
+ "scope_statement": "Only UI-FP-100 and UI-FP-101 are corrected here. No other verdict from 75ab1e9 is asserted or changed."
+}
