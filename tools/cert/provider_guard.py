@@ -57,6 +57,17 @@ def main() -> int:
             problems.append(("OVER", "%s over ceiling: %d running, cap %d" % (lane, run[lane], cap), run[lane]))
 
     elsewhere = sum(v for k, v in ready.items() if k in ALLOWED)
+    total_running = sum(run.values())
+    # Board cap dominates per-lane headroom: with max_in_progress=7 and 6 running there is ONE slot, so a lane showing
+    # five "free" slots is not starved. Read the cap rather than assuming lane capacity is usable.
+    try:
+        import re as _re
+        _cfg = Path(r"C:/Users/wigmore/.hermes/config.yaml").read_text(encoding="utf-8", errors="ignore")
+        _m = _re.search(r"\n  max_in_progress:\s*(\d+)", _cfg)
+        board_cap = int(_m.group(1)) if _m else 18
+    except Exception:
+        board_cap = 18
+    board_free = board_cap - total_running
     for lane, (cap, _) in ALLOWED.items():
         if lane == "gemini":
             continue
@@ -66,7 +77,12 @@ def main() -> int:
                                  % (lane, elsewhere), 0))
             continue
         free = cap - run.get(lane, 0)
-        if free > 0 and ready.get(lane, 0) == 0 and elsewhere >= UNDERUSE_QUEUE_THRESHOLD:
+        # A lane with free slots AND a real backlog is starved only if the BOARD still has room to place a worker.
+        if free > 0 and ready.get(lane, 0) >= 3 and board_free >= 2:
+            problems.append(("STARVED", "%s has %d free slot(s) and %d card(s) queued on it but only %d running "
+                             "(board has %d free of %d)" % (lane, free, ready.get(lane, 0), run.get(lane, 0),
+                                                            board_free, board_cap), free))
+        elif free > 0 and ready.get(lane, 0) == 0 and elsewhere >= UNDERUSE_QUEUE_THRESHOLD and board_free >= 2:
             problems.append(("UNDER-USED", "%s has %d free slot(s), no card assigned, %d queued elsewhere"
                              % (lane, free, elsewhere), free))
 
