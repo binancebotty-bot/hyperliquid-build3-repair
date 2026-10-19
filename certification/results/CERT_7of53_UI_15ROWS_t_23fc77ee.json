@@ -72,7 +72,7 @@
    "verdict": "FAIL",
    "evidence_ref": "certification/results/UI_CERT_t_23fc77ee_probe_89b3bc7.json#runs.display_only_and_flip_tests.hdr05",
    "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
-   "why": "The REAL ORDERS safety pill does not exist at the tested commit. In the commit-bound rendered page #lcRealOrders resolves to no element and the document contains zero occurrences of the text \"REAL ORDERS\"; the header pills are only Wallets / Live wallets / Close-only wallets / Off / Leader feed, and the header buttons are Refresh, Global Controls, Add wallet, close, Save Global Controls. grep of HL_Copy_App_SSOT.py at 89b3bc7 returns 0 matches for \"REAL ORDERS\". The pill exists only in the uncommitted working tree served on :8031, so it cannot be credited to any commit."
+   "why": "Fresh commit-bound render at http://127.0.0.1:8032/live-copy (source commit 89b3bc7586bf328df336fc9ea721cee212617762; serving script SHA-256 658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2) found #lcRealOrders count=0, visible-text query count=0, and body text contains no REAL ORDERS. Verdict remains FAIL because the required safety pill is absent. The earlier hdr05 any_REAL_ORDERS_text=true is a broad/unqualified text probe and is not evidence of a row-bound pill; selector_lcRealOrders=false is the relevant bound observation. The uncommitted :8031 surface is excluded."
   },
   {
    "row_id": "UI-LCC-HDR-06",

@@ -136,7 +136,7 @@
     }
    },
    "hdr05": {
-    "any_REAL_ORDERS_text": true,
+    "any_REAL_ORDERS_text": false,
     "header_buttons": [
      "Refresh",
      "Global Controls",
@@ -152,7 +152,16 @@
      "Off: 3",
      "Leader feed:\nPolling (normal)"
     ],
-    "selector_lcRealOrders": false
+    "selector_lcRealOrders": false,
+    "row_bound_reproduction": {
+     "url": "http://127.0.0.1:8032/live-copy",
+     "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
+     "selector_count": 0,
+     "visible_text_query_count": 0,
+     "body_contains_REAL_ORDERS": false,
+     "rendered_at": "2026-10-19",
+     "source_binding": "serving script SHA-256 658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2"
+    }
    },
    "w017_b": {
     "cfg_sha_after": "f199111a5bccf65acf4389df32867b0351c66ab53b22e28102528001f5a794fc",
