@@ -1,0 +1,159 @@
+{
+  "schema": "engine-seam-findings/1",
+  "task": "t_f2e2ac41",
+  "base_commit": "545a7bbbe74b74281995418bcc933743eaee78aa",
+  "engine_sha256": "9072aa592331424acbf51cdb5b4246408bb282bb15b57e35787c6843890668e4",
+  "method": "Reviewed existing committed evidence and current matrix; no live/testnet send. ACTIVE/CONTROL seam check was not run because these rows execution_proof requires testnet-observable leader-to-MASTER order/settlement, which an offline decision seam cannot establish.",
+  "rows": [
+    {
+      "id": "ENG-INV-07",
+      "result": "NOT_TESTED",
+      "artifact_read": "certification/results/ENG-INV-06-09_43731b4.json",
+      "unbound_check": "Required leader-event -> desired net -> planner -> sender -> testnet order -> MASTER fill/position cannot be bound by offline ACTIVE/CONTROL unit pair; 43731b4 artifact provides static/unit checks for INV-07..09, not the required execution proof."
+    },
+    {
+      "id": "ENG-INV-08",
+      "result": "NOT_TESTED",
+      "artifact_read": "certification/results/ENG-INV-06-09_43731b4.json",
+      "unbound_check": "Required leader-event -> desired net -> planner -> sender -> testnet order -> MASTER fill/position cannot be bound by offline ACTIVE/CONTROL unit pair; 43731b4 artifact provides static/unit checks for INV-07..09, not the required execution proof."
+    },
+    {
+      "id": "ENG-INV-09",
+      "result": "NOT_TESTED",
+      "artifact_read": "certification/results/ENG-INV-06-09_43731b4.json",
+      "unbound_check": "Required leader-event -> desired net -> planner -> sender -> testnet order -> MASTER fill/position cannot be bound by offline ACTIVE/CONTROL unit pair; 43731b4 artifact provides static/unit checks for INV-07..09, not the required execution proof."
+    },
+    {
+      "id": "ENG-INV-10",
+      "result": "NOT_TESTED",
+      "artifact_read": "origin/main:certification/certification_matrix.json",
+      "unbound_check": "Required leader-event -> desired net -> planner -> sender -> testnet order -> MASTER fill/position cannot be bound by offline ACTIVE/CONTROL unit pair; 43731b4 artifact provides static/unit checks for INV-07..09, not the required execution proof."
+    },
+    {
+      "id": "ENG-INV-11",
+      "result": "NOT_TESTED",
+      "artifact_read": "origin/main:certification/certification_matrix.json",
+      "unbound_check": "Required leader-event -> desired net -> planner -> sender -> testnet order -> MASTER fill/position cannot be bound by offline ACTIVE/CONTROL unit pair; 43731b4 artifact provides static/unit checks for INV-07..09, not the required execution proof."
+    },
+    {
+      "id": "ENG-INV-12",
+      "result": "NOT_TESTED",
+      "artifact_read": "origin/main:certification/certification_matrix.json",
+      "unbound_check": "Required leader-event -> desired net -> planner -> sender -> testnet order -> MASTER fill/position cannot be bound by offline ACTIVE/CONTROL unit pair; 43731b4 artifact provides static/unit checks for INV-07..09, not the required execution proof."
+    },
+    {
+      "id": "ENG-INV-13",
+      "result": "NOT_TESTED",
+      "artifact_read": "origin/main:certification/certification_matrix.json",
+      "unbound_check": "Required leader-event -> desired net -> planner -> sender -> testnet order -> MASTER fill/position cannot be bound by offline ACTIVE/CONTROL unit pair; 43731b4 artifact provides static/unit checks for INV-07..09, not the required execution proof."
+    },
+    {
+      "id": "ENG-INV-14",
+      "result": "NOT_TESTED",
+      "artifact_read": "origin/main:certification/certification_matrix.json",
+      "unbound_check": "Required leader-event -> desired net -> planner -> sender -> testnet order -> MASTER fill/position cannot be bound by offline ACTIVE/CONTROL unit pair; 43731b4 artifact provides static/unit checks for INV-07..09, not the required execution proof."
+    },
+    {
+      "id": "ENG-SEM-B1",
+      "result": "NOT_TESTED",
+      "artifact_read": "origin/main:certification/certification_matrix.json",
+      "unbound_check": "Required leader-event -> desired net -> planner -> sender -> testnet order -> MASTER fill/position cannot be bound by offline ACTIVE/CONTROL unit pair; 43731b4 artifact provides static/unit checks for INV-07..09, not the required execution proof."
+    },
+    {
+      "id": "ENG-SEM-B2",
+      "result": "NOT_TESTED",
+      "artifact_read": "origin/main:certification/certification_matrix.json",
+      "unbound_check": "Required leader-event -> desired net -> planner -> sender -> testnet order -> MASTER fill/position cannot be bound by offline ACTIVE/CONTROL unit pair; 43731b4 artifact provides static/unit checks for INV-07..09, not the required execution proof."
+    },
+    {
+      "id": "ENG-SEM-B3",
+      "result": "NOT_TESTED",
+      "artifact_read": "origin/main:certification/certification_matrix.json",
+      "unbound_check": "Required leader-event -> desired net -> planner -> sender -> testnet order -> MASTER fill/position cannot be bound by offline ACTIVE/CONTROL unit pair; 43731b4 artifact provides static/unit checks for INV-07..09, not the required execution proof."
+    },
+    {
+      "id": "ENG-SEM-B4",
+      "result": "NOT_TESTED",
+      "artifact_read": "origin/main:certification/certification_matrix.json",
+      "unbound_check": "Required leader-event -> desired net -> planner -> sender -> testnet order -> MASTER fill/position cannot be bound by offline ACTIVE/CONTROL unit pair; 43731b4 artifact provides static/unit checks for INV-07..09, not the required execution proof."
+    },
+    {
+      "id": "ENG-001",
+      "result": "NOT_TESTED",
+      "artifact_read": "origin/main:certification/certification_matrix.json",
+      "unbound_check": "Required leader-event -> desired net -> planner -> sender -> testnet order -> MASTER fill/position cannot be bound by offline ACTIVE/CONTROL unit pair; 43731b4 artifact provides static/unit checks for INV-07..09, not the required execution proof."
+    },
+    {
+      "id": "ENG-002",
+      "result": "NOT_TESTED",
+      "artifact_read": "origin/main:certification/certification_matrix.json",
+      "unbound_check": "Required leader-event -> desired net -> planner -> sender -> testnet order -> MASTER fill/position cannot be bound by offline ACTIVE/CONTROL unit pair; 43731b4 artifact provides static/unit checks for INV-07..09, not the required execution proof."
+    },
+    {
+      "id": "ENG-003",
+      "result": "NOT_TESTED",
+      "artifact_read": "origin/main:certification/certification_matrix.json",
+      "unbound_check": "Required leader-event -> desired net -> planner -> sender -> testnet order -> MASTER fill/position cannot be bound by offline ACTIVE/CONTROL unit pair; 43731b4 artifact provides static/unit checks for INV-07..09, not the required execution proof."
+    },
+    {
+      "id": "ENG-004",
+      "result": "NOT_TESTED",
+      "artifact_read": "origin/main:certification/certification_matrix.json",
+      "unbound_check": "Required leader-event -> desired net -> planner -> sender -> testnet order -> MASTER fill/position cannot be bound by offline ACTIVE/CONTROL unit pair; 43731b4 artifact provides static/unit checks for INV-07..09, not the required execution proof."
+    },
+    {
+      "id": "ENG-005",
+      "result": "NOT_TESTED",
+      "artifact_read": "origin/main:certification/certification_matrix.json",
+      "unbound_check": "Required leader-event -> desired net -> planner -> sender -> testnet order -> MASTER fill/position cannot be bound by offline ACTIVE/CONTROL unit pair; 43731b4 artifact provides static/unit checks for INV-07..09, not the required execution proof."
+    },
+    {
+      "id": "ENG-006",
+      "result": "NOT_TESTED",
+      "artifact_read": "origin/main:certification/certification_matrix.json",
+      "unbound_check": "Required leader-event -> desired net -> planner -> sender -> testnet order -> MASTER fill/position cannot be bound by offline ACTIVE/CONTROL unit pair; 43731b4 artifact provides static/unit checks for INV-07..09, not the required execution proof."
+    },
+    {
+      "id": "ENG-007",
+      "result": "NOT_TESTED",
+      "artifact_read": "origin/main:certification/certification_matrix.json",
+      "unbound_check": "Required leader-event -> desired net -> planner -> sender -> testnet order -> MASTER fill/position cannot be bound by offline ACTIVE/CONTROL unit pair; 43731b4 artifact provides static/unit checks for INV-07..09, not the required execution proof."
+    },
+    {
+      "id": "ENG-008",
+      "result": "NOT_TESTED",
+      "artifact_read": "origin/main:certification/certification_matrix.json",
+      "unbound_check": "Required leader-event -> desired net -> planner -> sender -> testnet order -> MASTER fill/position cannot be bound by offline ACTIVE/CONTROL unit pair; 43731b4 artifact provides static/unit checks for INV-07..09, not the required execution proof."
+    },
+    {
+      "id": "ENG-009",
+      "result": "NOT_TESTED",
+      "artifact_read": "origin/main:certification/certification_matrix.json",
+      "unbound_check": "Required leader-event -> desired net -> planner -> sender -> testnet order -> MASTER fill/position cannot be bound by offline ACTIVE/CONTROL unit pair; 43731b4 artifact provides static/unit checks for INV-07..09, not the required execution proof."
+    },
+    {
+      "id": "ENG-010",
+      "result": "NOT_TESTED",
+      "artifact_read": "origin/main:certification/certification_matrix.json",
+      "unbound_check": "Required leader-event -> desired net -> planner -> sender -> testnet order -> MASTER fill/position cannot be bound by offline ACTIVE/CONTROL unit pair; 43731b4 artifact provides static/unit checks for INV-07..09, not the required execution proof."
+    },
+    {
+      "id": "ENG-011",
+      "result": "NOT_TESTED",
+      "artifact_read": "origin/main:certification/certification_matrix.json",
+      "unbound_check": "Required leader-event -> desired net -> planner -> sender -> testnet order -> MASTER fill/position cannot be bound by offline ACTIVE/CONTROL unit pair; 43731b4 artifact provides static/unit checks for INV-07..09, not the required execution proof."
+    },
+    {
+      "id": "ENG-012",
+      "result": "NOT_TESTED",
+      "artifact_read": "origin/main:certification/certification_matrix.json",
+      "unbound_check": "Required leader-event -> desired net -> planner -> sender -> testnet order -> MASTER fill/position cannot be bound by offline ACTIVE/CONTROL unit pair; 43731b4 artifact provides static/unit checks for INV-07..09, not the required execution proof."
+    },
+    {
+      "id": "ENG-013",
+      "result": "NOT_TESTED",
+      "artifact_read": "origin/main:certification/certification_matrix.json",
+      "unbound_check": "Required leader-event -> desired net -> planner -> sender -> testnet order -> MASTER fill/position cannot be bound by offline ACTIVE/CONTROL unit pair; 43731b4 artifact provides static/unit checks for INV-07..09, not the required execution proof."
+    }
+  ]
+}
