@@ -1,0 +1,48 @@
+{
+  "requirement": [
+    "ENG-INV-02",
+    "ENG-INV-06"
+  ],
+  "claim": "exactly one reachable production exchange.order() call site",
+  "method": "AST walk for Call(func=Attribute(attr='order', value=Name('exchange'))) - grep is not a census, it counts docstrings and comments",
+  "tested_commit": "621a06c2459b43c564874a8377d00576ffe098d9",
+  "tested_ref": "origin/main",
+  "files": {
+    "_archive/hl_stage2/convergence_shadow.py": {
+      "present": true,
+      "call_linenos": [],
+      "sha256": "4d0265c5bece3222967246601866b90783feda7fd8cbe17c3707e4217944cb81"
+    },
+    "_archive/hl_stage2/exchange_truth.py": {
+      "present": true,
+      "call_linenos": [],
+      "sha256": "47c43eb04cb1a2db51ef09f81eb5c372b1ded8163e07a5e5ee5eeac283fe8062"
+    },
+    "_archive/hl_stage2/HL_Copy_App_SSOT.py": {
+      "present": true,
+      "call_linenos": [],
+      "sha256": "4574ca72b0da4dc4aec101e6fa87b485a0e80abb99426a773957c26b5c173692"
+    },
+    "_archive/hl_stage2/HL_Live_Copy_Service.py": {
+      "present": true,
+      "call_linenos": [],
+      "sha256": "8af7f6426948ea74dad82dfb1514582672b99b37cfdf727086d6d810db7a64ec"
+    },
+    "_archive/hl_stage2/HL_Live_Copy_Service_Core.py": {
+      "present": true,
+      "call_linenos": [
+        4204
+      ],
+      "sha256": "1a1daf81861f726fb2f00066ca5a5314b423ec8766af665def2096adcd93a564"
+    }
+  },
+  "call_sites": [
+    {
+      "file": "_archive/hl_stage2/HL_Live_Copy_Service_Core.py",
+      "line": 4204
+    }
+  ],
+  "single_order_call_site": true,
+  "verdict": "PASS",
+  "note": "The legacy sender at HL_Live_Copy_Service.py:1036 was retired in 621a06c (fails closed, no direct order call). The surviving site is Core:4204. A regression guard (_archive/hl_stage2/test_single_exchange_order_callsite.py) fails if a second site reappears anywhere under _archive/hl_stage2/ or if the site moves out of Core."
+}

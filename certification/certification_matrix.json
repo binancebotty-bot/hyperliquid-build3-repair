@@ -629,11 +629,11 @@
     "census run against a deliberately mutated copy must FAIL (non-vacuous)"
    ],
    "prior_evidence": "",
-   "result": "FAIL",
-   "evidence_ref": "certification/results/ENG-INV-02_two_site_census_43731b4f.json",
-   "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+   "result": "PASS",
+   "evidence_ref": "certification/results/ENG-INV-02-06_single_order_site_census.json",
+   "tested_commit": "621a06c2459b43c564874a8377d00576ffe098d9",
    "tested_at_utc": "2026-10-18T21:45:00Z",
-   "notes": "FAIL: two reachable physical production exchange.order() sites at HL_Live_Copy_Service_Core.py:2703 and HL_Live_Copy_Service.py:1036. The latter is reachable via main() --send-one-intent --confirm-send -> manual_send_one_intent:1124 -> send_hyperliquid_order:936 -> exchange.order:1036. See the committed two-site census artifact.",
+   "notes": "Moved FAIL -> PASS by census at 621a06c2459b: exactly one reachable production exchange.order() call site remains (Core:4204); the legacy sender at HL_Live_Copy_Service.py:1036 was retired in 621a06c and now fails closed. AST census, not grep. Regression guard test_single_exchange_order_callsite.py fails if a second site reappears or the site moves out of Core.",
    "proof_network": "TESTNET"
   },
   {
@@ -726,11 +726,11 @@
     "census run against a deliberately mutated copy must FAIL (non-vacuous)"
    ],
    "prior_evidence": "",
-   "result": "FAIL",
-   "evidence_ref": "certification/results/ENG-INV-06-09_43731b4.json",
-   "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+   "result": "PASS",
+   "evidence_ref": "certification/results/ENG-INV-02-06_single_order_site_census.json",
+   "tested_commit": "621a06c2459b43c564874a8377d00576ffe098d9",
    "tested_at_utc": "2026-10-14T05:00:01Z",
-   "notes": "FAIL: existing cited census is not a valid one-file-wide verification. The artifact certification/results/ENG-INV-06-09_43731b4.json reports total_py_files_scanned=1 and single_order_call_site=true; the latter is disproved by the two-site census at certification/results/ENG-INV-02_two_site_census_43731b4f.json. This card did not re-derive the predicate across all five engine files.",
+   "notes": "Moved FAIL -> PASS by census at 621a06c2459b: exactly one reachable production exchange.order() call site remains (Core:4204); the legacy sender at HL_Live_Copy_Service.py:1036 was retired in 621a06c and now fails closed. AST census, not grep. Regression guard test_single_exchange_order_callsite.py fails if a second site reappears or the site moves out of Core.",
    "proof_network": "TESTNET"
   },
   {
