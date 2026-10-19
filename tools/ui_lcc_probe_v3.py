@@ -7,6 +7,23 @@ v3 fixes over v2:
   * clears a lingering modal backdrop between rows and reloads before the wallet-row rows,
     so the ADD-10 JS exception cannot masquerade as nine independent failures;
   * records the backend persistence + page JS error for ADD-10 explicitly.
+
+v3.1 (t_d1279a57 redo) - reporting integrity only, no test logic changed:
+  * :8031 IS reachable and IS contacted read-only. The probe now records that positively:
+    meta.live_8031_contact enumerates every request issued to :8031 (GET only, no body),
+    asserts no POST/PUT/PATCH/DELETE, no Save, no restart and no signal to the live PID.
+    The old meta.live_8031_never_written key is gone - its name wrongly implied the shared
+    instance was out of reach, when in fact it answered every guard probe read-only.
+  * meta.isolation_identity proves by file identity (st_dev/st_ino/mtime, plus a
+    write-then-restore probe of the isolated file) that the serving process reads the
+    ISOLATED live_config.json and that it is a different file from the shared one.
+  * every row carries row_class CONTROL_WRITE or VIEW_STATE; GRAPH-09/GRAPH-10 are
+    VIEW_STATE (client-side graph view state only) and are excluded from the
+    CONTROL-WRITE pass count, which is reported separately.
+
+The artifact on branch hermes/t_931d2d8d was amended in place by
+ tools/amend_ui_lcc_artifact.py rather than by re-running this suite, per the card
+ instruction not to re-run the whole suite.
 '''
 import hashlib
 import json

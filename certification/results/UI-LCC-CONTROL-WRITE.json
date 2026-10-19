@@ -1,7 +1,9 @@
 {
   "meta": {
     "card": "t_931d2d8d",
+    "amended_by_card": "t_d1279a57",
     "probe": "ui_lcc_control_write_v3",
+    "assertion_scope": ":8031 was CONTACTED read-only (HTTP GET only, no write method, no Save, no restart, no signal to PID 26336). This artifact does NOT claim :8031 was unreachable or uncontacted.",
     "generated_at_utc": "2026-10-19T07:37:02.764059+00:00",
     "app_base": "http://127.0.0.1:8032",
     "serving_binding_type": "content_sha256",
@@ -108,12 +110,284 @@
       "C:\\Users\\wigmore\\trading_stack\\hl-build3-testnet-cert-8032\\_archive\\hl_stage2\\hl_live_copy_audit_testnet\\live_config.json": "ABSENT"
     },
     "shared_config_files_unchanged": true,
-    "live_8031_never_written": true,
     "isolated_config_sha256_at_end": "f266bff7075ed07418ec1f7ad7f272c1e8af4b68144ae40a73928bc074ca9073",
     "isolated_config_changed_by_test": true,
     "row_counts": {
       "PASS": 8,
       "FAIL": 1
+    },
+    "live_8031_contact": {
+      "reachable_at_start": true,
+      "reachable_at_end": true,
+      "listener_present_throughout": true,
+      "listener_pid": 26336,
+      "listener_pid_alive_at_amendment": true,
+      "contact_kind": "READ_ONLY_HTTP_GET",
+      "requests_issued": [
+        {
+          "guard": "start",
+          "method": "GET",
+          "url": "http://127.0.0.1:8031/api/live-config",
+          "status": 200,
+          "response_canonical_sha256": "63e281d41012e82348142873aa1cedcf6c5901b8506be7617d8541ee9ecef399",
+          "status_basis": "probe writes a hash only on a successful urllib open; UNREACHABLE never occurs in any guard"
+        },
+        {
+          "guard": "start",
+          "method": "GET",
+          "url": "http://127.0.0.1:8031/api/global-controls",
+          "status": 200,
+          "response_canonical_sha256": "ba99504437c75e7b902f460da695b65af31aaa6631ffefec742bfba14c1089f7",
+          "status_basis": "probe writes a hash only on a successful urllib open; UNREACHABLE never occurs in any guard"
+        },
+        {
+          "guard": "before-global-controls-write",
+          "method": "GET",
+          "url": "http://127.0.0.1:8031/api/live-config",
+          "status": 200,
+          "response_canonical_sha256": "63e281d41012e82348142873aa1cedcf6c5901b8506be7617d8541ee9ecef399",
+          "status_basis": "probe writes a hash only on a successful urllib open; UNREACHABLE never occurs in any guard"
+        },
+        {
+          "guard": "before-global-controls-write",
+          "method": "GET",
+          "url": "http://127.0.0.1:8031/api/global-controls",
+          "status": 200,
+          "response_canonical_sha256": "ba99504437c75e7b902f460da695b65af31aaa6631ffefec742bfba14c1089f7",
+          "status_basis": "probe writes a hash only on a successful urllib open; UNREACHABLE never occurs in any guard"
+        },
+        {
+          "guard": "after-global-controls-write",
+          "method": "GET",
+          "url": "http://127.0.0.1:8031/api/live-config",
+          "status": 200,
+          "response_canonical_sha256": "63e281d41012e82348142873aa1cedcf6c5901b8506be7617d8541ee9ecef399",
+          "status_basis": "probe writes a hash only on a successful urllib open; UNREACHABLE never occurs in any guard"
+        },
+        {
+          "guard": "after-global-controls-write",
+          "method": "GET",
+          "url": "http://127.0.0.1:8031/api/global-controls",
+          "status": 200,
+          "response_canonical_sha256": "ba99504437c75e7b902f460da695b65af31aaa6631ffefec742bfba14c1089f7",
+          "status_basis": "probe writes a hash only on a successful urllib open; UNREACHABLE never occurs in any guard"
+        },
+        {
+          "guard": "after-writes",
+          "method": "GET",
+          "url": "http://127.0.0.1:8031/api/live-config",
+          "status": 200,
+          "response_canonical_sha256": "63e281d41012e82348142873aa1cedcf6c5901b8506be7617d8541ee9ecef399",
+          "status_basis": "probe writes a hash only on a successful urllib open; UNREACHABLE never occurs in any guard"
+        },
+        {
+          "guard": "after-writes",
+          "method": "GET",
+          "url": "http://127.0.0.1:8031/api/global-controls",
+          "status": 200,
+          "response_canonical_sha256": "ba99504437c75e7b902f460da695b65af31aaa6631ffefec742bfba14c1089f7",
+          "status_basis": "probe writes a hash only on a successful urllib open; UNREACHABLE never occurs in any guard"
+        }
+      ],
+      "request_count": 8,
+      "methods_issued": [
+        "GET"
+      ],
+      "methods_not_issued": [
+        "POST",
+        "PUT",
+        "PATCH",
+        "DELETE",
+        "HEAD",
+        "OPTIONS"
+      ],
+      "write_requests_issued_to_8031": 0,
+      "save_actions_invoked_against_8031": 0,
+      "restart_or_stop_issued": false,
+      "signal_sent_to_pid_26336": false,
+      "how_write_impossibility_is_established": [
+        "the probe has exactly one :8031 code path (shared_guard) and it calls urllib.request.urlopen(url) with no data/body argument, which issues GET and nothing else",
+        "no other module in the probe opens LIVE_BASE; all UI writes go to APP_BASE (:8032)",
+        "every :8031 response hash is identical across all four guards (start, before-global-controls-write, after-global-controls-write, after-writes), so no state change was observable on :8031 during the run",
+        "the shared config file on disk is byte-identical before and after (26ee7636... both ends), so no write reached it by any path",
+        "PID 26336 was never addressed by the probe: it holds no PID, sends no signal, and spawns no process; the only PID the probe reads is the serving PID 30580 (read-only Get-Process for StartTime)"
+      ]
+    },
+    "live_8031_no_write_requests": true,
+    "live_8031_shared_config_unchanged": true,
+    "isolation_identity": {
+      "reported_state_dir_from_8032_api": "C:\\Users\\wigmore\\trading_stack\\hl-build3-testnet-cert-8032\\_isolated_8032\\audit",
+      "reported_state_dir_matches_isolated_dir": true,
+      "isolated_config": {
+        "path": "C:\\Users\\wigmore\\trading_stack\\hl-build3-testnet-cert-8032\\_isolated_8032\\audit\\live_config.json",
+        "st_dev": 2695698498,
+        "st_ino": 1970324841820080,
+        "st_size": 743,
+        "st_mtime_utc": "2026-10-19T07:47:46.866139+00:00",
+        "sha256": "f266bff7075ed07418ec1f7ad7f272c1e8af4b68144ae40a73928bc074ca9073",
+        "sha256_at_start_recorded_by_run": "21664462f16ee4eddd972461311b8e8f5a9f57a1a5180b29aa663961e23ec9b3",
+        "sha256_at_end_recorded_by_run": "f266bff7075ed07418ec1f7ad7f272c1e8af4b68144ae40a73928bc074ca9073"
+      },
+      "shared_config": {
+        "path": "C:\\Users\\wigmore\\trading_stack\\hl-build3-testnet-cert\\_archive\\hl_stage2\\hl_live_copy_audit_testnet\\live_config.json",
+        "st_dev": 2695698498,
+        "st_ino": 8162774329226387,
+        "st_size": 4050,
+        "st_mtime_utc": "2026-10-19T07:35:32.738265+00:00",
+        "sha256": "26ee7636adddab0bc95dbee2620fc8dabcafd7107e0fad3d406c949744bf2437"
+      },
+      "different_files": true,
+      "same_volume": true,
+      "st_ino_isolated": 1970324841820080,
+      "st_ino_shared": 8162774329226387,
+      "identity_before_and_after_an_in_place_write": {
+        "method": "at amendment time the isolated config was rewritten in place with the probe baseline bytes and then restored byte-for-byte; the run's own in-place writes by the app use the same open/write path",
+        "before": {
+          "path": "C:\\Users\\wigmore\\trading_stack\\hl-build3-testnet-cert-8032\\_isolated_8032\\audit\\live_config.json",
+          "st_dev": 2695698498,
+          "st_ino": 1970324841820080,
+          "st_size": 743,
+          "st_mtime_utc": "2026-10-19T07:37:49.460989+00:00",
+          "sha256": "f266bff7075ed07418ec1f7ad7f272c1e8af4b68144ae40a73928bc074ca9073"
+        },
+        "after_baseline_write": {
+          "path": "C:\\Users\\wigmore\\trading_stack\\hl-build3-testnet-cert-8032\\_isolated_8032\\audit\\live_config.json",
+          "st_dev": 2695698498,
+          "st_ino": 1970324841820080,
+          "st_size": 105,
+          "st_mtime_utc": "2026-10-19T07:47:46.865639+00:00",
+          "sha256": "21664462f16ee4eddd972461311b8e8f5a9f57a1a5180b29aa663961e23ec9b3"
+        },
+        "after_restore": {
+          "path": "C:\\Users\\wigmore\\trading_stack\\hl-build3-testnet-cert-8032\\_isolated_8032\\audit\\live_config.json",
+          "st_dev": 2695698498,
+          "st_ino": 1970324841820080,
+          "st_size": 743,
+          "st_mtime_utc": "2026-10-19T07:47:46.866139+00:00",
+          "sha256": "f266bff7075ed07418ec1f7ad7f272c1e8af4b68144ae40a73928bc074ca9073"
+        },
+        "inode_stable_across_write": true,
+        "mtime_advanced_on_write": true,
+        "content_restored_to_run_end_state": true
+      },
+      "serving_process_reads_isolated_config": {
+        "state_dir_returned_by_8032": "C:\\Users\\wigmore\\trading_stack\\hl-build3-testnet-cert-8032\\_isolated_8032\\audit",
+        "isolated_config_global_controls": {
+          "marketable_bps": 35.0,
+          "max_asset_directional_exposure_usd": 55.5,
+          "max_close_adverse_diff_pct": 1.5,
+          "max_daily_loss_usd": 7.0,
+          "max_order_notional_usd": 99.0,
+          "max_total_live_exposure_usd": 1234.5,
+          "max_wallet_exposure_usd": 3.25,
+          "symbol_allowlist": [
+            "BTC",
+            "ETH"
+          ],
+          "symbol_blocklist": [
+            "DOGE"
+          ]
+        },
+        "api_8032_global_controls_file_section": {
+          "max_total_live_exposure_usd": 1234.5,
+          "max_asset_directional_exposure_usd": 55.5,
+          "max_daily_loss_usd": 7.0,
+          "max_wallet_exposure_usd": 3.25,
+          "max_order_notional_usd": 99.0,
+          "marketable_bps": 35.0,
+          "max_close_adverse_diff_pct": 1.5,
+          "symbol_allowlist": [
+            "BTC",
+            "ETH"
+          ],
+          "symbol_blocklist": [
+            "DOGE"
+          ],
+          "marketable_slippage_pct": 0.35,
+          "marketable_slippage_off": false,
+          "close_adverse_diff_off": false
+        },
+        "api_8032_global_controls_matches_isolated_file": false,
+        "isolated_config_archived_wallets": [
+          "0x1111111111111111111111111111111111111111"
+        ],
+        "shared_config_global_controls": {
+          "marketable_bps": 20.0,
+          "max_asset_directional_exposure_usd": 2000.0,
+          "max_close_adverse_diff_pct": 0.0,
+          "max_daily_loss_usd": 1000.0,
+          "max_order_notional_usd": 500.0,
+          "max_total_live_exposure_usd": 5000.0,
+          "max_wallet_exposure_usd": 600.0,
+          "symbol_allowlist": [],
+          "symbol_blocklist": [
+            "HYPE",
+            "PENGU",
+            "RESOLV"
+          ]
+        },
+        "isolated_and_shared_global_controls_differ": true,
+        "api_8032_live_config_canonical_sha256": "1c3c36ba4a95f137c6ba141884b56035389be929d677a7211bc6197f826d2da5",
+        "api_8031_live_config_canonical_sha256": "63e281d41012e82348142873aa1cedcf6c5901b8506be7617d8541ee9ecef399",
+        "api_8032_differs_from_api_8031": true,
+        "api_8031_matches_shared_file_controls": false,
+        "requests_issued_for_this_check": [
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:8032/api/live-config",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:8032/api/global-controls",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:8031/api/live-config",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "url": "http://127.0.0.1:8031/api/global-controls",
+            "status": 200
+          }
+        ]
+      },
+      "isolation_verdict": "the serving :8032 process reads the isolated live_config.json; the shared live_config.json is a different file on the same volume and was not written"
+    },
+    "shared_config_sha256_rehashed_at_amendment": "26ee7636adddab0bc95dbee2620fc8dabcafd7107e0fad3d406c949744bf2437",
+    "shared_config_still_matches_expected": true,
+    "row_classes": {
+      "CONTROL_WRITE": "mutates the isolated live_config.json or asserts a rejected mutation",
+      "VIEW_STATE": "client-side graph view state only, no config or audit write; excluded from the CONTROL-WRITE pass count"
+    },
+    "row_counts_by_class": {
+      "CONTROL_WRITE": {
+        "PASS": 6,
+        "FAIL": 1,
+        "total": 7
+      },
+      "VIEW_STATE": {
+        "PASS": 2,
+        "FAIL": 0,
+        "total": 2
+      }
+    },
+    "control_write_pass_count": 6,
+    "control_write_fail_count": 1,
+    "amendment": {
+      "card": "t_d1279a57",
+      "amended_at_utc": "2026-10-19T07:47:46.922202+00:00",
+      "rows_changed": [],
+      "changed": [
+        "meta.live_8031_contact added",
+        "meta.live_8031_never_written removed",
+        "meta.isolation_identity added",
+        "row_class added to every row",
+        "row_counts_by_class / control_write_pass_count added"
+      ],
+      "known_app_defect_unchanged": "UI-LCC-ADD-10 remains FAIL"
     }
   },
   "rows": [
@@ -148,7 +422,9 @@
       "serving_script_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
       "app_base": "http://127.0.0.1:8032",
       "proof_network": "TESTNET",
-      "backend_persisted": true
+      "backend_persisted": true,
+      "row_class": "CONTROL_WRITE",
+      "excluded_from_control_write_pass_count": false
     },
     {
       "row_id": "UI-LCC-ADD-10-neg",
@@ -174,7 +450,9 @@
       "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
       "serving_script_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
       "app_base": "http://127.0.0.1:8032",
-      "proof_network": "TESTNET"
+      "proof_network": "TESTNET",
+      "row_class": "CONTROL_WRITE",
+      "excluded_from_control_write_pass_count": false
     },
     {
       "row_id": "UI-LCC-WTBL-11",
@@ -208,7 +486,9 @@
       "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
       "serving_script_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
       "app_base": "http://127.0.0.1:8032",
-      "proof_network": "TESTNET"
+      "proof_network": "TESTNET",
+      "row_class": "CONTROL_WRITE",
+      "excluded_from_control_write_pass_count": false
     },
     {
       "row_id": "UI-LCC-WTBL-12",
@@ -240,7 +520,9 @@
       "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
       "serving_script_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
       "app_base": "http://127.0.0.1:8032",
-      "proof_network": "TESTNET"
+      "proof_network": "TESTNET",
+      "row_class": "CONTROL_WRITE",
+      "excluded_from_control_write_pass_count": false
     },
     {
       "row_id": "UI-LCC-WTBL-13",
@@ -272,7 +554,9 @@
       "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
       "serving_script_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
       "app_base": "http://127.0.0.1:8032",
-      "proof_network": "TESTNET"
+      "proof_network": "TESTNET",
+      "row_class": "CONTROL_WRITE",
+      "excluded_from_control_write_pass_count": false
     },
     {
       "row_id": "UI-LCC-WTBL-14",
@@ -299,7 +583,9 @@
       "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
       "serving_script_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
       "app_base": "http://127.0.0.1:8032",
-      "proof_network": "TESTNET"
+      "proof_network": "TESTNET",
+      "row_class": "CONTROL_WRITE",
+      "excluded_from_control_write_pass_count": false
     },
     {
       "row_id": "UI-LCC-BTN-05",
@@ -365,7 +651,9 @@
       "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
       "serving_script_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
       "app_base": "http://127.0.0.1:8032",
-      "proof_network": "TESTNET"
+      "proof_network": "TESTNET",
+      "row_class": "CONTROL_WRITE",
+      "excluded_from_control_write_pass_count": false
     },
     {
       "row_id": "UI-LCC-GRAPH-09",
@@ -396,7 +684,10 @@
       "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
       "serving_script_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
       "app_base": "http://127.0.0.1:8032",
-      "proof_network": "TESTNET"
+      "proof_network": "TESTNET",
+      "row_class": "VIEW_STATE",
+      "excluded_from_control_write_pass_count": true,
+      "row_class_note": "reads and changes only client-side graph view state (scale button, datetime inputs, subtitle); it issues no config write and leaves the isolated live_config.json and audit log byte-identical, so it is excluded from the CONTROL-WRITE pass count"
     },
     {
       "row_id": "UI-LCC-GRAPH-10",
@@ -425,7 +716,10 @@
       "tested_commit": "89b3bc7586bf328df336fc9ea721cee212617762",
       "serving_script_sha256": "658ec8e31eb96d70acc15dc30860334c23612d2e3e9d19fb63ed9ec4e6fa86c2",
       "app_base": "http://127.0.0.1:8032",
-      "proof_network": "TESTNET"
+      "proof_network": "TESTNET",
+      "row_class": "VIEW_STATE",
+      "excluded_from_control_write_pass_count": true,
+      "row_class_note": "reads and changes only client-side graph view state (scale button, datetime inputs, subtitle); it issues no config write and leaves the isolated live_config.json and audit log byte-identical, so it is excluded from the CONTROL-WRITE pass count"
     }
   ]
 }
