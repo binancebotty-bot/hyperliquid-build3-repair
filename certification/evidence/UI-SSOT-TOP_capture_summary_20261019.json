@@ -1,0 +1,190 @@
+[
+ {
+  "target": "S8023_ROOT",
+  "requested_url": "http://127.0.0.1:8023/",
+  "http_status": 200,
+  "final_url": "http://127.0.0.1:8023/",
+  "title": "HL Copy Engine SSOT",
+  "captured_at_utc": "2026-10-19T09:50:44.165141+00:00",
+  "dom_file": "C:\\Users\\wigmore\\.hermes\\kanban\\workspaces\\t_2563c1ec\\capture\\S8023_ROOT.html",
+  "dom_bytes": 21814,
+  "has_top_bar": true,
+  "top_bar_text": "\u26a1 HL Copy Engine\nPOLL\nUpdated: 2026-10-19T09:49:49.265030+00:00\nNormalisation Base:\nMode:\nproportional\nfixed\nFixed $:\nFee bps:\nCopy friction bps:\nSet\nCurrent: PROPORTIONAL\nAuto refresh off",
+  "top_bar_html": "<b>\u26a1 HL Copy Engine</b><span class=\"live\">POLL</span><span class=\"muted\">Updated: 2026-10-19T09:49:49.265030+00:00</span><form action=\"/api/ui-state\" method=\"post\" class=\"ajax-form\" style=\"display:flex;gap:6px;align-items:center;margin:0\"><span class=\"muted\">Normalisation Base:</span><input name=\"norm_base\" value=\"100.0\" size=\"8\"><span class=\"muted\">Mode:</span><select name=\"copy_mode\"><option>proportional</option><option>fixed</option></select><span class=\"muted\">Fixed $:</span><input name=\"fixed_notional\" value=\"100.0\" size=\"6\"><span class=\"muted\">Fee bps:</span><input name=\"fee_bps\" value=\"5.0\" size=\"5\"><span class=\"muted\">Copy friction bps:</span><input name=\"copy_friction_bps\" value=\"0.0\" size=\"5\"><button>Set</button></form><span class=\"muted\">Current: PROPORTIONAL</span><span id=\"save-status\" class=\"muted\"></span><span style=\"margin-left:auto\" class=\"muted\">Auto refresh off</span>",
+  "top_inputs": [
+   {
+    "name": "norm_base",
+    "value": "100.0"
+   },
+   {
+    "name": "fixed_notional",
+    "value": "100.0"
+   },
+   {
+    "name": "fee_bps",
+    "value": "5.0"
+   },
+   {
+    "name": "copy_friction_bps",
+    "value": "0.0"
+   }
+  ],
+  "top_selects": [
+   {
+    "name": "copy_mode",
+    "value": "proportional",
+    "text": "proportional"
+   }
+  ],
+  "top_spans": [
+   {
+    "cls": "live",
+    "text": "POLL"
+   },
+   {
+    "cls": "muted",
+    "text": "Updated: 2026-10-19T09:49:49.265030+00:00"
+   },
+   {
+    "cls": "muted",
+    "text": "Normalisation Base:"
+   },
+   {
+    "cls": "muted",
+    "text": "Mode:"
+   },
+   {
+    "cls": "muted",
+    "text": "Fixed $:"
+   },
+   {
+    "cls": "muted",
+    "text": "Fee bps:"
+   },
+   {
+    "cls": "muted",
+    "text": "Copy friction bps:"
+   },
+   {
+    "cls": "muted",
+    "text": "Current: PROPORTIONAL"
+   },
+   {
+    "cls": "muted",
+    "text": ""
+   },
+   {
+    "cls": "muted",
+    "text": "Auto refresh off"
+   }
+  ],
+  "top_buttons": [
+   "Set"
+  ]
+ },
+ {
+  "target": "S8023_LIVECOPY",
+  "requested_url": "http://127.0.0.1:8023/live-copy",
+  "http_status": 200,
+  "final_url": "http://127.0.0.1:8023/live-copy",
+  "title": "Live Copy Dashboard",
+  "captured_at_utc": "2026-10-19T09:50:46.936802+00:00",
+  "dom_file": "C:\\Users\\wigmore\\.hermes\\kanban\\workspaces\\t_2563c1ec\\capture\\S8023_LIVECOPY.html",
+  "dom_bytes": 94397,
+  "has_top_bar": false
+ },
+ {
+  "target": "S8031_ROOT",
+  "requested_url": "http://127.0.0.1:8031/",
+  "http_status": 200,
+  "final_url": "http://127.0.0.1:8031/",
+  "title": "HL Copy Engine SSOT",
+  "captured_at_utc": "2026-10-19T09:50:49.666138+00:00",
+  "dom_file": "C:\\Users\\wigmore\\.hermes\\kanban\\workspaces\\t_2563c1ec\\capture\\S8031_ROOT.html",
+  "dom_bytes": 21816,
+  "has_top_bar": true,
+  "top_bar_text": "\u26a1 HL Copy Engine\nPOLL\nUpdated: 2026-10-19T09:50:47.057227+00:00\nNormalisation Base:\nMode:\nproportional\nfixed\nFixed $:\nFee bps:\nCopy friction bps:\nSet\nCurrent: PROPORTIONAL\nAuto refresh off",
+  "top_bar_html": "<b>\u26a1 HL Copy Engine</b><span class=\"live\">POLL</span><span class=\"muted\">Updated: 2026-10-19T09:50:47.057227+00:00</span><form action=\"/api/ui-state\" method=\"post\" class=\"ajax-form\" style=\"display:flex;gap:6px;align-items:center;margin:0\"><span class=\"muted\">Normalisation Base:</span><input name=\"norm_base\" value=\"100.0\" size=\"8\"><span class=\"muted\">Mode:</span><select name=\"copy_mode\"><option>proportional</option><option>fixed</option></select><span class=\"muted\">Fixed $:</span><input name=\"fixed_notional\" value=\"100.0\" size=\"6\"><span class=\"muted\">Fee bps:</span><input name=\"fee_bps\" value=\"5.0\" size=\"5\"><span class=\"muted\">Copy friction bps:</span><input name=\"copy_friction_bps\" value=\"0.0\" size=\"5\"><button>Set</button></form><span class=\"muted\">Current: PROPORTIONAL</span><span id=\"save-status\" class=\"muted\"></span><span style=\"margin-left:auto\" class=\"muted\">Auto refresh off</span>",
+  "top_inputs": [
+   {
+    "name": "norm_base",
+    "value": "100.0"
+   },
+   {
+    "name": "fixed_notional",
+    "value": "100.0"
+   },
+   {
+    "name": "fee_bps",
+    "value": "5.0"
+   },
+   {
+    "name": "copy_friction_bps",
+    "value": "0.0"
+   }
+  ],
+  "top_selects": [
+   {
+    "name": "copy_mode",
+    "value": "proportional",
+    "text": "proportional"
+   }
+  ],
+  "top_spans": [
+   {
+    "cls": "live",
+    "text": "POLL"
+   },
+   {
+    "cls": "muted",
+    "text": "Updated: 2026-10-19T09:50:47.057227+00:00"
+   },
+   {
+    "cls": "muted",
+    "text": "Normalisation Base:"
+   },
+   {
+    "cls": "muted",
+    "text": "Mode:"
+   },
+   {
+    "cls": "muted",
+    "text": "Fixed $:"
+   },
+   {
+    "cls": "muted",
+    "text": "Fee bps:"
+   },
+   {
+    "cls": "muted",
+    "text": "Copy friction bps:"
+   },
+   {
+    "cls": "muted",
+    "text": "Current: PROPORTIONAL"
+   },
+   {
+    "cls": "muted",
+    "text": ""
+   },
+   {
+    "cls": "muted",
+    "text": "Auto refresh off"
+   }
+  ],
+  "top_buttons": [
+   "Set"
+  ]
+ },
+ {
+  "target": "S8031_LIVECOPY",
+  "requested_url": "http://127.0.0.1:8031/live-copy",
+  "http_status": 404,
+  "final_url": "http://127.0.0.1:8031/live-copy",
+  "title": "",
+  "captured_at_utc": "2026-10-19T09:50:52.313099+00:00",
+  "dom_file": "C:\\Users\\wigmore\\.hermes\\kanban\\workspaces\\t_2563c1ec\\capture\\S8031_LIVECOPY.html",
+  "dom_bytes": 185,
+  "has_top_bar": false
+ }
+]

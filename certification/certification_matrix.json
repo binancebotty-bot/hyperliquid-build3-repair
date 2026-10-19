@@ -7037,11 +7037,11 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "OD-21 decided: re-pointed to the certified 13 May UI.",
+   "result": "BLOCKED",
+   "evidence_ref": "certification/evidence/UI-SSOT-TOP-01-09_capture_20261019.json",
+   "tested_commit": "819050c6018ab3264cfe911f927e1f97ff0f979b",
+   "tested_at_utc": "2026-10-19T09:53:28Z",
+   "notes": "OD-21 decided: re-pointed to the certified 13 May UI. || BLOCKED (t_2563c1ec): rendered top bar at :8023 / shows norm_base=100.0 matching /api/ui-state and the compiled default. BLOCKER 1: OD-18 truth-tier label absent from the rendered top-bar HTML - a model value cannot be distinguished from live engine truth. BLOCKER 2: oracle degenerate - ui_state.json does not exist at the serving instance, so app and oracle both resolve to DEFAULT_NORM_BASE; proves rendering, not persistence. BLOCKER 3: negative tests not executed (read-only capture).",
    "proof_network": "TESTNET"
   },
   {
@@ -7067,11 +7067,11 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "OD-21 decided: re-pointed to the certified 13 May UI.",
+   "result": "BLOCKED",
+   "evidence_ref": "certification/evidence/UI-SSOT-TOP-01-09_capture_20261019.json",
+   "tested_commit": "819050c6018ab3264cfe911f927e1f97ff0f979b",
+   "tested_at_utc": "2026-10-19T09:53:28Z",
+   "notes": "OD-21 decided: re-pointed to the certified 13 May UI. || BLOCKED (t_2563c1ec): select copy_mode=proportional matches /api/ui-state and the oracle default. Same three blockers as TOP-01: OD-18 tier label absent; oracle degenerate (no ui_state.json at serving instance); negative tests unexecuted.",
    "proof_network": "TESTNET"
   },
   {
@@ -7097,11 +7097,11 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "OD-21 decided: re-pointed to the certified 13 May UI.",
+   "result": "BLOCKED",
+   "evidence_ref": "certification/evidence/UI-SSOT-TOP-01-09_capture_20261019.json",
+   "tested_commit": "819050c6018ab3264cfe911f927e1f97ff0f979b",
+   "tested_at_utc": "2026-10-19T09:53:28Z",
+   "notes": "OD-21 decided: re-pointed to the certified 13 May UI. || BLOCKED (t_2563c1ec): Fixed $ input=100.0 matches payload and oracle default. Same three blockers as TOP-01.",
    "proof_network": "TESTNET"
   },
   {
@@ -7127,11 +7127,11 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "OD-21 decided: re-pointed to the certified 13 May UI.",
+   "result": "BLOCKED",
+   "evidence_ref": "certification/evidence/UI-SSOT-TOP-01-09_capture_20261019.json",
+   "tested_commit": "819050c6018ab3264cfe911f927e1f97ff0f979b",
+   "tested_at_utc": "2026-10-19T09:53:28Z",
+   "notes": "OD-21 decided: re-pointed to the certified 13 May UI. || BLOCKED (t_2563c1ec): Fee bps input=5.0 matches payload and oracle default. Same three blockers as TOP-01.",
    "proof_network": "TESTNET"
   },
   {
@@ -7157,11 +7157,11 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "OD-21 decided: re-pointed to the certified 13 May UI.",
+   "result": "BLOCKED",
+   "evidence_ref": "certification/evidence/UI-SSOT-TOP-01-09_capture_20261019.json",
+   "tested_commit": "819050c6018ab3264cfe911f927e1f97ff0f979b",
+   "tested_at_utc": "2026-10-19T09:53:28Z",
+   "notes": "OD-21 decided: re-pointed to the certified 13 May UI. || BLOCKED (t_2563c1ec): Copy friction bps input=0.0 matches payload and oracle default. Same three blockers as TOP-01.",
    "proof_network": "TESTNET"
   },
   {
@@ -7187,11 +7187,11 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "OD-21 decided: re-pointed to the certified 13 May UI.",
+   "result": "BLOCKED",
+   "evidence_ref": "certification/evidence/UI-SSOT-TOP-01-09_capture_20261019.json",
+   "tested_commit": "819050c6018ab3264cfe911f927e1f97ff0f979b",
+   "tested_at_utc": "2026-10-19T09:53:28Z",
+   "notes": "OD-21 decided: re-pointed to the certified 13 May UI. || BLOCKED (t_2563c1ec): Set button rendered and submits POST /api/ui-state, which mutates app model state. Not exercised under read-only capture, so the submit path is unproven. OD-18 tier label also absent.",
    "proof_network": "TESTNET"
   },
   {
@@ -7217,11 +7217,11 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "OD-21 decided: re-pointed to the certified 13 May UI.",
+   "result": "BLOCKED",
+   "evidence_ref": "certification/evidence/UI-SSOT-TOP-01-09_capture_20261019.json",
+   "tested_commit": "819050c6018ab3264cfe911f927e1f97ff0f979b",
+   "tested_at_utc": "2026-10-19T09:53:28Z",
+   "notes": "OD-21 decided: re-pointed to the certified 13 May UI. || BLOCKED (t_2563c1ec): Current label reads \"Current: PROPORTIONAL\" and matches /api/ui-state copy_mode. Still BLOCKED: OD-18 tier label absent (model cannot be told apart from live truth); oracle degenerate (no ui_state.json at serving instance); negative tests unexecuted.",
    "proof_network": "TESTNET"
   },
   {
@@ -7247,11 +7247,11 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "OD-21 decided: re-pointed to the certified 13 May UI.",
+   "result": "BLOCKED",
+   "evidence_ref": "certification/evidence/UI-SSOT-TOP-01-09_capture_20261019.json",
+   "tested_commit": "819050c6018ab3264cfe911f927e1f97ff0f979b",
+   "tested_at_utc": "2026-10-19T09:53:28Z",
+   "notes": "OD-21 decided: re-pointed to the certified 13 May UI. || BLOCKED (t_2563c1ec): timestamp binding UNPROVEN. DOM showed Updated: 2026-10-19T09:49:49.265030+00:00 captured at 09:50:44Z; a later /api/state read returned 09:52:06Z. Not sampled at the same instant, so payload->cell at a single time T is not bound. OD-18 tier label also absent.",
    "proof_network": "TESTNET"
   },
   {
@@ -7277,11 +7277,11 @@
     "API error surfaced"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "OD-21 decided: re-pointed to the certified 13 May UI.",
+   "result": "BLOCKED",
+   "evidence_ref": "certification/evidence/UI-SSOT-TOP-01-09_capture_20261019.json",
+   "tested_commit": "819050c6018ab3264cfe911f927e1f97ff0f979b",
+   "tested_at_utc": "2026-10-19T09:53:28Z",
+   "notes": "OD-21 decided: re-pointed to the certified 13 May UI. || BLOCKED (t_2563c1ec): POLL badge is a static literal in HTML_TEMPLATE (<span class=\"live\">POLL</span>), not bound to any liveness payload, so it cannot evidence that polling is healthy. OD-18 tier label absent.",
    "proof_network": "TESTNET"
   },
   {

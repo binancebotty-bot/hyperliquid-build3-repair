@@ -1,0 +1,247 @@
+{
+ "schema": "ui_ssot_top_capture/1",
+ "card": "t_2563c1ec",
+ "generated_at_utc": "2026-10-19T09:52:20.809368+00:00",
+ "register": {
+  "ref": "origin/main:certification/certification_matrix.json",
+  "origin_main_commit": "819050c6018ab3264cfe911f927e1f97ff0f979b",
+  "records": 832,
+  "rows_in_scope": 9,
+  "card_scope_note": "UI-SSOT-CARD-01..09 are all applicability=SUPERSEDED in the register (void under OD-21); only TOP-01..09 carry APPLIES."
+ },
+ "source_identity": {
+  "file": "C:\\Users\\wigmore\\trading_stack\\hl-build3-testnet-cert-evidence\\build3_live_screen_0513_8023_instance_20261019T074010Z\\HL_Copy_App_SSOT.py",
+  "sha256": "fad19d220d7af13d48a3eec664c56a32b31624d671b00e2f80ec2dc9062a29b0",
+  "sha256_prefix_matches_register": true
+ },
+ "surface_observations": [
+  {
+   "target": "S8023_ROOT",
+   "requested_url": "http://127.0.0.1:8023/",
+   "http_status": 200,
+   "final_url": "http://127.0.0.1:8023/",
+   "title": "HL Copy Engine SSOT",
+   "captured_at_utc": "2026-10-19T09:50:44.165141+00:00",
+   "dom_bytes": 21814,
+   "renders_ui_ssot_top_bar": true,
+   "error": null
+  },
+  {
+   "target": "S8023_LIVECOPY",
+   "requested_url": "http://127.0.0.1:8023/live-copy",
+   "http_status": 200,
+   "final_url": "http://127.0.0.1:8023/live-copy",
+   "title": "Live Copy Dashboard",
+   "captured_at_utc": "2026-10-19T09:50:46.936802+00:00",
+   "dom_bytes": 94397,
+   "renders_ui_ssot_top_bar": false,
+   "error": null
+  },
+  {
+   "target": "S8031_ROOT",
+   "requested_url": "http://127.0.0.1:8031/",
+   "http_status": 200,
+   "final_url": "http://127.0.0.1:8031/",
+   "title": "HL Copy Engine SSOT",
+   "captured_at_utc": "2026-10-19T09:50:49.666138+00:00",
+   "dom_bytes": 21816,
+   "renders_ui_ssot_top_bar": true,
+   "error": null
+  },
+  {
+   "target": "S8031_LIVECOPY",
+   "requested_url": "http://127.0.0.1:8031/live-copy",
+   "http_status": 404,
+   "final_url": "http://127.0.0.1:8031/live-copy",
+   "title": "",
+   "captured_at_utc": "2026-10-19T09:50:52.313099+00:00",
+   "dom_bytes": 185,
+   "renders_ui_ssot_top_bar": false,
+   "error": null
+  }
+ ],
+ "surface_correction": "The card body maps the 13 May UI to :8023 /live-copy. That is WRONG for UI-SSOT-TOP. The analytics top bar (Normalisation Base / Mode / Fixed $ / Fee bps / Copy friction bps / Set / Current / Updated / POLL) renders at :8023 / and :8031 /. :8023 /live-copy is a DIFFERENT page titled \"Live Copy Dashboard\" and contains no top bar. :8031 /live-copy is 404.",
+ "payload_chain_observation": {
+  "route_renderer": "HL_Copy_App_SSOT.py line 5703 HTML_TEMPLATE.format(norm=base, mode=..., fixed=fnum(ui[\"fixed_notional\"]), fee=fnum(ui[\"fee_bps\"]), friction=fnum(ui[\"copy_friction_bps\"]), updated=state[\"updated_at\"])",
+  "api_endpoint": "/api/ui-state returns norm_base, copy_mode, fixed_notional, fee_bps, copy_friction_bps (HTTP 200 on both 8023 and 8031)",
+  "observed_api_payload_8023": [
+   "app_health",
+   "auto_send_enabled",
+   "files",
+   "global_controls",
+   "note",
+   "ok",
+   "updated_at",
+   "wallet_gate_on",
+   "wallet_gate_on_count"
+  ],
+  "api_ui_state_8023": {
+   "norm_base": 100.0,
+   "user_norm_base": 100.0,
+   "copy_mode": "proportional",
+   "normalisation_mode": "equity",
+   "fixed_notional": 100.0,
+   "leader_equity_base": 10000.0,
+   "fee_bps": 5.0,
+   "copy_friction_bps": 0.0,
+   "wallet_config": {},
+   "wallet_include": {},
+   "wallet_meta": {},
+   "ranking": {
+    "column": null,
+    "direction": "desc"
+   }
+  },
+  "api_ui_state_8031": {
+   "norm_base": 100.0,
+   "user_norm_base": 100.0,
+   "copy_mode": "proportional",
+   "normalisation_mode": "equity",
+   "fixed_notional": 100.0,
+   "leader_equity_base": 10000.0,
+   "fee_bps": 5.0,
+   "copy_friction_bps": 0.0,
+   "wallet_config": {},
+   "wallet_include": {},
+   "wallet_meta": {},
+   "ranking": {
+    "column": "pct_entries_ge10",
+    "direction": "asc"
+   }
+  }
+ },
+ "truth_tier_label_present_in_rendered_top_bar": {
+  "S8023_ROOT": false,
+  "S8031_ROOT": false
+ },
+ "ui_state_file_absent_at_serving_instance": true,
+ "rows": [
+  {
+   "id": "UI-SSOT-TOP-01",
+   "result": "BLOCKED",
+   "payload_to_cell_match": true,
+   "oracle_match": true,
+   "dom_cell": "100.0",
+   "api_payload": 100.0,
+   "reasons": [
+    "OD-18 truth-tier label absent: rendered top-bar HTML at :8023 / contains no LIVE/MODEL/tier marker, so a model value is indistinguishable from live engine truth (expected_behaviour unmet).",
+    "Independent oracle is degenerate: ui_state.json does not exist at the serving instance, so both the app value and the oracle resolve to the same compiled defaults; this proves rendering, not persistence or user-set values.",
+    "Negative tests (source-unavailable shows n/a, stale source flagged, API error surfaced) were not executed - they require mutating a live serving instance, which was out of scope for a read-only capture."
+   ]
+  },
+  {
+   "id": "UI-SSOT-TOP-02",
+   "result": "BLOCKED",
+   "payload_to_cell_match": true,
+   "oracle_match": true,
+   "dom_cell": "proportional",
+   "api_payload": "proportional",
+   "reasons": [
+    "OD-18 truth-tier label absent: rendered top-bar HTML at :8023 / contains no LIVE/MODEL/tier marker, so a model value is indistinguishable from live engine truth (expected_behaviour unmet).",
+    "Independent oracle is degenerate: ui_state.json does not exist at the serving instance, so both the app value and the oracle resolve to the same compiled defaults; this proves rendering, not persistence or user-set values.",
+    "Negative tests (source-unavailable shows n/a, stale source flagged, API error surfaced) were not executed - they require mutating a live serving instance, which was out of scope for a read-only capture."
+   ]
+  },
+  {
+   "id": "UI-SSOT-TOP-03",
+   "result": "BLOCKED",
+   "payload_to_cell_match": true,
+   "oracle_match": true,
+   "dom_cell": "100.0",
+   "api_payload": 100.0,
+   "reasons": [
+    "OD-18 truth-tier label absent: rendered top-bar HTML at :8023 / contains no LIVE/MODEL/tier marker, so a model value is indistinguishable from live engine truth (expected_behaviour unmet).",
+    "Independent oracle is degenerate: ui_state.json does not exist at the serving instance, so both the app value and the oracle resolve to the same compiled defaults; this proves rendering, not persistence or user-set values.",
+    "Negative tests (source-unavailable shows n/a, stale source flagged, API error surfaced) were not executed - they require mutating a live serving instance, which was out of scope for a read-only capture."
+   ]
+  },
+  {
+   "id": "UI-SSOT-TOP-04",
+   "result": "BLOCKED",
+   "payload_to_cell_match": true,
+   "oracle_match": true,
+   "dom_cell": "5.0",
+   "api_payload": 5.0,
+   "reasons": [
+    "OD-18 truth-tier label absent: rendered top-bar HTML at :8023 / contains no LIVE/MODEL/tier marker, so a model value is indistinguishable from live engine truth (expected_behaviour unmet).",
+    "Independent oracle is degenerate: ui_state.json does not exist at the serving instance, so both the app value and the oracle resolve to the same compiled defaults; this proves rendering, not persistence or user-set values.",
+    "Negative tests (source-unavailable shows n/a, stale source flagged, API error surfaced) were not executed - they require mutating a live serving instance, which was out of scope for a read-only capture."
+   ]
+  },
+  {
+   "id": "UI-SSOT-TOP-05",
+   "result": "BLOCKED",
+   "payload_to_cell_match": true,
+   "oracle_match": true,
+   "dom_cell": "0.0",
+   "api_payload": 0.0,
+   "reasons": [
+    "OD-18 truth-tier label absent: rendered top-bar HTML at :8023 / contains no LIVE/MODEL/tier marker, so a model value is indistinguishable from live engine truth (expected_behaviour unmet).",
+    "Independent oracle is degenerate: ui_state.json does not exist at the serving instance, so both the app value and the oracle resolve to the same compiled defaults; this proves rendering, not persistence or user-set values.",
+    "Negative tests (source-unavailable shows n/a, stale source flagged, API error surfaced) were not executed - they require mutating a live serving instance, which was out of scope for a read-only capture."
+   ]
+  },
+  {
+   "id": "UI-SSOT-TOP-06",
+   "result": "BLOCKED",
+   "payload_to_cell_match": null,
+   "oracle_match": null,
+   "dom_cell": "Set",
+   "api_payload": null,
+   "reasons": [
+    "OD-18 truth-tier label absent: rendered top-bar HTML at :8023 / contains no LIVE/MODEL/tier marker, so a model value is indistinguishable from live engine truth (expected_behaviour unmet).",
+    "Independent oracle is degenerate: ui_state.json does not exist at the serving instance, so both the app value and the oracle resolve to the same compiled defaults; this proves rendering, not persistence or user-set values.",
+    "Negative tests (source-unavailable shows n/a, stale source flagged, API error surfaced) were not executed - they require mutating a live serving instance, which was out of scope for a read-only capture.",
+    "Set submits a POST to /api/ui-state, which mutates app model state; no write action was performed under a read-only capture, so the submit path is unexercised."
+   ]
+  },
+  {
+   "id": "UI-SSOT-TOP-07",
+   "result": "BLOCKED",
+   "payload_to_cell_match": true,
+   "oracle_match": true,
+   "dom_cell": [
+    "Current: PROPORTIONAL"
+   ],
+   "api_payload": "proportional",
+   "reasons": [
+    "OD-18 truth-tier label absent: rendered top-bar HTML at :8023 / contains no LIVE/MODEL/tier marker, so a model value is indistinguishable from live engine truth (expected_behaviour unmet).",
+    "Independent oracle is degenerate: ui_state.json does not exist at the serving instance, so both the app value and the oracle resolve to the same compiled defaults; this proves rendering, not persistence or user-set values.",
+    "Negative tests (source-unavailable shows n/a, stale source flagged, API error surfaced) were not executed - they require mutating a live serving instance, which was out of scope for a read-only capture."
+   ]
+  },
+  {
+   "id": "UI-SSOT-TOP-08",
+   "result": "BLOCKED",
+   "payload_to_cell_match": null,
+   "oracle_match": null,
+   "dom_cell": [
+    "Updated: 2026-10-19T09:49:49.265030+00:00"
+   ],
+   "api_payload": "state.updated_at (/api/state)",
+   "reasons": [
+    "OD-18 truth-tier label absent: rendered top-bar HTML at :8023 / contains no LIVE/MODEL/tier marker, so a model value is indistinguishable from live engine truth (expected_behaviour unmet).",
+    "Independent oracle is degenerate: ui_state.json does not exist at the serving instance, so both the app value and the oracle resolve to the same compiled defaults; this proves rendering, not persistence or user-set values.",
+    "Negative tests (source-unavailable shows n/a, stale source flagged, API error surfaced) were not executed - they require mutating a live serving instance, which was out of scope for a read-only capture.",
+    "Updated timestamp binding unproven: DOM showed \"Updated: 2026-10-19T09:49:49.265030+00:00\" captured 2026-10-19T09:50:44.165141+00:00, while /api/state read later returned updated_at=2026-10-19T09:52:06.512650+00:00. The two were not sampled simultaneously, so the value cannot be bound payload->cell at a single time T."
+   ]
+  },
+  {
+   "id": "UI-SSOT-TOP-09",
+   "result": "BLOCKED",
+   "payload_to_cell_match": null,
+   "oracle_match": null,
+   "dom_cell": "POLL",
+   "api_payload": null,
+   "reasons": [
+    "OD-18 truth-tier label absent: rendered top-bar HTML at :8023 / contains no LIVE/MODEL/tier marker, so a model value is indistinguishable from live engine truth (expected_behaviour unmet).",
+    "Independent oracle is degenerate: ui_state.json does not exist at the serving instance, so both the app value and the oracle resolve to the same compiled defaults; this proves rendering, not persistence or user-set values.",
+    "Negative tests (source-unavailable shows n/a, stale source flagged, API error surfaced) were not executed - they require mutating a live serving instance, which was out of scope for a read-only capture.",
+    "POLL badge is a static literal in HTML_TEMPLATE (<span class=\"live\">POLL</span>); it is not bound to any liveness payload, so it cannot evidence that polling is actually healthy."
+   ]
+  }
+ ],
+ "negative_tests_executed": false,
+ "negative_tests_reason": "Read-only capture mandate: exercising source-unavailable / stale / API-error paths requires breaking or mutating a live serving instance.",
+ "instrument_note": "First oracle run reported payload_to_cell_match=false for numeric rows. Two-run control showed the fault was the INSTRUMENT: a %g format compared 100.0 against \"100\". Corrected to numeric comparison (abs(a-b)<1e-9); the product values then matched. The false mismatch is recorded here so it is not mistaken for a product defect."
+}
