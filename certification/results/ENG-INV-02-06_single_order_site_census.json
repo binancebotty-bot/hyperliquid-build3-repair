@@ -42,6 +42,22 @@
       "line": 4204
     }
   ],
+  "reachability": {
+    "question": "is the retired legacy sender reachable from any production path?",
+    "method": "git grep for import statements referencing HL_Live_Copy_Service (excluding the _Core module)",
+    "importer_files": [
+      "_archive/hl_stage2/test_g2_copy_correctness.py",
+      "_archive/hl_stage2/test_g3_exchange_truth.py",
+      "_archive/hl_stage2/test_g4_fixed_slices.py",
+      "_archive/hl_stage2/test_g4_intake_sleeves.py",
+      "_archive/hl_stage2/test_g4_order_cap.py",
+      "_archive/hl_stage2/test_g4_ui_controls.py"
+    ],
+    "production_importers": [],
+    "production_importers_count": 0,
+    "retired_sender_marker": "\"error\": \"Legacy direct sender retired; live orders use HL_Live_Copy_Service_Core.py.\",",
+    "conclusion": "only tests import the legacy module; no production module does, and its order entry point returns a retired error instead of calling exchange.order"
+  },
   "single_order_call_site": true,
   "verdict": "PASS",
   "note": "The legacy sender at HL_Live_Copy_Service.py:1036 was retired in 621a06c (fails closed, no direct order call). The surviving site is Core:4204. A regression guard (_archive/hl_stage2/test_single_exchange_order_callsite.py) fails if a second site reappears anywhere under _archive/hl_stage2/ or if the site moves out of Core."
