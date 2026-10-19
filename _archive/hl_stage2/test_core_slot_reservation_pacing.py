@@ -40,6 +40,11 @@ class FakeExchange:
             self.calls.append((call_time, args, kwargs))
         return {"status": "ok"}
 
+    def cancel(self, *args, **kwargs):
+        with self._lock:
+            self.cancels = getattr(self, "cancels", []) + [(args, kwargs)]
+        return {"status": "ok"}
+
 
 class VirtualClock:
     """Deterministic clock that releases concurrent sleeps at their reserved slot times."""
@@ -56,6 +61,7 @@ class VirtualClock:
 
     def sleep(self, delay_seconds):
         delay_ms = int(round(delay_seconds * 1000))
+        deadline = time.monotonic() + 0.1
         with self.condition:
             waiter = {"target_ms": self.current_ms + delay_ms, "done": False}
             self.waiters.append(waiter)
@@ -72,7 +78,15 @@ class VirtualClock:
                         self.current_ms = next_target
                         self.condition.notify_all()
                         continue
-                self.condition.wait(timeout=3)
+                elif time.monotonic() >= deadline:
+                    # Let a serialized baseline run complete so the negative control
+                    # fails on its assertions instead of hanging behind the lock.
+                    self.current_ms = max(self.current_ms, waiter["target_ms"])
+                    waiter["done"] = True
+                    self.condition.notify_all()
+                    return
+                remaining = max(0.0, deadline - time.monotonic())
+                self.condition.wait(timeout=min(0.01, remaining))
 
 
 def sender_gateway():
@@ -87,25 +101,21 @@ def sender_gateway():
 
 
 class SlotReservationPacingTests(unittest.TestCase):
-    def test_32_workers_release_slot_lock_before_sleeping(self):
+    def test_32_workers_reserve_exactly_spaced_slots(self):
         worker_count = 32
+        gap_ms = 100
+        now_ms = 100000
         gateway = sender_gateway()
-        object.__setattr__(gateway, "_last_exchange_order_ms", core.utc_now_ms() + 10000)
+        object.__setattr__(gateway, "_last_exchange_order_ms", now_ms)
         exchange = FakeExchange()
         start = threading.Barrier(worker_count + 1)
-        sleepers_ready = threading.Event()
-        sleep_lock = threading.Lock()
         sleep_calls = []
-        sleep_timeouts = []
+        sleep_lock = threading.Lock()
         errors = []
 
-        def hold_sleep_until_all_workers_arrive(delay_seconds):
+        def record_sleep(delay_seconds):
             with sleep_lock:
                 sleep_calls.append(delay_seconds)
-                if len(sleep_calls) == worker_count:
-                    sleepers_ready.set()
-            if not sleepers_ready.wait(timeout=3):
-                sleep_timeouts.append(True)
 
         def place_order():
             try:
@@ -115,22 +125,22 @@ class SlotReservationPacingTests(unittest.TestCase):
                 errors.append(exc)
 
         threads = [threading.Thread(target=place_order) for _ in range(worker_count)]
-        with mock.patch.dict(os.environ, {"HL_LIVE_MIN_EXCHANGE_ORDER_GAP_MS": "100"}):
-            with mock.patch.object(core.time, "sleep", new=hold_sleep_until_all_workers_arrive):
-                for thread in threads:
-                    thread.start()
-                start.wait(timeout=3)
-                for thread in threads:
-                    thread.join(timeout=4)
+        with mock.patch.dict(os.environ, {"HL_LIVE_MIN_EXCHANGE_ORDER_GAP_MS": str(gap_ms)}):
+            with mock.patch.object(core, "utc_now_ms", new=lambda: now_ms):
+                with mock.patch.object(core.time, "sleep", new=record_sleep):
+                    for thread in threads:
+                        thread.start()
+                    start.wait(timeout=3)
+                    for thread in threads:
+                        thread.join(timeout=4)
 
         self.assertTrue(all(not thread.is_alive() for thread in threads), "order worker thread did not finish")
         self.assertEqual(errors, [])
-        self.assertEqual(sleep_timeouts, [], "a sender held the slot lock while waiting")
         self.assertEqual(len(sleep_calls), worker_count)
         self.assertTrue(all(delay > 0 for delay in sleep_calls))
         self.assertEqual(len(gateway.slot_reservations), worker_count)
-        slot_gaps = [right - left for left, right in zip(gateway.slot_reservations, gateway.slot_reservations[1:])]
-        self.assertTrue(all(gap >= 100 for gap in slot_gaps), f"reserved slot gaps were {slot_gaps}")
+        expected_slots = [now_ms + (index + 1) * gap_ms for index in range(worker_count)]
+        self.assertEqual(gateway.slot_reservations, expected_slots, "all 32 integer slots must be exactly gap apart")
         self.assertEqual(len(exchange.calls), worker_count)
 
     def test_cooldown_slots_and_calls_keep_exact_spacing_for_32_orders(self):
@@ -183,6 +193,61 @@ class SlotReservationPacingTests(unittest.TestCase):
             all(abs(gap - gap_ms) <= 2 for gap in call_gaps_ms),
             f"call gaps must stay within 2 ms of {gap_ms}: {call_gaps_ms}",
         )
+
+    def test_cancel_between_orders_preserves_future_reserved_slots(self):
+        now_ms = 100000
+        gap_ms = 100
+        gateway = sender_gateway()
+        object.__setattr__(gateway, "_last_exchange_order_ms", now_ms)
+        exchange = FakeExchange()
+
+        with mock.patch.dict(os.environ, {"HL_LIVE_MIN_EXCHANGE_ORDER_GAP_MS": str(gap_ms)}):
+            with mock.patch.object(core, "utc_now_ms", new=lambda: now_ms):
+                with mock.patch.object(core.time, "sleep", new=lambda _seconds: None):
+                    gateway._place_order(exchange, "BTC", True, 1.0, 100.0, "Ioc", False)
+                    gateway._cancel_order(exchange, "BTC", "123")
+                    gateway._place_order(exchange, "BTC", False, 1.0, 100.0, "Ioc", True)
+
+        self.assertEqual(
+            gateway.slot_reservations,
+            [now_ms + gap_ms, now_ms + 2 * gap_ms, now_ms + 3 * gap_ms],
+            "cancel must consume its own future slot without moving the shared clock backward",
+        )
+        self.assertEqual(len(exchange.calls), 2)
+        self.assertEqual(len(exchange.cancels), 1)
+
+    def test_cancel_sleep_does_not_hold_slot_lock(self):
+        gateway = sender_gateway()
+        object.__setattr__(gateway, "_last_exchange_order_ms", 100000)
+        sleep_started = threading.Event()
+        release_sleep = threading.Event()
+        errors = []
+
+        def blocked_sleep(_seconds):
+            sleep_started.set()
+            release_sleep.wait(timeout=2)
+
+        def cancel_order():
+            try:
+                gateway._cancel_order(FakeExchange(), "BTC", "123")
+            except Exception as exc:
+                errors.append(exc)
+
+        worker = threading.Thread(target=cancel_order)
+        with mock.patch.dict(os.environ, {"HL_LIVE_MIN_EXCHANGE_ORDER_GAP_MS": "100"}):
+            with mock.patch.object(core, "utc_now_ms", new=lambda: 100000):
+                with mock.patch.object(core.time, "sleep", new=blocked_sleep):
+                    worker.start()
+                    self.assertTrue(sleep_started.wait(timeout=1), "cancel did not wait for its reserved slot")
+                    acquired = gateway._exchange_order_lock.acquire(timeout=0.25)
+                    if acquired:
+                        gateway._exchange_order_lock.release()
+                    release_sleep.set()
+                    worker.join(timeout=2)
+
+        self.assertFalse(worker.is_alive(), "cancel worker did not finish")
+        self.assertEqual(errors, [])
+        self.assertTrue(acquired, "cancel held the slot lock while sleeping")
 
 
 if __name__ == "__main__":
