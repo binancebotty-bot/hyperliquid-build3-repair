@@ -1630,11 +1630,11 @@
     "price moves past bound before send"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/REEARN_RISK_PRICE_ORD_probes_819050c.json",
+   "tested_commit": "819050c6018ab3264cfe911f927e1f97ff0f979b",
+   "tested_at_utc": "2026-10-19T12:00:00Z",
+   "notes": "Row-bound re-earn (t_99472e6c). reduction/close is never trapped by entry protection (min notional and caps are ENTRY-only). Checks: close_bypasses_entry_min_notional_and_caps. Each check is an ACTIVE case asserting this row's exact block reason plus a CONTROL case differing only in this row's own control value, so a check that would pass for a different row fails here. Engine sha256 1a1daf81861f726fb2f00066ca5a5314b423ec8766af665def2096adcd93a564 at 819050c; harness certification/results/REEARN_RISK_PRICE_ORD_harness_819050c.py.",
    "proof_network": "TESTNET"
   },
   {
@@ -1683,11 +1683,11 @@
     "price moves past bound before send"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "Source refs are to the legacy file; re-derive against HL_Live_Copy_Service_Core.py (7,705-line, sha256 5bda57be). Slippage ruled (Boss, 2026-10-09): unset marketable slippage defaults to 0.2%. OD-21 decided: re-pointed to the certified 13 May UI. Mainnet proof required: slippage default 0.2% can be applied on testnet; its effect on fills needs a liquid book.",
+   "result": "PASS",
+   "evidence_ref": "certification/results/REEARN_RISK_PRICE_ORD_probes_819050c.json",
+   "tested_commit": "819050c6018ab3264cfe911f927e1f97ff0f979b",
+   "tested_at_utc": "2026-10-19T12:00:00Z",
+   "notes": "Row-bound re-earn (t_99472e6c). marketable slippage is applied to the entry limit price. Checks: slippage_alone_flips_max_order_verdict. Each check is an ACTIVE case asserting this row's exact block reason plus a CONTROL case differing only in this row's own control value, so a check that would pass for a different row fails here. Engine sha256 1a1daf81861f726fb2f00066ca5a5314b423ec8766af665def2096adcd93a564 at 819050c; harness certification/results/REEARN_RISK_PRICE_ORD_harness_819050c.py.",
    "proof_network": "MAINNET"
   },
   {
@@ -1769,11 +1769,11 @@
     "unknown asset"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/REEARN_RISK_PRICE_ORD_probes_819050c.json",
+   "tested_commit": "819050c6018ab3264cfe911f927e1f97ff0f979b",
+   "tested_at_utc": "2026-10-19T12:00:00Z",
+   "notes": "Row-bound re-earn (t_99472e6c). reduce_only is set on EXIT/REDUCE and never on ENTRY/ADD. Checks: reduce_only_is_set_on_closes_and_never_on_opens. Each check is an ACTIVE case asserting this row's exact block reason plus a CONTROL case differing only in this row's own control value, so a check that would pass for a different row fails here. Engine sha256 1a1daf81861f726fb2f00066ca5a5314b423ec8766af665def2096adcd93a564 at 819050c; harness certification/results/REEARN_RISK_PRICE_ORD_harness_819050c.py.",
    "proof_network": "TESTNET"
   },
   {
@@ -1801,11 +1801,11 @@
     "unknown asset"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "Core: DEFAULT_MIN_NOTIONAL = env HL_LIVE_MIN_NOTIONAL, default 10 (L138); global min_notional read at L1926; the minimum check at L2439 covers ENTRY/ADD only. Code-read of the 2 Jun backup, unconfirmed by run; PRs #4/#6/#7 (merged at main 114e8b4) changed this code, so re-check there.",
+   "result": "PASS",
+   "evidence_ref": "certification/results/REEARN_RISK_PRICE_ORD_probes_819050c.json",
+   "tested_commit": "819050c6018ab3264cfe911f927e1f97ff0f979b",
+   "tested_at_utc": "2026-10-19T12:00:00Z",
+   "notes": "Row-bound re-earn (t_99472e6c). minimum notional is enforced on entries at the configured floor. Checks: min_notional_blocks_entry_under_the_configured_floor. Each check is an ACTIVE case asserting this row's exact block reason plus a CONTROL case differing only in this row's own control value, so a check that would pass for a different row fails here. Engine sha256 1a1daf81861f726fb2f00066ca5a5314b423ec8766af665def2096adcd93a564 at 819050c; harness certification/results/REEARN_RISK_PRICE_ORD_harness_819050c.py.",
    "proof_network": "TESTNET"
   },
   {
@@ -1829,11 +1829,11 @@
     "unknown asset"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/REEARN_RISK_PRICE_ORD_probes_819050c.json",
+   "tested_commit": "819050c6018ab3264cfe911f927e1f97ff0f979b",
+   "tested_at_utc": "2026-10-19T12:00:00Z",
+   "notes": "Row-bound re-earn (t_99472e6c). wire size is floored at the symbol sz_dec; the min-notional uplift ceils. Checks: wire_size_floors_then_ceils_at_symbol_precision. Each check is an ACTIVE case asserting this row's exact block reason plus a CONTROL case differing only in this row's own control value, so a check that would pass for a different row fails here. Engine sha256 1a1daf81861f726fb2f00066ca5a5314b423ec8766af665def2096adcd93a564 at 819050c; harness certification/results/REEARN_RISK_PRICE_ORD_harness_819050c.py.",
    "proof_network": "TESTNET"
   },
   {
@@ -1856,11 +1856,11 @@
     "unknown asset"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/REEARN_RISK_PRICE_ORD_probes_819050c.json",
+   "tested_commit": "819050c6018ab3264cfe911f927e1f97ff0f979b",
+   "tested_at_utc": "2026-10-19T12:00:00Z",
+   "notes": "Row-bound re-earn (t_99472e6c). client order id is a deterministic function of the intent id (crash-recoverable, never shared). Checks: cloid_is_a_deterministic_function_of_the_intent_id. Each check is an ACTIVE case asserting this row's exact block reason plus a CONTROL case differing only in this row's own control value, so a check that would pass for a different row fails here. Engine sha256 1a1daf81861f726fb2f00066ca5a5314b423ec8766af665def2096adcd93a564 at 819050c; harness certification/results/REEARN_RISK_PRICE_ORD_harness_819050c.py.",
    "proof_network": "TESTNET"
   },
   {
@@ -2212,11 +2212,11 @@
     "rejected save"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "Core: max_total_live_exposure_usd has an accessor (L1929) but no caller was found, so it is not enforced. Code-read of the 2 Jun backup, unconfirmed by run; PRs #4/#6/#7 (merged at main 114e8b4) changed this code, so re-check there. Earlier note (legacy file, superseded base): Source census at Build 3 main 5599415: key has NO reader in HL_Live_Copy_Service.py (0 occurrences); the UI saves it but the engine does not enforce it. Inferred from source search; must be confirmed by execution. OD-21 decided: re-pointed to the certified 13 May UI.",
+   "result": "PASS",
+   "evidence_ref": "certification/results/REEARN_RISK_PRICE_ORD_probes_819050c.json",
+   "tested_commit": "819050c6018ab3264cfe911f927e1f97ff0f979b",
+   "tested_at_utc": "2026-10-19T12:00:00Z",
+   "notes": "Row-bound re-earn (t_99472e6c). max total live exposure: follower truth total + pending + resting, last order sized down to the remaining allowance. Checks: total_cap_refuses_order_when_remaining_allowance_below_min, total_cap_sizes_down_to_remaining_allowance. Each check is an ACTIVE case asserting this row's exact block reason plus a CONTROL case differing only in this row's own control value, so a check that would pass for a different row fails here. Engine sha256 1a1daf81861f726fb2f00066ca5a5314b423ec8766af665def2096adcd93a564 at 819050c; harness certification/results/REEARN_RISK_PRICE_ORD_harness_819050c.py.",
    "proof_network": "TESTNET"
   },
   {
@@ -2246,11 +2246,11 @@
     "rejected save"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "Core: max_asset_directional_exposure_usd is not referenced. Code-read of the 2 Jun backup, unconfirmed by run; PRs #4/#6/#7 (merged at main 114e8b4) changed this code, so re-check there. Earlier note (legacy file, superseded base): Source census at Build 3 main 5599415: key has NO reader in HL_Live_Copy_Service.py (0 occurrences); the UI saves it but the engine does not enforce it. Inferred from source search; must be confirmed by execution. OD-21 decided: re-pointed to the certified 13 May UI.",
+   "result": "PASS",
+   "evidence_ref": "certification/results/REEARN_RISK_PRICE_ORD_probes_819050c.json",
+   "tested_commit": "819050c6018ab3264cfe911f927e1f97ff0f979b",
+   "tested_at_utc": "2026-10-19T12:00:00Z",
+   "notes": "Row-bound re-earn (t_99472e6c). max per-asset directional exposure: worst-case |net| after the order, direction aware. Checks: asset_cap_blocks_the_side_that_grows_the_net_only, asset_cap_control_is_the_cap_itself, asset_cap_sizes_down_to_remaining_directional_room. Each check is an ACTIVE case asserting this row's exact block reason plus a CONTROL case differing only in this row's own control value, so a check that would pass for a different row fails here. Engine sha256 1a1daf81861f726fb2f00066ca5a5314b423ec8766af665def2096adcd93a564 at 819050c; harness certification/results/REEARN_RISK_PRICE_ORD_harness_819050c.py.",
    "proof_network": "TESTNET"
   },
   {
@@ -2280,11 +2280,11 @@
     "rejected save"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "Core: max_wallet_exposure_usd read at L1931 (per-wallet value overrides the global one) and used at L2444. Code-read of the 2 Jun backup, unconfirmed by run; PRs #4/#6/#7 (merged at main 114e8b4) changed this code, so re-check there. Earlier note (legacy file, superseded base): Source census at Build 3 main 5599415: key has NO reader in HL_Live_Copy_Service.py (0 occurrences); the UI saves it but the engine does not enforce it. Inferred from source search; must be confirmed by execution. OD-21 decided: re-pointed to the certified 13 May UI.",
+   "result": "PASS",
+   "evidence_ref": "certification/results/REEARN_RISK_PRICE_ORD_probes_819050c.json",
+   "tested_commit": "819050c6018ab3264cfe911f927e1f97ff0f979b",
+   "tested_at_utc": "2026-10-19T12:00:00Z",
+   "notes": "Row-bound re-earn (t_99472e6c). max per-wallet exposure: ledger exposure + resting entry limits vs the wallet cap. Checks: wallet_exposure_cap_uses_ledger_plus_resting. Each check is an ACTIVE case asserting this row's exact block reason plus a CONTROL case differing only in this row's own control value, so a check that would pass for a different row fails here. Engine sha256 1a1daf81861f726fb2f00066ca5a5314b423ec8766af665def2096adcd93a564 at 819050c; harness certification/results/REEARN_RISK_PRICE_ORD_harness_819050c.py.",
    "proof_network": "TESTNET"
   },
   {
@@ -2312,11 +2312,11 @@
     "rejected save"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "Core: max_order_notional_usd read at L1935 and enforced at L2441 and L3250. Code-read of the 2 Jun backup, unconfirmed by run; PRs #4/#6/#7 (merged at main 114e8b4) changed this code, so re-check there. OD-21 decided: re-pointed to the certified 13 May UI. Prior evidence void: 'test_g4_order_cap.py (unit, in-process) for max_order_notional_usd' ran against the superseded UI file.",
+   "result": "PASS",
+   "evidence_ref": "certification/results/REEARN_RISK_PRICE_ORD_probes_819050c.json",
+   "tested_commit": "819050c6018ab3264cfe911f927e1f97ff0f979b",
+   "tested_at_utc": "2026-10-19T12:00:00Z",
+   "notes": "Row-bound re-earn (t_99472e6c). max per-order notional: order valued at the follower worst-case price. Checks: max_order_notional_blocks_oversized_single_order. Each check is an ACTIVE case asserting this row's exact block reason plus a CONTROL case differing only in this row's own control value, so a check that would pass for a different row fails here. Engine sha256 1a1daf81861f726fb2f00066ca5a5314b423ec8766af665def2096adcd93a564 at 819050c; harness certification/results/REEARN_RISK_PRICE_ORD_harness_819050c.py.",
    "proof_network": "TESTNET"
   },
   {
@@ -2347,11 +2347,11 @@
     "rejected save"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "Core: marketable_bps read at L1939 (default env HL_LIVE_MARKETABLE_BPS = 25) and used for pricing at L3210. Code-read of the 2 Jun backup, unconfirmed by run; PRs #4/#6/#7 (merged at main 114e8b4) changed this code, so re-check there. Earlier note (legacy file, superseded base): The engine reads global_controls only in global_order_cap (L2696-2716). Auto-send uses env HL_LIVE_AUTO_SEND_MARKETABLE_BPS (L2863), not this saved value. Inferred from source search; must be confirmed by execution. Slippage ruled (Boss, 2026-10-09): unset marketable slippage defaults to 0.2%. OD-21 decided: re-pointed to the certified 13 May UI. Mainnet proof required: control enforcement is testable on testnet; slippage outcome needs a liquid book.",
+   "result": "PASS",
+   "evidence_ref": "certification/results/REEARN_RISK_PRICE_ORD_probes_819050c.json",
+   "tested_commit": "819050c6018ab3264cfe911f927e1f97ff0f979b",
+   "tested_at_utc": "2026-10-19T12:00:00Z",
+   "notes": "Row-bound re-earn (t_99472e6c). marketable slippage % is the configured value that moves the order valuation price. Checks: marketable_bps_moves_the_valuation_price. Each check is an ACTIVE case asserting this row's exact block reason plus a CONTROL case differing only in this row's own control value, so a check that would pass for a different row fails here. Engine sha256 1a1daf81861f726fb2f00066ca5a5314b423ec8766af665def2096adcd93a564 at 819050c; harness certification/results/REEARN_RISK_PRICE_ORD_harness_819050c.py.",
    "proof_network": "MAINNET"
   },
   {
@@ -2416,11 +2416,11 @@
     "rejected save"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "Core: symbol_allowlist (also allow_symbols / allowlist) read at L1944 and applied at L2430. Code-read of the 2 Jun backup, unconfirmed by run; PRs #4/#6/#7 (merged at main 114e8b4) changed this code, so re-check there. Earlier note (legacy file, superseded base): Source census at Build 3 main 5599415: key has NO reader in HL_Live_Copy_Service.py (0 occurrences); the UI saves it but the engine does not enforce it. Inferred from source search; must be confirmed by execution. OD-21 decided: re-pointed to the certified 13 May UI.",
+   "result": "PASS",
+   "evidence_ref": "certification/results/REEARN_RISK_PRICE_ORD_probes_819050c.json",
+   "tested_commit": "819050c6018ab3264cfe911f927e1f97ff0f979b",
+   "tested_at_utc": "2026-10-19T12:00:00Z",
+   "notes": "Row-bound re-earn (t_99472e6c). symbol allowlist blocks new exposure outside the list and never traps an open sleeve. Checks: allowlist_refuses_symbol_outside_the_list_only. Each check is an ACTIVE case asserting this row's exact block reason plus a CONTROL case differing only in this row's own control value, so a check that would pass for a different row fails here. Engine sha256 1a1daf81861f726fb2f00066ca5a5314b423ec8766af665def2096adcd93a564 at 819050c; harness certification/results/REEARN_RISK_PRICE_ORD_harness_819050c.py.",
    "proof_network": "TESTNET"
   },
   {
@@ -2450,11 +2450,11 @@
     "rejected save"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "Core: symbol_blocklist (also block_symbols / blocklist) read at L1944 and applied at L2430. Code-read of the 2 Jun backup, unconfirmed by run; PRs #4/#6/#7 (merged at main 114e8b4) changed this code, so re-check there. Earlier note (legacy file, superseded base): Source census at Build 3 main 5599415: key has NO reader in HL_Live_Copy_Service.py (0 occurrences); the UI saves it but the engine does not enforce it. Inferred from source search; must be confirmed by execution. OD-21 decided: re-pointed to the certified 13 May UI.",
+   "result": "PASS",
+   "evidence_ref": "certification/results/REEARN_RISK_PRICE_ORD_probes_819050c.json",
+   "tested_commit": "819050c6018ab3264cfe911f927e1f97ff0f979b",
+   "tested_at_utc": "2026-10-19T12:00:00Z",
+   "notes": "Row-bound re-earn (t_99472e6c). symbol blocklist blocks new exposure on the named symbol and never traps an open sleeve. Checks: blocklist_refuses_the_named_symbol_only, blocklist_never_traps_an_open_sleeve. Each check is an ACTIVE case asserting this row's exact block reason plus a CONTROL case differing only in this row's own control value, so a check that would pass for a different row fails here. Engine sha256 1a1daf81861f726fb2f00066ca5a5314b423ec8766af665def2096adcd93a564 at 819050c; harness certification/results/REEARN_RISK_PRICE_ORD_harness_819050c.py.",
    "proof_network": "TESTNET"
   },
   {
@@ -2482,11 +2482,11 @@
     "rejected save"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "Core: daily loss is not referenced anywhere. Code-read of the 2 Jun backup, unconfirmed by run; PRs #4/#6/#7 (merged at main 114e8b4) changed this code, so re-check there. OD-21 decided: re-pointed to the certified 13 May UI.",
+   "result": "PASS",
+   "evidence_ref": "certification/results/REEARN_RISK_PRICE_ORD_probes_819050c.json",
+   "tested_commit": "819050c6018ab3264cfe911f927e1f97ff0f979b",
+   "tested_at_utc": "2026-10-19T12:00:00Z",
+   "notes": "Row-bound re-earn (t_99472e6c). per-wallet daily loss limit stops entries; unreadable PnL fails closed. Checks: daily_loss_limit_blocks_at_the_configured_loss, daily_loss_unreadable_fails_closed. Each check is an ACTIVE case asserting this row's exact block reason plus a CONTROL case differing only in this row's own control value, so a check that would pass for a different row fails here. Engine sha256 1a1daf81861f726fb2f00066ca5a5314b423ec8766af665def2096adcd93a564 at 819050c; harness certification/results/REEARN_RISK_PRICE_ORD_harness_819050c.py.",
    "proof_network": "TESTNET"
   },
   {
@@ -2577,11 +2577,11 @@
     "rejected save"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/REEARN_RISK_PRICE_ORD_probes_819050c.json",
+   "tested_commit": "819050c6018ab3264cfe911f927e1f97ff0f979b",
+   "tested_at_utc": "2026-10-19T12:00:00Z",
+   "notes": "Row-bound re-earn (t_99472e6c). global safe stop: send_mode read from live_config.json NOW. Checks: safe_stop_off_on_disk_is_read_as_off. Each check is an ACTIVE case asserting this row's exact block reason plus a CONTROL case differing only in this row's own control value, so a check that would pass for a different row fails here. Engine sha256 1a1daf81861f726fb2f00066ca5a5314b423ec8766af665def2096adcd93a564 at 819050c; harness certification/results/REEARN_RISK_PRICE_ORD_harness_819050c.py.",
    "proof_network": "TESTNET"
   },
   {
@@ -2640,11 +2640,11 @@
     "rejected save"
    ],
    "prior_evidence": "",
-   "result": "NOT_TESTED",
-   "evidence_ref": "",
-   "tested_commit": "",
-   "tested_at_utc": "",
-   "notes": "",
+   "result": "PASS",
+   "evidence_ref": "certification/results/REEARN_RISK_PRICE_ORD_probes_819050c.json",
+   "tested_commit": "819050c6018ab3264cfe911f927e1f97ff0f979b",
+   "tested_at_utc": "2026-10-19T12:00:00Z",
+   "notes": "Row-bound re-earn (t_99472e6c). stale/uncertain state containment: unreadable exposure or resting limits fail closed under a cap. Checks: unreadable_exposure_fails_closed_only_under_a_cap, unreadable_resting_limits_fail_closed. Each check is an ACTIVE case asserting this row's exact block reason plus a CONTROL case differing only in this row's own control value, so a check that would pass for a different row fails here. Engine sha256 1a1daf81861f726fb2f00066ca5a5314b423ec8766af665def2096adcd93a564 at 819050c; harness certification/results/REEARN_RISK_PRICE_ORD_harness_819050c.py.",
    "proof_network": "TESTNET"
   },
   {
