@@ -1,0 +1,85 @@
+{
+  "captured_at_utc": "2026-10-19T12:57:18Z",
+  "register": {
+    "ref": "origin/main",
+    "commit": "e82a3d6ada57a43cc52d7b7fa1e29871b116a703",
+    "record_count": 19,
+    "result_field": "result"
+  },
+  "scope": "Read-only examination of the append-only engine audit outputs specified by the task. No engine restart, reconfiguration, wallet action, or external exchange query was performed.",
+  "audit_dir": "C:/Users/wigmore/trading_stack/hl-build3-testnet-cert/_archive/hl_stage2/hl_live_copy_audit_testnet/append_only/",
+  "audit_streams": [
+    {
+      "file": "live_fills.csv",
+      "data_rows": 104436,
+      "sample_record": {
+        "csv_line": 2,
+        "created_at": "2026-10-09T18:02:04.976235+00:00",
+        "intent_id": "3e5fddb78b319781d1c80c9d24871675",
+        "copy_fill_id": "0x18c030ce0264ddbc1a39042b4e0be201040048b39d67fc8ebc88dc20c168b7a6:521190506183035:521190506183035",
+        "coin": "PAXG",
+        "side": "SELL"
+      },
+      "writer": "_archive/hl_stage2/HL_Live_Copy_Service.py:2881 (append_csv to LIVE_FILLS_CSV)"
+    },
+    {
+      "file": "send_attempts.csv",
+      "data_rows": 605159,
+      "sample_record": {
+        "csv_line": 2,
+        "created_at": "2026-10-09T18:02:04.318639+00:00",
+        "intent_id": "3e5fddb78b319781d1c80c9d24871675",
+        "attempt_id": "dfacb7b77023e2092fefd6ecc4c3d983",
+        "coin": "PAXG",
+        "side": "SELL",
+        "status": "ORDER_FILLED",
+        "terminal_state": "FILLED_AWAITING_COPY_POLL"
+      },
+      "writer": "_archive/hl_stage2/HL_Live_Copy_Service.py:480 (append_csv to SEND_ATTEMPTS_CSV)"
+    },
+    {
+      "file": "order_intents.csv",
+      "data_rows": 138642,
+      "sample_record": {
+        "csv_line": 2,
+        "created_at": "2026-10-19T04:08:48.593993+00:00",
+        "intent_id": "f52c3944bd0ac5a16cd8b0e624efb9b2",
+        "coin": "OP"
+      },
+      "writer": "_archive/hl_stage2/HL_Live_Copy_Service.py:2777 (append_csv to ORDER_INTENTS_CSV)"
+    },
+    {
+      "file": "errors.csv",
+      "data_rows": 1270556,
+      "sample_record": {
+        "csv_line": 2,
+        "created_at": "2026-10-09T18:02:04.976235+00:00"
+      },
+      "writer": "_archive/hl_stage2/HL_Live_Copy_Service.py:1970, 1990, 2000, 2226, 2237 (append_csv to ERRORS_CSV)"
+    }
+  ],
+  "interpretation": "The audit files are present and contain concrete historical records. The sampled entries are not correlated to a controlled UI wallet action or to any of the 19 acceptance assertions. Their presence therefore establishes only that these audit streams contain records; it does not establish any UI write, config/wallet_gate persistence, hot engine reload, wallet-specific Testnet behavior, exchange position/order/fill oracle, or negative test. No row can be passed from this evidence alone.",
+  "records": [
+    {"id":"UI-WALLET-001","feature":"Add a leader wallet","result":"NOT_TESTED","proof_assertion":"UI add -> config/wallet_gate write -> running engine hot-reads it -> future genuine Testnet events only, without historical replay/catch-up.","audit_ref":"live_fills.csv:2; send_attempts.csv:2; order_intents.csv:2 (unrelated/unbound historical samples)","code_path_ref":"HL_Live_Copy_Service.py:2777 (intent append), :480 (send attempt append), :2881 (fill append)","reason":"No controlled add-wallet UI action or matching action/config hash/engine-read/event correlation was present in the inspected audit evidence."},
+    {"id":"UI-WALLET-002","feature":"Remove / archive a leader wallet","result":"NOT_TESTED","proof_assertion":"UI remove/archive -> config and wallet_gate change -> hot engine response with owned exposure/archive safety.","open_decisions":["OD-13"],"audit_ref":"live_fills.csv:2; send_attempts.csv:2; order_intents.csv:2 (unrelated/unbound historical samples)","code_path_ref":"HL_Live_Copy_Service.py:2777, :480, :2881","reason":"OD-13 is open; no wallet-removal action, owned-exposure archive evidence, or correlated Testnet outcome exists in the inspected records."},
+    {"id":"UI-WALLET-003","feature":"Enable a leader wallet (LIVE)","result":"NOT_TESTED","proof_assertion":"UI enable -> persisted wallet state -> hot engine read -> Testnet behavior for an enabled wallet.","audit_ref":"send_attempts.csv:2 (unbound historical ORDER_FILLED sample); order_intents.csv:2 (unbound sample)","code_path_ref":"HL_Live_Copy_Service.py:2777, :480, :2881","reason":"No controlled enable action or evidence correlates these historical engine records to a wallet enabled through the UI."},
+    {"id":"UI-WALLET-004","feature":"Disable a leader wallet","result":"NOT_TESTED","proof_assertion":"UI disable -> persisted config -> running engine ceases new wallet work while handling owned exposure as specified.","audit_ref":"send_attempts.csv:2; order_intents.csv:2 (unbound historical samples)","code_path_ref":"HL_Live_Copy_Service.py:2777, :480, :2881","reason":"No controlled disable action or subsequent wallet-specific event window is identified in the inspected audit records."},
+    {"id":"UI-WALLET-005","feature":"Close-only a leader wallet (CLO)","result":"NOT_TESTED","proof_assertion":"UI CLO update -> hot engine behavior permits reductions while blocking new exposure, confirmed by Testnet state.","audit_ref":"send_attempts.csv:2; live_fills.csv:2 (unbound historical samples)","code_path_ref":"HL_Live_Copy_Service.py:2777, :480, :2881","reason":"No controlled CLO update and paired allowed-reduction/blocked-entry outcomes are correlated in the inspected records."},
+    {"id":"UI-WALLET-006","feature":"Copy model proportional/fixed","result":"NOT_TESTED","proof_assertion":"UI mode change -> persisted setting -> hot engine sizing behavior -> Testnet order/position oracle.","open_decisions":["OD-02"],"audit_ref":"order_intents.csv:2; send_attempts.csv:2 (unbound historical samples)","code_path_ref":"HL_Live_Copy_Service.py:2777, :480","reason":"OD-02 is open; no ruled mode authority or controlled before/after sizing test is evidenced."},
+    {"id":"UI-WALLET-007","feature":"Norm base (N)","result":"NOT_TESTED","proof_assertion":"UI norm-base update -> persisted config -> hot engine sizing uses the selected normalization base.","audit_ref":"order_intents.csv:2; send_attempts.csv:2 (unbound historical samples)","code_path_ref":"HL_Live_Copy_Service.py:2777, :480","reason":"No controlled norm-base change is linked to an intent and exchange outcome in the inspected records."},
+    {"id":"UI-WALLET-008","feature":"Fixed notional (F)","result":"NOT_TESTED","proof_assertion":"UI fixed-notional update -> persisted config -> hot engine uses fixed sizing in Testnet.","open_decisions":["OD-02"],"audit_ref":"order_intents.csv:2; send_attempts.csv:2 (unbound historical samples)","code_path_ref":"HL_Live_Copy_Service.py:2777, :480","reason":"OD-02 is open; no ruled fixed-mode authority or controlled fixed-notional order proof is evidenced."},
+    {"id":"UI-WALLET-009","feature":"Leader equity base (B)","result":"NOT_TESTED","proof_assertion":"UI leader-equity-base update -> persisted config -> hot engine computes proportional size from the selected base.","audit_ref":"order_intents.csv:2; send_attempts.csv:2 (unbound historical samples)","code_path_ref":"HL_Live_Copy_Service.py:2777, :480","reason":"No controlled base change, attributable sizing intent, and independent Testnet oracle are correlated in the inspected records."},
+    {"id":"UI-WALLET-010","feature":"Wallet status and position/target representation","result":"NOT_TESTED","proof_assertion":"Wallet state/target change is represented correctly by the live engine and reconciles against actual Testnet positions.","audit_ref":"live_fills.csv:2; send_attempts.csv:2 (unbound historical samples)","code_path_ref":"HL_Live_Copy_Service.py:480, :2881","reason":"The historical samples do not establish this wallet's state transition or match it to an exchange position snapshot."},
+    {"id":"UI-WALLET-011","feature":"Persistence and restart","result":"NOT_TESTED","proof_assertion":"UI wallet/config change persists across restart and engine resumes with the intended state.","audit_ref":"order_intents.csv:2; send_attempts.csv:2 (unbound historical samples)","code_path_ref":"HL_Live_Copy_Service.py:2777, :480","reason":"No restart or before/after config hash evidence was collected; task expressly prohibits restarting/reconfiguring the engine."},
+    {"id":"UI-WALLET-012","feature":"Invalid input handling","result":"NOT_TESTED","proof_assertion":"Invalid UI wallet input is rejected without changing persisted config or engine wallet state.","audit_ref":"errors.csv:2 (historical row not correlated to an invalid-input probe)","code_path_ref":"HL_Live_Copy_Service.py:1970, :1990, :2000, :2226, :2237 (error append sites)","reason":"No invalid-input UI probe was run and the sampled error record is not bound to one."},
+    {"id":"UI-WALLET-013","feature":"USER/account wallet can never be enabled","result":"NOT_TESTED","proof_assertion":"Attempt to enable the USER/account wallet is rejected and cannot affect copy sends.","audit_ref":"send_attempts.csv:2; errors.csv:2 (unbound historical samples)","code_path_ref":"HL_Live_Copy_Service.py:480; error append sites :1970, :1990, :2000, :2226, :2237","reason":"No attempted USER-wallet enable and correlated rejection/no-send evidence exists in the inspected records."},
+    {"id":"UI-WALLET-014","feature":"Two mode writers agree","result":"NOT_TESTED","proof_assertion":"UI and engine mode writers converge on a single persisted authority and hot-read behavior.","open_decisions":["OD-05"],"audit_ref":"order_intents.csv:2; send_attempts.csv:2 (unbound historical samples)","code_path_ref":"HL_Live_Copy_Service.py:2777, :480","reason":"OD-05 is open; no resolved authority or controlled cross-writer consistency probe is evidenced."},
+    {"id":"UI-WALLET-015","feature":"PURGE (admin)","result":"NOT_TESTED","proof_assertion":"Admin purge removes/archives wallet data without deleting or corrupting owned exposure or audit history.","open_decisions":["OD-13"],"audit_ref":"live_fills.csv:2; send_attempts.csv:2 (unbound historical samples)","code_path_ref":"HL_Live_Copy_Service.py:480, :2881","reason":"OD-13 is open; no purge action or before/after owned-exposure and audit-retention proof is present."},
+    {"id":"UI-WALLET-016","feature":"Include in portfolio (INC)","result":"NOT_TESTED","proof_assertion":"UI include/exclude setting is persisted and hot-read, with expected portfolio aggregation and no execution-side effect beyond its defined scope.","audit_ref":"order_intents.csv:2; send_attempts.csv:2 (unbound historical samples)","code_path_ref":"HL_Live_Copy_Service.py:2777, :480","reason":"No controlled INC toggle and attributable before/after portfolio evidence is correlated in these execution audit files."},
+    {"id":"UI-WALLET-017","feature":"Wallet meta (tag/colour/note)","result":"NOT_TESTED","proof_assertion":"Wallet metadata update persists and is represented without altering wallet execution identity or behavior.","audit_ref":"order_intents.csv:2; send_attempts.csv:2 (unbound historical samples)","code_path_ref":"HL_Live_Copy_Service.py:2777, :480","reason":"Execution audit records do not establish a UI metadata update or its persisted representation; no controlled metadata probe was run."},
+    {"id":"UI-WALLET-018","feature":"Duplicate add / re-add archived","result":"NOT_TESTED","proof_assertion":"Duplicate add and archived-wallet re-add are handled according to the rule without unintended duplicate execution.","audit_ref":"order_intents.csv:2; send_attempts.csv:2 (unbound historical samples)","code_path_ref":"HL_Live_Copy_Service.py:2777, :480","reason":"No duplicate/re-add UI action or paired deduplication/no-duplicate-send evidence exists in the inspected records."},
+    {"id":"UI-WALLET-019","feature":"Wallet subscription coverage","result":"NOT_TESTED","proof_assertion":"Wallet subscription coverage includes the configured wallet and produces attributable future events, with no replay outside the specified baseline.","audit_ref":"order_intents.csv:2; send_attempts.csv:2 (unbound historical samples)","code_path_ref":"HL_Live_Copy_Service.py:2777, :480","reason":"No subscription-change event, baseline marker, or wallet-correlated future-only Testnet evidence was identified."}
+  ],
+  "status_change": "none",
+  "safety": "Read-only only; no engine reconfiguration, restart, wallet operation, or external exchange action."
+}
