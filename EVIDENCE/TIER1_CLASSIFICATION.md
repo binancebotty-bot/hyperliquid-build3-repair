@@ -86,3 +86,42 @@ So the Tier-1 remainder is not one queue. It is two:
 Confirm the split, and confirm that the runtime-bound rows are Codex's lane rather than mine. If they are mine,
 they need an engine path and a testnet scenario per row — which is a different kind of work from a card, and I would
 want that stated before I keep queueing cards that cannot finish.
+
+---
+
+## The previously-unclear rows, now sorted (ruling 6271553509 item 1)
+
+Read each `execution_proof` in full. There were **11**, not 8 — the first pass undercounted because two rows' proofs shared
+wording. All are now classified:
+
+### OFFLINE — with the injectable exchange stub (6 rows)
+
+`ORD-001`, `ORD-002`, `ORD-004`, `ORD-005`, `ORD-006`, `ORD-008`
+
+All six share one proof shape:
+
+    Planner delta -> order payload as signed (size, side, reduce_only, tif, cloid, asset id) -> exchange response
+
+That is decidable **without an exchange** once the stub exists: call the real order builder, assert the signed payload, and
+have the stub record what was submitted. Card `t_8edb2be0` builds that stub and uses ORD-001 as the worked example; the
+other five follow the same shape and can share it.
+
+### RUNTIME — needs the engine running (5 rows)
+
+`ORD-009`, `LIFE-002`, `LIFE-003`, `LIFE-006`, `LIFE-009`
+
+- `ORD-009` — "Start the engine against the follower network → `userRole` read for the signer → start allowed/refused;
+  inject a signer rejection on send → terminal state, sending stopped, UI alert." Needs a real engine start and a follower
+  network read. No clone can produce it.
+- `LIFE-002/003/006/009` — all four share: "Operator command → process table / PID / lock → engine status endpoint →
+  exchange shows zero unintended orders." These are **operator-command boundaries** — stop, restart, cutover, crash
+  recovery. They can only be observed against a running engine across a real lifecycle transition.
+
+### Revised totals
+
+    Tier-1 rows not PASS:            56
+      OFFLINE (stub or pure static): 13
+      RUNTIME (live engine):         43
+      unclear:                        0
+
+Every row now has a lane.
