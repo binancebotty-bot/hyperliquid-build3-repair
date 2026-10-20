@@ -120,6 +120,7 @@ PROCESS_STARTED_AT_MS = int(time.time() * 1000)
 ENGINE_OUTPUT_DIR = BASE_DIR / "hl_copy_output"
 AUDIT_DIR = Path(os.getenv("HL_LIVE_AUDIT_DIR") or str(_NETWORK_AUDIT_DIR))
 APPEND_ONLY_DIR = AUDIT_DIR / "append_only"
+FALLBACK_DIR = APPEND_ONLY_DIR / "fallback"  # append-only spill: rows that could not be appended after retries
 
 LIVE_CONFIG_FILE = AUDIT_DIR / "live_config.json"
 SERVICE_STATE_FILE = AUDIT_DIR / "live_service_state.json"
@@ -973,6 +974,7 @@ def stale_snapshot_replay_reason(fill: "LeaderFill", core_started_at_ms: int = P
 def ensure_dirs() -> None:
     AUDIT_DIR.mkdir(parents=True, exist_ok=True)
     APPEND_ONLY_DIR.mkdir(parents=True, exist_ok=True)
+    FALLBACK_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def _attribution_json_safe(value: Any) -> Any:
@@ -1290,6 +1292,11 @@ AUDIT_ROTATE_BYTES = int(os.getenv("HL_LIVE_AUDIT_ROTATE_BYTES", str(100 * 1024 
 AUDIT_ROTATE_KEEP = int(os.getenv("HL_LIVE_AUDIT_ROTATE_KEEP", "10"))
 AUDIT_ROTATING_NAMES = {"order_intents.csv", "reconciliation.csv"}  # the two that grew 0.1-0.2 GB/h under 10 leaders
 
+# Append retry + spill config: a transient file lock / sharing violation triggers a short backoff retry;
+# if every retry fails the row is spilled to FALLBACK_DIR and replayed later -- it is never lost.
+_AUDIT_APPEND_RETRIES = max(1, int(os.getenv("HL_LIVE_APPEND_RETRIES", "3")))
+_AUDIT_APPEND_BACKOFF_SEC = float(os.getenv("HL_LIVE_APPEND_BACKOFF_SEC", "0.05"))
+
 
 def rotated_audit_paths(path: Path) -> List[Path]:
     """Rotated copies of an audit CSV (name.UTCdate.n.csv), oldest first."""
@@ -1372,7 +1379,70 @@ def audit_write_failure_count() -> int:
     return n
 
 
-def append_csv(path: Path, fieldnames: List[str], row: Dict[str, Any]) -> None:
+def _fallback_path(path: Path) -> Path:
+    """Fallback spill file for *path*: rows that survived every retry land here and are replayed at startup."""
+    return FALLBACK_DIR / (path.name + ".spill")
+
+
+def _spill_row(path: Path, fieldnames: List[str], row: Dict[str, Any]) -> bool:
+    """Write a single row to the append-only fallback so replay_audit_fallback can recover it.
+    Best-effort: if the spill itself fails we log loudly but still return (the row
+    is gone -- the caller chose spill over raise)."""
+    try:
+        FALLBACK_DIR.mkdir(parents=True, exist_ok=True)
+        sp = _fallback_path(path)
+        need_header = not sp.exists() or sp.stat().st_size == 0
+        with sp.open("a", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            if need_header:
+                writer.writeheader()
+            writer.writerow({k: row.get(k, "") for k in fieldnames})
+        log_error(f"audit_append_spilled:{path.name}", None)
+        return True
+    except Exception as exc:
+        log_error("audit_spill", exc)
+        return False
+
+
+def replay_audit_fallback(path: Path, fieldnames: List[str]) -> int:
+    """Re-play every spilled row for *path* back into the live CSV.  Successfully replayed
+    rows are removed from the spill file; any row that still fails stays behind for the next
+    start.  Returns the number of rows replayed."""
+    sp = _fallback_path(path)
+    if not sp.exists() or sp.stat().st_size == 0:
+        return 0
+    rows: List[Dict[str, Any]] = []
+    try:
+        with sp.open("r", newline="", encoding="utf-8") as f:
+            for r in csv.DictReader(f):
+                rows.append({k: r.get(k, "") for k in fieldnames})
+    except Exception as exc:
+        log_error("audit_replay_read", exc)
+        return 0
+    replayable = list(rows)
+    # Clear the spill file: rows spilled during replay (by append_csv's _spill_row)
+    # append to the now-empty file, so they survive without a separate rewrite pass.
+    try:
+        sp.write_bytes(b"")
+    except Exception:
+        pass
+    replayed = 0
+    for r in replayable:
+        try:
+            if append_csv(path, fieldnames, r):  # True = live append, False = re-spill (row stays in spill file)
+                replayed += 1
+        except Exception as exc:
+            log_error("audit_replay_append", exc)
+    if replayed > 0:
+        log_error(f"audit_replay_done:{path.name}:{replayed}", None)
+    return replayed
+
+
+def append_csv(path: Path, fieldnames: List[str], row: Dict[str, Any]) -> bool:
+    """Append one row to an audit CSV.  Never raises: a transient failure (file lock,
+    sharing violation, short write) is retried with backoff; if every retry fails the
+    row is spilled to FALLBACK_DIR and replayed at the next start.  Returns True on a
+    live append, False on spill."""
     ensure_csv_header(path, fieldnames)
     buf = io.StringIO()
     csv.DictWriter(buf, fieldnames=fieldnames).writerow({k: row.get(k, "") for k in fieldnames})
@@ -1388,20 +1458,29 @@ def append_csv(path: Path, fieldnames: List[str], row: Dict[str, Any]) -> None:
         if not path.exists() or path.stat().st_size <= 0:  # rotated away since the header check above
             ensure_csv_header(path, fieldnames)
         size_before = path.stat().st_size if path.exists() else 0
-        try:
-            with prof(f"append:{path.name}"), path.open("a", newline="", encoding="utf-8") as f:
-                written = f.write(buf.getvalue())
-                f.flush()
-            if written != len(buf.getvalue()):  # a short write stores fewer bytes and does NOT raise
-                raise OSError(f"short audit append: wrote {written} of {len(buf.getvalue())} bytes")
-        except OSError as exc:
+        last_exc: Optional[Exception] = None
+        for _attempt in range(_AUDIT_APPEND_RETRIES):
             try:
-                if path.exists() and path.stat().st_size > size_before:
-                    os.truncate(path, size_before)  # drop a half-written row so the next append cannot glue onto it
-            except Exception:
-                pass
-            note_audit_write_failure(path, exc)  # durable + loud; the caller still sees the failure
-            raise
+                with prof(f"append:{path.name}"), path.open("a", newline="", encoding="utf-8") as f:
+                    written = f.write(buf.getvalue())
+                    f.flush()
+                if written != len(buf.getvalue()):  # a short write stores fewer bytes and does NOT raise
+                    raise OSError(f"short audit append: wrote {written} of {len(buf.getvalue())} bytes")
+                break  # success
+            except OSError as exc:
+                last_exc = exc
+                try:
+                    if path.exists() and path.stat().st_size > size_before:
+                        os.truncate(path, size_before)  # drop a half-written row so the next append cannot glue onto it
+                except Exception:
+                    pass
+                note_audit_write_failure(path, exc)
+                if _attempt + 1 < _AUDIT_APPEND_RETRIES:
+                    time.sleep(_AUDIT_APPEND_BACKOFF_SEC * (_attempt + 1))
+        else:  # all retries exhausted -- spill, never raise
+            _spill_row(path, fieldnames, row)
+            return False
+        # success path
         _note_append(path, fieldnames)  # our own append changed the size: keep the header cache in step
         if path == LIVE_FILLS_CSV and _OWNED_BY_OID["path"] == str(path):
             _owned_note(row)  # keeps the per-order owned-size totals current (never a whole-file scan)
@@ -1411,10 +1490,9 @@ def append_csv(path: Path, fieldnames: List[str], row: Dict[str, Any]) -> None:
                     _rotate_audit_file(path)
             except Exception as exc:
                 log_error("audit_rotate", exc)
+        return True
     finally:
         lock.release()
-
-
 def update_send_attempt_row(attempt_id: str, updates: Dict[str, Any], base_row: Optional[Dict[str, Any]] = None) -> bool:
     """T1a: record the result of a send attempt whose pending_send row (written before the exchange call) already
     exists. APPEND-ONLY: the file is never rewritten (a rewrite of the 0.2 GB audit file per order would stall the
@@ -3726,6 +3804,21 @@ class AuditLogWriter:
         append_csv(RECONCILIATION_CSV, RECONCILIATION_FIELDS, row)
         self._note_fill_row(kwargs.get("leader_fill_id"), kwargs.get("terminal_state") or status)
 
+    def replay_all_fallbacks(self) -> int:
+        """Replay every spilled audit row into its live CSV.  Called once at startup so
+        that REPLAY_DEFERRED records (and any other spilled row) are recovered."""
+        total = 0
+        for path, fields in [
+            (ORDER_INTENTS_CSV, ORDER_INTENT_FIELDS),
+            (SEND_ATTEMPTS_CSV, SEND_ATTEMPT_FIELDS),
+            (LIVE_FILLS_CSV, LIVE_FILL_FIELDS),
+            (RECONCILIATION_CSV, RECONCILIATION_FIELDS),
+        ]:
+            try:
+                total += replay_audit_fallback(path, fields)
+            except Exception as exc:
+                log_error("audit_replay", exc)
+        return total
 
 class IntentBuilder:
     def __init__(self, cfg: ConfigManager, ledger: ManualLedger):
@@ -9037,6 +9130,7 @@ class LiveCopyCore:
         self.cfg = ConfigManager()
         self.ledger = ManualLedger()
         self.audit = AuditLogWriter()
+        self.audit.replay_all_fallbacks()  # recover any rows spilled on a previous crash
         self.ingestor = LeaderFillIngestor()
         service_state = load_json(SERVICE_STATE_FILE, {})
         core_state = load_json(CORE_RUNTIME_STATE_FILE, {})
