@@ -283,7 +283,7 @@ check("DEFERRED_UNDURABLE_APPEND_RAISES", raised8, "expected hard persistence fa
 check("DEFERRED_QUEUED_BEFORE_RAISE", key8 in core._deferred,
       str(core._deferred))
 
-# --- Scenario 9: crash during replay leaves the original spill available ---------
+# --- Scenario 9: crash after one replay append is idempotent on restart ----------
 
 p9 = tmp / "append_only" / "test_replay_crash.csv"
 c.append_csv(p9, fields1, {"event": "E", "status": "S_init", "leader_fill_id": "F_init"})
@@ -293,10 +293,22 @@ try:
     c.append_csv(p9, fields1, {"event": "E", "status": "S_spill", "leader_fill_id": "F_CRASH_REPLAY"})
 except Exception:
     pass
+try:
+    c.append_csv(p9, fields1, {"event": "E", "status": "S_spill", "leader_fill_id": "F_CRASH_REPLAY_2"})
+except Exception:
+    pass
 af9.restore()
 fb9 = c._fallback_path(p9)
 orig_append9 = c.append_csv
-c.append_csv = lambda *a, **k: (_ for _ in ()).throw(KeyboardInterrupt("simulated process crash"))
+append_calls9 = 0
+def crash_after_first_replay_append(path, fields, row, **kwargs):
+    global append_calls9
+    result = orig_append9(path, fields, row, **kwargs)
+    append_calls9 += 1
+    if path == p9 and append_calls9 == 1:
+        raise KeyboardInterrupt("simulated process crash after durable append")
+    return result
+c.append_csv = crash_after_first_replay_append
 crashed9 = False
 try:
     c.replay_audit_fallback(p9, fields1)
@@ -308,6 +320,19 @@ check("REPLAY_CRASH_SIMULATED", crashed9)
 check("REPLAY_CRASH_SPILL_RETAINED",
       fb9.exists() and any(r.get("leader_fill_id") == "F_CRASH_REPLAY" for r in c.read_csv_rows(fb9)),
       str(fb9))
+rows9_after_crash = c.read_csv_rows(p9)
+check("REPLAY_CRASH_FIRST_APPEND_DURABLE",
+      sum(r.get("leader_fill_id") == "F_CRASH_REPLAY" for r in rows9_after_crash) == 1,
+      str(rows9_after_crash))
+replayed9b = c.replay_audit_fallback(p9, fields1)
+rows9_final = c.read_csv_rows(p9)
+check("REPLAY_CRASH_RESTART_FINISHES_ONCE",
+      replayed9b == 1
+      and sum(r.get("leader_fill_id") == "F_CRASH_REPLAY" for r in rows9_final) == 1
+      and sum(r.get("leader_fill_id") == "F_CRASH_REPLAY_2" for r in rows9_final) == 1,
+      f"replayed={replayed9b} rows={rows9_final}")
+check("REPLAY_CRASH_RESTART_CLEARS_SPILL",
+      not fb9.exists() or not c.read_csv_rows(fb9), str(fb9))
 
 # --- Scenario 10: unresolved startup spill refuses to arm ----------------------
 
@@ -334,7 +359,55 @@ check("UNRESOLVED_STARTUP_SPILL_RETAINED",
       startup_spill.exists() and any(r.get("attempt_id") == "STARTUP_PENDING" for r in c.read_csv_rows(startup_spill)),
       str(startup_spill))
 
-# --- Scenario 11: summary -------------------------------------------------------
+# Resolve the test spill before checking errors.csv startup replay.
+c.AuditLogWriter().replay_all_fallbacks()
+check("RESOLVED_STARTUP_SPILL_CLEARED", not startup_spill.exists() or not c.read_csv_rows(startup_spill), str(startup_spill))
+
+# --- Scenario 11: errors.csv spill is replayed and blocks startup if unresolved --
+
+errors_path = c.ERRORS_CSV
+errors_spill = c._fallback_path(errors_path)
+if errors_spill.exists():
+    errors_spill.unlink()
+error_row = {
+    "created_at": c.utc_now_iso(),
+    "created_at_ms": c.utc_now_ms(),
+    "context": "TEST_ERRORS_REPLAY",
+    "error_type": "TestError",
+    "message": "replayed after restart",
+    "traceback": "",
+}
+c._spill_row(errors_path, c.ERROR_FIELDS, error_row)
+c.AuditLogWriter().replay_all_fallbacks()
+errors_rows = c.read_csv_rows(errors_path)
+check("ERRORS_SPILL_REPLAYED_ON_STARTUP",
+      any(r.get("context") == "TEST_ERRORS_REPLAY" and r.get("message") == "replayed after restart" for r in errors_rows),
+      str(errors_rows))
+check("ERRORS_SPILL_CLEARED_ON_STARTUP",
+      not errors_spill.exists() or not c.read_csv_rows(errors_spill), str(errors_spill))
+
+error_row2 = dict(error_row, created_at=c.utc_now_iso(), created_at_ms=c.utc_now_ms(), context="TEST_ERRORS_UNRESOLVED")
+c._spill_row(errors_path, c.ERROR_FIELDS, error_row2)
+orig_append11 = c.append_csv
+def fail_errors_replay(path, fields, row, **kwargs):
+    if path == errors_path:
+        return False
+    return orig_append11(path, fields, row, **kwargs)
+c.append_csv = fail_errors_replay
+errors_startup_refused = False
+try:
+    c.AuditLogWriter().replay_all_fallbacks()
+except OSError:
+    errors_startup_refused = True
+finally:
+    c.append_csv = orig_append11
+check("UNRESOLVED_ERRORS_SPILL_REFUSES_STARTUP", errors_startup_refused)
+check("UNRESOLVED_ERRORS_SPILL_RETAINED",
+      errors_spill.exists() and any(r.get("context") == "TEST_ERRORS_UNRESOLVED" for r in c.read_csv_rows(errors_spill)),
+      str(errors_spill))
+c.AuditLogWriter().replay_all_fallbacks()
+
+# --- Scenario 12: summary -------------------------------------------------------
 
 print("MEASURE::retry_count=%d backoff_seconds=%.4f fallback_dir=%s" % (
     RETRIES, BACKOFF, str(getattr(c, "FALLBACK_DIR", None))))

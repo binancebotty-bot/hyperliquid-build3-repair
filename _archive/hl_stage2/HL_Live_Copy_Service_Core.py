@@ -1384,6 +1384,12 @@ def _fallback_path(path: Path) -> Path:
     return FALLBACK_DIR / (path.name + ".spill")
 
 
+def _audit_row_key(path: Path, fieldnames: List[str], row: Dict[str, Any]) -> str:
+    buf = io.StringIO()
+    csv.DictWriter(buf, fieldnames=fieldnames).writerow({k: row.get(k, "") for k in fieldnames})
+    return stable_hash(["audit-row", path.name, buf.getvalue()])
+
+
 def _spill_row(path: Path, fieldnames: List[str], row: Dict[str, Any]) -> bool:
     """Write a single row to the append-only fallback so replay_audit_fallback can recover it.
     Return False if the fallback could not preserve the complete row."""
@@ -1417,9 +1423,11 @@ def _spill_row(path: Path, fieldnames: List[str], row: Dict[str, Any]) -> bool:
 
 
 def replay_audit_fallback(path: Path, fieldnames: List[str]) -> int:
-    """Re-play every spilled row for *path* back into the live CSV.  Successfully replayed
-    rows are removed from the spill file; any row that still fails stays behind for the next
-    start.  Returns the number of rows replayed."""
+    """Replay spilled rows, skipping rows already present after an interrupted replay.
+
+    Successfully replayed rows are removed from the spill file; any row that still fails
+    stays behind for the next start. Returns the number of rows newly appended.
+    """
     sp = _fallback_path(path)
     if not sp.exists() or sp.stat().st_size == 0:
         return 0
@@ -1431,18 +1439,36 @@ def replay_audit_fallback(path: Path, fieldnames: List[str]) -> int:
     except Exception as exc:
         log_error("audit_replay_read", exc)
         return 0
-    replayable = list(rows)
-    # shortcut: a crash mid-replay can duplicate copied rows; add keyed idempotence if exactly-once replay is required.
+    spill_keys = {_audit_row_key(path, fieldnames, row) for row in rows}
+    existing = collections.Counter()
+    try:
+        for history_path in audit_history_paths(path):
+            with history_path.open("r", newline="", encoding="utf-8-sig") as f:
+                for existing_row in csv.DictReader(f):
+                    key = _audit_row_key(path, fieldnames, existing_row)
+                    if key in spill_keys:
+                        existing[key] += 1
+    except Exception as exc:
+        log_error("audit_replay_target_read", exc)
+        return 0
+    # shortcut: identical payloads have no distinct event ID, so an existing byte-identical row is treated as the same append.
     replayed = 0
-    for r in replayable:
+    resolved = 0
+    for r in rows:
+        key = _audit_row_key(path, fieldnames, r)
+        if existing[key] > 0:
+            existing[key] -= 1
+            resolved += 1
+            continue
         try:
             if not append_csv(path, fieldnames, r, spill_on_failure=False):
                 break
             replayed += 1
+            resolved += 1
         except Exception as exc:
             log_error("audit_replay_append", exc)
             break
-    if replayed == len(replayable):
+    if resolved == len(rows):
         try:
             sp.write_bytes(b"")
         except Exception as exc:
@@ -3830,6 +3856,7 @@ class AuditLogWriter:
             (SEND_ATTEMPTS_CSV, SEND_ATTEMPT_FIELDS),
             (LIVE_FILLS_CSV, LIVE_FILL_FIELDS),
             (RECONCILIATION_CSV, RECONCILIATION_FIELDS),
+            (ERRORS_CSV, ERROR_FIELDS),
         ]:
             try:
                 total += replay_audit_fallback(path, fields)
