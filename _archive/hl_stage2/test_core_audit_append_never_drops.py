@@ -334,6 +334,51 @@ check("REPLAY_CRASH_RESTART_FINISHES_ONCE",
 check("REPLAY_CRASH_RESTART_CLEARS_SPILL",
       not fb9.exists() or not c.read_csv_rows(fb9), str(fb9))
 
+# --- Scenario 9b: identical legitimate rows are distinct spill events ---------
+
+p9b = tmp / "append_only" / "test_replay_identical.csv"
+identical_row = {"event": "E", "status": "S_identical", "leader_fill_id": "F_identical"}
+c.append_csv(p9b, fields1, identical_row)  # legitimate pre-existing row
+for _ in range(2):
+    af9b = AppendFail(p9b, n_fail=1000)
+    af9b.install()
+    try:
+        c.append_csv(p9b, fields1, identical_row)
+    except Exception:
+        pass
+    af9b.restore()
+fb9b = c._fallback_path(p9b)
+check("IDENTICAL_SPILL_ROWS_BOTH_PRESERVED",
+      len(c.read_csv_rows(fb9b)) == 2, str(c.read_csv_rows(fb9b)))
+orig_append9b = c.append_csv
+append_calls9b = 0
+def crash_after_first_identical_replay(path, fields, row, **kwargs):
+    global append_calls9b
+    result = orig_append9b(path, fields, row, **kwargs)
+    append_calls9b += 1
+    if path == p9b and append_calls9b == 1:
+        raise KeyboardInterrupt("simulated crash after first identical replay append")
+    return result
+c.append_csv = crash_after_first_identical_replay
+crashed9b = False
+try:
+    c.replay_audit_fallback(p9b, fields1)
+except KeyboardInterrupt:
+    crashed9b = True
+finally:
+    c.append_csv = orig_append9b
+check("IDENTICAL_REPLAY_CRASH_SIMULATED", crashed9b)
+check("IDENTICAL_REPLAY_CRASH_DURABLE_COUNT",
+      sum(r == identical_row for r in c.read_csv_rows(p9b)) == 2,
+      str(c.read_csv_rows(p9b)))
+replayed9b = c.replay_audit_fallback(p9b, fields1)
+rows9b = c.read_csv_rows(p9b)
+check("IDENTICAL_REPLAY_RESTART_PRESERVES_ALL_THREE",
+      replayed9b == 1 and sum(r == identical_row for r in rows9b) == 3,
+      f"replayed={replayed9b} rows={rows9b}")
+check("IDENTICAL_REPLAY_RESTART_CLEARS_SPILL",
+      not fb9b.exists() or not c.read_csv_rows(fb9b), str(fb9b))
+
 # --- Scenario 10: unresolved startup spill refuses to arm ----------------------
 
 startup_path = c.SEND_ATTEMPTS_CSV
@@ -362,6 +407,44 @@ check("UNRESOLVED_STARTUP_SPILL_RETAINED",
 # Resolve the test spill before checking errors.csv startup replay.
 c.AuditLogWriter().replay_all_fallbacks()
 check("RESOLVED_STARTUP_SPILL_CLEARED", not startup_spill.exists() or not c.read_csv_rows(startup_spill), str(startup_spill))
+
+# A journal-only pending row is still a startup blocker if replay cannot finish.
+c._spill_row(startup_path, c.SEND_ATTEMPT_FIELDS, {"attempt_id": "SIDECAR_PENDING", "leader_fill_id": "F_SIDECAR"})
+startup_spill.write_bytes(b"")
+c.append_csv = fail_startup_replay
+sidecar_startup_refused = False
+try:
+    c.AuditLogWriter().replay_all_fallbacks()
+except OSError:
+    sidecar_startup_refused = True
+finally:
+    c.append_csv = orig_append10
+check("UNRESOLVED_SIDECAR_SPILL_REFUSES_STARTUP", sidecar_startup_refused)
+check("UNRESOLVED_SIDECAR_ROW_RETAINED", c._spill_pending(startup_path))
+c.AuditLogWriter().replay_all_fallbacks()
+check("RESOLVED_SIDECAR_ROW_REPLAYED",
+      any(r.get("attempt_id") == "SIDECAR_PENDING" for r in c.read_csv_rows(startup_path)))
+
+# A failed journal cleanup also blocks startup before a fresh spill can reuse row indexes.
+c._spill_row(startup_path, c.SEND_ATTEMPT_FIELDS, {"attempt_id": "CLEAR_PENDING", "leader_fill_id": "F_CLEAR"})
+startup_journal = c._spill_journal_path(startup_path)
+orig_path_open = Path.open
+def fail_journal_clear(path, *args, **kwargs):
+    if path == startup_journal and args and args[0] == "wb":
+        raise PermissionError("simulated journal cleanup failure")
+    return orig_path_open(path, *args, **kwargs)
+Path.open = fail_journal_clear
+journal_cleanup_refused = False
+try:
+    c.AuditLogWriter().replay_all_fallbacks()
+except OSError:
+    journal_cleanup_refused = True
+finally:
+    Path.open = orig_path_open
+check("UNCLEARED_REPLAY_JOURNAL_REFUSES_STARTUP", journal_cleanup_refused)
+c.AuditLogWriter().replay_all_fallbacks()
+check("JOURNAL_CLEANUP_RETRY_DOES_NOT_DUPLICATE",
+      sum(r.get("attempt_id") == "CLEAR_PENDING" for r in c.read_csv_rows(startup_path)) == 1)
 
 # --- Scenario 11: errors.csv spill is replayed and blocks startup if unresolved --
 

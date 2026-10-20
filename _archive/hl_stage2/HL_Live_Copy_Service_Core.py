@@ -42,6 +42,7 @@ import threading
 import time
 import traceback
 import tempfile
+import uuid
 from dataclasses import asdict, dataclass, field
 from decimal import Decimal, ROUND_FLOOR, ROUND_CEILING, InvalidOperation
 import collections
@@ -1384,10 +1385,110 @@ def _fallback_path(path: Path) -> Path:
     return FALLBACK_DIR / (path.name + ".spill")
 
 
-def _audit_row_key(path: Path, fieldnames: List[str], row: Dict[str, Any]) -> str:
+def _spill_journal_path(path: Path) -> Path:
+    return _fallback_path(path).with_name(_fallback_path(path).name + ".replay.jsonl")
+
+
+def _audit_row_data(fieldnames: List[str], row: Dict[str, Any]) -> Dict[str, str]:
+    return {k: "" if row.get(k) is None else str(row.get(k, "")) for k in fieldnames}
+
+
+def _audit_row_payload(fieldnames: List[str], row: Dict[str, Any]) -> str:
     buf = io.StringIO()
-    csv.DictWriter(buf, fieldnames=fieldnames).writerow({k: row.get(k, "") for k in fieldnames})
-    return stable_hash(["audit-row", path.name, buf.getvalue()])
+    csv.DictWriter(buf, fieldnames=fieldnames).writerow(_audit_row_data(fieldnames, row))
+    return buf.getvalue()
+
+
+def _append_spill_journal(path: Path, event: Dict[str, Any]) -> None:
+    journal = _spill_journal_path(path)
+    journal.parent.mkdir(parents=True, exist_ok=True)
+    line = json.dumps(event, ensure_ascii=False, separators=(",", ":")) + "\n"
+    before = journal.stat().st_size if journal.exists() else 0
+    try:
+        with journal.open("a", encoding="utf-8", newline="") as f:
+            written = f.write(line)
+            f.flush()
+            os.fsync(f.fileno())
+        if written != len(line):
+            raise OSError("short audit spill journal append")
+    except Exception:
+        try:
+            os.truncate(journal, before)
+        except OSError:
+            pass
+        raise
+
+
+def _read_spill_journal(path: Path) -> Dict[str, Dict[str, Any]]:
+    journal = _spill_journal_path(path)
+    states: Dict[str, Dict[str, Any]] = {}
+    if not journal.exists() or journal.stat().st_size == 0:
+        return states
+    with journal.open("r", encoding="utf-8") as f:
+        for line_number, line in enumerate(f, 1):
+            try:
+                event = json.loads(line)
+            except Exception as exc:
+                raise OSError(f"invalid audit spill replay journal at line {line_number}") from exc
+            event_type = event.get("event")
+            row_id = str(event.get("id") or "")
+            if not row_id:
+                raise OSError(f"missing audit spill replay ID at line {line_number}")
+            if event_type == "SPILL_ROW":
+                if row_id in states:
+                    raise OSError(f"duplicate audit spill replay ID at line {line_number}")
+                row_index = event.get("row_index")
+                row = event.get("row")
+                if type(row_index) is not int or row_index < 0 or not isinstance(row, dict):
+                    raise OSError(f"invalid audit spill row record at line {line_number}")
+                states[row_id] = {"row_index": row_index, "row": row, "intent": None, "done": False}
+            elif event_type == "REPLAY_INTENT":
+                if row_id not in states or states[row_id]["intent"] is not None:
+                    raise OSError(f"orphan or duplicate audit replay intent at line {line_number}")
+                if type(event.get("offset")) is not int or event["offset"] < 0 or not isinstance(event.get("target"), str):
+                    raise OSError(f"invalid audit replay intent at line {line_number}")
+                states[row_id]["intent"] = event
+            elif event_type == "REPLAYED":
+                if row_id not in states or states[row_id]["done"] or states[row_id]["intent"] is None:
+                    raise OSError(f"orphan or duplicate audit replay completion at line {line_number}")
+                states[row_id]["done"] = True
+            else:
+                raise OSError(f"unknown audit spill replay event at line {line_number}")
+    return states
+
+
+def _spill_rows(path: Path, fieldnames: List[str]) -> List[Dict[str, str]]:
+    sp = _fallback_path(path)
+    if not sp.exists() or sp.stat().st_size == 0:
+        return []
+    with sp.open("rb") as f:
+        f.seek(-1, os.SEEK_END)
+        if f.read(1) != b"\n":
+            raise OSError(f"incomplete audit spill tail for {path.name}")
+    with sp.open("r", newline="", encoding="utf-8-sig") as f:
+        reader = csv.DictReader(f)
+        if reader.fieldnames != fieldnames:
+            raise OSError(f"unexpected audit spill header for {path.name}")
+        return [_audit_row_data(fieldnames, row) for row in reader]
+
+
+def _spill_pending(path: Path) -> bool:
+    return any(not state["done"] for state in _read_spill_journal(path).values())
+
+
+def _replay_payload_present(path: Path, offset: int, payload: bytes) -> bool:
+    for history_path in audit_history_paths(path):
+        try:
+            with history_path.open("rb") as f:
+                f.seek(offset)
+                if f.read(len(payload)) == payload:
+                    return True
+        except OSError:
+            raise OSError(f"cannot read audit history while replaying {path.name}")
+    current_size = path.stat().st_size if path.exists() else 0
+    if current_size == offset:
+        return False
+    raise OSError(f"cannot prove audit replay outcome for {path.name} at byte {offset}")
 
 
 def _spill_row(path: Path, fieldnames: List[str], row: Dict[str, Any]) -> bool:
@@ -1397,19 +1498,30 @@ def _spill_row(path: Path, fieldnames: List[str], row: Dict[str, Any]) -> bool:
     before = 0
     try:
         FALLBACK_DIR.mkdir(parents=True, exist_ok=True)
-        need_header = not sp.exists() or sp.stat().st_size == 0
-        before = sp.stat().st_size if sp.exists() else 0
-        buf = io.StringIO()
-        writer = csv.DictWriter(buf, fieldnames=fieldnames)
-        if need_header:
-            writer.writeheader()
-        writer.writerow({k: row.get(k, "") for k in fieldnames})
-        payload = buf.getvalue()
-        with sp.open("a", newline="", encoding="utf-8") as f:
-            written = f.write(payload)
-            f.flush()
-        if written != len(payload):
-            raise OSError(f"short audit spill: wrote {written} of {len(payload)} characters")
+        with _lock_for(path):
+            row_index = len(_spill_rows(path, fieldnames))
+            need_header = not sp.exists() or sp.stat().st_size == 0
+            before = sp.stat().st_size if sp.exists() else 0
+            buf = io.StringIO()
+            writer = csv.DictWriter(buf, fieldnames=fieldnames)
+            if need_header:
+                writer.writeheader()
+            writer.writerow(_audit_row_data(fieldnames, row))
+            payload = buf.getvalue()
+            with sp.open("a", newline="", encoding="utf-8") as f:
+                written = f.write(payload)
+                f.flush()
+                os.fsync(f.fileno())
+            if written != len(payload):
+                raise OSError(f"short audit spill: wrote {written} of {len(payload)} characters")
+            try:
+                _append_spill_journal(path, {
+                    "event": "SPILL_ROW", "id": uuid.uuid4().hex,
+                    "row_index": row_index, "row": _audit_row_data(fieldnames, row),
+                })
+            except Exception as exc:
+                # The CSV spill remains the recovery source if its ID sidecar cannot be updated.
+                note_audit_write_failure(path, f"spill replay record deferred: {exc!r}")
         note_audit_write_failure(path, "row preserved in fallback after append retries")
         return True
     except Exception as exc:
@@ -1423,68 +1535,102 @@ def _spill_row(path: Path, fieldnames: List[str], row: Dict[str, Any]) -> bool:
 
 
 def replay_audit_fallback(path: Path, fieldnames: List[str]) -> int:
-    """Replay spilled rows, skipping rows already present after an interrupted replay.
-
-    Successfully replayed rows are removed from the spill file; any row that still fails
-    stays behind for the next start. Returns the number of rows newly appended.
-    """
+    """Replay identified spill rows exactly once without changing the CSV schema."""
     sp = _fallback_path(path)
-    if not sp.exists() or sp.stat().st_size == 0:
+    journal = _spill_journal_path(path)
+    if (not sp.exists() or sp.stat().st_size == 0) and (not journal.exists() or journal.stat().st_size == 0):
         return 0
-    rows: List[Dict[str, Any]] = []
     try:
-        with sp.open("r", newline="", encoding="utf-8") as f:
-            for r in csv.DictReader(f):
-                rows.append({k: r.get(k, "") for k in fieldnames})
+        rows = _spill_rows(path, fieldnames)
+        states = _read_spill_journal(path)
     except Exception as exc:
         log_error("audit_replay_read", exc)
-        return 0
-    spill_keys = {_audit_row_key(path, fieldnames, row) for row in rows}
-    existing = collections.Counter()
-    try:
-        for history_path in audit_history_paths(path):
-            with history_path.open("r", newline="", encoding="utf-8-sig") as f:
-                for existing_row in csv.DictReader(f):
-                    key = _audit_row_key(path, fieldnames, existing_row)
-                    if key in spill_keys:
-                        existing[key] += 1
-    except Exception as exc:
-        log_error("audit_replay_target_read", exc)
-        return 0
-    # shortcut: identical payloads have no distinct event ID, so an existing byte-identical row is treated as the same append.
+        raise OSError(f"unable to read audit spill for {path.name}") from exc
+    by_index: Dict[int, Tuple[str, Dict[str, Any]]] = {}
+    for row_id, state in states.items():
+        row_index = state["row_index"]
+        if row_index in by_index:
+            raise OSError(f"duplicate audit spill row index for {path.name}")
+        by_index[row_index] = (row_id, state["row"])
+    for row_index, row in enumerate(rows):
+        existing = by_index.get(row_index)
+        if existing:
+            if _audit_row_data(fieldnames, existing[1]) != row:
+                raise OSError(f"audit spill row does not match replay record for {path.name}")
+        else:
+            row_id = uuid.uuid4().hex
+            state = {"row_index": row_index, "row": row, "intent": None, "done": False}
+            _append_spill_journal(path, {
+                "event": "SPILL_ROW", "id": row_id,
+                "row_index": row_index, "row": row,
+            })
+            states[row_id] = state
+            by_index[row_index] = (row_id, row)
     replayed = 0
-    resolved = 0
-    for r in rows:
-        key = _audit_row_key(path, fieldnames, r)
-        if existing[key] > 0:
-            existing[key] -= 1
-            resolved += 1
+    for row_id, state in states.items():
+        if state["done"]:
             continue
-        try:
-            if not append_csv(path, fieldnames, r, spill_on_failure=False):
+        if set(state["row"]) != set(fieldnames) or any(not isinstance(state["row"][k], str) for k in fieldnames):
+            raise OSError(f"invalid audit spill row data for {path.name}")
+        row = _audit_row_data(fieldnames, state["row"])
+        payload = _audit_row_payload(fieldnames, row).encode("utf-8")
+        lock = _lock_for(path)
+        with lock:
+            intent = state["intent"]
+            if intent is not None:
+                if intent["target"] != path.name or intent.get("payload_sha256") != hashlib.sha256(payload).hexdigest():
+                    raise OSError(f"audit replay intent does not match spill row for {path.name}")
+                offset = int(intent["offset"])
+                if _replay_payload_present(path, offset, payload):
+                    _append_spill_journal(path, {"event": "REPLAYED", "id": row_id})
+                    state["done"] = True
+                    continue
+            else:
+                ensure_csv_header(path, fieldnames)
+                offset = path.stat().st_size if path.exists() else 0
+                _append_spill_journal(path, {
+                    "event": "REPLAY_INTENT", "id": row_id, "target": path.name,
+                    "offset": offset, "payload_sha256": hashlib.sha256(payload).hexdigest(),
+                })
+                state["intent"] = {
+                    "target": path.name, "offset": offset,
+                    "payload_sha256": hashlib.sha256(payload).hexdigest(),
+                }
+            try:
+                if not append_csv(path, fieldnames, row, spill_on_failure=False, durable=True):
+                    break
+                if not _replay_payload_present(path, offset, payload):
+                    raise OSError(f"audit replay append is not verifiable for {path.name}")
+                _append_spill_journal(path, {"event": "REPLAYED", "id": row_id})
+            except Exception as exc:
+                log_error("audit_replay_append", exc)
                 break
+            state["done"] = True
             replayed += 1
-            resolved += 1
-        except Exception as exc:
-            log_error("audit_replay_append", exc)
-            break
-    if resolved == len(rows):
+    if all(state["done"] for state in states.values()):
         try:
-            sp.write_bytes(b"")
+            if sp.exists():
+                with sp.open("wb") as f:
+                    f.flush()
+                    os.fsync(f.fileno())
+            if journal.exists():
+                with journal.open("wb") as f:
+                    f.flush()
+                    os.fsync(f.fileno())
         except Exception as exc:
             log_error("audit_replay_clear", exc)
     return replayed
 
 
-def append_csv(path: Path, fieldnames: List[str], row: Dict[str, Any], *, spill_on_failure: bool = True) -> bool:
+def append_csv(path: Path, fieldnames: List[str], row: Dict[str, Any], *, spill_on_failure: bool = True, durable: bool = False) -> bool:
     """Append one audit row with retry and fallback; raise only if neither store preserves it.
 
     A transient failure is retried with backoff; spilled rows are replayed at startup.
     Returns True on a live append, False when replay must retain its existing spill row.
+    durable=True flushes the append before the replay journal records completion.
     """
     ensure_csv_header(path, fieldnames)
-    buf = io.StringIO()
-    csv.DictWriter(buf, fieldnames=fieldnames).writerow({k: row.get(k, "") for k in fieldnames})
+    payload = _audit_row_payload(fieldnames, row)
     lock = _lock_for(path)
     with prof("file_lock_wait"):
         _t0 = time.monotonic()
@@ -1501,10 +1647,12 @@ def append_csv(path: Path, fieldnames: List[str], row: Dict[str, Any], *, spill_
         for _attempt in range(_AUDIT_APPEND_RETRIES):
             try:
                 with prof(f"append:{path.name}"), path.open("a", newline="", encoding="utf-8") as f:
-                    written = f.write(buf.getvalue())
+                    written = f.write(payload)
                     f.flush()
-                if written != len(buf.getvalue()):  # a short write stores fewer bytes and does NOT raise
-                    raise OSError(f"short audit append: wrote {written} of {len(buf.getvalue())} bytes")
+                    if durable:
+                        os.fsync(f.fileno())
+                if written != len(payload):  # a short write stores fewer bytes and does NOT raise
+                    raise OSError(f"short audit append: wrote {written} of {len(payload)} bytes")
                 break  # success
             except OSError as exc:
                 last_exc = exc
@@ -1514,6 +1662,7 @@ def append_csv(path: Path, fieldnames: List[str], row: Dict[str, Any], *, spill_
                 except Exception:
                     pass
                 note_audit_write_failure(path, exc)
+                # Under-lock sleep is capped at backoff * retries * (retries - 1) / 2.
                 if _attempt + 1 < _AUDIT_APPEND_RETRIES:
                     time.sleep(_AUDIT_APPEND_BACKOFF_SEC * (_attempt + 1))
         else:  # all retries exhausted -- preserve in the fallback before allowing work to continue
@@ -3863,6 +4012,11 @@ class AuditLogWriter:
                 sp = _fallback_path(path)
                 if sp.exists() and sp.stat().st_size > 0:
                     raise OSError(f"audit fallback still has rows for {path.name}; refusing startup")
+                if _spill_pending(path):
+                    raise OSError(f"audit fallback replay remains unresolved for {path.name}; refusing startup")
+                journal = _spill_journal_path(path)
+                if journal.exists() and journal.stat().st_size > 0:
+                    raise OSError(f"audit fallback replay journal was not cleared for {path.name}; refusing startup")
             except Exception as exc:
                 log_error("audit_replay", exc)
                 raise
