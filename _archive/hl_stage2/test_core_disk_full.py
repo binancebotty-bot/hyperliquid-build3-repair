@@ -33,6 +33,7 @@ import os
 os.environ["HL_LIVE_GATES_ALERT_ONLY"] = "0"  # this test pins the legacy blocking gates; alert-only has its own test file
 import pathlib
 import re
+import subprocess
 import sys
 import tempfile
 import threading
@@ -445,6 +446,104 @@ def main() -> None:
           "run_cycle raised %r after %.3fs; service_published_while_lock_held=%s; lock_alerted=%s" %
           (raised_d4c, elapsed_d4c, published_under_lock, lock_alerted))
     c.SERVICE_STATE_FILE = service_state_before
+    # D4d: run_cycle must use the public state-writer failure hook, not a private worker attribute.
+    class _PublicFailureStateWriter:
+        def __init__(self):
+            self.failures = []
+
+        def write(self, *a, **k):
+            raise OSError("injected state-write failure")
+
+        def report_failure(self, exc):
+            self.failures.append(exc)
+
+    saved_state_writer = core.state_writer
+    public_failure_writer = _PublicFailureStateWriter()
+    core.state_writer = public_failure_writer
+    public_failure_run_error = None
+    try:
+        core.run_cycle(use_source_csv=False)
+    except BaseException as exc:  # noqa: BLE001
+        public_failure_run_error = exc
+    finally:
+        core.state_writer = saved_state_writer
+    check("D4D_RUN_CYCLE_REPORTS_STATE_FAILURE_THROUGH_PUBLIC_INTERFACE",
+          public_failure_run_error is None and len(public_failure_writer.failures) == 1
+          and isinstance(public_failure_writer.failures[0], OSError),
+          "run_cycle raised %r; reported=%r" %
+          (public_failure_run_error, [type(x).__name__ for x in public_failure_writer.failures]))
+    # D4e: normal interpreter exit drains both status workers without a caller-side join.
+    shutdown_dir = tmp / "status_worker_shutdown"
+    shutdown_dir.mkdir()
+    markers = [shutdown_dir / name for name in
+               ("integrity.done", "service.done", "integrity_late.done", "service_late.done")]
+    child_env = {
+        "PATH": os.environ.get("PATH", ""),
+        "SYSTEMROOT": os.environ.get("SYSTEMROOT", ""),
+        "WINDIR": os.environ.get("WINDIR", ""),
+        "TEMP": str(shutdown_dir),
+        "TMP": str(shutdown_dir),
+        "HL_LIVE_AUDIT_DIR": str(shutdown_dir / "audit"),
+        "HL_LIVE_ENV_FILE": str(shutdown_dir / "none.env"),
+        "HL_LEADER_NETWORK": "testnet",
+        "HL_FOLLOWER_NETWORK": "testnet",
+    }
+    child_code = "\n".join((
+        "import atexit, sys, time",
+        "from pathlib import Path",
+        "sys.path.insert(0, %r)" % str(HERE),
+        "import HL_Live_Copy_Service_Core as c",
+        "def delayed_write(path):",
+        "    time.sleep(float(sys.argv[1]))",
+        "    Path(path).write_text('complete', encoding='utf-8')",
+        "c.install_core_attribution_hooks()",
+        "c._LIVE_INTEGRITY_WRITER.submit(delayed_write, sys.argv[2])",
+        "writer = c.ServiceStateWriter()",
+        "writer._write_now = lambda *a: delayed_write(sys.argv[3])",
+        "writer.write(None, None)",
+        "def queue_final_writes():",
+        "    c._LIVE_INTEGRITY_WRITER.submit(delayed_write, sys.argv[4])",
+        "    writer._write_now = lambda *a: delayed_write(sys.argv[5])",
+        "    writer.write(None, None)",
+        "atexit.register(queue_final_writes)",
+    ))
+    shutdown_process = None
+    try:
+        shutdown_process = subprocess.run(
+            [sys.executable, "-c", child_code, "0.1", *(str(p) for p in markers)],
+            env=child_env, capture_output=True, text=True, timeout=5,
+        )
+    except BaseException as exc:  # noqa: BLE001
+        check("D4E_STATUS_WORKERS_DRAIN_ON_NORMAL_PROCESS_EXIT", False,
+              "subprocess failed: %s" % type(exc).__name__)
+    else:
+        check("D4E_STATUS_WORKERS_DRAIN_ON_NORMAL_PROCESS_EXIT",
+              shutdown_process.returncode == 0 and markers[2].exists() and markers[3].exists(),
+              "exit=%s final_integrity=%s final_service=%s stderr=%s" %
+              (shutdown_process.returncode, markers[2].exists(), markers[3].exists(),
+               shutdown_process.stderr[-500:]))
+    bounded_dir = tmp / "status_worker_shutdown_bounded"
+    bounded_dir.mkdir()
+    bounded_markers = [bounded_dir / "integrity.done", bounded_dir / "service.done"]
+    child_env["HL_LIVE_AUDIT_DIR"] = str(bounded_dir / "audit")
+    child_env["TEMP"] = child_env["TMP"] = str(bounded_dir)
+    started_d4f = time.monotonic()
+    try:
+        bounded_process = subprocess.run(
+            [sys.executable, "-c", child_code, "5", *(str(p) for p in bounded_markers),
+             str(bounded_dir / "integrity_late.done"), str(bounded_dir / "service_late.done")],
+            env=child_env, capture_output=True, text=True, timeout=4,
+        )
+        bounded_elapsed = time.monotonic() - started_d4f
+        check("D4F_STATUS_WORKER_SHUTDOWN_HAS_ONE_BOUNDED_DEADLINE",
+              bounded_process.returncode == 0 and bounded_elapsed < 3.0
+              and bounded_process.stderr.count("[status_write_failure:") == 2
+              and bounded_process.stderr.count("TimeoutError") == 2,
+              "exit=%s elapsed=%.3fs timeout_alerts=%s" %
+              (bounded_process.returncode, bounded_elapsed, bounded_process.stderr.strip()))
+    except BaseException as exc:  # noqa: BLE001
+        check("D4F_STATUS_WORKER_SHUTDOWN_HAS_ONE_BOUNDED_DEADLINE", False,
+              "subprocess failed: %s" % type(exc).__name__)
     # D5: the run_cycle call inside the engine loop must sit under a handler that catches a failing cycle
     # (a bare try/.../finally with no except lets one bad cycle end the process).
     _i = src.rindex("summary = core.run_cycle(")

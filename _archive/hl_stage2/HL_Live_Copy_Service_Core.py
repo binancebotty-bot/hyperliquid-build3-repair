@@ -1131,6 +1131,7 @@ def install_core_attribution_hooks() -> None:
         threading.excepthook = _thread_excepthook
 
     def _atexit_marker() -> None:
+        _drain_status_write_workers()
         _write_core_shutdown_record(_CORE_SHUTDOWN_REASON, clean=True)
 
     atexit.register(_atexit_marker)
@@ -2636,6 +2637,10 @@ def build_live_integrity_status() -> Dict[str, Any]:
 
 _INTEGRITY_LAST: Dict[str, Any] = {"at": 0.0, "payload": None}
 _INTEGRITY_WRITE_LOCK = threading.Lock()
+_STATUS_WRITE_WORKERS: List[Any] = []
+_STATUS_WRITE_WORKERS_LOCK = threading.Lock()
+_STATUS_WRITE_SHUTDOWN_LOCK = threading.Lock()
+_STATUS_WRITE_SHUTDOWN_TIMEOUT_SEC = 1.0
 
 
 class _LatestStatusWriteWorker:
@@ -2645,6 +2650,9 @@ class _LatestStatusWriteWorker:
         self._lock = threading.Lock()
         self._pending: Optional[Tuple[Callable[..., Any], Tuple[Any, ...]]] = None
         self._thread: Optional[threading.Thread] = None
+        self._shutdown_timeout_reported_thread: Optional[threading.Thread] = None
+        with _STATUS_WRITE_WORKERS_LOCK:
+            _STATUS_WRITE_WORKERS.append(self)
 
     def submit(self, fn: Callable[..., Any], *args: Any) -> None:
         with self._lock:
@@ -2678,8 +2686,36 @@ class _LatestStatusWriteWorker:
         except Exception:
             pass
 
+    def join_until(self, deadline: float) -> bool:
+        with self._lock:
+            thread = self._thread
+        if thread is None:
+            return True
+        if thread is threading.current_thread():
+            return False
+        thread.join(timeout=max(0.0, deadline - time.monotonic()))
+        return not thread.is_alive()
+
+    def report_shutdown_timeout(self) -> None:
+        with self._lock:
+            if self._shutdown_timeout_reported_thread is self._thread:
+                return
+            self._shutdown_timeout_reported_thread = self._thread
+        self.report_failure(TimeoutError("status worker did not stop before shutdown deadline"))
+
 
 _LIVE_INTEGRITY_WRITER = _LatestStatusWriteWorker("live-integrity-status")
+
+
+def _drain_status_write_workers() -> None:
+    """Drain all status writers against one shared deadline; safe to repeat at shutdown."""
+    with _STATUS_WRITE_SHUTDOWN_LOCK:
+        deadline = time.monotonic() + _STATUS_WRITE_SHUTDOWN_TIMEOUT_SEC
+        with _STATUS_WRITE_WORKERS_LOCK:
+            workers = list(_STATUS_WRITE_WORKERS)
+        for worker in workers:
+            if not worker.join_until(deadline):
+                worker.report_shutdown_timeout()
 
 
 def write_live_integrity_status(min_interval_sec: float = 0.0) -> Dict[str, Any]:
@@ -8978,6 +9014,9 @@ class ServiceStateWriter:
     def write(self, summary: CycleSummary, dedupe: DedupeStore, cfg: Optional["ConfigManager"] = None) -> None:
         self._worker.submit(self._write_now, summary, dedupe, cfg)
 
+    def report_failure(self, exc: Exception) -> None:
+        self._worker.report_failure(exc)
+
     def _write_now(self, summary: CycleSummary, dedupe: DedupeStore, cfg: Optional["ConfigManager"]) -> None:
         ws = self.ws_summary_from_file()
         state_write_ms = utc_now_ms()
@@ -9209,6 +9248,7 @@ class LiveCopyCore:
         for t in getattr(self, "_hot_threads", []):
             if t.is_alive() and t is not threading.current_thread():
                 t.join(timeout=1.0)
+        _drain_status_write_workers()
 
     def _prewarm_with_parity(self, fill: LeaderFill, local_block: bool, converge: bool = False) -> None:
         """The exchange reads a send needs (IntentBuilder.prewarm) plus the parity gate's leader read, side by side."""
@@ -11062,7 +11102,7 @@ class LiveCopyCore:
             try:
                 self.state_writer.write(summary, self.dedupe, self.cfg)
             except Exception as exc:  # a state json write must never end the cycle (or the process)
-                self.state_writer._worker.report_failure(exc)
+                self.state_writer.report_failure(exc)
         return summary
 
 
