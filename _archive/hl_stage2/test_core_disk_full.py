@@ -27,13 +27,17 @@ Notes on two deliberate harness choices (these were once a false finding):
 from __future__ import annotations
 
 import errno
+import io
 import json
 import os
 os.environ["HL_LIVE_GATES_ALERT_ONLY"] = "0"  # this test pins the legacy blocking gates; alert-only has its own test file
 import pathlib
 import re
+import subprocess
 import sys
 import tempfile
+import threading
+import time
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -47,6 +51,18 @@ FAKE_KEY = "0x" + "1" * 64
 def check(name, cond, detail=""):
     RESULTS.append((name, bool(cond)))
     print("RESULT::%s_%s%s" % (name, "PASS" if cond else "FAIL", (" | " + detail) if (detail and not cond) else ""))
+
+
+def wait_for_json_file(path, timeout=2.0):
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        try:
+            with path.open("r", encoding="utf-8") as f:
+                json.load(f)
+            return True
+        except (OSError, ValueError):
+            time.sleep(0.01)
+    return False
 
 
 class _Half:
@@ -345,9 +361,9 @@ def main() -> None:
         later = exc
     check("D3_NEXT_CALL_STILL_RUNS_AFTER_A_JSON_WRITE_FAILURE",
           isinstance(later, dict) and str(later.get("status")), "next call -> %r" % (type(later).__name__,))
-    check("D2_THE_PER_CYCLE_CALLER_CONTAINS_THE_INTEGRITY_WRITE_FAILURE",
-          bool(re.search(r"try:\s*\n\s*write_live_integrity_status\(", src)),
-          "no guard around write_live_integrity_status in its per-cycle caller")
+    check("D2_THE_PER_CYCLE_CALLER_CONTAINS_THE_INTEGRITY_WRITE_SUBMISSION",
+          bool(re.search(r"try:\s*\n\s*_LIVE_INTEGRITY_WRITER\.submit\(", src)),
+          "no guard around the integrity-status worker submission in its per-cycle caller")
     saved_write = core.state_writer.write
     core.state_writer.write = lambda *a, **k: (_ for _ in ()).throw(OSError(errno.ENOSPC, "No space left on device"))
     raised_d4 = None
@@ -359,6 +375,190 @@ def main() -> None:
         core.state_writer.write = saved_write
     check("D4_STATE_WRITE_CANNOT_KILL_THE_CYCLE", raised_d4 is None,
           "run_cycle raised %r when the state write failed (the main loop does not catch it either)" % (raised_d4,))
+    # D4b: a malformed cycle-budget environment value must not escape from finally
+    # before either status writer gets a chance to publish.
+    budget_before = os.environ.get("HL_LIVE_RECON_CYCLE_BUDGET_SEC")
+    service_state_before = c.SERVICE_STATE_FILE
+    for case, budget in (("missing", None), ("invalid", "not-a-float"), ("nan", "nan")):
+        if budget is None:
+            os.environ.pop("HL_LIVE_RECON_CYCLE_BUDGET_SEC", None)
+        else:
+            os.environ["HL_LIVE_RECON_CYCLE_BUDGET_SEC"] = budget
+        c.SERVICE_STATE_FILE = tmp / ("service_state_%s.json" % case)
+        raised_d4b = None
+        try:
+            core.run_cycle(use_source_csv=False)
+        except BaseException as exc:  # noqa: BLE001
+            raised_d4b = exc
+        for writer in (getattr(core.state_writer, "_worker", None), getattr(c, "_LIVE_INTEGRITY_WRITER", None)):
+            if writer is None:
+                continue
+            worker = writer._thread
+            if worker is not None:
+                worker.join(timeout=2)
+        published_d4b = wait_for_json_file(c.SERVICE_STATE_FILE)
+        check("D4B_SERVICE_STATE_PUBLISHED_WITH_%s_BUDGET" % case.upper(),
+              raised_d4b is None and published_d4b,
+              "run_cycle raised %r; valid_state_published=%s" % (raised_d4b, published_d4b))
+    if budget_before is None:
+        os.environ.pop("HL_LIVE_RECON_CYCLE_BUDGET_SEC", None)
+    else:
+        os.environ["HL_LIVE_RECON_CYCLE_BUDGET_SEC"] = budget_before
+    c.SERVICE_STATE_FILE = service_state_before
+    # D4c: a held runtime-state lock cannot stall the cycle path or suppress its service heartbeat.
+    service_state_before = c.SERVICE_STATE_FILE
+    c.SERVICE_STATE_FILE = tmp / "service_state_runtime_lock.json"
+    old_stderr_d4c = sys.stderr
+    stderr_d4c = io.StringIO()
+    sys.stderr = stderr_d4c
+    lock_held_d4c = threading.Event()
+    lock_released_d4c = threading.Event()
+    published_before_unlock_d4c = []
+
+    def hold_runtime_state_lock():
+        c.RUNTIME_STATE_LOCK.acquire()
+        lock_held_d4c.set()
+        try:
+            published_before_unlock_d4c.append(wait_for_json_file(c.SERVICE_STATE_FILE))
+            time.sleep(0.4)  # let the clean-runtime writer hit its bounded lock timeout after service publication
+        finally:
+            c.RUNTIME_STATE_LOCK.release()
+            lock_released_d4c.set()
+
+    lock_holder_d4c = threading.Thread(target=hold_runtime_state_lock, daemon=True)
+    lock_holder_d4c.start()
+    lock_held_d4c.wait(timeout=2)
+    started_d4c = time.monotonic()
+    raised_d4c = None
+    try:
+        core.run_cycle(use_source_csv=False)
+        elapsed_d4c = time.monotonic() - started_d4c
+        lock_released_d4c.wait(timeout=3)
+        lock_holder_d4c.join(timeout=1)
+        published_under_lock = bool(published_before_unlock_d4c and published_before_unlock_d4c[0])
+        worker = getattr(getattr(core.state_writer, "_worker", None), "_thread", None)
+        if worker is not None:
+            worker.join(timeout=2)
+        lock_alerted = "[status_write_failure:live-service-state] TimeoutError" in stderr_d4c.getvalue()
+    except BaseException as exc:  # noqa: BLE001
+        raised_d4c = exc
+        elapsed_d4c = time.monotonic() - started_d4c
+        published_under_lock = False
+        lock_alerted = False
+    finally:
+        if lock_held_d4c.is_set() and not lock_released_d4c.is_set():
+            # The holder has a finite wait and will release the lock itself.
+            lock_released_d4c.wait(timeout=1)
+        sys.stderr = old_stderr_d4c
+    for writer in (getattr(core.state_writer, "_worker", None), getattr(c, "_LIVE_INTEGRITY_WRITER", None)):
+        if writer is None:
+            continue
+        worker = writer._thread
+        if worker is not None:
+            worker.join(timeout=2)
+    check("D4C_STATUS_WRITE_DOES_NOT_BLOCK_ON_RUNTIME_LOCK",
+          raised_d4c is None and elapsed_d4c < 1.0 and published_under_lock and lock_alerted,
+          "run_cycle raised %r after %.3fs; service_published_while_lock_held=%s; lock_alerted=%s" %
+          (raised_d4c, elapsed_d4c, published_under_lock, lock_alerted))
+    c.SERVICE_STATE_FILE = service_state_before
+    # D4d: run_cycle must use the public state-writer failure hook, not a private worker attribute.
+    class _PublicFailureStateWriter:
+        def __init__(self):
+            self.failures = []
+
+        def write(self, *a, **k):
+            raise OSError("injected state-write failure")
+
+        def report_failure(self, exc):
+            self.failures.append(exc)
+
+    saved_state_writer = core.state_writer
+    public_failure_writer = _PublicFailureStateWriter()
+    core.state_writer = public_failure_writer
+    public_failure_run_error = None
+    try:
+        core.run_cycle(use_source_csv=False)
+    except BaseException as exc:  # noqa: BLE001
+        public_failure_run_error = exc
+    finally:
+        core.state_writer = saved_state_writer
+    check("D4D_RUN_CYCLE_REPORTS_STATE_FAILURE_THROUGH_PUBLIC_INTERFACE",
+          public_failure_run_error is None and len(public_failure_writer.failures) == 1
+          and isinstance(public_failure_writer.failures[0], OSError),
+          "run_cycle raised %r; reported=%r" %
+          (public_failure_run_error, [type(x).__name__ for x in public_failure_writer.failures]))
+    # D4e: normal interpreter exit drains both status workers without a caller-side join.
+    shutdown_dir = tmp / "status_worker_shutdown"
+    shutdown_dir.mkdir()
+    markers = [shutdown_dir / name for name in
+               ("integrity.done", "service.done", "integrity_late.done", "service_late.done")]
+    child_env = {
+        "PATH": os.environ.get("PATH", ""),
+        "SYSTEMROOT": os.environ.get("SYSTEMROOT", ""),
+        "WINDIR": os.environ.get("WINDIR", ""),
+        "TEMP": str(shutdown_dir),
+        "TMP": str(shutdown_dir),
+        "HL_LIVE_AUDIT_DIR": str(shutdown_dir / "audit"),
+        "HL_LIVE_ENV_FILE": str(shutdown_dir / "none.env"),
+        "HL_LEADER_NETWORK": "testnet",
+        "HL_FOLLOWER_NETWORK": "testnet",
+    }
+    child_code = "\n".join((
+        "import atexit, sys, time",
+        "from pathlib import Path",
+        "sys.path.insert(0, %r)" % str(HERE),
+        "import HL_Live_Copy_Service_Core as c",
+        "def delayed_write(path):",
+        "    time.sleep(float(sys.argv[1]))",
+        "    Path(path).write_text('complete', encoding='utf-8')",
+        "c.install_core_attribution_hooks()",
+        "c._LIVE_INTEGRITY_WRITER.submit(delayed_write, sys.argv[2])",
+        "writer = c.ServiceStateWriter()",
+        "writer._write_now = lambda *a: delayed_write(sys.argv[3])",
+        "writer.write(None, None)",
+        "def queue_final_writes():",
+        "    c._LIVE_INTEGRITY_WRITER.submit(delayed_write, sys.argv[4])",
+        "    writer._write_now = lambda *a: delayed_write(sys.argv[5])",
+        "    writer.write(None, None)",
+        "atexit.register(queue_final_writes)",
+    ))
+    shutdown_process = None
+    try:
+        shutdown_process = subprocess.run(
+            [sys.executable, "-c", child_code, "0.1", *(str(p) for p in markers)],
+            env=child_env, capture_output=True, text=True, timeout=5,
+        )
+    except BaseException as exc:  # noqa: BLE001
+        check("D4E_STATUS_WORKERS_DRAIN_ON_NORMAL_PROCESS_EXIT", False,
+              "subprocess failed: %s" % type(exc).__name__)
+    else:
+        check("D4E_STATUS_WORKERS_DRAIN_ON_NORMAL_PROCESS_EXIT",
+              shutdown_process.returncode == 0 and markers[2].exists() and markers[3].exists(),
+              "exit=%s final_integrity=%s final_service=%s stderr=%s" %
+              (shutdown_process.returncode, markers[2].exists(), markers[3].exists(),
+               shutdown_process.stderr[-500:]))
+    bounded_dir = tmp / "status_worker_shutdown_bounded"
+    bounded_dir.mkdir()
+    bounded_markers = [bounded_dir / "integrity.done", bounded_dir / "service.done"]
+    child_env["HL_LIVE_AUDIT_DIR"] = str(bounded_dir / "audit")
+    child_env["TEMP"] = child_env["TMP"] = str(bounded_dir)
+    started_d4f = time.monotonic()
+    try:
+        bounded_process = subprocess.run(
+            [sys.executable, "-c", child_code, "5", *(str(p) for p in bounded_markers),
+             str(bounded_dir / "integrity_late.done"), str(bounded_dir / "service_late.done")],
+            env=child_env, capture_output=True, text=True, timeout=4,
+        )
+        bounded_elapsed = time.monotonic() - started_d4f
+        check("D4F_STATUS_WORKER_SHUTDOWN_HAS_ONE_BOUNDED_DEADLINE",
+              bounded_process.returncode == 0 and bounded_elapsed < 3.0
+              and bounded_process.stderr.count("[status_write_failure:") == 2
+              and bounded_process.stderr.count("TimeoutError") == 2,
+              "exit=%s elapsed=%.3fs timeout_alerts=%s" %
+              (bounded_process.returncode, bounded_elapsed, bounded_process.stderr.strip()))
+    except BaseException as exc:  # noqa: BLE001
+        check("D4F_STATUS_WORKER_SHUTDOWN_HAS_ONE_BOUNDED_DEADLINE", False,
+              "subprocess failed: %s" % type(exc).__name__)
     # D5: the run_cycle call inside the engine loop must sit under a handler that catches a failing cycle
     # (a bare try/.../finally with no except lets one bad cycle end the process).
     _i = src.rindex("summary = core.run_cycle(")

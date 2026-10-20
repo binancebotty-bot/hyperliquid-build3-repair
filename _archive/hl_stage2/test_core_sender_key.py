@@ -15,11 +15,13 @@ Run: python test_core_sender_key.py   # RESULT:: markers, exit 0/1. No network, 
 from __future__ import annotations
 
 import io
+import json
 import os
 os.environ["HL_LIVE_GATES_ALERT_ONLY"] = "0"  # this test pins the legacy blocking gates; alert-only has its own test file
 os.environ["HL_LIVE_DEFER_MAX_SEC"] = "300"  # legacy bounded hold
 import sys
 import tempfile
+import time
 from contextlib import redirect_stderr
 from pathlib import Path
 
@@ -36,6 +38,18 @@ REJECT = {"status": "err", "response": f"User or API Wallet {SIGNER} does not ex
 def check(name: str, cond: bool, detail: str = "") -> None:
     RESULTS.append((name, bool(cond)))
     print("RESULT::%s_%s%s" % (name, "PASS" if cond else "FAIL", (" | " + detail) if (detail and not cond) else ""))
+
+
+def wait_for_json_file(path: Path, timeout: float = 2.0) -> bool:
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        try:
+            with path.open("r", encoding="utf-8") as f:
+                json.load(f)
+            return True
+        except (OSError, ValueError):
+            time.sleep(0.01)
+    return False
 
 
 def main() -> None:
@@ -137,6 +151,8 @@ def main() -> None:
           and "MANUAL_REVIEW" in rows[-1]["action"], str(rows[-1:])[:200])
     core.run_cycle(use_source_csv=False)
     check("K4_CYCLE_GATE_SAYS_WHY", core._entry_sends_blocked_reason == "SENDER_KEY_NOT_VALID", core._entry_sends_blocked_reason)
+    state_published = wait_for_json_file(c.SERVICE_STATE_FILE)
+    check("K4_STATE_PUBLISHED_EVENTUALLY", state_published, str(c.SERVICE_STATE_FILE))
     state = c.load_json(c.SERVICE_STATE_FILE, {})
     check("K4_STATE_CARRIES_IT_FOR_THE_SCREEN", "does not exist" in str(state.get("sender_key_invalid"))
           and state.get("entry_sends_blocked_reason") == "SENDER_KEY_NOT_VALID", str({k: state.get(k) for k in ("sender_key_invalid", "entry_sends_blocked_reason")}))

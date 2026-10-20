@@ -1131,6 +1131,7 @@ def install_core_attribution_hooks() -> None:
         threading.excepthook = _thread_excepthook
 
     def _atexit_marker() -> None:
+        _drain_status_write_workers()
         _write_core_shutdown_record(_CORE_SHUTDOWN_REASON, clean=True)
 
     atexit.register(_atexit_marker)
@@ -2635,17 +2636,98 @@ def build_live_integrity_status() -> Dict[str, Any]:
 
 
 _INTEGRITY_LAST: Dict[str, Any] = {"at": 0.0, "payload": None}
+_INTEGRITY_WRITE_LOCK = threading.Lock()
+_STATUS_WRITE_WORKERS: List[Any] = []
+_STATUS_WRITE_WORKERS_LOCK = threading.Lock()
+_STATUS_WRITE_SHUTDOWN_LOCK = threading.Lock()
+_STATUS_WRITE_SHUTDOWN_TIMEOUT_SEC = 1.0
+
+
+class _LatestStatusWriteWorker:
+    """Keep status I/O off the cycle thread with one active and one latest pending write."""
+    def __init__(self, name: str):
+        self.name = name
+        self._lock = threading.Lock()
+        self._pending: Optional[Tuple[Callable[..., Any], Tuple[Any, ...]]] = None
+        self._thread: Optional[threading.Thread] = None
+        self._shutdown_timeout_reported_thread: Optional[threading.Thread] = None
+        with _STATUS_WRITE_WORKERS_LOCK:
+            _STATUS_WRITE_WORKERS.append(self)
+
+    def submit(self, fn: Callable[..., Any], *args: Any) -> None:
+        with self._lock:
+            self._pending = (fn, args)
+            if self._thread is not None and self._thread.is_alive():
+                return
+            self._thread = threading.Thread(target=self._drain, name=self.name, daemon=True)
+            try:
+                self._thread.start()
+            except Exception as exc:
+                self._thread = None
+                self.report_failure(exc)
+
+    def _drain(self) -> None:
+        while True:
+            with self._lock:
+                pending = self._pending
+                self._pending = None
+                if pending is None:
+                    self._thread = None
+                    return
+            fn, args = pending
+            try:
+                fn(*args)
+            except Exception as exc:
+                self.report_failure(exc)
+
+    def report_failure(self, exc: Exception) -> None:
+        try:
+            sys.stderr.write(f"[status_write_failure:{self.name}] {type(exc).__name__}\n")
+        except Exception:
+            pass
+
+    def join_until(self, deadline: float) -> bool:
+        with self._lock:
+            thread = self._thread
+        if thread is None:
+            return True
+        if thread is threading.current_thread():
+            return False
+        thread.join(timeout=max(0.0, deadline - time.monotonic()))
+        return not thread.is_alive()
+
+    def report_shutdown_timeout(self) -> None:
+        with self._lock:
+            if self._shutdown_timeout_reported_thread is self._thread:
+                return
+            self._shutdown_timeout_reported_thread = self._thread
+        self.report_failure(TimeoutError("status worker did not stop before shutdown deadline"))
+
+
+_LIVE_INTEGRITY_WRITER = _LatestStatusWriteWorker("live-integrity-status")
+
+
+def _drain_status_write_workers() -> None:
+    """Drain all status writers against one shared deadline; safe to repeat at shutdown."""
+    with _STATUS_WRITE_SHUTDOWN_LOCK:
+        deadline = time.monotonic() + _STATUS_WRITE_SHUTDOWN_TIMEOUT_SEC
+        with _STATUS_WRITE_WORKERS_LOCK:
+            workers = list(_STATUS_WRITE_WORKERS)
+        for worker in workers:
+            if not worker.join_until(deadline):
+                worker.report_shutdown_timeout()
 
 
 def write_live_integrity_status(min_interval_sec: float = 0.0) -> Dict[str, Any]:
     """min_interval_sec > 0: reuse the last payload if it was written that recently (the per-cycle caller)."""
-    now = time.monotonic()
-    if min_interval_sec > 0 and _INTEGRITY_LAST["payload"] is not None and now - _INTEGRITY_LAST["at"] < min_interval_sec:
-        return _INTEGRITY_LAST["payload"]
-    payload = build_live_integrity_status()
-    _INTEGRITY_LAST.update(at=time.monotonic(), payload=payload)
-    atomic_write_json(LIVE_INTEGRITY_STATUS_FILE, payload)
-    return payload
+    with _INTEGRITY_WRITE_LOCK:
+        now = time.monotonic()
+        if min_interval_sec > 0 and _INTEGRITY_LAST["payload"] is not None and now - _INTEGRITY_LAST["at"] < min_interval_sec:
+            return _INTEGRITY_LAST["payload"]
+        payload = build_live_integrity_status()
+        atomic_write_json(LIVE_INTEGRITY_STATUS_FILE, payload)
+        _INTEGRITY_LAST.update(at=time.monotonic(), payload=payload)
+        return payload
 
 
 def log_error(context: str, exc: BaseException | str) -> None:
@@ -8918,6 +9000,9 @@ class ExchangeReconciler:
 
 
 class ServiceStateWriter:
+    def __init__(self) -> None:
+        self._worker = _LatestStatusWriteWorker("live-service-state")
+
     @staticmethod
     def ws_summary_from_file() -> Dict[str, Any]:
         payload = load_json(LIVE_WS_HEALTH_FILE, {})
@@ -8927,6 +9012,12 @@ class ServiceStateWriter:
         return {"ws_status": "WS_DISABLED", "wallet_count": 0, "open_count": 0, "stale_count": 0, "total_reconnect_count": 0, "worst_health_grade": "DISABLED"}
 
     def write(self, summary: CycleSummary, dedupe: DedupeStore, cfg: Optional["ConfigManager"] = None) -> None:
+        self._worker.submit(self._write_now, summary, dedupe, cfg)
+
+    def report_failure(self, exc: Exception) -> None:
+        self._worker.report_failure(exc)
+
+    def _write_now(self, summary: CycleSummary, dedupe: DedupeStore, cfg: Optional["ConfigManager"]) -> None:
         ws = self.ws_summary_from_file()
         state_write_ms = utc_now_ms()
         _eff_gc: Dict[str, Any] = {}
@@ -8980,15 +9071,17 @@ class ServiceStateWriter:
                 "would_send_orders_exists": FORBIDDEN_WOULD_SEND_ORDERS_CSV.exists(),
             },
         }
+        # Publish the authoritative service heartbeat before waiting for the shared cursor file.
+        atomic_write_json(SERVICE_STATE_FILE, payload)
         # Preserve poll cursors/status written earlier this cycle. Fast copy-only
         # cycles must not erase the last leader-poll truth and then report
         # POLL_DISABLED while the process is running with --poll-live.
-        RUNTIME_STATE_LOCK.acquire()  # released after the write below: the copy thread writes the same file
+        if not RUNTIME_STATE_LOCK.acquire(timeout=0.25):
+            raise TimeoutError("RUNTIME_STATE_LOCK busy; skipped clean_core_runtime_state.json")
         try:
             self._write_core_state(payload, dedupe, _eff_gc)
         finally:
             RUNTIME_STATE_LOCK.release()
-        atomic_write_json(SERVICE_STATE_FILE, payload)
 
     def _write_core_state(self, payload: Dict[str, Any], dedupe: "DedupeStore", _eff_gc: Dict[str, Any]) -> None:
         _existing_rt = load_json(CORE_RUNTIME_STATE_FILE, {})
@@ -9155,6 +9248,7 @@ class LiveCopyCore:
         for t in getattr(self, "_hot_threads", []):
             if t.is_alive() and t is not threading.current_thread():
                 t.join(timeout=1.0)
+        _drain_status_write_workers()
 
     def _prewarm_with_parity(self, fill: LeaderFill, local_block: bool, converge: bool = False) -> None:
         """The exchange reads a send needs (IntentBuilder.prewarm) plus the parity gate's leader read, side by side."""
@@ -10996,16 +11090,19 @@ class LiveCopyCore:
             summary.fatal_errors += 1
             log_error("run_cycle", exc)
         finally:
-            if time.monotonic() - started > float(os.getenv("HL_LIVE_RECON_CYCLE_BUDGET_SEC", "5")):
+            if time.monotonic() - started > fnum(os.getenv("HL_LIVE_RECON_CYCLE_BUDGET_SEC"), 5.0):
                 summary.budget_exceeded = True
             try:
-                write_live_integrity_status(fnum(os.getenv("HL_LIVE_INTEGRITY_MIN_INTERVAL_SEC"), 5.0))
+                _LIVE_INTEGRITY_WRITER.submit(
+                    write_live_integrity_status,
+                    fnum(os.getenv("HL_LIVE_INTEGRITY_MIN_INTERVAL_SEC"), 5.0),
+                )
             except Exception as exc:
-                log_error("live_integrity_status", exc)
+                _LIVE_INTEGRITY_WRITER.report_failure(exc)
             try:
                 self.state_writer.write(summary, self.dedupe, self.cfg)
             except Exception as exc:  # a state json write must never end the cycle (or the process)
-                log_error("cycle_state_write", exc)
+                self.state_writer.report_failure(exc)
         return summary
 
 
