@@ -122,6 +122,28 @@ def main() -> None:
               str(core.__dict__.get('_scope_unresolved_coins'))[:300])
         c.EXPOSURE_FETCHER = fetch
 
+        # ---- W: the hold is actually WIRED into the entry path (removing the call site must go red) ---
+        import inspect
+        _src = inspect.getsource(core._process_leader_fill_inner)
+        check('W_HOLD_CALL_IS_IN_ENTRY_PATH', 'self._stale_held_hold(fill, intent, merged_ids)' in _src,
+              'the hold is defined but never called: an entry on an unresolved coin would proceed')
+        check('W_HOLD_CALL_PRECEDES_DEFER',
+              _src.find('self._stale_held_hold(fill, intent, merged_ids)') <
+              _src.find('self._defer_unreadable_truth(fill, intent, merged_ids)'),
+              'ordering matters: the narrow hold must decide before the generic unreadable-truth defer')
+        check('W_HOLD_CALL_GUARDED_BY_NOT_CONVERGE',
+              'not converge and self._stale_held_hold(' in _src)
+        check('W_HOLD_RETURNS_HELD_NOT_BLOCKED',
+              'return False, "STALE_HELD_ENTRY_HELD", intent' in _src,
+              'the entry path must return the held status, not a block status')
+        check('W_NO_HARD_BLOCK_CLASS_ADDED',
+              'ENTRY_BLOCKED_STALE_HELD' not in _src and 'BLOCKED_STALE_HELD' not in _src,
+              'the ruling forbids a second hard-block class')
+        check('W_HOLD_IS_OUTSIDE_ALERT_ONLY_GATE_WRAPPER',
+              _src.find('self._stale_held_hold(fill, intent, merged_ids)') < _src.find('HL_LIVE_GATES_ALERT_ONLY') or
+              'HL_LIVE_GATES_ALERT_ONLY' not in _src,
+              'the hold must not live inside the alert-only cycle-gate wrapper')
+
         # ---- N: the narrow hold on entries; exits/reductions untouched ---------------------------
         core._scope_unresolved_coins = {'DEX300:BAR': 'dex300'}
         core._deferred_thread = _Alive()             # the real scheduler must not run in this test
