@@ -2976,9 +2976,15 @@ class ConfigManager:
             return raw
         if raw in {"CLOSE", "CLOSE ONLY", "CLO"}:
             return "CLOSE"
-        legacy = bval(cfg.get("auto_send_enabled"), False) if "auto_send_enabled" in cfg \
-            else bval(os.getenv("HL_LIVE_AUTO_SEND_ENABLED"), False)
-        return "ON" if legacy else "OFF"
+        # Fail closed: a present-but-unrecognised send_mode never falls through to a looser source.
+        if raw:
+            return "OFF"
+        # No send_mode and no explicit auto_send_enabled key: OFF. A stray env var must not arm sending.
+        if "auto_send_enabled" not in cfg:
+            return "OFF"
+        legacy = cfg.get("auto_send_enabled")
+        # An explicit ON arms; anything else (absent, false, junk) is OFF.
+        return "ON" if legacy is True or str(legacy).strip().lower() in {"1", "true", "yes", "y", "on"} else "OFF"
 
     @property
     def send_mode(self) -> str:
