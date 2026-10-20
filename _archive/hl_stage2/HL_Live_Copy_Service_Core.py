@@ -597,6 +597,34 @@ MAX_WALLETS = int(os.getenv("HL_LIVE_WS_MAX_WALLETS", "10"))
 POSITION_EPSILON = float(os.getenv("HL_LIVE_POSITION_EPSILON", "1e-9"))
 STALE_REPLAY_GRACE_MS = int(os.getenv("HL_LIVE_STALE_REPLAY_GRACE_MS", "5000"))
 
+def leader_poll_start_ms(cursor_ms: int) -> int:
+    # A missing/corrupt cursor (0) replays the whole history the exchange will return: any bounded
+    # guess silently skips fills. A saved cursor is re-read from its overlap, never clamped forward.
+    cur = int(fnum(cursor_ms, 0))
+    return max(0, cur - LEADER_POLL_OVERLAP_MS) if cur > 0 else 0
+
+
+def leader_cursor_advance(status: str, fills: List["LeaderFill"], now_ms: int) -> int:
+    # The saved cursor, 0 = do not move. Only a fully read window may jump to now; a partial one resumes
+    # from its last fill; a stuck or failed poll keeps the cursor where it is so the next cycle re-reads.
+    if status == "POLL_OK":
+        return int(now_ms)
+    if status == "POLL_PARTIAL" and fills:
+        return max(f.timestamp_ms for f in fills) + LEADER_POLL_OVERLAP_MS
+    return 0
+
+
+def load_json_checked(path: Path) -> Tuple[Any, bool]:
+    # (state, corrupt). An unparseable state file is reported, never silently read as {}: a lost
+    # leader cursor has to replay the full history instead of resuming from now.
+    try:
+        if path.exists():
+            return json.loads(path.read_text(encoding="utf-8-sig")), False
+    except Exception:
+        return {}, True
+    return {}, False
+
+
 FILE_LOCK = threading.RLock()
 SEND_FILE_LOCK = threading.RLock()  # send_attempts.csv only: the pending_send row (before every order) never queues behind other audit files' readers
 
@@ -7647,6 +7675,7 @@ class LeaderFillIngestor:
         status = "POLL_OK"
         start = max(0, start_ms)
         end = end_ms or utc_now_ms()
+        _seen: set = set()  # ids already returned: a re-read boundary page must not duplicate a fill
         for _ in range(POLL_MAX_PAGES_PER_WALLET):
             payload = {"type": "userFillsByTime", "user": wallet, "startTime": start, "endTime": end, "aggregateByTime": False}
             try:
@@ -7660,15 +7689,24 @@ class LeaderFillIngestor:
                         fill = self.parse_fill(wallet, raw, "POLL")
                         if fill:
                             page.append(fill)
-                fills.extend(page)
+                _new = [f for f in page if f.leader_fill_id not in _seen]
+                _seen.update(f.leader_fill_id for f in page)
+                fills.extend(_new)
                 if len(data) < 2000:
                     status = "POLL_OK"
                     break
                 if not page:  # a full page that parsed to nothing: never claim the window was read
                     status = "POLL_NETWORK_ERROR"
                     break
-                last = max(f.timestamp_ms for f in page)
-                start = last if last > start else last + 1  # fills sharing the boundary millisecond are re-read (deduped)
+                if not _new:
+                    # a full page of already-returned fills: time alone cannot advance the window (a same-
+                    # millisecond group bigger than a page). Hold the cursor; advancing skips the rest of the
+                    # group and paging on duplicates it.
+                    # shortcut: a >page same-ms group is unreachable through userFillsByTime, the cycle alerts
+                    # for manual review; upgrade only if the exchange exposes a per-fill cursor
+                    status = "POLL_STUCK"
+                    break
+                start = max(f.timestamp_ms for f in page)  # overlap the boundary millisecond; re-reads are deduped
                 status = "POLL_PARTIAL"  # pages ran out before the window did: resume from here next cycle
             except Exception as exc:
                 log_error("poll_hyperliquid_fills", exc)
@@ -10848,7 +10886,9 @@ class LiveCopyCore:
             copy_poll_interval_seconds=float(getattr(self, "copy_poll_interval_seconds", 0.0) or 0.0),
             hot_send_workers=self.hot_send_workers,
         )
-        state_for_age = load_json(CORE_RUNTIME_STATE_FILE, {})
+        state_for_age, _state_corrupt = load_json_checked(CORE_RUNTIME_STATE_FILE)
+        if _state_corrupt:  # replay the full history instead of silently resuming from now
+            log_error("REPLAY_CURSOR_CORRUPT", RuntimeError(str(CORE_RUNTIME_STATE_FILE)))
         last_copy_poll_ms = copy_cursor_ms()
         summary.last_copy_poll_age_ms = max(0, utc_now_ms() - last_copy_poll_ms) if last_copy_poll_ms else 0
         # Per-wallet leader poll cursor: avoids re-fetching the full 24h window every cycle.
@@ -10957,14 +10997,13 @@ class LiveCopyCore:
                     if self.cfg.wallet_mode(w) == "OFF":
                         continue
                     _cursor = max(_leader_poll_cursors.get(w, 0), self._held_read_cursor.get(w, 0))
-                    _start = (max(_cursor - LEADER_POLL_OVERLAP_MS, now - _catchup_ms)
-                              if _cursor > 0 else max(0, now - POLL_WINDOW_MS - POLL_OVERLAP_MS))
+                    _start = leader_poll_start_ms(_cursor)
                     if _cursor > 0 and _cursor - LEADER_POLL_OVERLAP_MS < now - _catchup_ms:
                         self.audit.append_reconciliation(
                             "SEND_TERMINAL", "LEADER_HISTORY_GAP", leader_wallet=w,
                             action="MANUAL_REVIEW_LEADER_HISTORY_GAP", terminal_state="LEADER_HISTORY_GAP",
                             notes=(f"last good leader poll {_cursor} is older than the catch-up window "
-                                   f"({_catchup_ms} ms); fills before {now - _catchup_ms} are not replayed"))
+                                   f"({_catchup_ms} ms); replay re-fetches from the cursor, not clamped"))
                     _jobs.append((w, _start))
                 _results: Dict[str, Tuple[List[LeaderFill], str]] = {}
                 if len(_jobs) > 1:
@@ -10992,8 +11031,7 @@ class LiveCopyCore:
                     # while sending is stopped for a bad key the cursor stays put, so a restart replays these exits
                     # (reading moves on in memory, so the window does not grow every cycle)
                     _hold = bool(self.sender.sender_key_invalid)
-                    _next = (now if status == "POLL_OK" else max(f.timestamp_ms for f in wallet_fills) + LEADER_POLL_OVERLAP_MS
-                             if status == "POLL_PARTIAL" and wallet_fills else 0)
+                    _next = leader_cursor_advance(status, wallet_fills, now)
                     if _next:
                         _next = self.leader_cursor_next(w, _next)  # never past a fill still waiting on a worker
                         if _hold:
@@ -11003,7 +11041,14 @@ class LiveCopyCore:
                             self._held_read_cursor.pop(w, None)
                     else:
                         poll_status = status
-                        summary.network_errors += 1
+                        if status == "POLL_NETWORK_ERROR":
+                            summary.network_errors += 1
+                        if status == "POLL_STUCK":  # the cursor holds; the operator is told why
+                            self.audit.append_reconciliation(
+                                "SEND_TERMINAL", "REPLAY_CURSOR_SAME_TS_STUCK", leader_wallet=w,
+                                action="MANUAL_REVIEW_REPLAY_CURSOR_SAME_TS_STUCK", terminal_state="REPLAY_CURSOR_SAME_TS_STUCK",
+                                notes=(f"leader poll cannot advance past {_start}: a same-timestamp fill group is "
+                                       "bigger than one page; the cursor is held, reconcile these fills by hand"))
                 # Persist status every leader-poll cycle, and cursor updates when
                 # present, so copy-only cycles keep displaying last poll truth.
                 try:
