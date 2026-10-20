@@ -162,6 +162,10 @@ EXPOSURE_FETCHER = None  # test seam for follower exposure reads; production use
 LEADER_FETCHER = None  # test seam for leader equity reads; production uses HTTP
 MIDS_FETCHER = None  # test seam for follower mid reads; production uses HTTP
 USER_WALLET = os.getenv("HL_USER_WALLET", "").strip().lower()
+
+def _truth_master_address() -> str:
+    identity = _XNET.runtime_master_identity(os.environ)
+    return str(identity.get("master") or "").strip() if identity.get("ok") else ""
 _FOLLOWER_MIDS: Dict[str, Any] = {"px": {}, "ms": 0, "dexes": None, "dexes_ms": 0}
 _SELF_TEST_MIDS: Optional[Dict[str, Any]] = None  # self-test only: leader prints double as follower mids
 
@@ -192,7 +196,7 @@ def follower_position_mark(coin: str) -> float:
     """Follower-network mark of an open follower position (|positionValue| / |szi|), read fresh. Used to
     price a close when no fresh mid exists: a close always has a position to price from."""
     dexes = _FOLLOWER_MIDS["dexes"] or [""]
-    exp = _XNET.master_exposure(normalise_wallet(USER_WALLET), dexes, fetcher=EXPOSURE_FETCHER,
+    exp = _XNET.master_exposure(normalise_wallet(_truth_master_address()), dexes, fetcher=EXPOSURE_FETCHER,
                                 info_url=HL_INFO_URL, timeout=HTTP_TIMEOUT_SEC)
     want = canonical_coin_key(coin)
     rows = [v for k, v in (exp.get("by_coin") or {}).items() if canonical_coin_key(k) == want] if exp.get("ok") else []
@@ -2507,14 +2511,14 @@ class IntentBuilder:
         ttl_ms = int(max(0.0, fnum(os.getenv("HL_LIVE_EXPOSURE_CACHE_TTL_SEC"), 2.0)) * 1000)
         if self._exposure is not None and now - self._exposure_ms <= ttl_ms:
             return self._exposure
-        if not is_valid_wallet(normalise_wallet(USER_WALLET)):
+        if not is_valid_wallet(normalise_wallet(_truth_master_address())):
             return {"ok": False, "status": "COPY_ACCOUNT_NOT_CONFIGURED"}
         if self._dexes is None or now - self._dexes_ms > 600_000:
             enum = _XNET.list_perp_dexes(fetcher=EXPOSURE_FETCHER, info_url=HL_INFO_URL, timeout=HTTP_TIMEOUT_SEC)
             if not enum.get("ok"):
                 return {"ok": False, "status": str(enum.get("status") or "DEX_ENUM_UNAVAILABLE")}
             self._dexes, self._dexes_ms = list(enum["dexes"]), now
-        exp = _XNET.master_exposure(normalise_wallet(USER_WALLET), self._dexes, fetcher=EXPOSURE_FETCHER,
+        exp = _XNET.master_exposure(normalise_wallet(_truth_master_address()), self._dexes, fetcher=EXPOSURE_FETCHER,
                                     info_url=HL_INFO_URL, timeout=HTTP_TIMEOUT_SEC)
         if not exp.get("ok"):
             return {"ok": False, "status": str(exp.get("status") or "SNAPSHOT_UNAVAILABLE"), "dex": exp.get("dex", "")}
@@ -5665,10 +5669,10 @@ class ExchangeReconciler:
         self.audit = audit
 
     def fetch_snapshot(self) -> Tuple[Dict[str, Any], str]:
-        if not USER_WALLET or requests is None:
+        if not _truth_master_address() or requests is None:
             return {}, "SNAPSHOT_UNAVAILABLE"
         try:
-            r = requests.post(HL_INFO_URL, json={"type": "clearinghouseState", "user": USER_WALLET}, timeout=HTTP_TIMEOUT_SEC)
+            r = requests.post(HL_INFO_URL, json={"type": "clearinghouseState", "user": _truth_master_address()}, timeout=HTTP_TIMEOUT_SEC)
             data = r.json()
             if isinstance(data, dict):
                 positions_by_coin = self._positions_from_snapshot(data)
@@ -6306,7 +6310,7 @@ class LiveCopyCore:
         now = utc_now_ms()
         cached = getattr(self, "_daily_pnl", None)
         if not cached or now - cached[1] > int(max(0.0, fnum(os.getenv("HL_LIVE_DAILY_PNL_TTL_SEC"), 30.0)) * 1000):
-            res = _XNET.rolling_day_pnl(normalise_wallet(USER_WALLET), fetcher=EXPOSURE_FETCHER,
+            res = _XNET.rolling_day_pnl(normalise_wallet(_truth_master_address()), fetcher=EXPOSURE_FETCHER,
                                         info_url=HL_INFO_URL, timeout=HTTP_TIMEOUT_SEC)
             cached = (fnum(res.get("pnl_usd")) if res.get("ok") else None, now)
             self._daily_pnl = cached
@@ -6433,7 +6437,7 @@ class LiveCopyCore:
             if poll_copy:
                 copy_state = load_json(CORE_RUNTIME_STATE_FILE, {})
                 start_ms = max(0, int(fnum(copy_state.get("last_copy_poll_ms", load_json(SERVICE_STATE_FILE, {}).get("last_copy_poll_ms", 0)), 0)) - POLL_OVERLAP_MS)
-                copy_fills, copy_status = self.copy_ingestor.poll_copy_account_fills(USER_WALLET, start_ms, utc_now_ms())
+                copy_fills, copy_status = self.copy_ingestor.poll_copy_account_fills(_truth_master_address(), start_ms, utc_now_ms())
                 summary.copy_account_status = copy_status
                 summary.copy_fills_seen = len(copy_fills)
                 if copy_status == "COPY_ACCOUNT_POLLED" and copy_fills:
