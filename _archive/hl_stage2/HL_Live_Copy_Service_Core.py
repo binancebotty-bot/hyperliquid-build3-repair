@@ -11363,6 +11363,9 @@ class LiveCopyCore:
                         leader_fill_id=fill.leader_fill_id, coin=fill.coin, action="NO_ACTION_LEADER_ALREADY_FLAT",
                         terminal_state="MISSED_ENTRY_LEADER_ALREADY_CLOSED", engine_can_send="False",
                         notes=(f"late leader {fill.side} {fill.size} @ {fill.price} at {fill.timestamp_ms} not copied: {why}"))
+                    if self.async_dispatch:
+                        with self._idem_lock:
+                            self._idem_accepted.add(self._guard_key(fill))
                     self._rows_for_closed_late_siblings(fill, why)
                     continue
                 if self._already_handled(fill):  # run 3: thousands of re-read fills per cycle starved the loop

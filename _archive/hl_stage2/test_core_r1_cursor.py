@@ -120,6 +120,35 @@ def main():
           len(poll_starts) == 2 and poll_starts[1] <= poll_fill[0].timestamp_ms,
           f"starts={poll_starts} fill={poll_fill[0].timestamp_ms}")
 
+    # A terminally skipped late entry is handled, not a queue-rejected fill to pin the cursor on.
+    late_fill = c.LeaderFill("r1late", A, "SOL", "BUY", 100.0, 1.0,
+                             c.utc_now_ms() - 15000, "POLL", 0,
+                             {"oid": "5", "dir": "Open Long", "startPosition": "0"})
+    poll_fill[0] = late_fill
+    poll_starts.clear()
+    state = c.load_json(c.CORE_RUNTIME_STATE_FILE, {})
+    state["last_leader_poll_cursor_ms"] = {A: late_fill.timestamp_ms - c.LEADER_POLL_OVERLAP_MS - 5000}
+    c.atomic_write_json(c.CORE_RUNTIME_STATE_FILE, state)
+    old_late_classifier = c.already_closed_late_entries
+    c.already_closed_late_entries = lambda batch, _now: (
+        {late_fill.leader_fill_id: "leader subsequently closed"}
+        if any(f.leader_fill_id == late_fill.leader_fill_id for f in batch) else {})
+    try:
+        first_late = core.run_cycle(use_source_csv=False, poll_live=True)
+        late_rows = [r for r in c.read_csv_rows(c.RECONCILIATION_CSV)
+                     if r.get("leader_fill_id") == late_fill.leader_fill_id]
+        check("late_closed_fill_writes_terminal_without_queueing",
+              first_late.leader_fills_queued == 0 and core._already_handled(late_fill)
+              and any(r.get("terminal_state") == "MISSED_ENTRY_LEADER_ALREADY_CLOSED" for r in late_rows),
+              f"queued={first_late.leader_fills_queued} handled={core._already_handled(late_fill)} rows={len(late_rows)}")
+        core.run_cycle(use_source_csv=False, poll_live=True)
+        late_saved = c.load_json(c.CORE_RUNTIME_STATE_FILE, {}).get("last_leader_poll_cursor_ms", {}).get(A, 0)
+        check("late_closed_terminal_does_not_pin_cursor",
+              len(poll_starts) == 2 and late_saved > late_fill.timestamp_ms,
+              f"starts={poll_starts} cursor={late_saved} fill={late_fill.timestamp_ms}")
+    finally:
+        c.already_closed_late_entries = old_late_classifier
+
     failed = [n for n, ok in RESULTS if not ok]
     print("TOTAL=%d FAILED=%d" % (len(RESULTS), len(failed)))
     sys.exit(1 if failed else 0)
