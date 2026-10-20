@@ -1,0 +1,9 @@
+{
+  "verifier": "gpt-6-luna",
+  "tested_commit": "c680651c577029e8a1847af9db0cf34eb245eaf1",
+  "evidence": "certification/results/ENG_INV_03_05_rowbound_t_49739039.json",
+  "verdict": "PASS",
+  "row": "ENG-INV-04",
+  "negative_control": "Independent added import totally_unapproved_independent_probe in headroom.py: oracle verdict FAIL, ENG-INV-03 FAIL, exit 1; restored file then oracle PASS, exit 0.",
+  "card": "t_49739039"
+}

@@ -655,10 +655,14 @@
    "prior_evidence": "",
    "result": "PASS",
    "evidence_ref": "certification/results/ENG_INV_03_04_05_rowbound_t_d67de338.json",
-   "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+   "tested_commit": "c680651c577029e8a1847af9db0cf34eb245eaf1",
    "tested_at_utc": "2026-10-14T05:00:00Z",
-   "notes": "PASS on row-bound proof t_d67de338: invariant from ARCHITECTURE.md, row-specific AST predicate, control turns only this row red (siblings_green=true, non_vacuous=true). Awaiting independent attestation.",
-   "tier": 1
+   "notes": "PASS from an independent source-bound attestation (card t_49739039, verifier gpt-6-luna, different model from the author). Row-bound oracle green on a fresh clone of the delivered bundle at c680651c577029e8a1847af9db0cf34eb245eaf1 (tree 2f33a5ca2641bed54395488db7ab0277b2723833); all three mutation controls non_vacuous=true. Independent negative control: an added unapproved import in headroom.py flipped ENG-INV-03 to FAIL and the verdict to FAIL, then restoring it returned PASS. The unapproved psutil import at headroom.py:48 was removed by the same card.",
+   "tier": 1,
+   "verified": true,
+   "verifier": "gpt-6-luna",
+   "evidence": "certification/results/ENG_INV_03_05_rowbound_t_49739039.json",
+   "review_ref": "certification/results/ENG-INV-03_review_t_49739039.json"
   },
   {
    "id": "ENG-INV-04",
@@ -680,10 +684,14 @@
    "prior_evidence": "",
    "result": "PASS",
    "evidence_ref": "certification/results/ENG_INV_03_04_05_rowbound_t_d67de338.json",
-   "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+   "tested_commit": "c680651c577029e8a1847af9db0cf34eb245eaf1",
    "tested_at_utc": "2026-10-14T05:00:00Z",
-   "notes": "PASS on row-bound proof t_d67de338: invariant from ARCHITECTURE.md, row-specific AST predicate, control turns only this row red (siblings_green=true, non_vacuous=true). Awaiting independent attestation.",
-   "tier": 1
+   "notes": "PASS from an independent source-bound attestation (card t_49739039, verifier gpt-6-luna, different model from the author). Row-bound oracle green on a fresh clone of the delivered bundle at c680651c577029e8a1847af9db0cf34eb245eaf1 (tree 2f33a5ca2641bed54395488db7ab0277b2723833); all three mutation controls non_vacuous=true. Independent negative control: an added unapproved import in headroom.py flipped ENG-INV-03 to FAIL and the verdict to FAIL, then restoring it returned PASS. The unapproved psutil import at headroom.py:48 was removed by the same card.",
+   "tier": 1,
+   "verified": true,
+   "verifier": "gpt-6-luna",
+   "evidence": "certification/results/ENG_INV_03_05_rowbound_t_49739039.json",
+   "review_ref": "certification/results/ENG-INV-04_review_t_49739039.json"
   },
   {
    "id": "ENG-INV-05",
@@ -704,10 +712,14 @@
    "prior_evidence": "",
    "result": "PASS",
    "evidence_ref": "certification/results/ENG_INV_03_04_05_rowbound_t_d67de338.json",
-   "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+   "tested_commit": "c680651c577029e8a1847af9db0cf34eb245eaf1",
    "tested_at_utc": "2026-10-14T05:00:00Z",
-   "notes": "PASS on row-bound proof t_d67de338: invariant from ARCHITECTURE.md, row-specific AST predicate, control turns only this row red (siblings_green=true, non_vacuous=true). Awaiting independent attestation.",
-   "tier": 1
+   "notes": "PASS from an independent source-bound attestation (card t_49739039, verifier gpt-6-luna, different model from the author). Row-bound oracle green on a fresh clone of the delivered bundle at c680651c577029e8a1847af9db0cf34eb245eaf1 (tree 2f33a5ca2641bed54395488db7ab0277b2723833); all three mutation controls non_vacuous=true. Independent negative control: an added unapproved import in headroom.py flipped ENG-INV-03 to FAIL and the verdict to FAIL, then restoring it returned PASS. The unapproved psutil import at headroom.py:48 was removed by the same card.",
+   "tier": 1,
+   "verified": true,
+   "verifier": "gpt-6-luna",
+   "evidence": "certification/results/ENG_INV_03_05_rowbound_t_49739039.json",
+   "review_ref": "certification/results/ENG-INV-05_review_t_49739039.json"
   },
   {
    "id": "ENG-INV-06",

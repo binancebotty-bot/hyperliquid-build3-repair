@@ -1,0 +1,218 @@
+{
+  "row_scope": [
+    "ENG-INV-03",
+    "ENG-INV-04",
+    "ENG-INV-05"
+  ],
+  "baseline": {
+    "repo_root": "C:\\Users\\wigmore\\.hermes\\cache\\scratch\\attest_inv0305_t_49739039\\repo",
+    "baseline_rev": "43731b4f1f19a56e835032dabf608a550f925717",
+    "files_in_dir": [
+      "bench_memory_profile.py",
+      "catchup_plan.py",
+      "convergence_shadow.py",
+      "exchange_truth.py",
+      "headroom.py",
+      "HL_Copy_App_SSOT.py",
+      "HL_Live_Copy_Service.py",
+      "HL_Live_Copy_Service_Core.py",
+      "outage_classify.py",
+      "tools_memory_profile.py"
+    ],
+    "engine_closure": [
+      "HL_Copy_App_SSOT.py",
+      "HL_Live_Copy_Service.py",
+      "HL_Live_Copy_Service_Core.py",
+      "convergence_shadow.py",
+      "exchange_truth.py",
+      "headroom.py"
+    ],
+    "files_parsed": 10,
+    "parse_errors": [],
+    "scope_ok": true,
+    "ENG-INV-03": {
+      "present": [
+        "eth_account",
+        "fastapi",
+        "hyperliquid",
+        "requests",
+        "uvicorn",
+        "websocket"
+      ],
+      "approved": [
+        "eth_account",
+        "fastapi",
+        "hyperliquid",
+        "requests",
+        "uvicorn",
+        "websocket"
+      ],
+      "at_baseline": [
+        "eth_account",
+        "fastapi",
+        "hyperliquid",
+        "requests",
+        "uvicorn",
+        "websocket"
+      ],
+      "new_unapproved": [],
+      "invariant": "No NEW third-party runtime dependency without Architect approval.",
+      "violations": []
+    },
+    "ENG-INV-04": {
+      "drivers": [
+        "MySQLdb",
+        "dbm",
+        "lmdb",
+        "motor",
+        "peewee",
+        "psycopg",
+        "psycopg2",
+        "pymongo",
+        "pymysql",
+        "redis",
+        "rocksdb",
+        "shelve",
+        "sqlalchemy",
+        "sqlite3",
+        "tinydb",
+        "zodb"
+      ],
+      "invariant": "No authoritative persistent trading-state store.",
+      "violations": []
+    },
+    "ENG-INV-05": {
+      "namespaces": [
+        "b4",
+        "b4_gate",
+        "build4",
+        "control_plane",
+        "controlplane",
+        "gate_root",
+        "hl_prod_base",
+        "hyperliquid_build4",
+        "mission_control",
+        "missioncontrol"
+      ],
+      "invariant": "No Build-4 control-plane/platform import.",
+      "violations": []
+    },
+    "wider_scope_violations": {
+      "ENG-INV-03": [
+        {
+          "file": "bench_memory_profile.py",
+          "line": 37,
+          "module": "psutil",
+          "kind": "import"
+        },
+        {
+          "file": "tools_memory_profile.py",
+          "line": 45,
+          "module": "psutil",
+          "kind": "import"
+        }
+      ],
+      "ENG-INV-04": [],
+      "ENG-INV-05": []
+    },
+    "checks": {
+      "ENG-INV-03": true,
+      "ENG-INV-04": true,
+      "ENG-INV-05": true
+    },
+    "result": "PASS"
+  },
+  "verdict": "PASS",
+  "mutation_controls": [
+    {
+      "row": "ENG-INV-03",
+      "mutation": "import totally_unapproved_new_package",
+      "baseline_results_all_rows": {
+        "ENG-INV-03": true,
+        "ENG-INV-04": true,
+        "ENG-INV-05": true
+      },
+      "results_all_rows": {
+        "ENG-INV-03": false,
+        "ENG-INV-04": true,
+        "ENG-INV-05": true
+      },
+      "this_row_red": true,
+      "siblings_unchanged_from_baseline": true,
+      "siblings_green": true,
+      "sibling_detail": {
+        "ENG-INV-04": true,
+        "ENG-INV-05": true
+      },
+      "non_vacuous": true
+    },
+    {
+      "row": "ENG-INV-04",
+      "mutation": "import sqlite3\n_CONN = sqlite3.connect(\"authoritative_positions.db\")",
+      "baseline_results_all_rows": {
+        "ENG-INV-03": true,
+        "ENG-INV-04": true,
+        "ENG-INV-05": true
+      },
+      "results_all_rows": {
+        "ENG-INV-03": true,
+        "ENG-INV-04": false,
+        "ENG-INV-05": true
+      },
+      "this_row_red": true,
+      "siblings_unchanged_from_baseline": true,
+      "siblings_green": true,
+      "sibling_detail": {
+        "ENG-INV-03": true,
+        "ENG-INV-05": true
+      },
+      "non_vacuous": true
+    },
+    {
+      "row": "ENG-INV-05",
+      "mutation": "import build4_control_plane",
+      "baseline_results_all_rows": {
+        "ENG-INV-03": true,
+        "ENG-INV-04": true,
+        "ENG-INV-05": true
+      },
+      "results_all_rows": {
+        "ENG-INV-03": true,
+        "ENG-INV-04": true,
+        "ENG-INV-05": false
+      },
+      "this_row_red": true,
+      "siblings_unchanged_from_baseline": true,
+      "siblings_green": true,
+      "sibling_detail": {
+        "ENG-INV-03": true,
+        "ENG-INV-04": true
+      },
+      "non_vacuous": true
+    }
+  ],
+  "row_verdicts": {
+    "ENG-INV-03": "PASS",
+    "ENG-INV-04": "PASS",
+    "ENG-INV-05": "PASS"
+  },
+  "provenance": {
+    "command": "python certification/results/rowbound_oracle.py . --mutate",
+    "exit_code": 0,
+    "repo_sha": "c680651c577029e8a1847af9db0cf34eb245eaf1",
+    "tree_sha": "2f33a5ca2641bed54395488db7ab0277b2723833",
+    "timestamp": "2026-10-20T21:35:03+01:00",
+    "python_version": "3.14.7",
+    "card_id": "t_49739039",
+    "verifier_model": "gpt-6-luna",
+    "independent_negative_control": {
+      "mutation": "appended import totally_unapproved_independent_probe to _archive/hl_stage2/headroom.py in isolated clone",
+      "mutated_oracle_exit_code": 1,
+      "mutated_verdict": "FAIL",
+      "ENG-INV-03": "FAIL",
+      "restored_oracle_exit_code": 0,
+      "restored_verdict": "PASS",
+      "restoration": "git checkout -- _archive/hl_stage2/headroom.py"
+    }
+  }
+}
