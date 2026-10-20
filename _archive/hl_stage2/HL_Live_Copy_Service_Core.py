@@ -9978,6 +9978,8 @@ class LiveCopyCore:
             self.dedupe.processed.update(merged_ids)
             with prof("send_lock:intent_build"):
                 intent = self.intent_builder.build(fill)
+            if not converge and self._stale_held_hold(fill, intent, merged_ids):
+                return False, "STALE_HELD_ENTRY_HELD", intent
             if not converge and self._defer_unreadable_truth(fill, intent, merged_ids):
                 return False, "REPLAY_DEFERRED_TRUTH_UNREADABLE", intent
             self.intents_by_id[intent.intent_id] = intent
@@ -10041,6 +10043,85 @@ class LiveCopyCore:
         return sent, send_status, intent
 
     _TRUTH_UNREADABLE_MARKERS = ("unavailable", "unreadable", "not yet verified clean")
+
+    def _stale_held_alert(self, unresolved: Dict[str, str], res: Dict[str, Any], coin: str = "") -> None:
+        """ENG-INV-08: scope truth is unresolved for a coin the follower still holds - say so, once per coin
+        per alert window. ALERT ONLY: it never blocks anything."""
+        try:
+            now = time.monotonic()
+            seen = self.__dict__.setdefault("_stale_held_alert_ms", {})
+            window = max(60.0, fnum(os.getenv("HL_LIVE_STALE_HELD_ALERT_SEC"), 600.0))
+            for c in ([coin] if coin else sorted(unresolved)):
+                key = str(c or "").upper()
+                if not key or now - seen.get(key, -1e9) < window:
+                    continue
+                seen[key] = now
+                self.audit.append_reconciliation(
+                    "ALERT", "STALE_HELD_SCOPE_UNRESOLVED", coin=key, action="ALERT_ONLY_SCOPE_TRUTH_UNRESOLVED",
+                    terminal_state="STALE_HELD_SCOPE_UNRESOLVED", engine_can_send="True",
+                    notes=(f"dex={unresolved.get(key, '')} could not be read, or vanished while remembered as holding "
+                           f"{key}; last-known exposure retained, never inferred flat; status={res.get('status', '')}; "
+                           f"detail={str(res.get('detail', ''))[:120]}; exposure-increasing entries on this coin are "
+                           f"HELD and replayed, exits and reductions always pass"))
+        except Exception as exc:
+            log_error("stale_held_alert_row", exc)
+
+    def _stale_held_hold(self, fill: LeaderFill, intent: Intent, merged_ids: List[str]) -> bool:
+        """ENG-INV-08: a NARROW hold, NOT a block and NOT inside the alert-only gate wrapper. It holds only an
+        exposure-INCREASING entry (ENTRY/ADD) on a coin whose scope truth is unresolved because its DEX is stale
+        or has vanished while remembered as holding it. The leader fill is RETAINED and replayed from the deferred
+        scheduler once fresh scope truth returns, so nothing is dropped. Exits and reductions are never held here:
+        they return False and pass. If the hold cap runs out the fill is RELEASED to the normal path."""
+        if classify_send_lifecycle(intent) not in {"ENTRY", "ADD"}:
+            return False   # exits and reductions ALWAYS pass
+        if bool(getattr(intent, "reduce_only_intended", False)):
+            return False   # a reduce-only order is a reduction, whatever its lifecycle label says
+        unresolved = self.__dict__.get("_scope_unresolved_coins") or {}
+        key_coin = str(fill.coin or "").upper()
+        if key_coin not in unresolved:
+            return False
+        key = self._guard_key(fill)
+        firsts = self.__dict__.setdefault("_defer_first_ms", {})
+        now = utc_now_ms()
+        new_fill = key not in firsts
+        first = firsts.setdefault(key, now)
+        max_sec = fnum(os.getenv("HL_LIVE_STALE_HELD_HOLD_MAX_SEC"), 900.0)
+        if max_sec < 0 or (max_sec > 0 and now - first > int(max_sec * 1000)):
+            firsts.pop(key, None)
+            try:
+                self.audit.append_reconciliation(
+                    "REPLAY_DEFERRED", "STALE_HELD_HOLD_EXPIRED", leader_wallet=fill.leader_wallet,
+                    leader_fill_id=fill.leader_fill_id, coin=fill.coin, action="RELEASED_TO_NORMAL_PATH",
+                    terminal_state="STALE_HELD_HOLD_EXPIRED", engine_can_send="True",
+                    notes="scope truth for this coin stayed unresolved past the hold cap: the entry is released to "
+                          "the normal path rather than hard-blocked")
+            except Exception as exc:
+                log_error("stale_held_expired_row", exc)
+            return False
+        with self._idem_lock:      # release the HEAD only; merged siblings stay marked and ride with it
+            self._idem_accepted.discard(key)
+        with self.dedupe._lock:
+            self.dedupe.processed.discard(fill.leader_fill_id)
+        if new_fill:               # one row per fill, not one per retry
+            try:
+                self.audit.append_reconciliation(
+                    "REPLAY_DEFERRED", "STALE_HELD_ENTRY_HELD", leader_wallet=fill.leader_wallet,
+                    leader_fill_id=fill.leader_fill_id, coin=fill.coin, action="HELD_REPLAY_WHEN_SCOPE_READABLE",
+                    terminal_state="STALE_HELD_ENTRY_HELD", engine_can_send="False",
+                    notes=(f"exposure-increasing {classify_send_lifecycle(intent)} on {fill.coin} held, not dropped: "
+                           f"dex={unresolved.get(key_coin, '')} scope truth unresolved; leader fill retained and "
+                           f"replayed when fresh scope truth returns; exits and reductions are never held"))
+            except Exception as exc:
+                log_error("stale_held_row", exc)
+            self._rows_for_held_siblings(fill, "STALE_HELD_ENTRY_HELD")
+            self._stale_held_alert(unresolved, {}, coin=key_coin)
+        delay = max(0.5, fnum(os.getenv("HL_LIVE_DEFER_RETRY_SEC"), 5.0))
+        with self._deferred_lock:
+            self._deferred[key] = (fill, time.monotonic() + delay)
+            if self._deferred_thread is None or not self._deferred_thread.is_alive():
+                self._deferred_thread = threading.Thread(target=self._deferred_loop, daemon=True, name="HLCore-deferred")
+                self._deferred_thread.start()
+        return True
 
     def _defer_unreadable_truth(self, fill: LeaderFill, intent: Intent, merged_ids: List[str]) -> bool:
         """A fill whose entry was refused only because exchange truth could not be read right now (startup snapshot not
@@ -10317,8 +10398,16 @@ class LiveCopyCore:
                             cache.setdefault(str(d), (int(fnum(v[0], 0)), tuple(str(x) for x in v[1])))
             except Exception as exc:
                 log_error("scope_cache_load", exc)
+        # ENG-INV-08: a DEX that vanishes from the enumeration is NOT flat. Its last reading is retained
+        # (with the coins it held) and those coins are marked scope-unresolved below; dropping the entry
+        # here would infer flat and silently free the exposure caps for those coins.
+        _retained = self.__dict__.setdefault('_scope_retained_dexes', {})
+        for d in [x for x in _retained if x in outside]:
+            _retained.pop(d, None)   # it came back: its own reading decides again
         for gone in [d for d in cache if d not in outside]:
-            cache.pop(gone, None)
+            _gms, _gcoins = cache.pop(gone, (0, ()))
+            if _gcoins:
+                _retained[gone] = [int(_gms), [str(x) for x in _gcoins]]
         fresh_ms = int(fnum(os.getenv("HL_LIVE_SCOPE_DEX_FRESH_SEC"), 240.0) * 1000)
         todo = [d for d in outside if started - cache.get(d, (0, ()))[0] > fresh_ms]
         workers = max(1, min(8, int(fnum(os.getenv("HL_LIVE_READ_CONCURRENCY"), 8))))
@@ -10376,6 +10465,24 @@ class LiveCopyCore:
             res = {"ok": True, "held": held, "dex_count": len(enum["dexes"]), "outside_count": len(outside),
                    "ms": min([cache[d][0] for d in outside], default=started), "duration_ms": now - started,
                    "retried_failures": len(failures)}
+        # ENG-INV-08: scope truth is UNRESOLVED for every coin whose DEX could not be read (stale) or has
+        # vanished from the enumeration while still remembered as holding it. Never inferred flat.
+        _unres = {}
+        for d, (_ms, _coins) in cache.items():
+            if d in outside and now - _ms > max_age:
+                for c in _coins:
+                    _unres[str(c).upper()] = d
+        for d, (_ms, _coins) in self.__dict__.get('_scope_retained_dexes', {}).items():
+            for c in _coins:
+                _unres[str(c).upper()] = d
+        self._scope_unresolved_coins = _unres
+        res['scope_unresolved'] = sorted(_unres)
+        res['scope_retained_dexes'] = sorted(self.__dict__.get('_scope_retained_dexes', {}))
+        if _unres:   # alert whenever scope truth is unresolved, even if this sweep itself was clean
+            try:
+                self._stale_held_alert(_unres, res)
+            except Exception as exc:
+                log_error('stale_held_alert', exc)
         self._scope_sweep_note(res)
         return res
 

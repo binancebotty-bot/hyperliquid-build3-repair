@@ -813,7 +813,7 @@
    "id": "ENG-INV-08",
    "area": "ENGINE",
    "feature": "Build 3 invariant 8",
-   "expected_behaviour": "Startup/recovery truth includes all relevant perp DEX scopes (default + HIP-3/builder); missing required scope fails closed.",
+   "expected_behaviour": "Startup/recovery truth includes all relevant perp DEX scopes (default + HIP-3/builder). A required scope that is stale, or that vanishes while remembered as holding exposure, does NOT hard-block and flat is never inferred: the last-known nonzero exposure is retained, scope truth is marked unresolved, an alert row is written, an exposure-increasing entry (ENTRY/ADD) on that coin is HELD and replayed when fresh scope truth returns (released to the normal path after the hold cap), and exits/reductions always pass.",
    "sources": [
     "hyperliquid-build3-repair/ARCHITECTURE.md",
     "ARCH inv8",
