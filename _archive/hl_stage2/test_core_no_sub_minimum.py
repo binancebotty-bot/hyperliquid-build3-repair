@@ -3,8 +3,9 @@
 
 Rule (a) reduce-to-zero: a reduction that would leave a sub-minimum remainder closes the whole remainder.
 Rule (b) no dust entries: an entry/add whose size-down trim would fall below the minimum is skipped, never sent.
-Rule (c) sub-minimum remainder: a sleeve below the minimum is always a whole-close candidate, even while its
-leader still holds the same side, and the audit row names the cause SUB_MINIMUM_REMAINDER.
+Rule (c) sub-minimum remainder: a sleeve below the minimum is a whole-close candidate. Under a LIVE leader it closes
+whole only when it is a PARTIAL-FILL REMAINDER (entered under the minimum); one that fell below from price alone closes
+whole only once its leader has left (Claude 6299805835 #4). The audit row names the cause.
 
 Drives the real engine (IntentBuilder.build/_decision, SenderGateway._close_wire_plan, LiveCopyCore._converge_candidate).
 Offline only: no orders, no keys, no network. Run: HL_LIVE_ENV_FILE=/nonexistent python test_core_no_sub_minimum.py
@@ -105,17 +106,40 @@ check("A_PARTIAL_FILL_LAG_CLOSES_WHOLE_REMAINDER", abs(sz - 12.0) < 1e-9 and ro 
 # ---------------------------------------------------------------- rule (c) (LiveCopyCore._converge_candidate)
 stub = SimpleNamespace(cfg=SimpleNamespace(min_notional=lambda: MIN))
 _cand_fn = getattr(c.LiveCopyCore, "_converge_candidate", None)
-cand = lambda size, px, lead: (_cand_fn(stub, size, px, lead) if _cand_fn else (False, "MISSING"))
-# sub-minimum sleeve is a candidate even while the leader still holds the same side
-ok_, reason = cand(0.05, 100.0, +5.0)
-check("C_SUBMIN_SLEEVE_IS_CANDIDATE", ok_ is True and reason == "SUB_MINIMUM_REMAINDER", (ok_, reason))
+def cand(size, px, lead, epx=0.0):
+    if _cand_fn is None:
+        return False, "MISSING"
+    try:
+        return _cand_fn(stub, size, px, lead, epx)
+    except TypeError:  # the unpatched signature: a clean RED, never a crash
+        return False, "MISSING_SIGNATURE"
+
+# PARTIAL-FILL remainder: the entry itself never reached the minimum (0.05 @ 100 = $5), so the leader's own fill was
+# broken, not merely cheap -> close the whole sleeve though the leader still holds the same side (Claude #3)
+ok_, reason = cand(0.05, 100.0, +5.0, 100.0)
+check("C_PARTIAL_FILL_REMAINDER_IS_CANDIDATE", ok_ is True and reason == "SUB_MINIMUM_PARTIAL_FILL_REMAINDER", (ok_, reason))
+# PRICE-ONLY dust: a full-size entry (0.05 @ 240 = $12) whose mark fell to $100 is NOT closed while its leader holds
+# it (Claude #4: price-only dust closes whole only once its leader has left)
+ok_, reason = cand(0.05, 100.0, +5.0, 240.0)
+check("C_PRICE_ONLY_DUST_LEADER_HOLDS_NOT_CANDIDATE", ok_ is False and reason == "", (ok_, reason))
+# ... and that same price-only sleeve does close whole once the leader has left, flat or the other way
+ok_, reason = cand(0.05, 100.0, 0.0, 240.0)
+check("C_PRICE_ONLY_DUST_LEADER_FLAT_CLOSES", ok_ is True and reason == "LEADER_FLAT", (ok_, reason))
+ok_, reason = cand(0.05, 100.0, -5.0, 240.0)
+check("C_PRICE_ONLY_DUST_LEADER_OPPOSITE_CLOSES", ok_ is True and reason == "LEADER_OPPOSITE_SIDE", (ok_, reason))
+# an unknown entry price is price-only by default: never close a sub-minimum sleeve under a live leader
+ok_, reason = cand(0.05, 100.0, +5.0, 0.0)
+check("C_UNKNOWN_ENTRY_IS_PRICE_ONLY", ok_ is False and reason == "", (ok_, reason))
+# a partial-fill remainder whose leader has left closes with the ordinary leader reason
+ok_, reason = cand(0.05, 100.0, 0.0, 100.0)
+check("C_PARTIAL_FILL_REMAINDER_LEADER_FLAT", ok_ is True and reason == "LEADER_FLAT", (ok_, reason))
 # control: normal sleeve whose leader still holds the same side is NOT a candidate
-ok_, reason = cand(1.0, 100.0, +5.0)
-check("C_LEADER_HOLDS_NOT_CANDIDATE", ok_ is False, (ok_, reason))
+ok_, reason = cand(1.0, 100.0, +5.0, 100.0)
+check("C_LEADER_HOLDS_NOT_CANDIDATE", ok_ is False and reason == "", (ok_, reason))
 # leader flat / opposite still close a normal sleeve (unchanged behaviour)
-ok_, reason = cand(1.0, 100.0, 0.0)
+ok_, reason = cand(1.0, 100.0, 0.0, 100.0)
 check("C_LEADER_FLAT_UNCHANGED", ok_ is True and reason == "LEADER_FLAT", (ok_, reason))
-ok_, reason = cand(1.0, 100.0, -5.0)
+ok_, reason = cand(1.0, 100.0, -5.0, 100.0)
 check("C_LEADER_OPPOSITE_UNCHANGED", ok_ is True and reason == "LEADER_OPPOSITE_SIDE", (ok_, reason))
 
 print("TOTAL=%d FAILED=%d" % (len(R), R.count(False)))
