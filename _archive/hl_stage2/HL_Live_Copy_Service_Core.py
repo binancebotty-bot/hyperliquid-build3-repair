@@ -3163,7 +3163,10 @@ class ConfigManager:
 
     def max_wallet_exposure(self, wallet: str) -> float:
         wc = self.wallet_cfg(wallet)
-        return max(0.0, fnum(wc.get("max_wallet_exposure_usd", self.global_controls.get("max_wallet_exposure_usd")), 0.0))
+        global_cap = max(0.0, fnum(self.global_controls.get("max_wallet_exposure_usd"), 0.0))
+        raw_wallet_cap = wc.get("max_wallet_exposure_usd")
+        wallet_cap = max(0.0, fnum(raw_wallet_cap, global_cap))
+        return min(wallet_cap, global_cap) if global_cap > 0 else wallet_cap
 
     def max_order_notional(self) -> float:
         return max(0.0, fnum(self.global_controls.get("max_order_notional_usd"), 0.0))

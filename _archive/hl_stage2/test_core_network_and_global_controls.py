@@ -210,6 +210,21 @@ def global_controls_tests() -> None:
     check("G2_ASSET_DIRECTIONAL_COUNTS_NET_DIRECTION", d[0] == "ENTRY_ALLOWED", str(d))
     d = decide({"max_wallet_exposure_usd": 500})
     check("G3_WALLET_CAP_BLOCKS", d == ("SEND_BLOCKED_RISK", "max wallet exposure exceeded"), str(d))
+    c.atomic_write_json(c.LIVE_CONFIG_FILE, {
+        "global_controls": {"max_wallet_exposure_usd": 500},
+        "wallets": {LEADER: {"max_wallet_exposure_usd": 1000}},
+    })
+    check("G3_WALLET_OVERRIDE_CAPPED_BY_GLOBAL", c.ConfigManager().max_wallet_exposure(LEADER) == 500.0)
+    c.atomic_write_json(c.LIVE_CONFIG_FILE, {
+        "global_controls": {"max_wallet_exposure_usd": 500},
+        "wallets": {LEADER: {"max_wallet_exposure_usd": 300}},
+    })
+    check("G3_WALLET_OVERRIDE_BELOW_GLOBAL_UNCHANGED", c.ConfigManager().max_wallet_exposure(LEADER) == 300.0)
+    c.atomic_write_json(c.LIVE_CONFIG_FILE, {
+        "global_controls": {},
+        "wallets": {LEADER: {"max_wallet_exposure_usd": 1000}},
+    })
+    check("G3_WALLET_OVERRIDE_WITH_GLOBAL_UNSET", c.ConfigManager().max_wallet_exposure(LEADER) == 1000.0)
     check("G4_BLOCKLIST_BLOCKS_ENTRY", decide({"symbol_blocklist": ["BTC"]}) == ("SYMBOL_UNAVAILABLE", "SYMBOL_BLOCKED"))
     check("G5_ALLOWLIST_BLOCKS_OTHERS", decide({"symbol_allowlist": ["ETH"]}) == ("SYMBOL_UNAVAILABLE", "SYMBOL_NOT_ALLOWED"))
     check("G5_ALLOWLISTED_PASSES", decide({"symbol_allowlist": ["ETH", "BTC"]})[0] == "ENTRY_ALLOWED")
