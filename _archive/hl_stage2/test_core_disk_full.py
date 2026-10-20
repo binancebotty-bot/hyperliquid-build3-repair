@@ -27,6 +27,7 @@ Notes on two deliberate harness choices (these were once a false finding):
 from __future__ import annotations
 
 import errno
+import io
 import json
 import os
 os.environ["HL_LIVE_GATES_ALERT_ONLY"] = "0"  # this test pins the legacy blocking gates; alert-only has its own test file
@@ -34,6 +35,8 @@ import pathlib
 import re
 import sys
 import tempfile
+import threading
+import time
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -345,9 +348,9 @@ def main() -> None:
         later = exc
     check("D3_NEXT_CALL_STILL_RUNS_AFTER_A_JSON_WRITE_FAILURE",
           isinstance(later, dict) and str(later.get("status")), "next call -> %r" % (type(later).__name__,))
-    check("D2_THE_PER_CYCLE_CALLER_CONTAINS_THE_INTEGRITY_WRITE_FAILURE",
-          bool(re.search(r"try:\s*\n\s*write_live_integrity_status\(", src)),
-          "no guard around write_live_integrity_status in its per-cycle caller")
+    check("D2_THE_PER_CYCLE_CALLER_CONTAINS_THE_INTEGRITY_WRITE_SUBMISSION",
+          bool(re.search(r"try:\s*\n\s*_LIVE_INTEGRITY_WRITER\.submit\(", src)),
+          "no guard around the integrity-status worker submission in its per-cycle caller")
     saved_write = core.state_writer.write
     core.state_writer.write = lambda *a, **k: (_ for _ in ()).throw(OSError(errno.ENOSPC, "No space left on device"))
     raised_d4 = None
@@ -359,6 +362,89 @@ def main() -> None:
         core.state_writer.write = saved_write
     check("D4_STATE_WRITE_CANNOT_KILL_THE_CYCLE", raised_d4 is None,
           "run_cycle raised %r when the state write failed (the main loop does not catch it either)" % (raised_d4,))
+    # D4b: a malformed cycle-budget environment value must not escape from finally
+    # before either status writer gets a chance to publish.
+    budget_before = os.environ.get("HL_LIVE_RECON_CYCLE_BUDGET_SEC")
+    service_state_before = c.SERVICE_STATE_FILE
+    for case, budget in (("missing", None), ("invalid", "not-a-float"), ("nan", "nan")):
+        if budget is None:
+            os.environ.pop("HL_LIVE_RECON_CYCLE_BUDGET_SEC", None)
+        else:
+            os.environ["HL_LIVE_RECON_CYCLE_BUDGET_SEC"] = budget
+        c.SERVICE_STATE_FILE = tmp / ("service_state_%s.json" % case)
+        raised_d4b = None
+        try:
+            core.run_cycle(use_source_csv=False)
+        except BaseException as exc:  # noqa: BLE001
+            raised_d4b = exc
+        for writer in (getattr(core.state_writer, "_worker", None), getattr(c, "_LIVE_INTEGRITY_WRITER", None)):
+            if writer is None:
+                continue
+            worker = writer._thread
+            if worker is not None:
+                worker.join(timeout=2)
+        check("D4B_SERVICE_STATE_PUBLISHED_WITH_%s_BUDGET" % case.upper(),
+              raised_d4b is None and c.SERVICE_STATE_FILE.exists(),
+              "run_cycle raised %r; state_exists=%s" % (raised_d4b, c.SERVICE_STATE_FILE.exists()))
+    if budget_before is None:
+        os.environ.pop("HL_LIVE_RECON_CYCLE_BUDGET_SEC", None)
+    else:
+        os.environ["HL_LIVE_RECON_CYCLE_BUDGET_SEC"] = budget_before
+    c.SERVICE_STATE_FILE = service_state_before
+    # D4c: a held runtime-state lock cannot stall the cycle path or suppress its service heartbeat.
+    service_state_before = c.SERVICE_STATE_FILE
+    c.SERVICE_STATE_FILE = tmp / "service_state_runtime_lock.json"
+    old_stderr_d4c = sys.stderr
+    stderr_d4c = io.StringIO()
+    sys.stderr = stderr_d4c
+    lock_held_d4c = threading.Event()
+    lock_released_d4c = threading.Event()
+    published_before_unlock_d4c = []
+
+    def hold_runtime_state_lock():
+        c.RUNTIME_STATE_LOCK.acquire()
+        lock_held_d4c.set()
+        time.sleep(0.4)
+        published_before_unlock_d4c.append(c.SERVICE_STATE_FILE.exists())
+        c.RUNTIME_STATE_LOCK.release()
+        lock_released_d4c.set()
+
+    lock_holder_d4c = threading.Thread(target=hold_runtime_state_lock, daemon=True)
+    lock_holder_d4c.start()
+    lock_held_d4c.wait(timeout=2)
+    started_d4c = time.monotonic()
+    raised_d4c = None
+    try:
+        core.run_cycle(use_source_csv=False)
+        elapsed_d4c = time.monotonic() - started_d4c
+        lock_released_d4c.wait(timeout=2)
+        lock_holder_d4c.join(timeout=1)
+        published_under_lock = bool(published_before_unlock_d4c and published_before_unlock_d4c[0])
+        worker = getattr(getattr(core.state_writer, "_worker", None), "_thread", None)
+        if worker is not None:
+            worker.join(timeout=2)
+        lock_alerted = "[status_write_failure:live-service-state] TimeoutError" in stderr_d4c.getvalue()
+    except BaseException as exc:  # noqa: BLE001
+        raised_d4c = exc
+        elapsed_d4c = time.monotonic() - started_d4c
+        published_under_lock = False
+        lock_alerted = False
+    finally:
+        if lock_held_d4c.is_set() and not lock_released_d4c.is_set():
+            # The holder has a finite wait and will release the lock itself.
+            lock_released_d4c.wait(timeout=1)
+        sys.stderr = old_stderr_d4c
+    for writer in (getattr(core.state_writer, "_worker", None), getattr(c, "_LIVE_INTEGRITY_WRITER", None)):
+        if writer is None:
+            continue
+        worker = writer._thread
+        if worker is not None:
+            worker.join(timeout=2)
+    check("D4C_STATUS_WRITE_DOES_NOT_BLOCK_ON_RUNTIME_LOCK",
+          raised_d4c is None and elapsed_d4c < 1.0 and published_under_lock and lock_alerted,
+          "run_cycle raised %r after %.3fs; service_published_while_lock_held=%s; lock_alerted=%s" %
+          (raised_d4c, elapsed_d4c, published_under_lock, lock_alerted))
+    c.SERVICE_STATE_FILE = service_state_before
     # D5: the run_cycle call inside the engine loop must sit under a handler that catches a failing cycle
     # (a bare try/.../finally with no except lets one bad cycle end the process).
     _i = src.rindex("summary = core.run_cycle(")
