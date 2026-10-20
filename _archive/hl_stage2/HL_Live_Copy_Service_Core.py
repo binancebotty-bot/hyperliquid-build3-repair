@@ -5418,6 +5418,116 @@ class SenderGateway:
                 notes=f"{notes}; recovery_error={repr(exc)}; original_ioc_response={json.dumps(response, default=str)}",
             )
 
+    def _resolve_ambiguous_send_outcome(
+        self, sdk_coin: str, intent: Intent, cloid: str, wire_size: float, limit_px: float,
+        reduce_only: bool, error_text: str, timing: Dict[str, Any],
+    ) -> Optional[Tuple[bool, str, Dict[str, Any]]]:
+        """Readiness 1: an ambiguous send (timeout / unreadable reply) must resolve the ORIGINAL order by
+        cloid BEFORE any retry. Returns a result tuple when the original landed (open/filled) or when the
+        resolution itself is unreadable (hold + alert); None means the original is definitively NOT on the
+        exchange (cancelled) -> the caller may retry once. This method never places an order."""
+        cl = str(cloid or "").strip().lower()
+        if not cl:
+            return self._ambiguous_send_hold(intent, cloid, wire_size, limit_px, reduce_only,
+                                             "no cloid recorded for this send", error_text, timing)
+        try:
+            res = _XNET.post_many(
+                OPEN_ORDERS_FETCHER,
+                [{"type": "orderStatus", "user": USER_WALLET, "oid": cl}],
+                HL_INFO_URL, HTTP_TIMEOUT_SEC,
+            )[0]
+        except Exception as exc:
+            return self._ambiguous_send_hold(intent, cloid, wire_size, limit_px, reduce_only,
+                                             f"orderStatus read raised {exc!r}", error_text, timing)
+        if not (isinstance(res, dict) and res.get("ok")):
+            detail = res.get("detail") if isinstance(res, dict) else res
+            return self._ambiguous_send_hold(intent, cloid, wire_size, limit_px, reduce_only,
+                                             f"orderStatus unreadable: {detail}", error_text, timing)
+        data = res.get("data") if isinstance(res.get("data"), dict) else {}
+        order_row = data.get("order") if isinstance(data.get("order"), dict) else {}
+        status = str(order_row.get("status") or "").strip().lower()
+        order = order_row.get("order") if isinstance(order_row.get("order"), dict) else {}
+        oid = str(order.get("oid") or order_row.get("oid") or "").strip()
+        px = fnum(order.get("limitPx"), limit_px)
+        # fills for this cloid: secondary confirmation of a fill the orderStatus alone cannot prove
+        try:
+            fills, fills_status = _read_all_copy_fills(
+                int(fnum(timing.get("send_real_started_ms"), 0)) - 5000, utc_now_ms() + 5000)
+        except Exception as exc:
+            return self._ambiguous_send_hold(intent, cloid, wire_size, limit_px, reduce_only,
+                                             f"fills read raised {exc!r}", error_text, timing)
+        if fills_status != "FILLS_COMPLETE":
+            return self._ambiguous_send_hold(intent, cloid, wire_size, limit_px, reduce_only,
+                                             f"fills unreadable: {fills_status}", error_text, timing)
+        fill = next((f for f in fills
+                     if str(f.get("cloid") or f.get("clientOrderId") or "").strip().lower() == cl), None)
+        if fill is not None:
+            return self._ambiguous_send_landed(
+                intent, sdk_coin, cloid, wire_size, fnum(fill.get("px"), px), reduce_only,
+                "filled", oid or str(fill.get("oid") or ""), error_text, timing,
+                "a fill carries the original order's cloid")
+        if status == "open":
+            if not oid:
+                return self._ambiguous_send_hold(intent, cloid, wire_size, limit_px, reduce_only,
+                                                 "orderStatus says open but returned no order id", error_text, timing)
+            return self._ambiguous_send_landed(
+                intent, sdk_coin, cloid, wire_size, px, reduce_only, "open", oid, error_text, timing,
+                "the original order is still open on the exchange")
+        if status == "filled":
+            return self._ambiguous_send_landed(
+                intent, sdk_coin, cloid, wire_size, limit_px, reduce_only, "filled", oid, error_text, timing,
+                "the exchange reports the original order filled")
+        if status in {"canceled", "cancelled"}:
+            return None  # definitively not on the exchange: the caller may retry once
+        return self._ambiguous_send_hold(
+            intent, cloid, wire_size, limit_px, reduce_only,
+            f"order status {status or 'unknown'!r} is not a definitive answer", error_text, timing)
+
+    def _ambiguous_send_landed(self, intent: Intent, sdk_coin: str, cloid: str, wire_size: float, px: float,
+                                reduce_only: bool, outcome: str, oid: str, error_text: str,
+                                timing: Dict[str, Any], why: str) -> Tuple[bool, str, Dict[str, Any]]:
+        note = (f"ambiguous send ({error_text}); the ORIGINAL order was found {outcome} on the exchange by "
+                f"cloid={cloid} ({why}); no resend")
+        if outcome == "open" and oid:
+            self._register_resting_entry(intent, sdk_coin, oid, px, wire_size,
+                                         "ambiguous send resolved resting by cloid")
+        return True, ("ORDER_RESTING" if outcome == "open" else "ORDER_FILLED"), {
+            "exchange_response": {"status": "ok", "response": {"type": "orderStatus",
+                                                               "data": {"order": {"order": {"oid": oid},
+                                                                                  "status": outcome}}}},
+            "oid": oid, "limit_px": px, "wire_size": wire_size, "copy_notional": abs(wire_size * px),
+            "exchange_called": True, "error": error_text, "timing": timing,
+            "reject_category": "RATE_LIMIT_OR_TIMEOUT",
+            "terminal_state": "ENTRY_LIMIT_RESTING_AMBIGUOUS_SEND" if outcome == "open" else "FILLED_AMBIGUOUS_SEND",
+            "operator_action": "WAIT_FOR_COPY_POLL",
+            "order_type": "REAL_IOC_AMBIGUOUS_RESOLVED",
+            "reduce_only_sent": reduce_only, "notes": note,
+        }
+
+    def _ambiguous_send_hold(self, intent: Intent, cloid: str, wire_size: float, limit_px: float,
+                             reduce_only: bool, detail: str, error_text: str,
+                             timing: Dict[str, Any]) -> Tuple[bool, str, Dict[str, Any]]:
+        note = (f"ambiguous send ({error_text}); the ORIGINAL order's outcome could NOT be resolved by "
+                f"cloid={cloid} ({detail}); NO resend, NO retry: check the exchange for this cloid")
+        self.audit.append_reconciliation(
+            "AMBIGUOUS_SEND", "SEND_OUTCOME_UNKNOWN_HOLD",
+            leader_wallet=intent.fill.leader_wallet, leader_fill_id=intent.fill.leader_fill_id,
+            intent_id=intent.intent_id, coin=intent.fill.coin,
+            action="MANUAL_REVIEW_CHECK_ORDER_BY_CLOID",
+            reject_category="RATE_LIMIT_OR_TIMEOUT",
+            terminal_state="SEND_OUTCOME_UNKNOWN_HOLD", engine_can_send="False",
+            notes=note,
+        )
+        return False, "EXCHANGE_ERROR", {
+            "exchange_response": {}, "oid": "", "limit_px": limit_px, "wire_size": wire_size,
+            "copy_notional": abs(wire_size * limit_px),
+            "exchange_called": True, "error": error_text, "timing": timing,
+            "reject_category": "RATE_LIMIT_OR_TIMEOUT", "reduce_only_sent": reduce_only,
+            "terminal_state": "SEND_OUTCOME_UNKNOWN_HOLD",
+            "operator_action": "MANUAL_REVIEW_CHECK_ORDER_BY_CLOID",
+            "notes": note,
+        }
+
     def _entry_add_rate_limit_recovery(
         self,
         exchange: Any,
@@ -6439,6 +6549,13 @@ class SenderGateway:
                     "reduce_only_sent": False, "notes": detail,
                 }
             if reject_category == "RATE_LIMIT_OR_TIMEOUT":
+                # Readiness 1: resolve the ORIGINAL order by cloid first. Only a definitive "not on the
+                # exchange" answer lets the one recovery retry run; a landed order is reported as-is and an
+                # unreadable resolution holds + alerts instead of blind-resending.
+                resolved_outcome = self._resolve_ambiguous_send_outcome(
+                    sdk_coin, intent, cloid, wire_size, limit_px, use_reduce_only, error_text, timing)
+                if resolved_outcome is not None:
+                    return resolved_outcome
                 recovery = self._entry_add_rate_limit_recovery(
                     exchange,
                     sdk_coin,
