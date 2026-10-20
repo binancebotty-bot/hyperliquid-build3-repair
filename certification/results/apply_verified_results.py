@@ -722,8 +722,55 @@ V = {
     "UI-TRUTH-001": ("PASS", "certification/results/UI_CORRECTION_2d29211.json", "2d29211148c9ba8498bade2d5791ed908f193708", "2026-10-14T11:49:07Z", "All checks pass"),
     "UI-TRUTH-002": ("PASS", "certification/results/UI_CORRECTION_2d29211.json", "2d29211148c9ba8498bade2d5791ed908f193708", "2026-10-14T11:49:07Z", "All checks pass"),
     "UI-TRUTH-003": ("FAIL", "certification/results/UI_CORRECTION_2d29211.json", "2d29211148c9ba8498bade2d5791ed908f193708", "2026-10-14T11:49:07Z", "Same as source: UI should be read-only observer"),
-    "UI-TRUTH-004": ("PASS", "certification/results/UI_CORRECTION_2d29211.json", "2d29211148c9ba8498bade2d5791ed908f193708", "2026-10-14T11:49:07Z", "All checks pass"),
+    # ORDER rows <- certification/results/ORDER_CORRECTION_fefc2b04.json
+    # (verdict per artifact: 5 FAIL, 1 PARTIAL; PARTIAL maps to FAIL since the
+    #  matrix schema has no PARTIAL and the feature is not fully established;
+    #  ORDER overall summary = FAIL)
+    "ORD-001": ("FAIL", "certification/results/ORDER_CORRECTION_fefc2b04.json", "fefc2b04261c734bb32c767d2cc4a91095e65843", "2026-10-14T13:02:08.351679+00:00", "Artifact verdict FAIL: 2/5 gate checks failed (no exchange.order() calls observed via double). 3/5 gate logic checks pass. exchange_truth NOT_ESTABLISHED (follower wallet absent on testnet)."),
+    "ORD-002": ("FAIL", "certification/results/ORDER_CORRECTION_fefc2b04.json", "fefc2b04261c734bb32c767d2cc4a91095e65843", "2026-10-14T13:02:08.351679+00:00", "Artifact verdict FAIL: 1/4 gate logic checks pass. exchange_truth NOT_ESTABLISHED (follower wallet absent on testnet)."),
+    "ORD-005": ("FAIL", "certification/results/ORDER_CORRECTION_fefc2b04.json", "fefc2b04261c734bb32c767d2cc4a91095e65843", "2026-10-14T13:02:08.351679+00:00", "Artifact verdict PARTIAL -> mapped to FAIL (matrix schema has no PARTIAL; feature not fully established; ORDER overall=FAIL). gateway logic partial; exchange_truth NOT_ESTABLISHED."),
+    "ORD-006": ("FAIL", "certification/results/ORDER_CORRECTION_fefc2b04.json", "fefc2b04261c734bb32c767d2cc4a91095e65843", "2026-10-14T13:02:08.351679+00:00", "Artifact verdict FAIL: reservation gate not proven via double. exchange_truth NOT_ESTABLISHED (follower wallet absent on testnet)."),
+    "ORD-008": ("FAIL", "certification/results/ORDER_CORRECTION_fefc2b04.json", "fefc2b04261c734bb32c767d2cc4a91095e65843", "2026-10-14T13:02:08.351679+00:00", "Artifact verdict FAIL: preflight gate not proven via double. exchange_truth NOT_ESTABLISHED (follower wallet absent on testnet)."),
+    "TN-F05": ("FAIL", "certification/results/ORDER_CORRECTION_fefc2b04.json", "fefc2b04261c734bb32c767d2cc4a91095e65843", "2026-10-14T13:02:08.351679+00:00", "Artifact verdict FAIL: sub-minimum notional escape not established. OD-09 open decision. exchange_truth NOT_ESTABLISHED."),
 
+    # PRICING rows <- certification/results/PRICING_CORRECTION_fefc2b04.json
+    # (cross-check PRICING_CORRECTION_2d29211148.json: same 5 rows, same verdicts)
+    # All 5 PARTIAL -> mapped to FAIL (matrix schema has no PARTIAL;
+    #  exchange_truth NOT_ESTABLISHED, follower wallet absent on testnet;
+    #  PRICING overall summary = PARTIAL/FAIL, gate_logic passes but mark
+    #  not validated against exchange truth).
+    "PRICE-001": ("FAIL", "certification/results/PRICING_CORRECTION_fefc2b04.json", "4f2efc4932ed641591644033891e3795bf3060aa", "2026-10-14T12:24:01Z", "Artifact verdict PARTIAL -> mapped to FAIL (matrix has no PARTIAL; mark freshness gate logic proven via double but exchange_truth NOT_ESTABLISHED; follower wallet absent on testnet)."),
+    "PRICE-002": ("FAIL", "certification/results/PRICING_CORRECTION_fefc2b04.json", "4f2efc4932ed641591644033891e3795bf3060aa", "2026-10-14T12:24:01Z", "Artifact verdict PARTIAL -> mapped to FAIL (matrix has no PARTIAL; quote TTL gate proven via double but exchange_truth NOT_ESTABLISHED; follower wallet absent on testnet)."),
+    "PRICE-005": ("FAIL", "certification/results/PRICING_CORRECTION_fefc2b04.json", "4f2efc4932ed641591644033891e3795bf3060aa", "2026-10-14T12:24:01Z", "Artifact verdict PARTIAL -> mapped to FAIL (matrix has no PARTIAL; entry-protection-does-not-block-reduction gate proven via double but exchange_truth NOT_ESTABLISHED; follower wallet absent on testnet)."),
+    "PRICE-006": ("FAIL", "certification/results/PRICING_CORRECTION_fefc2b04.json", "4f2efc4932ed641591644033891e3795bf3060aa", "2026-10-14T12:24:01Z", "Artifact verdict PARTIAL -> mapped to FAIL (matrix has no PARTIAL; adverse-diff measure gate proven via double but exchange_truth NOT_ESTABLISHED; follower wallet absent on testnet)."),
+    "PRICE-007": ("FAIL", "certification/results/PRICING_CORRECTION_fefc2b04.json", "4f2efc4932ed641591644033891e3795bf3060aa", "2026-10-14T12:24:01Z", "Artifact verdict PARTIAL -> mapped to FAIL (matrix has no PARTIAL; marketable-slippage gate proven via double but exchange_truth NOT_ESTABLISHED; follower wallet absent on testnet)."),
+
+    # NLS rows <- certification/results/NLS_RESIDUAL_2a269ad226.json
+    # (verdict per artifact result field: 5 FAIL, 1 PASS)
+    "TN-F09": ("FAIL", "certification/results/NLS_RESIDUAL_2a269ad226.json", "2a269ad2260270fee844eedc2cc23545abc91dd0", "2026-10-14T13:00:00Z", "Artifact result FAIL: 4/5 checks passed; LOAD_PRESERVES_DEX_PREFIX failed (sdk_coin=None). Testnet XYZ markets absent; k-prefix analogue used. 1 non-vacuous negative."),
+    "TN-F10": ("FAIL", "certification/results/NLS_RESIDUAL_2a269ad226.json", "2a269ad2260270fee844eedc2cc23545abc91dd0", "2026-10-14T13:00:00Z", "Artifact result FAIL: 3/4 checks passed; ambiguous-intent resolution not established. 3 negative tests (1 non-vacuous). APPLIES_PROPOSED."),
+    "TN-F11": ("FAIL", "certification/results/NLS_RESIDUAL_2a269ad226.json", "2a269ad2260270fee844eedc2cc23545abc91dd0", "2026-10-14T13:00:00Z", "Artifact result FAIL: 2/4 checks passed; ownership truth fail-open not resolved. 4 negative tests (2 non-vacuous). APPLIES_PROPOSED."),
+    "TN-F12": ("FAIL", "certification/results/NLS_RESIDUAL_2a269ad226.json", "2a269ad2260270fee844eedc2cc23545abc91dd0", "2026-10-14T13:00:00Z", "Artifact result FAIL: 3/3 checks passed but negative-test gate FAILS (non-vacuous negative failed); manual reconciliation not surfaced. APPLIES."),
+    "TN-F19": ("FAIL", "certification/results/NLS_RESIDUAL_2a269ad226.json", "2a269ad2260270fee844eedc2cc23545abc91dd0", "2026-10-14T13:00:00Z", "Artifact result FAIL: 5/6 checks passed; MOCK_START_NO_REAL_ORDERS failed (mock_sent=0). 2/3 negatives non-vacuous. STARTUP_UNINTENDED_ORDERS not established."),
+    "TN-F18": ("PASS", "certification/results/NLS_RESIDUAL_2a269ad226.json", "2a269ad2260270fee844eedc2cc23545abc91dd0", "2026-10-14T13:00:00Z", "Artifact result PASS: 9/9 checks, 0 failed, fill-id keying proven (HL_FILL:<oid>:<tid>:WALLET:<addr>). 4 non-vacuous negatives pass."),
+
+    # REGRESSION rows <- certification/results/REGRESSION_fa9d9f55ff.json
+    # (artifact verdict: pass=False, category=ui-visibility-blocked,
+    #  failed_checks=0 but individual checks pass=true. The pass field is
+    #  False while failed_checks=0 -> internally contradictory verdict.
+    #  Artifact summary separates fail=0 / ui_visibility_blocked=7, i.e. the
+    #  author intent is BLOCKED (blocked, not failed). Mapped to BLOCKED:
+    #  checks do not fail, but UI-visibility gate cannot be established at
+    #  this commit; no engine re-run performed.)
+    "INC-01": ("BLOCKED", "certification/results/REGRESSION_fa9d9f55ff.json", "fa9d9f55fffa74cb6888c471d97d1655267999b6", "2026-10-14T09:53:11.604904+00:00", "Artifact verdict BLOCKED (ui-visibility-blocked, failed_checks=0 but pass=False): 1/1 check passes but row blocked by UI-visibility gate. No engine re-run."),
+    "INC-03": ("BLOCKED", "certification/results/REGRESSION_fa9d9f55ff.json", "fa9d9f55fffa74cb6888c471d97d1655267999b6", "2026-10-14T09:53:11.604904+00:00", "Artifact verdict BLOCKED (ui-visibility-blocked, failed_checks=0 but pass=False): 1/1 check passes but row blocked by UI-visibility gate. No engine re-run."),
+    "INC-10": ("BLOCKED", "certification/results/REGRESSION_fa9d9f55ff.json", "fa9d9f55fffa74cb6888c471d97d1655267999b6", "2026-10-14T09:53:11.604904+00:00", "Artifact verdict BLOCKED (ui-visibility-blocked, failed_checks=0 but pass=False): 1/1 check passes but row blocked by UI-visibility gate. No engine re-run."),
+    "F-UI-001": ("BLOCKED", "certification/results/REGRESSION_fa9d9f55ff.json", "fa9d9f55fffa74cb6888c471d97d1655267999b6", "2026-10-14T09:53:11.604904+00:00", "Artifact verdict BLOCKED (ui-visibility-blocked, failed_checks=0 but pass=False): 1/1 check passes but row blocked by UI-visibility gate. No engine re-run."),
+    "F-UI-002": ("BLOCKED", "certification/results/REGRESSION_fa9d9f55ff.json", "fa9d9f55fffa74cb6888c471d97d1655267999b6", "2026-10-14T09:53:11.604904+00:00", "Artifact verdict BLOCKED (ui-visibility-blocked, failed_checks=0 but pass=False): 1/1 check passes but row blocked by UI-visibility gate. No engine re-run."),
+    "F-UI-003": ("BLOCKED", "certification/results/REGRESSION_fa9d9f55ff.json", "fa9d9f55fffa74cb6888c471d97d1655267999b6", "2026-10-14T09:53:11.604904+00:00", "Artifact verdict BLOCKED (ui-visibility-blocked, failed_checks=0 but pass=False): 1/1 check passes but row blocked by UI-visibility gate. No engine re-run."),
+    "F-EXC-016": ("BLOCKED", "certification/results/REGRESSION_fa9d9f55ff.json", "fa9d9f55fffa74cb6888c471d97d1655267999b6", "2026-10-14T09:53:11.604904+00:00", "Artifact verdict BLOCKED (ui-visibility-blocked, failed_checks=0 but pass=False): 1/1 check passes but row blocked by UI-visibility gate. No engine re-run."),
+
+    # CONTROL row DONE-10: DO NOT promote (human LIVE/mainnet gate, no operator ruling).
 }
 
 
