@@ -1,0 +1,9 @@
+{
+  "verifier": "gpt-6-luna",
+  "tested_commit": "5b975f0f258a996a8525d881283a52e8525aa38b",
+  "evidence": "certification/results/ENG_INV_07_rowbound_t_098ae4c4.json",
+  "verdict": "PASS",
+  "method": "Fresh detached clone at the full tested commit; executed the committed ManualLedger sleeve accessor methods in isolated memory and checked independent wallet and coin dimensions.",
+  "negative_control": "RED: forcing every wallet into one shared by_wallet key caused wallet-A BTC to read back wallet-B's 9.5 instead of its 1.25; the unmutated tree was GREEN.",
+  "card": "t_098ae4c4"
+}

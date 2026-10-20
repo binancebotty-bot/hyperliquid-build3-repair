@@ -1,0 +1,21 @@
+{
+  "card": "t_098ae4c4",
+  "row": "ENG-INV-07",
+  "result": "PASS",
+  "probe": {
+    "source": "_archive/hl_stage2/HL_Live_Copy_Service_Core.py",
+    "scope": "Extracted and executed the committed ManualLedger.sleeve_id, sleeve, and wallet_coin_position methods with isolated in-memory state; no engine imports, file writes, or network calls.",
+    "baseline": {"wallet_a_btc": 1.25, "wallet_b_btc": 9.5, "wallet_a_eth": -2.0, "distinct_ids_wallets": true, "distinct_ids_coins": true},
+    "negative_control": {"mutation": "Changed by_wallet.setdefault(w, {}) to by_wallet.setdefault('SHARED', {}) in the extracted sleeve method.", "observed": {"wallet_a_btc": 9.5, "wallet_b_btc": 9.5, "wallet_a_eth": -2.0, "distinct_ids_wallets": true, "distinct_ids_coins": true}, "red": true}
+  },
+  "provenance": {
+    "command": "python C:/Users/wigmore/.hermes/cache/scratch/eng_inv07_probe.py C:/Users/wigmore/.hermes/cache/scratch/eng_inv07_t_098ae4c4/_archive/hl_stage2/HL_Live_Copy_Service_Core.py",
+    "exit_code": 0,
+    "repo_sha": "5b975f0f258a996a8525d881283a52e8525aa38b",
+    "timestamp_utc": "2026-10-20T20:22:05.776020+00:00",
+    "python_version": "3.14.7 (MSC v.1944 64 bit (AMD64), Sep 1 2026, 14:17:30)",
+    "card": "t_098ae4c4",
+    "fresh_clone": true,
+    "clone_checkout": "detached at 5b975f0f258a996a8525d881283a52e8525aa38b"
+  }
+}

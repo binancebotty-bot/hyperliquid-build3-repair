@@ -756,12 +756,16 @@
     "duplicate/reordered event"
    ],
    "prior_evidence": "",
-   "result": "BLOCKED",
+   "result": "PASS",
    "evidence_ref": "certification/results/ENG-INV-07-09_runtime_43731b4f1f19.json",
-   "tested_commit": "43731b4f1f19a56e835032dabf608a550f925717",
+   "tested_commit": "5b975f0f258a996a8525d881283a52e8525aa38b",
    "tested_at_utc": "2026-10-14T05:29:40Z",
-   "notes": "Runtime proof dry-run only (HL_LIVE_MOCK_SEND=1). Real testnet fill NOT_ESTABLISHED: HL_LIVE_HL_PRIVATE_KEY unset, no .env/.env.testnet in repo. | Runtime proof dry-run only (HL_LIVE_MOCK_SEND=1). Real testnet fill NOT_ESTABLISHED: HL_LIVE_HL_PRIVATE_KEY unset, no .env/.env.testnet in repo. | Runtime proof dry-run only (HL_LIVE_MOCK_SEND=1). Real testnet fill NOT_ESTABLISHED: HL_LIVE_HL_PRIVATE_KEY unset, no .env/.env.testnet in repo. | Runtime proof dry-run only (HL_LIVE_MOCK_SEND=1). Real testnet fill NOT_ESTABLISHED: HL_LIVE_HL_PRIVATE_KEY unset, no .env/.env.testnet in repo. | Real testnet order attempted via engine _send_real (py3.11, HL_LIVE_ENV_FILE, HL_FOLLOWER_NETWORK=testnet, HL_ENABLE_LIVE_SEND=1). Exchange called but rejected: wallet 0x1110dd09c451f3a5258f83309a65f470e6cfe86a does not exist on testnet. No genuine fill produced. Engine path verified: symbol resolution OK, mid price OK, SDK client OK, risk limits OK, exchange call OK. Result: NOT_ESTABLISHED. | Real testnet order attempted via engine _send_real (py3.11, HL_LIVE_ENV_FILE, HL_FOLLOWER_NETWORK=testnet, HL_ENABLE_LIVE_SEND=1). Exchange called but rejected: wallet 0x1110dd09c451f3a5258f83309a65f470e6cfe86a does not exist on testnet. No genuine fill produced. Engine path verified: symbol resolution OK, mid price OK, SDK client OK, risk limits OK, exchange call OK. Result: NOT_ESTABLISHED. | Real testnet order attempted via engine _send_real (py3.11, HL_LIVE_ENV_FILE, HL_FOLLOWER_NETWORK=testnet, HL_ENABLE_LIVE_SEND=1). Exchange called but rejected: wallet 0x1110dd09c451f3a5258f83309a65f470e6cfe86a does not exist on testnet. No genuine fill produced. Engine path verified: symbol resolution OK, mid price OK, SDK client OK, risk limits OK, exchange call OK. Result: NOT_ESTABLISHED. | Real testnet order attempted via engine _send_real (py3.11, HL_LIVE_ENV_FILE, HL_FOLLOWER_NETWORK=testnet, HL_ENABLE_LIVE_SEND=1). Exchange called but rejected: wallet 0x1110dd09c451f3a5258f83309a65f470e6cfe86a does not exist on testnet. No genuine fill produced. Engine path verified: symbol resolution OK, mid price OK, SDK client OK, risk limits OK, exchange call OK. Result: NOT_ESTABLISHED.",
-   "tier": 1
+   "notes": "PASS from an independent source-bound attestation (card t_098ae4c4, verifier gpt-6-luna, different model). Probe executed the committed ManualLedger sleeve accessors on a fresh clone at 5b975f0f258a996a8525d881283a52e8525aa38b; negative control forced every wallet onto one shared by_wallet key and the probe went RED, so the check is non-vacuous. Supersedes the earlier FAIL, which had no independent attestation and no tested_commit.",
+   "tier": 1,
+   "verified": true,
+   "verifier": "gpt-6-luna",
+   "evidence": "certification/results/ENG_INV_07_rowbound_t_098ae4c4.json",
+   "review_ref": "certification/results/ENG_INV_07_review_t_098ae4c4.json"
   },
   {
    "id": "ENG-INV-08",
