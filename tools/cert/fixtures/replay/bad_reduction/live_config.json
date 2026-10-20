@@ -1,0 +1,8 @@
+{
+ "global_controls": {
+  "max_order_notional_usd": 500.0,
+  "max_total_live_exposure_usd": 1000.0,
+  "max_asset_directional_exposure_usd": 1000.0
+ },
+ "auto_send_enabled": true
+}

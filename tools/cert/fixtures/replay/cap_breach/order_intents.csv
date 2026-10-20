@@ -1,0 +1,3 @@
+created_at_ms,intent_id,leader_fill_id,coin,copy_side,copy_size,copy_notional,leader_price,decision,notes
+1,i1,f1,BTC,BUY,0.001,1000.0,100000,ENTRY_ALLOWED,lifecycle=ENTRY
+2,i2,f2,BTC,SELL,0.001,100.0,100000,EXIT_ALLOWED,lifecycle=EXIT

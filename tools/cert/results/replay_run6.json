@@ -1,0 +1,46 @@
+{
+ "aggregate": "NOT_EXERCISED",
+ "caps": {
+  "asset": 0.0,
+  "order": 0.0,
+  "total": 0.0
+ },
+ "checks": {
+  "CAPS_NOT_EXCEEDED": {
+   "exempt": 0,
+   "fail": 0,
+   "failures": [],
+   "note": "ALL_CAPS_OFF (0 = off in this run): NOT_EXERCISED, not a pass",
+   "pass": 0,
+   "verdict": "NOT_EXERCISED"
+  },
+  "NO_DOUBLE_SEND": {
+   "exempt": 0,
+   "fail": 0,
+   "failures": [],
+   "pass": 4983,
+   "verdict": "PASS"
+  },
+  "ONE_TERMINAL_ROW": {
+   "exempt": 58182,
+   "fail": 0,
+   "failures": [],
+   "pass": 4896,
+   "verdict": "PASS"
+  },
+  "REDUCTIONS_PASS": {
+   "exempt": 2144,
+   "fail": 0,
+   "failures": [],
+   "pass": 1086,
+   "verdict": "PASS"
+  }
+ },
+ "inputs": {
+  "intents": 63284,
+  "leader_fills": 63071,
+  "live_fills": 2287,
+  "run_dir": "C:\\Users\\wigmore\\trading_stack\\hl-build3-testnet-cert-evidence\\replay_snapshot_run6",
+  "send_attempts": 10053
+ }
+}
