@@ -315,10 +315,16 @@ def restart_retry_probe():
     w.core._daily_pnl = (None, 0)
     retry_sent, retry_status, _ = w.deliver(w.core, c.LeaderFill(
         fill.leader_fill_id, LEADER, 'BTC', 'BUY', 100.0, 1.0, fill.timestamp_ms, 'WS_CAPTURED'))
+    # Same-instance only: SEND_ATTEMPTS_CSV is the restart seed (Core 6018), and a blocked entry
+    # writes no row there, so a restart recovers the fill. Probe both so the print is not alarmist.
+    r = w.new_core()
+    boot_sent, boot_status, _ = w.deliver(r, c.LeaderFill(
+        fill.leader_fill_id, LEADER, 'BTC', 'BUY', 100.0, 1.0, fill.timestamp_ms, 'WS_CAPTURED'))
     return {'blocked_sent': blocked_sent, 'blocked_status': blocked_status,
             'blocked_orders': blocked_orders, 'retry_sent': bool(retry_sent),
             'retry_status': retry_status,
-            'missed_forever': bool(blocked_orders == 0 and not retry_sent)}
+            'missed_in_session': bool(blocked_orders == 0 and not retry_sent),
+            'recovers_on_restart': bool(boot_sent and boot_status == 'ORDER_FILLED')}
 
 
 def main():
