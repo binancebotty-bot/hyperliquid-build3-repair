@@ -9,7 +9,7 @@ from __future__ import annotations
 import json
 import os
 import socket
-import subprocess
+import struct
 import threading
 import time
 from collections import deque
@@ -32,6 +32,69 @@ _ACTIONS = {
 FOREIGN_SCAN_SEC = float(os.getenv("HL_LIVE_FOREIGN_WS_SCAN_SEC", "30"))
 
 
+def _established_tcp():
+    """(pid, remote_ip, remote_port) for ESTABLISHED IPv4 TCP sockets. Stdlib only, no subprocess."""
+    if os.name == "nt":
+        import ctypes
+        import ctypes.wintypes as w
+        AF_INET, OWNER_PID, ESTAB = 2, 4, 5
+        size = w.DWORD(0)
+        get = ctypes.windll.iphlpapi.GetExtendedTcpTable
+        get(None, ctypes.byref(size), False, AF_INET, OWNER_PID, 0)
+        buf = ctypes.create_string_buffer(size.value)
+        if get(buf, ctypes.byref(size), False, AF_INET, OWNER_PID, 0) != 0:
+            raise OSError("GetExtendedTcpTable")
+        rows = ctypes.cast(buf, ctypes.POINTER(w.DWORD))[0]
+        base = ctypes.addressof(buf) + ctypes.sizeof(w.DWORD)
+        step = ctypes.sizeof(w.DWORD) * 6
+        for i in range(rows):
+            st, _la, _lp, ra, rp, pid = (w.DWORD * 6).from_address(base + i * step)
+            if st == ESTAB and pid:
+                yield pid, socket.inet_ntoa(struct.pack("<L", ra)), socket.ntohs(rp & 0xFFFF)
+        return
+    # Linux: /proc/net/tcp carries the socket inode but no pid; resolve it through /proc/<pid>/fd.
+    want = {}
+    with open("/proc/net/tcp", encoding="ascii", errors="replace") as fh:
+        for line in fh.readlines()[1:]:
+            f = line.split()
+            if len(f) < 10 or f[3] != "01":
+                continue
+            ip_h, port_h = f[2].split(":")
+            want[int(f[9])] = (socket.inet_ntoa(struct.pack("<L", int(ip_h, 16))), int(port_h, 16))
+    for d in Path("/proc").iterdir():
+        if not d.name.isdigit():
+            continue
+        try:
+            for fd in (d / "fd").iterdir():
+                t = os.readlink(fd)
+                if t.startswith("socket:[") and int(t[8:-1]) in want:
+                    ip, port = want[int(t[8:-1])]
+                    yield int(d.name), ip, port
+        except OSError:
+            continue
+
+
+def _proc_name(pid: int) -> str:
+    """Process image name, stdlib only: QueryFullProcessImageNameW on Windows, /proc/<pid>/comm on Linux."""
+    if os.name == "nt":
+        import ctypes
+        import ctypes.wintypes as w
+        h = ctypes.windll.kernel32.OpenProcess(0x1000, False, pid)  # PROCESS_QUERY_LIMITED_INFORMATION
+        if not h:
+            return ""
+        try:
+            buf, n = ctypes.create_unicode_buffer(260), w.DWORD(260)
+            if ctypes.windll.kernel32.QueryFullProcessImageNameW(h, 0, buf, ctypes.byref(n)):
+                return os.path.basename(buf.value)
+            return ""
+        finally:
+            ctypes.windll.kernel32.CloseHandle(h)
+    try:
+        return Path("/proc/%d/comm" % pid).read_text(encoding="ascii").strip()
+    except OSError:
+        return ""
+
+
 def scan_foreign_ws(ws_url: str, own_pid: Optional[int] = None) -> Dict[str, Any]:
     """Other local processes holding an established connection to the Hyperliquid WebSocket host (they share this IP's
     user/connection quota). Read-only: asks the OS for its connection table; touches no other process. {"ok": False}
@@ -44,27 +107,10 @@ def scan_foreign_ws(ws_url: str, own_pid: Optional[int] = None) -> Dict[str, Any
         return {"ok": False, "error": "resolve:" + repr(exc)[:120], "foreign": 0, "pids": {}}
     pids: Dict[int, Dict[str, Any]] = {}
     try:
-        try:
-            import psutil  # type: ignore
-            for c in psutil.net_connections(kind="tcp"):
-                if c.status == "ESTABLISHED" and c.raddr and c.raddr.ip in ips and c.raddr.port == 443 and c.pid and c.pid != own_pid:
-                    d = pids.setdefault(int(c.pid), {"connections": 0, "name": ""})
-                    d["connections"] += 1
-                    try:
-                        d["name"] = psutil.Process(c.pid).name()
-                    except Exception:
-                        pass
-        except ImportError:
-            if os.name != "nt":
-                return {"ok": False, "error": "no psutil and not Windows", "foreign": 0, "pids": {}}
-            out = subprocess.run(["netstat", "-ano"], capture_output=True, text=True, timeout=10).stdout
-            for line in out.splitlines():
-                parts = line.split()
-                if len(parts) >= 5 and parts[0] == "TCP" and parts[3] == "ESTABLISHED" and parts[2].rsplit(":", 1)[-1] == "443":
-                    remote_ip = parts[2].rsplit(":", 1)[0].strip("[]")
-                    pid = int(parts[4]) if parts[4].isdigit() else 0
-                    if remote_ip in ips and pid and pid != own_pid:
-                        pids.setdefault(pid, {"connections": 0, "name": ""})["connections"] += 1
+        for pid, remote_ip, remote_port in _established_tcp():
+            if remote_port == 443 and remote_ip in ips and pid != own_pid:
+                d = pids.setdefault(int(pid), {"connections": 0, "name": _proc_name(int(pid))})
+                d["connections"] += 1
     except Exception as exc:
         return {"ok": False, "error": repr(exc)[:160], "foreign": 0, "pids": {}}
     return {"ok": True, "foreign": sum(v["connections"] for v in pids.values()),
