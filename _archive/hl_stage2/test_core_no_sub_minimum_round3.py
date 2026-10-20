@@ -89,5 +89,41 @@ check("R3_REFUSED_CONVERGE_NEVER_NAMES_A_CLOSE",
       and not any(str(r.get("status") or "") in ("CONVERGE_LEADER_FLAT", "CONVERGE_LEADER_OPPOSITE_SIDE") for r in rows),
       [(r.get("status"), r.get("action")) for r in rows])
 
+# ---------------------------------------------------------------- ruling 6301015850 C: multi-leader control
+# A sub-minimum price-only sleeve whose OWN leader still holds waits for coin-flat or its own leader
+# leaving; no sibling leader's sleeve is closed to clear it.
+B = "0x" + "b" * 40
+c.LEADER_FETCHER = lambda payload: (
+    {"marginSummary": {"accountValue": "1000"},
+     "assetPositions": [{"position": {"coin": "ETH", "szi": "5", "positionValue": "500"}}]}
+    if str(payload.get("user") or "").lower() == A else
+    {"marginSummary": {"accountValue": "1000"}, "assetPositions": []}
+)
+c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": True, "global_controls": {}, "wallets": {
+    A: {"enabled": True, "mode": "ON", "copy_mode": "fixed", "fixed_notional": 12},
+    B: {"enabled": True, "mode": "ON", "copy_mode": "fixed", "fixed_notional": 12}}})
+_n0 = len([r for r in c.read_csv_rows(c.RECONCILIATION_CSV) if r.get("event") == "CONVERGE_CLOSE"])  # earlier cases wrote rows for A too
+core2 = c.LiveCopyCore(source_csv=tmp / "none2.csv")
+core2.cfg.master_switch_now = lambda: True
+core2.ledger.sleeve(A, "ETH")["signed_size"] = 0.05    # $5 at the mid: genuinely under the $10 minimum,
+core2.ledger.sleeve(A, "ETH")["position_id"] = "p-a"   # entered at $400 so it fell there from price alone
+core2.ledger.sleeve(A, "ETH")["avg_entry_px"] = 400.0
+core2.ledger.sleeve(B, "ETH")["signed_size"] = 1.0
+core2.ledger.sleeve(B, "ETH")["position_id"] = "p-b"
+core2.ledger._recompute_net(core2.ledger.data)
+core2.sender.send_if_allowed = lambda intent, block="": (False, "OFFLINE_TEST_GATE")
+out2 = core2.converge_once()
+core2.converge_once()
+core2.stop()
+rows2 = [r for r in c.read_csv_rows(c.RECONCILIATION_CSV) if r.get("event") == "CONVERGE_CLOSE"][_n0:]  # only the rows this case wrote
+check("R3_MULTI_LEADER_SUB_MINIMUM_SLEEVE_IS_NOT_CLOSED",
+      abs(core2.ledger.sleeve(A, "ETH")["signed_size"] - 0.05) < 1e-9
+      and 0.05 * 100.0 < c.DEFAULT_MIN_NOTIONAL)  # the premise: it really is under the minimum
+check("R3_MULTI_LEADER_NO_SIBLING_SLEEVE_CLOSED",
+      not any(str(r.get("leader_wallet") or "").lower() == A for r in rows2), rows2)
+check("R3_MULTI_LEADER_COIN_FLAT_SLEEVE_STILL_CLOSES",
+      out2.get("queued", 0) >= 1 and any(str(r.get("leader_wallet") or "").lower() == B for r in rows2),
+      (out2.get("queued"), rows2))
+
 print("TOTAL=%d FAILED=%d" % (len(R), R.count(False)))
 sys.exit(1 if False in R else 0)
