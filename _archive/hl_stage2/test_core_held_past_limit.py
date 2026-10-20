@@ -35,6 +35,24 @@ ad = tmp / "ap"; ad.mkdir()
 with (ad / "order_intents.csv").open("w", newline="") as fh: fh.write("leader_fill_id,notes\n")
 with (ad / "reconciliation.csv").open("w", newline="") as fh: fh.write("leader_fill_id,terminal_state,notes\nOLD,REPLAY_DEFERRED_PAST_LIMIT_ALERT,x\n")
 check("CLASSIFIER_STILL_OPEN", oc.classify(ad, ["OLD"])["OLD"] == "DEFERRED_OPEN")
+
+# A zero configured limit uses the bounded default; once that age is reached the entry falls through
+# with a visible operator alert instead of remaining deferred forever.
+os.environ["HL_LIVE_DEFER_MAX_SEC"] = "0"
+expired_fill = SimpleNamespace(leader_wallet="0xw", coin="BTC", leader_fill_id="EXPIRED",
+                               side="BUY", timestamp_ms=now - 400_000, size=1.0, price=100.0)
+expired_intent = SimpleNamespace(decision="SEND_BLOCKED_RISK", reason="follower positions unavailable",
+                                 notes="lifecycle=ENTRY")
+expiry_rows = []
+expiry_core = SimpleNamespace(audit=Audit(), _guard_key=c.LiveCopyCore._guard_key,
+                              _TRUTH_UNREADABLE_MARKERS=c.LiveCopyCore._TRUTH_UNREADABLE_MARKERS,
+                              _defer_first_ms={"EXPIRED": now - 400_000}, _defer_alerted=set())
+expiry_core.audit.append_reconciliation = lambda *a, **k: expiry_rows.append((a, k))
+expired = c.LiveCopyCore._defer_unreadable_truth(expiry_core, expired_fill, expired_intent, [])
+check("ZERO_LIMIT_EVENTUALLY_RELEASES", not expired)
+check("EXPIRY_WRITES_MANUAL_ALERT", len(expiry_rows) == 1
+      and expiry_rows[0][0][1] == "REPLAY_DEFERRED_PAST_LIMIT_ALERT"
+      and expiry_rows[0][1].get("action") == "MANUAL_REVIEW_UNREADABLE_TRUTH", str(expiry_rows))
 fails = [n for n, ok in R if not ok]
 print("TOTAL=%d FAILED=%d" % (len(R), len(fails)))
 sys.exit(1 if fails else 0)
