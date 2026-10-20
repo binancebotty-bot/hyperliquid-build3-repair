@@ -11166,13 +11166,19 @@ class LiveCopyCore:
             _XNET.start_keepalive(sorted({HL_INFO_URL, HL_LEADER_INFO_URL}), fnum(os.getenv("HL_LIVE_HTTP_KEEPALIVE_SEC"), 20.0))
 
     # ---- convergence: no leader exit is ever lost ------------------------------------------------------------------
-    def _converge_candidate(self, size: float, px: float, lead: float) -> Tuple[bool, str]:
-        """(close this sleeve, reason). Rule (c): a sleeve below the minimum order notional is a partial-fill remainder
-        and is always closed WHOLE, even while its leader still holds the same side; otherwise only a leader that is
-        flat or on the other side makes a close."""
-        if px > 0 and abs(size) * px < self.cfg.min_notional():
-            return True, "SUB_MINIMUM_REMAINDER"
+    def _converge_candidate(self, size: float, px: float, lead: float, entry_px: float = 0.0) -> Tuple[bool, str]:
+        """(close this sleeve, reason). Rule (c), Claude 6299805835 #4: a sub-minimum sleeve whose leader still holds
+        the same side is closed WHOLE only when it is a PARTIAL-FILL REMAINDER -- it was entered under the minimum, so
+        the entry, not the price, is what broke it. A sleeve that fell under the minimum from price alone is left
+        alone while the leader holds it (Claude: it closes whole only once the leader has left); the leader-flat and
+        leader-opposite paths below already do that. entry_px 0.0 means the entry is unknown: treated as price-only,
+        never closed under a live leader."""
+        min_notional = max(DEFAULT_MIN_NOTIONAL, self.cfg.min_notional())
         if abs(lead) > POSITION_EPSILON and lead * size > 0:
+            if px > 0 and abs(size) * px < min_notional:
+                entry_notional = abs(size) * fnum(entry_px, 0.0)
+                if 0.0 < entry_notional < min_notional:
+                    return True, "SUB_MINIMUM_PARTIAL_FILL_REMAINDER"
             return False, ""
         return True, ("LEADER_FLAT" if abs(lead) <= POSITION_EPSILON else "LEADER_OPPOSITE_SIDE")
 
@@ -11189,18 +11195,19 @@ class LiveCopyCore:
             self._converge_last = out
             return out
         with self._send_lock:
-            sleeves = [(w, c, fnum(r.get("signed_size")), str(r.get("position_id") or ""))
+            sleeves = [(w, c, fnum(r.get("signed_size")), str(r.get("position_id") or ""),
+                        fnum(r.get("avg_entry_px")))
                        for w, m in (self.ledger.data.get("by_wallet") or {}).items() if isinstance(m, dict)
                        for c, r in m.items() if isinstance(r, dict) and abs(fnum(r.get("signed_size"))) > POSITION_EPSILON]
-        by_wallet: Dict[str, List[Tuple[str, float, str]]] = {}
-        for w, c, size, pid in sleeves:
-            by_wallet.setdefault(w, []).append((c, size, pid))
+        by_wallet: Dict[str, List[Tuple[str, float, str, float]]] = {}
+        for w, c, size, pid, entry_px in sleeves:
+            by_wallet.setdefault(w, []).append((c, size, pid, entry_px))
         now = utc_now_ms()
         confirm_ms = int(max(0.0, fnum(os.getenv("HL_LIVE_CONVERGE_CONFIRM_SEC"), 20.0)) * 1000)
         retry_ms = int(max(0.0, fnum(os.getenv("HL_LIVE_CONVERGE_RETRY_SEC"), 120.0)) * 1000)
         seen_now: set = set()
         for wallet, rows in by_wallet.items():
-            dexes = sorted({c.split(":", 1)[0].lower() if ":" in c else "" for c, _s, _p in rows})
+            dexes = sorted({c.split(":", 1)[0].lower() if ":" in c else "" for c, _s, _p, _e in rows})
             exp = _XNET.master_exposure(wallet, dexes, fetcher=LEADER_FETCHER, info_url=HL_LEADER_INFO_URL,
                                         timeout=HTTP_TIMEOUT_SEC)
             if not exp.get("ok"):
@@ -11209,11 +11216,11 @@ class LiveCopyCore:
             leader_net: Dict[str, float] = {}
             for k, v in (exp.get("by_coin") or {}).items():
                 leader_net[canonical_coin_key(k)] = leader_net.get(canonical_coin_key(k), 0.0) + fnum((v or {}).get("net"))
-            for coin, size, pid in rows:
+            for coin, size, pid, entry_px in rows:
                 out["checked"] += 1
                 lead = leader_net.get(canonical_coin_key(coin), 0.0)
                 px_now = follower_mid(coin)
-                is_candidate, reason = self._converge_candidate(size, px_now, lead)
+                is_candidate, reason = self._converge_candidate(size, px_now, lead, entry_px)
                 if not is_candidate:
                     continue  # the leader still holds this side and the sleeve is not a sub-minimum remainder
                 key = (wallet, canonical_coin_key(coin), pid)
