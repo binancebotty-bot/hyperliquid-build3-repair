@@ -867,9 +867,8 @@ def classify_send_lifecycle(intent: Any) -> str:
 
 
 def deferred_truth_max_seconds() -> float:
-    """Keep unreadable-truth retries bounded; zero now means the safe default, not forever."""
-    value = fnum(os.getenv("HL_LIVE_DEFER_MAX_SEC"), 300.0)
-    return 300.0 if value == 0 else max(0.0, value)
+    """Zero keeps unreadable truth held without a time limit; negative explicitly disables holding."""
+    return fnum(os.getenv("HL_LIVE_DEFER_MAX_SEC"), 0.0)
 
 
 def classify_terminal_state(status: str, reject_category: str = "", lifecycle: str = "UNKNOWN_LIFECYCLE", exchange_called: bool = True) -> str:
@@ -2134,6 +2133,43 @@ def iter_audit_history(path: Path) -> Iterator[Dict[str, str]]:
             yield from iter_csv_rows(q)
         except FileNotFoundError:
             continue  # rotated or pruned between the listing and the open
+
+
+def alert_unresolved_ambiguous_sends(audit: "AuditLogWriter", attempts: Iterable[Dict[str, str]]) -> None:
+    """On restart, make unresolved CLOIDs visible before any sender workers can run."""
+    alerted_attempts: set[str] = set()
+    alerted_cloids: set[str] = set()
+    for row in iter_audit_history(RECONCILIATION_CSV):
+        if str(row.get("status") or "").upper() != "SEND_OUTCOME_UNKNOWN_MANUAL_ALERT":
+            continue
+        note = str(row.get("notes") or "")
+        for part in note.split(";"):
+            key, sep, value = part.strip().partition("=")
+            if sep and key == "attempt_id" and value:
+                alerted_attempts.add(value)
+            elif sep and key == "cloid" and value:
+                alerted_cloids.add(value.lower())
+    for row in attempts:
+        attempt_id = str(row.get("attempt_id") or "").strip()
+        cloid = str(row.get("cloid") or "").strip().lower()
+        if not cloid:
+            continue
+        note = (f"unresolved ambiguous send found at startup; attempt_id={attempt_id}; cloid={cloid}; "
+                "manual exchange review required; no order was queried, resent, or cancelled")
+        if not ((attempt_id and attempt_id in alerted_attempts) or cloid in alerted_cloids):
+            audit.append_reconciliation(
+                "ALERT", "SEND_OUTCOME_UNKNOWN_MANUAL_ALERT",
+                leader_wallet=row.get("leader_wallet", ""), leader_fill_id=row.get("leader_fill_id", ""),
+                intent_id=row.get("intent_id", ""), coin=row.get("coin", ""),
+                action="MANUAL_REVIEW_CHECK_ORDER_BY_CLOID", reject_category="RATE_LIMIT_OR_TIMEOUT",
+                terminal_state="SEND_OUTCOME_UNKNOWN_MANUAL_ALERT", engine_can_send="False", notes=note)
+            alerted_attempts.add(attempt_id)
+            alerted_cloids.add(cloid)
+        if attempt_id:
+            update_send_attempt_row(attempt_id, {
+                "status": "ORDER_UNKNOWN", "terminal_state": "SEND_OUTCOME_UNKNOWN_MANUAL_ALERT",
+                "operator_action": "MANUAL_REVIEW_CHECK_ORDER_BY_CLOID", "notes": note,
+            }, base_row=row)
 
 
 def read_csv_tail_rows(path: Path, max_bytes: int) -> List[Dict[str, str]]:
@@ -5023,6 +5059,7 @@ class SenderGateway:
         # position_abs_before, intent_id}. Protected by _pending_exit_lock.
         self._pending_exit_guard: Dict[str, Dict[str, Any]] = {}
         self._pending_exit_lock = threading.Lock()
+        self.on_confirmed_cancelled_ambiguous_exit: Optional[Callable[[Intent], None]] = None
         self._ambiguous_send_rechecks: "queue.Queue[Dict[str, Any]]" = queue.Queue(maxsize=1000)
         self._ambiguous_send_recheck_ids: set = set()
         self._ambiguous_send_recheck_lock = threading.Lock()
@@ -6546,6 +6583,35 @@ class SenderGateway:
                 intent, sdk_coin, cloid, wire_size, limit_px, reduce_only, "filled", oid, error_text, timing,
                 "the exchange reports the original order filled")
         if status in {"canceled", "cancelled"}:
+            if classify_send_lifecycle(intent) in {"EXIT", "REDUCE"}:
+                note = (f"confirmed original exit cloid={cl} cancelled after ambiguous send; no retry; "
+                        "next convergence cycle must re-read exposure and apply the normal reduce-only gates")
+                try:
+                    self.audit.append_reconciliation(
+                        "ALERT", "EXIT_CANCELLED_RECOMPUTE_PENDING", leader_wallet=intent.fill.leader_wallet,
+                        leader_fill_id=intent.fill.leader_fill_id, intent_id=intent.intent_id,
+                        coin=intent.fill.coin, action="WAIT_FOR_FRESH_REDUCE_ONLY_RECOMPUTE",
+                        reject_category="RATE_LIMIT_OR_TIMEOUT",
+                        terminal_state="EXIT_CANCELLED_RECOMPUTE_PENDING", engine_can_send="False", notes=note)
+                except Exception as exc:
+                    log_error("cancelled_exit_recompute_alert", exc)
+                callback = self.on_confirmed_cancelled_ambiguous_exit
+                if callback is not None:
+                    try:
+                        callback(intent)
+                    except Exception as exc:
+                        log_error("cancelled_exit_recompute_callback", exc)
+                return False, "ORDER_CANCELLED", {
+                    "exchange_response": {"status": "ok", "response": {"type": "orderStatus",
+                                                                          "data": {"order": {"order": {"oid": oid},
+                                                                                             "status": status}}}},
+                    "oid": oid, "limit_px": px, "wire_size": wire_size, "copy_notional": abs(wire_size * px),
+                    "exchange_called": True, "error": error_text, "timing": timing,
+                    "reject_category": "RATE_LIMIT_OR_TIMEOUT",
+                    "terminal_state": "SEND_OUTCOME_CONFIRMED_CANCELLED_NO_RETRY",
+                    "operator_action": "WAIT_FOR_FRESH_REDUCE_ONLY_RECOMPUTE",
+                    "order_type": "REAL_IOC_AMBIGUOUS_RESOLVED", "reduce_only_sent": reduce_only, "notes": note,
+                }
             return None  # definitively not on the exchange: the caller may retry once
         return self._ambiguous_send_hold(
             intent, cloid, wire_size, limit_px, reduce_only,
@@ -6709,6 +6775,15 @@ class SenderGateway:
                     action="MANUAL_REVIEW_NO_AUTOMATIC_RETRY", reject_category="RATE_LIMIT_OR_TIMEOUT",
                     terminal_state="SEND_OUTCOME_CONFIRMED_CANCELLED_NO_RETRY",
                     notes=f"deferred read {number}/{max_attempts} confirmed cloid={job['cloid']} cancelled; no resend")
+                return
+            if outcome[1] == "ORDER_CANCELLED":
+                result = outcome[2]
+                update_send_attempt_row(job["attempt_id"], {
+                    "status": outcome[1], "exchange_order_id": result.get("oid", ""),
+                    "exchange_response": json.dumps(result.get("exchange_response", {})),
+                    "terminal_state": result.get("terminal_state", ""),
+                    "operator_action": result.get("operator_action", ""), "notes": result.get("notes", ""),
+                })
                 return
             if outcome[1] in {"ORDER_RESTING", "ORDER_FILLED"}:
                 result = outcome[2]
@@ -7168,6 +7243,22 @@ class SenderGateway:
         with self._pending_exit_lock:
             self._pending_exit_guard.pop(intent.sleeve_id, None)
 
+    def _report_post_send_bookkeeping_error(self, intent: Intent, status: str, result: Dict[str, Any], exc: Exception) -> None:
+        log_error("post_send_bookkeeping", exc)
+        try:
+            timing = result.get("timing") if isinstance(result.get("timing"), dict) else {}
+            self.audit.append_reconciliation(
+                "SEND_TERMINAL", "POST_SEND_BOOKKEEPING_FAILED",
+                leader_wallet=intent.fill.leader_wallet, leader_fill_id=intent.fill.leader_fill_id,
+                intent_id=intent.intent_id, coin=intent.fill.coin, exchange_order_id=result.get("oid", ""),
+                cloid=timing.get("send_cloid", ""), action="MANUAL_REVIEW_RECONCILE_SEND_RESULT",
+                reject_category="POST_SEND_BOOKKEEPING_FAILED", terminal_state=status, engine_can_send=False,
+                notes=(f"exchange outcome {status} was preserved after post-send bookkeeping raised "
+                       f"{type(exc).__name__}; reconcile local state; no retry was issued"),
+            )
+        except Exception as alert_exc:
+            log_error("post_send_bookkeeping_alert", alert_exc)
+
     def send_if_allowed(self, intent: Intent, entry_block_reason: str = "") -> Tuple[bool, str]:
         if not intent.send_allowed:
             return False, "INTENT_NOT_SEND_ALLOWED"
@@ -7288,20 +7379,23 @@ class SenderGateway:
                 self._margin_reject_until_ms[coin_key] = max(
                     self._margin_reject_until_ms.get(coin_key, 0), utc_now_ms() + window_ms)
             try:
-                self._append_real_attempt(intent, send_status, result)
-            finally:
-                self.signal_ambiguous_send_attempt_written(timing)
-            reduced_ms = self.leader_reduced_since(intent.fill) if lifecycle in {"ENTRY", "ADD"} else 0
-            if reduced_ms and send_status == "ORDER_FILLED":
-                self.audit.append_reconciliation(
-                    "SEND_TERMINAL", "ENTRY_FILLED_AFTER_LEADER_REDUCED",
-                    leader_wallet=intent.fill.leader_wallet, leader_fill_id=intent.fill.leader_fill_id,
-                    intent_id=intent.intent_id, coin=canonical_coin_key(intent.fill.coin), exchange_order_id=result.get("oid", ""),
-                    action="MANUAL_REVIEW_RECONCILE_ENTRY_LEADER_ALREADY_REDUCED", terminal_state="ENTRY_FILLED_AFTER_LEADER_REDUCED",
-                    engine_can_send="False",
-                    notes=(f"copy {intent.copy_side} {result.get('wire_size', intent.copy_size)} filled while the leader's "
-                           f"opposite fill at {reduced_ms} was already being handled; the follower may hold a position the "
-                           "leader no longer has; reconcile on the exchange"))
+                try:
+                    self._append_real_attempt(intent, send_status, result)
+                finally:
+                    self.signal_ambiguous_send_attempt_written(timing)
+                reduced_ms = self.leader_reduced_since(intent.fill) if lifecycle in {"ENTRY", "ADD"} else 0
+                if reduced_ms and send_status == "ORDER_FILLED":
+                    self.audit.append_reconciliation(
+                        "SEND_TERMINAL", "ENTRY_FILLED_AFTER_LEADER_REDUCED",
+                        leader_wallet=intent.fill.leader_wallet, leader_fill_id=intent.fill.leader_fill_id,
+                        intent_id=intent.intent_id, coin=canonical_coin_key(intent.fill.coin), exchange_order_id=result.get("oid", ""),
+                        action="MANUAL_REVIEW_RECONCILE_ENTRY_LEADER_ALREADY_REDUCED", terminal_state="ENTRY_FILLED_AFTER_LEADER_REDUCED",
+                        engine_can_send="False",
+                        notes=(f"copy {intent.copy_side} {result.get('wire_size', intent.copy_size)} filled while the leader's "
+                               f"opposite fill at {reduced_ms} was already being handled; the follower may hold a position the "
+                               "leader no longer has; reconcile on the exchange"))
+            except Exception as exc:
+                self._report_post_send_bookkeeping_error(intent, send_status, result, exc)
         else:
             # No real order placed — release any exit reservation so we never wrongly
             # block a genuine later close because of a non-exchange (symbol/cred) miss.
@@ -7685,6 +7779,7 @@ class SenderGateway:
             wait_intent_durable(intent_seq_for(intent.intent_id), intent.intent_id)  # barrier: intent row on disk first; never raises
             self._begin_pending_send(intent, _tif, _ot, _px, _sz, cloid, timing, _ro)
             timing["pending_send_done_ms"] = utc_now_ms()
+        accepted_result: Optional[Tuple[bool, str, Dict[str, Any]]] = None
         try:
             response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", wire_size, limit_px,
                                          "Gtc" if rest_now else "Ioc", use_reduce_only, timing, "exchange_call_started_ms",
@@ -7692,10 +7787,30 @@ class SenderGateway:
                                          pre_send=_pending_send)
             timing["exchange_call_finished_ms"] = utc_now_ms()
             if rest_now:
+                resting_ok, resting_status, resting_oid, resting_error = self._parse_hl_response(response)
+                if resting_ok:
+                    accepted_result = (resting_ok, resting_status, {
+                        "exchange_response": response, "oid": resting_oid, "limit_px": limit_px,
+                        "wire_size": wire_size, "copy_notional": abs(wire_size * limit_px),
+                        "exchange_called": True, "error": resting_error, "timing": timing,
+                        "reject_category": "", "reduce_only_sent": False,
+                        "terminal_state": ("ENTRY_LIMIT_RESTING_PRICE_MOVED" if resting_status == "ORDER_RESTING"
+                                           else "FILLED_AWAITING_COPY_POLL"),
+                        "operator_action": ("MISSED_ENTRY_RECOVERY_LIMIT_RESTING" if resting_status == "ORDER_RESTING"
+                                            else "WAIT_FOR_COPY_POLL"),
+                        "order_type": "REAL_GTC_MISSED_ENTRY_LIMIT",
+                    })
                 return self._resting_entry_result(
                     intent, sdk_coin, response, limit_px, wire_size, timing, missed,
                     "price moved beyond tolerance before the copy")
             ok, status, oid, parsed_error = self._parse_hl_response(response)
+            if ok:
+                accepted_result = (ok, status, {
+                    "exchange_response": response, "oid": oid, "limit_px": limit_px,
+                    "wire_size": wire_size, "copy_notional": wire_notional,
+                    "exchange_called": True, "error": parsed_error, "timing": timing,
+                    "reject_category": "", "reduce_only_sent": use_reduce_only,
+                })
             reject_category = classify_reject_category(parsed_error, response) if status == "ORDER_REJECTED" else ""
             if (
                 not ok
@@ -7734,6 +7849,7 @@ class SenderGateway:
                                 "notes": f"entry IOC retry filled; initial_error={parsed_error}; initial_limit={limit_px}; retry_bps={retry_bps}",
                             }
                         response, status, oid, parsed_error = retry_response, retry_status, retry_oid, retry_error
+                        accepted_result = None
                         reject_category = classify_reject_category(parsed_error, response) if status == "ORDER_REJECTED" else ""
                         limit_px = retry_px
                         wire_notional = retry_notional
@@ -7751,6 +7867,19 @@ class SenderGateway:
                     rest_response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", wire_size, rest_px,
                                                       "Gtc", False, timing, "missed_entry_limit_started_ms",
                                                       cloid=_cl, pre_send=_pre)
+                    resting_ok, resting_status, resting_oid, resting_error = self._parse_hl_response(rest_response)
+                    if resting_ok:
+                        accepted_result = (resting_ok, resting_status, {
+                            "exchange_response": rest_response, "oid": resting_oid, "limit_px": rest_px,
+                            "wire_size": wire_size, "copy_notional": abs(wire_size * rest_px),
+                            "exchange_called": True, "error": resting_error, "timing": timing,
+                            "reject_category": "", "reduce_only_sent": False,
+                            "terminal_state": ("ENTRY_LIMIT_RESTING_PRICE_MOVED" if resting_status == "ORDER_RESTING"
+                                               else "FILLED_AWAITING_COPY_POLL"),
+                            "operator_action": ("MISSED_ENTRY_RECOVERY_LIMIT_RESTING" if resting_status == "ORDER_RESTING"
+                                                else "WAIT_FOR_COPY_POLL"),
+                            "order_type": "REAL_GTC_MISSED_ENTRY_LIMIT",
+                        })
                     return self._resting_entry_result(intent, sdk_coin, rest_response, rest_px, wire_size, timing, missed,
                                                       f"copy order found no match ({parsed_error})")
             if (not ok and status == "ORDER_REJECTED"
@@ -7774,6 +7903,13 @@ class SenderGateway:
                                                      "Ioc", False, cloid=_cl, bypass_rate_limit_cooldown=True,
                                                      pre_send=_pre)
                         ok, status, oid, parsed_error = self._parse_hl_response(response)
+                        if ok:
+                            accepted_result = (ok, status, {
+                                "exchange_response": response, "oid": oid, "limit_px": limit_px,
+                                "wire_size": wire_size, "copy_notional": wire_notional,
+                                "exchange_called": True, "error": parsed_error, "timing": timing,
+                                "reject_category": "", "reduce_only_sent": False,
+                            })
                         reject_category = classify_reject_category(parsed_error, response) if status == "ORDER_REJECTED" else ""
                         use_reduce_only = False
                         netting_note = (f"leaders net on one account: close resent without reduce-only once the ledger "
@@ -7818,6 +7954,10 @@ class SenderGateway:
                 }
             timing["exchange_call_finished_ms"] = utc_now_ms()
             log_error("send_real", exc)
+            if accepted_result is not None:
+                self._report_post_send_bookkeeping_error(intent, accepted_result[1], accepted_result[2], exc)
+                accepted_result[2]["notes"] = "exchange outcome preserved; post-send bookkeeping failed; no retry issued"
+                return accepted_result
             if isinstance(exc, KeyError):
                 self._learn_sdk_incompatible(intent.fill.coin, resolved, repr(exc))
             error_text = repr(exc)
@@ -10509,10 +10649,20 @@ class LiveCopyCore:
         self._idem_lock = threading.Lock()
         self._idem_accepted: set[str] = set()
         self._idem_duplicate_audited: set[str] = set()
+        _unresolved_ambiguous: Dict[str, Dict[str, str]] = {}
         for _irow in iter_csv_rows(SEND_ATTEMPTS_CSV):
             _fid = str(_irow.get("leader_fill_id") or "").strip()
             if _fid:
                 self._idem_accepted.add(_fid)
+            _cloid = str(_irow.get("cloid") or "").strip().lower()
+            _status = str(_irow.get("status") or "").upper()
+            _terminal = str(_irow.get("terminal_state") or "").upper()
+            if _cloid and (_terminal == "SEND_OUTCOME_UNKNOWN_HOLD"
+                           or (_status == "ORDER_UNKNOWN" and not _terminal)):
+                _unresolved_ambiguous[_cloid] = dict(_irow)
+            elif _cloid:
+                _unresolved_ambiguous.pop(_cloid, None)
+        alert_unresolved_ambiguous_sends(self.audit, _unresolved_ambiguous.values())
         for _irow in iter_audit_history(ORDER_INTENTS_CSV):  # fills merged into one copy are handled by it (run 4)
             _note = str(_irow.get("notes") or "")
             if "merged_leader_fills=" in _note:
@@ -10574,6 +10724,7 @@ class LiveCopyCore:
         self._converge_seen: Dict[Tuple[str, str, str], int] = {}   # sleeve -> first read showing the leader left
         self._converge_sent: Dict[Tuple[str, str, str], int] = {}   # sleeve -> last close queued
         self._converge_tries: Dict[Tuple[str, str, str], int] = {}  # sleeve -> closes queued so far
+        self.sender.on_confirmed_cancelled_ambiguous_exit = self._on_confirmed_cancelled_ambiguous_exit
         self._converge_last: Dict[str, Any] = {}
         self._hot_threads: List[threading.Thread] = []
         self._pending_seen: Dict[str, Tuple[int, str, str, str]] = {}  # guard key -> (queued at ms, wallet, coin, fill id)
@@ -10594,6 +10745,14 @@ class LiveCopyCore:
             t = threading.Thread(target=self._hot_send_loop, args=(idx,), daemon=True, name=f"HLCoreWS-hot-send-{idx + 1}")
             t.start()
             self._hot_threads.append(t)
+
+    def _on_confirmed_cancelled_ambiguous_exit(self, intent: Intent) -> None:
+        with self.sender._pending_exit_lock:
+            pending = self.sender._pending_exit_guard.get(intent.sleeve_id)
+            if pending and pending.get("intent_id") == intent.intent_id:
+                self.sender._pending_exit_guard.pop(intent.sleeve_id, None)
+        key = (intent.fill.leader_wallet, canonical_coin_key(intent.fill.coin), intent.position_id)
+        self._converge_sent.pop(key, None)
 
     def stop(self) -> None:
         try:  # T1c: cancel resting entry limits FIRST, before the process exits
@@ -11552,7 +11711,8 @@ class LiveCopyCore:
         firsts = self.__dict__.setdefault("_defer_first_ms", {})
         now = utc_now_ms()
         first = firsts.setdefault(key, now)
-        within = now - first <= int(deferred_truth_max_seconds() * 1000)
+        max_sec = deferred_truth_max_seconds()
+        within = max_sec == 0 or (max_sec > 0 and now - first <= int(max_sec * 1000))
         past_send = key in self._past_send_keys
         if not past_send and within:  # nothing reached the exchange yet: hold it and offer it again
             with self._idem_lock:
@@ -11772,7 +11932,7 @@ class LiveCopyCore:
         new_fill = key not in firsts
         first = firsts.setdefault(key, now)
         max_sec = deferred_truth_max_seconds()
-        if now - first > int(max_sec * 1000):
+        if max_sec < 0 or (max_sec > 0 and now - first > int(max_sec * 1000)):
             alerted = self.__dict__.setdefault("_defer_alerted", set())
             if key not in alerted:
                 alerted.add(key)
@@ -11793,8 +11953,8 @@ class LiveCopyCore:
                 self.audit.append_reconciliation(
                     "REPLAY_DEFERRED", "REPLAY_DEFERRED_TRUTH_UNREADABLE", leader_wallet=fill.leader_wallet,
                     leader_fill_id=fill.leader_fill_id, coin=fill.coin, action="RETRY_WHEN_READABLE", terminal_state="REPLAY_DEFERRED_TRUTH_UNREADABLE", engine_can_send="False",
-                    notes=f"entry held, not lost: {reason}; retried every {fnum(os.getenv('HL_LIVE_DEFER_RETRY_SEC'), 5.0):g}s up to "
-                          f"{max_sec:g}s")
+                    notes=(f"entry held, not lost: {reason}; retried every {fnum(os.getenv('HL_LIVE_DEFER_RETRY_SEC'), 5.0):g}s "
+                           + ("without a time limit" if max_sec == 0 else f"up to {max_sec:g}s")))
             except Exception as exc:
                 log_error("defer_row", exc)
             self._rows_for_held_siblings(fill, "REPLAY_DEFERRED_TRUTH_UNREADABLE")
@@ -11807,10 +11967,9 @@ class LiveCopyCore:
         return True
 
     def _alert_held_past_limit(self) -> None:
-        """A held fill must be decided within HL_LIVE_DEFER_MAX_SEC (plus a grace for the worker that holds its slot). One still
-        held after that is a visible ALERT row (one per fill) and an error-log line; it stays held and is retried, and the
-        classifier keeps counting it as unresolved (REPLAY_DEFERRED prefix) until a real outcome row exists."""
-        limit_ms = int((deferred_truth_max_seconds() + fnum(os.getenv("HL_LIVE_DEFER_ALERT_GRACE_SEC"), 60.0)) * 1000)
+        """Alert after max(300s, configured hold limit) plus grace; keep unresolved fills held and retrying."""
+        limit_ms = int((max(300.0, deferred_truth_max_seconds())
+                        + fnum(os.getenv("HL_LIVE_DEFER_ALERT_GRACE_SEC"), 0.0)) * 1000)
         firsts = self.__dict__.get("_defer_first_ms", {})
         alerted = self.__dict__.setdefault("_defer_alerted", set())
         now = utc_now_ms()

@@ -16,6 +16,7 @@ import os
 import sys
 import tempfile
 from pathlib import Path
+from types import SimpleNamespace
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
@@ -54,8 +55,8 @@ def main() -> None:
     class FakeExchange:
         """First `fail_times` physical calls raise a timeout (the ambiguous outcome); later calls fill."""
 
-        def __init__(self, fail_times: int = 1):
-            self.calls, self.fail_times = [], fail_times
+        def __init__(self, fail_times: int = 1, fill_fraction: float = 1.0):
+            self.calls, self.fail_times, self.fill_fraction = [], fail_times, fill_fraction
 
         def order(self, coin, is_buy, size, px, tif, reduce_only=False, cloid=None):
             self.calls.append({"coin": coin, "px": px, "tif": tif["limit"]["tif"], "buy": is_buy, "size": size,
@@ -63,11 +64,11 @@ def main() -> None:
             if len(self.calls) <= self.fail_times:
                 raise TimeoutError("read timed out")
             return {"status": "ok", "response": {"type": "order", "data": {"statuses": [
-                {"filled": {"totalSz": str(size), "avgPx": str(px), "oid": 99}}]}}}
+                {"filled": {"totalSz": str(size * self.fill_fraction), "avgPx": str(px), "oid": 99}}]}}}
 
     gateways = []
 
-    def gateway(fake, ledger=None):
+    def gateway(fake, ledger=None, on_gateway=None, intent=None):
         gw = c.SenderGateway(c.ConfigManager(), c.AuditLogWriter(), ledger)
         gw._resolve_coin = lambda coin: dict(resolved)
         gw._get_exchange_client = lambda *a, **k: fake
@@ -76,6 +77,8 @@ def main() -> None:
         gw._pre_exchange_asset_safety = lambda *a, **k: (True, {})
         gw._exchange_client_for_coin = lambda coin: (fake, "BTC")
         gateways.append(gw)
+        if on_gateway:
+            on_gateway(gw, intent)
         return gw
 
     c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": False, "global_controls": {"marketable_bps": 20},
@@ -88,7 +91,7 @@ def main() -> None:
         return c.LeaderFill(f"t{seq[0]}", LEADER, "BTC", side, price, size, c.utc_now_ms() + seq[0], "TEST", 0, {})
 
     def send(fake, follower=100.0, order_status=None, fill_cloid=False, fills=None, unreadable=False,
-             side="BUY", seeded_position=0.0):
+             side="BUY", seeded_position=0.0, on_gateway=None):
         """One ambiguous send. order_status is the orderStatus `response.data` (or None to leave it unreadable).
         fill_cloid=True adds a fill carrying THIS send's cloid (the proof it landed)."""
         mid["f"] = follower
@@ -103,6 +106,7 @@ def main() -> None:
             led.save(touched_sleeves=[(LEADER, "BTC")])
         intent = c.IntentBuilder(c.ConfigManager(), led).build(fill(side=side))
         c.atomic_write_json(c.RESTING_ENTRY_ORDERS_FILE, {})
+        c.atomic_write_json(c.STANDING_CLOSES_FILE, {})
         os.environ["HL_LIVE_HL_PRIVATE_KEY"] = "0x" + "1" * 64   # placeholder; the fake exchange never signs
         saved = c.HLAccount, c.HLExchange
         c.HLAccount, c.HLExchange = object, object
@@ -126,7 +130,7 @@ def main() -> None:
         c.OPEN_ORDERS_FETCHER = order_status_fetcher
         c.COPY_FILLS_FETCHER = lambda payload: list(fill_rows)
         try:
-            gw = gateway(fake, led)
+            gw = gateway(fake, led, on_gateway, intent)
             ok, status, res = gw._send_real(intent)
             gw._append_real_attempt(intent, status, res)
             gw.signal_ambiguous_send_attempt_written(res.get("timing", {}))
@@ -221,6 +225,84 @@ def main() -> None:
         blocked, _reason = exit_gw._pending_exit_blocked(exit_intent)
     check("B15_ZERO_TTL_DOES_NOT_BLOCK_INDEFINITELY", not blocked
           and exit_intent.sleeve_id not in exit_gw._pending_exit_guard)
+
+    # ---- B17: a deferred confirmed-cancelled exit alerts and lets Core recheck current exposure ------
+    fake = FakeExchange()
+    callback_intents = []
+    core_holder = {}
+    def bind_recompute(gw):
+        def on_cancelled(intent):
+            callback_intents.append(intent.intent_id)
+            core = core_holder["core"]
+            c.LiveCopyCore._on_confirmed_cancelled_ambiguous_exit(core, intent)
+        gw.on_confirmed_cancelled_ambiguous_exit = on_cancelled
+    def make_core(gw, intent):
+        key = (LEADER, c.canonical_coin_key("BTC"), intent.position_id)
+        gw._pending_exit_guard[intent.sleeve_id] = {
+            "ts_ms": c.utc_now_ms(), "position_abs_before": 1.0, "intent_id": intent.intent_id}
+        other_guard = intent.sleeve_id + "::other"
+        gw._pending_exit_guard[other_guard] = {"intent_id": "unrelated-exit"}
+        other_key = (LEADER, "ETH", "other-position")
+        core_holder["core"] = SimpleNamespace(
+            sender=gw, _converge_seen={key: c.utc_now_ms() - 25000, other_key: c.utc_now_ms() - 10000},
+            _converge_sent={key: c.utc_now_ms(), other_key: c.utc_now_ms()},
+            _converge_tries={key: 1, other_key: 2}, _other_converge_key=other_key)
+        bind_recompute(gw)
+    fake = FakeExchange()
+    ok, status, res, exit_intent = send(
+        fake, side="SELL", seeded_position=1.0,
+        order_status=[{"order": {"order": {}, "status": "unknown"}},
+                      {"order": {"order": {}, "status": "cancelled"}}], on_gateway=make_core)
+    core = core_holder.get("core")
+    close_key = (LEADER, c.canonical_coin_key("BTC"), exit_intent.position_id)
+    cancelled_alerts = [r for r in c.read_csv_rows(c.RECONCILIATION_CSV)
+                        if r.get("status") == "EXIT_CANCELLED_RECOMPUTE_PENDING"]
+    check("B17_CANCELLED_EXIT_NOT_RETRIED_AND_RECOMPUTE_ALERTED", len(fake.calls) == 1
+          and callback_intents == [exit_intent.intent_id]
+          and len(cancelled_alerts) == 1
+          and cancelled_alerts[0].get("action") == "WAIT_FOR_FRESH_REDUCE_ONLY_RECOMPUTE",
+          f"calls={len(fake.calls)} status={status} res={res} callback={callback_intents} alerts={cancelled_alerts}")
+    check("B18_CANCELLED_EXIT_CLEARS_ONLY_ITS_GUARD_AND_COOLDOWN", core is not None
+          and exit_intent.sleeve_id not in core.sender._pending_exit_guard
+          and core.sender._pending_exit_guard.get(exit_intent.sleeve_id + "::other", {}).get("intent_id") == "unrelated-exit"
+          and close_key not in core._converge_sent and core._converge_seen.get(close_key)
+          and core._converge_tries.get(close_key) == 1
+          and core._converge_sent.get(core._other_converge_key)
+          and core._converge_tries.get(core._other_converge_key) == 2,
+          str(core.sender._pending_exit_guard if core else None))
+
+    # ---- B19: an immediate definitive cancellation of an exit also must not retry ----------------
+    fake = FakeExchange()
+    callback_intents.clear()
+    core_holder.clear()
+    ok, status, res, exit_intent = send(
+        fake, side="SELL", seeded_position=1.0,
+        order_status={"order": {"order": {}, "status": "cancelled"}}, on_gateway=make_core)
+    cancelled_alerts = [r for r in c.read_csv_rows(c.RECONCILIATION_CSV)
+                        if r.get("status") == "EXIT_CANCELLED_RECOMPUTE_PENDING"
+                        and r.get("intent_id") == exit_intent.intent_id]
+    check("B19_IMMEDIATE_CANCELLED_EXIT_NOT_RETRIED", len(fake.calls) == 1 and status == "ORDER_CANCELLED"
+          and callback_intents == [exit_intent.intent_id] and len(cancelled_alerts) == 1,
+          f"calls={len(fake.calls)} status={status} callback={callback_intents} alerts={cancelled_alerts}")
+
+    # ---- B20: post-acceptance recovery bookkeeping failure preserves the exchange fill --------------
+    fake = FakeExchange(fail_times=0, fill_fraction=0.5)
+    def fail_recovery_queue(gw, _intent):
+        def raise_bookkeeping_error(*_args, **_kwargs):
+            raise RuntimeError("injected post-acceptance recovery bookkeeping failure")
+        gw._queue_exit_recovery_if_needed = raise_bookkeeping_error
+    ok, status, res, exit_intent = send(fake, side="SELL", seeded_position=1.0, on_gateway=fail_recovery_queue)
+    post_acceptance_alerts = [r for r in c.read_csv_rows(c.RECONCILIATION_CSV)
+                              if r.get("leader_fill_id") == exit_intent.fill.leader_fill_id
+                              and r.get("status") == "POST_SEND_BOOKKEEPING_FAILED"]
+    check("B20_PARTIAL_EXIT_RESULT_SURVIVES_RECOVERY_BOOKKEEPING_ERROR",
+          len(fake.calls) == 1 and ok and status == "ORDER_FILLED" and str(res.get("oid")) == "99",
+          f"calls={len(fake.calls)} status={status} result={res}")
+    check("B21_POST_ACCEPTANCE_BOOKKEEPING_FAILURE_ALERTED",
+          len(post_acceptance_alerts) == 1
+          and post_acceptance_alerts[0].get("exchange_order_id") == "99"
+          and post_acceptance_alerts[0].get("terminal_state") == "ORDER_FILLED",
+          str(post_acceptance_alerts))
 
     failed = [n for n, ok in RESULTS if not ok]
     for gw in gateways:
