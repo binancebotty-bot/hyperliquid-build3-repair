@@ -57,6 +57,16 @@ def main() -> None:
     c.requests.post = offline
     c.MIDS_FETCHER = lambda payload: [] if payload.get("type") == "perpDexs" else {"BTC": "100"}   # follower mids
 
+    # ENG-INV-09: exchange truth is the only authority for sizing a close
+    book = {"pos": []}
+    def _exposure(payload):
+        if payload.get("type") == "perpDexs":
+            return []
+        if payload.get("type") != "clearinghouseState":
+            raise RuntimeError("offline test: no network")
+        return {"assetPositions": [{"position": p} for p in book["pos"]]}
+    c.EXPOSURE_FETCHER = _exposure
+
     def config(gc=None, wallet_cfg=None, all_wallets=None, auto=False):
         c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": auto, "global_controls": gc or {},
                                                  "wallets": all_wallets or {LEADER: wallet_cfg or {
@@ -85,6 +95,7 @@ def main() -> None:
 
     gw = c.SenderGateway(c.ConfigManager(), c.AuditLogWriter(), c.ManualLedger(path=tmp / "rec.json"))
     gw.ledger.sleeve(LEADER, "BTC")["signed_size"] = 2.0
+    book["pos"] = [{"coin": "BTC", "szi": "2.0", "positionValue": "200"}]
     used = []
     real_place = gw._place_order
     gw._place_order = lambda *a, **k: used.append(a[5]) or real_place(*a, **k)
@@ -96,6 +107,7 @@ def main() -> None:
     check("O2_EXIT_RECOVERY_GOES_THROUGH_THE_ONE_SITE",
           used == ["Gtc"] and fake.calls == [{"size": 2.0, "px": 99.0, "tif": "Gtc", "reduce_only": True}], f"{used} {fake.calls}")
 
+    book["pos"] = []
     # ---- D: daily loss limit --------------------------------------------------------------
     pnl = {"rows": None, "reads": 0}
 
@@ -105,7 +117,7 @@ def main() -> None:
             if pnl["rows"] is None:
                 raise RuntimeError("portfolio unavailable")
             return [["day", {"accountValueHistory": [], "pnlHistory": pnl["rows"]}], ["week", {"pnlHistory": [[0, "0"], [1, "-999"]]}]]
-        return {"assetPositions": []}
+        return {"assetPositions": [{"position": p} for p in book["pos"]]}   # ENG-INV-09 close truth
     c.EXPOSURE_FETCHER = fetcher
 
     class Stub:
@@ -182,9 +194,10 @@ def main() -> None:
           and "leader equity unavailable" in i.reason, f"{i.copy_notional} {i.decision} {i.reason}")
     led = c.ManualLedger(path=tmp / "e3.json")
     led.sleeve(LEADER, "BTC")["signed_size"] = 3.0
+    book["pos"] = [{"coin": "BTC", "szi": "3.0", "positionValue": "300"}]
     i = c.IntentBuilder(c.ConfigManager(), led).build(fill("SELL", price=100.0, size=1000.0))
     check("E3_FULL_CLOSE_STILL_ALLOWED_WITHOUT_EQUITY", i.decision == "EXIT_ALLOWED" and abs(i.copy_size - 3.0) < 1e-9,
-          f"{i.decision} {i.copy_size}")
+          f"{i.decision} {i.copy_size} {i.reason}")
     requests.post = offline
 
     # ---- W: wallet stream limit -----------------------------------------------------------

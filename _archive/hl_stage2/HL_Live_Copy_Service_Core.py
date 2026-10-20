@@ -2498,6 +2498,22 @@ class IntentBuilder:
         return "" if self._coin_clean[coin] else (
             f"UNOWNED_INVENTORY: {coin} exchange net {ex_net} != engine-owned net {own}; entries blocked")
 
+    def _close_size_from_exchange(self, fill: LeaderFill, before: float) -> Tuple[str, float]:
+        """ENG-INV-09: exchange truth sizes and guards a close. Returns (hold_reason, close_size)."""
+        exp = self.follower_exposure()
+        if not exp.get("ok"):
+            return ("EXCHANGE_TRUTH_UNAVAILABLE: follower positions unavailable ("
+                    + str(exp.get("status")) + "); close fails closed, the manual position file is not truth"), 0.0
+        want = canonical_coin_key(fill.coin)
+        ex_net = sum(fnum(v.get("net")) for k, v in (exp.get("by_coin") or {}).items()
+                     if canonical_coin_key(k) == want)
+        if abs(ex_net) <= POSITION_EPSILON:
+            return ("EXCHANGE_FLAT: no exchange position for " + want
+                    + "; the manual position file is not authoritative"), 0.0
+        if ex_net * before < 0:  # the exchange position being closed must agree with the sleeve sign
+            return ("EXCHANGE_SIGN_CONFLICT: exchange net " + str(ex_net)
+                    + " does not agree with the owned sleeve " + str(before)), 0.0
+        return "", round(min(abs(before), abs(ex_net)), 8)
     def follower_exposure(self) -> Dict[str, Any]:
         """Follower account exposure from the FOLLOWER exchange over every perp DEX scope (HIP-3
         included), for the total and per-asset caps. Cached for HL_LIVE_EXPOSURE_CACHE_TTL_SEC
@@ -2556,10 +2572,13 @@ class IntentBuilder:
         before = self.ledger.wallet_coin_position(wallet, coin)
         direction_before = self.ledger.direction_from_size(before)
         lifecycle, is_reduce = self.ledger.classify_leader_side_for_wallet(wallet, coin, fill.side)
+        exit_hold = ""
         if lifecycle == "EXIT":
             # EXIT must target the full wallet-owned sleeve regardless of fixed_notional.
             # fixed_notional / proportional sizing is an ENTRY/ADD concept only.
-            copy_size = round(abs(before), 8)
+            # ENG-INV-09: exchange truth outranks the local replay for anything that sizes
+            # or guards an order; the manual position file is never authoritative.
+            exit_hold, copy_size = self._close_size_from_exchange(fill, before)
             copy_notional = copy_size * fill.price
         intent_id = stable_hash(["intent", fill.leader_fill_id, wallet, coin, fill.side, fill.timestamp_ms])
         position_id = ""
@@ -2571,6 +2590,8 @@ class IntentBuilder:
             position_id = str(existing.get("position_id") or self.ledger.position_id(wallet, coin, direction_before, str(existing.get("opened_by_intent_id") or intent_id)))
         coin_net_before = self.ledger.coin_net(coin)
         decision, reason = self._decision(wallet, fill, lifecycle, copy_notional, before)
+        if exit_hold:
+            decision, reason = "SEND_BLOCKED_RISK", exit_hold
         if decision in {"ENTRY_ALLOWED", "EXIT_ALLOWED"}:
             self._coin_activity[canonical_coin_key(coin)] = utc_now_ms()
         reduce_only_intended = bool(is_reduce)

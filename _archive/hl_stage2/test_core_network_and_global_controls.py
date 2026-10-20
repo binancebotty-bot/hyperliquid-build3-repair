@@ -226,7 +226,8 @@ def global_controls_tests() -> None:
     ledger.sleeve(LEADER, "BTC")["signed_size"] = 10.0
     d = decide({"symbol_blocklist": ["BTC"], "symbol_allowlist": ["ETH"], "max_total_live_exposure_usd": 1,
                 "max_asset_directional_exposure_usd": 1, "max_wallet_exposure_usd": 1, "max_order_notional_usd": 1},
-               side="SELL", ledger=ledger)
+               side="SELL", ledger=ledger,
+               positions=[{"coin": "BTC", "szi": "10", "positionValue": "1000"}])
     check("G9_CLOSE_NEVER_BLOCKED_BY_ENTRY_CONTROLS", d[0] == "EXIT_ALLOWED", str(d))
 
     config()
@@ -264,6 +265,8 @@ def global_controls_tests() -> None:
         led = c.ManualLedger(path=tmp / f"send{seq[0]}.json")
         if sleeve:
             led.sleeve(LEADER, "BTC")["signed_size"] = sleeve
+        if sleeve and not any(p.get("coin") == "BTC" for p in book["positions"]):
+            book["positions"].append({"coin": "BTC", "szi": str(sleeve), "positionValue": str(abs(sleeve) * 100)})  # ENG-INV-09
         intent = c.IntentBuilder(c.ConfigManager(), led).build(fill(side))
         fake = FakeExchange()
         gw = c.SenderGateway(c.ConfigManager(), c.AuditLogWriter())
@@ -330,6 +333,8 @@ def global_controls_tests() -> None:
     book["down"] = True
     i = c.IntentBuilder(c.ConfigManager(), c.ManualLedger(path=tmp / "r2c.json")).build(fill())
     check("R2_UNREADABLE_POSITIONS_FAIL_CLOSED", i.decision == "SEND_BLOCKED_RISK" and "UNOWNED_INVENTORY" in i.reason, i.reason)
+    book["down"] = False
+    book["positions"] = [{"coin": "BTC", "szi": "10", "positionValue": "1000"}]  # ENG-INV-09: close truth
     led = c.ManualLedger(path=tmp / "r2d.json")
     led.sleeve(LEADER, "BTC")["signed_size"] = 10.0
     i = c.IntentBuilder(c.ConfigManager(), led).build(fill("SELL"))
@@ -363,7 +368,8 @@ def global_controls_tests() -> None:
     status, calls, _ = send({"marketable_bps": 10}, side="SELL", mid=0.0, sleeve=10.0)
     check("R3_EXIT_PRICED_FROM_OWN_POSITION_WHEN_NO_MID",
           len(calls) == 1 and calls[0]["reduce_only"] is True and abs(calls[0]["px"] - 98.9) < 0.01, f"{status} {calls}")
-    book["positions"] = []
+    # ENG-INV-09: the exchange holds the position but publishes no mark -> still no price at all
+    book["positions"] = [{"coin": "BTC", "szi": "10", "positionValue": "0"}]
     gw = c.SenderGateway(c.ConfigManager(), c.AuditLogWriter())
     status, calls, _ = send({}, side="SELL", mid=0.0, sleeve=10.0)
     check("R3_EXIT_WITH_NO_PRICE_AT_ALL_GOES_RED", status == "SEND_NOT_ATTEMPTED_FOLLOWER_PRICE_UNAVAILABLE" and not calls
