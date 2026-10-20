@@ -795,6 +795,12 @@ def classify_send_lifecycle(intent: Any) -> str:
     return "UNKNOWN_LIFECYCLE"
 
 
+def deferred_truth_max_seconds() -> float:
+    """Keep unreadable-truth retries bounded; zero now means the safe default, not forever."""
+    value = fnum(os.getenv("HL_LIVE_DEFER_MAX_SEC"), 300.0)
+    return 300.0 if value == 0 else max(0.0, value)
+
+
 def classify_terminal_state(status: str, reject_category: str = "", lifecycle: str = "UNKNOWN_LIFECYCLE", exchange_called: bool = True) -> str:
     status = str(status or "").upper()
     category = str(reject_category or "").upper()
@@ -4183,6 +4189,11 @@ class SenderGateway:
         # position_abs_before, intent_id}. Protected by _pending_exit_lock.
         self._pending_exit_guard: Dict[str, Dict[str, Any]] = {}
         self._pending_exit_lock = threading.Lock()
+        self._ambiguous_send_rechecks: "queue.Queue[Dict[str, Any]]" = queue.Queue(maxsize=1000)
+        self._ambiguous_send_recheck_ids: set = set()
+        self._ambiguous_send_recheck_lock = threading.Lock()
+        self._ambiguous_send_recheck_stop = threading.Event()
+        self._ambiguous_send_recheck_thread: Optional[threading.Thread] = None
         self._load_asset_universe_snapshot()
 
     def _place_order(self, exchange: Any, sdk_coin: str, is_buy: bool, size: float, limit_px: float,
@@ -5421,6 +5432,7 @@ class SenderGateway:
     def _resolve_ambiguous_send_outcome(
         self, sdk_coin: str, intent: Intent, cloid: str, wire_size: float, limit_px: float,
         reduce_only: bool, error_text: str, timing: Dict[str, Any],
+        schedule_followup: bool = True, record_hold: bool = True,
     ) -> Optional[Tuple[bool, str, Dict[str, Any]]]:
         """Readiness 1: an ambiguous send (timeout / unreadable reply) must resolve the ORIGINAL order by
         cloid BEFORE any retry. Returns a result tuple when the original landed (open/filled) or when the
@@ -5429,7 +5441,8 @@ class SenderGateway:
         cl = str(cloid or "").strip().lower()
         if not cl:
             return self._ambiguous_send_hold(intent, cloid, wire_size, limit_px, reduce_only,
-                                             "no cloid recorded for this send", error_text, timing)
+                                             "no cloid recorded for this send", error_text, timing,
+                                             schedule_followup, record_hold, sdk_coin)
         try:
             res = _XNET.post_many(
                 OPEN_ORDERS_FETCHER,
@@ -5438,11 +5451,13 @@ class SenderGateway:
             )[0]
         except Exception as exc:
             return self._ambiguous_send_hold(intent, cloid, wire_size, limit_px, reduce_only,
-                                             f"orderStatus read raised {exc!r}", error_text, timing)
+                                             f"orderStatus read raised {exc!r}", error_text, timing,
+                                             schedule_followup, record_hold, sdk_coin)
         if not (isinstance(res, dict) and res.get("ok")):
             detail = res.get("detail") if isinstance(res, dict) else res
             return self._ambiguous_send_hold(intent, cloid, wire_size, limit_px, reduce_only,
-                                             f"orderStatus unreadable: {detail}", error_text, timing)
+                                             f"orderStatus unreadable: {detail}", error_text, timing,
+                                             schedule_followup, record_hold, sdk_coin)
         data = res.get("data") if isinstance(res.get("data"), dict) else {}
         order_row = data.get("order") if isinstance(data.get("order"), dict) else {}
         status = str(order_row.get("status") or "").strip().lower()
@@ -5455,10 +5470,12 @@ class SenderGateway:
                 int(fnum(timing.get("send_real_started_ms"), 0)) - 5000, utc_now_ms() + 5000)
         except Exception as exc:
             return self._ambiguous_send_hold(intent, cloid, wire_size, limit_px, reduce_only,
-                                             f"fills read raised {exc!r}", error_text, timing)
+                                             f"fills read raised {exc!r}", error_text, timing,
+                                             schedule_followup, record_hold, sdk_coin)
         if fills_status != "FILLS_COMPLETE":
             return self._ambiguous_send_hold(intent, cloid, wire_size, limit_px, reduce_only,
-                                             f"fills unreadable: {fills_status}", error_text, timing)
+                                             f"fills unreadable: {fills_status}", error_text, timing,
+                                             schedule_followup, record_hold, sdk_coin)
         fill = next((f for f in fills
                      if str(f.get("cloid") or f.get("clientOrderId") or "").strip().lower() == cl), None)
         if fill is not None:
@@ -5469,7 +5486,8 @@ class SenderGateway:
         if status == "open":
             if not oid:
                 return self._ambiguous_send_hold(intent, cloid, wire_size, limit_px, reduce_only,
-                                                 "orderStatus says open but returned no order id", error_text, timing)
+                                                 "orderStatus says open but returned no order id", error_text, timing,
+                                                 schedule_followup, record_hold, sdk_coin)
             return self._ambiguous_send_landed(
                 intent, sdk_coin, cloid, wire_size, px, reduce_only, "open", oid, error_text, timing,
                 "the original order is still open on the exchange")
@@ -5481,7 +5499,8 @@ class SenderGateway:
             return None  # definitively not on the exchange: the caller may retry once
         return self._ambiguous_send_hold(
             intent, cloid, wire_size, limit_px, reduce_only,
-            f"order status {status or 'unknown'!r} is not a definitive answer", error_text, timing)
+            f"order status {status or 'unknown'!r} is not a definitive answer", error_text, timing,
+            schedule_followup, record_hold, sdk_coin)
 
     def _ambiguous_send_landed(self, intent: Intent, sdk_coin: str, cloid: str, wire_size: float, px: float,
                                 reduce_only: bool, outcome: str, oid: str, error_text: str,
@@ -5489,8 +5508,31 @@ class SenderGateway:
         note = (f"ambiguous send ({error_text}); the ORIGINAL order was found {outcome} on the exchange by "
                 f"cloid={cloid} ({why}); no resend")
         if outcome == "open" and oid:
-            self._register_resting_entry(intent, sdk_coin, oid, px, wire_size,
-                                         "ambiguous send resolved resting by cloid")
+            if classify_send_lifecycle(intent) in {"EXIT", "REDUCE"}:
+                key = canonical_coin_key(intent.fill.coin)
+                sleeve = self.ledger.sleeve(intent.fill.leader_wallet, intent.fill.coin) if self.ledger else {}
+                wallet_pos = fnum(sleeve.get("signed_size"), intent.wallet_position_before)
+                row = {
+                    "oid": str(oid), "coin": intent.fill.coin, "sdk_coin": sdk_coin, "size": wire_size,
+                    "side": intent.copy_side, "intent_id": intent.intent_id, "placed_ms": utc_now_ms(),
+                    "reduce_only": bool(reduce_only), "sleeve_signed": wallet_pos,
+                    "wallet": intent.fill.leader_wallet,
+                    "led_net": self.ledger.coin_net(key) if self.ledger else intent.coin_net_before,
+                    "sleeve_tol": 0.0, "cloid": str(cloid),
+                }
+                with self._resting_lock:
+                    self._standing_closes[intent.sleeve_id] = row
+                    atomic_write_json(STANDING_CLOSES_FILE, dict(self._standing_closes))
+                self.audit.append_reconciliation(
+                    "EXIT_RECOVERY", "AMBIGUOUS_SEND_EXIT_RESTING", leader_wallet=intent.fill.leader_wallet,
+                    leader_fill_id=intent.fill.leader_fill_id, intent_id=intent.intent_id, coin=intent.fill.coin,
+                    exchange_order_id=oid, action="WAIT_FOR_STANDING_CLOSE_GUARD",
+                    terminal_state="AMBIGUOUS_SEND_EXIT_RESTING",
+                    notes=f"original exit order found open by cloid={cloid}; tracked with reduce_only={bool(reduce_only)}")
+            else:
+                self._register_resting_entry(intent, sdk_coin, oid, px, wire_size,
+                                             "ambiguous send resolved resting by cloid")
+        is_exit = classify_send_lifecycle(intent) in {"EXIT", "REDUCE"}
         return True, ("ORDER_RESTING" if outcome == "open" else "ORDER_FILLED"), {
             "exchange_response": {"status": "ok", "response": {"type": "orderStatus",
                                                                "data": {"order": {"order": {"oid": oid},
@@ -5498,26 +5540,34 @@ class SenderGateway:
             "oid": oid, "limit_px": px, "wire_size": wire_size, "copy_notional": abs(wire_size * px),
             "exchange_called": True, "error": error_text, "timing": timing,
             "reject_category": "RATE_LIMIT_OR_TIMEOUT",
-            "terminal_state": "ENTRY_LIMIT_RESTING_AMBIGUOUS_SEND" if outcome == "open" else "FILLED_AMBIGUOUS_SEND",
-            "operator_action": "WAIT_FOR_COPY_POLL",
+            "terminal_state": (("STANDING_CLOSE_AMBIGUOUS_SEND" if is_exit else "ENTRY_LIMIT_RESTING_AMBIGUOUS_SEND")
+                               if outcome == "open" else "FILLED_AMBIGUOUS_SEND"),
+            "operator_action": "WAIT_FOR_CLOSE_RECONCILIATION" if is_exit else "WAIT_FOR_COPY_POLL",
             "order_type": "REAL_IOC_AMBIGUOUS_RESOLVED",
             "reduce_only_sent": reduce_only, "notes": note,
         }
 
     def _ambiguous_send_hold(self, intent: Intent, cloid: str, wire_size: float, limit_px: float,
                              reduce_only: bool, detail: str, error_text: str,
-                             timing: Dict[str, Any]) -> Tuple[bool, str, Dict[str, Any]]:
+                             timing: Dict[str, Any], schedule_followup: bool = True,
+                             record_hold: bool = True, sdk_coin: str = "") -> Tuple[bool, str, Dict[str, Any]]:
         note = (f"ambiguous send ({error_text}); the ORIGINAL order's outcome could NOT be resolved by "
                 f"cloid={cloid} ({detail}); NO resend, NO retry: check the exchange for this cloid")
-        self.audit.append_reconciliation(
-            "AMBIGUOUS_SEND", "SEND_OUTCOME_UNKNOWN_HOLD",
-            leader_wallet=intent.fill.leader_wallet, leader_fill_id=intent.fill.leader_fill_id,
-            intent_id=intent.intent_id, coin=intent.fill.coin,
-            action="MANUAL_REVIEW_CHECK_ORDER_BY_CLOID",
-            reject_category="RATE_LIMIT_OR_TIMEOUT",
-            terminal_state="SEND_OUTCOME_UNKNOWN_HOLD", engine_can_send="False",
-            notes=note,
-        )
+        if record_hold:
+            self.audit.append_reconciliation(
+                "AMBIGUOUS_SEND", "SEND_OUTCOME_UNKNOWN_HOLD",
+                leader_wallet=intent.fill.leader_wallet, leader_fill_id=intent.fill.leader_fill_id,
+                intent_id=intent.intent_id, coin=intent.fill.coin,
+                action="MANUAL_REVIEW_CHECK_ORDER_BY_CLOID",
+                reject_category="RATE_LIMIT_OR_TIMEOUT",
+                terminal_state="SEND_OUTCOME_UNKNOWN_HOLD", engine_can_send="False",
+                notes=note,
+            )
+        if schedule_followup:
+            self._queue_ambiguous_send_recheck(sdk_coin=sdk_coin, intent=intent, cloid=cloid,
+                                               wire_size=wire_size, limit_px=limit_px,
+                                               reduce_only=reduce_only, error_text=error_text,
+                                               timing=timing, detail=detail)
         return False, "EXCHANGE_ERROR", {
             "exchange_response": {}, "oid": "", "limit_px": limit_px, "wire_size": wire_size,
             "copy_notional": abs(wire_size * limit_px),
@@ -5527,6 +5577,137 @@ class SenderGateway:
             "operator_action": "MANUAL_REVIEW_CHECK_ORDER_BY_CLOID",
             "notes": note,
         }
+
+    def _queue_ambiguous_send_recheck(self, sdk_coin: str, intent: Intent, cloid: str, wire_size: float,
+                                      limit_px: float, reduce_only: bool, error_text: str,
+                                      timing: Dict[str, Any], detail: str) -> None:
+        attempt_id = str(timing.get("send_attempt_id") or "")
+        cl = str(cloid or "").strip().lower()
+        if not cl or not attempt_id:
+            self._ambiguous_send_followup_alert(intent, cl, attempt_id, detail, 0)
+            return
+        ready = timing.setdefault("_ambiguous_send_recheck_ready", threading.Event())
+        job = {"sdk_coin": sdk_coin,
+               "intent": intent, "cloid": cl, "wire_size": wire_size, "limit_px": limit_px,
+               "reduce_only": reduce_only, "error_text": error_text, "timing": dict(timing),
+               "detail": detail, "attempt_id": attempt_id, "ready": ready}
+        with self._ambiguous_send_recheck_lock:
+            if attempt_id in self._ambiguous_send_recheck_ids:
+                return
+            try:
+                self._ambiguous_send_rechecks.put_nowait(job)
+            except queue.Full:
+                self._ambiguous_send_followup_alert(intent, cl, attempt_id, "recheck queue is full", 0)
+                return
+            self._ambiguous_send_recheck_ids.add(attempt_id)
+            if self._ambiguous_send_recheck_thread is None or not self._ambiguous_send_recheck_thread.is_alive():
+                self._ambiguous_send_recheck_thread = threading.Thread(
+                    target=self._ambiguous_send_recheck_loop, daemon=True, name="HLCore-ambiguous-send-recheck")
+                self._ambiguous_send_recheck_thread.start()
+
+    def signal_ambiguous_send_attempt_written(self, timing: Dict[str, Any]) -> None:
+        ready = timing.get("_ambiguous_send_recheck_ready")
+        if isinstance(ready, threading.Event):
+            ready.set()
+
+    def _ambiguous_send_recheck_loop(self) -> None:
+        while not self._ambiguous_send_recheck_stop.is_set():
+            try:
+                job = self._ambiguous_send_rechecks.get(timeout=0.25)
+            except queue.Empty:
+                continue
+            try:
+                self._run_ambiguous_send_recheck(job)
+            except Exception as exc:
+                log_error("ambiguous_send_recheck", exc)
+                self._ambiguous_send_followup_alert(job["intent"], job["cloid"], job["attempt_id"], repr(exc), 0)
+            finally:
+                with self._ambiguous_send_recheck_lock:
+                    self._ambiguous_send_recheck_ids.discard(job["attempt_id"])
+                self._ambiguous_send_rechecks.task_done()
+
+    def _run_ambiguous_send_recheck(self, job: Dict[str, Any]) -> None:
+        ready_deadline = time.monotonic() + max(5.0, HTTP_TIMEOUT_SEC * 2)
+        while (not job["ready"].is_set() and not self._ambiguous_send_recheck_stop.is_set()
+               and time.monotonic() < ready_deadline):
+            time.sleep(0.05)
+        if not job["ready"].is_set():
+            self._ambiguous_send_followup_alert(job["intent"], job["cloid"], job["attempt_id"],
+                                                "final send attempt audit row was not signaled", 0)
+            return
+        max_attempts = max(1, min(10, int(fnum(os.getenv("HL_LIVE_AMBIGUOUS_SEND_RECHECK_ATTEMPTS"), 3))))
+        interval = max(0.05, fnum(os.getenv("HL_LIVE_AMBIGUOUS_SEND_RECHECK_INTERVAL_SEC"), 5.0))
+        last_detail = job["detail"]
+        for number in range(1, max_attempts + 1):
+            if self._ambiguous_send_recheck_stop.wait(interval):
+                last_detail = "engine stopped before deferred outcome was resolved"
+                break
+            outcome = self._resolve_ambiguous_send_outcome(
+                job["sdk_coin"], job["intent"], job["cloid"], job["wire_size"], job["limit_px"],
+                job["reduce_only"], job["error_text"], job["timing"], schedule_followup=False,
+                record_hold=False)
+            if outcome is None:
+                updates = {"status": "ORDER_CANCELLED", "terminal_state": "SEND_OUTCOME_CONFIRMED_CANCELLED_NO_RETRY",
+                           "operator_action": "MANUAL_REVIEW_NO_AUTOMATIC_RETRY",
+                           "notes": f"deferred orderStatus confirmed original cloid={job['cloid']} cancelled; no automatic retry"}
+                update_send_attempt_row(job["attempt_id"], updates)
+                self.audit.append_reconciliation(
+                    "AMBIGUOUS_SEND", "SEND_OUTCOME_CONFIRMED_CANCELLED_NO_RETRY",
+                    leader_wallet=job["intent"].fill.leader_wallet,
+                    leader_fill_id=job["intent"].fill.leader_fill_id,
+                    intent_id=job["intent"].intent_id, coin=job["intent"].fill.coin,
+                    action="MANUAL_REVIEW_NO_AUTOMATIC_RETRY", reject_category="RATE_LIMIT_OR_TIMEOUT",
+                    terminal_state="SEND_OUTCOME_CONFIRMED_CANCELLED_NO_RETRY",
+                    notes=f"deferred read {number}/{max_attempts} confirmed cloid={job['cloid']} cancelled; no resend")
+                return
+            if outcome[1] in {"ORDER_RESTING", "ORDER_FILLED"}:
+                result = outcome[2]
+                update_send_attempt_row(job["attempt_id"], {
+                    "status": outcome[1], "exchange_order_id": result.get("oid", ""),
+                    "exchange_response": json.dumps(result.get("exchange_response", {})),
+                    "terminal_state": result.get("terminal_state", ""),
+                    "operator_action": result.get("operator_action", ""),
+                    "notes": f"deferred read {number}/{max_attempts} resolved original cloid={job['cloid']}; no resend",
+                })
+                self.audit.append_reconciliation(
+                    "AMBIGUOUS_SEND", "SEND_OUTCOME_DEFERRED_RESOLVED",
+                    leader_wallet=job["intent"].fill.leader_wallet,
+                    leader_fill_id=job["intent"].fill.leader_fill_id,
+                    intent_id=job["intent"].intent_id, coin=job["intent"].fill.coin,
+                    exchange_order_id=result.get("oid", ""), action=result.get("operator_action", "WAIT_FOR_COPY_POLL"),
+                    reject_category="RATE_LIMIT_OR_TIMEOUT", terminal_state=result.get("terminal_state", ""),
+                    notes=f"deferred read {number}/{max_attempts} found original cloid={job['cloid']} {outcome[1]}; no resend")
+                return
+            last_detail = str(outcome[2].get("error") or outcome[2].get("notes") or "outcome still unknown")
+        self._ambiguous_send_followup_alert(job["intent"], job["cloid"], job["attempt_id"], last_detail, max_attempts)
+
+    def _ambiguous_send_followup_alert(self, intent: Intent, cloid: str, attempt_id: str,
+                                       detail: str, attempts: int) -> None:
+        note = (f"original order outcome remains unresolved after {attempts} deferred CLOID rechecks; "
+                f"attempt_id={attempt_id}; cloid={cloid}; {detail}; no resend; manual exchange review required")
+        update_send_attempt_row(attempt_id, {
+            "status": "ORDER_UNKNOWN", "terminal_state": "SEND_OUTCOME_UNKNOWN_MANUAL_ALERT",
+            "operator_action": "MANUAL_REVIEW_CHECK_ORDER_BY_CLOID", "notes": note,
+        })
+        self.audit.append_reconciliation(
+            "ALERT", "SEND_OUTCOME_UNKNOWN_MANUAL_ALERT", leader_wallet=intent.fill.leader_wallet,
+            leader_fill_id=intent.fill.leader_fill_id, intent_id=intent.intent_id, coin=intent.fill.coin,
+            action="MANUAL_REVIEW_CHECK_ORDER_BY_CLOID", reject_category="RATE_LIMIT_OR_TIMEOUT",
+            terminal_state="SEND_OUTCOME_UNKNOWN_MANUAL_ALERT", engine_can_send="False", notes=note)
+
+    def stop_ambiguous_send_rechecks(self) -> None:
+        self._ambiguous_send_recheck_stop.set()
+        thread = self._ambiguous_send_recheck_thread
+        if thread is not None and thread.is_alive() and thread is not threading.current_thread():
+            thread.join(timeout=1.0)
+        while True:
+            try:
+                job = self._ambiguous_send_rechecks.get_nowait()
+            except queue.Empty:
+                break
+            self._ambiguous_send_followup_alert(job["intent"], job["cloid"], job["attempt_id"],
+                                                "engine stopped with recheck queued", 0)
+            self._ambiguous_send_rechecks.task_done()
 
     def _entry_add_rate_limit_recovery(
         self,
@@ -5614,8 +5795,10 @@ class SenderGateway:
             if already is not None:
                 return already
         try:
-            recovery_response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", wire_size, leader_px,
-                                                  tif, False, timing, "entry_add_rate_limit_recovery_started_ms")
+            recovery_response = self._place_order(
+                exchange, sdk_coin, intent.copy_side == "BUY", wire_size, leader_px, tif, False, timing,
+                "entry_add_rate_limit_recovery_started_ms",
+                cloid=str(timing.get("send_cloid") or generate_cloid(intent.intent_id)))
             timing["entry_add_rate_limit_recovery_finished_ms"] = utc_now_ms()
             ok, status, oid, parsed_error = self._parse_hl_response(recovery_response)
             reject_category = classify_reject_category(parsed_error, recovery_response) if not ok else ""
@@ -5896,7 +6079,9 @@ class SenderGateway:
         if not rec:
             return False, ""
         now_ms = utc_now_ms()
-        ttl_ms = max(0, int(fnum(os.getenv("HL_LIVE_PENDING_EXIT_GUARD_TTL_MS"), 30000)))
+        ttl_ms = int(fnum(os.getenv("HL_LIVE_PENDING_EXIT_GUARD_TTL_MS"), 30000))
+        if ttl_ms <= 0:  # shortcut: zero does not mean an infinite close hold; raise the default if operators need longer.
+            ttl_ms = 30000
         age_ms = now_ms - int(fnum(rec.get("ts_ms"), 0))
         if ttl_ms and age_ms > ttl_ms:
             self._pending_exit_guard.pop(intent.sleeve_id, None)
@@ -6014,7 +6199,10 @@ class SenderGateway:
         timing["send_real_started_ms"] = utc_now_ms()
         ok, send_status, result = self._send_real(intent, timing)
         if result.get("exchange_called"):
-            self._append_real_attempt(intent, send_status, result)
+            try:
+                self._append_real_attempt(intent, send_status, result)
+            finally:
+                self.signal_ambiguous_send_attempt_written(timing)
             reduced_ms = self.leader_reduced_since(intent.fill) if lifecycle in {"ENTRY", "ADD"} else 0
             if reduced_ms and send_status == "ORDER_FILLED":
                 self.audit.append_reconciliation(
@@ -9265,6 +9453,10 @@ class LiveCopyCore:
         except Exception as exc:
             log_error("stop_cancel_resting_entries", exc)
         self._hot_stop_event.set()
+        try:
+            self.sender.stop_ambiguous_send_rechecks()
+        except Exception as exc:
+            log_error("stop_ambiguous_send_rechecks", exc)
         self.ws.stop()
         ct = getattr(self, "_copy_thread", None)
         if ct is not None and ct.is_alive() and ct is not threading.current_thread():
@@ -9963,7 +10155,7 @@ class LiveCopyCore:
         firsts = self.__dict__.setdefault("_defer_first_ms", {})
         now = utc_now_ms()
         first = firsts.setdefault(key, now)
-        within = now - first <= int(fnum(os.getenv("HL_LIVE_DEFER_MAX_SEC"), 300.0) * 1000)
+        within = now - first <= int(deferred_truth_max_seconds() * 1000)
         past_send = key in self._past_send_keys
         if not past_send and within:  # nothing reached the exchange yet: hold it and offer it again
             with self._idem_lock:
@@ -10177,8 +10369,17 @@ class LiveCopyCore:
         now = utc_now_ms()
         new_fill = key not in firsts
         first = firsts.setdefault(key, now)
-        max_sec = fnum(os.getenv("HL_LIVE_DEFER_MAX_SEC"), 0.0)  # 0 = hold until readable (Boss rule 16 Oct: never a terminal block)
-        if max_sec < 0 or (max_sec > 0 and now - first > int(max_sec * 1000)):  # negative = no hold at all (tests)
+        max_sec = deferred_truth_max_seconds()
+        if now - first > int(max_sec * 1000):
+            alerted = self.__dict__.setdefault("_defer_alerted", set())
+            if key not in alerted:
+                alerted.add(key)
+                self.audit.append_reconciliation(
+                    "ALERT", "REPLAY_DEFERRED_PAST_LIMIT_ALERT", leader_wallet=fill.leader_wallet,
+                    leader_fill_id=fill.leader_fill_id, coin=fill.coin,
+                    action="MANUAL_REVIEW_UNREADABLE_TRUTH", terminal_state="REPLAY_DEFERRED_PAST_LIMIT_ALERT",
+                    engine_can_send="False",
+                    notes=f"entry truth stayed unreadable for {int((now - first) / 1000)}s; bounded hold expired at {max_sec:g}s; no order was sent")
             firsts.pop(key, None)
             return False
         with self._idem_lock:  # release the HEAD only: merged siblings stay marked handled, so a poll re-read cannot
@@ -10191,7 +10392,7 @@ class LiveCopyCore:
                     "REPLAY_DEFERRED", "REPLAY_DEFERRED_TRUTH_UNREADABLE", leader_wallet=fill.leader_wallet,
                     leader_fill_id=fill.leader_fill_id, coin=fill.coin, action="RETRY_WHEN_READABLE", terminal_state="REPLAY_DEFERRED_TRUTH_UNREADABLE", engine_can_send="False",
                     notes=f"entry held, not lost: {reason}; retried every {fnum(os.getenv('HL_LIVE_DEFER_RETRY_SEC'), 5.0):g}s up to "
-                          f"{fnum(os.getenv('HL_LIVE_DEFER_MAX_SEC'), 300.0):g}s")
+                          f"{max_sec:g}s")
             except Exception as exc:
                 log_error("defer_row", exc)
             self._rows_for_held_siblings(fill, "REPLAY_DEFERRED_TRUTH_UNREADABLE")
@@ -10207,7 +10408,7 @@ class LiveCopyCore:
         """A held fill must be decided within HL_LIVE_DEFER_MAX_SEC (plus a grace for the worker that holds its slot). One still
         held after that is a visible ALERT row (one per fill) and an error-log line; it stays held and is retried, and the
         classifier keeps counting it as unresolved (REPLAY_DEFERRED prefix) until a real outcome row exists."""
-        limit_ms = int((fnum(os.getenv("HL_LIVE_DEFER_MAX_SEC"), 300.0) + fnum(os.getenv("HL_LIVE_DEFER_ALERT_GRACE_SEC"), 60.0)) * 1000)
+        limit_ms = int((deferred_truth_max_seconds() + fnum(os.getenv("HL_LIVE_DEFER_ALERT_GRACE_SEC"), 60.0)) * 1000)
         firsts = self.__dict__.get("_defer_first_ms", {})
         alerted = self.__dict__.setdefault("_defer_alerted", set())
         now = utc_now_ms()
