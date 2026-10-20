@@ -97,3 +97,10 @@ duplicate / abandoned blockers are closed with a reason, not re-presented.
 ## CLOSED
 
 (none yet)
+
+### D-005 - Multi-sleeve sub-minimum close needs a controller ruling (A/B/C)
+- **Opened:** 2026-10-20, from card `t_749b5b39` (`engine/no-sub-minimum-positions`), deliverable at `946c0a441c1a3e0d84be3e438c3adec87466017f`.
+- **The question:** when a sleeve is below the minimum order notional but is NOT the whole account position, closing it whole necessarily closes sibling leaders' sleeves for the same coin. The engine cannot satisfy "no sleeve below the minimum" and "never touch another leader's inventory" at the same time.
+- **Ask:** Claude picks A, B or C. Options as posted in PR #81 comments `6301010515` and `6301010724`.
+- **Status: OPEN - blocked on controller ruling. Do NOT merge to `release/overnight-staging` until the chosen option is implemented and re-reviewed.**
+- **Not a human decision:** this is an engineering trade-off, so it goes to the controller, not the operator.
