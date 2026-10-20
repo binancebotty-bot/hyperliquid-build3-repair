@@ -5334,6 +5334,47 @@ class SenderGateway:
         except Exception:
             return 0.0
 
+    def _record_partial_exit_fill(self, intent, planned_size, filled, remainder, response, parsed_error):
+        """Branch 8 (ruling 6278398517): a PARTIAL exit fill is written down with BOTH the filled size and the
+        REMAINING size, on the same intent id and exchange order id. Written BEFORE any follow-up decision, so a
+        remainder can never go unrecorded even when the follow-up is held or skipped."""
+        filled_size = abs(fnum(filled, 0.0))
+        remaining = abs(fnum(remainder, 0.0))
+        oid = ""
+        try:
+            st = response.get("response", {}).get("data", {}).get("statuses", []) if isinstance(response, dict) else []
+            first = st[0] if st else {}
+            if isinstance(first, dict) and isinstance(first.get("filled"), dict):
+                oid = str(first["filled"].get("oid", "") or "")
+        except Exception:
+            oid = ""
+        notes = (f"intent_id={intent.intent_id}; sleeve_id={intent.sleeve_id}; position_id={intent.position_id}; "
+                 f"coin={intent.fill.coin}; side={intent.copy_side}; planned_size={abs(fnum(planned_size, 0.0))}; "
+                 f"filled_size={filled_size}; remaining_size={remaining}; exchange_order_id={oid}; "
+                 f"leader_price={intent.fill.price}; ioc_error={parsed_error}")
+        try:
+            self.audit.append_reconciliation(
+                "EXIT_RECOVERY", "EXIT_PARTIAL_FILL", leader_wallet=intent.fill.leader_wallet,
+                leader_fill_id=intent.fill.leader_fill_id, intent_id=intent.intent_id, coin=intent.fill.coin,
+                action="PARTIAL_EXIT_REMAINDER_RECORDED", terminal_state="EXIT_PARTIAL_REMAINDER_OPEN",
+                exchange_order_id=oid, engine_can_send="True", notes=notes)
+        except Exception as exc:
+            log_error("partial_exit_row", exc)
+        return oid
+
+    def _note_partial_follow_up(self, intent, status, reason, oid=""):
+        """An unfollowed partial must still be attributable: every early return on a partial writes a row saying
+        why the remainder was not worked, instead of vanishing into a bare return (the LINEA defect)."""
+        try:
+            self.audit.append_reconciliation(
+                "EXIT_RECOVERY", status, leader_wallet=intent.fill.leader_wallet,
+                leader_fill_id=intent.fill.leader_fill_id, intent_id=intent.intent_id, coin=intent.fill.coin,
+                action="PARTIAL_EXIT_FOLLOW_UP_SKIPPED", terminal_state="EXIT_PARTIAL_REMAINDER_OPEN",
+                exchange_order_id=oid, engine_can_send="False",
+                notes=f"intent_id={intent.intent_id}; reason={reason}")
+        except Exception as exc:
+            log_error("partial_follow_up_row", exc)
+
     def _queue_exit_recovery_if_needed(
         self,
         exchange: Any,
@@ -5345,8 +5386,22 @@ class SenderGateway:
         parsed_error: str,
         remainder: Optional[float] = None,
         sz_dec: Optional[int] = None,
+        filled: Optional[float] = None,
     ) -> None:
+        # Branch 8 (ruling 6278398517): on a PARTIAL exit fill write the filled+remaining row FIRST, linked to the
+        # same intent id and exchange order id, so the remainder is on record even if every follow-up step below is
+        # held or skipped. An unfollowed partial is the orphan-position defect; an unrecorded one is worse.
+        if remainder is not None:
+            self._record_partial_exit_fill(intent, wire_size, filled, remainder, response, parsed_error)
         if not self.ledger or not intent.reduce_only_intended or self._exit_recovery_exists(intent):
+            if remainder is not None:  # a partial exit with nothing left to follow: say why, never a bare return
+                if not self.ledger:
+                    code, why = 'NO_LEDGER', 'no ledger'
+                elif not intent.reduce_only_intended:
+                    code, why = 'NOT_REDUCE_INTENT', 'intent is not reduce_only_intended'
+                else:
+                    code, why = 'RECOVERY_EXISTS', 'a recovery close already exists for this intent'
+                self._note_partial_follow_up(intent, 'EXIT_PARTIAL_FOLLOW_UP_SKIPPED_' + code, why)
             return
         sleeve = self.ledger.sleeve(intent.fill.leader_wallet, intent.fill.coin)
         wallet_pos = fnum(sleeve.get("signed_size"), 0.0)
@@ -5354,14 +5409,22 @@ class SenderGateway:
         if remainder is not None:  # the close part-filled: only what is left (the ledger has not seen the fill yet)
             close_size = min(close_size, abs(remainder))
         if close_size <= POSITION_EPSILON or wallet_pos * ManualLedger.signed_delta(intent.copy_side, 1.0) >= 0:
+            if remainder is not None:
+                why = (f'nothing left to follow up: close_size={close_size} sleeve={wallet_pos} '
+                       f'side={intent.copy_side} remainder={remainder}')
+                self._note_partial_follow_up(intent, 'EXIT_PARTIAL_FOLLOW_UP_SKIPPED_NOTHING_TO_CLOSE', why)
             return
         notes = (
             f"intent_id={intent.intent_id}; sleeve_id={intent.sleeve_id}; position_id={intent.position_id}; "
             f"coin={intent.fill.coin}; side={intent.copy_side}; intended_close_size={intent.copy_size}; "
             f"queued_close_size={close_size}; limit_price={limit_px}; leader_price={intent.fill.price}; "
-            f"wallet_position_before={wallet_pos}; ioc_error={parsed_error}"
+            f"wallet_position_before={wallet_pos}; filled_size={abs(fnum(filled, 0.0))}; "
+            f"remaining_size={abs(fnum(remainder, 0.0)) if remainder is not None else ''}; ioc_error={parsed_error}"
         )
         if not self.cfg.master_switch_now():  # sending switched off meanwhile: no new standing order
+            if remainder is not None:
+                self._note_partial_follow_up(intent, 'EXIT_PARTIAL_FOLLOW_UP_SKIPPED_SENDING_OFF',
+                                             'sending switched off meanwhile; the remainder is recorded and left open')
             return
         try:
             # Boss (12 Oct): not reduce-only, because the follower may need to move its exposure the other way. Safe instead
@@ -5383,7 +5446,65 @@ class SenderGateway:
                     action="NO_STANDING_CLOSE_HELD", terminal_state="STANDING_CLOSE_HELD_NET_UNREADABLE",
                     engine_can_send="False", notes=_skip)
                 return
-            if _skip:  # nothing to leave standing (the target is reached or there is nothing left to close): say so
+            if _skip and remainder is not None:
+                # Branch 8 (ruling 6278398517): the target arithmetic refused, but this IS a partial fill, so the
+                # remainder is real and the product rule is "never drop it". Size the follow-up from the remainder
+                # itself, capped at the readable exchange net (never larger than the net), and rest it at the
+                # leader's price. reduce_only only for a PURE reduction (t_d7b25219 arithmetic: the side opposes the
+                # readable net AND the wire size fits inside abs(net)).
+                _fk = canonical_coin_key(intent.fill.coin)
+                _fex = self._fresh_exchange_net(intent.fill.coin)
+                _fhold = self._net_unreadable_reason(intent.fill.coin, _fk, _fex)
+                if _fhold:  # t_5e687830 governs: hold + replay + alert, never a guessed flag
+                    self.audit.append_reconciliation(
+                        "EXIT_RECOVERY", "STANDING_CLOSE_HELD_NET_UNREADABLE", leader_wallet=intent.fill.leader_wallet,
+                        leader_fill_id=intent.fill.leader_fill_id, intent_id=intent.intent_id, coin=intent.fill.coin,
+                        action="NO_STANDING_CLOSE_HELD", terminal_state="STANDING_CLOSE_HELD_NET_UNREADABLE",
+                        engine_can_send="False", notes=_fhold)
+                    return
+                _fcap = abs(remainder) if _fex is None else min(abs(remainder), abs(_fex))
+                _fsz = self._floor_wire_size(round(_fcap, 10), sz_dec) if sz_dec is not None else round(_fcap, 10)
+                # the t_d7b25219 arithmetic runs on the WIRE size actually sent (after the net cap), never on the
+                # uncapped remainder: the order must fit inside abs(net) to count as a pure reduction.
+                _fdelta = ManualLedger.signed_delta(intent.copy_side, abs(_fsz))
+                if _fsz <= POSITION_EPSILON:
+                    self._note_partial_follow_up(
+                        intent, "EXIT_PARTIAL_FOLLOW_UP_SKIPPED_NOTHING_TO_CLOSE",
+                        "planner said: " + str(_skip) + "; remainder rounds to nothing against net " + str(_fex))
+                    return
+                if _fex is None or abs(_fex) <= POSITION_EPSILON:
+                    _fro = bool(self._reduce_only_for_intent(intent))
+                else:
+                    _fro = bool(_fex * _fdelta < 0 and abs(_fdelta) <= abs(_fex) + POSITION_EPSILON)
+                _fpx = fnum(intent.fill.price, 0.0) or limit_px
+                if _fpx <= 0:
+                    self._note_partial_follow_up(intent, "EXIT_PARTIAL_FOLLOW_UP_SKIPPED_NO_PRICE",
+                                                 "no leader price and no limit price to rest the remainder at")
+                    return
+                _fresp = self._place_order(exchange, sdk_coin, intent.copy_side == 'BUY', _fsz, _fpx, 'Gtc', _fro)
+                _fok, _fstatus, _foid, _ferr = self._parse_hl_response(_fresp)
+                self._recovery_intent_ids.add(intent.intent_id)
+                if _fok and _foid:
+                    self._record_placed_order(intent, _foid, _fsz, _fpx, _fro, 'REAL_GTC_PARTIAL_REMAINDER',
+                                              'EXIT_RECOVERY_ACTIVE', 'RESTING_LIMIT_PARTIAL_REMAINDER',
+                                              'partial exit remainder rested at the leader price (reduce_only='
+                                              + str(_fro) + '); planner had refused: ' + str(_skip))
+                _frested = bool(_fok and _foid)
+                self.audit.append_reconciliation(
+                    'EXIT_RECOVERY', 'EXIT_PARTIAL_REMAINDER_RESTED' if _frested else 'EXIT_PARTIAL_REMAINDER_REST_FAILED',
+                    leader_wallet=intent.fill.leader_wallet, leader_fill_id=intent.fill.leader_fill_id,
+                    intent_id=intent.intent_id, coin=intent.fill.coin,
+                    action='RESTING_LIMIT_PARTIAL_REMAINDER_REDUCE_ONLY' if _fro else 'RESTING_LIMIT_PARTIAL_REMAINDER',
+                    terminal_state='EXIT_RECOVERY_ACTIVE' if _frested else 'EXIT_PARTIAL_REMAINDER_OPEN',
+                    exchange_order_id=_foid,
+                    notes=('intent_id=' + str(intent.intent_id)
+                           + '; filled_size=' + str(abs(fnum(filled, 0.0)))
+                           + '; remaining_size=' + str(abs(fnum(remainder, 0.0)))
+                           + '; rested_size=' + str(_fsz) + '; rested_px=' + str(_fpx)
+                           + '; exchange_net=' + str(_fex) + '; reduce_only=' + str(_fro)
+                           + '; planner_skip=' + str(_skip) + '; status=' + str(_fstatus) + '; error=' + str(_ferr)))
+                return
+            if _skip:  # not a partial (or the planner refused): nothing to leave standing, say so and send nothing
                 self.audit.append_reconciliation(
                     "EXIT_RECOVERY", "STANDING_CLOSE_NOT_PLACED", leader_wallet=intent.fill.leader_wallet,
                     leader_fill_id=intent.fill.leader_fill_id, intent_id=intent.intent_id, coin=intent.fill.coin,
@@ -6607,7 +6728,8 @@ class SenderGateway:
                 left = self._floor_wire_size(round(wire_size - filled, 10), sz_dec) if filled > 0 else 0.0
                 if left > 0:
                     self._queue_exit_recovery_if_needed(exchange, sdk_coin, intent, limit_px, wire_size, response,
-                                                        f"close part-filled {filled} of {wire_size}", remainder=left, sz_dec=sz_dec)
+                                                        f"close part-filled {filled} of {wire_size}", remainder=left,
+                                                        sz_dec=sz_dec, filled=filled)
             return ok, status, {
                 "exchange_response": response, "oid": oid,
                 "limit_px": limit_px, "wire_size": wire_size, "copy_notional": wire_notional,
