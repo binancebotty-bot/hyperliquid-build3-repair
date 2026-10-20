@@ -277,6 +277,11 @@ def _post(fetcher, payload, info_url, timeout):
         if not isinstance(raw, (dict, list)):
             last = {"ok": False, "status": TRUTH_UNAVAILABLE, "detail": "non-JSON payload"}
             continue
+        if isinstance(raw, dict) and raw.get("error"):
+            # an exchange error body (a 429 included) is a FAILED read: parsed as a clean answer it reads as
+            # "no positions" and silently unblocks sends on an account that was never read
+            last = {"ok": False, "status": TRUTH_UNAVAILABLE, "detail": str(raw.get("error"))[:200]}
+            continue
         return {"ok": True, "data": raw}
     return last
 
