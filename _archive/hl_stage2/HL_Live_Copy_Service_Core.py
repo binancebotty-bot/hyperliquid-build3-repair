@@ -5727,7 +5727,8 @@ class SenderGateway:
                 return False, 0.0, f"close rounds to nothing (exchange net {ex_net}, this close {delta})"
             if lag_size < abs(size) and not (callable(min_notional_ok) and min_notional_ok(lag_size)):
                 return True, size, ""
-            return False, lag_size, ""
+            pure_reduce = ex_net * delta < 0 and lag_size <= abs(ex_net)
+            return pure_reduce, lag_size, ""
         need = led_net + delta - ex_net
         if need * delta <= 0 or abs(need) <= POSITION_EPSILON:
             return False, 0.0, (f"exchange net {ex_net} is already at or past the target {led_net + delta} "
@@ -5737,7 +5738,8 @@ class SenderGateway:
             return False, 0.0, f"close to target rounds to nothing (need {need}, this close {delta})"
         if new_size < abs(size) and not (callable(min_notional_ok) and min_notional_ok(new_size)):
             return True, size, ""  # the trimmed order would fall under the minimum: keep the full size, reduce-only
-        return False, new_size, ""
+        pure_reduce = ex_net * delta < 0 and new_size <= abs(ex_net)
+        return pure_reduce, new_size, ""
 
     def _repair_ledger_if_exchange_flat(self, intent: Intent, exchange_error: str) -> str:
         """The exchange refused a reduce-only close because it holds nothing to reduce (outage tests: 24 of 318 rejects in 24 h, RESOLV
@@ -12165,6 +12167,7 @@ def run_self_test() -> None:
         class _FakeExchange:
             def __init__(self) -> None:
                 self.calls: List[Dict[str, Any]] = []
+                self.withdrawable = 0.0  # reported by the mock, not read from production
 
             def order(self, coin: Any, is_buy: Any, size: Any, px: Any, tif: Any, reduce_only: bool = False) -> Dict[str, Any]:
                 self.calls.append({"coin": coin, "is_buy": is_buy, "size": size, "px": px, "reduce_only": reduce_only})
@@ -12208,9 +12211,13 @@ def run_self_test() -> None:
         _ro_saved_acct, _ro_saved_exch = globals().get("HLAccount"), globals().get("HLExchange")
         globals()["HLAccount"], globals()["HLExchange"] = object, object
         try:
-            _ro_gw._send_real(_ro_exit)
+            _ro_send_ok, _ro_send_status, _ro_send_result = _ro_gw._send_real(_ro_exit)
             _check("wire: EXIT real send passes reduce_only=True to exchange.order",
                    len(_ro_fake.calls) == 1 and _ro_fake.calls[-1]["reduce_only"] is True, str(_ro_fake.calls))
+            _check("mock contract: accepted reduce-only order with withdrawable=0 (reported by the mock, not read from production)",
+                   _ro_send_ok is True and _ro_send_status == "ORDER_FILLED" and _ro_fake.withdrawable == 0.0
+                   and len(_ro_fake.calls) == 1 and _ro_fake.calls[-1]["reduce_only"] is True,
+                   "accepted=%s status=%s; mock withdrawable=%s" % (_ro_send_ok, _ro_send_status, _ro_fake.withdrawable))
             _ro_gw._send_real(_ro_entry)
             _check("wire: ENTRY real send passes reduce_only=False to exchange.order",
                    len(_ro_fake.calls) == 2 and _ro_fake.calls[-1]["reduce_only"] is False, str(_ro_fake.calls))

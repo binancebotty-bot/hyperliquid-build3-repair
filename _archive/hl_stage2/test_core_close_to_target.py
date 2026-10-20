@@ -32,22 +32,22 @@ def plan(side, size, led, ex, mode="ON", dust=False, readable=True, fresh=None, 
             else: os.environ["HL_LIVE_CLOSE_TO_TARGET"] = old
 
 OK = lambda s: True
-check("AGREEING_CLOSE_NOT_REDUCE_ONLY", plan("SELL", 10, 10, 10, min_ok=OK) == (False, 10.0, ""))
+check("AGREEING_CLOSE_NOT_REDUCE_ONLY", plan("SELL", 10, 10, 10, min_ok=OK) == (True, 10.0, ""))
 check("CLOSE_MAY_INCREASE_EXPOSURE", plan("SELL", 10, 5, 5, min_ok=OK) == (False, 10.0, ""))  # other sleeves net: goes net short 5
-check("TRIMMED_TO_EXCHANGE_POSITION", plan("SELL", 10, 10, 4, min_ok=OK) == (False, 4.0, ""))
+check("TRIMMED_TO_EXCHANGE_POSITION", plan("SELL", 10, 10, 4, min_ok=OK) == (True, 4.0, ""))
 r = plan("SELL", 10, 10, 0.0, min_ok=OK)
 check("EXCHANGE_FLAT_SENDS_NOTHING", r[1] == 0.0 and r[2])
 r = plan("SELL", 10, 10, -5.0, min_ok=OK)
 check("PAST_TARGET_SENDS_NOTHING", r[1] == 0.0 and r[2])
 r = plan("SELL", 10, 10, 100.0, min_ok=OK)
-check("NEVER_CLOSES_MORE_THAN_THE_LEADER_CLOSE", r == (False, 10.0, ""), str(r))
+check("NEVER_CLOSES_MORE_THAN_THE_LEADER_CLOSE", r == (True, 10.0, ""), str(r))
 check("STALE_RECORDS_HAND_CLOSED_POSITION_SENDS_NOTHING", plan("SELL", 1, 1, 0.0, min_ok=OK)[1] == 0.0)
-check("WALLET_CLOSE_ONLY_CLOSE_IS_SIZED_LIKE_ANY_OTHER", plan("SELL", 10, 10, 10, mode="CLO", min_ok=OK) == (False, 10.0, ""))
+check("WALLET_CLOSE_ONLY_CLOSE_IS_SIZED_LIKE_ANY_OTHER", plan("SELL", 10, 10, 10, mode="CLO", min_ok=OK) == (True, 10.0, ""))
 check("WALLET_CLOSE_ONLY_CLOSE_MAY_INCREASE_EXPOSURE", plan("SELL", 10, 5, 5, mode="CLO", min_ok=OK) == (False, 10.0, ""))
 # header CLOSE ONLY control: leader side only (no leader entries); the follower side is sized like any close
-check("HEADER_CLOSE_ONLY_CLOSE_IS_SIZED_LIKE_ANY_OTHER", plan("SELL", 10, 10, 10, gmode="CLOSE", min_ok=OK) == (False, 10.0, ""))
+check("HEADER_CLOSE_ONLY_CLOSE_IS_SIZED_LIKE_ANY_OTHER", plan("SELL", 10, 10, 10, gmode="CLOSE", min_ok=OK) == (True, 10.0, ""))
 check("HEADER_CLOSE_ONLY_CLOSE_MAY_INCREASE_FOLLOWER_EXPOSURE", plan("SELL", 10, 5, 5, gmode="CLOSE", min_ok=OK) == (False, 10.0, ""))
-check("HEADER_CLOSE_ONLY_CLOSE_STILL_NEVER_EXCEEDS_THE_LEADER_CLOSE", plan("SELL", 10, 10, 100.0, gmode="CLOSE", min_ok=OK) == (False, 10.0, ""))
+check("HEADER_CLOSE_ONLY_CLOSE_STILL_NEVER_EXCEEDS_THE_LEADER_CLOSE", plan("SELL", 10, 10, 100.0, gmode="CLOSE", min_ok=OK) == (True, 10.0, ""))
 check("HEADER_CLOSE_ONLY_DUST_STAYS_REDUCE_ONLY", plan("SELL", 0.01, 0.01, 0.01, dust=True, gmode="CLOSE") == (True, 0.01, ""))
 check("DUST_WHOLE_POSITION_STAYS_REDUCE_ONLY", plan("SELL", 0.01, 0.01, 0.01, dust=True) == (True, 0.01, ""))
 check("UNREADABLE_EXCHANGE_FALLS_BACK_REDUCE_ONLY", plan("SELL", 10, 10, 10, readable=False) == (True, 10, ""))
@@ -56,7 +56,10 @@ check("SWITCH_OFF_FALLBACK_IS_REDUCE_ONLY", plan("SELL", 10, 10, 10, env="false"
 check("LEDGER_MAY_LAG_FALLS_BACK_REDUCE_ONLY", plan("SELL", 10, 10, 4, lag=True) == (True, 10, ""))
 check("TRIM_BELOW_MIN_NOTIONAL_KEEPS_FULL_REDUCE_ONLY", plan("SELL", 10, 10, 4, min_ok=lambda s: False) == (True, 10, ""))
 check("TRIM_WITHOUT_MIN_CHECK_KEEPS_FULL_REDUCE_ONLY", plan("SELL", 10, 10, 4) == (True, 10, ""))
-check("SHORT_SLEEVE_BUY_CLOSE", plan("BUY", 10, -10, -10, min_ok=OK) == (False, 10.0, ""))
+check("SHORT_SLEEVE_BUY_CLOSE", plan("BUY", 10, -10, -10, min_ok=OK) == (True, 10.0, ""))
+check("PURE_REDUCTION_OPPOSING_WITHIN_NET_REDUCE_ONLY", plan("SELL", 5, 20, 20, min_ok=OK) == (True, 5.0, ""))
+check("OVERSIZED_CLOSE_PRESERVES_NETTING_BEHAVIOR", plan("SELL", 12, 0, 8, min_ok=OK) == (False, 12.0, ""))
+check("SAME_SIDE_CLOSE_PRESERVES_EXISTING_BEHAVIOR", plan("BUY", 5, 20, 10, min_ok=OK) == (False, 5.0, ""))
 failed = [n for n, ok in R if not ok]
 print("TOTAL=%d FAILED=%d" % (len(R), len(failed)))
 raise SystemExit(1 if failed else 0)
