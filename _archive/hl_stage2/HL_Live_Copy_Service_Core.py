@@ -11296,6 +11296,13 @@ class LiveCopyCore:
                     _next = (now if status == "POLL_OK" else max(f.timestamp_ms for f in wallet_fills) + LEADER_POLL_OVERLAP_MS
                              if status == "POLL_PARTIAL" and wallet_fills else 0)
                     if _next:
+                        if self.async_dispatch:
+                            # Polled fills are not in pending_ts until dispatch succeeds.
+                            for fill in wallet_fills:
+                                if not self._already_handled(fill):
+                                    fill_ms = int(fnum(fill.timestamp_ms, 0))
+                                    if fill_ms > 0:
+                                        _next = min(_next, fill_ms)
                         _next = self.leader_cursor_next(w, _next)  # never past a fill still waiting on a worker
                         if _hold:
                             self._held_read_cursor[w] = _next
