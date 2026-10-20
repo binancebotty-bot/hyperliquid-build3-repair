@@ -70,7 +70,7 @@ duplicate / abandoned blockers are closed with a reason, not re-presented.
 - **Opened:** 2026-10-14.
 - **Status: OPEN — awaiting operator decision (BLOCKED, human-only gate).**
 
-### D-004 — STANDING FREEZE on certification work (operator-ordered; supersedes the completion gate)
+### D-004 — certification-work freeze order (SUPERSEDED 2026-10-20 19:40Z; see the LIFTED line at the end of this entry)
 - **Matrix rows affected:** ENG-INV-01, 03, 07, 08, 09, 10 and all 654 `NOT_TESTED` rows.
 - **The order:** Boss, relayed by the controller in ruling `6285500040` at 07:12Z on 2026-10-20, verbatim:
   *"Boss's instruction: find the engine that ran for two months and fix only the sleeve/exit error. The

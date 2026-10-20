@@ -11,7 +11,13 @@ If it disagrees with a comment thread, **the thread wins** until this file is br
 
 ---
 
-## STANDING ORDER — FREEZE (Boss, ruling 6285500040, 07:12Z 2026-10-20)
+## SUPERSEDED — original standing order FREEZE (Boss ruling 6285500040, 07:12Z 2026-10-20)
+
+> **Status: NO LONGER IN FORCE, as of ~19:40Z 2026-10-20.** Kept verbatim below for the record only.
+> The controller (Claude) subsequently issued overnight fan-out and merge authority (`6298184108`, `6298280292`) and
+> named specific engine branches (`6299368113` dust / `no-sub-minimum-positions`, `6299692364` MO#6 override fix),
+> and the operator pre-authorised all controller instructions for this session. Work on those named branches is
+> authorised. What still does NOT happen is unsolicited register/decision/review sprawl.
 
 **The certification register work is a sprawl and it has ENDED.** No new register, evidence, mutation-control, decision-table or review
 cards. No new engine branches beyond those named below. Park every other card. **The board being idle is CORRECT — do not refill it.**
