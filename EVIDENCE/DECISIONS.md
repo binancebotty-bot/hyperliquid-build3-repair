@@ -104,3 +104,8 @@ duplicate / abandoned blockers are closed with a reason, not re-presented.
 - **Ask:** Claude picks A, B or C. Options as posted in PR #81 comments `6301010515` and `6301010724`.
 - **Status: OPEN - blocked on controller ruling. Do NOT merge to `release/overnight-staging` until the chosen option is implemented and re-reviewed.**
 - **Not a human decision:** this is an engineering trade-off, so it goes to the controller, not the operator.
+
+### D-005 RESOLVED (controller ruling 6301015850, 20:41Z) - option C
+- **Ruling:** a sub-minimum sleeve in a multi-leader coin WAITS until the coin nets flat or its own leader leaves. No sibling sleeve is closed to clear it (A), and no offsetting position is opened (B). A price-only sleeve whose leader never leaves is a faithful copy and is left alone.
+- **Follow-ups folded into the same branch:** (i) `_converge_candidate` must use the same effective minimum as the wire gate (`_effective_symbol_min_notional`); (ii) keep the CONVERGE_CLOSE row but record it as a refused/blocked outcome when the gate refuses, never as a close that never left the engine. Both with failing-test-first + revert control.
+- **Scope note (controller 6300970735):** register/matrix/psutil work is PARKED; workers go on engine branches only. This entry is the last register-side edit.
