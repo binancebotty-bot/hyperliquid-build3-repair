@@ -5992,6 +5992,13 @@ def load_existing_intents() -> Dict[str, Intent]:
     return {}
 
 
+def _pre_wire_block(send_status: str) -> bool:
+    """True when the send was refused before any exchange.order call."""
+    # Only gate refusals that clear on their own; permanent blocks (spot skip,
+    # symbol unresolved) keep their authority so they are not retried every cycle.
+    return send_status.startswith("ENTRY_BLOCKED_")
+
+
 class LiveCopyCore:
     def __init__(self, source_csv: Optional[Path] = None):
         ensure_dirs()
@@ -6296,6 +6303,13 @@ class LiveCopyCore:
                 summary.leader_sends_attempted += 1
         else:
             self._append_send_terminal(fill, intent, send_status)
+        if not sent and (_pre_wire_block(send_status) or send_status == "MASTER_REAL_ORDERS_OFF"):
+            # Refused before the wire: release send authority so a later cycle with the
+            # gate clear re-attempts the entry (blocked != sent).
+            with self._idem_lock:
+                self._idem_accepted.discard(guard_key)
+                self._idem_duplicate_audited.discard(guard_key)
+            self.dedupe.processed.discard(fill.leader_fill_id)
         return sent, send_status, intent
 
     def _daily_loss_block(self) -> str:
