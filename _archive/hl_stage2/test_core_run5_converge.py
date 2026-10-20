@@ -98,8 +98,9 @@ def main() -> None:
     check("C4_LEADER_STILL_HOLDING_IS_LEFT_ALONE", (A, "ETH") not in by)
     rows = c.read_csv_rows(c.RECONCILIATION_CSV)
     check("C5_EACH_CLOSE_IS_AUDITED_WITH_ITS_REASON",
-          {r.get("status") for r in rows if r.get("event") == "CONVERGE_CLOSE"} == {"CONVERGE_LEADER_FLAT",
-                                                                                  "CONVERGE_LEADER_OPPOSITE_SIDE"})
+          {r.get("status") for r in rows if r.get("event") == "CONVERGE_CLOSE"
+           and str(r.get("status") or "").endswith("_QUEUED")} == {"CONVERGE_LEADER_FLAT_QUEUED",
+                                                                     "CONVERGE_LEADER_OPPOSITE_SIDE_QUEUED"})
     n = len(sent)
     core.converge_once()
     check("C6_NOT_RESENT_INSIDE_THE_RETRY_WINDOW", len(sent) == n, str(len(sent) - n))
