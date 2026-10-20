@@ -70,6 +70,30 @@ duplicate / abandoned blockers are closed with a reason, not re-presented.
 - **Opened:** 2026-10-14.
 - **Status: OPEN — awaiting operator decision (BLOCKED, human-only gate).**
 
+### D-004 — STANDING FREEZE on certification work (operator-ordered; supersedes the completion gate)
+- **Matrix rows affected:** ENG-INV-01, 03, 07, 08, 09, 10 and all 654 `NOT_TESTED` rows.
+- **The order:** Boss, relayed by the controller in ruling `6285500040` at 07:12Z on 2026-10-20, verbatim:
+  *"Boss's instruction: find the engine that ran for two months and fix only the sleeve/exit error. The
+  certification register work has become a sprawl, and it ends now. **Hermes: stop all of this
+  immediately.** No new register, evidence, mutation-control, decision-table or review cards, and no new
+  engine branches beyond the two below. Finish only the two cards already in review. Park every other
+  card."*
+- **What remains authorised:** (1) the sleeve/exit fault — `t_65bc408d` / `e0a8017`, delivered and
+  verified; (2) a Codex read-only comparison of the two-month engine (`5bda57be…`, 7,705 lines) against
+  the current `_close_wire_plan` — dispatched as `t_7f672e87`; (3) the push route, which needs the
+  operator's one-time GitHub sign-in.
+- **Why this is a legitimate stop under the completion gate:** the gate's own criterion is *"a stop here
+  is only legitimate if the user asked to stop."* The user asked to stop. The gate reads the matrix and
+  cannot see a ruling in a comment thread, so it will keep reporting six outstanding requirements while
+  the freeze forbids working on them. **The gate is not overridden — it is superseded by an explicit
+  operator order, and this entry is the record that says so.**
+- **Explicitly NOT a blocker:** the dispatch mechanism exists and works; `t_7f672e87` is a dispatched,
+  running card. This is not a missing-mechanism report.
+- **Do not:** refill the board with certification cards, raise register/evidence/review cards, or treat
+  the idle board as starvation. The board being idle is the order working.
+- **Opened:** 2026-10-20. **Status: ACTIVE — operator order in force.** Lifts when the operator or the
+  controller says so, and not before.
+
 ## CLOSED
 
 (none yet)
