@@ -105,6 +105,9 @@ check("A_PARTIAL_FILL_LAG_CLOSES_WHOLE_REMAINDER", abs(sz - 12.0) < 1e-9 and ro 
 
 # ---------------------------------------------------------------- rule (c) (LiveCopyCore._converge_candidate)
 stub = SimpleNamespace(cfg=SimpleNamespace(min_notional=lambda: MIN))
+_eff_fn = getattr(c.LiveCopyCore, "_converge_effective_min", None)
+if _eff_fn is not None:  # round 3 made the candidate ask the wire gate's minimum
+    stub._converge_effective_min = lambda coin: _eff_fn(stub, coin)
 _cand_fn = getattr(c.LiveCopyCore, "_converge_candidate", None)
 def cand(size, px, lead, epx=0.0):
     if _cand_fn is None:
