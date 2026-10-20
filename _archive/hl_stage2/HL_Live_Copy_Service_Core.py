@@ -10454,6 +10454,17 @@ class LiveCopyCore:
                 self._append_send_terminal(fill, intent, send_status)
             except Exception as exc:
                 log_error("append_send_terminal", exc)
+            if converge:  # ruling 6301015850 (ii): the trail never names a close the gate refused
+                try:
+                    self.audit.append_reconciliation(
+                        "CONVERGE_CLOSE", f"CONVERGE_{str((fill.raw or {}).get('converge_reason') or 'CLOSE')}_REFUSED",
+                        leader_wallet=fill.leader_wallet, coin=fill.coin, leader_fill_id=fill.leader_fill_id,
+                        intent_id=intent.intent_id, action="NO_SEND_GATE_REFUSED", terminal_state=str(send_status)[:80],
+                        engine_can_send="False", engine_can_close=True,
+                        notes=(f"the wire gate refused this converge close ({send_status}); the sleeve is unchanged "
+                               "and waits for coin-flat or its own leader leaving"))
+                except Exception as exc:
+                    log_error("converge_refused_row", exc)
             if not self.audit.has_fill_row(fill.leader_fill_id):  # the invariant: no fill ends without a row, whatever the status
                 self.audit.append_reconciliation(
                     "SEND_TERMINAL", "BLOCKED_NO_TERMINAL_RECORDED", leader_wallet=fill.leader_wallet, leader_fill_id=fill.leader_fill_id,
@@ -11028,18 +11039,33 @@ class LiveCopyCore:
             _XNET.start_keepalive(sorted({HL_INFO_URL, HL_LEADER_INFO_URL}), fnum(os.getenv("HL_LIVE_HTTP_KEEPALIVE_SEC"), 20.0))
 
     # ---- convergence: no leader exit is ever lost ------------------------------------------------------------------
-    def _converge_candidate(self, size: float, px: float, lead: float, entry_px: float = 0.0) -> Tuple[bool, str]:
+    def _converge_effective_min(self, coin: str) -> float:
+        """The minimum the wire gate applies to this coin, symbol minimum included: convergence and the gate
+        must judge a sleeve by one number, so none sits in the gap between two thresholds (ruling 6301015850)."""
+        base = max(DEFAULT_MIN_NOTIONAL, self.cfg.min_notional())
+        try:
+            resolved = self.sender._resolve_coin(coin) if coin else {}
+        except Exception:
+            return base
+        if not resolved.get("ok"):
+            return base
+        return max(base, fnum(self.sender._effective_symbol_min_notional(resolved), 0.0))
+
+    def _converge_candidate(self, size: float, px: float, lead: float, entry_px: float = 0.0,
+                            coin: str = "") -> Tuple[bool, str]:
         """(close this sleeve, reason). Rule (c), Claude 6299805835 #4: a sub-minimum sleeve whose leader still holds
         the same side is closed WHOLE only when it is a PARTIAL-FILL REMAINDER -- it was entered under the minimum, so
         the entry, not the price, is what broke it. A sleeve that fell under the minimum from price alone is left
         alone while the leader holds it (Claude: it closes whole only once the leader has left); the leader-flat and
         leader-opposite paths below already do that. entry_px 0.0 means the entry is unknown: treated as price-only,
-        never closed under a live leader."""
-        min_notional = max(DEFAULT_MIN_NOTIONAL, self.cfg.min_notional())
+        never closed under a live leader.
+        Ruling 6301015850 option C: a sub-minimum sleeve in a multi-leader coin waits for the coin to net flat or
+        for its own leader to leave; no sibling sleeve is closed to clear it, no offsetting position opened."""
+        min_notional = self._converge_effective_min(coin)
         if abs(lead) > POSITION_EPSILON and lead * size > 0:
             if px > 0 and abs(size) * px < min_notional:
                 entry_notional = abs(size) * fnum(entry_px, 0.0)
-                if 0.0 < entry_notional < min_notional:
+                if 0.0 < entry_notional < max(DEFAULT_MIN_NOTIONAL, self.cfg.min_notional()):
                     return True, "SUB_MINIMUM_PARTIAL_FILL_REMAINDER"
             return False, ""
         return True, ("LEADER_FLAT" if abs(lead) <= POSITION_EPSILON else "LEADER_OPPOSITE_SIDE")
@@ -11082,7 +11108,8 @@ class LiveCopyCore:
                 out["checked"] += 1
                 lead = leader_net.get(canonical_coin_key(coin), 0.0)
                 px_now = follower_mid(coin)
-                is_candidate, reason = self._converge_candidate(size, px_now, lead, entry_px)
+                eff_min = self._converge_effective_min(coin)
+                is_candidate, reason = self._converge_candidate(size, px_now, lead, entry_px, coin)
                 if not is_candidate:
                     continue  # the leader still holds this side and the sleeve is not a sub-minimum remainder
                 key = (wallet, canonical_coin_key(coin), pid)
@@ -11093,7 +11120,7 @@ class LiveCopyCore:
                 if px <= 0:
                     continue
                 # dust (under the minimum order value) the exchange may refuse even reduce-only: retry it rarely
-                wait_ms = max(retry_ms, 1_800_000) if abs(size) * px < self.cfg.min_notional() else retry_ms
+                wait_ms = max(retry_ms, 1_800_000) if abs(size) * px < eff_min else retry_ms
                 tries = self._converge_tries.get(key, 0)
                 if tries >= 3:  # three closes did not take: the exchange or a gate refuses it; every 30 min from now
                     wait_ms = max(wait_ms, 1_800_000)
@@ -11109,10 +11136,11 @@ class LiveCopyCore:
                                   {"dir": "Close Long" if size > 0 else "Close Short", "converge_reason": reason,
                                    "leader_net_now": lead, "position_id": pid, "sleeve_size": size})
                 self.audit.append_reconciliation(
-                    "CONVERGE_CLOSE", f"CONVERGE_{reason}", leader_wallet=wallet, coin=coin,
-                    action="CLOSE_ENGINE_SLEEVE_REDUCE_ONLY", leader_fill_id=fill.leader_fill_id,
+                    "CONVERGE_CLOSE", f"CONVERGE_{reason}_QUEUED", leader_wallet=wallet, coin=coin,
+                    action="QUEUE_CONVERGE_CLOSE_REDUCE_ONLY", leader_fill_id=fill.leader_fill_id,
+                    terminal_state=f"CONVERGE_{reason}_QUEUED", engine_can_send="False",
                     notes=(f"leader position now {lead}; engine sleeve {size} (position {pid}); confirmed over "
-                           f"{(now - first) / 1000:.0f}s; queued as a leader close (all exit gates apply)"))
+                           f"{(now - first) / 1000:.0f}s; QUEUED only -- not a close until the gate accepts it"))
                 self._converge_sent[key] = now
                 self._converge_tries[key] = self._converge_tries.get(key, 0) + 1
                 if self.async_dispatch:
