@@ -1386,21 +1386,33 @@ def _fallback_path(path: Path) -> Path:
 
 def _spill_row(path: Path, fieldnames: List[str], row: Dict[str, Any]) -> bool:
     """Write a single row to the append-only fallback so replay_audit_fallback can recover it.
-    Best-effort: if the spill itself fails we log loudly but still return (the row
-    is gone -- the caller chose spill over raise)."""
+    Return False if the fallback could not preserve the complete row."""
+    sp = _fallback_path(path)
+    before = 0
     try:
         FALLBACK_DIR.mkdir(parents=True, exist_ok=True)
-        sp = _fallback_path(path)
         need_header = not sp.exists() or sp.stat().st_size == 0
+        before = sp.stat().st_size if sp.exists() else 0
+        buf = io.StringIO()
+        writer = csv.DictWriter(buf, fieldnames=fieldnames)
+        if need_header:
+            writer.writeheader()
+        writer.writerow({k: row.get(k, "") for k in fieldnames})
+        payload = buf.getvalue()
         with sp.open("a", newline="", encoding="utf-8") as f:
-            writer = csv.DictWriter(f, fieldnames=fieldnames)
-            if need_header:
-                writer.writeheader()
-            writer.writerow({k: row.get(k, "") for k in fieldnames})
-        log_error(f"audit_append_spilled:{path.name}", None)
+            written = f.write(payload)
+            f.flush()
+        if written != len(payload):
+            raise OSError(f"short audit spill: wrote {written} of {len(payload)} characters")
+        note_audit_write_failure(path, "row preserved in fallback after append retries")
         return True
     except Exception as exc:
-        log_error("audit_spill", exc)
+        try:
+            if sp.exists() and sp.stat().st_size > before:
+                os.truncate(sp, before)
+        except Exception:
+            pass
+        note_audit_write_failure(path, f"fallback write failed: {exc!r}")
         return False
 
 
@@ -1420,29 +1432,30 @@ def replay_audit_fallback(path: Path, fieldnames: List[str]) -> int:
         log_error("audit_replay_read", exc)
         return 0
     replayable = list(rows)
-    # Clear the spill file: rows spilled during replay (by append_csv's _spill_row)
-    # append to the now-empty file, so they survive without a separate rewrite pass.
-    try:
-        sp.write_bytes(b"")
-    except Exception:
-        pass
+    # shortcut: a crash mid-replay can duplicate copied rows; add keyed idempotence if exactly-once replay is required.
     replayed = 0
     for r in replayable:
         try:
-            if append_csv(path, fieldnames, r):  # True = live append, False = re-spill (row stays in spill file)
-                replayed += 1
+            if not append_csv(path, fieldnames, r, spill_on_failure=False):
+                break
+            replayed += 1
         except Exception as exc:
             log_error("audit_replay_append", exc)
-    if replayed > 0:
-        log_error(f"audit_replay_done:{path.name}:{replayed}", None)
+            break
+    if replayed == len(replayable):
+        try:
+            sp.write_bytes(b"")
+        except Exception as exc:
+            log_error("audit_replay_clear", exc)
     return replayed
 
 
-def append_csv(path: Path, fieldnames: List[str], row: Dict[str, Any]) -> bool:
-    """Append one row to an audit CSV.  Never raises: a transient failure (file lock,
-    sharing violation, short write) is retried with backoff; if every retry fails the
-    row is spilled to FALLBACK_DIR and replayed at the next start.  Returns True on a
-    live append, False on spill."""
+def append_csv(path: Path, fieldnames: List[str], row: Dict[str, Any], *, spill_on_failure: bool = True) -> bool:
+    """Append one audit row with retry and fallback; raise only if neither store preserves it.
+
+    A transient failure is retried with backoff; spilled rows are replayed at startup.
+    Returns True on a live append, False when replay must retain its existing spill row.
+    """
     ensure_csv_header(path, fieldnames)
     buf = io.StringIO()
     csv.DictWriter(buf, fieldnames=fieldnames).writerow({k: row.get(k, "") for k in fieldnames})
@@ -1477,8 +1490,11 @@ def append_csv(path: Path, fieldnames: List[str], row: Dict[str, Any]) -> bool:
                 note_audit_write_failure(path, exc)
                 if _attempt + 1 < _AUDIT_APPEND_RETRIES:
                     time.sleep(_AUDIT_APPEND_BACKOFF_SEC * (_attempt + 1))
-        else:  # all retries exhausted -- spill, never raise
-            _spill_row(path, fieldnames, row)
+        else:  # all retries exhausted -- preserve in the fallback before allowing work to continue
+            if not spill_on_failure:
+                return False
+            if not _spill_row(path, fieldnames, row):
+                raise OSError("audit row could not be persisted to the live file or fallback")
             return False
         # success path
         _note_append(path, fieldnames)  # our own append changed the size: keep the header cache in step
@@ -3806,7 +3822,8 @@ class AuditLogWriter:
 
     def replay_all_fallbacks(self) -> int:
         """Replay every spilled audit row into its live CSV.  Called once at startup so
-        that REPLAY_DEFERRED records (and any other spilled row) are recovered."""
+        that REPLAY_DEFERRED records (and any other spilled row) are recovered.  An
+        unresolved spill prevents startup, since sends cannot safely ignore its rows."""
         total = 0
         for path, fields in [
             (ORDER_INTENTS_CSV, ORDER_INTENT_FIELDS),
@@ -3816,8 +3833,12 @@ class AuditLogWriter:
         ]:
             try:
                 total += replay_audit_fallback(path, fields)
+                sp = _fallback_path(path)
+                if sp.exists() and sp.stat().st_size > 0:
+                    raise OSError(f"audit fallback still has rows for {path.name}; refusing startup")
             except Exception as exc:
                 log_error("audit_replay", exc)
+                raise
         return total
 
 class IntentBuilder:
@@ -9947,19 +9968,24 @@ class LiveCopyCore:
                 self._idem_accepted.discard(key)  # the head only; merged siblings stay marked and ride with it
             with self.dedupe._lock:
                 self.dedupe.processed.discard(fill.leader_fill_id)
-            if first == now:  # one row per fill, not one per retry
-                self._rows_for_held_siblings(fill, "REPLAY_DEFERRED_PROCESS_EXCEPTION")
-                self.audit.append_reconciliation(
-                    "REPLAY_DEFERRED", "REPLAY_DEFERRED_PROCESS_EXCEPTION", leader_wallet=fill.leader_wallet,
-                    leader_fill_id=fill.leader_fill_id, coin=fill.coin, action="RETRY_AFTER_ERROR",
-                    terminal_state="REPLAY_DEFERRED_PROCESS_EXCEPTION", engine_can_send="False",
-                    notes=f"processing failed before any order: {type(exc).__name__}: {str(exc)[:200]}; held, not lost")
             delay = max(0.5, fnum(os.getenv("HL_LIVE_DEFER_RETRY_SEC"), 5.0))
             with self._deferred_lock:
                 self._deferred[key] = (fill, time.monotonic() + delay)
-                if self._deferred_thread is None or not self._deferred_thread.is_alive():
-                    self._deferred_thread = threading.Thread(target=self._deferred_loop, daemon=True, name="HLCore-deferred")
-                    self._deferred_thread.start()
+            try:
+                if first == now:  # one row per fill, not one per retry
+                    self._rows_for_held_siblings(fill, "REPLAY_DEFERRED_PROCESS_EXCEPTION")
+                    self.audit.append_reconciliation(
+                        "REPLAY_DEFERRED", "REPLAY_DEFERRED_PROCESS_EXCEPTION", leader_wallet=fill.leader_wallet,
+                        leader_fill_id=fill.leader_fill_id, coin=fill.coin, action="RETRY_AFTER_ERROR",
+                        terminal_state="REPLAY_DEFERRED_PROCESS_EXCEPTION", engine_can_send="False",
+                        notes=f"processing failed before any order: {type(exc).__name__}: {str(exc)[:200]}; held, not lost")
+            finally:
+                # The retry stays queued even when every durable audit store is unavailable.
+                with self._deferred_lock:
+                    if self._deferred_thread is None or not self._deferred_thread.is_alive():
+                        self._deferred_thread = threading.Thread(
+                            target=self._deferred_loop, daemon=True, name="HLCore-deferred")
+                        self._deferred_thread.start()
             return
         firsts.pop(key, None)
         for fid in [str(fill.leader_fill_id), *merged_ids]:  # gave up, or the error came after the order call: a row for every fill

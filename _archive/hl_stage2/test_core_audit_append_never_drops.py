@@ -244,7 +244,97 @@ if hasattr(c, "replay_audit_fallback"):
 else:
     check("RESPILL_AVAILABLE", False, "replay_audit_fallback not present")
 
-# --- Scenario 7: summary --------------------------------------------------------
+# --- Scenario 7: a row must not be reported as preserved if both stores fail ----
+
+p7 = tmp / "append_only" / "test_spill_failure.csv"
+c.append_csv(p7, fields1, {"event": "E", "status": "S0", "leader_fill_id": "F0"})
+orig_spill = c._spill_row
+c._spill_row = lambda *a, **k: False
+af7 = AppendFail(p7, n_fail=1000)
+af7.install()
+raised7 = False
+try:
+    c.append_csv(p7, fields1, {"event": "E", "status": "S_lost", "leader_fill_id": "F_LOST"})
+except OSError:
+    raised7 = True
+af7.restore()
+c._spill_row = orig_spill
+check("SPILL_FAILURE_RAISES", raised7,
+      "append must fail closed when neither the live file nor fallback persisted the row")
+check("SPILL_FAILURE_MAIN_UNCHANGED", len(c.read_csv_rows(p7)) == 1,
+      str(c.read_csv_rows(p7)))
+
+# --- Scenario 8: REPLAY_DEFERRED is queued before an undurable audit row raises --
+
+fill8 = c.LeaderFill("FILL_UNDURABLE", "0x" + "b" * 40, "ETH", "BUY", 100.0, 1.0, c.utc_now_ms(), "WS_CAPTURED")
+orig_spill8 = c._spill_row
+c._spill_row = lambda *a, **k: False
+af8 = AppendFail(c.RECONCILIATION_CSV, n_fail=1000)
+af8.install()
+raised8 = False
+try:
+    c.LiveCopyCore._terminal_after_exception(core, fill8, RuntimeError("simulated pre-send failure"))
+except OSError:
+    raised8 = True
+af8.restore()
+c._spill_row = orig_spill8
+key8 = c.LiveCopyCore._guard_key(fill8)
+check("DEFERRED_UNDURABLE_APPEND_RAISES", raised8, "expected hard persistence failure")
+check("DEFERRED_QUEUED_BEFORE_RAISE", key8 in core._deferred,
+      str(core._deferred))
+
+# --- Scenario 9: crash during replay leaves the original spill available ---------
+
+p9 = tmp / "append_only" / "test_replay_crash.csv"
+c.append_csv(p9, fields1, {"event": "E", "status": "S_init", "leader_fill_id": "F_init"})
+af9 = AppendFail(p9, n_fail=1000)
+af9.install()
+try:
+    c.append_csv(p9, fields1, {"event": "E", "status": "S_spill", "leader_fill_id": "F_CRASH_REPLAY"})
+except Exception:
+    pass
+af9.restore()
+fb9 = c._fallback_path(p9)
+orig_append9 = c.append_csv
+c.append_csv = lambda *a, **k: (_ for _ in ()).throw(KeyboardInterrupt("simulated process crash"))
+crashed9 = False
+try:
+    c.replay_audit_fallback(p9, fields1)
+except KeyboardInterrupt:
+    crashed9 = True
+finally:
+    c.append_csv = orig_append9
+check("REPLAY_CRASH_SIMULATED", crashed9)
+check("REPLAY_CRASH_SPILL_RETAINED",
+      fb9.exists() and any(r.get("leader_fill_id") == "F_CRASH_REPLAY" for r in c.read_csv_rows(fb9)),
+      str(fb9))
+
+# --- Scenario 10: unresolved startup spill refuses to arm ----------------------
+
+startup_path = c.SEND_ATTEMPTS_CSV
+startup_spill = c._fallback_path(startup_path)
+if startup_spill.exists():
+    startup_spill.unlink()
+c._spill_row(startup_path, c.SEND_ATTEMPT_FIELDS, {"attempt_id": "STARTUP_PENDING", "leader_fill_id": "F_STARTUP"})
+orig_append10 = c.append_csv
+def fail_startup_replay(path, fields, row, **kwargs):
+    if path == startup_path:
+        return False
+    return orig_append10(path, fields, row, **kwargs)
+c.append_csv = fail_startup_replay
+startup_refused = False
+try:
+    c.AuditLogWriter().replay_all_fallbacks()
+except OSError:
+    startup_refused = True
+finally:
+    c.append_csv = orig_append10
+check("UNRESOLVED_SPILL_REFUSES_STARTUP", startup_refused)
+check("UNRESOLVED_STARTUP_SPILL_RETAINED",
+      startup_spill.exists() and any(r.get("attempt_id") == "STARTUP_PENDING" for r in c.read_csv_rows(startup_spill)),
+      str(startup_spill))
+
+# --- Scenario 11: summary -------------------------------------------------------
 
 print("MEASURE::retry_count=%d backoff_seconds=%.4f fallback_dir=%s" % (
     RETRIES, BACKOFF, str(getattr(c, "FALLBACK_DIR", None))))
