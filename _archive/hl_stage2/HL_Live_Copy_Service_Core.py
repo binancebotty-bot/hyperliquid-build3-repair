@@ -4234,6 +4234,18 @@ def project_isolated_liquidation_px(mark: float, is_long: bool, leverage: float,
     return mark - side * mark * (1.0 / leverage - l) / denom
 
 
+def _close_whole_remainder(ex_net: float, size: float, sz_dec: Optional[int], min_notional_ok: Any,
+                            floor_wire_size: Any) -> float:
+    """Rule (a): a close that would leave a remainder below the minimum order notional closes the WHOLE remaining
+    account position instead, so a partial reduction never leaves dust behind."""
+    if size <= 0 or not callable(min_notional_ok) or not callable(floor_wire_size):
+        return size
+    remain = abs(ex_net) - size
+    if remain <= POSITION_EPSILON or min_notional_ok(remain):
+        return size
+    return max(size, floor_wire_size(abs(ex_net), sz_dec))
+
+
 class SenderGateway:
     def __init__(self, cfg: ConfigManager, audit: AuditLogWriter, ledger: Optional[ManualLedger] = None):
         self.cfg = cfg
@@ -5815,6 +5827,7 @@ class SenderGateway:
                 return False, 0.0, f"close rounds to nothing (exchange net {ex_net}, this close {delta})"
             if lag_size < abs(size) and not (callable(min_notional_ok) and min_notional_ok(lag_size)):
                 return True, size, ""
+            lag_size = _close_whole_remainder(ex_net, lag_size, sz_dec, min_notional_ok, self._floor_wire_size)
             pure_reduce = ex_net * delta < 0 and lag_size <= abs(ex_net)
             return pure_reduce, lag_size, ""
         need = led_net + delta - ex_net
@@ -5826,6 +5839,7 @@ class SenderGateway:
             return False, 0.0, f"close to target rounds to nothing (need {need}, this close {delta})"
         if new_size < abs(size) and not (callable(min_notional_ok) and min_notional_ok(new_size)):
             return True, size, ""  # the trimmed order would fall under the minimum: keep the full size, reduce-only
+        new_size = _close_whole_remainder(ex_net, new_size, sz_dec, min_notional_ok, self._floor_wire_size)
         pure_reduce = ex_net * delta < 0 and new_size <= abs(ex_net)
         return pure_reduce, new_size, ""
 
@@ -10708,6 +10722,16 @@ class LiveCopyCore:
             _XNET.start_keepalive(sorted({HL_INFO_URL, HL_LEADER_INFO_URL}), fnum(os.getenv("HL_LIVE_HTTP_KEEPALIVE_SEC"), 20.0))
 
     # ---- convergence: no leader exit is ever lost ------------------------------------------------------------------
+    def _converge_candidate(self, size: float, px: float, lead: float) -> Tuple[bool, str]:
+        """(close this sleeve, reason). Rule (c): a sleeve below the minimum order notional is a partial-fill remainder
+        and is always closed WHOLE, even while its leader still holds the same side; otherwise only a leader that is
+        flat or on the other side makes a close."""
+        if px > 0 and abs(size) * px < self.cfg.min_notional():
+            return True, "SUB_MINIMUM_REMAINDER"
+        if abs(lead) > POSITION_EPSILON and lead * size > 0:
+            return False, ""
+        return True, ("LEADER_FLAT" if abs(lead) <= POSITION_EPSILON else "LEADER_OPPOSITE_SIDE")
+
     def converge_once(self) -> Dict[str, Any]:
         """Close every engine sleeve whose leader is now flat or on the other side (run 5: 2,523 leader exits were
         dropped while sending was off and 20 sleeves sat on leaders that had already left). Only while armed; the
@@ -10744,13 +10768,15 @@ class LiveCopyCore:
             for coin, size, pid in rows:
                 out["checked"] += 1
                 lead = leader_net.get(canonical_coin_key(coin), 0.0)
-                if abs(lead) > POSITION_EPSILON and lead * size > 0:
-                    continue  # the leader still holds this side
+                px_now = follower_mid(coin)
+                is_candidate, reason = self._converge_candidate(size, px_now, lead)
+                if not is_candidate:
+                    continue  # the leader still holds this side and the sleeve is not a sub-minimum remainder
                 key = (wallet, canonical_coin_key(coin), pid)
                 seen_now.add(key)
                 out["candidates"] += 1
                 first = self._converge_seen.setdefault(key, now)
-                px = follower_mid(coin)
+                px = px_now
                 if px <= 0:
                     continue
                 # dust (under the minimum order value) the exchange may refuse even reduce-only: retry it rarely
@@ -10764,7 +10790,6 @@ class LiveCopyCore:
                     if key in self._converge_queued:  # the last close is still waiting on a worker: never queue twice
                         out["still_queued"] = out.get("still_queued", 0) + 1
                         continue
-                reason = "LEADER_FLAT" if abs(lead) <= POSITION_EPSILON else "LEADER_OPPOSITE_SIDE"
                 close_side = "SELL" if size > 0 else "BUY"
                 fill = LeaderFill(f"converge:{wallet}:{canonical_coin_key(coin)}:{now}", wallet, coin, close_side, px,
                                   abs(size), now, "CONVERGE", 0,
