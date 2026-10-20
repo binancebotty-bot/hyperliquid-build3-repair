@@ -53,6 +53,18 @@ def check(name, cond, detail=""):
     print("RESULT::%s_%s%s" % (name, "PASS" if cond else "FAIL", (" | " + detail) if (detail and not cond) else ""))
 
 
+def wait_for_json_file(path, timeout=2.0):
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        try:
+            with path.open("r", encoding="utf-8") as f:
+                json.load(f)
+            return True
+        except (OSError, ValueError):
+            time.sleep(0.01)
+    return False
+
+
 class _Half:
     """A file whose write() stores only the first half of the text (a short write that does not raise)."""
 
@@ -384,9 +396,10 @@ def main() -> None:
             worker = writer._thread
             if worker is not None:
                 worker.join(timeout=2)
+        published_d4b = wait_for_json_file(c.SERVICE_STATE_FILE)
         check("D4B_SERVICE_STATE_PUBLISHED_WITH_%s_BUDGET" % case.upper(),
-              raised_d4b is None and c.SERVICE_STATE_FILE.exists(),
-              "run_cycle raised %r; state_exists=%s" % (raised_d4b, c.SERVICE_STATE_FILE.exists()))
+              raised_d4b is None and published_d4b,
+              "run_cycle raised %r; valid_state_published=%s" % (raised_d4b, published_d4b))
     if budget_before is None:
         os.environ.pop("HL_LIVE_RECON_CYCLE_BUDGET_SEC", None)
     else:
@@ -405,10 +418,12 @@ def main() -> None:
     def hold_runtime_state_lock():
         c.RUNTIME_STATE_LOCK.acquire()
         lock_held_d4c.set()
-        time.sleep(0.4)
-        published_before_unlock_d4c.append(c.SERVICE_STATE_FILE.exists())
-        c.RUNTIME_STATE_LOCK.release()
-        lock_released_d4c.set()
+        try:
+            published_before_unlock_d4c.append(wait_for_json_file(c.SERVICE_STATE_FILE))
+            time.sleep(0.4)  # let the clean-runtime writer hit its bounded lock timeout after service publication
+        finally:
+            c.RUNTIME_STATE_LOCK.release()
+            lock_released_d4c.set()
 
     lock_holder_d4c = threading.Thread(target=hold_runtime_state_lock, daemon=True)
     lock_holder_d4c.start()
@@ -418,7 +433,7 @@ def main() -> None:
     try:
         core.run_cycle(use_source_csv=False)
         elapsed_d4c = time.monotonic() - started_d4c
-        lock_released_d4c.wait(timeout=2)
+        lock_released_d4c.wait(timeout=3)
         lock_holder_d4c.join(timeout=1)
         published_under_lock = bool(published_before_unlock_d4c and published_before_unlock_d4c[0])
         worker = getattr(getattr(core.state_writer, "_worker", None), "_thread", None)
