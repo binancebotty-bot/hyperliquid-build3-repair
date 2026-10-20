@@ -26,6 +26,7 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 RESULTS = []
 FOLLOWER = "0x" + "c" * 40
+SIGNER = "0x" + "e" * 40  # distinct from MASTER: runtime_master_identity refuses equal pairs
 LEADER = "0x" + "d" * 40
 T_INFO, M_INFO = "https://api.hyperliquid-testnet.xyz/info", "https://api.hyperliquid.xyz/info"
 
@@ -38,6 +39,8 @@ def check(name: str, cond: bool, detail: str = "") -> None:
 def run_py(code: str, env: dict, args=()) -> subprocess.CompletedProcess:
     full = {k: v for k, v in os.environ.items() if not k.startswith("HL_")}
     full.update(env)
+    full.setdefault("HL_LIVE_HL_ACCOUNT_ADDRESS", FOLLOWER)  # truth reads follow MASTER, not HL_USER_WALLET
+    full.setdefault("HL_LIVE_HL_SIGNER_ADDRESS", SIGNER)
     full["HL_LIVE_ENV_FILE"] = str(Path(tempfile.mkdtemp()) / "none.env")
     return subprocess.run([sys.executable, "-c", code, *args], cwd=str(HERE), env=full, capture_output=True, text=True, timeout=180)
 
@@ -142,6 +145,7 @@ print(json.dumps(calls))
 def global_controls_tests() -> None:
     tmp = Path(tempfile.mkdtemp(prefix="coregc_"))
     os.environ.update({"HL_LIVE_AUDIT_DIR": str(tmp), "HL_LEADER_NETWORK": "mainnet", "HL_FOLLOWER_NETWORK": "testnet",
+                       "HL_LIVE_HL_ACCOUNT_ADDRESS": FOLLOWER, "HL_LIVE_HL_SIGNER_ADDRESS": SIGNER,
                        "HL_LIVE_ENV_FILE": str(tmp / "none.env")})
     import HL_Live_Copy_Service_Core as c
     import HL_Copy_App_SSOT as ui

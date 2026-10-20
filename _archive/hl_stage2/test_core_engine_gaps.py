@@ -25,6 +25,7 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 RESULTS = []
 FOLLOWER = "0x" + "c" * 40
+SIGNER = "0x" + "e" * 40  # distinct from MASTER: runtime_master_identity refuses equal pairs
 LEADER = "0x" + "d" * 40
 M_INFO = "https://api.hyperliquid.xyz/info"
 
@@ -43,6 +44,7 @@ def wallets(n_live: int, n_off: int = 0) -> dict:
 def main() -> None:
     tmp = Path(tempfile.mkdtemp(prefix="coregaps_"))
     os.environ.update({"HL_LIVE_AUDIT_DIR": str(tmp), "HL_LEADER_NETWORK": "mainnet", "HL_FOLLOWER_NETWORK": "testnet",
+                       "HL_LIVE_HL_ACCOUNT_ADDRESS": FOLLOWER, "HL_LIVE_HL_SIGNER_ADDRESS": SIGNER,
                        "HL_LIVE_ENV_FILE": str(tmp / "none.env")})
     import requests
     import HL_Live_Copy_Service_Core as c
@@ -195,7 +197,8 @@ def main() -> None:
     run_dir = Path(tempfile.mkdtemp(prefix="w2_"))
     c.atomic_write_json(run_dir / "live_config.json", {"auto_send_enabled": False, "wallets": wallets(11)})
     env = {k: v for k, v in os.environ.items() if not k.startswith("HL_")}
-    env.update({"HL_LIVE_AUDIT_DIR": str(run_dir), "HL_LIVE_ENV_FILE": str(run_dir / "none.env")})
+    env.update({"HL_LIVE_AUDIT_DIR": str(run_dir), "HL_LIVE_ENV_FILE": str(run_dir / "none.env"),
+                "HL_LIVE_HL_ACCOUNT_ADDRESS": FOLLOWER, "HL_LIVE_HL_SIGNER_ADDRESS": SIGNER})
     r = subprocess.run([sys.executable, "HL_Live_Copy_Service_Core.py", "--once"], cwd=str(HERE), env=env,
                        capture_output=True, text=True, timeout=180)
     check("W2_ELEVEN_ACTIVE_WALLETS_REFUSED_AT_START", r.returncode != 0 and "TOO_MANY_ACTIVE_WALLETS" in r.stderr, r.stderr[-300:])
