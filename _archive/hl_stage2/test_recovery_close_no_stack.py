@@ -33,12 +33,15 @@ class Exchange:
         self.next_oid = 63322509225
         self.cancelled = []
         self.fail_cancel = False
+        self.cancel_response = None
         self.fail_place = False
 
     def open_orders(self, coin):
         return [{'coin': coin, 'oid': oid, 'reduceOnly': True} for oid in self.orders]
 
     def cancel(self, coin, oid):
+        if self.cancel_response is not None:
+            return self.cancel_response
         if self.fail_cancel:
             return {'status': 'err'}
         self.cancelled.append(int(oid))
@@ -106,6 +109,20 @@ def test_restart_and_cancel_failure_fail_closed():
     before = set(exchange.orders)
     queue(gw, exchange)
     assert set(exchange.orders) == before
+    assert gw._recovery_next_attempt_ms['sleeve-xyz-skhx'] > 0
+
+
+def test_malformed_cancel_response_fails_closed_with_backoff():
+    exchange = Exchange()
+    exchange.orders[63322509225] = {'coin': 'XYZ:SKHX', 'oid': 63322509225, 'reduceOnly': True}
+    exchange.cancel_response = {}
+    gw = gateway(exchange)
+    core.BOOK_FETCHER = lambda coin: {'bid': 893.00, 'ask': 893.02}
+    queue(gw, exchange)
+    assert set(exchange.orders) == {63322509225}
+    assert not exchange.cancelled
+    assert gw._recovery_backoff['sleeve-xyz-skhx'] == 1
+    assert gw._recovery_next_attempt_ms['sleeve-xyz-skhx'] > 0
 
 
 def test_backoff_grows_caps_and_blocks_failed_producer_retry():
@@ -162,6 +179,7 @@ def test_slippage_bound_and_successful_fill_clear_state():
 if __name__ == '__main__':
     failed = 0
     for test in (test_eight_cycle_trace_never_stacks, test_restart_and_cancel_failure_fail_closed,
+                 test_malformed_cancel_response_fails_closed_with_backoff,
                  test_backoff_grows_caps_and_blocks_failed_producer_retry, test_no_book_is_counted_and_stops,
                  test_no_book_preserves_existing_recovery, test_slippage_bound_and_successful_fill_clear_state):
         try:

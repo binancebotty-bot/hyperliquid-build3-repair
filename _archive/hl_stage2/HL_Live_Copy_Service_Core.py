@@ -2782,7 +2782,7 @@ class SenderGateway:
         try:
             for oid in order_ids:
                 result = exchange.cancel(sdk_coin, oid)
-                if isinstance(result, dict) and result.get('status') in {'err', 'error'}:
+                if not (isinstance(result, dict) and result.get('status') == 'ok'):
                     return False
         except Exception:
             return False
@@ -3053,6 +3053,8 @@ class SenderGateway:
             self.audit.append_reconciliation('EXIT_RECOVERY', 'EXIT_RECOVERY_PRICE_OUT_OF_BOUNDS', leader_wallet=intent.fill.leader_wallet, leader_fill_id=intent.fill.leader_fill_id, intent_id=intent.intent_id, coin=intent.fill.coin, action='NO_SEND_RECOVERY_SLIPPAGE', reject_category='RECOVERY_PRICE_OUT_OF_BOUNDS', terminal_state='EXIT_RECOVERY_REQUIRED', notes=f'sleeve_id={sleeve_key}; failed_ioc_price={limit_px}; follower_book_price={recovery_px}; marketable_bps={slippage_bps}')
             return
         if not self._cancel_existing_recovery(exchange, sdk_coin, sleeve_key):
+            delay = self._recovery_backoff_delay(sleeve_key, True)
+            self._recovery_next_attempt_ms[sleeve_key] = utc_now_ms() + delay * 1000
             self.audit.append_reconciliation('EXIT_RECOVERY', 'EXIT_RECOVERY_CANCEL_FAILED', leader_wallet=intent.fill.leader_wallet, leader_fill_id=intent.fill.leader_fill_id, intent_id=intent.intent_id, coin=intent.fill.coin, action='NO_SEND_CANCEL_FAILED', reject_category='IOC_NO_IMMEDIATE_MATCH', terminal_state='EXIT_RECOVERY_REQUIRED', notes=f'sleeve_id={sleeve_key}; existing recovery was not replaced')
             return
         notes = f'intent_id={intent.intent_id}; sleeve_id={sleeve_key}; coin={intent.fill.coin}; side={intent.copy_side}; queued_close_size={close_size}; limit_price={recovery_px}; leader_price={intent.fill.price}; wallet_position_before={wallet_pos}; ioc_error={parsed_error}; recovery_book_price={recovery_px}; marketable_bps={slippage_bps}'
