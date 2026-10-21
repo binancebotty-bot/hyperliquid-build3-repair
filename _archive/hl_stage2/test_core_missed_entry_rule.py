@@ -15,8 +15,8 @@ M4 leader on mainnet, follower on testnet: the leader's market move is measured 
 M5 a resting limit is withdrawn only when the leader reduces/closes/flips that coin (no clock expiry);
    failed withdrawals stay and show as a diff; the list survives a restart.
 M6 catch-up: a late entry the leader already closed again is reported, not traded; exits always run.
-M7 the polling backstop resumes from the last good poll however old (up to 7 days), says when it could not
-   read everything, and reports a gap older than that; the live feed's health gate follows --ws.
+M7 polling caps recovery to its 100-minute retention window, pages fills, advances after partial network errors,
+   and emits one counted OUTAGE_GAP per stale wallet cursor; the live feed's health gate follows --ws.
 
 Run: python test_core_missed_entry_rule.py   # RESULT:: markers, exit 0/1. No network, no orders.
 """
@@ -342,22 +342,33 @@ def main() -> None:
     check("M6_CYCLE_SKIPS_CLOSED_ENTRY_WITH_A_DIFF", handled == [b2.leader_fill_id, e2.leader_fill_id]
           and rows and rows[-1]["status"] == "MISSED_ENTRY_LEADER_ALREADY_CLOSED", f"{handled} {rows[-1:]}")
 
-    # ---- M7: polling backstop ---------------------------------------------------------------------------
+    # ---- M7: bounded retention and progress on a partial network failure ---------------------------------
+    c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": False, "wallets": {
+        LEADER: {"enabled": True, "mode": "ON"}, OTHER: {"enabled": True, "mode": "ON"}}})
     starts = []
-    core.ingestor.poll_hyperliquid_fills = lambda w, s, t=None: starts.append(s) or ([], "POLL_OK")
+    core.ingestor.poll_hyperliquid_fills = lambda w, s, t=None: starts.append((w, s)) or ([], "POLL_NETWORK_ERROR")
     state = c.load_json(c.CORE_RUNTIME_STATE_FILE, {})
-    state["last_leader_poll_cursor_ms"] = {LEADER: now - 3 * 86400000}
+    state["last_leader_poll_cursor_ms"] = {LEADER: now - 3 * 86400000, OTHER: now - 3 * 86400000}
     c.atomic_write_json(c.CORE_RUNTIME_STATE_FILE, state)
+    core._last_leader_poll_ms = 0
     core.run_cycle(use_source_csv=False, poll_live=True)
-    check("M7_THREE_DAY_GAP_CAUGHT_UP_FROM_LAST_GOOD_POLL",
-          starts and abs(starts[-1] - (now - 3 * 86400000 - c.LEADER_POLL_OVERLAP_MS)) < 60000, f"{starts} now={now}")
+    check("M7_OLD_CURSORS_CLAMPED_TO_RETENTION_FLOOR_PER_WALLET",
+          len(starts) == 2 and all(abs(start - (now - c.LEADER_POLL_RETENTION_MS)) < 60000 for _w, start in starts),
+          f"{starts} now={now}")
+    rows = [r for r in c.read_csv_rows(c.RECONCILIATION_CSV) if r.get("status") == "OUTAGE_GAP"]
+    check("M7_STALE_CURSOR_EMITS_ONE_COUNTED_GAP_PER_WALLET",
+          len(rows) == 2 and {r.get("leader_wallet") for r in rows} == {LEADER, OTHER}, str(rows[-2:]))
     state = c.load_json(c.CORE_RUNTIME_STATE_FILE, {})
-    state["last_leader_poll_cursor_ms"] = {LEADER: c.utc_now_ms() - 9 * 86400000}
-    c.atomic_write_json(c.CORE_RUNTIME_STATE_FILE, state)
+    gap_markers = state.get("last_leader_poll_outage_gap_floor_ms", {})
+    check("M7_GAP_MARKERS_WRITTEN_FOR_EACH_STALE_WALLET", {LEADER, OTHER} <= set(gap_markers), str(gap_markers))
+    core.state_writer._write_core_state({}, core.dedupe, {})  # exercise the compaction writer that runs after polling
+    state = c.load_json(c.CORE_RUNTIME_STATE_FILE, {})
+    gap_markers = state.get("last_leader_poll_outage_gap_floor_ms", {})
+    check("M7_GAP_MARKERS_SURVIVE_CORE_STATE_COMPACTION", {LEADER, OTHER} <= set(gap_markers), str(gap_markers))
+    core._last_leader_poll_ms = 0
     core.run_cycle(use_source_csv=False, poll_live=True)
-    rows = [r for r in c.read_csv_rows(c.RECONCILIATION_CSV) if r.get("status") == "LEADER_HISTORY_GAP"]
-    check("M7_GAP_BEYOND_7_DAYS_REPORTED", rows and rows[-1]["event"] == "SEND_TERMINAL"
-          and "MANUAL_REVIEW" in rows[-1]["action"], str(rows[-1:])[:200])
+    rows = [r for r in c.read_csv_rows(c.RECONCILIATION_CSV) if r.get("status") == "OUTAGE_GAP"]
+    check("M7_SAVED_CURSOR_PREVENTS_DUPLICATE_GAP_ROWS", len(rows) == 2, str(len(rows)))
 
     pages = {"n": 0}
 
@@ -383,6 +394,25 @@ def main() -> None:
     core.run_cycle(use_source_csv=False, poll_live=True)
     cur = c.load_json(c.CORE_RUNTIME_STATE_FILE, {}).get("last_leader_poll_cursor_ms", {}).get(LEADER, 0)
     check("M7_PARTIAL_POLL_RESUMES_FROM_LAST_FILL_READ", cur - c.LEADER_POLL_OVERLAP_MS == partial_fills[0].timestamp_ms, f"{cur}")
+
+    state = c.load_json(c.CORE_RUNTIME_STATE_FILE, {})
+    state["last_leader_poll_cursor_ms"] = {LEADER: c.utc_now_ms() - 60000, OTHER: c.utc_now_ms() - 60000}
+    c.atomic_write_json(c.CORE_RUNTIME_STATE_FILE, state)
+    core._held_read_cursor.clear()
+    partial_cursor_fills = [fill("BUY", ts=c.utc_now_ms() - 5000)]
+    core.ingestor.poll_hyperliquid_fills = lambda w, s, t=None: (partial_cursor_fills if w == LEADER else [], "POLL_NETWORK_ERROR")
+    core._last_leader_poll_ms = 0
+    core.run_cycle(use_source_csv=False, poll_live=True)
+    cur = c.load_json(c.CORE_RUNTIME_STATE_FILE, {}).get("last_leader_poll_cursor_ms", {}).get(LEADER, 0)
+    core.ingestor.poll_hyperliquid_fills = lambda w, s, t=None: starts.append((w, s)) or ([], "POLL_OK")
+    core._last_leader_poll_ms = 0
+    core.run_cycle(use_source_csv=False, poll_live=True)
+    check("M7_NETWORK_ERROR_PARTIAL_PROGRESS_RESUMES_AT_LAST_FILL",
+          cur - c.LEADER_POLL_OVERLAP_MS == partial_cursor_fills[0].timestamp_ms
+          and any(w == LEADER and abs(s - partial_cursor_fills[0].timestamp_ms) < 1000 for w, s in starts),
+          f"cursor={cur} next_starts={starts[-2:]}")
+    rows_after_error = [r for r in c.read_csv_rows(c.RECONCILIATION_CSV) if r.get("status") == "OUTAGE_GAP"]
+    check("M7_NETWORK_ERROR_ALONE_DOES_NOT_EMIT_OUTAGE_GAP", len(rows_after_error) == 2, str(len(rows_after_error)))
 
     src = (HERE / "HL_Live_Copy_Service_Core.py").read_text(encoding="utf-8-sig")
     check("M7_FEED_HEALTH_GATE_UNCHANGED_FILL_SILENCE_NEVER_BLOCKS_ALL_ENTRIES",
