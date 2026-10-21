@@ -7017,7 +7017,8 @@ def render_live_copy_control_panel() -> str:
   <header class="lc-header">
     <div class="lc-title">Live Copy Command Centre</div>
     <div class="lc-header-pills">
-      <span class="lc-pill">Wallets: <b id="lcWalletCount">0 / 10</b></span>
+        <span class="lc-pill">Sending: <b id="lcSendModeLabel">OFF</b></span>
+        <span class="lc-pill">Wallets: <b id="lcWalletCount">0 / 10</b></span>
       <span id="lcModeCounts" style="display:contents"></span>
       <span class="lc-pill" id="lcFeedPill">Leader feed: <b id="lcWsOverall">—</b></span>
     </div>
@@ -7033,6 +7034,7 @@ def render_live_copy_control_panel() -> str:
         <p>These override all wallet settings. 0/blank = OFF. Slippage is shown as %. Internally converted where needed.</p>
         <p id="gcNetworks" class="lc-muted"></p>
         <div class="lc-form-grid" id="lcGcForm">
+          <label>Global send mode <select id="lcSendMode"><option value="ON">ON = LIVE</option><option value="CLOSE">CLOSE = CLOSE ONLY</option><option value="OFF">OFF</option></select></label>
           <label>Max total live exposure ($) <input id="gcMaxTotal" type="number" min="0" step="1" placeholder="0 = disabled"></label>
           <label>Max per-asset directional exposure ($) <input id="gcMaxDir" type="number" min="0" step="1" placeholder="0 = disabled"></label>
           <label>Max daily loss ($, last 24 h) <input id="gcMaxDailyLoss" type="number" min="0" step="1" placeholder="0 = disabled"></label>
@@ -7211,12 +7213,13 @@ def render_live_copy_control_panel() -> str:
 (function(){
 const root=document.getElementById('liveCopyPanel'); if(!root) return;
 const status=root.querySelector('#lcStatus');
-let lcConfig={wallets:{},archived_wallets:{}}, lcHealth={wallets:{}}, lcAudit={last_rows:[]};
+let lcConfig={wallets:{},archived_wallets:{}}, lcHealth={wallets:{}}, lcAudit={last_rows:[]}, lcGlobalControls={}, lcSendModePending=null;
 let lcGraphMode='account', lcGraphScale='all', lcSelectedWallet='', lcGraphStartMs=0, lcGraphEndMs=0;
 function h(v){return String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function msg(t,bad){if(status){status.textContent=t||'';status.className='lc-status '+(bad?'lc-bad':'lc-ok');}}
 async function jget(url){const r=await fetch(url,{headers:{'x-requested-with':'fetch'}});return await r.json();}
 async function jpost(url,payload){const r=await fetch(url,{method:'POST',headers:{'content-type':'application/json','x-requested-with':'fetch'},body:JSON.stringify(payload)});const j=await r.json();if(!r.ok||j.ok===false)throw new Error(j.error||r.statusText);return j;}
+function normalizedSendMode(value){const mode=String(value||'').toUpperCase().trim().replace(/[_-]+/g,' ');return mode==='CLO'||mode==='CLOSE ONLY'?'CLOSE':['ON','CLOSE','OFF'].includes(mode)?mode:'OFF';}
 // intentional blank — helpers below
 function num(v,d){const n=parseFloat(v);return Number.isFinite(n)?n:d;}
 function isNum(v){const n=parseFloat(v);return Number.isFinite(n);}
@@ -7364,6 +7367,7 @@ function renderTopStatus(){
  const pollTxt=pollOk?'Reading (normal)':(poll&&poll!=='DOWN'?poll.replace(/_/g,' ').toLowerCase():'—');
  const lastSend=st.last_send||{}, lastFill=st.last_fill||{}, lastReject=st.last_reject||{}, lastLat=st.last_latency_warning||{};
  const cards=[
+  ...(lcSendModePending?[statusCard('Global send mode',lcSendModePending.acknowledged?'engine acknowledged '+lcSendModePending.mode+' after next cycle':'pending '+lcSendModePending.mode+' — waiting for next engine cycle',lcSendModePending.acknowledged?'lc-green':'lc-amber','')]:[]),
   ...(lcAudit.engine_alert?[statusCard('ENGINE ALERT',String(lcAudit.engine_alert).split(':')[0],'lc-red',lcAudit.engine_alert)]:[]),
   statusCard('Health',hl.text||'—',levelCls(hl.level),'details under Technical detail'),
   statusCard('Leader feed',feed.text,feed.cls,st.ws_enabled?'websocket':'the engine polls each leader'),
@@ -7691,7 +7695,7 @@ function render(){
  const wo=root.querySelector('#lcWsOverall');if(wo){wo.textContent=feed.text;wo.className=feed.cls;}
  renderBanner(); renderTally(); renderTopStatus(); renderCards(); renderWallets(); renderAudit(); renderHealth(); renderPositions(); renderExecQuality();
 }
-async function refresh(quiet){try{if(!quiet)msg('Loading...');const [cfg,health,audit,gcr]=await Promise.all([jget('/api/live-config'),jget('/api/live-ws-health'),jget('/api/live-audit-summary'),jget('/api/global-controls')]);lcConfig=cfg.config||{wallets:{}};lcHealth=health.health||{};lcAudit=audit||{};render();loadGcForm(gcr.global_controls||{});const nw=root.querySelector('#gcNetworks');if(nw&&gcr.networks)nw.textContent='Leader feed: '+gcr.networks.leader+' | Follower account: '+gcr.networks.follower+' | Markets: every market the leaders trade'+((gcr.networks.follower_dexes||[]).length>1?' (always read: '+gcr.networks.follower_dexes.join(', ')+')':'')+' | State folder: '+(gcr.networks.state_dir||'');if(!quiet)msg('Loaded');}catch(e){msg(e.message||String(e),true);}}
+async function refresh(quiet){try{if(!quiet)msg('Loading...');const [cfg,health,audit,gcr]=await Promise.all([jget('/api/live-config'),jget('/api/live-ws-health'),jget('/api/live-audit-summary'),jget('/api/global-controls')]);lcConfig=cfg.config||{wallets:{}};lcHealth=health.health||{};lcAudit=audit||{};lcGlobalControls=gcr.global_controls||{};const mode=normalizedSendMode(lcGlobalControls.send_mode);root.querySelector('#lcSendModeLabel').textContent=mode==='ON'?'ON · LIVE':mode==='CLOSE'?'CLOSE · CLOSE ONLY':'OFF';if(lcSendModePending&&mode===lcSendModePending.mode&&Number(lcAudit.live_top_status?.health?.engine_heartbeat_ms||0)>lcSendModePending.requestedAt&&lcAudit.master_real_orders_enabled===(mode!=='OFF'))lcSendModePending.acknowledged=true;render();loadGcForm(lcGlobalControls);const nw=root.querySelector('#gcNetworks');if(nw&&gcr.networks)nw.textContent='Leader feed: '+gcr.networks.leader+' | Follower account: '+gcr.networks.follower+' | Markets: every market the leaders trade'+((gcr.networks.follower_dexes||[]).length>1?' (always read: '+gcr.networks.follower_dexes.join(', ')+')':'')+' | State folder: '+(gcr.networks.state_dir||'');if(!quiet)msg('Loaded');}catch(e){msg(e.message||String(e),true);}}
 function loadGcForm(gc){
   const f=(id,v)=>{const el=root.querySelector('#'+id);if(el&&v!=null)el.value=v;};
   const st=(id,v)=>{const el=root.querySelector('#'+id);if(el)el.textContent=Number(v||0)<=0?'OFF':'';};
@@ -7702,6 +7706,7 @@ function loadGcForm(gc){
   f('gcMktPct',mktPct);f('gcCloseAdv',closePct);st('gcCloseAdvState',closePct);
   {const el=root.querySelector('#gcMktPctState');if(el)el.textContent=Number(mktPct||0)<=0?'0 = NO slippage allowed: orders are priced exactly at the reference price and may not fill':'';}
   f('gcAllowlist',(gc.symbol_allowlist||[]).join(','));f('gcBlocklist',(gc.symbol_blocklist||[]).join(','));
+  f('lcSendMode',normalizedSendMode(gc.send_mode));
 }
 root.querySelector('#lcRefresh').addEventListener('click',()=>refresh());
 const gcPanel=root.querySelector('#lcGlobalControlsPanel'), gcToggle=root.querySelector('#lcGcToggle'), gcClose=root.querySelector('#lcGcClose');
@@ -7713,9 +7718,10 @@ root.querySelector('#lcGcSave').addEventListener('click',async()=>{
   const gs=root.querySelector('#lcGcStatus');
   const g=id=>parseFloat(root.querySelector('#'+id).value)||0;
   const gl=id=>(root.querySelector('#'+id).value||'').split(',').map(s=>s.trim().toUpperCase()).filter(Boolean);
-  try{gs.textContent='Saving...';gs.className='lc-status';
-    await jpost('/api/global-controls',{max_total_live_exposure_usd:g('gcMaxTotal'),max_asset_directional_exposure_usd:g('gcMaxDir'),max_daily_loss_usd:g('gcMaxDailyLoss'),max_wallet_exposure_usd:g('gcMaxWallet'),max_order_notional_usd:g('gcMaxOrder'),marketable_slippage_pct:g('gcMktPct'),max_close_adverse_diff_pct:g('gcCloseAdv'),symbol_allowlist:gl('gcAllowlist'),symbol_blocklist:gl('gcBlocklist')});
-    gs.textContent='Saved';gs.className='lc-status lc-ok';}catch(e){gs.textContent=e.message||String(e);gs.className='lc-status lc-bad';}
+  try{const mode=normalizedSendMode(root.querySelector('#lcSendMode').value);if(mode!==normalizedSendMode(lcGlobalControls.send_mode)&&mode!=='ON'&&!window.confirm(mode==='CLOSE'?'Switch global sending to CLOSE ONLY?':'Switch global sending OFF?'))return;
+    gs.textContent='Saving...';gs.className='lc-status';
+    const requestedAt=Date.now();await jpost('/api/global-controls',{...lcGlobalControls,max_total_live_exposure_usd:g('gcMaxTotal'),max_asset_directional_exposure_usd:g('gcMaxDir'),max_daily_loss_usd:g('gcMaxDailyLoss'),max_wallet_exposure_usd:g('gcMaxWallet'),max_order_notional_usd:g('gcMaxOrder'),marketable_slippage_pct:g('gcMktPct'),max_close_adverse_diff_pct:g('gcCloseAdv'),symbol_allowlist:gl('gcAllowlist'),symbol_blocklist:gl('gcBlocklist'),send_mode:mode});
+    lcSendModePending={mode,requestedAt,acknowledged:false};await refresh(true);gs.textContent='Saved; pending engine cycle';gs.className='lc-status lc-amber';}catch(e){gs.textContent=e.message||String(e);gs.className='lc-status lc-bad';}
 });
 root.querySelectorAll('[data-lc-modal]').forEach(btn=>btn.addEventListener('click',()=>{const m=root.querySelector('#'+btn.dataset.lcModal);if(m){m.classList.add('active');m.setAttribute('aria-hidden','false');}}));
 root.querySelectorAll('[data-lc-close]').forEach(btn=>btn.addEventListener('click',()=>{const m=btn.closest('.lc-modal-backdrop');if(m){m.classList.remove('active');m.setAttribute('aria-hidden','true');}}));
@@ -7978,7 +7984,15 @@ def get_live_copy_summary():
 @app.get("/api/global-controls")
 def get_global_controls():
     cfg = _load_live_copy_config()
-    return JSONResponse({"ok": True, "global_controls": _global_controls_for_ui(cfg.get("global_controls", _GLOBAL_CONTROLS_DEFAULTS)),
+    controls = _global_controls_for_ui(cfg.get("global_controls", _GLOBAL_CONTROLS_DEFAULTS))
+    try:
+        raw_cfg = json.loads(LIVE_COPY_CONFIG_FILE.read_text(encoding="utf-8-sig"))
+    except Exception:
+        raw_cfg = {}
+    gc = raw_cfg.get("global_controls") if isinstance(raw_cfg, dict) and isinstance(raw_cfg.get("global_controls"), dict) else {}
+    mode = str(gc.get("send_mode") or "").upper().strip().replace("_", " ").replace("-", " ")
+    controls["send_mode"] = "CLOSE" if mode in {"CLOSE", "CLOSE ONLY", "CLO"} else mode if mode in {"ON", "OFF"} else "OFF"
+    return JSONResponse({"ok": True, "global_controls": controls,
                          "networks": {"leader": NETWORKS["leader"]["network"], "follower": FOLLOWER_NETWORK,
                                       "state_dir": str(LIVE_COPY_AUDIT_DIR),
                                       # HIP-3 markets read even before any leader trades them; the engine also
@@ -7990,10 +8004,17 @@ def get_global_controls():
 async def set_global_controls(req: Request):
     try:
         body = await req.json()
+        try:
+            raw_config = json.loads(LIVE_COPY_CONFIG_FILE.read_text(encoding="utf-8-sig"))
+        except Exception:
+            raw_config = {}
+        raw_gc = raw_config.get("global_controls") if isinstance(raw_config, dict) and isinstance(raw_config.get("global_controls"), dict) else {}
         config = _load_live_copy_config()
-        kept = {k: v for k, v in (config.get("global_controls") or {}).items() if k not in _GLOBAL_CONTROLS_DEFAULTS and k != "marketable_slippage_pct"}
+        kept = {k: v for k, v in raw_gc.items() if k not in _GLOBAL_CONTROLS_DEFAULTS and k != "marketable_slippage_pct"}
         submitted = {k: v for k, v in body.items() if k in _GLOBAL_CONTROLS_DEFAULTS or k == "marketable_slippage_pct"} if isinstance(body, dict) else {}
         config["global_controls"] = {**kept, **_normalise_global_controls(submitted)}
+        if isinstance(body, dict) and str(body.get("send_mode") or "").upper() in {"ON", "CLOSE", "OFF"}:
+            config["global_controls"]["send_mode"] = str(body["send_mode"]).upper()
         _save_live_copy_config(config)
         return JSONResponse({"ok": True, "global_controls": _global_controls_for_ui(config["global_controls"])})
     except Exception as exc:
