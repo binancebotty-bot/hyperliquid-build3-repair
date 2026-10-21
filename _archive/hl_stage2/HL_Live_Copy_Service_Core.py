@@ -8019,6 +8019,7 @@ class SenderGateway:
 TRACE_KEEP_FILES = max(1, int(os.environ.get("HL_TRACE_KEEP_FILES", "12") or 12))
 TRACE_MAX_BYTES_FILL = int(os.environ.get("HL_FILL_TRACE_MAX_BYTES", "32000000") or 32000000)
 TRACE_MAX_BYTES_POLL = int(os.environ.get("HL_POLL_TRACE_MAX_BYTES", "16000000") or 16000000)
+FILL_TRACE_BATCH_WRITES = 128
 
 
 def rotate_trace_file(path: Path, max_bytes: int, keep: int = 0) -> None:
@@ -9983,10 +9984,36 @@ class LiveCopyCore:
             if "status_of" in rec:
                 _r = rec.pop("status_of")
                 rec["status"] = str(_r[1]) if isinstance(_r, tuple) and len(_r) > 1 else ""
-            with self.__dict__.setdefault("_fill_trace_lock", threading.Lock()):
-                rotate_trace_file(path, TRACE_MAX_BYTES_FILL)
-                with open(path, "a", encoding="utf-8") as fh:
-                    fh.write(json.dumps(rec, separators=(",", ":")) + "\n")
+            line = json.dumps(rec, separators=(",", ":")) + "\n"
+            lock = self.__dict__.setdefault("_fill_trace_lock", threading.Lock())
+            batch = None
+            with lock:
+                buffer = self.__dict__.setdefault("_fill_trace_buffer", [])
+                buffer.append(line)
+                force_flush = kind in {"proc_start", "proc_end", "cycle_start", "cycle_end"}
+                if len(buffer) >= FILL_TRACE_BATCH_WRITES or force_flush:
+                    batch = buffer[:]
+                    buffer.clear()
+                    batch_id = self.__dict__.setdefault("_fill_trace_next_batch_id", 0)
+                    self.__dict__["_fill_trace_next_batch_id"] = batch_id + 1
+                    self.__dict__["_fill_trace_size_check_writes"] = (
+                        self.__dict__.get("_fill_trace_size_check_writes", 0) + len(batch))
+                    check_size = self.__dict__["_fill_trace_size_check_writes"] >= FILL_TRACE_BATCH_WRITES
+                    if check_size:
+                        self.__dict__["_fill_trace_size_check_writes"] -= FILL_TRACE_BATCH_WRITES
+            if batch is not None:
+                condition = self.__dict__.setdefault("_fill_trace_flush_condition", threading.Condition())
+                with condition:
+                    while batch_id != self.__dict__.get("_fill_trace_written_batch_id", 0):
+                        condition.wait()
+                    try:
+                        if check_size:
+                            rotate_trace_file(path, TRACE_MAX_BYTES_FILL)
+                        with open(path, "a", encoding="utf-8") as fh:
+                            fh.writelines(batch)
+                    finally:
+                        self.__dict__["_fill_trace_written_batch_id"] = batch_id + 1
+                        condition.notify_all()
         except Exception as exc:
             log_error("fill_trace", exc)
 
