@@ -2721,7 +2721,9 @@ def _build_account_reconciliation(exchange_snapshot: Dict[str, Any], live_leader
     baseline_unified = fnum(baseline.get("baseline_unified_portfolio_value")) if isinstance(baseline, dict) and is_present_num(baseline.get("baseline_unified_portfolio_value")) else None
     net_account_change = round(fnum(unified_value) - baseline_unified, 6) if has_unified and baseline_unified is not None else net_raw_change
     account_value_source = exchange_snapshot.get("unified_portfolio_value_source") if has_unified else exchange_snapshot.get("raw_total_usd_source") or ""
-    attributed_open_pnl = round(sum(fnum(p.get("live_net_pnl")) for p in live_leader_performance.values() if isinstance(p, dict) and is_present_num(p.get("live_net_pnl"))), 6)
+    # Two different scopes, named for what they are: open = unrealized only; copy = closed + open - fees.
+    attributed_open_pnl = round(sum(fnum(p.get("live_unrealized_pnl")) for p in live_leader_performance.values() if isinstance(p, dict) and is_present_num(p.get("live_unrealized_pnl"))), 6)
+    estimated_copy_pnl = round(sum(fnum(p.get("live_net_pnl")) for p in live_leader_performance.values() if isinstance(p, dict) and is_present_num(p.get("live_net_pnl"))), 6)
     return {
         "account_address": acct,
         "baseline_unified_portfolio_value": baseline_unified,
@@ -2748,7 +2750,9 @@ def _build_account_reconciliation(exchange_snapshot: Dict[str, Any], live_leader
         "open_notional": fnum(exchange_snapshot.get("total_notional_position")) if exchange_snapshot.get("available") else None,
         "margin_used": fnum(exchange_snapshot.get("margin_used")) if exchange_snapshot.get("available") else None,
         "attributed_open_pnl": attributed_open_pnl,
-        "estimated_copy_pnl": attributed_open_pnl,
+        "attributed_open_pnl_scope": "open position P&L only (no fees, no funding)",
+        "estimated_copy_pnl": estimated_copy_pnl,
+        "estimated_copy_pnl_scope": "closed + open - fees (net of fees; funding not included)",
         "reconciliation_gap": None,
         "reconciliation_gap_status": "NOT_COMPARABLE_ACCOUNT_VALUE_DELTA_VS_WALLET_PNL",
         "updated_at": exchange_snapshot.get("updated_at") or utc_now_iso(),
