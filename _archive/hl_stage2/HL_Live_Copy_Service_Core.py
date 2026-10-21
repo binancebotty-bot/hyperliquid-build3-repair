@@ -305,6 +305,8 @@ def _response_text(exchange_response: Any) -> str:
 
 def classify_reject_category(error_text: str = "", exchange_response: Any = None) -> str:
     msg = f"{error_text or ''} {_response_text(exchange_response)}".lower()
+    if "trading is halted" in msg or "market is halted" in msg:
+        return "MARKET_HALTED"
     if "could not immediately match" in msg:
         return "IOC_NO_IMMEDIATE_MATCH"
     if "resting orders" in msg and ("ioc" in msg or "immediate" in msg or "no fill" in msg or "match" in msg):
@@ -2702,6 +2704,8 @@ class SenderGateway:
         # position_abs_before, intent_id}. Protected by _pending_exit_lock.
         self._pending_exit_guard: Dict[str, Dict[str, Any]] = {}
         self._pending_exit_lock = threading.Lock()
+        # Builder coins the venue cannot fill (halted / empty book): recorded once per run, skipped after.
+        self._untradeable_coins: Dict[str, str] = {}
         self._load_asset_universe_snapshot()
 
     def _place_order(self, exchange: Any, sdk_coin: str, is_buy: bool, size: float, limit_px: float,
@@ -3423,6 +3427,19 @@ class SenderGateway:
                 "operator_action": "REFRESH_ASSET_UNIVERSE_CACHE",
                 "timing": timing,
             }
+        if lifecycle in {"ENTRY", "ADD"} and self._untradeable_coin_reason(sdk_coin):
+            _why = self._untradeable_coin_reason(sdk_coin)
+            detail = (
+                f"raw_coin={intent.fill.coin}; sdk_coin={sdk_coin}; reason=builder market untradeable this run ({_why}); "
+                f"intent_id={intent.intent_id}"
+            )
+            return False, "SEND_NOT_ATTEMPTED_SYMBOL_UNTRADEABLE", {
+                "status": "SYMBOL_NOT_TRADEABLE_THIS_RUN",
+                "error": detail, "exchange_response": {}, "oid": "",
+                "exchange_called": False, "write_send_attempt": True, "notes": detail,
+                "reject_category": _why, "terminal_state": "SYMBOL_NOT_TRADEABLE_THIS_RUN",
+                "operator_action": "NO_SEND_SYMBOL_UNTRADEABLE", "timing": timing,
+            }
         bps = self.cfg.marketable_bps()
         mult = (1.0 + bps / 10000.0) if intent.copy_side == "BUY" else (1.0 - bps / 10000.0)
         base_px = intent.fill.price
@@ -3615,11 +3632,14 @@ class SenderGateway:
             timing["exchange_call_finished_ms"] = utc_now_ms()
             ok, status, oid, parsed_error = self._parse_hl_response(response)
             reject_category = classify_reject_category(parsed_error, response) if status == "ORDER_REJECTED" else ""
+            if status == "ORDER_REJECTED" and self._is_builder_coin(resolved):
+                self._note_untradeable_coin(sdk_coin, reject_category)
             if (
                 not ok
                 and status == "ORDER_REJECTED"
                 and lifecycle in {"ENTRY", "ADD"}
                 and reject_category == "IOC_NO_IMMEDIATE_MATCH"
+                and not self._untradeable_coin_reason(sdk_coin)
             ):
                 retry_bps = max(bps, fnum(os.getenv("HL_LIVE_ENTRY_IOC_RETRY_BPS"), 100.0))
                 max_retry_bps = max(retry_bps, fnum(os.getenv("HL_LIVE_MAX_ENTRY_IOC_RETRY_BPS"), retry_bps))
@@ -4185,6 +4205,21 @@ class SenderGateway:
             pass
         symbol_min = fnum(resolved.get("min_order_value_usd"), 0.0)
         return max(cfg_min, symbol_min)
+
+    @staticmethod
+    def _is_builder_coin(resolved: Dict[str, Any]) -> bool:
+        return str(resolved.get("symbol_source") or "") == "builder_meta" or bool(resolved.get("perp_dex"))
+
+    def _untradeable_coin_reason(self, sdk_coin: str) -> str:
+        return self._untradeable_coins.get(str(sdk_coin or "").strip().lower(), "")
+
+    def _note_untradeable_coin(self, sdk_coin: str, reject_category: str) -> None:
+        """Halted market or an empty book does not heal inside a run: record once, skip it after."""
+        if str(reject_category or "") not in {"MARKET_HALTED", "IOC_NO_IMMEDIATE_MATCH"}:
+            return
+        key = str(sdk_coin or "").strip().lower()
+        if key and key not in self._untradeable_coins:
+            self._untradeable_coins[key] = str(reject_category)
 
     @staticmethod
     def _symbol_reject_circuit_active(resolved: Dict[str, Any]) -> bool:
