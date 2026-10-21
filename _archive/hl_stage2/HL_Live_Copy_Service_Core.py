@@ -9854,7 +9854,11 @@ class LiveCopyCore:
                 _r = rec.pop("status_of")
                 rec["status"] = str(_r[1]) if isinstance(_r, tuple) and len(_r) > 1 else ""
             with self.__dict__.setdefault("_fill_trace_lock", threading.Lock()):
-                rotate_trace_file(path, TRACE_MAX_BYTES_FILL)
+                checks = self.__dict__.setdefault("_trace_rotate_checks", {})
+                # shortcut: stat every 128 rows, allowing at most 128 rows over the cap; lower if trace rows grow substantially.
+                if checks.get("fill", 0) % 128 == 0:
+                    rotate_trace_file(path, TRACE_MAX_BYTES_FILL)
+                checks["fill"] = checks.get("fill", 0) + 1
                 with open(path, "a", encoding="utf-8") as fh:
                     fh.write(json.dumps(rec, separators=(",", ":")) + "\n")
         except Exception as exc:
@@ -9874,9 +9878,14 @@ class LiveCopyCore:
         said which window the catch-up asked for. Rotated at 16 MB, 12 files kept; never raises."""
         try:
             path = Path(CORE_RUNTIME_STATE_FILE).parent / "leader_poll_trace.jsonl"
-            rotate_trace_file(path, TRACE_MAX_BYTES_POLL)
-            with open(path, "a", encoding="utf-8") as fh:
-                fh.write(json.dumps({"ts": utc_now_ms(), **rec}, separators=(",", ":")) + "\n")
+            with self.__dict__.setdefault("_poll_trace_lock", threading.Lock()):
+                checks = self.__dict__.setdefault("_trace_rotate_checks", {})
+                # shortcut: stat every 128 rows, allowing at most 128 rows over the cap; lower if trace rows grow substantially.
+                if checks.get("poll", 0) % 128 == 0:
+                    rotate_trace_file(path, TRACE_MAX_BYTES_POLL)
+                checks["poll"] = checks.get("poll", 0) + 1
+                with open(path, "a", encoding="utf-8") as fh:
+                    fh.write(json.dumps({"ts": utc_now_ms(), **rec}, separators=(",", ":")) + "\n")
         except Exception as exc:
             log_error("poll_trace", exc)
 
@@ -10295,6 +10304,10 @@ class LiveCopyCore:
         """Cheap pre-check before any processing: the poll re-reads fills the live feed already handled."""
         with self._idem_lock:
             return self._guard_key(fill) in self._idem_accepted
+
+    def _already_queued(self, fill: LeaderFill) -> bool:
+        with self._queued_lock:
+            return self._guard_key(fill) in self._queued_keys
 
     def _process_leader_fill(self, fill: LeaderFill, summary: Optional[CycleSummary] = None, entry_block_reason: str = "") -> Tuple[bool, str, Optional[Intent]]:
         """Every fill ends in a row. An error while processing used to be only a log line: the fill (and any fills merged
@@ -11434,7 +11447,8 @@ class LiveCopyCore:
                                       "status": status, "fills": len(wallet_fills),
                                       "first_ms": min((f.timestamp_ms for f in wallet_fills), default=0),
                                       "last_ms": max((f.timestamp_ms for f in wallet_fills), default=0),
-                                      "new": sum(1 for f in wallet_fills if not self._already_handled(f))})
+                                      "new": sum(1 for f in wallet_fills
+                                                 if not self._already_handled(f) and not self._already_queued(f))})
                     # while sending is stopped for a bad key the cursor stays put, so a restart replays these exits
                     # (reading moves on in memory, so the window does not grow every cycle)
                     _hold = bool(self.sender.sender_key_invalid)
@@ -11513,6 +11527,9 @@ class LiveCopyCore:
                             self._idem_accepted.add(self._guard_key(fill))
                     self._rows_for_closed_late_siblings(fill, why)
                     continue
+                if self._already_queued(fill):  # the poll overlaps pending queue entries; don't offer them every cycle
+                    summary.leader_fills_deduped += 1
+                    continue
                 if self._already_handled(fill):  # run 3: thousands of re-read fills per cycle starved the loop
                     summary.leader_fills_deduped += 1
                     continue
@@ -11524,7 +11541,7 @@ class LiveCopyCore:
                         continue  # a CLO pure entry was audited at dispatch and intentionally not queued
                     if dispatched:
                         summary.leader_fills_queued += 1
-                        if not _was_queued:  # a fill already waiting is only offered again, not queued again
+                        if not _was_queued:  # a fill already waiting is only offered again, not traced again
                             self._fill_trace("poll_dispatched", fill)
                         continue
                     self._fill_trace("poll_queue_full", fill)
