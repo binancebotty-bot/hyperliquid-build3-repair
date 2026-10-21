@@ -9,6 +9,21 @@ under. Landed as a commit in THIS repository (AGENTS.md rule 13) so it is review
 - Model:    `deepseek-v4-flash-thinking-nosearch`
 - base_url: `http://127.0.0.1:9655/v1`  (FreeDeepseekAPI local proxy)
 
+**Model id and provider are DIFFERENT fields — never put a provider name in the model field.**
+`set-model <task> <model> --provider <provider>`; the first argument must be a real model id. A card
+written with `model_override = custom-deepseek-free` makes every call return
+`400 invalid_model: Unknown model: custom-deepseek-free` in **0 ms** (no DeepSeek call happens), and
+Hermes then treats the route as dead and cascades down the fallback chain — which looks exactly like a
+rate limit but is a config bug. Observed 2026-10-21; it repeated on every respawn.
+
+Audit after ANY batch of model/provider edits — must return 0:
+```sql
+select count(*) from tasks
+where model_override in ('custom-deepseek-free','nous','gemini','openrouter','openai-codex');
+```
+Distinguish the two failure shapes before "fixing" anything: **0 ms / `invalid_model`** = wrong model id
+(local config bug); **429 with `Слишком частые сообщения` or fair-share** = a real provider cap.
+
 Every Build-3 Kanban card must be pinned to this (its `provider_override` + `model_override`).
 Do NOT re-pin cards to a cloud free-tier route — those are capped (section 2).
 
