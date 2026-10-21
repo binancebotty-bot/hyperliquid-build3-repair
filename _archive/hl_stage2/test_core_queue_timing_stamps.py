@@ -8,7 +8,11 @@ import queue
 import sys
 import tempfile
 import threading
+import time
+from contextlib import ExitStack
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import patch
 
 os.environ.clear()
 
@@ -129,5 +133,83 @@ with tempfile.TemporaryDirectory(prefix="queue_timing_stamps_") as tmp:
     cycles = {row.get("k"): row for row in rows if row.get("cycle_id") == 7}
     if not {"cycle_start", "cycle_end"} <= set(cycles) or cycles["cycle_end"].get("duration_ms") != 12:
         raise AssertionError("cycle start/end diagnostics were not written with duration")
+
+    with tempfile.TemporaryDirectory(prefix="queue_sampler_start_") as startup_tmp:
+        previous_runtime_state = c.CORE_RUNTIME_STATE_FILE
+        previous_ws_provider = c.HEADROOM.ws_provider
+        startup_core = None
+        try:
+            c.CORE_RUNTIME_STATE_FILE = Path(startup_tmp) / "runtime_state.json"
+            cfg = SimpleNamespace(auto_send_enabled=False, stream_wallets=lambda: [])
+            dedupe = SimpleNamespace(dedupe_load_failed=False, live_start_ms=1)
+            ws = SimpleNamespace(enabled=False, _subscribed=set(), _refusals=[], _last_refusal="")
+            sender = SimpleNamespace(resting_entry_exposure=lambda: None)
+            original_fill_trace = c.LiveCopyCore._fill_trace
+
+            def stop_after_queue_sample(self, kind, fill, extra=None):
+                original_fill_trace(self, kind, fill, extra)
+                if kind == "queue_depth":
+                    self._hot_stop_event.set()
+
+            replacements = (
+                (c, "ensure_dirs", None),
+                (c, "ConfigManager", cfg),
+                (c, "ManualLedger", None),
+                (c, "AuditLogWriter", SimpleNamespace(replay_all_fallbacks=lambda: None)),
+                (c, "LeaderFillIngestor", None),
+                (c, "load_json", {}),
+                (c, "DedupeStore", dedupe),
+                (c, "iter_csv_rows", []),
+                (c, "iter_audit_history", []),
+                (c, "WSManager", ws),
+                (c, "IntentBuilder", None),
+                (c, "SenderGateway", sender),
+                (c, "CopyAccountIngestor", None),
+                (c, "CopyFillMatcher", None),
+                (c, "ExchangeReconciler", None),
+                (c, "ServiceStateWriter", None),
+            )
+            with ExitStack() as patches:
+                for target, name, replacement in replacements:
+                    kwargs = {} if replacement is None else {"return_value": replacement}
+                    patches.enter_context(patch.object(target, name, **kwargs))
+                patches.enter_context(patch.object(c.LiveCopyCore, "_fill_trace", new=stop_after_queue_sample))
+                patches.enter_context(patch.object(c.LiveCopyCore, "_pending_sweeper", new=lambda _self: None))
+                patches.enter_context(patch.object(c.LiveCopyCore, "_hot_send_loop", new=lambda _self, _idx: None))
+                patches.enter_context(patch.dict(os.environ, {"HL_LIVE_HOT_SEND_WORKERS": "1"}))
+                startup_core = c.LiveCopyCore()
+                sampler = startup_core._queue_depth_thread
+                if sampler.ident is None:
+                    raise AssertionError("queue-depth sampler thread was not started")
+                startup_trace = Path(startup_tmp) / "fill_trace.jsonl"
+                deadline = time.monotonic() + 20.0
+                while time.monotonic() < deadline:
+                    if startup_trace.exists():
+                        try:
+                            startup_rows = [json.loads(line) for line in startup_trace.read_text(encoding="utf-8").splitlines()]
+                        except json.JSONDecodeError:
+                            startup_rows = []  # Ignore a partially appended final JSONL row and retry.
+                        if any(row.get("k") == "queue_depth" for row in startup_rows):
+                            break
+                    time.sleep(0.05)
+                else:
+                    raise AssertionError("started queue-depth sampler did not emit a row within 2x its 10-second interval")
+        finally:
+            try:
+                if startup_core is not None:
+                    startup_core._hot_stop_event.set()
+                    sampler = startup_core._queue_depth_thread
+                    if sampler.ident is not None:
+                        sampler.join(timeout=2.0)
+                    for worker in startup_core._hot_threads:
+                        if worker.ident is not None:
+                            worker.join(timeout=2.0)
+                    if (sampler.ident is not None and sampler.is_alive()) or any(
+                        worker.ident is not None and worker.is_alive() for worker in startup_core._hot_threads
+                    ):
+                        raise AssertionError("queue-depth sampler or hot worker leaked after startup check")
+            finally:
+                c.CORE_RUNTIME_STATE_FILE = previous_runtime_state
+                c.HEADROOM.ws_provider = previous_ws_provider
 
 print("PASS: first-seen queue timing stamps and queue-depth trace")
