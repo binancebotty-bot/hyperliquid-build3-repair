@@ -1788,7 +1788,9 @@ def _build_account_reconciliation(exchange_snapshot: Dict[str, Any], live_leader
         "margin_used": fnum(exchange_snapshot.get("margin_used")) if exchange_snapshot.get("available") else None,
         "attributed_open_pnl": attributed_open_pnl,
         "estimated_copy_pnl": attributed_open_pnl,
-        "reconciliation_gap": round(net_account_change - attributed_open_pnl, 6) if net_account_change is not None else None,
+        # no reconciliation_gap: net_account_value_change_unadjusted is a UNIFIED spot-USDC delta while
+        # attributed_open_pnl sums per-wallet copy live_net_pnl - different scopes, so their difference
+        # is not an unexplained loss. Both terms are published above, each labelled by its own source.
         "updated_at": exchange_snapshot.get("updated_at") or utc_now_iso(),
     }
 
