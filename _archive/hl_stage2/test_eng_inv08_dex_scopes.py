@@ -79,6 +79,15 @@ def cases():
     snap, status = rec().fetch_snapshot()
     check('INV08_UNREADABLE_SCOPE_FAILS_CLOSED', snap == {}
           and status.startswith('SNAPSHOT_SCOPE_UNAVAILABLE'), '%s %s' % (status, snap))
+
+    # Recovery read: reloading the persisted two-scope snapshot must still see the builder coin
+    # (it lives only in positions_by_coin; raw carries the default scope).
+    core.EXPOSURE_FETCHER = FakeInfo(dexes=('', 'builder-hip3'),
+                                     states={'': {'BTC': 1.0}, 'builder-hip3': {'KMBUILD': 2.0}})
+    rec().fetch_snapshot()
+    persisted, err = core.SenderGateway._persisted_exchange_positions()
+    check('INV08_PERSISTED_READ_ALL_SCOPES', not err and persisted.get('BTC') == 1.0
+          and persisted.get('KMBUILD') == 2.0, '%s %s' % (err, persisted))
     return tmp
 
 
@@ -88,6 +97,9 @@ MUTATIONS = {
           '                return {}, str(enum.get("status") or "DEX_ENUM_UNAVAILABLE")\r\n',
           '            if not enum.get("ok"):\r\n'
           '                enum = {"ok": True, "dexes": [""]}\r\n'),
+    # Recovery read falls back to the default-scope `raw` body, dropping builder positions.
+    'c': ('        positions = snapshot.get("positions_by_coin")\r\n',
+          '        positions = None\r\n'),
 }
 
 
@@ -117,6 +129,7 @@ def run_copy(mutate=None):
         for mod in ('HL_Live_Copy_Service_Core', 'exchange_truth'):
             sys.modules.pop(mod, None)
     subset = RESULTS[before:]
+    del RESULTS[before:]  # a reddening mutant must not fail the suite itself
     return sum(1 for _, ok in subset if not ok), len(subset)
 
 
@@ -124,7 +137,8 @@ def main():
     cases()
     print('BASELINE_TOTAL=%d BASELINE_FAILED=%d'
           % (len(RESULTS), sum(1 for _, ok in RESULTS if not ok)))
-    for tag, label in (('a', 'DEX_LIST_FILTERED_TO_DEFAULT'), ('b', 'ENUM_FAILURE_FALLS_BACK_TO_DEFAULT')):
+    for tag, label in (('a', 'DEX_LIST_FILTERED_TO_DEFAULT'), ('b', 'ENUM_FAILURE_FALLS_BACK_TO_DEFAULT'),
+                       ('c', 'PERSISTED_READ_PREFERS_DEFAULT_RAW')):
         failed, total = run_copy(tag)
         if failed is None:
             check('INV08_MUTANT_%s_REDDENS' % label, False, str(total))

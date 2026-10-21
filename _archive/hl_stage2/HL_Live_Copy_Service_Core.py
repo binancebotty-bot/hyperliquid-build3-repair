@@ -2751,17 +2751,19 @@ class SenderGateway:
         snapshot = load_json(EXCHANGE_ACCOUNT_SNAPSHOT_FILE, {})
         if not isinstance(snapshot, dict):
             return {}, "exchange snapshot unavailable"
+        # positions_by_coin is the all-scope aggregate; raw holds the default scope only,
+        # so a builder-DEX position exists only in positions_by_coin.
+        positions = snapshot.get("positions_by_coin")
+        if isinstance(positions, dict):
+            parsed = {}
+            for k, v in positions.items():
+                if isinstance(v, dict):
+                    parsed[canonical_coin_key(k)] = fnum(v.get("signed_size"), 0.0)
+                else:
+                    parsed[canonical_coin_key(k)] = fnum(v, 0.0)
+            return parsed, ""
         raw = snapshot.get("raw") if isinstance(snapshot.get("raw"), dict) else snapshot
         if not isinstance(raw, dict) or not isinstance(raw.get("assetPositions"), list):
-            positions = snapshot.get("positions_by_coin")
-            if isinstance(positions, dict):
-                parsed = {}
-                for k, v in positions.items():
-                    if isinstance(v, dict):
-                        parsed[canonical_coin_key(k)] = fnum(v.get("signed_size"), 0.0)
-                    else:
-                        parsed[canonical_coin_key(k)] = fnum(v, 0.0)
-                return parsed, ""
             return {}, "exchange raw.assetPositions unavailable"
         return ExchangeReconciler._positions_from_snapshot(raw), ""
 
