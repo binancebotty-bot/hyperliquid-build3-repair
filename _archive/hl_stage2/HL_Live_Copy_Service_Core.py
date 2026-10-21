@@ -748,6 +748,8 @@ def _response_text(exchange_response: Any) -> str:
 
 def classify_reject_category(error_text: str = "", exchange_response: Any = None) -> str:
     msg = f"{error_text or ''} {_response_text(exchange_response)}".lower()
+    if "trading is halted." in msg:
+        return "MARKET_HALTED"
     if "does not exist" in msg and ("wallet" in msg or "user" in msg):
         return "SENDER_KEY_NOT_VALID"  # the follower exchange does not know the signing key: wrong network / not approved
     if "could not immediately match" in msg:
@@ -4586,6 +4588,10 @@ class SenderGateway:
         self._withdrawn_late: List[Dict[str, Any]] = []  # withdrawn at registration: the core must own their fills
         self._last_exchange_order_ms: int = 0
         self._exchange_rate_limit_cooldown_until_ms: int = 0
+        self._market_halted_until_ms: Dict[str, int] = {}
+        self._ioc_no_match_until_ms: Dict[str, int] = {}
+        # shortcut: windows reset on restart; persist only if restart-spanning controls are required.
+        self._last_exit_attempt_ms: Dict[str, int] = {}
         # Pending-exit guard: prevents a burst of leader close fills from each
         # firing a full-sleeve close before the first close is reflected by
         # copy-poll/reconciliation. Keyed by sleeve_id -> {ts_ms, intended_size,
@@ -6242,6 +6248,12 @@ class SenderGateway:
         if self.sender_key_invalid:
             return False, "SEND_BLOCKED_SENDER_KEY_NOT_VALID"
         lifecycle = classify_send_lifecycle(intent)
+        coin_key = str(intent.fill.coin or "").strip().lower()
+        now_ms = utc_now_ms()
+        if lifecycle in {"ENTRY", "ADD"} and self._market_halted_until_ms.get(coin_key, 0) > now_ms:
+            return False, "SKIPPED_MARKET_HALTED"
+        if lifecycle in {"ENTRY", "ADD"} and self._ioc_no_match_until_ms.get(coin_key, 0) > now_ms:
+            return False, "SKIPPED_IOC_NO_IMMEDIATE_MATCH"
         if lifecycle in {"ENTRY", "ADD"} and self.cfg.send_mode_now() == "CLOSE":
             return False, "ENTRY_BLOCKED_GLOBAL_CLOSE_ONLY"  # CLOSE: reductions only, no entry or top-up
         if entry_block_reason and lifecycle in {"ENTRY", "ADD"}:
@@ -6294,6 +6306,9 @@ class SenderGateway:
         reserved_exit = False
         if is_exit_like:
             with self._pending_exit_lock:
+                last_exit = self._last_exit_attempt_ms.get(coin_key, 0)
+                if utc_now_ms() - last_exit < 60000:
+                    return False, "EXIT_ATTEMPT_COOLDOWN"
                 blocked, guard_reason = self._pending_exit_blocked(intent)
                 if blocked:
                     self._append_local_block_reconciliation(intent, "PENDING_EXIT_GUARD_ACTIVE", {
@@ -6306,13 +6321,37 @@ class SenderGateway:
                     })
                     return False, "PENDING_EXIT_GUARD_ACTIVE"
                 self._mark_pending_exit(intent)
+                self._last_exit_attempt_ms[coin_key] = utc_now_ms()
                 reserved_exit = True
         if bval(os.getenv("HL_LIVE_MOCK_SEND"), False):
+            if is_exit_like:
+                self._last_exit_attempt_ms.pop(coin_key, None)
             self._append_mock_attempt(intent, "MOCK_ORDER_SENT", timing)
             return True, "MOCK_ORDER_SENT"
         timing["send_real_started_ms"] = utc_now_ms()
         ok, send_status, result = self._send_real(intent, timing)
         if result.get("exchange_called"):
+            category = str(result.get("reject_category") or "")
+            if category == "MARKET_HALTED" and lifecycle in {"ENTRY", "ADD"}:
+                until = utc_now_ms() + 600000
+                was_active = self._market_halted_until_ms.get(coin_key, 0) > utc_now_ms()
+                self._market_halted_until_ms[coin_key] = max(self._market_halted_until_ms.get(coin_key, 0), until)
+                if not was_active:
+                    self.audit.append_reconciliation(
+                        "SEND_TERMINAL", "SKIPPED_MARKET_HALTED", leader_wallet=intent.fill.leader_wallet,
+                        leader_fill_id=intent.fill.leader_fill_id, intent_id=intent.intent_id, coin=coin_key,
+                        reject_category="MARKET_HALTED", terminal_state="SKIPPED_MARKET_HALTED",
+                        action="RETRY_AFTER_MARKET_HALT_COOLDOWN", notes="Trading is halted.; per-coin cooldown 10 minutes")
+            elif category == "IOC_NO_IMMEDIATE_MATCH" and lifecycle in {"ENTRY", "ADD"}:
+                window_ms = max(1, int(fnum(os.getenv("HL_LIVE_IOC_NO_MATCH_RETRY_WINDOW_MS"), 10000)))
+                was_active = self._ioc_no_match_until_ms.get(coin_key, 0) > utc_now_ms()
+                self._ioc_no_match_until_ms[coin_key] = max(self._ioc_no_match_until_ms.get(coin_key, 0), utc_now_ms() + window_ms)
+                if not was_active:
+                    self.audit.append_reconciliation(
+                        "SEND_TERMINAL", "IOC_NO_IMMEDIATE_MATCH", leader_wallet=intent.fill.leader_wallet,
+                        leader_fill_id=intent.fill.leader_fill_id, intent_id=intent.intent_id, coin=coin_key,
+                        reject_category="IOC_NO_IMMEDIATE_MATCH", terminal_state="IOC_NO_IMMEDIATE_MATCH",
+                        action="RETRY_AFTER_IOC_WINDOW", notes=f"IOC remained IOC; per-coin retry window {window_ms} ms")
             self._append_real_attempt(intent, send_status, result)
             reduced_ms = self.leader_reduced_since(intent.fill) if lifecycle in {"ENTRY", "ADD"} else 0
             if reduced_ms and send_status == "ORDER_FILLED":
@@ -6330,6 +6369,8 @@ class SenderGateway:
             # block a genuine later close because of a non-exchange (symbol/cred) miss.
             if reserved_exit:
                 self._clear_pending_exit(intent)
+            if lifecycle in {"REDUCE", "EXIT"}:
+                self._last_exit_attempt_ms.pop(coin_key, None)
             if result.get("write_send_attempt") or result.get("write_reconciliation"):
                 self._append_local_block_reconciliation(intent, send_status, result)
         return ok, send_status
