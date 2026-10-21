@@ -10082,6 +10082,8 @@ class LiveCopyCore:
                 intent = self.intent_builder.build(fill)
             if not converge and self._defer_unreadable_truth(fill, intent, merged_ids):
                 return False, "REPLAY_DEFERRED_TRUTH_UNREADABLE", intent
+            if not converge and self._defer_daily_loss_unreadable(fill, _lc, entry_block_reason):
+                return False, "REPLAY_DEFERRED_DAILY_LOSS_UNREADABLE", intent
             self.intents_by_id[intent.intent_id] = intent
             self._intent_inserts = getattr(self, "_intent_inserts", 0) + 1
             if self._intent_inserts % 500 == 0:  # bounded: copy-fill matching only looks back COPY_MATCH_WINDOW_MS; an older
@@ -10141,6 +10143,45 @@ class LiveCopyCore:
                     reject_category="UNRECORDED_SEND_BLOCK", terminal_state="BLOCKED_NO_TERMINAL_RECORDED", engine_can_send="False",
                     notes=f"send_status={send_status}; decision={intent.decision}; send_allowed={intent.send_allowed}; no other row was written for this fill")
         return sent, send_status, intent
+
+    def _defer_daily_loss_unreadable(self, fill: LeaderFill, lifecycle: str, reason: str) -> bool:
+        """The daily-loss cap is set and today's P&L could not be read: unreadable is a HOLD, never "no loss".
+        The entry is released and re-offered shortly; a readable over-cap value stays the operator's hard stop."""
+        key = self._guard_key(fill)
+        firsts = self.__dict__.setdefault("_defer_first_ms", {})
+        if reason != "DAILY_LOSS_UNREADABLE" or lifecycle not in {"ENTRY", "ADD"}:
+            firsts.pop(key, None)
+            return False
+        now = utc_now_ms()
+        new_fill = key not in firsts
+        first = firsts.setdefault(key, now)
+        max_sec = fnum(os.getenv("HL_LIVE_DEFER_MAX_SEC"), 0.0)  # 0 = hold until readable
+        if max_sec < 0 or (max_sec > 0 and now - first > int(max_sec * 1000)):  # negative = no hold at all (tests)
+            firsts.pop(key, None)
+            return False
+        with self._idem_lock:  # release the HEAD only: merged siblings stay marked handled
+            self._idem_accepted.discard(key)
+        with self.dedupe._lock:
+            self.dedupe.processed.discard(fill.leader_fill_id)
+        if new_fill:  # one row per fill, not one per retry
+            try:
+                self.audit.append_reconciliation(
+                    "REPLAY_DEFERRED", "REPLAY_DEFERRED_DAILY_LOSS_UNREADABLE", leader_wallet=fill.leader_wallet,
+                    leader_fill_id=fill.leader_fill_id, coin=fill.coin, action="RETRY_WHEN_READABLE",
+                    terminal_state="REPLAY_DEFERRED_DAILY_LOSS_UNREADABLE", engine_can_send="False",
+                    notes=("entry held, not sent: daily-loss cap is set and the P&L it depends on is unreadable "
+                           "(unreadable is a hold, never no loss); retried every "
+                           f"{fnum(os.getenv('HL_LIVE_DEFER_RETRY_SEC'), 5.0):g}s"))
+            except Exception as exc:
+                log_error("defer_daily_loss_row", exc)
+            self._rows_for_held_siblings(fill, "REPLAY_DEFERRED_DAILY_LOSS_UNREADABLE")
+        delay = max(0.5, fnum(os.getenv("HL_LIVE_DEFER_RETRY_SEC"), 5.0))
+        with self._deferred_lock:
+            self._deferred[key] = (fill, time.monotonic() + delay)
+            if self._deferred_thread is None or not self._deferred_thread.is_alive():
+                self._deferred_thread = threading.Thread(target=self._deferred_loop, daemon=True, name="HLCore-deferred")
+                self._deferred_thread.start()
+        return True
 
     _TRUTH_UNREADABLE_MARKERS = ("unavailable", "unreadable", "not yet verified clean")
 
@@ -10895,7 +10936,7 @@ class LiveCopyCore:
             # Boss rule 16 Oct (decision card, testnet): nothing that was not in the two-month engine blocks an entry. A cycle
             # gate (feed stale, poll stale, unreconciled sends, wallet slots, sweep, unreadable P&L, rejected key) is an ALERT:
             # one GATE_WOULD_BLOCK row, the entry proceeds. The daily loss LIMIT the operator sets stays a hard stop (old build).
-            if _block and _block != "DAILY_LOSS_LIMIT_REACHED" and bval(os.getenv("HL_LIVE_GATES_ALERT_ONLY"), True):
+            if _block and _block not in ("DAILY_LOSS_LIMIT_REACHED", "DAILY_LOSS_UNREADABLE") and bval(os.getenv("HL_LIVE_GATES_ALERT_ONLY"), True):
                 self._gate_would_block(_block)
                 _block = ""
             self._entry_sends_blocked_reason = _block
