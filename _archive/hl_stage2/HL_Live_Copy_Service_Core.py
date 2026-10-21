@@ -8130,6 +8130,9 @@ class LeaderFillIngestor:
                 log_error("poll_hyperliquid_fills", exc)
                 status = "POLL_NETWORK_ERROR"
                 break
+        else:
+            # Every page was full: the API may still have more history.
+            status = "POLL_PARTIAL"
         fills.sort(key=lambda f: (f.timestamp_ms, f.leader_fill_id))
         return fills, status
 
@@ -11599,8 +11602,20 @@ class LiveCopyCore:
                     # while sending is stopped for a bad key the cursor stays put, so a restart replays these exits
                     # (reading moves on in memory, so the window does not grow every cycle)
                     _hold = bool(self.sender.sender_key_invalid)
+                    # a partial page or a failed final page still read these fills: advance past them and record the
+                    # range we could not read, so the cursor never stalls on an unreadable history window
+                    _truncated = status in {"POLL_PARTIAL", "POLL_NETWORK_ERROR"} and bool(wallet_fills)
                     _next = (now if status == "POLL_OK" else max(f.timestamp_ms for f in wallet_fills) + LEADER_POLL_OVERLAP_MS
-                             if status == "POLL_PARTIAL" and wallet_fills else 0)
+                             if _truncated else 0)
+                    if _truncated:
+                        _last_fill_ms = max(f.timestamp_ms for f in wallet_fills)
+                        self.audit.append_reconciliation(
+                            "LEADER_HISTORY_TRUNCATED", status,
+                            leader_wallet=w, action="MANUAL_REVIEW_LEADER_HISTORY_TRUNCATED",
+                            notes=(f"start_ms={_last_fill_ms + 1}; end_ms={now}; "
+                                   f"count={len(wallet_fills)}; last_read_ms={_last_fill_ms}"))
+                        poll_status = status
+                        summary.network_errors += 1
                     if _next:
                         if self.async_dispatch:
                             # Polled fills are not in pending_ts until dispatch succeeds.
