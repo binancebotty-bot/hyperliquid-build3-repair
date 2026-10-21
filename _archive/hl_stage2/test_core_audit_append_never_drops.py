@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Audit append never drops a row: retry+backoff on transient failure, spill to an
-append-only fallback file that is replayed later, and a failed append must NOT
+"""Audit append never drops a row: failed writes spill without blocking the caller,
+later rows stay behind pending spills, and replay remains crash-safe. A failed append must NOT
 stop the REPLAY_DEFERRED retry from being queued.
 
 Run (from _archive/hl_stage2):
@@ -15,16 +15,10 @@ from types import SimpleNamespace
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
-# Config for the test scenarios: short retry count and short backoff.
-RETRIES = 3
-BACKOFF = 0.02  # seconds; short enough for fast CI, long enough to measure
-
 tmp = Path(tempfile.mkdtemp(prefix="auditndd_"))
 os.environ.update({
     "HL_LIVE_AUDIT_DIR": str(tmp),
     "HL_LIVE_ENV_FILE": "/nonexistent",
-    "HL_LIVE_APPEND_RETRIES": str(RETRIES),
-    "HL_LIVE_APPEND_BACKOFF_SEC": str(BACKOFF),
 })
 import HL_Live_Copy_Service_Core as c  # noqa: E402
 
@@ -50,6 +44,8 @@ class AppendFail:
     def install(self) -> None:
         af = self
         _orig = real_open
+        if hasattr(c, "_close_audit_handle"):
+            c._close_audit_handle(self.target)
         def fake(self_path, *a, **k):
             f = _orig(self_path, *a, **k)
             if self_path == af.target and a and a[0] == "a":
@@ -63,7 +59,7 @@ class AppendFail:
         Path.open = real_open
 
 
-# --- Scenario 1: retry with backoff, then succeed ----------------------------------
+# --- Scenario 1: transient failure spills without blocking the caller --------------
 
 fields1 = ["event", "status", "leader_fill_id"]
 p1 = tmp / "append_only" / "test_retry.csv"
@@ -71,6 +67,9 @@ p1 = tmp / "append_only" / "test_retry.csv"
 c.append_csv(p1, fields1, {"event": "E", "status": "S0", "leader_fill_id": "F0"})
 af1 = AppendFail(p1, n_fail=2)
 af1.install()
+real_sleep = c.time.sleep
+sleep_calls = []
+c.time.sleep = lambda seconds: sleep_calls.append(seconds)
 raised1 = False
 ret1 = None
 t0 = time.monotonic()
@@ -79,17 +78,25 @@ try:
 except Exception as exc:
     raised1 = True
 t1 = time.monotonic()
+c.time.sleep = real_sleep
 af1.restore()
 rows1 = c.read_csv_rows(p1)
 
-check("APPEND_RETRIES_NO_RAISE", not raised1, f"raised={raised1}")
-check("APPEND_RETRIES_RETURNS_TRUE", ret1 is True, f"ret={ret1!r}")  # #5 contract: success -> True
-check("APPEND_RETRIES_ATTEMPTS", af1.count == RETRIES, f"attempts={af1.count} expected={RETRIES}")
-check("APPEND_RETRIES_BACKOFF_TAKEN", (t1 - t0) > BACKOFF * 2,
-      f"elapsed={t1 - t0:.4f}s backoff*2={BACKOFF * 2:.4f}s")
-check("APPEND_RETRIES_ROW_PRESERVED",
-      len(rows1) == 2 and rows1[1]["leader_fill_id"] == "F1", str(rows1))
-print("MEASURE::retry_attempts=%d backoff_per_attempt=%.4fs total_elapsed=%.4fs" % (af1.count, BACKOFF, t1 - t0))
+check("APPEND_FAILURE_NO_RAISE", not raised1, f"raised={raised1}")
+check("APPEND_FAILURE_SPILLS", ret1 is False and len(c.read_csv_rows(c._fallback_path(p1))) == 1, f"ret={ret1!r}")
+check("APPEND_FAILURE_ONE_ATTEMPT", af1.count == 1, f"attempts={af1.count} expected=1")
+check("APPEND_FAILURE_DOES_NOT_SLEEP", not sleep_calls, f"sleep calls={sleep_calls}")
+check("APPEND_FAILURE_ROW_PRESERVED", len(rows1) == 1 and rows1[0]["leader_fill_id"] == "F0", str(rows1))
+check("APPEND_AFTER_SPILL_STAYS_QUEUED",
+      c.append_csv(p1, fields1, {"event": "E", "status": "S2", "leader_fill_id": "F2"}) is False,
+      "later rows must not overtake a durable spill")
+check("SPILL_ROWS_KEEP_APPEND_ORDER",
+      [r["leader_fill_id"] for r in c.read_csv_rows(c._fallback_path(p1))] == ["F1", "F2"],
+      str(c.read_csv_rows(c._fallback_path(p1))))
+check("SPILL_REPLAY_RESTORES_ORDER",
+      c.replay_audit_fallback(p1, fields1) == 2
+      and [r["leader_fill_id"] for r in c.read_csv_rows(p1)] == ["F0", "F1", "F2"],
+      str(c.read_csv_rows(p1)))
 
 # --- Scenario 2: spill to append-only fallback on persistent failure --------------
 
@@ -492,8 +499,7 @@ c.AuditLogWriter().replay_all_fallbacks()
 
 # --- Scenario 12: summary -------------------------------------------------------
 
-print("MEASURE::retry_count=%d backoff_seconds=%.4f fallback_dir=%s" % (
-    RETRIES, BACKOFF, str(getattr(c, "FALLBACK_DIR", None))))
+print("MEASURE::append_elapsed=%.4fs fallback_dir=%s" % (t1 - t0, str(getattr(c, "FALLBACK_DIR", None))))
 
 failed = [n for n, ok in R if not ok]
 print("TOTAL=%d FAILED=%d" % (len(R), len(failed)))

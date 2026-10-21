@@ -121,7 +121,7 @@ PROCESS_STARTED_AT_MS = int(time.time() * 1000)
 ENGINE_OUTPUT_DIR = BASE_DIR / "hl_copy_output"
 AUDIT_DIR = Path(os.getenv("HL_LIVE_AUDIT_DIR") or str(_NETWORK_AUDIT_DIR))
 APPEND_ONLY_DIR = AUDIT_DIR / "append_only"
-FALLBACK_DIR = APPEND_ONLY_DIR / "fallback"  # append-only spill: rows that could not be appended after retries
+FALLBACK_DIR = APPEND_ONLY_DIR / "fallback"  # append-only spill: rows queued after a failed live append
 
 LIVE_CONFIG_FILE = AUDIT_DIR / "live_config.json"
 SERVICE_STATE_FILE = AUDIT_DIR / "live_service_state.json"
@@ -1220,6 +1220,17 @@ def load_json(path: Path, default: Any) -> Any:
 
 
 _HEADER_OK: Dict[str, Tuple[Tuple[str, ...], int, int, int]] = {}  # path -> (columns checked, st_dev, st_ino, size after OUR last append): the header is read once per file, not per append
+_AUDIT_HANDLES: Dict[str, Tuple[Tuple[int, int], Any]] = {}
+_AUDIT_SPILL_PENDING: set[str] = set()
+
+
+def _close_audit_handle(path: Path) -> None:
+    entry = _AUDIT_HANDLES.pop(str(path), None)
+    if entry:
+        try:
+            entry[1].close()
+        except OSError:
+            pass
 
 
 def _header_checked(path: Path, fieldnames: List[str]) -> Optional[Tuple[int, int]]:
@@ -1261,6 +1272,7 @@ def _note_append(path: Path, fieldnames: List[str]) -> None:
 def ensure_csv_header(path: Path, fieldnames: List[str]) -> None:
     if _header_checked(path, fieldnames) is not None:
         return  # same file as when its header was last verified (a rotated or replaced file has a new inode)
+    _close_audit_handle(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     if path.exists() and path.stat().st_size > 0:
         with _lock_for(path):
@@ -1298,12 +1310,6 @@ AUDIT_ROTATE_BYTES = int(os.getenv("HL_LIVE_AUDIT_ROTATE_BYTES", str(100 * 1024 
 AUDIT_ROTATE_KEEP = int(os.getenv("HL_LIVE_AUDIT_ROTATE_KEEP", "10"))
 AUDIT_ROTATING_NAMES = {"order_intents.csv", "reconciliation.csv"}  # the two that grew 0.1-0.2 GB/h under 10 leaders
 
-# Append retry + spill config: a transient file lock / sharing violation triggers a short backoff retry;
-# if every retry fails the row is spilled to FALLBACK_DIR and replayed later -- it is never lost.
-_AUDIT_APPEND_RETRIES = max(1, int(os.getenv("HL_LIVE_APPEND_RETRIES", "3")))
-_AUDIT_APPEND_BACKOFF_SEC = float(os.getenv("HL_LIVE_APPEND_BACKOFF_SEC", "0.05"))
-
-
 def rotated_audit_paths(path: Path) -> List[Path]:
     """Rotated copies of an audit CSV (name.UTCdate.n.csv), oldest first."""
     try:
@@ -1330,6 +1336,8 @@ def _rotate_audit_file(path: Path) -> None:
         date, num = q.name[len(path.stem) + 1:-4].split(".")
         if date == stamp:
             n = max(n, int(num) + 1)
+    _close_audit_handle(path)
+    _HEADER_OK.pop(str(path), None)
     os.replace(path, path.with_name(f"{path.stem}.{stamp}.{n}.csv"))
     fields = ROTATING_FIELDS.get(path.name)
     if fields:  # the fresh file exists with its header at once: status checks never see it missing, no append lands headerless
@@ -1527,6 +1535,7 @@ def _spill_row(path: Path, fieldnames: List[str], row: Dict[str, Any]) -> bool:
             except Exception as exc:
                 # The CSV spill remains the recovery source if its ID sidecar cannot be updated.
                 note_audit_write_failure(path, f"spill replay record deferred: {exc!r}")
+            _AUDIT_SPILL_PENDING.add(str(path))
         note_audit_write_failure(path, "row preserved in fallback after append retries")
         return True
     except Exception as exc:
@@ -1544,6 +1553,7 @@ def replay_audit_fallback(path: Path, fieldnames: List[str]) -> int:
     sp = _fallback_path(path)
     journal = _spill_journal_path(path)
     if (not sp.exists() or sp.stat().st_size == 0) and (not journal.exists() or journal.stat().st_size == 0):
+        _AUDIT_SPILL_PENDING.discard(str(path))
         return 0
     try:
         rows = _spill_rows(path, fieldnames)
@@ -1622,15 +1632,17 @@ def replay_audit_fallback(path: Path, fieldnames: List[str]) -> int:
                 with journal.open("wb") as f:
                     f.flush()
                     os.fsync(f.fileno())
+            _AUDIT_SPILL_PENDING.discard(str(path))
         except Exception as exc:
             log_error("audit_replay_clear", exc)
     return replayed
 
 
 def append_csv(path: Path, fieldnames: List[str], row: Dict[str, Any], *, spill_on_failure: bool = True, durable: bool = False) -> bool:
-    """Append one audit row with retry and fallback; raise only if neither store preserves it.
+    """Append one audit row or durably spill it; raise only if neither store preserves it.
 
-    A transient failure is retried with backoff; spilled rows are replayed at startup.
+    A failed live append is durably spilled immediately; retries happen during startup replay,
+    never on the send lane.
     Returns True on a live append, False when replay must retain its existing spill row.
     durable=True flushes the append before the replay journal records completion.
     """
@@ -1648,33 +1660,39 @@ def append_csv(path: Path, fieldnames: List[str], row: Dict[str, Any], *, spill_
         if not path.exists() or path.stat().st_size <= 0:  # rotated away since the header check above
             ensure_csv_header(path, fieldnames)
         size_before = path.stat().st_size if path.exists() else 0
-        last_exc: Optional[Exception] = None
-        for _attempt in range(_AUDIT_APPEND_RETRIES):
+        spill = _fallback_path(path)
+        if spill_on_failure and (str(path) in _AUDIT_SPILL_PENDING or (spill.exists() and spill.stat().st_size > 0)):
+            if not _spill_row(path, fieldnames, row):
+                raise OSError("audit row could not be persisted behind existing spill rows")
+            return False
+        try:
+            st = path.stat()
+            entry = _AUDIT_HANDLES.get(str(path))
+            if not entry or entry[0] != (st.st_dev, st.st_ino) or entry[1].closed:
+                _close_audit_handle(path)
+                handle = path.open("a", newline="", encoding="utf-8")
+                _AUDIT_HANDLES[str(path)] = ((st.st_dev, st.st_ino), handle)
+            else:
+                handle = entry[1]
+            with prof(f"append:{path.name}"):
+                written = handle.write(payload)
+                handle.flush()
+                if durable:
+                    os.fsync(handle.fileno())
+            if written != len(payload):
+                raise OSError(f"short audit append: wrote {written} of {len(payload)} bytes")
+        except OSError as exc:
+            _close_audit_handle(path)
             try:
-                with prof(f"append:{path.name}"), path.open("a", newline="", encoding="utf-8") as f:
-                    written = f.write(payload)
-                    f.flush()
-                    if durable:
-                        os.fsync(f.fileno())
-                if written != len(payload):  # a short write stores fewer bytes and does NOT raise
-                    raise OSError(f"short audit append: wrote {written} of {len(payload)} bytes")
-                break  # success
-            except OSError as exc:
-                last_exc = exc
-                try:
-                    if path.exists() and path.stat().st_size > size_before:
-                        os.truncate(path, size_before)  # drop a half-written row so the next append cannot glue onto it
-                except Exception:
-                    pass
-                note_audit_write_failure(path, exc)
-                # Under-lock sleep is capped at backoff * retries * (retries - 1) / 2.
-                if _attempt + 1 < _AUDIT_APPEND_RETRIES:
-                    time.sleep(_AUDIT_APPEND_BACKOFF_SEC * (_attempt + 1))
-        else:  # all retries exhausted -- preserve in the fallback before allowing work to continue
+                if path.exists() and path.stat().st_size > size_before:
+                    os.truncate(path, size_before)
+            except Exception:
+                pass
+            note_audit_write_failure(path, exc)
             if not spill_on_failure:
                 return False
             if not _spill_row(path, fieldnames, row):
-                raise OSError("audit row could not be persisted to the live file or fallback")
+                raise OSError("audit row could not be persisted to the live file or fallback") from exc
             return False
         # success path
         _note_append(path, fieldnames)  # our own append changed the size: keep the header cache in step
