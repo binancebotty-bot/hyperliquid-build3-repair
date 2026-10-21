@@ -157,6 +157,8 @@ Completion scope includes all of the following:
 7. **Final mainnet readiness**
    The engine is not complete merely because the core copy loop works. It is complete only when the full engine + UI + wallet controls + global risk controls + lifecycle/cutover behaviour have passed the applicable invariant/test matrix and the Controller has reviewed the exact evidence.
 
+   - Restore strict liquidation parity before any mainnet launch: `HL_LIVE_LIQ_PARITY_CAP_AT_FLOOR` must be unset/off, and the startup guard must refuse mainnet if the testnet-only cap is enabled.
+
 Mainnet/LIVE cutover remains an explicit Richard decision after final certification.
 
 ## Build 4 requirements source set

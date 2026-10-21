@@ -735,6 +735,10 @@ def bval(value: Any, default: bool = False) -> bool:
     return str(value).strip().lower() in {"1", "true", "yes", "y", "on"}
 
 
+def _liq_parity_cap_at_floor_requested() -> bool:
+    return bval(os.getenv("HL_LIVE_LIQ_PARITY_CAP_AT_FLOOR"), False)
+
+
 def _response_text(exchange_response: Any) -> str:
     if exchange_response in (None, ""):
         return ""
@@ -4839,11 +4843,13 @@ class SenderGateway:
                              f"leader_liqPx={leader_details.get('leader_liq_px')}; leader_state_age_sec={leader_details.get('leader_state_age_sec')}"}
         long_side = intent.copy_side == "BUY"
         follower_dist = 1.0 if (long_side and liq <= 0) else abs(mark - liq) / mark
-        required_dist = min(leader_dist, floor)
+        cap_at_floor = _liq_parity_cap_at_floor_requested() and FOLLOWER_NETWORK == "testnet"
+        required_dist = min(leader_dist, floor) if cap_at_floor else leader_dist
         diagnostics = (f"{context}; follower_liqPx={liq:g}; follower_liq_source={how}; follower_dist={follower_dist:.8f}; "
                        f"leader_source_wallet={leader_details.get('leader_wallet')}; leader_liqPx={leader_details.get('leader_liq_px')}; "
                        f"leader_side={leader_details.get('leader_side')}; leader_state_age_sec={leader_details.get('leader_state_age_sec')}; "
-                       f"safest_leader_dist={leader_dist:.8f}; parity_required_dist={required_dist:.8f}; parity_floor={floor:.8f}")
+                       f"safest_leader_dist={leader_dist:.8f}; parity_required_dist={required_dist:.8f}; parity_floor={floor:.8f}; "
+                       f"parity_cap_at_floor_enabled={cap_at_floor}")
         if follower_dist + 1e-9 < required_dist:
             return {"status": "LIQ_PARITY_BLOCKED", "reject_category": "LIQ_PARITY_BLOCK", "operator_action": "NO_SEND_LIQ_PARITY",
                     "notes": (f"follower liquidation {liq:.6g} is {follower_dist:.2%} from the mark ({how}); the safest leader is "
@@ -13603,6 +13609,8 @@ def main() -> None:
         return
     if args.once or args.loop:
         global MAINNET_ORDERS_CONFIRMED
+        if FOLLOWER_NETWORK == "mainnet" and _liq_parity_cap_at_floor_requested():
+            raise SystemExit("LIQ_PARITY_CAP_NOT_ALLOWED_ON_MAINNET: restore strict liquidation parity before startup")
         if FOLLOWER_NETWORK == "mainnet" and not args.confirm_mainnet_follower:
             raise SystemExit("MAINNET_FOLLOWER_NOT_CONFIRMED: the follower network is mainnet (real money). Start with "
                              "--confirm-mainnet-follower to allow it; nothing else can.")

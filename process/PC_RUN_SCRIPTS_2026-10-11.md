@@ -23,9 +23,12 @@ New evidence for this batch goes in `.../hl-build3-testnet-cert-evidence/run9/` 
 
     # 0.3 the run start line every gap uses (testnet follower; mainnet MUST NOT be named):
     cd /c/Users/wigmore/trading_stack/hl-build3-testnet-cert/_archive/hl_stage2 && source ../run_env.sh \
+      && export HL_LIVE_LIQ_PARITY_CAP_AT_FLOOR=1 \
       && export HL_LIVE_HOT_SEND_WORKERS=12 \
       && exec python HL_Live_Copy_Service_Core.py --ws --loop --interval 10 --poll-live --poll-copy \
            > /c/Users/wigmore/trading_stack/hl-build3-testnet-cert-evidence/run9/engine_<sha>.log 2>&1
+
+`HL_LIVE_LIQ_PARITY_CAP_AT_FLOOR=1` is a testnet-only relaxation; the engine defaults to strict leader parity and refuses mainnet startup if this flag is enabled.
 
     # 0.4 arm / disarm (the ONLY switch the runs use; runtime config, not the repo copy):
     CFG=/c/Users/wigmore/trading_stack/hl-build3-testnet-cert/_archive/hl_stage2/hl_live_copy_audit_testnet/live_config.json
