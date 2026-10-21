@@ -161,6 +161,7 @@ HL_EXCHANGE_URL = os.getenv("HL_LIVE_ORDER_ENDPOINT") or NETWORKS["follower"]["e
 EXPOSURE_FETCHER = None  # test seam for follower exposure reads; production uses HTTP
 LEADER_FETCHER = None  # test seam for leader equity reads; production uses HTTP
 MIDS_FETCHER = None  # test seam for follower mid reads; production uses HTTP
+BOOK_FETCHER = None  # test seam for follower l2Book reads; production uses HTTP
 USER_WALLET = os.getenv("HL_USER_WALLET", "").strip().lower()
 _FOLLOWER_MIDS: Dict[str, Any] = {"px": {}, "ms": 0, "dexes": None, "dexes_ms": 0}
 _SELF_TEST_MIDS: Optional[Dict[str, Any]] = None  # self-test only: leader prints double as follower mids
@@ -187,6 +188,29 @@ def follower_mid(coin: str) -> float:
         return 0.0
     return fnum(m["px"].get(str(coin or "").upper()), 0.0)
 
+
+def follower_book_quote(coin: str, side: str) -> Dict[str, Any]:
+    """Return the executable follower best bid/ask; empty books fail closed."""
+    coin, side = str(coin or '').upper().strip(), str(side or '').upper().strip()
+    if BOOK_FETCHER is not None:
+        try:
+            raw = BOOK_FETCHER(coin)
+            bid = fnum(raw.get('bid'), 0.0) if isinstance(raw, dict) else 0.0
+            ask = fnum(raw.get('ask'), 0.0) if isinstance(raw, dict) else 0.0
+            return {'ok': bid > 0 and ask > 0, 'bid': bid, 'ask': ask, 'executable_price': ask if side == 'BUY' else bid}
+        except Exception as exc:
+            return {'ok': False, 'error': repr(exc), 'bid': 0.0, 'ask': 0.0}
+    if requests is None or not coin:
+        return {'ok': False, 'error': 'book unavailable', 'bid': 0.0, 'ask': 0.0}
+    try:
+        data = requests.post(HL_INFO_URL, json={'type': 'l2Book', 'coin': coin}, timeout=HTTP_TIMEOUT_SEC).json()
+        levels = data.get('levels', []) if isinstance(data, dict) else []
+        bids, asks = (levels[0] if len(levels) > 0 else []), (levels[1] if len(levels) > 1 else [])
+        bid = fnum((bids[0] or {}).get('px') if bids else 0.0, 0.0)
+        ask = fnum((asks[0] or {}).get('px') if asks else 0.0, 0.0)
+        return {'ok': bid > 0 and ask > 0, 'bid': bid, 'ask': ask, 'executable_price': ask if side == 'BUY' else bid}
+    except Exception as exc:
+        return {'ok': False, 'error': repr(exc), 'bid': 0.0, 'ask': 0.0}
 
 def follower_position_mark(coin: str) -> float:
     """Follower-network mark of an open follower position (|positionValue| / |szi|), read fresh. Used to
@@ -2706,7 +2730,64 @@ class SenderGateway:
         self._pending_exit_lock = threading.Lock()
         # Builder coins the venue cannot fill (halted / empty book): recorded once per run, skipped after.
         self._untradeable_coins: Dict[str, str] = {}
+        self._recovery_orders: Dict[str, Dict[str, Any]] = {}
+        self._recovery_backoff: Dict[str, int] = {}
+        self._recovery_next_attempt_ms: Dict[str, int] = {}
         self._load_asset_universe_snapshot()
+
+    RECOVERY_BACKOFF_BASE_SEC = 1
+    RECOVERY_BACKOFF_CAP_SEC = 60
+
+    def _recovery_backoff_delay(self, sleeve_id: str, record_failure: bool = False) -> int:
+        key = str(sleeve_id or '')
+        count = self._recovery_backoff.get(key, 0)
+        if record_failure:
+            count += 1
+            self._recovery_backoff[key] = count
+        return min(self.RECOVERY_BACKOFF_CAP_SEC, self.RECOVERY_BACKOFF_BASE_SEC * (2 ** max(0, count - 1)))
+
+    def clear_recovery_state(self, sleeve_id: str) -> None:
+        key = str(sleeve_id or '')
+        self._recovery_backoff.pop(key, None)
+        self._recovery_next_attempt_ms.pop(key, None)
+        self._recovery_orders.pop(key, None)
+
+    def _cancel_existing_recovery(self, exchange: Any, sdk_coin: str, sleeve_id: str) -> bool:
+        key = str(sleeve_id or '')
+        order_ids = []
+        existing = self._recovery_orders.get(key)
+        if existing and existing.get('oid'):
+            order_ids.append(int(existing['oid']))
+        open_orders = getattr(exchange, 'open_orders', None)
+        open_orders_args = (sdk_coin,)
+        if not callable(open_orders):
+            info = getattr(exchange, 'info', None)
+            open_orders = getattr(info, 'open_orders', None) if info is not None else None
+            open_orders_args = (USER_WALLET,)
+        if callable(open_orders):
+            try:
+                orders = open_orders(*open_orders_args)
+                if isinstance(orders, list):
+                    for order in orders:
+                        if not isinstance(order, dict):
+                            continue
+                        coin = str(order.get('coin') or order.get('symbol') or '').upper()
+                        oid = order.get('oid')
+                        if coin != str(sdk_coin).upper() or not oid or not order.get('reduceOnly', order.get('reduce_only', False)):
+                            continue
+                        if int(oid) not in order_ids:
+                            order_ids.append(int(oid))
+            except Exception:
+                return False
+        try:
+            for oid in order_ids:
+                result = exchange.cancel(sdk_coin, oid)
+                if isinstance(result, dict) and result.get('status') in {'err', 'error'}:
+                    return False
+        except Exception:
+            return False
+        self._recovery_orders.pop(key, None)
+        return True
 
     def _place_order(self, exchange: Any, sdk_coin: str, is_buy: bool, size: float, limit_px: float,
                      tif: str, reduce_only: bool, timing: Optional[Dict[str, Any]] = None, started_key: str = "") -> Any:
@@ -2942,47 +3023,43 @@ class SenderGateway:
         response: Any,
         parsed_error: str,
     ) -> None:
-        if not self.ledger or not intent.reduce_only_intended or self._exit_recovery_exists(intent):
+        if not self.ledger or not intent.reduce_only_intended:
+            return
+        sleeve_key = str(intent.sleeve_id or '')
+        if self._untradeable_coin_reason(sdk_coin) in {'MARKET_HALTED', 'NO_BOOK'}:
+            self.audit.append_reconciliation('BLOCKED_CLO_ENTRY_DISPATCH', 'BLOCKED_CLO_ENTRY_DISPATCH', leader_wallet=intent.fill.leader_wallet, leader_fill_id=intent.fill.leader_fill_id, intent_id=intent.intent_id, coin=intent.fill.coin, action='NO_SEND_UNTRADEABLE_COIN', reject_category=self._untradeable_coin_reason(sdk_coin), terminal_state='BLOCKED_CLO_ENTRY_DISPATCH', notes=f'sleeve_id={sleeve_key}; sdk_coin={sdk_coin}; recovery stopped')
+            return
+        prior = self._recovery_backoff.get(sleeve_key, 0)
+        if prior and utc_now_ms() < self._recovery_next_attempt_ms.get(sleeve_key, 0):
             return
         sleeve = self.ledger.sleeve(intent.fill.leader_wallet, intent.fill.coin)
-        wallet_pos = fnum(sleeve.get("signed_size"), 0.0)
+        wallet_pos = fnum(sleeve.get('signed_size'), 0.0)
         close_size = min(abs(wallet_pos), abs(wire_size), abs(intent.copy_size))
         if close_size <= POSITION_EPSILON or wallet_pos * ManualLedger.signed_delta(intent.copy_side, 1.0) >= 0:
+            self.clear_recovery_state(sleeve_key)
             return
-        notes = (
-            f"intent_id={intent.intent_id}; sleeve_id={intent.sleeve_id}; position_id={intent.position_id}; "
-            f"coin={intent.fill.coin}; side={intent.copy_side}; intended_close_size={intent.copy_size}; "
-            f"queued_close_size={close_size}; limit_price={limit_px}; leader_price={intent.fill.price}; "
-            f"wallet_position_before={wallet_pos}; ioc_error={parsed_error}"
-        )
+        if not self._cancel_existing_recovery(exchange, sdk_coin, sleeve_key):
+            self.audit.append_reconciliation('EXIT_RECOVERY', 'EXIT_RECOVERY_CANCEL_FAILED', leader_wallet=intent.fill.leader_wallet, leader_fill_id=intent.fill.leader_fill_id, intent_id=intent.intent_id, coin=intent.fill.coin, action='NO_SEND_CANCEL_FAILED', reject_category='IOC_NO_IMMEDIATE_MATCH', terminal_state='EXIT_RECOVERY_REQUIRED', notes=f'sleeve_id={sleeve_key}; existing recovery was not replaced')
+            return
+        quote = follower_book_quote(sdk_coin, intent.copy_side)
+        recovery_px = fnum(quote.get('executable_price'), 0.0)
+        if not quote.get('ok') or recovery_px <= 0:
+            self._untradeable_coins[str(sdk_coin or '').strip().lower()] = 'NO_BOOK'
+            self.audit.append_reconciliation('BLOCKED_CLO_ENTRY_DISPATCH', 'BLOCKED_CLO_ENTRY_DISPATCH', leader_wallet=intent.fill.leader_wallet, leader_fill_id=intent.fill.leader_fill_id, intent_id=intent.intent_id, coin=intent.fill.coin, action='NO_SEND_NO_BOOK', reject_category='NO_BOOK', terminal_state='BLOCKED_CLO_ENTRY_DISPATCH', notes=f'sleeve_id={sleeve_key}; sdk_coin={sdk_coin}')
+            return
+        notes = f'intent_id={intent.intent_id}; sleeve_id={sleeve_key}; coin={intent.fill.coin}; side={intent.copy_side}; queued_close_size={close_size}; limit_price={recovery_px}; leader_price={intent.fill.price}; wallet_position_before={wallet_pos}; ioc_error={parsed_error}; recovery_book_price={recovery_px}'
         try:
-            recovery_response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", close_size,
-                                                  limit_px, "Gtc", True)
+            recovery_response = self._place_order(exchange, sdk_coin, intent.copy_side == 'BUY', close_size, recovery_px, 'Gtc', True)
             ok, status, oid, error = self._parse_hl_response(recovery_response)
-            self.audit.append_reconciliation(
-                "EXIT_RECOVERY", "EXIT_RECOVERY_QUEUED" if ok else "EXIT_RECOVERY_QUEUE_FAILED",
-                leader_wallet=intent.fill.leader_wallet,
-                leader_fill_id=intent.fill.leader_fill_id,
-                intent_id=intent.intent_id,
-                coin=intent.fill.coin,
-                action="REDUCE_ONLY_STANDING_LIMIT_CLOSE",
-                reject_category="IOC_NO_IMMEDIATE_MATCH",
-                terminal_state="EXIT_RECOVERY_ACTIVE" if ok else "EXIT_RECOVERY_REQUIRED",
-                exchange_order_id=oid,
-                notes=f"{notes}; recovery_status={status}; recovery_error={error}; recovery_response={json.dumps(recovery_response, default=str)}",
-            )
+            delay = self._recovery_backoff_delay(sleeve_key, True)
+            self._recovery_next_attempt_ms[sleeve_key] = utc_now_ms() + delay * 1000
+            if ok:
+                self._recovery_orders[sleeve_key] = {'oid': oid}
+            self.audit.append_reconciliation('EXIT_RECOVERY', 'EXIT_RECOVERY_QUEUED' if ok else 'EXIT_RECOVERY_QUEUE_FAILED', leader_wallet=intent.fill.leader_wallet, leader_fill_id=intent.fill.leader_fill_id, intent_id=intent.intent_id, coin=intent.fill.coin, action='REDUCE_ONLY_STANDING_LIMIT_CLOSE', reject_category='IOC_NO_IMMEDIATE_MATCH', terminal_state='EXIT_RECOVERY_ACTIVE' if ok else 'EXIT_RECOVERY_REQUIRED', exchange_order_id=oid, notes=f'{notes}; recovery_status={status}; recovery_error={error}; recovery_response={json.dumps(recovery_response, default=str)}')
         except Exception as exc:
-            self.audit.append_reconciliation(
-                "EXIT_RECOVERY", "EXIT_RECOVERY_QUEUE_FAILED",
-                leader_wallet=intent.fill.leader_wallet,
-                leader_fill_id=intent.fill.leader_fill_id,
-                intent_id=intent.intent_id,
-                coin=intent.fill.coin,
-                action="REDUCE_ONLY_STANDING_LIMIT_CLOSE",
-                reject_category="IOC_NO_IMMEDIATE_MATCH",
-                terminal_state="EXIT_RECOVERY_QUEUE_FAILED",
-                notes=f"{notes}; recovery_error={repr(exc)}; original_ioc_response={json.dumps(response, default=str)}",
-            )
+            delay = self._recovery_backoff_delay(sleeve_key, True)
+            self._recovery_next_attempt_ms[sleeve_key] = utc_now_ms() + delay * 1000
+            self.audit.append_reconciliation('EXIT_RECOVERY', 'EXIT_RECOVERY_QUEUE_FAILED', leader_wallet=intent.fill.leader_wallet, leader_fill_id=intent.fill.leader_fill_id, intent_id=intent.intent_id, coin=intent.fill.coin, action='REDUCE_ONLY_STANDING_LIMIT_CLOSE', reject_category='IOC_NO_IMMEDIATE_MATCH', terminal_state='EXIT_RECOVERY_QUEUE_FAILED', notes=f'{notes}; recovery_error={repr(exc)}; original_ioc_response={json.dumps(response, default=str)}')
 
     def _entry_add_rate_limit_recovery(
         self,
