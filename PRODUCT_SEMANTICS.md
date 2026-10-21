@@ -8,8 +8,9 @@ It is the normative companion to `ARCHITECTURE.md` ("Trading-authority precedenc
 Build 3 is treated as an almost-complete operating product (**preserve unless disproved**).
 - Low-latency copy of MAINNET leader activity to the follower, driven by the single existing sender.
 - **Proportional mode** (sleeve = leader position × copy scale) proven end-to-end.
-- **Fixed mode** proven end-to-end using recovered intended semantics — **never** the old
-  fixed-notional-per-fill defect.
+- **Fixed mode** uses `fixed_notional` per genuine leader fill; batching N fills preserves N times that
+  amount ($12 per fill, confirmed by Boss on 2026-10-16 at 09:07 UK). This sizing rule does not bypass
+  the existing send gates or account-net truth requirement.
 - Multi-wallet aggregation; per-`(wallet, coin)` isolation of leader state.
 - Multi-DEX / HIP-3 truth (default account state is incomplete); recovery boundaries use snapshot truth.
 - Restart / gap recovery that re-establishes truth from external state without local-position replay.
@@ -46,7 +47,8 @@ This section removes the previously ruled current-position-derived target/conver
 ## 4. Measurable downstream DONE (project completion)
 DONE only when, on the exact final candidate and with executed evidence:
 1. Build 3 source is tracked from a provenance-verified untouched baseline (DONE, `cea4beb`).
-2. Fixed-per-fill sizing is no longer authoritative; target delta → order size unit semantics are proven.
+2. Boss-confirmed fixed-per-leader-fill sizing is preserved through aggregation (N fills at $12 each →
+   N × $12); the existing send gates and account-net truth requirement remain in force.
 3. Multi-DEX leader/follower snapshot truth is proven.
 4. Restart/gap recovery resets from external truth without local-position replay, and mints no new
    desired exposure (B2).
@@ -60,10 +62,9 @@ DONE only when, on the exact final candidate and with executed evidence:
 ## 5. Open items this freeze does NOT resolve (carried forward, not silently merged)
 - Exact unit-mapping proof (2) and multi-DEX proof (3) are G2/G3 implementation gates.
 - Any contradiction found between pinned Build 4 requirement docs is escalated, never silently merged.
-- FIXED-MODE HOLD (Architect ruling `B3-A2C-G2-AUTHORITY-RULING-1`): the intended target exposure of a
-  `copy_mode="fixed"` wallet is NOT derivable from the config contract. Fixed mode is therefore HELD
-  fail-closed (`FIXED_MODE_AUTHORITY_HOLD`, ZERO orders) and the unresolved product requirement is
-  carried to **G4** for Build 3 UI/config/product evidence. This is a temporary hold, not a redesign.
+- FIXED-MODE SIZING (Boss confirmation, 2026-10-16 09:07 UK): `fixed_notional` ($12) applies per genuine
+  leader fill, so aggregating N fills uses N × $12. This resolves sizing semantics only; existing
+  fail-closed send gates, the G4 UI/config/product evidence gate, and ACCOUNT-NET TRUTH remain unchanged.
 - EVENT-LINEAGE PERSISTENCE = `ALLOWED_WITH_RULES_ONLY`: the signed leader-event lineage may persist
   only inside the existing `SERVICE_STATE_FILE`, as a checkpoint durably coupled to the processed-event
   identity. Snapshot / current leader position / follower truth / reconciliation may NEVER seed, top-up,
