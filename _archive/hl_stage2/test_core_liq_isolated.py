@@ -61,10 +61,15 @@ g._leader_liq_cache.clear() if hasattr(g, "_leader_liq_cache") else None
 ok = g.liq_parity_block(mk("xyz:GOLD"))
 check("ISOLATED_PARITY_ALLOWS_SAFER_FOLLOWER", ok is None, ok)
 check("LEADER_READ_USES_THE_BUILDER_DEX", seen and seen[0].get("dex") == "xyz", seen)
-c.requests.post = leader(20.0)           # leader liquidation 80% away: follower (~31.6%) is worse -> blocked
+c.requests.post = leader(20.0)           # leader is 80% away; the follower's ~31.6% exceeds the 25% floor
 g._leader_liq_cache.clear()
 blk = g.liq_parity_block(mk("xyz:GOLD"))
-check("ISOLATED_PARITY_BLOCKS_WORSE_FOLLOWER", blk is not None and blk["status"] == "LIQ_PARITY_BLOCKED", blk)
+check("ISOLATED_PARITY_DISTANCE_CAPPED_AT_FLOOR", blk is None, blk)
+g._follower_projected_liq_px = lambda intent, mark: (80.0, "isolated projection test")  # 20% is below the 25% floor
+g._leader_liq_cache.clear()
+blk_below_floor = g.liq_parity_block(mk("xyz:GOLD"))
+check("ISOLATED_PARITY_BLOCKS_BELOW_FLOOR",
+      blk_below_floor is not None and blk_below_floor["status"] == "LIQ_PARITY_BLOCKED", blk_below_floor)
 add = mk("xyz:GOLD"); add.reason = "ADD"; add.notes = "lifecycle=ADD;"
 blk2 = g.liq_parity_block(add)
 check("ISOLATED_ADD_FAILS_CLOSED_UNTIL_WIRED", blk2 is not None and "extension point" in blk2["notes"], blk2)

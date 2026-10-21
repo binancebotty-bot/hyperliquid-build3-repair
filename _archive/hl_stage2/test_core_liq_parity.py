@@ -280,8 +280,21 @@ def main() -> None:
           and suspect_row is not None
           and "leader_liqPx=110" in suspect_row[2]["notes"]
           and "mark=100" in suspect_row[2]["notes"]
-          and "side=LONG" in suspect_row[2]["notes"],
+          and "side=LONG" in suspect_row[2]["notes"]
+          and "leader_state_age_sec=" in suspect_row[2]["notes"]
+          and "leader_source_wallet=" in suspect_row[2]["notes"]
+          and "follower_leverage=3x" in suspect_row[2]["notes"]
+          and "follower_margin_mode=cross" in suspect_row[2]["notes"],
           "result=%s events=%s" % (wrong_side, wrong_events))
+
+    wrong_short_side, wrong_short_events = parity_with_leader(-1, 90, 80)  # short liquidation below mark is suspect
+    short_suspect_row = next((x for x in wrong_short_events if x[0] == "LIQ_PARITY_INPUT_SUSPECT"), None)
+    check("L15_WRONG_SIDE_SHORT_LEADER_INPUT_IS_FLAGGED",
+          wrong_short_side is not None and short_suspect_row is not None
+          and "leader_liqPx=90" in short_suspect_row[2]["notes"]
+          and "side=SHORT" in short_suspect_row[2]["notes"]
+          and "leader_state_age_sec=" in short_suspect_row[2]["notes"],
+          "result=%s events=%s" % (wrong_short_side, wrong_short_events))
 
     over_1000, over_events = parity_with_leader(-1, 1101, 80)  # 1001% from mark, despite correct short-side direction
     over_row = next((x for x in over_events if x[0] == "LIQ_PARITY_INPUT_SUSPECT"), None)

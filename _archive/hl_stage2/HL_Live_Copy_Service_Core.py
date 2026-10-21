@@ -4718,21 +4718,37 @@ class SenderGateway:
                     cache.popitem(last=False)
         return state, "ok"
 
-    def _leader_liq_distance(self, wallet: str, coin: str, mark: float, dex: str = "") -> Tuple[Optional[float], str]:
-        """|mark - liquidationPx| / mark of the leader's position, from the LEADER network (cached ~10 s). (None, why) when
-        unreadable; (floor, ...) when the leader has no liquidation price (fully collateralised: the stricter rule)."""
+    def _leader_liq_distance(self, wallet: str, coin: str, mark: float, dex: str = "") -> Tuple[Optional[float], str, Dict[str, Any]]:
+        """Return leader distance, reason, and source diagnostics; unreadable inputs return None and no liq uses floor."""
         floor = fnum(os.getenv("HL_LIVE_LIQ_PARITY_FLOOR"), 0.25)
         state, why = self._leader_state(wallet, dex)
+        cache = self.__dict__.setdefault("_leader_liq_cache", collections.OrderedDict())
+        hit = cache.get((normalise_wallet(wallet), dex))
+        state_age = max(0.0, time.monotonic() - hit[0]) if hit else None
+        details = {"leader_wallet": normalise_wallet(wallet), "mark": mark, "leader_liq_px": None,
+                   "leader_side": "UNKNOWN", "leader_state_age_sec": state_age}
         if state is None:
-            return None, why
+            return None, why, details
         for ap in state.get("assetPositions") or []:
             pos = ap.get("position") if isinstance(ap, dict) else None
             if isinstance(pos, dict) and canonical_coin_key(pos.get("coin")) == canonical_coin_key(coin):
+                signed_size = fnum(pos.get("szi"), 0.0)
                 liq = fnum(pos.get("liquidationPx"), 0.0)
+                side = "LONG" if signed_size > POSITION_EPSILON else "SHORT" if signed_size < -POSITION_EPSILON else "FLAT"
+                details.update({"leader_liq_px": liq or None, "leader_side": side})
+                if side == "FLAT":
+                    return floor, "leader holds no position in the coin yet (floor rule)", details
                 if liq <= 0 or mark <= 0:
-                    return floor, "leader has no liquidation price (floor rule)"
-                return abs(mark - liq) / mark, "ok"
-        return floor, "leader holds no position in the coin yet (floor rule)"
+                    return floor, "leader has no liquidation price (floor rule)", details
+                distance = abs(mark - liq) / mark
+                wrong_side = (side == "LONG" and liq >= mark) or (side == "SHORT" and liq <= mark)
+                if wrong_side or distance > 10.0:  # >1,000% of mark is suspect input, not a safety target
+                    why = "wrong side of mark" if wrong_side else "distance exceeds 1,000% of mark"
+                    details["distance_pct"] = distance * 100.0
+                    return None, (f"LIQ_PARITY_INPUT_SUSPECT: leader_liqPx={liq:g}; mark={mark:g}; side={side}; "
+                                  f"distance_pct={distance * 100.0:g}; leader_state_age_sec={state_age}; reason={why}"), details
+                return distance, "ok", details
+        return floor, "leader holds no position in the coin yet (floor rule)", details
 
     def _follower_projected_liq_px(self, intent: Intent, mark: float) -> Tuple[Optional[float], str]:
         if self._is_isolated_only(intent.fill.coin):  # the position's own margin at the capped leverage; no account state needed
@@ -4765,16 +4781,23 @@ class SenderGateway:
 
     def liq_parity_block(self, intent: Intent) -> Optional[Dict[str, Any]]:
         """ENTRY/ADD only: the follower's liquidation must be at least as far from the mark as the safest contributing
-        leader's. Returns a block record, or None when allowed. Unknown or unprovable fails closed."""
+        leader, capped at the configured floor. Returns a block record, or None when allowed. Unknown or unprovable fails closed."""
         coin = canonical_coin_key(intent.fill.coin)
         dex = str(intent.fill.coin).split(":", 1)[0].lower() if ":" in str(intent.fill.coin) else ""
         mark = fnum(intent.fill.price, 0.0)
+        floor = fnum(os.getenv("HL_LIVE_LIQ_PARITY_FLOOR"), 0.25)
+        follower_leverage, _max_leverage = self._copy_leverage(intent.fill.coin)
+        follower_margin_mode = "isolated" if self._is_isolated_only(intent.fill.coin) else "cross"
+        follower_side = "LONG" if intent.copy_side == "BUY" else "SHORT"
+        context = (f"mark={mark:g}; follower_side={follower_side}; follower_leverage={follower_leverage}x; "
+                   f"follower_margin_mode={follower_margin_mode}")
         if self._is_isolated_only(intent.fill.coin) and classify_send_lifecycle(intent) == "ADD":
             # EXTENSION POINT (isolated-only markets): the isolated projection below models a FRESH position at the mark. An add
             # to an open isolated position needs its weighted entry and existing margin (the follower's own-dex
             # clearinghouseState liquidationPx); until that is wired and sanity-checked at go-live, adds fail closed.
             return {"status": "LIQ_PARITY_BLOCKED", "reject_category": "LIQ_PARITY_BLOCK", "operator_action": "NO_SEND_LIQ_PARITY",
-                    "notes": "isolated-only market ADD: parity of an add to an open isolated position is not provable yet (extension point)"}
+                    "notes": ("isolated-only market ADD: parity of an add to an open isolated position is not provable yet "
+                              f"(extension point); {context}; follower_liqPx=unavailable; leader_source_wallet=unread" )}
         wallets = [intent.fill.leader_wallet]
         try:
             by_wallet = ((self.ledger.data.get("by_wallet") or {}) if self.ledger is not None else {})
@@ -4785,23 +4808,49 @@ class SenderGateway:
         except Exception as exc:
             log_error("liq_parity_wallets", exc)
         leader_dist: Optional[float] = None
-        why = ""
+        leader_details: Dict[str, Any] = {}
         for w in wallets:
-            d, reason = self._leader_liq_distance(w, coin, mark, dex)
+            d, reason, details = self._leader_liq_distance(w, coin, mark, dex)
             if d is None:
-                return {"status": "LIQ_PARITY_BLOCKED", "reject_category": "LIQ_PARITY_BLOCK", "operator_action": "NO_SEND_LIQ_PARITY", "notes": f"liquidation parity unprovable: {reason} ({w})"}
-            leader_dist = d if leader_dist is None else max(leader_dist, d)  # the SAFEST leader (farthest liquidation) is the bar
+                if reason.startswith("LIQ_PARITY_INPUT_SUSPECT:"):
+                    self.audit.append_reconciliation(
+                        "LIQ_PARITY_INPUT_SUSPECT", "LIQ_PARITY_INPUT_SUSPECT", intent_id=intent.intent_id,
+                        coin=coin, leader_wallet=w, action="MANUAL_REVIEW_LIQ_PARITY_INPUT", engine_can_close=True,
+                        engine_can_send=False,
+                        notes=f"{reason}; leader_source_wallet={w}; {context}")
+                    continue
+                return {"status": "LIQ_PARITY_BLOCKED", "reject_category": "LIQ_PARITY_BLOCK", "operator_action": "NO_SEND_LIQ_PARITY",
+                        "notes": f"liquidation parity unprovable: {reason} ({w}); {context}; leader_liqPx={details['leader_liq_px']}; "
+                                 f"leader_side={details['leader_side']}; leader_state_age_sec={details['leader_state_age_sec']}"}
+            if leader_dist is None or d > leader_dist:
+                leader_dist, leader_details = d, details
+        if leader_dist is None:
+            leader_dist = floor
+            leader_details = {"leader_wallet": "floor-fallback (all leader inputs suspect)", "leader_liq_px": None,
+                              "leader_side": "UNKNOWN", "leader_state_age_sec": None}
         liq, how = self._follower_projected_liq_px(intent, mark)
         if liq is None:
-            return {"status": "LIQ_PARITY_BLOCKED", "reject_category": "LIQ_PARITY_BLOCK", "operator_action": "NO_SEND_LIQ_PARITY", "notes": f"follower liquidation price unprovable: {how}"}
+            return {"status": "LIQ_PARITY_BLOCKED", "reject_category": "LIQ_PARITY_BLOCK", "operator_action": "NO_SEND_LIQ_PARITY",
+                    "notes": f"follower liquidation price unprovable: {how}; {context}; leader_source_wallet={leader_details.get('leader_wallet')}; "
+                             f"leader_liqPx={leader_details.get('leader_liq_px')}; leader_state_age_sec={leader_details.get('leader_state_age_sec')}"}
         if mark <= 0:
-            return {"status": "LIQ_PARITY_BLOCKED", "reject_category": "LIQ_PARITY_BLOCK", "operator_action": "NO_SEND_LIQ_PARITY", "notes": "no mark price"}
+            return {"status": "LIQ_PARITY_BLOCKED", "reject_category": "LIQ_PARITY_BLOCK", "operator_action": "NO_SEND_LIQ_PARITY",
+                    "notes": f"no mark price; {context}; leader_source_wallet={leader_details.get('leader_wallet')}; "
+                             f"leader_liqPx={leader_details.get('leader_liq_px')}; leader_state_age_sec={leader_details.get('leader_state_age_sec')}"}
         long_side = intent.copy_side == "BUY"
         follower_dist = 1.0 if (long_side and liq <= 0) else abs(mark - liq) / mark
-        if follower_dist + 1e-9 < (leader_dist or 0.0):
+        required_dist = min(leader_dist, floor)
+        diagnostics = (f"{context}; follower_liqPx={liq:g}; follower_liq_source={how}; follower_dist={follower_dist:.8f}; "
+                       f"leader_source_wallet={leader_details.get('leader_wallet')}; leader_liqPx={leader_details.get('leader_liq_px')}; "
+                       f"leader_side={leader_details.get('leader_side')}; leader_state_age_sec={leader_details.get('leader_state_age_sec')}; "
+                       f"safest_leader_dist={leader_dist:.8f}; parity_required_dist={required_dist:.8f}; parity_floor={floor:.8f}")
+        if follower_dist + 1e-9 < required_dist:
             return {"status": "LIQ_PARITY_BLOCKED", "reject_category": "LIQ_PARITY_BLOCK", "operator_action": "NO_SEND_LIQ_PARITY",
                     "notes": (f"follower liquidation {liq:.6g} is {follower_dist:.2%} from the mark ({how}); the safest leader is "
-                              f"{leader_dist:.2%} away: entry refused")}
+                              f"{leader_dist:.2%} away, capped requirement {required_dist:.2%}: entry refused; {diagnostics}")}
+        self.audit.append_reconciliation("LIQ_PARITY_DECISION", "LIQ_PARITY_ALLOWED", intent_id=intent.intent_id,
+                                         coin=coin, leader_wallet=leader_details.get("leader_wallet"), action="NO_ACTION",
+                                         engine_can_close=True, engine_can_send=True, notes=diagnostics)
         return None
 
     def _begin_pending_send(self, intent: Intent, tif: str, order_type: str, limit_px: float, wire_size: float,
