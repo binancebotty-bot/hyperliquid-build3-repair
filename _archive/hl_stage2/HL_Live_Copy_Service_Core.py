@@ -5591,6 +5591,10 @@ class SenderGateway:
             already = self._already_resting_block(intent, timing)
             if already is not None:
                 return already
+        _recovery_cap = self._repass_final_caps(intent, resolved, leader_px, wire_size, lifecycle)
+        if _recovery_cap is not None:
+            _recovery_cap["timing"] = timing
+            return False, _recovery_cap["status"], _recovery_cap
         try:
             recovery_response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", wire_size, leader_px,
                                                   tif, False, timing, "entry_add_rate_limit_recovery_started_ms")
@@ -6264,6 +6268,21 @@ class SenderGateway:
             min_size = fnum(resolved.get("min_size"), 0.0)
             if min_size > 0:
                 uplift_size = max(uplift_size, self._ceil_wire_size(min_size, sz_dec))
+            if max_order > 0 and abs(uplift_size * limit_px) > max_order + 1e-9:
+                detail = (f"blocked before exchange: symbol min-size uplift would exceed max_order_notional; "
+                          f"raw_coin={intent.fill.coin}; sdk_coin={sdk_coin}; uplift_size={uplift_size}; "
+                          f"limit_px={limit_px}; uplift_notional={abs(uplift_size * limit_px):.6f}; "
+                          f"max_order_notional={max_order:.6f}; intent_id={intent.intent_id}")
+                return False, "SEND_NOT_ATTEMPTED_BELOW_SYMBOL_MIN_EXCEEDS_MAX_ORDER", {
+                    "status": "BELOW_SYMBOL_MIN_EXCEEDS_MAX_ORDER",
+                    "error": detail, "exchange_response": {}, "oid": "",
+                    "exchange_called": False, "write_send_attempt": True, "notes": detail,
+                    "reject_category": "SIZE_OR_NOTIONAL_REJECTED",
+                    "terminal_state": "BELOW_SYMBOL_MIN_EXCEEDS_MAX_ORDER",
+                    "operator_action": "ADJUST_RISK_CAP_OR_SKIP_SYMBOL",
+                    "timing": timing, "limit_px": limit_px, "wire_size": wire_size,
+                    "copy_notional": wire_notional,
+                }
             if uplift_size > wire_size:
                 wire_size = uplift_size
                 wire_notional = abs(wire_size * limit_px)
@@ -6422,6 +6441,10 @@ class SenderGateway:
                     retry_notional = abs(wire_size * retry_px)
                     retry_safe, retry_unsafe = self._pre_exchange_asset_safety(intent, resolved, retry_px, wire_size)
                     if more_aggressive and retry_safe and retry_notional <= max(wire_notional * 1.5, wire_notional + 5.0):
+                        _retry_cap = self._repass_final_caps(intent, resolved, retry_px, wire_size, lifecycle)
+                        if _retry_cap is not None:
+                            _retry_cap["timing"] = timing
+                            return False, _retry_cap["status"], _retry_cap
                         timing["entry_ioc_retry_started_ms"] = utc_now_ms()
                         retry_response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", wire_size,
                                                            retry_px, "Ioc", False)
@@ -6445,6 +6468,10 @@ class SenderGateway:
                 # missed while sending (price ran within the tolerance window): diff + limit at the leader's price
                 rest_px = self._px_passive(missed["desired_px"], price_max_dec, intent.copy_side == "BUY")
                 rest_safe, _rest_unsafe = self._pre_exchange_asset_safety(intent, resolved, rest_px, wire_size)
+                _rest_cap = self._repass_final_caps(intent, resolved, rest_px, wire_size, lifecycle)
+                if _rest_cap is not None:
+                    _rest_cap["timing"] = timing
+                    return False, _rest_cap["status"], _rest_cap
                 if rest_safe and rest_px > 0 and self.resting_entry_for(intent.fill.leader_wallet, intent.fill.coin,
                                                                         intent.copy_side) is None:
                     gtc_px = rest_px
@@ -7252,6 +7279,37 @@ class SenderGateway:
             }
 
         return True, {}
+
+    def _repass_final_caps(self, intent: Intent, resolved: Dict[str, Any], limit_px: float,
+                           wire_size: float, lifecycle: str) -> Optional[Dict[str, Any]]:
+        """A retry, reprice or GTC fallback is a SECOND exchange order placed after the final wire gate, at a
+        price that gate never saw. It re-passes the same risk caps. Reductions (EXIT/REDUCE) always pass -
+        a close must never be held back by an entry cap."""
+        if lifecycle in {"EXIT", "REDUCE"}:
+            return None
+        notional = abs(wire_size * limit_px)
+        max_order = 0.0
+        try:
+            max_order = fnum(self.cfg.max_order_notional(), 0.0)
+        except Exception:
+            max_order = 0.0
+        if max_order <= 0 or notional <= max_order + 1e-9:
+            return None
+        detail = (f"post-gate resend notional {notional:.6f} > max_order_notional {max_order:.6f}; "
+                  f"lifecycle={lifecycle}; sdk_coin={resolved.get('sdk_coin')}; limit_px={limit_px}; "
+                  f"wire_size={wire_size}; intent_id={intent.intent_id}; blocked before the resend")
+        self.audit.append_reconciliation(
+            "SEND_TERMINAL", "RETRY_BLOCKED_FINAL_CAPS", leader_wallet=intent.fill.leader_wallet,
+            leader_fill_id=intent.fill.leader_fill_id, intent_id=intent.intent_id, coin=intent.fill.coin,
+            action="NO_SEND_RETRY_RISK_CAP", reject_category="RISK_LIMIT",
+            terminal_state="RETRY_BLOCKED_FINAL_CAPS", notes=detail)
+        return {
+            "status": "RETRY_BLOCKED_FINAL_CAPS", "error": detail, "exchange_response": {}, "oid": "",
+            "exchange_called": False, "write_send_attempt": True, "notes": detail,
+            "reject_category": "RISK_LIMIT", "terminal_state": "RETRY_BLOCKED_FINAL_CAPS",
+            "operator_action": "NO_SEND_RETRY_RISK_CAP", "limit_px": limit_px, "wire_size": wire_size,
+            "copy_notional": notional,
+        }
 
     def _pre_exchange_asset_safety(self, intent: Intent, resolved: Dict[str, Any], limit_px: float, wire_size: float) -> Tuple[bool, Dict[str, Any]]:
         raw_coin = str(resolved.get("raw_coin") or intent.fill.coin or "").strip()
