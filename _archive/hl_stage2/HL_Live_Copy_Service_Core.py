@@ -1156,7 +1156,7 @@ def build_live_integrity_status() -> Dict[str, Any]:
             ):
                 return True
         return False
-    copy_required_decisions = {"ENTRY_ALLOWED", "ADD_ALLOWED", "SEND_ALLOWED", "EXIT_ALLOWED", "REDUCE_ALLOWED"}
+    copy_required_decisions = COPY_REQUIRED_DECISIONS
     no_send_prefixes = ("SEND_NOT_ATTEMPTED", "MISSED_ENTRY", "MISSED_ADD", "MISSED_ENTRY_SIZE_OR_NOTIONAL_REJECTED")
     hard_copy_counts = {
         "COPIED_AND_RECONCILED": 0,
@@ -2355,7 +2355,24 @@ class ManualLedger:
             pass
 
 
+# Decisions that must end in a send attempt or a terminal row; anything else is a silent drop.
+COPY_REQUIRED_DECISIONS = {"ENTRY_ALLOWED", "ADD_ALLOWED", "SEND_ALLOWED", "EXIT_ALLOWED", "REDUCE_ALLOWED"}
+
 class AuditLogWriter:
+    def __init__(self) -> None:
+        # per-thread count of intent-closing rows, so the planner can tell "wrote a reason"
+        # from "wrote nothing" for the intent it just handed to the sender.
+        self._tls = threading.local()
+
+    def mark(self) -> int:
+        return getattr(self._tls, "n", 0)
+
+    def wrote_since(self, mark: int) -> bool:
+        return self.mark() > mark
+
+    def _wrote(self) -> None:
+        self._tls.n = self.mark() + 1
+
     def append_order_intent(self, intent: Intent) -> None:
         append_csv(ORDER_INTENTS_CSV, ORDER_INTENT_FIELDS, {
             "created_at": utc_now_iso(),
@@ -2391,6 +2408,7 @@ class AuditLogWriter:
 
     def append_send_attempt(self, row: Dict[str, Any]) -> None:
         append_csv(SEND_ATTEMPTS_CSV, SEND_ATTEMPT_FIELDS, row)
+        self._wrote()
 
     def append_live_fill(self, row: Dict[str, Any]) -> None:
         append_csv(LIVE_FILLS_CSV, LIVE_FILL_FIELDS, row)
@@ -2431,6 +2449,7 @@ class AuditLogWriter:
             **kwargs,
         }
         append_csv(RECONCILIATION_CSV, RECONCILIATION_FIELDS, row)
+        self._wrote()
 
 
 class IntentBuilder:
@@ -6214,6 +6233,27 @@ class LiveCopyCore:
                 ),
             )
 
+    def _append_intent_dropped(self, intent: Intent, last_seen: str, error: str = "") -> None:
+        """A copy-required intent that left the planner with no send attempt and no terminal row
+        must never vanish from the audit. Written only where no real block reason exists."""
+        lifecycle = classify_send_lifecycle(intent)
+        self.audit.append_reconciliation(
+            "SEND_TERMINAL", "INTENT_DROPPED_NO_SEND",
+            leader_wallet=intent.fill.leader_wallet,
+            leader_fill_id=intent.fill.leader_fill_id,
+            intent_id=intent.intent_id,
+            coin=intent.fill.coin,
+            action="NO_SEND_INTENT_DROPPED",
+            reject_category="INTENT_DROPPED_NO_SEND",
+            terminal_state="INTENT_DROPPED_NO_SEND",
+            engine_can_close=False,
+            engine_can_send=False,
+            notes=(f"lifecycle={lifecycle}; decision={intent.decision}; reason={intent.reason}; "
+                   f"last_seen={last_seen}; error={error}; coin={intent.fill.coin}; side={intent.copy_side}; "
+                   f"copy_size={intent.copy_size}; copy_notional={intent.copy_notional}; "
+                   f"sleeve_id={intent.sleeve_id}; position_id={intent.position_id}"),
+        )
+
     def _process_leader_fill(self, fill: LeaderFill, summary: Optional[CycleSummary] = None, entry_block_reason: str = "") -> Tuple[bool, str, Optional[Intent]]:
         stale_reason = stale_snapshot_replay_reason(fill)
         if stale_reason:
@@ -6290,12 +6330,24 @@ class LiveCopyCore:
             is_pre_cutover = self.dedupe.live_start_ms > 0 and fill.timestamp_ms < self.dedupe.live_start_ms
             if is_pre_cutover:
                 return True, "PRE_CUTOVER", intent
-        sent, send_status = self.sender.send_if_allowed(intent, entry_block_reason)
+        _mark = self.audit.mark()
+        try:
+            sent, send_status = self.sender.send_if_allowed(intent, entry_block_reason)
+        except Exception as exc:
+            # the intent row already exists and says send_allowed: an exception here would
+            # leave it with no attempt and no reason, so record the drop before re-raising
+            if intent.decision in COPY_REQUIRED_DECISIONS:
+                self._append_intent_dropped(intent, "send_if_allowed_exception", repr(exc))
+            raise
         if sent:
             if summary is not None:
                 summary.leader_sends_attempted += 1
         else:
             self._append_send_terminal(fill, intent, send_status)
+        if (not sent and intent.decision in COPY_REQUIRED_DECISIONS
+                and not self.audit.wrote_since(_mark)):
+            # no attempt row and no terminal row was written for this intent: never a silent skip
+            self._append_intent_dropped(intent, "after_send_if_allowed", send_status)
         return sent, send_status, intent
 
     def _daily_loss_block(self) -> str:
