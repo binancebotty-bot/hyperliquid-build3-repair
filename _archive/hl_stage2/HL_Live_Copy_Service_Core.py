@@ -11493,17 +11493,21 @@ class LiveCopyCore:
             fills.sort(key=lambda f: (f.timestamp_ms, f.leader_fill_id))
             summary.leader_fills_seen = len(fills)
             fills, _net_zero = collapse_stale_runs(fills, utc_now_ms(), self._catchup_handled)
-            for _zf, _why in _net_zero:  # a stale run that netted to zero: every id still gets its row and is marked handled
-                self._fill_trace("catchup_net_zero", _zf)
+            # Durable-first: the ids reach dedupe_ids.jsonl (one flush for the batch) BEFORE any row for them.
+            # Trade-off: a crash after the flush leaves the id with no catchup_net_zero row; a missing
+            # diagnostic row is preferred to an amplified one, and no row is invented later for it.
+            for _zf, _why in _net_zero:  # a stale run that netted to zero: every id is marked handled
                 self.dedupe.accept_leader(_zf.leader_fill_id)  # persisted: a restart must not collapse it again
+            if _net_zero:
+                self.dedupe.flush_jsonl()
+            for _zf, _why in _net_zero:  # row only AFTER the id is durable
+                self._fill_trace("catchup_net_zero", _zf)
                 with self._idem_lock:
                     self._idem_accepted.add(self._guard_key(_zf))
                 self.audit.append_reconciliation(
                     "SEND_TERMINAL", "CATCHUP_NET_ZERO", leader_wallet=_zf.leader_wallet, leader_fill_id=_zf.leader_fill_id,
                     coin=_zf.coin, action="NO_ACTION_CATCHUP_NET_ZERO", terminal_state="CATCHUP_NET_ZERO", engine_can_send="False",
                     notes=f"stale leader {_zf.side} {_zf.size} @ {_zf.price} at {_zf.timestamp_ms}: {_why}")
-            if _net_zero:  # persist the ids now: a crash before the next state publish must not re-collapse them
-                self.dedupe.flush_jsonl()
             closed_late = already_closed_late_entries(fills, utc_now_ms())
             sync_fills: List[LeaderFill] = []
             for fill in fills:
