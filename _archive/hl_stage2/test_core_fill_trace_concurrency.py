@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Prove 64 producers do not wait on file I/O and retain every row."""
+"""Prove 100 producers do not wait on file I/O and retain every row."""
 import json
 import os
 import sys
@@ -9,7 +9,7 @@ import time
 from collections import deque
 from pathlib import Path
 
-PRODUCERS = 64
+PRODUCERS = 100
 PER_PRODUCER = 500
 ROOT = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else Path(__file__).resolve().parent
 with tempfile.TemporaryDirectory(prefix="fill_trace_concurrency_") as temp:
@@ -53,5 +53,5 @@ with tempfile.TemporaryDirectory(prefix="fill_trace_concurrency_") as temp:
     drops = sum(int(r.get("count", 0)) for r in records if r.get("k") == "fill_trace_drop")
     expected = {(producer, row) for producer in range(PRODUCERS) for row in range(PER_PRODUCER)}
     ok = rows == expected and drops == 0 and not core._fill_trace_writer.is_alive()
-    print(f"RESULT::FILL_TRACE_64_PRODUCER_{'PASS' if ok else 'FAIL'} rows={len(rows)} drops={drops} elapsed_ms={elapsed * 1000:.1f}")
+    print(f"RESULT::FILL_TRACE_100_PRODUCER_{'PASS' if ok else 'FAIL'} rows={len(rows)} drops={drops} elapsed_ms={elapsed * 1000:.1f}")
     raise SystemExit(0 if ok else 1)
