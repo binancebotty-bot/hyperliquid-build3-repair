@@ -222,6 +222,97 @@ def main() -> None:
         for k in ("HL_LIVE_HL_PRIVATE_KEY", "HL_LIVE_HL_ACCOUNT_ADDRESS"):
             os.environ.pop(k, None)
 
+    # ---- K6: publish the new process before startup reconciliation can wait --------------------------------
+    startup_state_path = tmp / "startup_state.json"
+    startup_state_path.write_text(json.dumps({"process_id": -1}), encoding="utf-8")
+
+    class StartupConfig:
+        def active_wallets(self):
+            return []
+
+    real_config_manager = c.ConfigManager
+    startup_cfg = real_config_manager()
+    orphan_result = {"ok": True, "detail": "offline test"}
+    orphan_error = None
+
+    class StartupSender:
+        def startup_orphan_order_check(self):
+            state = c.load_json(startup_state_path, {})
+            check("K6_STATUS_FRESH_BEFORE_STARTUP_RECONCILIATION", state.get("process_id") == os.getpid(), str(state))
+            check("K6_STARTUP_STATUS_STAYS_BLOCKED", state.get("cycle") == "startup"
+                  and state.get("entry_sends_blocked_reason") == "STARTUP_ORPHAN_CHECK_PENDING", str(state))
+            if orphan_error:
+                raise orphan_error
+            return orphan_result
+
+    class StartupCore:
+        def __init__(self, source_csv=None):
+            self.state_writer = c.ServiceStateWriter()
+            self.dedupe = c.DedupeStore({}, state_dir=tmp)
+            self.cfg = startup_cfg
+            self.sender = StartupSender()
+            self.ws = object()
+            self.wallets = []
+            self.hot_send_workers = 0
+
+        def run_cycle(self, **kwargs):
+            return c.CycleSummary()
+
+        def stop(self):
+            pass
+
+    patch_names = ("SERVICE_STATE_FILE", "ConfigManager", "LiveCopyCore", "sender_key_check",
+                   "acquire_global_instance_lock", "acquire_instance_lock", "install_core_attribution_hooks")
+    saved_patch = {name: getattr(c, name) for name in patch_names}
+    saved_claim, saved_refusal = c._XNET.claim_network_stamp, c._XNET.stamp_state_refusal
+    saved_argv = sys.argv
+    try:
+        c.SERVICE_STATE_FILE = startup_state_path
+        c.ConfigManager = StartupConfig
+        c.LiveCopyCore = StartupCore
+        c.sender_key_check = lambda: {"ok": True, "detail": "offline test"}
+        c.acquire_global_instance_lock = lambda *a, **k: None
+        c.acquire_instance_lock = lambda *a, **k: None
+        c.install_core_attribution_hooks = lambda: None
+        c._XNET.claim_network_stamp = lambda *a, **k: None
+        c._XNET.stamp_state_refusal = lambda *a, **k: ""
+        sys.argv = ["HL_Live_Copy_Service_Core.py", "--once"]
+        with redirect_stderr(io.StringIO()):
+            c.main()
+        orphan_result.update(ok=False, detail="offline refusal")
+        sys.argv = ["HL_Live_Copy_Service_Core.py", "--once"]
+        try:
+            with redirect_stderr(io.StringIO()):
+                c.main()
+            refused = ""
+        except SystemExit as exc:
+            refused = str(exc)
+        failed_state = c.load_json(startup_state_path, {})
+        check("K6_FAILED_RECONCILIATION_IS_PUBLISHED", refused.startswith("STARTUP_ORPHAN_CHECK_FAILED")
+              and failed_state.get("ok") is False
+              and failed_state.get("entry_sends_blocked_reason") == "STARTUP_ORPHAN_CHECK_FAILED"
+              and failed_state.get("fatal_errors") == 1, str(failed_state))
+        orphan_result.update(ok=True)
+        orphan_error = RuntimeError("offline exception")
+        try:
+            with redirect_stderr(io.StringIO()):
+                c.main()
+            refused = ""
+        except SystemExit as exc:
+            refused = str(exc)
+        except RuntimeError as exc:
+            refused = f"UNCAUGHT:{type(exc).__name__}"
+        failed_state = c.load_json(startup_state_path, {})
+        check("K6_EXCEPTION_RECONCILIATION_IS_PUBLISHED", refused.startswith("STARTUP_ORPHAN_CHECK_FAILED")
+              and failed_state.get("ok") is False
+              and failed_state.get("entry_sends_blocked_reason") == "STARTUP_ORPHAN_CHECK_FAILED"
+              and failed_state.get("fatal_errors") == 1, str(failed_state))
+    finally:
+        sys.argv = saved_argv
+        c._XNET.claim_network_stamp, c._XNET.stamp_state_refusal = saved_claim, saved_refusal
+        for name, value in saved_patch.items():
+            setattr(c, name, value)
+
     failed = [n for n, ok in RESULTS if not ok]
     print(f"TOTAL={len(RESULTS)} FAILED={len(failed)}")
     raise SystemExit(1 if failed else 0)

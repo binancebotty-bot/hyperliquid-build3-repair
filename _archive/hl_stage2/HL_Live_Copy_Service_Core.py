@@ -9320,6 +9320,9 @@ class ServiceStateWriter:
     def write(self, summary: CycleSummary, dedupe: DedupeStore, cfg: Optional["ConfigManager"] = None) -> None:
         self._worker.submit(self._write_now, summary, dedupe, cfg)
 
+    def write_startup(self, summary: CycleSummary, dedupe: DedupeStore, cfg: Optional["ConfigManager"] = None) -> None:
+        self._write_now(summary, dedupe, cfg)
+
     def report_failure(self, exc: Exception) -> None:
         self._worker.report_failure(exc)
 
@@ -13419,10 +13422,30 @@ def main() -> None:
         source_path = Path(args.source_file) if args.source_file else None
         core = LiveCopyCore(source_csv=source_path or RAW_LEADER_FILLS_CSV)
         core.async_dispatch = bool(args.loop)  # loop mode: sends never hold up the polls and the ledger
+        startup_enabled = core.cfg.master_real_orders_enabled
+        startup_summary = CycleSummary(
+            cycle="startup",
+            entry_sends_blocked_reason="STARTUP_ORPHAN_CHECK_PENDING",
+            auto_send_enabled=startup_enabled,
+            master_real_orders_enabled=startup_enabled,
+            wallet_modes_active=core.cfg.wallet_mode_counts(),
+            effective_real_orders_enabled=startup_enabled,
+            send_block_reason=core.cfg.send_block_reason,
+            active_wallets=len(core.wallets),
+            hot_send_workers=core.hot_send_workers,
+        )
+        core.state_writer.write_startup(startup_summary, core.dedupe, core.cfg)
         # T1b: reconcile orders left open by an earlier crash BEFORE arming (fail closed on an unreadable read)
-        _orphan = core.sender.startup_orphan_order_check()
+        try:
+            _orphan = core.sender.startup_orphan_order_check()
+        except Exception:
+            _orphan = {"ok": False, "detail": "startup orphan-order check raised an exception"}
         print(f"startup orphan-order check: {_orphan.get('detail')}", file=sys.stderr)
         if not _orphan.get("ok"):
+            startup_summary.ok = False
+            startup_summary.entry_sends_blocked_reason = "STARTUP_ORPHAN_CHECK_FAILED"
+            startup_summary.fatal_errors = 1
+            core.state_writer.write_startup(startup_summary, core.dedupe, core.cfg)
             raise SystemExit(f"STARTUP_ORPHAN_CHECK_FAILED: {_orphan.get('detail')}")
         copy_poll_interval = max(0.5, float(args.copy_poll_interval))
         core.copy_poll_interval_seconds = copy_poll_interval if args.poll_copy else 0.0
