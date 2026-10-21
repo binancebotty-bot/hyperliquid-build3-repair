@@ -3257,6 +3257,10 @@ class SenderGateway:
             self._pending_exit_guard.pop(intent.sleeve_id, None)
 
     def send_if_allowed(self, intent: Intent, entry_block_reason: str = "") -> Tuple[bool, str]:
+        lifecycle = classify_send_lifecycle(intent)
+        if lifecycle == "EXIT" and intent.decision is None:
+            # Exit intents must not inherit a missing entry-gate decision.
+            intent.decision = "EXIT_ALLOWED"
         if not intent.send_allowed:
             return False, "INTENT_NOT_SEND_ALLOWED"
         stale_reason = stale_snapshot_replay_reason(intent.fill)
