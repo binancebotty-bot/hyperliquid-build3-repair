@@ -4784,7 +4784,7 @@ class SenderGateway:
         return None
 
     def _begin_pending_send(self, intent: Intent, tif: str, order_type: str, limit_px: float, wire_size: float,
-                            cloid: str, timing: Dict[str, Any]) -> str:
+                            cloid: str, timing: Dict[str, Any], reduce_only: bool = False) -> str:
         """T1a: write the send_attempts row (status pending_send, with the cloid) BEFORE the exchange call, so a
         crash after the exchange accepted the order still leaves one row naming the order. Returns its attempt_id."""
         attempt_id = str(timing.get("send_attempt_id") or generate_attempt_id(intent.intent_id))
@@ -4804,7 +4804,7 @@ class SenderGateway:
             "limit_price": limit_px,
             "copy_size": wire_size,
             "copy_notional": abs(wire_size * limit_px),
-            "reduce_only_sent": str(bool(intent.reduce_only_intended)),
+            "reduce_only_sent": str(bool(reduce_only)),
             "sleeve_id": intent.sleeve_id,
             "position_id": intent.position_id,
             "wallet_position_before": intent.wallet_position_before,
@@ -6681,7 +6681,7 @@ class SenderGateway:
         timing["send_cloid"] = cloid
         try:
             self._begin_pending_send(intent, "Gtc" if rest_now else "Ioc", "REAL_GTC" if rest_now else "REAL_IOC",
-                                     limit_px, wire_size, cloid, timing)
+                                     limit_px, wire_size, cloid, timing, use_reduce_only)
         except Exception as exc:  # fail closed: no crash record means no order (the caller releases any exit reservation)
             log_error("begin_pending_send", exc)
             return False, "SEND_NOT_ATTEMPTED_AUDIT_WRITE_FAILED", {
