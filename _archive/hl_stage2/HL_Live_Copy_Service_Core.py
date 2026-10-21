@@ -4886,11 +4886,9 @@ class SenderGateway:
                     out.append((dex, o))
         return True, out, f"read {read_dexes}/{len(dexes)} dexes"
 
-    def startup_orphan_order_check(self) -> Dict[str, Any]:
-        """T1b: before arming, read the follower's open orders on every dex the engine reads. Each order is
-        matched to an engine send row / resting entry (by cloid or order id): a match is adopted as a resting
-        engine order; no match is cancelled and audited as orphan_order_cancelled. A failed read fails closed
-        (refuses to arm). Never runs on a mainnet follower without --confirm-mainnet-follower (existing guard)."""
+    def startup_orphan_order_check(self, alert_only: bool = False) -> Dict[str, Any]:
+        """Check follower open orders on every dex and match by cloid or order id. Legacy recovery mode adopts
+        matches and cancels unknown orders; alert_only only records unmatched orders and never pauses or changes orders."""
         if FOLLOWER_NETWORK == "mainnet":  # never cancels a mainnet order the engine cannot prove it placed (Boss manages those)
             return {"ok": True, "skipped": True, "adopted": [], "cancelled": [],
                     "detail": "mainnet follower: open orders left untouched (cancel-unknown is testnet-only)"}
@@ -4900,22 +4898,38 @@ class SenderGateway:
         cloids, oids = self._engine_owned_cloids_and_oids()
         ok, orders, detail = self._read_open_orders()
         if not ok:
+            failure = f"{detail}; read failed; entries continue in alert-only mode" if alert_only else f"{detail}; refusing to arm (fail closed, no order touched)"
             return {"ok": False, "skipped": False, "adopted": [], "cancelled": [],
-                    "detail": f"{detail}; refusing to arm (fail closed, no order touched)"}
-        adopted, cancelled = [], []
+                    "detail": failure}
+        adopted, cancelled, alerts = [], [], []
+        observed = 0
         for dex, o in orders:
             oid = str(o.get("oid", "")).strip()
             if not oid:
                 continue
             cloid = str(o.get("cloid") or "").strip().lower()
             if (cloid and cloid in cloids) or (oid in oids):
-                self._adopt_orphan_order(dex, o)
-                adopted.append({"oid": oid, "cloid": cloid})
+                if alert_only:
+                    observed += 1
+                else:
+                    self._adopt_orphan_order(dex, o)
+                    adopted.append({"oid": oid, "cloid": cloid})
             else:
-                outcome = self._cancel_orphan_order(dex, o)
-                cancelled.append({"oid": oid, "cloid": cloid, "outcome": outcome})
-        return {"ok": True, "skipped": False, "adopted": adopted, "cancelled": cancelled,
-                "detail": f"{detail}; adopted={len(adopted)} cancelled={len(cancelled)}"}
+                if alert_only:
+                    alert = {"oid": oid, "cloid": cloid, "coin": str(o.get("coin") or "")}
+                    alerts.append(alert)
+                    self.audit.append_reconciliation(
+                        "STARTUP_ORPHAN", "ORPHAN_ORDER_REVIEW_REQUIRED", coin=alert["coin"],
+                        exchange_order_id=oid, action="MANUAL_REVIEW_ORPHAN", engine_can_send=True,
+                        notes=(f"startup alert-only read found unmatched open order {oid} ({alert['coin']}); "
+                               "not cancelled and does not pause entries"))
+                else:
+                    outcome = self._cancel_orphan_order(dex, o)
+                    cancelled.append({"oid": oid, "cloid": cloid, "outcome": outcome})
+        mode = "alert-only" if alert_only else "recovery"
+        return {"ok": True, "skipped": False, "adopted": adopted, "cancelled": cancelled, "alerts": alerts,
+                "detail": (f"{detail}; mode={mode}; observed={observed} adopted={len(adopted)} "
+                           f"cancelled={len(cancelled)} alerts={len(alerts)}")}
 
     def _adopt_orphan_order(self, dex: str, o: Dict[str, Any]) -> None:
         """A startup open order the engine already owns (matched by cloid or order id): record it as resting."""
@@ -13520,6 +13534,20 @@ def acquire_instance_lock(state_dir: Path) -> None:
     _INSTANCE_LOCK = fh
 
 
+def start_startup_orphan_check_async(core: LiveCopyCore) -> threading.Thread:
+    """Run the slow startup orphan diagnostic in the background without gating entry cycles."""
+    def check() -> None:
+        try:
+            result = core.sender.startup_orphan_order_check(alert_only=True)
+        except Exception as exc:
+            result = {"ok": False, "detail": f"startup orphan-order check raised {exc!r}"}
+        print(f"startup orphan-order check (alert-only; entries continue): {result.get('detail')}", file=sys.stderr)
+
+    worker = threading.Thread(target=check, name="startup-orphan-check", daemon=True)
+    worker.start()
+    return worker
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Clean Hyperliquid live copy core")
     parser.add_argument("--self-test", action="store_true")
@@ -13604,7 +13632,6 @@ def main() -> None:
         startup_enabled = core.cfg.master_real_orders_enabled
         startup_summary = CycleSummary(
             cycle="startup",
-            entry_sends_blocked_reason="STARTUP_ORPHAN_CHECK_PENDING",
             auto_send_enabled=startup_enabled,
             master_real_orders_enabled=startup_enabled,
             wallet_modes_active=core.cfg.wallet_mode_counts(),
@@ -13614,18 +13641,8 @@ def main() -> None:
             hot_send_workers=core.hot_send_workers,
         )
         core.state_writer.write_startup(startup_summary, core.dedupe, core.cfg)
-        # T1b: reconcile orders left open by an earlier crash BEFORE arming (fail closed on an unreadable read)
-        try:
-            _orphan = core.sender.startup_orphan_order_check()
-        except Exception:
-            _orphan = {"ok": False, "detail": "startup orphan-order check raised an exception"}
-        print(f"startup orphan-order check: {_orphan.get('detail')}", file=sys.stderr)
-        if not _orphan.get("ok"):
-            startup_summary.ok = False
-            startup_summary.entry_sends_blocked_reason = "STARTUP_ORPHAN_CHECK_FAILED"
-            startup_summary.fatal_errors = 1
-            core.state_writer.write_startup(startup_summary, core.dedupe, core.cfg)
-            raise SystemExit(f"STARTUP_ORPHAN_CHECK_FAILED: {_orphan.get('detail')}")
+        # Watchdog reads must alert, not hold entries or cancel orders; known orphans are reported asynchronously.
+        start_startup_orphan_check_async(core)
         copy_poll_interval = max(0.5, float(args.copy_poll_interval))
         core.copy_poll_interval_seconds = copy_poll_interval if args.poll_copy else 0.0
         if args.ws:
