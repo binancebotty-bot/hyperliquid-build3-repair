@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""A global-controls save must preserve settings that the form does not own.
+"""Global-controls saves preserve unowned settings and accept the global send mode.
 
 Run: python test_ui_global_controls_preserve_unowned.py  # isolated temp config, no network or orders.
 """
@@ -37,7 +37,9 @@ def main() -> int:
     from fastapi.testclient import TestClient
 
     ui.LIVE_COPY_CONFIG_FILE = config_path
+    source = (HERE / "HL_Copy_App_SSOT.py").read_text(encoding="utf-8")
     with TestClient(ui.app) as client:
+        initial = client.get("/api/global-controls").json()["global_controls"]
         response = client.post("/api/global-controls", json={
             "max_order_notional_usd": 1250.0,
             "send_mode": "OFF",
@@ -46,17 +48,37 @@ def main() -> int:
             "custom_runtime_flag": "overwrite-attempt",
             "marketable_slippage_pct": 0.75,
         })
+        changed_controls = json.loads(config_path.read_text(encoding="utf-8"))["global_controls"]
+        accepted_modes = []
+        for mode in ("ON", "CLOSE", "OFF"):
+            mode_response = client.post("/api/global-controls", json={"send_mode": mode})
+            accepted_modes.append(mode_response.status_code == 200 and json.loads(config_path.read_text(encoding="utf-8"))["global_controls"].get("send_mode") == mode)
+        no_mode = json.loads(config_path.read_text(encoding="utf-8"))
+        no_mode["global_controls"]["send_mode"] = "INVALID"
+        config_path.write_text(json.dumps(no_mode), encoding="utf-8")
+        os.environ["HL_LIVE_AUTO_SEND_ENABLED"] = "1"
+        fail_closed_invalid = client.get("/api/global-controls").json()["global_controls"].get("send_mode") == "OFF"
+        no_mode["global_controls"].pop("send_mode", None)
+        config_path.write_text(json.dumps(no_mode), encoding="utf-8")
+        fail_closed_default = client.get("/api/global-controls").json()["global_controls"].get("send_mode") == "OFF"
+        os.environ["HL_LIVE_AUTO_SEND_ENABLED"] = "0"
 
-    written = json.loads(config_path.read_text(encoding="utf-8"))
-    controls = written["global_controls"]
+    controls = changed_controls
     checks = {
         "save_succeeded": response.status_code == 200 and response.json().get("ok") is True,
-        "send_mode_preserved": controls.get("send_mode") == "CLOSE",
+        "initial_send_mode_read": initial.get("send_mode") == "CLOSE",
+        "send_mode_changed": controls.get("send_mode") == "OFF",
+        "all_global_modes_accepted": all(accepted_modes),
+        "invalid_mode_fails_closed": fail_closed_invalid,
+        "header_default_off_even_when_legacy_env_on": fail_closed_default,
         "follower_leverage_preserved": controls.get("follower_leverage") == 7,
         "liq_parity_preserved": controls.get("liq_parity") is True,
         "unknown_runtime_flag_preserved": controls.get("custom_runtime_flag") == "keep-existing",
         "form_owned_slippage_alias_applied": float(controls.get("marketable_bps") or 0.0) == 75.0,
         "form_owned_value_changed": float(controls.get("max_order_notional_usd") or 0.0) == 1250.0,
+        "header_mode_ui_and_fail_closed_default": 'id="lcSendMode"' in source and "mode==='CLO'||mode==='CLOSE ONLY'?'CLOSE':['ON','CLOSE','OFF'].includes(mode)?mode:'OFF'" in source,
+        "mode_change_confirms_and_waits_for_audit_cycle": "window.confirm(mode==='CLOSE'" in source and "engine_heartbeat_ms" in source and "engine acknowledged" in source and "lc-amber" in source,
+        "posts_existing_controls_with_mode": "...lcGlobalControls" in source and "send_mode:mode" in source and "jpost('/api/global-controls'" in source,
     }
     for name, passed in checks.items():
         print(f"RESULT::{name}_{'PASS' if passed else 'FAIL'}")
