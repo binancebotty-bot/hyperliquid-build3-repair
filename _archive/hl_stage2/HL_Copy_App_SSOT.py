@@ -1433,7 +1433,18 @@ def _live_audit_summary_full() -> Dict[str, Any]:
         and not (r.get("terminal_state") and r.get("operator_action") and r.get("reject_category"))
     ]
 
-    portfolio_history: List[Dict[str, Any]] = []
+    # This endpoint hard-coded [] here, so portfolio_history/equity_history looked dead while the
+    # model state already carried the points. Reuse them, and derive each wallet's max_exposure
+    # from the same curves (perf.max_exposure was a permanent None).
+    try:
+        _model_state = get_model_state_cached(max_age_sec=10.0)
+    except Exception:
+        _model_state = {}
+    portfolio_history: List[Dict[str, Any]] = list(_model_state.get("portfolio_history") or [])
+    _model_rows_by_wallet = {str(_r.get("wallet", "")).lower(): _r for _r in (_model_state.get("wallet_rows") or [])}
+    for _w, _p in live_leader_performance.items():
+        _curve = (_model_rows_by_wallet.get(str(_w).lower()) or {}).get("curve") or []
+        _p["max_exposure"] = round(max((fnum(_pt.get("open_notional_usd")) for _pt in _curve), default=0.0), 4)
     exchange_history = load_json(EXCHANGE_ACCOUNT_HISTORY_FILE, [])
     pnl_tally = _build_pnl_tally(exchange_snapshot, follower_account, exchange_history if isinstance(exchange_history, list) else [])
     open_positions_now = exchange_snapshot.get("open_positions") if exchange_snapshot.get("available") else None
@@ -6399,12 +6410,28 @@ def _account_card_lines() -> List[str]:
     except Exception as exc:  # the page must still render
         acct = {"ok": False, "reason": type(exc).__name__}
     net = html.escape(FOLLOWER_NETWORK.upper())
+    lines: List[str] = []
     if not acct.get("ok"):
-        return [f'<div class="metric-line"><span>{net}</span><b class="neg">UNAVAILABLE</b></div>',
-                f'<div class="metric-line"><span>WHY</span><b>{html.escape(str(acct.get("reason") or "?"))}</b></div>']
-    value, addr = acct["value"], str(acct.get("address") or "")
-    return [f'<div class="metric-line"><span>EQUITY</span><b>{money(value)}</b></div>',
-            f'<div class="metric-line"><span>{net}</span><b title="{html.escape(addr)}">{html.escape(addr[:6] + "…" + addr[-4:])}</b></div>']
+        lines += [f'<div class="metric-line"><span>{net}</span><b class="neg">UNAVAILABLE</b></div>',
+                  f'<div class="metric-line"><span>WHY</span><b>{html.escape(str(acct.get("reason") or "?"))}</b></div>']
+    else:
+        value, addr = acct["value"], str(acct.get("address") or "")
+        lines += [f'<div class="metric-line"><span>EQUITY</span><b>{money(value)}</b></div>',
+                  f'<div class="metric-line"><span>{net}</span><b title="{html.escape(addr)}">{html.escape(addr[:6] + "…" + addr[-4:])}</b></div>']
+    # clearinghouseState.withdrawable is the DEFAULT-DEX field and is structurally 0 in a unified
+    # account with margin consumed; the money that can actually be traded sits in spot. Show both,
+    # from the engine's own snapshot, even when the follower-account read fails.
+    snap = load_json(EXCHANGE_ACCOUNT_SNAPSHOT_FILE, {})
+    snap = snap if isinstance(snap, dict) else {}
+    spot_avail = snap.get("available_to_trade")
+    if not is_present_num(spot_avail):
+        _cands = snap.get("available_to_trade_candidates") if isinstance(snap.get("available_to_trade_candidates"), dict) else {}
+        spot_avail = next((v for k, v in _cands.items() if k.endswith("total_minus_hold")), None)
+    # only when the engine snapshot itself is readable, so an unreadable account stays a clean UNAVAILABLE
+    if snap.get("ok"):
+        lines.append(f'<div class="metric-line"><span>FREE MARGIN (default DEX)</span><b>{money(fnum(snap.get("withdrawable")))}</b></div>')
+        lines.append(f'<div class="metric-line"><span>SPOT AVAILABLE</span><b>{money_or_dash(spot_avail)}</b></div>')
+    return lines
 
 
 def render_home(state: Dict[str, Any]) -> str:
