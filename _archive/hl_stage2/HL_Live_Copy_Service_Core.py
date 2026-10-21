@@ -1958,6 +1958,15 @@ def canonical_coin_key(coin: Any) -> str:
     return _coin_key_map().get(upper, upper)
 
 
+_SPOT_INDEX_RE = re.compile(r'^@\d+$')
+
+
+def is_spot_pair(coin: Any) -> bool:
+    """True for an HL spot pair: @NNN index, */USDC, */USDT, or PURR (trades as PURR/USDC; leader rows carry PURR)."""
+    raw = str(coin or '').strip().upper()
+    return bool(raw) and (bool(_SPOT_INDEX_RE.match(raw)) or raw.endswith('/USDC') or raw.endswith('/USDT') or raw.startswith('PURR'))
+
+
 def canonical_coin_resolved(coin: Any) -> bool:
     raw = str(coin or "").strip()
     if not raw:
@@ -4452,6 +4461,11 @@ class IntentBuilder:
         return max(0.0, fill.notional * (norm_base / leader_equity))
 
     def _decision(self, wallet: str, fill: LeaderFill, lifecycle: str, copy_notional: float, before: float) -> Tuple[str, str]:
+        # Spot copying is not supported: refuse at the gate, before any idempotency key or send path is reachable.
+        if is_spot_pair(fill.coin):
+            if lifecycle not in {'ENTRY', 'ADD'} or (abs(before) <= POSITION_EPSILON and self._is_leader_close_fill(fill)):
+                return 'NOT_APPLICABLE_SPOT', 'spot pair; no owned spot position and spot copying is not supported'
+            return 'BLOCKED_SPOT_NOT_SUPPORTED', 'spot pair; only perp markets are copyable'
         if not self.cfg.wallet_enabled(wallet):
             return "BLOCKED_OFF", "wallet disabled"
         mode = self.cfg.wallet_mode(wallet)
