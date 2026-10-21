@@ -1222,6 +1222,13 @@ def load_json(path: Path, default: Any) -> Any:
 _HEADER_OK: Dict[str, Tuple[Tuple[str, ...], int, int, int]] = {}  # path -> (columns checked, st_dev, st_ino, size after OUR last append): the header is read once per file, not per append
 _AUDIT_HANDLES: Dict[str, Tuple[Tuple[int, int], Any]] = {}
 _AUDIT_SPILL_PENDING: set[str] = set()
+_AUDIT_SPILL_COUNTS: Dict[str, Tuple[int, int, int, int]] = {}
+_AUDIT_REPLAY_LOCK = threading.RLock()
+_AUDIT_FLUSH_LOCK = threading.Lock()
+_AUDIT_FLUSH_EVENT = threading.Event()
+_AUDIT_FLUSH_PENDING: Dict[str, Tuple[Path, List[str]]] = {}
+_AUDIT_FLUSH_THREAD: Optional[threading.Thread] = None
+_AUDIT_FLUSH_BACKOFF_SEC = 1.0
 
 
 def _close_audit_handle(path: Path) -> None:
@@ -1512,7 +1519,12 @@ def _spill_row(path: Path, fieldnames: List[str], row: Dict[str, Any]) -> bool:
     try:
         FALLBACK_DIR.mkdir(parents=True, exist_ok=True)
         with _lock_for(path):
-            row_index = len(_spill_rows(path, fieldnames))
+            st = sp.stat() if sp.exists() else None
+            cached = _AUDIT_SPILL_COUNTS.get(str(path))
+            if st and cached and cached[:3] == (st.st_dev, st.st_ino, st.st_size):
+                row_index = cached[3]
+            else:
+                row_index = len(_spill_rows(path, fieldnames))
             need_header = not sp.exists() or sp.stat().st_size == 0
             before = sp.stat().st_size if sp.exists() else 0
             buf = io.StringIO()
@@ -1527,6 +1539,8 @@ def _spill_row(path: Path, fieldnames: List[str], row: Dict[str, Any]) -> bool:
                 os.fsync(f.fileno())
             if written != len(payload):
                 raise OSError(f"short audit spill: wrote {written} of {len(payload)} characters")
+            st = sp.stat()
+            _AUDIT_SPILL_COUNTS[str(path)] = (st.st_dev, st.st_ino, st.st_size, row_index + 1)
             try:
                 _append_spill_journal(path, {
                     "event": "SPILL_ROW", "id": uuid.uuid4().hex,
@@ -1548,7 +1562,7 @@ def _spill_row(path: Path, fieldnames: List[str], row: Dict[str, Any]) -> bool:
         return False
 
 
-def replay_audit_fallback(path: Path, fieldnames: List[str]) -> int:
+def _replay_audit_fallback(path: Path, fieldnames: List[str]) -> int:
     """Replay identified spill rows exactly once without changing the CSV schema."""
     sp = _fallback_path(path)
     journal = _spill_journal_path(path)
@@ -1556,8 +1570,9 @@ def replay_audit_fallback(path: Path, fieldnames: List[str]) -> int:
         _AUDIT_SPILL_PENDING.discard(str(path))
         return 0
     try:
-        rows = _spill_rows(path, fieldnames)
-        states = _read_spill_journal(path)
+        with _lock_for(path):
+            rows = _spill_rows(path, fieldnames)
+            states = _read_spill_journal(path)
     except Exception as exc:
         log_error("audit_replay_read", exc)
         raise OSError(f"unable to read audit spill for {path.name}") from exc
@@ -1624,25 +1639,78 @@ def replay_audit_fallback(path: Path, fieldnames: List[str]) -> int:
             replayed += 1
     if all(state["done"] for state in states.values()):
         try:
-            if sp.exists():
-                with sp.open("wb") as f:
-                    f.flush()
-                    os.fsync(f.fileno())
-            if journal.exists():
-                with journal.open("wb") as f:
-                    f.flush()
-                    os.fsync(f.fileno())
-            _AUDIT_SPILL_PENDING.discard(str(path))
+            with _lock_for(path):
+                current_rows = _spill_rows(path, fieldnames)
+                current_states = _read_spill_journal(path)
+                if len(current_rows) == len(rows) and set(current_states) == set(states) and all(s["done"] for s in current_states.values()):
+                    if sp.exists():
+                        with sp.open("wb") as f:
+                            f.flush()
+                            os.fsync(f.fileno())
+                    if journal.exists():
+                        with journal.open("wb") as f:
+                            f.flush()
+                            os.fsync(f.fileno())
+                    _AUDIT_SPILL_PENDING.discard(str(path))
+                    _AUDIT_SPILL_COUNTS.pop(str(path), None)
         except Exception as exc:
             log_error("audit_replay_clear", exc)
     return replayed
 
 
+def replay_audit_fallback(path: Path, fieldnames: List[str]) -> int:
+    with _AUDIT_REPLAY_LOCK:
+        return _replay_audit_fallback(path, fieldnames)
+
+
+def _audit_fallback_remains(path: Path) -> bool:
+    return any(p.exists() and p.stat().st_size > 0 for p in (_fallback_path(path), _spill_journal_path(path)))
+
+
+def _audit_flush_worker() -> None:
+    while True:
+        _AUDIT_FLUSH_EVENT.wait()
+        while True:
+            _AUDIT_FLUSH_EVENT.clear()
+            with _AUDIT_FLUSH_LOCK:
+                pending = list(_AUDIT_FLUSH_PENDING.values())
+            for path, fields in pending:
+                try:
+                    replay_audit_fallback(path, fields)
+                except Exception as exc:
+                    note_audit_write_failure(path, f"background audit replay failed: {exc!r}")
+                try:
+                    with _lock_for(path):
+                        remains = _audit_fallback_remains(path)
+                        if not remains:
+                            with _AUDIT_FLUSH_LOCK:
+                                _AUDIT_FLUSH_PENDING.pop(str(path), None)
+                except OSError as exc:
+                    note_audit_write_failure(path, f"background audit spill check failed: {exc!r}")
+            with _AUDIT_FLUSH_LOCK:
+                if not _AUDIT_FLUSH_PENDING:
+                    break
+            _AUDIT_FLUSH_EVENT.wait(_AUDIT_FLUSH_BACKOFF_SEC)
+
+
+def _schedule_audit_flush(path: Path, fieldnames: List[str]) -> None:
+    global _AUDIT_FLUSH_THREAD
+    with _AUDIT_FLUSH_LOCK:
+        _AUDIT_FLUSH_PENDING[str(path)] = (path, list(fieldnames))
+        if _AUDIT_FLUSH_THREAD is None or not _AUDIT_FLUSH_THREAD.is_alive():
+            _AUDIT_FLUSH_THREAD = threading.Thread(target=_audit_flush_worker, name="audit-spill-flusher", daemon=True)
+            try:
+                _AUDIT_FLUSH_THREAD.start()
+            except Exception as exc:
+                _AUDIT_FLUSH_THREAD = None
+                note_audit_write_failure(path, f"background audit replay could not start: {exc!r}")
+    _AUDIT_FLUSH_EVENT.set()
+
+
 def append_csv(path: Path, fieldnames: List[str], row: Dict[str, Any], *, spill_on_failure: bool = True, durable: bool = False) -> bool:
     """Append one audit row or durably spill it; raise only if neither store preserves it.
 
-    A failed live append is durably spilled immediately; retries happen during startup replay,
-    never on the send lane.
+    A failed live append is durably spilled immediately; a background flusher retries it off the send lane.
     Returns True on a live append, False when replay must retain its existing spill row.
     durable=True flushes the append before the replay journal records completion.
     """
@@ -1664,6 +1732,7 @@ def append_csv(path: Path, fieldnames: List[str], row: Dict[str, Any], *, spill_
         if spill_on_failure and (str(path) in _AUDIT_SPILL_PENDING or (spill.exists() and spill.stat().st_size > 0)):
             if not _spill_row(path, fieldnames, row):
                 raise OSError("audit row could not be persisted behind existing spill rows")
+            _schedule_audit_flush(path, fieldnames)
             return False
         try:
             st = path.stat()
@@ -1693,6 +1762,7 @@ def append_csv(path: Path, fieldnames: List[str], row: Dict[str, Any], *, spill_
                 return False
             if not _spill_row(path, fieldnames, row):
                 raise OSError("audit row could not be persisted to the live file or fallback") from exc
+            _schedule_audit_flush(path, fieldnames)
             return False
         # success path
         _note_append(path, fieldnames)  # our own append changed the size: keep the header cache in step
