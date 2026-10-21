@@ -516,6 +516,7 @@ COPY_POLL_SWEEP_SEC = float(os.getenv("HL_LIVE_COPY_POLL_SWEEP_SEC", "60"))
 # a fill whose order id is not in the send history yet (the send worker records it after the exchange answers) is
 # left for the next read for this long instead of being consumed unmatched
 COPY_FILL_UNKNOWN_OID_GRACE_MS = int(os.getenv("HL_LIVE_COPY_FILL_UNKNOWN_OID_GRACE_MS", "10000"))
+SERVICE_STATE_LOCK = threading.RLock()  # live_service_state.json: cycle writer + heartbeat both read-then-write it
 RUNTIME_STATE_LOCK = threading.RLock()
 
 _PROF_LOCK = threading.Lock()
@@ -9458,6 +9459,10 @@ class ExchangeReconciler:
 
 class ServiceStateWriter:
     def __init__(self) -> None:
+        self._hb_stop = threading.Event()
+        self._hb_interval = 5.0
+        self._hb_queue_depth: Any = lambda: 0
+        self._hb_thread = threading.Thread(target=self._heartbeat_loop, daemon=True, name="HLCore-status-heartbeat")
         self._worker = _LatestStatusWriteWorker("live-service-state")
 
     @staticmethod
@@ -9476,6 +9481,49 @@ class ServiceStateWriter:
 
     def report_failure(self, exc: Exception) -> None:
         self._worker.report_failure(exc)
+
+    def start_heartbeat(self, interval_sec: float, queue_depth: Any) -> None:
+        """One heartbeat thread. queue_depth is the core hot_backlog so the screen shows the queue too."""
+        self._hb_interval = max(0.2, float(interval_sec))
+        self._hb_queue_depth = queue_depth
+        self._hb_thread.start()
+
+    def stop_heartbeat(self) -> None:
+        self._hb_stop.set()
+        if self._hb_thread.is_alive() and self._hb_thread is not threading.current_thread():
+            self._hb_thread.join(timeout=1.0)
+
+    def _heartbeat_loop(self) -> None:
+        while not self._hb_stop.wait(self._hb_interval):
+            try:
+                depth = self._hb_queue_depth()
+            except Exception:
+                depth = 0
+            try:
+                self.heartbeat(depth)
+            except Exception as exc:  # a status write must never kill the heartbeat thread
+                self.report_failure(exc)
+
+    def heartbeat(self, queue_depth: int = 0) -> None:
+        """ALERT-ONLY liveness: keeps live_service_state.json advancing while the cycle thread is stalled.
+        Carries the last published snapshot forward and recomputes cycle_age_ms. Nothing on the send path reads it."""
+        with SERVICE_STATE_LOCK:
+            now = utc_now_ms()
+            payload = load_json(SERVICE_STATE_FILE, {})
+            if not isinstance(payload, dict):
+                payload = {}
+            last_cycle_ms = int(fnum(payload.get("last_cycle_write_ms"), 0))
+            payload.update({
+                "created_at": utc_now_iso(),
+                "created_at_ms": now,
+                "last_state_write_ms": now,
+                "last_cycle_write_ms": last_cycle_ms,
+                "cycle_age_ms": max(0, now - last_cycle_ms) if last_cycle_ms else 0,
+                "heartbeat_seq": int(fnum(payload.get("heartbeat_seq"), 0)) + 1,
+                "hot_queue_depth": int(queue_depth),
+                "thread_count": int(threading.active_count()),
+            })
+            atomic_write_json(SERVICE_STATE_FILE, payload)
 
     def _write_now(self, summary: CycleSummary, dedupe: DedupeStore, cfg: Optional["ConfigManager"]) -> None:
         ws = self.ws_summary_from_file()
@@ -9507,6 +9555,8 @@ class ServiceStateWriter:
             "created_at": utc_now_iso(),
             "created_at_ms": state_write_ms,
             "last_state_write_ms": state_write_ms,
+            "last_cycle_write_ms": state_write_ms,
+            "cycle_age_ms": 0,
             "process_id": os.getpid(),
             "started_at": PROCESS_STARTED_AT,
             "started_at_ms": PROCESS_STARTED_AT_MS,
@@ -9532,7 +9582,11 @@ class ServiceStateWriter:
             },
         }
         # Publish the authoritative service heartbeat before waiting for the shared cursor file.
-        atomic_write_json(SERVICE_STATE_FILE, payload)
+        with SERVICE_STATE_LOCK:  # same lock as the heartbeat: both read-then-write this file
+            _prev = load_json(SERVICE_STATE_FILE, {})
+            if isinstance(_prev, dict) and _prev.get("heartbeat_seq") is not None:
+                payload["heartbeat_seq"] = int(fnum(_prev.get("heartbeat_seq"), 0))  # carried, never reset
+            atomic_write_json(SERVICE_STATE_FILE, payload)
         # Preserve poll cursors/status written earlier this cycle. Fast copy-only
         # cycles must not erase the last leader-poll truth and then report
         # POLL_DISABLED while the process is running with --poll-live.
@@ -9669,6 +9723,8 @@ class LiveCopyCore:
         self._truth_refresh_lock = threading.Lock()
         self._last_truth_refresh = 0.0
         self.state_writer = ServiceStateWriter()
+        # keeps the operator screen advancing when a cycle is slow; alert-only, off the send path
+        self.state_writer.start_heartbeat(5.0, self.hot_backlog)
         self.source_csv = source_csv or RAW_LEADER_FILLS_CSV
         self.intents_by_id: Dict[str, Intent] = {}
         self._entry_sends_blocked_reason: str = ""
@@ -9714,6 +9770,7 @@ class LiveCopyCore:
         qt = getattr(self, "_queue_depth_thread", None)
         if qt is not None and qt.is_alive() and qt is not threading.current_thread():
             qt.join(timeout=1.0)
+        self.state_writer.stop_heartbeat()
         _drain_status_write_workers()
 
     def _prewarm_with_parity(self, fill: LeaderFill, local_block: bool, converge: bool = False) -> None:
