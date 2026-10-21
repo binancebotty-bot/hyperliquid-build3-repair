@@ -358,6 +358,14 @@ def main() -> None:
     rows = [r for r in c.read_csv_rows(c.RECONCILIATION_CSV) if r.get("status") == "LEADER_HISTORY_GAP"]
     check("M7_GAP_BEYOND_7_DAYS_REPORTED", rows and rows[-1]["event"] == "SEND_TERMINAL"
           and "MANUAL_REVIEW" in rows[-1]["action"], str(rows[-1:])[:200])
+    gap_markers = {LEADER: now, OTHER: now}
+    state = c.load_json(c.CORE_RUNTIME_STATE_FILE, {})
+    state["last_leader_poll_outage_gap_floor_ms"] = gap_markers
+    c.atomic_write_json(c.CORE_RUNTIME_STATE_FILE, state)
+    core.state_writer._write_core_state({}, core.dedupe, {})
+    state = c.load_json(c.CORE_RUNTIME_STATE_FILE, {})
+    check("M7_GAP_MARKERS_SURVIVE_CORE_STATE_COMPACTION",
+          state.get("last_leader_poll_outage_gap_floor_ms") == gap_markers, str(state.get("last_leader_poll_outage_gap_floor_ms")))
 
     pages = {"n": 0}
 

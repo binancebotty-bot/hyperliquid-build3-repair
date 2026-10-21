@@ -9551,10 +9551,12 @@ class ServiceStateWriter:
         _last_leader_poll_status = ""
         _last_leader_poll_status_ms = 0
         _last_leader_poll_cursor_ms: Any = {}
+        _last_leader_poll_outage_gap_floor_ms: Any = {}
         if isinstance(_existing_rt, dict):
             _last_leader_poll_status = str(_existing_rt.get("last_leader_poll_status") or "")
             _last_leader_poll_status_ms = int(fnum(_existing_rt.get("last_leader_poll_status_ms"), 0))
             _last_leader_poll_cursor_ms = _existing_rt.get("last_leader_poll_cursor_ms") if isinstance(_existing_rt.get("last_leader_poll_cursor_ms"), dict) else {}
+            _last_leader_poll_outage_gap_floor_ms = _existing_rt.get("last_leader_poll_outage_gap_floor_ms") if isinstance(_existing_rt.get("last_leader_poll_outage_gap_floor_ms"), dict) else {}
         dedupe.flush_jsonl()  # persist full sets to append-only JSONL before writing bounded JSON
         core_state = {
             "created_at": payload.get("created_at"),
@@ -9569,6 +9571,7 @@ class ServiceStateWriter:
             "last_leader_poll_status": _last_leader_poll_status,
             "last_leader_poll_status_ms": _last_leader_poll_status_ms,
             "last_leader_poll_cursor_ms": _last_leader_poll_cursor_ms,
+            "last_leader_poll_outage_gap_floor_ms": _last_leader_poll_outage_gap_floor_ms,
             "effective_global_controls": _eff_gc,
             "networks": {"leader": LEADER_NETWORK, "follower": FOLLOWER_NETWORK},
             **dedupe.export(),
