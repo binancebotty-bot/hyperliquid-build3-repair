@@ -3985,20 +3985,23 @@ class IntentBuilder:
     def _exposure_cap_block(self, fill: LeaderFill, copy_notional: float, value_px: float = 0.0) -> str:
         """Total and per-asset directional caps against follower exchange truth; "" when allowed."""
         cap_total, cap_asset = self.cfg.max_total_exposure(), self.cfg.max_asset_directional_exposure()
-        if cap_total <= 0 and cap_asset <= 0:
+        _cap_wallet = getattr(self.cfg, "max_wallet_exposure", None)
+        if cap_total <= 0 and cap_asset <= 0 and not (_cap_wallet and _cap_wallet(fill.leader_wallet) > 0):
             return ""
         if fill.price <= 0:
             return "no price to value the entry"
         exp = self.follower_exposure()
         if not exp.get("ok"):
             return f"follower exposure unavailable ({exp.get('status')}); entries fail closed while a cap is set"
+        if exp.get("total_usd") is None:  # B: no total = unvaluable, hold not zero
+            return "follower exposure unavailable (SNAPSHOT_UNVALUED); entries fail closed while a cap is set"
         coin = canonical_coin_key(fill.coin)
         value_px = value_px if value_px > 0 else fill.price
         units = (copy_notional / value_px) * (1.0 if fill.side == "BUY" else -1.0)
-        pending_total = sum(abs(u) * px for _c, u, px in self._exposure_pending)
-        pending_coin = sum(u for c, u, _px in self._exposure_pending if c == coin)
+        pending_total = sum(abs(u) * px for _w, _c, u, px in self._exposure_pending)
+        pending_coin = sum(u for _w, c, u, _px in self._exposure_pending if c == coin)
         # resting entry limits count as if they all fill (run 4: $2,256 resting was outside the caps)
-        resting = self._resting()
+        resting = self._resting() if (cap_total > 0 or cap_asset > 0) else {}
         if resting.get("unreadable"):
             return "resting limits unreadable; entries fail closed while a cap is set"
         resting_total = fnum(resting.get("total_usd"), 0.0)
@@ -4031,7 +4034,8 @@ class IntentBuilder:
                 return "max total exposure exceeded" if cap_total > 0 else "max asset directional exposure exceeded"
             _CAP_TLS.scale = frac  # build() sizes the order down by this fraction
             units *= frac
-        self._exposure_pending.append((coin, units, value_px))
+        _pw = normalise_wallet(getattr(fill, "leader_wallet", "") or "")
+        self._exposure_pending.append((_pw, coin, units, value_px))  # A: in-flight is per wallet
         return ""
 
     def blocked_locally(self, fill: LeaderFill, entry_block_reason: str = "") -> bool:
@@ -4179,12 +4183,19 @@ class IntentBuilder:
         if max_order > 0 and order_notional > max_order:
             return "SEND_BLOCKED_RISK", "max order notional exceeded"
         max_wallet = self.cfg.max_wallet_exposure(wallet)
+        if max_wallet > 0:  # B: truth must be readable before it counts as zero settled exposure
+            _ew = self.follower_exposure()
+            if not _ew.get("ok") or _ew.get("total_usd") is None:
+                return "SEND_BLOCKED_RISK", ("follower exposure unavailable ({0}); entries fail closed while a cap is set"
+                                              .format(_ew.get("status") or "SNAPSHOT_UNVALUED"))
         if max_wallet > 0:
             current = self.ledger.wallet_abs_exposure_usd(wallet, {fill.coin: value_px})
             resting = self._resting()
             if resting.get("unreadable"):
                 return "SEND_BLOCKED_RISK", "resting limits unreadable; entries fail closed while a cap is set"
             current += fnum((resting.get("by_wallet_usd") or {}).get(normalise_wallet(wallet)), 0.0)
+            current += sum(abs(u) * px for _w, _c, u, px in self._exposure_pending
+                           if _w == normalise_wallet(wallet))  # A: entries in flight for this wallet
             if current + order_notional > max_wallet:
                 return "SEND_BLOCKED_RISK", "max wallet exposure exceeded"
         if self.cfg.auto_send_enabled and not bval(os.getenv("HL_LIVE_MOCK_SEND"), False):
