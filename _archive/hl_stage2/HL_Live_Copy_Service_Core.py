@@ -8021,6 +8021,7 @@ TRACE_MAX_BYTES_FILL = int(os.environ.get("HL_FILL_TRACE_MAX_BYTES", "32000000")
 TRACE_MAX_BYTES_POLL = int(os.environ.get("HL_POLL_TRACE_MAX_BYTES", "16000000") or 16000000)
 FILL_TRACE_BATCH_WRITES = 128
 FILL_TRACE_QUEUE_MAX = max(1, int(os.environ.get("HL_FILL_TRACE_QUEUE_MAX", "100000") or 100000))
+FILL_TRACE_WRITE_ATTEMPTS = max(1, int(os.environ.get("HL_FILL_TRACE_WRITE_ATTEMPTS", "5") or 5))
 
 def rotate_trace_file(path: Path, max_bytes: int, keep: int = 0) -> None:
     """Rotate a diagnostic jsonl once it passes max_bytes: x.jsonl -> x.jsonl.1 -> x.jsonl.2 ... keeping `keep` old files
@@ -9990,15 +9991,23 @@ class LiveCopyCore:
                 self._fill_trace_buffer.clear()
                 dropped = self._fill_trace_dropped
                 self._fill_trace_dropped = 0
-            try:
-                path = Path(CORE_RUNTIME_STATE_FILE).parent / "fill_trace.jsonl"
-                if dropped:
-                    batch.insert(0, json.dumps({"ts": utc_now_ms(), "k": "fill_trace_drop", "count": dropped}, separators=(",", ":")) + "\n")
-                rotate_trace_file(path, TRACE_MAX_BYTES_FILL)
-                with open(path, "a", encoding="utf-8") as fh:
-                    fh.writelines(batch)
-            except Exception as exc:
-                log_error("fill_trace", exc)
+            path = Path(CORE_RUNTIME_STATE_FILE).parent / "fill_trace.jsonl"
+            lines = batch
+            if dropped:
+                lines = [json.dumps({"ts": utc_now_ms(), "k": "fill_trace_drop", "count": dropped}, separators=(",", ":")) + "\n"] + lines
+            for attempt in range(FILL_TRACE_WRITE_ATTEMPTS):
+                try:
+                    rotate_trace_file(path, TRACE_MAX_BYTES_FILL)
+                    with open(path, "a", encoding="utf-8") as fh:
+                        fh.writelines(lines)
+                    break
+                except Exception as exc:
+                    if attempt + 1 >= FILL_TRACE_WRITE_ATTEMPTS:
+                        log_error("fill_trace", exc)
+                        with self._fill_trace_condition:
+                            self._fill_trace_dropped += len(batch)
+                        break
+                    time.sleep(0.05 * (attempt + 1))
 
     def _fill_trace(self, kind: str, fill: Optional["LeaderFill"], extra: Optional[Dict[str, Any]] = None) -> None:
         """Queue one lifecycle record without waiting on file I/O or other producers."""
