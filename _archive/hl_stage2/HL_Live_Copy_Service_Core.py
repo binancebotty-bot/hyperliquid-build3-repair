@@ -4001,6 +4001,9 @@ for _ledger_method in ("sleeve", "wallet_coin_position", "coin_net", "total_abs_
 
 class AuditLogWriter:
     def append_order_intent(self, intent: Intent) -> None:
+        notes = intent.notes
+        if isinstance(intent.fill.raw, dict) and "dir" in intent.fill.raw:
+            notes = (notes + ";" if notes else "") + "leader_dir_json=" + json.dumps(intent.fill.raw["dir"], ensure_ascii=False)
         append_csv(ORDER_INTENTS_CSV, ORDER_INTENT_FIELDS, {
             "created_at": utc_now_iso(),
             "created_at_ms": utc_now_ms(),
@@ -4030,7 +4033,7 @@ class AuditLogWriter:
             "marketable_bps": "",
             "max_close_adverse_diff_pct": "",
             "min_notional": "",
-            "notes": intent.notes,
+            "notes": notes,
         })
 
     def _note_fill_row(self, fid: Any, state: Any = "") -> None:
@@ -9598,7 +9601,7 @@ class LiveCopyCore:
         except Exception as exc:
             log_error("early_prewarm", exc)
 
-    def _enqueue_hot_ws_fill(self, fill: LeaderFill) -> bool:
+    def _enqueue_hot_ws_fill(self, fill: LeaderFill) -> Optional[bool]:
         if fill.source != "WS_CAPTURED":
             return False
         return self._dispatch_fill(fill)
@@ -9607,7 +9610,7 @@ class LiveCopyCore:
         key = canonical_coin_key(fill.coin).encode("utf-8")
         return int(hashlib.sha1(key).hexdigest()[:8], 16) % len(self._hot_queues)
 
-    def _dispatch_fill(self, fill: LeaderFill) -> bool:
+    def _dispatch_fill(self, fill: LeaderFill) -> Optional[bool]:
         # a fill already waiting is never queued again (run 4: the live feed and every backstop poll re-queued the
         # same unprocessed fills while the queue was long, which made it longer)
         key = self._guard_key(fill)
@@ -9617,6 +9620,66 @@ class LiveCopyCore:
                 return True
         if self._already_handled(fill):  # a re-read duplicate costs nothing: no ledger work, no sleeve created
             return True
+        cfg = self.intent_builder.cfg
+        raw_dir = (fill.raw or {}).get("dir") if isinstance(fill.raw, dict) else None
+        if (isinstance(raw_dir, str) and raw_dir in {"Open Long", "Open Short"}
+                and cfg.wallet_enabled(fill.leader_wallet)
+                and cfg.wallet_mode(fill.leader_wallet) == "CLO"):
+            with self._queued_lock:
+                if key in self._queued_keys:
+                    return True
+                self._queued_keys.add(key)
+            try:
+                with self._idem_lock:
+                    if key in self._idem_accepted:
+                        return None
+                    self._idem_accepted.add(key)
+                    if not self.dedupe.accept_leader(fill.leader_fill_id):
+                        if key not in self._idem_duplicate_audited:
+                            self._idem_duplicate_audited.add(key)
+                            self.audit.append_reconciliation(
+                                "DUPLICATE_LEADER_FILL_SKIPPED", "BLOCKED_DUPLICATE_DEDUPE_STORE",
+                                leader_wallet=fill.leader_wallet, leader_fill_id=fill.leader_fill_id,
+                                coin=fill.coin, action="NO_SEND_ALREADY_PROCESSED",
+                                terminal_state="BLOCKED_DUPLICATE_DEDUPE_STORE",
+                                engine_can_send="False",
+                                notes="the persisted dedupe store already holds this leader fill id; not sent again")
+                        return None
+                    merged_ids = [str(i) for i in ((fill.raw or {}).get("merged_fill_ids") or []) if i]
+                    self.dedupe.processed.update(merged_ids)
+                    self._idem_accepted.update(merged_ids)
+                    copy_mode = cfg.copy_mode(fill.leader_wallet)
+                    copy_notional = (cfg.fixed_notional(fill.leader_wallet)
+                                     * max(1, int(fnum((fill.raw or {}).get("merged_fill_count"), 1)))
+                                     if copy_mode == "fixed" else 0.0)
+                    intent_id = stable_hash(["intent", fill.leader_fill_id, fill.leader_wallet,
+                                             fill.coin, fill.side, fill.timestamp_ms])
+                    intent = Intent(
+                        intent_id=intent_id, fill=fill, copy_side=fill.side,
+                        copy_size=round(copy_notional / fill.price, 8) if fill.price > 0 else 0.0,
+                        copy_notional=copy_notional, wallet_mode="CLO", copy_mode=copy_mode,
+                        decision="BLOCKED_CLO_ENTRY", reason="CLO blocks entries/adds",
+                        sleeve_id="", position_id="", position_direction_before="",
+                        wallet_position_before=None, coin_net_before=None,
+                        reduce_only_intended=False, reduce_only_sent_planned=False,
+                        created_at_ms=utc_now_ms(),
+                        notes="lifecycle=ENTRY;dispatch_fast_path=true;position_state=not_read"
+                              + (";sizing_skipped=true" if copy_mode != "fixed" else ""),
+                    )
+                    self.audit.append_order_intent(intent)
+                    for merged_id in merged_ids:
+                        self.audit.append_reconciliation(
+                            "FILL_MERGED", "LEADER_FILL_MERGED_INTO_ORDER",
+                            leader_wallet=fill.leader_wallet, leader_fill_id=merged_id,
+                            intent_id=intent.intent_id, coin=fill.coin,
+                            action="COPIED_WITH_MERGED_ORDER", engine_can_send="False",
+                            notes=f"merged with leader fill {fill.leader_fill_id} into one copy order (intent {intent.intent_id})")
+                self._fill_trace("blocked_clo_entry_dispatch", fill)
+                return None
+            finally:
+                with self._queued_lock:
+                    self._queued_keys.discard(key)
+
         is_close = self._is_close_fill(fill)
         with self._queued_lock:
             if key in self._queued_keys:
@@ -9765,9 +9828,11 @@ class LiveCopyCore:
             path = Path(CORE_RUNTIME_STATE_FILE).parent / "fill_trace.jsonl"
             rec = {"ts": utc_now_ms(), "k": kind}
             if fill is not None:
+                raw = fill.raw if isinstance(fill.raw, dict) else {}
                 rec.update({"id": str(fill.leader_fill_id), "w": str(fill.leader_wallet)[:10],
-                            "c": str(fill.coin), "t": int(fill.timestamp_ms or 0)})
-                stamps = fill.raw.get("_stamps") if isinstance(fill.raw, dict) else None
+                            "c": str(fill.coin), "t": int(fill.timestamp_ms or 0),
+                            "dir": raw.get("dir", "")})
+                stamps = raw.get("_stamps")
                 if stamps:
                     rec["stamps"] = dict(stamps)
             rec.update(extra or {})
@@ -11440,7 +11505,10 @@ class LiveCopyCore:
                 if self.async_dispatch:  # loop mode: sends run on the workers, never in this loop
                     with self._queued_lock:
                         _was_queued = self._guard_key(fill) in self._queued_keys
-                    if self._dispatch_fill(fill):
+                    dispatched = self._dispatch_fill(fill)
+                    if dispatched is None:
+                        continue  # a CLO pure entry was audited at dispatch and intentionally not queued
+                    if dispatched:
                         summary.leader_fills_queued += 1
                         if not _was_queued:  # a fill already waiting is only offered again, not queued again
                             self._fill_trace("poll_dispatched", fill)
