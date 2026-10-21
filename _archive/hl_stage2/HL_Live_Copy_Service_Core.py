@@ -9983,10 +9983,52 @@ class LiveCopyCore:
             if "status_of" in rec:
                 _r = rec.pop("status_of")
                 rec["status"] = str(_r[1]) if isinstance(_r, tuple) and len(_r) > 1 else ""
-            with self.__dict__.setdefault("_fill_trace_lock", threading.Lock()):
-                rotate_trace_file(path, TRACE_MAX_BYTES_FILL)
-                with open(path, "a", encoding="utf-8") as fh:
-                    fh.write(json.dumps(rec, separators=(",", ":")) + "\n")
+            line = json.dumps(rec, separators=(",", ":")) + "\n"
+            lock = self.__dict__.setdefault("_fill_trace_lock", threading.Lock())
+            rotate_lock = self.__dict__.setdefault("_fill_trace_rotate_lock", threading.Lock())
+            state = self.__dict__.setdefault("_fill_trace_state", {
+                "fh": None, "path": str(path), "size": 0, "rotating": False, "pending": []
+            })
+            while True:
+                with lock:
+                    if state["path"] != str(path):
+                        state["path"] = str(path)
+                        state["fh"] = None
+                        state["size"] = 0
+                    if state["rotating"]:
+                        state["pending"].append(line)
+                        return
+                    if state["fh"] is None:
+                        state["fh"] = open(path, "a", encoding="utf-8")
+                        state["size"] = os.fstat(state["fh"].fileno()).st_size
+                    state["fh"].write(line)
+                    state["fh"].flush()
+                    state["size"] += len(line.encode("utf-8"))
+                    needs_rotation = state["size"] > TRACE_MAX_BYTES_FILL
+                if not needs_rotation:
+                    return
+                with rotate_lock:
+                    with lock:
+                        if state["rotating"] or state["size"] <= TRACE_MAX_BYTES_FILL:
+                            continue
+                        state["rotating"] = True
+                        old_fh = state["fh"]
+                        state["fh"] = None
+                    old_fh.close()
+                    rotate_trace_file(path, TRACE_MAX_BYTES_FILL)
+                    new_fh = open(path, "a", encoding="utf-8")
+                    with lock:
+                        pending = state["pending"]
+                        state["pending"] = []
+                        for pending_line in pending:
+                            new_fh.write(pending_line)
+                        new_fh.flush()
+                        state["fh"] = new_fh
+                        state["size"] = os.fstat(new_fh.fileno()).st_size
+                        state["rotating"] = False
+                        needs_rotation = state["size"] > TRACE_MAX_BYTES_FILL
+                if not needs_rotation:
+                    return
         except Exception as exc:
             log_error("fill_trace", exc)
 
