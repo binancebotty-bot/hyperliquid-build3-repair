@@ -6838,6 +6838,13 @@ class SenderGateway:
                 if left > 0:
                     self._queue_exit_recovery_if_needed(exchange, sdk_coin, intent, limit_px, wire_size, response,
                                                         f"close part-filled {filled} of {wire_size}", remainder=left, sz_dec=sz_dec)
+            if not ok and status == "ORDER_UNKNOWN":
+                # a 200 reply the parser cannot read is a silent miss: route it through the same
+                # cloid resolution + bounded recheck as a timeout, without ever resending
+                resolved_outcome = self._resolve_ambiguous_send_outcome(
+                    sdk_coin, intent, cloid, wire_size, limit_px, use_reduce_only, parsed_error, timing)
+                if resolved_outcome is not None:
+                    return resolved_outcome
             return ok, status, {
                 "exchange_response": response, "oid": oid,
                 "limit_px": limit_px, "wire_size": wire_size, "copy_notional": wire_notional,
