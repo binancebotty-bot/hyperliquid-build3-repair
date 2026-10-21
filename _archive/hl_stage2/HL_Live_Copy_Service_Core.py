@@ -4804,6 +4804,9 @@ class LeaderFillIngestor:
                 log_error("poll_hyperliquid_fills", exc)
                 status = "POLL_NETWORK_ERROR"
                 break
+        else:
+            # Every page was full: the API may still have more history.
+            status = "POLL_PARTIAL"
         fills.sort(key=lambda f: (f.timestamp_ms, f.leader_fill_id))
         return fills, status
 
@@ -6432,6 +6435,17 @@ class LiveCopyCore:
                     fills.extend(wallet_fills)
                     if status == "POLL_OK":
                         _cursor_updates[w] = now
+                    elif wallet_fills:
+                        # Preserve monotonic progress even when the final page failed.
+                        _last_fill_ms = max(f.timestamp_ms for f in wallet_fills)
+                        _cursor_updates[w] = _last_fill_ms + POLL_OVERLAP_MS
+                        self.audit.append_reconciliation(
+                            "LEADER_HISTORY_TRUNCATED", status,
+                            leader_wallet=w, action="MANUAL_REVIEW_LEADER_HISTORY_TRUNCATED",
+                            notes=(f"start_ms={_last_fill_ms + 1}; end_ms={now}; "
+                                   f"count={len(wallet_fills)}; last_read_ms={_last_fill_ms}"))
+                        poll_status = status
+                        summary.network_errors += 1
                     else:
                         poll_status = status
                         summary.network_errors += 1
