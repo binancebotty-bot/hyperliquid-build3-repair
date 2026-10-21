@@ -11301,6 +11301,13 @@ class LiveCopyCore:
                     _next = (now if status == "POLL_OK" else max(f.timestamp_ms for f in wallet_fills) + LEADER_POLL_OVERLAP_MS
                              if status == "POLL_PARTIAL" and wallet_fills else 0)
                     if _next:
+                        if self.async_dispatch:
+                            # Polled fills are not in pending_ts until dispatch succeeds.
+                            for fill in wallet_fills:
+                                if not self._already_handled(fill):
+                                    fill_ms = int(fnum(fill.timestamp_ms, 0))
+                                    if fill_ms > 0:
+                                        _next = min(_next, fill_ms)
                         _next = self.leader_cursor_next(w, _next)  # never past a fill still waiting on a worker
                         if _hold:
                             self._held_read_cursor[w] = _next
@@ -11361,6 +11368,9 @@ class LiveCopyCore:
                         leader_fill_id=fill.leader_fill_id, coin=fill.coin, action="NO_ACTION_LEADER_ALREADY_FLAT",
                         terminal_state="MISSED_ENTRY_LEADER_ALREADY_CLOSED", engine_can_send="False",
                         notes=(f"late leader {fill.side} {fill.size} @ {fill.price} at {fill.timestamp_ms} not copied: {why}"))
+                    if self.async_dispatch:
+                        with self._idem_lock:
+                            self._idem_accepted.add(self._guard_key(fill))
                     self._rows_for_closed_late_siblings(fill, why)
                     continue
                 if self._already_handled(fill):  # run 3: thousands of re-read fills per cycle starved the loop
