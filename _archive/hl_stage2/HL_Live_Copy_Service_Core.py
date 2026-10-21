@@ -5391,6 +5391,9 @@ class CopyFillMatcher:
                 return intents_by_id[intent_id]
             if intent_id:
                 return None  # known OID; intent not in current cycle â€" handled by OID hard match in match_and_apply
+            # OID present but unknown (not in sent_oid_index / recovery_oid_index):
+            # never fall through to coin/side/timestamp heuristics.
+            return None
         recovery_candidates = self._missed_exit_recovery_candidates(copy_fill)
         if len(recovery_candidates) == 1:
             return self._intent_from_send_attempt(recovery_candidates[0])
