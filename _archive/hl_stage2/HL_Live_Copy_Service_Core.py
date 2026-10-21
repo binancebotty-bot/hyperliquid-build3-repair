@@ -4678,6 +4678,8 @@ class SenderGateway:
         self._exchange_rate_limit_cooldown_until_ms: int = 0
         self._market_halted_until_ms: Dict[str, int] = {}
         self._ioc_no_match_until_ms: Dict[str, int] = {}
+        self._entry_retry_locks: Dict[str, Any] = {}
+        self._entry_retry_locks_lock = threading.Lock()
         # shortcut: windows reset on restart; persist only if restart-spanning controls are required.
         self._last_exit_attempt_ms: Dict[str, int] = {}
         # Pending-exit guard: prevents a burst of leader close fills from each
@@ -6414,25 +6416,54 @@ class SenderGateway:
         if bval(os.getenv("HL_LIVE_MOCK_SEND"), False):
             self._append_mock_attempt(intent, "MOCK_ORDER_SENT", timing)
             return True, "MOCK_ORDER_SENT"
+        entry_retry_lock = None
+        if lifecycle in {"ENTRY", "ADD"}:
+            with self._entry_retry_locks_lock:
+                entry_retry_lock = self._entry_retry_locks.setdefault(coin_key, threading.Lock())
+            entry_retry_lock.acquire()
+            retry_now_ms = utc_now_ms()
+            if self._market_halted_until_ms.get(coin_key, 0) > retry_now_ms:
+                entry_retry_lock.release()
+                return False, "SKIPPED_MARKET_HALTED"
+            if self._ioc_no_match_until_ms.get(coin_key, 0) > retry_now_ms:
+                entry_retry_lock.release()
+                return False, "SKIPPED_IOC_NO_IMMEDIATE_MATCH"
         timing["send_real_started_ms"] = utc_now_ms()
-        ok, send_status, result = self._send_real(intent, timing)
-        if result.get("exchange_called"):
+        market_halt_new = False
+        ioc_no_match_new = False
+        try:
+            ok, send_status, result = self._send_real(intent, timing)
+            exchange_called = bool(result.get("exchange_called"))
             category = str(result.get("reject_category") or "")
+            if entry_retry_lock is not None and exchange_called:
+                if category == "MARKET_HALTED":
+                    retry_now_ms = utc_now_ms()
+                    market_halt_new = self._market_halted_until_ms.get(coin_key, 0) <= retry_now_ms
+                    self._market_halted_until_ms[coin_key] = max(
+                        self._market_halted_until_ms.get(coin_key, 0), retry_now_ms + 600000)
+                elif category == "IOC_NO_IMMEDIATE_MATCH":
+                    window_ms = max(1, int(fnum(os.getenv("HL_LIVE_IOC_NO_MATCH_RETRY_WINDOW_MS"), 10000)))
+                    retry_now_ms = utc_now_ms()
+                    ioc_no_match_new = self._ioc_no_match_until_ms.get(coin_key, 0) <= retry_now_ms
+                    self._ioc_no_match_until_ms[coin_key] = max(
+                        self._ioc_no_match_until_ms.get(coin_key, 0), retry_now_ms + window_ms)
+            if entry_retry_lock is not None:
+                entry_retry_lock.release()
+                entry_retry_lock = None
+        except BaseException:
+            if entry_retry_lock is not None:
+                entry_retry_lock.release()
+            raise
+        if exchange_called:
             if category == "MARKET_HALTED" and lifecycle in {"ENTRY", "ADD"}:
-                until = utc_now_ms() + 600000
-                was_active = self._market_halted_until_ms.get(coin_key, 0) > utc_now_ms()
-                self._market_halted_until_ms[coin_key] = max(self._market_halted_until_ms.get(coin_key, 0), until)
-                if not was_active:
+                if market_halt_new:
                     self.audit.append_reconciliation(
                         "SEND_TERMINAL", "SKIPPED_MARKET_HALTED", leader_wallet=intent.fill.leader_wallet,
                         leader_fill_id=intent.fill.leader_fill_id, intent_id=intent.intent_id, coin=coin_key,
                         reject_category="MARKET_HALTED", terminal_state="SKIPPED_MARKET_HALTED",
                         action="RETRY_AFTER_MARKET_HALT_COOLDOWN", notes="Trading is halted.; per-coin cooldown 10 minutes")
             elif category == "IOC_NO_IMMEDIATE_MATCH" and lifecycle in {"ENTRY", "ADD"}:
-                window_ms = max(1, int(fnum(os.getenv("HL_LIVE_IOC_NO_MATCH_RETRY_WINDOW_MS"), 10000)))
-                was_active = self._ioc_no_match_until_ms.get(coin_key, 0) > utc_now_ms()
-                self._ioc_no_match_until_ms[coin_key] = max(self._ioc_no_match_until_ms.get(coin_key, 0), utc_now_ms() + window_ms)
-                if not was_active:
+                if ioc_no_match_new:
                     self.audit.append_reconciliation(
                         "SEND_TERMINAL", "IOC_NO_IMMEDIATE_MATCH", leader_wallet=intent.fill.leader_wallet,
                         leader_fill_id=intent.fill.leader_fill_id, intent_id=intent.intent_id, coin=coin_key,

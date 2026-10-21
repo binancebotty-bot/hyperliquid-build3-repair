@@ -17,7 +17,9 @@ from __future__ import annotations
 
 import os
 import sys
+import threading
 import tempfile
+import time
 from dataclasses import replace
 from pathlib import Path
 
@@ -398,14 +400,45 @@ second_ioc = ioc_gw.send_if_allowed(make_intent("ENTRY", "BUY", 1.0))
 check("J2_5E_IOC_RETRY_WINDOW", first_ioc[1] == "ORDER_REJECTED" and second_ioc[1] == "SKIPPED_IOC_NO_IMMEDIATE_MATCH", f"{first_ioc}, {second_ioc}")
 check("J2_5F_ONE_IOC_AUDIT_OUTCOME", [r[1] for r in ioc_rows].count("IOC_NO_IMMEDIATE_MATCH") == 1, str(ioc_rows))
 
+race_gw = make_gateway(FakeExchange())
+race_rows = stub_send(race_gw, "MARKET_HALTED")
+race_entered = threading.Event()
+race_release = threading.Event()
+race_calls = []
+race_results = []
+def delayed_halt(intent, timing=None):
+    race_calls.append(intent)
+    race_entered.set()
+    race_release.wait(2)
+    return False, "ORDER_REJECTED", {"exchange_called": True, "reject_category": "MARKET_HALTED"}
+race_gw._send_real = delayed_halt
+first_thread = threading.Thread(target=lambda: race_results.append(race_gw.send_if_allowed(make_intent("ENTRY", "BUY", 1.0))))
+second_started = threading.Event()
+second_thread = threading.Thread(target=lambda: (second_started.set(), race_results.append(
+    race_gw.send_if_allowed(make_intent("ENTRY", "BUY", 1.0)))))
+first_thread.start()
+first_entered = race_entered.wait(1)
+second_thread.start()
+second_started.wait(1)
+time.sleep(0.05)
+only_first_called = len(race_calls) == 1
+race_release.set()
+first_thread.join(1)
+second_thread.join(1)
+check("J2_5G_CONCURRENT_SAME_COIN_SENDS_WAIT_FOR_REJECTION_COOLDOWN",
+      first_entered and only_first_called and not first_thread.is_alive() and not second_thread.is_alive()
+      and race_results.count((False, "ORDER_REJECTED")) == 1
+      and race_results.count((False, "SKIPPED_MARKET_HALTED")) == 1,
+      f"calls={len(race_calls)} results={race_results}")
+
 exit_gw = make_gateway(FakeExchange())
 exit_rows = stub_send(exit_gw, "MARKET_HALTED")
 exit_gw._send_real = lambda intent, timing=None: (True, "ORDER_FILLED", {"exchange_called": True, "reject_category": "", "reduce_only_sent": True})
 exit_intent = make_intent("EXIT", "SELL", 0.1, wallet_pos_before=1.0, coin_net_before=1.0, reduce_only_intended=True)
 exit_first = exit_gw.send_if_allowed(exit_intent)
 exit_second = exit_gw.send_if_allowed(make_intent("EXIT", "SELL", 0.1, wallet_pos_before=1.0, coin_net_before=1.0, reduce_only_intended=True))
-check("J2_5G_REDUCTIONS_NOT_HALTED", exit_first == (True, "ORDER_FILLED"))
-check("J2_5H_EXIT_ATTEMPT_MAX_ONCE_PER_MINUTE", exit_second[1] == "EXIT_ATTEMPT_COOLDOWN")
+check("J2_5H_REDUCTIONS_NOT_HALTED", exit_first == (True, "ORDER_FILLED"))
+check("J2_5I_EXIT_ATTEMPT_MAX_ONCE_PER_MINUTE", exit_second[1] == "EXIT_ATTEMPT_COOLDOWN")
 
 failed_exit_gw = make_gateway(FakeExchange())
 stub_send(failed_exit_gw, "")
