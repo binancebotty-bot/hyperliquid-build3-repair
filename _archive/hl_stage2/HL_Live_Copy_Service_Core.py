@@ -9994,15 +9994,44 @@ class LiveCopyCore:
                 self._fill_trace_buffer.clear()
                 dropped = self._fill_trace_dropped
                 self._fill_trace_dropped = 0
+            drop_line = None
+            retry_safe = True
+            append_complete = False
             try:
                 path = Path(CORE_RUNTIME_STATE_FILE).parent / "fill_trace.jsonl"
                 if dropped:
-                    batch.insert(0, json.dumps({"ts": utc_now_ms(), "k": "fill_trace_drop", "count": dropped}, separators=(",", ":")) + "\n")
+                    drop_line = json.dumps({"ts": utc_now_ms(), "k": "fill_trace_drop", "count": dropped}, separators=(",", ":")) + "\n"
+                    batch.insert(0, drop_line)
                 rotate_trace_file(path, TRACE_MAX_BYTES_FILL)
                 with open(path, "a", encoding="utf-8") as fh:
-                    fh.writelines(batch)
+                    start = fh.tell()
+                    try:
+                        fh.writelines(batch)
+                        fh.flush()
+                        append_complete = True
+                    except Exception:
+                        try:
+                            fh.seek(start)
+                            fh.truncate()
+                        except Exception:
+                            retry_safe = False
+                        raise
             except Exception as exc:
                 log_error("fill_trace", exc)
+                retry_safe = retry_safe and not append_complete
+                if not retry_safe:
+                    continue
+                if drop_line is not None and batch and batch[0] == drop_line:
+                    batch.pop(0)
+                with self._fill_trace_condition:
+                    self._fill_trace_dropped += dropped
+                    while len(self._fill_trace_buffer) + len(batch) > FILL_TRACE_QUEUE_MAX:
+                        self._fill_trace_buffer.pop()
+                        self._fill_trace_dropped += 1
+                    for line in reversed(batch):
+                        self._fill_trace_buffer.appendleft(line)
+                    self._fill_trace_condition.notify()
+                time.sleep(0.1)
 
     def _fill_trace(self, kind: str, fill: Optional["LeaderFill"], extra: Optional[Dict[str, Any]] = None) -> None:
         """Queue one lifecycle record without waiting on file I/O or other producers."""
