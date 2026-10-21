@@ -2967,28 +2967,45 @@ class ConfigManager:
         return self.send_mode_now() != "OFF"
 
     @staticmethod
-    def _send_mode_of(cfg: Dict[str, Any]) -> str:
-        """OFF / CLOSE / ON. global_controls.send_mode wins when present; otherwise the legacy auto_send_enabled
-        (false -> OFF, true -> ON; absent -> the HL_LIVE_AUTO_SEND_ENABLED env)."""
+    def _send_mode_of(cfg: Dict[str, Any]) -> Tuple[str, str]:
+        """Returns (mode, source). mode is OFF/CLOSE/ON; source is 'config.send_mode',
+        'config.auto_send_enabled' or 'default OFF'. global_controls.send_mode wins when present;
+        otherwise the legacy auto_send_enabled (false -> OFF, true -> ON; absent -> default OFF).
+        A stray HL_LIVE_AUTO_SEND_ENABLED env var must not arm sending: it is never consulted here."""
         gc = cfg.get("global_controls") if isinstance(cfg.get("global_controls"), dict) else {}
         raw = str(gc.get("send_mode") or "").upper().strip().replace("_", " ").replace("-", " ")
-        if raw in {"OFF", "ON"}:
-            return raw
-        if raw in {"CLOSE", "CLOSE ONLY", "CLO"}:
-            return "CLOSE"
-        # Fail closed: a present-but-unrecognised send_mode never falls through to a looser source.
         if raw:
-            return "OFF"
+            # send_mode present: OFF/ON/CLOSE recognised; anything else fails closed to OFF.
+            if raw in {"OFF", "ON"}:
+                return raw, "config.send_mode"
+            if raw in {"CLOSE", "CLOSE ONLY", "CLO"}:
+                return "CLOSE", "config.send_mode"
+            return "OFF", "config.send_mode"
+        if "auto_send_enabled" in cfg:
+            legacy = cfg.get("auto_send_enabled")
+            # An explicit ON arms; anything else (absent, false, junk) is OFF.
+            return ("ON", "config.auto_send_enabled") if legacy is True or str(legacy).strip().lower() in {"1", "true", "yes", "y", "on"} else ("OFF", "config.auto_send_enabled")
         # No send_mode and no explicit auto_send_enabled key: OFF. A stray env var must not arm sending.
-        if "auto_send_enabled" not in cfg:
-            return "OFF"
-        legacy = cfg.get("auto_send_enabled")
-        # An explicit ON arms; anything else (absent, false, junk) is OFF.
-        return "ON" if legacy is True or str(legacy).strip().lower() in {"1", "true", "yes", "y", "on"} else "OFF"
+        return "OFF", "default OFF"
 
     @property
     def send_mode(self) -> str:
-        return self._send_mode_of(self.config)
+        return self._send_mode_of(self.config)[0]
+
+    def send_state_alert(self) -> str:
+        """Startup + config-reload audit: write ONE audit/stderr alert line stating the effective send
+        mode, its source and the launcher env value, with an explicit alert when the launcher env
+        HL_LIVE_AUTO_SEND_ENABLED=1 while the effective mode is OFF, or !=1 while it is ON."""
+        mode, source = self._send_mode_of(self.config)
+        env = os.getenv("HL_LIVE_AUTO_SEND_ENABLED", "0")
+        line = (f"[send_state] effective_send_mode={mode} source={source} "
+                f"launcher_env_HL_LIVE_AUTO_SEND_ENABLED={env}")
+        if env == "1" and mode == "OFF":
+            line += f" ALERT: launcher env HL_LIVE_AUTO_SEND_ENABLED=1 while effective send mode is OFF"
+        elif env != "1" and mode == "ON":
+            line += f" ALERT: launcher env HL_LIVE_AUTO_SEND_ENABLED={env} while effective send mode is ON"
+        sys.stderr.write(line + "\n")
+        return line
 
     def follower_leverage(self) -> int:
         """Leverage the follower account copies at (global_controls.follower_leverage, default 3, cross margin)."""
@@ -3015,7 +3032,7 @@ class ConfigManager:
             fresh = load_json(self.config_path, None)
             if isinstance(fresh, dict):
                 self._switch_mtime = mtime
-                self._switch_mode = self._send_mode_of(fresh)
+                self._switch_mode = self._send_mode_of(fresh)[0]
         return getattr(self, "_switch_mode", None) or self.send_mode
 
     def _load(self) -> Dict[str, Any]:
@@ -9134,6 +9151,7 @@ class LiveCopyCore:
     def __init__(self, source_csv: Optional[Path] = None):
         ensure_dirs()
         self.cfg = ConfigManager()
+        self._send_state_alert()  # startup audit: effective send mode, source, launcher env (+ mismatch)
         self.ledger = ManualLedger()
         self.audit = AuditLogWriter()
         self.ingestor = LeaderFillIngestor()
@@ -10356,6 +10374,13 @@ class LiveCopyCore:
         except Exception as exc:
             log_error("gate_would_block_row", exc)
 
+    def _send_state_alert(self) -> None:
+        """Emit the effective send mode once at startup and after each config reload."""
+        try:
+            self.cfg.send_state_alert()
+        except Exception as exc:
+            log_error("send_state_alert", exc)
+
     def _daily_loss_block(self) -> str:
         """Entries stop once the follower account has lost max_daily_loss_usd over the last 24 h."""
         limit = self.cfg.max_daily_loss()
@@ -10836,6 +10861,7 @@ class LiveCopyCore:
             self.sender.cfg = self.cfg
         except Exception as exc:
             log_error("hot_config_reload", exc)
+        self._send_state_alert()  # reload audit: effective send mode, source, launcher env (+ mismatch)
         wallet_modes = self.cfg.wallet_mode_counts()
         master_enabled = self.cfg.master_real_orders_enabled
         summary = CycleSummary(
