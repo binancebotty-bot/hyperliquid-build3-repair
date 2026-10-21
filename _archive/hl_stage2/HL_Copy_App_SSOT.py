@@ -1490,6 +1490,9 @@ def _append_exchange_history(snapshot: Dict[str, Any], manual_summary: Dict[str,
     atomic_write_json(EXCHANGE_ACCOUNT_HISTORY_FILE, history)
 
 
+SNAPSHOT_FETCHER = None  # test seam for the perp DEX scope reads; production uses HTTP
+
+
 def _fetch_exchange_account_snapshot(max_age_sec: float = 15.0) -> Dict[str, Any]:
     cached = load_json(EXCHANGE_ACCOUNT_SNAPSHOT_FILE, {})
     now_ms = int(time.time() * 1000)
@@ -1501,6 +1504,7 @@ def _fetch_exchange_account_snapshot(max_age_sec: float = 15.0) -> Dict[str, Any
         and cached.get("spot_account_source")
         and cached.get("realized_pnl_since_baseline_source") is not None
         and cached.get("realized_pnl_selected_source") is not None
+        and cached.get("scope_dexes") is not None  # a pre-fix snapshot has no scope provenance: refetch
         and now_ms - inum(cached.get("fetched_at_ms")) <= int(max_age_sec * 1000)
     ):
         return cached
@@ -1516,15 +1520,22 @@ def _fetch_exchange_account_snapshot(max_age_sec: float = 15.0) -> Dict[str, Any
             pass
         return unavailable
     try:
-        payload = json.dumps({"type": "clearinghouseState", "user": account}).encode("utf-8")
-        req = urllib.request.Request(
-            FOLLOWER_INFO_URL,
-            data=payload,
-            headers={"Content-Type": "application/json"},
-            method="POST",
-        )
-        with urllib.request.urlopen(req, timeout=5) as resp:
-            raw = json.loads(resp.read().decode("utf-8"))
+        # Every perp DEX scope, not just the default: a default-scope clearinghouseState cannot see
+        # HIP-3/builder positions (xyz:*). One unreadable scope fails closed instead of under-reporting.
+        enum = _XNET.list_perp_dexes(fetcher=SNAPSHOT_FETCHER, info_url=FOLLOWER_INFO_URL, timeout=5)
+        if not enum.get("ok"):
+            raise RuntimeError("DEX_ENUM_UNAVAILABLE: " + str(enum.get("detail", "")))
+        dexes = list(enum["dexes"])
+        states: List[tuple] = []
+        for dex in dexes:
+            res = _XNET._post(SNAPSHOT_FETCHER,
+                              {"type": "clearinghouseState", "user": account, **(({"dex": dex}) if dex else {})},
+                              FOLLOWER_INFO_URL, 5)
+            state = res.get("data") if res.get("ok") else None
+            if not isinstance(state, dict) or not isinstance(state.get("assetPositions"), list):
+                raise RuntimeError("SCOPE_UNAVAILABLE: " + (dex or "(default)") + ": " + str(res.get("detail", "no assetPositions")))
+            states.append((dex, state))
+        raw = next((st for d, st in states if not d), states[0][1])  # default scope carries the single-scope fields
         spot_raw: Dict[str, Any] = {}
         spot_parse_status = "NOT_FETCHED"
         try:
@@ -1554,6 +1565,30 @@ def _fetch_exchange_account_snapshot(max_age_sec: float = 15.0) -> Dict[str, Any
             if cross_raw_total_usd is not None
             else ""
         )
+        def _scope_num(state: Dict[str, Any], key: str) -> Optional[float]:
+            for section in ("marginSummary", "crossMarginSummary"):
+                part = state.get(section)
+                if isinstance(part, dict) and key in part:
+                    return fnum(part.get(key))
+            return None
+        def _scope_sum(state_key: str) -> Optional[float]:
+            vals = [v for v in (_scope_num(st, state_key) for _d, st in states) if v is not None]
+            return round(sum(vals), 8) if vals else None
+        account_value_total = _scope_sum("accountValue")
+        margin_used_total = _scope_sum("totalMarginUsed")
+        notional_total = _scope_sum("totalNtlPos")
+        _raw_total_all = _scope_sum("totalRawUsd")
+        if _raw_total_all is not None:
+            raw_total_usd = _raw_total_all
+            raw_total_usd_source = "clearinghouseState.marginSummary.totalRawUsd summed over every perp DEX scope"
+        _wd_vals = [fnum(st.get("withdrawable")) for _d, st in states if is_present_num(st.get("withdrawable"))]
+        withdrawable_total = round(sum(_wd_vals), 8) if _wd_vals else None
+        scope_breakdown = [
+            {"dex": d or "(default)", "account_value": _scope_num(st, "accountValue"),
+             "total_notional_position": _scope_num(st, "totalNtlPos"),
+             "position_count": len(st.get("assetPositions") or [])}
+            for d, st in states
+        ]
         spot_balances = spot_raw.get("balances", []) if isinstance(spot_raw.get("balances"), list) else []
         raw_spot_balances = spot_balances
         usdc_balance = next((b for b in spot_balances if isinstance(b, dict) and str(b.get("coin", "")).upper() == "USDC"), None)
@@ -1579,7 +1614,8 @@ def _fetch_exchange_account_snapshot(max_age_sec: float = 15.0) -> Dict[str, Any
         positions = []
         position_map: Dict[str, Dict[str, Any]] = {}
         unrealized = 0.0
-        for item in raw.get("assetPositions", []) if isinstance(raw, dict) else []:
+        all_positions = [p for _d, _st in states for p in (_st.get("assetPositions") or [])]
+        for item in all_positions:
             pos = item.get("position", item) if isinstance(item, dict) else {}
             if not isinstance(pos, dict):
                 continue
@@ -1608,9 +1644,9 @@ def _fetch_exchange_account_snapshot(max_age_sec: float = 15.0) -> Dict[str, Any
             "account_address": account,
             "updated_at": utc_now_iso(),
             "fetched_at_ms": now_ms,
-            "account_value": fnum(margin.get("accountValue"), fnum(cross.get("accountValue"))),
+            "account_value": account_value_total if account_value_total is not None else fnum(margin.get("accountValue"), fnum(cross.get("accountValue"))),
             "account_value_label": "Clearinghouse account value",
-            "account_value_source": "clearinghouseState.marginSummary.accountValue",
+            "account_value_source": "clearinghouseState.marginSummary.accountValue summed over every perp DEX scope",
             "total_account_value": None,
             "total_account_value_status": "unavailable from clearinghouseState",
             "raw_total_usd": raw_total_usd,
@@ -1626,13 +1662,16 @@ def _fetch_exchange_account_snapshot(max_age_sec: float = 15.0) -> Dict[str, Any
             "raw_spot_balances": raw_spot_balances,
             "spot_account_source": "spotClearinghouseState",
             "spot_parse_status": spot_parse_status,
-            "withdrawable": fnum(withdrawable),
-            "withdrawable_source": "clearinghouseState.withdrawable",
-            "margin_used": fnum(margin.get("totalMarginUsed"), fnum(cross.get("totalMarginUsed"))),
-            "margin_used_source": "clearinghouseState.marginSummary.totalMarginUsed",
-            "total_notional_position": fnum(margin.get("totalNtlPos"), fnum(cross.get("totalNtlPos"))),
+            "withdrawable": withdrawable_total if withdrawable_total is not None else fnum(withdrawable),
+            "withdrawable_source": "clearinghouseState.withdrawable summed over every perp DEX scope",
+            "margin_used": margin_used_total if margin_used_total is not None else fnum(margin.get("totalMarginUsed"), fnum(cross.get("totalMarginUsed"))),
+            "margin_used_source": "clearinghouseState.marginSummary.totalMarginUsed summed over every perp DEX scope",
+            "total_notional_position": notional_total if notional_total is not None else fnum(margin.get("totalNtlPos"), fnum(cross.get("totalNtlPos"))),
+            "total_notional_position_source": "clearinghouseState.marginSummary.totalNtlPos summed over every perp DEX scope",
+            "scope_dexes": dexes,
+            "scope_breakdown": scope_breakdown,
             "unrealized_pnl": unrealized,
-            "unrealized_pnl_source": "sum(assetPositions.position.unrealizedPnl)",
+            "unrealized_pnl_source": "sum(assetPositions.position.unrealizedPnl) over every perp DEX scope",
             "realized_pnl_total": realized_snapshot.get("realized_pnl_total"),
             "realized_pnl_total_source": realized_snapshot.get("realized_pnl_total_source", ""),
             "realized_pnl_today": realized_snapshot.get("realized_pnl_today"),
