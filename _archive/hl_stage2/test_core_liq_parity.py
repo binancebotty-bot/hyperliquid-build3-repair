@@ -228,6 +228,21 @@ def main() -> None:
     check("L9_CLOSES_NEVER_BLOCKED_BY_PARITY", close[1] == SENT,
           "close=%s (a reduce-only close must never be blocked by the parity gate)" % (close,))
 
+    # The send gate already emits this terminal row. The core's generic catch-all must not relabel it.
+    class TerminalRecorder:
+        def __init__(self):
+            self.rows = [("SEND_TERMINAL", "LIQ_PARITY_BLOCKED")]
+        def append_reconciliation(self, event, status, **kwargs):
+            self.rows.append((event, status, kwargs))
+
+    terminal_core = c.LiveCopyCore.__new__(c.LiveCopyCore)
+    terminal_core.audit = TerminalRecorder()
+    parity_intent = mk_intent("ENTRY_ALLOWED", "ENTRY")
+    terminal_core._append_send_terminal(parity_intent.fill, parity_intent, "LIQ_PARITY_BLOCKED")
+    check("L10_PARITY_BLOCK_NOT_RELABELED_UNCLASSIFIED",
+          len(terminal_core.audit.rows) == 1,
+          "terminal rows=%s" % (terminal_core.audit.rows,))
+
     failed = [n for n, ok in RESULTS if not ok]
     print("TOTAL=%d FAILED=%d" % (len(RESULTS), len(failed)))
     raise SystemExit(1 if failed else 0)
