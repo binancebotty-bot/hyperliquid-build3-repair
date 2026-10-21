@@ -13434,7 +13434,26 @@ def main() -> None:
             active_wallets=len(core.wallets),
             hot_send_workers=core.hot_send_workers,
         )
-        core.state_writer.write_startup(startup_summary, core.dedupe, core.cfg)
+        def write_startup_status() -> None:
+            try:
+                core.state_writer.write_startup(startup_summary, core.dedupe, core.cfg)
+            except Exception as exc:
+                startup_summary.ok = False
+                startup_summary.entry_sends_blocked_reason = "STARTUP_ORPHAN_CHECK_WRITER_FAILED"
+                startup_summary.send_block_reason = f"startup status writer failed: {exc}"
+                startup_summary.fatal_errors = 1
+                try:
+                    core.state_writer.write_startup(startup_summary, core.dedupe, core.cfg)
+                except Exception as retry_exc:
+                    raise SystemExit(
+                        f"STARTUP_ORPHAN_CHECK_WRITER_FAILED: {startup_summary.send_block_reason}; "
+                        f"fatal status write failed: {retry_exc}"
+                    ) from retry_exc
+                raise SystemExit(
+                    f"STARTUP_ORPHAN_CHECK_WRITER_FAILED: {startup_summary.send_block_reason}"
+                ) from exc
+
+        write_startup_status()
         # T1b: reconcile orders left open by an earlier crash BEFORE arming (fail closed on an unreadable read)
         try:
             _orphan = core.sender.startup_orphan_order_check()
@@ -13445,7 +13464,7 @@ def main() -> None:
             startup_summary.ok = False
             startup_summary.entry_sends_blocked_reason = "STARTUP_ORPHAN_CHECK_FAILED"
             startup_summary.fatal_errors = 1
-            core.state_writer.write_startup(startup_summary, core.dedupe, core.cfg)
+            write_startup_status()
             raise SystemExit(f"STARTUP_ORPHAN_CHECK_FAILED: {_orphan.get('detail')}")
         copy_poll_interval = max(0.5, float(args.copy_poll_interval))
         core.copy_poll_interval_seconds = copy_poll_interval if args.poll_copy else 0.0
