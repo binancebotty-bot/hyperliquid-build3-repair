@@ -3264,7 +3264,7 @@ class Intent:
     copy_notional: float
     wallet_mode: str
     copy_mode: str
-    decision: str
+    decision: Optional[str]
     reason: str
     sleeve_id: str
     position_id: str
@@ -3278,7 +3278,8 @@ class Intent:
 
     @property
     def send_allowed(self) -> bool:
-        return self.decision in {"ENTRY_ALLOWED", "EXIT_ALLOWED", "SEND_ALLOWED"}
+        return (self.decision in {"ENTRY_ALLOWED", "EXIT_ALLOWED", "SEND_ALLOWED"}
+                or (self.decision is None and classify_send_lifecycle(self) in {"REDUCE", "EXIT"}))
 
 
 @dataclass
