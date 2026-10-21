@@ -6412,8 +6412,6 @@ class SenderGateway:
                 self._last_exit_attempt_ms[coin_key] = utc_now_ms()
                 reserved_exit = True
         if bval(os.getenv("HL_LIVE_MOCK_SEND"), False):
-            if is_exit_like:
-                self._last_exit_attempt_ms.pop(coin_key, None)
             self._append_mock_attempt(intent, "MOCK_ORDER_SENT", timing)
             return True, "MOCK_ORDER_SENT"
         timing["send_real_started_ms"] = utc_now_ms()
@@ -6457,8 +6455,6 @@ class SenderGateway:
             # block a genuine later close because of a non-exchange (symbol/cred) miss.
             if reserved_exit:
                 self._clear_pending_exit(intent)
-            if lifecycle in {"REDUCE", "EXIT"}:
-                self._last_exit_attempt_ms.pop(coin_key, None)
             if result.get("write_send_attempt") or result.get("write_reconciliation"):
                 self._append_local_block_reconciliation(intent, send_status, result)
         return ok, send_status

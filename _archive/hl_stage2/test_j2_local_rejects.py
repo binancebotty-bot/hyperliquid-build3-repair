@@ -407,6 +407,50 @@ exit_second = exit_gw.send_if_allowed(make_intent("EXIT", "SELL", 0.1, wallet_po
 check("J2_5G_REDUCTIONS_NOT_HALTED", exit_first == (True, "ORDER_FILLED"))
 check("J2_5H_EXIT_ATTEMPT_MAX_ONCE_PER_MINUTE", exit_second[1] == "EXIT_ATTEMPT_COOLDOWN")
 
+failed_exit_gw = make_gateway(FakeExchange())
+stub_send(failed_exit_gw, "")
+failed_exit_calls = []
+failed_exit_gw._send_real = lambda intent, timing=None: failed_exit_calls.append(intent) or (
+    False, "SEND_NOT_ATTEMPTED_TEST", {"exchange_called": False})
+saved_now = c.utc_now_ms
+fake_now = [1_800_000_000_000]
+c.utc_now_ms = lambda: fake_now[0]
+try:
+    failed_exit = make_intent("EXIT", "SELL", 0.1, wallet_pos_before=1.0,
+                              coin_net_before=1.0, reduce_only_intended=True)
+    first_failed_exit = failed_exit_gw.send_if_allowed(failed_exit)
+    blocked_failed_exit = failed_exit_gw.send_if_allowed(replace(failed_exit, intent_id="i2"))
+    fake_now[0] += 60001
+    retry_failed_exit = failed_exit_gw.send_if_allowed(replace(failed_exit, intent_id="i3"))
+finally:
+    c.utc_now_ms = saved_now
+check("J2_5I_FAILED_EXIT_COUNTS_FOR_COOLDOWN", first_failed_exit[1] == "SEND_NOT_ATTEMPTED_TEST"
+      and blocked_failed_exit[1] == "EXIT_ATTEMPT_COOLDOWN" and len(failed_exit_calls) == 2)
+check("J2_5J_EXIT_ALLOWED_AFTER_60_SECONDS", retry_failed_exit[1] == "SEND_NOT_ATTEMPTED_TEST"
+      and len(failed_exit_calls) == 2)
+
+mock_exit_gw = make_gateway(FakeExchange())
+mock_exit_gw._pre_send_ownership_gate = lambda intent: (True, {})
+mock_exit_gw.liq_parity_block = lambda intent: None
+saved_mock = os.environ.get("HL_LIVE_MOCK_SEND")
+os.environ["HL_LIVE_MOCK_SEND"] = "1"
+mock_now = [1_800_000_000_000]
+saved_now = c.utc_now_ms
+c.utc_now_ms = lambda: mock_now[0]
+try:
+    mock_exit = make_intent("EXIT", "SELL", 0.1, wallet_pos_before=1.0,
+                            coin_net_before=1.0, reduce_only_intended=True)
+    first_mock_exit = mock_exit_gw.send_if_allowed(mock_exit)
+    second_mock_exit = mock_exit_gw.send_if_allowed(replace(mock_exit, intent_id="i4"))
+finally:
+    c.utc_now_ms = saved_now
+    if saved_mock is None:
+        os.environ.pop("HL_LIVE_MOCK_SEND", None)
+    else:
+        os.environ["HL_LIVE_MOCK_SEND"] = saved_mock
+check("J2_5K_MOCK_EXIT_COUNTS_FOR_COOLDOWN", first_mock_exit[1] == "MOCK_ORDER_SENT"
+      and second_mock_exit[1] == "EXIT_ATTEMPT_COOLDOWN")
+
 
 # ============================================================================
 # SUMMARY
