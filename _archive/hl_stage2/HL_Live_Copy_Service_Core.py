@@ -595,6 +595,7 @@ class TimedLock:
 LEADER_POLL_OVERLAP_MS = int(os.getenv("HL_LIVE_LEADER_POLL_OVERLAP_MS", "30000"))
 POLL_WINDOW_MS = int(os.getenv("HL_LIVE_POLL_WINDOW_MS", str(24 * 60 * 60 * 1000)))
 POLL_MAX_PAGES_PER_WALLET = int(os.getenv("HL_LIVE_POLL_MAX_PAGES_PER_WALLET", "40"))
+LEADER_POLL_RETENTION_MS = 100 * 60 * 1000
 MAX_WALLETS = int(os.getenv("HL_LIVE_WS_MAX_WALLETS", "10"))
 POSITION_EPSILON = float(os.getenv("HL_LIVE_POSITION_EPSILON", "1e-9"))
 STALE_REPLAY_GRACE_MS = int(os.getenv("HL_LIVE_STALE_REPLAY_GRACE_MS", "5000"))
@@ -8098,8 +8099,8 @@ class LeaderFillIngestor:
             return [], "POLL_NETWORK_ERROR"
         fills: List[LeaderFill] = []
         status = "POLL_OK"
-        start = max(0, start_ms)
         end = end_ms or utc_now_ms()
+        start = max(0, start_ms, end - LEADER_POLL_RETENTION_MS)
         for _ in range(POLL_MAX_PAGES_PER_WALLET):
             payload = {"type": "userFillsByTime", "user": wallet, "startTime": start, "endTime": end, "aggregateByTime": False}
             try:
@@ -11494,12 +11495,16 @@ class LiveCopyCore:
         state_for_age = load_json(CORE_RUNTIME_STATE_FILE, {})
         last_copy_poll_ms = copy_cursor_ms()
         summary.last_copy_poll_age_ms = max(0, utc_now_ms() - last_copy_poll_ms) if last_copy_poll_ms else 0
-        # Per-wallet leader poll cursor: avoids re-fetching the full 24h window every cycle.
+        # Per-wallet cursor bounds each backstop read to the retained history window.
         _leader_poll_cursors: Dict[str, int] = {}
+        _reported_outage_gap_floors: Dict[str, int] = {}
         if isinstance(state_for_age, dict):
             _raw_cursor = state_for_age.get("last_leader_poll_cursor_ms")
             if isinstance(_raw_cursor, dict):
                 _leader_poll_cursors = {str(k): int(fnum(v, 0)) for k, v in _raw_cursor.items()}
+            _raw_gaps = state_for_age.get("last_leader_poll_outage_gap_floor_ms")
+            if isinstance(_raw_gaps, dict):
+                _reported_outage_gap_floors = {str(k).lower(): int(fnum(v, 0)) for k, v in _raw_gaps.items()}
         _block = ""  # evaluated in full, then published once: the hot path never sees a half-run gate set
         started = time.monotonic()
         cycle_started_ms = utc_now_ms()
@@ -11591,25 +11596,29 @@ class LiveCopyCore:
                 poll_status = "POLL_OK"
                 now = utc_now_ms()
                 _cursor_updates: Dict[str, int] = {}
-                # backstop to the live feed: catches up from the last good poll, however long ago
-                # (HL_LIVE_POLL_MAX_CATCHUP_MS, default 7 days); first poll backfills the 24 h window.
+                # Backstop to the live feed; history older than the exchange retention window is unavailable.
                 # Run 3: the leaders are read in parallel and re-read only LEADER_POLL_OVERLAP_MS back
                 # (was 5 min of thousands of already-handled fills per busy wallet per cycle).
-                _catchup_ms = max(POLL_WINDOW_MS, int(fnum(os.getenv("HL_LIVE_POLL_MAX_CATCHUP_MS"), 7 * 86400000)))
                 _jobs: List[Tuple[str, int]] = []
+                _retention_floor = now - LEADER_POLL_RETENTION_MS
                 for w in self.poll_wallets():
                     # Skip wallets that are turned off — no fills to copy, avoids wasteful network calls.
                     if self.cfg.wallet_mode(w) == "OFF":
                         continue
                     _cursor = max(_leader_poll_cursors.get(w, 0), self._held_read_cursor.get(w, 0))
-                    _start = (max(_cursor - LEADER_POLL_OVERLAP_MS, now - _catchup_ms)
+                    _start = (max(_cursor - LEADER_POLL_OVERLAP_MS, _retention_floor)
                               if _cursor > 0 else max(0, now - POLL_WINDOW_MS - POLL_OVERLAP_MS))
-                    if _cursor > 0 and _cursor - LEADER_POLL_OVERLAP_MS < now - _catchup_ms:
-                        self.audit.append_reconciliation(
-                            "SEND_TERMINAL", "LEADER_HISTORY_GAP", leader_wallet=w,
-                            action="MANUAL_REVIEW_LEADER_HISTORY_GAP", terminal_state="LEADER_HISTORY_GAP",
-                            notes=(f"last good leader poll {_cursor} is older than the catch-up window "
-                                   f"({_catchup_ms} ms); fills before {now - _catchup_ms} are not replayed"))
+                    if _cursor > 0 and _cursor < _retention_floor:
+                        if _cursor > _reported_outage_gap_floors.get(w, 0):
+                            self.audit.append_reconciliation(
+                                "SEND_TERMINAL", "OUTAGE_GAP", leader_wallet=w,
+                                action="MANUAL_REVIEW_OUTAGE_GAP", terminal_state="OUTAGE_GAP",
+                                notes=(f"last good leader poll {_cursor} predates the retained fill window; "
+                                       f"fills before {_retention_floor} cannot be replayed"))
+                        _reported_outage_gap_floors[w] = _retention_floor
+                        _start = _retention_floor
+                        _cursor_updates[w] = _retention_floor
+                    _start = max(_start, _retention_floor)
                     _jobs.append((w, _start))
                 _results: Dict[str, Tuple[List[LeaderFill], str]] = {}
                 if len(_jobs) > 1:
@@ -11638,7 +11647,7 @@ class LiveCopyCore:
                     # (reading moves on in memory, so the window does not grow every cycle)
                     _hold = bool(self.sender.sender_key_invalid)
                     _next = (now if status == "POLL_OK" else max(f.timestamp_ms for f in wallet_fills) + LEADER_POLL_OVERLAP_MS
-                             if status == "POLL_PARTIAL" and wallet_fills else 0)
+                             if status in {"POLL_PARTIAL", "POLL_NETWORK_ERROR"} and wallet_fills else 0)
                     if _next:
                         if self.async_dispatch:
                             # Polled fills are not in pending_ts until dispatch succeeds.
@@ -11675,6 +11684,11 @@ class LiveCopyCore:
                     if _cursor_updates:
                         _ec.update(_cursor_updates)
                     _cs["last_leader_poll_cursor_ms"] = _ec
+                    _reported_outage_gap_floors = {
+                        w: floor for w, floor in _reported_outage_gap_floors.items()
+                        if w in _active_cursor_wallets and int(fnum(_cursor_updates.get(w), 0)) <= floor
+                    }
+                    _cs["last_leader_poll_outage_gap_floor_ms"] = _reported_outage_gap_floors
                     _cs["last_leader_poll_status"] = poll_status
                     _cs["last_leader_poll_status_ms"] = now
                     atomic_write_json(CORE_RUNTIME_STATE_FILE, _cs)
