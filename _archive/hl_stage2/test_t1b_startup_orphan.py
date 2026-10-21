@@ -55,7 +55,7 @@ def main() -> None:
     def recon_rows():
         return c.read_csv_rows(c.RECONCILIATION_CSV)
 
-    def run(orders=None, raise_read=False, known_cloid="", pending_attempt=""):
+    def run(orders=None, raise_read=False, known_cloid="", pending_attempt="", alert_only=False):
         # fresh state per scenario
         c.atomic_write_json(c.RESTING_ENTRY_ORDERS_FILE, {})
         c.SEND_ATTEMPTS_CSV.write_text("", encoding="utf-8") if c.SEND_ATTEMPTS_CSV.exists() else None
@@ -75,7 +75,10 @@ def main() -> None:
         fake = FakeExchange()
         gw = c.SenderGateway(c.ConfigManager(), c.AuditLogWriter())
         gw._exchange_client_for_coin = lambda coin: (fake, "BTC")
-        res = gw.startup_orphan_order_check()
+        try:
+            res = gw.startup_orphan_order_check(alert_only=alert_only)
+        except TypeError:
+            res = {"ok": False, "detail": "alert_only is not supported", "alerts": []}
         return res, fake, gw
 
     # ---- B1: a matched order (by cloid) is adopted, not cancelled -----------------------------------
@@ -97,6 +100,14 @@ def main() -> None:
     check("B5_UNMATCHED_CANCELLED", res["ok"] and fake.cancels == [("BTC", 777)] and len(res["cancelled"]) == 1, str(res))
     cancelled = [r for r in recon_rows() if r.get("event") == "STARTUP_ORPHAN" and r.get("status") == "ORPHAN_ORDER_CANCELLED"]
     check("B6_CANCEL_AUDITED", len(cancelled) == 1 and cancelled[0].get("exchange_order_id") == "777", str(cancelled)[:300])
+
+    # ---- B6A: asynchronous startup diagnostic never cancels an unmatched order -----------------------
+    res, fake, _ = run(orders=[{"oid": 778, "coin": "BTC", "side": "A", "sz": "2.0", "limitPx": "99",
+                                 "cloid": "0x" + "e" * 32}], alert_only=True)
+    alerts = [r for r in recon_rows() if r.get("event") == "STARTUP_ORPHAN" and r.get("status") == "ORPHAN_ORDER_REVIEW_REQUIRED"]
+    check("B6A_ALERT_ONLY_UNKNOWN_ORDER_NOT_CANCELLED",
+          res["ok"] and not fake.cancels and len(res.get("alerts", [])) == 1
+          and len(alerts) == 1 and alerts[0].get("exchange_order_id") == "778", str(res))
 
     # ---- B7: an order with no cloid but an oid we already hold is adopted ----------------------------
     c.atomic_write_json(c.RESTING_ENTRY_ORDERS_FILE, {"888": {"oid": "888", "coin": "BTC", "side": "BUY",
