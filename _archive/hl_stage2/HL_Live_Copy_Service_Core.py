@@ -4072,6 +4072,10 @@ class IntentBuilder:
             # EXIT must target the full wallet-owned sleeve regardless of fixed_notional.
             # fixed_notional / proportional sizing is an ENTRY/ADD concept only.
             copy_size = round(abs(before), 8)
+            # a trim close names its own size: never more than the wallet-owned sleeve
+            trim_size = fnum((fill.raw or {}).get("close_size"), 0.0)
+            if 0.0 < trim_size < copy_size:
+                copy_size = round(trim_size, 8)
             copy_notional = copy_size * fill.price
         intent_id = stable_hash(["intent", fill.leader_fill_id, wallet, coin, fill.side, fill.timestamp_ms])
         position_id = ""
@@ -9242,6 +9246,7 @@ class LiveCopyCore:
         self._converge_seen: Dict[Tuple[str, str, str], int] = {}   # sleeve -> first read showing the leader left
         self._converge_sent: Dict[Tuple[str, str, str], int] = {}   # sleeve -> last close queued
         self._converge_tries: Dict[Tuple[str, str, str], int] = {}  # sleeve -> closes queued so far
+        self._converge_lead_base: Dict[Tuple[str, str, str], Tuple[float, float]] = {}  # sleeve -> (leader net, sleeve size) it was opened at
         self._converge_last: Dict[str, Any] = {}
         self._hot_threads: List[threading.Thread] = []
         self._pending_seen: Dict[str, Tuple[int, str, str, str]] = {}  # guard key -> (queued at ms, wallet, coin, fill id)
@@ -10804,9 +10809,19 @@ class LiveCopyCore:
                 px_now = follower_mid(coin)
                 eff_min = self._converge_effective_min(coin)
                 is_candidate, reason = self._converge_candidate(size, px_now, lead, entry_px, coin)
-                if not is_candidate:
-                    continue  # the leader still holds this side and the sleeve is not a sub-minimum remainder
                 key = (wallet, canonical_coin_key(coin), pid)
+                close_amt = abs(size)
+                if not is_candidate:
+                    # leader still on our side: if their position shrank, trim the sleeve to the same ratio
+                    base = self._converge_lead_base.get(key)
+                    if (lead * size <= 0 or base is None or base[0] * lead <= 0
+                            or abs(lead) > abs(base[0]) + 1e-12):  # flat/opposite, first sight, or the leader grew
+                        self._converge_lead_base[key] = (lead, size)
+                        continue
+                    remainder = abs(size) - abs(base[1] * lead / base[0])
+                    if remainder <= POSITION_EPSILON or px_now <= 0 or remainder * px_now < eff_min:
+                        continue  # nothing to trim, or under the one minimum: wait (ruling C), never send dust
+                    reason, close_amt = "TRIM_TO_TARGET", remainder
                 seen_now.add(key)
                 out["candidates"] += 1
                 first = self._converge_seen.setdefault(key, now)
@@ -10826,9 +10841,10 @@ class LiveCopyCore:
                         continue
                 close_side = "SELL" if size > 0 else "BUY"
                 fill = LeaderFill(f"converge:{wallet}:{canonical_coin_key(coin)}:{now}", wallet, coin, close_side, px,
-                                  abs(size), now, "CONVERGE", 0,
+                                  close_amt, now, "CONVERGE", 0,
                                   {"dir": "Close Long" if size > 0 else "Close Short", "converge_reason": reason,
-                                   "leader_net_now": lead, "position_id": pid, "sleeve_size": size})
+                                   "leader_net_now": lead, "position_id": pid, "sleeve_size": size,
+                                   "close_size": close_amt})
                 self.audit.append_reconciliation(
                     "CONVERGE_CLOSE", f"CONVERGE_{reason}_QUEUED", leader_wallet=wallet, coin=coin,
                     action="QUEUE_CONVERGE_CLOSE_REDUCE_ONLY", leader_fill_id=fill.leader_fill_id,
@@ -10849,6 +10865,7 @@ class LiveCopyCore:
         for key in [k for k in self._converge_seen if k not in seen_now]:
             self._converge_seen.pop(key, None)  # the leader is back on our side (or the sleeve closed): start over
             self._converge_tries.pop(key, None)
+            self._converge_lead_base.pop(key, None)
         out["status"] = "CONVERGE_CHECKED"
         self._converge_last = out
         return out
