@@ -8020,7 +8020,7 @@ TRACE_KEEP_FILES = max(1, int(os.environ.get("HL_TRACE_KEEP_FILES", "12") or 12)
 TRACE_MAX_BYTES_FILL = int(os.environ.get("HL_FILL_TRACE_MAX_BYTES", "32000000") or 32000000)
 TRACE_MAX_BYTES_POLL = int(os.environ.get("HL_POLL_TRACE_MAX_BYTES", "16000000") or 16000000)
 FILL_TRACE_BATCH_WRITES = 128
-
+FILL_TRACE_QUEUE_MAX = max(1, int(os.environ.get("HL_FILL_TRACE_QUEUE_MAX", "100000") or 100000))
 
 def rotate_trace_file(path: Path, max_bytes: int, keep: int = 0) -> None:
     """Rotate a diagnostic jsonl once it passes max_bytes: x.jsonl -> x.jsonl.1 -> x.jsonl.2 ... keeping `keep` old files
@@ -9691,6 +9691,12 @@ class LiveCopyCore:
         self._inflight: Dict[int, Tuple[str, int, str, str, str]] = {}  # thread id -> (fill id, started ms, thread name, wallet, coin)
         self._stuck_dumped: set = set()
         self._past_send_keys: set = set()  # guard keys whose processing reached the send call
+        self._fill_trace_condition = threading.Condition()
+        self._fill_trace_buffer = collections.deque(maxlen=FILL_TRACE_QUEUE_MAX)
+        self._fill_trace_dropped = 0
+        self._fill_trace_writer_done = False
+        self._fill_trace_writer = threading.Thread(target=self._fill_trace_writer_loop, daemon=True, name="HLCore-fill-trace-writer")
+        self._fill_trace_writer.start()
         self._queue_depth_thread = threading.Thread(target=self._queue_depth_loop, daemon=True, name="HLCore-queue-depth")
         self._queue_depth_thread.start()
         threading.Thread(target=self._pending_sweeper, daemon=True, name="HLCore-pending-sweeper").start()
@@ -9715,6 +9721,12 @@ class LiveCopyCore:
         qt = getattr(self, "_queue_depth_thread", None)
         if qt is not None and qt.is_alive() and qt is not threading.current_thread():
             qt.join(timeout=1.0)
+        ft = getattr(self, "_fill_trace_writer", None)
+        if ft is not None and ft.is_alive() and ft is not threading.current_thread():
+            with self._fill_trace_condition:
+                self._fill_trace_writer_done = True
+                self._fill_trace_condition.notify()
+            ft.join(timeout=5.0)
         _drain_status_write_workers()
 
     def _prewarm_with_parity(self, fill: LeaderFill, local_block: bool, converge: bool = False) -> None:
@@ -9967,10 +9979,30 @@ class LiveCopyCore:
         planned.sort(key=lambda p: (p[0], p[1], p[2]))
         return [f for _p, _t, _i, merged in planned for f in merged]
 
+    def _fill_trace_writer_loop(self) -> None:
+        while True:
+            with self._fill_trace_condition:
+                while not self._fill_trace_buffer and not self._fill_trace_writer_done:
+                    self._fill_trace_condition.wait(timeout=1.0)
+                if not self._fill_trace_buffer and self._fill_trace_writer_done:
+                    return
+                batch = list(self._fill_trace_buffer)
+                self._fill_trace_buffer.clear()
+                dropped = self._fill_trace_dropped
+                self._fill_trace_dropped = 0
+            try:
+                path = Path(CORE_RUNTIME_STATE_FILE).parent / "fill_trace.jsonl"
+                if dropped:
+                    batch.insert(0, json.dumps({"ts": utc_now_ms(), "k": "fill_trace_drop", "count": dropped}, separators=(",", ":")) + "\n")
+                rotate_trace_file(path, TRACE_MAX_BYTES_FILL)
+                with open(path, "a", encoding="utf-8") as fh:
+                    fh.writelines(batch)
+            except Exception as exc:
+                log_error("fill_trace", exc)
+
     def _fill_trace(self, kind: str, fill: Optional["LeaderFill"], extra: Optional[Dict[str, Any]] = None) -> None:
-        """Keep lifecycle and timing evidence in the rotated trace, including fills that never reach send-attempt CSV."""
+        """Queue one lifecycle record without waiting on file I/O or other producers."""
         try:
-            path = Path(CORE_RUNTIME_STATE_FILE).parent / "fill_trace.jsonl"
             rec = {"ts": utc_now_ms(), "k": kind}
             if fill is not None:
                 raw = fill.raw if isinstance(fill.raw, dict) else {}
@@ -9982,38 +10014,15 @@ class LiveCopyCore:
                     rec["stamps"] = dict(stamps)
             rec.update(extra or {})
             if "status_of" in rec:
-                _r = rec.pop("status_of")
-                rec["status"] = str(_r[1]) if isinstance(_r, tuple) and len(_r) > 1 else ""
+                result = rec.pop("status_of")
+                rec["status"] = str(result[1]) if isinstance(result, tuple) and len(result) > 1 else ""
             line = json.dumps(rec, separators=(",", ":")) + "\n"
-            lock = self.__dict__.setdefault("_fill_trace_lock", threading.Lock())
-            batch = None
-            with lock:
-                buffer = self.__dict__.setdefault("_fill_trace_buffer", [])
-                buffer.append(line)
-                force_flush = kind in {"proc_start", "proc_end", "cycle_start", "cycle_end"}
-                if len(buffer) >= FILL_TRACE_BATCH_WRITES or force_flush:
-                    batch = buffer[:]
-                    buffer.clear()
-                    batch_id = self.__dict__.setdefault("_fill_trace_next_batch_id", 0)
-                    self.__dict__["_fill_trace_next_batch_id"] = batch_id + 1
-                    self.__dict__["_fill_trace_size_check_writes"] = (
-                        self.__dict__.get("_fill_trace_size_check_writes", 0) + len(batch))
-                    check_size = self.__dict__["_fill_trace_size_check_writes"] >= FILL_TRACE_BATCH_WRITES
-                    if check_size:
-                        self.__dict__["_fill_trace_size_check_writes"] -= FILL_TRACE_BATCH_WRITES
-            if batch is not None:
-                condition = self.__dict__.setdefault("_fill_trace_flush_condition", threading.Condition())
-                with condition:
-                    while batch_id != self.__dict__.get("_fill_trace_written_batch_id", 0):
-                        condition.wait()
-                    try:
-                        if check_size:
-                            rotate_trace_file(path, TRACE_MAX_BYTES_FILL)
-                        with open(path, "a", encoding="utf-8") as fh:
-                            fh.writelines(batch)
-                    finally:
-                        self.__dict__["_fill_trace_written_batch_id"] = batch_id + 1
-                        condition.notify_all()
+            with self._fill_trace_condition:
+                if len(self._fill_trace_buffer) >= FILL_TRACE_QUEUE_MAX:
+                    self._fill_trace_dropped += 1
+                else:
+                    self._fill_trace_buffer.append(line)
+                    self._fill_trace_condition.notify()
         except Exception as exc:
             log_error("fill_trace", exc)
 
