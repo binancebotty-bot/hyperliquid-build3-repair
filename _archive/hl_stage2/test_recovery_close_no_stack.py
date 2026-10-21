@@ -1,4 +1,5 @@
 import importlib.util
+import inspect
 import sys
 from pathlib import Path
 from types import SimpleNamespace
@@ -57,6 +58,7 @@ def gateway(exchange):
     gw = core.SenderGateway.__new__(core.SenderGateway)
     gw.ledger = Ledger()
     gw.audit = Audit()
+    gw.cfg = SimpleNamespace(marketable_bps=lambda: 20.0)
     gw._untradeable_coins = {}
     gw._recovery_orders = {}
     gw._recovery_backoff = {}
@@ -132,10 +134,36 @@ def test_no_book_is_counted_and_stops():
     assert gw.audit.rows[-1][0][0] == 'BLOCKED_CLO_ENTRY_DISPATCH'
 
 
+def test_no_book_preserves_existing_recovery():
+    exchange = Exchange()
+    exchange.orders[63322509225] = {'coin': 'XYZ:SKHX', 'oid': 63322509225, 'reduceOnly': True}
+    gw = gateway(exchange)
+    core.BOOK_FETCHER = lambda coin: {'bid': 0, 'ask': 0}
+    queue(gw, exchange)
+    assert set(exchange.orders) == {63322509225}
+    assert not exchange.cancelled
+
+
+def test_slippage_bound_and_successful_fill_clear_state():
+    exchange = Exchange()
+    gw = gateway(exchange)
+    core.BOOK_FETCHER = lambda coin: {'bid': 890.0, 'ask': 890.2}
+    queue(gw, exchange)
+    assert not exchange.orders
+    assert gw.audit.rows[-1][0][1] == 'EXIT_RECOVERY_PRICE_OUT_OF_BOUNDS'
+    gw._recovery_backoff['sleeve-xyz-skhx'] = 3
+    gw._recovery_next_attempt_ms['sleeve-xyz-skhx'] = 9999999999999
+    gw._recovery_orders['sleeve-xyz-skhx'] = {'oid': 99}
+    assert 'clear_recovery_state(intent.sleeve_id)' in inspect.getsource(core.SenderGateway._send_real)
+    gw.clear_recovery_state('sleeve-xyz-skhx')
+    assert not gw._recovery_backoff and not gw._recovery_next_attempt_ms and not gw._recovery_orders
+
+
 if __name__ == '__main__':
     failed = 0
     for test in (test_eight_cycle_trace_never_stacks, test_restart_and_cancel_failure_fail_closed,
-                 test_backoff_grows_caps_and_blocks_failed_producer_retry, test_no_book_is_counted_and_stops):
+                 test_backoff_grows_caps_and_blocks_failed_producer_retry, test_no_book_is_counted_and_stops,
+                 test_no_book_preserves_existing_recovery, test_slippage_bound_and_successful_fill_clear_state):
         try:
             test()
             print('PASS', test.__name__)

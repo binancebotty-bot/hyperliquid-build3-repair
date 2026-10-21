@@ -3038,16 +3038,24 @@ class SenderGateway:
         if close_size <= POSITION_EPSILON or wallet_pos * ManualLedger.signed_delta(intent.copy_side, 1.0) >= 0:
             self.clear_recovery_state(sleeve_key)
             return
-        if not self._cancel_existing_recovery(exchange, sdk_coin, sleeve_key):
-            self.audit.append_reconciliation('EXIT_RECOVERY', 'EXIT_RECOVERY_CANCEL_FAILED', leader_wallet=intent.fill.leader_wallet, leader_fill_id=intent.fill.leader_fill_id, intent_id=intent.intent_id, coin=intent.fill.coin, action='NO_SEND_CANCEL_FAILED', reject_category='IOC_NO_IMMEDIATE_MATCH', terminal_state='EXIT_RECOVERY_REQUIRED', notes=f'sleeve_id={sleeve_key}; existing recovery was not replaced')
-            return
+        # Check replacement viability before cancelling a valid resting close.
         quote = follower_book_quote(sdk_coin, intent.copy_side)
         recovery_px = fnum(quote.get('executable_price'), 0.0)
         if not quote.get('ok') or recovery_px <= 0:
             self._untradeable_coins[str(sdk_coin or '').strip().lower()] = 'NO_BOOK'
             self.audit.append_reconciliation('BLOCKED_CLO_ENTRY_DISPATCH', 'BLOCKED_CLO_ENTRY_DISPATCH', leader_wallet=intent.fill.leader_wallet, leader_fill_id=intent.fill.leader_fill_id, intent_id=intent.intent_id, coin=intent.fill.coin, action='NO_SEND_NO_BOOK', reject_category='NO_BOOK', terminal_state='BLOCKED_CLO_ENTRY_DISPATCH', notes=f'sleeve_id={sleeve_key}; sdk_coin={sdk_coin}')
             return
-        notes = f'intent_id={intent.intent_id}; sleeve_id={sleeve_key}; coin={intent.fill.coin}; side={intent.copy_side}; queued_close_size={close_size}; limit_price={recovery_px}; leader_price={intent.fill.price}; wallet_position_before={wallet_pos}; ioc_error={parsed_error}; recovery_book_price={recovery_px}'
+        slippage_bps = max(0.0, fnum(self.cfg.marketable_bps(), DEFAULT_SLIPPAGE_BPS))
+        bound = slippage_bps / 10000.0
+        adverse = (recovery_px < limit_px * (1.0 - bound) if intent.copy_side == 'SELL'
+                   else recovery_px > limit_px * (1.0 + bound))
+        if adverse:
+            self.audit.append_reconciliation('EXIT_RECOVERY', 'EXIT_RECOVERY_PRICE_OUT_OF_BOUNDS', leader_wallet=intent.fill.leader_wallet, leader_fill_id=intent.fill.leader_fill_id, intent_id=intent.intent_id, coin=intent.fill.coin, action='NO_SEND_RECOVERY_SLIPPAGE', reject_category='RECOVERY_PRICE_OUT_OF_BOUNDS', terminal_state='EXIT_RECOVERY_REQUIRED', notes=f'sleeve_id={sleeve_key}; failed_ioc_price={limit_px}; follower_book_price={recovery_px}; marketable_bps={slippage_bps}')
+            return
+        if not self._cancel_existing_recovery(exchange, sdk_coin, sleeve_key):
+            self.audit.append_reconciliation('EXIT_RECOVERY', 'EXIT_RECOVERY_CANCEL_FAILED', leader_wallet=intent.fill.leader_wallet, leader_fill_id=intent.fill.leader_fill_id, intent_id=intent.intent_id, coin=intent.fill.coin, action='NO_SEND_CANCEL_FAILED', reject_category='IOC_NO_IMMEDIATE_MATCH', terminal_state='EXIT_RECOVERY_REQUIRED', notes=f'sleeve_id={sleeve_key}; existing recovery was not replaced')
+            return
+        notes = f'intent_id={intent.intent_id}; sleeve_id={sleeve_key}; coin={intent.fill.coin}; side={intent.copy_side}; queued_close_size={close_size}; limit_price={recovery_px}; leader_price={intent.fill.price}; wallet_position_before={wallet_pos}; ioc_error={parsed_error}; recovery_book_price={recovery_px}; marketable_bps={slippage_bps}'
         try:
             recovery_response = self._place_order(exchange, sdk_coin, intent.copy_side == 'BUY', close_size, recovery_px, 'Gtc', True)
             ok, status, oid, error = self._parse_hl_response(recovery_response)
@@ -3708,6 +3716,8 @@ class SenderGateway:
                                          "Ioc", use_reduce_only, timing, "exchange_call_started_ms")
             timing["exchange_call_finished_ms"] = utc_now_ms()
             ok, status, oid, parsed_error = self._parse_hl_response(response)
+            if ok and status == "ORDER_FILLED" and use_reduce_only:
+                self.clear_recovery_state(intent.sleeve_id)
             reject_category = classify_reject_category(parsed_error, response) if status == "ORDER_REJECTED" else ""
             if status == "ORDER_REJECTED" and self._is_builder_coin(resolved):
                 self._note_untradeable_coin(sdk_coin, reject_category)
