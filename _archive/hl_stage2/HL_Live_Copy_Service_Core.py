@@ -3398,19 +3398,24 @@ class ConfigManager:
     def active_wallets(self) -> List[str]:
         return [w for w in self.wallets() if self.wallet_enabled(w) and self.wallet_mode(w) != "OFF"]
 
+    def live_wallets(self) -> List[str]:
+        """Fully-copied wallets. wallet_mode() canonicalises LIVE to "ON"; CLO and OFF are not here."""
+        return [w for w in self.wallets() if self.wallet_enabled(w) and self.wallet_mode(w) == "ON"]
+
+    def live_over_stream_cap(self) -> bool:
+        """More LIVE wallets than the leader stream can follow - the one rule both gates share.
+        CLO is followed by polling only, so it never counts against MAX_WALLETS."""
+        return len(self.live_wallets()) > MAX_WALLETS
+
     def stream_wallets(self) -> List[str]:
-        """Wallets the leader stream follows: active ones first, so an OFF wallet never takes the
-        slot of a live one. More active wallets than slots is refused, never silently dropped.
+        """Wallets the leader stream follows: LIVE only, at most MAX_WALLETS. CLO and OFF never take
+        a websocket slot (controller ruling 6313307039); they ride REST polling (see
+        LiveCopyCore.poll_wallets), so a CLO wallet loses no leader fill. More LIVE wallets than
+        slots is refused by live_over_stream_cap(), never silently dropped.
 
         With HL_LIVE_WS_RANK_CSV set the candidates are first ordered by 24 h fill volume, so the
-        scarce WS slots go to the busiest leaders instead of to config-dict order (active-first
-        partition: active wallets fill the first slots, OFF wallets only fill the remainder.
-        Every active leader is still REST-polled
-        (see LiveCopyCore.poll_wallets), so a wallet outranked out of the feed loses nothing."""
-        active = self.active_wallets()
-        rest = [w for w in self.wallets() if w not in active]
-        n_active = min(len(active), MAX_WALLETS)
-        return self._by_fill_rank(active)[:n_active] + self._by_fill_rank(rest)[:MAX_WALLETS - n_active]
+        scarce WS slots go to the busiest leaders instead of to config-dict order."""
+        return self._by_fill_rank(self.live_wallets())[:MAX_WALLETS]
 
     def _by_fill_rank(self, cands: List[str]) -> List[str]:
         """cands ordered by fills_24h DESC from the CSV named by HL_LIVE_WS_RANK_CSV. Env unset, file
@@ -11329,8 +11334,8 @@ class LiveCopyCore:
                     _prev_counts = _prev_integrity.get("counts") or {}
                     if int(fnum(_prev_counts.get("filled_without_live_fill_beyond_grace"), 0)) > 0:
                         _block = "UNRECONCILED_FILLED_SENDS"
-            # Gate 4: more active wallets than the leader stream can follow (refused, never dropped)
-            if not _block and not set(self.cfg.active_wallets()) <= set(self.cfg.stream_wallets()):
+            # Gate 4: more LIVE wallets than the leader stream can follow (CLO rides polling; refused, never dropped)
+            if not _block and self.cfg.live_over_stream_cap():
                 _block = "TOO_MANY_ACTIVE_WALLETS"
             # Gate 5: Global Controls daily loss limit (rolling 24 h follower PnL; unreadable fails closed)
             if not _block:
@@ -13572,10 +13577,10 @@ def main() -> None:
             raise SystemExit(f"SENDER_KEY_NOT_VALID_ON_FOLLOWER_NETWORK: {_key['detail']}")
         if _key["ok"] is None:
             print(f"WARNING: {_key['detail']}; a rejection on the first order will stop all sending", file=sys.stderr)
-        _active = ConfigManager().active_wallets()
-        if len(_active) > MAX_WALLETS:
-            raise SystemExit(f"TOO_MANY_ACTIVE_WALLETS: {len(_active)} wallets are LIVE/CLO but the leader stream "
-                             f"follows at most {MAX_WALLETS}; set the extra wallets to OFF")
+        _cfg = ConfigManager()
+        if _cfg.live_over_stream_cap():
+            raise SystemExit(f"TOO_MANY_ACTIVE_WALLETS: {len(_cfg.live_wallets())} wallets are LIVE but the leader stream "
+                             f"follows at most {MAX_WALLETS}; set the extra wallets to CLO (polled) or OFF")
         source_path = Path(args.source_file) if args.source_file else None
         core = LiveCopyCore(source_csv=source_path or RAW_LEADER_FILLS_CSV)
         core.async_dispatch = bool(args.loop)  # loop mode: sends never hold up the polls and the ledger
