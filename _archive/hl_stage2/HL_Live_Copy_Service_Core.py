@@ -5665,20 +5665,37 @@ class ExchangeReconciler:
         self.audit = audit
 
     def fetch_snapshot(self) -> Tuple[Dict[str, Any], str]:
+        """Startup/recovery truth over every perp DEX scope (default + HIP-3/builder).
+        A missing or unreadable required scope refuses: a default-only snapshot can read flat
+        while the exchange holds a builder-DEX position."""
         if not USER_WALLET or requests is None:
             return {}, "SNAPSHOT_UNAVAILABLE"
         try:
-            r = requests.post(HL_INFO_URL, json={"type": "clearinghouseState", "user": USER_WALLET}, timeout=HTTP_TIMEOUT_SEC)
-            data = r.json()
-            if isinstance(data, dict):
-                positions_by_coin = self._positions_from_snapshot(data)
-                # clearinghouseState omits XYZ/exotic perp positions; supplement from fill history.
-                xyz_positions = self._xyz_positions_from_app_snapshot()
-                xyz_positions.update(xyz_state_positions(include_zero=False))
-                positions_by_coin.update(xyz_positions)
-                snapshot = {"created_at": utc_now_iso(), "created_at_ms": utc_now_ms(), "raw": data, "positions_by_coin": positions_by_coin}
-                atomic_write_json(EXCHANGE_ACCOUNT_SNAPSHOT_FILE, snapshot)
-                return snapshot, "SNAPSHOT_OK"
+            enum = _XNET.list_perp_dexes(EXPOSURE_FETCHER, HL_INFO_URL, HTTP_TIMEOUT_SEC)
+            if not enum.get("ok"):
+                return {}, str(enum.get("status") or "DEX_ENUM_UNAVAILABLE")
+            data, positions_by_coin = None, {}
+            for dex in enum["dexes"]:
+                payload = {"type": "clearinghouseState", "user": USER_WALLET}
+                if dex:
+                    payload["dex"] = dex
+                res = _XNET._post(EXPOSURE_FETCHER, payload, HL_INFO_URL, HTTP_TIMEOUT_SEC)
+                scope = res.get("data") if res.get("ok") else None
+                if not isinstance(scope, dict) or not isinstance(scope.get("assetPositions"), list):
+                    return {}, "SNAPSHOT_SCOPE_UNAVAILABLE:%s" % (dex or "(default)")
+                if not dex:
+                    data = scope
+                for coin, size in self._positions_from_snapshot(scope).items():
+                    positions_by_coin[coin] = positions_by_coin.get(coin, 0.0) + size
+            if data is None:
+                return {}, "SNAPSHOT_SCOPE_UNAVAILABLE:(default)"
+            # clearinghouseState omits XYZ/exotic perp positions; supplement from fill history.
+            xyz_positions = self._xyz_positions_from_app_snapshot()
+            xyz_positions.update(xyz_state_positions(include_zero=False))
+            positions_by_coin.update(xyz_positions)
+            snapshot = {"created_at": utc_now_iso(), "created_at_ms": utc_now_ms(), "raw": data, "positions_by_coin": positions_by_coin}
+            atomic_write_json(EXCHANGE_ACCOUNT_SNAPSHOT_FILE, snapshot)
+            return snapshot, "SNAPSHOT_OK"
         except Exception as exc:
             log_error("fetch_exchange_snapshot", exc)
         return {}, "SNAPSHOT_UNAVAILABLE"

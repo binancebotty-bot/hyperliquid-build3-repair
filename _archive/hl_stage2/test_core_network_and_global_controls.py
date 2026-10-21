@@ -112,7 +112,7 @@ print(json.dumps(calls))
                                      "HL_LIVE_AUDIT_DIR": str(Path(tempfile.mkdtemp()))}))
     check("N6_LEADER_FILLS_FROM_LEADER_NETWORK", isinstance(calls, list) and calls[0] == [M_INFO, "userFillsByTime"], str(calls))
     check("N6_FOLLOWER_FILLS_MIDS_AND_SNAPSHOT_FROM_FOLLOWER_NETWORK",
-          isinstance(calls, list) and calls[1:] == [[T_INFO, "userFillsByTime"], [T_INFO, "allMids"], [T_INFO, "clearinghouseState"]],
+          isinstance(calls, list) and calls[1:] == [[T_INFO, "userFillsByTime"], [T_INFO, "allMids"], [T_INFO, "perpDexs"], [T_INFO, "clearinghouseState"]],
           str(calls))
 
     lock = "import sys, time, HL_Live_Copy_Service_Core as c; c.acquire_instance_lock(c.AUDIT_DIR); print('LOCKED', flush=True); time.sleep(float(sys.argv[1]))"
