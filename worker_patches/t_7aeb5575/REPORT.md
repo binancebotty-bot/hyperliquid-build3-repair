@@ -3,7 +3,7 @@ Fill-trace lock-scope repair report
 Card: t_7aeb5575
 Base: b44e78d2989a5707de34220f91a58bd48d446374
 Branch: wt/t_7aeb5575
-HEAD: 11fc8f6cd154791115afaf8ac27007cb2d1c3be6
+HEAD: code commit 11fc8f6cd154791115afaf8ac27007cb2d1c3be6
 
 Changed files
 - _archive/hl_stage2/HL_Live_Copy_Service_Core.py
@@ -24,6 +24,10 @@ Lock-scope change
 
 Measured T2 latency
 0.0 ms in the green run (threshold: <200 ms).
+
+Bundles
+- worker_patches/t_7aeb5575/t_7aeb5575-thin-base-diff.bundle
+- worker_patches/t_7aeb5575/t_7aeb5575-full.bundle
 
 Known boundary
 The persistent handle is intentionally kept open for the Core lifetime, so ad-hoc Windows tests must close the handle before deleting its temporary directory. The new acceptance test does this explicitly.
