@@ -1289,7 +1289,8 @@ def _live_order_intents_path() -> Path:
 
 
 def _engine_alert() -> str:
-    """Plain-words red banner from the engine's own state: sending stopped, or new entries paused."""
+    """Plain-words red banner from the engine's own state: sending stopped, or new entries paused,
+    or env/config send gate disagreement."""
     st = load_json(LIVE_COPY_SERVICE_STATE_FILE, {})
     st = st if isinstance(st, dict) else {}
     if st.get("sender_key_invalid"):
@@ -1297,6 +1298,21 @@ def _engine_alert() -> str:
                 f"({st.get('sender_key_invalid')}). Fix the key in the {FOLLOWER_NETWORK} settings and restart the engine.")
     if st.get("entry_sends_blocked_reason"):
         return f"NEW ENTRIES PAUSED: {st.get('entry_sends_blocked_reason')} (exits still run)"
+    # Check for env/config send gate disagreement
+    live_config = _load_live_copy_config()
+    gc = live_config.get("global_controls") if isinstance(live_config.get("global_controls"), dict) else {}
+    config_send_mode = str(gc.get("send_mode") or "").upper()
+    env_enabled = _local_env_value("HL_LIVE_AUTO_SEND_ENABLED") == "1"
+    if config_send_mode in {"ON", "OFF"}:
+        config_enabled = config_send_mode == "ON"
+        if config_enabled != env_enabled:
+            return (f"SEND GATE MISMATCH: config send_mode={config_send_mode} but "
+                    f"HL_LIVE_AUTO_SEND_ENABLED={'1' if env_enabled else '0'} -- config wins")
+    if config_send_mode == "CLOSE":
+        # CLOSE is armed (master switch ON) but entry-blocked
+        if not env_enabled:
+            return (f"SEND GATE MISMATCH: config send_mode=CLOSE (armed) but "
+                    f"HL_LIVE_AUTO_SEND_ENABLED=0 -- config wins")
     return ""
 
 
