@@ -161,6 +161,7 @@ HL_EXCHANGE_URL = os.getenv("HL_LIVE_ORDER_ENDPOINT") or NETWORKS["follower"]["e
 EXPOSURE_FETCHER = None  # test seam for follower exposure reads; production uses HTTP
 LEADER_FETCHER = None  # test seam for leader equity reads; production uses HTTP
 MIDS_FETCHER = None  # test seam for follower mid reads; production uses HTTP
+MASTER_TRUTH_FETCHER = None  # test seam for MASTER settlement reads (ENG-INV-10); production uses HTTP
 USER_WALLET = os.getenv("HL_USER_WALLET", "").strip().lower()
 _FOLLOWER_MIDS: Dict[str, Any] = {"px": {}, "ms": 0, "dexes": None, "dexes_ms": 0}
 _SELF_TEST_MIDS: Optional[Dict[str, Any]] = None  # self-test only: leader prints double as follower mids
@@ -3614,6 +3615,12 @@ class SenderGateway:
                                          "Ioc", use_reduce_only, timing, "exchange_call_started_ms")
             timing["exchange_call_finished_ms"] = utc_now_ms()
             ok, status, oid, parsed_error = self._parse_hl_response(response)
+            # ENG-INV-10: an exchange ack is not settlement; MASTER must show the fill/resting order.
+            if ok and status in {"ORDER_FILLED", "ORDER_RESTING"}:
+                _ok, _why = self._verify_settlement_on_master(intent, status, oid, wire_size, response)
+                if not _ok:
+                    return self._settlement_unverified(response, oid, limit_px, wire_size, wire_notional,
+                                                       use_reduce_only, parsed_error, timing, _why)
             reject_category = classify_reject_category(parsed_error, response) if status == "ORDER_REJECTED" else ""
             if (
                 not ok
@@ -3636,6 +3643,14 @@ class SenderGateway:
                         timing["entry_ioc_retry_finished_ms"] = utc_now_ms()
                         retry_ok, retry_status, retry_oid, retry_error = self._parse_hl_response(retry_response)
                         if retry_ok:
+                            # ENG-INV-10: a retried fill is settled by MASTER too, not by the ack.
+                            if retry_status in {"ORDER_FILLED", "ORDER_RESTING"}:
+                                _rok, _rwhy = self._verify_settlement_on_master(
+                                    intent, retry_status, retry_oid, wire_size, retry_response)
+                                if not _rok:
+                                    return self._settlement_unverified(
+                                        retry_response, retry_oid, retry_px, wire_size, retry_notional,
+                                        use_reduce_only, retry_error, timing, 'entry IOC retry: %s' % _rwhy)
                             return True, retry_status, {
                                 "exchange_response": retry_response, "oid": retry_oid,
                                 "limit_px": retry_px, "wire_size": wire_size, "copy_notional": retry_notional,
@@ -4564,6 +4579,93 @@ class SenderGateway:
         allowed_dec = min(price_max_dec, sig_fig_dec)
         factor = 10 ** allowed_dec
         return math.floor(raw_px * factor) / factor
+
+    @staticmethod
+    def _ack_filled_size(response: Any) -> float:
+        try:
+            s = response.get('response', {}).get('data', {}).get('statuses', [])[0]
+            f = s.get('filled') if isinstance(s, dict) else None
+            return abs(fnum(f.get('totalSz', f.get('sz')), 0.0)) if isinstance(f, dict) else 0.0
+        except Exception:
+            return 0.0
+
+    def _verify_settlement_on_master(self, intent: Intent, status: str, oid: str, wire_size: float,
+                                     response: Any) -> Tuple[bool, str]:
+        """ENG-INV-10: an ack is not settlement. MASTER must independently show it.
+
+        ORDER_FILLED is proved by MASTER fills bound to the ack oid (or the ack's own size when
+        there is no oid, so an unrelated earlier fill cannot satisfy it). ORDER_RESTING is proved
+        by the MASTER open-orders read. Any unreadable MASTER scope is unverified: caller holds.
+        """
+        try:
+            ident = _XNET.runtime_master_identity()
+            if not ident.get('ok'):
+                return False, 'MASTER identity unavailable: %s' % ident.get('detail', 'unknown')
+            master = ident.get('master')
+            enum = _XNET.list_perp_dexes(fetcher=MASTER_TRUTH_FETCHER, info_url=HL_INFO_URL,
+                                         timeout=HTTP_TIMEOUT_SEC)
+            if not enum.get('ok'):
+                return False, 'MASTER DEX enum unavailable: %s' % enum.get('detail', 'unknown')
+            dexes = enum['dexes']
+            if status == 'ORDER_RESTING':
+                if not oid:
+                    return False, 'ack is resting but carries no oid'
+                res = _XNET.master_open_orders(master, dexes, fetcher=MASTER_TRUTH_FETCHER,
+                                               info_url=HL_INFO_URL, timeout=HTTP_TIMEOUT_SEC)
+                if not res.get('ok'):
+                    return False, 'MASTER openOrders unavailable: %s' % res.get('detail', 'unknown')
+                for row in res.get('orders', []):
+                    if str(row.get('oid', '')) == str(oid):
+                        return True, 'MASTER shows resting oid=%s' % oid
+                return False, 'MASTER openOrders has no oid=%s; ack says resting' % oid
+            expected = abs(fnum(wire_size, 0.0))
+            ack_size = self._ack_filled_size(response)
+            if expected <= 0.0:
+                return False, 'ack claims filled for non-positive wire size %r' % (wire_size,)
+            if not oid and ack_size <= 0.0:
+                return False, 'ack is filled but carries neither oid nor size'
+            coin = canonical_coin_key(intent.fill.coin)
+            fills = _XNET.master_userfills_all_dexes(master, int(fnum(intent.fill.timestamp_ms, 0)), dexes,
+                                                     fetcher=MASTER_TRUTH_FETCHER, info_url=HL_INFO_URL,
+                                                     timeout=HTTP_TIMEOUT_SEC)
+            if not fills.get('ok'):
+                return False, 'MASTER userFills unavailable: %s' % fills.get('detail', 'unknown')
+            matched = 0.0
+            for fill in fills.get('fills', []):
+                if canonical_coin_key(fill.get('coin')) != coin:
+                    continue
+                raw = str(fill.get('side') or '').upper().strip()
+                if {'B': 'BUY', 'A': 'SELL'}.get(raw, raw) != intent.copy_side:
+                    continue
+                if oid and str(fill.get('oid', '')) != str(oid):
+                    continue
+                try:
+                    matched += abs(float(fill.get('sz') or 0.0))
+                except Exception:
+                    return False, 'unparseable MASTER fill size: %r' % (fill.get('sz'),)
+            bound = expected if oid else ack_size
+            tol = max(POSITION_EPSILON, bound * 1e-6)
+            if matched <= 0.0:
+                return False, 'MASTER shows no fill for %s %s oid=%s' % (coin, intent.copy_side, oid or '-')
+            if abs(matched - bound) > tol:
+                return False, 'MASTER fill %s disagrees with ack %s (tol=%s)' % (matched, bound, tol)
+            return True, 'MASTER fill=%s matches ack=%s' % (matched, bound)
+        except Exception as exc:
+            return False, 'MASTER settlement verification error: %r' % (exc,)
+
+    @staticmethod
+    def _settlement_unverified(response: Any, oid: str, limit_px: float, wire_size: float,
+                               wire_notional: float, use_reduce_only: bool, parsed_error: str,
+                               timing: Dict[str, Any], notes: str) -> Tuple[bool, str, Dict[str, Any]]:
+        """MASTER disagrees or is unreadable: hold for reconciliation, never book the ack."""
+        return False, 'SETTLEMENT_UNVERIFIED', {
+            'exchange_response': response, 'oid': oid, 'limit_px': limit_px, 'wire_size': wire_size,
+            'copy_notional': wire_notional, 'exchange_called': True, 'error': parsed_error,
+            'timing': timing, 'reject_category': 'SETTLEMENT_UNVERIFIED',
+            'reduce_only_sent': use_reduce_only, 'write_send_attempt': True,
+            'write_reconciliation': True, 'terminal_state': 'SETTLEMENT_UNVERIFIED',
+            'operator_action': 'WAIT_FOR_RECONCILIATION', 'notes': notes,
+        }
 
     @staticmethod
     def _parse_hl_response(response: Any) -> Tuple[bool, str, str, str]:

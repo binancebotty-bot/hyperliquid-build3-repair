@@ -278,6 +278,25 @@ def master_userfills_all_dexes(master_address, start_ms, dexes, fetcher=None, in
             "deduped": raw - len(merged), "count": len(merged)}
 
 
+def master_open_orders(master_address, dexes, fetcher=None, info_url=HL_INFO_URL, timeout=8.0):
+    """MASTER resting orders across every perp DEX scope. A resting ack is proved by an ORDER, not
+    by fills, so this is the settlement read for ORDER_RESTING. Any unreadable scope fails closed."""
+    if not valid_address(master_address):
+        return {"ok": False, "status": IDENTITY_INVALID}
+    merged = []
+    for dex in (dexes if dexes is not None else [""]):
+        payload = {"type": "openOrders", "user": master_address}
+        if dex:
+            payload["dex"] = dex
+        res = _post(fetcher, payload, info_url, timeout)
+        rows = res.get("data") if res.get("ok") else None
+        if not isinstance(rows, list):
+            return {"ok": False, "status": SCOPE_UNAVAILABLE, "dex": dex,
+                    "detail": res.get("detail", "openOrders not a list")}
+        merged.extend(r for r in rows if isinstance(r, dict))
+    return {"ok": True, "status": TRUTH_OK, "orders": merged, "count": len(merged)}
+
+
 def terminal_reject_evidence(exchange_status, oid_accepted, no_fill_proved):
     """Evidence record for a terminal no-fill clear. A bare caller boolean can never satisfy this:
     it requires an exchange-derived terminal rejection AND an all-DEX post-attempt no-fill proof."""
