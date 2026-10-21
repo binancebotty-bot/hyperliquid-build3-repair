@@ -7064,7 +7064,7 @@ def render_live_copy_control_panel() -> str:
   <header class="lc-header">
     <div class="lc-title">Live Copy Command Centre</div>
     <div class="lc-header-pills">
-        <span class="lc-pill">Sending: <b id="lcSendModeLabel">OFF</b></span>
+        <span id="lcSendModePill" class="lc-pill lc-amber">Sending: <b id="lcSendModeLabel">UNKNOWN / STALE</b></span>
         <span class="lc-pill">Wallets: <b id="lcWalletCount">0 / 10</b></span>
       <span id="lcModeCounts" style="display:contents"></span>
       <span class="lc-pill" id="lcFeedPill">Leader feed: <b id="lcWsOverall">—</b></span>
@@ -7265,7 +7265,7 @@ let lcConfig={wallets:{},archived_wallets:{}}, lcHealth={wallets:{}}, lcAudit={l
 let lcGraphMode='account', lcGraphScale='all', lcSelectedWallet='', lcGraphStartMs=0, lcGraphEndMs=0;
 function h(v){return String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function msg(t,bad){if(status){status.textContent=t||'';status.className='lc-status '+(bad?'lc-bad':'lc-ok');}}
-async function jget(url){const r=await fetch(url,{headers:{'x-requested-with':'fetch'}});return await r.json();}
+async function jget(url){const r=await fetch(url,{headers:{'x-requested-with':'fetch'}});if(!r.ok)throw new Error('HTTP '+r.status);return await r.json();}
 async function jpost(url,payload){const r=await fetch(url,{method:'POST',headers:{'content-type':'application/json','x-requested-with':'fetch'},body:JSON.stringify(payload)});const j=await r.json();if(!r.ok||j.ok===false)throw new Error(j.error||r.statusText);return j;}
 function normalizedSendMode(value){const mode=String(value||'').toUpperCase().trim().replace(/[_-]+/g,' ');return mode==='CLO'||mode==='CLOSE ONLY'?'CLOSE':['ON','CLOSE','OFF'].includes(mode)?mode:'OFF';}
 // intentional blank — helpers below
@@ -7747,7 +7747,8 @@ function render(){
  const wo=root.querySelector('#lcWsOverall');if(wo){wo.textContent=feed.text;wo.className=feed.cls;}
  renderBanner(); renderTally(); renderTopStatus(); renderCards(); renderWallets(); renderAudit(); renderHealth(); renderPositions(); renderExecQuality();
 }
-async function refresh(quiet){try{if(!quiet)msg('Loading...');const [cfg,health,audit,gcr]=await Promise.all([jget('/api/live-config'),jget('/api/live-ws-health'),jget('/api/live-audit-summary'),jget('/api/global-controls')]);lcConfig=cfg.config||{wallets:{}};lcHealth=health.health||{};lcAudit=audit||{};lcGlobalControls=gcr.global_controls||{};const mode=normalizedSendMode(lcGlobalControls.send_mode);root.querySelector('#lcSendModeLabel').textContent=mode==='ON'?'ON · LIVE':mode==='CLOSE'?'CLOSE · CLOSE ONLY':'OFF';const st=lcAudit.live_top_status||{};if(lcSendModePending&&mode===lcSendModePending.mode&&String(st.engine_send_mode||'').toUpperCase()===mode&&Number(st.health?.engine_heartbeat_ms||0)>lcSendModePending.requestedAt)lcSendModePending.acknowledged=true;render();loadGcForm(lcGlobalControls);const nw=root.querySelector('#gcNetworks');if(nw&&gcr.networks)nw.textContent='Leader feed: '+gcr.networks.leader+' | Follower account: '+gcr.networks.follower+' | Markets: every market the leaders trade'+((gcr.networks.follower_dexes||[]).length>1?' (always read: '+gcr.networks.follower_dexes.join(', ')+')':'')+' | State folder: '+(gcr.networks.state_dir||'');if(!quiet)msg('Loaded');}catch(e){msg(e.message||String(e),true);}}
+function setSendModeStatus(mode,stale=false){const pill=root.querySelector('#lcSendModePill');const label=root.querySelector('#lcSendModeLabel');if(stale){label.textContent='UNKNOWN / STALE';pill.className='lc-pill lc-amber';return;}label.textContent=mode==='ON'?'ON · LIVE':mode==='CLOSE'?'CLOSE · CLOSE ONLY':'OFF';const color=mode==='ON'?'lc-green':mode==='CLOSE'?'lc-amber':'';pill.className='lc-pill'+(color?' '+color:'');}
+async function refresh(quiet){try{if(!quiet)msg('Loading...');const [cfg,health,audit,gcr]=await Promise.all([jget('/api/live-config'),jget('/api/live-ws-health'),jget('/api/live-audit-summary'),jget('/api/global-controls')]);lcConfig=cfg.config||{wallets:{}};lcHealth=health.health||{};lcAudit=audit||{};lcGlobalControls=gcr.global_controls||{};const mode=normalizedSendMode(lcGlobalControls.send_mode);setSendModeStatus(mode);const st=lcAudit.live_top_status||{};if(lcSendModePending&&mode===lcSendModePending.mode&&String(st.engine_send_mode||'').toUpperCase()===mode&&Number(st.health?.engine_heartbeat_ms||0)>lcSendModePending.requestedAt)lcSendModePending.acknowledged=true;render();loadGcForm(lcGlobalControls);const nw=root.querySelector('#gcNetworks');if(nw&&gcr.networks)nw.textContent='Leader feed: '+gcr.networks.leader+' | Follower account: '+gcr.networks.follower+' | Markets: every market the leaders trade'+((gcr.networks.follower_dexes||[]).length>1?' (always read: '+gcr.networks.follower_dexes.join(', ')+')':'')+' | State folder: '+(gcr.networks.state_dir||'');if(!quiet)msg('Loaded');}catch(e){setSendModeStatus(null,true);msg(e.message||String(e),true);}}
 function loadGcForm(gc){
   const f=(id,v)=>{const el=root.querySelector('#'+id);if(el&&v!=null)el.value=v;};
   const st=(id,v)=>{const el=root.querySelector('#'+id);if(el)el.textContent=Number(v||0)<=0?'OFF':'';};

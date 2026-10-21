@@ -1,17 +1,17 @@
-# Graph Report - hlb3-fill-trace-fix-6318467610  (2026-10-21)
+# Graph Report - hl-build3-ui-unknown-stale-20261021  (2026-10-21)
 
 ## Corpus Check
-- 284 files · ~569,028 words
+- 289 files · ~572,296 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 14 file(s) not represented in the graph (top: .csv 11, (none) 2, .jsonl 1)
 
 ## Summary
-- 3514 nodes · 9503 edges · 140 communities (118 shown, 22 thin omitted)
+- 3548 nodes · 9582 edges · 154 communities (128 shown, 26 thin omitted)
 - Extraction: 91% EXTRACTED · 9% INFERRED · 0% AMBIGUOUS · INFERRED: 843 edges (avg confidence: 0.87)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `b44e78d2`
+- Built from commit: `4139c198`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -19,18 +19,18 @@
 - HL_Live_Copy_Service.py
 - DryRunLiveCopyService
 - sleeve_from_leader_event_position
-- fnum
+- main
 - Any
 - Architecture Contract — Hyperliquid Build 3 Repair
 - load_ui_state
 - Operating Protocol
-- ENGINE_RESIDUAL_harness_2a269ad.py
+- headroom.py
 - Build 3 — Product Semantics, Non-Goals and Measurable DONE (Gate 1 freeze)
 - Bootstrap
 - Hyperliquid Build 3 Repair
-- Path
+- load_json
 - utc_now_ms
-- HL_Live_Copy_Service_Core.py
+- append_csv
 - HL_Copy_App_SSOT.py
 - run_self_test
 - threading
@@ -41,41 +41,41 @@
 - tempfile
 - HEALTH_CORRECTION_harness_fefc2b04.py
 - main
-- Inject
+- Intent
 - UI_CORRECTION_harness_2d29211.py
-- fnum
+- CopyFillMatcher
 - csv
-- fnum
 - Any
+- fnum
 - _live_audit_summary_full
 - ._plan_batch
 - self_test
 - ENG-INV-01-02_ENG-010-014_SEM-B1-B4_harness_43731b4f.py
 - ENG-INV-01-02_ENG-010-014_SEM-B1-B4_harness_corrected_43731b4f.py
 - main
-- main
+- math
 - run_report.py
-- test_core_clo_dispatch_prefilter.py
+- test_core_audit_append_never_drops.py
 - test_core_ws_pool_and_slots.py
 - IntentBuilder
-- _load_live_copy_config
-- ORDER_CORRECTION_harness_fefc2b04.py
+- HL_Live_Copy_Service_Core.py
 - AuditLogWriter
+- read_csv_rows
 - ENG-015-016-TNF17_harness.py
 - utc_now_iso
 - tools_memory_profile.py
-- test_cert_scripts.py
+- run
 - plan_catchup
 - ENG-001-004_harness_43731b4f.py
-- render_chart
+- outage_classify.py
 - NLS_RESIDUAL_harness_2a269ad_v4.py
-- ConfigManager
+- fnum
 - main
 - argparse
 - NLS_RESIDUAL_harness_2a269ad_v2.py
 - NLS_RESIDUAL_harness_2a269ad_v3.py
 - probe_reearn.py
-- exchange_truth.py
+- claim_network_stamp
 - shutil
 - Master Product Invariants and Certification Contract
 - J4 - PC run scripts for the five certification gaps (main 5e88e89 or later)
@@ -85,76 +85,90 @@
 - RISK_harness_fa9d9f55ff.py
 - census_inv_06_09.py
 - pathlib
-- hashlib
+- subprocess
 - main
 - main
 - test_core_tail_read_off_lock.py
-- subprocess
+- main
 - main
 - main
 - main
 - UI_FP_FAIL_harness_09e1258003.py
-- test_core_audit_reduce_only_matches_wire.py
+- inum
 - main
 - global_controls_tests
-- test_screen_run4.py
-- math
+- Path
+- test_j2_local_rejects.py
 - json
 - main
 - ENG-015 / ENG-016 / TN-F17 Certification Report
-- test_core_reduce_only_repair.py
+- ENGINE_RESIDUAL_harness_2a269ad.py
 - main
 - test_core_queue_timing_stamps.py
-- test_http_keepalive.py
-- Any
+- hashlib
+- append_csv
 - TimedLock
-- test_ui_incremental_summary.py
+- PRICING_CORRECTION_harness_2f57dba50f.py
 - card_hygiene.py
 - test_exchange_truth_retry.py
 - main
 - DedupeStore
 - main
-- _Half
-- _model_dashboard_response
+- _write_attribution_json
+- test_cert_scripts.py
 - main
 - main
 - test_core_outage_replay.py
 - UI CERT ARTIFACT SCHEMA — required shape for every UI certification card
-- http_post
+- _post
 - _LatestStatusWriteWorker
 - main
 - test_core_liq_isolated.py
 - main
 - ENG-INV-03-05 CORRECTED Census Report
 - ENG-INV-07-09 Runtime Chain Correction
-- FakeExchange
+- cert_liq_parity_offline.py
 - re
-- valid_address
+- exchange_truth.py
 - J2 Local Rejects - Proposed Patch Diffs
-- test_core_standing_close_guard.py
-- test_core_audit_append_never_drops.py
-- main
+- test_core_save_preserves_send_mode.py
+- AppendFail
+- test_core_fill_trace_buffering.py
 - tools/cert — offline halves of the J4 certification gaps (task K2)
+- main
 - test_core_audit_header_cache.py
 - test_core_run5_converge.py
 - test_core_live_only_stream_cap.py
 - test_core_warm_dex_clients.py
 - Merge instruction — ENG-INV-01..06 rebuild (t_7366969c)
 - Testnet run handover — 2026-10-09
+- test_core_headroom_foreign_ws.py
+- .test_cooldown_slots_and_calls_keep_exact_spacing_for_32_orders
 - Certification (Build 3 Repair)
 - Certification run status
 - time
 - Build 3 Repair — Certification Matrix (Boss invariants / controls)
+- test_revert_effective_gate_and_alert.py
+- acquire_global_instance_lock
 - ENG-005 through ENG-009 Certification Report
 - Mainnet crash and ambiguous-send recovery
 - MATRIX_WALK_2026-10-10.md
 - DONE10_GATE_d829fce8ff.md
 - PRICING_CORRECTION_2d29211148_report.md
 - test_spot_gate_refusal.py
-- test_g4_order_cap.py
+- test_core_effective_gate_and_alert.py
+- main
 - test_g4_fixed_slices.py
-- ENG-INV-06..09 Non-Vacuous Static Census Report
+- test_g4_ui_controls.py
+- test_single_exchange_order_callsite.py
+- canonical_coin_key
+- CTRL_probe3_t_967fad56.py
+- NetworkConfigError
+- _BoundedRaw
+- Config
+- test_core_send_lock_isolation.py
 - test_core_send_mode_fails_closed.py
+- Gap2MemoryScan
 
 ## God Nodes (most connected - your core abstractions)
 1. `fnum()` - 156 edges
@@ -173,37 +187,37 @@
   tools/cert/README.md → _archive/hl_stage2/HL_Live_Copy_Service_Core.py
 - `Row 6 — ledger repair / ownership` --references--> `_has_pending_exit_guard_proof()`  [INFERRED]
   process/PORT_VS_REBUILD.md → _archive/hl_stage2/HL_Live_Copy_Service_Core.py
-- `7. Send path: idempotency, cloid` --references--> `DedupeStore`  [INFERRED]
-  process/PORT_VS_REBUILD.crosscheck-hermes.md → _archive/hl_stage2/HL_Live_Copy_Service_Core.py
 - `6. Open decisions register` --references--> `purge_wallet_everywhere()`  [INFERRED]
   certification/MASTER_PRODUCT_INVARIANTS_AND_CERTIFICATION.md → _archive/hl_stage2/HL_Copy_App_SSOT.py
 - `Sources & method` --references--> `_live_audit_summary()`  [INFERRED]
+  process/PORT_VS_REBUILD.md → _archive/hl_stage2/HL_Copy_App_SSOT.py
+- `Row 7 — send path (idempotency, cloid)` --references--> `_row_client_id()`  [INFERRED]
   process/PORT_VS_REBUILD.md → _archive/hl_stage2/HL_Copy_App_SSOT.py
 
 ## Import Cycles
 - None detected.
 
-## Communities (140 total, 22 thin omitted)
+## Communities (154 total, 26 thin omitted)
 
 ### Community 0 - "HL_Live_Copy_Service.py"
-Cohesion: 0.08
-Nodes (28): append_send_attempt(), count_csv_data_rows(), ensure_csv_header(), ensure_csv_schema(), ensure_dirs(), fixed_notional_buffered_cap(), floor_decimal_to_places(), get_wallet_live_config() (+20 more)
+Cohesion: 0.07
+Nodes (50): append_send_attempt(), atomic_write_json(), count_csv_data_rows(), ensure_csv_header(), ensure_csv_schema(), ensure_dirs(), fetch_live_fills_range(), fetch_live_fills_since() (+42 more)
 
 ### Community 1 - "DryRunLiveCopyService"
-Cohesion: 0.10
-Nodes (11): adverse_diff_pct(), append_csv(), audit_notes_for_fill(), audit_reason_for_fill(), dry_run_intent_audit_decision(), DryRunLiveCopyService, LeaderFill, LiveWalletConfig (+3 more)
+Cohesion: 0.08
+Nodes (12): adverse_diff_pct(), audit_notes_for_fill(), audit_reason_for_fill(), dry_run_intent_audit_decision(), DryRunLiveCopyService, event_authorised_desired_net(), executable_price_from_fill_payload(), fnum() (+4 more)
 
 ### Community 2 - "sleeve_from_leader_event_position"
-Cohesion: 0.13
-Nodes (10): Answer, Consequences, G4-C2A — READ-ONLY MARK SOURCE INVENTORY (Architect F3), Precise blocker for Architect ruling, Question, Trace table, executable_price_from_fill_payload(), FixedModeAuthorityConflict (+2 more)
+Cohesion: 0.14
+Nodes (9): Answer, Consequences, G4-C2A — READ-ONLY MARK SOURCE INVENTORY (Architect F3), Precise blocker for Architect ruling, Question, Trace table, FixedModeAuthorityConflict, proportional_sleeve_scale() (+1 more)
 
-### Community 3 - "fnum"
-Cohesion: 0.09
-Nodes (10): configure_paths(), event_authorised_desired_net(), fnum(), reconcile_unresolved_send(), check(), Fixture, fresh(), main() (+2 more)
+### Community 3 - "main"
+Cohesion: 0.12
+Nodes (14): attach_send_result(), clear_unresolved_send(), _mut(), configure_paths(), persist_unresolved_send(), _mut(), reconcile_unresolved_send(), _state_write() (+6 more)
 
 ### Community 4 - "Any"
 Cohesion: 0.03
-Nodes (21): atomic_write_json(), bval(), classify_operator_action(), classify_reject_category(), classify_send_lifecycle(), classify_terminal_state(), follower_dex_scope(), generate_attempt_id() (+13 more)
+Nodes (20): _append_core_fatal_row(), atomic_write_json(), bval(), classify_reject_category(), follower_dex_scope(), generate_cloid(), missed_entry_decision(), _record_core_fatal() (+12 more)
 
 ### Community 5 - "Architecture Contract — Hyperliquid Build 3 Repair"
 Cohesion: 0.13
@@ -211,15 +225,15 @@ Nodes (14): Architect's job, Architecture Contract — Hyperliquid Build 3 Repai
 
 ### Community 6 - "load_ui_state"
 Cohesion: 0.09
-Nodes (37): admin_purge_wallet(), api_equity(), api_get_ui_state(), api_metrics(), api_model_cache_status(), api_norm(), api_set_ui_state(), api_trades() (+29 more)
+Nodes (47): _active_live_copy_wallet_count(), add_live_config_wallet(), admin_purge_wallet(), api_equity(), api_metrics(), api_model_cache_status(), api_norm(), api_set_ui_state() (+39 more)
 
 ### Community 7 - "Operating Protocol"
 Cohesion: 0.17
 Nodes (11): Architect, Architectural interrupt, Control model, Controller, Evidence discipline, GitHub discipline, Hermes, Hermes reporting convention — Richard instruction, October 2026 (+3 more)
 
-### Community 8 - "ENGINE_RESIDUAL_harness_2a269ad.py"
-Cohesion: 0.06
-Nodes (26): _check(), compute_convergence_order(), ConvergenceOrder, _expect(), _none(), run_self_test(), CountingRequests, HeadroomMonitor (+18 more)
+### Community 8 - "headroom.py"
+Cohesion: 0.05
+Nodes (16): _check(), compute_convergence_order(), ConvergenceOrder, _expect(), _none(), run_self_test(), CountingRequests, HeadroomMonitor (+8 more)
 
 ### Community 9 - "Build 3 — Product Semantics, Non-Goals and Measurable DONE (Gate 1 freeze)"
 Cohesion: 0.29
@@ -233,85 +247,89 @@ Nodes (5): Architect bootstrap, Bootstrap, Controller bootstrap, Current first g
 Cohesion: 0.40
 Nodes (4): Hyperliquid Build 3 Repair, Immediate state, Read order, Roles
 
-### Community 12 - "Path"
-Cohesion: 0.13
-Nodes (24): _account_orphan_signed_size(), atomic_write_csv(), atomic_write_json(), _atomic_write_json(), backup_purge_files(), _build_account_orphan_registry(), _csv_cache_key(), invalidate_model_cache() (+16 more)
+### Community 12 - "load_json"
+Cohesion: 0.15
+Nodes (25): _account_orphan_signed_size(), atomic_write_csv(), atomic_write_json(), _atomic_write_json(), backup_purge_files(), _build_account_orphan_registry(), invalidate_model_cache(), _load_clean_core_status() (+17 more)
 
 ### Community 13 - "utc_now_ms"
-Cohesion: 0.04
-Nodes (27): CycleSummary, _fill_dir(), LeaderFill, LeaderFillIngestor, learn_follower_dex(), LiveCopyCore, _warm_parity(), _lane() (+19 more)
+Cohesion: 0.05
+Nodes (24): CycleSummary, _follower_dex_names(), LeaderFill, LeaderFillIngestor, LiveCopyCore, _warm_parity(), _lane(), _one() (+16 more)
 
-### Community 14 - "HL_Live_Copy_Service_Core.py"
-Cohesion: 0.04
-Nodes (68): scan_foreign_ws(), acquire_global_instance_lock(), acquire_instance_lock(), _append_core_fatal_row(), append_csv(), _append_spill_journal(), _attribution_json_safe(), _audit_fallback_remains() (+60 more)
+### Community 14 - "append_csv"
+Cohesion: 0.16
+Nodes (16): append_csv(), _append_spill_journal(), _audit_fallback_remains(), _audit_flush_worker(), _audit_row_data(), _audit_row_payload(), _fallback_path(), note_audit_write_failure() (+8 more)
 
 ### Community 15 - "HL_Copy_App_SSOT.py"
-Cohesion: 0.08
-Nodes (39): alignment_status_for_key(), _apply_price_model(), avg(), block(), bps_fee(), build_model_state(), append_expected_fill(), copy_wallet_exposure() (+31 more)
+Cohesion: 0.05
+Nodes (61): alignment_status_for_key(), _apply_price_model(), block(), bps_fee(), build_model_state(), append_expected_fill(), copy_wallet_exposure(), record_copy_exposure() (+53 more)
 
 ### Community 16 - "run_self_test"
-Cohesion: 0.10
-Nodes (6): _exchange_accepts_cloid(), run_self_test(), order(), WSManager, on_message(), on_open()
+Cohesion: 0.09
+Nodes (7): _exchange_accepts_cloid(), run_self_test(), _clean_account_fixture(), order(), WSManager, on_message(), on_open()
 
 ### Community 17 - "threading"
 Cohesion: 0.05
-Nodes (14): check(), main(), Sink, tracked_open(), slow_append(), Audit, me(), w() (+6 more)
+Nodes (15): check(), main(), check(), slow_append(), slow(), Audit, me(), w() (+7 more)
 
 ### Community 18 - "sys"
 Cohesion: 0.03
-Nodes (21): check(), finish(), main(), check(), main(), check(), main(), check() (+13 more)
+Nodes (19): check(), finish(), main(), check(), main(), check(), main(), check() (+11 more)
 
 ### Community 19 - "CTRL_probe_t_967fad56.py"
 Cohesion: 0.24
 Nodes (7): expect_error(), load_module(), main(), record(), run_checks(), run_mailbox_census(), sha256_file()
 
 ### Community 20 - "build_live_integrity_status"
-Cohesion: 0.08
-Nodes (16): J1 - disk-full robustness: observed behaviour and a proposed patch (main 5e88e89), Proposed patch (engine thread applies it; no Core edit was made here), Results on main 5e88e89 - 15 checks, 5 FAIL (5 findings), Two-run control (instrument, not product), audit_write_failure_count(), build_live_integrity_status(), _has_pending_exit_guard_proof(), is_active_row() (+8 more)
+Cohesion: 0.11
+Nodes (12): J1 - disk-full robustness: observed behaviour and a proposed patch (main 5e88e89), Proposed patch (engine thread applies it; no Core edit was made here), Results on main 5e88e89 - 15 checks, 5 FAIL (5 findings), Two-run control (instrument, not product), build_live_integrity_status(), _has_pending_exit_guard_proof(), is_active_row(), is_current_core_row() (+4 more)
 
 ### Community 21 - "UI_harness_fa9d9f55ff.py"
 Cohesion: 0.06
 Nodes (30): blocked(), check(), HTMLElement, main(), neg_test(), parse_html(), setup_test_env(), SimpleHTMLParser (+22 more)
 
 ### Community 22 - "tempfile"
-Cohesion: 0.08
-Nodes (32): check(), check_done10_negative(), check_done10_positive(), check_fexc016_negative(), check_fexc016_positive(), check_fui001_negative(), check_fui001_positive(), check_fui002_negative() (+24 more)
+Cohesion: 0.07
+Nodes (33): main(), check(), check_done10_negative(), check_done10_positive(), check_fexc016_negative(), check_fexc016_positive(), check_fui001_negative(), check_fui001_positive() (+25 more)
 
 ### Community 23 - "HEALTH_CORRECTION_harness_fefc2b04.py"
 Cohesion: 0.11
 Nodes (16): check_age_in_write_path_negative(), check_age_in_write_path_positive(), check_age_threshold_negative(), check_age_threshold_positive(), check_freshness_budget_negative(), check_freshness_budget_positive(), check_network_errors_negative(), check_network_errors_positive() (+8 more)
 
+### Community 25 - "Intent"
+Cohesion: 0.10
+Nodes (9): classify_operator_action(), classify_send_lifecycle(), classify_terminal_state(), generate_attempt_id(), Intent, project_liquidation_px(), stable_hash(), utc_now_iso() (+1 more)
+
 ### Community 26 - "UI_CORRECTION_harness_2d29211.py"
 Cohesion: 0.07
 Nodes (26): blocked(), check(), extract_table_headers(), HTMLElement, main(), neg_test(), parse_html(), parse_ssot_home_table_headers() (+18 more)
 
-### Community 27 - "fnum"
-Cohesion: 0.06
-Nodes (30): _adoptable_intent_rows(), _manual_sleeve_exists(), canonical_coin_key(), canonical_copy_fill_id(), _chain_sorted(), claim_copy_fill_process_marker(), collapse_stale_runs(), close_run() (+22 more)
+### Community 27 - "CopyFillMatcher"
+Cohesion: 0.08
+Nodes (18): _adoptable_intent_rows(), canonical_copy_fill_id(), claim_copy_fill_process_marker(), CopyAccountIngestor, CopyFillMatcher, ensure_dirs(), normalise_copy_fill_side(), prof_take() (+10 more)
 
 ### Community 28 - "csv"
+Cohesion: 0.14
+Nodes (8): check(), fake_fetcher(), w(), check(), main(), _payload_check(), row(), main()
+
+### Community 29 - "Any"
 Cohesion: 0.06
-Nodes (14): Audit, w(), check(), fake_fetcher(), w(), main(), check_positions(), collect_leader_distances() (+6 more)
+Nodes (68): _account_card_lines(), active_wallet(), active_wallet_row(), avg(), block_num(), build_portfolio_history(), compact_history(), contract_money_equal() (+60 more)
 
-### Community 29 - "fnum"
-Cohesion: 0.08
-Nodes (47): _account_card_lines(), active_wallet(), _append_exchange_history(), block_num(), core_missing(), core_td(), css_class(), dd_current() (+39 more)
-
-### Community 30 - "Any"
-Cohesion: 0.09
-Nodes (40): _build_live_leader_performance(), _build_live_wallet_derived(), _build_manual_reconciliation_rows(), build_portfolio_history(), _build_real_copy_positions(), _classify_owned_exchange_net(), compact_history(), contract_money_equal() (+32 more)
+### Community 30 - "fnum"
+Cohesion: 0.13
+Nodes (23): _build_live_leader_performance(), _build_live_wallet_derived(), _build_manual_reconciliation_rows(), _build_real_copy_positions(), _classify_owned_exchange_net(), _exchange_field(), _exchange_signed_size(), fnum() (+15 more)
 
 ### Community 31 - "_live_audit_summary_full"
-Cohesion: 0.06
-Nodes (42): _account_reconciliation_baseline_timestamp(), active_wallet_row(), _build_account_reconciliation(), _build_execution_quality_rows(), _build_execution_quality_summary(), _build_health_summary(), _build_live_top_status(), _build_live_wallet_rows() (+34 more)
+Cohesion: 0.05
+Nodes (31): api_get_ui_state(), _build_execution_quality_rows(), _build_execution_quality_summary(), _build_live_top_status(), _build_live_wallet_rows(), _build_recent_send_warning_groups(), _csv_cache_key(), _engine_alert() (+23 more)
 
 ### Community 32 - "._plan_batch"
-Cohesion: 0.11
-Nodes (19): E2 comparison: net catch-up plan vs the engine's current merge (HL_Live_Copy_Service_Core.py), 0. What was read (evidence base), 1. What the net planner is, 2. Where it would plug in, 3. Invariants the Core imposes on any net planner, 4. Exact risks (with severity), 5. Test evidence (this job's deliverable), 6. GO / NO-GO (+11 more)
+Cohesion: 0.09
+Nodes (24): E2 comparison: net catch-up plan vs the engine's current merge (HL_Live_Copy_Service_Core.py), 0. What was read (evidence base), 1. What the net planner is, 2. Where it would plug in, 3. Invariants the Core imposes on any net planner, 4. Exact risks (with severity), 5. Test evidence (this job's deliverable), 6. GO / NO-GO (+16 more)
 
 ### Community 33 - "self_test"
-Cohesion: 0.08
-Nodes (20): classify_ignored_ws_message(), extract_ws_fills(), extract_ws_fills_with_meta(), is_benign_ws_error(), _is_reduce_only_full_close_bypass(), is_ws_abnf_frame(), parse_hl_order_status(), parse_ws_leader_fill() (+12 more)
+Cohesion: 0.10
+Nodes (16): classify_ignored_ws_message(), extract_ws_fills(), extract_ws_fills_with_meta(), is_benign_ws_error(), _is_reduce_only_full_close_bypass(), is_ws_abnf_frame(), parse_hl_order_status(), parse_ws_leader_fill() (+8 more)
 
 ### Community 34 - "ENG-INV-01-02_ENG-010-014_SEM-B1-B4_harness_43731b4f.py"
 Cohesion: 0.09
@@ -322,40 +340,40 @@ Cohesion: 0.09
 Nodes (20): _match(), resolve_settlement(), add_check(), add_negative(), ast_parse_file(), count_order_call_sites(), count_process_spawns(), main() (+12 more)
 
 ### Community 36 - "main"
-Cohesion: 0.17
-Nodes (6): check(), main(), error_contexts(), errors(), hold_runtime_state_lock(), wait_for_json_file()
+Cohesion: 0.06
+Nodes (11): fake_open(), PartialThenFull, check(), FakeExchange, _Half, Inject, main(), error_contexts() (+3 more)
 
-### Community 37 - "main"
-Cohesion: 0.15
-Nodes (6): check(), main(), _note_read_on_current(), slow(), fetch(), p90()
+### Community 37 - "math"
+Cohesion: 0.09
+Nodes (11): p90(), Ledger, plan(), p90(), p90(), check(), main(), _note_read_on_current() (+3 more)
 
 ### Community 38 - "run_report.py"
-Cohesion: 0.09
-Nodes (23): check(), main(), _durable_row(), _fixed_intents(), fresh(), wire_account_net(), build_report(), _f() (+15 more)
+Cohesion: 0.10
+Nodes (22): main(), _durable_row(), _fixed_intents(), fresh(), wire_account_net(), build_report(), _f(), fetch_leader_fills() (+14 more)
 
-### Community 39 - "test_core_clo_dispatch_prefilter.py"
-Cohesion: 0.06
-Nodes (9): fill(), run(), Audit, fill(), Config, fill(), WarmPool, Ledger (+1 more)
+### Community 39 - "test_core_audit_append_never_drops.py"
+Cohesion: 0.05
+Nodes (10): fill(), run(), Audit, fill(), fill(), WarmPool, Audit, guard() (+2 more)
 
 ### Community 40 - "test_core_ws_pool_and_slots.py"
-Cohesion: 0.08
-Nodes (14): check(), main(), WebSocketApp(), wait_for(), build_cfg(), check(), FakeApp, FakeResp (+6 more)
+Cohesion: 0.11
+Nodes (12): cfg(), WebSocketApp(), build_cfg(), check(), FakeApp, FakeResp, FakeWS, main() (+4 more)
 
 ### Community 41 - "IntentBuilder"
-Cohesion: 0.04
-Nodes (26): list_perp_dexes(), master_exposure(), _post(), post_many(), rolling_day_pnl(), _follower_dex_names(), follower_mid(), stale() (+18 more)
-
-### Community 42 - "_load_live_copy_config"
-Cohesion: 0.13
-Nodes (28): _active_live_copy_wallet_count(), add_live_config_wallet(), api_state(), _enforce_live_copy_cap(), _engine_wallet_summary(), _execution_guards_info(), ev(), get_global_controls() (+20 more)
-
-### Community 43 - "ORDER_CORRECTION_harness_fefc2b04.py"
-Cohesion: 0.14
-Nodes (19): _build_intent(), _cfg(), _check(), FakeExchange, _fresh_ledger(), _git_head(), main(), _make_intent() (+11 more)
-
-### Community 44 - "AuditLogWriter"
 Cohesion: 0.05
-Nodes (31): AuditLogWriter, ExchangeReconciler, prof, read_csv_rows(), repair_flat_ledger_only_positions(), row_exchange_order_id(), _market_fixture(), send_attempt_rows() (+23 more)
+Nodes (23): list_perp_dexes(), master_account_net(), master_exposure(), post_many(), _state_payloads(), follower_mid(), stale(), IntentBuilder (+15 more)
+
+### Community 42 - "HL_Live_Copy_Service_Core.py"
+Cohesion: 0.07
+Nodes (14): audit_write_failure_count(), learn_follower_dex(), load_env_file(), load_existing_intents(), _note_append(), project_isolated_liquidation_px(), reject_category_from_text(), send_attempt_by_oid() (+6 more)
+
+### Community 43 - "AuditLogWriter"
+Cohesion: 0.09
+Nodes (23): AuditLogWriter, check(), FakeExchange, Led, make_intent(), run(), _build_intent(), _cfg() (+15 more)
+
+### Community 44 - "read_csv_rows"
+Cohesion: 0.07
+Nodes (21): _owned_note(), prof, read_csv_rows(), _market_fixture(), send_attempt_rows(), update_send_attempt_row(), 2. Top tracemalloc allocation lines (`f37b9c1`, 50 MB synthetic CSV), 4. Interpretation - ranking by contribution to the observed 4.5 GB (+13 more)
 
 ### Community 45 - "ENG-015-016-TNF17_harness.py"
 Cohesion: 0.13
@@ -369,9 +387,9 @@ Nodes (16): build_ws_health_snapshot(), DedicatedLiveWSManager, on_close(), on_e
 Cohesion: 0.09
 Nodes (19): main(), make_csv(), measure(), rss_mb(), _addr(), _avail_mb(), build_intents(), build_matcher_stub() (+11 more)
 
-### Community 48 - "test_cert_scripts.py"
-Cohesion: 0.11
-Nodes (7): ExportLeaderFills, Gap1OutageClassifier, Gap2MemoryScan, Gap3LiqParity, Gap5DiskGuard, load_module(), run()
+### Community 48 - "run"
+Cohesion: 0.23
+Nodes (3): Gap1OutageClassifier, Gap3LiqParity, run()
 
 ### Community 49 - "plan_catchup"
 Cohesion: 0.15
@@ -381,21 +399,21 @@ Nodes (17): _g(), _num(), plan_catchup(), _side_of(), _signed(), _start(), acts(
 Cohesion: 0.13
 Nodes (10): main(), make_leader_fill(), make_testnet_fetcher(), _mutate_engine_file(), test_eng001_convergence(), test_eng001_negative_test(), test_eng002_negative_test(), test_eng002_proportional_mode() (+2 more)
 
-### Community 51 - "render_chart"
-Cohesion: 0.36
-Nodes (6): render_chart(), compress_points(), poly(), x_at(), x_for_t(), y_at()
+### Community 51 - "outage_classify.py"
+Cohesion: 0.11
+Nodes (7): block_reasons(), classify(), main(), missing_detail(), _rows(), Audit, w()
 
 ### Community 52 - "NLS_RESIDUAL_harness_2a269ad_v4.py"
 Cohesion: 0.25
 Nodes (16): certify_tn_f09(), certify_tn_f10(), certify_tn_f11(), certify_tn_f12(), certify_tn_f18(), certify_tn_f19(), _check(), main() (+8 more)
 
-### Community 53 - "ConfigManager"
-Cohesion: 0.09
-Nodes (4): ConfigManager, 6. Open decisions register, 2. Switch states OFF / CLOSE ONLY / ON, 4. Dust close
+### Community 53 - "fnum"
+Cohesion: 0.05
+Nodes (16): ConfigManager, copy_cursor_ms(), ExchangeReconciler, fnum(), is_valid_wallet(), load_json(), load_xyz_position_state(), repair_flat_ledger_only_positions() (+8 more)
 
 ### Community 54 - "main"
-Cohesion: 0.09
-Nodes (6): check(), main(), catch_up(), exit_intent(), fill(), snapshot()
+Cohesion: 0.10
+Nodes (5): main(), catch_up(), exit_intent(), fill(), snapshot()
 
 ### Community 55 - "argparse"
 Cohesion: 0.07
@@ -413,25 +431,25 @@ Nodes (15): certify_tn_f09(), certify_tn_f10(), certify_tn_f11(), certify_tn_f12
 Cohesion: 0.18
 Nodes (15): builder(), decide(), fill(), Ledger, r1(), r14(), r14r(), r2() (+7 more)
 
-### Community 59 - "exchange_truth.py"
-Cohesion: 0.13
-Nodes (10): claim_network_stamp(), env_with_file(), master_account_net(), network_endpoints(), NetworkConfigError, resolve_networks(), stamp_state_refusal(), _state_payloads() (+2 more)
+### Community 59 - "claim_network_stamp"
+Cohesion: 0.33
+Nodes (3): claim_network_stamp(), stamp_state_refusal(), state_present()
 
 ### Community 60 - "shutil"
 Cohesion: 0.31
 Nodes (14): certify_tn_f09(), certify_tn_f10(), certify_tn_f11(), certify_tn_f12(), certify_tn_f18(), certify_tn_f19(), _check(), main() (+6 more)
 
 ### Community 61 - "Master Product Invariants and Certification Contract"
-Cohesion: 0.05
-Nodes (29): fake_open(), PartialThenFull, 10. Rulings after v0.4, 1. Purpose, 2. Provenance, 3.1 Record fields (matrix schema `hl_certification_matrix_v1`), 3.2 Evidence rules ("everything proven, nothing assumed"), 3.3 What "certified for mainnet" means (+21 more)
+Cohesion: 0.11
+Nodes (18): 10. Rulings after v0.4, 1. Purpose, 2. Provenance, 3.1 Record fields (matrix schema `hl_certification_matrix_v1`), 3.2 Evidence rules ("everything proven, nothing assumed"), 3.3 What "certified for mainnet" means, 3. How to use this contract, 4.1 Precedence (highest first) (+10 more)
 
 ### Community 62 - "J4 - PC run scripts for the five certification gaps (main 5e88e89 or later)"
 Cohesion: 0.22
 Nodes (8): 0. Common preamble (every gap), 1. Outage recovery (gap 1), 2. Memory flat on new main (gap 2), 3. Liquidation parity vs exchange liquidationPx (gap 3), 4. Realistic-load latency, Phase R (gap 4), 5. Disk-full robustness (gap 5), 6. Batch plan (one PC session), J4 - PC run scripts for the five certification gaps (main 5e88e89 or later)
 
 ### Community 63 - "test_core_slot_reservation_pacing.py"
-Cohesion: 0.12
-Nodes (7): FakeExchange, RecordingSenderGateway, sender_gateway(), SlotReservationPacingTests, place_order(), cancel_order(), VirtualClock
+Cohesion: 0.16
+Nodes (6): FakeExchange, RecordingSenderGateway, sender_gateway(), SlotReservationPacingTests, place_order(), cancel_order()
 
 ### Community 64 - "Detail"
 Cohesion: 0.10
@@ -450,44 +468,44 @@ Cohesion: 0.23
 Nodes (9): all_py_files(), check_inv06(), check_inv07(), check_inv08(), check_inv09(), file_lines(), main(), run_mutation_tests() (+1 more)
 
 ### Community 68 - "pathlib"
-Cohesion: 0.15
-Nodes (24): exchange_order_calls(), SingleExchangeOrderCallsiteTest, imports_of(), is_b4(), main(), mutate(), prod_files(), scan() (+16 more)
+Cohesion: 0.16
+Nodes (24): imports_of(), is_b4(), main(), mutate(), prod_files(), scan(), baseline_deps(), closure() (+16 more)
 
-### Community 69 - "hashlib"
+### Community 69 - "subprocess"
 Cohesion: 0.09
-Nodes (17): check(), check_done10_blocked(), check_engine_sha256(), check_mailbox_transport(), check_no_auto_live(), main(), neg_test(), run_check() (+9 more)
+Nodes (19): function_line(), main(), check(), check_done10_blocked(), check_engine_sha256(), check_mailbox_transport(), check_no_auto_live(), main() (+11 more)
 
 ### Community 70 - "main"
-Cohesion: 0.13
-Nodes (6): check(), main(), engine_order(), land(), load_run(), producer()
+Cohesion: 0.07
+Nodes (11): check(), main(), engine_order(), land(), load_run(), producer(), poll_copy_account_fills(), Audit (+3 more)
 
 ### Community 71 - "main"
-Cohesion: 0.10
-Nodes (6): check(), main(), _note_read_on_current(), slow(), fetch(), p90()
+Cohesion: 0.13
+Nodes (4): main(), _note_read_on_current(), slow(), fetch()
 
-### Community 73 - "subprocess"
-Cohesion: 0.06
-Nodes (19): git(), load(), main(), record(), check(), _load_committed_engine(), main(), neg() (+11 more)
+### Community 73 - "main"
+Cohesion: 0.16
+Nodes (5): check(), _load_committed_engine(), main(), drive_send(), neg()
 
 ### Community 74 - "main"
-Cohesion: 0.12
-Nodes (5): check(), main(), _note_read_on_current(), slow(), fetch()
+Cohesion: 0.14
+Nodes (4): main(), _note_read_on_current(), slow(), fetch()
 
 ### Community 75 - "main"
-Cohesion: 0.15
-Nodes (8): check(), main(), config(), fill(), gateway(), order(), send(), set_mids()
+Cohesion: 0.18
+Nodes (7): main(), config(), fill(), gateway(), order(), send(), set_mids()
 
 ### Community 76 - "main"
-Cohesion: 0.12
+Cohesion: 0.13
 Nodes (4): check(), main(), startup_orphan_order_check(), wait_for_json_file()
 
 ### Community 77 - "UI_FP_FAIL_harness_09e1258003.py"
 Cohesion: 0.23
 Nodes (8): build_payloads(), check(), flat(), main(), mutate_and_render(), neg(), raw_state(), run_dom()
 
-### Community 78 - "test_core_audit_reduce_only_matches_wire.py"
-Cohesion: 0.23
-Nodes (5): check(), FakeExchange, Led, make_intent(), run()
+### Community 78 - "inum"
+Cohesion: 0.15
+Nodes (20): _account_reconciliation_baseline_timestamp(), _append_exchange_history(), _build_account_reconciliation(), _build_health_summary(), _build_pnl_tally(), _earliest_real_order_filled_ms(), _engine_run_key(), _fetch_exchange_account_snapshot() (+12 more)
 
 ### Community 79 - "main"
 Cohesion: 0.14
@@ -497,37 +515,37 @@ Nodes (3): main(), __init__(), order()
 Cohesion: 0.16
 Nodes (11): check(), global_controls_tests(), config(), decide(), fill(), send(), set_mid(), last_json() (+3 more)
 
-### Community 81 - "test_screen_run4.py"
-Cohesion: 0.17
-Nodes (5): check(), fake_urlopen(), FakeResp, main(), write_csv()
+### Community 81 - "Path"
+Cohesion: 0.12
+Nodes (14): acquire_instance_lock(), audit_history_paths(), _close_audit_handle(), ensure_csv_header(), _header_checked(), iter_audit_history(), iter_csv_rows(), _lock_for() (+6 more)
 
 ### Community 83 - "json"
-Cohesion: 0.08
-Nodes (18): Clock, events(), Clock, events(), settle(), fake_urlopen(), Resp, main() (+10 more)
+Cohesion: 0.09
+Nodes (16): Clock, events(), fake_urlopen(), Resp, main(), main(), main(), route_present() (+8 more)
 
 ### Community 85 - "ENG-015 / ENG-016 / TN-F17 Certification Report"
 Cohesion: 0.15
 Nodes (11): reconcile_sleeve(), Conclusion, ENG-015 / ENG-016 / TN-F17 Certification Report, ENG-015: Sign flip handling, ENG-016: Build 4 leftovers on the shared follower account, File Hashes (Tested Commit), Harness, Mutations Applied (Negative Tests) (+3 more)
 
-### Community 86 - "test_core_reduce_only_repair.py"
-Cohesion: 0.14
-Nodes (5): poll_copy_account_fills(), Audit, Ledger, run(), rows()
+### Community 86 - "ENGINE_RESIDUAL_harness_2a269ad.py"
+Cohesion: 0.42
+Nodes (12): _build_intent(), check(), main(), _make_config(), _make_ledger(), neg_test(), _now_ms(), test_eng_val_01() (+4 more)
 
 ### Community 87 - "main"
-Cohesion: 0.13
-Nodes (6): check(), main(), _note_read_on_current(), slow(), fetch(), p90()
+Cohesion: 0.18
+Nodes (4): main(), _note_read_on_current(), slow(), fetch()
 
-### Community 89 - "test_http_keepalive.py"
-Cohesion: 0.13
-Nodes (3): _Flaky, H, Mon
+### Community 89 - "hashlib"
+Cohesion: 0.15
+Nodes (5): sha(), _sha256(), _sha256(), _sha256(), _sha256()
 
-### Community 90 - "Any"
-Cohesion: 0.09
-Nodes (28): atomic_write_json(), attach_send_result(), clear_unresolved_send(), _mut(), fetch_live_fills_range(), fetch_live_fills_since(), fetch_public_executable_quote(), force_fetch_hl_perp_meta() (+20 more)
+### Community 90 - "append_csv"
+Cohesion: 0.24
+Nodes (3): append_csv(), stage_auto_row(), should_write_would_send()
 
-### Community 92 - "test_ui_incremental_summary.py"
-Cohesion: 0.43
-Nodes (4): check(), main(), _payload_check(), row()
+### Community 92 - "PRICING_CORRECTION_harness_2f57dba50f.py"
+Cohesion: 0.18
+Nodes (5): check(), _load_committed_engine(), main(), drive_send(), neg()
 
 ### Community 93 - "card_hygiene.py"
 Cohesion: 0.36
@@ -542,16 +560,20 @@ Cohesion: 0.22
 Nodes (4): check(), main(), fill(), send()
 
 ### Community 96 - "DedupeStore"
-Cohesion: 0.11
-Nodes (4): _check(), DedupeStore, ServiceStateWriter, TestFailure
+Cohesion: 0.10
+Nodes (11): DedupeStore, record_core_phase(), 4. Dust close, 5. Liquidation parity (+ cross 3x), 7. Send path: idempotency, cloid, 8. Hot-path latency / prewarm, 9. Audit-write / disk-full, Bottom line for the Boss condition (+3 more)
 
 ### Community 97 - "main"
 Cohesion: 0.18
 Nodes (5): check(), main(), config(), gate(), wallets()
 
-### Community 99 - "_model_dashboard_response"
-Cohesion: 0.18
-Nodes (10): _kick_model_cache_refresh_background(), _refresh(), _model_cache_snapshot_nonblocking(), model_dashboard(), _model_dashboard_html_cache_get(), _model_dashboard_html_cache_latest_get(), _model_dashboard_html_cache_store(), _model_dashboard_last_good_html_disk_get() (+2 more)
+### Community 98 - "_write_attribution_json"
+Cohesion: 0.22
+Nodes (12): _attribution_json_safe(), _drain_status_write_workers(), install_core_attribution_hooks(), _atexit_marker(), _handler(), _sys_excepthook(), _thread_excepthook(), _process_identity() (+4 more)
+
+### Community 99 - "test_cert_scripts.py"
+Cohesion: 0.21
+Nodes (3): ExportLeaderFills, Gap5DiskGuard, load_module()
 
 ### Community 100 - "main"
 Cohesion: 0.27
@@ -565,9 +587,13 @@ Nodes (3): check(), main(), run()
 Cohesion: 0.20
 Nodes (9): A tool failure is not a product gap, Control-write rows: the authorised isolated write-test (controller ruling), Environment (verified — get this wrong and the probe fails while the product is fine), Hard requirements (each has already caused a FAIL), Required artifact shape, THE PROCESS RULE — bind to the build the RUNNING PROCESS loads, not the disk HEAD, The rule that governs all of it, The two review rules (controller-confirmed additions) (+1 more)
 
-### Community 104 - "http_post"
-Cohesion: 0.40
-Nodes (3): http_post(), start_keepalive(), loop()
+### Community 104 - "_post"
+Cohesion: 0.22
+Nodes (5): http_post(), _post(), rolling_day_pnl(), start_keepalive(), loop()
+
+### Community 105 - "_LatestStatusWriteWorker"
+Cohesion: 0.21
+Nodes (3): _check(), _LatestStatusWriteWorker, TestFailure
 
 ### Community 107 - "test_core_liq_isolated.py"
 Cohesion: 0.22
@@ -581,29 +607,33 @@ Nodes (8): Artifacts, ENG-INV-03-05 CORRECTED Census Report, Internal Imports (c
 Cohesion: 0.22
 Nodes (8): Correction Summary, ENG-INV-07-09 Runtime Chain Correction, Engine Self-Test (Supporting Evidence — DRY RUN), Invariant Results, Negative Tests (Dry-Run), Real Testnet Order/Fill (NOT_ESTABLISHED), Rules Followed, What Was Done
 
-### Community 112 - "re"
-Cohesion: 0.07
-Nodes (9): block_reasons(), classify(), main(), missing_detail(), _rows(), sections(), check(), main() (+1 more)
+### Community 111 - "cert_liq_parity_offline.py"
+Cohesion: 0.30
+Nodes (8): check_positions(), collect_leader_distances(), count_liq_parity_blocked_rows(), first_follower_positions(), load_json(), main(), position_distance(), to_float()
 
-### Community 113 - "valid_address"
-Cohesion: 0.18
-Nodes (7): _fill_key(), identity_ok(), master_userfills(), master_userfills_all_dexes(), runtime_master_identity(), valid_address(), ENG-INV-09: Exchange truth outranks local replay
+### Community 112 - "re"
+Cohesion: 0.05
+Nodes (15): check(), main(), config(), intent(), send(), write_cfg(), sections(), check() (+7 more)
+
+### Community 113 - "exchange_truth.py"
+Cohesion: 0.14
+Nodes (9): env_with_file(), _fill_key(), identity_ok(), master_userfills(), master_userfills_all_dexes(), runtime_master_identity(), terminal_reject_evidence(), valid_address() (+1 more)
 
 ### Community 114 - "J2 Local Rejects - Proposed Patch Diffs"
 Cohesion: 0.25
 Nodes (7): Implementation Notes, J2 Local Rejects - Proposed Patch Diffs, Patch 1: Enhance Resting-Order Churn Check, Patch 2: Local Reject for Price Outside 0.2% Band, Patch 3: Add Terminal State Classification for New Reject, Patch 4: Add Operator Action for New Reject, Test Results Summary
 
-### Community 115 - "test_core_standing_close_guard.py"
-Cohesion: 0.24
-Nodes (4): Audit, guard(), Ledger, plan()
-
-### Community 117 - "main"
+### Community 115 - "test_core_save_preserves_send_mode.py"
 Cohesion: 0.27
-Nodes (6): check(), main(), config(), intent(), send(), write_cfg()
+Nodes (4): check(), main(), simulate_save_handler(), write_cfg()
 
 ### Community 118 - "tools/cert — offline halves of the J4 certification gaps (task K2)"
-Cohesion: 0.25
-Nodes (7): Evidence from building this (2026-10-11, offline, on this host), Input layouts, Model split, Safety (all scripts), Scripts, tools/cert — offline halves of the J4 certification gaps (task K2), Which J4 gaps still need the live engine
+Cohesion: 0.20
+Nodes (8): read_csv_tail_rows(), Evidence from building this (2026-10-11, offline, on this host), Input layouts, Model split, Safety (all scripts), Scripts, tools/cert — offline halves of the J4 certification gaps (task K2), Which J4 gaps still need the live engine
+
+### Community 119 - "main"
+Cohesion: 0.24
+Nodes (3): check(), main(), wait_for()
 
 ### Community 122 - "test_core_live_only_stream_cap.py"
 Cohesion: 0.28
@@ -617,6 +647,10 @@ Nodes (6): Branch and base, Changed files vs origin/main, Merge instruction — 
 Cohesion: 0.29
 Nodes (6): 1. What was merged to `main` (human authority: Boss / Richard, "Merge" decision 2026-10-09T14:04Z), 2. Testnet run status: IN PROGRESS, no trade placed yet, 3. Build 4 and the mainnet leftovers — must be handled before ANY mainnet launch, 4. Things the Controller/Architect should reconcile, 5. What's left next, Testnet run handover — 2026-10-09
 
+### Community 126 - "test_core_headroom_foreign_ws.py"
+Cohesion: 0.25
+Nodes (3): Clock, events(), settle()
+
 ### Community 128 - "Certification (Build 3 Repair)"
 Cohesion: 0.33
 Nodes (5): Certification (Build 3 Repair), Read order for an agent starting here, Recording a run, Regenerating the matrix, Rules
@@ -626,12 +660,20 @@ Cohesion: 0.33
 Nodes (5): By area, Certification run status, Requirements that need mainnet proof, Requirements with a recorded result, Runs
 
 ### Community 130 - "time"
-Cohesion: 0.14
-Nodes (7): slow(), main(), fetch(), main(), markers(), main(), one()
+Cohesion: 0.26
+Nodes (5): fetch(), main(), markers(), main(), one()
 
 ### Community 131 - "Build 3 Repair — Certification Matrix (Boss invariants / controls)"
 Cohesion: 0.33
 Nodes (5): Build 3 Repair — Certification Matrix (Boss invariants / controls), Matrix, Models used (per part), Reproduce, Test-suite health (how "mock-proven" was established)
+
+### Community 132 - "test_revert_effective_gate_and_alert.py"
+Cohesion: 0.39
+Nodes (4): check(), main(), old_engine_alert(), write_cfg()
+
+### Community 133 - "acquire_global_instance_lock"
+Cohesion: 0.33
+Nodes (3): acquire_global_instance_lock(), _global_holder_path(), _global_instance_lock_path()
 
 ### Community 134 - "ENG-005 through ENG-009 Certification Report"
 Cohesion: 0.50
@@ -645,35 +687,47 @@ Nodes (3): After a crash or uncertain send, Mainnet crash and ambiguous-send rec
 Cohesion: 0.38
 Nodes (4): check(), main(), decide(), fill()
 
-### Community 142 - "test_g4_order_cap.py"
-Cohesion: 0.22
+### Community 141 - "test_core_effective_gate_and_alert.py"
+Cohesion: 0.47
+Nodes (3): check(), main(), write_cfg()
+
+### Community 142 - "main"
+Cohesion: 0.25
 Nodes (3): check(), main(), engine()
 
-### Community 146 - "ENG-INV-06..09 Non-Vacuous Static Census Report"
-Cohesion: 0.33
-Nodes (5): ENG-INV-06..09 Non-Vacuous Static Census Report, ENG-INV-06: No new engine/runtime around Build 3, File Hashes, Mutation Test Summary, Results Summary
+### Community 146 - "canonical_coin_key"
+Cohesion: 0.08
+Nodes (19): canonical_coin_key(), canonical_coin_resolved(), _chain_sorted(), _coin_key_map(), collapse_stale_runs(), close_run(), follower_position_mark(), ManualLedger (+11 more)
+
+### Community 147 - "CTRL_probe3_t_967fad56.py"
+Cohesion: 0.53
+Nodes (4): git(), load(), main(), record()
+
+### Community 148 - "NetworkConfigError"
+Cohesion: 0.50
+Nodes (3): network_endpoints(), NetworkConfigError, resolve_networks()
 
 ### Community 152 - "test_core_send_mode_fails_closed.py"
 Cohesion: 0.60
 Nodes (4): check(), main(), fresh(), write()
 
 ## Knowledge Gaps
-- **22 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **26 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `SenderGateway` connect `Any` to `ENG-INV-01-02_ENG-010-014_SEM-B1-B4_harness_43731b4f.py`, `ENG-INV-01-02_ENG-010-014_SEM-B1-B4_harness_corrected_43731b4f.py`, `IntentBuilder`, `ORDER_CORRECTION_harness_fefc2b04.py`, `AuditLogWriter`, `HL_Live_Copy_Service_Core.py`, `test_core_audit_reduce_only_matches_wire.py`, `run_self_test`, `build_live_integrity_status`, `fnum`?**
-  _High betweenness centrality (0.038) - this node is a cross-community bridge._
+- **Why does `SenderGateway` connect `Any` to `ENG-INV-01-02_ENG-010-014_SEM-B1-B4_harness_43731b4f.py`, `ENG-INV-01-02_ENG-010-014_SEM-B1-B4_harness_corrected_43731b4f.py`, `IntentBuilder`, `HL_Live_Copy_Service_Core.py`, `AuditLogWriter`, `read_csv_rows`, `run_self_test`, `canonical_coin_key`, `fnum`, `Intent`?**
+  _High betweenness centrality (0.039) - this node is a cross-community bridge._
 - **Should `HL_Live_Copy_Service.py` be split into smaller, more focused modules?**
-  _Cohesion score 0.08416389811738649 - nodes in this community are weakly interconnected._
-- **Why does `fnum()` connect `fnum` to `._plan_batch`, `DedupeStore`, `Any`, `IntentBuilder`, `AuditLogWriter`, `utc_now_ms`, `HL_Live_Copy_Service_Core.py`, `run_self_test`, `build_live_integrity_status`, `ConfigManager`?**
-  _High betweenness centrality (0.036) - this node is a cross-community bridge._
+  _Cohesion score 0.07329192546583851 - nodes in this community are weakly interconnected._
+- **Why does `fnum()` connect `fnum` to `._plan_batch`, `DedupeStore`, `Any`, `IntentBuilder`, `HL_Live_Copy_Service_Core.py`, `read_csv_rows`, `utc_now_ms`, `run_self_test`, `canonical_coin_key`, `build_live_integrity_status`, `Intent`, `CopyFillMatcher`?**
+  _High betweenness centrality (0.029) - this node is a cross-community bridge._
 - **Should `DryRunLiveCopyService` be split into smaller, more focused modules?**
-  _Cohesion score 0.10106382978723404 - nodes in this community are weakly interconnected._
-- **Why does `6. Open decisions register` connect `ConfigManager` to `DryRunLiveCopyService`, `Path`, `Master Product Invariants and Certification Contract`?**
-  _High betweenness centrality (0.035) - this node is a cross-community bridge._
+  _Cohesion score 0.08085317460317461 - nodes in this community are weakly interconnected._
+- **Why does `utc_now_ms()` connect `utc_now_ms` to `DedupeStore`, `_write_attribution_json`, `Any`, `test_core_audit_append_never_drops.py`, `IntentBuilder`, `HL_Live_Copy_Service_Core.py`, `run_self_test`, `Path`, `canonical_coin_key`, `build_live_integrity_status`, `fnum`, `Intent`, `CopyFillMatcher`?**
+  _High betweenness centrality (0.024) - this node is a cross-community bridge._
 - **Should `sleeve_from_leader_event_position` be split into smaller, more focused modules?**
-  _Cohesion score 0.13333333333333333 - nodes in this community are weakly interconnected._
-- **Should `fnum` be split into smaller, more focused modules?**
-  _Cohesion score 0.0873015873015873 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.14285714285714285 - nodes in this community are weakly interconnected._
+- **Should `main` be split into smaller, more focused modules?**
+  _Cohesion score 0.12 - nodes in this community are weakly interconnected._
