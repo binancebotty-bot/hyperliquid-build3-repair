@@ -243,6 +243,53 @@ def main() -> None:
           len(terminal_core.audit.rows) == 1,
           "terminal rows=%s" % (terminal_core.audit.rows,))
 
+    def parity_with_leader(szi, liq_px, follower_px):
+        events = []
+        def fetch_leader(url, json=None, timeout=None):
+            class R:
+                def json(self_inner):
+                    return {"assetPositions": [{"position": {"coin": "BTC", "szi": str(szi),
+                                                                 "liquidationPx": str(liq_px)}}]}
+            return R()
+        c.LEADER_FETCHER = fetch_leader
+        requests.post = fetch_leader
+        c.requests.post = fetch_leader
+        follower_liq(follower_px)
+        g = gateway(FakeExchange(), c.ManualLedger(path=tmp / "l11.json"))
+        g.audit.append_reconciliation = lambda event, status, **kwargs: events.append((event, status, kwargs))
+        return g.liq_parity_block(mk_intent("ENTRY_ALLOWED", "ENTRY")), events
+
+    capped, capped_events = parity_with_leader(1, 50, 70)  # 30% follower vs 50% leader, capped to the 25% floor
+    allowed_row = next((x for x in capped_events if x[0] == "LIQ_PARITY_DECISION"), None)
+    check("L11_LEADER_DISTANCE_CAPPED_AT_FLOOR",
+          capped is None and allowed_row is not None
+          and "leader_liqPx=50" in allowed_row[2]["notes"]
+          and "leader_state_age_sec=" in allowed_row[2]["notes"]
+          and "follower_leverage=3x" in allowed_row[2]["notes"]
+          and "follower_margin_mode=cross" in allowed_row[2]["notes"],
+          "result=%s events=%s" % (capped, capped_events))
+
+    boundary, _ = parity_with_leader(1, 50, 75)  # exactly 25% from mark meets the floor
+    check("L12_PARITY_FLOOR_BOUNDARY_PASSES", boundary is None,
+          "follower at floor should pass, got %s" % (boundary,))
+
+    wrong_side, wrong_events = parity_with_leader(1, 110, 80)  # long liquidation above mark is suspect
+    suspect_row = next((x for x in wrong_events if x[0] == "LIQ_PARITY_INPUT_SUSPECT"), None)
+    check("L13_WRONG_SIDE_LEADER_INPUT_FAILS_CLOSED_AT_FLOOR",
+          wrong_side is not None and wrong_side["status"] == "LIQ_PARITY_BLOCKED"
+          and suspect_row is not None
+          and "leader_liqPx=110" in suspect_row[2]["notes"]
+          and "mark=100" in suspect_row[2]["notes"]
+          and "side=LONG" in suspect_row[2]["notes"],
+          "result=%s events=%s" % (wrong_side, wrong_events))
+
+    over_1000, over_events = parity_with_leader(-1, 1101, 80)  # 1001% from mark, despite correct short-side direction
+    over_row = next((x for x in over_events if x[0] == "LIQ_PARITY_INPUT_SUSPECT"), None)
+    check("L14_OVER_1000_PERCENT_LEADER_INPUT_IS_FLAGGED",
+          over_1000 is not None and over_row is not None
+          and "distance_pct=1001" in over_row[2]["notes"],
+          "result=%s events=%s" % (over_1000, over_events))
+
     failed = [n for n, ok in RESULTS if not ok]
     print("TOTAL=%d FAILED=%d" % (len(RESULTS), len(failed)))
     raise SystemExit(1 if failed else 0)
