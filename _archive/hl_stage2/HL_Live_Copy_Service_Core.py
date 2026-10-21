@@ -680,12 +680,16 @@ STAGE_STAMP_KEYS = ("enqueued_ms", "picked_up_ms", "process_started_ms", "prewar
 
 
 def stamp_fill(fill: Any, key: str) -> None:
-    """Record the wall-clock ms a leader fill reached a stage of the hot path (first time only). Carried on the
-    fill's own raw dict so it follows the fill from the websocket to the send-attempt row; never read for a decision."""
+    """Record first-seen wall-clock ms per fill, clamped against a backward clock step; diagnostics only."""
     try:
         raw = fill.raw
         if isinstance(raw, dict):
-            raw.setdefault("_stamps", {}).setdefault(key, utc_now_ms())
+            stamps = raw.get("_stamps")
+            if not isinstance(stamps, dict):
+                stamps = raw["_stamps"] = {}
+            if key not in stamps:
+                prior = [v for v in stamps.values() if isinstance(v, int) and not isinstance(v, bool)]
+                stamps[key] = max(utc_now_ms(), max(prior, default=0))
     except Exception:
         pass
 
@@ -9539,6 +9543,8 @@ class LiveCopyCore:
         self._inflight: Dict[int, Tuple[str, int, str, str, str]] = {}  # thread id -> (fill id, started ms, thread name, wallet, coin)
         self._stuck_dumped: set = set()
         self._past_send_keys: set = set()  # guard keys whose processing reached the send call
+        self._queue_depth_thread = threading.Thread(target=self._queue_depth_loop, daemon=True, name="HLCore-queue-depth")
+        self._queue_depth_thread.start()
         threading.Thread(target=self._pending_sweeper, daemon=True, name="HLCore-pending-sweeper").start()
         for idx in range(self.hot_send_workers):
             t = threading.Thread(target=self._hot_send_loop, args=(idx,), daemon=True, name=f"HLCoreWS-hot-send-{idx + 1}")
@@ -9558,6 +9564,9 @@ class LiveCopyCore:
         for t in getattr(self, "_hot_threads", []):
             if t.is_alive() and t is not threading.current_thread():
                 t.join(timeout=1.0)
+        qt = getattr(self, "_queue_depth_thread", None)
+        if qt is not None and qt.is_alive() and qt is not threading.current_thread():
+            qt.join(timeout=1.0)
         _drain_status_write_workers()
 
     def _prewarm_with_parity(self, fill: LeaderFill, local_block: bool, converge: bool = False) -> None:
@@ -9750,14 +9759,18 @@ class LiveCopyCore:
         planned.sort(key=lambda p: (p[0], p[1], p[2]))
         return [f for _p, _t, _i, merged in planned for f in merged]
 
-    def _fill_trace(self, kind: str, fill: "LeaderFill", extra: Optional[Dict[str, Any]] = None) -> None:
-        """One json line per step a leader fill takes (poll_dispatched / poll_already_handled / poll_queue_full / late_closed_row /
-        proc_start / proc_end) in fill_trace.jsonl beside the runtime state: a fill the classifier calls MISSING can be found here
-        (never reached dispatch, dispatched and never processed, or processed and ended without a row). Rotated at 32 MB, 12 files kept; never raises."""
+    def _fill_trace(self, kind: str, fill: Optional["LeaderFill"], extra: Optional[Dict[str, Any]] = None) -> None:
+        """Keep lifecycle and timing evidence in the rotated trace, including fills that never reach send-attempt CSV."""
         try:
             path = Path(CORE_RUNTIME_STATE_FILE).parent / "fill_trace.jsonl"
-            rec = {"ts": utc_now_ms(), "k": kind, "id": str(fill.leader_fill_id), "w": str(fill.leader_wallet)[:10],
-                   "c": str(fill.coin), "t": int(fill.timestamp_ms or 0), **(extra or {})}
+            rec = {"ts": utc_now_ms(), "k": kind}
+            if fill is not None:
+                rec.update({"id": str(fill.leader_fill_id), "w": str(fill.leader_wallet)[:10],
+                            "c": str(fill.coin), "t": int(fill.timestamp_ms or 0)})
+                stamps = fill.raw.get("_stamps") if isinstance(fill.raw, dict) else None
+                if stamps:
+                    rec["stamps"] = dict(stamps)
+            rec.update(extra or {})
             if "status_of" in rec:
                 _r = rec.pop("status_of")
                 rec["status"] = str(_r[1]) if isinstance(_r, tuple) and len(_r) > 1 else ""
@@ -9767,6 +9780,14 @@ class LiveCopyCore:
                     fh.write(json.dumps(rec, separators=(",", ":")) + "\n")
         except Exception as exc:
             log_error("fill_trace", exc)
+
+    def _queue_depth_loop(self) -> None:
+        while not self._hot_stop_event.wait(10.0):
+            self._fill_trace("queue_depth", None, {
+                "hot_depth": [q.qsize() for q in self._hot_queues],
+                "priority_depth": [q.qsize() for q in self._prio_queues],
+                "inflight": len(self._inflight),
+            })
 
     def _poll_trace(self, rec: Dict[str, Any]) -> None:
         """One json line per leader poll (cursor, window asked, fills returned, how many were new) in leader_poll_trace.jsonl
@@ -9843,8 +9864,10 @@ class LiveCopyCore:
                     break
             if not batch:
                 return
-            for _f in batch:
-                stamp_fill(_f, "picked_up_ms")
+            for fill in batch:
+                stamp_fill(fill, "batch_drained_ms")
+                stamp_fill(fill, "picked_up_ms")
+                self._fill_trace("batch_drained", fill)
             try:
                 try:
                     plan = self._plan_batch(batch)
@@ -9852,12 +9875,22 @@ class LiveCopyCore:
                     log_error("ws_hot_plan", exc)
                     plan = list(batch)
                 for fill in plan:
+                    stamp_fill(fill, "lane_assigned_ms")
+                    stamp_fill(fill, "lane_started_ms")
+                    stamp_fill(fill, "coin_lock_requested_ms")
                     try:
                         with self._coin_lock(fill.coin):
+                            stamp_fill(fill, "coin_lock_acquired_ms")
                             self._process_leader_fill(fill, None, self._entry_sends_blocked_reason)
                     except Exception as exc:
                         log_error("ws_hot_send", exc)
+                    finally:
+                        stamp_fill(fill, "lane_finished_ms")
+                        self._fill_trace("lane_finished", fill)
             finally:
+                for fill in batch:
+                    stamp_fill(fill, "batch_joined_ms")
+                    self._fill_trace("batch_joined", fill)
                 self._release_queued(batch, pq)
 
     def _coin_lock(self, coin: str) -> "threading.Lock":
@@ -9875,8 +9908,10 @@ class LiveCopyCore:
         inner = max(1, int(fnum(os.getenv("HL_LIVE_HOT_INNER"), 6)))
 
         def _one(fill: LeaderFill) -> None:
+            stamp_fill(fill, "coin_lock_requested_ms")
             try:
                 with self._coin_lock(fill.coin):
+                    stamp_fill(fill, "coin_lock_acquired_ms")
                     self._process_leader_fill(fill, None, self._entry_sends_blocked_reason)
             except Exception as exc:
                 log_error("ws_hot_send", exc)
@@ -9884,7 +9919,16 @@ class LiveCopyCore:
         if inner <= 1 or len(plan) <= 1:
             for fill in plan:
                 self._drain_priority(idx)  # a close that arrived meanwhile goes before the next fill
-                _one(fill)
+                stamp_fill(fill, "lane_assigned_ms")
+                stamp_fill(fill, "lane_started_ms")
+                try:
+                    _one(fill)
+                finally:
+                    stamp_fill(fill, "lane_finished_ms")
+                    self._fill_trace("lane_finished", fill)
+            for fill in plan:
+                stamp_fill(fill, "batch_joined_ms")
+                self._fill_trace("batch_joined", fill)
             return
         by_coin: Dict[str, List[LeaderFill]] = {}
         for fill in plan:
@@ -9902,18 +9946,28 @@ class LiveCopyCore:
                     grp = groups[cursor[0]]
                     cursor[0] += 1
                 for fill in grp:
+                    stamp_fill(fill, "lane_assigned_ms")
+                for fill in grp:
                     if self._hot_stop_event.is_set():
-                        return
+                        break
                     self._drain_priority(idx)  # closes that arrived meanwhile go before the next fill
-                    _one(fill)
+                    stamp_fill(fill, "lane_started_ms")
+                    try:
+                        _one(fill)
+                    finally:
+                        stamp_fill(fill, "lane_finished_ms")
+                        self._fill_trace("lane_finished", fill)
 
         threads = [threading.Thread(target=_lane, name=f"hot{idx}-inner", daemon=True)
                    for _ in range(min(inner, len(groups)) - 1)]
-        for t in threads:
-            t.start()
+        for thread in threads:
+            thread.start()
         _lane()
-        for t in threads:
-            t.join()
+        for thread in threads:
+            thread.join()
+        for fill in plan:
+            stamp_fill(fill, "batch_joined_ms")
+            self._fill_trace("batch_joined", fill)
 
     def _hot_send_loop(self, idx: int = 0) -> None:
         """A worker never dies quietly: an error that escapes the loop is logged and the loop restarts (a dead worker leaves
@@ -9941,7 +9995,9 @@ class LiveCopyCore:
                 except queue.Empty:
                     break
             for _f in batch:
+                stamp_fill(_f, "batch_drained_ms")
                 stamp_fill(_f, "picked_up_ms")
+                self._fill_trace("batch_drained", _f)
             try:
                 try:
                     plan = self._plan_batch(batch)
@@ -11168,6 +11224,8 @@ class LiveCopyCore:
                 _leader_poll_cursors = {str(k): int(fnum(v, 0)) for k, v in _raw_cursor.items()}
         _block = ""  # evaluated in full, then published once: the hot path never sees a half-run gate set
         started = time.monotonic()
+        cycle_started_ms = utc_now_ms()
+        self._fill_trace("cycle_start", None, {"cycle_id": cycle_started_ms, "queue_depth": self.hot_backlog()})
         try:
             self.sender.refresh_asset_universe()
             ws_health = self.ws.write_health()
@@ -11428,6 +11486,13 @@ class LiveCopyCore:
                 self.state_writer.write(summary, self.dedupe, self.cfg)
             except Exception as exc:  # a state json write must never end the cycle (or the process)
                 self.state_writer.report_failure(exc)
+            self._fill_trace("cycle_end", None, {
+                "cycle_id": cycle_started_ms,
+                "duration_ms": int((time.monotonic() - started) * 1000),
+                "queue_depth": self.hot_backlog(),
+                "ok": bool(summary.ok),
+                "fatal_errors": int(summary.fatal_errors),
+            })
         return summary
 
 
