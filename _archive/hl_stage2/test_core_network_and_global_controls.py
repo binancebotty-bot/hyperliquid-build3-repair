@@ -278,6 +278,24 @@ def global_controls_tests() -> None:
                side="SELL", ledger=ledger)
     check("G9_CLOSE_NEVER_BLOCKED_BY_ENTRY_CONTROLS", d[0] == "EXIT_ALLOWED", str(d))
 
+    # A malformed persisted close must be repaired before the entry gate is checked.
+    c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": True, "wallets": {
+        LEADER: {"enabled": True, "mode": "ON", "copy_mode": "fixed", "fixed_notional": 1000}}})
+    close_ledger = c.ManualLedger(path=tmp / "exit_gate.json")
+    close_ledger.sleeve(LEADER, "BTC")["signed_size"] = 10.0
+    close_intent = c.IntentBuilder(c.ConfigManager(), close_ledger).build(fill("SELL"))
+    close_intent.decision = None
+    os.environ["HL_LIVE_MOCK_SEND"] = "1"
+    try:
+        close_gateway = c.SenderGateway(c.ConfigManager(), c.AuditLogWriter())
+        close_gateway._pre_send_ownership_gate = lambda intent: (True, {})
+        sent, status = close_gateway.send_if_allowed(close_intent, "STARTUP_ORPHAN_CHECK_PENDING")
+    finally:
+        os.environ.pop("HL_LIVE_MOCK_SEND", None)
+    check("G9A_MALFORMED_CLOSE_BYPASSES_ENTRY_GATE",
+          sent and status == "MOCK_ORDER_SENT" and close_intent.decision == "EXIT_ALLOWED",
+          f"{sent} {status} {close_intent.decision}")
+
     config()
     check("G10_MISSING_SLIPPAGE_IS_BOSS_DEFAULT_02PCT", c.ConfigManager().marketable_bps() == 20.0
           and ui._global_controls_for_ui({})["marketable_slippage_pct"] == 0.2)
