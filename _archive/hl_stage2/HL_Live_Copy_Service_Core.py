@@ -4686,6 +4686,8 @@ class SenderGateway:
         self._exchange_rate_limit_cooldown_until_ms: int = 0
         self._market_halted_until_ms: Dict[str, int] = {}
         self._ioc_no_match_until_ms: Dict[str, int] = {}
+        self._margin_reject_until_ms: Dict[str, int] = {}
+        self._liq_parity_until_ms: Dict[str, int] = {}
         # shortcut: windows reset on restart; persist only if restart-spanning controls are required.
         self._last_exit_attempt_ms: Dict[str, int] = {}
         # Pending-exit guard: prevents a burst of leader close fills from each
@@ -4695,6 +4697,22 @@ class SenderGateway:
         self._pending_exit_guard: Dict[str, Dict[str, Any]] = {}
         self._pending_exit_lock = threading.Lock()
         self._load_asset_universe_snapshot()
+
+    def known_dispatch_reject(self, fill: LeaderFill) -> str:
+        """Return a cached terminal entry block that is safe to apply before queueing."""
+        if not _fill_dir(fill).startswith(("open ", "increase ")):
+            return ""
+        if is_spot_pair(fill.coin):
+            return "SPOT_MARKET_SKIPPED"
+        coin = str(fill.coin or "").strip().lower()
+        now = utc_now_ms()
+        for untils, status in ((self._market_halted_until_ms, "SKIPPED_MARKET_HALTED"),
+                               (self._ioc_no_match_until_ms, "SKIPPED_IOC_NO_IMMEDIATE_MATCH"),
+                               (self._margin_reject_until_ms, "SKIPPED_INSUFFICIENT_MARGIN"),
+                               (self._liq_parity_until_ms, "LIQ_PARITY_BLOCKED")):
+            if untils.get(coin, 0) > now:
+                return status
+        return ""
 
     def _place_order(self, exchange: Any, sdk_coin: str, is_buy: bool, size: float, limit_px: float,
                      tif: str, reduce_only: bool, timing: Optional[Dict[str, Any]] = None, started_key: str = "",
@@ -6391,6 +6409,8 @@ class SenderGateway:
             parity = self.liq_parity_block(intent)
             timing["liq_parity_finished_ms"] = utc_now_ms()
             if parity is not None:
+                self._liq_parity_until_ms[coin_key] = utc_now_ms() + max(
+                    1, int(fnum(os.getenv("HL_LIVE_LIQ_PARITY_DISPATCH_COOLDOWN_MS"), 1000)))
                 parity["timing"] = timing
                 self._append_local_block_reconciliation(intent, "LIQ_PARITY_BLOCKED", parity)
                 return False, "LIQ_PARITY_BLOCKED"
@@ -6446,6 +6466,10 @@ class SenderGateway:
                         leader_fill_id=intent.fill.leader_fill_id, intent_id=intent.intent_id, coin=coin_key,
                         reject_category="IOC_NO_IMMEDIATE_MATCH", terminal_state="IOC_NO_IMMEDIATE_MATCH",
                         action="RETRY_AFTER_IOC_WINDOW", notes=f"IOC remained IOC; per-coin retry window {window_ms} ms")
+            elif category == "INSUFFICIENT_MARGIN" and lifecycle in {"ENTRY", "ADD"}:
+                window_ms = max(1, int(fnum(os.getenv("HL_LIVE_MARGIN_REJECT_RETRY_WINDOW_MS"), 10000)))
+                self._margin_reject_until_ms[coin_key] = max(
+                    self._margin_reject_until_ms.get(coin_key, 0), utc_now_ms() + window_ms)
             self._append_real_attempt(intent, send_status, result)
             reduced_ms = self.leader_reduced_since(intent.fill) if lifecycle in {"ENTRY", "ADD"} else 0
             if reduced_ms and send_status == "ORDER_FILLED":
@@ -9785,6 +9809,36 @@ class LiveCopyCore:
         key = canonical_coin_key(fill.coin).encode("utf-8")
         return int(hashlib.sha1(key).hexdigest()[:8], 16) % len(self._hot_queues)
 
+    def _record_known_dispatch_reject(self, fill: LeaderFill, status: str) -> None:
+        key = self._guard_key(fill)
+        with self._idem_lock:
+            if key in self._idem_accepted:
+                return
+            self._idem_accepted.add(key)
+            if not self.dedupe.accept_leader(fill.leader_fill_id):
+                self.audit.append_reconciliation(
+                    "DUPLICATE_LEADER_FILL_SKIPPED", "BLOCKED_DUPLICATE_DEDUPE_STORE",
+                    leader_wallet=fill.leader_wallet, leader_fill_id=fill.leader_fill_id,
+                    coin=fill.coin, action="NO_SEND_ALREADY_PROCESSED",
+                    terminal_state="BLOCKED_DUPLICATE_DEDUPE_STORE", engine_can_send="False",
+                    notes="the persisted dedupe store already holds this leader fill id; not sent again")
+                return
+            merged_ids = [str(i) for i in ((fill.raw or {}).get("merged_fill_ids") or []) if i]
+            self.dedupe.processed.update(merged_ids)
+            self._idem_accepted.update(merged_ids)
+        self.audit.append_reconciliation(
+            "SEND_TERMINAL", status, leader_wallet=fill.leader_wallet, leader_fill_id=fill.leader_fill_id,
+            coin=fill.coin, action="NO_SEND_KNOWN_DISPATCH_BLOCK", reject_category=status,
+            terminal_state=status, engine_can_send="False",
+            notes="known terminal entry refusal applied before send lane assignment")
+        for merged_id in merged_ids:
+            self.audit.append_reconciliation(
+                "FILL_MERGED", status, leader_wallet=fill.leader_wallet, leader_fill_id=merged_id,
+                coin=fill.coin, action="NO_SEND_KNOWN_DISPATCH_BLOCK", reject_category=status,
+                terminal_state=status, engine_can_send="False",
+                notes=f"merged into blocked leader fill {fill.leader_fill_id}")
+        self._fill_trace("blocked_known_dispatch", fill, {"status": status})
+
     def _dispatch_fill(self, fill: LeaderFill) -> Optional[bool]:
         # a fill already waiting is never queued again (run 4: the live feed and every backstop poll re-queued the
         # same unprocessed fills while the queue was long, which made it longer)
@@ -9795,6 +9849,10 @@ class LiveCopyCore:
                 return True
         if self._already_handled(fill):  # a re-read duplicate costs nothing: no ledger work, no sleeve created
             return True
+        known_block = self.sender.known_dispatch_reject(fill)
+        if known_block:
+            self._record_known_dispatch_reject(fill, known_block)
+            return None
         cfg = self.intent_builder.cfg
         raw_dir = (fill.raw or {}).get("dir") if isinstance(fill.raw, dict) else None
         if (isinstance(raw_dir, str) and raw_dir in {"Open Long", "Open Short"}

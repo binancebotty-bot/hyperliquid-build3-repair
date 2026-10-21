@@ -77,6 +77,7 @@ core._coin_lane = {}
 core._hot_queues = [queue.Queue(maxsize=50000)]
 core._hot_queue = core._hot_queues[0]
 core._prio_queues = [queue.Queue(maxsize=50000)]
+core.sender = SimpleNamespace(known_dispatch_reject=lambda _fill: "")
 
 
 def fill(fid, wallet, direction, side):
