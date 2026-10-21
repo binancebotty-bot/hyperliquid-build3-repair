@@ -9650,7 +9650,7 @@ class LiveCopyCore:
         # Run 3: one worker took ~3.5 s per order and lag grew to 81 s. Fills are spread over several workers by
         # coin: one coin always goes to the same worker, so its fills (every leader's, as they net on one
         # account) stay in order, while different coins are sent in parallel.
-        self.hot_send_workers = max(1, min(32, int(fnum(os.getenv("HL_LIVE_HOT_SEND_WORKERS"), 4))))
+        self.hot_send_workers = max(1, min(8, int(fnum(os.getenv("HL_LIVE_HOT_SEND_WORKERS"), 4))))
         self._hot_queues: List["queue.Queue[LeaderFill]"] = [queue.Queue(maxsize=50000) for _ in range(self.hot_send_workers)]
         self._hot_queue = self._hot_queues[0]
         # run 5: convergence closes waited ~7.7 min behind a worker's batch of entries and were re-queued every few

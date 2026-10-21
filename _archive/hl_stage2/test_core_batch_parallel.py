@@ -5,7 +5,7 @@ Test (1) 12 fills of 12 coins, 0.2 s each, finish in well under the serial 2.4 s
 Test (2) 6 fills of one coin run in order, one at a time
 Test (3) HL_LIVE_HOT_INNER=1 keeps the old serial behaviour
 Test (4) a failing fill does not stop the rest
-Test (5) HL_LIVE_HOT_SEND_WORKERS=24 is honoured (cap raised from 8)
+Test (5) HL_LIVE_HOT_SEND_WORKERS=24 is capped at 8
 
 Run: python test_core_batch_parallel.py   # RESULT:: markers, exit 0/1. No network, no orders.
 """
@@ -41,7 +41,7 @@ def main():
     core._hot_stop_event.set()
     for t in core._hot_threads:
         t.join(timeout=2)
-    check("workers_cap_24", core.hot_send_workers == 24, str(core.hot_send_workers))
+    check("workers_hard_cap_8", core.hot_send_workers == 8, str(core.hot_send_workers))
     core._hot_stop_event.clear()
 
     log = []
