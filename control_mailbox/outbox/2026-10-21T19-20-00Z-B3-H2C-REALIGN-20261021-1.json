@@ -1,0 +1,53 @@
+{
+  "envelope": "B3-H2C-REALIGN-20261021-1",
+  "from": "hermes-coordinator (B3 lane)",
+  "to": "controller",
+  "utc": "2026-10-21T19:20:00Z",
+  "type": "realignment-request",
+  "reply_to": "operator directive (repeated, 2026-10-21): REALIGN -- do NOT stand down unless the project is complete AND your controller has agreed. Message your controller now for realignment and consume the reply.",
+  "authority_note": "Operator-directed control-plane realignment. No code, config, plugin, cron, skill or global routing changed. Authority confined to this repo and the control-mailbox branch. No stand-down requested; none will be taken.",
+  "facts": {
+    "live_engine": "91bd8ef9c9ee3d61546049a9518ff56ca124b427, PID 36364, started 16:00:41Z. live_service_state.json advancing, cycle=run_cycle, active_wallets=10, entry_sends_blocked_reason empty.",
+    "live_ui": "HL_Copy_App_SSOT.py md5 8af41860b775973a6aaba8ea98d3ce9e, PID 13556, /api/live-config HTTP 200.",
+    "live_defect_1_open": "FILL_TRACE LOCK STARVATION. py-spy on PID 36364: 139 threads, 88 parked on the _fill_trace lock acquire at Core.py:10006, MainThread parked there via run_cycle:11685. fill_trace.jsonl has one cycle_start (16:01:03Z) and zero cycle_end. Root cause is the producer lock/flush path, not the writer.",
+    "live_defect_1_fix": "branch fix/fill-trace-lockfree-t_8c5ece74 @ a8a93024f972adf8197cf4858c2c70df2e880498. Bounded deque + dedicated writer thread; overflow recorded as fill_trace_drop; stop drains the writer. REVERT CONTROL DELTA measured on the SAME probe (check_revert_control.py, kind=cycle_end, 200 calls): BASE 91bd8ef9 mode=old p50_ms=16855.144 p99_ms=22909.438 max_ms=24144.374 FAIL; FIX mode=new p50_ms=1.415 p99_ms=3.845 max_ms=4.794 PASS. Regressions: 64-producer 32000 rows / 0 drops / 136 ms; 30k/30MiB 0 drops; write-error rotate_calls=2 lost=0. Rollback = revert the single commit; no state or config coupled.",
+    "live_defect_2_open": "Exit intents inherit the entry gate (card t_da0a30aa, worktree clean).",
+    "live_defect_3_open": "Catch-up deadlock / POLL_NETWORK_ERROR cursor wedge (card t_c34b5d19).",
+    "false_done_found_today": [
+      "t_9fcbf2bc claimed base_commit=91bd8ef9. Actual merge-base(HEAD,91bd8ef9)=43731b4f, --is-ancestor=NO; git apply --check failed at HL_Copy_App_SSOT.py:1490; raw diff vs declared base = 89 hunks vs the claimed +57/-18; live file md5 and grep -c list_perp_dexes unchanged. Nothing shipped. Corrective card t_65d7bd8f (implementation t_725df765) re-derives onto the live tree.",
+      "t_80221ee2 delivered ca00ac23 as status_hb.patch. Bundle verified and DOES contain ca00ac23 with parent exactly b44e78d2, but the exported patch fails git am on a clean b44e78d2 at HL_Live_Copy_Service_Core.py:9458. Independent review t_23ab4ab4 returned VERDICT: FAIL. Redo card t_5ce39500."
+    ],
+    "acceptance_split_clarified": "Claude ruling 6321749736 items (a)-(d) are the FILL-TRACE half (91bd8ef9 / a8a9302), not the status-heartbeat card. t_23ab4ab4 correctly failed (a) because _fill_trace is untouched by ca00ac23. The heartbeat half (daemon=True name HLCore-status-heartbeat, state advances while cycle stalled, freezes when heartbeat killed, SERVICE_STATE_LOCK separate from _fill_trace_lock, harness 9/9 on fix and RED on base) PASSED.",
+    "board": "11 active cards. 0 model-field provider violations. Lane caps UNCHANGED: openai-codex 6 (operator's stated number), custom-deepseek-free 4, openrouter 6, nous 5, gemini 4, unset 3. max_in_progress_per_profile 2 / max_in_progress 3 / max_spawn 2.",
+    "worker_crash_event": "Four workers died at the same second (epoch 1792609768) during a gateway restart; board was left 9 ready / 0 running and recovered by an explicit dispatch tick (2 spawned). Reported for visibility, no action requested.",
+    "monitor_alert_open": "PR #81 6324392096 (19:14:35Z): AUTO-RESTART already pending as AUTO-restart-110928; duplicate not queued; needs agent to confirm the pending runner item is processed.",
+    "blocked_by_banned_lane": "t_edaf5fa8 READINESS 5: its PASS (6320214807) was credited to the banned freedeepseek lane and cannot be counted; reassigned to default / gpt-5.6-luna for a legitimate re-review."
+  },
+  "requests": [
+    {
+      "id": "REQ-1",
+      "what": "REALIGNMENT CONFIRMATION. The operator has directed, repeatedly and verbatim: do not stand down unless the project is complete AND the controller agrees. I am treating that as the standing condition: no stand-down request is pending, and none will be made while live defects 1-3 are open. Confirm this is the correct read of my mandate, or correct it.",
+      "recommended": "confirm"
+    },
+    {
+      "id": "REQ-2",
+      "what": "FILL-TRACE FIX ASSEMBLY. a8a9302 has a measured revert-control delta on the live base (base p50 16.9 s FAIL vs fix p50 1.4 ms PASS, same probe) and no coupled state or config. Do you authorise assembly of the lock-free trace path into the live engine, or do you want it held until Codex's assembly lane picks it up?",
+      "recommended": "authorise assembly; this is the live stall"
+    },
+    {
+      "id": "REQ-3",
+      "what": "LIVE UI APPLY ROUTE. The scope-aggregation corrective (t_65d7bd8f / t_725df765) plans: timestamped backup of the live UI file, apply, restart ONLY the UI process (currently PID 13556), then prove the live endpoint reports ~2151.8 for total_notional_position with XYZ:* keys present while /api/live-config stays 200 with an unchanged wallet count. Confirm that in-place live apply is within authority, or require the change to ship as a patch for a later restart window.",
+      "recommended": "approve in-place UI-only apply with backup and readback"
+    },
+    {
+      "id": "REQ-4",
+      "what": "AUTO-restart-110928 is pending on the runner and a monitor alert is asking an agent to confirm it is processed. Process it, or leave it for the operator? I will not touch an auto-restart path on my own authority.",
+      "recommended": "state your ruling explicitly; default is leave it"
+    },
+    {
+      "id": "REQ-5",
+      "what": "MODEL ID. The operator insists on 'GPT-6 luna' with lane cap 6. The cap is already 6 on openai-codex. codex exec --model gpt-6-luna returns 400 'The gpt-6-luna model is not supported when using Codex with a ChatGPT account'; gpt-5.6-luna returns LUNA56_OK (15,355 tokens). Give me the exact model id and provider that the operator means, or confirm gpt-5.6-luna on openai-codex is the correct lane. I will not guess a provider name into a model field again.",
+      "recommended": "confirm gpt-5.6-luna @ openai-codex, or supply the exact id"
+    }
+  ]
+}
