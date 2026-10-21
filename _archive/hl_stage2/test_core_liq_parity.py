@@ -259,6 +259,13 @@ def main() -> None:
         g.audit.append_reconciliation = lambda event, status, **kwargs: events.append((event, status, kwargs))
         return g.liq_parity_block(mk_intent("ENTRY_ALLOWED", "ENTRY")), events
 
+    os.environ.pop("HL_LIVE_LIQ_PARITY_CAP_AT_FLOOR", None)
+    strict_default, _ = parity_with_leader(1, 50, 70)
+    check("L11A_CAP_DISABLED_BY_DEFAULT_KEEPS_STRICT_PARITY",
+          strict_default is not None and strict_default["status"] == "LIQ_PARITY_BLOCKED",
+          "the default must retain the original 50% leader requirement")
+
+    os.environ["HL_LIVE_LIQ_PARITY_CAP_AT_FLOOR"] = "1"
     capped, capped_events = parity_with_leader(1, 50, 70)  # 30% follower vs 50% leader, capped to the 25% floor
     allowed_row = next((x for x in capped_events if x[0] == "LIQ_PARITY_DECISION"), None)
     check("L11_LEADER_DISTANCE_CAPPED_AT_FLOOR",
@@ -302,6 +309,25 @@ def main() -> None:
           over_1000 is not None and over_row is not None
           and "distance_pct=1001" in over_row[2]["notes"],
           "result=%s events=%s" % (over_1000, over_events))
+
+    saved_network, saved_argv = c.FOLLOWER_NETWORK, sys.argv
+    saved_claim = c._XNET.claim_network_stamp
+    startup_refused = False
+    try:
+        c.FOLLOWER_NETWORK = "mainnet"
+        sys.argv = ["HL_Live_Copy_Service_Core.py", "--once", "--confirm-mainnet-follower"]
+        c._XNET.claim_network_stamp = lambda *_a, **_k: (_ for _ in ()).throw(RuntimeError("startup reached network stamp"))
+        try:
+            c.main()
+        except SystemExit as exc:
+            startup_refused = "LIQ_PARITY_CAP_NOT_ALLOWED_ON_MAINNET" in str(exc)
+        except RuntimeError:
+            startup_refused = False
+    finally:
+        c.FOLLOWER_NETWORK, sys.argv = saved_network, saved_argv
+        c._XNET.claim_network_stamp = saved_claim
+    check("L16_MAINNET_REFUSES_CAP_AT_STARTUP", startup_refused,
+          "mainnet with cap enabled must refuse before claiming state or entering the engine loop")
 
     failed = [n for n, ok in RESULTS if not ok]
     print("TOTAL=%d FAILED=%d" % (len(RESULTS), len(failed)))

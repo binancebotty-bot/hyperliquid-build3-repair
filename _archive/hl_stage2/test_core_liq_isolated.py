@@ -7,7 +7,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 tmp = Path(tempfile.mkdtemp(prefix="liqiso_"))
 os.environ.update({"HL_LIVE_AUDIT_DIR": str(tmp), "HL_LIVE_ENV_FILE": "/nonexistent", "HL_LEADER_NETWORK": "testnet",
-                   "HL_FOLLOWER_NETWORK": "testnet", "HL_LIVE_LIQ_PARITY": "1"})
+                   "HL_FOLLOWER_NETWORK": "testnet", "HL_LIVE_LIQ_PARITY": "1",
+                   "HL_LIVE_LIQ_PARITY_CAP_AT_FLOOR": "1"})
 import HL_Live_Copy_Service_Core as c
 R = []
 def check(n, ok, d=""):
