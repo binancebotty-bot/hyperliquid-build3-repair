@@ -10296,6 +10296,12 @@ class LiveCopyCore:
         with self._idem_lock:
             return self._guard_key(fill) in self._idem_accepted
 
+    def _catchup_handled(self, fill: LeaderFill) -> bool:
+        """Terminal for catch-up collapsing only: a catchup_net_zero id is persisted in the dedupe store, so a
+        restart must not collapse (and re-row) the same stale run. Deliberately NOT _already_handled: the
+        persisted store also holds EXIT ids, which must still be re-attempted across a restart."""
+        return self._already_handled(fill) or fill.leader_fill_id in self.dedupe.processed
+
     def _process_leader_fill(self, fill: LeaderFill, summary: Optional[CycleSummary] = None, entry_block_reason: str = "") -> Tuple[bool, str, Optional[Intent]]:
         """Every fill ends in a row. An error while processing used to be only a log line: the fill (and any fills merged
         into it) were already marked handled, so without a row they vanished (outage test 14: 57 fills with no row)."""
@@ -11486,16 +11492,18 @@ class LiveCopyCore:
                 summary.poll_loop_status = str(state_for_age.get("last_leader_poll_status") or "POLL_DISABLED") if isinstance(state_for_age, dict) else "POLL_DISABLED"
             fills.sort(key=lambda f: (f.timestamp_ms, f.leader_fill_id))
             summary.leader_fills_seen = len(fills)
-            fills, _net_zero = collapse_stale_runs(fills, utc_now_ms(), self._already_handled)
+            fills, _net_zero = collapse_stale_runs(fills, utc_now_ms(), self._catchup_handled)
             for _zf, _why in _net_zero:  # a stale run that netted to zero: every id still gets its row and is marked handled
                 self._fill_trace("catchup_net_zero", _zf)
-                self.dedupe.processed.add(_zf.leader_fill_id)
+                self.dedupe.accept_leader(_zf.leader_fill_id)  # persisted: a restart must not collapse it again
                 with self._idem_lock:
                     self._idem_accepted.add(self._guard_key(_zf))
                 self.audit.append_reconciliation(
                     "SEND_TERMINAL", "CATCHUP_NET_ZERO", leader_wallet=_zf.leader_wallet, leader_fill_id=_zf.leader_fill_id,
                     coin=_zf.coin, action="NO_ACTION_CATCHUP_NET_ZERO", terminal_state="CATCHUP_NET_ZERO", engine_can_send="False",
                     notes=f"stale leader {_zf.side} {_zf.size} @ {_zf.price} at {_zf.timestamp_ms}: {_why}")
+            if _net_zero:  # persist the ids now: a crash before the next state publish must not re-collapse them
+                self.dedupe.flush_jsonl()
             closed_late = already_closed_late_entries(fills, utc_now_ms())
             sync_fills: List[LeaderFill] = []
             for fill in fills:
