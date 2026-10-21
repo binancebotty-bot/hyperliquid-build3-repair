@@ -1,7 +1,7 @@
 # Graph Report - worktree-da-outage-paging-6321230965  (2026-10-21)
 
 ## Corpus Check
-- 285 files · ~569,517 words
+- 285 files · ~569,571 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 14 file(s) not represented in the graph (top: .csv 11, (none) 2, .jsonl 1)
 
@@ -11,7 +11,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `91bd8ef9`
+- Built from commit: `bcdda1e7`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 

@@ -1,7 +1,7 @@
 # Graph Report - worktree-da-outage-paging-6321230965  (2026-10-21)
 
 ## Corpus Check
-- 285 files · ~569,545 words
+- 285 files · ~569,517 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 14 file(s) not represented in the graph (top: .csv 11, (none) 2, .jsonl 1)
 

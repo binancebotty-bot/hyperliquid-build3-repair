@@ -358,6 +358,13 @@ def main() -> None:
     rows = [r for r in c.read_csv_rows(c.RECONCILIATION_CSV) if r.get("status") == "OUTAGE_GAP"]
     check("M7_STALE_CURSOR_EMITS_ONE_COUNTED_GAP_PER_WALLET",
           len(rows) == 2 and {r.get("leader_wallet") for r in rows} == {LEADER, OTHER}, str(rows[-2:]))
+    state = c.load_json(c.CORE_RUNTIME_STATE_FILE, {})
+    gap_markers = state.get("last_leader_poll_outage_gap_floor_ms", {})
+    check("M7_GAP_MARKERS_WRITTEN_FOR_EACH_STALE_WALLET", {LEADER, OTHER} <= set(gap_markers), str(gap_markers))
+    core.state_writer._write_core_state({}, core.dedupe, {})  # exercise the compaction writer that runs after polling
+    state = c.load_json(c.CORE_RUNTIME_STATE_FILE, {})
+    gap_markers = state.get("last_leader_poll_outage_gap_floor_ms", {})
+    check("M7_GAP_MARKERS_SURVIVE_CORE_STATE_COMPACTION", {LEADER, OTHER} <= set(gap_markers), str(gap_markers))
     core._last_leader_poll_ms = 0
     core.run_cycle(use_source_csv=False, poll_live=True)
     rows = [r for r in c.read_csv_rows(c.RECONCILIATION_CSV) if r.get("status") == "OUTAGE_GAP"]
