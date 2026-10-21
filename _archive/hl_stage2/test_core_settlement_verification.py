@@ -30,8 +30,9 @@ def check(name, cond, detail=''):
 class MasterTruth:
     """Offline /info double for the MASTER reads: perpDexs, userFillsByTime, openOrders."""
 
-    def __init__(self, fill_sz=None, resting_oid=None, down=False):
+    def __init__(self, fill_sz=None, resting_oid=None, down=False, fill_oid=42):
         self.fill_sz, self.resting_oid, self.down = fill_sz, resting_oid, down
+        self.fill_oid = fill_oid
         self.calls = []
 
     def __call__(self, payload):
@@ -44,7 +45,8 @@ class MasterTruth:
         if kind == 'userFillsByTime':
             if self.fill_sz is None:
                 return []
-            return [{'coin': 'BTC', 'side': 'B', 'sz': str(self.fill_sz), 'px': '100', 'oid': 42, 'tid': 1, 'time': 1}]
+            return [{'coin': 'BTC', 'side': 'B', 'sz': str(self.fill_sz), 'px': '100',
+                     'oid': self.fill_oid, 'tid': 1, 'time': 1}]
         if kind == 'openOrders':
             return [{'coin': 'BTC', 'oid': self.resting_oid}] if self.resting_oid is not None else []
         raise RuntimeError('unexpected payload %r' % (payload,))
@@ -109,6 +111,14 @@ def send(truth, exchange):
     return ok, status, res, intent, gw
 
 
+def ledger_claims(c, intent_id):
+    """True if live_fills.csv holds any row for this intent."""
+    path = Path(c.LIVE_FILLS_CSV)
+    if not path.exists():
+        return False
+    return any(str(r.get('intent_id') or '') == str(intent_id) for r in c.read_csv_rows(path))
+
+
 def main():
     wire = 1.0  # fixed_notional 100 at follower mid 100 -> 1.0 BTC
 
@@ -136,14 +146,36 @@ def main():
     check('S5_RESTING_ABSENT_ON_MASTER_DOES_NOT_SETTLE', ok is False and status == 'SETTLEMENT_UNVERIFIED',
           '%s %s' % (status, res.get('notes')))
 
-    ok, status, res, _i, _g = send(MasterTruth(fill_sz=0.9), FakeExchange(ack_size=wire, oid=None))
-    check('S6_NO_OID_BOUND_TO_ACK_SIZE', ok is False and status == 'SETTLEMENT_UNVERIFIED',
+    # An ACK with no oid, plus a MASTER fill of exactly the ACK size, same coin and side,
+    # belonging to someone else. Nothing correlates it to our order, so it must not be booked.
+    c6, gw6, intent6, saved6 = setup(MasterTruth(fill_sz=wire), FakeExchange(ack_size=wire, oid=None))
+    try:
+        ok, status, res = gw6._send_real(intent6)
+    finally:
+        c6.HLAccount, c6.HLExchange = saved6
+    check('S6_NO_OID_SAME_SIZE_FILL_IS_NOT_OURS', ok is False and status == 'SETTLEMENT_UNVERIFIED',
+          '%s %s' % (status, res.get('notes')))
+    check('S6_ROW_SAYS_UNVERIFIED',
+          res.get('terminal_state') == 'SETTLEMENT_UNVERIFIED'
+          and res.get('operator_action') == 'WAIT_FOR_RECONCILIATION'
+          and res.get('write_reconciliation') is True,
+          json.dumps(res, default=str)[:300])
+    check('S6_ALERT_FIRES_RED',
+          c6.classify_integrity_severity('SETTLEMENT_UNVERIFIED') == 'RED',
+          c6.classify_integrity_severity('SETTLEMENT_UNVERIFIED'))
+    check('S6_LEDGER_CLAIMS_NO_FILL', not ledger_claims(c6, intent6.intent_id), intent6.intent_id)
+
+    # Control: identical sizes, but the ACK carries the oid that the MASTER fill carries.
+    ok, status, res, _i, _g = send(MasterTruth(fill_sz=wire, fill_oid=42), FakeExchange(ack_size=wire, oid=42))
+    check('S6C_SAME_SIZES_WITH_MATCHING_OID_SETTLES', ok is True and status == 'ORDER_FILLED',
           '%s %s' % (status, res.get('notes')))
 
     ok, status, res, _i, _g = send(MasterTruth(fill_sz=0.4), FakeExchange(ack_size=wire, reject_first=True))
     check('S7_ENTRY_IOC_RETRY_FILL_ALSO_VERIFIED', ok is False and status == 'SETTLEMENT_UNVERIFIED',
           '%s %s' % (status, res.get('notes')))
 
+    # Revert control (see 02_red_log.txt): with the removed coin+side+size branch restored,
+    # S6 above books the stranger's fill and goes RED. That run is captured, not simulated here.
     c, gw, intent, saved = setup(MasterTruth(fill_sz=0.4), FakeExchange(ack_size=wire))
     original = c.SenderGateway._verify_settlement_on_master
     c.SenderGateway._verify_settlement_on_master = lambda *a, **k: (True, '')

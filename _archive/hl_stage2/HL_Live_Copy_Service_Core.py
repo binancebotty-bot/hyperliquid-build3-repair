@@ -500,6 +500,8 @@ def classify_integrity_severity(terminal_state: str) -> str:
         return "AMBER"
     if state in {"INVALID_WIRE_SIZE", "PRICE_SANITY_REJECTED", "BELOW_SYMBOL_MIN_EXCEEDS_MAX_ORDER", "BELOW_SYMBOL_MIN_EXCEEDS_COPY_NOTIONAL", "SYMBOL_CACHE_MISS_NEEDS_REFRESH", "SYMBOL_NOT_TRADABLE_BY_SENDER", "SYMBOL_REJECT_CIRCUIT_BREAKER_ACTIVE"}:
         return "AMBER"
+    if state == "SETTLEMENT_UNVERIFIED":
+        return "RED"
     if state.startswith("SEND_NOT_ATTEMPTED") or state in {"EXCHANGE_CALL_ERROR_REVIEW_REQUIRED", "SEND_OUTCOME_REVIEW_REQUIRED"}:
         return "RED"
     if state.startswith("OWNERSHIP_GATE_") or state in {"MOCK_ORDER_SUPPRESSED"}:
@@ -4580,22 +4582,16 @@ class SenderGateway:
         factor = 10 ** allowed_dec
         return math.floor(raw_px * factor) / factor
 
-    @staticmethod
-    def _ack_filled_size(response: Any) -> float:
-        try:
-            s = response.get('response', {}).get('data', {}).get('statuses', [])[0]
-            f = s.get('filled') if isinstance(s, dict) else None
-            return abs(fnum(f.get('totalSz', f.get('sz')), 0.0)) if isinstance(f, dict) else 0.0
-        except Exception:
-            return 0.0
 
     def _verify_settlement_on_master(self, intent: Intent, status: str, oid: str, wire_size: float,
                                      response: Any) -> Tuple[bool, str]:
         """ENG-INV-10: an ack is not settlement. MASTER must independently show it.
 
-        ORDER_FILLED is proved by MASTER fills bound to the ack oid (or the ack's own size when
-        there is no oid, so an unrelated earlier fill cannot satisfy it). ORDER_RESTING is proved
-        by the MASTER open-orders read. Any unreadable MASTER scope is unverified: caller holds.
+        ORDER_FILLED is proved only by MASTER fills carrying the ack oid. An ack with no
+        oid stays unverified: a same-coin/same-side fill of the same size is indistinguishable
+        from anyone else's fill, so matching on it would attribute a stranger's fill to us.
+        ORDER_RESTING is proved by the MASTER open-orders read. Any unreadable MASTER scope is
+        unverified: the caller holds.
         """
         try:
             ident = _XNET.runtime_master_identity()
@@ -4619,11 +4615,10 @@ class SenderGateway:
                         return True, 'MASTER shows resting oid=%s' % oid
                 return False, 'MASTER openOrders has no oid=%s; ack says resting' % oid
             expected = abs(fnum(wire_size, 0.0))
-            ack_size = self._ack_filled_size(response)
             if expected <= 0.0:
                 return False, 'ack claims filled for non-positive wire size %r' % (wire_size,)
-            if not oid and ack_size <= 0.0:
-                return False, 'ack is filled but carries neither oid nor size'
+            if not oid:
+                return False, 'ack is filled but carries no oid; a MASTER fill cannot be attributed to it'
             coin = canonical_coin_key(intent.fill.coin)
             fills = _XNET.master_userfills_all_dexes(master, int(fnum(intent.fill.timestamp_ms, 0)), dexes,
                                                      fetcher=MASTER_TRUTH_FETCHER, info_url=HL_INFO_URL,
@@ -4643,7 +4638,7 @@ class SenderGateway:
                     matched += abs(float(fill.get('sz') or 0.0))
                 except Exception:
                     return False, 'unparseable MASTER fill size: %r' % (fill.get('sz'),)
-            bound = expected if oid else ack_size
+            bound = expected
             tol = max(POSITION_EPSILON, bound * 1e-6)
             if matched <= 0.0:
                 return False, 'MASTER shows no fill for %s %s oid=%s' % (coin, intent.copy_side, oid or '-')
