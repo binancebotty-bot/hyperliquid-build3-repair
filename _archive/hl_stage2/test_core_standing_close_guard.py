@@ -84,6 +84,12 @@ for st, term in (("SEND_NOT_ATTEMPTED_CLOSE_AT_TARGET", "SEND_NOT_ATTEMPTED_CLOS
     it = SimpleNamespace(intent_id="i1", send_allowed=True, decision="SEND_ALLOWED", reason="")
     c.LiveCopyCore._append_send_terminal(me2, f, it, st)
     check("FINAL_ROW_FOR_" + st, len(rows) == 1 and rows[0][1]["terminal_state"] == term and rows[0][1]["leader_fill_id"] == "F1")
+rows.clear()
+c.LiveCopyCore._append_send_terminal(me2, f, it, "SEND_NOT_ATTEMPTED_CLOSE_PLAN_UNSAFE")
+check("UNSAFE_CLOSE_PLAN_RECONCILES_WITHOUT_CLAIMING_DUST_CLEARED",
+      len(rows) == 1 and rows[0][0][1] == "CLOSE_PLAN_UNSAFE"
+      and rows[0][1]["action"] == "NO_SEND_UNSAFE_CLOSE_PLAN"
+      and "no dust-clearing close claimed" in rows[0][1]["notes"])
 failed = [n for n, ok in R if not ok]
 print("TOTAL=%d FAILED=%d" % (len(R), len(failed)))
 raise SystemExit(1 if failed else 0)

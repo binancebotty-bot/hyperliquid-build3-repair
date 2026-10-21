@@ -87,9 +87,10 @@ def intent(side="SELL"):
 # price 1.0 so size == notional; min 10 means anything under 10 units is dust
 ok_size = lambda sz: abs(sz * 1.0) >= MIN
 
-# (a) close 10 of a 12 position -> the remaining 2 would be dust -> close the whole 12
+# A partial close that would leave 2 dust cannot be expanded past this leader's requested 10.
 ro, sz, skip = gw(12.0)._close_wire_plan(intent(), 10.0, 4, ok_size)
-check("A_PARTIAL_REDUCTION_CLOSES_WHOLE_REMAINDER", abs(sz - 12.0) < 1e-9 and ro is True and not skip, (ro, sz, skip))
+check("A_PARTIAL_REDUCTION_FAILS_CLOSED_BEFORE_OVERCLOSE", sz == 0.0 and ro is True
+      and skip.startswith("UNSAFE_CLOSE_BELOW_MINIMUM"), (ro, sz, skip))
 # control: remainder above the minimum -> unchanged (close 10 of 100)
 ro, sz, skip = gw(100.0)._close_wire_plan(intent(), 10.0, 4, ok_size)
 check("C_REDUCTION_ABOVE_MIN_UNCHANGED", abs(sz - 10.0) < 1e-9 and not skip, (ro, sz, skip))
@@ -98,10 +99,15 @@ ro, sz, skip = gw(12.0)._close_wire_plan(intent(), 12.0, 4, ok_size)
 check("C_FULL_CLOSE_UNCHANGED", abs(sz - 12.0) < 1e-9 and ro is True and not skip, (ro, sz, skip))
 # netting invariant: a whole-remainder close never flips the account (reduce-only, size <= |net|)
 ro, sz, skip = gw(12.0)._close_wire_plan(intent(), 10.0, 4, ok_size)
-check("C_WHOLE_REMAINDER_NEVER_FLIPS", ro is True and abs(sz) <= 12.0 + 1e-9, (ro, sz))
-# partial-fill path (ledger may lag): exchange 12 left, remainder 10 -> whole 12, reduce-only
+check("C_UNSAFE_WHOLE_REMAINDER_IS_NOT_SENT", ro is True and sz == 0.0 and bool(skip), (ro, sz, skip))
+# partial-fill path (ledger may lag) has the same over-close guard.
 ro, sz, skip = gw(12.0)._close_wire_plan(intent(), 10.0, 4, ok_size, ledger_may_lag=True)
-check("A_PARTIAL_FILL_LAG_CLOSES_WHOLE_REMAINDER", abs(sz - 12.0) < 1e-9 and ro is True and not skip, (ro, sz, skip))
+check("A_PARTIAL_FILL_LAG_FAILS_CLOSED_BEFORE_OVERCLOSE", sz == 0.0 and ro is True
+      and skip.startswith("UNSAFE_CLOSE_BELOW_MINIMUM"), (ro, sz, skip))
+# ledger/exchange mismatch: the safe target is 2, but a whole-account close would exceed this leader's 10-unit close
+ro, sz, skip = gw(12.0, 20.0)._close_wire_plan(intent(), 10.0, 4, ok_size)
+check("A_MISMATCH_FAILS_CLOSED_INSTEAD_OF_OVERCLOSING", ro is True and sz == 0.0
+      and skip.startswith("UNSAFE_CLOSE_BELOW_MINIMUM"), (ro, sz, skip))
 
 # ---------------------------------------------------------------- rule (c) (LiveCopyCore._converge_candidate)
 stub = SimpleNamespace(cfg=SimpleNamespace(min_notional=lambda: MIN))

@@ -6147,8 +6147,15 @@ class SenderGateway:
             if lag_size <= 0:
                 return False, 0.0, f"close rounds to nothing (exchange net {ex_net}, this close {delta})"
             if lag_size < abs(size) and not (callable(min_notional_ok) and min_notional_ok(lag_size)):
+                whole_size = _close_whole_remainder(ex_net, abs(size), sz_dec, min_notional_ok, self._floor_wire_size)
+                if whole_size > abs(size) + POSITION_EPSILON:
+                    return True, 0.0, (f"UNSAFE_CLOSE_BELOW_MINIMUM: clearing the sub-minimum remainder requires {whole_size}, "
+                                       f"above this leader's requested close {abs(size)}; no order sent")
                 return True, size, ""
             lag_size = _close_whole_remainder(ex_net, lag_size, sz_dec, min_notional_ok, self._floor_wire_size)
+            if lag_size > abs(size) + POSITION_EPSILON:
+                return True, 0.0, (f"UNSAFE_CLOSE_BELOW_MINIMUM: clearing the sub-minimum remainder requires {lag_size}, "
+                                   f"above this leader's requested close {abs(size)}; no order sent")
             pure_reduce = ex_net * delta < 0 and lag_size <= abs(ex_net)
             return pure_reduce, lag_size, ""
         need = led_net + delta - ex_net
@@ -6159,8 +6166,15 @@ class SenderGateway:
         if new_size <= 0:
             return False, 0.0, f"close to target rounds to nothing (need {need}, this close {delta})"
         if new_size < abs(size) and not (callable(min_notional_ok) and min_notional_ok(new_size)):
-            return True, size, ""  # the trimmed order would fall under the minimum: keep the full size, reduce-only
+            whole_size = _close_whole_remainder(ex_net, abs(size), sz_dec, min_notional_ok, self._floor_wire_size)
+            if whole_size > abs(size) + POSITION_EPSILON:
+                return True, 0.0, (f"UNSAFE_CLOSE_BELOW_MINIMUM: clearing the sub-minimum remainder requires {whole_size}, "
+                                   f"above this leader's requested close {abs(size)}; no order sent")
+            return True, size, ""
         new_size = _close_whole_remainder(ex_net, new_size, sz_dec, min_notional_ok, self._floor_wire_size)
+        if new_size > abs(size) + POSITION_EPSILON:
+            return True, 0.0, (f"UNSAFE_CLOSE_BELOW_MINIMUM: clearing the sub-minimum remainder requires {new_size}, "
+                               f"above this leader's requested close {abs(size)}; no order sent")
         pure_reduce = ex_net * delta < 0 and new_size <= abs(ex_net)
         return pure_reduce, new_size, ""
 
@@ -6698,13 +6712,18 @@ class SenderGateway:
                 intent, wire_size, sz_dec, lambda sz: abs(sz * limit_px) >= _min_n, timing)
             if close_skip:
                 note = f"{close_skip}; intent_id={intent.intent_id}; no order sent"
-                repair = self._repair_ledger_if_exchange_flat(intent, "close skipped: already at target")
-                if repair:
-                    note += "; " + repair
-                return False, "SEND_NOT_ATTEMPTED_CLOSE_AT_TARGET", {
-                    "status": "CLOSE_ALREADY_AT_TARGET", "error": "", "exchange_response": {}, "oid": "",
+                unsafe_plan = close_skip.startswith("UNSAFE_CLOSE_BELOW_MINIMUM")
+                if not unsafe_plan:
+                    repair = self._repair_ledger_if_exchange_flat(intent, "close skipped: already at target")
+                    if repair:
+                        note += "; " + repair
+                send_status = "SEND_NOT_ATTEMPTED_CLOSE_PLAN_UNSAFE" if unsafe_plan else "SEND_NOT_ATTEMPTED_CLOSE_AT_TARGET"
+                result_status = "CLOSE_PLAN_UNSAFE" if unsafe_plan else "CLOSE_ALREADY_AT_TARGET"
+                operator_action = "RECONCILE_EXCHANGE_LEDGER_MISMATCH" if unsafe_plan else "NO_SEND_CLOSE_AT_TARGET"
+                return False, send_status, {
+                    "status": result_status, "error": close_skip if unsafe_plan else "", "exchange_response": {}, "oid": "",
                     "exchange_called": False, "write_send_attempt": True, "notes": note, "reject_category": "",
-                    "terminal_state": "SEND_NOT_ATTEMPTED_CLOSE_AT_TARGET", "operator_action": "NO_SEND_CLOSE_AT_TARGET",
+                    "terminal_state": send_status, "operator_action": operator_action,
                     "timing": timing}
             if close_size_planned != wire_size:
                 timing["close_to_target_size"] = f"{wire_size}->{close_size_planned}"
@@ -10205,6 +10224,14 @@ class LiveCopyCore:
                 action="NO_SEND_CLOSE_AT_TARGET", terminal_state="SEND_NOT_ATTEMPTED_CLOSE_AT_TARGET",
                 engine_can_close=False, engine_can_send=False,
                 notes=f"the follower account is already at or past the target for this close, nothing sent; coin={fill.coin}; side={fill.side}")
+        elif send_status == "SEND_NOT_ATTEMPTED_CLOSE_PLAN_UNSAFE":
+            self.audit.append_reconciliation(
+                "SEND_TERMINAL", "CLOSE_PLAN_UNSAFE",
+                leader_wallet=fill.leader_wallet, leader_fill_id=fill.leader_fill_id, intent_id=intent.intent_id, coin=fill.coin,
+                action="NO_SEND_UNSAFE_CLOSE_PLAN", terminal_state=send_status,
+                engine_can_close=False, engine_can_send=False,
+                notes=("exchange/ledger mismatch leaves no safe order at or below this leader's requested close; "
+                       "no order sent and no dust-clearing close claimed; reconciliation required"))
         elif send_status.startswith("ENTRY_BLOCKED_") and intent.send_allowed:
             lifecycle = classify_send_lifecycle(intent)
             block_reason = send_status[len("ENTRY_BLOCKED_"):]
