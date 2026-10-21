@@ -1414,6 +1414,18 @@ def _live_audit_summary_full() -> Dict[str, Any]:
         exchange_snapshot["realized_pnl_diagnostic"] = "Exchange closedPnl not found for matched exits"
     else:
         exchange_snapshot["realized_pnl_diagnostic"] = ""
+    # This endpoint hard-coded [] here, so portfolio_history/equity_history looked dead while the
+    # model state already carried the points. Reuse them, and derive each wallet's max_exposure
+    # from the same curves (perf.max_exposure was a permanent None).
+    try:
+        _model_state = get_model_state_cached(max_age_sec=10.0)
+    except Exception:
+        _model_state = {}
+    portfolio_history: List[Dict[str, Any]] = list(_model_state.get("portfolio_history") or [])
+    _model_rows_by_wallet = {str(_r.get("wallet", "")).lower(): _r for _r in (_model_state.get("wallet_rows") or [])}
+    for _w, _p in live_leader_performance.items():
+        _curve = (_model_rows_by_wallet.get(str(_w).lower()) or {}).get("curve") or []
+        _p["max_exposure"] = round(max((fnum(_pt.get("open_notional_usd")) for _pt in _curve), default=0.0), 4)
     account_reconciliation = _build_account_reconciliation(exchange_snapshot, live_leader_performance)
     _live_fills_data = _load_recent_live_fills(500)
     live_wallet_rows = _build_live_wallet_rows(live_config, audit_rows, metric_send_attempts, manual_positions, manual_live_summary, ws_health, live_leader_performance, live_fills=_live_fills_data)
@@ -1433,18 +1445,6 @@ def _live_audit_summary_full() -> Dict[str, Any]:
         and not (r.get("terminal_state") and r.get("operator_action") and r.get("reject_category"))
     ]
 
-    # This endpoint hard-coded [] here, so portfolio_history/equity_history looked dead while the
-    # model state already carried the points. Reuse them, and derive each wallet's max_exposure
-    # from the same curves (perf.max_exposure was a permanent None).
-    try:
-        _model_state = get_model_state_cached(max_age_sec=10.0)
-    except Exception:
-        _model_state = {}
-    portfolio_history: List[Dict[str, Any]] = list(_model_state.get("portfolio_history") or [])
-    _model_rows_by_wallet = {str(_r.get("wallet", "")).lower(): _r for _r in (_model_state.get("wallet_rows") or [])}
-    for _w, _p in live_leader_performance.items():
-        _curve = (_model_rows_by_wallet.get(str(_w).lower()) or {}).get("curve") or []
-        _p["max_exposure"] = round(max((fnum(_pt.get("open_notional_usd")) for _pt in _curve), default=0.0), 4)
     exchange_history = load_json(EXCHANGE_ACCOUNT_HISTORY_FILE, [])
     pnl_tally = _build_pnl_tally(exchange_snapshot, follower_account, exchange_history if isinstance(exchange_history, list) else [])
     open_positions_now = exchange_snapshot.get("open_positions") if exchange_snapshot.get("available") else None
