@@ -7953,6 +7953,18 @@ class SenderGateway:
             "notes": result.get("notes") or "real exchange IOC attempt",
             "cloid": cloid,
         }
+        if isinstance(intent.fill.raw, dict):
+            if status == "ORDER_REJECTED":
+                intent.fill.raw["_trace_reject"] = {
+                    "category": reject_category,
+                    "reason": " ".join(error_text.split())[:240] or "exchange rejected order without a reason",
+                }
+            reply_ms = timing.get("exchange_call_finished_ms")
+            if reply_ms not in (None, ""):
+                trace_stages = intent.fill.raw.get("_trace_stage_stamps")
+                if not isinstance(trace_stages, dict):
+                    trace_stages = intent.fill.raw["_trace_stage_stamps"] = {}
+                trace_stages["reply_ms"] = int(fnum(reply_ms, 0))
         self.audit.append_send_attempt(row)  # same attempt_id as the pending_send row: the newest row is the state
         if status != "ORDER_FILLED":
             self.audit.append_reconciliation(
@@ -9979,6 +9991,15 @@ class LiveCopyCore:
                 stamps = raw.get("_stamps")
                 if stamps:
                     rec["stamps"] = dict(stamps)
+                trace_stages = raw.get("_trace_stage_stamps")
+                reply_ms = trace_stages.get("reply_ms") if isinstance(trace_stages, dict) else None
+                rec["stage_stamps"] = {
+                    "leader_fill_ms": int(fill.timestamp_ms) if fill.timestamp_ms else None,
+                    "enqueue_ms": stamps.get("enqueued_ms") if isinstance(stamps, dict) else None,
+                    "pickup_ms": stamps.get("picked_up_ms") if isinstance(stamps, dict) else None,
+                    "lane_start_ms": stamps.get("lane_started_ms") if isinstance(stamps, dict) else None,
+                    "reply_ms": reply_ms,
+                }
             rec.update(extra or {})
             if "status_of" in rec:
                 _r = rec.pop("status_of")
@@ -10430,12 +10451,23 @@ class LiveCopyCore:
         """Every fill ends in a row. An error while processing used to be only a log line: the fill (and any fills merged
         into it) were already marked handled, so without a row they vanished (outage test 14: 57 fills with no row)."""
         tid = threading.get_ident()
+        if isinstance(fill.raw, dict):
+            fill.raw.pop("_trace_reject", None)
+            fill.raw.pop("_trace_stage_stamps", None)
         self._inflight[tid] = (str(fill.leader_fill_id), utc_now_ms(), threading.current_thread().name, str(fill.leader_wallet), str(fill.coin))
         self._fill_trace("proc_start", fill, {"merged": len((fill.raw or {}).get("merged_fill_ids") or []),
                                               "merged_ids": ",".join(str(i) for i in ((fill.raw or {}).get("merged_fill_ids") or [])[:20])})
         try:
             _res = self._process_leader_fill_inner(fill, summary, entry_block_reason)
-            self._fill_trace("proc_end", fill, {"status_of": _res})
+            trace_end: Dict[str, Any] = {"status_of": _res}
+            status = str(_res[1] or "") if isinstance(_res, tuple) and len(_res) > 1 else ""
+            reject = fill.raw.get("_trace_reject") if isinstance(fill.raw, dict) else None
+            if status == "ORDER_REJECTED" and isinstance(reject, dict):
+                trace_end.update({
+                    "reject_category": str(reject.get("category") or ""),
+                    "reject_reason": str(reject.get("reason") or ""),
+                })
+            self._fill_trace("proc_end", fill, trace_end)
             self._rows_for_merged_siblings(fill, _res)
             return _res
         except Exception as exc:
@@ -10444,6 +10476,7 @@ class LiveCopyCore:
                 self._terminal_after_exception(fill, exc)
             except Exception as exc2:
                 log_error("process_leader_fill_terminal", exc2)
+            self._fill_trace("proc_end", fill, {"status": "PROCESS_EXCEPTION", "reason": "PROCESS_EXCEPTION"})
             return False, "PROCESS_EXCEPTION", None
         finally:
             self._inflight.pop(tid, None)
