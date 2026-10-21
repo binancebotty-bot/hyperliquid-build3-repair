@@ -10050,6 +10050,16 @@ class LiveCopyCore:
             if "status_of" in rec:
                 result = rec.pop("status_of")
                 rec["status"] = str(result[1]) if isinstance(result, tuple) and len(result) > 1 else ""
+                if kind == "proc_end":
+                    intent = result[2] if isinstance(result, tuple) and len(result) > 2 else None
+                    gate_reason = rec["status"]
+                    if gate_reason == "INTENT_NOT_SEND_ALLOWED":
+                        gate_reason = str(getattr(intent, "reason", "") or getattr(intent, "decision", "") or gate_reason)
+                    rec.update({
+                        "follower_wallet_id": USER_WALLET,
+                        "gate_reason": gate_reason,
+                        "leader_fill_source": str(fill.source or "") if fill is not None else "",
+                    })
             line = json.dumps(rec, separators=(",", ":")) + "\n"
             with self._fill_trace_condition:
                 if len(self._fill_trace_buffer) >= FILL_TRACE_QUEUE_MAX:
