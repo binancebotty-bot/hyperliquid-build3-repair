@@ -11512,6 +11512,7 @@ class LiveCopyCore:
                     notes=f"stale leader {_zf.side} {_zf.size} @ {_zf.price} at {_zf.timestamp_ms}: {_why}")
             closed_late = already_closed_late_entries(fills, utc_now_ms())
             sync_fills: List[LeaderFill] = []
+            poll_queue_full_wallets: set = set()
             for fill in fills:
                 why = closed_late.get(fill.leader_fill_id)
                 if why and fill.leader_fill_id not in self.dedupe.processed:
@@ -11526,6 +11527,8 @@ class LiveCopyCore:
                         with self._idem_lock:
                             self._idem_accepted.add(self._guard_key(fill))
                     self._rows_for_closed_late_siblings(fill, why)
+                    continue
+                if fill.source == "POLL" and str(fill.leader_wallet).lower() in poll_queue_full_wallets:
                     continue
                 if self._already_queued(fill):  # the poll overlaps pending queue entries; don't offer them every cycle
                     summary.leader_fills_deduped += 1
@@ -11546,7 +11549,9 @@ class LiveCopyCore:
                         continue
                     self._fill_trace("poll_queue_full", fill)
                     # queue full: never send on this thread (it would break one-worker-per-coin); the fill is
-                    # not marked handled, so the next poll offers it again
+                    # not marked handled, so its cursor stays pinned for the next cycle. Skip the remaining
+                    # polled fills for this wallet in this cycle; the next poll can retry them in order.
+                    poll_queue_full_wallets.add(str(fill.leader_wallet).lower())
                     log_error("poll_dispatch_deferred", RuntimeError(f"send queue full, fill {fill.leader_fill_id} deferred"))
                     continue
                 sync_fills.append(fill)
