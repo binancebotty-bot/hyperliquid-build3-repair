@@ -10262,6 +10262,7 @@ class LiveCopyCore:
         elif (intent.send_allowed
               and not send_status.startswith("OWNERSHIP_GATE_")
               and send_status != "MOCK_ORDER_SUPPRESSED"
+              and send_status != "LIQ_PARITY_BLOCKED"  # sender already wrote the specific parity-block row
               and send_status != "PENDING_EXIT_GUARD_ACTIVE"  # recorded where it is decided: the sleeve's close is in flight
               and send_status not in {"ORDER_REJECTED", "ORDER_FILLED", "ORDER_RESTING", "ORDER_UNKNOWN", "EXCHANGE_ERROR"}
               and not send_status.startswith("SEND_NOT_ATTEMPTED_")):
