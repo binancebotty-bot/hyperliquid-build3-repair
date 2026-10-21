@@ -101,7 +101,7 @@ def main() -> int:
               send_mode == "CLOSE", f"got {send_mode}")
         check("Test 3: master switch ON (CLOSE counts as armed)", master_on is True, f"got {master_on}")
 
-        # Test 4: No send_mode in config, env HL_LIVE_AUTO_SEND_ENABLED=1 -> env wins (legacy)
+        # Test 4: No send_mode or explicit legacy key must fail closed despite an env flag.
         os.environ["HL_LIVE_AUTO_SEND_ENABLED"] = "1"
         write_cfg(config_file, {
             "global_controls": {},  # no send_mode
@@ -112,13 +112,14 @@ def main() -> int:
         send_mode = UI._send_mode(live_config)
         master_on = UI._master_switch_on(live_config)
         
-        check("Test 4: no send_mode, env=1 -> send_mode=ON (legacy)",
-              send_mode == "ON", f"got {send_mode}")
-        check("Test 4: master switch ON", master_on is True, f"got {master_on}")
+        check("Test 4: no send_mode or legacy key, env=1 -> send_mode=OFF",
+              send_mode == "OFF", f"got {send_mode}")
+        check("Test 4: master switch OFF", master_on is False, f"got {master_on}")
 
-        # Test 5: No send_mode in config, env HL_LIVE_AUTO_SEND_ENABLED=0 -> OFF
+        # Test 5: The explicit legacy config key remains supported.
         os.environ["HL_LIVE_AUTO_SEND_ENABLED"] = "0"
         write_cfg(config_file, {
+            "auto_send_enabled": True,
             "global_controls": {},
             "wallets": {wallet: {"enabled": True, "mode": "ON", "copy_mode": "fixed", "fixed_notional": 10}}
         })
@@ -127,9 +128,24 @@ def main() -> int:
         send_mode = UI._send_mode(live_config)
         master_on = UI._master_switch_on(live_config)
         
-        check("Test 5: no send_mode, env=0 -> send_mode=OFF",
-              send_mode == "OFF", f"got {send_mode}")
-        check("Test 5: master switch OFF", master_on is False, f"got {master_on}")
+        check("Test 5: explicit legacy auto_send_enabled=true -> send_mode=ON",
+              send_mode == "ON", f"got {send_mode}")
+        check("Test 5: explicit legacy master switch ON", master_on is True, f"got {master_on}")
+
+        # Invalid explicit modes fail closed instead of falling through to legacy config.
+        check("invalid explicit send_mode fails closed despite legacy true",
+              UI._send_mode({"global_controls": {"send_mode": "INVALID"}, "auto_send_enabled": True}) == "OFF")
+        check("send-mode acknowledgement requires exact engine-reported mode",
+              "String(st.engine_send_mode||'').toUpperCase()===mode" in
+              (HERE / "HL_Copy_App_SSOT.py").read_text(encoding="utf-8"))
+        top = UI._build_live_top_status(
+            {"global_controls": {"send_mode": "CLOSE"}, "wallets": {}}, {},
+            {"send_mode": "CLOSE"}, {"available": False}, [], [], [])
+        no_engine_mode = UI._build_live_top_status(
+            {"global_controls": {"send_mode": "CLOSE"}, "wallets": {}}, {},
+            {}, {"available": False}, [], [], [])
+        check("status forwards exact engine mode when present", top.get("engine_send_mode") == "CLOSE")
+        check("status leaves engine mode unconfirmed when absent", no_engine_mode.get("engine_send_mode") == "")
 
         # Test 6: _engine_alert should detect env/config disagreement
         # Test alert function

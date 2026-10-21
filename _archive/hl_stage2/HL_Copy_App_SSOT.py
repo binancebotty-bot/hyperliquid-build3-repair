@@ -878,6 +878,8 @@ _GLOBAL_CONTROLS_DEFAULTS: Dict[str, Any] = {
     "symbol_blocklist": [],
 }
 
+_UNOWNED_GLOBAL_KEYS = frozenset({"send_mode", "follower_leverage", "liq_parity"})
+
 
 def _normalise_global_controls(raw: Any) -> Dict[str, Any]:
     if not isinstance(raw, dict):
@@ -892,6 +894,12 @@ def _normalise_global_controls(raw: Any) -> Dict[str, Any]:
                 out[k] = max(0.0, fnum(raw[k]))
     if "marketable_slippage_pct" in raw:
         out["marketable_bps"] = max(0.0, fnum(raw.get("marketable_slippage_pct")) * 100.0)
+    for key in _UNOWNED_GLOBAL_KEYS:
+        if key in raw:
+            out[key] = raw[key]
+    if "send_mode" in out:
+        mode = str(out["send_mode"]).upper().strip().replace("_", " ").replace("-", " ")
+        out["send_mode"] = "CLOSE" if mode in {"CLOSE", "CLOSE ONLY", "CLO"} else mode if mode in {"ON", "OFF"} else "OFF"
     return out
 
 
@@ -1014,7 +1022,9 @@ def _active_live_copy_wallet_count(config: Dict[str, Any]) -> int:
     wallets = config.get("wallets", {}) if isinstance(config, dict) else {}
     return sum(
         1 for cfg in wallets.values()
-        if isinstance(cfg, dict) and normalize_live_wallet_config("", cfg).get("service_eligible")
+        if isinstance(cfg, dict)
+        and (normal := normalize_live_wallet_config("", cfg))["mode"] == "LIVE"
+        and normal["service_eligible"]
     )
 
 
@@ -1102,16 +1112,18 @@ def _latest_row(rows: List[Dict[str, Any]], predicate) -> Dict[str, Any]:
 
 
 def _send_mode(live_config: Dict[str, Any]) -> str:
-    """OFF / CLOSE / ON exactly as the engine reads it: global_controls.send_mode wins, else auto_send_enabled, else the env."""
+    """OFF / CLOSE / ON exactly as the engine reads it; an implicit environment fallback is never shown as armed."""
     gc = live_config.get("global_controls") if isinstance(live_config, dict) else None
     raw = str((gc or {}).get("send_mode") or "").upper().strip().replace("_", " ").replace("-", " ") if isinstance(gc, dict) else ""
     if raw in {"OFF", "ON"}:
         return raw
     if raw in {"CLOSE", "CLOSE ONLY", "CLO"}:
         return "CLOSE"
+    if raw:
+        return "OFF"
     if isinstance(live_config, dict) and "auto_send_enabled" in live_config:
         return "ON" if parse_bool(live_config.get("auto_send_enabled")) else "OFF"
-    return "ON" if parse_bool(_local_env_value("HL_LIVE_AUTO_SEND_ENABLED") or "0") else "OFF"
+    return "OFF"
 
 
 def _master_switch_on(live_config: Dict[str, Any]) -> bool:
@@ -1157,6 +1169,12 @@ def _load_resting_withdraw_pending() -> List[Dict[str, Any]]:
     data = load_json(RESTING_ENTRY_ORDERS_FILE, {})
     rows = data.values() if isinstance(data, dict) else (data if isinstance(data, list) else [])
     return [dict(r) for r in rows if isinstance(r, dict) and r.get("withdraw_pending")]
+
+
+def _load_resting_entry_orders() -> List[Dict[str, Any]]:
+    data = load_json(RESTING_ENTRY_ORDERS_FILE, {})
+    rows = data.values() if isinstance(data, dict) else (data if isinstance(data, list) else [])
+    return [dict(r) for r in rows if isinstance(r, dict)]
 
 
 def _build_health_summary(service_state: Dict[str, Any], integrity_status: Dict[str, Any], now_ms: Optional[int] = None,
@@ -1255,6 +1273,7 @@ def _build_live_top_status(
     last_fill = live_fills[-1] if live_fills else {}
     last_reject = _latest_row(send_attempts, lambda r: str(r.get("status") or "").upper() == "ORDER_REJECTED")
     last_latency = _latest_row(reconciliation_rows, lambda r: str(r.get("event") or "") == "SEND_LATENCY_WARN")
+    engine_send_mode = str(service_state.get("send_mode") or "").upper()
     return {
         "integrity_status": str(integrity_status.get("status") or "UNKNOWN").upper(),
         "integrity_available": bool(integrity_status.get("available")),
@@ -1271,6 +1290,7 @@ def _build_live_top_status(
         "master_real_orders": "ON" if master else "OFF",
         "master_real_orders_enabled": master,
         "effective_real_orders_enabled": effective,
+        "engine_send_mode": engine_send_mode if engine_send_mode in {"OFF", "CLOSE", "ON"} else "",
         "send_block_reason": send_block_reason,
         "wallet_modes_active": service_state.get("wallet_modes_active") if isinstance(service_state.get("wallet_modes_active"), dict) else {},
         "active_wallets": active_wallets,
@@ -2729,7 +2749,8 @@ def _build_account_reconciliation(exchange_snapshot: Dict[str, Any], live_leader
         "margin_used": fnum(exchange_snapshot.get("margin_used")) if exchange_snapshot.get("available") else None,
         "attributed_open_pnl": attributed_open_pnl,
         "estimated_copy_pnl": attributed_open_pnl,
-        "reconciliation_gap": round(net_account_change - attributed_open_pnl, 6) if net_account_change is not None else None,
+        "reconciliation_gap": None,
+        "reconciliation_gap_status": "NOT_COMPARABLE_ACCOUNT_VALUE_DELTA_VS_WALLET_PNL",
         "updated_at": exchange_snapshot.get("updated_at") or utc_now_iso(),
     }
 
@@ -3027,6 +3048,7 @@ def _build_live_wallet_rows(
     ws_health: Dict[str, Any],
     live_leader_performance: Optional[Dict[str, Any]] = None,
     live_fills: Optional[List[Dict[str, Any]]] = None,
+    resting_orders: Optional[List[Dict[str, Any]]] = None,
 ) -> List[Dict[str, Any]]:
     wallets = live_config.get("wallets", {})
     if not isinstance(wallets, dict):
@@ -3041,12 +3063,21 @@ def _build_live_wallet_rows(
         and bool(_ws_summary.get("thread_alive"))
     )
     _engine_polls = not _engine_ws_enabled(ws_health, {})
-    # Pre-build per-wallet manual ledger aggregates from by_wallet sleeves
-    _by_wallet_pos: Dict[str, Any] = {}
-    if isinstance(manual_positions, dict):
-        _bwp = manual_positions.get("by_wallet", {})
-        if isinstance(_bwp, dict):
-            _by_wallet_pos = _bwp
+    _manual_by_wallet: Dict[str, List[Tuple[str, Dict[str, Any]]]] = {}
+    for pw, coin, pos in iter_manual_wallet_positions(manual_positions):
+        if pw and abs(fnum(pos.get("signed_size"))) > 1e-12:
+            _manual_by_wallet.setdefault(pw, []).append((coin, pos))
+    if resting_orders is None:
+        resting_orders = _load_resting_entry_orders()
+    _resting_by_wallet: Dict[str, Dict[str, float]] = {}
+    for order in resting_orders or []:
+        ow = str(order.get("leader_wallet") or order.get("wallet") or "").lower()
+        remaining = fnum(order.get("open_size"), fnum(order.get("size"))) if "open_size" in order else fnum(order.get("size"))
+        if not ow or remaining <= 1e-12:
+            continue
+        tally = _resting_by_wallet.setdefault(ow, {"count": 0.0, "notional": 0.0})
+        tally["count"] += 1
+        tally["notional"] += abs(remaining) * fnum(order.get("limit_px"))
     # Pre-build most recent live fill per leader wallet (for last_fill field)
     if live_fills is None:
         live_fills = _load_recent_live_fills(500)
@@ -3072,11 +3103,15 @@ def _build_live_wallet_rows(
                 _reject_cnt_by_wallet[_saw] = _reject_cnt_by_wallet.get(_saw, 0) + 1
             if _sa.get("terminal_state"):
                 _last_terminal_by_wallet[_saw] = str(_sa.get("terminal_state"))
+    wallet_entries = {str(wallet).lower(): (str(wallet), cfg) for wallet, cfg in wallets.items()}
+    for w in _manual_by_wallet:
+        wallet_entries.setdefault(w, (w, {}))
+    for w in _resting_by_wallet:
+        wallet_entries.setdefault(w, (w, {}))
     rows: List[Dict[str, Any]] = []
-    for wallet, cfg in sorted(wallets.items()):
+    for w, (wallet, cfg) in sorted(wallet_entries.items()):
         if not isinstance(cfg, dict):
             cfg = {}
-        w = wallet.lower()
         wh: Dict[str, Any] = health_wallets.get(wallet) or health_wallets.get(w) or {}
         in_health_file: bool = (wallet in health_wallets) or (w in health_wallets)
         normal = normalize_live_wallet_config(wallet, cfg)
@@ -3086,13 +3121,11 @@ def _build_live_wallet_rows(
         perf = (live_leader_performance or {}).get(w, {})
 
         # Per-wallet manual ledger: open sleeves + exposure
-        _w_sleeves = _by_wallet_pos.get(wallet) or _by_wallet_pos.get(w) or {}
+        _w_sleeves = _manual_by_wallet.get(w, [])
         _w_open_coins: List[str] = []
         _w_exposure = 0.0
-        for _coin_k, _pos_v in (_w_sleeves.items() if isinstance(_w_sleeves, dict) else []):
+        for _coin_k, _pos_v in _w_sleeves:
             _sz_v = float((_pos_v or {}).get("signed_size", 0) or 0)
-            if abs(_sz_v) <= 1e-12:
-                continue
             _w_open_coins.append(str(_coin_k).upper())
             _w_exposure += abs(_sz_v) * float((_pos_v or {}).get("avg_entry_px", 0) or 0)
         _w_filled_count = _filled_cnt_by_wallet.get(w, 0)
@@ -3154,8 +3187,11 @@ def _build_live_wallet_rows(
 
         open_positions = perf.get("current_open_positions", [])
         open_exposure = perf.get("current_exposure", 0.0)
+        if isinstance(open_positions, list) and open_positions:
+            _w_open_coins = [str(p.get("coin") or "").upper() for p in open_positions if isinstance(p, dict) and p.get("coin")]
         if fnum(open_exposure) > 0:
             _w_exposure = fnum(open_exposure)
+        _w_resting = _resting_by_wallet.get(w, {})
         last_fill_d = perf.get("last_actual_fill", {})
         _account_only = False  # per-wallet P&L now comes from the engine's own ledger sleeves
         mode_label = "Live" if (mode == "LIVE" and service_eligible) else ("Close-only" if (mode == "CLO" and service_eligible) else "Off")
@@ -3236,6 +3272,10 @@ def _build_live_wallet_rows(
             "open_coins": _w_open_coins,
             "open_exposure": _w_exposure,
             "current_exposure": _w_exposure,
+            "gross_open_exposure": _w_exposure,
+            "net_open_exposure": fnum(perf.get("current_net_exposure")),
+            "resting_order_count": int(_w_resting.get("count", 0)),
+            "resting_order_notional": round(fnum(_w_resting.get("notional")), 4),
             "max_exposure": perf.get("max_exposure"),
             "drawdown": None if _account_only else perf.get("drawdown"),
             "live_dd": None if _account_only else perf.get("drawdown"),
@@ -3817,6 +3857,9 @@ def _build_live_leader_performance(
         aw = str(attempt.get("leader_wallet") or attempt.get("auto_send_wallet") or "").lower()
         if aw:
             wallet_keys.add(aw)
+    for pw, _coin, pos in iter_manual_wallet_positions(manual_positions):
+        if pw and abs(fnum(pos.get("signed_size"))) > 1e-12:
+            wallet_keys.add(pw)
 
     perf: Dict[str, Any] = {}
     for wallet_key in sorted(wallet_keys):
@@ -3969,6 +4012,7 @@ def _build_live_leader_performance(
 
         open_positions: List[Dict[str, Any]] = []
         current_exposure = 0.0
+        current_net_exposure = 0.0
         total_unrealized = 0.0
         unrealized_unknown: List[str] = []
         shared_coins: List[str] = []
@@ -3986,6 +4030,7 @@ def _build_live_leader_performance(
             entry = fnum(pos.get("avg_entry_px")) or (fnum(ex.get("entry_px")) if isinstance(ex, dict) else 0.0)
             exp_est = abs(signed) * mark if mark > 0 else (abs(signed) * entry if entry > 0 else 0.0)
             current_exposure += exp_est
+            current_net_exposure += math.copysign(exp_est, signed)
             ownership = ownership_by_coin.get(coin_upper, _classify_owned_exchange_net(signed, fnum(ex.get("signed_size")) if isinstance(ex, dict) else 0.0, exchange_available))
             ownership_status = str(ownership.get("status") or "EXCHANGE_UNAVAILABLE")
             # the replay's own average when it covers this position (the ledger keeps the old average on a flip)
@@ -4019,6 +4064,7 @@ def _build_live_leader_performance(
                 "unrealized_pnl": owned_upnl if exchange_available and not pending else None,
                 "shared": coin_shared,
                 "exposure": round(exp_est, 4) if exp_est > 0 else None,
+                "net_exposure": round(math.copysign(exp_est, signed), 4) if exp_est > 0 else None,
                 "exchange_match": match,
                 "ownership_status": ownership_status,
                 "residual_size": ownership.get("residual_size", 0.0),
@@ -4090,6 +4136,7 @@ def _build_live_leader_performance(
             "gross_sell_notional": round(gross_sell, 4),
             "current_open_positions": open_positions,
             "current_exposure": round(current_exposure, 4),
+            "current_net_exposure": round(current_net_exposure, 4),
             "open_position_count": len(open_positions),
             "open_coins": [p.get("coin") for p in open_positions if p.get("coin")],
             "max_exposure": None,
@@ -7035,6 +7082,7 @@ def render_live_copy_control_panel() -> str:
         <p id="gcNetworks" class="lc-muted"></p>
         <div class="lc-form-grid" id="lcGcForm">
           <label>Global send mode <select id="lcSendMode"><option value="ON">ON = LIVE</option><option value="CLOSE">CLOSE = CLOSE ONLY</option><option value="OFF">OFF</option></select></label>
+          <label id="lcSendModeConfirmWrap" class="wide" hidden><input type="checkbox" id="lcSendModeConfirm"> <span id="lcSendModeConfirmText" aria-live="polite"></span></label>
           <label>Max total live exposure ($) <input id="gcMaxTotal" type="number" min="0" step="1" placeholder="0 = disabled"></label>
           <label>Max per-asset directional exposure ($) <input id="gcMaxDir" type="number" min="0" step="1" placeholder="0 = disabled"></label>
           <label>Max daily loss ($, last 24 h) <input id="gcMaxDailyLoss" type="number" min="0" step="1" placeholder="0 = disabled"></label>
@@ -7302,7 +7350,7 @@ function renderGraph(){
  } else {
   const perf=(lcAudit.live_leader_performance||{})[String(lcSelectedWallet||'').toLowerCase()]||{};
   const src=lcGraphMode==='wallet_pnl'?(perf.pnl_series||[]):(perf.exposure_series||[]);
-  label=lcGraphMode==='wallet_pnl'?'Selected wallet live PnL':'Selected wallet exposure';
+  label=lcGraphMode==='wallet_pnl'?'Selected wallet live PnL (wallet sleeve)':'Selected wallet ledger exposure';
   points=src.map(p=>({timestamp:p.timestamp||p.updated_at||'', timestamp_ms:tsOf(p), value:num(p.value,0)}));
   if(!lcSelectedWallet || !points.length){
    clearGraphText(!lcSelectedWallet?'Click a wallet row to chart it.':(lcGraphMode==='wallet_pnl'?'No P&L history for this wallet yet.':'No exposure history for this wallet yet.'),label);
@@ -7367,7 +7415,7 @@ function renderTopStatus(){
  const pollTxt=pollOk?'Reading (normal)':(poll&&poll!=='DOWN'?poll.replace(/_/g,' ').toLowerCase():'—');
  const lastSend=st.last_send||{}, lastFill=st.last_fill||{}, lastReject=st.last_reject||{}, lastLat=st.last_latency_warning||{};
  const cards=[
-  ...(lcSendModePending?[statusCard('Global send mode',lcSendModePending.acknowledged?'engine acknowledged '+lcSendModePending.mode+' after next cycle':'pending '+lcSendModePending.mode+' — waiting for next engine cycle',lcSendModePending.acknowledged?'lc-green':'lc-amber','')]:[]),
+  ...(lcSendModePending?[statusCard('Global send mode',lcSendModePending.acknowledged?'engine acknowledged '+lcSendModePending.mode+' after next cycle':'pending '+lcSendModePending.mode+' — awaiting exact engine confirmation',lcSendModePending.acknowledged?'lc-green':'lc-amber','')]:[]),
   ...(lcAudit.engine_alert?[statusCard('ENGINE ALERT',String(lcAudit.engine_alert).split(':')[0],'lc-red',lcAudit.engine_alert)]:[]),
   statusCard('Health',hl.text||'—',levelCls(hl.level),'details under Technical detail'),
   statusCard('Leader feed',feed.text,feed.cls,st.ws_enabled?'websocket':'the engine polls each leader'),
@@ -7452,7 +7500,10 @@ function renderWallets(){
   const wbpsCls=d.worst_fill_bps!=null&&d.worst_fill_bps>15?'lc-neg':'';
   const diffHtml=`<div class="lc-cell-stack"><span class="${signCls(d.total_diff_usd)}">Total: ${moneyFmt(d.total_diff_usd)||'n/a'}</span><span>Avg: ${moneyFmt(d.avg_diff_usd)||'n/a'}</span><span class="${bpsCls}">Avg bps: ${d.avg_diff_bps!=null?h(d.avg_diff_bps):'n/a'}</span><span class="${wbpsCls}">Worst bps: ${d.worst_diff_bps!=null?h(d.worst_diff_bps):'n/a'}</span></div>`;
   const execHtml=`<div class="lc-cell-stack"><span>${h(d.filled_count)} filled / ${h(d.exits_count||0)} exits</span><span class="${(d.recent_reject_count||0)>0?'lc-amber':'lc-muted'}">${h(d.recent_reject_count||0)} recent rejects</span><span class="${(d.recent_block_count||0)>0?'lc-amber':'lc-muted'}">${h(d.recent_block_count||0)} recent blocks</span></div>`;
-  const riskHtml=`<div class="lc-cell-stack"><span>Exposure: <b>${expStr}</b></span><span>Open pos: <b>${h(d.open_position_count||0)}</b></span><span>DD: ${moneyOrDash(d.drawdown,d.drawdown_reason)}</span><span>MaxDD: ${moneyOrDash(d.max_drawdown,d.drawdown_reason)}</span></div>`;
+  const closeCoins=(d.open_positions||[]).join(', '), closeHtml=closeCoins?`<span>To close: <b>${h(closeCoins)}</b></span>`:'';
+  const restingHtml=(d.resting_order_count||0)>0?`<span>Resting: <b>${h(d.resting_order_count)}</b> / ${moneyFmt(d.resting_order_notional)||'$0'}</span>`:'';
+  const walletNet=d.net_open_exposure==null?'—':signedMoney(d.net_open_exposure);
+  const riskHtml=`<div class="lc-cell-stack"><span>Gross ledger exposure: <b>${expStr}</b></span><span>Net ledger exposure: <b>${h(walletNet)}</b></span><span>Open pos: <b>${h(d.open_position_count||0)}</b></span>${closeHtml}${restingHtml}<span>DD: ${moneyOrDash(d.drawdown,d.drawdown_reason)}</span><span>MaxDD: ${moneyOrDash(d.max_drawdown,d.drawdown_reason)}</span></div>`;
   const lf=d.last_fill||{};
   const lfStr=lf.coin?`${h(lf.coin)} ${h(lf.side)} ${h(lf.size)} @ ${h(lf.avg_px)}<br><span class="lc-muted" style="font-size:10px">${tiny(lf.time||'',22)}</span>`:'<span class="lc-muted">none yet</span>';
   return `<tr class="lc-wallet-row lc-row-${h(mode)}" data-wallet="${h(d.wallet)}">
@@ -7491,7 +7542,8 @@ function walletDetailHtml(wallet){
  out+=`<span>Open: <b class="${signCls(perf.live_unrealized_pnl)}">${moneyOrDash(perf.live_unrealized_pnl,perf.unrealized_reason)}</b></span>`;
  out+=`<span>Fees: <b>${moneyOrDash(perf.fees,perf.realized_reason)}</b></span>`;
  out+=`<span>Net: <b class="${signCls(perf.live_net_pnl)}">${perf.live_net_pnl!=null?h(signedMoney(perf.live_net_pnl)):dash(perf.net_pnl_reason)}</b></span>`;
- out+=`<span>Exposure: <b>${moneyFmt(perf.current_exposure)||'n/a'}</b></span>`;
+ out+=`<span>Gross ledger exposure: <b>${moneyFmt(perf.current_exposure)||'n/a'}</b></span>`;
+ out+=`<span>Net ledger exposure: <b>${perf.current_net_exposure==null?'n/a':h(signedMoney(perf.current_net_exposure))}</b></span>`;
  out+=`<span>DD: <b>${moneyOrDash(perf.drawdown,perf.drawdown_reason)}</b></span>`;
  out+=`<span>MaxDD: <b>${moneyOrDash(perf.max_drawdown,perf.drawdown_reason)}</b></span>`;
  out+=`<span>PnL status: ${pnlLabel(perf.pnl_status||'N/A',perf.pnl_status_label)}</span>`;
@@ -7695,7 +7747,7 @@ function render(){
  const wo=root.querySelector('#lcWsOverall');if(wo){wo.textContent=feed.text;wo.className=feed.cls;}
  renderBanner(); renderTally(); renderTopStatus(); renderCards(); renderWallets(); renderAudit(); renderHealth(); renderPositions(); renderExecQuality();
 }
-async function refresh(quiet){try{if(!quiet)msg('Loading...');const [cfg,health,audit,gcr]=await Promise.all([jget('/api/live-config'),jget('/api/live-ws-health'),jget('/api/live-audit-summary'),jget('/api/global-controls')]);lcConfig=cfg.config||{wallets:{}};lcHealth=health.health||{};lcAudit=audit||{};lcGlobalControls=gcr.global_controls||{};const mode=normalizedSendMode(lcGlobalControls.send_mode);root.querySelector('#lcSendModeLabel').textContent=mode==='ON'?'ON · LIVE':mode==='CLOSE'?'CLOSE · CLOSE ONLY':'OFF';if(lcSendModePending&&mode===lcSendModePending.mode&&Number(lcAudit.live_top_status?.health?.engine_heartbeat_ms||0)>lcSendModePending.requestedAt&&lcAudit.master_real_orders_enabled===(mode!=='OFF'))lcSendModePending.acknowledged=true;render();loadGcForm(lcGlobalControls);const nw=root.querySelector('#gcNetworks');if(nw&&gcr.networks)nw.textContent='Leader feed: '+gcr.networks.leader+' | Follower account: '+gcr.networks.follower+' | Markets: every market the leaders trade'+((gcr.networks.follower_dexes||[]).length>1?' (always read: '+gcr.networks.follower_dexes.join(', ')+')':'')+' | State folder: '+(gcr.networks.state_dir||'');if(!quiet)msg('Loaded');}catch(e){msg(e.message||String(e),true);}}
+async function refresh(quiet){try{if(!quiet)msg('Loading...');const [cfg,health,audit,gcr]=await Promise.all([jget('/api/live-config'),jget('/api/live-ws-health'),jget('/api/live-audit-summary'),jget('/api/global-controls')]);lcConfig=cfg.config||{wallets:{}};lcHealth=health.health||{};lcAudit=audit||{};lcGlobalControls=gcr.global_controls||{};const mode=normalizedSendMode(lcGlobalControls.send_mode);root.querySelector('#lcSendModeLabel').textContent=mode==='ON'?'ON · LIVE':mode==='CLOSE'?'CLOSE · CLOSE ONLY':'OFF';const st=lcAudit.live_top_status||{};if(lcSendModePending&&mode===lcSendModePending.mode&&String(st.engine_send_mode||'').toUpperCase()===mode&&Number(st.health?.engine_heartbeat_ms||0)>lcSendModePending.requestedAt)lcSendModePending.acknowledged=true;render();loadGcForm(lcGlobalControls);const nw=root.querySelector('#gcNetworks');if(nw&&gcr.networks)nw.textContent='Leader feed: '+gcr.networks.leader+' | Follower account: '+gcr.networks.follower+' | Markets: every market the leaders trade'+((gcr.networks.follower_dexes||[]).length>1?' (always read: '+gcr.networks.follower_dexes.join(', ')+')':'')+' | State folder: '+(gcr.networks.state_dir||'');if(!quiet)msg('Loaded');}catch(e){msg(e.message||String(e),true);}}
 function loadGcForm(gc){
   const f=(id,v)=>{const el=root.querySelector('#'+id);if(el&&v!=null)el.value=v;};
   const st=(id,v)=>{const el=root.querySelector('#'+id);if(el)el.textContent=Number(v||0)<=0?'OFF':'';};
@@ -7707,7 +7759,19 @@ function loadGcForm(gc){
   {const el=root.querySelector('#gcMktPctState');if(el)el.textContent=Number(mktPct||0)<=0?'0 = NO slippage allowed: orders are priced exactly at the reference price and may not fill':'';}
   f('gcAllowlist',(gc.symbol_allowlist||[]).join(','));f('gcBlocklist',(gc.symbol_blocklist||[]).join(','));
   f('lcSendMode',normalizedSendMode(gc.send_mode));
+  updateSendModeConfirmation();
 }
+function updateSendModeConfirmation(){
+  const mode=normalizedSendMode(root.querySelector('#lcSendMode').value);
+  const needsConfirmation=mode!==normalizedSendMode(lcGlobalControls.send_mode)&&mode!=='ON';
+  const wrap=root.querySelector('#lcSendModeConfirmWrap');
+  const check=root.querySelector('#lcSendModeConfirm');
+  const text=root.querySelector('#lcSendModeConfirmText');
+  if(wrap)wrap.hidden=!needsConfirmation;
+  if(check)check.checked=false;
+  if(text)text.textContent=mode==='CLOSE'?'Confirm changing global sending to CLOSE ONLY.':'Confirm turning global sending OFF.';
+}
+root.querySelector('#lcSendMode').addEventListener('change',updateSendModeConfirmation);
 root.querySelector('#lcRefresh').addEventListener('click',()=>refresh());
 const gcPanel=root.querySelector('#lcGlobalControlsPanel'), gcToggle=root.querySelector('#lcGcToggle'), gcClose=root.querySelector('#lcGcClose');
 function setGcOpen(open){if(!gcPanel||!gcToggle)return;gcPanel.classList.toggle('active',!!open);gcPanel.setAttribute('aria-hidden',open?'false':'true');gcToggle.setAttribute('aria-expanded',open?'true':'false');}
@@ -7718,10 +7782,10 @@ root.querySelector('#lcGcSave').addEventListener('click',async()=>{
   const gs=root.querySelector('#lcGcStatus');
   const g=id=>parseFloat(root.querySelector('#'+id).value)||0;
   const gl=id=>(root.querySelector('#'+id).value||'').split(',').map(s=>s.trim().toUpperCase()).filter(Boolean);
-  try{const mode=normalizedSendMode(root.querySelector('#lcSendMode').value);if(mode!==normalizedSendMode(lcGlobalControls.send_mode)&&mode!=='ON'&&!window.confirm(mode==='CLOSE'?'Switch global sending to CLOSE ONLY?':'Switch global sending OFF?'))return;
+  try{const mode=normalizedSendMode(root.querySelector('#lcSendMode').value);const needsConfirmation=mode!==normalizedSendMode(lcGlobalControls.send_mode)&&mode!=='ON';if(needsConfirmation&&!root.querySelector('#lcSendModeConfirm').checked){gs.textContent=mode==='CLOSE'?'Confirm CLOSE ONLY before saving.':'Confirm OFF before saving.';gs.className='lc-status lc-amber';return;}
     gs.textContent='Saving...';gs.className='lc-status';
     const requestedAt=Date.now();await jpost('/api/global-controls',{...lcGlobalControls,max_total_live_exposure_usd:g('gcMaxTotal'),max_asset_directional_exposure_usd:g('gcMaxDir'),max_daily_loss_usd:g('gcMaxDailyLoss'),max_wallet_exposure_usd:g('gcMaxWallet'),max_order_notional_usd:g('gcMaxOrder'),marketable_slippage_pct:g('gcMktPct'),max_close_adverse_diff_pct:g('gcCloseAdv'),symbol_allowlist:gl('gcAllowlist'),symbol_blocklist:gl('gcBlocklist'),send_mode:mode});
-    lcSendModePending={mode,requestedAt,acknowledged:false};await refresh(true);gs.textContent='Saved; pending engine cycle';gs.className='lc-status lc-amber';}catch(e){gs.textContent=e.message||String(e);gs.className='lc-status lc-bad';}
+    lcSendModePending={mode,requestedAt,acknowledged:false};await refresh(true);gs.textContent='Saved; awaiting exact engine confirmation';gs.className='lc-status lc-amber';}catch(e){gs.textContent=e.message||String(e);gs.className='lc-status lc-bad';}
 });
 root.querySelectorAll('[data-lc-modal]').forEach(btn=>btn.addEventListener('click',()=>{const m=root.querySelector('#'+btn.dataset.lcModal);if(m){m.classList.add('active');m.setAttribute('aria-hidden','false');}}));
 root.querySelectorAll('[data-lc-close]').forEach(btn=>btn.addEventListener('click',()=>{const m=btn.closest('.lc-modal-backdrop');if(m){m.classList.remove('active');m.setAttribute('aria-hidden','true');}}));
@@ -7989,9 +8053,7 @@ def get_global_controls():
         raw_cfg = json.loads(LIVE_COPY_CONFIG_FILE.read_text(encoding="utf-8-sig"))
     except Exception:
         raw_cfg = {}
-    gc = raw_cfg.get("global_controls") if isinstance(raw_cfg, dict) and isinstance(raw_cfg.get("global_controls"), dict) else {}
-    mode = str(gc.get("send_mode") or "").upper().strip().replace("_", " ").replace("-", " ")
-    controls["send_mode"] = "CLOSE" if mode in {"CLOSE", "CLOSE ONLY", "CLO"} else mode if mode in {"ON", "OFF"} else "OFF"
+    controls["send_mode"] = _send_mode(raw_cfg if isinstance(raw_cfg, dict) else {})
     return JSONResponse({"ok": True, "global_controls": controls,
                          "networks": {"leader": NETWORKS["leader"]["network"], "follower": FOLLOWER_NETWORK,
                                       "state_dir": str(LIVE_COPY_AUDIT_DIR),
@@ -8010,9 +8072,13 @@ async def set_global_controls(req: Request):
             raw_config = {}
         raw_gc = raw_config.get("global_controls") if isinstance(raw_config, dict) and isinstance(raw_config.get("global_controls"), dict) else {}
         config = _load_live_copy_config()
-        kept = {k: v for k, v in raw_gc.items() if k not in _GLOBAL_CONTROLS_DEFAULTS and k != "marketable_slippage_pct"}
-        submitted = {k: v for k, v in body.items() if k in _GLOBAL_CONTROLS_DEFAULTS or k == "marketable_slippage_pct"} if isinstance(body, dict) else {}
-        config["global_controls"] = {**kept, **_normalise_global_controls(submitted)}
+        submitted_keys = {k for k in (body.keys() if isinstance(body, dict) else [])
+                          if k in _GLOBAL_CONTROLS_DEFAULTS or k == "marketable_slippage_pct"}
+        if "marketable_slippage_pct" in submitted_keys:
+            submitted_keys.add("marketable_bps")
+        kept = {k: v for k, v in raw_gc.items() if k not in submitted_keys}
+        submitted = {k: v for k, v in body.items() if k in submitted_keys} if isinstance(body, dict) else {}
+        config["global_controls"] = {**_normalise_global_controls(submitted), **kept}
         if isinstance(body, dict) and str(body.get("send_mode") or "").upper() in {"ON", "CLOSE", "OFF"}:
             config["global_controls"]["send_mode"] = str(body["send_mode"]).upper()
         _save_live_copy_config(config)
