@@ -233,6 +233,9 @@ def main() -> None:
         def active_wallets(self):
             return []
 
+        def live_over_stream_cap(self):
+            return False
+
     real_config_manager = c.ConfigManager
     startup_cfg = real_config_manager()
     orphan_result = {"ok": True, "detail": "offline test"}
