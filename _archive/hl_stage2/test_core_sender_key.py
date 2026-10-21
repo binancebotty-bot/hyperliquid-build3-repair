@@ -205,6 +205,8 @@ def main() -> None:
         os.environ["HL_LIVE_HL_PRIVATE_KEY"] = FAKE_KEY
         role["reply"] = {"role": "missing"}
         argv = sys.argv
+        saved_locks = c.acquire_global_instance_lock, c.acquire_instance_lock
+        c.acquire_global_instance_lock = c.acquire_instance_lock = lambda *a, **k: None
         sys.argv = ["HL_Live_Copy_Service_Core.py", "--once"]
         err = io.StringIO()
         try:
@@ -215,6 +217,7 @@ def main() -> None:
             refused = str(exc)
         finally:
             sys.argv = argv
+            c.acquire_global_instance_lock, c.acquire_instance_lock = saved_locks
         check("K5_ENGINE_REFUSES_TO_START", refused.startswith("SENDER_KEY_NOT_VALID_ON_FOLLOWER_NETWORK")
               and FAKE_KEY[2:] not in refused, refused)
     finally:
@@ -234,6 +237,18 @@ def main() -> None:
     startup_cfg = real_config_manager()
     orphan_result = {"ok": True, "detail": "offline test"}
     orphan_error = None
+    startup_writer_error = None
+
+    class StartupStateWriter:
+        def __init__(self):
+            self.writer = c.ServiceStateWriter()
+            self.failed = False
+
+        def write_startup(self, *args):
+            if startup_writer_error and not self.failed:
+                self.failed = True
+                raise startup_writer_error
+            self.writer.write_startup(*args)
 
     class StartupSender:
         def startup_orphan_order_check(self):
@@ -247,7 +262,7 @@ def main() -> None:
 
     class StartupCore:
         def __init__(self, source_csv=None):
-            self.state_writer = c.ServiceStateWriter()
+            self.state_writer = StartupStateWriter()
             self.dedupe = c.DedupeStore({}, state_dir=tmp)
             self.cfg = startup_cfg
             self.sender = StartupSender()
@@ -256,7 +271,9 @@ def main() -> None:
             self.hot_send_workers = 0
 
         def run_cycle(self, **kwargs):
-            return c.CycleSummary()
+            summary = c.CycleSummary()
+            self.state_writer.write_startup(summary, self.dedupe, self.cfg)
+            return summary
 
         def stop(self):
             pass
@@ -279,6 +296,27 @@ def main() -> None:
         sys.argv = ["HL_Live_Copy_Service_Core.py", "--once"]
         with redirect_stderr(io.StringIO()):
             c.main()
+        successful_state = c.load_json(startup_state_path, {})
+        check("K6_SUCCESSFUL_CHECK_ADVANCES_STATUS", successful_state.get("cycle") == "run_cycle"
+              and successful_state.get("entry_sends_blocked_reason") != "STARTUP_ORPHAN_CHECK_PENDING", str(successful_state))
+        startup_writer_error = RuntimeError("offline writer failure")
+        startup_state_path.write_text(json.dumps({"process_id": -1}), encoding="utf-8")
+        try:
+            with redirect_stderr(io.StringIO()):
+                c.main()
+            refused = ""
+        except SystemExit as exc:
+            refused = str(exc)
+        except Exception as exc:
+            refused = f"UNCAUGHT:{type(exc).__name__}:{exc}"
+        failed_state = c.load_json(startup_state_path, {})
+        check("K6_WRITER_FAILURE_IS_FATAL_STATUS", refused.startswith("STARTUP_ORPHAN_CHECK_WRITER_FAILED")
+              and failed_state.get("ok") is False
+              and failed_state.get("entry_sends_blocked_reason") == "STARTUP_ORPHAN_CHECK_WRITER_FAILED"
+              and failed_state.get("fatal_errors") == 1 and failed_state.get("process_id") == os.getpid()
+              and "offline writer failure" in failed_state.get("send_block_reason", "")
+              and failed_state.get("entry_sends_blocked_reason") != "STARTUP_ORPHAN_CHECK_PENDING", str(failed_state))
+        startup_writer_error = None
         orphan_result.update(ok=False, detail="offline refusal")
         sys.argv = ["HL_Live_Copy_Service_Core.py", "--once"]
         try:
