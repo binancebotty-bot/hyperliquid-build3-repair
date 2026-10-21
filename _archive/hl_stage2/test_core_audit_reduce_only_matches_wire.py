@@ -97,10 +97,11 @@ def make_intent(side, size, lifecycle, tag):
     return i
 
 
-def run(name, side, size, ledger_net, exchange_net, lifecycle, expect_call=True, expected_status=None):
+def run(name, side, size, ledger_net, exchange_net, lifecycle, expect_call=True, expected_status=None,
+        min_order_value_usd=1.0):
     fake = FakeExchange()
     gw = c.SenderGateway(c.ConfigManager(), c.AuditLogWriter())
-    gw._resolve_coin = lambda coin: dict(RESOLVED)
+    gw._resolve_coin = lambda coin: dict(RESOLVED, min_order_value_usd=min_order_value_usd)
     gw._get_exchange_client = lambda *a, **k: fake
     gw._exchange_client_has_symbol = lambda *a, **k: True
     gw._validate_final_wire_order = lambda *a, **k: (True, {})
@@ -131,9 +132,9 @@ check('PURE_REDUCE_BOUNDARY_AUDIT_EQUALS_WIRE', run('BOUNDARY', 'BUY', 10.0, -10
 # The defect: a close trimmed to the follower's net target is NOT a pure reduction, so the wire carries False
 # even though the intent is an EXIT. The audit must say False too.
 check('TRIMMED_CLOSE_AUDIT_EQUALS_WIRE', run('TRIMMED', 'BUY', 10.0, 0.0, 6.0, 'EXIT') is False)
-# A mismatch whose dust clearing would exceed this leader close fails closed before the exchange call.
+# A $200 trimmed close is below this $201 minimum; clearing the whole $1,200 account position would exceed this leader close.
 run('UNSAFE_MISMATCH_NO_ORDER', 'SELL', 10.0, 20.0, 12.0, 'EXIT', expect_call=False,
-    expected_status='SEND_NOT_ATTEMPTED_CLOSE_PLAN_UNSAFE')
+    expected_status='SEND_NOT_ATTEMPTED_CLOSE_PLAN_UNSAFE', min_order_value_usd=201.0)
 
 failed = [n for n, ok in R if not ok]
 print('TOTAL=%d FAILED=%d' % (len(R), len(failed)))
