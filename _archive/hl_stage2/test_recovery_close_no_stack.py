@@ -228,4 +228,3 @@ if __name__ == '__main__':
             failed += 1
             print('FAIL', test.__name__, type(exc).__name__, repr(exc))
     raise SystemExit(failed)
-
