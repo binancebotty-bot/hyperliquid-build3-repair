@@ -22,6 +22,10 @@ os.environ.update({
 })
 import HL_Live_Copy_Service_Core as c  # noqa: E402
 
+# Keep existing crash/replay scenarios deterministic; the dedicated background scenario enables the real scheduler.
+real_schedule_audit_flush = c._schedule_audit_flush
+c._schedule_audit_flush = lambda *args: None
+
 R = []
 
 def check(n: str, ok: bool, d: str = "") -> None:
@@ -93,10 +97,75 @@ check("APPEND_AFTER_SPILL_STAYS_QUEUED",
 check("SPILL_ROWS_KEEP_APPEND_ORDER",
       [r["leader_fill_id"] for r in c.read_csv_rows(c._fallback_path(p1))] == ["F1", "F2"],
       str(c.read_csv_rows(c._fallback_path(p1))))
+spill_rows_reader = c._spill_rows
+spill_scans = []
+c._spill_rows = lambda *args: (spill_scans.append(args[0]) or spill_rows_reader(*args))
+for i in range(3, 13):
+    c.append_csv(p1, fields1, {"event": "E", "status": "S%d" % i, "leader_fill_id": "F%d" % i})
+c._spill_rows = spill_rows_reader
+check("SPILL_QUEUE_AVOIDS_RESCANNING_OLD_ROWS", not spill_scans, "rescans=%d" % len(spill_scans))
 check("SPILL_REPLAY_RESTORES_ORDER",
-      c.replay_audit_fallback(p1, fields1) == 2
-      and [r["leader_fill_id"] for r in c.read_csv_rows(p1)] == ["F0", "F1", "F2"],
+      c.replay_audit_fallback(p1, fields1) == 12
+      and [r["leader_fill_id"] for r in c.read_csv_rows(p1)] == ["F%d" % i for i in range(13)],
       str(c.read_csv_rows(p1)))
+
+# --- Scenario 1a: a row arriving during replay cannot be erased by cleanup --------
+
+p_race = tmp / "append_only" / "test_replay_enqueue_race.csv"
+c.append_csv(p_race, fields1, {"event": "E", "status": "S0", "leader_fill_id": "F_RACE0"})
+af_race = AppendFail(p_race, n_fail=1000)
+af_race.install()
+c.append_csv(p_race, fields1, {"event": "E", "status": "S1", "leader_fill_id": "F_RACE1"})
+af_race.restore()
+orig_append_race = c.append_csv
+injected_race_row = False
+
+
+def append_with_new_spill_during_replay(path, fields, row, **kwargs):
+    global injected_race_row
+    if path == p_race and row.get("leader_fill_id") == "F_RACE1" and not injected_race_row:
+        injected_race_row = True
+        orig_append_race(path, fields, {"event": "E", "status": "S2", "leader_fill_id": "F_RACE2"})
+    return orig_append_race(path, fields, row, **kwargs)
+
+
+c.append_csv = append_with_new_spill_during_replay
+try:
+    c.replay_audit_fallback(p_race, fields1)
+finally:
+    c.append_csv = orig_append_race
+check("REPLAY_ENQUEUE_RACE_ROW_RETAINED",
+      any(r.get("leader_fill_id") == "F_RACE2" for r in c.read_csv_rows(c._fallback_path(p_race))),
+      str(c.read_csv_rows(c._fallback_path(p_race))))
+check("REPLAY_ENQUEUE_RACE_ALL_ROWS_RECOVERED",
+      c.replay_audit_fallback(p_race, fields1) == 1
+      and [r.get("leader_fill_id") for r in c.read_csv_rows(p_race)] == ["F_RACE0", "F_RACE1", "F_RACE2"],
+      str(c.read_csv_rows(p_race)))
+
+# --- Scenario 1b: a recovered append path is flushed without restarting -----------
+
+p_bg = tmp / "append_only" / "test_background_flush.csv"
+c.append_csv(p_bg, fields1, {"event": "E", "status": "S0", "leader_fill_id": "F_BG0"})
+af_bg = AppendFail(p_bg, n_fail=1000)
+af_bg.install()
+c._schedule_audit_flush = real_schedule_audit_flush
+check("BACKGROUND_TEST_APPEND_SPILLS", c.append_csv(p_bg, fields1, {"event": "E", "status": "S1", "leader_fill_id": "F_BG1"}) is False)
+check("BACKGROUND_FLUSHER_SINGLE_WORKER",
+      sum(t.name == "audit-spill-flusher" for t in threading.enumerate()) == 1,
+      "flusher threads=%d" % sum(t.name == "audit-spill-flusher" for t in threading.enumerate()))
+af_bg.restore()
+deadline = time.monotonic() + 3.0
+while time.monotonic() < deadline:
+    if [r.get("leader_fill_id") for r in c.read_csv_rows(p_bg)] == ["F_BG0", "F_BG1"]:
+        break
+    threading.Event().wait(0.02)
+check("BACKGROUND_FLUSH_REPLAYS_AFTER_RECOVERY",
+      [r.get("leader_fill_id") for r in c.read_csv_rows(p_bg)] == ["F_BG0", "F_BG1"],
+      str(c.read_csv_rows(p_bg)))
+check("BACKGROUND_FLUSH_CLEARS_SPILL",
+      not c._fallback_path(p_bg).exists() or not c.read_csv_rows(c._fallback_path(p_bg)),
+      str(c.read_csv_rows(c._fallback_path(p_bg)) if c._fallback_path(p_bg).exists() else []))
+c._schedule_audit_flush = lambda *args: None
 
 # --- Scenario 2: spill to append-only fallback on persistent failure --------------
 
