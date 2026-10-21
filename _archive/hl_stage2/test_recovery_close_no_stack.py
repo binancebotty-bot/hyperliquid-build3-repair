@@ -1,5 +1,4 @@
 import importlib.util
-import inspect
 import sys
 from pathlib import Path
 from types import SimpleNamespace
@@ -171,8 +170,47 @@ def test_slippage_bound_and_successful_fill_clear_state():
     gw._recovery_backoff['sleeve-xyz-skhx'] = 3
     gw._recovery_next_attempt_ms['sleeve-xyz-skhx'] = 9999999999999
     gw._recovery_orders['sleeve-xyz-skhx'] = {'oid': 99}
-    assert 'clear_recovery_state(intent.sleeve_id)' in inspect.getsource(core.SenderGateway._send_real)
     gw.clear_recovery_state('sleeve-xyz-skhx')
+    assert not gw._recovery_backoff and not gw._recovery_next_attempt_ms and not gw._recovery_orders
+
+
+def test_send_real_filled_reduce_only_clears_recovery_state():
+    exchange = Exchange()
+    gw = gateway(exchange)
+    gw.cfg.max_close_adverse_diff_pct = lambda: 0.0
+    gw.cfg.max_order_notional = lambda: 100000.0
+    gw.cfg.min_notional = lambda: 0.0
+    gw._resolve_coin = lambda coin: {
+        'ok': True, 'sdk_coin': coin, 'sz_decimals': 4, 'price_max_decimals': 4,
+        'perp_dexs': None, 'sdk_order_compatible': True,
+    }
+    gw._symbol_reject_circuit_active = lambda resolved: False
+    gw._exchange_client_has_symbol = lambda _exchange, _coin: True
+    gw._get_exchange_client = lambda *args, **kwargs: exchange
+    gw._pre_exchange_asset_safety = lambda *args: (True, {})
+    gw._validate_final_wire_order = lambda *args: (True, {})
+    gw._place_order = lambda *args, **kwargs: {'status': 'ok', 'oid': 'filled-1'}
+    gw._parse_hl_response = lambda response: (True, 'ORDER_FILLED', 'filled-1', '')
+    gw._recovery_backoff['sleeve-xyz-skhx'] = 3
+    gw._recovery_next_attempt_ms['sleeve-xyz-skhx'] = 9999999999999
+    gw._recovery_orders['sleeve-xyz-skhx'] = {'oid': 99}
+    old_private_key = core.os.environ.get('HL_LIVE_HL_PRIVATE_KEY')
+    old_account, old_exchange = core.HLAccount, core.HLExchange
+    old_follower_mid = core.follower_mid
+    core.os.environ['HL_LIVE_HL_PRIVATE_KEY'] = 'test-only'
+    core.HLAccount, core.HLExchange = object(), object()
+    core.follower_mid = lambda coin: 893.0
+    try:
+        ok, status, result = gw._send_real(intent(), {})
+    finally:
+        if old_private_key is None:
+            core.os.environ.pop('HL_LIVE_HL_PRIVATE_KEY', None)
+        else:
+            core.os.environ['HL_LIVE_HL_PRIVATE_KEY'] = old_private_key
+        core.HLAccount, core.HLExchange = old_account, old_exchange
+        core.follower_mid = old_follower_mid
+    assert (ok, status) == (True, 'ORDER_FILLED')
+    assert result['reduce_only_sent'] is True
     assert not gw._recovery_backoff and not gw._recovery_next_attempt_ms and not gw._recovery_orders
 
 
@@ -181,7 +219,8 @@ if __name__ == '__main__':
     for test in (test_eight_cycle_trace_never_stacks, test_restart_and_cancel_failure_fail_closed,
                  test_malformed_cancel_response_fails_closed_with_backoff,
                  test_backoff_grows_caps_and_blocks_failed_producer_retry, test_no_book_is_counted_and_stops,
-                 test_no_book_preserves_existing_recovery, test_slippage_bound_and_successful_fill_clear_state):
+                 test_no_book_preserves_existing_recovery, test_slippage_bound_and_successful_fill_clear_state,
+                 test_send_real_filled_reduce_only_clears_recovery_state):
         try:
             test()
             print('PASS', test.__name__)
