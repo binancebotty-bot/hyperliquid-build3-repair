@@ -5516,6 +5516,7 @@ class SenderGateway:
         attempt_id = str(timing.get("send_attempt_id") or generate_attempt_id(intent.intent_id))
         timing["send_attempt_id"] = attempt_id
         timing["send_cloid"] = cloid
+        timing.setdefault("attempt_cloids", {})[attempt_id] = cloid
         now = utc_now_ms()
         _row = ({
             "created_at": utc_now_iso(),
@@ -5574,6 +5575,19 @@ class SenderGateway:
             self._begin_pending_send(intent, tif, order_type, limit_px, size, cloid, t, reduce_only)
             t["pending_send_done_ms"] = utc_now_ms()
         return cloid, _pre
+
+    @staticmethod
+    def _outstanding_attempt_cloids(timing: Dict[str, Any], fallback_cloid: str, include_latest: bool = True) -> List[str]:
+        """Cloids that must ALL be confirmed absent before any further send: the latest attempt (the one that raised; its
+        cloid is timing["send_cloid"], set by _begin_pending_send) plus every earlier attempt id kept in
+        timing["ambiguous_attempt_ids"]. An earlier id with no recorded cloid yields "" so the resolver holds."""
+        latest_id = str(timing.get("send_attempt_id") or "")
+        out = [str(timing.get("send_cloid") or fallback_cloid or "")] if include_latest else []
+        known = timing.get("attempt_cloids") if isinstance(timing.get("attempt_cloids"), dict) else {}
+        for aid in timing.get("ambiguous_attempt_ids") or []:
+            if str(aid) != latest_id:
+                out.append(str(known.get(str(aid)) or ""))
+        return out
 
     def _supersede_attempt(self, timing: Dict[str, Any], response: Any, intent: Optional[Intent] = None) -> bool:
         """A definitely-rejected attempt that is about to be retried: its pending_send row must not stay pending.
@@ -8073,8 +8087,16 @@ class SenderGateway:
                 # reconcile and the recovery below supersedes the pending row; a TIMEOUT always reconciles first.
                 definite_429 = (classify_rate_limit_kind(exc) == "RATE_LIMIT"
                                 and classify_send_lifecycle(intent) in {"ENTRY", "ADD"})
-                resolved_outcome = None if definite_429 else self._resolve_ambiguous_send_outcome(
-                    sdk_coin, intent, cloid, wire_size, limit_px, use_reduce_only, error_text, timing)
+                # rw12: reconcile the attempt that actually raised (timing["send_cloid"] = the LATEST attempt's cloid; the initial
+                # `cloid` may be a definitely-rejected, superseded attempt), then every earlier attempt still ambiguous. Any
+                # landed/hold answer ends here: a further send needs EVERY outstanding attempt confirmed absent.
+                resolved_outcome = None
+                for _n, _cl in enumerate(self._outstanding_attempt_cloids(timing, cloid, not definite_429)):
+                    resolved_outcome = self._resolve_ambiguous_send_outcome(
+                        sdk_coin, intent, _cl, wire_size, limit_px, use_reduce_only, error_text, timing,
+                        schedule_followup=(_n == 0))
+                    if resolved_outcome is not None:
+                        break
                 if resolved_outcome is not None:
                     return resolved_outcome
                 recovery = self._entry_add_rate_limit_recovery(
