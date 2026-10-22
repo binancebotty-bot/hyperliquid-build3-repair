@@ -11110,13 +11110,39 @@ class LiveCopyCore:
         # the poll may relax to the backstop rate when the feed is healthy and every WS slot is feed-acked;
         # the poll set may be larger than the feed set (poll-all-active), which is by design
         feed_ok = bool(ws.enabled and getattr(ws, "_socket_open", False) and feed_set and feed_set <= acked)
+        # CUT 3 (rate-weight cut series): a close-only wallet that still holds a sleeve is polled at
+        # HL_LIVE_LEADER_POLL_NONFLAT_CLO_SEC (60 s), not the 2.2 s/leader outage rate - its exit is not urgent
+        # and every wallet read costs ~20 weight. LIVE wallets keep the fast outage path.
+        floor = 0.0
+        ledger = getattr(self, "ledger", None)
+        if ledger is not None:
+            try:
+                raw = ledger.nonflat_wallets_from_disk()
+            except Exception:
+                raw = None
+            if isinstance(raw, (set, frozenset, list, tuple)):
+                for wallet in raw:
+                    try:
+                        mode = str(self.cfg.wallet_mode(wallet) or "").upper()
+                    except Exception:
+                        mode = ""
+                    if mode in ("CLO", "CLOSE_ONLY", "CLOSE-ONLY"):
+                        floor = fnum(os.getenv("HL_LIVE_LEADER_POLL_NONFLAT_CLO_SEC"), 60.0)
+                        break
+        interval_env = os.getenv("HL_LIVE_LEADER_POLL_INTERVAL_SEC")
         if feed_ok:
-            return max(0.0, fnum(os.getenv("HL_LIVE_LEADER_POLL_INTERVAL_SEC"), 120.0))
+            backstop = max(0.0, fnum(interval_env, 120.0))
+            if interval_env:
+                return backstop  # the operator set the interval explicitly: it wins
+            return max(backstop, floor)
         n = max(1, len(self.cfg.active_wallets()))
         auto = max(2.0, 2.2 * n)
         env = os.getenv("HL_LIVE_LEADER_POLL_NOFEED_SEC")
         fast = max(1.0, fnum(env, auto)) if env else auto
-        return min(fast, 30.0, max(0.0, fnum(os.getenv("HL_LIVE_LEADER_POLL_INTERVAL_SEC"), 120.0)))
+        if floor:
+            fast = max(fast, floor)
+        cap = max(30.0, floor) if floor else 30.0
+        return min(fast, cap, max(0.0, fnum(interval_env, 120.0)))
 
     def _leader_poll_due(self, force: bool = False) -> bool:
         """The live feed is the hot path; the poll is the missed-fill backstop. While the feed's socket is open the
