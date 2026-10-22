@@ -129,6 +129,72 @@ _src = Path(c.__file__).read_text(encoding="utf-8")
 check("RECON_CALLER_OPTS_IN", "append_csv(RECONCILIATION_CSV, RECONCILIATION_FIELDS, row, retry_permission=True)" in _src, "")
 check("SEND_LANE_CALLERS_DO_NOT_OPT_IN", not any("retry_permission" in ln for ln in _src.splitlines() if "ORDER_INTENTS_CSV," in ln or "SEND_ATTEMPTS_CSV," in ln), "")
 
+# 3c. concurrency: a reconciliation retry must not hold FILE_LOCK while it sleeps (order intents share that lock)
+import threading
+import time as _time
+
+c._CSV_APPEND_RETRIES = 5
+c._CSV_APPEND_BACKOFF_SEC = 0.04
+pa = c.RECONCILIATION_CSV
+pb = c.ORDER_INTENTS_CSV
+c.append_csv(pa, fields, {"a": "1", "b": "2"})
+c.append_csv(pb, fields, {"a": "1", "b": "2"})
+c._close_audit_handle(pa)
+c._close_audit_handle(pb)
+a_sleeping, a_go = threading.Event(), threading.Event()
+a_state = {"fails": 0}
+
+
+def blocking_sleep(sec):
+    a_sleeping.set()
+    a_go.wait(10)  # A "sleeps" until released: far longer than B is allowed to take
+
+
+def conc_open(self, *a, **k):
+    f = real_open(self, *a, **k)
+    if self == pa and a and a[0] == "a" and a_state["fails"] < 1:
+        a_state["fails"] += 1
+        return PartialThenDenied(f)
+    return f
+
+
+c.time.sleep = blocking_sleep
+Path.open = conc_open
+a_res = {}
+
+
+def thread_a():
+    a_res["ret"] = c.append_csv(pa, fields, {"a": "A", "b": "row"}, retry_permission=True)
+
+
+ta = threading.Thread(target=thread_a)
+ta.start()
+got_sleep = a_sleeping.wait(5)
+t0 = _time.monotonic()
+b_ret = c.append_csv(pb, fields, {"a": "B", "b": "row"})  # same FILE_LOCK; must not wait for A's sleep
+b_lat = _time.monotonic() - t0
+b_done_while_a_sleeping = ta.is_alive() and not a_go.is_set()
+a_go.set()
+ta.join(10)
+Path.open = real_open
+c.time.sleep = lambda s: sleeps.append(s)
+c._close_audit_handle(pa)
+c._close_audit_handle(pb)
+check("CONC_A_ENTERED_SLEEP", got_sleep, "")
+check("CONC_B_NOT_BLOCKED_BY_A_SLEEP", b_ret is True and b_done_while_a_sleeping and b_lat < 1.0, f"ret={b_ret} lat={b_lat:.3f}")
+rows_a = [r["a"] for r in c.read_csv_rows(pa)]
+rows_b = [r["a"] for r in c.read_csv_rows(pb)]
+check("CONC_A_ROW_LANDS_EXACTLY_ONCE", a_res.get("ret") is True and rows_a.count("A") == 1 and rows_a[-1] == "A", f"{a_res} {rows_a}")
+check("CONC_B_ROW_LANDS_ONCE", rows_b.count("B") == 1 and rows_b[-1] == "B", str(rows_b))
+
+# 3d. a caller already holding the lock (replay path, reentrant depth > 1) cannot be released: single attempt, old behaviour
+sleeps.clear()
+with c.FILE_LOCK:
+    p, good, st, ret, raised, fb = run("reentrant", fail_times=99, retries=5, retry_permission=True)
+check("REENTRANT_CALLER_NO_RETRY", st["opens"] == 1 and not sleeps and ret is False and p.read_bytes() == good,
+      f"opens={st['opens']} sleeps={sleeps}")
+c.replay_audit_fallback(p, fields)
+
 # 4. backoff total is capped near 1s worst case even with a large retry count / base
 p, good, st, ret, raised, fb = run("capped", fail_times=99, retries=50, backoff_ms="400", retry_permission=True)
 check("BACKOFF_TOTAL_CAPPED", sum(sleeps) <= 1.0 + 1e-9 and sum(sleeps) > 0.9, f"{sleeps}")

@@ -1774,9 +1774,16 @@ def append_csv(path: Path, fieldnames: List[str], row: Dict[str, Any], *, spill_
                 _clean = (path.stat().st_size if path.exists() else 0) == size_before
             except Exception:
                 _clean = False
-            if retry_permission and isinstance(exc, PermissionError) and _clean and _retry_n < _CSV_APPEND_RETRIES and _slept < _CSV_APPEND_BACKOFF_CAP_SEC:
-                # Held under the file lock on purpose: releasing it mid-retry would let another row interleave while
-                # size_before / the spill-behind check are only valid for this attempt, and replay callers hold it too.
+            _can_retry = retry_permission and isinstance(exc, PermissionError) and _clean and _retry_n < _CSV_APPEND_RETRIES and _slept < _CSV_APPEND_BACKOFF_CAP_SEC
+            if _can_retry:
+                # Never sleep while holding a lock that send-lane appends use: release, sleep, re-acquire, retry as a
+                # fresh attempt (partial row already truncated, so no duplicate). A caller that already holds the lock
+                # (replay, reentrant depth > 1) cannot be released here: single attempt, old behaviour.
+                lock.release()
+                if lock._is_owned():
+                    lock.acquire()
+                    _can_retry = False
+            if _can_retry:
                 _delay = min(_CSV_APPEND_BACKOFF_SEC * (2 ** _retry_n), _CSV_APPEND_BACKOFF_CAP_SEC - _slept)
                 _retry_n += 1
                 _CSV_APPEND_RETRY_STATS["count"] = int(_CSV_APPEND_RETRY_STATS.get("count") or 0) + 1
@@ -1785,8 +1792,19 @@ def append_csv(path: Path, fieldnames: List[str], row: Dict[str, Any], *, spill_
                     sys.stderr.write(f"[audit_append_retry] {path.name} attempt {_retry_n}/{_CSV_APPEND_RETRIES} in {_delay * 1000:.0f}ms: {exc!r}\n")
                 except Exception:
                     pass
-                time.sleep(_delay)
+                try:
+                    time.sleep(_delay)
+                finally:
+                    lock.acquire()
                 _slept += _delay
+                if not path.exists() or path.stat().st_size <= 0:
+                    ensure_csv_header(path, fieldnames)
+                size_before = path.stat().st_size if path.exists() else 0
+                if spill_on_failure and (str(path) in _AUDIT_SPILL_PENDING or (spill.exists() and spill.stat().st_size > 0)):
+                    if not _spill_row(path, fieldnames, row):  # another append spilled meanwhile: stay behind it
+                        raise OSError("audit row could not be persisted behind existing spill rows")
+                    _schedule_audit_flush(path, fieldnames)
+                    return False
                 continue
             note_audit_write_failure(path, exc)
             if not spill_on_failure:
