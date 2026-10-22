@@ -1922,18 +1922,29 @@ CSV_BAD_ROWS = 0
 
 _INTENT_COND = threading.Condition()
 _INTENT_QUEUE: "collections.deque" = collections.deque()
-_INTENT_STATE: Dict[str, Any] = {"busy": False, "thread": None, "atexit": False}
+_INTENT_STATE: Dict[str, Any] = {"busy": False, "thread": None, "atexit": False,
+                                 "next_seq": 0, "durable_seq": 0, "failed_seqs": set(), "durable_timeouts": 0}
+_INTENT_SEQ_BY_ID: Dict[str, int] = {}  # intent_id -> sequence of its queued order_intents row (the pre-send barrier's key)
 
 
-def enqueue_intent_row(path: Path, fieldnames: List[str], row: Dict[str, Any]) -> None:
+def enqueue_intent_row(path: Path, fieldnames: List[str], row: Dict[str, Any], key: str = "") -> Optional[int]:
     """Write-behind for the order_intents.csv audit row: the send path only queues it (append_csv can wait seconds on the
     shared audit file lock). One writer thread appends in order; flush_intent_writer() drains it. The pre-send
     pending_send row is NOT queued: it stays a direct append on its own lock. A full backlog or the switch
-    HL_LIVE_INTENT_WRITE_BEHIND=0 appends inline as before."""
+    HL_LIVE_INTENT_WRITE_BEHIND=0 appends inline as before. Returns the row's monotonically increasing sequence number
+    (None when it was appended inline: nothing to wait for); with `key` (the intent id) the sequence is remembered so the
+    pre-send durability barrier (wait_intent_durable) can find it."""
     if bval(os.getenv("HL_LIVE_INTENT_WRITE_BEHIND"), True):
         with _INTENT_COND:
             if len(_INTENT_QUEUE) < int(fnum(os.getenv("HL_LIVE_INTENT_QUEUE_MAX"), 20000.0)):
-                _INTENT_QUEUE.append((path, fieldnames, row))
+                seq = int(_INTENT_STATE["next_seq"]) + 1
+                _INTENT_STATE["next_seq"] = seq
+                _INTENT_QUEUE.append((path, fieldnames, row, seq))
+                if key:
+                    if len(_INTENT_SEQ_BY_ID) > 20000:  # bounded: drop the ids whose row is already on disk
+                        for _k in [k for k, v in _INTENT_SEQ_BY_ID.items() if v <= int(_INTENT_STATE["durable_seq"])]:
+                            _INTENT_SEQ_BY_ID.pop(_k, None)
+                    _INTENT_SEQ_BY_ID[key] = seq
                 thread = _INTENT_STATE["thread"]
                 if thread is None or not thread.is_alive():
                     _INTENT_STATE["thread"] = threading.Thread(target=_intent_writer_loop, daemon=True, name="HLCore-intent-writer")
@@ -1942,8 +1953,9 @@ def enqueue_intent_row(path: Path, fieldnames: List[str], row: Dict[str, Any]) -
                     _INTENT_STATE["atexit"] = True
                     atexit.register(flush_intent_writer, 10.0, "atexit")  # bounded; a timeout is reported, never silent
                 _INTENT_COND.notify_all()
-                return
+                return seq
     append_csv(path, fieldnames, row)
+    return None
 
 
 def _intent_writer_loop() -> None:
@@ -1953,9 +1965,11 @@ def _intent_writer_loop() -> None:
                 _INTENT_COND.wait()
             item = _INTENT_QUEUE.popleft()
             _INTENT_STATE["busy"] = True
+        seq_done, append_failed = item[3], True
         for attempt in range(3):
             try:
-                append_csv(*item)  # a failed live append is spilled and retried by append_csv itself
+                append_csv(item[0], item[1], item[2])  # a failed live append is spilled and retried by append_csv itself
+                append_failed = False
                 break
             except Exception as exc:
                 if attempt == 2:
@@ -1963,8 +1977,70 @@ def _intent_writer_loop() -> None:
                 else:
                     time.sleep(0.5)
         with _INTENT_COND:
+            if append_failed:  # the barrier must not mistake a failed row for a durable one
+                _INTENT_STATE["failed_seqs"].add(seq_done)
+                if len(_INTENT_STATE["failed_seqs"]) > 1000:
+                    _INTENT_STATE["failed_seqs"].discard(min(_INTENT_STATE["failed_seqs"]))
+            _INTENT_STATE["durable_seq"] = max(int(_INTENT_STATE["durable_seq"]), seq_done)
             _INTENT_STATE["busy"] = False
             _INTENT_COND.notify_all()
+
+
+def intent_seq_for(intent_id: Any) -> Optional[int]:
+    """Sequence number of the queued order_intents row of this intent id (None: inline row, or never queued)."""
+    with _INTENT_COND:
+        return _INTENT_SEQ_BY_ID.get(str(intent_id or ""))
+
+
+def wait_intent_durable(seq: Optional[int], intent_id: str = "", timeout_ms: Optional[float] = None) -> bool:
+    """Pre-send durability barrier for the write-behind order_intents row. Lifecycle/recovery code reads that journal, so
+    the order's row (and every earlier queued row: the writer is strictly in order) must be on disk BEFORE the exchange
+    call, or a crash in between would lose lifecycle/provenance fields that pending_send does not carry.
+    Normal case: the writer has long since appended the row (it runs from intent build, well before the slot/cooldown
+    wait), so this is a condition check under the writer's short lock, no file write on the caller's thread.
+    Failure policy (deliberate): on a timeout (HL_LIVE_INTENT_DURABLE_WAIT_MS, default 250; 0 disables the barrier), a
+    dead writer thread or a failed row append, the order is NOT held up and NOT refused: it proceeds, because the
+    pending_send row (sync + fsync, written right after this) is the idempotency/crash record and an unsent order costs
+    more than a missing audit row. The gap is reported loudly: stderr + audit-write-failure alert counter (naming the
+    intent id) at once, and an errors.csv row (intent_durable_barrier) written from a side thread so that file's lock
+    cannot delay the order. Returns True when durable (or nothing to wait for), False when it proceeded without.
+    Never raises."""
+    try:
+        if seq is None:
+            return True
+        ms = fnum(os.getenv("HL_LIVE_INTENT_DURABLE_WAIT_MS"), 250.0) if timeout_ms is None else float(timeout_ms)
+        if ms <= 0:
+            return True
+        end = time.monotonic() + ms / 1000.0
+        reason = ""
+        with _INTENT_COND:
+            while int(_INTENT_STATE["durable_seq"]) < seq:
+                thread = _INTENT_STATE["thread"]
+                if thread is None or not thread.is_alive():
+                    reason = "writer thread is not running"
+                    break
+                left = end - time.monotonic()
+                if left <= 0:
+                    reason = f"not durable within {ms:.0f}ms (writer backlog or stalled)"
+                    break
+                _INTENT_COND.wait(left)
+            else:
+                if seq in _INTENT_STATE["failed_seqs"]:
+                    reason = "writer failed to append the row"
+            if reason:
+                _INTENT_STATE["durable_timeouts"] = int(_INTENT_STATE.get("durable_timeouts") or 0) + 1
+        if not reason:
+            return True
+        msg = (f"order_intents row for intent_id={intent_id or '?'} (seq {seq}) is NOT on disk before the exchange call: "
+               f"{reason}; the order proceeds, pending_send is the crash record")
+        try:
+            note_audit_write_failure(ORDER_INTENTS_CSV, TimeoutError(msg))  # alert counter + journal + stderr
+        except Exception:
+            pass
+        threading.Thread(target=log_error, args=("intent_durable_barrier", msg), daemon=True, name="HLCore-intent-barrier-log").start()
+        return False
+    except Exception:
+        return False
 
 
 def flush_intent_writer(timeout: Optional[float] = 10.0, context: str = "") -> bool:
@@ -4362,7 +4438,7 @@ class AuditLogWriter:
         if "merged_leader_fills=" in str(notes):  # read back at restart for idempotency: written before this returns
             append_csv(ORDER_INTENTS_CSV, ORDER_INTENT_FIELDS, row)
         else:  # audit only: written behind the send by the single writer thread (flushed before reads, on stop and at exit)
-            enqueue_intent_row(ORDER_INTENTS_CSV, ORDER_INTENT_FIELDS, row)
+            enqueue_intent_row(ORDER_INTENTS_CSV, ORDER_INTENT_FIELDS, row, key=str(intent.intent_id))
 
     def _note_fill_row(self, fid: Any, state: Any = "") -> None:
         fid = str(fid or "").strip()
@@ -7265,6 +7341,7 @@ class SenderGateway:
 
         def _pending_send(_tif="Gtc" if rest_now else "Ioc", _ot="REAL_GTC" if rest_now else "REAL_IOC", _px=limit_px,
                           _sz=wire_size, _ro=use_reduce_only) -> None:
+            wait_intent_durable(intent_seq_for(intent.intent_id), intent.intent_id)  # barrier: intent row on disk first; never raises
             self._begin_pending_send(intent, _tif, _ot, _px, _sz, cloid, timing, _ro)
             timing["pending_send_done_ms"] = utc_now_ms()
         try:
