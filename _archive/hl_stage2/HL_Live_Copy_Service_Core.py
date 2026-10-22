@@ -288,21 +288,24 @@ _OPEN_ORDERS_CACHE: Dict[Tuple[str, str, str, str], Tuple[int, Any]] = {}  # (ne
 _OPEN_ORDERS_CACHE_STATE = {"gen": 0, "sends": 0}  # gen bumps on every invalidation; sends counts orders/cancels in flight
 _OPEN_ORDERS_CACHE_LOCK = threading.Lock()
 
+def _open_orders_cache_clear_locked() -> None:
+    _OPEN_ORDERS_CACHE_STATE["gen"] += 1
+    for key in [k for k in _OPEN_ORDERS_CACHE if k[2] == USER_WALLET]:
+        _OPEN_ORDERS_CACHE.pop(key, None)
+
 def invalidate_open_orders_cache() -> None:
     """Drop every cached openOrders read for the follower: called around every send and cancel."""
     with _OPEN_ORDERS_CACHE_LOCK:
-        _OPEN_ORDERS_CACHE_STATE["gen"] += 1
-        for key in [k for k in _OPEN_ORDERS_CACHE if k[2] == USER_WALLET]:
-            _OPEN_ORDERS_CACHE.pop(key, None)
+        _open_orders_cache_clear_locked()
 
 def _open_orders_send_begin() -> None:
-    with _OPEN_ORDERS_CACHE_LOCK:
+    with _OPEN_ORDERS_CACHE_LOCK:  # counter and invalidation in one step: no reader can hit between them
         _OPEN_ORDERS_CACHE_STATE["sends"] += 1
-    invalidate_open_orders_cache()
+        _open_orders_cache_clear_locked()
 
 def _open_orders_send_end() -> None:
-    invalidate_open_orders_cache()  # whatever the outcome (filled, rejected, raised, ambiguous)
-    with _OPEN_ORDERS_CACHE_LOCK:
+    with _OPEN_ORDERS_CACHE_LOCK:  # whatever the outcome (filled, rejected, raised, ambiguous)
+        _open_orders_cache_clear_locked()
         _OPEN_ORDERS_CACHE_STATE["sends"] -= 1
 
 def periodic_open_orders(dexes: List[str]) -> List[Any]:
@@ -319,7 +322,7 @@ def periodic_open_orders(dexes: List[str]) -> List[Any]:
     with _OPEN_ORDERS_CACHE_LOCK:
         gen = _OPEN_ORDERS_CACHE_STATE["gen"]
         for i, key in enumerate(keys):
-            hit = _OPEN_ORDERS_CACHE.get(key)
+            hit = _OPEN_ORDERS_CACHE.get(key) if _OPEN_ORDERS_CACHE_STATE["sends"] == 0 else None  # no hits mid-send
             if hit is not None and 0 <= now - hit[0] < ttl_ms:
                 out[i] = {"ok": True, "data": hit[1]}
     miss = [i for i, r in enumerate(out) if r is None]
