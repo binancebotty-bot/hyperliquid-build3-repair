@@ -388,12 +388,37 @@ def main() -> None:
     check("M7_WHOLE_WINDOW_READ_SAYS_OK", status == "POLL_OK" and len(got) == 3, f"{status} {len(got)}")
     c.requests.post = offline
 
+    # A fill stamped 969,999 ms must remain inside the next poll's replay window.
+    core._last_leader_poll_ms = 0
+    core._held_read_cursor.clear()
+    # _start reads max(_leader_poll_cursors, _held_read_cursor) - NOT the runtime-state file.
+    # Without pinning the in-memory cursor the probe inherits real wall-clock cursors from
+    # earlier cycles in this process and flips between pass and fail.
+    interval_sec = 120.0
+    core.leader_poll_interval_sec = lambda: interval_sec
+    replay_cursor = 1_000_000
+    core._leader_poll_cursors = {LEADER: replay_cursor, OTHER: replay_cursor}
+    replay_fill = fill("BUY", ts=969_999)
+    state = c.load_json(c.CORE_RUNTIME_STATE_FILE, {})
+    state["last_leader_poll_cursor_ms"] = {LEADER: replay_cursor, OTHER: replay_cursor}
+    c.atomic_write_json(c.CORE_RUNTIME_STATE_FILE, state)
+    starts.clear()
+    core.ingestor.poll_hyperliquid_fills = lambda w, s, t=None: starts.append((w, s)) or ([replay_fill] if w == LEADER else [], "POLL_OK")
+    real_utc_now_ms = c.utc_now_ms
+    c.utc_now_ms = lambda: 1_000_000
+    core.run_cycle(use_source_csv=False, poll_live=True)
+    c.utc_now_ms = real_utc_now_ms
+    check("M7_969999_LATE_FILL_REPLAYED_AT_120S_CADENCE",
+          any(w == LEADER and s <= replay_fill.timestamp_ms for w, s in starts),
+          f"starts={starts} fill={replay_fill.timestamp_ms}")
+
     partial_fills = [fill("BUY", ts=now - 5000)]
     core.ingestor.poll_hyperliquid_fills = lambda w, s, t=None: (partial_fills if w == LEADER else [], "POLL_PARTIAL")
     core._process_leader_fill = lambda f, summary=None, block="": (False, "T", None)
     core.run_cycle(use_source_csv=False, poll_live=True)
     cur = c.load_json(c.CORE_RUNTIME_STATE_FILE, {}).get("last_leader_poll_cursor_ms", {}).get(LEADER, 0)
-    check("M7_PARTIAL_POLL_RESUMES_FROM_LAST_FILL_READ", cur - c.LEADER_POLL_OVERLAP_MS == partial_fills[0].timestamp_ms, f"{cur}")
+    replay_overlap_ms = int(interval_sec * 1000) + 30_000
+    check("M7_PARTIAL_POLL_RESUMES_FROM_LAST_FILL_READ", cur - replay_overlap_ms == partial_fills[0].timestamp_ms, f"{cur}")
 
     state = c.load_json(c.CORE_RUNTIME_STATE_FILE, {})
     state["last_leader_poll_cursor_ms"] = {LEADER: c.utc_now_ms() - 60000, OTHER: c.utc_now_ms() - 60000}
@@ -408,7 +433,7 @@ def main() -> None:
     core._last_leader_poll_ms = 0
     core.run_cycle(use_source_csv=False, poll_live=True)
     check("M7_NETWORK_ERROR_PARTIAL_PROGRESS_RESUMES_AT_LAST_FILL",
-          cur - c.LEADER_POLL_OVERLAP_MS == partial_cursor_fills[0].timestamp_ms
+          cur - replay_overlap_ms == partial_cursor_fills[0].timestamp_ms
           and any(w == LEADER and abs(s - partial_cursor_fills[0].timestamp_ms) < 1000 for w, s in starts),
           f"cursor={cur} next_starts={starts[-2:]}")
     rows_after_error = [r for r in c.read_csv_rows(c.RECONCILIATION_CSV) if r.get("status") == "OUTAGE_GAP"]

@@ -11792,13 +11792,15 @@ class LiveCopyCore:
                 _acked_set = {normalise_wallet(w) for w in (getattr(self.ws, "_subscribed", ()) or ())}
                 _feed_ok = bool(self.ws.enabled and getattr(self.ws, "_socket_open", False)
                                 and _feed_set and _feed_set <= _acked_set)
-                _stale_cursor_ms = max(60_000, int(max(0.0, self.leader_poll_interval_sec()) * 2000))
+                _iv = self.leader_poll_interval_sec()
+                _poll_overlap_ms = (int(max(0.0, _iv) * 1000) + 30_000) if _iv > 0 else LEADER_POLL_OVERLAP_MS
+                _stale_cursor_ms = max(60_000, int(max(0.0, _iv) * 2000))
                 for w in poll_wallets:
                     # Skip wallets that are turned off — no fills to copy, avoids wasteful network calls.
                     if self.cfg.wallet_mode(w) == "OFF":
                         continue
                     _cursor = max(_leader_poll_cursors.get(w, 0), self._held_read_cursor.get(w, 0))
-                    _start = (max(_cursor - LEADER_POLL_OVERLAP_MS, _retention_floor)
+                    _start = (max(_cursor - _poll_overlap_ms, _retention_floor)
                               if _cursor > 0 else max(0, now - POLL_WINDOW_MS - POLL_OVERLAP_MS))
                     if _cursor > 0 and _cursor < _retention_floor:
                         if _cursor > _reported_outage_gap_floors.get(w, 0):
@@ -11844,7 +11846,7 @@ class LiveCopyCore:
                     # while sending is stopped for a bad key the cursor stays put, so a restart replays these exits
                     # (reading moves on in memory, so the window does not grow every cycle)
                     _hold = bool(self.sender.sender_key_invalid)
-                    _next = (now if status == "POLL_OK" else max(f.timestamp_ms for f in wallet_fills) + LEADER_POLL_OVERLAP_MS
+                    _next = (now if status == "POLL_OK" else max(f.timestamp_ms for f in wallet_fills) + _poll_overlap_ms
                              if status in {"POLL_PARTIAL", "POLL_NETWORK_ERROR"} and wallet_fills else 0)
                     if _next:
                         if self.async_dispatch:
