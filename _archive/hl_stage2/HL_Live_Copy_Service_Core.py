@@ -8045,7 +8045,11 @@ class SenderGateway:
                 # Readiness 1: resolve the ORIGINAL order by cloid first. Only a definitive "not on the
                 # exchange" answer lets the one recovery retry run; a landed order is reported as-is and an
                 # unreadable resolution holds + alerts instead of blind-resending.
-                resolved_outcome = self._resolve_ambiguous_send_outcome(
+                # rw7b: an explicit 429 on an entry/add is a definite refusal (no order exists), so there is nothing to
+                # reconcile and the recovery below supersedes the pending row; a TIMEOUT always reconciles first.
+                definite_429 = (classify_rate_limit_kind(error_text) == "RATE_LIMIT"
+                                and classify_send_lifecycle(intent) in {"ENTRY", "ADD"})
+                resolved_outcome = None if definite_429 else self._resolve_ambiguous_send_outcome(
                     sdk_coin, intent, cloid, wire_size, limit_px, use_reduce_only, error_text, timing)
                 if resolved_outcome is not None:
                     return resolved_outcome
@@ -8060,7 +8064,7 @@ class SenderGateway:
                     error_text,
                     timing,
                     resolved,
-                    definite_no_order=classify_rate_limit_kind(error_text) == "RATE_LIMIT",
+                    definite_no_order=definite_429,
                 )
                 if recovery is not None:
                     return recovery

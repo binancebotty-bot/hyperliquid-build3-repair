@@ -247,6 +247,7 @@ def main() -> None:
             c.AuditLogWriter().append_order_intent(it)
             ex = Ex([exc, FILLED(1.0, 100.0)])
             g = gw(ex)
+            g._resolve_ambiguous_send_outcome = lambda *a, **k: None  # rw8: a timeout reconciles first; here the original is confirmed absent
             ok, status, res = g._send_real(it)
             tm = res.get("timing") or {}
             rows = pending_rows(iid)  # first row = the attempt whose call raised
