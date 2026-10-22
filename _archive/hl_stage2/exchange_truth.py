@@ -195,15 +195,22 @@ except Exception:  # pragma: no cover
     _ORIG_POST = None
 
 
-def http_post(url, payload, timeout):
+def http_post(url, payload, timeout, monitor=None):
     """requests.post over ONE shared keep-alive session. A bare requests.post opens a new TCP+TLS connection per read
     (about 3 round trips); the session reuses a pooled one (about 1). A test that replaces requests.post (the offline
     stubs) still gets its stub: the session is used only while requests.post is the real one. Disable with
-    HL_LIVE_HTTP_SESSION=0."""
+    HL_LIVE_HTTP_SESSION=0. EVERY path out of here (shared session, stub, switch-off) adds the read's true /info weight to the
+    headroom window exactly once (`monitor`, else the process monitor); callers must not count it again."""
     global _SESSION, _ORIG_POST
     import requests  # type: ignore
     if getattr(requests.post, "__module__", "") != "requests.api" or os.getenv("HL_LIVE_HTTP_SESSION", "1") == "0":
-        return requests.post(url, json=payload, timeout=timeout)
+        try:
+            _resp = requests.post(url, json=payload, timeout=timeout)
+        except Exception:
+            _note_shared_weight(url, payload, None, monitor)
+            raise
+        _note_shared_weight(url, payload, _resp, monitor)
+        return _resp
     if _SESSION is None:
         with _SESSION_LOCK:
             if _SESSION is None:
@@ -224,24 +231,31 @@ def http_post(url, payload, timeout):
                 _SESSION = sess
     try:
         _resp = _SESSION.post(url, json=payload, timeout=timeout)
-    except requests.ConnectionError as exc:
+    except (requests.Timeout, requests.ConnectionError) as exc:
         # a pooled connection the server closed in the instant before use fails once; /info reads are idempotent, so
         # retry once on a fresh connection. A timeout is never retried (it would double the worst case).
         if isinstance(exc, requests.Timeout) or os.getenv("HL_LIVE_HTTP_RETRY", "1") == "0":
-            _note_shared_weight(url, payload, None)
+            _note_shared_weight(url, payload, None, monitor)
             raise
-        _resp = _SESSION.post(url, json=payload, timeout=timeout)
-    _note_shared_weight(url, payload, _resp)
+        try:
+            _resp = _SESSION.post(url, json=payload, timeout=timeout)
+        except Exception:  # the retry failed too: the read was still sent, so its weight still counts (once)
+            _note_shared_weight(url, payload, None, monitor)
+            raise
+    except Exception:  # any other failure (e.g. a non-requests error) after the send: count once, re-raise
+        _note_shared_weight(url, payload, None, monitor)
+        raise
+    _note_shared_weight(url, payload, _resp, monitor)
     return _resp
 
 
-def _note_shared_weight(url, payload, response):
+def _note_shared_weight(url, payload, response, monitor=None):
     """The headroom WEIGHT budget must see reads made through this shared session: they never pass
     through CountingRequests.post, so post_many sweeps were weight info_used never counted (the graded
     figure was a floor). One call per request; never let bookkeeping break a read."""
     try:
         import headroom as _hr  # local import: exchange_truth must stay importable without the monitor
-        _hr.note_shared_http(url, payload, response)
+        _hr.note_shared_http(url, payload, response, monitor)
     except Exception:
         pass
 

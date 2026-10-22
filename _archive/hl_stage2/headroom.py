@@ -316,13 +316,13 @@ def install_session_counter(monitor: HeadroomMonitor) -> None:
     requests.Session.request = counted_request
 
 
-def note_shared_http(url, payload, response):
+def note_shared_http(url, payload, response, monitor=None):
     """Feed the /info WEIGHT budget for a read that went through the shared keep-alive session
     (exchange_truth.http_post), which never passes through CountingRequests.post. Without this,
     every post_many read (openOrders sweeps, per-DEX reads) was weight info_used never saw, so the
     graded figure was a floor, not a total. The request COUNT is already covered by
     install_session_counter; this adds only the weight (and a 429 refusal)."""
-    monitor = _SESSION_REQUEST_MONITOR
+    monitor = monitor if monitor is not None else _SESSION_REQUEST_MONITOR
     if monitor is None:
         return
     try:
@@ -365,7 +365,7 @@ class CountingRequests:
             try:
                 import exchange_truth as _xt  # one shared keep-alive session: a bare post opens a new TCP+TLS connection per read
                 shared_http = True
-                resp = _xt.http_post(url, k.get("json"), k.get("timeout"))
+                resp = _xt.http_post(url, k.get("json"), k.get("timeout"), self._monitor)
             except ImportError:
                 resp = real_post(url, *a, **k)
             except Exception as exc:
