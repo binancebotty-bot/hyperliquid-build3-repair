@@ -167,6 +167,131 @@ def main() -> None:
     g8.wait_margin_mode_setup(5.0)
     check("B5B_CLOSE_AND_UNARMED_WALLET_DO_NOT_TRIGGER_SETUP", kinds(fake8) == [], str(fake8.calls))
 
+    # ---- C: Codex findings -------------------------------------------------------------------------------------------
+    # C1 (e): a non-dict / unrecognised reply is a failure (fail closed), never remembered as set
+    for label, reply in (("NONE", None), ("EMPTY_DICT", {}), ("STRING", "ok"), ("ERR_STATUS", {"status": "err"})):
+        fk = FakeExchange()
+        fk.update_leverage = (lambda r: (lambda leverage, name, is_cross=True: r))(reply)
+        gx = gateway(fk)
+        okx, sx, _ = send_real(gx, mk_intent())
+        check("C1_UNRECOGNISED_REPLY_%s_FAILS_CLOSED" % label,
+              okx is False and "MARGIN_MODE_UNSET" in str(sx) and "BTC" not in gx.__dict__.get("_margin_mode_done", set()), "%s %s" % (okx, sx))
+
+    # C2 (b): one serial worker: many coins queued, never two update_leverage calls in flight at once
+    class SlowExchange(FakeExchange):
+        def __init__(self):
+            super().__init__()
+            self.live = 0
+            self.peak = 0
+            self.lock = threading.Lock()
+            self.seen = []
+
+        def update_leverage(self, leverage, name, is_cross=True):
+            with self.lock:
+                self.live += 1
+                self.peak = max(self.peak, self.live)
+                self.seen.append(threading.current_thread().name)
+            time.sleep(0.05)
+            with self.lock:
+                self.live -= 1
+            return {"status": "ok"}
+    slow = SlowExchange()
+    gs = gateway(slow)
+    names = ["COIN%d" % i for i in range(6)]
+    gs._exchange_client_for_coin = lambda coin: (slow, coin)
+    for n in names:
+        gs.schedule_margin_mode_setup(n)
+    drained = gs.wait_margin_mode_setup(10.0)
+    check("C2_ONE_SERIAL_WORKER_NO_OVERLAP_ACROSS_COINS",
+          drained and slow.peak == 1 and len(slow.seen) == 6 and set(slow.seen) == {"HLCore-margin-mode"}, "%s %s %s" % (drained, slow.peak, slow.seen))
+
+    # C3 (a): background calls go through the order lane: paced slot reservation, 429 re-arms the shared cooldown and the
+    # next background call waits it out
+    os.environ["HL_LIVE_RATE_LIMIT_COOLDOWN_MS"] = "600"
+    class Limited(FakeExchange):
+        def __init__(self):
+            super().__init__()
+            self.stamps = []
+
+        def update_leverage(self, leverage, name, is_cross=True):
+            self.stamps.append((name, time.monotonic()))
+            if len(self.stamps) == 1:
+                raise RuntimeError("ClientError(429, 'Too Many Requests')")
+            return {"status": "ok"}
+    lim = Limited()
+    gl = gateway(lim)
+    slots = []
+    real_slot = gl._reserve_exchange_order_slot
+    gl._reserve_exchange_order_slot = lambda wait_for_cooldown=True: (slots.append(wait_for_cooldown), real_slot(wait_for_cooldown))[1]
+    gl._exchange_client_for_coin = lambda coin: (lim, coin)
+    gl.schedule_margin_mode_setup("AAA")
+    gl.schedule_margin_mode_setup("BBB")
+    gl.wait_margin_mode_setup(10.0)
+    gap = lim.stamps[1][1] - lim.stamps[0][1] if len(lim.stamps) == 2 else -1
+    check("C3_BACKGROUND_CALL_USES_ORDER_SLOT_AND_BACKS_OFF_ON_429",
+          slots == [True, True] and gap >= 0.5 and "AAA" not in gl._mm_seen and "BBB" in gl._mm_seen,
+          "slots=%s gap=%.2f seen=%s" % (slots, gap, gl._mm_seen))
+    os.environ.pop("HL_LIVE_RATE_LIMIT_COOLDOWN_MS", None)
+
+    # C4 (c): no startup prewarm of held coins; a coin is queued only by an armed opening/increasing fill
+    held = gateway(FakeExchange())
+    check("C4_NO_STARTUP_PREWARM_OF_HELD_COINS", not hasattr(held, "prewarm_margin_mode_at_startup")
+          and held.wait_margin_mode_setup(0.5) and not held.__dict__.get("_mm_queue"))
+    add = FakeExchange()
+    ga = gateway(add)
+    ga.prewarm_margin_mode_for_fill(c.LeaderFill("f5", A, "BTC", "BUY", 100.0, 1.0, c.utc_now_ms(), "TEST", raw={"dir": "Long > Long"}))
+    ga.prewarm_margin_mode_for_fill(c.LeaderFill("f6", A, "ETH", "BUY", 100.0, 1.0, c.utc_now_ms(), "TEST", raw={"dir": "Open Long"}))
+    check("C4B_ONLY_FILLS_ABOUT_TO_BE_SENT_QUEUE_A_COIN", ga.wait_margin_mode_setup(5.0) and len(add.calls) == 1, str(add.calls))
+
+    # C5 (d): stop drains with a bound: queued work is dropped, the in-flight call finishes, new work is refused
+    gate5 = threading.Event()
+    f5 = FakeExchange(gate=gate5)
+    g5s = gateway(f5)
+    g5s._exchange_client_for_coin = lambda coin: (f5, coin)
+    g5s.schedule_margin_mode_setup("AAA")
+    time.sleep(0.2)
+    g5s.schedule_margin_mode_setup("BBB")
+    g5s.schedule_margin_mode_setup("CCC")
+    t0 = time.monotonic()
+    idle_early = g5s.stop_margin_mode_worker(0.4)
+    took = time.monotonic() - t0
+    refused = g5s.schedule_margin_mode_setup("DDD") is False
+    gate5.set()
+    idle_late = g5s.wait_margin_mode_setup(5.0)
+    g5s._mm_thread.join(5.0)
+    check("C5_STOP_IS_BOUNDED_DROPS_QUEUE_REFUSES_NEW_AND_WORKER_EXITS",
+          idle_early is False and took < 2.0 and refused and idle_late and not g5s._mm_thread.is_alive()
+          and [k for k, _t, _s in f5.calls] == ["update_leverage"], "%s %.2f %s %s" % (idle_early, took, refused, f5.calls))
+    check("C5B_STOP_WITH_NOTHING_RUNNING_IS_IDLE_TRUE", gateway(FakeExchange()).stop_margin_mode_worker(0.5) is True)
+
+    # C6 (f): the order's wait for an in-flight setup is bounded and fail-closed
+    os.environ["HL_LIVE_MM_WAIT_SEC"] = "0.3"
+    gate6 = threading.Event()
+    f6 = FakeExchange(gate=gate6)
+    g6w = gateway(f6)
+    g6w.schedule_margin_mode_setup("BTC")
+    time.sleep(0.2)
+    t0 = time.monotonic()
+    ok6, s6, _ = send_real(g6w, mk_intent())
+    took6 = time.monotonic() - t0
+    gate6.set()
+    g6w.wait_margin_mode_setup(5.0)
+    os.environ.pop("HL_LIVE_MM_WAIT_SEC", None)
+    check("C6_ORDER_WAIT_FOR_INFLIGHT_SETUP_IS_BOUNDED_AND_FAILS_CLOSED",
+          ok6 is False and "MARGIN_MODE_UNSET" in str(s6) and took6 < 3.0 and "order" not in kinds(f6), "%s %s %.2f %s" % (ok6, s6, took6, kinds(f6)))
+
+    # C7: the queue is bounded
+    os.environ["HL_LIVE_MM_QUEUE_MAX"] = "2"
+    gate7 = threading.Event()
+    f7 = FakeExchange(gate=gate7)
+    g7q = gateway(f7)
+    g7q._exchange_client_for_coin = lambda coin: (f7, coin)
+    res7 = [g7q.schedule_margin_mode_setup("Q%d" % i) for i in range(6)]
+    gate7.set()
+    g7q.wait_margin_mode_setup(5.0)
+    os.environ.pop("HL_LIVE_MM_QUEUE_MAX", None)
+    check("C7_QUEUE_IS_BOUNDED", res7.count(True) <= 3 and res7.count(False) >= 3, str(res7))
+
     failed = [n for n, ok in RESULTS if not ok]
     print("TOTAL=%d FAILED=%d" % (len(RESULTS), len(failed)))
     sys.exit(1 if failed else 0)
