@@ -1947,8 +1947,9 @@ def enqueue_intent_row(path: Path, fieldnames: List[str], row: Dict[str, Any], k
                 _INTENT_QUEUE.append((path, fieldnames, row, seq))
                 if key:
                     if len(_INTENT_SEQ_BY_ID) > 20000:  # bounded: drop the ids whose row is already on disk
+                        _ev = int(_INTENT_STATE.get("failed_evicted_seq") or 0)  # at/below it a row's status is unknown: keep its id so the barrier can say so
                         for _k in [k for k, v in _INTENT_SEQ_BY_ID.items()
-                                   if v <= int(_INTENT_STATE["durable_seq"]) and v not in _INTENT_STATE["failed_seqs"]]:
+                                   if v <= int(_INTENT_STATE["durable_seq"]) and v not in _INTENT_STATE["failed_seqs"] and v > _ev]:
                             _INTENT_SEQ_BY_ID.pop(_k, None)
                     _INTENT_SEQ_BY_ID[key] = seq
                 thread = _INTENT_STATE["thread"]

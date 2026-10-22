@@ -1,0 +1,154 @@
+#!/usr/bin/env python3
+"""Codex review fixes on the send-integrity work (rw7b): durability barrier, supersede persistence, 429 vs timeout.
+
+Run (from _archive/hl_stage2):  env -u HL_LIVE_AUDIT_DIR python3 test_core_rw7b_review_fixes.py
+Prints RESULT::name_PASS/FAIL and TOTAL=n FAILED=m. No network, no orders: every send goes to a fake exchange.
+"""
+from __future__ import annotations
+
+import csv
+import os
+import sys
+import tempfile
+import threading
+import time
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE))
+RESULTS = []
+A = "0x" + "a" * 40
+B = "0x" + "b" * 40
+FOLLOWER = "0x" + "c" * 40
+
+
+def check(name: str, cond: bool, detail: str = "") -> None:
+    RESULTS.append((name, bool(cond)))
+    print("RESULT::%s_%s%s" % (name, "PASS" if cond else "FAIL", (" | " + detail) if (detail and not cond) else ""))
+
+
+def main() -> None:
+    tmp = Path(tempfile.mkdtemp(prefix="rw7b_"))
+    os.environ.update({"HL_LIVE_AUDIT_DIR": str(tmp), "HL_LEADER_NETWORK": "testnet", "HL_FOLLOWER_NETWORK": "testnet",
+                       "HL_LIVE_ENV_FILE": str(tmp / "none.env"), "HL_LIVE_SCOPE_SWEEP_THREAD": "0",
+                       "HL_LIVE_MIN_EXCHANGE_ORDER_GAP_MS": "0", "HL_LIVE_INTENT_DURABLE_WAIT_MS": "2000"})
+    import HL_Live_Copy_Service_Core as c
+
+    c.USER_WALLET = FOLLOWER
+    c.MIDS_FETCHER = lambda p: [] if p.get("type") == "perpDexs" else {"BTC": "100"}
+    c.LEADER_MIDS_FETCHER = c.MIDS_FETCHER
+    c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": True, "global_controls": {},
+        "wallets": {A: {"enabled": True, "mode": "ON", "copy_mode": "fixed", "fixed_notional": 12},
+                    B: {"enabled": True, "mode": "ON", "copy_mode": "fixed", "fixed_notional": 12}}})
+    os.environ["HL_LIVE_HL_PRIVATE_KEY"] = "0x" + "1" * 64
+    c.HLAccount, c.HLExchange = object, object
+
+    def mk_intent(iid, wallet=A, side="BUY", notes="lifecycle=ENTRY;"):
+        fill = c.LeaderFill("f_" + iid, wallet, "BTC", side, 100.0, 1.0, c.utc_now_ms(), "TEST")
+        return c.Intent(iid, fill, side, 1.0, 100.0, "ON", "fixed", "ENTRY_ALLOWED", "ENTRY",
+                        "sleeve:%s:BTC" % wallet, "", "FLAT", 0.0, 0.0, False, False, c.utc_now_ms(), notes)
+
+    def disk_rows(path):
+        if not path.exists():
+            return []
+        with path.open("r", newline="", encoding="utf-8-sig") as f:
+            return list(csv.DictReader(f))
+
+    resolved = {"ok": True, "sdk_coin": "BTC", "sz_decimals": 3, "price_max_decimals": 2, "perp_dexs": [""],
+                "sdk_order_compatible": True, "min_order_value_usd": 1.0, "min_size": 0.0, "status": "OK"}
+    FILLED = lambda sz, px: {"status": "ok", "response": {"type": "order", "data": {"statuses": [
+        {"filled": {"totalSz": str(sz), "avgPx": str(px), "oid": 3}}]}}}
+    NOMATCH = {"status": "ok", "response": {"type": "order", "data": {"statuses": [
+        {"error": "Order could not immediately match against any resting orders. asset=3"}]}}}
+    RESTING = {"status": "ok", "response": {"type": "order", "data": {"statuses": [{"resting": {"oid": 9}}]}}}
+
+    class Ex:
+        """Fake exchange: replies are values, or exception instances that are raised."""
+        def __init__(self, replies):
+            self.replies, self.calls = list(replies), []
+
+        def update_leverage(self, leverage, name, is_cross=True):
+            return {"status": "ok"}
+
+        def order(self, coin, is_buy, size, px, tif, reduce_only=False, cloid=None):
+            self.calls.append({"cloid": str(cloid) if cloid is not None else None, "tif": tif["limit"]["tif"]})
+            r = self.replies.pop(0) if self.replies else RESTING
+            if isinstance(r, BaseException):
+                raise r
+            return r
+
+        def bulk_orders(self, *a, **k):  # pragma: no cover
+            raise AssertionError("unexpected bulk_orders")
+
+    def gw(ex):
+        g = c.SenderGateway(c.ConfigManager(), c.AuditLogWriter(), c.ManualLedger(path=tmp / ("l%d.json" % id(ex))))
+        g._resolve_coin = lambda coin: dict(resolved)
+        g._get_exchange_client = lambda *a, **k: ex
+        g._exchange_client_has_symbol = lambda *a, **k: True
+        g._validate_final_wire_order = lambda *a, **k: (True, {})
+        g._pre_exchange_asset_safety = lambda *a, **k: (True, {})
+        g._exchange_client_for_coin = lambda coin: (ex, "BTC")
+        g._pre_send_ownership_gate = lambda it: (True, {})
+        g.leader_reduced_since = lambda f: 0
+        g._margin_mode_done = {"BTC"}
+        g.cfg.master_switch_now = lambda: True
+        return g
+
+    def wait_for(fn, secs=8.0):
+        end = time.monotonic() + secs
+        while time.monotonic() < end:
+            if fn():
+                return True
+            time.sleep(0.05)
+        return bool(fn())
+
+    def barrier_errors(iid):
+        return [r for r in disk_rows(c.ERRORS_CSV) if r.get("context") == "intent_durable_barrier" and iid in r.get("message", "")]
+
+    real_append_csv = c.append_csv
+    mode = {"fail": False}
+
+    def wrapped_append(path, fieldnames, row, *a, **k):
+        if mode["fail"] and path == c.ORDER_INTENTS_CSV and threading.current_thread().name == "HLCore-intent-writer":
+            raise OSError("simulated intent writer failure")
+        return real_append_csv(path, fieldnames, row, *a, **k)
+    c.append_csv = wrapped_append
+
+    try:
+        # ---- F1: eviction of a failed sequence + mapping prune must not let the production barrier pass with no sequence
+        os.environ["HL_LIVE_INTENT_FAILED_MAX"] = "1"
+        os.environ["HL_LIVE_INTENT_DURABLE_WAIT_MS"] = "2000"
+        mode["fail"] = True
+        c.AuditLogWriter().append_order_intent(mk_intent("e1"))
+        c.AuditLogWriter().append_order_intent(mk_intent("e2"))
+        evicted = wait_for(lambda: int(c._INTENT_STATE.get("failed_evicted_seq") or 0) >= 1, 20.0)
+        wait_for(lambda: not c._INTENT_QUEUE and not c._INTENT_STATE["busy"], 20.0)
+        mode["fail"] = False
+        for i in range(20001):  # a full id map, every entry already durable: the next enqueue prunes it
+            c._INTENT_SEQ_BY_ID["dummy%d" % i] = 0
+        c.AuditLogWriter().append_order_intent(mk_intent("e3"))  # this enqueue runs the production prune
+        c.flush_intent_writer(10.0)
+        check("F1_SETUP_FAILED_ROW_EVICTED", evicted and int(c._INTENT_STATE.get("failed_evicted_seq") or 0) >= 1,
+              str({k: c._INTENT_STATE.get(k) for k in ("failed_evicted_seq", "durable_seq", "next_seq")}))
+        ex = Ex([FILLED(1.0, 100.0)])
+        g = gw(ex)
+        fails_before = c.audit_write_failure_count()
+        ok, status, res = g._send_real(mk_intent("e1"))  # production path: send hook -> intent_seq_for -> wait_intent_durable
+        loud = wait_for(lambda: len(barrier_errors("e1")) >= 1, 5.0)
+        check("F1_ORDER_STILL_SENT_FAIL_OPEN", ok and len(ex.calls) == 1, "%s %s" % (ok, ex.calls))
+        check("F1_PRUNED_EVICTED_INTENT_IS_NOT_REPORTED_DURABLE",
+              loud and c.audit_write_failure_count() > fails_before,
+              "errors=%s seq=%s" % (barrier_errors("e1"), c.intent_seq_for("e1")))
+        check("F1B_DURABLE_INTENT_STILL_PASSES_SILENTLY",
+              c.wait_intent_durable(c.intent_seq_for("e3"), "e3") is True and c.wait_intent_durable(None, "inline") is True)
+    finally:
+        c.append_csv = real_append_csv
+        os.environ.pop("HL_LIVE_INTENT_FAILED_MAX", None)
+
+    failed = [n for n, ok in RESULTS if not ok]
+    print("TOTAL=%d FAILED=%d" % (len(RESULTS), len(failed)))
+    sys.exit(1 if failed else 0)
+
+
+if __name__ == "__main__":
+    main()
