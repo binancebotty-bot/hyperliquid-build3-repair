@@ -4924,8 +4924,92 @@ class SenderGateway:
         lev = self.cfg.follower_leverage()
         return (int(min(lev, max_lev)) if max_lev > 0 else lev), max_lev
 
+    def _margin_mode_lock(self, key: str) -> "threading.Lock":
+        return self.__dict__.setdefault("_margin_mode_locks", {}).setdefault(key, threading.Lock())
+
     def _ensure_margin_mode(self, exchange: Any, sdk_coin: str, intent: Intent, lifecycle: str,
                             timing: Dict[str, Any]) -> Optional[Tuple[bool, str, Dict[str, Any]]]:
+        """Order path: a no-op once the background setup (schedule_margin_mode_setup) has set the asset. If it has not
+        finished, this waits for that one call (one signed call per asset at a time) or, if it never ran, does it inline
+        exactly as before, so no order is lost or sent with the wrong margin mode."""
+        if lifecycle not in {"ENTRY", "ADD"} or str(sdk_coin) in self.__dict__.setdefault("_margin_mode_done", set()):
+            return None
+        with self._margin_mode_lock(str(sdk_coin)):
+            return self._ensure_margin_mode_locked(exchange, sdk_coin, intent, lifecycle, timing)
+
+    def schedule_margin_mode_setup(self, raw_coin: Any) -> bool:
+        """Queue the one-time margin-mode call for a coin on the background thread (never on the order path). False when
+        the coin is already set or queued. A failed setup is not remembered: the order path retries it inline."""
+        key = str(raw_coin or "").strip()
+        if not key:
+            return False
+        with self.__dict__.setdefault("_mm_cond", threading.Condition()):
+            seen = self.__dict__.setdefault("_mm_seen", set())
+            queue = self.__dict__.setdefault("_mm_queue", collections.deque())
+            if key in seen or key in queue or key == self.__dict__.get("_mm_current"):
+                return False
+            queue.append(key)
+            thread = self.__dict__.get("_mm_thread")
+            if thread is None or not thread.is_alive():
+                self._mm_thread = threading.Thread(target=self._margin_mode_loop, daemon=True, name="HLCore-margin-mode")
+                self._mm_thread.start()
+            self._mm_cond.notify_all()
+        return True
+
+    def _margin_mode_loop(self) -> None:
+        cond = self._mm_cond
+        while True:
+            with cond:
+                while not self._mm_queue:
+                    cond.wait()
+                coin = self._mm_queue.popleft()
+                self._mm_current = coin
+            ok = False
+            try:
+                exchange, sdk_coin = self._exchange_client_for_coin(coin)
+                stand_in = argparse.Namespace(fill=argparse.Namespace(coin=coin))
+                ok = self._ensure_margin_mode(exchange, sdk_coin, stand_in, "ENTRY", {}) is None
+            except Exception as exc:  # a failed setup never blocks anything: the order path retries it inline
+                log_error("margin_mode_background", exc)
+            with cond:
+                if ok:
+                    self._mm_seen.add(coin)
+                self._mm_current = ""
+                cond.notify_all()
+
+    def wait_margin_mode_setup(self, timeout: float = 5.0) -> bool:
+        """True once the background setup queue is empty and idle (tests, shutdown)."""
+        cond = self.__dict__.setdefault("_mm_cond", threading.Condition())
+        end = time.monotonic() + timeout
+        with cond:
+            while self.__dict__.get("_mm_queue") or self.__dict__.get("_mm_current"):
+                left = end - time.monotonic()
+                if left <= 0:
+                    return False
+                cond.wait(left)
+        return True
+
+    def prewarm_margin_mode_for_fill(self, fill: "LeaderFill") -> bool:
+        """An opening fill of an armed wallet (mode ON, sending on) sets that coin's margin mode in the background, so
+        the order made from it finds it done. Closes never need it; mock sends and an OFF/CLO wallet never touch the exchange."""
+        if (not self.cfg.auto_send_enabled or bval(os.getenv("HL_LIVE_MOCK_SEND"), False)
+                or not bval(os.getenv("HL_LIVE_BG_MARGIN_MODE"), True)
+                or not _fill_dir(fill).startswith(("open ", "increase "))
+                or self.cfg.wallet_mode(fill.leader_wallet) != "ON"):
+            return False
+        return self.schedule_margin_mode_setup(fill.coin)
+
+    def prewarm_margin_mode_at_startup(self) -> None:
+        """At startup, the coins the follower already holds (an ADD can come at once) are set in the background."""
+        if (not self.cfg.auto_send_enabled or bval(os.getenv("HL_LIVE_MOCK_SEND"), False)
+                or not bval(os.getenv("HL_LIVE_BG_MARGIN_MODE"), True) or self.ledger is None):
+            return
+        for coin, row in list(((self.ledger.data or {}).get("by_coin_net") or {}).items()):
+            if abs(fnum((row or {}).get("signed_size"), 0.0)) > POSITION_EPSILON:
+                self.schedule_margin_mode_setup(coin)
+
+    def _ensure_margin_mode_locked(self, exchange: Any, sdk_coin: str, intent: Intent, lifecycle: str,
+                                   timing: Dict[str, Any]) -> Optional[Tuple[bool, str, Dict[str, Any]]]:
         """Cross margin at the follower leverage, set once per asset per run BEFORE the first order in it. A refused call
         blocks ENTRY/ADD (MARGIN_MODE_UNSET); closes are never blocked. Isolated-only assets and exchange objects without
         update_leverage are skipped."""
@@ -9857,6 +9941,7 @@ class LiveCopyCore:
             self.sender.warm_symbol_cache()
         if self.cfg.auto_send_enabled and not bval(os.getenv("HL_LIVE_MOCK_SEND"), False) and bval(os.getenv("HL_LIVE_PREWARM_SDK_CLIENT"), True):
             self.sender.warm_exchange_client()
+        self.sender.prewarm_margin_mode_at_startup()
         self.copy_ingestor = CopyAccountIngestor()
         self.matcher = CopyFillMatcher(self.ledger, self.audit)
         self.reconciler = ExchangeReconciler(self.ledger, self.audit)
@@ -9935,6 +10020,11 @@ class LiveCopyCore:
                 except Exception as exc:
                     log_error("liq_parity_prewarm", exc)
             parity_warm = _PREWARM_POOL.submit(_warm_parity)
+        if not local_block and not converge:
+            try:  # queue only: the exchange call runs on its own thread, never on this worker
+                self.sender.prewarm_margin_mode_for_fill(fill)
+            except Exception as exc:
+                log_error("margin_mode_prewarm", exc)
         self.intent_builder.prewarm(fill, local_block=local_block)
         if parity_warm is not None:
             parity_warm.result()
