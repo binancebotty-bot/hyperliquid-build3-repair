@@ -141,6 +141,39 @@ def main() -> None:
               "errors=%s seq=%s" % (barrier_errors("e1"), c.intent_seq_for("e1")))
         check("F1B_DURABLE_INTENT_STILL_PASSES_SILENTLY",
               c.wait_intent_durable(c.intent_seq_for("e3"), "e3") is True and c.wait_intent_durable(None, "inline") is True)
+        os.environ.pop("HL_LIVE_INTENT_FAILED_MAX", None)
+
+        # ---- F2: a later successful append must not mask an earlier failed row of the SAME wallet; other wallets are unaffected
+        C = "0x" + "d" * 40
+        for k in ("failed_unreported", "failed_unknown_wallets"):
+            if k in c._INTENT_STATE:
+                c._INTENT_STATE[k].clear()
+        mode["fail"] = True
+        c.AuditLogWriter().append_order_intent(mk_intent("m1", A))  # fails: wallet A
+        c.AuditLogWriter().append_order_intent(mk_intent("m2", B))  # fails: wallet B
+        wait_for(lambda: not c._INTENT_QUEUE and not c._INTENT_STATE["busy"], 20.0)
+        mode["fail"] = False
+        c.AuditLogWriter().append_order_intent(mk_intent("m3", A))  # succeeds, and is a later sequence than m1
+        c.AuditLogWriter().append_order_intent(mk_intent("m4", C))
+        c.flush_intent_writer(10.0)
+        seq3, seq4 = c.intent_seq_for("m3"), c.intent_seq_for("m4")
+        check("F2_SETUP_LATER_ROWS_DURABLE", seq3 is not None and seq4 is not None
+              and int(c._INTENT_STATE["durable_seq"]) >= max(seq3, seq4))
+        fails_before = c.audit_write_failure_count()
+        t0 = time.monotonic()
+        ok_c = c.wait_intent_durable(seq4, "m4", wallet=C)
+        check("F2_UNRELATED_WALLET_FAILURES_DO_NOT_REPORT_OR_WAIT",
+              ok_c is True and c.audit_write_failure_count() == fails_before and time.monotonic() - t0 < 0.2)
+        ex = Ex([FILLED(1.0, 100.0)])
+        ok, status, res = gw(ex)._send_real(mk_intent("m3", A))  # production hook; m3 itself is on disk
+        loud = wait_for(lambda: len(barrier_errors("m3")) >= 1, 5.0)
+        check("F2_EARLIER_FAILED_ROW_OF_SAME_WALLET_IS_REPORTED_NOT_MASKED",
+              loud and "earlier" in barrier_errors("m3")[-1].get("message", "") and c.audit_write_failure_count() > fails_before,
+              str(barrier_errors("m3")))
+        check("F2_ORDER_STILL_SENT_AND_NOT_HELD_UP", ok and len(ex.calls) == 1)
+        n_err = len(barrier_errors("m3"))
+        check("F2_REPORTED_ONCE_NOT_ON_EVERY_LATER_SEND", c.wait_intent_durable(seq3, "m3", wallet=A) is True
+              and len(barrier_errors("m3")) == n_err)
     finally:
         c.append_csv = real_append_csv
         os.environ.pop("HL_LIVE_INTENT_FAILED_MAX", None)
