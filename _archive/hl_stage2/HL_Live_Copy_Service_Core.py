@@ -163,8 +163,9 @@ HL_INFO_URL = NETWORKS["follower"]["info"]          # follower: meta, mids, copy
 HL_LEADER_INFO_URL = NETWORKS["leader"]["info"]     # leader fill polling only
 HL_WS_URL = os.getenv("HL_LIVE_WS_URL") or NETWORKS["leader"]["ws"]
 # Headroom monitor: counts this process's /info weight per host and writes alert events (alerts/headroom_events.jsonl).
-from headroom import HeadroomMonitor, CountingRequests, scan_foreign_ws  # noqa: E402
+from headroom import HeadroomMonitor, CountingRequests, install_session_counter, request_lane, scan_foreign_ws  # noqa: E402
 HEADROOM = HeadroomMonitor(alerts_dir=AUDIT_DIR / "alerts")
+install_session_counter(HEADROOM)
 if requests is not None:
     requests = CountingRequests(requests, HEADROOM, [HL_INFO_URL, HL_LEADER_INFO_URL])
 HL_EXCHANGE_URL = os.getenv("HL_LIVE_ORDER_ENDPOINT") or NETWORKS["follower"]["exchange"]
@@ -10902,7 +10903,8 @@ class LiveCopyCore:
         """The network half of _own_fills_of_withdrawn_limits: call it without the send lock."""
         last_copy_poll_ms = copy_cursor_ms()
         since = max(0, max(min(int(fnum(r.get("placed_ms"), 0)) for r in rows), last_copy_poll_ms) - POLL_OVERLAP_MS)
-        return self.copy_ingestor.poll_copy_account_fills(USER_WALLET, since, utc_now_ms(), report_partial=True)
+        with request_lane("hot"):
+            return self.copy_ingestor.poll_copy_account_fills(USER_WALLET, since, utc_now_ms(), report_partial=True)
 
     def _apply_fills_of_withdrawn_limits(self, rows: List[Dict[str, Any]], read: Optional[Tuple[List[Dict[str, Any]], str]],
                                          seen_oids: Optional[set] = None) -> int:
@@ -10938,7 +10940,8 @@ class LiveCopyCore:
             if self.dedupe.copy_account_baseline_set:
                 last = copy_cursor_ms()
                 start = max(0, (last or utc_now_ms()) - POLL_OVERLAP_MS)
-                fills, status = self.copy_ingestor.poll_copy_account_fills(USER_WALLET, start, utc_now_ms(), report_partial=True)
+                with request_lane("catch-up"):
+                    fills, status = self.copy_ingestor.poll_copy_account_fills(USER_WALLET, start, utc_now_ms(), report_partial=True)
                 if status not in {"COPY_ACCOUNT_POLLED", "COPY_ACCOUNT_POLL_PARTIAL"}:
                     fills = []
             if fills:
@@ -11209,8 +11212,9 @@ class LiveCopyCore:
         sweep = (not hot) or time.monotonic() - self._last_copy_sweep >= COPY_POLL_SWEEP_SEC
         start_ms = max(0, last_poll_ms - (POLL_OVERLAP_MS if sweep else COPY_POLL_HOT_OVERLAP_MS))
         poll_end_ms = utc_now_ms()
-        copy_fills, copy_status = self.copy_ingestor.poll_copy_account_fills(USER_WALLET, start_ms, poll_end_ms,
-                                                                             report_partial=True)
+        with request_lane("hot" if hot else "poll"):
+            copy_fills, copy_status = self.copy_ingestor.poll_copy_account_fills(USER_WALLET, start_ms, poll_end_ms,
+                                                                                 report_partial=True)
         http_ms = int((time.monotonic() - t0) * 1000)
         # a read that hit the page cap is applied, and the next read resumes after its newest fill
         copy_resume_ms = 0
@@ -11609,8 +11613,13 @@ class LiveCopyCore:
                 # Backstop to the live feed; history older than the exchange retention window is unavailable.
                 # Run 3: the leaders are read in parallel and re-read only LEADER_POLL_OVERLAP_MS back
                 # (was 5 min of thousands of already-handled fills per busy wallet per cycle).
-                _jobs: List[Tuple[str, int]] = []
+                _jobs: List[Tuple[str, int, str]] = []
                 _retention_floor = now - LEADER_POLL_RETENTION_MS
+                _feed_set = {normalise_wallet(w) for w in self.wallets}
+                _acked_set = {normalise_wallet(w) for w in (getattr(self.ws, "_subscribed", ()) or ())}
+                _feed_ok = bool(self.ws.enabled and getattr(self.ws, "_socket_open", False)
+                                and _feed_set and _feed_set <= _acked_set)
+                _stale_cursor_ms = max(60_000, int(max(0.0, self.leader_poll_interval_sec()) * 2000))
                 for w in self.poll_wallets():
                     # Skip wallets that are turned off — no fills to copy, avoids wasteful network calls.
                     if self.cfg.wallet_mode(w) == "OFF":
@@ -11629,12 +11638,18 @@ class LiveCopyCore:
                         _start = _retention_floor
                         _cursor_updates[w] = _retention_floor
                     _start = max(_start, _retention_floor)
-                    _jobs.append((w, _start))
+                    _lane = ("catch-up" if not _cursor or now - _cursor > _stale_cursor_ms
+                             else "poll" if _feed_ok else "back-poll")
+                    _jobs.append((w, _start, _lane))
                 _results: Dict[str, Tuple[List[LeaderFill], str]] = {}
+                def _poll_with_lane(wallet: str, start_ms: int, end_ms: int, lane: str):
+                    with request_lane(lane):
+                        return self.ingestor.poll_hyperliquid_fills(wallet, start_ms, end_ms)
                 if len(_jobs) > 1:
                     with concurrent.futures.ThreadPoolExecutor(max_workers=min(8, len(_jobs)),
                                                                thread_name_prefix="HLCore-leader-poll") as _pool:
-                        _futs = {w: _pool.submit(self.ingestor.poll_hyperliquid_fills, w, _start, now) for w, _start in _jobs}
+                        _futs = {w: _pool.submit(_poll_with_lane, w, _start, now, lane)
+                                 for w, _start, lane in _jobs}
                         for w, _fut in _futs.items():
                             try:
                                 _results[w] = _fut.result()
@@ -11642,9 +11657,9 @@ class LiveCopyCore:
                                 log_error("leader_poll", _pe)
                                 _results[w] = ([], "POLL_NETWORK_ERROR")
                 else:
-                    for w, _start in _jobs:
-                        _results[w] = self.ingestor.poll_hyperliquid_fills(w, _start, now)
-                for w, _start in _jobs:
+                    for w, _start, lane in _jobs:
+                        _results[w] = _poll_with_lane(w, _start, now, lane)
+                for w, _start, _lane in _jobs:
                     wallet_fills, status = _results[w]
                     fills.extend(wallet_fills)
                     self._poll_trace({"kind": "poll", "wallet": str(w)[:10], "start_ms": _start, "end_ms": now,
@@ -13277,8 +13292,11 @@ def _read_all_copy_fills(start_ms: int, end_ms: int, max_pages: int = 200) -> Tu
         payload = {"type": "userFillsByTime", "user": USER_WALLET, "startTime": start, "endTime": int(end_ms),
                    "aggregateByTime": False}
         try:
-            data = COPY_FILLS_FETCHER(payload) if COPY_FILLS_FETCHER is not None else \
-                requests.post(HL_INFO_URL, json=payload, timeout=HTTP_TIMEOUT_SEC).json()
+            if COPY_FILLS_FETCHER is not None:
+                data = COPY_FILLS_FETCHER(payload)
+            else:
+                with request_lane("catch-up"):
+                    data = requests.post(HL_INFO_URL, json=payload, timeout=HTTP_TIMEOUT_SEC).json()
         except Exception as exc:
             return list(seen.values()), f"FILLS_UNREADABLE: {exc!r}"[:200]
         if not isinstance(data, list):

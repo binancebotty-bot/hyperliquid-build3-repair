@@ -12,9 +12,12 @@ import socket
 import subprocess
 import threading
 import time
+import contextvars
+from contextlib import contextmanager
 from collections import deque
 from pathlib import Path
 from typing import Any, Callable, Deque, Dict, List, Optional, Tuple
+from urllib.parse import urlsplit
 
 INFO_LIMIT_PER_MIN = int(os.getenv("HL_LIVE_INFO_WEIGHT_LIMIT", "1200"))
 WS_USER_QUOTA_DEFAULT = int(os.getenv("HL_LIVE_WS_USER_QUOTA", "15"))
@@ -30,6 +33,21 @@ _ACTIONS = {
     "ws_foreign": ["ASK_BOSS_STOP_OR_CAP_OTHER_WS_CLIENT", "SHED_LEADER"],
 }
 FOREIGN_SCAN_SEC = float(os.getenv("HL_LIVE_FOREIGN_WS_SCAN_SEC", "30"))
+_REQUEST_LANE = contextvars.ContextVar("hl_request_lane", default="hot")
+_SESSION_REQUEST_MONITOR = None
+
+
+@contextmanager
+def request_lane(lane: str):
+    token = _REQUEST_LANE.set(str(lane or "hot"))
+    try:
+        yield
+    finally:
+        _REQUEST_LANE.reset(token)
+
+
+def current_request_lane() -> str:
+    return _REQUEST_LANE.get()
 
 
 def scan_foreign_ws(ws_url: str, own_pid: Optional[int] = None) -> Dict[str, Any]:
@@ -91,6 +109,7 @@ class HeadroomMonitor:
         self._lock = threading.Lock()
         self._clock = clock
         self._info: Dict[str, Deque[Tuple[float, int]]] = {}   # host -> (time, weight) within the last 60 s
+        self._http_requests: Dict[Tuple[int, str, str, str, str], int] = {}
         self._level: Dict[str, str] = {}                        # resource -> current level
         self._below_since: Dict[str, float] = {}                # resource -> time it first read lower than its level
         self._last: Dict[str, Dict[str, Any]] = {}
@@ -112,6 +131,36 @@ class HeadroomMonitor:
             while d and now - d[0][0] > 60.0:
                 d.popleft()
 
+    def note_request(self, url: str, payload: Any, lane: str, status_code: Any) -> None:
+        parsed = urlsplit(str(url))
+        host, path = (parsed.hostname or "").lower(), parsed.path.rstrip("/") or "/"
+        if host == "api.hyperliquid.xyz":
+            network = "mainnet_exchange" if path.endswith("/exchange") else "mainnet_read" if path.endswith("/info") else "mainnet_other"
+        elif host == "api.hyperliquid-testnet.xyz":
+            network = "testnet_exchange" if path.endswith("/exchange") else "testnet_read" if path.endswith("/info") else "testnet_other"
+        else:
+            return
+        action = payload.get("action") if isinstance(payload, dict) else None
+        endpoint = payload.get("type") if isinstance(payload, dict) else None
+        if not endpoint and isinstance(action, dict):
+            endpoint = action.get("type")
+        endpoint = str(endpoint or path.lstrip("/") or "unknown")
+        status = str(status_code if status_code is not None else "NO_RESPONSE")
+        minute_ms = int(self._clock() * 1000) // 60000 * 60000
+        key = (minute_ms, endpoint, str(lane or "hot"), network, status)
+        with self._lock:
+            self._http_requests[key] = self._http_requests.get(key, 0) + 1
+            oldest = minute_ms - 60 * 60 * 1000
+            for old in [k for k in self._http_requests if k[0] < oldest]:
+                del self._http_requests[old]
+
+    def http_requests_by_minute(self) -> List[Dict[str, Any]]:
+        with self._lock:
+            return [
+                {"minute_ms": minute, "endpoint": endpoint, "lane": lane, "network": network,
+                 "status": status, "count": count}
+                for (minute, endpoint, lane, network, status), count in sorted(self._http_requests.items())
+            ]
     def info_used(self, host: str) -> int:
         now = self._clock()
         with self._lock:
@@ -188,6 +237,7 @@ class HeadroomMonitor:
             else:
                 out["ws_foreign_scan"] = {"ok": False, "error": f.get("error", "not scanned yet")}
         out["refusals"] = list(self.refusals[-5:])
+        out["http_requests_by_minute"] = self.http_requests_by_minute()
         out["worst"] = max((v["level"] for v in out.values() if isinstance(v, dict) and "level" in v), key=LEVELS.index, default="OK")
         if any(k.startswith("refusal:") and v == "CRITICAL" for k, v in self._level.items()):
             out["worst"] = "CRITICAL"
@@ -238,6 +288,34 @@ class HeadroomMonitor:
             pass
 
 
+def install_session_counter(monitor: HeadroomMonitor) -> None:
+    """Count the Hyperliquid SDK's sessions, including requests made during SDK construction."""
+    global _SESSION_REQUEST_MONITOR
+    import requests
+
+    _SESSION_REQUEST_MONITOR = monitor
+    current = requests.Session.request
+    if getattr(current, "_headroom_counter", False):
+        return
+
+    def counted_request(session: Any, method: str, url: str, *a: Any, **k: Any) -> Any:
+        active = _SESSION_REQUEST_MONITOR
+        lane = "hot-send" if urlsplit(str(url)).path.rstrip("/").endswith("/exchange") else current_request_lane()
+        try:
+            response = current(session, method, url, *a, **k)
+        except Exception as exc:
+            if active is not None:
+                active.note_request(url, k.get("json"), lane,
+                                    getattr(getattr(exc, "response", None), "status_code", None))
+            raise
+        if active is not None:
+            active.note_request(url, k.get("json"), lane, getattr(response, "status_code", None))
+        return response
+
+    counted_request._headroom_counter = True
+    requests.Session.request = counted_request
+
+
 class CountingRequests:
     """Stands in for the `requests` module: delegates everything, and counts /info POSTs by host weight."""
 
@@ -250,16 +328,31 @@ class CountingRequests:
         return getattr(self._real, name)
 
     def post(self, url: str, *a: Any, **k: Any) -> Any:
+        lane = current_request_lane()
         real_post = self._real.post   # looked up at call time: patches on the real module still apply
+        shared_http = False
         if (getattr(real_post, "__module__", "") == "requests.api" and not a and "json" in k
                 and set(k) <= {"json", "timeout"}):
             try:
                 import exchange_truth as _xt  # one shared keep-alive session: a bare post opens a new TCP+TLS connection per read
+                shared_http = True
                 resp = _xt.http_post(url, k.get("json"), k.get("timeout"))
             except ImportError:
                 resp = real_post(url, *a, **k)
+            except Exception as exc:
+                if not shared_http:
+                    self._monitor.note_request(url, k.get("json"), lane,
+                                               getattr(getattr(exc, "response", None), "status_code", None))
+                raise
         else:
-            resp = real_post(url, *a, **k)
+            try:
+                resp = real_post(url, *a, **k)
+            except Exception as exc:
+                self._monitor.note_request(url, k.get("json"), lane,
+                                           getattr(getattr(exc, "response", None), "status_code", None))
+                raise
+        if not shared_http:
+            self._monitor.note_request(url, k.get("json"), lane, getattr(resp, "status_code", None))
         if url in self._urls:
             try:
                 host = str(url).split("//", 1)[-1].split("/", 1)[0]
