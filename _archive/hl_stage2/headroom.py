@@ -316,6 +316,35 @@ def install_session_counter(monitor: HeadroomMonitor) -> None:
     requests.Session.request = counted_request
 
 
+def note_shared_http(url, payload, response):
+    """Feed the /info WEIGHT budget for a read that went through the shared keep-alive session
+    (exchange_truth.http_post), which never passes through CountingRequests.post. Without this,
+    every post_many read (openOrders sweeps, per-DEX reads) was weight info_used never saw, so the
+    graded figure was a floor, not a total. The request COUNT is already covered by
+    install_session_counter; this adds only the weight (and a 429 refusal)."""
+    monitor = _SESSION_REQUEST_MONITOR
+    if monitor is None:
+        return
+    try:
+        parsed = urlsplit(str(url))
+        if not parsed.path.rstrip("/").endswith("/info"):
+            return
+        host = (parsed.hostname or "").lower()
+        if not host:
+            return
+        rows = 0
+        try:
+            j = response.json()
+            rows = len(j) if isinstance(j, list) else 0
+        except Exception:
+            pass
+        monitor.note_info(host, payload, rows)
+        if getattr(response, "status_code", 200) == 429:
+            monitor.note_refusal("info:" + host, "HTTP 429 from /info")
+    except Exception:
+        pass
+
+
 class CountingRequests:
     """Stands in for the `requests` module: delegates everything, and counts /info POSTs by host weight."""
 
@@ -353,7 +382,7 @@ class CountingRequests:
                 raise
         if not shared_http:
             self._monitor.note_request(url, k.get("json"), lane, getattr(resp, "status_code", None))
-        if url in self._urls:
+        if url in self._urls and not shared_http:   # the shared path already noted its weight in http_post
             try:
                 host = str(url).split("//", 1)[-1].split("/", 1)[0]
                 rows = 0

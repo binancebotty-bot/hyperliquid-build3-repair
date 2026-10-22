@@ -223,13 +223,27 @@ def http_post(url, payload, timeout):
                 sess.mount("http://", adapter)
                 _SESSION = sess
     try:
-        return _SESSION.post(url, json=payload, timeout=timeout)
+        _resp = _SESSION.post(url, json=payload, timeout=timeout)
     except requests.ConnectionError as exc:
         # a pooled connection the server closed in the instant before use fails once; /info reads are idempotent, so
         # retry once on a fresh connection. A timeout is never retried (it would double the worst case).
         if isinstance(exc, requests.Timeout) or os.getenv("HL_LIVE_HTTP_RETRY", "1") == "0":
+            _note_shared_weight(url, payload, None)
             raise
-        return _SESSION.post(url, json=payload, timeout=timeout)
+        _resp = _SESSION.post(url, json=payload, timeout=timeout)
+    _note_shared_weight(url, payload, _resp)
+    return _resp
+
+
+def _note_shared_weight(url, payload, response):
+    """The headroom WEIGHT budget must see reads made through this shared session: they never pass
+    through CountingRequests.post, so post_many sweeps were weight info_used never counted (the graded
+    figure was a floor). One call per request; never let bookkeeping break a read."""
+    try:
+        import headroom as _hr  # local import: exchange_truth must stay importable without the monitor
+        _hr.note_shared_http(url, payload, response)
+    except Exception:
+        pass
 
 
 _KEEPALIVE = {"thread": None}
