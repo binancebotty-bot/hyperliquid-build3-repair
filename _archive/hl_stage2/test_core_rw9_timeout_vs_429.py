@@ -136,7 +136,13 @@ def main() -> None:
         return ex, seen, ok, res, latest(iid), it
 
     TO = TimeoutError("Read timed out")
-    R429 = RuntimeError("ClientError(429, 'Too many requests')")
+    class ClientError(Exception):
+        """Shape of hyperliquid.utils.error.ClientError: status_code is the structured HTTP status."""
+        def __init__(self, status_code, error_code, error_message, header=None, error_data=None):
+            super().__init__(status_code, error_code, error_message, header, error_data)
+            self.status_code = status_code
+
+    R429 = ClientError(429, None, "Too many requests")  # structural 429 (was RuntimeError("ClientError(429...)") text)
     unreadable = lambda real, *a, **k: real(*a, **k)  # real resolver; orderStatus read raises below
     real_post_many = c._XNET.post_many
 
@@ -169,6 +175,39 @@ def main() -> None:
     # 4. mixed text (429 then timed out) is a TIMEOUT: reconciled, never blind
     ex, seen, ok, res, lat, it = run("MIX", RuntimeError("429 then timed out"), unreadable)
     check("W5_MIXED_429_TIMEOUT_TEXT_RECONCILES_NOT_BLIND", seen == [1] and len(ex.calls) == 1, "seen=%s calls=%d" % (seen, len(ex.calls)))
+
+    # 5. structural-only: text that merely contains 429 / looks like a 429 is NOT a definite refusal
+    for lbl, exc in (("PX", RuntimeError("px 429.5 connection aborted")), ("RESET", ConnectionResetError("reset by peer 429 bytes")),
+                     ("TEXT", RuntimeError("ClientError(429, 'Too many requests')")), ("OTHER", ValueError("rate limit 429"))):
+        ex, seen, ok, res, lat, it = run("S" + lbl, exc, unreadable)
+        check("S1_%s_TEXT_429_RECONCILES_NO_BLIND_RESEND" % lbl, seen == [1] and len(ex.calls) == 1 and not ok,
+              "seen=%s calls=%d ok=%s" % (seen, len(ex.calls), ok))
+    check("S2_CLASSIFIER_IS_STRUCTURAL", c.classify_rate_limit_kind(R429) == "RATE_LIMIT"
+          and c.classify_rate_limit_kind(RuntimeError("ClientError(429, 'x')")) == "TIMEOUT"
+          and c.classify_rate_limit_kind(RuntimeError("px 429.5 connection aborted")) == "TIMEOUT"
+          and c.classify_rate_limit_kind(TimeoutError("Read timed out")) == "TIMEOUT"
+          and c.classify_rate_limit_kind(RuntimeError("Too many requests")) == "TIMEOUT"
+          and c.classify_rate_limit_kind("px 429.5 aborted") == "TIMEOUT" and c.classify_rate_limit_kind("rate limit") == "TIMEOUT"
+          and c.classify_rate_limit_kind("ClientError(429, None, 'x')") == "RATE_LIMIT"
+          and c.classify_rate_limit_kind(ClientError(500, None, "x")) == "TIMEOUT"
+          and c.classify_rate_limit_kind(None) == "TIMEOUT")
+    # 6. EXIT / REDUCE closes still reconcile first even on a structural 429 (never blind-resent, no definite shortcut)
+    for lc in ("EXIT", "REDUCE"):
+        iid = "zX" + lc
+        it = mk_intent(iid, side="SELL", notes="lifecycle=%s;" % lc)
+        c.AuditLogWriter().append_order_intent(it)
+        ex = Ex([R429, FILLED(1.0, 100.0)])
+        g = gw(ex)
+        seen = []
+        real = g._resolve_ambiguous_send_outcome
+
+        def spy(*a, _seen=seen, _real=real, _ex=ex, **k):
+            _seen.append(len(_ex.calls))
+            return _real(*a, **k)
+        g._resolve_ambiguous_send_outcome = spy
+        ok, status, res = g._send_real(it)
+        check("S3_%s_STRUCTURAL_429_STILL_RECONCILES_FIRST" % lc, seen == [1] and len(ex.calls) == 1 and not ok,
+              "seen=%s calls=%d ok=%s" % (seen, len(ex.calls), ok))
 
     os.environ.pop("HL_LIVE_RATE_LIMIT_COOLDOWN_MS", None)
     failed = [n for n, ok in RESULTS if not ok]

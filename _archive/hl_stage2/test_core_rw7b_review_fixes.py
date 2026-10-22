@@ -240,7 +240,12 @@ def main() -> None:
         def pending_rows(iid):
             return [r for r in attempts(iid) if r.get("status") == "pending_send"]
 
-        for label, exc in (("429", RuntimeError("ClientError(429, 'Too many requests')")),
+        class ClientError(Exception):  # shape of hyperliquid.utils.error.ClientError: structured status_code
+            def __init__(self, status_code, error_code, error_message, header=None, error_data=None):
+                super().__init__(status_code, error_code, error_message, header, error_data)
+                self.status_code = status_code
+
+        for label, exc in (("429", ClientError(429, None, "Too many requests")),
                            ("TIMEOUT", TimeoutError("Read timed out"))):
             iid = "q" + label
             it = mk_intent(iid)
@@ -268,8 +273,9 @@ def main() -> None:
                       str((lat[first_id]["status"], lat[first_id]["terminal_state"], tm.get("ambiguous_attempt_ids"))))
             check("F4_%s_NEVER_CHANGES_WALLET_MODE" % label, wallet_mode() == "ON")
         check("F4_CLASSIFIER_SPLITS_429_FROM_TIMEOUT",
-              c.classify_rate_limit_kind("ClientError(429, 'x')") == "RATE_LIMIT"
-              and c.classify_rate_limit_kind("Too many requests") == "RATE_LIMIT"
+              c.classify_rate_limit_kind(ClientError(429, None, "x")) == "RATE_LIMIT"
+              and c.classify_rate_limit_kind("ClientError(429, None, 'x')") == "RATE_LIMIT"
+              and c.classify_rate_limit_kind(RuntimeError("Too many requests")) == "TIMEOUT"
               and c.classify_rate_limit_kind("Read timed out") == "TIMEOUT"
               and c.classify_rate_limit_kind("429 then timed out") == "TIMEOUT"
               and c.classify_reject_category("ClientError(429, 'x')", {}) == c.classify_reject_category("Read timed out", {})

@@ -809,13 +809,20 @@ def _response_text(exchange_response: Any) -> str:
         return str(exchange_response)
 
 
-def classify_rate_limit_kind(text: Any) -> str:
-    """Splits RATE_LIMIT_OR_TIMEOUT: "RATE_LIMIT" is an explicit 429 / rate-limit refusal (the exchange rejected the call, no
-    order exists); "TIMEOUT" is everything else, including text naming both (the order may exist: outcome unknown)."""
-    msg = str(text or "").lower()
-    if "timeout" in msg or "timed out" in msg:
+_SDK_429_REPR = re.compile(r"^ClientError\(429,")
+
+
+def classify_rate_limit_kind(error: Any) -> str:
+    """Splits RATE_LIMIT_OR_TIMEOUT STRUCTURALLY. "RATE_LIMIT" (definite refusal, no order exists) only when the raised exception
+    carries the HTTP status 429: the SDK's ClientError.status_code, or requests' HTTPError.response.status_code. Everything else
+    (timeouts, resets, unknown exceptions, any message that merely contains "429" or "rate limit") is "TIMEOUT": the order may
+    exist, so reconcile by cloid first. Text-only input is TIMEOUT unless it is exactly the SDK's ClientError repr for status 429."""
+    if isinstance(error, BaseException):
+        for status in (getattr(error, "status_code", None), getattr(getattr(error, "response", None), "status_code", None)):
+            if isinstance(status, int) and not isinstance(status, bool) and status == 429:
+                return "RATE_LIMIT"
         return "TIMEOUT"
-    if "rate limit" in msg or "ratelimit" in msg or "too many requests" in msg or "clienterror(429" in msg or " 429" in msg:
+    if isinstance(error, str) and _SDK_429_REPR.match(error):
         return "RATE_LIMIT"
     return "TIMEOUT"
 
@@ -8047,7 +8054,7 @@ class SenderGateway:
                 # unreadable resolution holds + alerts instead of blind-resending.
                 # rw7b: an explicit 429 on an entry/add is a definite refusal (no order exists), so there is nothing to
                 # reconcile and the recovery below supersedes the pending row; a TIMEOUT always reconciles first.
-                definite_429 = (classify_rate_limit_kind(error_text) == "RATE_LIMIT"
+                definite_429 = (classify_rate_limit_kind(exc) == "RATE_LIMIT"
                                 and classify_send_lifecycle(intent) in {"ENTRY", "ADD"})
                 resolved_outcome = None if definite_429 else self._resolve_ambiguous_send_outcome(
                     sdk_coin, intent, cloid, wire_size, limit_px, use_reduce_only, error_text, timing)
