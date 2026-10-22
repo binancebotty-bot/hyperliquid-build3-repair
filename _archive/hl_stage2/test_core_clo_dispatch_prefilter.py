@@ -98,6 +98,7 @@ dispatch_results = []
 for i in range(500):
     direction, side = (("Open Long", "BUY") if i % 2 == 0 else ("Open Short", "SELL"))
     dispatch_results.append(core._dispatch_fill(fill("clo-%d" % i, CLO, direction, side)))
+c.flush_intent_writer(30.0)  # the intent audit rows are written behind the dispatch by the writer thread
 rows = []
 if c.ORDER_INTENTS_CSV.exists():
     with c.ORDER_INTENTS_CSV.open(newline="", encoding="utf-8-sig") as f:
