@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Test: Effective master send gate shown + alert when env and config disagree.
+"""Test: Effective master send gate shown + alert when engine state and config disagree.
 
 This test verifies:
 1. The effective master send gate value is displayed correctly
-2. An alert fires when HL_LIVE_AUTO_SEND_ENABLED env and global_controls.send_mode disagree
+2. An alert fires when persisted engine send state and global_controls.send_mode disagree
 """
 from __future__ import annotations
 
@@ -147,59 +147,45 @@ def main() -> int:
         check("status forwards exact engine mode when present", top.get("engine_send_mode") == "CLOSE")
         check("status leaves engine mode unconfirmed when absent", no_engine_mode.get("engine_send_mode") == "")
 
-        # Test 6: _engine_alert should detect env/config disagreement
-        # Test alert function
-        os.environ["HL_LIVE_AUTO_SEND_ENABLED"] = "0"
+        # Test 6: _engine_alert compares config with persisted engine state, not UI env.
         write_cfg(config_file, {"global_controls": {"send_mode": "ON"}, "wallets": {}})
+        write_cfg(service_state_file, {"send_mode": "ON", "master_real_orders_enabled": True})
         alert = UI._engine_alert()
-        check("Test 6a: alert fires for config ON, env OFF",
-              "SEND GATE MISMATCH" in alert and "config send_mode=ON" in alert and "HL_LIVE_AUTO_SEND_ENABLED=0" in alert,
+        check("Test 6a: matching ON engine/config has no alert",
+              alert == "",
               f"got: {alert}")
 
-        os.environ["HL_LIVE_AUTO_SEND_ENABLED"] = "1"
         write_cfg(config_file, {"global_controls": {"send_mode": "OFF"}, "wallets": {}})
+        write_cfg(service_state_file, {"send_mode": "ON", "master_real_orders_enabled": True})
         alert = UI._engine_alert()
-        check("Test 6b: alert fires for config OFF, env ON",
-              "SEND GATE MISMATCH" in alert and "config send_mode=OFF" in alert and "HL_LIVE_AUTO_SEND_ENABLED=1" in alert,
+        check("Test 6b: engine ON/config OFF disagreement alerts",
+              "SEND GATE MISMATCH" in alert and "config send_mode=OFF" in alert and "engine state send_mode=ON" in alert,
               f"got: {alert}")
 
-        os.environ["HL_LIVE_AUTO_SEND_ENABLED"] = "1"
+        write_cfg(config_file, {"global_controls": {"send_mode": "CLOSE"}, "wallets": {}})
+        write_cfg(service_state_file, {"master_real_orders_enabled": True})
+        alert = UI._engine_alert()
+        check("Test 6c: CLOSE remains armed when engine master is ON",
+              alert == "", f"got: {alert}")
+
         write_cfg(config_file, {"global_controls": {"send_mode": "ON"}, "wallets": {}})
+        write_cfg(service_state_file, {"master_real_orders_enabled": False})
         alert = UI._engine_alert()
-        check("Test 6c: no alert for config ON, env ON",
-              alert == "", f"got: {alert}")
-
-        os.environ["HL_LIVE_AUTO_SEND_ENABLED"] = "0"
-        write_cfg(config_file, {"global_controls": {"send_mode": "OFF"}, "wallets": {}})
-        alert = UI._engine_alert()
-        check("Test 6d: no alert for config OFF, env OFF",
-              alert == "", f"got: {alert}")
-
-        # Test CLOSE mode
-        os.environ["HL_LIVE_AUTO_SEND_ENABLED"] = "0"
-        write_cfg(config_file, {"global_controls": {"send_mode": "CLOSE"}, "wallets": {}})
-        alert = UI._engine_alert()
-        check("Test 6e: alert fires for config CLOSE, env OFF",
-              "SEND GATE MISMATCH" in alert and "config send_mode=CLOSE" in alert and "HL_LIVE_AUTO_SEND_ENABLED=0" in alert,
+        check("Test 6d: engine master OFF/config ON disagreement alerts",
+              "SEND GATE MISMATCH" in alert and "config send_mode=ON" in alert and "master_real_orders_enabled=false" in alert,
               f"got: {alert}")
 
-        os.environ["HL_LIVE_AUTO_SEND_ENABLED"] = "1"
-        write_cfg(config_file, {"global_controls": {"send_mode": "CLOSE"}, "wallets": {}})
+        write_cfg(config_file, {"global_controls": {}, "wallets": {}})
+        write_cfg(service_state_file, {"send_mode": "ON", "master_real_orders_enabled": True})
         alert = UI._engine_alert()
-        check("Test 6f: no alert for config CLOSE, env ON",
+        check("Test 6e: absent config send_mode produces no mismatch alert",
               alert == "", f"got: {alert}")
 
-        # Test no send_mode in config (legacy) - no alert
-        os.environ["HL_LIVE_AUTO_SEND_ENABLED"] = "1"
+        # Without engine send truth there is no basis to claim a mismatch.
+        service_state_file.unlink()
         write_cfg(config_file, {"global_controls": {}, "wallets": {}})
         alert = UI._engine_alert()
-        check("Test 6g: no alert for no send_mode, env ON (legacy)",
-              alert == "", f"got: {alert}")
-
-        os.environ["HL_LIVE_AUTO_SEND_ENABLED"] = "0"
-        write_cfg(config_file, {"global_controls": {}, "wallets": {}})
-        alert = UI._engine_alert()
-        check("Test 6h: no alert for no send_mode, env OFF",
+        check("Test 6f: missing engine/config mode has no mismatch alert",
               alert == "", f"got: {alert}")
 
     print(f"\nTOTAL={len(PASSES) + len(FAILS)} FAILED={len(FAILS)}")
