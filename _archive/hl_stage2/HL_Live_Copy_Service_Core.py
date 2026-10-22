@@ -6542,6 +6542,7 @@ class SenderGateway:
         )
         if not self.cfg.master_switch_now():  # sending switched off meanwhile: no new standing order
             return
+        _sc_t: Dict[str, Any] = {"send_real_started_ms": utc_now_ms()}  # the standing-close send's own attempt/cloid record
         try:
             # Boss (12 Oct): not reduce-only, because the follower may need to move its exposure the other way. Safe instead
             # by sizing to the follower's net target from a fresh account read at placement, and by guard_standing_closes():
@@ -6565,7 +6566,7 @@ class SenderGateway:
             _key = canonical_coin_key(intent.fill.coin)
             _led_net = self.ledger.coin_net(_key)
             _cl, _pre = self._recovery_send_hooks(intent, "Gtc", "REAL_GTC_RECOVERY_CLOSE", limit_px, close_size, _ro,
-                                                  None, "standing_close")
+                                                  _sc_t, "standing_close")
             recovery_response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", close_size,
                                                   limit_px, "Gtc", _ro, cloid=_cl, bypass_rate_limit_cooldown=True,
                                                   pre_send=_pre)
@@ -6597,6 +6598,11 @@ class SenderGateway:
                 notes=f"{notes}; recovery_status={status}; recovery_error={error}; recovery_response={json.dumps(recovery_response, default=str)}",
             )
         except Exception as exc:
+            if _sc_t.get("send_cloid"):  # the standing-close send itself raised: it may exist, reconcile before anything else
+                _out = self._reconcile_failed_recovery_send(exc, sdk_coin, intent, close_size, limit_px, _ro, _sc_t)
+                if _out is not None:
+                    self._recovery_intent_ids.add(intent.intent_id)  # no second blind standing close for this intent
+                    return
             self.audit.append_reconciliation(
                 "EXIT_RECOVERY", "EXIT_RECOVERY_QUEUE_FAILED",
                 leader_wallet=intent.fill.leader_wallet,
@@ -6927,6 +6933,22 @@ class SenderGateway:
                                                 "engine stopped with recheck queued", 0)
             self._ambiguous_send_rechecks.task_done()
 
+    def _reconcile_failed_recovery_send(self, exc: BaseException, sdk_coin: str, intent: Intent, wire_size: float,
+                                        limit_px: float, reduce_only: bool, timing: Dict[str, Any]) -> Optional[Tuple[bool, str, Dict[str, Any]]]:
+        """rw13: a recovery send (429/timeout recovery, standing close) that itself raised. A structural 429 (int status_code 429) is a
+        definite refusal: the attempt is superseded, nothing to reconcile (None). Anything else may have reached the exchange: this
+        attempt's cloid and every earlier outstanding one are reconciled; a landed/unreadable (hold) answer is returned, None = all
+        confirmed absent. Never sends; exception path only."""
+        if classify_rate_limit_kind(exc) == "RATE_LIMIT":
+            self._supersede_attempt(timing, {"status": "err", "response": repr(exc)}, intent)
+            return None
+        for _n, _cl in enumerate(self._outstanding_attempt_cloids(timing, "", True)):
+            _out = self._resolve_ambiguous_send_outcome(sdk_coin, intent, _cl, wire_size, limit_px, reduce_only, repr(exc), timing,
+                                                        schedule_followup=(_n == 0))
+            if _out is not None:
+                return _out
+        return None
+
     def _entry_add_rate_limit_recovery(
         self,
         exchange: Any,
@@ -7017,6 +7039,7 @@ class SenderGateway:
             self._supersede_attempt(timing, {"status": "err", "response": initial_error}, intent)
         elif timing.get("send_attempt_id"):  # timeout: the earlier order may exist; its row stays pending and its id is kept for reconciliation
             timing.setdefault("ambiguous_attempt_ids", []).append(str(timing["send_attempt_id"]))
+        _prev_attempt = timing.get("send_attempt_id")
         try:
             _cl, _pre = self._recovery_send_hooks(intent, tif, "REAL_IOC" if tif == "Ioc" else "REAL_GTC", leader_px,
                                                   wire_size, False, timing, "rate_limit_recovery")
@@ -7058,6 +7081,10 @@ class SenderGateway:
         except Exception as exc:
             recovery_error = repr(exc)
             self._note_exchange_rate_limit(recovery_error)
+            if timing.get("send_attempt_id") != _prev_attempt:  # the recovery send's own pending row was written: it may exist
+                _out = self._reconcile_failed_recovery_send(exc, sdk_coin, intent, wire_size, leader_px, False, timing)
+                if _out is not None:
+                    return _out
             self.audit.append_reconciliation(
                 "ENTRY_ADD_RATE_LIMIT_RECOVERY", "ENTRY_ADD_RATE_LIMIT_RECOVERY_FAILED",
                 leader_wallet=intent.fill.leader_wallet,
