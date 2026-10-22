@@ -33,10 +33,11 @@ def check(name, cond, detail=""):
 
 
 def fresh(install=True):
+    """Reset the module-level registration but leave any already-installed request wrapper in
+    place, so the install=False case proves the shared path ignores a STALE installed monitor
+    instead of merely proving no wrapper exists."""
     m = h.HeadroomMonitor(alerts_dir=Path(tempfile.mkdtemp(prefix="hr_http_post_")))
-    cur = requests.Session.request
-    if getattr(cur, "_headroom_counter", False):
-        requests.Session.request = getattr(cur, "__wrapped__", cur)
+    h._SESSION_REQUEST_MONITOR = None
     if install:
         h.install_session_counter(m)
     return m
@@ -78,10 +79,17 @@ counting = h.CountingRequests(requests, m, [INFO])
 with_transport([], lambda: counting.post(INFO, json={"type": "clearinghouseState", "user": "0xabc"}, timeout=3.0))
 check("shared_path_not_double_counted", m.info_used(HOST) == 2, "info_used=%d" % m.info_used(HOST))
 
+# A monitor is installed (wrapper present on requests.Session.request), then the module-level
+# registration is cleared. The shared /info path must feed NOTHING -- not the new monitor and not
+# the stale installed one. Without clearing the global this case could pass vacuously.
+stale = fresh()
 m = fresh(install=False)
+check("stale_monitor_deregistered", h._SESSION_REQUEST_MONITOR is None, str(h._SESSION_REQUEST_MONITOR))
+check("session_wrapper_still_installed", getattr(requests.Session.request, "_headroom_counter", False), "wrapper gone")
 with_transport([], lambda: xt.post_many(None, [{"type": "clearinghouseState", "user": "0xabc"}],
                                         info_url=INFO, timeout=3.0, workers=1))
 check("no_counter_no_weight", m.info_used(HOST) == 0, "info_used=%d" % m.info_used(HOST))
+check("stale_installed_monitor_untouched", stale.info_used(HOST) == 0, "stale_info_used=%d" % stale.info_used(HOST))
 
 m = fresh()
 with_transport({}, lambda: xt.post_many(None, [{"type": "clearinghouseState", "user": "0xabc"}],
