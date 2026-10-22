@@ -188,7 +188,7 @@ def main() -> None:
           and c.classify_rate_limit_kind(TimeoutError("Read timed out")) == "TIMEOUT"
           and c.classify_rate_limit_kind(RuntimeError("Too many requests")) == "TIMEOUT"
           and c.classify_rate_limit_kind("px 429.5 aborted") == "TIMEOUT" and c.classify_rate_limit_kind("rate limit") == "TIMEOUT"
-          and c.classify_rate_limit_kind("ClientError(429, None, 'x')") == "RATE_LIMIT"
+          and c.classify_rate_limit_kind("ClientError(429, None, 'x')") == "TIMEOUT"
           and c.classify_rate_limit_kind(ClientError(500, None, "x")) == "TIMEOUT"
           and c.classify_rate_limit_kind(None) == "TIMEOUT")
     # 6. EXIT / REDUCE closes still reconcile first even on a structural 429 (never blind-resent, no definite shortcut)

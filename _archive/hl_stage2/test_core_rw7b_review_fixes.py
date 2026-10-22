@@ -274,7 +274,7 @@ def main() -> None:
             check("F4_%s_NEVER_CHANGES_WALLET_MODE" % label, wallet_mode() == "ON")
         check("F4_CLASSIFIER_SPLITS_429_FROM_TIMEOUT",
               c.classify_rate_limit_kind(ClientError(429, None, "x")) == "RATE_LIMIT"
-              and c.classify_rate_limit_kind("ClientError(429, None, 'x')") == "RATE_LIMIT"
+              and c.classify_rate_limit_kind("ClientError(429, None, 'x')") == "TIMEOUT"
               and c.classify_rate_limit_kind(RuntimeError("Too many requests")) == "TIMEOUT"
               and c.classify_rate_limit_kind("Read timed out") == "TIMEOUT"
               and c.classify_rate_limit_kind("429 then timed out") == "TIMEOUT"

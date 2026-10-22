@@ -809,21 +809,18 @@ def _response_text(exchange_response: Any) -> str:
         return str(exchange_response)
 
 
-_SDK_429_REPR = re.compile(r"^ClientError\(429,")
 
 
 def classify_rate_limit_kind(error: Any) -> str:
     """Splits RATE_LIMIT_OR_TIMEOUT STRUCTURALLY. "RATE_LIMIT" (definite refusal, no order exists) only when the raised exception
     carries the HTTP status 429: the SDK's ClientError.status_code, or requests' HTTPError.response.status_code. Everything else
     (timeouts, resets, unknown exceptions, any message that merely contains "429" or "rate limit") is "TIMEOUT": the order may
-    exist, so reconcile by cloid first. Text-only input is TIMEOUT unless it is exactly the SDK's ClientError repr for status 429."""
+    exist, so reconcile by cloid first. Text-only input is ALWAYS TIMEOUT: a definite 429 needs an exception object carrying status_code == 429."""
     if isinstance(error, BaseException):
         for status in (getattr(error, "status_code", None), getattr(getattr(error, "response", None), "status_code", None)):
             if isinstance(status, int) and not isinstance(status, bool) and status == 429:
                 return "RATE_LIMIT"
         return "TIMEOUT"
-    if isinstance(error, str) and _SDK_429_REPR.match(error):
-        return "RATE_LIMIT"
     return "TIMEOUT"
 
 
