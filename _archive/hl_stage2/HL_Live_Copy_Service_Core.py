@@ -11166,7 +11166,7 @@ class LiveCopyCore:
 
     def leader_poll_interval_sec(self) -> float:
         """How often the leaders are polled. The live feed healthy (socket open and HL acked a subscription): the
-        poll is only a backstop, every HL_LIVE_LEADER_POLL_INTERVAL_SEC (30 s). Feed down, or open but never
+        poll is only a backstop, every HL_LIVE_LEADER_POLL_INTERVAL_SEC (120 s). Feed down, or open but never
         acked: the poll IS the detector, so it runs faster, scaled to the info rate limit (about 20 weight per
         wallet read, ~600 of the 1200/min budget: 2.2 s per active leader, never under 5 s)."""
         ws = self.ws
@@ -11178,16 +11178,16 @@ class LiveCopyCore:
         # the poll set may be larger than the feed set (poll-all-active), which is by design
         feed_ok = bool(ws.enabled and getattr(ws, "_socket_open", False) and feed_set and feed_set <= acked)
         if feed_ok:
-            return max(0.0, fnum(os.getenv("HL_LIVE_LEADER_POLL_INTERVAL_SEC"), 30.0))
+            return max(0.0, fnum(os.getenv("HL_LIVE_LEADER_POLL_INTERVAL_SEC"), 120.0))
         n = max(1, len(self.cfg.active_wallets()))
         auto = max(2.0, 2.2 * n)
         env = os.getenv("HL_LIVE_LEADER_POLL_NOFEED_SEC")
         fast = max(1.0, fnum(env, auto)) if env else auto
-        return min(fast, max(0.0, fnum(os.getenv("HL_LIVE_LEADER_POLL_INTERVAL_SEC"), 30.0)))
+        return min(fast, 30.0, max(0.0, fnum(os.getenv("HL_LIVE_LEADER_POLL_INTERVAL_SEC"), 120.0)))
 
     def _leader_poll_due(self, force: bool = False) -> bool:
         """The live feed is the hot path; the poll is the missed-fill backstop. While the feed's socket is open the
-        leaders are polled every HL_LIVE_LEADER_POLL_INTERVAL_SEC (default 30 s, within the info rate limit for
+        leaders are polled every HL_LIVE_LEADER_POLL_INTERVAL_SEC (default 120 s; outage polling remains capped at 30 s), within the info rate limit for
         10 busy wallets); without the feed, every cycle."""
         now = utc_now_ms()
         try:
