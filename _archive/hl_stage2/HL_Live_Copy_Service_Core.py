@@ -5540,16 +5540,40 @@ class SenderGateway:
             t["pending_send_done_ms"] = utc_now_ms()
         return cloid, _pre
 
-    def _supersede_attempt(self, timing: Dict[str, Any], response: Any) -> None:
-        """A definitely-rejected attempt that is about to be retried: its pending_send row must not stay pending."""
+    def _supersede_attempt(self, timing: Dict[str, Any], response: Any, intent: Optional[Intent] = None) -> bool:
+        """A definitely-rejected attempt that is about to be retried: its pending_send row must not stay pending.
+        True when the row was marked superseded (or there was no attempt). On a failed write (False result or exception) it
+        is NOT claimed: loud error line + reconciliation row, and the attempt id stays in timing["unsuperseded_attempt_ids"]
+        (its pending_send row remains for startup reconciliation). The caller's definite-reject retry still goes ahead."""
+        attempt_id = str(timing.get("send_attempt_id") or "")
+        if not attempt_id:
+            return True
         try:
             _ok, status, oid, error = self._parse_hl_response(response)
-            update_send_attempt_row(str(timing.get("send_attempt_id") or ""), {
+            done = update_send_attempt_row(attempt_id, {
                 "status": status, "exchange_response": json.dumps(response, default=str), "exchange_order_id": oid or "",
                 "error": error or "", "terminal_state": "SUPERSEDED_BY_RETRY", "operator_action": "",
                 "notes": "attempt rejected; a retry attempt with its own cloid follows"})
+            why = "" if done else "no send_attempts row carries this attempt id"
         except Exception as exc:
-            log_error("supersede_attempt", exc)
+            done, why = False, repr(exc)
+        if done:
+            return True
+        timing.setdefault("unsuperseded_attempt_ids", []).append(attempt_id)
+        msg = (f"send attempt {attempt_id} (intent_id={intent.intent_id if intent is not None else '?'}) was rejected and a retry follows, but its pending_send row could NOT be marked "
+               f"superseded ({why}); it stays pending for startup reconciliation")
+        log_error("supersede_attempt", msg)
+        try:
+            self.audit.append_reconciliation(
+                "SEND_ATTEMPT_SUPERSEDE", "SEND_ATTEMPT_SUPERSEDE_FAILED",
+                leader_wallet=intent.fill.leader_wallet if intent is not None else "",
+                leader_fill_id=intent.fill.leader_fill_id if intent is not None else "",
+                intent_id=intent.intent_id if intent is not None else "",
+                coin=intent.fill.coin if intent is not None else "",
+                action="REVIEW_PENDING_SEND_ROW_ON_STARTUP", terminal_state="PENDING_SEND", notes=msg)
+        except Exception as exc:
+            log_error("supersede_attempt_audit", exc)
+        return False
 
     def _engine_owned_cloids_and_oids(self):
         """Cloids and order ids this engine owns: every send_attempts row plus every resting entry."""
@@ -7852,7 +7876,7 @@ class SenderGateway:
                     retry_safe, retry_unsafe = self._pre_exchange_asset_safety(intent, resolved, retry_px, wire_size)
                     if more_aggressive and retry_safe and retry_notional <= max(wire_notional * 1.5, wire_notional + 5.0):
                         timing["entry_ioc_retry_started_ms"] = utc_now_ms()
-                        self._supersede_attempt(timing, response)
+                        self._supersede_attempt(timing, response, intent)
                         _cl, _pre = self._recovery_send_hooks(intent, "Ioc", "REAL_IOC", retry_px, wire_size, False,
                                                               timing, "ioc_retry")
                         retry_response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", wire_size,
@@ -7881,7 +7905,7 @@ class SenderGateway:
                 if rest_safe and rest_px > 0 and self.resting_entry_for(intent.fill.leader_wallet, intent.fill.coin,
                                                                         intent.copy_side) is None:
                     gtc_px = rest_px
-                    self._supersede_attempt(timing, response)
+                    self._supersede_attempt(timing, response, intent)
                     _cl, _pre = self._recovery_send_hooks(intent, "Gtc", "REAL_GTC", rest_px, wire_size, False, timing,
                                                           "missed_entry")
                     rest_response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", wire_size, rest_px,
@@ -7916,7 +7940,7 @@ class SenderGateway:
                     if not self._reduce_only_on_wire(intent, wire_size):
                         first_error = parsed_error
                         timing["netting_close_retry_started_ms"] = utc_now_ms()
-                        self._supersede_attempt(timing, response)
+                        self._supersede_attempt(timing, response, intent)
                         _cl, _pre = self._recovery_send_hooks(intent, "Ioc", "REAL_IOC", limit_px, wire_size, False,
                                                               timing, "netting_resend")
                         response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", wire_size, limit_px,
