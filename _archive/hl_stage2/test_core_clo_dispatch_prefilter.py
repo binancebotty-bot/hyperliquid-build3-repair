@@ -7,6 +7,8 @@ import queue
 import sys
 import tempfile
 import threading
+import time
+from collections import deque
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -78,6 +80,12 @@ core._hot_queues = [queue.Queue(maxsize=50000)]
 core._hot_queue = core._hot_queues[0]
 core._prio_queues = [queue.Queue(maxsize=50000)]
 core.sender = SimpleNamespace(known_dispatch_reject=lambda _fill: "")
+core._fill_trace_condition = threading.Condition()
+core._fill_trace_buffer = deque()
+core._fill_trace_dropped = 0
+core._fill_trace_writer_done = False
+trace_writer = threading.Thread(target=core._fill_trace_writer_loop, daemon=True)
+trace_writer.start()
 
 
 def fill(fid, wallet, direction, side):
@@ -102,7 +110,14 @@ check("CLO_BURST_ONE_BLOCK_ROW_PER_FILL", len(rows) == 500 and all(
 check("CLO_AUDIT_SCHEMA_UNCHANGED", set(rows[0]) == set(c.ORDER_INTENT_FIELDS) if rows else False,
       tuple(rows[0]) if rows else ())
 trace_path = c.AUDIT_DIR / "fill_trace.jsonl"
-trace_rows = [json.loads(line) for line in trace_path.read_text(encoding="utf-8").splitlines()] if trace_path.exists() else []
+deadline = time.monotonic() + 5
+trace_rows = []
+while time.monotonic() < deadline:
+    if trace_path.exists():
+        trace_rows = [json.loads(line) for line in trace_path.read_text(encoding="utf-8").splitlines()]
+        if len([r for r in trace_rows if r.get("k") == "blocked_clo_entry_dispatch"]) == 500:
+            break
+    time.sleep(0.01)
 check("CLO_DIR_RETAINED_IN_AUDIT_AND_TRACE",
       len(rows) == 500 and all('leader_dir_json="Open Long"' in rows[i]["notes"] if i % 2 == 0
                                else 'leader_dir_json="Open Short"' in rows[i]["notes"] for i in range(500))
@@ -138,6 +153,11 @@ for q in (core._prio_queues[0], core._hot_queues[0]):
         normal_path.append(q.get_nowait().leader_fill_id)
 check("CLO_CLOSE_FLIP_UNKNOWN_AND_NEXT_MODE_NORMAL", set(normal_path) ==
       {"clo-close", "clo-flip", "clo-unknown", "clo-missing", "clo-case-variant", "mode-changed"}, normal_path)
+
+with core._fill_trace_condition:
+    core._fill_trace_writer_done = True
+    core._fill_trace_condition.notify_all()
+trace_writer.join(timeout=2)
 
 print("TOTAL=%d FAILED=%d" % (len(R), R.count(False)))
 sys.exit(1 if False in R else 0)

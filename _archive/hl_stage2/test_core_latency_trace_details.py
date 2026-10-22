@@ -6,7 +6,10 @@ import json
 import os
 import sys
 import tempfile
+import threading
+import time
 import uuid
+from collections import deque
 from pathlib import Path
 from unittest.mock import patch
 
@@ -76,12 +79,28 @@ with tempfile.TemporaryDirectory(prefix="latency_trace_details_") as tmp:
     core._stuck_dumped = set()
     core._deferred = {}
     core._past_send_keys = set()
+    core._fill_trace_condition = threading.Condition()
+    core._fill_trace_buffer = deque()
+    core._fill_trace_dropped = 0
+    core._fill_trace_writer_done = False
+    trace_writer = threading.Thread(target=core._fill_trace_writer_loop, daemon=True)
+    trace_writer.start()
     core._process_leader_fill_inner = reject_during_processing
     core._rows_for_merged_siblings = lambda *_args: None
     c.LiveCopyCore._process_leader_fill(core, fill)
 
     trace_path = root / "fill_trace.jsonl"
-    rows = [json.loads(line) for line in trace_path.read_text(encoding="utf-8").splitlines()]
+    def wait_for_trace_rows(expected):
+        deadline = time.monotonic() + 3
+        while time.monotonic() < deadline:
+            if trace_path.exists():
+                rows = [json.loads(line) for line in trace_path.read_text(encoding="utf-8").splitlines()]
+                if len(rows) >= expected:
+                    return rows
+            time.sleep(0.01)
+        raise AssertionError(f"fill trace did not reach {expected} rows")
+
+    rows = wait_for_trace_rows(2)
     end = next(row for row in rows if row.get("k") == "proc_end")
     expected = {
         "leader_fill_ms": 1_000,
@@ -110,7 +129,7 @@ with tempfile.TemporaryDirectory(prefix="latency_trace_details_") as tmp:
     )
     core._process_leader_fill_inner = lambda *_args: (False, "LIQ_PARITY_BLOCKED", None)
     c.LiveCopyCore._process_leader_fill(core, blocked)
-    rows = [json.loads(line) for line in trace_path.read_text(encoding="utf-8").splitlines()]
+    rows = wait_for_trace_rows(4)
     blocked_end = next(row for row in rows if row.get("id") == "fill-blocked" and row.get("k") == "proc_end")
     if blocked_end.get("stage_stamps", {}).get("reply_ms") is not None:
         raise AssertionError(f"non-send was given a fabricated reply timestamp: {blocked_end}")
@@ -128,9 +147,13 @@ with tempfile.TemporaryDirectory(prefix="latency_trace_details_") as tmp:
         result = c.LiveCopyCore._process_leader_fill(core, failed)
     if result[1] != "PROCESS_EXCEPTION":
         raise AssertionError(f"processing exception status missing: {result}")
-    rows = [json.loads(line) for line in trace_path.read_text(encoding="utf-8").splitlines()]
+    rows = wait_for_trace_rows(6)
     failed_end = next(row for row in rows if row.get("id") == "fill-exception" and row.get("k") == "proc_end")
     if failed_end.get("status") != "PROCESS_EXCEPTION" or failed_end.get("stage_stamps", {}).get("reply_ms") is not None:
         raise AssertionError(f"exception end row missing or has a fabricated reply timestamp: {failed_end}")
+    with core._fill_trace_condition:
+        core._fill_trace_writer_done = True
+        core._fill_trace_condition.notify_all()
+    trace_writer.join(timeout=2)
 
 print("PASS: proc_end records rejection details, real replies, stage stamps, and blocked/exception outcomes")
