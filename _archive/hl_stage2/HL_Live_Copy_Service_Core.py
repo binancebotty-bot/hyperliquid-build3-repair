@@ -10658,7 +10658,8 @@ class LiveCopyCore:
             _status = str(_irow.get("status") or "").upper()
             _terminal = str(_irow.get("terminal_state") or "").upper()
             if _cloid and (_terminal == "SEND_OUTCOME_UNKNOWN_HOLD"
-                           or (_status == "ORDER_UNKNOWN" and not _terminal)):
+                           or (_status == "ORDER_UNKNOWN" and not _terminal)
+                           or _status == "PENDING_SEND" or _terminal == "PENDING_SEND"):  # crash-left write-ahead row: manual review, alert only
                 _unresolved_ambiguous[_cloid] = dict(_irow)
             elif _cloid:
                 _unresolved_ambiguous.pop(_cloid, None)

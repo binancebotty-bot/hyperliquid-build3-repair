@@ -58,6 +58,9 @@ def main() -> None:
         def __init__(self, fail_times: int = 1, fill_fraction: float = 1.0):
             self.calls, self.fail_times, self.fill_fraction = [], fail_times, fill_fraction
 
+        def update_leverage(self, leverage, name, is_cross=True):
+            return {"status": "ok"}
+
         def order(self, coin, is_buy, size, px, tif, reduce_only=False, cloid=None):
             self.calls.append({"coin": coin, "px": px, "tif": tif["limit"]["tif"], "buy": is_buy, "size": size,
                                "reduce_only": reduce_only, "cloid": (str(cloid) if cloid is not None else None)})
@@ -174,7 +177,7 @@ def main() -> None:
     fake = FakeExchange()
     ok, status, res, intent = send(fake, order_status={"order": {"order": {}, "status": "canceled"}})
     check("B8_CANCELLED_ALLOWS_ONE_RETRY", len(fake.calls) == 2
-          and fake.calls[0]["cloid"] == fake.calls[1]["cloid"] == cloid_of(intent),
+          and fake.calls[0]["cloid"] == cloid_of(intent) and fake.calls[1]["cloid"] not in (None, fake.calls[0]["cloid"]),
           f"order calls={len(fake.calls)} cloids={[r['cloid'] for r in fake.calls]}")
 
     # ---- B9: an unreadable resolution -> hold + alert, no resend ---------------------------------
