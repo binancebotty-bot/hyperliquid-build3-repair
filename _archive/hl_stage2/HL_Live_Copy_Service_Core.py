@@ -1942,7 +1942,8 @@ def enqueue_intent_row(path: Path, fieldnames: List[str], row: Dict[str, Any], k
                 _INTENT_QUEUE.append((path, fieldnames, row, seq))
                 if key:
                     if len(_INTENT_SEQ_BY_ID) > 20000:  # bounded: drop the ids whose row is already on disk
-                        for _k in [k for k, v in _INTENT_SEQ_BY_ID.items() if v <= int(_INTENT_STATE["durable_seq"])]:
+                        for _k in [k for k, v in _INTENT_SEQ_BY_ID.items()
+                                   if v <= int(_INTENT_STATE["durable_seq"]) and v not in _INTENT_STATE["failed_seqs"]]:
                             _INTENT_SEQ_BY_ID.pop(_k, None)
                     _INTENT_SEQ_BY_ID[key] = seq
                 thread = _INTENT_STATE["thread"]
@@ -1976,14 +1977,21 @@ def _intent_writer_loop() -> None:
                     log_error("intent_write_behind", exc)
                 else:
                     time.sleep(0.5)
+        evicted = 0
         with _INTENT_COND:
-            if append_failed:  # the barrier must not mistake a failed row for a durable one
+            if append_failed:  # the barrier must not mistake a failed row for a durable one: the status is retained
                 _INTENT_STATE["failed_seqs"].add(seq_done)
-                if len(_INTENT_STATE["failed_seqs"]) > 1000:
-                    _INTENT_STATE["failed_seqs"].discard(min(_INTENT_STATE["failed_seqs"]))
+                while len(_INTENT_STATE["failed_seqs"]) > max(1, int(fnum(os.getenv("HL_LIVE_INTENT_FAILED_MAX"), 10000.0))):
+                    evicted = min(_INTENT_STATE["failed_seqs"])  # bounded memory: evict the oldest, but loudly and with a watermark
+                    _INTENT_STATE["failed_seqs"].discard(evicted)
+                    _INTENT_STATE["failed_evicted_seq"] = max(int(_INTENT_STATE.get("failed_evicted_seq") or 0), evicted)
             _INTENT_STATE["durable_seq"] = max(int(_INTENT_STATE["durable_seq"]), seq_done)
             _INTENT_STATE["busy"] = False
             _INTENT_COND.notify_all()
+        if evicted:
+            log_error("intent_failed_status_evicted",
+                      f"failed-row status for order_intents seq {evicted} evicted (too many failed rows retained); the pre-send "
+                      "barrier reports every row at or below that sequence as status unknown, never as durable")
 
 
 def intent_seq_for(intent_id: Any) -> Optional[int]:
@@ -2027,6 +2035,8 @@ def wait_intent_durable(seq: Optional[int], intent_id: str = "", timeout_ms: Opt
             else:
                 if seq in _INTENT_STATE["failed_seqs"]:
                     reason = "writer failed to append the row"
+                elif seq <= int(_INTENT_STATE.get("failed_evicted_seq") or 0):
+                    reason = "row status unknown (its failure record was evicted)"
             if reason:
                 _INTENT_STATE["durable_timeouts"] = int(_INTENT_STATE.get("durable_timeouts") or 0) + 1
         if not reason:
