@@ -190,6 +190,14 @@ class RequestWeightFollowupTests(unittest.TestCase):
              mock.patch.object(core, "utc_now_ms", return_value=100_000):
             self.assertTrue(core.LiveCopyCore._leader_poll_due(test_core, force=True))
 
+    def test_nonflat_clo_uses_60_second_poll_interval(self):
+        cfg = FakeConfig({CLO_A: "CLO"})
+        test_core = FakeCore(cfg, [], mock.Mock())
+        test_core.ws = mock.Mock(enabled=True, _socket_open=True, _subscribed={CLO_A})
+        test_core.ledger.nonflat_wallets_from_disk.return_value = {CLO_A}
+        test_core.leader_poll_interval_sec = core.LiveCopyCore.leader_poll_interval_sec.__get__(test_core)
+        self.assertEqual(test_core.leader_poll_interval_sec(), 60.0)
+
     def test_nonflat_clo_polls_on_schedule_and_delivers_its_exit(self):
         path = _TEST_DIR / "nonflat-clo-ledger.json"
         core.atomic_write_json(path, {
