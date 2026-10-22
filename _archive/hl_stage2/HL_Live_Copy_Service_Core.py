@@ -6115,7 +6115,7 @@ class SenderGateway:
         return (math.floor(raw_px * factor + 1e-9) if buy else math.ceil(raw_px * factor - 1e-9)) / factor
 
     def _exchange_client_for_coin(self, raw_coin: str) -> Tuple[Any, str]:
-        resolved = self._resolve_coin(raw_coin)
+        resolved = self._resolve_coin(raw_coin, allow_snapshot=True)  # rw14: used for cancels, which must never be blocked by snapshot-only metadata
         if not resolved.get("ok"):
             raise ValueError(f"symbol unresolved: {raw_coin} [{resolved.get('status')}]")
         private_key = os.getenv("HL_LIVE_HL_PRIVATE_KEY", "").strip()
@@ -8214,7 +8214,8 @@ class SenderGateway:
             if dex_name:
                 self._fetch_builder_meta(dex_name)
         self._save_asset_universe_snapshot("warm_startup")
-        self._universe_last_refresh_ms = utc_now_ms()
+        if self._core_meta_fetched:  # rw14: a failed startup fetch leaves the timer unset so the periodic refresh retries (backoff-limited)
+            self._universe_last_refresh_ms = utc_now_ms()
 
     def warm_exchange_client(self) -> None:
         private_key = os.getenv("HL_LIVE_HL_PRIVATE_KEY", "").strip()
@@ -8357,6 +8358,7 @@ class SenderGateway:
                     "index": row.get("index", row.get("asset_id", "")),
                     "sdk_order_compatible": row.get("sdk_order_compatible", True),
                     "reject_circuit_breaker": row.get("reject_circuit_breaker", {}),
+                    "_snapshot_only": True,  # rw14: usable for reads, never for sending, until a valid authoritative fetch replaces it
                 })
                 self._meta_cache[key] = meta_item
         index = snap.get("asset_index_to_symbol")
@@ -8375,6 +8377,7 @@ class SenderGateway:
                         "perp_dex": "",
                         "tradable_by_sender": True,
                         "reason": "",
+                        "_snapshot_only": True,
                     }
         if self._meta_cache or self._index_cache:
             self._meta_fetched = True
@@ -8535,6 +8538,8 @@ class SenderGateway:
         if not self._meta_fetch_begin(""):
             return
         err = ""
+        new_meta: Dict[str, Dict[str, Any]] = {}  # rw14: built in locals, swapped only after a valid NONEMPTY response
+        new_index: Dict[int, str] = {}
         try:
             r = requests.post(HL_INFO_URL, json={"type": "meta"}, timeout=HTTP_TIMEOUT_SEC)
             _sc = getattr(r, "status_code", 200)
@@ -8546,7 +8551,7 @@ class SenderGateway:
                 name = str(asset.get("name", "")).strip()
                 if not name:
                     continue
-                self._meta_cache[name.upper()] = {
+                new_meta[name.upper()] = {
                     "canonical_coin": name,
                     "szDecimals": int(asset.get("szDecimals", 4)),
                     "symbol_source": "core_meta",
@@ -8554,14 +8559,20 @@ class SenderGateway:
                     "maxLeverage": fnum(asset.get("maxLeverage"), 0.0),
                     "onlyIsolated": bval(asset.get("onlyIsolated"), False),
                 }
-                self._index_cache[idx] = name
-            if not self._index_cache:
+                new_index[idx] = name
+            if not new_meta:  # an EMPTY response is a failure even when a snapshot index is cached
                 raise RuntimeError("empty core universe")
-            self._core_meta_fetched = True
-            self._meta_fetched = True
         except Exception as exc:
             err = repr(exc)[:120]
         self._meta_fetch_end("", err)
+        if not err:
+            for _k, _v in self._meta_cache.items():  # builder rows survive the core swap until their own fetch lands
+                if isinstance(_v, dict) and _v.get("symbol_source") == "builder_meta":
+                    new_meta.setdefault(_k, _v)
+            self._meta_cache = new_meta
+            self._index_cache = new_index
+            self._core_meta_fetched = True
+            self._meta_fetched = True
 
     def _fetch_builder_meta(self, dex_name: str) -> None:
         dex = str(dex_name or "").strip()
@@ -8573,6 +8584,7 @@ class SenderGateway:
         if not self._meta_fetch_begin(dex):
             return
         err = ""
+        new_rows: Dict[str, Dict[str, Any]] = {}  # rw14: swapped in only after the whole response parsed
         try:
             r3 = requests.post(HL_INFO_URL, json={"type": "meta", "dex": dex}, timeout=HTTP_TIMEOUT_SEC)
             _sc = getattr(r3, "status_code", 200)
@@ -8587,7 +8599,7 @@ class SenderGateway:
                 b_suffix = b_name.split(":", 1)[1] if ":" in b_name else b_name
                 b_key = f"{dex.upper()}:{b_suffix.upper()}"
                 sdk_coin = f"{dex.lower()}:{b_suffix}"
-                self._meta_cache[b_key] = {
+                new_rows[b_key] = {
                     "canonical_coin": b_key,
                     "sdk_coin": sdk_coin,
                     "szDecimals": int(b_asset.get("szDecimals", 0)),
@@ -8597,6 +8609,7 @@ class SenderGateway:
                     "perp_dex": dex,
                     "perp_dexs": ["", dex.lower()],
                 }
+            self._meta_cache.update(new_rows)
             self._builder_meta_fetched[dex] = True
         except Exception as exc:
             err = repr(exc)[:120]
@@ -9021,7 +9034,32 @@ class SenderGateway:
             "operator_action": operator_action,
         }
 
-    def _resolve_coin(self, coin: str) -> Dict[str, Any]:
+    def _resolve_coin(self, coin: str, allow_snapshot: bool = False) -> Dict[str, Any]:
+        """The SENDING resolver.  Rows that only came from the disk snapshot fail closed (allow_snapshot=True is for reads/cancels)."""
+        res = self._resolve_coin_cached(coin)
+        if allow_snapshot or not res.get("ok") or not res.get("snapshot_only"):
+            return res
+        return self._snapshot_only_blocked(coin, res)
+
+    def _snapshot_only_blocked(self, coin: str, res: Dict[str, Any]) -> Dict[str, Any]:
+        raw = str(coin or "").strip()
+        msg = (f"{raw} is only known from the disk asset snapshot; no valid authoritative meta fetch has landed in this process "
+               f"(core_fetched={self._core_meta_fetched}); not sending with stale market/index/size metadata. No exchange order sent.")
+        now = time.monotonic()
+        if now - self.__dict__.get("_snapshot_block_logged", -1e12) >= max(1.0, fnum(os.getenv("HL_LIVE_META_FETCH_LOG_SEC"), 600.0)):
+            self._snapshot_block_logged = now  # one loud named row per window, like ASSET_META_REFRESH_FAILED_USING_LAST_GOOD
+            log_error("asset_meta_snapshot_only", f"ASSET_META_SNAPSHOT_ONLY_SEND_BLOCKED: first_coin={raw}; {msg}")
+            try:
+                self.audit.append_reconciliation(
+                    "ASSET_META", "ASSET_META_SNAPSHOT_ONLY_SEND_BLOCKED", coin=raw, action="LOCAL_BLOCK_NO_EXCHANGE",
+                    notes=f"first_coin={raw}; core_fetched={self._core_meta_fetched}; sends fail closed until a valid fetch lands; reads still use the snapshot",
+                )
+            except Exception:
+                pass
+        return {"ok": False, "raw_coin": raw, "status": "SYMBOL_CACHE_MISS_NEEDS_REFRESH", "snapshot_only": True,
+                "error": msg, "exchange_called": False}
+
+    def _resolve_coin_cached(self, coin: str) -> Dict[str, Any]:
         raw = str(coin or "").strip()
         key = raw.upper()
         self._load_asset_universe_snapshot()
@@ -9113,6 +9151,7 @@ class SenderGateway:
             "reason": str(item.get("reason") or ""),
             "reject_circuit_breaker": breaker,
             "reject_circuit_reason": breaker.get("reason", "") if isinstance(breaker, dict) else "",
+            "snapshot_only": bool(item.get("_snapshot_only")),
         }
 
     @staticmethod
