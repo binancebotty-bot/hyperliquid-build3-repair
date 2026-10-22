@@ -253,5 +253,53 @@ real_sess3.mount("https://", ad3)
 b = window()
 xt.http_post(URL, oo, 3.0)
 check("RETRY_COUNTS_EVERY_DISPATCHED_ATTEMPT", len(ad3.sent) == 2 and window() - b == 2 * W(oo), (len(ad3.sent), window() - b))
-print("TOTAL=%d FAILED=%d" % (27, len(FAILED)))
+
+# --- dispatched-but-failed row-scaled reads: base weight + surcharge from the last observed row count (else the default) ---
+class FailSess:
+    def post(self, *a, **k):
+        raise requests.ReadTimeout("lost")
+
+
+def failed_weight(payload):
+    xt._SESSION = FailSess()
+    b = window()
+    try:
+        xt.http_post(URL, payload, 3.0)
+    except requests.ReadTimeout:
+        pass
+    return window() - b
+
+
+headroom._LAST_ROWS.clear()
+os.environ.pop("HL_LIVE_FAILED_ROW_ESTIMATE", None)
+fw = failed_weight(fills)
+check("FAILED_ROW_TYPE_NO_PRIOR_USES_DEFAULT_500", fw == W(fills, 500) and W(fills, 500) > W(fills, 0), fw)
+os.environ["HL_LIVE_FAILED_ROW_ESTIMATE"] = "100"
+fw = failed_weight(fills)
+check("FAILED_ROW_TYPE_ENV_DEFAULT", fw == W(fills, 100), fw)
+os.environ.pop("HL_LIVE_FAILED_ROW_ESTIMATE", None)
+xt._SESSION = sess   # FakeSession: userFillsByTime returns 40 rows; observe it
+xt.http_post(URL, fills, 3.0)
+fw = failed_weight(fills)
+check("FAILED_ROW_TYPE_USES_LAST_OBSERVED", fw == W(fills, 40), fw)
+fw = failed_weight({"type": "userFunding", "user": ADDR})
+check("FAILED_ROW_MEMORY_IS_PER_TYPE", fw == W({"type": "userFunding"}, 500), fw)
+check("FAILED_NON_ROW_TYPE_UNCHANGED", failed_weight(oo) == W(oo) and failed_weight(state) == W(state), "")
+
+
+# SDK-session failure path uses the same estimate, once
+class BadAdapter(FakeAdapter):
+    def send(self, request, **kw):
+        raise requests.ConnectionError("reset")
+
+
+badsdk = requests.Session()
+badsdk.mount("https://", BadAdapter())
+b = window()
+try:
+    badsdk.post(URL, json=fills, timeout=3)
+except requests.ConnectionError:
+    pass
+check("SDK_SESSION_FAILED_ROW_TYPE_ONCE", window() - b == W(fills, 40), window() - b)
+print("TOTAL=%d FAILED=%d" % (33, len(FAILED)))
 sys.exit(1 if FAILED else 0)
