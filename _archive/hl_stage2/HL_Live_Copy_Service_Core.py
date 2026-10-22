@@ -5444,6 +5444,35 @@ class SenderGateway:
             self.audit.append_send_attempt(_row)
         return attempt_id
 
+    def _recovery_send_hooks(self, intent: Intent, tif: str, order_type: str, limit_px: float, size: float,
+                             reduce_only: bool, timing: Optional[Dict[str, Any]], label: str):
+        """Retry/recovery sends (IOC retry, 429 recovery, missed-entry limit, netting resend, standing close): each is its
+        own exchange order, so each gets its OWN cloid and its OWN synchronous fsynced pending_send row, written by
+        _place_order right before the call (the same pre_send mechanism as the first send). Returns (cloid, pre_send)."""
+        t = timing if timing is not None else {}
+        n = int(t.get("send_attempt_seq") or 0) + 1
+        t["send_attempt_seq"] = n
+        key = f"{intent.intent_id}:{label}:{n}:{utc_now_ms()}"
+        cloid, attempt_id = generate_cloid(key), generate_attempt_id(key)
+
+        def _pre() -> None:
+            wait_intent_durable(intent_seq_for(intent.intent_id), intent.intent_id)  # never raises
+            t["send_attempt_id"] = attempt_id  # the final row of the last attempt shares this id and cloid
+            self._begin_pending_send(intent, tif, order_type, limit_px, size, cloid, t, reduce_only)
+            t["pending_send_done_ms"] = utc_now_ms()
+        return cloid, _pre
+
+    def _supersede_attempt(self, timing: Dict[str, Any], response: Any) -> None:
+        """A definitely-rejected attempt that is about to be retried: its pending_send row must not stay pending."""
+        try:
+            _ok, status, oid, error = self._parse_hl_response(response)
+            update_send_attempt_row(str(timing.get("send_attempt_id") or ""), {
+                "status": status, "exchange_response": json.dumps(response, default=str), "exchange_order_id": oid or "",
+                "error": error or "", "terminal_state": "SUPERSEDED_BY_RETRY", "operator_action": "",
+                "notes": "attempt rejected; a retry attempt with its own cloid follows"})
+        except Exception as exc:
+            log_error("supersede_attempt", exc)
+
     def _engine_owned_cloids_and_oids(self):
         """Cloids and order ids this engine owns: every send_attempts row plus every resting entry."""
         cloids, oids = set(), set()
@@ -6384,8 +6413,11 @@ class SenderGateway:
             close_size = _sz
             _key = canonical_coin_key(intent.fill.coin)
             _led_net = self.ledger.coin_net(_key)
+            _cl, _pre = self._recovery_send_hooks(intent, "Gtc", "REAL_GTC_RECOVERY_CLOSE", limit_px, close_size, _ro,
+                                                  None, "standing_close")
             recovery_response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", close_size,
-                                                  limit_px, "Gtc", _ro, bypass_rate_limit_cooldown=True)
+                                                  limit_px, "Gtc", _ro, cloid=_cl, bypass_rate_limit_cooldown=True,
+                                                  pre_send=_pre)
             ok, status, oid, error = self._parse_hl_response(recovery_response)
             self._recovery_intent_ids.add(intent.intent_id)
             if ok and oid and status == "ORDER_RESTING":
@@ -6512,8 +6544,11 @@ class SenderGateway:
             if already is not None:
                 return already
         try:
+            _cl, _pre = self._recovery_send_hooks(intent, tif, "REAL_IOC" if tif == "Ioc" else "REAL_GTC", leader_px,
+                                                  wire_size, False, timing, "rate_limit_recovery")
             recovery_response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", wire_size, leader_px,
-                                                  tif, False, timing, "entry_add_rate_limit_recovery_started_ms")
+                                                  tif, False, timing, "entry_add_rate_limit_recovery_started_ms",
+                                                  cloid=_cl, pre_send=_pre)
             timing["entry_add_rate_limit_recovery_finished_ms"] = utc_now_ms()
             ok, status, oid, parsed_error = self._parse_hl_response(recovery_response)
             reject_category = classify_reject_category(parsed_error, recovery_response) if not ok else ""
@@ -7376,8 +7411,11 @@ class SenderGateway:
                     retry_safe, retry_unsafe = self._pre_exchange_asset_safety(intent, resolved, retry_px, wire_size)
                     if more_aggressive and retry_safe and retry_notional <= max(wire_notional * 1.5, wire_notional + 5.0):
                         timing["entry_ioc_retry_started_ms"] = utc_now_ms()
+                        self._supersede_attempt(timing, response)
+                        _cl, _pre = self._recovery_send_hooks(intent, "Ioc", "REAL_IOC", retry_px, wire_size, False,
+                                                              timing, "ioc_retry")
                         retry_response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", wire_size,
-                                                           retry_px, "Ioc", False)
+                                                           retry_px, "Ioc", False, cloid=_cl, pre_send=_pre)
                         timing["entry_ioc_retry_finished_ms"] = utc_now_ms()
                         retry_ok, retry_status, retry_oid, retry_error = self._parse_hl_response(retry_response)
                         if retry_ok:
@@ -7401,8 +7439,12 @@ class SenderGateway:
                 if rest_safe and rest_px > 0 and self.resting_entry_for(intent.fill.leader_wallet, intent.fill.coin,
                                                                         intent.copy_side) is None:
                     gtc_px = rest_px
+                    self._supersede_attempt(timing, response)
+                    _cl, _pre = self._recovery_send_hooks(intent, "Gtc", "REAL_GTC", rest_px, wire_size, False, timing,
+                                                          "missed_entry")
                     rest_response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", wire_size, rest_px,
-                                                      "Gtc", False, timing, "missed_entry_limit_started_ms")
+                                                      "Gtc", False, timing, "missed_entry_limit_started_ms",
+                                                      cloid=_cl, pre_send=_pre)
                     return self._resting_entry_result(intent, sdk_coin, rest_response, rest_px, wire_size, timing, missed,
                                                       f"copy order found no match ({parsed_error})")
             if (not ok and status == "ORDER_REJECTED"
@@ -7419,8 +7461,12 @@ class SenderGateway:
                     if not self._reduce_only_on_wire(intent, wire_size):
                         first_error = parsed_error
                         timing["netting_close_retry_started_ms"] = utc_now_ms()
+                        self._supersede_attempt(timing, response)
+                        _cl, _pre = self._recovery_send_hooks(intent, "Ioc", "REAL_IOC", limit_px, wire_size, False,
+                                                              timing, "netting_resend")
                         response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", wire_size, limit_px,
-                                                     "Ioc", False, bypass_rate_limit_cooldown=True)
+                                                     "Ioc", False, cloid=_cl, bypass_rate_limit_cooldown=True,
+                                                     pre_send=_pre)
                         ok, status, oid, parsed_error = self._parse_hl_response(response)
                         reject_category = classify_reject_category(parsed_error, response) if status == "ORDER_REJECTED" else ""
                         use_reduce_only = False
