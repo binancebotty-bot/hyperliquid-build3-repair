@@ -665,6 +665,12 @@ def _lock_for(path: Path) -> "threading.RLock":
 
 
 _LOCK_DIAG_SEC = float(os.getenv("HL_LIVE_LOCK_DIAG_SEC", "0.15"))  # an audit append that waits longer than this logs who held the lock (0 = off)
+# A PermissionError on an audit append (Windows handle held by another reader, e.g. the UI) is retried a bounded number of
+# times with doubling backoff, only after the partial row was cleanly truncated. 0 retries = old behaviour. Total sleep is capped.
+_CSV_APPEND_RETRIES = max(0, int(os.getenv("HL_LIVE_CSV_APPEND_RETRIES", "5")))
+_CSV_APPEND_BACKOFF_SEC = max(0.0, float(os.getenv("HL_LIVE_CSV_APPEND_BACKOFF_MS", "40"))) / 1000.0
+_CSV_APPEND_BACKOFF_CAP_SEC = 1.0
+_CSV_APPEND_RETRY_STATS: Dict[str, Any] = {"count": 0, "last": ""}
 _LOCK_DIAG = {"last": 0.0, "n": 0}
 
 
@@ -1793,7 +1799,9 @@ def append_csv(path: Path, fieldnames: List[str], row: Dict[str, Any], *, spill_
                 raise OSError("audit row could not be persisted behind existing spill rows")
             _schedule_audit_flush(path, fieldnames)
             return False
-        try:
+        _retry_n, _slept = 0, 0.0
+        while True:
+          try:
             st = path.stat()
             entry = _AUDIT_HANDLES.get(str(path))
             if not entry or entry[0] != (st.st_dev, st.st_ino) or entry[1].closed:
@@ -1809,13 +1817,30 @@ def append_csv(path: Path, fieldnames: List[str], row: Dict[str, Any], *, spill_
                     os.fsync(handle.fileno())
             if written != len(payload):
                 raise OSError(f"short audit append: wrote {written} of {len(payload)} bytes")
-        except OSError as exc:
+            break
+          except OSError as exc:
             _close_audit_handle(path)
+            _clean = True  # the partial row is known removed (or never written)
             try:
                 if path.exists() and path.stat().st_size > size_before:
                     os.truncate(path, size_before)
+                _clean = (path.stat().st_size if path.exists() else 0) == size_before
             except Exception:
-                pass
+                _clean = False
+            if isinstance(exc, PermissionError) and _clean and _retry_n < _CSV_APPEND_RETRIES and _slept < _CSV_APPEND_BACKOFF_CAP_SEC:
+                # Held under the file lock on purpose: releasing it mid-retry would let another row interleave while
+                # size_before / the spill-behind check are only valid for this attempt, and replay callers hold it too.
+                _delay = min(_CSV_APPEND_BACKOFF_SEC * (2 ** _retry_n), _CSV_APPEND_BACKOFF_CAP_SEC - _slept)
+                _retry_n += 1
+                _CSV_APPEND_RETRY_STATS["count"] = int(_CSV_APPEND_RETRY_STATS.get("count") or 0) + 1
+                _CSV_APPEND_RETRY_STATS["last"] = f"{path.name}: {exc!r}"
+                try:
+                    sys.stderr.write(f"[audit_append_retry] {path.name} attempt {_retry_n}/{_CSV_APPEND_RETRIES} in {_delay * 1000:.0f}ms: {exc!r}\n")
+                except Exception:
+                    pass
+                time.sleep(_delay)
+                _slept += _delay
+                continue
             note_audit_write_failure(path, exc)
             if not spill_on_failure:
                 return False
