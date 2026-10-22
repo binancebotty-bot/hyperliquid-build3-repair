@@ -331,6 +331,40 @@ def install_session_counter(monitor: HeadroomMonitor) -> None:
     requests.Session.request = counted_request
 
 
+_ROW_TYPES = ("userFills", "userFillsByTime", "historicalOrders", "userFunding")   # weight = 20 + rows // 20 (info_weight)
+_LAST_ROWS: Dict[str, int] = {}
+_LAST_ROWS_LOCK = threading.Lock()
+
+
+def _failed_row_default() -> int:
+    try:
+        return max(0, int(float(os.getenv("HL_LIVE_FAILED_ROW_ESTIMATE") or 500)))
+    except ValueError:
+        return 500
+
+
+def _rows_for(payload: Any, response: Any) -> int:
+    """Row count that prices a row-scaled /info read. A seen response records the per-type last count; a dispatched
+    request that raised (response None: the server may still have processed it) is charged the last observed count for
+    that type, else HL_LIVE_FAILED_ROW_ESTIMATE (default 500). Non-row types always 0."""
+    t = str(payload.get("type") if isinstance(payload, dict) else "")
+    if response is None:
+        if t not in _ROW_TYPES:
+            return 0
+        with _LAST_ROWS_LOCK:
+            return _LAST_ROWS.get(t, _failed_row_default())
+    rows = 0
+    try:
+        j = response.json()
+        rows = len(j) if isinstance(j, list) else 0
+    except Exception:
+        pass
+    if t in _ROW_TYPES and getattr(response, "status_code", 200) != 429 and rows:
+        with _LAST_ROWS_LOCK:
+            _LAST_ROWS[t] = rows
+    return rows
+
+
 def _note_session_weight(monitor, method, url, payload, response):
     """SDK-session /info posts (Info client: meta, spotMeta, ...) spend weight too. /exchange and non-/info add none;
     skipped while http_post is counting its own attempt (exactly once)."""
@@ -360,12 +394,7 @@ def note_shared_http(url, payload, response, monitor=None):
         host = (parsed.hostname or "").lower()
         if not host:
             return
-        rows = 0
-        try:
-            j = response.json()
-            rows = len(j) if isinstance(j, list) else 0
-        except Exception:
-            pass
+        rows = _rows_for(payload, response)
         monitor.note_info(host, payload, rows)
         if getattr(response, "status_code", 200) == 429:
             monitor.note_refusal("info:" + host, "HTTP 429 from /info")
