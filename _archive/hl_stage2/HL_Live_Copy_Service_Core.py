@@ -8609,6 +8609,8 @@ class SenderGateway:
                     "perp_dex": dex,
                     "perp_dexs": ["", dex.lower()],
                 }
+            if not new_rows:  # rw15: an EMPTY/invalid universe is a failure (backoff, last-good kept, flag NOT set), never "fetched"
+                raise RuntimeError(f"empty builder universe for dex {dex}")
             self._meta_cache.update(new_rows)
             self._builder_meta_fetched[dex] = True
         except Exception as exc:
