@@ -284,8 +284,8 @@ _PREWARM_POOL = _TPE(max_workers=16, thread_name_prefix="prewarm")  # side-by-si
 _EARLY_WARM_POOL = _TPE(max_workers=4, thread_name_prefix="earlywarm")  # runs whole prewarms; separate from _PREWARM_POOL it submits to
 
 OPEN_ORDERS_FETCHER = None  # test seam for follower openOrders reads; production uses HTTP
-_OPEN_ORDERS_CACHE: Dict[Tuple[str, str, str, str], Tuple[int, Any]] = {}  # (network, info url, user, dex) -> (read ms, data)
-_OPEN_ORDERS_CACHE_STATE = {"gen": 0, "sends": 0}  # gen bumps on every invalidation; sends counts orders/cancels in flight
+_OPEN_ORDERS_CACHE: Dict[Tuple[str, str, str, str], Tuple[int, Any, int]] = {}  # (network, info url, user, dex) -> (read ms, data, fetch seq)
+_OPEN_ORDERS_CACHE_STATE = {"gen": 0, "sends": 0, "seq": 0}  # gen bumps on every invalidation; sends counts orders/cancels in flight; seq numbers fetch STARTS
 _OPEN_ORDERS_CACHE_LOCK = threading.Lock()
 
 def _open_orders_cache_clear_locked() -> None:
@@ -321,6 +321,8 @@ def periodic_open_orders(dexes: List[str]) -> List[Any]:
     now = utc_now_ms()
     with _OPEN_ORDERS_CACHE_LOCK:
         gen = _OPEN_ORDERS_CACHE_STATE["gen"]
+        _OPEN_ORDERS_CACHE_STATE["seq"] += 1
+        seq = _OPEN_ORDERS_CACHE_STATE["seq"]  # taken at fetch START: a slower, older fetch must never overwrite a newer entry
         for i, key in enumerate(keys):
             hit = _OPEN_ORDERS_CACHE.get(key) if _OPEN_ORDERS_CACHE_STATE["sends"] == 0 else None  # no hits mid-send
             if hit is not None and 0 <= now - hit[0] < ttl_ms:
@@ -333,7 +335,9 @@ def periodic_open_orders(dexes: List[str]) -> List[Any]:
             for i, res in zip(miss, fetched):
                 out[i] = res
                 if can_store and isinstance(res, dict) and res.get("ok") and isinstance(res.get("data"), list):
-                    _OPEN_ORDERS_CACHE[keys[i]] = (now, res["data"])
+                    cur = _OPEN_ORDERS_CACHE.get(keys[i])
+                    if cur is None or seq > cur[2]:
+                        _OPEN_ORDERS_CACHE[keys[i]] = (now, res["data"], seq)
     return out
 LEADER_MIDS_FETCHER = None  # test seam for leader-network mid reads; production uses HTTP
 _LEADER_MIDS: Dict[str, Any] = {"px": {}, "ms": 0, "dexes": []}
