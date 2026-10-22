@@ -4241,7 +4241,10 @@ class IntentBuilder:
         self._exposure_prefetch_lock = threading.Lock()
         self._leader_dexes: Optional[List[str]] = None
         self._leader_dexes_ms = 0
+        self._leader_dexes_lock = threading.Lock()
         self._leader_equity: Dict[str, Tuple[float, int]] = {}
+        self._leader_equity_locks: Dict[str, threading.Lock] = {}
+        self._leader_equity_locks_guard = threading.Lock()
         self._sizing_block: Dict[str, str] = {}
         self._coin_activity: Dict[str, int] = {}  # last allowed send per coin (ENG-016 settle window)
         self._coin_clean: Dict[str, bool] = {}
@@ -4260,27 +4263,32 @@ class IntentBuilder:
         """Leader account value on the LEADER network: the whole-account value from portfolio (required;
         a unified-margin account keeps collateral in spot, which the perp figure leaves out), or the perp
         accountValue summed over every DEX if larger (the larger value never oversizes a copy). Cached for
-        HL_LIVE_LEADER_EQUITY_TTL_SEC (default 60 s). None when unreadable: the caller must not size."""
-        now = utc_now_ms()
-        ttl_ms = int(max(0.0, fnum(os.getenv("HL_LIVE_LEADER_EQUITY_TTL_SEC"), 60.0)) * 1000)
-        cached = self._leader_equity.get(wallet)
-        if cached and now - cached[1] <= ttl_ms:
-            return cached[0]
-        if self._leader_dexes is None or now - self._leader_dexes_ms > 600_000:
-            enum = _XNET.list_perp_dexes(fetcher=LEADER_FETCHER, info_url=HL_LEADER_INFO_URL, timeout=HTTP_TIMEOUT_SEC)
-            if enum.get("ok"):
-                self._leader_dexes, self._leader_dexes_ms = list(enum["dexes"]), now
-        exp = _XNET.master_exposure(wallet, self._leader_dexes, fetcher=LEADER_FETCHER, info_url=HL_LEADER_INFO_URL,
-                                    timeout=HTTP_TIMEOUT_SEC) if self._leader_dexes is not None else {}
-        whole = _XNET.rolling_day_pnl(wallet, fetcher=LEADER_FETCHER, info_url=HL_LEADER_INFO_URL, timeout=HTTP_TIMEOUT_SEC)
-        values = [fnum(v) for v in (exp.get("equity_usd") if exp.get("ok") else None,
-                                    whole.get("account_value_usd") if whole.get("ok") else None) if v is not None]
-        # the whole-account value is required: a perp-only figure can understate a unified account
-        equity = max(values) if whole.get("ok") and whole.get("account_value_usd") is not None else None
-        if equity is None or equity <= 0:
-            return None
-        self._leader_equity[wallet] = (fnum(equity), now)
-        return fnum(equity)
+        HL_LIVE_LEADER_EQUITY_TTL_SEC (default 60 s). None when unreadable: the caller must not size.
+        Same-wallet refreshes share one read set; the first result stays within the existing TTL."""
+        with self._leader_equity_locks_guard:
+            lock = self._leader_equity_locks.setdefault(wallet, threading.Lock())
+        with lock:
+            now = utc_now_ms()
+            ttl_ms = int(max(0.0, fnum(os.getenv("HL_LIVE_LEADER_EQUITY_TTL_SEC"), 60.0)) * 1000)
+            cached = self._leader_equity.get(wallet)
+            if cached and now - cached[1] <= ttl_ms:
+                return cached[0]
+            with self._leader_dexes_lock:
+                if self._leader_dexes is None or now - self._leader_dexes_ms > 600_000:
+                    enum = _XNET.list_perp_dexes(fetcher=LEADER_FETCHER, info_url=HL_LEADER_INFO_URL, timeout=HTTP_TIMEOUT_SEC)
+                    if enum.get("ok"):
+                        self._leader_dexes, self._leader_dexes_ms = list(enum["dexes"]), now
+            exp = _XNET.master_exposure(wallet, self._leader_dexes, fetcher=LEADER_FETCHER, info_url=HL_LEADER_INFO_URL,
+                                        timeout=HTTP_TIMEOUT_SEC) if self._leader_dexes is not None else {}
+            whole = _XNET.rolling_day_pnl(wallet, fetcher=LEADER_FETCHER, info_url=HL_LEADER_INFO_URL, timeout=HTTP_TIMEOUT_SEC)
+            values = [fnum(v) for v in (exp.get("equity_usd") if exp.get("ok") else None,
+                                        whole.get("account_value_usd") if whole.get("ok") else None) if v is not None]
+            # the whole-account value is required: a perp-only figure can understate a unified account
+            equity = max(values) if whole.get("ok") and whole.get("account_value_usd") is not None else None
+            if equity is None or equity <= 0:
+                return None
+            self._leader_equity[wallet] = (fnum(equity), now)
+            return fnum(equity)
 
     def _order_value_px(self, fill: LeaderFill) -> float:
         """Worst-case price the order can fill at, on the FOLLOWER network: the fresh mid the limit is built
