@@ -4897,20 +4897,40 @@ class SenderGateway:
         exactly as before, so no order is lost or sent with the wrong margin mode."""
         if lifecycle not in {"ENTRY", "ADD"} or str(sdk_coin) in self.__dict__.setdefault("_margin_mode_done", set()):
             return None
-        with self._margin_mode_lock(str(sdk_coin)):
+        # The wait for an in-flight background setup is bounded (HL_LIVE_MM_WAIT_SEC, default 10 s). Past it the entry fails
+        # closed (MARGIN_MODE_UNSET, no order sent) rather than hanging the send lane; the next fill for the coin retries.
+        lock = self._margin_mode_lock(str(sdk_coin))
+        if not lock.acquire(timeout=max(0.1, fnum(os.getenv("HL_LIVE_MM_WAIT_SEC"), 10.0))):
+            error = "margin mode setup still in flight past HL_LIVE_MM_WAIT_SEC"
+            return False, "MARGIN_MODE_UNSET", self._margin_unset_block(error, timing)
+        try:
             return self._ensure_margin_mode_locked(exchange, sdk_coin, intent, lifecycle, timing)
+        finally:
+            lock.release()
+
+    @staticmethod
+    def _margin_unset_block(error: str, timing: Dict[str, Any]) -> Dict[str, Any]:
+        return {
+            "status": "MARGIN_MODE_UNSET", "error": error, "exchange_response": {}, "oid": "", "exchange_called": False,
+            "write_reconciliation": True, "reject_category": "MARGIN_MODE_UNSET", "terminal_state": "MARGIN_MODE_UNSET",
+            "operator_action": "CHECK_MARGIN_MODE_ON_EXCHANGE", "notes": f"margin mode could not be set: {error}",
+            "timing": timing}
 
     def schedule_margin_mode_setup(self, raw_coin: Any) -> bool:
-        """Queue the one-time margin-mode call for a coin on the background thread (never on the order path). False when
-        the coin is already set or queued. A failed setup is not remembered: the order path retries it inline."""
+        """Queue the one-time margin-mode call for a coin on the ONE serial background worker (never on the order path).
+        False when the coin is already set, queued, the queue is full or the worker is stopping. A failed setup is not
+        remembered: the order path retries it inline."""
         key = str(raw_coin or "").strip()
         if not key:
             return False
         with self.__dict__.setdefault("_mm_cond", threading.Condition()):
             seen = self.__dict__.setdefault("_mm_seen", set())
             queue = self.__dict__.setdefault("_mm_queue", collections.deque())
-            if key in seen or key in queue or key == self.__dict__.get("_mm_current"):
+            self.__dict__.setdefault("_mm_stopping", False)
+            if self.__dict__.get("_mm_stopping") or key in seen or key in queue or key == self.__dict__.get("_mm_current"):
                 return False
+            if len(queue) >= int(fnum(os.getenv("HL_LIVE_MM_QUEUE_MAX"), 64.0)):
+                return False  # bounded: the order path still does it inline for any coin that is not queued
             queue.append(key)
             thread = self.__dict__.get("_mm_thread")
             if thread is None or not thread.is_alive():
@@ -4923,22 +4943,56 @@ class SenderGateway:
         cond = self._mm_cond
         while True:
             with cond:
-                while not self._mm_queue:
+                while not self._mm_queue and not self._mm_stopping:
                     cond.wait()
+                if self._mm_stopping:
+                    self._mm_current = ""
+                    cond.notify_all()
+                    return
                 coin = self._mm_queue.popleft()
                 self._mm_current = coin
             ok = False
             try:
                 exchange, sdk_coin = self._exchange_client_for_coin(coin)
-                stand_in = argparse.Namespace(fill=argparse.Namespace(coin=coin))
-                ok = self._ensure_margin_mode(exchange, sdk_coin, stand_in, "ENTRY", {}) is None
+                if str(sdk_coin) not in self.__dict__.setdefault("_margin_mode_done", set()):
+                    # the same 429 cooldown + paced slot as an order (entries wait out a cooldown), taken BEFORE the per-asset
+                    # lock so a cooldown stall here never holds an order up; a 429 below re-arms that cooldown (back-off)
+                    slot_ms = self._reserve_exchange_order_slot(wait_for_cooldown=True)
+                    delay_ms = max(0, slot_ms - utc_now_ms())
+                    if delay_ms and not self._mm_stopping:
+                        time.sleep(min(5.0, delay_ms / 1000.0))
+                if self._mm_stopping:
+                    ok = False
+                else:
+                    stand_in = argparse.Namespace(fill=argparse.Namespace(coin=coin))
+                    with request_lane("margin_mode_bg"):
+                        ok = self._ensure_margin_mode(exchange, sdk_coin, stand_in, "ENTRY", {}) is None
             except Exception as exc:  # a failed setup never blocks anything: the order path retries it inline
                 log_error("margin_mode_background", exc)
+                self._note_exchange_rate_limit(repr(exc))
             with cond:
                 if ok:
                     self._mm_seen.add(coin)
                 self._mm_current = ""
                 cond.notify_all()
+
+    def stop_margin_mode_worker(self, timeout: float = 5.0) -> bool:
+        """Shutdown: drop the queued (not yet started) setups, let the one in-flight call finish, wait at most `timeout`
+        and report. A dropped setup is retried inline by the order path next run. True when the worker is idle."""
+        cond = self.__dict__.setdefault("_mm_cond", threading.Condition())
+        with cond:
+            self._mm_stopping = True
+            dropped = len(self.__dict__.get("_mm_queue") or ())
+            (self.__dict__.get("_mm_queue") or collections.deque()).clear()
+            cond.notify_all()
+        idle = self.wait_margin_mode_setup(timeout)
+        thread = self.__dict__.get("_mm_thread")
+        if thread is not None and thread.is_alive():
+            thread.join(0.2)
+        if not idle or dropped:
+            log_error("margin_mode_background_stop",
+                      f"margin-mode worker stop: idle={idle} dropped_queued={dropped} in_flight={self.__dict__.get('_mm_current', '')!r}")
+        return idle
 
     def wait_margin_mode_setup(self, timeout: float = 5.0) -> bool:
         """True once the background setup queue is empty and idle (tests, shutdown)."""
@@ -4962,14 +5016,9 @@ class SenderGateway:
             return False
         return self.schedule_margin_mode_setup(fill.coin)
 
-    def prewarm_margin_mode_at_startup(self) -> None:
-        """At startup, the coins the follower already holds (an ADD can come at once) are set in the background."""
-        if (not self.cfg.auto_send_enabled or bval(os.getenv("HL_LIVE_MOCK_SEND"), False)
-                or not bval(os.getenv("HL_LIVE_BG_MARGIN_MODE"), True) or self.ledger is None):
-            return
-        for coin, row in list(((self.ledger.data or {}).get("by_coin_net") or {}).items()):
-            if abs(fnum((row or {}).get("signed_size"), 0.0)) > POSITION_EPSILON:
-                self.schedule_margin_mode_setup(coin)
+    # No startup prewarm of every held coin (that burst of signed calls could trip the rate limit before any order): a
+    # coin is queued lazily, only by prewarm_margin_mode_for_fill when an opening/increasing fill of an armed wallet for
+    # it arrives (so an ADD on a held coin is covered too), one paced call at a time on the single worker.
 
     def _ensure_margin_mode_locked(self, exchange: Any, sdk_coin: str, intent: Intent, lifecycle: str,
                                    timing: Dict[str, Any]) -> Optional[Tuple[bool, str, Dict[str, Any]]]:
@@ -4985,10 +5034,14 @@ class SenderGateway:
         error = ""
         try:
             resp = exchange.update_leverage(lev, sdk_coin, is_cross)  # SDK: update_leverage(leverage, name, is_cross)
-            if isinstance(resp, dict) and str(resp.get("status", "ok")).lower() != "ok":
-                error = json.dumps(resp, default=str)[:300]
+            # fail closed: only an explicit {"status": "ok"} counts as set (a non-dict / unrecognised reply, e.g. None from a
+            # transport hiccup, is MARGIN_MODE_UNSET; no read-back is done, so nothing else confirms it)
+            if not isinstance(resp, dict) or str(resp.get("status", "")).lower() != "ok":
+                error = ("unrecognised update_leverage reply: " + json.dumps(resp, default=str)[:280])
         except Exception as exc:
             error = repr(exc)
+        if error:
+            self._note_exchange_rate_limit(error)  # a 429 here re-arms the shared order cooldown
         self.audit.append_reconciliation(
             "MARGIN_MODE_SET", "MARGIN_MODE_SET" if not error else "MARGIN_MODE_UNSET", coin=str(intent.fill.coin),
             action="NO_ACTION" if not error else "MANUAL_REVIEW_MARGIN_MODE",
@@ -4998,11 +5051,7 @@ class SenderGateway:
             done.add(key)
             return None
         if lifecycle in {"ENTRY", "ADD"}:
-            return False, "MARGIN_MODE_UNSET", {
-                "status": "MARGIN_MODE_UNSET", "error": error, "exchange_response": {}, "oid": "", "exchange_called": False,
-                "write_reconciliation": True, "reject_category": "MARGIN_MODE_UNSET", "terminal_state": "MARGIN_MODE_UNSET",
-                "operator_action": "CHECK_MARGIN_MODE_ON_EXCHANGE", "notes": f"margin mode could not be set: {error}",
-                "timing": timing}
+            return False, "MARGIN_MODE_UNSET", self._margin_unset_block(error, timing)
         return None
 
     def _leader_state(self, wallet: str, dex: str = "") -> Tuple[Optional[Dict[str, Any]], str]:
@@ -9902,7 +9951,6 @@ class LiveCopyCore:
             self.sender.warm_symbol_cache()
         if self.cfg.auto_send_enabled and not bval(os.getenv("HL_LIVE_MOCK_SEND"), False) and bval(os.getenv("HL_LIVE_PREWARM_SDK_CLIENT"), True):
             self.sender.warm_exchange_client()
-        self.sender.prewarm_margin_mode_at_startup()
         self.copy_ingestor = CopyAccountIngestor()
         self.matcher = CopyFillMatcher(self.ledger, self.audit)
         self.reconciler = ExchangeReconciler(self.ledger, self.audit)
@@ -9968,6 +10016,10 @@ class LiveCopyCore:
                 self._fill_trace_writer_done = True
                 self._fill_trace_condition.notify()
             ft.join(timeout=5.0)
+        try:
+            self.sender.stop_margin_mode_worker(5.0)  # bounded drain of the background margin-mode worker
+        except Exception as exc:
+            log_error("margin_mode_stop", exc)
         flush_intent_writer(5.0)  # queued intent audit rows reach disk before the process goes
         _drain_status_write_workers()
 
