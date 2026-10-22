@@ -284,6 +284,54 @@ _PREWARM_POOL = _TPE(max_workers=16, thread_name_prefix="prewarm")  # side-by-si
 _EARLY_WARM_POOL = _TPE(max_workers=4, thread_name_prefix="earlywarm")  # runs whole prewarms; separate from _PREWARM_POOL it submits to
 
 OPEN_ORDERS_FETCHER = None  # test seam for follower openOrders reads; production uses HTTP
+_OPEN_ORDERS_CACHE: Dict[Tuple[str, str, str, str], Tuple[int, Any]] = {}  # (network, info url, user, dex) -> (read ms, data)
+_OPEN_ORDERS_CACHE_STATE = {"gen": 0, "sends": 0}  # gen bumps on every invalidation; sends counts orders/cancels in flight
+_OPEN_ORDERS_CACHE_LOCK = threading.Lock()
+
+def invalidate_open_orders_cache() -> None:
+    """Drop every cached openOrders read for the follower: called around every send and cancel."""
+    with _OPEN_ORDERS_CACHE_LOCK:
+        _OPEN_ORDERS_CACHE_STATE["gen"] += 1
+        for key in [k for k in _OPEN_ORDERS_CACHE if k[2] == USER_WALLET]:
+            _OPEN_ORDERS_CACHE.pop(key, None)
+
+def _open_orders_send_begin() -> None:
+    with _OPEN_ORDERS_CACHE_LOCK:
+        _OPEN_ORDERS_CACHE_STATE["sends"] += 1
+    invalidate_open_orders_cache()
+
+def _open_orders_send_end() -> None:
+    invalidate_open_orders_cache()  # whatever the outcome (filled, rejected, raised, ambiguous)
+    with _OPEN_ORDERS_CACHE_LOCK:
+        _OPEN_ORDERS_CACHE_STATE["sends"] -= 1
+
+def periodic_open_orders(dexes: List[str]) -> List[Any]:
+    """openOrders for the two periodic sweeps (standing-close prune, resting-size refresh) ONLY: one post_many result
+    per dex, served from a HL_LIVE_OPEN_ORDERS_CACHE_SEC (15, 0 = off) cache. The startup orphan check and uncertain-send
+    reconciliation never come here. Only a successful list read is cached; a read that overlapped a send is not."""
+    ttl_ms = int(max(0.0, fnum(os.getenv("HL_LIVE_OPEN_ORDERS_CACHE_SEC"), 15.0)) * 1000)
+    payloads = [{"type": "openOrders", "user": USER_WALLET, **({"dex": d} if d else {})} for d in dexes]
+    if ttl_ms <= 0:
+        return _XNET.post_many(OPEN_ORDERS_FETCHER, payloads, HL_INFO_URL, HTTP_TIMEOUT_SEC)
+    keys = [(FOLLOWER_NETWORK, HL_INFO_URL, USER_WALLET, d) for d in dexes]
+    out: List[Any] = [None] * len(dexes)
+    now = utc_now_ms()
+    with _OPEN_ORDERS_CACHE_LOCK:
+        gen = _OPEN_ORDERS_CACHE_STATE["gen"]
+        for i, key in enumerate(keys):
+            hit = _OPEN_ORDERS_CACHE.get(key)
+            if hit is not None and 0 <= now - hit[0] < ttl_ms:
+                out[i] = {"ok": True, "data": hit[1]}
+    miss = [i for i, r in enumerate(out) if r is None]
+    if miss:
+        fetched = _XNET.post_many(OPEN_ORDERS_FETCHER, [payloads[i] for i in miss], HL_INFO_URL, HTTP_TIMEOUT_SEC)
+        with _OPEN_ORDERS_CACHE_LOCK:
+            can_store = _OPEN_ORDERS_CACHE_STATE["gen"] == gen and _OPEN_ORDERS_CACHE_STATE["sends"] == 0
+            for i, res in zip(miss, fetched):
+                out[i] = res
+                if can_store and isinstance(res, dict) and res.get("ok") and isinstance(res.get("data"), list):
+                    _OPEN_ORDERS_CACHE[keys[i]] = (now, res["data"])
+    return out
 LEADER_MIDS_FETCHER = None  # test seam for leader-network mid reads; production uses HTTP
 _LEADER_MIDS: Dict[str, Any] = {"px": {}, "ms": 0, "dexes": []}
 _LEADER_MIDS_REFRESH_LOCK = threading.Lock()
@@ -4773,7 +4821,11 @@ class SenderGateway:
         sdk_cloid = _sdk_cloid(cloid) if cloid else None  # T1a: SDK Cloid so the order is findable after a crash
         if sdk_cloid is not None and _exchange_accepts_cloid(exchange):
             order_kwargs["cloid"] = sdk_cloid
-        response = exchange.order(sdk_coin, is_buy, size, limit_px, {"limit": {"tif": tif}}, **order_kwargs)
+        _open_orders_send_begin()  # the periodic openOrders cache must not outlive a send
+        try:
+            response = exchange.order(sdk_coin, is_buy, size, limit_px, {"limit": {"tif": tif}}, **order_kwargs)
+        finally:
+            _open_orders_send_end()
         self._note_sender_key_rejection(response)
         return response
 
@@ -4802,7 +4854,11 @@ class SenderGateway:
         delay_ms = max(0, slot_ms - utc_now_ms())
         if delay_ms:
             time.sleep(min(5.0, delay_ms / 1000.0))
-        return exchange.cancel(sdk_coin, int(oid))
+        _open_orders_send_begin()
+        try:
+            return exchange.cancel(sdk_coin, int(oid))
+        finally:
+            _open_orders_send_end()
 
     def _is_isolated_only(self, coin: Any) -> bool:
         """Builder-dex (HIP-3, e.g. xyz:) assets and any asset flagged onlyIsolated trade isolated margin only."""
@@ -5225,8 +5281,7 @@ class SenderGateway:
         dexes = sorted({str(r.get("coin") or "").split(":", 1)[0].strip().lower() if ":" in str(r.get("coin") or "") else ""
                         for r in rows})
         started = utc_now_ms()
-        res = _XNET.post_many(OPEN_ORDERS_FETCHER, [{"type": "openOrders", "user": USER_WALLET, **({"dex": d} if d else {})}
-                                                    for d in dexes], HL_INFO_URL, HTTP_TIMEOUT_SEC)
+        res = periodic_open_orders(dexes)
         open_sz: Dict[str, float] = {}
         read_ok = set()
         for dex, r in zip(dexes, res):
@@ -5326,8 +5381,7 @@ class SenderGateway:
         dexes = sorted({str(r.get("coin") or "").split(":", 1)[0].strip().lower() if ":" in str(r.get("coin") or "") else ""
                         for r in rows.values()})
         started = utc_now_ms()
-        res = _XNET.post_many(OPEN_ORDERS_FETCHER, [{"type": "openOrders", "user": USER_WALLET, **({"dex": d} if d else {})}
-                                                    for d in dexes], HL_INFO_URL, HTTP_TIMEOUT_SEC)
+        res = periodic_open_orders(dexes)
         read_ok, open_oids = set(), set()
         for dex, r in zip(dexes, res):
             if r.get("ok") and isinstance(r.get("data"), list):
