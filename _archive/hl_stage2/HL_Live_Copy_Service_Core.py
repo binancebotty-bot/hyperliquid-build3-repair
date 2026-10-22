@@ -5054,6 +5054,10 @@ class PendingSendWriteFailed(RuntimeError):
     """The pending_send write-ahead row could not be written: the order was NOT sent."""
 
 
+class _MarginSymbolUnresolved(Exception):
+    """Internal: the margin-mode lane could not resolve a coin (named once, never raised to the error log per cycle)."""
+
+
 class SenderGateway:
     def __init__(self, cfg: ConfigManager, audit: AuditLogWriter, ledger: Optional[ManualLedger] = None):
         self.cfg = cfg
@@ -5278,6 +5282,16 @@ class SenderGateway:
             self._mm_cond.notify_all()
         return True
 
+    def _note_margin_symbol_unresolved(self, coin: str, resolved: Dict[str, Any]) -> None:
+        """One named error row per coin per HL_LIVE_MM_UNRESOLVED_LOG_SEC (default 600 s); margin mode stays unset."""
+        seen = self.__dict__.setdefault("_mm_unresolved_logged", {})
+        now = time.monotonic()
+        if now - seen.get(coin, -1e12) < max(1.0, fnum(os.getenv("HL_LIVE_MM_UNRESOLVED_LOG_SEC"), 600.0)):
+            return
+        seen[coin] = now
+        log_error("margin_mode_background", f"MARGIN_MODE_UNSET: symbol unresolved: {coin} [{resolved.get('status')}] "
+                  f"{str(resolved.get('error') or '')[:160]}")
+
     def _margin_mode_loop(self) -> None:
         cond = self._mm_cond
         while True:
@@ -5292,12 +5306,18 @@ class SenderGateway:
                 self._mm_current = coin
             ok = False
             try:
+                _pre = self._resolve_coin(coin)  # the send path's resolver: an unresolvable coin is named once, never raised per cycle
+                if not _pre.get("ok"):
+                    self._note_margin_symbol_unresolved(coin, _pre)
+                    raise _MarginSymbolUnresolved()
                 exchange, sdk_coin = self._exchange_client_for_coin(coin)
                 if self._mm_stopping:
                     ok = False
                 else:  # the call itself (paced slot, cooldown, lane, global margin lock) is _guarded_update_leverage
                     stand_in = argparse.Namespace(fill=argparse.Namespace(coin=coin))
                     ok = self._ensure_margin_mode(exchange, sdk_coin, stand_in, "ENTRY", {}) is None
+            except _MarginSymbolUnresolved:
+                ok = False  # left UNSET: entries/adds fail closed at the send path's own resolve gate; closes never need it
             except Exception as exc:  # a failed setup never blocks anything: the order path retries it inline
                 log_error("margin_mode_background", exc)
                 self._note_exchange_rate_limit(repr(exc))
@@ -6086,7 +6106,7 @@ class SenderGateway:
     def _exchange_client_for_coin(self, raw_coin: str) -> Tuple[Any, str]:
         resolved = self._resolve_coin(raw_coin)
         if not resolved.get("ok"):
-            raise ValueError(f"symbol unresolved for cancel: {raw_coin}")
+            raise ValueError(f"symbol unresolved: {raw_coin} [{resolved.get('status')}]")
         private_key = os.getenv("HL_LIVE_HL_PRIVATE_KEY", "").strip()
         if not private_key or HLAccount is None or HLExchange is None:
             raise ValueError("real sender not configured for cancel")
