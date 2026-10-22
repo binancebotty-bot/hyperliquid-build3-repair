@@ -135,5 +135,54 @@ check("SEND_BEGIN_CLEARS_CACHE_WITH_COUNTER_RAISED", not c._OPEN_ORDERS_CACHE an
 c._open_orders_send_end()
 check("SEND_END_RELEASES_COUNTER", c._OPEN_ORDERS_CACHE_STATE["sends"] == 0)
 
+# 9. fetch ordering: a slow OLDER fetch must not overwrite a NEWER cache entry (sequence taken at fetch start)
+def run_periodic(box, name):
+    box[name] = c.periodic_open_orders([""])
+def blocking_fetcher(script):
+    """script: list of (started_event, release_event, data) consumed in call order; the fetch blocks on release_event."""
+    lock = threading.Lock(); it = iter(script)
+    def f(payload, *a, **k):
+        with lock: started, release, data = next(it)
+        started.set(); assert release.wait(10); return data
+    return f
+def cached_data():
+    return next(iter(c._OPEN_ORDERS_CACHE.values()))[1] if c._OPEN_ORDERS_CACHE else None
+real_fetcher = c.OPEN_ORDERS_FETCHER
+ev = lambda: threading.Event()
+fresh()
+a_st, a_rel, b_st, b_rel = ev(), ev(), ev(), ev()
+c.OPEN_ORDERS_FETCHER = blocking_fetcher([(a_st, a_rel, [{"oid": "old"}]), (b_st, b_rel, [{"oid": "new"}])])
+box = {}
+ta = threading.Thread(target=run_periodic, args=(box, "a")); ta.start(); assert a_st.wait(10)
+tb = threading.Thread(target=run_periodic, args=(box, "b")); tb.start(); assert b_st.wait(10)
+b_rel.set(); tb.join(10)
+a_rel.set(); ta.join(10)
+check("OLDER_SLOW_FETCH_DOES_NOT_OVERWRITE_NEWER", cached_data() == [{"oid": "new"}], str(cached_data()))
+check("OLDER_FETCH_CALLER_STILL_GETS_OWN_DATA", box["a"][0]["data"] == [{"oid": "old"}] and box["b"][0]["data"] == [{"oid": "new"}], str(box))
+# reverse order: A completes first, then B: B is stored
+fresh()
+a_st, a_rel, b_st, b_rel = ev(), ev(), ev(), ev()
+c.OPEN_ORDERS_FETCHER = blocking_fetcher([(a_st, a_rel, [{"oid": "old"}]), (b_st, b_rel, [{"oid": "new"}])])
+box = {}
+ta = threading.Thread(target=run_periodic, args=(box, "a")); ta.start(); assert a_st.wait(10)
+tb = threading.Thread(target=run_periodic, args=(box, "b")); tb.start(); assert b_st.wait(10)
+a_rel.set(); ta.join(10)
+check("REVERSE_ORDER_A_STORED_FIRST", cached_data() == [{"oid": "old"}], str(cached_data()))
+b_rel.set(); tb.join(10)
+check("REVERSE_ORDER_NEWER_FETCH_STORED", cached_data() == [{"oid": "new"}], str(cached_data()))
+# fetch starts before an invalidation, completes after it: not stored
+fresh()
+a_st, a_rel = ev(), ev()
+c.OPEN_ORDERS_FETCHER = blocking_fetcher([(a_st, a_rel, [{"oid": "old"}])])
+box = {}
+ta = threading.Thread(target=run_periodic, args=(box, "a")); ta.start(); assert a_st.wait(10)
+c.invalidate_open_orders_cache()
+a_rel.set(); ta.join(10)
+check("FETCH_STARTED_BEFORE_INVALIDATE_NOT_STORED", not c._OPEN_ORDERS_CACHE and box["a"][0]["data"] == [{"oid": "old"}], str(c._OPEN_ORDERS_CACHE))
+# a later fetch after an invalidation does store
+c.OPEN_ORDERS_FETCHER = real_fetcher
+fresh(); c.periodic_open_orders([""]); c.periodic_open_orders([""])
+check("LATER_FETCH_STORES_AND_HITS", len(calls) == 1, str(len(calls)))
+
 print("TOTAL=%d FAILED=%d" % (len(R), sum(1 for _, ok in R if not ok)))
 sys.exit(1 if any(not ok for _, ok in R) else 0)
