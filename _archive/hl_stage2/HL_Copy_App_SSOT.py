@@ -2457,6 +2457,7 @@ def _fetch_exchange_account_snapshot(max_age_sec: float = 15.0) -> Dict[str, Any
         and cached.get("realized_pnl_since_baseline_source") is not None
         and cached.get("realized_pnl_selected_source") is not None
         and cached.get("realized_fills_paging") is not None
+        and "xyz_perp_account_value" in cached
         and now_ms - inum(cached.get("fetched_at_ms")) <= int(max_age_sec * 1000)
     ):
         return cached
@@ -2483,6 +2484,19 @@ def _fetch_exchange_account_snapshot(max_age_sec: float = 15.0) -> Dict[str, Any
             raw = json.loads(resp.read().decode("utf-8"))
         spot_raw: Dict[str, Any] = {}
         spot_parse_status = "NOT_FETCHED"
+        xyz_perp_account_value = None
+        try:
+            dexes = _XNET.list_perp_dexes(info_url=FOLLOWER_INFO_URL, timeout=5)
+            if dexes.get("ok"):
+                xyz_name = next((d for d in dexes.get("dexes", []) if str(d).strip().lower() == "xyz"), None)
+                if xyz_name is not None:
+                    scope = _XNET._post(None, {"type": "clearinghouseState", "user": account, "dex": xyz_name}, FOLLOWER_INFO_URL, 5)
+                    state = scope.get("data") if scope.get("ok") else None
+                    summary = state.get("marginSummary") if isinstance(state, dict) else None
+                    if isinstance(summary, dict) and is_present_num(summary.get("accountValue")):
+                        xyz_perp_account_value = fnum(summary.get("accountValue"))
+        except Exception:
+            pass
         try:
             spot_payload = json.dumps({"type": "spotClearinghouseState", "user": account}).encode("utf-8")
             spot_req = urllib.request.Request(
@@ -2568,6 +2582,7 @@ def _fetch_exchange_account_snapshot(max_age_sec: float = 15.0) -> Dict[str, Any
             "updated_at": utc_now_iso(),
             "fetched_at_ms": now_ms,
             "account_value": fnum(account_value) if is_present_num(account_value) else None,
+            "xyz_perp_account_value": xyz_perp_account_value,
             "account_value_label": "Clearinghouse account value",
             "account_value_source": "clearinghouseState.marginSummary.accountValue",
             "total_account_value": None,
@@ -7102,7 +7117,7 @@ def render_live_copy_control_panel() -> str:
     </div>
   </header>
   <section class="lc-banner" id="lcBanner" aria-label="Overall status">
-    <div class="lc-banner-cell"><div class="label" id="lcBannerAcctLabel">Account value</div><div class="value" id="lcBannerAcct">—</div><div class="lc-account-scopes"><div>Unified account value (spot USDC; backs perps): <span id="lcBannerUnified">unavailable</span></div><div>Perp margin view (accountValue): <span id="lcBannerPerp">unavailable</span></div></div></div>
+    <div class="lc-banner-cell"><div class="label" id="lcBannerAcctLabel">Account value</div><div class="value" id="lcBannerAcct">—</div><div class="lc-account-scopes"><div>Unified account value (spot USDC; backs perps): <span id="lcBannerUnified">unavailable</span></div><div>Perp margin view (accountValue): <span id="lcBannerPerp">unavailable</span></div><div>XYZ perp DEX margin view (accountValue): <span id="lcBannerXyzPerp">unavailable</span></div></div></div>
     <div class="lc-banner-cell"><div class="label">Sending</div><div class="value" id="lcBannerSending">—</div></div>
     <div class="lc-banner-cell lc-banner-health"><div class="label">Health</div><div class="value" id="lcBannerHealth">—</div></div>
     <div class="lc-banner-cell"><div class="label" id="lcBannerPnlLabel">Account change since run start</div><div class="value" id="lcBannerPnl">—</div></div>
@@ -7445,7 +7460,7 @@ function renderBanner(){
  const scopedMoney=v=>v!=null&&isNum(v)?'$'+Number(v).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}):'unavailable';
  const al=root.querySelector('#lcBannerAcctLabel');if(al)al.textContent='Account value'+(net?' ('+net+')':'');
  set('lcBannerAcct',b.account_value!=null?'$'+Number(b.account_value).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}):dash(b.account_value_reason),'');
- for(const [id,value] of [['lcBannerUnified',snap.unified_portfolio_value],['lcBannerPerp',snap.account_value]]){const el=root.querySelector('#'+id);if(el)el.textContent=scopedMoney(value);}
+ for(const [id,value] of [['lcBannerUnified',snap.unified_portfolio_value],['lcBannerPerp',snap.account_value],['lcBannerXyzPerp',snap.xyz_perp_account_value]]){const el=root.querySelector('#'+id);if(el)el.textContent=scopedMoney(value);}
  const armed=lcAudit.master_real_orders_enabled===true;  // the master switch only
  set('lcBannerSending',armed?'ON':'OFF',armed?'lc-green':'lc-grey',armed?'real orders are being sent':'sending is switched off (a choice, not a fault)');
  set('lcBannerHealth',h(hl.text||'—'),levelCls(hl.level),'');
