@@ -55,11 +55,11 @@ class PartialThenDenied:
         self.f.close()
 
 
-def run(name, fail_times, retries, backoff_ms="40"):
+def run(name, fail_times, retries, backoff_ms="40", path=None, **kw):
     """Append {"a": "x"} to a fresh file; the first `fail_times` opens write a partial row then raise PermissionError."""
     c._CSV_APPEND_RETRIES = retries
     c._CSV_APPEND_BACKOFF_SEC = float(backoff_ms) / 1000.0
-    p = tmp / (name + ".csv")
+    p = path or (tmp / (name + ".csv"))
     c.append_csv(p, fields, {"a": "1", "b": "2"})
     c._close_audit_handle(p)  # force a fresh open() for the append under test
     good = p.read_bytes()
@@ -81,7 +81,7 @@ def run(name, fail_times, retries, backoff_ms="40"):
     Path.open = fake_open
     raised, ret = False, None
     try:
-        ret = c.append_csv(p, fields, {"a": "3", "b": "4"})
+        ret = c.append_csv(p, fields, {"a": "3", "b": "4"}, **kw)
     except Exception:
         raised = True
     finally:
@@ -91,7 +91,7 @@ def run(name, fail_times, retries, backoff_ms="40"):
 
 
 # 1. succeeds on the 3rd attempt
-p, good, st, ret, raised, fb = run("third", fail_times=2, retries=5)
+p, good, st, ret, raised, fb = run("third", fail_times=2, retries=5, retry_permission=True)
 rows = list(c.read_csv_rows(p))
 check("SUCCEEDS_ON_THIRD_ATTEMPT", ret is True and not raised and st["opens"] == 3, f"ret={ret} opens={st['opens']}")
 check("EVERY_ATTEMPT_STARTS_FROM_CLEAN_SIZE", set(st["sizes"]) == {len(good)}, str(st["sizes"]))
@@ -100,7 +100,7 @@ check("RETRY_COUNTER_AND_BACKOFF", c._CSV_APPEND_RETRY_STATS["count"] == 2 and s
 check("NO_FAILURE_RECORDED_WHEN_RETRY_SUCCEEDS", c.audit_write_failure_count() == fb and not c._fallback_path(p).exists(), "")
 
 # 2. attempts exhausted: loud failure + durable record + spill, partial truncated
-p, good, st, ret, raised, fb = run("exhausted", fail_times=99, retries=3)
+p, good, st, ret, raised, fb = run("exhausted", fail_times=99, retries=3, retry_permission=True)
 check("EXHAUSTED_ATTEMPT_COUNT", st["opens"] == 4, f"opens={st['opens']}")
 check("EXHAUSTED_LEAVES_NO_PARTIAL_ROW", p.read_bytes() == good, repr(p.read_bytes()[-20:]))
 check("EXHAUSTED_RECORDS_FAILURE", ret is False and c.audit_write_failure_count() > fb
@@ -112,12 +112,25 @@ check("EXHAUSTED_RETRIES_COUNTED", c._CSV_APPEND_RETRY_STATS["count"] == 3 and s
 c.replay_audit_fallback(p, fields)  # leave the spill replayed so later cases are independent
 
 # 3. retries=0 preserves old behaviour: one attempt, no sleep, immediate failure record
-p, good, st, ret, raised, fb = run("zero", fail_times=99, retries=0)
+p, good, st, ret, raised, fb = run("zero", fail_times=99, retries=0, retry_permission=True)
 check("RETRIES_ZERO_SINGLE_ATTEMPT", st["opens"] == 1 and not sleeps and c._CSV_APPEND_RETRY_STATS["count"] == 0, f"opens={st['opens']} {sleeps}")
 check("RETRIES_ZERO_OLD_FAILURE_PATH", ret is False and p.read_bytes() == good and c.audit_write_failure_count() > fb, f"ret={ret}")
 
+# 3b. default call (no opt-in), and the send-lane files even with the opt-in absent, make one attempt and never sleep
+for nm, pth in (("default", None), ("intents", c.ORDER_INTENTS_CSV), ("pending_send", c.SEND_ATTEMPTS_CSV)):
+    p, good, st, ret, raised, fb = run("nosleep_" + nm, fail_times=99, retries=5, path=pth)
+    check("NO_OPT_IN_%s_SINGLE_ATTEMPT_NO_SLEEP" % nm.upper(), st["opens"] == 1 and not sleeps and ret is False and p.read_bytes() == good,
+          f"opens={st['opens']} sleeps={sleeps}")
+    c.replay_audit_fallback(p, fields)
+# reconciliation (opted in by its caller) retries
+p, good, st, ret, raised, fb = run("recon", fail_times=2, retries=5, path=c.RECONCILIATION_CSV, retry_permission=True)
+check("RECONCILIATION_RETRIES", ret is True and st["opens"] == 3 and sleeps == [0.04, 0.08], f"opens={st['opens']} {sleeps}")
+_src = Path(c.__file__).read_text(encoding="utf-8")
+check("RECON_CALLER_OPTS_IN", "append_csv(RECONCILIATION_CSV, RECONCILIATION_FIELDS, row, retry_permission=True)" in _src, "")
+check("SEND_LANE_CALLERS_DO_NOT_OPT_IN", not any("retry_permission" in ln for ln in _src.splitlines() if "ORDER_INTENTS_CSV," in ln or "SEND_ATTEMPTS_CSV," in ln), "")
+
 # 4. backoff total is capped near 1s worst case even with a large retry count / base
-p, good, st, ret, raised, fb = run("capped", fail_times=99, retries=50, backoff_ms="400")
+p, good, st, ret, raised, fb = run("capped", fail_times=99, retries=50, backoff_ms="400", retry_permission=True)
 check("BACKOFF_TOTAL_CAPPED", sum(sleeps) <= 1.0 + 1e-9 and sum(sleeps) > 0.9, f"{sleeps}")
 c.replay_audit_fallback(p, fields)
 

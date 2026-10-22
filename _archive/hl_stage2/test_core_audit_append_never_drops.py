@@ -23,7 +23,6 @@ os.environ.update({
 import HL_Live_Copy_Service_Core as c  # noqa: E402
 
 # Keep existing crash/replay scenarios deterministic; the dedicated background scenario enables the real scheduler.
-c._CSV_APPEND_RETRIES = 0  # this file pins the no-retry contract (one attempt, no sleep); retries are covered by test_core_append_permission_retry.py
 real_schedule_audit_flush = c._schedule_audit_flush
 c._schedule_audit_flush = lambda *args: None
 
