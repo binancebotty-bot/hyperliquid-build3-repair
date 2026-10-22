@@ -3866,6 +3866,35 @@ class ManualLedger:
             self._last_seen_disk_mtime_ns = 0
         return raw
 
+    def nonflat_wallets_from_disk(self) -> Optional[set[str]]:
+        """Return non-flat sleeves from a strictly readable local ledger; None means unknown."""
+        try:
+            raw = json.loads(self.path.read_text(encoding="utf-8-sig"))
+            by_wallet = raw.get("by_wallet") if isinstance(raw, dict) else None
+            if (not isinstance(raw, dict) or raw.get("schema") != "manual_live_positions.v1.wallet_sleeves"
+                    or not isinstance(by_wallet, dict)):
+                return None
+            nonflat: set[str] = set()
+            for raw_wallet, wallet_map in by_wallet.items():
+                wallet = normalise_wallet(raw_wallet)
+                if not is_valid_wallet(wallet) or not isinstance(wallet_map, dict):
+                    return None
+                for raw_coin, sleeve in wallet_map.items():
+                    if (not isinstance(raw_coin, str) or not raw_coin.strip() or not isinstance(sleeve, dict)
+                            or "signed_size" not in sleeve or not isinstance(sleeve.get("coin"), str)
+                            or not sleeve["coin"].strip()
+                            or canonical_coin_key(raw_coin) != canonical_coin_key(sleeve["coin"])):
+                        return None
+                    size = sleeve["signed_size"]
+                    if isinstance(size, bool) or not isinstance(size, (int, float)) or not math.isfinite(float(size)):
+                        return None
+                    if abs(size) > POSITION_EPSILON:
+                        nonflat.add(wallet)
+                        break
+            return nonflat
+        except (OSError, UnicodeError, ValueError, TypeError, OverflowError):
+            return None
+
     @staticmethod
     def signed_delta(side: str, size: float) -> float:
         return abs(size) if side.upper() == "BUY" else -abs(size)
@@ -4263,13 +4292,13 @@ class IntentBuilder:
         """Leader account value on the LEADER network: the whole-account value from portfolio (required;
         a unified-margin account keeps collateral in spot, which the perp figure leaves out), or the perp
         accountValue summed over every DEX if larger (the larger value never oversizes a copy). Cached for
-        HL_LIVE_LEADER_EQUITY_TTL_SEC (default 60 s). None when unreadable: the caller must not size.
+        HL_LIVE_LEADER_EQUITY_TTL_SEC (default 120 s). None when unreadable: the caller must not size.
         Same-wallet refreshes share one read set; the first result stays within the existing TTL."""
         with self._leader_equity_locks_guard:
             lock = self._leader_equity_locks.setdefault(wallet, threading.Lock())
         with lock:
             now = utc_now_ms()
-            ttl_ms = int(max(0.0, fnum(os.getenv("HL_LIVE_LEADER_EQUITY_TTL_SEC"), 60.0)) * 1000)
+            ttl_ms = int(max(0.0, fnum(os.getenv("HL_LIVE_LEADER_EQUITY_TTL_SEC"), 120.0)) * 1000)
             cached = self._leader_equity.get(wallet)
             if cached and now - cached[1] <= ttl_ms:
                 return cached[0]
@@ -4357,7 +4386,8 @@ class IntentBuilder:
         while each worker fetched under it). The reads are independent, so they run side by side: a fill costs
         one read time, not three or four. Freshness rules are unchanged: build() still refetches anything too old."""
         jobs = [] if local_block else [lambda: follower_mid(fill.coin)]
-        if self.cfg.copy_mode(fill.leader_wallet) != "fixed":
+        lifecycle, _ = self.ledger.classify_leader_side_for_wallet(fill.leader_wallet, fill.coin, fill.side)
+        if self.cfg.copy_mode(fill.leader_wallet) != "fixed" and lifecycle != "EXIT":
             # sizing reads the leader's equity even for a fill that is then blocked: keep it out of the send lock
             jobs.append(lambda: self.leader_equity(fill.leader_wallet))
         if local_block:
@@ -4484,8 +4514,6 @@ class IntentBuilder:
         coin = fill.coin
         wallet_mode = self.cfg.wallet_mode(wallet)
         copy_mode = self.cfg.copy_mode(wallet)
-        copy_notional = self._copy_notional(wallet, fill)
-        copy_size = round(copy_notional / fill.price, 8) if fill.price > 0 and copy_notional > 0 else 0.0
         sleeve_id = self.ledger.sleeve_id(wallet, coin)
         before = self.ledger.wallet_coin_position(wallet, coin)
         direction_before = self.ledger.direction_from_size(before)
@@ -4495,6 +4523,9 @@ class IntentBuilder:
             # fixed_notional / proportional sizing is an ENTRY/ADD concept only.
             copy_size = round(abs(before), 8)
             copy_notional = copy_size * fill.price
+        else:
+            copy_notional = self._copy_notional(wallet, fill)
+            copy_size = round(copy_notional / fill.price, 8) if fill.price > 0 and copy_notional > 0 else 0.0
         intent_id = stable_hash(["intent", fill.leader_fill_id, wallet, coin, fill.side, fill.timestamp_ms])
         position_id = ""
         if lifecycle in {"ENTRY", "ADD"}:
@@ -4724,14 +4755,15 @@ class SenderGateway:
 
     def _place_order(self, exchange: Any, sdk_coin: str, is_buy: bool, size: float, limit_px: float,
                      tif: str, reduce_only: bool, timing: Optional[Dict[str, Any]] = None, started_key: str = "",
-                     cloid: Optional[str] = None) -> Any:
+                     cloid: Optional[str] = None, bypass_rate_limit_cooldown: bool = False) -> Any:
         """The ONE physical exchange order call. Every order (IOC, IOC retry, rate-limit recovery,
         exit recovery) is serialised and paced here."""
         # Only the time slot is serialised (pacing, and a distinct signing nonce per order): the exchange calls of
         # different workers overlap (run 3: one ~3.5 s call at a time capped the engine near one order per 3.5 s).
         if FOLLOWER_NETWORK == "mainnet" and not MAINNET_ORDERS_CONFIRMED:
             raise RuntimeError("MAINNET_FOLLOWER_NOT_CONFIRMED: mainnet order refused without --confirm-mainnet-follower")
-        slot_ms = self._reserve_exchange_order_slot()
+        slot_ms = self._reserve_exchange_order_slot(
+            wait_for_cooldown=not (reduce_only or bypass_rate_limit_cooldown))
         delay_ms = max(0, slot_ms - utc_now_ms())
         if delay_ms:
             time.sleep(min(5.0, delay_ms / 1000.0))
@@ -5497,27 +5529,30 @@ class SenderGateway:
             "order_type": "REAL_GTC_MISSED_ENTRY_LIMIT", "reduce_only_sent": False, "notes": note,
         }
 
-    def _reserve_exchange_order_slot(self) -> int:
-        """Reserve a monotonic exchange-call slot; callers wait after this method releases the lock."""
+    def _reserve_exchange_order_slot(self, wait_for_cooldown: bool = True) -> int:
+        """Reserve a paced slot; entries wait for 429 cooldown before reserving so exits can pass them."""
         min_gap_ms = max(0, int(fnum(os.getenv("HL_LIVE_MIN_EXCHANGE_ORDER_GAP_MS"), 250)))
-        now_ms = utc_now_ms()
-        with self._exchange_order_lock:
-            slot_ms = max(
-                self._last_exchange_order_ms + min_gap_ms,
-                self._exchange_rate_limit_cooldown_until_ms,
-                now_ms,
-            )
-            self._last_exchange_order_ms = max(self._last_exchange_order_ms, slot_ms)
-        return slot_ms
+        while True:
+            now_ms = utc_now_ms()
+            with self._exchange_order_lock:
+                cooldown_until_ms = self._exchange_rate_limit_cooldown_until_ms
+                if wait_for_cooldown and cooldown_until_ms > now_ms:
+                    wait_ms = cooldown_until_ms - now_ms
+                else:
+                    slot_ms = max(self._last_exchange_order_ms + min_gap_ms, now_ms)
+                    self._last_exchange_order_ms = max(self._last_exchange_order_ms, slot_ms)
+                    return slot_ms
+            time.sleep(min(5.0, wait_ms / 1000.0))
 
     def _note_exchange_rate_limit(self, error_text: str) -> None:
         if classify_reject_category(error_text, None) != "RATE_LIMIT_OR_TIMEOUT":
             return
         cooldown_ms = max(0, int(fnum(os.getenv("HL_LIVE_RATE_LIMIT_COOLDOWN_MS"), 8000)))
-        self._exchange_rate_limit_cooldown_until_ms = max(
-            self._exchange_rate_limit_cooldown_until_ms,
-            utc_now_ms() + cooldown_ms,
-        )
+        with self._exchange_order_lock:
+            self._exchange_rate_limit_cooldown_until_ms = max(
+                self._exchange_rate_limit_cooldown_until_ms,
+                utc_now_ms() + cooldown_ms,
+            )
 
     @staticmethod
     def _audit_proof_block_reason() -> str:
@@ -5914,7 +5949,7 @@ class SenderGateway:
             _key = canonical_coin_key(intent.fill.coin)
             _led_net = self.ledger.coin_net(_key)
             recovery_response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", close_size,
-                                                  limit_px, "Gtc", _ro)
+                                                  limit_px, "Gtc", _ro, bypass_rate_limit_cooldown=True)
             ok, status, oid, error = self._parse_hl_response(recovery_response)
             self._recovery_intent_ids.add(intent.intent_id)
             if ok and oid and status == "ORDER_RESTING":
@@ -6881,7 +6916,7 @@ class SenderGateway:
         try:
             response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", wire_size, limit_px,
                                          "Gtc" if rest_now else "Ioc", use_reduce_only, timing, "exchange_call_started_ms",
-                                         cloid=cloid)
+                                         cloid=cloid, bypass_rate_limit_cooldown=lifecycle in {"REDUCE", "EXIT"})
             timing["exchange_call_finished_ms"] = utc_now_ms()
             if rest_now:
                 return self._resting_entry_result(
@@ -6953,7 +6988,7 @@ class SenderGateway:
                         first_error = parsed_error
                         timing["netting_close_retry_started_ms"] = utc_now_ms()
                         response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", wire_size, limit_px,
-                                                     "Ioc", False)
+                                                     "Ioc", False, bypass_rate_limit_cooldown=True)
                         ok, status, oid, parsed_error = self._parse_hl_response(response)
                         reject_category = classify_reject_category(parsed_error, response) if status == "ORDER_REJECTED" else ""
                         use_reduce_only = False
@@ -11083,7 +11118,7 @@ class LiveCopyCore:
         fast = max(1.0, fnum(env, auto)) if env else auto
         return min(fast, max(0.0, fnum(os.getenv("HL_LIVE_LEADER_POLL_INTERVAL_SEC"), 30.0)))
 
-    def _leader_poll_due(self) -> bool:
+    def _leader_poll_due(self, force: bool = False) -> bool:
         """The live feed is the hot path; the poll is the missed-fill backstop. While the feed's socket is open the
         leaders are polled every HL_LIVE_LEADER_POLL_INTERVAL_SEC (default 30 s, within the info rate limit for
         10 busy wallets); without the feed, every cycle."""
@@ -11093,7 +11128,7 @@ class LiveCopyCore:
         except Exception as exc:
             log_error("headroom_evaluate", exc)
         interval = self.leader_poll_interval_sec()
-        if interval and now - getattr(self, "_last_leader_poll_ms", 0) < interval * 1000:
+        if not force and interval and now - getattr(self, "_last_leader_poll_ms", 0) < interval * 1000:
             return False
         self._last_leader_poll_ms = now
         return True
@@ -11574,15 +11609,27 @@ class LiveCopyCore:
         self._converge_thread.start()
 
     def poll_wallets(self) -> List[str]:
-        """Leaders the REST backstop reads this cycle. Default (HL_LIVE_POLL_ALL_ACTIVE, on) is every
-        active leader whether or not it holds one of the MAX_WALLETS WS slots, so no leader fill is
-        lost when the feed follows only the busiest wallets. Set to 0 to poll only self.wallets.
-        This never widens what is copied: LEADER_POLL_OVERLAP_MS plus the per-wallet cursor and the
-        _already_handled dedupe make a fill seen by both the feed and the poll run exactly once, and
-        leader_poll_interval_sec() already relaxes the cadence when every leader is feed-acked."""
-        return ([w for w in self.cfg.active_wallets() if self.cfg.wallet_mode(w) != "OFF"]
-                if bval(os.getenv("HL_LIVE_POLL_ALL_ACTIVE"), True)
-                else list(self.wallets))
+        """Poll LIVE wallets and CLO wallets unless a valid local ledger proves every sleeve flat."""
+        active = self.cfg.active_wallets()
+        close_only = [w for w in active if self.cfg.wallet_mode(w) == "CLO"]
+        ledger = getattr(self, "ledger", None)
+        nonflat = ledger.nonflat_wallets_from_disk() if close_only and ledger is not None else None
+        poll_all_active = bval(os.getenv("HL_LIVE_POLL_ALL_ACTIVE"), True)
+        candidates = active if poll_all_active else list(self.wallets) + close_only
+        selected = []
+        for wallet in dict.fromkeys(candidates):
+            mode = self.cfg.wallet_mode(wallet)
+            if (not self.cfg.wallet_enabled(wallet) or mode == "OFF"
+                    or (mode == "CLO" and nonflat is not None and wallet not in nonflat)):
+                continue
+            selected.append(wallet)
+        modes = tuple(sorted((w, self.cfg.wallet_enabled(w), self.cfg.wallet_mode(w)) for w in self.cfg.wallets()))
+        close_state = tuple((w, None if nonflat is None else w in nonflat) for w in close_only)
+        signature = (modes, tuple(selected), close_state, poll_all_active)
+        previous = getattr(self, "_poll_wallet_selection_signature", None)
+        self._poll_wallet_selection_changed = previous is not None and signature != previous
+        self._poll_wallet_selection_signature = signature
+        return selected
 
     def run_cycle(self, use_source_csv: bool = True, poll_live: bool = False, poll_copy: bool = False, reconcile_exchange: bool = False) -> CycleSummary:
         # HOT_CONFIG_RELOAD_WINAGENT: reload live_config/wallet_gate each cycle so UI/control changes affect a running core.
@@ -11705,7 +11752,8 @@ class LiveCopyCore:
             if use_source_csv:
                 since = 0
                 fills.extend(self.ingestor.read_from_csv(self.source_csv, self.wallets, since_ms=since))
-            if poll_live and self._leader_poll_due():
+            poll_wallets = self.poll_wallets() if poll_live else []
+            if poll_live and self._leader_poll_due(force=self._poll_wallet_selection_changed):
                 poll_status = "POLL_OK"
                 now = utc_now_ms()
                 _cursor_updates: Dict[str, int] = {}
@@ -11719,7 +11767,7 @@ class LiveCopyCore:
                 _feed_ok = bool(self.ws.enabled and getattr(self.ws, "_socket_open", False)
                                 and _feed_set and _feed_set <= _acked_set)
                 _stale_cursor_ms = max(60_000, int(max(0.0, self.leader_poll_interval_sec()) * 2000))
-                for w in self.poll_wallets():
+                for w in poll_wallets:
                     # Skip wallets that are turned off — no fills to copy, avoids wasteful network calls.
                     if self.cfg.wallet_mode(w) == "OFF":
                         continue
@@ -11799,7 +11847,7 @@ class LiveCopyCore:
                     _ec = _cs.get("last_leader_poll_cursor_ms")
                     if not isinstance(_ec, dict):
                         _ec = {}
-                    _active_cursor_wallets = {str(w).lower() for w in self.poll_wallets()}
+                    _active_cursor_wallets = {str(w).lower() for w in self.cfg.active_wallets()}
                     _ec = {
                         str(w).lower(): v
                         for w, v in _ec.items()
