@@ -1717,12 +1717,14 @@ def _schedule_audit_flush(path: Path, fieldnames: List[str]) -> None:
     _AUDIT_FLUSH_EVENT.set()
 
 
-def append_csv(path: Path, fieldnames: List[str], row: Dict[str, Any], *, spill_on_failure: bool = True, durable: bool = False) -> bool:
+def append_csv(path: Path, fieldnames: List[str], row: Dict[str, Any], *, spill_on_failure: bool = True, durable: bool = False, retry_permission: bool = False) -> bool:
     """Append one audit row or durably spill it; raise only if neither store preserves it.
 
     A failed live append is durably spilled immediately; a background flusher retries it off the send lane.
     Returns True on a live append, False when replay must retain its existing spill row.
     durable=True flushes the append before the replay journal records completion.
+    retry_permission=True opts this call into the bounded PermissionError retry (sleeps while holding the file lock);
+    the default is one attempt and no sleep, so send-lane appends (order intents, pending_send) never block.
     """
     ensure_csv_header(path, fieldnames)
     payload = _audit_row_payload(fieldnames, row)
@@ -1772,7 +1774,7 @@ def append_csv(path: Path, fieldnames: List[str], row: Dict[str, Any], *, spill_
                 _clean = (path.stat().st_size if path.exists() else 0) == size_before
             except Exception:
                 _clean = False
-            if isinstance(exc, PermissionError) and _clean and _retry_n < _CSV_APPEND_RETRIES and _slept < _CSV_APPEND_BACKOFF_CAP_SEC:
+            if retry_permission and isinstance(exc, PermissionError) and _clean and _retry_n < _CSV_APPEND_RETRIES and _slept < _CSV_APPEND_BACKOFF_CAP_SEC:
                 # Held under the file lock on purpose: releasing it mid-retry would let another row interleave while
                 # size_before / the spill-behind check are only valid for this attempt, and replay callers hold it too.
                 _delay = min(_CSV_APPEND_BACKOFF_SEC * (2 ** _retry_n), _CSV_APPEND_BACKOFF_CAP_SEC - _slept)
@@ -4253,7 +4255,7 @@ class AuditLogWriter:
             "status": status,
             **kwargs,
         }
-        append_csv(RECONCILIATION_CSV, RECONCILIATION_FIELDS, row)
+        append_csv(RECONCILIATION_CSV, RECONCILIATION_FIELDS, row, retry_permission=True)
         self._note_fill_row(kwargs.get("leader_fill_id"), kwargs.get("terminal_state") or status)
 
     def replay_all_fallbacks(self) -> int:
