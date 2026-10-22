@@ -145,14 +145,14 @@ def main() -> int:
         view_only_alert = ui._engine_alert()
         rendered, errors = render_headless(ui, audit_fixture(values, view_only_alert))
         check("rendered DOM keeps the account-value header", "ACCOUNT VALUE (TESTNET)" in rendered and "$120.00" in rendered)
-        check("rendered DOM shows all three scoped values", all(s in rendered for s in ("UNIFIED ACCOUNT VALUE: $116.70", "PERP ACCOUNT VALUE: $65.50", "SPOT USDC: $116.70")), rendered[:1000])
+        check("rendered DOM distinguishes unified spot-backed value from perp margin view", all(s in rendered for s in ("Unified account value (spot USDC; backs perps): $116.70", "Perp margin view (accountValue): $65.50")) and "SPOT USDC: $116.70" not in rendered, rendered[:1000])
         check("wallet P&L is visibly labelled as sleeve profit, not balance", "NET P&L (SLEEVE)" in rendered and "does not sum to account value" in rendered)
         check("matching engine state renders no false red alert", "SEND GATE MISMATCH" not in rendered)
         check("headless UI rendered without JavaScript errors", not errors, "; ".join(errors))
 
         missing = {"account_value": None, "unified_portfolio_value": None, "raw_spot_balances": []}
         unavailable, missing_errors = render_headless(ui, audit_fixture(missing, ""))
-        check("missing scoped values render as unavailable, not zero", unavailable.count("unavailable") >= 3 and "$0.00" not in unavailable)
+        check("missing scoped values render as unavailable, not zero", all(s in unavailable for s in ("Unified account value (spot USDC; backs perps): unavailable", "Perp margin view (accountValue): unavailable")) and "$0.00" not in unavailable)
         check("missing-value headless render has no JavaScript errors", not missing_errors, "; ".join(missing_errors))
 
     print(f"\nTOTAL={len(PASSES) + len(FAILS)} FAILED={len(FAILS)}")

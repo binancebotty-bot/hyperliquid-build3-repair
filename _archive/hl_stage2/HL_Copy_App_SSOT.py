@@ -7102,7 +7102,7 @@ def render_live_copy_control_panel() -> str:
     </div>
   </header>
   <section class="lc-banner" id="lcBanner" aria-label="Overall status">
-    <div class="lc-banner-cell"><div class="label" id="lcBannerAcctLabel">Account value</div><div class="value" id="lcBannerAcct">—</div><div class="lc-account-scopes"><div>UNIFIED ACCOUNT VALUE: <span id="lcBannerUnified">unavailable</span></div><div>PERP ACCOUNT VALUE: <span id="lcBannerPerp">unavailable</span></div><div>SPOT USDC: <span id="lcBannerSpotUsdc">unavailable</span></div></div></div>
+    <div class="lc-banner-cell"><div class="label" id="lcBannerAcctLabel">Account value</div><div class="value" id="lcBannerAcct">—</div><div class="lc-account-scopes"><div>Unified account value (spot USDC; backs perps): <span id="lcBannerUnified">unavailable</span></div><div>Perp margin view (accountValue): <span id="lcBannerPerp">unavailable</span></div></div></div>
     <div class="lc-banner-cell"><div class="label">Sending</div><div class="value" id="lcBannerSending">—</div></div>
     <div class="lc-banner-cell lc-banner-health"><div class="label">Health</div><div class="value" id="lcBannerHealth">—</div></div>
     <div class="lc-banner-cell"><div class="label" id="lcBannerPnlLabel">Account change since run start</div><div class="value" id="lcBannerPnl">—</div></div>
@@ -7445,7 +7445,7 @@ function renderBanner(){
  const scopedMoney=v=>v!=null&&isNum(v)?'$'+Number(v).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}):'unavailable';
  const al=root.querySelector('#lcBannerAcctLabel');if(al)al.textContent='Account value'+(net?' ('+net+')':'');
  set('lcBannerAcct',b.account_value!=null?'$'+Number(b.account_value).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}):dash(b.account_value_reason),'');
- for(const [id,value] of [['lcBannerUnified',snap.unified_portfolio_value],['lcBannerPerp',snap.account_value],['lcBannerSpotUsdc',spot&&spot.total]]){const el=root.querySelector('#'+id);if(el)el.textContent=scopedMoney(value);}
+ for(const [id,value] of [['lcBannerUnified',snap.unified_portfolio_value],['lcBannerPerp',snap.account_value]]){const el=root.querySelector('#'+id);if(el)el.textContent=scopedMoney(value);}
  const armed=lcAudit.master_real_orders_enabled===true;  // the master switch only
  set('lcBannerSending',armed?'ON':'OFF',armed?'lc-green':'lc-grey',armed?'real orders are being sent':'sending is switched off (a choice, not a fault)');
  set('lcBannerHealth',h(hl.text||'—'),levelCls(hl.level),'');
