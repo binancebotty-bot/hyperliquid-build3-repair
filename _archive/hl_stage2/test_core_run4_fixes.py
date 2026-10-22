@@ -82,6 +82,8 @@ def main() -> None:
         def __init__(self, replies=None):
             self.calls, self.replies = [], list(replies or [])
 
+        def update_leverage(self, leverage, name, is_cross=True):  # ENTRY/ADD fail closed without it
+            return {"status": "ok"}
         def order(self, coin, is_buy, size, px, tif, reduce_only=False):
             self.calls.append({"px": px, "tif": tif["limit"]["tif"], "buy": is_buy, "size": size, "reduce_only": reduce_only})
             if self.replies:
@@ -284,6 +286,8 @@ def main() -> None:
             super().__init__(replies)
             self.cancels, self.cancel_reply = [], cancel_reply
 
+        def update_leverage(self, leverage, name, is_cross=True):  # ENTRY/ADD fail closed without it
+            return {"status": "ok"}
         def order(self, coin, is_buy, size, px, tif, reduce_only=False):
             if tif["limit"]["tif"] == "Gtc" and not self.replies:   # a fresh order id per standing close
                 self.calls.append({"px": px, "tif": "Gtc", "buy": is_buy, "size": size, "reduce_only": reduce_only})

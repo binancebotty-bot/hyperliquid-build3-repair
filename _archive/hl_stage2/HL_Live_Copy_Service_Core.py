@@ -5047,6 +5047,34 @@ class SenderGateway:
         finally:
             lock.release()
 
+    def _guarded_update_leverage(self, exchange: Any, lev: Any, sdk_coin: str, is_cross: bool) -> str:
+        """The ONE place update_leverage is called (worker and inline). One global margin lock serialises it across coins
+        (an order for another coin waits at most HL_LIVE_MM_WAIT_SEC, then fails closed); under it the call takes a paced
+        order slot (entries wait out a 429 cooldown), runs in the margin_mode_bg headroom lane, and a 429 re-arms the shared
+        cooldown. Returns "" on an explicit {"status": "ok"}, else the error (fail closed: non-dict/unrecognised replies fail)."""
+        glock = self.__dict__.setdefault("_mm_global_lock", threading.Lock())
+        if not glock.acquire(timeout=max(0.1, fnum(os.getenv("HL_LIVE_MM_WAIT_SEC"), 10.0))):
+            return "margin-mode call lock busy past the HL_LIVE_MM_WAIT_SEC limit"
+        try:
+            slot_ms = self._reserve_exchange_order_slot(wait_for_cooldown=True)
+            delay_ms = max(0, slot_ms - utc_now_ms())
+            if delay_ms:
+                time.sleep(min(5.0, delay_ms / 1000.0))
+            error = ""
+            try:
+                with request_lane("margin_mode_bg"):
+                    resp = exchange.update_leverage(lev, sdk_coin, is_cross)  # SDK: update_leverage(leverage, name, is_cross)
+                # only an explicit {"status": "ok"} counts as set; no read-back is done, so nothing else confirms it
+                if not isinstance(resp, dict) or str(resp.get("status", "")).lower() != "ok":
+                    error = "unrecognised update_leverage reply: " + json.dumps(resp, default=str)[:280]
+            except Exception as exc:
+                error = repr(exc)
+            if error:
+                self._note_exchange_rate_limit(error)  # a 429 here re-arms the shared order cooldown
+            return error
+        finally:
+            glock.release()
+
     @staticmethod
     def _margin_unset_block(error: str, timing: Dict[str, Any]) -> Dict[str, Any]:
         return {
@@ -5093,19 +5121,11 @@ class SenderGateway:
             ok = False
             try:
                 exchange, sdk_coin = self._exchange_client_for_coin(coin)
-                if str(sdk_coin) not in self.__dict__.setdefault("_margin_mode_done", set()):
-                    # the same 429 cooldown + paced slot as an order (entries wait out a cooldown), taken BEFORE the per-asset
-                    # lock so a cooldown stall here never holds an order up; a 429 below re-arms that cooldown (back-off)
-                    slot_ms = self._reserve_exchange_order_slot(wait_for_cooldown=True)
-                    delay_ms = max(0, slot_ms - utc_now_ms())
-                    if delay_ms and not self._mm_stopping:
-                        time.sleep(min(5.0, delay_ms / 1000.0))
                 if self._mm_stopping:
                     ok = False
-                else:
+                else:  # the call itself (paced slot, cooldown, lane, global margin lock) is _guarded_update_leverage
                     stand_in = argparse.Namespace(fill=argparse.Namespace(coin=coin))
-                    with request_lane("margin_mode_bg"):
-                        ok = self._ensure_margin_mode(exchange, sdk_coin, stand_in, "ENTRY", {}) is None
+                    ok = self._ensure_margin_mode(exchange, sdk_coin, stand_in, "ENTRY", {}) is None
             except Exception as exc:  # a failed setup never blocks anything: the order path retries it inline
                 log_error("margin_mode_background", exc)
                 self._note_exchange_rate_limit(repr(exc))
@@ -5163,24 +5183,17 @@ class SenderGateway:
                                    timing: Dict[str, Any]) -> Optional[Tuple[bool, str, Dict[str, Any]]]:
         """Cross margin at the follower leverage, set once per asset per run BEFORE the first order in it. A refused call
         blocks ENTRY/ADD (MARGIN_MODE_UNSET); closes are never blocked. Isolated-only assets and exchange objects without
-        update_leverage are skipped."""
+        update_leverage cannot be set: an ENTRY/ADD on a client without update_leverage fails closed too."""
         done = self.__dict__.setdefault("_margin_mode_done", set())
         key = str(sdk_coin)
-        if lifecycle not in {"ENTRY", "ADD"} or key in done or not hasattr(exchange, "update_leverage"):
+        if lifecycle not in {"ENTRY", "ADD"} or key in done:
             return None  # closes are never touched
         lev, _max_lev = self._copy_leverage(intent.fill.coin)
         is_cross = not self._is_isolated_only(intent.fill.coin)  # isolated-only assets: isolated margin at the capped leverage
-        error = ""
-        try:
-            resp = exchange.update_leverage(lev, sdk_coin, is_cross)  # SDK: update_leverage(leverage, name, is_cross)
-            # fail closed: only an explicit {"status": "ok"} counts as set (a non-dict / unrecognised reply, e.g. None from a
-            # transport hiccup, is MARGIN_MODE_UNSET; no read-back is done, so nothing else confirms it)
-            if not isinstance(resp, dict) or str(resp.get("status", "")).lower() != "ok":
-                error = ("unrecognised update_leverage reply: " + json.dumps(resp, default=str)[:280])
-        except Exception as exc:
-            error = repr(exc)
-        if error:
-            self._note_exchange_rate_limit(error)  # a 429 here re-arms the shared order cooldown
+        if not hasattr(exchange, "update_leverage"):
+            error = "exchange client has no update_leverage: margin mode cannot be set"
+        else:
+            error = self._guarded_update_leverage(exchange, lev, sdk_coin, is_cross)
         self.audit.append_reconciliation(
             "MARGIN_MODE_SET", "MARGIN_MODE_SET" if not error else "MARGIN_MODE_UNSET", coin=str(intent.fill.coin),
             action="NO_ACTION" if not error else "MANUAL_REVIEW_MARGIN_MODE",

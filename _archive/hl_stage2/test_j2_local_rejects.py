@@ -96,6 +96,8 @@ class FakeExchange:
         self.cancels = []
         self.replies = list(replies or [])
 
+    def update_leverage(self, leverage, name, is_cross=True):  # ENTRY/ADD fail closed without it
+        return {"status": "ok"}
     def order(self, coin, is_buy, size, px, tif, reduce_only=False):
         EXCHANGE_CALLS.append({
             "coin": coin, "is_buy": is_buy, "size": size, "px": px,
