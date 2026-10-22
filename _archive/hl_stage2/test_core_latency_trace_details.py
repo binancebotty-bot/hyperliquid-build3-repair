@@ -103,10 +103,12 @@ with tempfile.TemporaryDirectory(prefix="latency_trace_details_") as tmp:
     rows = wait_for_trace_rows(2)
     end = next(row for row in rows if row.get("k") == "proc_end")
     expected = {
+        "ws_received_ms": 1_010,
         "leader_fill_ms": 1_000,
         "enqueue_ms": 1_100,
         "pickup_ms": 1_200,
         "lane_start_ms": 1_300,
+        "send_real_started_ms": None,
         "reply_ms": 1_400,
     }
     if end.get("stage_stamps") != expected:

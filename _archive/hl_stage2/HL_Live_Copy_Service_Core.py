@@ -8030,11 +8030,15 @@ class SenderGateway:
                     "reason": " ".join(error_text.split())[:240] or "exchange rejected order without a reason",
                 }
             reply_ms = timing.get("exchange_call_finished_ms")
-            if reply_ms not in (None, ""):
+            call_ms = timing.get("exchange_call_started_ms")  # stamped in _place_order right before exchange.order
+            if reply_ms not in (None, "") or call_ms not in (None, ""):
                 trace_stages = intent.fill.raw.get("_trace_stage_stamps")
                 if not isinstance(trace_stages, dict):
                     trace_stages = intent.fill.raw["_trace_stage_stamps"] = {}
-                trace_stages["reply_ms"] = int(fnum(reply_ms, 0))
+                if reply_ms not in (None, ""):
+                    trace_stages["reply_ms"] = int(fnum(reply_ms, 0))
+                if call_ms not in (None, ""):
+                    trace_stages["send_real_started_ms"] = int(fnum(call_ms, 0))
         self.audit.append_send_attempt(row)  # same attempt_id as the pending_send row: the newest row is the state
         if status != "ORDER_FILLED":
             self.audit.append_reconciliation(
@@ -10163,10 +10167,12 @@ class LiveCopyCore:
                 trace_stages = raw.get("_trace_stage_stamps")
                 reply_ms = trace_stages.get("reply_ms") if isinstance(trace_stages, dict) else None
                 rec["stage_stamps"] = {
+                    "ws_received_ms": int(fill.ws_received_ms) if fill.ws_received_ms else None,  # only a WS fill has one
                     "leader_fill_ms": int(fill.timestamp_ms) if fill.timestamp_ms else None,
                     "enqueue_ms": stamps.get("enqueued_ms") if isinstance(stamps, dict) else None,
                     "pickup_ms": stamps.get("picked_up_ms") if isinstance(stamps, dict) else None,
                     "lane_start_ms": stamps.get("lane_started_ms") if isinstance(stamps, dict) else None,
+                    "send_real_started_ms": trace_stages.get("send_real_started_ms") if isinstance(trace_stages, dict) else None,
                     "reply_ms": reply_ms,
                 }
             rec.update(extra or {})
