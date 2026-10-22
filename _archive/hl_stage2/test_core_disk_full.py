@@ -223,6 +223,7 @@ def main() -> None:
         return [str(r.get("context") or "") for r in errors()]
 
     def intent_rows():
+        c.flush_intent_writer(30.0)  # intent rows are written behind the send; read them once the writer is idle
         return c.read_csv_rows(c.ORDER_INTENTS_CSV) if c.ORDER_INTENTS_CSV.exists() else []
 
     src = (HERE / "HL_Live_Copy_Service_Core.py").read_text(encoding="utf-8-sig", errors="replace")
@@ -239,10 +240,12 @@ def main() -> None:
             core._run_plan(0, [it_a.fill])
         except BaseException as exc:  # noqa: BLE001 - the point of the check
             raised_a = exc
+        c.flush_intent_writer(30.0)  # the intent row is written behind the send: its failure is recorded by the writer
     check("A1_NO_ORDER_SENT_WHEN_INTENT_ROW_CANNOT_BE_WRITTEN", fake_a.calls == [], "exchange calls=%d" % len(fake_a.calls))
     check("A2_FAILURE_CONTAINED_AT_THE_WORKER_BOUNDARY", raised_a is None,
           "the intent-append failure escaped _run_plan: %r" % (raised_a,))
-    check("A3_LOUD_RECORD_OF_THE_FAILURE", ("ws_hot_send" in error_contexts() or "process_leader_fill" in error_contexts()),
+    check("A3_LOUD_RECORD_OF_THE_FAILURE", ("ws_hot_send" in error_contexts() or "process_leader_fill" in error_contexts()
+                                              or "intent_write_behind" in error_contexts()),
           "errors.csv contexts=%s" % error_contexts()[-3:])
     it_a2 = intent(fid="a2")
     core.intents_by_id[it_a2.intent_id] = it_a2

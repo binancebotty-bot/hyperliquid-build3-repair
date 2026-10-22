@@ -1820,9 +1820,74 @@ class _BoundedRaw(io.RawIOBase):
 CSV_BAD_ROWS = 0
 
 
+_INTENT_COND = threading.Condition()
+_INTENT_QUEUE: "collections.deque" = collections.deque()
+_INTENT_STATE: Dict[str, Any] = {"busy": False, "thread": None, "atexit": False}
+
+
+def enqueue_intent_row(path: Path, fieldnames: List[str], row: Dict[str, Any]) -> None:
+    """Write-behind for the order_intents.csv audit row: the send path only queues it (append_csv can wait seconds on the
+    shared audit file lock). One writer thread appends in order; flush_intent_writer() drains it. The pre-send
+    pending_send row is NOT queued: it stays a direct append on its own lock. A full backlog or the switch
+    HL_LIVE_INTENT_WRITE_BEHIND=0 appends inline as before."""
+    if bval(os.getenv("HL_LIVE_INTENT_WRITE_BEHIND"), True):
+        with _INTENT_COND:
+            if len(_INTENT_QUEUE) < int(fnum(os.getenv("HL_LIVE_INTENT_QUEUE_MAX"), 20000.0)):
+                _INTENT_QUEUE.append((path, fieldnames, row))
+                thread = _INTENT_STATE["thread"]
+                if thread is None or not thread.is_alive():
+                    _INTENT_STATE["thread"] = threading.Thread(target=_intent_writer_loop, daemon=True, name="HLCore-intent-writer")
+                    _INTENT_STATE["thread"].start()
+                if not _INTENT_STATE["atexit"]:
+                    _INTENT_STATE["atexit"] = True
+                    atexit.register(flush_intent_writer, 10.0)
+                _INTENT_COND.notify_all()
+                return
+    append_csv(path, fieldnames, row)
+
+
+def _intent_writer_loop() -> None:
+    while True:
+        with _INTENT_COND:
+            while not _INTENT_QUEUE:
+                _INTENT_COND.wait()
+            item = _INTENT_QUEUE.popleft()
+            _INTENT_STATE["busy"] = True
+        for attempt in range(3):
+            try:
+                append_csv(*item)  # a failed live append is spilled and retried by append_csv itself
+                break
+            except Exception as exc:
+                if attempt == 2:
+                    log_error("intent_write_behind", exc)
+                else:
+                    time.sleep(0.5)
+        with _INTENT_COND:
+            _INTENT_STATE["busy"] = False
+            _INTENT_COND.notify_all()
+
+
+def flush_intent_writer(timeout: Optional[float] = 10.0) -> bool:
+    """Wait until every queued intent row is on disk. True when drained."""
+    end = time.monotonic() + (10.0 if timeout is None else float(timeout))
+    with _INTENT_COND:
+        while _INTENT_QUEUE or _INTENT_STATE["busy"]:
+            left = end - time.monotonic()
+            if left <= 0:
+                return False
+            _INTENT_COND.wait(left)
+    return True
+
+
+def _flush_intents_before_read(path: Path) -> None:
+    if path == ORDER_INTENTS_CSV:  # the check runs under the writer lock: a row popped but not yet written still counts
+        flush_intent_writer(5.0)
+
+
 def iter_csv_rows(path: Path) -> Iterator[Dict[str, str]]:
     """Rows of an audit CSV one at a time (no whole-file bytes, text or row list in memory). The size is taken
     under the file lock, so a row being appended is either wholly in the scan or wholly out of it."""
+    _flush_intents_before_read(path)
     if not path.exists():
         return
     with _lock_for(path):
@@ -1861,6 +1926,7 @@ def iter_audit_history(path: Path) -> Iterator[Dict[str, str]]:
 def read_csv_tail_rows(path: Path, max_bytes: int) -> List[Dict[str, str]]:
     """Rows in roughly the last max_bytes of an audit CSV (whole rows only, header from the file start), so a status
     report over a multi-hundred-MB append-only file parses a bounded slice. max_bytes <= 0 reads the whole file."""
+    _flush_intents_before_read(path)
     if not path.exists():
         return []
     with _lock_for(path):
@@ -1889,6 +1955,7 @@ def read_csv_tail_rows(path: Path, max_bytes: int) -> List[Dict[str, str]]:
 def read_csv_rows(path: Path) -> List[Dict[str, str]]:
     """Every row of an audit CSV. Only the byte read is under the file lock; parsing (seconds for the large
     append-only files on the PC) runs after it, so appends from the send path never wait for a parse (run 5)."""
+    _flush_intents_before_read(path)
     if not path.exists() or path.stat().st_size <= 0:
         return []
     with _lock_for(path):
@@ -4140,7 +4207,7 @@ class AuditLogWriter:
         notes = intent.notes
         if isinstance(intent.fill.raw, dict) and "dir" in intent.fill.raw:
             notes = (notes + ";" if notes else "") + "leader_dir_json=" + json.dumps(intent.fill.raw["dir"], ensure_ascii=False)
-        append_csv(ORDER_INTENTS_CSV, ORDER_INTENT_FIELDS, {
+        row = {
             "created_at": utc_now_iso(),
             "created_at_ms": utc_now_ms(),
             "intent_id": intent.intent_id,
@@ -4170,7 +4237,11 @@ class AuditLogWriter:
             "max_close_adverse_diff_pct": "",
             "min_notional": "",
             "notes": notes,
-        })
+        }
+        if "merged_leader_fills=" in str(notes):  # read back at restart for idempotency: written before this returns
+            append_csv(ORDER_INTENTS_CSV, ORDER_INTENT_FIELDS, row)
+        else:  # audit only: written behind the send by the single writer thread (flushed before reads, on stop and at exit)
+            enqueue_intent_row(ORDER_INTENTS_CSV, ORDER_INTENT_FIELDS, row)
 
     def _note_fill_row(self, fid: Any, state: Any = "") -> None:
         fid = str(fid or "").strip()
@@ -9897,6 +9968,7 @@ class LiveCopyCore:
                 self._fill_trace_writer_done = True
                 self._fill_trace_condition.notify()
             ft.join(timeout=5.0)
+        flush_intent_writer(5.0)  # queued intent audit rows reach disk before the process goes
         _drain_status_write_workers()
 
     def _prewarm_with_parity(self, fill: LeaderFill, local_block: bool, converge: bool = False) -> None:
