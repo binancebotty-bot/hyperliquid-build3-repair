@@ -205,7 +205,8 @@ def http_post(url, payload, timeout, monitor=None):
     import requests  # type: ignore
     if getattr(requests.post, "__module__", "") != "requests.api" or os.getenv("HL_LIVE_HTTP_SESSION", "1") == "0":
         try:
-            _resp = requests.post(url, json=payload, timeout=timeout)
+            with _suppress():
+                _resp = requests.post(url, json=payload, timeout=timeout)
         except Exception:
             _note_shared_weight(url, payload, None, monitor)
             raise
@@ -230,15 +231,19 @@ def http_post(url, payload, timeout, monitor=None):
                 sess.mount("http://", adapter)
                 _SESSION = sess
     try:
-        _resp = _SESSION.post(url, json=payload, timeout=timeout)
+        with _suppress():
+            _resp = _SESSION.post(url, json=payload, timeout=timeout)
     except (requests.Timeout, requests.ConnectionError) as exc:
         # a pooled connection the server closed in the instant before use fails once; /info reads are idempotent, so
         # retry once on a fresh connection. A timeout is never retried (it would double the worst case).
+        # Weight is counted conservatively: EVERY dispatched attempt, the failed first one included (a ConnectionError
+        # does not prove the request never reached the server).
+        _note_shared_weight(url, payload, None, monitor)
         if isinstance(exc, requests.Timeout) or os.getenv("HL_LIVE_HTTP_RETRY", "1") == "0":
-            _note_shared_weight(url, payload, None, monitor)
             raise
         try:
-            _resp = _SESSION.post(url, json=payload, timeout=timeout)
+            with _suppress():
+                _resp = _SESSION.post(url, json=payload, timeout=timeout)
         except Exception:  # the retry failed too: the read was still sent, so its weight still counts (once)
             _note_shared_weight(url, payload, None, monitor)
             raise
@@ -247,6 +252,15 @@ def http_post(url, payload, timeout, monitor=None):
         raise
     _note_shared_weight(url, payload, _resp, monitor)
     return _resp
+
+
+def _suppress():
+    try:
+        import headroom as _hr
+        return _hr.suppress_session_weight()
+    except Exception:  # monitor module absent: nothing to suppress
+        import contextlib
+        return contextlib.nullcontext()
 
 
 def _note_shared_weight(url, payload, response, monitor=None):

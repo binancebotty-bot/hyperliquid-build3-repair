@@ -35,6 +35,19 @@ _ACTIONS = {
 FOREIGN_SCAN_SEC = float(os.getenv("HL_LIVE_FOREIGN_WS_SCAN_SEC", "30"))
 _REQUEST_LANE = contextvars.ContextVar("hl_request_lane", default="hot")
 _SESSION_REQUEST_MONITOR = None
+_WEIGHT_TL = threading.local()   # set while exchange_truth.http_post posts: it notes its own weight, the session counter must not
+
+
+@contextmanager
+def suppress_session_weight():
+    """http_post counts the weight of its own attempts; the session counter (which sees the same Session.request)
+    must not add it a second time."""
+    prev = getattr(_WEIGHT_TL, "skip", False)
+    _WEIGHT_TL.skip = True
+    try:
+        yield
+    finally:
+        _WEIGHT_TL.skip = prev
 
 
 @contextmanager
@@ -307,13 +320,28 @@ def install_session_counter(monitor: HeadroomMonitor) -> None:
             if active is not None:
                 active.note_request(url, k.get("json"), lane,
                                     getattr(getattr(exc, "response", None), "status_code", None))
+                _note_session_weight(active, method, url, k.get("json"), None)  # dispatched: weight may have been spent
             raise
         if active is not None:
             active.note_request(url, k.get("json"), lane, getattr(response, "status_code", None))
+            _note_session_weight(active, method, url, k.get("json"), response)
         return response
 
     counted_request._headroom_counter = True
     requests.Session.request = counted_request
+
+
+def _note_session_weight(monitor, method, url, payload, response):
+    """SDK-session /info posts (Info client: meta, spotMeta, ...) spend weight too. /exchange and non-/info add none;
+    skipped while http_post is counting its own attempt (exactly once)."""
+    if getattr(_WEIGHT_TL, "skip", False) or str(method).upper() != "POST":
+        return
+    try:
+        parsed = urlsplit(str(url))
+        if parsed.path.rstrip("/").endswith("/info") and parsed.hostname:
+            note_shared_http(url, payload, response, monitor)
+    except Exception:
+        pass
 
 
 def note_shared_http(url, payload, response, monitor=None):
