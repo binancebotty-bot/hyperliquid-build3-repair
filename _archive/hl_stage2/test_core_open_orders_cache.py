@@ -121,5 +121,19 @@ sweep_pair()
 c.utc_now_ms = real_now
 check("TTL_EXPIRES_AFTER_15_SECONDS", len(calls) == 2, str(len(calls)))
 
+# 8. a hit while a send is in flight is a miss (the exact interleaving: counter raised, cache not yet cleared)
+fresh(); sweep_pair(); n = len(calls)
+c._OPEN_ORDERS_CACHE_STATE["sends"] = 1
+c.periodic_open_orders([""])
+check("HIT_WHILE_SEND_IN_FLIGHT_IS_A_MISS", len(calls) == n + 1 and bool(c._OPEN_ORDERS_CACHE), str((n, len(calls))))
+c.periodic_open_orders([""])
+check("NO_STORE_WHILE_SEND_IN_FLIGHT", len(calls) == n + 2, str((n, len(calls))))
+c._OPEN_ORDERS_CACHE_STATE["sends"] = 0
+fresh(); sweep_pair(); n = len(calls)
+c._open_orders_send_begin()
+check("SEND_BEGIN_CLEARS_CACHE_WITH_COUNTER_RAISED", not c._OPEN_ORDERS_CACHE and c._OPEN_ORDERS_CACHE_STATE["sends"] == 1)
+c._open_orders_send_end()
+check("SEND_END_RELEASES_COUNTER", c._OPEN_ORDERS_CACHE_STATE["sends"] == 0)
+
 print("TOTAL=%d FAILED=%d" % (len(R), sum(1 for _, ok in R if not ok)))
 sys.exit(1 if any(not ok for _, ok in R) else 0)
