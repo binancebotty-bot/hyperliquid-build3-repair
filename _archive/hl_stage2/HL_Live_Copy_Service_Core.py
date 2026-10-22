@@ -5720,6 +5720,16 @@ class SenderGateway:
             self._recovery_intent_ids = known
         return intent.intent_id in known
 
+    def _standing_close_for_coin(self, coin: str) -> Optional[Tuple[str, Dict[str, Any]]]:
+        key = canonical_coin_key(coin)
+        if not key:
+            return None
+        with self._resting_lock:
+            for sleeve_id, row in self._standing_closes.items():
+                if canonical_coin_key(row.get("coin")) == key:
+                    return sleeve_id, dict(row)
+        return None
+
     def _record_placed_order(self, intent: Intent, oid: str, size: float, px: float, reduce_only: bool, order_type: str,
                              terminal_state: str, action: str, notes: str) -> None:
         """Every order the engine places is in send_attempts with its order id, so its fills (now or later) are
@@ -5849,6 +5859,8 @@ class SenderGateway:
         sz_dec: Optional[int] = None,
     ) -> None:
         if not self.ledger or not intent.reduce_only_intended or self._exit_recovery_exists(intent):
+            return
+        if self._standing_close_for_coin(intent.fill.coin) is not None:
             return
         sleeve = self.ledger.sleeve(intent.fill.leader_wallet, intent.fill.coin)
         wallet_pos = fnum(sleeve.get("signed_size"), 0.0)
@@ -6185,18 +6197,14 @@ class SenderGateway:
         return abs(ex_net - led_net) > max(POSITION_EPSILON, 0.001 * abs(delta))
 
     def _fresh_exchange_net(self, coin: str) -> Optional[float]:
-        """The follower account's net position in one coin from a fresh read (scope DEXs plus the coin's own DEX), or
-        None when the account cannot be read. Never raises."""
+        """Fresh net for this market's DEX only; same-named positions on other DEXes are separate markets."""
         try:
             if not is_valid_wallet(normalise_wallet(USER_WALLET)):
                 return None
             key = canonical_coin_key(coin)
-            dexes = list(follower_dex_scope())
-            if ":" in str(coin):
-                own = str(coin).split(":", 1)[0].lower()
-                if own and own not in dexes:
-                    dexes.append(own)
-            exp = _XNET.master_exposure(normalise_wallet(USER_WALLET), dexes, fetcher=EXPOSURE_FETCHER,
+            raw = str(coin or "").strip()
+            dex = raw.split(":", 1)[0].strip().lower() if ":" in raw else ""
+            exp = _XNET.master_exposure(normalise_wallet(USER_WALLET), [dex], fetcher=EXPOSURE_FETCHER,
                                         info_url=HL_INFO_URL, timeout=HTTP_TIMEOUT_SEC)
             if not exp.get("ok"):
                 return None
@@ -6405,6 +6413,18 @@ class SenderGateway:
                 last_exit = self._last_exit_attempt_ms.get(coin_key, 0)
                 if utc_now_ms() - last_exit < 60000:
                     return False, "EXIT_ATTEMPT_COOLDOWN"
+                active_close = self._standing_close_for_coin(intent.fill.coin)
+                if active_close is not None and active_close[0] != intent.sleeve_id:
+                    self._append_local_block_reconciliation(intent, "PENDING_EXIT_GUARD_ACTIVE", {
+                        "terminal_state": "PENDING_EXIT_GUARD_ACTIVE",
+                        "reject_category": "PENDING_EXIT_GUARD",
+                        "operator_action": "NO_SEND_PENDING_EXIT_IN_FLIGHT",
+                        "write_reconciliation": True,
+                        "timing": timing,
+                        "notes": (f"standing recovery close in flight for coin={intent.fill.coin}; "
+                                  f"prior_sleeve_id={active_close[0]}; no duplicate close sent"),
+                    })
+                    return False, "PENDING_EXIT_GUARD_ACTIVE"
                 blocked, guard_reason = self._pending_exit_blocked(intent)
                 if blocked:
                     self._append_local_block_reconciliation(intent, "PENDING_EXIT_GUARD_ACTIVE", {
