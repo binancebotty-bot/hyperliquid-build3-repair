@@ -1982,10 +1982,14 @@ def _intent_writer_loop() -> None:
         with _INTENT_COND:
             if append_failed:  # the barrier must not mistake a failed row for a durable one: the status is retained
                 _INTENT_STATE["failed_seqs"].add(seq_done)
+                _INTENT_STATE.setdefault("failed_unreported", {})[seq_done] = str(item[2].get("leader_wallet") or "")  # until a later send of that wallet reports it
                 while len(_INTENT_STATE["failed_seqs"]) > max(1, int(fnum(os.getenv("HL_LIVE_INTENT_FAILED_MAX"), 10000.0))):
                     evicted = min(_INTENT_STATE["failed_seqs"])  # bounded memory: evict the oldest, but loudly and with a watermark
                     _INTENT_STATE["failed_seqs"].discard(evicted)
                     _INTENT_STATE["failed_evicted_seq"] = max(int(_INTENT_STATE.get("failed_evicted_seq") or 0), evicted)
+                    _w = _INTENT_STATE.setdefault("failed_unreported", {}).pop(evicted, "")
+                    if _w:
+                        _INTENT_STATE.setdefault("failed_unknown_wallets", set()).add(_w)  # its failure is no longer retained: status unknown
             _INTENT_STATE["durable_seq"] = max(int(_INTENT_STATE["durable_seq"]), seq_done)
             _INTENT_STATE["busy"] = False
             _INTENT_COND.notify_all()
@@ -2001,7 +2005,7 @@ def intent_seq_for(intent_id: Any) -> Optional[int]:
         return _INTENT_SEQ_BY_ID.get(str(intent_id or ""))
 
 
-def wait_intent_durable(seq: Optional[int], intent_id: str = "", timeout_ms: Optional[float] = None) -> bool:
+def wait_intent_durable(seq: Optional[int], intent_id: str = "", timeout_ms: Optional[float] = None, wallet: str = "") -> bool:
     """Pre-send durability barrier for the write-behind order_intents row. Lifecycle/recovery code reads that journal, so
     the order's row (and every earlier queued row: the writer is strictly in order) must be on disk BEFORE the exchange
     call, or a crash in between would lose lifecycle/provenance fields that pending_send does not carry.
@@ -2012,10 +2016,12 @@ def wait_intent_durable(seq: Optional[int], intent_id: str = "", timeout_ms: Opt
     pending_send row (sync + fsync, written right after this) is the idempotency/crash record and an unsent order costs
     more than a missing audit row. The gap is reported loudly: stderr + audit-write-failure alert counter (naming the
     intent id) at once, and an errors.csv row (intent_durable_barrier) written from a side thread so that file's lock
-    cannot delay the order. Returns True when durable (or nothing to wait for), False when it proceeded without.
-    Never raises."""
+    cannot delay the order. With `wallet`, an earlier queued row of the SAME wallet that failed (or whose failure record was
+    evicted) is reported too, once (a later successful row must not mask it); other wallets' failures never touch this
+    send, and nothing here waits on them. Returns True when durable (or nothing to wait for), False when it proceeded
+    without. Never raises."""
     try:
-        if seq is None:
+        if seq is None and not wallet:
             return True
         ms = fnum(os.getenv("HL_LIVE_INTENT_DURABLE_WAIT_MS"), 250.0) if timeout_ms is None else float(timeout_ms)
         if ms <= 0:
@@ -2023,7 +2029,7 @@ def wait_intent_durable(seq: Optional[int], intent_id: str = "", timeout_ms: Opt
         end = time.monotonic() + ms / 1000.0
         reason = ""
         with _INTENT_COND:
-            while int(_INTENT_STATE["durable_seq"]) < seq:
+            while seq is not None and int(_INTENT_STATE["durable_seq"]) < seq:
                 thread = _INTENT_STATE["thread"]
                 if thread is None or not thread.is_alive():
                     reason = "writer thread is not running"
@@ -2034,10 +2040,23 @@ def wait_intent_durable(seq: Optional[int], intent_id: str = "", timeout_ms: Opt
                     break
                 _INTENT_COND.wait(left)
             else:
-                if seq in _INTENT_STATE["failed_seqs"]:
+                if seq is None:
+                    pass
+                elif seq in _INTENT_STATE["failed_seqs"]:
                     reason = "writer failed to append the row"
                 elif seq <= int(_INTENT_STATE.get("failed_evicted_seq") or 0):
                     reason = "row status unknown (its failure record was evicted)"
+                if not reason and wallet:
+                    _unrep = _INTENT_STATE.setdefault("failed_unreported", {})
+                    _earlier = sorted(q for q, w in _unrep.items() if w == wallet and (seq is None or q < seq))
+                    _unknown = _INTENT_STATE.setdefault("failed_unknown_wallets", set())
+                    if _earlier:
+                        reason = f"an earlier order_intents row of wallet {wallet} (seq {_earlier[:5]}) failed to append"
+                    elif wallet in _unknown:
+                        reason = f"an earlier order_intents row of wallet {wallet} failed and its failure record was evicted (status unknown)"
+                    for _q in _earlier:
+                        _unrep.pop(_q, None)  # reported once, not on every later send
+                    _unknown.discard(wallet)
             if reason:
                 _INTENT_STATE["durable_timeouts"] = int(_INTENT_STATE.get("durable_timeouts") or 0) + 1
         if not reason:
@@ -5467,7 +5486,7 @@ class SenderGateway:
         cloid, attempt_id = generate_cloid(key), generate_attempt_id(key)
 
         def _pre() -> None:
-            wait_intent_durable(intent_seq_for(intent.intent_id), intent.intent_id)  # never raises
+            wait_intent_durable(intent_seq_for(intent.intent_id), intent.intent_id, wallet=str(intent.fill.leader_wallet or ""))  # never raises
             t["send_attempt_id"] = attempt_id  # the final row of the last attempt shares this id and cloid
             self._begin_pending_send(intent, tif, order_type, limit_px, size, cloid, t, reduce_only)
             t["pending_send_done_ms"] = utc_now_ms()
@@ -7387,7 +7406,7 @@ class SenderGateway:
 
         def _pending_send(_tif="Gtc" if rest_now else "Ioc", _ot="REAL_GTC" if rest_now else "REAL_IOC", _px=limit_px,
                           _sz=wire_size, _ro=use_reduce_only) -> None:
-            wait_intent_durable(intent_seq_for(intent.intent_id), intent.intent_id)  # barrier: intent row on disk first; never raises
+            wait_intent_durable(intent_seq_for(intent.intent_id), intent.intent_id, wallet=str(intent.fill.leader_wallet or ""))  # barrier: intent row on disk first; never raises
             self._begin_pending_send(intent, _tif, _ot, _px, _sz, cloid, timing, _ro)
             timing["pending_send_done_ms"] = utc_now_ms()
         try:
