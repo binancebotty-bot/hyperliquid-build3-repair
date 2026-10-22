@@ -1840,7 +1840,7 @@ def enqueue_intent_row(path: Path, fieldnames: List[str], row: Dict[str, Any]) -
                     _INTENT_STATE["thread"].start()
                 if not _INTENT_STATE["atexit"]:
                     _INTENT_STATE["atexit"] = True
-                    atexit.register(flush_intent_writer, 10.0)
+                    atexit.register(flush_intent_writer, 10.0, "atexit")  # bounded; a timeout is reported, never silent
                 _INTENT_COND.notify_all()
                 return
     append_csv(path, fieldnames, row)
@@ -1867,21 +1867,42 @@ def _intent_writer_loop() -> None:
             _INTENT_COND.notify_all()
 
 
-def flush_intent_writer(timeout: Optional[float] = 10.0) -> bool:
-    """Wait until every queued intent row is on disk. True when drained."""
+def flush_intent_writer(timeout: Optional[float] = 10.0, context: str = "") -> bool:
+    """Wait (bounded) until every queued intent row is on disk. True when drained. On a timeout it returns False AFTER
+    reporting loudly: errors.csv row (intent_flush_timeout), stderr and the audit-write-failure alert counter, with the
+    number of rows still queued. The callers (readers, stop, atexit) go on: they cannot wait forever, but never silently."""
     end = time.monotonic() + (10.0 if timeout is None else float(timeout))
+    remaining = 0
     with _INTENT_COND:
         while _INTENT_QUEUE or _INTENT_STATE["busy"]:
             left = end - time.monotonic()
             if left <= 0:
-                return False
+                remaining = len(_INTENT_QUEUE) + (1 if _INTENT_STATE["busy"] else 0)
+                _INTENT_STATE["flush_timeouts"] = int(_INTENT_STATE.get("flush_timeouts") or 0) + 1
+                break
             _INTENT_COND.wait(left)
-    return True
+        else:
+            return True
+    msg = (f"intent audit writer did not drain within {float(timeout if timeout is not None else 10.0):.1f}s "
+           f"(context={context or 'unspecified'}): {remaining} order_intents row(s) still queued/in flight; "
+           "send_attempts.csv still holds the pending_send/final rows for those orders")
+    try:
+        note_audit_write_failure(ORDER_INTENTS_CSV, TimeoutError(msg))  # alert counter + journal + stderr
+    except Exception:
+        pass
+    log_error("intent_flush_timeout", msg)
+    return False
+
+
+def intent_writer_status() -> Dict[str, Any]:
+    with _INTENT_COND:
+        return {"queued": len(_INTENT_QUEUE), "busy": bool(_INTENT_STATE["busy"]),
+                "flush_timeouts": int(_INTENT_STATE.get("flush_timeouts") or 0)}
 
 
 def _flush_intents_before_read(path: Path) -> None:
     if path == ORDER_INTENTS_CSV:  # the check runs under the writer lock: a row popped but not yet written still counts
-        flush_intent_writer(5.0)
+        flush_intent_writer(5.0, "read:" + path.name)  # a timeout is reported loudly inside; the read goes on with what is on disk
 
 
 def iter_csv_rows(path: Path) -> Iterator[Dict[str, str]]:
@@ -4257,8 +4278,8 @@ class AuditLogWriter:
         """Has this process written any send-attempt or reconciliation row for the leader fill id (the final-row invariant)."""
         return str(fid or "").strip() in self.__dict__.get("_rowed", ())
 
-    def append_send_attempt(self, row: Dict[str, Any]) -> None:
-        append_csv(SEND_ATTEMPTS_CSV, SEND_ATTEMPT_FIELDS, row)
+    def append_send_attempt(self, row: Dict[str, Any], durable: bool = False) -> None:
+        append_csv(SEND_ATTEMPTS_CSV, SEND_ATTEMPT_FIELDS, row, durable=durable)
         self._note_fill_row(row.get("leader_fill_id"), row.get("terminal_state") or row.get("status"))
 
     def append_live_fill(self, row: Dict[str, Any]) -> None:
@@ -4763,6 +4784,10 @@ def project_isolated_liquidation_px(mark: float, is_long: bool, leverage: float,
     return mark - side * mark * (1.0 / leverage - l) / denom
 
 
+class PendingSendWriteFailed(RuntimeError):
+    """The pending_send write-ahead row could not be written: the order was NOT sent."""
+
+
 class SenderGateway:
     def __init__(self, cfg: ConfigManager, audit: AuditLogWriter, ledger: Optional[ManualLedger] = None):
         self.cfg = cfg
@@ -4826,7 +4851,8 @@ class SenderGateway:
 
     def _place_order(self, exchange: Any, sdk_coin: str, is_buy: bool, size: float, limit_px: float,
                      tif: str, reduce_only: bool, timing: Optional[Dict[str, Any]] = None, started_key: str = "",
-                     cloid: Optional[str] = None, bypass_rate_limit_cooldown: bool = False) -> Any:
+                     cloid: Optional[str] = None, bypass_rate_limit_cooldown: bool = False,
+                     pre_send: Optional[Callable[[], None]] = None) -> Any:
         """The ONE physical exchange order call. Every order (IOC, IOC retry, rate-limit recovery,
         exit recovery) is serialised and paced here."""
         # Only the time slot is serialised (pacing, and a distinct signing nonce per order): the exchange calls of
@@ -4838,6 +4864,11 @@ class SenderGateway:
         delay_ms = max(0, slot_ms - utc_now_ms())
         if delay_ms:
             time.sleep(min(5.0, delay_ms / 1000.0))
+        if pre_send is not None:  # the pending_send write-ahead row: after the slot/cooldown wait, synchronously, right before the call
+            try:
+                pre_send()
+            except Exception as exc:  # fail closed: no crash record means no order
+                raise PendingSendWriteFailed(repr(exc)) from exc
         if timing is not None and started_key:
             timing[started_key] = utc_now_ms()
         order_kwargs: Dict[str, Any] = {"reduce_only": reduce_only}
@@ -5176,7 +5207,7 @@ class SenderGateway:
         timing["send_attempt_id"] = attempt_id
         timing["send_cloid"] = cloid
         now = utc_now_ms()
-        self.audit.append_send_attempt({
+        _row = ({
             "created_at": utc_now_iso(),
             "created_at_ms": now,
             "attempt_id": attempt_id,
@@ -5208,6 +5239,12 @@ class SenderGateway:
             "notes": f"pending_send written before the exchange call; tif={tif}",
             "cloid": cloid,
         })
+        # the write-ahead row is fsynced (HL_LIVE_PENDING_SEND_FSYNC, default 1) so a power loss right after the exchange
+        # accepted the order cannot lose the only record naming it; the final send row is not fsynced
+        if bval(os.getenv("HL_LIVE_PENDING_SEND_FSYNC"), True):
+            self.audit.append_send_attempt(_row, durable=True)
+        else:
+            self.audit.append_send_attempt(_row)
         return attempt_id
 
     def _engine_owned_cloids_and_oids(self):
@@ -7101,26 +7138,21 @@ class SenderGateway:
                 wire_size = close_size_planned
         netting_note = ""
         gtc_px = limit_px if rest_now else 0.0  # a resting limit is in flight: never re-send it after an exception
-        # T1a: write the pending_send row (with the cloid) before the one physical call, then replace it below
+        # T1a: the pending_send row (with the cloid) is written by _place_order synchronously, AFTER the slot/cooldown wait
+        # and immediately BEFORE the one physical call (so a crash during the wait leaves no pending row for an unsent
+        # order), then replaced below
         cloid = str(timing.get("send_cloid") or generate_cloid(intent.intent_id))
         timing["send_cloid"] = cloid
-        try:
-            self._begin_pending_send(intent, "Gtc" if rest_now else "Ioc", "REAL_GTC" if rest_now else "REAL_IOC",
-                                     limit_px, wire_size, cloid, timing, use_reduce_only)
-        except Exception as exc:  # fail closed: no crash record means no order (the caller releases any exit reservation)
-            log_error("begin_pending_send", exc)
-            return False, "SEND_NOT_ATTEMPTED_AUDIT_WRITE_FAILED", {
-                "status": "AUDIT_WRITE_FAILED", "error": repr(exc), "exchange_response": {}, "oid": "",
-                "exchange_called": False, "write_reconciliation": True,
-                "notes": f"pending_send row could not be written ({exc!r}); order not sent",
-                "reject_category": "AUDIT_WRITE_FAILED", "terminal_state": "AUDIT_WRITE_FAILED",
-                "operator_action": "CHECK_DISK_AND_AUDIT_FILES", "timing": timing,
-            }
-        timing["pending_send_done_ms"] = utc_now_ms()
+
+        def _pending_send(_tif="Gtc" if rest_now else "Ioc", _ot="REAL_GTC" if rest_now else "REAL_IOC", _px=limit_px,
+                          _sz=wire_size, _ro=use_reduce_only) -> None:
+            self._begin_pending_send(intent, _tif, _ot, _px, _sz, cloid, timing, _ro)
+            timing["pending_send_done_ms"] = utc_now_ms()
         try:
             response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", wire_size, limit_px,
                                          "Gtc" if rest_now else "Ioc", use_reduce_only, timing, "exchange_call_started_ms",
-                                         cloid=cloid, bypass_rate_limit_cooldown=lifecycle in {"REDUCE", "EXIT"})
+                                         cloid=cloid, bypass_rate_limit_cooldown=lifecycle in {"REDUCE", "EXIT"},
+                                         pre_send=_pending_send)
             timing["exchange_call_finished_ms"] = utc_now_ms()
             if rest_now:
                 return self._resting_entry_result(
@@ -7226,6 +7258,16 @@ class SenderGateway:
                 **({"notes": netting_note} if netting_note else {}),
             }
         except Exception as exc:
+            if isinstance(exc, PendingSendWriteFailed):  # fail closed: no crash record means no order (caller releases any exit reservation)
+                cause = exc.__cause__ or exc
+                log_error("begin_pending_send", cause)
+                return False, "SEND_NOT_ATTEMPTED_AUDIT_WRITE_FAILED", {
+                    "status": "AUDIT_WRITE_FAILED", "error": str(exc), "exchange_response": {}, "oid": "",
+                    "exchange_called": False, "write_reconciliation": True,
+                    "notes": f"pending_send row could not be written ({exc}); order not sent",
+                    "reject_category": "AUDIT_WRITE_FAILED", "terminal_state": "AUDIT_WRITE_FAILED",
+                    "operator_action": "CHECK_DISK_AND_AUDIT_FILES", "timing": timing,
+                }
             timing["exchange_call_finished_ms"] = utc_now_ms()
             log_error("send_real", exc)
             if isinstance(exc, KeyError):
@@ -10020,7 +10062,8 @@ class LiveCopyCore:
             self.sender.stop_margin_mode_worker(5.0)  # bounded drain of the background margin-mode worker
         except Exception as exc:
             log_error("margin_mode_stop", exc)
-        flush_intent_writer(5.0)  # queued intent audit rows reach disk before the process goes
+        if not flush_intent_writer(5.0, "stop"):  # queued intent audit rows reach disk before the process goes (bounded, reported)
+            log_error("stop_intent_rows_pending", f"stop: {intent_writer_status()}")
         _drain_status_write_workers()
 
     def _prewarm_with_parity(self, fill: LeaderFill, local_block: bool, converge: bool = False) -> None:
