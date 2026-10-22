@@ -7357,6 +7357,26 @@ class SenderGateway:
         except Exception as alert_exc:
             log_error("post_send_bookkeeping_alert", alert_exc)
 
+    def _send_time_wallet_mode_block(self, intent: Intent, lifecycle: str) -> Optional[Tuple[str, str]]:
+        """Re-reads the wallet's CURRENT mode (the same ConfigManager source _decision uses) at the final send gate, so an
+        intent queued/delayed while LIVE cannot send after the wallet was switched. OFF/disabled: nothing is sent. CLO: entries/adds
+        blocked; closes/exits unchanged (leader closes only, sized from the follower net; not forced reduce-only). ON: unchanged.
+        Unreadable mode: fail OPEN to the intent-time decision, loudly. Never writes a wallet mode."""
+        wallet = intent.fill.leader_wallet
+        try:
+            enabled = self.cfg.wallet_enabled(wallet)
+            mode = self.cfg.wallet_mode(wallet)
+        except Exception as exc:
+            log_error("send_time_wallet_mode_unreadable", f"intent_id={intent.intent_id} wallet={wallet}: {exc!r}; using the intent-time decision")
+            return None
+        if not enabled:
+            return "BLOCKED_OFF", f"wallet disabled at send time (intent created in mode {intent.wallet_mode})"
+        if mode == "OFF":
+            return "BLOCKED_OFF", f"wallet mode OFF at send time (intent created in mode {intent.wallet_mode})"
+        if mode == "CLO" and lifecycle in {"ENTRY", "ADD"}:
+            return "BLOCKED_CLO_ENTRY", f"CLO blocks entries/adds at send time (intent created in mode {intent.wallet_mode})"
+        return None
+
     def send_if_allowed(self, intent: Intent, entry_block_reason: str = "") -> Tuple[bool, str]:
         if not intent.send_allowed:
             return False, "INTENT_NOT_SEND_ALLOWED"
@@ -7410,6 +7430,12 @@ class SenderGateway:
             return False, "MASTER_REAL_ORDERS_OFF"
         if lifecycle in {"ENTRY", "ADD"} and self.cfg.send_mode_now() == "CLOSE":  # or to close-only meanwhile
             return False, "ENTRY_BLOCKED_GLOBAL_CLOSE_ONLY"
+        mode_block = self._send_time_wallet_mode_block(intent, lifecycle)  # rw12: the wallet may have moved to CLO/OFF since the intent was made
+        if mode_block is not None:
+            self._append_local_block_reconciliation(intent, mode_block[0], {
+                "terminal_state": mode_block[0], "reject_category": "WALLET_MODE_BLOCK",
+                "operator_action": "NO_SEND_WALLET_MODE_CHANGED", "notes": mode_block[1], "timing": timing})
+            return False, mode_block[0]
         if lifecycle in {"ENTRY", "ADD"} and self.cfg.liq_parity_enabled():
             timing["liq_parity_started_ms"] = utc_now_ms()
             parity = self.liq_parity_block(intent)
