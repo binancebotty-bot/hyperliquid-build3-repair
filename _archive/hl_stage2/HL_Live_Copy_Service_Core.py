@@ -8399,10 +8399,16 @@ class SenderGateway:
             return False
         if requests is None:
             return False
+        if not self._meta_fetch_begin(""):  # rw13: same single-flight + bounded backoff as the startup fetch; the timer stays put
+            return False
         new_meta: Dict[str, Dict[str, Any]] = {}
         new_index: Dict[int, str] = {}
+        err = ""
         try:
             r = requests.post(HL_INFO_URL, json={"type": "meta"}, timeout=HTTP_TIMEOUT_SEC)
+            _sc = getattr(r, "status_code", 200)
+            if isinstance(_sc, int) and _sc >= 400:
+                raise RuntimeError(f"HTTP {_sc}")
             for idx, asset in enumerate(r.json().get("universe", [])):
                 if not isinstance(asset, dict):
                     continue
@@ -8418,28 +8424,46 @@ class SenderGateway:
                     "onlyIsolated": bval(asset.get("onlyIsolated"), False),
                 }
                 new_index[idx] = name
-            if new_meta:
-                self._meta_cache = new_meta
-                self._index_cache = new_index
-                self._core_meta_fetched = True
-                self._meta_fetched = True
-                for dex_name in follower_dex_scope():  # the follower DEX scope only
-                    if dex_name:
-                        self._builder_meta_fetched.pop(dex_name, None)
-                        self._fetch_builder_meta(dex_name)
-                self._universe_last_refresh_ms = now_ms
-                self._save_asset_universe_snapshot("periodic_refresh")
-                return True
+            if not new_meta:  # an EMPTY core universe is a failure even when a cached index exists
+                raise RuntimeError("empty core universe")
         except Exception as exc:
-            try:
-                self.audit.append_reconciliation(
-                    "ASSET_META_REFRESH", "ASSET_META_REFRESH_FAILED_USING_LAST_GOOD",
-                    notes=(f"universe refresh failed; keeping last good cache; "
-                           f"error={repr(exc)[:120]}; last_good_symbols={len(self._meta_cache)}"),
-                )
-            except Exception:
-                pass
-        return False
+            err = repr(exc)[:120]
+        self._meta_fetch_end("", err)
+        if not err:
+            for _k, _v in self._meta_cache.items():  # builder entries survive the core swap until their own refetch succeeds
+                if isinstance(_v, dict) and _v.get("symbol_source") == "builder_meta":
+                    new_meta.setdefault(_k, _v)
+            self._meta_cache = new_meta
+            self._index_cache = new_index
+            self._core_meta_fetched = True
+            self._meta_fetched = True
+            for dex_name in follower_dex_scope():  # the follower DEX scope only
+                if dex_name:
+                    was = self._builder_meta_fetched.pop(dex_name, None)
+                    self._fetch_builder_meta(dex_name)
+                    if not self._builder_meta_fetched.get(dex_name):  # failed or in backoff: keep the last good copy in use
+                        err = f"builder dex {dex_name} meta refresh failed"
+                        if was:
+                            self._builder_meta_fetched[dex_name] = was
+            if err:
+                self._meta_fetch_end("", err)  # back the periodic refresh off too, so a failing builder is not hammered every cycle
+        if err:
+            now = time.monotonic()
+            if now - self.__dict__.get("_universe_fail_logged", -1e12) >= max(1.0, fnum(os.getenv("HL_LIVE_META_FETCH_LOG_SEC"), 600.0)):
+                self._universe_fail_logged = now
+                log_error("asset_meta_refresh", f"ASSET_META_REFRESH_FAILED_USING_LAST_GOOD: {err}; last_good_symbols={len(self._meta_cache)}")
+                try:
+                    self.audit.append_reconciliation(
+                        "ASSET_META_REFRESH", "ASSET_META_REFRESH_FAILED_USING_LAST_GOOD",
+                        notes=(f"universe refresh failed; keeping last good cache; "
+                               f"error={err}; last_good_symbols={len(self._meta_cache)}"),
+                    )
+                except Exception:
+                    pass
+            return False  # the refresh timer is NOT advanced: the next tick retries once the backoff allows
+        self._universe_last_refresh_ms = now_ms
+        self._save_asset_universe_snapshot("periodic_refresh")
+        return True
 
     def _alert_unknown_asset(self, raw_coin: str, reason: str, detail: str) -> None:
         """Rate-limited audit alert for @/# assets that cannot be resolved."""
