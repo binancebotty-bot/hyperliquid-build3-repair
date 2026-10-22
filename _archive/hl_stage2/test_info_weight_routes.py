@@ -194,5 +194,64 @@ try:
 except requests.ReadTimeout:
     pass
 check("TIMEOUT_COUNTED_ONCE", window() - b == W(oo), window() - b)
-print("TOTAL=%d FAILED=%d" % (23, len(FAILED)))
+
+# --- SDK-session /info posts (HL SDK Info client) are counted by weight by the session counter, once ---
+from requests.adapters import BaseAdapter
+
+
+class FakeAdapter(BaseAdapter):
+    def __init__(self, fail_first=False):
+        super().__init__()
+        self.sent, self.fail_first = [], fail_first
+
+    def send(self, request, **kw):
+        import json as _j
+        self.sent.append(_j.loads(request.body) if request.body else None)
+        if self.fail_first and len(self.sent) == 1:
+            raise requests.ConnectionError("RemoteDisconnected")
+        r = requests.Response()
+        r.status_code = 200
+        r._content = b"[]"
+        r.url = request.url
+        return r
+
+    def close(self):
+        pass
+
+
+headroom.install_session_counter(mon)   # patches requests.Session.request; mon is now the active session monitor
+ad = FakeAdapter()
+sdk = requests.Session()
+sdk.mount("https://", ad)
+b = window()
+sdk.post("https://api.hyperliquid-testnet.xyz/info", json={"type": "spotMeta"}, timeout=3)
+sdk.post("https://api.hyperliquid-testnet.xyz/info", json={"type": "meta"}, timeout=3)
+check("SDK_SESSION_INFO_WEIGHT_ONCE", window() - b == W({"type": "spotMeta"}) + W({"type": "meta"}) and len(ad.sent) == 2,
+      (window() - b, len(ad.sent)))
+b = window()
+sdk.post("https://api.hyperliquid-testnet.xyz/exchange", json={"action": {"type": "order"}}, timeout=3)
+check("SDK_SESSION_EXCHANGE_NO_WEIGHT", window() == b, window() - b)
+b = window()
+sdk.get("https://api.hyperliquid-testnet.xyz/info", timeout=3)
+check("SDK_SESSION_NON_POST_NO_WEIGHT", window() == b, window() - b)
+# http_post riding a REAL Session (counter patched in): the counter and http_post must not both count
+real_sess2 = requests.Session()
+xt._SESSION = real_sess2
+ad2 = FakeAdapter()
+real_sess2.mount("https://", ad2)
+b = window()
+xt.http_post(URL, oo, 3.0)
+check("HTTP_POST_ON_COUNTED_SESSION_ONCE", window() - b == W(oo) and len(ad2.sent) == 1, (window() - b, len(ad2.sent)))
+b = window()
+xt._post(None, state, URL, 3.0)
+check("POST_ON_COUNTED_SESSION_ONCE", window() - b == W(state), window() - b)
+# conservative retry accounting: a ConnectionError first attempt is counted too (2 dispatched attempts = 2x weight)
+ad3 = FakeAdapter(fail_first=True)
+real_sess3 = requests.Session()
+xt._SESSION = real_sess3
+real_sess3.mount("https://", ad3)
+b = window()
+xt.http_post(URL, oo, 3.0)
+check("RETRY_COUNTS_EVERY_DISPATCHED_ATTEMPT", len(ad3.sent) == 2 and window() - b == 2 * W(oo), (len(ad3.sent), window() - b))
+print("TOTAL=%d FAILED=%d" % (27, len(FAILED)))
 sys.exit(1 if FAILED else 0)
