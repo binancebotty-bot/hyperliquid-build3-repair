@@ -229,8 +229,71 @@ def main() -> None:
                   len(supersede_errors(iid)) == 1 and any(r.get("context") == "supersede_attempt" and iid in r.get("message", "")
                                                            for r in disk_rows(c.ERRORS_CSV)),
                   str(supersede_errors(iid)))
+
+        # ---- F4: exception recovery: an explicit 429 (no order) supersedes the earlier pending row, a timeout keeps it pending
+        os.environ["HL_LIVE_RATE_LIMIT_COOLDOWN_MS"] = "0"
+        import json as _json
+
+        def wallet_mode():
+            return _json.loads(c.LIVE_CONFIG_FILE.read_text(encoding="utf-8-sig"))["wallets"][A]["mode"]
+
+        def pending_rows(iid):
+            return [r for r in attempts(iid) if r.get("status") == "pending_send"]
+
+        for label, exc in (("429", RuntimeError("ClientError(429, 'Too many requests')")),
+                           ("TIMEOUT", TimeoutError("Read timed out"))):
+            iid = "q" + label
+            it = mk_intent(iid)
+            c.AuditLogWriter().append_order_intent(it)
+            ex = Ex([exc, FILLED(1.0, 100.0)])
+            g = gw(ex)
+            ok, status, res = g._send_real(it)
+            tm = res.get("timing") or {}
+            rows = pending_rows(iid)  # first row = the attempt whose call raised
+            first_id = rows[0]["attempt_id"] if rows else ""
+            lat = latest_by_attempt(iid)
+            check("F4_%s_RECOVERY_STILL_SENT_SAME_AS_BEFORE" % label, ok and len(ex.calls) == 2 and len(rows) == 2,
+                  "ok=%s calls=%d rows=%d" % (ok, len(ex.calls), len(rows)))
+            check("F4_%s_RECOVERY_HAS_OWN_ATTEMPT" % label, bool(first_id) and tm.get("send_attempt_id") not in ("", first_id))
+            if label == "429":
+                check("F4_429_SUPERSEDES_EARLIER_PENDING_ROW",
+                      lat[first_id]["terminal_state"] == "SUPERSEDED_BY_RETRY" and lat[first_id]["status"] != "pending_send"
+                      and not tm.get("ambiguous_attempt_ids"),
+                      str((lat[first_id]["status"], lat[first_id]["terminal_state"], tm.get("ambiguous_attempt_ids"))))
+            else:
+                check("F4_TIMEOUT_KEEPS_EARLIER_ROW_PENDING_AND_ITS_ATTEMPT_ID",
+                      lat[first_id]["status"] == "pending_send" and lat[first_id]["terminal_state"] == "PENDING_SEND"
+                      and tm.get("ambiguous_attempt_ids") == [first_id],
+                      str((lat[first_id]["status"], lat[first_id]["terminal_state"], tm.get("ambiguous_attempt_ids"))))
+            check("F4_%s_NEVER_CHANGES_WALLET_MODE" % label, wallet_mode() == "ON")
+        check("F4_CLASSIFIER_SPLITS_429_FROM_TIMEOUT",
+              c.classify_rate_limit_kind("ClientError(429, 'x')") == "RATE_LIMIT"
+              and c.classify_rate_limit_kind("Too many requests") == "RATE_LIMIT"
+              and c.classify_rate_limit_kind("Read timed out") == "TIMEOUT"
+              and c.classify_rate_limit_kind("429 then timed out") == "TIMEOUT"
+              and c.classify_reject_category("ClientError(429, 'x')", {}) == c.classify_reject_category("Read timed out", {})
+              == "RATE_LIMIT_OR_TIMEOUT")
+
+        # ---- G1: the missed-entry GTC branch (IOC finds no match inside the tolerance window -> limit at the leader's price)
+        iid = "g1"
+        it = mk_intent(iid)
+        c.AuditLogWriter().append_order_intent(it)
+        ex = Ex([NOMATCH, RESTING])
+        g = gw(ex)
+        ok, status, res = g._send_real(it)
+        lat = latest_by_attempt(iid)
+        pr = pending_rows(iid)
+        check("G1_MISSED_ENTRY_GTC_SENT_AFTER_IOC_NO_MATCH", len(ex.calls) == 2 and [x["tif"] for x in ex.calls] == ["Ioc", "Gtc"]
+              and ok and status == "ORDER_RESTING", "%s %s %s" % (ok, status, [x["tif"] for x in ex.calls]))
+        check("G1_MISSED_ENTRY_GTC_OWN_CLOID_AND_PENDING_ROW", len(pr) == 2 and len({x["cloid"] for x in ex.calls}) == 2
+              and all(x["cloid"] for x in ex.calls) and {r["cloid"] for r in pr} == {x["cloid"] for x in ex.calls})
+        first_id = pr[0]["attempt_id"] if pr else ""
+        check("G1_MISSED_ENTRY_GTC_SUPERSEDES_REJECTED_IOC_ROW", lat[first_id]["terminal_state"] == "SUPERSEDED_BY_RETRY"
+              and (res.get("timing") or {}).get("send_attempt_id") != first_id)
+        check("G1_MISSED_ENTRY_GTC_REGISTERED_AS_RESTING_ENTRY", g.resting_entry_for(A, "BTC", "BUY") is not None)
     finally:
         c.append_csv = real_append_csv
+        os.environ.pop("HL_LIVE_RATE_LIMIT_COOLDOWN_MS", None)
         os.environ.pop("HL_LIVE_INTENT_FAILED_MAX", None)
 
     failed = [n for n, ok in RESULTS if not ok]

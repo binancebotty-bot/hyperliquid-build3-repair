@@ -809,6 +809,17 @@ def _response_text(exchange_response: Any) -> str:
         return str(exchange_response)
 
 
+def classify_rate_limit_kind(text: Any) -> str:
+    """Splits RATE_LIMIT_OR_TIMEOUT: "RATE_LIMIT" is an explicit 429 / rate-limit refusal (the exchange rejected the call, no
+    order exists); "TIMEOUT" is everything else, including text naming both (the order may exist: outcome unknown)."""
+    msg = str(text or "").lower()
+    if "timeout" in msg or "timed out" in msg:
+        return "TIMEOUT"
+    if "rate limit" in msg or "ratelimit" in msg or "too many requests" in msg or "clienterror(429" in msg or " 429" in msg:
+        return "RATE_LIMIT"
+    return "TIMEOUT"
+
+
 def classify_reject_category(error_text: str = "", exchange_response: Any = None) -> str:
     msg = f"{error_text or ''} {_response_text(exchange_response)}".lower()
     if "trading is halted." in msg:
@@ -6524,6 +6535,7 @@ class SenderGateway:
         initial_error: str,
         timing: Dict[str, Any],
         resolved: Dict[str, Any],
+        definite_no_order: bool = False,
     ) -> Optional[Tuple[bool, str, Dict[str, Any]]]:
         lifecycle = classify_send_lifecycle(intent)
         if lifecycle not in {"ENTRY", "ADD"}:
@@ -6597,6 +6609,10 @@ class SenderGateway:
             already = self._already_resting_block(intent, timing)
             if already is not None:
                 return already
+        if definite_no_order:  # explicit 429: the exchange refused the call, no order exists, so the earlier pending row is settled
+            self._supersede_attempt(timing, {"status": "err", "response": initial_error}, intent)
+        elif timing.get("send_attempt_id"):  # timeout: the earlier order may exist; its row stays pending and its id is kept for reconciliation
+            timing.setdefault("ambiguous_attempt_ids", []).append(str(timing["send_attempt_id"]))
         try:
             _cl, _pre = self._recovery_send_hooks(intent, tif, "REAL_IOC" if tif == "Ioc" else "REAL_GTC", leader_px,
                                                   wire_size, False, timing, "rate_limit_recovery")
@@ -7601,6 +7617,7 @@ class SenderGateway:
                     error_text,
                     timing,
                     resolved,
+                    definite_no_order=classify_rate_limit_kind(error_text) == "RATE_LIMIT",
                 )
                 if recovery is not None:
                     return recovery
