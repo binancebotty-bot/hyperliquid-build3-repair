@@ -301,5 +301,28 @@ try:
 except requests.ConnectionError:
     pass
 check("SDK_SESSION_FAILED_ROW_TYPE_ONCE", window() - b == W(fills, 40), window() - b)
-print("TOTAL=%d FAILED=%d" % (33, len(FAILED)))
+
+# --- a bad HL_LIVE_FAILED_ROW_ESTIMATE can never skip the charge ---
+headroom._LAST_ROWS.clear()
+for bad in ("inf", "Infinity", "-inf", "nan", "-5", "garbage", "1e999"):
+    os.environ["HL_LIVE_FAILED_ROW_ESTIMATE"] = bad
+    fw = failed_weight(fills)
+    check("BAD_ESTIMATE_%s_FALLS_BACK_TO_500" % bad.replace("-", "NEG").upper(), fw == W(fills, 500), (bad, fw))
+os.environ["HL_LIVE_FAILED_ROW_ESTIMATE"] = "99999999"
+fw = failed_weight(fills)
+check("HUGE_ESTIMATE_CLAMPED", fw == W(fills, 100000), fw)
+headroom._LAST_ROWS["userFillsByTime"] = 60
+for bad in ("inf", "nan", "garbage"):
+    os.environ["HL_LIVE_FAILED_ROW_ESTIMATE"] = bad
+    fw = failed_weight(fills)
+    check("CACHED_COUNT_WITH_BAD_ENV_%s" % bad.upper(), fw == W(fills, 60), (bad, fw))
+os.environ.pop("HL_LIVE_FAILED_ROW_ESTIMATE", None)
+orig_rf = headroom._rows_for
+headroom._rows_for = lambda *a: (_ for _ in ()).throw(RuntimeError("boom"))
+try:
+    fw = failed_weight(fills)
+finally:
+    headroom._rows_for = orig_rf
+check("ESTIMATE_EXCEPTION_STILL_CHARGES_BASE", fw == W(fills, 0), fw)
+print("TOTAL=%d FAILED=%d" % (45, len(FAILED)))
 sys.exit(1 if FAILED else 0)

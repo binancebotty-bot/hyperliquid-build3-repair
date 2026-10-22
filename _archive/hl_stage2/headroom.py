@@ -336,10 +336,17 @@ _LAST_ROWS: Dict[str, int] = {}
 _LAST_ROWS_LOCK = threading.Lock()
 
 
+_FAILED_ROW_MAX = 100000
+
+
 def _failed_row_default() -> int:
+    """HL_LIVE_FAILED_ROW_ESTIMATE, parsed only when needed: non-finite, negative or unparsable -> 500; clamped to 100000."""
     try:
-        return max(0, int(float(os.getenv("HL_LIVE_FAILED_ROW_ESTIMATE") or 500)))
-    except ValueError:
+        v = float(os.getenv("HL_LIVE_FAILED_ROW_ESTIMATE") or 500)
+        if v != v or v in (float("inf"), float("-inf")) or v < 0:
+            return 500
+        return min(_FAILED_ROW_MAX, int(v))
+    except (OverflowError, ValueError, TypeError):
         return 500
 
 
@@ -352,7 +359,10 @@ def _rows_for(payload: Any, response: Any) -> int:
         if t not in _ROW_TYPES:
             return 0
         with _LAST_ROWS_LOCK:
-            return _LAST_ROWS.get(t, _failed_row_default())
+            cached = _LAST_ROWS.get(t)
+        if cached is not None:
+            return cached
+        return _failed_row_default()
     rows = 0
     try:
         j = response.json()
@@ -394,7 +404,10 @@ def note_shared_http(url, payload, response, monitor=None):
         host = (parsed.hostname or "").lower()
         if not host:
             return
-        rows = _rows_for(payload, response)
+        try:
+            rows = _rows_for(payload, response)
+        except Exception:  # an estimate failure must never skip the charge: base weight at least
+            rows = 0
         monitor.note_info(host, payload, rows)
         if getattr(response, "status_code", 200) == 429:
             monitor.note_refusal("info:" + host, "HTTP 429 from /info")
