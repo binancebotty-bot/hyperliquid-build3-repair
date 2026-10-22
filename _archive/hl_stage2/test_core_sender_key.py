@@ -90,6 +90,8 @@ def main() -> None:
         def __init__(self):
             self.calls = []
 
+        def update_leverage(self, leverage, name, is_cross=True):  # ENTRY/ADD fail closed without it
+            return {"status": "ok"}
         def order(self, coin, is_buy, size, px, tif, reduce_only=False):
             self.calls.append({"px": px, "tif": tif["limit"]["tif"], "reduce_only": reduce_only})
             return REJECT

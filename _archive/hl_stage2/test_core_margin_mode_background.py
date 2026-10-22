@@ -8,6 +8,7 @@ Prints RESULT::name_PASS/FAIL and TOTAL=n FAILED=m. No network, no orders.
 """
 from __future__ import annotations
 
+import argparse
 import os
 import sys
 import tempfile
@@ -291,6 +292,81 @@ def main() -> None:
     g7q.wait_margin_mode_setup(5.0)
     os.environ.pop("HL_LIVE_MM_QUEUE_MAX", None)
     check("C7_QUEUE_IS_BOUNDED", res7.count(True) <= 3 and res7.count(False) >= 3, str(res7))
+
+    # E1: an exchange client without update_leverage fails ENTRY/ADD closed; closes are never blocked
+    class NoLeverage:
+        pass
+    gn = gateway(FakeExchange())
+    stand = argparse.Namespace(fill=argparse.Namespace(coin="BTC"))
+    blk_entry = gn._ensure_margin_mode(NoLeverage(), "BTC", stand, "ENTRY", {})
+    blk_add = gn._ensure_margin_mode(NoLeverage(), "BTC", stand, "ADD", {})
+    cl_exit = gn._ensure_margin_mode(NoLeverage(), "BTC", stand, "EXIT", {})
+    cl_red = gn._ensure_margin_mode(NoLeverage(), "BTC", stand, "REDUCE", {})
+    check("E1_MISSING_UPDATE_LEVERAGE_BLOCKS_ENTRY_AND_ADD_NOT_CLOSES",
+          blk_entry is not None and blk_entry[0] is False and blk_entry[1] == "MARGIN_MODE_UNSET"
+          and blk_add is not None and blk_add[1] == "MARGIN_MODE_UNSET" and cl_exit is None and cl_red is None
+          and "BTC" not in gn.__dict__.get("_margin_mode_done", set()), str((blk_entry, blk_add, cl_exit, cl_red)))
+
+    # E2: inline coin B while the worker is setting coin A: one call at a time across coins, both paced through the order slot
+    class Tracked(FakeExchange):
+        def __init__(self, gate=None):
+            super().__init__(gate=gate)
+            self.live = 0
+            self.peak = 0
+            self.names = []
+            self.l = threading.Lock()
+
+        def update_leverage(self, leverage, name, is_cross=True):
+            with self.l:
+                self.live += 1
+                self.peak = max(self.peak, self.live)
+                self.names.append(name)
+            if name == "AAA" and self.gate is not None:
+                self.gate.wait(10)
+            time.sleep(0.05)
+            with self.l:
+                self.live -= 1
+            return {"status": "ok"}
+    gate_e = threading.Event()
+    te = Tracked(gate=gate_e)
+    ge = gateway(te)
+    slots_e = []
+    real_slot_e = ge._reserve_exchange_order_slot
+    ge._reserve_exchange_order_slot = lambda wait_for_cooldown=True: (slots_e.append(wait_for_cooldown), real_slot_e(wait_for_cooldown))[1]
+    ge._exchange_client_for_coin = lambda coin: (te, coin)
+    ge.schedule_margin_mode_setup("AAA")
+    time.sleep(0.2)
+    res_b = {}
+    stand_b = argparse.Namespace(fill=argparse.Namespace(coin="BBB"))
+    tb = threading.Thread(target=lambda: res_b.update(r=ge._ensure_margin_mode(te, "BBB", stand_b, "ENTRY", {})), daemon=True)
+    tb.start()
+    time.sleep(0.3)
+    b_waiting = tb.is_alive() and te.names == ["AAA"]
+    gate_e.set()
+    tb.join(10)
+    ge.wait_margin_mode_setup(5.0)
+    check("E2_INLINE_B_SERIALISED_BEHIND_WORKER_A_AND_PACED",
+          b_waiting and res_b.get("r", "x") is None and te.peak == 1 and te.names == ["AAA", "BBB"] and slots_e == [True, True],
+          "%s %s %s %s %s" % (b_waiting, res_b, te.peak, te.names, slots_e))
+    # ... and an order for B waits no longer than HL_LIVE_MM_WAIT_SEC for the lock, then fails closed (no update_leverage call)
+    os.environ["HL_LIVE_MM_WAIT_SEC"] = "0.3"
+    gate_f = threading.Event()
+    tf = Tracked(gate=gate_f)
+    gf = gateway(tf)
+    gf._exchange_client_for_coin = lambda coin: (tf, coin)
+    gf.schedule_margin_mode_setup("AAA")
+    time.sleep(0.2)
+    stand_c = argparse.Namespace(fill=argparse.Namespace(coin="CCC"))
+    t0 = time.monotonic()
+    blocked = gf._ensure_margin_mode(tf, "CCC", stand_c, "ENTRY", {})
+    took_f = time.monotonic() - t0
+    closes_ok = gf._ensure_margin_mode(tf, "CCC", stand_c, "EXIT", {}) is None
+    gate_f.set()
+    gf.wait_margin_mode_setup(5.0)
+    os.environ.pop("HL_LIVE_MM_WAIT_SEC", None)
+    check("E2B_INLINE_B_WAIT_IS_BOUNDED_FAILS_CLOSED_CLOSES_UNBLOCKED",
+          blocked is not None and blocked[1] == "MARGIN_MODE_UNSET" and took_f < 3.0 and closes_ok and "CCC" not in tf.names,
+          "%s %.2f %s %s" % (blocked and blocked[1], took_f, closes_ok, tf.names))
 
     failed = [n for n, ok in RESULTS if not ok]
     print("TOTAL=%d FAILED=%d" % (len(RESULTS), len(failed)))
