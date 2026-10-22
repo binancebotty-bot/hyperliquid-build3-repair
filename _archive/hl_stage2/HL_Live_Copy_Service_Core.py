@@ -8401,15 +8401,49 @@ class SenderGateway:
             self._fetch_builder_meta(dex_name)
         self._builder_meta_fetched["*"] = True
 
+    _META_RETRY_LOCK = threading.Lock()
+
+    def _meta_fetch_begin(self, key: str) -> bool:
+        """Single-flight + bounded per-dex backoff for the asset meta fetch ("" = core)."""
+        with self._META_RETRY_LOCK:
+            s = self.__dict__.setdefault("_meta_retry", {}).setdefault(key, {"next": 0.0, "delay": 0.0, "busy": False, "logged": -1e12})
+            if s["busy"] or time.monotonic() < s["next"]:
+                return False
+            s["busy"] = True
+            return True
+
+    def _meta_fetch_end(self, key: str, err: str) -> None:
+        loud = False
+        with self._META_RETRY_LOCK:
+            s = self._meta_retry[key]
+            s["busy"] = False
+            now = time.monotonic()
+            if not err:
+                s["delay"], s["next"] = 0.0, 0.0
+                return
+            s["delay"] = max(1.0, fnum(os.getenv("HL_LIVE_META_RETRY_BASE_SEC"), 15.0)) if not s["delay"] else min(
+                max(1.0, fnum(os.getenv("HL_LIVE_META_RETRY_MAX_SEC"), 120.0)), s["delay"] * 2)
+            s["next"] = now + s["delay"]
+            if now - s["logged"] >= max(1.0, fnum(os.getenv("HL_LIVE_META_FETCH_LOG_SEC"), 600.0)):
+                s["logged"], loud = now, True
+        if loud:
+            log_error("asset_meta_fetch", f"ASSET_META_FETCH_FAILED: dex={key or 'core'}; retry_in={s['delay']:.0f}s; error={err}")
+
     def _fetch_core_meta(self) -> None:
         if self._core_meta_fetched:
             return
-        self._core_meta_fetched = True
-        self._meta_fetched = True
         if requests is None:
+            self._core_meta_fetched = True
+            self._meta_fetched = True
             return
+        if not self._meta_fetch_begin(""):
+            return
+        err = ""
         try:
             r = requests.post(HL_INFO_URL, json={"type": "meta"}, timeout=HTTP_TIMEOUT_SEC)
+            _sc = getattr(r, "status_code", 200)
+            if isinstance(_sc, int) and _sc >= 400:
+                raise RuntimeError(f"HTTP {_sc}")
             for idx, asset in enumerate(r.json().get("universe", [])):
                 if not isinstance(asset, dict):
                     continue
@@ -8425,18 +8459,29 @@ class SenderGateway:
                     "onlyIsolated": bval(asset.get("onlyIsolated"), False),
                 }
                 self._index_cache[idx] = name
-        except Exception:
-            pass
+            if not self._index_cache:
+                raise RuntimeError("empty core universe")
+            self._core_meta_fetched = True
+            self._meta_fetched = True
+        except Exception as exc:
+            err = repr(exc)[:120]
+        self._meta_fetch_end("", err)
 
     def _fetch_builder_meta(self, dex_name: str) -> None:
         dex = str(dex_name or "").strip()
         if not dex or self._builder_meta_fetched.get(dex):
             return
-        self._builder_meta_fetched[dex] = True
         if requests is None:
+            self._builder_meta_fetched[dex] = True
             return
+        if not self._meta_fetch_begin(dex):
+            return
+        err = ""
         try:
             r3 = requests.post(HL_INFO_URL, json={"type": "meta", "dex": dex}, timeout=HTTP_TIMEOUT_SEC)
+            _sc = getattr(r3, "status_code", 200)
+            if isinstance(_sc, int) and _sc >= 400:
+                raise RuntimeError(f"HTTP {_sc}")
             for b_asset in r3.json().get("universe", []):
                 if not isinstance(b_asset, dict):
                     continue
@@ -8456,8 +8501,10 @@ class SenderGateway:
                     "perp_dex": dex,
                     "perp_dexs": ["", dex.lower()],
                 }
-        except Exception:
-            pass
+            self._builder_meta_fetched[dex] = True
+        except Exception as exc:
+            err = repr(exc)[:120]
+        self._meta_fetch_end(dex, err)
 
     def _fetch_all_mids(self) -> Dict[str, float]:
         now = utc_now_ms()
