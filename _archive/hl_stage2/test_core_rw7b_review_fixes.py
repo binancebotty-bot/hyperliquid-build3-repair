@@ -174,6 +174,61 @@ def main() -> None:
         n_err = len(barrier_errors("m3"))
         check("F2_REPORTED_ONCE_NOT_ON_EVERY_LATER_SEND", c.wait_intent_durable(seq3, "m3", wallet=A) is True
               and len(barrier_errors("m3")) == n_err)
+
+        # ---- F3: a failed supersede write is loud, keeps the prior attempt pending, and is never claimed as superseded
+        def attempts(iid):
+            return [r for r in disk_rows(c.SEND_ATTEMPTS_CSV) if r.get("intent_id") == iid]
+
+        def latest_by_attempt(iid):
+            out = {}
+            for r in attempts(iid):
+                out[r["attempt_id"]] = r
+            return out
+
+        def supersede_errors(iid):
+            return [r for r in disk_rows(c.RECONCILIATION_CSV)
+                    if r.get("status") == "SEND_ATTEMPT_SUPERSEDE_FAILED" and r.get("intent_id") == iid]
+
+        ex = Ex([FILLED(1.0, 100.0)])
+        g = gw(ex)
+        it = mk_intent("p1")
+        c.AuditLogWriter().append_order_intent(it)
+        ex = Ex([NOMATCH, FILLED(1.0, 100.0)])
+        g = gw(ex)
+        ok, status, res = g._send_real(it)
+        lat = latest_by_attempt("p1")
+        check("F3_CONTROL_SUPERSEDE_OK_MARKS_FIRST_ATTEMPT", ok and len(ex.calls) == 2
+              and sorted(r["terminal_state"] for r in lat.values()).count("SUPERSEDED_BY_RETRY") == 1,
+              str([(r["status"], r["terminal_state"]) for r in lat.values()]))
+
+        real_update = c.update_send_attempt_row
+        for label, boom in (("FALSE", lambda *a, **k: False), ("RAISES", None)):
+            iid = "p2" + label
+            it = mk_intent(iid)
+            c.AuditLogWriter().append_order_intent(it)
+            ex = Ex([NOMATCH, FILLED(1.0, 100.0)])
+            g = gw(ex)
+            if boom is None:
+                def boom(*a, **k):
+                    raise OSError("simulated send_attempts write failure")
+            c.update_send_attempt_row = boom
+            try:
+                ok, status, res = g._send_real(it)
+            finally:
+                c.update_send_attempt_row = real_update
+            lat = latest_by_attempt(iid)
+            last_id = (res.get("timing") or {}).get("send_attempt_id")
+            first = [r for r in lat.values() if r["attempt_id"] != last_id and r.get("status") == "pending_send"]  # the retry owns last_id
+            check("F3_%s_RETRY_STILL_PROCEEDS_NOT_BLOCKED" % label, ok and len(ex.calls) == 2, "ok=%s calls=%d" % (ok, len(ex.calls)))
+            check("F3_%s_PRIOR_ATTEMPT_NOT_CLAIMED_SUPERSEDED_STAYS_PENDING" % label,
+                  len(first) == 1 and not any(r.get("terminal_state") == "SUPERSEDED_BY_RETRY" for r in lat.values()),
+                  str([(r["status"], r["terminal_state"]) for r in lat.values()]))
+            pend = (res.get("timing") or {}).get("unsuperseded_attempt_ids") or []
+            check("F3_%s_PENDING_ATTEMPT_KEPT_IN_MEMORY" % label, len(pend) == 1 and pend[0] == first[0]["attempt_id"] if first else False, str(pend))
+            check("F3_%s_FAILURE_IS_VISIBLE_AUDIT_ROW_AND_ERROR_LINE" % label,
+                  len(supersede_errors(iid)) == 1 and any(r.get("context") == "supersede_attempt" and iid in r.get("message", "")
+                                                           for r in disk_rows(c.ERRORS_CSV)),
+                  str(supersede_errors(iid)))
     finally:
         c.append_csv = real_append_csv
         os.environ.pop("HL_LIVE_INTENT_FAILED_MAX", None)
