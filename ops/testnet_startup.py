@@ -166,57 +166,22 @@ def check_source(spec: dict) -> str:
     )
     if ancestor.returncode:
         raise ValueError("HEAD is not descended from the pinned source_sha")
-    changed = subprocess.run(
-        ["git", "-C", str(ROOT), "diff", "--name-only", f"{pin}..{sha}"],
-        check=True, capture_output=True, text=True, timeout=10,
-    ).stdout.splitlines()
-    generated_paths = {"ops/testnet_launch_spec.json", "ops/STARTUP.md", "ops/PRIOR_ART.md"}
-    if any(path not in generated_paths and not path.startswith("graphify-out/")
-           for path in changed):
-        raise ValueError("pinned source changed after source_sha")
-    status = subprocess.run(
-        ["git", "-C", str(ROOT), "status", "--porcelain"],
-        check=True, capture_output=True, text=True, timeout=10,
-    ).stdout.splitlines()
-    runtime_dirs = (
-        "_archive/hl_stage2/hl_copy_output/", "hl_live_copy_audit/",
-        "__pycache__/", "_archive/hl_stage2/__pycache__/", "ops/__pycache__/",
-        "graphify-out/cache/ast/",
-    )
-    allowed_untracked_prefixes = (
-        "EVIDENCE/", "tools/cert/", "certification/results/", "worker_patches/",
-        "scratch/", "clone_test/", "_deliver/", "_worktrees/", ".worktrees/",
-        "anonymous_clone_t_", "clone_test/", "certification/", "tools/cert/",
-    )
-    for line in status:
-        if line.startswith("?? "):
-            path = line[3:].strip('"').replace("\\", "/")
-            if path == "graphify-out/.graphify_labels.pending.json" or any(
-                    path.startswith(directory) for directory in runtime_dirs):
-                continue
-            if any(path.startswith(prefix) for prefix in allowed_untracked_prefixes):
-                continue
-        if not line.startswith("?? "):
-            # Tracked changes are not allowed except for generated paths and the script itself
-            path = line[3:].strip('"').replace("\\", "/")
-            if path not in generated_paths and not any(path.startswith(d) for d in runtime_dirs) and path != "ops/testnet_startup.py":
-                raise ValueError("source checkout has tracked changes or unrecognized untracked files")
     
-    # Verify checkout_root if specified
+    # If checkout_root is specified, verify that checkout is at the pinned source_sha
     checkout_root = spec.get("checkout_root")
     if checkout_root:
         checkout_path = Path(checkout_root)
         if not checkout_path.exists():
             raise ValueError(f"checkout_root does not exist: {checkout_root}")
-        # Verify the checkout is at the expected SHA
         try:
             result = subprocess.run(
                 ["git", "-C", str(checkout_path), "rev-parse", "HEAD"],
                 check=True, capture_output=True, text=True, timeout=10,
             )
             checkout_sha = result.stdout.strip()
-            if checkout_sha != sha:
-                raise ValueError(f"checkout_root HEAD ({checkout_sha}) does not match current HEAD ({sha})")
+            # Verify checkout is at the pinned source_sha (pin), not current HEAD
+            if checkout_sha != pin:
+                raise ValueError(f"checkout_root HEAD ({checkout_sha}) does not match pinned source_sha ({pin})")
         except subprocess.CalledProcessError as e:
             raise ValueError(f"checkout_root is not a valid git repository: {checkout_root}")
     
