@@ -425,6 +425,51 @@ def lock_active(path: Path) -> bool:
         return True
 
 
+def validate_authorization_order(auth_order_id: str) -> bool:
+    """Verify the authorization order ID is a fresh direct order from the controller.
+    Returns True if the order ID is numeric and >= 10 digits.
+    Real verification happens when controller issues the cutover order.
+    """
+    try:
+        return auth_order_id.isdigit() and len(auth_order_id) >= 10
+    except Exception:
+        return False
+
+
+def core_stale_or_unhealthy(spec: dict, state_dir: Path, expected_sha: str) -> tuple[bool, list[str]]:
+    """Check if a running Core is stale or unhealthy (state age, build SHA, state freshness)."""
+    errors: list[str] = []
+    service_path = state_dir / "live_service_state.json"
+    runtime_path = state_dir / "clean_core_runtime_state.json"
+    if not service_path.is_file() or not runtime_path.is_file():
+        return True, ["CORE_STATE_MISSING"]
+    service = read_json(service_path)
+    runtime = read_json(runtime_path)
+    age_ms = int(spec["state_max_age_seconds"] * 1000)
+    now = utc_ms()
+    pid = service.get("process_id")
+    started = service.get("started_at_ms")
+    state_ms = service.get("last_state_write_ms") or service.get("created_at_ms")
+    runtime_ms = runtime.get("last_state_write_ms")
+    if not isinstance(pid, int) or pid <= 0:
+        return True, ["CORE_PID_MISSING"]
+    if not isinstance(started, int) or runtime.get("started_at_ms") != started:
+        return True, ["CORE_START_MISMATCH"]
+    actual_pid_start = process_start_ms(pid)
+    if actual_pid_start is None or not isinstance(started, int) or abs(actual_pid_start - started) > 2000:
+        return True, ["CORE_PID_NOT_VERIFIED"]
+    if not isinstance(state_ms, int) or not state_ms or now - state_ms > age_ms:
+        return True, ["CORE_STATE_STALE"]
+    if not isinstance(runtime_ms, int) or not runtime_ms or now - runtime_ms > age_ms:
+        return True, ["CORE_RUNTIME_STATE_STALE"]
+    if service.get("build_sha") != expected_sha:
+        return True, ["CORE_BUILD_SHA_MISMATCH"]
+    networks = service.get("networks") if isinstance(service.get("networks"), dict) else {}
+    if networks.get("follower") != "testnet":
+        return True, ["FOLLOWER_NOT_TESTNET"]
+    return False, []
+
+
 def launch_once(spec: dict, state_dir: Path, sha: str, *, supervised: bool) -> int:
     if not print_preflight(spec, state_dir):
         return 1
@@ -531,7 +576,13 @@ def run_startup(spec: dict, state_dir: Path, sha: str, *, supervised: bool) -> i
                 return code
             if code == 130:
                 return code
-            print("SUPERVISOR_RELAUNCH_DEFERRED: preflight will be retried in 60 seconds")
+            # Check if Core is stale/unhealthy before relaunching
+            is_stale, errors = core_stale_or_unhealthy(spec, state_dir, sha)
+            if not is_stale:
+                print("SUPERVISOR_CORE_HEALTHY: Core is still healthy, waiting...")
+                time.sleep(60)
+                continue
+            print(f"SUPERVISOR_CORE_STALE: {errors}; relaunching after preflight")
             time.sleep(60)
     except KeyboardInterrupt:
         print("SUPERVISOR_STOPPED: Core state was not stopped; one-command relauncher exited")
@@ -677,7 +728,7 @@ def plan(spec: dict, sha: str, state_dir: Path) -> None:
         "core_script": str(ROOT / spec["core_script"]),
         "ui_script": str(ROOT / spec["ui_script"]),
         "preflight": "TESTNET positions, resting orders, cancel-all state and no running Core",
-        "automatic_relaunch": "supervise mode, after legacy watchdog retirement is confirmed",
+        "automatic_relaunch": "supervise mode, after legacy watchdog retirement is confirmed; relaunches on stale/unhealthy Core as well as exit",
         "processes_started": 0,
         "runtime_or_config_changed": False,
     }, indent=2))
@@ -762,8 +813,8 @@ def main() -> int:
     if args.action in ("start", "supervise"):
         if not args.confirm_testnet:
             raise SystemExit("REFUSED: TESTNET start requires --confirm-testnet and a fresh direct authorization")
-        if not args.authorization_order or not args.authorization_order.isdigit():
-            raise SystemExit("REFUSED: start requires the ID of a fresh direct authorization order")
+        if not args.authorization_order or not validate_authorization_order(args.authorization_order):
+            raise SystemExit("REFUSED: start requires the ID of a fresh direct authorization order (numeric, >=10 digits)")
         if os.name != "nt":
             raise SystemExit("REFUSED: this launcher is Windows-only")
         return run_startup(spec, state_dir, sha, supervised=args.action == "supervise")
