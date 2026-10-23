@@ -1266,15 +1266,15 @@
     "semantic_hash": ""
   },
   "ops/testnet_launch_spec.json": {
-    "mtime": 1792776144.055712,
-    "seen": 1792776207.1694639,
-    "ast_hash": "79c1e9be704866f822be245a5a504d28",
+    "mtime": 1792781186.5332384,
+    "seen": 1792781199.347135,
+    "ast_hash": "d05347b52575017725e42380e102b8b7",
     "semantic_hash": ""
   },
   "ops/testnet_startup.py": {
-    "mtime": 1792776682.6961367,
-    "seen": 1792776698.4110074,
-    "ast_hash": "344d49ec9b864419f883615d22b89413",
+    "mtime": 1792781170.3246915,
+    "seen": 1792781199.347135,
+    "ast_hash": "f67e2dfb074be713aed4924517e07833",
     "semantic_hash": ""
   },
   "tools/cert/card_hygiene.py": {
@@ -1626,9 +1626,9 @@
     "semantic_hash": ""
   },
   "ops/STARTUP.md": {
-    "mtime": 1792776533.748077,
-    "seen": 1792776600.781642,
-    "ast_hash": "901b9557f217f19aef9b8d20eb14b3e6",
+    "mtime": 1792780446.901773,
+    "seen": 1792781144.5336545,
+    "ast_hash": "57a774880786dd2ddc7bdd00c10fa907",
     "semantic_hash": ""
   },
   "process/CERTIFICATION_MATRIX_2026-10-10.md": {
@@ -1665,6 +1665,12 @@
     "mtime": 1792775326.1158204,
     "seen": 1792776207.1694639,
     "ast_hash": "10345c18227390bb6d1a04be56be8fef",
+    "semantic_hash": ""
+  },
+  "ops/PRIOR_ART.md": {
+    "mtime": 1792780452.9209416,
+    "seen": 1792781144.5336545,
+    "ast_hash": "12f2f46e836a7d6bb2ee75abea6d4b31",
     "semantic_hash": ""
   }
 }

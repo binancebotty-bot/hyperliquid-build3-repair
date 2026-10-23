@@ -1272,9 +1272,9 @@
     "semantic_hash": ""
   },
   "ops/testnet_startup.py": {
-    "mtime": 1792776588.9956431,
-    "seen": 1792776600.7706113,
-    "ast_hash": "d1fc4549a7014b9625b6624d75c82cfb",
+    "mtime": 1792776682.6961367,
+    "seen": 1792776698.4110074,
+    "ast_hash": "344d49ec9b864419f883615d22b89413",
     "semantic_hash": ""
   },
   "tools/cert/card_hygiene.py": {
