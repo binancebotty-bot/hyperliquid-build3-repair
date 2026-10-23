@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "repository": "binancebotty-bot/hyperliquid-build3-repair",
-  "source_sha": "a58e5c81e4d0d4c4b4cf1742c8f884e6874e0017",
+  "source_sha": "cab8d90f60fabc8b2ba013af02768930edbaa379",
   "info_url": "https://api.hyperliquid-testnet.xyz/info",
   "follower_account_address": "0x7ae3b08bb4e7b085c6db5d635b96bec9715e9205",
   "documented_residuals_by_coin": {
@@ -23,7 +23,14 @@
   "testnet_state_root": "C:/Users/wigmore/trading_stack/hl-build3-testnet-cert-evidence",
   "state_dir": "C:/Users/wigmore/trading_stack/hl-build3-testnet-cert-evidence/run7/state_20261023",
   "core_script": "_archive/hl_stage2/HL_Live_Copy_Service_Core.py",
-  "core_args": ["--ws", "--loop", "--interval", "10", "--poll-live", "--poll-copy"],
+  "core_args": [
+    "--ws",
+    "--loop",
+    "--interval",
+    "10",
+    "--poll-live",
+    "--poll-copy"
+  ],
   "ui_script": "_archive/hl_stage2/HL_Copy_App_SSOT.py",
   "ui_base_url": "http://127.0.0.1:8031",
   "ui_port": 8031,

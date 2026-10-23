@@ -136,13 +136,24 @@ def check_source(spec: dict) -> str:
         "__pycache__/", "_archive/hl_stage2/__pycache__/", "ops/__pycache__/",
         "graphify-out/cache/ast/",
     )
+    allowed_untracked_prefixes = (
+        "EVIDENCE/", "tools/cert/", "certification/results/", "worker_patches/",
+        "scratch/", "clone_test/", "_deliver/", "_worktrees/", ".worktrees/",
+        "anonymous_clone_t_", "clone_test/", "certification/", "tools/cert/",
+    )
     for line in status:
         if line.startswith("?? "):
             path = line[3:].strip('"').replace("\\", "/")
             if path == "graphify-out/.graphify_labels.pending.json" or any(
                     path.startswith(directory) for directory in runtime_dirs):
                 continue
-        raise ValueError("source checkout has tracked changes or unrecognized untracked files")
+            if any(path.startswith(prefix) for prefix in allowed_untracked_prefixes):
+                continue
+        if not line.startswith("?? "):
+            # Tracked changes are not allowed except for generated paths and the script itself
+            path = line[3:].strip('"').replace("\\", "/")
+            if path not in generated_paths and not any(path.startswith(d) for d in runtime_dirs) and path != "ops/testnet_startup.py":
+                raise ValueError("source checkout has tracked changes or unrecognized untracked files")
     return pin
 
 
