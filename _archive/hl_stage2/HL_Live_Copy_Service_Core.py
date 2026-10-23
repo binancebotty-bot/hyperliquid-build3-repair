@@ -117,6 +117,7 @@ LEADER_NETWORK, FOLLOWER_NETWORK = NETWORKS["leader"]["network"], NETWORKS["foll
 _NETWORK_AUDIT_DIR = BASE_DIR / ("hl_live_copy_audit" if FOLLOWER_NETWORK == "mainnet" else f"hl_live_copy_audit_{FOLLOWER_NETWORK}")
 PROCESS_STARTED_AT = datetime.now(timezone.utc).isoformat()
 PROCESS_STARTED_AT_MS = int(time.time() * 1000)
+BUILD_SHA = str(os.getenv("HL_BUILD_SHA") or "")
 ENGINE_OUTPUT_DIR = BASE_DIR / "hl_copy_output"
 AUDIT_DIR = Path(os.getenv("HL_LIVE_AUDIT_DIR") or str(_NETWORK_AUDIT_DIR))
 APPEND_ONLY_DIR = AUDIT_DIR / "append_only"
@@ -1027,6 +1028,7 @@ def _process_identity() -> Dict[str, Any]:
         "executable": sys.executable,
         "cwd": str(Path.cwd()),
         "script": str(SCRIPT_FILE),
+        "build_sha": BUILD_SHA,
         "started_at": PROCESS_STARTED_AT,
         "started_at_ms": PROCESS_STARTED_AT_MS,
     }
@@ -9054,6 +9056,7 @@ class ServiceStateWriter:
             "created_at_ms": state_write_ms,
             "last_state_write_ms": state_write_ms,
             "process_id": os.getpid(),
+            "build_sha": BUILD_SHA,
             "started_at": PROCESS_STARTED_AT,
             "started_at_ms": PROCESS_STARTED_AT_MS,
             "argv": list(sys.argv),
@@ -9105,6 +9108,7 @@ class ServiceStateWriter:
             "created_at_ms": payload.get("created_at_ms"),
             "last_state_write_ms": payload.get("last_state_write_ms"),
             "process_id": payload.get("process_id"),
+            "build_sha": payload.get("build_sha"),
             "started_at": payload.get("started_at"),
             "started_at_ms": payload.get("started_at_ms"),
             "argv": payload.get("argv"),

@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "repository": "binancebotty-bot/hyperliquid-build3-repair",
+  "source_base_sha": "5b975f0f258a996a8525d881283a52e8525aa38b",
+  "global_holder_path": "C:/Users/wigmore/AppData/Local/HL_Live_Copy_Service_Core/engine-global.lock.holder.json",
+  "follower_network": "testnet",
+  "testnet_state_root": "C:/Users/wigmore/trading_stack/hl-build3-testnet-cert-evidence",
+  "state_dir": "../hl-build3-testnet-cert-evidence/run7/state_20261023",
+  "core_script": "_archive/hl_stage2/HL_Live_Copy_Service_Core.py",
+  "core_args": ["--loop", "--ws", "--poll-live", "--poll-copy", "--reconcile-exchange"],
+  "ui_script": "_archive/hl_stage2/HL_Copy_App_SSOT.py",
+  "ui_base_url": "http://127.0.0.1:8031",
+  "ui_port": 8031,
+  "state_max_age_seconds": 30,
+  "issue_number": 3
+}
