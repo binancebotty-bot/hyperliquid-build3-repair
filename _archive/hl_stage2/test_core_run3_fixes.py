@@ -212,6 +212,8 @@ def main() -> None:
     began = []
 
     class SlowExchange:
+        def update_leverage(self, leverage, name, is_cross=True):  # ENTRY/ADD fail closed without it
+            return {"status": "ok"}
         def order(self, *a, **k):
             began.append(time.time())
             time.sleep(0.4)
@@ -233,6 +235,8 @@ def main() -> None:
         def __init__(self, replies=None):
             self.calls, self.replies = [], list(replies or [])
 
+        def update_leverage(self, leverage, name, is_cross=True):  # ENTRY/ADD fail closed without it
+            return {"status": "ok"}
         def order(self, coin, is_buy, size, px, tif, reduce_only=False):
             self.calls.append({"px": px, "tif": tif["limit"]["tif"], "buy": is_buy, "size": size, "reduce_only": reduce_only})
             if self.replies:
