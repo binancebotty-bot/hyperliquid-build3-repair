@@ -1,15 +1,19 @@
 # Build 3 TESTNET startup
 
-The committed launch spec pins the source base, Core/UI entrypoints, TESTNET follower, and one shared audit/state directory. The launcher passes that same directory to Core, UI, and its minute-by-minute alert-only check. It does not change wallet modes or config and never restarts a Core process. The spec currently names `run7/state_20261023`; that active run is verify-only until it has been cleanly stopped under a fresh direct order.
+The committed spec pins one Core revision, one TESTNET Info endpoint, the follower address, the shared run state/audit folder, and the global Core lock. Core, UI, verification, and the relauncher use that same folder. The spec must contain a public `follower_account_address` and exact signed residual sizes in `documented_residuals_by_coin`; neither field accepts private credentials.
 
 ```powershell
 python ops/testnet_startup.py plan
 python ops/testnet_startup.py self-check
 python ops/testnet_startup.py verify
+python ops/testnet_startup.py preflight
 python ops/testnet_startup.py watch
-python ops/testnet_startup.py start --execute --confirm-testnet --authorization-order <fresh-direct-order-id>
+python ops/testnet_startup.py start --execute --confirm-testnet --authorization-order <fresh-order-id>
+python ops/testnet_startup.py supervise --execute --confirm-testnet --authorization-order <fresh-order-id>
 ```
 
-`plan` is the default and starts nothing. `verify` checks once; `watch` checks every minute until Ctrl+C. `start` requires `--execute`, `--confirm-testnet`, a fresh direct authorization order ID, a clean pinned checkout, TESTNET follower selection, no tracked Core holder, and a free UI endpoint on 8031. It waits up to 30 seconds for fresh Core state before starting the loopback UI. The foreground launcher checks PID, start time, build SHA, follower network, shared state path, other run-state PIDs, and `/api/state` every minute. Changed failures go to issue #3; neither mode restarts Core. Ctrl+C in the launch console is the only supported stop path; do not use Task Manager force-stop. A restart requires a fresh direct order, a clean shutdown, and the same run state directory so dedupe history is preserved.
+`plan` starts nothing. `verify` checks the pinned Core/UI identity once; `watch` repeats the read-only check and reports changes. `preflight` and both start modes query TESTNET positions and resting orders for every perpetual DEX. They print positions by coin and PASS/FAIL for flatness, no remaining resting orders, no running Core immediately before launch, and retirement of legacy watchdog PID 38604. Exact documented residual positions may remain; any open order or undocumented/mismatched position fails closed. The script verifies cancel-all outcome but does not send cancellation requests. If orders need cancellation, use only the separately authorized supported route, then rerun preflight.
 
-For rollback, stop only through the approved foreground path, check out the previously reviewed commit in a clean worktree, then run `plan` and `self-check` before any separately authorized start. Preserve every audit/state file and do not change send modes, config, network credentials, active PIDs, or the selected state folder. Old launchers and scheduled tasks are disabled only after their exact ownership is verified; keep them for audit rather than deleting them. Never start a second Core, reuse another run's audit directory, or use this testnet launcher for mainnet.
+`start` launches once. `supervise` holds one Windows lock and relaunches only the pinned spec after Core exits; it also checks stale state every minute. It refuses to run until the legacy watchdog retirement is confirmed in the spec and the old PID is absent. This branch does not stop Core or disable that external watchdog. Ctrl+C exits this launcher/supervisor only; Core is left running. No supported orderly Core-stop route was found in the checked-in code, so stop/restart/rollback require a separate fresh direct order and a verified shutdown method. Do not use Task Manager or force-kill.
+
+Every launch requires a fresh direct authorization order, TESTNET confirmation, a passing preflight, exact source pin, and the configured state folder. The running engine remains untouched while building. Preserve all state/audit files and wallet modes. Never point the spec at mainnet or another run.

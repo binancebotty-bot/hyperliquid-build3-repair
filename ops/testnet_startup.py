@@ -6,16 +6,18 @@ import argparse
 import ctypes
 from ctypes import wintypes
 import datetime as dt
+from decimal import Decimal, InvalidOperation
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import socket
 import subprocess
 import sys
 import time
 from urllib.error import URLError
-from urllib.request import urlopen
+from urllib.request import Request, urlopen
 
 ROOT = Path(__file__).resolve().parents[1]
 SPEC_FILE = Path(__file__).with_name("testnet_launch_spec.json")
@@ -47,11 +49,38 @@ def load_spec() -> dict:
     spec = read_json(SPEC_FILE)
     if spec.get("schema") != 1 or spec.get("follower_network") != "testnet":
         raise ValueError("launch spec is invalid or not TESTNET-only")
+    if spec.get("info_url") != "https://api.hyperliquid-testnet.xyz/info":
+        raise ValueError("launch spec must use the Hyperliquid TESTNET Info endpoint")
+    if not isinstance(spec.get("documented_residuals_by_coin"), dict):
+        raise ValueError("documented_residuals_by_coin must be a coin-to-signed-size object")
+    try:
+        interval = Decimal(str(spec.get("info_request_interval_seconds", 0)))
+    except InvalidOperation as exc:
+        raise ValueError("Info request interval must be a number") from exc
+    if not interval.is_finite() or interval < Decimal("1.1"):
+        raise ValueError("Info request interval must preserve TESTNET rate-limit headroom")
+    if type(spec.get("legacy_watchdog_pid")) is not int or spec["legacy_watchdog_pid"] <= 0:
+        raise ValueError("launch spec must identify the tracked legacy watchdog PID")
+    if type(spec.get("legacy_watchdog_retired")) is not bool:
+        raise ValueError("launch spec must explicitly record legacy watchdog retirement state")
+    global_lock_path(spec)
     return spec
 
 
 def state_dir_for(spec: dict) -> Path:
-    return (ROOT / spec["state_dir"]).resolve()
+    root = Path(spec["testnet_state_root"]).resolve()
+    configured = Path(spec["state_dir"])
+    if not configured.is_absolute():
+        raise ValueError("launch spec state_dir must be absolute")
+    state_dir = configured.resolve()
+    try:
+        relative = state_dir.relative_to(root)
+    except ValueError as exc:
+        raise ValueError("launch spec state_dir must be inside testnet_state_root") from exc
+    if (len(relative.parts) != 2 or not re.fullmatch(r"run\d+", relative.parts[0])
+            or not re.fullmatch(r"state[^/\\]+", relative.parts[1])):
+        raise ValueError("launch spec state_dir must name one run*/state* directory")
+    return state_dir
 
 
 def other_live_runs(spec: dict, expected_dir: Path) -> list[dict]:
@@ -81,23 +110,53 @@ def git_sha() -> str:
 
 def check_source(spec: dict) -> str:
     sha = git_sha()
-    subprocess.run(
-        ["git", "-C", str(ROOT), "merge-base", "--is-ancestor", spec["source_base_sha"], sha],
-        check=True, capture_output=True, timeout=10,
+    pin = str(spec.get("source_sha") or "").lower()
+    if not re.fullmatch(r"[0-9a-f]{40}", pin):
+        raise ValueError("launch spec must pin an exact 40-character source_sha")
+    ancestor = subprocess.run(
+        ["git", "-C", str(ROOT), "merge-base", "--is-ancestor", pin, sha],
+        capture_output=True, timeout=10,
     )
-    dirty = subprocess.run(
+    if ancestor.returncode:
+        raise ValueError("HEAD is not descended from the pinned source_sha")
+    changed = subprocess.run(
+        ["git", "-C", str(ROOT), "diff", "--name-only", f"{pin}..{sha}"],
+        check=True, capture_output=True, text=True, timeout=10,
+    ).stdout.splitlines()
+    generated_paths = {"ops/testnet_launch_spec.json", "ops/STARTUP.md", "ops/PRIOR_ART.md"}
+    if any(path not in generated_paths and not path.startswith("graphify-out/")
+           for path in changed):
+        raise ValueError("pinned source changed after source_sha")
+    status = subprocess.run(
         ["git", "-C", str(ROOT), "status", "--porcelain"],
         check=True, capture_output=True, text=True, timeout=10,
-    ).stdout
-    if dirty:
-        raise ValueError("source checkout is not clean; refusing to launch an unpinned tree")
-    return sha
+    ).stdout.splitlines()
+    runtime_dirs = (
+        "_archive/hl_stage2/hl_copy_output/", "hl_live_copy_audit/",
+        "__pycache__/", "_archive/hl_stage2/__pycache__/", "ops/__pycache__/",
+        "graphify-out/cache/ast/",
+    )
+    for line in status:
+        if line.startswith("?? "):
+            path = line[3:].strip('"').replace("\\", "/")
+            if path == "graphify-out/.graphify_labels.pending.json" or any(
+                    path.startswith(directory) for directory in runtime_dirs):
+                continue
+        raise ValueError("source checkout has tracked changes or unrecognized untracked files")
+    return pin
+
+
+def process_open_failure(error_code: int) -> None:
+    if error_code != 87:  # ERROR_INVALID_PARAMETER means the PID does not exist.
+        raise OSError(error_code, "OpenProcess failed; PID identity is unverified")
 
 
 def process_start_ms(pid: object) -> int | None:
     """Read PID creation time only; never inspect the process command line."""
-    if os.name != "nt":
+    if type(pid) is not int or pid <= 0:
         return None
+    if os.name != "nt":
+        raise OSError("PID creation-time verification is available only on Windows")
     try:
         kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
         kernel32.OpenProcess.argtypes = (wintypes.DWORD, wintypes.BOOL, wintypes.DWORD)
@@ -108,6 +167,7 @@ def process_start_ms(pid: object) -> int | None:
         kernel32.CloseHandle.restype = wintypes.BOOL
         handle = kernel32.OpenProcess(0x1000, False, int(pid))
         if not handle:
+            process_open_failure(ctypes.get_last_error())
             return None
         try:
             created, exited, kernel_time, user_time = (wintypes.FILETIME() for _ in range(4))
@@ -115,17 +175,370 @@ def process_start_ms(pid: object) -> int | None:
                 handle, ctypes.byref(created), ctypes.byref(exited),
                 ctypes.byref(kernel_time), ctypes.byref(user_time),
             ):
-                return None
+                raise ctypes.WinError(ctypes.get_last_error())
             ticks = (created.dwHighDateTime << 32) | created.dwLowDateTime
             return ticks // 10_000 - 11644473600000
         finally:
             kernel32.CloseHandle(handle)
-    except (OSError, ValueError, TypeError):
-        return None
+    except (ValueError, TypeError):
+        raise
 
 
 def global_holder_path() -> Path:
     return Path(load_spec()["global_holder_path"])
+
+
+def global_lock_path(spec: dict) -> Path:
+    path = str(spec.get("global_lock_path") or "")
+    if not path:
+        raise ValueError("launch spec has no global_lock_path")
+    holder = Path(spec["global_holder_path"])
+    if norm_path(holder) != norm_path(Path(path + ".holder.json")):
+        raise ValueError("global lock and holder paths do not match")
+    return Path(path)
+
+
+def info_request(spec: dict, payload: dict) -> object:
+    request = Request(spec["info_url"], data=json.dumps(payload).encode("utf-8"),
+                      headers={"Content-Type": "application/json"})
+    with urlopen(request, timeout=float(spec.get("info_timeout_seconds", 8))) as response:
+        return json.loads(response.read().decode("utf-8"))
+
+
+def coin_key(dex: str, coin: object) -> str:
+    name = str(coin or "").strip()
+    if not name:
+        raise ValueError("account response contains a coin without a name")
+    if dex and ":" not in name:
+        return f"{dex}:{name}"
+    return name
+
+
+def evaluate_flatness(positions: dict[str, str], orders: list[dict], documented: dict) -> tuple[list[str], dict]:
+    errors: list[str] = []
+    if not isinstance(documented, dict):
+        errors.append("DOCUMENTED_RESIDUAL_INVALID")
+        documented = {}
+    actual: dict[str, Decimal] = {}
+    for coin, raw in positions.items():
+        try:
+            size = Decimal(str(raw))
+        except (InvalidOperation, ValueError):
+            errors.append("POSITION_SIZE_UNREADABLE")
+            continue
+        if not size.is_finite():
+            errors.append("POSITION_SIZE_UNREADABLE")
+        elif size:
+            actual[coin] = size
+    allowed: dict[str, Decimal] = {}
+    for coin, raw in documented.items():
+        try:
+            size = Decimal(str(raw))
+        except (InvalidOperation, ValueError):
+            errors.append("DOCUMENTED_RESIDUAL_INVALID")
+            continue
+        if not size.is_finite() or not size:
+            errors.append("DOCUMENTED_RESIDUAL_INVALID")
+        else:
+            allowed[str(coin)] = size
+    for coin, size in actual.items():
+        if allowed.get(coin) != size:
+            errors.append("POSITION_NOT_FLAT_OR_DOCUMENTED")
+    orders_by_coin: dict[str, int] = {}
+    for order in orders:
+        coin = str(order.get("coin") or "UNKNOWN")
+        orders_by_coin[coin] = orders_by_coin.get(coin, 0) + 1
+    if orders:
+        errors.append("CANCEL_ALL_NOT_VERIFIED")
+    return errors, {
+        "positions_by_coin": {coin: str(size) for coin, size in sorted(actual.items())},
+        "documented_residuals_by_coin": {coin: str(size) for coin, size in sorted(allowed.items())},
+        "resting_orders_by_coin": dict(sorted(orders_by_coin.items())),
+        "positions_pass": not any(error in errors for error in (
+            "POSITION_SIZE_UNREADABLE", "DOCUMENTED_RESIDUAL_INVALID", "POSITION_NOT_FLAT_OR_DOCUMENTED")),
+        "cancel_all_done": not orders,
+        "no_opposing_market": not orders,
+    }
+
+
+def follower_account_state(spec: dict) -> dict:
+    address = str(spec.get("follower_account_address") or "").strip()
+    if not re.fullmatch(r"0x[0-9a-fA-F]{40}", address):
+        raise ValueError("launch spec must include the public TESTNET follower_account_address")
+    last_request = 0.0
+
+    def query(payload: dict) -> object:
+        nonlocal last_request
+        interval = float(spec["info_request_interval_seconds"])
+        if last_request:
+            time.sleep(max(0, interval - (time.monotonic() - last_request)))
+        result = info_request(spec, payload)
+        last_request = time.monotonic()
+        return result
+
+    dex_response = query({"type": "perpDexs"})
+    if not isinstance(dex_response, list):
+        raise ValueError("TESTNET perpDexs response is unreadable")
+    dexes = [""] + sorted({str(row.get("name") or "").strip().lower()
+                            for row in dex_response if isinstance(row, dict) and row.get("name")})
+    positions: dict[str, str] = {}
+    orders: list[dict] = []
+    for dex in dexes:
+        common = {"user": address, **({"dex": dex} if dex else {})}
+        state = query({"type": "clearinghouseState", **common})
+        open_orders = query({"type": "openOrders", **common})
+        if not isinstance(state, dict) or not isinstance(state.get("assetPositions"), list):
+            raise ValueError("TESTNET clearinghouseState response is unreadable")
+        if not isinstance(open_orders, list):
+            raise ValueError("TESTNET openOrders response is unreadable")
+        for row in state["assetPositions"]:
+            position = row.get("position") if isinstance(row, dict) else None
+            if not isinstance(position, dict):
+                raise ValueError("TESTNET position entry is unreadable")
+            coin = coin_key(dex, position.get("coin"))
+            size = str(position.get("szi", ""))
+            if not size:
+                raise ValueError("TESTNET position has no signed size")
+            positions[coin] = size
+        if any(not isinstance(order, dict) for order in open_orders):
+            raise ValueError("TESTNET open order entry is unreadable")
+        orders.extend({**order, "coin": coin_key(dex, order.get("coin"))} for order in open_orders)
+    return {"positions": positions, "orders": orders}
+
+
+def core_running(spec: dict, state_dir: Path) -> bool:
+    if lock_active(global_lock_path(spec)):
+        return True
+    service = read_json(state_dir / "live_service_state.json")
+    pid, started = service.get("process_id"), service.get("started_at_ms")
+    if isinstance(pid, int) and isinstance(started, int):
+        actual = process_start_ms(pid)
+        if actual is not None and abs(actual - started) <= 2000:
+            return True
+    holder = read_json(global_holder_path())
+    holder_pid, holder_started = holder.get("pid"), iso_ms(holder.get("started_at"))
+    if isinstance(holder_pid, int):
+        actual = process_start_ms(holder_pid)
+        if actual is not None and (not holder_started or abs(actual - holder_started) <= 2000):
+            return True
+    return bool(other_live_runs(spec, state_dir))
+
+
+def startup_preflight(spec: dict, state_dir: Path) -> tuple[list[str], dict]:
+    errors: list[str] = []
+    try:
+        account = follower_account_state(spec)
+        account_errors, detail = evaluate_flatness(
+            account["positions"], account["orders"], spec.get("documented_residuals_by_coin", {}))
+        errors.extend(account_errors)
+    except (OSError, ValueError, URLError) as exc:
+        detail = {"positions_by_coin": {}, "documented_residuals_by_coin":
+                  spec.get("documented_residuals_by_coin", {}), "resting_orders_by_coin": {},
+                  "positions_pass": False, "cancel_all_done": False,
+                  "account_query_error": type(exc).__name__}
+        errors.append("FOLLOWER_ACCOUNT_PREFLIGHT_UNAVAILABLE")
+    try:
+        running = core_running(spec, state_dir)
+    except OSError:
+        running = True
+        errors.append("CORE_IDENTITY_UNVERIFIED")
+    if running:
+        errors.append("CORE_NOT_RUNNING_FAILED")
+    legacy_pid = spec.get("legacy_watchdog_pid")
+    try:
+        legacy_running = isinstance(legacy_pid, int) and process_start_ms(legacy_pid) is not None
+    except OSError:
+        legacy_running = True
+        errors.append("LEGACY_WATCHDOG_IDENTITY_UNVERIFIED")
+    if legacy_running or spec.get("legacy_watchdog_retired") is not True:
+        errors.append("LEGACY_WATCHDOG_NOT_RETIRED")
+    detail.update({"core_not_running": not running,
+                   "legacy_watchdog_retired": not legacy_running and spec.get("legacy_watchdog_retired") is True})
+    return errors, detail
+
+
+def print_preflight(spec: dict, state_dir: Path) -> bool:
+    errors, detail = startup_preflight(spec, state_dir)
+    result = {
+        "status": "FAIL" if errors else "PASS",
+        "follower_positions": "PASS" if detail.get("positions_pass") else "FAIL",
+        "positions_by_coin": detail.get("positions_by_coin", {}),
+        "documented_residuals_by_coin": detail.get("documented_residuals_by_coin", {}),
+        "resting_orders_by_coin": detail.get("resting_orders_by_coin", {}),
+        "cancel_all_done": "PASS" if detail.get("cancel_all_done") else "FAIL",
+        "no_opposing_market": "PASS" if detail.get("no_opposing_market") else "FAIL",
+        "core_not_running": "PASS" if detail.get("core_not_running") else "FAIL",
+        "legacy_watchdog_retired": "PASS" if detail.get("legacy_watchdog_retired") else "FAIL",
+        "errors": errors,
+    }
+    if detail.get("account_query_error"):
+        result["account_query_error"] = detail["account_query_error"]
+    print(json.dumps(result, indent=2))
+    return not errors
+
+
+def acquire_supervisor_lock(spec: dict):
+    if os.name != "nt":
+        raise OSError("supervisor lock is Windows-only")
+    import msvcrt
+    path = Path(spec["supervisor_lock_path"])
+    path.parent.mkdir(parents=True, exist_ok=True)
+    handle = path.open("a+b")
+    if handle.seek(0, os.SEEK_END) == 0:
+        handle.write(b"0")
+        handle.flush()
+    handle.seek(0)
+    try:
+        msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
+    except OSError:
+        handle.close()
+        raise OSError("another pinned-spec supervisor already holds the lock")
+    return handle
+
+
+def release_supervisor_lock(handle) -> None:
+    import msvcrt
+    try:
+        handle.seek(0)
+        msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
+    finally:
+        handle.close()
+
+
+def lock_active(path: Path) -> bool:
+    if os.name != "nt":
+        raise OSError("Windows lock verification is unavailable")
+    if not path.exists():
+        return False
+    import msvcrt
+    try:
+        with path.open("r+b") as handle:
+            handle.seek(0)
+            try:
+                msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
+            except OSError:
+                return True
+            handle.seek(0)
+            msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
+            return False
+    except OSError:
+        return True
+
+
+def launch_once(spec: dict, state_dir: Path, sha: str, *, supervised: bool) -> int:
+    if not print_preflight(spec, state_dir):
+        return 1
+    if not Path(spec["testnet_state_root"]).is_dir():
+        print("START_REFUSED: TESTNET state root is unavailable")
+        return 1
+    if port_open(spec["ui_port"]):
+        print("START_REFUSED: the configured UI endpoint is already occupied")
+        return 1
+    if not supervised and lock_active(Path(spec["supervisor_lock_path"])):
+        print("START_REFUSED: the pinned-spec supervisor is already running")
+        return 1
+    service_path = state_dir / "live_service_state.json"
+    if not supervised:
+        current = read_json(service_path)
+        current_pid, current_started = current.get("process_id"), current.get("started_at_ms")
+        if service_path.exists():
+            shutdown = read_json(state_dir / "core_shutdown_record.json")
+            if (shutdown.get("clean") is not True or shutdown.get("process_id") != current_pid
+                    or shutdown.get("started_at_ms") != current_started):
+                print("START_REFUSED: existing Core state has no matching clean shutdown record")
+                return 1
+        elif state_dir.exists() and any(state_dir.iterdir()):
+            print("START_REFUSED: existing state has no Core identity record; preserving it")
+            return 1
+        if state_dir.exists() and not (state_dir / "core_shutdown_record.json").exists():
+            print("START_REFUSED: existing state lacks a shutdown record; preserving it")
+            return 1
+    state_dir.mkdir(parents=True, exist_ok=True)
+    os.environ.update({
+        "HL_LIVE_AUDIT_DIR": str(state_dir), "HL_FOLLOWER_NETWORK": "testnet",
+        "HL_LIVE_WS_ENABLED": "1", "HL_BUILD_SHA": sha,
+        "HL_APP_PORT": str(spec["ui_port"]),
+        "HL_USER_WALLET": str(spec["follower_account_address"]),
+        "HL_LIVE_GLOBAL_LOCK_FILE": str(global_lock_path(spec)),
+    })
+    try:
+        if core_running(spec, state_dir) or lock_active(global_lock_path(spec)):
+            print(json.dumps({"status": "FAIL", "core_not_running": "FAIL",
+                              "errors": ["CORE_NOT_RUNNING_FAILED"]}, indent=2))
+            return 1
+    except OSError:
+        print(json.dumps({"status": "FAIL", "core_not_running": "FAIL",
+                          "errors": ["CORE_IDENTITY_UNVERIFIED"]}, indent=2))
+        return 1
+    core_script = ROOT / spec["core_script"]
+    core = subprocess.Popen(
+        [sys.executable, str(core_script), *spec["core_args"]], cwd=str(core_script.parent),
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+    )
+    print(f"CORE_STARTED pid={core.pid} build_sha={sha} follower=testnet state_dir={state_dir}")
+    ui = None
+    try:
+        deadline = time.monotonic() + spec["state_max_age_seconds"]
+        while time.monotonic() < deadline:
+            errors, _ = collect_core_only(spec, state_dir, sha, core.pid)
+            if not errors:
+                break
+            if core.poll() is not None:
+                print("CORE_START_FAILED: identity state did not verify before exit")
+                return core.returncode or 1
+            time.sleep(1)
+        else:
+            print("CORE_START_UNVERIFIED: leaving the process untouched for review")
+            return 1
+        ui_script = ROOT / spec["ui_script"]
+        ui = subprocess.Popen(
+            [sys.executable, str(ui_script)], cwd=str(ui_script.parent),
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+        )
+        print(f"UI_STARTED pid={ui.pid} url={spec['ui_base_url']}")
+        while core.poll() is None:
+            time.sleep(60)
+            errors, detail = collect(spec, state_dir, sha)
+            post_alert(spec, state_dir, errors, detail)
+        print(f"CORE_EXITED code={core.returncode}; launcher did not stop it")
+        errors, detail = collect(spec, state_dir, sha)
+        post_alert(spec, state_dir, errors or ["CORE_EXITED"], detail)
+        return core.returncode or 1
+    except KeyboardInterrupt:
+        print("LAUNCHER_INTERRUPTED: Core was not stopped; verify its tracked state before any separate stop action")
+        return 130
+    finally:
+        if ui is not None and ui.poll() is None:
+            ui.terminate()
+            try:
+                ui.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                pass
+
+
+def run_startup(spec: dict, state_dir: Path, sha: str, *, supervised: bool) -> int:
+    handle = None
+    if supervised:
+        if spec.get("legacy_watchdog_retired") is not True:
+            raise SystemExit("REFUSED: legacy watchdog retirement is not confirmed in the pinned spec")
+        handle = acquire_supervisor_lock(spec)
+    try:
+        while True:
+            code = launch_once(spec, state_dir, sha, supervised=supervised)
+            if not supervised:
+                return code
+            if code == 130:
+                return code
+            print("SUPERVISOR_RELAUNCH_DEFERRED: preflight will be retried in 60 seconds")
+            time.sleep(60)
+    except KeyboardInterrupt:
+        print("SUPERVISOR_STOPPED: Core state was not stopped; one-command relauncher exited")
+        return 130
+    finally:
+        if handle is not None:
+            release_supervisor_lock(handle)
 
 
 def fetch_ui(base_url: str, timeout: float = 2.0) -> dict:
@@ -194,6 +607,10 @@ def collect(spec: dict, state_dir: Path, expected_sha: str) -> tuple[list[str], 
     runtime_path = state_dir / "clean_core_runtime_state.json"
     service = read_json(service_path)
     runtime = read_json(runtime_path)
+    if not service_path.is_file() or not runtime_path.is_file():
+        return ["CORE_STATE_MISSING"], {"pid": None, "build_sha": None,
+                                         "follower_network": None, "other_live_runs": [],
+                                         "state_age_seconds": None}
     holder = read_json(global_holder_path())
     others = other_live_runs(spec, state_dir)
     ui = fetch_ui(spec["ui_base_url"])
@@ -206,14 +623,10 @@ def collect(spec: dict, state_dir: Path, expected_sha: str) -> tuple[list[str], 
     )
     if not Path(spec["testnet_state_root"]).is_dir():
         errors.append("TESTNET_STATE_ROOT_UNAVAILABLE")
-    if not service_path.exists() or not runtime_path.exists():
-        if "CORE_STATE_STALE" not in errors:
-            errors.append("CORE_STATE_MISSING")
-    else:
-        for path, reason in ((service_path, "CORE_STATE_FILE_MTIME_STALE"),
-                             (runtime_path, "CORE_RUNTIME_STATE_FILE_MTIME_STALE")):
-            if utc_ms() - int(path.stat().st_mtime * 1000) > age_ms:
-                errors.append(reason)
+    for path, reason in ((service_path, "CORE_STATE_FILE_MTIME_STALE"),
+                         (runtime_path, "CORE_RUNTIME_STATE_FILE_MTIME_STALE")):
+        if utc_ms() - int(path.stat().st_mtime * 1000) > age_ms:
+            errors.append(reason)
     return errors, {"pid": service.get("process_id"), "build_sha": service.get("build_sha"),
                     "follower_network": ((service.get("networks") or {}).get("follower")
                                          if isinstance(service.get("networks"), dict) else None),
@@ -260,8 +673,11 @@ def plan(spec: dict, sha: str, state_dir: Path) -> None:
         "core_sha": sha,
         "follower_network": spec["follower_network"],
         "shared_state_dir": str(state_dir),
+        "global_lock_path": str(global_lock_path(spec)),
         "core_script": str(ROOT / spec["core_script"]),
         "ui_script": str(ROOT / spec["ui_script"]),
+        "preflight": "TESTNET positions, resting orders, cancel-all state and no running Core",
+        "automatic_relaunch": "supervise mode, after legacy watchdog retirement is confirmed",
         "processes_started": 0,
         "runtime_or_config_changed": False,
     }, indent=2))
@@ -292,12 +708,27 @@ def self_check() -> None:
     assert "GLOBAL_ENGINE_HOLDER_MISMATCH" in evaluate(service, runtime, ui, {**holder, "pid": 43}, **args)
     assert "CORE_PID_NOT_VERIFIED" in evaluate(service, runtime, ui, holder, **{**args, "actual_pid_start_ms": None})
     assert "MULTIPLE_CORE_ENGINES" in evaluate(service, runtime, ui, holder, **{**args, "other_live_pids": (43,)})
-    print("SELF_CHECK_PASS: healthy identity; stale state; PID/SHA/old-UI-folder mismatch; wrong network; extra Core; missing/dead PID")
+    assert process_open_failure(87) is None
+    try:
+        process_open_failure(5)
+    except OSError:
+        pass
+    else:
+        raise AssertionError("access denied must not be treated as an absent PID")
+    flat_errors, flat = evaluate_flatness({}, [], {"test:COIN": "2.0"})
+    assert not flat_errors and flat["positions_pass"] and flat["cancel_all_done"]
+    bad_position, _ = evaluate_flatness({"test:COIN": "2.1"}, [], {"test:COIN": "2.0"})
+    assert "POSITION_NOT_FLAT_OR_DOCUMENTED" in bad_position
+    bad_orders, _ = evaluate_flatness({}, [{"coin": "test:COIN"}], {})
+    assert "CANCEL_ALL_NOT_VERIFIED" in bad_orders
+    expected = Path("C:/testnet/run7/state_check")
+    assert state_dir_for({"testnet_state_root": "C:/testnet", "state_dir": str(expected)}) == expected
+    print("SELF_CHECK_PASS: state path; exact PID access; stale/PID/SHA/network/UI mismatches; residuals; open orders")
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("action", nargs="?", choices=("plan", "verify", "watch", "start", "self-check"), default="plan")
+    parser.add_argument("action", nargs="?", choices=("plan", "verify", "watch", "preflight", "start", "supervise", "self-check"), default="plan")
     parser.add_argument("--execute", action="store_true", help="allow the TESTNET launch after all guards pass")
     parser.add_argument("--confirm-testnet", action="store_true", help="confirm this is an explicitly authorized TESTNET start")
     parser.add_argument("--authorization-order", help="fresh direct order ID that authorizes the start")
@@ -307,11 +738,13 @@ def main() -> int:
         return 0
     spec = load_spec()
     state_dir = state_dir_for(spec)
-    if args.action == "plan" or (args.action == "start" and not args.execute):
+    if args.action == "plan" or (args.action in ("start", "supervise") and not args.execute):
         plan(spec, check_source(spec), state_dir)
         print("DRY_RUN_ONLY: no engine, UI, state, config, or scheduler changes")
         return 0
     sha = check_source(spec)
+    if args.action == "preflight":
+        return 0 if print_preflight(spec, state_dir) else 1
     if args.action == "verify":
         errors, detail = collect(spec, state_dir, sha)
         print(json.dumps({"status": "FAIL" if errors else "PASS", "errors": errors, **detail}, indent=2))
@@ -326,97 +759,14 @@ def main() -> int:
         except KeyboardInterrupt:
             print("WATCH_STOPPED: no Core or UI process was started or stopped")
             return 0
-    if args.action == "start":
+    if args.action in ("start", "supervise"):
         if not args.confirm_testnet:
-            raise SystemExit("REFUSED: start requires --confirm-testnet and a fresh direct authorization")
+            raise SystemExit("REFUSED: TESTNET start requires --confirm-testnet and a fresh direct authorization")
         if not args.authorization_order or not args.authorization_order.isdigit():
             raise SystemExit("REFUSED: start requires the ID of a fresh direct authorization order")
         if os.name != "nt":
             raise SystemExit("REFUSED: this launcher is Windows-only")
-        holder = read_json(global_holder_path())
-        if holder and process_start_ms(holder.get("pid")) is not None:
-            raise SystemExit("REFUSED: a tracked engine process is already running; no restart is attempted")
-        if not Path(spec["testnet_state_root"]).is_dir():
-            raise SystemExit("REFUSED: TESTNET state root is unavailable; cannot count other runs")
-        service_path = state_dir / "live_service_state.json"
-        current = read_json(service_path)
-        current_pid = current.get("process_id")
-        current_started = current.get("started_at_ms")
-        if isinstance(current_pid, int) and isinstance(current_started, int):
-            actual = process_start_ms(current_pid)
-            if actual is not None and abs(actual - current_started) <= 2000:
-                raise SystemExit("REFUSED: the configured state directory already has a live Core; no restart is attempted")
-        if service_path.exists():
-            shutdown = read_json(state_dir / "core_shutdown_record.json")
-            if (shutdown.get("clean") is not True or shutdown.get("process_id") != current_pid
-                    or shutdown.get("started_at_ms") != current_started):
-                raise SystemExit("REFUSED: existing Core state has no matching clean shutdown record")
-        elif state_dir.exists() and any(state_dir.iterdir()):
-            raise SystemExit("REFUSED: existing state directory has no Core identity record; preserve it for review")
-        others = other_live_runs(spec, state_dir)
-        if others:
-            summary = ",".join(f"{row['run']}:{row['pid']}" for row in others)
-            raise SystemExit("REFUSED: another TESTNET Core is live: " + summary)
-        if state_dir.exists() and not (state_dir / "core_shutdown_record.json").exists():
-            raise SystemExit("REFUSED: existing state lacks a shutdown record; preserve it for review")
-        if port_open(spec["ui_port"]):
-            raise SystemExit("REFUSED: /api/state already responds; refusing to start a second UI or serve another run")
-        state_dir.mkdir(parents=True, exist_ok=True)
-        os.environ.update({"HL_LIVE_AUDIT_DIR": str(state_dir), "HL_FOLLOWER_NETWORK": "testnet",
-                           "HL_LIVE_WS_ENABLED": "1", "HL_BUILD_SHA": sha,
-                           "HL_APP_PORT": str(spec["ui_port"])})
-        core = subprocess.Popen([sys.executable, str(ROOT / spec["core_script"]), *spec["core_args"]],
-                                cwd=str((ROOT / spec["core_script"]).parent))
-        print(f"CORE_STARTED pid={core.pid} build_sha={sha} follower=testnet state_dir={state_dir}")
-        try:
-            deadline = time.monotonic() + spec["state_max_age_seconds"]
-            while time.monotonic() < deadline:
-                errors, detail = collect_core_only(spec, state_dir, sha, core.pid)
-                if not errors:
-                    break
-                if core.poll() is not None:
-                    raise RuntimeError("Core exited before identity state became fresh: " + ",".join(errors))
-                time.sleep(1)
-            else:
-                raise RuntimeError("Core state did not verify within 30 seconds")
-            ui = subprocess.Popen([sys.executable, str(ROOT / spec["ui_script"])], cwd=str((ROOT / spec["ui_script"]).parent),
-                                  stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                                  creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
-            print(f"UI_STARTED pid={ui.pid} url={spec['ui_base_url']}")
-            deadline = time.monotonic() + spec["state_max_age_seconds"]
-            while time.monotonic() < deadline:
-                errors, detail = collect(spec, state_dir, sha)
-                if not errors:
-                    break
-                if ui.poll() is not None:
-                    break
-                time.sleep(1)
-            if errors:
-                post_alert(spec, state_dir, errors, detail)
-                print("UI_NOT_VERIFIED: alert posted if available; no automatic restart")
-            while core.poll() is None:
-                time.sleep(60)
-                errors, detail = collect(spec, state_dir, sha)
-                post_alert(spec, state_dir, errors, detail)
-            print(f"CORE_EXITED code={core.returncode}; no automatic restart")
-            errors, detail = collect(spec, state_dir, sha)
-            post_alert(spec, state_dir, errors or ["CORE_EXITED"], detail)
-            return core.returncode or 0
-        except KeyboardInterrupt:
-            print("STOP_REQUESTED: Ctrl+C delivered to the foreground TESTNET launcher/Core; no force-kill")
-            try:
-                core.wait(timeout=15)
-            except subprocess.TimeoutExpired:
-                print("STOP_NOT_CONFIRMED: Core remains running; do not terminate it forcibly")
-                return 2
-            return 0
-        finally:
-            if "ui" in locals() and ui.poll() is None:
-                ui.terminate()
-                try:
-                    ui.wait(timeout=5)
-                except subprocess.TimeoutExpired:
-                    pass
+        return run_startup(spec, state_dir, sha, supervised=args.action == "supervise")
     return 0
 
 
