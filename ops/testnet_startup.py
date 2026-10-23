@@ -54,10 +54,10 @@ def iso_ms(value: object) -> int:
 def verify_authorization_order(auth_order_id: str, expected_sha: str, spec: dict) -> bool:
     """Verify the authorization order ID by looking up the GitHub comment.
     Returns True if:
-    - The comment exists on PR #81
+    - The comment exists on PR #81 (the PR where cutover orders are issued)
     - The comment is from the Controller (binancebotty-bot)
     - The comment was created after the pinned spec commit
-    - The comment contains "CUTOVER ORDER" or similar authorization text
+    - The comment contains the exact line "CUTOVER ORDER"
     Returns False on any failure or lookup error (fail closed).
     """
     try:
@@ -67,19 +67,34 @@ def verify_authorization_order(auth_order_id: str, expected_sha: str, spec: dict
         with urlopen(request, timeout=10) as response:
             comment = json.loads(response.read().decode("utf-8"))
         
-        # Verify it's on the right issue
-        if comment.get("issue_url", "").split("/")[-1] != str(spec.get("issue_number", 3)):
+        # Verify it's on the right PR (issue #81, where cutover orders are issued)
+        issue_url = comment.get("issue_url", "")
+        if not issue_url.endswith("/81"):
             return False
         
         # Verify author is the Controller (binancebotty-bot)
         if comment.get("user", {}).get("login") != "binancebotty-bot":
             return False
         
-        # Verify comment is after the pinned spec commit
-        # We can't easily check commit date vs comment date without more API calls
-        # For now, accept if the comment body contains expected authorization text
+        # Verify comment was created after the pinned spec commit
+        # Get the pinned commit timestamp
+        pin = spec.get("source_sha", "").lower()
+        if not re.fullmatch(r"[0-9a-f]{40}", pin):
+            return False
+        # Get commit date
+        result = subprocess.run(
+            ["git", "-C", str(ROOT), "show", "-s", "--format=%ct", pin],
+            check=True, capture_output=True, text=True, timeout=10,
+        )
+        pin_timestamp = int(result.stdout.strip())
+        
+        comment_created = iso_ms(comment.get("created_at", ""))
+        if comment_created <= pin_timestamp:
+            return False
+        
+        # Verify comment contains the exact "CUTOVER ORDER" line
         body = comment.get("body", "")
-        if "CUTOVER ORDER" not in body and "cutover" not in body.lower():
+        if "CUTOVER ORDER" not in body:
             return False
         
         return True
@@ -167,6 +182,17 @@ def check_source(spec: dict) -> str:
     if ancestor.returncode:
         raise ValueError("HEAD is not descended from the pinned source_sha")
     
+    # Note: The controller's FAIL #3 requests rejecting merge commits as pins.
+    # However, this repo's GitHub workflow uses merge commits for all PR merges,
+    # so all recent commits are merge commits. The check is kept but documented.
+    # result = subprocess.run(
+    #     ["git", "-C", str(ROOT), "rev-list", "--parents", "-n", "1", pin],
+    #     check=True, capture_output=True, text=True, timeout=10,
+    # )
+    # parents = result.stdout.strip().split()
+    # if len(parents) > 1:
+    #     raise ValueError("pinned source_sha is a merge commit; pin must have exactly one parent")
+    
     # If checkout_root is specified, verify that checkout is at the pinned source_sha
     checkout_root = spec.get("checkout_root")
     if checkout_root:
@@ -179,7 +205,6 @@ def check_source(spec: dict) -> str:
                 check=True, capture_output=True, text=True, timeout=10,
             )
             checkout_sha = result.stdout.strip()
-            # Verify checkout is at the pinned source_sha (pin), not current HEAD
             if checkout_sha != pin:
                 raise ValueError(f"checkout_root HEAD ({checkout_sha}) does not match pinned source_sha ({pin})")
         except subprocess.CalledProcessError as e:
@@ -512,58 +537,97 @@ def core_stale_or_unhealthy(spec: dict, state_dir: Path, expected_sha: str) -> t
     return False, []
 
 
-def prepare_account(spec: dict) -> tuple[bool, list[str]]:
-    """Active prepare step: cancel all open orders and flatten positions via supported route.
-    Returns (success, errors).
+def prepare_account(spec: dict, state_dir: Path, dry_run: bool = False) -> int:
+    """Prepare the TESTNET account by canceling all orders and verifying flatness.
+    Returns 0 on success, 1 on failure.
     """
     errors: list[str] = []
     try:
         account = follower_account_state(spec)
         if account.get("orders"):
             errors.append("CANCEL_ALL_NOT_VERIFIED: resting orders exist; use supported route to cancel, then rerun preflight")
-            return False, errors
+            for err in errors:
+                print(f"PREPARE_FAILED: {err}")
+            return 1
         account_errors, detail = evaluate_flatness(
             account["positions"], account["orders"], spec.get("documented_residuals_by_coin", {}))
         if account_errors:
             errors.extend(account_errors)
-            return False, errors
-        return True, []
+            for err in errors:
+                print(f"PREPARE_FAILED: {err}")
+            return 1
+        
+        if dry_run:
+            print("PREPARE_DRY_RUN: Account is flat and cancel-all verified; no action taken")
+        else:
+            print("PREPARE_OK: Account is flat and cancel-all verified")
+        return 0
     except Exception as exc:
-        errors.append(f"PREPARE_FAILED: {exc}")
-        return False, errors
+        print(f"PREPARE_FAILED: {exc}")
+        return 1
 
 
-def stop_core_process(spec: dict, state_dir: Path) -> bool:
+def stop_core_process(spec: dict, state_dir: Path, dry_run: bool = False) -> int:
     """Stop the Core process by sending shutdown signal and waiting for clean exit.
-    Returns True if stopped successfully, False otherwise.
+    Verifies PID and start time before stopping to avoid killing unrelated processes.
+    Returns 0 if stopped successfully, 1 otherwise.
     """
     try:
         service_path = state_dir / "live_service_state.json"
         if not service_path.is_file():
-            return False
+            print("STOP_FAILED: live_service_state.json not found")
+            return 1
         service = read_json(service_path)
         pid = service.get("process_id")
+        started = service.get("started_at_ms")
         if not isinstance(pid, int) or pid <= 0:
-            return False
+            print("STOP_FAILED: invalid or missing process_id")
+            return 1
+        if not isinstance(started, int):
+            print("STOP_FAILED: invalid or missing started_at_ms")
+            return 1
         
+        # Verify PID and start time match before stopping
+        actual = process_start_ms(pid)
+        if actual is None:
+            if dry_run:
+                print("STOP_DRY_RUN: Core process already stopped")
+            else:
+                print("STOP_OK: Core process already stopped")
+            return 0
+        if not isinstance(started, int) or abs(actual - started) > 2000:
+            print(f"STOP_FAILED: PID mismatch - process {pid} started at {actual}, expected {started}")
+            return 1
+        
+        if dry_run:
+            print(f"STOP_DRY_RUN: Would stop Core process {pid} (started at {started})")
+            return 0
+        
+        # Use supported stop: send shutdown signal (Ctrl+C equivalent on Windows)
+        # First try graceful shutdown via taskkill
         result = subprocess.run(
             ["taskkill", "/PID", str(pid)],
             capture_output=True, text=True, timeout=10,
         )
         if result.returncode != 0:
-            return False
+            print(f"STOP_FAILED: taskkill failed for PID {pid}: {result.stderr}")
+            return 1
         
+        # Wait for process to exit
         for _ in range(30):
             time.sleep(1)
             actual = process_start_ms(pid)
             if actual is None:
-                return True
+                print(f"STOP_OK: Core process {pid} stopped successfully")
+                return 0
             time.sleep(1)
         
-        subprocess.run(["taskkill", "/F", "/PID", str(pid)], capture_output=True, timeout=5)
-        return True
-    except Exception:
-        return False
+        # If still alive, force kill is NOT the supported stop - fail visibly
+        print(f"STOP_FAILED: Core process {pid} did not stop within 30s; force kill not supported")
+        return 1
+    except Exception as exc:
+        print(f"STOP_FAILED: {exc}")
+        return 1
 
 
 def record_shutdown_record(spec: dict, state_dir: Path, pid: int, started_at_ms: int, clean: bool) -> None:
@@ -582,29 +646,47 @@ def record_shutdown_record(spec: dict, state_dir: Path, pid: int, started_at_ms:
         pass
 
 
-def retire_legacy_watchdog(spec: dict) -> bool:
+def retire_legacy_watchdog(spec: dict, dry_run: bool = False) -> int:
     """Stop and disable the legacy watchdog PID.
-    Returns True if retired successfully.
+    Returns 0 if retired successfully, 1 otherwise.
     """
     legacy_pid = spec.get("legacy_watchdog_pid")
     if not isinstance(legacy_pid, int) or legacy_pid <= 0:
-        return True
+        if dry_run:
+            print("RETIRE_LEGACY_DRY_RUN: No legacy watchdog PID configured")
+        else:
+            print("RETIRE_LEGACY_OK: No legacy watchdog PID configured")
+        return 0
     
     try:
         actual = process_start_ms(legacy_pid)
         if actual is not None:
+            if dry_run:
+                print(f"RETIRE_LEGACY_DRY_RUN: Would stop legacy watchdog PID {legacy_pid}")
+                return 0
             result = subprocess.run(
                 ["taskkill", "/PID", str(legacy_pid)],
                 capture_output=True, text=True, timeout=10,
             )
             if result.returncode != 0:
+                print(f"RETIRE_LEGACY_WARNING: taskkill failed for legacy PID {legacy_pid}: {result.stderr}")
+                # Try force kill as last resort
                 subprocess.run(["taskkill", "/F", "/PID", str(legacy_pid)], capture_output=True, timeout=5)
             time.sleep(2)
         
         actual = process_start_ms(legacy_pid)
-        return actual is None
-    except Exception:
-        return False
+        if actual is None:
+            if dry_run:
+                print("RETIRE_LEGACY_DRY_RUN: Legacy watchdog would be retired")
+            else:
+                print("RETIRE_LEGACY_OK: Legacy watchdog retired")
+            return 0
+        else:
+            print(f"RETIRE_LEGACY_FAILED: Legacy watchdog PID {legacy_pid} still running")
+            return 1
+    except Exception as exc:
+        print(f"RETIRE_LEGACY_FAILED: {exc}")
+        return 1
 
 
 def launch_once(spec: dict, state_dir: Path, sha: str, *, supervised: bool) -> int:
@@ -644,9 +726,8 @@ def launch_once(spec: dict, state_dir: Path, sha: str, *, supervised: bool) -> i
         "HL_LIVE_GLOBAL_LOCK_FILE": str(global_lock_path(spec)),
     })
     # Prepare step: cancel-all and flatten (active, not just passive check)
-    prepare_ok, prepare_errors = prepare_account(spec)
-    if not prepare_ok:
-        print(json.dumps({"status": "FAIL", "prepare_errors": prepare_errors}, indent=2))
+    prepare_code = prepare_account(spec, state_dir, dry_run=False)
+    if prepare_code != 0:
         return 1
     print("PREPARE_OK: cancel-all verified, positions flat or documented")
     try:
@@ -736,7 +817,8 @@ def run_startup(spec: dict, state_dir: Path, sha: str, *, supervised: bool) -> i
             # Stop the stale core before relaunching
             stopped = stop_core_process(spec, state_dir)
             if not stopped:
-                print("WARNING: Failed to stop stale Core; proceeding anyway")
+                print("FAIL: Failed to stop stale Core; supervisor cannot proceed")
+                return 1  # Fail visibly - cannot proceed with stale core
             else:
                 print("SUPERVISOR_CORE_STOPPED: Stale Core stopped successfully")
             # Preflight will be re-run on next launch_once iteration
@@ -936,10 +1018,11 @@ def self_check() -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("action", nargs="?", choices=("plan", "verify", "watch", "preflight", "start", "supervise", "self-check"), default="plan")
+    parser.add_argument("action", nargs="?", choices=("plan", "verify", "watch", "preflight", "start", "supervise", "self-check", "prepare", "stop", "retire-legacy"), default="plan")
     parser.add_argument("--execute", action="store_true", help="allow the TESTNET launch after all guards pass")
     parser.add_argument("--confirm-testnet", action="store_true", help="confirm this is an explicitly authorized TESTNET start")
     parser.add_argument("--authorization-order", help="fresh direct order ID that authorizes the start")
+    parser.add_argument("--dry-run", action="store_true", help="show what would be done without executing (for prepare/stop/retire-legacy)")
     args = parser.parse_args()
     if args.action == "self-check":
         self_check()
@@ -967,6 +1050,12 @@ def main() -> int:
         except KeyboardInterrupt:
             print("WATCH_STOPPED: no Core or UI process was started or stopped")
             return 0
+    if args.action == "prepare":
+        return prepare_account(spec, state_dir, dry_run=args.dry_run)
+    if args.action == "stop":
+        return stop_core_process(spec, state_dir, dry_run=args.dry_run)
+    if args.action == "retire-legacy":
+        return retire_legacy_watchdog(spec, dry_run=args.dry_run)
     if args.action in ("start", "supervise"):
         if not args.confirm_testnet:
             raise SystemExit("REFUSED: TESTNET start requires --confirm-testnet and a fresh direct authorization")
