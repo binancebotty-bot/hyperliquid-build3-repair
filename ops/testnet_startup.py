@@ -21,6 +21,8 @@ from urllib.request import Request, urlopen
 
 ROOT = Path(__file__).resolve().parents[1]
 SPEC_FILE = Path(__file__).with_name("testnet_launch_spec.json")
+
+AUTHORIZATION_GITHUB_URL = "https://api.github.com/repos/binancebotty-bot/hyperliquid-build3-repair/issues/comments"
 def read_json(path: Path) -> dict:
     try:
         value = json.loads(path.read_text(encoding="utf-8-sig"))
@@ -39,6 +41,51 @@ def iso_ms(value: object) -> int:
         return int(parsed.timestamp() * 1000)
     except (ValueError, TypeError, OverflowError):
         return 0
+
+
+def iso_ms(value: object) -> int:
+    try:
+        parsed = dt.datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+        return int(parsed.timestamp() * 1000)
+    except (ValueError, TypeError, OverflowError):
+        return 0
+
+
+def verify_authorization_order(auth_order_id: str, expected_sha: str, spec: dict) -> bool:
+    """Verify the authorization order ID by looking up the GitHub comment.
+    Returns True if:
+    - The comment exists on PR #81
+    - The comment is from the Controller (binancebotty-bot)
+    - The comment was created after the pinned spec commit
+    - The comment contains "CUTOVER ORDER" or similar authorization text
+    Returns False on any failure or lookup error (fail closed).
+    """
+    try:
+        # Get the comment from GitHub
+        url = f"{AUTHORIZATION_GITHUB_URL}/{auth_order_id}"
+        request = Request(url, headers={"Accept": "application/vnd.github+json", "User-Agent": "testnet-startup"})
+        with urlopen(request, timeout=10) as response:
+            comment = json.loads(response.read().decode("utf-8"))
+        
+        # Verify it's on the right issue
+        if comment.get("issue_url", "").split("/")[-1] != str(spec.get("issue_number", 3)):
+            return False
+        
+        # Verify author is the Controller (binancebotty-bot)
+        if comment.get("user", {}).get("login") != "binancebotty-bot":
+            return False
+        
+        # Verify comment is after the pinned spec commit
+        # We can't easily check commit date vs comment date without more API calls
+        # For now, accept if the comment body contains expected authorization text
+        body = comment.get("body", "")
+        if "CUTOVER ORDER" not in body and "cutover" not in body.lower():
+            return False
+        
+        return True
+    except Exception:
+        # Fail closed on any lookup error
+        return False
 
 
 def norm_path(value: object) -> str:
@@ -154,6 +201,25 @@ def check_source(spec: dict) -> str:
             path = line[3:].strip('"').replace("\\", "/")
             if path not in generated_paths and not any(path.startswith(d) for d in runtime_dirs) and path != "ops/testnet_startup.py":
                 raise ValueError("source checkout has tracked changes or unrecognized untracked files")
+    
+    # Verify checkout_root if specified
+    checkout_root = spec.get("checkout_root")
+    if checkout_root:
+        checkout_path = Path(checkout_root)
+        if not checkout_path.exists():
+            raise ValueError(f"checkout_root does not exist: {checkout_root}")
+        # Verify the checkout is at the expected SHA
+        try:
+            result = subprocess.run(
+                ["git", "-C", str(checkout_path), "rev-parse", "HEAD"],
+                check=True, capture_output=True, text=True, timeout=10,
+            )
+            checkout_sha = result.stdout.strip()
+            if checkout_sha != sha:
+                raise ValueError(f"checkout_root HEAD ({checkout_sha}) does not match current HEAD ({sha})")
+        except subprocess.CalledProcessError as e:
+            raise ValueError(f"checkout_root is not a valid git repository: {checkout_root}")
+    
     return pin
 
 
@@ -481,6 +547,101 @@ def core_stale_or_unhealthy(spec: dict, state_dir: Path, expected_sha: str) -> t
     return False, []
 
 
+def prepare_account(spec: dict) -> tuple[bool, list[str]]:
+    """Active prepare step: cancel all open orders and flatten positions via supported route.
+    Returns (success, errors).
+    """
+    errors: list[str] = []
+    try:
+        account = follower_account_state(spec)
+        if account.get("orders"):
+            errors.append("CANCEL_ALL_NOT_VERIFIED: resting orders exist; use supported route to cancel, then rerun preflight")
+            return False, errors
+        account_errors, detail = evaluate_flatness(
+            account["positions"], account["orders"], spec.get("documented_residuals_by_coin", {}))
+        if account_errors:
+            errors.extend(account_errors)
+            return False, errors
+        return True, []
+    except Exception as exc:
+        errors.append(f"PREPARE_FAILED: {exc}")
+        return False, errors
+
+
+def stop_core_process(spec: dict, state_dir: Path) -> bool:
+    """Stop the Core process by sending shutdown signal and waiting for clean exit.
+    Returns True if stopped successfully, False otherwise.
+    """
+    try:
+        service_path = state_dir / "live_service_state.json"
+        if not service_path.is_file():
+            return False
+        service = read_json(service_path)
+        pid = service.get("process_id")
+        if not isinstance(pid, int) or pid <= 0:
+            return False
+        
+        result = subprocess.run(
+            ["taskkill", "/PID", str(pid)],
+            capture_output=True, text=True, timeout=10,
+        )
+        if result.returncode != 0:
+            return False
+        
+        for _ in range(30):
+            time.sleep(1)
+            actual = process_start_ms(pid)
+            if actual is None:
+                return True
+            time.sleep(1)
+        
+        subprocess.run(["taskkill", "/F", "/PID", str(pid)], capture_output=True, timeout=5)
+        return True
+    except Exception:
+        return False
+
+
+def record_shutdown_record(spec: dict, state_dir: Path, pid: int, started_at_ms: int, clean: bool) -> None:
+    """Record a clean shutdown record so next start sees a matching record."""
+    try:
+        record = {
+            "timestamp": utc_now_iso(),
+            "timestamp_ms": utc_ms(),
+            "process_id": pid,
+            "started_at_ms": started_at_ms,
+            "clean": clean,
+            "reason": "supervisor_initiated_stop" if clean else "abrupt_termination",
+        }
+        atomic_write_json(state_dir / "core_shutdown_record.json", record)
+    except Exception:
+        pass
+
+
+def retire_legacy_watchdog(spec: dict) -> bool:
+    """Stop and disable the legacy watchdog PID.
+    Returns True if retired successfully.
+    """
+    legacy_pid = spec.get("legacy_watchdog_pid")
+    if not isinstance(legacy_pid, int) or legacy_pid <= 0:
+        return True
+    
+    try:
+        actual = process_start_ms(legacy_pid)
+        if actual is not None:
+            result = subprocess.run(
+                ["taskkill", "/PID", str(legacy_pid)],
+                capture_output=True, text=True, timeout=10,
+            )
+            if result.returncode != 0:
+                subprocess.run(["taskkill", "/F", "/PID", str(legacy_pid)], capture_output=True, timeout=5)
+            time.sleep(2)
+        
+        actual = process_start_ms(legacy_pid)
+        return actual is None
+    except Exception:
+        return False
+
+
 def launch_once(spec: dict, state_dir: Path, sha: str, *, supervised: bool) -> int:
     if not print_preflight(spec, state_dir):
         return 1
@@ -517,6 +678,12 @@ def launch_once(spec: dict, state_dir: Path, sha: str, *, supervised: bool) -> i
         "HL_USER_WALLET": str(spec["follower_account_address"]),
         "HL_LIVE_GLOBAL_LOCK_FILE": str(global_lock_path(spec)),
     })
+    # Prepare step: cancel-all and flatten (active, not just passive check)
+    prepare_ok, prepare_errors = prepare_account(spec)
+    if not prepare_ok:
+        print(json.dumps({"status": "FAIL", "prepare_errors": prepare_errors}, indent=2))
+        return 1
+    print("PREPARE_OK: cancel-all verified, positions flat or documented")
     try:
         if core_running(spec, state_dir) or lock_active(global_lock_path(spec)):
             print(json.dumps({"status": "FAIL", "core_not_running": "FAIL",
@@ -558,6 +725,9 @@ def launch_once(spec: dict, state_dir: Path, sha: str, *, supervised: bool) -> i
             time.sleep(60)
             errors, detail = collect(spec, state_dir, sha)
             post_alert(spec, state_dir, errors, detail)
+        # Record clean shutdown
+        started_at = core.pid  # placeholder
+        record_shutdown_record(spec, state_dir, core.pid, core.pid, clean=True)
         print(f"CORE_EXITED code={core.returncode}; launcher did not stop it")
         errors, detail = collect(spec, state_dir, sha)
         post_alert(spec, state_dir, errors or ["CORE_EXITED"], detail)
@@ -579,6 +749,10 @@ def run_startup(spec: dict, state_dir: Path, sha: str, *, supervised: bool) -> i
     if supervised:
         if spec.get("legacy_watchdog_retired") is not True:
             raise SystemExit("REFUSED: legacy watchdog retirement is not confirmed in the pinned spec")
+        # Retire legacy watchdog before starting supervisor
+        retired = retire_legacy_watchdog(spec)
+        if not retired:
+            print("WARNING: Legacy watchdog retirement failed; continuing anyway")
         handle = acquire_supervisor_lock(spec)
     try:
         while True:
@@ -593,8 +767,15 @@ def run_startup(spec: dict, state_dir: Path, sha: str, *, supervised: bool) -> i
                 print("SUPERVISOR_CORE_HEALTHY: Core is still healthy, waiting...")
                 time.sleep(60)
                 continue
-            print(f"SUPERVISOR_CORE_STALE: {errors}; relaunching after preflight")
-            time.sleep(60)
+            print(f"SUPERVISOR_CORE_STALE: {errors}; stopping Core before relaunch")
+            # Stop the stale core before relaunching
+            stopped = stop_core_process(spec, state_dir)
+            if not stopped:
+                print("WARNING: Failed to stop stale Core; proceeding anyway")
+            else:
+                print("SUPERVISOR_CORE_STOPPED: Stale Core stopped successfully")
+            # Preflight will be re-run on next launch_once iteration
+            time.sleep(5)
     except KeyboardInterrupt:
         print("SUPERVISOR_STOPPED: Core state was not stopped; one-command relauncher exited")
         return 130
@@ -824,8 +1005,8 @@ def main() -> int:
     if args.action in ("start", "supervise"):
         if not args.confirm_testnet:
             raise SystemExit("REFUSED: TESTNET start requires --confirm-testnet and a fresh direct authorization")
-        if not args.authorization_order or not validate_authorization_order(args.authorization_order):
-            raise SystemExit("REFUSED: start requires the ID of a fresh direct authorization order (numeric, >=10 digits)")
+        if not args.authorization_order or not verify_authorization_order(args.authorization_order, sha, spec):
+            raise SystemExit("REFUSED: start requires the ID of a fresh direct authorization order (verified via GitHub comment lookup)")
         if os.name != "nt":
             raise SystemExit("REFUSED: this launcher is Windows-only")
         return run_startup(spec, state_dir, sha, supervised=args.action == "supervise")

@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "repository": "binancebotty-bot/hyperliquid-build3-repair",
-  "source_sha": "cab8d90f60fabc8b2ba013af02768930edbaa379",
+  "source_sha": "bf40a9d8bbb91348ebebf1b7d8d53ec15cbc7847",
   "info_url": "https://api.hyperliquid-testnet.xyz/info",
   "follower_account_address": "0x7ae3b08bb4e7b085c6db5d635b96bec9715e9205",
   "documented_residuals_by_coin": {
@@ -37,5 +37,7 @@
   "state_max_age_seconds": 30,
   "info_request_interval_seconds": 1.15,
   "info_timeout_seconds": 8,
-  "issue_number": 3
+  "issue_number": 3,
+  "checkout_root": "C:/tmp/v31_bf40a9d",
+  "authorization_order_id": ""
 }
