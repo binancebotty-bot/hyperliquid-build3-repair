@@ -33,7 +33,11 @@ python ops/hermes_core_start.py --dry-run   # prints CMD + cwd + wallet length o
 python ops/hermes_core_start.py             # starts ONE Core, detached, no console
 ```
 
-What it does: reads the pinned `ops/testnet_launch_spec.json`, builds the child environment from the spec's own fields exactly as `launch_once` does (`HL_LIVE_AUDIT_DIR`, `HL_FOLLOWER_NETWORK`, `HL_LIVE_WS_ENABLED`, `HL_BUILD_SHA`, `HL_APP_PORT`, `HL_USER_WALLET`, `HL_LIVE_GLOBAL_LOCK_FILE`), then Popens the Core with `creationflags=CREATE_NO_WINDOW` from `core_script`'s directory. It does not run `prepare_account`, does not call `launch_once`, and does not touch the spec.
+What it does: reads the pinned `ops/testnet_launch_spec.json`, **reuses the launcher's own pinned-source and state-folder checks** (`testnet_startup.check_source`, `testnet_startup.state_dir_for`), builds the child environment from the spec's own fields exactly as `launch_once` does (`HL_LIVE_AUDIT_DIR`, `HL_FOLLOWER_NETWORK`, `HL_LIVE_WS_ENABLED`, `HL_BUILD_SHA`, `HL_APP_PORT`, `HL_USER_WALLET`, `HL_LIVE_GLOBAL_LOCK_FILE`), then Popens the Core with `creationflags=CREATE_NO_WINDOW` from `core_script`'s directory. It does not run `prepare_account`, does not call `launch_once`, and does not touch the spec.
+
+`--dry-run` prints the verification result, not just a command: `SHA_OK <head>` (checkout HEAD == `source_sha`), `STATE_DIR_OK` (absolute, inside the TESTNET state root, `run*/state*`), `CORE_SCRIPT_OK` (inside the pinned checkout). A spec that points elsewhere is refused before anything starts.
+
+A successful spawn is **not** a successful start. The script polls the engine's own state until `copy_account_status=COPY_ACCOUNT_POLLED`, `last_copy_poll_age_ms < 5000` and `ws_status=WS_OK`, and exits non-zero if the child dies or never verifies (the documented wrong-interpreter `SDK_UNAVAILABLE` case). Child stdout/stderr go to `<state_dir>/core_child_stderr.log` and are never printed or parsed.
 
 Interpreter: the Core needs the Python that has the `hyperliquid` SDK — `C:/Users/wigmore/AppData/Local/Python/bin/pythonw.exe` at the time of writing. Hermes' own venv does not have it, so the script pins the interpreter and accepts `HERMES_CORE_PYTHON` as an override. A wrong interpreter starts a Core that answers `SDK_UNAVAILABLE`, not a credential error.
 
