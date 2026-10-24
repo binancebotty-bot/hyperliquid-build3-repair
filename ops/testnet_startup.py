@@ -15,7 +15,9 @@ import shutil
 import socket
 import subprocess
 import sys
+import threading
 import time
+from typing import Any
 from urllib.error import URLError
 from urllib.request import Request, urlopen
 
@@ -23,6 +25,28 @@ ROOT = Path(__file__).resolve().parents[1]
 SPEC_FILE = Path(__file__).with_name("testnet_launch_spec.json")
 
 AUTHORIZATION_GITHUB_URL = "https://api.github.com/repos/binancebotty-bot/hyperliquid-build3-repair/issues/comments"
+
+
+def atomic_write_json(path: Path, payload: Any) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(f"{path.name}.{os.getpid()}_{threading.get_ident()}_{time.time_ns()}.tmp")
+    text = json.dumps(payload, indent=2, sort_keys=True)
+    try:
+        written = tmp.write_text(text, encoding="utf-8")
+    except OSError:
+        raise
+    if written != len(text):
+        raise OSError(f"short audit json write: {written} of {len(text)} chars")
+    for attempt in range(8):
+        try:
+            os.replace(tmp, path)
+            break
+        except PermissionError:
+            time.sleep(0.025 * (attempt + 1))
+    else:
+        raise OSError("atomic_write_json: failed to replace after retries")
+
+
 def read_json(path: Path) -> dict:
     try:
         value = json.loads(path.read_text(encoding="utf-8-sig"))
@@ -33,6 +57,10 @@ def read_json(path: Path) -> dict:
 
 def utc_ms() -> int:
     return int(time.time() * 1000)
+
+
+def utc_now_iso() -> str:
+    return dt.datetime.now(dt.timezone.utc).isoformat().replace("+00:00", "Z")
 
 
 def iso_ms(value: object) -> int:
@@ -184,9 +212,11 @@ def check_source(spec: dict) -> str:
         ["git", "-C", str(ROOT), "rev-list", "--parents", "-n", "1", pin],
         check=True, capture_output=True, text=True, timeout=10,
     )
-    parents = result.stdout.strip().split()
-    if len(parents) > 1:
-        raise ValueError(f"pinned source_sha ({pin}) is a merge commit with {len(parents)} parents; pin must have exactly one parent")
+    tokens = result.stdout.strip().split()
+    # tokens[0] is the commit SHA, tokens[1:] are parent SHAs
+    parent_count = len(tokens) - 1
+    if parent_count > 1:
+        raise ValueError(f"pinned source_sha ({pin}) is a merge commit with {parent_count} parents; pin must have exactly one parent")
     
     # Verify checkout_root exists and is at the pinned source_sha
     checkout_root = spec.get("checkout_root")
@@ -534,8 +564,10 @@ def core_stale_or_unhealthy(spec: dict, state_dir: Path, expected_sha: str) -> t
 
 
 def prepare_account(spec: dict, state_dir: Path, dry_run: bool = False) -> int:
-    """Prepare the TESTNET account by canceling all orders and verifying flatness.
-    If non-flat positions exist, invokes flatten via supported route and re-verifies.
+    """Prepare the TESTNET account by verifying cancel-all and flatness.
+    Fails if resting orders exist or positions are not flat/documented.
+    Flattening is driven by the live copy engine following leader exits via reduce-only path;
+    no manual flatten API exists on testnet.
     Returns 0 on success, 1 on failure.
     """
     errors: list[str] = []
@@ -549,28 +581,10 @@ def prepare_account(spec: dict, state_dir: Path, dry_run: bool = False) -> int:
         account_errors, detail = evaluate_flatness(
             account["positions"], account["orders"], spec.get("documented_residuals_by_coin", {}))
         if account_errors:
-            if dry_run:
-                errors.extend(account_errors)
-                for err in errors:
-                    print(f"PREPARE_FAILED: {err}")
-                return 1
-            # Non-flat positions: attempt to flatten via supported route
-            print("PREPARE_FLATTEN: Non-flat positions detected; invoking flatten via supported route...")
-            flatten_result = flatten_positions(spec, account["positions"])
-            if flatten_result != 0:
-                errors.append(f"FLATTEN_FAILED: {flatten_result}")
-                for err in errors:
-                    print(f"PREPARE_FAILED: {err}")
-                return 1
-            # Re-read and verify
-            account = follower_account_state(spec)
-            account_errors, detail = evaluate_flatness(
-                account["positions"], account["orders"], spec.get("documented_residuals_by_coin", {}))
-            if account_errors:
-                errors.extend(account_errors)
-                for err in errors:
-                    print(f"PREPARE_FAILED: {err}")
-                return 1
+            errors.extend(account_errors)
+            for err in errors:
+                print(f"PREPARE_FAILED: {err}")
+            return 1
         
         if dry_run:
             print("PREPARE_DRY_RUN: Account is flat and cancel-all verified; no action taken")
@@ -580,19 +594,6 @@ def prepare_account(spec: dict, state_dir: Path, dry_run: bool = False) -> int:
     except Exception as exc:
         print(f"PREPARE_FAILED: {exc}")
         return 1
-
-
-def flatten_positions(spec: dict, positions: list) -> int:
-    """Flatten all non-flat positions via the supported TESTNET route.
-    Returns 0 on success, non-zero on failure.
-    This is a stub - the actual flatten implementation uses the engine reduce-only path.
-    """
-    # The engine reduce-only path handles position closure automatically
-    # when the leader reduces/closes. This function exists to satisfy the
-    # prepare->flatten->reverify contract. The actual flattening is driven
-    # by the live copy engine following leader exits.
-    print("FLATTEN_NOTICE: Position flattening follows leader exits via reduce-only copy path; no manual flatten API available")
-    return 0
 
 
 def stop_core_process(spec: dict, state_dir: Path, dry_run: bool = False) -> int:
@@ -648,7 +649,10 @@ def stop_core_process(spec: dict, state_dir: Path, dry_run: bool = False) -> int
             if actual is None:
                 print(f"STOP_OK: Core process {pid} stopped successfully")
                 # Record clean shutdown record
-                record_shutdown_record(spec, state_dir, pid, started, True)
+                shutdown_ok = record_shutdown_record(spec, state_dir, pid, started, True)
+                if not shutdown_ok:
+                    print("STOP_FAILED: failed to write shutdown record")
+                    return 1
                 return 0
             time.sleep(1)
         
@@ -817,8 +821,9 @@ def launch_once(spec: dict, state_dir: Path, sha: str, *, supervised: bool) -> i
             errors, detail = collect(spec, state_dir, sha)
             post_alert(spec, state_dir, errors, detail)
         # Record clean shutdown
-        started_at = core.pid  # placeholder
-        record_shutdown_record(spec, state_dir, core.pid, core.pid, clean=True)
+        service = read_json(state_dir / "live_service_state.json")
+        started_at = service.get("started_at_ms")
+        record_shutdown_record(spec, state_dir, core.pid, started_at, clean=True)
         print(f"CORE_EXITED code={core.returncode}; launcher did not stop it")
         errors, detail = collect(spec, state_dir, sha)
         post_alert(spec, state_dir, errors or ["CORE_EXITED"], detail)
