@@ -304,6 +304,7 @@ _UNIVERSE_REFRESH: Dict[str, Dict[str, Any]] = {}  # dex -> {"until": ms}: the s
 _UNIVERSE_REFRESH_LOCKS: Dict[str, threading.Lock] = {}
 _UNIVERSE_REFRESH_GUARD = threading.Lock()
 _UNIVERSE_REFRESH_THREADS: Dict[str, threading.Thread] = {}  # dex -> the in-flight background meta read
+_UNIVERSE_PUBLISH_SEQ: Dict[str, int] = {}  # dex -> publications so far: the replay trigger for a stale-universe entry
 
 
 
@@ -317,6 +318,7 @@ def _publish_authoritative_universe(dex: str, rows: Dict[str, Dict[str, Any]], s
                if isinstance(v, dict) and v.get("symbol_source") == source and not v.get("_snapshot_only")}
     if symbols:
         _AUTHORITATIVE_UNIVERSE[dex] = {"symbols": symbols, "published_ms": utc_now_ms()}
+        _UNIVERSE_PUBLISH_SEQ[dex] = _UNIVERSE_PUBLISH_SEQ.get(dex, 0) + 1
 
 
 def _universe_refresh_timeout() -> float:
@@ -328,6 +330,7 @@ def _universe_refresh_worker(dex: str, seq: int) -> None:
     """Run ONE meta read for a DEX off the decision path and publish it. A read that outlives
     _universe_refresh_timeout() is forgotten by the trigger, so a wedged fetch never holds the refresh."""
     rows: Dict[str, Dict[str, Any]] = {}
+    deadline = time.monotonic() + _universe_refresh_timeout()  # the HARD wall-clock bound of this read
     try:
         r = requests.post(HL_INFO_URL, json={"type": "meta", **({"dex": dex} if dex else {})}, timeout=HTTP_TIMEOUT_SEC)
         _sc = getattr(r, "status_code", 200)
@@ -348,8 +351,13 @@ def _universe_refresh_worker(dex: str, seq: int) -> None:
                 s["inflight_until"] = 0
     if not rows:   # an empty read is a failure, never proof of absence
         return
+    if time.monotonic() > deadline:   # a read that outlived its bound is no proof of anything: drop it
+        return
     with _UNIVERSE_REFRESH_GUARD:
+        stale = _UNIVERSE_REFRESH.setdefault(dex, {"until": 0}).get("seq") != seq
         lock = _UNIVERSE_REFRESH_LOCKS.setdefault(dex, threading.Lock())
+    if stale:   # a newer refresh owns this dex: an older response must never overwrite a newer universe
+        return
     with lock:   # publication only: the dex's lock is never held across a network read
         _publish_authoritative_universe(dex, rows, "builder_meta" if dex else "core_meta")
 
@@ -364,6 +372,10 @@ def refresh_authoritative_universe(dex: str) -> bool:
     now = utc_now_ms()
     with _UNIVERSE_REFRESH_GUARD:
         s = _UNIVERSE_REFRESH.setdefault(dex, {"until": 0})
+        live = _UNIVERSE_REFRESH_THREADS.get(dex)
+        claim = s.get("inflight_until")
+        if live is not None and live.is_alive() and (claim is None or now < claim):
+            return False   # ONE live worker per dex; a hung read stops counting once its own claim lapses
         if now < s["until"]:
             return False
         if now < s.get("inflight_until", 0):
@@ -2749,6 +2761,160 @@ def service_position_evidence_by_coin(
     return evidence
 
 
+DEFERRED_ENTRY_FILE = AUDIT_DIR / "deferred_entry_retention.json"
+DEFERRED_ENTRY_MAX_AGE_MS = 25 * 60 * 1000  # the replay window the controller set: past it a named diff, never silence
+DEFERRED_ENTRY_REASONS = ("UNIVERSE_STALE", "MARKET_HALTED", "MARGIN_MODE_UNSET")
+
+
+def fill_opens_exposure(fill: "LeaderFill") -> bool:
+    """True for an ENTRY/ADD fill only: reductions, closes and exits are never retained (invariant C)."""
+    return str(_fill_dir(fill)).startswith(("open ", "increase "))
+
+
+class DeferredEntryRetention:
+    """ENTRY/ADD fills refused on a condition that clears by itself, retained by leader_fill_id.
+
+    The defect this closes: a fill is accepted into the dedupe store before its intent is built, the send is
+    then refused on a transient condition, and nothing ever replays it - so the dedupe entry meant to protect
+    the fill made it unreachable instead. The item is written to the state dir before it is acted on, so a
+    restart neither loses it nor sends it twice. SYMBOL_UNRESOLVED is deliberately absent: it is a named skip.
+    """
+
+    def __init__(self, path: Optional[Path] = None):
+        self.path = Path(path) if path else DEFERRED_ENTRY_FILE
+        self._lock = threading.RLock()
+        self.items: Dict[str, Dict[str, Any]] = {}
+        self.window_ms = 0
+        self.blocked_window = 0
+        self.retained_window = 0
+        self._load()
+
+    def _load(self) -> None:
+        state = load_json(self.path, {}) or {}
+        if not isinstance(state, dict):
+            return
+        with self._lock:
+            self.items = {str(k): v for k, v in (state.get("items") or {}).items() if isinstance(v, dict)}
+            self.window_ms = int(fnum(state.get("window_ms"), 0))
+            self.blocked_window = int(fnum(state.get("blocked_window"), 0))
+            self.retained_window = int(fnum(state.get("retained_window"), 0))
+
+    def _save(self) -> None:
+        with self._lock:
+            payload = {"items": dict(self.items), "window_ms": self.window_ms,
+                       "blocked_window": self.blocked_window, "retained_window": self.retained_window,
+                       "saved_ms": utc_now_ms()}
+        try:
+            atomic_write_json(self.path, payload)  # the existing atomic state idiom: tmp file + os.replace
+        except Exception as exc:
+            log_error("deferred_entry_save", exc)
+
+    def _bump(self, kind: str) -> None:
+        now = utc_now_ms()
+        window = max(60000, int(fnum(os.getenv("HL_LIVE_ACTIVE_INTEGRITY_WINDOW_MS"), 3600000.0)))
+        with self._lock:
+            if not self.window_ms or now - self.window_ms >= window:
+                self.window_ms, self.blocked_window, self.retained_window = now, 0, 0
+            if kind == "blocked":
+                self.blocked_window += 1
+            elif kind == "retained":
+                self.retained_window += 1
+
+    def retain(self, fill: "LeaderFill", reason: str) -> bool:
+        """Retain one ENTRY/ADD fill. Idempotent by leader_fill_id: a second refusal updates the reason and the
+        last-seen clock but keeps first_ms, so the 25-minute window is measured from the FIRST refusal."""
+        if str(reason) not in DEFERRED_ENTRY_REASONS or not fill_opens_exposure(fill):
+            return False
+        fid = str(fill.leader_fill_id or "").strip()
+        if not fid:
+            return False
+        now = utc_now_ms()
+        with self._lock:
+            item = self.items.get(fid)
+            if item is None:
+                self.items[fid] = {
+                    "leader_fill_id": fid, "leader_wallet": fill.leader_wallet, "coin": fill.coin,
+                    "side": fill.side, "price": fnum(fill.price), "size": fnum(fill.size),
+                    "timestamp_ms": int(fnum(fill.timestamp_ms, 0)), "source": fill.source,
+                    "reason": str(reason), "first_ms": now, "last_ms": now,
+                    "attempts": 0, "triggers_done": [],
+                    "raw": {k: v for k, v in (fill.raw or {}).items() if k in
+                            ("dir", "startPosition", "merged_fill_ids", "merged_fill_count", "created_at_ms")}}
+            else:
+                item["reason"], item["last_ms"] = str(reason), now
+            self._bump("retained")
+            self._bump("blocked")
+        self._save()
+        return True
+
+    def rebuild(self, item: Dict[str, Any]) -> "LeaderFill":
+        return LeaderFill(leader_fill_id=str(item.get("leader_fill_id") or ""),
+                          leader_wallet=str(item.get("leader_wallet") or ""), coin=str(item.get("coin") or ""),
+                          side=str(item.get("side") or ""), price=fnum(item.get("price")),
+                          size=fnum(item.get("size")), timestamp_ms=int(fnum(item.get("timestamp_ms"), 0)),
+                          source=str(item.get("source") or "DEFERRED_REPLAY"), raw=dict(item.get("raw") or {}))
+
+    def drop(self, leader_fill_id: str, why: str) -> Optional[Dict[str, Any]]:
+        with self._lock:
+            item = self.items.pop(str(leader_fill_id), None)
+            if item is None:
+                return None
+        self._save()
+        item["drop_why"] = why
+        return item
+
+    def drop_wallet_coin(self, wallet: str, coin: str, why: str) -> List[Dict[str, Any]]:
+        """Requirement 3: a leader reduce for that wallet+coin drops every retained ENTRY/ADD item for it."""
+        wallet, key = normalise_wallet(wallet), canonical_coin_key(coin)
+        with self._lock:
+            ids = [fid for fid, it in self.items.items()
+                   if normalise_wallet(it.get("leader_wallet")) == wallet
+                   and canonical_coin_key(it.get("coin")) == key]
+        out = []
+        for fid in ids:
+            item = self.drop(fid, why)
+            if item is not None:
+                out.append(item)
+        return out
+
+    def snapshot(self) -> Dict[str, Any]:
+        with self._lock:
+            return {fid: dict(it) for fid, it in self.items.items()}
+
+    def counters(self) -> Dict[str, Any]:
+        with self._lock:
+            return {"retained_total": len(self.items), "blocked_fills_window": self.blocked_window,
+                    "retained_fills_window": self.retained_window,
+                    "window_started_ms": self.window_ms,
+                    "window_ms": max(60000, int(fnum(os.getenv("HL_LIVE_ACTIVE_INTEGRITY_WINDOW_MS"), 3600000.0))),
+                    "reasons": sorted({str(it.get("reason")) for it in self.items.values()}),
+                    "symbol_unresolved_policy": "NAMED_SKIP_NO_RETRY",
+                    "not_copyable_caveat": ("BCH, BOME, CFX, CRV, DOT, ENA, ETHFI, GMX, KFLOKI, LINK, STRK, TRX, "
+                                            "UNI, XRP, YGG are not listed in the observed TESTNET main-dex snapshot; "
+                                            "alternate DEXes unchecked. These same symbols are present in the MAINNET "
+                                            "universe; the testnet absence is a point-in-time observation, not a "
+                                            "definitive one. They are named skip rows with no retry and no "
+                                            "retention entry")}
+
+
+def deferred_entry_status() -> Dict[str, Any]:
+    return DeferredEntryRetention().counters()
+
+
+def deferred_entry_reason_for(send_status: str, intent: Any) -> str:
+    """The transient refusals that make a fill retryable. SYMBOL_UNRESOLVED is a named skip, never one of these."""
+    status = str(send_status or "")
+    if status == "SKIPPED_MARKET_HALTED":
+        return "MARKET_HALTED"
+    if status == "MARGIN_MODE_UNSET":
+        return "MARGIN_MODE_UNSET"
+    reason = str(getattr(intent, "reason", "") or "")
+    if (str(getattr(intent, "decision", "")) == "SEND_BLOCKED_RISK" and "no fresh follower-network" in reason
+            and classify_send_lifecycle(intent) in {"ENTRY", "ADD"}):
+        return "UNIVERSE_STALE"
+    return ""
+
+
 def build_live_integrity_status() -> Dict[str, Any]:
     now = utc_now_ms()
     pending_grace_ms = int(os.getenv("HL_LIVE_COPY_FILL_PENDING_GRACE_MS", "600000"))
@@ -3466,6 +3632,7 @@ def build_live_integrity_status() -> Dict[str, Any]:
             "reconciliation_rows": len(recon),
             "audit_write_failures": audit_write_failure_count(),
             **issues,
+            "deferred_entry_retention": deferred_entry_status(),
         },
         "ownership_gate": {
             "status": "BLOCKED" if audit_proof_missing or audit_proof_stale else "READY",
@@ -7654,6 +7821,7 @@ class SenderGateway:
                 until = utc_now_ms() + 600000
                 was_active = self._market_halted_until_ms.get(coin_key, 0) > utc_now_ms()
                 self._market_halted_until_ms[coin_key] = max(self._market_halted_until_ms.get(coin_key, 0), until)
+                self._retain_deferred_entry(intent.fill, intent, "MARKET_HALTED")
                 if not was_active:
                     self.audit.append_reconciliation(
                         "SEND_TERMINAL", "SKIPPED_MARKET_HALTED", leader_wallet=intent.fill.leader_wallet,
@@ -7776,10 +7944,21 @@ class SenderGateway:
                     "operator_action": "NO_SEND_UNSUPPORTED_SYMBOL",
                     "timing": timing,
                 }
-            return False, "REAL_SENDER_NOT_CONFIGURED", {
-                "status": resolved.get("status", "SYMBOL_UNRESOLVED"),
-                "error": resolved.get("error", ""),
+            detail = (f"raw_coin={raw_coin}; reason={resolved.get('error', 'symbol not resolvable by the sender')}; "
+                      f"leader_wallet={intent.fill.leader_wallet}; leader_fill_id={intent.fill.leader_fill_id}; "
+                      f"intent_id={intent.intent_id}; not listed in the observed TESTNET main-dex snapshot; alternate "
+                      f"DEXes unchecked; this symbol is present in the MAINNET universe; named skip, no retry")
+            return False, "SEND_NOT_ATTEMPTED_SYMBOL_UNRESOLVED", {
+                "status": "SYMBOL_UNRESOLVED",
+                "error": detail,
+                "exchange_response": {},
+                "oid": "",
                 "exchange_called": False,
+                "write_send_attempt": True,
+                "notes": detail,
+                "reject_category": "SYMBOL_UNRESOLVED",
+                "terminal_state": "SEND_NOT_ATTEMPTED_SYMBOL_UNRESOLVED",
+                "operator_action": "NO_SEND_SYMBOL_UNRESOLVED_NO_RETRY",
                 "timing": timing,
             }
         private_key = os.getenv("HL_LIVE_HL_PRIVATE_KEY", "").strip()
@@ -11114,6 +11293,8 @@ class LiveCopyCore:
         self._deferred: Dict[str, Tuple[LeaderFill, float]] = {}  # fills held for unreadable exchange truth: guard key -> (fill, due)
         self._deferred_lock = threading.Lock()
         self._deferred_thread: Optional[threading.Thread] = None
+        self.retention = DeferredEntryRetention()
+        self._retention_thread: Optional[threading.Thread] = None
         self.async_dispatch = False  # main() turns this on in loop mode: polled fills go to the workers too
         # R0: pass a live provider, not a snapshot, so a wallet enabled later (or after a restart) is subscribed.
         self.ws = WSManager(lambda: self.cfg.stream_wallets(), self.ingestor, self._enqueue_hot_ws_fill)
@@ -11298,6 +11479,8 @@ class LiveCopyCore:
             return True
         known_block = self.sender.known_dispatch_reject(fill)
         if known_block:
+            if known_block == "SKIPPED_MARKET_HALTED" and self._retain_deferred_entry(fill, None, "MARKET_HALTED"):
+                return None   # a halted coin must not consume the fill before the cooldown expires
             self._record_known_dispatch_reject(fill, known_block)
             return None
         cfg = self.intent_builder.cfg
@@ -11832,7 +12015,133 @@ class LiveCopyCore:
                     log_error("released_trace", exc)
                 self._release_queued(batch, q)
 
+    def _retain_deferred_entry(self, fill: LeaderFill, intent: Optional[Intent], reason: str) -> bool:
+        if not self.retention.retain(fill, reason):
+            return False
+        try:
+            self.audit.append_reconciliation(
+                "REPLAY_DEFERRED", "DEFERRED_ENTRY_RETAINED", leader_wallet=fill.leader_wallet,
+                leader_fill_id=fill.leader_fill_id, intent_id=(intent.intent_id if intent is not None else ""),
+                coin=fill.coin, action="RETAINED_FOR_TRIGGER_RETRY", terminal_state="DEFERRED_ENTRY_RETAINED",
+                engine_can_send="False",
+                notes=(f"entry held, not lost: reason={reason}; one attempt per trigger (universe published / halt "
+                       f"expired / symbol resolved), ages out to a diff after {DEFERRED_ENTRY_MAX_AGE_MS // 60000} min"))
+        except Exception as exc:
+            log_error("deferred_entry_row", exc)
+        self._start_retention_loop()
+        return True
+
+    def _drop_retained_for_leader_reduce(self, fill: LeaderFill) -> None:
+        try:
+            dropped = self.retention.drop_wallet_coin(
+                fill.leader_wallet, fill.coin,
+                f"leader {fill.side} {fill.size} @ {fill.price} at {fill.timestamp_ms} reduces that position")
+            for item in dropped:
+                self.audit.append_reconciliation(
+                    "REPLAY_DEFERRED", "DEFERRED_ENTRY_DROPPED_LEADER_REDUCED", leader_wallet=fill.leader_wallet,
+                    leader_fill_id=item.get("leader_fill_id"), coin=fill.coin, action="NO_RETRY_LEADER_REDUCED",
+                    terminal_state="DEFERRED_ENTRY_DROPPED_LEADER_REDUCED", engine_can_send="False",
+                    notes=f"retained entry dropped by leader fill {fill.leader_fill_id}: {item.get('drop_why')}")
+        except Exception as exc:
+            log_error("deferred_entry_drop", exc)
+
+    def _start_retention_loop(self) -> None:
+        with self._deferred_lock:
+            if self._retention_thread is not None and self._retention_thread.is_alive():
+                return
+            self._retention_thread = threading.Thread(target=self._retention_loop, daemon=True,
+                                                      name="HLCore-retention")
+            self._retention_thread.start()
+
+    def _retention_loop(self) -> None:
+        """One attempt per trigger per retained item; a bounded item ages out into a named diff, never silence."""
+        while not self._hot_stop_event.is_set():
+            time.sleep(1.0)
+            try:
+                self._retention_tick()
+            except Exception as exc:
+                log_error("deferred_entry_tick", exc)
+            if not self.retention.snapshot():
+                with self._deferred_lock:
+                    self._retention_thread = None
+                return
+
+    def _retention_tick(self) -> None:
+        now = utc_now_ms()
+        for fid, item in self.retention.snapshot().items():
+            first = int(fnum(item.get("first_ms"), 0))
+            if first and now - first > DEFERRED_ENTRY_MAX_AGE_MS:
+                if self.retention.drop(fid, "aged out") is None:
+                    continue
+                try:
+                    self.audit.append_reconciliation(
+                        "SEND_TERMINAL", "DEFERRED_ENTRY_AGED_OUT_DIFF", leader_wallet=item.get("leader_wallet"),
+                        leader_fill_id=fid, coin=item.get("coin"), action="DIFF_REPLAY_WINDOW_EXPIRED",
+                        reject_category="DEFERRED_ENTRY_AGED_OUT", terminal_state="DEFERRED_ENTRY_AGED_OUT_DIFF",
+                        engine_can_send="False",
+                        notes=(f"retained {item.get('reason')} entry for {DEFERRED_ENTRY_MAX_AGE_MS // 60000} min "
+                               "without a take or a rest: reported as a diff, not sent"))
+                except Exception as exc:
+                    log_error("deferred_entry_ageout_row", exc)
+                continue
+            trigger = self._retention_trigger(item, now)
+            if trigger:
+                self._retention_replay(fid, item, trigger)
+
+    def _retention_trigger(self, item: Dict[str, Any], now: int) -> str:
+        done = set(str(t) for t in (item.get("triggers_done") or []))
+        coin = str(item.get("coin") or "")
+        key = coin.strip().upper()
+        dex = key.split(":", 1)[0].lower() if ":" in key else ""
+        reason = str(item.get("reason") or "")
+        if reason == "MARKET_HALTED":
+            tag = f"halt:{key.lower()}"
+            if tag not in done and self.sender._market_halted_until_ms.get(coin.strip().lower(), 0) <= now:
+                return tag
+        if reason == "UNIVERSE_STALE":
+            tag = f"universe:{dex}:{_UNIVERSE_PUBLISH_SEQ.get(dex, 0)}"
+            if tag not in done and _UNIVERSE_PUBLISH_SEQ.get(dex, 0):
+                return tag
+        if reason in {"UNIVERSE_STALE", "MARGIN_MODE_UNSET"}:
+            # resolved = an authoritative read for this DEX covers the symbol; follower_meta_lists alone is
+            # permissive on an unknown universe, so it would fire the trigger before anything is known
+            tag = f"symbol:{key}"
+            entry = _AUTHORITATIVE_UNIVERSE.get(dex)
+            if (tag not in done and entry and key in entry["symbols"]
+                    and utc_now_ms() - int(entry["published_ms"]) <= _universe_fresh_ms()):
+                return tag
+        return ""
+
+    def _retention_replay(self, fid: str, item: Dict[str, Any], trigger: str) -> None:
+        """The ONE attempt for this trigger. The dedupe entry that blocked the replay is released only here."""
+        with self.retention._lock:   # the trigger is marked used first: a crash can never re-offer it twice
+            live = self.retention.items.get(fid)
+            if live is None or trigger in (live.get("triggers_done") or []):
+                return
+            live.setdefault("triggers_done", []).append(trigger)
+            live["attempts"] = int(fnum(live.get("attempts"), 0)) + 1
+        self.retention._save()
+        fill = self.retention.rebuild(item)
+        try:
+            self.audit.append_reconciliation(
+                "REPLAY_DEFERRED", "DEFERRED_ENTRY_REPLAY_ATTEMPT", leader_wallet=fill.leader_wallet,
+                leader_fill_id=fid, coin=fill.coin, action="RETRY_ON_TRIGGER",
+                terminal_state="DEFERRED_ENTRY_REPLAY_ATTEMPT", engine_can_send="False",
+                notes=f"trigger={trigger}; one attempt for this trigger")
+        except Exception as exc:
+            log_error("deferred_entry_replay_row", exc)
+        with self._idem_lock:
+            self._idem_accepted.discard(self._guard_key(fill))
+        with self.dedupe._lock:
+            self.dedupe.processed.discard(fill.leader_fill_id)
+        self._dispatch_fill(fill)
+        if self._already_handled(fill):   # taken or terminally decided: nothing left to replay
+            self.retention.drop(fid, f"handled on {trigger}")
+
     def _append_send_terminal(self, fill: LeaderFill, intent: Intent, send_status: str) -> None:
+        retry_reason = deferred_entry_reason_for(send_status, intent)
+        if retry_reason and self._retain_deferred_entry(fill, intent, retry_reason):
+            return   # retained, not terminal: it is re-offered once per trigger and ages out to a diff
         if send_status == "SEND_BLOCKED_LEADER_ALREADY_REDUCED":
             self.audit.append_reconciliation(
                 "SEND_TERMINAL", "MISSED_ENTRY_LEADER_ALREADY_REDUCED",
@@ -12258,6 +12567,8 @@ class LiveCopyCore:
                                f"{_sl.get('position_id')} size {_sl.get('signed_size')} ({_lc}): never opened or added to"))
                     return False, "CONVERGE_CLOSE_DROPPED_SLEEVE_CHANGED", None
             _is_exit_or_reduce = _lc in {"EXIT", "REDUCE"}
+            if _is_exit_or_reduce and not converge:
+                self._drop_retained_for_leader_reduce(fill)   # the leader is out of this position: nothing to replay
             if _is_exit_or_reduce:
                 # Always re-attempt exits across session restarts. Track in processed so the
                 # fill isn't endlessly retried — one attempt per session is enough.
