@@ -79,19 +79,19 @@ python ops/testnet_flatten.py --dry-run
 python ops/testnet_flatten.py --execute
 ```
 
-**File:** `ops/testnet_flatten.py` — new script with:
-- Cancel all open orders on testnet follower account `0x7ae3b08bb4e7b085c6db5d635b96bec9715e9205`
-- Reduce-only closes for all non-flat positions (except documented residuals)
-- Re-read and verify zero open orders + flat positions (except documented residuals)
-- `--dry-run` shows what would be done without executing
+**File:** `ops/testnet_flatten.py`
+- Cancels all open orders on testnet follower account `0x7ae3b08bb4e7b085c6db5d635b96bec9715e9205`
+- Reduce-only IOC closes for all non-flat positions
+- Re-reads and verifies zero open orders + flat positions
+- `--dry-run` cancels and closes nothing and skips the live assertion (it cannot pass without acting)
 
-**File:** `ops/testnet_flatten.py` (new script)
+**Pass Criterion:**
+- `--dry-run` exit 0, ends `=== DRY RUN COMPLETE: Would flatten successfully ===`
+- `--execute` exit 0 and prints `VERIFIED: Zero open orders, all positions flat`
 
-**Pass Criterion:** 
-- Output: `FLATTEN_OK: All positions flat, zero open orders`
-- Exit code: 0
+**Note:** the script treats any non-flat position as failure. Documented residuals are accepted by `prepare` (Step 4); if a residual must stay, `--execute` reports it and you stop for a controller ruling.
 
-**Failure:** If exit code ≠ 0 or output contains `FLATTEN_FAILED` → **ABORT**. Report to controller. Do not proceed.
+**Failure:** If exit code ≠ 0 or output contains `FAIL` → **ABORT**. Report to controller. Do not proceed.
 
 ---
 
