@@ -269,6 +269,141 @@ def follower_mid(coin: str) -> float:
     return fnum(m["px"].get(str(coin or "").upper()), 0.0)
 
 
+_MIDS_RETRY: Dict[str, Dict[str, Any]] = {}  # dex -> {"until": ms, "px": {...}}: the miss-path read
+_MIDS_RETRY_LOCKS: Dict[str, threading.Lock] = {}
+_MIDS_RETRY_GUARD = threading.Lock()
+
+
+def follower_mids_retry(coin: str) -> float:
+    """ONE dex-scoped allMids read after follower_mid missed, with a short per-DEX miss cooldown.
+
+    Single-flight: concurrent intents for the same DEX wait on that DEX's lock and reuse the in-flight
+    read's result; every further miss inside the cooldown (HL_LIVE_MIDS_RETRY_COOLDOWN_SEC, 5 s) reuses it
+    too. Never invents a price: a failed or empty read leaves the symbol missing, so the caller fails closed."""
+    key = str(coin or "").strip().upper()
+    dex = key.split(":", 1)[0].lower() if ":" in key else ""
+    with _MIDS_RETRY_GUARD:
+        lock = _MIDS_RETRY_LOCKS.setdefault(dex, threading.Lock())
+    with lock:
+        s = _MIDS_RETRY.setdefault(dex, {"until": 0, "px": {}})
+        if utc_now_ms() >= s["until"]:
+            px: Dict[str, float] = {}
+            payload = {"type": "allMids", **({"dex": dex} if dex else {})}
+            for res in _XNET.post_many(MIDS_FETCHER, [payload], HL_INFO_URL, HTTP_TIMEOUT_SEC):
+                data = res.get("data") if res.get("ok") and isinstance(res.get("data"), dict) else {}
+                for k, v in data.items():
+                    if fnum(v, 0.0) > 0 and math.isfinite(fnum(v, 0.0)):
+                        px[str(k).upper()] = fnum(v, 0.0)
+            s["px"] = px
+            s["until"] = utc_now_ms() + int(fnum(os.getenv("HL_LIVE_MIDS_RETRY_COOLDOWN_SEC"), 5.0) * 1000)
+        return fnum(s["px"].get(key), 0.0)
+
+
+_AUTHORITATIVE_UNIVERSE: Dict[str, Dict[str, Any]] = {}  # dex ("" = core) -> {"symbols": set, "published_ms": ms} from a SUCCESSFUL meta read in THIS process
+_UNIVERSE_REFRESH: Dict[str, Dict[str, Any]] = {}  # dex -> {"until": ms}: the stale-universe meta refresh
+_UNIVERSE_REFRESH_LOCKS: Dict[str, threading.Lock] = {}
+_UNIVERSE_REFRESH_GUARD = threading.Lock()
+_UNIVERSE_REFRESH_THREADS: Dict[str, threading.Thread] = {}  # dex -> the in-flight background meta read
+
+
+
+def _universe_fresh_ms() -> int:
+    return int(fnum(os.getenv("HL_LIVE_UNIVERSE_FRESH_SEC"), 300.0) * 1000)
+
+
+def _publish_authoritative_universe(dex: str, rows: Dict[str, Dict[str, Any]], source: str) -> None:
+    """Record one successful authoritative meta read as proof of absence, for its own DEX only."""
+    symbols = {str(k).strip().upper() for k, v in rows.items()
+               if isinstance(v, dict) and v.get("symbol_source") == source and not v.get("_snapshot_only")}
+    if symbols:
+        _AUTHORITATIVE_UNIVERSE[dex] = {"symbols": symbols, "published_ms": utc_now_ms()}
+
+
+def _universe_refresh_timeout() -> float:
+    """The one wall bound on a background meta read: a read slower than this stops being in flight."""
+    return max(1.0, float(HTTP_TIMEOUT_SEC))
+
+
+def _universe_refresh_worker(dex: str, seq: int) -> None:
+    """Run ONE meta read for a DEX off the decision path and publish it. A read that outlives
+    _universe_refresh_timeout() is forgotten by the trigger, so a wedged fetch never holds the refresh."""
+    rows: Dict[str, Dict[str, Any]] = {}
+    try:
+        r = requests.post(HL_INFO_URL, json={"type": "meta", **({"dex": dex} if dex else {})}, timeout=HTTP_TIMEOUT_SEC)
+        _sc = getattr(r, "status_code", 200)
+        if isinstance(_sc, int) and _sc >= 400:
+            raise RuntimeError(f"HTTP {_sc}")
+        for a in (r.json() or {}).get("universe", []):
+            name = str(a.get("name", "")).strip() if isinstance(a, dict) else ""
+            if not name:
+                continue
+            k = f"{dex.upper()}:{name.split(':', 1)[1]}" if dex else name
+            rows[k.upper()] = {"symbol_source": "builder_meta" if dex else "core_meta", "perp_dex": dex, "canonical_coin": k}
+    except Exception:
+        rows = {}   # a failed read is no proof of anything: the universe stays unknown
+    finally:
+        with _UNIVERSE_REFRESH_GUARD:
+            s = _UNIVERSE_REFRESH.setdefault(dex, {"until": 0})
+            if s.get("seq") == seq:
+                s["inflight_until"] = 0
+    if not rows:   # an empty read is a failure, never proof of absence
+        return
+    with _UNIVERSE_REFRESH_GUARD:
+        lock = _UNIVERSE_REFRESH_LOCKS.setdefault(dex, threading.Lock())
+    with lock:   # publication only: the dex's lock is never held across a network read
+        _publish_authoritative_universe(dex, rows, "builder_meta" if dex else "core_meta")
+
+
+def refresh_authoritative_universe(dex: str) -> bool:
+    """Request ONE single-flight meta read for a DEX whose universe is stale or unknown and return AT
+    ONCE: the deciding intent never waits on the network. The cooldown and the in-flight claim are taken
+    here, under the guard, so a burst inside HL_LIVE_UNIVERSE_REFRESH_COOLDOWN_SEC starts one worker, and
+    a worker that outlives _universe_refresh_timeout() no longer blocks the next attempt."""
+    if requests is None:
+        return False
+    now = utc_now_ms()
+    with _UNIVERSE_REFRESH_GUARD:
+        s = _UNIVERSE_REFRESH.setdefault(dex, {"until": 0})
+        if now < s["until"]:
+            return False
+        if now < s.get("inflight_until", 0):
+            return False
+        s["until"] = now + int(fnum(os.getenv("HL_LIVE_UNIVERSE_REFRESH_COOLDOWN_SEC"), 30.0) * 1000)
+        s["inflight_until"] = now + int(_universe_refresh_timeout() * 1000)
+        s["seq"] = seq = s.get("seq", 0) + 1
+        t = threading.Thread(target=_universe_refresh_worker, args=(dex, seq), daemon=True,
+                             name="univrefresh-%s" % (dex or "core"))
+        _UNIVERSE_REFRESH_THREADS[dex] = t
+        t.start()
+    return True
+
+
+def _universe_refresh_join(dex: str, timeout: float = 0.0) -> bool:
+    """Bounded wait for the in-flight background refresh of `dex` (probe/test seam, never the decision path)."""
+    with _UNIVERSE_REFRESH_GUARD:
+        t = _UNIVERSE_REFRESH_THREADS.get(dex)
+    if t is None:
+        return True
+    t.join(timeout if timeout > 0 else _universe_refresh_timeout() + HTTP_TIMEOUT_SEC)
+    return not t.is_alive()
+
+
+def follower_meta_lists(coin: str) -> bool:
+    """True unless a FRESH AUTHORITATIVE in-process meta read covering `coin`'s DEX omits it.
+
+    A disk snapshot, a `_snapshot_only` row, a never-published DEX and a last-good set older than
+    HL_LIVE_UNIVERSE_FRESH_SEC (300 s) - including one surviving a failed refresh, which may predate a
+    NEW listing - are "unknown", not "absent": one single-flight refresh is requested and the missing
+    price stays fail-closed (SEND_BLOCKED_RISK) instead of the named skip."""
+    key = str(coin or "").strip().upper()
+    dex = key.split(":", 1)[0].lower() if ":" in key else ""
+    entry = _AUTHORITATIVE_UNIVERSE.get(dex)
+    if not entry or utc_now_ms() - int(entry["published_ms"]) > _universe_fresh_ms():
+        refresh_authoritative_universe(dex)
+        return True
+    return key in entry["symbols"]
+
+
 def follower_position_mark(coin: str) -> float:
     """Follower-network mark of an open follower position (|positionValue| / |szi|), read fresh. Used to
     price a close when no fresh mid exists: a close always has a position to price from."""
@@ -2738,7 +2873,8 @@ def build_live_integrity_status() -> Dict[str, Any]:
                 return True
         return False
     copy_required_decisions = {"ENTRY_ALLOWED", "ADD_ALLOWED", "SEND_ALLOWED", "EXIT_ALLOWED", "REDUCE_ALLOWED"}
-    no_send_prefixes = ("SEND_NOT_ATTEMPTED", "MISSED_ENTRY", "MISSED_ADD", "MISSED_ENTRY_SIZE_OR_NOTIONAL_REJECTED")
+    no_send_prefixes = ("SEND_NOT_ATTEMPTED", "MISSED_ENTRY", "MISSED_ADD", "MISSED_ENTRY_SIZE_OR_NOTIONAL_REJECTED",
+                        "SKIPPED_NOT_LISTED_ON_FOLLOWER_NETWORK")
     hard_copy_counts = {
         "COPIED_AND_RECONCILED": 0,
         "EXPLICITLY_EXCLUDED_BY_CONFIG": 0,
@@ -2803,6 +2939,7 @@ def build_live_integrity_status() -> Dict[str, Any]:
             "UNSUPPORTED_SYMBOL_OR_METADATA",
             "SEND_NOT_ATTEMPTED_UNSUPPORTED_SYMBOL",
             "SEND_NOT_ATTEMPTED_SYMBOL_UNRESOLVED",
+            "SKIPPED_NOT_LISTED_ON_FOLLOWER_NETWORK",
             "SPOT_MARKET_SKIPPED",
             "SEND_NOT_ATTEMPTED_SPOT_MARKET_SKIPPED",
         }
@@ -4986,6 +5123,14 @@ class IntentBuilder:
         # units are sized from the leader, so cross-network the USD value can differ from copy_notional
         value_px = self._order_value_px(fill)
         if value_px <= 0:
+            # ONE dex-scoped retry after the fresh-cache miss (single-flight, per-DEX cooldown)
+            retry_px = follower_mids_retry(fill.coin)
+            value_px = retry_px * (1.0 + self.cfg.marketable_bps() / 10000.0) if retry_px > 0 else 0.0
+        if value_px <= 0:
+            if not follower_meta_lists(fill.coin):
+                # not on the follower network at all: a retry can never price it, so name the skip (invariant G)
+                return "SKIPPED_NOT_LISTED_ON_FOLLOWER_NETWORK", (
+                    f"{fill.coin} is absent from the follower ({FOLLOWER_NETWORK}) asset meta; no price is obtainable")
             return "SEND_BLOCKED_RISK", f"no fresh follower-network ({FOLLOWER_NETWORK}) price to value the order"
         order_notional = copy_notional / fill.price * value_px if fill.price > 0 else 0.0
         max_order = self.cfg.max_order_notional()
@@ -8440,6 +8585,7 @@ class SenderGateway:
             self._index_cache = new_index
             self._core_meta_fetched = True
             self._meta_fetched = True
+            _publish_authoritative_universe("", new_meta, "core_meta")
             for dex_name in follower_dex_scope():  # the follower DEX scope only
                 if dex_name:
                     was = self._builder_meta_fetched.pop(dex_name, None)
@@ -8573,6 +8719,7 @@ class SenderGateway:
             self._index_cache = new_index
             self._core_meta_fetched = True
             self._meta_fetched = True
+            _publish_authoritative_universe("", new_meta, "core_meta")
 
     def _fetch_builder_meta(self, dex_name: str) -> None:
         dex = str(dex_name or "").strip()
@@ -8613,6 +8760,7 @@ class SenderGateway:
                 raise RuntimeError(f"empty builder universe for dex {dex}")
             self._meta_cache.update(new_rows)
             self._builder_meta_fetched[dex] = True
+            _publish_authoritative_universe(dex, new_rows, "builder_meta")
         except Exception as exc:
             err = repr(exc)[:120]
         self._meta_fetch_end(dex, err)
