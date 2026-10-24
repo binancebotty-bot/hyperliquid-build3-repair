@@ -328,6 +328,79 @@ def main() -> None:
         c.LeaderFill("pg-b2", LEADER, "OP", "BUY", 20.0, 1.0, c.utc_now_ms(), "TEST"))
     check("S9_AUTHORITATIVE_OMISSION_IS_NAMED_SKIP",
           _i4.decision == "SKIPPED_NOT_LISTED_ON_FOLLOWER_NETWORK", f"{_i4.decision} {_i4.reason}")
+    def retry_mids_gmx(payload):
+        reads.append(payload)
+        return {"BTC": "100", "GMX": "20"} if not payload.get("dex") else {}
+
+    # (d) the named skip needs a FRESH universe: an EXPIRED one is UNKNOWN -> blocked + ONE refresh
+    meta_reads = []
+    def fake_meta(url, json=None, timeout=None):
+        meta_reads.append(json)
+        raise RuntimeError("meta read down")   # a FAILED refresh keeps the universe unknown
+    c.requests.post = fake_meta
+    c._AUTHORITATIVE_UNIVERSE.clear()
+    c._UNIVERSE_REFRESH.clear()
+    c._UNIVERSE_REFRESH_LOCKS.clear()
+    c._publish_authoritative_universe("", {"BTC": {"symbol_source": "core_meta"},
+                                           "LINK": {"symbol_source": "core_meta"}}, "core_meta")
+    c._AUTHORITATIVE_UNIVERSE[""]["published_ms"] = c.utc_now_ms() - 301_000   # older than HL_LIVE_UNIVERSE_FRESH_SEC=300
+    c.MIDS_FETCHER = empty_mids
+    fresh_cache({"BTC": 100.0})
+    reads.clear()
+    _ie = c.IntentBuilder(c.ConfigManager(), c.ManualLedger(path=tmp / "pg_d.json")).build(
+        c.LeaderFill("pg-d", LEADER, "GMX", "BUY", 20.0, 1.0, c.utc_now_ms(), "TEST"))
+    check("S9_EXPIRED_UNIVERSE_IS_NOT_NAMED_SKIP", _ie.decision == "SEND_BLOCKED_RISK", f"{_ie.decision} {_ie.reason}")
+    check("S9_EXPIRED_UNIVERSE_REQUESTS_ONE_REFRESH", meta_reads == [{"type": "meta"}], str(meta_reads))
+    _ie2 = c.IntentBuilder(c.ConfigManager(), c.ManualLedger(path=tmp / "pg_d2.json")).build(
+        c.LeaderFill("pg-d2", LEADER, "GMX", "BUY", 20.0, 1.0, c.utc_now_ms(), "TEST"))
+    check("S9_REFRESH_BURST_REUSES_ONE_REQUEST", len(meta_reads) == 1 and _ie2.decision == "SEND_BLOCKED_RISK",
+          f"{len(meta_reads)} {_ie2.decision}")
+    # (e) a universe published WITHIN the limit is proof of absence -> the NAMED skip
+    meta_reads.clear()
+    c._AUTHORITATIVE_UNIVERSE.clear()
+    c._UNIVERSE_REFRESH.clear()
+    c._publish_authoritative_universe("", {"BTC": {"symbol_source": "core_meta"},
+                                           "LINK": {"symbol_source": "core_meta"}}, "core_meta")
+    c.MIDS_FETCHER = empty_mids
+    fresh_cache({"BTC": 100.0})
+    reads.clear()
+    _if = c.IntentBuilder(c.ConfigManager(), c.ManualLedger(path=tmp / "pg_e.json")).build(
+        c.LeaderFill("pg-e", LEADER, "GMX", "BUY", 20.0, 1.0, c.utc_now_ms(), "TEST"))
+    check("S9_FRESH_UNIVERSE_OMISSION_IS_NAMED_SKIP",
+          _if.decision == "SKIPPED_NOT_LISTED_ON_FOLLOWER_NETWORK" and meta_reads == [],
+          f"{_if.decision} {_if.reason} meta={meta_reads}")
+    # (f) a refresh that LISTS the symbol clears the block: the entry then PROCEEDS, never a skip
+    def meta_lists_gmx(url, json=None, timeout=None):
+        meta_reads.append(json)
+        return Resp({"universe": [{"name": "BTC"}, {"name": "LINK"}, {"name": "GMX"}]})
+    c.requests.post = meta_lists_gmx
+    c._AUTHORITATIVE_UNIVERSE.clear()
+    c._UNIVERSE_REFRESH.clear()
+    c._UNIVERSE_REFRESH_LOCKS.clear()
+    c._publish_authoritative_universe("", {"BTC": {"symbol_source": "core_meta"}}, "core_meta")
+    c._AUTHORITATIVE_UNIVERSE[""]["published_ms"] = c.utc_now_ms() - 301_000
+    meta_reads.clear()
+    c.MIDS_FETCHER = empty_mids
+    fresh_cache({"BTC": 100.0})
+    _ig = c.IntentBuilder(c.ConfigManager(), c.ManualLedger(path=tmp / "pg_f.json")).build(
+        c.LeaderFill("pg-f", LEADER, "GMX", "BUY", 20.0, 1.0, c.utc_now_ms(), "TEST"))
+    check("S9_EXPIRED_UNIVERSE_REFRESH_RAN", len(meta_reads) == 1 and _ig.decision == "SEND_BLOCKED_RISK",
+          f"{len(meta_reads)} {_ig.decision}")
+    c.MIDS_FETCHER = retry_mids_gmx
+    fresh_cache({"BTC": 100.0})
+    reads.clear()
+    _ih = c.IntentBuilder(c.ConfigManager(), c.ManualLedger(path=tmp / "pg_g.json")).build(
+        c.LeaderFill("pg-g", LEADER, "GMX", "BUY", 20.0, 1.0, c.utc_now_ms(), "TEST"))
+    check("S9_REFRESH_THAT_LISTS_SYMBOL_LETS_ENTRY_PROCEED",
+          _ih.decision == "ENTRY_ALLOWED" and len(meta_reads) == 1,
+          f"{_ih.decision} {_ih.reason} meta={len(meta_reads)}")
+    check("S9_REFRESH_PUBLISHED_A_FRESH_UNIVERSE_LISTING_IT",
+          "GMX" in c._AUTHORITATIVE_UNIVERSE[""]["symbols"] and c.follower_meta_lists("GMX") is True,
+          str(sorted(c._AUTHORITATIVE_UNIVERSE[""]["symbols"])))
+    c.requests.post = offline
+    c._AUTHORITATIVE_UNIVERSE.clear()
+    c._UNIVERSE_REFRESH.clear()
+    c._UNIVERSE_REFRESH_LOCKS.clear()
     # (c) a held position stays closable when the mid is missing
     _lg = c.ManualLedger(path=tmp / "pg_c.json")
     _bc = c.IntentBuilder(c.ConfigManager(), _lg)

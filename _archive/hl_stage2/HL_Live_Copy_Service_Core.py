@@ -299,7 +299,14 @@ def follower_mids_retry(coin: str) -> float:
         return fnum(s["px"].get(key), 0.0)
 
 
-_AUTHORITATIVE_UNIVERSE: Dict[str, set] = {}  # dex ("" = core) -> symbols from a SUCCESSFUL meta read in THIS process
+_AUTHORITATIVE_UNIVERSE: Dict[str, Dict[str, Any]] = {}  # dex ("" = core) -> {"symbols": set, "published_ms": ms} from a SUCCESSFUL meta read in THIS process
+_UNIVERSE_REFRESH: Dict[str, Dict[str, Any]] = {}  # dex -> {"until": ms}: the stale-universe meta refresh
+_UNIVERSE_REFRESH_LOCKS: Dict[str, threading.Lock] = {}
+_UNIVERSE_REFRESH_GUARD = threading.Lock()
+
+
+def _universe_fresh_ms() -> int:
+    return int(fnum(os.getenv("HL_LIVE_UNIVERSE_FRESH_SEC"), 300.0) * 1000)
 
 
 def _publish_authoritative_universe(dex: str, rows: Dict[str, Dict[str, Any]], source: str) -> None:
@@ -307,17 +314,56 @@ def _publish_authoritative_universe(dex: str, rows: Dict[str, Dict[str, Any]], s
     symbols = {str(k).strip().upper() for k, v in rows.items()
                if isinstance(v, dict) and v.get("symbol_source") == source and not v.get("_snapshot_only")}
     if symbols:
-        _AUTHORITATIVE_UNIVERSE[dex] = symbols
+        _AUTHORITATIVE_UNIVERSE[dex] = {"symbols": symbols, "published_ms": utc_now_ms()}
+
+
+def refresh_authoritative_universe(dex: str) -> bool:
+    """ONE single-flight meta read for a DEX whose universe is stale or unknown (same shape as
+    follower_mids_retry): concurrent intents queue on that DEX's lock and a burst inside
+    HL_LIVE_UNIVERSE_REFRESH_COOLDOWN_SEC (30 s) reuses the one attempt, so a failed read cannot fan out."""
+    if requests is None:
+        return False
+    with _UNIVERSE_REFRESH_GUARD:
+        lock = _UNIVERSE_REFRESH_LOCKS.setdefault(dex, threading.Lock())
+    with lock:
+        s = _UNIVERSE_REFRESH.setdefault(dex, {"until": 0})
+        if utc_now_ms() < s["until"]:
+            return False
+        s["until"] = utc_now_ms() + int(fnum(os.getenv("HL_LIVE_UNIVERSE_REFRESH_COOLDOWN_SEC"), 30.0) * 1000)
+        rows: Dict[str, Dict[str, Any]] = {}
+        try:
+            r = requests.post(HL_INFO_URL, json={"type": "meta", **({"dex": dex} if dex else {})}, timeout=HTTP_TIMEOUT_SEC)
+            _sc = getattr(r, "status_code", 200)
+            if isinstance(_sc, int) and _sc >= 400:
+                raise RuntimeError(f"HTTP {_sc}")
+            for a in (r.json() or {}).get("universe", []):
+                name = str(a.get("name", "")).strip() if isinstance(a, dict) else ""
+                if not name:
+                    continue
+                k = f"{dex.upper()}:{name.split(':', 1)[1]}" if dex else name
+                rows[k.upper()] = {"symbol_source": "builder_meta" if dex else "core_meta", "perp_dex": dex, "canonical_coin": k}
+        except Exception:
+            return False
+        if not rows:  # an empty read is a failure, never proof of absence
+            return False
+        _publish_authoritative_universe(dex, rows, "builder_meta" if dex else "core_meta")
+        return True
 
 
 def follower_meta_lists(coin: str) -> bool:
-    """True unless a successful AUTHORITATIVE in-process meta read covering `coin`'s DEX omits it.
+    """True unless a FRESH AUTHORITATIVE in-process meta read covering `coin`'s DEX omits it.
 
-    A disk snapshot, a `_snapshot_only` row, a stale last-good cache or an unfetched DEX is "unknown",
-    not "absent": a missing price then stays fail-closed (SEND_BLOCKED_RISK) instead of the named skip."""
+    A disk snapshot, a `_snapshot_only` row, a never-published DEX and a last-good set older than
+    HL_LIVE_UNIVERSE_FRESH_SEC (300 s) - including one surviving a failed refresh, which may predate a
+    NEW listing - are "unknown", not "absent": one single-flight refresh is requested and the missing
+    price stays fail-closed (SEND_BLOCKED_RISK) instead of the named skip."""
     key = str(coin or "").strip().upper()
-    symbols = _AUTHORITATIVE_UNIVERSE.get(key.split(":", 1)[0].lower() if ":" in key else "")
-    return True if symbols is None else key in symbols
+    dex = key.split(":", 1)[0].lower() if ":" in key else ""
+    entry = _AUTHORITATIVE_UNIVERSE.get(dex)
+    if not entry or utc_now_ms() - int(entry["published_ms"]) > _universe_fresh_ms():
+        refresh_authoritative_universe(dex)
+        return True
+    return key in entry["symbols"]
 
 
 def follower_position_mark(coin: str) -> float:
