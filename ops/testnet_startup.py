@@ -138,18 +138,23 @@ def verify_authorization_order(auth_order_id: str, expected_sha: str, spec: dict
         
         # Check and mark used order ID (prevent replay)
         used_orders_file = state_dir / "used_cutover_orders.json"
-        used_ids = set()
+        used_ids = []
         if used_orders_file.exists():
             try:
-                used_ids = set(json.loads(used_orders_file.read_text(encoding="utf-8")))
+                data = json.loads(used_orders_file.read_text(encoding="utf-8"))
+                # Validate ledger shape: must be a list of strings
+                if not isinstance(data, list) or not all(isinstance(x, str) for x in data):
+                    # Fail closed if ledger shape is invalid
+                    return False
+                used_ids = data
             except Exception:
                 # Fail closed if ledger is unreadable or invalid JSON
                 return False
         if auth_order_id in used_ids:
             return False
         # Add to used set
-        used_ids.add(auth_order_id)
-        atomic_write_json(used_orders_file, sorted(list(used_ids)))
+        used_ids.append(auth_order_id)
+        atomic_write_json(used_orders_file, used_ids)
         
         return True
     except Exception:

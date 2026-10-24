@@ -85,6 +85,13 @@ class TestVerifyAuthorizationOrder(unittest.TestCase):
         """Create a temporary state directory for testing."""
         return Path(tempfile.mkdtemp())
 
+    def _make_ledger_file(self, state_dir, data):
+        """Create a ledger file with given data."""
+        used_orders_file = state_dir / "used_cutover_orders.json"
+        import json
+        used_orders_file.write_text(json.dumps(data), encoding="utf-8")
+        return state_dir / "used_cutover_orders.json"
+
     @patch("testnet_startup.urlopen")
     @patch("testnet_startup.subprocess.run")
     def test_valid_cutover_order(self, mock_run, mock_urlopen):
@@ -133,6 +140,81 @@ class TestVerifyAuthorizationOrder(unittest.TestCase):
         state_dir = self._make_state_dir()
         result = verify_authorization_order("1234567890", "a" * 40, spec, state_dir)
         self.assertFalse(result)
+
+    @patch("testnet_startup.urlopen")
+    @patch("testnet_startup.subprocess.run")
+    def test_ledger_invalid_shape_json_string(self, mock_run, mock_urlopen):
+        """Test that ledger with JSON string (not list) fails closed."""
+        mock_urlopen.return_value = self._make_comment_response(
+            body=f"CUTOVER ORDER {'a' * 40}\nSome other text\nSHA: {'a' * 40}"
+        )
+        mock_run.return_value = MagicMock(stdout="1700000000")
+        spec = self._make_spec()
+        state_dir = self._make_state_dir()
+        # Create ledger with invalid shape (JSON string instead of list)
+        self._make_ledger_file(state_dir, "not-a-list")
+        result = verify_authorization_order("1234567890", "a" * 40, spec, state_dir)
+        self.assertFalse(result)
+
+    @patch("testnet_startup.urlopen")
+    @patch("testnet_startup.subprocess.run")
+    def test_ledger_invalid_shape_json_object(self, mock_run, mock_urlopen):
+        """Test that ledger with JSON object (not list) fails closed."""
+        mock_urlopen.return_value = self._make_comment_response(
+            body=f"CUTOVER ORDER {'a' * 40}\nSome other text\nSHA: {'a' * 40}"
+        )
+        mock_run.return_value = MagicMock(stdout="1700000000")
+        spec = self._make_spec()
+        state_dir = self._make_state_dir()
+        # Create ledger with invalid shape (JSON object instead of list)
+        self._make_ledger_file(state_dir, {"not": "a-list"})
+        result = verify_authorization_order("1234567890", "a" * 40, spec, state_dir)
+        self.assertFalse(result)
+
+    @patch("testnet_startup.urlopen")
+    @patch("testnet_startup.subprocess.run")
+    def test_ledger_invalid_shape_list_with_non_string(self, mock_run, mock_urlopen):
+        """Test that ledger with list containing non-strings fails closed."""
+        mock_urlopen.return_value = self._make_comment_response(
+            body=f"CUTOVER ORDER {'a' * 40}\nSome other text\nSHA: {'a' * 40}"
+        )
+        mock_run.return_value = MagicMock(stdout="1700000000")
+        spec = self._make_spec()
+        state_dir = self._make_state_dir()
+        # Create ledger with invalid shape (list containing non-strings)
+        self._make_ledger_file(state_dir, ["valid-id", 123, None])
+        result = verify_authorization_order("1234567890", "a" * 40, spec, state_dir)
+        self.assertFalse(result)
+
+    @patch("testnet_startup.urlopen")
+    @patch("testnet_startup.subprocess.run")
+    def test_ledger_valid_shape_replay_prevented(self, mock_run, mock_urlopen):
+        """Test that valid ledger shape prevents replay."""
+        mock_urlopen.return_value = self._make_comment_response(
+            body=f"CUTOVER ORDER {'a' * 40}\nSome other text\nSHA: {'a' * 40}"
+        )
+        mock_run.return_value = MagicMock(stdout="1700000000")
+        spec = self._make_spec()
+        state_dir = self._make_state_dir()
+        # Create ledger with valid shape containing existing ID
+        self._make_ledger_file(state_dir, ["1234567890"])
+        result = verify_authorization_order("1234567890", "a" * 40, spec, state_dir)
+        self.assertFalse(result)
+
+    @patch("testnet_startup.urlopen")
+    @patch("testnet_startup.subprocess.run")
+    def test_ledger_valid_shape_new_id_accepted(self, mock_run, mock_urlopen):
+        """Test that valid ledger shape accepts new ID."""
+        mock_urlopen.return_value = self._make_comment_response(
+            body=f"CUTOVER ORDER {'a' * 40}\nSome other text\nSHA: {'a' * 40}"
+        )
+        mock_run.return_value = MagicMock(stdout="1700000000")
+        spec = self._make_spec()
+        state_dir = self._make_state_dir()
+        # Create ledger with valid shape but different ID
+        self._make_ledger_file(state_dir, ["different-id"])
+        result = verify_authorization_order("1234567890", "a" * 40, spec, state_dir)
+        self.assertTrue(result)
 
 
 class TestCheckSource(unittest.TestCase):
