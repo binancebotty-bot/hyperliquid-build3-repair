@@ -143,7 +143,8 @@ def verify_authorization_order(auth_order_id: str, expected_sha: str, spec: dict
             try:
                 used_ids = set(json.loads(used_orders_file.read_text(encoding="utf-8")))
             except Exception:
-                pass
+                # Fail closed if ledger is unreadable or invalid JSON
+                return False
         if auth_order_id in used_ids:
             return False
         # Add to used set
