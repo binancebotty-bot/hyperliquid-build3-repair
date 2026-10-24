@@ -237,8 +237,13 @@ def main() -> None:
     snap_res = {"available": True, "positions_by_coin": {"BTC": {"coin": "BTC", "signed_size": 0.4, "mark_px": 120.0, "entry_px": 98.0}}}
     res = [r for r in ui._build_real_copy_positions(manual, snap_res) if r.get("row_type") == "ACCOUNT_LEVEL_ONLY"]
     check("S5_ONLY_THE_UNEXPLAINED_PART_LISTED", len(res) == 1 and abs(res[0]["exchange_signed_size"] - 0.1) < 1e-9, str(res))
-    check("S5_PLAIN_AMBER_LABEL", "Not opened by the engine — managed by you" in panel and "engine_can_close=false" not in panel
-          and "NOT ENGINE OWNED" not in panel)
+    # The plain sentence was replaced on purpose by ownText() (HL_Copy_App_SSOT.py:7626-7630), which names the
+    # ownership class on every row. What must still hold: the panel separates not-engine-owned from engine-owned.
+    check("S5_PLAIN_AMBER_LABEL", "user-owned positions (not managed by engine)" in panel
+          and "known unmanaged - cannot exit" in panel and "engine-owned" in panel
+          and "UNKNOWN ownership - not proven engine-owned or user-owned" in panel
+          and "ownText(r)" in panel and "Not opened by the engine" not in panel
+          and "engine_can_close=false" not in panel and "NOT ENGINE OWNED" not in panel)
 
     # ---- S6 restart note ---------------------------------------------------------------------------------
     ws_on_same = {"ws_summary": {"ws_status": "WS_OK", "socket_open": True, "thread_alive": True}, "wallets": {WA: {}, WB: {}, WC: {}}}
@@ -267,7 +272,11 @@ def main() -> None:
     check("S9_GREY_POLLING_AND_OFF", "Polling (normal)" in panel and not off_in_red and "'lc-red'" not in pill_src
           and "COPY DISABLED</span>" not in panel)
     reds = [ln for ln in panel.splitlines() if "lc-red" in ln and "--lc-red" not in ln]
-    check("S9_RED_ONLY_FOR_STOP_LEVEL", len(reds) == 4 and all(("ENGINE ALERT" in ln or "levelCls" in ln or "isStopLevel" in ln) for ln in reds),
+    # panel is the static template (render_live_copy_control_panel returns a literal), so these are template
+    # lines, not fixture rows: stop level (isStopLevel/terminalCls), the engine alert, the calm health level,
+    # and the ordered red-on-UNKNOWN ownership producers (statusCard count, ownPill class, ownText label).
+    red_ok = ("ENGINE ALERT", "levelCls", "isStopLevel", "terminalCls", "unknown_ownership_count", "ownPill", "UNKNOWN")
+    check("S9_RED_ONLY_FOR_STOP_LEVEL", len(reds) == 8 and all(any(m in ln for m in red_ok) for ln in reds),
           "\n".join(x[:120] for x in reds))
 
     # ---- S10 one last fill / last reject -------------------------------------------------------------------
@@ -321,7 +330,8 @@ def main() -> None:
     # ---- S12 status banner ---------------------------------------------------------------------------------
     b = summary.get("status_banner") or {}
     check("S12_BANNER_FACTS", b.get("account_value") == 1418.0 and b.get("sending") == "ON" and b.get("follower_network") == "testnet"
-          and (b.get("health") or {}).get("level") == "green" and b.get("net_pnl_since_start") == -31.0
+          and (b.get("health") or {}).get("level") == "red" and "unknown ownership" in (b.get("health") or {}).get("text", "")
+          and b.get("net_pnl_since_start") == -31.0
           and b.get("open_positions") == 1 and b.get("resting_orders") == 2, str(b))
     check("S12_BANNER_ON_SCREEN", all(f'id="{i}"' in panel for i in ("lcBanner", "lcBannerAcct", "lcBannerSending", "lcBannerHealth",
                                                                   "lcBannerPnl", "lcBannerOpen", "lcBannerResting")))
