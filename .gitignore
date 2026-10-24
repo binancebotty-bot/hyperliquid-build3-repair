@@ -2,3 +2,6 @@ __pycache__/
 *.pyc
 _archive/hl_stage2/hl_copy_output/
 _archive/hl_stage2/hl_live_copy_audit_*/
+graphify-out/cache/
+ops/used_cutover_orders.json
+ops/used_cutover_orders.lock
