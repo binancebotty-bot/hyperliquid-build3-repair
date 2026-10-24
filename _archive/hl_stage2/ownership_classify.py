@@ -13,8 +13,29 @@ from typing import Any, Callable, Dict, Optional
 
 OWNERSHIP_CLASSES = ("ENGINE", "USER_OWNED", "KNOWN_UNMANAGED", "UNKNOWN")
 OPERATOR_CLASSES = ("USER_OWNED", "KNOWN_UNMANAGED")  # the operator's: never a records mismatch
-OWNERSHIP_OVERRIDES_FILE = Path(os.getenv("HL_OWNERSHIP_OVERRIDES_FILE") or
-                                Path(__file__).resolve().parent / "ownership_overrides.json")
+OVERRIDES_ENV = "HL_LIVE_OWNERSHIP_OVERRIDES"  # explicit operator path, wins over the state dir
+
+
+def ownership_overrides_path(state_dir: Optional[Path] = None) -> Path:
+    """Effective overrides file: $HL_LIVE_OWNERSHIP_OVERRIDES, else <run state dir>/ownership_overrides.json.
+
+    The state dir is the caller's LIVE_COPY_AUDIT_DIR (HL_Copy_App_SSOT's HL_LIVE_AUDIT_DIR), derived
+    the same way here when the caller passes none. The module directory is never consulted: a code
+    deploy cannot drop the operator's file and no stale copy there can shadow or override it.
+    """
+    explicit = str(os.environ.get(OVERRIDES_ENV) or "").strip()
+    if explicit:
+        return Path(explicit)
+    if state_dir is None:
+        here = Path(__file__).resolve().parent
+        try:  # same env-file merge the UI uses for its state dir
+            import exchange_truth as _x
+            env = _x.env_with_file(Path(os.environ.get("HL_LIVE_ENV_FILE") or here.parent / "hl_stage2.env"))
+        except Exception:
+            env = os.environ
+        # shortcut: no HL_LIVE_AUDIT_DIR anywhere -> HL_Copy_App_SSOT's own default; upgrade if it moves
+        state_dir = Path(env.get("HL_LIVE_AUDIT_DIR") or here / "hl_live_copy_audit_testnet")
+    return Path(state_dir) / "ownership_overrides.json"
 
 
 def fetch_builder_dex_positions(account: str, post: Callable[[Dict[str, Any]], Any], max_dexes: int = 64) -> Dict[str, Any]:
@@ -87,9 +108,9 @@ def load_ownership_overrides(path: Optional[Path] = None) -> Dict[str, Dict[str,
     {'positions': [{class, coin, reason}]}, a bare list of the same rows, or a flat {coin: reason} map
     (which can only mean KNOWN_UNMANAGED)."""
     try:
-        data = json.loads(Path(path or OWNERSHIP_OVERRIDES_FILE).read_text(encoding="utf-8-sig"))
+        data = json.loads(Path(path or ownership_overrides_path()).read_text(encoding="utf-8-sig"))
     except Exception:
-        return {}
+        return {}  # missing/unreadable = nothing overridden -> UNKNOWN, never an exception
     rows = data.get("positions") if isinstance(data, dict) and isinstance(data.get("positions"), list) else data
     if isinstance(rows, dict):
         rows = [{"coin": k, "reason": v} for k, v in rows.items()]

@@ -3,7 +3,11 @@ state: the classifier's proven seam and the /info POST are both injected fakes.
 
 Run: python test_ownership_classify.py
 """
+import json
+import os
 import sys
+import tempfile
+from pathlib import Path
 
 import ownership_classify as oc
 
@@ -62,6 +66,41 @@ def check_unknown_without_list():
     print("absent ownership_overrides.json -> UNKNOWN, no error: ok")
 
 
+def check_state_dir_resolution():
+    """The real path resolution: state dir picked up, env var wins, absent file degrades, module dir never."""
+    tmp = Path(tempfile.mkdtemp(prefix="own_paths_"))
+    state = tmp / "state_20261024"
+    state.mkdir()
+    (state / "ownership_overrides.json").write_text(json.dumps({"positions": [
+        {"class": "KNOWN_UNMANAGED", "coin": "XYZ:ORCL", "reason": "empty book, no bids"}]}), encoding="utf-8")
+    saved_env = {k: os.environ.pop(k, None) for k in (oc.OVERRIDES_ENV, "HL_LIVE_AUDIT_DIR")}
+    try:
+        assert oc.ownership_overrides_path(state) == state / "ownership_overrides.json"
+        assert oc.load_ownership_overrides(oc.ownership_overrides_path(state)).get("XYZ:ORCL")
+        os.environ["HL_LIVE_AUDIT_DIR"] = str(state)
+        assert oc.ownership_overrides_path() == state / "ownership_overrides.json", oc.ownership_overrides_path()
+        other = tmp / "explicit.json"
+        other.write_text(json.dumps({"positions": [
+            {"class": "USER_OWNED", "coin": "XYZ:LLY", "reason": "placed by hand"}]}), encoding="utf-8")
+        os.environ[oc.OVERRIDES_ENV] = str(other)
+        assert oc.ownership_overrides_path() == other, oc.ownership_overrides_path()
+        assert set(oc.load_ownership_overrides()) == {"XYZ:LLY"}, oc.load_ownership_overrides()
+        os.environ.pop(oc.OVERRIDES_ENV)
+        (state / "ownership_overrides.json").unlink()
+        assert oc.load_ownership_overrides(oc.ownership_overrides_path(state)) == {}
+        assert oc.classify_ownership({"coin": "XYZ:ORCL"}, None, fake_proven) == "UNKNOWN"
+        os.environ.pop("HL_LIVE_AUDIT_DIR", None)
+        default = oc.ownership_overrides_path()
+        assert default.name == "ownership_overrides.json" and default.parent != Path(oc.__file__).resolve().parent, default
+        print("path resolution: state dir read, env wins, absent -> UNKNOWN, module dir never used: ok")
+    finally:
+        for k, v in saved_env.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
+
+
 def check_label_rows():
     rows = [{"coin": "BTC", "engine_cloid": "e"}, {"coin": "xyz:PLTR"}, {"coin": "WIF"}]
     res = oc.label_rows(rows, OVERRIDES, fake_proven)
@@ -100,7 +139,8 @@ def check_builder_dex_fetch():
 
 if __name__ == "__main__":
     for fn in (check_four_classes, check_unproven_is_unknown, check_xyz_leftovers_not_engine,
-               check_unknown_without_list, check_label_rows, check_builder_dex_fetch):
+               check_unknown_without_list, check_state_dir_resolution, check_label_rows,
+               check_builder_dex_fetch):
         fn()
-    print("ALL OWNERSHIP SELF-CHECKS PASSED (6/6)")
+    print("ALL OWNERSHIP SELF-CHECKS PASSED (7/7)")
     sys.exit(0)

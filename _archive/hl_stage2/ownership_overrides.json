@@ -1,8 +1,0 @@
-{
-  "positions": [
-    {"class": "KNOWN_UNMANAGED", "coin": "XYZ:ORCL", "reason": "empty book, no bids"},
-    {"class": "KNOWN_UNMANAGED", "coin": "XYZ:PLTR", "reason": "empty book, no bids"},
-    {"class": "KNOWN_UNMANAGED", "coin": "XYZ:MSTR", "reason": "empty book, no bids"},
-    {"class": "KNOWN_UNMANAGED", "coin": "XYZ:LLY", "reason": "empty book, no bids"}
-  ]
-}

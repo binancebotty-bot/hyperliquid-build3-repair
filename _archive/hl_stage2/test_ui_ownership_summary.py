@@ -7,6 +7,7 @@ no process, no port, no orders.
 Run: python test_ui_ownership_summary.py
 """
 import json
+import os
 import sys
 import tempfile
 import time
@@ -52,12 +53,12 @@ def _run_full(overrides_path, position_rows, mm_rows):
         "_public_account_address": lambda: "0x" + "a" * 40,
     }
     saved = {n: getattr(app, n) for n in patches}
-    saved_own = oc.OWNERSHIP_OVERRIDES_FILE
+    saved_env = os.environ.get(oc.OVERRIDES_ENV)
     saved_fetch = oc.fetch_builder_dex_positions
     try:
         for n, fn in patches.items():
             setattr(app, n, fn)
-        oc.OWNERSHIP_OVERRIDES_FILE = Path(overrides_path)
+        os.environ[oc.OVERRIDES_ENV] = str(overrides_path)  # the seam that selects the file
         oc.fetch_builder_dex_positions = lambda acct, post, max_dexes=64: {
             "ok": True, "status": "OK", "detail": "", "positions": [], "scopes": []}
         app._BUILDER_DEX_CACHE.clear()
@@ -65,7 +66,10 @@ def _run_full(overrides_path, position_rows, mm_rows):
     finally:
         for n, fn in saved.items():
             setattr(app, n, fn)
-        oc.OWNERSHIP_OVERRIDES_FILE = saved_own
+        if saved_env is None:
+            os.environ.pop(oc.OVERRIDES_ENV, None)
+        else:
+            os.environ[oc.OVERRIDES_ENV] = saved_env
         oc.fetch_builder_dex_positions = saved_fetch
 
 
@@ -79,7 +83,8 @@ TWO = _write("two.json", [{"class": "USER_OWNED", "coin": "ETH", "reason": "plac
                           {"class": "KNOWN_UNMANAGED", "coin": "XYZ:ORCL", "reason": "empty book, no bids"}])
 POS_TWO = [{"row_type": "OWNED_COPY", "coin": "ETH", "signed_size": 1.0},
            {"row_type": "ACCOUNT_LEVEL_ONLY", "coin": "XYZ:ORCL", "signed_size": None, "dex": "xyz"}]
-SEEDED = Path(oc.__file__).resolve().parent / "ownership_overrides.json"
+STATE_DIR = Path("C:/Users/wigmore/trading_stack/hl-build3-testnet-cert-evidence/run8/state_20261024")
+SEEDED = STATE_DIR / "ownership_overrides.json"  # the operator file, never the module dir
 
 
 def _health(out):

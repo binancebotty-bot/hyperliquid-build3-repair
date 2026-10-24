@@ -1444,7 +1444,7 @@ def _live_audit_summary_full() -> Dict[str, Any]:
     account_orphan_registry = _build_account_orphan_registry(orphan_exchange_positions)
     # Ownership (rulings 6388333568 / 6388338865): every open position and resting order carries one of
     # ENGINE / USER_OWNED / KNOWN_UNMANAGED / UNKNOWN. _OWN.proven_ownership is the seam Codex fills in.
-    _ownership_known = _OWN.load_ownership_overrides()
+    _ownership_known = _OWN.load_ownership_overrides(_OWN.ownership_overrides_path(LIVE_COPY_AUDIT_DIR))
     _resting_raw = load_json(RESTING_ENTRY_ORDERS_FILE, {})
     resting_orders_labeled = [dict(r) for r in (_resting_raw.values() if isinstance(_resting_raw, dict) else _resting_raw)
                               if isinstance(r, dict)]
