@@ -5113,6 +5113,9 @@ class SenderGateway:
             return ""
         if is_spot_pair(fill.coin):
             return "SPOT_MARKET_SKIPPED"
+        # A leader open/increase that OFFSETS our sleeve is our EXIT/REDUCE: no entry cooldown may drop a close.
+        if self.ledger.classify_leader_side_for_wallet(fill.leader_wallet, fill.coin, fill.side)[0] == "EXIT":
+            return ""
         coin = str(fill.coin or "").strip().lower()
         now = utc_now_ms()
         for untils, status in ((self._market_halted_until_ms, "SKIPPED_MARKET_HALTED"),
@@ -7410,6 +7413,12 @@ class SenderGateway:
         return None
 
     def send_if_allowed(self, intent: Intent, entry_block_reason: str = "") -> Tuple[bool, str]:
+        ok, status = self._send_if_allowed_inner(intent, entry_block_reason)
+        if status != "ORDER_REJECTED":  # anything but a real exchange reject breaks the reject run for that coin
+            self._ioc_no_match_streak.pop(str(intent.fill.coin or "").strip().lower(), None)
+        return ok, status
+
+    def _send_if_allowed_inner(self, intent: Intent, entry_block_reason: str = "") -> Tuple[bool, str]:
         if not intent.send_allowed:
             return False, "INTENT_NOT_SEND_ALLOWED"
         stale_reason = stale_snapshot_replay_reason(intent.fill)
@@ -7547,7 +7556,8 @@ class SenderGateway:
                 streak = self._ioc_no_match_streak.get(coin_key, 0) + 1
                 self._ioc_no_match_streak[coin_key] = streak
                 park_after = max(1, int(fnum(os.getenv("HL_LIVE_ILLIQUID_PARK_AFTER"), 3)))
-                if streak == park_after:  # the market keeps refusing this coin: park it instead of re-firing every intent
+                if streak >= park_after:  # the market keeps refusing this coin: park it instead of re-firing every intent
+                    self._ioc_no_match_streak.pop(coin_key, None)  # count afresh, so continuing rejects re-park after expiry
                     park_ms = max(1, int(fnum(os.getenv("HL_LIVE_ILLIQUID_PARK_MS"), 1800000)))
                     self._ioc_no_match_until_ms[coin_key] = max(self._ioc_no_match_until_ms.get(coin_key, 0), utc_now_ms() + park_ms)
                     self.audit.append_reconciliation(
@@ -7556,8 +7566,8 @@ class SenderGateway:
                         reject_category="ILLIQUID_SKIP", terminal_state="SKIPPED_ILLIQUID",
                         action="NO_SEND_COIN_PARKED",
                         notes=f"{streak} consecutive {category} rejects; coin parked {park_ms} ms")
-            if send_status in {"ORDER_FILLED", "ORDER_RESTING"}:
-                self._ioc_no_match_streak.pop(coin_key, None)  # a coin that trades again is not parked
+            if not (category in {"IOC_NO_IMMEDIATE_MATCH", "MARKET_HALTED"} and lifecycle in {"ENTRY", "ADD"}):
+                self._ioc_no_match_streak.pop(coin_key, None)  # any non-qualifying outcome breaks the run
             try:
                 try:
                     self._append_real_attempt(intent, send_status, result)

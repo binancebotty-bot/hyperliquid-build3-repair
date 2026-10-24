@@ -127,7 +127,7 @@ def main() -> None:
             expire(g, "btc")
     check("P1_THREE_REJECTS_EACH_SENT_ONCE",
           [s for _, s in out] == ["ORDER_REJECTED"] * 3 and len(ex.calls) == 3, "%s calls=%d" % (out, len(ex.calls)))
-    check("P1_STREAK_IS_THREE", g._ioc_no_match_streak.get("btc") == 3, str(g._ioc_no_match_streak))
+    check("P1_PARK_RESETS_STREAK", g._ioc_no_match_streak.get("btc") is None, str(g._ioc_no_match_streak))
     left_ms = g._ioc_no_match_until_ms.get("btc", 0) - c.utc_now_ms()
     check("P1_PARKED_30_MIN", left_ms > 1700000, "window left=%d ms" % left_ms)
     parked = park_rows()
@@ -182,7 +182,7 @@ def main() -> None:
         if i < 2:
             expire(g3, "doge")
     doge_rows = [r for r in park_rows() if r.get("coin") == "doge"]
-    check("P3_HALTED_COUNTS_TOWARD_STREAK", g3._ioc_no_match_streak.get("doge") == 3, str(g3._ioc_no_match_streak))
+    check("P3_HALTED_PARK_RESETS_STREAK", g3._ioc_no_match_streak.get("doge") is None, str(g3._ioc_no_match_streak))
     check("P3_HALTED_PARKS_COIN", len(doge_rows) == 1 and doge_rows[0].get("reject_category") == "ILLIQUID_SKIP",
           str(doge_rows))
     left_h = g3._ioc_no_match_until_ms.get("doge", 0) - c.utc_now_ms()
