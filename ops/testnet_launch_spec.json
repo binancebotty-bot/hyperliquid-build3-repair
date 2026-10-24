@@ -39,6 +39,6 @@
   "info_request_interval_seconds": 1.15,
   "info_timeout_seconds": 8,
   "issue_number": 3,
-  "checkout_root": "C:/tmp/v31_bf40a9d",
+  "checkout_root": "C:/tmp/v31_bf40a9d-clean-20261024",
   "authorization_order_id": ""
 }
