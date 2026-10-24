@@ -299,11 +299,25 @@ def follower_mids_retry(coin: str) -> float:
         return fnum(s["px"].get(key), 0.0)
 
 
+_AUTHORITATIVE_UNIVERSE: Dict[str, set] = {}  # dex ("" = core) -> symbols from a SUCCESSFUL meta read in THIS process
+
+
+def _publish_authoritative_universe(dex: str, rows: Dict[str, Dict[str, Any]], source: str) -> None:
+    """Record one successful authoritative meta read as proof of absence, for its own DEX only."""
+    symbols = {str(k).strip().upper() for k, v in rows.items()
+               if isinstance(v, dict) and v.get("symbol_source") == source and not v.get("_snapshot_only")}
+    if symbols:
+        _AUTHORITATIVE_UNIVERSE[dex] = symbols
+
+
 def follower_meta_lists(coin: str) -> bool:
-    """True when the follower's own asset-universe snapshot lists `coin`, or when that snapshot is unknown
-    (no symbols at all): only a POSITIVELY absent symbol may become a named skip, never a guess."""
-    mapping = _coin_key_map()
-    return not mapping or str(coin or "").strip().upper() in mapping
+    """True unless a successful AUTHORITATIVE in-process meta read covering `coin`'s DEX omits it.
+
+    A disk snapshot, a `_snapshot_only` row, a stale last-good cache or an unfetched DEX is "unknown",
+    not "absent": a missing price then stays fail-closed (SEND_BLOCKED_RISK) instead of the named skip."""
+    key = str(coin or "").strip().upper()
+    symbols = _AUTHORITATIVE_UNIVERSE.get(key.split(":", 1)[0].lower() if ":" in key else "")
+    return True if symbols is None else key in symbols
 
 
 def follower_position_mark(coin: str) -> float:
@@ -8487,6 +8501,7 @@ class SenderGateway:
             self._index_cache = new_index
             self._core_meta_fetched = True
             self._meta_fetched = True
+            _publish_authoritative_universe("", new_meta, "core_meta")
             for dex_name in follower_dex_scope():  # the follower DEX scope only
                 if dex_name:
                     was = self._builder_meta_fetched.pop(dex_name, None)
@@ -8620,6 +8635,7 @@ class SenderGateway:
             self._index_cache = new_index
             self._core_meta_fetched = True
             self._meta_fetched = True
+            _publish_authoritative_universe("", new_meta, "core_meta")
 
     def _fetch_builder_meta(self, dex_name: str) -> None:
         dex = str(dex_name or "").strip()
@@ -8660,6 +8676,7 @@ class SenderGateway:
                 raise RuntimeError(f"empty builder universe for dex {dex}")
             self._meta_cache.update(new_rows)
             self._builder_meta_fetched[dex] = True
+            _publish_authoritative_universe(dex, new_rows, "builder_meta")
         except Exception as exc:
             err = repr(exc)[:120]
         self._meta_fetch_end(dex, err)

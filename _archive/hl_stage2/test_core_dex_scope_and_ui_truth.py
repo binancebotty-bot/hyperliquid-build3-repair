@@ -274,6 +274,7 @@ def main() -> None:
                                              "LINK": {"canonical_coin": "LINK"}}}), encoding="utf-8")
     c.ASSET_UNIVERSE_SNAPSHOT_FILE = snap
     c._COIN_KEY_CACHE = (None, {})
+    c._AUTHORITATIVE_UNIVERSE.clear()
     reads = []
     def retry_mids(payload):
         reads.append(payload)
@@ -302,6 +303,18 @@ def main() -> None:
     _i2 = _b.build(c.LeaderFill("pg-a2", LEADER, "LINK", "BUY", 20.0, 1.0, c.utc_now_ms(), "TEST"))
     check("S9_MISS_COOLDOWN_REUSES_THE_ONE_READ", _i2.decision == "ENTRY_ALLOWED" and len(reads) == 1,
           f"{_i2.decision} reads={len(reads)}")
+    # (a) a STALE / snapshot-only universe that omits the symbol is NOT proof of absence -> stays blocked
+    c.MIDS_FETCHER = empty_mids
+    fresh_cache({"BTC": 100.0})
+    reads.clear()
+    _st = c.IntentBuilder(c.ConfigManager(), c.ManualLedger(path=tmp / "pg_b0.json")).build(
+        c.LeaderFill("pg-b0", LEADER, "GMX", "BUY", 20.0, 1.0, c.utc_now_ms(), "TEST"))
+    check("S9_STALE_SNAPSHOT_ABSENT_SYMBOL_IS_NOT_NAMED_SKIP",
+          _st.decision == "SEND_BLOCKED_RISK" and _st.decision != "SKIPPED_NOT_LISTED_ON_FOLLOWER_NETWORK",
+          f"{_st.decision} {_st.reason}")
+    # (b) a FRESH authoritative core read that omits the symbol IS proof of absence
+    c._publish_authoritative_universe("", {"BTC": {"symbol_source": "core_meta"},
+                                           "LINK": {"symbol_source": "core_meta"}}, "core_meta")
     # (b) unlisted symbol: no mid even after the retry, absent from the follower meta -> NAMED skip
     c.MIDS_FETCHER = empty_mids
     fresh_cache({"BTC": 100.0})
@@ -311,6 +324,10 @@ def main() -> None:
     check("S9_UNLISTED_SYMBOL_IS_NAMED_SKIP", _i3.decision == "SKIPPED_NOT_LISTED_ON_FOLLOWER_NETWORK",
           f"{_i3.decision} {_i3.reason}")
     check("S9_UNLISTED_SYMBOL_STILL_READ_ONCE", len(reads) == 1, str(reads))
+    _i4 = c.IntentBuilder(c.ConfigManager(), c.ManualLedger(path=tmp / "pg_b2.json")).build(
+        c.LeaderFill("pg-b2", LEADER, "OP", "BUY", 20.0, 1.0, c.utc_now_ms(), "TEST"))
+    check("S9_AUTHORITATIVE_OMISSION_IS_NAMED_SKIP",
+          _i4.decision == "SKIPPED_NOT_LISTED_ON_FOLLOWER_NETWORK", f"{_i4.decision} {_i4.reason}")
     # (c) a held position stays closable when the mid is missing
     _lg = c.ManualLedger(path=tmp / "pg_c.json")
     _bc = c.IntentBuilder(c.ConfigManager(), _lg)
