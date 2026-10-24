@@ -2798,6 +2798,11 @@ class DeferredEntryRetention:
             self.window_ms = int(fnum(state.get("window_ms"), 0))
             self.blocked_window = int(fnum(state.get("blocked_window"), 0))
             self.retained_window = int(fnum(state.get("retained_window"), 0))
+            for _it in self.items.values():
+                _it["state"] = str(_it.get("state") or "RETAINED")
+                _it.setdefault("cloid", "")
+                # item 7: a trigger the last process finished must not suppress the first publish after a restart
+                _it["triggers_done"] = []
 
     def _save(self) -> None:
         with self._lock:
@@ -2837,7 +2842,7 @@ class DeferredEntryRetention:
                     "side": fill.side, "price": fnum(fill.price), "size": fnum(fill.size),
                     "timestamp_ms": int(fnum(fill.timestamp_ms, 0)), "source": fill.source,
                     "reason": str(reason), "first_ms": now, "last_ms": now,
-                    "attempts": 0, "triggers_done": [],
+                    "attempts": 0, "triggers_done": [], "state": "RETAINED", "cloid": "", "attempt_ms": 0,
                     "raw": {k: v for k, v in (fill.raw or {}).items() if k in
                             ("dir", "startPosition", "merged_fill_ids", "merged_fill_count", "created_at_ms")}}
             else:
@@ -2846,6 +2851,28 @@ class DeferredEntryRetention:
             self._bump("blocked")
         self._save()
         return True
+
+    def mark_attempting(self, leader_fill_id: str, cloid: str, intent_id: str) -> bool:
+        """Write-ahead: ATTEMPTING and its cloid are on disk BEFORE the send, so a crash mid-send is reconcilable."""
+        with self._lock:
+            item = self.items.get(str(leader_fill_id))
+            if item is None:
+                return False
+            item.update({"state": "ATTEMPTING", "cloid": str(cloid), "intent_id": str(intent_id),
+                         "attempt_ms": utc_now_ms(), "reconciled_ms": 0})
+        self._save()
+        return True
+
+    def finish_attempt(self, leader_fill_id: str, state: str, detail: str) -> None:
+        """Leave ATTEMPTING: RETAINED (nothing went out) or AMBIGUOUS (kept, never resent). A terminal outcome drops."""
+        with self._lock:
+            item = self.items.get(str(leader_fill_id))
+            if item is None:
+                return
+            item.update({"state": str(state), "reconciled_ms": utc_now_ms(), "last_reconcile": str(detail)})
+            if state == "RETAINED":
+                item["cloid"] = ""
+        self._save()
 
     def rebuild(self, item: Dict[str, Any]) -> "LeaderFill":
         return LeaderFill(leader_fill_id=str(item.get("leader_fill_id") or ""),
@@ -5411,6 +5438,9 @@ class SenderGateway:
         self._pending_exit_guard: Dict[str, Dict[str, Any]] = {}
         self._pending_exit_lock = threading.Lock()
         self.on_confirmed_cancelled_ambiguous_exit: Optional[Callable[[Intent], None]] = None
+        # Retention is core state: the gateway reports a refusal through this core callback (the same idiom as
+        # on_confirmed_cancelled_ambiguous_exit and truth_refresh, which the core assigns in its __init__).
+        self.retain_deferred_entry: Optional[Callable[..., bool]] = None
         self._ambiguous_send_rechecks: "queue.Queue[Dict[str, Any]]" = queue.Queue(maxsize=1000)
         self._ambiguous_send_recheck_ids: set = set()
         self._ambiguous_send_recheck_lock = threading.Lock()
@@ -7821,7 +7851,8 @@ class SenderGateway:
                 until = utc_now_ms() + 600000
                 was_active = self._market_halted_until_ms.get(coin_key, 0) > utc_now_ms()
                 self._market_halted_until_ms[coin_key] = max(self._market_halted_until_ms.get(coin_key, 0), until)
-                self._retain_deferred_entry(intent.fill, intent, "MARKET_HALTED")
+                if self.retain_deferred_entry is not None:  # retention lives in the core, not in this class
+                    self.retain_deferred_entry(intent.fill, intent, "MARKET_HALTED")
                 if not was_active:
                     self.audit.append_reconciliation(
                         "SEND_TERMINAL", "SKIPPED_MARKET_HALTED", leader_wallet=intent.fill.leader_wallet,
@@ -11331,6 +11362,7 @@ class LiveCopyCore:
         self._converge_sent: Dict[Tuple[str, str, str], int] = {}   # sleeve -> last close queued
         self._converge_tries: Dict[Tuple[str, str, str], int] = {}  # sleeve -> closes queued so far
         self.sender.on_confirmed_cancelled_ambiguous_exit = self._on_confirmed_cancelled_ambiguous_exit
+        self.sender.retain_deferred_entry = self._retain_deferred_entry  # the core owns retention state
         self._converge_last: Dict[str, Any] = {}
         self._hot_threads: List[threading.Thread] = []
         self._pending_seen: Dict[str, Tuple[int, str, str, str]] = {}  # guard key -> (queued at ms, wallet, coin, fill id)
@@ -12069,6 +12101,10 @@ class LiveCopyCore:
     def _retention_tick(self) -> None:
         now = utc_now_ms()
         for fid, item in self.retention.snapshot().items():
+            if str(item.get("state") or "RETAINED") != "RETAINED":
+                if not int(fnum(item.get("reconciled_ms"), 0)):  # only a previous process can leave one
+                    self._reconcile_attempting(fid, item)
+                continue  # AMBIGUOUS stays until a human reads it
             first = int(fnum(item.get("first_ms"), 0))
             if first and now - first > DEFERRED_ENTRY_MAX_AGE_MS:
                 if self.retention.drop(fid, "aged out") is None:
@@ -12122,12 +12158,16 @@ class LiveCopyCore:
             live["attempts"] = int(fnum(live.get("attempts"), 0)) + 1
         self.retention._save()
         fill = self.retention.rebuild(item)
+        # the cloid this attempt rides on goes to disk BEFORE the send: a crash mid-send is reconcilable by it
+        intent_id = stable_hash(["intent", fill.leader_fill_id, fill.leader_wallet, fill.coin, fill.side, fill.timestamp_ms])
+        cloid = generate_cloid(intent_id)
+        self.retention.mark_attempting(fid, cloid, intent_id)
         try:
             self.audit.append_reconciliation(
                 "REPLAY_DEFERRED", "DEFERRED_ENTRY_REPLAY_ATTEMPT", leader_wallet=fill.leader_wallet,
-                leader_fill_id=fid, coin=fill.coin, action="RETRY_ON_TRIGGER",
+                leader_fill_id=fid, intent_id=intent_id, coin=fill.coin, action="RETRY_ON_TRIGGER",
                 terminal_state="DEFERRED_ENTRY_REPLAY_ATTEMPT", engine_can_send="False",
-                notes=f"trigger={trigger}; one attempt for this trigger")
+                notes=f"trigger={trigger}; cloid={cloid}; ATTEMPTING written before dispatch")
         except Exception as exc:
             log_error("deferred_entry_replay_row", exc)
         with self._idem_lock:
@@ -12137,6 +12177,78 @@ class LiveCopyCore:
         self._dispatch_fill(fill)
         if self._already_handled(fill):   # taken or terminally decided: nothing left to replay
             self.retention.drop(fid, f"handled on {trigger}")
+        else:  # refused again with no terminal row: back to RETAINED, offered once per later trigger
+            self.retention.finish_attempt(fid, "RETAINED", f"refused again on {trigger}")
+
+    def _reconcile_attempting(self, fid: str, item: Dict[str, Any]) -> None:
+        """A restart found an ATTEMPTING item: nothing out -> RETAINED; an order or fill carries the cloid -> named
+        terminal row and drop; unprovable -> AMBIGUOUS diff plus alert, and it is never sent again."""
+        cloid = str(item.get("cloid") or "").lower()
+        intent_id = str(item.get("intent_id") or "")
+        verdict, detail = self._cloid_evidence(cloid, intent_id, int(fnum(item.get("attempt_ms"), 0)))
+        if verdict == "NOTHING_SENT":
+            self.retention.finish_attempt(fid, "RETAINED", detail)
+            self.audit.append_reconciliation(
+                "REPLAY_DEFERRED", "DEFERRED_ENTRY_ATTEMPT_NOTHING_SENT",
+                leader_wallet=item.get("leader_wallet"), leader_fill_id=fid, intent_id=intent_id, coin=item.get("coin"),
+                action="REOFFER_ON_TRIGGER", terminal_state="DEFERRED_ENTRY_ATTEMPT_NOTHING_SENT", engine_can_send="False",
+                notes=f"cloid={cloid}; no send row, no open order, no fill names it: {detail}")
+            return
+        if verdict == "AMBIGUOUS":
+            self.retention.finish_attempt(fid, "AMBIGUOUS", detail)
+            self.audit.append_reconciliation(
+                "ALERT", "DEFERRED_ENTRY_ATTEMPT_AMBIGUOUS_DIFF",
+                leader_wallet=item.get("leader_wallet"), leader_fill_id=fid, intent_id=intent_id, coin=item.get("coin"),
+                action="MANUAL_REVIEW_CHECK_ORDER_BY_CLOID", reject_category="SEND_OUTCOME_UNKNOWN",
+                terminal_state="DEFERRED_ENTRY_ATTEMPT_AMBIGUOUS_DIFF", engine_can_send="False",
+                notes=f"cloid={cloid}; the send may or may not have gone out and the exchange could not be read: "
+                      f"{detail}; NOT resent")
+            return
+        if self.retention.drop(fid, f"reconciled: {verdict}") is not None:
+            self.audit.append_reconciliation(
+                "REPLAY_DEFERRED", "DEFERRED_ENTRY_ATTEMPT_RECONCILED_TERMINAL",
+                leader_wallet=item.get("leader_wallet"), leader_fill_id=fid, intent_id=intent_id, coin=item.get("coin"),
+                action="NO_RESEND_OUTCOME_KNOWN", terminal_state="DEFERRED_ENTRY_ATTEMPT_RECONCILED_TERMINAL",
+                engine_can_send="False", notes=f"cloid={cloid}; outcome={verdict}: {detail}")
+
+    def _cloid_evidence(self, cloid: str, intent_id: str, since_ms: int) -> Tuple[str, str]:
+        """What the journals and the exchange say about one attempt cloid. Fails closed: an unreadable exchange
+        read is AMBIGUOUS, never proof that nothing was sent."""
+        cl = str(cloid or "").lower()
+        if not cl:
+            return "AMBIGUOUS", "no cloid on the write-ahead item"
+        try:
+            rows = [r for r in read_csv_tail_rows(SEND_ATTEMPTS_CSV, 8 * 1024 * 1024)
+                    if str(r.get("cloid") or "").lower() == cl]
+        except Exception as exc:
+            return "AMBIGUOUS", f"send_attempts unreadable: {exc!r}"
+        if rows:
+            last = rows[-1]
+            return "SENT", f"send_attempts status={last.get('status')} oid={last.get('exchange_order_id') or '-'}"
+        try:
+            intents = [r for r in read_csv_tail_rows(ORDER_INTENTS_CSV, 8 * 1024 * 1024)
+                       if intent_id and str(r.get("intent_id") or "") == intent_id]
+        except Exception as exc:
+            return "AMBIGUOUS", f"order_intents unreadable: {exc!r}"
+        try:
+            ok, orders, odetail = self.sender._read_open_orders()
+        except Exception as exc:
+            return "AMBIGUOUS", f"open-orders read raised {exc!r}"
+        if not ok:
+            return "AMBIGUOUS", f"open orders unreadable ({odetail})"
+        for _dex, o in orders:
+            if str(o.get("cloid") or "").lower() == cl:
+                return "RESTED", f"resting order {o.get('oid')} on dex {_dex or 'main'}"
+        try:
+            fills, fdetail = _read_all_copy_fills(int(since_ms or 0), utc_now_ms())
+        except Exception as exc:
+            return "AMBIGUOUS", f"fills read raised {exc!r}"
+        if not str(fdetail).startswith("FILLS_COMPLETE"):
+            return "AMBIGUOUS", f"fills unreadable ({fdetail})"
+        for f in fills:
+            if cl in (str(f.get("cloid") or "").lower(), str(f.get("cid") or "").lower()):
+                return "FILLED", f"follower fill {f.get('oid') or f.get('tid') or '?'} carries the cloid"
+        return "NOTHING_SENT", f"no send row, no open order and no fill for intent {intent_id} (intent rows={len(intents)})"
 
     def _append_send_terminal(self, fill: LeaderFill, intent: Intent, send_status: str) -> None:
         retry_reason = deferred_entry_reason_for(send_status, intent)

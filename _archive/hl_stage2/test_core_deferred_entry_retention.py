@@ -214,12 +214,13 @@ def main() -> None:
 
         # ---- 1b. a restart neither loses nor double-sends ----------------------------------------
         core.retention.retain(fill(fid="restart-1", coin="LTC"), "MARKET_HALTED")
-        core._retention_replay("restart-1", core.retention.snapshot()["restart-1"], "halt:ltc")
+        core.retention.mark_attempting("restart-1", c.generate_cloid("restart-1-intent"), "restart-1-intent")  # dies mid-send
         restarted = c.DeferredEntryRetention()   # what the next process loads
         item = restarted.snapshot().get("restart-1")
-        check("RESTART_KEEPS_THE_ITEM_AND_ITS_ATTEMPT", bool(item) and item["triggers_done"] == ["halt:ltc"], item)
+        check("RESTART_KEEPS_THE_ITEM_AND_ITS_CLOID", bool(item) and item["state"] == "ATTEMPTING" and item["cloid"], item)
+        check("RESTART_CLEARS_USED_TRIGGERS", bool(item) and item["triggers_done"] == [], item)
         core.sender._market_halted_until_ms["ltc"] = c.utc_now_ms() - 1
-        check("RESTART_NEVER_REPEATS_A_USED_TRIGGER", core._retention_trigger(item, c.utc_now_ms()) == "")
+        check("RESTART_TRIGGER_IS_OFFERED_ONCE_AGAIN", core._retention_trigger(item, c.utc_now_ms()) == "halt:ltc")
     finally:
         core.stop()
 
