@@ -276,8 +276,16 @@ def main() -> None:
     # lines, not fixture rows: stop level (isStopLevel/terminalCls), the engine alert, the calm health level,
     # and the ordered red-on-UNKNOWN ownership producers (statusCard count, ownPill class, ownText label).
     red_ok = ("ENGINE ALERT", "levelCls", "isStopLevel", "terminalCls", "unknown_ownership_count", "ownPill", "UNKNOWN")
-    check("S9_RED_ONLY_FOR_STOP_LEVEL", len(reds) == 8 and all(any(m in ln for m in red_ok) for ln in reds),
-          "\n".join(x[:120] for x in reds))
+    # Ownership rule, asserted on template text because the template is what emits the class: red is UNKNOWN only.
+    # ownPill (HL_Copy_App_SSOT.py:7632) is one producer, the orphan row cell (:7661) the other.
+    own_cls = re.search(r"function ownPill\(o,why\)\{[^\n]*\n\s*const cls=([^;]+);", panel).group(1)
+    own_bad = [m for m in re.findall(r"'(USER_OWNED|KNOWN_UNMANAGED|ENGINE)'\?'(lc-[a-z]+)'", own_cls) if m[1] == "lc-red"]
+    own_row = re.search(r"String\(r\.ownership\|\|'UNKNOWN'\)==='UNKNOWN'\?'lc-red'[^\"]*", panel).group(0)
+    check("S9_RED_ONLY_FOR_STOP_LEVEL", len(reds) == 8 and all(any(m in ln for m in red_ok) for ln in reds)
+          and "'UNKNOWN'?'lc-red'" in own_cls and not own_bad
+          and "?'lc-amber':v==='USER_OWNED'?'lc-blue'" in own_cls
+          and own_row.count("lc-red") == 1 and "'KNOWN_UNMANAGED'?'lc-amber'" in own_row,
+          "\n".join(x[:120] for x in reds) + "\nownPill cls=" + own_cls + "\nownRow=" + own_row)
 
     # ---- S10 one last fill / last reject -------------------------------------------------------------------
     check("S10_ONE_LAST_FILL_AND_REJECT", panel.count("statusCard('Last fill'") == 1 and panel.count("statusCard('Last reject'") == 1
