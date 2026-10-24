@@ -192,12 +192,14 @@ def main() -> None:
     builder = c.IntentBuilder(c.ConfigManager(), c.ManualLedger(path=tmp / "builder.json"))
     xyz = builder.build(c.LeaderFill("x1", A, "XYZ:PLATINUM", "BUY", 100.0, 1.0, c.utc_now_ms(), "TEST", 0, {"dir": "Open Long"}))
     check("P5_XYZ_DECISION_ALLOWED", xyz.decision == "ENTRY_ALLOWED", "%s %s" % (xyz.decision, xyz.reason))
+    os.environ["HL_LIVE_BLOCK_XYZ_ENTRY"] = "0"  # P5 tests the dead prefix feature; P7 owns the xyz: entry rule
     ex4 = Ex([FILLED])
     g4 = gw(ex4)
     c.AuditLogWriter().append_order_intent(xyz)
     sent, status = g4.send_if_allowed(xyz)
     check("P5_XYZ_SEND_REACHES_EXCHANGE", sent and status == "ORDER_FILLED" and len(ex4.calls) == 1,
           "%s %s calls=%d" % (sent, status, len(ex4.calls)))
+    os.environ.pop("HL_LIVE_BLOCK_XYZ_ENTRY", None)  # P5's BTC case needs the builder-dex switch off anyway
     os.environ["HL_LIVE_SEND_EXCLUDE_PREFIXES"] = "BTC,ETH,SOL"  # a prefix list must not be honoured at all
     ex5 = Ex([FILLED])
     g5 = gw(ex5)
@@ -207,6 +209,46 @@ def main() -> None:
     check("P5_PREFIX_LIST_IS_IGNORED", btc.decision == "ENTRY_ALLOWED" and sent5 and status5 == "ORDER_FILLED"
           and len(ex5.calls) == 1, "%s %s calls=%d" % (btc.decision, status5, len(ex5.calls)))
     os.environ.pop("HL_LIVE_SEND_EXCLUDE_PREFIXES")
+    os.environ.pop("HL_LIVE_BLOCK_XYZ_ENTRY", None)
+
+    # ---- P7: builder-dex ('xyz:*') new exposure refused; closes still go out. Every call here goes through
+    # send_if_allowed - the classifier-then-exchange function a live fill reaches (fake exchange seam).
+    def xyz_rows():
+        return [r for r in disk_rows(c.RECONCILIATION_CSV) if r.get("terminal_state") == "SKIPPED_XYZ_ENTRY"]
+
+    os.environ.pop("HL_LIVE_BLOCK_XYZ_ENTRY", None)  # unset = ON for the soak
+    ex7 = Ex([FILLED] * 6)
+    g7 = gw(ex7)
+    sent_e, st_e = g7.send_if_allowed(mk_intent(coin="xyz:ORCL"))
+    check("P7_XYZ_ENTRY_REFUSED_NO_EXCHANGE_CALL",
+          not sent_e and st_e == "SKIPPED_XYZ_ENTRY" and len(ex7.calls) == 0,
+          "%s %s calls=%s" % (sent_e, st_e, ex7.calls))
+    rows7 = xyz_rows()
+    check("P7_XYZ_ENTRY_ROW_HANDLED_DECISION",
+          len(rows7) == 1 and rows7[0].get("reject_category") == "SKIPPED_BUILDER_DEX_ENTRY"
+          and str(rows7[0].get("coin") or "").lower() == "xyz:orcl", str(rows7))
+    sent_x, st_x = g7.send_if_allowed(mk_intent(coin="xyz:ORCL", side="SELL", lifecycle="EXIT"))
+    check("P7_XYZ_EXIT_STILL_SENT", sent_x and st_x == "ORDER_FILLED" and len(ex7.calls) == 1,
+          "%s %s calls=%s" % (sent_x, st_x, ex7.calls))
+    g7._last_exit_attempt_ms.clear()
+    g7._pending_exit_guard.clear()
+    sent_r7, st_r7 = g7.send_if_allowed(mk_intent(coin="xyz:PLTR", side="SELL", lifecycle="REDUCE"))
+    check("P7_XYZ_REDUCE_STILL_SENT", sent_r7 and st_r7 == "ORDER_FILLED" and len(ex7.calls) == 2,
+          "%s %s calls=%s" % (sent_r7, st_r7, ex7.calls))
+    sent_a, st_a = g7.send_if_allowed(mk_intent(coin="xyz:MSTR"))
+    check("P7_XYZ_ADD_ALSO_REFUSED", not sent_a and st_a == "SKIPPED_XYZ_ENTRY" and len(ex7.calls) == 2,
+          "%s %s" % (sent_a, st_a))
+    sent_h, st_h = g7.send_if_allowed(mk_intent(coin="ETH"))
+    check("P7_ETH_ENTRY_UNAFFECTED_ON", sent_h and st_h == "ORDER_FILLED" and len(ex7.calls) == 3,
+          "%s %s" % (sent_h, st_h))
+    os.environ["HL_LIVE_BLOCK_XYZ_ENTRY"] = "0"  # off restores the previous behaviour exactly
+    sent_o, st_o = g7.send_if_allowed(mk_intent(coin="XYZ:PLATINUM"))  # upper-case name: the match must be case-insensitive
+    check("P7_SWITCH_OFF_XYZ_ENTRY_ALLOWED", sent_o and st_o == "ORDER_FILLED" and len(ex7.calls) == 4,
+          "%s %s calls=%s" % (sent_o, st_o, ex7.calls))
+    sent_h2, st_h2 = g7.send_if_allowed(mk_intent(coin="ETH"))
+    check("P7_SWITCH_OFF_ETH_STILL_FINE", sent_h2 and st_h2 == "ORDER_FILLED" and len(ex7.calls) == 5,
+          "%s %s calls=%d" % (sent_h2, st_h2, len(ex7.calls)))
+    os.environ.pop("HL_LIVE_BLOCK_XYZ_ENTRY")
 
     # ---- P6: unresolved-symbol rows collapse per symbol per window; the old seconds knob still works --------
     def err_rows(text):

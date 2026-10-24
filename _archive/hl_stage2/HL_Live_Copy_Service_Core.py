@@ -7422,6 +7422,15 @@ class SenderGateway:
         lifecycle = classify_send_lifecycle(intent)
         coin_key = str(intent.fill.coin or "").strip().lower()
         now_ms = utc_now_ms()
+        # Builder-dex books ('xyz:*') are empty or one-sided: new exposure there never fills. ENTRY/ADD only,
+        # placed after the lifecycle is classified, so an open sleeve can still always be exited or reduced.
+        if (lifecycle in {"ENTRY", "ADD"} and bval(os.getenv("HL_LIVE_BLOCK_XYZ_ENTRY"), True)
+                and str(intent.fill.coin or "").strip().lower().startswith("xyz:")):
+            self._append_local_block_reconciliation(intent, "SKIPPED_XYZ_ENTRY", {
+                "terminal_state": "SKIPPED_XYZ_ENTRY", "reject_category": "SKIPPED_BUILDER_DEX_ENTRY",
+                "operator_action": "NO_SEND_BUILDER_DEX_ENTRY",
+                "notes": f"{intent.fill.coin}: builder-dex (xyz) book is empty/one-sided; new exposure refused"})
+            return False, "SKIPPED_XYZ_ENTRY"
         if lifecycle in {"ENTRY", "ADD"} and self._market_halted_until_ms.get(coin_key, 0) > now_ms:
             return False, "SKIPPED_MARKET_HALTED"
         if lifecycle in {"ENTRY", "ADD"} and self._ioc_no_match_until_ms.get(coin_key, 0) > now_ms:
