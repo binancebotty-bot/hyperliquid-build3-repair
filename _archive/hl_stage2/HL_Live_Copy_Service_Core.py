@@ -269,6 +269,43 @@ def follower_mid(coin: str) -> float:
     return fnum(m["px"].get(str(coin or "").upper()), 0.0)
 
 
+_MIDS_RETRY: Dict[str, Dict[str, Any]] = {}  # dex -> {"until": ms, "px": {...}}: the miss-path read
+_MIDS_RETRY_LOCKS: Dict[str, threading.Lock] = {}
+_MIDS_RETRY_GUARD = threading.Lock()
+
+
+def follower_mids_retry(coin: str) -> float:
+    """ONE dex-scoped allMids read after follower_mid missed, with a short per-DEX miss cooldown.
+
+    Single-flight: concurrent intents for the same DEX wait on that DEX's lock and reuse the in-flight
+    read's result; every further miss inside the cooldown (HL_LIVE_MIDS_RETRY_COOLDOWN_SEC, 5 s) reuses it
+    too. Never invents a price: a failed or empty read leaves the symbol missing, so the caller fails closed."""
+    key = str(coin or "").strip().upper()
+    dex = key.split(":", 1)[0].lower() if ":" in key else ""
+    with _MIDS_RETRY_GUARD:
+        lock = _MIDS_RETRY_LOCKS.setdefault(dex, threading.Lock())
+    with lock:
+        s = _MIDS_RETRY.setdefault(dex, {"until": 0, "px": {}})
+        if utc_now_ms() >= s["until"]:
+            px: Dict[str, float] = {}
+            payload = {"type": "allMids", **({"dex": dex} if dex else {})}
+            for res in _XNET.post_many(MIDS_FETCHER, [payload], HL_INFO_URL, HTTP_TIMEOUT_SEC):
+                data = res.get("data") if res.get("ok") and isinstance(res.get("data"), dict) else {}
+                for k, v in data.items():
+                    if fnum(v, 0.0) > 0 and math.isfinite(fnum(v, 0.0)):
+                        px[str(k).upper()] = fnum(v, 0.0)
+            s["px"] = px
+            s["until"] = utc_now_ms() + int(fnum(os.getenv("HL_LIVE_MIDS_RETRY_COOLDOWN_SEC"), 5.0) * 1000)
+        return fnum(s["px"].get(key), 0.0)
+
+
+def follower_meta_lists(coin: str) -> bool:
+    """True when the follower's own asset-universe snapshot lists `coin`, or when that snapshot is unknown
+    (no symbols at all): only a POSITIVELY absent symbol may become a named skip, never a guess."""
+    mapping = _coin_key_map()
+    return not mapping or str(coin or "").strip().upper() in mapping
+
+
 def follower_position_mark(coin: str) -> float:
     """Follower-network mark of an open follower position (|positionValue| / |szi|), read fresh. Used to
     price a close when no fresh mid exists: a close always has a position to price from."""
@@ -2738,7 +2775,8 @@ def build_live_integrity_status() -> Dict[str, Any]:
                 return True
         return False
     copy_required_decisions = {"ENTRY_ALLOWED", "ADD_ALLOWED", "SEND_ALLOWED", "EXIT_ALLOWED", "REDUCE_ALLOWED"}
-    no_send_prefixes = ("SEND_NOT_ATTEMPTED", "MISSED_ENTRY", "MISSED_ADD", "MISSED_ENTRY_SIZE_OR_NOTIONAL_REJECTED")
+    no_send_prefixes = ("SEND_NOT_ATTEMPTED", "MISSED_ENTRY", "MISSED_ADD", "MISSED_ENTRY_SIZE_OR_NOTIONAL_REJECTED",
+                        "SKIPPED_NOT_LISTED_ON_FOLLOWER_NETWORK")
     hard_copy_counts = {
         "COPIED_AND_RECONCILED": 0,
         "EXPLICITLY_EXCLUDED_BY_CONFIG": 0,
@@ -2803,6 +2841,7 @@ def build_live_integrity_status() -> Dict[str, Any]:
             "UNSUPPORTED_SYMBOL_OR_METADATA",
             "SEND_NOT_ATTEMPTED_UNSUPPORTED_SYMBOL",
             "SEND_NOT_ATTEMPTED_SYMBOL_UNRESOLVED",
+            "SKIPPED_NOT_LISTED_ON_FOLLOWER_NETWORK",
             "SPOT_MARKET_SKIPPED",
             "SEND_NOT_ATTEMPTED_SPOT_MARKET_SKIPPED",
         }
@@ -4986,6 +5025,14 @@ class IntentBuilder:
         # units are sized from the leader, so cross-network the USD value can differ from copy_notional
         value_px = self._order_value_px(fill)
         if value_px <= 0:
+            # ONE dex-scoped retry after the fresh-cache miss (single-flight, per-DEX cooldown)
+            retry_px = follower_mids_retry(fill.coin)
+            value_px = retry_px * (1.0 + self.cfg.marketable_bps() / 10000.0) if retry_px > 0 else 0.0
+        if value_px <= 0:
+            if not follower_meta_lists(fill.coin):
+                # not on the follower network at all: a retry can never price it, so name the skip (invariant G)
+                return "SKIPPED_NOT_LISTED_ON_FOLLOWER_NETWORK", (
+                    f"{fill.coin} is absent from the follower ({FOLLOWER_NETWORK}) asset meta; no price is obtainable")
             return "SEND_BLOCKED_RISK", f"no fresh follower-network ({FOLLOWER_NETWORK}) price to value the order"
         order_notional = copy_notional / fill.price * value_px if fill.price > 0 else 0.0
         max_order = self.cfg.max_order_notional()

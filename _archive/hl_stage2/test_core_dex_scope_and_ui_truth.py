@@ -267,6 +267,70 @@ def main() -> None:
     nets = TestClient(ui.app).get("/api/global-controls").json()["networks"]
     check("S8_UI_SHOWS_MARKETS_TRADED", nets.get("follower_dexes") == ["default", "xyz"], str(nets))
 
+    # ---- S9: price gate: one single-flight retry, then a NAMED skip, never a close block ---------
+    import json as _json
+    snap = tmp / "asset_universe_snapshot.json"
+    snap.write_text(_json.dumps({"symbols": {"BTC": {"canonical_coin": "BTC"},
+                                             "LINK": {"canonical_coin": "LINK"}}}), encoding="utf-8")
+    c.ASSET_UNIVERSE_SNAPSHOT_FILE = snap
+    c._COIN_KEY_CACHE = (None, {})
+    reads = []
+    def retry_mids(payload):
+        reads.append(payload)
+        return {"BTC": "100", "LINK": "20"} if not payload.get("dex") else {}
+    def empty_mids(payload):
+        reads.append(payload)
+        return {"BTC": "100"} if not payload.get("dex") else {}
+    def fresh_cache(px):
+        c._FOLLOWER_MIDS.update(px=px, ms=c.utc_now_ms(), scope=c.follower_dex_scope())
+        c._MIDS_RETRY.clear()
+        c._MIDS_RETRY_LOCKS.clear()
+    c._LEARNED_DEXES.clear()
+    os.environ.pop("HL_FOLLOWER_DEXES", None)
+    c.atomic_write_json(c.LIVE_CONFIG_FILE, {"auto_send_enabled": False, "global_controls": {"min_notional": 1},
+                                             "wallets": {LEADER: {"enabled": True, "mode": "ON",
+                                                                  "copy_mode": "fixed", "fixed_notional": 12}}})
+    # (a) an obtainable symbol is priced by the ONE single-flight retry and the entry proceeds
+    c.MIDS_FETCHER = retry_mids
+    _b = c.IntentBuilder(c.ConfigManager(), c.ManualLedger(path=tmp / "pg_a.json"))
+    fresh_cache({"BTC": 100.0})
+    reads.clear()
+    _i = _b.build(c.LeaderFill("pg-a", LEADER, "LINK", "BUY", 20.0, 1.0, c.utc_now_ms(), "TEST"))
+    check("S9_RETRY_PRICES_OBTAINABLE_SYMBOL_AND_ENTRY_PROCEEDS",
+          _i.decision == "ENTRY_ALLOWED" and len(reads) == 1, f"{_i.decision} {_i.reason} reads={reads}")
+    check("S9_RETRY_IS_ONE_DEX_SCOPED_ALLMIDS", reads == [{"type": "allMids"}], str(reads))
+    _i2 = _b.build(c.LeaderFill("pg-a2", LEADER, "LINK", "BUY", 20.0, 1.0, c.utc_now_ms(), "TEST"))
+    check("S9_MISS_COOLDOWN_REUSES_THE_ONE_READ", _i2.decision == "ENTRY_ALLOWED" and len(reads) == 1,
+          f"{_i2.decision} reads={len(reads)}")
+    # (b) unlisted symbol: no mid even after the retry, absent from the follower meta -> NAMED skip
+    c.MIDS_FETCHER = empty_mids
+    fresh_cache({"BTC": 100.0})
+    reads.clear()
+    _i3 = c.IntentBuilder(c.ConfigManager(), c.ManualLedger(path=tmp / "pg_b.json")).build(
+        c.LeaderFill("pg-b", LEADER, "GMX", "BUY", 20.0, 1.0, c.utc_now_ms(), "TEST"))
+    check("S9_UNLISTED_SYMBOL_IS_NAMED_SKIP", _i3.decision == "SKIPPED_NOT_LISTED_ON_FOLLOWER_NETWORK",
+          f"{_i3.decision} {_i3.reason}")
+    check("S9_UNLISTED_SYMBOL_STILL_READ_ONCE", len(reads) == 1, str(reads))
+    # (c) a held position stays closable when the mid is missing
+    _lg = c.ManualLedger(path=tmp / "pg_c.json")
+    _bc = c.IntentBuilder(c.ConfigManager(), _lg)
+    _m = c.CopyFillMatcher(_lg, c.AuditLogWriter())
+    c.MIDS_FETCHER = retry_mids
+    fresh_cache({"BTC": 100.0})
+    _o = _bc.build(c.LeaderFill("pg-c-open", LEADER, "BTC", "BUY", 100.0, 0.1, c.utc_now_ms(), "TEST"))
+    _m.match_and_apply({"intent_id": _o.intent_id, "side": "BUY", "price": 100.0, "size": 0.1,
+                        "copy_fill_id": "pg-c-cf"}, {_o.intent_id: _o})
+    c.MIDS_FETCHER = empty_mids
+    fresh_cache({"BTC": 100.0})
+    reads.clear()
+    _x = _bc.build(c.LeaderFill("pg-c-exit", LEADER, "BTC", "SELL", 100.0, 0.1, c.utc_now_ms(), "TEST"))
+    check("S9_HELD_POSITION_CLOSABLE_WITH_NO_MID", _x.decision == "EXIT_ALLOWED" and _x.copy_size > 0,
+          f"{_x.decision} {_x.reason} size={_x.copy_size}")
+    check("S9_CLOSE_NEVER_READS_A_PRICE", reads == [], str(reads))
+    c._FOLLOWER_MIDS.update(px={}, ms=0)
+    c.MIDS_FETCHER = None
+    c._MIDS_RETRY.clear()
+    c._MIDS_RETRY_LOCKS.clear()
     failed = [n for n, ok in RESULTS if not ok]
     print(f"TOTAL={len(RESULTS)} FAILED={len(failed)}")
     raise SystemExit(1 if failed else 0)
