@@ -64,6 +64,7 @@ WALLET_GATE_FILE = BASE_DIR / "wallet_gate.json"
 MANUAL_WALLETS_FILE = BASE_DIR / "manual_wallets.txt"
 PURGED_WALLETS_FILE = BASE_DIR / "purged_wallets.txt"
 import exchange_truth as _XNET  # noqa: E402  same network selection and state folder as the engine
+import ownership_classify as _OWN  # noqa: E402  ownership labels + builder-dex read (seam -> UNKNOWN)
 _NET_ENV = _XNET.env_with_file(Path(os.environ.get("HL_LIVE_ENV_FILE") or BASE_DIR.parent / "hl_stage2.env"))  # as the engine
 try:
     NETWORKS = _XNET.resolve_networks(_NET_ENV)
@@ -205,6 +206,7 @@ _AUDIT_SUMMARY_TTL = 2.0  # seconds
 _CSV_READER_CACHE: Dict[str, Dict[str, Any]] = {}
 _CSV_READER_CACHE_LOCK = threading.Lock()
 _TAIL_READ_BYTES = 2 * 1024 * 1024  # 2 MB tail for reconciliation_rows and similar
+_BUILDER_DEX_CACHE: Dict[str, Any] = {}  # account -> {at, read}; each per-dex read is a network round trip
 
 APP_HEALTH: Dict[str, Any] = {
     "last_build_started_at": "",
@@ -1161,7 +1163,7 @@ def _load_resting_withdraw_pending() -> List[Dict[str, Any]]:
 
 def _build_health_summary(service_state: Dict[str, Any], integrity_status: Dict[str, Any], now_ms: Optional[int] = None,
                           resting_pending: Optional[List[Dict[str, Any]]] = None,
-                          reconciliation_rows: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
+                          reconciliation_rows: Optional[List[Dict[str, Any]]] = None, ownership_counts: Optional[Dict[str, int]] = None) -> Dict[str, Any]:
     """One calm line: green Healthy / amber Needs a look / red Stopped or Action needed: <reason>. Red only when the engine
     actually cannot send (signing key rejected, entries blocked, wrong network, engine down or silent);
     every internal code goes to the technical detail."""
@@ -1191,6 +1193,12 @@ def _build_health_summary(service_state: Dict[str, Any], integrity_status: Dict[
     mm_rows = [r for r in (pa.get("exchange_manual_mismatches") or []) if isinstance(r, dict)]
     records_disagree = (any(abs(fnum(r.get("manual"))) > 1e-12 for r in mm_rows) if mm_rows
                         else inum(counts.get("exchange_manual_mismatch")) > 0)
+    # Rulings 6388333568 / 6388338865: USER_OWNED and KNOWN_UNMANAGED are the operator's, so neither is a
+    # mismatch nor a red reason. UNKNOWN is the only ownership state that must keep shouting.
+    _oc = ownership_counts or {}
+    unknown_ownership = inum(_oc.get("UNKNOWN"))
+    user_owned_n = inum(_oc.get("USER_OWNED"))
+    known_unmanaged_n = inum(_oc.get("KNOWN_UNMANAGED"))
     level, text = "green", "Healthy"
     beat = inum(st.get("last_state_write_ms") or st.get("created_at_ms"))
     nets = st.get("networks") if isinstance(st.get("networks"), dict) else {}
@@ -1206,16 +1214,19 @@ def _build_health_summary(service_state: Dict[str, Any], integrity_status: Dict[
         level, text = "red", "Action needed: a resting order could not be cancelled — check open orders"
     elif close_failing:
         level, text = "red", "Action needed: a close is failing — check the Reconciliation tab and close it on the exchange"
-    elif records_disagree:
+    elif records_disagree and not user_owned_n and not known_unmanaged_n:
         level, text = "red", "Action needed: the engine's records and the exchange disagree — check the Reconciliation tab"
     elif inum(counts.get("audit_proof_missing")) > 0:
         level, text = "red", "Action needed: the engine's audit files are missing — check the state folder"
     elif st.get("entry_sends_blocked_reason"):
         level, text = "red", "Stopped: new entries paused because " + _plain_block_reason(str(st.get("entry_sends_blocked_reason"))) + " (exits still run)"
+    elif unknown_ownership:
+        level, text = "red", f"Action needed: {unknown_ownership} item(s) with unknown ownership - classify them before trusting this account"
     elif integ in {"RED", "AMBER"}:
         level, text = "amber", "Needs a look: see the Reconciliation tab"
     return {"level": level, "text": text, "technical": technical, "integrity_status": integ,
-            "engine_heartbeat_ms": beat}
+            "engine_heartbeat_ms": beat, "user_owned_count": user_owned_n,
+            "known_unmanaged_count": known_unmanaged_n, "unknown_ownership_count": unknown_ownership}
 
 
 def _build_live_top_status(
@@ -1422,10 +1433,34 @@ def _live_audit_summary_full() -> Dict[str, Any]:
     execution_quality_summary = _build_execution_quality_summary(execution_quality_rows)
     manual_reconciliation_rows = _build_manual_reconciliation_rows(manual_positions, exchange_snapshot, recent_send_attempts)
     recent_send_warning_groups = _build_recent_send_warning_groups(recent_send_attempts)
-    live_top_status = _build_live_top_status(live_config, ws_health, clean_core_status.get("service_state", {}), integrity_status, recent_send_attempts, _live_fills_data, reconciliation_rows)
     owned_copy_positions = [r for r in real_copy_positions if r.get("row_type") == "OWNED_COPY"]
     orphan_exchange_positions = [r for r in real_copy_positions if r.get("row_type") == "ACCOUNT_LEVEL_ONLY"]
     account_orphan_registry = _build_account_orphan_registry(orphan_exchange_positions)
+    # Ownership (rulings 6388333568 / 6388338865): every open position and resting order carries one of
+    # ENGINE / USER_OWNED / KNOWN_UNMANAGED / UNKNOWN. _OWN.proven_ownership is the seam Codex fills in.
+    _ownership_known = _OWN.load_known_unmanaged()
+    _resting_raw = load_json(RESTING_ENTRY_ORDERS_FILE, {})
+    resting_orders_labeled = [dict(r) for r in (_resting_raw.values() if isinstance(_resting_raw, dict) else _resting_raw)
+                              if isinstance(r, dict)]
+    _acct = _public_account_address()
+    _bdx = _BUILDER_DEX_CACHE.get(_acct) or {}
+    if _bdx and time.time() - _bdx.get("at", 0) < 15.0:
+        builder_dex_read = _bdx["read"]
+    elif _acct:
+        builder_dex_read = _OWN.fetch_builder_dex_positions(_acct, _info_post)
+        _BUILDER_DEX_CACHE[_acct] = {"at": time.time(), "read": builder_dex_read}
+    else:
+        builder_dex_read = {"ok": False, "status": "ACCOUNT_ADDRESS_UNAVAILABLE", "positions": [], "scopes": []}
+    open_positions_labeled = [dict(r) for r in (owned_copy_positions + orphan_exchange_positions
+                                                + builder_dex_read["positions"])]
+    _OWN.label_rows(open_positions_labeled, _ownership_known)
+    _OWN.label_rows(resting_orders_labeled, _ownership_known)
+    _all_labeled = open_positions_labeled + resting_orders_labeled
+    ownership_counts = {k: sum(1 for r in _all_labeled if r.get("ownership") == k) for k in _OWN.OWNERSHIP_CLASSES}
+    user_owned_items = [r for r in open_positions_labeled if r.get("ownership") == "USER_OWNED"]
+    known_unmanaged_items = [{"coin": r.get("coin"), "dex": r.get("dex"), "reason": r.get("ownership_reason")}
+                             for r in _all_labeled if r.get("ownership") == "KNOWN_UNMANAGED"]
+    live_top_status = _build_live_top_status(live_config, ws_health, clean_core_status.get("service_state", {}), integrity_status, recent_send_attempts, _live_fills_data, reconciliation_rows, ownership_counts)
     send_terminal_rows = [r for r in reconciliation_rows if r.get("event") in {"SEND_TERMINAL", "SEND_REJECTED"}]
     legacy_terminal_rows = [
         r for r in recent_send_attempts
@@ -1515,6 +1550,14 @@ def _live_audit_summary_full() -> Dict[str, Any]:
         "real_copy_positions": real_copy_positions,
         "owned_copy_positions": owned_copy_positions,
         "orphan_exchange_positions": orphan_exchange_positions,
+        "open_positions_labeled": open_positions_labeled,
+        "resting_orders_labeled": resting_orders_labeled,
+        "builder_dex_positions": builder_dex_read.get("positions", []),
+        "builder_dex_status": builder_dex_read.get("status", ""),
+        "builder_dex_scopes": builder_dex_read.get("scopes", []),
+        "ownership_counts": ownership_counts,
+        "user_owned_items": user_owned_items,
+        "known_unmanaged_items": known_unmanaged_items,
         "account_orphan_registry": account_orphan_registry,
         "execution_quality_rows": execution_quality_rows,
         "execution_quality_summary": execution_quality_summary,
@@ -7126,11 +7169,18 @@ def render_live_copy_control_panel() -> str:
         <p>Manual ledger vs real exchange account. All sizes signed (positive = long, negative = short). Exchange data requires HL_LIVE_HL_ACCOUNT_ADDRESS configured.</p>
         <div class="lc-table-wrap">
           <h4>NET BY COIN — ONE SHARED ACCOUNT (leaders net like the exchange)</h4>
-          <table style="min-width:900px"><thead><tr><th>Coin</th><th>Ledger net (sum of leaders)</th><th>Exchange net</th><th>Ledger/exchange</th><th>Which leader holds what</th></tr></thead><tbody id="lcNetByCoinRows"><tr><td colspan="5">Loading...</td></tr></tbody></table>
+          <table style="min-width:900px"><thead><tr><th>Coin</th><th>Ledger net (sum of leaders)</th><th>Exchange net</th><th>Ledger/exchange</th><th>Which leader holds what</th><th>Ownership</th></tr></thead><tbody id="lcNetByCoinRows"><tr><td colspan="6">Loading...</td></tr></tbody></table>
           <h4>OWNED COPY POSITIONS</h4>
-          <table style="min-width:1200px"><thead><tr><th>Wallet</th><th>Coin</th><th>Side</th><th>Signed size</th><th>Avg entry</th><th>Ledger/exchange</th><th>Exchange size</th><th>Last copy fill</th><th>Last updated</th></tr></thead><tbody id="lcOwnedPositionRows"><tr><td colspan="9">Loading...</td></tr></tbody></table>
+          <table style="min-width:1200px"><thead><tr><th>Wallet</th><th>Coin</th><th>Side</th><th>Signed size</th><th>Avg entry</th><th>Ledger/exchange</th><th>Exchange size</th><th>Last copy fill</th><th>Last updated</th><th>Ownership</th></tr></thead><tbody id="lcOwnedPositionRows"><tr><td colspan="10">Loading...</td></tr></tbody></table>
           <h4>POSITIONS NOT OPENED BY THE ENGINE</h4>
-          <table style="min-width:1500px"><thead><tr><th>Coin</th><th>Unexplained size</th><th>Entry px</th><th>Mark px</th><th>Unrealized PnL</th><th>Status</th><th>Who manages it</th><th>Engine closes it?</th><th>Engine uses it?</th><th>Context</th></tr></thead><tbody id="lcOrphanPositionRows"><tr><td colspan="10">Loading...</td></tr></tbody></table>
+          <table style="min-width:1500px"><thead><tr><th>Coin</th><th>Unexplained size</th><th>Entry px</th><th>Mark px</th><th>Unrealized PnL</th><th>Status</th><th>Who manages it</th><th>Engine closes it?</th><th>Engine uses it?</th><th>Context</th><th>Ownership</th></tr></thead><tbody id="lcOrphanPositionRows"><tr><td colspan="11">Loading...</td></tr></tbody></table>
+          <h4>BUILDER-DEX (xyz) POSITIONS <span id="lcBuilderDexStatus" class="lc-muted"></span></h4>
+          <p class="lc-muted">The main-dex read never returns these: they come from {"type":"perpDexs"} then one {"type":"clearinghouseState","dex":"xyz"} per dex. An empty book still shows the position but no bid behind it, so a reduce-only sell cannot match - a known unmanaged leftover, not a fault.</p>
+          <table style="min-width:1200px"><thead><tr><th>Dex</th><th>Coin</th><th>Side</th><th>Signed size</th><th>Entry px</th><th>Mark px</th><th>Unrealized PnL</th><th>Ownership</th></tr></thead><tbody id="lcBuilderDexRows"><tr><td colspan="8">Loading...</td></tr></tbody></table>
+          <h4>USER-OWNED (placed by hand, not managed by the engine)</h4>
+          <table style="min-width:900px"><thead><tr><th>Coin</th><th>Side</th><th>Signed size</th><th>Entry px</th><th>Ownership</th></tr></thead><tbody id="lcUserOwnedRows"><tr><td colspan="5">Loading...</td></tr></tbody></table>
+          <h4>RESTING ORDERS</h4>
+          <table style="min-width:900px"><thead><tr><th>Coin</th><th>Side</th><th>OID</th><th>Px</th><th>Size</th><th>Cancel pending</th><th>Ownership</th></tr></thead><tbody id="lcRestingOrderRows"><tr><td colspan="7">Loading...</td></tr></tbody></table>
         </div>
       </section>
     </div>
@@ -7353,6 +7403,9 @@ function renderTopStatus(){
   statusCard('Leader feed',feed.text,feed.cls,st.ws_enabled?'websocket':'the engine polls each leader'),
   statusCard('Follower account read',pollTxt,pollOk?'lc-green':'lc-grey',''),
   statusCard('Wallets',`${st.live_wallets||0} live / ${st.active_wallets||0} followed`,'','live + close-only are followed'),
+  statusCard('User-owned',String(hl.user_owned_count||0),'','placed by hand - the engine never adopts, closes or resizes these'),
+  statusCard('Known unmanaged',String(hl.known_unmanaged_count||0)+((lcAudit.known_unmanaged_items||[]).length?' - '+lcAudit.known_unmanaged_items.map(x=>(x.coin||'')+': '+(x.reason||'no reason')).join('; '):''),'lc-amber','known leftovers that cannot be exited - reason shown'),
+  ...(hl.unknown_ownership_count?[statusCard('Unknown ownership',String(hl.unknown_ownership_count),'lc-red','not proven engine-owned or user-owned - stays RED until classified')]:[]),
   statusCard('Last send',lastSend.created_at?`${lastSend.coin||''} ${isRoutineReject(lastSend)?'market not available':(lastSend.status||'')}`:'—',isRoutineReject(lastSend)?'lc-grey':terminalCls(lastSend.terminal_state||lastSend.status),lastSend.terminal_state||''),
   statusCard('Last fill',lastFill.created_at?`${lastFill.coin||''} ${lastFill.side||''} ${lastFill.fill_size||''}`:'—','',lastFill.created_at||''),
   statusCard('Last reject',lastReject.created_at?`${lastReject.coin||''} ${isRoutineReject(lastReject)?'market not available':(lastReject.reject_category||lastReject.status||'')}`:'—',isRoutineReject(lastReject)?'lc-grey':terminalCls(lastReject.terminal_state||lastReject.status),lastReject.reject_category||lastReject.terminal_state||''),
@@ -7562,6 +7615,15 @@ function netByCoin(owned,orphan){
  return Object.values(by).filter(x=>x.legs.length||(x.ex!=null&&Math.abs(x.ex)>1e-12)).sort((a,b)=>a.coin.localeCompare(b.coin));
 }
 function renderPositions(){
+function ownText(r){const v=String((r&&r.ownership)||'UNKNOWN'),why=String((r&&r.ownership_reason)||'');
+ if(v==='USER_OWNED')return 'user-owned positions (not managed by engine)';
+ if(v==='KNOWN_UNMANAGED')return 'known unmanaged - cannot exit ('+(why||'no reason recorded')+')';
+ if(v==='ENGINE')return 'engine-owned';
+ return 'UNKNOWN ownership - not proven engine-owned or user-owned';}
+function ownPill(o,why){const v=String(o||'UNKNOWN');
+ const cls=v==='UNKNOWN'?'lc-red':v==='KNOWN_UNMANAGED'?'lc-amber':v==='USER_OWNED'?'lc-blue':'lc-green';
+ const note=v==='KNOWN_UNMANAGED'&&why?' - '+why:'';
+ return `<span class="lc-pill ${cls}" title="${h(why||'ownership not proven by an engine cloid or ledger sleeve')}">${h(v+note)}</span>`;}
  const owned=lcAudit.owned_copy_positions||[];
  const orphan=lcAudit.orphan_exchange_positions||[];
  const netBox=root.querySelector('#lcNetByCoinRows');
@@ -7571,7 +7633,7 @@ function renderPositions(){
   const st=x.ex==null?'EXCHANGE_UNAVAILABLE':(Math.abs(net-x.ex)<=tol?'MATCH':'MISMATCH');
   const stCls=st==='MATCH'?'lc-green':st==='EXCHANGE_UNAVAILABLE'?'lc-grey':'lc-amber';
   const legs=x.legs.map(l=>`<span class="lc-pill">${h(shortWallet(l.w||''))}: ${l.s>0?'+':''}${h(+l.s.toFixed(8))}</span>`).join(' ')||'<span class="lc-muted">no leader</span>';
-  return `<tr><td><b>${h(x.coin)}</b></td><td class="${net>0?'lc-pos':net<0?'lc-neg':''}">${h(+net.toFixed(8))}</td><td>${x.ex!=null?h(x.ex):'—'}</td><td><span class="lc-pill ${stCls}">${st}</span></td><td>${legs}</td></tr>`;
+  return `<tr><td><b>${h(x.coin)}</b></td><td class="${net>0?'lc-pos':net<0?'lc-neg':''}">${h(+net.toFixed(8))}</td><td>${x.ex!=null?h(x.ex):'—'}</td><td><span class="lc-pill ${stCls}">${st}</span></td><td>${legs}</td><td>${(lcAudit.open_positions_labeled||[]).filter(p=>String(p.coin||'').toUpperCase()===x.coin.toUpperCase()).map(p=>ownPill(p.ownership,p.ownership_reason)).join(' ')||ownPill('UNKNOWN')}</td></tr>`;
  }).join('')||'<tr><td colspan="5">No copy positions.</td></tr>';
  const ownedBox=root.querySelector('#lcOwnedPositionRows');
  const orphanBox=root.querySelector('#lcOrphanPositionRows');
@@ -7580,7 +7642,7 @@ function renderPositions(){
   const stRaw=r.ledger_vs_exchange||'OWNED_COPY';
   const stRawU=String(stRaw);
   const stCls=(stRaw==='MATCH'||stRaw==='OWNED_FULLY_SUPPORTED'||stRawU.startsWith('SHARED_SYMBOL_NET_MATCH')||stRawU.startsWith('SHARED_SYMBOL_SLEEVE_TRACKED'))?'lc-green':(stRaw==='EXCHANGE_UNAVAILABLE'||stRawU.indexOf('RESIDUAL')>=0)?'lc-grey':'lc-amber';
-  return `<tr><td class="lc-wallet">${h(r.leader_wallet?shortWallet(r.leader_wallet):'—')}</td><td><b>${h(r.coin||'—')}</b></td><td>${pill(r.side||'—',r.side||'')}</td><td class="${szCls}">${r.signed_size!=null?h(r.signed_size):'—'}</td><td>${r.avg_entry_px!=null?h(r.avg_entry_px):'—'}</td><td title="${h(r.reconciliation_note||'')}"><div class="lc-cell-stack"><span class="lc-pill lc-green">OWNED_COPY</span><span class="lc-pill ${stCls}">${h(stRaw)}</span></div></td><td>${r.exchange_signed_size!=null?h(r.exchange_signed_size):'—'}</td><td class="lc-wallet">${tiny(String(r.last_copy_fill_id||r.last_oid||'—'),24)}</td><td>${tiny(r.last_updated_at||'—',22)}</td></tr>`;
+  return `<tr><td class="lc-wallet">${h(r.leader_wallet?shortWallet(r.leader_wallet):'—')}</td><td><b>${h(r.coin||'—')}</b></td><td>${pill(r.side||'—',r.side||'')}</td><td class="${szCls}">${r.signed_size!=null?h(r.signed_size):'—'}</td><td>${r.avg_entry_px!=null?h(r.avg_entry_px):'—'}</td><td title="${h(r.reconciliation_note||'')}"><div class="lc-cell-stack"><span class="lc-pill lc-green">OWNED_COPY</span><span class="lc-pill ${stCls}">${h(stRaw)}</span></div></td><td>${r.exchange_signed_size!=null?h(r.exchange_signed_size):'—'}</td><td class="lc-wallet">${tiny(String(r.last_copy_fill_id||r.last_oid||'—'),24)}</td><td>${tiny(r.last_updated_at||'—',22)}</td><td>${ownPill(r.ownership,r.ownership_reason)}</td></tr>`;
  }).join('')||'<tr><td colspan="9">No owned copy sleeves in manual_live_positions.json.</td></tr>';
  if(orphanBox) orphanBox.innerHTML=orphan.map(r=>{
   const exCls=r.exchange_signed_size!=null?(Number(r.exchange_signed_size)>0?'lc-pos':'lc-neg'):'';
@@ -7588,8 +7650,16 @@ function renderPositions(){
  const upnlStr=r.unrealized_pnl!=null?('$'+Number(r.unrealized_pnl).toLocaleString(undefined,{maximumFractionDigits:2})):'—';
   const st=r.ledger_vs_exchange||'ORPHAN_EXCHANGE';
   const prov=r.provenance||'ACCOUNT_LEVEL_ONLY';
-  return `<tr><td><b>${h(r.coin||'—')}</b></td><td class="${exCls}">${r.exchange_signed_size!=null?h(r.exchange_signed_size):'—'}</td><td>${r.entry_px!=null?h(r.entry_px):'—'}</td><td>${r.mark_px!=null?h(r.mark_px):'—'}</td><td class="${upnlCls}">${upnlStr}</td><td title="${h(prov)} / ${h(st)}"><span class="lc-pill lc-amber">${r.engine_shortfall?'Engine records exceed the exchange — check Reconciliation':'Not opened by the engine — managed by you'}</span></td><td><span class="lc-grey">${r.engine_shortfall?'Check':'You'}</span></td><td><span class="lc-grey">No</span></td><td><span class="lc-grey">No</span></td><td class="lc-muted" title="${h(r.reconciliation_note||'')}">${r.engine_shortfall?'exchange holds '+h(r.exchange_total_size)+'; the leaders&#39; records add up to '+h(r.signed_size):r.exchange_total_size!=null?'exchange holds '+h(r.exchange_total_size)+'; leaders explain the rest':'no engine order behind it'}</td></tr>`;
- }).join('')||'<tr><td colspan="10">None — every exchange position is explained by the engine.</td></tr>';
+  return `<tr><td><b>${h(r.coin||'—')}</b></td><td class="${exCls}">${r.exchange_signed_size!=null?h(r.exchange_signed_size):'—'}</td><td>${r.entry_px!=null?h(r.entry_px):'—'}</td><td>${r.mark_px!=null?h(r.mark_px):'—'}</td><td class="${upnlCls}">${upnlStr}</td><td title="${h(prov)} / ${h(st)}"><span class="lc-pill ${r.engine_shortfall?'lc-amber':String(r.ownership||'UNKNOWN')==='UNKNOWN'?'lc-red':String(r.ownership)==='KNOWN_UNMANAGED'?'lc-amber':'lc-blue'}">${r.engine_shortfall?'Engine records exceed the exchange — check Reconciliation':''+h(ownText(r))+''}</span></td><td><span class="lc-grey">${r.engine_shortfall?'Check':'You'}</span></td><td><span class="lc-grey">No</span></td><td><span class="lc-grey">No</span></td><td class="lc-muted" title="${h(r.reconciliation_note||'')}">${r.engine_shortfall?'exchange holds '+h(r.exchange_total_size)+'; the leaders&#39; records add up to '+h(r.signed_size):r.exchange_total_size!=null?'exchange holds '+h(r.exchange_total_size)+'; leaders explain the rest':'no engine order behind it'}</td><td>${ownPill(r.ownership,r.ownership_reason)}</td></tr>`;
+ }).join('')||'<tr><td colspan="11">None — every exchange position is explained by the engine.</td></tr>';
+ const bdx=lcAudit.builder_dex_positions||[], bst=String(lcAudit.builder_dex_status||'');
+ const bdxBox=root.querySelector('#lcBuilderDexRows'), bstEl=root.querySelector('#lcBuilderDexStatus');
+ if(bstEl) bstEl.textContent=bst?('read: '+bst):'';
+ if(bdxBox) bdxBox.innerHTML=bdx.map(r=>`<tr><td>${h(r.dex||'—')}</td><td><b>${h(r.coin||'—')}</b></td><td>${pill(r.side||'—',r.side||'')}</td><td class="${Number(r.signed_size)>0?'lc-pos':'lc-neg'}">${h(r.signed_size)}</td><td>${r.entry_px!=null?h(r.entry_px):'—'}</td><td>${r.mark_px!=null?h(r.mark_px):'—'}</td><td class="${signCls(r.unrealized_pnl)}">${moneyOrDash(r.unrealized_pnl,'no live price')}</td><td>${ownPill(r.ownership,r.ownership_reason)}</td></tr>`).join('')||'<tr><td colspan="8">No builder-dex positions.</td></tr>';
+ const uo=lcAudit.user_owned_items||[], uoBox=root.querySelector('#lcUserOwnedRows');
+ if(uoBox) uoBox.innerHTML=uo.map(r=>`<tr><td><b>${h(r.coin||'—')}</b></td><td>${pill(r.side||'—',r.side||'')}</td><td class="${Number(r.signed_size)>0?'lc-pos':'lc-neg'}">${h(r.signed_size!=null?r.signed_size:r.exchange_signed_size)}</td><td>${r.entry_px!=null?h(r.entry_px):'—'}</td><td>${ownPill(r.ownership,r.ownership_reason)}</td></tr>`).join('')||'<tr><td colspan="5">None - nothing on this account was placed by hand.</td></tr>';
+ const ro=lcAudit.resting_orders_labeled||[], roBox=root.querySelector('#lcRestingOrderRows');
+ if(roBox) roBox.innerHTML=ro.map(r=>`<tr><td><b>${h(r.coin||'—')}</b></td><td>${h(r.side||'—')}</td><td class="lc-wallet">${r.oid?tiny(String(r.oid),18):'—'}</td><td>${r.px!=null?h(r.px):'—'}</td><td>${r.size!=null?h(r.size):'—'}</td><td>${r.withdraw_pending?'<span class="lc-pill lc-red">cancel failed</span>':'—'}</td><td>${ownPill(r.ownership,r.ownership_reason)}</td></tr>`).join('')||'<tr><td colspan="7">No resting orders.</td></tr>';
 }
 function renderExecQuality(){
  const rows=lcAudit.execution_quality_rows||[];
