@@ -28,65 +28,7 @@ This runbook executes the sequential cutover from the current live engine (PID 1
 
 ---
 
-## Step 1: Cancel-All + Flatten (Hermes)
-
-**Command:**
-```bash
-python -c "
-import sys
-sys.path.insert(0, '_archive/hl_stage2')
-from HL_Live_Copy_Service_Core import SenderGateway, ConfigManager, AuditLogWriter
-import os, tempfile
-from pathlib import Path
-
-tmp = Path('/tmp/cutover_cancel')
-tmp.mkdir(exist_ok=True)
-os.environ.update({
-    'HL_LIVE_AUDIT_DIR': str(tmp),
-    'HL_LIVE_ENV_FILE': '/nonexistent',
-    'HL_FOLLOWER_NETWORK': 'testnet',
-    'HL_LIVE_WS_ENABLED': '1',
-    'HL_APP_PORT': '8031',
-    'HL_USER_WALLET': '0x7ae3b08bb4e7b085c6db5d635b96bec9715e9205',
-    'HL_LIVE_GLOBAL_LOCK_FILE': 'C:/Users/wigmore/AppData/Local/HL_Live_Copy_Service_Core/engine-global.lock',
-})
-
-gw = SenderGateway(ConfigManager(), AuditLogWriter())
-gw.stop_cancel_resting_entries()
-print('CANCEL_ALL_COMPLETE: Resting entry limits cancelled')
-"
-```
-
-**File:** `_archive/hl_stage2/HL_Live_Copy_Service_Core.py` — `SenderGateway.stop_cancel_resting_entries()` function (line 5769)
-
-**Pass Criterion:** 
-- Output: `CANCEL_ALL_COMPLETE: Resting entry limits cancelled`
-- Exit code: 0
-- Follow-up `python ops/testnet_startup.py prepare` shows `PREPARE_OK`
-
-**Failure:** If exit code ≠ 0 or prepare fails → **ABORT**. Report to controller.
-
----
-
-## Step 2: Prepare Verification (Hermes)
-
-**Command:**
-```bash
-python ops/testnet_startup.py prepare
-```
-
-**File:** `ops/testnet_startup.py` — `prepare_account()` function (lines ~535-565)
-**Line:** `prepare_account()` calls `follower_account_state()` → `evaluate_flatness()`
-
-**Pass Criterion:** 
-- Output: `PREPARE_OK: Account is flat and cancel-all verified`
-- Exit code: 0
-
-**Failure:** If exit code ≠ 0 or output contains `PREPARE_FAILED` → **ABORT**. Report to controller. Do not proceed.
-
----
-
-## Step 3: Stop Core (Hermes)
+## Step 1: Stop Core (Hermes)
 
 **Command:**
 ```bash
@@ -107,7 +49,7 @@ python ops/testnet_startup.py stop
 
 ---
 
-## Step 4: Retire Legacy Watchdog (Hermes)
+## Step 2: Retire Legacy Watchdog (Hermes)
 
 **Command:**
 ```bash
@@ -125,6 +67,49 @@ python ops/testnet_startup.py retire-legacy
 - Exit code: 0
 
 **Failure:** If exit code ≠ 0 or startup entry not disabled → **ABORT**. Report to controller.
+
+---
+
+## Step 3: Cancel-All + Flatten (Hermes)
+
+**Command:**
+```bash
+python ops/testnet_flatten.py --dry-run
+# If dry-run passes:
+python ops/testnet_flatten.py --execute
+```
+
+**File:** `ops/testnet_flatten.py` — new script with:
+- Cancel all open orders on testnet follower account `0x7ae3b08bb4e7b085c6db5d635b96bec9715e9205`
+- Reduce-only closes for all non-flat positions (except documented residuals)
+- Re-read and verify zero open orders + flat positions (except documented residuals)
+- `--dry-run` shows what would be done without executing
+
+**File:** `ops/testnet_flatten.py` (new script)
+
+**Pass Criterion:** 
+- Output: `FLATTEN_OK: All positions flat, zero open orders`
+- Exit code: 0
+
+**Failure:** If exit code ≠ 0 or output contains `FLATTEN_FAILED` → **ABORT**. Report to controller. Do not proceed.
+
+---
+
+## Step 4: Prepare Verification (Hermes)
+
+**Command:**
+```bash
+python ops/testnet_startup.py prepare
+```
+
+**File:** `ops/testnet_startup.py` — `prepare_account()` function (lines ~535-565)
+**Line:** `prepare_account()` calls `follower_account_state()` → `evaluate_flatness()`
+
+**Pass Criterion:** 
+- Output: `PREPARE_OK: Account is flat and cancel-all verified`
+- Exit code: 0
+
+**Failure:** If exit code ≠ 0 or output contains `PREPARE_FAILED` → **ABORT**. Report to controller. Do not proceed.
 
 ---
 
@@ -175,25 +160,7 @@ python ops/testnet_startup.py verify
 
 ---
 
-## Step 7: Supervise Running (Hermes)
-
-**Command:**
-```bash
-python ops/testnet_startup.py supervise --execute --confirm-testnet --authorization-order <COMMENT_ID>
-```
-
-**File:** `ops/testnet_startup.py` — `run_startup()` supervise loop (lines ~850-950)
-**Line:** `run_startup(spec, state_dir, sha, supervised=True)`
-
-**Pass Criterion:**
-- Log shows: `SUPERVISOR_CORE_HEALTHY: Core is still healthy, waiting...`
-- No stale/unhealthy detections
-
-**Failure:** If `SUPERVISOR_CORE_STALE` detected → supervise stops stale core, records shutdown, relaunches. Log to controller.
-
----
-
-## Step 8: 30-Minute Post-Start Sample (Hermes)
+## Step 7: 30-Minute Post-Start Sample (Hermes)
 
 **Command:** (Wait 30 minutes from Step 5 start, then run)
 ```bash
@@ -214,14 +181,13 @@ python ops/testnet_startup.py verify
 
 | Step | Failure Action |
 |------|----------------|
-| 1 (Cancel/Flatten) | **ABORT** — Report to controller. Do not proceed. |
-| 2 (Prepare) | **ABORT** — Report to controller. Do not proceed. |
-| 3 (Stop Core) | **ABORT** — Core may still be running. Do not proceed. Report to controller. |
-| 4 (Retire Legacy) | **ABORT** — Legacy watchdog may still be active. Report to controller. |
+| 1 (Stop Core) | **ABORT** — Report to controller. Do not proceed. |
+| 2 (Retire Legacy) | **ABORT** — Legacy watchdog may still be active. Report to controller. |
+| 3 (Cancel-All + Flatten) | **ABORT** — Report to controller. Do not proceed. |
+| 4 (Prepare) | **ABORT** — Report to controller. Do not proceed. |
 | 5 (Start) | **ABORT** — Core may be in unknown state. **No second engine ever.** Report to controller. |
-| 6 (Verify) | **ABORT** — Core may be unhealthy. Supervise may relaunch. Report to controller. |
-| 7 (Supervise) | Supervise handles stale core (stops, records shutdown, relaunches). Log to controller. |
-| 8 (30-min Sample) | Report anomalies. Continue monitoring. |
+| 6 (Verify) | **ABORT** — Core may be unhealthy. Report to controller. |
+| 7 (30-min Sample) | Report anomalies. Continue monitoring. |
 
 ---
 
@@ -229,17 +195,11 @@ python ops/testnet_startup.py verify
 
 1. **No second engine ever** — Only one Core process at any time.
 2. **Fail closed** — Any verification failure stops the cutover.
-3. **Controller authorization required** — Steps 5 and 7 require fresh Controller comment ID.
+3. **Controller authorization required** — Step 5 requires a fresh Controller comment ID.
 4. **Shutdown record mandatory** — Core stop must write `core_shutdown_record.json`.
-5. **Legacy watchdog retired** — Startup entry disabled before supervise starts.
+5. **Legacy watchdog retired** — Startup entry disabled before Step 5 starts. `supervise` is NOT used by this cutover; `start` is the single start command.
 6. **Exact SHA in cutover order** — `CUTOVER ORDER bf40a9d8bbb91348ebebf1b7d8d53ec15cbc7847`
 
 ---
 
-## Sign-Off
-
-| Role | Name | Timestamp | Signature |
-|------|------|-----------|-----------|
-| Hermes | — | — | — |
-| Controller | — | — | — |
-| Codex (cancel/flatten) | — | — | — |
+## GRAPHIFY/PONYTAIL

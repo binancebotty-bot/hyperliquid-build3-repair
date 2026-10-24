@@ -157,6 +157,10 @@ def close_positions(dry_run: bool):
 
 def verify_flat(dry_run: bool):
     """Verify zero open orders and flat positions."""
+    if dry_run:
+        # Nothing was cancelled or closed, so live assertions would always fail.
+        print("DRY-RUN: Would verify zero open orders and flat positions")
+        return True
     orders = fetch_open_orders()
     positions = fetch_positions()
     
