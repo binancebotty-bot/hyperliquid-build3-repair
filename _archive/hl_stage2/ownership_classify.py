@@ -12,8 +12,9 @@ from pathlib import Path
 from typing import Any, Callable, Dict, Optional
 
 OWNERSHIP_CLASSES = ("ENGINE", "USER_OWNED", "KNOWN_UNMANAGED", "UNKNOWN")
-KNOWN_UNMANAGED_FILE = Path(os.getenv("HL_KNOWN_UNMANAGED_FILE") or
-                            "C:/Users/wigmore/trading_stack/hl-build3-testnet-cert-evidence/run8/state_20261024/known_unmanaged.json")
+OPERATOR_CLASSES = ("USER_OWNED", "KNOWN_UNMANAGED")  # the operator's: never a records mismatch
+OWNERSHIP_OVERRIDES_FILE = Path(os.getenv("HL_OWNERSHIP_OVERRIDES_FILE") or
+                                Path(__file__).resolve().parent / "ownership_overrides.json")
 
 
 def fetch_builder_dex_positions(account: str, post: Callable[[Dict[str, Any]], Any], max_dexes: int = 64) -> Dict[str, Any]:
@@ -80,24 +81,27 @@ def _num(value: Any) -> float:
         return 0.0
 
 
-def load_known_unmanaged(path: Optional[Path] = None) -> Dict[str, str]:
-    """coin -> reason. A missing or unreadable file means nothing is known unmanaged, never an
-error: the item then classifies UNKNOWN. Accepts {'positions': [{coin, reason}]}, a bare list, or a
-flat {coin: reason} map."""
+def load_ownership_overrides(path: Optional[Path] = None) -> Dict[str, Dict[str, str]]:
+    """coin -> {'class': USER_OWNED|KNOWN_UNMANAGED, 'reason': str}. A missing or unreadable file means
+    nothing is overridden, never an error: the item then classifies UNKNOWN. Accepts the documented
+    {'positions': [{class, coin, reason}]}, a bare list of the same rows, or a flat {coin: reason} map
+    (which can only mean KNOWN_UNMANAGED)."""
     try:
-        data = json.loads(Path(path or KNOWN_UNMANAGED_FILE).read_text(encoding="utf-8-sig"))
+        data = json.loads(Path(path or OWNERSHIP_OVERRIDES_FILE).read_text(encoding="utf-8-sig"))
     except Exception:
         return {}
     rows = data.get("positions") if isinstance(data, dict) and isinstance(data.get("positions"), list) else data
     if isinstance(rows, dict):
         rows = [{"coin": k, "reason": v} for k, v in rows.items()]
-    out: Dict[str, str] = {}
+    out: Dict[str, Dict[str, str]] = {}
     for row in rows if isinstance(rows, list) else []:
         if not isinstance(row, dict):
             continue
         coin = str(row.get("coin") or "").upper().strip()
-        if coin:
-            out[coin] = str(row.get("reason") or "no reason recorded")
+        cls = str(row.get("class") or "").upper().strip()
+        if not coin or cls not in OPERATOR_CLASSES:  # never guess a class for a bad entry
+            continue
+        out[coin] = {"class": cls, "reason": str(row.get("reason") or "no reason recorded")}
     return out
 
 
@@ -110,27 +114,28 @@ here on purpose: the exact data field is Codex's to define, so the screen must n
     return None
 
 
-def classify_ownership(item: Dict[str, Any], known_unmanaged: Optional[Dict[str, str]] = None,
+def classify_ownership(item: Dict[str, Any], overrides: Optional[Dict[str, Dict[str, str]]] = None,
                        proven: Callable[[Dict[str, Any]], Optional[str]] = proven_ownership) -> str:
     """Exactly one of OWNERSHIP_CLASSES for an open position or a resting order. `proven` is the
-seam (tests inject a fake, so no network and no live state are needed)."""
+    seam (tests inject a fake, so no network and no live state are needed)."""
     if not isinstance(item, dict):
         return "UNKNOWN"
     verdict = proven(item)
     if verdict in ("ENGINE", "USER_OWNED"):
         return verdict
-    known = known_unmanaged if known_unmanaged is not None else load_known_unmanaged()
+    known = overrides if overrides is not None else load_ownership_overrides()
     coin = str(item.get("coin") or "").upper().strip()
-    if coin and coin in known:
-        return "KNOWN_UNMANAGED"
+    entry = known.get(coin) if coin else None
+    if isinstance(entry, dict) and entry.get("class") in OPERATOR_CLASSES:
+        return str(entry["class"])
     return "UNKNOWN"
 
 
-def label_rows(rows: Any, known_unmanaged: Optional[Dict[str, str]] = None,
+def label_rows(rows: Any, overrides: Optional[Dict[str, Dict[str, str]]] = None,
                proven: Callable[[Dict[str, Any]], Optional[str]] = proven_ownership) -> Dict[str, Any]:
     """Writes ownership (and ownership_reason for KNOWN_UNMANAGED) onto every row in place and
-returns {'counts': {...}, 'known_unmanaged': {...}}."""
-    known = known_unmanaged if known_unmanaged is not None else load_known_unmanaged()
+    returns {'counts': {...}, 'overrides': {...}}."""
+    known = overrides if overrides is not None else load_ownership_overrides()
     counts = {k: 0 for k in OWNERSHIP_CLASSES}
     for row in rows if isinstance(rows, list) else []:
         if not isinstance(row, dict):
@@ -138,6 +143,6 @@ returns {'counts': {...}, 'known_unmanaged': {...}}."""
         verdict = classify_ownership(row, known, proven)
         coin = str(row.get("coin") or "").upper().strip()
         row["ownership"] = verdict
-        row["ownership_reason"] = known.get(coin, "") if verdict == "KNOWN_UNMANAGED" else ""
+        row["ownership_reason"] = str((known.get(coin) or {}).get("reason") or "") if verdict == "KNOWN_UNMANAGED" else ""
         counts[verdict] += 1
-    return {"counts": counts, "known_unmanaged": known}
+    return {"counts": counts, "overrides": known}

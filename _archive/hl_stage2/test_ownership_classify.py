@@ -7,7 +7,9 @@ import sys
 
 import ownership_classify as oc
 
-KNOWN = {"XYZ:ORCL": "empty book, no bids", "XYZ:PLTR": "empty book, no bids"}
+OVERRIDES = {c: {"class": "KNOWN_UNMANAGED", "reason": "empty book, no bids"}
+             for c in ("XYZ:ORCL", "XYZ:PLTR", "XYZ:MSTR", "XYZ:LLY")}
+OVERRIDES["XYZ:USER"] = {"class": "USER_OWNED", "reason": "placed by hand"}
 
 
 def fake_proven(item):
@@ -26,17 +28,19 @@ def check_four_classes():
         {"coin": "xyz:ORCL", "dex": "xyz", "signed_size": 0.058},
         {"coin": "SOL"},
     ]
-    got = [oc.classify_ownership(r, KNOWN, fake_proven) for r in rows]
+    got = [oc.classify_ownership(r, OVERRIDES, fake_proven) for r in rows]
     assert got == ["ENGINE", "USER_OWNED", "KNOWN_UNMANAGED", "UNKNOWN"], got
     print("four classes:", got)
 
 
 def check_unproven_is_unknown():
     bare = {"coin": "DOGE", "signed_size": 3.0}
-    assert oc.classify_ownership(bare, KNOWN) == "UNKNOWN"
-    assert oc.classify_ownership(bare, KNOWN, fake_proven) == "UNKNOWN"
-    assert oc.classify_ownership({"coin": "DOGE", "engine_cloid": ""}, KNOWN, fake_proven) == "UNKNOWN"
-    assert oc.classify_ownership(None, KNOWN) == "UNKNOWN"
+    assert oc.classify_ownership(bare, OVERRIDES) == "UNKNOWN"
+    assert oc.classify_ownership(bare, OVERRIDES, fake_proven) == "UNKNOWN"
+    assert oc.classify_ownership({"coin": "DOGE", "engine_cloid": ""}, OVERRIDES, fake_proven) == "UNKNOWN"
+    assert oc.classify_ownership(None, OVERRIDES) == "UNKNOWN"
+    assert oc.classify_ownership({"coin": "xyz:USER"}, OVERRIDES, fake_proven) == "USER_OWNED"
+    assert oc.classify_ownership({"coin": "xyz:UNLISTED"}, OVERRIDES, fake_proven) == "UNKNOWN"
     print("no cloid and no ledger entry -> UNKNOWN: ok")
 
 
@@ -47,22 +51,20 @@ def check_xyz_leftovers_not_engine():
         {"coin": "xyz:MSTR", "signed_size": -0.378, "dex": "xyz"},
         {"coin": "xyz:LLY", "signed_size": -0.024, "dex": "xyz"},
     ]
-    got = [oc.classify_ownership(r, KNOWN, fake_proven) for r in leftovers]
-    assert "ENGINE" not in got, got
-    assert got[:2] == ["KNOWN_UNMANAGED", "KNOWN_UNMANAGED"], got
-    assert got[2:] == ["UNKNOWN", "UNKNOWN"], got
+    got = [oc.classify_ownership(r, OVERRIDES, fake_proven) for r in leftovers]
+    assert got == ["KNOWN_UNMANAGED"] * 4, got
     print("xyz leftovers never ENGINE:", got)
 
 
 def check_unknown_without_list():
-    assert oc.load_known_unmanaged(r"C:/definitely/not/here/known_unmanaged.json") == {}
-    assert oc.classify_ownership({"coin": "xyz:ORCL"}, None, fake_proven) == "UNKNOWN"
-    print("absent known-unmanaged file -> UNKNOWN, no error: ok")
+    assert oc.load_ownership_overrides(r"C:/definitely/not/here/ownership_overrides.json") == {}
+    assert oc.classify_ownership({"coin": "xyz:NOTLISTED"}, None, fake_proven) == "UNKNOWN"
+    print("absent ownership_overrides.json -> UNKNOWN, no error: ok")
 
 
 def check_label_rows():
     rows = [{"coin": "BTC", "engine_cloid": "e"}, {"coin": "xyz:PLTR"}, {"coin": "WIF"}]
-    res = oc.label_rows(rows, KNOWN, fake_proven)
+    res = oc.label_rows(rows, OVERRIDES, fake_proven)
     assert [r["ownership"] for r in rows] == ["ENGINE", "KNOWN_UNMANAGED", "UNKNOWN"]
     assert rows[1]["ownership_reason"] == "empty book, no bids"
     assert res["counts"] == {"ENGINE": 1, "USER_OWNED": 0, "KNOWN_UNMANAGED": 1, "UNKNOWN": 1}, res
@@ -100,5 +102,5 @@ if __name__ == "__main__":
     for fn in (check_four_classes, check_unproven_is_unknown, check_xyz_leftovers_not_engine,
                check_unknown_without_list, check_label_rows, check_builder_dex_fetch):
         fn()
-    print("ALL OWNERSHIP SELF-CHECKS PASSED")
+    print("ALL OWNERSHIP SELF-CHECKS PASSED (6/6)")
     sys.exit(0)

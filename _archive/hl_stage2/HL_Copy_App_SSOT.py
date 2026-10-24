@@ -1163,7 +1163,7 @@ def _load_resting_withdraw_pending() -> List[Dict[str, Any]]:
 
 def _build_health_summary(service_state: Dict[str, Any], integrity_status: Dict[str, Any], now_ms: Optional[int] = None,
                           resting_pending: Optional[List[Dict[str, Any]]] = None,
-                          reconciliation_rows: Optional[List[Dict[str, Any]]] = None, ownership_counts: Optional[Dict[str, int]] = None) -> Dict[str, Any]:
+                          reconciliation_rows: Optional[List[Dict[str, Any]]] = None, ownership_counts: Optional[Dict[str, int]] = None, ownership_coins: Optional[List[str]] = None) -> Dict[str, Any]:
     """One calm line: green Healthy / amber Needs a look / red Stopped or Action needed: <reason>. Red only when the engine
     actually cannot send (signing key rejected, entries blocked, wrong network, engine down or silent);
     every internal code goes to the technical detail."""
@@ -1191,10 +1191,13 @@ def _build_health_summary(service_state: Dict[str, Any], integrity_status: Dict[
     # where the engine's own records hold a size the exchange does not match is a records problem
     pa = integrity_status.get("position_assignment") if isinstance(integrity_status.get("position_assignment"), dict) else {}
     mm_rows = [r for r in (pa.get("exchange_manual_mismatches") or []) if isinstance(r, dict)]
-    records_disagree = (any(abs(fnum(r.get("manual"))) > 1e-12 for r in mm_rows) if mm_rows
+    # Rulings 6388333568 / 6388338865: USER_OWNED and KNOWN_UNMANAGED are the operator's, so a mismatch on
+    # exactly those coins is not a red reason. Every other coin still is: the suppression is per record, never
+    # for the whole set. With no rows to attribute a count to, the count stays red rather than guessing.
+    _operator_coins = {str(c).upper().strip() for c in (ownership_coins or []) if str(c or "").strip()}
+    unattributed = [r for r in mm_rows if str(r.get("coin") or "").upper().strip() not in _operator_coins]
+    records_disagree = (any(abs(fnum(r.get("manual"))) > 1e-12 for r in unattributed) if mm_rows
                         else inum(counts.get("exchange_manual_mismatch")) > 0)
-    # Rulings 6388333568 / 6388338865: USER_OWNED and KNOWN_UNMANAGED are the operator's, so neither is a
-    # mismatch nor a red reason. UNKNOWN is the only ownership state that must keep shouting.
     _oc = ownership_counts or {}
     unknown_ownership = inum(_oc.get("UNKNOWN"))
     user_owned_n = inum(_oc.get("USER_OWNED"))
@@ -1214,7 +1217,7 @@ def _build_health_summary(service_state: Dict[str, Any], integrity_status: Dict[
         level, text = "red", "Action needed: a resting order could not be cancelled — check open orders"
     elif close_failing:
         level, text = "red", "Action needed: a close is failing — check the Reconciliation tab and close it on the exchange"
-    elif records_disagree and not user_owned_n and not known_unmanaged_n:
+    elif records_disagree:
         level, text = "red", "Action needed: the engine's records and the exchange disagree — check the Reconciliation tab"
     elif inum(counts.get("audit_proof_missing")) > 0:
         level, text = "red", "Action needed: the engine's audit files are missing — check the state folder"
@@ -1237,6 +1240,8 @@ def _build_live_top_status(
     send_attempts: List[Dict[str, Any]],
     live_fills: List[Dict[str, Any]],
     reconciliation_rows: List[Dict[str, Any]],
+    ownership_counts: Optional[Dict[str, int]] = None,
+    ownership_coins: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
     wallets = live_config.get("wallets", {}) if isinstance(live_config.get("wallets"), dict) else {}
     ws_summary = ws_health.get("ws_summary", {}) if isinstance(ws_health.get("ws_summary"), dict) else {}
@@ -1260,7 +1265,8 @@ def _build_live_top_status(
         wanted = {str(w).lower() for w, cfg in wallets.items() if isinstance(cfg, dict) and normalize_live_wallet_config(w, cfg).get("service_eligible")}
         restart_needed = subscribed != wanted
     health = _build_health_summary(service_state, integrity_status, resting_pending=_load_resting_withdraw_pending(),
-                                   reconciliation_rows=reconciliation_rows)
+                                   reconciliation_rows=reconciliation_rows, ownership_counts=ownership_counts,
+                                   ownership_coins=ownership_coins)
     subscribed_wallets = inum(ws_summary.get("wallet_count") or ws_summary.get("subscribed_wallet_count") or len(ws_health.get("wallets", {}) if isinstance(ws_health.get("wallets"), dict) else {}))
     last_send = send_attempts[-1] if send_attempts else {}
     last_fill = live_fills[-1] if live_fills else {}
@@ -1438,7 +1444,7 @@ def _live_audit_summary_full() -> Dict[str, Any]:
     account_orphan_registry = _build_account_orphan_registry(orphan_exchange_positions)
     # Ownership (rulings 6388333568 / 6388338865): every open position and resting order carries one of
     # ENGINE / USER_OWNED / KNOWN_UNMANAGED / UNKNOWN. _OWN.proven_ownership is the seam Codex fills in.
-    _ownership_known = _OWN.load_known_unmanaged()
+    _ownership_known = _OWN.load_ownership_overrides()
     _resting_raw = load_json(RESTING_ENTRY_ORDERS_FILE, {})
     resting_orders_labeled = [dict(r) for r in (_resting_raw.values() if isinstance(_resting_raw, dict) else _resting_raw)
                               if isinstance(r, dict)]
@@ -1457,10 +1463,12 @@ def _live_audit_summary_full() -> Dict[str, Any]:
     _OWN.label_rows(resting_orders_labeled, _ownership_known)
     _all_labeled = open_positions_labeled + resting_orders_labeled
     ownership_counts = {k: sum(1 for r in _all_labeled if r.get("ownership") == k) for k in _OWN.OWNERSHIP_CLASSES}
+    ownership_override_coins = sorted({str(r.get("coin") or "").upper() for r in _all_labeled
+                                       if r.get("ownership") in _OWN.OPERATOR_CLASSES and r.get("coin")})
     user_owned_items = [r for r in open_positions_labeled if r.get("ownership") == "USER_OWNED"]
     known_unmanaged_items = [{"coin": r.get("coin"), "dex": r.get("dex"), "reason": r.get("ownership_reason")}
                              for r in _all_labeled if r.get("ownership") == "KNOWN_UNMANAGED"]
-    live_top_status = _build_live_top_status(live_config, ws_health, clean_core_status.get("service_state", {}), integrity_status, recent_send_attempts, _live_fills_data, reconciliation_rows, ownership_counts)
+    live_top_status = _build_live_top_status(live_config, ws_health, clean_core_status.get("service_state", {}), integrity_status, recent_send_attempts, _live_fills_data, reconciliation_rows, ownership_counts, ownership_override_coins)
     send_terminal_rows = [r for r in reconciliation_rows if r.get("event") in {"SEND_TERMINAL", "SEND_REJECTED"}]
     legacy_terminal_rows = [
         r for r in recent_send_attempts
