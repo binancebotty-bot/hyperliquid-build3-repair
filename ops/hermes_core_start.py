@@ -95,6 +95,13 @@ def main():
         'HL_LIVE_GLOBAL_LOCK_FILE': str(spec['global_lock_path']),
     })
 
+    # HL_LIVE_ENV_FILE is a PATH, never a secret: the Core loads HL_LIVE_HL_PRIVATE_KEY from it at
+    # import (:74-75, :105). Only inject it when it actually exists, so a missing file cannot
+    # override the Core's own default.
+    env_file = spec.get('env_file')
+    if env_file and os.path.isfile(env_file):
+        env['HL_LIVE_ENV_FILE'] = env_file
+
     # Pin the interpreter to the one the Core needs: it carries the hyperliquid SDK, and
     # sys.executable (Hermes' venv) does not.
     py = os.environ.get('HERMES_CORE_PYTHON') or 'C:/Users/wigmore/AppData/Local/Python/bin/pythonw.exe'

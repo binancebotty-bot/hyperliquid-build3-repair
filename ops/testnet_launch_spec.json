@@ -21,6 +21,7 @@
   "global_lock_path": "C:/Users/wigmore/AppData/Local/HL_Live_Copy_Service_Core/engine-global.lock",
   "supervisor_lock_path": "C:/Users/wigmore/AppData/Local/HL_Live_Copy_Service_Core/testnet_startup_supervisor.lock",
   "follower_network": "testnet",
+  "env_file": "C:/Users/wigmore/trading_stack/Hyperliquid scanner/_archive/hl_stage2.env",
   "testnet_state_root": "C:/Users/wigmore/trading_stack/hl-build3-testnet-cert-evidence",
   "state_dir": "C:/Users/wigmore/trading_stack/hl-build3-testnet-cert-evidence/run8/state_20261024",
   "core_script": "_archive/hl_stage2/HL_Live_Copy_Service_Core.py",
