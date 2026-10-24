@@ -136,8 +136,16 @@ def verify_authorization_order(auth_order_id: str, expected_sha: str, spec: dict
         if expected_sha and expected_sha.lower() not in body.lower():
             return False
         
-        # Check and mark used order ID (prevent replay)
-        used_orders_file = state_dir / "used_cutover_orders.json"
+        # Bind authorization to the intended state dir and follower account
+        expected_state_dir = str(spec.get("state_dir", "")).strip()
+        expected_follower = str(spec.get("follower_account_address", "")).strip().lower()
+        if expected_state_dir and expected_state_dir.lower() not in body.lower():
+            return False
+        if expected_follower and expected_follower not in body.lower():
+            return False
+        
+        # Check and mark used order ID (prevent replay) - STABLE ledger under ops/
+        used_orders_file = Path(__file__).with_name("used_cutover_orders.json")
         used_ids = []
         if used_orders_file.exists():
             try:
@@ -152,9 +160,32 @@ def verify_authorization_order(auth_order_id: str, expected_sha: str, spec: dict
                 return False
         if auth_order_id in used_ids:
             return False
-        # Add to used set
-        used_ids.append(auth_order_id)
-        atomic_write_json(used_orders_file, used_ids)
+        # Add to used set - write under file lock to prevent race
+        import msvcrt
+        lock_file = used_orders_file.with_suffix(".lock")
+        lock_file.parent.mkdir(parents=True, exist_ok=True)
+        handle = lock_file.open("a+b")
+        try:
+            handle.seek(0)
+            msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
+            # Re-read after acquiring lock
+            if used_orders_file.exists():
+                try:
+                    data = json.loads(used_orders_file.read_text(encoding="utf-8"))
+                    if isinstance(data, list) and all(isinstance(x, str) for x in data):
+                        used_ids = data
+                except Exception:
+                    pass
+            if auth_order_id in used_ids:
+                return False
+            used_ids.append(auth_order_id)
+            atomic_write_json(used_orders_file, used_ids)
+        finally:
+            try:
+                handle.seek(0)
+                msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
+            finally:
+                handle.close()
         
         return True
     except Exception:
@@ -184,6 +215,36 @@ def load_spec() -> dict:
         raise ValueError("launch spec must identify the tracked legacy watchdog PID")
     if type(spec.get("legacy_watchdog_retired")) is not bool:
         raise ValueError("launch spec must explicitly record legacy watchdog retirement state")
+    
+    # Spec paths validation: core_script must be a relative path contained in checkout_root
+    core_script = spec.get("core_script", "")
+    if core_script:
+        core_script_path = Path(core_script)
+        if core_script_path.is_absolute():
+            raise ValueError("core_script must be a relative path")
+        checkout_root = Path(spec.get("checkout_root", ""))
+        if checkout_root:
+            try:
+                resolved = (checkout_root / core_script_path).resolve()
+                if not str(resolved).startswith(str(checkout_root.resolve())):
+                    raise ValueError("core_script escapes checkout_root")
+            except Exception as e:
+                raise ValueError(f"core_script path validation failed: {e}")
+    
+    # Allowlist core_args (no arbitrary args)
+    allowed_args = {"--ws", "--loop", "--interval", "--poll-live", "--poll-copy", "--poll-weight", "--interval-ms"}
+    core_args = spec.get("core_args", [])
+    if isinstance(core_args, list):
+        i = 0
+        while i < len(core_args):
+            arg = core_args[i]
+            if arg not in allowed_args:
+                raise ValueError(f"core_args contains disallowed argument: {arg}")
+            # Skip the next argument if this is a flag that takes a value
+            if arg in {"--interval", "--poll-weight", "--interval-ms"}:
+                i += 1  # The next value is allowed
+            i += 1
+    
     global_lock_path(spec)
     return spec
 
@@ -587,7 +648,44 @@ def core_stale_or_unhealthy(spec: dict, state_dir: Path, expected_sha: str) -> t
     networks = service.get("networks") if isinstance(service.get("networks"), dict) else {}
     if networks.get("follower") != "testnet":
         return True, ["FOLLOWER_NOT_TESTNET"]
-    return False, []
+    
+    # Enhanced health checks
+    # 1. Effective auto-send and real-orders must be ON
+    effective_auto_send = service.get("effective_auto_send_enabled")
+    effective_real_orders = service.get("effective_real_orders_enabled")
+    if effective_auto_send is not True:
+        errors.append("EFFECTIVE_AUTO_SEND_OFF")
+    if effective_real_orders is not True:
+        errors.append("EFFECTIVE_REAL_ORDERS_OFF")
+    
+    # 2. Send backlog below threshold (configurable, default 100)
+    send_backlog = service.get("send_backlog")
+    max_backlog = int(spec.get("max_send_backlog", 100))
+    if isinstance(send_backlog, int) and send_backlog > max_backlog:
+        errors.append(f"SEND_BACKLOG_HIGH: {send_backlog} > {max_backlog}")
+    
+    # 3. Poll/WS health
+    poll_health = service.get("poll_health")
+    ws_health = service.get("ws_health")
+    if poll_health and poll_health != "POLL_OK":
+        errors.append(f"POLL_HEALTH: {poll_health}")
+    if ws_health and ws_health != "WS_OK":
+        errors.append(f"WS_HEALTH: {ws_health}")
+    
+    # 4. No fatal or network errors
+    fatal_errors = service.get("fatal_errors")
+    network_errors = service.get("network_errors")
+    if isinstance(fatal_errors, int) and fatal_errors > 0:
+        errors.append(f"FATAL_ERRORS: {fatal_errors}")
+    if isinstance(network_errors, int) and network_errors > 0:
+        errors.append(f"NETWORK_ERRORS: {network_errors}")
+    
+    # 5. UI sends ON
+    ui = fetch_ui(spec["ui_base_url"], timeout=2.0)
+    if ui.get("sends_mode") != "ON" and ui.get("global_controls", {}).get("send_mode") != "ON":
+        errors.append("UI_SENDS_OFF")
+    
+    return (len(errors) > 0), errors
 
 
 def prepare_account(spec: dict, state_dir: Path, dry_run: bool = False) -> int:
@@ -786,6 +884,20 @@ def launch_once(spec: dict, state_dir: Path, sha: str, *, supervised: bool) -> i
     if not supervised and lock_active(Path(spec["supervisor_lock_path"])):
         print("START_REFUSED: the pinned-spec supervisor is already running")
         return 1
+    
+    # Exclusive launcher lock: take before check-then-spawn, hold until Core verified
+    launcher_lock_path = Path(spec["testnet_state_root"]).parent / "testnet_launcher.lock"
+    launcher_lock_path.parent.mkdir(parents=True, exist_ok=True)
+    import msvcrt
+    launcher_handle = launcher_lock_path.open("a+b")
+    try:
+        launcher_handle.seek(0)
+        msvcrt.locking(launcher_handle.fileno(), msvcrt.LK_NBLCK, 1)
+    except OSError:
+        launcher_handle.close()
+        print("START_REFUSED: another launcher already holds the exclusive lock")
+        return 1
+    
     service_path = state_dir / "live_service_state.json"
     if not supervised:
         current = read_json(service_path)
@@ -852,11 +964,16 @@ def launch_once(spec: dict, state_dir: Path, sha: str, *, supervised: bool) -> i
             creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
         )
         print(f"UI_STARTED pid={ui.pid} url={spec['ui_base_url']}")
+        # Release launcher lock after Core+UI verified running
+        launcher_handle.seek(0)
+        msvcrt.locking(launcher_handle.fileno(), msvcrt.LK_UNLCK, 1)
+        launcher_handle.close()
+        launcher_handle = None
         while core.poll() is None:
             time.sleep(60)
             errors, detail = collect(spec, state_dir, sha)
             post_alert(spec, state_dir, errors, detail)
-        # Record clean shutdown
+        # Record clean shutdown only on verified graceful exit
         service = read_json(state_dir / "live_service_state.json")
         started_at = service.get("started_at_ms")
         record_shutdown_record(spec, state_dir, core.pid, started_at, clean=True)
@@ -868,6 +985,12 @@ def launch_once(spec: dict, state_dir: Path, sha: str, *, supervised: bool) -> i
         print("LAUNCHER_INTERRUPTED: Core was not stopped; verify its tracked state before any separate stop action")
         return 130
     finally:
+        if launcher_handle is not None:
+            try:
+                launcher_handle.seek(0)
+                msvcrt.locking(launcher_handle.fileno(), msvcrt.LK_UNLCK, 1)
+            finally:
+                launcher_handle.close()
         if ui is not None and ui.poll() is None:
             ui.terminate()
             try:
@@ -1003,6 +1126,42 @@ def collect(spec: dict, state_dir: Path, expected_sha: str) -> tuple[list[str], 
                          (runtime_path, "CORE_RUNTIME_STATE_FILE_MTIME_STALE")):
         if utc_ms() - int(path.stat().st_mtime * 1000) > age_ms:
             errors.append(reason)
+    
+    # Enhanced health checks (same as core_stale_or_unhealthy)
+    # 1. Effective auto-send and real-orders must be ON
+    effective_auto_send = service.get("effective_auto_send_enabled")
+    effective_real_orders = service.get("effective_real_orders_enabled")
+    if effective_auto_send is not True:
+        errors.append("EFFECTIVE_AUTO_SEND_OFF")
+    if effective_real_orders is not True:
+        errors.append("EFFECTIVE_REAL_ORDERS_OFF")
+    
+    # 2. Send backlog below threshold
+    send_backlog = service.get("send_backlog")
+    max_backlog = int(spec.get("max_send_backlog", 100))
+    if isinstance(send_backlog, int) and send_backlog > max_backlog:
+        errors.append(f"SEND_BACKLOG_HIGH: {send_backlog} > {max_backlog}")
+    
+    # 3. Poll/WS health
+    poll_health = service.get("poll_health")
+    ws_health = service.get("ws_health")
+    if poll_health and poll_health != "POLL_OK":
+        errors.append(f"POLL_HEALTH: {poll_health}")
+    if ws_health and ws_health != "WS_OK":
+        errors.append(f"WS_HEALTH: {ws_health}")
+    
+    # 4. No fatal or network errors
+    fatal_errors = service.get("fatal_errors")
+    network_errors = service.get("network_errors")
+    if isinstance(fatal_errors, int) and fatal_errors > 0:
+        errors.append(f"FATAL_ERRORS: {fatal_errors}")
+    if isinstance(network_errors, int) and network_errors > 0:
+        errors.append(f"NETWORK_ERRORS: {network_errors}")
+    
+    # 5. UI sends ON
+    if ui.get("sends_mode") != "ON" and ui.get("global_controls", {}).get("send_mode") != "ON":
+        errors.append("UI_SENDS_OFF")
+    
     return errors, {"pid": service.get("process_id"), "build_sha": service.get("build_sha"),
                     "follower_network": ((service.get("networks") or {}).get("follower")
                                          if isinstance(service.get("networks"), dict) else None),
@@ -1149,6 +1308,33 @@ def main() -> int:
             raise SystemExit("REFUSED: start requires the ID of a fresh direct authorization order (verified via GitHub comment lookup)")
         if os.name != "nt":
             raise SystemExit("REFUSED: this launcher is Windows-only")
+        
+        # Dirty tree check: refuse if tracked modifications or untracked files outside allowlist
+        checkout_path = Path(spec["checkout_root"])
+        try:
+            result = subprocess.run(
+                ["git", "-C", str(checkout_path), "status", "--porcelain"],
+                check=True, capture_output=True, text=True, timeout=10,
+            )
+            porcelain = result.stdout.strip().splitlines()
+            allowlist_patterns = (
+                "EVIDENCE/", "scratch/", ".log", "__pycache__/", ".pytest_cache/",
+                "core_shutdown_record.json", "used_cutover_orders.json"
+            )
+            for line in porcelain:
+                if not line.strip():
+                    continue
+                status = line[:2]
+                filepath = line[3:].strip()
+                # Skip allowlisted paths
+                if any(filepath.startswith(p) for p in allowlist_patterns):
+                    continue
+                # Any tracked modification (M, D) or untracked (??) outside allowlist = dirty
+                if status[0] in "MD?" or status[1] in "MD?":
+                    raise SystemExit(f"START_REFUSED: checkout_root has uncommitted changes or untracked files: {filepath}")
+        except subprocess.CalledProcessError as e:
+            raise SystemExit(f"START_REFUSED: git status failed on checkout_root: {e}")
+        
         return run_startup(spec, state_dir, sha, supervised=args.action == "supervise")
     return 0
 

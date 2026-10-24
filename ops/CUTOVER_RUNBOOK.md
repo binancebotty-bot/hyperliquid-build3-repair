@@ -1,6 +1,7 @@
 # Build 3 TESTNET Cutover Runbook
 
-**Branch:** `hermes/fallback-startup-231023` @ `bf40a9d8bbb91348ebebf1b7d8d53ec15cbc7847`
+**Launcher Branch:** `hermes/fallback-startup-231023` (HEAD to be verified at cutover)
+**Core Pin (source_sha):** `bf40a9d8bbb91348ebebf1b7d8d53ec15cbc7847`
 **Controller Order:** `CUTOVER ORDER bf40a9d8bbb91348ebebf1b7d8d53ec15cbc7847`
 **Controller Order ID:** `<to be filled at cutover>`
 
@@ -199,6 +200,7 @@ python ops/testnet_startup.py verify
 4. **Shutdown record mandatory** — Core stop must write `core_shutdown_record.json`.
 5. **Legacy watchdog retired** — Startup entry disabled before Step 5 starts. `supervise` is NOT used by this cutover; `start` is the single start command.
 6. **Exact SHA in cutover order** — `CUTOVER ORDER bf40a9d8bbb91348ebebf1b7d8d53ec15cbc7847`
+7. **Launcher branch HEAD verified** — At cutover, confirm `git ls-remote origin hermes/fallback-startup-231023` matches the HEAD that passed all Codex gates.
 
 ---
 
