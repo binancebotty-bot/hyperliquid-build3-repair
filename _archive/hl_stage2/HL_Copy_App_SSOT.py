@@ -6822,6 +6822,9 @@ def api_state() -> JSONResponse:
     metadata instead of row counts so it remains fast as datasets grow.
     """
     live_config = _load_live_copy_config()
+    engine_state = load_json(LIVE_COPY_SERVICE_STATE_FILE, {})
+    if not isinstance(engine_state, dict):
+        engine_state = {}
     wallet_gate = load_json(WALLET_GATE_FILE, {})
     gate_on = []
     if isinstance(wallet_gate, dict):
@@ -6842,6 +6845,10 @@ def api_state() -> JSONResponse:
         "auto_send_enabled": _master_switch_on(live_config), "send_mode": _send_mode(live_config),
         "wallet_gate_on_count": len(gate_on),
         "wallet_gate_on": gate_on,
+        "engine_process_id": engine_state.get("process_id"),
+        "engine_started_at_ms": engine_state.get("started_at_ms"),
+        "engine_build_sha": engine_state.get("build_sha"),
+        "audit_dir": str(LIVE_COPY_AUDIT_DIR.resolve()),
         "global_controls": _global_controls_for_ui(live_config.get("global_controls", _GLOBAL_CONTROLS_DEFAULTS)),
         "files": {
             "raw_live_fills": _file_meta(RAW_FILLS_CSV),

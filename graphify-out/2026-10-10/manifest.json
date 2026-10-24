@@ -1,0 +1,104 @@
+{
+  "CONTROL_STATE.json": {
+    "mtime": 1791549908.285424,
+    "seen": 1791551005.0007138,
+    "ast_hash": "a56b89152eccd4c953aefb25f394e5c5",
+    "semantic_hash": ""
+  },
+  "_archive/hl_stage2/HL_Live_Copy_Service.py": {
+    "mtime": 1791529901.1405408,
+    "seen": 1791545683.3879895,
+    "ast_hash": "50d660a6f25135b4678d8b0a7a2866f3",
+    "semantic_hash": ""
+  },
+  "_archive/hl_stage2/convergence_shadow.py": {
+    "mtime": 1791529901.1408913,
+    "seen": 1791545683.3879895,
+    "ast_hash": "a80a8596c824073bb628938b47a1e1b5",
+    "semantic_hash": ""
+  },
+  "ARCHITECTURE.md": {
+    "mtime": 1791529901.1345346,
+    "seen": 1791545683.3879895,
+    "ast_hash": "a132a061127023536f5743b6ec5e241f",
+    "semantic_hash": ""
+  },
+  "BOOTSTRAP.md": {
+    "mtime": 1791529901.135535,
+    "seen": 1791545683.3879895,
+    "ast_hash": "237135d59367a1d92c3f23d32edfa6b8",
+    "semantic_hash": ""
+  },
+  "OPERATING_PROTOCOL.md": {
+    "mtime": 1791529901.136034,
+    "seen": 1791545683.3879895,
+    "ast_hash": "b23d6bf20ac6738e828332377f5fb46d",
+    "semantic_hash": ""
+  },
+  "README.md": {
+    "mtime": 1791529901.137037,
+    "seen": 1791545683.3879895,
+    "ast_hash": "6ee6d2d975119db1a2f916992a7862e8",
+    "semantic_hash": ""
+  },
+  "PRODUCT_SEMANTICS.md": {
+    "mtime": 1791529901.136034,
+    "seen": 1791545683.3879895,
+    "ast_hash": "e5188daf676496a7cc071e3e7be410b3",
+    "semantic_hash": ""
+  },
+  "_archive/hl_stage2/test_g2_copy_correctness.py": {
+    "mtime": 1791529901.142041,
+    "seen": 1791545683.3879895,
+    "ast_hash": "28eef1d2ca9757980b055d21a8abb174",
+    "semantic_hash": ""
+  },
+  "_archive/hl_stage2/exchange_truth.py": {
+    "mtime": 1791529901.142041,
+    "seen": 1791545683.3879895,
+    "ast_hash": "357af34ee14790f12686b84144e94eb6",
+    "semantic_hash": ""
+  },
+  "_archive/hl_stage2/test_g3_exchange_truth.py": {
+    "mtime": 1791529901.142041,
+    "seen": 1791545683.3879895,
+    "ast_hash": "1664b1e876aa2f94fbd1284326afd79e",
+    "semantic_hash": ""
+  },
+  "_archive/hl_stage2/HL_Copy_App_SSOT.py": {
+    "mtime": 1791529901.1390412,
+    "seen": 1791545683.3879895,
+    "ast_hash": "ef90c08dd7a46a9c7dd2fe5f16b64daa",
+    "semantic_hash": ""
+  },
+  "_archive/hl_stage2/test_g4_fixed_slices.py": {
+    "mtime": 1791529901.1432629,
+    "seen": 1791545683.3879895,
+    "ast_hash": "cd7e3367b73edf8928333034caaa54c2",
+    "semantic_hash": ""
+  },
+  "_archive/hl_stage2/test_g4_intake_sleeves.py": {
+    "mtime": 1791529901.1432629,
+    "seen": 1791545683.3879895,
+    "ast_hash": "cdd0e3bd75c55c2dad91cb967c9f2a17",
+    "semantic_hash": ""
+  },
+  "_archive/hl_stage2/test_g4_ui_controls.py": {
+    "mtime": 1791529901.144268,
+    "seen": 1791545683.3879895,
+    "ast_hash": "254ddc0adfb764c5b17ddf868d29aa9a",
+    "semantic_hash": ""
+  },
+  "_archive/hl_stage2/test_g4_order_cap.py": {
+    "mtime": 1791529901.1437683,
+    "seen": 1791545683.3879895,
+    "ast_hash": "ed34e3f33566cc18976474b2edac2094",
+    "semantic_hash": ""
+  },
+  "_archive/hl_stage2/evidence/G4_C2A_MARK_SOURCE_INVENTORY.md": {
+    "mtime": 1791529901.1415417,
+    "seen": 1791545683.3879895,
+    "ast_hash": "dbc5b788b4c2fd544baaf781c82589dd",
+    "semantic_hash": ""
+  }
+}

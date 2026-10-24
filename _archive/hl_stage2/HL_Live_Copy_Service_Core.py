@@ -42,6 +42,7 @@ import threading
 import time
 import traceback
 import tempfile
+import uuid
 from dataclasses import asdict, dataclass, field
 from decimal import Decimal, ROUND_FLOOR, ROUND_CEILING, InvalidOperation
 import collections
@@ -117,9 +118,11 @@ LEADER_NETWORK, FOLLOWER_NETWORK = NETWORKS["leader"]["network"], NETWORKS["foll
 _NETWORK_AUDIT_DIR = BASE_DIR / ("hl_live_copy_audit" if FOLLOWER_NETWORK == "mainnet" else f"hl_live_copy_audit_{FOLLOWER_NETWORK}")
 PROCESS_STARTED_AT = datetime.now(timezone.utc).isoformat()
 PROCESS_STARTED_AT_MS = int(time.time() * 1000)
+BUILD_SHA = str(os.getenv("HL_BUILD_SHA") or "")
 ENGINE_OUTPUT_DIR = BASE_DIR / "hl_copy_output"
 AUDIT_DIR = Path(os.getenv("HL_LIVE_AUDIT_DIR") or str(_NETWORK_AUDIT_DIR))
 APPEND_ONLY_DIR = AUDIT_DIR / "append_only"
+FALLBACK_DIR = APPEND_ONLY_DIR / "fallback"  # append-only spill: rows queued after a failed live append
 
 LIVE_CONFIG_FILE = AUDIT_DIR / "live_config.json"
 SERVICE_STATE_FILE = AUDIT_DIR / "live_service_state.json"
@@ -161,8 +164,9 @@ HL_INFO_URL = NETWORKS["follower"]["info"]          # follower: meta, mids, copy
 HL_LEADER_INFO_URL = NETWORKS["leader"]["info"]     # leader fill polling only
 HL_WS_URL = os.getenv("HL_LIVE_WS_URL") or NETWORKS["leader"]["ws"]
 # Headroom monitor: counts this process's /info weight per host and writes alert events (alerts/headroom_events.jsonl).
-from headroom import HeadroomMonitor, CountingRequests, scan_foreign_ws  # noqa: E402
+from headroom import HeadroomMonitor, CountingRequests, install_session_counter, request_lane, scan_foreign_ws  # noqa: E402
 HEADROOM = HeadroomMonitor(alerts_dir=AUDIT_DIR / "alerts")
+install_session_counter(HEADROOM)
 if requests is not None:
     requests = CountingRequests(requests, HEADROOM, [HL_INFO_URL, HL_LEADER_INFO_URL])
 HL_EXCHANGE_URL = os.getenv("HL_LIVE_ORDER_ENDPOINT") or NETWORKS["follower"]["exchange"]
@@ -281,6 +285,61 @@ _PREWARM_POOL = _TPE(max_workers=16, thread_name_prefix="prewarm")  # side-by-si
 _EARLY_WARM_POOL = _TPE(max_workers=4, thread_name_prefix="earlywarm")  # runs whole prewarms; separate from _PREWARM_POOL it submits to
 
 OPEN_ORDERS_FETCHER = None  # test seam for follower openOrders reads; production uses HTTP
+_OPEN_ORDERS_CACHE: Dict[Tuple[str, str, str, str], Tuple[int, Any, int]] = {}  # (network, info url, user, dex) -> (read ms, data, fetch seq)
+_OPEN_ORDERS_CACHE_STATE = {"gen": 0, "sends": 0, "seq": 0}  # gen bumps on every invalidation; sends counts orders/cancels in flight; seq numbers fetch STARTS
+_OPEN_ORDERS_CACHE_LOCK = threading.Lock()
+
+def _open_orders_cache_clear_locked() -> None:
+    _OPEN_ORDERS_CACHE_STATE["gen"] += 1
+    for key in [k for k in _OPEN_ORDERS_CACHE if k[2] == USER_WALLET]:
+        _OPEN_ORDERS_CACHE.pop(key, None)
+
+def invalidate_open_orders_cache() -> None:
+    """Drop every cached openOrders read for the follower: called around every send and cancel."""
+    with _OPEN_ORDERS_CACHE_LOCK:
+        _open_orders_cache_clear_locked()
+
+def _open_orders_send_begin() -> None:
+    with _OPEN_ORDERS_CACHE_LOCK:  # counter and invalidation in one step: no reader can hit between them
+        _OPEN_ORDERS_CACHE_STATE["sends"] += 1
+        _open_orders_cache_clear_locked()
+
+def _open_orders_send_end() -> None:
+    with _OPEN_ORDERS_CACHE_LOCK:  # whatever the outcome (filled, rejected, raised, ambiguous)
+        _open_orders_cache_clear_locked()
+        _OPEN_ORDERS_CACHE_STATE["sends"] -= 1
+
+def periodic_open_orders(dexes: List[str]) -> List[Any]:
+    """openOrders for the two periodic sweeps (standing-close prune, resting-size refresh) ONLY: one post_many result
+    per dex, served from a HL_LIVE_OPEN_ORDERS_CACHE_SEC (15, 0 = off) cache. The startup orphan check and uncertain-send
+    reconciliation never come here. Only a successful list read is cached; a read that overlapped a send is not."""
+    ttl_ms = int(max(0.0, fnum(os.getenv("HL_LIVE_OPEN_ORDERS_CACHE_SEC"), 15.0)) * 1000)
+    payloads = [{"type": "openOrders", "user": USER_WALLET, **({"dex": d} if d else {})} for d in dexes]
+    if ttl_ms <= 0:
+        return _XNET.post_many(OPEN_ORDERS_FETCHER, payloads, HL_INFO_URL, HTTP_TIMEOUT_SEC)
+    keys = [(FOLLOWER_NETWORK, HL_INFO_URL, USER_WALLET, d) for d in dexes]
+    out: List[Any] = [None] * len(dexes)
+    now = utc_now_ms()
+    with _OPEN_ORDERS_CACHE_LOCK:
+        gen = _OPEN_ORDERS_CACHE_STATE["gen"]
+        _OPEN_ORDERS_CACHE_STATE["seq"] += 1
+        seq = _OPEN_ORDERS_CACHE_STATE["seq"]  # taken at fetch START: a slower, older fetch must never overwrite a newer entry
+        for i, key in enumerate(keys):
+            hit = _OPEN_ORDERS_CACHE.get(key) if _OPEN_ORDERS_CACHE_STATE["sends"] == 0 else None  # no hits mid-send
+            if hit is not None and 0 <= now - hit[0] < ttl_ms:
+                out[i] = {"ok": True, "data": hit[1]}
+    miss = [i for i, r in enumerate(out) if r is None]
+    if miss:
+        fetched = _XNET.post_many(OPEN_ORDERS_FETCHER, [payloads[i] for i in miss], HL_INFO_URL, HTTP_TIMEOUT_SEC)
+        with _OPEN_ORDERS_CACHE_LOCK:
+            can_store = _OPEN_ORDERS_CACHE_STATE["gen"] == gen and _OPEN_ORDERS_CACHE_STATE["sends"] == 0
+            for i, res in zip(miss, fetched):
+                out[i] = res
+                if can_store and isinstance(res, dict) and res.get("ok") and isinstance(res.get("data"), list):
+                    cur = _OPEN_ORDERS_CACHE.get(keys[i])
+                    if cur is None or seq > cur[2]:
+                        _OPEN_ORDERS_CACHE[keys[i]] = (now, res["data"], seq)
+    return out
 LEADER_MIDS_FETCHER = None  # test seam for leader-network mid reads; production uses HTTP
 _LEADER_MIDS: Dict[str, Any] = {"px": {}, "ms": 0, "dexes": []}
 _LEADER_MIDS_REFRESH_LOCK = threading.Lock()
@@ -593,6 +652,7 @@ class TimedLock:
 LEADER_POLL_OVERLAP_MS = int(os.getenv("HL_LIVE_LEADER_POLL_OVERLAP_MS", "30000"))
 POLL_WINDOW_MS = int(os.getenv("HL_LIVE_POLL_WINDOW_MS", str(24 * 60 * 60 * 1000)))
 POLL_MAX_PAGES_PER_WALLET = int(os.getenv("HL_LIVE_POLL_MAX_PAGES_PER_WALLET", "40"))
+LEADER_POLL_RETENTION_MS = 100 * 60 * 1000
 MAX_WALLETS = int(os.getenv("HL_LIVE_WS_MAX_WALLETS", "10"))
 POSITION_EPSILON = float(os.getenv("HL_LIVE_POSITION_EPSILON", "1e-9"))
 STALE_REPLAY_GRACE_MS = int(os.getenv("HL_LIVE_STALE_REPLAY_GRACE_MS", "5000"))
@@ -606,6 +666,12 @@ def _lock_for(path: Path) -> "threading.RLock":
 
 
 _LOCK_DIAG_SEC = float(os.getenv("HL_LIVE_LOCK_DIAG_SEC", "0.15"))  # an audit append that waits longer than this logs who held the lock (0 = off)
+# A PermissionError on an audit append (Windows handle held by another reader, e.g. the UI) is retried a bounded number of
+# times with doubling backoff, only after the partial row was cleanly truncated. 0 retries = old behaviour. Total sleep is capped.
+_CSV_APPEND_RETRIES = max(0, int(os.getenv("HL_LIVE_CSV_APPEND_RETRIES", "5")))
+_CSV_APPEND_BACKOFF_SEC = max(0.0, float(os.getenv("HL_LIVE_CSV_APPEND_BACKOFF_MS", "40"))) / 1000.0
+_CSV_APPEND_BACKOFF_CAP_SEC = 1.0
+_CSV_APPEND_RETRY_STATS: Dict[str, Any] = {"count": 0, "last": ""}
 _LOCK_DIAG = {"last": 0.0, "n": 0}
 
 
@@ -678,12 +744,16 @@ STAGE_STAMP_KEYS = ("enqueued_ms", "picked_up_ms", "process_started_ms", "prewar
 
 
 def stamp_fill(fill: Any, key: str) -> None:
-    """Record the wall-clock ms a leader fill reached a stage of the hot path (first time only). Carried on the
-    fill's own raw dict so it follows the fill from the websocket to the send-attempt row; never read for a decision."""
+    """Record first-seen wall-clock ms per fill, clamped against a backward clock step; diagnostics only."""
     try:
         raw = fill.raw
         if isinstance(raw, dict):
-            raw.setdefault("_stamps", {}).setdefault(key, utc_now_ms())
+            stamps = raw.get("_stamps")
+            if not isinstance(stamps, dict):
+                stamps = raw["_stamps"] = {}
+            if key not in stamps:
+                prior = [v for v in stamps.values() if isinstance(v, int) and not isinstance(v, bool)]
+                stamps[key] = max(utc_now_ms(), max(prior, default=0))
     except Exception:
         pass
 
@@ -740,8 +810,25 @@ def _response_text(exchange_response: Any) -> str:
         return str(exchange_response)
 
 
+
+
+def classify_rate_limit_kind(error: Any) -> str:
+    """Splits RATE_LIMIT_OR_TIMEOUT STRUCTURALLY. "RATE_LIMIT" (definite refusal, no order exists) only when the raised exception
+    carries the HTTP status 429: the SDK's ClientError.status_code, or requests' HTTPError.response.status_code. Everything else
+    (timeouts, resets, unknown exceptions, any message that merely contains "429" or "rate limit") is "TIMEOUT": the order may
+    exist, so reconcile by cloid first. Text-only input is ALWAYS TIMEOUT: a definite 429 needs an exception object carrying status_code == 429."""
+    if isinstance(error, BaseException):
+        for status in (getattr(error, "status_code", None), getattr(getattr(error, "response", None), "status_code", None)):
+            if isinstance(status, int) and not isinstance(status, bool) and status == 429:
+                return "RATE_LIMIT"
+        return "TIMEOUT"
+    return "TIMEOUT"
+
+
 def classify_reject_category(error_text: str = "", exchange_response: Any = None) -> str:
     msg = f"{error_text or ''} {_response_text(exchange_response)}".lower()
+    if "trading is halted." in msg:
+        return "MARKET_HALTED"
     if "does not exist" in msg and ("wallet" in msg or "user" in msg):
         return "SENDER_KEY_NOT_VALID"  # the follower exchange does not know the signing key: wrong network / not approved
     if "could not immediately match" in msg:
@@ -793,6 +880,11 @@ def classify_send_lifecycle(intent: Any) -> str:
     except Exception:
         pass
     return "UNKNOWN_LIFECYCLE"
+
+
+def deferred_truth_max_seconds() -> float:
+    """Zero keeps unreadable truth held without a time limit; negative explicitly disables holding."""
+    return fnum(os.getenv("HL_LIVE_DEFER_MAX_SEC"), 0.0)
 
 
 def classify_terminal_state(status: str, reject_category: str = "", lifecycle: str = "UNKNOWN_LIFECYCLE", exchange_called: bool = True) -> str:
@@ -973,6 +1065,7 @@ def stale_snapshot_replay_reason(fill: "LeaderFill", core_started_at_ms: int = P
 def ensure_dirs() -> None:
     AUDIT_DIR.mkdir(parents=True, exist_ok=True)
     APPEND_ONLY_DIR.mkdir(parents=True, exist_ok=True)
+    FALLBACK_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def _attribution_json_safe(value: Any) -> Any:
@@ -1027,6 +1120,7 @@ def _process_identity() -> Dict[str, Any]:
         "executable": sys.executable,
         "cwd": str(Path.cwd()),
         "script": str(SCRIPT_FILE),
+        "build_sha": BUILD_SHA,
         "started_at": PROCESS_STARTED_AT,
         "started_at_ms": PROCESS_STARTED_AT_MS,
     }
@@ -1131,6 +1225,7 @@ def install_core_attribution_hooks() -> None:
         threading.excepthook = _thread_excepthook
 
     def _atexit_marker() -> None:
+        _drain_status_write_workers()
         _write_core_shutdown_record(_CORE_SHUTDOWN_REASON, clean=True)
 
     atexit.register(_atexit_marker)
@@ -1212,6 +1307,24 @@ def load_json(path: Path, default: Any) -> Any:
 
 
 _HEADER_OK: Dict[str, Tuple[Tuple[str, ...], int, int, int]] = {}  # path -> (columns checked, st_dev, st_ino, size after OUR last append): the header is read once per file, not per append
+_AUDIT_HANDLES: Dict[str, Tuple[Tuple[int, int], Any]] = {}
+_AUDIT_SPILL_PENDING: set[str] = set()
+_AUDIT_SPILL_COUNTS: Dict[str, Tuple[int, int, int, int]] = {}
+_AUDIT_REPLAY_LOCK = threading.RLock()
+_AUDIT_FLUSH_LOCK = threading.Lock()
+_AUDIT_FLUSH_EVENT = threading.Event()
+_AUDIT_FLUSH_PENDING: Dict[str, Tuple[Path, List[str]]] = {}
+_AUDIT_FLUSH_THREAD: Optional[threading.Thread] = None
+_AUDIT_FLUSH_BACKOFF_SEC = 1.0
+
+
+def _close_audit_handle(path: Path) -> None:
+    entry = _AUDIT_HANDLES.pop(str(path), None)
+    if entry:
+        try:
+            entry[1].close()
+        except OSError:
+            pass
 
 
 def _header_checked(path: Path, fieldnames: List[str]) -> Optional[Tuple[int, int]]:
@@ -1253,6 +1366,7 @@ def _note_append(path: Path, fieldnames: List[str]) -> None:
 def ensure_csv_header(path: Path, fieldnames: List[str]) -> None:
     if _header_checked(path, fieldnames) is not None:
         return  # same file as when its header was last verified (a rotated or replaced file has a new inode)
+    _close_audit_handle(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     if path.exists() and path.stat().st_size > 0:
         with _lock_for(path):
@@ -1290,7 +1404,6 @@ AUDIT_ROTATE_BYTES = int(os.getenv("HL_LIVE_AUDIT_ROTATE_BYTES", str(100 * 1024 
 AUDIT_ROTATE_KEEP = int(os.getenv("HL_LIVE_AUDIT_ROTATE_KEEP", "10"))
 AUDIT_ROTATING_NAMES = {"order_intents.csv", "reconciliation.csv"}  # the two that grew 0.1-0.2 GB/h under 10 leaders
 
-
 def rotated_audit_paths(path: Path) -> List[Path]:
     """Rotated copies of an audit CSV (name.UTCdate.n.csv), oldest first."""
     try:
@@ -1317,6 +1430,8 @@ def _rotate_audit_file(path: Path) -> None:
         date, num = q.name[len(path.stem) + 1:-4].split(".")
         if date == stamp:
             n = max(n, int(num) + 1)
+    _close_audit_handle(path)
+    _HEADER_OK.pop(str(path), None)
     os.replace(path, path.with_name(f"{path.stem}.{stamp}.{n}.csv"))
     fields = ROTATING_FIELDS.get(path.name)
     if fields:  # the fresh file exists with its header at once: status checks never see it missing, no append lands headerless
@@ -1372,10 +1487,324 @@ def audit_write_failure_count() -> int:
     return n
 
 
-def append_csv(path: Path, fieldnames: List[str], row: Dict[str, Any]) -> None:
-    ensure_csv_header(path, fieldnames)
+def _fallback_path(path: Path) -> Path:
+    """Fallback spill file for *path*: rows that survived every retry land here and are replayed at startup."""
+    return FALLBACK_DIR / (path.name + ".spill")
+
+
+def _spill_journal_path(path: Path) -> Path:
+    return _fallback_path(path).with_name(_fallback_path(path).name + ".replay.jsonl")
+
+
+def _audit_row_data(fieldnames: List[str], row: Dict[str, Any]) -> Dict[str, str]:
+    return {k: "" if row.get(k) is None else str(row.get(k, "")) for k in fieldnames}
+
+
+def _audit_row_payload(fieldnames: List[str], row: Dict[str, Any]) -> str:
     buf = io.StringIO()
-    csv.DictWriter(buf, fieldnames=fieldnames).writerow({k: row.get(k, "") for k in fieldnames})
+    csv.DictWriter(buf, fieldnames=fieldnames).writerow(_audit_row_data(fieldnames, row))
+    return buf.getvalue()
+
+
+def _append_spill_journal(path: Path, event: Dict[str, Any]) -> None:
+    journal = _spill_journal_path(path)
+    journal.parent.mkdir(parents=True, exist_ok=True)
+    line = json.dumps(event, ensure_ascii=False, separators=(",", ":")) + "\n"
+    before = journal.stat().st_size if journal.exists() else 0
+    try:
+        with journal.open("a", encoding="utf-8", newline="") as f:
+            written = f.write(line)
+            f.flush()
+            os.fsync(f.fileno())
+        if written != len(line):
+            raise OSError("short audit spill journal append")
+    except Exception:
+        try:
+            os.truncate(journal, before)
+        except OSError:
+            pass
+        raise
+
+
+def _read_spill_journal(path: Path) -> Dict[str, Dict[str, Any]]:
+    journal = _spill_journal_path(path)
+    states: Dict[str, Dict[str, Any]] = {}
+    if not journal.exists() or journal.stat().st_size == 0:
+        return states
+    with journal.open("r", encoding="utf-8") as f:
+        for line_number, line in enumerate(f, 1):
+            try:
+                event = json.loads(line)
+            except Exception as exc:
+                raise OSError(f"invalid audit spill replay journal at line {line_number}") from exc
+            event_type = event.get("event")
+            row_id = str(event.get("id") or "")
+            if not row_id:
+                raise OSError(f"missing audit spill replay ID at line {line_number}")
+            if event_type == "SPILL_ROW":
+                if row_id in states:
+                    raise OSError(f"duplicate audit spill replay ID at line {line_number}")
+                row_index = event.get("row_index")
+                row = event.get("row")
+                if type(row_index) is not int or row_index < 0 or not isinstance(row, dict):
+                    raise OSError(f"invalid audit spill row record at line {line_number}")
+                states[row_id] = {"row_index": row_index, "row": row, "intent": None, "done": False}
+            elif event_type == "REPLAY_INTENT":
+                if row_id not in states or states[row_id]["intent"] is not None:
+                    raise OSError(f"orphan or duplicate audit replay intent at line {line_number}")
+                if type(event.get("offset")) is not int or event["offset"] < 0 or not isinstance(event.get("target"), str):
+                    raise OSError(f"invalid audit replay intent at line {line_number}")
+                states[row_id]["intent"] = event
+            elif event_type == "REPLAYED":
+                if row_id not in states or states[row_id]["done"] or states[row_id]["intent"] is None:
+                    raise OSError(f"orphan or duplicate audit replay completion at line {line_number}")
+                states[row_id]["done"] = True
+            else:
+                raise OSError(f"unknown audit spill replay event at line {line_number}")
+    return states
+
+
+def _spill_rows(path: Path, fieldnames: List[str]) -> List[Dict[str, str]]:
+    sp = _fallback_path(path)
+    if not sp.exists() or sp.stat().st_size == 0:
+        return []
+    with sp.open("rb") as f:
+        f.seek(-1, os.SEEK_END)
+        if f.read(1) != b"\n":
+            raise OSError(f"incomplete audit spill tail for {path.name}")
+    with sp.open("r", newline="", encoding="utf-8-sig") as f:
+        reader = csv.DictReader(f)
+        if reader.fieldnames != fieldnames:
+            raise OSError(f"unexpected audit spill header for {path.name}")
+        return [_audit_row_data(fieldnames, row) for row in reader]
+
+
+def _spill_pending(path: Path) -> bool:
+    return any(not state["done"] for state in _read_spill_journal(path).values())
+
+
+def _replay_payload_present(path: Path, offset: int, payload: bytes) -> bool:
+    for history_path in audit_history_paths(path):
+        try:
+            with history_path.open("rb") as f:
+                f.seek(offset)
+                if f.read(len(payload)) == payload:
+                    return True
+        except OSError:
+            raise OSError(f"cannot read audit history while replaying {path.name}")
+    current_size = path.stat().st_size if path.exists() else 0
+    if current_size == offset:
+        return False
+    raise OSError(f"cannot prove audit replay outcome for {path.name} at byte {offset}")
+
+
+def _spill_row(path: Path, fieldnames: List[str], row: Dict[str, Any]) -> bool:
+    """Write a single row to the append-only fallback so replay_audit_fallback can recover it.
+    Return False if the fallback could not preserve the complete row."""
+    sp = _fallback_path(path)
+    before = 0
+    try:
+        FALLBACK_DIR.mkdir(parents=True, exist_ok=True)
+        with _lock_for(path):
+            st = sp.stat() if sp.exists() else None
+            cached = _AUDIT_SPILL_COUNTS.get(str(path))
+            if st and cached and cached[:3] == (st.st_dev, st.st_ino, st.st_size):
+                row_index = cached[3]
+            else:
+                row_index = len(_spill_rows(path, fieldnames))
+            need_header = not sp.exists() or sp.stat().st_size == 0
+            before = sp.stat().st_size if sp.exists() else 0
+            buf = io.StringIO()
+            writer = csv.DictWriter(buf, fieldnames=fieldnames)
+            if need_header:
+                writer.writeheader()
+            writer.writerow(_audit_row_data(fieldnames, row))
+            payload = buf.getvalue()
+            with sp.open("a", newline="", encoding="utf-8") as f:
+                written = f.write(payload)
+                f.flush()
+                os.fsync(f.fileno())
+            if written != len(payload):
+                raise OSError(f"short audit spill: wrote {written} of {len(payload)} characters")
+            st = sp.stat()
+            _AUDIT_SPILL_COUNTS[str(path)] = (st.st_dev, st.st_ino, st.st_size, row_index + 1)
+            try:
+                _append_spill_journal(path, {
+                    "event": "SPILL_ROW", "id": uuid.uuid4().hex,
+                    "row_index": row_index, "row": _audit_row_data(fieldnames, row),
+                })
+            except Exception as exc:
+                # The CSV spill remains the recovery source if its ID sidecar cannot be updated.
+                note_audit_write_failure(path, f"spill replay record deferred: {exc!r}")
+            _AUDIT_SPILL_PENDING.add(str(path))
+        note_audit_write_failure(path, "row preserved in fallback after append retries")
+        return True
+    except Exception as exc:
+        try:
+            if sp.exists() and sp.stat().st_size > before:
+                os.truncate(sp, before)
+        except Exception:
+            pass
+        note_audit_write_failure(path, f"fallback write failed: {exc!r}")
+        return False
+
+
+def _replay_audit_fallback(path: Path, fieldnames: List[str]) -> int:
+    """Replay identified spill rows exactly once without changing the CSV schema."""
+    sp = _fallback_path(path)
+    journal = _spill_journal_path(path)
+    if (not sp.exists() or sp.stat().st_size == 0) and (not journal.exists() or journal.stat().st_size == 0):
+        _AUDIT_SPILL_PENDING.discard(str(path))
+        return 0
+    try:
+        with _lock_for(path):
+            rows = _spill_rows(path, fieldnames)
+            states = _read_spill_journal(path)
+    except Exception as exc:
+        log_error("audit_replay_read", exc)
+        raise OSError(f"unable to read audit spill for {path.name}") from exc
+    by_index: Dict[int, Tuple[str, Dict[str, Any]]] = {}
+    for row_id, state in states.items():
+        row_index = state["row_index"]
+        if row_index in by_index:
+            raise OSError(f"duplicate audit spill row index for {path.name}")
+        by_index[row_index] = (row_id, state["row"])
+    for row_index, row in enumerate(rows):
+        existing = by_index.get(row_index)
+        if existing:
+            if _audit_row_data(fieldnames, existing[1]) != row:
+                raise OSError(f"audit spill row does not match replay record for {path.name}")
+        else:
+            row_id = uuid.uuid4().hex
+            state = {"row_index": row_index, "row": row, "intent": None, "done": False}
+            _append_spill_journal(path, {
+                "event": "SPILL_ROW", "id": row_id,
+                "row_index": row_index, "row": row,
+            })
+            states[row_id] = state
+            by_index[row_index] = (row_id, row)
+    replayed = 0
+    for row_id, state in states.items():
+        if state["done"]:
+            continue
+        if set(state["row"]) != set(fieldnames) or any(not isinstance(state["row"][k], str) for k in fieldnames):
+            raise OSError(f"invalid audit spill row data for {path.name}")
+        row = _audit_row_data(fieldnames, state["row"])
+        payload = _audit_row_payload(fieldnames, row).encode("utf-8")
+        lock = _lock_for(path)
+        with lock:
+            intent = state["intent"]
+            if intent is not None:
+                if intent["target"] != path.name or intent.get("payload_sha256") != hashlib.sha256(payload).hexdigest():
+                    raise OSError(f"audit replay intent does not match spill row for {path.name}")
+                offset = int(intent["offset"])
+                if _replay_payload_present(path, offset, payload):
+                    _append_spill_journal(path, {"event": "REPLAYED", "id": row_id})
+                    state["done"] = True
+                    continue
+            else:
+                ensure_csv_header(path, fieldnames)
+                offset = path.stat().st_size if path.exists() else 0
+                _append_spill_journal(path, {
+                    "event": "REPLAY_INTENT", "id": row_id, "target": path.name,
+                    "offset": offset, "payload_sha256": hashlib.sha256(payload).hexdigest(),
+                })
+                state["intent"] = {
+                    "target": path.name, "offset": offset,
+                    "payload_sha256": hashlib.sha256(payload).hexdigest(),
+                }
+            try:
+                if not append_csv(path, fieldnames, row, spill_on_failure=False, durable=True):
+                    break
+                if not _replay_payload_present(path, offset, payload):
+                    raise OSError(f"audit replay append is not verifiable for {path.name}")
+                _append_spill_journal(path, {"event": "REPLAYED", "id": row_id})
+            except Exception as exc:
+                log_error("audit_replay_append", exc)
+                break
+            state["done"] = True
+            replayed += 1
+    if all(state["done"] for state in states.values()):
+        try:
+            with _lock_for(path):
+                current_rows = _spill_rows(path, fieldnames)
+                current_states = _read_spill_journal(path)
+                if len(current_rows) == len(rows) and set(current_states) == set(states) and all(s["done"] for s in current_states.values()):
+                    if sp.exists():
+                        with sp.open("wb") as f:
+                            f.flush()
+                            os.fsync(f.fileno())
+                    if journal.exists():
+                        with journal.open("wb") as f:
+                            f.flush()
+                            os.fsync(f.fileno())
+                    _AUDIT_SPILL_PENDING.discard(str(path))
+                    _AUDIT_SPILL_COUNTS.pop(str(path), None)
+        except Exception as exc:
+            log_error("audit_replay_clear", exc)
+    return replayed
+
+
+def replay_audit_fallback(path: Path, fieldnames: List[str]) -> int:
+    with _AUDIT_REPLAY_LOCK:
+        return _replay_audit_fallback(path, fieldnames)
+
+
+def _audit_fallback_remains(path: Path) -> bool:
+    return any(p.exists() and p.stat().st_size > 0 for p in (_fallback_path(path), _spill_journal_path(path)))
+
+
+def _audit_flush_worker() -> None:
+    while True:
+        _AUDIT_FLUSH_EVENT.wait()
+        while True:
+            _AUDIT_FLUSH_EVENT.clear()
+            with _AUDIT_FLUSH_LOCK:
+                pending = list(_AUDIT_FLUSH_PENDING.values())
+            for path, fields in pending:
+                try:
+                    replay_audit_fallback(path, fields)
+                except Exception as exc:
+                    note_audit_write_failure(path, f"background audit replay failed: {exc!r}")
+                try:
+                    with _lock_for(path):
+                        remains = _audit_fallback_remains(path)
+                        if not remains:
+                            with _AUDIT_FLUSH_LOCK:
+                                _AUDIT_FLUSH_PENDING.pop(str(path), None)
+                except OSError as exc:
+                    note_audit_write_failure(path, f"background audit spill check failed: {exc!r}")
+            with _AUDIT_FLUSH_LOCK:
+                if not _AUDIT_FLUSH_PENDING:
+                    break
+            _AUDIT_FLUSH_EVENT.wait(_AUDIT_FLUSH_BACKOFF_SEC)
+
+
+def _schedule_audit_flush(path: Path, fieldnames: List[str]) -> None:
+    global _AUDIT_FLUSH_THREAD
+    with _AUDIT_FLUSH_LOCK:
+        _AUDIT_FLUSH_PENDING[str(path)] = (path, list(fieldnames))
+        if _AUDIT_FLUSH_THREAD is None or not _AUDIT_FLUSH_THREAD.is_alive():
+            _AUDIT_FLUSH_THREAD = threading.Thread(target=_audit_flush_worker, name="audit-spill-flusher", daemon=True)
+            try:
+                _AUDIT_FLUSH_THREAD.start()
+            except Exception as exc:
+                _AUDIT_FLUSH_THREAD = None
+                note_audit_write_failure(path, f"background audit replay could not start: {exc!r}")
+    _AUDIT_FLUSH_EVENT.set()
+
+
+def append_csv(path: Path, fieldnames: List[str], row: Dict[str, Any], *, spill_on_failure: bool = True, durable: bool = False, retry_permission: bool = False) -> bool:
+    """Append one audit row or durably spill it; raise only if neither store preserves it.
+
+    A failed live append is durably spilled immediately; a background flusher retries it off the send lane.
+    Returns True on a live append, False when replay must retain its existing spill row.
+    durable=True flushes the append before the replay journal records completion.
+    retry_permission=True opts this call into the bounded PermissionError retry (sleeps while holding the file lock);
+    the default is one attempt and no sleep, so send-lane appends (order intents, pending_send) never block.
+    """
+    ensure_csv_header(path, fieldnames)
+    payload = _audit_row_payload(fieldnames, row)
     lock = _lock_for(path)
     with prof("file_lock_wait"):
         _t0 = time.monotonic()
@@ -1388,20 +1817,80 @@ def append_csv(path: Path, fieldnames: List[str], row: Dict[str, Any]) -> None:
         if not path.exists() or path.stat().st_size <= 0:  # rotated away since the header check above
             ensure_csv_header(path, fieldnames)
         size_before = path.stat().st_size if path.exists() else 0
-        try:
-            with prof(f"append:{path.name}"), path.open("a", newline="", encoding="utf-8") as f:
-                written = f.write(buf.getvalue())
-                f.flush()
-            if written != len(buf.getvalue()):  # a short write stores fewer bytes and does NOT raise
-                raise OSError(f"short audit append: wrote {written} of {len(buf.getvalue())} bytes")
-        except OSError as exc:
+        spill = _fallback_path(path)
+        if spill_on_failure and (str(path) in _AUDIT_SPILL_PENDING or (spill.exists() and spill.stat().st_size > 0)):
+            if not _spill_row(path, fieldnames, row):
+                raise OSError("audit row could not be persisted behind existing spill rows")
+            _schedule_audit_flush(path, fieldnames)
+            return False
+        _retry_n, _slept = 0, 0.0
+        while True:
+          try:
+            st = path.stat()
+            entry = _AUDIT_HANDLES.get(str(path))
+            if not entry or entry[0] != (st.st_dev, st.st_ino) or entry[1].closed:
+                _close_audit_handle(path)
+                handle = path.open("a", newline="", encoding="utf-8")
+                _AUDIT_HANDLES[str(path)] = ((st.st_dev, st.st_ino), handle)
+            else:
+                handle = entry[1]
+            with prof(f"append:{path.name}"):
+                written = handle.write(payload)
+                handle.flush()
+                if durable:
+                    os.fsync(handle.fileno())
+            if written != len(payload):
+                raise OSError(f"short audit append: wrote {written} of {len(payload)} bytes")
+            break
+          except OSError as exc:
+            _close_audit_handle(path)
+            _clean = True  # the partial row is known removed (or never written)
             try:
                 if path.exists() and path.stat().st_size > size_before:
-                    os.truncate(path, size_before)  # drop a half-written row so the next append cannot glue onto it
+                    os.truncate(path, size_before)
+                _clean = (path.stat().st_size if path.exists() else 0) == size_before
             except Exception:
-                pass
-            note_audit_write_failure(path, exc)  # durable + loud; the caller still sees the failure
-            raise
+                _clean = False
+            _can_retry = retry_permission and isinstance(exc, PermissionError) and _clean and _retry_n < _CSV_APPEND_RETRIES and _slept < _CSV_APPEND_BACKOFF_CAP_SEC
+            if _can_retry:
+                # Never sleep while holding a lock that send-lane appends use: release, sleep, re-acquire, retry as a
+                # fresh attempt (partial row already truncated, so no duplicate). A caller that already holds the lock
+                # (replay, reentrant depth > 1) cannot be released here: single attempt, old behaviour.
+                lock.release()
+                if lock._is_owned():
+                    lock.acquire()
+                    _can_retry = False
+            if _can_retry:
+                _delay = min(_CSV_APPEND_BACKOFF_SEC * (2 ** _retry_n), _CSV_APPEND_BACKOFF_CAP_SEC - _slept)
+                _retry_n += 1
+                _CSV_APPEND_RETRY_STATS["count"] = int(_CSV_APPEND_RETRY_STATS.get("count") or 0) + 1
+                _CSV_APPEND_RETRY_STATS["last"] = f"{path.name}: {exc!r}"
+                try:
+                    sys.stderr.write(f"[audit_append_retry] {path.name} attempt {_retry_n}/{_CSV_APPEND_RETRIES} in {_delay * 1000:.0f}ms: {exc!r}\n")
+                except Exception:
+                    pass
+                try:
+                    time.sleep(_delay)
+                finally:
+                    lock.acquire()
+                _slept += _delay
+                if not path.exists() or path.stat().st_size <= 0:
+                    ensure_csv_header(path, fieldnames)
+                size_before = path.stat().st_size if path.exists() else 0
+                if spill_on_failure and (str(path) in _AUDIT_SPILL_PENDING or (spill.exists() and spill.stat().st_size > 0)):
+                    if not _spill_row(path, fieldnames, row):  # another append spilled meanwhile: stay behind it
+                        raise OSError("audit row could not be persisted behind existing spill rows")
+                    _schedule_audit_flush(path, fieldnames)
+                    return False
+                continue
+            note_audit_write_failure(path, exc)
+            if not spill_on_failure:
+                return False
+            if not _spill_row(path, fieldnames, row):
+                raise OSError("audit row could not be persisted to the live file or fallback") from exc
+            _schedule_audit_flush(path, fieldnames)
+            return False
+        # success path
         _note_append(path, fieldnames)  # our own append changed the size: keep the header cache in step
         if path == LIVE_FILLS_CSV and _OWNED_BY_OID["path"] == str(path):
             _owned_note(row)  # keeps the per-order owned-size totals current (never a whole-file scan)
@@ -1411,10 +1900,9 @@ def append_csv(path: Path, fieldnames: List[str], row: Dict[str, Any]) -> None:
                     _rotate_audit_file(path)
             except Exception as exc:
                 log_error("audit_rotate", exc)
+        return True
     finally:
         lock.release()
-
-
 def update_send_attempt_row(attempt_id: str, updates: Dict[str, Any], base_row: Optional[Dict[str, Any]] = None) -> bool:
     """T1a: record the result of a send attempt whose pending_send row (written before the exchange call) already
     exists. APPEND-ONLY: the file is never rewritten (a rewrite of the 0.2 GB audit file per order would stall the
@@ -1454,9 +1942,201 @@ class _BoundedRaw(io.RawIOBase):
 CSV_BAD_ROWS = 0
 
 
+_INTENT_COND = threading.Condition()
+_INTENT_QUEUE: "collections.deque" = collections.deque()
+_INTENT_STATE: Dict[str, Any] = {"busy": False, "thread": None, "atexit": False,
+                                 "next_seq": 0, "durable_seq": 0, "failed_seqs": set(), "durable_timeouts": 0}
+_INTENT_SEQ_BY_ID: Dict[str, int] = {}  # intent_id -> sequence of its queued order_intents row (the pre-send barrier's key)
+
+
+def enqueue_intent_row(path: Path, fieldnames: List[str], row: Dict[str, Any], key: str = "") -> Optional[int]:
+    """Write-behind for the order_intents.csv audit row: the send path only queues it (append_csv can wait seconds on the
+    shared audit file lock). One writer thread appends in order; flush_intent_writer() drains it. The pre-send
+    pending_send row is NOT queued: it stays a direct append on its own lock. A full backlog or the switch
+    HL_LIVE_INTENT_WRITE_BEHIND=0 appends inline as before. Returns the row's monotonically increasing sequence number
+    (None when it was appended inline: nothing to wait for); with `key` (the intent id) the sequence is remembered so the
+    pre-send durability barrier (wait_intent_durable) can find it."""
+    if bval(os.getenv("HL_LIVE_INTENT_WRITE_BEHIND"), True):
+        with _INTENT_COND:
+            if len(_INTENT_QUEUE) < int(fnum(os.getenv("HL_LIVE_INTENT_QUEUE_MAX"), 20000.0)):
+                seq = int(_INTENT_STATE["next_seq"]) + 1
+                _INTENT_STATE["next_seq"] = seq
+                _INTENT_QUEUE.append((path, fieldnames, row, seq))
+                if key:
+                    if len(_INTENT_SEQ_BY_ID) > 20000:  # bounded: drop the ids whose row is already on disk
+                        _ev = int(_INTENT_STATE.get("failed_evicted_seq") or 0)  # at/below it a row's status is unknown: keep its id so the barrier can say so
+                        for _k in [k for k, v in _INTENT_SEQ_BY_ID.items()
+                                   if v <= int(_INTENT_STATE["durable_seq"]) and v not in _INTENT_STATE["failed_seqs"] and v > _ev]:
+                            _INTENT_SEQ_BY_ID.pop(_k, None)
+                    _INTENT_SEQ_BY_ID[key] = seq
+                thread = _INTENT_STATE["thread"]
+                if thread is None or not thread.is_alive():
+                    _INTENT_STATE["thread"] = threading.Thread(target=_intent_writer_loop, daemon=True, name="HLCore-intent-writer")
+                    _INTENT_STATE["thread"].start()
+                if not _INTENT_STATE["atexit"]:
+                    _INTENT_STATE["atexit"] = True
+                    atexit.register(flush_intent_writer, 10.0, "atexit")  # bounded; a timeout is reported, never silent
+                _INTENT_COND.notify_all()
+                return seq
+    append_csv(path, fieldnames, row)
+    return None
+
+
+def _intent_writer_loop() -> None:
+    while True:
+        with _INTENT_COND:
+            while not _INTENT_QUEUE:
+                _INTENT_COND.wait()
+            item = _INTENT_QUEUE.popleft()
+            _INTENT_STATE["busy"] = True
+        seq_done, append_failed = item[3], True
+        for attempt in range(3):
+            try:
+                append_csv(item[0], item[1], item[2])  # a failed live append is spilled and retried by append_csv itself
+                append_failed = False
+                break
+            except Exception as exc:
+                if attempt == 2:
+                    log_error("intent_write_behind", exc)
+                else:
+                    time.sleep(0.5)
+        evicted = 0
+        with _INTENT_COND:
+            if append_failed:  # the barrier must not mistake a failed row for a durable one: the status is retained
+                _INTENT_STATE["failed_seqs"].add(seq_done)
+                _INTENT_STATE.setdefault("failed_unreported", {})[seq_done] = str(item[2].get("leader_wallet") or "")  # until a later send of that wallet reports it
+                while len(_INTENT_STATE["failed_seqs"]) > max(1, int(fnum(os.getenv("HL_LIVE_INTENT_FAILED_MAX"), 10000.0))):
+                    evicted = min(_INTENT_STATE["failed_seqs"])  # bounded memory: evict the oldest, but loudly and with a watermark
+                    _INTENT_STATE["failed_seqs"].discard(evicted)
+                    _INTENT_STATE["failed_evicted_seq"] = max(int(_INTENT_STATE.get("failed_evicted_seq") or 0), evicted)
+                    _w = _INTENT_STATE.setdefault("failed_unreported", {}).pop(evicted, "")
+                    if _w:
+                        _INTENT_STATE.setdefault("failed_unknown_wallets", set()).add(_w)  # its failure is no longer retained: status unknown
+            _INTENT_STATE["durable_seq"] = max(int(_INTENT_STATE["durable_seq"]), seq_done)
+            _INTENT_STATE["busy"] = False
+            _INTENT_COND.notify_all()
+        if evicted:
+            log_error("intent_failed_status_evicted",
+                      f"failed-row status for order_intents seq {evicted} evicted (too many failed rows retained); the pre-send "
+                      "barrier reports every row at or below that sequence as status unknown, never as durable")
+
+
+def intent_seq_for(intent_id: Any) -> Optional[int]:
+    """Sequence number of the queued order_intents row of this intent id (None: inline row, or never queued)."""
+    with _INTENT_COND:
+        return _INTENT_SEQ_BY_ID.get(str(intent_id or ""))
+
+
+def wait_intent_durable(seq: Optional[int], intent_id: str = "", timeout_ms: Optional[float] = None, wallet: str = "") -> bool:
+    """Pre-send durability barrier for the write-behind order_intents row. Lifecycle/recovery code reads that journal, so
+    the order's row (and every earlier queued row: the writer is strictly in order) must be on disk BEFORE the exchange
+    call, or a crash in between would lose lifecycle/provenance fields that pending_send does not carry.
+    Normal case: the writer has long since appended the row (it runs from intent build, well before the slot/cooldown
+    wait), so this is a condition check under the writer's short lock, no file write on the caller's thread.
+    Failure policy (deliberate): on a timeout (HL_LIVE_INTENT_DURABLE_WAIT_MS, default 250; 0 disables the barrier), a
+    dead writer thread or a failed row append, the order is NOT held up and NOT refused: it proceeds, because the
+    pending_send row (sync + fsync, written right after this) is the idempotency/crash record and an unsent order costs
+    more than a missing audit row. The gap is reported loudly: stderr + audit-write-failure alert counter (naming the
+    intent id) at once, and an errors.csv row (intent_durable_barrier) written from a side thread so that file's lock
+    cannot delay the order. With `wallet`, an earlier queued row of the SAME wallet that failed (or whose failure record was
+    evicted) is reported too, once (a later successful row must not mask it); other wallets' failures never touch this
+    send, and nothing here waits on them. Returns True when durable (or nothing to wait for), False when it proceeded
+    without. Never raises."""
+    try:
+        if seq is None and not wallet:
+            return True
+        ms = fnum(os.getenv("HL_LIVE_INTENT_DURABLE_WAIT_MS"), 250.0) if timeout_ms is None else float(timeout_ms)
+        if ms <= 0:
+            return True
+        end = time.monotonic() + ms / 1000.0
+        reason = ""
+        with _INTENT_COND:
+            while seq is not None and int(_INTENT_STATE["durable_seq"]) < seq:
+                thread = _INTENT_STATE["thread"]
+                if thread is None or not thread.is_alive():
+                    reason = "writer thread is not running"
+                    break
+                left = end - time.monotonic()
+                if left <= 0:
+                    reason = f"not durable within {ms:.0f}ms (writer backlog or stalled)"
+                    break
+                _INTENT_COND.wait(left)
+            else:
+                if seq is None:
+                    pass
+                elif seq in _INTENT_STATE["failed_seqs"]:
+                    reason = "writer failed to append the row"
+                elif seq <= int(_INTENT_STATE.get("failed_evicted_seq") or 0):
+                    reason = "row status unknown (its failure record was evicted)"
+                if not reason and wallet:
+                    _unrep = _INTENT_STATE.setdefault("failed_unreported", {})
+                    _earlier = sorted(q for q, w in _unrep.items() if w == wallet and (seq is None or q < seq))
+                    _unknown = _INTENT_STATE.setdefault("failed_unknown_wallets", set())
+                    if _earlier:
+                        reason = f"an earlier order_intents row of wallet {wallet} (seq {_earlier[:5]}) failed to append"
+                    elif wallet in _unknown:
+                        reason = f"an earlier order_intents row of wallet {wallet} failed and its failure record was evicted (status unknown)"
+                    for _q in _earlier:
+                        _unrep.pop(_q, None)  # reported once, not on every later send
+                    _unknown.discard(wallet)
+            if reason:
+                _INTENT_STATE["durable_timeouts"] = int(_INTENT_STATE.get("durable_timeouts") or 0) + 1
+        if not reason:
+            return True
+        msg = (f"order_intents row for intent_id={intent_id or '?'} (seq {seq}) is NOT on disk before the exchange call: "
+               f"{reason}; the order proceeds, pending_send is the crash record")
+        try:
+            note_audit_write_failure(ORDER_INTENTS_CSV, TimeoutError(msg))  # alert counter + journal + stderr
+        except Exception:
+            pass
+        threading.Thread(target=log_error, args=("intent_durable_barrier", msg), daemon=True, name="HLCore-intent-barrier-log").start()
+        return False
+    except Exception:
+        return False
+
+
+def flush_intent_writer(timeout: Optional[float] = 10.0, context: str = "") -> bool:
+    """Wait (bounded) until every queued intent row is on disk. True when drained. On a timeout it returns False AFTER
+    reporting loudly: errors.csv row (intent_flush_timeout), stderr and the audit-write-failure alert counter, with the
+    number of rows still queued. The callers (readers, stop, atexit) go on: they cannot wait forever, but never silently."""
+    end = time.monotonic() + (10.0 if timeout is None else float(timeout))
+    remaining = 0
+    with _INTENT_COND:
+        while _INTENT_QUEUE or _INTENT_STATE["busy"]:
+            left = end - time.monotonic()
+            if left <= 0:
+                remaining = len(_INTENT_QUEUE) + (1 if _INTENT_STATE["busy"] else 0)
+                _INTENT_STATE["flush_timeouts"] = int(_INTENT_STATE.get("flush_timeouts") or 0) + 1
+                break
+            _INTENT_COND.wait(left)
+        else:
+            return True
+    msg = (f"intent audit writer did not drain within {float(timeout if timeout is not None else 10.0):.1f}s "
+           f"(context={context or 'unspecified'}): {remaining} order_intents row(s) still queued/in flight; "
+           "send_attempts.csv still holds the pending_send/final rows for those orders")
+    try:
+        note_audit_write_failure(ORDER_INTENTS_CSV, TimeoutError(msg))  # alert counter + journal + stderr
+    except Exception:
+        pass
+    log_error("intent_flush_timeout", msg)
+    return False
+
+
+def intent_writer_status() -> Dict[str, Any]:
+    with _INTENT_COND:
+        return {"queued": len(_INTENT_QUEUE), "busy": bool(_INTENT_STATE["busy"]),
+                "flush_timeouts": int(_INTENT_STATE.get("flush_timeouts") or 0)}
+
+
+def _flush_intents_before_read(path: Path) -> None:
+    if path == ORDER_INTENTS_CSV:  # the check runs under the writer lock: a row popped but not yet written still counts
+        flush_intent_writer(5.0, "read:" + path.name)  # a timeout is reported loudly inside; the read goes on with what is on disk
+
+
 def iter_csv_rows(path: Path) -> Iterator[Dict[str, str]]:
     """Rows of an audit CSV one at a time (no whole-file bytes, text or row list in memory). The size is taken
     under the file lock, so a row being appended is either wholly in the scan or wholly out of it."""
+    _flush_intents_before_read(path)
     if not path.exists():
         return
     with _lock_for(path):
@@ -1492,9 +2172,47 @@ def iter_audit_history(path: Path) -> Iterator[Dict[str, str]]:
             continue  # rotated or pruned between the listing and the open
 
 
+def alert_unresolved_ambiguous_sends(audit: "AuditLogWriter", attempts: Iterable[Dict[str, str]]) -> None:
+    """On restart, make unresolved CLOIDs visible before any sender workers can run."""
+    alerted_attempts: set[str] = set()
+    alerted_cloids: set[str] = set()
+    for row in iter_audit_history(RECONCILIATION_CSV):
+        if str(row.get("status") or "").upper() != "SEND_OUTCOME_UNKNOWN_MANUAL_ALERT":
+            continue
+        note = str(row.get("notes") or "")
+        for part in note.split(";"):
+            key, sep, value = part.strip().partition("=")
+            if sep and key == "attempt_id" and value:
+                alerted_attempts.add(value)
+            elif sep and key == "cloid" and value:
+                alerted_cloids.add(value.lower())
+    for row in attempts:
+        attempt_id = str(row.get("attempt_id") or "").strip()
+        cloid = str(row.get("cloid") or "").strip().lower()
+        if not cloid:
+            continue
+        note = (f"unresolved ambiguous send found at startup; attempt_id={attempt_id}; cloid={cloid}; "
+                "manual exchange review required; no order was queried, resent, or cancelled")
+        if not ((attempt_id and attempt_id in alerted_attempts) or cloid in alerted_cloids):
+            audit.append_reconciliation(
+                "ALERT", "SEND_OUTCOME_UNKNOWN_MANUAL_ALERT",
+                leader_wallet=row.get("leader_wallet", ""), leader_fill_id=row.get("leader_fill_id", ""),
+                intent_id=row.get("intent_id", ""), coin=row.get("coin", ""),
+                action="MANUAL_REVIEW_CHECK_ORDER_BY_CLOID", reject_category="RATE_LIMIT_OR_TIMEOUT",
+                terminal_state="SEND_OUTCOME_UNKNOWN_MANUAL_ALERT", engine_can_send="False", notes=note)
+            alerted_attempts.add(attempt_id)
+            alerted_cloids.add(cloid)
+        if attempt_id:
+            update_send_attempt_row(attempt_id, {
+                "status": "ORDER_UNKNOWN", "terminal_state": "SEND_OUTCOME_UNKNOWN_MANUAL_ALERT",
+                "operator_action": "MANUAL_REVIEW_CHECK_ORDER_BY_CLOID", "notes": note,
+            }, base_row=row)
+
+
 def read_csv_tail_rows(path: Path, max_bytes: int) -> List[Dict[str, str]]:
     """Rows in roughly the last max_bytes of an audit CSV (whole rows only, header from the file start), so a status
     report over a multi-hundred-MB append-only file parses a bounded slice. max_bytes <= 0 reads the whole file."""
+    _flush_intents_before_read(path)
     if not path.exists():
         return []
     with _lock_for(path):
@@ -1523,6 +2241,7 @@ def read_csv_tail_rows(path: Path, max_bytes: int) -> List[Dict[str, str]]:
 def read_csv_rows(path: Path) -> List[Dict[str, str]]:
     """Every row of an audit CSV. Only the byte read is under the file lock; parsing (seconds for the large
     append-only files on the PC) runs after it, so appends from the send path never wait for a parse (run 5)."""
+    _flush_intents_before_read(path)
     if not path.exists() or path.stat().st_size <= 0:
         return []
     with _lock_for(path):
@@ -1682,6 +2401,15 @@ def canonical_coin_key(coin: Any) -> str:
     if upper in _CANONICAL_SYMBOL_OVERRIDES:
         return _CANONICAL_SYMBOL_OVERRIDES[upper]
     return _coin_key_map().get(upper, upper)
+
+
+_SPOT_INDEX_RE = re.compile(r'^@\d+$')
+
+
+def is_spot_pair(coin: Any) -> bool:
+    """True for an HL spot pair: @NNN index, */USDC, */USDT, or PURR (trades as PURR/USDC; leader rows carry PURR)."""
+    raw = str(coin or '').strip().upper()
+    return bool(raw) and (bool(_SPOT_INDEX_RE.match(raw)) or raw.endswith('/USDC') or raw.endswith('/USDT') or raw.startswith('PURR'))
 
 
 def canonical_coin_resolved(coin: Any) -> bool:
@@ -2635,17 +3363,98 @@ def build_live_integrity_status() -> Dict[str, Any]:
 
 
 _INTEGRITY_LAST: Dict[str, Any] = {"at": 0.0, "payload": None}
+_INTEGRITY_WRITE_LOCK = threading.Lock()
+_STATUS_WRITE_WORKERS: List[Any] = []
+_STATUS_WRITE_WORKERS_LOCK = threading.Lock()
+_STATUS_WRITE_SHUTDOWN_LOCK = threading.Lock()
+_STATUS_WRITE_SHUTDOWN_TIMEOUT_SEC = 1.0
+
+
+class _LatestStatusWriteWorker:
+    """Keep status I/O off the cycle thread with one active and one latest pending write."""
+    def __init__(self, name: str):
+        self.name = name
+        self._lock = threading.Lock()
+        self._pending: Optional[Tuple[Callable[..., Any], Tuple[Any, ...]]] = None
+        self._thread: Optional[threading.Thread] = None
+        self._shutdown_timeout_reported_thread: Optional[threading.Thread] = None
+        with _STATUS_WRITE_WORKERS_LOCK:
+            _STATUS_WRITE_WORKERS.append(self)
+
+    def submit(self, fn: Callable[..., Any], *args: Any) -> None:
+        with self._lock:
+            self._pending = (fn, args)
+            if self._thread is not None and self._thread.is_alive():
+                return
+            self._thread = threading.Thread(target=self._drain, name=self.name, daemon=True)
+            try:
+                self._thread.start()
+            except Exception as exc:
+                self._thread = None
+                self.report_failure(exc)
+
+    def _drain(self) -> None:
+        while True:
+            with self._lock:
+                pending = self._pending
+                self._pending = None
+                if pending is None:
+                    self._thread = None
+                    return
+            fn, args = pending
+            try:
+                fn(*args)
+            except Exception as exc:
+                self.report_failure(exc)
+
+    def report_failure(self, exc: Exception) -> None:
+        try:
+            sys.stderr.write(f"[status_write_failure:{self.name}] {type(exc).__name__}\n")
+        except Exception:
+            pass
+
+    def join_until(self, deadline: float) -> bool:
+        with self._lock:
+            thread = self._thread
+        if thread is None:
+            return True
+        if thread is threading.current_thread():
+            return False
+        thread.join(timeout=max(0.0, deadline - time.monotonic()))
+        return not thread.is_alive()
+
+    def report_shutdown_timeout(self) -> None:
+        with self._lock:
+            if self._shutdown_timeout_reported_thread is self._thread:
+                return
+            self._shutdown_timeout_reported_thread = self._thread
+        self.report_failure(TimeoutError("status worker did not stop before shutdown deadline"))
+
+
+_LIVE_INTEGRITY_WRITER = _LatestStatusWriteWorker("live-integrity-status")
+
+
+def _drain_status_write_workers() -> None:
+    """Drain all status writers against one shared deadline; safe to repeat at shutdown."""
+    with _STATUS_WRITE_SHUTDOWN_LOCK:
+        deadline = time.monotonic() + _STATUS_WRITE_SHUTDOWN_TIMEOUT_SEC
+        with _STATUS_WRITE_WORKERS_LOCK:
+            workers = list(_STATUS_WRITE_WORKERS)
+        for worker in workers:
+            if not worker.join_until(deadline):
+                worker.report_shutdown_timeout()
 
 
 def write_live_integrity_status(min_interval_sec: float = 0.0) -> Dict[str, Any]:
     """min_interval_sec > 0: reuse the last payload if it was written that recently (the per-cycle caller)."""
-    now = time.monotonic()
-    if min_interval_sec > 0 and _INTEGRITY_LAST["payload"] is not None and now - _INTEGRITY_LAST["at"] < min_interval_sec:
-        return _INTEGRITY_LAST["payload"]
-    payload = build_live_integrity_status()
-    _INTEGRITY_LAST.update(at=time.monotonic(), payload=payload)
-    atomic_write_json(LIVE_INTEGRITY_STATUS_FILE, payload)
-    return payload
+    with _INTEGRITY_WRITE_LOCK:
+        now = time.monotonic()
+        if min_interval_sec > 0 and _INTEGRITY_LAST["payload"] is not None and now - _INTEGRITY_LAST["at"] < min_interval_sec:
+            return _INTEGRITY_LAST["payload"]
+        payload = build_live_integrity_status()
+        atomic_write_json(LIVE_INTEGRITY_STATUS_FILE, payload)
+        _INTEGRITY_LAST.update(at=time.monotonic(), payload=payload)
+        return payload
 
 
 def log_error(context: str, exc: BaseException | str) -> None:
@@ -2810,7 +3619,7 @@ class Intent:
     copy_notional: float
     wallet_mode: str
     copy_mode: str
-    decision: str
+    decision: Optional[str]
     reason: str
     sleeve_id: str
     position_id: str
@@ -2824,7 +3633,8 @@ class Intent:
 
     @property
     def send_allowed(self) -> bool:
-        return self.decision in {"ENTRY_ALLOWED", "EXIT_ALLOWED", "SEND_ALLOWED"}
+        return (self.decision in {"ENTRY_ALLOWED", "EXIT_ALLOWED", "SEND_ALLOWED"}
+                or (self.decision is None and classify_send_lifecycle(self) in {"REDUCE", "EXIT"}))
 
 
 @dataclass
@@ -2894,9 +3704,15 @@ class ConfigManager:
             return raw
         if raw in {"CLOSE", "CLOSE ONLY", "CLO"}:
             return "CLOSE"
-        legacy = bval(cfg.get("auto_send_enabled"), False) if "auto_send_enabled" in cfg \
-            else bval(os.getenv("HL_LIVE_AUTO_SEND_ENABLED"), False)
-        return "ON" if legacy else "OFF"
+        # Fail closed: a present-but-unrecognised send_mode never falls through to a looser source.
+        if raw:
+            return "OFF"
+        # No send_mode and no explicit auto_send_enabled key: OFF. A stray env var must not arm sending.
+        if "auto_send_enabled" not in cfg:
+            return "OFF"
+        legacy = cfg.get("auto_send_enabled")
+        # An explicit ON arms; anything else (absent, false, junk) is OFF.
+        return "ON" if legacy is True or str(legacy).strip().lower() in {"1", "true", "yes", "y", "on"} else "OFF"
 
     @property
     def send_mode(self) -> str:
@@ -3028,19 +3844,24 @@ class ConfigManager:
     def active_wallets(self) -> List[str]:
         return [w for w in self.wallets() if self.wallet_enabled(w) and self.wallet_mode(w) != "OFF"]
 
+    def live_wallets(self) -> List[str]:
+        """Fully-copied wallets. wallet_mode() canonicalises LIVE to "ON"; CLO and OFF are not here."""
+        return [w for w in self.wallets() if self.wallet_enabled(w) and self.wallet_mode(w) == "ON"]
+
+    def live_over_stream_cap(self) -> bool:
+        """More LIVE wallets than the leader stream can follow - the one rule both gates share.
+        CLO is followed by polling only, so it never counts against MAX_WALLETS."""
+        return len(self.live_wallets()) > MAX_WALLETS
+
     def stream_wallets(self) -> List[str]:
-        """Wallets the leader stream follows: active ones first, so an OFF wallet never takes the
-        slot of a live one. More active wallets than slots is refused, never silently dropped.
+        """Wallets the leader stream follows: LIVE only, at most MAX_WALLETS. CLO and OFF never take
+        a websocket slot (controller ruling 6313307039); they ride REST polling (see
+        LiveCopyCore.poll_wallets), so a CLO wallet loses no leader fill. More LIVE wallets than
+        slots is refused by live_over_stream_cap(), never silently dropped.
 
         With HL_LIVE_WS_RANK_CSV set the candidates are first ordered by 24 h fill volume, so the
-        scarce WS slots go to the busiest leaders instead of to config-dict order (active-first
-        partition: active wallets fill the first slots, OFF wallets only fill the remainder.
-        Every active leader is still REST-polled
-        (see LiveCopyCore.poll_wallets), so a wallet outranked out of the feed loses nothing."""
-        active = self.active_wallets()
-        rest = [w for w in self.wallets() if w not in active]
-        n_active = min(len(active), MAX_WALLETS)
-        return self._by_fill_rank(active)[:n_active] + self._by_fill_rank(rest)[:MAX_WALLETS - n_active]
+        scarce WS slots go to the busiest leaders instead of to config-dict order."""
+        return self._by_fill_rank(self.live_wallets())[:MAX_WALLETS]
 
     def _by_fill_rank(self, cands: List[str]) -> List[str]:
         """cands ordered by fills_24h DESC from the CSV named by HL_LIVE_WS_RANK_CSV. Env unset, file
@@ -3075,7 +3896,12 @@ class ConfigManager:
 
     def max_wallet_exposure(self, wallet: str) -> float:
         wc = self.wallet_cfg(wallet)
-        return max(0.0, fnum(wc.get("max_wallet_exposure_usd", self.global_controls.get("max_wallet_exposure_usd")), 0.0))
+        global_cap = max(0.0, fnum(self.global_controls.get("max_wallet_exposure_usd"), 0.0))
+        raw_wallet_cap = wc.get("max_wallet_exposure_usd")
+        wallet_cap = fnum(raw_wallet_cap, global_cap)  # non-numeric override -> the global cap
+        if wallet_cap <= 0:  # non-positive override must never switch a set global cap off
+            return global_cap
+        return min(wallet_cap, global_cap) if global_cap > 0 else wallet_cap
 
     def max_order_notional(self) -> float:
         return max(0.0, fnum(self.global_controls.get("max_order_notional_usd"), 0.0))
@@ -3393,6 +4219,35 @@ class ManualLedger:
             self._last_seen_disk_mtime_ns = 0
         return raw
 
+    def nonflat_wallets_from_disk(self) -> Optional[set[str]]:
+        """Return non-flat sleeves from a strictly readable local ledger; None means unknown."""
+        try:
+            raw = json.loads(self.path.read_text(encoding="utf-8-sig"))
+            by_wallet = raw.get("by_wallet") if isinstance(raw, dict) else None
+            if (not isinstance(raw, dict) or raw.get("schema") != "manual_live_positions.v1.wallet_sleeves"
+                    or not isinstance(by_wallet, dict)):
+                return None
+            nonflat: set[str] = set()
+            for raw_wallet, wallet_map in by_wallet.items():
+                wallet = normalise_wallet(raw_wallet)
+                if not is_valid_wallet(wallet) or not isinstance(wallet_map, dict):
+                    return None
+                for raw_coin, sleeve in wallet_map.items():
+                    if (not isinstance(raw_coin, str) or not raw_coin.strip() or not isinstance(sleeve, dict)
+                            or "signed_size" not in sleeve or not isinstance(sleeve.get("coin"), str)
+                            or not sleeve["coin"].strip()
+                            or canonical_coin_key(raw_coin) != canonical_coin_key(sleeve["coin"])):
+                        return None
+                    size = sleeve["signed_size"]
+                    if isinstance(size, bool) or not isinstance(size, (int, float)) or not math.isfinite(float(size)):
+                        return None
+                    if abs(size) > POSITION_EPSILON:
+                        nonflat.add(wallet)
+                        break
+            return nonflat
+        except (OSError, UnicodeError, ValueError, TypeError, OverflowError):
+            return None
+
     @staticmethod
     def signed_delta(side: str, size: float) -> float:
         return abs(size) if side.upper() == "BUY" else -abs(size)
@@ -3635,7 +4490,10 @@ for _ledger_method in ("sleeve", "wallet_coin_position", "coin_net", "total_abs_
 
 class AuditLogWriter:
     def append_order_intent(self, intent: Intent) -> None:
-        append_csv(ORDER_INTENTS_CSV, ORDER_INTENT_FIELDS, {
+        notes = intent.notes
+        if isinstance(intent.fill.raw, dict) and "dir" in intent.fill.raw:
+            notes = (notes + ";" if notes else "") + "leader_dir_json=" + json.dumps(intent.fill.raw["dir"], ensure_ascii=False)
+        row = {
             "created_at": utc_now_iso(),
             "created_at_ms": utc_now_ms(),
             "intent_id": intent.intent_id,
@@ -3664,8 +4522,12 @@ class AuditLogWriter:
             "marketable_bps": "",
             "max_close_adverse_diff_pct": "",
             "min_notional": "",
-            "notes": intent.notes,
-        })
+            "notes": notes,
+        }
+        if "merged_leader_fills=" in str(notes):  # read back at restart for idempotency: written before this returns
+            append_csv(ORDER_INTENTS_CSV, ORDER_INTENT_FIELDS, row)
+        else:  # audit only: written behind the send by the single writer thread (flushed before reads, on stop and at exit)
+            enqueue_intent_row(ORDER_INTENTS_CSV, ORDER_INTENT_FIELDS, row, key=str(intent.intent_id))
 
     def _note_fill_row(self, fid: Any, state: Any = "") -> None:
         fid = str(fid or "").strip()
@@ -3681,8 +4543,8 @@ class AuditLogWriter:
         """Has this process written any send-attempt or reconciliation row for the leader fill id (the final-row invariant)."""
         return str(fid or "").strip() in self.__dict__.get("_rowed", ())
 
-    def append_send_attempt(self, row: Dict[str, Any]) -> None:
-        append_csv(SEND_ATTEMPTS_CSV, SEND_ATTEMPT_FIELDS, row)
+    def append_send_attempt(self, row: Dict[str, Any], durable: bool = False) -> None:
+        append_csv(SEND_ATTEMPTS_CSV, SEND_ATTEMPT_FIELDS, row, durable=durable)
         self._note_fill_row(row.get("leader_fill_id"), row.get("terminal_state") or row.get("status"))
 
     def append_live_fill(self, row: Dict[str, Any]) -> None:
@@ -3723,9 +4585,35 @@ class AuditLogWriter:
             "status": status,
             **kwargs,
         }
-        append_csv(RECONCILIATION_CSV, RECONCILIATION_FIELDS, row)
+        append_csv(RECONCILIATION_CSV, RECONCILIATION_FIELDS, row, retry_permission=True)
         self._note_fill_row(kwargs.get("leader_fill_id"), kwargs.get("terminal_state") or status)
 
+    def replay_all_fallbacks(self) -> int:
+        """Replay every spilled audit row into its live CSV.  Called once at startup so
+        that REPLAY_DEFERRED records (and any other spilled row) are recovered.  An
+        unresolved spill prevents startup, since sends cannot safely ignore its rows."""
+        total = 0
+        for path, fields in [
+            (ORDER_INTENTS_CSV, ORDER_INTENT_FIELDS),
+            (SEND_ATTEMPTS_CSV, SEND_ATTEMPT_FIELDS),
+            (LIVE_FILLS_CSV, LIVE_FILL_FIELDS),
+            (RECONCILIATION_CSV, RECONCILIATION_FIELDS),
+            (ERRORS_CSV, ERROR_FIELDS),
+        ]:
+            try:
+                total += replay_audit_fallback(path, fields)
+                sp = _fallback_path(path)
+                if sp.exists() and sp.stat().st_size > 0:
+                    raise OSError(f"audit fallback still has rows for {path.name}; refusing startup")
+                if _spill_pending(path):
+                    raise OSError(f"audit fallback replay remains unresolved for {path.name}; refusing startup")
+                journal = _spill_journal_path(path)
+                if journal.exists() and journal.stat().st_size > 0:
+                    raise OSError(f"audit fallback replay journal was not cleared for {path.name}; refusing startup")
+            except Exception as exc:
+                log_error("audit_replay", exc)
+                raise
+        return total
 
 class IntentBuilder:
     def __init__(self, cfg: ConfigManager, ledger: ManualLedger):
@@ -3739,7 +4627,10 @@ class IntentBuilder:
         self._exposure_prefetch_lock = threading.Lock()
         self._leader_dexes: Optional[List[str]] = None
         self._leader_dexes_ms = 0
+        self._leader_dexes_lock = threading.Lock()
         self._leader_equity: Dict[str, Tuple[float, int]] = {}
+        self._leader_equity_locks: Dict[str, threading.Lock] = {}
+        self._leader_equity_locks_guard = threading.Lock()
         self._sizing_block: Dict[str, str] = {}
         self._coin_activity: Dict[str, int] = {}  # last allowed send per coin (ENG-016 settle window)
         self._coin_clean: Dict[str, bool] = {}
@@ -3758,27 +4649,32 @@ class IntentBuilder:
         """Leader account value on the LEADER network: the whole-account value from portfolio (required;
         a unified-margin account keeps collateral in spot, which the perp figure leaves out), or the perp
         accountValue summed over every DEX if larger (the larger value never oversizes a copy). Cached for
-        HL_LIVE_LEADER_EQUITY_TTL_SEC (default 60 s). None when unreadable: the caller must not size."""
-        now = utc_now_ms()
-        ttl_ms = int(max(0.0, fnum(os.getenv("HL_LIVE_LEADER_EQUITY_TTL_SEC"), 60.0)) * 1000)
-        cached = self._leader_equity.get(wallet)
-        if cached and now - cached[1] <= ttl_ms:
-            return cached[0]
-        if self._leader_dexes is None or now - self._leader_dexes_ms > 600_000:
-            enum = _XNET.list_perp_dexes(fetcher=LEADER_FETCHER, info_url=HL_LEADER_INFO_URL, timeout=HTTP_TIMEOUT_SEC)
-            if enum.get("ok"):
-                self._leader_dexes, self._leader_dexes_ms = list(enum["dexes"]), now
-        exp = _XNET.master_exposure(wallet, self._leader_dexes, fetcher=LEADER_FETCHER, info_url=HL_LEADER_INFO_URL,
-                                    timeout=HTTP_TIMEOUT_SEC) if self._leader_dexes is not None else {}
-        whole = _XNET.rolling_day_pnl(wallet, fetcher=LEADER_FETCHER, info_url=HL_LEADER_INFO_URL, timeout=HTTP_TIMEOUT_SEC)
-        values = [fnum(v) for v in (exp.get("equity_usd") if exp.get("ok") else None,
-                                    whole.get("account_value_usd") if whole.get("ok") else None) if v is not None]
-        # the whole-account value is required: a perp-only figure can understate a unified account
-        equity = max(values) if whole.get("ok") and whole.get("account_value_usd") is not None else None
-        if equity is None or equity <= 0:
-            return None
-        self._leader_equity[wallet] = (fnum(equity), now)
-        return fnum(equity)
+        HL_LIVE_LEADER_EQUITY_TTL_SEC (default 120 s). None when unreadable: the caller must not size.
+        Same-wallet refreshes share one read set; the first result stays within the existing TTL."""
+        with self._leader_equity_locks_guard:
+            lock = self._leader_equity_locks.setdefault(wallet, threading.Lock())
+        with lock:
+            now = utc_now_ms()
+            ttl_ms = int(max(0.0, fnum(os.getenv("HL_LIVE_LEADER_EQUITY_TTL_SEC"), 120.0)) * 1000)
+            cached = self._leader_equity.get(wallet)
+            if cached and now - cached[1] <= ttl_ms:
+                return cached[0]
+            with self._leader_dexes_lock:
+                if self._leader_dexes is None or now - self._leader_dexes_ms > 600_000:
+                    enum = _XNET.list_perp_dexes(fetcher=LEADER_FETCHER, info_url=HL_LEADER_INFO_URL, timeout=HTTP_TIMEOUT_SEC)
+                    if enum.get("ok"):
+                        self._leader_dexes, self._leader_dexes_ms = list(enum["dexes"]), now
+            exp = _XNET.master_exposure(wallet, self._leader_dexes, fetcher=LEADER_FETCHER, info_url=HL_LEADER_INFO_URL,
+                                        timeout=HTTP_TIMEOUT_SEC) if self._leader_dexes is not None else {}
+            whole = _XNET.rolling_day_pnl(wallet, fetcher=LEADER_FETCHER, info_url=HL_LEADER_INFO_URL, timeout=HTTP_TIMEOUT_SEC)
+            values = [fnum(v) for v in (exp.get("equity_usd") if exp.get("ok") else None,
+                                        whole.get("account_value_usd") if whole.get("ok") else None) if v is not None]
+            # the whole-account value is required: a perp-only figure can understate a unified account
+            equity = max(values) if whole.get("ok") and whole.get("account_value_usd") is not None else None
+            if equity is None or equity <= 0:
+                return None
+            self._leader_equity[wallet] = (fnum(equity), now)
+            return fnum(equity)
 
     def _order_value_px(self, fill: LeaderFill) -> float:
         """Worst-case price the order can fill at, on the FOLLOWER network: the fresh mid the limit is built
@@ -3847,7 +4743,8 @@ class IntentBuilder:
         while each worker fetched under it). The reads are independent, so they run side by side: a fill costs
         one read time, not three or four. Freshness rules are unchanged: build() still refetches anything too old."""
         jobs = [] if local_block else [lambda: follower_mid(fill.coin)]
-        if self.cfg.copy_mode(fill.leader_wallet) != "fixed":
+        lifecycle, _ = self.ledger.classify_leader_side_for_wallet(fill.leader_wallet, fill.coin, fill.side)
+        if self.cfg.copy_mode(fill.leader_wallet) != "fixed" and lifecycle != "EXIT":
             # sizing reads the leader's equity even for a fill that is then blocked: keep it out of the send lock
             jobs.append(lambda: self.leader_equity(fill.leader_wallet))
         if local_block:
@@ -3974,8 +4871,6 @@ class IntentBuilder:
         coin = fill.coin
         wallet_mode = self.cfg.wallet_mode(wallet)
         copy_mode = self.cfg.copy_mode(wallet)
-        copy_notional = self._copy_notional(wallet, fill)
-        copy_size = round(copy_notional / fill.price, 8) if fill.price > 0 and copy_notional > 0 else 0.0
         sleeve_id = self.ledger.sleeve_id(wallet, coin)
         before = self.ledger.wallet_coin_position(wallet, coin)
         direction_before = self.ledger.direction_from_size(before)
@@ -3985,6 +4880,9 @@ class IntentBuilder:
             # fixed_notional / proportional sizing is an ENTRY/ADD concept only.
             copy_size = round(abs(before), 8)
             copy_notional = copy_size * fill.price
+        else:
+            copy_notional = self._copy_notional(wallet, fill)
+            copy_size = round(copy_notional / fill.price, 8) if fill.price > 0 and copy_notional > 0 else 0.0
         intent_id = stable_hash(["intent", fill.leader_fill_id, wallet, coin, fill.side, fill.timestamp_ms])
         position_id = ""
         if lifecycle in {"ENTRY", "ADD"}:
@@ -4060,6 +4958,11 @@ class IntentBuilder:
         return max(0.0, fill.notional * (norm_base / leader_equity))
 
     def _decision(self, wallet: str, fill: LeaderFill, lifecycle: str, copy_notional: float, before: float) -> Tuple[str, str]:
+        # Spot copying is not supported: refuse at the gate, before any idempotency key or send path is reachable.
+        if is_spot_pair(fill.coin):
+            if lifecycle not in {'ENTRY', 'ADD'} or (abs(before) <= POSITION_EPSILON and self._is_leader_close_fill(fill)):
+                return 'NOT_APPLICABLE_SPOT', 'spot pair; no owned spot position and spot copying is not supported'
+            return 'BLOCKED_SPOT_NOT_SUPPORTED', 'spot pair; only perp markets are copyable'
         if not self.cfg.wallet_enabled(wallet):
             return "BLOCKED_OFF", "wallet disabled"
         mode = self.cfg.wallet_mode(wallet)
@@ -4146,6 +5049,14 @@ def project_isolated_liquidation_px(mark: float, is_long: bool, leverage: float,
     return mark - side * mark * (1.0 / leverage - l) / denom
 
 
+class PendingSendWriteFailed(RuntimeError):
+    """The pending_send write-ahead row could not be written: the order was NOT sent."""
+
+
+class _MarginSymbolUnresolved(Exception):
+    """Internal: the margin-mode lane could not resolve a coin (named once, never raised to the error log per cycle)."""
+
+
 class SenderGateway:
     def __init__(self, cfg: ConfigManager, audit: AuditLogWriter, ledger: Optional[ManualLedger] = None):
         self.cfg = cfg
@@ -4177,34 +5088,73 @@ class SenderGateway:
         self._withdrawn_late: List[Dict[str, Any]] = []  # withdrawn at registration: the core must own their fills
         self._last_exchange_order_ms: int = 0
         self._exchange_rate_limit_cooldown_until_ms: int = 0
+        self._market_halted_until_ms: Dict[str, int] = {}
+        self._ioc_no_match_until_ms: Dict[str, int] = {}
+        self._margin_reject_until_ms: Dict[str, int] = {}
+        self._liq_parity_until_ms: Dict[str, int] = {}
+        # shortcut: windows reset on restart; persist only if restart-spanning controls are required.
+        self._last_exit_attempt_ms: Dict[str, int] = {}
         # Pending-exit guard: prevents a burst of leader close fills from each
         # firing a full-sleeve close before the first close is reflected by
         # copy-poll/reconciliation. Keyed by sleeve_id -> {ts_ms, intended_size,
         # position_abs_before, intent_id}. Protected by _pending_exit_lock.
         self._pending_exit_guard: Dict[str, Dict[str, Any]] = {}
         self._pending_exit_lock = threading.Lock()
+        self.on_confirmed_cancelled_ambiguous_exit: Optional[Callable[[Intent], None]] = None
+        self._ambiguous_send_rechecks: "queue.Queue[Dict[str, Any]]" = queue.Queue(maxsize=1000)
+        self._ambiguous_send_recheck_ids: set = set()
+        self._ambiguous_send_recheck_lock = threading.Lock()
+        self._ambiguous_send_recheck_stop = threading.Event()
+        self._ambiguous_send_recheck_thread: Optional[threading.Thread] = None
         self._load_asset_universe_snapshot()
+
+    def known_dispatch_reject(self, fill: LeaderFill) -> str:
+        """Return a cached terminal entry block that is safe to apply before queueing."""
+        if not _fill_dir(fill).startswith(("open ", "increase ")):
+            return ""
+        if is_spot_pair(fill.coin):
+            return "SPOT_MARKET_SKIPPED"
+        coin = str(fill.coin or "").strip().lower()
+        now = utc_now_ms()
+        for untils, status in ((self._market_halted_until_ms, "SKIPPED_MARKET_HALTED"),
+                               (self._ioc_no_match_until_ms, "SKIPPED_IOC_NO_IMMEDIATE_MATCH"),
+                               (self._margin_reject_until_ms, "SKIPPED_INSUFFICIENT_MARGIN"),
+                               (self._liq_parity_until_ms, "LIQ_PARITY_BLOCKED")):
+            if untils.get(coin, 0) > now:
+                return status
+        return ""
 
     def _place_order(self, exchange: Any, sdk_coin: str, is_buy: bool, size: float, limit_px: float,
                      tif: str, reduce_only: bool, timing: Optional[Dict[str, Any]] = None, started_key: str = "",
-                     cloid: Optional[str] = None) -> Any:
+                     cloid: Optional[str] = None, bypass_rate_limit_cooldown: bool = False,
+                     pre_send: Optional[Callable[[], None]] = None) -> Any:
         """The ONE physical exchange order call. Every order (IOC, IOC retry, rate-limit recovery,
         exit recovery) is serialised and paced here."""
         # Only the time slot is serialised (pacing, and a distinct signing nonce per order): the exchange calls of
         # different workers overlap (run 3: one ~3.5 s call at a time capped the engine near one order per 3.5 s).
         if FOLLOWER_NETWORK == "mainnet" and not MAINNET_ORDERS_CONFIRMED:
             raise RuntimeError("MAINNET_FOLLOWER_NOT_CONFIRMED: mainnet order refused without --confirm-mainnet-follower")
-        slot_ms = self._reserve_exchange_order_slot()
+        slot_ms = self._reserve_exchange_order_slot(
+            wait_for_cooldown=not (reduce_only or bypass_rate_limit_cooldown))
         delay_ms = max(0, slot_ms - utc_now_ms())
         if delay_ms:
             time.sleep(min(5.0, delay_ms / 1000.0))
+        if pre_send is not None:  # the pending_send write-ahead row: after the slot/cooldown wait, synchronously, right before the call
+            try:
+                pre_send()
+            except Exception as exc:  # fail closed: no crash record means no order
+                raise PendingSendWriteFailed(repr(exc)) from exc
         if timing is not None and started_key:
             timing[started_key] = utc_now_ms()
         order_kwargs: Dict[str, Any] = {"reduce_only": reduce_only}
         sdk_cloid = _sdk_cloid(cloid) if cloid else None  # T1a: SDK Cloid so the order is findable after a crash
         if sdk_cloid is not None and _exchange_accepts_cloid(exchange):
             order_kwargs["cloid"] = sdk_cloid
-        response = exchange.order(sdk_coin, is_buy, size, limit_px, {"limit": {"tif": tif}}, **order_kwargs)
+        _open_orders_send_begin()  # the periodic openOrders cache must not outlive a send
+        try:
+            response = exchange.order(sdk_coin, is_buy, size, limit_px, {"limit": {"tif": tif}}, **order_kwargs)
+        finally:
+            _open_orders_send_end()
         self._note_sender_key_rejection(response)
         return response
 
@@ -4233,7 +5183,11 @@ class SenderGateway:
         delay_ms = max(0, slot_ms - utc_now_ms())
         if delay_ms:
             time.sleep(min(5.0, delay_ms / 1000.0))
-        return exchange.cancel(sdk_coin, int(oid))
+        _open_orders_send_begin()
+        try:
+            return exchange.cancel(sdk_coin, int(oid))
+        finally:
+            _open_orders_send_end()
 
     def _is_isolated_only(self, coin: Any) -> bool:
         """Builder-dex (HIP-3, e.g. xyz:) assets and any asset flagged onlyIsolated trade isolated margin only."""
@@ -4247,24 +5201,190 @@ class SenderGateway:
         lev = self.cfg.follower_leverage()
         return (int(min(lev, max_lev)) if max_lev > 0 else lev), max_lev
 
+    def _margin_mode_lock(self, key: str) -> "threading.Lock":
+        return self.__dict__.setdefault("_margin_mode_locks", {}).setdefault(key, threading.Lock())
+
     def _ensure_margin_mode(self, exchange: Any, sdk_coin: str, intent: Intent, lifecycle: str,
                             timing: Dict[str, Any]) -> Optional[Tuple[bool, str, Dict[str, Any]]]:
+        """Order path: a no-op once the background setup (schedule_margin_mode_setup) has set the asset. If it has not
+        finished, this waits for that one call (one signed call per asset at a time) or, if it never ran, does it inline
+        exactly as before, so no order is lost or sent with the wrong margin mode."""
+        if lifecycle not in {"ENTRY", "ADD"} or str(sdk_coin) in self.__dict__.setdefault("_margin_mode_done", set()):
+            return None
+        # The wait for an in-flight background setup is bounded (HL_LIVE_MM_WAIT_SEC, default 10 s). Past it the entry fails
+        # closed (MARGIN_MODE_UNSET, no order sent) rather than hanging the send lane; the next fill for the coin retries.
+        lock = self._margin_mode_lock(str(sdk_coin))
+        if not lock.acquire(timeout=max(0.1, fnum(os.getenv("HL_LIVE_MM_WAIT_SEC"), 10.0))):
+            error = "margin mode setup still in flight past HL_LIVE_MM_WAIT_SEC"
+            return False, "MARGIN_MODE_UNSET", self._margin_unset_block(error, timing)
+        try:
+            return self._ensure_margin_mode_locked(exchange, sdk_coin, intent, lifecycle, timing)
+        finally:
+            lock.release()
+
+    def _guarded_update_leverage(self, exchange: Any, lev: Any, sdk_coin: str, is_cross: bool) -> str:
+        """The ONE place update_leverage is called (worker and inline). One global margin lock serialises it across coins
+        (an order for another coin waits at most HL_LIVE_MM_WAIT_SEC, then fails closed); under it the call takes a paced
+        order slot (entries wait out a 429 cooldown), runs in the margin_mode_bg headroom lane, and a 429 re-arms the shared
+        cooldown. Returns "" on an explicit {"status": "ok"}, else the error (fail closed: non-dict/unrecognised replies fail)."""
+        glock = self.__dict__.setdefault("_mm_global_lock", threading.Lock())
+        if not glock.acquire(timeout=max(0.1, fnum(os.getenv("HL_LIVE_MM_WAIT_SEC"), 10.0))):
+            return "margin-mode call lock busy past the HL_LIVE_MM_WAIT_SEC limit"
+        try:
+            slot_ms = self._reserve_exchange_order_slot(wait_for_cooldown=True)
+            delay_ms = max(0, slot_ms - utc_now_ms())
+            if delay_ms:
+                time.sleep(min(5.0, delay_ms / 1000.0))
+            error = ""
+            try:
+                with request_lane("margin_mode_bg"):
+                    resp = exchange.update_leverage(lev, sdk_coin, is_cross)  # SDK: update_leverage(leverage, name, is_cross)
+                # only an explicit {"status": "ok"} counts as set; no read-back is done, so nothing else confirms it
+                if not isinstance(resp, dict) or str(resp.get("status", "")).lower() != "ok":
+                    error = "unrecognised update_leverage reply: " + json.dumps(resp, default=str)[:280]
+            except Exception as exc:
+                error = repr(exc)
+            if error:
+                self._note_exchange_rate_limit(error)  # a 429 here re-arms the shared order cooldown
+            return error
+        finally:
+            glock.release()
+
+    @staticmethod
+    def _margin_unset_block(error: str, timing: Dict[str, Any]) -> Dict[str, Any]:
+        return {
+            "status": "MARGIN_MODE_UNSET", "error": error, "exchange_response": {}, "oid": "", "exchange_called": False,
+            "write_reconciliation": True, "reject_category": "MARGIN_MODE_UNSET", "terminal_state": "MARGIN_MODE_UNSET",
+            "operator_action": "CHECK_MARGIN_MODE_ON_EXCHANGE", "notes": f"margin mode could not be set: {error}",
+            "timing": timing}
+
+    def schedule_margin_mode_setup(self, raw_coin: Any) -> bool:
+        """Queue the one-time margin-mode call for a coin on the ONE serial background worker (never on the order path).
+        False when the coin is already set, queued, the queue is full or the worker is stopping. A failed setup is not
+        remembered: the order path retries it inline."""
+        key = str(raw_coin or "").strip()
+        if not key:
+            return False
+        with self.__dict__.setdefault("_mm_cond", threading.Condition()):
+            seen = self.__dict__.setdefault("_mm_seen", set())
+            queue = self.__dict__.setdefault("_mm_queue", collections.deque())
+            self.__dict__.setdefault("_mm_stopping", False)
+            if self.__dict__.get("_mm_stopping") or key in seen or key in queue or key == self.__dict__.get("_mm_current"):
+                return False
+            if len(queue) >= int(fnum(os.getenv("HL_LIVE_MM_QUEUE_MAX"), 64.0)):
+                return False  # bounded: the order path still does it inline for any coin that is not queued
+            queue.append(key)
+            thread = self.__dict__.get("_mm_thread")
+            if thread is None or not thread.is_alive():
+                self._mm_thread = threading.Thread(target=self._margin_mode_loop, daemon=True, name="HLCore-margin-mode")
+                self._mm_thread.start()
+            self._mm_cond.notify_all()
+        return True
+
+    def _note_margin_symbol_unresolved(self, coin: str, resolved: Dict[str, Any]) -> None:
+        """One named error row per coin per HL_LIVE_MM_UNRESOLVED_LOG_SEC (default 600 s); margin mode stays unset."""
+        seen = self.__dict__.setdefault("_mm_unresolved_logged", {})
+        now = time.monotonic()
+        if now - seen.get(coin, -1e12) < max(1.0, fnum(os.getenv("HL_LIVE_MM_UNRESOLVED_LOG_SEC"), 600.0)):
+            return
+        seen[coin] = now
+        log_error("margin_mode_background", f"MARGIN_MODE_UNSET: symbol unresolved: {coin} [{resolved.get('status')}] "
+                  f"{str(resolved.get('error') or '')[:160]}")
+
+    def _margin_mode_loop(self) -> None:
+        cond = self._mm_cond
+        while True:
+            with cond:
+                while not self._mm_queue and not self._mm_stopping:
+                    cond.wait()
+                if self._mm_stopping:
+                    self._mm_current = ""
+                    cond.notify_all()
+                    return
+                coin = self._mm_queue.popleft()
+                self._mm_current = coin
+            ok = False
+            try:
+                _pre = self._resolve_coin(coin)  # the send path's resolver: an unresolvable coin is named once, never raised per cycle
+                if not _pre.get("ok"):
+                    self._note_margin_symbol_unresolved(coin, _pre)
+                    raise _MarginSymbolUnresolved()
+                exchange, sdk_coin = self._exchange_client_for_coin(coin)
+                if self._mm_stopping:
+                    ok = False
+                else:  # the call itself (paced slot, cooldown, lane, global margin lock) is _guarded_update_leverage
+                    stand_in = argparse.Namespace(fill=argparse.Namespace(coin=coin))
+                    ok = self._ensure_margin_mode(exchange, sdk_coin, stand_in, "ENTRY", {}) is None
+            except _MarginSymbolUnresolved:
+                ok = False  # left UNSET: entries/adds fail closed at the send path's own resolve gate; closes never need it
+            except Exception as exc:  # a failed setup never blocks anything: the order path retries it inline
+                log_error("margin_mode_background", exc)
+                self._note_exchange_rate_limit(repr(exc))
+            with cond:
+                if ok:
+                    self._mm_seen.add(coin)
+                self._mm_current = ""
+                cond.notify_all()
+
+    def stop_margin_mode_worker(self, timeout: float = 5.0) -> bool:
+        """Shutdown: drop the queued (not yet started) setups, let the one in-flight call finish, wait at most `timeout`
+        and report. A dropped setup is retried inline by the order path next run. True when the worker is idle."""
+        cond = self.__dict__.setdefault("_mm_cond", threading.Condition())
+        with cond:
+            self._mm_stopping = True
+            dropped = len(self.__dict__.get("_mm_queue") or ())
+            (self.__dict__.get("_mm_queue") or collections.deque()).clear()
+            cond.notify_all()
+        idle = self.wait_margin_mode_setup(timeout)
+        thread = self.__dict__.get("_mm_thread")
+        if thread is not None and thread.is_alive():
+            thread.join(0.2)
+        if not idle or dropped:
+            log_error("margin_mode_background_stop",
+                      f"margin-mode worker stop: idle={idle} dropped_queued={dropped} in_flight={self.__dict__.get('_mm_current', '')!r}")
+        return idle
+
+    def wait_margin_mode_setup(self, timeout: float = 5.0) -> bool:
+        """True once the background setup queue is empty and idle (tests, shutdown)."""
+        cond = self.__dict__.setdefault("_mm_cond", threading.Condition())
+        end = time.monotonic() + timeout
+        with cond:
+            while self.__dict__.get("_mm_queue") or self.__dict__.get("_mm_current"):
+                left = end - time.monotonic()
+                if left <= 0:
+                    return False
+                cond.wait(left)
+        return True
+
+    def prewarm_margin_mode_for_fill(self, fill: "LeaderFill") -> bool:
+        """An opening fill of an armed wallet (mode ON, sending on) sets that coin's margin mode in the background, so
+        the order made from it finds it done. Closes never need it; mock sends and an OFF/CLO wallet never touch the exchange."""
+        if (not self.cfg.auto_send_enabled or bval(os.getenv("HL_LIVE_MOCK_SEND"), False)
+                or not bval(os.getenv("HL_LIVE_BG_MARGIN_MODE"), True)
+                or not _fill_dir(fill).startswith(("open ", "increase "))
+                or self.cfg.wallet_mode(fill.leader_wallet) != "ON"):
+            return False
+        return self.schedule_margin_mode_setup(fill.coin)
+
+    # No startup prewarm of every held coin (that burst of signed calls could trip the rate limit before any order): a
+    # coin is queued lazily, only by prewarm_margin_mode_for_fill when an opening/increasing fill of an armed wallet for
+    # it arrives (so an ADD on a held coin is covered too), one paced call at a time on the single worker.
+
+    def _ensure_margin_mode_locked(self, exchange: Any, sdk_coin: str, intent: Intent, lifecycle: str,
+                                   timing: Dict[str, Any]) -> Optional[Tuple[bool, str, Dict[str, Any]]]:
         """Cross margin at the follower leverage, set once per asset per run BEFORE the first order in it. A refused call
         blocks ENTRY/ADD (MARGIN_MODE_UNSET); closes are never blocked. Isolated-only assets and exchange objects without
-        update_leverage are skipped."""
+        update_leverage cannot be set: an ENTRY/ADD on a client without update_leverage fails closed too."""
         done = self.__dict__.setdefault("_margin_mode_done", set())
         key = str(sdk_coin)
-        if lifecycle not in {"ENTRY", "ADD"} or key in done or not hasattr(exchange, "update_leverage"):
+        if lifecycle not in {"ENTRY", "ADD"} or key in done:
             return None  # closes are never touched
         lev, _max_lev = self._copy_leverage(intent.fill.coin)
         is_cross = not self._is_isolated_only(intent.fill.coin)  # isolated-only assets: isolated margin at the capped leverage
-        error = ""
-        try:
-            resp = exchange.update_leverage(lev, sdk_coin, is_cross)  # SDK: update_leverage(leverage, name, is_cross)
-            if isinstance(resp, dict) and str(resp.get("status", "ok")).lower() != "ok":
-                error = json.dumps(resp, default=str)[:300]
-        except Exception as exc:
-            error = repr(exc)
+        if not hasattr(exchange, "update_leverage"):
+            error = "exchange client has no update_leverage: margin mode cannot be set"
+        else:
+            error = self._guarded_update_leverage(exchange, lev, sdk_coin, is_cross)
         self.audit.append_reconciliation(
             "MARGIN_MODE_SET", "MARGIN_MODE_SET" if not error else "MARGIN_MODE_UNSET", coin=str(intent.fill.coin),
             action="NO_ACTION" if not error else "MANUAL_REVIEW_MARGIN_MODE",
@@ -4274,11 +5394,7 @@ class SenderGateway:
             done.add(key)
             return None
         if lifecycle in {"ENTRY", "ADD"}:
-            return False, "MARGIN_MODE_UNSET", {
-                "status": "MARGIN_MODE_UNSET", "error": error, "exchange_response": {}, "oid": "", "exchange_called": False,
-                "write_reconciliation": True, "reject_category": "MARGIN_MODE_UNSET", "terminal_state": "MARGIN_MODE_UNSET",
-                "operator_action": "CHECK_MARGIN_MODE_ON_EXCHANGE", "notes": f"margin mode could not be set: {error}",
-                "timing": timing}
+            return False, "MARGIN_MODE_UNSET", self._margin_unset_block(error, timing)
         return None
 
     def _leader_state(self, wallet: str, dex: str = "") -> Tuple[Optional[Dict[str, Any]], str]:
@@ -4396,14 +5512,15 @@ class SenderGateway:
         return None
 
     def _begin_pending_send(self, intent: Intent, tif: str, order_type: str, limit_px: float, wire_size: float,
-                            cloid: str, timing: Dict[str, Any]) -> str:
+                            cloid: str, timing: Dict[str, Any], reduce_only: bool = False) -> str:
         """T1a: write the send_attempts row (status pending_send, with the cloid) BEFORE the exchange call, so a
         crash after the exchange accepted the order still leaves one row naming the order. Returns its attempt_id."""
         attempt_id = str(timing.get("send_attempt_id") or generate_attempt_id(intent.intent_id))
         timing["send_attempt_id"] = attempt_id
         timing["send_cloid"] = cloid
+        timing.setdefault("attempt_cloids", {})[attempt_id] = cloid
         now = utc_now_ms()
-        self.audit.append_send_attempt({
+        _row = ({
             "created_at": utc_now_iso(),
             "created_at_ms": now,
             "attempt_id": attempt_id,
@@ -4416,7 +5533,7 @@ class SenderGateway:
             "limit_price": limit_px,
             "copy_size": wire_size,
             "copy_notional": abs(wire_size * limit_px),
-            "reduce_only_sent": str(bool(intent.reduce_only_intended)),
+            "reduce_only_sent": str(bool(reduce_only)),
             "sleeve_id": intent.sleeve_id,
             "position_id": intent.position_id,
             "wallet_position_before": intent.wallet_position_before,
@@ -4435,7 +5552,79 @@ class SenderGateway:
             "notes": f"pending_send written before the exchange call; tif={tif}",
             "cloid": cloid,
         })
+        # the write-ahead row is fsynced (HL_LIVE_PENDING_SEND_FSYNC, default 1) so a power loss right after the exchange
+        # accepted the order cannot lose the only record naming it; the final send row is not fsynced
+        if bval(os.getenv("HL_LIVE_PENDING_SEND_FSYNC"), True):
+            self.audit.append_send_attempt(_row, durable=True)
+        else:
+            self.audit.append_send_attempt(_row)
         return attempt_id
+
+    def _recovery_send_hooks(self, intent: Intent, tif: str, order_type: str, limit_px: float, size: float,
+                             reduce_only: bool, timing: Optional[Dict[str, Any]], label: str):
+        """Retry/recovery sends (IOC retry, 429 recovery, missed-entry limit, netting resend, standing close): each is its
+        own exchange order, so each gets its OWN cloid and its OWN synchronous fsynced pending_send row, written by
+        _place_order right before the call (the same pre_send mechanism as the first send). Returns (cloid, pre_send)."""
+        t = timing if timing is not None else {}
+        n = int(t.get("send_attempt_seq") or 0) + 1
+        t["send_attempt_seq"] = n
+        key = f"{intent.intent_id}:{label}:{n}:{utc_now_ms()}"
+        cloid, attempt_id = generate_cloid(key), generate_attempt_id(key)
+
+        def _pre() -> None:
+            wait_intent_durable(intent_seq_for(intent.intent_id), intent.intent_id, wallet=str(intent.fill.leader_wallet or ""))  # never raises
+            t["send_attempt_id"] = attempt_id  # the final row of the last attempt shares this id and cloid
+            self._begin_pending_send(intent, tif, order_type, limit_px, size, cloid, t, reduce_only)
+            t["pending_send_done_ms"] = utc_now_ms()
+        return cloid, _pre
+
+    @staticmethod
+    def _outstanding_attempt_cloids(timing: Dict[str, Any], fallback_cloid: str, include_latest: bool = True) -> List[str]:
+        """Cloids that must ALL be confirmed absent before any further send: the latest attempt (the one that raised; its
+        cloid is timing["send_cloid"], set by _begin_pending_send) plus every earlier attempt id kept in
+        timing["ambiguous_attempt_ids"]. An earlier id with no recorded cloid yields "" so the resolver holds."""
+        latest_id = str(timing.get("send_attempt_id") or "")
+        out = [str(timing.get("send_cloid") or fallback_cloid or "")] if include_latest else []
+        known = timing.get("attempt_cloids") if isinstance(timing.get("attempt_cloids"), dict) else {}
+        for aid in timing.get("ambiguous_attempt_ids") or []:
+            if str(aid) != latest_id:
+                out.append(str(known.get(str(aid)) or ""))
+        return out
+
+    def _supersede_attempt(self, timing: Dict[str, Any], response: Any, intent: Optional[Intent] = None) -> bool:
+        """A definitely-rejected attempt that is about to be retried: its pending_send row must not stay pending.
+        True when the row was marked superseded (or there was no attempt). On a failed write (False result or exception) it
+        is NOT claimed: loud error line + reconciliation row, and the attempt id stays in timing["unsuperseded_attempt_ids"]
+        (its pending_send row remains for startup reconciliation). The caller's definite-reject retry still goes ahead."""
+        attempt_id = str(timing.get("send_attempt_id") or "")
+        if not attempt_id:
+            return True
+        try:
+            _ok, status, oid, error = self._parse_hl_response(response)
+            done = update_send_attempt_row(attempt_id, {
+                "status": status, "exchange_response": json.dumps(response, default=str), "exchange_order_id": oid or "",
+                "error": error or "", "terminal_state": "SUPERSEDED_BY_RETRY", "operator_action": "",
+                "notes": "attempt rejected; a retry attempt with its own cloid follows"})
+            why = "" if done else "no send_attempts row carries this attempt id"
+        except Exception as exc:
+            done, why = False, repr(exc)
+        if done:
+            return True
+        timing.setdefault("unsuperseded_attempt_ids", []).append(attempt_id)
+        msg = (f"send attempt {attempt_id} (intent_id={intent.intent_id if intent is not None else '?'}) was rejected and a retry follows, but its pending_send row could NOT be marked "
+               f"superseded ({why}); it stays pending for startup reconciliation")
+        log_error("supersede_attempt", msg)
+        try:
+            self.audit.append_reconciliation(
+                "SEND_ATTEMPT_SUPERSEDE", "SEND_ATTEMPT_SUPERSEDE_FAILED",
+                leader_wallet=intent.fill.leader_wallet if intent is not None else "",
+                leader_fill_id=intent.fill.leader_fill_id if intent is not None else "",
+                intent_id=intent.intent_id if intent is not None else "",
+                coin=intent.fill.coin if intent is not None else "",
+                action="REVIEW_PENDING_SEND_ROW_ON_STARTUP", terminal_state="PENDING_SEND", notes=msg)
+        except Exception as exc:
+            log_error("supersede_attempt_audit", exc)
+        return False
 
     def _engine_owned_cloids_and_oids(self):
         """Cloids and order ids this engine owns: every send_attempts row plus every resting entry."""
@@ -4656,8 +5845,7 @@ class SenderGateway:
         dexes = sorted({str(r.get("coin") or "").split(":", 1)[0].strip().lower() if ":" in str(r.get("coin") or "") else ""
                         for r in rows})
         started = utc_now_ms()
-        res = _XNET.post_many(OPEN_ORDERS_FETCHER, [{"type": "openOrders", "user": USER_WALLET, **({"dex": d} if d else {})}
-                                                    for d in dexes], HL_INFO_URL, HTTP_TIMEOUT_SEC)
+        res = periodic_open_orders(dexes)
         open_sz: Dict[str, float] = {}
         read_ok = set()
         for dex, r in zip(dexes, res):
@@ -4757,8 +5945,7 @@ class SenderGateway:
         dexes = sorted({str(r.get("coin") or "").split(":", 1)[0].strip().lower() if ":" in str(r.get("coin") or "") else ""
                         for r in rows.values()})
         started = utc_now_ms()
-        res = _XNET.post_many(OPEN_ORDERS_FETCHER, [{"type": "openOrders", "user": USER_WALLET, **({"dex": d} if d else {})}
-                                                    for d in dexes], HL_INFO_URL, HTTP_TIMEOUT_SEC)
+        res = periodic_open_orders(dexes)
         read_ok, open_oids = set(), set()
         for dex, r in zip(dexes, res):
             if r.get("ok") and isinstance(r.get("data"), list):
@@ -4930,9 +6117,9 @@ class SenderGateway:
         return (math.floor(raw_px * factor + 1e-9) if buy else math.ceil(raw_px * factor - 1e-9)) / factor
 
     def _exchange_client_for_coin(self, raw_coin: str) -> Tuple[Any, str]:
-        resolved = self._resolve_coin(raw_coin)
+        resolved = self._resolve_coin(raw_coin, allow_snapshot=True)  # rw14: used for cancels, which must never be blocked by snapshot-only metadata
         if not resolved.get("ok"):
-            raise ValueError(f"symbol unresolved for cancel: {raw_coin}")
+            raise ValueError(f"symbol unresolved: {raw_coin} [{resolved.get('status')}]")
         private_key = os.getenv("HL_LIVE_HL_PRIVATE_KEY", "").strip()
         if not private_key or HLAccount is None or HLExchange is None:
             raise ValueError("real sender not configured for cancel")
@@ -4960,27 +6147,30 @@ class SenderGateway:
             "order_type": "REAL_GTC_MISSED_ENTRY_LIMIT", "reduce_only_sent": False, "notes": note,
         }
 
-    def _reserve_exchange_order_slot(self) -> int:
-        """Reserve a monotonic exchange-call slot; callers wait after this method releases the lock."""
+    def _reserve_exchange_order_slot(self, wait_for_cooldown: bool = True) -> int:
+        """Reserve a paced slot; entries wait for 429 cooldown before reserving so exits can pass them."""
         min_gap_ms = max(0, int(fnum(os.getenv("HL_LIVE_MIN_EXCHANGE_ORDER_GAP_MS"), 250)))
-        now_ms = utc_now_ms()
-        with self._exchange_order_lock:
-            slot_ms = max(
-                self._last_exchange_order_ms + min_gap_ms,
-                self._exchange_rate_limit_cooldown_until_ms,
-                now_ms,
-            )
-            self._last_exchange_order_ms = max(self._last_exchange_order_ms, slot_ms)
-        return slot_ms
+        while True:
+            now_ms = utc_now_ms()
+            with self._exchange_order_lock:
+                cooldown_until_ms = self._exchange_rate_limit_cooldown_until_ms
+                if wait_for_cooldown and cooldown_until_ms > now_ms:
+                    wait_ms = cooldown_until_ms - now_ms
+                else:
+                    slot_ms = max(self._last_exchange_order_ms + min_gap_ms, now_ms)
+                    self._last_exchange_order_ms = max(self._last_exchange_order_ms, slot_ms)
+                    return slot_ms
+            time.sleep(min(5.0, wait_ms / 1000.0))
 
     def _note_exchange_rate_limit(self, error_text: str) -> None:
         if classify_reject_category(error_text, None) != "RATE_LIMIT_OR_TIMEOUT":
             return
         cooldown_ms = max(0, int(fnum(os.getenv("HL_LIVE_RATE_LIMIT_COOLDOWN_MS"), 8000)))
-        self._exchange_rate_limit_cooldown_until_ms = max(
-            self._exchange_rate_limit_cooldown_until_ms,
-            utc_now_ms() + cooldown_ms,
-        )
+        with self._exchange_order_lock:
+            self._exchange_rate_limit_cooldown_until_ms = max(
+                self._exchange_rate_limit_cooldown_until_ms,
+                utc_now_ms() + cooldown_ms,
+            )
 
     @staticmethod
     def _audit_proof_block_reason() -> str:
@@ -5354,6 +6544,7 @@ class SenderGateway:
         )
         if not self.cfg.master_switch_now():  # sending switched off meanwhile: no new standing order
             return
+        _sc_t: Dict[str, Any] = {"send_real_started_ms": utc_now_ms()}  # the standing-close send's own attempt/cloid record
         try:
             # Boss (12 Oct): not reduce-only, because the follower may need to move its exposure the other way. Safe instead
             # by sizing to the follower's net target from a fresh account read at placement, and by guard_standing_closes():
@@ -5376,8 +6567,11 @@ class SenderGateway:
             close_size = _sz
             _key = canonical_coin_key(intent.fill.coin)
             _led_net = self.ledger.coin_net(_key)
+            _cl, _pre = self._recovery_send_hooks(intent, "Gtc", "REAL_GTC_RECOVERY_CLOSE", limit_px, close_size, _ro,
+                                                  _sc_t, "standing_close")
             recovery_response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", close_size,
-                                                  limit_px, "Gtc", _ro)
+                                                  limit_px, "Gtc", _ro, cloid=_cl, bypass_rate_limit_cooldown=True,
+                                                  pre_send=_pre)
             ok, status, oid, error = self._parse_hl_response(recovery_response)
             self._recovery_intent_ids.add(intent.intent_id)
             if ok and oid and status == "ORDER_RESTING":
@@ -5406,6 +6600,11 @@ class SenderGateway:
                 notes=f"{notes}; recovery_status={status}; recovery_error={error}; recovery_response={json.dumps(recovery_response, default=str)}",
             )
         except Exception as exc:
+            if _sc_t.get("send_cloid"):  # the standing-close send itself raised: it may exist, reconcile before anything else
+                _out = self._reconcile_failed_recovery_send(exc, sdk_coin, intent, close_size, limit_px, _ro, _sc_t)
+                if _out is not None:
+                    self._recovery_intent_ids.add(intent.intent_id)  # no second blind standing close for this intent
+                    return
             self.audit.append_reconciliation(
                 "EXIT_RECOVERY", "EXIT_RECOVERY_QUEUE_FAILED",
                 leader_wallet=intent.fill.leader_wallet,
@@ -5417,6 +6616,340 @@ class SenderGateway:
                 terminal_state="EXIT_RECOVERY_QUEUE_FAILED",
                 notes=f"{notes}; recovery_error={repr(exc)}; original_ioc_response={json.dumps(response, default=str)}",
             )
+
+    def _resolve_ambiguous_send_outcome(
+        self, sdk_coin: str, intent: Intent, cloid: str, wire_size: float, limit_px: float,
+        reduce_only: bool, error_text: str, timing: Dict[str, Any],
+        schedule_followup: bool = True, record_hold: bool = True,
+    ) -> Optional[Tuple[bool, str, Dict[str, Any]]]:
+        """Readiness 1: an ambiguous send (timeout / unreadable reply) must resolve the ORIGINAL order by
+        cloid BEFORE any retry. Returns a result tuple when the original landed (open/filled) or when the
+        resolution itself is unreadable (hold + alert); None means the original is definitively NOT on the
+        exchange (cancelled) -> the caller may retry once. This method never places an order."""
+        cl = str(cloid or "").strip().lower()
+        if not cl:
+            return self._ambiguous_send_hold(intent, cloid, wire_size, limit_px, reduce_only,
+                                             "no cloid recorded for this send", error_text, timing,
+                                             schedule_followup, record_hold, sdk_coin)
+        try:
+            res = _XNET.post_many(
+                OPEN_ORDERS_FETCHER,
+                [{"type": "orderStatus", "user": USER_WALLET, "oid": cl}],
+                HL_INFO_URL, HTTP_TIMEOUT_SEC,
+            )[0]
+        except Exception as exc:
+            return self._ambiguous_send_hold(intent, cloid, wire_size, limit_px, reduce_only,
+                                             f"orderStatus read raised {exc!r}", error_text, timing,
+                                             schedule_followup, record_hold, sdk_coin)
+        if not (isinstance(res, dict) and res.get("ok")):
+            detail = res.get("detail") if isinstance(res, dict) else res
+            return self._ambiguous_send_hold(intent, cloid, wire_size, limit_px, reduce_only,
+                                             f"orderStatus unreadable: {detail}", error_text, timing,
+                                             schedule_followup, record_hold, sdk_coin)
+        data = res.get("data") if isinstance(res.get("data"), dict) else {}
+        order_row = data.get("order") if isinstance(data.get("order"), dict) else {}
+        status = str(order_row.get("status") or "").strip().lower()
+        order = order_row.get("order") if isinstance(order_row.get("order"), dict) else {}
+        oid = str(order.get("oid") or order_row.get("oid") or "").strip()
+        px = fnum(order.get("limitPx"), limit_px)
+        # fills for this cloid: secondary confirmation of a fill the orderStatus alone cannot prove
+        try:
+            fills, fills_status = _read_all_copy_fills(
+                int(fnum(timing.get("send_real_started_ms"), 0)) - 5000, utc_now_ms() + 5000)
+        except Exception as exc:
+            return self._ambiguous_send_hold(intent, cloid, wire_size, limit_px, reduce_only,
+                                             f"fills read raised {exc!r}", error_text, timing,
+                                             schedule_followup, record_hold, sdk_coin)
+        if fills_status != "FILLS_COMPLETE":
+            return self._ambiguous_send_hold(intent, cloid, wire_size, limit_px, reduce_only,
+                                             f"fills unreadable: {fills_status}", error_text, timing,
+                                             schedule_followup, record_hold, sdk_coin)
+        fill = next((f for f in fills
+                     if str(f.get("cloid") or f.get("clientOrderId") or "").strip().lower() == cl), None)
+        if fill is not None:
+            return self._ambiguous_send_landed(
+                intent, sdk_coin, cloid, wire_size, fnum(fill.get("px"), px), reduce_only,
+                "filled", oid or str(fill.get("oid") or ""), error_text, timing,
+                "a fill carries the original order's cloid")
+        if status == "open":
+            if not oid:
+                return self._ambiguous_send_hold(intent, cloid, wire_size, limit_px, reduce_only,
+                                                 "orderStatus says open but returned no order id", error_text, timing,
+                                                 schedule_followup, record_hold, sdk_coin)
+            return self._ambiguous_send_landed(
+                intent, sdk_coin, cloid, wire_size, px, reduce_only, "open", oid, error_text, timing,
+                "the original order is still open on the exchange")
+        if status == "filled":
+            return self._ambiguous_send_landed(
+                intent, sdk_coin, cloid, wire_size, limit_px, reduce_only, "filled", oid, error_text, timing,
+                "the exchange reports the original order filled")
+        if status in {"canceled", "cancelled"}:
+            if classify_send_lifecycle(intent) in {"EXIT", "REDUCE"}:
+                note = (f"confirmed original exit cloid={cl} cancelled after ambiguous send; no retry; "
+                        "next convergence cycle must re-read exposure and apply the normal reduce-only gates")
+                try:
+                    self.audit.append_reconciliation(
+                        "ALERT", "EXIT_CANCELLED_RECOMPUTE_PENDING", leader_wallet=intent.fill.leader_wallet,
+                        leader_fill_id=intent.fill.leader_fill_id, intent_id=intent.intent_id,
+                        coin=intent.fill.coin, action="WAIT_FOR_FRESH_REDUCE_ONLY_RECOMPUTE",
+                        reject_category="RATE_LIMIT_OR_TIMEOUT",
+                        terminal_state="EXIT_CANCELLED_RECOMPUTE_PENDING", engine_can_send="False", notes=note)
+                except Exception as exc:
+                    log_error("cancelled_exit_recompute_alert", exc)
+                callback = self.on_confirmed_cancelled_ambiguous_exit
+                if callback is not None:
+                    try:
+                        callback(intent)
+                    except Exception as exc:
+                        log_error("cancelled_exit_recompute_callback", exc)
+                return False, "ORDER_CANCELLED", {
+                    "exchange_response": {"status": "ok", "response": {"type": "orderStatus",
+                                                                          "data": {"order": {"order": {"oid": oid},
+                                                                                             "status": status}}}},
+                    "oid": oid, "limit_px": px, "wire_size": wire_size, "copy_notional": abs(wire_size * px),
+                    "exchange_called": True, "error": error_text, "timing": timing,
+                    "reject_category": "RATE_LIMIT_OR_TIMEOUT",
+                    "terminal_state": "SEND_OUTCOME_CONFIRMED_CANCELLED_NO_RETRY",
+                    "operator_action": "WAIT_FOR_FRESH_REDUCE_ONLY_RECOMPUTE",
+                    "order_type": "REAL_IOC_AMBIGUOUS_RESOLVED", "reduce_only_sent": reduce_only, "notes": note,
+                }
+            return None  # definitively not on the exchange: the caller may retry once
+        return self._ambiguous_send_hold(
+            intent, cloid, wire_size, limit_px, reduce_only,
+            f"order status {status or 'unknown'!r} is not a definitive answer", error_text, timing,
+            schedule_followup, record_hold, sdk_coin)
+
+    def _ambiguous_send_landed(self, intent: Intent, sdk_coin: str, cloid: str, wire_size: float, px: float,
+                                reduce_only: bool, outcome: str, oid: str, error_text: str,
+                                timing: Dict[str, Any], why: str) -> Tuple[bool, str, Dict[str, Any]]:
+        note = (f"ambiguous send ({error_text}); the ORIGINAL order was found {outcome} on the exchange by "
+                f"cloid={cloid} ({why}); no resend")
+        if outcome == "open" and oid:
+            if classify_send_lifecycle(intent) in {"EXIT", "REDUCE"}:
+                key = canonical_coin_key(intent.fill.coin)
+                sleeve = self.ledger.sleeve(intent.fill.leader_wallet, intent.fill.coin) if self.ledger else {}
+                wallet_pos = fnum(sleeve.get("signed_size"), intent.wallet_position_before)
+                row = {
+                    "oid": str(oid), "coin": intent.fill.coin, "sdk_coin": sdk_coin, "size": wire_size,
+                    "side": intent.copy_side, "intent_id": intent.intent_id, "placed_ms": utc_now_ms(),
+                    "reduce_only": bool(reduce_only), "sleeve_signed": wallet_pos,
+                    "wallet": intent.fill.leader_wallet,
+                    "led_net": self.ledger.coin_net(key) if self.ledger else intent.coin_net_before,
+                    "sleeve_tol": 0.0, "cloid": str(cloid),
+                }
+                with self._resting_lock:
+                    self._standing_closes[intent.sleeve_id] = row
+                    atomic_write_json(STANDING_CLOSES_FILE, dict(self._standing_closes))
+                self.audit.append_reconciliation(
+                    "EXIT_RECOVERY", "AMBIGUOUS_SEND_EXIT_RESTING", leader_wallet=intent.fill.leader_wallet,
+                    leader_fill_id=intent.fill.leader_fill_id, intent_id=intent.intent_id, coin=intent.fill.coin,
+                    exchange_order_id=oid, action="WAIT_FOR_STANDING_CLOSE_GUARD",
+                    terminal_state="AMBIGUOUS_SEND_EXIT_RESTING",
+                    notes=f"original exit order found open by cloid={cloid}; tracked with reduce_only={bool(reduce_only)}")
+            else:
+                self._register_resting_entry(intent, sdk_coin, oid, px, wire_size,
+                                             "ambiguous send resolved resting by cloid")
+        is_exit = classify_send_lifecycle(intent) in {"EXIT", "REDUCE"}
+        return True, ("ORDER_RESTING" if outcome == "open" else "ORDER_FILLED"), {
+            "exchange_response": {"status": "ok", "response": {"type": "orderStatus",
+                                                               "data": {"order": {"order": {"oid": oid},
+                                                                                  "status": outcome}}}},
+            "oid": oid, "limit_px": px, "wire_size": wire_size, "copy_notional": abs(wire_size * px),
+            "exchange_called": True, "error": error_text, "timing": timing,
+            "reject_category": "RATE_LIMIT_OR_TIMEOUT",
+            "terminal_state": (("STANDING_CLOSE_AMBIGUOUS_SEND" if is_exit else "ENTRY_LIMIT_RESTING_AMBIGUOUS_SEND")
+                               if outcome == "open" else "FILLED_AMBIGUOUS_SEND"),
+            "operator_action": "WAIT_FOR_CLOSE_RECONCILIATION" if is_exit else "WAIT_FOR_COPY_POLL",
+            "order_type": "REAL_IOC_AMBIGUOUS_RESOLVED",
+            "reduce_only_sent": reduce_only, "notes": note,
+        }
+
+    def _ambiguous_send_hold(self, intent: Intent, cloid: str, wire_size: float, limit_px: float,
+                             reduce_only: bool, detail: str, error_text: str,
+                             timing: Dict[str, Any], schedule_followup: bool = True,
+                             record_hold: bool = True, sdk_coin: str = "") -> Tuple[bool, str, Dict[str, Any]]:
+        note = (f"ambiguous send ({error_text}); the ORIGINAL order's outcome could NOT be resolved by "
+                f"cloid={cloid} ({detail}); NO resend, NO retry: check the exchange for this cloid")
+        if record_hold:
+            self.audit.append_reconciliation(
+                "AMBIGUOUS_SEND", "SEND_OUTCOME_UNKNOWN_HOLD",
+                leader_wallet=intent.fill.leader_wallet, leader_fill_id=intent.fill.leader_fill_id,
+                intent_id=intent.intent_id, coin=intent.fill.coin,
+                action="MANUAL_REVIEW_CHECK_ORDER_BY_CLOID",
+                reject_category="RATE_LIMIT_OR_TIMEOUT",
+                terminal_state="SEND_OUTCOME_UNKNOWN_HOLD", engine_can_send="False",
+                notes=note,
+            )
+        if schedule_followup:
+            self._queue_ambiguous_send_recheck(sdk_coin=sdk_coin, intent=intent, cloid=cloid,
+                                               wire_size=wire_size, limit_px=limit_px,
+                                               reduce_only=reduce_only, error_text=error_text,
+                                               timing=timing, detail=detail)
+        return False, "EXCHANGE_ERROR", {
+            "exchange_response": {}, "oid": "", "limit_px": limit_px, "wire_size": wire_size,
+            "copy_notional": abs(wire_size * limit_px),
+            "exchange_called": True, "error": error_text, "timing": timing,
+            "reject_category": "RATE_LIMIT_OR_TIMEOUT", "reduce_only_sent": reduce_only,
+            "terminal_state": "SEND_OUTCOME_UNKNOWN_HOLD",
+            "operator_action": "MANUAL_REVIEW_CHECK_ORDER_BY_CLOID",
+            "notes": note,
+        }
+
+    def _queue_ambiguous_send_recheck(self, sdk_coin: str, intent: Intent, cloid: str, wire_size: float,
+                                      limit_px: float, reduce_only: bool, error_text: str,
+                                      timing: Dict[str, Any], detail: str) -> None:
+        attempt_id = str(timing.get("send_attempt_id") or "")
+        cl = str(cloid or "").strip().lower()
+        if not cl or not attempt_id:
+            self._ambiguous_send_followup_alert(intent, cl, attempt_id, detail, 0)
+            return
+        ready = timing.setdefault("_ambiguous_send_recheck_ready", threading.Event())
+        job = {"sdk_coin": sdk_coin,
+               "intent": intent, "cloid": cl, "wire_size": wire_size, "limit_px": limit_px,
+               "reduce_only": reduce_only, "error_text": error_text, "timing": dict(timing),
+               "detail": detail, "attempt_id": attempt_id, "ready": ready}
+        with self._ambiguous_send_recheck_lock:
+            if attempt_id in self._ambiguous_send_recheck_ids:
+                return
+            try:
+                self._ambiguous_send_rechecks.put_nowait(job)
+            except queue.Full:
+                self._ambiguous_send_followup_alert(intent, cl, attempt_id, "recheck queue is full", 0)
+                return
+            self._ambiguous_send_recheck_ids.add(attempt_id)
+            if self._ambiguous_send_recheck_thread is None or not self._ambiguous_send_recheck_thread.is_alive():
+                self._ambiguous_send_recheck_thread = threading.Thread(
+                    target=self._ambiguous_send_recheck_loop, daemon=True, name="HLCore-ambiguous-send-recheck")
+                self._ambiguous_send_recheck_thread.start()
+
+    def signal_ambiguous_send_attempt_written(self, timing: Dict[str, Any]) -> None:
+        ready = timing.get("_ambiguous_send_recheck_ready")
+        if isinstance(ready, threading.Event):
+            ready.set()
+
+    def _ambiguous_send_recheck_loop(self) -> None:
+        while not self._ambiguous_send_recheck_stop.is_set():
+            try:
+                job = self._ambiguous_send_rechecks.get(timeout=0.25)
+            except queue.Empty:
+                continue
+            try:
+                self._run_ambiguous_send_recheck(job)
+            except Exception as exc:
+                log_error("ambiguous_send_recheck", exc)
+                self._ambiguous_send_followup_alert(job["intent"], job["cloid"], job["attempt_id"], repr(exc), 0)
+            finally:
+                with self._ambiguous_send_recheck_lock:
+                    self._ambiguous_send_recheck_ids.discard(job["attempt_id"])
+                self._ambiguous_send_rechecks.task_done()
+
+    def _run_ambiguous_send_recheck(self, job: Dict[str, Any]) -> None:
+        ready_deadline = time.monotonic() + max(5.0, HTTP_TIMEOUT_SEC * 2)
+        while (not job["ready"].is_set() and not self._ambiguous_send_recheck_stop.is_set()
+               and time.monotonic() < ready_deadline):
+            time.sleep(0.05)
+        if not job["ready"].is_set():
+            self._ambiguous_send_followup_alert(job["intent"], job["cloid"], job["attempt_id"],
+                                                "final send attempt audit row was not signaled", 0)
+            return
+        max_attempts = max(1, min(10, int(fnum(os.getenv("HL_LIVE_AMBIGUOUS_SEND_RECHECK_ATTEMPTS"), 3))))
+        interval = max(0.05, fnum(os.getenv("HL_LIVE_AMBIGUOUS_SEND_RECHECK_INTERVAL_SEC"), 5.0))
+        last_detail = job["detail"]
+        for number in range(1, max_attempts + 1):
+            if self._ambiguous_send_recheck_stop.wait(interval):
+                last_detail = "engine stopped before deferred outcome was resolved"
+                break
+            outcome = self._resolve_ambiguous_send_outcome(
+                job["sdk_coin"], job["intent"], job["cloid"], job["wire_size"], job["limit_px"],
+                job["reduce_only"], job["error_text"], job["timing"], schedule_followup=False,
+                record_hold=False)
+            if outcome is None:
+                updates = {"status": "ORDER_CANCELLED", "terminal_state": "SEND_OUTCOME_CONFIRMED_CANCELLED_NO_RETRY",
+                           "operator_action": "MANUAL_REVIEW_NO_AUTOMATIC_RETRY",
+                           "notes": f"deferred orderStatus confirmed original cloid={job['cloid']} cancelled; no automatic retry"}
+                update_send_attempt_row(job["attempt_id"], updates)
+                self.audit.append_reconciliation(
+                    "AMBIGUOUS_SEND", "SEND_OUTCOME_CONFIRMED_CANCELLED_NO_RETRY",
+                    leader_wallet=job["intent"].fill.leader_wallet,
+                    leader_fill_id=job["intent"].fill.leader_fill_id,
+                    intent_id=job["intent"].intent_id, coin=job["intent"].fill.coin,
+                    action="MANUAL_REVIEW_NO_AUTOMATIC_RETRY", reject_category="RATE_LIMIT_OR_TIMEOUT",
+                    terminal_state="SEND_OUTCOME_CONFIRMED_CANCELLED_NO_RETRY",
+                    notes=f"deferred read {number}/{max_attempts} confirmed cloid={job['cloid']} cancelled; no resend")
+                return
+            if outcome[1] == "ORDER_CANCELLED":
+                result = outcome[2]
+                update_send_attempt_row(job["attempt_id"], {
+                    "status": outcome[1], "exchange_order_id": result.get("oid", ""),
+                    "exchange_response": json.dumps(result.get("exchange_response", {})),
+                    "terminal_state": result.get("terminal_state", ""),
+                    "operator_action": result.get("operator_action", ""), "notes": result.get("notes", ""),
+                })
+                return
+            if outcome[1] in {"ORDER_RESTING", "ORDER_FILLED"}:
+                result = outcome[2]
+                update_send_attempt_row(job["attempt_id"], {
+                    "status": outcome[1], "exchange_order_id": result.get("oid", ""),
+                    "exchange_response": json.dumps(result.get("exchange_response", {})),
+                    "terminal_state": result.get("terminal_state", ""),
+                    "operator_action": result.get("operator_action", ""),
+                    "notes": f"deferred read {number}/{max_attempts} resolved original cloid={job['cloid']}; no resend",
+                })
+                self.audit.append_reconciliation(
+                    "AMBIGUOUS_SEND", "SEND_OUTCOME_DEFERRED_RESOLVED",
+                    leader_wallet=job["intent"].fill.leader_wallet,
+                    leader_fill_id=job["intent"].fill.leader_fill_id,
+                    intent_id=job["intent"].intent_id, coin=job["intent"].fill.coin,
+                    exchange_order_id=result.get("oid", ""), action=result.get("operator_action", "WAIT_FOR_COPY_POLL"),
+                    reject_category="RATE_LIMIT_OR_TIMEOUT", terminal_state=result.get("terminal_state", ""),
+                    notes=f"deferred read {number}/{max_attempts} found original cloid={job['cloid']} {outcome[1]}; no resend")
+                return
+            last_detail = str(outcome[2].get("error") or outcome[2].get("notes") or "outcome still unknown")
+        self._ambiguous_send_followup_alert(job["intent"], job["cloid"], job["attempt_id"], last_detail, max_attempts)
+
+    def _ambiguous_send_followup_alert(self, intent: Intent, cloid: str, attempt_id: str,
+                                       detail: str, attempts: int) -> None:
+        note = (f"original order outcome remains unresolved after {attempts} deferred CLOID rechecks; "
+                f"attempt_id={attempt_id}; cloid={cloid}; {detail}; no resend; manual exchange review required")
+        update_send_attempt_row(attempt_id, {
+            "status": "ORDER_UNKNOWN", "terminal_state": "SEND_OUTCOME_UNKNOWN_MANUAL_ALERT",
+            "operator_action": "MANUAL_REVIEW_CHECK_ORDER_BY_CLOID", "notes": note,
+        })
+        self.audit.append_reconciliation(
+            "ALERT", "SEND_OUTCOME_UNKNOWN_MANUAL_ALERT", leader_wallet=intent.fill.leader_wallet,
+            leader_fill_id=intent.fill.leader_fill_id, intent_id=intent.intent_id, coin=intent.fill.coin,
+            action="MANUAL_REVIEW_CHECK_ORDER_BY_CLOID", reject_category="RATE_LIMIT_OR_TIMEOUT",
+            terminal_state="SEND_OUTCOME_UNKNOWN_MANUAL_ALERT", engine_can_send="False", notes=note)
+
+    def stop_ambiguous_send_rechecks(self) -> None:
+        self._ambiguous_send_recheck_stop.set()
+        thread = self._ambiguous_send_recheck_thread
+        if thread is not None and thread.is_alive() and thread is not threading.current_thread():
+            thread.join(timeout=1.0)
+        while True:
+            try:
+                job = self._ambiguous_send_rechecks.get_nowait()
+            except queue.Empty:
+                break
+            self._ambiguous_send_followup_alert(job["intent"], job["cloid"], job["attempt_id"],
+                                                "engine stopped with recheck queued", 0)
+            self._ambiguous_send_rechecks.task_done()
+
+    def _reconcile_failed_recovery_send(self, exc: BaseException, sdk_coin: str, intent: Intent, wire_size: float,
+                                        limit_px: float, reduce_only: bool, timing: Dict[str, Any]) -> Optional[Tuple[bool, str, Dict[str, Any]]]:
+        """rw13: a recovery send (429/timeout recovery, standing close) that itself raised. A structural 429 (int status_code 429) is a
+        definite refusal: the attempt is superseded, nothing to reconcile (None). Anything else may have reached the exchange: this
+        attempt's cloid and every earlier outstanding one are reconciled; a landed/unreadable (hold) answer is returned, None = all
+        confirmed absent. Never sends; exception path only."""
+        if classify_rate_limit_kind(exc) == "RATE_LIMIT":
+            self._supersede_attempt(timing, {"status": "err", "response": repr(exc)}, intent)
+            return None
+        for _n, _cl in enumerate(self._outstanding_attempt_cloids(timing, "", True)):
+            _out = self._resolve_ambiguous_send_outcome(sdk_coin, intent, _cl, wire_size, limit_px, reduce_only, repr(exc), timing,
+                                                        schedule_followup=(_n == 0))
+            if _out is not None:
+                return _out
+        return None
 
     def _entry_add_rate_limit_recovery(
         self,
@@ -5430,6 +6963,7 @@ class SenderGateway:
         initial_error: str,
         timing: Dict[str, Any],
         resolved: Dict[str, Any],
+        definite_no_order: bool = False,
     ) -> Optional[Tuple[bool, str, Dict[str, Any]]]:
         lifecycle = classify_send_lifecycle(intent)
         if lifecycle not in {"ENTRY", "ADD"}:
@@ -5503,9 +7037,17 @@ class SenderGateway:
             already = self._already_resting_block(intent, timing)
             if already is not None:
                 return already
+        if definite_no_order:  # explicit 429: the exchange refused the call, no order exists, so the earlier pending row is settled
+            self._supersede_attempt(timing, {"status": "err", "response": initial_error}, intent)
+        elif timing.get("send_attempt_id"):  # timeout: the earlier order may exist; its row stays pending and its id is kept for reconciliation
+            timing.setdefault("ambiguous_attempt_ids", []).append(str(timing["send_attempt_id"]))
+        _prev_attempt = timing.get("send_attempt_id")
         try:
+            _cl, _pre = self._recovery_send_hooks(intent, tif, "REAL_IOC" if tif == "Ioc" else "REAL_GTC", leader_px,
+                                                  wire_size, False, timing, "rate_limit_recovery")
             recovery_response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", wire_size, leader_px,
-                                                  tif, False, timing, "entry_add_rate_limit_recovery_started_ms")
+                                                  tif, False, timing, "entry_add_rate_limit_recovery_started_ms",
+                                                  cloid=_cl, pre_send=_pre)
             timing["entry_add_rate_limit_recovery_finished_ms"] = utc_now_ms()
             ok, status, oid, parsed_error = self._parse_hl_response(recovery_response)
             reject_category = classify_reject_category(parsed_error, recovery_response) if not ok else ""
@@ -5541,6 +7083,10 @@ class SenderGateway:
         except Exception as exc:
             recovery_error = repr(exc)
             self._note_exchange_rate_limit(recovery_error)
+            if timing.get("send_attempt_id") != _prev_attempt:  # the recovery send's own pending row was written: it may exist
+                _out = self._reconcile_failed_recovery_send(exc, sdk_coin, intent, wire_size, leader_px, False, timing)
+                if _out is not None:
+                    return _out
             self.audit.append_reconciliation(
                 "ENTRY_ADD_RATE_LIMIT_RECOVERY", "ENTRY_ADD_RATE_LIMIT_RECOVERY_FAILED",
                 leader_wallet=intent.fill.leader_wallet,
@@ -5786,7 +7332,9 @@ class SenderGateway:
         if not rec:
             return False, ""
         now_ms = utc_now_ms()
-        ttl_ms = max(0, int(fnum(os.getenv("HL_LIVE_PENDING_EXIT_GUARD_TTL_MS"), 30000)))
+        ttl_ms = int(fnum(os.getenv("HL_LIVE_PENDING_EXIT_GUARD_TTL_MS"), 30000))
+        if ttl_ms <= 0:  # shortcut: zero does not mean an infinite close hold; raise the default if operators need longer.
+            ttl_ms = 30000
         age_ms = now_ms - int(fnum(rec.get("ts_ms"), 0))
         if ttl_ms and age_ms > ttl_ms:
             self._pending_exit_guard.pop(intent.sleeve_id, None)
@@ -5822,6 +7370,42 @@ class SenderGateway:
         with self._pending_exit_lock:
             self._pending_exit_guard.pop(intent.sleeve_id, None)
 
+    def _report_post_send_bookkeeping_error(self, intent: Intent, status: str, result: Dict[str, Any], exc: Exception) -> None:
+        log_error("post_send_bookkeeping", exc)
+        try:
+            timing = result.get("timing") if isinstance(result.get("timing"), dict) else {}
+            self.audit.append_reconciliation(
+                "SEND_TERMINAL", "POST_SEND_BOOKKEEPING_FAILED",
+                leader_wallet=intent.fill.leader_wallet, leader_fill_id=intent.fill.leader_fill_id,
+                intent_id=intent.intent_id, coin=intent.fill.coin, exchange_order_id=result.get("oid", ""),
+                cloid=timing.get("send_cloid", ""), action="MANUAL_REVIEW_RECONCILE_SEND_RESULT",
+                reject_category="POST_SEND_BOOKKEEPING_FAILED", terminal_state=status, engine_can_send=False,
+                notes=(f"exchange outcome {status} was preserved after post-send bookkeeping raised "
+                       f"{type(exc).__name__}; reconcile local state; no retry was issued"),
+            )
+        except Exception as alert_exc:
+            log_error("post_send_bookkeeping_alert", alert_exc)
+
+    def _send_time_wallet_mode_block(self, intent: Intent, lifecycle: str) -> Optional[Tuple[str, str]]:
+        """Re-reads the wallet's CURRENT mode (the same ConfigManager source _decision uses) at the final send gate, so an
+        intent queued/delayed while LIVE cannot send after the wallet was switched. OFF/disabled: nothing is sent. CLO: entries/adds
+        blocked; closes/exits unchanged (leader closes only, sized from the follower net; not forced reduce-only). ON: unchanged.
+        Unreadable mode: fail OPEN to the intent-time decision, loudly. Never writes a wallet mode."""
+        wallet = intent.fill.leader_wallet
+        try:
+            enabled = self.cfg.wallet_enabled(wallet)
+            mode = self.cfg.wallet_mode(wallet)
+        except Exception as exc:
+            log_error("send_time_wallet_mode_unreadable", f"intent_id={intent.intent_id} wallet={wallet}: {exc!r}; using the intent-time decision")
+            return None
+        if not enabled:
+            return "BLOCKED_OFF", f"wallet disabled at send time (intent created in mode {intent.wallet_mode})"
+        if mode == "OFF":
+            return "BLOCKED_OFF", f"wallet mode OFF at send time (intent created in mode {intent.wallet_mode})"
+        if mode == "CLO" and lifecycle in {"ENTRY", "ADD"}:
+            return "BLOCKED_CLO_ENTRY", f"CLO blocks entries/adds at send time (intent created in mode {intent.wallet_mode})"
+        return None
+
     def send_if_allowed(self, intent: Intent, entry_block_reason: str = "") -> Tuple[bool, str]:
         if not intent.send_allowed:
             return False, "INTENT_NOT_SEND_ALLOWED"
@@ -5833,6 +7417,12 @@ class SenderGateway:
         if self.sender_key_invalid:
             return False, "SEND_BLOCKED_SENDER_KEY_NOT_VALID"
         lifecycle = classify_send_lifecycle(intent)
+        coin_key = str(intent.fill.coin or "").strip().lower()
+        now_ms = utc_now_ms()
+        if lifecycle in {"ENTRY", "ADD"} and self._market_halted_until_ms.get(coin_key, 0) > now_ms:
+            return False, "SKIPPED_MARKET_HALTED"
+        if lifecycle in {"ENTRY", "ADD"} and self._ioc_no_match_until_ms.get(coin_key, 0) > now_ms:
+            return False, "SKIPPED_IOC_NO_IMMEDIATE_MATCH"
         if lifecycle in {"ENTRY", "ADD"} and self.cfg.send_mode_now() == "CLOSE":
             return False, "ENTRY_BLOCKED_GLOBAL_CLOSE_ONLY"  # CLOSE: reductions only, no entry or top-up
         if entry_block_reason and lifecycle in {"ENTRY", "ADD"}:
@@ -5869,11 +7459,19 @@ class SenderGateway:
             return False, "MASTER_REAL_ORDERS_OFF"
         if lifecycle in {"ENTRY", "ADD"} and self.cfg.send_mode_now() == "CLOSE":  # or to close-only meanwhile
             return False, "ENTRY_BLOCKED_GLOBAL_CLOSE_ONLY"
+        mode_block = self._send_time_wallet_mode_block(intent, lifecycle)  # rw12: the wallet may have moved to CLO/OFF since the intent was made
+        if mode_block is not None:
+            self._append_local_block_reconciliation(intent, mode_block[0], {
+                "terminal_state": mode_block[0], "reject_category": "WALLET_MODE_BLOCK",
+                "operator_action": "NO_SEND_WALLET_MODE_CHANGED", "notes": mode_block[1], "timing": timing})
+            return False, mode_block[0]
         if lifecycle in {"ENTRY", "ADD"} and self.cfg.liq_parity_enabled():
             timing["liq_parity_started_ms"] = utc_now_ms()
             parity = self.liq_parity_block(intent)
             timing["liq_parity_finished_ms"] = utc_now_ms()
             if parity is not None:
+                self._liq_parity_until_ms[coin_key] = utc_now_ms() + max(
+                    1, int(fnum(os.getenv("HL_LIVE_LIQ_PARITY_DISPATCH_COOLDOWN_MS"), 1000)))
                 parity["timing"] = timing
                 self._append_local_block_reconciliation(intent, "LIQ_PARITY_BLOCKED", parity)
                 return False, "LIQ_PARITY_BLOCKED"
@@ -5885,6 +7483,9 @@ class SenderGateway:
         reserved_exit = False
         if is_exit_like:
             with self._pending_exit_lock:
+                last_exit = self._last_exit_attempt_ms.get(coin_key, 0)
+                if utc_now_ms() - last_exit < 60000:
+                    return False, "EXIT_ATTEMPT_COOLDOWN"
                 blocked, guard_reason = self._pending_exit_blocked(intent)
                 if blocked:
                     self._append_local_block_reconciliation(intent, "PENDING_EXIT_GUARD_ACTIVE", {
@@ -5897,6 +7498,7 @@ class SenderGateway:
                     })
                     return False, "PENDING_EXIT_GUARD_ACTIVE"
                 self._mark_pending_exit(intent)
+                self._last_exit_attempt_ms[coin_key] = utc_now_ms()
                 reserved_exit = True
         if bval(os.getenv("HL_LIVE_MOCK_SEND"), False):
             self._append_mock_attempt(intent, "MOCK_ORDER_SENT", timing)
@@ -5904,18 +7506,49 @@ class SenderGateway:
         timing["send_real_started_ms"] = utc_now_ms()
         ok, send_status, result = self._send_real(intent, timing)
         if result.get("exchange_called"):
-            self._append_real_attempt(intent, send_status, result)
-            reduced_ms = self.leader_reduced_since(intent.fill) if lifecycle in {"ENTRY", "ADD"} else 0
-            if reduced_ms and send_status == "ORDER_FILLED":
-                self.audit.append_reconciliation(
-                    "SEND_TERMINAL", "ENTRY_FILLED_AFTER_LEADER_REDUCED",
-                    leader_wallet=intent.fill.leader_wallet, leader_fill_id=intent.fill.leader_fill_id,
-                    intent_id=intent.intent_id, coin=canonical_coin_key(intent.fill.coin), exchange_order_id=result.get("oid", ""),
-                    action="MANUAL_REVIEW_RECONCILE_ENTRY_LEADER_ALREADY_REDUCED", terminal_state="ENTRY_FILLED_AFTER_LEADER_REDUCED",
-                    engine_can_send="False",
-                    notes=(f"copy {intent.copy_side} {result.get('wire_size', intent.copy_size)} filled while the leader's "
-                           f"opposite fill at {reduced_ms} was already being handled; the follower may hold a position the "
-                           "leader no longer has; reconcile on the exchange"))
+            category = str(result.get("reject_category") or "")
+            if category == "MARKET_HALTED" and lifecycle in {"ENTRY", "ADD"}:
+                until = utc_now_ms() + 600000
+                was_active = self._market_halted_until_ms.get(coin_key, 0) > utc_now_ms()
+                self._market_halted_until_ms[coin_key] = max(self._market_halted_until_ms.get(coin_key, 0), until)
+                if not was_active:
+                    self.audit.append_reconciliation(
+                        "SEND_TERMINAL", "SKIPPED_MARKET_HALTED", leader_wallet=intent.fill.leader_wallet,
+                        leader_fill_id=intent.fill.leader_fill_id, intent_id=intent.intent_id, coin=coin_key,
+                        reject_category="MARKET_HALTED", terminal_state="SKIPPED_MARKET_HALTED",
+                        action="RETRY_AFTER_MARKET_HALT_COOLDOWN", notes="Trading is halted.; per-coin cooldown 10 minutes")
+            elif category == "IOC_NO_IMMEDIATE_MATCH" and lifecycle in {"ENTRY", "ADD"}:
+                window_ms = max(1, int(fnum(os.getenv("HL_LIVE_IOC_NO_MATCH_RETRY_WINDOW_MS"), 10000)))
+                was_active = self._ioc_no_match_until_ms.get(coin_key, 0) > utc_now_ms()
+                self._ioc_no_match_until_ms[coin_key] = max(self._ioc_no_match_until_ms.get(coin_key, 0), utc_now_ms() + window_ms)
+                if not was_active:
+                    self.audit.append_reconciliation(
+                        "SEND_TERMINAL", "IOC_NO_IMMEDIATE_MATCH", leader_wallet=intent.fill.leader_wallet,
+                        leader_fill_id=intent.fill.leader_fill_id, intent_id=intent.intent_id, coin=coin_key,
+                        reject_category="IOC_NO_IMMEDIATE_MATCH", terminal_state="IOC_NO_IMMEDIATE_MATCH",
+                        action="RETRY_AFTER_IOC_WINDOW", notes=f"IOC remained IOC; per-coin retry window {window_ms} ms")
+            elif category == "INSUFFICIENT_MARGIN" and lifecycle in {"ENTRY", "ADD"}:
+                window_ms = max(1, int(fnum(os.getenv("HL_LIVE_MARGIN_REJECT_RETRY_WINDOW_MS"), 10000)))
+                self._margin_reject_until_ms[coin_key] = max(
+                    self._margin_reject_until_ms.get(coin_key, 0), utc_now_ms() + window_ms)
+            try:
+                try:
+                    self._append_real_attempt(intent, send_status, result)
+                finally:
+                    self.signal_ambiguous_send_attempt_written(timing)
+                reduced_ms = self.leader_reduced_since(intent.fill) if lifecycle in {"ENTRY", "ADD"} else 0
+                if reduced_ms and send_status == "ORDER_FILLED":
+                    self.audit.append_reconciliation(
+                        "SEND_TERMINAL", "ENTRY_FILLED_AFTER_LEADER_REDUCED",
+                        leader_wallet=intent.fill.leader_wallet, leader_fill_id=intent.fill.leader_fill_id,
+                        intent_id=intent.intent_id, coin=canonical_coin_key(intent.fill.coin), exchange_order_id=result.get("oid", ""),
+                        action="MANUAL_REVIEW_RECONCILE_ENTRY_LEADER_ALREADY_REDUCED", terminal_state="ENTRY_FILLED_AFTER_LEADER_REDUCED",
+                        engine_can_send="False",
+                        notes=(f"copy {intent.copy_side} {result.get('wire_size', intent.copy_size)} filled while the leader's "
+                               f"opposite fill at {reduced_ms} was already being handled; the follower may hold a position the "
+                               "leader no longer has; reconcile on the exchange"))
+            except Exception as exc:
+                self._report_post_send_bookkeeping_error(intent, send_status, result, exc)
         else:
             # No real order placed — release any exit reservation so we never wrongly
             # block a genuine later close because of a non-exchange (symbol/cred) miss.
@@ -6288,32 +7921,49 @@ class SenderGateway:
                 wire_size = close_size_planned
         netting_note = ""
         gtc_px = limit_px if rest_now else 0.0  # a resting limit is in flight: never re-send it after an exception
-        # T1a: write the pending_send row (with the cloid) before the one physical call, then replace it below
+        # T1a: the pending_send row (with the cloid) is written by _place_order synchronously, AFTER the slot/cooldown wait
+        # and immediately BEFORE the one physical call (so a crash during the wait leaves no pending row for an unsent
+        # order), then replaced below
         cloid = str(timing.get("send_cloid") or generate_cloid(intent.intent_id))
         timing["send_cloid"] = cloid
-        try:
-            self._begin_pending_send(intent, "Gtc" if rest_now else "Ioc", "REAL_GTC" if rest_now else "REAL_IOC",
-                                     limit_px, wire_size, cloid, timing)
-        except Exception as exc:  # fail closed: no crash record means no order (the caller releases any exit reservation)
-            log_error("begin_pending_send", exc)
-            return False, "SEND_NOT_ATTEMPTED_AUDIT_WRITE_FAILED", {
-                "status": "AUDIT_WRITE_FAILED", "error": repr(exc), "exchange_response": {}, "oid": "",
-                "exchange_called": False, "write_reconciliation": True,
-                "notes": f"pending_send row could not be written ({exc!r}); order not sent",
-                "reject_category": "AUDIT_WRITE_FAILED", "terminal_state": "AUDIT_WRITE_FAILED",
-                "operator_action": "CHECK_DISK_AND_AUDIT_FILES", "timing": timing,
-            }
-        timing["pending_send_done_ms"] = utc_now_ms()
+
+        def _pending_send(_tif="Gtc" if rest_now else "Ioc", _ot="REAL_GTC" if rest_now else "REAL_IOC", _px=limit_px,
+                          _sz=wire_size, _ro=use_reduce_only) -> None:
+            wait_intent_durable(intent_seq_for(intent.intent_id), intent.intent_id, wallet=str(intent.fill.leader_wallet or ""))  # barrier: intent row on disk first; never raises
+            self._begin_pending_send(intent, _tif, _ot, _px, _sz, cloid, timing, _ro)
+            timing["pending_send_done_ms"] = utc_now_ms()
+        accepted_result: Optional[Tuple[bool, str, Dict[str, Any]]] = None
         try:
             response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", wire_size, limit_px,
                                          "Gtc" if rest_now else "Ioc", use_reduce_only, timing, "exchange_call_started_ms",
-                                         cloid=cloid)
+                                         cloid=cloid, bypass_rate_limit_cooldown=lifecycle in {"REDUCE", "EXIT"},
+                                         pre_send=_pending_send)
             timing["exchange_call_finished_ms"] = utc_now_ms()
             if rest_now:
+                resting_ok, resting_status, resting_oid, resting_error = self._parse_hl_response(response)
+                if resting_ok:
+                    accepted_result = (resting_ok, resting_status, {
+                        "exchange_response": response, "oid": resting_oid, "limit_px": limit_px,
+                        "wire_size": wire_size, "copy_notional": abs(wire_size * limit_px),
+                        "exchange_called": True, "error": resting_error, "timing": timing,
+                        "reject_category": "", "reduce_only_sent": False,
+                        "terminal_state": ("ENTRY_LIMIT_RESTING_PRICE_MOVED" if resting_status == "ORDER_RESTING"
+                                           else "FILLED_AWAITING_COPY_POLL"),
+                        "operator_action": ("MISSED_ENTRY_RECOVERY_LIMIT_RESTING" if resting_status == "ORDER_RESTING"
+                                            else "WAIT_FOR_COPY_POLL"),
+                        "order_type": "REAL_GTC_MISSED_ENTRY_LIMIT",
+                    })
                 return self._resting_entry_result(
                     intent, sdk_coin, response, limit_px, wire_size, timing, missed,
                     "price moved beyond tolerance before the copy")
             ok, status, oid, parsed_error = self._parse_hl_response(response)
+            if ok:
+                accepted_result = (ok, status, {
+                    "exchange_response": response, "oid": oid, "limit_px": limit_px,
+                    "wire_size": wire_size, "copy_notional": wire_notional,
+                    "exchange_called": True, "error": parsed_error, "timing": timing,
+                    "reject_category": "", "reduce_only_sent": use_reduce_only,
+                })
             reject_category = classify_reject_category(parsed_error, response) if status == "ORDER_REJECTED" else ""
             if (
                 not ok
@@ -6335,8 +7985,11 @@ class SenderGateway:
                     retry_safe, retry_unsafe = self._pre_exchange_asset_safety(intent, resolved, retry_px, wire_size)
                     if more_aggressive and retry_safe and retry_notional <= max(wire_notional * 1.5, wire_notional + 5.0):
                         timing["entry_ioc_retry_started_ms"] = utc_now_ms()
+                        self._supersede_attempt(timing, response, intent)
+                        _cl, _pre = self._recovery_send_hooks(intent, "Ioc", "REAL_IOC", retry_px, wire_size, False,
+                                                              timing, "ioc_retry")
                         retry_response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", wire_size,
-                                                           retry_px, "Ioc", False)
+                                                           retry_px, "Ioc", False, cloid=_cl, pre_send=_pre)
                         timing["entry_ioc_retry_finished_ms"] = utc_now_ms()
                         retry_ok, retry_status, retry_oid, retry_error = self._parse_hl_response(retry_response)
                         if retry_ok:
@@ -6349,6 +8002,7 @@ class SenderGateway:
                                 "notes": f"entry IOC retry filled; initial_error={parsed_error}; initial_limit={limit_px}; retry_bps={retry_bps}",
                             }
                         response, status, oid, parsed_error = retry_response, retry_status, retry_oid, retry_error
+                        accepted_result = None
                         reject_category = classify_reject_category(parsed_error, response) if status == "ORDER_REJECTED" else ""
                         limit_px = retry_px
                         wire_notional = retry_notional
@@ -6360,8 +8014,25 @@ class SenderGateway:
                 if rest_safe and rest_px > 0 and self.resting_entry_for(intent.fill.leader_wallet, intent.fill.coin,
                                                                         intent.copy_side) is None:
                     gtc_px = rest_px
+                    self._supersede_attempt(timing, response, intent)
+                    _cl, _pre = self._recovery_send_hooks(intent, "Gtc", "REAL_GTC", rest_px, wire_size, False, timing,
+                                                          "missed_entry")
                     rest_response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", wire_size, rest_px,
-                                                      "Gtc", False, timing, "missed_entry_limit_started_ms")
+                                                      "Gtc", False, timing, "missed_entry_limit_started_ms",
+                                                      cloid=_cl, pre_send=_pre)
+                    resting_ok, resting_status, resting_oid, resting_error = self._parse_hl_response(rest_response)
+                    if resting_ok:
+                        accepted_result = (resting_ok, resting_status, {
+                            "exchange_response": rest_response, "oid": resting_oid, "limit_px": rest_px,
+                            "wire_size": wire_size, "copy_notional": abs(wire_size * rest_px),
+                            "exchange_called": True, "error": resting_error, "timing": timing,
+                            "reject_category": "", "reduce_only_sent": False,
+                            "terminal_state": ("ENTRY_LIMIT_RESTING_PRICE_MOVED" if resting_status == "ORDER_RESTING"
+                                               else "FILLED_AWAITING_COPY_POLL"),
+                            "operator_action": ("MISSED_ENTRY_RECOVERY_LIMIT_RESTING" if resting_status == "ORDER_RESTING"
+                                                else "WAIT_FOR_COPY_POLL"),
+                            "order_type": "REAL_GTC_MISSED_ENTRY_LIMIT",
+                        })
                     return self._resting_entry_result(intent, sdk_coin, rest_response, rest_px, wire_size, timing, missed,
                                                       f"copy order found no match ({parsed_error})")
             if (not ok and status == "ORDER_REJECTED"
@@ -6378,9 +8049,20 @@ class SenderGateway:
                     if not self._reduce_only_on_wire(intent, wire_size):
                         first_error = parsed_error
                         timing["netting_close_retry_started_ms"] = utc_now_ms()
+                        self._supersede_attempt(timing, response, intent)
+                        _cl, _pre = self._recovery_send_hooks(intent, "Ioc", "REAL_IOC", limit_px, wire_size, False,
+                                                              timing, "netting_resend")
                         response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", wire_size, limit_px,
-                                                     "Ioc", False)
+                                                     "Ioc", False, cloid=_cl, bypass_rate_limit_cooldown=True,
+                                                     pre_send=_pre)
                         ok, status, oid, parsed_error = self._parse_hl_response(response)
+                        if ok:
+                            accepted_result = (ok, status, {
+                                "exchange_response": response, "oid": oid, "limit_px": limit_px,
+                                "wire_size": wire_size, "copy_notional": wire_notional,
+                                "exchange_called": True, "error": parsed_error, "timing": timing,
+                                "reject_category": "", "reduce_only_sent": False,
+                            })
                         reject_category = classify_reject_category(parsed_error, response) if status == "ORDER_REJECTED" else ""
                         use_reduce_only = False
                         netting_note = (f"leaders net on one account: close resent without reduce-only once the ledger "
@@ -6413,8 +8095,22 @@ class SenderGateway:
                 **({"notes": netting_note} if netting_note else {}),
             }
         except Exception as exc:
+            if isinstance(exc, PendingSendWriteFailed):  # fail closed: no crash record means no order (caller releases any exit reservation)
+                cause = exc.__cause__ or exc
+                log_error("begin_pending_send", cause)
+                return False, "SEND_NOT_ATTEMPTED_AUDIT_WRITE_FAILED", {
+                    "status": "AUDIT_WRITE_FAILED", "error": str(exc), "exchange_response": {}, "oid": "",
+                    "exchange_called": False, "write_reconciliation": True,
+                    "notes": f"pending_send row could not be written ({exc}); order not sent",
+                    "reject_category": "AUDIT_WRITE_FAILED", "terminal_state": "AUDIT_WRITE_FAILED",
+                    "operator_action": "CHECK_DISK_AND_AUDIT_FILES", "timing": timing,
+                }
             timing["exchange_call_finished_ms"] = utc_now_ms()
             log_error("send_real", exc)
+            if accepted_result is not None:
+                self._report_post_send_bookkeeping_error(intent, accepted_result[1], accepted_result[2], exc)
+                accepted_result[2]["notes"] = "exchange outcome preserved; post-send bookkeeping failed; no retry issued"
+                return accepted_result
             if isinstance(exc, KeyError):
                 self._learn_sdk_incompatible(intent.fill.coin, resolved, repr(exc))
             error_text = repr(exc)
@@ -6439,6 +8135,25 @@ class SenderGateway:
                     "reduce_only_sent": False, "notes": detail,
                 }
             if reject_category == "RATE_LIMIT_OR_TIMEOUT":
+                # Readiness 1: resolve the ORIGINAL order by cloid first. Only a definitive "not on the
+                # exchange" answer lets the one recovery retry run; a landed order is reported as-is and an
+                # unreadable resolution holds + alerts instead of blind-resending.
+                # rw7b: an explicit 429 on an entry/add is a definite refusal (no order exists), so there is nothing to
+                # reconcile and the recovery below supersedes the pending row; a TIMEOUT always reconciles first.
+                definite_429 = (classify_rate_limit_kind(exc) == "RATE_LIMIT"
+                                and classify_send_lifecycle(intent) in {"ENTRY", "ADD"})
+                # rw12: reconcile the attempt that actually raised (timing["send_cloid"] = the LATEST attempt's cloid; the initial
+                # `cloid` may be a definitely-rejected, superseded attempt), then every earlier attempt still ambiguous. Any
+                # landed/hold answer ends here: a further send needs EVERY outstanding attempt confirmed absent.
+                resolved_outcome = None
+                for _n, _cl in enumerate(self._outstanding_attempt_cloids(timing, cloid, not definite_429)):
+                    resolved_outcome = self._resolve_ambiguous_send_outcome(
+                        sdk_coin, intent, _cl, wire_size, limit_px, use_reduce_only, error_text, timing,
+                        schedule_followup=(_n == 0))
+                    if resolved_outcome is not None:
+                        break
+                if resolved_outcome is not None:
+                    return resolved_outcome
                 recovery = self._entry_add_rate_limit_recovery(
                     exchange,
                     sdk_coin,
@@ -6450,6 +8165,7 @@ class SenderGateway:
                     error_text,
                     timing,
                     resolved,
+                    definite_no_order=definite_429,
                 )
                 if recovery is not None:
                     return recovery
@@ -6500,7 +8216,8 @@ class SenderGateway:
             if dex_name:
                 self._fetch_builder_meta(dex_name)
         self._save_asset_universe_snapshot("warm_startup")
-        self._universe_last_refresh_ms = utc_now_ms()
+        if self._core_meta_fetched:  # rw14: a failed startup fetch leaves the timer unset so the periodic refresh retries (backoff-limited)
+            self._universe_last_refresh_ms = utc_now_ms()
 
     def warm_exchange_client(self) -> None:
         private_key = os.getenv("HL_LIVE_HL_PRIVATE_KEY", "").strip()
@@ -6643,6 +8360,7 @@ class SenderGateway:
                     "index": row.get("index", row.get("asset_id", "")),
                     "sdk_order_compatible": row.get("sdk_order_compatible", True),
                     "reject_circuit_breaker": row.get("reject_circuit_breaker", {}),
+                    "_snapshot_only": True,  # rw14: usable for reads, never for sending, until a valid authoritative fetch replaces it
                 })
                 self._meta_cache[key] = meta_item
         index = snap.get("asset_index_to_symbol")
@@ -6661,6 +8379,7 @@ class SenderGateway:
                         "perp_dex": "",
                         "tradable_by_sender": True,
                         "reason": "",
+                        "_snapshot_only": True,
                     }
         if self._meta_cache or self._index_cache:
             self._meta_fetched = True
@@ -6685,10 +8404,16 @@ class SenderGateway:
             return False
         if requests is None:
             return False
+        if not self._meta_fetch_begin(""):  # rw13: same single-flight + bounded backoff as the startup fetch; the timer stays put
+            return False
         new_meta: Dict[str, Dict[str, Any]] = {}
         new_index: Dict[int, str] = {}
+        err = ""
         try:
             r = requests.post(HL_INFO_URL, json={"type": "meta"}, timeout=HTTP_TIMEOUT_SEC)
+            _sc = getattr(r, "status_code", 200)
+            if isinstance(_sc, int) and _sc >= 400:
+                raise RuntimeError(f"HTTP {_sc}")
             for idx, asset in enumerate(r.json().get("universe", [])):
                 if not isinstance(asset, dict):
                     continue
@@ -6704,28 +8429,46 @@ class SenderGateway:
                     "onlyIsolated": bval(asset.get("onlyIsolated"), False),
                 }
                 new_index[idx] = name
-            if new_meta:
-                self._meta_cache = new_meta
-                self._index_cache = new_index
-                self._core_meta_fetched = True
-                self._meta_fetched = True
-                for dex_name in follower_dex_scope():  # the follower DEX scope only
-                    if dex_name:
-                        self._builder_meta_fetched.pop(dex_name, None)
-                        self._fetch_builder_meta(dex_name)
-                self._universe_last_refresh_ms = now_ms
-                self._save_asset_universe_snapshot("periodic_refresh")
-                return True
+            if not new_meta:  # an EMPTY core universe is a failure even when a cached index exists
+                raise RuntimeError("empty core universe")
         except Exception as exc:
-            try:
-                self.audit.append_reconciliation(
-                    "ASSET_META_REFRESH", "ASSET_META_REFRESH_FAILED_USING_LAST_GOOD",
-                    notes=(f"universe refresh failed; keeping last good cache; "
-                           f"error={repr(exc)[:120]}; last_good_symbols={len(self._meta_cache)}"),
-                )
-            except Exception:
-                pass
-        return False
+            err = repr(exc)[:120]
+        self._meta_fetch_end("", err)
+        if not err:
+            for _k, _v in self._meta_cache.items():  # builder entries survive the core swap until their own refetch succeeds
+                if isinstance(_v, dict) and _v.get("symbol_source") == "builder_meta":
+                    new_meta.setdefault(_k, _v)
+            self._meta_cache = new_meta
+            self._index_cache = new_index
+            self._core_meta_fetched = True
+            self._meta_fetched = True
+            for dex_name in follower_dex_scope():  # the follower DEX scope only
+                if dex_name:
+                    was = self._builder_meta_fetched.pop(dex_name, None)
+                    self._fetch_builder_meta(dex_name)
+                    if not self._builder_meta_fetched.get(dex_name):  # failed or in backoff: keep the last good copy in use
+                        err = f"builder dex {dex_name} meta refresh failed"
+                        if was:
+                            self._builder_meta_fetched[dex_name] = was
+            if err:
+                self._meta_fetch_end("", err)  # back the periodic refresh off too, so a failing builder is not hammered every cycle
+        if err:
+            now = time.monotonic()
+            if now - self.__dict__.get("_universe_fail_logged", -1e12) >= max(1.0, fnum(os.getenv("HL_LIVE_META_FETCH_LOG_SEC"), 600.0)):
+                self._universe_fail_logged = now
+                log_error("asset_meta_refresh", f"ASSET_META_REFRESH_FAILED_USING_LAST_GOOD: {err}; last_good_symbols={len(self._meta_cache)}")
+                try:
+                    self.audit.append_reconciliation(
+                        "ASSET_META_REFRESH", "ASSET_META_REFRESH_FAILED_USING_LAST_GOOD",
+                        notes=(f"universe refresh failed; keeping last good cache; "
+                               f"error={err}; last_good_symbols={len(self._meta_cache)}"),
+                    )
+                except Exception:
+                    pass
+            return False  # the refresh timer is NOT advanced: the next tick retries once the backoff allows
+        self._universe_last_refresh_ms = now_ms
+        self._save_asset_universe_snapshot("periodic_refresh")
+        return True
 
     def _alert_unknown_asset(self, raw_coin: str, reason: str, detail: str) -> None:
         """Rate-limited audit alert for @/# assets that cannot be resolved."""
@@ -6759,22 +8502,58 @@ class SenderGateway:
             self._fetch_builder_meta(dex_name)
         self._builder_meta_fetched["*"] = True
 
+    _META_RETRY_LOCK = threading.Lock()
+
+    def _meta_fetch_begin(self, key: str) -> bool:
+        """Single-flight + bounded per-dex backoff for the asset meta fetch ("" = core)."""
+        with self._META_RETRY_LOCK:
+            s = self.__dict__.setdefault("_meta_retry", {}).setdefault(key, {"next": 0.0, "delay": 0.0, "busy": False, "logged": -1e12})
+            if s["busy"] or time.monotonic() < s["next"]:
+                return False
+            s["busy"] = True
+            return True
+
+    def _meta_fetch_end(self, key: str, err: str) -> None:
+        loud = False
+        with self._META_RETRY_LOCK:
+            s = self._meta_retry[key]
+            s["busy"] = False
+            now = time.monotonic()
+            if not err:
+                s["delay"], s["next"] = 0.0, 0.0
+                return
+            s["delay"] = max(1.0, fnum(os.getenv("HL_LIVE_META_RETRY_BASE_SEC"), 15.0)) if not s["delay"] else min(
+                max(1.0, fnum(os.getenv("HL_LIVE_META_RETRY_MAX_SEC"), 120.0)), s["delay"] * 2)
+            s["next"] = now + s["delay"]
+            if now - s["logged"] >= max(1.0, fnum(os.getenv("HL_LIVE_META_FETCH_LOG_SEC"), 600.0)):
+                s["logged"], loud = now, True
+        if loud:
+            log_error("asset_meta_fetch", f"ASSET_META_FETCH_FAILED: dex={key or 'core'}; retry_in={s['delay']:.0f}s; error={err}")
+
     def _fetch_core_meta(self) -> None:
         if self._core_meta_fetched:
             return
-        self._core_meta_fetched = True
-        self._meta_fetched = True
         if requests is None:
+            self._core_meta_fetched = True
+            self._meta_fetched = True
             return
+        if not self._meta_fetch_begin(""):
+            return
+        err = ""
+        new_meta: Dict[str, Dict[str, Any]] = {}  # rw14: built in locals, swapped only after a valid NONEMPTY response
+        new_index: Dict[int, str] = {}
         try:
             r = requests.post(HL_INFO_URL, json={"type": "meta"}, timeout=HTTP_TIMEOUT_SEC)
+            _sc = getattr(r, "status_code", 200)
+            if isinstance(_sc, int) and _sc >= 400:
+                raise RuntimeError(f"HTTP {_sc}")
             for idx, asset in enumerate(r.json().get("universe", [])):
                 if not isinstance(asset, dict):
                     continue
                 name = str(asset.get("name", "")).strip()
                 if not name:
                     continue
-                self._meta_cache[name.upper()] = {
+                new_meta[name.upper()] = {
                     "canonical_coin": name,
                     "szDecimals": int(asset.get("szDecimals", 4)),
                     "symbol_source": "core_meta",
@@ -6782,19 +8561,37 @@ class SenderGateway:
                     "maxLeverage": fnum(asset.get("maxLeverage"), 0.0),
                     "onlyIsolated": bval(asset.get("onlyIsolated"), False),
                 }
-                self._index_cache[idx] = name
-        except Exception:
-            pass
+                new_index[idx] = name
+            if not new_meta:  # an EMPTY response is a failure even when a snapshot index is cached
+                raise RuntimeError("empty core universe")
+        except Exception as exc:
+            err = repr(exc)[:120]
+        self._meta_fetch_end("", err)
+        if not err:
+            for _k, _v in self._meta_cache.items():  # builder rows survive the core swap until their own fetch lands
+                if isinstance(_v, dict) and _v.get("symbol_source") == "builder_meta":
+                    new_meta.setdefault(_k, _v)
+            self._meta_cache = new_meta
+            self._index_cache = new_index
+            self._core_meta_fetched = True
+            self._meta_fetched = True
 
     def _fetch_builder_meta(self, dex_name: str) -> None:
         dex = str(dex_name or "").strip()
         if not dex or self._builder_meta_fetched.get(dex):
             return
-        self._builder_meta_fetched[dex] = True
         if requests is None:
+            self._builder_meta_fetched[dex] = True
             return
+        if not self._meta_fetch_begin(dex):
+            return
+        err = ""
+        new_rows: Dict[str, Dict[str, Any]] = {}  # rw14: swapped in only after the whole response parsed
         try:
             r3 = requests.post(HL_INFO_URL, json={"type": "meta", "dex": dex}, timeout=HTTP_TIMEOUT_SEC)
+            _sc = getattr(r3, "status_code", 200)
+            if isinstance(_sc, int) and _sc >= 400:
+                raise RuntimeError(f"HTTP {_sc}")
             for b_asset in r3.json().get("universe", []):
                 if not isinstance(b_asset, dict):
                     continue
@@ -6804,7 +8601,7 @@ class SenderGateway:
                 b_suffix = b_name.split(":", 1)[1] if ":" in b_name else b_name
                 b_key = f"{dex.upper()}:{b_suffix.upper()}"
                 sdk_coin = f"{dex.lower()}:{b_suffix}"
-                self._meta_cache[b_key] = {
+                new_rows[b_key] = {
                     "canonical_coin": b_key,
                     "sdk_coin": sdk_coin,
                     "szDecimals": int(b_asset.get("szDecimals", 0)),
@@ -6814,8 +8611,13 @@ class SenderGateway:
                     "perp_dex": dex,
                     "perp_dexs": ["", dex.lower()],
                 }
-        except Exception:
-            pass
+            if not new_rows:  # rw15: an EMPTY/invalid universe is a failure (backoff, last-good kept, flag NOT set), never "fetched"
+                raise RuntimeError(f"empty builder universe for dex {dex}")
+            self._meta_cache.update(new_rows)
+            self._builder_meta_fetched[dex] = True
+        except Exception as exc:
+            err = repr(exc)[:120]
+        self._meta_fetch_end(dex, err)
 
     def _fetch_all_mids(self) -> Dict[str, float]:
         now = utc_now_ms()
@@ -7236,7 +9038,32 @@ class SenderGateway:
             "operator_action": operator_action,
         }
 
-    def _resolve_coin(self, coin: str) -> Dict[str, Any]:
+    def _resolve_coin(self, coin: str, allow_snapshot: bool = False) -> Dict[str, Any]:
+        """The SENDING resolver.  Rows that only came from the disk snapshot fail closed (allow_snapshot=True is for reads/cancels)."""
+        res = self._resolve_coin_cached(coin)
+        if allow_snapshot or not res.get("ok") or not res.get("snapshot_only"):
+            return res
+        return self._snapshot_only_blocked(coin, res)
+
+    def _snapshot_only_blocked(self, coin: str, res: Dict[str, Any]) -> Dict[str, Any]:
+        raw = str(coin or "").strip()
+        msg = (f"{raw} is only known from the disk asset snapshot; no valid authoritative meta fetch has landed in this process "
+               f"(core_fetched={self._core_meta_fetched}); not sending with stale market/index/size metadata. No exchange order sent.")
+        now = time.monotonic()
+        if now - self.__dict__.get("_snapshot_block_logged", -1e12) >= max(1.0, fnum(os.getenv("HL_LIVE_META_FETCH_LOG_SEC"), 600.0)):
+            self._snapshot_block_logged = now  # one loud named row per window, like ASSET_META_REFRESH_FAILED_USING_LAST_GOOD
+            log_error("asset_meta_snapshot_only", f"ASSET_META_SNAPSHOT_ONLY_SEND_BLOCKED: first_coin={raw}; {msg}")
+            try:
+                self.audit.append_reconciliation(
+                    "ASSET_META", "ASSET_META_SNAPSHOT_ONLY_SEND_BLOCKED", coin=raw, action="LOCAL_BLOCK_NO_EXCHANGE",
+                    notes=f"first_coin={raw}; core_fetched={self._core_meta_fetched}; sends fail closed until a valid fetch lands; reads still use the snapshot",
+                )
+            except Exception:
+                pass
+        return {"ok": False, "raw_coin": raw, "status": "SYMBOL_CACHE_MISS_NEEDS_REFRESH", "snapshot_only": True,
+                "error": msg, "exchange_called": False}
+
+    def _resolve_coin_cached(self, coin: str) -> Dict[str, Any]:
         raw = str(coin or "").strip()
         key = raw.upper()
         self._load_asset_universe_snapshot()
@@ -7328,6 +9155,7 @@ class SenderGateway:
             "reason": str(item.get("reason") or ""),
             "reject_circuit_breaker": breaker,
             "reject_circuit_reason": breaker.get("reason", "") if isinstance(breaker, dict) else "",
+            "snapshot_only": bool(item.get("_snapshot_only")),
         }
 
     @staticmethod
@@ -7414,6 +9242,22 @@ class SenderGateway:
             "notes": result.get("notes") or "real exchange IOC attempt",
             "cloid": cloid,
         }
+        if isinstance(intent.fill.raw, dict):
+            if status == "ORDER_REJECTED":
+                intent.fill.raw["_trace_reject"] = {
+                    "category": reject_category,
+                    "reason": " ".join(error_text.split())[:240] or "exchange rejected order without a reason",
+                }
+            reply_ms = timing.get("exchange_call_finished_ms")
+            call_ms = timing.get("exchange_call_started_ms")  # stamped in _place_order right before exchange.order
+            if reply_ms not in (None, "") or call_ms not in (None, ""):
+                trace_stages = intent.fill.raw.get("_trace_stage_stamps")
+                if not isinstance(trace_stages, dict):
+                    trace_stages = intent.fill.raw["_trace_stage_stamps"] = {}
+                if reply_ms not in (None, ""):
+                    trace_stages["reply_ms"] = int(fnum(reply_ms, 0))
+                if call_ms not in (None, ""):
+                    trace_stages["send_real_started_ms"] = int(fnum(call_ms, 0))
         self.audit.append_send_attempt(row)  # same attempt_id as the pending_send row: the newest row is the state
         if status != "ORDER_FILLED":
             self.audit.append_reconciliation(
@@ -7480,7 +9324,8 @@ class SenderGateway:
 TRACE_KEEP_FILES = max(1, int(os.environ.get("HL_TRACE_KEEP_FILES", "12") or 12))
 TRACE_MAX_BYTES_FILL = int(os.environ.get("HL_FILL_TRACE_MAX_BYTES", "32000000") or 32000000)
 TRACE_MAX_BYTES_POLL = int(os.environ.get("HL_POLL_TRACE_MAX_BYTES", "16000000") or 16000000)
-
+FILL_TRACE_BATCH_WRITES = 128
+FILL_TRACE_QUEUE_MAX = max(1, int(os.environ.get("HL_FILL_TRACE_QUEUE_MAX", "100000") or 100000))
 
 def rotate_trace_file(path: Path, max_bytes: int, keep: int = 0) -> None:
     """Rotate a diagnostic jsonl once it passes max_bytes: x.jsonl -> x.jsonl.1 -> x.jsonl.2 ... keeping `keep` old files
@@ -7557,8 +9402,8 @@ class LeaderFillIngestor:
             return [], "POLL_NETWORK_ERROR"
         fills: List[LeaderFill] = []
         status = "POLL_OK"
-        start = max(0, start_ms)
         end = end_ms or utc_now_ms()
+        start = max(0, start_ms, end - LEADER_POLL_RETENTION_MS)
         for _ in range(POLL_MAX_PAGES_PER_WALLET):
             payload = {"type": "userFillsByTime", "user": wallet, "startTime": start, "endTime": end, "aggregateByTime": False}
             try:
@@ -8918,6 +10763,9 @@ class ExchangeReconciler:
 
 
 class ServiceStateWriter:
+    def __init__(self) -> None:
+        self._worker = _LatestStatusWriteWorker("live-service-state")
+
     @staticmethod
     def ws_summary_from_file() -> Dict[str, Any]:
         payload = load_json(LIVE_WS_HEALTH_FILE, {})
@@ -8927,6 +10775,15 @@ class ServiceStateWriter:
         return {"ws_status": "WS_DISABLED", "wallet_count": 0, "open_count": 0, "stale_count": 0, "total_reconnect_count": 0, "worst_health_grade": "DISABLED"}
 
     def write(self, summary: CycleSummary, dedupe: DedupeStore, cfg: Optional["ConfigManager"] = None) -> None:
+        self._worker.submit(self._write_now, summary, dedupe, cfg)
+
+    def write_startup(self, summary: CycleSummary, dedupe: DedupeStore, cfg: Optional["ConfigManager"] = None) -> None:
+        self._write_now(summary, dedupe, cfg)
+
+    def report_failure(self, exc: Exception) -> None:
+        self._worker.report_failure(exc)
+
+    def _write_now(self, summary: CycleSummary, dedupe: DedupeStore, cfg: Optional["ConfigManager"]) -> None:
         ws = self.ws_summary_from_file()
         state_write_ms = utc_now_ms()
         _eff_gc: Dict[str, Any] = {}
@@ -8957,6 +10814,7 @@ class ServiceStateWriter:
             "created_at_ms": state_write_ms,
             "last_state_write_ms": state_write_ms,
             "process_id": os.getpid(),
+            "build_sha": BUILD_SHA,
             "started_at": PROCESS_STARTED_AT,
             "started_at_ms": PROCESS_STARTED_AT_MS,
             "argv": list(sys.argv),
@@ -8980,15 +10838,17 @@ class ServiceStateWriter:
                 "would_send_orders_exists": FORBIDDEN_WOULD_SEND_ORDERS_CSV.exists(),
             },
         }
+        # Publish the authoritative service heartbeat before waiting for the shared cursor file.
+        atomic_write_json(SERVICE_STATE_FILE, payload)
         # Preserve poll cursors/status written earlier this cycle. Fast copy-only
         # cycles must not erase the last leader-poll truth and then report
         # POLL_DISABLED while the process is running with --poll-live.
-        RUNTIME_STATE_LOCK.acquire()  # released after the write below: the copy thread writes the same file
+        if not RUNTIME_STATE_LOCK.acquire(timeout=0.25):
+            raise TimeoutError("RUNTIME_STATE_LOCK busy; skipped clean_core_runtime_state.json")
         try:
             self._write_core_state(payload, dedupe, _eff_gc)
         finally:
             RUNTIME_STATE_LOCK.release()
-        atomic_write_json(SERVICE_STATE_FILE, payload)
 
     def _write_core_state(self, payload: Dict[str, Any], dedupe: "DedupeStore", _eff_gc: Dict[str, Any]) -> None:
         _existing_rt = load_json(CORE_RUNTIME_STATE_FILE, {})
@@ -8996,16 +10856,19 @@ class ServiceStateWriter:
         _last_leader_poll_status = ""
         _last_leader_poll_status_ms = 0
         _last_leader_poll_cursor_ms: Any = {}
+        _last_leader_poll_outage_gap_floor_ms: Any = {}
         if isinstance(_existing_rt, dict):
             _last_leader_poll_status = str(_existing_rt.get("last_leader_poll_status") or "")
             _last_leader_poll_status_ms = int(fnum(_existing_rt.get("last_leader_poll_status_ms"), 0))
             _last_leader_poll_cursor_ms = _existing_rt.get("last_leader_poll_cursor_ms") if isinstance(_existing_rt.get("last_leader_poll_cursor_ms"), dict) else {}
+            _last_leader_poll_outage_gap_floor_ms = _existing_rt.get("last_leader_poll_outage_gap_floor_ms") if isinstance(_existing_rt.get("last_leader_poll_outage_gap_floor_ms"), dict) else {}
         dedupe.flush_jsonl()  # persist full sets to append-only JSONL before writing bounded JSON
         core_state = {
             "created_at": payload.get("created_at"),
             "created_at_ms": payload.get("created_at_ms"),
             "last_state_write_ms": payload.get("last_state_write_ms"),
             "process_id": payload.get("process_id"),
+            "build_sha": payload.get("build_sha"),
             "started_at": payload.get("started_at"),
             "started_at_ms": payload.get("started_at_ms"),
             "argv": payload.get("argv"),
@@ -9014,6 +10877,7 @@ class ServiceStateWriter:
             "last_leader_poll_status": _last_leader_poll_status,
             "last_leader_poll_status_ms": _last_leader_poll_status_ms,
             "last_leader_poll_cursor_ms": _last_leader_poll_cursor_ms,
+            "last_leader_poll_outage_gap_floor_ms": _last_leader_poll_outage_gap_floor_ms,
             "effective_global_controls": _eff_gc,
             "networks": {"leader": LEADER_NETWORK, "follower": FOLLOWER_NETWORK},
             **dedupe.export(),
@@ -9037,6 +10901,7 @@ class LiveCopyCore:
         self.cfg = ConfigManager()
         self.ledger = ManualLedger()
         self.audit = AuditLogWriter()
+        self.audit.replay_all_fallbacks()  # recover any rows spilled on a previous crash
         self.ingestor = LeaderFillIngestor()
         service_state = load_json(SERVICE_STATE_FILE, {})
         core_state = load_json(CORE_RUNTIME_STATE_FILE, {})
@@ -9064,10 +10929,21 @@ class LiveCopyCore:
         self._idem_lock = threading.Lock()
         self._idem_accepted: set[str] = set()
         self._idem_duplicate_audited: set[str] = set()
+        _unresolved_ambiguous: Dict[str, Dict[str, str]] = {}
         for _irow in iter_csv_rows(SEND_ATTEMPTS_CSV):
             _fid = str(_irow.get("leader_fill_id") or "").strip()
             if _fid:
                 self._idem_accepted.add(_fid)
+            _cloid = str(_irow.get("cloid") or "").strip().lower()
+            _status = str(_irow.get("status") or "").upper()
+            _terminal = str(_irow.get("terminal_state") or "").upper()
+            if _cloid and (_terminal == "SEND_OUTCOME_UNKNOWN_HOLD"
+                           or (_status == "ORDER_UNKNOWN" and not _terminal)
+                           or _status == "PENDING_SEND" or _terminal == "PENDING_SEND"):  # crash-left write-ahead row: manual review, alert only
+                _unresolved_ambiguous[_cloid] = dict(_irow)
+            elif _cloid:
+                _unresolved_ambiguous.pop(_cloid, None)
+        alert_unresolved_ambiguous_sends(self.audit, _unresolved_ambiguous.values())
         for _irow in iter_audit_history(ORDER_INTENTS_CSV):  # fills merged into one copy are handled by it (run 4)
             _note = str(_irow.get("notes") or "")
             if "merged_leader_fills=" in _note:
@@ -9129,6 +11005,7 @@ class LiveCopyCore:
         self._converge_seen: Dict[Tuple[str, str, str], int] = {}   # sleeve -> first read showing the leader left
         self._converge_sent: Dict[Tuple[str, str, str], int] = {}   # sleeve -> last close queued
         self._converge_tries: Dict[Tuple[str, str, str], int] = {}  # sleeve -> closes queued so far
+        self.sender.on_confirmed_cancelled_ambiguous_exit = self._on_confirmed_cancelled_ambiguous_exit
         self._converge_last: Dict[str, Any] = {}
         self._hot_threads: List[threading.Thread] = []
         self._pending_seen: Dict[str, Tuple[int, str, str, str]] = {}  # guard key -> (queued at ms, wallet, coin, fill id)
@@ -9136,11 +11013,27 @@ class LiveCopyCore:
         self._inflight: Dict[int, Tuple[str, int, str, str, str]] = {}  # thread id -> (fill id, started ms, thread name, wallet, coin)
         self._stuck_dumped: set = set()
         self._past_send_keys: set = set()  # guard keys whose processing reached the send call
+        self._fill_trace_condition = threading.Condition()
+        self._fill_trace_buffer = collections.deque(maxlen=FILL_TRACE_QUEUE_MAX)
+        self._fill_trace_dropped = 0
+        self._fill_trace_writer_done = False
+        self._fill_trace_writer = threading.Thread(target=self._fill_trace_writer_loop, daemon=True, name="HLCore-fill-trace-writer")
+        self._fill_trace_writer.start()
+        self._queue_depth_thread = threading.Thread(target=self._queue_depth_loop, daemon=True, name="HLCore-queue-depth")
+        self._queue_depth_thread.start()
         threading.Thread(target=self._pending_sweeper, daemon=True, name="HLCore-pending-sweeper").start()
         for idx in range(self.hot_send_workers):
             t = threading.Thread(target=self._hot_send_loop, args=(idx,), daemon=True, name=f"HLCoreWS-hot-send-{idx + 1}")
             t.start()
             self._hot_threads.append(t)
+
+    def _on_confirmed_cancelled_ambiguous_exit(self, intent: Intent) -> None:
+        with self.sender._pending_exit_lock:
+            pending = self.sender._pending_exit_guard.get(intent.sleeve_id)
+            if pending and pending.get("intent_id") == intent.intent_id:
+                self.sender._pending_exit_guard.pop(intent.sleeve_id, None)
+        key = (intent.fill.leader_wallet, canonical_coin_key(intent.fill.coin), intent.position_id)
+        self._converge_sent.pop(key, None)
 
     def stop(self) -> None:
         try:  # T1c: cancel resting entry limits FIRST, before the process exits
@@ -9148,6 +11041,10 @@ class LiveCopyCore:
         except Exception as exc:
             log_error("stop_cancel_resting_entries", exc)
         self._hot_stop_event.set()
+        try:
+            self.sender.stop_ambiguous_send_rechecks()
+        except Exception as exc:
+            log_error("stop_ambiguous_send_rechecks", exc)
         self.ws.stop()
         ct = getattr(self, "_copy_thread", None)
         if ct is not None and ct.is_alive() and ct is not threading.current_thread():
@@ -9155,6 +11052,22 @@ class LiveCopyCore:
         for t in getattr(self, "_hot_threads", []):
             if t.is_alive() and t is not threading.current_thread():
                 t.join(timeout=1.0)
+        qt = getattr(self, "_queue_depth_thread", None)
+        if qt is not None and qt.is_alive() and qt is not threading.current_thread():
+            qt.join(timeout=1.0)
+        ft = getattr(self, "_fill_trace_writer", None)
+        if ft is not None and ft.is_alive() and ft is not threading.current_thread():
+            with self._fill_trace_condition:
+                self._fill_trace_writer_done = True
+                self._fill_trace_condition.notify()
+            ft.join(timeout=5.0)
+        try:
+            self.sender.stop_margin_mode_worker(5.0)  # bounded drain of the background margin-mode worker
+        except Exception as exc:
+            log_error("margin_mode_stop", exc)
+        if not flush_intent_writer(5.0, "stop"):  # queued intent audit rows reach disk before the process goes (bounded, reported)
+            log_error("stop_intent_rows_pending", f"stop: {intent_writer_status()}")
+        _drain_status_write_workers()
 
     def _prewarm_with_parity(self, fill: LeaderFill, local_block: bool, converge: bool = False) -> None:
         """The exchange reads a send needs (IntentBuilder.prewarm) plus the parity gate's leader read, side by side."""
@@ -9167,6 +11080,11 @@ class LiveCopyCore:
                 except Exception as exc:
                     log_error("liq_parity_prewarm", exc)
             parity_warm = _PREWARM_POOL.submit(_warm_parity)
+        if not local_block and not converge:
+            try:  # queue only: the exchange call runs on its own thread, never on this worker
+                self.sender.prewarm_margin_mode_for_fill(fill)
+            except Exception as exc:
+                log_error("margin_mode_prewarm", exc)
         self.intent_builder.prewarm(fill, local_block=local_block)
         if parity_warm is not None:
             parity_warm.result()
@@ -9185,7 +11103,7 @@ class LiveCopyCore:
         except Exception as exc:
             log_error("early_prewarm", exc)
 
-    def _enqueue_hot_ws_fill(self, fill: LeaderFill) -> bool:
+    def _enqueue_hot_ws_fill(self, fill: LeaderFill) -> Optional[bool]:
         if fill.source != "WS_CAPTURED":
             return False
         return self._dispatch_fill(fill)
@@ -9194,7 +11112,37 @@ class LiveCopyCore:
         key = canonical_coin_key(fill.coin).encode("utf-8")
         return int(hashlib.sha1(key).hexdigest()[:8], 16) % len(self._hot_queues)
 
-    def _dispatch_fill(self, fill: LeaderFill) -> bool:
+    def _record_known_dispatch_reject(self, fill: LeaderFill, status: str) -> None:
+        key = self._guard_key(fill)
+        with self._idem_lock:
+            if key in self._idem_accepted:
+                return
+            self._idem_accepted.add(key)
+            if not self.dedupe.accept_leader(fill.leader_fill_id):
+                self.audit.append_reconciliation(
+                    "DUPLICATE_LEADER_FILL_SKIPPED", "BLOCKED_DUPLICATE_DEDUPE_STORE",
+                    leader_wallet=fill.leader_wallet, leader_fill_id=fill.leader_fill_id,
+                    coin=fill.coin, action="NO_SEND_ALREADY_PROCESSED",
+                    terminal_state="BLOCKED_DUPLICATE_DEDUPE_STORE", engine_can_send="False",
+                    notes="the persisted dedupe store already holds this leader fill id; not sent again")
+                return
+            merged_ids = [str(i) for i in ((fill.raw or {}).get("merged_fill_ids") or []) if i]
+            self.dedupe.processed.update(merged_ids)
+            self._idem_accepted.update(merged_ids)
+        self.audit.append_reconciliation(
+            "SEND_TERMINAL", status, leader_wallet=fill.leader_wallet, leader_fill_id=fill.leader_fill_id,
+            coin=fill.coin, action="NO_SEND_KNOWN_DISPATCH_BLOCK", reject_category=status,
+            terminal_state=status, engine_can_send="False",
+            notes="known terminal entry refusal applied before send lane assignment")
+        for merged_id in merged_ids:
+            self.audit.append_reconciliation(
+                "FILL_MERGED", status, leader_wallet=fill.leader_wallet, leader_fill_id=merged_id,
+                coin=fill.coin, action="NO_SEND_KNOWN_DISPATCH_BLOCK", reject_category=status,
+                terminal_state=status, engine_can_send="False",
+                notes=f"merged into blocked leader fill {fill.leader_fill_id}")
+        self._fill_trace("blocked_known_dispatch", fill, {"status": status})
+
+    def _dispatch_fill(self, fill: LeaderFill) -> Optional[bool]:
         # a fill already waiting is never queued again (run 4: the live feed and every backstop poll re-queued the
         # same unprocessed fills while the queue was long, which made it longer)
         key = self._guard_key(fill)
@@ -9204,6 +11152,70 @@ class LiveCopyCore:
                 return True
         if self._already_handled(fill):  # a re-read duplicate costs nothing: no ledger work, no sleeve created
             return True
+        known_block = self.sender.known_dispatch_reject(fill)
+        if known_block:
+            self._record_known_dispatch_reject(fill, known_block)
+            return None
+        cfg = self.intent_builder.cfg
+        raw_dir = (fill.raw or {}).get("dir") if isinstance(fill.raw, dict) else None
+        if (isinstance(raw_dir, str) and raw_dir in {"Open Long", "Open Short"}
+                and cfg.wallet_enabled(fill.leader_wallet)
+                and cfg.wallet_mode(fill.leader_wallet) == "CLO"):
+            with self._queued_lock:
+                if key in self._queued_keys:
+                    return True
+                self._queued_keys.add(key)
+            try:
+                with self._idem_lock:
+                    if key in self._idem_accepted:
+                        return None
+                    self._idem_accepted.add(key)
+                    if not self.dedupe.accept_leader(fill.leader_fill_id):
+                        if key not in self._idem_duplicate_audited:
+                            self._idem_duplicate_audited.add(key)
+                            self.audit.append_reconciliation(
+                                "DUPLICATE_LEADER_FILL_SKIPPED", "BLOCKED_DUPLICATE_DEDUPE_STORE",
+                                leader_wallet=fill.leader_wallet, leader_fill_id=fill.leader_fill_id,
+                                coin=fill.coin, action="NO_SEND_ALREADY_PROCESSED",
+                                terminal_state="BLOCKED_DUPLICATE_DEDUPE_STORE",
+                                engine_can_send="False",
+                                notes="the persisted dedupe store already holds this leader fill id; not sent again")
+                        return None
+                    merged_ids = [str(i) for i in ((fill.raw or {}).get("merged_fill_ids") or []) if i]
+                    self.dedupe.processed.update(merged_ids)
+                    self._idem_accepted.update(merged_ids)
+                    copy_mode = cfg.copy_mode(fill.leader_wallet)
+                    copy_notional = (cfg.fixed_notional(fill.leader_wallet)
+                                     * max(1, int(fnum((fill.raw or {}).get("merged_fill_count"), 1)))
+                                     if copy_mode == "fixed" else 0.0)
+                    intent_id = stable_hash(["intent", fill.leader_fill_id, fill.leader_wallet,
+                                             fill.coin, fill.side, fill.timestamp_ms])
+                    intent = Intent(
+                        intent_id=intent_id, fill=fill, copy_side=fill.side,
+                        copy_size=round(copy_notional / fill.price, 8) if fill.price > 0 else 0.0,
+                        copy_notional=copy_notional, wallet_mode="CLO", copy_mode=copy_mode,
+                        decision="BLOCKED_CLO_ENTRY", reason="CLO blocks entries/adds",
+                        sleeve_id="", position_id="", position_direction_before="",
+                        wallet_position_before=None, coin_net_before=None,
+                        reduce_only_intended=False, reduce_only_sent_planned=False,
+                        created_at_ms=utc_now_ms(),
+                        notes="lifecycle=ENTRY;dispatch_fast_path=true;position_state=not_read"
+                              + (";sizing_skipped=true" if copy_mode != "fixed" else ""),
+                    )
+                    self.audit.append_order_intent(intent)
+                    for merged_id in merged_ids:
+                        self.audit.append_reconciliation(
+                            "FILL_MERGED", "LEADER_FILL_MERGED_INTO_ORDER",
+                            leader_wallet=fill.leader_wallet, leader_fill_id=merged_id,
+                            intent_id=intent.intent_id, coin=fill.coin,
+                            action="COPIED_WITH_MERGED_ORDER", engine_can_send="False",
+                            notes=f"merged with leader fill {fill.leader_fill_id} into one copy order (intent {intent.intent_id})")
+                self._fill_trace("blocked_clo_entry_dispatch", fill)
+                return None
+            finally:
+                with self._queued_lock:
+                    self._queued_keys.discard(key)
+
         is_close = self._is_close_fill(fill)
         with self._queued_lock:
             if key in self._queued_keys:
@@ -9346,23 +11358,110 @@ class LiveCopyCore:
         planned.sort(key=lambda p: (p[0], p[1], p[2]))
         return [f for _p, _t, _i, merged in planned for f in merged]
 
-    def _fill_trace(self, kind: str, fill: "LeaderFill", extra: Optional[Dict[str, Any]] = None) -> None:
-        """One json line per step a leader fill takes (poll_dispatched / poll_already_handled / poll_queue_full / late_closed_row /
-        proc_start / proc_end) in fill_trace.jsonl beside the runtime state: a fill the classifier calls MISSING can be found here
-        (never reached dispatch, dispatched and never processed, or processed and ended without a row). Rotated at 32 MB, 12 files kept; never raises."""
-        try:
-            path = Path(CORE_RUNTIME_STATE_FILE).parent / "fill_trace.jsonl"
-            rec = {"ts": utc_now_ms(), "k": kind, "id": str(fill.leader_fill_id), "w": str(fill.leader_wallet)[:10],
-                   "c": str(fill.coin), "t": int(fill.timestamp_ms or 0), **(extra or {})}
-            if "status_of" in rec:
-                _r = rec.pop("status_of")
-                rec["status"] = str(_r[1]) if isinstance(_r, tuple) and len(_r) > 1 else ""
-            with self.__dict__.setdefault("_fill_trace_lock", threading.Lock()):
+    def _fill_trace_writer_loop(self) -> None:
+        while True:
+            with self._fill_trace_condition:
+                while not self._fill_trace_buffer and not self._fill_trace_writer_done:
+                    self._fill_trace_condition.wait(timeout=1.0)
+                if not self._fill_trace_buffer and self._fill_trace_writer_done:
+                    return
+                batch = list(self._fill_trace_buffer)
+                self._fill_trace_buffer.clear()
+                dropped = self._fill_trace_dropped
+                self._fill_trace_dropped = 0
+            drop_line = None
+            retry_safe = True
+            append_complete = False
+            try:
+                path = Path(CORE_RUNTIME_STATE_FILE).parent / "fill_trace.jsonl"
+                if dropped:
+                    drop_line = json.dumps({"ts": utc_now_ms(), "k": "fill_trace_drop", "count": dropped}, separators=(",", ":")) + "\n"
+                    batch.insert(0, drop_line)
                 rotate_trace_file(path, TRACE_MAX_BYTES_FILL)
                 with open(path, "a", encoding="utf-8") as fh:
-                    fh.write(json.dumps(rec, separators=(",", ":")) + "\n")
+                    start = fh.tell()
+                    try:
+                        fh.writelines(batch)
+                        fh.flush()
+                        append_complete = True
+                    except Exception:
+                        try:
+                            fh.seek(start)
+                            fh.truncate()
+                        except Exception:
+                            retry_safe = False
+                        raise
+            except Exception as exc:
+                log_error("fill_trace", exc)
+                retry_safe = retry_safe and not append_complete
+                if not retry_safe:
+                    continue
+                if drop_line is not None and batch and batch[0] == drop_line:
+                    batch.pop(0)
+                with self._fill_trace_condition:
+                    self._fill_trace_dropped += dropped
+                    while len(self._fill_trace_buffer) + len(batch) > FILL_TRACE_QUEUE_MAX:
+                        self._fill_trace_buffer.pop()
+                        self._fill_trace_dropped += 1
+                    for line in reversed(batch):
+                        self._fill_trace_buffer.appendleft(line)
+                    self._fill_trace_condition.notify()
+                time.sleep(0.1)
+
+    def _fill_trace(self, kind: str, fill: Optional["LeaderFill"], extra: Optional[Dict[str, Any]] = None) -> None:
+        """Queue one lifecycle record without waiting on file I/O or other producers."""
+        try:
+            rec = {"ts": utc_now_ms(), "k": kind}
+            if fill is not None:
+                raw = fill.raw if isinstance(fill.raw, dict) else {}
+                rec.update({"id": str(fill.leader_fill_id), "w": str(fill.leader_wallet)[:10],
+                            "c": str(fill.coin), "t": int(fill.timestamp_ms or 0),
+                            "dir": raw.get("dir", "")})
+                stamps = raw.get("_stamps")
+                if stamps:
+                    rec["stamps"] = dict(stamps)
+                trace_stages = raw.get("_trace_stage_stamps")
+                reply_ms = trace_stages.get("reply_ms") if isinstance(trace_stages, dict) else None
+                rec["stage_stamps"] = {
+                    "ws_received_ms": int(fill.ws_received_ms) if fill.ws_received_ms else None,  # only a WS fill has one
+                    "leader_fill_ms": int(fill.timestamp_ms) if fill.timestamp_ms else None,
+                    "enqueue_ms": stamps.get("enqueued_ms") if isinstance(stamps, dict) else None,
+                    "pickup_ms": stamps.get("picked_up_ms") if isinstance(stamps, dict) else None,
+                    "lane_start_ms": stamps.get("lane_started_ms") if isinstance(stamps, dict) else None,
+                    "send_real_started_ms": trace_stages.get("send_real_started_ms") if isinstance(trace_stages, dict) else None,
+                    "reply_ms": reply_ms,
+                }
+            rec.update(extra or {})
+            if "status_of" in rec:
+                result = rec.pop("status_of")
+                rec["status"] = str(result[1]) if isinstance(result, tuple) and len(result) > 1 else ""
+                if kind == "proc_end":
+                    intent = result[2] if isinstance(result, tuple) and len(result) > 2 else None
+                    gate_reason = rec["status"]
+                    if gate_reason == "INTENT_NOT_SEND_ALLOWED":
+                        gate_reason = str(getattr(intent, "reason", "") or getattr(intent, "decision", "") or gate_reason)
+                    rec.update({
+                        "follower_wallet_id": USER_WALLET,
+                        "gate_reason": gate_reason,
+                        "leader_fill_source": str(fill.source or "") if fill is not None else "",
+                    })
+            line = json.dumps(rec, separators=(",", ":")) + "\n"
+            with self._fill_trace_condition:
+                if len(self._fill_trace_buffer) >= FILL_TRACE_QUEUE_MAX:
+                    self._fill_trace_dropped += 1
+                else:
+                    self._fill_trace_buffer.append(line)
+                    self._fill_trace_condition.notify()
         except Exception as exc:
             log_error("fill_trace", exc)
+
+    def _queue_depth_loop(self) -> None:
+        while not self._hot_stop_event.wait(10.0):
+            self._fill_trace("queue_depth", None, {
+                "hot_depth": [q.qsize() for q in self._hot_queues],
+                "priority_depth": [q.qsize() for q in self._prio_queues],
+                "inflight": len(self._inflight),
+            })
 
     def _poll_trace(self, rec: Dict[str, Any]) -> None:
         """One json line per leader poll (cursor, window asked, fills returned, how many were new) in leader_poll_trace.jsonl
@@ -9439,8 +11538,10 @@ class LiveCopyCore:
                     break
             if not batch:
                 return
-            for _f in batch:
-                stamp_fill(_f, "picked_up_ms")
+            for fill in batch:
+                stamp_fill(fill, "batch_drained_ms")
+                stamp_fill(fill, "picked_up_ms")
+                self._fill_trace("batch_drained", fill)
             try:
                 try:
                     plan = self._plan_batch(batch)
@@ -9448,12 +11549,22 @@ class LiveCopyCore:
                     log_error("ws_hot_plan", exc)
                     plan = list(batch)
                 for fill in plan:
+                    stamp_fill(fill, "lane_assigned_ms")
+                    stamp_fill(fill, "lane_started_ms")
+                    stamp_fill(fill, "coin_lock_requested_ms")
                     try:
                         with self._coin_lock(fill.coin):
+                            stamp_fill(fill, "coin_lock_acquired_ms")
                             self._process_leader_fill(fill, None, self._entry_sends_blocked_reason)
                     except Exception as exc:
                         log_error("ws_hot_send", exc)
+                    finally:
+                        stamp_fill(fill, "lane_finished_ms")
+                        self._fill_trace("lane_finished", fill)
             finally:
+                for fill in batch:
+                    stamp_fill(fill, "batch_joined_ms")
+                    self._fill_trace("batch_joined", fill)
                 self._release_queued(batch, pq)
 
     def _coin_lock(self, coin: str) -> "threading.Lock":
@@ -9471,8 +11582,10 @@ class LiveCopyCore:
         inner = max(1, int(fnum(os.getenv("HL_LIVE_HOT_INNER"), 6)))
 
         def _one(fill: LeaderFill) -> None:
+            stamp_fill(fill, "coin_lock_requested_ms")
             try:
                 with self._coin_lock(fill.coin):
+                    stamp_fill(fill, "coin_lock_acquired_ms")
                     self._process_leader_fill(fill, None, self._entry_sends_blocked_reason)
             except Exception as exc:
                 log_error("ws_hot_send", exc)
@@ -9480,7 +11593,16 @@ class LiveCopyCore:
         if inner <= 1 or len(plan) <= 1:
             for fill in plan:
                 self._drain_priority(idx)  # a close that arrived meanwhile goes before the next fill
-                _one(fill)
+                stamp_fill(fill, "lane_assigned_ms")
+                stamp_fill(fill, "lane_started_ms")
+                try:
+                    _one(fill)
+                finally:
+                    stamp_fill(fill, "lane_finished_ms")
+                    self._fill_trace("lane_finished", fill)
+            for fill in plan:
+                stamp_fill(fill, "batch_joined_ms")
+                self._fill_trace("batch_joined", fill)
             return
         by_coin: Dict[str, List[LeaderFill]] = {}
         for fill in plan:
@@ -9498,18 +11620,28 @@ class LiveCopyCore:
                     grp = groups[cursor[0]]
                     cursor[0] += 1
                 for fill in grp:
+                    stamp_fill(fill, "lane_assigned_ms")
+                for fill in grp:
                     if self._hot_stop_event.is_set():
-                        return
+                        break
                     self._drain_priority(idx)  # closes that arrived meanwhile go before the next fill
-                    _one(fill)
+                    stamp_fill(fill, "lane_started_ms")
+                    try:
+                        _one(fill)
+                    finally:
+                        stamp_fill(fill, "lane_finished_ms")
+                        self._fill_trace("lane_finished", fill)
 
         threads = [threading.Thread(target=_lane, name=f"hot{idx}-inner", daemon=True)
                    for _ in range(min(inner, len(groups)) - 1)]
-        for t in threads:
-            t.start()
+        for thread in threads:
+            thread.start()
         _lane()
-        for t in threads:
-            t.join()
+        for thread in threads:
+            thread.join()
+        for fill in plan:
+            stamp_fill(fill, "batch_joined_ms")
+            self._fill_trace("batch_joined", fill)
 
     def _hot_send_loop(self, idx: int = 0) -> None:
         """A worker never dies quietly: an error that escapes the loop is logged and the loop restarts (a dead worker leaves
@@ -9537,7 +11669,9 @@ class LiveCopyCore:
                 except queue.Empty:
                     break
             for _f in batch:
+                stamp_fill(_f, "batch_drained_ms")
                 stamp_fill(_f, "picked_up_ms")
+                self._fill_trace("batch_drained", _f)
             try:
                 try:
                     plan = self._plan_batch(batch)
@@ -9761,12 +11895,23 @@ class LiveCopyCore:
         """Every fill ends in a row. An error while processing used to be only a log line: the fill (and any fills merged
         into it) were already marked handled, so without a row they vanished (outage test 14: 57 fills with no row)."""
         tid = threading.get_ident()
+        if isinstance(fill.raw, dict):
+            fill.raw.pop("_trace_reject", None)
+            fill.raw.pop("_trace_stage_stamps", None)
         self._inflight[tid] = (str(fill.leader_fill_id), utc_now_ms(), threading.current_thread().name, str(fill.leader_wallet), str(fill.coin))
         self._fill_trace("proc_start", fill, {"merged": len((fill.raw or {}).get("merged_fill_ids") or []),
                                               "merged_ids": ",".join(str(i) for i in ((fill.raw or {}).get("merged_fill_ids") or [])[:20])})
         try:
             _res = self._process_leader_fill_inner(fill, summary, entry_block_reason)
-            self._fill_trace("proc_end", fill, {"status_of": _res})
+            trace_end: Dict[str, Any] = {"status_of": _res}
+            status = str(_res[1] or "") if isinstance(_res, tuple) and len(_res) > 1 else ""
+            reject = fill.raw.get("_trace_reject") if isinstance(fill.raw, dict) else None
+            if status == "ORDER_REJECTED" and isinstance(reject, dict):
+                trace_end.update({
+                    "reject_category": str(reject.get("category") or ""),
+                    "reject_reason": str(reject.get("reason") or ""),
+                })
+            self._fill_trace("proc_end", fill, trace_end)
             self._rows_for_merged_siblings(fill, _res)
             return _res
         except Exception as exc:
@@ -9775,6 +11920,7 @@ class LiveCopyCore:
                 self._terminal_after_exception(fill, exc)
             except Exception as exc2:
                 log_error("process_leader_fill_terminal", exc2)
+            self._fill_trace("proc_end", fill, {"status": "PROCESS_EXCEPTION", "reason": "PROCESS_EXCEPTION"})
             return False, "PROCESS_EXCEPTION", None
         finally:
             self._inflight.pop(tid, None)
@@ -9846,26 +11992,32 @@ class LiveCopyCore:
         firsts = self.__dict__.setdefault("_defer_first_ms", {})
         now = utc_now_ms()
         first = firsts.setdefault(key, now)
-        within = now - first <= int(fnum(os.getenv("HL_LIVE_DEFER_MAX_SEC"), 300.0) * 1000)
+        max_sec = deferred_truth_max_seconds()
+        within = max_sec == 0 or (max_sec > 0 and now - first <= int(max_sec * 1000))
         past_send = key in self._past_send_keys
         if not past_send and within:  # nothing reached the exchange yet: hold it and offer it again
             with self._idem_lock:
                 self._idem_accepted.discard(key)  # the head only; merged siblings stay marked and ride with it
             with self.dedupe._lock:
                 self.dedupe.processed.discard(fill.leader_fill_id)
-            if first == now:  # one row per fill, not one per retry
-                self._rows_for_held_siblings(fill, "REPLAY_DEFERRED_PROCESS_EXCEPTION")
-                self.audit.append_reconciliation(
-                    "REPLAY_DEFERRED", "REPLAY_DEFERRED_PROCESS_EXCEPTION", leader_wallet=fill.leader_wallet,
-                    leader_fill_id=fill.leader_fill_id, coin=fill.coin, action="RETRY_AFTER_ERROR",
-                    terminal_state="REPLAY_DEFERRED_PROCESS_EXCEPTION", engine_can_send="False",
-                    notes=f"processing failed before any order: {type(exc).__name__}: {str(exc)[:200]}; held, not lost")
             delay = max(0.5, fnum(os.getenv("HL_LIVE_DEFER_RETRY_SEC"), 5.0))
             with self._deferred_lock:
                 self._deferred[key] = (fill, time.monotonic() + delay)
-                if self._deferred_thread is None or not self._deferred_thread.is_alive():
-                    self._deferred_thread = threading.Thread(target=self._deferred_loop, daemon=True, name="HLCore-deferred")
-                    self._deferred_thread.start()
+            try:
+                if first == now:  # one row per fill, not one per retry
+                    self._rows_for_held_siblings(fill, "REPLAY_DEFERRED_PROCESS_EXCEPTION")
+                    self.audit.append_reconciliation(
+                        "REPLAY_DEFERRED", "REPLAY_DEFERRED_PROCESS_EXCEPTION", leader_wallet=fill.leader_wallet,
+                        leader_fill_id=fill.leader_fill_id, coin=fill.coin, action="RETRY_AFTER_ERROR",
+                        terminal_state="REPLAY_DEFERRED_PROCESS_EXCEPTION", engine_can_send="False",
+                        notes=f"processing failed before any order: {type(exc).__name__}: {str(exc)[:200]}; held, not lost")
+            finally:
+                # The retry stays queued even when every durable audit store is unavailable.
+                with self._deferred_lock:
+                    if self._deferred_thread is None or not self._deferred_thread.is_alive():
+                        self._deferred_thread = threading.Thread(
+                            target=self._deferred_loop, daemon=True, name="HLCore-deferred")
+                        self._deferred_thread.start()
             return
         firsts.pop(key, None)
         for fid in [str(fill.leader_fill_id), *merged_ids]:  # gave up, or the error came after the order call: a row for every fill
@@ -10060,8 +12212,17 @@ class LiveCopyCore:
         now = utc_now_ms()
         new_fill = key not in firsts
         first = firsts.setdefault(key, now)
-        max_sec = fnum(os.getenv("HL_LIVE_DEFER_MAX_SEC"), 0.0)  # 0 = hold until readable (Boss rule 16 Oct: never a terminal block)
-        if max_sec < 0 or (max_sec > 0 and now - first > int(max_sec * 1000)):  # negative = no hold at all (tests)
+        max_sec = deferred_truth_max_seconds()
+        if max_sec < 0 or (max_sec > 0 and now - first > int(max_sec * 1000)):
+            alerted = self.__dict__.setdefault("_defer_alerted", set())
+            if key not in alerted:
+                alerted.add(key)
+                self.audit.append_reconciliation(
+                    "ALERT", "REPLAY_DEFERRED_PAST_LIMIT_ALERT", leader_wallet=fill.leader_wallet,
+                    leader_fill_id=fill.leader_fill_id, coin=fill.coin,
+                    action="MANUAL_REVIEW_UNREADABLE_TRUTH", terminal_state="REPLAY_DEFERRED_PAST_LIMIT_ALERT",
+                    engine_can_send="False",
+                    notes=f"entry truth stayed unreadable for {int((now - first) / 1000)}s; bounded hold expired at {max_sec:g}s; no order was sent")
             firsts.pop(key, None)
             return False
         with self._idem_lock:  # release the HEAD only: merged siblings stay marked handled, so a poll re-read cannot
@@ -10073,8 +12234,8 @@ class LiveCopyCore:
                 self.audit.append_reconciliation(
                     "REPLAY_DEFERRED", "REPLAY_DEFERRED_TRUTH_UNREADABLE", leader_wallet=fill.leader_wallet,
                     leader_fill_id=fill.leader_fill_id, coin=fill.coin, action="RETRY_WHEN_READABLE", terminal_state="REPLAY_DEFERRED_TRUTH_UNREADABLE", engine_can_send="False",
-                    notes=f"entry held, not lost: {reason}; retried every {fnum(os.getenv('HL_LIVE_DEFER_RETRY_SEC'), 5.0):g}s up to "
-                          f"{fnum(os.getenv('HL_LIVE_DEFER_MAX_SEC'), 300.0):g}s")
+                    notes=(f"entry held, not lost: {reason}; retried every {fnum(os.getenv('HL_LIVE_DEFER_RETRY_SEC'), 5.0):g}s "
+                           + ("without a time limit" if max_sec == 0 else f"up to {max_sec:g}s")))
             except Exception as exc:
                 log_error("defer_row", exc)
             self._rows_for_held_siblings(fill, "REPLAY_DEFERRED_TRUTH_UNREADABLE")
@@ -10087,10 +12248,9 @@ class LiveCopyCore:
         return True
 
     def _alert_held_past_limit(self) -> None:
-        """A held fill must be decided within HL_LIVE_DEFER_MAX_SEC (plus a grace for the worker that holds its slot). One still
-        held after that is a visible ALERT row (one per fill) and an error-log line; it stays held and is retried, and the
-        classifier keeps counting it as unresolved (REPLAY_DEFERRED prefix) until a real outcome row exists."""
-        limit_ms = int((fnum(os.getenv("HL_LIVE_DEFER_MAX_SEC"), 300.0) + fnum(os.getenv("HL_LIVE_DEFER_ALERT_GRACE_SEC"), 60.0)) * 1000)
+        """Alert after max(300s, configured hold limit) plus grace; keep unresolved fills held and retrying."""
+        limit_ms = int((max(300.0, deferred_truth_max_seconds())
+                        + fnum(os.getenv("HL_LIVE_DEFER_ALERT_GRACE_SEC"), 0.0)) * 1000)
         firsts = self.__dict__.get("_defer_first_ms", {})
         alerted = self.__dict__.setdefault("_defer_alerted", set())
         now = utc_now_ms()
@@ -10148,7 +12308,8 @@ class LiveCopyCore:
         """The network half of _own_fills_of_withdrawn_limits: call it without the send lock."""
         last_copy_poll_ms = copy_cursor_ms()
         since = max(0, max(min(int(fnum(r.get("placed_ms"), 0)) for r in rows), last_copy_poll_ms) - POLL_OVERLAP_MS)
-        return self.copy_ingestor.poll_copy_account_fills(USER_WALLET, since, utc_now_ms(), report_partial=True)
+        with request_lane("hot"):
+            return self.copy_ingestor.poll_copy_account_fills(USER_WALLET, since, utc_now_ms(), report_partial=True)
 
     def _apply_fills_of_withdrawn_limits(self, rows: List[Dict[str, Any]], read: Optional[Tuple[List[Dict[str, Any]], str]],
                                          seen_oids: Optional[set] = None) -> int:
@@ -10184,7 +12345,8 @@ class LiveCopyCore:
             if self.dedupe.copy_account_baseline_set:
                 last = copy_cursor_ms()
                 start = max(0, (last or utc_now_ms()) - POLL_OVERLAP_MS)
-                fills, status = self.copy_ingestor.poll_copy_account_fills(USER_WALLET, start, utc_now_ms(), report_partial=True)
+                with request_lane("catch-up"):
+                    fills, status = self.copy_ingestor.poll_copy_account_fills(USER_WALLET, start, utc_now_ms(), report_partial=True)
                 if status not in {"COPY_ACCOUNT_POLLED", "COPY_ACCOUNT_POLL_PARTIAL"}:
                     fills = []
             if fills:
@@ -10208,7 +12370,7 @@ class LiveCopyCore:
 
     def leader_poll_interval_sec(self) -> float:
         """How often the leaders are polled. The live feed healthy (socket open and HL acked a subscription): the
-        poll is only a backstop, every HL_LIVE_LEADER_POLL_INTERVAL_SEC (30 s). Feed down, or open but never
+        poll is only a backstop, every HL_LIVE_LEADER_POLL_INTERVAL_SEC (120 s). Feed down, or open but never
         acked: the poll IS the detector, so it runs faster, scaled to the info rate limit (about 20 weight per
         wallet read, ~600 of the 1200/min budget: 2.2 s per active leader, never under 5 s)."""
         ws = self.ws
@@ -10219,17 +12381,43 @@ class LiveCopyCore:
         # the poll may relax to the backstop rate when the feed is healthy and every WS slot is feed-acked;
         # the poll set may be larger than the feed set (poll-all-active), which is by design
         feed_ok = bool(ws.enabled and getattr(ws, "_socket_open", False) and feed_set and feed_set <= acked)
+        # CUT 3 (rate-weight cut series): a close-only wallet that still holds a sleeve is polled at
+        # HL_LIVE_LEADER_POLL_NONFLAT_CLO_SEC (60 s), not the 2.2 s/leader outage rate - its exit is not urgent
+        # and every wallet read costs ~20 weight. LIVE wallets keep the fast outage path.
+        floor = 0.0
+        ledger = getattr(self, "ledger", None)
+        if ledger is not None:
+            try:
+                raw = ledger.nonflat_wallets_from_disk()
+            except Exception:
+                raw = None
+            if isinstance(raw, (set, frozenset, list, tuple)):
+                for wallet in raw:
+                    try:
+                        mode = str(self.cfg.wallet_mode(wallet) or "").upper()
+                    except Exception:
+                        mode = ""
+                    if mode in ("CLO", "CLOSE_ONLY", "CLOSE-ONLY"):
+                        floor = fnum(os.getenv("HL_LIVE_LEADER_POLL_NONFLAT_CLO_SEC"), 60.0)
+                        break
+        interval_env = os.getenv("HL_LIVE_LEADER_POLL_INTERVAL_SEC")
         if feed_ok:
-            return max(0.0, fnum(os.getenv("HL_LIVE_LEADER_POLL_INTERVAL_SEC"), 30.0))
+            backstop = max(0.0, fnum(interval_env, 120.0))
+            if interval_env:
+                return backstop  # the operator set the interval explicitly: it wins
+            return max(backstop, floor)
         n = max(1, len(self.cfg.active_wallets()))
         auto = max(2.0, 2.2 * n)
         env = os.getenv("HL_LIVE_LEADER_POLL_NOFEED_SEC")
         fast = max(1.0, fnum(env, auto)) if env else auto
-        return min(fast, max(0.0, fnum(os.getenv("HL_LIVE_LEADER_POLL_INTERVAL_SEC"), 30.0)))
+        if floor:
+            fast = max(fast, floor)
+        cap = max(30.0, floor) if floor else 30.0
+        return min(fast, cap, max(0.0, fnum(interval_env, 120.0)))
 
-    def _leader_poll_due(self) -> bool:
+    def _leader_poll_due(self, force: bool = False) -> bool:
         """The live feed is the hot path; the poll is the missed-fill backstop. While the feed's socket is open the
-        leaders are polled every HL_LIVE_LEADER_POLL_INTERVAL_SEC (default 30 s, within the info rate limit for
+        leaders are polled every HL_LIVE_LEADER_POLL_INTERVAL_SEC (default 120 s; outage polling remains capped at 30 s), within the info rate limit for
         10 busy wallets); without the feed, every cycle."""
         now = utc_now_ms()
         try:
@@ -10237,7 +12425,7 @@ class LiveCopyCore:
         except Exception as exc:
             log_error("headroom_evaluate", exc)
         interval = self.leader_poll_interval_sec()
-        if interval and now - getattr(self, "_last_leader_poll_ms", 0) < interval * 1000:
+        if not force and interval and now - getattr(self, "_last_leader_poll_ms", 0) < interval * 1000:
             return False
         self._last_leader_poll_ms = now
         return True
@@ -10455,8 +12643,9 @@ class LiveCopyCore:
         sweep = (not hot) or time.monotonic() - self._last_copy_sweep >= COPY_POLL_SWEEP_SEC
         start_ms = max(0, last_poll_ms - (POLL_OVERLAP_MS if sweep else COPY_POLL_HOT_OVERLAP_MS))
         poll_end_ms = utc_now_ms()
-        copy_fills, copy_status = self.copy_ingestor.poll_copy_account_fills(USER_WALLET, start_ms, poll_end_ms,
-                                                                             report_partial=True)
+        with request_lane("hot" if hot else "poll"):
+            copy_fills, copy_status = self.copy_ingestor.poll_copy_account_fills(USER_WALLET, start_ms, poll_end_ms,
+                                                                                 report_partial=True)
         http_ms = int((time.monotonic() - t0) * 1000)
         # a read that hit the page cap is applied, and the next read resumes after its newest fill
         copy_resume_ms = 0
@@ -10717,15 +12906,27 @@ class LiveCopyCore:
         self._converge_thread.start()
 
     def poll_wallets(self) -> List[str]:
-        """Leaders the REST backstop reads this cycle. Default (HL_LIVE_POLL_ALL_ACTIVE, on) is every
-        active leader whether or not it holds one of the MAX_WALLETS WS slots, so no leader fill is
-        lost when the feed follows only the busiest wallets. Set to 0 to poll only self.wallets.
-        This never widens what is copied: LEADER_POLL_OVERLAP_MS plus the per-wallet cursor and the
-        _already_handled dedupe make a fill seen by both the feed and the poll run exactly once, and
-        leader_poll_interval_sec() already relaxes the cadence when every leader is feed-acked."""
-        return ([w for w in self.cfg.active_wallets() if self.cfg.wallet_mode(w) != "OFF"]
-                if bval(os.getenv("HL_LIVE_POLL_ALL_ACTIVE"), True)
-                else list(self.wallets))
+        """Poll LIVE wallets and CLO wallets unless a valid local ledger proves every sleeve flat."""
+        active = self.cfg.active_wallets()
+        close_only = [w for w in active if self.cfg.wallet_mode(w) == "CLO"]
+        ledger = getattr(self, "ledger", None)
+        nonflat = ledger.nonflat_wallets_from_disk() if close_only and ledger is not None else None
+        poll_all_active = bval(os.getenv("HL_LIVE_POLL_ALL_ACTIVE"), True)
+        candidates = active if poll_all_active else list(self.wallets) + close_only
+        selected = []
+        for wallet in dict.fromkeys(candidates):
+            mode = self.cfg.wallet_mode(wallet)
+            if (not self.cfg.wallet_enabled(wallet) or mode == "OFF"
+                    or (mode == "CLO" and nonflat is not None and wallet not in nonflat)):
+                continue
+            selected.append(wallet)
+        modes = tuple(sorted((w, self.cfg.wallet_enabled(w), self.cfg.wallet_mode(w)) for w in self.cfg.wallets()))
+        close_state = tuple((w, None if nonflat is None else w in nonflat) for w in close_only)
+        signature = (modes, tuple(selected), close_state, poll_all_active)
+        previous = getattr(self, "_poll_wallet_selection_signature", None)
+        self._poll_wallet_selection_changed = previous is not None and signature != previous
+        self._poll_wallet_selection_signature = signature
+        return selected
 
     def run_cycle(self, use_source_csv: bool = True, poll_live: bool = False, poll_copy: bool = False, reconcile_exchange: bool = False) -> CycleSummary:
         # HOT_CONFIG_RELOAD_WINAGENT: reload live_config/wallet_gate each cycle so UI/control changes affect a running core.
@@ -10751,14 +12952,20 @@ class LiveCopyCore:
         state_for_age = load_json(CORE_RUNTIME_STATE_FILE, {})
         last_copy_poll_ms = copy_cursor_ms()
         summary.last_copy_poll_age_ms = max(0, utc_now_ms() - last_copy_poll_ms) if last_copy_poll_ms else 0
-        # Per-wallet leader poll cursor: avoids re-fetching the full 24h window every cycle.
+        # Per-wallet cursor bounds each backstop read to the retained history window.
         _leader_poll_cursors: Dict[str, int] = {}
+        _reported_outage_gap_floors: Dict[str, int] = {}
         if isinstance(state_for_age, dict):
             _raw_cursor = state_for_age.get("last_leader_poll_cursor_ms")
             if isinstance(_raw_cursor, dict):
                 _leader_poll_cursors = {str(k): int(fnum(v, 0)) for k, v in _raw_cursor.items()}
+            _raw_gaps = state_for_age.get("last_leader_poll_outage_gap_floor_ms")
+            if isinstance(_raw_gaps, dict):
+                _reported_outage_gap_floors = {str(k).lower(): int(fnum(v, 0)) for k, v in _raw_gaps.items()}
         _block = ""  # evaluated in full, then published once: the hot path never sees a half-run gate set
         started = time.monotonic()
+        cycle_started_ms = utc_now_ms()
+        self._fill_trace("cycle_start", None, {"cycle_id": cycle_started_ms, "queue_depth": self.hot_backlog()})
         try:
             self.sender.refresh_asset_universe()
             ws_health = self.ws.write_health()
@@ -10783,8 +12990,8 @@ class LiveCopyCore:
                     _prev_counts = _prev_integrity.get("counts") or {}
                     if int(fnum(_prev_counts.get("filled_without_live_fill_beyond_grace"), 0)) > 0:
                         _block = "UNRECONCILED_FILLED_SENDS"
-            # Gate 4: more active wallets than the leader stream can follow (refused, never dropped)
-            if not _block and not set(self.cfg.active_wallets()) <= set(self.cfg.stream_wallets()):
+            # Gate 4: more LIVE wallets than the leader stream can follow (CLO rides polling; refused, never dropped)
+            if not _block and self.cfg.live_over_stream_cap():
                 _block = "TOO_MANY_ACTIVE_WALLETS"
             # Gate 5: Global Controls daily loss limit (rolling 24 h follower PnL; unreadable fails closed)
             if not _block:
@@ -10842,35 +13049,55 @@ class LiveCopyCore:
             if use_source_csv:
                 since = 0
                 fills.extend(self.ingestor.read_from_csv(self.source_csv, self.wallets, since_ms=since))
-            if poll_live and self._leader_poll_due():
+            poll_wallets = self.poll_wallets() if poll_live else []
+            if poll_live and self._leader_poll_due(force=self._poll_wallet_selection_changed):
                 poll_status = "POLL_OK"
                 now = utc_now_ms()
                 _cursor_updates: Dict[str, int] = {}
-                # backstop to the live feed: catches up from the last good poll, however long ago
-                # (HL_LIVE_POLL_MAX_CATCHUP_MS, default 7 days); first poll backfills the 24 h window.
+                # Backstop to the live feed; history older than the exchange retention window is unavailable.
                 # Run 3: the leaders are read in parallel and re-read only LEADER_POLL_OVERLAP_MS back
                 # (was 5 min of thousands of already-handled fills per busy wallet per cycle).
-                _catchup_ms = max(POLL_WINDOW_MS, int(fnum(os.getenv("HL_LIVE_POLL_MAX_CATCHUP_MS"), 7 * 86400000)))
-                _jobs: List[Tuple[str, int]] = []
-                for w in self.poll_wallets():
+                _jobs: List[Tuple[str, int, str]] = []
+                _retention_floor = now - LEADER_POLL_RETENTION_MS
+                _feed_set = {normalise_wallet(w) for w in self.wallets}
+                _acked_set = {normalise_wallet(w) for w in (getattr(self.ws, "_subscribed", ()) or ())}
+                _feed_ok = bool(self.ws.enabled and getattr(self.ws, "_socket_open", False)
+                                and _feed_set and _feed_set <= _acked_set)
+                _poll_interval_sec = max(0.0, self.leader_poll_interval_sec())
+                _stale_cursor_ms = max(60_000, int(_poll_interval_sec * 2000))
+                # the re-read reaches back one polling interval plus the margin: a fill stamped up to a whole interval
+                # before the previous cursor can first show here (a fixed margin missed it when the poll is slow)
+                _overlap_ms = int(_poll_interval_sec * 1000) + LEADER_POLL_OVERLAP_MS
+                for w in poll_wallets:
                     # Skip wallets that are turned off — no fills to copy, avoids wasteful network calls.
                     if self.cfg.wallet_mode(w) == "OFF":
                         continue
                     _cursor = max(_leader_poll_cursors.get(w, 0), self._held_read_cursor.get(w, 0))
-                    _start = (max(_cursor - LEADER_POLL_OVERLAP_MS, now - _catchup_ms)
+                    _start = (max(_cursor - _overlap_ms, _retention_floor)
                               if _cursor > 0 else max(0, now - POLL_WINDOW_MS - POLL_OVERLAP_MS))
-                    if _cursor > 0 and _cursor - LEADER_POLL_OVERLAP_MS < now - _catchup_ms:
-                        self.audit.append_reconciliation(
-                            "SEND_TERMINAL", "LEADER_HISTORY_GAP", leader_wallet=w,
-                            action="MANUAL_REVIEW_LEADER_HISTORY_GAP", terminal_state="LEADER_HISTORY_GAP",
-                            notes=(f"last good leader poll {_cursor} is older than the catch-up window "
-                                   f"({_catchup_ms} ms); fills before {now - _catchup_ms} are not replayed"))
-                    _jobs.append((w, _start))
+                    if _cursor > 0 and _cursor < _retention_floor:
+                        if _cursor > _reported_outage_gap_floors.get(w, 0):
+                            self.audit.append_reconciliation(
+                                "SEND_TERMINAL", "OUTAGE_GAP", leader_wallet=w,
+                                action="MANUAL_REVIEW_OUTAGE_GAP", terminal_state="OUTAGE_GAP",
+                                notes=(f"last good leader poll {_cursor} predates the retained fill window; "
+                                       f"fills before {_retention_floor} cannot be replayed"))
+                        _reported_outage_gap_floors[w] = _retention_floor
+                        _start = _retention_floor
+                        _cursor_updates[w] = _retention_floor
+                    _start = max(_start, _retention_floor)
+                    _lane = ("catch-up" if not _cursor or now - _cursor > _stale_cursor_ms
+                             else "poll" if _feed_ok else "back-poll")
+                    _jobs.append((w, _start, _lane))
                 _results: Dict[str, Tuple[List[LeaderFill], str]] = {}
+                def _poll_with_lane(wallet: str, start_ms: int, end_ms: int, lane: str):
+                    with request_lane(lane):
+                        return self.ingestor.poll_hyperliquid_fills(wallet, start_ms, end_ms)
                 if len(_jobs) > 1:
                     with concurrent.futures.ThreadPoolExecutor(max_workers=min(8, len(_jobs)),
                                                                thread_name_prefix="HLCore-leader-poll") as _pool:
-                        _futs = {w: _pool.submit(self.ingestor.poll_hyperliquid_fills, w, _start, now) for w, _start in _jobs}
+                        _futs = {w: _pool.submit(_poll_with_lane, w, _start, now, lane)
+                                 for w, _start, lane in _jobs}
                         for w, _fut in _futs.items():
                             try:
                                 _results[w] = _fut.result()
@@ -10878,9 +13105,9 @@ class LiveCopyCore:
                                 log_error("leader_poll", _pe)
                                 _results[w] = ([], "POLL_NETWORK_ERROR")
                 else:
-                    for w, _start in _jobs:
-                        _results[w] = self.ingestor.poll_hyperliquid_fills(w, _start, now)
-                for w, _start in _jobs:
+                    for w, _start, lane in _jobs:
+                        _results[w] = _poll_with_lane(w, _start, now, lane)
+                for w, _start, _lane in _jobs:
                     wallet_fills, status = _results[w]
                     fills.extend(wallet_fills)
                     self._poll_trace({"kind": "poll", "wallet": str(w)[:10], "start_ms": _start, "end_ms": now,
@@ -10892,9 +13119,16 @@ class LiveCopyCore:
                     # while sending is stopped for a bad key the cursor stays put, so a restart replays these exits
                     # (reading moves on in memory, so the window does not grow every cycle)
                     _hold = bool(self.sender.sender_key_invalid)
-                    _next = (now if status == "POLL_OK" else max(f.timestamp_ms for f in wallet_fills) + LEADER_POLL_OVERLAP_MS
-                             if status == "POLL_PARTIAL" and wallet_fills else 0)
+                    _next = (now if status == "POLL_OK" else max(f.timestamp_ms for f in wallet_fills) + _overlap_ms
+                             if status in {"POLL_PARTIAL", "POLL_NETWORK_ERROR"} and wallet_fills else 0)
                     if _next:
+                        if self.async_dispatch:
+                            # Polled fills are not in pending_ts until dispatch succeeds.
+                            for fill in wallet_fills:
+                                if not self._already_handled(fill):
+                                    fill_ms = int(fnum(fill.timestamp_ms, 0))
+                                    if fill_ms > 0:
+                                        _next = min(_next, fill_ms)
                         _next = self.leader_cursor_next(w, _next)  # never past a fill still waiting on a worker
                         if _hold:
                             self._held_read_cursor[w] = _next
@@ -10914,7 +13148,7 @@ class LiveCopyCore:
                     _ec = _cs.get("last_leader_poll_cursor_ms")
                     if not isinstance(_ec, dict):
                         _ec = {}
-                    _active_cursor_wallets = {str(w).lower() for w in self.poll_wallets()}
+                    _active_cursor_wallets = {str(w).lower() for w in self.cfg.active_wallets()}
                     _ec = {
                         str(w).lower(): v
                         for w, v in _ec.items()
@@ -10923,6 +13157,11 @@ class LiveCopyCore:
                     if _cursor_updates:
                         _ec.update(_cursor_updates)
                     _cs["last_leader_poll_cursor_ms"] = _ec
+                    _reported_outage_gap_floors = {
+                        w: floor for w, floor in _reported_outage_gap_floors.items()
+                        if w in _active_cursor_wallets and int(fnum(_cursor_updates.get(w), 0)) <= floor
+                    }
+                    _cs["last_leader_poll_outage_gap_floor_ms"] = _reported_outage_gap_floors
                     _cs["last_leader_poll_status"] = poll_status
                     _cs["last_leader_poll_status_ms"] = now
                     atomic_write_json(CORE_RUNTIME_STATE_FILE, _cs)
@@ -10955,6 +13194,9 @@ class LiveCopyCore:
                         leader_fill_id=fill.leader_fill_id, coin=fill.coin, action="NO_ACTION_LEADER_ALREADY_FLAT",
                         terminal_state="MISSED_ENTRY_LEADER_ALREADY_CLOSED", engine_can_send="False",
                         notes=(f"late leader {fill.side} {fill.size} @ {fill.price} at {fill.timestamp_ms} not copied: {why}"))
+                    if self.async_dispatch:
+                        with self._idem_lock:
+                            self._idem_accepted.add(self._guard_key(fill))
                     self._rows_for_closed_late_siblings(fill, why)
                     continue
                 if self._already_handled(fill):  # run 3: thousands of re-read fills per cycle starved the loop
@@ -10963,7 +13205,10 @@ class LiveCopyCore:
                 if self.async_dispatch:  # loop mode: sends run on the workers, never in this loop
                     with self._queued_lock:
                         _was_queued = self._guard_key(fill) in self._queued_keys
-                    if self._dispatch_fill(fill):
+                    dispatched = self._dispatch_fill(fill)
+                    if dispatched is None:
+                        continue  # a CLO pure entry was audited at dispatch and intentionally not queued
+                    if dispatched:
                         summary.leader_fills_queued += 1
                         if not _was_queued:  # a fill already waiting is only offered again, not queued again
                             self._fill_trace("poll_dispatched", fill)
@@ -10996,16 +13241,26 @@ class LiveCopyCore:
             summary.fatal_errors += 1
             log_error("run_cycle", exc)
         finally:
-            if time.monotonic() - started > float(os.getenv("HL_LIVE_RECON_CYCLE_BUDGET_SEC", "5")):
+            if time.monotonic() - started > fnum(os.getenv("HL_LIVE_RECON_CYCLE_BUDGET_SEC"), 5.0):
                 summary.budget_exceeded = True
             try:
-                write_live_integrity_status(fnum(os.getenv("HL_LIVE_INTEGRITY_MIN_INTERVAL_SEC"), 5.0))
+                _LIVE_INTEGRITY_WRITER.submit(
+                    write_live_integrity_status,
+                    fnum(os.getenv("HL_LIVE_INTEGRITY_MIN_INTERVAL_SEC"), 5.0),
+                )
             except Exception as exc:
-                log_error("live_integrity_status", exc)
+                _LIVE_INTEGRITY_WRITER.report_failure(exc)
             try:
                 self.state_writer.write(summary, self.dedupe, self.cfg)
             except Exception as exc:  # a state json write must never end the cycle (or the process)
-                log_error("cycle_state_write", exc)
+                self.state_writer.report_failure(exc)
+            self._fill_trace("cycle_end", None, {
+                "cycle_id": cycle_started_ms,
+                "duration_ms": int((time.monotonic() - started) * 1000),
+                "queue_depth": self.hot_backlog(),
+                "ok": bool(summary.ok),
+                "fatal_errors": int(summary.fatal_errors),
+            })
         return summary
 
 
@@ -12485,8 +14740,11 @@ def _read_all_copy_fills(start_ms: int, end_ms: int, max_pages: int = 200) -> Tu
         payload = {"type": "userFillsByTime", "user": USER_WALLET, "startTime": start, "endTime": int(end_ms),
                    "aggregateByTime": False}
         try:
-            data = COPY_FILLS_FETCHER(payload) if COPY_FILLS_FETCHER is not None else \
-                requests.post(HL_INFO_URL, json=payload, timeout=HTTP_TIMEOUT_SEC).json()
+            if COPY_FILLS_FETCHER is not None:
+                data = COPY_FILLS_FETCHER(payload)
+            else:
+                with request_lane("catch-up"):
+                    data = requests.post(HL_INFO_URL, json=payload, timeout=HTTP_TIMEOUT_SEC).json()
         except Exception as exc:
             return list(seen.values()), f"FILLS_UNREADABLE: {exc!r}"[:200]
         if not isinstance(data, list):
@@ -13003,17 +15261,56 @@ def main() -> None:
             raise SystemExit(f"SENDER_KEY_NOT_VALID_ON_FOLLOWER_NETWORK: {_key['detail']}")
         if _key["ok"] is None:
             print(f"WARNING: {_key['detail']}; a rejection on the first order will stop all sending", file=sys.stderr)
-        _active = ConfigManager().active_wallets()
-        if len(_active) > MAX_WALLETS:
-            raise SystemExit(f"TOO_MANY_ACTIVE_WALLETS: {len(_active)} wallets are LIVE/CLO but the leader stream "
-                             f"follows at most {MAX_WALLETS}; set the extra wallets to OFF")
+        _cfg = ConfigManager()
+        if _cfg.live_over_stream_cap():
+            raise SystemExit(f"TOO_MANY_ACTIVE_WALLETS: {len(_cfg.live_wallets())} wallets are LIVE but the leader stream "
+                             f"follows at most {MAX_WALLETS}; set the extra wallets to CLO (polled) or OFF")
         source_path = Path(args.source_file) if args.source_file else None
         core = LiveCopyCore(source_csv=source_path or RAW_LEADER_FILLS_CSV)
         core.async_dispatch = bool(args.loop)  # loop mode: sends never hold up the polls and the ledger
+        startup_enabled = core.cfg.master_real_orders_enabled
+        startup_summary = CycleSummary(
+            cycle="startup",
+            entry_sends_blocked_reason="STARTUP_ORPHAN_CHECK_PENDING",
+            auto_send_enabled=startup_enabled,
+            master_real_orders_enabled=startup_enabled,
+            wallet_modes_active=core.cfg.wallet_mode_counts(),
+            effective_real_orders_enabled=startup_enabled,
+            send_block_reason=core.cfg.send_block_reason,
+            active_wallets=len(core.wallets),
+            hot_send_workers=core.hot_send_workers,
+        )
+        def write_startup_status() -> None:
+            try:
+                core.state_writer.write_startup(startup_summary, core.dedupe, core.cfg)
+            except Exception as exc:
+                startup_summary.ok = False
+                startup_summary.entry_sends_blocked_reason = "STARTUP_ORPHAN_CHECK_WRITER_FAILED"
+                startup_summary.send_block_reason = f"startup status writer failed: {exc}"
+                startup_summary.fatal_errors = 1
+                try:
+                    core.state_writer.write_startup(startup_summary, core.dedupe, core.cfg)
+                except Exception as retry_exc:
+                    raise SystemExit(
+                        f"STARTUP_ORPHAN_CHECK_WRITER_FAILED: {startup_summary.send_block_reason}; "
+                        f"fatal status write failed: {retry_exc}"
+                    ) from retry_exc
+                raise SystemExit(
+                    f"STARTUP_ORPHAN_CHECK_WRITER_FAILED: {startup_summary.send_block_reason}"
+                ) from exc
+
+        write_startup_status()
         # T1b: reconcile orders left open by an earlier crash BEFORE arming (fail closed on an unreadable read)
-        _orphan = core.sender.startup_orphan_order_check()
+        try:
+            _orphan = core.sender.startup_orphan_order_check()
+        except Exception:
+            _orphan = {"ok": False, "detail": "startup orphan-order check raised an exception"}
         print(f"startup orphan-order check: {_orphan.get('detail')}", file=sys.stderr)
         if not _orphan.get("ok"):
+            startup_summary.ok = False
+            startup_summary.entry_sends_blocked_reason = "STARTUP_ORPHAN_CHECK_FAILED"
+            startup_summary.fatal_errors = 1
+            write_startup_status()
             raise SystemExit(f"STARTUP_ORPHAN_CHECK_FAILED: {_orphan.get('detail')}")
         copy_poll_interval = max(0.5, float(args.copy_poll_interval))
         core.copy_poll_interval_seconds = copy_poll_interval if args.poll_copy else 0.0

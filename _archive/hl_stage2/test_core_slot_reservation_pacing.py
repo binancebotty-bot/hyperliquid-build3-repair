@@ -143,7 +143,7 @@ class SlotReservationPacingTests(unittest.TestCase):
         self.assertEqual(gateway.slot_reservations, expected_slots, "all 32 integer slots must be exactly gap apart")
         self.assertEqual(len(exchange.calls), worker_count)
 
-    def test_cooldown_slots_and_calls_keep_exact_spacing_for_32_orders(self):
+    def test_entry_cooldown_slots_and_calls_keep_exact_spacing_for_32_orders(self):
         worker_count = 32
         gap_ms = 100
         clock = VirtualClock(start_ms=100000, expected_sleep_count=worker_count)
@@ -165,7 +165,7 @@ class SlotReservationPacingTests(unittest.TestCase):
         def place_order():
             try:
                 start.wait(timeout=3)
-                gateway._place_order(exchange, "BTC", False, 1.0, 100.0, "Ioc", True)
+                gateway._place_order(exchange, "BTC", False, 1.0, 100.0, "Ioc", False)
             except Exception as exc:  # surfaced in the main test thread
                 errors.append(exc)
 
@@ -184,8 +184,8 @@ class SlotReservationPacingTests(unittest.TestCase):
         self.assertEqual(len(gateway.slot_reservations), worker_count)
         expected_slots = [cooldown_until_ms + index * gap_ms for index in range(worker_count)]
         self.assertEqual(gateway.slot_reservations, expected_slots, "integer slot spacing must honor gap exactly")
-        self.assertEqual(len(sleeps), worker_count, "count of orders waiting behind cooldown sleep must equal orders")
-        self.assertTrue(all(seconds > 0 for seconds in sleeps), "every order should wait behind the active cooldown")
+        self.assertGreaterEqual(len(sleeps), worker_count, "cooldown and paced-slot waits should include every order")
+        self.assertTrue(all(seconds > 0 for seconds in sleeps), "every recorded order wait should be positive")
         self.assertEqual(len(exchange.calls), worker_count)
         call_times = [call[0] for call in exchange.calls]
         call_gaps_ms = [right - left for left, right in zip(call_times, call_times[1:])]

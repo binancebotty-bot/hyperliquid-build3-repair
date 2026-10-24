@@ -1,0 +1,51 @@
+{
+  "schema": 1,
+  "repository": "binancebotty-bot/hyperliquid-build3-repair",
+  "source_sha": "bf40a9d8bbb91348ebebf1b7d8d53ec15cbc7847",
+  "info_url": "https://api.hyperliquid-testnet.xyz/info",
+  "follower_account_address": "0x7ae3b08bb4e7b085c6db5d635b96bec9715e9205",
+  "documented_residuals_by_coin": {
+    "ETH": "-0.0551",
+    "WLD": "22.3",
+    "DYM": "576.0",
+    "MERL": "1275.0",
+    "HYPE": "0.15",
+    "NIL": "150.0",
+    "INIT": "478.0",
+    "AZTEC": "3529.0"
+  },
+  "legacy_watchdog_pid": 38604,
+    "legacy_watchdog_retired": true,
+    "legacy_watchdog_started_at_ms": 1792755843422,
+  "global_holder_path": "C:/Users/wigmore/AppData/Local/HL_Live_Copy_Service_Core/engine-global.lock.holder.json",
+  "global_lock_path": "C:/Users/wigmore/AppData/Local/HL_Live_Copy_Service_Core/engine-global.lock",
+  "supervisor_lock_path": "C:/Users/wigmore/AppData/Local/HL_Live_Copy_Service_Core/testnet_startup_supervisor.lock",
+  "follower_network": "testnet",
+  "testnet_state_root": "C:/Users/wigmore/trading_stack/hl-build3-testnet-cert-evidence",
+  "state_dir": "C:/Users/wigmore/trading_stack/hl-build3-testnet-cert-evidence/run8/state_20261024",
+  "core_script": "_archive/hl_stage2/HL_Live_Copy_Service_Core.py",
+  "core_args": [
+    "--ws",
+    "--loop",
+    "--interval",
+    "10",
+    "--poll-live",
+    "--poll-copy"
+  ],
+  "ui_script": "_archive/hl_stage2/HL_Copy_App_SSOT.py",
+  "ui_base_url": "http://127.0.0.1:8031",
+  "ui_port": 8031,
+  "state_max_age_seconds": 30,
+  "global_controls": {
+    "max_order_notional_usd": 250.0,
+    "max_wallet_exposure_usd": 400.0,
+    "max_asset_directional_exposure_usd": 300.0,
+    "max_total_live_exposure_usd": 900.0,
+    "max_daily_loss_usd": 100.0
+  },
+  "info_request_interval_seconds": 1.15,
+  "info_timeout_seconds": 8,
+  "issue_number": 3,
+  "checkout_root": "C:/tmp/v31_bf40a9d-clean-20261024",
+  "authorization_order_id": ""
+}
