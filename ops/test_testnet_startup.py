@@ -77,15 +77,24 @@ class TestVerifyAuthorizationOrder(unittest.TestCase):
         mock_response.__exit__ = lambda *args: None
         return mock_response
 
+    def _make_spec(self):
+        """Create a spec dict with source_sha for testing."""
+        return {"source_sha": "a" * 40}
+
+    def _make_state_dir(self):
+        """Create a temporary state directory for testing."""
+        return Path(tempfile.mkdtemp())
+
     @patch("testnet_startup.urlopen")
     @patch("testnet_startup.subprocess.run")
     def test_valid_cutover_order(self, mock_run, mock_urlopen):
         mock_urlopen.return_value = self._make_comment_response(
-            body="CUTOVER ORDER\nSome other text\nSHA: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            body=f"CUTOVER ORDER {'a' * 40}\nSome other text\nSHA: {'a' * 40}"
         )
         mock_run.return_value = MagicMock(stdout="1700000000")
-        spec = {"source_sha": "a" * 40}
-        result = verify_authorization_order("1234567890", "a" * 40, spec)
+        spec = self._make_spec()
+        state_dir = self._make_state_dir()
+        result = verify_authorization_order("1234567890", "a" * 40, spec, state_dir)
         self.assertTrue(result)
 
     @patch("testnet_startup.urlopen")
@@ -93,22 +102,24 @@ class TestVerifyAuthorizationOrder(unittest.TestCase):
     def test_invalid_author_not_controller(self, mock_run, mock_urlopen):
         mock_urlopen.return_value = self._make_comment_response(
             author="not-controller",
-            body="CUTOVER ORDER"
+            body="CUTOVER ORDER aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         )
         mock_run.return_value = MagicMock(stdout="1700000000")
-        spec = {"source_sha": "a" * 40}
-        result = verify_authorization_order("1234567890", "a" * 40, spec)
+        spec = self._make_spec()
+        state_dir = self._make_state_dir()
+        result = verify_authorization_order("1234567890", "a" * 40, spec, state_dir)
         self.assertFalse(result)
 
     @patch("testnet_startup.urlopen")
     @patch("testnet_startup.subprocess.run")
     def test_crlf_line_ending_in_body(self, mock_run, mock_urlopen):
         mock_urlopen.return_value = self._make_comment_response(
-            body="NOT A CUTOVER ORDER\r\nCUTOVER ORDER\r\nEND\nSHA: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            body=f"NOT A CUTOVER ORDER\r\nCUTOVER ORDER {'a' * 40}\r\nEND\nSHA: {'a' * 40}"
         )
         mock_run.return_value = MagicMock(stdout="1700000000")
-        spec = {"source_sha": "a" * 40}
-        result = verify_authorization_order("1234567890", "a" * 40, spec)
+        spec = self._make_spec()
+        state_dir = self._make_state_dir()
+        result = verify_authorization_order("1234567890", "a" * 40, spec, state_dir)
         self.assertTrue(result)
 
     @patch("testnet_startup.urlopen")
@@ -118,8 +129,9 @@ class TestVerifyAuthorizationOrder(unittest.TestCase):
             body="NOT A CUTOVER ORDER"
         )
         mock_run.return_value = MagicMock(stdout="1700000000")
-        spec = {"source_sha": "a" * 40}
-        result = verify_authorization_order("1234567890", "a" * 40, spec)
+        spec = self._make_spec()
+        state_dir = self._make_state_dir()
+        result = verify_authorization_order("1234567890", "a" * 40, spec, state_dir)
         self.assertFalse(result)
 
 

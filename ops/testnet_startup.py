@@ -79,14 +79,15 @@ def iso_ms(value: object) -> int:
         return 0
 
 
-def verify_authorization_order(auth_order_id: str, expected_sha: str, spec: dict) -> bool:
+def verify_authorization_order(auth_order_id: str, expected_sha: str, spec: dict, state_dir: Path) -> bool:
     """Verify the authorization order ID by looking up the GitHub comment.
     Returns True if:
     - The comment exists on PR #81 (the PR where cutover orders are issued)
     - The comment is from the Controller (binancebotty-bot)
     - The comment was created after the pinned spec commit
-    - The comment contains the exact line "CUTOVER ORDER"
+    - The comment contains the exact standalone line "CUTOVER ORDER <full pinned sha>"
     - The comment authorizes the exact expected_sha (binds authorization to target)
+    - The comment ID has not been used before (prevents replay)
     Returns False on any failure or lookup error (fail closed).
     """
     try:
@@ -121,18 +122,33 @@ def verify_authorization_order(auth_order_id: str, expected_sha: str, spec: dict
         if comment_created <= pin_timestamp:
             return False
         
-        # Verify comment contains the exact standalone "CUTOVER ORDER" line
+        # Verify comment contains the exact standalone "CUTOVER ORDER <full pinned sha>" line
         body = comment.get("body", "")
         # Normalize CRLF to LF using chr() to avoid literal CRLF in source
         crlf = chr(13) + chr(10)
         body = body.replace(crlf, "\n")
-        # Check for exact line "CUTOVER ORDER" (not substring like "NOT A CUTOVER ORDER")
-        if not re.search("(^|\n)CUTOVER ORDER($|\n)", body):
+        # Check for exact line "CUTOVER ORDER <full pinned sha>" (not substring)
+        required_line = f"CUTOVER ORDER {pin}"
+        if not re.search(f"(^|\\n){re.escape(required_line)}($|\\n)", body):
             return False
         
         # Bind authorization to the exact expected_sha - comment must reference this SHA
         if expected_sha and expected_sha.lower() not in body.lower():
             return False
+        
+        # Check and mark used order ID (prevent replay)
+        used_orders_file = state_dir / "used_cutover_orders.json"
+        used_ids = set()
+        if used_orders_file.exists():
+            try:
+                used_ids = set(json.loads(used_orders_file.read_text(encoding="utf-8")))
+            except Exception:
+                pass
+        if auth_order_id in used_ids:
+            return False
+        # Add to used set
+        used_ids.add(auth_order_id)
+        atomic_write_json(used_orders_file, sorted(list(used_ids)))
         
         return True
     except Exception:
@@ -1123,7 +1139,7 @@ def main() -> int:
     if args.action in ("start", "supervise"):
         if not args.confirm_testnet:
             raise SystemExit("REFUSED: TESTNET start requires --confirm-testnet and a fresh direct authorization")
-        if not args.authorization_order or not verify_authorization_order(args.authorization_order, sha, spec):
+        if not args.authorization_order or not verify_authorization_order(args.authorization_order, sha, spec, state_dir):
             raise SystemExit("REFUSED: start requires the ID of a fresh direct authorization order (verified via GitHub comment lookup)")
         if os.name != "nt":
             raise SystemExit("REFUSED: this launcher is Windows-only")
