@@ -180,18 +180,13 @@ def check_source(spec: dict) -> str:
         raise ValueError("launch spec must pin an exact 40-character source_sha")
     
     # Verify the pin is not a merge commit (must have exactly one parent)
-    # NOTE: This repo's GitHub workflow uses merge commits for all PR merges.
-    # The controller explicitly pinned bf40a9d (a merge commit with substantive
-    # code changes) and authorized this pin. The assigned gate requires rejecting
-    # merge commits, but the controller's explicit authorization takes precedence.
-    # We check and warn instead of failing, per controller authorization.
     result = subprocess.run(
         ["git", "-C", str(ROOT), "rev-list", "--parents", "-n", "1", pin],
         check=True, capture_output=True, text=True, timeout=10,
     )
     parents = result.stdout.strip().split()
     if len(parents) > 1:
-        print(f"WARNING: pinned source_sha ({pin}) is a merge commit with {len(parents)} parents; controller has authorized this pin")
+        raise ValueError(f"pinned source_sha ({pin}) is a merge commit with {len(parents)} parents; pin must have exactly one parent")
     
     # Verify checkout_root exists and is at the pinned source_sha
     checkout_root = spec.get("checkout_root")
