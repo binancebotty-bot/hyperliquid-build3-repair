@@ -883,6 +883,9 @@ def _normalise_global_controls(raw: Any) -> Dict[str, Any]:
     if not isinstance(raw, dict):
         raw = {}
     out = dict(_GLOBAL_CONTROLS_DEFAULTS)
+    # keys this normaliser does not own (send_mode, follower_leverage, liq_parity, unknown) pass through untouched
+    out.update({k: v for k, v in raw.items()
+                if k not in _GLOBAL_CONTROLS_DEFAULTS and k != "marketable_slippage_pct"})
     for k, default in _GLOBAL_CONTROLS_DEFAULTS.items():
         if k in raw:
             if isinstance(default, list):
