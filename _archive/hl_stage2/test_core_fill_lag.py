@@ -180,23 +180,33 @@ def main() -> None:
     gate = threading.Event()
     blocked = threading.Event()
 
-    def stuck_integrity(*a, **k):
+    # run_cycle hands write_live_integrity_status to _LIVE_INTEGRITY_WRITER (its own thread), so stalling that does not
+    # stall the cycle; state_writer.write is the call run_cycle makes in its own thread, so stall that instead.
+    def stuck_state_write(*a, **k):
         blocked.set()
         gate.wait(60)
-    c.write_live_integrity_status = stuck_integrity
+    real_state_write = new.state_writer.write
+    new.state_writer.write = stuck_state_write
     cyc = threading.Thread(target=lambda: new.run_cycle(use_source_csv=False, poll_live=False, poll_copy=False), daemon=True)
     cyc.start()
-    blocked.wait(30)
+    if not blocked.wait(30):  # deterministic: say so here rather than let one combined check absorb it
+        check("D1_MAIN_CYCLE_REACHED_THE_STUCK_POINT", False, "cycle never entered write_live_integrity_status")
+        gate.set()
+        cyc.join(30)
+        raise SystemExit(1)
     oid1, side1 = engine_order()
     land(oid1, side1)
     deadline = time.monotonic() + 30
     while time.monotonic() < deadline and str(oid1) not in {r.get("exchange_order_id") for r in c.read_csv_rows(c.LIVE_FILLS_CSV)}:
         time.sleep(0.1)
-    check("D1_FILL_OWNED_WHILE_THE_MAIN_CYCLE_IS_STUCK", blocked.is_set() and cyc.is_alive()
-          and str(oid1) in {r.get("exchange_order_id") for r in c.read_csv_rows(c.LIVE_FILLS_CSV)})
+    # split so the output names WHICH conjunct failed (run 6 finding: one combined line hid the cause)
+    owned_now = {r.get("exchange_order_id") for r in c.read_csv_rows(c.LIVE_FILLS_CSV)}
+    check("D1_MAIN_CYCLE_REACHED_THE_STUCK_POINT", blocked.is_set())
+    check("D1_MAIN_CYCLE_STILL_RUNNING_WHILE_STUCK", cyc.is_alive())
+    check("D1_FILL_OWNED_WHILE_THE_MAIN_CYCLE_IS_STUCK", str(oid1) in owned_now, f"oid1={oid1} owned={sorted(owned_now)}")
     gate.set()
     cyc.join(30)
-    c.write_live_integrity_status = heavy_integrity
+    new.state_writer.write = real_state_write
 
     # ---- D2: no exchange read while a send worker holds the send lock ---------------------------------------------
     under_lock = []
@@ -266,7 +276,9 @@ def main() -> None:
 
     # ---- S: state write keeps the copy thread's fields; export while adding is safe -----------------------------
     before = c.load_json(c.COPY_POLL_STATE_FILE, {})
-    new.state_writer.write(c.CycleSummary(), new.dedupe, new.cfg)
+    # write() queues on the state worker, so it can land mid-check; write_startup runs the same _write_now inline.
+    new.state_writer.write_startup(c.CycleSummary(), new.dedupe, new.cfg)
+    c.prof_take()  # drop sections from earlier polls so P2 names THIS poll's slowest sections
     check("S1_CYCLE_STATE_WRITE_KEEPS_COPY_CURSOR_AND_LAG_RECORD",
           c.load_json(c.COPY_POLL_STATE_FILE, {}) == before
           and c.load_json(c.CORE_RUNTIME_STATE_FILE, {}).get("last_copy_poll_ms") == before.get("last_copy_poll_ms"))

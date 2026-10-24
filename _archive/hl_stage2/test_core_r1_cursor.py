@@ -95,8 +95,9 @@ def main():
     core.ws.write_health = lambda: {"ws_summary": {}}
     core._daily_loss_block = lambda: ""
     core._scope_sweep_block = lambda: ""
-    core._leader_poll_due = lambda: True
+    core._leader_poll_due = lambda force=False: True   # run_cycle calls it with force=
     core.poll_wallets = lambda: [A]
+    core._poll_wallet_selection_changed = False   # normally set inside poll_wallets(), which is stubbed out above
     def poll_fills(wallet, start_ms, end_ms=None):
         poll_starts.append(start_ms)
         if poll_fill[0] is None:

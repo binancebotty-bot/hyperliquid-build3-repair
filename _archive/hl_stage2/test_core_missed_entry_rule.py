@@ -94,6 +94,11 @@ def main() -> None:
     class FakeExchange:
         def __init__(self, replies=None):
             self.calls, self.cancels, self.replies = [], [], list(replies or [])
+            self.leverage_calls = []   # kept out of .calls: M2 compares the order list exactly
+
+        def update_leverage(self, leverage, name, is_cross=True):
+            self.leverage_calls.append((name, leverage, is_cross))
+            return {"status": "ok"}   # the sender fails ENTRY/ADD closed as MARGIN_MODE_UNSET without this method
 
         def order(self, coin, is_buy, size, px, tif, reduce_only=False):
             self.calls.append({"px": px, "tif": tif["limit"]["tif"], "buy": is_buy, "size": size, "reduce_only": reduce_only})
@@ -347,6 +352,7 @@ def main() -> None:
         LEADER: {"enabled": True, "mode": "ON"}, OTHER: {"enabled": True, "mode": "ON"}}})
     starts = []
     core.ingestor.poll_hyperliquid_fills = lambda w, s, t=None: starts.append((w, s)) or ([], "POLL_NETWORK_ERROR")
+    now = c.utc_now_ms()  # refresh: the cycle stamps its own retention floor, so a `now` older than ~60 s fails
     state = c.load_json(c.CORE_RUNTIME_STATE_FILE, {})
     state["last_leader_poll_cursor_ms"] = {LEADER: now - 3 * 86400000, OTHER: now - 3 * 86400000}
     c.atomic_write_json(c.CORE_RUNTIME_STATE_FILE, state)

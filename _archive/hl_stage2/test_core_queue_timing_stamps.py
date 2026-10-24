@@ -2,6 +2,7 @@
 """Offline check for queue timing stamps; clears inherited env and never constructs an exchange client."""
 from __future__ import annotations
 
+import collections
 import json
 import os
 import queue
@@ -16,7 +17,8 @@ from unittest.mock import patch
 
 os.environ.clear()
 
-with tempfile.TemporaryDirectory(prefix="queue_timing_stamps_") as tmp:
+with tempfile.TemporaryDirectory(prefix="queue_timing_stamps_", ignore_cleanup_errors=True) as tmp:
+    # ignore_cleanup_errors: the engine's append-only error writer can still hold errors.csv on Windows at teardown
     os.environ.update({
         "HL_LEADER_NETWORK": "testnet",
         "HL_FOLLOWER_NETWORK": "testnet",
@@ -50,6 +52,15 @@ with tempfile.TemporaryDirectory(prefix="queue_timing_stamps_") as tmp:
     core._already_handled = lambda _fill: True
     core._guard_key = lambda fill: fill.leader_fill_id
     core._release_queued = lambda batch, q: [q.task_done() for _ in batch]
+    # a bare core has no trace writer thread: _fill_trace only queues, so the file must be drained by hand
+    core._fill_trace_condition = threading.Condition()
+    core._fill_trace_buffer = collections.deque(maxlen=c.FILL_TRACE_QUEUE_MAX)
+    core._fill_trace_dropped = 0
+    core._fill_trace_writer_done = False
+
+    def flush_trace():
+        core._fill_trace_writer_done = True
+        core._fill_trace_writer_loop()
 
     fills = [
         c.LeaderFill(f"fill-{i}", "wallet-a", f"COIN-{i}", "BUY", 1.0, 1.0,
@@ -118,6 +129,7 @@ with tempfile.TemporaryDirectory(prefix="queue_timing_stamps_") as tmp:
     core._queue_depth_loop()
     core._fill_trace("cycle_start", None, {"cycle_id": 7})
     core._fill_trace("cycle_end", None, {"cycle_id": 7, "duration_ms": 12})
+    flush_trace()  # drain the queue the bare core accumulated before reading the file
     trace = Path(tmp) / "fill_trace.jsonl"
     rows = [json.loads(line) for line in trace.read_text(encoding="utf-8").splitlines()]
     if not any(row.get("k") == "queue_depth" and row.get("hot_depth") == [0]
