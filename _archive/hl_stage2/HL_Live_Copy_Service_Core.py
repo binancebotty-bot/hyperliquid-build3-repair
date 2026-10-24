@@ -4956,10 +4956,6 @@ class IntentBuilder:
         return max(0.0, fill.notional * (norm_base / leader_equity))
 
     def _decision(self, wallet: str, fill: LeaderFill, lifecycle: str, copy_notional: float, before: float) -> Tuple[str, str]:
-        # builder-dex symbols (XYZ:*) are absent from the main meta universe and their orders never match: keep them off the send path
-        _excluded = [p.strip().upper() for p in str(os.getenv("HL_LIVE_SEND_EXCLUDE_PREFIXES", "XYZ:")).split(",") if p.strip()]
-        if any(str(fill.coin or "").strip().upper().startswith(p) for p in _excluded):
-            return "EXCLUDED_SEND_PREFIX", f"{fill.coin} matches HL_LIVE_SEND_EXCLUDE_PREFIXES"
         # Spot copying is not supported: refuse at the gate, before any idempotency key or send path is reachable.
         if is_spot_pair(fill.coin):
             if lifecycle not in {'ENTRY', 'ADD'} or (abs(before) <= POSITION_EPSILON and self._is_leader_close_fill(fill)):
@@ -5092,7 +5088,7 @@ class SenderGateway:
         self._exchange_rate_limit_cooldown_until_ms: int = 0
         self._market_halted_until_ms: Dict[str, int] = {}
         self._ioc_no_match_until_ms: Dict[str, int] = {}
-        self._ioc_no_match_streak: Dict[str, int] = {}  # consecutive IOC no-match rejects per coin: a dead market parks
+        self._ioc_no_match_streak: Dict[str, int] = {}  # consecutive illiquid rejects per coin (ENTRY/ADD only): a dead market parks
         self._margin_reject_until_ms: Dict[str, int] = {}
         self._liq_parity_until_ms: Dict[str, int] = {}
         # shortcut: windows reset on restart; persist only if restart-spanning controls are required.
@@ -5288,7 +5284,10 @@ class SenderGateway:
         """One named error row per coin per HL_LIVE_SYMBOL_UNRESOLVED_LOG_WINDOW_MS (default 600000 ms); margin mode stays unset."""
         seen = self.__dict__.setdefault("_mm_unresolved_logged", {})
         now = time.monotonic()
-        window_ms = max(1.0, fnum(os.getenv("HL_LIVE_SYMBOL_UNRESOLVED_LOG_WINDOW_MS"), 600000.0))
+        window_ms = os.getenv("HL_LIVE_SYMBOL_UNRESOLVED_LOG_WINDOW_MS")
+        if window_ms is None:  # older knob was in seconds: honour it rather than silently losing the configured window
+            window_ms = fnum(os.getenv("HL_LIVE_MM_UNRESOLVED_LOG_SEC"), 600.0) * 1000.0
+        window_ms = max(1.0, fnum(window_ms, 600000.0))
         if now - seen.get(coin, -1e12) < window_ms / 1000.0:
             return
         seen[coin] = now
@@ -7522,13 +7521,7 @@ class SenderGateway:
                         reject_category="MARKET_HALTED", terminal_state="SKIPPED_MARKET_HALTED",
                         action="RETRY_AFTER_MARKET_HALT_COOLDOWN", notes="Trading is halted.; per-coin cooldown 10 minutes")
             elif category == "IOC_NO_IMMEDIATE_MATCH" and lifecycle in {"ENTRY", "ADD"}:
-                streak = self._ioc_no_match_streak.get(coin_key, 0) + 1
-                self._ioc_no_match_streak[coin_key] = streak
-                park_after = max(1, int(fnum(os.getenv("HL_LIVE_IOC_NO_MATCH_PARK_AFTER"), 3)))
-                if streak >= park_after:  # no resting liquidity at any price we tried: park, do not re-fire every intent
-                    window_ms = max(1, int(fnum(os.getenv("HL_LIVE_IOC_NO_MATCH_PARK_MS"), 900000)))
-                else:
-                    window_ms = max(1, int(fnum(os.getenv("HL_LIVE_IOC_NO_MATCH_RETRY_WINDOW_MS"), 10000)))
+                window_ms = max(1, int(fnum(os.getenv("HL_LIVE_IOC_NO_MATCH_RETRY_WINDOW_MS"), 10000)))
                 was_active = self._ioc_no_match_until_ms.get(coin_key, 0) > utc_now_ms()
                 self._ioc_no_match_until_ms[coin_key] = max(self._ioc_no_match_until_ms.get(coin_key, 0), utc_now_ms() + window_ms)
                 if not was_active:
@@ -7537,17 +7530,23 @@ class SenderGateway:
                         leader_fill_id=intent.fill.leader_fill_id, intent_id=intent.intent_id, coin=coin_key,
                         reject_category="IOC_NO_IMMEDIATE_MATCH", terminal_state="IOC_NO_IMMEDIATE_MATCH",
                         action="RETRY_AFTER_IOC_WINDOW", notes=f"IOC remained IOC; per-coin retry window {window_ms} ms")
-                if streak == park_after:
-                    self.audit.append_reconciliation(
-                        "SEND_TERMINAL", "PARKED_IOC_NO_MATCH", leader_wallet=intent.fill.leader_wallet,
-                        leader_fill_id=intent.fill.leader_fill_id, intent_id=intent.intent_id, coin=coin_key,
-                        reject_category="IOC_NO_IMMEDIATE_MATCH", terminal_state="PARKED_IOC_NO_MATCH",
-                        action="NO_SEND_COIN_PARKED",
-                        notes=f"{streak} consecutive IOC no-match rejects; coin parked {window_ms} ms")
             elif category == "INSUFFICIENT_MARGIN" and lifecycle in {"ENTRY", "ADD"}:
                 window_ms = max(1, int(fnum(os.getenv("HL_LIVE_MARGIN_REJECT_RETRY_WINDOW_MS"), 10000)))
                 self._margin_reject_until_ms[coin_key] = max(
                     self._margin_reject_until_ms.get(coin_key, 0), utc_now_ms() + window_ms)
+            if category in {"IOC_NO_IMMEDIATE_MATCH", "MARKET_HALTED"} and lifecycle in {"ENTRY", "ADD"}:
+                streak = self._ioc_no_match_streak.get(coin_key, 0) + 1
+                self._ioc_no_match_streak[coin_key] = streak
+                park_after = max(1, int(fnum(os.getenv("HL_LIVE_ILLIQUID_PARK_AFTER"), 3)))
+                if streak == park_after:  # the market keeps refusing this coin: park it instead of re-firing every intent
+                    park_ms = max(1, int(fnum(os.getenv("HL_LIVE_ILLIQUID_PARK_MS"), 1800000)))
+                    self._ioc_no_match_until_ms[coin_key] = max(self._ioc_no_match_until_ms.get(coin_key, 0), utc_now_ms() + park_ms)
+                    self.audit.append_reconciliation(
+                        "SEND_TERMINAL", "SKIPPED_ILLIQUID", leader_wallet=intent.fill.leader_wallet,
+                        leader_fill_id=intent.fill.leader_fill_id, intent_id=intent.intent_id, coin=coin_key,
+                        reject_category="ILLIQUID_SKIP", terminal_state="SKIPPED_ILLIQUID",
+                        action="NO_SEND_COIN_PARKED",
+                        notes=f"{streak} consecutive {category} rejects; coin parked {park_ms} ms")
             if send_status in {"ORDER_FILLED", "ORDER_RESTING"}:
                 self._ioc_no_match_streak.pop(coin_key, None)  # a coin that trades again is not parked
             try:
