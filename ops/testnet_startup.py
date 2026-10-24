@@ -380,10 +380,51 @@ def global_lock_path(spec: dict) -> Path:
 
 
 def info_request(spec: dict, payload: dict) -> object:
-    request = Request(spec["info_url"], data=json.dumps(payload).encode("utf-8"),
-                      headers={"Content-Type": "application/json"})
-    with urlopen(request, timeout=float(spec.get("info_timeout_seconds", 8))) as response:
-        return json.loads(response.read().decode("utf-8"))
+    timeout = float(spec.get("info_timeout_seconds", 8))
+    helper = """import json, sys, urllib.error
+from urllib.request import Request, urlopen
+
+item = json.load(sys.stdin)
+request = Request(item["url"], data=json.dumps(item["payload"]).encode("utf-8"),
+                  headers={"Content-Type": "application/json"})
+try:
+    with urlopen(request, timeout=item["timeout"]) as response:
+        print(json.dumps({"ok": True, "data": json.loads(response.read().decode("utf-8"))}))
+except urllib.error.HTTPError as exc:
+    print(json.dumps({"ok": False, "http_status": exc.code,
+                      "raw_body": exc.read().decode("utf-8", "replace")}))
+    raise SystemExit(2)
+except Exception as exc:
+    print(json.dumps({"ok": False, "error_type": type(exc).__name__, "raw_error": str(exc)}))
+    raise SystemExit(3)
+"""
+    call = str(payload.get("type") or "info")
+    if payload.get("dex"):
+        call += f" dex={payload['dex']}"
+    try:
+        # urllib's socket timeout does not bound a response that keeps dribbling bytes.
+        result = subprocess.run(
+            [sys.executable, "-c", helper],
+            input=json.dumps({"url": spec["info_url"], "payload": payload, "timeout": timeout}),
+            capture_output=True, text=True, timeout=timeout, check=False,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise TimeoutError(f"TESTNET_INFO_HARD_TIMEOUT: {call} exceeded {timeout:g}s") from exc
+    try:
+        response = json.loads(result.stdout)
+    except (json.JSONDecodeError, TypeError) as exc:
+        raise RuntimeError(f"TESTNET_INFO_INVALID_RESPONSE: {call}: {result.stderr or result.stdout}") from exc
+    if not response.get("ok"):
+        if "http_status" in response:
+            raise RuntimeError(
+                f"TESTNET_INFO_HTTP_ERROR: {call}: HTTP {response['http_status']}: {response['raw_body']}"
+            )
+        raise RuntimeError(
+            f"TESTNET_INFO_REQUEST_ERROR: {call}: {response.get('error_type')}: {response.get('raw_error')}"
+        )
+    if result.returncode != 0:
+        raise RuntimeError(f"TESTNET_INFO_HELPER_FAILED: {call}: exit {result.returncode}")
+    return response["data"]
 
 
 def coin_key(dex: str, coin: object) -> str:

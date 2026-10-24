@@ -36,6 +36,13 @@
   "ui_base_url": "http://127.0.0.1:8031",
   "ui_port": 8031,
   "state_max_age_seconds": 30,
+  "global_controls": {
+    "max_order_notional_usd": 250.0,
+    "max_wallet_exposure_usd": 400.0,
+    "max_asset_directional_exposure_usd": 300.0,
+    "max_total_live_exposure_usd": 900.0,
+    "max_daily_loss_usd": 100.0
+  },
   "info_request_interval_seconds": 1.15,
   "info_timeout_seconds": 8,
   "issue_number": 3,
