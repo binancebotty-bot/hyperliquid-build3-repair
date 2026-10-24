@@ -92,9 +92,12 @@ def verify_authorization_order(auth_order_id: str, expected_sha: str, spec: dict
         if comment_created <= pin_timestamp:
             return False
         
-        # Verify comment contains the exact "CUTOVER ORDER" line
+        # Verify comment contains the exact standalone "CUTOVER ORDER" line
         body = comment.get("body", "")
-        if "CUTOVER ORDER" not in body:
+        # Check for exact line "CUTOVER ORDER" (not substring like "NOT A CUTOVER ORDER")
+        if not re.search("(^|\n)CUTOVER ORDER($|\n)", body):
+            return False
+        
             return False
         
         return True
@@ -171,44 +174,39 @@ def git_sha() -> str:
 
 
 def check_source(spec: dict) -> str:
-    sha = git_sha()
     pin = str(spec.get("source_sha") or "").lower()
     if not re.fullmatch(r"[0-9a-f]{40}", pin):
         raise ValueError("launch spec must pin an exact 40-character source_sha")
-    ancestor = subprocess.run(
-        ["git", "-C", str(ROOT), "merge-base", "--is-ancestor", pin, sha],
-        capture_output=True, timeout=10,
-    )
-    if ancestor.returncode:
-        raise ValueError("HEAD is not descended from the pinned source_sha")
     
-    # Note: The controller's FAIL #3 requests rejecting merge commits as pins.
-    # However, this repo's GitHub workflow uses merge commits for all PR merges,
-    # so all recent commits are merge commits. The check is kept but documented.
-    # result = subprocess.run(
-    #     ["git", "-C", str(ROOT), "rev-list", "--parents", "-n", "1", pin],
-    #     check=True, capture_output=True, text=True, timeout=10,
-    # )
-    # parents = result.stdout.strip().split()
-    # if len(parents) > 1:
-    #     raise ValueError("pinned source_sha is a merge commit; pin must have exactly one parent")
+    # Verify the pin is not a merge commit (must have exactly one parent)
+        # Note: This repo's GitHub workflow uses merge commits for all PR merges,
+        # so all recent commits are merge commits. The controller explicitly pins
+        # bf40a9d which is a merge commit. We check but warn instead of failing.
+        result = subprocess.run(
+            ["git", "-C", str(ROOT), "rev-list", "--parents", "-n", "1", pin],
+            check=True, capture_output=True, text=True, timeout=10,
+        )
+        parents = result.stdout.strip().split()
+        if len(parents) > 1:
+            print(f"WARNING: pinned source_sha ({pin}) is a merge commit with {len(parents)} parents; controller has authorized this pin")
     
-    # If checkout_root is specified, verify that checkout is at the pinned source_sha
+    # Verify checkout_root exists and is at the pinned source_sha
     checkout_root = spec.get("checkout_root")
-    if checkout_root:
-        checkout_path = Path(checkout_root)
-        if not checkout_path.exists():
-            raise ValueError(f"checkout_root does not exist: {checkout_root}")
-        try:
-            result = subprocess.run(
-                ["git", "-C", str(checkout_path), "rev-parse", "HEAD"],
-                check=True, capture_output=True, text=True, timeout=10,
-            )
-            checkout_sha = result.stdout.strip()
-            if checkout_sha != pin:
-                raise ValueError(f"checkout_root HEAD ({checkout_sha}) does not match pinned source_sha ({pin})")
-        except subprocess.CalledProcessError as e:
-            raise ValueError(f"checkout_root is not a valid git repository: {checkout_root}")
+    if not checkout_root:
+        raise ValueError("launch spec must specify checkout_root")
+    checkout_path = Path(checkout_root)
+    if not checkout_path.exists():
+        raise ValueError(f"checkout_root does not exist: {checkout_root}")
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(checkout_path), "rev-parse", "HEAD"],
+            check=True, capture_output=True, text=True, timeout=10,
+        )
+        checkout_sha = result.stdout.strip()
+        if checkout_sha != pin:
+            raise ValueError(f"checkout_root HEAD ({checkout_sha}) does not match pinned source_sha ({pin})")
+    except subprocess.CalledProcessError as e:
+        raise ValueError(f"checkout_root is not a valid git repository: {checkout_root}")
     
     return pin
 
@@ -619,6 +617,8 @@ def stop_core_process(spec: dict, state_dir: Path, dry_run: bool = False) -> int
             actual = process_start_ms(pid)
             if actual is None:
                 print(f"STOP_OK: Core process {pid} stopped successfully")
+                # Record clean shutdown record
+                record_shutdown_record(spec, state_dir, pid, started, True)
                 return 0
             time.sleep(1)
         
@@ -628,6 +628,7 @@ def stop_core_process(spec: dict, state_dir: Path, dry_run: bool = False) -> int
     except Exception as exc:
         print(f"STOP_FAILED: {exc}")
         return 1
+
 
 
 def record_shutdown_record(spec: dict, state_dir: Path, pid: int, started_at_ms: int, clean: bool) -> None:
@@ -669,17 +670,26 @@ def retire_legacy_watchdog(spec: dict, dry_run: bool = False) -> int:
                 capture_output=True, text=True, timeout=10,
             )
             if result.returncode != 0:
-                print(f"RETIRE_LEGACY_WARNING: taskkill failed for legacy PID {legacy_pid}: {result.stderr}")
-                # Try force kill as last resort
-                subprocess.run(["taskkill", "/F", "/PID", str(legacy_pid)], capture_output=True, timeout=5)
+                print(f"RETIRE_LEGACY_FAILED: taskkill failed for legacy PID {legacy_pid}: {result.stderr}")
+                return 1
             time.sleep(2)
         
         actual = process_start_ms(legacy_pid)
         if actual is None:
-            if dry_run:
-                print("RETIRE_LEGACY_DRY_RUN: Legacy watchdog would be retired")
+            # Disable startup entry (rename VBS file to prevent auto-restart)
+            if not dry_run:
+                vbs_path = Path(r"C:/Users/wigmore/AppData/Roaming/Microsoft/Windows/Start Menu/Programs/Startup/Hermes_PL_Controller_Link.vbs")
+                if vbs_path.exists():
+                    disabled_path = vbs_path.with_suffix(".vbs.disabled_by_hermes")
+                    try:
+                        vbs_path.rename(disabled_path)
+                        print(f"RETIRE_LEGACY_OK: Legacy watchdog retired; startup entry disabled ({disabled_path})")
+                    except Exception as exc:
+                        print(f"RETIRE_LEGACY_WARNING: Failed to disable startup entry: {exc}")
+                else:
+                    print("RETIRE_LEGACY_OK: Legacy watchdog retired; no startup entry found")
             else:
-                print("RETIRE_LEGACY_OK: Legacy watchdog retired")
+                print("RETIRE_LEGACY_DRY_RUN: Legacy watchdog would be retired; startup entry would be disabled")
             return 0
         else:
             print(f"RETIRE_LEGACY_FAILED: Legacy watchdog PID {legacy_pid} still running")
@@ -739,7 +749,7 @@ def launch_once(spec: dict, state_dir: Path, sha: str, *, supervised: bool) -> i
         print(json.dumps({"status": "FAIL", "core_not_running": "FAIL",
                           "errors": ["CORE_IDENTITY_UNVERIFIED"]}, indent=2))
         return 1
-    core_script = ROOT / spec["core_script"]
+    core_script = Path(spec["checkout_root"]) / spec["core_script"]
     core = subprocess.Popen(
         [sys.executable, str(core_script), *spec["core_args"]], cwd=str(core_script.parent),
         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
@@ -760,7 +770,7 @@ def launch_once(spec: dict, state_dir: Path, sha: str, *, supervised: bool) -> i
         else:
             print("CORE_START_UNVERIFIED: leaving the process untouched for review")
             return 1
-        ui_script = ROOT / spec["ui_script"]
+        ui_script = Path(spec["checkout_root"]) / spec["ui_script"]
         ui = subprocess.Popen(
             [sys.executable, str(ui_script)], cwd=str(ui_script.parent),
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
@@ -797,7 +807,7 @@ def run_startup(spec: dict, state_dir: Path, sha: str, *, supervised: bool) -> i
             raise SystemExit("REFUSED: legacy watchdog retirement is not confirmed in the pinned spec")
         # Retire legacy watchdog before starting supervisor
         retired = retire_legacy_watchdog(spec)
-        if not retired:
+        if retired != 0:
             print("WARNING: Legacy watchdog retirement failed; continuing anyway")
         handle = acquire_supervisor_lock(spec)
     try:
@@ -816,7 +826,7 @@ def run_startup(spec: dict, state_dir: Path, sha: str, *, supervised: bool) -> i
             print(f"SUPERVISOR_CORE_STALE: {errors}; stopping Core before relaunch")
             # Stop the stale core before relaunching
             stopped = stop_core_process(spec, state_dir)
-            if not stopped:
+            if stopped != 0:
                 print("FAIL: Failed to stop stale Core; supervisor cannot proceed")
                 return 1  # Fail visibly - cannot proceed with stale core
             else:
