@@ -350,9 +350,11 @@ def main() -> None:
     _ie = c.IntentBuilder(c.ConfigManager(), c.ManualLedger(path=tmp / "pg_d.json")).build(
         c.LeaderFill("pg-d", LEADER, "GMX", "BUY", 20.0, 1.0, c.utc_now_ms(), "TEST"))
     check("S9_EXPIRED_UNIVERSE_IS_NOT_NAMED_SKIP", _ie.decision == "SEND_BLOCKED_RISK", f"{_ie.decision} {_ie.reason}")
+    c._universe_refresh_join("", 5.0)
     check("S9_EXPIRED_UNIVERSE_REQUESTS_ONE_REFRESH", meta_reads == [{"type": "meta"}], str(meta_reads))
     _ie2 = c.IntentBuilder(c.ConfigManager(), c.ManualLedger(path=tmp / "pg_d2.json")).build(
         c.LeaderFill("pg-d2", LEADER, "GMX", "BUY", 20.0, 1.0, c.utc_now_ms(), "TEST"))
+    c._universe_refresh_join("", 5.0)
     check("S9_REFRESH_BURST_REUSES_ONE_REQUEST", len(meta_reads) == 1 and _ie2.decision == "SEND_BLOCKED_RISK",
           f"{len(meta_reads)} {_ie2.decision}")
     # (e) a universe published WITHIN the limit is proof of absence -> the NAMED skip
@@ -384,6 +386,7 @@ def main() -> None:
     fresh_cache({"BTC": 100.0})
     _ig = c.IntentBuilder(c.ConfigManager(), c.ManualLedger(path=tmp / "pg_f.json")).build(
         c.LeaderFill("pg-f", LEADER, "GMX", "BUY", 20.0, 1.0, c.utc_now_ms(), "TEST"))
+    c._universe_refresh_join("", 5.0)
     check("S9_EXPIRED_UNIVERSE_REFRESH_RAN", len(meta_reads) == 1 and _ig.decision == "SEND_BLOCKED_RISK",
           f"{len(meta_reads)} {_ig.decision}")
     c.MIDS_FETCHER = retry_mids_gmx
@@ -397,6 +400,81 @@ def main() -> None:
     check("S9_REFRESH_PUBLISHED_A_FRESH_UNIVERSE_LISTING_IT",
           "GMX" in c._AUTHORITATIVE_UNIVERSE[""]["symbols"] and c.follower_meta_lists("GMX") is True,
           str(sorted(c._AUTHORITATIVE_UNIVERSE[""]["symbols"])))
+    # ---- S10: the universe refresh runs OFF the decision path with a bounded timeout ----------------
+    def slow_meta(sec, names):
+        def _post(url, json=None, timeout=None):
+            time.sleep(sec)
+            return Resp({"universe": [{"name": n} for n in names]})
+        return _post
+    c._AUTHORITATIVE_UNIVERSE.clear()
+    c._UNIVERSE_REFRESH.clear()
+    c._UNIVERSE_REFRESH_LOCKS.clear()
+    c.requests.post = slow_meta(2.0, ["BTC", "LINK"])
+    c.MIDS_FETCHER = empty_mids
+    fresh_cache({"BTC": 100.0})
+    t0 = time.monotonic()
+    _j = c.IntentBuilder(c.ConfigManager(), c.ManualLedger(path=tmp / "pg_j.json")).build(
+        c.LeaderFill("pg-j", LEADER, "GMX", "BUY", 20.0, 1.0, c.utc_now_ms(), "TEST"))
+    took = time.monotonic() - t0
+    check("S10_DECISION_DOES_NOT_WAIT_FOR_THE_META_FETCH",
+          took < 0.5 and _j.decision == "SEND_BLOCKED_RISK", f"took={took:.2f}s {_j.decision} {_j.reason}")
+    check("S10_TRIGGERING_INTENT_IS_NOT_THE_NAMED_SKIP",
+          _j.decision != "SKIPPED_NOT_LISTED_ON_FOLLOWER_NETWORK", f"{_j.decision} {_j.reason}")
+    _jl = c.IntentBuilder(c.ConfigManager(), c.ManualLedger(path=tmp / "pg_j2.json")).build(
+        c.LeaderFill("pg-j2", LEADER, "GMX", "BUY", 20.0, 1.0, c.utc_now_ms(), "TEST"))
+    check("S10_UNFRESH_UNIVERSE_KEEPS_FAILING_CLOSED",
+          _jl.decision == "SEND_BLOCKED_RISK", f"{_jl.decision} {_jl.reason}")
+    check("S10_BACKGROUND_REFRESH_FINISHES_AND_PUBLISHES",
+          c._universe_refresh_join("", 5.0) and "" in c._AUTHORITATIVE_UNIVERSE, str(sorted(c._AUTHORITATIVE_UNIVERSE)))
+    _jk = c.IntentBuilder(c.ConfigManager(), c.ManualLedger(path=tmp / "pg_j3.json")).build(
+        c.LeaderFill("pg-j3", LEADER, "GMX", "BUY", 20.0, 1.0, c.utc_now_ms(), "TEST"))
+    check("S10_LATER_INTENT_SEES_THE_FRESH_UNIVERSE_NAMED_SKIP",
+          _jk.decision == "SKIPPED_NOT_LISTED_ON_FOLLOWER_NETWORK", f"{_jk.decision} {_jk.reason}")
+    c._AUTHORITATIVE_UNIVERSE.clear()
+    c._UNIVERSE_REFRESH.clear()
+    c._UNIVERSE_REFRESH_LOCKS.clear()
+    c.requests.post = slow_meta(0.2, ["BTC", "LINK", "GMX"])
+    c.MIDS_FETCHER = empty_mids
+    fresh_cache({"BTC": 100.0})
+    _m1 = c.IntentBuilder(c.ConfigManager(), c.ManualLedger(path=tmp / "pg_k.json")).build(
+        c.LeaderFill("pg-k", LEADER, "GMX", "BUY", 20.0, 1.0, c.utc_now_ms(), "TEST"))
+    c._universe_refresh_join("", 5.0)
+    c.MIDS_FETCHER = retry_mids_gmx
+    fresh_cache({"BTC": 100.0})
+    _m2 = c.IntentBuilder(c.ConfigManager(), c.ManualLedger(path=tmp / "pg_k2.json")).build(
+        c.LeaderFill("pg-k2", LEADER, "GMX", "BUY", 20.0, 1.0, c.utc_now_ms(), "TEST"))
+    check("S10_LISTED_AFTER_BACKGROUND_REFRESH_LETS_ENTRY_PROCEED",
+          _m1.decision == "SEND_BLOCKED_RISK" and _m2.decision == "ENTRY_ALLOWED",
+          f"{_m1.decision} {_m2.decision} {_m2.reason}")
+    c._AUTHORITATIVE_UNIVERSE.clear()
+    c._UNIVERSE_REFRESH.clear()
+    c._UNIVERSE_REFRESH_LOCKS.clear()
+    c.requests.post = slow_meta(30.0, ["BTC", "LINK"])
+    c.MIDS_FETCHER = empty_mids
+    fresh_cache({"BTC": 100.0})
+    t0 = time.monotonic()
+    _h1 = c.IntentBuilder(c.ConfigManager(), c.ManualLedger(path=tmp / "pg_h.json")).build(
+        c.LeaderFill("pg-h", LEADER, "GMX", "BUY", 20.0, 1.0, c.utc_now_ms(), "TEST"))
+    took = time.monotonic() - t0
+    _h2 = c.IntentBuilder(c.ConfigManager(), c.ManualLedger(path=tmp / "pg_h2.json")).build(
+        c.LeaderFill("pg-h2", LEADER, "GMX", "BUY", 20.0, 1.0, c.utc_now_ms(), "TEST"))
+    check("S10_HUNG_FETCH_DOES_NOT_BLOCK_THE_DECISION",
+          took < 0.5 and _h1.decision == "SEND_BLOCKED_RISK" and _h2.decision == "SEND_BLOCKED_RISK",
+          f"took={took:.2f}s {_h1.decision} {_h2.decision}")
+    c._UNIVERSE_REFRESH[""]["until"] = 0           # the cooldown has elapsed
+    c._UNIVERSE_REFRESH[""]["inflight_until"] = 0  # and the bounded timeout has passed for that hung read
+    c.requests.post = slow_meta(0.0, ["BTC", "LINK", "GMX"])
+    _h3 = c.IntentBuilder(c.ConfigManager(), c.ManualLedger(path=tmp / "pg_h3.json")).build(
+        c.LeaderFill("pg-h3", LEADER, "GMX", "BUY", 20.0, 1.0, c.utc_now_ms(), "TEST"))
+    joined = c._universe_refresh_join("", 5.0)
+    check("S10_HUNG_FETCH_IS_FORGOTTEN_AND_A_LATER_ATTEMPT_STILL_RUNS",
+          joined and "GMX" in c._AUTHORITATIVE_UNIVERSE.get("", {}).get("symbols", set()),
+          f"{_h3.decision} {sorted(c._AUTHORITATIVE_UNIVERSE.get('', {}).get('symbols', set()))}")
+    _h4 = c.IntentBuilder(c.ConfigManager(), c.ManualLedger(path=tmp / "pg_h4.json")).build(
+        c.LeaderFill("pg-h4", LEADER, "GMX", "BUY", 20.0, 1.0, c.utc_now_ms(), "TEST"))
+    check("S10_MECHANISM_IS_NOT_WEDGED_AFTER_A_HUNG_FETCH",
+          _h4.decision == "SEND_BLOCKED_RISK" and "no fresh follower-network" in _h4.reason,
+          f"{_h4.decision} {_h4.reason}")
     c.requests.post = offline
     c._AUTHORITATIVE_UNIVERSE.clear()
     c._UNIVERSE_REFRESH.clear()
