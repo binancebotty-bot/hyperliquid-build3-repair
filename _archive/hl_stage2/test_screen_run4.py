@@ -28,6 +28,7 @@ import io
 import json
 import os
 import re
+import subprocess
 import sys
 import tempfile
 import time
@@ -47,6 +48,31 @@ WOFF = "0x" + "f" * 40
 def check(name: str, cond: bool, detail: str = "") -> None:
     RESULTS.append((name, bool(cond)))
     print("RESULT::%s_%s%s" % (name, "PASS" if cond else "FAIL", (" | " + detail) if (detail and not cond) else ""))
+
+
+def _rendered_ownership_classes(panel: str) -> dict:
+    """Run the template's own ownership JS for all four values; return what it really renders.
+
+    Text matching cannot prove red is UNKNOWN-only: a compound condition, or a red branch placed
+    earlier on the same line, keeps every required snippet present. So the real JS runs under node
+    and the rendered class is read back for ownPill and the orphan-row pill expression.
+    shortcut: needs node on PATH; a static JS string cannot be evaluated honestly any other way.
+    """
+    own = re.search(r"(function ownPill\(o,why\)\{[\s\S]*?</span>`;\})", panel).group(1)
+    row = re.search(r'class="lc-pill \$\{((?:r\.engine_shortfall\?|String\(r\.ownership)[\s\S]*?)\}">', panel).group(1)
+    js = (
+        "function h(v){return String(v==null?'':v);}\n" + own + "\n"
+        + "const rowCls=(r)=>" + row + ";\nconst out={};\n"
+        + "['UNKNOWN','KNOWN_UNMANAGED','USER_OWNED','ENGINE'].forEach(function(v){\n"
+        + "  out['own_'+v]=/lc-pill (lc-[a-z]+)/.exec(ownPill(v,'why'))[1];\n"
+        + "  out['row_'+v]=rowCls({ownership:v});\n});\nconsole.log(JSON.stringify(out));\n"
+    )
+    tmp = Path(tempfile.mkdtemp(prefix="s9own_")) / "own.js"
+    tmp.write_text(js, encoding="utf-8")
+    res = subprocess.run(["node", str(tmp)], capture_output=True, text=True, timeout=60)
+    if res.returncode != 0:
+        raise AssertionError("node failed on the template JS: " + res.stderr[-800:])
+    return json.loads(res.stdout)
 
 
 # ---- fake follower /info (no network) -----------------------------------------------------------------
@@ -276,16 +302,17 @@ def main() -> None:
     # lines, not fixture rows: stop level (isStopLevel/terminalCls), the engine alert, the calm health level,
     # and the ordered red-on-UNKNOWN ownership producers (statusCard count, ownPill class, ownText label).
     red_ok = ("ENGINE ALERT", "levelCls", "isStopLevel", "terminalCls", "unknown_ownership_count", "ownPill", "UNKNOWN")
-    # Ownership rule, asserted on template text because the template is what emits the class: red is UNKNOWN only.
-    # ownPill (HL_Copy_App_SSOT.py:7632) is one producer, the orphan row cell (:7661) the other.
-    own_cls = re.search(r"function ownPill\(o,why\)\{[^\n]*\n\s*const cls=([^;]+);", panel).group(1)
-    own_bad = [m for m in re.findall(r"'(USER_OWNED|KNOWN_UNMANAGED|ENGINE)'\?'(lc-[a-z]+)'", own_cls) if m[1] == "lc-red"]
-    own_row = re.search(r"String\(r\.ownership\|\|'UNKNOWN'\)==='UNKNOWN'\?'lc-red'[^\"]*", panel).group(0)
+    # Ownership rule, asserted on BEHAVIOUR: the template's own JS is executed for all four ownership
+    # values and the rendered class must be red for UNKNOWN only. ownPill (HL_Copy_App_SSOT.py:7632) is
+    # one producer, the orphan row cell (:7661) the other. Text matching cannot see a compound or an
+    # earlier red branch; running the JS can.
+    got = _rendered_ownership_classes(panel)
+    want = {"own_UNKNOWN": "lc-red", "own_KNOWN_UNMANAGED": "lc-amber", "own_USER_OWNED": "lc-blue",
+            "own_ENGINE": "lc-green", "row_UNKNOWN": "lc-red", "row_KNOWN_UNMANAGED": "lc-amber",
+            "row_USER_OWNED": "lc-blue", "row_ENGINE": "lc-blue"}
     check("S9_RED_ONLY_FOR_STOP_LEVEL", len(reds) == 8 and all(any(m in ln for m in red_ok) for ln in reds)
-          and "'UNKNOWN'?'lc-red'" in own_cls and not own_bad
-          and "?'lc-amber':v==='USER_OWNED'?'lc-blue'" in own_cls
-          and own_row.count("lc-red") == 1 and "'KNOWN_UNMANAGED'?'lc-amber'" in own_row,
-          "\n".join(x[:120] for x in reds) + "\nownPill cls=" + own_cls + "\nownRow=" + own_row)
+          and got == want,
+          "\n".join(x[:120] for x in reds) + "\nrendered=" + json.dumps(got) + "\nwant=" + json.dumps(want))
 
     # ---- S10 one last fill / last reject -------------------------------------------------------------------
     check("S10_ONE_LAST_FILL_AND_REJECT", panel.count("statusCard('Last fill'") == 1 and panel.count("statusCard('Last reject'") == 1
