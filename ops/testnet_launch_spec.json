@@ -15,7 +15,8 @@
     "AZTEC": "3529.0"
   },
   "legacy_watchdog_pid": 38604,
-  "legacy_watchdog_retired": true,
+    "legacy_watchdog_retired": true,
+    "legacy_watchdog_started_at_ms": 1792755782375,
   "global_holder_path": "C:/Users/wigmore/AppData/Local/HL_Live_Copy_Service_Core/engine-global.lock.holder.json",
   "global_lock_path": "C:/Users/wigmore/AppData/Local/HL_Live_Copy_Service_Core/engine-global.lock",
   "supervisor_lock_path": "C:/Users/wigmore/AppData/Local/HL_Live_Copy_Service_Core/testnet_startup_supervisor.lock",

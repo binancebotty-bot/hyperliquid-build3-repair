@@ -62,19 +62,27 @@ class TestEvaluateFlatness(unittest.TestCase):
 
 
 class TestVerifyAuthorizationOrder(unittest.TestCase):
+    def _make_comment_response(self, body, author="binancebotty-bot", created_at="2026-10-24T00:00:01Z"):
+        """Create a mock GitHub comment response with valid JSON."""
+        import json
+        comment = {
+            "issue_url": "https://api.github.com/repos/binancebotty-bot/hyperliquid-build3-repair/issues/81",
+            "user": {"login": author},
+            "created_at": created_at,
+            "body": body
+        }
+        mock_response = MagicMock()
+        mock_response.read.return_value = json.dumps(comment).encode('utf-8')
+        mock_response.__enter__ = lambda self: self
+        mock_response.__exit__ = lambda *args: None
+        return mock_response
+
     @patch("testnet_startup.urlopen")
     @patch("testnet_startup.subprocess.run")
     def test_valid_cutover_order(self, mock_run, mock_urlopen):
-        mock_response = MagicMock()
-        mock_response.read.return_value = b'''{
-            "issue_url": "https://api.github.com/repos/binancebotty-bot/hyperliquid-build3-repair/issues/81",
-            "user": {"login": "binancebotty-bot"},
-            "created_at": "2026-10-24T00:00:01Z",
-            "body": "CUTOVER ORDER\nSome other text"
-        }'''
-        mock_response.__enter__ = lambda self: self
-        mock_response.__exit__ = lambda *args: None
-        mock_urlopen.return_value = mock_response
+        mock_urlopen.return_value = self._make_comment_response(
+            body="CUTOVER ORDER\nSome other text\nSHA: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        )
         mock_run.return_value = MagicMock(stdout="1700000000")
         spec = {"source_sha": "a" * 40}
         result = verify_authorization_order("1234567890", "a" * 40, spec)
@@ -83,16 +91,10 @@ class TestVerifyAuthorizationOrder(unittest.TestCase):
     @patch("testnet_startup.urlopen")
     @patch("testnet_startup.subprocess.run")
     def test_invalid_author_not_controller(self, mock_run, mock_urlopen):
-        mock_response = MagicMock()
-        mock_response.read.return_value = b'''{
-            "issue_url": "https://api.github.com/repos/binancebotty-bot/hyperliquid-build3-repair/issues/81",
-            "user": {"login": "not-controller"},
-            "created_at": "2026-10-24T00:00:01Z",
-            "body": "CUTOVER ORDER"
-        }'''
-        mock_response.__enter__ = lambda self: self
-        mock_response.__exit__ = lambda *args: None
-        mock_urlopen.return_value = mock_response
+        mock_urlopen.return_value = self._make_comment_response(
+            author="not-controller",
+            body="CUTOVER ORDER"
+        )
         mock_run.return_value = MagicMock(stdout="1700000000")
         spec = {"source_sha": "a" * 40}
         result = verify_authorization_order("1234567890", "a" * 40, spec)
@@ -101,16 +103,9 @@ class TestVerifyAuthorizationOrder(unittest.TestCase):
     @patch("testnet_startup.urlopen")
     @patch("testnet_startup.subprocess.run")
     def test_crlf_line_ending_in_body(self, mock_run, mock_urlopen):
-        mock_response = MagicMock()
-        mock_response.read.return_value = b'''{
-            "issue_url": "https://api.github.com/repos/binancebotty-bot/hyperliquid-build3-repair/issues/81",
-            "user": {"login": "binancebotty-bot"},
-            "created_at": "2026-10-24T00:00:01Z",
-            "body": "NOT A CUTOVER ORDER\r\nCUTOVER ORDER\r\nEND"
-        }'''
-        mock_response.__enter__ = lambda self: self
-        mock_response.__exit__ = lambda *args: None
-        mock_urlopen.return_value = mock_response
+        mock_urlopen.return_value = self._make_comment_response(
+            body="NOT A CUTOVER ORDER\r\nCUTOVER ORDER\r\nEND\nSHA: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        )
         mock_run.return_value = MagicMock(stdout="1700000000")
         spec = {"source_sha": "a" * 40}
         result = verify_authorization_order("1234567890", "a" * 40, spec)
@@ -119,16 +114,9 @@ class TestVerifyAuthorizationOrder(unittest.TestCase):
     @patch("testnet_startup.urlopen")
     @patch("testnet_startup.subprocess.run")
     def test_not_cutover_order_substring(self, mock_run, mock_urlopen):
-        mock_response = MagicMock()
-        mock_response.read.return_value = b'''{
-            "issue_url": "https://api.github.com/repos/binancebotty-bot/hyperliquid-build3-repair/issues/81",
-            "user": {"login": "binancebotty-bot"},
-            "created_at": "2026-10-24T00:00:01Z",
-            "body": "NOT A CUTOVER ORDER"
-        }'''
-        mock_response.__enter__ = lambda self: self
-        mock_response.__exit__ = lambda *args: None
-        mock_urlopen.return_value = mock_response
+        mock_urlopen.return_value = self._make_comment_response(
+            body="NOT A CUTOVER ORDER"
+        )
         mock_run.return_value = MagicMock(stdout="1700000000")
         spec = {"source_sha": "a" * 40}
         result = verify_authorization_order("1234567890", "a" * 40, spec)
@@ -142,7 +130,7 @@ class TestCheckSource(unittest.TestCase):
         spec = {"source_sha": "a" * 40, "checkout_root": "/tmp"}
         with self.assertRaises(ValueError) as ctx:
             check_source(spec)
-        self.assertIn("merge commit with 2 parents", str(ctx.exception))
+        self.assertIn("has 2 parents", str(ctx.exception))
 
     @patch("testnet_startup.subprocess.run")
     def test_single_parent_accepted(self, mock_run):

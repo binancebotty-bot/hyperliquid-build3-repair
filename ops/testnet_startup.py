@@ -86,6 +86,7 @@ def verify_authorization_order(auth_order_id: str, expected_sha: str, spec: dict
     - The comment is from the Controller (binancebotty-bot)
     - The comment was created after the pinned spec commit
     - The comment contains the exact line "CUTOVER ORDER"
+    - The comment authorizes the exact expected_sha (binds authorization to target)
     Returns False on any failure or lookup error (fail closed).
     """
     try:
@@ -127,6 +128,10 @@ def verify_authorization_order(auth_order_id: str, expected_sha: str, spec: dict
         body = body.replace(crlf, "\n")
         # Check for exact line "CUTOVER ORDER" (not substring like "NOT A CUTOVER ORDER")
         if not re.search("(^|\n)CUTOVER ORDER($|\n)", body):
+            return False
+        
+        # Bind authorization to the exact expected_sha - comment must reference this SHA
+        if expected_sha and expected_sha.lower() not in body.lower():
             return False
         
         return True
@@ -215,8 +220,8 @@ def check_source(spec: dict) -> str:
     tokens = result.stdout.strip().split()
     # tokens[0] is the commit SHA, tokens[1:] are parent SHAs
     parent_count = len(tokens) - 1
-    if parent_count > 1:
-        raise ValueError(f"pinned source_sha ({pin}) is a merge commit with {parent_count} parents; pin must have exactly one parent")
+    if parent_count != 1:
+        raise ValueError(f"pinned source_sha ({pin}) has {parent_count} parents; pin must have exactly one parent")
     
     # Verify checkout_root exists and is at the pinned source_sha
     checkout_root = spec.get("checkout_root")
@@ -688,18 +693,27 @@ def record_shutdown_record(spec: dict, state_dir: Path, pid: int, started_at_ms:
 def retire_legacy_watchdog(spec: dict, dry_run: bool = False) -> int:
     """Stop and disable the legacy watchdog PID.
     Returns 0 if retired successfully, 1 otherwise.
+    Verifies the expected process start identity before stopping.
     """
     legacy_pid = spec.get("legacy_watchdog_pid")
+    expected_started_at_ms = spec.get("legacy_watchdog_started_at_ms")
     if not isinstance(legacy_pid, int) or legacy_pid <= 0:
         if dry_run:
             print("RETIRE_LEGACY_DRY_RUN: No legacy watchdog PID configured")
         else:
             print("RETIRE_LEGACY_OK: No legacy watchdog PID configured")
         return 0
+    if not isinstance(expected_started_at_ms, int) or expected_started_at_ms <= 0:
+        print("RETIRE_LEGACY_FAILED: legacy_watchdog_started_at_ms not configured")
+        return 1
     
     try:
         actual = process_start_ms(legacy_pid)
         if actual is not None:
+            # Verify expected start identity before stopping
+            if abs(actual - expected_started_at_ms) > 2000:
+                print(f"RETIRE_LEGACY_FAILED: PID {legacy_pid} start time mismatch (expected {expected_started_at_ms}, actual {actual})")
+                return 1
             if dry_run:
                 print(f"RETIRE_LEGACY_DRY_RUN: Would stop legacy watchdog PID {legacy_pid}")
                 return 0
