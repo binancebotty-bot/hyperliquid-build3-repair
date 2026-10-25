@@ -1,0 +1,168 @@
+{
+  "archived_wallets": {},
+  "auto_send_enabled": false,
+  "global_controls": {
+    "marketable_bps": 20.0,
+    "max_asset_directional_exposure_usd": 300.0,
+    "max_close_adverse_diff_pct": 0.0,
+    "max_daily_loss_usd": 100.0,
+    "max_order_notional_usd": 250.0,
+    "max_total_live_exposure_usd": 900.0,
+    "max_wallet_exposure_usd": 400.0,
+    "send_mode": "ON",
+    "symbol_allowlist": [],
+    "symbol_blocklist": []
+  },
+  "wallets": {
+    "0x010461c14e146ac35fe42271bdc1134ee31c703a": {
+      "copy_mode": "fixed",
+      "daily_loss_limit": 0.0,
+      "enabled": true,
+      "fixed_notional": 12.0,
+      "leader_equity_base": 10000.0,
+      "max_diff_pct": 0.1,
+      "mode": "CLO",
+      "norm_base": 100.0
+    },
+    "0x1b232b41b0e75550c59288b99874e4a8142fbe21": {
+      "copy_mode": "fixed",
+      "enabled": false,
+      "fixed_notional": 12.0,
+      "mode": "OFF",
+      "norm_base": 100.0
+    },
+    "0x20ad988487d6a53fea7918657f45fe0bb8fd8183": {
+      "copy_mode": "fixed",
+      "enabled": true,
+      "fixed_notional": 12.0,
+      "mode": "LIVE",
+      "norm_base": 100.0
+    },
+    "0x21ca98106c69bff036a194648ba30388ccbe811d": {
+      "copy_mode": "fixed",
+      "enabled": true,
+      "fixed_notional": 12.0,
+      "mode": "LIVE",
+      "norm_base": 100.0
+    },
+    "0x31ca8395cf837de08b24da3f660e77761dfb974b": {
+      "copy_mode": "fixed",
+      "daily_loss_limit": 0.0,
+      "enabled": true,
+      "fixed_notional": 12.0,
+      "leader_equity_base": 10000.0,
+      "max_diff_pct": 0.1,
+      "mode": "CLO",
+      "norm_base": 100.0
+    },
+    "0x46926d8fad4a36047a73ed7be1cec963c77fef87": {
+      "copy_mode": "fixed",
+      "enabled": true,
+      "fixed_notional": 12.0,
+      "mode": "LIVE",
+      "norm_base": 100.0
+    },
+    "0x6ba889db7f923622d3548f621ecc2054b80c1817": {
+      "copy_mode": "fixed",
+      "daily_loss_limit": 0.0,
+      "enabled": true,
+      "fixed_notional": 12.0,
+      "leader_equity_base": 10000.0,
+      "max_diff_pct": 0.1,
+      "mode": "CLO",
+      "norm_base": 100.0
+    },
+    "0x7019197d2b2ae7b44eee12a76015eb1fe94abd36": {
+      "copy_mode": "fixed",
+      "daily_loss_limit": 0.0,
+      "enabled": true,
+      "fixed_notional": 12.0,
+      "leader_equity_base": 10000.0,
+      "max_diff_pct": 0.1,
+      "mode": "CLO",
+      "norm_base": 100.0
+    },
+    "0x7717a7a245d9f950e586822b8c9b46863ed7bd7e": {
+      "copy_mode": "fixed",
+      "enabled": true,
+      "fixed_notional": 12.0,
+      "mode": "LIVE",
+      "norm_base": 100.0
+    },
+    "0x77eeda199553e33b246e4b4666849b9ad0972902": {
+      "copy_mode": "fixed",
+      "enabled": true,
+      "fixed_notional": 12.0,
+      "mode": "LIVE",
+      "norm_base": 100.0
+    },
+    "0x8455193b0490ad091819000b01cd9bb833ac974b": {
+      "copy_mode": "fixed",
+      "enabled": true,
+      "fixed_notional": 12.0,
+      "mode": "LIVE",
+      "norm_base": 100.0
+    },
+    "0x92bbd8110393350dda7e9c32089e95af071a9b6f": {
+      "copy_mode": "fixed",
+      "enabled": true,
+      "fixed_notional": 12.0,
+      "mode": "LIVE",
+      "norm_base": 100.0
+    },
+    "0x936cf4fb95c30ce83f658b5bbb247e4bb381bb0f": {
+      "copy_mode": "fixed",
+      "daily_loss_limit": 0.0,
+      "enabled": true,
+      "fixed_notional": 12.0,
+      "leader_equity_base": 10000.0,
+      "max_diff_pct": 0.1,
+      "mode": "CLO",
+      "norm_base": 100.0
+    },
+    "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa": {
+      "copy_mode": "fixed",
+      "enabled": false,
+      "fixed_notional": 12,
+      "mode": "OFF"
+    },
+    "0xbee0000c04ee2efe66234bec57f7eaf38818fbca": {
+      "copy_mode": "fixed",
+      "enabled": true,
+      "fixed_notional": 12.0,
+      "mode": "LIVE",
+      "norm_base": 100.0
+    },
+    "0xc179e03922afe8fa9533d3f896338b9fb87ce0c8": {
+      "copy_mode": "fixed",
+      "enabled": false,
+      "fixed_notional": 12.0,
+      "mode": "OFF",
+      "norm_base": 100.0
+    },
+    "0xd4c1f7e8d876c4749228d515473d36f919583d1d": {
+      "copy_mode": "fixed",
+      "enabled": true,
+      "fixed_notional": 12.0,
+      "mode": "LIVE",
+      "norm_base": 100.0
+    },
+    "0xf5d81a135f756ca16544e53c20fc20643ec3ad53": {
+      "copy_mode": "fixed",
+      "daily_loss_limit": 0.0,
+      "enabled": true,
+      "fixed_notional": 12.0,
+      "leader_equity_base": 10000.0,
+      "max_diff_pct": 0.1,
+      "mode": "CLO",
+      "norm_base": 100.0
+    },
+    "0xfe7ce058edc7cfcde9ef8262ba51f8d4796ab7ae": {
+      "copy_mode": "fixed",
+      "enabled": true,
+      "fixed_notional": 12.0,
+      "mode": "LIVE",
+      "norm_base": 100.0
+    }
+  }
+}
