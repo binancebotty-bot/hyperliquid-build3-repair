@@ -1359,7 +1359,13 @@ def install_core_attribution_hooks() -> None:
 
     def _atexit_marker() -> None:
         _drain_status_write_workers()
-        _write_core_shutdown_record(_CORE_SHUTDOWN_REASON, clean=True)
+        # the intent writer is a daemon thread: without this it dies with the process and any
+        # queued order_intents rows go with it, which is what "clean" must never claim
+        try:
+            _exit_flush = bool(flush_intent_writer(10.0, "atexit"))
+        except Exception:
+            _exit_flush = False
+        _write_core_shutdown_record(_CORE_SHUTDOWN_REASON, clean=_exit_flush)
 
     atexit.register(_atexit_marker)
 
@@ -15729,17 +15735,6 @@ def main() -> None:
             raise SystemExit("MAINNET_FOLLOWER_NOT_CONFIRMED: the follower network is mainnet (real money). Start with "
                              "--confirm-mainnet-follower to allow it; nothing else can.")
         MAINNET_ORDERS_CONFIRMED = bool(args.confirm_mainnet_follower)
-        # A STOP_REQUESTED left behind by a crash must never stop this fresh instance: quarantine it
-        # under a timestamped name so the ignored request is visible in the audit dir, not silent.
-        try:
-            _stale_stop = AUDIT_DIR / "STOP_REQUESTED"
-            if _stale_stop.exists():
-                _quarantined = AUDIT_DIR / ("STOP_REQUESTED.stale.%d" % int(time.time()))
-                _stale_stop.replace(_quarantined)
-                log_error("stale_stop_request_ignored",
-                          RuntimeError("moved a pre-existing STOP_REQUESTED to %s" % _quarantined.name))
-        except Exception:
-            pass
         try:  # this state folder belongs to one leader/follower network pair, and to one running engine
             _XNET.claim_network_stamp(AUDIT_DIR, NETWORKS)
         except _XNET.NetworkConfigError as exc:
@@ -15749,6 +15744,25 @@ def main() -> None:
             raise SystemExit(f"{_refusal}. Use a fresh state folder (HL_LIVE_AUDIT_DIR); never resume another run's state.")
         acquire_global_instance_lock(AUDIT_DIR)  # machine-wide: one engine per machine, not just per state folder
         acquire_instance_lock(AUDIT_DIR)
+        # Only now, owning the audit dir, can a STOP_REQUESTED be judged. A sentinel younger than
+        # two minutes is a stop IN FLIGHT: this process must refuse to start rather than quarantine
+        # the request the operator is waiting on (doing that before the locks made a live stop
+        # disappear and pushed the operator onto the row-losing --force path).
+        try:
+            _stop_req = AUDIT_DIR / "STOP_REQUESTED"
+            if _stop_req.exists():
+                _stop_age = time.time() - _stop_req.stat().st_mtime
+                if _stop_age <= 120:
+                    raise SystemExit("STOP_REQUESTED is fresh (%.0f s old): a stop is already in "
+                                     "flight for %s; refusing to start" % (_stop_age, AUDIT_DIR))
+                _stale_stop = AUDIT_DIR / ("STOP_REQUESTED.stale.%d" % int(time.time()))
+                _stop_req.replace(_stale_stop)
+                log_error("stale_stop_request_ignored",
+                          RuntimeError("moved a %0.f s old STOP_REQUESTED to %s" % (_stop_age, _stale_stop.name)))
+        except SystemExit:
+            raise
+        except Exception:
+            pass
         install_core_attribution_hooks()
         _key = sender_key_check()
         if _key["ok"] is False:
@@ -15827,11 +15841,16 @@ def main() -> None:
                 if (AUDIT_DIR / "STOP_REQUESTED").exists():
                     global _CORE_SHUTDOWN_REASON
                     _CORE_SHUTDOWN_REASON = "stop_sentinel"
+                    _flushed = False
                     try:
-                        flush_intent_writer(20.0, "stop_sentinel")
+                        # flush_intent_writer reports a timeout by RETURNING False, not by raising:
+                        # ignoring the return value recorded clean=True over discarded rows, which is
+                        # the very loss this hook exists to prevent.
+                        _flushed = bool(flush_intent_writer(20.0, "stop_sentinel"))
                     except Exception as exc:
                         log_error("stop_sentinel_flush", exc)
-                    _write_core_shutdown_record("stop_sentinel", clean=True)
+                        _flushed = False
+                    _write_core_shutdown_record("stop_sentinel", clean=_flushed)
                     try:
                         (AUDIT_DIR / "STOP_REQUESTED").unlink()
                     except OSError:
