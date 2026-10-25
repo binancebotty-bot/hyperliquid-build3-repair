@@ -107,6 +107,17 @@ def main() -> None:
         check("AGE_OUT_IS_A_NAMED_DIFF_ROW", len(rows("DEFERRED_ENTRY_AGED_OUT_DIFF")) - before == 1)
         check("AGE_OUT_WINDOW_IS_25_MIN", c.DEFERRED_ENTRY_MAX_AGE_MS == 25 * 60 * 1000)
 
+        # ---- 4b. a replay after a crash cannot write the same age-out diff twice -------------------
+        before = len(rows("DEFERRED_ENTRY_AGED_OUT_DIFF"))
+        core.retention.retain(fill(fid="aged-1", coin="ADA"), "UNIVERSE_STALE")
+        with core.retention._lock:
+            core.retention.items["aged-1"]["first_ms"] = c.utc_now_ms() - c.DEFERRED_ENTRY_MAX_AGE_MS - 1000
+        core.retention._save()
+        core._retention_tick()
+        check("AGE_OUT_DIFF_ROW_IS_IDEMPOTENT_BY_FILL_ID",
+              len(rows("DEFERRED_ENTRY_AGED_OUT_DIFF")) - before == 0)
+        check("AGE_OUT_DEDUPE_STILL_DROPS_THE_ITEM", "aged-1" not in core.retention.snapshot())
+
         # ---- 2b. one attempt per trigger, idempotent by leader_fill_id ------------------------------
         core.sender._market_halted_until_ms["doge"] = c.utc_now_ms() - 1  # cooldown already expired
         held = fill(fid="trig-1", coin="DOGE")

@@ -12200,6 +12200,13 @@ class LiveCopyCore:
                     self._retention_thread = None
                 return
 
+    def _deferred_ageout_row_exists(self, fid: str) -> bool:
+        """A replay after a crash can age one leader_fill_id out twice: the named diff row is written at
+        most once, so a second pass finds it and only drops the item."""
+        return any(str(r.get("terminal_state") or "") == "DEFERRED_ENTRY_AGED_OUT_DIFF"
+                   and str(r.get("leader_fill_id") or "") == str(fid)
+                   for r in iter_audit_history(RECONCILIATION_CSV))
+
     def _retention_tick(self) -> None:
         now = utc_now_ms()
         for fid, item in self.retention.snapshot().items():
@@ -12215,6 +12222,9 @@ class LiveCopyCore:
             first = int(fnum(item.get("first_ms"), 0))
             if first and now - first > DEFERRED_ENTRY_MAX_AGE_MS:
                 # the diff row is written FIRST: the item is removed only once its loss is on record
+                if self._deferred_ageout_row_exists(fid):
+                    self.retention.drop(fid, "aged out")
+                    continue
                 try:
                     self.audit.append_reconciliation(
                         "SEND_TERMINAL", "DEFERRED_ENTRY_AGED_OUT_DIFF", leader_wallet=item.get("leader_wallet"),
