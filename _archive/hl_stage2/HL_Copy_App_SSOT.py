@@ -29,6 +29,7 @@ import os
 import html
 import io
 import shutil
+import subprocess
 import time
 import threading
 import traceback
@@ -710,6 +711,101 @@ def load_json(path: Path, default: Any) -> Any:
     except Exception:
         pass
     return default
+
+
+# --- Build identity strip: files only, plus git at import (never per request) ---
+_UI_DIR = Path(__file__).resolve().parent
+_UI_STARTED_AT = datetime.now(timezone.utc).replace(microsecond=0)
+
+
+def _git_short_sha(folder: Path) -> str:
+    try:
+        r = subprocess.run(["git", "-C", str(folder), "rev-parse", "--short=7", "HEAD"], capture_output=True, text=True, timeout=5)
+        return r.stdout.strip() if r.returncode == 0 and r.stdout.strip() else "unknown"
+    except Exception:
+        return "unknown"
+
+
+_UI_SHA7 = _git_short_sha(_UI_DIR)
+
+
+def _engine_identity() -> Dict[str, Any]:
+    """Engine pid/build/start from the state files. The state carries no SHA, so sha7 comes from the
+    build folder the engine was started from (e.g. v33_6c69310) - inferred, not authoritative."""
+    rec = load_json(LIVE_COPY_AUDIT_DIR / "core_start_record.json", {})
+    st = load_json(LIVE_COPY_SERVICE_STATE_FILE, {})
+    rec = rec if isinstance(rec, dict) else {}
+    st = st if isinstance(st, dict) else {}
+    sha7, sha_src = "unknown", "the state files carry no SHA"
+    for key in ("script", "cwd"):
+        for part in str(rec.get(key) or "").replace(chr(92), "/").split("/"):
+            tail = part.split("_")[-1].lower()
+            if "_" in part and len(tail) == 7 and all(c in "0123456789abcdef" for c in tail):
+                sha7, sha_src = tail, "core_start_record.json " + key + " folder '" + part + "'"
+                break
+        if sha7 != "unknown":
+            break
+    return {"pid": rec.get("pid") or st.get("process_id"), "started_at": rec.get("started_at") or st.get("started_at"), "sha7": sha7, "sha_source": sha_src}
+
+
+def _pid_running(pid: Any) -> bool:
+    try:
+        pid = int(pid)
+    except (TypeError, ValueError):
+        return False
+    if os.name == "nt":
+        import ctypes
+        h = ctypes.windll.kernel32.OpenProcess(0x1000, False, pid)  # QUERY_LIMITED_INFORMATION
+        if not h:
+            return False
+        ctypes.windll.kernel32.CloseHandle(h)
+        return True
+    try:
+        os.kill(pid, 0)
+        return True
+    except OSError:
+        return False
+
+
+def _engine_same_family(sha7: str) -> bool:
+    """Family rule: the engine sha7 is in the UI's own history (ancestor of, or equal to, the UI commit).
+    Strict equality would be permanently amber because the UI branch is based on 8ce6763."""
+    if sha7 == "unknown" or _UI_SHA7 == "unknown":
+        return False
+    try:
+        r = subprocess.run(["git", "-C", str(_UI_DIR), "merge-base", "--is-ancestor", sha7, "HEAD"], capture_output=True, timeout=5)
+        return r.returncode == 0
+    except Exception:
+        return False
+
+
+def render_build_identity() -> str:
+    """Grey when the engine is running and its build is in the UI's history; amber otherwise. Never claims an unverified match."""
+    e = _engine_identity()
+    pid_ok = _pid_running(e["pid"])
+    same = _engine_same_family(e["sha7"])
+    problems = []
+    if not pid_ok:
+        problems.append("the engine pid in the state file (" + str(e["pid"] or "unknown") + ") is not a running process")
+    if e["sha7"] == "unknown":
+        problems.append("the engine build SHA is unknown, so a match cannot be checked")
+    elif _UI_SHA7 == "unknown":
+        problems.append("the UI build SHA is unknown, so a match cannot be checked")
+    elif not same:
+        problems.append("the UI build " + _UI_SHA7 + " does not contain the engine build " + e["sha7"])
+    if problems:
+        verdict = "build identity MISMATCH: " + "; ".join(problems)
+    else:
+        verdict = "build identity consistent: engine build " + e["sha7"] + " is in the UI's own history"
+    esc = lambda v: html.escape(str(v))
+    bits = ["Engine pid " + esc(e["pid"] or "unknown") + (" (running)" if pid_ok else " (NOT running)"),
+            "engine build " + esc(e["sha7"]) + ("" if e["sha7"] == "unknown" else " (inferred from " + esc(e["sha_source"]) + ")"),
+            "UI build " + esc(_UI_SHA7),
+            "audit dir " + esc(LIVE_COPY_AUDIT_DIR.name),
+            "engine started " + esc(e["started_at"] or "unknown"),
+            "UI started " + esc(_UI_STARTED_AT.isoformat()) + " (module import)"]
+    return ('<div class="lc-source-strip" id="buildIdentity"><span class="lc-pill ' + ("lc-amber" if problems else "lc-grey")
+            + '" style="white-space:normal">' + " &middot; ".join(bits) + " &mdash; " + esc(verdict) + "</span></div>")
 
 
 def load_engine_truth() -> Dict[str, Any]:
@@ -7142,6 +7238,7 @@ async def admin_purge_wallet(request: Request):
 def render_live_copy_control_panel() -> str:
     return """
 <div class="section live-copy-centre" id="liveCopyPanel">
+  """ + render_build_identity() + """
   <header class="lc-header">
     <div class="lc-title">Live Copy Command Centre</div>
     <div class="lc-header-pills">
