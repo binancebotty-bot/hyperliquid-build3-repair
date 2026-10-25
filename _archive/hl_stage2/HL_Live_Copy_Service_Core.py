@@ -139,6 +139,17 @@ LIVE_INTEGRITY_STATUS_FILE = AUDIT_DIR / "live_integrity_status.json"
 ASSET_UNIVERSE_SNAPSHOT_FILE = AUDIT_DIR / "asset_universe_snapshot.json"
 XYZ_POSITION_STATE_FILE = AUDIT_DIR / "xyz_position_state.json"
 
+# A follower entry that filled after the leader had already reduced leaves a position nobody wants: it is an
+# incident with an OPEN row per wallet+coin+oid, and it stays RED until a RESOLVED row for the same key lands.
+LATE_FILL_INCIDENT_EVENT = "LATE_FILL_INCIDENT"
+LATE_FILL_INCIDENT_STATES = frozenset({"ENTRY_FILLED_AFTER_LEADER_REDUCED",
+                                       "RESTING_ENTRY_FILLED_AFTER_LEADER_REDUCED"})
+# The convergence loop publishes a scan heartbeat after EVERY scan (a zero-action one too): a dead loop has to be
+# visible in integrity, not inferred. Staleness is measured in multiples of the loop's own interval.
+CONVERGENCE_HEARTBEAT_FILE = AUDIT_DIR / "convergence_heartbeat.json"
+CONVERGENCE_HEARTBEAT_STALE_MULT = 3      # x the loop interval: amber
+CONVERGENCE_HEARTBEAT_STALE_RED_MULT = 6  # x the loop interval: red
+
 ORDER_INTENTS_CSV = APPEND_ONLY_DIR / "order_intents.csv"
 SEND_ATTEMPTS_CSV = APPEND_ONLY_DIR / "send_attempts.csv"
 LIVE_FILLS_CSV = APPEND_ONLY_DIR / "live_fills.csv"
@@ -1015,6 +1026,62 @@ def classify_operator_action(status: str, reject_category: str = "", lifecycle: 
     return "REVIEW_REQUIRED"
 
 
+# EXACT row-name allow-list, built with ast from the names the sender actually writes (every terminal_state=
+# keyword, every 'terminal_state' dict key, every status literal passed to append_reconciliation, and every string
+# classify_terminal_state returns). Substring matching is gone: a name in neither set is UNCLASSIFIED, and the test
+# below fails if the sender grows a row name this list does not carry.
+TERMINAL_ROW_NAMES = frozenset({
+    "ASSET_META_SNAPSHOT_ONLY_SEND_BLOCKED", "BLOCKED_SEND_EXCEPTION", "BLOCKED_SEND_UNCLASSIFIED",
+    "CLOSE_ADVERSE_DIFF_TOO_LARGE", "CLOSE_ALREADY_AT_TARGET", "DUST_BELOW_MIN_NOTIONAL",
+    "ENTRY_ADD_RATE_LIMIT_RECOVERY_EXPIRED", "ENTRY_ADD_RATE_LIMIT_RECOVERY_FAILED",
+    "ENTRY_FILLED_AFTER_LEADER_REDUCED", "EXCHANGE_CALL_ERROR_REVIEW_REQUIRED", "EXIT_RECOVERY_QUEUE_FAILED",
+    "FILLED_AWAITING_COPY_POLL", "IOC_NO_IMMEDIATE_MATCH", "MANUAL_EXIT_RECOVERY_REQUIRED",
+    "MISSED_ENTRY_LEADER_ALREADY_CLOSED", "MISSED_ENTRY_LEADER_ALREADY_REDUCED",
+    "MISSED_ENTRY_LEADER_PRICE_UNAVAILABLE", "MISSED_ENTRY_LIMIT_OUTCOME_UNKNOWN",
+    "MISSED_ENTRY_LIMIT_RESTED", "MISSED_ENTRY_DIFF_LIMIT_REJECTED", "MISSED_ENTRY_DIFF_NO_LIMIT_POSSIBLE",
+    "MISSED_ENTRY_SKIP_SYMBOL_NOT_LISTED", "MOCK_ORDER_SENT", "ORDER_FILLED", "PRICE_SANITY_REJECTED",
+    "REDUCE_ONLY_REJECT_EXCHANGE_FLAT", "RESTING_ENTRY_FILLED_AFTER_LEADER_REDUCED",
+    "RESTING_ENTRY_FILL_UNVERIFIED", "SEND_NOT_ATTEMPTED_MAX_ORDER_NOTIONAL",
+    "SEND_NOT_ATTEMPTED_CLOSE_AT_TARGET", "SEND_OUTCOME_CONFIRMED_CANCELLED_NO_RETRY",
+    "SEND_OUTCOME_DEFERRED_RESOLVED", "SEND_OUTCOME_REVIEW_REQUIRED", "SEND_OUTCOME_UNKNOWN_MANUAL_ALERT",
+    "SKIPPED_MARKET_HALTED", "SPOT_MARKET_SKIPPED", "SUPERSEDED_BY_RETRY", "UNSUPPORTED_SYMBOL_OR_METADATA",
+    "SENDER_KEY_NOT_VALID_ON_FOLLOWER_NETWORK", "MARGIN_MODE_UNSET",
+})
+NON_TERMINAL_ROW_NAMES = frozenset({
+    "AMBIGUOUS_SEND_EXIT_RESTING", "ASSET_META_REFRESH_FAILED_USING_LAST_GOOD", "AUDIT_WRITE_FAILED",
+    "BELOW_SYMBOL_MIN_EXCEEDS_COPY_NOTIONAL", "BELOW_SYMBOL_MIN_EXCEEDS_MAX_ORDER",
+    "BLOCKED_DUPLICATE_DEDUPE_STORE", "BLOCKED_DUPLICATE_PRE_SEND", "BLOCKED_NO_TERMINAL_RECORDED",
+    "BLOCKED_PROCESS_EXCEPTION", "CATCHUP_NET_ZERO", "CONVERGE_CLOSE_DROPPED_SLEEVE_CHANGED",
+    "COPY_ACCOUNT_BASELINED", "COPY_FILL_DUPLICATE", "COPY_FILL_UNMATCHED", "ENGINE_CLOSE_RETRY_REQUIRED",
+    "ENTRY_ADD_RATE_LIMIT_RECOVERY_BLOCKED_SAFETY", "EXCHANGE_MANUAL_NET_MATCH", "EXIT_CANCELLED_RECOMPUTE_PENDING",
+    "EXIT_RECOVERY_REQUIRED", "FILL_PENDING_QUEUED", "FILL_PENDING_STUCK", "INVALID_WIRE_SIZE",
+    "LEDGER_EXCHANGE_NET_MISMATCH", "LEDGER_REPAIR_PROVEN_EXCHANGE_FLAT", "LEADER_FILL_MERGED_INTO_ORDER",
+    "LIQUIDATION_APPLIED", "LIQUIDATION_NOT_APPLIED", "MANUAL_ONLY_EXCHANGE_FLAT_CLOSED", "MATCHED_BY_EXCHANGE_ORDER_ID",
+    "MATCHED_BY_INTENT_ID", "MERGED_INTO_HEAD_COPY", "MISSED_ENTRY_ALREADY_RESTING", "NO_MANUAL_POSITION_TO_CLOSE",
+    "ORDER_RESTING", "ORPHAN_ORDER_ADOPTED", "ORPHAN_ORDER_CANCELLED", "OUTAGE_GAP", "OWNERSHIP_GATE_SHARED_SYMBOL_AMBIGUOUS",
+    "PENDING_EXIT_GUARD_ACTIVE", "PENDING_SEND", "POST_SEND_BOOKKEEPING_FAILED", "PRE_CUTOVER_NOT_SENT",
+    "REPLAY_DEFERRED_PAST_LIMIT_ALERT", "REPLAY_DEFERRED_PROCESS_EXCEPTION", "REPLAY_DEFERRED_TRUTH_UNREADABLE",
+    "RESTING_ENTRY_CANCEL_FAILED", "SCOPE_SWEEP_FAILING", "SEND_ATTEMPT_SUPERSEDE_FAILED",
+    "SEND_OUTCOME_UNKNOWN_HOLD", "SERVICE_CREATED_UNLEDGERED", "SLOW_SEND_PATH", "STANDING_CLOSE_CANCELLED_BY_GUARD",
+    "STANDING_CLOSE_NOT_PLACED", "SYMBOL_NOT_TRADABLE_BY_SENDER", "SYMBOL_REJECT_CIRCUIT_BREAKER_ACTIVE",
+    "XYZ_UNMATCHED_COPY_FLAT_CLOSE_ADOPTED",
+})
+# A fill that was refused at the send gate and parked by the shelved retention lane. Nothing writes these on this
+# branch (retention is not part of it), so the counter reads 0; it exists so a stray row is counted, not ignored.
+RETAINED_ROW_NAMES = frozenset({"DEFERRED_ENTRY_RETAINED"})
+
+
+def classify_terminal_row(state: str) -> str:
+    """TERMINAL, NON_TERMINAL or UNCLASSIFIED for one sender row name. Exact sets only: no substring matching, so a
+    new name cannot slip into 'terminal' by containing SENT or REJECTED."""
+    name = str(state or "").strip().upper()
+    if name in TERMINAL_ROW_NAMES:
+        return "TERMINAL"
+    if name in NON_TERMINAL_ROW_NAMES:
+        return "NON_TERMINAL"
+    return "UNCLASSIFIED"
+
+
 def classify_integrity_severity(terminal_state: str) -> str:
     state = str(terminal_state or "").upper()
     if not state or state in {"ORDER_REJECTED_TERMINAL", "EXCHANGE_ERROR_TERMINAL", "SEND_STATUS_UNKNOWN"}:
@@ -1039,6 +1106,8 @@ def classify_integrity_severity(terminal_state: str) -> str:
         return "RED"
     if state.startswith("OWNERSHIP_GATE_") or state in {"MOCK_ORDER_SUPPRESSED"}:
         return "RED"
+    if state in LATE_FILL_INCIDENT_STATES:
+        return "RED"   # an entry filled after the leader reduced leaves a position nobody wants
     if "UNKNOWN" in state or "REVIEW_REQUIRED" in state:
         return "RED"
     return "GREEN"
@@ -3109,6 +3178,18 @@ def build_live_integrity_status() -> Dict[str, Any]:
         and is_current_core_row(r)
     ]
     active_terminal_rows = [r for r in terminal_rows if is_current_core_row(r)]
+    # An OPEN late-fill incident is a standing fact about the follower account, so it is read from the WHOLE
+    # reconciliation journal: not this run's rows (a restart would silence it) and not the bounded tail (it would
+    # age out). The newest row for a key is its state; append-only, so a later RESOLVED row closes it.
+    late_fill_incident_state: Dict[Tuple[str, str, str], Dict[str, str]] = {}
+    for r in read_csv_rows(RECONCILIATION_CSV):
+        if str(r.get("event") or "") != LATE_FILL_INCIDENT_EVENT:
+            continue
+        late_fill_incident_state[(normalise_wallet(r.get("leader_wallet")), canonical_coin_key(r.get("coin")),
+                                  str(r.get("exchange_order_id") or ""))] = r
+    open_late_fill_incidents = [r for r in late_fill_incident_state.values()
+                                if str(r.get("status") or "").strip().upper() == "OPEN"]
+    active_terminal_rows = active_terminal_rows + [r for r in open_late_fill_incidents if r not in active_terminal_rows]
     historical_known_terminal_rows = [
         r for r in terminal_rows
         if is_historical_core_row(r) and is_known_historical_terminal(r)
@@ -3252,6 +3333,17 @@ def build_live_integrity_status() -> Dict[str, Any]:
         and row_ms(r) >= missed_terminal_cutoff
         and not _raw_index_price_domain_terminal(r, r)
     ]
+    # Status counters over the active window, and the two per-window fill counters. Both are read off the journal, so
+    # they survive a restart the same way the incident set does; no retention state exists on this branch.
+    _active_recon = [r for r in recon if is_current_core_row(r)]
+    status_counters: Dict[str, int] = {}
+    for _r in _active_recon:
+        _n = str(_r.get("terminal_state") or _r.get("status") or "").strip().upper() or "UNNAMED"
+        status_counters[_n] = status_counters.get(_n, 0) + 1
+    _unclassified_names = sorted({n for n in status_counters if classify_terminal_row(n) == "UNCLASSIFIED"})
+    blocked_fills_window = sum(1 for _r in _active_recon if str(_r.get("action") or "") == "MISSED_ENTRY_RULE_AT_REFUSAL")
+    retained_fills_window = sum(1 for _r in _active_recon
+                               if str(_r.get("terminal_state") or _r.get("status") or "").strip().upper() in RETAINED_ROW_NAMES)
     issues = {
         "filled_awaiting_copy_poll": len(pending_filled),
         "filled_without_live_fill_beyond_grace": len(stale_filled),
@@ -3271,6 +3363,10 @@ def build_live_integrity_status() -> Dict[str, Any]:
         "historical_known_terminal": len(historical_known_terminal_rows),
         "historical_service_created_unledgered_stale_resolved": len(historical_service_created_unledgered_resolved),
         "hard_copy_active_red": len(hard_copy_red_rows),
+        "open_late_fill_incidents": len(open_late_fill_incidents),
+        "blocked_fills_window": blocked_fills_window,
+        "retained_fills_window": retained_fills_window,
+        "unclassified_row_names": len(_unclassified_names),
         "hard_copy_unclassified": len(hard_copy_unclassified_rows),
         "audit_proof_missing": len(audit_proof_missing),
         "audit_proof_stale": len(audit_proof_stale),
@@ -3305,8 +3401,24 @@ def build_live_integrity_status() -> Dict[str, Any]:
             "audit_proof_missing",
             "audit_proof_stale",
             "exchange_manual_mismatch",
+            "open_late_fill_incidents",
+            "unclassified_row_names",
         )) or "RED" in terminal_severities:
         risk = "RED"
+    _hb = load_json(CONVERGENCE_HEARTBEAT_FILE, {})
+    _hb_status = str(_hb.get("status") or "").strip().lower() if isinstance(_hb, dict) else ""
+    if _hb_status == "disabled":
+        reasons.append("convergence loop disabled (sending off)")
+    elif _hb_status == "ok":
+        _hb_last = int(fnum(_hb.get("last_scan_at_ms"), 0))
+        _hb_interval = max(1000, int(fnum(_hb.get("interval_ms"), 30000)))
+        if _hb_last <= 0 or now - _hb_last > CONVERGENCE_HEARTBEAT_STALE_RED_MULT * _hb_interval:
+            risk = "RED"
+            reasons.append("convergence heartbeat stale beyond %dx the loop interval" % CONVERGENCE_HEARTBEAT_STALE_RED_MULT)
+        elif now - _hb_last > CONVERGENCE_HEARTBEAT_STALE_MULT * _hb_interval:
+            if risk == "GREEN":
+                risk = "AMBER"
+            reasons.append("convergence heartbeat stale beyond %dx the loop interval" % CONVERGENCE_HEARTBEAT_STALE_MULT)
     if audit_proof_missing:
         reasons.append(f"missing append-only audit proof files: {','.join(audit_proof_missing)}")
     if audit_proof_stale:
@@ -3345,6 +3457,8 @@ def build_live_integrity_status() -> Dict[str, Any]:
             "core_started_at_ms": restart_ms,
             "live_wallet_intents_checked": sum(hard_copy_counts.values()),
             "counts": hard_copy_counts,
+            "status_counters": status_counters,
+            "unclassified_row_names": _unclassified_names,
             "active_red_rows": hard_copy_red_rows[-25:],
             "unclassified_rows": hard_copy_unclassified_rows[-25:],
             "missed_terminal_rows": hard_copy_missed_terminal_rows[-25:],
@@ -5061,6 +5175,7 @@ class SenderGateway:
         self.audit = audit
         self.ledger = ledger
         self.truth_refresh: Optional[Callable[[], None]] = None  # the service: bring ledger + exchange snapshot up to date
+        self.on_late_fill_incident: Optional[Callable[..., None]] = None  # the core wakes the convergence loop
         self._meta_cache: Dict[str, Dict[str, Any]] = {}
         self._index_cache: Dict[int, str] = {}
         self._meta_fetched: bool = False
@@ -7585,6 +7700,21 @@ class SenderGateway:
                     self.signal_ambiguous_send_attempt_written(timing)
                 reduced_ms = self.leader_reduced_since(intent.fill) if lifecycle in {"ENTRY", "ADD"} else 0
                 if reduced_ms and send_status == "ORDER_FILLED":
+                    _oid = str(result.get("oid", "") or "")
+                    # the in-lane check time and the matched follower fill time, so the incident row can be judged
+                    # later without re-deriving either from the CSVs
+                    _ff_ms = next((int(fnum(_r.get("created_at_ms"), 0)) for _r in read_csv_tail_rows(LIVE_FILLS_CSV, 2 * 1024 * 1024)
+                                   if _oid and str(_r.get("exchange_order_id") or "") == _oid), 0)
+                    self.audit.append_reconciliation(
+                        LATE_FILL_INCIDENT_EVENT, "OPEN",
+                        leader_wallet=intent.fill.leader_wallet, intent_id=intent.intent_id,
+                        coin=canonical_coin_key(intent.fill.coin), exchange_order_id=_oid,
+                        action="MANUAL_REVIEW_RECONCILE_ENTRY_LEADER_ALREADY_REDUCED",
+                        terminal_state="ENTRY_FILLED_AFTER_LEADER_REDUCED", engine_can_send="False",
+                        notes=(f"incident_key={normalise_wallet(intent.fill.leader_wallet)}|{canonical_coin_key(intent.fill.coin)}|{_oid}; "
+                               f"check_ts_ms={reduced_ms}; follower_fill_ts_ms={_ff_ms}; state=OPEN"))
+                    if self.on_late_fill_incident is not None:  # wake convergence; the planner decides the close
+                        self.on_late_fill_incident(intent.fill, _oid)
                     self.audit.append_reconciliation(
                         "SEND_TERMINAL", "ENTRY_FILLED_AFTER_LEADER_REDUCED",
                         leader_wallet=intent.fill.leader_wallet, leader_fill_id=intent.fill.leader_fill_id,
@@ -10878,6 +11008,7 @@ class ServiceStateWriter:
             "ws_stale_count": ws.get("stale_count", 0),
             "ws_reconnect_count": ws.get("total_reconnect_count", 0),
             "ws_worst_health_grade": ws.get("worst_health_grade", ""),
+            "convergence_heartbeat": load_json(CONVERGENCE_HEARTBEAT_FILE, {}),
             **dedupe.export(),
             "forbidden_files": {
                 "live_positions_exists": FORBIDDEN_LIVE_POSITIONS_FILE.exists(),
@@ -11051,7 +11182,11 @@ class LiveCopyCore:
         self._converge_sent: Dict[Tuple[str, str, str], int] = {}   # sleeve -> last close queued
         self._converge_tries: Dict[Tuple[str, str, str], int] = {}  # sleeve -> closes queued so far
         self.sender.on_confirmed_cancelled_ambiguous_exit = self._on_confirmed_cancelled_ambiguous_exit
+        self.sender.on_late_fill_incident = self._on_late_fill_incident
         self._converge_last: Dict[str, Any] = {}
+        self._converge_wake = threading.Event()  # a late-fill incident asks the loop for a scan now
+        self._converge_interval_sec = 30.0
+        self._converge_scan_count = 0  # monotonic: every scan, zero-action included, is counted
         self._hot_threads: List[threading.Thread] = []
         self._pending_seen: Dict[str, Tuple[int, str, str, str]] = {}  # guard key -> (queued at ms, wallet, coin, fill id)
         self._pending_rowed: set = set()
@@ -12889,6 +13024,7 @@ class LiveCopyCore:
         if not self.cfg.master_switch_now() or self.sender.sender_key_invalid:
             out["status"] = "SENDING_OFF"
             self._converge_last = out
+            self._publish_converge_heartbeat(out)
             return out
         with self._send_lock:
             sleeves = [(w, c, fnum(r.get("signed_size")), str(r.get("position_id") or ""))
@@ -12961,16 +13097,86 @@ class LiveCopyCore:
             self._converge_tries.pop(key, None)
         out["status"] = "CONVERGE_CHECKED"
         self._converge_last = out
+        try:
+            self._resolve_late_fill_incidents()
+        except Exception as exc:
+            log_error("resolve_late_fill_incidents", exc)
+        self._publish_converge_heartbeat(out)
         return out
+
+    def _on_late_fill_incident(self, fill: Optional[LeaderFill], exchange_order_id: str) -> None:
+        """A follower fill the leader had already left wakes the convergence loop: the next scan reads leader truth and
+        the ordinary planner builds the close. No close logic here."""
+        self._converge_wake.set()
+
+    def _publish_converge_heartbeat(self, out: Dict[str, Any]) -> None:
+        """After EVERY scan, a zero-action one included: a dead convergence loop must be visible, not inferred."""
+        self._converge_scan_count += 1
+        disabled = str(out.get("status") or "") in {"SENDING_OFF", "DISABLED"}
+        hb: Dict[str, Any] = {"status": "disabled" if disabled else "ok", "scan_count": self._converge_scan_count,
+                              "interval_ms": int(max(1.0, self._converge_interval_sec) * 1000)}
+        if not disabled:
+            hb.update({"last_scan_at_ms": int(fnum(out.get("at_ms"), utc_now_ms())),
+                       "sleeves_scanned": int(fnum(out.get("checked"), 0)),
+                       "candidates": int(fnum(out.get("candidates"), 0)),
+                       "actions_queued": int(fnum(out.get("queued"), 0)),
+                       "unreadable": int(fnum(out.get("unreadable"), 0))})
+        atomic_write_json(CONVERGENCE_HEARTBEAT_FILE, hb)
+
+    def _resolve_late_fill_incidents(self) -> None:
+        """An OPEN incident becomes RESOLVED only on fresh follower account-net truth equal to the current leader net
+        within tolerance, with no order or reservation in flight. Unreadable truth or an off-target net keeps it RED."""
+        with self._queued_lock:
+            if self._queued_keys or self._converge_queued:
+                return
+        with self.sender._pending_exit_lock:
+            if self.sender._pending_exit_guard:
+                return
+        if self.sender.resting_entries():
+            return
+        exp = self.intent_builder.follower_exposure()
+        if not exp.get("ok"):
+            return
+        latest: Dict[str, Dict[str, str]] = {}
+        for row in read_csv_rows(RECONCILIATION_CSV):   # the whole journal: an old incident is still open
+            if str(row.get("event") or "") != LATE_FILL_INCIDENT_EVENT:
+                continue
+            latest["|".join((str(row.get("exchange_order_id") or ""), str(row.get("leader_wallet") or "").lower(),
+                             str(row.get("coin") or "")))] = row
+        follower_net = {canonical_coin_key(k): fnum((v or {}).get("net"))
+                        for k, v in (exp.get("by_coin") or {}).items()}
+        for row in latest.values():
+            if str(row.get("status") or "").upper() != "OPEN":
+                continue
+            wallet = str(row.get("leader_wallet") or "")
+            coin = canonical_coin_key(row.get("coin") or "")
+            lead = _XNET.master_exposure(wallet, [coin.split(":", 1)[0].lower() if ":" in coin else ""],
+                                         fetcher=LEADER_FETCHER, info_url=HL_LEADER_INFO_URL, timeout=HTTP_TIMEOUT_SEC)
+            if not lead.get("ok"):
+                continue
+            desired = fnum(((lead.get("by_coin") or {}).get(coin) or {}).get("net"), 0.0)
+            net = fnum(follower_net.get(coin), 0.0)
+            tol = max(POSITION_EPSILON, 1e-9 * max(abs(net), abs(desired), 1.0))
+            if abs(net - desired) > tol:
+                continue
+            oid = str(row.get("exchange_order_id") or "")
+            self.audit.append_reconciliation(
+                LATE_FILL_INCIDENT_EVENT, "RESOLVED", leader_wallet=wallet, coin=coin, exchange_order_id=oid,
+                action="RECONCILED_ON_EXCHANGE", terminal_state=str(row.get("terminal_state") or ""),
+                engine_can_send="False",
+                notes=(f"incident_key={normalise_wallet(wallet)}|{coin}|{oid}; follower_net={net}; "
+                       f"desired_net={desired}; state=RESOLVED"))
 
     def start_convergence_thread(self, interval_sec: float) -> None:
         if getattr(self, "_converge_thread", None) is not None:
             return
         interval = max(1.0, float(interval_sec))
+        self._converge_interval_sec = interval
 
         def loop() -> None:
             was_on = False
             while not self._hot_stop_event.is_set():
+                self._converge_wake.clear()  # taken before the scan: a wake set during it still re-scans at once
                 on = False
                 try:
                     on = self.cfg.master_switch_now()
@@ -12979,7 +13185,8 @@ class LiveCopyCore:
                 except Exception as exc:
                     log_error("converge_thread", exc)
                 # just armed: check again soon, so exits missed while off are confirmed and closed promptly
-                wait = min(interval, 5.0) if on and not was_on else interval
+                wait = (0.5 if self._converge_wake.is_set()
+                        else min(interval, 5.0) if on and not was_on else interval)
                 was_on = on
                 if self._hot_stop_event.wait(wait):
                     break
@@ -13117,6 +13324,20 @@ class LiveCopyCore:
                     # any fill of these limits (owned now or earlier by the copy poll), or a cancel answered
                     # "already filled/gone" whose fill the API may not show yet, leaves a position with no leader
                     if seen_late or any(r.get("withdraw_outcome") == "RESTING_ENTRY_ALREADY_GONE" for r in late):
+                        for _row in late:
+                            _roid = str(_row.get("oid") or "")
+                            if not (CopyFillMatcher._normalize_oid(_roid) in seen_late
+                                    or str(_row.get("withdraw_outcome") or "") == "RESTING_ENTRY_ALREADY_GONE"):
+                                continue
+                            self.audit.append_reconciliation(
+                                LATE_FILL_INCIDENT_EVENT, "OPEN", coin=_row.get("coin", ""),
+                                leader_wallet=_row.get("leader_wallet", ""), exchange_order_id=_roid,
+                                action="MANUAL_REVIEW_RECONCILE_ENTRY_LEADER_ALREADY_REDUCED",
+                                terminal_state="RESTING_ENTRY_FILLED_AFTER_LEADER_REDUCED", engine_can_send="False",
+                                notes=(f"incident_key={normalise_wallet(_row.get('leader_wallet', ''))}|{canonical_coin_key(_row.get('coin', ''))}|{_roid}; "
+                                       f"check_ts_ms={int(fnum(_row.get('placed_ms'), 0))}; follower_fill_ts_ms=0; state=OPEN"))
+                            if self.on_late_fill_incident is not None:
+                                self.on_late_fill_incident(None, _roid)
                         self.audit.append_reconciliation(
                             "SEND_TERMINAL", "RESTING_ENTRY_FILLED_AFTER_LEADER_REDUCED", coin=late[0].get("coin", ""),
                             leader_wallet=late[0].get("leader_wallet", ""), terminal_state="RESTING_ENTRY_FILLED_AFTER_LEADER_REDUCED",
