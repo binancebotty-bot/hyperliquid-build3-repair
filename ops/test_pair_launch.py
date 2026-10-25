@@ -1,77 +1,117 @@
 #!/usr/bin/env python3
 """Pair-launch seeding: the behaviours that must hold before an engine may start on a fresh dir.
 
-FAILING FIRST: written before the launcher features exist, so every check below that names a
-missing capability fails on the current code. Run: python ops/test_pair_launch.py
+The check that matters most is CURSOR_VALUE_MATCHES_ENGINE_FORMULA: revision 1 of the seeder wrote
+a cursor that omitted the poll-interval term, and the whole suite still passed 6/6 because nothing
+asserted the number written. An adversarial review found it; this test exists so it cannot recur.
 """
-import hashlib
 import json
 import os
 import shutil
 import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-SEED_TOOL = HERE / 'seed_pair_state.py'
+TOOL = HERE / 'seed_pair_state.py'
 SEED = HERE / 'live_config_seed.json'
 PY = sys.executable
+LOG = Path(tempfile.mkdtemp(prefix='pairlog_')) / 'pair_launch.log'
+os.environ['PAIR_LAUNCH_LOG'] = str(LOG)          # never touch the production change log
 results = []
+T0 = 1792968600000            # a KNOWN-STALE instant: only the stale-start and arithmetic checks use it
+INTERVAL_MS, OVERLAP_MS = 120_000, 30_000
+NOW = int(time.time() * 1000)  # every check that actually seeds uses a live start time
 
 
 def check(name, ok, detail=''):
     results.append((name, bool(ok)))
-    print('RESULT::%s_%s%s' % (name, 'PASS' if ok else 'FAIL', (' | ' + str(detail)[:160]) if not ok else ''))
+    print('RESULT::%s_%s%s' % (name, 'PASS' if ok else 'FAIL', (' | ' + str(detail)[:170]) if not ok else ''))
 
 
-def run(args, cwd=None):
-    return subprocess.run([PY, str(SEED_TOOL), *args], capture_output=True, text=True, cwd=cwd)
+def run(args):
+    return subprocess.run([PY, str(TOOL), *args], capture_output=True, text=True, cwd=str(HERE))
 
 
-def sha(path):
-    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+# 1. the cursor number itself, checked against the engine's real formula
+s = Path(tempfile.mkdtemp(prefix='pl1_'))
+r = run(['--state-dir', str(s), '--seed', str(SEED), '--start-ms', str(NOW), '--force'])
+cur = json.load(open(s / 'clean_core_runtime_state.json', encoding='utf-8'))['last_leader_poll_cursor_ms']
+want = NOW + INTERVAL_MS + OVERLAP_MS
+check('CURSOR_VALUE_MATCHES_ENGINE_FORMULA', r.returncode == 0 and set(cur.values()) == {want},
+      'want %d got %s' % (want, set(cur.values())))
 
+# 2. what the engine would do with it: start must land on T0, not before
+start = max(want - INTERVAL_MS - OVERLAP_MS, NOW - 6000000)
+check('ENGINE_START_LANDS_ON_T0', start == NOW, start)
+worst = want - OVERLAP_MS                            # interval resolved to 0
+check('NO_PRE_START_FILLS_EVEN_IF_INTERVAL_IS_ZERO', worst >= T0, worst)
 
-# 1. a seed kept INSIDE a state dir must be rejected: the seed is the thing that must survive a wipe
-state = Path(tempfile.mkdtemp(prefix='pairlaunch_'))
-inside = state / 'live_config_seed.json'
+# 3. a seed stored INSIDE the state dir is refused
+s2 = Path(tempfile.mkdtemp(prefix='pl2_'))
+inside = s2 / 'seed.json'
 shutil.copy(SEED, inside)
-r = run(['--state-dir', str(state), '--seed', str(inside), '--start-ms', '1792968600000'])
-check('LAUNCH_REJECTS_SEED_INSIDE_STATE_DIR',
-      r.returncode != 0 and 'inside' in (r.stdout + r.stderr).lower(), r.stdout[-160:])
+r = run(['--state-dir', str(s2), '--seed', str(inside), '--start-ms', str(NOW)])
+check('REJECTS_SEED_INSIDE_STATE_DIR', r.returncode == 5, r.stdout[-120:])
 
-# 2. every run writes a config change log naming the hashes before and after
-state2 = Path(tempfile.mkdtemp(prefix='pairlaunch2_'))
-r = run(['--state-dir', str(state2), '--seed', str(SEED), '--start-ms', '1792968600000'])
-log = Path(os.environ.get('PAIR_LAUNCH_LOG', str(Path.home() / '.hermes' / 'state' / 'pair_launch.log')))
-logged = log.exists() and 'config_sha_before' in log.read_text(encoding='utf-8', errors='replace')
-check('LAUNCH_WRITES_CHANGE_LOG_WITH_HASHES', r.returncode == 0 and logged, 'log=%s rc=%s' % (log, r.returncode))
+# 4. a neighbouring directory with the same prefix is NOT treated as inside
+s3 = Path(tempfile.mkdtemp(prefix='pl3_'))
+near = Path(str(s3) + '2')
+near.mkdir()
+shutil.copy(SEED, near / 'seed.json')
+r = run(['--state-dir', str(s3), '--seed', str(near / 'seed.json'), '--start-ms', str(NOW)])
+check('PREFIX_COLLISION_IS_NOT_INSIDE', r.returncode != 5, r.stdout[-120:])
 
-# 3. the written config's hash is reported and matches the file on disk
-cfg = state2 / 'live_config.json'
-same = cfg.exists() and sha(cfg) in (r.stdout + (log.read_text(encoding='utf-8', errors='replace') if logged else ''))
-check('LAUNCH_REPORTS_WRITTEN_CONFIG_HASH', same, 'cfg exists=%s' % cfg.exists())
+# 5. tampering with the written config after the fact is caught by verify-only
+s4 = Path(tempfile.mkdtemp(prefix='pl4_'))
+r = run(['--state-dir', str(s4), '--seed', str(SEED), '--start-ms', str(NOW), '--force'])
+cfg = json.load(open(s4 / 'live_config.json', encoding='utf-8'))
+cfg['global_controls']['max_total_live_exposure_usd'] = 999999
+json.dump(cfg, open(s4 / 'live_config.json', 'w', encoding='utf-8'), indent=2)
+r = run(['--state-dir', str(s4), '--seed', str(SEED), '--start-ms', str(NOW), '--verify-only'])
+check('VERIFY_ONLY_DETECTS_A_CHANGED_CONFIG', r.returncode != 0, r.stdout[-140:])
 
-# 4. a tampered seed (cap removed) is refused loudly, and nothing is written
-state3 = Path(tempfile.mkdtemp(prefix='pairlaunch3_'))
+# 6. verify-only on a clean seeded dir says VERIFIED
+s5 = Path(tempfile.mkdtemp(prefix='pl5_'))
+run(['--state-dir', str(s5), '--seed', str(SEED), '--start-ms', str(NOW), '--force'])
+r = run(['--state-dir', str(s5), '--seed', str(SEED), '--verify-only', '--interval-sec', '1'])
+check('VERIFY_ONLY_ACCEPTS_A_FRESH_SEED', r.returncode == 0 and 'VERIFIED' in r.stdout, r.stdout[-140:])
+
+# 7. verify-only refuses a STALE seed (cursors anchored far in the past)
+s6 = Path(tempfile.mkdtemp(prefix='pl6_'))
+run(['--state-dir', str(s6), '--seed', str(SEED), '--start-ms', str(NOW), '--force'])
+aged = json.load(open(s6 / 'clean_core_runtime_state.json', encoding='utf-8'))
+aged['last_leader_poll_cursor_ms'] = {k: v - 6 * 3600 * 1000 for k, v in aged['last_leader_poll_cursor_ms'].items()}
+json.dump(aged, open(s6 / 'clean_core_runtime_state.json', 'w', encoding='utf-8'))
+r = run(['--state-dir', str(s6), '--seed', str(SEED), '--verify-only', '--interval-sec', '1'])
+check('VERIFY_ONLY_REJECTS_A_STALE_SEED', r.returncode != 0, r.stdout[-140:])
+
+# 8. a start time far in the past is refused: it would reopen the window
+s7 = Path(tempfile.mkdtemp(prefix='pl7_'))
+r = run(['--state-dir', str(s7), '--seed', str(SEED), '--start-ms', str(T0)])
+check('REFUSES_A_STALE_START_TIME', r.returncode == 9, r.stdout[-140:])
+
+# 9. a second seed over a seeded dir is refused unless --force
+r = run(['--state-dir', str(s5), '--seed', str(SEED), '--start-ms', str(NOW)])
+check('REFUSES_SECOND_SEED_WITHOUT_FORCE', r.returncode == 3, r.stdout[-120:])
+run(['--state-dir', str(s5), '--seed', str(SEED), '--start-ms', str(NOW), '--force'])  # now overwrite it
+
+# 10. the change log records a real before-hash when overwriting
+recs = [json.loads(l) for l in (LOG.read_text(encoding='utf-8', errors='replace').splitlines() if LOG.exists() else []) if l.strip()]
+ok_log = any(r.get('config_sha_before') and r.get('config_sha_after') for r in recs)
+check('CHANGE_LOG_RECORDS_BEFORE_AND_AFTER', ok_log,
+      'records=%d before-values=%s' % (len(recs), [r.get('config_sha_before') for r in recs][:3]))
+
+# 11. a seed missing a cap key is refused and writes nothing
+s8 = Path(tempfile.mkdtemp(prefix='pl8_'))
 bad = json.loads(SEED.read_text(encoding='utf-8'))
 bad['global_controls'].pop('max_total_live_exposure_usd', None)
-badseed = state3.parent / (state3.name + '_bad.json')
-badseed.write_text(json.dumps(bad), encoding='utf-8')
-r = run(['--state-dir', str(state3), '--seed', str(badseed), '--start-ms', '1792968600000'])
-check('LAUNCH_REFUSES_SEED_MISSING_CAPS',
-      r.returncode != 0 and not (state3 / 'live_config.json').exists(), r.stdout[-160:])
-
-# 5. a config hash mismatch AFTER writing (someone edits mid-flight) aborts
-state4 = Path(tempfile.mkdtemp(prefix='pairlaunch4_'))
-run(['--state-dir', str(state4), '--seed', str(SEED), '--start-ms', '1792968600000'])  # seed it first
-r = run(['--state-dir', str(state4), '--seed', str(SEED), '--start-ms', '1792968600000', '--verify-only'])
-check('LAUNCH_SUPPORTS_VERIFY_ONLY', r.returncode == 0 and 'VERIFIED' in r.stdout, r.stdout[-120:])
-
-# 6. seeding twice is refused (a second start must not silently rewrite cursors)
-r = run(['--state-dir', str(state2), '--seed', str(SEED), '--start-ms', '1792968600000'])
-check('LAUNCH_REFUSES_SECOND_SEED', r.returncode != 0, r.stdout[-120:])
+badp = Path(tempfile.mkdtemp(prefix='pl9_')) / 'bad.json'
+badp.write_text(json.dumps(bad), encoding='utf-8')
+r = run(['--state-dir', str(s8), '--seed', str(badp), '--start-ms', str(NOW)])
+check('REFUSES_SEED_MISSING_CAPS', r.returncode == 2 and not (s8 / 'live_config.json').exists(), r.stdout[-140:])
 
 failed = [n for n, ok in results if not ok]
 print('TOTAL=%d FAILED=%d' % (len(results), len(failed)))

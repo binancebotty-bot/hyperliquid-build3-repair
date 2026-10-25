@@ -5,18 +5,29 @@ Why this exists: with no state, Core's per-wallet leader cursor is absent
 (clean_core_runtime_state.json -> last_leader_poll_cursor_ms), so Core:13526 takes the
 `_cursor == 0` branch and starts the poll at now - POLL_WINDOW_MS (24 h), clamped at
 Core:13537 to the retention floor (LEADER_POLL_RETENTION_MS = 100 min). On 2026-10-25 that
-replayed ~100 minutes of ten active leaders as if it were live: 38,555 merged fills, 221 real
-send attempts, 58 positions in 173 seconds.
+replayed ~100 minutes of ten active leaders as if it were live: 38,555 merged fills, 221 send
+attempts, 58 positions in 173 seconds.
 
-What this writes, and nothing else:
-  <state>/live_config.json               - the non-secret seed (roster, modes, global_controls)
-  <state>/clean_core_runtime_state.json  - last_leader_poll_cursor_ms set for every wallet
-The cursor is set to  T0 + overlap + one poll interval,  where T0 is the instance start, so that
-Core's own formula  _start = max(_cursor - _overlap, retention_floor)  yields exactly T0.
-Nothing before T0 can be fetched, and nothing after it is skipped by more than the overlap.
+The arithmetic must mirror the engine EXACTLY, including the poll-interval term (Core:13519):
+    _overlap_ms = interval_sec * 1000 + LEADER_POLL_OVERLAP_MS
+    _start      = max(_cursor - _overlap_ms, _retention_floor)     if _cursor > 0
+Getting this wrong is not cosmetic. Revision 1 of this file used LEADER_POLL_OVERLAP_MS alone and
+printed "PRE-START FILLS: 0" on a cursor that left the engine reading one whole poll interval
+BEFORE the instance start - a false green in the very check meant to catch it.
+
+`leader_poll_interval_sec` varies (0 with WS off, 120 s with a healthy feed, down to ~5 s while
+the feed is unacked, Core:12729-12741), so the cursor is written with the LARGEST plausible
+interval. Then _start = cursor - actual_interval - overlap >= T0 for every smaller actual
+interval, and no pre-start fill can be read whatever the engine resolves.
+
+A second defence exists and this tool must not break it: the engine stamps live_start_ms at
+construction (Core:11233-11234) and marks older fills PRE_CUTOVER_NOT_SENT (Core:12497, 12514).
+That guard is what stopped the 25 Oct replay from sending after the first instance; a seed that
+wrote a future live_start_ms would disable it, so this tool never writes that key.
 
     python ops/seed_pair_state.py --state-dir DIR --seed ops/live_config_seed.json --start-ms T0
-    python ops/seed_pair_state.py --dry-run ...        # prints the decision table, writes nothing
+    python ops/seed_pair_state.py --dry-run ...       # decision table, writes nothing
+    python ops/seed_pair_state.py --verify-only ...   # inspect a seeded dir, writes nothing
 """
 import argparse
 import hashlib
@@ -31,9 +42,14 @@ KEEP = ('marketable_bps', 'max_asset_directional_exposure_usd', 'max_close_adver
         'max_daily_loss_usd', 'max_order_notional_usd', 'max_total_live_exposure_usd',
         'max_wallet_exposure_usd', 'send_mode', 'symbol_allowlist', 'symbol_blocklist')
 
+RETENTION_MS = 100 * 60 * 1000                                          # Core:671
+DEFAULT_INTERVAL_SEC = 120                                              # Core:12731
+OVERLAP_MS = int(os.getenv('HL_LIVE_LEADER_POLL_OVERLAP_MS', '30000'))   # Core:668
 
 
-def sha256_file(path):
+def _sha(path):
+    if not os.path.exists(path):
+        return None
     h = hashlib.sha256()
     with open(path, 'rb') as fh:
         for chunk in iter(lambda: fh.read(65536), b''):
@@ -46,24 +62,15 @@ def log_change(rec):
     os.makedirs(os.path.dirname(CHANGE_LOG), exist_ok=True)
     rec = {'at': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()), **rec}
     with open(CHANGE_LOG, 'a', encoding='utf-8') as fh:
-        fh.write(json.dumps(rec, sort_keys=True) + chr(10))
+        fh.write(json.dumps(rec, sort_keys=True) + '\n')
 
 
-def poll_interval_ms(seed):
-    """Mirror Core's leader poll interval, from the env the launcher will use."""
-    return int(os.getenv('HL_LIVE_LEADER_POLL_INTERVAL_SEC', '10')) * 1000
-
-
-def overlap_ms():
-    return int(os.getenv('HL_LIVE_LEADER_POLL_OVERLAP_MS', '30000'))
-
-
-def select_start(cursor_ms, t0_ms, interval_ms, overlap, retention_ms):
-    """Core:13525-13537, reproduced exactly so the seed can be checked without running Core."""
+def select_start(cursor_ms, t0_ms, interval_ms, overlap_ms, retention_ms=RETENTION_MS):
+    """Core:13519 + Core:13525-13537, reproduced exactly, interval term included."""
     if cursor_ms > 0:
-        start = max(cursor_ms - overlap, t0_ms - retention_ms)
+        start = max(cursor_ms - interval_ms - overlap_ms, t0_ms - retention_ms)
     else:
-        start = max(0, t0_ms - 24 * 60 * 60 * 1000 - 5 * 60 * 1000)  # POLL_WINDOW_MS default
+        start = max(0, t0_ms - 24 * 60 * 60 * 1000 - 5 * 60 * 1000)   # POLL_WINDOW_MS default
     return max(start, t0_ms - retention_ms)
 
 
@@ -72,105 +79,136 @@ def main():
     ap.add_argument('--state-dir', required=True)
     ap.add_argument('--seed', default='ops/live_config_seed.json')
     ap.add_argument('--start-ms', type=int, default=0)
+    ap.add_argument('--interval-sec', type=int, default=DEFAULT_INTERVAL_SEC,
+                    help='the LARGEST poll interval the engine may resolve (default 120)')
     ap.add_argument('--dry-run', action='store_true')
     ap.add_argument('--force', action='store_true')
     ap.add_argument('--verify-only', action='store_true',
                     help='check an already-seeded dir, write nothing, print VERIFIED')
     a = ap.parse_args()
 
-    state = a.state_dir.rstrip('/')
-    t0 = a.start_ms or int(time.time() * 1000)
-    interval, overlap = poll_interval_ms(None), overlap_ms()
-    retention = 100 * 60 * 1000
-    cursor = t0 + overlap                    # so that cursor - overlap == t0 exactly: nothing before T0, nothing skipped
-    start = select_start(cursor, t0, interval, overlap, retention)
+    state = a.state_dir.rstrip('/' + os.sep)
+    now_ms = int(time.time() * 1000)
+    t0 = a.start_ms or now_ms
+    interval_ms = max(0, a.interval_sec) * 1000
+    cursor = t0 + interval_ms + OVERLAP_MS
+    start = select_start(cursor, t0, interval_ms, OVERLAP_MS)
 
     seed_abs = os.path.abspath(a.seed)
-    if os.path.abspath(state) in os.path.abspath(seed_abs):
-        print('REFUSING: the seed %s is inside the state dir - the seed must survive a wipe, '
-              'so it lives outside any state dir' % seed_abs)
-        return 5
-    seed = json.load(open(a.seed, encoding='utf-8'))
+    try:
+        if os.path.commonpath([os.path.abspath(state), os.path.dirname(seed_abs)]) == os.path.abspath(state):
+            print('REFUSING: the seed %s lives inside the state dir - the seed must survive the wipe it '
+                  'protects against, so it lives outside any state dir' % seed_abs)
+            return 5
+    except ValueError:
+        pass  # different drives cannot nest
+    seed = json.load(open(seed_abs, encoding='utf-8'))
     wallets = seed.get('wallets') or {}
-    active = [w for w, v in wallets.items() if (v.get('mode') or '').upper() != 'OFF']
     missing_caps = [k for k in KEEP if k not in (seed.get('global_controls') or {})]
+    gc = seed.get('global_controls') or {}
+
+    worst = cursor - OVERLAP_MS        # earliest read if the engine resolved interval 0
+    early = t0 - worst                 # >0 means pre-start fills are reachable
 
     print('SEED PLAN  (state=%s)' % state)
     print('  instance start T0      %d (%s)' % (t0, time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime(t0 / 1000))))
-    print('  overlap / interval     %d / %d ms' % (overlap, interval))
-    print('  cursor written         %d  (T0 + overlap)' % cursor)
-    print('  Core would start at    %d  -> %s  (== T0: %s)' % (
-        start, time.strftime('%H:%M:%SZ', time.gmtime(start / 1000)), start == t0))
-    print('  wallets in seed        %d (%d active)' % (len(wallets), len(active)))
+    print('  assumed max interval   %d ms  (engine may resolve any value <= this)' % interval_ms)
+    print('  overlap constant       %d ms' % OVERLAP_MS)
+    print('  cursor written         %d  (T0 + interval + overlap)' % cursor)
+    print('  engine starts at       %s  (matches T0: %s)'
+          % (time.strftime('%H:%M:%SZ', time.gmtime(start / 1000)), start == t0))
+    print('  earliest read possible %s  (interval=0 case)' % time.strftime('%H:%M:%SZ', time.gmtime(worst / 1000)))
+    print('  wallets in seed        %d' % len(wallets))
     print('  caps present           %s' % ('YES' if not missing_caps else 'MISSING %s' % missing_caps))
-    print('  send_mode              %s' % (seed.get('global_controls') or {}).get('send_mode'))
+    print('  send_mode              %s  (wins over any auto_send_enabled key, Core:3885)' % gc.get('send_mode'))
+    print('  PRE-START FILLS REACHABLE AT ANY INTERVAL <= ASSUMED: %d' % max(0, early // 1000))
 
-    # the decision table: every one of these fills is judged by the same rule Core uses
-    probes = [t0 - 3_600_000, t0 - 60_000, t0 - 1, t0, t0 + 1, t0 + 60_000]
-    print('  fill timestamps vs the computed start:')
-    pre = 0
-    for ts in probes:
-        fetched = ts >= start
-        if ts < t0 and fetched:
-            pre += 1
-        print('     %s  %s' % (time.strftime('%H:%M:%SZ', time.gmtime(ts / 1000)),
-                               'FETCHED' if fetched else 'not fetched'))
-    print('  PRE-START FILLS THAT WOULD BE FETCHED: %d' % pre)
-
+    ok = (start == t0) and early <= 0
     if a.dry_run:
-        print('DRY RUN - nothing written. VERDICT=%s' % ('PASS' if pre == 0 and start == t0 else 'FAIL'))
-        return 0 if pre == 0 and start == t0 else 1
+        print('DRY RUN - nothing written. VERDICT=%s' % ('PASS' if ok else 'FAIL'))
+        return 0 if ok else 1
 
     if missing_caps:
         print('REFUSING: the seed is missing cap keys %s - a seed without caps is not a seed' % missing_caps)
         return 2
-    lock = os.path.join(state, 'instance.lock')
+
+    cfg_path = os.path.join(state, 'live_config.json')
     cursors = os.path.join(state, 'clean_core_runtime_state.json')
-    if os.path.exists(cursors) and not a.force and not a.verify_only:
+    lock = os.path.join(state, 'instance.lock')
+
+    if a.verify_only:
+        if not (os.path.exists(cfg_path) and os.path.exists(cursors)):
+            print('NOT VERIFIED: %s is missing' % (cfg_path if not os.path.exists(cfg_path) else cursors))
+            return 6
+        got = json.load(open(cursors, encoding='utf-8')).get('last_leader_poll_cursor_ms')
+        if not isinstance(got, dict) or len(got) != len(wallets):
+            print('NOT VERIFIED: cursor map is %s with %d entries for %d wallets'
+                  % (type(got).__name__, len(got or {}), len(wallets)))
+            return 7
+        bad = [w for w, v in got.items() if not isinstance(v, int) or isinstance(v, bool) or v <= 0]
+        if bad:
+            print('NOT VERIFIED: %d cursor values are not positive ints (e.g. %s)' % (len(bad), bad[0]))
+            return 7
+        now_start = select_start(min(got.values()), now_ms, interval_ms, OVERLAP_MS)
+        if now_start < now_ms - interval_ms - OVERLAP_MS:
+            print('NOT VERIFIED: cursors are stale - the engine would start at %s, before now'
+                  % time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime(now_start / 1000)))
+            return 7
+        written = json.load(open(cfg_path, encoding='utf-8'))
+        if written != seed:
+            diff = [k for k in set(list(written) + list(seed)) if written.get(k) != seed.get(k)]
+            print('NOT VERIFIED: the config in the state dir no longer equals the seed (differs in %s)' % diff)
+            return 21
+        print('  config sha256    %s (equals the seed)' % _sha(cfg_path))
+        print('  cursors          %d wallets, engine would start %s'
+              % (len(got), time.strftime('%H:%M:%SZ', time.gmtime(now_start / 1000))))
+        print('VERIFIED')
+        return 0
+
+    if a.start_ms and not a.force:
+        drift = now_ms - a.start_ms
+        if drift > 120_000 or drift < -300_000:
+            print('REFUSING: --start-ms is %+.0f s from now. Seed immediately before the engine start '
+                  '(within 120 s), or the cursor sits in the past and the retention window reopens.'
+                  % (drift / 1000.0))
+            return 9
+    if os.path.exists(cursors) and not a.force:
         print('REFUSING: %s already exists, so this is not a fresh dir (--force to overwrite)' % cursors)
         return 3
-    if os.path.exists(lock) and not a.verify_only:
+    if os.path.exists(lock):
         print('REFUSING: %s exists - an engine is running against this dir' % lock)
         return 4
 
-    if a.verify_only:
-        cfg = os.path.join(state, 'live_config.json')
-        cur = os.path.join(state, 'clean_core_runtime_state.json')
-        if not (os.path.exists(cfg) and os.path.exists(cur)):
-            print('NOT VERIFIED: %s is missing' % (cfg if not os.path.exists(cfg) else cur))
-            return 6
-        got = json.load(open(cur, encoding='utf-8')).get('last_leader_poll_cursor_ms') or {}
-        if len(got) != len(wallets):
-            print('NOT VERIFIED: %d cursors for %d wallets' % (len(got), len(wallets)))
-            return 7
-        print('  config sha256    %s' % sha256_file(cfg))
-        print('  cursors          %d wallets' % len(got))
-        print('VERIFIED')
-        return 0
     os.makedirs(state, exist_ok=True)
-    with open(os.path.join(state, 'live_config.json'), 'w', encoding='utf-8') as fh:
+    prior_sha = _sha(cfg_path)
+    tmp_cfg = cfg_path + '.tmp'
+    with open(tmp_cfg, 'w', encoding='utf-8') as fh:
         json.dump(seed, fh, indent=2, sort_keys=True)
+    if json.load(open(tmp_cfg, encoding='utf-8')) != seed:
+        print('FAIL LOUD: the staged config does not parse back to the seed')
+        return 8
+    os.replace(tmp_cfg, cfg_path)
+
     seeded = {
         'last_leader_poll_cursor_ms': {w: cursor for w in wallets},
         'last_leader_poll_outage_gap_floor_ms': {},
-        'seed': {'written_at_ms': int(time.time() * 1000), 't0_ms': t0,
-                 'source': os.path.basename(a.seed)},
+        'seed': {'written_at_ms': now_ms, 't0_ms': t0, 'interval_ms': interval_ms,
+                 'overlap_ms': OVERLAP_MS, 'source': os.path.basename(seed_abs)},
     }
-    tmp = cursors + '.tmp'
-    with open(tmp, 'w', encoding='utf-8') as fh:
+    tmp_cur = cursors + '.tmp'
+    with open(tmp_cur, 'w', encoding='utf-8') as fh:
         json.dump(seeded, fh, indent=2, sort_keys=True)
-    os.replace(tmp, cursors)
-    cfg_path = os.path.join(state, 'live_config.json')
-    written = sha256_file(cfg_path)
-    if written != sha256_file(a.seed):
-        print('FAIL LOUD: the written config does not hash to the seed (%s != %s)'
-              % (written, sha256_file(a.seed)))
+    os.replace(tmp_cur, cursors)
+
+    if json.load(open(cfg_path, encoding='utf-8')) != seed:
+        print('FAIL LOUD: the written config does not equal the seed')
         return 8
-    log_change({'state_dir': state, 'seed': seed_abs, 'seed_sha256': sha256_file(a.seed),
-                'config_sha_before': None, 'config_sha_after': written,
-                'cursors_written': len(seeded['last_leader_poll_cursor_ms']), 't0_ms': t0})
-    print('  seed sha256      %s' % sha256_file(a.seed))
-    print('  config sha256    %s (verified on disk)' % written)
+    written_sha = _sha(cfg_path)
+    log_change({'state_dir': state, 'seed': seed_abs, 'seed_sha256': _sha(seed_abs),
+                'config_sha_before': prior_sha, 'config_sha_after': written_sha,
+                'cursors_written': len(seeded['last_leader_poll_cursor_ms']), 't0_ms': t0,
+                'interval_ms': interval_ms, 'overlap_ms': OVERLAP_MS})
+    print('  config sha before/after  %s -> %s' % ((prior_sha or 'ABSENT')[:16], written_sha[:16]))
     print('  change log       %s' % CHANGE_LOG)
     print('  WROTE live_config.json (%d wallets) and clean_core_runtime_state.json (%d cursors)'
           % (len(wallets), len(seeded['last_leader_poll_cursor_ms'])))

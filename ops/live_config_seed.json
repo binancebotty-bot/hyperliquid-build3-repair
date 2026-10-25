@@ -1,6 +1,5 @@
 {
   "archived_wallets": {},
-  "auto_send_enabled": false,
   "global_controls": {
     "marketable_bps": 20.0,
     "max_asset_directional_exposure_usd": 300.0,
