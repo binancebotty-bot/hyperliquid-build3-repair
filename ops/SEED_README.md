@@ -77,6 +77,18 @@ Every successful seed appends one line to `~/.hermes/state/pair_launch.log` (ove
 `PAIR_LAUNCH_LOG`) recording the seed hash, the config hash before and after, the cursor count, the
 start time, the interval, the overlap and the send mode.
 
+
+## Stopping the pair: only one supported way
+
+Never stop the engine with a terminate/kill. On Windows that runs no cleanup and discards the
+write-behind audit queue (measured: 8 of 133 engine-era fills lost on 2026-10-25).
+
+    python ops/stop_pair.py --track-ui     # at launch, record the UI pid it may later stop
+    python ops/stop_pair.py --all          # graceful: sentinel -> flush -> clean shutdown record
+
+`--force` exists as a last resort, writes `forced_stop_record.json`, and says that queued rows may
+be lost. A clean shutdown record only counts if it is newer than the stop request.
+
 ## Sequence for a pair start
 
 1. seed the empty dir immediately before the start (within 120 s), default send mode off

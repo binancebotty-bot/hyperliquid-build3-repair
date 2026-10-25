@@ -15736,6 +15736,17 @@ def main() -> None:
             raise SystemExit("MAINNET_FOLLOWER_NOT_CONFIRMED: the follower network is mainnet (real money). Start with "
                              "--confirm-mainnet-follower to allow it; nothing else can.")
         MAINNET_ORDERS_CONFIRMED = bool(args.confirm_mainnet_follower)
+        # A STOP_REQUESTED left behind by a crash must never stop this fresh instance: quarantine it
+        # under a timestamped name so the ignored request is visible in the audit dir, not silent.
+        try:
+            _stale_stop = AUDIT_DIR / "STOP_REQUESTED"
+            if _stale_stop.exists():
+                _quarantined = AUDIT_DIR / ("STOP_REQUESTED.stale.%d" % int(time.time()))
+                _stale_stop.replace(_quarantined)
+                log_error("stale_stop_request_ignored",
+                          RuntimeError("moved a pre-existing STOP_REQUESTED to %s" % _quarantined.name))
+        except Exception:
+            pass
         try:  # this state folder belongs to one leader/follower network pair, and to one running engine
             _XNET.claim_network_stamp(AUDIT_DIR, NETWORKS)
         except _XNET.NetworkConfigError as exc:
@@ -15816,6 +15827,23 @@ def main() -> None:
             next_main_at = 0.0
             next_copy_poll_at = 0.0
             while True:
+                # graceful stop: a sentinel file lets a stop request reach a pythonw engine, which has no
+                # console and so cannot receive CTRL_BREAK. New cycles stop immediately, the audit queue is
+                # drained, and atexit writes a clean shutdown record. A hard terminate skips all of it and
+                # loses queued rows: 8 of 133 engine-era fills on 2026-10-25 had no journal row.
+                if (AUDIT_DIR / "STOP_REQUESTED").exists():
+                    global _CORE_SHUTDOWN_REASON
+                    _CORE_SHUTDOWN_REASON = "stop_sentinel"
+                    try:
+                        flush_intent_writer(20.0, "stop_sentinel")
+                    except Exception as exc:
+                        log_error("stop_sentinel_flush", exc)
+                    _write_core_shutdown_record("stop_sentinel", clean=True)
+                    try:
+                        (AUDIT_DIR / "STOP_REQUESTED").unlink()
+                    except OSError:
+                        pass
+                    break
                 now = time.monotonic()
                 main_due = (not args.loop) or now >= next_main_at
                 copy_due = bool(args.poll_copy and not copy_thread and ((not args.loop) or now >= next_copy_poll_at))
