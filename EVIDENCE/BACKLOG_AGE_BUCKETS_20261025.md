@@ -50,3 +50,22 @@ Quantiles: **p50 262 s, p90 425 s, p99 472 s, max 486 s** (about 8 minutes).
 `order_intents.csv` carries no leader-fill timestamp column, so the age of a DECISION cannot be
 bucketed from that file; only send attempts can. The intent-side counts in this report are therefore
 absent rather than zero.
+
+## Design note: the queue-age cap is REJECTED, and why (controller ruling, 2026-10-25)
+
+A queue-age cap was considered as the backstop this data points at: refuse to act on a fill that has
+waited in the queue longer than N seconds. **It is not being built.**
+
+A refusal by age conflicts with ENG-017 - a late fill within tolerance executes, one beyond tolerance
+rests at the leader's price, and nothing is lost - and with the no-lost-orders / every-fill-leaves-a-row
+invariants. Turning a queued fill into a drop would violate both, and it would trade a visible risk for
+an invisible one: the order that never happened leaves no row to find.
+
+The invariant-compatible shape of a backstop is therefore:
+  1. an ALERT on queue depth and queue-age growth (observe, never drop), so the condition that preceded
+     this incident is visible while it is happening rather than after;
+  2. the seeded cursor, which removes the hundred-minute window at its source;
+  3. the PRE_CUTOVER_NOT_SENT guard, which refuses anything older than the instance start regardless of
+     what the cursor says.
+
+Any change to ENG-017 itself is Boss's decision, not the engine lane's.
