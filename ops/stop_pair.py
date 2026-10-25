@@ -1,19 +1,26 @@
 #!/usr/bin/env python3
-"""Stop the pair WITHOUT losing journal rows.
+"""Stop the pair WITHOUT losing journal rows. This is the only supported way to stop the pair.
 
-Why this exists: on 2026-10-25 the engine was stopped with psutil.terminate(), which on Windows is
-TerminateProcess - it runs neither the engine's signal handler nor its atexit hooks, so the
-write-behind audit queue was discarded. Measured cost: 8 of 133 engine-era fills had an exchange
-fill and no journal row, i.e. positions the engine had opened and did not know it had opened.
+Why: on 2026-10-25 the engine was stopped with psutil.terminate(), which on Windows is
+TerminateProcess - no signal handler, no atexit - so the write-behind audit queue was discarded.
+8 of 133 engine-era fills ended up with an exchange fill and no journal row.
 
-The engine could not be signalled into a clean exit either: it runs under pythonw, which has no
-console, so CTRL_BREAK_EVENT cannot reach it. So the engine now honours a sentinel file at the top
-of its cycle loop (Core, --loop): it flushes the intent writer, writes a clean shutdown record,
-removes the sentinel and breaks. Atexit then drains the status workers.
+The engine honours a STOP_REQUESTED sentinel at the top of its --loop: it flushes the intent
+writer, writes a clean shutdown record, removes the sentinel and breaks; atexit drains the rest.
+It runs under pythonw, which has no console, so CTRL_BREAK cannot be used instead.
 
-    python ops/stop_pair.py --engine      # sentinel, wait, verify the clean record
-    python ops/stop_pair.py --ui          # UI by exact PID (uvicorn exits on terminate)
-    python ops/stop_pair.py --all --force # last resort: hard kill, says so, may lose rows
+Rules this tool enforces, because each one was a defect found in review:
+  * a clean shutdown record only counts if it is NEWER than the stop request. An old record from a
+    previous run must never be read as proof that this stop was clean.
+  * the UI is stopped by its TRACKED PID, verified against its command line. Stopping whatever
+    happens to hold port 8031 could stop someone else's process.
+  * --force writes a forced_stop_record.json saying rows may have been lost, then hard-kills.
+  * the engine itself quarantines a stale STOP_REQUESTED at startup, so a crashed stop cannot kill
+    the next run.
+
+    python ops/stop_pair.py --track-ui          # record the live UI pid (launcher does this)
+    python ops/stop_pair.py --all               # graceful engine + tracked UI
+    python ops/stop_pair.py --engine --force     # last resort, recorded as forced
 """
 import argparse
 import csv
@@ -24,7 +31,9 @@ import time
 from pathlib import Path
 
 TARGET = 'HL_Live_Copy_Service_Core.py'
+UI_MARK = 'HL_Copy_App_SSOT:app'
 SENTINEL = 'STOP_REQUESTED'
+TRACK = Path(os.path.expanduser('~/.hermes/state/ui_pid.json'))
 
 
 def pids():
@@ -50,65 +59,118 @@ def audit_dir():
     return Path(spec.get('env', {}).get('HL_LIVE_AUDIT_DIR') or '')
 
 
+def track_ui(port):
+    import psutil
+    pid = listener(port)
+    if not pid:
+        print('  nothing listening on :%d - nothing to track' % port)
+        return 1
+    cmd = ' '.join(psutil.Process(pid).cmdline())
+    if UI_MARK not in cmd:
+        print('  :%d is held by pid %d which is NOT the UI (%s)' % (port, pid, cmd[:80]))
+        return 1
+    TRACK.parent.mkdir(parents=True, exist_ok=True)
+    TRACK.write_text(json.dumps({'pid': pid, 'port': port, 'cmdline': cmd,
+                                 'tracked_at': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())},
+                                indent=2), encoding='utf-8')
+    print('  tracked ui pid %d on :%d -> %s' % (pid, port, TRACK))
+    return 0
+
+
 def stop_engine(pid, wait=90.0):
     import psutil
     p = psutil.Process(pid)
     d = audit_dir()
     sentinel = d / SENTINEL
+    requested_at = time.time()
     print('  engine pid %d -> sentinel %s' % (pid, sentinel))
     sentinel.write_text('stop requested %s\n' % time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
                         encoding='utf-8')
-    t0 = time.time()
-    while time.time() - t0 < wait:
-        if not p.is_running():
-            print('    exited cleanly after %.1f s' % (time.time() - t0))
-            return True
-        time.sleep(0.5)
-    print('    STILL RUNNING after %.0f s - sentinel not honoured (does this build have the stop hook?)' % wait)
-    return False
-
-
-def stop_ui(port, wait=30.0):
-    import psutil
-    pid = listener(port)
-    if not pid:
-        print('  nothing listening on :%d' % port)
-        return True
-    p = psutil.Process(pid)
-    print('  ui pid %d on :%d' % (pid, port))
-    p.terminate()
-    t0 = time.time()
+    t0 = requested_at
     while time.time() - t0 < wait:
         if not p.is_running():
             print('    exited after %.1f s' % (time.time() - t0))
-            return True
-        time.sleep(0.3)
-    print('    still running after %.0f s' % wait)
-    return False
+            return requested_at
+        time.sleep(0.5)
+    print('    STILL RUNNING after %.0f s - sentinel not honoured' % wait)
+    return None
 
 
-def verify():
+def verify(requested_at):
+    """A clean record counts only if it was written AFTER the request."""
     d = audit_dir()
     rec = d / 'core_shutdown_record.json'
-    ok = True
-    if rec.exists():
-        try:
-            r = json.loads(rec.read_text(encoding='utf-8-sig'))
-            print('  shutdown record: clean=%s reason=%s at=%s'
-                  % (r.get('clean'), r.get('reason'), str(r.get('at'))[:19]))
-            ok = bool(r.get('clean'))
-        except Exception as exc:
-            print('  shutdown record unreadable: %s' % type(exc).__name__)
-            ok = False
-    else:
+    if not rec.exists():
         print('  shutdown record: ABSENT (%s) - atexit never ran' % rec)
-        ok = False
+        return False
+    age_of_record = rec.stat().st_mtime
+    fresh = requested_at is not None and age_of_record >= requested_at - 1.0
+    try:
+        r = json.loads(rec.read_text(encoding='utf-8-sig'))
+    except Exception:
+        r = {}
+    print('  shutdown record: clean=%s reason=%s written=%s (%s)'
+          % (r.get('clean'), r.get('reason'),
+             time.strftime('%H:%M:%SZ', time.gmtime(age_of_record)),
+             'AFTER the request' if fresh else 'STALE - predates this stop'))
     sa = d / 'append_only' / 'send_attempts.csv'
     if sa.exists():
         pend = sum(1 for row in csv.DictReader(open(sa, encoding='utf-8', errors='replace'))
                    if (row.get('terminal_state') or '') == 'PENDING_SEND')
         print('  send_attempts rows still PENDING_SEND: %d' % pend)
-    return ok
+    return bool(r.get('clean')) and fresh
+
+
+def stop_ui(port, explicit_pid=None):
+    import psutil
+    rec = {}
+    if TRACK.exists():
+        try:
+            rec = json.loads(TRACK.read_text(encoding='utf-8'))
+        except Exception:
+            rec = {}
+    pid = explicit_pid or rec.get('pid')
+    if not pid:
+        held = listener(port)
+        if held:
+            print('  REFUSING: :%d is held by pid %d but no UI pid is tracked. Run --track-ui at launch, '
+                  'or pass --ui-pid; port alone is not proof of identity.' % (port, held))
+            return False
+        print('  nothing listening on :%d' % port)
+        return True
+    try:
+        p = psutil.Process(int(pid))
+    except Exception:
+        print('  tracked ui pid %s is not running' % pid)
+        return True
+    cmd = ' '.join(p.cmdline())
+    if UI_MARK not in cmd or ('--port' in cmd and str(port) not in cmd):
+        print('  REFUSING: pid %s does not look like the UI (%s)' % (pid, cmd[:90]))
+        return False
+    print('  ui pid %s verified by command line' % pid)
+    p.terminate()
+    t0 = time.time()
+    while time.time() - t0 < 30:
+        if not p.is_running():
+            print('    exited after %.1f s' % (time.time() - t0))
+            if TRACK.exists():
+                TRACK.unlink()
+            return True
+        time.sleep(0.3)
+    print('    still running after 30 s')
+    return False
+
+
+def forced_record(pid, label):
+    d = audit_dir()
+    try:
+        (d / 'forced_stop_record.json').write_text(json.dumps({
+            'forced': True, 'pid': pid, 'what': label,
+            'at': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
+            'note': 'hard kill: journal rows queued at the time may be lost'}, indent=2), encoding='utf-8')
+        print('  wrote forced_stop_record.json (rows may be lost)')
+    except Exception as exc:
+        print('  could not write the forced record: %s' % type(exc).__name__)
 
 
 def main():
@@ -116,9 +178,14 @@ def main():
     ap.add_argument('--engine', action='store_true')
     ap.add_argument('--ui', action='store_true')
     ap.add_argument('--all', action='store_true')
+    ap.add_argument('--track-ui', action='store_true')
+    ap.add_argument('--ui-pid', type=int)
     ap.add_argument('--port', type=int, default=8031)
-    ap.add_argument('--force', action='store_true', help='hard-kill if graceful fails (may lose journal rows)')
+    ap.add_argument('--force', action='store_true', help='hard-kill if graceful fails (may lose rows)')
     a = ap.parse_args()
+
+    if a.track_ui:
+        return track_ui(a.port)
     if not (a.engine or a.ui or a.all):
         a.all = True
 
@@ -126,31 +193,35 @@ def main():
     if a.engine or a.all:
         print('ENGINE')
         e = pids()
+        requested_at = None
         if not e:
             print('  none running')
         for pid in e:
-            if not stop_engine(pid):
+            requested_at = stop_engine(pid)
+            if requested_at is None:
                 rc = 1
                 if a.force:
                     import psutil
-                    print('    --force: hard kill pid %d (queued journal rows may be lost)' % pid)
+                    forced_record(pid, 'engine')
+                    print('    --force: hard kill pid %d' % pid)
                     psutil.Process(pid).kill()
                     try:
                         (audit_dir() / SENTINEL).unlink()
                     except OSError:
                         pass
         print('  verify:')
-        if not verify():
+        if not verify(requested_at):
             rc = 1
     if a.ui or a.all:
         print('UI')
-        if not stop_ui(a.port):
+        if not stop_ui(a.port, a.ui_pid):
             rc = 1
             if a.force:
                 import psutil
-                pid = listener(a.port)
+                pid = a.ui_pid or (json.loads(TRACK.read_text()).get('pid') if TRACK.exists() else None)
                 if pid:
-                    psutil.Process(pid).kill()
+                    forced_record(pid, 'ui')
+                    psutil.Process(int(pid)).kill()
     return rc
 
 

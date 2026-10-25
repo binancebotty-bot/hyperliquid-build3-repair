@@ -38,12 +38,16 @@ env['HL_LIVE_CONVERGE_THREAD'] = '0'
 args = list(spec['args'])
 if '--loop' not in args:
     args.append('--loop')
+(state / 'STOP_REQUESTED').write_text('stale request from a crashed run' + chr(10), encoding='utf-8')
 p = subprocess.Popen([PYW] + args, cwd=str(HERE), env={**os.environ, **env},
                      creationflags=subprocess.CREATE_NEW_PROCESS_GROUP)
 check('ENGINE_STARTS', p.poll() is None, 'rc=%s' % p.poll())
 time.sleep(15)
 check('ENGINE_IS_RUNNING_BEFORE_THE_REQUEST', p.poll() is None, 'rc=%s' % p.poll())
-check('SENTINEL_ALONE_DOES_NOT_EXIST', not (state / 'STOP_REQUESTED').exists())
+stale = list(state.glob('STOP_REQUESTED.stale.*'))
+check('STALE_SENTINEL_IS_QUARANTINED', len(stale) == 1, [x.name for x in stale])
+check('STALE_SENTINEL_DID_NOT_STOP_THE_RUN', p.poll() is None, 'rc=%s' % p.poll())
+check('THE_STALE_SENTINEL_IS_GONE', not (state / 'STOP_REQUESTED').exists())
 
 (state / 'STOP_REQUESTED').write_text('test stop\n', encoding='utf-8')
 rc = None

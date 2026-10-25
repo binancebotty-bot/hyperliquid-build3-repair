@@ -15729,6 +15729,17 @@ def main() -> None:
             raise SystemExit("MAINNET_FOLLOWER_NOT_CONFIRMED: the follower network is mainnet (real money). Start with "
                              "--confirm-mainnet-follower to allow it; nothing else can.")
         MAINNET_ORDERS_CONFIRMED = bool(args.confirm_mainnet_follower)
+        # A STOP_REQUESTED left behind by a crash must never stop this fresh instance: quarantine it
+        # under a timestamped name so the ignored request is visible in the audit dir, not silent.
+        try:
+            _stale_stop = AUDIT_DIR / "STOP_REQUESTED"
+            if _stale_stop.exists():
+                _quarantined = AUDIT_DIR / ("STOP_REQUESTED.stale.%d" % int(time.time()))
+                _stale_stop.replace(_quarantined)
+                log_error("stale_stop_request_ignored",
+                          RuntimeError("moved a pre-existing STOP_REQUESTED to %s" % _quarantined.name))
+        except Exception:
+            pass
         try:  # this state folder belongs to one leader/follower network pair, and to one running engine
             _XNET.claim_network_stamp(AUDIT_DIR, NETWORKS)
         except _XNET.NetworkConfigError as exc:
