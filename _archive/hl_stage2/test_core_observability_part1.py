@@ -20,6 +20,57 @@ def check(name, cond, detail=""):
     print("RESULT::%s_%s%s" % (name, "PASS" if cond else "FAIL", (" | " + detail) if (detail and not cond) else ""))
 
 
+DYNAMIC_ROW_VARS = ("terminal_state", "outcome", "status_label")
+
+
+def dynamic_row_names(source):
+    """Row names the writer builds in a variable (`outcome = "X"`) or a module constant. A literal scan of the
+    call site cannot see these, so a new one could reach the journal unclassified (Codex's finding)."""
+    tree = ast.parse(source)
+    consts = {}
+    for n in tree.body:
+        if isinstance(n, ast.Assign):
+            for t in n.targets:
+                if isinstance(t, ast.Name) and isinstance(n.value, ast.Constant) and isinstance(n.value.value, str):
+                    consts[t.id] = n.value.value
+
+    def values(node):
+        out = set()
+
+        def walk(n):
+            if isinstance(n, (ast.Call, ast.JoinedStr)):
+                return
+            if isinstance(n, ast.IfExp):
+                walk(n.body)
+                walk(n.orelse)
+                return
+            if isinstance(n, ast.Constant) and isinstance(n.value, str):
+                out.add(n.value)
+            for ch in ast.iter_child_nodes(n):
+                walk(ch)
+        walk(node)
+        return out
+
+    found = set()
+    for fn in [n for n in ast.walk(tree) if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))]:
+        local = {}
+        for n in ast.walk(fn):
+            if isinstance(n, ast.Assign):
+                for t in n.targets:
+                    elts = [t] if isinstance(t, ast.Name) else list(t.elts) if isinstance(t, (ast.Tuple, ast.List)) else []
+                    for t2 in elts:
+                        if isinstance(t2, ast.Name) and t2.id in DYNAMIC_ROW_VARS:
+                            local.setdefault(t2.id, set()).update(values(n.value))
+        for n in ast.walk(fn):
+            if isinstance(n, ast.keyword) and n.arg in DYNAMIC_ROW_VARS and isinstance(n.value, ast.Name):
+                if n.value.id in local:
+                    found |= local[n.value.id]
+                elif n.value.id in consts:
+                    found.add(consts[n.value.id])
+    found.discard("")
+    return found
+
+
 def main():
     tmp = Path(tempfile.mkdtemp(prefix="obs_p1_"))
     os.environ.update({"HL_LIVE_AUDIT_DIR": str(tmp), "HL_LEADER_NETWORK": "testnet",
@@ -157,16 +208,44 @@ def main():
                 if isinstance(n2, ast.Return) and isinstance(n2.value, ast.Constant) \
                         and isinstance(n2.value.value, str):
                     names.add(n2.value.value)
+    names |= dynamic_row_names(src)  # plus every name that only ever comes from a variable
     unclassified = sorted(n for n in names if c.classify_terminal_row(n) == "UNCLASSIFIED")
     both = sorted(n for n in names if n in c.TERMINAL_ROW_NAMES and n in c.NON_TERMINAL_ROW_NAMES)
     check("O5_EVERY_SENDER_ROW_NAME_IS_CLASSIFIED", bool(names) and not unclassified and not both,
           "unclassified=%s both=%s" % (unclassified, both))
+    # Non-vacuity: the dynamic pass really reaches names no call-site literal contains.
+    check("O5_DYNAMIC_WRITER_STATUSES_ARE_ENUMERATED",
+          {"ENTRY_BLOCKED_RISK", "ORPHAN_ORDER_ALREADY_GONE", "ENTRY_ADD_RATE_LIMIT_RECOVERY_IOC"} <= names)
+    # Negative proof: a brand-new name that only ever comes from a variable is caught and is UNCLASSIFIED.
+    synthetic = ("def f(self, audit, ok):\n"
+                 "    outcome = \"SOME_NEW_ROW_NAME\" if ok else \"OTHER_NEW_ROW\"\n"
+                 "    audit.append_reconciliation(\"E\", terminal_state=outcome)\n")
+    negative = sorted(n for n in dynamic_row_names(synthetic) if c.classify_terminal_row(n) == "UNCLASSIFIED")
+    check("O5_NEGATIVE_PROOF_A_NEW_DYNAMIC_NAME_FAILS",
+          negative == ["OTHER_NEW_ROW", "SOME_NEW_ROW_NAME"], "negative=%s" % negative)
     check("O5_SUBSTRING_MATCHING_MISSED_NAMES_ARE_NON_TERMINAL",
           c.classify_terminal_row("PENDING_SEND") == "NON_TERMINAL"
           and c.classify_terminal_row("ORDER_RESTING") == "NON_TERMINAL")
     check("O5_A_NEW_NAME_CONTAINING_SENT_OR_REJECTED_IS_NOT_TERMINAL",
           c.classify_terminal_row("SOME_NEW_ORDER_SENT_LATER") == "UNCLASSIFIED"
           and c.classify_terminal_row("REJECTED_SOMETHING_NEW") == "UNCLASSIFIED")
+    # ---- O6: the per-coin SYMBOL_NOT_LISTED counter, published beside the other window counters ----------
+    c.atomic_write_json(c.SERVICE_STATE_FILE, {})  # an earlier block stamped a restart time after these rows
+    audit.append_reconciliation(
+        "SEND_TERMINAL", "MISSED_ENTRY_SKIP_SYMBOL_NOT_LISTED", leader_wallet=LEADER, coin="xyz:NVDA",
+        action="MISSED_ENTRY_RULE_AT_REFUSAL", terminal_state="MISSED_ENTRY_SKIP_SYMBOL_NOT_LISTED")
+    audit.append_reconciliation(
+        "SEND_TERMINAL", "MISSED_ENTRY_SKIP_SYMBOL_NOT_LISTED", leader_wallet=LEADER, coin="xyz:NVDA",
+        action="MISSED_ENTRY_RULE_AT_REFUSAL", terminal_state="MISSED_ENTRY_SKIP_SYMBOL_NOT_LISTED")
+    audit.append_reconciliation(
+        "SEND_TERMINAL", "MISSED_ENTRY_SKIP_SYMBOL_NOT_LISTED", leader_wallet=LEADER, coin="OBSCURE",
+        action="MISSED_ENTRY_RULE_AT_REFUSAL", terminal_state="MISSED_ENTRY_SKIP_SYMBOL_NOT_LISTED")
+    st2 = c.build_live_integrity_status()
+    by_coin = st2["hard_copy_invariant"].get("symbol_not_listed_by_coin") or {}
+    check("O6_SYMBOL_NOT_LISTED_COUNTED_PER_COIN",
+          by_coin.get("XYZ:NVDA") == 2 and by_coin.get("OBSCURE") == 1, str(by_coin))
+    check("O6_SYMBOL_NOT_LISTED_WINDOW_TOTAL_PUBLISHED",
+          st2["counts"].get("symbol_not_listed_window") == 3, str(st2["counts"].get("symbol_not_listed_window")))
     check("O5_COUNTERS_PUBLISHED", "blocked_fills_window" in st["counts"]
           and "retained_fills_window" in st["counts"]
           and isinstance(st["hard_copy_invariant"].get("status_counters"), dict))

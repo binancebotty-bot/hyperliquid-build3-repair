@@ -1054,6 +1054,9 @@ TERMINAL_ROW_NAMES = frozenset({
     "SENDER_KEY_NOT_VALID_ON_FOLLOWER_NETWORK", "MARGIN_MODE_UNSET",
     "MISSED_ENTRY_DIFF_NO_FRESH_MID", "MISSED_ENTRY_DIFF_MARGIN_SETUP_FAILED",
     "MISSED_ENTRY_DIFF_MARGIN_SETUP_PENDING", "MARGIN_MODE_SETUP_PENDING",
+    # Named pre-send blocks the writer emits through a variable, not a literal at the call.
+    "ENTRY_BLOCKED_RISK", "MANUAL_REQUIRED_ONLY_IF_UNSAFE", "PERP_INDEX_MAPPING_UNVERIFIED",
+    "ENTRY_ADD_RECOVERY_RESTING_AWAITING_COPY_POLL",
 })
 NON_TERMINAL_ROW_NAMES = frozenset({
     "AMBIGUOUS_SEND_EXIT_RESTING", "ASSET_META_REFRESH_FAILED_USING_LAST_GOOD", "AUDIT_WRITE_FAILED",
@@ -1073,6 +1076,9 @@ NON_TERMINAL_ROW_NAMES = frozenset({
     "SEND_OUTCOME_UNKNOWN_HOLD", "SERVICE_CREATED_UNLEDGERED", "SLOW_SEND_PATH", "STANDING_CLOSE_CANCELLED_BY_GUARD",
     "STANDING_CLOSE_NOT_PLACED", "SYMBOL_NOT_TRADABLE_BY_SENDER", "SYMBOL_REJECT_CIRCUIT_BREAKER_ACTIVE",
     "XYZ_UNMATCHED_COPY_FLAT_CLOSE_ADOPTED",
+    "ORPHAN_ORDER_ALREADY_GONE", "RESTING_ENTRY_ALREADY_GONE", "STANDING_CLOSE_WITHDRAWN",
+    "STANDING_CLOSE_ALREADY_GONE", "ENTRY_ADD_RATE_LIMIT_RECOVERY_GTC", "ENTRY_ADD_RATE_LIMIT_RECOVERY_IOC",
+    "ORPHAN_ORDER_CANCEL_FAILED", "OPERATOR_APPROVED_OID_ADOPTED",
 })
 # A fill that was refused at the send gate and parked by the shelved retention lane. Nothing writes these on this
 # branch (retention is not part of it), so the counter reads 0; it exists so a stray row is counted, not ignored.
@@ -3350,6 +3356,12 @@ def build_live_integrity_status() -> Dict[str, Any]:
         status_counters[_n] = status_counters.get(_n, 0) + 1
     _unclassified_names = sorted({n for n in status_counters if classify_terminal_row(n) == "UNCLASSIFIED"})
     blocked_fills_window = sum(1 for _r in _active_recon if str(_r.get("action") or "") == "MISSED_ENTRY_RULE_AT_REFUSAL")
+    # WHICH coins were skipped as not listed, and how often: the named skip exists but had no counter.
+    symbol_not_listed_by_coin: Dict[str, int] = {}
+    for _r in _active_recon:
+        if str(_r.get("terminal_state") or _r.get("status") or "").strip().upper() == "MISSED_ENTRY_SKIP_SYMBOL_NOT_LISTED":
+            _c = str(_r.get("coin") or "UNNAMED").strip().upper() or "UNNAMED"
+            symbol_not_listed_by_coin[_c] = symbol_not_listed_by_coin.get(_c, 0) + 1
     retained_fills_window = sum(1 for _r in _active_recon
                                if str(_r.get("terminal_state") or _r.get("status") or "").strip().upper() in RETAINED_ROW_NAMES)
     issues = {
@@ -3373,6 +3385,7 @@ def build_live_integrity_status() -> Dict[str, Any]:
         "hard_copy_active_red": len(hard_copy_red_rows),
         "open_late_fill_incidents": len(open_late_fill_incidents),
         "blocked_fills_window": blocked_fills_window,
+        "symbol_not_listed_window": sum(symbol_not_listed_by_coin.values()),
         "retained_fills_window": retained_fills_window,
         "unclassified_row_names": len(_unclassified_names),
         "hard_copy_unclassified": len(hard_copy_unclassified_rows),
@@ -3466,6 +3479,7 @@ def build_live_integrity_status() -> Dict[str, Any]:
             "live_wallet_intents_checked": sum(hard_copy_counts.values()),
             "counts": hard_copy_counts,
             "status_counters": status_counters,
+            "symbol_not_listed_by_coin": symbol_not_listed_by_coin,
             "unclassified_row_names": _unclassified_names,
             "active_red_rows": hard_copy_red_rows[-25:],
             "unclassified_rows": hard_copy_unclassified_rows[-25:],
@@ -5512,7 +5526,8 @@ class SenderGateway:
         if now - seen.get(coin, -1e12) < max(1.0, fnum(os.getenv("HL_LIVE_MM_UNRESOLVED_LOG_SEC"), 600.0)):
             return
         seen[coin] = now
-        log_error("margin_mode_background", f"MARGIN_MODE_UNSET: symbol unresolved: {coin} [{resolved.get('status')}] "
+        _why = "SYMBOL_CACHE_MISS" if "CACHE_MISS" in str(resolved.get("status") or "") else "SYMBOL_NOT_LISTED"
+        log_error("margin_mode_background", f"{_why}: symbol unresolved: {coin} [{resolved.get('status')}] "
                   f"{str(resolved.get('error') or '')[:160]}")
 
     def _margin_mode_loop(self) -> None:
