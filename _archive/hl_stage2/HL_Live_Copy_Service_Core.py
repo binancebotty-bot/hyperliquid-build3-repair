@@ -1239,6 +1239,8 @@ def classify_integrity_severity(terminal_state: str) -> str:
         return "RED"
     if "UNKNOWN" in state or "REVIEW_REQUIRED" in state:
         return "RED"
+    if state in LATE_FILL_INCIDENT_STATES:
+        return "RED"   # an entry filled after the leader reduced leaves a position nobody wants
     return "GREEN"
 
 
@@ -2812,6 +2814,10 @@ def service_position_evidence_by_coin(
     return evidence
 
 
+LATE_FILL_INCIDENT_EVENT = "LATE_FILL_INCIDENT"
+LATE_FILL_INCIDENT_STATES = frozenset({"ENTRY_FILLED_AFTER_LEADER_REDUCED",
+                                       "RESTING_ENTRY_FILLED_AFTER_LEADER_REDUCED"})
+
 DEFERRED_ENTRY_FILE = AUDIT_DIR / "deferred_entry_retention.json"
 DEFERRED_ENTRY_MAX_AGE_MS = 25 * 60 * 1000  # the replay window the controller set: past it a named diff, never silence
 DEFERRED_ENTRY_ATTEMPT_TIMEOUT_MS = int(fnum(os.getenv("HL_LIVE_DEFERRED_ATTEMPT_TIMEOUT_MS"), 120000.0))  # ATTEMPTING without a terminal row
@@ -3564,6 +3570,17 @@ def build_live_integrity_status() -> Dict[str, Any]:
         if (r.get("event") == "OWNERSHIP_GATE" or str(r.get("status") or "").startswith("OWNERSHIP_GATE_"))
         and is_current_core_row(r)
     ]
+    late_fill_incidents: Dict[Any, Dict[str, str]] = {}
+    for r in recon:
+        if str(r.get("event") or "") != LATE_FILL_INCIDENT_EVENT:
+            continue
+        _ms = row_ms(r)
+        if restart_ms and _ms and _ms < restart_ms:
+            continue   # a previous run incident: its own run reported it
+        key = (str(r.get("leader_wallet") or "").lower(), str(r.get("coin") or ""), str(r.get("exchange_order_id") or ""))
+        late_fill_incidents[key] = r   # append-only: the newest row for the key is its state
+    open_late_fill_incidents = [r for r in late_fill_incidents.values() if str(r.get("status") or "").upper() == "OPEN"]
+    active_terminal_rows = active_terminal_rows + [r for r in open_late_fill_incidents if r not in active_terminal_rows]
     terminal_severities = [classify_integrity_severity(str(r.get("terminal_state") or r.get("status") or "")) for r in active_terminal_rows]
     close_rejects = [
         r for r in active_terminal_rows
@@ -3704,6 +3721,7 @@ def build_live_integrity_status() -> Dict[str, Any]:
         "hard_copy_unclassified": len(hard_copy_unclassified_rows),
         "audit_proof_missing": len(audit_proof_missing),
         "audit_proof_stale": len(audit_proof_stale),
+        "open_late_fill_incidents": len(open_late_fill_incidents),
         "ownership_gate_blocks": len(ownership_gate_blocks),
         "exchange_manual_mismatch": len(exchange_manual_mismatches),
         "archived_manual_residual_accounted": len(archived_manual_residuals),
@@ -3735,6 +3753,7 @@ def build_live_integrity_status() -> Dict[str, Any]:
             "audit_proof_missing",
             "audit_proof_stale",
             "exchange_manual_mismatch",
+            "open_late_fill_incidents",
         )) or "RED" in terminal_severities:
         risk = "RED"
     if audit_proof_missing:
@@ -8008,6 +8027,16 @@ class SenderGateway:
                     self.signal_ambiguous_send_attempt_written(timing)
                 reduced_ms = self.leader_reduced_since(intent.fill) if lifecycle in {"ENTRY", "ADD"} else 0
                 if reduced_ms and send_status == "ORDER_FILLED":
+                    _oid = str(result.get("oid", "") or "")
+                    _ff_ms = next((int(fnum(_r.get("created_at_ms"), 0)) for _r in read_csv_tail_rows(LIVE_FILLS_CSV, 2 * 1024 * 1024) if _oid and str(_r.get("exchange_order_id") or "") == _oid), 0)
+                    self.audit.append_reconciliation(
+                        LATE_FILL_INCIDENT_EVENT, "OPEN",
+                        leader_wallet=intent.fill.leader_wallet, intent_id=intent.intent_id,
+                        coin=canonical_coin_key(intent.fill.coin), exchange_order_id=_oid,
+                        action="MANUAL_REVIEW_RECONCILE_ENTRY_LEADER_ALREADY_REDUCED",
+                        terminal_state="ENTRY_FILLED_AFTER_LEADER_REDUCED", engine_can_send="False",
+                        notes=(f"incident_key={normalise_wallet(intent.fill.leader_wallet)}|{canonical_coin_key(intent.fill.coin)}|{_oid}; "
+                               f"check_ts_ms={reduced_ms}; follower_fill_ts_ms={_ff_ms}; state=OPEN"))
                     self.audit.append_reconciliation(
                         "SEND_TERMINAL", "ENTRY_FILLED_AFTER_LEADER_REDUCED",
                         leader_wallet=intent.fill.leader_wallet, leader_fill_id=intent.fill.leader_fill_id,
@@ -13954,6 +13983,17 @@ class LiveCopyCore:
                     # any fill of these limits (owned now or earlier by the copy poll), or a cancel answered
                     # "already filled/gone" whose fill the API may not show yet, leaves a position with no leader
                     if seen_late or any(r.get("withdraw_outcome") == "RESTING_ENTRY_ALREADY_GONE" for r in late):
+                        for _row in late:
+                            _roid = str(_row.get("oid") or "")
+                            if not (CopyFillMatcher._normalize_oid(_roid) in seen_late or str(_row.get("withdraw_outcome") or "") == "RESTING_ENTRY_ALREADY_GONE"):
+                                continue
+                            self.audit.append_reconciliation(
+                                LATE_FILL_INCIDENT_EVENT, "OPEN", coin=_row.get("coin", ""),
+                                leader_wallet=_row.get("leader_wallet", ""), exchange_order_id=_roid,
+                                action="MANUAL_REVIEW_RECONCILE_ENTRY_LEADER_ALREADY_REDUCED",
+                                terminal_state="RESTING_ENTRY_FILLED_AFTER_LEADER_REDUCED", engine_can_send="False",
+                                notes=(f"incident_key={normalise_wallet(_row.get('leader_wallet', ''))}|{canonical_coin_key(_row.get('coin', ''))}|{_roid}; "
+                                       f"check_ts_ms={int(fnum(_row.get('placed_ms'), 0))}; follower_fill_ts_ms=0; state=OPEN"))
                         self.audit.append_reconciliation(
                             "SEND_TERMINAL", "RESTING_ENTRY_FILLED_AFTER_LEADER_REDUCED", coin=late[0].get("coin", ""),
                             leader_wallet=late[0].get("leader_wallet", ""), terminal_state="RESTING_ENTRY_FILLED_AFTER_LEADER_REDUCED",
