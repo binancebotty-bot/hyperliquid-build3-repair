@@ -19,14 +19,34 @@ Nothing before T0 can be fetched, and nothing after it is skipped by more than t
     python ops/seed_pair_state.py --dry-run ...        # prints the decision table, writes nothing
 """
 import argparse
+import hashlib
 import json
 import os
 import sys
 import time
 
+CHANGE_LOG = os.environ.get('PAIR_LAUNCH_LOG') or os.path.join(os.path.expanduser('~'), '.hermes', 'state', 'pair_launch.log')
+
 KEEP = ('marketable_bps', 'max_asset_directional_exposure_usd', 'max_close_adverse_diff_pct',
         'max_daily_loss_usd', 'max_order_notional_usd', 'max_total_live_exposure_usd',
         'max_wallet_exposure_usd', 'send_mode', 'symbol_allowlist', 'symbol_blocklist')
+
+
+
+def sha256_file(path):
+    h = hashlib.sha256()
+    with open(path, 'rb') as fh:
+        for chunk in iter(lambda: fh.read(65536), b''):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def log_change(rec):
+    """Every seed is a config change: append it, never rewrite the log."""
+    os.makedirs(os.path.dirname(CHANGE_LOG), exist_ok=True)
+    rec = {'at': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()), **rec}
+    with open(CHANGE_LOG, 'a', encoding='utf-8') as fh:
+        fh.write(json.dumps(rec, sort_keys=True) + chr(10))
 
 
 def poll_interval_ms(seed):
@@ -54,6 +74,8 @@ def main():
     ap.add_argument('--start-ms', type=int, default=0)
     ap.add_argument('--dry-run', action='store_true')
     ap.add_argument('--force', action='store_true')
+    ap.add_argument('--verify-only', action='store_true',
+                    help='check an already-seeded dir, write nothing, print VERIFIED')
     a = ap.parse_args()
 
     state = a.state_dir.rstrip('/')
@@ -63,6 +85,11 @@ def main():
     cursor = t0 + overlap                    # so that cursor - overlap == t0 exactly: nothing before T0, nothing skipped
     start = select_start(cursor, t0, interval, overlap, retention)
 
+    seed_abs = os.path.abspath(a.seed)
+    if os.path.abspath(state) in os.path.abspath(seed_abs):
+        print('REFUSING: the seed %s is inside the state dir - the seed must survive a wipe, '
+              'so it lives outside any state dir' % seed_abs)
+        return 5
     seed = json.load(open(a.seed, encoding='utf-8'))
     wallets = seed.get('wallets') or {}
     active = [w for w, v in wallets.items() if (v.get('mode') or '').upper() != 'OFF']
@@ -99,13 +126,27 @@ def main():
         return 2
     lock = os.path.join(state, 'instance.lock')
     cursors = os.path.join(state, 'clean_core_runtime_state.json')
-    if os.path.exists(cursors) and not a.force:
+    if os.path.exists(cursors) and not a.force and not a.verify_only:
         print('REFUSING: %s already exists, so this is not a fresh dir (--force to overwrite)' % cursors)
         return 3
-    if os.path.exists(lock):
+    if os.path.exists(lock) and not a.verify_only:
         print('REFUSING: %s exists - an engine is running against this dir' % lock)
         return 4
 
+    if a.verify_only:
+        cfg = os.path.join(state, 'live_config.json')
+        cur = os.path.join(state, 'clean_core_runtime_state.json')
+        if not (os.path.exists(cfg) and os.path.exists(cur)):
+            print('NOT VERIFIED: %s is missing' % (cfg if not os.path.exists(cfg) else cur))
+            return 6
+        got = json.load(open(cur, encoding='utf-8')).get('last_leader_poll_cursor_ms') or {}
+        if len(got) != len(wallets):
+            print('NOT VERIFIED: %d cursors for %d wallets' % (len(got), len(wallets)))
+            return 7
+        print('  config sha256    %s' % sha256_file(cfg))
+        print('  cursors          %d wallets' % len(got))
+        print('VERIFIED')
+        return 0
     os.makedirs(state, exist_ok=True)
     with open(os.path.join(state, 'live_config.json'), 'w', encoding='utf-8') as fh:
         json.dump(seed, fh, indent=2, sort_keys=True)
@@ -119,6 +160,18 @@ def main():
     with open(tmp, 'w', encoding='utf-8') as fh:
         json.dump(seeded, fh, indent=2, sort_keys=True)
     os.replace(tmp, cursors)
+    cfg_path = os.path.join(state, 'live_config.json')
+    written = sha256_file(cfg_path)
+    if written != sha256_file(a.seed):
+        print('FAIL LOUD: the written config does not hash to the seed (%s != %s)'
+              % (written, sha256_file(a.seed)))
+        return 8
+    log_change({'state_dir': state, 'seed': seed_abs, 'seed_sha256': sha256_file(a.seed),
+                'config_sha_before': None, 'config_sha_after': written,
+                'cursors_written': len(seeded['last_leader_poll_cursor_ms']), 't0_ms': t0})
+    print('  seed sha256      %s' % sha256_file(a.seed))
+    print('  config sha256    %s (verified on disk)' % written)
+    print('  change log       %s' % CHANGE_LOG)
     print('  WROTE live_config.json (%d wallets) and clean_core_runtime_state.json (%d cursors)'
           % (len(wallets), len(seeded['last_leader_poll_cursor_ms'])))
     print('VERDICT=PASS')
