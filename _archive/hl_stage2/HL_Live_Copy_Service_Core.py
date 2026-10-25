@@ -2767,6 +2767,7 @@ def service_position_evidence_by_coin(
 
 DEFERRED_ENTRY_FILE = AUDIT_DIR / "deferred_entry_retention.json"
 DEFERRED_ENTRY_MAX_AGE_MS = 25 * 60 * 1000  # the replay window the controller set: past it a named diff, never silence
+DEFERRED_ENTRY_ATTEMPT_TIMEOUT_MS = int(fnum(os.getenv("HL_LIVE_DEFERRED_ATTEMPT_TIMEOUT_MS"), 120000.0))  # ATTEMPTING without a terminal row
 DEFERRED_ENTRY_REASONS = ("UNIVERSE_STALE", "MARKET_HALTED", "MARGIN_MODE_UNSET")
 
 
@@ -2805,18 +2806,24 @@ class DeferredEntryRetention:
             for _it in self.items.values():
                 _it["state"] = str(_it.get("state") or "RETAINED")
                 _it.setdefault("cloid", "")
+                if _it["state"] == "ATTEMPTING" and not int(fnum(_it.get("reconciled_ms"), 0)):
+                    _it["crashed_process"] = True   # a previous process died mid-attempt: reconcile it at once
                 # item 7: a trigger the last process finished must not suppress the first publish after a restart
                 _it["triggers_done"] = []
 
-    def _save(self) -> None:
+    def _save(self) -> bool:
+        """True only when the state reached the disk. A failed write is never reported as success: the caller
+        must not dispatch anything it could not durably record."""
         with self._lock:
             payload = {"items": dict(self.items), "window_ms": self.window_ms,
                        "blocked_window": self.blocked_window, "retained_window": self.retained_window,
                        "saved_ms": utc_now_ms()}
         try:
             atomic_write_json(self.path, payload)  # the existing atomic state idiom: tmp file + os.replace
+            return True
         except Exception as exc:
             log_error("deferred_entry_save", exc)
+            return False
 
     def _bump(self, kind: str) -> None:
         now = utc_now_ms()
@@ -2840,6 +2847,7 @@ class DeferredEntryRetention:
         now = utc_now_ms()
         with self._lock:
             item = self.items.get(fid)
+            prior = dict(item) if item is not None else None
             if item is None:
                 self.items[fid] = {
                     "leader_fill_id": fid, "leader_wallet": fill.leader_wallet, "coin": fill.coin,
@@ -2853,8 +2861,16 @@ class DeferredEntryRetention:
                 item["reason"], item["last_ms"] = str(reason), now
             self._bump("retained")
             self._bump("blocked")
-        self._save()
-        return True
+        if self._save():
+            return True
+        # not durable: an item that only exists in memory would be lost at the next restart, so it is not kept
+        with self._lock:
+            if prior is None:
+                self.items.pop(fid, None)
+            else:
+                self.items[fid] = prior
+        _deferred_write_failed_alert("retain", fid, prior or dict(item or {}))
+        return False
 
     def mark_attempting(self, leader_fill_id: str, cloid: str, intent_id: str) -> bool:
         """Write-ahead: ATTEMPTING and its cloid are on disk BEFORE the send, so a crash mid-send is reconcilable."""
@@ -2864,19 +2880,30 @@ class DeferredEntryRetention:
                 return False
             item.update({"state": "ATTEMPTING", "cloid": str(cloid), "intent_id": str(intent_id),
                          "attempt_ms": utc_now_ms(), "reconciled_ms": 0})
-        self._save()
-        return True
+        if self._save():
+            return True
+        # the write-ahead never reached the disk: a send now would have no durable ATTEMPTING record
+        with self._lock:
+            item.update({"state": "RETAINED", "cloid": "", "reconciled_ms": 0})
+        _deferred_write_failed_alert("mark_attempting", str(leader_fill_id), dict(item))
+        return False
 
     def finish_attempt(self, leader_fill_id: str, state: str, detail: str) -> None:
         """Leave ATTEMPTING: RETAINED (nothing went out) or AMBIGUOUS (kept, never resent). A terminal outcome drops."""
         with self._lock:
             item = self.items.get(str(leader_fill_id))
             if item is None:
-                return
+                return False
+            prior = dict(item)
             item.update({"state": str(state), "reconciled_ms": utc_now_ms(), "last_reconcile": str(detail)})
             if state == "RETAINED":
                 item["cloid"] = ""
-        self._save()
+        if self._save():
+            return True
+        with self._lock:
+            self.items[str(leader_fill_id)] = prior
+        _deferred_write_failed_alert("finish_attempt", str(leader_fill_id), prior)
+        return False
 
     def rebuild(self, item: Dict[str, Any]) -> "LeaderFill":
         return LeaderFill(leader_fill_id=str(item.get("leader_fill_id") or ""),
@@ -2890,7 +2917,11 @@ class DeferredEntryRetention:
             item = self.items.pop(str(leader_fill_id), None)
             if item is None:
                 return None
-        self._save()
+        if not self._save():   # the removal did not reach the disk: it stays, or a restart would resurrect it
+            with self._lock:
+                self.items[str(leader_fill_id)] = item
+            _deferred_write_failed_alert("drop", str(leader_fill_id), item)
+            return None
         item["drop_why"] = why
         return item
 
@@ -2926,6 +2957,20 @@ class DeferredEntryRetention:
                                             "universe; the testnet absence is a point-in-time observation, not a "
                                             "definitive one. They are named skip rows with no retry and no "
                                             "retention entry")}
+
+
+def _deferred_write_failed_alert(what: str, fid: str, item: Dict[str, Any]) -> None:
+    """A failed state write is an operator event, never a log-only line."""
+    try:
+        AuditLogWriter().append_reconciliation(
+            "ALERT", "DEFERRED_ENTRY_STATE_WRITE_FAILED_ALERT",
+            leader_wallet=(item or {}).get("leader_wallet"), leader_fill_id=fid, coin=(item or {}).get("coin"),
+            action="MANUAL_REVIEW_STATE_WRITE_FAILED", reject_category="STATE_WRITE_FAILED",
+            terminal_state="DEFERRED_ENTRY_STATE_WRITE_FAILED_ALERT", engine_can_send="False",
+            notes=(f"{what}: the deferred-entry state write did not reach the disk; the item was kept in the state "
+                   "it last durably held and nothing was dispatched on the failed write"))
+    except Exception as exc:
+        log_error("deferred_entry_write_failed_alert", exc)
 
 
 def deferred_entry_status() -> Dict[str, Any]:
@@ -12158,8 +12203,13 @@ class LiveCopyCore:
     def _retention_tick(self) -> None:
         now = utc_now_ms()
         for fid, item in self.retention.snapshot().items():
-            if str(item.get("state") or "RETAINED") != "RETAINED":
-                if not int(fnum(item.get("reconciled_ms"), 0)):  # only a previous process can leave one
+            state = str(item.get("state") or "RETAINED")
+            if state != "RETAINED":
+                if (state == "ATTEMPTING" and not int(fnum(item.get("reconciled_ms"), 0))
+                        and (bool(item.get("crashed_process"))
+                             or now - int(fnum(item.get("attempt_ms"), 0)) > DEFERRED_ENTRY_ATTEMPT_TIMEOUT_MS)):
+                    # a previous process leaves one at once; a live attempt gets a bounded window to reach a
+                    # terminal row before the cloid is the only evidence left
                     self._reconcile_attempting(fid, item)
                 continue  # AMBIGUOUS stays until a human reads it
             first = int(fnum(item.get("first_ms"), 0))
@@ -12225,7 +12275,9 @@ class LiveCopyCore:
                 return
             live.setdefault("triggers_done", []).append(trigger)
             live["attempts"] = int(fnum(live.get("attempts"), 0)) + 1
-        self.retention._save()
+        if not self.retention._save():   # the used-trigger mark must be durable before anything is dispatched
+            _deferred_write_failed_alert("replay_trigger", fid, dict(live or item))
+            return
         fill = self.retention.rebuild(item)
         fill.raw["deferred_replay"] = fid   # the send path re-checks this item inside the lane
         if self.sender.recheck_deferred_entry is None:
@@ -12245,7 +12297,8 @@ class LiveCopyCore:
         # the cloid this attempt rides on goes to disk BEFORE the send: a crash mid-send is reconcilable by it
         intent_id = stable_hash(["intent", fill.leader_fill_id, fill.leader_wallet, fill.coin, fill.side, fill.timestamp_ms])
         cloid = generate_cloid(intent_id)
-        self.retention.mark_attempting(fid, cloid, intent_id)
+        if not self.retention.mark_attempting(fid, cloid, intent_id):
+            return   # the item stays RETAINED, an alert row names the failed write, and nothing is dispatched
         try:
             self.audit.append_reconciliation(
                 "REPLAY_DEFERRED", "DEFERRED_ENTRY_REPLAY_ATTEMPT", leader_wallet=fill.leader_wallet,
@@ -12258,11 +12311,13 @@ class LiveCopyCore:
             self._idem_accepted.discard(self._guard_key(fill))
         with self.dedupe._lock:
             self.dedupe.processed.discard(fill.leader_fill_id)
+        since_ms = int(fnum((self.retention.snapshot().get(fid) or {}).get("attempt_ms"), 0))
         self._dispatch_fill(fill)
-        if self._already_handled(fill):   # taken or terminally decided: nothing left to replay
-            self.retention.drop(fid, f"handled on {trigger}")
-        else:  # refused again with no terminal row: back to RETAINED, offered once per later trigger
-            self.retention.finish_attempt(fid, "RETAINED", f"refused again on {trigger}")
+        terminal, why = self._retention_terminal_outcome(fid, cloid, intent_id, since_ms)
+        if terminal:
+            self.retention.drop(fid, f"terminal outcome on {trigger}: {why}")
+        # no terminal row: the item stays ATTEMPTING. A dedupe or queue acceptance is not an outcome - the
+        # attempt is bounded by DEFERRED_ENTRY_ATTEMPT_TIMEOUT_MS and then decided by _cloid_evidence.
 
     def _reconcile_attempting(self, fid: str, item: Dict[str, Any]) -> None:
         """A restart found an ATTEMPTING item: nothing out -> RETAINED; an order or fill carries the cloid -> named
@@ -12294,6 +12349,44 @@ class LiveCopyCore:
                 leader_wallet=item.get("leader_wallet"), leader_fill_id=fid, intent_id=intent_id, coin=item.get("coin"),
                 action="NO_RESEND_OUTCOME_KNOWN", terminal_state="DEFERRED_ENTRY_ATTEMPT_RECONCILED_TERMINAL",
                 engine_can_send="False", notes=f"cloid={cloid}; outcome={verdict}: {detail}")
+
+    _RETENTION_TERMINAL_TOKENS = frozenset({"SENT", "RESTED", "FILLED", "ABORTED", "SKIPPED", "REJECTED"})
+
+    def _retention_terminal_outcome(self, fid: str, cloid: str, intent_id: str,
+                                    since_ms: int) -> Tuple[bool, str]:
+        """Only a durable terminal row written AFTER the ATTEMPTING stamp may remove a retained item. Dedupe
+        acceptance, a queue slot and the mechanism's own rows are not outcomes."""
+        cl, fid = str(cloid or "").lower(), str(fid or "")
+        for path in (SEND_ATTEMPTS_CSV, RECONCILIATION_CSV):
+            try:
+                rows = read_csv_tail_rows(path, 8 * 1024 * 1024)
+            except Exception as exc:
+                log_error("deferred_entry_terminal_read", exc)
+                continue
+            for r in rows:
+                if str(r.get("event") or "").startswith(("DEFERRED_", "REPLAY_DEFERRED")):
+                    continue   # the mechanism's own rows are not exchange outcomes
+                state = str(r.get("terminal_state") or r.get("status") or "").strip().upper()
+                if not state or state.startswith(("DEFERRED_ENTRY_", "FILL_PENDING")):
+                    continue
+                if not (set(state.split("_")) & self._RETENTION_TERMINAL_TOKENS):
+                    continue
+                try:
+                    ms = int(fnum(r.get("created_at_ms"), 0))
+                except Exception:
+                    ms = 0
+                if not ms:
+                    try:
+                        ms = int(datetime.fromisoformat(str(r.get("created_at") or "").replace("Z", "+00:00")).timestamp() * 1000)
+                    except Exception:
+                        ms = 0
+                if not ms or ms < since_ms:
+                    continue   # written before this attempt: no evidence about it
+                if cl and str(r.get("cloid") or "").lower() == cl:
+                    return True, f"{path.name} {state} cloid={cl}"
+                if fid and str(r.get("leader_fill_id") or "") == fid:
+                    return True, f"{path.name} {state} leader_fill_id={fid}"
+        return False, ""
 
     def _cloid_evidence(self, cloid: str, intent_id: str, since_ms: int) -> Tuple[str, str]:
         """What the journals and the exchange say about one attempt cloid. Fails closed: an unreadable exchange

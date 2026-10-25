@@ -154,8 +154,8 @@ def main():
             core._dispatch_fill = real_dispatch
         check("B1_ATTEMPTING_AND_CLOID_ON_DISK_BEFORE_DISPATCH",
               len(seen) == 1 and seen[0][0] == "ATTEMPTING" and str(seen[0][1]).startswith("0x"), seen)
-        check("B2_NO_TERMINAL_ROW_MEANS_BACK_TO_RETAINED",
-              (core.retention.snapshot()["wa-1"]["state"]) == "RETAINED", core.retention.snapshot()["wa-1"])
+        check("B2_NO_TERMINAL_ROW_LEAVES_THE_ITEM_ATTEMPTING",
+              (core.retention.snapshot()["wa-1"]["state"]) == "ATTEMPTING", core.retention.snapshot()["wa-1"])
         again = len(seen)
         core._dispatch_fill = spy_dispatch
         try:
@@ -165,6 +165,7 @@ def main():
         check("B3_SAME_TRIGGER_IS_NOT_REPLAYED_TWICE",
               "universe::1" in core.retention.snapshot()["wa-1"]["triggers_done"] and len(seen) == again,
               (core.retention.snapshot()["wa-1"], seen))
+        core.retention.drop("wa-1", "test cleanup")
 
         # ---- B4. crash between the write-ahead and the send: nothing on the exchange -------------------------
         cloid_a = c.generate_cloid("recon-a")
@@ -206,6 +207,7 @@ def main():
         cloid_c = c.generate_cloid("recon-c")
         core.retention.retain(fill("recon-c", coin="XRP"), "UNIVERSE_STALE")
         core.retention.mark_attempting("recon-c", cloid_c, "intent-c")
+        core.retention = c.DeferredEntryRetention()   # a previous process died mid-attempt
         real_open = core.sender._read_open_orders
         core.sender._read_open_orders = lambda: (False, [], "read refused")
         real_dispatch2 = core._dispatch_fill
@@ -227,7 +229,13 @@ def main():
             core._dispatch_fill = real_dispatch2
         check("B13_UNREADABLE_EXCHANGE_IS_AMBIGUOUS",
               core.retention.snapshot().get("recon-c", {}).get("state") == "AMBIGUOUS", core.retention.snapshot().get("recon-c"))
-        check("B14_AMBIGUOUS_WRITES_ONE_ALERT_ROW", alerts_before == 1 and alerts_after == 1, (alerts_before, alerts_after))
+        # the retention loop thread may have written recon-c's alert before this tick: the invariant is that a
+        # second tick writes NO further row for it, and that it has a named row at all
+        check("B14_AMBIGUOUS_WRITES_ONE_ALERT_ROW",
+              alerts_after == alerts_before and any(
+                  r.get("leader_fill_id") == "recon-c" and r.get("terminal_state") == "DEFERRED_ENTRY_ATTEMPT_AMBIGUOUS_DIFF"
+                  for r in disk_rows(c.RECONCILIATION_CSV)),
+              (alerts_before, alerts_after))
 
         # ---- B15. duplicate trigger: one attempt per trigger, persisted -------------------------------------
         core._dispatch_fill = spy_dispatch
@@ -243,6 +251,94 @@ def main():
         item = core.retention.snapshot()["dup-1"]
         check("B16_DUPLICATE_TRIGGER_REPLAYS_ONCE",
               item["triggers_done"] == [trig] and int(item["attempts"]) == 1 and len(seen) == 2, (item, seen))
+
+
+        # ---- P1a. a FAILED state write stops the dispatch and raises an alert (real gateway lane) ------------
+        c._XNET.post_many = real_post_many
+        c._read_all_copy_fills = real_all_fills
+        exf = Ex([])
+        gf = gateway(exf)
+        gf.retain_deferred_entry = core._retain_deferred_entry
+        gf.recheck_deferred_entry = core._recheck_deferred_entry_at_send
+        core.sender = gf
+        fs = fill("savefail-1", coin="AVAX")
+        core.retention.retain(fs, "MARKET_HALTED")
+        core.sender._market_halted_until_ms["avax"] = c.utc_now_ms() - 1
+        sent_before = list(exf.calls)
+        alerts0 = len([r for r in disk_rows(c.RECONCILIATION_CSV)
+                       if r.get("terminal_state") == "DEFERRED_ENTRY_STATE_WRITE_FAILED_ALERT"])
+        real_atomic = c.atomic_write_json
+
+        def broken_write(*a, **k):
+            raise OSError("disk full")
+        c.atomic_write_json = broken_write
+        try:
+            core._retention_replay("savefail-1", core.retention.snapshot()["savefail-1"], "halt:avax")
+        finally:
+            c.atomic_write_json = real_atomic
+        sf = core.retention.snapshot().get("savefail-1") or {}
+        check("P1A_FAILED_WRITE_DISPATCHES_NOTHING", exf.calls == sent_before, exf.calls)
+        check("P1A_FAILED_WRITE_KEEPS_THE_ITEM_RETAINED", sf.get("state") == "RETAINED", sf)
+        check("P1A_FAILED_WRITE_RAISES_AN_ALERT_ROW",
+              len([r for r in disk_rows(c.RECONCILIATION_CSV)
+                   if r.get("terminal_state") == "DEFERRED_ENTRY_STATE_WRITE_FAILED_ALERT"]) - alerts0 == 1)
+
+        # ---- P1b. an asynchronous early-accept is NOT an outcome: the item stays ATTEMPTING ----------------
+        ra = fill("race-1", coin="ARB")
+        core.retention.retain(ra, "MARKET_HALTED")
+        core.sender._market_halted_until_ms["arb"] = c.utc_now_ms() - 1
+        real_dispatch3 = core._dispatch_fill
+
+        def early_accept(f):   # exactly what _process_leader_fill_inner does before any exchange work
+            with core._idem_lock:
+                core._idem_accepted.add(core._guard_key(f))
+            return True
+        core._dispatch_fill = early_accept
+        try:
+            core._retention_replay("race-1", core.retention.snapshot()["race-1"], "halt:arb")
+        finally:
+            core._dispatch_fill = real_dispatch3
+        check("P1B_EARLY_ACCEPT_IS_NOT_A_TERMINAL_OUTCOME",
+              (core.retention.snapshot().get("race-1") or {}).get("state") == "ATTEMPTING",
+              core.retention.snapshot().get("race-1"))
+        check("P1B_EARLY_ACCEPT_DOES_NOT_DROP_THE_ITEM", "race-1" in core.retention.snapshot())
+
+        # ---- P1b bound: an ATTEMPTING item past the timeout is decided by _cloid_evidence -------------------
+        with core.retention._lock:
+            core.retention.items["race-1"]["attempt_ms"] = c.utc_now_ms() - c.DEFERRED_ENTRY_ATTEMPT_TIMEOUT_MS - 1000
+        core.retention._save()
+        c._XNET.post_many = lambda *a, **k: [{"ok": True, "data": []} for _ in a[1]]
+        c._read_all_copy_fills = lambda s, e, **k: ([], "FILLS_COMPLETE")
+        core._retention_tick()
+        after = core.retention.snapshot().get("race-1") or {}
+        check("P1B_TIMEOUT_IS_BOUNDED_AND_NAMED", after.get("state") == "RETAINED" and after.get("reconciled_ms"),
+              after)
+        check("P1B_TIMEOUT_WROTE_A_NAMED_ROW",
+              any(r.get("terminal_state") == "DEFERRED_ENTRY_ATTEMPT_NOTHING_SENT"
+                  and r.get("leader_fill_id") == "race-1" for r in disk_rows(c.RECONCILIATION_CSV)))
+        check("P1B_ATTEMPT_TIMEOUT_IS_A_POSITIVE_NUMBER", int(c.DEFERRED_ENTRY_ATTEMPT_TIMEOUT_MS) > 0)
+
+        # ---- P1b crash: dedupe-accept on disk, no terminal row, then a restart reconciles it ----------------
+        cr = fill("crash-1", coin="OP")
+        core.retention.retain(cr, "MARKET_HALTED")
+        core.sender._market_halted_until_ms["op"] = c.utc_now_ms() - 1
+        core._dispatch_fill = early_accept
+        try:
+            core._retention_replay("crash-1", core.retention.snapshot()["crash-1"], "halt:op")
+        finally:
+            core._dispatch_fill = real_dispatch3
+        check("P1B_CRASH_ITEM_SURVIVES_IN_MEMORY_AS_ATTEMPTING",
+              (core.retention.snapshot().get("crash-1") or {}).get("state") == "ATTEMPTING")
+        restarted2 = c.DeferredEntryRetention()   # the next process
+        core.retention = restarted2
+        check("P1B_CRASH_ITEM_IS_ON_DISK_FOR_THE_RESTART", "crash-1" in restarted2.snapshot())
+        core._retention_tick()
+        got = core.retention.snapshot().get("crash-1") or {}
+        check("P1B_RESTART_RECONCILES_THE_ATTEMPTING_ITEM", got.get("state") == "RETAINED" and got.get("reconciled_ms"),
+              got)
+        check("P1B_RESTART_WROTE_A_NAMED_ROW",
+              any(r.get("terminal_state") == "DEFERRED_ENTRY_ATTEMPT_NOTHING_SENT"
+                  and r.get("leader_fill_id") == "crash-1" for r in disk_rows(c.RECONCILIATION_CSV)))
 
         # ---- C. a persisted trigger cannot suppress the first post-restart publish --------------------------
         for iid in list(core.retention.snapshot()):
