@@ -4807,7 +4807,10 @@ class IntentBuilder:
         self.ledger = ledger
         self._exposure: Optional[Dict[str, Any]] = None
         self._exposure_ms = 0
-        self._exposure_pending: List[Tuple[str, float, float]] = []  # entries approved since the snapshot
+        # entries approved since the snapshot, with the monotonic time of approval: they are
+        # released by AGE, never by the next read - a read taken before the fill cannot prove it
+        # landed, and clearing them on every read let 132 entries pass a $900 cap on 2026-10-25
+        self._exposure_pending: List[Tuple[str, float, float, float]] = []
         self._exposure_gen = 0  # bumped at every snapshot install
         self._exposure_prefetched: Optional[Tuple[Dict[str, Any], int, int, int]] = None  # (exp, ms, gen, pending_len)
         self._exposure_prefetch_lock = threading.Lock()
@@ -4918,7 +4921,14 @@ class IntentBuilder:
             self._exposure_fail = (utc_now_ms(), bad)
             return dict(bad)
         self._exposure_fail = None
-        self._exposure, self._exposure_ms, self._exposure_pending = exp, now, []
+        # do NOT clear _exposure_pending on a refresh: expire it by age instead.
+        # shortcut: entries are held for HL_LIVE_EXPOSURE_PENDING_TTL_SEC (default 30 s), which can
+        # over-count by that window and so block an entry rather than let one through; upgrade to
+        # per-entry reconciliation against by_coin if that ever blocks a legitimate first entry.
+        _pend_ttl = max(0.0, fnum(os.getenv("HL_LIVE_EXPOSURE_PENDING_TTL_SEC"), 30.0))
+        _now_mono = time.monotonic()
+        self._exposure_pending = [e for e in self._exposure_pending if _now_mono - e[3] <= _pend_ttl]
+        self._exposure, self._exposure_ms = exp, now
         self._exposure_gen += 1
         return exp
 
@@ -4977,6 +4987,26 @@ class IntentBuilder:
                 self._exposure_fail = (utc_now_ms(), {"ok": False, "status": str(exp.get("status") or "SNAPSHOT_UNAVAILABLE"),
                                                       "dex": exp.get("dex", ""), "detail": str(exp.get("detail") or "")[:120]})
 
+    def _trace_exposure_cap(self, fill: LeaderFill, copy_notional: float, block: str) -> None:
+        """One line per cap decision with the numbers it used, so a runaway is diagnosable from the
+        journal alone. Never raises: an audit write must not be able to stop a send."""
+        try:
+            exp = self._exposure if isinstance(self._exposure, dict) else {}
+            pend = self._exposure_pending or []
+            rec = {"ts": utc_now_ms(), "coin": fill.coin, "side": fill.side,
+                   "copy_notional": round(float(copy_notional), 2),
+                   "cap_total": self.cfg.max_total_exposure(),
+                   "cap_asset": self.cfg.max_asset_directional_exposure(),
+                   "exposure_total": round(float(fnum(exp.get("total_usd"))), 2),
+                   "exposure_ok": bool(exp.get("ok")),
+                   "pending_n": len(pend),
+                   "pending_usd": round(sum(abs(u) * px for _c, u, px, _a in pend), 2),
+                   "decision": "BLOCKED" if block else "ALLOWED", "reason": block or ""}
+            with open(AUDIT_DIR / "exposure_cap_trace.jsonl", "a", encoding="utf-8") as fh:
+                fh.write(json.dumps(rec, separators=(",", ":")) + chr(10))
+        except Exception:
+            pass
+
     def _exposure_cap_block(self, fill: LeaderFill, copy_notional: float, value_px: float = 0.0) -> str:
         """Total and per-asset directional caps against follower exchange truth; "" when allowed."""
         cap_total, cap_asset = self.cfg.max_total_exposure(), self.cfg.max_asset_directional_exposure()
@@ -4990,8 +5020,11 @@ class IntentBuilder:
         coin = canonical_coin_key(fill.coin)
         value_px = value_px if value_px > 0 else fill.price
         units = (copy_notional / value_px) * (1.0 if fill.side == "BUY" else -1.0)
-        pending_total = sum(abs(u) * px for _c, u, px in self._exposure_pending)
-        pending_coin = sum(u for c, u, _px in self._exposure_pending if c == coin)
+        _pend_ttl = max(0.0, fnum(os.getenv("HL_LIVE_EXPOSURE_PENDING_TTL_SEC"), 30.0))
+        _now_mono = time.monotonic()
+        _live_pend = [e for e in self._exposure_pending if _now_mono - e[3] <= _pend_ttl]
+        pending_total = sum(abs(u) * px for _c, u, px, _at in _live_pend)
+        pending_coin = sum(u for c, u, _px, _at in _live_pend if c == coin)
         # resting entry limits count as if they all fill (run 4: $2,256 resting was outside the caps)
         resting = self._resting()
         if resting.get("unreadable"):
@@ -5026,7 +5059,7 @@ class IntentBuilder:
                 return "max total exposure exceeded" if cap_total > 0 else "max asset directional exposure exceeded"
             _CAP_TLS.scale = frac  # build() sizes the order down by this fraction
             units *= frac
-        self._exposure_pending.append((coin, units, value_px))
+        self._exposure_pending.append((coin, units, value_px, time.monotonic()))
         return ""
 
     def blocked_locally(self, fill: LeaderFill, entry_block_reason: str = "") -> bool:
@@ -5195,6 +5228,7 @@ class IntentBuilder:
                 return "SEND_BLOCKED_RISK", unowned
         # total / per-asset caps use follower EXCHANGE truth (all DEX scopes), not the local ledger
         exposure_block = self._exposure_cap_block(fill, order_notional, value_px)
+        self._trace_exposure_cap(fill, order_notional, exposure_block)
         if exposure_block:
             return "SEND_BLOCKED_RISK", exposure_block
         return ("EXIT_ALLOWED" if lifecycle == "EXIT" else "ENTRY_ALLOWED"), lifecycle
