@@ -401,9 +401,14 @@ def main() -> None:
           "GMX" in c._AUTHORITATIVE_UNIVERSE[""]["symbols"] and c.follower_meta_lists("GMX") is True,
           str(sorted(c._AUTHORITATIVE_UNIVERSE[""]["symbols"])))
     # ---- S10: the universe refresh runs OFF the decision path with a bounded timeout ----------------
-    def slow_meta(sec, names):
+    _gates = []
+
+    def slow_meta(sec, names, gate=None):
         def _post(url, json=None, timeout=None):
-            time.sleep(sec)
+            if gate is not None:
+                gate.wait(sec)   # released by the test: a hung fetch never outlives its own check
+            else:
+                time.sleep(sec)
             return Resp({"universe": [{"name": n} for n in names]})
         return _post
     c._AUTHORITATIVE_UNIVERSE.clear()
@@ -449,12 +454,15 @@ def main() -> None:
     c._AUTHORITATIVE_UNIVERSE.clear()
     c._UNIVERSE_REFRESH.clear()
     c._UNIVERSE_REFRESH_LOCKS.clear()
-    c.requests.post = slow_meta(30.0, ["BTC", "LINK"])
+    hang = threading.Event()
+    _gates.append(hang)
+    c.requests.post = slow_meta(30.0, ["BTC", "LINK"], hang)
     c.MIDS_FETCHER = empty_mids
     fresh_cache({"BTC": 100.0})
     t0 = time.monotonic()
     _h1 = c.IntentBuilder(c.ConfigManager(), c.ManualLedger(path=tmp / "pg_h.json")).build(
         c.LeaderFill("pg-h", LEADER, "GMX", "BUY", 20.0, 1.0, c.utc_now_ms(), "TEST"))
+    hung = [t for t in c._UNIVERSE_REFRESH_THREADS.values() if t is not None]
     took = time.monotonic() - t0
     _h2 = c.IntentBuilder(c.ConfigManager(), c.ManualLedger(path=tmp / "pg_h2.json")).build(
         c.LeaderFill("pg-h2", LEADER, "GMX", "BUY", 20.0, 1.0, c.utc_now_ms(), "TEST"))
@@ -475,6 +483,12 @@ def main() -> None:
     check("S10_MECHANISM_IS_NOT_WEDGED_AFTER_A_HUNG_FETCH",
           _h4.decision == "SEND_BLOCKED_RISK" and "no fresh follower-network" in _h4.reason,
           f"{_h4.decision} {_h4.reason}")
+    for _g in _gates:   # release every gated fetch: no test thread is left hung past its own checks
+        _g.set()
+    for _t in hung:
+        _t.join(5.0)
+    check("S10_HUNG_FETCH_THREAD_IS_RELEASED", bool(hung) and not any(t.is_alive() for t in hung),
+          [t.is_alive() for t in hung])
     c.requests.post = offline
     c._AUTHORITATIVE_UNIVERSE.clear()
     c._UNIVERSE_REFRESH.clear()

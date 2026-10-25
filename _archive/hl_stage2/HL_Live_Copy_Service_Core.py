@@ -305,6 +305,7 @@ _UNIVERSE_REFRESH_LOCKS: Dict[str, threading.Lock] = {}
 _UNIVERSE_REFRESH_GUARD = threading.Lock()
 _UNIVERSE_REFRESH_THREADS: Dict[str, threading.Thread] = {}  # dex -> the in-flight background meta read
 _UNIVERSE_PUBLISH_SEQ: Dict[str, int] = {}  # dex -> publications so far: the replay trigger for a stale-universe entry
+_UNIVERSE_REFRESH_MAX_LIVE = 2  # a small FIXED cap on concurrent meta reads, counted by thread.is_alive()
 
 
 
@@ -354,12 +355,11 @@ def _universe_refresh_worker(dex: str, seq: int) -> None:
     if time.monotonic() > deadline:   # a read that outlived its bound is no proof of anything: drop it
         return
     with _UNIVERSE_REFRESH_GUARD:
-        stale = _UNIVERSE_REFRESH.setdefault(dex, {"until": 0}).get("seq") != seq
         lock = _UNIVERSE_REFRESH_LOCKS.setdefault(dex, threading.Lock())
-    if stale:   # a newer refresh owns this dex: an older response must never overwrite a newer universe
-        return
-    with lock:   # publication only: the dex's lock is never held across a network read
-        _publish_authoritative_universe(dex, rows, "builder_meta" if dex else "core_meta")
+    with lock:   # the seq check and the publish are ONE critical section: no check-to-publish gap
+        if _UNIVERSE_REFRESH.setdefault(dex, {"until": 0}).get("seq") != seq:
+            return   # a newer refresh owns this dex: an older response must never overwrite a newer universe
+        _publish_authoritative_universe(dex, rows, "builder_meta" if dex else "core_meta")   # lock held only here, never across a read
 
 
 def refresh_authoritative_universe(dex: str) -> bool:
@@ -371,6 +371,8 @@ def refresh_authoritative_universe(dex: str) -> bool:
         return False
     now = utc_now_ms()
     with _UNIVERSE_REFRESH_GUARD:
+        for _d in [k for k, t in _UNIVERSE_REFRESH_THREADS.items() if t is None or not t.is_alive()]:
+            _UNIVERSE_REFRESH_THREADS.pop(_d, None)   # a finished (or released) read stops counting
         s = _UNIVERSE_REFRESH.setdefault(dex, {"until": 0})
         live = _UNIVERSE_REFRESH_THREADS.get(dex)
         claim = s.get("inflight_until")
@@ -380,6 +382,8 @@ def refresh_authoritative_universe(dex: str) -> bool:
             return False
         if now < s.get("inflight_until", 0):
             return False
+        if len(_UNIVERSE_REFRESH_THREADS) >= _UNIVERSE_REFRESH_MAX_LIVE:
+            return False   # the fixed cap: live reads counted by is_alive(), never a weakened per-dex rule
         s["until"] = now + int(fnum(os.getenv("HL_LIVE_UNIVERSE_REFRESH_COOLDOWN_SEC"), 30.0) * 1000)
         s["inflight_until"] = now + int(_universe_refresh_timeout() * 1000)
         s["seq"] = seq = s.get("seq", 0) + 1
@@ -2929,8 +2933,12 @@ def deferred_entry_status() -> Dict[str, Any]:
 
 
 def deferred_entry_reason_for(send_status: str, intent: Any) -> str:
-    """The transient refusals that make a fill retryable. SYMBOL_UNRESOLVED is a named skip, never one of these."""
+    """The transient refusals that make a fill retryable. SYMBOL_UNRESOLVED / SYMBOL_NOT_LISTED is a named skip, never one of these."""
     status = str(send_status or "")
+    # a symbol cache miss means the local universe is stale: refreshable, so retained and re-offered on the next
+    # publish for that DEX. A symbol absent from the follower network is never retained and never retried.
+    if str(getattr(intent, "terminal_hint", "") or "") == "SYMBOL_CACHE_MISS_NEEDS_REFRESH":
+        return "UNIVERSE_STALE"
     if status == "SKIPPED_MARKET_HALTED":
         return "MARKET_HALTED"
     if status == "MARGIN_MODE_UNSET":
@@ -7937,6 +7945,8 @@ class SenderGateway:
                     "operator_action": "NO_ACTION_SPOT_SKIP",
                     "timing": timing,
                 }
+            # a CACHE MISS is transient and refreshable: the local universe cache can be rebuilt, so the entry is
+            # retained. SYMBOL_NOT_LISTED / SYMBOL_UNRESOLVED is a named skip: never retained, never retried.
             if status_code in {"SYMBOL_CACHE_MISS", "SYMBOL_CACHE_MISS_NEEDS_REFRESH", "PERP_INDEX_MAPPING_UNVERIFIED", "SYMBOL_NOT_COPYABLE", "SYMBOL_NOT_TRADABLE_BY_SENDER"}:
                 if status_code == "PERP_INDEX_MAPPING_UNVERIFIED":
                     terminal = "PERP_INDEX_MAPPING_UNVERIFIED"
@@ -7949,6 +7959,7 @@ class SenderGateway:
                     f"leader_wallet={intent.fill.leader_wallet}; leader_fill_id={intent.fill.leader_fill_id}; "
                     f"intent_id={intent.intent_id}"
                 )
+                intent.terminal_hint = terminal   # deferred_entry_reason_for reads this: a cache miss is retained
                 return False, "SEND_NOT_ATTEMPTED_UNSUPPORTED_SYMBOL", {
                     "status": terminal,
                     "error": detail,
@@ -8335,14 +8346,19 @@ class SenderGateway:
                 retry_bps = min(retry_bps, max_retry_bps)
                 if retry_bps > bps:
                     retry_mult = (1.0 + retry_bps / 10000.0) if intent.copy_side == "BUY" else (1.0 - retry_bps / 10000.0)
-                    retry_px = self._format_limit_px(base_px * retry_mult, price_max_dec)
+                    # the retry is a NEW decision: re-read and freshness-check the follower mid now. The price computed
+                    # at the first refusal is stale and never re-used; no fresh mid -> no retry at all.
+                    retry_mid = follower_mid(sdk_coin)
+                    base_px = retry_mid if retry_mid > 0 else 0.0
+                    retry_px = self._format_limit_px(base_px * retry_mult, price_max_dec) if base_px > 0 else 0.0
+                    timing["entry_ioc_retry_mid_ms"] = utc_now_ms()
                     if missed is not None:  # Boss's rule: the retry never goes past leader price + tolerance
                         cap = self._px_passive(missed["cap_px"], price_max_dec, intent.copy_side == "BUY")
                         retry_px = min(retry_px, cap) if intent.copy_side == "BUY" else max(retry_px, cap)
                     more_aggressive = retry_px > limit_px if intent.copy_side == "BUY" else retry_px < limit_px
                     retry_notional = abs(wire_size * retry_px)
                     retry_safe, retry_unsafe = self._pre_exchange_asset_safety(intent, resolved, retry_px, wire_size)
-                    if more_aggressive and retry_safe and retry_notional <= max(wire_notional * 1.5, wire_notional + 5.0):
+                    if retry_px > 0 and more_aggressive and retry_safe and retry_notional <= max(wire_notional * 1.5, wire_notional + 5.0):
                         timing["entry_ioc_retry_started_ms"] = utc_now_ms()
                         self._supersede_attempt(timing, response, intent)
                         _cl, _pre = self._recovery_send_hooks(intent, "Ioc", "REAL_IOC", retry_px, wire_size, False,
