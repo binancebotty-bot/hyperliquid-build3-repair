@@ -303,7 +303,10 @@ _AUTHORITATIVE_UNIVERSE: Dict[str, Dict[str, Any]] = {}  # dex ("" = core) -> {"
 _UNIVERSE_REFRESH: Dict[str, Dict[str, Any]] = {}  # dex -> {"until": ms}: the stale-universe meta refresh
 _UNIVERSE_REFRESH_LOCKS: Dict[str, threading.Lock] = {}
 _UNIVERSE_REFRESH_GUARD = threading.Lock()
-_UNIVERSE_REFRESH_THREADS: Dict[str, threading.Thread] = {}  # dex -> the in-flight background meta read
+_UNIVERSE_REFRESH_THREADS: Dict[str, threading.Thread] = {}  # dex -> the most recent in-flight background meta read
+_UNIVERSE_REFRESH_LIVE: Dict[str, List[threading.Thread]] = {}  # dex -> EVERY thread spawned for it, never overwritten
+_UNIVERSE_REFRESH_CAP_REFUSALS = 0  # live-thread cap refusals so far: a counter, never a silent refusal
+_UNIVERSE_REFRESH_CAP_ALERTS: List[Dict[str, Any]] = []  # one ALERT row per refusal, last 25 kept
 _UNIVERSE_PUBLISH_SEQ: Dict[str, int] = {}  # dex -> publications so far: the replay trigger for a stale-universe entry
 _UNIVERSE_REFRESH_MAX_LIVE = 2  # a small FIXED cap on concurrent meta reads, counted by thread.is_alive()
 
@@ -325,6 +328,36 @@ def _publish_authoritative_universe(dex: str, rows: Dict[str, Dict[str, Any]], s
 def _universe_refresh_timeout() -> float:
     """The one wall bound on a background meta read: a read slower than this stops being in flight."""
     return max(1.0, float(HTTP_TIMEOUT_SEC))
+
+
+def _univ_threads_for(dex: str) -> List[threading.Thread]:
+    """Every thread spawned for ONE dex: the append-only list first, plus a seeded dict slot."""
+    out = list(_UNIVERSE_REFRESH_LIVE.get(dex, []))
+    seeded = _UNIVERSE_REFRESH_THREADS.get(dex)
+    if seeded is not None and all(seeded is not t for t in out):
+        out.append(seeded)
+    return out
+
+
+def _univ_live_count_locked() -> int:
+    """Live meta reads ACROSS ALL dexes, by is_alive(): the total the fixed cap bounds. Guard held."""
+    seen, live = set(), 0
+    for t in [t for ts in _UNIVERSE_REFRESH_LIVE.values() for t in ts] + list(_UNIVERSE_REFRESH_THREADS.values()):
+        if t is not None and id(t) not in seen:
+            seen.add(id(t))
+            live += 1 if t.is_alive() else 0
+    return live
+
+
+def universe_refresh_live_count() -> int:
+    with _UNIVERSE_REFRESH_GUARD:
+        return _univ_live_count_locked()
+
+
+def universe_refresh_cap_status() -> Dict[str, Any]:
+    live = universe_refresh_live_count()
+    return {"alert": live >= _UNIVERSE_REFRESH_MAX_LIVE, "refusals": _UNIVERSE_REFRESH_CAP_REFUSALS,
+            "live": live, "max_live": _UNIVERSE_REFRESH_MAX_LIVE, "recent_alerts": _UNIVERSE_REFRESH_CAP_ALERTS[-25:]}
 
 
 def _universe_refresh_worker(dex: str, seq: int) -> None:
@@ -367,29 +400,43 @@ def refresh_authoritative_universe(dex: str) -> bool:
     ONCE: the deciding intent never waits on the network. The cooldown and the in-flight claim are taken
     here, under the guard, so a burst inside HL_LIVE_UNIVERSE_REFRESH_COOLDOWN_SEC starts one worker, and
     a worker that outlives _universe_refresh_timeout() no longer blocks the next attempt."""
+    global _UNIVERSE_REFRESH_CAP_REFUSALS
     if requests is None:
         return False
     now = utc_now_ms()
     with _UNIVERSE_REFRESH_GUARD:
+        for _d in list(_UNIVERSE_REFRESH_LIVE):
+            _alive = [t for t in _UNIVERSE_REFRESH_LIVE[_d] if t is not None and t.is_alive()]
+            if _alive:
+                _UNIVERSE_REFRESH_LIVE[_d] = _alive   # a dead read stops counting; a live one is never dropped
+            else:
+                _UNIVERSE_REFRESH_LIVE.pop(_d, None)
         for _d in [k for k, t in _UNIVERSE_REFRESH_THREADS.items() if t is None or not t.is_alive()]:
             _UNIVERSE_REFRESH_THREADS.pop(_d, None)   # a finished (or released) read stops counting
         s = _UNIVERSE_REFRESH.setdefault(dex, {"until": 0})
-        live = _UNIVERSE_REFRESH_THREADS.get(dex)
+        live = [t for t in _univ_threads_for(dex) if t is not None and t.is_alive()]
         claim = s.get("inflight_until")
-        if live is not None and live.is_alive() and (claim is None or now < claim):
+        if live and (claim is None or now < claim):
             return False   # ONE live worker per dex; a hung read stops counting once its own claim lapses
         if now < s["until"]:
             return False
         if now < s.get("inflight_until", 0):
             return False
-        if len(_UNIVERSE_REFRESH_THREADS) >= _UNIVERSE_REFRESH_MAX_LIVE:
-            return False   # the fixed cap: live reads counted by is_alive(), never a weakened per-dex rule
+        _live_total = _univ_live_count_locked()
+        if _live_total >= _UNIVERSE_REFRESH_MAX_LIVE:
+            _UNIVERSE_REFRESH_CAP_REFUSALS += 1
+            _UNIVERSE_REFRESH_CAP_ALERTS.append({"at_ms": now, "dex": dex, "live": _live_total,
+                                                 "max_live": _UNIVERSE_REFRESH_MAX_LIVE,
+                                                 "reason": "UNIVERSE_REFRESH_CAP_LIVE"})
+            del _UNIVERSE_REFRESH_CAP_ALERTS[:-25]
+            return False   # the fixed cap on LIVE threads across every dex, even after a claim lapsed
         s["until"] = now + int(fnum(os.getenv("HL_LIVE_UNIVERSE_REFRESH_COOLDOWN_SEC"), 30.0) * 1000)
         s["inflight_until"] = now + int(_universe_refresh_timeout() * 1000)
         s["seq"] = seq = s.get("seq", 0) + 1
         t = threading.Thread(target=_universe_refresh_worker, args=(dex, seq), daemon=True,
                              name="univrefresh-%s" % (dex or "core"))
-        _UNIVERSE_REFRESH_THREADS[dex] = t
+        _UNIVERSE_REFRESH_THREADS[dex] = t   # the newest slot; the append-only list below keeps every one
+        _UNIVERSE_REFRESH_LIVE.setdefault(dex, []).append(t)
         t.start()
     return True
 
@@ -3713,6 +3760,7 @@ def build_live_integrity_status() -> Dict[str, Any]:
             "audit_write_failures": audit_write_failure_count(),
             **issues,
             "deferred_entry_retention": deferred_entry_status(),
+            "universe_refresh_cap": universe_refresh_cap_status(),
         },
         "ownership_gate": {
             "status": "BLOCKED" if audit_proof_missing or audit_proof_stale else "READY",
