@@ -2818,6 +2818,10 @@ LATE_FILL_INCIDENT_EVENT = "LATE_FILL_INCIDENT"
 LATE_FILL_INCIDENT_STATES = frozenset({"ENTRY_FILLED_AFTER_LEADER_REDUCED",
                                        "RESTING_ENTRY_FILLED_AFTER_LEADER_REDUCED"})
 
+# F: the convergence loop publishes a scan heartbeat so a dead loop is visible; a late-fill incident
+# wakes that same loop rather than opening a second close path.
+CONVERGENCE_HEARTBEAT_FILE = AUDIT_DIR / "convergence_heartbeat.json"
+
 DEFERRED_ENTRY_FILE = AUDIT_DIR / "deferred_entry_retention.json"
 DEFERRED_ENTRY_MAX_AGE_MS = 25 * 60 * 1000  # the replay window the controller set: past it a named diff, never silence
 DEFERRED_ENTRY_ATTEMPT_TIMEOUT_MS = int(fnum(os.getenv("HL_LIVE_DEFERRED_ATTEMPT_TIMEOUT_MS"), 120000.0))  # ATTEMPTING without a terminal row
@@ -3756,6 +3760,20 @@ def build_live_integrity_status() -> Dict[str, Any]:
             "open_late_fill_incidents",
         )) or "RED" in terminal_severities:
         risk = "RED"
+    _hb = load_json(CONVERGENCE_HEARTBEAT_FILE, {})
+    _hb_status = str(_hb.get("status") or "") if isinstance(_hb, dict) else ""
+    if _hb_status == "disabled":
+        reasons.append("convergence loop disabled (sending off)")
+    elif _hb_status:
+        _hb_last = int(fnum(_hb.get("last_scan_at_ms"), 0))
+        _hb_limit = 3 * max(1000, int(fnum(_hb.get("interval_ms"), 30000)))
+        if _hb_last <= 0 or now - _hb_last > 2 * _hb_limit:
+            risk = "RED"
+            reasons.append("convergence heartbeat stale beyond 6x the loop interval")
+        elif now - _hb_last > _hb_limit:
+            if risk == "GREEN":
+                risk = "AMBER"
+            reasons.append("convergence heartbeat stale beyond 3x the loop interval")
     if audit_proof_missing:
         reasons.append(f"missing append-only audit proof files: {','.join(audit_proof_missing)}")
     if audit_proof_stale:
@@ -5517,6 +5535,7 @@ class _MarginSymbolUnresolved(Exception):
 class SenderGateway:
     # class-level defaults: the send path reads both, so a gateway built without __init__ must still have them
     retain_deferred_entry: Optional[Callable[..., bool]] = None
+    on_late_fill_incident: Optional[Callable[..., None]] = None  # the core wakes the convergence loop
     recheck_deferred_entry: Optional[Callable[..., str]] = None
     def __init__(self, cfg: ConfigManager, audit: AuditLogWriter, ledger: Optional[ManualLedger] = None):
         self.cfg = cfg
@@ -5564,6 +5583,7 @@ class SenderGateway:
         # Retention is core state: the gateway reports a refusal through this core callback (the same idiom as
         # on_confirmed_cancelled_ambiguous_exit and truth_refresh, which the core assigns in its __init__).
         self.retain_deferred_entry: Optional[Callable[..., bool]] = None
+        self.on_late_fill_incident: Optional[Callable[..., None]] = None
         self.recheck_deferred_entry: Optional[Callable[..., str]] = None  # invariant C, re-checked in the lane
         self._ambiguous_send_rechecks: "queue.Queue[Dict[str, Any]]" = queue.Queue(maxsize=1000)
         self._ambiguous_send_recheck_ids: set = set()
@@ -8037,6 +8057,8 @@ class SenderGateway:
                         terminal_state="ENTRY_FILLED_AFTER_LEADER_REDUCED", engine_can_send="False",
                         notes=(f"incident_key={normalise_wallet(intent.fill.leader_wallet)}|{canonical_coin_key(intent.fill.coin)}|{_oid}; "
                                f"check_ts_ms={reduced_ms}; follower_fill_ts_ms={_ff_ms}; state=OPEN"))
+                    if self.on_late_fill_incident is not None:  # wake convergence; the planner decides the close
+                        self.on_late_fill_incident(intent.fill, _oid)
                     self.audit.append_reconciliation(
                         "SEND_TERMINAL", "ENTRY_FILLED_AFTER_LEADER_REDUCED",
                         leader_wallet=intent.fill.leader_wallet, leader_fill_id=intent.fill.leader_fill_id,
@@ -11352,6 +11374,7 @@ class ServiceStateWriter:
             "ws_stale_count": ws.get("stale_count", 0),
             "ws_reconnect_count": ws.get("total_reconnect_count", 0),
             "ws_worst_health_grade": ws.get("worst_health_grade", ""),
+            "convergence_heartbeat": load_json(CONVERGENCE_HEARTBEAT_FILE, {}),
             **dedupe.export(),
             "forbidden_files": {
                 "live_positions_exists": FORBIDDEN_LIVE_POSITIONS_FILE.exists(),
@@ -11528,8 +11551,12 @@ class LiveCopyCore:
         self._converge_tries: Dict[Tuple[str, str, str], int] = {}  # sleeve -> closes queued so far
         self.sender.on_confirmed_cancelled_ambiguous_exit = self._on_confirmed_cancelled_ambiguous_exit
         self.sender.retain_deferred_entry = self._retain_deferred_entry  # the core owns retention state
+        self.sender.on_late_fill_incident = self._on_late_fill_incident
         self.sender.recheck_deferred_entry = self._recheck_deferred_entry_at_send  # invariant C, in the lane
         self._converge_last: Dict[str, Any] = {}
+        self._converge_wake = threading.Event()  # a late-fill incident asks the loop for a scan now
+        self._converge_interval_sec = 30.0
+        self._converge_scan_count = 0
         self._hot_threads: List[threading.Thread] = []
         self._pending_seen: Dict[str, Tuple[int, str, str, str]] = {}  # guard key -> (queued at ms, wallet, coin, fill id)
         self._pending_rowed: set = set()
@@ -13755,6 +13782,7 @@ class LiveCopyCore:
         if not self.cfg.master_switch_now() or self.sender.sender_key_invalid:
             out["status"] = "SENDING_OFF"
             self._converge_last = out
+            self._publish_converge_heartbeat(out)
             return out
         with self._send_lock:
             sleeves = [(w, c, fnum(r.get("signed_size")), str(r.get("position_id") or ""))
@@ -13827,25 +13855,96 @@ class LiveCopyCore:
             self._converge_tries.pop(key, None)
         out["status"] = "CONVERGE_CHECKED"
         self._converge_last = out
+        try:
+            self._resolve_late_fill_incidents()
+        except Exception as exc:
+            log_error("resolve_late_fill_incidents", exc)
+        self._publish_converge_heartbeat(out)
         return out
+
+    def _on_late_fill_incident(self, fill: LeaderFill, exchange_order_id: str) -> None:
+        """A follower fill the leader had already left (LATE_FILL_INCIDENT / OPEN) wakes the convergence loop:
+        the next scan reads leader truth and the ordinary planner builds the close. No close logic here."""
+        self._converge_wake.set()
+
+    def _publish_converge_heartbeat(self, out: Dict[str, Any]) -> None:
+        """After EVERY scan, a zero-action one included: a dead convergence loop must be visible (F)."""
+        self._converge_scan_count += 1
+        disabled = str(out.get("status") or "") in {"SENDING_OFF", "DISABLED"}
+        hb: Dict[str, Any] = {"status": "disabled" if disabled else "ok", "scan_count": self._converge_scan_count,
+                              "interval_ms": int(max(1.0, self._converge_interval_sec) * 1000)}
+        if not disabled:
+            hb.update({"last_scan_at_ms": int(fnum(out.get("at_ms"), utc_now_ms())),
+                       "sleeves_scanned": int(fnum(out.get("checked"), 0)),
+                       "candidates": int(fnum(out.get("candidates"), 0)),
+                       "actions_queued": int(fnum(out.get("queued"), 0)),
+                       "unreadable": int(fnum(out.get("unreadable"), 0))})
+        atomic_write_json(CONVERGENCE_HEARTBEAT_FILE, hb)
+
+    def _resolve_late_fill_incidents(self) -> None:
+        """Clear condition: an OPEN late-fill incident becomes RESOLVED only on fresh follower account-net truth
+        equal to the current desired target within planner tolerance, with no order or reservation in flight.
+        An unreadable side, an order in flight or an off-target net keeps it RED."""
+        with self._queued_lock:
+            if self._queued_keys or self._converge_queued:
+                return
+        with self.sender._pending_exit_lock:
+            if self.sender._pending_exit_guard:
+                return
+        if self.sender.resting_entries():
+            return
+        exp = self.intent_builder.follower_exposure()
+        if not exp.get("ok"):
+            return
+        latest: Dict[str, Dict[str, str]] = {}
+        for row in read_csv_tail_rows(RECONCILIATION_CSV, 4 * 1024 * 1024):
+            if str(row.get("event") or "") != LATE_FILL_INCIDENT_EVENT:
+                continue
+            latest["|".join((str(row.get("exchange_order_id") or ""), str(row.get("leader_wallet") or "").lower(),
+                             str(row.get("coin") or "")))] = row
+        follower_net = {canonical_coin_key(k): fnum((v or {}).get("net"))
+                        for k, v in (exp.get("by_coin") or {}).items()}
+        for row in latest.values():
+            if str(row.get("status") or "").upper() != "OPEN":
+                continue
+            wallet = str(row.get("leader_wallet") or "")
+            coin = canonical_coin_key(row.get("coin") or "")
+            lead = _XNET.master_exposure(wallet, [coin.split(":", 1)[0].lower() if ":" in coin else ""],
+                                         fetcher=LEADER_FETCHER, info_url=HL_LEADER_INFO_URL, timeout=HTTP_TIMEOUT_SEC)
+            if not lead.get("ok"):
+                continue   # an unreadable leader keeps it RED
+            desired = fnum(((lead.get("by_coin") or {}).get(coin) or {}).get("net"), 0.0)
+            net = fnum(follower_net.get(coin), 0.0)
+            tol = max(POSITION_EPSILON, 1e-9 * max(abs(net), abs(desired), 1.0))
+            if abs(net - desired) > tol:
+                continue   # off target (or the close has not filled): RED stays
+            oid = str(row.get("exchange_order_id") or "")
+            self.audit.append_reconciliation(
+                LATE_FILL_INCIDENT_EVENT, "RESOLVED", leader_wallet=wallet, coin=coin, exchange_order_id=oid,
+                action="RECONCILED_ON_EXCHANGE", terminal_state=str(row.get("terminal_state") or ""),
+                engine_can_send="False",
+                notes=(f"incident_key={normalise_wallet(wallet)}|{coin}|{oid}; follower_net={net}; "
+                       f"desired_net={desired}; state=RESOLVED"))
 
     def start_convergence_thread(self, interval_sec: float) -> None:
         if getattr(self, "_converge_thread", None) is not None:
             return
         interval = max(1.0, float(interval_sec))
+        self._converge_interval_sec = interval
 
         def loop() -> None:
             was_on = False
             while not self._hot_stop_event.is_set():
+                self._converge_wake.clear()  # taken before the scan: a wake set during it still re-scans at once
                 on = False
                 try:
                     on = self.cfg.master_switch_now()
                     if on:
-                        self.converge_once()
+                        self.converge_once()  # publishes the scan heartbeat itself
                 except Exception as exc:
                     log_error("converge_thread", exc)
                 # just armed: check again soon, so exits missed while off are confirmed and closed promptly
-                wait = min(interval, 5.0) if on and not was_on else interval
+                wait = 0.5 if self._converge_wake.is_set() else (min(interval, 5.0) if on and not was_on else interval)
                 was_on = on
                 if self._hot_stop_event.wait(wait):
                     break
