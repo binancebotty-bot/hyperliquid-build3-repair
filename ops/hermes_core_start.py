@@ -50,26 +50,39 @@ def verify_identity(spec):
     return sha, state_dir, core_script
 
 
-def wait_ready(core, state_dir, sha, deadline_s):
+def wait_ready(core, state_dir, sha, deadline_s, spawn_ms):
     '''Fresh engine state, not a live PID: the child must be alive AND report itself configured.
-    Without this a wrong interpreter (SDK_UNAVAILABLE) printed CORE_STARTED and returned 0.'''
+    Two false-greens are closed here: (1) a missing poll-age field reads as 0 = "fresh", so the
+    field must be PRESENT; (2) the state file may still hold the PREVIOUS run's good values, so
+    the file must have been rewritten AFTER this child was spawned. Without all three a wrong
+    interpreter (SDK_UNAVAILABLE) would still print CORE_STARTED and return 0.'''
     deadline = time.monotonic() + deadline_s
     last = ''
     while time.monotonic() < deadline:
         if core.poll() is not None:
             print('CORE_FAILED: exited rc=%s before verifying identity' % core.returncode)
             return False
+        sp = state_dir / 'live_service_state.json'
         try:
-            st = json.loads((state_dir / 'live_service_state.json').read_text(encoding='utf-8'))
+            st_mtime_ms = int(sp.stat().st_mtime * 1000)
+            st = json.loads(sp.read_text(encoding='utf-8'))
         except Exception:
             last = 'no engine state yet'
+            time.sleep(1.0)
+            continue
+        if st_mtime_ms < spawn_ms:
+            last = 'state file predates this child - refusing stale success'
+            time.sleep(1.0)
+            continue
+        if 'last_copy_poll_age_ms' not in st:
+            last = 'poll age field missing - refusing default-zero success'
             time.sleep(1.0)
             continue
         status = str(st.get('copy_account_status') or '')
         age_ms = int(st.get('last_copy_poll_age_ms') or 0)
         ws = str(st.get('ws_status') or '')
         last = 'copy_account_status=%s poll_age_ms=%s ws=%s' % (status, age_ms, ws)
-        if status == 'COPY_ACCOUNT_POLLED' and age_ms < 5000 and ws == 'WS_OK':
+        if status == 'COPY_ACCOUNT_POLLED' and 0 < age_ms < 5000 and ws == 'WS_OK':
             return True
         time.sleep(1.0)
     print('CORE_FAILED: identity not verified within %ss (%s)' % (int(deadline_s), last))
@@ -122,7 +135,8 @@ def main():
         )
     print('CORE_STARTED pid=%d build_sha=%s network=testnet state_dir=%s child_log=%s'
           % (core.pid, sha, state_dir, log))
-    if not wait_ready(core, state_dir, sha, float(spec.get('state_max_age_seconds', 600))):
+    spawn_ms = int(time.time() * 1000)
+    if not wait_ready(core, state_dir, sha, float(spec.get('state_max_age_seconds', 600)), spawn_ms):
         return 1
     print('CORE_VERIFIED pid=%d' % core.pid)
     return 0
