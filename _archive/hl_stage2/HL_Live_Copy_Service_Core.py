@@ -5122,6 +5122,55 @@ class SenderGateway:
                 return status
         return ""
 
+    def _missed_entry_rest_or_diff(self, intent: Intent, cause: str,
+                                   timing: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """PART 2: a REFUSED entry/add is not a lost fill. The EXISTING missed-entry rule runs here, once, at the
+        point of refusal: a tradable symbol rests a GTC at the leader's price through the same _place_order /
+        _recovery_send_hooks / _register_resting_entry / _resting_entry_result path the send path uses; anything
+        else ends as a NAMED DIFF row (or a NAMED SKIP for an unlisted symbol). Nothing is retained or replayed."""
+        timing = timing if isinstance(timing, dict) else self._base_timing(intent)
+        base = {"cause": cause, "intent_id": intent.intent_id, "leader_fill_id": intent.fill.leader_fill_id,
+                "wallet_alias": normalise_wallet(intent.fill.leader_wallet), "coin": canonical_coin_key(intent.fill.coin)}
+        resolved = self._resolve_coin(intent.fill.coin)
+        if cause == "MARGIN_MODE_UNSET" and not resolved.get("ok"):
+            return dict(base, outcome="MISSED_ENTRY_SKIP_SYMBOL_NOT_LISTED",
+                        notes=(f"named skip: {cause}; symbol unlisted or unresolved "
+                               f"({resolved.get('status')}), so no limit can be priced or sent"))
+        tradable = (bool(resolved.get("ok")) and not resolved.get("snapshot_only")
+                    and resolved.get("sdk_order_compatible") is not False)
+        leader_px = fnum(intent.fill.price, 0.0)
+        px = size = 0.0
+        if tradable and leader_px > 0:
+            px = self._px_passive(leader_px, int(resolved.get("price_max_decimals") or 0), intent.copy_side == "BUY")
+            size = self._floor_wire_size(intent.copy_size, int(resolved.get("sz_decimals") or 0))
+        if not tradable or px <= 0 or size <= 0:
+            return dict(base, outcome="MISSED_ENTRY_DIFF_NO_LIMIT_POSSIBLE",
+                        notes=(f"named diff: {cause}; no limit rested (symbol not tradable or leader price/size "
+                               f"unusable; status={resolved.get('status')})"))
+        if self.resting_entry_for(intent.fill.leader_wallet, intent.fill.coin, intent.copy_side) is not None:
+            return dict(base, outcome="MISSED_ENTRY_ALREADY_RESTING",
+                        notes=f"named diff: {cause}; a limit for this leader, coin and side is already resting")
+        try:
+            exchange, sdk_coin = self._exchange_client_for_coin(intent.fill.coin)
+            safe, unsafe = self._pre_exchange_asset_safety(intent, resolved, px, size)
+            if not safe:
+                raise ValueError(f"asset safety: {unsafe.get('status')}")
+            missed = missed_entry_decision(intent.copy_side, leader_px, px, px, 0.0)
+            if not missed.get("ok"):
+                raise ValueError("no leader price to rest at")
+            cloid, pre_send = self._recovery_send_hooks(intent, "Gtc", "REAL_GTC", px, size, False, timing,
+                                                        "refusal_missed_entry")
+            response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", size, px, "Gtc", False,
+                                         timing, "refusal_missed_entry_started_ms", cloid=cloid, pre_send=pre_send)
+            ok, status, res = self._resting_entry_result(intent, sdk_coin, response, px, size, timing, missed,
+                                                         f"entry refused ({cause})")
+        except Exception as exc:
+            return dict(base, outcome="MISSED_ENTRY_DIFF_NO_LIMIT_POSSIBLE",
+                        notes=f"named diff: {cause}; no limit rested ({type(exc).__name__}: {str(exc)[:200]})")
+        return dict(res, cause=cause, outcome=("MISSED_ENTRY_LIMIT_RESTED" if ok else "MISSED_ENTRY_DIFF_LIMIT_REJECTED"),
+                    intent_id=intent.intent_id, leader_fill_id=intent.fill.leader_fill_id,
+                    wallet_alias=base["wallet_alias"], coin=base["coin"], limit_px=px, wire_size=size)
+
     def _place_order(self, exchange: Any, sdk_coin: str, is_buy: bool, size: float, limit_px: float,
                      tif: str, reduce_only: bool, timing: Optional[Dict[str, Any]] = None, started_key: str = "",
                      cloid: Optional[str] = None, bypass_rate_limit_cooldown: bool = False,
@@ -11684,6 +11733,38 @@ class LiveCopyCore:
                     log_error("released_trace", exc)
                 self._release_queued(batch, q)
 
+    def _apply_missed_entry_rule_on_refusal(self, fill: LeaderFill, intent: Intent,
+                                            send_status: str) -> Optional[Dict[str, Any]]:
+        """PART 2 choke point: send_if_allowed refused an ENTRY/ADD. The four refusal causes that used to consume the
+        fill (follower-price freshness gate, margin-mode precondition, snapshot-only metadata, MARKET_HALTED) now run
+        the missed-entry rule ONCE, here: a GTC rests at the leader's price when the symbol is tradable, else a named
+        diff (or a named skip). The gates themselves are untouched and nothing is retained for a later replay."""
+        if classify_send_lifecycle(intent) not in {"ENTRY", "ADD"}:
+            return None
+        reason = str(intent.reason or "")
+        halted = self.sender._market_halted_until_ms.get(str(intent.fill.coin or "").strip().lower(), 0) > utc_now_ms()
+        if send_status in {"INTENT_NOT_SEND_ALLOWED", "SEND_NOT_ATTEMPTED_FOLLOWER_PRICE_UNAVAILABLE"} and (
+                "no fresh follower-network" in reason or send_status.endswith("FOLLOWER_PRICE_UNAVAILABLE")):
+            cause = "FOLLOWER_PRICE_FRESHNESS_GATE"
+        elif send_status == "MARGIN_MODE_UNSET":
+            cause = "MARGIN_MODE_UNSET"
+        elif send_status == "SEND_NOT_ATTEMPTED_UNSUPPORTED_SYMBOL" and (
+                "snapshot" in reason.lower() or self.sender._resolve_coin(intent.fill.coin).get("snapshot_only")):
+            cause = "ASSET_META_SNAPSHOT_ONLY"
+        elif halted and send_status in {"SKIPPED_MARKET_HALTED", "ORDER_REJECTED"}:
+            cause = "MARKET_HALTED"
+        else:
+            return None
+        outcome = self.sender._missed_entry_rest_or_diff(intent, cause)
+        self.audit.append_reconciliation(
+            "SEND_TERMINAL", outcome["outcome"], leader_wallet=fill.leader_wallet,
+            leader_fill_id=fill.leader_fill_id, intent_id=intent.intent_id, coin=fill.coin,
+            action="MISSED_ENTRY_RULE_AT_REFUSAL", reject_category="MISSED_ENTRY_REFUSAL_REMEDY",
+            terminal_state=outcome["outcome"], engine_can_send="False",
+            notes=(f"{outcome.get('notes', '')}; refusal={send_status}; wallet_alias={outcome.get('wallet_alias')}; "
+                   f"intent_id={intent.intent_id}; leader_fill_id={intent.fill.leader_fill_id}"))
+        return outcome
+
     def _append_send_terminal(self, fill: LeaderFill, intent: Intent, send_status: str) -> None:
         if send_status == "SEND_BLOCKED_LEADER_ALREADY_REDUCED":
             self.audit.append_reconciliation(
@@ -12178,6 +12259,10 @@ class LiveCopyCore:
             if summary is not None:
                 summary.leader_sends_attempted += 1
         else:
+            try:
+                self._apply_missed_entry_rule_on_refusal(fill, intent, send_status)
+            except Exception as exc:
+                log_error("missed_entry_at_refusal", exc)
             try:
                 self._append_send_terminal(fill, intent, send_status)
             except Exception as exc:
