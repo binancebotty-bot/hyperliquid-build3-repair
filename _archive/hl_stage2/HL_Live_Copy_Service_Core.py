@@ -1088,6 +1088,25 @@ NON_TERMINAL_ROW_NAMES = frozenset({
 RETAINED_ROW_NAMES = frozenset({"DEFERRED_ENTRY_RETAINED"})
 
 
+def send_status_reaches_catchall(send_status: str) -> bool:
+    """True when a send_allowed intent's status must be journaled by the catch-all.
+
+    The catch-all exists to give a terminal proof to statuses the engine does NOT
+    understand. A status the engine has already classified must not reach it, or the
+    same fill gets two terminal rows and the second one falsely says "unclassified".
+    LIQ_PARITY_ is matched as a PREFIX: new parity failure modes must not reintroduce
+    the double row the first time one is added.
+    """
+    return not (
+        send_status.startswith("OWNERSHIP_GATE_")
+        or send_status in {"MOCK_ORDER_SUPPRESSED", "PENDING_EXIT_GUARD_ACTIVE",
+                          "ORDER_REJECTED", "ORDER_FILLED", "ORDER_RESTING",
+                          "ORDER_UNKNOWN", "EXCHANGE_ERROR"}
+        or send_status.startswith("SEND_NOT_ATTEMPTED_")
+        or send_status.startswith("LIQ_PARITY_")
+    )
+
+
 def classify_terminal_row(state: str) -> str:
     """TERMINAL, NON_TERMINAL or UNCLASSIFIED for one sender row name. Exact sets only: no substring matching, so a
     new name cannot slip into 'terminal' by containing SENT or REJECTED."""
@@ -12192,12 +12211,7 @@ class LiveCopyCore:
                     f"coin={fill.coin}; side={fill.side}; copy_size={intent.copy_size}; exchange_called=false"
                 ),
             )
-        elif (intent.send_allowed
-              and not send_status.startswith("OWNERSHIP_GATE_")
-              and send_status != "MOCK_ORDER_SUPPRESSED"
-              and send_status != "PENDING_EXIT_GUARD_ACTIVE"  # recorded where it is decided: the sleeve's close is in flight
-              and send_status not in {"ORDER_REJECTED", "ORDER_FILLED", "ORDER_RESTING", "ORDER_UNKNOWN", "EXCHANGE_ERROR"}
-              and not send_status.startswith("SEND_NOT_ATTEMPTED_")):
+        elif intent.send_allowed and send_status_reaches_catchall(send_status):
             # Catch-all: send_allowed intent with unhandled block status — write explicit terminal
             # to prevent silent copy-required intents with no terminal proof.
             lifecycle = classify_send_lifecycle(intent)
