@@ -1046,6 +1046,9 @@ TERMINAL_ROW_NAMES = frozenset({
     "MISSED_ENTRY_LEADER_PRICE_UNAVAILABLE", "MISSED_ENTRY_LIMIT_OUTCOME_UNKNOWN",
     "MISSED_ENTRY_LIMIT_RESTED", "MISSED_ENTRY_DIFF_LIMIT_REJECTED", "MISSED_ENTRY_DIFF_NO_LIMIT_POSSIBLE",
     "MISSED_ENTRY_SKIP_SYMBOL_NOT_LISTED", "MOCK_ORDER_SENT", "ORDER_FILLED", "PRICE_SANITY_REJECTED",
+    "MISSED_ENTRY_SKIP_META_UNAVAILABLE", "MISSED_ENTRY_SKIP_SYMBOL_CACHE_MISS", "MISSED_ENTRY_SKIP_SYMBOL_SNAPSHOT_ONLY",
+    "MISSED_ENTRY_SKIP_SYMBOL_NOT_TRADABLE_BY_SENDER", "MISSED_ENTRY_SKIP_SPOT_MARKET_SKIPPED",
+    "MISSED_ENTRY_SKIP_SYMBOL_UNRESOLVED",
     "REDUCE_ONLY_REJECT_EXCHANGE_FLAT", "RESTING_ENTRY_FILLED_AFTER_LEADER_REDUCED",
     "RESTING_ENTRY_FILL_UNVERIFIED", "SEND_NOT_ATTEMPTED_MAX_ORDER_NOTIONAL",
     "SEND_NOT_ATTEMPTED_CLOSE_AT_TARGET", "SEND_OUTCOME_CONFIRMED_CANCELLED_NO_RETRY",
@@ -1094,6 +1097,36 @@ def classify_terminal_row(state: str) -> str:
     if name in NON_TERMINAL_ROW_NAMES:
         return "NON_TERMINAL"
     return "UNCLASSIFIED"
+
+
+def margin_unresolved_label(resolved: Dict[str, Any]) -> str:
+    """The margin lane label follows the resolver cause: only SYMBOL_UNRESOLVED means metadata WAS fetched and the
+    coin is absent. Every other unresolved status used to be logged as SYMBOL_NOT_LISTED."""
+    s = str(resolved.get("status") or "").strip().upper()
+    if s == "META_UNAVAILABLE":
+        return "META_UNAVAILABLE"
+    if s == "SYMBOL_CACHE_MISS_NEEDS_REFRESH":
+        return "SYMBOL_SNAPSHOT_ONLY_NO_AUTHORITATIVE_META" if resolved.get("snapshot_only") else "SYMBOL_CACHE_MISS"
+    if s == "SYMBOL_UNRESOLVED":  # metadata WAS fetched and the coin is absent: the only genuine not-listed case
+        return "SYMBOL_NOT_LISTED"
+    return s or "SYMBOL_NOT_LISTED"
+
+
+def missed_entry_skip_name(status: Any, snapshot_only: Any = False) -> str:
+    """The missed-entry refusal label follows the resolver cause; every unresolved cause used to be reported as
+    SYMBOL_NOT_LISTED, including META_UNAVAILABLE before any metadata had been fetched."""
+    s = str(status or "").strip().upper()
+    if s == "META_UNAVAILABLE":
+        return "MISSED_ENTRY_SKIP_META_UNAVAILABLE"
+    if s == "SYMBOL_CACHE_MISS_NEEDS_REFRESH":
+        return "MISSED_ENTRY_SKIP_SYMBOL_SNAPSHOT_ONLY" if snapshot_only else "MISSED_ENTRY_SKIP_SYMBOL_CACHE_MISS"
+    if s == "SYMBOL_UNRESOLVED":
+        return "MISSED_ENTRY_SKIP_SYMBOL_NOT_LISTED"
+    if s == "SYMBOL_NOT_TRADABLE_BY_SENDER":
+        return "MISSED_ENTRY_SKIP_SYMBOL_NOT_TRADABLE_BY_SENDER"
+    if s == "SPOT_MARKET_SKIPPED":
+        return "MISSED_ENTRY_SKIP_SPOT_MARKET_SKIPPED"
+    return "MISSED_ENTRY_SKIP_SYMBOL_UNRESOLVED"
 
 
 def classify_integrity_severity(terminal_state: str) -> str:
@@ -5272,8 +5305,8 @@ class SenderGateway:
                 "wallet_alias": normalise_wallet(intent.fill.leader_wallet), "coin": canonical_coin_key(intent.fill.coin)}
         resolved = self._resolve_coin(intent.fill.coin)
         if cause == "MARGIN_MODE_UNSET" and not resolved.get("ok"):
-            return dict(base, outcome="MISSED_ENTRY_SKIP_SYMBOL_NOT_LISTED",
-                        notes=(f"named skip: {cause}; symbol unlisted or unresolved "
+            return dict(base, outcome=missed_entry_skip_name(resolved.get("status"), resolved.get("snapshot_only")),
+                        notes=(f"named skip: {cause}; symbol could not be resolved "
                                f"({resolved.get('status')}), so no limit can be priced or sent"))
         tradable = (bool(resolved.get("ok")) and not resolved.get("snapshot_only")
                     and resolved.get("sdk_order_compatible") is not False)
@@ -5526,7 +5559,7 @@ class SenderGateway:
         if now - seen.get(coin, -1e12) < max(1.0, fnum(os.getenv("HL_LIVE_MM_UNRESOLVED_LOG_SEC"), 600.0)):
             return
         seen[coin] = now
-        _why = "SYMBOL_CACHE_MISS" if "CACHE_MISS" in str(resolved.get("status") or "") else "SYMBOL_NOT_LISTED"
+        _why = margin_unresolved_label(resolved)
         log_error("margin_mode_background", f"{_why}: symbol unresolved: {coin} [{resolved.get('status')}] "
                   f"{str(resolved.get('error') or '')[:160]}")
 

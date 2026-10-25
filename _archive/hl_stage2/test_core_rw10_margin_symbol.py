@@ -104,6 +104,77 @@ def main():
     check("R9_UNRESOLVED_NEVER_EMITS_THE_MARGIN_BLOCK",
           all("MARGIN_MODE_UNSET" not in r.get("message", "") for r in r7), str(r7))
 
+    # R10-R13 (the false-diagnosis defect): the label follows the resolver ACTUAL cause. Metadata never fetched is
+    # META_UNAVAILABLE, a snapshot-only/stale-cache row is the cache label, and only a coin the fetched metadata says
+    # is absent may be called SYMBOL_NOT_LISTED.
+    def margin_rows():
+        if not Path(c.ERRORS_CSV).exists():
+            return []
+        with open(c.ERRORS_CSV, newline="", encoding="utf-8") as fh:
+            return [r for r in csv.DictReader(fh) if r.get("context", "").startswith("margin_mode")]
+
+    g2 = c.SenderGateway(c.ConfigManager(), c.AuditLogWriter(), c.ManualLedger(path=tmp / "l2.json"))
+    g2._asset_snapshot_loaded = True
+    g2._meta_fetched = g2._core_meta_fetched = False
+    g2._builder_meta_fetched["xyz"] = True
+    g2._meta_cache = {}
+    g2._get_exchange_client = lambda *a, **k: Fake()
+    before = len(margin_rows())
+    g2.schedule_margin_mode_setup("GHOST")
+    g2.wait_margin_mode_setup(5.0)
+    r10 = margin_rows()[before:]
+    check("R10_NO_METADATA_IS_NAMED_META_UNAVAILABLE_NOT_NOT_LISTED",
+          len(r10) == 1 and "META_UNAVAILABLE" in r10[0].get("message", "")
+          and "SYMBOL_NOT_LISTED" not in r10[0].get("message", ""), str(r10[:1]))
+
+    # a row that came only from the disk snapshot: an OK-looking cache hit with no authoritative meta behind it
+    g2._meta_cache = {"SNAPX": {"canonical_coin": "SNAPX", "szDecimals": 2, "symbol_source": "core_meta",
+                              "_snapshot_only": True}}
+    before = len(margin_rows())
+    g2.schedule_margin_mode_setup("SNAPX")
+    g2.wait_margin_mode_setup(5.0)
+    r11 = margin_rows()[before:]
+    check("R11_SNAPSHOT_ONLY_ABSENT_NAMED_ITS_OWN_CAUSE_NOT_NOT_LISTED",
+          len(r11) == 1 and r11[0].get("message", "").startswith("SYMBOL_SNAPSHOT_ONLY_NO_AUTHORITATIVE_META:")
+          and "SYMBOL_NOT_LISTED" not in r11[0].get("message", ""), str(r11[:1]))
+    g2._meta_cache = {}
+
+    # keep-case: a stale cache still says SYMBOL_CACHE_MISS (this one was already true before the fix)
+    before = len(margin_rows())
+    g2.schedule_margin_mode_setup("XYZ:QQQ")
+    g2.wait_margin_mode_setup(5.0)
+    r14 = margin_rows()[before:]
+    check("R14_STALE_CACHE_STILL_NAMED_SYMBOL_CACHE_MISS",
+          len(r14) == 1 and "SYMBOL_CACHE_MISS" in r14[0].get("message", "")
+          and "SYMBOL_NOT_LISTED" not in r14[0].get("message", ""), str(r14[:1]))
+
+    g2._meta_fetched = g2._core_meta_fetched = True
+    before = len(margin_rows())
+    g2.schedule_margin_mode_setup("ZZZQ")
+    g2.wait_margin_mode_setup(5.0)
+    r12 = margin_rows()[before:]
+    check("R12_GENUINELY_ABSENT_COIN_STILL_NAMED_SYMBOL_NOT_LISTED",
+          len(r12) == 1 and "SYMBOL_NOT_LISTED" in r12[0].get("message", ""), str(r12[:1]))
+
+    g3 = c.SenderGateway(c.ConfigManager(), c.AuditLogWriter(), c.ManualLedger(path=tmp / "l3.json"))
+    _fill = _ap.Namespace(leader_fill_id="LF-R13", leader_wallet="0x" + "d" * 40, coin="GHOST", price=100.0,
+                          timestamp_ms=c.utc_now_ms())
+    _intent13 = _ap.Namespace(intent_id="I-R13", fill=_fill)
+
+    def skip_for(resolved):
+        g3._resolve_coin = lambda coin, allow_snapshot=False: dict(resolved)
+        return g3._missed_entry_rest_or_diff(_intent13, "MARGIN_MODE_UNSET", {}).get("outcome")
+
+    s13a = skip_for({"ok": False, "status": "META_UNAVAILABLE"})
+    s13b = skip_for({"ok": False, "status": "SYMBOL_CACHE_MISS_NEEDS_REFRESH", "snapshot_only": True})
+    s13c = skip_for({"ok": False, "status": "SYMBOL_CACHE_MISS_NEEDS_REFRESH"})
+    s13d = skip_for({"ok": False, "status": "SYMBOL_UNRESOLVED"})
+    check("R13_REFUSAL_NO_METADATA_IS_NOT_NOT_LISTED", s13a == "MISSED_ENTRY_SKIP_META_UNAVAILABLE", s13a)
+    check("R13_REFUSAL_SNAPSHOT_ONLY_IS_NOT_NOT_LISTED", s13b == "MISSED_ENTRY_SKIP_SYMBOL_SNAPSHOT_ONLY", s13b)
+    check("R13_REFUSAL_STALE_CACHE_IS_NOT_NOT_LISTED", s13c == "MISSED_ENTRY_SKIP_SYMBOL_CACHE_MISS", s13c)
+    check("R13_REFUSAL_GENUINELY_ABSENT_COIN_STILL_NAMED_NOT_LISTED",
+          s13d == "MISSED_ENTRY_SKIP_SYMBOL_NOT_LISTED", s13d)
+
     msg = _try(g, "XYZ:BOT")
     check("R6_NEUTRAL_HELPER_MESSAGE", bool(msg) and "for cancel" not in msg, msg)
 
