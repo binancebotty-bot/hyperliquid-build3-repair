@@ -116,7 +116,7 @@ def main() -> None:
 
     def gateway(fake):
         gw = c.SenderGateway(c.ConfigManager(), c.AuditLogWriter())
-        gw._resolve_coin = lambda coin: dict(resolved)
+        gw._resolve_coin = lambda coin, **k: dict(resolved)
         gw._get_exchange_client = lambda *a, **k: fake
         gw._exchange_client_has_symbol = lambda *a, **k: True
         gw._validate_final_wire_order = lambda *a, **k: (True, {})
