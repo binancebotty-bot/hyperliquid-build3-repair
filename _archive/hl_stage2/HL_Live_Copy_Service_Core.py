@@ -1053,6 +1053,7 @@ TERMINAL_ROW_NAMES = frozenset({
     "SKIPPED_MARKET_HALTED", "SPOT_MARKET_SKIPPED", "SUPERSEDED_BY_RETRY", "UNSUPPORTED_SYMBOL_OR_METADATA",
     "SENDER_KEY_NOT_VALID_ON_FOLLOWER_NETWORK", "MARGIN_MODE_UNSET",
     "MISSED_ENTRY_DIFF_NO_FRESH_MID", "MISSED_ENTRY_DIFF_MARGIN_SETUP_FAILED",
+    "MISSED_ENTRY_DIFF_MARGIN_SETUP_PENDING", "MARGIN_MODE_SETUP_PENDING",
 })
 NON_TERMINAL_ROW_NAMES = frozenset({
     "AMBIGUOUS_SEND_EXIT_RESTING", "ASSET_META_REFRESH_FAILED_USING_LAST_GOOD", "AUDIT_WRITE_FAILED",
@@ -5274,9 +5275,11 @@ class SenderGateway:
             return dict(base, outcome="MISSED_ENTRY_ALREADY_RESTING",
                         notes=f"named diff: {cause}; a limit for this leader, coin and side is already resting")
         exchange, sdk_coin = self._exchange_client_for_coin(intent.fill.coin)
-        margin_block = self._ensure_margin_mode(exchange, sdk_coin, intent, "ENTRY", timing)
+        margin_block = self._ensure_margin_mode(exchange, sdk_coin, intent, "ENTRY", timing, wait_sec=0.0)
         if margin_block is not None:
-            return dict(base, outcome="MISSED_ENTRY_DIFF_MARGIN_SETUP_FAILED",
+            return dict(base, outcome=("MISSED_ENTRY_DIFF_MARGIN_SETUP_PENDING"
+                                       if margin_block[1] == "MARGIN_MODE_SETUP_PENDING"
+                                       else "MISSED_ENTRY_DIFF_MARGIN_SETUP_FAILED"),
                         notes=(f"named diff: {cause}; _ensure_margin_mode refused "
                                f"({margin_block[2].get('error')}); no order sent or rested"))
         follower_px = follower_mid(sdk_coin, force=True)
@@ -5411,7 +5414,7 @@ class SenderGateway:
         return self.__dict__.setdefault("_margin_mode_locks", {}).setdefault(key, threading.Lock())
 
     def _ensure_margin_mode(self, exchange: Any, sdk_coin: str, intent: Intent, lifecycle: str,
-                            timing: Dict[str, Any]) -> Optional[Tuple[bool, str, Dict[str, Any]]]:
+                            timing: Dict[str, Any], wait_sec: Optional[float] = None) -> Optional[Tuple[bool, str, Dict[str, Any]]]:
         """Order path: a no-op once the background setup (schedule_margin_mode_setup) has set the asset. If it has not
         finished, this waits for that one call (one signed call per asset at a time) or, if it never ran, does it inline
         exactly as before, so no order is lost or sent with the wrong margin mode."""
@@ -5420,7 +5423,12 @@ class SenderGateway:
         # The wait for an in-flight background setup is bounded (HL_LIVE_MM_WAIT_SEC, default 10 s). Past it the entry fails
         # closed (MARGIN_MODE_UNSET, no order sent) rather than hanging the send lane; the next fill for the coin retries.
         lock = self._margin_mode_lock(str(sdk_coin))
-        if not lock.acquire(timeout=max(0.1, fnum(os.getenv("HL_LIVE_MM_WAIT_SEC"), 10.0))):
+        timeout = (max(0.1, fnum(os.getenv("HL_LIVE_MM_WAIT_SEC"), 10.0)) if wait_sec is None
+                   else max(0.0, wait_sec))
+        if not lock.acquire(timeout=timeout):
+            if wait_sec is not None:
+                error = "margin mode setup in flight on another lane; declined without waiting"
+                return False, "MARGIN_MODE_SETUP_PENDING", self._margin_pending_block(error, timing)
             error = "margin mode setup still in flight past HL_LIVE_MM_WAIT_SEC"
             return False, "MARGIN_MODE_UNSET", self._margin_unset_block(error, timing)
         try:
@@ -5462,6 +5470,16 @@ class SenderGateway:
             "status": "MARGIN_MODE_UNSET", "error": error, "exchange_response": {}, "oid": "", "exchange_called": False,
             "write_reconciliation": True, "reject_category": "MARGIN_MODE_UNSET", "terminal_state": "MARGIN_MODE_UNSET",
             "operator_action": "CHECK_MARGIN_MODE_ON_EXCHANGE", "notes": f"margin mode could not be set: {error}",
+            "timing": timing}
+
+    @staticmethod
+    def _margin_pending_block(error: str, timing: Dict[str, Any]) -> Dict[str, Any]:
+        """Setup in flight elsewhere: no order and no wait; convergence retries the entry."""
+        return {
+            "status": "MARGIN_MODE_SETUP_PENDING", "error": error, "exchange_response": {}, "oid": "", "exchange_called": False,
+            "write_reconciliation": True, "reject_category": "MARGIN_MODE_SETUP_PENDING",
+            "terminal_state": "MARGIN_MODE_SETUP_PENDING", "operator_action": "NONE_SETUP_IN_FLIGHT",
+            "notes": f"margin mode setup is still in flight: {error}",
             "timing": timing}
 
     def schedule_margin_mode_setup(self, raw_coin: Any) -> bool:
@@ -11938,7 +11956,8 @@ class LiveCopyCore:
         else:
             return None
         outcome = self.sender._missed_entry_rest_or_diff(intent, cause)
-        if outcome["outcome"] in {"MISSED_ENTRY_DIFF_NO_FRESH_MID", "MISSED_ENTRY_DIFF_MARGIN_SETUP_FAILED"}:
+        if outcome["outcome"] in {"MISSED_ENTRY_DIFF_NO_FRESH_MID", "MISSED_ENTRY_DIFF_MARGIN_SETUP_FAILED",
+                                  "MISSED_ENTRY_DIFF_MARGIN_SETUP_PENDING"}:
             self.audit.append_reconciliation(  # an OPEN incident: no order exists, the convergence path retries
                 MISSED_ENTRY_INCIDENT_EVENT, outcome["outcome"], leader_wallet=fill.leader_wallet,
                 leader_fill_id=fill.leader_fill_id, intent_id=intent.intent_id, coin=fill.coin,
@@ -13372,6 +13391,12 @@ class LiveCopyCore:
             late = self.sender.take_withdrawn_late()
             if late:
                 read = self._read_fills_of_withdrawn_limits(late)
+                _late_check_ms = utc_now_ms()  # the in-lane check time, not the placement time
+                _late_fills = read[0] if read else []
+                def _late_fill_ts(_oid: str) -> int:
+                    _k = CopyFillMatcher._normalize_oid(_oid)
+                    return next((int(fnum(_f.get("timestamp_ms", _f.get("time")), 0)) for _f in _late_fills
+                                 if CopyFillMatcher._normalize_oid(CopyFillMatcher._copy_fill_oid(_f)) == _k), 0)
                 with self._send_lock:
                     seen_late: set = set()
                     self._apply_fills_of_withdrawn_limits(late, read, seen_late)
@@ -13389,7 +13414,7 @@ class LiveCopyCore:
                                 action="MANUAL_REVIEW_RECONCILE_ENTRY_LEADER_ALREADY_REDUCED",
                                 terminal_state="RESTING_ENTRY_FILLED_AFTER_LEADER_REDUCED", engine_can_send="False",
                                 notes=(f"incident_key={normalise_wallet(_row.get('leader_wallet', ''))}|{canonical_coin_key(_row.get('coin', ''))}|{_roid}; "
-                                       f"check_ts_ms={int(fnum(_row.get('placed_ms'), 0))}; follower_fill_ts_ms=0; state=OPEN"))
+                                       f"check_ts_ms={_late_check_ms}; follower_fill_ts_ms={_late_fill_ts(_roid)}; state=OPEN"))
                             if self.on_late_fill_incident is not None:
                                 self.on_late_fill_incident(None, _roid)
                         self.audit.append_reconciliation(
