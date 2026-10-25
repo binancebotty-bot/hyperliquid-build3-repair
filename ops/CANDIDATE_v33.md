@@ -101,3 +101,39 @@ exposure-pending commits this branch already merges.
 
 Unrecorded-fills reconciliation at start remains queued. The drain now protects the journal on a
 clean stop; the reconciliation is what catches a journal that is incomplete for any other reason.
+
+---
+
+## Candidate after the stop-tool review: be6a52d
+
+Adversarial review of `ops/stop_pair.py` returned **FAIL** with one BLOCKER: a timed-out intent
+flush was recorded as `clean=True`, because `flush_intent_writer` reports a timeout by returning
+False and the hook ignored the return value. That is the loss this tool exists to prevent, wearing a
+green record. Fixed, with the reviewer's other findings:
+
+- `clean=_flushed` from the sentinel hook, and `_atexit_marker` now flushes the intent writer too
+  (it previously drained only the status workers) and records that outcome.
+- the stale-sentinel quarantine moved AFTER the instance locks and refuses to start when the sentinel
+  is younger than 120 s, so a second engine cannot steal a stop that is in flight.
+- `--force` refuses to kill unless the forced-stop record is on disk, written per label and pid.
+- UI identity is argv shape plus create_time, not a substring; a reused pid is refused.
+- `verify()` requires the same pid and reason as well as a later timestamp.
+- an already-stopped pair exits 0; each pid is verified; the kill is guarded; engines whose own
+  `HL_LIVE_AUDIT_DIR` is not the dir being signalled are skipped.
+
+### Verification on be6a52d
+
+| suite | result |
+|---|---|
+| Core compiles | yes |
+| `test_core_exposure_pending.py` | 7/0 |
+| `test_core_stop_sentinel.py` | 11/0 |
+| `test_core_rw10_margin_symbol.py` | 18/0 |
+| `test_core_observability_part1.py` | 21/0 |
+| `test_core_send_lock_isolation.py` | 8/0 |
+| `test_core_missed_entry_rule.py` | 95/0 |
+| `ops/test_pair_launch.py` | 15/0 |
+| `ops/test_stop_pair.py` | 12/0 |
+| Core line endings | CRLF 12,697 / bare-LF 3,203 |
+
+187 checks, zero failures.
