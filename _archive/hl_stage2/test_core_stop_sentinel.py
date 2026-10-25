@@ -39,6 +39,7 @@ args = list(spec['args'])
 if '--loop' not in args:
     args.append('--loop')
 (state / 'STOP_REQUESTED').write_text('stale request from a crashed run' + chr(10), encoding='utf-8')
+os.utime(state / 'STOP_REQUESTED', (time.time() - 600, time.time() - 600))  # a crash leftover, older than 120 s
 p = subprocess.Popen([PYW] + args, cwd=str(HERE), env={**os.environ, **env},
                      creationflags=subprocess.CREATE_NEW_PROCESS_GROUP)
 check('ENGINE_STARTS', p.poll() is None, 'rc=%s' % p.poll())
@@ -63,6 +64,23 @@ r = json.loads(rec.read_text(encoding='utf-8-sig')) if rec.exists() else {}
 check('WRITES_A_CLEAN_SHUTDOWN_RECORD', bool(r.get('clean')) is True, r)
 check('RECORD_NAMES_THE_SENTINEL', r.get('reason') == 'stop_sentinel', r.get('reason'))
 check('ENGINE_REMOVES_THE_SENTINEL', not (state / 'STOP_REQUESTED').exists())
+
+
+# ---- a FRESH sentinel at launch is a stop in flight: the engine must refuse to start, not steal it
+state_fresh = Path(tempfile.mkdtemp(prefix='stopsent_fresh_'))
+env_f = dict(env); env_f['HL_LIVE_AUDIT_DIR'] = str(state_fresh).replace(chr(92), '/')
+(state_fresh / 'STOP_REQUESTED').write_text('stop in flight' + chr(10), encoding='utf-8')
+pf = subprocess.Popen([PYW] + args, cwd=str(HERE), env={**os.environ, **env_f},
+                      creationflags=subprocess.CREATE_NEW_PROCESS_GROUP)
+try:
+    rc_f = pf.wait(timeout=60)
+except subprocess.TimeoutExpired:
+    import psutil
+    psutil.Process(pf.pid).kill()
+    rc_f = 'TIMEOUT'
+check('FRESH_SENTINEL_AT_LAUNCH_REFUSES_TO_START', rc_f not in (0, 'TIMEOUT'), 'rc=%s' % rc_f)
+check('IN_FLIGHT_REQUEST_IS_NOT_QUARANTINED', (state_fresh / 'STOP_REQUESTED').exists())
+shutil.rmtree(state_fresh, ignore_errors=True)
 
 shutil.rmtree(state, ignore_errors=True)
 failed = [n for n, ok in results if not ok]
