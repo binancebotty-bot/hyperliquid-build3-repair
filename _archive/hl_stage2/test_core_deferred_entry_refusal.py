@@ -19,6 +19,7 @@ from __future__ import annotations
 import os
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -195,6 +196,34 @@ def main():
     o7 = core(f7)._apply_missed_entry_rule_on_refusal(i7.fill, i7, "INTENT_NOT_SEND_ALLOWED")
     check("R6_FRESH_ENTRY_WITH_SWITCH_OFF_DOES_NOT_TAKE_THE_RULE", o7 is None and not f7.calls,
           "%s %s" % (o7, f7.calls))
+
+    # R7 (send-lane guard): the per-coin margin lock is held elsewhere -> the refusal path declines AT ONCE as
+    # MARGIN_MODE_SETUP_PENDING, sends/rests nothing, and leaves the entry to convergence. Fails (>= 2 s here) if
+    # the caller ever goes back to _ensure_margin_mode without wait_sec=0.0.
+    clear()
+    set_mids(100.0, 100.0)
+    f8 = FakeExchange()
+    cc8 = core(f8)
+    held = cc8.sender._margin_mode_lock("BTC")
+    held.acquire()
+    try:
+        t0 = time.monotonic()
+        i8 = intent()
+        o8 = cc8._apply_missed_entry_rule_on_refusal(i8.fill, i8, "MARGIN_MODE_UNSET")
+        elapsed8 = time.monotonic() - t0
+    finally:
+        held.release()
+    check("R7_MARGIN_SETUP_PENDING_RETURNS_AT_ONCE_WITH_LOCK_HELD",
+          o8 is not None and o8.get("outcome") == "MISSED_ENTRY_DIFF_MARGIN_SETUP_PENDING" and elapsed8 < 0.5,
+          "%s elapsed=%.3f" % (o8 and o8.get("outcome"), elapsed8))
+    check("R7_MARGIN_SETUP_PENDING_SENDS_AND_RESTS_NOTHING",
+          not f8.calls and not f8.cancels and not (c.load_json(c.RESTING_ENTRY_ORDERS_FILE, {}) or {}),
+          "%s %s" % (f8.calls, c.load_json(c.RESTING_ENTRY_ORDERS_FILE, {})))
+    _r7 = [r for r in rows("MISSED_ENTRY_DIFF_MARGIN_SETUP_PENDING")
+           if r.get("event") == c.MISSED_ENTRY_INCIDENT_EVENT]
+    check("R7_MARGIN_SETUP_PENDING_IS_NAMED_AND_RECORDED",
+          bool(_r7) and "margin mode setup in flight" in str(_r7[0].get("notes")), str(_r7[:1])[:300])
+    print("MEASURED::R7_ELAPSED_SEC=%.4f" % elapsed8)
 
     passed = sum(1 for _n, ok in RESULTS if ok)
     print("\n%d/%d passed" % (passed, len(RESULTS)))
