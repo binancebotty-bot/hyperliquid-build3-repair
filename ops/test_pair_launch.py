@@ -113,6 +113,25 @@ badp.write_text(json.dumps(bad), encoding='utf-8')
 r = run(['--state-dir', str(s8), '--seed', str(badp), '--start-ms', str(NOW)])
 check('REFUSES_SEED_MISSING_CAPS', r.returncode == 2 and not (s8 / 'live_config.json').exists(), r.stdout[-140:])
 
+# 12. a seeded start is OBSERVING ONLY unless the operator asks otherwise
+s9 = Path(tempfile.mkdtemp(prefix='pl10_'))
+run(['--state-dir', str(s9), '--seed', str(SEED), '--start-ms', str(NOW), '--force'])
+sm = json.load(open(s9 / 'live_config.json', encoding='utf-8'))['global_controls']['send_mode']
+check('DEFAULT_SEED_IS_SENDS_OFF', sm == 'OFF', sm)
+
+# 13. turning sends on is an explicit flag, and it lands in the written config
+s10 = Path(tempfile.mkdtemp(prefix='pl11_'))
+run(['--state-dir', str(s10), '--seed', str(SEED), '--start-ms', str(NOW), '--force', '--send-mode', 'on'])
+sm2 = json.load(open(s10 / 'live_config.json', encoding='utf-8'))['global_controls']['send_mode']
+check('SEND_MODE_FLAG_IS_HONOURED', sm2 == 'ON', sm2)
+
+# 14. the second line of defence is documented, so nobody removes it
+readme = (HERE / 'SEED_README.md')
+txt = readme.read_text(encoding='utf-8', errors='replace') if readme.exists() else ''
+check('README_DOCUMENTS_PRE_CUTOVER_GUARD',
+      'PRE_CUTOVER_NOT_SENT' in txt and 'live_start_ms' in txt and 'Do not remove' in txt, 'readme missing the guard')
+
+
 failed = [n for n, ok in results if not ok]
 print('TOTAL=%d FAILED=%d' % (len(results), len(failed)))
 sys.exit(1 if failed else 0)

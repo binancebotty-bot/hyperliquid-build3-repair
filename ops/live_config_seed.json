@@ -8,7 +8,7 @@
     "max_order_notional_usd": 250.0,
     "max_total_live_exposure_usd": 900.0,
     "max_wallet_exposure_usd": 400.0,
-    "send_mode": "ON",
+    "send_mode": "OFF",
     "symbol_allowlist": [],
     "symbol_blocklist": []
   },

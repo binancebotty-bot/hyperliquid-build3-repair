@@ -81,6 +81,9 @@ def main():
     ap.add_argument('--start-ms', type=int, default=0)
     ap.add_argument('--interval-sec', type=int, default=DEFAULT_INTERVAL_SEC,
                     help='the LARGEST poll interval the engine may resolve (default 120)')
+    ap.add_argument('--send-mode', choices=('off', 'close', 'on'), default='off',
+                    help='send_mode written into the seeded config; OFF (observing only) is the default '
+                         'and turning sending on is a separate, logged decision')
     ap.add_argument('--dry-run', action='store_true')
     ap.add_argument('--force', action='store_true')
     ap.add_argument('--verify-only', action='store_true',
@@ -103,6 +106,7 @@ def main():
     except ValueError:
         pass  # different drives cannot nest
     seed = json.load(open(seed_abs, encoding='utf-8'))
+    seed.setdefault('global_controls', {})['send_mode'] = a.send_mode.upper()
     wallets = seed.get('wallets') or {}
     missing_caps = [k for k in KEEP if k not in (seed.get('global_controls') or {})]
     gc = seed.get('global_controls') or {}
@@ -120,7 +124,8 @@ def main():
     print('  earliest read possible %s  (interval=0 case)' % time.strftime('%H:%M:%SZ', time.gmtime(worst / 1000)))
     print('  wallets in seed        %d' % len(wallets))
     print('  caps present           %s' % ('YES' if not missing_caps else 'MISSING %s' % missing_caps))
-    print('  send_mode              %s  (wins over any auto_send_enabled key, Core:3885)' % gc.get('send_mode'))
+    print('  send_mode              %s  (flag --send-mode, wins over any auto_send_enabled key, Core:3885)'
+          % (seed.get('global_controls') or {}).get('send_mode'))
     print('  PRE-START FILLS REACHABLE AT ANY INTERVAL <= ASSUMED: %d' % max(0, early // 1000))
 
     ok = (start == t0) and early <= 0
@@ -206,12 +211,14 @@ def main():
     written_sha = _sha(cfg_path)
     log_change({'state_dir': state, 'seed': seed_abs, 'seed_sha256': _sha(seed_abs),
                 'config_sha_before': prior_sha, 'config_sha_after': written_sha,
+                'send_mode': (seed.get('global_controls') or {}).get('send_mode'),
                 'cursors_written': len(seeded['last_leader_poll_cursor_ms']), 't0_ms': t0,
                 'interval_ms': interval_ms, 'overlap_ms': OVERLAP_MS})
     print('  config sha before/after  %s -> %s' % ((prior_sha or 'ABSENT')[:16], written_sha[:16]))
     print('  change log       %s' % CHANGE_LOG)
     print('  WROTE live_config.json (%d wallets) and clean_core_runtime_state.json (%d cursors)'
           % (len(wallets), len(seeded['last_leader_poll_cursor_ms'])))
+    print('  send_mode written        %s' % (seed.get('global_controls') or {}).get('send_mode'))
     print('VERDICT=PASS')
     return 0
 
