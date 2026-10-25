@@ -90,6 +90,33 @@ def main():
           len(rows) == 1 and rows[0].get("status") == "OPEN" and rows[0].get("exchange_order_id") == "777001"
           and "check_ts_ms=1000" in str(rows[0].get("notes"))
           and "follower_fill_ts_ms=2000" in str(rows[0].get("notes")), str(rows[-1:]))
+    # O1B: the SAME row, written by the REAL writer in run_cycle (not by a hand-built notes string): the in-lane
+    # check time and the matched follower fill's own timestamp. Fails if check_ts_ms goes back to the order's
+    # placement time (PLACED_MS) or follower_fill_ts_ms back to 0.
+    PLACED_MS, FILL_MS = c.utc_now_ms() - 60000, c.utc_now_ms() - 1234
+    live = c.LiveCopyCore(source_csv=tmp / "none.csv")
+    live.cfg.master_switch_now = lambda: False
+    live.sender.take_withdrawn_late = lambda: [{"oid": "555001", "coin": "BTC", "leader_wallet": LEADER,
+                                                "placed_ms": PLACED_MS, "withdraw_outcome": "RESTING_ENTRY_FILLED"}]
+    live._read_fills_of_withdrawn_limits = lambda rows: ([{"coin": "BTC", "side": "BUY", "sz": "1", "px": "100",
+                                                          "oid": "555001", "time": FILL_MS, "hash": "h1"}],
+                                                         "COPY_ACCOUNT_POLLED")
+    live._apply_fills_of_withdrawn_limits = lambda rows, read, seen=None: (seen.add("555001") if seen is not None else None) or 1
+    live.run_cycle(use_source_csv=False)
+    _live_rows = [r for r in c.read_csv_rows(c.RECONCILIATION_CSV)
+                  if r.get("event") == c.LATE_FILL_INCIDENT_EVENT and r.get("exchange_order_id") == "555001"]
+    check("O1B_REAL_WRITER_RECORDS_REAL_CHECK_AND_FOLLOWER_FILL_TS",
+          len(_live_rows) == 1
+          and ("check_ts_ms=%d" % FILL_MS) not in str(_live_rows[0].get("notes"))
+          and ("check_ts_ms=%d" % PLACED_MS) not in str(_live_rows[0].get("notes"))
+          and "follower_fill_ts_ms=%d" % FILL_MS in str(_live_rows[0].get("notes")),
+          str(_live_rows[:1])[:400])
+
+    live.audit.append_reconciliation(
+        c.LATE_FILL_INCIDENT_EVENT, "RESOLVED", leader_wallet=LEADER, coin="BTC", exchange_order_id="555001",
+        action="RECONCILED_ON_EXCHANGE", terminal_state="RESTING_ENTRY_FILLED_AFTER_LEADER_REDUCED",
+        engine_can_send="False", notes="state=RESOLVED")
+
     st = c.build_live_integrity_status()
     check("O1_OPEN_INCIDENT_DRIVES_RED", st["status"] == "RED" and st["counts"]["open_late_fill_incidents"] == 1,
           "%s %s" % (st["status"], st["counts"].get("open_late_fill_incidents")))

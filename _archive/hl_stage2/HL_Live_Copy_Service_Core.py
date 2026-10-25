@@ -13391,6 +13391,12 @@ class LiveCopyCore:
             late = self.sender.take_withdrawn_late()
             if late:
                 read = self._read_fills_of_withdrawn_limits(late)
+                _late_check_ms = utc_now_ms()  # the in-lane check time, not the placement time
+                _late_fills = read[0] if read else []
+                def _late_fill_ts(_oid: str) -> int:
+                    _k = CopyFillMatcher._normalize_oid(_oid)
+                    return next((int(fnum(_f.get("timestamp_ms", _f.get("time")), 0)) for _f in _late_fills
+                                 if CopyFillMatcher._normalize_oid(CopyFillMatcher._copy_fill_oid(_f)) == _k), 0)
                 with self._send_lock:
                     seen_late: set = set()
                     self._apply_fills_of_withdrawn_limits(late, read, seen_late)
@@ -13408,7 +13414,7 @@ class LiveCopyCore:
                                 action="MANUAL_REVIEW_RECONCILE_ENTRY_LEADER_ALREADY_REDUCED",
                                 terminal_state="RESTING_ENTRY_FILLED_AFTER_LEADER_REDUCED", engine_can_send="False",
                                 notes=(f"incident_key={normalise_wallet(_row.get('leader_wallet', ''))}|{canonical_coin_key(_row.get('coin', ''))}|{_roid}; "
-                                       f"check_ts_ms={int(fnum(_row.get('placed_ms'), 0))}; follower_fill_ts_ms=0; state=OPEN"))
+                                       f"check_ts_ms={_late_check_ms}; follower_fill_ts_ms={_late_fill_ts(_roid)}; state=OPEN"))
                             if self.on_late_fill_incident is not None:
                                 self.on_late_fill_incident(None, _roid)
                         self.audit.append_reconciliation(
