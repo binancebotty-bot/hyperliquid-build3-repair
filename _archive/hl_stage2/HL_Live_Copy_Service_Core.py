@@ -3356,6 +3356,12 @@ def build_live_integrity_status() -> Dict[str, Any]:
         status_counters[_n] = status_counters.get(_n, 0) + 1
     _unclassified_names = sorted({n for n in status_counters if classify_terminal_row(n) == "UNCLASSIFIED"})
     blocked_fills_window = sum(1 for _r in _active_recon if str(_r.get("action") or "") == "MISSED_ENTRY_RULE_AT_REFUSAL")
+    # WHICH coins were skipped as not listed, and how often: the named skip exists but had no counter.
+    symbol_not_listed_by_coin: Dict[str, int] = {}
+    for _r in _active_recon:
+        if str(_r.get("terminal_state") or _r.get("status") or "").strip().upper() == "MISSED_ENTRY_SKIP_SYMBOL_NOT_LISTED":
+            _c = str(_r.get("coin") or "UNNAMED").strip().upper() or "UNNAMED"
+            symbol_not_listed_by_coin[_c] = symbol_not_listed_by_coin.get(_c, 0) + 1
     retained_fills_window = sum(1 for _r in _active_recon
                                if str(_r.get("terminal_state") or _r.get("status") or "").strip().upper() in RETAINED_ROW_NAMES)
     issues = {
@@ -3379,6 +3385,7 @@ def build_live_integrity_status() -> Dict[str, Any]:
         "hard_copy_active_red": len(hard_copy_red_rows),
         "open_late_fill_incidents": len(open_late_fill_incidents),
         "blocked_fills_window": blocked_fills_window,
+        "symbol_not_listed_window": sum(symbol_not_listed_by_coin.values()),
         "retained_fills_window": retained_fills_window,
         "unclassified_row_names": len(_unclassified_names),
         "hard_copy_unclassified": len(hard_copy_unclassified_rows),
@@ -3472,6 +3479,7 @@ def build_live_integrity_status() -> Dict[str, Any]:
             "live_wallet_intents_checked": sum(hard_copy_counts.values()),
             "counts": hard_copy_counts,
             "status_counters": status_counters,
+            "symbol_not_listed_by_coin": symbol_not_listed_by_coin,
             "unclassified_row_names": _unclassified_names,
             "active_red_rows": hard_copy_red_rows[-25:],
             "unclassified_rows": hard_copy_unclassified_rows[-25:],

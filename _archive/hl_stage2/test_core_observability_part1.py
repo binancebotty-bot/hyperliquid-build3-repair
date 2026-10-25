@@ -229,6 +229,23 @@ def main():
     check("O5_A_NEW_NAME_CONTAINING_SENT_OR_REJECTED_IS_NOT_TERMINAL",
           c.classify_terminal_row("SOME_NEW_ORDER_SENT_LATER") == "UNCLASSIFIED"
           and c.classify_terminal_row("REJECTED_SOMETHING_NEW") == "UNCLASSIFIED")
+    # ---- O6: the per-coin SYMBOL_NOT_LISTED counter, published beside the other window counters ----------
+    c.atomic_write_json(c.SERVICE_STATE_FILE, {})  # an earlier block stamped a restart time after these rows
+    audit.append_reconciliation(
+        "SEND_TERMINAL", "MISSED_ENTRY_SKIP_SYMBOL_NOT_LISTED", leader_wallet=LEADER, coin="xyz:NVDA",
+        action="MISSED_ENTRY_RULE_AT_REFUSAL", terminal_state="MISSED_ENTRY_SKIP_SYMBOL_NOT_LISTED")
+    audit.append_reconciliation(
+        "SEND_TERMINAL", "MISSED_ENTRY_SKIP_SYMBOL_NOT_LISTED", leader_wallet=LEADER, coin="xyz:NVDA",
+        action="MISSED_ENTRY_RULE_AT_REFUSAL", terminal_state="MISSED_ENTRY_SKIP_SYMBOL_NOT_LISTED")
+    audit.append_reconciliation(
+        "SEND_TERMINAL", "MISSED_ENTRY_SKIP_SYMBOL_NOT_LISTED", leader_wallet=LEADER, coin="OBSCURE",
+        action="MISSED_ENTRY_RULE_AT_REFUSAL", terminal_state="MISSED_ENTRY_SKIP_SYMBOL_NOT_LISTED")
+    st2 = c.build_live_integrity_status()
+    by_coin = st2["hard_copy_invariant"].get("symbol_not_listed_by_coin") or {}
+    check("O6_SYMBOL_NOT_LISTED_COUNTED_PER_COIN",
+          by_coin.get("XYZ:NVDA") == 2 and by_coin.get("OBSCURE") == 1, str(by_coin))
+    check("O6_SYMBOL_NOT_LISTED_WINDOW_TOTAL_PUBLISHED",
+          st2["counts"].get("symbol_not_listed_window") == 3, str(st2["counts"].get("symbol_not_listed_window")))
     check("O5_COUNTERS_PUBLISHED", "blocked_fills_window" in st["counts"]
           and "retained_fills_window" in st["counts"]
           and isinstance(st["hard_copy_invariant"].get("status_counters"), dict))
