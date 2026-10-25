@@ -12427,7 +12427,12 @@ class LiveCopyCore:
                 state = str(r.get("terminal_state") or r.get("status") or "").strip().upper()
                 if not state or state.startswith(("DEFERRED_ENTRY_", "FILL_PENDING")):
                     continue
-                if not (set(state.split("_")) & self._RETENTION_TERMINAL_TOKENS):
+                if state == "MISSED_ENTRY_LIMIT_REJECTED":
+                    # item 2: the rejected missed-entry limit send row is not the OUTCOME row (the rest row,
+                    # the diff row or MISSED_ENTRY_LIMIT_OUTCOME_UNKNOWN is written later by the same lane)
+                    continue
+                if (state != "MISSED_ENTRY_LIMIT_OUTCOME_UNKNOWN"
+                        and not (set(state.split("_")) & self._RETENTION_TERMINAL_TOKENS)):
                     continue
                 try:
                     ms = int(fnum(r.get("created_at_ms"), 0))
@@ -12457,9 +12462,38 @@ class LiveCopyCore:
                     if str(r.get("cloid") or "").lower() == cl]
         except Exception as exc:
             return "AMBIGUOUS", f"send_attempts unreadable: {exc!r}"
-        if rows:
-            last = rows[-1]
-            return "SENT", f"send_attempts status={last.get('status')} oid={last.get('exchange_order_id') or '-'}"
+        # item 1: PENDING_SEND is the write-ahead row, NOT proof that a send happened. Only a row recording an
+        # exchange response (accepted, filled, rested, rejected) proves the attempt reached the exchange.
+        answered = [r for r in rows if str(r.get("status") or "").strip().lower() != "pending_send"]
+        if answered:
+            last = answered[-1]
+            state = str(last.get("status") or last.get("terminal_state") or "").strip().upper()
+            if state != "ORDER_RESTING":
+                return "SENT", f"send_attempts status={last.get('status')} oid={last.get('exchange_order_id') or '-'}"
+            # item 1(d): a stored resting row is re-validated against the exchange, never trusted as RESTED
+            oid = str(last.get("exchange_order_id") or "")
+            try:
+                ok, orders, odetail = self.sender._read_open_orders()
+            except Exception as exc:
+                return "AMBIGUOUS", f"open-orders read raised {exc!r}"
+            if not ok:
+                return "AMBIGUOUS", f"open orders unreadable ({odetail})"
+            for _dex, o in orders:
+                if str(o.get("cloid") or "").lower() == cl or (oid and str(o.get("oid") or "") == oid):
+                    return "RESTED", f"resting order {o.get('oid')} on dex {_dex or 'main'} is still open"
+            try:
+                fills, fdetail = _read_all_copy_fills(int(since_ms or 0), utc_now_ms())
+            except Exception as exc:
+                return "AMBIGUOUS", f"fills read raised {exc!r}"
+            if not str(fdetail).startswith("FILLS_COMPLETE"):
+                return "AMBIGUOUS", f"fills unreadable ({fdetail})"
+            for f in fills:
+                if (cl in (str(f.get("cloid") or "").lower(), str(f.get("cid") or "").lower())
+                        or (oid and str(f.get("oid") or "") == oid)):
+                    return "FILLED", f"follower fill {f.get('oid') or f.get('tid') or '?'} carries the cloid"
+            return "AMBIGUOUS", (f"the send row says ORDER_RESTING oid={oid or '-'} but that order is neither open"
+                                   " nor filled now: cancelled, or filled outside the read window")
+        pending_only = bool(rows)
         try:
             intents = [r for r in read_csv_tail_rows(ORDER_INTENTS_CSV, 8 * 1024 * 1024)
                        if intent_id and str(r.get("intent_id") or "") == intent_id]
@@ -12483,7 +12517,13 @@ class LiveCopyCore:
         for f in fills:
             if cl in (str(f.get("cloid") or "").lower(), str(f.get("cid") or "").lower()):
                 return "FILLED", f"follower fill {f.get('oid') or f.get('tid') or '?'} carries the cloid"
-        return "NOTHING_SENT", f"no send row, no open order and no fill for intent {intent_id} (intent rows={len(intents)})"
+        if pending_only and int(since_ms or 0) and utc_now_ms() - int(since_ms) < DEFERRED_ENTRY_ATTEMPT_TIMEOUT_MS:
+            # item 1(c): a write-ahead row inside the safety margin, with nothing on the exchange, proves nothing
+            return "AMBIGUOUS", (f"only a PENDING_SEND row for cloid={cl} and the attempt is "
+                                 f"{utc_now_ms() - int(since_ms)} ms old, inside the "
+                                 f"{DEFERRED_ENTRY_ATTEMPT_TIMEOUT_MS} ms safety margin")
+        return "NOTHING_SENT", (f"no exchange response for cloid={cl}, no open order and no fill "
+                                f"(pending_send rows={len(rows)}, intent rows={len(intents)})")
 
     def _append_send_terminal(self, fill: LeaderFill, intent: Intent, send_status: str) -> None:
         retry_reason = deferred_entry_reason_for(send_status, intent)
