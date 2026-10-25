@@ -9401,7 +9401,12 @@ class SenderGateway:
             item = self._meta_cache.get(key)
         if item is None:
             status = "SYMBOL_CACHE_MISS_NEEDS_REFRESH" if ":" in key or key.startswith(("@", "#")) else ("SYMBOL_UNRESOLVED" if self._meta_fetched or self._core_meta_fetched else "META_UNAVAILABLE")
-            reason = "symbol absent from local asset universe cache; run build_hl_asset_universe_cache.py outside hot path" if status == "SYMBOL_CACHE_MISS_NEEDS_REFRESH" else f"{key} not in local meta cache"
+            # The engine refreshes the universe itself (refresh_asset_universe on the
+            # HL_LIVE_ASSET_META_REFRESH_SEC cycle); there is no external builder to run.
+            reason = ("symbol absent from the local asset universe snapshot; the engine refreshes it via "
+                      "refresh_asset_universe() on the HL_LIVE_ASSET_META_REFRESH_SEC cycle" if status == "SYMBOL_CACHE_MISS_NEEDS_REFRESH"
+                      else ("not listed on this network" if status == "SYMBOL_UNRESOLVED"
+                            else "metadata not yet fetched"))
             return {"ok": False, "raw_coin": raw, "status": status,
                     "error": reason, "exchange_called": False}
         return self._resolved_from_meta_item(raw, key, item)
