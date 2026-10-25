@@ -13415,16 +13415,15 @@ class LiveCopyCore:
                                 terminal_state="RESTING_ENTRY_FILLED_AFTER_LEADER_REDUCED", engine_can_send="False",
                                 notes=(f"incident_key={normalise_wallet(_row.get('leader_wallet', ''))}|{canonical_coin_key(_row.get('coin', ''))}|{_roid}; "
                                        f"check_ts_ms={_late_check_ms}; follower_fill_ts_ms={_late_fill_ts(_roid)}; state=OPEN"))
-                            if self.on_late_fill_incident is not None:
-                                self.on_late_fill_incident(None, _roid)
-                        self.audit.append_reconciliation(
-                            "SEND_TERMINAL", "RESTING_ENTRY_FILLED_AFTER_LEADER_REDUCED", coin=late[0].get("coin", ""),
-                            leader_wallet=late[0].get("leader_wallet", ""), terminal_state="RESTING_ENTRY_FILLED_AFTER_LEADER_REDUCED",
-                            action="MANUAL_REVIEW_RECONCILE_ENTRY_LEADER_ALREADY_REDUCED",
-                            exchange_order_id=",".join(str(r.get("oid")) for r in late),
-                            notes=("a missed-entry limit filled before it could be withdrawn, after the leader had already "
-                                   "reduced (or the exchange said it was already filled/gone); the follower may hold a "
-                                   "position the leader no longer has; reconcile on the exchange"))
+                            self._on_late_fill_incident(None, _roid)  # core method: wakes convergence
+                            self.audit.append_reconciliation(
+                                "SEND_TERMINAL", "RESTING_ENTRY_FILLED_AFTER_LEADER_REDUCED", coin=_row.get("coin", ""),
+                                leader_wallet=_row.get("leader_wallet", ""), terminal_state="RESTING_ENTRY_FILLED_AFTER_LEADER_REDUCED",
+                                action="MANUAL_REVIEW_RECONCILE_ENTRY_LEADER_ALREADY_REDUCED",
+                                exchange_order_id=_roid,
+                                notes=("a missed-entry limit filled before it could be withdrawn, after the leader had already "
+                                       "reduced (or the exchange said it was already filled/gone); the follower may hold a "
+                                       "position the leader no longer has; reconcile on the exchange"))
             fills: List[LeaderFill] = []
             fills.extend(self.ws.drain())
             if use_source_csv:
