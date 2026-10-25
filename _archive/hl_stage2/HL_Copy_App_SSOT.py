@@ -1379,15 +1379,18 @@ def _exchange_slow_cached() -> Tuple[Dict[str, Any], Dict[str, Any], float]:
                     _SLOW_EXCHANGE["built_at"] = EXCHANGE_ACCOUNT_SNAPSHOT_FILE.stat().st_mtime
                 except OSError:
                     pass
-        age = now - float(_SLOW_EXCHANGE["built_at"] or 0.0)
-        if (not _SLOW_EXCHANGE["built_at"] or age > _SLOW_EXCHANGE_TTL) and not _SLOW_EXCHANGE["refreshing"]:
+        _have_snapshot = bool(_SLOW_EXCHANGE["built_at"])
+        # no usable snapshot yet is UNKNOWN, not a huge age: built_at of 0 must never
+        # render as seconds-since-the-epoch
+        age = (now - float(_SLOW_EXCHANGE["built_at"])) if _have_snapshot else None
+        if (age is None or age > _SLOW_EXCHANGE_TTL) and not _SLOW_EXCHANGE["refreshing"]:
             _SLOW_EXCHANGE["refreshing"] = True
             kick = True
         snapshot = dict(_SLOW_EXCHANGE["snapshot"] or {})
         follower = dict(_SLOW_EXCHANGE["follower"] or {})
     if kick:
         threading.Thread(target=_exchange_slow_refresh, name="hl-exchange-slow", daemon=True).start()
-    return snapshot, follower, round(max(0.0, age), 1)
+    return snapshot, follower, (round(max(0.0, age), 1) if age is not None else None)
 
 
 def _live_audit_summary() -> Dict[str, Any]:
