@@ -1375,6 +1375,10 @@ def _exchange_slow_cached() -> Tuple[Dict[str, Any], Dict[str, Any], float]:
             seeded = load_json(EXCHANGE_ACCOUNT_SNAPSHOT_FILE, {})
             if isinstance(seeded, dict) and seeded:
                 _SLOW_EXCHANGE["snapshot"] = seeded
+                try:  # the seeded figures are as old as the file, not as old as the epoch
+                    _SLOW_EXCHANGE["built_at"] = EXCHANGE_ACCOUNT_SNAPSHOT_FILE.stat().st_mtime
+                except OSError:
+                    pass
         age = now - float(_SLOW_EXCHANGE["built_at"] or 0.0)
         if (not _SLOW_EXCHANGE["built_at"] or age > _SLOW_EXCHANGE_TTL) and not _SLOW_EXCHANGE["refreshing"]:
             _SLOW_EXCHANGE["refreshing"] = True
