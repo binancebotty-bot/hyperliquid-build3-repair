@@ -71,8 +71,39 @@ def main():
     check("R2_UNRESOLVED_COIN_NO_EXCHANGE_CALL", calls == [], str(calls))
     check("R3_UNRESOLVED_COIN_ONE_ERROR_ROW_NOT_ONE_PER_CYCLE", len(rows) == 1, "rows=%d" % len(rows))
     check("R4_NO_VALUEERROR_AND_NAMED_REASON", bool(rows) and rows[0].get("error_type") != "ValueError"
-          and "MARGIN_MODE_UNSET" in rows[0].get("message", "") and "XYZ:BOT" in rows[0].get("message", ""), str(rows[:1]))
+          and "XYZ:BOT" in rows[0].get("message", ""), str(rows[:1]))
+    # A symbol-resolution failure is not a margin failure: it names its own cause, and MARGIN_MODE_UNSET is left
+    # for the case where the code actually reached update_leverage on a resolved coin.
+    check("R4B_UNRESOLVED_IS_NOT_LABELLED_MARGIN_MODE_UNSET",
+          bool(rows) and "MARGIN_MODE_UNSET" not in rows[0].get("message", "")
+          and "SYMBOL_CACHE_MISS" in rows[0].get("message", ""), str(rows[:1]))
     check("R5_UNRESOLVED_COIN_STAYS_UNSET", "XYZ:BOT" not in g.__dict__.get("_mm_seen", set()))
+    # The two causes must be distinguishable: a plain perp the cache cannot resolve names SYMBOL_NOT_LISTED, and a
+    # genuine margin failure (code DID reach update_leverage) keeps MARGIN_MODE_UNSET as its block status.
+    g.schedule_margin_mode_setup("NOPE")
+    g.wait_margin_mode_setup(5.0)
+    r7 = []
+    if Path(c.ERRORS_CSV).exists():
+        with open(c.ERRORS_CSV, newline="", encoding="utf-8") as fh:
+            r7 = [r for r in csv.DictReader(fh) if r.get("context", "").startswith("margin_mode")]
+    check("R7_UNRESOLVED_PLAIN_PERP_NAMED_SYMBOL_NOT_LISTED",
+          len(r7) == 2 and "NOPE" in r7[-1].get("message", "")
+          and "SYMBOL_NOT_LISTED" in r7[-1].get("message", "")
+          and "MARGIN_MODE_UNSET" not in r7[-1].get("message", ""), str(r7[-1:]))
+
+    class Refuse:
+        def update_leverage(self, lev, name, is_cross=True):
+            return {"status": "err", "response": "margin mode refused"}
+    import argparse as _ap
+    _intent = _ap.Namespace(fill=_ap.Namespace(coin="kFLOKI"), intent_id="I-R8")
+    g.__dict__.setdefault("_margin_mode_done", set()).discard("kFLOKI")  # R1 already set it; force the real call path
+    blk = g._ensure_margin_mode(Refuse(), "kFLOKI", _intent, "ENTRY", {})
+    check("R8_GENUINE_MARGIN_FAILURE_UNCHANGED",
+          blk is not None and blk[0] is False and blk[1] == "MARGIN_MODE_UNSET"
+          and blk[2].get("terminal_state") == "MARGIN_MODE_UNSET", str(blk and blk[:2]))
+    check("R9_UNRESOLVED_NEVER_EMITS_THE_MARGIN_BLOCK",
+          all("MARGIN_MODE_UNSET" not in r.get("message", "") for r in r7), str(r7))
+
     msg = _try(g, "XYZ:BOT")
     check("R6_NEUTRAL_HELPER_MESSAGE", bool(msg) and "for cancel" not in msg, msg)
 

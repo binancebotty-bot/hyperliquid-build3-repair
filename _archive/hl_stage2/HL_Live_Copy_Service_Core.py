@@ -5526,7 +5526,8 @@ class SenderGateway:
         if now - seen.get(coin, -1e12) < max(1.0, fnum(os.getenv("HL_LIVE_MM_UNRESOLVED_LOG_SEC"), 600.0)):
             return
         seen[coin] = now
-        log_error("margin_mode_background", f"MARGIN_MODE_UNSET: symbol unresolved: {coin} [{resolved.get('status')}] "
+        _why = "SYMBOL_CACHE_MISS" if "CACHE_MISS" in str(resolved.get("status") or "") else "SYMBOL_NOT_LISTED"
+        log_error("margin_mode_background", f"{_why}: symbol unresolved: {coin} [{resolved.get('status')}] "
                   f"{str(resolved.get('error') or '')[:160]}")
 
     def _margin_mode_loop(self) -> None:
