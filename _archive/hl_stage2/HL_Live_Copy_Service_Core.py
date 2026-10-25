@@ -12356,6 +12356,19 @@ class LiveCopyCore:
         intent_id = stable_hash(["intent", fill.leader_fill_id, fill.leader_wallet, fill.coin, fill.side, fill.timestamp_ms])
         cloid = generate_cloid(intent_id)
         if not self.retention.mark_attempting(fid, cloid, intent_id):
+            # no attempt started, so the trigger must not stay consumed: release it for a later replay
+            with self.retention._lock:
+                cur = self.retention.items.get(fid)
+                if cur is not None:
+                    cur["triggers_done"] = [t for t in (cur.get("triggers_done") or []) if t != trigger]
+                    cur["attempts"] = max(0, int(fnum(cur.get("attempts"), 0)) - 1)
+            if not self.retention._save():
+                with self.retention._lock:   # the revert is not durable: keep memory equal to disk
+                    cur = self.retention.items.get(fid)
+                    if cur is not None:
+                        cur.setdefault("triggers_done", []).append(trigger)
+                        cur["attempts"] = int(fnum(cur.get("attempts"), 0)) + 1
+                _deferred_write_failed_alert("replay_trigger_revert", fid, dict(cur or item))
             return   # the item stays RETAINED, an alert row names the failed write, and nothing is dispatched
         try:
             self.audit.append_reconciliation(
@@ -12408,7 +12421,64 @@ class LiveCopyCore:
                 action="NO_RESEND_OUTCOME_KNOWN", terminal_state="DEFERRED_ENTRY_ATTEMPT_RECONCILED_TERMINAL",
                 engine_can_send="False", notes=f"cloid={cloid}; outcome={verdict}: {detail}")
 
-    _RETENTION_TERMINAL_TOKENS = frozenset({"SENT", "RESTED", "FILLED", "ABORTED", "SKIPPED", "REJECTED"})
+    # EXACT set of the row states the sender writes that ARE an exchange outcome (write sites in the commit
+    # message). Built from the writes, not from substrings: PENDING_SEND and ORDER_RESTING never matched.
+    _RETENTION_TERMINAL_ROWS = frozenset({
+        "CLOSE_REJECTED_EXCHANGE_REJECTED_UNKNOWN", "CLOSE_REJECTED_INSUFFICIENT_MARGIN",
+        "CLOSE_REJECTED_PRICE_OR_TICK_REJECTED", "CLOSE_REJECTED_REDUCE_ONLY_REJECTED",
+        "CLOSE_REJECTED_SIZE_OR_NOTIONAL_REJECTED", "ENTRY_FILLED_AFTER_LEADER_REDUCED",
+        "FILLED_AWAITING_COPY_POLL", "MISSED_ADD_EXCHANGE_REJECTED_UNKNOWN", "MISSED_ADD_INSUFFICIENT_MARGIN",
+        "MISSED_ADD_IOC_NO_MATCH", "MISSED_ADD_PRICE_OR_TICK_REJECTED", "MISSED_ADD_SIZE_OR_NOTIONAL_REJECTED",
+        "MISSED_ADD_SYMBOL_OR_ASSET_REJECTED", "MISSED_ENTRY_EXCHANGE_REJECTED_UNKNOWN",
+        "MISSED_ENTRY_INSUFFICIENT_MARGIN", "MISSED_ENTRY_IOC_NO_MATCH", "MISSED_ENTRY_LEADER_ALREADY_CLOSED",
+        "MISSED_ENTRY_LEADER_ALREADY_REDUCED", "MISSED_ENTRY_LEADER_PRICE_UNAVAILABLE",
+        "MISSED_ENTRY_LIMIT_OUTCOME_UNKNOWN", "MISSED_ENTRY_PRICE_OR_TICK_REJECTED",
+        "MISSED_ENTRY_SIZE_OR_NOTIONAL_REJECTED", "MISSED_ENTRY_SYMBOL_OR_ASSET_REJECTED", "MOCK_ORDER_SENT",
+        "ORDER_FILLED", "PRICE_SANITY_REJECTED", "RESTING_ENTRY_FILLED_AFTER_LEADER_REDUCED",
+        "SKIPPED_MARKET_HALTED", "SPOT_MARKET_SKIPPED",
+    })
+    # Rows the sender can emit that are NOT an outcome: its own mechanism rows, holds, guards, bookkeeping,
+    # and MISSED_ENTRY_LIMIT_REJECTED (the separate outcome row is what ends the item).
+    _RETENTION_NON_TERMINAL_ROWS = frozenset({
+        "AMBIGUOUS_SEND_EXIT_RESTING", "AUDIT_WRITE_FAILED", "BELOW_SYMBOL_MIN_EXCEEDS_COPY_NOTIONAL",
+        "BELOW_SYMBOL_MIN_EXCEEDS_MAX_ORDER", "BLOCKED_DUPLICATE_DEDUPE_STORE", "BLOCKED_NO_TERMINAL_RECORDED",
+        "BLOCKED_PROCESS_EXCEPTION", "BLOCKED_SEND_EXCEPTION", "BLOCKED_SEND_UNCLASSIFIED", "CATCHUP_NET_ZERO",
+        "CLOSE_ADVERSE_DIFF_TOO_LARGE", "DEFERRED_ENTRY_AGED_OUT_APPEND_FAILED_ALERT",
+        "DEFERRED_ENTRY_AGED_OUT_DIFF", "DEFERRED_ENTRY_ATTEMPT_AMBIGUOUS_DIFF",
+        "DEFERRED_ENTRY_ATTEMPT_NOTHING_SENT", "DEFERRED_ENTRY_ATTEMPT_RECONCILED_TERMINAL",
+        "DEFERRED_ENTRY_DROPPED_LEADER_REDUCED", "DEFERRED_ENTRY_REPLAY_ATTEMPT", "DEFERRED_ENTRY_RETAINED",
+        "DEFERRED_ENTRY_STATE_WRITE_FAILED_ALERT", "DUST_BELOW_MIN_NOTIONAL", "ENGINE_CLOSE_RETRY_REQUIRED",
+        "ENTRY_ADD_RATE_LIMIT_RECOVERY_EXPIRED", "ENTRY_ADD_RATE_LIMIT_RECOVERY_FAILED",
+        "ENTRY_LIMIT_RESTING_AMBIGUOUS_SEND", "ENTRY_LIMIT_RESTING_PRICE_MOVED", "ENTRY_RECOVERY_SAFETY_BLOCK",
+        "EXCHANGE_CALL_ERROR_REVIEW_REQUIRED", "EXIT_CANCELLED_RECOMPUTE_PENDING", "EXIT_RECOVERY_ACTIVE",
+        "EXIT_RECOVERY_QUEUE_FAILED", "EXIT_RECOVERY_REQUIRED", "FILLED_AMBIGUOUS_SEND", "FILL_PENDING_QUEUED",
+        "FILL_PENDING_STUCK", "FOLLOWER_PRICE_UNAVAILABLE", "INVALID_WIRE_SIZE", "IOC_NO_IMMEDIATE_MATCH",
+        "LEDGER_REPAIR_PROVEN_BY_ENGINE_ORDER_FILLS", "LEDGER_REPAIR_PROVEN_EXCHANGE_FLAT",
+        "LIQUIDATION_APPLIED", "LIQUIDATION_NOT_APPLIED", "MANUAL_EXIT_RECOVERY_REQUIRED",
+        "MANUAL_REVIEW_LEDGER_REPAIR", "MARGIN_MODE_SET", "MARGIN_MODE_UNSET", "MERGED_INTO_HEAD_COPY",
+        "MISSED_ENTRY_ALREADY_RESTING", "MISSED_ENTRY_LIMIT_REJECTED", "NO_MANUAL_POSITION_TO_CLOSE",
+        "ORDER_RESTING", "ORPHAN_ORDER_ADOPTED", "OUTAGE_GAP", "OWNERSHIP_GATE_SHARED_SYMBOL_AMBIGUOUS",
+        "PENDING_EXIT_GUARD_ACTIVE", "PENDING_SEND", "PRE_CUTOVER_NOT_SENT",
+        "REPLAY_DEFERRED_PAST_LIMIT_ALERT", "REPLAY_DEFERRED_PROCESS_EXCEPTION",
+        "REPLAY_DEFERRED_TRUTH_UNREADABLE", "RESTING_ENTRY_CANCEL_FAILED", "RESTING_ENTRY_FILL_UNVERIFIED",
+        "SCOPE_SWEEP_FAILING", "SENDER_KEY_NOT_VALID_ON_FOLLOWER_NETWORK",
+        "SEND_ABORTED_DEFERRED_ENTRY_RECHECK_UNAVAILABLE", "SEND_NOT_ATTEMPTED_AUTO_SEND_DISABLED",
+        "SEND_NOT_ATTEMPTED_CLOSE_AT_TARGET", "SEND_NOT_ATTEMPTED_CREDENTIALS_INVALID",
+        "SEND_NOT_ATTEMPTED_CREDENTIALS_MISSING", "SEND_NOT_ATTEMPTED_MAX_ORDER_NOTIONAL",
+        "SEND_NOT_ATTEMPTED_RISK_BLOCKED", "SEND_NOT_ATTEMPTED_SDK_UNAVAILABLE",
+        "SEND_NOT_ATTEMPTED_SYMBOL_UNRESOLVED", "SEND_NOT_ATTEMPTED_WIRE_SIZE_ZERO",
+        "SEND_OUTCOME_CONFIRMED_CANCELLED_NO_RETRY", "SEND_OUTCOME_REVIEW_REQUIRED",
+        "SEND_OUTCOME_UNKNOWN_HOLD", "SEND_OUTCOME_UNKNOWN_MANUAL_ALERT", "SERVICE_CREATED_UNLEDGERED",
+        "STANDING_CLOSE_AMBIGUOUS_SEND", "STANDING_CLOSE_CANCELLED_BY_GUARD", "STANDING_CLOSE_NOT_PLACED",
+        "SUPERSEDED_BY_RETRY", "SYMBOL_CACHE_MISS_NEEDS_REFRESH", "SYMBOL_NOT_TRADABLE_BY_SENDER",
+        "SYMBOL_REJECT_CIRCUIT_BREAKER_ACTIVE", "UNSUPPORTED_SYMBOL_OR_METADATA",
+    })
+
+    @classmethod
+    def _retention_classifies(cls, state: str) -> bool:
+        """Is this row name an exchange outcome? A name in neither set is unclassified and is NOT an outcome
+        (the item is kept); the rows test fails on such a name so it cannot pass silently."""
+        return str(state or "").strip().upper() in cls._RETENTION_TERMINAL_ROWS
 
     def _retention_terminal_outcome(self, fid: str, cloid: str, intent_id: str,
                                     since_ms: int) -> Tuple[bool, str]:
@@ -12427,13 +12497,8 @@ class LiveCopyCore:
                 state = str(r.get("terminal_state") or r.get("status") or "").strip().upper()
                 if not state or state.startswith(("DEFERRED_ENTRY_", "FILL_PENDING")):
                     continue
-                if state == "MISSED_ENTRY_LIMIT_REJECTED":
-                    # item 2: the rejected missed-entry limit send row is not the OUTCOME row (the rest row,
-                    # the diff row or MISSED_ENTRY_LIMIT_OUTCOME_UNKNOWN is written later by the same lane)
-                    continue
-                if (state != "MISSED_ENTRY_LIMIT_OUTCOME_UNKNOWN"
-                        and not (set(state.split("_")) & self._RETENTION_TERMINAL_TOKENS)):
-                    continue
+                if not self._retention_classifies(state):
+                    continue   # a mechanism row, a hold, or an unclassified name is not an outcome
                 try:
                     ms = int(fnum(r.get("created_at_ms"), 0))
                 except Exception:
