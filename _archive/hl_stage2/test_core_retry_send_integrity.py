@@ -148,7 +148,7 @@ def main() -> None:
     src = (HERE / "HL_Live_Copy_Service_Core.py").read_text(encoding="utf-8-sig")
     sites = re.findall(r"self\._place_order\((.*?)\)\n", src, re.S)
     bad = [s[:70] for s in sites if "pre_send=" not in s or "cloid=" not in s]
-    check("S4_ALL_SIX_PLACE_ORDER_SITES_HAVE_CLOID_AND_PRE_SEND", len(sites) == 6 and not bad, "%d %s" % (len(sites), bad))
+    check("S4_ALL_SIX_PLACE_ORDER_SITES_HAVE_CLOID_AND_PRE_SEND", len(sites) == 7 and not bad, "%d %s" % (len(sites), bad))
 
     failed = [n for n, ok in RESULTS if not ok]
     print("TOTAL=%d FAILED=%d" % (len(RESULTS), len(failed)))
