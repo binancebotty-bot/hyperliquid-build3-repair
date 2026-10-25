@@ -626,9 +626,14 @@ def main() -> None:
 
     # B while sending is stopped for a bad key the leader cursors stay put, so a restart replays the exits
     st = c.load_json(c.CORE_RUNTIME_STATE_FILE, {})
-    st["last_leader_poll_cursor_ms"] = {LEADER: c.utc_now_ms() - 3600000}
+    # a seed fixed against the retention floor, not a wall-clock offset: half the window can never be
+    # clamped by the cycle, so the hold assertion below does not depend on when the suite runs
+    seed = c.utc_now_ms() - c.LEADER_POLL_RETENTION_MS // 2
+    st["last_leader_poll_cursor_ms"] = {LEADER: seed}
     c.atomic_write_json(c.CORE_RUNTIME_STATE_FILE, st)
     before = st["last_leader_poll_cursor_ms"][LEADER]
+    check("R7_CURSOR_SEED_IS_INSIDE_THE_RETENTION_WINDOW", before > c.utc_now_ms() - c.LEADER_POLL_RETENTION_MS,
+          "%s %s" % (before, c.LEADER_POLL_RETENTION_MS))
     core.ingestor.poll_hyperliquid_fills = lambda w, s, t=None: ([], "POLL_OK")
     core.sender.sender_key_invalid = "User or API Wallet does not exist"
     core.run_cycle(use_source_csv=False, poll_live=True)
