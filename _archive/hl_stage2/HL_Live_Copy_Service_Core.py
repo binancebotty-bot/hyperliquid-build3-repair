@@ -7855,11 +7855,29 @@ class SenderGateway:
         if bval(os.getenv("HL_LIVE_MOCK_SEND"), False):
             self._append_mock_attempt(intent, "MOCK_ORDER_SENT", timing)
             return True, "MOCK_ORDER_SENT"
-        if self.recheck_deferred_entry is not None and lifecycle in {"ENTRY", "ADD"}:
-            _stale = self.recheck_deferred_entry(intent)  # a queued replay whose item or leader is gone
-            if _stale:
-                timing["deferred_recheck_blocked"] = _stale
-                return False, _stale
+        if lifecycle in {"ENTRY", "ADD"}:
+            if self.recheck_deferred_entry is not None:
+                _stale = self.recheck_deferred_entry(intent)  # a queued replay whose item or leader is gone
+                if _stale:
+                    timing["deferred_recheck_blocked"] = _stale
+                    return False, _stale
+            elif isinstance(intent.fill.raw, dict) and intent.fill.raw.get("deferred_replay"):
+                # asymmetric fail-closed: a replay MUST be re-checked, a first send need not be. Without the
+                # callback a replay would send unchecked (invariant C reached by wiring, not by logic).
+                _unwired = "SEND_ABORTED_DEFERRED_ENTRY_RECHECK_UNAVAILABLE"
+                timing["deferred_recheck_blocked"] = _unwired
+                try:
+                    self.audit.append_reconciliation(
+                        "ALERT", "DEFERRED_ENTRY_RECHECK_UNWIRED_ALERT",
+                        leader_wallet=intent.fill.leader_wallet, leader_fill_id=intent.fill.leader_fill_id,
+                        intent_id=intent.intent_id, coin=coin_key, action="MANUAL_REVIEW_FIX_RECHECK_WIRING",
+                        reject_category="RECHECK_CALLBACK_UNWIRED", terminal_state=_unwired,
+                        engine_can_send="False",
+                        notes=("a retained-entry replay reached the send lane with no recheck_deferred_entry "
+                               "callback wired: the leader/item re-check cannot run, so it was NOT sent"))
+                except Exception as exc:
+                    log_error("deferred_recheck_unwired_alert", exc)
+                return False, _unwired
         timing["send_real_started_ms"] = utc_now_ms()
         ok, send_status, result = self._send_real(intent, timing)
         if result.get("exchange_called"):
@@ -12210,6 +12228,20 @@ class LiveCopyCore:
         self.retention._save()
         fill = self.retention.rebuild(item)
         fill.raw["deferred_replay"] = fid   # the send path re-checks this item inside the lane
+        if self.sender.recheck_deferred_entry is None:
+            # second defence at the hand-off: a replay that cannot be re-checked in the lane is never dispatched
+            self.retention.finish_attempt(fid, "RETAINED", f"no deferred-entry recheck callback wired on {trigger}")
+            try:
+                self.audit.append_reconciliation(
+                    "ALERT", "DEFERRED_ENTRY_RECHECK_UNWIRED_ALERT",
+                    leader_wallet=fill.leader_wallet, leader_fill_id=fid, coin=fill.coin,
+                    action="MANUAL_REVIEW_FIX_RECHECK_WIRING", reject_category="RECHECK_CALLBACK_UNWIRED",
+                    terminal_state="SEND_ABORTED_DEFERRED_ENTRY_RECHECK_UNAVAILABLE", engine_can_send="False",
+                    notes=(f"trigger={trigger}: the gateway has no recheck_deferred_entry callback, so the replay "
+                           "was NOT dispatched; the item stays RETAINED and is offered again on a later trigger"))
+            except Exception as exc:
+                log_error("deferred_entry_recheck_unwired_alert", exc)
+            return
         # the cloid this attempt rides on goes to disk BEFORE the send: a crash mid-send is reconcilable by it
         intent_id = stable_hash(["intent", fill.leader_fill_id, fill.leader_wallet, fill.coin, fill.side, fill.timestamp_ms])
         cloid = generate_cloid(intent_id)
@@ -12306,13 +12338,16 @@ class LiveCopyCore:
         retry_reason = deferred_entry_reason_for(send_status, intent)
         if retry_reason and self._retain_deferred_entry(fill, intent, retry_reason):
             return   # retained, not terminal: it is re-offered once per trigger and ages out to a diff
-        if send_status in {"SEND_ABORTED_DEFERRED_ENTRY_DROPPED", "SEND_ABORTED_DEFERRED_ENTRY_LEADER_REDUCED"}:
+        if send_status in {"SEND_ABORTED_DEFERRED_ENTRY_DROPPED", "SEND_ABORTED_DEFERRED_ENTRY_LEADER_REDUCED",
+                           "SEND_ABORTED_DEFERRED_ENTRY_RECHECK_UNAVAILABLE"}:
+            _why = ("the send lane has no deferred-entry recheck callback wired, so the in-lane re-check could not run"
+                    if send_status == "SEND_ABORTED_DEFERRED_ENTRY_RECHECK_UNAVAILABLE"
+                    else "the retained entry this replay rode on stopped being valid inside the send lane")
             self.audit.append_reconciliation(
                 "SEND_TERMINAL", send_status, leader_wallet=fill.leader_wallet, leader_fill_id=fill.leader_fill_id,
                 intent_id=intent.intent_id, coin=fill.coin, action="NO_SEND_DEFERRED_ENTRY_STALE",
                 reject_category="DEFERRED_ENTRY_STALE", terminal_state=send_status, engine_can_send="False",
-                notes=("the retained entry this replay rode on stopped being valid inside the send lane "
-                       f"({send_status}): aborted before any order was sent"))
+                notes=(f"{_why} ({send_status}): aborted before any order was sent"))
             return
         if send_status == "SEND_BLOCKED_LEADER_ALREADY_REDUCED":
             self.audit.append_reconciliation(

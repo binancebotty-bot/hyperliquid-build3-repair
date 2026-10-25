@@ -134,6 +134,84 @@ def main() -> None:
         check("AN_ORDINARY_FIRST_SEND_IS_NOT_RE_CHECKED",
               core._recheck_deferred_entry_at_send(mk_intent("plain", mk_fill("plain"))) == "")
 
+        # ---- SILENT-NONE HOLE: a replay with no recheck callback must fail closed ------------------------------
+        gn = gateway()                      # gateway() leaves recheck_deferred_entry at the class default None
+        check("GATEWAY_DEFAULT_RECHECK_IS_NONE", gn.recheck_deferred_entry is None)
+        fill5 = mk_fill("lane-5", coin="AVAX")
+        replay = mk_intent("lane-nowire", fill5)
+        replay.fill.raw["deferred_replay"] = "lane-5"
+        c.AuditLogWriter().append_order_intent(replay)
+        alerts = len(rows("DEFERRED_ENTRY_RECHECK_UNWIRED_ALERT"))
+        sent5, status5 = gn.send_if_allowed(replay)
+        check("REPLAY_WITHOUT_RECHECK_CALLBACK_ABORTS",
+              sent5 is False and status5 == "SEND_ABORTED_DEFERRED_ENTRY_RECHECK_UNAVAILABLE", (sent5, status5))
+        check("REPLAY_WITHOUT_RECHECK_CALLBACK_NEVER_REACHED_THE_EXCHANGE", gn._sent_calls == [], gn._sent_calls)
+        check("REPLAY_WITHOUT_RECHECK_CALLBACK_RAISED_AN_ALERT",
+              len(rows("DEFERRED_ENTRY_RECHECK_UNWIRED_ALERT")) - alerts == 1)
+        core._append_send_terminal(replay.fill, replay, status5)   # what _dispatch_fill does when not sent
+        check("UNWIRED_REPLAY_LEFT_A_NAMED_TERMINAL_ROW",
+              any(r.get("terminal_state") == "SEND_ABORTED_DEFERRED_ENTRY_RECHECK_UNAVAILABLE"
+                  for r in rows("SEND_ABORTED_DEFERRED_ENTRY_RECHECK_UNAVAILABLE")))
+
+        first = mk_intent("first-nowire", mk_fill("first-1", coin="AVAX"))
+        c.AuditLogWriter().append_order_intent(first)
+        sent6, status6 = gn.send_if_allowed(first)
+        check("FIRST_SEND_WITHOUT_RECHECK_CALLBACK_STILL_PROCEEDS",
+              sent6 is True and status6 == "SENT" and gn._sent_calls == ["first-nowire"], (sent6, status6))
+
+        # ---- the hand-off itself refuses to dispatch a replay it cannot re-check --------------------------------
+        fill7 = mk_fill("lane-7", coin="DOT")
+        core.retention.retain(fill7, "MARKET_HALTED")
+        core.sender._market_halted_until_ms["dot"] = c.utc_now_ms() - 1
+        wired = core.sender.recheck_deferred_entry
+        dispatched = []
+        real_dispatch2 = core._dispatch_fill
+        core._dispatch_fill = lambda f: (dispatched.append(f.leader_fill_id), True)[1]
+        core.sender.recheck_deferred_entry = None
+        try:
+            core._retention_replay("lane-7", core.retention.snapshot()["lane-7"], "halt:dot")
+        finally:
+            core.sender.recheck_deferred_entry = wired
+            core._dispatch_fill = real_dispatch2
+        check("HANDOFF_REFUSES_TO_DISPATCH_WITHOUT_THE_CALLBACK", dispatched == [], dispatched)
+        check("HANDOFF_PUTS_THE_ITEM_BACK_TO_RETAINED",
+              str((core.retention.snapshot().get("lane-7") or {}).get("state")) == "RETAINED",
+              core.retention.snapshot().get("lane-7"))
+
+        # ---- MUTATION CHECK: strip the call-site guard from a COPY and the same replay sends --------------------
+        import importlib.util
+        src = (HERE / "HL_Live_Copy_Service_Core.py").read_text(encoding="utf-8")
+        gs = src.find('            elif isinstance(intent.fill.raw, dict) and intent.fill.raw.get("deferred_replay"):')
+        tail = "                return False, _unwired" + "\n"
+        ge = src.find(tail, gs)
+        check("MUTATION_CAN_LOCATE_THE_GUARD", gs != -1 and ge != -1, (gs, ge))
+        stripped = src[:gs] + src[ge + len(tail):]
+        mut_path = tmp / "mut_core.py"
+        mut_path.write_text(stripped, encoding="utf-8")
+        spec = importlib.util.spec_from_file_location("core_mut", str(mut_path))
+        m = importlib.util.module_from_spec(spec)
+        sys.modules["core_mut"] = m
+        spec.loader.exec_module(m)
+        gm = m.SenderGateway(m.ConfigManager(), m.AuditLogWriter())
+        gm.cfg.master_switch_now = lambda: True
+        gm.cfg.send_mode_now = lambda: "ON"
+        gm.cfg.liq_parity_enabled = lambda: False
+        gm.cfg.wallet_enabled = lambda w: True
+        gm.cfg.wallet_mode = lambda w: "ON"
+        gm._pre_send_ownership_gate = lambda it: (True, {})
+        gm._base_timing = lambda it: {}
+        mut_calls = []
+        gm._send_real = lambda intent, timing=None: (mut_calls.append(intent.intent_id), (True, "SENT", {}))[1]
+        mut_fill = m.LeaderFill("mut-1", A, "AVAX", "BUY", 100.0, 1.0, m.utc_now_ms(), "TEST", 0, {"dir": "Open Long"})
+        mut_fill.raw["deferred_replay"] = "mut-1"
+        mut_intent = m.Intent("mut-intent", mut_fill, "BUY", 1.0, 100.0, "ON", "fixed", "ENTRY_ALLOWED", "ENTRY",
+                              "sleeve:%s:AVAX" % A, "", "FLAT", 0.0, 0.0, False, False, m.utc_now_ms(),
+                              "lifecycle=ENTRY;")
+        m.AuditLogWriter().append_order_intent(mut_intent)
+        msent, mstatus = gm.send_if_allowed(mut_intent)
+        check("MUTATION_WITHOUT_THE_GUARD_THE_REPLAY_SENDS", msent is True and mut_calls == ["mut-intent"],
+              (msent, mstatus, mut_calls))
+
         # ---- ITEM 3: the diff row is appended BEFORE the item is removed ---------------------------------------
         aged = mk_fill("aged-ok", coin="ADA")
         core.retention.retain(aged, "UNIVERSE_STALE")
