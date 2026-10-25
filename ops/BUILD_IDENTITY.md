@@ -7,14 +7,14 @@ One product, one identity. Written 2026-10-25 16:22Z (Hermes, tidy lane). Update
 
 | Field | Value |
 |---|---|
-| Build SHA | `8ce6763c70c9a4cf532274cafd466bb028ebf0c4` (v32, Codex PASSED candidate A) |
-| Folder | `C:/tmp/v32_8ce6763` (detached HEAD, clean) |
+| Build SHA | `6c693108332d6bb961e54638c5a61014df61d6d6` (v33, Codex PASS for 8ce6763..6c69310) |
+| Folder | `C:/tmp/v33_6c69310` (detached HEAD, clean) |
 | Engine | `_archive/hl_stage2/HL_Live_Copy_Service_Core.py` |
 | State dir | `C:/Users/wigmore/trading_stack/hl-build3-testnet-cert-evidence/run8/state_20261024` |
 | Launcher spec | `C:/Users/wigmore/.hermes/state/core_launch_env.json` (cwd + script point at v32; `HL_LIVE_AUDIT_DIR` and `HL_LIVE_CONVERGE_THREAD=1` unchanged) |
 | Mode | follower TESTNET / leader MAINNET |
 | UI | `127.0.0.1:8031` |
-| Cutover state | LIVE — running engine is PID 31180 on the v32 checkout, started 2026-10-25T20:49:20Z under the controller's order after Boss approved the restart. Previous engine PID 5704 on bf40a9d was stopped by exact PID; one engine only, holding run8/instance.lock. Credentials come from the launcher spec env block (names present, lengths only). |
+| Cutover state | LIVE — running engine is PID 34896 on the v33_6c69310 checkout, started 2026-10-25T22:12:39Z under the controller's restart order (testnet restarts are controller authority). Previous engine PID 31180 on v32 was stopped by exact PID at 22:12:30Z after the zero-engine proof; one engine only, holding run8/instance.lock exclusively. Rollback is v32_8ce6763. Credentials come from the launcher spec env block (names present, lengths only). |
 
 ## ROLLBACK
 
