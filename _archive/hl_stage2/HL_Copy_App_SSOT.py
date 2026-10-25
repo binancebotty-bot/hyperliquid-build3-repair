@@ -202,6 +202,10 @@ _MODEL_DASHBOARD_HTML_CACHE_LOCK = threading.Lock()
 _AUDIT_SUMMARY_CACHE: Dict[str, Any] = {"data": None, "built_at": 0.0}
 _AUDIT_SUMMARY_CACHE_LOCK = threading.Lock()
 _AUDIT_SUMMARY_TTL = 2.0  # seconds
+# The exchange is read on a slow off-thread cache only: the 8 s UI tick must never reach the network.
+_SLOW_EXCHANGE_TTL = 60.0
+_SLOW_EXCHANGE: Dict[str, Any] = {"snapshot": {}, "follower": {}, "built_at": 0.0, "refreshing": False}
+_SLOW_EXCHANGE_LOCK = threading.Lock()
 
 # Incremental CSV reader cache: keyed by (path, inode, size) holding parsed rows read so far and byte offset.
 # Modelled on HL_Live_Copy_Service_Core.send_attempt_rows() but independent (no engine import).
@@ -1347,6 +1351,41 @@ def _slim_ui_payload(obj: Any, depth: int = 0) -> Any:
     return obj
 
 
+def _exchange_slow_refresh() -> None:
+    """The only place the request path's exchange figures come from: one read, off the request thread."""
+    try:
+        snapshot = _fetch_exchange_account_snapshot()
+        follower = _follower_account_value_safe()
+        with _SLOW_EXCHANGE_LOCK:
+            _SLOW_EXCHANGE.update({"snapshot": snapshot, "follower": follower, "built_at": time.time()})
+    except Exception as exc:  # a failed refresh keeps the last good value
+        with _SLOW_EXCHANGE_LOCK:
+            _SLOW_EXCHANGE["last_error"] = "%s: %s" % (type(exc).__name__, exc)
+    finally:
+        with _SLOW_EXCHANGE_LOCK:
+            _SLOW_EXCHANGE["refreshing"] = False
+
+
+def _exchange_slow_cached() -> Tuple[Dict[str, Any], Dict[str, Any], float]:
+    """Last-good exchange figures plus their age. Reads files and memory only; never the network."""
+    now = time.time()
+    kick = False
+    with _SLOW_EXCHANGE_LOCK:
+        if not _SLOW_EXCHANGE["snapshot"]:
+            seeded = load_json(EXCHANGE_ACCOUNT_SNAPSHOT_FILE, {})
+            if isinstance(seeded, dict) and seeded:
+                _SLOW_EXCHANGE["snapshot"] = seeded
+        age = now - float(_SLOW_EXCHANGE["built_at"] or 0.0)
+        if (not _SLOW_EXCHANGE["built_at"] or age > _SLOW_EXCHANGE_TTL) and not _SLOW_EXCHANGE["refreshing"]:
+            _SLOW_EXCHANGE["refreshing"] = True
+            kick = True
+        snapshot = dict(_SLOW_EXCHANGE["snapshot"] or {})
+        follower = dict(_SLOW_EXCHANGE["follower"] or {})
+    if kick:
+        threading.Thread(target=_exchange_slow_refresh, name="hl-exchange-slow", daemon=True).start()
+    return snapshot, follower, round(max(0.0, age), 1)
+
+
 def _live_audit_summary() -> Dict[str, Any]:
     result = _live_audit_summary_full()
     rows = result.get("execution_quality_rows")
@@ -1405,9 +1444,8 @@ def _live_audit_summary_full() -> Dict[str, Any]:
     recent_send_attempts = _load_recent_send_attempts(100)
     metric_send_attempts = _load_recent_send_attempts(5000)
     send_attempt_counts = _load_send_attempt_counts()
-    exchange_snapshot = _fetch_exchange_account_snapshot()
+    exchange_snapshot, follower_account, exchange_cache_age = _exchange_slow_cached()
     manual_live_summary = _manual_live_summary(manual_positions, recent_send_attempts, exchange_snapshot)
-    follower_account = _follower_account_value_safe()
     _append_exchange_history(exchange_snapshot, manual_live_summary,
                              follower_account.get("value") if follower_account.get("ok") else None)
     ws_health = _load_live_ws_health()
@@ -1472,6 +1510,7 @@ def _live_audit_summary_full() -> Dict[str, Any]:
         "net_pnl_start_time": pnl_tally.get("start_time", ""),
         "net_pnl_reason": pnl_tally.get("reason", ""),
         "net_pnl_partial": bool(pnl_tally.get("partial")),
+        "exchange_age_seconds": exchange_cache_age,  # how old the exchange figures are; the tick shows it
         "open_positions": len(open_positions_now) if isinstance(open_positions_now, list) else None,
         "resting_orders": live_top_status.get("resting_entry_limits"),
     }
@@ -1579,14 +1618,21 @@ def _symbol_not_listed_summary() -> Dict[str, Any]:
             return
         found[key] = {"coin": c, "wallet": str(wallet or "").strip()}
 
+    partial_reads: List[str] = []  # every bounded tail and every skipped read error is named here, never silent
     try:
-        journals = sorted(APPEND_ONLY_DIR.glob("reconciliation*.csv"), key=lambda f: f.name)[-2:]
-    except OSError:
+        journals = sorted(APPEND_ONLY_DIR.glob("reconciliation*.csv"), key=lambda f: f.name)
+    except OSError as exc:
         journals = []
+        partial_reads.append("reconciliation journals: listing failed (%s)" % type(exc).__name__)
+    if len(journals) > 2:
+        partial_reads.append("reconciliation journals: newest 2 of %d read" % len(journals))
+    journals = journals[-2:]
     for jf in journals:
         try:
             rows, _ = _read_csv_incremental(jf, limit=None, tail_bytes=8 * 1024 * 1024)
-        except Exception:
+            partial_reads.append("%s: last %d bytes only" % (jf.name, 8 * 1024 * 1024))
+        except Exception as exc:
+            partial_reads.append("%s: read failed (%s)" % (jf.name, type(exc).__name__))
             continue
         for r in rows:
             if "SYMBOL_NOT_LISTED" not in " ".join(str(r.get(k) or "") for k in ("status", "terminal_state")).upper():
@@ -1595,8 +1641,10 @@ def _symbol_not_listed_summary() -> Dict[str, Any]:
     if ERRORS_CSV.exists():
         try:
             erows, _ = _read_csv_incremental(ERRORS_CSV, limit=None, tail_bytes=16 * 1024 * 1024)
-        except Exception:
+            partial_reads.append("%s: last %d bytes only" % (ERRORS_CSV.name, 16 * 1024 * 1024))
+        except Exception as exc:
             erows = []
+            partial_reads.append("%s: read failed (%s)" % (ERRORS_CSV.name, type(exc).__name__))
         for r in erows:
             msg = str(r.get("message") or "")
             if "SYMBOL_NOT_LISTED" not in msg.upper():
@@ -1610,7 +1658,10 @@ def _symbol_not_listed_summary() -> Dict[str, Any]:
         if f["wallet"]:
             wallets[f["wallet"]] = wallets.get(f["wallet"], 0) + 1
     return {
+        # ok:true means the endpoint answered; partial says the counts do not cover everything on disk
         "ok": True,
+        "partial": bool(partial_reads),
+        "partial_reads": partial_reads,
         "total": len(found),
         "coins": [{"coin": k, "count": v} for k, v in sorted(coins.items(), key=lambda kv: (-kv[1], kv[0]))],
         "wallets": [{"wallet": k, "count": v} for k, v in sorted(wallets.items(), key=lambda kv: (-kv[1], kv[0]))],
@@ -7088,6 +7139,7 @@ def render_live_copy_control_panel() -> str:
       <span class="lc-pill" id="lcFeedPill">Leader feed: <b id="lcWsOverall">—</b></span>
       <span class="lc-pill lc-grey" id="lcAsOf" hidden></span>
       <span class="lc-pill lc-amber" id="lcStaleNote" hidden>figures could not be rebuilt</span>
+      <span class="lc-pill lc-grey" id="lcExchangeAge" hidden></span>
     </div>
     <div class="lc-header-actions">
       <button type="button" id="lcRefresh">Refresh</button>
@@ -7486,6 +7538,9 @@ function renderFreshness(){
  const old=ms>0&&(Date.now()-ms)>60000;
  if(el){el.hidden=!ms;el.className='lc-pill '+(old||stale?'lc-amber':'lc-grey');el.textContent=ms?((old||stale?'numbers as of ':'as of ')+new Date(ms).toLocaleTimeString()):'';}
  const sn=root.querySelector('#lcStaleNote');if(sn){sn.hidden=!stale;sn.title=String(lcAudit.error||'');}
+ // the exchange is read on a slow cache, so say how old its figures are
+ const ex=root.querySelector('#lcExchangeAge');const b=lcAudit.status_banner||{};const secs=b.exchange_age_seconds;
+ if(ex){const known=secs!=null&&secs!=='';ex.hidden=!known;if(known){const n=Number(secs);ex.className='lc-pill '+(n>=60?'lc-amber':'lc-grey');ex.textContent='exchange figures: '+(n<60?n+'s old':Math.round(n/60)+' min old');ex.title='the exchange is polled on a 60 s cache, never by this refresh';}}
  renderNotListed();
 }
 function renderNotListed(){
@@ -7494,8 +7549,10 @@ function renderNotListed(){
  const d=lcNotListed; if(!d){return;}
  if(!d.ok){box.textContent='could not read: '+String(d.error||'unknown');return;}
  const pills=a=>(a||[]).map(c=>`<span class="lc-pill lc-grey" title="${h(c.coin||c.wallet)}">${h(c.coin||shortWallet(c.wallet))}: <b>${h(c.count)}</b></span>`).join(' ');
+ // a bounded read is disclosed, never left looking complete
+ const partial=d.partial?'<div style="margin-top:6px"><span class="lc-pill lc-amber" title="'+h((d.partial_reads||[]).join(' | '))+'" data-lc-partial="1">partial: older rows not counted</span></div>':'';
  box.innerHTML='<div>by coin: '+(pills(d.coins)||'<span class="lc-muted">none recorded</span>')+'</div>'
-  +'<div style="margin-top:6px">by leader wallet: '+(pills(d.wallets)||'<span class="lc-muted">none recorded</span>')+'</div>';
+  +'<div style="margin-top:6px">by leader wallet: '+(pills(d.wallets)||'<span class="lc-muted">none recorded</span>')+'</div>'+partial;
 }
 function renderTally(){
  const t=lcAudit.pnl_tally||{}, box=root.querySelector('#lcTally'); if(!box)return;
