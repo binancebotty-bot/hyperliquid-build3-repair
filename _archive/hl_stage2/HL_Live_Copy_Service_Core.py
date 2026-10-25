@@ -7479,6 +7479,25 @@ class SenderGateway:
             notes=f"severity={severity}; classification={classification}; wallet={intent.fill.leader_wallet} coin={intent.fill.coin} intent_id={intent.intent_id} delay_ms={delay} largest_component={largest[0]}:{largest[1]}",
         )
 
+    def _follower_holds_coin(self, coin: str) -> bool:
+        """True when the follower account currently holds a non-zero net in this coin.
+
+        Read at send time from the follower exchange - the same source the exposure caps
+        use - so snapshot-only metadata may only ever authorise a close of a position we
+        actually hold. Unreadable truth returns False, keeping the send fail-closed rather
+        than letting a stale snapshot authorise an order.
+        """
+        # the sleeve ledger is the engine's own position record and is what a close acts on; if
+        # it is unavailable we refuse to authorise snapshot metadata (fail closed).
+        ledger = getattr(self, "ledger", None)
+        if ledger is None:
+            return False
+        try:
+            net = fnum(ledger.coin_net(coin))
+        except Exception:
+            return False
+        return abs(net) > POSITION_EPSILON
+
     @staticmethod
     def _reduce_only_for_intent(intent: Intent) -> bool:
         """Single source of truth for the reduce-only flag on a real order.
@@ -7873,8 +7892,10 @@ class SenderGateway:
         timing["symbol_resolve_started_ms"] = utc_now_ms()
         # a position we ALREADY HOLD stays closable: an expired universe, a delisted coin or a failed
         # refresh must not block a reduce-only exit, which can never increase exposure (entries still fail closed)
+        _close_we_hold = (classify_send_lifecycle(intent) in {"EXIT", "REDUCE"}
+                          and self._follower_holds_coin(intent.fill.coin))
         resolved = (self._resolve_coin(intent.fill.coin, allow_snapshot=True)
-                    if classify_send_lifecycle(intent) in {"EXIT", "REDUCE"}
+                    if _close_we_hold
                     else self._resolve_coin(intent.fill.coin))
         timing["symbol_resolve_finished_ms"] = utc_now_ms()
         if not resolved.get("ok"):

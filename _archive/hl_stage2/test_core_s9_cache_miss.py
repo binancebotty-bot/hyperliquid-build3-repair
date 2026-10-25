@@ -117,6 +117,7 @@ def main():
     g3._pre_exchange_asset_safety = lambda *a, **k: (True, {})
     g3._exchange_client_for_coin = lambda coin: (fake, "xyz:DELISTED")
     g3._pre_send_ownership_gate = lambda intent: (True, {})  # a held sleeve is assumed reconciled here
+    g3._follower_holds_coin = lambda coin: True              # the follower DOES hold this coin (ruling 6403865710)
     g3.cfg.wallet_enabled = lambda w: True
     g3.cfg.wallet_mode = lambda w: "ON"
     c.HLAccount, c.HLExchange = object, object
@@ -125,6 +126,28 @@ def main():
     check("S9_DELISTED_COIN_RESOLVES_FROM_THE_SNAPSHOT_FOR_A_CLOSE", bool(resolved3.get("ok")) and resolved3.get("snapshot_only"), resolved3)
     sent, status3 = g3.send_if_allowed(i3)
     check("S9_DELISTED_CLOSE_SENT_WITH_NO_MID", bool(calls) and calls[0]["reduce_only"] is True, (sent, status3, calls))
+
+    # ---- (3b) the NARROW rule: a close of a coin the follower does NOT hold must still fail closed ------
+    c.follower_mid = lambda coin, force=False: 0.0
+    g4 = gw()
+    g4._meta_cache = dict(g3._meta_cache)
+    calls4 = []
+    g4.cfg.send_mode_now = lambda: "ON"
+    g4.cfg.master_switch_now = lambda: True
+    g4._get_exchange_client = lambda *a, **k: fake
+    g4._exchange_client_has_symbol = lambda *a, **k: True
+    g4._validate_final_wire_order = lambda *a, **k: (True, {})
+    g4._pre_exchange_asset_safety = lambda *a, **k: (True, {})
+    g4._exchange_client_for_coin = lambda coin: (fake, "xyz:DELISTED")
+    g4._pre_send_ownership_gate = lambda intent: (True, {})
+    g4._follower_holds_coin = lambda coin: False             # NOT held: snapshot must not authorise anything
+    g4.cfg.wallet_enabled = lambda w: True
+    g4.cfg.wallet_mode = lambda w: "ON"
+    i4 = intent("XYZ:DELISTED", side="SELL", reduce_only=True, fid="LF-S9-4")
+    calls_before_4 = len(calls)
+    sent4, status4 = g4.send_if_allowed(i4)
+    check("S9_CLOSE_OF_A_COIN_WE_DO_NOT_HOLD_FAILS_CLOSED",
+          sent4 is False and len(calls) == calls_before_4, (sent4, status4, len(calls) - calls_before_4))
 
     failed = [n for n, ok in RESULTS if not ok]
     print("TOTAL=%d FAILED=%d" % (len(RESULTS), len(failed)))
