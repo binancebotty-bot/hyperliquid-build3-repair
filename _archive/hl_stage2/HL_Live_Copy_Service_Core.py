@@ -7871,7 +7871,11 @@ class SenderGateway:
         timing.setdefault("send_attempt_id", generate_attempt_id(intent.intent_id))
         timing.setdefault("send_cloid", generate_cloid(intent.intent_id))
         timing["symbol_resolve_started_ms"] = utc_now_ms()
-        resolved = self._resolve_coin(intent.fill.coin)
+        # a position we ALREADY HOLD stays closable: an expired universe, a delisted coin or a failed
+        # refresh must not block a reduce-only exit, which can never increase exposure (entries still fail closed)
+        resolved = (self._resolve_coin(intent.fill.coin, allow_snapshot=True)
+                    if classify_send_lifecycle(intent) in {"EXIT", "REDUCE"}
+                    else self._resolve_coin(intent.fill.coin))
         timing["symbol_resolve_finished_ms"] = utc_now_ms()
         if not resolved.get("ok"):
             raw_coin = str(intent.fill.coin or "").strip()
