@@ -14,7 +14,7 @@ One product, one identity. Written 2026-10-25 16:22Z (Hermes, tidy lane). Update
 | Launcher spec | `C:/Users/wigmore/.hermes/state/core_launch_env.json` (cwd + script point at v32; `HL_LIVE_AUDIT_DIR` and `HL_LIVE_CONVERGE_THREAD=1` unchanged) |
 | Mode | follower TESTNET / leader MAINNET |
 | UI | `127.0.0.1:8031` |
-| Cutover state | PREPARED ONLY — running engine still PID 5704 on the bf40a9d checkout; restart awaits the controller's word after Boss |
+| Cutover state | LIVE — running engine is PID 31180 on the v32 checkout, started 2026-10-25T20:49:20Z under the controller's order after Boss approved the restart. Previous engine PID 5704 on bf40a9d was stopped by exact PID; one engine only, holding run8/instance.lock. Credentials come from the launcher spec env block (names present, lengths only). |
 
 ## ROLLBACK
 
