@@ -5441,6 +5441,7 @@ class SenderGateway:
         # Retention is core state: the gateway reports a refusal through this core callback (the same idiom as
         # on_confirmed_cancelled_ambiguous_exit and truth_refresh, which the core assigns in its __init__).
         self.retain_deferred_entry: Optional[Callable[..., bool]] = None
+        self.recheck_deferred_entry: Optional[Callable[..., str]] = None  # invariant C, re-checked in the lane
         self._ambiguous_send_rechecks: "queue.Queue[Dict[str, Any]]" = queue.Queue(maxsize=1000)
         self._ambiguous_send_recheck_ids: set = set()
         self._ambiguous_send_recheck_lock = threading.Lock()
@@ -7843,6 +7844,11 @@ class SenderGateway:
         if bval(os.getenv("HL_LIVE_MOCK_SEND"), False):
             self._append_mock_attempt(intent, "MOCK_ORDER_SENT", timing)
             return True, "MOCK_ORDER_SENT"
+        if self.recheck_deferred_entry is not None and lifecycle in {"ENTRY", "ADD"}:
+            _stale = self.recheck_deferred_entry(intent)  # a queued replay whose item or leader is gone
+            if _stale:
+                timing["deferred_recheck_blocked"] = _stale
+                return False, _stale
         timing["send_real_started_ms"] = utc_now_ms()
         ok, send_status, result = self._send_real(intent, timing)
         if result.get("exchange_called"):
@@ -11363,6 +11369,7 @@ class LiveCopyCore:
         self._converge_tries: Dict[Tuple[str, str, str], int] = {}  # sleeve -> closes queued so far
         self.sender.on_confirmed_cancelled_ambiguous_exit = self._on_confirmed_cancelled_ambiguous_exit
         self.sender.retain_deferred_entry = self._retain_deferred_entry  # the core owns retention state
+        self.sender.recheck_deferred_entry = self._recheck_deferred_entry_at_send  # invariant C, in the lane
         self._converge_last: Dict[str, Any] = {}
         self._hot_threads: List[threading.Thread] = []
         self._pending_seen: Dict[str, Tuple[int, str, str, str]] = {}  # guard key -> (queued at ms, wallet, coin, fill id)
@@ -12063,6 +12070,19 @@ class LiveCopyCore:
         self._start_retention_loop()
         return True
 
+    def _recheck_deferred_entry_at_send(self, intent: Intent) -> str:
+        """Invariant C inside the lane: a replay is queued, a leader reduce lands, and only here is the item
+        re-checked. Gone item, or a newer opposite-side leader fill for this wallet+coin: named abort, no send."""
+        raw = intent.fill.raw if isinstance(intent.fill.raw, dict) else {}
+        fid = str(raw.get("deferred_replay") or "")
+        if not fid:
+            return ""   # an ordinary first send: nothing retained to re-check
+        if fid not in self.retention.snapshot():
+            return "SEND_ABORTED_DEFERRED_ENTRY_DROPPED"
+        if self.sender.leader_reduced_since(intent.fill):
+            return "SEND_ABORTED_DEFERRED_ENTRY_LEADER_REDUCED"
+        return ""
+
     def _drop_retained_for_leader_reduce(self, fill: LeaderFill) -> None:
         try:
             dropped = self.retention.drop_wallet_coin(
@@ -12107,8 +12127,7 @@ class LiveCopyCore:
                 continue  # AMBIGUOUS stays until a human reads it
             first = int(fnum(item.get("first_ms"), 0))
             if first and now - first > DEFERRED_ENTRY_MAX_AGE_MS:
-                if self.retention.drop(fid, "aged out") is None:
-                    continue
+                # the diff row is written FIRST: the item is removed only once its loss is on record
                 try:
                     self.audit.append_reconciliation(
                         "SEND_TERMINAL", "DEFERRED_ENTRY_AGED_OUT_DIFF", leader_wallet=item.get("leader_wallet"),
@@ -12119,6 +12138,19 @@ class LiveCopyCore:
                                "without a take or a rest: reported as a diff, not sent"))
                 except Exception as exc:
                     log_error("deferred_entry_ageout_row", exc)
+                    try:  # the append failed: the item is KEPT and an operator is told, never log-only
+                        self.audit.append_reconciliation(
+                            "ALERT", "DEFERRED_ENTRY_AGED_OUT_APPEND_FAILED_ALERT",
+                            leader_wallet=item.get("leader_wallet"), leader_fill_id=fid, coin=item.get("coin"),
+                            action="MANUAL_REVIEW_RETAINED_ENTRY_UNREPORTED",
+                            reject_category="AUDIT_APPEND_FAILED",
+                            terminal_state="DEFERRED_ENTRY_AGED_OUT_APPEND_FAILED_ALERT", engine_can_send="False",
+                            notes="the aged-out diff row could not be appended (" + type(exc).__name__ + ": "
+                                  + str(exc)[:200] + "); the retained entry was KEPT, not removed")
+                    except Exception as exc2:
+                        log_error("deferred_entry_ageout_alert", exc2)
+                    continue
+                self.retention.drop(fid, "aged out")
                 continue
             trigger = self._retention_trigger(item, now)
             if trigger:
@@ -12158,6 +12190,7 @@ class LiveCopyCore:
             live["attempts"] = int(fnum(live.get("attempts"), 0)) + 1
         self.retention._save()
         fill = self.retention.rebuild(item)
+        fill.raw["deferred_replay"] = fid   # the send path re-checks this item inside the lane
         # the cloid this attempt rides on goes to disk BEFORE the send: a crash mid-send is reconcilable by it
         intent_id = stable_hash(["intent", fill.leader_fill_id, fill.leader_wallet, fill.coin, fill.side, fill.timestamp_ms])
         cloid = generate_cloid(intent_id)
@@ -12254,6 +12287,14 @@ class LiveCopyCore:
         retry_reason = deferred_entry_reason_for(send_status, intent)
         if retry_reason and self._retain_deferred_entry(fill, intent, retry_reason):
             return   # retained, not terminal: it is re-offered once per trigger and ages out to a diff
+        if send_status in {"SEND_ABORTED_DEFERRED_ENTRY_DROPPED", "SEND_ABORTED_DEFERRED_ENTRY_LEADER_REDUCED"}:
+            self.audit.append_reconciliation(
+                "SEND_TERMINAL", send_status, leader_wallet=fill.leader_wallet, leader_fill_id=fill.leader_fill_id,
+                intent_id=intent.intent_id, coin=fill.coin, action="NO_SEND_DEFERRED_ENTRY_STALE",
+                reject_category="DEFERRED_ENTRY_STALE", terminal_state=send_status, engine_can_send="False",
+                notes=("the retained entry this replay rode on stopped being valid inside the send lane "
+                       f"({send_status}): aborted before any order was sent"))
+            return
         if send_status == "SEND_BLOCKED_LEADER_ALREADY_REDUCED":
             self.audit.append_reconciliation(
                 "SEND_TERMINAL", "MISSED_ENTRY_LEADER_ALREADY_REDUCED",
