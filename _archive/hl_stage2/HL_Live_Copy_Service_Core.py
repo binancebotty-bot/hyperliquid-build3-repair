@@ -12467,12 +12467,14 @@ class LiveCopyCore:
             if summary is not None:
                 summary.leader_sends_attempted += 1
         else:
+            _refusal_outcome = None
             try:
-                self._apply_missed_entry_rule_on_refusal(fill, intent, send_status)
+                _refusal_outcome = self._apply_missed_entry_rule_on_refusal(fill, intent, send_status)
             except Exception as exc:
                 log_error("missed_entry_at_refusal", exc)
             try:
-                self._append_send_terminal(fill, intent, send_status)
+                if _refusal_outcome is None:  # the refusal rule already wrote this fill's one terminal row
+                    self._append_send_terminal(fill, intent, send_status)
             except Exception as exc:
                 log_error("append_send_terminal", exc)
             if not self.audit.has_fill_row(fill.leader_fill_id):  # the invariant: no fill ends without a row, whatever the status
