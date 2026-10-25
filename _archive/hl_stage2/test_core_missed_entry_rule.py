@@ -104,6 +104,9 @@ def main() -> None:
             return {"status": "ok", "response": {"type": "order", "data": {"statuses": [
                 {"filled": {"totalSz": str(size), "avgPx": str(px), "oid": 1}}]}}}
 
+        def update_leverage(self, leverage, name, is_cross=True):
+            return {"status": "ok"}   # ENTRY/ADD fail closed without a margin-mode ack
+
         def cancel(self, coin, oid):
             self.cancels.append((coin, oid))
             return self.cancel_reply
