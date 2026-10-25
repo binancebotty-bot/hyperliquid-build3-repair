@@ -53,3 +53,51 @@ The two PENDING cells are the reason this is a candidate and not a deploy.
     python ops/pair_identity.py        # must print UP and consistent
 
 Sends stay off unless the seed is run with `--send-mode on`, which is a separate decision.
+
+---
+
+## Re-cut: hermes/candidate-v34 (a307242)
+
+Three pieces as their own merge commits, after the Codex findings on the first candidate:
+
+| piece | branch tip | merge commit |
+|---|---|---|
+| exposure under-count | `hermes/exposure-pending` 899ed71 | first merge |
+| pair-start seeding | `hermes/pair-seed` 918c2d3 | second merge |
+| graceful stop | `hermes/graceful-stop` 51af97e | third merge `a307242` |
+
+Provenance note, stated because it looks odd in the graph: `hermes/graceful-stop` was cut FROM the
+previous candidate (3fa4afc), so its merge carries that ancestry. No content beyond the three pieces
+is introduced by it; the earlier candidate commits in its history are the same pair-seed and
+exposure-pending commits this branch already merges.
+
+### Verification on this re-cut
+
+| suite | result |
+|---|---|
+| Core compiles | yes |
+| `test_core_exposure_pending.py` | 7/0 |
+| `test_core_stop_sentinel.py` | 9/0 |
+| `test_core_rw10_margin_symbol.py` | 18/0 |
+| `test_core_observability_part1.py` | 21/0 |
+| `test_core_send_lock_isolation.py` | 8/0 |
+| `test_core_missed_entry_rule.py` | 95/0 |
+| `ops/test_pair_launch.py` | 15/0 |
+| `ops/test_stop_pair.py` | 6/0 |
+| Core line endings | CRLF 12,678 / bare-LF 3,203 |
+
+179 checks, zero failures.
+
+### What changed since the first candidate
+
+- exposure: the prefetch path no longer drops entries approved before its snapshot began; the TTL
+  boundary is pinned with a frozen clock; the visible-fill over-count is documented and traced.
+- graceful stop: a stale `STOP_REQUESTED` is quarantined at startup; a clean shutdown record counts
+  only if it postdates the request; the UI is stopped only by a tracked, command-line-verified pid;
+  `--force` writes `forced_stop_record.json`.
+- `ops/stop_pair.py` is the only supported way to stop the pair.
+
+### Still not covered
+
+Unrecorded-fills reconciliation at start remains queued. The drain now protects the journal on a
+clean stop; the reconciliation is what catches a journal that is incomplete for any other reason.
