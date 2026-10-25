@@ -4904,7 +4904,10 @@ class IntentBuilder:
         if pre is not None and now - pre[1] <= ttl_ms and pre[2] == self._exposure_gen:
             # read outside the send lock by prewarm(): entries approved after that read started stay pending
             self._exposure, self._exposure_ms = pre[0], pre[1]
-            self._exposure_pending = self._exposure_pending[pre[3]:]
+            # Do NOT drop the pending prefix captured before this prefetch read: that snapshot was
+            # started before those entries were approved, so it cannot prove they landed. Dropping
+            # them here released an unobserved fill early - the 25 Oct incident class. Entries are
+            # released by age, or by proof of the fill, in _exposure_cap_block below.
             self._exposure_gen += 1
             self._exposure_prefetched = None
             return self._exposure
@@ -4921,7 +4924,11 @@ class IntentBuilder:
             self._exposure_fail = (utc_now_ms(), bad)
             return dict(bad)
         self._exposure_fail = None
-        # do NOT clear _exposure_pending on a refresh: expire it by age instead.
+        # do NOT clear _exposure_pending on a refresh: expire it by age instead. A fill that is
+        # already visible while its entry is still pending is counted twice until the entry ages
+        # out; that over-count can only BLOCK an entry, never let one through, and every cap
+        # decision writes pending_n and pending_usd to exposure_cap_trace.jsonl so the over-count
+        # is visible rather than inferred.
         # shortcut: entries are held for HL_LIVE_EXPOSURE_PENDING_TTL_SEC (default 30 s), which can
         # over-count by that window and so block an entry rather than let one through; upgrade to
         # per-entry reconciliation against by_coin if that ever blocks a legitimate first entry.

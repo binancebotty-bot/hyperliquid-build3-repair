@@ -127,6 +127,29 @@ s5 = make()
 r5 = approve(s5, 10.0)
 check('UNREADABLE_EXPOSURE_FAILS_CLOSED', r5 != '', r5)
 
+# ---- TTL BOUNDARY, deterministically: pin time so "exactly the limit" is exact
+C.EXPOSURE_FETCHER = fetcher          # an earlier check replaced it with a raising stub
+_real_mono = C.time.monotonic
+try:
+    C.time.monotonic = lambda: 1000.0
+    state['visible'] = 800.0
+    sb = make()
+    sb._exposure = {'ok': True, 'status': 'TRUTH_OK', 'total_usd': 800.0, 'by_coin': {}, 'equity_usd': 928.0}
+    sb._exposure_ms = int(1000.0 * 1000)
+    ttl = float(__import__('os').getenv('HL_LIVE_EXPOSURE_PENDING_TTL_SEC', '30'))
+    at_boundary = [(  # age == TTL exactly -> still counted
+        'BTC', 0.002, 50000.0, 1000.0 - ttl)]
+    sb._exposure_pending = list(at_boundary)
+    r_kept = approve(sb, 120.0)          # 800 + 100 pending = 900 -> a 120 entry must be refused
+    just_over = [('BTC', 0.002, 50000.0, 1000.0 - ttl - 0.001)]
+    sb._exposure_pending = list(just_over)
+    r_released = approve(sb, 120.0)      # pending expired -> 800 + 120 <= 900 -> allowed
+finally:
+    C.time.monotonic = _real_mono
+check('TTL_BOUNDARY_AGE_EQUAL_TO_LIMIT_IS_KEPT', r_kept != '', r_kept)
+check('TTL_BOUNDARY_JUST_OVER_THE_LIMIT_IS_RELEASED', r_released == '', r_released)
+
+
 failed = [n for n, ok in results if not ok]
 print('TOTAL=%d FAILED=%d' % (len(results), len(failed)))
 sys.exit(1 if failed else 0)
