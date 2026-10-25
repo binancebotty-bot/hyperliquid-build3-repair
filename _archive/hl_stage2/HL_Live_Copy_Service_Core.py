@@ -5403,6 +5403,9 @@ class _MarginSymbolUnresolved(Exception):
 
 
 class SenderGateway:
+    # class-level defaults: the send path reads both, so a gateway built without __init__ must still have them
+    retain_deferred_entry: Optional[Callable[..., bool]] = None
+    recheck_deferred_entry: Optional[Callable[..., str]] = None
     def __init__(self, cfg: ConfigManager, audit: AuditLogWriter, ledger: Optional[ManualLedger] = None):
         self.cfg = cfg
         self.audit = audit
