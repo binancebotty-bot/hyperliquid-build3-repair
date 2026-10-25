@@ -1628,6 +1628,9 @@ def _symbol_not_listed_summary() -> Dict[str, Any]:
     except OSError as exc:
         journals = []
         partial_reads.append("reconciliation journals: listing failed (%s)" % type(exc).__name__)
+    if not journals:
+        # no journal at all is not nothing-to-report: the counts cannot be known
+        partial_reads.append("reconciliation journals: none found (%s)" % APPEND_ONLY_DIR.name)
     if len(journals) > 2:
         partial_reads.append("reconciliation journals: newest 2 of %d read" % len(journals))
     journals = journals[-2:]
@@ -7544,7 +7547,7 @@ function renderFreshness(){
  const sn=root.querySelector('#lcStaleNote');if(sn){sn.hidden=!stale;sn.title=String(lcAudit.error||'');}
  // the exchange is read on a slow cache, so say how old its figures are
  const ex=root.querySelector('#lcExchangeAge');const b=lcAudit.status_banner||{};const secs=b.exchange_age_seconds;
- if(ex){const known=secs!=null&&secs!=='';ex.hidden=!known;if(known){const n=Number(secs);ex.className='lc-pill '+(n>=60?'lc-amber':'lc-grey');ex.textContent='exchange figures: '+(n<60?n+'s old':Math.round(n/60)+' min old');ex.title='the exchange is polled on a 60 s cache, never by this refresh';}}
+ if(ex){const known=secs!=null&&secs!=='';ex.hidden=false;if(known){const n=Number(secs);ex.className='lc-pill '+(n>=60?'lc-amber':'lc-grey');ex.textContent='exchange figures: '+(n<60?n+'s old':Math.round(n/60)+' min old');ex.title='the exchange is polled on a 60 s cache, never by this refresh';}else{ex.className='lc-pill lc-amber';ex.textContent='exchange figures: not loaded yet';ex.title='no snapshot from the slow cache yet; the figures are unknown, not zero';}}
  renderNotListed();
 }
 function renderNotListed(){
