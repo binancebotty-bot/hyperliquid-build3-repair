@@ -142,6 +142,12 @@ XYZ_POSITION_STATE_FILE = AUDIT_DIR / "xyz_position_state.json"
 # A follower entry that filled after the leader had already reduced leaves a position nobody wants: it is an
 # incident with an OPEN row per wallet+coin+oid, and it stays RED until a RESOLVED row for the same key lands.
 LATE_FILL_INCIDENT_EVENT = "LATE_FILL_INCIDENT"
+# A refusal that could not put any order on the exchange (no fresh mid, margin setup refused) leaves an OPEN
+# incident per wallet+coin+cause; it stays open until a later attempt for that wallet and coin places an order.
+MISSED_ENTRY_INCIDENT_EVENT = "MISSED_ENTRY_REFUSAL_INCIDENT"
+# ORD-010: an ENTRY/ADD whose leader fill is older than this never goes as a normal copy: it takes the
+# missed-entry rule explicitly (no dependence on the HL_LIVE_MISSED_ENTRY_RULE switch).
+ENTRY_MAX_AGE_MS = 30000
 LATE_FILL_INCIDENT_STATES = frozenset({"ENTRY_FILLED_AFTER_LEADER_REDUCED",
                                        "RESTING_ENTRY_FILLED_AFTER_LEADER_REDUCED"})
 # The convergence loop publishes a scan heartbeat after EVERY scan (a zero-action one too): a dead loop has to be
@@ -251,14 +257,14 @@ def follower_dex_scope() -> List[str]:
     return [""] + sorted(names | learned)
 
 
-def follower_mid(coin: str) -> float:
+def follower_mid(coin: str, force: bool = False) -> float:
     """Fresh follower-network mid for `coin` over the follower DEX scope (allMids per DEX, read
     concurrently). Cached HL_LIVE_MIDS_CACHE_TTL_SEC (2 s); a refresh is timed from its start, and
-    older than HL_LIVE_MIDS_MAX_AGE_SEC (5 s) counts as none."""
+    older than HL_LIVE_MIDS_MAX_AGE_SEC (5 s) counts as none. force=True (the refusal path) always refetches once."""
     now, m, dexes = utc_now_ms(), _FOLLOWER_MIDS, follower_dex_scope()
 
     def stale() -> bool:
-        return (not m["px"] or m.get("scope") != dexes   # a newly learned DEX is priced at once
+        return (force or not m["px"] or m.get("scope") != dexes   # a newly learned DEX is priced at once
                 or utc_now_ms() - m["ms"] > int(fnum(os.getenv("HL_LIVE_MIDS_CACHE_TTL_SEC"), 2.0) * 1000))
     if stale():
         with _FOLLOWER_MIDS_REFRESH_LOCK:
@@ -1046,6 +1052,7 @@ TERMINAL_ROW_NAMES = frozenset({
     "SEND_OUTCOME_DEFERRED_RESOLVED", "SEND_OUTCOME_REVIEW_REQUIRED", "SEND_OUTCOME_UNKNOWN_MANUAL_ALERT",
     "SKIPPED_MARKET_HALTED", "SPOT_MARKET_SKIPPED", "SUPERSEDED_BY_RETRY", "UNSUPPORTED_SYMBOL_OR_METADATA",
     "SENDER_KEY_NOT_VALID_ON_FOLLOWER_NETWORK", "MARGIN_MODE_UNSET",
+    "MISSED_ENTRY_DIFF_NO_FRESH_MID", "MISSED_ENTRY_DIFF_MARGIN_SETUP_FAILED",
 })
 NON_TERMINAL_ROW_NAMES = frozenset({
     "AMBIGUOUS_SEND_EXIT_RESTING", "ASSET_META_REFRESH_FAILED_USING_LAST_GOOD", "AUDIT_WRITE_FAILED",
@@ -5239,10 +5246,12 @@ class SenderGateway:
 
     def _missed_entry_rest_or_diff(self, intent: Intent, cause: str,
                                    timing: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        """PART 2: a REFUSED entry/add is not a lost fill. The EXISTING missed-entry rule runs here, once, at the
-        point of refusal: a tradable symbol rests a GTC at the leader's price through the same _place_order /
-        _recovery_send_hooks / _register_resting_entry / _resting_entry_result path the send path uses; anything
-        else ends as a NAMED DIFF row (or a NAMED SKIP for an unlisted symbol). Nothing is retained or replayed."""
+        """PART 2 (rev): a REFUSED entry/add is not a lost fill, and it is not priced from scratch here either. The
+        normal path's own functions run in the normal path's own order: _ensure_margin_mode first (no order may go
+        unless it succeeds), then ONE forced fresh follower mid (follower_mid(force=True)), then missed_entry_decision
+        with the REAL follower price, the normal relative-price conversion and the normal tolerance (marketable_bps).
+        Inside tolerance: execute now. Beyond it: rest a GTC at the leader's price. No fresh mid, or a refused margin
+        setup: NO order - a NAMED DIFF plus an OPEN incident for the convergence path to retry."""
         timing = timing if isinstance(timing, dict) else self._base_timing(intent)
         base = {"cause": cause, "intent_id": intent.intent_id, "leader_fill_id": intent.fill.leader_fill_id,
                 "wallet_alias": normalise_wallet(intent.fill.leader_wallet), "coin": canonical_coin_key(intent.fill.coin)}
@@ -5254,37 +5263,72 @@ class SenderGateway:
         tradable = (bool(resolved.get("ok")) and not resolved.get("snapshot_only")
                     and resolved.get("sdk_order_compatible") is not False)
         leader_px = fnum(intent.fill.price, 0.0)
-        px = size = 0.0
-        if tradable and leader_px > 0:
-            px = self._px_passive(leader_px, int(resolved.get("price_max_decimals") or 0), intent.copy_side == "BUY")
-            size = self._floor_wire_size(intent.copy_size, int(resolved.get("sz_decimals") or 0))
-        if not tradable or px <= 0 or size <= 0:
+        dec = int(resolved.get("price_max_decimals") or 0)
+        size = (self._floor_wire_size(intent.copy_size, int(resolved.get("sz_decimals") or 0))
+                if tradable and leader_px > 0 else 0.0)
+        if not tradable or leader_px <= 0 or size <= 0:
             return dict(base, outcome="MISSED_ENTRY_DIFF_NO_LIMIT_POSSIBLE",
-                        notes=(f"named diff: {cause}; no limit rested (symbol not tradable or leader price/size "
-                               f"unusable; status={resolved.get('status')})"))
+                        notes=(f"named diff: {cause}; no order (symbol not tradable or leader price/size unusable; "
+                               f"status={resolved.get('status')})"))
         if self.resting_entry_for(intent.fill.leader_wallet, intent.fill.coin, intent.copy_side) is not None:
             return dict(base, outcome="MISSED_ENTRY_ALREADY_RESTING",
                         notes=f"named diff: {cause}; a limit for this leader, coin and side is already resting")
+        exchange, sdk_coin = self._exchange_client_for_coin(intent.fill.coin)
+        margin_block = self._ensure_margin_mode(exchange, sdk_coin, intent, "ENTRY", timing)
+        if margin_block is not None:
+            return dict(base, outcome="MISSED_ENTRY_DIFF_MARGIN_SETUP_FAILED",
+                        notes=(f"named diff: {cause}; _ensure_margin_mode refused "
+                               f"({margin_block[2].get('error')}); no order sent or rested"))
+        follower_px = follower_mid(sdk_coin, force=True)
+        market_px = follower_px if LEADER_NETWORK == FOLLOWER_NETWORK else leader_mid(intent.fill.coin, use_cached=True)
+        bps = self.cfg.marketable_bps()
+        missed = missed_entry_decision(intent.copy_side, leader_px, market_px, follower_px, bps)
+        if not missed.get("ok"):
+            return dict(base, outcome="MISSED_ENTRY_DIFF_NO_FRESH_MID",
+                        notes=(f"named diff: {cause}; no fresh mid (follower={follower_px}, leader_market={market_px}), "
+                               "so the tolerance cannot be measured and NO order was sent or rested; the convergence "
+                               "path retries"))
+        mult = (1.0 + bps / 10000.0) if intent.copy_side == "BUY" else (1.0 - bps / 10000.0)
+        if missed["take"]:
+            base_px = (min(follower_px, missed["desired_px"]) if intent.copy_side == "BUY"
+                       else max(follower_px, missed["desired_px"]))
+            px = self._format_limit_px(base_px * mult, dec)
+            cap_px = self._px_passive(missed["cap_px"], dec, intent.copy_side == "BUY")
+            px = min(px, cap_px) if intent.copy_side == "BUY" else max(px, cap_px)
+            tif, order_type, label = "Ioc", "REAL_IOC", "refusal_missed_entry_take"
+        else:
+            px = self._px_passive(missed["desired_px"], dec, intent.copy_side == "BUY")
+            tif, order_type, label = "Gtc", "REAL_GTC", "refusal_missed_entry_rest"
+        safe, unsafe = self._pre_exchange_asset_safety(intent, resolved, px, size)
+        if px <= 0 or not safe:
+            return dict(base, outcome="MISSED_ENTRY_DIFF_NO_LIMIT_POSSIBLE",
+                        notes=(f"named diff: {cause}; no order (price {px} unusable or asset safety "
+                               f"{unsafe.get('status')})"))
         try:
-            exchange, sdk_coin = self._exchange_client_for_coin(intent.fill.coin)
-            safe, unsafe = self._pre_exchange_asset_safety(intent, resolved, px, size)
-            if not safe:
-                raise ValueError(f"asset safety: {unsafe.get('status')}")
-            missed = missed_entry_decision(intent.copy_side, leader_px, px, px, 0.0)
-            if not missed.get("ok"):
-                raise ValueError("no leader price to rest at")
-            cloid, pre_send = self._recovery_send_hooks(intent, "Gtc", "REAL_GTC", px, size, False, timing,
-                                                        "refusal_missed_entry")
-            response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", size, px, "Gtc", False,
-                                         timing, "refusal_missed_entry_started_ms", cloid=cloid, pre_send=pre_send)
-            ok, status, res = self._resting_entry_result(intent, sdk_coin, response, px, size, timing, missed,
-                                                         f"entry refused ({cause})")
+            cloid, pre_send = self._recovery_send_hooks(intent, tif, order_type, px, size, False, timing, label)
+            response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", size, px, tif, False,
+                                         timing, f"{label}_started_ms", cloid=cloid, pre_send=pre_send)
+            ok, status, oid, error = self._parse_hl_response(response)
         except Exception as exc:
             return dict(base, outcome="MISSED_ENTRY_DIFF_NO_LIMIT_POSSIBLE",
-                        notes=f"named diff: {cause}; no limit rested ({type(exc).__name__}: {str(exc)[:200]})")
-        return dict(res, cause=cause, outcome=("MISSED_ENTRY_LIMIT_RESTED" if ok else "MISSED_ENTRY_DIFF_LIMIT_REJECTED"),
-                    intent_id=intent.intent_id, leader_fill_id=intent.fill.leader_fill_id,
-                    wallet_alias=base["wallet_alias"], coin=base["coin"], limit_px=px, wire_size=size)
+                        notes=f"named diff: {cause}; no order ({type(exc).__name__}: {str(exc)[:200]})")
+        take = bool(missed["take"])
+        if not take and ok and status == "ORDER_RESTING":
+            self._register_resting_entry(intent, sdk_coin, oid, px, size, f"entry refused ({cause})")
+        outcome = ("FILLED_AWAITING_COPY_POLL" if take and ok else
+                   "MISSED_ENTRY_LIMIT_RESTED" if ok else "MISSED_ENTRY_DIFF_LIMIT_REJECTED")
+        return dict(base, outcome=outcome, exchange_response=response, oid=oid, limit_px=px, wire_size=size,
+                    copy_notional=abs(size * px), exchange_called=True, error=error, timing=timing,
+                    order_type=order_type, reduce_only_sent=False, take=take,
+                    leader_px=leader_px, market_px=market_px, follower_px=follower_px,
+                    adverse_bps=missed.get("adverse_bps"), tolerance_bps=bps,
+                    reject_category="" if ok else classify_reject_category(error, response),
+                    operator_action=("WAIT_FOR_COPY_POLL" if take and ok else
+                                     "MISSED_ENTRY_RECOVERY_LIMIT_RESTING" if ok else "MISSED_ENTRY_MANUAL_REVIEW"),
+                    terminal_state=outcome,
+                    notes=(f"missed-entry rule at refusal ({cause}): leader_price={leader_px}; price_now={market_px}; "
+                           f"follower_price={follower_px}; moved_against_bps={missed.get('adverse_bps', 0.0):.2f}; "
+                           f"tolerance_bps={bps}; take={take}; order={order_type} @ {px}"))
 
     def _place_order(self, exchange: Any, sdk_coin: str, is_buy: bool, size: float, limit_px: float,
                      tif: str, reduce_only: bool, timing: Optional[Dict[str, Any]] = None, started_key: str = "",
@@ -7884,7 +7928,8 @@ class SenderGateway:
                 }
             base_px = follower_px
         missed: Optional[Dict[str, Any]] = None
-        if lifecycle in {"ENTRY", "ADD"} and bval(os.getenv("HL_LIVE_MISSED_ENTRY_RULE"), True):
+        if lifecycle in {"ENTRY", "ADD"} and (bval(os.getenv("HL_LIVE_MISSED_ENTRY_RULE"), True)
+                                             or utc_now_ms() - int(fnum(intent.fill.timestamp_ms, 0)) > ENTRY_MAX_AGE_MS):
             market_px = follower_px if LEADER_NETWORK == FOLLOWER_NETWORK else leader_mid(intent.fill.coin, use_cached=True)
             missed = missed_entry_decision(intent.copy_side, fnum(intent.fill.price, 0.0), market_px, follower_px, bps)
             if not missed.get("ok"):
@@ -11888,9 +11933,18 @@ class LiveCopyCore:
             cause = "ASSET_META_SNAPSHOT_ONLY"
         elif halted and send_status in {"SKIPPED_MARKET_HALTED", "ORDER_REJECTED"}:
             cause = "MARKET_HALTED"
+        elif utc_now_ms() - int(fnum(intent.fill.timestamp_ms, 0)) > ENTRY_MAX_AGE_MS:
+            cause = "ORD_010_ENTRY_AGE_OVER_30S"
         else:
             return None
         outcome = self.sender._missed_entry_rest_or_diff(intent, cause)
+        if outcome["outcome"] in {"MISSED_ENTRY_DIFF_NO_FRESH_MID", "MISSED_ENTRY_DIFF_MARGIN_SETUP_FAILED"}:
+            self.audit.append_reconciliation(  # an OPEN incident: no order exists, the convergence path retries
+                MISSED_ENTRY_INCIDENT_EVENT, outcome["outcome"], leader_wallet=fill.leader_wallet,
+                leader_fill_id=fill.leader_fill_id, intent_id=intent.intent_id, coin=fill.coin,
+                action="NO_ORDER_REFUSAL_INCIDENT", terminal_state=outcome["outcome"], engine_can_send="False",
+                notes=(f"incident_key={normalise_wallet(fill.leader_wallet)}|{canonical_coin_key(fill.coin)}|{cause}; "
+                       f"state=OPEN; {outcome.get('notes', '')}"))
         self.audit.append_reconciliation(
             "SEND_TERMINAL", outcome["outcome"], leader_wallet=fill.leader_wallet,
             leader_fill_id=fill.leader_fill_id, intent_id=intent.intent_id, coin=fill.coin,
