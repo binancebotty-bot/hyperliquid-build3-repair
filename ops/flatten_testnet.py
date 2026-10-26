@@ -42,13 +42,18 @@ def coin_key(coin: str) -> str:
     return str(coin or "").strip()
 
 
-def is_user_owned(coin: str, ledger_net: Optional[float]) -> Tuple[bool, str]:
-    """(refuse, reason). A coin is the operator's when it is named, or when the ledger has no record of it."""
+def is_user_owned(coin: str, ledger_net: Optional[float], in_journal: bool = False) -> Tuple[bool, str]:
+    """(refuse, reason). The operator's when named, or when NEITHER the ledger NOR the send journal knows the coin.
+
+    TWO SOURCES, because one is not enough: the ledger lags (a resting order can fill after the last ledger write), and
+    a coin we opened but have not booked would otherwise be called hand-placed and left open forever. A hand-placed
+    coin appears in neither source.
+    """
     ck = coin_key(coin)
     if ck.upper() in {u.upper() for u in USER_OWNED}:
         return True, "USER_OWNED_NAMED"
-    if ledger_net is None:
-        return True, "USER_OWNED_ABSENT_FROM_LEDGER"      # absent is not ours; never assume
+    if ledger_net is None and not in_journal:
+        return True, "USER_OWNED_ABSENT_FROM_LEDGER"
     return False, ""
 
 
@@ -116,6 +121,25 @@ def mids_now() -> Dict[str, Any]:
     return {"mids": _info({"type": "allMids"}), "ts": time.time()}
 
 
+def journal_coins(state: Path) -> set:
+    """Coins the ENGINE has sent an order for, from its own send journal. This closes the case the ledger misses: a
+    resting order that filled after the last ledger write leaves a position the engine opened but has not booked. A
+    hand-placed coin has no cloid in our journal, so this never claims the operator's positions."""
+    import csv
+    coins = set()
+    path = state / "append_only" / "send_attempts.csv"
+    try:
+        with open(path, encoding="utf-8", errors="replace") as fh:
+            for row in csv.DictReader(fh):
+                cl = str(row.get("cloid") or "").strip()
+                cn = str(row.get("coin") or "").strip()
+                if cl and cn:
+                    coins.add(cn.upper())
+    except Exception:
+        return set()
+    return coins
+
+
 def ledger_nets(state: Path) -> Dict[str, float]:
     """coin -> signed size from the engine's own ledger. A coin missing here is NOT ours."""
     path = state / "manual_live_positions.json"
@@ -148,14 +172,16 @@ def engine_pids(state: Optional[Path] = None) -> List[int]:
 
 
 def build_plan(positions: List[Dict[str, Any]], nets: Dict[str, float],
-               sz_dec: Dict[str, int], listed: Optional[set] = None) -> List[Dict[str, Any]]:
+               sz_dec: Dict[str, int], listed: Optional[set] = None,
+               journal: Optional[set] = None) -> List[Dict[str, Any]]:
     # CASE-BLIND: the ledger keys kBONK as "KBONK" while the exchange reports "kBONK". A case-sensitive lookup called
     # an engine-opened position "absent from the ledger" = USER-OWNED, and it would have been left open forever.
     nets_ci = {str(k).upper(): v for k, v in (nets or {}).items()}
     plan = []
     for p in positions:
         coin, net = p["coin"], float(p["net"])
-        refuse, why = is_user_owned(coin, nets_ci.get(str(coin).upper()))
+        refuse, why = is_user_owned(coin, nets_ci.get(str(coin).upper()),
+                                    in_journal=bool(journal) and str(coin).upper() in journal)
         if refuse:
             plan.append({"coin": coin, "net": net, "action": "SKIP", "reason": why})
             continue
@@ -231,7 +257,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             print("resting after cancel: %d" % len(still))
 
     # ---- the flatten plan (built before any order, so the whole book is decided at once)
-    plan = build_plan(positions, nets, {}, None)
+    plan = build_plan(positions, nets, {}, None, journal=journal_coins(state))
     payload = mids_now() if plan else {"mids": {}, "ts": time.time()}
     for step in plan:
         r = {"coin": step["coin"], "before": step["net"], "after": step["net"], "action": step["action"],
