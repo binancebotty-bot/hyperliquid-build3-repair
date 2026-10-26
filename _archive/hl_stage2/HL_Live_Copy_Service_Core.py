@@ -10688,17 +10688,15 @@ class CopyFillMatcher:
         # The fill just landed, so the attempt row that owns this order must stop saying pending_send or
         # ORDER_RESTING: this matcher writes the ledger row and until now nothing closed the send journal.
         # It closes every open attempt row for this order id - EXIT_RECOVERY writes two under different attempt ids.
-        # Same guards the startup sweep has: never on a mainnet follower (Boss owns those rows) and never with
-        # sending off. The reads are small (measured: 0.8 MB attempts + 0.2 MB fills, 8.3 MB recon) but a catch-up
-        # burst would repeat them per fill, so one pass is allowed per few seconds and the rest ride on it.
+        # Same guard the startup sweep has: NEVER on a mainnet follower (Boss owns those rows). Testnet-only is the
+        # whole condition - sending off is FINE and intended here, because this repairs the send JOURNAL, it does not
+        # send anything: the helper never calls the exchange. The reads are small (measured: 0.8 MB attempts +
+        # 0.2 MB fills, 8.3 MB recon) but a catch-up burst would repeat them per fill, so one pass per few seconds.
         if FOLLOWER_NETWORK != "mainnet":
-            _now_s = time.time()
-            if _now_s - float(globals().get("_LAST_MATCHER_SWEEP", 0.0)) >= 5.0:
-                globals()["_LAST_MATCHER_SWEEP"] = _now_s
-                try:
-                    close_orphan_attempt_rows(apply=True)
-                except Exception as exc:
-                    log_error("matcher_attempt_row_close_failed", exc)
+            try:
+                close_orphan_attempt_rows(apply=True, min_interval_sec=5.0)   # throttle lives inside the lock
+            except Exception as exc:
+                log_error("matcher_attempt_row_close_failed", exc)
         return True
 
     def _load_intent_lifecycle_index(self) -> Dict[str, str]:
@@ -16476,7 +16474,36 @@ def main() -> None:
             core.stop()
         return
     parser.print_help()
+_SWEEP_LOCK = threading.Lock()
+# A partial outcome is written once per (oid, filled total, asked size). The startup sweep runs twice per process, and
+# a second identical row for the same reading is noise that makes one order look like two events.
+# shortcut: in-process only - a fresh process re-writes the same row once. Upgrade to a journal read if that matters.
+_PARTIAL_ROWS_WRITTEN = set()
+
+
 def close_orphan_attempt_rows(send_attempts_csv: Optional[str] = None, live_fills_csv: Optional[str] = None,
+                              recon_csv: Optional[str] = None, only_oid: str = "", apply: bool = False,
+                              min_interval_sec: float = 0.0) -> List[Dict[str, Any]]:
+    """One lock around read-decide-append, with the throttle check inside it.
+
+    Two passes racing here would read the same open rows and decide twice, and the matcher's own "one pass per few
+    seconds" check was a check-then-set with no lock - two fills in a burst could both pass it. The throttle now lives
+    inside the same lock, so the read, the decision and the append are one critical section.
+    """
+    if not _SWEEP_LOCK.acquire(timeout=30.0):
+        return []
+    try:
+        if min_interval_sec > 0:
+            _now = time.time()
+            if _now - float(globals().get("_LAST_MATCHER_SWEEP", 0.0)) < min_interval_sec:
+                return []
+            globals()["_LAST_MATCHER_SWEEP"] = _now
+        return _close_orphan_attempt_rows_impl(send_attempts_csv, live_fills_csv, recon_csv, only_oid, apply)
+    finally:
+        _SWEEP_LOCK.release()
+
+
+def _close_orphan_attempt_rows_impl(send_attempts_csv: Optional[str] = None, live_fills_csv: Optional[str] = None,
 
 
                              recon_csv: Optional[str] = None, only_oid: str = "",
@@ -16506,31 +16533,50 @@ def close_orphan_attempt_rows(send_attempts_csv: Optional[str] = None, live_fill
         text = str(value or "").strip()
         if not text:
             return ""
-        if text.endswith(".0"):
-            text = text[:-2]
         try:
-            return str(int(text))
-        except (TypeError, ValueError):
-            return text
+            dec = decimal.Decimal(text)          # '123.00' and '1.23e2' are both 123
+            if not dec.is_finite():
+                return text                       # 'NaN'/'Infinity' never match anything
+            if dec == dec.to_integral_value():
+                return str(int(dec))
+        except (decimal.InvalidOperation, ValueError, OverflowError):
+            pass
+        return text                               # non-integral stays raw and therefore unmatched
     # EXACT decimal arithmetic: CSV sizes are decimal strings, and summing them as binary floats then rounding is not
     # the same thing. Parse and add as Decimal, quantise once to the size quantum.
     _QUANT = decimal.Decimal("0.0000000001")
     filled_dec = {}
+    # A journal that lists the same fill twice must not double-count it: identity first, then sum. fill_id/tid is the
+    # exchange's own identity; without one, (oid, size, timestamp) is the best available key.
+    _seen_fill = set()
+    _bad_rows = 0
     for row in read_csv_rows(fp):
         oid = _canon_oid(row.get("exchange_order_id"))
         if not oid:
             continue
+        _fid = str(row.get("fill_id") or row.get("tid") or "").strip()
+        _key = (oid, _fid) if _fid else (oid, str(row.get("fill_size") or row.get("size") or ""),
+                                         str(row.get("created_at_ms") or row.get("created_at") or ""))
+        if _key in _seen_fill:
+            continue
+        _seen_fill.add(_key)
         raw_sz = str(row.get("fill_size") or row.get("size") or "0").strip() or "0"
         try:
             size = decimal.Decimal(raw_sz)
             if not size.is_finite():
                 raise decimal.InvalidOperation("non-finite size %r" % raw_sz)
         except (decimal.InvalidOperation, ValueError):
-            # one corrupt cell must not abort the sweep for every other row; it counts as zero for this order only
+            # one corrupt cell must not abort the sweep for every other row, but it must not vanish silently either
+            _bad_rows += 1
             size = decimal.Decimal("0")
         if size < 0:
             size = decimal.Decimal("0")
         filled_dec[oid] = filled_dec.get(oid, decimal.Decimal("0")) + size
+    if _bad_rows:
+        try:
+            log_error("sweep_non_finite_size_rows", RuntimeError("%d row(s) with an unreadable size" % _bad_rows))
+        except Exception:
+            pass
     filled_total = {}
     for oid, total in filled_dec.items():
         try:
@@ -16576,7 +16622,7 @@ def close_orphan_attempt_rows(send_attempts_csv: Optional[str] = None, live_fill
         if _oid and _oid not in _claim_for_oid:
             _claim_for_oid[_oid] = str(_row.get("attempt_id") or "")
     done = []
-    _claimed_oid = {}
+    _claimed_oid = {}   # kept for callers that inspect it; not used to decide anything
     for row in candidates:
         oid = _canon_oid(row.get("exchange_order_id"))
         src = by_oid[oid]
@@ -16594,7 +16640,12 @@ def close_orphan_attempt_rows(send_attempts_csv: Optional[str] = None, live_fill
         # not happen. This is the case an "a fill row exists" test cannot distinguish without an exchange call.
         # EXACT, no float slop: a 5e-10 shortfall against a cancelled order is still a partial fill, and calling it
         # filled is the defect this function exists to prevent. Both sides are quantised to 10 dp strings already.
-        complete = want_sz > 0 and round(filled_sz, 10) >= round(want_sz, 10)
+        try:
+            # EXACT: compare the already-quantised values as decimals. Rounding both sides is how a 5e-10 shortfall
+            # on a cancelled order gets called filled.
+            complete = want_sz > 0 and decimal.Decimal(str(filled_sz)) >= decimal.Decimal(str(want_sz))
+        except (decimal.InvalidOperation, ValueError):
+            complete = False
         # A second attempt row for an order id that is ALREADY claimed is superseded whatever its own size says -
         # otherwise a phantom attempt row can stay open forever for an order that is finished.
         if oid in _claim_for_oid and str(row.get("attempt_id") or "") != _claim_for_oid[oid]:
@@ -16619,7 +16670,7 @@ def close_orphan_attempt_rows(send_attempts_csv: Optional[str] = None, live_fill
             done.append(rec)
             continue
         if complete:
-            _claimed_oid[oid] = row.get("attempt_id")
+            pass   # the claimant is resolved above; no second bookkeeping map
         rec = {"attempt_id": row.get("attempt_id"), "exchange_order_id": oid, "coin": row.get("coin"),
                "was": row.get("status"), "filled_size": filled_sz, "want_size": want_sz,
                "is_close": _is_close(row), "applied": False,
@@ -16628,7 +16679,11 @@ def close_orphan_attempt_rows(send_attempts_csv: Optional[str] = None, live_fill
             # Record it and leave the attempt open. Writing nothing (the previous shape) and then summarising it as
             # CLOSED upstream made the journal claim a closure that never happened.
             rec["outcome"] = "ORPHAN_ATTEMPT_PARTIAL_FILL_UNRESOLVED"
-            if apply:
+            _pkey = (oid, str(filled_sz), str(want_sz))
+            if apply and _pkey in _PARTIAL_ROWS_WRITTEN:
+                rec["applied"] = False
+                rec["duplicate_of_earlier_pass"] = True
+            if apply and _pkey not in _PARTIAL_ROWS_WRITTEN:
                 try:
                     append_csv(rp, RECONCILIATION_FIELDS, {
                         "created_at": utc_now_iso(), "created_at_ms": utc_now_ms(),
@@ -16642,6 +16697,7 @@ def close_orphan_attempt_rows(send_attempts_csv: Optional[str] = None, live_fill
                                   % (filled_sz, want_sz)),
                     })
                     rec["applied"] = True
+                    _PARTIAL_ROWS_WRITTEN.add(_pkey)
                 except Exception as exc:
                     rec["error"] = repr(exc)
             done.append(rec)
