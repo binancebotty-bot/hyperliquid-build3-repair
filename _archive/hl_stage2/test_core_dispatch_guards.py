@@ -84,22 +84,32 @@ def main():
     check("KNOWN_SPOT_REJECTED_BEFORE_LANE", sum(q.qsize() for q in core._hot_queues + core._prio_queues) == before)
     check("KNOWN_SPOT_DURABLY_HANDLED", core._already_handled(blocked) and blocked.leader_fill_id in core.dedupe.processed)
 
+    # Controller ruling 6409748448: only LIQUIDATION PARITY skips at dispatch. Halting, IOC-no-match and insufficient
+    # margin must reach the send lane, which refuses them on the same cooldown caches BEFORE any exchange call - so
+    # the trade is recorded and remedied instead of vanishing. These three checks therefore assert the OPPOSITE of
+    # what they used to: the fill IS queued, and the refusal happens one layer down.
     entry = c.LeaderFill("margin-before-lane", A, "ETH", "BUY", 100.0, 1.0, c.utc_now_ms(), "TEST", 0,
                          {"oid": "margin", "dir": "Open Long"})
     core.sender._margin_reject_until_ms = {"eth": c.utc_now_ms() + 10000}
     before = sum(q.qsize() for q in core._hot_queues + core._prio_queues)
     core._dispatch_fill(entry)
-    check("KNOWN_MARGIN_REJECTED_BEFORE_LANE", sum(q.qsize() for q in core._hot_queues + core._prio_queues) == before)
+    check("KNOWN_MARGIN_REACHES_THE_LANE_WHICH_REFUSES_IT",
+          sum(q.qsize() for q in core._hot_queues + core._prio_queues) == before + 1)
 
-    for coin, field, name in (("BTC", "_market_halted_until_ms", "KNOWN_HALT_REJECTED_BEFORE_LANE"),
-                              ("XYZ:TEST", "_ioc_no_match_until_ms", "KNOWN_NO_LIQUIDITY_REJECTED_BEFORE_LANE"),
+    for coin, field, name in (("BTC", "_market_halted_until_ms", "KNOWN_HALT_REACHES_THE_LANE_WHICH_REFUSES_IT"),
+                              ("XYZ:TEST", "_ioc_no_match_until_ms", "KNOWN_NO_LIQUIDITY_REACHES_THE_LANE_WHICH_REFUSES_IT"),
                               ("SOL", "_liq_parity_until_ms", "KNOWN_PARITY_REJECTED_BEFORE_LANE")):
         fill = c.LeaderFill("known-" + name, A, coin, "BUY", 100.0, 1.0, c.utc_now_ms(), "TEST", 0,
                             {"oid": name, "dir": "Open Long"})
         setattr(core.sender, field, {coin.lower(): c.utc_now_ms() + 10000})
         before = sum(q.qsize() for q in core._hot_queues + core._prio_queues)
         core._dispatch_fill(fill)
-        check(name, sum(q.qsize() for q in core._hot_queues + core._prio_queues) == before)
+        after = sum(q.qsize() for q in core._hot_queues + core._prio_queues)
+        # parity still skips at dispatch (a Boss-ordered skip); halting and IOC-no-match must reach the lane, which
+        # refuses them on the same caches before any exchange call
+        expect_queued = "PARITY" not in name
+        check(name, after == before + 1 if expect_queued else after == before,
+              'queued delta=%d, expected %s' % (after - before, '1' if expect_queued else '0'))
 
     close = c.LeaderFill("margin-close-still-queued", A, "ETH", "SELL", 100.0, 1.0, c.utc_now_ms(), "TEST", 0,
                          {"oid": "margin-close", "dir": "Close Long"})

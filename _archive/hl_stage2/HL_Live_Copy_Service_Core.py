@@ -1133,6 +1133,9 @@ NON_TERMINAL_ROW_NAMES = frozenset({
     "STANDING_CLOSE_NOT_PLACED", "SYMBOL_NOT_TRADABLE_BY_SENDER", "SYMBOL_REJECT_CIRCUIT_BREAKER_ACTIVE",
     "XYZ_UNMATCHED_COPY_FLAT_CLOSE_ADOPTED",
     "ORPHAN_ORDER_ALREADY_GONE", "RESTING_ENTRY_ALREADY_GONE", "STANDING_CLOSE_WITHDRAWN",
+    # journal-reconciliation names: an attempt row left open on purpose, a sweep report, and a second row for an order
+    # that another row already closed. All three are open/informational, never a terminal fill.
+    "ORPHAN_ATTEMPT_PARTIAL_FILL_UNRESOLVED", "ORPHAN_ATTEMPT_ROWS_SWEPT", "SUPERSEDED_SAME_ORDER_ROW",
     "STANDING_CLOSE_ALREADY_GONE", "ENTRY_ADD_RATE_LIMIT_RECOVERY_GTC", "ENTRY_ADD_RATE_LIMIT_RECOVERY_IOC",
     "ORPHAN_ORDER_CANCEL_FAILED", "OPERATOR_APPROVED_OID_ADOPTED",
 })
@@ -8004,11 +8007,11 @@ class SenderGateway:
         lifecycle = classify_send_lifecycle(intent)
         coin_key = str(intent.fill.coin or "").strip().lower()
         now_ms = utc_now_ms()
-        if lifecycle in {"ENTRY", "ADD"} and self._market_halted_until_ms.get(coin_key, 0) > now_ms:
+        if lifecycle in {"ENTRY", "ADD"} and getattr(self, "_market_halted_until_ms", {}).get(coin_key, 0) > now_ms:
             return False, "SKIPPED_MARKET_HALTED"
-        if lifecycle in {"ENTRY", "ADD"} and self._ioc_no_match_until_ms.get(coin_key, 0) > now_ms:
+        if lifecycle in {"ENTRY", "ADD"} and getattr(self, "_ioc_no_match_until_ms", {}).get(coin_key, 0) > now_ms:
             return False, "SKIPPED_IOC_NO_IMMEDIATE_MATCH"
-        if lifecycle in {"ENTRY", "ADD"} and self._margin_reject_until_ms.get(coin_key, 0) > now_ms:
+        if lifecycle in {"ENTRY", "ADD"} and getattr(self, "_margin_reject_until_ms", {}).get(coin_key, 0) > now_ms:
             # Without this the dispatch-level skip removal would let a fill inside an active margin cooldown reach
             # _place_order and exchange.order - a doomed order sent, which is what the cache exists to prevent.
             # dispatch (Core:5420) deliberately no longer skips it, so the gate has to live here.
