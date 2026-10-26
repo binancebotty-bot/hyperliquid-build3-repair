@@ -187,6 +187,25 @@ rest_body = src[src.index('def _missed_entry_rest_or_diff'):src.index('def ', sr
 check('REST_PATH_FINALISES_ITS_SEND_ROW',
       'update_send_attempt_row(_aid' in rest_body and 'finalised by the missed-entry rest path' in rest_body)
 
+# ---- P2#3: the gate must precede the pacing slot AND the write-ahead row, not just the client call
+inside = src.split(chr(10))[lo - 1:hi]
+slot_at = next((lo + i for i, l in enumerate(inside) if '_reserve_exchange_order_slot(' in l), None)
+presend_at = next((lo + i for i, l in enumerate(inside) if 'pre_send is not None' in l), None)
+check('THE_GATE_RUNS_BEFORE_THE_PACING_SLOT', slot_at is not None and gate_line < slot_at, (gate_line, slot_at))
+check('THE_GATE_RUNS_BEFORE_THE_WRITE_AHEAD_ROW', presend_at is not None and gate_line < presend_at,
+      (gate_line, presend_at))
+
+# ---- P1#3: the outcome must come from the exchange reply, not from the `take` flag
+rest_start = src.index('def _missed_entry_rest_or_diff')
+rest_src = src[rest_start:src.index('def ', src.index('terminal_state=outcome', rest_start))]
+check('OUTCOME_IS_DERIVED_FROM_THE_EXCHANGE_REPLY',
+      '"ORDER_FILLED"' in rest_src and '_blocked_reply' in rest_src,
+      'the rest path still branches on take rather than on the parsed status')
+check('FINALISATION_FAILURE_IS_LOUD',
+      'finalise_missed_entry_rest_row' in rest_src
+      and ('except Exception:' + chr(10) + '                pass') not in rest_src)
+
+
 failed = [n for n, ok in results if not ok]
 print('TOTAL=%d FAILED=%d' % (len(results), len(failed)))
 sys.exit(1 if failed else 0)

@@ -5463,38 +5463,54 @@ class SenderGateway:
             response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", size, px, tif, False,
                                          timing, f"{label}_started_ms", cloid=cloid, pre_send=pre_send, intent=intent, path="missed_entry_rest")
             ok, status, oid, error = self._parse_hl_response(response)
-            # This path wrote a pending_send row through _recovery_send_hooks and never finalised it:
-            # 1,028 rows stayed pending_send while 1,549 limits reached the exchange (2026-10-25), so
-            # the journal could not see its own orders. Append the outcome row (newest row per
-            # attempt_id wins; the file stays append-only).
+            # The exchange reply decides the outcome. `take` is always False on this path (a take is
+            # sent as an IOC under a different label), so branching on it labelled an immediately
+            # filled GTC as MISSED_ENTRY_LIMIT_RESTED and told every reader it was still on the book.
+            _blocked_reply = "BLOCKED_AT_PLACE_ORDER" in str(response)
+            if _blocked_reply:
+                _final = "BLOCKED_AT_PLACE_ORDER"
+            elif status == "ORDER_FILLED":
+                _final = "FILLED_AWAITING_COPY_POLL"
+            elif status == "ORDER_RESTING":
+                _final = "MISSED_ENTRY_LIMIT_RESTED"
+            else:
+                _final = "MISSED_ENTRY_DIFF_LIMIT_REJECTED"
+            # Finalise the row this path opened. A failure here must be LOUD: a silent pass leaves
+            # pending_send exactly as it was on 2026-10-25, when the journal could not see 1,549
+            # orders it had placed.
             try:
                 _aid = str((timing or {}).get("send_attempt_id") or "")
                 if _aid:
-                    _final = ("FILLED_AWAITING_COPY_POLL" if (ok and bool(missed["take"]))
-                              else "MISSED_ENTRY_LIMIT_RESTED" if ok else "MISSED_ENTRY_DIFF_LIMIT_REJECTED")
                     update_send_attempt_row(_aid, {
-                        "status": status or "ORDER_UNKNOWN",
+                        "status": "BLOCKED_AT_PLACE_ORDER" if _blocked_reply else (status or "ORDER_UNKNOWN"),
                         "exchange_order_id": str(oid or ""),
                         "terminal_state": _final,
                         "error": str(error or "")[:300],
                         "notes": "finalised by the missed-entry rest path",
                     })
-            except Exception:
-                pass
+                else:
+                    log_error("finalise_missed_entry_rest_row",
+                              RuntimeError("no send_attempt_id on the timing for intent %s" % intent.intent_id))
+            except Exception as exc:
+                SenderGateway._gate_journal_failures += 1
+                log_error("finalise_missed_entry_rest_row", exc)
+                print("ALERT: missed-entry rest placed an order but could not finalise its row: %r" % exc,
+                      file=sys.stderr)
         except Exception as exc:
             return dict(base, outcome="MISSED_ENTRY_DIFF_NO_LIMIT_POSSIBLE",
                         notes=f"named diff: {cause}; no order ({type(exc).__name__}: {str(exc)[:200]})")
         take = bool(missed["take"])
         if not take and ok and status == "ORDER_RESTING":
             self._register_resting_entry(intent, sdk_coin, oid, px, size, f"entry refused ({cause})")
-        outcome = ("FILLED_AWAITING_COPY_POLL" if take and ok else
-                   "MISSED_ENTRY_LIMIT_RESTED" if ok else "MISSED_ENTRY_DIFF_LIMIT_REJECTED")
+        outcome = _final
         return dict(base, outcome=outcome, exchange_response=response, oid=oid, limit_px=px, wire_size=size,
-                    copy_notional=abs(size * px), exchange_called=True, error=error, timing=timing,
+                    copy_notional=abs(size * px),
+                    exchange_called=(not _blocked_reply), error=error, timing=timing,
                     order_type=order_type, reduce_only_sent=False, take=take,
                     leader_px=leader_px, market_px=market_px, follower_px=follower_px,
                     adverse_bps=missed.get("adverse_bps"), tolerance_bps=bps,
-                    reject_category="" if ok else classify_reject_category(error, response),
+                    reject_category=("BLOCKED_AT_PLACE_ORDER" if _blocked_reply else
+                                     "" if ok else classify_reject_category(error, response)),
                     operator_action=("WAIT_FOR_COPY_POLL" if take and ok else
                                      "MISSED_ENTRY_RECOVERY_LIMIT_RESTING" if ok else "MISSED_ENTRY_MANUAL_REVIEW"),
                     terminal_state=outcome,
