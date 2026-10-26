@@ -109,7 +109,19 @@ load_env_file(ENV_FILE)
 # (default testnet; mainnet must be named) serves every follower read and every order. Unknown names and
 # legacy URLs pointing at the other network refuse to start.
 sys.path.insert(0, str(BASE_DIR))
-import exchange_truth as _XNET  # noqa: E402
+import exchange_truth as _XNET_MODULE  # noqa: E402
+import hotswap as _HOTSWAP  # noqa: E402  allowlisted live-swap seam, driven by HOTSWAP_REQUEST.json
+# _XNET is a guard proxy: every _XNET.<fn>() call holds the hotswap shared guard for the whole call,
+# and the callable is resolved INSIDE that hold, so a live swap can neither straddle a call nor be
+# overtaken by one; two calls never exclude each other.
+_XNET = _HOTSWAP.guarded(_XNET_MODULE)
+
+
+def _rebind_exchange_truth(new_module):
+    globals()["_XNET"] = _HOTSWAP.guarded(new_module)  # the swap ONE assignment: no in-place dict surgery
+
+
+_HOTSWAP.register_setter("exchange_truth", _rebind_exchange_truth)
 try:
     NETWORKS = _XNET.resolve_networks()
 except _XNET.NetworkConfigError as _net_exc:
@@ -1291,6 +1303,7 @@ def _process_identity() -> Dict[str, Any]:
         "executable": sys.executable,
         "cwd": str(Path.cwd()),
         "script": str(SCRIPT_FILE),
+        "exchange_truth_sha": _HOTSWAP.loaded_sha("exchange_truth"),  # loaded, not what is on disk
         "started_at": PROCESS_STARTED_AT,
         "started_at_ms": PROCESS_STARTED_AT_MS,
     }
@@ -11356,6 +11369,9 @@ class ServiceStateWriter:
             "cycle_time_budget_exceeded": summary.budget_exceeded,
             "budget_exceeded_note": "cycle_timing_only — not a financial cap; applies no order blocks",
             "effective_global_controls": _eff_gc,
+            # reported EVERY cycle, not just at startup: a live swap changes this while the process
+            # keeps running, and the startup record would otherwise describe code no longer loaded.
+            "exchange_truth_sha": _HOTSWAP.loaded_sha("exchange_truth"),
             "networks": {"leader": LEADER_NETWORK, "follower": FOLLOWER_NETWORK},
             "entry_sends_blocked_reason": summary.entry_sends_blocked_reason,
             "sender_key_invalid": summary.sender_key_invalid,
@@ -16053,6 +16069,7 @@ def main() -> None:
                     except OSError:
                         pass
                     break
+                _HOTSWAP.tick(AUDIT_DIR)  # never raises: a bad request leaves the old module running
                 now = time.monotonic()
                 main_due = (not args.loop) or now >= next_main_at
                 copy_due = bool(args.poll_copy and not copy_thread and ((not args.loop) or now >= next_copy_poll_at))
