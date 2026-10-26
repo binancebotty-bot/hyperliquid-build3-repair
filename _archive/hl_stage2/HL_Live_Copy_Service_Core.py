@@ -5499,11 +5499,22 @@ class SenderGateway:
             try:
                 _aid = str((timing or {}).get("send_attempt_id") or "")
                 if _aid:
+                    # A rejection must say WHY in its structured fields, not only in free text: run 13
+                    # recorded 9 rows with an empty reject_category, so nothing could group or alert on
+                    # them (controller 6407488905). Same helpers the main send path uses.
+                    _cat = (classify_reject_category(str(error or ""),
+                            response if isinstance(response, dict) else {})
+                            if status == "ORDER_REJECTED" else "")
                     update_send_attempt_row(_aid, {
                         "status": "BLOCKED_AT_PLACE_ORDER" if _blocked_reply else (status or "ORDER_UNKNOWN"),
                         "exchange_order_id": str(oid or ""),
                         "terminal_state": _final,
                         "error": str(error or "")[:300],
+                        "reject_category": _cat,
+                        "operator_action": classify_operator_action(
+                            status or "ORDER_UNKNOWN", _cat, classify_send_lifecycle(intent), not _blocked_reply),
+                        "exchange_response": json.dumps(response if isinstance(response, dict) else {},
+                                                      default=str)[:2000],
                         "notes": "finalised by the missed-entry rest path",
                     })
                 else:
