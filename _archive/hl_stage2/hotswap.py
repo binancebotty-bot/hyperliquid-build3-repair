@@ -216,11 +216,13 @@ def _write_state_bytes(path: Path, blob: str) -> None:
     os.replace(tmp, path)
 
 
-def _write_state(audit_dir: Any, state: Dict[str, Any]) -> None:
+def _write_state(audit_dir: Any, state: Dict[str, Any]) -> bool:
+    """True ONLY if the whole map was replaced. The result is explicit: a caller must never assume it."""
     try:
         _write_state_bytes(_state_path(audit_dir), json.dumps(state, indent=2, sort_keys=True))
     except Exception:
-        pass
+        return False
+    return True
 
 
 def _persist_state(audit_dir: Any, name: str, entry: Dict[str, Any]) -> bool:
@@ -228,10 +230,18 @@ def _persist_state(audit_dir: Any, name: str, entry: Dict[str, Any]) -> bool:
     be durable BEFORE anything is installed."""
     state = _read_state(audit_dir)
     state[name] = entry
-    _write_state(audit_dir, state)
+    if not _write_state(audit_dir, state):
+        return False
     back = _read_state(audit_dir).get(name)
-    return (isinstance(back, dict) and back.get("installed_path") == entry["installed_path"]
-            and back.get("installed_sha") == entry["installed_sha"])
+    if not isinstance(back, dict):
+        return False
+    # EVERY field the rollback depends on, not just path+sha: when a retry refreshes the previous-code
+    # pointer for the SAME artifact, a failed write leaves an entry that still matches path+sha, and the
+    # install would then proceed with a rollback pointer that was never updated (Codex 6408591328).
+    for key in ("installed_path", "installed_sha", "previous_path", "previous_sha"):
+        if key in entry and back.get(key) != entry[key]:
+            return False
+    return True
 
 
 def loaded_sha(name: str) -> str:

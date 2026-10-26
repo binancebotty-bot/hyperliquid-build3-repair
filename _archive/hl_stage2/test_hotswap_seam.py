@@ -441,6 +441,31 @@ check('SETTER_RAISE_ROLLS_THE_STATE_BACK',
       'tick=%r state_changed=%r old_code_still_live=%r'
       % (_ok2, _post2 != _pre2, box2['X'].marker() == 'old'))
 
+# --- STALE_PREVIOUS_POINTER_IS_NOT_MASKED_BY_A_MATCHING_PATH_AND_SHA (Codex 6408591328) ---
+audit_stale = tempfile.mkdtemp(prefix='hotswap_stale_')
+OLD_BODY_FOR_STALE = "def marker():" + chr(10) + '    return "old"' + chr(10)
+NEW_BODY_FOR_STALE = "def marker():" + chr(10) + '    return "new"' + chr(10)
+box3, _src3 = fake_importer(body=OLD_BODY_FOR_STALE)
+art3, art3_sha = write_artifact(NEW_BODY_FOR_STALE)
+_state_file3 = hotswap._state_path(audit_stale)
+hotswap._write_state(audit_stale, {'exchange_truth': {
+    'installed_path': str(art3), 'installed_sha': art3_sha,
+    'previous_path': 'C:/old/previous.py', 'previous_sha': 'olds'}})
+_before3 = _state_file3.read_text(encoding='utf-8')
+_saved_writer = hotswap._write_state
+hotswap._write_state = lambda *a, **k: False
+try:
+    request(audit_stale, module='exchange_truth', action='apply', artifact=str(art3), sha256=art3_sha)
+    _ok3 = hotswap.tick(audit_stale)
+finally:
+    hotswap._write_state = _saved_writer
+_after3 = _state_file3.read_text(encoding='utf-8')
+_refused3 = 'REFUSED_STATE_WRITE_FAILED' in log_text(audit_stale)
+check('STALE_PREVIOUS_POINTER_IS_NOT_MASKED_BY_MATCHING_PATH_AND_SHA',
+      _ok3 is False and _refused3 and box3['X'].marker() == 'old' and _after3 == _before3,
+      'tick=%r refused=%r old_live=%r state_changed=%r'
+      % (_ok3, _refused3, box3['X'].marker() == 'old', _after3 != _before3))
+
 failed = [n for n, ok in results if not ok]
 print('TOTAL=%d FAILED=%d' % (len(results), len(failed)))
 if failed:
