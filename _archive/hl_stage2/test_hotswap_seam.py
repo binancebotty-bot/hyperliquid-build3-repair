@@ -2,15 +2,17 @@
 """The hot-swap seam: allowlisted sibling modules swap in one atomic step, everything else refuses.
 
 Each case runs in its own temp audit dir with a FAKE module registered in sys.modules under the
-allowlisted name. The real exchange_truth.py is never imported, read or written here.
+allowlisted name, and a fake importer that does what the engine does: hold a guard proxy and
+register a one-assignment rebind. The real exchange_truth.py is never imported, read or written.
 
-FAILING FIRST: before hotswap.py existed this file could not import it at all (ImportError), so
-every case failed. After the seam, each refusal must leave the OLD callable working.
+The guard is shared for calls and exclusive for the swap, with a fail-closed timeout.
 """
 import hashlib
 import json
 import sys
 import tempfile
+import threading
+import time
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -30,7 +32,6 @@ def sha(raw):
 
 
 def fake_module(name, body):
-    """Register a throwaway module under `name`, sourced from a real file so __file__ is honest."""
     tmp = Path(tempfile.mkdtemp(prefix='hotswap_src_'))
     src = tmp / ('%s.py' % name)
     src.write_text(body, encoding='utf-8')
@@ -39,6 +40,13 @@ def fake_module(name, body):
     exec(compile(body, str(src), 'exec'), mod.__dict__)
     sys.modules[name] = mod
     return mod, src
+
+
+def fake_importer(name='exchange_truth', body='def marker():\n    return "old"\n'):
+    mod, src = fake_module(name, body)
+    box = {'X': hotswap.guarded(mod)}
+    hotswap.register_setter(name, lambda new: box.__setitem__('X', hotswap.guarded(new)))
+    return box, src
 
 
 def write_artifact(body):
@@ -60,7 +68,11 @@ def log_text(audit_dir):
     return p.read_text(encoding='utf-8') if p.is_file() else ''
 
 
-# --- NO_REQUEST_IS_A_NOOP -------------------------------------------------------------------
+def wait(event, timeout=3.0):
+    return event.wait(timeout)
+
+
+# --- NO_REQUEST_IS_A_NOOP ---
 audit = tempfile.mkdtemp(prefix='hotswap_audit_')
 try:
     out = hotswap.tick(audit)
@@ -70,9 +82,9 @@ try:
 except Exception as exc:
     check('NO_REQUEST_IS_A_NOOP', False, '%s: %s' % (type(exc).__name__, exc))
 
-# --- NOT_ALLOWLISTED_IS_REFUSED -------------------------------------------------------------
+# --- NOT_ALLOWLISTED_IS_REFUSED ---
 audit = tempfile.mkdtemp(prefix='hotswap_audit_')
-fake_module('exchange_truth', 'def marker():\n    return "old"\n')
+fake_importer()
 art, art_sha = write_artifact('def marker():\n    return "hijack"\n')
 try:
     request(audit, module='exchange_truth2', action='apply', artifact=str(art), sha256=art_sha)
@@ -84,7 +96,7 @@ try:
 except Exception as exc:
     check('NOT_ALLOWLISTED_IS_REFUSED', False, '%s: %s' % (type(exc).__name__, exc))
 
-# --- PROTECTED_NAMES_ARE_ALWAYS_REFUSED (allowlist widened on purpose) ----------------------
+# --- PROTECTED_NAMES_ARE_ALWAYS_REFUSED ---
 saved_allow = hotswap.ALLOWLIST
 refused, leaked = [], []
 try:
@@ -108,76 +120,190 @@ finally:
 check('PROTECTED_NAMES_ARE_ALWAYS_REFUSED', len(refused) == 7 and not leaked,
       'refused=%r leaked=%r' % (refused, leaked))
 
-# --- BAD_SHA_IS_REFUSED_AND_OLD_CODE_STAYS --------------------------------------------------
+# --- BAD_SHA_IS_REFUSED_AND_OLD_CODE_STAYS ---
 audit = tempfile.mkdtemp(prefix='hotswap_audit_')
-fake_module('exchange_truth', 'def marker():\n    return "old"\n')
+box, _src = fake_importer()
 art, _art_sha = write_artifact('def marker():\n    return "new"\n')
 try:
     request(audit, module='exchange_truth', action='apply', artifact=str(art), sha256='0' * 64)
     ok = hotswap.tick(audit)
     check('BAD_SHA_IS_REFUSED_AND_OLD_CODE_STAYS',
-          ok is False and 'REFUSED_SHA_MISMATCH' in log_text(audit)
-          and sys.modules['exchange_truth'].marker() == 'old',
-          'ok=%r marker=%r log=%r' % (ok, sys.modules['exchange_truth'].marker(), log_text(audit)))
+          ok is False and 'REFUSED_SHA_MISMATCH' in log_text(audit) and box['X'].marker() == 'old',
+          'ok=%r marker=%r log=%r' % (ok, box['X'].marker(), log_text(audit)))
 except Exception as exc:
     check('BAD_SHA_IS_REFUSED_AND_OLD_CODE_STAYS', False, '%s: %s' % (type(exc).__name__, exc))
 
-# --- GOOD_ARTIFACT_SWAPS_IN_ONE_STEP --------------------------------------------------------
+# --- GOOD_ARTIFACT_SWAPS_IN_ONE_STEP ---
 audit = tempfile.mkdtemp(prefix='hotswap_audit_')
-fake_module('exchange_truth', 'def marker():\n    return "old"\n\nVALUE = 1\n')
+box, _src = fake_importer(body='def marker():\n    return "old"\n\nVALUE = 1\n')
 art, art_sha = write_artifact('def marker():\n    return "new"\n')
 try:
-    before = sys.modules['exchange_truth']
+    old_obj = box['X']._inner
     request(audit, module='exchange_truth', action='apply', artifact=str(art), sha256=art_sha)
     ok = hotswap.tick(audit)
-    after = sys.modules['exchange_truth']
+    new_obj = sys.modules['exchange_truth']
     check('GOOD_ARTIFACT_SWAPS_IN_ONE_STEP',
-          ok is True and before is after and after.marker() == 'new'
+          ok is True and new_obj is not old_obj and box['X'].marker() == 'new'
           and hotswap.loaded_sha('exchange_truth') == art_sha
-          and after.__file__ == str(art) and 'APPLIED' in log_text(audit),
-          'ok=%r same=%r marker=%r sha=%r' % (ok, before is after, after.marker(),
-                                              hotswap.loaded_sha('exchange_truth')))
+          and new_obj.__file__ == str(art) and 'APPLIED' in log_text(audit),
+          'ok=%r rebound=%r marker=%r sha=%r' % (ok, new_obj is not old_obj, box['X'].marker(),
+                                                 hotswap.loaded_sha('exchange_truth')))
 except Exception as exc:
     check('GOOD_ARTIFACT_SWAPS_IN_ONE_STEP', False, '%s: %s' % (type(exc).__name__, exc))
 
-# --- MID_CYCLE_SWAP -------------------------------------------------------------------------
-audit = tempfile.mkdtemp(prefix='hotswap_audit_')
-fake_module('exchange_truth', 'def marker():\n    return "old"\n')
-art, art_sha = write_artifact('def marker():\n    return "new"\n')
+# --- LOADED_SHA_IS_THE_INSTALLED_DIGEST_NOT_THE_FILE_HASH ---
 try:
-    in_flight = sys.modules['exchange_truth'].marker   # held by a call already running
-    request(audit, module='exchange_truth', action='apply', artifact=str(art), sha256=art_sha)
-    hotswap.tick(audit)
-    next_call = sys.modules['exchange_truth'].marker
-    check('MID_CYCLE_SWAP', in_flight() == 'old' and next_call() == 'new',
-          'in_flight=%r next=%r' % (in_flight(), next_call()))
+    art.write_bytes(b'def marker():\n    return "tampered"\n')
+    mutated = hotswap.loaded_sha('exchange_truth')
+    art.unlink()
+    deleted = hotswap.loaded_sha('exchange_truth')
+    check('LOADED_SHA_IS_THE_INSTALLED_DIGEST_NOT_THE_FILE_HASH',
+          mutated == art_sha and deleted == art_sha and box['X'].marker() == 'new',
+          'installed=%r mutated=%r deleted=%r' % (art_sha, mutated, deleted))
 except Exception as exc:
-    check('MID_CYCLE_SWAP', False, '%s: %s' % (type(exc).__name__, exc))
+    check('LOADED_SHA_IS_THE_INSTALLED_DIGEST_NOT_THE_FILE_HASH', False, '%s: %s' % (type(exc).__name__, exc))
 
-# --- ROLLBACK_RESTORES_THE_PREVIOUS_ARTIFACT ------------------------------------------------
+# --- NEW_CALL_AFTER_SWAP_IS_ENTIRELY_NEW ---
+try:
+    check('NEW_CALL_AFTER_SWAP_IS_ENTIRELY_NEW',
+          box['X'].marker() == 'new' and not hasattr(box['X']._inner, 'VALUE'),
+          'marker=%r stale_VALUE=%r' % (box['X'].marker(), getattr(box['X']._inner, 'VALUE', None)))
+except Exception as exc:
+    check('NEW_CALL_AFTER_SWAP_IS_ENTIRELY_NEW', False, '%s: %s' % (type(exc).__name__, exc))
+
+# --- ROLLBACK_RESTORES_THE_PREVIOUS_ARTIFACT ---
 audit = tempfile.mkdtemp(prefix='hotswap_audit_')
-_mod, src = fake_module('exchange_truth', 'def marker():\n    return "old"\n')
+box, src = fake_importer()
 original_sha = sha(Path(src).read_bytes())
 try:
     art, art_sha = write_artifact('def marker():\n    return "new"\n')
     request(audit, module='exchange_truth', action='apply', artifact=str(art), sha256=art_sha)
     hotswap.tick(audit)
-    swapped = sys.modules['exchange_truth'].marker()
+    swapped = box['X'].marker()
     request(audit, module='exchange_truth', action='rollback')
     rb = hotswap.tick(audit)
-    restored = sys.modules['exchange_truth'].marker()
+    restored = box['X'].marker()
     check('ROLLBACK_RESTORES_THE_PREVIOUS_ARTIFACT',
           swapped == 'new' and rb is True and restored == 'old'
           and hotswap.loaded_sha('exchange_truth') == original_sha
           and 'ROLLED_BACK' in log_text(audit),
-          'swapped=%r rb=%r restored=%r sha=%r' % (swapped, rb, restored,
-                                                    hotswap.loaded_sha('exchange_truth')))
+          'swapped=%r rb=%r restored=%r sha=%r' % (swapped, rb, restored, hotswap.loaded_sha('exchange_truth')))
 except Exception as exc:
     check('ROLLBACK_RESTORES_THE_PREVIOUS_ARTIFACT', False, '%s: %s' % (type(exc).__name__, exc))
-
-# --- MALFORMED_REQUEST_IS_REFUSED -----------------------------------------------------------
+# --- STATE_WRITE_FAILED_IS_REFUSED_AND_NOTHING_IS_INSTALLED ---
 audit = tempfile.mkdtemp(prefix='hotswap_audit_')
-fake_module('exchange_truth', 'def marker():\n    return "old"\n')
+box, _src = fake_importer()
+art, art_sha = write_artifact('def marker():\n    return "new"\n')
+saved_writer = hotswap._write_state
+try:
+    hotswap._write_state = lambda *a, **k: None          # the durable write silently does nothing
+    request(audit, module='exchange_truth', action='apply', artifact=str(art), sha256=art_sha)
+    ok = hotswap.tick(audit)
+    check('STATE_WRITE_FAILED_IS_REFUSED_AND_NOTHING_IS_INSTALLED',
+          ok is False and 'REFUSED_STATE_WRITE_FAILED' in log_text(audit) and box['X'].marker() == 'old'
+          and not (Path(audit) / hotswap.STATE_FILE).exists(),
+          'ok=%r marker=%r log=%r' % (ok, box['X'].marker(), log_text(audit)))
+finally:
+    hotswap._write_state = saved_writer
+
+# --- TWO_CONCURRENT_CALLS_DO_NOT_BLOCK_EACH_OTHER ---
+inside = [threading.Event(), threading.Event()]
+release = threading.Event()
+error = []
+
+
+def concurrent_call(slot):
+    try:
+        with hotswap.guard():
+            inside[slot].set()
+            if not wait(release):        # both must be inside before either may leave
+                error.append('call %d timed out waiting for its peer' % slot)
+    except Exception as exc:
+        error.append('%s: %s' % (type(exc).__name__, exc))
+
+
+threads = [threading.Thread(target=concurrent_call, args=(i,), daemon=True) for i in (0, 1)]
+for t in threads:
+    t.start()
+both = wait(inside[0]) and wait(inside[1])
+release.set()
+for t in threads:
+    t.join(5)
+check('TWO_CONCURRENT_CALLS_DO_NOT_BLOCK_EACH_OTHER',
+      both and not error and not any(t.is_alive() for t in threads),
+      'both_inside=%r errors=%r' % (both, error))
+
+# --- PAUSED_CALL_BLOCKS_THE_SWAP ---
+audit = tempfile.mkdtemp(prefix='hotswap_audit_')
+box, _src = fake_importer(body=(
+    'import threading\n'
+    'ENTERED = threading.Event()\n'
+    'RELEASE = threading.Event()\n'
+    'def slow():\n'
+    '    ENTERED.set()\n'
+    '    RELEASE.wait(5)\n'
+    '    return "old"\n'
+    'def marker():\n'
+    '    return "old"\n'))
+art, art_sha = write_artifact('def marker():\n    return "new"\n\ndef slow():\n    return "new"\n')
+try:
+    paused_result = []
+    slow_mod = sys.modules['exchange_truth']
+    slow_thread = threading.Thread(target=lambda: paused_result.append(box['X'].slow()), daemon=True)
+    slow_thread.start()
+    entered = wait(slow_mod.ENTERED)
+    request(audit, module='exchange_truth', action='apply', artifact=str(art), sha256=art_sha)
+    swap_result = []
+    swap_thread = threading.Thread(target=lambda: swap_result.append(hotswap.tick(audit)), daemon=True)
+    swap_thread.start()
+    time.sleep(0.4)
+    blocked = swap_thread.is_alive() and box['X'].marker() == 'old' and 'APPLIED' not in log_text(audit)
+    slow_mod.RELEASE.set()
+    slow_thread.join(5)
+    swap_thread.join(5)
+    check('PAUSED_CALL_BLOCKS_THE_SWAP',
+          entered and blocked and paused_result == ['old'] and swap_result == [True]
+          and box['X'].marker() == 'new' and hotswap.loaded_sha('exchange_truth') == art_sha,
+          'entered=%r blocked=%r paused=%r swap=%r marker=%r'
+          % (entered, blocked, paused_result, swap_result, box['X'].marker()))
+except Exception as exc:
+    check('PAUSED_CALL_BLOCKS_THE_SWAP', False, '%s: %s' % (type(exc).__name__, exc))
+
+# --- SWAP_TIMES_OUT_WITH_REFUSED_BUSY ---
+audit = tempfile.mkdtemp(prefix='hotswap_audit_')
+box, _src = fake_importer(body='def marker():\n    return "old"\n')
+art, art_sha = write_artifact('def marker():\n    return "new"\n')
+saved_timeout = hotswap.GUARD_SWAP_TIMEOUT_SEC
+holder_release = threading.Event()
+try:
+    hotswap.GUARD_SWAP_TIMEOUT_SEC = 0.3
+    held = threading.Event()
+
+    def stuck_call():
+        with hotswap.guard():
+            held.set()
+            holder_release.wait(10)      # a call that never drains inside the budget
+
+    holder = threading.Thread(target=stuck_call, daemon=True)
+    holder.start()
+    wait(held)
+    request(audit, module='exchange_truth', action='apply', artifact=str(art), sha256=art_sha)
+    started = time.monotonic()
+    ok = hotswap.tick(audit)
+    elapsed = time.monotonic() - started
+    still_old = box['X'].marker() == 'old'
+    holder_release.set()
+    holder.join(5)
+    check('SWAP_TIMES_OUT_WITH_REFUSED_BUSY',
+          ok is False and 'REFUSED_BUSY' in log_text(audit) and still_old and elapsed < 5.0
+          and hotswap.loaded_sha('exchange_truth') != art_sha,
+          'ok=%r elapsed=%.2fs marker=%r log=%r' % (ok, elapsed, box['X'].marker(), log_text(audit)))
+finally:
+    hotswap.GUARD_SWAP_TIMEOUT_SEC = saved_timeout
+
+# --- MALFORMED_REQUEST_IS_REFUSED ---
+audit = tempfile.mkdtemp(prefix='hotswap_audit_')
+box, _src = fake_importer()
 try:
     (Path(audit) / hotswap.REQUEST_FILE).write_text('{not json', encoding='utf-8')
     ok1 = hotswap.tick(audit)
@@ -187,9 +313,8 @@ try:
     log2 = log_text(audit)
     check('MALFORMED_REQUEST_IS_REFUSED',
           ok1 is False and ok2 is False and 'REFUSED_MALFORMED_REQUEST' in log1
-          and 'REFUSED_MALFORMED_REQUEST' in log2
-          and sys.modules['exchange_truth'].marker() == 'old',
-          'ok1=%r ok2=%r marker=%r log=%r' % (ok1, ok2, sys.modules['exchange_truth'].marker(), log2))
+          and 'REFUSED_MALFORMED_REQUEST' in log2 and box['X'].marker() == 'old',
+          'ok1=%r ok2=%r marker=%r log=%r' % (ok1, ok2, box['X'].marker(), log2))
 except Exception as exc:
     check('MALFORMED_REQUEST_IS_REFUSED', False, '%s: %s' % (type(exc).__name__, exc))
 

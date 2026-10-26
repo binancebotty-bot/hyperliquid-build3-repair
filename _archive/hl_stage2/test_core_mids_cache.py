@@ -159,12 +159,12 @@ C.follower_dex_scope = lambda: ['']
 changing = ScopeChangingFetcher()
 C._XNET.post_many = changing
 clock['ms'] += 10_000
-first = C.follower_mid('BTC')                 # fetches under the OLD scope
+first = C.follower_mid('BTC')                 # fetches under the OLD scope: the FIRST call must refuse
 C._XNET.post_many = FailingFetcher()          # and the replacement fetch fails
 clock['ms'] += 500                            # still well inside the 5 s age bound
 second = C.follower_mid('BTC')
 check('SCOPE_CHANGE_DURING_THE_FETCH_IS_NOT_SERVED',
-      second == 0.0,
+      first == 0.0 and second == 0.0,
       'first=%r second=%r (100.0 = an incomplete-scope price was served)' % (first, second))
 C.follower_dex_scope = lambda: ['']
 

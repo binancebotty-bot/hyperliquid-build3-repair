@@ -109,8 +109,18 @@ load_env_file(ENV_FILE)
 # (default testnet; mainnet must be named) serves every follower read and every order. Unknown names and
 # legacy URLs pointing at the other network refuse to start.
 sys.path.insert(0, str(BASE_DIR))
-import exchange_truth as _XNET  # noqa: E402
+import exchange_truth as _XNET_MODULE  # noqa: E402
 import hotswap as _HOTSWAP  # noqa: E402  allowlisted live-swap seam, driven by HOTSWAP_REQUEST.json
+# _XNET is a guard proxy: every _XNET.<fn>() call holds hotswap's SHARED guard for the whole call, so a
+# live swap waits for it (and never straddles it) while two calls never exclude each other.
+_XNET = _HOTSWAP.guarded(_XNET_MODULE)
+
+
+def _rebind_exchange_truth(new_module):
+    globals()["_XNET"] = _HOTSWAP.guarded(new_module)  # the swap's ONE assignment: no in-place dict surgery
+
+
+_HOTSWAP.register_setter("exchange_truth", _rebind_exchange_truth)
 try:
     NETWORKS = _XNET.resolve_networks()
 except _XNET.NetworkConfigError as _net_exc:
@@ -293,6 +303,10 @@ def follower_mid(coin: str) -> float:
                     # exception escaped follower_mid into the send path.
                     log_error("follower_mid_refresh_failed", exc)
                 if out:
+                    if follower_dex_scope() != dexes:  # a DEX learned DURING this fetch: its markets were never priced
+                        # THIS call would serve a scope it no longer covers: serve nothing and do not stamp
+                        # the cache, so the next call refetches the new scope (Codex 6407713064).
+                        return 0.0
                     m["px"], m["ms"], m["scope"] = out, now, dexes
                     m["refresh_ms"] = utc_now_ms() - now
     now = utc_now_ms()

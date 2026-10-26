@@ -9,15 +9,25 @@ Nothing is imported, reloaded or swapped unless the request names an ALLOWLISTED
 artifact bytes hash to the sha256 the request declares. Every refusal is named, appended to
 hotswap.log next to the request, and leaves the OLD code running: this module never raises.
 
-The install is a single `target.__dict__.update(...)` on the already-imported module object, so
-every existing `_XNET.foo` call site keeps working with no edits. A call already holding the old
-callable is unaffected; the next lookup sees the new one.
+The install never touches the live module object: it REBINDS the importer's module-level name
+with one assignment (the setter the importer registers) and repoints sys.modules, so a direct
+importer re-resolving the name also gets the new code.
+
+The guard is shared for calls and exclusive for the swap: a call bumps a counter under a short
+lock (never held across the network call), so concurrent calls never exclude each other; a swap
+blocks new entries, waits for the counter to drain, installs, then clears. A swap that cannot
+drain within GUARD_SWAP_TIMEOUT_SEC is refused REFUSED_BUSY and changes nothing.
+
+The published identity is the digest VERIFIED before installation, recorded at install and at
+rollback: mutating or deleting the artifact afterwards cannot make it describe code that is not
+running.
 """
 from __future__ import annotations
 
 import hashlib
 import json
 import sys
+import threading
 import time
 import types
 from pathlib import Path
@@ -39,9 +49,101 @@ PROTECTED_MODULES = frozenset({
 })
 PROTECTED_SUBSTRINGS = ("gate", "send", "wallet", "secret", "key")
 
+# A swap waits this long for in-flight calls to drain, then refuses REFUSED_BUSY: a hung call must
+# never freeze the cycle loop.
+GUARD_SWAP_TIMEOUT_SEC = 5.0
+
 _STAGING_NAME = "_hotswap_staging"
 _DROP_KEYS = ("__name__", "__loader__", "__spec__", "__package__", "__builtins__")
 _sha_cache: Dict[str, Any] = {}
+_installed_sha: Dict[str, str] = {}  # VERIFIED digest of the code actually running, per module
+_setters: Dict[str, Any] = {}  # name -> the importer's one-assignment rebind
+
+
+class _Guard:
+    """Reader/writer gate: any number of calls hold it, one swap takes it exclusively. The lock is
+    held only for the counter update, never across the guarded call."""
+
+    def __init__(self) -> None:
+        self._cond = threading.Condition()
+        self._active = 0
+        self._swapping = False
+
+    def __enter__(self) -> "_Guard":
+        with self._cond:
+            while self._swapping:  # a swap is installing: enter only once it is done
+                self._cond.wait()
+            self._active += 1
+        return self
+
+    def __exit__(self, *_exc: Any) -> None:
+        with self._cond:
+            self._active -= 1
+            self._cond.notify_all()
+
+    def acquire_exclusive(self, timeout: float) -> bool:
+        """Refuse new holders, wait for the active count to drain. False and no change on timeout."""
+        deadline = time.monotonic() + max(0.0, timeout)
+        with self._cond:
+            self._swapping = True  # first: no new holder may enter from here on
+            while self._active:
+                left = deadline - time.monotonic()
+                if left <= 0:
+                    self._swapping = False
+                    self._cond.notify_all()
+                    return False
+                self._cond.wait(left)
+            return True
+
+    def release_exclusive(self) -> None:
+        with self._cond:
+            self._swapping = False
+            self._cond.notify_all()
+
+    def active(self) -> int:
+        with self._cond:
+            return self._active
+
+
+_GUARD = _Guard()
+
+
+def guard() -> _Guard:
+    """Hold this around a use of a swappable module; a swap cannot straddle the block."""
+    return _GUARD
+
+
+class _GuardedModule:
+    """Module proxy that holds the shared guard for the whole of every call into the module, so no
+    call site can be forgotten and no two calls exclude each other."""
+
+    __slots__ = ("_inner",)
+
+    def __init__(self, inner: Any) -> None:
+        object.__setattr__(self, "_inner", inner)
+
+    def __getattr__(self, item: str) -> Any:
+        value = getattr(object.__getattribute__(self, "_inner"), item)
+        if isinstance(value, type) or not callable(value):
+            return value  # exception classes and constants pass straight through
+
+        def _call(*args: Any, **kwargs: Any) -> Any:
+            with _GUARD:
+                return value(*args, **kwargs)
+
+        return _call
+
+    def __setattr__(self, item: str, value: Any) -> None:
+        setattr(object.__getattribute__(self, "_inner"), item, value)
+
+
+def guarded(module: Any) -> _GuardedModule:
+    return _GuardedModule(module)
+
+
+def register_setter(name: str, setter: Any) -> None:
+    """The importer's one-assignment rebind, called with the new module under the exclusive turn."""
+    _setters[name] = setter
 
 
 def _log(audit_dir: Any, event: str, module: Any, detail: Any = "") -> None:
@@ -82,13 +184,28 @@ def _write_state(audit_dir: Any, state: Dict[str, Any]) -> None:
         pass
 
 
-def loaded_sha(name: str) -> str:
-    """sha256 of the source file the module object is currently executing from.
+def _persist_state(audit_dir: Any, name: str, entry: Dict[str, Any]) -> bool:
+    """Write the entry, re-read it and check it names the expected path and digest: the pointer must
+    be durable BEFORE anything is installed."""
+    state = _read_state(audit_dir)
+    state[name] = entry
+    _write_state(audit_dir, state)
+    back = _read_state(audit_dir).get(name)
+    return (isinstance(back, dict) and back.get("installed_path") == entry["installed_path"]
+            and back.get("installed_sha") == entry["installed_sha"])
 
-    After a swap __file__ points at the installed artifact, so this is the loaded artifact's
-    hash; before any swap it is the original file's hash. "" for a module that is not imported
-    or whose file cannot be read.
+
+def loaded_sha(name: str) -> str:
+    """Digest of the code the module object is executing.
+
+    After a swap this is the digest VERIFIED before installation (recorded at install/rollback),
+    so a mutated or deleted artifact cannot change what is reported. Before any swap it is the
+    sha256 of the module's source file, memoised on (path, mtime, size). "" for a module that is
+    not imported or whose file cannot be read.
     """
+    recorded = _installed_sha.get(name)
+    if recorded:
+        return recorded
     module = sys.modules.get(name)
     path = getattr(module, "__file__", None) if module is not None else None
     if not path:
@@ -124,14 +241,24 @@ def _build(path: Path, raw: bytes) -> types.ModuleType:
     return staging
 
 
-def _install(target: types.ModuleType, staging: types.ModuleType, path: Path) -> None:
-    """One atomic step: swap every name into the already-imported module object."""
-    # shortcut: update() merges, so a name dropped from a new artifact keeps its OLD binding. That
-    # merge is what leaves no window where the module lacks a name another thread may be calling.
-    # Upgrade to a locked clear+update if an artifact ever renames a public function.
-    patch = {k: v for k, v in staging.__dict__.items() if k not in _DROP_KEYS}
-    patch["__file__"] = str(path)
-    target.__dict__.update(patch)
+def _swap_in(audit_dir: Any, name: str, new_module: types.ModuleType, digest: str) -> bool:
+    """Exclusive turn: ONE rebind of the importer's name, then the digest of what is now live."""
+    setter = _setters.get(name)
+    if setter is None:
+        return _refuse(audit_dir, "REFUSED_NO_SETTER", name,
+                       "importer registered no rebind setter; refusing a half swap")
+    if not _GUARD.acquire_exclusive(GUARD_SWAP_TIMEOUT_SEC):
+        return _refuse(audit_dir, "REFUSED_BUSY", name,
+                       "a call stayed in flight for %.1fs; nothing installed" % GUARD_SWAP_TIMEOUT_SEC)
+    try:
+        setter(new_module)
+        sys.modules[name] = new_module  # a direct importer re-resolving the name sees it too
+        _installed_sha[name] = digest
+    except Exception as exc:
+        return _refuse(audit_dir, "REFUSED_SETTER_RAISED", name, "%s: %s" % (type(exc).__name__, exc))
+    finally:
+        _GUARD.release_exclusive()
+    return True
 
 
 def _keep_previous(audit_dir: Any, name: str, target: types.ModuleType) -> Optional[Dict[str, str]]:
@@ -185,11 +312,12 @@ def _apply(audit_dir: Any, name: str, artifact: Any, expected: str) -> bool:
     if previous is None:
         return _refuse(audit_dir, "REFUSED_PREVIOUS_COPY_FAILED", name,
                        "could not keep the live source %r; no rollback available" % getattr(target, "__file__", None))
-    _install(target, staging, path)
-    _sha_cache.pop(name, None)
-    state = _read_state(audit_dir)
-    state[name] = {"installed_path": str(path), "installed_sha": actual, **previous}
-    _write_state(audit_dir, state)
+    entry = {"installed_path": str(path), "installed_sha": actual, **previous}
+    if not _persist_state(audit_dir, name, entry):
+        return _refuse(audit_dir, "REFUSED_STATE_WRITE_FAILED", name,
+                       "rollback pointer not durable; nothing installed")
+    if not _swap_in(audit_dir, name, staging, actual):
+        return False
     _log(audit_dir, "APPLIED", name, actual)
     return True
 
@@ -216,11 +344,11 @@ def _rollback(audit_dir: Any, name: str, expected: str) -> bool:
         staging = _build(prev_path, raw)
     except BaseException as exc:
         return _refuse(audit_dir, "REFUSED_IMPORT_RAISED", name, "%s: %s" % (type(exc).__name__, exc))
-    _install(target, staging, prev_path)
-    _sha_cache.pop(name, None)
-    state = _read_state(audit_dir)
-    state[name] = {"installed_path": str(prev_path), "installed_sha": actual}
-    _write_state(audit_dir, state)
+    if not _persist_state(audit_dir, name, {"installed_path": str(prev_path), "installed_sha": actual}):
+        return _refuse(audit_dir, "REFUSED_STATE_WRITE_FAILED", name,
+                       "rollback target not durable; nothing installed")
+    if not _swap_in(audit_dir, name, staging, actual):
+        return False
     _log(audit_dir, "ROLLED_BACK", name, actual)
     return True
 
