@@ -396,6 +396,51 @@ try:
 except Exception as exc:
     check('MALFORMED_REQUEST_IS_REFUSED', False, '%s: %s' % (type(exc).__name__, exc))
 
+# --- STATE_WRITE_IS_ATOMIC: a crash mid-write must leave the OLD map whole ---
+audit_atomic = tempfile.mkdtemp(prefix='hotswap_atomic_')
+_state_file = hotswap._state_path(audit_atomic)
+hotswap._write_state(audit_atomic, {'exchange_truth': {'installed_path': 'old', 'installed_sha': 'oldsha'}})
+_before = _state_file.read_text(encoding='utf-8')
+_real_replace = hotswap.os.replace
+
+
+def _boom(src, dst):
+    raise OSError('simulated crash during replace')
+
+
+hotswap.os.replace = _boom
+try:
+    hotswap._write_state(audit_atomic, {'exchange_truth': {'installed_path': 'new', 'installed_sha': 'newsha'}})
+finally:
+    hotswap.os.replace = _real_replace
+_after = _state_file.read_text(encoding='utf-8')
+check('STATE_WRITE_IS_ATOMIC', _after == _before and 'oldsha' in _after,
+      'prior state changed after a failed write: %r' % (_after[:120],))
+
+# --- SETTER_RAISE_ROLLS_THE_STATE_BACK: a refused install must not leave a pointer to dead code ---
+audit_setter = tempfile.mkdtemp(prefix='hotswap_setter_')
+OLD_BODY = "def marker():" + chr(10) + '    return "old"' + chr(10)
+NEW_BODY = "def marker():" + chr(10) + '    return "new"' + chr(10)
+box2, _src2 = fake_importer(body=OLD_BODY)
+art2, art2_sha = write_artifact(NEW_BODY)
+hotswap._write_state(audit_setter, {'exchange_truth': {'installed_path': 'prior', 'installed_sha': 'priorsha'}})
+_sf2 = hotswap._state_path(audit_setter)
+_pre2 = _sf2.read_text(encoding='utf-8')
+
+
+def _raising_setter(_new):
+    raise RuntimeError('importer refused the rebind')
+
+
+hotswap.register_setter('exchange_truth', _raising_setter)
+request(audit_setter, module='exchange_truth', action='apply', artifact=str(art2), sha256=art2_sha)
+_ok2 = hotswap.tick(audit_setter)
+_post2 = _sf2.read_text(encoding='utf-8')
+check('SETTER_RAISE_ROLLS_THE_STATE_BACK',
+      _ok2 is False and _post2 == _pre2 and box2['X'].marker() == 'old',
+      'tick=%r state_changed=%r old_code_still_live=%r'
+      % (_ok2, _post2 != _pre2, box2['X'].marker() == 'old'))
+
 failed = [n for n, ok in results if not ok]
 print('TOTAL=%d FAILED=%d' % (len(results), len(failed)))
 if failed:

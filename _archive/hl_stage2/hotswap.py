@@ -26,6 +26,7 @@ running.
 from __future__ import annotations
 
 import hashlib
+import os
 import importlib.util
 import json
 import sys
@@ -202,9 +203,22 @@ def _read_state(audit_dir: Any) -> Dict[str, Any]:
         return {}
 
 
+def _write_state_bytes(path: Path, blob: str) -> None:
+    """tmp + fsync + os.replace: a crash mid-write leaves the OLD file whole, never a truncated map.
+
+    write_text() could truncate the file and take every module's rollback pointer with it.
+    """
+    tmp = path.with_name(path.name + ".tmp")
+    with open(tmp, "w", encoding="utf-8") as fh:
+        fh.write(blob)
+        fh.flush()
+        os.fsync(fh.fileno())
+    os.replace(tmp, path)
+
+
 def _write_state(audit_dir: Any, state: Dict[str, Any]) -> None:
     try:
-        _state_path(audit_dir).write_text(json.dumps(state, indent=2, sort_keys=True), encoding="utf-8")
+        _write_state_bytes(_state_path(audit_dir), json.dumps(state, indent=2, sort_keys=True))
     except Exception:
         pass
 
@@ -290,6 +304,11 @@ def _install(audit_dir: Any, name: str, new_module: types.ModuleType, digest: st
     if not _GUARD.acquire_exclusive(GUARD_SWAP_TIMEOUT_SEC):
         return _refuse(audit_dir, "REFUSED_BUSY", name,
                        "a call stayed in flight for %.1fs; nothing installed" % GUARD_SWAP_TIMEOUT_SEC)
+    _state_file = _state_path(audit_dir)
+    try:
+        _prior_state = _state_file.read_text(encoding="utf-8")
+    except Exception:
+        _prior_state = ""
     try:
         if entry is not None and not _persist_state(audit_dir, name, entry):
             return _refuse(audit_dir, "REFUSED_STATE_WRITE_FAILED", name,
@@ -298,6 +317,12 @@ def _install(audit_dir: Any, name: str, new_module: types.ModuleType, digest: st
         sys.modules[name] = new_module  # a direct importer re-resolving the name sees it too
         _installed_sha[name] = digest
     except Exception as exc:
+        # the state named this artifact before the rebind happened: put the previous map back, so a
+        # refused install never leaves a durable pointer to code that is not live.
+        try:
+            _write_state_bytes(_state_file, _prior_state)
+        except Exception:
+            pass
         return _refuse(audit_dir, "REFUSED_SETTER_RAISED", name, "%s: %s" % (type(exc).__name__, exc))
     finally:
         _GUARD.release_exclusive()
