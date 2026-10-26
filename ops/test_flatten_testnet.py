@@ -18,13 +18,13 @@ def check(name, ok, detail=""):
 
 # ---- 1. USER-OWNED: named, and absent-from-ledger, are both refused
 for name in ("XYZ:CRCL", "XYZ:ORCL", "XYZ:LLY"):
-    refuse, why = F.is_user_owned(name, 0.0)
-    check("REFUSES_NAMED_%s" % name.replace(":", "_"), refuse and why == "USER_OWNED_NAMED",
-          "refuse=%r why=%r" % (refuse, why))
+    kind, why = F.ownership(name, 0.0, None)      # one implementation: ownership() is the rule
+    check("REFUSES_NAMED_%s" % name.replace(":", "_"), kind == "USER" and why == "USER_OWNED_NAMED",
+          "kind=%r why=%r" % (kind, why))
 
 kind, why = F.ownership("SOMECOIN", None, None)
 check("AN_UNKNOWN_COIN_IS_AMBIGUOUS_NOT_FLATTENED", kind == "AMBIGUOUS" and why == "ABSENT_FROM_LEDGER",
-      "an unowned-by-ledger coin must be treated as the operator's: refuse=%r why=%r" % (refuse, why))
+      "an unowned-by-ledger coin must be treated as the operator's: kind=%r why=%r" % (kind, why))
 
 kind, why = F.ownership("CHIP", -1052.0, None)
 check("ALLOWS_A_LEDGER_OWNED_COIN", kind == "ENGINE", "the engine's own position was refused: %r" % (why,))
@@ -138,8 +138,8 @@ check("A_CANCEL_FAILURE_IS_A_HARD_STOP",
       'CANCEL_FAILED' in src and "abort_run(state, live, rows, extra, 10" in src,
       "a recorded note is not a hard stop")
 check("ONLY_A_CLEAN_IOC_NO_MATCH_MAY_RETRY",
-      'SKIPPED_IOC_NO_IMMEDIATE_MATCH' in src and "ABORTED_UNEXPECTED_RESULT" in src,
-      "retrying a rejected or unclassified reply can double-close")
+      "_no_match" in src and "ABORTED_UNEXPECTED_RESULT" in src and '"no match" in _why' in src,
+      "the predicate must read the rejection text - a status-only predicate can never fire and aborts every IOC")
 check("THE_REPORT_IS_WRITTEN_BEFORE_AN_EARLY_RETURN",
       "abort_run(state, live, rows, extra" in src and "os.fsync" in src,
       "every abort must go through abort_run, which re-reads positions and writes+fsyncs the report")

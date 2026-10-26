@@ -120,21 +120,6 @@ def is_testnet(info_url: str, client_url: str = "") -> bool:
         return False
     return (not client_url) or ok(client_url)
 
-def is_user_owned(coin: str, ledger_net: Optional[float], in_journal: bool = False) -> Tuple[bool, str]:
-    """(refuse, reason). The operator's when named, or when NEITHER the ledger NOR the send journal knows the coin.
-
-    TWO SOURCES, because one is not enough: the ledger lags (a resting order can fill after the last ledger write), and
-    a coin we opened but have not booked would otherwise be called hand-placed and left open forever. A hand-placed
-    coin appears in neither source.
-    """
-    ck = coin_key(coin)
-    if ck.upper() in {u.upper() for u in USER_OWNED}:
-        return True, "USER_OWNED_NAMED"
-    if ledger_net is None and not in_journal:
-        return True, "USER_OWNED_ABSENT_FROM_LEDGER"
-    return False, ""
-
-
 def order_side(net: float) -> Optional[bool]:
     """True = buy, False = sell. A long is closed by selling, a short by buying."""
     if net > 0:
@@ -243,7 +228,9 @@ def engine_pids(state: Optional[Path] = None) -> List[int]:
     try:
         sys.path.insert(0, str(Path(__file__).resolve().parent))
         import stop_pair
-        return list(stop_pair.pids(state) if state is not None else stop_pair.pids(None))
+        # ANY engine, not only one pointed at this state dir: an engine on the same wallet but a different dir would
+        # keep entering the book we are flattening. want_dir=None removes stop_pair's per-dir filter.
+        return list(stop_pair.pids(None))
     except Exception as exc:
         print("REFUSED: cannot determine whether an engine is running (%r)" % (exc,))
         return [-1]          # unknown is NOT permission to proceed
@@ -427,12 +414,12 @@ def write_report(state: Path, live: bool, rows: List[Dict[str, Any]], extra: Opt
 
 
 def refuse(state: Path, live: bool, rows: List[Dict[str, Any]], extra: Dict[str, Any], code: int,
-           why: str) -> int:
+           why: str, wallet: str = "") -> int:
     """A pre-flight refusal still leaves evidence when it is a LIVE run - a refusal is a decision worth a row."""
     rows.append({"coin": "", "before": 0, "after": 0, "action": "REFUSED", "reason": why})
     print("REFUSED: %s" % why)
     if live:
-        return abort_run(state, live, rows, extra, code)
+        return abort_run(state, live, rows, extra, code, wallet)
     return code
 
 
@@ -451,8 +438,7 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     wallet = os.getenv("HL_USER_WALLET") or os.getenv("HL_LIVE_HL_ACCOUNT_ADDRESS") or ""
     if not wallet:
-        print("REFUSED: no follower wallet in the environment")
-        return 2
+        return refuse(state, live, rows, extra, 2, "no follower wallet in the environment")
     print("MODE " + ("LIVE" if live else "DRY_RUN (nothing will be sent)"))
     rows: List[Dict[str, Any]] = []
     extra: Dict[str, Any] = {}
@@ -466,8 +452,7 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     pids = engine_pids(state)
     if pids:
-        print("REFUSED: an engine is running (pids %s). Stop the pair first." % pids)
-        return 3
+        return refuse(state, live, rows, extra, 3, "an engine is running (pids %s). Stop the pair first." % pids)
 
     # ---- endpoints: BOTH must be testnet, and an unreadable endpoint refuses
     info_url = os.getenv("HL_INFO_URL") or "https://api.hyperliquid-testnet.xyz/info"
@@ -599,10 +584,16 @@ def main(argv: Optional[List[str]] = None) -> int:
                               {"oid": "flat", "dir": "Close Long" if not step["is_buy"] else "Close Short"})
             intent = IntentBuilder(ConfigManager(), ManualLedger(path=_ltmp)).build(fill)
             done = False
-            for attempt in (1, 2):
+            for attempt in range(1, MAX_ATTEMPTS + 1):
                 px = limit_price(mid, step["is_buy"], attempt)
                 if not valid_price(px):
                     break
+                _m_now = fresh_mid(mids_now(), step["coin"], time.time())
+                if _m_now:
+                    mid = _m_now
+                    px = limit_price(mid, step["is_buy"], attempt)
+                    if not valid_price(px):
+                        break
                 resp = gw._place_order(exch, sdk_coin, step["is_buy"], step["size"], px, "Ioc", True,
                                        {}, "flatten_started_ms", None, False, None, intent, "flatten_testnet")
                 ok, status, _oid, _err = gw._parse_hl_response(resp)
@@ -612,8 +603,13 @@ def main(argv: Optional[List[str]] = None) -> int:
                     r["reason"] = "attempt=%d px=%.6g" % (attempt, px)
                     break
                 r["reason"] = "attempt=%d status=%s" % (attempt, _st)
-                # ONLY a clean "IOC no match" may retry. Anything else is uncertainty, and uncertainty aborts.
-                if not _st.startswith(("SKIPPED_IOC_NO_IMMEDIATE_MATCH", "IOC_NO_MATCH", "ORDER_IOC_NO_MATCH")):
+                # ONLY a clean "IOC no match" may retry. `_parse_hl_response` returns ORDER_REJECTED with the reason in
+                # the error text, so the predicate has to read BOTH the status and that text - the status-only version
+                # could never fire and would have aborted the whole run on the first unfilled IOC.
+                _why = " ".join(str(x) for x in (status, _err, resp)).lower()
+                _no_match = ("order_rejected" in _st.lower() or not _st) and (
+                    "no match" in _why or "immediately" in _why or "ioc" in _why)
+                if not _no_match:
                     r.update(action="ABORTED_UNEXPECTED_RESULT")
                     print("ABORT: unclassified or rejected result %r on %s" % (_st, step["coin"]))
                     break
@@ -642,10 +638,19 @@ def main(argv: Optional[List[str]] = None) -> int:
         if r["action"].startswith(("FLATTEN", "WOULD")):
             r["after"] = after.get(r["coin"], 0.0)
     print(report(rows))
-    out = write_report(state, live, rows, extra)
+    try:
+        out = write_report(state, live, rows, extra)
+        print("report written to %s" % out)
+    except Exception as exc:
+        # orders have already been sent: losing the evidence NOW is the worst case, so print all of it
+        print("REPORT_NOT_WRITTEN %r after real sends - printing every row" % (exc,))
+        try:
+            print(json.dumps({"rows": rows, "extra": extra}, indent=2, default=str))
+        except Exception:
+            pass
+        return 101
     if live and not ledger_unchanged(real_ledger, fp):
         print("WARNING: the ledger changed during the run (edited by something else?)")
-    print("report written to %s" % out)
     return 0
 
 
