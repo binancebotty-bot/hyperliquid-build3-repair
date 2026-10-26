@@ -13108,6 +13108,10 @@ class LiveCopyCore:
                     log_error("follower_exclusion_ledger_unreadable", _led_exc)
                 except Exception:
                     pass
+                # Controller ruling: the withdrawal happens BEFORE build, this exclusion decides AFTER, so an excluded entry
+                # on a thin coin may already have withdrawn its own resting limit - ACCEPTED: the withdrawn limit's fills
+                # are booked, nothing is lost, and moving the exclusion ahead of the withdrawal would restore a pre-build
+                # decision the reviews rejected.
             try:
                 _status, _note = follower_entry_exclusion(
                     fill.coin, True, (getattr(self.cfg, "config", {}) or {}).get("global_controls") or {},
