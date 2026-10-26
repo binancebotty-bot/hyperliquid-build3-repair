@@ -119,6 +119,15 @@ check('GATE_REASON_REPORTS_MASTER_OFF',
 check('GATE_REASON_IS_EMPTY_WHEN_ALLOWED',
       C.SenderGateway._master_gate_reason(sender(), intent()) == '')
 
+# ---- item 6: the missed-entry rest path must record its own order, not leave a pending_send row
+body_start = src.index('def _missed_entry_rest_or_diff')
+body_end = src.index('def ', src.index('terminal_state=outcome', body_start))
+rest_body = src[body_start:body_end]
+check('REST_PATH_FINALISES_ITS_SEND_ROW',
+      'update_send_attempt_row(_aid' in rest_body and 'finalised by the missed-entry rest path' in rest_body,
+      'the rest path still leaves its pending_send row unresolved')
+
+
 failed = [n for n, ok in results if not ok]
 print('TOTAL=%d FAILED=%d' % (len(results), len(failed)))
 sys.exit(1 if failed else 0)

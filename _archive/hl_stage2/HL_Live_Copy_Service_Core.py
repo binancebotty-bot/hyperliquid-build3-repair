@@ -5463,6 +5463,24 @@ class SenderGateway:
             response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", size, px, tif, False,
                                          timing, f"{label}_started_ms", cloid=cloid, pre_send=pre_send, intent=intent, path="missed_entry_rest")
             ok, status, oid, error = self._parse_hl_response(response)
+            # This path wrote a pending_send row through _recovery_send_hooks and never finalised it:
+            # 1,028 rows stayed pending_send while 1,549 limits reached the exchange (2026-10-25), so
+            # the journal could not see its own orders. Append the outcome row (newest row per
+            # attempt_id wins; the file stays append-only).
+            try:
+                _aid = str((timing or {}).get("send_attempt_id") or "")
+                if _aid:
+                    _final = ("FILLED_AWAITING_COPY_POLL" if (ok and bool(missed["take"]))
+                              else "MISSED_ENTRY_LIMIT_RESTED" if ok else "MISSED_ENTRY_DIFF_LIMIT_REJECTED")
+                    update_send_attempt_row(_aid, {
+                        "status": status or "ORDER_UNKNOWN",
+                        "exchange_order_id": str(oid or ""),
+                        "terminal_state": _final,
+                        "error": str(error or "")[:300],
+                        "notes": "finalised by the missed-entry rest path",
+                    })
+            except Exception:
+                pass
         except Exception as exc:
             return dict(base, outcome="MISSED_ENTRY_DIFF_NO_LIMIT_POSSIBLE",
                         notes=f"named diff: {cause}; no order ({type(exc).__name__}: {str(exc)[:200]})")
