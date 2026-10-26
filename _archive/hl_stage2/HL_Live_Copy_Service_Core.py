@@ -12199,7 +12199,9 @@ class LiveCopyCore:
             self._stuck_dumped.add(fid)
             self.audit.append_reconciliation(
                 "FILL_PENDING", "FILL_PENDING_STUCK", leader_wallet=wallet, leader_fill_id=fid, coin=coin,
-                action="WORKER_STUCK_SEE_STUCK_THREADS_FILE", terminal_state="FILL_PENDING_STUCK", engine_can_send="False",
+                # a "still stuck" marker, not a terminal outcome: writing it into terminal_state would give one fill
+                # two terminal rows once the worker recovers
+                action="WORKER_STUCK_SEE_STUCK_THREADS_FILE", engine_can_send="False",
                 notes=f"worker {tname} has been on this fill for {(now - at) // 1000}s; all thread stacks written to stuck_threads_{now}.txt")
 
     def _is_close_fill(self, fill: LeaderFill) -> bool:
@@ -16590,6 +16592,9 @@ def _close_orphan_attempt_rows_impl(send_attempts_csv: Optional[str] = None, liv
         except (decimal.InvalidOperation, ValueError, OverflowError):
             pass
         return text                               # non-integral stays raw and therefore unmatched
+    # shortcut: the journaled fill_size passed through fnum() when the fill was recorded, so a value below float
+    # resolution (0.99999999999999999 -> 1.0) is already lost before this point. Comparing exactly is still right - it
+    # never INFLATES what happened - but closing the upstream coercion is a separate change.
     # EXACT decimal arithmetic: CSV sizes are decimal strings, and summing them as binary floats then rounding is not
     # the same thing. Parse and add as Decimal, quantise once to the size quantum.
     # A restart clears any in-process set, so the partial marker is keyed INTO the row it writes and read back from the
@@ -16760,6 +16765,10 @@ def _close_orphan_attempt_rows_impl(send_attempts_csv: Optional[str] = None, liv
                     rec["applied"] = True
                     _PARTIAL_ROWS_WRITTEN.add(_pkey)
                     _existing_partial.add(_pkey)
+                    # a partial means the order can still complete: clear the burst throttle so the NEXT fill sweeps
+                    # immediately instead of being discarded inside the five-second window and left ORDER_RESTING
+                    # until a restart
+                    globals()["_LAST_MATCHER_SWEEP"] = 0.0
                 except Exception as exc:
                     rec["error"] = repr(exc)
             done.append(rec)

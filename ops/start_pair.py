@@ -166,13 +166,10 @@ def ui_proven(ui, engine, port, state, before):
         return False
     if SP.listener(port) == ui.pid:
         return True
-    f = state / 'live_service_state.json'
-    if before is None:
-        return f.exists()                       # it did not exist before this launch
-    try:
-        return f.stat().st_mtime_ns > before[0]
-    except OSError:
-        return False
+    # NOT the state file: live_service_state.json is written by the ENGINE, so a fresh mtime proves the engine is
+    # alive, never that the UI is. A uvicorn that never binds the port would be certified "up" by the engine's own
+    # heartbeat. The listener PID is the only proof the UI owns this launch.
+    return False
 
 
 def already_running(state, port):

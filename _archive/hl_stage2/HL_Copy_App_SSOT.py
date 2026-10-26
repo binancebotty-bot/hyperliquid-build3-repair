@@ -2599,6 +2599,10 @@ def _fetch_user_realized_pnl_snapshot(account: Optional[str] = None, baseline_ti
 
 
 def _append_exchange_history(snapshot: Dict[str, Any], manual_summary: Dict[str, Any], portfolio_value: Optional[float] = None) -> None:
+    # The ENGINE owns this file now (append_account_history_point in the cycle). Two processes doing read/modify/write
+    # on the same JSON lose each other's points - atomic replace prevents corruption, not a lost update - so the UI
+    # stopped writing and reads what the daemon records.
+    return
     if not snapshot.get("ok") or not snapshot.get("available"):
         return
     history = load_json(EXCHANGE_ACCOUNT_HISTORY_FILE, [])

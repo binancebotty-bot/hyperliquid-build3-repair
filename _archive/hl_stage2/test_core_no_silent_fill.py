@@ -353,8 +353,10 @@ def main() -> None:
           and "BLOCKED_NO_TERMINAL_RECORDED" in states("odd-2"),
           f"status={statuses('odd-2')} terminal={states('odd-2')}")
     check("PRE_CUTOVER_FILL_SAYS_SO", "PRE_CUTOVER_NOT_SENT" in states("old-1"), f"states={states('old-1')}")
-    check("STUCK_WORKER_IS_NAMED_AND_DUMPED", "FILL_PENDING_STUCK" in states("slow-1") and list(Path(c.CORE_RUNTIME_STATE_FILE).parent.glob("stuck_threads_*.txt")),
-          f"states={states('slow-1')}")
+    check("STUCK_WORKER_IS_NAMED_AND_DUMPED",
+          "FILL_PENDING_STUCK" in statuses("slow-1") and "FILL_PENDING_STUCK" not in states("slow-1")
+          and list(Path(c.CORE_RUNTIME_STATE_FILE).parent.glob("stuck_threads_*.txt")),
+          f"status={statuses('slow-1')} terminal={states('slow-1')} - a stuck marker must be visible and NOT terminal")
     check("SLOW_FILL_HAS_A_PENDING_ROW",
           "FILL_PENDING_QUEUED" in statuses("slow-1") and "FILL_PENDING_QUEUED" not in states("slow-1"),
           f"status={statuses('slow-1')} terminal={states('slow-1')} - the row must stay visible but never terminal")

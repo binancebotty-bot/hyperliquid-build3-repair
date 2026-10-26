@@ -411,9 +411,9 @@ past = time.time() - 600
 os.utime(str(sf_rw), (past, past))
 before_rw = M.state_identity(st_rw)
 sf_rw.write_text('{"tick": 1, "started": true}', encoding='utf-8')     # the new UI process rewrites it
-check('A_STATE_FILE_REWRITTEN_BY_THE_NEW_PROCESS_PROVES_THE_UI',
-      M.ui_proven(ui_alive, eng_up, PORT, st_rw, before_rw),
-      'a genuinely rewritten state file did not prove the UI')
+check('A_FRESH_STATE_FILE_DOES_NOT_PROVE_THE_UI',
+      not M.ui_proven(ui_alive, eng_up, PORT, st_rw, before_rw),
+      'the ENGINE writes live_service_state.json, so a fresh mtime certified a UI that never bound its port')
 st_nf = seeded_state('nf', 'stack_nf')
 M.SP.listener = lambda p: 40012                             # ours holds the port
 check('A_LISTENER_OWNED_BY_THE_SPAWNED_UI_STILL_PROVES_IT',
