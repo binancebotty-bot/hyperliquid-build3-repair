@@ -200,6 +200,36 @@ def engine_pids(state: Optional[Path] = None) -> List[int]:
         return [-1]          # unknown is NOT permission to proceed
 
 
+def reconcile_cloids(state: Path, wallet: str) -> Dict[str, Any]:
+    """exchange open orders (cloid) vs our journals (cloid). Matched on CLOID, never oid.
+
+    An order on the exchange whose cloid appears in neither journal is UNACCOUNTED: it must be named and cancelled
+    before the state dir is archived, because an archived dir is never read again.
+    """
+    import csv
+    ours = set()
+    for name in ("send_attempts.csv", "resting_entry_orders.csv"):
+        p = state / "append_only" / name
+        if not p.exists():
+            p = state / name
+        try:
+            with open(p, encoding="utf-8", errors="replace") as fh:
+                for row in csv.DictReader(fh):
+                    cl = str(row.get("cloid") or "").strip()
+                    if cl:
+                        ours.add(cl.lower())
+        except Exception:
+            pass
+    live = []
+    for o in resting_orders(wallet):
+        cl = str(o.get("cloid") or "").strip().lower()
+        if cl:
+            live.append({"coin": o.get("coin"), "cloid": cl, "oid": o.get("oid")})
+    unaccounted = [o for o in live if o["cloid"] not in ours]
+    return {"exchange_orders": len(live), "journal_cloids": len(ours),
+            "unaccounted": unaccounted, "ok": not unaccounted}
+
+
 def build_plan(positions: List[Dict[str, Any]], nets: Dict[str, float],
                sz_dec: Dict[str, int], listed: Optional[set] = None,
                journal: Optional[set] = None) -> List[Dict[str, Any]]:
@@ -249,6 +279,9 @@ def main(argv: Optional[List[str]] = None) -> int:
     ap.add_argument("--live", action="store_true", help="actually cancel and send; without this nothing is sent")
     ap.add_argument("--cancel-resting", action="store_true", help="cancel the engine's resting orders first")
     ap.add_argument("--only", default="", help="restrict to one coin")
+    ap.add_argument("--reconcile", action="store_true",
+                    help="print the cloid reconciliation (exchange vs journal union) and exit non-zero if any order "
+                         "is unaccounted - the ARCHIVE GATE")
     args = ap.parse_args(argv)
     state = Path(args.state)
 
@@ -258,6 +291,12 @@ def main(argv: Optional[List[str]] = None) -> int:
         return 2
     live = bool(args.live)
     print("MODE " + ("LIVE" if live else "DRY_RUN (nothing will be sent)"))
+
+    if args.reconcile:                      # read-only: safe while the engine runs, and needed before the stop too
+        rec = reconcile_cloids(state, wallet)
+        print(json.dumps(rec, indent=2))
+        print("ARCHIVE_GATE " + ("PASS" if rec["ok"] else "BLOCKED"))
+        return 0 if rec["ok"] else 4
 
     pids = engine_pids(state)
     if pids:
