@@ -10484,15 +10484,17 @@ class CopyFillMatcher:
         # Same rule as the sweep's canonicaliser, and for the same reason: a corrupt oid must match NOTHING. Returning
         # the text made a "NaN" attempt row hard-match a "NaN" fill and apply it to an unrelated intent.
         stripped = str(raw).strip()
-        if not stripped:
-            return ""
+        if not stripped or len(stripped) > 40:
+            return ""                              # an oid is a small integer; anything longer is corrupt, not an id
         try:
             dec = decimal.Decimal(stripped)
-            if not dec.is_finite():
+            # is_finite() is NOT enough: '1E+999999999' is finite and integral, and int() of it builds a
+            # ten-million-digit number - it never returns, on the hot fill path. Bound the exponent first.
+            if not dec.is_finite() or dec.adjusted() > 40:
                 return ""
             if dec == dec.to_integral_value():
                 return str(int(dec))
-        except (decimal.InvalidOperation, ValueError, OverflowError):
+        except (decimal.InvalidOperation, ValueError, OverflowError, MemoryError):
             pass
         return stripped
 
@@ -16588,17 +16590,17 @@ def _close_orphan_attempt_rows_impl(send_attempts_csv: Optional[str] = None, liv
         # EXACT. int(float(...)) rounds anything past 2^53 and would collapse two distinct order ids onto one key -
         # which is how a partial-then-cancelled order could be summed with a different order and called filled.
         text = str(value or "").strip()
-        if not text:
-            return ""
+        if not text or len(text) > 40:
+            return ""                             # an oid is a small integer; a longer cell is corrupt
         try:
             dec = decimal.Decimal(text)          # '123.00' and '1.23e2' are both 123
-            if not dec.is_finite():
-                return ""                         # 'NaN'/'Infinity' must match nothing - returning the text made a
+            if not dec.is_finite() or dec.adjusted() > 40:
+                return ""                         # '1E+999999999' is finite AND integral: int() would hang                         # 'NaN'/'Infinity' must match nothing - returning the text made a
                                                   # corrupt cell in BOTH files canonicalise to one key and close an
                                                   # unrelated attempt
             if dec == dec.to_integral_value():
                 return str(int(dec))
-        except (decimal.InvalidOperation, ValueError, OverflowError):
+        except (decimal.InvalidOperation, ValueError, OverflowError, MemoryError):
             pass
         return text                               # non-integral stays raw and therefore unmatched
     # shortcut: the journaled fill_size passed through fnum() when the fill was recorded, so a value below float
