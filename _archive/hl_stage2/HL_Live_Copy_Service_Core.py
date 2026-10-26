@@ -719,9 +719,6 @@ POLL_MAX_PAGES_PER_WALLET = int(os.getenv("HL_LIVE_POLL_MAX_PAGES_PER_WALLET", "
 LEADER_POLL_RETENTION_MS = 100 * 60 * 1000
 MAX_WALLETS = int(os.getenv("HL_LIVE_WS_MAX_WALLETS", "10"))
 POSITION_EPSILON = float(os.getenv("HL_LIVE_POSITION_EPSILON", "1e-9"))
-# The manual ledger's wallet id that holds the HUMAN's sleeves. Engine copy sleeves use leader wallet ids, so
-# only this id may shield a resting order from the startup orphan cancel (controller scope correction 2026-10-26).
-USER_SLEEVE_WALLET = str(os.getenv("HL_LIVE_USER_SLEEVE_WALLET", "user_owned") or "user_owned").strip().lower()
 STALE_REPLAY_GRACE_MS = int(os.getenv("HL_LIVE_STALE_REPLAY_GRACE_MS", "5000"))
 
 FILE_LOCK = threading.RLock()
@@ -1129,7 +1126,8 @@ NON_TERMINAL_ROW_NAMES = frozenset({
     "LEDGER_EXCHANGE_NET_MISMATCH", "LEDGER_REPAIR_PROVEN_EXCHANGE_FLAT", "LEADER_FILL_MERGED_INTO_ORDER",
     "LIQUIDATION_APPLIED", "LIQUIDATION_NOT_APPLIED", "MANUAL_ONLY_EXCHANGE_FLAT_CLOSED", "MATCHED_BY_EXCHANGE_ORDER_ID",
     "MATCHED_BY_INTENT_ID", "MERGED_INTO_HEAD_COPY", "MISSED_ENTRY_ALREADY_RESTING",
-    "ORDER_RESTING", "ORPHAN_ORDER_ADOPTED", "ORPHAN_ORDER_CANCELLED", "OUTAGE_GAP", "OWNERSHIP_GATE_SHARED_SYMBOL_AMBIGUOUS",
+    "ORDER_RESTING", "ORPHAN_ORDER_ADOPTED", "ORPHAN_ORDER_CANCELLED",
+    "ORPHAN_ORDER_USER_OWNED", "USER_OWNED_ORDER_LEFT_UNTOUCHED", "OUTAGE_GAP", "OWNERSHIP_GATE_SHARED_SYMBOL_AMBIGUOUS",
     "PENDING_EXIT_GUARD_ACTIVE", "PENDING_SEND", "POST_SEND_BOOKKEEPING_FAILED", "PRE_CUTOVER_NOT_SENT",
     "REPLAY_DEFERRED_PAST_LIMIT_ALERT", "REPLAY_DEFERRED_PROCESS_EXCEPTION", "REPLAY_DEFERRED_TRUTH_UNREADABLE",
     "RESTING_ENTRY_CANCEL_FAILED", "SCOPE_SWEEP_FAILING", "SEND_ATTEMPT_SUPERSEDE_FAILED",
@@ -3749,9 +3747,8 @@ def generate_cloid(intent_id: str) -> str:
 
 
 def is_engine_cloid(raw: Any) -> bool:
-    """True when raw has the exact shape generate_cloid() produces: 0x + 32 lowercase hex chars. The startup
-    orphan check uses this to decide whether an order could possibly be this engine's, so a NON-engine cloid
-    can never cause a cancel on a coin the human holds a USER sleeve in (controller scope correction)."""
+    """True when raw has the exact shape generate_cloid() produces: 0x + 32 hex chars, case-insensitive. The
+    startup orphan check uses this alone: only an engine-shaped cloid may be cancelled as an orphan."""
     s = str(raw or "").strip().lower()
     return len(s) == 34 and s.startswith("0x") and all(ch in "0123456789abcdef" for ch in s[2:])
 
@@ -6215,34 +6212,12 @@ class SenderGateway:
                     cloids.add(cl)
         return cloids, oids
 
-    def _sleeved_coins(self):
-        """(coins, known): canonical coin keys held in a non-zero sleeve by the USER sleeve wallet ONLY, plus
-        whether that answer can be trusted. The ENGINE's own copy sleeves live in the same ledger under the
-        leader wallet ids, so counting every non-zero sleeve would shield engine orphan orders from the startup
-        cancel - the controller's scope correction of 2026-10-26. known=False means the ledger file exists but
-        cannot be read or validated: then NO order may be cancelled, because unknown is not zero and cancelling
-        is the unsafe direction."""
-        out = set()
-        ledger = getattr(self, "ledger", None)
-        if ledger is None:
-            return out, True  # no ledger configured: nothing is sleeved, and that state IS known
-        try:
-            if ledger.path.exists() and ledger.nonflat_wallets_from_disk() is None:
-                return out, False
-            wallet_map = (ledger.data.get("by_wallet") or {}).get(USER_SLEEVE_WALLET) or {}
-            if not isinstance(wallet_map, dict):
-                return out, False
-            for raw_coin, sleeve in wallet_map.items():
-                if isinstance(sleeve, dict) and abs(fnum(sleeve.get("signed_size"), 0.0)) > POSITION_EPSILON:
-                    out.add(canonical_coin_key(raw_coin))
-            return out, True
-        except Exception as exc:
-            log_error("user_owned_sleeve_read_failed", exc)
-            return out, False  # partial read: the sleeve list is NOT known, so nothing may be cancelled
-
     def _label_user_owned_order(self, dex: str, o: Dict[str, Any], reason: str) -> None:
         """Record, by name, a resting order that is the human's: the startup check never touches it."""
         oid = str(o.get("oid", ""))
+        if any(str(r.get("exchange_order_id")) == oid and r.get("status") == "ORPHAN_ORDER_USER_OWNED"
+               for r in read_csv_rows(RECONCILIATION_CSV)):
+            return  # one label row per order, not one per restart
         coin = str(o.get("coin") or "")
         side = "BUY" if str(o.get("side", "")).upper() in {"B", "BUY"} else "SELL"
         size = o.get("sz") or o.get("origSz")
@@ -6277,10 +6252,11 @@ class SenderGateway:
     def startup_orphan_order_check(self) -> Dict[str, Any]:
         """T1b: before arming, read the follower's open orders on every dex the engine reads. Each order is
         matched to an engine send row / resting entry (by cloid or order id): a match is adopted as a resting
-        engine order; no match is cancelled and audited as orphan_order_cancelled. A failed read fails closed
+        engine order; an unmatched order is cancelled and audited as orphan_order_cancelled UNLESS its cloid is
+        absent or not engine-shaped, in which case it is USER-OWNED: named once and left resting. A failed read fails closed
         (refuses to arm). Never runs on a mainnet follower without --confirm-mainnet-follower (existing guard)."""
         if FOLLOWER_NETWORK == "mainnet":  # never cancels a mainnet order the engine cannot prove it placed (Boss manages those)
-            return {"ok": True, "skipped": True, "adopted": [], "cancelled": [],
+            return {"ok": True, "skipped": True, "adopted": [], "cancelled": [], "user_owned": [],
                     "detail": "mainnet follower: open orders left untouched (cancel-unknown is testnet-only)"}
         # The journal sweep writes no orders and touches no exchange state, so it must run even when sending is OFF -
         # that is precisely the state an operator is in after a scare, reading the journal to find out what happened.
@@ -6303,7 +6279,7 @@ class SenderGateway:
         except Exception as exc:
             log_error("orphan_attempt_sweep_failed", exc)
         if not USER_WALLET or not self.cfg.auto_send_enabled or bval(os.getenv("HL_LIVE_MOCK_SEND"), False):
-            return {"ok": True, "skipped": True, "adopted": [], "cancelled": [],
+            return {"ok": True, "skipped": True, "adopted": [], "cancelled": [], "user_owned": [],
                     "detail": "no real sending configured (no follower wallet, auto-send off or mock send): not checked"}
         # The missing terminal write: an order that filled AFTER placement left its attempt row open (the fill
         # matcher writes COPY_FILL to the ledger and reconciliation but never closed the attempt row). Retire those
@@ -6330,13 +6306,12 @@ class SenderGateway:
         cloids, oids = self._engine_owned_cloids_and_oids()
         ok, orders, detail = self._read_open_orders()
         if not ok:
-            return {"ok": False, "skipped": False, "adopted": [], "cancelled": [],
+            return {"ok": False, "skipped": False, "adopted": [], "cancelled": [], "user_owned": [],
                     "detail": f"{detail}; refusing to arm (fail closed, no order touched)"}
         adopted, cancelled, user_owned = [], [], []
-        # USER-OWNED ORDERS ARE NEVER CANCELLED (2026-10-26 gap 1): the engine always sets a cloid, so an order
-        # carrying none cannot be ours; and an order on a coin where the manual ledger holds a non-zero sleeve is
-        # the human's. Both are named in one audit row each and left untouched.
-        sleeved, ledger_known = self._sleeved_coins()
+        # USER-OWNED ORDERS ARE NEVER CANCELLED (gap 1, simplified by controller 6421004689): the engine always
+        # sets an engine-shaped cloid, so an unmatched order with no cloid or a non-engine cloid is the human's.
+        # No ledger is consulted: an absent or unreadable ledger cannot change any classification.
         for dex, o in orders:
             oid = str(o.get("oid", "")).strip()
             if not oid:
@@ -6346,15 +6321,11 @@ class SenderGateway:
                 self._adopt_orphan_order(dex, o)
                 adopted.append({"oid": oid, "cloid": cloid})
                 continue
-            reason = ""
-            if not cloid:
-                reason = "no cloid on the order: the engine always sets one, so this order is not the engine's"
-            elif not is_engine_cloid(cloid) and not ledger_known:
-                reason = ("manual ledger unreadable: this coin cannot be proved not to be the human's, "
-                          "so no order is cancelled")
-            elif not is_engine_cloid(cloid) and canonical_coin_key(o.get("coin")) in sleeved:
-                reason = "coin %s has a non-zero sleeve in the manual ledger" % str(o.get("coin") or "")
-            if reason:
+            if not is_engine_cloid(cloid):
+                reason = ("no cloid on the order: the engine always sets one, so this order is not the engine's"
+                          if not cloid else
+                          "cloid %s is not engine-shaped (0x + exactly 32 hex), so this order is not the engine's"
+                          % cloid)
                 self._label_user_owned_order(dex, o, reason)
                 user_owned.append({"oid": oid, "cloid": cloid, "reason": reason})
                 continue

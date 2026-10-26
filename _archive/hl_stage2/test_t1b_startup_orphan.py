@@ -127,15 +127,15 @@ def main() -> None:
         c.FOLLOWER_NETWORK, c.MAINNET_ORDERS_CONFIRMED = saved_net, saved_conf
     check("B10_MAINNET_UNCONFIRMED_SKIPPED", res["ok"] and res.get("skipped") and not fake.cancels, str(res))
 
-    # ---- G1..G6: USER-OWNED orders are never cancelled (gap 1, 2026-10-26) --------------------------
+    # ---- G1..G8: USER-OWNED orders are never cancelled (gap 1, simplified 6421004689) -------------------
+    # The rule is cloid shape ONLY: no ledger is consulted, so an absent or unreadable ledger cannot change
+    # any outcome.
     class _LedgerStub:
-        """A manual ledger holding ONE wallet's sleeves. Default wallet is the USER sleeve wallet, because
-        only that wallet may shield an order (controller 6420098503); leader wallet ids hold the engine's own
-        copy sleeves and must NOT shield anything."""
+        """A manual ledger that USED to shield coins. It must now make no difference at all."""
 
-        def __init__(self, coins, wallet=None, unreadable=False):
-            w = wallet or c.USER_SLEEVE_WALLET
-            self.data = {"by_wallet": {w: {cn: {"coin": cn, "signed_size": 1.0} for cn in coins}},
+        def __init__(self, coins, unreadable=False):
+            self.data = {"by_wallet": {"user_owned": {cn: {"coin": cn, "signed_size": 1.0} for cn in coins},
+                                       FOLLOWER: {cn: {"coin": cn, "signed_size": 1.0} for cn in coins}},
                          "by_coin_net": {}}
             self.unreadable = unreadable
             self.path = Path(tempfile.mkdtemp(prefix="t1b_ledger_")) / "manual_live_positions.json"
@@ -148,103 +148,60 @@ def main() -> None:
         return [r for r in recon_rows()
                 if r.get("status") == "ORPHAN_ORDER_USER_OWNED" and r.get("exchange_order_id") == str(oid)]
 
-    # G1: an order carrying NO cloid cannot be the engine's -> left untouched and named
-    res, fake, gw = run(orders=[{"oid": 1001, "coin": "HYPE", "side": "B", "sz": "5", "limitPx": "10"}])
-    check("G1_CLOID_NONE_NOT_CANCELLED",
-          res["ok"] and not fake.cancels and len(res.get("user_owned") or []) == 1
-          and res["user_owned"][0]["oid"] == "1001" and not res["cancelled"], str(res))
-    check("G1B_CLOID_NONE_AUDITED_BY_NAME", len(user_owned_rows(1001)) == 1,
-          str(recon_rows())[:400])
+    def one(order, ledger="absent"):
+        """Run the check with ONE order and the given ledger state; return (res, fake, gw)."""
+        c.atomic_write_json(c.RESTING_ENTRY_ORDERS_FILE, {})
+        c.SEND_ATTEMPTS_CSV.write_text("", encoding="utf-8") if c.SEND_ATTEMPTS_CSV.exists() else None
+        c.ensure_csv_header(c.SEND_ATTEMPTS_CSV, c.SEND_ATTEMPT_FIELDS)
+        c.ensure_csv_header(c.RECONCILIATION_CSV, c.RECONCILIATION_FIELDS)
+        c.OPEN_ORDERS_FETCHER = lambda p: [order]
+        fake = FakeExchange()
+        gw = c.SenderGateway(c.ConfigManager(), c.AuditLogWriter())
+        gw.ledger = None if ledger == "absent" else _LedgerStub(["BTC"], unreadable=(ledger == "unreadable"))
+        gw._exchange_client_for_coin = lambda coin: (fake, "BTC")
+        return gw.startup_orphan_order_check(), fake, gw
 
-    # G2/G6: USER sleeve wallet + NO cloid -> survives and the row names the sleeve
-    c.atomic_write_json(c.RESTING_ENTRY_ORDERS_FILE, {})
-    c.SEND_ATTEMPTS_CSV.write_text("", encoding="utf-8") if c.SEND_ATTEMPTS_CSV.exists() else None
-    c.ensure_csv_header(c.SEND_ATTEMPTS_CSV, c.SEND_ATTEMPT_FIELDS)
-    c.OPEN_ORDERS_FETCHER = lambda p: [{"oid": 1002, "coin": "BTC", "side": "A", "sz": "1", "limitPx": "99",
-                                        "cloid": "0x" + "a" * 40}]
-    fake = FakeExchange()
-    gw = c.SenderGateway(c.ConfigManager(), c.AuditLogWriter())
-    gw.ledger = _LedgerStub(["BTC"])
-    gw._exchange_client_for_coin = lambda coin: (fake, "BTC")
-    res = gw.startup_orphan_order_check()
-    check("G2_USER_SLEEVE_NO_CLOID_NOT_CANCELLED",
-          res["ok"] and not fake.cancels and len(res.get("user_owned") or []) == 1 and not res["cancelled"], str(res))
-    rows = user_owned_rows(1002)
-    check("G6_SLEEVE_REASON_NAMED", len(rows) == 1 and "manual ledger" in str(rows[0].get("notes") or ""),
-          str(rows)[:400])
-
-    # G2B: the SAME user sleeve coin WITH an engine-style cloid -> still cancelled as an orphan (unchanged)
-    c.atomic_write_json(c.RESTING_ENTRY_ORDERS_FILE, {})
-    c.SEND_ATTEMPTS_CSV.write_text("", encoding="utf-8") if c.SEND_ATTEMPTS_CSV.exists() else None
-    c.ensure_csv_header(c.SEND_ATTEMPTS_CSV, c.SEND_ATTEMPT_FIELDS)
-    c.OPEN_ORDERS_FETCHER = lambda p: [{"oid": 1006, "coin": "BTC", "side": "A", "sz": "1", "limitPx": "99",
-                                        "cloid": "0x" + "a" * 32}]
-    fake = FakeExchange()
-    gw = c.SenderGateway(c.ConfigManager(), c.AuditLogWriter())
-    gw.ledger = _LedgerStub(["BTC"])
-    gw._exchange_client_for_coin = lambda coin: (fake, "BTC")
-    res = gw.startup_orphan_order_check()
-    check("G2B_USER_SLEEVE_WITH_ENGINE_CLOID_STILL_CANCELLED",
-          res["ok"] and [tuple(map(str, t)) for t in fake.cancels] == [("BTC", "1006")]
-          and len(res["cancelled"]) == 1 and not (res.get("user_owned") or []), str(res))
-
-    # G2C: an ENGINE sleeve on the same coin (leader wallet id) + cloid None -> survives, but for the NO-CLOID
-    # reason only; the sleeve itself must NOT be the shield.
-    c.atomic_write_json(c.RESTING_ENTRY_ORDERS_FILE, {})
-    c.SEND_ATTEMPTS_CSV.write_text("", encoding="utf-8") if c.SEND_ATTEMPTS_CSV.exists() else None
-    c.ensure_csv_header(c.SEND_ATTEMPTS_CSV, c.SEND_ATTEMPT_FIELDS)
-    c.OPEN_ORDERS_FETCHER = lambda p: [{"oid": 1007, "coin": "BTC", "side": "B", "sz": "1", "limitPx": "99"}]
-    fake = FakeExchange()
-    gw = c.SenderGateway(c.ConfigManager(), c.AuditLogWriter())
-    gw.ledger = _LedgerStub(["BTC"], wallet=FOLLOWER)
-    check("G2D_ENGINE_SLEEVE_NOT_IN_SLEEVED_SET", gw._sleeved_coins() == (set(), True), "%r" % (gw._sleeved_coins(),))
-    gw._exchange_client_for_coin = lambda coin: (fake, "BTC")
-    res = gw.startup_orphan_order_check()
-    check("G2C_ENGINE_SLEEVE_CLOID_NONE_SURVIVES_BY_CLOID_RULE",
-          res["ok"] and not fake.cancels and len(res.get("user_owned") or []) == 1
-          and "no cloid" in str(res["user_owned"][0].get("reason") or ""), str(res))
-
-    # G3: engine-style cloid absent from the journal, coin has NO sleeve -> cancelled exactly as before
-    # NOTE: the cancel path uses the SDK coin the exchange client reports (the run() helper stubs it to "BTC"),
-    # so the coin under test must be BTC for the cancel to be observable here - that is B5's proven shape.
-    res, fake, gw = run(orders=[{"oid": 1003, "coin": "BTC", "side": "A", "sz": "2", "limitPx": "50",
-                                 "cloid": "0x" + "b" * 32}])
-    check("G3_ENGINE_CLOID_ORPHAN_STILL_CANCELLED",
-          res["ok"] and [tuple(map(str, t)) for t in fake.cancels] == [("BTC", "1003")]
-          and len(res["cancelled"]) == 1 and not (res.get("user_owned") or []), str(res))
-
-    # G5: a sender with NO ledger must not raise and must not protect anything (explicit None)
-    c.atomic_write_json(c.RESTING_ENTRY_ORDERS_FILE, {})
-    c.SEND_ATTEMPTS_CSV.write_text("", encoding="utf-8") if c.SEND_ATTEMPTS_CSV.exists() else None
-    c.ensure_csv_header(c.SEND_ATTEMPTS_CSV, c.SEND_ATTEMPT_FIELDS)
-    c.OPEN_ORDERS_FETCHER = lambda p: [{"oid": 1005, "coin": "BTC", "side": "B", "sz": "1", "limitPx": "20",
-                                        "cloid": "0x" + "c" * 32}]
-    fake = FakeExchange()
-    gw = c.SenderGateway(c.ConfigManager(), c.AuditLogWriter())
-    gw.ledger = None
-    gw._exchange_client_for_coin = lambda coin: (fake, "BTC")
-    check("G5A_SLEEVED_COINS_NONE_LEDGER_IS_EMPTY", gw._sleeved_coins() == (set(), True), "sleeved=%r" % (gw._sleeved_coins(),))
-    res = gw.startup_orphan_order_check()
-    check("G5_LEDGER_NONE_SAFE",
-          res["ok"] and [tuple(map(str, t)) for t in fake.cancels] == [("BTC", "1005")]
-          and not (res.get("user_owned") or []), str(res))
-
-    # G7: an UNREADABLE ledger cancels nothing - unknown is not zero, and cancelling is the unsafe direction
-    c.atomic_write_json(c.RESTING_ENTRY_ORDERS_FILE, {})
-    c.SEND_ATTEMPTS_CSV.write_text("", encoding="utf-8") if c.SEND_ATTEMPTS_CSV.exists() else None
-    c.ensure_csv_header(c.SEND_ATTEMPTS_CSV, c.SEND_ATTEMPT_FIELDS)
-    c.OPEN_ORDERS_FETCHER = lambda p: [{"oid": 1008, "coin": "BTC", "side": "A", "sz": "1", "limitPx": "77",
-                                        "cloid": "0x" + "d" * 40}]
-    fake = FakeExchange()
-    gw = c.SenderGateway(c.ConfigManager(), c.AuditLogWriter())
-    gw.ledger = _LedgerStub([], unreadable=True)
-    gw._exchange_client_for_coin = lambda coin: (fake, "BTC")
-    check("G7_SLEEVED_COINS_UNREADABLE_IS_UNKNOWN", gw._sleeved_coins() == (set(), False),
-          "sleeved=%r" % (gw._sleeved_coins(),))
-    res = gw.startup_orphan_order_check()
-    check("G7_UNREADABLE_LEDGER_CANCELS_NOTHING",
-          res["ok"] and not fake.cancels and len(res.get("user_owned") or []) == 1
-          and not res["cancelled"] and len(user_owned_rows(1008)) == 1, str(res))
+    ENGINE_CLOID = "0x" + "a" * 32
+    # G1: no cloid -> left alone and named, whatever the ledger says
+    for ledger in ("absent", "unreadable", "normal"):
+        res, fake, gw = one({"oid": 1001, "coin": "BTC", "side": "B", "sz": "1", "limitPx": "10"}, ledger)
+        check("G1_CLOID_NONE_LEFT_ALONE__LEDGER_%s" % ledger.upper(),
+              res["ok"] and not fake.cancels and not res["cancelled"]
+              and len(res.get("user_owned") or []) == 1 and res["user_owned"][0]["oid"] == "1001", str(res))
+        check("G1B_CLOID_NONE_AUDITED_BY_NAME__LEDGER_%s" % ledger.upper(),
+              len(user_owned_rows(1001)) == 1 and "no cloid" in str(user_owned_rows(1001)[0].get("notes") or ""),
+              str(user_owned_rows(1001))[:400])
+    # G2: a 40-hex cloid is NOT engine-shaped (engine is exactly 32) -> left alone, ledger irrelevant
+    for ledger in ("absent", "unreadable", "normal"):
+        res, fake, gw = one({"oid": 1002, "coin": "BTC", "side": "A", "sz": "1", "limitPx": "99",
+                             "cloid": "0x" + "a" * 40}, ledger)
+        check("G2_40HEX_CLOID_LEFT_ALONE__LEDGER_%s" % ledger.upper(),
+              res["ok"] and not fake.cancels and not res["cancelled"]
+              and len(res.get("user_owned") or []) == 1, str(res))
+    # G3: 0x+32hex is engine-shaped and unmatched -> cancelled exactly as before, ledger irrelevant
+    for ledger in ("absent", "unreadable", "normal"):
+        res, fake, gw = one({"oid": 1003, "coin": "BTC", "side": "A", "sz": "2", "limitPx": "50",
+                             "cloid": ENGINE_CLOID}, ledger)
+        check("G3_ENGINE_CLOID_CANCELLED__LEDGER_%s" % ledger.upper(),
+              res["ok"] and [tuple(map(str, t)) for t in fake.cancels] == [("BTC", "1003")]
+              and len(res["cancelled"]) == 1 and not (res.get("user_owned") or []), str(res))
+    # G4: engine-shaped cloid in UPPERCASE is still engine-shaped -> cancelled
+    res, fake, gw = one({"oid": 1004, "coin": "BTC", "side": "A", "sz": "1", "limitPx": "50",
+                         "cloid": "0X" + "A" * 32})
+    check("G4_UPPERCASE_ENGINE_CLOID_CANCELLED",
+          res["ok"] and [tuple(map(str, t)) for t in fake.cancels] == [("BTC", "1004")], str(res))
+    # G5: the sleeve machinery is GONE from the core - no _sleeved_coins, no sleeve constant
+    check("G5_SLEEVE_MACHINERY_DELETED",
+          not hasattr(c.SenderGateway, "_sleeved_coins") and not hasattr(c, "USER_SLEEVE_WALLET"), "still present")
+    # G8: the label row is deduped by oid across restarts
+    for _ in range(3):
+        res, fake, gw = one({"oid": 1009, "coin": "BTC", "side": "B", "sz": "1", "limitPx": "10"})
+        check("G8_LABEL_STILL_LEFT_ALONE", res["ok"] and not fake.cancels, str(res))
+    check("G8_USER_OWNED_LABEL_DEDUPED_BY_OID", len(user_owned_rows(1009)) == 1, str(user_owned_rows(1009))[:400])
+    # O5: both names classify NON_TERMINAL (else the observability unclassified list is non-empty)
+    check("O5_NAMES_ARE_NON_TERMINAL",
+          c.classify_terminal_row("ORPHAN_ORDER_USER_OWNED") == "NON_TERMINAL"
+          and c.classify_terminal_row("USER_OWNED_ORDER_LEFT_UNTOUCHED") == "NON_TERMINAL", "unclassified")
 
     failed = [n for n, ok in RESULTS if not ok]
     print("TOTAL=%d FAILED=%d" % (len(RESULTS), len(failed)))
