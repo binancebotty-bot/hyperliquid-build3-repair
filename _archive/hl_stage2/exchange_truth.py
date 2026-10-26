@@ -339,21 +339,43 @@ def post_many(fetcher, payloads, info_url=HL_INFO_URL, timeout=8.0, workers=None
         return list(pool.map(lambda p: _post(fetcher, p, info_url, timeout), payloads))
 
 
+_CACHE = {}  # key -> (monotonic_time, value); only successful reads are stored
+
+
+def _cached(key, ttl_s, produce):
+    """Serve `key` while its entry is at most `ttl_s` old, else re-read it.
+
+    A failed read is never stored: an outage must not pin an error for the whole TTL.
+    """
+    hit = _CACHE.get(key)
+    if hit is not None and time.monotonic() - hit[0] <= ttl_s:
+        return hit[1]
+    value = produce()
+    if isinstance(value, dict) and value.get("ok"):
+        _CACHE[key] = (time.monotonic(), value)
+    return value
+
+
 def _state_payloads(address, dexes):
     return [{"type": "clearinghouseState", "user": address, **({"dex": d} if d else {})} for d in dexes]
 
 
 def list_perp_dexes(fetcher=None, info_url=HL_INFO_URL, timeout=8.0):
-    """Every perp DEX scope: the default scope plus HIP-3/builder DEXes."""
-    res = _post(fetcher, {"type": "perpDexs"}, info_url, timeout)
-    if not res.get("ok"):
-        return {"ok": False, "status": DEX_ENUM_UNAVAILABLE, "detail": res.get("detail", "")}
-    names = [""]
-    for item in (res["data"] if isinstance(res["data"], list) else []):
-        name = (item.get("name") if isinstance(item, dict) else item) or ""
-        if str(name).strip():
-            names.append(str(name).strip())
-    return {"ok": True, "status": TRUTH_OK, "dexes": sorted(set(names))}
+    """Every perp DEX scope: the default scope plus HIP-3/builder DEXes.
+
+    Cached 3600 s (weight 20 a read); a DEX list changes on the scale of hours.
+    """
+    def produce():
+        res = _post(fetcher, {"type": "perpDexs"}, info_url, timeout)
+        if not res.get("ok"):
+            return {"ok": False, "status": DEX_ENUM_UNAVAILABLE, "detail": res.get("detail", "")}
+        names = [""]
+        for item in (res["data"] if isinstance(res["data"], list) else []):
+            name = (item.get("name") if isinstance(item, dict) else item) or ""
+            if str(name).strip():
+                names.append(str(name).strip())
+        return {"ok": True, "status": TRUTH_OK, "dexes": sorted(set(names))}
+    return _cached(("perpDexs", info_url), 3600.0, produce)
 
 def master_account_net(master_address, coin, fetcher=None, info_url=HL_INFO_URL, timeout=8.0, dexes=None):
     """MASTER signed exposure for `coin` aggregated over every perp DEX scope. Missing scope fails closed."""
@@ -408,22 +430,28 @@ def master_exposure(master_address, dexes, fetcher=None, info_url=HL_INFO_URL, t
 def rolling_day_pnl(address, fetcher=None, info_url=HL_INFO_URL, timeout=8.0):
     """Account PnL over the exchange's rolling 24 h window (portfolio "day" pnlHistory, which
     excludes deposits and withdrawals), plus the latest whole-account value (spot + perps, so a
-    unified-margin account is not understated). Anything unreadable returns ok=False."""
-    if not valid_address(address):
-        return {"ok": False, "status": IDENTITY_INVALID}
-    res = _post(fetcher, {"type": "portfolio", "user": address}, info_url, timeout)
-    rows = res.get("data") if res.get("ok") else None
-    for item in (rows if isinstance(rows, list) else []):
-        if isinstance(item, list) and len(item) >= 2 and item[0] == "day" and isinstance(item[1], dict):
-            hist = [p for p in (item[1].get("pnlHistory") or []) if isinstance(p, list) and len(p) >= 2]
-            vals = [p for p in (item[1].get("accountValueHistory") or []) if isinstance(p, list) and len(p) >= 2]
-            if hist:
-                try:
-                    return {"ok": True, "status": TRUTH_OK, "pnl_usd": float(hist[-1][1]) - float(hist[0][1]),
-                            "account_value_usd": float(vals[-1][1]) if vals else None}
-                except (TypeError, ValueError):
-                    break
-    return {"ok": False, "status": TRUTH_UNAVAILABLE, "detail": res.get("detail", "no day pnlHistory")}
+    unified-margin account is not understated). Anything unreadable returns ok=False.
+
+    Cached 60 s, keyed by address: this feeds equity sizing, so an hour (weight 20 a read) would be
+    unsafe - 60 s keeps equity at most a minute old while cutting ~5-6 reads/min to ~1.
+    """
+    def produce():
+        if not valid_address(address):
+            return {"ok": False, "status": IDENTITY_INVALID}
+        res = _post(fetcher, {"type": "portfolio", "user": address}, info_url, timeout)
+        rows = res.get("data") if res.get("ok") else None
+        for item in (rows if isinstance(rows, list) else []):
+            if isinstance(item, list) and len(item) >= 2 and item[0] == "day" and isinstance(item[1], dict):
+                hist = [p for p in (item[1].get("pnlHistory") or []) if isinstance(p, list) and len(p) >= 2]
+                vals = [p for p in (item[1].get("accountValueHistory") or []) if isinstance(p, list) and len(p) >= 2]
+                if hist:
+                    try:
+                        return {"ok": True, "status": TRUTH_OK, "pnl_usd": float(hist[-1][1]) - float(hist[0][1]),
+                                "account_value_usd": float(vals[-1][1]) if vals else None}
+                    except (TypeError, ValueError):
+                        break
+        return {"ok": False, "status": TRUTH_UNAVAILABLE, "detail": res.get("detail", "no day pnlHistory")}
+    return _cached(("portfolio", info_url, address), 60.0, produce)
 
 def master_userfills(master_address, start_ms, dex="", fetcher=None, info_url=HL_INFO_URL, timeout=8.0):
     """MASTER settlement evidence: genuine fills at/after start_ms, scoped to one perp DEX ('' = default)."""
