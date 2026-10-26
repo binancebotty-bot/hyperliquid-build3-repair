@@ -148,6 +148,12 @@ check("POSITIONS_ARE_RE_READ_AFTER_EACH_COIN",
 check("THE_LEDGER_IS_A_DISPOSABLE_COPY", "ManualLedger(path=_ltmp)" in src,
       "the real ledger must never be handed to a maintenance script")
 
+check("THE_ENDPOINT_PROOF_HAS_A_REAL_FALLBACK",
+      "HL_EXCHANGE_URL" in src and "from HL_Live_Copy_Service_Core import HL_EXCHANGE_URL" in src,
+      "a client object with no url attribute would make every live flatten refuse forever")
+check("A_MAINNET_ENDPOINT_IS_REFUSED",
+      not F.is_testnet("https://api.hyperliquid.xyz/exchange"), "mainnet must never pass as testnet")
+
 failed = [n for n, ok in results if not ok]
 print("TOTAL=%d FAILED=%d" % (len(results), len(failed)))
 if failed:

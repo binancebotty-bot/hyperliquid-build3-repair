@@ -336,11 +336,24 @@ def client_endpoint(exchange: Any) -> Optional[str]:
 
 
 def client_is_testnet(exchange: Any) -> Optional[bool]:
-    """True/False, or None when the endpoint cannot be read - and None refuses."""
+    """True/False, or None when the endpoint cannot be read - and None refuses.
+
+    THREE SOURCES, in order: the client object's own attribute; HL_EXCHANGE_URL from the environment (the variable the
+    client is constructed FROM, see Core:6728); the engine module's own HL_EXCHANGE_URL. A real SDK client often has no
+    url attribute at all, and refusing on that alone would make a live flatten impossible - but each source must still
+    positively say testnet, and no source at all still refuses.
+    """
     ep = client_endpoint(exchange)
-    if not ep:
+    if ep:
+        return is_testnet(ep)
+    env_url = os.getenv("HL_EXCHANGE_URL")
+    if env_url:
+        return is_testnet(env_url)
+    try:
+        from HL_Live_Copy_Service_Core import HL_EXCHANGE_URL
+        return is_testnet(HL_EXCHANGE_URL)
+    except Exception:
         return None
-    return is_testnet(ep)
 
 
 def write_report(state: Path, live: bool, rows: List[Dict[str, Any]], extra: Optional[Dict[str, Any]] = None) -> Path:
