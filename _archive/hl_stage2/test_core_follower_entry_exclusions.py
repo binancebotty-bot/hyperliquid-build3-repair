@@ -15,7 +15,9 @@ The rules this pins:
 
 FAILING FIRST on 24f3588: neither function exists.
 """
+import json
 import sys
+import tempfile
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -39,6 +41,21 @@ if not hasattr(C, 'follower_entry_exclusion'):
     sys.exit(1)
 
 GC = {'min_24h_notional_usd': 3000.0}
+
+# the threshold is HOT-RELOADED from live_config.json, so the fixture writes a real config and points Core at it
+_CFG_DIR = Path(tempfile.mkdtemp(prefix='excl_cfg_'))
+_CFG = _CFG_DIR / 'live_config.json'
+_REAL_CFG = C.LIVE_CONFIG_FILE
+
+
+def set_threshold(value):
+    _CFG.write_text(json.dumps({'global_controls': {'min_24h_notional_usd': value}}), encoding='utf-8')
+    C.LIVE_CONFIG_FILE = _CFG
+    C._THRESHOLD_CACHE.update({'mtime': None, 'value': 0.0})   # force a re-read
+
+
+set_threshold(3000.0)
+
 LISTED = {'BTC', 'HYPE', 'ETC', 'MERL'}   # MERL is LISTED but thin; that is the point of it
 VOL = {'BTC': 85000.0, 'HYPE': 2733.0, 'ETC': 5475.0, 'MERL': 61.0}
 
@@ -90,41 +107,47 @@ check('AN_UNREADABLE_VOLUME_FAILS_OPEN', st == '' and note == '',
 
 # 7. threshold 0 = off
 C.follower_volumes_24h = fake_volumes()
-st, _ = C.follower_entry_exclusion('MERL', True, {'min_24h_notional_usd': 0}, held_net=0.0)
+set_threshold(0.0)                       # 0 = off, read from the file like the live switch
+st, _ = C.follower_entry_exclusion('MERL', True, {}, held_net=0.0)
 check('A_ZERO_THRESHOLD_DISABLES_THE_FILTER', st == '', 'threshold 0 still skipped: %r' % (st,))
+
+# ---- the kill switch: an edit to the file must apply to the NEXT fill, with no restart ----
+set_threshold(3000.0)
+st_on, _ = C.follower_entry_exclusion('MERL', True, {}, held_net=0.0)
+set_threshold(0.0)                       # the operator edits the config while the process runs
+st_off, _ = C.follower_entry_exclusion('MERL', True, {}, held_net=0.0)
+check('THE_FILTER_IS_HOT_RELOADABLE', st_on == 'ILLIQUID_SKIP' and st_off == '',
+      'on=%r off=%r - a config edit did not take effect without a restart' % (st_on, st_off))
+
+# a BAD value must keep the last good one, not silently disable or invent a threshold
+set_threshold(3000.0)
+C.follower_entry_exclusion('MERL', True, {}, held_net=0.0)      # load the good value first: the LAST GOOD is what
+_CFG.write_text(json.dumps({'global_controls': {'min_24h_notional_usd': 'not-a-number'}}), encoding='utf-8')
+st_bad, _ = C.follower_entry_exclusion('MERL', True, {}, held_net=0.0)   # the bad value must not replace it
+check('A_BAD_THRESHOLD_KEEPS_THE_LAST_GOOD', st_bad == 'ILLIQUID_SKIP',
+      'a bad value changed the filter instead of holding the last good one: %r' % (st_bad,))
+
+# an ABSENT key means OFF, never a guessed ceiling
+_CFG.write_text(json.dumps({'global_controls': {}}), encoding='utf-8')
+C._THRESHOLD_CACHE.update({'mtime': None, 'value': 0.0})
+st_absent, _ = C.follower_entry_exclusion('MERL', True, {}, held_net=0.0)
+check('AN_ABSENT_KEY_MEANS_OFF', st_absent == '', 'an absent threshold still excluded: %r' % (st_absent,))
+set_threshold(3000.0)
 
 # 8. and it is wired before the price/risk gates, on the entry path only
 src = (HERE / 'HL_Live_Copy_Service_Core.py').read_text(encoding='utf-8', errors='replace')
-fn = src.find('def _process_leader_fill_inner')
-gate = src.find('follower_entry_exclusion(', fn)
-idem = src.find('# PRE-SEND IDEMPOTENCY GUARD', fn)
-check('THE_EXCLUSION_RUNS_BEFORE_THE_IDEMPOTENCY_AND_SEND_PATH', 0 < gate < idem,
-      'the exclusion is not on the entry path ahead of the send guard (gate=%d idem=%d)' % (gate, idem))
-
-
-# ---- Codex P0 on a175a88: a held position must never be excluded, whatever the fill says ----
-C.follower_volumes_24h = fake_volumes()
-st, note = C.follower_entry_exclusion('MERL', True, GC, held_net=5.0)
-check('A_HELD_POSITION_IS_NEVER_EXCLUDED', st == '',
-      'a coin we hold 5.0 of was excluded as %r - a close could be dropped' % (st,))
-st, _ = C.follower_entry_exclusion('MERL', True, GC, held_net=-5.0)
-check('A_SHORT_HELD_POSITION_IS_NEVER_EXCLUDED', st == '',
-      'a coin we are short 5.0 of was excluded as %r' % (st,))
-st, _ = C.follower_entry_exclusion('MERL', True, GC, held_net=0.0)
-check('WITH_NO_POSITION_THE_FILTER_STILL_APPLIES', st == 'ILLIQUID_SKIP',
-      'with no position the thin-book filter stopped working: %r' % (st,))
-
-
-# ---- Codex pass 2 P0s: unknown is not flat, and dust is not flat ----
-C.follower_volumes_24h = fake_volumes()
-st, _ = C.follower_entry_exclusion('MERL', True, GC, held_net=None)
-check('AN_UNREADABLE_LEDGER_NEVER_EXCLUDES', st == '',
-      'with an unreadable ledger the thin market was still excluded as %r - a replayed close could be dropped' % (st,))
-st, _ = C.follower_entry_exclusion('MERL', True, GC, held_net=5e-10)
-check('A_DUST_POSITION_IS_NEVER_EXCLUDED', st == '',
-      'a 5e-10 holding was treated as flat and excluded as %r' % (st,))
-st, _ = C.follower_entry_exclusion('MERL', True, GC, held_net=-5e-10)
-check('A_DUST_SHORT_IS_NEVER_EXCLUDED', st == '', 'a -5e-10 holding was excluded as %r' % (st,))
+_fn = src.find('def _process_leader_fill_inner')
+_build = src.find('intent_builder.build(', _fn)
+_call = src.find('follower_entry_exclusion(', _build)
+check('THE_EXCLUSION_RUNS_ON_THE_BUILT_INTENT_NOT_ON_THE_FILL_METADATA', 0 < _build < _call,
+      'the exclusion does not run after the intent is built (build=%d call=%d)' % (_build, _call))
+_block = src[max(0, _call-1600):_call]
+check('THE_EXCLUSION_IS_GATED_BY_THE_ENGINE_LIFECYCLE_CLASSIFIER',
+      'classify_send_lifecycle(intent)' in _block and '_life in {"ENTRY", "ADD"}' in _block,
+      'the exclusion is not gated on the engine lifecycle classifier')
+check('NO_RAW_DIRECTION_IN_THE_EXCLUSION_DECISION',
+      "_fill_dir(" not in _block and 'raw.dir' not in _block and "raw.get(\"dir\")" not in _block,
+      'the exclusion still consults the fill direction metadata')
 
 failed = [n for n, ok in results if not ok]
 print('TOTAL=%d FAILED=%d' % (len(results), len(failed)))

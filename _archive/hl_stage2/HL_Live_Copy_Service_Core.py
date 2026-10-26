@@ -11646,6 +11646,39 @@ def follower_volumes_24h(refresh: bool = False) -> Tuple[bool, Dict[str, float],
         return False, {}, set()
 
 
+_THRESHOLD_CACHE: Dict[str, Any] = {"mtime": None, "value": 0.0}
+
+
+def min_24h_notional_usd() -> float:
+    """Boss's thin-book cut, re-read from live_config.json whenever the file changes - the same shape the send switch
+    uses, so the filter can be turned off with a config edit and NO restart (Core loads config once at construction,
+    which is why "ship it off, enable later" would otherwise cost another restart).
+
+    0 = off. FAIL-SAFE: an unreadable file or a bad value keeps the last good number; an absent key means OFF. A filter
+    whose threshold cannot be read must never invent one and start excluding markets.
+    """
+    try:
+        mtime = LIVE_CONFIG_FILE.stat().st_mtime
+    except Exception:
+        return float(_THRESHOLD_CACHE.get("value") or 0.0)
+    if _THRESHOLD_CACHE.get("mtime") == mtime:
+        return float(_THRESHOLD_CACHE.get("value") or 0.0)
+    try:
+        raw = json.loads(LIVE_CONFIG_FILE.read_text(encoding="utf-8-sig"))
+        gc = (raw.get("global_controls") or {}) if isinstance(raw, dict) else {}
+        if "min_24h_notional_usd" not in gc:
+            value = 0.0
+        else:
+            try:
+                value = max(0.0, float(gc.get("min_24h_notional_usd") or 0.0))
+            except (TypeError, ValueError):
+                value = float(_THRESHOLD_CACHE.get("value") or 0.0)
+        _THRESHOLD_CACHE.update({"mtime": mtime, "value": value})
+        return value
+    except Exception:
+        return float(_THRESHOLD_CACHE.get("value") or 0.0)
+
+
 def follower_entry_exclusion(coin: str, is_entry: bool,
                              global_controls: Optional[Dict[str, Any]] = None,
                              held_net: Optional[float] = None) -> Tuple[str, str]:
@@ -11675,10 +11708,7 @@ def follower_entry_exclusion(coin: str, is_entry: bool,
         return ("EXCLUDED_NOT_LISTED_ON_FOLLOWER_NETWORK",
                 "excluded_not_listed_on_follower_network; coin=%s; the follower network does not list this market; "
                 "source=metaAndAssetCtxs" % name)
-    try:
-        threshold = max(0.0, fnum((global_controls or {}).get("min_24h_notional_usd"), 0.0))
-    except Exception:
-        threshold = 0.0
+    threshold = min_24h_notional_usd()   # hot-reloaded: a config edit applies to the next fill
     if threshold > 0:
         got = vol.get(name, vol.get(name.upper()))
         if got is not None and got < threshold:
@@ -12906,60 +12936,6 @@ class LiveCopyCore:
                 ),
             )
             return False, stale_reason, None
-        # Follower entry exclusions, BEFORE any price or risk gate. Entries only: a close or a reduction is never
-        # excluded, and on mainnet this returns nothing at once.
-        try:
-            _dir_txt = _fill_dir(fill).lower()
-            _says_entry = _dir_txt.startswith(("open ", "increase "))
-            # NEVER exclude a fill that could reduce a position we hold. The direction string comes from the fill's
-            # metadata (replay/import can say "Open ..." for a close), so it is a hint, not a fact: the ledger's net is
-            # the fact. With a position on the coin, this path stands aside and the normal lifecycle classifies it.
-            # THIS WALLET's sleeve, not the aggregate: wallet A +1 and wallet B -1 nets to zero while A still has a
-            # position to reduce, and an aggregate read would call that flat. A missing record is NOT proof of flat
-            # either - an unresolved key spelling looks exactly like an empty one - so it stays unknown.
-            _held = None
-            try:
-                if self.ledger is not None:
-                    _sleeve = None
-                    try:
-                        _sleeve = self.ledger.sleeve(fill.leader_wallet, fill.coin)
-                    except Exception:
-                        _sleeve = None
-                    if isinstance(_sleeve, dict) and _sleeve:
-                        _held = float(fnum(_sleeve.get("signed_size"), 0.0))
-                    elif isinstance(_sleeve, dict) and not _sleeve:
-                        _held = 0.0          # an explicit empty sleeve is a real, proven flat
-                    else:
-                        _held = None         # nothing to read: unknown, so no exclusion
-            except Exception as _led_exc:
-                _held = None
-                try:
-                    log_error("follower_exclusion_ledger_unreadable", _led_exc)
-                except Exception:
-                    pass
-            _is_entry = bool(_says_entry) and (_held == 0.0)
-            _gc = getattr(self.cfg, "config", {}) or {}
-            _status, _note = follower_entry_exclusion(fill.coin, _is_entry, (_gc.get("global_controls") or {}),
-                                                      held_net=_held)
-        except Exception as _exc:
-            _status, _note = "", ""
-            try:
-                log_error("follower_entry_exclusion_failed", _exc)
-            except Exception:
-                pass
-        if _status:
-            self.audit.append_reconciliation(
-                "SEND_TERMINAL", _status,
-                leader_wallet=fill.leader_wallet,
-                leader_fill_id=fill.leader_fill_id,
-                coin=fill.coin,
-                action="NO_SEND_EXCLUDED_MARKET",
-                reject_category=_status,
-                terminal_state=_status,
-                engine_can_send="False",
-                notes=_note + "; one terminal row per leader fill; no order and no diff by design",
-            )
-            return False, _status, None
         # PRE-SEND IDEMPOTENCY GUARD â€" checked before _send_lock so it catches:
         #   â€¢ same fill_id from two WS messages (duplicate delivery)
         #   â€¢ same fill_id in both hot-queue and ws.queue / source CSV
@@ -13061,6 +13037,54 @@ class LiveCopyCore:
         with prof("intent_append"):
             self.audit.append_order_intent(intent)
         stamp_fill(fill, "intent_written_ms")
+        # Follower entry exclusions, decided by the engine's OWN lifecycle classifier on the intent it has built -
+        # never by the fill's direction metadata, which replay/import can get wrong. ENTRY/ADD only; anything the
+        # classifier cannot place, any exception, any non-ENTRY lifecycle flows on untouched. A wasted price read is
+        # the accepted cost of not guessing.
+        try:
+            _life = classify_send_lifecycle(intent)
+        except Exception as _lc_exc:
+            _life = ""
+            try:
+                log_error("follower_exclusion_lifecycle_unreadable", _lc_exc)
+            except Exception:
+                pass
+        if _life in {"ENTRY", "ADD"}:
+            _held = None
+            try:
+                if self.ledger is not None:
+                    _sleeve = self.ledger.sleeve(fill.leader_wallet, fill.coin)
+                    if isinstance(_sleeve, dict) and _sleeve:
+                        _held = float(fnum(_sleeve.get("signed_size"), 0.0))
+                    elif isinstance(_sleeve, dict):
+                        _held = 0.0        # an explicit empty sleeve is proven flat
+            except Exception as _led_exc:
+                _held = None
+                try:
+                    log_error("follower_exclusion_ledger_unreadable", _led_exc)
+                except Exception:
+                    pass
+            try:
+                _status, _note = follower_entry_exclusion(
+                    fill.coin, True, (getattr(self.cfg, "config", {}) or {}).get("global_controls") or {},
+                    held_net=_held)
+            except Exception as _ex_exc:
+                _status, _note = "", ""
+                try:
+                    log_error("follower_entry_exclusion_failed", _ex_exc)
+                except Exception:
+                    pass
+            if _status:
+                self.audit.append_reconciliation(
+                    "SEND_TERMINAL", _status,
+                    leader_wallet=fill.leader_wallet, leader_fill_id=fill.leader_fill_id,
+                    intent_id=intent.intent_id, coin=fill.coin,
+                    action="NO_SEND_EXCLUDED_MARKET", reject_category=_status, terminal_state=_status,
+                    engine_can_send="False",
+                    notes=_note + "; lifecycle=%s; one terminal row per leader fill; no order and no diff by design"
+                          % _life,
+                )
+                return False, _status, intent
         for _mid in merged_ids:  # a merged fill is never silent: its own row says which order carries it
             try:
                 self.audit.append_reconciliation(

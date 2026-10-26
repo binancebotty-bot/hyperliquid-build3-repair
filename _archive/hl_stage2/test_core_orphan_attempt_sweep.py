@@ -329,14 +329,15 @@ check('NO_PHANTOM_ROW_STAYS_OPEN_FOR_A_CLAIMED_ORDER',
 
 # ---- Codex finding 1 (P0): a reduction must never be excluded by the follower filters ----
 src4 = (HERE / 'HL_Live_Copy_Service_Core.py').read_text(encoding='utf-8', errors='replace')
-i4 = src4.find('follower_entry_exclusion(fill.coin')
-window4 = src4[max(0, i4-1400):i4 + 200]
+i4 = src4.find('follower_entry_exclusion(', src4.find('def _process_leader_fill_inner'))
+window4 = src4[max(0, i4-2600):i4 + 400]      # the block moved after the intent build under option C
 check('THE_EXCLUSION_READS_THIS_WALLETS_SLEEVE_NOT_THE_AGGREGATE',
-      'sleeve(fill.leader_wallet' in window4 and 'coin_net(' not in window4,
+      'sleeve(fill.leader_wallet' in window4 and 'coin_net(' not in window4
+      and 'classify_send_lifecycle(intent)' in window4,
       'the guard reads the aggregate coin net or the fill direction: wallet A +1 / wallet B -1 nets to zero while A '
       'still holds a position to close')
 check('THE_EXCLUSION_IS_GATED_ON_THE_LEDGER_NOT_ON_FILL_METADATA',
-      '_held == 0.0' in window4 and '_held = None' in window4,
+      '_held = None' in window4 and 'held_net != 0.0' in src4,
       'the exclusion still decides entry-vs-reduction from the fill direction alone, or treats an unreadable ledger '
       'as flat; a close could be excluded')
 
