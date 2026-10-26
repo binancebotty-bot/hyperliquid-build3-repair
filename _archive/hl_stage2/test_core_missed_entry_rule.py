@@ -116,7 +116,9 @@ def main() -> None:
 
     def gateway(fake):
         gw = c.SenderGateway(c.ConfigManager(), c.AuditLogWriter())
-        gw.cfg.master_switch_now = lambda: True  # sends ON: the gate is enforced inside _place_order
+        # sends ON: the gate re-reads the mode at the physical call, so BOTH accessors must say ON
+        gw.cfg.master_switch_now = lambda: True
+        gw.cfg.send_mode_now = lambda: "ON"
         gw._resolve_coin = lambda coin: dict(resolved)
         gw._get_exchange_client = lambda *a, **k: fake
         gw._exchange_client_has_symbol = lambda *a, **k: True

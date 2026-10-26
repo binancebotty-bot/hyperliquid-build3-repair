@@ -5502,28 +5502,61 @@ class SenderGateway:
                            f"follower_price={follower_px}; moved_against_bps={missed.get('adverse_bps', 0.0):.2f}; "
                            f"tolerance_bps={bps}; take={take}; order={order_type} @ {px}"))
 
+    # Counts refusals whose journal write failed, so the failure is visible in the state file and not
+    # only in a swallowed exception (Codex fix 4).
+    _gate_journal_failures: int = 0
+
     def _master_gate_reason(self, intent: Any, path: str = "") -> str:
         """Why this order may NOT go to the exchange, or "" when it may.
 
-        Checked INSIDE _place_order, not only at the call sites: on 2026-10-25 the missed-entry rest
-        path (Core:12114 -> _missed_entry_rest_or_diff -> _place_order) placed 1,549 GTC limits while
-        send_mode was OFF, because the switch was consulted by send_if_allowed and by nothing below
-        it. A gate at the one physical call cannot be forgotten by a new call site.
+        Checked INSIDE _place_order, at the one physical call, so no call site - present or future -
+        can skip it. On 2026-10-25 the missed-entry rest path placed 1,549 GTC limits while
+        send_mode was OFF, because the switch was consulted by send_if_allowed and by nothing below it.
+
+        Modes are re-read HERE, not taken from a snapshot: a mode change while an IOC is in flight
+        must stop the retry/rest that follows it.
         """
-        if not self.cfg.master_switch_now():
-            return "MASTER_REAL_ORDERS_OFF"
         if intent is None:
-            return ""
-        wallet = str(getattr(intent.fill, "leader_wallet", "") or "")
-        mode = str(self.cfg.wallet_mode(wallet) or "").upper()
+            # fail CLOSED: a caller without an intent cannot be checked, so it must not send
+            return "MISSING_INTENT_CONTEXT"
+        mode = str(self.cfg.send_mode_now() or "").upper()
         if mode == "OFF":
-            return "WALLET_OFF"
-        lifecycle = classify_send_lifecycle(intent)
-        if mode == "CLO" and lifecycle in {"ENTRY", "ADD"}:
-            return "CLO_BLOCKS_ENTRY"
+            return "MASTER_REAL_ORDERS_OFF"
+        wallet = str(getattr(intent.fill, "leader_wallet", "") or "")
         if self.sender_key_invalid:
             return "SEND_BLOCKED_SENDER_KEY_NOT_VALID"
+        if not self.cfg.wallet_enabled(wallet):
+            return "WALLET_DISABLED_AT_SEND"
+        wmode = str(self.cfg.wallet_mode(wallet) or "").upper()
+        if wmode == "OFF":
+            return "WALLET_OFF"
+        lifecycle = classify_send_lifecycle(intent)
+        if wmode == "CLO" and lifecycle in {"ENTRY", "ADD"}:
+            return "CLO_BLOCKS_ENTRY"
+        if mode == "CLOSE" and lifecycle in {"ENTRY", "ADD"}:
+            # global CLOSE-only: reductions and closes still go, entries and adds do not
+            return "ENTRY_BLOCKED_GLOBAL_CLOSE_ONLY"
         return ""
+
+    def _gate_refusal_row(self, intent: Any, path: str, reason: str) -> None:
+        """Journal the refusal; if the write fails, that must be LOUD, not swallowed (Codex fix 4)."""
+        try:
+            self.audit.append_reconciliation(
+                "SEND_TERMINAL", "BLOCKED_AT_PLACE_ORDER",
+                leader_wallet=str(getattr(getattr(intent, "fill", None), "leader_wallet", "")),
+                coin=str(getattr(getattr(intent, "fill", None), "coin", "")),
+                action="NO_EXCHANGE_CALL", terminal_state="BLOCKED_AT_PLACE_ORDER",
+                engine_can_send="False",
+                notes=("blocked at the physical call: %s; path=%s; intent_id=%s"
+                       % (reason, path or "-", str(getattr(intent, "intent_id", "-")))))
+        except Exception as exc:
+            SenderGateway._gate_journal_failures += 1
+            try:
+                log_error("gate_refusal_journal_failed", exc)
+            except Exception:
+                pass
+            print("ALERT: the gate refused an order (%s) but could not journal it: %r"
+                  % (reason, exc), file=sys.stderr)
 
     def _place_order(self, exchange: Any, sdk_coin: str, is_buy: bool, size: float, limit_px: float,
                      tif: str, reduce_only: bool, timing: Optional[Dict[str, Any]] = None, started_key: str = "",
@@ -5536,17 +5569,7 @@ class SenderGateway:
         # different workers overlap (run 3: one ~3.5 s call at a time capped the engine near one order per 3.5 s).
         _blocked = self._master_gate_reason(intent, path)
         if _blocked:
-            try:
-                self.audit.append_reconciliation(
-                    "SEND_TERMINAL", "BLOCKED_AT_PLACE_ORDER",
-                    leader_wallet=str(getattr(getattr(intent, "fill", None), "leader_wallet", "")),
-                    coin=str(getattr(getattr(intent, "fill", None), "coin", "")),
-                    action="NO_EXCHANGE_CALL", terminal_state="BLOCKED_AT_PLACE_ORDER",
-                    engine_can_send="False",
-                    notes=("blocked at the physical call: %s; path=%s; intent_id=%s"
-                           % (_blocked, path or "-", str(getattr(intent, "intent_id", "-")))))
-            except Exception:
-                pass
+            self._gate_refusal_row(intent, path, _blocked)
             return {"status": "err", "response": "BLOCKED_AT_PLACE_ORDER:" + _blocked}
         if FOLLOWER_NETWORK == "mainnet" and not MAINNET_ORDERS_CONFIRMED:
             raise RuntimeError("MAINNET_FOLLOWER_NOT_CONFIRMED: mainnet order refused without --confirm-mainnet-follower")
