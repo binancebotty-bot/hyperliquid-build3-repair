@@ -357,6 +357,15 @@ def main() -> None:
     # and takes all six M7 checks down together (3 of 30 clean runs). The engine clamps correctly;
     # the test measured against a stale clock.
     now = c.utc_now_ms()
+    # The real shared precondition (2026-10-26): state writes are ASYNCHRONOUS (_LatestStatusWriteWorker),
+    # so the previous block's write can land AFTER the cursor seed below and overwrite it with the cursor
+    # it just polled - the poll then starts from that fresh cursor instead of the retention floor and all
+    # six M7 checks fall together. Draining the writer first makes the block deterministic; the clock
+    # re-capture above is only margin for the 60 s tolerance. Test-only: no product change.
+    _w = getattr(core.state_writer, "_worker", None)
+    _t = getattr(_w, "_thread", None)
+    if _t is not None:
+        _t.join(timeout=10.0)
     core.ingestor.poll_hyperliquid_fills = lambda w, s, t=None: starts.append((w, s)) or ([], "POLL_NETWORK_ERROR")
     state = c.load_json(c.CORE_RUNTIME_STATE_FILE, {})
     state["last_leader_poll_cursor_ms"] = {LEADER: now - 3 * 86400000, OTHER: now - 3 * 86400000}

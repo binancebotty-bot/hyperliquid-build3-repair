@@ -9,6 +9,14 @@ exists because something was lost by skipping it on 2026-10-25.
 
 ## 0. Preconditions, checked not assumed
 
+    # undefined names: the cheapest net for a variable deleted or renamed under a try/except.
+    # On 2026-10-26 a guard edit removed `reason = str(intent.reason or "")`; the two causes below it
+    # raised NameError, the caller swallowed it, and the missed-entry rule was silently dead while its
+    # own 97-check suite passed. Zero NEW undefined names vs the reviewed parent, or do not start.
+    C:/Users/wigmore/AppData/Local/Programs/Python/Python311/python.exe -m pyflakes \
+        _archive/hl_stage2/HL_Live_Copy_Service_Core.py _archive/hl_stage2/HL_Copy_App_SSOT.py \
+        | grep 'undefined name'          # must print nothing
+
     # exactly one engine, or none; never two
     ops/stop_pair.py --engine            # idempotent: prints "no engine running - already stopped"
 
