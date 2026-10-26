@@ -77,10 +77,19 @@ def main(argv=None):
 
     sha = subprocess.run(["git", "-C", str(checkout), "rev-parse", "--short", "HEAD"],
                          capture_output=True, text=True).stdout.strip()
-    if args.expect_sha and not sha.startswith(args.expect_sha):
-        return refuse("checkout is at %s, expected %s" % (sha or "?", args.expect_sha))
+    if args.expect_sha:
+        want = args.expect_sha.strip()
+        if len(want) < 7:
+            return refuse("--expect-sha must be at least 7 characters, got %r (a short prefix certifies nothing)" % want)
+        if sha != want:
+            return refuse("checkout is at %s, expected exactly %s" % (sha or "?", want))
 
-    # a fresh dir must be seeded first: an unseeded cursor replays the retention window (2026-10-25)
+    # the pointer lives at <stack>/CURRENT_AUDIT_DIR, so the shape of --state decides where it is written
+    if not (state.name.startswith("state_") and state.parent.name.startswith("run")):
+        return refuse("--state must look like <stack>/runNN/state_YYYYMMDD, got %s - the pointer path derives "
+                      "from it and a wrong depth writes it where the monitor never looks" % state)
+    # a fresh dir must be SEEDED, and live_config.json is not the proof: the seeder writes the leader cursor, and
+    # an absent or zero cursor is exactly the 2026-10-25 replay condition.
     seeded = (state / "live_config.json").exists()
     if not state.exists():
         return refuse("%s does not exist - create it, seed it, then start (see PAIR_START_RUNBOOK section 3)"
@@ -88,6 +97,21 @@ def main(argv=None):
     if not seeded:
         return refuse("%s has no live_config.json - seed it first; an unseeded dir replays history "
                       "as live intents (the 2026-10-25 runaway)" % state)
+    cursor_file = state / "clean_core_runtime_state.json"
+    if not cursor_file.exists():
+        return refuse("%s has no clean_core_runtime_state.json - live_config alone is not a seed; run "
+                      "ops/seed_pair_state.py (an absent cursor replays the retention window)" % state)
+    try:
+        raw_cursor = json.loads(cursor_file.read_text(encoding='utf-8-sig')).get('last_leader_poll_cursor_ms')
+        if isinstance(raw_cursor, dict):                      # per-wallet map: any positive cursor proves seeding
+            cursor = max([int(v) for v in raw_cursor.values() if str(v).lstrip('-').isdigit()] or [0])
+        else:
+            cursor = int(raw_cursor or 0)
+    except Exception as exc:
+        return refuse("cannot read the leader cursor from %s: %r" % (cursor_file, exc))
+    if cursor <= 0:
+        return refuse("the leader cursor in %s is %r - an unseeded/zero cursor replays the retention window "
+                      "as live intents (the 2026-10-25 runaway); re-seed rather than force" % (cursor_file, cursor))
 
     # 2. nothing may already be running for this dir or on the UI port
     running = SP.pids(state)
@@ -107,7 +131,6 @@ def main(argv=None):
         print(json.dumps({"dry_run": True, "would_start": plan}, indent=2))
         return 0
 
-    pointer.write_text(str(state) + "\n", encoding="utf-8")
 
     env = dict(os.environ)
     env["HL_LIVE_AUDIT_DIR"] = str(state)
@@ -133,14 +156,23 @@ def main(argv=None):
     while time.time() < deadline and not (SP.listener(args.ui_port) and (state / "live_service_state.json").exists()):
         time.sleep(1.0)
 
+    up = bool(SP.listener(args.ui_port)) and engine.poll() is None
+    if up:
+        # proven: only now does the pointer move, so a failed start can never leave the monitor on a dead dir
+        pointer.write_text(str(state) + chr(10), encoding="utf-8")
+    else:
+        if previous_pointer and previous_pointer != str(state):
+            pointer.write_text(previous_pointer + chr(10), encoding="utf-8")   # revert: back to the run that was live before this attempt
+        elif pointer.exists() and not previous_pointer:
+            pointer.unlink()
     print(json.dumps({
-        "pair": "STARTED" if SP.listener(args.ui_port) else "UI_NOT_LISTENING",
+        "pair": "STARTED" if up else "UI_NOT_LISTENING",
         "sha": sha, "state": str(state), "engine_pid": engine.pid, "ui_pid": ui.pid,
         "ui_port": args.ui_port, "listener": bool(SP.listener(args.ui_port)),
         "pointer": str(pointer), "started_at": utc(),
         "sends": "OFF unless live_config says otherwise - arming is a separate logged step",
     }, indent=2))
-    return 0 if SP.listener(args.ui_port) else 1
+    return 0 if up else 1
 
 
 if __name__ == "__main__":

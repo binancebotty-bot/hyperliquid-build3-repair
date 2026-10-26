@@ -85,7 +85,9 @@ check('AN_UNSEEDED_STATE_DIR_IS_REFUSED', rc == 1 and 'seed it first' in out,
 # seeded: it should get as far as the dry-run plan
 state_ok = tmp / 'stack' / 'run97' / 'state_20260101'
 state_ok.mkdir(parents=True)
-(state_ok / 'live_config.json').write_text('{}', encoding='utf-8')
+state_ok.joinpath('live_config.json').write_text('{}', encoding='utf-8', **({} if state_ok.joinpath('clean_core_runtime_state.json').exists() else {}))
+(state_ok / 'clean_core_runtime_state.json').write_text('{"last_leader_poll_cursor_ms": 1792990000000}',
+                                                       encoding='utf-8')
 rc, out = run(['--checkout', str(fake), '--state', str(state_ok), '--ui-port', str(PORT), '--dry-run'])
 check('A_SEEDED_DIRECTORY_PRODUCES_A_PLAN_WITHOUT_STARTING', rc == 0 and '"dry_run": true' in out,
       'rc=%s out=%s' % (rc, out[:240]))
@@ -123,6 +125,50 @@ check('NO_HARD_WIRED_CHECKOUT_PATH', 'C:/tmp/' not in src and 'C:\\\\tmp\\\\\\\\
       'the tool hard-wires a scratch checkout')
 check('NO_KEY_LIKE_LITERALS', '0x' + '0' * 8 not in src and 'PRIVATE_KEY=' not in src and 'secret' not in src.lower(),
       'the tool appears to carry a key or secret literal')
+
+
+# ---- the fixes the adversarial review demanded, each proved here ----
+# a live_config with NO cursor is not a seed
+st_nocursor = tmp / 'stack' / 'run95' / 'state_20260101'
+st_nocursor.mkdir(parents=True)
+(st_nocursor / 'live_config.json').write_text('{}', encoding='utf-8')
+rc, out = run(['--checkout', str(fake), '--state', str(st_nocursor), '--ui-port', str(PORT), '--dry-run'])
+check('A_CONFIG_WITHOUT_A_CURSOR_IS_NOT_A_SEED', rc == 1 and 'clean_core_runtime_state' in out,
+      'rc=%s out=%s' % (rc, out[:240]))
+
+# a zero cursor is the 2026-10-25 replay condition
+st_zero = tmp / 'stack' / 'run94' / 'state_20260101'
+st_zero.mkdir(parents=True)
+(st_zero / 'live_config.json').write_text('{}', encoding='utf-8')
+(st_zero / 'clean_core_runtime_state.json').write_text('{"last_leader_poll_cursor_ms": 0}', encoding='utf-8')
+rc, out = run(['--checkout', str(fake), '--state', str(st_zero), '--ui-port', str(PORT), '--dry-run'])
+check('A_ZERO_CURSOR_IS_REFUSED', rc == 1 and 'replays the retention window' in out,
+      'rc=%s out=%s' % (rc, out[:240]))
+
+# a short --expect-sha certifies nothing
+rc, out = run(['--checkout', str(fake), '--state', str(state_ok), '--ui-port', str(PORT),
+               '--expect-sha', '5', '--dry-run'])
+check('A_SHORT_EXPECT_SHA_IS_REFUSED', rc == 1 and 'at least 7' in out,
+      'rc=%s out=%s' % (rc, out[:200]))
+
+# a wrong-depth --state would write the pointer where the monitor never looks
+st_badshape = tmp / 'elsewhere' / 'state_20260101'
+st_badshape.mkdir(parents=True)
+(st_badshape / 'live_config.json').write_text('{}', encoding='utf-8')
+(st_badshape / 'clean_core_runtime_state.json').write_text('{"last_leader_poll_cursor_ms": 1792990000000}',
+                                                           encoding='utf-8')
+rc, out = run(['--checkout', str(fake), '--state', str(st_badshape), '--ui-port', str(PORT), '--dry-run'])
+check('A_WRONG_DEPTH_STATE_DIR_IS_REFUSED', rc == 1 and 'runNN/state_' in out,
+      'rc=%s out=%s' % (rc, out[:240]))
+
+# the pointer must be written only after the pair is proven: the write cannot precede the start calls
+srcp = TOOL.read_text(encoding='utf-8')
+write_at = srcp.find('pointer.write_text(str(state)')
+first_popen = srcp.find('subprocess.Popen(')
+check('THE_POINTER_IS_WRITTEN_AFTER_THE_START_IS_PROVEN', write_at > first_popen,
+      'the pointer is written before anything is started (write at %d, first start at %d)' % (write_at, first_popen))
+check('A_FAILED_START_REVERTS_THE_POINTER', 'previous_pointer' in srcp and 'revert' in srcp.lower(),
+      'a failed start would leave the monitor pointing at a dead run')
 
 failed = [n for n, ok in results if not ok]
 print('TOTAL=%d FAILED=%d' % (len(results), len(failed)))
