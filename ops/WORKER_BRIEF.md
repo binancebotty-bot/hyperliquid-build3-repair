@@ -43,3 +43,18 @@ above. Keep restarts few and make each one count.
   disagree about what happened.
 - Never report a number you have not read from the source of truth in the current window, and
   never let `ok: true` hide a partial read.
+
+## A watchdog may ALERT, never act (Boss's invariant; controller ruling 2026-10-26)
+
+A watchdog, monitor or script may raise an alert and may log. It must never change a mode, place or
+cancel an order, restart the engine, or arm sending.
+
+Why it is written down: `trading_stack/_tools/hl_monitor.py` queued a runner item named
+`AUTO-restart-110928` whose payload was **restart then arm**. It sat pending while the engine was
+deliberately stopped, and would have started the engine and turned sending on if anything had
+consumed it. The monitor is now alert-only for that condition (the 15-minute throttle stays), the
+pending item and an `AUTO-rearm` item are moved to
+`test_queue.superseded_20261026T010808Z.json` rather than deleted, and its restart path logs
+`engine_restart_alert_only`.
+
+If a condition needs an engine action, the monitor says so and a human or the controller decides.
