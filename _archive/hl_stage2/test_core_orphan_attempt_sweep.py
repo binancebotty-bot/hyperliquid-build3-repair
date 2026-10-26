@@ -159,15 +159,15 @@ src2 = (HERE / 'HL_Live_Copy_Service_Core.py').read_text(encoding='utf-8', error
 mi = src2.find('recovered from send_attempt')
 window = src2[mi:mi + 1400] if mi != -1 else ''
 check('THE_FILL_MATCHER_CLOSES_THE_ATTEMPT_ROW',
-      'close_orphan_attempt_rows(apply=True)' in window
+      'close_orphan_attempt_rows(apply=True, min_interval_sec=5.0)' in window
       and window.find('close_orphan_attempt_rows') < window.find('return True'),
       'the matcher does not close the attempt row, or does it after returning')
 check('THE_MATCHER_CALL_IS_GATED_FOR_MAINNET_ONLY',
       'FOLLOWER_NETWORK != "mainnet"' in window and 'auto_send_enabled' not in window,
       'the matcher-side close is gated on the order switch: a journal-only repair must run with sending OFF')
 check('THE_MATCHER_CALL_IS_BURST_GUARDED',
-      '_LAST_MATCHER_SWEEP' in window,
-      'a catch-up burst would re-read the journals on every fill')
+      'min_interval_sec=5.0' in window and '_SWEEP_LOCK' in src,
+      'the burst guard is not passed by the caller, or it is not held inside the sweep lock')
 
 
 # ---- 8. CRITICAL: a PARTIAL fill followed by a cancel must never be called filled ----
@@ -339,6 +339,41 @@ check('THE_EXCLUSION_IS_GATED_ON_THE_LEDGER_NOT_ON_FILL_METADATA',
       '_held = None' in window4 and 'held_net != 0.0' in src4,
       'the exclusion still decides entry-vs-reduction from the fill direction alone, or treats an unreadable ledger '
       'as flat; a close could be excluded')
+
+# ---------------------------------------------------------------- the eight controller items, behaviourally
+# 1. one NaN cell among good rows must not stop the good rows completing
+_out, _rows = run_sweep([attempt('n1', 'ORDER_RESTING', oid='900'), attempt('n2', 'ORDER_RESTING', oid='901')],
+                 [fill('n1', '900'), dict(fill('n2', '901'), fill_size='NaN')])
+by = {r.get('exchange_order_id'): r.get('outcome') for r in _out}
+check('A_NAN_SIZE_ROW_DOES_NOT_ABORT_THE_SWEEP', by.get('900') == 'CLOSED_FULL_FILL', 'outcomes=%r' % (by,))
+
+# 3. two rows for the SAME fill must not sum to double
+_out, _rows = run_sweep([attempt('d1', 'ORDER_RESTING', oid='910', copy_size='20.0')],
+                 [fill('d1', '910'), fill('d1', '910')])
+_done = [r for r in _out if r.get('exchange_order_id') == '910'][0]
+check('A_DUPLICATE_FILL_ROW_IS_NOT_DOUBLE_COUNTED', _done.get('outcome') == 'ORPHAN_ATTEMPT_PARTIAL_FILL_UNRESOLVED',
+      'two rows for one fill were summed as 20 of 20: outcome=%r' % (_done.get('outcome'),))
+
+# 5. the startup sweep runs twice: the second pass must append nothing for the same partial reading
+_part = [attempt('p1', 'ORDER_RESTING', oid='920', copy_size='20.0')]
+_fl = [fill('p1', '920')]
+_o1, _r1 = run_sweep(_part, _fl)
+_o2, _r2 = run_sweep(_part, _fl)          # same process, second pass
+_applied2 = [r for r in _o2 if r.get('applied') and r.get('exchange_order_id') == '920']
+check('THE_SECOND_PASS_WRITES_NO_DUPLICATE_PARTIAL_ROW', not _applied2,
+      'the second pass appended %d more partial row(s)' % (len(_applied2),))
+
+# 7. a float-shaped oid must canonicalise and match
+_out, _rows = run_sweep([attempt('f1', 'ORDER_RESTING', oid='123')], [fill('f1', '1.23e2')])
+_done = [r for r in _out if r.get('exchange_order_id') == '123']
+check('A_FLOAT_SHAPED_OID_CANONICALISES', bool(_done) and _done[0].get('outcome') == 'CLOSED_FULL_FILL',
+      '1.23e2 did not match 123: %r' % ([r.get('outcome') for r in _out],))
+
+_rep = [n for n, ok in results if not ok]
+print('TOTAL=%d FAILED=%d' % (len(results), len(_rep)))
+if _rep:
+    print('FAILED: ' + ', '.join(_rep))
+sys.exit(1 if _rep else 0)
 
 failed = [n for n, ok in results if not ok]
 print('TOTAL=%d FAILED=%d' % (len(results), len(failed)))
