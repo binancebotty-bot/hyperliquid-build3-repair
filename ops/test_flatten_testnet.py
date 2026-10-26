@@ -150,7 +150,7 @@ check("EACH_COIN_IS_REBUILT_FROM_A_FRESH_READ",
       "ALREADY_FLAT" in src and "_live = {p[\"coin\"].upper()" in src,
       "the next send must use the fresh net, not the precomputed plan")
 check("A_PRECISION_REMAINDER_IS_NAMED",
-      "REMAINDER_" in src and "PRECISION_UNKNOWN" in src,
+      "FLATTEN_PRECISION_REMAINDER" in src and "PRECISION_UNKNOWN" in src,
       "an unknown step or a floored remainder must be visible in the row")
 check("TESTNET_IS_A_CANONICAL_HOST",
       "urlparse" in src and "TESTNET_HOSTS" in src and "testnet\" in u" not in src.lower(),
@@ -198,7 +198,7 @@ check("HTTPS_AND_EXACT_HOST_ONLY",
 check("A_REVERSED_POSITION_IS_SKIPPED", "SIGN_CHANGED_" in src, "a reversed position is a different trade")
 check("A_GREWN_POSITION_IS_REFUSED", "GREW_" in src,
       "a position that grew must not be reduced beyond the reviewed amount")
-check("EVIDENCE_FAILURE_RETURNS_A_DISTINCT_CODE", "return 100 + int(code)" in src,
+check("EVIDENCE_FAILURE_RETURNS_A_DISTINCT_CODE", "return 12" in src and "return 101" not in src,
       "a failed report must not look like a clean abort")
 check("THE_REMAINDER_HAS_ITS_OWN_FIELD", 'r["remainder"]' in src,
       "the order result must not overwrite the precision note")

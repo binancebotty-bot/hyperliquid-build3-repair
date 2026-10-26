@@ -298,7 +298,7 @@ def build_plan(positions: List[Dict[str, Any]], nets: Dict[str, float],
 def report(rows: List[Dict[str, Any]]) -> str:
     lines = ["coin            before        after   action / reason"]
     for r in rows:
-        _rem = (" REMAINDER_%.8f" % r["remainder"]) if r.get("remainder") else ""
+        _rem = (" FLATTEN_PRECISION_REMAINDER %.8f" % r["remainder"]) if r.get("remainder") else ""
         lines.append("%-14s %10.4f %12s   %s%s" % (r["coin"], r["before"],
                                                  ("%.4f" % r["after"]) if r.get("after") is not None else "-",
                                                  (r.get("action") or "") + (" " + r["reason"] if r.get("reason") else "") + _rem))
@@ -398,7 +398,7 @@ def abort_run(state: Path, live: bool, rows: List[Dict[str, Any]], extra: Dict[s
             print(json.dumps({"rows": rows, "extra": extra}, indent=2, default=str))
         except Exception:
             pass
-        return 100 + int(code)      # a DISTINCT code: a failed-evidence abort is not the same abort
+        return 12                   # the specified evidence-failure code
 
 
 def write_report(state: Path, live: bool, rows: List[Dict[str, Any]], extra: Optional[Dict[str, Any]] = None) -> Path:
@@ -627,13 +627,24 @@ def main(argv: Optional[List[str]] = None) -> int:
         if str(r.get("action", "")).startswith("ABORTED"):
             return abort_run(state, live, rows, extra, 5, wallet)
         if live:
-            # re-read AFTER each coin: the next decision is made from the exchange, not from a stale snapshot
-            _now = {p["coin"]: p["net"] for p in open_positions(wallet)}
-            r["after"] = _now.get(step["coin"], 0.0)
-            extra.setdefault("post_coin_positions", {})[step["coin"]] = r["after"]
+            # re-read AFTER each coin: the next decision is made from the exchange, not from a stale snapshot.
+            # GUARDED: a raise here would exit before any report, which is the post-action evidence gap itself.
+            try:
+                _now = {p["coin"]: p["net"] for p in open_positions(wallet)}
+                r["after"] = _now.get(step["coin"], 0.0)
+                extra.setdefault("post_coin_positions", {})[step["coin"]] = r["after"]
+            except Exception as exc:
+                r["after_read_error"] = repr(exc)
+                print("ABORT: post-send position re-read failed on %s (%r)" % (step["coin"], exc))
+                return abort_run(state, live, rows, extra, 12, wallet)
 
-    after = {p["coin"]: p["net"] for p in open_positions(wallet)}
-    extra["final_positions"] = after
+    try:
+        after = {p["coin"]: p["net"] for p in open_positions(wallet)}
+        extra["final_positions"] = after
+    except Exception as exc:
+        extra["final_positions_error"] = repr(exc)
+        print("ABORT: final position re-read failed (%r)" % (exc,))
+        return abort_run(state, live, rows, extra, 12, wallet)
     for r in rows:
         if r["action"].startswith(("FLATTEN", "WOULD")):
             r["after"] = after.get(r["coin"], 0.0)
@@ -648,7 +659,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             print(json.dumps({"rows": rows, "extra": extra}, indent=2, default=str))
         except Exception:
             pass
-        return 101
+        return 12
     if live and not ledger_unchanged(real_ledger, fp):
         print("WARNING: the ledger changed during the run (edited by something else?)")
     return 0
