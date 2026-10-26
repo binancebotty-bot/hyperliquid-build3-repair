@@ -448,6 +448,26 @@ def live_wallet_for(state: Path) -> Optional[str]:
     return None
 
 
+def record_flatten_attempt(state: Path, coin: str, cloid: Optional[str], oid: Optional[str], size: float,
+                           px: float, status: str, wallet: str) -> None:
+    """Append a send_attempts row labelled FLATTEN so the reconcile gate can match this order BY CLOID.
+
+    Without this the order exists on the exchange and nowhere in our journal, which is the definition of unaccounted.
+    """
+    try:
+        from HL_Live_Copy_Service_Core import append_csv, SEND_ATTEMPTS_FIELDS, utc_now_iso, utc_now_ms
+        append_csv(state / "append_only" / "send_attempts.csv", SEND_ATTEMPTS_FIELDS, {
+            "created_at": utc_now_iso(), "created_at_ms": utc_now_ms(),
+            "attempt_id": "flatten-%s-%s" % (coin, cloid or "nocloid"),
+            "intent_id": "flatten", "leader_fill_id": "flatten", "leader_wallet": wallet, "coin": coin,
+            "side": "", "order_type": "REAL_IOC", "status": status, "cloid": cloid or "",
+            "exchange_order_id": oid or "", "action": "FLATTEN", "notes": "flatten_testnet maintenance close",
+            "fill_price": str(px), "fill_size": str(size),
+        })
+    except Exception as exc:
+        print("WARNING: could not journal the flatten attempt (%r) - the reconcile gate will see it as unaccounted" % (exc,))
+
+
 def main(argv: Optional[List[str]] = None) -> int:
     ap = argparse.ArgumentParser(description="flatten TESTNET positions one coin at a time (dry run by default)")
     ap.add_argument("--state", required=True, help="audit/state dir of the run being retired")
@@ -635,13 +655,23 @@ def main(argv: Optional[List[str]] = None) -> int:
                     px = limit_price(mid, step["is_buy"], attempt)
                     if not valid_price(px):
                         break
+                # ROOT CAUSE of the HBAR exception: I handed the SDK a raw float (mid*1.002 = 0.077014662) and a
+                # size I had rounded myself; the engine hands it values already formatted by _format_limit_px
+                # (<= price_max_decimals AND <= 5 significant figures, floored) and _floor_wire_size (the coin's own
+                # szDecimals). The SDK then re-serialises an exact value and cannot raise float_to_wire.
                 try:
-                    # the exchange rejects a price it cannot write exactly (float_to_wire causes rounding): format it
-                    # with the coin's own price precision, using the engine's own helper
                     _res = gw._resolve_coin(step["coin"])
-                    px = type(gw)._px_passive(px, int(_res.get("price_max_decimals") or 0), True)
-                except Exception:
-                    pass
+                    px = type(gw)._format_limit_px(px, int(_res.get("price_max_decimals") or 0))
+                    step["size"] = type(gw)._floor_wire_size(step["size"], int(_res.get("sz_decimals") or 0))
+                except Exception as exc:
+                    r.update(action="ABORTED_FORMAT_FAILED", reason=repr(exc))
+                    rows.append(r)
+                    print("ABORT: cannot format price/size with the engine helpers (%r)" % (exc,))
+                    return abort_run(state, live, rows, extra, 12, wallet)
+                if float(step["size"]) <= 0:
+                    r.update(action="SKIP", reason="SIZE_FLOORS_TO_ZERO")
+                    rows.append(r)
+                    continue
                 # A CLOID ON EVERY ORDER: the staged coin filled with cloid None, which means it cannot be matched to
                 # our journal by the reconcile gate - an order we cannot account for is the defect that gate exists
                 # to prevent. generate_cloid is the engine's own generator.
@@ -657,7 +687,9 @@ def main(argv: Optional[List[str]] = None) -> int:
                 _st = str(status or "")
                 if ok:
                     done = True
+                    r["status"] = "FILLED"
                     r["reason"] = "attempt=%d px=%.6g" % (attempt, px)
+                    record_flatten_attempt(state, step["coin"], _cloid, _oid, step["size"], px, "FLATTEN_FILLED", wallet)
                     break
                 r["reason"] = "attempt=%d status=%s error=%s" % (attempt, _st, (_err or "")[:200])
                 r["error"] = str(_err or "")[:400]
@@ -680,14 +712,25 @@ def main(argv: Optional[List[str]] = None) -> int:
             # staged coin did, and was recorded as an abort). Re-read the position and reclassify before writing.
             _moved = None
             try:
-                _now2 = {p["coin"]: p["net"] for p in open_positions(wallet)}
-                _moved = _now2.get(step["coin"])
+                _now2 = {p["coin"].upper(): p["net"] for p in open_positions(wallet)}
+                # ABSENT FROM THE READ MEANS FLAT, not unknown: the exchange lists open positions only
+                _moved = _now2.get(step["coin"].upper(), 0.0)
             except Exception:
                 _moved = None
             if _moved is not None and abs(float(_moved)) < abs(float(step["net"])):
-                r.update(action="FILLED_DESPITE_EXCEPTION",
+                r.update(action="FILLED_DESPITE_EXCEPTION", status="FILLED",
                          reason="position %s -> %s; %r" % (step["net"], _moved, exc))
+                record_flatten_attempt(state, step["coin"], r.get("cloid"), None, step["size"], 0.0,
+                                       "FLATTEN_FILLED_DESPITE_EXCEPTION", wallet)
                 r["after"] = _moved
+            elif _moved is not None:
+                # unreadable or unmoved is NOT proof of failure: UNKNOWN aborts rather than continuing blind
+                r.update(action="UNKNOWN_AFTER_EXCEPTION",
+                         reason="position unchanged (%s) but the reply raised; not proof of a non-fill: %r"
+                                % (_moved, exc))
+                r["after"] = _moved
+                rows.append(r)
+                return abort_run(state, live, rows, extra, 12, wallet)
             else:
                 r.update(action="ABORTED_EXCEPTION", reason=repr(exc))
             rows.append(r)
