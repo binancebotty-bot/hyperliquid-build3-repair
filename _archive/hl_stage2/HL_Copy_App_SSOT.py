@@ -1279,6 +1279,14 @@ def _plain_integrity_reason(counts: Dict[str, Any]) -> str:
 
 _CLOSE_FAILURE_MARKERS = ("MANUAL_EXIT_RECOVERY_REQUIRED", "EXIT_RECOVERY_QUEUE_FAILED")
 
+# Rejections the engine EXPECTS and handles: a halted market, an IOC that could not match, a short margin. They are
+# recorded per order and the engine moves on, so counting them as RED showed an operator "copy rows are still active
+# red" for 14 rows that were all halted-or-no-match - a banner that names nothing and implies a fault. They stay
+# visible as AMBER under their own state; anything outside this set keeps RED.
+_EXPECTED_REJECT_CATEGORIES = {"MARKET_HALTED", "IOC_NO_IMMEDIATE_MATCH", "SKIPPED_IOC_NO_IMMEDIATE_MATCH",
+                               "INSUFFICIENT_MARGIN", "SKIPPED_INSUFFICIENT_MARGIN"}
+_EXPECTED_REJECT_ERRORS = ("trading is halted", "could not immediately match")
+
 
 def _load_resting_withdraw_pending() -> List[Dict[str, Any]]:
     """Resting entry limits whose withdrawal (cancel) failed: still working on the exchange against the
@@ -3810,8 +3818,14 @@ def _build_execution_quality_rows(
             truth_state = "ACTIVE_AWAITING_COPY_POLL" if is_fresh else "HISTORICAL_UNADOPTED_REVIEW"
             truth_severity = "AMBER" if is_fresh else "RED"
         elif status == "ORDER_REJECTED":
-            truth_state = "ACTIVE_EXCHANGE_REJECT" if is_fresh else "HISTORICAL_EXCHANGE_REJECT"
-            truth_severity = "RED" if is_fresh else "HISTORICAL"
+            _expected = (reject_category.strip().upper() in _EXPECTED_REJECT_CATEGORIES
+                         or any(m in str(attempt.get("error") or "").lower() for m in _EXPECTED_REJECT_ERRORS))
+            if _expected:
+                truth_state = "ACTIVE_EXPECTED_REJECT" if is_fresh else "HISTORICAL_EXPECTED_REJECT"
+                truth_severity = "AMBER" if is_fresh else "HISTORICAL"
+            else:
+                truth_state = "ACTIVE_EXCHANGE_REJECT" if is_fresh else "HISTORICAL_EXCHANGE_REJECT"
+                truth_severity = "RED" if is_fresh else "HISTORICAL"
         elif status == "CONFIRM_REQUIRED":
             truth_state = "QUEUED_PREVIEW"
             truth_severity = "INFO"
