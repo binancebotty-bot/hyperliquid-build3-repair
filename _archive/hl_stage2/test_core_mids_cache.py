@@ -137,6 +137,37 @@ check('CACHED_MID_EQUALS_FRESH_MID_SO_SIZING_IS_UNCHANGED',
       mid_fresh == mid_cached == 100.0 and fresh_fetch.calls == 1,
       'fresh=%r cached=%r fetches=%d' % (mid_fresh, mid_cached, fresh_fetch.calls))
 
+# ---- controller 6407713064: the scope can change DURING the fetch itself. The cache is then stamped with
+# the scope that was READ, which is already stale - the new DEX's markets were never priced. If the next
+# refresh cannot replace them, an age-only check would serve an incomplete-scope price.
+C._FOLLOWER_MIDS.update({'px': {}, 'ms': 0, 'scope': None})
+
+
+class ScopeChangingFetcher:
+    """A DEX is learned while the request is in flight."""
+
+    def __init__(self):
+        self.calls = 0
+
+    def __call__(self, name, payloads, url, timeout):
+        self.calls += 1
+        C.follower_dex_scope = lambda: ['', 'hip3test']   # learned mid-flight
+        return [{'ok': True, 'data': {'BTC': '100.0'}} for _ in payloads]
+
+
+C.follower_dex_scope = lambda: ['']
+changing = ScopeChangingFetcher()
+C._XNET.post_many = changing
+clock['ms'] += 10_000
+first = C.follower_mid('BTC')                 # fetches under the OLD scope
+C._XNET.post_many = FailingFetcher()          # and the replacement fetch fails
+clock['ms'] += 500                            # still well inside the 5 s age bound
+second = C.follower_mid('BTC')
+check('SCOPE_CHANGE_DURING_THE_FETCH_IS_NOT_SERVED',
+      second == 0.0,
+      'first=%r second=%r (100.0 = an incomplete-scope price was served)' % (first, second))
+C.follower_dex_scope = lambda: ['']
+
 failed = [n for n, ok in results if not ok]
 print('TOTAL=%d FAILED=%d' % (len(results), len(failed)))
 if failed:
