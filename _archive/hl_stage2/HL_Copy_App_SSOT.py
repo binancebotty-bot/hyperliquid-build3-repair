@@ -1283,8 +1283,10 @@ _CLOSE_FAILURE_MARKERS = ("MANUAL_EXIT_RECOVERY_REQUIRED", "EXIT_RECOVERY_QUEUE_
 # recorded per order and the engine moves on, so counting them as RED showed an operator "copy rows are still active
 # red" for 14 rows that were all halted-or-no-match - a banner that names nothing and implies a fault. They stay
 # visible as AMBER under their own state; anything outside this set keeps RED.
-_EXPECTED_REJECT_CATEGORIES = {"MARKET_HALTED", "IOC_NO_IMMEDIATE_MATCH", "SKIPPED_IOC_NO_IMMEDIATE_MATCH",
-                               "INSUFFICIENT_MARGIN", "SKIPPED_INSUFFICIENT_MARGIN"}
+# Margin is deliberately NOT here. A halted book or an IOC that could not match is a market outcome the engine
+# handles; INSUFFICIENT_MARGIN means the account cannot fund the copies it is being asked to make, and downgrading
+# that to amber hides an account draining toward zero. It stays RED.
+_EXPECTED_REJECT_CATEGORIES = {"MARKET_HALTED", "IOC_NO_IMMEDIATE_MATCH", "SKIPPED_IOC_NO_IMMEDIATE_MATCH"}
 _EXPECTED_REJECT_ERRORS = ("trading is halted", "could not immediately match")
 
 

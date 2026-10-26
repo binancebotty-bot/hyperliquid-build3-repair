@@ -64,6 +64,17 @@ check('AN_OLD_REJECTION_IS_NOT_ACTIVE', by.get('OLDCOIN', {}).get('is_active') i
 check('THE_ERROR_TEXT_ALONE_ALSO_CLASSIFIES', by.get('NOCATCOIN', {}).get('truth_severity') != 'RED',
       'a rejection with no category but a known error text stayed RED')
 
+
+# ---- margin is a fault, not an expected market outcome ----
+rows2 = U._build_execution_quality_rows([attempt('SIGNATURE_INVALID', 'invalid signature', 60_000, 'sig', 'SIGCOIN'),
+                                        attempt('INSUFFICIENT_MARGIN', 'Insufficient margin', 60_000, 'mar', 'MARCOIN')], [])
+by2 = {r.get('coin'): r for r in rows2}
+check('INSUFFICIENT_MARGIN_STAYS_RED', by2.get('MARCOIN', {}).get('truth_severity') == 'RED',
+      'a short-margin rejection was downgraded to %r - an account draining to zero would go quiet'
+      % (by2.get('MARCOIN', {}).get('truth_severity'),))
+check('A_SIGNATURE_FAULT_STAYS_RED', by2.get('SIGCOIN', {}).get('truth_severity') == 'RED',
+      'a signature fault was downgraded to %r' % (by2.get('SIGCOIN', {}).get('truth_severity'),))
+
 failed = [n for n, ok in results if not ok]
 print('TOTAL=%d FAILED=%d' % (len(results), len(failed)))
 if failed:
