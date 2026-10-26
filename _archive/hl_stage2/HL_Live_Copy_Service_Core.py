@@ -5459,7 +5459,7 @@ class SenderGateway:
         try:
             cloid, pre_send = self._recovery_send_hooks(intent, tif, order_type, px, size, False, timing, label)
             response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", size, px, tif, False,
-                                         timing, f"{label}_started_ms", cloid=cloid, pre_send=pre_send)
+                                         timing, f"{label}_started_ms", cloid=cloid, pre_send=pre_send, intent=intent, path="missed_entry_rest")
             ok, status, oid, error = self._parse_hl_response(response)
         except Exception as exc:
             return dict(base, outcome="MISSED_ENTRY_DIFF_NO_LIMIT_POSSIBLE",
@@ -5482,14 +5482,52 @@ class SenderGateway:
                            f"follower_price={follower_px}; moved_against_bps={missed.get('adverse_bps', 0.0):.2f}; "
                            f"tolerance_bps={bps}; take={take}; order={order_type} @ {px}"))
 
+    def _master_gate_reason(self, intent: Any, path: str = "") -> str:
+        """Why this order may NOT go to the exchange, or "" when it may.
+
+        Checked INSIDE _place_order, not only at the call sites: on 2026-10-25 the missed-entry rest
+        path (Core:12114 -> _missed_entry_rest_or_diff -> _place_order) placed 1,549 GTC limits while
+        send_mode was OFF, because the switch was consulted by send_if_allowed and by nothing below
+        it. A gate at the one physical call cannot be forgotten by a new call site.
+        """
+        if not self.cfg.master_switch_now():
+            return "MASTER_REAL_ORDERS_OFF"
+        if intent is None:
+            return ""
+        wallet = str(getattr(intent.fill, "leader_wallet", "") or "")
+        mode = str(self.cfg.wallet_mode(wallet) or "").upper()
+        if mode == "OFF":
+            return "WALLET_OFF"
+        lifecycle = classify_send_lifecycle(intent)
+        if mode == "CLO" and lifecycle in {"ENTRY", "ADD"}:
+            return "CLO_BLOCKS_ENTRY"
+        if self.sender_key_invalid:
+            return "SEND_BLOCKED_SENDER_KEY_NOT_VALID"
+        return ""
+
     def _place_order(self, exchange: Any, sdk_coin: str, is_buy: bool, size: float, limit_px: float,
                      tif: str, reduce_only: bool, timing: Optional[Dict[str, Any]] = None, started_key: str = "",
                      cloid: Optional[str] = None, bypass_rate_limit_cooldown: bool = False,
-                     pre_send: Optional[Callable[[], None]] = None) -> Any:
+                     pre_send: Optional[Callable[[], None]] = None,
+                     intent: Any = None, path: str = "") -> Any:
         """The ONE physical exchange order call. Every order (IOC, IOC retry, rate-limit recovery,
         exit recovery) is serialised and paced here."""
         # Only the time slot is serialised (pacing, and a distinct signing nonce per order): the exchange calls of
         # different workers overlap (run 3: one ~3.5 s call at a time capped the engine near one order per 3.5 s).
+        _blocked = self._master_gate_reason(intent, path)
+        if _blocked:
+            try:
+                self.audit.append_reconciliation(
+                    "SEND_TERMINAL", "BLOCKED_AT_PLACE_ORDER",
+                    leader_wallet=str(getattr(getattr(intent, "fill", None), "leader_wallet", "")),
+                    coin=str(getattr(getattr(intent, "fill", None), "coin", "")),
+                    action="NO_EXCHANGE_CALL", terminal_state="BLOCKED_AT_PLACE_ORDER",
+                    engine_can_send="False",
+                    notes=("blocked at the physical call: %s; path=%s; intent_id=%s"
+                           % (_blocked, path or "-", str(getattr(intent, "intent_id", "-")))))
+            except Exception:
+                pass
+            return {"status": "err", "response": "BLOCKED_AT_PLACE_ORDER:" + _blocked}
         if FOLLOWER_NETWORK == "mainnet" and not MAINNET_ORDERS_CONFIRMED:
             raise RuntimeError("MAINNET_FOLLOWER_NOT_CONFIRMED: mainnet order refused without --confirm-mainnet-follower")
         slot_ms = self._reserve_exchange_order_slot(
@@ -6945,7 +6983,7 @@ class SenderGateway:
                                                   _sc_t, "standing_close")
             recovery_response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", close_size,
                                                   limit_px, "Gtc", _ro, cloid=_cl, bypass_rate_limit_cooldown=True,
-                                                  pre_send=_pre)
+                                                  pre_send=_pre, intent=intent, path="exit_recovery")
             ok, status, oid, error = self._parse_hl_response(recovery_response)
             self._recovery_intent_ids.add(intent.intent_id)
             if ok and oid and status == "ORDER_RESTING":
@@ -7421,7 +7459,7 @@ class SenderGateway:
                                                   wire_size, False, timing, "rate_limit_recovery")
             recovery_response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", wire_size, leader_px,
                                                   tif, False, timing, "entry_add_rate_limit_recovery_started_ms",
-                                                  cloid=_cl, pre_send=_pre)
+                                                  cloid=_cl, pre_send=_pre, intent=intent, path="rate_limit_recovery")
             timing["entry_add_rate_limit_recovery_finished_ms"] = utc_now_ms()
             ok, status, oid, parsed_error = self._parse_hl_response(recovery_response)
             reject_category = classify_reject_category(parsed_error, recovery_response) if not ok else ""
@@ -8327,7 +8365,7 @@ class SenderGateway:
             response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", wire_size, limit_px,
                                          "Gtc" if rest_now else "Ioc", use_reduce_only, timing, "exchange_call_started_ms",
                                          cloid=cloid, bypass_rate_limit_cooldown=lifecycle in {"REDUCE", "EXIT"},
-                                         pre_send=_pending_send)
+                                         pre_send=_pending_send, intent=intent, path="send_other")
             timing["exchange_call_finished_ms"] = utc_now_ms()
             if rest_now:
                 resting_ok, resting_status, resting_oid, resting_error = self._parse_hl_response(response)
@@ -8379,7 +8417,7 @@ class SenderGateway:
                         _cl, _pre = self._recovery_send_hooks(intent, "Ioc", "REAL_IOC", retry_px, wire_size, False,
                                                               timing, "ioc_retry")
                         retry_response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", wire_size,
-                                                           retry_px, "Ioc", False, cloid=_cl, pre_send=_pre)
+                                                           retry_px, "Ioc", False, cloid=_cl, pre_send=_pre, intent=intent, path="send_retry")
                         timing["entry_ioc_retry_finished_ms"] = utc_now_ms()
                         retry_ok, retry_status, retry_oid, retry_error = self._parse_hl_response(retry_response)
                         if retry_ok:
@@ -8409,7 +8447,7 @@ class SenderGateway:
                                                           "missed_entry")
                     rest_response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", wire_size, rest_px,
                                                       "Gtc", False, timing, "missed_entry_limit_started_ms",
-                                                      cloid=_cl, pre_send=_pre)
+                                                      cloid=_cl, pre_send=_pre, intent=intent, path="send_rest")
                     resting_ok, resting_status, resting_oid, resting_error = self._parse_hl_response(rest_response)
                     if resting_ok:
                         accepted_result = (resting_ok, resting_status, {
@@ -8444,7 +8482,7 @@ class SenderGateway:
                                                               timing, "netting_resend")
                         response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", wire_size, limit_px,
                                                      "Ioc", False, cloid=_cl, bypass_rate_limit_cooldown=True,
-                                                     pre_send=_pre)
+                                                     pre_send=_pre, intent=intent, path="send_after_rest")
                         ok, status, oid, parsed_error = self._parse_hl_response(response)
                         if ok:
                             accepted_result = (ok, status, {
