@@ -11646,8 +11646,16 @@ def follower_volumes_24h(refresh: bool = False) -> Tuple[bool, Dict[str, float],
 
 
 def follower_entry_exclusion(coin: str, is_entry: bool,
-                             global_controls: Optional[Dict[str, Any]] = None) -> Tuple[str, str]:
-    """("", "") means copy normally; otherwise (status, note) for exactly one terminal row."""
+                             global_controls: Optional[Dict[str, Any]] = None,
+                             held_net: Optional[float] = None) -> Tuple[str, str]:
+    """("", "") means copy normally; otherwise (status, note) for exactly one terminal row.
+
+    `held_net` is the engine's own net position in the coin. NOTHING here may block a close or a reduction: the fill's
+    direction string comes from replay/import metadata and can say "Open ..." for a close, so it is a hint and the
+    ledger's net is the fact. With a position held this refuses to exclude, whatever `is_entry` says.
+    """
+    if held_net is not None and abs(fnum(held_net, 0.0)) > POSITION_EPSILON:
+        return "", ""
     if not is_entry:
         return "", ""
     if FOLLOWER_NETWORK == "mainnet":
@@ -12895,9 +12903,19 @@ class LiveCopyCore:
         # excluded, and on mainnet this returns nothing at once.
         try:
             _dir_txt = _fill_dir(fill).lower()
-            _is_entry = _dir_txt.startswith(("open ", "increase "))
+            _says_entry = _dir_txt.startswith(("open ", "increase "))
+            # NEVER exclude a fill that could reduce a position we hold. The direction string comes from the fill's
+            # metadata (replay/import can say "Open ..." for a close), so it is a hint, not a fact: the ledger's net is
+            # the fact. With a position on the coin, this path stands aside and the normal lifecycle classifies it.
+            _held = 0.0
+            try:
+                _held = abs(fnum(self.ledger.coin_net(canonical_coin_key(fill.coin)), 0.0)) if self.ledger else 0.0
+            except Exception:
+                _held = 0.0
+            _is_entry = bool(_says_entry) and _held <= POSITION_EPSILON
             _gc = getattr(self.cfg, "config", {}) or {}
-            _status, _note = follower_entry_exclusion(fill.coin, _is_entry, (_gc.get("global_controls") or {}))
+            _status, _note = follower_entry_exclusion(fill.coin, _is_entry, (_gc.get("global_controls") or {}),
+                                                      held_net=_held)
         except Exception as _exc:
             _status, _note = "", ""
             try:
@@ -16450,8 +16468,12 @@ def close_orphan_attempt_rows(send_attempts_csv: Optional[str] = None, live_fill
         # Only a PROVABLY COMPLETE fill may be called ORDER_FILLED. A partial fill - the order was later cancelled,
         # or the exchange is still working it - stays open and is named, so the journal never claims a fill that did
         # not happen. This is the case an "a fill row exists" test cannot distinguish without an exchange call.
-        complete = want_sz > 0 and filled_sz + 1e-9 >= want_sz
-        if complete and oid in _claimed_oid:
+        # EXACT, no float slop: a 5e-10 shortfall against a cancelled order is still a partial fill, and calling it
+        # filled is the defect this function exists to prevent. Both sides are quantised to 10 dp strings already.
+        complete = want_sz > 0 and round(filled_sz, 10) >= round(want_sz, 10)
+        # A second attempt row for an order id that is ALREADY claimed is superseded whatever its own size says -
+        # otherwise a phantom attempt row can stay open forever for an order that is finished.
+        if oid in _claimed_oid:
             # EXIT_RECOVERY writes TWO attempt rows for one physical order. Only the first may be called FILLED; the
             # second is closed as SUPERSEDED so derived counts cannot see one exchange fill as two filled orders.
             _sup = dict(row)

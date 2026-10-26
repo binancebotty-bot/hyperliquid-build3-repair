@@ -294,6 +294,47 @@ check('ONE_ORDER_IS_NEVER_TWO_FILLED_ORDERS', len(filled8) == 1,
 check('THE_SECOND_ROW_IS_SUPERSEDED', len(superseded8) == 1,
       'the second attempt row was not superseded: %r' % ([r['status'] for r in rows8],))
 
+
+# ---- Codex GATE FAIL a175a88, findings 2 and 3, pinned ----
+# a shortfall far below a cent is still a partial fill
+d9 = Path(tempfile.mkdtemp(prefix='slop_'))
+ap9, fp9 = d9 / 'send_attempts.csv', d9 / 'live_fills.csv'
+write_csv(ap9, [attempt('s1', 'ORDER_RESTING', '313131', copy_size='1.0')])
+f9 = fill('s1', '313131'); f9['fill_size'] = '0.9999999995'
+write_csv(fp9, [f9])
+try:
+    fn(send_attempts_csv=str(ap9), live_fills_csv=str(fp9), apply=True)
+except TypeError:
+    fn(str(ap9), str(fp9), True)
+rows9 = list(csv.DictReader(open(ap9, encoding='utf-8')))
+check('A_SUB_NANO_SHORTFALL_IS_NOT_CALLED_FILLED',
+      not any(r['attempt_id'] == 's1' and r['status'] == 'ORDER_FILLED' for r in rows9),
+      'a cancelled 0.9999999995 of 1.0 was marked filled')
+
+# a second row for an already-claimed oid is superseded whatever its own size says
+d10 = Path(tempfile.mkdtemp(prefix='twoshort_'))
+ap10, fp10 = d10 / 'send_attempts.csv', d10 / 'live_fills.csv'
+write_csv(ap10, [attempt('t1', 'ORDER_RESTING', '414141', copy_size='1.0'),
+                 attempt('t2', 'ORDER_RESTING', '414141', copy_size='0.5')])
+f10 = fill('t1', '414141'); f10['fill_size'] = '0.5'      # short of t1's 1.0, equal to t2's 0.5
+write_csv(fp10, [f10])
+try:
+    out10 = fn(send_attempts_csv=str(ap10), live_fills_csv=str(fp10), apply=True)
+except TypeError:
+    out10 = fn(str(ap10), str(fp10), True)
+check('NO_PHANTOM_ROW_STAYS_OPEN_FOR_A_CLAIMED_ORDER',
+      not any(r.get('outcome') == 'ORPHAN_ATTEMPT_PARTIAL_FILL_UNRESOLVED' for r in (out10 or [])
+              if r.get('attempt_id') == 't2'),
+      'the second row for an already-claimed order stayed open: %r' % (out10,))
+
+# ---- Codex finding 1 (P0): a reduction must never be excluded by the follower filters ----
+src4 = (HERE / 'HL_Live_Copy_Service_Core.py').read_text(encoding='utf-8', errors='replace')
+i4 = src4.find('follower_entry_exclusion(fill.coin')
+window4 = src4[max(0, i4-1400):i4 + 200]
+check('THE_EXCLUSION_IS_GATED_ON_THE_LEDGER_NOT_ON_FILL_METADATA',
+      'coin_net' in window4 and 'POSITION_EPSILON' in window4,
+      'the exclusion still decides entry-vs-reduction from the fill direction alone; a close could be excluded')
+
 failed = [n for n, ok in results if not ok]
 print('TOTAL=%d FAILED=%d' % (len(results), len(failed)))
 if failed:

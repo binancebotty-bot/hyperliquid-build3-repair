@@ -101,6 +101,19 @@ idem = src.find('# PRE-SEND IDEMPOTENCY GUARD', fn)
 check('THE_EXCLUSION_RUNS_BEFORE_THE_IDEMPOTENCY_AND_SEND_PATH', 0 < gate < idem,
       'the exclusion is not on the entry path ahead of the send guard (gate=%d idem=%d)' % (gate, idem))
 
+
+# ---- Codex P0 on a175a88: a held position must never be excluded, whatever the fill says ----
+C.follower_volumes_24h = fake_volumes()
+st, note = C.follower_entry_exclusion('MERL', True, GC, held_net=5.0)
+check('A_HELD_POSITION_IS_NEVER_EXCLUDED', st == '',
+      'a coin we hold 5.0 of was excluded as %r - a close could be dropped' % (st,))
+st, _ = C.follower_entry_exclusion('MERL', True, GC, held_net=-5.0)
+check('A_SHORT_HELD_POSITION_IS_NEVER_EXCLUDED', st == '',
+      'a coin we are short 5.0 of was excluded as %r' % (st,))
+st, _ = C.follower_entry_exclusion('MERL', True, GC, held_net=0.0)
+check('WITH_NO_POSITION_THE_FILTER_STILL_APPLIES', st == 'ILLIQUID_SKIP',
+      'with no position the thin-book filter stopped working: %r' % (st,))
+
 failed = [n for n, ok in results if not ok]
 print('TOTAL=%d FAILED=%d' % (len(results), len(failed)))
 if failed:
