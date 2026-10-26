@@ -11376,6 +11376,9 @@ class ServiceStateWriter:
             "cycle_time_budget_exceeded": summary.budget_exceeded,
             "budget_exceeded_note": "cycle_timing_only — not a financial cap; applies no order blocks",
             "effective_global_controls": _eff_gc,
+            # reported EVERY cycle, not just at startup: a live swap changes this while the process
+            # keeps running, and the startup record would otherwise describe code no longer loaded.
+            "exchange_truth_sha": _HOTSWAP.loaded_sha("exchange_truth"),
             "networks": {"leader": LEADER_NETWORK, "follower": FOLLOWER_NETWORK},
             "entry_sends_blocked_reason": summary.entry_sends_blocked_reason,
             "sender_key_invalid": summary.sender_key_invalid,
