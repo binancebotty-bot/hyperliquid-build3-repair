@@ -1114,6 +1114,8 @@ TERMINAL_ROW_NAMES = frozenset({
     # A flat wallet receiving a leader close is a conclusion, not a pending state: Core:2917-2924 already
     # treats it as terminal proof for the hard-copy counts. The reporting set was out of step with that.
     "NO_MANUAL_POSITION_TO_CLOSE",
+    # The follower entry exclusion's own terminal row (Core:11798/11805); written once per refused leader fill.
+    "EXCLUDED_NOT_LISTED_ON_FOLLOWER_NETWORK", "ILLIQUID_SKIP",
 })
 NON_TERMINAL_ROW_NAMES = frozenset({
     "AMBIGUOUS_SEND_EXIT_RESTING", "ASSET_META_REFRESH_FAILED_USING_LAST_GOOD", "AUDIT_WRITE_FAILED",
@@ -2955,6 +2957,8 @@ def build_live_integrity_status() -> Dict[str, Any]:
         "VALID_BLOCKED_BY_SYMBOL_GATE": 0,
         "VALID_BLOCKED_BY_MIN_NOTIONAL": 0,
         "VALID_BLOCKED_BY_DUPLICATE_OR_REPLAY": 0,
+        "VALID_EXCLUDED_NOT_LISTED": 0,
+        "VALID_EXCLUDED_ILLIQUID": 0,
         "ACTIVE_RED": 0,
         "UNCLASSIFIED": 0,
     }
@@ -2991,6 +2995,23 @@ def build_live_integrity_status() -> Dict[str, Any]:
             ):
                 return True
         return False
+
+    def _exclusion_terminal_classification(rows: List[Dict[str, str]]) -> Tuple[str, str]:
+        """The follower entry exclusion writes one terminal no-send row; per-name, never one merged class."""
+        exclusion_terms = {
+            "EXCLUDED_NOT_LISTED_ON_FOLLOWER_NETWORK": "VALID_EXCLUDED_NOT_LISTED",
+            "ILLIQUID_SKIP": "VALID_EXCLUDED_ILLIQUID",
+        }
+        for proof in rows:
+            terms = {
+                str(proof.get("status") or "").strip().upper(),
+                str(proof.get("terminal_state") or "").strip().upper(),
+                str(proof.get("reject_category") or "").strip().upper(),
+                str(proof.get("action") or proof.get("operator_action") or "").strip().upper(),
+            }
+            for _term in terms & exclusion_terms.keys():
+                return exclusion_terms[_term], "follower entry exclusion wrote terminal no-send proof before exchange call"
+        return "", ""
 
     def _local_terminal_classification(rows: List[Dict[str, str]]) -> Tuple[str, str]:
         """Return a hard-copy classification for explicit no-exchange terminal proof."""
@@ -3210,6 +3231,8 @@ def build_live_integrity_status() -> Dict[str, Any]:
             elif _has_ownership_gate_terminal_proof(row_recon):
                 classification = "VALID_BLOCKED_BY_OWNERSHIP_GATE"
                 reason = "ownership gate wrote terminal no-send proof before exchange call"
+            elif _exclusion_terminal_classification(row_recon)[0]:
+                classification, reason = _exclusion_terminal_classification(row_recon)
             elif lifecycle in {"CLOSE", "REDUCE"} and _has_pending_exit_guard_proof(row_recon):
                 classification = "VALID_BLOCKED_BY_DUPLICATE_OR_REPLAY"
                 reason = "pending-exit guard blocked duplicate close while prior reduce-only close was in flight"
