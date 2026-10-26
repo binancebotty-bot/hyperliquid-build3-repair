@@ -28,7 +28,31 @@ results = []
 # is running, a second engine is refused by the global lock - that is correct behaviour, not a test
 # failure, so say SKIP with the reason instead of reporting eight red checks.
 _GLOBAL_LOCK = Path(os.path.expanduser('~/AppData/Local/HL_Live_Copy_Service_Core/engine-global.lock'))
-if _GLOBAL_LOCK.exists():
+def _lock_is_held() -> bool:
+    """The lock file outlives its process by design (a byte-range lock, Core:15718-15737), so its
+    presence proves nothing. It is held when the holder's pid is alive, or when the file cannot even
+    be read - the exclusive byte-range lock denies the read, which is the signal we saw earlier."""
+    if not _GLOBAL_LOCK.exists():
+        return False
+    try:
+        raw = _GLOBAL_LOCK.read_text(encoding='utf-8-sig')
+    except PermissionError:
+        return True
+    except Exception:
+        return True
+    try:
+        info = json.loads(raw)
+        holder = info.get('holder') if isinstance(info.get('holder'), dict) else info
+        pid = int(holder.get('pid') or 0)
+        if not pid:
+            return False
+        import psutil
+        return psutil.pid_exists(pid) and psutil.Process(pid).is_running()
+    except Exception:
+        return False
+
+
+if _lock_is_held():
     try:
         _holder = json.loads(_GLOBAL_LOCK.read_text(encoding='utf-8-sig'))
     except PermissionError:
