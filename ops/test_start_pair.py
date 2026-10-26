@@ -16,6 +16,7 @@ import json
 import os
 import subprocess
 import sys
+import time
 import tempfile
 from pathlib import Path
 
@@ -69,6 +70,16 @@ fake = tmp / 'fake'
 (fake / 'ops' / 'stop_pair.py').write_text('def pids(d):\n    return []\ndef listener(p):\n    return None\n',
                                             encoding='utf-8')
 
+# the fake checkout must be a REAL git repo, or --expect-sha cannot be exercised (an unreadable sha refuses first)
+try:
+    subprocess.run(['git', 'init', '-q', str(fake)], check=True, capture_output=True)
+    subprocess.run(['git', '-C', str(fake), 'add', '-A'], check=True, capture_output=True)
+    subprocess.run(['git', '-C', str(fake), '-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qm', 'fake'],
+                   check=True, capture_output=True)
+    print('fake checkout initialised as a git repo')
+except Exception as exc:
+    print('could not initialise git in the fake checkout:', exc)
+
 state_missing = tmp / 'stack' / 'run99' / 'state_20260101'
 rc, out = run(['--checkout', str(fake), '--state', str(state_missing), '--dry-run'])
 check('A_MISSING_STATE_DIR_IS_REFUSED_NOT_CREATED', rc == 1 and 'does not exist' in out,
@@ -86,7 +97,7 @@ check('AN_UNSEEDED_STATE_DIR_IS_REFUSED', rc == 1 and 'seed it first' in out,
 state_ok = tmp / 'stack' / 'run97' / 'state_20260101'
 state_ok.mkdir(parents=True)
 state_ok.joinpath('live_config.json').write_text('{}', encoding='utf-8', **({} if state_ok.joinpath('clean_core_runtime_state.json').exists() else {}))
-(state_ok / 'clean_core_runtime_state.json').write_text('{"last_leader_poll_cursor_ms": 1792990000000}',
+(state_ok / 'clean_core_runtime_state.json').write_text('{"last_leader_poll_cursor_ms": %d}' % (int(time.time()*1000) - 300_000),
                                                        encoding='utf-8')
 rc, out = run(['--checkout', str(fake), '--state', str(state_ok), '--ui-port', str(PORT), '--dry-run'])
 check('A_SEEDED_DIRECTORY_PRODUCES_A_PLAN_WITHOUT_STARTING', rc == 0 and '"dry_run": true' in out,
@@ -155,7 +166,7 @@ check('A_SHORT_EXPECT_SHA_IS_REFUSED', rc == 1 and 'at least 7' in out,
 st_badshape = tmp / 'elsewhere' / 'state_20260101'
 st_badshape.mkdir(parents=True)
 (st_badshape / 'live_config.json').write_text('{}', encoding='utf-8')
-(st_badshape / 'clean_core_runtime_state.json').write_text('{"last_leader_poll_cursor_ms": 1792990000000}',
+(st_badshape / 'clean_core_runtime_state.json').write_text('{"last_leader_poll_cursor_ms": %d}' % (int(time.time()*1000) - 300_000),
                                                            encoding='utf-8')
 rc, out = run(['--checkout', str(fake), '--state', str(st_badshape), '--ui-port', str(PORT), '--dry-run'])
 check('A_WRONG_DEPTH_STATE_DIR_IS_REFUSED', rc == 1 and 'runNN/state_' in out,
@@ -163,7 +174,7 @@ check('A_WRONG_DEPTH_STATE_DIR_IS_REFUSED', rc == 1 and 'runNN/state_' in out,
 
 # the pointer must be written only after the pair is proven: the write cannot precede the start calls
 srcp = TOOL.read_text(encoding='utf-8')
-write_at = srcp.find('pointer.write_text(str(state)')
+write_at = srcp.find('os.replace(str(_tmp), str(pointer))')
 first_popen = srcp.find('subprocess.Popen(')
 check('THE_POINTER_IS_WRITTEN_AFTER_THE_START_IS_PROVEN', write_at > first_popen,
       'the pointer is written before anything is started (write at %d, first start at %d)' % (write_at, first_popen))

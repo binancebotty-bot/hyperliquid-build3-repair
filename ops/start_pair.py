@@ -19,6 +19,7 @@ ops/PAIR_START_RUNBOOK.md. A fresh dir without seeding is the 2026-10-25 runaway
 Exit codes: 0 started (or a clean dry run), 1 refused, 2 bad arguments.
 """
 import argparse
+import re
 import json
 import os
 import subprocess
@@ -79,13 +80,16 @@ def main(argv=None):
                          capture_output=True, text=True).stdout.strip()
     if args.expect_sha:
         want = args.expect_sha.strip()
+        if not sha:
+            return refuse("cannot read a commit from %s - is it a git checkout? an unreadable sha cannot be pinned"
+                          % checkout)
         if len(want) < 7:
             return refuse("--expect-sha must be at least 7 characters, got %r (a short prefix certifies nothing)" % want)
-        if sha != want:
-            return refuse("checkout is at %s, expected exactly %s" % (sha or "?", want))
+        if not (want.startswith(sha) or sha.startswith(want[:len(sha)])):
+            return refuse("checkout is at %s, expected %s" % (sha or "?", want))
 
     # the pointer lives at <stack>/CURRENT_AUDIT_DIR, so the shape of --state decides where it is written
-    if not (state.name.startswith("state_") and state.parent.name.startswith("run")):
+    if not (re.fullmatch(r"state_\d{8}", state.name) and re.fullmatch(r"run\d+", state.parent.name)):
         return refuse("--state must look like <stack>/runNN/state_YYYYMMDD, got %s - the pointer path derives "
                       "from it and a wrong depth writes it where the monitor never looks" % state)
     # a fresh dir must be SEEDED, and live_config.json is not the proof: the seeder writes the leader cursor, and
@@ -109,6 +113,11 @@ def main(argv=None):
             cursor = int(raw_cursor or 0)
     except Exception as exc:
         return refuse("cannot read the leader cursor from %s: %r" % (cursor_file, exc))
+    _age_ms = int(time.time() * 1000) - cursor
+    if cursor > 0 and _age_ms > 100 * 60 * 1000:
+        return refuse("the leader cursor in %s is %d ms old, older than the 100-minute retention window - a copied "
+                      "state dir passes a positive-cursor check and still replays history; re-seed rather than force"
+                      % (cursor_file, _age_ms))
     if cursor <= 0:
         return refuse("the leader cursor in %s is %r - an unseeded/zero cursor replays the retention window "
                       "as live intents (the 2026-10-25 runaway); re-seed rather than force" % (cursor_file, cursor))
@@ -127,6 +136,11 @@ def main(argv=None):
         "checkout": str(checkout), "sha": sha, "state": str(state),
         "engine": str(engine_path(checkout)), "ui_port": args.ui_port, "pointer": str(pointer),
     }
+    try:
+        previous_pointer = pointer.read_text(encoding="utf-8-sig").strip() if pointer.exists() else ""
+    except OSError:
+        previous_pointer = ""
+
     if args.dry_run:
         print(json.dumps({"dry_run": True, "would_start": plan}, indent=2))
         return 0
@@ -158,13 +172,27 @@ def main(argv=None):
 
     up = bool(SP.listener(args.ui_port)) and engine.poll() is None
     if up:
-        # proven: only now does the pointer move, so a failed start can never leave the monitor on a dead dir
-        pointer.write_text(str(state) + chr(10), encoding="utf-8")
+        # proven: only now does the pointer move. Written through a temp file, so a kill mid-write cannot leave an
+        # empty CURRENT_AUDIT_DIR behind.
+        _tmp = pointer.with_name(pointer.name + '.tmp')
+        _tmp.write_text(str(state) + chr(10), encoding='utf-8')
+        os.replace(str(_tmp), str(pointer))
     else:
-        if previous_pointer and previous_pointer != str(state):
-            pointer.write_text(previous_pointer + chr(10), encoding="utf-8")   # revert: back to the run that was live before this attempt
-        elif pointer.exists() and not previous_pointer:
-            pointer.unlink()
+        # A failed start must leave NOTHING running: a detached engine with no pointer is invisible to the monitor and
+        # blocks the next start with "engine already running".
+        for _proc in (ui, engine):
+            try:
+                if _proc is not None and _proc.poll() is None:
+                    _proc.terminate()
+            except Exception:
+                pass
+        try:
+            if previous_pointer and previous_pointer != str(state):
+                pointer.write_text(previous_pointer + chr(10), encoding='utf-8')   # revert: the run that was live
+            elif pointer.exists() and not previous_pointer:
+                pointer.unlink()
+        except Exception:
+            pass
     print(json.dumps({
         "pair": "STARTED" if up else "UI_NOT_LISTENING",
         "sha": sha, "state": str(state), "engine_pid": engine.pid, "ui_pid": ui.pid,
