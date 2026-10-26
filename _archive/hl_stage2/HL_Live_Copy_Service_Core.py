@@ -971,6 +971,7 @@ def classify_terminal_state(status: str, reject_category: str = "", lifecycle: s
             "SEND_NOT_ATTEMPTED_RISK_BLOCKED": "SEND_NOT_ATTEMPTED_RISK_BLOCKED",
             "AUTO_SEND_DISABLED": "SEND_NOT_ATTEMPTED_AUTO_SEND_DISABLED",
             "MASTER_REAL_ORDERS_OFF": "SEND_NOT_ATTEMPTED_AUTO_SEND_DISABLED",
+            "BLOCKED_AT_PLACE_ORDER": "SEND_NOT_ATTEMPTED_BLOCKED_AT_PLACE_ORDER",
             # Final-gate blocks: notional dust, raw/unresolved asset, invalid size/price
             "SEND_NOT_ATTEMPTED_BELOW_MIN_NOTIONAL": "DUST_BELOW_MIN_NOTIONAL",
             "SIZE_OR_NOTIONAL_REJECTED": "DUST_BELOW_MIN_NOTIONAL",
@@ -1072,6 +1073,7 @@ def classify_operator_action(status: str, reject_category: str = "", lifecycle: 
 # classify_terminal_state returns). Substring matching is gone: a name in neither set is UNCLASSIFIED, and the test
 # below fails if the sender grows a row name this list does not carry.
 TERMINAL_ROW_NAMES = frozenset({
+    "BLOCKED_AT_PLACE_ORDER",
     "ASSET_META_SNAPSHOT_ONLY_SEND_BLOCKED", "BLOCKED_SEND_EXCEPTION", "BLOCKED_SEND_UNCLASSIFIED",
     "CLOSE_ADVERSE_DIFF_TOO_LARGE", "CLOSE_ALREADY_AT_TARGET", "DUST_BELOW_MIN_NOTIONAL",
     "ENTRY_ADD_RATE_LIMIT_RECOVERY_EXPIRED", "ENTRY_ADD_RATE_LIMIT_RECOVERY_FAILED",
