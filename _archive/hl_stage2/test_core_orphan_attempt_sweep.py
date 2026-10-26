@@ -66,7 +66,8 @@ import tempfile
 
 FIELDS = ['created_at', 'created_at_ms', 'attempt_id', 'intent_id', 'leader_fill_id', 'leader_wallet', 'coin',
           'side', 'order_type', 'limit_price', 'copy_size', 'copy_notional', 'reduce_only_sent', 'sleeve_id',
-          'cloid', 'status', 'exchange_order_id', 'terminal_state', 'action', 'notes']
+          'cloid', 'status', 'exchange_order_id', 'terminal_state', 'action', 'notes',
+          'fill_price', 'fill_size', 'copy_fill_id']   # a fill row without its size proves nothing
 
 
 def write_csv(path, rows):
@@ -77,10 +78,11 @@ def write_csv(path, rows):
             w.writerow({k: r.get(k, '') for k in FIELDS})
 
 
-def attempt(aid, status, oid='', reduce_only='', coin='TEST', ts=1792990000000):
+def attempt(aid, status, oid='', reduce_only='', coin='TEST', ts=1792990000000, copy_size='10.0'):
     return {'created_at': '2026-10-26T00:00:00+00:00', 'created_at_ms': ts, 'attempt_id': aid,
             'intent_id': 'i-' + aid, 'leader_fill_id': 'lf-' + aid, 'coin': coin, 'side': 'B',
-            'cloid': '0x' + aid, 'status': status, 'exchange_order_id': oid, 'reduce_only_sent': reduce_only}
+            'cloid': '0x' + aid, 'status': status, 'exchange_order_id': oid, 'reduce_only_sent': reduce_only,
+            'copy_size': copy_size}
 
 
 def fill(aid, oid, coin='TEST'):
@@ -155,10 +157,73 @@ check('THE_MATCHER_CLOSES_ONLY_THE_ORDER_IT_MATCHED', closed_ids == {'m1'},
 # ---- 7. and the matcher really calls it, above its return ----
 src2 = (HERE / 'HL_Live_Copy_Service_Core.py').read_text(encoding='utf-8', errors='replace')
 mi = src2.find('recovered from send_attempt')
-window = src2[mi:mi + 900] if mi != -1 else ''
-check('THE_FILL_MATCHER_CLOSES_THE_ATTEMPT_ROW', 'close_orphan_attempt_rows(only_oid=norm_oid' in window
+window = src2[mi:mi + 1400] if mi != -1 else ''
+check('THE_FILL_MATCHER_CLOSES_THE_ATTEMPT_ROW',
+      'close_orphan_attempt_rows(apply=True)' in window
       and window.find('close_orphan_attempt_rows') < window.find('return True'),
       'the matcher does not close the attempt row, or does it after returning')
+check('THE_MATCHER_CALL_IS_GATED_FOR_MAINNET_AND_SENDS_OFF',
+      'FOLLOWER_NETWORK != "mainnet"' in window and 'auto_send_enabled' in window,
+      'the matcher-side close is not gated the way the startup sweep is')
+check('THE_MATCHER_CALL_IS_BURST_GUARDED',
+      '_LAST_MATCHER_SWEEP' in window,
+      'a catch-up burst would re-read the journals on every fill')
+
+
+# ---- 8. CRITICAL: a PARTIAL fill followed by a cancel must never be called filled ----
+d3 = Path(tempfile.mkdtemp(prefix='sweep3_'))
+ap3, fp3 = d3 / 'send_attempts.csv', d3 / 'live_fills.csv'
+write_csv(ap3, [attempt('p1', 'ORDER_RESTING', '555', copy_size='10.0')])
+# the order was 10, only 2+3 filled, then it was cancelled: a fill row exists, the order did NOT fill
+f1 = fill('p1', '555'); f1['fill_size'] = '2.0'
+f2 = fill('p1', '555'); f2['fill_size'] = '3.0'
+write_csv(fp3, [f1, f2])
+try:
+    out3 = fn(send_attempts_csv=str(ap3), live_fills_csv=str(fp3), apply=True)
+except TypeError:
+    out3 = fn(str(ap3), str(fp3), True)
+rows3 = list(csv.DictReader(open(ap3, encoding='utf-8')))
+filled_status = [r for r in rows3 if r['attempt_id'] == 'p1' and r['status'] == 'ORDER_FILLED']
+check('PARTIAL_FILL_THEN_CANCEL_IS_NOT_MARKED_FILLED', not filled_status,
+      'a 10-unit order with 5 filled and the rest cancelled was marked %r' % ([r['status'] for r in filled_status],))
+check('THE_PARTIAL_FILL_IS_NAMED_NOT_SILENT', bool(out3) and out3[0].get('outcome') == 'ORPHAN_ATTEMPT_PARTIAL_FILL_UNRESOLVED',
+      'report=%r' % (out3,))
+
+# ---- 9. but a fill split across parts that ADDS UP is closed ----
+d4 = Path(tempfile.mkdtemp(prefix='sweep4_'))
+ap4, fp4 = d4 / 'send_attempts.csv', d4 / 'live_fills.csv'
+write_csv(ap4, [attempt('q1', 'ORDER_RESTING', '666', copy_size='10.0')])
+a = fill('q1', '666'); a['fill_size'] = '2.0'
+b = fill('q1', '666'); b['fill_size'] = '3.0'
+c = fill('q1', '666'); c['fill_size'] = '5.0'
+write_csv(fp4, [a, b, c])
+try:
+    fn(send_attempts_csv=str(ap4), live_fills_csv=str(fp4), apply=True)
+except TypeError:
+    fn(str(ap4), str(fp4), True)
+rows4 = list(csv.DictReader(open(ap4, encoding='utf-8')))
+check('FULL_FILL_ACROSS_PARTS_IS_CLOSED',
+      any(r['attempt_id'] == 'q1' and r['status'] == 'ORDER_FILLED' for r in rows4),
+      'a complete 2+3+5 fill of a 10-unit order was not closed')
+
+# ---- 10. a recon-only sighting carries no size, so it cannot justify FILLED ----
+check('RECON_ONLY_WITHOUT_A_SIZE_IS_NOT_MARKED_FILLED',
+      not any(r['attempt_id'] == 'p1' and r['status'] == 'ORDER_FILLED' for r in rows3),
+      'a recon-only row (no size) still produced ORDER_FILLED')
+
+# ---- 11. non-canonical order ids still match ----
+d5 = Path(tempfile.mkdtemp(prefix='sweep5_'))
+ap5, fp5 = d5 / 'send_attempts.csv', d5 / 'live_fills.csv'
+write_csv(ap5, [attempt('n1', 'ORDER_RESTING', ' 777 ', copy_size='10.0')])
+write_csv(fp5, [fill('n1', '777.0')])
+try:
+    fn(send_attempts_csv=str(ap5), live_fills_csv=str(fp5), apply=True)
+except TypeError:
+    fn(str(ap5), str(fp5), True)
+rows5 = list(csv.DictReader(open(ap5, encoding='utf-8')))
+check('A_NON_CANONICAL_ORDER_ID_STILL_MATCHES',
+      any(r['attempt_id'] == 'n1' and r['status'] == 'ORDER_FILLED' for r in rows5),
+      "' 777 ' vs '777.0' did not join - the matcher-side close would silently do nothing for such an order")
 
 failed = [n for n, ok in results if not ok]
 print('TOTAL=%d FAILED=%d' % (len(results), len(failed)))

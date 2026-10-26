@@ -10652,10 +10652,17 @@ class CopyFillMatcher:
         # The fill just landed, so the attempt row that owns this order must stop saying pending_send or
         # ORDER_RESTING: this matcher writes the ledger row and until now nothing closed the send journal.
         # It closes every open attempt row for this order id - EXIT_RECOVERY writes two under different attempt ids.
-        try:
-            close_orphan_attempt_rows(only_oid=norm_oid, apply=True)
-        except Exception as exc:
-            log_error("matcher_attempt_row_close_failed", exc)
+        # Same guards the startup sweep has: never on a mainnet follower (Boss owns those rows) and never with
+        # sending off. The reads are small (measured: 0.8 MB attempts + 0.2 MB fills, 8.3 MB recon) but a catch-up
+        # burst would repeat them per fill, so one pass is allowed per few seconds and the rest ride on it.
+        if FOLLOWER_NETWORK != "mainnet" and getattr(self.cfg, "auto_send_enabled", False):
+            _now_s = time.time()
+            if _now_s - float(globals().get("_LAST_MATCHER_SWEEP", 0.0)) >= 5.0:
+                globals()["_LAST_MATCHER_SWEEP"] = _now_s
+                try:
+                    close_orphan_attempt_rows(apply=True)
+                except Exception as exc:
+                    log_error("matcher_attempt_row_close_failed", exc)
         return True
 
     def _load_intent_lifecycle_index(self) -> Dict[str, str]:
@@ -16188,25 +16195,37 @@ def close_orphan_attempt_rows(send_attempts_csv: Optional[str] = None, live_fill
     fp = Path(live_fills_csv) if live_fills_csv else LIVE_FILLS_CSV
     rp = Path(recon_csv) if recon_csv else RECONCILIATION_CSV
 
-    by_oid = {}
+    # Sum every fill for an order id. One order can fill in parts, and the LAST row is not the total: a partially
+    # filled order that was later cancelled leaves the same shape as a complete one, so the total is the only thing
+    # that can tell them apart without an exchange call.
+    def _canon_oid(value):
+        text = str(value or "").strip()
+        try:
+            return str(int(float(text)))
+        except (TypeError, ValueError):
+            return text
+    filled_total = {}
     for row in read_csv_rows(fp):
-        oid = str(row.get("exchange_order_id") or "").strip()
-        if oid:
-            by_oid[oid] = row
+        oid = _canon_oid(row.get("exchange_order_id"))
+        if not oid:
+            continue
+        size = fnum(row.get("fill_size") or row.get("size"), 0.0)
+        filled_total[oid] = filled_total.get(oid, 0.0) + max(0.0, size)
+    by_oid = {oid: {"filled_size": total} for oid, total in filled_total.items()}
     for row in read_csv_rows(rp):
-        oid = str(row.get("exchange_order_id") or "").strip()
-        if oid and str(row.get("event") or "").upper() == "COPY_FILL" and oid not in by_oid:
-            by_oid[oid] = row
+        oid = _canon_oid(row.get("exchange_order_id"))
+        if oid and str(row.get("event") or "").upper() == "COPY_FILL":
+            by_oid.setdefault(oid, {"filled_size": 0.0})   # on the exchange, but a recon row carries no size
 
     latest = {}
     for row in read_csv_rows(ap):
         latest[str(row.get("attempt_id") or "")] = row
     open_statuses = {"PENDING_SEND", "ORDER_RESTING"}
-    want_oid = str(only_oid or "").strip()
+    want_oid = _canon_oid(only_oid)
     candidates = [row for row in latest.values()
                   if str(row.get("status") or "").strip().upper() in open_statuses
-                  and str(row.get("exchange_order_id") or "").strip() in by_oid
-                  and (not want_oid or str(row.get("exchange_order_id") or "").strip() == want_oid)]
+                  and _canon_oid(row.get("exchange_order_id")) in by_oid
+                  and (not want_oid or _canon_oid(row.get("exchange_order_id")) == want_oid)]
 
     def _is_close(row):
         return str(row.get("reduce_only_sent") or "").strip().lower() in {"1", "true", "yes"}
@@ -16215,9 +16234,10 @@ def close_orphan_attempt_rows(send_attempts_csv: Optional[str] = None, live_fill
 
     done = []
     for row in candidates:
-        oid = str(row.get("exchange_order_id") or "").strip()
+        oid = _canon_oid(row.get("exchange_order_id"))
         src = by_oid[oid]
-        filled_sz = fnum(src.get("fill_size") or src.get("size"), 0.0)
+        filled_sz = fnum(src.get("filled_size"), 0.0)
+        want_sz = abs(fnum(row.get("copy_size"), 0.0))
         new_row = dict(row)
         new_row.update({
             "status": "ORDER_FILLED", "terminal_state": "MATCHED_BY_EXCHANGE_ORDER_ID",
@@ -16225,8 +16245,17 @@ def close_orphan_attempt_rows(send_attempts_csv: Optional[str] = None, live_fill
             "notes": ("closed by sweep: the exchange reports this order filled (oid=%s, filled_size=%s); the "
                       "attempt row was left open because the fill arrived after placement" % (oid, filled_sz)),
         })
+        # Only a PROVABLY COMPLETE fill may be called ORDER_FILLED. A partial fill - the order was later cancelled,
+        # or the exchange is still working it - stays open and is named, so the journal never claims a fill that did
+        # not happen. This is the case an "a fill row exists" test cannot distinguish without an exchange call.
+        complete = want_sz > 0 and filled_sz + 1e-9 >= want_sz
         rec = {"attempt_id": row.get("attempt_id"), "exchange_order_id": oid, "coin": row.get("coin"),
-               "was": row.get("status"), "filled_size": filled_sz, "is_close": _is_close(row), "applied": False}
+               "was": row.get("status"), "filled_size": filled_sz, "want_size": want_sz,
+               "is_close": _is_close(row), "applied": False,
+               "outcome": "CLOSED_FULL_FILL" if complete else "ORPHAN_ATTEMPT_PARTIAL_FILL_UNRESOLVED"}
+        if not complete:
+            done.append(rec)
+            continue
         if apply:
             try:
                 rec["applied"] = bool(append_csv(ap, SEND_ATTEMPT_FIELDS, new_row))
