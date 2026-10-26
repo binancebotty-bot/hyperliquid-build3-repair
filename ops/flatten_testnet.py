@@ -335,25 +335,38 @@ def client_endpoint(exchange: Any) -> Optional[str]:
     return None
 
 
-def client_is_testnet(exchange: Any) -> Optional[bool]:
-    """True/False, or None when the endpoint cannot be read - and None refuses.
-
-    THREE SOURCES, in order: the client object's own attribute; HL_EXCHANGE_URL from the environment (the variable the
-    client is constructed FROM, see Core:6728); the engine module's own HL_EXCHANGE_URL. A real SDK client often has no
-    url attribute at all, and refusing on that alone would make a live flatten impossible - but each source must still
-    positively say testnet, and no source at all still refuses.
-    """
+def endpoint_sources(exchange: Any) -> List[Tuple[str, str]]:
+    """Every endpoint we can see, by source name. ALL of them are checked, not the first one found."""
+    out: List[Tuple[str, str]] = []
     ep = client_endpoint(exchange)
     if ep:
-        return is_testnet(ep)
-    env_url = os.getenv("HL_EXCHANGE_URL")
+        out.append(("client", ep))
+    env_url = (os.getenv("HL_EXCHANGE_URL") or "").strip()
     if env_url:
-        return is_testnet(env_url)
+        out.append(("env:HL_EXCHANGE_URL", env_url))
     try:
         from HL_Live_Copy_Service_Core import HL_EXCHANGE_URL
-        return is_testnet(HL_EXCHANGE_URL)
+        if str(HL_EXCHANGE_URL or "").strip():
+            out.append(("engine:HL_EXCHANGE_URL", str(HL_EXCHANGE_URL)))
     except Exception:
+        pass
+    return out
+
+
+def client_is_testnet(exchange: Any) -> Optional[bool]:
+    """True only when EVERY source we can read says testnet.
+
+    A mainnet value in ANY source refuses, even if another source says testnet - otherwise a stale client attribute
+    could vouch for an order that the environment is about to send to mainnet. No source at all (or only empty ones)
+    refuses too: unknown is not a pass.
+    """
+    sources = endpoint_sources(exchange)
+    if not sources:
         return None
+    for _name, url in sources:
+        if not is_testnet(url):
+            return False
+    return True
 
 
 def write_report(state: Path, live: bool, rows: List[Dict[str, Any]], extra: Optional[Dict[str, Any]] = None) -> Path:

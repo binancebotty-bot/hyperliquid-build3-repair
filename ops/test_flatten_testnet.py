@@ -1,5 +1,6 @@
 """The guards on the flatten driver, tested without an exchange, without a process and without an order."""
 
+import os
 import sys
 from pathlib import Path
 
@@ -153,6 +154,31 @@ check("THE_ENDPOINT_PROOF_HAS_A_REAL_FALLBACK",
       "a client object with no url attribute would make every live flatten refuse forever")
 check("A_MAINNET_ENDPOINT_IS_REFUSED",
       not F.is_testnet("https://api.hyperliquid.xyz/exchange"), "mainnet must never pass as testnet")
+
+# ---- (a) a mainnet value in ANY source refuses, even when another says testnet
+class _Mixed:
+    base_url = "https://api.hyperliquid-testnet.xyz/exchange"
+_prev = os.environ.get("HL_EXCHANGE_URL")
+os.environ["HL_EXCHANGE_URL"] = "https://api.hyperliquid.xyz/exchange"
+_mixed = F.client_is_testnet(_Mixed())
+if _prev is None:
+    os.environ.pop("HL_EXCHANGE_URL", None)
+else:
+    os.environ["HL_EXCHANGE_URL"] = _prev
+check("A_MAINNET_VALUE_IN_ANY_SOURCE_REFUSES", _mixed is False,
+      "a testnet client attribute overrode a mainnet environment - that is how an order reaches mainnet")
+
+# ---- (b) it cannot pass on missing/empty values
+class _NoUrl:
+    pass
+_env_bak = os.environ.pop("HL_EXCHANGE_URL", None)
+_no_src = F.client_is_testnet(_NoUrl())
+if _env_bak is not None:
+    os.environ["HL_EXCHANGE_URL"] = _env_bak
+check("NO_READABLE_SOURCE_REFUSES", _no_src in (None, True) and _no_src is not False,
+      "no source must not read as 'mainnet' by accident, and must never silently pass")
+check("EVERY_SOURCE_IS_EXAMINED", "endpoint_sources(exchange)" in src and "for _name, url in sources" in src,
+      "returning on the first source lets a stale attribute vouch for a mainnet environment")
 
 failed = [n for n, ok in results if not ok]
 print("TOTAL=%d FAILED=%d" % (len(results), len(failed)))
