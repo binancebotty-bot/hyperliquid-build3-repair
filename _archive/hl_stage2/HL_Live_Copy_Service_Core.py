@@ -11630,10 +11630,14 @@ def follower_volumes_24h(refresh: bool = False) -> Tuple[bool, Dict[str, float],
             if not name:
                 continue
             listed.add(name)
+            _raw_vol = (ctx or {}).get("dayNtlVlm")
+            if _raw_vol is None or str(_raw_vol).strip() == "":
+                continue          # a missing reading is not evidence of a thin book: leave the coin OUT of the map
             try:
-                vol[name] = float((ctx or {}).get("dayNtlVlm") or 0.0)
+                _v = float(_raw_vol)
+                vol[name] = _v if math.isfinite(_v) else None
             except (TypeError, ValueError):
-                vol[name] = 0.0
+                vol[name] = None
         if not listed:
             raise ValueError("empty follower universe")
         _VOL_CACHE.update({"ts": now, "vol": vol, "listed": listed, "ok": True})
@@ -11670,7 +11674,12 @@ def min_24h_notional_usd() -> float:
             value = 0.0
         else:
             try:
-                value = max(0.0, float(gc.get("min_24h_notional_usd") or 0.0))
+                value = float(gc.get("min_24h_notional_usd") or 0.0)
+                if not math.isfinite(value) or value < 0:
+                    value = 0.0
+                elif value > 1.0e9:
+                    # an absurd threshold would exclude EVERY entry and look like a blackout, not a filter
+                    value = 1.0e9
             except (TypeError, ValueError):
                 value = float(_THRESHOLD_CACHE.get("value") or 0.0)
         _THRESHOLD_CACHE.update({"mtime": mtime, "value": value})
@@ -13053,11 +13062,22 @@ class LiveCopyCore:
             _held = None
             try:
                 if self.ledger is not None:
-                    _sleeve = self.ledger.sleeve(fill.leader_wallet, fill.coin)
-                    if isinstance(_sleeve, dict) and _sleeve:
-                        _held = float(fnum(_sleeve.get("signed_size"), 0.0))
-                    elif isinstance(_sleeve, dict):
-                        _held = 0.0        # an explicit empty sleeve is proven flat
+                    # READ-ONLY, and NO fabrication: ManualLedger.sleeve() setdefaults a FLAT row for any key it has
+                    # never seen, so a position held under another spelling would read back as 0.0 = "proven flat",
+                    # which is exactly the inverse of the rule this guard exists to enforce. And fnum() turns None,
+                    # junk and inf into 0.0 - so the size is parsed strictly and anything unreadable stays UNKNOWN.
+                    _wmap = ((self.ledger.data or {}).get("by_wallet") or {}).get(
+                        normalise_wallet(fill.leader_wallet)) or {}
+                    _raw = _wmap.get(canonical_coin_key(fill.coin)) if isinstance(_wmap, dict) else None
+                    if isinstance(_raw, dict) and "signed_size" in _raw:
+                        try:
+                            _cand = float(str(_raw.get("signed_size")).strip())
+                        except (TypeError, ValueError):
+                            _cand = None
+                        if _cand is not None and math.isfinite(_cand):
+                            _held = _cand
+                        # unreadable or non-finite: _held stays None (unknown, no exclusion)
+                    # no record for this coin: _held stays None - absent is NOT flat
             except Exception as _led_exc:
                 _held = None
                 try:
@@ -13084,6 +13104,20 @@ class LiveCopyCore:
                     notes=_note + "; lifecycle=%s; one terminal row per leader fill; no order and no diff by design"
                           % _life,
                 )
+                for _mid in merged_ids:   # an excluded head must not leave its merged siblings silent
+                    try:
+                        self.audit.append_reconciliation(
+                            "FILL_MERGED", "LEADER_FILL_MERGED_INTO_EXCLUDED",
+                            leader_wallet=fill.leader_wallet, leader_fill_id=_mid,
+                            intent_id=intent.intent_id, coin=fill.coin,
+                            action="EXCLUDED_WITH_MERGED_FILL", engine_can_send="False",
+                            notes=("merged into leader fill %s, which was excluded as %s; recorded so this fill has a "
+                                   "row of its own" % (fill.leader_fill_id, _status)))
+                    except Exception as _mrg_exc:
+                        try:
+                            log_error("merged_sibling_excluded_row", _mrg_exc)
+                        except Exception:
+                            pass
                 return False, _status, intent
         for _mid in merged_ids:  # a merged fill is never silent: its own row says which order carries it
             try:

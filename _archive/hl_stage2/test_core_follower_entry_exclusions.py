@@ -141,7 +141,7 @@ _build = src.find('intent_builder.build(', _fn)
 _call = src.find('follower_entry_exclusion(', _build)
 check('THE_EXCLUSION_RUNS_ON_THE_BUILT_INTENT_NOT_ON_THE_FILL_METADATA', 0 < _build < _call,
       'the exclusion does not run after the intent is built (build=%d call=%d)' % (_build, _call))
-_block = src[max(0, _call-1600):_call]
+_block = src[max(0, _call-3200):_call]
 check('THE_EXCLUSION_IS_GATED_BY_THE_ENGINE_LIFECYCLE_CLASSIFIER',
       'classify_send_lifecycle(intent)' in _block and '_life in {"ENTRY", "ADD"}' in _block,
       'the exclusion is not gated on the engine lifecycle classifier')
