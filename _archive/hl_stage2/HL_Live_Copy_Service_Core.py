@@ -10703,7 +10703,9 @@ class CopyFillMatcher:
         # whole condition - sending off is FINE and intended here, because this repairs the send JOURNAL, it does not
         # send anything: the helper never calls the exchange. The reads are small (measured: 0.8 MB attempts +
         # 0.2 MB fills, 8.3 MB recon) but a catch-up burst would repeat them per fill, so one pass per few seconds.
-        if FOLLOWER_NETWORK != "mainnet":
+        # HL_LIVE_MATCHER_SWEEP=0 turns the matcher-side journal close off without a code change: the first live run
+        # carries only what has been stable for days, and this unit earns its way on afterwards.
+        if FOLLOWER_NETWORK != "mainnet" and os.getenv("HL_LIVE_MATCHER_SWEEP", "1") == "1":
             try:
                 close_orphan_attempt_rows(apply=True, min_interval_sec=5.0)   # throttle lives inside the lock
             except Exception as exc:

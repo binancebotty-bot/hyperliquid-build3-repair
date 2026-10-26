@@ -407,6 +407,10 @@ check('A_NAN_OID_CANNOT_MATCH_ANOTHER_NAN_OID',
       not any(r.get('outcome') == 'CLOSED_FULL_FILL' for r in _nm),
       'two corrupt oids matched each other: %r' % ([r.get('outcome') for r in _nm],))
 
+check('THE_MATCHER_SWEEP_HAS_AN_OFF_SWITCH',
+      'HL_LIVE_MATCHER_SWEEP' in src and 'HL_LIVE_MATCHER_SWEEP", "1"' in src,
+      'the matcher close cannot be turned off for a first run without editing code')
+
 _rep = [n for n, ok in results if not ok]
 print('TOTAL=%d FAILED=%d' % (len(results), len(_rep)))
 if _rep:
