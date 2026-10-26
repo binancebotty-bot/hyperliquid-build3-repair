@@ -162,9 +162,9 @@ check('THE_FILL_MATCHER_CLOSES_THE_ATTEMPT_ROW',
       'close_orphan_attempt_rows(apply=True)' in window
       and window.find('close_orphan_attempt_rows') < window.find('return True'),
       'the matcher does not close the attempt row, or does it after returning')
-check('THE_MATCHER_CALL_IS_GATED_FOR_MAINNET_AND_SENDS_OFF',
-      'FOLLOWER_NETWORK != "mainnet"' in window and 'auto_send_enabled' in window,
-      'the matcher-side close is not gated the way the startup sweep is')
+check('THE_MATCHER_CALL_IS_GATED_FOR_MAINNET_ONLY',
+      'FOLLOWER_NETWORK != "mainnet"' in window and 'auto_send_enabled' not in window,
+      'the matcher-side close is gated on the order switch: a journal-only repair must run with sending OFF')
 check('THE_MATCHER_CALL_IS_BURST_GUARDED',
       '_LAST_MATCHER_SWEEP' in window,
       'a catch-up burst would re-read the journals on every fill')
@@ -224,6 +224,56 @@ rows5 = list(csv.DictReader(open(ap5, encoding='utf-8')))
 check('A_NON_CANONICAL_ORDER_ID_STILL_MATCHES',
       any(r['attempt_id'] == 'n1' and r['status'] == 'ORDER_FILLED' for r in rows5),
       "' 777 ' vs '777.0' did not join - the matcher-side close would silently do nothing for such an order")
+
+
+# ---- the review's findings, each pinned ----
+# a 19-digit order id must survive canonicalisation EXACTLY: int(float()) collapses neighbours onto one key
+d6 = Path(tempfile.mkdtemp(prefix='oid_'))
+ap6, fp6 = d6 / 'send_attempts.csv', d6 / 'live_fills.csv'
+write_csv(ap6, [attempt('b1', 'ORDER_RESTING', '1758000000000000123', copy_size='10.0')])
+f6 = fill('b1', '1758000000000000123'); f6['fill_size'] = '5.0'
+f7 = fill('n1', '1758000000000000199'); f7['fill_size'] = '5.0'
+write_csv(fp6, [f6, f7])
+try:
+    fn(send_attempts_csv=str(ap6), live_fills_csv=str(fp6), apply=True)
+except TypeError:
+    fn(str(ap6), str(fp6), True)
+rows6 = list(csv.DictReader(open(ap6, encoding='utf-8')))
+check('A_LONG_ORDER_ID_IS_NOT_ROUNDED_INTO_A_NEIGHBOUR',
+      not any(r['attempt_id'] == 'b1' and r['status'] == 'ORDER_FILLED' for r in rows6),
+      '5 filled of 10 was marked FILLED because a neighbouring id rounded onto the same key')
+
+# a partial fill must LEAVE A RECORD and stay open, not vanish and be summarised as closed
+d7 = Path(tempfile.mkdtemp(prefix='partial_'))
+ap7, fp7 = d7 / 'send_attempts.csv', d7 / 'live_fills.csv'
+write_csv(ap7, [attempt('pp', 'ORDER_RESTING', '424242', copy_size='10.0')])
+pf = fill('pp', '424242'); pf['fill_size'] = '3.0'
+write_csv(fp7, [pf])
+try:
+    out7 = fn(send_attempts_csv=str(ap7), live_fills_csv=str(fp7), apply=True)
+except TypeError:
+    out7 = fn(str(ap7), str(fp7), True)
+rows7 = list(csv.DictReader(open(ap7, encoding='utf-8')))
+check('A_PARTIAL_FILL_LEAVES_THE_ATTEMPT_OPEN', not any(r['attempt_id'] == 'pp' and r['status'] == 'ORDER_FILLED' for r in rows7),
+      'a 3-of-10 fill was closed')
+check('THE_PARTIAL_FILL_IS_REPORTED_AS_UNRESOLVED',
+      bool(out7) and out7[0].get('outcome') == 'ORPHAN_ATTEMPT_PARTIAL_FILL_UNRESOLVED',
+      'report=%r' % (out7,))
+
+# the sweep writes no orders, so it must not be gated on the order switch
+src3 = (HERE / 'HL_Live_Copy_Service_Core.py').read_text(encoding='utf-8', errors='replace')
+_fn3 = src3.find('def startup_orphan_order_check')
+_call3 = src3.find('close_orphan_attempt_rows(apply=True)', _fn3)
+_gap3 = src3[_fn3:_call3] if _fn3 != -1 and _call3 != -1 else 'MISSING'
+check('THE_SWEEP_IS_NOT_GATED_ON_SENDING',
+      _call3 != -1 and 'auto_send_enabled' not in _gap3,
+      'the startup sweep sits behind the sending-off guard, so it cannot repair the post-incident state')
+
+# the gate refusal row must name the fill, or the caller writes a second row and claims none exists
+gi = src3.find('def _gate_refusal_row')
+gblock = src3[gi:gi+900]
+check('THE_GATE_REFUSAL_ROW_CARRIES_THE_FILL_ID', 'leader_fill_id=' in gblock,
+      'the gate row omits leader_fill_id, so the caller cannot see it and writes a duplicate')
 
 failed = [n for n, ok in results if not ok]
 print('TOTAL=%d FAILED=%d' % (len(results), len(failed)))

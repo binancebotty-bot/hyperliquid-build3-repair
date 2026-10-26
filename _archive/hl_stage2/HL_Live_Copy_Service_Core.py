@@ -5609,6 +5609,8 @@ class SenderGateway:
             self.audit.append_reconciliation(
                 "SEND_TERMINAL", "BLOCKED_AT_PLACE_ORDER",
                 leader_wallet=str(getattr(getattr(intent, "fill", None), "leader_wallet", "")),
+                leader_fill_id=str(getattr(getattr(intent, "fill", None), "leader_fill_id", "")),
+                intent_id=str(getattr(intent, "intent_id", "")),
                 coin=str(getattr(getattr(intent, "fill", None), "coin", "")),
                 action="NO_EXCHANGE_CALL", terminal_state="BLOCKED_AT_PLACE_ORDER",
                 engine_can_send="False",
@@ -6212,6 +6214,26 @@ class SenderGateway:
         if FOLLOWER_NETWORK == "mainnet":  # never cancels a mainnet order the engine cannot prove it placed (Boss manages those)
             return {"ok": True, "skipped": True, "adopted": [], "cancelled": [],
                     "detail": "mainnet follower: open orders left untouched (cancel-unknown is testnet-only)"}
+        # The journal sweep writes no orders and touches no exchange state, so it must run even when sending is OFF -
+        # that is precisely the state an operator is in after a scare, reading the journal to find out what happened.
+        try:
+            _swept = close_orphan_attempt_rows(apply=True)
+            _closed = [r for r in _swept if r.get("outcome") == "CLOSED_FULL_FILL"]
+            _partial = [r for r in _swept if r.get("outcome") != "CLOSED_FULL_FILL"]
+            if _closed or _partial:
+                self.audit.append_reconciliation(
+                    "SEND_TERMINAL", "ORPHAN_ATTEMPT_ROWS_SWEPT", action="JOURNAL_SWEEP",
+                    terminal_state="ORPHAN_ATTEMPT_ROWS_SWEPT", engine_can_send="False",
+                    notes=("closed=%d [%s]; left_open_partial=%d [%s]"
+                           % (len(_closed),
+                              "; ".join("%s oid=%s filled=%s" % (r.get("coin"), r.get("exchange_order_id"),
+                                                                 r.get("filled_size")) for r in _closed),
+                              len(_partial),
+                              "; ".join("%s oid=%s filled=%s of %s" % (r.get("coin"), r.get("exchange_order_id"),
+                                                                      r.get("filled_size"), r.get("want_size"))
+                                        for r in _partial))))
+        except Exception as exc:
+            log_error("orphan_attempt_sweep_failed", exc)
         if not USER_WALLET or not self.cfg.auto_send_enabled or bval(os.getenv("HL_LIVE_MOCK_SEND"), False):
             return {"ok": True, "skipped": True, "adopted": [], "cancelled": [],
                     "detail": "no real sending configured (no follower wallet, auto-send off or mock send): not checked"}
@@ -6221,13 +6243,20 @@ class SenderGateway:
         # a start: a sweep failure is logged and startup continues.
         try:
             _swept = close_orphan_attempt_rows(apply=True)
-            if _swept:
+            _closed = [r for r in _swept if r.get("outcome") == "CLOSED_FULL_FILL"]
+            _partial = [r for r in _swept if r.get("outcome") != "CLOSED_FULL_FILL"]
+            if _closed or _partial:
                 self.audit.append_reconciliation(
-                    "SEND_TERMINAL", "ORPHAN_ATTEMPT_ROWS_CLOSED", action="JOURNAL_SWEEP",
-                    terminal_state="ORPHAN_ATTEMPT_ROWS_CLOSED", engine_can_send="False",
-                    notes="; ".join("%s oid=%s was=%s filled=%s" % (r.get("coin"), r.get("exchange_order_id"),
-                                                                    r.get("was"), r.get("filled_size"))
-                                    for r in _swept))
+                    "SEND_TERMINAL", "ORPHAN_ATTEMPT_ROWS_SWEPT", action="JOURNAL_SWEEP",
+                    terminal_state="ORPHAN_ATTEMPT_ROWS_SWEPT", engine_can_send="False",
+                    notes=("closed=%d [%s]; left_open_partial=%d [%s]"
+                           % (len(_closed),
+                              "; ".join("%s oid=%s filled=%s" % (r.get("coin"), r.get("exchange_order_id"),
+                                                                 r.get("filled_size")) for r in _closed),
+                              len(_partial),
+                              "; ".join("%s oid=%s filled=%s of %s" % (r.get("coin"), r.get("exchange_order_id"),
+                                                                      r.get("filled_size"), r.get("want_size"))
+                                        for r in _partial))))
         except Exception as exc:
             log_error("orphan_attempt_sweep_failed", exc)
         cloids, oids = self._engine_owned_cloids_and_oids()
@@ -10655,7 +10684,7 @@ class CopyFillMatcher:
         # Same guards the startup sweep has: never on a mainnet follower (Boss owns those rows) and never with
         # sending off. The reads are small (measured: 0.8 MB attempts + 0.2 MB fills, 8.3 MB recon) but a catch-up
         # burst would repeat them per fill, so one pass is allowed per few seconds and the rest ride on it.
-        if FOLLOWER_NETWORK != "mainnet" and getattr(self.cfg, "auto_send_enabled", False):
+        if FOLLOWER_NETWORK != "mainnet":
             _now_s = time.time()
             if _now_s - float(globals().get("_LAST_MATCHER_SWEEP", 0.0)) >= 5.0:
                 globals()["_LAST_MATCHER_SWEEP"] = _now_s
@@ -16299,9 +16328,15 @@ def close_orphan_attempt_rows(send_attempts_csv: Optional[str] = None, live_fill
     # filled order that was later cancelled leaves the same shape as a complete one, so the total is the only thing
     # that can tell them apart without an exchange call.
     def _canon_oid(value):
+        # EXACT. int(float(...)) rounds anything past 2^53 and would collapse two distinct order ids onto one key -
+        # which is how a partial-then-cancelled order could be summed with a different order and called filled.
         text = str(value or "").strip()
+        if not text:
+            return ""
+        if text.endswith(".0"):
+            text = text[:-2]
         try:
-            return str(int(float(text)))
+            return str(int(text))
         except (TypeError, ValueError):
             return text
     filled_total = {}
@@ -16354,6 +16389,25 @@ def close_orphan_attempt_rows(send_attempts_csv: Optional[str] = None, live_fill
                "is_close": _is_close(row), "applied": False,
                "outcome": "CLOSED_FULL_FILL" if complete else "ORPHAN_ATTEMPT_PARTIAL_FILL_UNRESOLVED"}
         if not complete:
+            # Record it and leave the attempt open. Writing nothing (the previous shape) and then summarising it as
+            # CLOSED upstream made the journal claim a closure that never happened.
+            rec["outcome"] = "ORPHAN_ATTEMPT_PARTIAL_FILL_UNRESOLVED"
+            if apply:
+                try:
+                    append_csv(rp, RECONCILIATION_FIELDS, {
+                        "created_at": utc_now_iso(), "created_at_ms": utc_now_ms(),
+                        "event": "SEND_TERMINAL", "status": "ORPHAN_ATTEMPT_PARTIAL_FILL_UNRESOLVED",
+                        "leader_wallet": row.get("leader_wallet") or "", "intent_id": row.get("intent_id") or "",
+                        "coin": row.get("coin") or "", "action": "JOURNAL_LEFT_OPEN",
+                        "terminal_state": "ORPHAN_ATTEMPT_PARTIAL_FILL_UNRESOLVED",
+                        "exchange_order_id": oid, "engine_can_send": "False",
+                        "notes": ("attempt row left open: fills for this order total %.6f of %.6f asked; the order was "
+                                  "partially filled and is not proven complete, so it is NOT marked filled"
+                                  % (filled_sz, want_sz)),
+                    })
+                    rec["applied"] = True
+                except Exception as exc:
+                    rec["error"] = repr(exc)
             done.append(rec)
             continue
         if apply:
