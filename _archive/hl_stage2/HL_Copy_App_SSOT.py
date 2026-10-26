@@ -995,6 +995,12 @@ def _normalise_global_controls(raw: Any) -> Dict[str, Any]:
                 out[k] = max(0.0, fnum(raw[k]))
     if "marketable_slippage_pct" in raw:
         out["marketable_bps"] = max(0.0, fnum(raw.get("marketable_slippage_pct")) * 100.0)
+    # A control the numeric defaults do not model must survive VERBATIM. Rebuilding the dict from those defaults used
+    # to drop send_mode, so the UI reported SENDING OFF on a pair that was placing orders - the worst thing this page
+    # can say. Anything not in the defaults is passed through untouched (no fnum, no coercion).
+    for key, value in raw.items():
+        if key not in out:
+            out[key] = value
     return out
 
 
