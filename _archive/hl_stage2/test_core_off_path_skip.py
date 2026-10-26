@@ -117,6 +117,43 @@ except Exception as exc:
 # ---- the row the gate writes must not invite a call stamp either
 check('GATE_ROW_IS_NO_EXCHANGE_CALL', 'action="NO_EXCHANGE_CALL", terminal_state="BLOCKED_AT_PLACE_ORDER"' in SRC)
 
+# ---- (b2) POST-WAIT refusal: the late gate runs AFTER the pacing slot and the write-ahead row, so a mode
+# change during those seconds must not leave a call stamp behind. Codex found this on ce54ab2e: the stamp
+# was written BEFORE the late gate, so a late refusal still carried exchange_call_started_ms.
+_seq = {'n': 0}
+
+
+def _mode_flips_after_the_wait():
+    _seq['n'] += 1
+    return 'ON' if _seq['n'] == 1 else 'OFF'   # allowed by the early gate, refused by the post-wait one
+
+
+gw2 = types.SimpleNamespace(
+    cfg=types.SimpleNamespace(send_mode_now=_mode_flips_after_the_wait, wallet_enabled=lambda w: True,
+                              wallet_mode=lambda w: 'LIVE'),
+    sender_key_invalid=False, audit=Audit(), _gate_journal_failures=0,
+    _reserve_exchange_order_slot=lambda **kw: C.utc_now_ms(),
+    _open_orders_send_begin=lambda: None, _open_orders_send_end=lambda: None,
+    _note_sender_key_rejection=lambda r: None)
+gw2._master_gate_reason = lambda intent, path='': C.SenderGateway._master_gate_reason(gw2, intent, path)
+gw2._gate_refusal_row = lambda intent, path, reason: C.SenderGateway._gate_refusal_row(gw2, intent, path, reason)
+_post_timing = {}
+_post_intent = types.SimpleNamespace(fill=types.SimpleNamespace(leader_wallet='0xabc', coin='BTC'),
+                                     intent_id='i-post', notes='lifecycle=ENTRY',
+                                     wallet_position_before=0, copy_side='BUY', copy_size=1)
+try:
+    _post = C.SenderGateway._place_order(gw2, None, 'BTC', True, 0.001, 100.0, 'Ioc', False,
+                                         timing=_post_timing, started_key='exchange_call_started_ms',
+                                         intent=_post_intent, path='send_other')
+    check('POST_WAIT_REFUSAL_CALLS_NO_EXCHANGE', _post.get('exchange_called') is False, _post)
+    check('POST_WAIT_REFUSAL_HAS_NO_CALL_STAMP',
+          'exchange_call_started_ms' not in (_post.get('timing') or {})
+          and 'exchange_call_started_ms' not in _post_timing,
+          'timing=%r' % (_post.get('timing'),))
+except Exception as exc:
+    check('POST_WAIT_REFUSAL_CALLS_NO_EXCHANGE', False, '%s: %s' % (type(exc).__name__, str(exc)[:140]))
+    check('POST_WAIT_REFUSAL_HAS_NO_CALL_STAMP', False, 'unreached')
+
 failed = [n for n, ok in results if not ok]
 print('TOTAL=%d FAILED=%d' % (len(results), len(failed)))
 if failed:

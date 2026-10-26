@@ -5604,8 +5604,6 @@ class SenderGateway:
                 pre_send()
             except Exception as exc:  # fail closed: no crash record means no order
                 raise PendingSendWriteFailed(repr(exc)) from exc
-        if timing is not None and started_key:
-            timing[started_key] = utc_now_ms()
         order_kwargs: Dict[str, Any] = {"reduce_only": reduce_only}
         sdk_cloid = _sdk_cloid(cloid) if cloid else None  # T1a: SDK Cloid so the order is findable after a crash
         if sdk_cloid is not None and _exchange_accepts_cloid(exchange):
@@ -5620,6 +5618,11 @@ class SenderGateway:
                     "exchange_called": False, "reject_category": "BLOCKED_AT_PLACE_ORDER",
                     "terminal_state": "BLOCKED_AT_PLACE_ORDER", "operator_action": "NO_EXCHANGE_CALL",
                     "notes": "late gate refusal, no exchange call: " + _late_block}
+        # Stamp the call time HERE, after the final recheck: the pacing slot wait and the write-ahead row
+        # can take seconds, and a refusal at the late gate must not leave a start stamp on the timing
+        # map the caller builds its row from (Codex 6406836199).
+        if timing is not None and started_key:
+            timing[started_key] = utc_now_ms()
         _open_orders_send_begin()  # the periodic openOrders cache must not outlive a send
         try:
             response = exchange.order(sdk_coin, is_buy, size, limit_px, {"limit": {"tif": tif}}, **order_kwargs)

@@ -293,3 +293,16 @@ The pending action was removed from the runner queue and the file preserved:
 2. This is a monitor, not the engine: it cannot place an order. The defect was that it could
    start one and arm it.
 3. The engine SHA under review is unaffected - this file is not in the repo.
+
+## Provenance (added for Codex 6406836199's caveat)
+
+The monitor lives outside the repo, so it cannot be verified from git. These hashes let anyone confirm the
+file reviewed is the file described, byte for byte:
+
+| file | bytes | sha256 |
+|---|---|---|
+| `hl_monitor.py` (the live file reviewed) | 30686 | `804f239b2e0be6cf7c96119e925390cb736a827d236e1a62dff2a8dc74fef8e7` |
+| `hl_monitor.py.bak_20261026T010751Z_alertonly` (before) | 29834 | `702ea254c21f8c8a0c4d007c291da828bd6db08616b2a73dfe502d49305e6f82` |
+
+Re-check anytime with `sha256sum C:/Users/wigmore/trading_stack/_tools/hl_monitor.py`. If the live hash
+differs, the monitor changed after this review and the diff above no longer describes it.
