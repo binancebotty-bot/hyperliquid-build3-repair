@@ -9,6 +9,11 @@ exists because something was lost by skipping it on 2026-10-25.
 
 ## 0. Preconditions, checked not assumed
 
+    # NEVER write a file a running engine watches while sends are ON (controller rule, 2026-10-26).
+    # live_config.json is re-read on mtime change for the send switch, so editing it mid-run is a live
+    # control action even when the key you are changing is only read at construction. Stage the edit in a
+    # COPY and apply it as part of the restart step; take a timestamped .bak-<ts>-<why> first.
+
     # LIQUIDATION PARITY - read this before any start, and NEVER ship it wrong.
     #   mainnet : global_controls.liq_parity MUST be true (or the key absent, which defaults to true).
     #             It is the Boss-ordered mainnet parity rule and a standing revert item (21 Oct note).
