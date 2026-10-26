@@ -6215,6 +6215,21 @@ class SenderGateway:
         if not USER_WALLET or not self.cfg.auto_send_enabled or bval(os.getenv("HL_LIVE_MOCK_SEND"), False):
             return {"ok": True, "skipped": True, "adopted": [], "cancelled": [],
                     "detail": "no real sending configured (no follower wallet, auto-send off or mock send): not checked"}
+        # The missing terminal write: an order that filled AFTER placement left its attempt row open (the fill
+        # matcher writes COPY_FILL to the ledger and reconciliation but never closed the attempt row). Retire those
+        # here, once, at startup, from exchange data already on disk - no HTTP call, journal rows only. Never blocks
+        # a start: a sweep failure is logged and startup continues.
+        try:
+            _swept = close_orphan_attempt_rows(apply=True)
+            if _swept:
+                self.audit.append_reconciliation(
+                    "SEND_TERMINAL", "ORPHAN_ATTEMPT_ROWS_CLOSED", action="JOURNAL_SWEEP",
+                    terminal_state="ORPHAN_ATTEMPT_ROWS_CLOSED", engine_can_send="False",
+                    notes="; ".join("%s oid=%s was=%s filled=%s" % (r.get("coin"), r.get("exchange_order_id"),
+                                                                    r.get("was"), r.get("filled_size"))
+                                    for r in _swept))
+        except Exception as exc:
+            log_error("orphan_attempt_sweep_failed", exc)
         cloids, oids = self._engine_owned_cloids_and_oids()
         ok, orders, detail = self._read_open_orders()
         if not ok:
@@ -16145,6 +16160,70 @@ def main() -> None:
             core.stop()
         return
     parser.print_help()
+
+
+def close_orphan_attempt_rows(send_attempts_csv: Optional[str] = None, live_fills_csv: Optional[str] = None,
+                             recon_csv: Optional[str] = None, apply: bool = False) -> List[Dict[str, Any]]:
+    """Close the attempt row of an order that filled AFTER placement - the missing terminal write.
+
+    send_attempts.csv is only closed out by the immediate placement response (Core:5527) or a retry supersede
+    (Core:6134). A resting order that fills later is learned by the fill matcher, which writes live_fills and a
+    reconciliation COPY_FILL row and never touches the attempt row, so the journal keeps saying ORDER_RESTING - and
+    the EXIT_RECOVERY path, which has no result write at all, keeps saying pending_send. The ledger is unaffected.
+
+    The outcome comes from exchange data the engine already persisted (live_fills / COPY_FILL by
+    exchange_order_id), never from "not in openOrders", so the sweep makes NO HTTP call: extra weight 0.
+    It writes journal rows only: no place, cancel, modify, mode change or ledger touch. Closes are retired first and
+    each retirement is reported. Idempotent: an attempt already terminal is never a candidate.
+    """
+    ap = Path(send_attempts_csv) if send_attempts_csv else SEND_ATTEMPTS_CSV
+    fp = Path(live_fills_csv) if live_fills_csv else LIVE_FILLS_CSV
+    rp = Path(recon_csv) if recon_csv else RECONCILIATION_CSV
+
+    by_oid = {}
+    for row in read_csv_rows(fp):
+        oid = str(row.get("exchange_order_id") or "").strip()
+        if oid:
+            by_oid[oid] = row
+    for row in read_csv_rows(rp):
+        oid = str(row.get("exchange_order_id") or "").strip()
+        if oid and str(row.get("event") or "").upper() == "COPY_FILL" and oid not in by_oid:
+            by_oid[oid] = row
+
+    latest = {}
+    for row in read_csv_rows(ap):
+        latest[str(row.get("attempt_id") or "")] = row
+    open_statuses = {"PENDING_SEND", "ORDER_RESTING"}
+    candidates = [row for row in latest.values()
+                  if str(row.get("status") or "").strip().upper() in open_statuses
+                  and str(row.get("exchange_order_id") or "").strip() in by_oid]
+
+    def _is_close(row):
+        return str(row.get("reduce_only_sent") or "").strip().lower() in {"1", "true", "yes"}
+    # closes first: a close the journal never marked sent is the worst case (USUAL 07:07, ZK 07:37)
+    candidates.sort(key=lambda r: (0 if _is_close(r) else 1, int(fnum(r.get("created_at_ms"), 0))))
+
+    done = []
+    for row in candidates:
+        oid = str(row.get("exchange_order_id") or "").strip()
+        src = by_oid[oid]
+        filled_sz = fnum(src.get("fill_size") or src.get("size"), 0.0)
+        new_row = dict(row)
+        new_row.update({
+            "status": "ORDER_FILLED", "terminal_state": "MATCHED_BY_EXCHANGE_ORDER_ID",
+            "action": "JOURNAL_CLOSED_BY_SWEEP",
+            "notes": ("closed by sweep: the exchange reports this order filled (oid=%s, filled_size=%s); the "
+                      "attempt row was left open because the fill arrived after placement" % (oid, filled_sz)),
+        })
+        rec = {"attempt_id": row.get("attempt_id"), "exchange_order_id": oid, "coin": row.get("coin"),
+               "was": row.get("status"), "filled_size": filled_sz, "is_close": _is_close(row), "applied": False}
+        if apply:
+            try:
+                rec["applied"] = bool(append_csv(ap, SEND_ATTEMPT_FIELDS, new_row))
+            except Exception as exc:
+                rec["error"] = repr(exc)
+        done.append(rec)
+    return done
 
 
 if __name__ == "__main__":
