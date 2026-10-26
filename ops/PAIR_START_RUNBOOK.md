@@ -9,6 +9,22 @@ exists because something was lost by skipping it on 2026-10-25.
 
 ## 0. Preconditions, checked not assumed
 
+    # NEVER write a file a running engine watches while sends are ON (controller rule, 2026-10-26).
+    # live_config.json is re-read on mtime change for the send switch, so editing it mid-run is a live
+    # control action even when the key you are changing is only read at construction. Stage the edit in a
+    # COPY and apply it as part of the restart step; take a timestamped .bak-<ts>-<why> first.
+
+    # LIQUIDATION PARITY - read this before any start, and NEVER ship it wrong.
+    #   mainnet : global_controls.liq_parity MUST be true (or the key absent, which defaults to true).
+    #             It is the Boss-ordered mainnet parity rule and a standing revert item (21 Oct note).
+    #   testnet : set explicit  "liq_parity": false  in live_config.json. A cross-network comparison of the
+    #             follower's projected liquidation distance against a leader's is meaningless - on 2026-10-26
+    #             it refused 34 testnet entries (follower 624% vs leader 1821% from mark), 33 of them with no
+    #             order and no named diff.
+    #   The key is read ONCE at construction (ConfigManager.__init__ -> self.config), so a change needs a
+    #   RESTART. HL_LIVE_LIQ_PARITY=0/1 in the process env forces it either way; the env route needs a
+    #   restart too.
+
     # undefined names: the cheapest net for a variable deleted or renamed under a try/except.
     # On 2026-10-26 a guard edit removed `reason = str(intent.reason or "")`; the two causes below it
     # raised NameError, the caller swallowed it, and the missed-entry rule was silently dead while its
@@ -68,7 +84,37 @@ stale the honest move is to re-seed rather than to force.
 
 The identity tool and stop_pair both read this file, so if it is wrong they act on the wrong run.
 
-## 5. Start the engine (Python 3.11, headless)
+### 4b. Write the audit-dir pointer - every start
+
+    printf '%s\n' "$STATE" > <stack>/CURRENT_AUDIT_DIR
+
+`hl_monitor.py` is a SEPARATE process and does not inherit the engine's environment, so it cannot be
+trusted to resolve the audit dir from config: it silently fell back to
+`_archive/hl_stage2/hl_live_copy_audit_testnet/` and read a **six-day-old** `live_ws_health.json`,
+posting false "engine restart condition" alerts for that whole period (the alert's `ws_age=512972` was
+that file's age to the second). It now reads this one-line pointer first and only falls back to
+`hl_monitor.json` when the pointer is absent, names the directory and its source in every alert, and
+appends `STALE_OR_FALLBACK_DIRECTORY` when the directory it read is itself older than 300 s.
+
+**Rule: any separate process that needs a run's directory must be handed it explicitly - through a
+pointer the start writes, not through config that can drift, and not through the engine's environment
+it will never see.**
+
+## 5. Start the engine (Python 3.11, headless) - and the UI with it
+
+**Use the tool.** Sections 5 and 6 are one ordered operation and `ops/start_pair.py` performs all of it: it
+validates the checkout (and `--expect-sha`), refuses if anything already runs for that state dir or on the UI
+port, writes `CURRENT_AUDIT_DIR`, starts engine and UI console-less from the SAME checkout, and prints one
+identity block.
+
+    ops/start_pair.py --checkout <build-checkout> --state $STATE [--expect-sha <sha>]
+    # add --dry-run to validate and print the plan without starting anything
+
+It refuses an unseeded directory on purpose: a state dir with no `live_config.json` makes the engine replay the
+retention window as live intents, which is the 2026-10-25 runaway.
+
+The manual equivalent, for when the tool itself is what you are testing:
+
 
     HL_LIVE_AUDIT_DIR=$STATE <3.11>/pythonw.exe HL_Live_Copy_Service_Core.py \
         --ws --loop --interval 10 --poll-live --poll-copy
@@ -81,6 +127,9 @@ Prove, before starting the UI:
   - the first `fill_trace.jsonl` cycle is stamped at or after T0 — no catch-up
 
 ## 6. Start the UI from the SAME CHECKOUT as the engine, console-less
+
+`ops/start_pair.py` (section 5) already starts the UI this way. This section is the manual equivalent and the
+reference for what the tool must keep doing.
 
 The UI is not a separate deployment. It starts from the same `_archive/hl_stage2` the engine is
 running from - one checkout, one commit - so that a single SHA serves both halves and the build
@@ -104,6 +153,13 @@ Then record it, so a later stop does not have to guess:
 Expect `pair UP and consistent`. It must show engine build and UI build from the candidate, the same
 audit dir on both, one engine, one listener on 8031, and the page serving the new-build markers. If it
 says DEGRADED, stop with `ops/stop_pair.py --all` and report - never leave a half-pair running.
+
+Also prove the pointer from section 4b moved with the pair:
+
+    cat <stack>/CURRENT_AUDIT_DIR      # must be THIS run's dir, not the previous one
+
+A stale pointer is silent: the monitor keeps alerting on a directory the pair no longer writes, and
+nothing in the pair looks wrong. Check it on every fresh dir; a same-dir restart needs no change.
 
 ## 8. Sending stays OFF until ordered
 
