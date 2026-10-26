@@ -100,7 +100,20 @@ appends `STALE_OR_FALLBACK_DIRECTORY` when the directory it read is itself older
 pointer the start writes, not through config that can drift, and not through the engine's environment
 it will never see.**
 
-## 5. Start the engine (Python 3.11, headless)
+## 5. Start the engine (Python 3.11, headless) - and the UI with it
+
+**Use the tool.** Sections 5 and 6 are one ordered operation and `ops/start_pair.py` performs all of it: it
+validates the checkout (and `--expect-sha`), refuses if anything already runs for that state dir or on the UI
+port, writes `CURRENT_AUDIT_DIR`, starts engine and UI console-less from the SAME checkout, and prints one
+identity block.
+
+    ops/start_pair.py --checkout <build-checkout> --state $STATE [--expect-sha <sha>]
+    # add --dry-run to validate and print the plan without starting anything
+
+It refuses an unseeded directory on purpose: a state dir with no `live_config.json` makes the engine replay the
+retention window as live intents, which is the 2026-10-25 runaway.
+
+The manual equivalent, for when the tool itself is what you are testing:
 
 
     HL_LIVE_AUDIT_DIR=$STATE <3.11>/pythonw.exe HL_Live_Copy_Service_Core.py \
@@ -114,6 +127,9 @@ Prove, before starting the UI:
   - the first `fill_trace.jsonl` cycle is stamped at or after T0 — no catch-up
 
 ## 6. Start the UI from the SAME CHECKOUT as the engine, console-less
+
+`ops/start_pair.py` (section 5) already starts the UI this way. This section is the manual equivalent and the
+reference for what the tool must keep doing.
 
 The UI is not a separate deployment. It starts from the same `_archive/hl_stage2` the engine is
 running from - one checkout, one commit - so that a single SHA serves both halves and the build
