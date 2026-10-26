@@ -6661,6 +6661,167 @@ _ACCOUNT_VALUE_CACHE: Dict[str, Any] = {}
 ACCOUNT_VALUE_FETCHER = None  # test seam; production reads the follower /info
 
 
+# ---------------------------------------------------------------- account tile (HOT FIX 6428792047 item 3)
+# The tile used to read the portfolio "day" accountValueHistory, which is the DEFAULT dex only. On this
+# testnet account xyz held 39.81 of a 972.46 total, so the tile understated the account by that much while
+# the label claimed "Account value (spot + perp)". The tile now sums clearinghouseState.marginSummary
+# .accountValue over the dex scope the engine actually reads (default + HL_FOLLOWER_DEXES + any dex the
+# account or the manual ledger shows a position on) and adds spot USDC on top, naming the parts.
+ACCOUNT_TILE_FETCHER = None  # test seam; production posts to the follower /info
+_ACCOUNT_TILE_CACHE: Dict[str, Any] = {}
+ACCOUNT_TILE_CACHE_SEC = 15.0
+
+
+def _account_tile_post(payload: Dict[str, Any], timeout: float = 5.0) -> Any:
+    if ACCOUNT_TILE_FETCHER is not None:
+        return ACCOUNT_TILE_FETCHER(payload)
+    body = json.dumps(payload).encode("utf-8")
+    req = urllib.request.Request(FOLLOWER_INFO_URL, data=body,
+                                 headers={"Content-Type": "application/json"}, method="POST")
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        return json.loads(resp.read().decode("utf-8"))
+
+
+def _dex_of_coin(coin: Any) -> str:
+    """'xyz:EWZ' -> 'xyz'; a plain coin lives on the default dex ('')."""
+    text = str(coin or "").strip().lower()
+    return text.split(":", 1)[0] if ":" in text else ""
+
+
+def _follower_account_dexes() -> List[str]:
+    """The dex scope the account tile must read: the default dex, anything named in HL_FOLLOWER_DEXES,
+    and any dex a coin on this account (or in the manual ledger) belongs to. No extra API call: the
+    names come from state the app already holds, so the tile stays one small read per dex."""
+    names = {""}
+    for raw in str(_NET_ENV.get("HL_FOLLOWER_DEXES") or os.getenv("HL_FOLLOWER_DEXES") or "").split(","):
+        if str(raw).strip():
+            names.add(str(raw).strip().lower())
+    for path, key in ((EXCHANGE_ACCOUNT_SNAPSHOT_FILE, "positions_by_coin"),
+                      (MANUAL_POSITIONS_FILE, "by_coin_net"),
+                      (LIVE_COPY_AUDIT_DIR / "xyz_position_state.json", "positions_by_coin")):
+        try:
+            data = load_json(path, {})
+        except Exception:
+            data = {}
+        rows = data.get(key) if isinstance(data, dict) else None
+        if isinstance(rows, dict):
+            names.update(_dex_of_coin(c) for c in rows.keys())
+    return sorted(names)
+
+
+def _follower_account_tile(force: bool = False) -> Dict[str, Any]:
+    """Whole account as spot USDC + the sum of perp equity over the dex scope. ok=False if ANY scope in
+    the scope could not be read: an unreadable dex is not a zero, and a tile that quietly drops it
+    understates the account exactly the way the single-dex read did."""
+    addr = _public_account_address()
+    if not addr:
+        return {"ok": False, "reason": "ACCOUNT_ADDRESS_UNAVAILABLE"}
+    if ACCOUNT_TILE_FETCHER is None and ACCOUNT_VALUE_FETCHER is not None:
+        # The older screen tests inject ONE whole-account read (portfolio day accountValueHistory) and pin the
+        # card's wording. That seam still answers, in the tile's shape, so those tests keep testing the card
+        # rather than the exchange. Production never sets it, so production always sums the real dex scope.
+        legacy = _follower_account_value()
+        if not legacy.get("ok"):
+            return {"ok": False, "reason": str(legacy.get("reason") or "PORTFOLIO_UNAVAILABLE"), "address": addr}
+        value = fnum(legacy.get("value"), 0.0)
+        return {"ok": True, "address": addr, "dexes_read": ["default"],
+                "unreadable_dexes": [], "errors": [],
+                "perp_account_value": value, "spot_usdc": 0.0, "spot_status": "SEAM",
+                "total_account_value": value,
+                "account_value_source": "portfolio.day.accountValueHistory (whole account, single read)"}
+    hit = _ACCOUNT_TILE_CACHE.get(addr)
+    if not force and hit and time.time() - hit[1] <= ACCOUNT_TILE_CACHE_SEC:
+        return hit[0]
+    dexes = _follower_account_dexes()
+    perp_total = 0.0
+    read, unreadable, tile_errors = [], [], []
+    for dex in dexes:
+        label = dex or "default"
+        payload: Dict[str, Any] = {"type": "clearinghouseState", "user": addr}
+        if dex:
+            payload["dex"] = dex
+        try:
+            state = _account_tile_post(payload)
+            summary = (state or {}).get("marginSummary") if isinstance(state, dict) else None
+            value = fnum((summary or {}).get("accountValue"), None) if isinstance(summary, dict) else None
+            if value is None:
+                raise ValueError("no marginSummary.accountValue")
+            perp_total += float(value)
+            read.append(label)
+        except Exception as exc:  # an unreadable scope is named in the result, never silently zeroed
+            unreadable.append(label)
+            tile_errors.append(f"{label}: {type(exc).__name__}: {exc}")
+    spot_usdc: Optional[float] = None
+    spot_hold: Optional[float] = None
+    spot_status = "NOT_FETCHED"
+    try:
+        spot = _account_tile_post({"type": "spotClearinghouseState", "user": addr})
+        balances = spot.get("balances") if isinstance(spot, dict) else None
+        usdc = next((b for b in (balances if isinstance(balances, list) else [])
+                     if isinstance(b, dict) and str(b.get("coin", "")).upper() == "USDC"), None)
+        if isinstance(usdc, dict) and is_present_num(usdc.get("total")):
+            spot_usdc = fnum(usdc.get("total"))
+            spot_hold = fnum(usdc.get("hold")) if is_present_num(usdc.get("hold")) else 0.0
+            spot_status = "OK"
+        else:
+            spot_status = "NO_USDC_BALANCE"
+    except Exception as exc:
+        spot_status = f"UNAVAILABLE: {type(exc).__name__}"
+        tile_errors.append(f"spot: {type(exc).__name__}: {exc}")
+    # NO DOUBLE COUNT. Measured on this account 2026-10-26 23:39Z: spot USDC total 972.432572 with hold
+    # 39.792482, and the xyz dex's accountValue 39.792482 - identical. The perp margin is HELD OUT OF spot
+    # USDC, it is not extra money. So spot_total + perp_sum = 1012.20, overstating the account by exactly the
+    # margin in use. The whole account is spot_total; the correct decomposition is (spot_total - hold) +
+    # sum(perp accountValue) = 932.64 + 39.79 = 972.43, which matches portfolio day accountValue 972.419611.
+    free_spot = (float(spot_usdc) - float(spot_hold or 0.0)) if spot_usdc is not None else None
+    parts = ["spotClearinghouseState.balances[coin=USDC].total (whole account, perp margin is held inside it)"]
+    parts.append("clearinghouseState.marginSummary.accountValue x %d dex (%s) = perp equity, shown beside it"
+                 % (len(read), ", ".join(read) or "none"))
+    if free_spot is not None:
+        parts.append("free spot = total - hold")
+    out: Dict[str, Any] = {
+        "ok": not unreadable and spot_usdc is not None,
+        "address": addr,
+        "dexes_read": read,
+        "unreadable_dexes": unreadable,
+        "perp_account_value": round(perp_total, 8) if read else None,
+        "spot_usdc": spot_usdc,
+        "spot_hold": spot_hold,
+        "free_spot_usdc": round(free_spot, 8) if free_spot is not None else None,
+        "spot_status": spot_status,
+        "total_account_value": (round(float(spot_usdc), 8)
+                                if (read and spot_usdc is not None) else None),
+        "decomposition_usd": (round(float(free_spot) + float(perp_total), 8)
+                              if (read and free_spot is not None) else None),
+        "account_value_source": " + ".join(parts),
+        "errors": tile_errors,
+    }
+    # SCOPE COMPLETENESS (measured, not assumed). The dex scope is learned from state, so a fresh state dir
+    # can under-read it. portfolio day accountValueHistory is the exchange's OWN whole-account figure: if the
+    # tile's total disagrees with it beyond a cent, a dex outside the scope is holding money and the tile says
+    # so instead of quietly showing a smaller number (the exact failure this hot fix exists to end).
+    try:
+        whole = _XNET.rolling_day_pnl(addr, fetcher=ACCOUNT_VALUE_FETCHER, info_url=FOLLOWER_INFO_URL, timeout=5)
+        if whole.get("ok") and whole.get("account_value_usd") is not None and out["total_account_value"] is not None:
+            whole_v = float(whole["account_value_usd"])
+            out["exchange_whole_account_usd"] = round(whole_v, 8)
+            gap = round(whole_v - float(out["total_account_value"]), 8)
+            out["unexplained_gap_usd"] = gap
+            if abs(gap) > 0.01:
+                out["scope_incomplete"] = True
+                out.setdefault("errors", []).append(
+                    "dex scope incomplete: exchange whole account %.2f vs tile %.2f (gap %.2f)"
+                    % (whole_v, float(out["total_account_value"]), gap))
+    except Exception as exc:
+        out.setdefault("errors", []).append(f"whole-account cross-check unavailable: {type(exc).__name__}")
+    if unreadable:
+        out["reason"] = "DEX_UNREADABLE: " + ", ".join(unreadable)
+    elif spot_usdc is None:
+        out["reason"] = "SPOT_UNAVAILABLE: " + spot_status
+    _ACCOUNT_TILE_CACHE[addr] = (out, time.time())
+    return out
+
+
 def _follower_account_value() -> Dict[str, Any]:
     """Whole-account value of the follower (portfolio, spot + perps, so a unified account is not shown
     as its perp margin only): the same figure the engine uses for equity. Cached 15 s."""
@@ -6686,17 +6847,26 @@ def _follower_account_value_safe() -> Dict[str, Any]:
 
 
 def _account_card_lines() -> List[str]:
-    """Real follower account value from the follower exchange, never the model's normalised base."""
+    """Real follower account value from the follower exchange, never the model's normalised base.
+
+    Reads EVERY dex in scope (HOT FIX 6428792047 item 3): the old single portfolio read silently omitted
+    xyz, so the tile showed 932.65 for an account that held 972.46.
+    """
     try:
-        acct = _follower_account_value()
+        acct = _follower_account_tile()
     except Exception as exc:  # the page must still render
         acct = {"ok": False, "reason": type(exc).__name__}
     net = html.escape(FOLLOWER_NETWORK.upper())
     if not acct.get("ok"):
         return [f'<div class="metric-line"><span>{net}</span><b class="neg">UNAVAILABLE</b></div>',
                 f'<div class="metric-line"><span>WHY</span><b>{html.escape(str(acct.get("reason") or "?"))}</b></div>']
-    value, addr = acct["value"], str(acct.get("address") or "")
-    return [f'<div class="metric-line"><span>EQUITY</span><b>{money(value)}</b></div>',
+    value, addr = acct["total_account_value"], str(acct.get("address") or "")
+    dexes = acct.get("dexes_read") or []
+    return [f'<div class="metric-line"><span>Account value (spot + perp)</span><b>{money(value)}</b></div>',
+            f'<div class="metric-line"><span>Perp equity</span><b>{money(acct.get("perp_account_value"))}</b></div>',
+            f'<div class="metric-line"><span>Spot USDC</span><b>{money(acct.get("spot_usdc"))}</b></div>',
+            f'<div class="metric-line"><span>Free spot</span><b>{money(acct.get("free_spot_usdc"))}</b></div>',
+            f'<div class="metric-line"><span>DEX scope</span><b title="{html.escape(str(acct.get("account_value_source") or ""))}">{html.escape(", ".join(str(d) for d in dexes))}</b></div>',
             f'<div class="metric-line"><span>{net}</span><b title="{html.escape(addr)}">{html.escape(addr[:6] + "…" + addr[-4:])}</b></div>']
 
 
