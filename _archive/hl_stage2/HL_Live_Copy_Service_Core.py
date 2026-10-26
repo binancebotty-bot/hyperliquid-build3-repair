@@ -13988,7 +13988,10 @@ class LiveCopyCore:
 
     def run_cycle(self, use_source_csv: bool = True, poll_live: bool = False, poll_copy: bool = False, reconcile_exchange: bool = False) -> CycleSummary:
 
-        warm_follower_volumes()   # keeps the exclusion's cache warm off the hot path (no new thread, no poller)
+        try:
+            warm_follower_volumes()   # keeps the exclusion's cache warm off the hot path (no thread, no poller)
+        except Exception:
+            pass                      # a cache warm-up must never be able to fail the cycle
         # HOT_CONFIG_RELOAD_WINAGENT: reload live_config/wallet_gate each cycle so UI/control changes affect a running core.
         try:
             self.cfg = ConfigManager()
