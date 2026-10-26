@@ -995,6 +995,12 @@ def _normalise_global_controls(raw: Any) -> Dict[str, Any]:
                 out[k] = max(0.0, fnum(raw[k]))
     if "marketable_slippage_pct" in raw:
         out["marketable_bps"] = max(0.0, fnum(raw.get("marketable_slippage_pct")) * 100.0)
+    # A control the numeric defaults do not model must survive VERBATIM. Rebuilding the dict from those defaults used
+    # to drop send_mode, so the UI reported SENDING OFF on a pair that was placing orders - the worst thing this page
+    # can say. Anything not in the defaults is passed through untouched (no fnum, no coercion).
+    for key, value in raw.items():
+        if key not in out:
+            out[key] = value
     return out
 
 
@@ -1273,6 +1279,16 @@ def _plain_integrity_reason(counts: Dict[str, Any]) -> str:
 
 _CLOSE_FAILURE_MARKERS = ("MANUAL_EXIT_RECOVERY_REQUIRED", "EXIT_RECOVERY_QUEUE_FAILED")
 
+# Rejections the engine EXPECTS and handles: a halted market, an IOC that could not match, a short margin. They are
+# recorded per order and the engine moves on, so counting them as RED showed an operator "copy rows are still active
+# red" for 14 rows that were all halted-or-no-match - a banner that names nothing and implies a fault. They stay
+# visible as AMBER under their own state; anything outside this set keeps RED.
+# Margin is deliberately NOT here. A halted book or an IOC that could not match is a market outcome the engine
+# handles; INSUFFICIENT_MARGIN means the account cannot fund the copies it is being asked to make, and downgrading
+# that to amber hides an account draining toward zero. It stays RED.
+_EXPECTED_REJECT_CATEGORIES = {"MARKET_HALTED", "IOC_NO_IMMEDIATE_MATCH", "SKIPPED_IOC_NO_IMMEDIATE_MATCH"}
+_EXPECTED_REJECT_ERRORS = ("trading is halted", "could not immediately match")
+
 
 def _load_resting_withdraw_pending() -> List[Dict[str, Any]]:
     """Resting entry limits whose withdrawal (cancel) failed: still working on the exchange against the
@@ -1517,13 +1533,16 @@ def _live_audit_summary_full() -> Dict[str, Any]:
             rows = total_rows
             for row in intent_rows:
                 reason = str(row.get("reason", "") or "UNKNOWN")
-                status = str(row.get("status", "") or "UNKNOWN")
+                # order_intents.csv carries `decision`, not `status`/`execution_decision`: reading the absent names
+                # counted all 13,383 rows as UNKNOWN and made every figure look unbuildable. Fall back to what the
+                # file actually writes; a row with neither is still counted as UNKNOWN, honestly.
+                status = str(row.get("status") or row.get("decision") or "UNKNOWN")
                 notes = str(row.get("notes", "") or "")
                 source = str(row.get("source", "") or "")
                 if not source and "source=" in notes:
                     source = notes.split("source=", 1)[1].split(";", 1)[0].split()[0]
-                execution_decision = str(row.get("execution_decision", "") or "UNKNOWN")
-                decision_reason = str(row.get("decision_reason", "") or "UNKNOWN")
+                execution_decision = str(row.get("execution_decision") or row.get("decision") or "UNKNOWN")
+                decision_reason = str(row.get("decision_reason") or row.get("reason") or "UNKNOWN")
                 manual_required = str(row.get("manual_reconcile_required", "") or "UNKNOWN")
                 market_data_error = str(row.get("market_data_error", "") or "")
                 reason_counts[reason] = reason_counts.get(reason, 0) + 1
@@ -2325,7 +2344,17 @@ def _pnl_tally_start(run_start_ms: Optional[int] = None, history: Optional[List[
         saved = load_json(PNL_RUN_START_FILE, {})
         if (isinstance(saved, dict) and inum(saved.get("run_key")) == int(run_key) and saved.get("available")
                 and inum(saved.get("ms")) > 0 and isinstance(saved.get("entry"), dict)):
-            return {"available": True, "ms": inum(saved["ms"]), "entry": saved["entry"], "how": str(saved.get("how") or ""),
+            _how = str(saved.get("how") or "")
+            # A saved run-start record can have been written from the SEED point. Say so on the page: "at run start"
+            # would claim a start value the run never actually had.
+            try:
+                _hist = load_json(EXCHANGE_ACCOUNT_HISTORY_FILE, [])
+                if (isinstance(_hist, list) and _hist and isinstance(_hist[0], dict) and _hist[0].get("seeded")
+                        and _how.strip().lower().startswith("at run start")):
+                    _how = "seeded at %s, not run start" % str(_hist[0].get("timestamp") or "")[:19].replace("T", " ")
+            except Exception:
+                pass
+            return {"available": True, "ms": inum(saved["ms"]), "entry": saved["entry"], "how": _how,
                     "run_start_ms": inum(saved.get("run_start_ms")), "timestamp": str(saved.get("timestamp") or ""),
                     "saved": True, "run_key": int(run_key)}
     if run_start_ms is None:
@@ -2349,6 +2378,10 @@ def _pnl_tally_start(run_start_ms: Optional[int] = None, history: Optional[List[
             chosen, how = before[-1], "at run start"
     if chosen is None:
         chosen, how = entries[0], ("earliest record (after run start)" if run_start_ms else "earliest record")
+    if isinstance(chosen, tuple):
+        _ms0, _e0 = chosen
+        if isinstance(_e0, dict) and _e0.get("seeded"):
+            how = "seeded at %s, not run start" % str(_e0.get("timestamp") or "")[:19].replace("T", " ") + "Z"
     ms, entry = chosen
     out = {"available": True, "ms": ms, "entry": entry, "how": how, "run_start_ms": run_start_ms,
            "timestamp": datetime.fromtimestamp(ms / 1000, tz=timezone.utc).isoformat(), "saved": False}
@@ -2566,6 +2599,9 @@ def _append_exchange_history(snapshot: Dict[str, Any], manual_summary: Dict[str,
         history = []
     entry = {
         "timestamp": snapshot.get("updated_at"),
+        # A point written when the run had no earlier record is a SEED, not a run-start reading: say so, so nobody later
+        # reads the first point as the value the run began with.
+        "seeded": bool(not history),
         "account_value": fnum(snapshot.get("account_value")),
         "unified_portfolio_value": fnum(snapshot.get("unified_portfolio_value")) if is_present_num(snapshot.get("unified_portfolio_value")) else None,
         "realized_pnl_since_baseline": fnum(snapshot.get("realized_pnl_since_baseline")) if is_present_num(snapshot.get("realized_pnl_since_baseline")) else None,
@@ -3801,8 +3837,14 @@ def _build_execution_quality_rows(
             truth_state = "ACTIVE_AWAITING_COPY_POLL" if is_fresh else "HISTORICAL_UNADOPTED_REVIEW"
             truth_severity = "AMBER" if is_fresh else "RED"
         elif status == "ORDER_REJECTED":
-            truth_state = "ACTIVE_EXCHANGE_REJECT" if is_fresh else "HISTORICAL_EXCHANGE_REJECT"
-            truth_severity = "RED" if is_fresh else "HISTORICAL"
+            _expected = (reject_category.strip().upper() in _EXPECTED_REJECT_CATEGORIES
+                         or any(m in str(attempt.get("error") or "").lower() for m in _EXPECTED_REJECT_ERRORS))
+            if _expected:
+                truth_state = "ACTIVE_EXPECTED_REJECT" if is_fresh else "HISTORICAL_EXPECTED_REJECT"
+                truth_severity = "AMBER" if is_fresh else "HISTORICAL"
+            else:
+                truth_state = "ACTIVE_EXCHANGE_REJECT" if is_fresh else "HISTORICAL_EXCHANGE_REJECT"
+                truth_severity = "RED" if is_fresh else "HISTORICAL"
         elif status == "CONFIRM_REQUIRED":
             truth_state = "QUEUED_PREVIEW"
             truth_severity = "INFO"
@@ -7342,6 +7384,7 @@ def render_live_copy_control_panel() -> str:
         <line id="lcZeroLine" x1="58" y1="280" x2="976" y2="280" stroke="rgba(148,163,184,.6)" stroke-width="1.2" stroke-dasharray="4 4"/>
         <path id="lcExchangeFill" fill="rgba(33,193,107,.08)" d=""/>
         <polyline id="lcExchangePath" points="" fill="none" stroke="#3fb950" stroke-width="1.5"/>
+        <circle id="lcExchangeDot" r="4" fill="#3fb950" style="display:none"/>
         <polyline id="lcRealizedPath" points="" fill="none" stroke="#58a6ff" stroke-width="1.4"/>
         <polyline id="lcDrawdownPath" points="" fill="none" stroke="#ff5263" stroke-width="1.4"/>
         <text x="8" y="28" class="lc-axis" id="lcYMax"></text><text x="8" y="155" class="lc-axis" id="lcYMid"></text><text x="8" y="282" class="lc-axis" id="lcYMin"></text>
@@ -7546,9 +7589,28 @@ function renderGraph(){
  }
  if(lcGraphMode!=='account') points=filterScale(points).filter(p=>isNum(p.value)).sort((a,b)=>a.timestamp_ms-b.timestamp_ms);
  if(points.length<2){
+  // ONE reading is a real reading. Plot it and say so, instead of clearing the chart into an empty box that reads as
+  // "this product has no data" - which is exactly how the dashboard was being read when it had a seeded start value.
+  const dot=root.querySelector('#lcExchangeDot');
+  if(points.length===1&&dot){
+   const only=points[0], v=num(only.value,0), plot1={left:58,right:976,top:24,bottom:280};
+   const pad=Math.max(Math.abs(v)*0.02,1), y=v>=0?plot1.bottom-((v)/(Math.abs(v)+pad))*(plot1.bottom-plot1.top)/2:plot1.bottom-(v/(Math.abs(v)+pad))*(plot1.bottom-plot1.top)/2;
+   dot.setAttribute('cx', (plot1.left+plot1.right)/2);
+   dot.setAttribute('cy', Math.max(plot1.top,Math.min(plot1.bottom,y)));
+   dot.style.display='';
+   root.querySelector('#lcExchangePath').setAttribute('points','');
+   const sub=root.querySelector('#lcGraphSubtitle');
+   if(sub) sub.textContent='One reading so far: '+fmtAxisMoney(v)+' at '+new Date(only.timestamp_ms||Date.now()).toLocaleString()+'. The line starts once a second point lands.';
+   if(legend) legend.textContent=label;
+   ['#lcYMax','#lcYMid','#lcYMin'].forEach((id,i)=>{const el=root.querySelector(id);if(el)el.textContent=fmtAxisMoney(i===0?v+pad:(i===1?v:v-pad));});
+   const ticks=root.querySelector('#lcXAxisTicks'); if(ticks) ticks.innerHTML='';
+   return;
+  }
   clearGraphText(`Not enough points in selected range (${graphRangeLabel()}).`,label);
   return;
  }
+ // more than one point: the dot is not used
+ { const dot=root.querySelector('#lcExchangeDot'); if(dot) dot.style.display='none'; }
  const allSeries=points.concat(realizedPoints).concat(drawdownPoints);
  const allVals=allSeries.map(p=>num(p.value,0)).concat([0]);
  const mn=Math.min(...allVals), mx=Math.max(...allVals), pad=Math.max(Math.abs(mx-mn)*0.12, 1);
@@ -7625,8 +7687,28 @@ function renderBanner(){
  const b=lcAudit.status_banner||{}, st=lcAudit.live_top_status||{}, hl=b.health||st.health||{};
  const net=String(lcAudit.follower_network||b.follower_network||'').toUpperCase();
  const set=(id,html,cls,title)=>{const el=root.querySelector('#'+id);if(!el)return;el.innerHTML=html;el.className='value '+(cls||'');if(title!=null)el.title=title;};
- const al=root.querySelector('#lcBannerAcctLabel');if(al)al.textContent='Account value'+(net?' ('+net+')':'');
- set('lcBannerAcct',b.account_value!=null?'$'+Number(b.account_value).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}):dash(b.account_value_reason),'');
+ const al=root.querySelector('#lcBannerAcctLabel');
+ // Say the BASIS out loud: this number is spot + perps. Reading it as trading room overstates the perp equity by
+ // roughly four times, which is how a dashboard talks an operator into more risk than the account can carry.
+ if(al)al.textContent='Account value (spot + perp)'+(net?' · '+net:'');
+ // `snap` is not in scope in this function (it is built further down): read the audit object defensively so a
+ // missing field can never throw and blank the whole banner.
+ let _basis='';
+ try{
+   const _s=(lcAudit&&lcAudit.exchange_account_snapshot)||{};
+   const _f=(v)=>v==null?'—':'$'+Number(v).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+   if(_s&&_s.available){_basis='<span class="lc-muted" style="font-size:11px;display:block;font-weight:400">perp equity '+_f(_s.account_value)+' · margin available '+_f(_s.withdrawable)+'</span>';}
+ }catch(e){_basis='';}
+ // The banner's own account_value can be absent while the follower_account total (spot + perps) is known: the
+ // tile must show the number the label claims, or a dash with the reason - never a dash beside a big figure below it.
+ let _acctTxt='';
+ try{
+   const _fa=(lcAudit&&lcAudit.follower_account)||{};
+   if(b.account_value!=null){_acctTxt='$'+Number(b.account_value).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});}
+   else if(_fa&&_fa.ok&&_fa.value!=null){_acctTxt='$'+Number(_fa.value).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});}
+   else {_acctTxt=dash(b.account_value_reason||(_fa&&_fa.reason));}
+ }catch(e){_acctTxt=dash(b.account_value_reason);}
+ set('lcBannerAcct',_acctTxt+_basis,'');
  const armed=lcAudit.master_real_orders_enabled===true;  // the master switch only
  set('lcBannerSending',armed?'ON':'OFF',armed?'lc-green':'lc-grey',armed?'real orders are being sent':'sending is switched off (a choice, not a fault)');
  set('lcBannerHealth',h(hl.text||'—'),levelCls(hl.level),'');
