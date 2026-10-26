@@ -5425,10 +5425,11 @@ class SenderGateway:
             return "SPOT_MARKET_SKIPPED"
         coin = str(fill.coin or "").strip().lower()
         now = utc_now_ms()
-        for untils, status in ((self._market_halted_until_ms, "SKIPPED_MARKET_HALTED"),
-                               (self._ioc_no_match_until_ms, "SKIPPED_IOC_NO_IMMEDIATE_MATCH"),
-                               (self._margin_reject_until_ms, "SKIPPED_INSUFFICIENT_MARGIN"),
-                               (self._liq_parity_until_ms, "LIQ_PARITY_BLOCKED")):
+        # ONLY liquidation parity skips here. Halting, IOC-no-match and insufficient margin are refused by the
+        # send lane on the same caches (send_if_allowed, Core:7959-7963) and then handed to the missed-entry
+        # rule, so the trade becomes a resting limit at the leader's price instead of vanishing. Parity is a
+        # Boss-ordered skip and must stay a named skip (testnet is handled by liq_parity=false in config).
+        for untils, status in ((self._liq_parity_until_ms, "LIQ_PARITY_BLOCKED"),):
             if untils.get(coin, 0) > now:
                 return status
         return ""
@@ -12296,6 +12297,12 @@ class LiveCopyCore:
             cause = "ASSET_META_SNAPSHOT_ONLY"
         elif halted and send_status in {"SKIPPED_MARKET_HALTED", "ORDER_REJECTED"}:
             cause = "MARKET_HALTED"
+        elif send_status == "SKIPPED_IOC_NO_IMMEDIATE_MATCH":
+            # the book was too thin for an IOC; the rule rests a GTC at the leader's price instead of skipping
+            cause = "IOC_NO_IMMEDIATE_MATCH_AT_REFUSAL"
+        elif send_status == "SKIPPED_INSUFFICIENT_MARGIN":
+            # margin was short for an IOC; rest instead of dropping the copy (the cap/exposure checks still ran)
+            cause = "MARGIN_REJECT_AT_REFUSAL"
         elif utc_now_ms() - int(fnum(intent.fill.timestamp_ms, 0)) > ENTRY_MAX_AGE_MS:
             cause = "ORD_010_ENTRY_AGE_OVER_30S"
         else:
