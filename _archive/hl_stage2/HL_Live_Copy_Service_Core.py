@@ -295,7 +295,11 @@ def follower_mid(coin: str) -> float:
                     m["px"], m["ms"], m["scope"] = out, now, dexes
                     m["refresh_ms"] = utc_now_ms() - now
     now = utc_now_ms()
-    if not m["ms"] or now - m["ms"] > int(fnum(os.getenv("HL_LIVE_MIDS_MAX_AGE_SEC"), 5.0) * 1000):
+    if (not m["ms"] or m.get("scope") != dexes
+            or now - m["ms"] > int(fnum(os.getenv("HL_LIVE_MIDS_MAX_AGE_SEC"), 5.0) * 1000)):
+        # Scope is checked HERE as well as in stale(): a DEX was learned while the refresh was still
+        # failing, so the cached prices cover a different scope. Serving them would price an order from
+        # a market the engine has not read (Codex 6407419352).
         return 0.0
     return fnum(m["px"].get(str(coin or "").upper()), 0.0)
 

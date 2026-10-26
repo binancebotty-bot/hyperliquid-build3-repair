@@ -110,11 +110,22 @@ C._XNET.post_many = EmptyFetcher()
 p7 = C.follower_mid('BTC')
 check('OVER_AGE_VALUE_IS_NOT_SERVED_WHEN_THE_REFRESH_IS_EMPTY', p7 == 0.0, 'returned %r, expected 0.0' % (p7,))
 
-# ---- Codex 6407326445: the cache must not change what we SIZE. Same mid, warm cache vs a fresh read,
-# must produce the identical quantity - the engine's own sizing expression (copy_notional / mid).
-def units(notional, mid):
-    return (notional / mid) if mid > 0 else 0.0
+# ---- Codex 6407419352: a DEX is learned while the refresh is failing. The cached prices cover the OLD
+# scope and are only 1 s old, so an age-only check would serve them and price an order from a market the
+# engine has not read. Scope must be part of the final check, not just the refresh trigger.
+C._FOLLOWER_MIDS.update({'px': {'BTC': 100.0}, 'ms': clock['ms'] - 1_000, 'scope': ['']})   # 1 s old: fresh
+C._XNET.post_many = FailingFetcher()
+C.follower_dex_scope = lambda: ['', 'hip3test']       # the scope changed since those prices were read
+p8 = C.follower_mid('BTC')
+check('OLD_SCOPE_PRICE_IS_NOT_SERVED_WHEN_THE_REFRESH_FAILS', p8 == 0.0,
+      'returned %r - an old-scope price would have priced an order' % (p8,))
+C.follower_dex_scope = lambda: ['']                    # restore for the cases below
 
+# ---- The cache must not change the PRICE the sizing path reads. A full production-path equivalence is not
+# testable at this level: Core floors `intent.copy_size` before it reads the follower mid, so quantity
+# equality is established upstream of this function, and re-deriving a formula in the test proved nothing
+# (Codex 6407419352). What this function must guarantee is that a warm cache returns the SAME mid as a
+# fresh read - if it ever did not, every downstream size would differ.
 C._FOLLOWER_MIDS.update({'px': {}, 'ms': 0, 'scope': None})
 fresh_fetch = Fetcher()
 C._XNET.post_many = fresh_fetch
@@ -122,12 +133,9 @@ clock['ms'] += 10_000
 mid_fresh = C.follower_mid('BTC')                  # cold: fetches
 clock['ms'] += 500
 mid_cached = C.follower_mid('BTC')                 # warm: reuses
-check('SIZING_IDENTICAL_WITH_AND_WITHOUT_THE_CACHE',
-      mid_fresh == mid_cached == 100.0
-      and units(250.0, mid_fresh) == units(250.0, mid_cached) == 2.5
-      and fresh_fetch.calls == 1,
-      'fresh=%r cached=%r units=%r/%r fetches=%d'
-      % (mid_fresh, mid_cached, units(250.0, mid_fresh), units(250.0, mid_cached), fresh_fetch.calls))
+check('CACHED_MID_EQUALS_FRESH_MID_SO_SIZING_IS_UNCHANGED',
+      mid_fresh == mid_cached == 100.0 and fresh_fetch.calls == 1,
+      'fresh=%r cached=%r fetches=%d' % (mid_fresh, mid_cached, fresh_fetch.calls))
 
 failed = [n for n, ok in results if not ok]
 print('TOTAL=%d FAILED=%d' % (len(results), len(failed)))
