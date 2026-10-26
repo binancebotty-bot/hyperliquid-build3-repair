@@ -52,7 +52,11 @@ def gateway_stub(**cooldowns):
         _market_halted_until_ms=cooldowns.get('halted', {}),
         _ioc_no_match_until_ms=cooldowns.get('ioc', {}),
         _margin_reject_until_ms=cooldowns.get('margin', {}),
-        _liq_parity_until_ms={})
+        _liq_parity_until_ms={},
+        # the cooldown checks now sit AFTER the ownership gate, so this path passes the leader-reduced check first
+        leader_reduced_since=lambda fill: False,
+        _base_timing=lambda intent: {},
+        _pre_send_ownership_gate=lambda intent: (True, {}))
     return s
 
 
