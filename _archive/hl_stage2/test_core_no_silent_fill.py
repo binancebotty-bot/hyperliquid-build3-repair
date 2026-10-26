@@ -340,16 +340,24 @@ def main() -> None:
     check("NO_FILL_MARKED_HANDLED_WITHOUT_A_ROW", not silent, str(silent[:5]))
     recon_rows = c.read_csv_rows(c.RECONCILIATION_CSV)
     states = lambda fid: [r.get("terminal_state") for r in recon_rows if r.get("leader_fill_id") == fid]
+    # the pending marker belongs in STATUS, not in terminal_state: a "still waiting" row that fills the terminal
+    # column makes one fill look like two outcomes (it did, on a 77s replay: 54 fills with two rows).
+    statuses = lambda fid: [r.get("status") for r in recon_rows if r.get("leader_fill_id") == fid]
     check("ERROR_FILL_HELD_PAST_300S_THEN_HANDLED", "REPLAY_DEFERRED_PROCESS_EXCEPTION" in states("boom-1")
           and "BLOCKED_PROCESS_EXCEPTION" not in states("boom-1")
           and boom["n"] == 3 and res.get("boom-1") not in ("MISSING", None, ""),
           f"states={states('boom-1')} tries={boom['n']} outcome={res.get('boom-1')}")
     check("UNRECORDED_STATUS_GETS_A_FINAL_ROW", "BLOCKED_NO_TERMINAL_RECORDED" in states("odd-1"), f"states={states('odd-1')}")
-    check("WAITING_ROW_DOES_NOT_COUNT_AS_FINAL", "FILL_PENDING_QUEUED" in states("odd-2") and "BLOCKED_NO_TERMINAL_RECORDED" in states("odd-2"), f"states={states('odd-2')}")
+    check("WAITING_ROW_DOES_NOT_COUNT_AS_FINAL",
+          "FILL_PENDING_QUEUED" in statuses("odd-2") and "FILL_PENDING_QUEUED" not in states("odd-2")
+          and "BLOCKED_NO_TERMINAL_RECORDED" in states("odd-2"),
+          f"status={statuses('odd-2')} terminal={states('odd-2')}")
     check("PRE_CUTOVER_FILL_SAYS_SO", "PRE_CUTOVER_NOT_SENT" in states("old-1"), f"states={states('old-1')}")
     check("STUCK_WORKER_IS_NAMED_AND_DUMPED", "FILL_PENDING_STUCK" in states("slow-1") and list(Path(c.CORE_RUNTIME_STATE_FILE).parent.glob("stuck_threads_*.txt")),
           f"states={states('slow-1')}")
-    check("SLOW_FILL_HAS_A_PENDING_ROW", "FILL_PENDING_QUEUED" in states("slow-1"), f"states={states('slow-1')}")
+    check("SLOW_FILL_HAS_A_PENDING_ROW",
+          "FILL_PENDING_QUEUED" in statuses("slow-1") and "FILL_PENDING_QUEUED" not in states("slow-1"),
+          f"status={statuses('slow-1')} terminal={states('slow-1')} - the row must stay visible but never terminal")
 
     c.HLAccount, c.HLExchange = saved_acct
     failed = [n for n, ok in RESULTS if not ok]

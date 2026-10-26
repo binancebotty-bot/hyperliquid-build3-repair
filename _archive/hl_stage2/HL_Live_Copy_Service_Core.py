@@ -11608,6 +11608,26 @@ def load_existing_intents() -> Dict[str, Intent]:
 _VOL_CACHE: Dict[str, Any] = {"ts": 0.0, "vol": {}, "listed": set(), "ok": False}
 
 
+def warm_follower_volumes(max_age_sec: float = 240.0) -> None:
+    """Refresh the follower volume/listed cache from the SNAPSHOT CYCLE, never from the hot path.
+
+    The exclusion reads this cache with cache_only=True so it cannot fetch between intent and order; that only works if
+    something off the hot path keeps the cache warm, otherwise the filter stands aside forever and the thin-book cut
+    does nothing at all. One call per max_age_sec at most, inside the cycle that already reads the account - no new
+    thread, no poller.
+    """
+    try:
+        now = utc_now_ms() / 1000.0
+        if _VOL_CACHE["ok"] and now - float(_VOL_CACHE["ts"]) < max_age_sec:
+            return
+        follower_volumes_24h(refresh=True)
+    except Exception as exc:
+        try:
+            log_error("warm_follower_volumes", exc)
+        except Exception:
+            pass
+
+
 def follower_volumes_24h(refresh: bool = False, cache_only: bool = False) -> Tuple[bool, Dict[str, float], set]:
     """coin -> 24h notional volume on the FOLLOWER network, from metaAndAssetCtxs, cached 5 minutes.
 
@@ -13983,6 +14003,8 @@ class LiveCopyCore:
         return selected
 
     def run_cycle(self, use_source_csv: bool = True, poll_live: bool = False, poll_copy: bool = False, reconcile_exchange: bool = False) -> CycleSummary:
+
+        warm_follower_volumes()   # keeps the exclusion's cache warm off the hot path (no new thread, no poller)
         # HOT_CONFIG_RELOAD_WINAGENT: reload live_config/wallet_gate each cycle so UI/control changes affect a running core.
         try:
             self.cfg = ConfigManager()
