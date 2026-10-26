@@ -19,6 +19,7 @@ It is safe to compile and run --self-test without network or orders.
 """
 from __future__ import annotations
 
+import decimal
 import argparse
 import atexit
 import concurrent.futures
@@ -11654,7 +11655,13 @@ def follower_entry_exclusion(coin: str, is_entry: bool,
     direction string comes from replay/import metadata and can say "Open ..." for a close, so it is a hint and the
     ledger's net is the fact. With a position held this refuses to exclude, whatever `is_entry` says.
     """
-    if held_net is not None and abs(fnum(held_net, 0.0)) > POSITION_EPSILON:
+    # UNKNOWN is not flat: if the caller could not read the ledger it must get NO exclusion rather than a manufactured
+    # zero, or a replayed CLOSE whose metadata says "Open ..." on a thin market would be dropped. And ANY non-zero
+    # position disables the exclusion - not "more than epsilon": 5e-10 of a coin is still a position to close, and
+    # POSITION_EPSILON exists for exposure comparisons, not for deciding whether a close is allowed.
+    if held_net is None:
+        return "", ""
+    if held_net != 0.0:
         return "", ""
     if not is_entry:
         return "", ""
@@ -12907,12 +12914,18 @@ class LiveCopyCore:
             # NEVER exclude a fill that could reduce a position we hold. The direction string comes from the fill's
             # metadata (replay/import can say "Open ..." for a close), so it is a hint, not a fact: the ledger's net is
             # the fact. With a position on the coin, this path stands aside and the normal lifecycle classifies it.
-            _held = 0.0
+            _held = None                      # None = unreadable, which must mean NO exclusion
             try:
-                _held = abs(fnum(self.ledger.coin_net(canonical_coin_key(fill.coin)), 0.0)) if self.ledger else 0.0
-            except Exception:
-                _held = 0.0
-            _is_entry = bool(_says_entry) and _held <= POSITION_EPSILON
+                if self.ledger is not None:
+                    _held = float(self.ledger.coin_net(canonical_coin_key(fill.coin)) or 0.0)
+            except Exception as _led_exc:
+                _held = None
+                try:
+                    log_error("follower_exclusion_ledger_unreadable", _led_exc)
+                except Exception:
+                    pass
+            # only an EXACTLY flat ledger may be excluded; unknown never is
+            _is_entry = bool(_says_entry) and (_held == 0.0)
             _gc = getattr(self.cfg, "config", {}) or {}
             _status, _note = follower_entry_exclusion(fill.coin, _is_entry, (_gc.get("global_controls") or {}),
                                                       held_net=_held)
@@ -16423,13 +16436,23 @@ def close_orphan_attempt_rows(send_attempts_csv: Optional[str] = None, live_fill
             return str(int(text))
         except (TypeError, ValueError):
             return text
-    filled_total = {}
+    # EXACT decimal arithmetic: CSV sizes are decimal strings, and summing them as binary floats then rounding is not
+    # the same thing. Parse and add as Decimal, quantise once to the size quantum.
+    _QUANT = decimal.Decimal("0.0000000001")
+    filled_dec = {}
     for row in read_csv_rows(fp):
         oid = _canon_oid(row.get("exchange_order_id"))
         if not oid:
             continue
-        size = fnum(row.get("fill_size") or row.get("size"), 0.0)
-        filled_total[oid] = filled_total.get(oid, 0.0) + max(0.0, size)
+        raw_sz = str(row.get("fill_size") or row.get("size") or "0").strip() or "0"
+        try:
+            size = decimal.Decimal(raw_sz)
+        except (decimal.InvalidOperation, ValueError):
+            size = decimal.Decimal("0")
+        if size < 0:
+            size = decimal.Decimal("0")
+        filled_dec[oid] = filled_dec.get(oid, decimal.Decimal("0")) + size
+    filled_total = {oid: float(total.quantize(_QUANT)) for oid, total in filled_dec.items()}
     by_oid = {oid: {"filled_size": total} for oid, total in filled_total.items()}
     for row in read_csv_rows(rp):
         oid = _canon_oid(row.get("exchange_order_id"))
@@ -16451,6 +16474,15 @@ def close_orphan_attempt_rows(send_attempts_csv: Optional[str] = None, live_fill
     # closes first: a close the journal never marked sent is the worst case (USUAL 07:07, ZK 07:37)
     candidates.sort(key=lambda r: (0 if _is_close(r) else 1, int(fnum(r.get("created_at_ms"), 0))))
 
+    # Claim selection is resolved PER OID before any outcome is emitted: the EARLIEST attempt row for an order id is
+    # the one that represents the physical order, and every other row for that id is superseded. Deciding as we go
+    # let the order in which rows happened to be processed choose the winner, and left an already-processed
+    # duplicate open forever.
+    _claim_for_oid = {}
+    for _row in sorted(candidates, key=lambda r: int(fnum(r.get("created_at_ms"), 0))):
+        _oid = _canon_oid(_row.get("exchange_order_id"))
+        if _oid and _oid not in _claim_for_oid:
+            _claim_for_oid[_oid] = str(_row.get("attempt_id") or "")
     done = []
     _claimed_oid = {}
     for row in candidates:
@@ -16473,16 +16505,16 @@ def close_orphan_attempt_rows(send_attempts_csv: Optional[str] = None, live_fill
         complete = want_sz > 0 and round(filled_sz, 10) >= round(want_sz, 10)
         # A second attempt row for an order id that is ALREADY claimed is superseded whatever its own size says -
         # otherwise a phantom attempt row can stay open forever for an order that is finished.
-        if oid in _claimed_oid:
+        if oid in _claim_for_oid and str(row.get("attempt_id") or "") != _claim_for_oid[oid]:
             # EXIT_RECOVERY writes TWO attempt rows for one physical order. Only the first may be called FILLED; the
             # second is closed as SUPERSEDED so derived counts cannot see one exchange fill as two filled orders.
             _sup = dict(row)
             _sup.update({
-                "status": "SUPERSEDED_BY_%s" % str(_claimed_oid[oid])[:24],
+                "status": "SUPERSEDED_BY_%s" % str(_claim_for_oid.get(oid, ""))[:24],
                 "terminal_state": "SUPERSEDED_SAME_ORDER_ROW",
                 "action": "JOURNAL_SUPERSEDED",
                 "notes": ("superseded: this attempt row shares exchange order %s with attempt %s, which is the one "
-                          "marked filled; one order is never two fills" % (oid, _claimed_oid[oid])),
+                          "marked filled; one order is never two fills" % (oid, _claim_for_oid.get(oid, ""))),
             })
             rec = {"attempt_id": row.get("attempt_id"), "exchange_order_id": oid, "coin": row.get("coin"),
                    "was": row.get("status"), "filled_size": filled_sz, "want_size": want_sz,

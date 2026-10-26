@@ -51,7 +51,7 @@ def fake_volumes(ok=True, vol=None, listed=None):
 
 # 1. a market the follower does not list
 C.follower_volumes_24h = fake_volumes()
-st, note = C.follower_entry_exclusion('XYZ:EWZ', True, GC)
+st, note = C.follower_entry_exclusion('XYZ:EWZ', True, GC, held_net=0.0)
 check('AN_UNLISTED_COIN_IS_EXCLUDED', st == 'EXCLUDED_NOT_LISTED_ON_FOLLOWER_NETWORK',
       'got %r' % (st,))
 check('THE_UNLISTED_NOTE_NAMES_THE_COIN_AND_THE_SOURCE', 'coin=XYZ:EWZ' in note and 'metaAndAssetCtxs' in note,
@@ -59,13 +59,13 @@ check('THE_UNLISTED_NOTE_NAMES_THE_COIN_AND_THE_SOURCE', 'coin=XYZ:EWZ' in note 
 
 # 2. a thin book
 C.follower_volumes_24h = fake_volumes()
-st, note = C.follower_entry_exclusion('MERL', True, GC)
+st, note = C.follower_entry_exclusion('MERL', True, GC, held_net=0.0)
 check('A_THIN_BOOK_IS_EXCLUDED', st == 'ILLIQUID_SKIP', 'got %r' % (st,))
 check('THE_ROW_CARRIES_THE_VOLUME_AND_THE_THRESHOLD', '24h_notional_usd=61.00' in note and 'threshold_usd=3000.00' in note,
       'note=%r' % (note,))
 
 # 3. a healthy book is copied
-st, _ = C.follower_entry_exclusion('ETC', True, GC)
+st, _ = C.follower_entry_exclusion('ETC', True, GC, held_net=0.0)
 check('A_HEALTHY_BOOK_IS_COPIED', st == '', 'ETC at 5475 against a 3000 threshold was excluded: %r' % (st,))
 
 # 4. closes are never excluded, even on an unlisted market
@@ -77,20 +77,20 @@ _real = C.FOLLOWER_NETWORK
 try:
     C.FOLLOWER_NETWORK = 'mainnet'
     C.follower_volumes_24h = fake_volumes()
-    st, _ = C.follower_entry_exclusion('XYZ:EWZ', True, GC)
+    st, _ = C.follower_entry_exclusion('XYZ:EWZ', True, GC, held_net=0.0)
     check('MAINNET_NEVER_EXCLUDES', st == '', 'mainnet excluded a leader coin: %r' % (st,))
 finally:
     C.FOLLOWER_NETWORK = _real
 
 # 6. an unreadable volume fails open
 C.follower_volumes_24h = fake_volumes(ok=False)
-st, note = C.follower_entry_exclusion('MERL', True, GC)
+st, note = C.follower_entry_exclusion('MERL', True, GC, held_net=0.0)
 check('AN_UNREADABLE_VOLUME_FAILS_OPEN', st == '' and note == '',
       'with no volume reading the engine still skipped: %r' % (st,))
 
 # 7. threshold 0 = off
 C.follower_volumes_24h = fake_volumes()
-st, _ = C.follower_entry_exclusion('MERL', True, {'min_24h_notional_usd': 0})
+st, _ = C.follower_entry_exclusion('MERL', True, {'min_24h_notional_usd': 0}, held_net=0.0)
 check('A_ZERO_THRESHOLD_DISABLES_THE_FILTER', st == '', 'threshold 0 still skipped: %r' % (st,))
 
 # 8. and it is wired before the price/risk gates, on the entry path only
@@ -113,6 +113,18 @@ check('A_SHORT_HELD_POSITION_IS_NEVER_EXCLUDED', st == '',
 st, _ = C.follower_entry_exclusion('MERL', True, GC, held_net=0.0)
 check('WITH_NO_POSITION_THE_FILTER_STILL_APPLIES', st == 'ILLIQUID_SKIP',
       'with no position the thin-book filter stopped working: %r' % (st,))
+
+
+# ---- Codex pass 2 P0s: unknown is not flat, and dust is not flat ----
+C.follower_volumes_24h = fake_volumes()
+st, _ = C.follower_entry_exclusion('MERL', True, GC, held_net=None)
+check('AN_UNREADABLE_LEDGER_NEVER_EXCLUDES', st == '',
+      'with an unreadable ledger the thin market was still excluded as %r - a replayed close could be dropped' % (st,))
+st, _ = C.follower_entry_exclusion('MERL', True, GC, held_net=5e-10)
+check('A_DUST_POSITION_IS_NEVER_EXCLUDED', st == '',
+      'a 5e-10 holding was treated as flat and excluded as %r' % (st,))
+st, _ = C.follower_entry_exclusion('MERL', True, GC, held_net=-5e-10)
+check('A_DUST_SHORT_IS_NEVER_EXCLUDED', st == '', 'a -5e-10 holding was excluded as %r' % (st,))
 
 failed = [n for n, ok in results if not ok]
 print('TOTAL=%d FAILED=%d' % (len(results), len(failed)))

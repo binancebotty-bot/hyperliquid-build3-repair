@@ -332,8 +332,9 @@ src4 = (HERE / 'HL_Live_Copy_Service_Core.py').read_text(encoding='utf-8', error
 i4 = src4.find('follower_entry_exclusion(fill.coin')
 window4 = src4[max(0, i4-1400):i4 + 200]
 check('THE_EXCLUSION_IS_GATED_ON_THE_LEDGER_NOT_ON_FILL_METADATA',
-      'coin_net' in window4 and 'POSITION_EPSILON' in window4,
-      'the exclusion still decides entry-vs-reduction from the fill direction alone; a close could be excluded')
+      'coin_net' in window4 and '_held == 0.0' in window4 and '_held = None' in window4,
+      'the exclusion still decides entry-vs-reduction from the fill direction alone, or treats an unreadable ledger '
+      'as flat; a close could be excluded')
 
 failed = [n for n, ok in results if not ok]
 print('TOTAL=%d FAILED=%d' % (len(results), len(failed)))
