@@ -21,12 +21,20 @@ for name in ("XYZ:CRCL", "XYZ:ORCL", "XYZ:LLY"):
     check("REFUSES_NAMED_%s" % name.replace(":", "_"), refuse and why == "USER_OWNED_NAMED",
           "refuse=%r why=%r" % (refuse, why))
 
-refuse, why = F.is_user_owned("SOMECOIN", None)
-check("REFUSES_A_COIN_ABSENT_FROM_THE_LEDGER", refuse and why == "USER_OWNED_ABSENT_FROM_LEDGER",
+kind, why = F.ownership("SOMECOIN", None, None)
+check("AN_UNKNOWN_COIN_IS_AMBIGUOUS_NOT_FLATTENED", kind == "AMBIGUOUS" and why == "ABSENT_FROM_LEDGER",
       "an unowned-by-ledger coin must be treated as the operator's: refuse=%r why=%r" % (refuse, why))
 
-refuse, why = F.is_user_owned("CHIP", -1052.0)
-check("ALLOWS_A_LEDGER_OWNED_COIN", not refuse, "the engine's own position was refused: %r" % (why,))
+kind, why = F.ownership("CHIP", -1052.0, None)
+check("ALLOWS_A_LEDGER_OWNED_COIN", kind == "ENGINE", "the engine's own position was refused: %r" % (why,))
+kind, why = F.ownership("HYPE", None, 1.0)
+check("A_JOURNAL_COIN_WITH_A_FLAT_LEDGER_IS_AMBIGUOUS", kind == "AMBIGUOUS" and "JOURNAL" in why,
+      "we placed it but the ledger says flat - that is a human call, not an auto-flatten: %r" % (kind,))
+kind, why = F.ownership("XYZ:CRCL", -5.0, 1.0)
+check("THE_NAME_LIST_BEATS_A_LEDGER_SLEEVE", kind == "USER", "the operator's coin must win: %r" % (kind,))
+check("A_SHARED_SYMBOL_WITH_A_NET_MISMATCH_IS_REFUSED", not F.net_agrees(-100.0, -50.0),
+      "reduce_only acts on the net: a half-ledger position must not be sent")
+check("AN_AGREEING_NET_IS_ALLOWED", F.net_agrees(-100.0, -100.0))
 
 # ---- 2. reduce_only geometry: the order always opposes the net
 check("A_LONG_IS_CLOSED_BY_SELLING", F.order_side(10.0) is False)
@@ -65,7 +73,7 @@ check("PLAN_FLATTENS_THE_ENGINE_POSITION", by["CHIP"]["action"] == "FLATTEN")
 check("PLAN_SKIPS_THE_OPERATORS_COIN", by["XYZ:CRCL"]["action"] == "SKIP"
       and by["XYZ:CRCL"]["reason"] == "USER_OWNED_NAMED")
 check("PLAN_SKIPS_WHAT_THE_LEDGER_DOES_NOT_OWN", by["WEIRD"]["action"] == "SKIP"
-      and by["WEIRD"]["reason"] == "USER_OWNED_ABSENT_FROM_LEDGER")
+      and by["WEIRD"]["reason"] == "ABSENT_FROM_LEDGER")
 
 # the real case that caught this: the ledger spells it KBONK, the exchange kBONK
 _case = F.build_plan([{"coin": "kBONK", "net": -12026.0, "value": 36.0}], {"KBONK": -12026.0}, {"kBONK": 0})

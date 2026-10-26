@@ -42,6 +42,35 @@ def coin_key(coin: str) -> str:
     return str(coin or "").strip()
 
 
+def ownership(coin: str, ledger_net: Optional[float], journal_net: Optional[float]) -> Tuple[str, str]:
+    """THREE-WAY, because two is not enough: ENGINE / USER / AMBIGUOUS.
+
+    ENGINE    the ledger has a NON-ZERO sleeve for this coin (key presence alone is not enough - the engine's own
+              _is_manual_owned treats a zero-size sleeve as owned, which is how a repaired-on-disk zero would leave a
+              real exchange position unflattened forever).
+    USER      on the hard name list. The list wins over everything, including a ledger sleeve.
+    AMBIGUOUS anything else: exchange holds it, the ledger does not account for it, and it is not a known name. That
+              includes a coin WE opened whose sleeve was zeroed by a repair - and it must NOT be auto-flattened, because
+              the mirror error is closing the operator's position. It is named and left for a human.
+    """
+    ck = coin_key(coin).upper()
+    if ck in {u.upper() for u in USER_OWNED}:
+        return "USER", "USER_OWNED_NAMED"
+    if ledger_net is not None and abs(float(ledger_net)) > 0:
+        return "ENGINE", ""
+    if journal_net is not None and abs(float(journal_net)) > 0:
+        return "AMBIGUOUS", "ENGINE_JOURNAL_BUT_LEDGER_FLAT"   # we placed it; the ledger says flat: a human call
+    return "AMBIGUOUS", "ABSENT_FROM_LEDGER"
+
+
+def net_agrees(exchange_net: float, ledger_net: Optional[float], tol: float = 1e-9) -> bool:
+    """reduce_only acts on the NET, so a shared symbol would take the operator's side with it. Refuse unless the
+    ledger's net for this coin IS the exchange's net."""
+    if ledger_net is None:
+        return False
+    return abs(abs(float(exchange_net)) - abs(float(ledger_net))) <= tol
+
+
 def is_user_owned(coin: str, ledger_net: Optional[float], in_journal: bool = False) -> Tuple[bool, str]:
     """(refuse, reason). The operator's when named, or when NEITHER the ledger NOR the send journal knows the coin.
 
@@ -177,13 +206,19 @@ def build_plan(positions: List[Dict[str, Any]], nets: Dict[str, float],
     # CASE-BLIND: the ledger keys kBONK as "KBONK" while the exchange reports "kBONK". A case-sensitive lookup called
     # an engine-opened position "absent from the ledger" = USER-OWNED, and it would have been left open forever.
     nets_ci = {str(k).upper(): v for k, v in (nets or {}).items()}
+    jsent = {str(k).upper() for k in (journal or set())}
     plan = []
     for p in positions:
         coin, net = p["coin"], float(p["net"])
-        refuse, why = is_user_owned(coin, nets_ci.get(str(coin).upper()),
-                                    in_journal=bool(journal) and str(coin).upper() in journal)
-        if refuse:
+        _led = nets_ci.get(str(coin).upper())
+        _jr = 1.0 if str(coin).upper() in jsent else None
+        _kind, why = ownership(coin, _led, _jr)
+        if _kind != "ENGINE":
             plan.append({"coin": coin, "net": net, "action": "SKIP", "reason": why})
+            continue
+        if not net_agrees(net, _led):
+            plan.append({"coin": coin, "net": net, "action": "SKIP",
+                         "reason": "NET_DISAGREES_LEDGER_%s" % (_led,)})
             continue
         if listed is not None and coin not in listed and coin.upper() not in listed:
             plan.append({"coin": coin, "net": net, "action": "SKIP", "reason": "NOT_LISTED_ON_FOLLOWER"})
