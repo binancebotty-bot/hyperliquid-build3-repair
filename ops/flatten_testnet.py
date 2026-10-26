@@ -26,6 +26,7 @@ import json
 import os
 import subprocess
 import sys
+import tempfile
 import time
 import urllib.request
 from pathlib import Path
@@ -390,7 +391,14 @@ def main(argv: Optional[List[str]] = None) -> int:
             from HL_Live_Copy_Service_Core import (SenderGateway, ConfigManager, AuditLogWriter, IntentBuilder,
                                                    LeaderFill, utc_now_ms)
             from HL_Live_Copy_Service_Core import ManualLedger
-            _ledger = ManualLedger(path=state / "manual_live_positions.json")   # build() reads ledger.sleeve_id
+            # A COPY, never the real ledger: IntentBuilder.build() may touch a sleeve, and a ledger that saves would
+            # rewrite the engine's own file from a maintenance script. The copy is read-only in effect and discarded.
+            _ltmp = Path(tempfile.mkdtemp(prefix="flatten_ledger_")) / "manual_live_positions.json"
+            try:
+                _ltmp.write_bytes((state / "manual_live_positions.json").read_bytes())
+            except Exception:
+                _ltmp.write_text("{}", encoding="utf-8")
+            _ledger = ManualLedger(path=_ltmp)
             gw = SenderGateway(ConfigManager(), AuditLogWriter())
             fill = LeaderFill("flatten-%s-%d" % (step["coin"], int(time.time())), wallet, step["coin"],
                               "SELL" if not step["is_buy"] else "BUY", mid, step["size"], utc_now_ms(), "FLATTEN", 0,

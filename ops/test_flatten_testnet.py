@@ -114,8 +114,11 @@ check("THE_BOOK_IS_RE_READ_AFTER_THE_CANCELS",
       "positions after cancels" in src and "frozen book" in src,
       "the plan must be built from the post-cancel book, not the pre-cancel one")
 check("THE_INTENT_BUILDER_GETS_A_LEDGER",
-      "IntentBuilder(ConfigManager(), _ledger)" in src and "ManualLedger(path=state" in src,
+      "IntentBuilder(ConfigManager(), _ledger)" in src and "ManualLedger(path=_ltmp)" in src,
       "build() dereferences ledger.sleeve_id; None crashes the live path before its first order")
+check("THE_LEDGER_IS_A_DISPOSABLE_COPY",
+      "tempfile.mkdtemp(prefix=\"flatten_ledger_\")" in src and "ManualLedger(path=state" not in src,
+      "the real engine ledger must never be handed to a maintenance script that could save over it")
 
 failed = [n for n, ok in results if not ok]
 print("TOTAL=%d FAILED=%d" % (len(results), len(failed)))
