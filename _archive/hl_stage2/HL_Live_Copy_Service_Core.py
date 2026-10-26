@@ -10649,6 +10649,13 @@ class CopyFillMatcher:
             exchange_order_id=norm_oid,
             notes=f"match_method=MATCHED_BY_EXCHANGE_ORDER_ID; exchange_order_id={norm_oid}; side={side_norm}; recovered from send_attempt",
         )
+        # The fill just landed, so the attempt row that owns this order must stop saying pending_send or
+        # ORDER_RESTING: this matcher writes the ledger row and until now nothing closed the send journal.
+        # It closes every open attempt row for this order id - EXIT_RECOVERY writes two under different attempt ids.
+        try:
+            close_orphan_attempt_rows(only_oid=norm_oid, apply=True)
+        except Exception as exc:
+            log_error("matcher_attempt_row_close_failed", exc)
         return True
 
     def _load_intent_lifecycle_index(self) -> Dict[str, str]:
@@ -16160,10 +16167,11 @@ def main() -> None:
             core.stop()
         return
     parser.print_help()
-
-
 def close_orphan_attempt_rows(send_attempts_csv: Optional[str] = None, live_fills_csv: Optional[str] = None,
-                             recon_csv: Optional[str] = None, apply: bool = False) -> List[Dict[str, Any]]:
+
+
+                             recon_csv: Optional[str] = None, only_oid: str = "",
+                             apply: bool = False) -> List[Dict[str, Any]]:
     """Close the attempt row of an order that filled AFTER placement - the missing terminal write.
 
     send_attempts.csv is only closed out by the immediate placement response (Core:5527) or a retry supersede
@@ -16194,9 +16202,11 @@ def close_orphan_attempt_rows(send_attempts_csv: Optional[str] = None, live_fill
     for row in read_csv_rows(ap):
         latest[str(row.get("attempt_id") or "")] = row
     open_statuses = {"PENDING_SEND", "ORDER_RESTING"}
+    want_oid = str(only_oid or "").strip()
     candidates = [row for row in latest.values()
                   if str(row.get("status") or "").strip().upper() in open_statuses
-                  and str(row.get("exchange_order_id") or "").strip() in by_oid]
+                  and str(row.get("exchange_order_id") or "").strip() in by_oid
+                  and (not want_oid or str(row.get("exchange_order_id") or "").strip() == want_oid)]
 
     def _is_close(row):
         return str(row.get("reduce_only_sent") or "").strip().lower() in {"1", "true", "yes"}

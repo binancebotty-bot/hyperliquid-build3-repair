@@ -137,6 +137,29 @@ body = body[:body.find('\ndef ', 10)] if '\ndef ' in body[10:] else body
 check('THE_SWEEP_MAKES_NO_EXCHANGE_CALL', not any(t in body for t in ('requests.', 'urllib', 'post_many', '_XNET')),
       'the sweep body references an HTTP path')
 
+
+# ---- 6. the LIVE fill path closes only the order it matched (source fix, not just the startup sweep) ----
+d2 = Path(tempfile.mkdtemp(prefix='sweep2_'))
+ap2, fp2 = d2 / 'send_attempts.csv', d2 / 'live_fills.csv'
+write_csv(ap2, [attempt('m1', 'ORDER_RESTING', '111'), attempt('m2', 'ORDER_RESTING', '222')])
+write_csv(fp2, [fill('m1', '111'), fill('m2', '222')])
+try:
+    out2 = fn(send_attempts_csv=str(ap2), live_fills_csv=str(fp2), only_oid='111', apply=True)
+except TypeError:
+    out2 = fn(str(ap2), str(fp2), True, '111')
+rows2 = list(csv.DictReader(open(ap2, encoding='utf-8')))
+closed_ids = {r['attempt_id'] for r in rows2 if r['status'] == 'ORDER_FILLED'}
+check('THE_MATCHER_CLOSES_ONLY_THE_ORDER_IT_MATCHED', closed_ids == {'m1'},
+      'closed %r - only the matched order (111 / m1) may be closed' % (closed_ids,))
+
+# ---- 7. and the matcher really calls it, above its return ----
+src2 = (HERE / 'HL_Live_Copy_Service_Core.py').read_text(encoding='utf-8', errors='replace')
+mi = src2.find('recovered from send_attempt')
+window = src2[mi:mi + 900] if mi != -1 else ''
+check('THE_FILL_MATCHER_CLOSES_THE_ATTEMPT_ROW', 'close_orphan_attempt_rows(only_oid=norm_oid' in window
+      and window.find('close_orphan_attempt_rows') < window.find('return True'),
+      'the matcher does not close the attempt row, or does it after returning')
+
 failed = [n for n, ok in results if not ok]
 print('TOTAL=%d FAILED=%d' % (len(results), len(failed)))
 if failed:
