@@ -1523,13 +1523,16 @@ def _live_audit_summary_full() -> Dict[str, Any]:
             rows = total_rows
             for row in intent_rows:
                 reason = str(row.get("reason", "") or "UNKNOWN")
-                status = str(row.get("status", "") or "UNKNOWN")
+                # order_intents.csv carries `decision`, not `status`/`execution_decision`: reading the absent names
+                # counted all 13,383 rows as UNKNOWN and made every figure look unbuildable. Fall back to what the
+                # file actually writes; a row with neither is still counted as UNKNOWN, honestly.
+                status = str(row.get("status") or row.get("decision") or "UNKNOWN")
                 notes = str(row.get("notes", "") or "")
                 source = str(row.get("source", "") or "")
                 if not source and "source=" in notes:
                     source = notes.split("source=", 1)[1].split(";", 1)[0].split()[0]
-                execution_decision = str(row.get("execution_decision", "") or "UNKNOWN")
-                decision_reason = str(row.get("decision_reason", "") or "UNKNOWN")
+                execution_decision = str(row.get("execution_decision") or row.get("decision") or "UNKNOWN")
+                decision_reason = str(row.get("decision_reason") or row.get("reason") or "UNKNOWN")
                 manual_required = str(row.get("manual_reconcile_required", "") or "UNKNOWN")
                 market_data_error = str(row.get("market_data_error", "") or "")
                 reason_counts[reason] = reason_counts.get(reason, 0) + 1
