@@ -407,6 +407,13 @@ check('A_NAN_OID_CANNOT_MATCH_ANOTHER_NAN_OID',
       not any(r.get('outcome') == 'CLOSED_FULL_FILL' for r in _nm),
       'two corrupt oids matched each other: %r' % ([r.get('outcome') for r in _nm],))
 
+check('THE_STARTUP_SWEEP_HONOURS_THE_SAME_SWITCH',
+      src.count('close_orphan_attempt_rows(apply=True) if journal_sweeps_enabled() else []') == 2
+      and 'journal_sweeps_enabled():' in src,
+      'the first-run switch stops the matcher close but the startup sweep still writes rows')
+check('THE_STATE_REPORTS_BOTH_SETTINGS',
+      'journal_sweeps_enabled\"]' in src and 'liquidity_filter_threshold_usd' in src,
+      'the engine state file cannot prove, after a start, whether the sweeps and the filter are off')
 check('THE_MATCHER_SWEEP_HAS_AN_OFF_SWITCH',
       'HL_LIVE_MATCHER_SWEEP' in src and 'HL_LIVE_MATCHER_SWEEP", "1"' in src,
       'the matcher close cannot be turned off for a first run without editing code')

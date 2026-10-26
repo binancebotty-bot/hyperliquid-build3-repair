@@ -6224,7 +6224,7 @@ class SenderGateway:
         # The journal sweep writes no orders and touches no exchange state, so it must run even when sending is OFF -
         # that is precisely the state an operator is in after a scare, reading the journal to find out what happened.
         try:
-            _swept = close_orphan_attempt_rows(apply=True)
+            _swept = close_orphan_attempt_rows(apply=True) if journal_sweeps_enabled() else []
             # a spilled append is NOT a closure: only rows whose write actually landed may be called closed
             _closed = [r for r in _swept if r.get("outcome") == "CLOSED_FULL_FILL" and r.get("applied")]
             _not_closed = [r for r in _swept if r not in _closed]
@@ -6249,7 +6249,7 @@ class SenderGateway:
         # here, once, at startup, from exchange data already on disk - no HTTP call, journal rows only. Never blocks
         # a start: a sweep failure is logged and startup continues.
         try:
-            _swept = close_orphan_attempt_rows(apply=True)
+            _swept = close_orphan_attempt_rows(apply=True) if journal_sweeps_enabled() else []
             # a spilled append is NOT a closure: only rows whose write actually landed may be called closed
             _closed = [r for r in _swept if r.get("outcome") == "CLOSED_FULL_FILL" and r.get("applied")]
             _not_closed = [r for r in _swept if r not in _closed]
@@ -10705,7 +10705,7 @@ class CopyFillMatcher:
         # 0.2 MB fills, 8.3 MB recon) but a catch-up burst would repeat them per fill, so one pass per few seconds.
         # HL_LIVE_MATCHER_SWEEP=0 turns the matcher-side journal close off without a code change: the first live run
         # carries only what has been stable for days, and this unit earns its way on afterwards.
-        if FOLLOWER_NETWORK != "mainnet" and os.getenv("HL_LIVE_MATCHER_SWEEP", "1") == "1":
+        if FOLLOWER_NETWORK != "mainnet" and journal_sweeps_enabled():
             try:
                 close_orphan_attempt_rows(apply=True, min_interval_sec=5.0)   # throttle lives inside the lock
             except Exception as exc:
@@ -11581,6 +11581,12 @@ class ServiceStateWriter:
             _last_leader_poll_cursor_ms = _existing_rt.get("last_leader_poll_cursor_ms") if isinstance(_existing_rt.get("last_leader_poll_cursor_ms"), dict) else {}
             _last_leader_poll_outage_gap_floor_ms = _existing_rt.get("last_leader_poll_outage_gap_floor_ms") if isinstance(_existing_rt.get("last_leader_poll_outage_gap_floor_ms"), dict) else {}
         dedupe.flush_jsonl()  # persist full sets to append-only JSONL before writing bounded JSON
+        try:
+            payload = dict(payload or {})
+            payload["journal_sweeps_enabled"] = bool(journal_sweeps_enabled())
+            payload["liquidity_filter_threshold_usd"] = float(min_24h_notional_usd())
+        except Exception:
+            pass
         core_state = {
             "created_at": payload.get("created_at"),
             "created_at_ms": payload.get("created_at_ms"),
@@ -16540,6 +16546,15 @@ _SWEEP_LOCK = threading.Lock()
 # a second identical row for the same reading is noise that makes one order look like two events.
 # shortcut: in-process only - a fresh process re-writes the same row once. Upgrade to a journal read if that matters.
 _PARTIAL_ROWS_WRITTEN = set()
+
+
+def journal_sweeps_enabled() -> bool:
+    """HL_LIVE_MATCHER_SWEEP=0 turns BOTH journal sweeps off - the startup one and the matcher one.
+
+    They are the same unit with two triggers, and Codex's findings were in it, so the first live run carries neither.
+    Off is the safe direction: attempt rows stay open and NAMED rather than being wrongly closed.
+    """
+    return os.getenv("HL_LIVE_MATCHER_SWEEP", "1") == "1"
 
 
 def close_orphan_attempt_rows(send_attempts_csv: Optional[str] = None, live_fills_csv: Optional[str] = None,
