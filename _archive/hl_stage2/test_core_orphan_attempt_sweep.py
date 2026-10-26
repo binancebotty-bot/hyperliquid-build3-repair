@@ -399,6 +399,14 @@ _o2 = C.close_orphan_attempt_rows(send_attempts_csv=str(_ap), live_fills_csv=str
 check('PARTIAL_ROW_IDEMPOTENT_ACROSS_A_RESTART', not [r for r in _o2 if r.get('applied')],
       'a restart re-appended the same partial row: %r' % ([r.get('outcome') for r in _o2],))
 
+# THE SELF-MATCH the reviewer asked for: attempt oid NaN against fill oid NaN must not close it
+_o, _r = run_sweep([attempt('nm', 'ORDER_RESTING', oid='NaN', copy_size='10.0')],
+                   [dict(fill('nm', 'NaN'), exchange_order_id='NaN')])
+_nm = [r for r in _o if str(r.get('exchange_order_id')) in ('NaN', '')]
+check('A_NAN_OID_CANNOT_MATCH_ANOTHER_NAN_OID',
+      not any(r.get('outcome') == 'CLOSED_FULL_FILL' for r in _nm),
+      'two corrupt oids matched each other: %r' % ([r.get('outcome') for r in _nm],))
+
 _rep = [n for n, ok in results if not ok]
 print('TOTAL=%d FAILED=%d' % (len(results), len(_rep)))
 if _rep:

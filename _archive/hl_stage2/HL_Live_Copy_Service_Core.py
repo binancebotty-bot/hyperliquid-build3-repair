@@ -10481,11 +10481,20 @@ class CopyFillMatcher:
 
     @staticmethod
     def _normalize_oid(raw: str) -> str:
+        # Same rule as the sweep's canonicaliser, and for the same reason: a corrupt oid must match NOTHING. Returning
+        # the text made a "NaN" attempt row hard-match a "NaN" fill and apply it to an unrelated intent.
         stripped = str(raw).strip()
+        if not stripped:
+            return ""
         try:
-            return str(int(stripped))
-        except (ValueError, TypeError):
-            return stripped
+            dec = decimal.Decimal(stripped)
+            if not dec.is_finite():
+                return ""
+            if dec == dec.to_integral_value():
+                return str(int(dec))
+        except (decimal.InvalidOperation, ValueError, OverflowError):
+            pass
+        return stripped
 
     def _intent_from_send_attempt(self, sent_row: Dict[str, str]) -> Optional["Intent"]:
         intent_id = str(sent_row.get("intent_id") or "").strip()
@@ -16706,10 +16715,12 @@ def _close_orphan_attempt_rows_impl(send_attempts_csv: Optional[str] = None, liv
             # on a cancelled order gets called filled.
             # BOTH sides exact and unquantised. Comparing the float that came back out of the map let a fill a hair
             # under the request round upward and be called ORDER_FILLED.
+            _want_dec = decimal.Decimal("0")
             _want_dec = decimal.Decimal(str(row.get("copy_size") or want_sz or "0").strip() or "0")
             _fill_dec = filled_exact.get(oid, decimal.Decimal("0"))
             complete = _want_dec > 0 and _fill_dec >= _want_dec
         except (decimal.InvalidOperation, ValueError):
+            _want_dec = decimal.Decimal("0")      # a truncated copy_size leaves the row unresolved, never a crash
             complete = False
         # A second attempt row for an order id that is ALREADY claimed is superseded whatever its own size says -
         # otherwise a phantom attempt row can stay open forever for an order that is finished.
@@ -16744,6 +16755,9 @@ def _close_orphan_attempt_rows_impl(send_attempts_csv: Optional[str] = None, liv
             # Record it and leave the attempt open. Writing nothing (the previous shape) and then summarising it as
             # CLOSED upstream made the journal claim a closure that never happened.
             rec["outcome"] = "ORPHAN_ATTEMPT_PARTIAL_FILL_UNRESOLVED"
+            # clear the burst throttle HERE, before the duplicate check: a journal-duplicate partial (a restart, or a
+            # second pass) must also let the next execution sweep, or a later tranche is discarded inside the window
+            globals()["_LAST_MATCHER_SWEEP"] = 0.0
             _pkey_str = "%s|%s|%s" % (oid, filled_exact.get(oid, decimal.Decimal("0")), _want_dec)
             _pkey = _pkey_str
             if apply and (_pkey in _PARTIAL_ROWS_WRITTEN or _pkey in _existing_partial):
