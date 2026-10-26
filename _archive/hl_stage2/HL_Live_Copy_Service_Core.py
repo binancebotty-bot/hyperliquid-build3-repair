@@ -6204,22 +6204,27 @@ class SenderGateway:
                     cloids.add(cl)
         return cloids, oids
 
-    def _sleeved_coins(self) -> set:
-        """Canonical coin keys the manual ledger holds a non-zero sleeve in: those coins carry human money."""
+    def _sleeved_coins(self):
+        """(coins, known): canonical coin keys the manual ledger holds a non-zero sleeve in, plus whether that
+        answer can be trusted. known=False means the ledger file exists but cannot be read or validated - then
+        NO order may be cancelled, because unknown is not zero and cancelling is the unsafe direction."""
         out = set()
+        ledger = getattr(self, "ledger", None)
+        if ledger is None:
+            return out, True  # no ledger configured: nothing is sleeved, and that state IS known
         try:
-            ledger = getattr(self, "ledger", None)
-            if ledger is None:
-                return out
+            if ledger.path.exists() and ledger.nonflat_wallets_from_disk() is None:
+                return out, False
             for wallet_map in ((ledger.data.get("by_wallet") or {})).values():
                 if not isinstance(wallet_map, dict):
                     continue
                 for raw_coin, sleeve in wallet_map.items():
                     if isinstance(sleeve, dict) and abs(fnum(sleeve.get("signed_size"), 0.0)) > POSITION_EPSILON:
                         out.add(canonical_coin_key(raw_coin))
+            return out, True
         except Exception as exc:
             log_error("user_owned_sleeve_read_failed", exc)
-        return out
+            return out, False  # partial read: the sleeve list is NOT known, so nothing may be cancelled
 
     def _label_user_owned_order(self, dex: str, o: Dict[str, Any], reason: str) -> None:
         """Record, by name, a resting order that is the human's: the startup check never touches it."""
@@ -6317,7 +6322,7 @@ class SenderGateway:
         # USER-OWNED ORDERS ARE NEVER CANCELLED (2026-10-26 gap 1): the engine always sets a cloid, so an order
         # carrying none cannot be ours; and an order on a coin where the manual ledger holds a non-zero sleeve is
         # the human's. Both are named in one audit row each and left untouched.
-        sleeved = self._sleeved_coins()
+        sleeved, ledger_known = self._sleeved_coins()
         for dex, o in orders:
             oid = str(o.get("oid", "")).strip()
             if not oid:
@@ -6330,6 +6335,9 @@ class SenderGateway:
             reason = ""
             if not cloid:
                 reason = "no cloid on the order: the engine always sets one, so this order is not the engine's"
+            elif not ledger_known:
+                reason = ("manual ledger unreadable: this coin cannot be proved not to be the human's, "
+                          "so no order is cancelled")
             elif canonical_coin_key(o.get("coin")) in sleeved:
                 reason = "coin %s has a non-zero sleeve in the manual ledger" % str(o.get("coin") or "")
             if reason:

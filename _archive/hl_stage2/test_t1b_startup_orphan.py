@@ -181,7 +181,7 @@ def main() -> None:
     gw = c.SenderGateway(c.ConfigManager(), c.AuditLogWriter())
     gw.ledger = None
     gw._exchange_client_for_coin = lambda coin: (fake, "BTC")
-    check("G5A_SLEEVED_COINS_NONE_LEDGER_IS_EMPTY", gw._sleeved_coins() == set(), "sleeved=%r" % (gw._sleeved_coins(),))
+    check("G5A_SLEEVED_COINS_NONE_LEDGER_IS_EMPTY", gw._sleeved_coins() == (set(), True), "sleeved=%r" % (gw._sleeved_coins(),))
     res = gw.startup_orphan_order_check()
     check("G5_LEDGER_NONE_SAFE",
           res["ok"] and [tuple(map(str, t)) for t in fake.cancels] == [("BTC", "1005")]
