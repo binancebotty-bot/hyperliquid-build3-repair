@@ -11237,8 +11237,18 @@ class ExchangeReconciler:
         if not USER_WALLET or requests is None:
             return {}, "SNAPSHOT_UNAVAILABLE"
         try:
-            r = requests.post(HL_INFO_URL, json={"type": "clearinghouseState", "user": USER_WALLET}, timeout=HTTP_TIMEOUT_SEC)
+            # ONE post for both: the account state the cycle needs, and the volume universe the exclusion reads. A
+            # separate warm-up call would sit in the cycle's critical path (it did: 1.2s offline), and a batch costs
+            # no more round trips than the state read alone.
+            r = requests.post(HL_INFO_URL, json=[{"type": "clearinghouseState", "user": USER_WALLET},
+                                                 {"type": "metaAndAssetCtxs"}], timeout=HTTP_TIMEOUT_SEC)
             data = r.json()
+            if isinstance(data, (list, tuple)) and len(data) >= 1:
+                try:
+                    _populate_vol_cache(data[1] if len(data) > 1 else None)
+                except Exception:
+                    pass
+                data = data[0]
             if isinstance(data, dict):
                 positions_by_coin = self._positions_from_snapshot(data)
                 # clearinghouseState omits XYZ/exotic perp positions; supplement from fill history.
@@ -11604,6 +11614,30 @@ def load_existing_intents() -> Dict[str, Intent]:
 # reduction is never excluded. Both are TESTNET-ONLY: on mainnet a leader coin is always copied, so the guard returns
 # "no exclusion" before anything is read or measured.
 _VOL_CACHE: Dict[str, Any] = {"ts": 0.0, "vol": {}, "listed": set(), "ok": False}
+
+
+def _populate_vol_cache(payload: Any) -> None:
+    """Fill the volume/listed cache from a metaAndAssetCtxs response the cycle ALREADY fetched. No call, no thread."""
+    if not isinstance(payload, (list, tuple)) or len(payload) < 2:
+        return
+    universe = (payload[0] or {}).get("universe") or []
+    ctxs = payload[1] or []
+    vol, listed = {}, set()
+    for asset, ctx in zip(universe, ctxs):
+        name = str((asset or {}).get("name") or "")
+        if not name:
+            continue
+        listed.add(name)
+        _raw = (ctx or {}).get("dayNtlVlm")
+        if _raw is None or str(_raw).strip() == "":
+            continue
+        try:
+            _v = float(_raw)
+            vol[name] = _v if math.isfinite(_v) else None
+        except (TypeError, ValueError):
+            vol[name] = None
+    if listed:
+        _VOL_CACHE.update({"ts": utc_now_ms() / 1000.0, "vol": vol, "listed": listed, "ok": True})
 
 
 def warm_follower_volumes(max_age_sec: float = 240.0) -> None:
@@ -13992,10 +14026,8 @@ class LiveCopyCore:
 
     def run_cycle(self, use_source_csv: bool = True, poll_live: bool = False, poll_copy: bool = False, reconcile_exchange: bool = False) -> CycleSummary:
 
-        try:
-            warm_follower_volumes()   # keeps the exclusion's cache warm off the hot path (no thread, no poller)
-        except Exception:
-            pass                      # a cache warm-up must never be able to fail the cycle
+        # the exclusion's cache is filled by fetch_snapshot's batched metaAndAssetCtxs read: no call here, so the
+        # cycle cannot be delayed by a warm-up, and nothing runs while a leader read is in flight
         # HOT_CONFIG_RELOAD_WINAGENT: reload live_config/wallet_gate each cycle so UI/control changes affect a running core.
         try:
             self.cfg = ConfigManager()
