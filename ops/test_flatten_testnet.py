@@ -106,10 +106,10 @@ check("LIVE_REQUIRES_A_TESTNET_ENDPOINT",
       F.is_testnet("https://api.hyperliquid-testnet.xyz/info") and not F.is_testnet("https://api.hyperliquid.xyz/info"),
       "a live send must not be possible against the mainnet info endpoint")
 check("AN_UNEXPECTED_RESULT_ABORTS_THE_RUN",
-      "ABORTED_UNEXPECTED_RESULT" in src and "return 5" in src,
+      "ABORTED_UNEXPECTED_RESULT" in src and "abort_run(state, live, rows, extra, 5" in src,
       "ORDER_UNKNOWN and unclassifiable replies must stop the whole run, not be retried")
 check("CANCELS_ARE_VERIFIED_BEFORE_FLATTENING",
-      "STILL RESTING" in src and "refusing to flatten" in src and "return 7" in src,
+      "STILL RESTING" in src and "refusing to flatten" in src and "abort_run(state, live, rows, extra, 7" in src,
       "a surviving resting order can fill into a flattened book")
 check("THE_BOOK_IS_RE_READ_AFTER_THE_CANCELS",
       "positions after cancels" in src and "frozen book" in src,
@@ -135,14 +135,26 @@ check("CANCELS_ARE_MANDATORY_FOR_LIVE",
       "requires --cancel-resting" in src and "return 8" in src,
       "a live run without verified cancels must refuse")
 check("A_CANCEL_FAILURE_IS_A_HARD_STOP",
-      'CANCEL_FAILED' in src and "return 10" in src,
+      'CANCEL_FAILED' in src and "abort_run(state, live, rows, extra, 10" in src,
       "a recorded note is not a hard stop")
 check("ONLY_A_CLEAN_IOC_NO_MATCH_MAY_RETRY",
       'SKIPPED_IOC_NO_IMMEDIATE_MATCH' in src and "ABORTED_UNEXPECTED_RESULT" in src,
       "retrying a rejected or unclassified reply can double-close")
 check("THE_REPORT_IS_WRITTEN_BEFORE_AN_EARLY_RETURN",
-      "write_report(state, live, rows, extra)" in src and "os.fsync" in src,
-      "evidence must survive an abort")
+      "abort_run(state, live, rows, extra" in src and "os.fsync" in src,
+      "every abort must go through abort_run, which re-reads positions and writes+fsyncs the report")
+check("A_FAILED_REPORT_WRITE_IS_ANNOUNCED",
+      "REPORT_NOT_WRITTEN" in src,
+      "a persistence failure on an abort must be printed, not swallowed")
+check("EACH_COIN_IS_REBUILT_FROM_A_FRESH_READ",
+      "ALREADY_FLAT" in src and "_live = {p[\"coin\"].upper()" in src,
+      "the next send must use the fresh net, not the precomputed plan")
+check("A_PRECISION_REMAINDER_IS_NAMED",
+      "REMAINDER_" in src and "PRECISION_UNKNOWN" in src,
+      "an unknown step or a floored remainder must be visible in the row")
+check("TESTNET_IS_A_CANONICAL_HOST",
+      "urlparse" in src and "TESTNET_HOSTS" in src and "testnet\" in u" not in src.lower(),
+      "substring matching accepts testnet.example.com")
 check("POSITIONS_ARE_RE_READ_AFTER_EACH_COIN",
       "post_coin_positions" in src,
       "the next decision must come from the exchange, not a stale snapshot")

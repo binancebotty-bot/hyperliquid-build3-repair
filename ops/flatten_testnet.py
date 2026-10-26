@@ -85,13 +85,30 @@ def sz_decimals_from_meta(meta: Any) -> Dict[str, int]:
     return out
 
 
-def is_testnet(info_url: str, client_url: str = "") -> bool:
-    """Both the info reads and the order client must point at TESTNET before a live send."""
-    def tn(u: str) -> bool:
-        u = str(u or "").lower()
-        return "testnet" in u or "127.0.0.1" in u or "localhost" in u
-    return tn(info_url) and (not client_url or tn(client_url))
+TESTNET_HOSTS = ("api.hyperliquid-testnet.xyz",)
 
+
+def host_of(url: str) -> str:
+    try:
+        from urllib.parse import urlparse
+        u = urlparse(str(url or "").strip())
+        return (u.hostname or "").lower()
+    except Exception:
+        return ""
+
+
+def is_testnet(info_url: str, client_url: str = "") -> bool:
+    """CANONICAL HOST, never a substring: 'testnet.example.com' and 'my-testnet-proxy.io' must both fail."""
+    def ok(u: str) -> bool:
+        h = host_of(u)
+        if not h:
+            return False
+        if h in TESTNET_HOSTS:
+            return True
+        return h in ("127.0.0.1", "localhost") or h.endswith(".hyperliquid-testnet.xyz")
+    if not ok(info_url):
+        return False
+    return (not client_url) or ok(client_url)
 
 def is_user_owned(coin: str, ledger_net: Optional[float], in_journal: bool = False) -> Tuple[bool, str]:
     """(refuse, reason). The operator's when named, or when NEITHER the ledger NOR the send journal knows the coin.
@@ -326,12 +343,7 @@ def client_endpoint(exchange: Any) -> Optional[str]:
             u = getattr(obj, "base_url", None) or getattr(obj, "url", None)
             if isinstance(u, str) and u:
                 return u
-    try:
-        for v in vars(exchange).values():
-            if isinstance(v, str) and v.startswith("http"):
-                return v
-    except Exception:
-        pass
+    # deliberately NO scan of arbitrary http strings: an unrelated URL in the object is not the order endpoint.
     return None
 
 
@@ -367,6 +379,23 @@ def client_is_testnet(exchange: Any) -> Optional[bool]:
         if not is_testnet(url):
             return False
     return True
+
+
+def abort_run(state: Path, live: bool, rows: List[Dict[str, Any]], extra: Dict[str, Any], code: int,
+              wallet: str = "") -> int:
+    """Every abort goes through here: final position re-read (best effort, never raises), report written and fsynced,
+    and if persistence itself fails that is PRINTED rather than swallowed."""
+    if wallet:
+        try:
+            extra["final_positions"] = {p["coin"]: p["net"] for p in open_positions(wallet)}
+        except Exception as exc:
+            extra["final_positions_error"] = repr(exc)
+    try:
+        out = write_report(state, live, rows, extra)
+        print("report written to %s" % out)
+    except Exception as exc:
+        print("REPORT_NOT_WRITTEN %r - the evidence for this abort exists only in this console" % (exc,))
+    return code
 
 
 def write_report(state: Path, live: bool, rows: List[Dict[str, Any]], extra: Optional[Dict[str, Any]] = None) -> Path:
@@ -464,23 +493,20 @@ def main(argv: Optional[List[str]] = None) -> int:
                 tn = client_is_testnet(exch)
                 if tn is not True:
                     r["reason"] = "ENDPOINT_NOT_PROVEN_TESTNET(%r)" % (client_endpoint(exch),)
-                    write_report(state, live, rows, extra)
                     print("ABORT: order endpoint not proven testnet - refusing to send")
-                    return 6
+                    return abort_run(state, live, rows, extra, 6, wallet)
                 _gw._cancel_order(exch, sdk, oid)
             except Exception as exc:
                 r["reason"] = "CANCEL_FAILED %r" % (exc,)
-                write_report(state, live, rows, extra)
                 print("ABORT: cancel failed on %s - hard stop" % coin)
-                return 10
+                return abort_run(state, live, rows, extra, 10, wallet)
         if live:
             still = resting_orders(wallet)
             print("resting after cancel: %d" % len(still))
             if still:
                 for o in still:
                     print("STILL RESTING %s oid=%s - refusing to flatten" % (o.get("coin"), o.get("oid")))
-                write_report(state, live, rows, extra)
-                return 7
+                return abort_run(state, live, rows, extra, 7, wallet)
             positions = [p for p in open_positions(wallet)
                          if not args.only or p["coin"].upper() == args.only.upper()]
             print("positions after cancels: %d (frozen book)" % len(positions))
@@ -505,6 +531,22 @@ def main(argv: Optional[List[str]] = None) -> int:
         try:
             from HL_Live_Copy_Service_Core import (SenderGateway, ConfigManager, AuditLogWriter, IntentBuilder,
                                                    LeaderFill, ManualLedger, utc_now_ms)
+            # REBUILD FROM THE EXCHANGE, not from the plan taken before the previous coin: the book moves.
+            _live = {p["coin"].upper(): p["net"] for p in open_positions(wallet)}
+            _net_now = _live.get(step["coin"].upper())
+            if _net_now is None or abs(float(_net_now)) <= 0:
+                r.update(action="SKIP", reason="ALREADY_FLAT")
+                rows.append(r)
+                continue
+            if step["coin"] not in sz_dec:
+                r.update(action="SKIP", reason="PRECISION_UNKNOWN")
+                rows.append(r)
+                continue
+            step = dict(step, net=float(_net_now), size=wire_size(float(_net_now), sz_dec[step["coin"]]),
+                        is_buy=order_side(float(_net_now)))
+            if abs(float(_net_now)) - step["size"] > 1e-12:
+                r["reason"] = "REMAINDER_%.8f " % (abs(float(_net_now)) - step["size"]) + r.get("reason", "")
+            r["before"] = float(_net_now)
             gw = SenderGateway(ConfigManager(), AuditLogWriter())
             exch, sdk_coin = gw._exchange_client_for_coin(step["coin"])
             tn = client_is_testnet(exch)
@@ -513,15 +555,13 @@ def main(argv: Optional[List[str]] = None) -> int:
                 r.update(action="ABORTED_ENDPOINT_NOT_PROVEN_TESTNET",
                          reason="endpoint=%r" % (client_endpoint(exch),))
                 rows.append(r)
-                write_report(state, live, rows, extra)
                 print("ABORT: order endpoint not proven testnet for %s" % step["coin"])
-                return 6
+                return abort_run(state, live, rows, extra, 6, wallet)
             if not ledger_unchanged(real_ledger, fp):
                 r.update(action="ABORTED_LEDGER_CHANGED", reason="the real ledger changed after the copy")
                 rows.append(r)
-                write_report(state, live, rows, extra)
                 print("ABORT: the ledger changed under us - refusing to send")
-                return 11
+                return abort_run(state, live, rows, extra, 11, wallet)
             fill = LeaderFill("flatten-%s-%d" % (step["coin"], int(time.time())), wallet, step["coin"],
                               "SELL" if not step["is_buy"] else "BUY", mid, step["size"], utc_now_ms(), "FLATTEN", 0,
                               {"oid": "flat", "dir": "Close Long" if not step["is_buy"] else "Close Short"})
@@ -553,15 +593,11 @@ def main(argv: Optional[List[str]] = None) -> int:
             # ANY exception during a send is uncertainty: record, write, re-read, stop
             r.update(action="ABORTED_EXCEPTION", reason=repr(exc))
             rows.append(r)
-            extra["final_positions"] = {p["coin"]: p["net"] for p in open_positions(wallet)}
-            write_report(state, live, rows, extra)
             print("ABORT: %r - stopping the whole run" % (exc,))
-            return 5
+            return abort_run(state, live, rows, extra, 5, wallet)
         rows.append(r)
         if str(r.get("action", "")).startswith("ABORTED"):
-            extra["final_positions"] = {p["coin"]: p["net"] for p in open_positions(wallet)}
-            write_report(state, live, rows, extra)
-            return 5
+            return abort_run(state, live, rows, extra, 5, wallet)
         if live:
             # re-read AFTER each coin: the next decision is made from the exchange, not from a stale snapshot
             _now = {p["coin"]: p["net"] for p in open_positions(wallet)}
