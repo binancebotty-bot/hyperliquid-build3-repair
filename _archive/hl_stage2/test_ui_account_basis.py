@@ -47,6 +47,18 @@ check('THE_BANNER_VALUE_CAN_FALL_BACK_TO_THE_FOLLOWER_TOTAL',
 check('THE_SEED_WORDING_EXISTS', 'seeded at %s, not run start' in SRC or 'seeded at ' in SRC,
       'nothing labels a seeded point as a seed rather than a run start')
 
+
+# ---- the chart must show ONE reading, not an empty box ----
+check('THE_CHART_HAS_A_SINGLE_POINT_MARKER', 'id="lcExchangeDot"' in SRC,
+      'there is no element to plot a single reading with')
+_m = re.search(r"if\(points\.length<2\)\{(.{0,1600})", SRC, re.S)
+_block = _m.group(1)[:1600] if _m else ''
+check('ONE_POINT_IS_PLOTTED_WITH_A_NOTE', 'points.length===1' in _block and 'One reading so far' in _block,
+      'a single point still falls through to the empty-box path')
+check('THE_CHART_DOES_NOT_CLAIM_NO_DATA_FOR_ONE_POINT',
+      'clearGraphText' in _block and _block.find('points.length===1') < _block.find('clearGraphText'),
+      'the one-point case clears the chart instead of drawing it')
+
 failed = [n for n, ok in results if not ok]
 print('TOTAL=%d FAILED=%d' % (len(results), len(failed)))
 if failed:

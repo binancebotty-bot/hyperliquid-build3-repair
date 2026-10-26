@@ -7382,6 +7382,7 @@ def render_live_copy_control_panel() -> str:
         <line id="lcZeroLine" x1="58" y1="280" x2="976" y2="280" stroke="rgba(148,163,184,.6)" stroke-width="1.2" stroke-dasharray="4 4"/>
         <path id="lcExchangeFill" fill="rgba(33,193,107,.08)" d=""/>
         <polyline id="lcExchangePath" points="" fill="none" stroke="#3fb950" stroke-width="1.5"/>
+        <circle id="lcExchangeDot" r="4" fill="#3fb950" style="display:none"/>
         <polyline id="lcRealizedPath" points="" fill="none" stroke="#58a6ff" stroke-width="1.4"/>
         <polyline id="lcDrawdownPath" points="" fill="none" stroke="#ff5263" stroke-width="1.4"/>
         <text x="8" y="28" class="lc-axis" id="lcYMax"></text><text x="8" y="155" class="lc-axis" id="lcYMid"></text><text x="8" y="282" class="lc-axis" id="lcYMin"></text>
@@ -7586,9 +7587,28 @@ function renderGraph(){
  }
  if(lcGraphMode!=='account') points=filterScale(points).filter(p=>isNum(p.value)).sort((a,b)=>a.timestamp_ms-b.timestamp_ms);
  if(points.length<2){
+  // ONE reading is a real reading. Plot it and say so, instead of clearing the chart into an empty box that reads as
+  // "this product has no data" - which is exactly how the dashboard was being read when it had a seeded start value.
+  const dot=root.querySelector('#lcExchangeDot');
+  if(points.length===1&&dot){
+   const only=points[0], v=num(only.value,0), plot1={left:58,right:976,top:24,bottom:280};
+   const pad=Math.max(Math.abs(v)*0.02,1), y=v>=0?plot1.bottom-((v)/(Math.abs(v)+pad))*(plot1.bottom-plot1.top)/2:plot1.bottom-(v/(Math.abs(v)+pad))*(plot1.bottom-plot1.top)/2;
+   dot.setAttribute('cx', (plot1.left+plot1.right)/2);
+   dot.setAttribute('cy', Math.max(plot1.top,Math.min(plot1.bottom,y)));
+   dot.style.display='';
+   root.querySelector('#lcExchangePath').setAttribute('points','');
+   const sub=root.querySelector('#lcGraphSubtitle');
+   if(sub) sub.textContent='One reading so far: '+fmtAxisMoney(v)+' at '+new Date(only.timestamp_ms||Date.now()).toLocaleString()+'. The line starts once a second point lands.';
+   if(legend) legend.textContent=label;
+   ['#lcYMax','#lcYMid','#lcYMin'].forEach((id,i)=>{const el=root.querySelector(id);if(el)el.textContent=fmtAxisMoney(i===0?v+pad:(i===1?v:v-pad));});
+   const ticks=root.querySelector('#lcXAxisTicks'); if(ticks) ticks.innerHTML='';
+   return;
+  }
   clearGraphText(`Not enough points in selected range (${graphRangeLabel()}).`,label);
   return;
  }
+ // more than one point: the dot is not used
+ { const dot=root.querySelector('#lcExchangeDot'); if(dot) dot.style.display='none'; }
  const allSeries=points.concat(realizedPoints).concat(drawdownPoints);
  const allVals=allSeries.map(p=>num(p.value,0)).concat([0]);
  const mn=Math.min(...allVals), mx=Math.max(...allVals), pad=Math.max(Math.abs(mx-mn)*0.12, 1);
