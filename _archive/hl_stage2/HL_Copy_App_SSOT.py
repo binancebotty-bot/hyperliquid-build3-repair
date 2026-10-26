@@ -2342,7 +2342,17 @@ def _pnl_tally_start(run_start_ms: Optional[int] = None, history: Optional[List[
         saved = load_json(PNL_RUN_START_FILE, {})
         if (isinstance(saved, dict) and inum(saved.get("run_key")) == int(run_key) and saved.get("available")
                 and inum(saved.get("ms")) > 0 and isinstance(saved.get("entry"), dict)):
-            return {"available": True, "ms": inum(saved["ms"]), "entry": saved["entry"], "how": str(saved.get("how") or ""),
+            _how = str(saved.get("how") or "")
+            # A saved run-start record can have been written from the SEED point. Say so on the page: "at run start"
+            # would claim a start value the run never actually had.
+            try:
+                _hist = load_json(EXCHANGE_ACCOUNT_HISTORY_FILE, [])
+                if (isinstance(_hist, list) and _hist and isinstance(_hist[0], dict) and _hist[0].get("seeded")
+                        and _how.strip().lower().startswith("at run start")):
+                    _how = "seeded at %s, not run start" % str(_hist[0].get("timestamp") or "")[:19].replace("T", " ")
+            except Exception:
+                pass
+            return {"available": True, "ms": inum(saved["ms"]), "entry": saved["entry"], "how": _how,
                     "run_start_ms": inum(saved.get("run_start_ms")), "timestamp": str(saved.get("timestamp") or ""),
                     "saved": True, "run_key": int(run_key)}
     if run_start_ms is None:
@@ -2366,6 +2376,10 @@ def _pnl_tally_start(run_start_ms: Optional[int] = None, history: Optional[List[
             chosen, how = before[-1], "at run start"
     if chosen is None:
         chosen, how = entries[0], ("earliest record (after run start)" if run_start_ms else "earliest record")
+    if isinstance(chosen, tuple):
+        _ms0, _e0 = chosen
+        if isinstance(_e0, dict) and _e0.get("seeded"):
+            how = "seeded at %s, not run start" % str(_e0.get("timestamp") or "")[:19].replace("T", " ") + "Z"
     ms, entry = chosen
     out = {"available": True, "ms": ms, "entry": entry, "how": how, "run_start_ms": run_start_ms,
            "timestamp": datetime.fromtimestamp(ms / 1000, tz=timezone.utc).isoformat(), "saved": False}
@@ -2583,6 +2597,9 @@ def _append_exchange_history(snapshot: Dict[str, Any], manual_summary: Dict[str,
         history = []
     entry = {
         "timestamp": snapshot.get("updated_at"),
+        # A point written when the run had no earlier record is a SEED, not a run-start reading: say so, so nobody later
+        # reads the first point as the value the run began with.
+        "seeded": bool(not history),
         "account_value": fnum(snapshot.get("account_value")),
         "unified_portfolio_value": fnum(snapshot.get("unified_portfolio_value")) if is_present_num(snapshot.get("unified_portfolio_value")) else None,
         "realized_pnl_since_baseline": fnum(snapshot.get("realized_pnl_since_baseline")) if is_present_num(snapshot.get("realized_pnl_since_baseline")) else None,
@@ -7648,8 +7665,28 @@ function renderBanner(){
  const b=lcAudit.status_banner||{}, st=lcAudit.live_top_status||{}, hl=b.health||st.health||{};
  const net=String(lcAudit.follower_network||b.follower_network||'').toUpperCase();
  const set=(id,html,cls,title)=>{const el=root.querySelector('#'+id);if(!el)return;el.innerHTML=html;el.className='value '+(cls||'');if(title!=null)el.title=title;};
- const al=root.querySelector('#lcBannerAcctLabel');if(al)al.textContent='Account value'+(net?' ('+net+')':'');
- set('lcBannerAcct',b.account_value!=null?'$'+Number(b.account_value).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}):dash(b.account_value_reason),'');
+ const al=root.querySelector('#lcBannerAcctLabel');
+ // Say the BASIS out loud: this number is spot + perps. Reading it as trading room overstates the perp equity by
+ // roughly four times, which is how a dashboard talks an operator into more risk than the account can carry.
+ if(al)al.textContent='Account value (spot + perp)'+(net?' · '+net:'');
+ // `snap` is not in scope in this function (it is built further down): read the audit object defensively so a
+ // missing field can never throw and blank the whole banner.
+ let _basis='';
+ try{
+   const _s=(lcAudit&&lcAudit.exchange_account_snapshot)||{};
+   const _f=(v)=>v==null?'—':'$'+Number(v).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+   if(_s&&_s.available){_basis='<span class="lc-muted" style="font-size:11px;display:block;font-weight:400">perp equity '+_f(_s.account_value)+' · margin available '+_f(_s.withdrawable)+'</span>';}
+ }catch(e){_basis='';}
+ // The banner's own account_value can be absent while the follower_account total (spot + perps) is known: the
+ // tile must show the number the label claims, or a dash with the reason - never a dash beside a big figure below it.
+ let _acctTxt='';
+ try{
+   const _fa=(lcAudit&&lcAudit.follower_account)||{};
+   if(b.account_value!=null){_acctTxt='$'+Number(b.account_value).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});}
+   else if(_fa&&_fa.ok&&_fa.value!=null){_acctTxt='$'+Number(_fa.value).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});}
+   else {_acctTxt=dash(b.account_value_reason||(_fa&&_fa.reason));}
+ }catch(e){_acctTxt=dash(b.account_value_reason);}
+ set('lcBannerAcct',_acctTxt+_basis,'');
  const armed=lcAudit.master_real_orders_enabled===true;  // the master switch only
  set('lcBannerSending',armed?'ON':'OFF',armed?'lc-green':'lc-grey',armed?'real orders are being sent':'sending is switched off (a choice, not a fault)');
  set('lcBannerHealth',h(hl.text||'—'),levelCls(hl.level),'');
