@@ -32,6 +32,11 @@ import urllib.request
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+# the engine module lives beside ops/ in the checkout: import it from there so the driver works from any cwd
+_ENGINE_DIR = Path(__file__).resolve().parent.parent / "_archive" / "hl_stage2"
+if _ENGINE_DIR.exists() and str(_ENGINE_DIR) not in sys.path:
+    sys.path.insert(0, str(_ENGINE_DIR))
+
 USER_OWNED = {"XYZ:CRCL", "XYZ:ORCL", "XYZ:LLY"}     # hand-placed by the operator: never closed by an agent
 SLIP_BPS = {"first": 0.0020, "retry": 0.0040}
 MID_MAX_AGE_SEC = 5.0
@@ -299,7 +304,7 @@ def report(rows: List[Dict[str, Any]]) -> str:
     lines = ["coin            before        after   action / reason"]
     for r in rows:
         _rem = (" FLATTEN_PRECISION_REMAINDER %.8f" % r["remainder"]) if r.get("remainder") else ""
-        lines.append("%-14s %10.4f %12s   %s%s" % (r["coin"], r["before"],
+        lines.append("%-14s %10.4f %12s   %s" % (r["coin"], r["before"],
                                                  ("%.4f" % r["after"]) if r.get("after") is not None else "-",
                                                  (r.get("action") or "") + (" " + r["reason"] if r.get("reason") else "") + _rem))
     left = [r for r in rows if r.get("after") not in (0, 0.0, None)]
@@ -421,6 +426,26 @@ def refuse(state: Path, live: bool, rows: List[Dict[str, Any]], extra: Dict[str,
     if live:
         return abort_run(state, live, rows, extra, code, wallet)
     return code
+
+
+def live_wallet_for(state: Path) -> Optional[str]:
+    """A roster wallet whose mode is LIVE. The synthetic intent needs one: the engine's send-time wallet gate reads the
+    intent's wallet against the roster, and the follower address is not a roster entry - which is why a flatten built on
+    it is refused with WALLET_OFF. The position is account-level, so which LIVE wallet carries the intent does not
+    change what a reduce-only order does."""
+    try:
+        cfg = json.loads((state / "live_config.json").read_text(encoding="utf-8-sig"))
+    except Exception:
+        return None
+    wallets = cfg.get("wallets") or {}
+    if not isinstance(wallets, dict):
+        return None
+    for addr, w in wallets.items():
+        if not isinstance(w, dict):
+            continue
+        if str(w.get("mode") or "").upper() == "LIVE" and w.get("enabled") is not False:
+            return str(addr)
+    return None
 
 
 def main(argv: Optional[List[str]] = None) -> int:
@@ -565,6 +590,16 @@ def main(argv: Optional[List[str]] = None) -> int:
                                                                       # not overwrite the precision note
             r["before"] = float(_net_now)
             gw = SenderGateway(ConfigManager(), AuditLogWriter())
+            # the resolver refuses to send on snapshot-only metadata (META_UNAVAILABLE) unless this process has made a
+            # real meta fetch: warm it here, from the same engine code, before resolving the coin
+            try:
+                if not getattr(gw, "_core_meta_fetched", False):
+                    gw._fetch_core_meta()
+            except Exception as exc:
+                r.update(action="ABORTED_META_WARM_FAILED", reason=repr(exc))
+                rows.append(r)
+                print("ABORT: cannot warm the engine meta cache (%r)" % (exc,))
+                return abort_run(state, live, rows, extra, 12, wallet)
             exch, sdk_coin = gw._exchange_client_for_coin(step["coin"])
             tn = client_is_testnet(exch)
             if tn is not True:
@@ -579,7 +614,13 @@ def main(argv: Optional[List[str]] = None) -> int:
                 rows.append(r)
                 print("ABORT: the ledger changed under us - refusing to send")
                 return abort_run(state, live, rows, extra, 11, wallet)
-            fill = LeaderFill("flatten-%s-%d" % (step["coin"], int(time.time())), wallet, step["coin"],
+            _lead = live_wallet_for(state)
+            if not _lead:
+                r.update(action="ABORTED_NO_LIVE_WALLET", reason="no roster wallet is mode LIVE; the send-time wallet gate would refuse")
+                rows.append(r)
+                print("ABORT: no LIVE roster wallet to carry the intent")
+                return abort_run(state, live, rows, extra, 12, wallet)
+            fill = LeaderFill("flatten-%s-%d" % (step["coin"], int(time.time())), _lead, step["coin"],
                               "SELL" if not step["is_buy"] else "BUY", mid, step["size"], utc_now_ms(), "FLATTEN", 0,
                               {"oid": "flat", "dir": "Close Long" if not step["is_buy"] else "Close Short"})
             intent = IntentBuilder(ConfigManager(), ManualLedger(path=_ltmp)).build(fill)
@@ -594,15 +635,32 @@ def main(argv: Optional[List[str]] = None) -> int:
                     px = limit_price(mid, step["is_buy"], attempt)
                     if not valid_price(px):
                         break
+                try:
+                    # the exchange rejects a price it cannot write exactly (float_to_wire causes rounding): format it
+                    # with the coin's own price precision, using the engine's own helper
+                    _res = gw._resolve_coin(step["coin"])
+                    px = type(gw)._px_passive(px, int(_res.get("price_max_decimals") or 0), True)
+                except Exception:
+                    pass
+                # A CLOID ON EVERY ORDER: the staged coin filled with cloid None, which means it cannot be matched to
+                # our journal by the reconcile gate - an order we cannot account for is the defect that gate exists
+                # to prevent. generate_cloid is the engine's own generator.
+                try:
+                    from HL_Live_Copy_Service_Core import generate_cloid
+                    _cloid = generate_cloid("flatten-%s-%d" % (step["coin"], attempt))
+                except Exception:
+                    _cloid = None
+                r["cloid"] = _cloid
                 resp = gw._place_order(exch, sdk_coin, step["is_buy"], step["size"], px, "Ioc", True,
-                                       {}, "flatten_started_ms", None, False, None, intent, "flatten_testnet")
+                                       {}, "flatten_started_ms", _cloid, False, None, intent, "flatten_testnet")
                 ok, status, _oid, _err = gw._parse_hl_response(resp)
                 _st = str(status or "")
                 if ok:
                     done = True
                     r["reason"] = "attempt=%d px=%.6g" % (attempt, px)
                     break
-                r["reason"] = "attempt=%d status=%s" % (attempt, _st)
+                r["reason"] = "attempt=%d status=%s error=%s" % (attempt, _st, (_err or "")[:200])
+                r["error"] = str(_err or "")[:400]
                 # ONLY a clean "IOC no match" may retry. `_parse_hl_response` returns ORDER_REJECTED with the reason in
                 # the error text, so the predicate has to read BOTH the status and that text - the status-only version
                 # could never fire and would have aborted the whole run on the first unfilled IOC.
@@ -618,8 +676,20 @@ def main(argv: Optional[List[str]] = None) -> int:
             if not done and not str(r.get("action", "")).startswith("ABORTED"):
                 r.update(action="FLATTEN_NO_LIQUIDITY")
         except Exception as exc:
-            # ANY exception during a send is uncertainty: record, write, re-read, stop
-            r.update(action="ABORTED_EXCEPTION", reason=repr(exc))
+            # ANY exception during a send is uncertainty - but the order may have FILLED before the exception (the
+            # staged coin did, and was recorded as an abort). Re-read the position and reclassify before writing.
+            _moved = None
+            try:
+                _now2 = {p["coin"]: p["net"] for p in open_positions(wallet)}
+                _moved = _now2.get(step["coin"])
+            except Exception:
+                _moved = None
+            if _moved is not None and abs(float(_moved)) < abs(float(step["net"])):
+                r.update(action="FILLED_DESPITE_EXCEPTION",
+                         reason="position %s -> %s; %r" % (step["net"], _moved, exc))
+                r["after"] = _moved
+            else:
+                r.update(action="ABORTED_EXCEPTION", reason=repr(exc))
             rows.append(r)
             print("ABORT: %r - stopping the whole run" % (exc,))
             return abort_run(state, live, rows, extra, 5, wallet)

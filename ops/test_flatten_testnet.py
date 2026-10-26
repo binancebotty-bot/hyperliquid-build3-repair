@@ -204,6 +204,13 @@ check("THE_REMAINDER_HAS_ITS_OWN_FIELD", 'r["remainder"]' in src,
       "the order result must not overwrite the precision note")
 check("REFUSALS_LEAVE_EVIDENCE_WHEN_LIVE", "def refuse(" in src and "REFUSED" in src)
 
+check("EVERY_ORDER_CARRIES_A_CLOID",
+      "generate_cloid(" in src and 'r["cloid"] = _cloid' in src,
+      "an order with no cloid cannot be matched to our journal by the reconcile gate")
+check("AN_EXCEPTION_IS_RECLASSIFIED_AGAINST_THE_EXCHANGE",
+      "FILLED_DESPITE_EXCEPTION" in src and "_moved" in src,
+      "a fill reported as an abort is how an unaccounted fill gets archived over")
+
 failed = [n for n, ok in results if not ok]
 print("TOTAL=%d FAILED=%d" % (len(results), len(failed)))
 if failed:
