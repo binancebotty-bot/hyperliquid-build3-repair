@@ -138,6 +138,13 @@ Expect `pair UP and consistent`. It must show engine build and UI build from the
 audit dir on both, one engine, one listener on 8031, and the page serving the new-build markers. If it
 says DEGRADED, stop with `ops/stop_pair.py --all` and report - never leave a half-pair running.
 
+Also prove the pointer from section 4b moved with the pair:
+
+    cat <stack>/CURRENT_AUDIT_DIR      # must be THIS run's dir, not the previous one
+
+A stale pointer is silent: the monitor keeps alerting on a directory the pair no longer writes, and
+nothing in the pair looks wrong. Check it on every fresh dir; a same-dir restart needs no change.
+
 ## 8. Sending stays OFF until ordered
 
 The engine comes up observing. Sending is turned on only as a separate, logged step:
