@@ -129,9 +129,20 @@ def main() -> None:
 
     # ---- G1..G6: USER-OWNED orders are never cancelled (gap 1, 2026-10-26) --------------------------
     class _LedgerStub:
-        def __init__(self, coins):
-            self.data = {"by_wallet": {FOLLOWER: {c: {"coin": c, "signed_size": 1.0} for c in coins}},
+        """A manual ledger holding ONE wallet's sleeves. Default wallet is the USER sleeve wallet, because
+        only that wallet may shield an order (controller 6420098503); leader wallet ids hold the engine's own
+        copy sleeves and must NOT shield anything."""
+
+        def __init__(self, coins, wallet=None, unreadable=False):
+            w = wallet or c.USER_SLEEVE_WALLET
+            self.data = {"by_wallet": {w: {cn: {"coin": cn, "signed_size": 1.0} for cn in coins}},
                          "by_coin_net": {}}
+            self.unreadable = unreadable
+            self.path = Path(tempfile.mkdtemp(prefix="t1b_ledger_")) / "manual_live_positions.json"
+            self.path.write_text("{not json" if unreadable else "{}", encoding="utf-8")
+
+        def nonflat_wallets_from_disk(self):
+            return None if self.unreadable else {}
 
     def user_owned_rows(oid):
         return [r for r in recon_rows()
@@ -145,22 +156,53 @@ def main() -> None:
     check("G1B_CLOID_NONE_AUDITED_BY_NAME", len(user_owned_rows(1001)) == 1,
           str(recon_rows())[:400])
 
-    # G2/G6: an order WITH an engine-style cloid on a coin the manual ledger holds a non-zero sleeve in
+    # G2/G6: USER sleeve wallet + NO cloid -> survives and the row names the sleeve
     c.atomic_write_json(c.RESTING_ENTRY_ORDERS_FILE, {})
     c.SEND_ATTEMPTS_CSV.write_text("", encoding="utf-8") if c.SEND_ATTEMPTS_CSV.exists() else None
     c.ensure_csv_header(c.SEND_ATTEMPTS_CSV, c.SEND_ATTEMPT_FIELDS)
     c.OPEN_ORDERS_FETCHER = lambda p: [{"oid": 1002, "coin": "BTC", "side": "A", "sz": "1", "limitPx": "99",
+                                        "cloid": "0x" + "a" * 40}]
+    fake = FakeExchange()
+    gw = c.SenderGateway(c.ConfigManager(), c.AuditLogWriter())
+    gw.ledger = _LedgerStub(["BTC"])
+    gw._exchange_client_for_coin = lambda coin: (fake, "BTC")
+    res = gw.startup_orphan_order_check()
+    check("G2_USER_SLEEVE_NO_CLOID_NOT_CANCELLED",
+          res["ok"] and not fake.cancels and len(res.get("user_owned") or []) == 1 and not res["cancelled"], str(res))
+    rows = user_owned_rows(1002)
+    check("G6_SLEEVE_REASON_NAMED", len(rows) == 1 and "manual ledger" in str(rows[0].get("notes") or ""),
+          str(rows)[:400])
+
+    # G2B: the SAME user sleeve coin WITH an engine-style cloid -> still cancelled as an orphan (unchanged)
+    c.atomic_write_json(c.RESTING_ENTRY_ORDERS_FILE, {})
+    c.SEND_ATTEMPTS_CSV.write_text("", encoding="utf-8") if c.SEND_ATTEMPTS_CSV.exists() else None
+    c.ensure_csv_header(c.SEND_ATTEMPTS_CSV, c.SEND_ATTEMPT_FIELDS)
+    c.OPEN_ORDERS_FETCHER = lambda p: [{"oid": 1006, "coin": "BTC", "side": "A", "sz": "1", "limitPx": "99",
                                         "cloid": "0x" + "a" * 32}]
     fake = FakeExchange()
     gw = c.SenderGateway(c.ConfigManager(), c.AuditLogWriter())
     gw.ledger = _LedgerStub(["BTC"])
     gw._exchange_client_for_coin = lambda coin: (fake, "BTC")
     res = gw.startup_orphan_order_check()
-    check("G2_SLEEVED_COIN_NOT_CANCELLED",
-          res["ok"] and not fake.cancels and len(res.get("user_owned") or []) == 1 and not res["cancelled"], str(res))
-    rows = user_owned_rows(1002)
-    check("G6_SLEEVE_REASON_NAMED", len(rows) == 1 and "manual ledger" in str(rows[0].get("notes") or ""),
-          str(rows)[:400])
+    check("G2B_USER_SLEEVE_WITH_ENGINE_CLOID_STILL_CANCELLED",
+          res["ok"] and [tuple(map(str, t)) for t in fake.cancels] == [("BTC", "1006")]
+          and len(res["cancelled"]) == 1 and not (res.get("user_owned") or []), str(res))
+
+    # G2C: an ENGINE sleeve on the same coin (leader wallet id) + cloid None -> survives, but for the NO-CLOID
+    # reason only; the sleeve itself must NOT be the shield.
+    c.atomic_write_json(c.RESTING_ENTRY_ORDERS_FILE, {})
+    c.SEND_ATTEMPTS_CSV.write_text("", encoding="utf-8") if c.SEND_ATTEMPTS_CSV.exists() else None
+    c.ensure_csv_header(c.SEND_ATTEMPTS_CSV, c.SEND_ATTEMPT_FIELDS)
+    c.OPEN_ORDERS_FETCHER = lambda p: [{"oid": 1007, "coin": "BTC", "side": "B", "sz": "1", "limitPx": "99"}]
+    fake = FakeExchange()
+    gw = c.SenderGateway(c.ConfigManager(), c.AuditLogWriter())
+    gw.ledger = _LedgerStub(["BTC"], wallet=FOLLOWER)
+    check("G2D_ENGINE_SLEEVE_NOT_IN_SLEEVED_SET", gw._sleeved_coins() == (set(), True), "%r" % (gw._sleeved_coins(),))
+    gw._exchange_client_for_coin = lambda coin: (fake, "BTC")
+    res = gw.startup_orphan_order_check()
+    check("G2C_ENGINE_SLEEVE_CLOID_NONE_SURVIVES_BY_CLOID_RULE",
+          res["ok"] and not fake.cancels and len(res.get("user_owned") or []) == 1
+          and "no cloid" in str(res["user_owned"][0].get("reason") or ""), str(res))
 
     # G3: engine-style cloid absent from the journal, coin has NO sleeve -> cancelled exactly as before
     # NOTE: the cancel path uses the SDK coin the exchange client reports (the run() helper stubs it to "BTC"),
@@ -186,6 +228,23 @@ def main() -> None:
     check("G5_LEDGER_NONE_SAFE",
           res["ok"] and [tuple(map(str, t)) for t in fake.cancels] == [("BTC", "1005")]
           and not (res.get("user_owned") or []), str(res))
+
+    # G7: an UNREADABLE ledger cancels nothing - unknown is not zero, and cancelling is the unsafe direction
+    c.atomic_write_json(c.RESTING_ENTRY_ORDERS_FILE, {})
+    c.SEND_ATTEMPTS_CSV.write_text("", encoding="utf-8") if c.SEND_ATTEMPTS_CSV.exists() else None
+    c.ensure_csv_header(c.SEND_ATTEMPTS_CSV, c.SEND_ATTEMPT_FIELDS)
+    c.OPEN_ORDERS_FETCHER = lambda p: [{"oid": 1008, "coin": "BTC", "side": "A", "sz": "1", "limitPx": "77",
+                                        "cloid": "0x" + "d" * 40}]
+    fake = FakeExchange()
+    gw = c.SenderGateway(c.ConfigManager(), c.AuditLogWriter())
+    gw.ledger = _LedgerStub([], unreadable=True)
+    gw._exchange_client_for_coin = lambda coin: (fake, "BTC")
+    check("G7_SLEEVED_COINS_UNREADABLE_IS_UNKNOWN", gw._sleeved_coins() == (set(), False),
+          "sleeved=%r" % (gw._sleeved_coins(),))
+    res = gw.startup_orphan_order_check()
+    check("G7_UNREADABLE_LEDGER_CANCELS_NOTHING",
+          res["ok"] and not fake.cancels and len(res.get("user_owned") or []) == 1
+          and not res["cancelled"] and len(user_owned_rows(1008)) == 1, str(res))
 
     failed = [n for n, ok in RESULTS if not ok]
     print("TOTAL=%d FAILED=%d" % (len(RESULTS), len(failed)))

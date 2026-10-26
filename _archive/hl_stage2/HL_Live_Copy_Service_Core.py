@@ -719,6 +719,9 @@ POLL_MAX_PAGES_PER_WALLET = int(os.getenv("HL_LIVE_POLL_MAX_PAGES_PER_WALLET", "
 LEADER_POLL_RETENTION_MS = 100 * 60 * 1000
 MAX_WALLETS = int(os.getenv("HL_LIVE_WS_MAX_WALLETS", "10"))
 POSITION_EPSILON = float(os.getenv("HL_LIVE_POSITION_EPSILON", "1e-9"))
+# The manual ledger's wallet id that holds the HUMAN's sleeves. Engine copy sleeves use leader wallet ids, so
+# only this id may shield a resting order from the startup orphan cancel (controller scope correction 2026-10-26).
+USER_SLEEVE_WALLET = str(os.getenv("HL_LIVE_USER_SLEEVE_WALLET", "user_owned") or "user_owned").strip().lower()
 STALE_REPLAY_GRACE_MS = int(os.getenv("HL_LIVE_STALE_REPLAY_GRACE_MS", "5000"))
 
 FILE_LOCK = threading.RLock()
@@ -3745,6 +3748,14 @@ def generate_cloid(intent_id: str) -> str:
     return "0x" + hashlib.sha256(str(intent_id).encode("utf-8")).hexdigest()[:32]
 
 
+def is_engine_cloid(raw: Any) -> bool:
+    """True when raw has the exact shape generate_cloid() produces: 0x + 32 lowercase hex chars. The startup
+    orphan check uses this to decide whether an order could possibly be this engine's, so a NON-engine cloid
+    can never cause a cancel on a coin the human holds a USER sleeve in (controller scope correction)."""
+    s = str(raw or "").strip().lower()
+    return len(s) == 34 and s.startswith("0x") and all(ch in "0123456789abcdef" for ch in s[2:])
+
+
 def generate_attempt_id(intent_id: str) -> str:
     """T1a: deterministic send_attempts row id for an intent; the pending_send row and its final update share it."""
     return stable_hash(["attempt", intent_id])
@@ -6205,9 +6216,12 @@ class SenderGateway:
         return cloids, oids
 
     def _sleeved_coins(self):
-        """(coins, known): canonical coin keys the manual ledger holds a non-zero sleeve in, plus whether that
-        answer can be trusted. known=False means the ledger file exists but cannot be read or validated - then
-        NO order may be cancelled, because unknown is not zero and cancelling is the unsafe direction."""
+        """(coins, known): canonical coin keys held in a non-zero sleeve by the USER sleeve wallet ONLY, plus
+        whether that answer can be trusted. The ENGINE's own copy sleeves live in the same ledger under the
+        leader wallet ids, so counting every non-zero sleeve would shield engine orphan orders from the startup
+        cancel - the controller's scope correction of 2026-10-26. known=False means the ledger file exists but
+        cannot be read or validated: then NO order may be cancelled, because unknown is not zero and cancelling
+        is the unsafe direction."""
         out = set()
         ledger = getattr(self, "ledger", None)
         if ledger is None:
@@ -6215,12 +6229,12 @@ class SenderGateway:
         try:
             if ledger.path.exists() and ledger.nonflat_wallets_from_disk() is None:
                 return out, False
-            for wallet_map in ((ledger.data.get("by_wallet") or {})).values():
-                if not isinstance(wallet_map, dict):
-                    continue
-                for raw_coin, sleeve in wallet_map.items():
-                    if isinstance(sleeve, dict) and abs(fnum(sleeve.get("signed_size"), 0.0)) > POSITION_EPSILON:
-                        out.add(canonical_coin_key(raw_coin))
+            wallet_map = (ledger.data.get("by_wallet") or {}).get(USER_SLEEVE_WALLET) or {}
+            if not isinstance(wallet_map, dict):
+                return out, False
+            for raw_coin, sleeve in wallet_map.items():
+                if isinstance(sleeve, dict) and abs(fnum(sleeve.get("signed_size"), 0.0)) > POSITION_EPSILON:
+                    out.add(canonical_coin_key(raw_coin))
             return out, True
         except Exception as exc:
             log_error("user_owned_sleeve_read_failed", exc)
@@ -6335,10 +6349,10 @@ class SenderGateway:
             reason = ""
             if not cloid:
                 reason = "no cloid on the order: the engine always sets one, so this order is not the engine's"
-            elif not ledger_known:
+            elif not is_engine_cloid(cloid) and not ledger_known:
                 reason = ("manual ledger unreadable: this coin cannot be proved not to be the human's, "
                           "so no order is cancelled")
-            elif canonical_coin_key(o.get("coin")) in sleeved:
+            elif not is_engine_cloid(cloid) and canonical_coin_key(o.get("coin")) in sleeved:
                 reason = "coin %s has a non-zero sleeve in the manual ledger" % str(o.get("coin") or "")
             if reason:
                 self._label_user_owned_order(dex, o, reason)
