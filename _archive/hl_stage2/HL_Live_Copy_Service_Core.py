@@ -5503,6 +5503,19 @@ class SenderGateway:
             return dict(base, outcome="MISSED_ENTRY_DIFF_NO_LIMIT_POSSIBLE",
                         notes=(f"named diff: {cause}; no order (price {px} unusable or asset safety "
                                f"{unsafe.get('status')})"))
+        # SECOND GATE, IMMEDIATELY BEFORE THE ORDER. The structural fix put the cooldown cache behind the ownership
+        # gate in send_if_allowed, so this remedy only runs for intents that passed it - but the remedy is a separate
+        # route into _place_order and _place_order rechecks the master gate, NOT ownership. Re-run it here on current
+        # state: a coin we no longer own must never get an order from a stale intent (ENG-016, shared netting).
+        _own_ok, _own_block = self._pre_send_ownership_gate(intent)
+        if not _own_ok:
+            _st = str(_own_block.get("status") or "OWNERSHIP_GATE_BLOCKED")
+            try:
+                self._append_local_block_reconciliation(intent, _st, dict(_own_block, timing=timing))
+            except Exception as exc:
+                log_error("remedy_ownership_block_row", exc)
+            return dict(base, outcome=_st, exchange_called=False,
+                        notes=f"no order: ownership gate refused the remedy ({_st})")
         try:
             cloid, pre_send = self._recovery_send_hooks(intent, tif, order_type, px, size, False, timing, label)
             response = self._place_order(exchange, sdk_coin, intent.copy_side == "BUY", size, px, tif, False,
@@ -8008,15 +8021,6 @@ class SenderGateway:
         lifecycle = classify_send_lifecycle(intent)
         coin_key = str(intent.fill.coin or "").strip().lower()
         now_ms = utc_now_ms()
-        if lifecycle in {"ENTRY", "ADD"} and getattr(self, "_market_halted_until_ms", {}).get(coin_key, 0) > now_ms:
-            return False, "SKIPPED_MARKET_HALTED"
-        if lifecycle in {"ENTRY", "ADD"} and getattr(self, "_ioc_no_match_until_ms", {}).get(coin_key, 0) > now_ms:
-            return False, "SKIPPED_IOC_NO_IMMEDIATE_MATCH"
-        if lifecycle in {"ENTRY", "ADD"} and getattr(self, "_margin_reject_until_ms", {}).get(coin_key, 0) > now_ms:
-            # Without this the dispatch-level skip removal would let a fill inside an active margin cooldown reach
-            # _place_order and exchange.order - a doomed order sent, which is what the cache exists to prevent.
-            # dispatch (Core:5420) deliberately no longer skips it, so the gate has to live here.
-            return False, "SKIPPED_INSUFFICIENT_MARGIN"
         if lifecycle in {"ENTRY", "ADD"} and self.cfg.send_mode_now() == "CLOSE":
             return False, "ENTRY_BLOCKED_GLOBAL_CLOSE_ONLY"  # CLOSE: reductions only, no entry or top-up
         if entry_block_reason and lifecycle in {"ENTRY", "ADD"}:
@@ -8049,6 +8053,16 @@ class SenderGateway:
             gate_block["timing"] = timing
             self._append_local_block_reconciliation(intent, str(gate_block.get("status") or "OWNERSHIP_GATE_BLOCKED"), gate_block)
             return False, str(gate_block.get("status") or "OWNERSHIP_GATE_BLOCKED")
+        # THE COOLDOWN CACHE IS CHECKED HERE, AFTER THE OWNERSHIP GATE - not before it. A cached halt / IOC /
+        # margin refusal used to return before the gate ran, and the refusal remedy then placed a rest-or-diff order
+        # through _place_order, which rechecks the master gate but NOT current ownership: a stale entry intent could
+        # become a real order for a coin we no longer own (ENG-016, shared netting). Nothing may short-cut the gate.
+        if lifecycle in {"ENTRY", "ADD"} and getattr(self, "_market_halted_until_ms", {}).get(coin_key, 0) > utc_now_ms():
+            return False, "SKIPPED_MARKET_HALTED"
+        if lifecycle in {"ENTRY", "ADD"} and getattr(self, "_ioc_no_match_until_ms", {}).get(coin_key, 0) > utc_now_ms():
+            return False, "SKIPPED_IOC_NO_IMMEDIATE_MATCH"
+        if lifecycle in {"ENTRY", "ADD"} and getattr(self, "_margin_reject_until_ms", {}).get(coin_key, 0) > utc_now_ms():
+            return False, "SKIPPED_INSUFFICIENT_MARGIN"
         if not self.cfg.master_switch_now():  # switched off while the gate waited for fresh records
             return False, "MASTER_REAL_ORDERS_OFF"
         if lifecycle in {"ENTRY", "ADD"} and self.cfg.send_mode_now() == "CLOSE":  # or to close-only meanwhile

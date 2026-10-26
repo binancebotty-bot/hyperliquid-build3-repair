@@ -722,9 +722,12 @@ def main() -> None:
     off_intent = c.IntentBuilder(c.ConfigManager(), c.ManualLedger(path=tmp / "off1.json")).build(old_fill)
     outcome = gw_off._missed_entry_rest_or_diff(off_intent, "ORD_010_ENTRY_AGE_OVER_30S")
     check("GUARD_SENDS_OFF_REST_PATH_MAKES_ZERO_EXCHANGE_CALLS", fake_off.calls == [], str(fake_off.calls))
+    # the remedy now re-runs the ownership gate immediately before the order, so with sends OFF the refusal
+    # arrives there first and is named OWNERSHIP_GATE_*; either way: ZERO exchange calls and a NAMED refusal
     check("GUARD_SENDS_OFF_REST_PATH_JOURNALS_THE_REFUSAL",
-          str(outcome).find("BLOCKED_AT_PLACE_ORDER") >= 0 and outcome.get("exchange_called") is False,
-          str(outcome)[:200])
+          str(outcome.get("outcome") or "").startswith(("BLOCKED_AT_PLACE_ORDER", "OWNERSHIP_GATE_"))
+          and outcome.get("exchange_called") is False,
+          str(outcome)[:300])
 
     failed = [n for n, ok in RESULTS if not ok]
     print(f"TOTAL={len(RESULTS)} FAILED={len(failed)}")
