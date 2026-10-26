@@ -7961,6 +7961,11 @@ class SenderGateway:
             return False, "SKIPPED_MARKET_HALTED"
         if lifecycle in {"ENTRY", "ADD"} and self._ioc_no_match_until_ms.get(coin_key, 0) > now_ms:
             return False, "SKIPPED_IOC_NO_IMMEDIATE_MATCH"
+        if lifecycle in {"ENTRY", "ADD"} and self._margin_reject_until_ms.get(coin_key, 0) > now_ms:
+            # Without this the dispatch-level skip removal would let a fill inside an active margin cooldown reach
+            # _place_order and exchange.order - a doomed order sent, which is what the cache exists to prevent.
+            # dispatch (Core:5420) deliberately no longer skips it, so the gate has to live here.
+            return False, "SKIPPED_INSUFFICIENT_MARGIN"
         if lifecycle in {"ENTRY", "ADD"} and self.cfg.send_mode_now() == "CLOSE":
             return False, "ENTRY_BLOCKED_GLOBAL_CLOSE_ONLY"  # CLOSE: reductions only, no entry or top-up
         if entry_block_reason and lifecycle in {"ENTRY", "ADD"}:
@@ -12308,6 +12313,11 @@ class LiveCopyCore:
         else:
             return None
         outcome = self.sender._missed_entry_rest_or_diff(intent, cause)
+        if str(outcome.get("outcome") or "") == "BLOCKED_AT_PLACE_ORDER":
+            # The gate already journalled SEND_TERMINAL/BLOCKED_AT_PLACE_ORDER through _gate_refusal_row
+            # (Core:5606): appending another here would leave TWO terminal records for one intent, which is the
+            # defect Codex found in the gate-flip case. One intent, one terminal row.
+            return outcome
         if outcome["outcome"] in {"MISSED_ENTRY_DIFF_NO_FRESH_MID", "MISSED_ENTRY_DIFF_MARGIN_SETUP_FAILED",
                                   "MISSED_ENTRY_DIFF_MARGIN_SETUP_PENDING"}:
             self.audit.append_reconciliation(  # an OPEN incident: no order exists, the convergence path retries
