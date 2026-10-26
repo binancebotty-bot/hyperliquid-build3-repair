@@ -9,6 +9,17 @@ exists because something was lost by skipping it on 2026-10-25.
 
 ## 0. Preconditions, checked not assumed
 
+    # LIQUIDATION PARITY - read this before any start, and NEVER ship it wrong.
+    #   mainnet : global_controls.liq_parity MUST be true (or the key absent, which defaults to true).
+    #             It is the Boss-ordered mainnet parity rule and a standing revert item (21 Oct note).
+    #   testnet : set explicit  "liq_parity": false  in live_config.json. A cross-network comparison of the
+    #             follower's projected liquidation distance against a leader's is meaningless - on 2026-10-26
+    #             it refused 34 testnet entries (follower 624% vs leader 1821% from mark), 33 of them with no
+    #             order and no named diff.
+    #   The key is read ONCE at construction (ConfigManager.__init__ -> self.config), so a change needs a
+    #   RESTART. HL_LIVE_LIQ_PARITY=0/1 in the process env forces it either way; the env route needs a
+    #   restart too.
+
     # undefined names: the cheapest net for a variable deleted or renamed under a try/except.
     # On 2026-10-26 a guard edit removed `reason = str(intent.reason or "")`; the two causes below it
     # raised NameError, the caller swallowed it, and the missed-entry rule was silently dead while its
