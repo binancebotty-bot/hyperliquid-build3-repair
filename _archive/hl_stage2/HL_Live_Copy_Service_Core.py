@@ -12914,17 +12914,29 @@ class LiveCopyCore:
             # NEVER exclude a fill that could reduce a position we hold. The direction string comes from the fill's
             # metadata (replay/import can say "Open ..." for a close), so it is a hint, not a fact: the ledger's net is
             # the fact. With a position on the coin, this path stands aside and the normal lifecycle classifies it.
-            _held = None                      # None = unreadable, which must mean NO exclusion
+            # THIS WALLET's sleeve, not the aggregate: wallet A +1 and wallet B -1 nets to zero while A still has a
+            # position to reduce, and an aggregate read would call that flat. A missing record is NOT proof of flat
+            # either - an unresolved key spelling looks exactly like an empty one - so it stays unknown.
+            _held = None
             try:
                 if self.ledger is not None:
-                    _held = float(self.ledger.coin_net(canonical_coin_key(fill.coin)) or 0.0)
+                    _sleeve = None
+                    try:
+                        _sleeve = self.ledger.sleeve(fill.leader_wallet, fill.coin)
+                    except Exception:
+                        _sleeve = None
+                    if isinstance(_sleeve, dict) and _sleeve:
+                        _held = float(fnum(_sleeve.get("signed_size"), 0.0))
+                    elif isinstance(_sleeve, dict) and not _sleeve:
+                        _held = 0.0          # an explicit empty sleeve is a real, proven flat
+                    else:
+                        _held = None         # nothing to read: unknown, so no exclusion
             except Exception as _led_exc:
                 _held = None
                 try:
                     log_error("follower_exclusion_ledger_unreadable", _led_exc)
                 except Exception:
                     pass
-            # only an EXACTLY flat ledger may be excluded; unknown never is
             _is_entry = bool(_says_entry) and (_held == 0.0)
             _gc = getattr(self.cfg, "config", {}) or {}
             _status, _note = follower_entry_exclusion(fill.coin, _is_entry, (_gc.get("global_controls") or {}),
@@ -16447,12 +16459,20 @@ def close_orphan_attempt_rows(send_attempts_csv: Optional[str] = None, live_fill
         raw_sz = str(row.get("fill_size") or row.get("size") or "0").strip() or "0"
         try:
             size = decimal.Decimal(raw_sz)
+            if not size.is_finite():
+                raise decimal.InvalidOperation("non-finite size %r" % raw_sz)
         except (decimal.InvalidOperation, ValueError):
+            # one corrupt cell must not abort the sweep for every other row; it counts as zero for this order only
             size = decimal.Decimal("0")
         if size < 0:
             size = decimal.Decimal("0")
         filled_dec[oid] = filled_dec.get(oid, decimal.Decimal("0")) + size
-    filled_total = {oid: float(total.quantize(_QUANT)) for oid, total in filled_dec.items()}
+    filled_total = {}
+    for oid, total in filled_dec.items():
+        try:
+            filled_total[oid] = float(total.quantize(_QUANT))
+        except (decimal.InvalidOperation, ValueError):
+            filled_total[oid] = 0.0
     by_oid = {oid: {"filled_size": total} for oid, total in filled_total.items()}
     for row in read_csv_rows(rp):
         oid = _canon_oid(row.get("exchange_order_id"))
@@ -16479,7 +16499,15 @@ def close_orphan_attempt_rows(send_attempts_csv: Optional[str] = None, live_fill
     # let the order in which rows happened to be processed choose the winner, and left an already-processed
     # duplicate open forever.
     _claim_for_oid = {}
-    for _row in sorted(candidates, key=lambda r: int(fnum(r.get("created_at_ms"), 0))):
+    # A missing or invalid created_at_ms must NOT sort ahead of a real one (fnum defaults it to 0), and two rows with
+    # the same stamp need a deterministic tie-break rather than dict order.
+    def _claim_key(r):
+        try:
+            ts = int(r.get("created_at_ms") or 0)
+        except (TypeError, ValueError):
+            ts = 0
+        return (0 if ts > 0 else 1, ts, str(r.get("attempt_id") or ""))
+    for _row in sorted(candidates, key=_claim_key):
         _oid = _canon_oid(_row.get("exchange_order_id"))
         if _oid and _oid not in _claim_for_oid:
             _claim_for_oid[_oid] = str(_row.get("attempt_id") or "")
@@ -16513,8 +16541,8 @@ def close_orphan_attempt_rows(send_attempts_csv: Optional[str] = None, live_fill
                 "status": "SUPERSEDED_BY_%s" % str(_claim_for_oid.get(oid, ""))[:24],
                 "terminal_state": "SUPERSEDED_SAME_ORDER_ROW",
                 "action": "JOURNAL_SUPERSEDED",
-                "notes": ("superseded: this attempt row shares exchange order %s with attempt %s, which is the one "
-                          "marked filled; one order is never two fills" % (oid, _claim_for_oid.get(oid, ""))),
+                "notes": ("superseded: this attempt row shares exchange order %s with attempt %s, which owns that "
+                          "order id; one physical order is never two records" % (oid, _claim_for_oid.get(oid, ""))),
             })
             rec = {"attempt_id": row.get("attempt_id"), "exchange_order_id": oid, "coin": row.get("coin"),
                    "was": row.get("status"), "filled_size": filled_sz, "want_size": want_sz,
