@@ -11608,7 +11608,7 @@ def load_existing_intents() -> Dict[str, Intent]:
 _VOL_CACHE: Dict[str, Any] = {"ts": 0.0, "vol": {}, "listed": set(), "ok": False}
 
 
-def follower_volumes_24h(refresh: bool = False) -> Tuple[bool, Dict[str, float], set]:
+def follower_volumes_24h(refresh: bool = False, cache_only: bool = False) -> Tuple[bool, Dict[str, float], set]:
     """coin -> 24h notional volume on the FOLLOWER network, from metaAndAssetCtxs, cached 5 minutes.
 
     Fails OPEN: an unreadable exchange returns ok=False and the caller treats every coin as tradable. A skip needs
@@ -11617,6 +11617,10 @@ def follower_volumes_24h(refresh: bool = False) -> Tuple[bool, Dict[str, float],
     now = time.time()
     if not refresh and _VOL_CACHE["ok"] and now - float(_VOL_CACHE["ts"]) < 300.0:
         return True, dict(_VOL_CACHE["vol"]), set(_VOL_CACHE["listed"])
+    if cache_only:
+        # the exclusion runs between intent and order: an info read there breaks the hot-path invariant, so a stale or
+        # cold cache means STAND ASIDE (fail open to copying), never a fetch.
+        return False, {}, set()
     try:
         res = _XNET.post_many(None, [{"type": "metaAndAssetCtxs"}], HL_INFO_URL, HTTP_TIMEOUT_SEC)
         data = res[0] if res else None
@@ -11709,7 +11713,7 @@ def follower_entry_exclusion(coin: str, is_entry: bool,
         return "", ""
     if FOLLOWER_NETWORK == "mainnet":
         return "", ""                                  # hard guard: mainnet copies every leader coin
-    ok, vol, listed = follower_volumes_24h()
+    ok, vol, listed = follower_volumes_24h(cache_only=True)   # never fetch in the hot window
     if not ok:
         return "", ""                                  # fail open; the read failure is already logged
     name = str(coin or "").strip()
@@ -12119,7 +12123,9 @@ class LiveCopyCore:
                 for _k, (at, wallet, coin, fid) in late:
                     self.audit.append_reconciliation(
                         "FILL_PENDING", "FILL_PENDING_QUEUED", leader_wallet=wallet, leader_fill_id=fid, coin=coin,
-                        action="QUEUED_NOT_LOST", terminal_state="FILL_PENDING_QUEUED", engine_can_send="False",
+                        # NOT terminal_state: this is a "still waiting" marker, and a marker that fills the terminal
+                        # field makes one fill look like two outcomes (77s replay made that visible: 54 fills, 2 rows).
+                        action="QUEUED_NOT_LOST", engine_can_send="False",
                         notes=f"waited {(now - at) // 1000}s for a worker (queued or being processed); a final row follows when it is handled")
                 self._dump_stuck_workers(now)
             except Exception as exc:

@@ -61,7 +61,7 @@ VOL = {'BTC': 85000.0, 'HYPE': 2733.0, 'ETC': 5475.0, 'MERL': 61.0}
 
 
 def fake_volumes(ok=True, vol=None, listed=None):
-    def _f(refresh=False):
+    def _f(refresh=False, cache_only=False):
         return ok, dict(VOL if vol is None else vol), set(LISTED if listed is None else listed)
     return _f
 
