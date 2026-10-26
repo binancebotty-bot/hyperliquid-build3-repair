@@ -11237,18 +11237,10 @@ class ExchangeReconciler:
         if not USER_WALLET or requests is None:
             return {}, "SNAPSHOT_UNAVAILABLE"
         try:
-            # ONE post for both: the account state the cycle needs, and the volume universe the exclusion reads. A
-            # separate warm-up call would sit in the cycle's critical path (it did: 1.2s offline), and a batch costs
-            # no more round trips than the state read alone.
-            r = requests.post(HL_INFO_URL, json=[{"type": "clearinghouseState", "user": USER_WALLET},
-                                                 {"type": "metaAndAssetCtxs"}], timeout=HTTP_TIMEOUT_SEC)
+            # SINGLE object: the live /info endpoint REJECTS a JSON array (proven: HTTP 422 "Failed to deserialize the
+            # JSON body into the target type"), so the batch shape must never ship.
+            r = requests.post(HL_INFO_URL, json={"type": "clearinghouseState", "user": USER_WALLET}, timeout=HTTP_TIMEOUT_SEC)
             data = r.json()
-            if isinstance(data, (list, tuple)) and len(data) >= 1:
-                try:
-                    _populate_vol_cache(data[1] if len(data) > 1 else None)
-                except Exception:
-                    pass
-                data = data[0]
             if isinstance(data, dict):
                 positions_by_coin = self._positions_from_snapshot(data)
                 # clearinghouseState omits XYZ/exotic perp positions; supplement from fill history.
@@ -16517,6 +16509,13 @@ def main() -> None:
                     next_main_at = now + max(0.5, float(args.interval))
                 if copy_due:
                     next_copy_poll_at = now + copy_poll_interval
+                # Refresh the exclusion's volume cache BETWEEN cycles: never inside run_cycle (a stubbed-fail read
+                # there blocked the cycle by ~1s) and never while a leader read is in flight. Throttled to one read
+                # per 4 minutes by the cache timestamp, and a failure cannot escape into the loop.
+                try:
+                    warm_follower_volumes()
+                except Exception:
+                    pass
         finally:
             core.stop()
         return
