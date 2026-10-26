@@ -64,11 +64,32 @@ def ownership(coin: str, ledger_net: Optional[float], journal_net: Optional[floa
 
 
 def net_agrees(exchange_net: float, ledger_net: Optional[float], tol: float = 1e-9) -> bool:
-    """reduce_only acts on the NET, so a shared symbol would take the operator's side with it. Refuse unless the
-    ledger's net for this coin IS the exchange's net."""
+    """reduce_only acts on the NET, so a shared symbol would take the operator's side with it. SIGNED equality: a
+    ledger long of the same size as an exchange short is a different position, not agreement."""
     if ledger_net is None:
         return False
-    return abs(abs(float(exchange_net)) - abs(float(ledger_net))) <= tol
+    return abs(float(exchange_net) - float(ledger_net)) <= tol
+
+
+def sz_decimals_from_meta(meta: Any) -> Dict[str, int]:
+    """coin -> szDecimals. Without this every size floors to whole units and a fractional position is left behind."""
+    out: Dict[str, int] = {}
+    try:
+        for asset in (meta or {}).get("universe") or []:
+            name = str((asset or {}).get("name") or "")
+            if name:
+                out[name] = int((asset or {}).get("szDecimals") or 0)
+    except Exception:
+        return {}
+    return out
+
+
+def is_testnet(info_url: str, client_url: str = "") -> bool:
+    """Both the info reads and the order client must point at TESTNET before a live send."""
+    def tn(u: str) -> bool:
+        u = str(u or "").lower()
+        return "testnet" in u or "127.0.0.1" in u or "localhost" in u
+    return tn(info_url) and (not client_url or tn(client_url))
 
 
 def is_user_owned(coin: str, ledger_net: Optional[float], in_journal: bool = False) -> Tuple[bool, str]:
@@ -303,7 +324,13 @@ def main(argv: Optional[List[str]] = None) -> int:
         print("REFUSED: an engine is running (pids %s). Stop the pair first." % pids)
         return 3
 
+    if live and not is_testnet(os.getenv("HL_INFO_URL") or "https://api.hyperliquid-testnet.xyz/info"):
+        print("REFUSED: --live with an endpoint that is not testnet (%r)" % (os.getenv("HL_INFO_URL"),))
+        return 6
+
     nets = ledger_nets(state)
+    _meta = _info({"type": "meta"})
+    sz_dec = sz_decimals_from_meta(_meta)
     positions = open_positions(wallet)
     if args.only:
         positions = [p for p in positions if p["coin"].upper() == args.only.upper()]
@@ -329,9 +356,19 @@ def main(argv: Optional[List[str]] = None) -> int:
         if live:
             still = resting_orders(wallet)
             print("resting after cancel: %d" % len(still))
+            if still:
+                # a surviving order can fill into the flattened book: refuse rather than flatten around it
+                for o in still:
+                    print("STILL RESTING %s oid=%s - refusing to flatten" % (o.get("coin"), o.get("oid")))
+                print(report(rows))
+                return 7
+            # the book is only frozen once the cancels are confirmed: everything below reads AFTER this point
+            positions = [p for p in open_positions(wallet)
+                         if not args.only or p["coin"].upper() == args.only.upper()]
+            print("positions after cancels: %d (frozen book)" % len(positions))
 
     # ---- the flatten plan (built before any order, so the whole book is decided at once)
-    plan = build_plan(positions, nets, {}, None, journal=journal_coins(state))
+    plan = build_plan(positions, nets, sz_dec, None, journal=journal_coins(state))
     payload = mids_now() if plan else {"mids": {}, "ts": time.time()}
     for step in plan:
         r = {"coin": step["coin"], "before": step["net"], "after": step["net"], "action": step["action"],
@@ -352,11 +389,13 @@ def main(argv: Optional[List[str]] = None) -> int:
         try:
             from HL_Live_Copy_Service_Core import (SenderGateway, ConfigManager, AuditLogWriter, IntentBuilder,
                                                    LeaderFill, utc_now_ms)
+            from HL_Live_Copy_Service_Core import ManualLedger
+            _ledger = ManualLedger(path=state / "manual_live_positions.json")   # build() reads ledger.sleeve_id
             gw = SenderGateway(ConfigManager(), AuditLogWriter())
             fill = LeaderFill("flatten-%s-%d" % (step["coin"], int(time.time())), wallet, step["coin"],
                               "SELL" if not step["is_buy"] else "BUY", mid, step["size"], utc_now_ms(), "FLATTEN", 0,
                               {"oid": "flat", "dir": "Close Long" if not step["is_buy"] else "Close Short"})
-            intent = IntentBuilder(ConfigManager(), None).build(fill)
+            intent = IntentBuilder(ConfigManager(), _ledger).build(fill)
             exch, sdk_coin = gw._exchange_client_for_coin(step["coin"])
             done = False
             for attempt in (1, 2):
@@ -366,11 +405,19 @@ def main(argv: Optional[List[str]] = None) -> int:
                 resp = gw._place_order(exch, sdk_coin, step["is_buy"], step["size"], px, "Ioc", True,
                                        {}, "flatten_started_ms", None, False, None, intent, "flatten_testnet")
                 ok, status, _oid, _err = gw._parse_hl_response(resp)
+                _st = str(status or "")
                 if ok:
                     done = True
                     r["reason"] = "attempt=%d px=%.6g" % (attempt, px)
                     break
-                r["reason"] = "attempt=%d status=%s" % (attempt, status)
+                r["reason"] = "attempt=%d status=%s" % (attempt, _st)
+                if _st.startswith(("ORDER_UNKNOWN", "ERROR", "EXCEPTION")) or not _st:
+                    # a reply we cannot classify must STOP the run: continuing past ORDER_UNKNOWN can double-close
+                    r.update(action="ABORTED_UNEXPECTED_RESULT")
+                    print("ABORT: unexpected result %r on %s - stopping the whole run" % (_st, step["coin"]))
+                    rows.append(r)
+                    print(report(rows))
+                    return 5
                 payload = mids_now()
                 mid = fresh_mid(payload, step["coin"], time.time()) or mid
             if not done:

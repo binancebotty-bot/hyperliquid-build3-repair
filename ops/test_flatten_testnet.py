@@ -93,6 +93,30 @@ check("UNKNOWN_PID_STATE_BLOCKS",
 check("THE_RETRY_COUNT_IS_CAPPED", "MAX_ATTEMPTS" in src)
 check("IT_READS_THE_RESULT_FROM_THE_EXCHANGE", "open_positions(wallet)" in src.split("after = ")[-1][:200])
 
+# ---- the six findings from the static review, each pinned
+check("NET_AGREES_ON_SIGNED_VALUE", not F.net_agrees(-100.0, 100.0),
+      "opposite signs of the same size must NOT agree - the send side follows the exchange sign")
+check("SZ_DECIMALS_COME_FROM_META",
+      F.sz_decimals_from_meta({"universe": [{"name": "CHIP", "szDecimals": 3}]}).get("CHIP") == 3,
+      "without szDecimals every size floors to whole units and leaves a fraction behind")
+_frac = F.wire_size(10.9876, 3)
+check("A_FRACTIONAL_POSITION_FLOORS_CORRECTLY", abs(_frac - 10.987) < 1e-9, "got %r" % (_frac,))
+check("LIVE_REQUIRES_A_TESTNET_ENDPOINT",
+      F.is_testnet("https://api.hyperliquid-testnet.xyz/info") and not F.is_testnet("https://api.hyperliquid.xyz/info"),
+      "a live send must not be possible against the mainnet info endpoint")
+check("AN_UNEXPECTED_RESULT_ABORTS_THE_RUN",
+      "ABORTED_UNEXPECTED_RESULT" in src and "return 5" in src,
+      "ORDER_UNKNOWN and unclassifiable replies must stop the whole run, not be retried")
+check("CANCELS_ARE_VERIFIED_BEFORE_FLATTENING",
+      "STILL RESTING" in src and "refusing to flatten" in src and "return 7" in src,
+      "a surviving resting order can fill into a flattened book")
+check("THE_BOOK_IS_RE_READ_AFTER_THE_CANCELS",
+      "positions after cancels" in src and "frozen book" in src,
+      "the plan must be built from the post-cancel book, not the pre-cancel one")
+check("THE_INTENT_BUILDER_GETS_A_LEDGER",
+      "IntentBuilder(ConfigManager(), _ledger)" in src and "ManualLedger(path=state" in src,
+      "build() dereferences ledger.sleeve_id; None crashes the live path before its first order")
+
 failed = [n for n, ok in results if not ok]
 print("TOTAL=%d FAILED=%d" % (len(results), len(failed)))
 if failed:
