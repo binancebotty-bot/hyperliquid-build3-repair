@@ -366,6 +366,10 @@ def main() -> None:
     _t = getattr(_w, "_thread", None)
     if _t is not None:
         _t.join(timeout=10.0)
+        # A join that times out returns silently, and the block would then measure a seed the writer may
+        # still be overwriting - the same failure, now invisible. Say so instead (Codex 6406962411).
+        assert not _t.is_alive(), ('the state writer did not finish within 10 s, so the cursor seed below '
+                                   'cannot be trusted as the value the poll reads')
     core.ingestor.poll_hyperliquid_fills = lambda w, s, t=None: starts.append((w, s)) or ([], "POLL_NETWORK_ERROR")
     state = c.load_json(c.CORE_RUNTIME_STATE_FILE, {})
     state["last_leader_poll_cursor_ms"] = {LEADER: now - 3 * 86400000, OTHER: now - 3 * 86400000}
