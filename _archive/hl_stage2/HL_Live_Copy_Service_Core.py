@@ -11165,6 +11165,64 @@ class CopyFillMatcher:
         return True
 
 
+
+def append_account_history_point(snapshot: Dict[str, Any], max_points: int = 2000,
+                                 min_gap_sec: float = 60.0) -> bool:
+    """Append one account-value point from a snapshot the engine ALREADY read, so the equity graph stops depending on
+    somebody opening the page.
+
+    The graph had no series on a fresh state dir, and the only sampler was a page render - so a quiet account and a
+    quiet dashboard looked identical, and a busy page drew a different shape from a quiet one. The engine reads
+    clearinghouseState every cycle anyway; this records it. No extra HTTP call, no new process.
+    """
+    try:
+        raw = snapshot.get("raw") if isinstance(snapshot, dict) else None
+        if not isinstance(raw, dict):
+            return False
+        summary = raw.get("crossMarginSummary") or raw.get("marginSummary") or {}
+        account_value = fnum(summary.get("accountValue"), 0.0)
+        if account_value <= 0:
+            return False                       # an unreadable/zero account is not a data point
+        path = AUDIT_DIR / "exchange_account_history.json"
+        history = load_json(path, [])
+        if not isinstance(history, list):
+            history = []
+        now_ms = utc_now_ms()
+        last_ms = 0
+        if history:
+            try:
+                last_ms = int(datetime.fromisoformat(str(history[-1].get("timestamp") or "")).timestamp() * 1000)
+            except Exception:
+                last_ms = 0
+        if last_ms and now_ms - last_ms < int(min_gap_sec * 1000):
+            return False                       # one point per minute is a series, not a flood
+        total_notional = 0.0
+        for ap in raw.get("assetPositions") or []:
+            pos = ap.get("position") if isinstance(ap, dict) else None
+            if isinstance(pos, dict):
+                total_notional += abs(fnum(pos.get("positionValue"), 0.0))
+        history.append({
+            "timestamp": snapshot.get("created_at") or utc_now_iso(),
+            "account_value": account_value,
+            "withdrawable": fnum(raw.get("withdrawable"), 0.0),
+            "unrealized_pnl": None,
+            "open_position_count": len(raw.get("assetPositions") or []),
+            "manual_live_exposure": total_notional,
+            "seeded": False,
+            "source": "engine_cycle",
+        })
+        if len(history) > max_points:
+            history = history[-max_points:]
+        atomic_write_json(path, history)
+        return True
+    except Exception as exc:
+        try:
+            log_error("append_account_history_point_failed", exc)
+        except Exception:
+            pass
+        return False
+
+
 class ExchangeReconciler:
     def __init__(self, ledger: ManualLedger, audit: AuditLogWriter):
         self.ledger = ledger
@@ -11184,6 +11242,8 @@ class ExchangeReconciler:
                 positions_by_coin.update(xyz_positions)
                 snapshot = {"created_at": utc_now_iso(), "created_at_ms": utc_now_ms(), "raw": data, "positions_by_coin": positions_by_coin}
                 atomic_write_json(EXCHANGE_ACCOUNT_SNAPSHOT_FILE, snapshot)
+                # the equity series is recorded from the read the engine just made: no extra call, no extra process
+                append_account_history_point(snapshot)
                 return snapshot, "SNAPSHOT_OK"
         except Exception as exc:
             log_error("fetch_exchange_snapshot", exc)
